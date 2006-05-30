@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 4992 2006-05-30 12:24:51Z edwin $
+   $Id: parse.h 4993 2006-05-30 23:38:32Z edwin $
 
 */
 
@@ -105,90 +105,93 @@
 #define PINC                                                           \
     iptr++; ipc++
 
-#define NEW_LOADCONST_I(v)                                             \
+#define NEW_OP_LOADCONST_I(v)                                          \
     iptr->opc                = ICMD_ICONST;                            \
     iptr->sx.val.i           = (v);                                    \
     iptr->line               = currentline;                            \
     PINC
 
-#define NEW_LOADCONST_L(v)                                             \
+#define NEW_OP_LOADCONST_L(v)                                          \
     iptr->opc                = ICMD_LCONST;                            \
     iptr->sx.val.l           = (v);                                    \
     iptr->line               = currentline;                            \
     PINC
 
-#define NEW_LOADCONST_F(v)                                             \
+#define NEW_OP_LOADCONST_F(v)                                          \
     iptr->opc                = ICMD_FCONST;                            \
     iptr->sx.val.f           = (v);                                    \
     iptr->line               = currentline;                            \
     PINC
 
-#define NEW_LOADCONST_D(v)                                             \
+#define NEW_OP_LOADCONST_D(v)                                          \
     iptr->opc                = ICMD_DCONST;                            \
     iptr->sx.val.d           = (v);                                    \
     iptr->line               = currentline;                            \
     PINC
 
-#define NEW_LOADCONST_NULL()                                           \
+#define NEW_OP_LOADCONST_NULL()                                        \
     iptr->opc                = ICMD_ACONST;                            \
     iptr->sx.val.anyptr      = NULL;                                   \
     iptr->line               = currentline;                            \
     PINC
 
-#define NEW_LOADCONST_STRING(v)                                        \
+#define NEW_OP_LOADCONST_STRING(v)                                     \
     iptr->opc                = ICMD_ACONST;                            \
     iptr->sx.val.stringconst = (v);                                    \
     iptr->line               = currentline;                            \
     PINC
 
-#define NEW_LOADCONST_CLASSINFO(c)                                     \
-    iptr->opc                = ICMD_ACONST;                            \
-    iptr->sx.val.c.cls       = (c);                                    \
-    iptr->flags.bits         = INS_FLAG_CLASS;                         \
-    iptr->line               = currentline;                            \
-    PINC
-
-#define NEW_LOADCONST_CLASSREF(cr)                                     \
-    iptr->opc                = ICMD_ACONST;                            \
-    iptr->sx.val.c.ref       = (cr);                                   \
-    iptr->flags.bits         = INS_FLAG_CLASS | INS_FLAG_UNRESOLVED;   \
-    iptr->line               = currentline;                            \
-    PINC
-
-#define NEW_LOADCONST_BUILTIN_CLASSINFO_OR_CLASSREF(c,cr)              \
+#define NEW_OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, extraflags)      \
     if (c) {                                                           \
         iptr->sx.val.c.cls   = (c);                                    \
-        iptr->flags.bits     = INS_FLAG_CLASS | INS_FLAG_NOCHECK;      \
+        iptr->flags.bits     = INS_FLAG_CLASS | (extraflags);          \
     }                                                                  \
     else {                                                             \
         iptr->sx.val.c.ref   = (cr);                                   \
-        iptr->flags.bits     = INS_FLAG_CLASS | INS_FLAG_NOCHECK       \
-                             | INS_FLAG_UNRESOLVED;                    \
+        iptr->flags.bits     = INS_FLAG_CLASS | INS_FLAG_UNRESOLVED    \
+                             | (extraflags);                           \
     }                                                                  \
     iptr->opc                = ICMD_ACONST;                            \
     iptr->line               = currentline;                            \
     PINC
+
+#define NEW_OP_S3_CLASSINFO_OR_CLASSREF(o, c, cr, extraflags)          \
+    if (c) {                                                           \
+        iptr->sx.s23.s3.c.cls= (c);                                    \
+        iptr->flags.bits     = (extraflags);                           \
+    }                                                                  \
+    else {                                                             \
+        iptr->sx.s23.s3.c.ref= (cr);                                   \
+        iptr->flags.bits     = INS_FLAG_UNRESOLVED | (extraflags);     \
+    }                                                                  \
+    iptr->opc                = (o);                                    \
+    iptr->line               = currentline;                            \
+    PINC
+
+#define NEW_OP_PREPARE(o)                                              \
+    iptr->opc                = (o);                                    \
+    iptr->line               = currentline;
 
 #define NEW_OP(o)                                                      \
     iptr->opc                = (o);                                    \
     iptr->line               = currentline;                            \
     PINC
 
-#define NEW_OP_INSINDEX(o,insindex)                                    \
+#define NEW_OP_INSINDEX(o, iindex)                                     \
     iptr->opc                = (o);                                    \
-    iptr->dst.insindex       = (insindex);                             \
+    iptr->dst.insindex       = (iindex);                               \
     iptr->line               = currentline;                            \
     PINC
 
 #define NEW_OP_LOCALINDEX(o,index)                                     \
     iptr->opc                = (o);                                    \
-    iptr->s1.localindex      = (o1);                                   \
+    iptr->s1.localindex      = (index);                                \
     iptr->line               = currentline;                            \
     PINC
 
 #define NEW_OP_LOCALINDEX_I(o,index,v)                                 \
     iptr->opc                = (o);                                    \
-    iptr->s1.localindex      = (o1);                                   \
+    iptr->s1.localindex      = (index);                                \
     iptr->sx.val.i           = (v);                                    \
     iptr->line               = currentline;                            \
     PINC
@@ -231,6 +234,18 @@
     iptr->flags.bits         = INS_FLAG_NOCHECK;                       \
     iptr->line               = currentline;                            \
     PINC
+
+#define NEW_OP_BUILTIN_ARITHMETIC(opcode, bte)                         \
+    m->isleafmethod          = false;                                  \
+    iptr->opc                = (opcode);                               \
+    iptr->sx.s23.s3.bte      = (bte);                                  \
+    iptr->line               = currentline;                            \
+    PINC
+
+#define NEW_OP_FMIREF_PREPARE(o, fmiref)                               \
+	iptr->opc                = (o);                                    \
+    iptr->sx.s23.s3.fmiref   = (fmiref);                               \
+    iptr->line               = currentline;
 
 /* old macros for intermediate code generation ********************************/
 

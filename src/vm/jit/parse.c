@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4988 2006-05-29 21:48:50Z edwin $
+   $Id: parse.c 4993 2006-05-30 23:38:32Z edwin $
 
 */
 
@@ -161,22 +161,20 @@ bool new_parse(jitdata *jd)
 	int  s_count = 0;           /* stack element counter                    */
 	bool blockend = false;      /* true if basic block end has been reached */
 	bool iswide = false;        /* true if last instruction was a wide      */
-	instruction *iptr;          /* current ptr into instruction array       */
+	new_instruction *iptr;      /* current ptr into instruction array       */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts  */
-
 	constant_classref  *cr;
 	constant_classref  *compr;
 	classinfo          *c;
 	builtintable_entry *bte;
-
-	constant_FMIref   *mr;
-	methoddesc        *md;
-	unresolved_method *um;
-	resolve_result_t   result;
-
-	u2 lineindex = 0;
-	u2 currentline = 0;
-	u2 linepcchange = 0;
+	constant_FMIref    *mr;
+	methoddesc         *md;
+	unresolved_method  *um;
+	resolve_result_t    result;
+	u2                  lineindex = 0;
+	u2                  currentline = 0;
+	u2                  linepcchange = 0;
+	u4                  flags;
 
 	/* get required compiler data */
 
@@ -184,7 +182,7 @@ bool new_parse(jitdata *jd)
 	cd = jd->cd;
 
 	/* allocate instruction array and block index table */
-	
+
 	/* 1 additional for end ipc  */
 	m->basicblockindex = DMNEW(s4, m->jcodelength + 1);
 	memset(m->basicblockindex, 0, sizeof(s4) * (m->jcodelength + 1));
@@ -194,20 +192,20 @@ bool new_parse(jitdata *jd)
 
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
-	
-	iptr = m->instructions = DMNEW(instruction, m->jcodelength + 5);
+
+	iptr = jd->new_instructions = DMNEW(new_instruction, m->jcodelength + 5);
 
 	/* Zero the intermediate instructions array so we don't have any
 	 * invalid pointers in it if we cannot finish analyse_stack(). */
 
-	memset(iptr, 0, sizeof(instruction) * (m->jcodelength + 5));
-	
+	memset(iptr, 0, sizeof(new_instruction) * (m->jcodelength + 5)); /* XXX remove this? */
+
 	/* compute branch targets of exception table */
 
-	if (!fillextable(m, 
- 	  		&(cd->exceptiontable[cd->exceptiontablelength-1]), 
-	  		m->exceptiontable, 
-	  		m->exceptiontablelength, 
+	if (!fillextable(m,
+			&(cd->exceptiontable[cd->exceptiontablelength-1]),
+			m->exceptiontable,
+			m->exceptiontablelength,
 			&b_count))
 	{
 		return false;
@@ -218,7 +216,7 @@ bool new_parse(jitdata *jd)
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		m->isleafmethod = false;
-	}			
+	}
 #endif
 
 	/* scan all java instructions */
@@ -227,15 +225,21 @@ bool new_parse(jitdata *jd)
 
 	if (m->linenumbercount == 0) {
 		lineindex = 0;
-	} 
+	}
 	else {
 		linepcchange = m->linenumbers[0].start_pc;
 	}
 
+	/*** LOOP OVER ALL BYTECODE INSTRUCTIONS **********************************/
+
 	for (p = 0; p < m->jcodelength; p = nextp) {
-	  
+
 		/* mark this position as a valid instruction start */
+
 		instructionstart[p] = 1;
+
+		/* change the current line number, if necessary */
+
 		if (linepcchange == p) {
 			if (m->linenumbercount > lineindex) {
 next_linenumber:
@@ -253,7 +257,9 @@ next_linenumber:
 fetch_opcode:
 		opcode = code_get_u1(p, m);
 
-		m->basicblockindex[p] |= (ipc << 1); /*store intermed cnt*/
+		/* store intermediate instruction count (bit 0 mark block starts) */
+
+		m->basicblockindex[p] |= (ipc << 1);
 
 		/* some compilers put a JAVA_NOP after a blockend instruction */
 
@@ -264,23 +270,31 @@ fetch_opcode:
 			blockend = false;
 		}
 
-		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
+		/* compute next instruction start */
+
+		nextp = p + jcommandsize[opcode];
 
 		CHECK_END_OF_BYTECODE(nextp);
 
-		s_count += stackreq[opcode];      	/* compute stack element count    */
+		/* add stack elements produced by this instruction */
+
+		s_count += stackreq[opcode];
+
+		/* translate this bytecode instruction */
+
 		switch (opcode) {
+
 		case JAVA_NOP:
 			break;
 
-			/* pushing constants onto the stack p */
+		/* pushing constants onto the stack ***********************************/
 
 		case JAVA_BIPUSH:
-			LOADCONST_I(code_get_s1(p+1,m));
+			NEW_OP_LOADCONST_I(code_get_s1(p+1,m));
 			break;
 
 		case JAVA_SIPUSH:
-			LOADCONST_I(code_get_s2(p+1,m));
+			NEW_OP_LOADCONST_I(code_get_s2(p+1,m));
 			break;
 
 		case JAVA_LDC1:
@@ -303,19 +317,19 @@ fetch_opcode:
 
 			switch (m->class->cptags[i]) {
 			case CONSTANT_Integer:
-				LOADCONST_I(((constant_integer *) (m->class->cpinfos[i]))->value);
+				NEW_OP_LOADCONST_I(((constant_integer *) (m->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Long:
-				LOADCONST_L(((constant_long *) (m->class->cpinfos[i]))->value);
+				NEW_OP_LOADCONST_L(((constant_long *) (m->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Float:
-				LOADCONST_F(((constant_float *) (m->class->cpinfos[i]))->value);
+				NEW_OP_LOADCONST_F(((constant_float *) (m->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Double:
-				LOADCONST_D(((constant_double *) (m->class->cpinfos[i]))->value);
+				NEW_OP_LOADCONST_D(((constant_double *) (m->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_String:
-				LOADCONST_A(literalstring_new((utf *) (m->class->cpinfos[i])));
+				NEW_OP_LOADCONST_STRING(literalstring_new((utf *) (m->class->cpinfos[i])));
 				break;
 			case CONSTANT_Class:
 				cr = (constant_classref *) (m->class->cpinfos[i]);
@@ -326,14 +340,8 @@ fetch_opcode:
 
 				/* if not resolved, c == NULL */
 
-				if (c) {
-					iptr->target = (void*) 0x02; /* XXX target used temporarily as flag */
-					LOADCONST_A(c);
-				}
-				else {
-					iptr->target = (void*) 0x03; /* XXX target used temporarily as flag */
-					LOADCONST_A(cr);
-				}
+				NEW_OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, 0 /* no extra flags */);
+
 				break;
 
 #if defined(ENABLE_VERIFIER)
@@ -346,7 +354,7 @@ fetch_opcode:
 			break;
 
 		case JAVA_ACONST_NULL:
-			LOADCONST_A(NULL);
+			NEW_OP_LOADCONST_NULL();
 			break;
 
 		case JAVA_ICONST_M1:
@@ -356,162 +364,160 @@ fetch_opcode:
 		case JAVA_ICONST_3:
 		case JAVA_ICONST_4:
 		case JAVA_ICONST_5:
-			LOADCONST_I(opcode - JAVA_ICONST_0);
+			NEW_OP_LOADCONST_I(opcode - JAVA_ICONST_0);
 			break;
 
 		case JAVA_LCONST_0:
 		case JAVA_LCONST_1:
-			LOADCONST_L(opcode - JAVA_LCONST_0);
+			NEW_OP_LOADCONST_L(opcode - JAVA_LCONST_0);
 			break;
 
 		case JAVA_FCONST_0:
 		case JAVA_FCONST_1:
 		case JAVA_FCONST_2:
-			LOADCONST_F(opcode - JAVA_FCONST_0);
+			NEW_OP_LOADCONST_F(opcode - JAVA_FCONST_0);
 			break;
 
 		case JAVA_DCONST_0:
 		case JAVA_DCONST_1:
-			LOADCONST_D(opcode - JAVA_DCONST_0);
+			NEW_OP_LOADCONST_D(opcode - JAVA_DCONST_0);
 			break;
 
-			/* loading variables onto the stack */
+		/* local variable access instructions *********************************/
 
 		case JAVA_ILOAD:
 		case JAVA_FLOAD:
 		case JAVA_ALOAD:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
-			} 
+			}
 			else {
 				i = code_get_u2(p + 1,m);
 				nextp = p + 3;
 				iswide = false;
 			}
-			OP1LOAD_ONEWORD(opcode, i);
+			NEW_OP_LOAD_ONEWORD(opcode, i);
 			break;
 
 		case JAVA_LLOAD:
 		case JAVA_DLOAD:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
-			} 
+			}
 			else {
 				i = code_get_u2(p + 1,m);
 				nextp = p + 3;
 				iswide = false;
 			}
-			OP1LOAD_TWOWORD(opcode, i);
+			NEW_OP_LOAD_TWOWORD(opcode, i);
 			break;
 
 		case JAVA_ILOAD_0:
 		case JAVA_ILOAD_1:
 		case JAVA_ILOAD_2:
 		case JAVA_ILOAD_3:
-			OP1LOAD_ONEWORD(ICMD_ILOAD, opcode - JAVA_ILOAD_0);
+			NEW_OP_LOAD_ONEWORD(ICMD_ILOAD, opcode - JAVA_ILOAD_0);
 			break;
 
 		case JAVA_LLOAD_0:
 		case JAVA_LLOAD_1:
 		case JAVA_LLOAD_2:
 		case JAVA_LLOAD_3:
-			OP1LOAD_TWOWORD(ICMD_LLOAD, opcode - JAVA_LLOAD_0);
+			NEW_OP_LOAD_TWOWORD(ICMD_LLOAD, opcode - JAVA_LLOAD_0);
 			break;
 
 		case JAVA_FLOAD_0:
 		case JAVA_FLOAD_1:
 		case JAVA_FLOAD_2:
 		case JAVA_FLOAD_3:
-			OP1LOAD_ONEWORD(ICMD_FLOAD, opcode - JAVA_FLOAD_0);
+			NEW_OP_LOAD_ONEWORD(ICMD_FLOAD, opcode - JAVA_FLOAD_0);
 			break;
 
 		case JAVA_DLOAD_0:
 		case JAVA_DLOAD_1:
 		case JAVA_DLOAD_2:
 		case JAVA_DLOAD_3:
-			OP1LOAD_TWOWORD(ICMD_DLOAD, opcode - JAVA_DLOAD_0);
+			NEW_OP_LOAD_TWOWORD(ICMD_DLOAD, opcode - JAVA_DLOAD_0);
 			break;
 
 		case JAVA_ALOAD_0:
 		case JAVA_ALOAD_1:
 		case JAVA_ALOAD_2:
 		case JAVA_ALOAD_3:
-			OP1LOAD_ONEWORD(ICMD_ALOAD, opcode - JAVA_ALOAD_0);
+			NEW_OP_LOAD_ONEWORD(ICMD_ALOAD, opcode - JAVA_ALOAD_0);
 			break;
-
-			/* storing stack values into local variables */
 
 		case JAVA_ISTORE:
 		case JAVA_FSTORE:
 		case JAVA_ASTORE:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
-			} 
+			}
 			else {
 				i = code_get_u2(p + 1,m);
 				iswide = false;
 				nextp = p + 3;
 			}
-			OP1STORE_ONEWORD(opcode, i);
+			NEW_OP_STORE_ONEWORD(opcode, i);
 			break;
 
 		case JAVA_LSTORE:
 		case JAVA_DSTORE:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
-			} 
+			}
 			else {
 				i = code_get_u2(p + 1,m);
 				iswide = false;
 				nextp = p + 3;
 			}
-			OP1STORE_TWOWORD(opcode, i);
+			NEW_OP_STORE_TWOWORD(opcode, i);
 			break;
 
 		case JAVA_ISTORE_0:
 		case JAVA_ISTORE_1:
 		case JAVA_ISTORE_2:
 		case JAVA_ISTORE_3:
-			OP1STORE_ONEWORD(ICMD_ISTORE, opcode - JAVA_ISTORE_0);
+			NEW_OP_STORE_ONEWORD(ICMD_ISTORE, opcode - JAVA_ISTORE_0);
 			break;
 
 		case JAVA_LSTORE_0:
 		case JAVA_LSTORE_1:
 		case JAVA_LSTORE_2:
 		case JAVA_LSTORE_3:
-			OP1STORE_TWOWORD(ICMD_LSTORE, opcode - JAVA_LSTORE_0);
+			NEW_OP_STORE_TWOWORD(ICMD_LSTORE, opcode - JAVA_LSTORE_0);
 			break;
 
 		case JAVA_FSTORE_0:
 		case JAVA_FSTORE_1:
 		case JAVA_FSTORE_2:
 		case JAVA_FSTORE_3:
-			OP1STORE_ONEWORD(ICMD_FSTORE, opcode - JAVA_FSTORE_0);
+			NEW_OP_STORE_ONEWORD(ICMD_FSTORE, opcode - JAVA_FSTORE_0);
 			break;
 
 		case JAVA_DSTORE_0:
 		case JAVA_DSTORE_1:
 		case JAVA_DSTORE_2:
 		case JAVA_DSTORE_3:
-			OP1STORE_TWOWORD(ICMD_DSTORE, opcode - JAVA_DSTORE_0);
+			NEW_OP_STORE_TWOWORD(ICMD_DSTORE, opcode - JAVA_DSTORE_0);
 			break;
 
 		case JAVA_ASTORE_0:
 		case JAVA_ASTORE_1:
 		case JAVA_ASTORE_2:
 		case JAVA_ASTORE_3:
-			OP1STORE_ONEWORD(ICMD_ASTORE, opcode - JAVA_ASTORE_0);
+			NEW_OP_STORE_ONEWORD(ICMD_ASTORE, opcode - JAVA_ASTORE_0);
 			break;
 
 		case JAVA_IINC:
 			{
 				int v;
-				
+
 				if (!iswide) {
 					i = code_get_u1(p + 1,m);
 					v = code_get_s1(p + 2,m);
 
-				} 
+				}
 				else {
 					i = code_get_u2(p + 1,m);
 					v = code_get_s2(p + 3,m);
@@ -519,11 +525,11 @@ fetch_opcode:
 					nextp = p + 5;
 				}
 				INDEX_ONEWORD(i);
-				OP2I(opcode, i, v);
+				NEW_OP_LOCALINDEX_I(opcode, i, v);
 			}
 			break;
 
-			/* wider index for loading, storing and incrementing */
+		/* wider index for loading, storing and incrementing ******************/
 
 		case JAVA_WIDE:
 			iswide = true;
@@ -565,7 +571,7 @@ fetch_opcode:
 				return false;
 #endif
 			}
-			BUILTIN(bte, true, NULL, currentline);
+			NEW_OP_BUILTIN_CHECK_EXCEPTION(bte);
 			break;
 
 		case JAVA_ANEWARRAY:
@@ -580,9 +586,9 @@ fetch_opcode:
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
-			LOADCONST_A_BUILTIN(c, cr);
+			NEW_OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
 			bte = builtintable_get_internal(BUILTIN_newarray);
-			BUILTIN(bte, true, NULL, currentline);
+			NEW_OP_BUILTIN_CHECK_EXCEPTION(bte);
 			s_count++;
 			break;
 
@@ -600,9 +606,13 @@ fetch_opcode:
 					return false;
 
 				/* if unresolved, c == NULL */
-				OP2AT(opcode, v, c, cr, currentline);
+
+				iptr->s1.argcount = v; /* XXX */
+				NEW_OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, 0 /* flags */);
 			}
 			break;
+
+		/* control flow instructions ******************************************/
 
 		case JAVA_IFEQ:
 		case JAVA_IFLT:
@@ -626,7 +636,7 @@ fetch_opcode:
 			CHECK_BYTECODE_INDEX(i);
 			block_insert(i);
 			blockend = true;
-			OP1(opcode, i);
+			NEW_OP_INSINDEX(opcode, i);
 			break;
 
 		case JAVA_GOTO_W:
@@ -635,21 +645,21 @@ fetch_opcode:
 			CHECK_BYTECODE_INDEX(i);
 			block_insert(i);
 			blockend = true;
-			OP1(opcode, i);
+			NEW_OP_INSINDEX(opcode, i);
 			break;
 
 		case JAVA_RET:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
-			} 
+			}
 			else {
 				i = code_get_u2(p + 1,m);
 				nextp = p + 3;
 				iswide = false;
 			}
 			blockend = true;
-				
-			OP1LOAD_ONEWORD(opcode, i);
+
+			NEW_OP_LOAD_ONEWORD(opcode, i);
 			break;
 
 		case JAVA_IRETURN:
@@ -659,24 +669,20 @@ fetch_opcode:
 		case JAVA_ARETURN:
 		case JAVA_RETURN:
 			blockend = true;
-			/* zero val.a so no patcher is inserted */
-			/* the type checker may set this later  */
-			iptr->val.a = NULL;
-			OP(opcode);
+			/* XXX ARETURN will need a flag in the typechecker */
+			NEW_OP(opcode);
 			break;
 
 		case JAVA_ATHROW:
 			blockend = true;
-			/* zero val.a so no patcher is inserted */
-			/* the type checker may set this later  */
-			iptr->val.a = NULL;
-			OP(opcode);
+			/* XXX ATHROW will need a flag in the typechecker */
+			NEW_OP(opcode);
 			break;
-				
+
 
 		/* table jumps ********************************************************/
 
-		case JAVA_LOOKUPSWITCH:
+		case JAVA_LOOKUPSWITCH: /* XXX */
 			{
 				s4 num, j;
 				s4 *tablep;
@@ -691,7 +697,9 @@ fetch_opcode:
 
 				tablep = (s4 *) (m->jcode + nextp);
 
-				OP2A(opcode, 0, tablep, currentline);
+				NEW_OP_PREPARE(opcode);
+				iptr->dst.lookuptable = (void**) tablep; /* XXX */
+				PINC;
 
 				/* default target */
 
@@ -721,14 +729,13 @@ fetch_opcode:
 
 #if defined(ENABLE_VERIFIER)
 					/* check if the lookup table is sorted correctly */
-					
+
 					if (i && (j <= prevvalue)) {
 						*exceptionptr = new_verifyerror(m, "Unsorted lookup switch");
 						return false;
 					}
 					prevvalue = j;
 #endif
-
 					/* target */
 
 					j = p + code_get_s4(nextp,m);
@@ -743,7 +750,7 @@ fetch_opcode:
 			}
 
 
-		case JAVA_TABLESWITCH:
+		case JAVA_TABLESWITCH: /*XXX*/
 			{
 				s4 num, j;
 				s4 *tablep;
@@ -755,7 +762,9 @@ fetch_opcode:
 
 				tablep = (s4 *) (m->jcode + nextp);
 
-				OP2A(opcode, 0, tablep, currentline);
+				NEW_OP_PREPARE(opcode);
+				iptr->dst.targettable = (basicblock **) tablep; /* XXX */
+				PINC;
 
 				/* default target */
 
@@ -789,7 +798,6 @@ fetch_opcode:
 					return false;
 				}
 #endif
-
 				CHECK_END_OF_BYTECODE(nextp + 4 * (num + 1));
 
 				for (i = 0; i <= num; i++) {
@@ -808,7 +816,7 @@ fetch_opcode:
 		/* load and store of object fields ************************************/
 
 		case JAVA_AASTORE:
-			OP(opcode);
+			NEW_OP(opcode);
 			m->isleafmethod = false;
 			break;
 
@@ -821,55 +829,46 @@ fetch_opcode:
 				unresolved_field *uf;
 
 				i = code_get_u2(p + 1, m);
-				fr = class_getconstant(m->class, i,
-									   CONSTANT_Fieldref);
+				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
 				if (!fr)
 					return false;
 
-				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
+				NEW_OP_PREPARE(opcode);
+				iptr->sx.s23.s3.fmiref = fr;
 
 				/* only with -noverify, otherwise the typechecker does this */
 
 #if defined(ENABLE_VERIFIER)
 				if (!opt_verify) {
 #endif
-					result = resolve_field_lazy(iptr,NULL,m);
+					result = resolve_field_lazy(/* XXX */(instruction *)iptr, NULL, m);
 					if (result == resolveFailed)
 						return false;
 
 					if (result != resolveSucceeded) {
-						uf = create_unresolved_field(m->class,
-													 m, iptr);
+						uf = create_unresolved_field(m->class, m, /* XXX */(instruction *)iptr);
 
 						if (!uf)
 							return false;
 
 						/* store the unresolved_field pointer */
 
-						/* XXX this will be changed */
-						iptr->val.a = uf;
-						iptr->target = (void*) 0x01; /* XXX target temporarily used as flag */
-					}
-					else {
-						iptr->target = NULL;
+						iptr->sx.s23.s3.uf = uf;
+						iptr->flags.bits = INS_FLAG_UNRESOLVED;
 					}
 #if defined(ENABLE_VERIFIER)
-				}
-				else {
-					iptr->target = NULL;
 				}
 #endif
 				PINC;
 			}
 			break;
-				
+
 
 		/* method invocation **************************************************/
 
 		case JAVA_INVOKESTATIC:
 			i = code_get_u2(p + 1, m);
-			mr = class_getconstant(m->class, i,
-					CONSTANT_Methodref);
+			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 			if (!mr)
 				return false;
 
@@ -883,7 +882,7 @@ fetch_opcode:
 
 		case JAVA_INVOKEINTERFACE:
 			i = code_get_u2(p + 1, m);
-				
+
 			mr = class_getconstant(m->class, i,
 					CONSTANT_InterfaceMethodref);
 
@@ -892,8 +891,7 @@ fetch_opcode:
 		case JAVA_INVOKESPECIAL:
 		case JAVA_INVOKEVIRTUAL:
 			i = code_get_u2(p + 1, m);
-			mr = class_getconstant(m->class, i,
-					CONSTANT_Methodref);
+			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 
 invoke_nonstatic_method:
 			if (!mr)
@@ -908,44 +906,36 @@ invoke_nonstatic_method:
 invoke_method:
 			m->isleafmethod = false;
 
-			OP2A_NOINC(opcode, 0, mr, currentline);
+			NEW_OP_PREPARE(opcode);
+			iptr->sx.s23.s3.fmiref = mr;
 
 			/* only with -noverify, otherwise the typechecker does this */
 
 #if defined(ENABLE_VERIFIER)
 			if (!opt_verify) {
 #endif
-				result = resolve_method_lazy(iptr,NULL,m);
+				result = resolve_method_lazy(/* XXX */(instruction *)iptr, NULL, m);
 				if (result == resolveFailed)
 					return false;
 
 				if (result != resolveSucceeded) {
-					um = create_unresolved_method(m->class,
-							m, iptr);
+					um = create_unresolved_method(m->class, m, /* XXX */(instruction *)iptr);
 
 					if (!um)
 						return false;
 
 					/* store the unresolved_method pointer */
 
-					/* XXX this will be changed */
-					iptr->val.a = um;
-					iptr->target = (void*) 0x01; /* XXX target temporarily used as flag */
-				}
-				else {
-					/* the method could be resolved */
-					iptr->target = NULL;
+					iptr->sx.s23.s3.um = um;
+					iptr->flags.bits = INS_FLAG_UNRESOLVED;
 				}
 #if defined(ENABLE_VERIFIER)
-			}
-			else {
-				iptr->target = NULL;
 			}
 #endif
 			PINC;
 			break;
 
-		/* miscellaneous object operations ************************************/
+		/* instructions taking class arguments ********************************/
 
 		case JAVA_NEW:
 			i = code_get_u2(p + 1, m);
@@ -953,13 +943,12 @@ invoke_method:
 			if (!cr)
 				return false;
 
-			if (!resolve_classref(m, cr, resolveLazy, true, true,
-								  &c))
+			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
-			LOADCONST_A_BUILTIN(c, cr);
+			NEW_OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
 			bte = builtintable_get_internal(BUILTIN_new);
-			BUILTIN(bte, true, NULL, currentline);
+			NEW_OP_BUILTIN_CHECK_EXCEPTION(bte);
 			s_count++;
 			break;
 
@@ -969,20 +958,19 @@ invoke_method:
 			if (!cr)
 				return false;
 
-			if (!resolve_classref(m, cr, resolveLazy, true,
-								  true, &c))
+			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
-				OP2AT(opcode, 0, c, cr, currentline);
+				flags = INS_FLAG_ARRAY;
 				m->isleafmethod = false;
-
-			} 
+			}
 			else {
 				/* object type cast-check */
-				OP2AT(opcode, 1, c, cr, currentline);
+				flags = 0;
 			}
+			NEW_OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, flags);
 			break;
 
 		case JAVA_INSTANCEOF:
@@ -996,30 +984,31 @@ invoke_method:
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
-				LOADCONST_A_BUILTIN(c, cr);
+				NEW_OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
 				bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
-				BUILTIN(bte, false, NULL, currentline);
+				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
 				s_count++;
-
-			} 
+			}
 			else {
 				/* object type cast-check */
-				OP2AT(opcode, 1, c, cr, currentline);
+				NEW_OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, 0 /* flags*/);
 			}
 			break;
+
+		/* synchronization instructions ***************************************/
 
 		case JAVA_MONITORENTER:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
-				OP(ICMD_CHECKNULL);
+				NEW_OP(ICMD_CHECKNULL);
 				bte = builtintable_get_internal(BUILTIN_monitorenter);
-				BUILTIN(bte, false, NULL, currentline);
-			} 
+				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
+			}
 			else
 #endif
 				{
-					OP(ICMD_CHECKNULL);
-					OP(ICMD_POP);
+					NEW_OP(ICMD_CHECKNULL);
+					NEW_OP(ICMD_POP);
 				}
 			break;
 
@@ -1027,22 +1016,21 @@ invoke_method:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
 				bte = builtintable_get_internal(BUILTIN_monitorexit);
-				BUILTIN(bte, false, NULL, currentline);
-			} 
+				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
+			}
 			else
 #endif
 				{
-					OP(ICMD_POP);
+					NEW_OP(ICMD_POP);
 				}
 			break;
 
-		/* any other basic operation ******************************************/
+		/* arithmetic instructions they may become builtin functions **********/
 
 		case JAVA_IDIV:
 #if !SUPPORT_DIVISION
 			bte = builtintable_get_internal(BUILTIN_idiv);
-			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			m->isleafmethod = false;
+			NEW_OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
 			OP(opcode);
 #endif
@@ -1051,8 +1039,7 @@ invoke_method:
 		case JAVA_IREM:
 #if !SUPPORT_DIVISION
 			bte = builtintable_get_internal(BUILTIN_irem);
-			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			m->isleafmethod = false;
+			NEW_OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
 			OP(opcode);
 #endif
@@ -1061,8 +1048,7 @@ invoke_method:
 		case JAVA_LDIV:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_ldiv);
-			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			m->isleafmethod = false;
+			NEW_OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
 			OP(opcode);
 #endif
@@ -1071,8 +1057,7 @@ invoke_method:
 		case JAVA_LREM:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_lrem);
-			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			m->isleafmethod = false;
+			NEW_OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
 			OP(opcode);
 #endif
@@ -1080,19 +1065,19 @@ invoke_method:
 
 		case JAVA_FREM:
 #if defined(__I386__)
-			OP(opcode);
+			NEW_OP(opcode);
 #else
 			bte = builtintable_get_internal(BUILTIN_frem);
-			BUILTIN(bte, false, NULL, currentline);
+			NEW_OP_BUILTIN_NO_EXCEPTION(bte);
 #endif
 			break;
 
 		case JAVA_DREM:
 #if defined(__I386__)
-			OP(opcode);
+			NEW_OP(opcode);
 #else
 			bte = builtintable_get_internal(BUILTIN_drem);
-			BUILTIN(bte, false, NULL, currentline);
+			NEW_OP_BUILTIN_NO_EXCEPTION(bte);
 #endif
 			break;
 
@@ -1100,53 +1085,55 @@ invoke_method:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_f2i);
-				BUILTIN(bte, false, NULL, currentline);
-			} 
+				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
+			}
 			else
 #endif
-				{
-					OP(opcode);
-				}
+			{
+				NEW_OP(opcode);
+			}
 			break;
 
 		case JAVA_F2L:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_f2l);
-				BUILTIN(bte, false, NULL, currentline);
-			} 
-			else 
+				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
+			}
+			else
 #endif
-				{
-					OP(opcode);
-				}
+			{
+				NEW_OP(opcode);
+			}
 			break;
 
 		case JAVA_D2I:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_d2i);
-				BUILTIN(bte, false, NULL, currentline);
-			} 
+				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
+			}
 			else
 #endif
-				{
-					OP(opcode);
-				}
+			{
+				NEW_OP(opcode);
+			}
 			break;
 
 		case JAVA_D2L:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_d2l);
-				BUILTIN(bte, false, NULL, currentline);
-			} 
+				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
+			}
 			else
 #endif
-				{
-					OP(opcode);
-				}
+			{
+				NEW_OP(opcode);
+			}
 			break;
+
+		/* invalid opcodes ****************************************************/
 
 			/* check for invalid opcodes if the verifier is enabled */
 #if defined(ENABLE_VERIFIER)
@@ -1216,11 +1203,13 @@ invoke_method:
 			break;
 #endif /* defined(ENABLE_VERIFIER) */
 
+		/* opcodes that don't require translation *****************************/
+
 		default:
 			/* straight-forward translation to ICMD */
-			OP(opcode);
+			NEW_OP(opcode);
 			break;
-				
+
 		} /* end switch */
 
 #if defined(ENABLE_VERIFIER)
@@ -1233,6 +1222,8 @@ invoke_method:
 #endif /* defined(ENABLE_VERIFIER) */
 
 	} /* end for */
+
+	/*** END OF LOOP **********************************************************/
 
 #if defined(ENABLE_VERIFIER)
 	if (p != m->jcodelength) {
@@ -1269,7 +1260,7 @@ invoke_method:
 
 		b_count = 0;
 		m->c_debug_nr = 0;
-	
+
 		/* additional block if target 0 is not first intermediate instruction */
 
 		if (!m->basicblockindex[0] || (m->basicblockindex[0] > 1)) {
@@ -1285,7 +1276,7 @@ invoke_method:
 
 		/* allocate blocks */
 
-  		for (p = 0; p < m->jcodelength; p++) { 
+		for (p = 0; p < m->jcodelength; p++) {
 			if (m->basicblockindex[p] & 1) {
 				/* Check if this block starts at the beginning of an          */
 				/* instruction.                                               */
@@ -1324,7 +1315,7 @@ invoke_method:
 		/* allocate additional block at end */
 
 		BASICBLOCK_INIT(bptr,m);
-		
+
 		bptr->instack = bptr->outstack = NULL;
 		bptr->indepth = bptr->outdepth = 0;
 		bptr->iinstr = NULL;
@@ -1336,7 +1327,7 @@ invoke_method:
 		if (cd->exceptiontablelength > 0) {
 			cd->exceptiontable[cd->exceptiontablelength - 1].down = NULL;
 		}
-		
+
 		for (i = 0; i < cd->exceptiontablelength; ++i) {
 			p = cd->exceptiontable[i].startpc;
 			cd->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
@@ -1383,7 +1374,7 @@ throw_illegal_local_variable_number:
 	*exceptionptr =
 		new_verifyerror(m, "Illegal local variable number");
 	return false;
-		
+
 #endif /* ENABLE_VERIFIER */
 }
 

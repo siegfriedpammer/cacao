@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4992 2006-05-30 12:24:51Z edwin $
+   $Id: jit.h 4993 2006-05-30 23:38:32Z edwin $
 
 */
 
@@ -220,6 +220,11 @@ typedef union {
 } dst_operand_t;
 
 /*** flags (32 bits) ***/
+
+#define INS_FLAG_UNRESOLVED    0x01
+#define INS_FLAG_CLASS         0x02
+#define INS_FLAG_ARRAY         0x04
+#define INS_FLAG_NOCHECK       0x08
 
 typedef union {
 	u4                  bits;
