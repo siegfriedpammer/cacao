@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4991 2006-05-29 23:59:19Z edwin $
+   $Id: jit.h 4992 2006-05-30 12:24:51Z edwin $
 
 */
 
@@ -184,15 +184,16 @@ typedef union {
 /*** s3 operand ***/
 
 typedef union {
-	stackptr				var;
-	ptrint					constval;
-	classref_or_classinfo	c;
-	constant_FMIref		   *fmiref;
-	unresolved_method	   *um;
-	unresolved_field	   *uf;
-	insinfo_inline		   *inlineinfo;
-	s4						tablehigh;
-	basicblock			   *lookupdefault;
+    stackptr                   var;
+    ptrint                     constval;
+    classref_or_classinfo      c;
+    constant_FMIref           *fmiref;
+    unresolved_method         *um;
+    unresolved_field          *uf;
+    insinfo_inline            *inlineinfo;
+    s4                         tablehigh;
+    basicblock                *lookupdefault;
+    struct builtintable_entry *bte;
 } s3_operant_t;
 
 /*** val operand ***/
@@ -216,7 +217,6 @@ typedef union {
 	basicblock			     **targettable;
 	void				     **lookuptable;
 	s4						   insindex; /* used between parse and stack */
-	struct builtintable_entry *bte;
 } dst_operand_t;
 
 /*** flags (32 bits) ***/

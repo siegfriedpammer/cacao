@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 4990 2006-05-29 23:47:07Z edwin $
+   $Id: parse.h 4992 2006-05-30 12:24:51Z edwin $
 
 */
 
@@ -220,14 +220,14 @@
 #define NEW_OP_BUILTIN_CHECK_EXCEPTION(bte)                            \
     m->isleafmethod          = false;                                  \
     iptr->opc                = ICMD_BUILTIN;                           \
-    iptr->dst.bte            = (bte);                                  \
+    iptr->sx.s23.s3.bte      = (bte);                                  \
     iptr->line               = currentline;                            \
     PINC
 
 #define NEW_OP_BUILTIN_NO_EXCEPTION(bte)                               \
     m->isleafmethod          = false;                                  \
     iptr->opc                = ICMD_BUILTIN;                           \
-    iptr->dst.bte            = (bte);                                  \
+    iptr->sx.s23.s3.bte      = (bte);                                  \
     iptr->flags.bits         = INS_FLAG_NOCHECK;                       \
     iptr->line               = currentline;                            \
     PINC
