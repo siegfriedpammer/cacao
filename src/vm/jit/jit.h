@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4997 2006-05-31 19:25:46Z edwin $
+   $Id: jit.h 5002 2006-05-31 22:56:17Z edwin $
 
 */
 
@@ -161,6 +161,20 @@ struct stackelement {
 
 /**************************** instruction structure ***************************/
 
+/* branch_target_t: used in TABLESWITCH tables */
+
+typedef union {
+	s4                         insindex; /* used between parse and stack      */
+	basicblock                *block;    /* used from stack analysis onwards  */
+} branch_target_t;
+
+/* lookup_target_t: used in LOOKUPSWITCH tables */
+
+typedef struct {
+	s4                         value;    /* case value                        */
+	branch_target_t            target;   /* branch target, see above          */
+} lookup_target_t;
+
 /*** s1 operand ***/
 
 typedef union {
@@ -192,7 +206,7 @@ typedef union {
     unresolved_field          *uf;
     insinfo_inline            *inlineinfo;
     s4                         tablehigh;
-    basicblock                *lookupdefault;
+    branch_target_t            lookupdefault;
     struct builtintable_entry *bte;
 } s3_operand_t;
 
@@ -213,10 +227,10 @@ typedef union {
 typedef union {
 	stackptr				   var;
 	s4						   localindex;
-	basicblock			      *target;
-	basicblock			     **targettable;
-	void				     **lookuptable;
-	s4						   insindex; /* used between parse and stack */
+	basicblock			      *block;       /* valid after stack analysis     */
+	branch_target_t		      *table;       /* for TABLESWITCH                */
+	lookup_target_t	          *lookup;      /* for LOOKUPSWITCH               */
+	s4						   insindex;    /* used between parse and stack   */
 } dst_operand_t;
 
 /*** flags (32 bits) ***/
