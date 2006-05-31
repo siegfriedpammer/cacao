@@ -41,6 +41,24 @@
 #include "vm/jit/jit.h"
 
 
+/* constant range macros ******************************************************/
+
+#if SIZEOF_VOID_P == 8
+
+# define IS_IMM8(c) \
+    (((s8) (c) >= -128) && ((s8) (c) <= 127))
+
+# define IS_IMM32(c) \
+    (((s8) (c) >= (-2147483647-1)) && ((s8) (c) <= 2147483647))
+
+#else
+
+# define IS_IMM8(c) \
+    (((s4) (c) >= -128) && ((s4) (c) <= 127))
+
+#endif
+
+
 /* code generation functions **************************************************/
 
 s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);

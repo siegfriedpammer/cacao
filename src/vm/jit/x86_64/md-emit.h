@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 4994 2006-05-31 12:33:40Z twisti $
+   $Id: md-emit.h 4995 2006-05-31 13:10:49Z twisti $
 
 */
 
@@ -106,14 +106,6 @@ typedef union {
 #define CC_NG        0x0e
 #define CC_G         0x0f
 #define CC_NLE       0x0f
-
-
-#define IS_IMM8(imm) \
-    (((long) (imm) >= -128) && ((long) (imm) <= 127))
-
-
-#define IS_IMM32(imm) \
-    (((long) (imm) >= (-2147483647-1)) && ((long) (imm) <= 2147483647))
 
 
 /* modrm and stuff */
