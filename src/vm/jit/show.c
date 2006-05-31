@@ -66,6 +66,7 @@ static java_objectheader *show_global_lock;
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 bool show_init(void)
 {
 #if defined(ENABLE_THREADS)
@@ -80,6 +81,7 @@ bool show_init(void)
 
 	return true;
 }
+#endif
 
 
 /* show_print_stack ************************************************************
