@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5002 2006-05-31 22:56:17Z edwin $
+   $Id: jit.h 5004 2006-05-31 23:18:30Z edwin $
 
 */
 
@@ -164,35 +164,35 @@ struct stackelement {
 /* branch_target_t: used in TABLESWITCH tables */
 
 typedef union {
-	s4                         insindex; /* used between parse and stack      */
-	basicblock                *block;    /* used from stack analysis onwards  */
+    s4                         insindex; /* used between parse and stack      */
+    basicblock                *block;    /* used from stack analysis onwards  */
 } branch_target_t;
 
 /* lookup_target_t: used in LOOKUPSWITCH tables */
 
 typedef struct {
-	s4                         value;    /* case value                        */
-	branch_target_t            target;   /* branch target, see above          */
+    s4                         value;    /* case value                        */
+    branch_target_t            target;   /* branch target, see above          */
 } lookup_target_t;
 
 /*** s1 operand ***/
 
 typedef union {
-	stackptr				var;
-	s4						localindex;
-	s4						argcount;
+    stackptr                   var;
+    s4                         localindex;
+    s4                         argcount;
 } s1_operand_t;
 
 /*** s2 operand ***/
 
 typedef union {
-	stackptr				var;
-	stackptr			   *args;
-	ptrint					constval;
-	classref_or_classinfo	c;
-	unresolved_class	   *uc;
-	s4						tablelow;
-	u4						lookupcount;
+    stackptr                   var;
+    stackptr                  *args;
+    classref_or_classinfo      c;
+    unresolved_class          *uc;
+    ptrint                     constval;         /* for PUT*CONST             */
+    s4                         tablelow;         /* for TABLESWITCH           */
+    u4                         lookupcount;      /* for LOOKUPSWITCH          */
 } s2_operand_t;
 
 /*** s3 operand ***/
@@ -204,67 +204,67 @@ typedef union {
     constant_FMIref           *fmiref;
     unresolved_method         *um;
     unresolved_field          *uf;
-    insinfo_inline            *inlineinfo;
-    s4                         tablehigh;
-    branch_target_t            lookupdefault;
+    insinfo_inline            *inlineinfo;       /* for INLINE_START/END      */
+    s4                         tablehigh;        /* for TABLESWITCH           */
+    branch_target_t            lookupdefault;    /* for LOOKUPSWITCH          */
     struct builtintable_entry *bte;
 } s3_operand_t;
 
 /*** val operand ***/
 
 typedef union {
-	s4						i;
-	s8						l;
-	float					f;
-	double					d;
-	void				   *anyptr;
-	java_objectheader	   *stringconst;
-	classref_or_classinfo	c;
+    s4                        i;
+    s8                        l;
+    float                     f;
+    double                    d;
+    void                     *anyptr;
+    java_objectheader        *stringconst;       /* for ACONST with string    */
+    classref_or_classinfo     c;                 /* for ACONST with class     */
 } val_operand_t;
 
 /*** dst operand ***/
 
 typedef union {
-	stackptr				   var;
-	s4						   localindex;
-	basicblock			      *block;       /* valid after stack analysis     */
-	branch_target_t		      *table;       /* for TABLESWITCH                */
-	lookup_target_t	          *lookup;      /* for LOOKUPSWITCH               */
-	s4						   insindex;    /* used between parse and stack   */
+    stackptr                   var;
+    s4                         localindex;
+    basicblock                *block;       /* valid after stack analysis     */
+    branch_target_t           *table;       /* for TABLESWITCH                */
+    lookup_target_t           *lookup;      /* for LOOKUPSWITCH               */
+    s4                         insindex;    /* used between parse and stack   */
 } dst_operand_t;
 
 /*** flags (32 bits) ***/
 
-#define INS_FLAG_UNRESOLVED    0x01
-#define INS_FLAG_CLASS         0x02
-#define INS_FLAG_ARRAY         0x04
+#define INS_FLAG_UNRESOLVED    0x01    /* contains unresolved field/meth/class*/
+#define INS_FLAG_CLASS         0x02    /* for ACONST with class               */
+#define INS_FLAG_ARRAY         0x04    /* for CHECKCAST/INSTANCEOF with array */
 #define INS_FLAG_NOCHECK       0x08
 
 typedef union {
-	u4                  bits;
-	struct {         /* fields: */
+    u4                  bits;
+    struct {         /* fields: */
 
-		union {
-			u1				type;         /* TYPE_* constant for fields */
-			u1				argcount;     /* XXX does u1 suffice?       */
-										  /* for MULTIANEWARRAY and     */
-										  /* INVOKE*                    */
-		} f; /* XXX these could be made smaller */
-		/* only MULTIANEWARRAY needs the argcount */
+        union {
+            u1              type;         /* TYPE_* constant for fields       */
+            u1              argcount;     /* XXX does u1 suffice?             */
+                                          /* for MULTIANEWARRAY and           */
+                                          /* INVOKE*                          */
+        } f; /* XXX these could be made smaller */
+        /* only MULTIANEWARRAY needs the argcount */
 
-		bool				predicated:1;
-		int					condition :3;
-		bool				unresolved:1; /* field/method is unresolved */
-		bool				nocheck   :1; /* don't check array access   */
-		bool				branch	  :1; /* branch to dst.target       */
+        bool                predicated:1;
+        int                 condition :3;
+        bool                unresolved:1; /* field/method is unresolved       */
+        bool                nocheck   :1; /* don't check array access         */
+        bool                branch    :1; /* branch to dst.target             */
 
-		int					tmpreg1	  :5;
-		int					tmpreg2	  :5;
-		int					tmpreg3	  :5;
+        int                 tmpreg1   :5;
+        int                 tmpreg2   :5;
+        int                 tmpreg3   :5;
 
-		int					unused    :2;
+        int                 unused    :2;
 
-	} fields;
+    } fields;
 } flags_operand_t;
 
 /*** instruction ***/
@@ -272,22 +272,22 @@ typedef union {
 /* The new instruction format for the intermediate representation: */
 
 struct new_instruction {
-	u2						opc;	/* opcode       */
-	u2						line;	/* line number  */
+    u2                      opc;    /* opcode       */
+    u2                      line;   /* line number  */
 #if SIZEOF_VOID_P == 8
-	flags_operand_t			flags;	/* 4 bytes		*/
+    flags_operand_t         flags;  /* 4 bytes      */
 #endif
-	s1_operand_t			s1;		/* pointer-size */
-	union {
-		struct {
-			s2_operand_t	s2;		/* pointer-size */
-			s3_operand_t	s3;		/* pointer-size */
-		} s23;                      /*     XOR      */
-		val_operand_t		val;	/*  long-size	*/
-	} sx;
-	dst_operand_t			dst;	/* pointer-size */
+    s1_operand_t            s1;     /* pointer-size */
+    union {
+        struct {
+            s2_operand_t    s2;     /* pointer-size */
+            s3_operand_t    s3;     /* pointer-size */
+        } s23;                      /*     XOR      */
+        val_operand_t       val;    /*  long-size   */
+    } sx;
+    dst_operand_t           dst;    /* pointer-size */
 #if SIZEOF_VOID_P == 4
-	flags_operand_t			flags;	/* 4 bytes      */
+    flags_operand_t         flags;  /* 4 bytes      */
 #endif
 };
 
