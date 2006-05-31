@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4959 2006-05-26 12:09:29Z edwin $
+   $Id: typecheck.c 5000 2006-05-31 21:31:29Z edwin $
 
 */
 
@@ -179,9 +179,10 @@ of the typeinfo of the stack slot.
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/stack.h"
+#include "vm/jit/show.h"
 #include "vm/access.h"
 #include "vm/resolve.h"
+#include "vm/exceptions.h"
 
 
 /****************************************************************************/

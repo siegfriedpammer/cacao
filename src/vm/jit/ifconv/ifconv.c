@@ -43,7 +43,7 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/stack.h"
+#include "vm/jit/show.h"
 
 
 /* patterns for a total number of 3 instructions ******************************/

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4998 2006-05-31 20:28:27Z edwin $
+   $Id: inline.c 5000 2006-05-31 21:31:29Z edwin $
 
 */
 
@@ -56,6 +56,7 @@
 #include "vm/initialize.h"
 #include "vm/method.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/show.h"
 
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"

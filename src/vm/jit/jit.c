@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4998 2006-05-31 20:28:27Z edwin $
+   $Id: jit.c 5000 2006-05-31 21:31:29Z edwin $
 
 */
 
@@ -57,6 +57,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/show.h"
 
 
 #include "vm/jit/parse.h"
