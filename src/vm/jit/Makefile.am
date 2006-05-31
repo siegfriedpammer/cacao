@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 4773 2006-04-14 11:20:38Z twisti $
+## $Id: Makefile.am 4998 2006-05-31 20:28:27Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -126,6 +126,8 @@ libjit_la_SOURCES = \
 	reg.h \
 	replace.c \
 	replace.h \
+	show.c \
+	show.h \
 	stack.c \
 	stack.h \
 	stacktrace.c \

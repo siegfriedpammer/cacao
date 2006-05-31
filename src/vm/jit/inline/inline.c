@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4928 2006-05-15 23:22:48Z edwin $
+   $Id: inline.c 4998 2006-05-31 20:28:27Z edwin $
 
 */
 
@@ -299,7 +299,7 @@ return_r:
 #endif
 
 #if 0
-	stack_show_method(jd);
+	show_method(jd);
 #endif
 
 	return r;
@@ -894,7 +894,7 @@ static void rewrite_method(inline_node *iln)
 		while (--len >= 0) {
 			o_dst = o_iptr->dst;
 
-			DOLOG( printf("o_curstack = "); debug_dump_stack(o_curstack); stack_show_icmd(o_iptr,false); printf(", dst = "); debug_dump_stack(o_dst); printf("\n") );
+			DOLOG( printf("o_curstack = "); debug_dump_stack(o_curstack); show_icmd(o_iptr,false); printf(", dst = "); debug_dump_stack(o_dst); printf("\n") );
 
 			if (nextcall && o_iptr == nextcall->callerins) {
 
@@ -933,9 +933,9 @@ static void rewrite_method(inline_node *iln)
 				nextcall->inlined_basicblocks = iln->inlined_basicblocks_cursor;
 				
 				/* recurse */
-				DOLOG( printf("entering inline "); stack_show_icmd(o_iptr,false); printf("\n") );
+				DOLOG( printf("entering inline "); show_icmd(o_iptr,false); printf("\n") );
 				rewrite_method(nextcall);
-				DOLOG( printf("leaving inline "); stack_show_icmd(o_iptr,false); printf("\n") );
+				DOLOG( printf("leaving inline "); show_icmd(o_iptr,false); printf("\n") );
 
 				/* skip stack slots used by the inlined callee */
 				curreloc += (u1*)nextcall->n_inlined_stack_cursor - (u1*)iln->n_inlined_stack_cursor;
@@ -1714,9 +1714,9 @@ static bool test_inlining(inline_node *iln,jitdata *jd,
 			DOLOG(
 			printf("==== %d.INLINE ==================================================================\n",debug_compile_inlined_code_counter);
 			method_println(n_method);
-			stack_show_method(jd);
+			show_method(jd);
 			dump_inline_tree(iln);
-			stack_show_method(n_jd);
+			show_method(n_jd);
 			debug_dump_inlined_code(iln,n_method,n_cd,n_rd);
 			printf("-------- DONE -----------------------------------------------------------\n");
 			fflush(stdout);
@@ -1745,7 +1745,7 @@ bool inline_inline(jitdata *jd, methodinfo **resultmethod,
 #if 0
 	printf("==== INLINE ==================================================================\n");
 	method_println(m);
-	stack_show_method(jd);
+	show_method(jd);
 #endif
 	
 	iln = DNEW(inline_node);

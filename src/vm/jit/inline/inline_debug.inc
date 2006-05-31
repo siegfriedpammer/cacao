@@ -253,7 +253,7 @@ find_stackmax:
 
 			debug_print_stack(iln,dst,validstackmin,validstackmax);
 			printf("     ");
-			stack_show_icmd(iptr,false); printf("\n");
+			show_icmd(iptr,false); printf("\n");
 
 			curstack = dst;
 			iptr++;

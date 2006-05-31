@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4957 2006-05-26 11:48:10Z edwin $
+   $Id: jit.c 4998 2006-05-31 20:28:27Z edwin $
 
 */
 
@@ -1351,6 +1351,12 @@ void jit_init(void)
 
 	(void) stack_init();
 
+	/* initialize show subsystem */
+
+#if !defined(NDEBUG)
+	(void) show_init();
+#endif
+
 	/* initialize codegen subsystem */
 
 	codegen_init();
@@ -1742,7 +1748,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	/* intermediate and assembly code listings */
 		
 	if (opt_showintermediate) {
-		stack_show_method(jd);
+		show_method(jd);
 
 	} else if (opt_showdisassemble) {
 # if defined(ENABLE_DISASSEMBLER)

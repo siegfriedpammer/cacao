@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: stack.h 4998 2006-05-31 20:28:27Z edwin $
 
 */
 
@@ -463,12 +463,6 @@
 bool stack_init(void);
 
 bool stack_analyse(jitdata *jd);
-
-#if !defined(NDEBUG)
-void stack_show_method(jitdata *jd);
-void stack_show_basicblock(jitdata *jd, basicblock *bptr);
-void stack_show_icmd(instruction *iptr, bool deadcode);
-#endif
 
 /* machine dependent return value handling function */
 void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,

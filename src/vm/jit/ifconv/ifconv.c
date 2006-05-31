@@ -273,10 +273,10 @@ bool ifconv_static(jitdata *jd)
 
 #if !defined(NDEBUG)
 				method_println(m);
-				stack_show_basicblock(jd, &bptr[0]);
-				stack_show_basicblock(jd, &bptr[1]);
-				stack_show_basicblock(jd, &bptr[2]);
-				stack_show_basicblock(jd, &bptr[3]);
+				show_basicblock(jd, &bptr[0]);
+				show_basicblock(jd, &bptr[1]);
+				show_basicblock(jd, &bptr[2]);
+				show_basicblock(jd, &bptr[3]);
 #endif
 
 				/* check the condition */
@@ -398,7 +398,7 @@ bool ifconv_static(jitdata *jd)
 
 #if !defined(NDEBUG)
 				method_println(m);
-				stack_show_basicblock(jd, &bptr[0]);
+				show_basicblock(jd, &bptr[0]);
 #endif
 
 				/* delete the 2 following basic blocks */
@@ -971,8 +971,8 @@ static void check(jitdata *jd, basicblock *bptr)
 		method_println(m);
 
 		/* 								if (pattern == 27) { */
-		/* 									stack_show_basicblock(m, cd, &bptr[1]); */
-		/* 									stack_show_basicblock(m, cd, &bptr[2]); */
+		/* 									show_basicblock(m, cd, &bptr[1]); */
+		/* 									show_basicblock(m, cd, &bptr[2]); */
 		/* 								} */
 
 		fflush(stdout);
@@ -985,8 +985,8 @@ static void check(jitdata *jd, basicblock *bptr)
 			{
 				printf("CHECK 1   : (BB: %3d) ", m->basicblockcount - bptr->debug_nr);
 				method_println(m);
-				stack_show_basicblock(jd, &bptr[1]);
-				stack_show_basicblock(jd, &bptr[2]);
+				show_basicblock(jd, &bptr[1]);
+				show_basicblock(jd, &bptr[2]);
 				fflush(stdout);
 			}
 
@@ -997,8 +997,8 @@ static void check(jitdata *jd, basicblock *bptr)
 			{
 				printf("CHECK 2   : (BB: %3d) ", m->basicblockcount - bptr->debug_nr);
 				method_println(m);
-				stack_show_basicblock(jd, &bptr[1]);
-				stack_show_basicblock(jd, &bptr[2]);
+				show_basicblock(jd, &bptr[1]);
+				show_basicblock(jd, &bptr[2]);
 				fflush(stdout);
 			}
 
@@ -1009,8 +1009,8 @@ static void check(jitdata *jd, basicblock *bptr)
 			{
 				printf("CHECK 3   : (BB: %3d) ", m->basicblockcount - bptr->debug_nr);
 				method_println(m);
-				stack_show_basicblock(jd, &bptr[1]);
-				stack_show_basicblock(jd, &bptr[2]);
+				show_basicblock(jd, &bptr[1]);
+				show_basicblock(jd, &bptr[2]);
 				fflush(stdout);
 			}
 
@@ -1021,8 +1021,8 @@ static void check(jitdata *jd, basicblock *bptr)
 			{
 				printf("CHECK 4   : (BB: %3d) ", m->basicblockcount - bptr->debug_nr);
 				method_println(m);
-				stack_show_basicblock(jd, &bptr[1]);
-				stack_show_basicblock(jd, &bptr[2]);
+				show_basicblock(jd, &bptr[1]);
+				show_basicblock(jd, &bptr[2]);
 				fflush(stdout);
 			}
 	}

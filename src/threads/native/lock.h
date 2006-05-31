@@ -39,6 +39,8 @@
 #include "vm/types.h"
 #include "vm/global.h"
 
+#include <pthread.h>
+
 
 /* typedefs *******************************************************************/
 
