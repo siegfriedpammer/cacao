@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4993 2006-05-30 23:38:32Z edwin $
+   $Id: jit.h 4997 2006-05-31 19:25:46Z edwin $
 
 */
 
@@ -194,7 +194,7 @@ typedef union {
     s4                         tablehigh;
     basicblock                *lookupdefault;
     struct builtintable_entry *bte;
-} s3_operant_t;
+} s3_operand_t;
 
 /*** val operand ***/
 
@@ -267,7 +267,7 @@ struct new_instruction {
 	union {
 		struct {
 			s2_operand_t	s2;		/* pointer-size */
-			s3_operant_t	s3;		/* pointer-size */
+			s3_operand_t	s3;		/* pointer-size */
 		} s23;                      /*     XOR      */
 		val_operand_t		val;	/*  long-size	*/
 	} sx;
