@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4969 2006-05-29 09:41:02Z motse $
+   $Id: jvmti.c 4996 2006-05-31 13:53:16Z motse $
 
 */
 
@@ -65,7 +65,7 @@
 #include "native/include/java_lang_VMSystem.h"
 #include "native/include/java_lang_VMClass.h"
 #include "vm/suck.h"
-#include  "boehm-gc/include/gc.h"
+#include "boehm-gc/include/gc.h"
 
 #include <string.h>
 #include <linux/unistd.h>
@@ -662,16 +662,19 @@ InterruptThread (jvmtiEnv * env, jthread thread)
     CHECK_PHASE_END;
     CHECK_CAPABILITY(env,can_signal_thread)
 
-	log_text ("JVMTI-Call: TBD OPTIONAL IMPLEMENT ME!!!");
-
-	return JVMTI_ERROR_NOT_AVAILABLE;
-
+#if defined(ENABLE_THREADS)
 	if(!builtin_instanceof(thread,class_java_lang_Thread))
 		return JVMTI_ERROR_INVALID_THREAD;
 
-	CHECK_THREAD_IS_ALIVE(thread);        
+	CHECK_THREAD_IS_ALIVE(thread);
+
+	threads_interrupt_thread(((java_lang_Thread*)thread)->vmThread);
+
 
     return JVMTI_ERROR_NONE;
+#else
+	return JVMTI_ERROR_NOT_AVAILABLE;
+#endif
 }
 
 /* GetThreadInfo ***************************************************************
@@ -684,16 +687,22 @@ InterruptThread (jvmtiEnv * env, jthread thread)
 static jvmtiError
 GetThreadInfo (jvmtiEnv * env, jthread t, jvmtiThreadInfo * info_ptr)
 {
+	utf *name;
 	java_lang_Thread* th = (java_lang_Thread*)t;
+
 
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
+
 	info_ptr->priority=(jint)th->priority;
 	info_ptr->is_daemon=(jboolean)th->daemon;
 	info_ptr->thread_group=(jthreadGroup)th->group;
 	info_ptr->context_class_loader=(jobject)th->contextClassLoader;
-	info_ptr->name= javastring_tochar((java_objectheader *)th->name);
+
+	name = javastring_toutf(th->name,false);
+	info_ptr->name=(char*)heap_allocate(sizeof(char)*(utf_bytes(name)+1),true,NULL);
+	utf_sprint_convert_to_latin1(info_ptr->name, name);
 
     return JVMTI_ERROR_NONE;
 }
@@ -712,6 +721,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 	int i,j,size=20;
 	java_objectheader **om;
 	lock_record_pool_t* lrp;
+	threadobject* t;
 
 	log_text("GetOwnedMonitorInfo called");
 
@@ -723,10 +733,15 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 	if ((owned_monitors_ptr==NULL)||(owned_monitor_count_ptr==NULL)) 
 		return JVMTI_ERROR_NULL_POINTER;
 
-	if(!builtin_instanceof(thread,class_java_lang_Thread))
-		return JVMTI_ERROR_INVALID_THREAD;
-
-	CHECK_THREAD_IS_ALIVE(thread);
+	if (thread == NULL) {
+		t = jvmti_get_current_thread();
+	} else {
+		if(!builtin_instanceof(thread,class_java_lang_Thread))
+			return JVMTI_ERROR_INVALID_THREAD;
+		
+		CHECK_THREAD_IS_ALIVE(thread);
+		t = (threadobject*) thread;
+	}
 
 #if defined(ENABLE_THREADS)
 
@@ -737,7 +752,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 
 	while (lrp != NULL) {
 		for (j=0; j<lrp->header.size; j++) {
-/*			if((lrp->lr[j].owner==(threadobject*)thread)&&
+/*			if((lrp->lr[j].owner==t)&&
 			   (!lrp->lr[j].waiting)) {
 				if (i>=size) {
 					MREALLOC(om,java_objectheader*,size,size*2);
@@ -857,7 +872,7 @@ RunAgentThread (jvmtiEnv * env, jthread thread, jvmtiStartFunction proc,
 		(priority > JVMTI_THREAD_MAX_PRIORITY)) 
 		return JVMTI_ERROR_INVALID_PRIORITY;
 
-	/* XXX:  Threads started with with this function should not be visible to 
+	/* XXX:  Threads started with this function should not be visible to 
 	   Java programming language queries but are included in JVM TI queries */
 
 	rap.sf = proc;
@@ -1018,14 +1033,16 @@ GetThreadGroupChildren (jvmtiEnv * env, jthreadGroup group,
 
 	*thread_count_ptr = (jint)tgp->threads->elementCount;
 
-	*threads_ptr = heap_allocate(sizeof(jthread*)*(*thread_count_ptr),true,NULL);
+	*threads_ptr = 
+		heap_allocate(sizeof(jthread)*(*thread_count_ptr),true,NULL);
 
 	memcpy(*threads_ptr, &tgp->threads->elementData, 
-		   (*thread_count_ptr)*sizeof(jthread*));
+		   (*thread_count_ptr)*sizeof(java_objectarray*));
 
 	*group_count_ptr = (jint) tgp->groups->elementCount;
 
-	*groups_ptr	= heap_allocate(sizeof(jthreadGroup*)*(*group_count_ptr),true,NULL);	
+	*groups_ptr	= 
+		heap_allocate(sizeof(jthreadGroup)*(*group_count_ptr),true,NULL);	
 
 	memcpy(*groups_ptr, &tgp->threads->elementData,
 		   (*group_count_ptr)*sizeof(jthreadGroup*));
@@ -1049,7 +1066,7 @@ static jvmtiError getcacaostacktrace(stacktracebuffer** trace, jthread thread) {
 		t = (threadobject*)((java_lang_Thread*)thread)->vmThread;
 		if (t != jvmti_get_current_thread())
 			/* XXX: todo: take care that the requested thread is in a 
-			   safe state */
+			   safe state - this needs a working thread suspend */
 			return JVMTI_ERROR_INTERNAL;
 	}
 
@@ -1129,7 +1146,7 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 		/* alive */
 		*thread_state_ptr = JVMTI_THREAD_STATE_ALIVE;
 		if (t->interrupted) *thread_state_ptr |= JVMTI_THREAD_STATE_INTERRUPTED;
-		/* todo */
+		/* XXX todo -  info not available */
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_SUSPENDED;
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_IN_NATIVE;
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_RUNNABLE;
@@ -1161,22 +1178,28 @@ GetFrameLocation (jvmtiEnv * env, jthread thread, jint depth,
 {
 	stackframeinfo   *sfi;
 	int i;
+	threadobject* th;
 		
 	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
         
-	if(!builtin_instanceof(thread,class_java_lang_Thread))
-		return JVMTI_ERROR_INVALID_THREAD;
-
-	CHECK_THREAD_IS_ALIVE(thread);
+	if (thread == NULL) {
+		th = jvmti_get_current_thread();
+	} else {
+		if(!builtin_instanceof(thread,class_java_lang_Thread))
+			return JVMTI_ERROR_INVALID_THREAD;
+		
+		CHECK_THREAD_IS_ALIVE(thread);
+		th = (threadobject*) ((java_lang_Thread*)thread)->vmThread;
+	}
 
 	if (depth < 0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
 
 	if ((method_ptr == NULL)&&(location_ptr == NULL)) 
 		return JVMTI_ERROR_NULL_POINTER;
 	
-	sfi = ((threadobject*)thread)->_stackframeinfo;
+	sfi = th->_stackframeinfo;
 	
 	i = 0;
 	while ((sfi != NULL) && (i<depth)) {
@@ -1461,7 +1484,7 @@ DestroyRawMonitor (jvmtiEnv * env, jrawMonitorID monitor)
 	
 	lock_monitor_exit((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name);
 
-	/* GC will clean monitor up */
+	heap_free(monitor);
 #else
 	log_text ("DestroyRawMonitor not supported");
 #endif
@@ -1767,16 +1790,21 @@ GetClassSignature (jvmtiEnv * env, jclass klass, char **signature_ptr,
     CHECK_PHASE(JVMTI_PHASE_START)
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
-       
-    if ((generic_ptr== NULL)||(signature_ptr == NULL)) 
-        return JVMTI_ERROR_NULL_POINTER;
+    
+	if (klass == NULL) return JVMTI_ERROR_INVALID_CLASS;
+	if (!builtin_instanceof(klass,class_java_lang_Class))
+		return JVMTI_ERROR_INVALID_CLASS;
 
-    *signature_ptr = (char*)
-		heap_allocate(sizeof(char) * 
-					  ((classinfo*)klass)->name->blength,true,NULL);
+	if (signature_ptr != NULL) {
+		*signature_ptr = (char*)
+			heap_allocate(sizeof(char) * 
+						  utf_bytes(((classinfo*)klass)->name)+1,true,NULL);
+		
+		utf_sprint_convert_to_latin1(*signature_ptr,((classinfo*)klass)->name);
+	}
 
-	utf_sprint_convert_to_latin1(*signature_ptr, ((classinfo*)klass)->name);
-    *generic_ptr = NULL;
+	if (generic_ptr!= NULL)
+		*generic_ptr = NULL;
 
     return JVMTI_ERROR_NONE;
 }
@@ -1845,7 +1873,7 @@ GetSourceFileName (jvmtiEnv * env, jclass klass, char **source_name_ptr)
     if ((klass == NULL)||(source_name_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
     
-    size = (((classinfo*)klass)->sourcefile->blength)+1;
+    size = utf_bytes(((classinfo*)klass)->sourcefile)+1;
 
     *source_name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);
     
@@ -2121,19 +2149,29 @@ GetFieldName (jvmtiEnv * env, jclass klass, jfieldID field,
     CHECK_PHASE(JVMTI_PHASE_START)
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
-        
-    if ((field == NULL)||(name_ptr == NULL)||(signature_ptr == NULL)) 
-        return JVMTI_ERROR_NULL_POINTER;
+
+	if (klass == NULL) 
+		return JVMTI_ERROR_INVALID_CLASS;
+	else 
+		if (!builtin_instanceof(klass,class_java_lang_Class))
+			return JVMTI_ERROR_INVALID_CLASS;
+    if (field == NULL) return JVMTI_ERROR_INVALID_FIELDID;
     
-    size = (((fieldinfo*)field)->name->blength);
-    *name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);    
-    memcpy(*name_ptr,((fieldinfo*)field)->name->text, size);
+    if (name_ptr != NULL) {
+		size = utf_bytes(((fieldinfo*)field)->name)+1;
+		*name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);
+		utf_sprint_convert_to_latin1(*name_ptr, ((fieldinfo*)field)->name);
+	}
 
-    size = (((fieldinfo*)field)->descriptor->blength);
-    *signature_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);    
-    memcpy(*signature_ptr,((fieldinfo*)field)->descriptor->text, size);
+	if (signature_ptr != NULL) {
+		size = utf_bytes(((fieldinfo*)field)->descriptor)+1;
+		*signature_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL); 
+		utf_sprint_convert_to_latin1(*signature_ptr, 
+									 ((fieldinfo*)field)->descriptor);
+	}
 
-    *generic_ptr = NULL;
+	if (generic_ptr != NULL) 
+		*generic_ptr = NULL;
 
     return JVMTI_ERROR_NONE;
 }
@@ -2155,7 +2193,17 @@ GetFieldDeclaringClass (jvmtiEnv * env, jclass klass, jfieldID field,
     CHECK_PHASE(JVMTI_PHASE_START)
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
-        
+
+	if (klass == NULL) 
+		return JVMTI_ERROR_INVALID_CLASS;
+	else 
+		if (!builtin_instanceof(klass,class_java_lang_Class))
+			return JVMTI_ERROR_INVALID_CLASS;
+
+    if (field == NULL) return JVMTI_ERROR_INVALID_FIELDID;	
+
+    if (declaring_class_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
+
 	*declaring_class_ptr = (jclass) ((fieldinfo*)field)->class;
  
     return JVMTI_ERROR_NONE;
@@ -2176,14 +2224,17 @@ GetFieldModifiers (jvmtiEnv * env, jclass klass, jfieldID field,
     CHECK_PHASE(JVMTI_PHASE_START)
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
-        
-	if (!builtin_instanceof((java_objectheader*)klass, class_java_lang_Class))
-		return JVMTI_ERROR_INVALID_OBJECT;
+
+	if (klass == NULL) 
+		return JVMTI_ERROR_INVALID_CLASS;
+	else 
+		if (!builtin_instanceof(klass,class_java_lang_Class))
+			return JVMTI_ERROR_INVALID_CLASS;
+
+    if (field == NULL) return JVMTI_ERROR_INVALID_FIELDID;
 
 	if (modifiers_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
  
-	/* todo: JVMTI_ERROR_INVALID_FIELDID; */
-	
 	*modifiers_ptr = ((fieldinfo*)field)->flags;
 	
     return JVMTI_ERROR_NONE;
@@ -2232,20 +2283,20 @@ GetMethodName (jvmtiEnv * env, jmethodID method, char **name_ptr,
 
 	if (method == NULL) return JVMTI_ERROR_INVALID_METHODID;
 
-	if (name_ptr == NULL) {
+	if (name_ptr != NULL) {
 		*name_ptr = (char*)
-			heap_allocate(sizeof(char) * (m->name->blength),true,NULL);
+			heap_allocate(sizeof(char) * (utf_bytes(m->name)+1),true,NULL);
 		utf_sprint_convert_to_latin1(*name_ptr, m->name);
 	}
 	
-	if (signature_ptr == NULL) {
+	if (signature_ptr != NULL) {
 		*signature_ptr = (char*)
-			heap_allocate(sizeof(char) * (m->descriptor->blength),true,NULL);
+			heap_allocate(sizeof(char)*(utf_bytes(m->descriptor)+1),true,NULL);
 		utf_sprint_convert_to_latin1(*signature_ptr, m->descriptor);
 	}
 
-	if (generic_ptr == NULL) {
-    /* there is no generic signature attribute */
+	if (generic_ptr != NULL) {
+        /* there is no generic signature attribute */
 		*generic_ptr = NULL;
 	}
 
@@ -2612,8 +2663,8 @@ GetClassLoaderClasses (jvmtiEnv * env, jobject initiating_loader,
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
 
-/*    if (class_count_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
-	  if (classes_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;*/
+    if ((class_count_ptr == NULL) || (classes_ptr == NULL)) 
+		return JVMTI_ERROR_NULL_POINTER;
         
 	/* behave like jdk 1.1 and make no distinction between initiating and 
 	   defining class loaders */
@@ -2657,6 +2708,7 @@ RedefineClasses (jvmtiEnv * env, jint class_count,
     CHECK_PHASE_END;
 	CHECK_CAPABILITY(env,can_redefine_classes)    
 	CHECK_CAPABILITY(env,can_redefine_any_class)
+
   log_text ("JVMTI-Call: OPTIONAL IMPLEMENT ME!!!");
     return JVMTI_ERROR_NONE;
 }
@@ -2849,7 +2901,7 @@ GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
 	
 	for (i=start_depth, j=0;i<trace->used;i++,j++) {
 		frame_buffer[j].method = (jmethodID)trace->entries[i].method;
-        /* todo: location BCI/MachinePC not avilable - Linenumber not expected */
+        /* XXX todo: location BCI/MachinePC not avilable - Linenumber not expected */
 		frame_buffer[j].location = 0;
 		}
 
@@ -2923,15 +2975,12 @@ GetAllStackTraces (jvmtiEnv * env, jint max_frame_count,
     
 	if (thread_count_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
     
-	/* todo: all threads have to be suspended */ 
-
 	if (JVMTI_ERROR_NONE!=GetAllThreads(env,thread_count_ptr,&threads_ptr))
 		return JVMTI_ERROR_INTERNAL;
 
 	GetThreadListStackTraces(env, *thread_count_ptr, threads_ptr,
 							 max_frame_count, stack_info_ptr);
 
-	/* todo: resume all threads have to be suspended */ 
 	if (er != JVMTI_ERROR_NONE) return er;
 
     return JVMTI_ERROR_NONE;
@@ -3286,8 +3335,8 @@ GenerateEvents (jvmtiEnv * env, jvmtiEvent event_type)
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
-        
-  log_text ("JVMTI-Call: IMPLEMENT ME!!!");
+ 	CHECK_CAPABILITY(env,can_generate_compiled_method_load_events);
+
     return JVMTI_ERROR_NONE;
 }
 
@@ -4003,9 +4052,9 @@ RelinquishCapabilities (jvmtiEnv * env,
     return JVMTI_ERROR_NONE;
 }
 
-/* *****************************************************************************
+/* GetAvailableProcessors *****************************************************
 
-   
+   Get number of processors available to the virtual machine.
 
 *******************************************************************************/
 

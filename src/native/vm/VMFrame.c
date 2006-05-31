@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: 
 
 
-$Id: VMFrame.c 4357 2006-01-22 23:33:38Z twisti $
+$Id: VMFrame.c 4996 2006-05-31 13:53:16Z motse $
 
 */
 
@@ -45,7 +45,7 @@ $Id: VMFrame.c 4357 2006-01-22 23:33:38Z twisti $
  */
 JNIEXPORT struct java_lang_Object* JNICALL Java_gnu_classpath_jdwp_VMFrame_getValue(JNIEnv *env, struct gnu_classpath_jdwp_VMFrame* this, s4 par1) {
     log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+    return 0;
 }
 
 

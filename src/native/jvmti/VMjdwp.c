@@ -29,7 +29,7 @@
    Changes:             
 
 
-   $Id: VMjdwp.c 4954 2006-05-25 21:59:49Z motse $
+   $Id: VMjdwp.c 4996 2006-05-31 13:53:16Z motse $
 
 */
 
@@ -38,6 +38,16 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+void printjvmtierror(char *desc, jvmtiError err) {
+    char* errdesc;
+	
+	if (err == JVMTI_ERROR_NONE) return;
+	(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
+	fprintf(stderr,"%s: jvmti error %s\n",desc, errdesc);
+	fflush(stderr);
+	(*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)errdesc);
+}
 
 
 
@@ -174,6 +184,7 @@ static void VMInit (jvmtiEnv *jvmti_env,
 	jclass cl;
 	jmethodID m;
 	jobject eventobj;
+	jvmtiError err; 
 
 	fprintf(stderr,"JDWP VMInit\n");
 
@@ -209,9 +220,9 @@ static void VMInit (jvmtiEnv *jvmti_env,
 	notify (jni_env,eventobj);
 
 	if (suspend) {
-		fprintf(stderr,"suspend true -> do not continue debuggee\n");
-		if (JVMTI_ERROR_NONE!=(*jvmti_env)->SuspendThread(jvmti_env,thread))
-			fprintf(stderr,"error suspending initial thread\n");
+		fprintf(stderr,"suspend initial thread\n");
+		err = (*jvmti_env)->SuspendThread(jvmti_env,thread);
+		printjvmtierror("error suspending initial thread",err);
 	}
 }
 
@@ -292,19 +303,19 @@ JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved) {
 	
 	/* set eventcallbacks */
 	if (JVMTI_ERROR_NONE != 
-		(*jvmtienv)->SetEventCallbacks(jvmtienv,
+		(e = (*jvmtienv)->SetEventCallbacks(jvmtienv,
 									   &jvmti_jdwp_EventCallbacks,
-									   sizeof(jvmtiEventCallbacks))){
-		fprintf(stderr,"jdwp: unable to setup event callbacks");
+									   sizeof(jvmtiEventCallbacks)))){
+		printjvmtierror("jdwp: unable to setup event callbacks", e);
 		return -1;
 	}
 
 	e = (*jvmtienv)->GetPotentialCapabilities(jvmtienv, &cap);
-	if (e == JVMTI_ERROR_NONE) {
+	printjvmtierror("jdwp: unable to get potential capabilities", e);
+	if (e == JVMTI_ERROR_NONE) 
 		e = (*jvmtienv)->AddCapabilities(jvmtienv, &cap);
-	}
 	if (e != JVMTI_ERROR_NONE) {
-		fprintf(stderr,"jdwp: error adding jvmti capabilities");
+		printjvmtierror("jdwp: error adding jvmti capabilities", e);
 		return -1;
 	}
 	
@@ -319,7 +330,7 @@ JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved) {
 													  NULL);
 			
 			if (JVMTI_ERROR_NONE != e) {
-				fprintf(stderr,"jdwp: unable to setup event notification mode");
+				printjvmtierror("jdwp: unable to setup event notification mode",e);
 				return -1;
 			}
 		}

@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: Samuel Vinson
 
 
-$Id: VMVirtualMachine.c 4969 2006-05-29 09:41:02Z motse $
+$Id: VMVirtualMachine.c 4996 2006-05-31 13:53:16Z motse $
 
 */
 
@@ -54,7 +54,10 @@ $Id: VMVirtualMachine.c 4969 2006-05-29 09:41:02Z motse $
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1)
 {
-    (*jvmtienv)->SuspendThread(jvmtienv, (jthread) par1);
+	jvmtiError err; 
+
+    err = (*jvmtienv)->SuspendThread(jvmtienv, (jthread) par1);
+	printjvmtierror("VMVirtualMachine.suspendThread SuspendThread", err);
 }
 
 /*
@@ -64,7 +67,10 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread(JN
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1)
 {
-    (*jvmtienv)->ResumeThread(jvmtienv, (jthread) par1);
+	jvmtiError err; 
+
+    err = (*jvmtienv)->ResumeThread(jvmtienv, (jthread) par1);
+	printjvmtierror("VMVirtualMachine.resumethread ResumeThread", err);
 }
 
 
@@ -87,14 +93,10 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClasse
     jint count;
     jclass* classes;
 	jvmtiError err;
-	char* errdesc;
 
 	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
 		GetLoadedClasses(jvmtienv, &count, &classes))) {
-		(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
-		fprintf(stderr,"jvmti error: %s\n",errdesc);
-		(*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)errdesc);
-		fflush(stderr);
+		printjvmtierror("VMVirtualMachine_getAllLoadedClassCount GetLoadedClasses",err);
 		return 0;
 	}
 	(*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)classes);
@@ -115,13 +117,10 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 	jobject *ol,*oi;
 	int i;
 	jvmtiError err;
-	char* errdesc;
 
 	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
 		GetLoadedClasses(jvmtienv, &classcount, &classes))) {
-		(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
-		fprintf(stderr,"jvmti error: %s\n",errdesc);
-		fflush(stderr);
+		printjvmtierror("VMVirtualMachine_getAllLoadedClasses GetLoadedClasses",err);
 		
 		/* we should throw JDWP Exception INTERNAL = 113;*/
 /*		env->ThrowNew(env,ec,"jvmti error occoured");  */
@@ -163,7 +162,11 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
 	jint status;
-	(*jvmtienv)->GetClassStatus(jvmtienv, (jclass) par1, &status);
+	jvmtiError err;
+
+	err = (*jvmtienv)->GetClassStatus(jvmtienv, (jclass) par1, &status);
+	printjvmtierror("VMVirtualMachine_getClassStatus GetClassStatus", err);
+
 	return status;
 }
 
@@ -176,7 +179,6 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_get
     jint count;
     jmethodID* methodID, m;
    	jvmtiError err;
-	char* errdesc;
 	
 	jclass *cl;
 	jobject *ol;
@@ -186,10 +188,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_get
     if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
 							 GetClassMethods(jvmtienv, (jclass) par1, 
 											 &count, &methodID))) {
-		(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
-		fprintf(stderr,"jvmti error: %s\n",errdesc);
-		(*jvmtienv)->Deallocate(jvmtienv, (unsigned char *)errdesc);
-		fflush(stderr);
+		printjvmtierror("VMVirtualMachine_getAllClassMethods GetClassMethods", err);
 		return NULL;
 	}
 	
@@ -203,7 +202,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_get
 	
 	joa = (*env)->NewObjectArray(env, (jsize)count, cl , NULL);
 	if (!joa) return NULL;
-	fprintf(stderr, "VMVirtualMachine_getAllClassMethods 3\n");
+
     for (i = 0; i < count; i++) {
     	ol = (*env)->
 			CallStaticObjectMethod(env,clazz,m,(jobject)par1, methodID[i]);
@@ -268,7 +267,9 @@ JNIEXPORT struct gnu_classpath_jdwp_VMFrame* JNICALL Java_gnu_classpath_jdwp_VMV
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
 	jint count;
-	(*jvmtienv)->GetFrameCount(jvmtienv, (jthread)par1, &count);
+	jvmtiError err;
+	err = (*jvmtienv)->GetFrameCount(jvmtienv, (jthread)par1, &count);
+	printjvmtierror("VMVirtualMachine_getFrameCount GetFrameCount", err);
 	return count;
 }
 
@@ -280,8 +281,11 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIE
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
 	jint status;
-	if (JVMTI_ERROR_NONE != (*jvmtienv)->GetThreadState(jvmtienv, (jthread)par1, &status))
+	jvmtiError err; 
+	if (JVMTI_ERROR_NONE != (err = (*jvmtienv)->GetThreadState(jvmtienv, (jthread)par1, &status))) {
+		printjvmtierror("VMVirtualMachine_getThreadStatus GetThreadState", err);
 		return 0;
+	}
 	if (status && JVMTI_THREAD_STATE_ALIVE) {
 		if (status && JVMTI_THREAD_STATE_WAITING) {		
 			return 4; /* WAIT - see JdwpConstants */
@@ -329,9 +333,14 @@ JNIEXPORT struct gnu_classpath_jdwp_util_MethodResult* JNICALL Java_gnu_classpat
 JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getSourceFile(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
 	char* srcname;
 	jstring str;
+	jvmtiError err; 
 
-    (*jvmtienv)->
-		GetSourceFileName(jvmtienv, (jclass)par1, &srcname);
+    if (JVMTI_ERROR_NONE !=(err=(*jvmtienv)->
+		GetSourceFileName(jvmtienv, (jclass)par1, &srcname))) {
+		printjvmtierror("VMVirtualMachine.getSourceFile GetSourceFileName", err);
+		return NULL;
+	}
+
 	str = (*env)->NewString(env,(jchar*)srcname,(jsize)strlen(srcname));
 
 	return (struct java_lang_String*)str;
@@ -371,15 +380,17 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_registerEvent(JN
 	jbyte kind;
 	jfieldID kindid;
 	jclass erc;
+	jvmtiError err;
 
 	erc = (*env)->FindClass(env,"gnu.classpath.jdwp.event.EventRequest");
 	
 	kindid = (*env)->GetFieldID(env, erc, "_kind", "B");
 	kind = (*env)->GetByteField(env, (jobject)par1, kindid);
 
-	(*jvmtienv)->
+	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
 		SetEventNotificationMode(jvmtienv, JVMTI_ENABLE, 
-								 EventKind2jvmtiEvent(kind), NULL);
+								 EventKind2jvmtiEvent(kind), NULL)))
+		printjvmtierror("VMVirtualMachine_registerEvent SetEventNotificationMode",err);
 
 	/* todo: error handling, suspend policy */
 }

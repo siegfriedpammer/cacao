@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4954 2006-05-25 21:59:49Z motse $
+## $Id: Makefile.am 4996 2006-05-31 13:53:16Z motse $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -58,8 +58,7 @@ lib_LTLIBRARIES = \
 
 libjdwp_la_SOURCES = \
 	VMjdwp.c \
-	VMjdwp.h 
-
+	VMjdwp.h \
 
 ## Local variables:
 ## mode: Makefile

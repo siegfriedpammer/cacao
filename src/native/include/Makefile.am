@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4892 2006-05-06 18:29:55Z motse $
+## $Id: Makefile.am 4996 2006-05-31 13:53:16Z motse $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -77,7 +77,8 @@ GEN_JVMTI_HEADER_FILES = \
 	gnu_classpath_jdwp_VMFrame.h \
 	gnu_classpath_jdwp_VMMethod.h \
 	gnu_classpath_jdwp_VMVirtualMachine.h \
-	gnu_classpath_jdwp_event_EventRequest.h
+	gnu_classpath_jdwp_event_EventRequest.h \
+	gnu_classpath_jdwp_util_VariableTable.h
 
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \

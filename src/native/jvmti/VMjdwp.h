@@ -43,4 +43,5 @@ extern jvmtiEventCallbacks jvmti_jdwp_EventCallbacks;
 char* jdwpoptions;
 bool suspend;               /* should the virtual machine suspend on startup?  */
 
+void printjvmtierror(char *desc, jvmtiError err);
 #endif
