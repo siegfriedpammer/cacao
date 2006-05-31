@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 4950 2006-05-25 11:29:32Z twisti $
+   $Id: md-emit.h 4994 2006-05-31 12:33:40Z twisti $
 
 */
 
@@ -119,21 +119,22 @@ typedef union {
 /* modrm and stuff */
 
 #define emit_address_byte(mod,reg,rm) \
-    *(cd->mcodeptr++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | ((rm) & 0x07));
-
-
-#define emit_reg(reg,rm) \
-    emit_address_byte(3,(reg),(rm));
+    do { \
+        *(cd->mcodeptr++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | ((rm) & 0x07)); \
+    } while (0);
 
 
 #define emit_rex(size,reg,index,rm) \
-    if (((size) == 1) || ((reg) > 7) || ((index) > 7) || ((rm) > 7)) { \
-        *(cd->mcodeptr++) = (0x40 | (((size) & 0x01) << 3) | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01)); \
-    }
+    do { \
+        if (((size) == 1) || ((reg) > 7) || ((index) > 7) || ((rm) > 7)) \
+            *(cd->mcodeptr++) = (0x40 | (((size) & 0x01) << 3) | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01)); \
+    } while (0)
 
 
 #define emit_byte_rex(reg,index,rm) \
-    *(cd->mcodeptr++) = (0x40 | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01));
+    do { \
+        *(cd->mcodeptr++) = (0x40 | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01)); \
+    } while (0)
 
 
 #define emit_mem(r,disp) \
@@ -143,45 +144,10 @@ typedef union {
     } while (0)
 
 
-#define emit_membase32(basereg,disp,dreg) \
-    do { \
-        if ((basereg) == REG_SP || (basereg) == R12) { \
-            emit_address_byte(2,(dreg),REG_SP); \
-            emit_address_byte(0,REG_SP,REG_SP); \
-            emit_imm32((disp)); \
-        } else {\
-            emit_address_byte(2,(dreg),(basereg)); \
-            emit_imm32((disp)); \
-        } \
-    } while (0)
-
-
-#define emit_memindex(reg,disp,basereg,indexreg,scale) \
-    do { \
-        if ((basereg) == -1) { \
-            emit_address_byte(0,(reg),4); \
-            emit_address_byte((scale),(indexreg),5); \
-            emit_imm32((disp)); \
-        \
-        } else if ((disp) == 0 && (basereg) != RBP && (basereg) != R13) { \
-            emit_address_byte(0,(reg),4); \
-            emit_address_byte((scale),(indexreg),(basereg)); \
-        \
-        } else if (IS_IMM8((disp))) { \
-            emit_address_byte(1,(reg),4); \
-            emit_address_byte((scale),(indexreg),(basereg)); \
-            emit_imm8 ((disp)); \
-        \
-        } else { \
-            emit_address_byte(2,(reg),4); \
-            emit_address_byte((scale),(indexreg),(basereg)); \
-            emit_imm32((disp)); \
-        }    \
-     } while (0)
-
-
 #define emit_imm8(imm) \
-    *(cd->mcodeptr++) = (u1) ((imm) & 0xff);
+    do { \
+        *(cd->mcodeptr++) = (u1) ((imm) & 0xff); \
+    } while (0)
 
 
 #define emit_imm16(imm) \
@@ -217,6 +183,11 @@ typedef union {
         *(cd->mcodeptr++) = imb.b[6]; \
         *(cd->mcodeptr++) = imb.b[7]; \
     } while (0)
+
+
+/* convenience macros *********************************************************/
+
+#define emit_reg(reg,rm)                emit_address_byte(3,(reg),(rm))
 
 
 /* function prototypes ********************************************************/

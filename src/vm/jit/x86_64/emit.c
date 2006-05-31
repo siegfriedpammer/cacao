@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 4943 2006-05-23 08:51:33Z twisti $
+   $Id: emit.c 4994 2006-05-31 12:33:40Z twisti $
 
 */
 
@@ -331,6 +331,44 @@ static void emit_membase(codegendata *cd, s4 basereg, s4 disp, s4 dreg)
 }
 
 
+static void emit_membase32(codegendata *cd, s4 basereg, s4 disp, s4 dreg)
+{
+	if ((basereg == REG_SP) || (basereg == R12)) {
+		emit_address_byte(2, dreg, REG_SP);
+		emit_address_byte(0, REG_SP, REG_SP);
+		emit_imm32(disp);
+	}
+	else {
+		emit_address_byte(2, dreg, basereg);
+		emit_imm32(disp);
+	}
+}
+
+
+static void emit_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+{
+	if (basereg == -1) {
+		emit_address_byte(0, reg, 4);
+		emit_address_byte(scale, indexreg, 5);
+		emit_imm32(disp);
+	}
+	else if ((disp == 0) && (basereg != RBP) && (basereg != R13)) {
+		emit_address_byte(0, reg, 4);
+		emit_address_byte(scale, indexreg, basereg);
+	}
+	else if (IS_IMM8(disp)) {
+		emit_address_byte(1, reg, 4);
+		emit_address_byte(scale, indexreg, basereg);
+		emit_imm8(disp);
+	}
+	else {
+		emit_address_byte(2, reg, 4);
+		emit_address_byte(scale, indexreg, basereg);
+		emit_imm32(disp);
+	}
+}
+
+
 void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 {
 	s4 s1 = src->prev->regoff;
@@ -610,7 +648,7 @@ void emit_mov_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
 void emit_mov_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
 	emit_rex(1,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x8b;
-	emit_membase32((basereg),(disp),(reg));
+	emit_membase32(cd, (basereg),(disp),(reg));
 }
 
 
@@ -628,7 +666,7 @@ void emit_movl_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg)
 {
 	emit_byte_rex((reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x8b;
-	emit_membase32((basereg),(disp),(reg));
+	emit_membase32(cd, (basereg),(disp),(reg));
 }
 
 
@@ -642,7 +680,7 @@ void emit_mov_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 void emit_mov_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_rex(1,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x89;
-	emit_membase32((basereg),(disp),(reg));
+	emit_membase32(cd, (basereg),(disp),(reg));
 }
 
 
@@ -658,35 +696,35 @@ void emit_movl_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 void emit_movl_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_byte_rex((reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x89;
-	emit_membase32((basereg),(disp),(reg));
+	emit_membase32(cd, (basereg),(disp),(reg));
 }
 
 
 void emit_mov_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg) {
 	emit_rex(1,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x8b;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
 void emit_movl_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg) {
 	emit_rex(0,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x8b;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
 void emit_mov_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
 	emit_rex(1,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x89;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
 void emit_movl_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
 	emit_rex(0,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x89;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -694,14 +732,14 @@ void emit_movw_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 ind
 	*(cd->mcodeptr++) = 0x66;
 	emit_rex(0,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x89;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
 void emit_movb_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale) {
 	emit_byte_rex((reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x88;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -716,7 +754,7 @@ void emit_mov_imm_membase(codegendata *cd, s8 imm, s8 basereg, s8 disp) {
 void emit_mov_imm_membase32(codegendata *cd, s8 imm, s8 basereg, s8 disp) {
 	emit_rex(1,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xc7;
-	emit_membase32((basereg),(disp),0);
+	emit_membase32(cd, (basereg),(disp),0);
 	emit_imm32((imm));
 }
 
@@ -734,7 +772,7 @@ void emit_movl_imm_membase(codegendata *cd, s8 imm, s8 basereg, s8 disp) {
 void emit_movl_imm_membase32(codegendata *cd, s8 imm, s8 basereg, s8 disp) {
 	emit_byte_rex(0,0,(basereg));
 	*(cd->mcodeptr++) = 0xc7;
-	emit_membase32((basereg),(disp),0);
+	emit_membase32(cd, (basereg),(disp),0);
 	emit_imm32((imm));
 }
 
@@ -782,7 +820,7 @@ void emit_movswq_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg,
 	emit_rex(1,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbf;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -790,7 +828,7 @@ void emit_movsbq_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg,
 	emit_rex(1,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbe;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -798,7 +836,7 @@ void emit_movzwq_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg,
 	emit_rex(1,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xb7;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -806,7 +844,7 @@ void emit_mov_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 inde
 {
 	emit_rex(1,0,(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0xc7;
-	emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
 	emit_imm32((imm));
 }
 
@@ -815,7 +853,7 @@ void emit_movl_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 ind
 {
 	emit_rex(0,0,(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0xc7;
-	emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
 	emit_imm32((imm));
 }
 
@@ -825,7 +863,7 @@ void emit_movw_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 ind
 	*(cd->mcodeptr++) = 0x66;
 	emit_rex(0,0,(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0xc7;
-	emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
 	emit_imm16((imm));
 }
 
@@ -834,7 +872,7 @@ void emit_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 ind
 {
 	emit_rex(0,0,(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0xc6;
-	emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
 	emit_imm8((imm));
 }
 
@@ -1543,7 +1581,7 @@ void emit_movd_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 ind
 	emit_rex(0,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x7e;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -1570,7 +1608,7 @@ void emit_movd_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s
 	emit_rex(0,(dreg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x6e;
-	emit_memindex((dreg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (dreg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -1635,7 +1673,7 @@ void emit_movss_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_byte_rex((reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x11;
-	emit_membase32((basereg),(disp),(reg));
+	emit_membase32(cd, (basereg),(disp),(reg));
 }
 
 
@@ -1655,7 +1693,7 @@ void emit_movsd_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_byte_rex((reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x11;
-	emit_membase32((basereg),(disp),(reg));
+	emit_membase32(cd, (basereg),(disp),(reg));
 }
 
 
@@ -1675,7 +1713,7 @@ void emit_movss_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_byte_rex((dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x10;
-	emit_membase32((basereg),(disp),(dreg));
+	emit_membase32(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -1713,7 +1751,7 @@ void emit_movsd_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_byte_rex((dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x10;
-	emit_membase32((basereg),(disp),(dreg));
+	emit_membase32(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -1742,7 +1780,7 @@ void emit_movss_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 in
 	emit_rex(0,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x11;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -1751,7 +1789,7 @@ void emit_movsd_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 in
 	emit_rex(0,(reg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x11;
-	emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -1760,7 +1798,7 @@ void emit_movss_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, 
 	emit_rex(0,(dreg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x10;
-	emit_memindex((dreg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (dreg),(disp),(basereg),(indexreg),(scale));
 }
 
 
@@ -1769,7 +1807,7 @@ void emit_movsd_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, 
 	emit_rex(0,(dreg),(indexreg),(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x10;
-	emit_memindex((dreg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (dreg),(disp),(basereg),(indexreg),(scale));
 }
 
 
