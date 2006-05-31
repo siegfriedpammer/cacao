@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4996 2006-05-31 13:53:16Z motse $
+## $Id: Makefile.am 5001 2006-05-31 22:07:13Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
+
+LIBS =
 
 noinst_LTLIBRARIES = libjvmti.la
 
@@ -42,6 +44,7 @@ libjvmti_la_SOURCES = \
 	dbg.h\
         cacaodbg.h \
         cacaodbg.c
+
 bin_PROGRAMS = \
 	cacaodbgserver
 
@@ -58,7 +61,7 @@ lib_LTLIBRARIES = \
 
 libjdwp_la_SOURCES = \
 	VMjdwp.c \
-	VMjdwp.h \
+	VMjdwp.h
 
 ## Local variables:
 ## mode: Makefile
