@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5002 2006-05-31 22:56:17Z edwin $
+   $Id: parse.c 5003 2006-05-31 23:03:35Z edwin $
 
 */
 
@@ -685,7 +685,6 @@ fetch_opcode:
 		case JAVA_LOOKUPSWITCH:
 			{
 				s4 num, j;
-				const s4 *s4ptr;
 				lookup_target_t *lookup;
 #if defined(ENABLE_VERIFIER)
 				s4 prevvalue = 0;
@@ -695,15 +694,12 @@ fetch_opcode:
 
 				CHECK_END_OF_BYTECODE(nextp + 8);
 
-				s4ptr = (const s4 *) (m->jcode + nextp);
-
 				NEW_OP_PREPARE(opcode);
 
 				/* default target */
 
 				j =  p + code_get_s4(nextp, m);
 				iptr->sx.s23.s3.lookupdefault.insindex = j;
-				s4ptr++;
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(j);
 				block_insert(j);
@@ -712,7 +708,6 @@ fetch_opcode:
 
 				num = code_get_u4(nextp, m);
 				iptr->sx.s23.s2.lookupcount = num;
-				s4ptr++;
 				nextp += 4;
 
 				/* allocate the intermediate code table */
@@ -730,7 +725,6 @@ fetch_opcode:
 					j = code_get_s4(nextp, m);
 					lookup->value = j;
 
-					s4ptr++;
 					nextp += 4;
 
 #if defined(ENABLE_VERIFIER)
@@ -747,7 +741,6 @@ fetch_opcode:
 					j = p + code_get_s4(nextp,m);
 					lookup->target.insindex = j;
 					lookup++;
-					s4ptr++;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
 					block_insert(j);
@@ -762,7 +755,6 @@ fetch_opcode:
 			{
 				s4 num, j;
 				s4 deftarget;
-				const s4 *s4ptr;
 				branch_target_t *table;
 
 				blockend = true;
@@ -770,14 +762,11 @@ fetch_opcode:
 
 				CHECK_END_OF_BYTECODE(nextp + 12);
 
-				s4ptr = (const s4 *) (m->jcode + nextp);
-
 				NEW_OP_PREPARE(opcode);
 
 				/* default target */
 
 				deftarget = p + code_get_s4(nextp, m);
-				s4ptr++;
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(deftarget);
 				block_insert(deftarget);
@@ -786,14 +775,12 @@ fetch_opcode:
 
 				j = code_get_s4(nextp, m);
 				iptr->sx.s23.s2.tablelow = j;
-				s4ptr++;
 				nextp += 4;
 
 				/* upper bound */
 
 				num = code_get_s4(nextp, m);
 				iptr->sx.s23.s3.tablehigh = num;
-				s4ptr++;
 				nextp += 4;
 
 				/* calculate the number of table entries */
@@ -821,7 +808,6 @@ fetch_opcode:
 				for (i = 0; i < num; i++) {
 					j = p + code_get_s4(nextp,m);
 					(table++)->insindex = j;
-					s4ptr++;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
 					block_insert(j);
