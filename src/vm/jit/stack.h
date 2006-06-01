@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4998 2006-05-31 20:28:27Z edwin $
+   $Id: stack.h 5012 2006-06-01 22:53:52Z edwin $
 
 */
 
@@ -119,6 +119,18 @@
  * functions to exceed the maximum stack depth.  Maybe we should check
  * against maximum stack depth only at block boundaries?
  */
+
+/* XXX we should find a way to remove the opc/op1 check */
+#if defined(ENABLE_VERIFIER)
+#define NEW_CHECKOVERFLOW \
+	do { \
+		if (stackdepth > m->maxstack) \
+			if ((iptr->opc != ICMD_ACONST) || !(iptr->flags.bits & INS_FLAG_NOCHECK)) \
+				goto throw_stack_overflow; \
+	} while(0)
+#else /* !ENABLE_VERIFIER */
+#define NEW_CHECKOVERFLOW
+#endif /* ENABLE_VERIFIER */
 
 /* XXX we should find a way to remove the opc/op1 check */
 #if defined(ENABLE_VERIFIER)
