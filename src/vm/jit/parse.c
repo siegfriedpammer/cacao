@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5008 2006-06-01 16:00:18Z edwin $
+   $Id: parse.c 5011 2006-06-01 22:52:44Z edwin $
 
 */
 
@@ -175,6 +175,7 @@ bool new_parse(jitdata *jd)
 	u2                  currentline = 0;
 	u2                  linepcchange = 0;
 	u4                  flags;
+	basicblock         *bptr;
 
 	/* get required compiler data */
 
@@ -184,15 +185,14 @@ bool new_parse(jitdata *jd)
 	/* allocate instruction array and block index table */
 
 	/* 1 additional for end ipc  */
-	m->basicblockindex = DMNEW(s4, m->jcodelength + 1);
-	memset(m->basicblockindex, 0, sizeof(s4) * (m->jcodelength + 1));
+	jd->new_basicblockindex = DMNEW(s4, m->jcodelength + 1);
+	memset(jd->new_basicblockindex, 0, sizeof(s4) * (m->jcodelength + 1));
 
 	instructionstart = DMNEW(u1, m->jcodelength + 1);
 	memset(instructionstart, 0, sizeof(u1) * (m->jcodelength + 1));
 
 	/* IMPORTANT: We assume that parsing creates at most one instruction per */
 	/*            byte of original bytecode!                                 */
-	/* XXX add an assertion checking this at the end                         */
 
 	iptr = jd->new_instructions = DMNEW(new_instruction, m->jcodelength);
 
@@ -215,7 +215,8 @@ bool new_parse(jitdata *jd)
 	}
 #endif
 
-	/* scan all java instructions */
+	/* setup line number info */
+
 	currentline = 0;
 	linepcchange = 0;
 
@@ -257,14 +258,14 @@ fetch_opcode:
 
 		/* store intermediate instruction count (bit 0 mark block starts) */
 
-		m->basicblockindex[p] |= (ipc << 1);
+		jd->new_basicblockindex[p] |= (ipc << 1);
 
 		/* some compilers put a JAVA_NOP after a blockend instruction */
 
 		if (blockend && (opcode != JAVA_NOP)) {
 			/* start new block */
 
-			block_insert(p);
+			new_block_insert(p);
 			blockend = false;
 		}
 
@@ -632,7 +633,7 @@ fetch_opcode:
 		case JAVA_JSR:
 			i = p + code_get_s2(p + 1,m);
 			CHECK_BYTECODE_INDEX(i);
-			block_insert(i);
+			new_block_insert(i);
 			blockend = true;
 			NEW_OP_INSINDEX(opcode, i);
 			break;
@@ -641,7 +642,7 @@ fetch_opcode:
 		case JAVA_JSR_W:
 			i = p + code_get_s4(p + 1,m);
 			CHECK_BYTECODE_INDEX(i);
-			block_insert(i);
+			new_block_insert(i);
 			blockend = true;
 			NEW_OP_INSINDEX(opcode, i);
 			break;
@@ -700,7 +701,7 @@ fetch_opcode:
 				iptr->sx.s23.s3.lookupdefault.insindex = j;
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(j);
-				block_insert(j);
+				new_block_insert(j);
 
 				/* number of pairs */
 
@@ -741,7 +742,7 @@ fetch_opcode:
 					lookup++;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
-					block_insert(j);
+					new_block_insert(j);
 				}
 
 				PINC;
@@ -767,7 +768,7 @@ fetch_opcode:
 				deftarget = p + code_get_s4(nextp, m);
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(deftarget);
-				block_insert(deftarget);
+				new_block_insert(deftarget);
 
 				/* lower bound */
 
@@ -808,7 +809,7 @@ fetch_opcode:
 					(table++)->insindex = j;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
-					block_insert(j);
+					new_block_insert(j);
 				}
 
 				PINC;
@@ -1005,7 +1006,7 @@ invoke_method:
 			if (checksync) {
 				/* XXX null check */
 				bte = builtintable_get_internal(BUILTIN_monitorenter);
-				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
+				NEW_OP_BUILTIN_CHECK_EXCEPTION(bte);
 			}
 			else
 #endif
@@ -1019,7 +1020,7 @@ invoke_method:
 			if (checksync) {
 				/* XXX null check */
 				bte = builtintable_get_internal(BUILTIN_monitorexit);
-				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
+				NEW_OP_BUILTIN_CHECK_EXCEPTION(bte);
 			}
 			else
 #endif
@@ -1028,7 +1029,7 @@ invoke_method:
 			}
 			break;
 
-		/* arithmetic instructions they may become builtin functions **********/
+		/* arithmetic instructions that may become builtin functions **********/
 
 		case JAVA_IDIV:
 #if !SUPPORT_DIVISION
@@ -1142,7 +1143,7 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 		case JAVA_BREAKPOINT:
 			*exceptionptr =
-				new_verifyerror(m, "Quick instructions shouldn't appear yet.");
+				new_verifyerror(m, "Quick instructions shouldn't appear, yet.");
 			return false;
 
 		case 186: /* unused opcode */
@@ -1215,6 +1216,8 @@ invoke_method:
 
 		} /* end switch */
 
+		/* verifier checks ****************************************************/
+
 #if defined(ENABLE_VERIFIER)
 		/* If WIDE was used correctly, iswide should have been reset by now. */
 		if (iswide) {
@@ -1227,6 +1230,13 @@ invoke_method:
 	} /* end for */
 
 	/*** END OF LOOP **********************************************************/
+
+	/* assert that we did not write more ICMDs than allocated */
+
+	assert(ipc == (iptr - jd->new_instructions));
+	assert(ipc <= m->jcodelength);
+
+	/*** verifier checks ******************************************************/
 
 #if defined(ENABLE_VERIFIER)
 	if (p != m->jcodelength) {
@@ -1241,126 +1251,127 @@ invoke_method:
 	}
 #endif /* defined(ENABLE_VERIFIER) */
 
+	/*** setup the methodinfo, allocate stack and basic blocks ****************/
+
 	/* adjust block count if target 0 is not first intermediate instruction */
 
-	if (!m->basicblockindex[0] || (m->basicblockindex[0] > 1))
+	if (!jd->new_basicblockindex[0] || (jd->new_basicblockindex[0] > 1))
 		b_count++;
 
 	/* copy local to method variables */
 
-	m->instructioncount = ipc;
-	m->basicblockcount = b_count;
-	m->stackcount = s_count + m->basicblockcount * m->maxstack;
+	jd->new_instructioncount = ipc;
+	jd->new_basicblockcount = b_count;
+	jd->new_stackcount = s_count + jd->new_basicblockcount * m->maxstack; /* in-stacks */
 
 	/* allocate stack table */
 
-	m->stack = DMNEW(stackelement, m->stackcount);
+	jd->new_stack = DMNEW(stackelement, jd->new_stackcount);
 
-	{
-		basicblock *bptr;
+	/* build basic block list */
 
-		bptr = m->basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
+	bptr = jd->new_basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
 
-		b_count = 0;
-		m->c_debug_nr = 0;
+	b_count = 0;
+	jd->new_c_debug_nr = 0;
 
-		/* additional block if target 0 is not first intermediate instruction */
+	/* additional block if target 0 is not first intermediate instruction */
 
-		if (!m->basicblockindex[0] || (m->basicblockindex[0] > 1)) {
-			BASICBLOCK_INIT(bptr,m);
+	if (!jd->new_basicblockindex[0] || (jd->new_basicblockindex[0] > 1)) {
+		BASICBLOCK_INIT(bptr, m);
 
-			bptr->iinstr = m->instructions;
+		bptr->iinstr = /* XXX */ (instruction *) jd->new_instructions;
+		/* bptr->icount is set when the next block is allocated */
+
+		bptr++;
+		b_count++;
+		bptr[-1].next = bptr;
+	}
+
+	/* allocate blocks */
+
+	for (p = 0; p < m->jcodelength; p++) {
+		if (jd->new_basicblockindex[p] & 1) {
+			/* Check if this block starts at the beginning of an          */
+			/* instruction.                                               */
+#if defined(ENABLE_VERIFIER)
+			if (!instructionstart[p]) {
+				*exceptionptr = new_verifyerror(m,
+						"Branch into middle of instruction");
+				return false;
+			}
+#endif
+
+			/* allocate the block */
+
+			BASICBLOCK_INIT(bptr, m);
+
+			bptr->iinstr = /* XXX */ (instruction *) (jd->new_instructions + (jd->new_basicblockindex[p] >> 1));
+			if (b_count) {
+				bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
+			}
 			/* bptr->icount is set when the next block is allocated */
+
+			jd->new_basicblockindex[p] = b_count;
 
 			bptr++;
 			b_count++;
 			bptr[-1].next = bptr;
 		}
-
-		/* allocate blocks */
-
-		for (p = 0; p < m->jcodelength; p++) {
-			if (m->basicblockindex[p] & 1) {
-				/* Check if this block starts at the beginning of an          */
-				/* instruction.                                               */
-#if defined(ENABLE_VERIFIER)
-				if (!instructionstart[p]) {
-					*exceptionptr = new_verifyerror(m,
-						"Branch into middle of instruction");
-					return false;
-				}
-#endif
-
-				/* allocate the block */
-
-				BASICBLOCK_INIT(bptr,m);
-
-				bptr->iinstr = m->instructions + (m->basicblockindex[p] >> 1);
-				if (b_count) {
-					bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
-				}
-				/* bptr->icount is set when the next block is allocated */
-
-				m->basicblockindex[p] = b_count;
-
-				bptr++;
-				b_count++;
-				bptr[-1].next = bptr;
-			}
-		}
-
-		/* set instruction count of last real block */
-
-		if (b_count) {
-			bptr[-1].icount = (m->instructions + m->instructioncount) - bptr[-1].iinstr;
-		}
-
-		/* allocate additional block at end */
-
-		BASICBLOCK_INIT(bptr,m);
-
-		bptr->instack = bptr->outstack = NULL;
-		bptr->indepth = bptr->outdepth = 0;
-		bptr->iinstr = NULL;
-		bptr->icount = 0;
-		bptr->next = NULL;
-
-		/* set basicblock pointers in exception table */
-
-		if (cd->exceptiontablelength > 0) {
-			cd->exceptiontable[cd->exceptiontablelength - 1].down = NULL;
-		}
-
-		for (i = 0; i < cd->exceptiontablelength; ++i) {
-			p = cd->exceptiontable[i].startpc;
-			cd->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
-
-			p = cd->exceptiontable[i].endpc;
-			cd->exceptiontable[i].end = (p == m->jcodelength) ? (m->basicblocks + m->basicblockcount /*+ 1*/) : (m->basicblocks + m->basicblockindex[p]);
-
-			p = cd->exceptiontable[i].handlerpc;
-			cd->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
-	    }
-
-		/* XXX activate this if you want to try inlining */
-#if 0
-		for (i = 0; i < m->exceptiontablelength; ++i) {
-			p = m->exceptiontable[i].startpc;
-			m->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
-
-			p = m->exceptiontable[i].endpc;
-			m->exceptiontable[i].end = (p == m->jcodelength) ? (m->basicblocks + m->basicblockcount /*+ 1*/) : (m->basicblocks + m->basicblockindex[p]);
-
-			p = m->exceptiontable[i].handlerpc;
-			m->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
-	    }
-#endif
-
 	}
+
+	/* set instruction count of last real block */
+
+	if (b_count) {
+		bptr[-1].icount = (jd->new_instructions + jd->new_instructioncount) - /* XXX */ (new_instruction *) bptr[-1].iinstr;
+	}
+
+	/* allocate additional block at end */
+
+	BASICBLOCK_INIT(bptr,m);
+
+	bptr->instack = bptr->outstack = NULL;
+	bptr->indepth = bptr->outdepth = 0;
+	bptr->iinstr = NULL;
+	bptr->icount = 0;
+	bptr->next = NULL;
+
+	/* set basicblock pointers in exception table */
+
+	if (cd->exceptiontablelength > 0) {
+		cd->exceptiontable[cd->exceptiontablelength - 1].down = NULL;
+	}
+
+	for (i = 0; i < cd->exceptiontablelength; ++i) {
+		p = cd->exceptiontable[i].startpc;
+		cd->exceptiontable[i].start = jd->new_basicblocks + jd->new_basicblockindex[p];
+
+		p = cd->exceptiontable[i].endpc;
+		cd->exceptiontable[i].end = (p == m->jcodelength) ? (jd->new_basicblocks + jd->new_basicblockcount /*+ 1*/) : (jd->new_basicblocks + jd->new_basicblockindex[p]);
+
+		p = cd->exceptiontable[i].handlerpc;
+		cd->exceptiontable[i].handler = jd->new_basicblocks + jd->new_basicblockindex[p];
+	}
+
+	/* XXX activate this if you want to try inlining */
+#if 0
+	for (i = 0; i < m->exceptiontablelength; ++i) {
+		p = m->exceptiontable[i].startpc;
+		m->exceptiontable[i].start = jd->new_basicblocks + jd->new_basicblockindex[p];
+
+		p = m->exceptiontable[i].endpc;
+		m->exceptiontable[i].end = (p == m->jcodelength) ? (jd->new_basicblocks + jd->new_basicblockcount /*+ 1*/) : (jd->new_basicblocks + jd->new_basicblockindex[p]);
+
+		p = m->exceptiontable[i].handlerpc;
+		m->exceptiontable[i].handler = jd->new_basicblocks + jd->new_basicblockindex[p];
+	}
+#endif
 
 	/* everything's ok */
 
 	return true;
+
+	/*** goto labels for throwing verifier exceptions *************************/
 
 #if defined(ENABLE_VERIFIER)
 
