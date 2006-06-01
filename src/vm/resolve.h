@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 4986 2006-05-29 20:22:58Z edwin $
+   $Id: resolve.h 5008 2006-06-01 16:00:18Z edwin $
 
 */
 
@@ -168,9 +168,13 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 						typeinfo *valuetype);
 #endif
 
+unresolved_field * new_create_unresolved_field(classinfo *referer,methodinfo *refmethod,
+						new_instruction *iptr);
 unresolved_field * create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 						instruction *iptr);
 
+unresolved_method * new_create_unresolved_method(classinfo *referer,methodinfo *refmethod,
+						 new_instruction *iptr);
 unresolved_method * create_unresolved_method(classinfo *referer,methodinfo *refmethod,
 						 instruction *iptr);
 
@@ -178,8 +182,12 @@ void unresolved_class_free(unresolved_class *ref);
 void unresolved_field_free(unresolved_field *ref);
 void unresolved_method_free(unresolved_method *ref);
 
+resolve_result_t new_resolve_method_lazy(new_instruction *iptr,stackptr curstack,
+									 methodinfo *refmethod);
 resolve_result_t resolve_method_lazy(instruction *iptr,stackptr curstack,
 									 methodinfo *refmethod);
+resolve_result_t new_resolve_field_lazy(new_instruction *iptr,stackptr curstack,
+									methodinfo *refmethod);
 resolve_result_t resolve_field_lazy(instruction *iptr,stackptr curstack,
 									methodinfo *refmethod);
 

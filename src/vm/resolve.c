@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4928 2006-05-15 23:22:48Z edwin $
+   $Id: resolve.c 5008 2006-06-01 16:00:18Z edwin $
 
 */
 
@@ -1149,6 +1149,88 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
    
 *******************************************************************************/
 
+resolve_result_t new_resolve_field_lazy(new_instruction *iptr,
+										stackptr curstack,
+										methodinfo *refmethod)
+{
+	classinfo *referer;
+	classinfo *container;
+	fieldinfo *fi;
+	constant_FMIref *fieldref;
+	resolve_result_t result;
+
+	assert(iptr);
+	assert(refmethod);
+
+	/* the class containing the reference */
+
+	referer = refmethod->class;
+	assert(referer);
+
+	/* get the field reference */
+
+	NEW_INSTRUCTION_GET_FIELDREF(iptr, fieldref);
+
+	/* check if the field itself is already resolved */
+
+	if (IS_FMIREF_RESOLVED(fieldref)) {
+		fi = fieldref->p.field;
+		container = fi->class;
+		goto resolved_the_field;
+	}
+
+	/* first we must resolve the class containg the field */
+
+	/* XXX can/may lazyResolving trigger linking? */
+
+	if (!resolve_class_from_name(referer, refmethod,
+		   fieldref->p.classref->name, resolveLazy, true, true, &container))
+	{
+		/* the class reference could not be resolved */
+		return resolveFailed; /* exception */
+	}
+	if (!container)
+		return resolveDeferred; /* be lazy */
+
+	assert(container->state & CLASS_LINKED);
+
+	/* now we must find the declaration of the field in `container`
+	 * or one of its superclasses */
+
+	fi = class_resolvefield(container,
+							fieldref->name, fieldref->descriptor,
+							referer, true);
+	if (!fi) {
+		/* The field does not exist. But since we were called lazily, */
+		/* this error must not be reported now. (It will be reported   */
+		/* if eager resolving of this field is ever tried.)           */
+
+		*exceptionptr = NULL;
+		return resolveDeferred; /* be lazy */
+	}
+
+	/* cache the result of the resolution */
+
+	fieldref->p.field = fi;
+
+resolved_the_field:
+
+#if defined(ENABLE_VERIFIER)
+	if (opt_verify) {
+		result = resolve_field_verifier_checks(refmethod, fieldref, container,
+											   fi,
+											   iptr->opc,
+											   curstack);
+
+		if (result != resolveSucceeded)
+			return result;
+	}
+#endif /* defined(ENABLE_VERIFIER) */
+
+	/* everything ok */
+	return resolveSucceeded;
+}
+
 resolve_result_t resolve_field_lazy(instruction *iptr,stackptr curstack,
 									methodinfo *refmethod)
 {
@@ -1724,6 +1806,121 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
    
 *******************************************************************************/
 
+resolve_result_t new_resolve_method_lazy(new_instruction *iptr,
+										 stackptr curstack,
+										 methodinfo *refmethod)
+{
+	classinfo *referer;
+	classinfo *container;
+	methodinfo *mi;
+	constant_FMIref *methodref;
+	resolve_result_t result;
+
+	assert(iptr);
+	assert(refmethod);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"resolve_method_lazy\n");
+#endif
+
+	/* the class containing the reference */
+
+	referer = refmethod->class;
+	assert(referer);
+
+	/* the method reference */
+
+	NEW_INSTRUCTION_GET_METHODREF(iptr, methodref);
+
+	/* check if the method itself is already resolved */
+
+	if (IS_FMIREF_RESOLVED(methodref)) {
+		mi = methodref->p.method;
+		container = mi->class;
+		goto resolved_the_method;
+	}
+
+	/* first we must resolve the class containg the method */
+
+	if (!resolve_class_from_name(referer, refmethod,
+		   methodref->p.classref->name, resolveLazy, true, true, &container))
+	{
+		/* the class reference could not be resolved */
+		return resolveFailed; /* exception */
+	}
+	if (!container)
+		return resolveDeferred; /* be lazy */
+
+	assert(container->state & CLASS_LINKED);
+
+	/* now we must find the declaration of the method in `container`
+	 * or one of its superclasses */
+
+	if (container->flags & ACC_INTERFACE) {
+		mi = class_resolveinterfacemethod(container,
+									      methodref->name,
+										  methodref->descriptor,
+									      referer, true);
+
+	} else {
+		mi = class_resolveclassmethod(container,
+									  methodref->name,
+									  methodref->descriptor,
+									  referer, true);
+	}
+
+	if (!mi) {
+		/* The method does not exist. But since we were called lazily, */
+		/* this error must not be reported now. (It will be reported   */
+		/* if eager resolving of this method is ever tried.)           */
+
+		*exceptionptr = NULL;
+		return resolveDeferred; /* be lazy */
+	}
+
+	if (iptr->opc == ICMD_INVOKESPECIAL) {
+		mi = resolve_method_invokespecial_lookup(refmethod, mi);
+		if (!mi)
+			return resolveFailed; /* exception */
+	}
+
+	/* have the method params already been parsed? no, do it. */
+
+	if (!mi->parseddesc->params)
+		if (!descriptor_params_from_paramtypes(mi->parseddesc, mi->flags))
+			return resolveFailed;
+
+	/* cache the result of the resolution */
+
+	methodref->p.method = mi;
+
+resolved_the_method:
+
+#if defined(ENABLE_VERIFIER)
+	if (opt_verify) {
+		result = resolve_method_verifier_checks(refmethod, methodref,
+												container,
+												mi,
+												iptr->opc == ICMD_INVOKESTATIC,
+												iptr->opc == ICMD_INVOKESPECIAL,
+												curstack);
+		if (result != resolveSucceeded)
+			return result;
+	}
+#endif /* defined(ENABLE_VERIFIER) */
+
+	/* if this call is monomorphic, turn it into an INVOKESPECIAL */
+
+	if ((iptr->opc == ICMD_INVOKEVIRTUAL)
+		&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))
+	{
+		iptr->opc = ICMD_INVOKESPECIAL;
+	}
+
+	/* succeed */
+	return resolveSucceeded;
+}
+
 resolve_result_t resolve_method_lazy(instruction *iptr,stackptr curstack,
 									 methodinfo *refmethod)
 {
@@ -2213,6 +2410,73 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 
 *******************************************************************************/
 
+unresolved_field * new_create_unresolved_field(classinfo *referer,
+											   methodinfo *refmethod,
+											   new_instruction *iptr)
+{
+	unresolved_field *ref;
+	constant_FMIref *fieldref = NULL;
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"create_unresolved_field\n");
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+#endif
+
+	ref = NEW(unresolved_field);
+	ref->flags = 0;
+	ref->referermethod = refmethod;
+	UNRESOLVED_SUBTYPE_SET_EMTPY(ref->valueconstraints);
+
+	switch (iptr->opc) {
+		case ICMD_PUTFIELD:
+			ref->flags |= RESOLVE_PUTFIELD;
+			break;
+
+		case ICMD_PUTFIELDCONST:
+			ref->flags |= RESOLVE_PUTFIELD;
+			break;
+
+		case ICMD_PUTSTATIC:
+			ref->flags |= RESOLVE_PUTFIELD | RESOLVE_STATIC;
+			break;
+
+		case ICMD_PUTSTATICCONST:
+			ref->flags |= RESOLVE_PUTFIELD | RESOLVE_STATIC;
+			break;
+
+		case ICMD_GETFIELD:
+			break;
+
+		case ICMD_GETSTATIC:
+			ref->flags |= RESOLVE_STATIC;
+			break;
+
+#if !defined(NDEBUG)
+		default:
+			assert(false);
+#endif
+	}
+
+	fieldref = iptr->sx.s23.s3.fmiref;
+
+	assert(fieldref);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
+	fputc('\n',stderr);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
+#endif
+
+	ref->fieldref = fieldref;
+
+	return ref;
+}
+
 unresolved_field * create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 										   instruction *iptr)
 {
@@ -2437,6 +2701,47 @@ bool constrain_unresolved_field(unresolved_field *ref,
 	   NULL if an exception has been thrown
 
 *******************************************************************************/
+
+unresolved_method * new_create_unresolved_method(classinfo *referer,
+												 methodinfo *refmethod,
+												 new_instruction *iptr)
+{
+	unresolved_method *ref;
+	constant_FMIref *methodref;
+	bool staticmethod;
+
+	methodref = iptr->sx.s23.s3.fmiref;
+	assert(methodref);
+	staticmethod = (iptr->opc == ICMD_INVOKESTATIC);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"create_unresolved_method\n");
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
+#endif
+
+	/* allocate params if necessary */
+	if (!methodref->parseddesc.md->params)
+		if (!descriptor_params_from_paramtypes(methodref->parseddesc.md,
+					(staticmethod) ? ACC_STATIC : ACC_NONE))
+			return NULL;
+
+	/* create the data structure */
+	ref = NEW(unresolved_method);
+	ref->flags = ((staticmethod) ? RESOLVE_STATIC : 0)
+			   | ((iptr->opc == ICMD_INVOKESPECIAL) ? RESOLVE_SPECIAL : 0);
+	ref->referermethod = refmethod;
+	ref->methodref = methodref;
+	ref->paramconstraints = NULL;
+	UNRESOLVED_SUBTYPE_SET_EMTPY(ref->instancetypes);
+
+	return ref;
+}
 
 unresolved_method * create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 											 instruction *iptr)

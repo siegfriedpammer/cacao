@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5006 2006-06-01 14:36:38Z edwin $
+   $Id: parse.c 5008 2006-06-01 16:00:18Z edwin $
 
 */
 
@@ -235,6 +235,8 @@ bool new_parse(jitdata *jd)
 		instructionstart[p] = 1;
 
 		/* change the current line number, if necessary */
+
+		/* XXX rewrite this using pointer arithmetic */
 
 		if (linepcchange == p) {
 			if (m->linenumbercount > lineindex) {
@@ -603,7 +605,7 @@ fetch_opcode:
 
 				/* if unresolved, c == NULL */
 
-				iptr->s1.argcount = v; /* XXX */
+				iptr->s1.argcount = v;
 				NEW_OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, 0 /* flags */);
 			}
 			break;
@@ -842,12 +844,12 @@ fetch_opcode:
 #if defined(ENABLE_VERIFIER)
 				if (!opt_verify) {
 #endif
-					result = resolve_field_lazy(/* XXX */(instruction *)iptr, NULL, m);
+					result = new_resolve_field_lazy(iptr, NULL, m);
 					if (result == resolveFailed)
 						return false;
 
 					if (result != resolveSucceeded) {
-						uf = create_unresolved_field(m->class, m, /* XXX */(instruction *)iptr);
+						uf = new_create_unresolved_field(m->class, m, iptr);
 
 						if (!uf)
 							return false;
@@ -915,12 +917,12 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 			if (!opt_verify) {
 #endif
-				result = resolve_method_lazy(/* XXX */(instruction *)iptr, NULL, m);
+				result = new_resolve_method_lazy(iptr, NULL, m);
 				if (result == resolveFailed)
 					return false;
 
 				if (result != resolveSucceeded) {
-					um = create_unresolved_method(m->class, m, /* XXX */(instruction *)iptr);
+					um = new_create_unresolved_method(m->class, m, iptr);
 
 					if (!um)
 						return false;

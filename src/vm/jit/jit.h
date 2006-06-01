@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5006 2006-06-01 14:36:38Z edwin $
+   $Id: jit.h 5008 2006-06-01 16:00:18Z edwin $
 
 */
 
@@ -310,12 +310,28 @@ struct instruction {
 #define INSTRUCTION_IS_UNRESOLVED(iptr) \
 	((ptrint)(iptr)->target & 0x01) /* XXX target used temporarily as flag */
 
+#define NEW_INSTRUCTION_GET_FIELDREF(iptr,fref) \
+	do { \
+		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
+			fref = iptr->sx.s23.s3.uf->fieldref; \
+		else \
+			fref = iptr->sx.s23.s3.fmiref; \
+	} while (0)
+
 #define INSTRUCTION_GET_FIELDREF(iptr,fref) \
 	do { \
 		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
 			fref = ((unresolved_field *) (iptr)->val.a)->fieldref; \
 		else \
 			fref = ((constant_FMIref *)(iptr)->val.a); \
+	} while (0)
+
+#define NEW_INSTRUCTION_GET_METHODREF(iptr,mref) \
+	do { \
+		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
+			mref = iptr->sx.s23.s3.um->methodref; \
+		else \
+			mref = iptr->sx.s23.s3.fmiref; \
 	} while (0)
 
 #define INSTRUCTION_GET_METHODREF(iptr,mref) \
