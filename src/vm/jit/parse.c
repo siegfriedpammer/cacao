@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5003 2006-05-31 23:03:35Z edwin $
+   $Id: parse.c 5006 2006-06-01 14:36:38Z edwin $
 
 */
 
@@ -190,15 +190,11 @@ bool new_parse(jitdata *jd)
 	instructionstart = DMNEW(u1, m->jcodelength + 1);
 	memset(instructionstart, 0, sizeof(u1) * (m->jcodelength + 1));
 
-	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
-	/* additional MONITOREXITS are reached by branches which are 3 bytes */
+	/* IMPORTANT: We assume that parsing creates at most one instruction per */
+	/*            byte of original bytecode!                                 */
+	/* XXX add an assertion checking this at the end                         */
 
-	iptr = jd->new_instructions = DMNEW(new_instruction, m->jcodelength + 5);
-
-	/* Zero the intermediate instructions array so we don't have any
-	 * invalid pointers in it if we cannot finish analyse_stack(). */
-
-	memset(iptr, 0, sizeof(new_instruction) * (m->jcodelength + 5)); /* XXX remove this? */
+	iptr = jd->new_instructions = DMNEW(new_instruction, m->jcodelength);
 
 	/* compute branch targets of exception table */
 
@@ -694,7 +690,7 @@ fetch_opcode:
 
 				CHECK_END_OF_BYTECODE(nextp + 8);
 
-				NEW_OP_PREPARE(opcode);
+				NEW_OP_PREPARE_ZEROFLAGS(opcode);
 
 				/* default target */
 
@@ -762,7 +758,7 @@ fetch_opcode:
 
 				CHECK_END_OF_BYTECODE(nextp + 12);
 
-				NEW_OP_PREPARE(opcode);
+				NEW_OP_PREPARE_ZEROFLAGS(opcode);
 
 				/* default target */
 
@@ -838,7 +834,7 @@ fetch_opcode:
 				if (!fr)
 					return false;
 
-				NEW_OP_PREPARE(opcode);
+				NEW_OP_PREPARE_ZEROFLAGS(opcode);
 				iptr->sx.s23.s3.fmiref = fr;
 
 				/* only with -noverify, otherwise the typechecker does this */
@@ -911,7 +907,7 @@ invoke_nonstatic_method:
 invoke_method:
 			m->isleafmethod = false;
 
-			NEW_OP_PREPARE(opcode);
+			NEW_OP_PREPARE_ZEROFLAGS(opcode);
 			iptr->sx.s23.s3.fmiref = mr;
 
 			/* only with -noverify, otherwise the typechecker does this */
@@ -1005,29 +1001,29 @@ invoke_method:
 		case JAVA_MONITORENTER:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
-				NEW_OP(ICMD_CHECKNULL);
+				/* XXX null check */
 				bte = builtintable_get_internal(BUILTIN_monitorenter);
 				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
 			}
 			else
 #endif
-				{
-					NEW_OP(ICMD_CHECKNULL);
-					NEW_OP(ICMD_POP);
-				}
+			{
+				NEW_OP(ICMD_CHECKNULL_POP);
+			}
 			break;
 
 		case JAVA_MONITOREXIT:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
+				/* XXX null check */
 				bte = builtintable_get_internal(BUILTIN_monitorexit);
 				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
 			}
 			else
 #endif
-				{
-					NEW_OP(ICMD_POP);
-				}
+			{
+				NEW_OP(ICMD_CHECKNULL_POP);
+			}
 			break;
 
 		/* arithmetic instructions they may become builtin functions **********/

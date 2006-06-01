@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5000 2006-05-31 21:31:29Z edwin $
+   $Id: jit.c 5006 2006-06-01 14:36:38Z edwin $
 
 */
 
@@ -118,6 +118,7 @@ int jcommandsize[256] = {
 #define ICMD_ICONST            3        /* val.i = constant                   */
 	1,
 #define JAVA_ICONST_1          4
+#define ICMD_CHECKNULL_POP     4
 	1,
 #define JAVA_ICONST_2          5
 #define ICMD_IDIVPOW2          5        /* val.i = constant                   */
@@ -785,7 +786,7 @@ char *icmd_names[256] = {
 	"ACONST         ", /*               1 */
 	"CHECKNULL      ", /* ICONST_M1     2 */
 	"ICONST         ", /*               3 */
-	"UNDEF4         ", /* ICONST_1      4 */
+	"CHECKNULL_POP  ", /* ICONST_1      4 */
 	"IDIVPOW2       ", /* ICONST_2      5 */
 	"LDIVPOW2       ", /* ICONST_3      6 */
 	"UNDEF7         ", /* ICONST_4      7 */
