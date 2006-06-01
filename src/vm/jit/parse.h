@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5005 2006-06-01 13:00:33Z edwin $
+   $Id: parse.h 5010 2006-06-01 22:49:31Z edwin $
 
 */
 
@@ -90,6 +90,14 @@
 
 
 /* basic block generating macro ***********************************************/
+
+#define new_block_insert(i) \
+    do { \
+        if (!(jd->new_basicblockindex[(i)] & 1)) { \
+            b_count++; \
+            jd->new_basicblockindex[(i)] |= 1; \
+        } \
+    } while (0)
 
 #define block_insert(i) \
     do { \
