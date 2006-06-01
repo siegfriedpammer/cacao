@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5008 2006-06-01 16:00:18Z edwin $
+   $Id: jit.h 5009 2006-06-01 22:46:54Z edwin $
 
 */
 
@@ -99,8 +99,14 @@ struct jitdata {
 #endif
 	u4            flags;                /* contains JIT compiler flags        */
 
-	s4                new_instructioncount;
-	new_instruction * new_instructions;
+	new_instruction *new_instructions;
+	basicblock      *new_basicblocks;
+	s4              *new_basicblockindex;
+	stackelement    *new_stack;
+	s4               new_instructioncount;
+	s4               new_basicblockcount;
+	s4               new_stackcount;
+	s4               new_c_debug_nr;
 };
 
 
@@ -348,6 +354,14 @@ struct instruction {
 			fd = ((unresolved_field *)(iptr)->val.a)->fieldref->parseddesc.fd; \
 		else \
 			fd = ((constant_FMIref *)(iptr)->val.a)->parseddesc.fd; \
+	} while (0)
+
+#define NEW_INSTRUCTION_GET_METHODDESC(iptr, md) \
+	do { \
+		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
+			md = iptr->sx.s23.s3.um->methodref->parseddesc.md; \
+		else \
+			md = iptr->sx.s23.s3.fmiref->parseddesc.md; \
 	} while (0)
 
 #define INSTRUCTION_GET_METHODDESC(iptr,md) \
