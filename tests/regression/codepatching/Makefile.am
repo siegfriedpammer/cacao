@@ -28,12 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4858 2006-04-28 11:37:33Z twisti $
+## $Id: Makefile.am 5015 2006-06-06 13:13:46Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 JAVA      = $(top_builddir)/src/cacao/cacao
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/$(VM_ZIP_STRING):$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
 
 SOURCE_FILES = \
 	$(srcdir)/aastoreconstClass.java \

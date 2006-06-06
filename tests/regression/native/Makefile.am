@@ -28,14 +28,14 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4695 2006-03-28 14:21:14Z twisti $
+## $Id: Makefile.am 5015 2006-06-06 13:13:46Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
 
 JAVA      = $(top_builddir)/src/cacao/cacao
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/$(VM_ZIP_STRING):$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING) -Djava.library.path=.
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP) -Djava.library.path=.
 JAVAH     = $(top_builddir)/src/cacaoh/cacaoh
 
 SOURCE_FILES = \
