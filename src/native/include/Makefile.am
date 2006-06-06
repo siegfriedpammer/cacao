@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4996 2006-05-31 13:53:16Z motse $
+## $Id: Makefile.am 5013 2006-06-06 11:22:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -131,10 +131,7 @@ endif
 
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
-VM_ZIP = $(top_builddir)/src/lib/$(VM_ZIP_STRING)
-GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
-
-CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)
+CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
 
 noinst_DATA = $(DO_HEADER_FILES)
 
@@ -145,7 +142,7 @@ $(NO_GEN_HEADER_FILES):
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
 
-$(DO_HEADER_FILES): $(VM_ZIP) $(GLIBJ_ZIP)
+$(DO_HEADER_FILES): $(VM_ZIP) $(CLASSPATH_GLIBJ_ZIP)
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class

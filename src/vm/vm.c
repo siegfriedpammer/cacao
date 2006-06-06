@@ -486,7 +486,7 @@ static void version(bool opt_exit)
 	printf("  maximum heap size   : %d\n", HEAP_MAXSIZE);
 	printf("  initial heap size   : %d\n", HEAP_STARTSIZE);
 	printf("  stack size          : %d\n", STACK_SIZE);
-	puts("  java.boot.class.path: "CACAO_VM_ZIP_PATH":"CLASSPATH_GLIBJ_ZIP_PATH"");
+	puts("  java.boot.class.path: "CACAO_VM_ZIP":"CLASSPATH_GLIBJ_ZIP"");
 	puts("  java.library.path   : "CLASSPATH_LIBRARY_PATH"\n");
 
 	puts("Runtime variables:\n");
@@ -573,15 +573,15 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		strcpy(bootclasspath, cp);
 
 	} else {
-		cplen = strlen(CACAO_VM_ZIP_PATH) +
+		cplen = strlen(CACAO_VM_ZIP) +
 			strlen(":") +
-			strlen(CLASSPATH_GLIBJ_ZIP_PATH) +
+			strlen(CLASSPATH_GLIBJ_ZIP) +
 			strlen("0");
 
 		bootclasspath = MNEW(char, cplen);
-		strcat(bootclasspath, CACAO_VM_ZIP_PATH);
+		strcat(bootclasspath, CACAO_VM_ZIP);
 		strcat(bootclasspath, ":");
-		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP_PATH);
+		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP);
 	}
 
 	/* set the classpath */
@@ -722,14 +722,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			MFREE(bootclasspath, char, strlen(bootclasspath));
 
-			cplen = strlen(CACAO_VM_ZIP_PATH) +
+			cplen = strlen(CACAO_VM_ZIP) +
 				strlen(":") +
 				strlen(opt_arg) +
 				strlen("0");
 
 			bootclasspath = MNEW(char, cplen);
 
-			strcpy(bootclasspath, CACAO_VM_ZIP_PATH);
+			strcpy(bootclasspath, CACAO_VM_ZIP);
 			strcat(bootclasspath, ":");
 			strcat(bootclasspath, opt_arg);
 			break;

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4627 2006-03-16 12:53:32Z twisti $
+## $Id: Makefile.am 5013 2006-06-06 11:22:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -51,14 +51,11 @@ endif
 if WITH_STATIC_CLASSPATH
 SUBDIRS += tools
 
-VM_ZIP = $(top_builddir)/src/lib/$(VM_ZIP_STRING)
-GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
-
-CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)
+CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
 
 $(srcdir)/native.c: nativetable.inc
 
-nativetable.inc: $(VM_ZIP) $(GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
+nativetable.inc: $(VM_ZIP) $(CLASSPATH_GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
 	$(top_builddir)/src/native/tools/gennativetable -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc
 endif
 

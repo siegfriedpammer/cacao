@@ -1,5 +1,5 @@
 # sets the environment variables when GNU classpath is installed, but
 # CACAO not
 
-export BOOTCLASSPATH=$PWD/src/lib/@VM_ZIP_STRING@:@CLASSPATH_PREFIX@/share/classpath/@GLIBJ_ZIP_STRING@
+export BOOTCLASSPATH=$PWD/src/lib/vm.zip:@CLASSPATH_GLIBJ_ZIP@
 export PATH=$PWD/src/cacao:$PATH

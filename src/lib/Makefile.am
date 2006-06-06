@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4845 2006-04-26 08:57:01Z twisti $
+## $Id: Makefile.am 5013 2006-06-06 11:22:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -53,8 +53,6 @@ VM_CLASS_FILES = \
 	classes/java/lang/VMThrowable.class \
 	classes/java/security/VMAccessController.class
 
-GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
-
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
 
@@ -63,9 +61,9 @@ VM_ZIP = ../vm.zip
 vm.zip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
 	@if test "$(JAVAC)" = "ecj"; then \
-	    $(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes -1.5 $(VM_JAVA_FILES); \
+	    $(JAVAC) -bootclasspath $(CLASSPATH_GLIBJ_ZIP) -d classes -1.5 $(VM_JAVA_FILES); \
 	else \
-	    $(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES); \
+	    $(JAVAC) -bootclasspath $(CLASSPATH_GLIBJ_ZIP) -d classes $(VM_JAVA_FILES); \
 	fi
 	@if test "$(JAR)" = "zip"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \

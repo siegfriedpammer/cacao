@@ -624,12 +624,7 @@ if test x"${ENABLE_ZLIB}" = "xyes"; then
     AC_CHECK_HEADERS([zlib.h],, [AC_MSG_ERROR(cannot find zlib.h)])
     AC_CHECK_LIB(z, inflate,, [AC_MSG_ERROR(cannot find libz)])
     AC_DEFINE([ENABLE_ZLIB], 1, [use zlib])
-    VM_ZIP_STRING=vm.zip
-else
-    VM_ZIP_STRING=classes/
 fi
-AC_DEFINE_UNQUOTED(VM_ZIP_STRING, "${VM_ZIP_STRING}", [define to the string base name of the VM zip file])
-AC_SUBST(VM_ZIP_STRING)
 AM_CONDITIONAL([ENABLE_ZLIB], test x"${ENABLE_ZLIB}" = "xyes")
 
 
@@ -678,6 +673,17 @@ AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
 AC_SUBST(ENABLE_STATICVM)
 
 
+dnl where is CACAO's vm.zip
+AC_MSG_CHECKING(where CACAO's vm.zip is installed)
+AC_ARG_WITH([vm-zip],
+            [AS_HELP_STRING(--with-vm-zip,path to CACAO's vm.zip (includes the name of the file and may be flat) [[default=/usr/local/cacao/share/cacao/vm.zip]])],
+            [CACAO_VM_ZIP=${withval}],
+            [CACAO_VM_ZIP=${CACAO_PREFIX}/share/cacao/vm.zip])
+AC_MSG_RESULT(${CACAO_VM_ZIP})
+AC_DEFINE_UNQUOTED([CACAO_VM_ZIP], "${CACAO_VM_ZIP}", [CACAO's vm.zip])
+AC_SUBST(CACAO_VM_ZIP)
+
+
 dnl is GNU classpath installed somewhere different
 AC_MSG_CHECKING(where GNU Classpath is installed)
 AC_ARG_WITH([classpath-prefix],
@@ -688,6 +694,19 @@ AC_MSG_RESULT(${CLASSPATH_PREFIX})
 AC_DEFINE_UNQUOTED([CLASSPATH_PREFIX], "${CLASSPATH_PREFIX}", [GNU Classpath installation directory])
 AC_SUBST(CLASSPATH_PREFIX)
 
+
+dnl where is GNU Classpath's glibj.zip
+AC_MSG_CHECKING(where GNU Classpath's glibj.zip is installed)
+AC_ARG_WITH([classpath-glibj-zip],
+            [AS_HELP_STRING(--with-classpath-glibj-zip,path to GNU Classpath's glibj.zip (includes the name of the file and may be flat) [[default=/usr/local/classpath/share/classpath/glibj.zip]])],
+            [CLASSPATH_GLIBJ_ZIP=${withval}],
+            [CLASSPATH_GLIBJ_ZIP=${CLASSPATH_PREFIX}/share/classpath/glibj.zip])
+AC_MSG_RESULT(${CLASSPATH_GLIBJ_ZIP})
+AC_DEFINE_UNQUOTED([CLASSPATH_GLIBJ_ZIP], "${CLASSPATH_GLIBJ_ZIP}", [GNU Classpath's glibj.zip])
+AC_SUBST(CLASSPATH_GLIBJ_ZIP)
+
+
+dnl where are the GNU Classpath libraries installed
 AC_MSG_CHECKING(where GNU Classpath libraries are installed)
 AC_ARG_WITH([classpath-libdir],
             [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of GNU Classpath libraries [[default=/usr/local/classpath/lib]])],
@@ -700,6 +719,8 @@ AS_AC_EXPAND([CLASSPATH_LIBDIR], ${CLASSPATH_LIBDIR})
 AC_DEFINE_UNQUOTED([CLASSPATH_LIBDIR], "${CLASSPATH_LIBDIR}", [GNU Classpath libraries installation directory])
 AC_SUBST(CLASSPATH_LIBDIR)
 
+
+dnl where are the GNU Classpath headers installed
 AC_MSG_CHECKING(where GNU Classpath headers are installed)
 AC_ARG_WITH([classpath-includedir],
             [AS_HELP_STRING(--with-classpath-includedir=<dir>,installation directory of GNU Classpath headers [[default=/usr/local/classpath/include]])],
@@ -734,19 +755,6 @@ else
 fi
 AM_CONDITIONAL([WITH_STATIC_CLASSPATH], test x"${WITH_STATIC_CLASSPATH}" = "xyes")
 AC_SUBST(WITH_STATIC_CLASSPATH)
-
-
-dnl Maybe the user has Classpath installed 'flat'.
-AC_ARG_WITH([flat-classpath],
-            [AS_HELP_STRING(--with-flat-classpath, GNU Classpath is not zipped in the install directory)])
-
-if test x"$with_flat_classpath" = "x"; then
-    GLIBJ_ZIP_STRING=glibj.zip
-else
-    GLIBJ_ZIP_STRING=
-fi
-AC_SUBST(GLIBJ_ZIP_STRING)
-AC_DEFINE_UNQUOTED(GLIBJ_ZIP_STRING, "$GLIBJ_ZIP_STRING", [define to the string base name of the classpath zip file])
 
 
 dnl check for some programs we need
