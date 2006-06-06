@@ -42,6 +42,7 @@ jvmtiEnv* jvmtienv;
 extern jvmtiEventCallbacks jvmti_jdwp_EventCallbacks;
 char* jdwpoptions;
 bool suspend;               /* should the virtual machine suspend on startup?  */
+jthread jdwpthread;
 
 void printjvmtierror(char *desc, jvmtiError err);
 #endif

@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4996 2006-05-31 13:53:16Z motse $
+   $Id: jvmti.c 5019 2006-06-06 21:13:41Z motse $
 
 */
 
@@ -129,7 +129,7 @@ static lt_ptr unload;
 #define CHECK_CAPABILITY(env,CAP) if(((environment*)                            \
 										 env)->capabilities.CAP == 0)           \
                                      return JVMTI_ERROR_MUST_POSSESS_CAPABILITY;
-#define CHECK_THREAD_IS_ALIVE(t) if(check_thread_is_alive(t)==                  \
+#define CHECK_THREAD_IS_ALIVE(t) if(check_thread_is_alive(t) ==                 \
                                   JVMTI_ERROR_THREAD_NOT_ALIVE)                 \
                                   	return JVMTI_ERROR_THREAD_NOT_ALIVE;
 
@@ -142,8 +142,8 @@ static lt_ptr unload;
 
 *******************************************************************************/
 static jvmtiError check_thread_is_alive(jthread t) {
-	if(t==NULL) return JVMTI_ERROR_THREAD_NOT_ALIVE;
-	if(((java_lang_Thread*) t)->vmThread==NULL) 
+	if(t == NULL) return JVMTI_ERROR_THREAD_NOT_ALIVE;
+	if(((java_lang_Thread*) t)->vmThread == NULL) 
 		return JVMTI_ERROR_THREAD_NOT_ALIVE;
 	return JVMTI_ERROR_NONE;
 }
@@ -372,22 +372,25 @@ static void dofireEvent(jvmtiEvent e, genericEventData* data) {
 	functionptr ec;
 
 	env = envs;
-	while (env!=NULL) {
+	while (env != NULL) {
 		if (env->events[e-JVMTI_EVENT_START_ENUM].mode == JVMTI_DISABLE) {
 			evm = env->events[e-JVMTI_EVENT_START_ENUM].next;
             /* test if the event is enable for some threads */
-			while (evm!=NULL) { 
+			while (evm != NULL) { 
 				if (evm->mode == JVMTI_ENABLE) {
-					data->jvmti_env=&env->env;
-					ec = ((functionptr*)(&env->callbacks))[e-JVMTI_EVENT_START_ENUM];
-					execute_callback(e, ec, data);
+					ec = ((functionptr*)
+						  (&env->callbacks))[e-JVMTI_EVENT_START_ENUM];
+					if (ec != NULL) {
+						data->jvmti_env=&env->env;
+						execute_callback(e, ec, data);
+					}
 				}
 				evm=evm->next;
 			}
 		} else { /* event enabled globally */
  			data->jvmti_env=&env->env;
 			ec = ((functionptr*)(&env->callbacks))[e-JVMTI_EVENT_START_ENUM];
-			execute_callback(e, ec, data);
+			if (ec != NULL) execute_callback(e, ec, data);
 		}
 		
 		env=env->next;
@@ -405,10 +408,11 @@ void jvmti_fireEvent(genericEventData* d) {
 	jthread thread;
     /* XXX todo : respect event order JVMTI-Spec:Multiple Co-located Events */
 
-	if (d->ev != JVMTI_EVENT_VM_START)
-		thread = jvmti_get_current_thread();
-	else
+	if (d->ev == JVMTI_EVENT_VM_START)
 		thread = NULL;
+	else
+		thread = jvmti_get_current_thread();
+
 
 	d->thread = thread;
 	dofireEvent(d->ev,d);
@@ -439,7 +443,6 @@ SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
 		CHECK_THREAD_IS_ALIVE(event_thread);
 	}
 	
-
 	cacao_env = (environment*) env;    
 	if ((mode != JVMTI_ENABLE) && (mode != JVMTI_DISABLE))
 		return JVMTI_ERROR_ILLEGAL_ARGUMENT;
@@ -493,13 +496,6 @@ SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
     case JVMTI_EVENT_VM_OBJECT_ALLOC:
 		CHECK_CAPABILITY(env,can_generate_vm_object_alloc_events)
 		break;
-    case JVMTI_EVENT_THREAD_START:
-		jvmti_set_system_breakpoint(THREADSTARTBRK, mode);
-		break;
-    case JVMTI_EVENT_THREAD_END:
-		jvmti_set_system_breakpoint(THREADENDBRK, mode);
-		break;
-
 	default:
 		/* all other events are required */
 		if ((event_type < JVMTI_EVENT_START_ENUM) ||
@@ -507,6 +503,7 @@ SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
 			return JVMTI_ERROR_INVALID_EVENT_TYPE;		
 		break;
 	}
+
 
 	if (event_thread != NULL) {
 		/* thread level control */
@@ -591,11 +588,9 @@ SuspendThread (jvmtiEnv * env, jthread thread)
 		return JVMTI_ERROR_INVALID_THREAD;
 	CHECK_THREAD_IS_ALIVE(thread);
 
-
-	/* quick try - this should be changed in the future */
-	pthread_kill(((threadobject*)((java_lang_Thread*) thread)->vmThread)->tid,
-				 GC_signum1());
-	
+    /* threads_suspend_thread will implement suspend
+	   threads_suspend_thread (
+	   (threadobject*)((java_lang_Thread*) thread)->vmThread))*/
 	
     return JVMTI_ERROR_NONE;
 }
@@ -619,10 +614,9 @@ ResumeThread (jvmtiEnv * env, jthread thread)
 		return JVMTI_ERROR_INVALID_THREAD;
 	CHECK_THREAD_IS_ALIVE(thread);
 
-
-	/* quick try - this should be changed in the future */
-	pthread_kill(((threadobject*)((java_lang_Thread*) thread)->vmThread)->tid,
-				 GC_signum2());
+    /* threads_resume_thread will implement resume
+	   threads_resume_thread (
+	   (threadobject*)((java_lang_Thread*) thread)->vmThread))*/
 
     return JVMTI_ERROR_NONE;
 }
@@ -730,7 +724,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
     CHECK_PHASE_END;
     CHECK_CAPABILITY(env,can_get_owned_monitor_info);
 
-	if ((owned_monitors_ptr==NULL)||(owned_monitor_count_ptr==NULL)) 
+	if ((owned_monitors_ptr == NULL)||(owned_monitor_count_ptr == NULL)) 
 		return JVMTI_ERROR_NULL_POINTER;
 
 	if (thread == NULL) {
@@ -797,7 +791,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
     CHECK_PHASE_END;
 	CHECK_CAPABILITY(env, can_get_current_contended_monitor)
         
-	if (monitor_ptr==NULL) return JVMTI_ERROR_NULL_POINTER;
+	if (monitor_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 	*monitor_ptr=NULL;
 
 	if(!builtin_instanceof(thread,class_java_lang_Thread))
@@ -812,7 +806,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 
 	lrp=lock_global_pool;
 
-	while ((lrp != NULL)&&(monitor==NULL)) {
+	while ((lrp != NULL)&&(monitor == NULL)) {
 		for (j=0; j<lrp->header.size; j++) {
 /*			if((lrp->lr[j].owner==(threadobject*)thread)&&(lrp->lr[j].waiting)) {
 				monitor=lrp->lr[j].o;
@@ -918,8 +912,6 @@ GetTopThreadGroups (jvmtiEnv * env, jint * group_count_ptr,
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
-
-	log_text("GetTopThreadGroups called");
 
     if ((groups_ptr == NULL) || (group_count_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
@@ -1054,23 +1046,26 @@ GetThreadGroupChildren (jvmtiEnv * env, jthreadGroup group,
 /* getcacaostacktrace *********************************************************
 
    Helper function that retrives stack trace for specified thread. 
-   Has to take care of suspend/resume issuses
-
+   
 *******************************************************************************/
+
 static jvmtiError getcacaostacktrace(stacktracebuffer** trace, jthread thread) {
 	threadobject *t;
+	bool resume;
 	
-	if (thread == NULL)
+	if (thread == NULL) {
 		t = jvmti_get_current_thread();
-	else {
+		*trace = stacktrace_create(t);
+	} else {
 		t = (threadobject*)((java_lang_Thread*)thread)->vmThread;
-		if (t != jvmti_get_current_thread())
-			/* XXX: todo: take care that the requested thread is in a 
-			   safe state - this needs a working thread suspend */
-			return JVMTI_ERROR_INTERNAL;
+/*		if (t != jvmti_get_current_thread())
+			resume = threads_suspend_thread_if_running(thread);
+    
+		*trace = stacktrace_create(thread );
+		
+		if (resume)
+		threads_resume_thread ( thread );*/
 	}
-
-	*trace = stacktrace_create(t);
 
     return JVMTI_ERROR_NONE;
 }
@@ -1079,7 +1074,8 @@ static jvmtiError getcacaostacktrace(stacktracebuffer** trace, jthread thread) {
 /* GetFrameCount **************************************************************
 
 
-   Get the number of frames in the specified thread's stack.
+   Get the number of frames in the specified thread's stack. Calling function
+   has to take care of suspending/resuming thread.
 
 *******************************************************************************/
 
@@ -1103,7 +1099,7 @@ GetFrameCount (jvmtiEnv * env, jthread thread, jint * count_ptr)
 	if(count_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 
 	er = getcacaostacktrace(&trace, thread);
-	if (er==JVMTI_ERROR_NONE) {
+	if (er == JVMTI_ERROR_NONE) {
 		heap_free(trace);
 		return er;
 	}
@@ -1138,7 +1134,7 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 
 	*thread_state_ptr = 0;
 #if defined(ENABLE_THREADS)
-	if((th->vmThread==NULL)&&(th->group==NULL)) { /* alive ? */
+	if((th->vmThread == NULL)&&(th->group == NULL)) { /* alive ? */
 		/* not alive */
 		if (((threadobject*)th->vmThread)->tid == 0)
 			*thread_state_ptr = JVMTI_THREAD_STATE_TERMINATED;
@@ -2372,7 +2368,7 @@ GetMaxLocals (jvmtiEnv * env, jmethodID method, jint * max_ptr)
     
     if (((methodinfo*)method)->flags & ACC_NATIVE)  
         return JVMTI_ERROR_NATIVE_METHOD;
-   
+ 
     *max_ptr = (jint) ((methodinfo*)method)->maxlocals;
 
     return JVMTI_ERROR_NONE;
@@ -2400,13 +2396,13 @@ GetArgumentsSize (jvmtiEnv * env, jmethodID method, jint * size_ptr)
     if (((methodinfo*)method)->flags & ACC_NATIVE)  
         return JVMTI_ERROR_NATIVE_METHOD;
 
-/* todo    *size_ptr = (jint)((methodinfo*)method)->paramcount;*/
+    *size_ptr = (jint)((methodinfo*)method)->parseddesc->paramslots;
     return JVMTI_ERROR_NONE;
 }
 
 
 
-/* GetLineNumberTable ***********************************************************
+/* GetLineNumberTable **********************************************************
 
    Return table of source line number entries for a given method
 
@@ -2426,8 +2422,10 @@ GetLineNumberTable (jvmtiEnv * env, jmethodID method,
    
     if ((method == NULL) || (entry_count_ptr == NULL) || (table_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;    
+
     if (((methodinfo*)method)->flags & ACC_NATIVE)  
         return JVMTI_ERROR_NATIVE_METHOD;
+
     if (((methodinfo*)method)->linenumbers == NULL) 
         return JVMTI_ERROR_ABSENT_INFORMATION;
 
@@ -2467,8 +2465,13 @@ GetMethodLocation (jvmtiEnv * env, jmethodID method,
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
 
-    if ((method == NULL) || (start_location_ptr == NULL) || 
-        (end_location_ptr == NULL)) return JVMTI_ERROR_NULL_POINTER;
+	if (method == NULL)	return JVMTI_ERROR_INVALID_METHODID;
+
+	if (((methodinfo*)method)->flags & ACC_NATIVE) 
+		return JVMTI_ERROR_NATIVE_METHOD;
+
+    if ((start_location_ptr == NULL) || (end_location_ptr == NULL)) 
+    	return JVMTI_ERROR_NULL_POINTER;
     
 	/* XXX we return the location of the most recent code. Don't know
 	 * if there is a way to teach jvmti that a method can have more
@@ -2479,11 +2482,14 @@ GetMethodLocation (jvmtiEnv * env, jmethodID method,
 
     fprintf(stderr,"GetMethodLocation *** XXX todo \n");
 
-	if (!m->code)
-		return JVMTI_ERROR_INTERNAL;
-	
+
+	/* -1 states location information is not available */
+    *start_location_ptr = (jlocation)-1;
+    *end_location_ptr = (jlocation)-1;
+
+/*	
     *start_location_ptr = (jlocation)m->code->mcode;
-    *end_location_ptr = (jlocation)(m->code->mcode)+m->code->mcodelength;
+    *end_location_ptr = (jlocation)(m->code->mcode)+m->code->mcodelength;*/
     return JVMTI_ERROR_NONE;
 }
 
@@ -2619,7 +2625,7 @@ GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr, jclass ** classes_ptr)
 		while (nameentry != NULL) { /* iterate over hashlink */
 
 			/* filter pseudo classes $NEW$,$NULL$,$ARRAYSTUB$ out */
-			if (nameentry->name->text[0]=='$')
+			if (nameentry->name->text[0] == '$')
 			{
 				*class_count_ptr -= 1;
 				break;
@@ -2812,7 +2818,7 @@ SuspendThreadList (jvmtiEnv * env, jint request_count,
     CHECK_CAPABILITY(env,can_suspend);
     
 	if (request_count<0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
-	if ((request_list==NULL) || (results == NULL)) 
+	if ((request_list == NULL) || (results == NULL)) 
 		return JVMTI_ERROR_NULL_POINTER;
 
 	me = jvmti_get_current_thread();
@@ -2849,7 +2855,7 @@ ResumeThreadList (jvmtiEnv * env, jint request_count,
     CHECK_CAPABILITY(env,can_suspend);
     
 	if (request_count<0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
-	if ((request_list==NULL) || (results == NULL)) 
+	if ((request_list == NULL) || (results == NULL)) 
 		return JVMTI_ERROR_NULL_POINTER;
 
 	for (i=0;i<request_count;i++) 
@@ -2891,7 +2897,7 @@ GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
 	if (max_frame_count <0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
 
 	er = getcacaostacktrace(&trace, thread);
-	if (er==JVMTI_ERROR_NONE) {
+	if (er == JVMTI_ERROR_NONE) {
 		heap_free(trace);
 		return er;
 	}
@@ -3356,7 +3362,7 @@ GetExtensionFunctions (jvmtiEnv * env, jint * extension_count_ptr,
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
         
-    if ((extension_count_ptr== NULL)||(extensions == NULL)) 
+    if ((extension_count_ptr == NULL)||(extensions == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
     /* cacao has no extended functions yet */
@@ -3381,7 +3387,7 @@ GetExtensionEvents (jvmtiEnv * env, jint * extension_count_ptr,
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
         
-    if ((extension_count_ptr== NULL)||(extensions == NULL)) 
+    if ((extension_count_ptr == NULL)||(extensions == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
     /* cacao has no extended events yet */
@@ -3582,7 +3588,7 @@ GetErrorName (jvmtiEnv * env, jvmtiError error, char **name_ptr)
 static jvmtiError
 GetJLocationFormat (jvmtiEnv * env, jvmtiJlocationFormat * format_ptr)
 {
-    *format_ptr = JVMTI_JLOCATION_MACHINEPC;
+    *format_ptr = JVMTI_JLOCATION_OTHER;
     return JVMTI_ERROR_NONE;
 }
 
@@ -4222,14 +4228,14 @@ static jvmtiCapabilities JVMTI_Capabilities = {
   0,				/* can_access_local_variables */
   0,				/* can_maintain_original_method_order */
   0,				/* can_generate_single_step_events */
-  0,				/* can_generate_exception_events */
+  1,				/* can_generate_exception_events */
   0,				/* can_generate_frame_pop_events */
   0,				/* can_generate_breakpoint_events */
   1,				/* can_suspend */
   0,				/* can_redefine_any_class */
   0,				/* can_get_current_thread_cpu_time */
   0,				/* can_get_thread_cpu_time */
-  0,				/* can_generate_method_entry_events */
+  1,				/* can_generate_method_entry_events */
   0,				/* can_generate_method_exit_events */
   0,				/* can_generate_all_class_hook_events */
   0,				/* can_generate_compiled_method_load_events */
@@ -4472,7 +4478,7 @@ void jvmti_agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char
 	len = strlen(opt_arg);
 	
 	/* separate argumtents */
-	while ((opt_arg[i]!='=')&&(i<len)) i++;
+	while ((opt_arg[i] != '=') && (i<len)) i++;
 	if (i<len)
 		arg = &opt_arg[i+1];
 	else

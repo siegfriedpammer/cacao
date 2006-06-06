@@ -281,13 +281,13 @@ static void jvmti_cacao_generic_breakpointhandler(int kindofbrk){
 
 void jvmti_cacao_debug_init() {
 	pid_t dbgserver;	
-	void* addr[2];
 
 	/* start new cacaodbgserver if needed*/
 	pthread_mutex_lock(&dbgcomlock);
 	if (dbgcom == NULL) {
 		dbgcom = heap_allocate(sizeof(cacaodbgcommunication),true,NULL);		
 		dbgcom->running = 1;
+		jvmti = true;
 
 		breakpointtable_creator();
 		/* set addresses of hard coded TRAPs */
@@ -295,10 +295,6 @@ void jvmti_cacao_debug_init() {
 			 :"=m"(dbgcom->jvmtibrkpt.brk[SETSYSBRKPT].addr));
 		__asm__ ("movl $cacaodbgserver_quit,%0;" 
 			 :"=m"(dbgcom->jvmtibrkpt.brk[CACAODBGSERVERQUIT].addr));
-
-		jvmti_get_threads_breakpoints(addr);
-		dbgcom->jvmtibrkpt.brk[THREADSTARTBRK].addr = addr[0];
-		dbgcom->jvmtibrkpt.brk[THREADENDBRK].addr = addr[1];
 
 		dbgserver = fork();
 		if (dbgserver  == (-1)) {

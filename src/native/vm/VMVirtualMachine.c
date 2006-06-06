@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: Samuel Vinson
 
 
-$Id: VMVirtualMachine.c 4996 2006-05-31 13:53:16Z motse $
+$Id: VMVirtualMachine.c 5019 2006-06-06 21:13:41Z motse $
 
 */
 
@@ -392,7 +392,6 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_registerEvent(JN
 								 EventKind2jvmtiEvent(kind), NULL)))
 		printjvmtierror("VMVirtualMachine_registerEvent SetEventNotificationMode",err);
 
-	/* todo: error handling, suspend policy */
 }
 
 
@@ -405,17 +404,18 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent(
 	jbyte kind;
 	jfieldID kindid;
 	jclass erc;
+	jvmtiError err;
 
 	erc = (*env)->FindClass(env,"gnu.classpath.jdwp.event.EventRequest");
 	
 	kindid = (*env)->GetFieldID(env, erc, "_kind", "B");
 	kind = (*env)->GetByteField(env, (jobject)par1, kindid);
 
-	(*jvmtienv)->
+	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
 		SetEventNotificationMode(jvmtienv, JVMTI_DISABLE, 
-								 EventKind2jvmtiEvent(kind), NULL);
+								 EventKind2jvmtiEvent(kind), NULL)))
+		printjvmtierror("VMVirtualMachine_registerEvent SetEventNotificationMode",err);
 
-	/* todo: error handling, suspend policy */
 }
 
 
@@ -425,8 +425,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent(
  * Signature: (B)V
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_clearEvents(JNIEnv *env, jclass clazz, s4 par1) {
-	/* jvmti events are not saved */
-    log_text ("VMVirtualMachine_clearEvents IMPLEMENT ME!!!");
+	/* jvmti events are not saved - there is nothing to clear */
 }
 
 

@@ -29,7 +29,7 @@
    Changes:             
 
 
-   $Id: VMjdwp.c 4996 2006-05-31 13:53:16Z motse $
+   $Id: VMjdwp.c 5019 2006-06-06 21:13:41Z motse $
 
 */
 
@@ -50,55 +50,149 @@ void printjvmtierror(char *desc, jvmtiError err) {
 }
 
 
-
-static jmethodID notifymid = NULL;
-static jclass Jdwpclass = NULL;
+/* class and method IDs */
+static jclass Jdwpclass, threadstartclass,threadendclass, classprepareclass, 	vmmethodclass, locationclass, breakpointclass;
+static jmethodID notifymid, threadstartmid,threadendmid, classpreparemid, 
+	vmmethodmid, locationmid, breakpointmid;
 
 static void notify (JNIEnv* jni_env, jobject event){
-	fprintf(stderr,"VMjdwp notfiy called");
+	fprintf(stderr,"VMjdwp notfiy called\n");
 
-    if (notifymid == NULL) {
-		notifymid = (*jni_env)->
-			GetStaticMethodID(jni_env,Jdwpclass,
-							  "notify","(Lgnu/classpath/jdwp/event/Event;)V");
-			if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
-				fprintf(stderr,"could not get notify method\n");
-				(*jni_env)->ExceptionDescribe(jni_env);
-				exit(1); 
-			}
-    }
-    
 	(*jni_env)->CallStaticVoidMethod(jni_env,Jdwpclass,notifymid,event);
     if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
         fprintf(stderr,"Exception occourred in notify mehtod\n");
 		(*jni_env)->ExceptionDescribe(jni_env);
-		exit(1); 
 	}
 
 }
 
-/*static void ThreadStart (jvmtiEnv *jvmti_env,
-                         JNIEnv* jni_env,
+static void ThreadStart (jvmtiEnv *jvmti_env, JNIEnv* jni_env,
                          jthread thread){
-	jclass cl;
-	jmethodID cc;
 	jobject obj;
 
-	GETJNIMETHOD(jni_env,cl,"gnu/classpath/jdwp/event/ThreadStartEvent",cc,"<init>","(Ljava/lang/Thread;)V"); 
-
-	obj = builtin_new(cl);
-	if (!obj) throw_main_exception_exit();
+	obj = (*jni_env)->
+		NewObject(jni_env, threadstartclass, threadstartmid, thread);
+	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
+        fprintf(stderr,"error calling ThreadStartEvent constructor\n");
+		(*jni_env)->ExceptionDescribe(jni_env);
+		return;
+	}
 
 	fprintf(stderr,"VMjdwp:ThreadStart: thread %p\n",thread);
 	fflush(stderr);
 
-	vm_call_method((methodinfo*)cc, obj, thread);
+	notify (jni_env,obj);
+}
 
-	if (*exceptionptr)
-		throw_main_exception_exit();
+
+static void ThreadEnd (jvmtiEnv *jvmti_env, JNIEnv* jni_env,
+                         jthread thread){
+	jobject obj;
+
+
+	obj = (*jni_env)->NewObject(jni_env, threadendclass, threadendmid, thread);
+	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
+        fprintf(stderr,"error calling ThreadEndEvent constructor\n");
+		(*jni_env)->ExceptionDescribe(jni_env);
+		return;
+	}
+
+	fprintf(stderr,"VMjdwp:ThreadEnd: thread %p\n",thread);
+	fflush(stderr);
 
 	notify (jni_env,obj);
-	} */
+}
+
+
+static void ClassPrepare (jvmtiEnv *jvmti_env, JNIEnv* jni_env,
+						  jthread thread, jclass klass) {
+	jobject obj;
+	int classstatus;
+	jvmtiError e;
+
+	if (JVMTI_ERROR_NONE != 
+		(e = (*jvmtienv)->GetClassStatus(jvmtienv, klass, &classstatus))) {
+		printjvmtierror("unable to get class status", e);
+		return;
+	}
+
+	obj = (*jni_env)->NewObject(jni_env, classprepareclass, classpreparemid, thread, klass, classstatus);
+	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
+        fprintf(stderr,"error calling ClassPrepareEvent constructor\n");
+		(*jni_env)->ExceptionDescribe(jni_env);
+		return;
+	}
+
+	fprintf(stderr,"VMjdwp:ClassPrepareEvent: thread %p\n",thread);
+	fflush(stderr);
+
+	notify (jni_env,obj);
+}
+
+static void Exception (jvmtiEnv *jvmti_env, JNIEnv* jni_env, jthread thread,
+					   jmethodID method, jlocation location, jobject exception,
+					   jmethodID catch_method, jlocation catch_location) {
+	/* gnu classpath jdwp has no ExceptionEvent yet */
+	fprintf(stderr,"VMjdwp:Exception: thread %p\n",thread);
+	fflush(stderr);
+	
+}
+
+static void Breakpoint (jvmtiEnv *jvmti_env, JNIEnv* jni_env, jthread thread,
+						jmethodID method, jlocation location) {
+	jobject vmmethod, loc, ev;
+	jclass mcl;
+	jvmtiError e;
+
+	if (JVMTI_ERROR_NONE != 
+		(e = (*jvmtienv)->GetMethodDeclaringClass(jvmtienv,
+									   method,
+									   &mcl))){
+		printjvmtierror("unable to get declaring class", e);
+		return;
+	}
+
+	vmmethod = (*jni_env)->NewObject(jni_env, vmmethodclass, vmmethodmid, 
+									 mcl, method);
+	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
+        fprintf(stderr,"error calling VMMethod constructor\n");
+		(*jni_env)->ExceptionDescribe(jni_env);
+		return;
+	}
+
+	loc = (*jni_env)->NewObject(jni_env, locationclass, locationmid, 
+									 vmmethod, location);
+	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
+        fprintf(stderr,"error calling location constructor\n");
+		(*jni_env)->ExceptionDescribe(jni_env);
+		return;
+	}
+	
+	ev = (*jni_env)->NewObject(jni_env, breakpointclass, breakpointmid, 
+									 thread, loc);
+	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
+        fprintf(stderr,"error calling breakpoint constructor\n");
+		(*jni_env)->ExceptionDescribe(jni_env);
+		return;
+	}
+
+	fprintf(stderr,"VMjdwp:Breakpoint: thread %p\n",thread);
+	fflush(stderr);
+
+	notify (jni_env,ev);	
+}
+
+
+static void MethodEntry (jvmtiEnv *jvmti_env, JNIEnv* jni_env,
+						 jthread thread, jmethodID method) {
+	/* do not report gnu/classpath/jdwp method entries */
+}
+
+
+static void VMDeath (jvmtiEnv *jvmti_env,
+                     JNIEnv* jni_env) {
+  fprintf(stderr,"JVMTI-Event: IMPLEMENT ME!!!");
+}
 
 
 /* setup_jdwp_thread **********************************************************
@@ -113,14 +207,6 @@ static void setup_jdwp_thread(JNIEnv* jni_env) {
 	jstring  s;
 
 	/* new gnu.classpath.jdwp.Jdwp() */
-    Jdwpclass = (*jni_env)->FindClass(jni_env, "gnu/classpath/jdwp/Jdwp"); 
-    if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
-        fprintf(stderr,"could not find gnu/classpath/jdwp/Jdwp\n");
-		(*jni_env)->ExceptionDescribe(jni_env);
-		exit(1); 
-	}
-
-	
 	m = (*jni_env)->GetMethodID(jni_env,Jdwpclass,"<init>","()V");
     if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
         fprintf(stderr,"could not get Jdwp constructor\n");
@@ -134,6 +220,8 @@ static void setup_jdwp_thread(JNIEnv* jni_env) {
 		(*jni_env)->ExceptionDescribe(jni_env);
 		exit(1); 
 	}
+
+	jdwpthread = (jthread)o;
 	
 	
 	/* configure(jdwpoptions) */
@@ -177,6 +265,66 @@ static void setup_jdwp_thread(JNIEnv* jni_env) {
 	}
 }
 
+#define FINDCLASSWITHEXCEPTION(CLASS,SIGNATURE) \
+	CLASS = (*jni_env)->FindClass(jni_env, SIGNATURE);     \
+	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {  \
+		fprintf(stderr,"could not find %s\n", SIGNATURE);  \
+		(*jni_env)->ExceptionDescribe(jni_env);            \
+		exit(1);                                           \
+	}
+#define GETMIDWITHEXCEPTION(CLASS, CLASSNAME, MID, METHODNAME, METHODSIG) \
+	FINDCLASSWITHEXCEPTION(CLASS, CLASSNAME);                             \
+	MID = (*jni_env)->GetMethodID(jni_env, CLASS, METHODNAME, METHODSIG); \
+    if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {                 \
+        fprintf(stderr,"could not get %s %s\n",CLASSNAME, METHODNAME);    \
+		(*jni_env)->ExceptionDescribe(jni_env);                           \
+		exit(1);                                                          \
+	}
+
+
+static void fillidcache(JNIEnv* jni_env) {
+	FINDCLASSWITHEXCEPTION(Jdwpclass, "gnu/classpath/jdwp/Jdwp");
+	
+	notifymid = (*jni_env)->
+	 GetStaticMethodID(jni_env,Jdwpclass,
+					   "notify","(Lgnu/classpath/jdwp/event/Event;)V");
+	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
+		fprintf(stderr,"could not get notify method\n");
+		(*jni_env)->ExceptionDescribe(jni_env);
+		exit(1); 
+	}
+
+	GETMIDWITHEXCEPTION(threadstartclass, 
+						"gnu/classpath/jdwp/event/ThreadStartEvent", 
+						threadstartmid, "<init>", "(Ljava/lang/Thread;)V");
+
+
+	GETMIDWITHEXCEPTION(threadendclass, 
+						"gnu/classpath/jdwp/event/ThreadEndEvent", 
+						threadendmid, "<init>", "(Ljava/lang/Thread;)V");
+
+
+	GETMIDWITHEXCEPTION(classprepareclass, 
+						"gnu/classpath/jdwp/event/ClassPrepareEvent", 
+						classpreparemid, "<init>", 
+						"(Ljava/lang/Thread;Ljava/lang/Class;I)V");
+
+
+	GETMIDWITHEXCEPTION(vmmethodclass, "gnu/classpath/jdwp/VMMethod",
+						vmmethodmid, "<init>", "(Ljava/lang/Class;J)V");
+
+	GETMIDWITHEXCEPTION(locationclass, "gnu/classpath/jdwp/util/Location",
+						locationmid, "<init>", 
+						"(Lgnu/classpath/jdwp/VMMethod;J)V");
+
+
+	GETMIDWITHEXCEPTION(
+		breakpointclass, 
+		"gnu/classpath/jdwp/event/BreakpointEvent", 
+		breakpointmid, "<init>", 
+		"(Ljava/lang/Thread;Lgnu/classpath/jdwp/util/Location;)V");
+
+}
 
 static void VMInit (jvmtiEnv *jvmti_env, 
                     JNIEnv* jni_env,
@@ -184,15 +332,19 @@ static void VMInit (jvmtiEnv *jvmti_env,
 	jclass cl;
 	jmethodID m;
 	jobject eventobj;
-	jvmtiError err; 
+	jvmtiError err;
 
 	fprintf(stderr,"JDWP VMInit\n");
+
+	/* get needed jmethodIDs and jclasses for callbacks */
+	fillidcache(jni_env);
 
 	/* startup gnu classpath jdwp thread */
 	setup_jdwp_thread(jni_env);
 
 	fprintf(stderr,"JDWP listening thread started\n");
 
+	/* send VmInitEvent */
     cl = (*jni_env)->FindClass(jni_env, 
 									  "gnu/classpath/jdwp/event/VmInitEvent");
     if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
@@ -224,11 +376,6 @@ static void VMInit (jvmtiEnv *jvmti_env,
 		err = (*jvmti_env)->SuspendThread(jvmti_env,thread);
 		printjvmtierror("error suspending initial thread",err);
 	}
-}
-
-static void VMDeath (jvmtiEnv *jvmti_env,
-                     JNIEnv* jni_env) {
-  fprintf(stderr,"JVMTI-Event: IMPLEMENT ME!!!");
 }
 
 static void usage() {	
@@ -287,7 +434,6 @@ static bool processoptions(char *options) {
 
 JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved) { 
 	jint rc;
-	int end, i=0;
 	jvmtiCapabilities cap;
 	jvmtiError e;
 
@@ -319,21 +465,14 @@ JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved) {
 		return -1;
 	}
 	
-
-	end = sizeof(jvmtiEventCallbacks) / sizeof(void*);
-	for (i = 0; i < end; i++) {
-		/* enable VM callbacks  */
-		if (((void**)&jvmti_jdwp_EventCallbacks)[i] != NULL) {
-			e = (*jvmtienv)->SetEventNotificationMode(jvmtienv,
-													  JVMTI_ENABLE,
-													  JVMTI_EVENT_START_ENUM+i,
-													  NULL);
-			
-			if (JVMTI_ERROR_NONE != e) {
-				printjvmtierror("jdwp: unable to setup event notification mode",e);
-				return -1;
-			}
-		}
+	/* only enable needed events. VMVirtualMachine.registerEvent will  
+	   be used to enable other events by need */
+	if (JVMTI_ERROR_NONE != (e = (*jvmtienv)->
+							 SetEventNotificationMode(jvmtienv, JVMTI_ENABLE,
+													  JVMTI_EVENT_VM_INIT, 
+													  NULL))) {
+		printjvmtierror("jdwp unable to enable vm init callback",e);
+		return -1;
 	}
 
 	return 0;
@@ -343,20 +482,20 @@ JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved) {
 jvmtiEventCallbacks jvmti_jdwp_EventCallbacks = {
     &VMInit,
     &VMDeath,
-    NULL, /*    &ThreadStart,*/
-    NULL, /*    &ThreadEnd, */
+    &ThreadStart,
+    &ThreadEnd,
     NULL, /* &ClassFileLoadHook, */
     NULL, /* &ClassLoad, */
-    NULL, /* &ClassPrepare,*/
+    &ClassPrepare,
     NULL, /* &VMStart */
-    NULL, /* &Exception, */
+    &Exception,
     NULL, /* &ExceptionCatch, */
     NULL, /* &SingleStep, */
     NULL, /* &FramePop, */
-    NULL, /* &Breakpoint, */
+    &Breakpoint,
     NULL, /* &FieldAccess, */
     NULL, /* &FieldModification, */
-    NULL, /* &MethodEntry, */
+    &MethodEntry,
     NULL, /* &MethodExit, */
     NULL, /* &NativeMethodBind, */
     NULL, /* &CompiledMethodLoad, */

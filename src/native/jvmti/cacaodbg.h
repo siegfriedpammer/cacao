@@ -121,7 +121,7 @@ typedef struct {
 
 cacaodbgcommunication *dbgcom;
 
-bool jvmti;                 /* jvmti agent                                     */
+bool jvmti;                 /* jvmti agent  */
 
 extern pthread_mutex_t dbgcomlock;
 

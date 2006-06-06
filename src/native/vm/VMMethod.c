@@ -88,7 +88,7 @@ JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getS
 {
     jvmtiError err;
     char *signature;
-    struct java_lang_String* stringsignature;
+    jstring stringsignature;
     
     if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
                              GetMethodName(jvmtienv, 

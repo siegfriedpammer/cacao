@@ -142,11 +142,11 @@ static unsigned long dataevaluate(char *expr) {
 	fflush(gdbout); 
 
 	getgdboutput(inbuf,160);
-	if ((match=strstr(inbuf,DATAEVALUATE))==NULL) {
+	if ((match=strstr(inbuf,DATAEVALUATE)) == NULL) {
 		fprintf(stderr,"dataevaluate: no matching value\n");
 		return -1;
 	}
-	return strtoll(&match[strlen(DATAEVALUATE)],NULL,16);
+	return strtoll(&match[strlen(DATAEVALUATE)], NULL, 16);
 }
 
 
@@ -257,7 +257,7 @@ static void controlloop() {
 			getgdboutput(inbuf,INBUFLEN);
 			fprintf(stderr,"gdbin: %s\n",inbuf);
 			SENDCMD("-gdb-exit\n");
-			return false;
+			return;
 		}
 	}
 

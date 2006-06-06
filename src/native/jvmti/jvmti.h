@@ -30,14 +30,13 @@
    Changes:             
 
    
-   $Id: jvmti.h 4944 2006-05-23 15:31:19Z motse $
+   $Id: jvmti.h 5019 2006-06-06 21:13:41Z motse $
 
 */
 #ifndef _JVMTI_H
 #define _JVMTI_H
 
 #include "native/jni.h"
-#include <sys/types.h>
 
 
 #define JVMTI_VERSION_INTERFACE_JNI   0x00000000

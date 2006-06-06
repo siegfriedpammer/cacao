@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 4938 2006-05-22 09:06:44Z twisti $
+   $Id: headers.c 5019 2006-06-06 21:13:41Z motse $
 
 */
 
@@ -886,6 +886,13 @@ void print_classname(classinfo *clazz)
 			putc(c, file);
 	}
 } 
+
+/* jvmti releated functions ************************************************/
+
+#if defined(ENABLE_JVMTI)
+void jvmti_fireEvent(void* d) {;}
+#endif
+
 
 
 /*

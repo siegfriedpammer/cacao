@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4958 2006-05-26 11:57:20Z twisti $
+   $Id: threads.c 5019 2006-06-06 21:13:41Z motse $
 
 */
 
@@ -90,6 +90,9 @@
 # include "boehm-gc/include/gc.h"
 #endif
 
+#if defined(ENABLE_JVMTI)
+#include "native/jvmti/cacaodbg.h"
+#endif
 
 #if defined(__DARWIN__)
 /* Darwin has no working semaphore implementation.  This one is taken
@@ -1011,6 +1014,10 @@ static void *threads_startup_thread(void *t)
 	methodinfo   *method;
 	functionptr   function;
 
+#if defined(ENABLE_JVMTI)
+	genericEventData d;
+#endif
+
 #if defined(ENABLE_INTRP)
 	u1 *intrp_thread_stack;
 
@@ -1083,7 +1090,10 @@ static void *threads_startup_thread(void *t)
 
 #if defined(ENABLE_JVMTI)
 	/* breakpoint for thread start event */
- 	__asm__("threadstart:");
+	if (jvmti) {
+		d.ev = JVMTI_EVENT_THREAD_START;
+		jvmti_fireEvent(&d);
+	}
 #endif
 
 
@@ -1110,7 +1120,10 @@ static void *threads_startup_thread(void *t)
 
 #if defined(ENABLE_JVMTI)
 	/* breakpoint for thread end event */
- 	__asm__("threadend:");
+	if (jvmti) {
+		d.ev = JVMTI_EVENT_THREAD_END;
+		jvmti_fireEvent(&d);
+	}	
 #endif
 
 
@@ -1670,20 +1683,6 @@ static void threads_table_dump(FILE *file)
 	fprintf(file, "======== END OF THREADS TABLE ========\n");
 
 	pthread_mutex_unlock(&threadlistlock);
-}
-#endif
-
-
-#if defined(ENABLE_JVMTI)
-/* jvmti_get_threads_breakpoints ***********************************************
-
-   gets all breakpoints from this file
-
-*******************************************************************************/
-
-void jvmti_get_threads_breakpoints(void **brks) {
-	__asm__ ("movl $threadstart,%0;" :"=m"(brks[0]));
-	__asm__ ("movl $threadend,%0;" :"=m"(brks[1]));
 }
 #endif
 

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4953 2006-05-25 12:28:51Z twisti $
+   $Id: threads.h 5019 2006-06-06 21:13:41Z motse $
 
 */
 
@@ -212,9 +212,6 @@ void threads_cast_startworld(void);
 
 void threads_dump(void);
 
-#if defined(ENABLE_JVMTI)
-void jvmti_get_threads_breakpoints(void **brks);
-#endif
 /******************************************************************************/
 /* Recursive Mutex Implementation for Darwin                                  */
 /******************************************************************************/
