@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4998 2006-05-31 20:28:27Z edwin $
+   $Id: stack.c 5017 2006-06-06 18:05:16Z twisti $
 
 */
 
@@ -785,7 +785,8 @@ bool stack_analyse(jitdata *jd)
 								goto icmd_lconst_tail;
 # endif /* SUPPORT_LONG_SHIFT */
 #endif /* SUPPORT_LONG_MUL && SUPPORT_CONST_MUL */
-#if SUPPORT_LONG_DIV
+
+#if SUPPORT_LONG_DIV_POW2
 							case ICMD_LDIV:
 								if (iptr[0].val.l == 0x00000002)
 									iptr[0].val.i = 1;
@@ -855,6 +856,9 @@ bool stack_analyse(jitdata *jd)
 								}
 								iptr[0].opc = ICMD_LDIVPOW2;
 								goto icmd_lconst_tail;
+#endif /* SUPPORT_LONG_DIV_POW2 */
+
+#if SUPPORT_LONG_REM_POW2
 							case ICMD_LREM:
 								if ((iptr[0].val.l == 0x00000002) ||
 									(iptr[0].val.l == 0x00000004) ||
@@ -893,7 +897,8 @@ bool stack_analyse(jitdata *jd)
 								}
 								PUSHCONST(TYPE_LNG);
 								break;
-#endif /* SUPPORT_LONG_DIV */
+#endif /* SUPPORT_LONG_REM_POW2 */
+
 #if SUPPORT_LONG_LOGICAL && SUPPORT_CONST_LOGICAL
 
 							case ICMD_LAND:

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 4386 2006-01-30 11:26:34Z christian $
+   $Id: arch.h 5017 2006-06-06 18:05:16Z twisti $
 
 */
 
@@ -78,6 +78,9 @@
 #define SUPPORT_LONG_SHIFT               1
 #define SUPPORT_LONG_MUL                 1
 #define SUPPORT_LONG_DIV                 0
+
+#define SUPPORT_LONG_DIV_POW2            1
+#define SUPPORT_LONG_REM_POW2            0
 
 #define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
 #define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
