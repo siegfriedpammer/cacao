@@ -28,12 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 5016 2006-06-06 14:32:01Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
 dist_noinst_DATA = \
 	alpha.tex \
+	arm.tex \
 	cacao.tex \
 	inlining.tex \
 	intro.tex \
