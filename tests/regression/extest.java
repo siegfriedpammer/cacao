@@ -8,6 +8,9 @@ public class extest {
     public static void main(String[] argv) {
 	printStackTrace = true;
 
+        Runtime r = Runtime.getRuntime();
+        int maxmem = (int) r.maxMemory();
+
 //  	if (argv.length > 0) 
 //              if (argv[0].equals("stacktrace"))
 //                  printStackTrace = true;
@@ -23,7 +26,6 @@ public class extest {
             catched = true;
       	    ok();
 	    pstacktrace(e);
-
     	} finally {
             /* check if catch block was executed */
             if (!catched) {
@@ -120,7 +122,6 @@ public class extest {
 	    } else {
 		ok();
 	        pstacktrace(e);
-
 	    }
   	}
 
@@ -220,8 +221,8 @@ public class extest {
 
         try {
             p("OutOfMemoryError:");
-	    /* 100 MB should be enough */
-	    byte[] ba = new byte[100 * 1024 * 1024];
+	    /* use twice the heap size */
+	    byte[] ba = new byte[maxmem * 2];
             failed();
         } catch (OutOfMemoryError e) {
   	    ok();
@@ -230,8 +231,8 @@ public class extest {
 
         try {
             p("OutOfMemoryError:");
-	    /* 100 MB should be enough */
-	    byte[] ba = new byte[100 * 1024 * 1024];
+	    /* use twice the heap size */
+	    byte[] ba = new byte[maxmem * 2];
             failed();
         } catch (OutOfMemoryError e) {
   	    ok();
@@ -240,8 +241,7 @@ public class extest {
         
         try {
             p("OutOfMemoryError (multianewarray):");
-	    /* 100 MB should be enough */
-	    byte[][] ba = new byte[10 * 1024 * 1024][10 * 1024 * 1024];
+	    byte[][] ba = new byte[maxmem][maxmem];
             failed();
         } catch (OutOfMemoryError e) {
   	    ok();
@@ -356,7 +356,8 @@ public class extest {
 
   	try {
             p("OutOfMemoryError (array clone):");
-            byte[] ba1 = new byte[40 * 1024 * 1024];
+            /* use half of the heap size */
+            byte[] ba1 = new byte[maxmem / 2];
             byte[] ba2 = (byte[]) ba1.clone();
             failed();
     	} catch (OutOfMemoryError e) {
