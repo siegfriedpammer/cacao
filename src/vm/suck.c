@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 5021 2006-06-07 12:19:27Z twisti $
+   $Id: suck.c 5022 2006-06-07 12:51:50Z twisti $
 
 */
 
@@ -276,6 +276,11 @@ void suck_add_from_property(char *key)
 
 			strncpy(path, start, pathlen);
 			path[pathlen] = '\0';
+
+			/* Reset namelist to NULL for the freeing in an error case
+			   (see below). */
+
+			namelist = NULL;
 
 			/* scan the directory found for zip/jar files */
 
