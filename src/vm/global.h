@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5013 2006-06-06 11:22:56Z twisti $
+   $Id: global.h 5021 2006-06-07 12:19:27Z twisti $
 
 */
 
@@ -51,10 +51,10 @@ typedef void *voidptr;                  /* generic pointer                    */
 typedef void (*functionptr) (void);     /* generic function pointer           */
 typedef u1* methodptr;
 
-typedef int   bool;                     /* boolean data type                  */
+typedef unsigned int bool;              /* boolean data type                  */
 
-#define true  1
-#define false 0
+#define true         1
+#define false        0
 
 
 /* immediate data union */
