@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4955 2006-05-26 09:30:22Z twisti $
+   $Id: suck.c 5020 2006-06-07 12:10:17Z twisti $
 
 */
 
@@ -281,9 +281,9 @@ void suck_add_from_property(char *key)
 
 			n = scandir(path, &namelist, scandir_filter, alphasort);
 
-			/* on error, just continue, this should be ok */
+			/* On error, just continue, this should be ok. */
 
-			if (n >= 0) {
+			if (n > 0) {
 				for (i = 0; i < n; i++) {
 #if defined(_DIRENT_HAVE_D_NAMLEN)
 					namlen = namelist[i]->d_namlen;
@@ -320,12 +320,16 @@ void suck_add_from_property(char *key)
 
 					FREE(namelist[i], struct dirent);
 				}
-
-				FREE(namelist, struct dirent);
 			}
 
-			MFREE(path, char, pathlen + strlen("0"));
-		}
+			/* On some systems (like Linux) when n == 0, then namelist
+			   returned from scnadir is NULL, thus we don't have to
+			   free it. */
+
+			if (namelist != NULL)
+				FREE(namelist, struct dirent);
+
+			MFREE(path, char, pathlen + strlen("0")); }
 
 		/* goto next entry, skip ':' delimiter */
 
