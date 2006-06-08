@@ -679,16 +679,20 @@ public class test extends Thread {
         Class[] ca = new Class[1];
 
         try {
-            ca[0] = aastoreconstClass.class;
-
             p("aastoreconst of unresolved class != NULL: ");
-            if (ca[0] != null)
-                ok();
-            else
-                failed();
+            if (doit) {
+                ca[0] = aastoreconstClass.class;
 
-            p("aastoreconst of unresolved correct value: ");
-            check(ca[0],Class.forName("aastoreconstClass"));
+                if (ca[0] != null)
+                    ok();
+                else
+                    failed();
+
+                p("aastoreconst of unresolved correct value: ");
+                check(ca[0],Class.forName("aastoreconstClass"));
+            } else
+                ok();
+
         } catch (Throwable t) {
             failed(t);
         }
