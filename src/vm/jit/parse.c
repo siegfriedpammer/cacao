@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5011 2006-06-01 22:52:44Z edwin $
+   $Id: parse.c 5024 2006-06-10 14:53:54Z edwin $
 
 */
 
@@ -72,6 +72,71 @@
 	number is stored in the block index table.
 
 *******************************************************************************/
+
+static exceptiontable * new_fillextable(
+									jitdata *jd,
+									methodinfo *m, 
+									exceptiontable *extable, 
+									exceptiontable *raw_extable, 
+        							int exceptiontablelength, 
+									int *block_count)
+{
+	int b_count, p, src;
+	
+	if (exceptiontablelength == 0) 
+		return extable;
+
+	b_count = *block_count;
+
+	for (src = exceptiontablelength-1; src >=0; src--) {
+		/* the start of the handled region becomes a basic block start */
+   		p = raw_extable[src].startpc;
+		CHECK_BYTECODE_INDEX(p);
+		extable->startpc = p;
+		new_block_insert(p);
+		
+		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
+		CHECK_BYTECODE_INDEX_EXCLUSIVE(p);
+
+#if defined(ENABLE_VERIFIER)
+		if (p <= raw_extable[src].startpc) {
+			*exceptionptr = new_verifyerror(m,
+				"Invalid exception handler range");
+			return NULL;
+		}
+#endif
+		extable->endpc = p;
+		
+		/* end of handled region becomes a basic block boundary  */
+		/* (If it is the bytecode end, we'll use the special     */
+		/* end block that is created anyway.)                    */
+		if (p < m->jcodelength) 
+			new_block_insert(p);
+
+		/* the start of the handler becomes a basic block start  */
+		p = raw_extable[src].handlerpc;
+		CHECK_BYTECODE_INDEX(p);
+		extable->handlerpc = p;
+		new_block_insert(p);
+
+		extable->catchtype = raw_extable[src].catchtype;
+		extable->next = NULL;
+		extable->down = &extable[1];
+		extable--;
+	}
+
+	*block_count = b_count;
+	
+	/* everything ok */
+	return extable;
+
+#if defined(ENABLE_VERIFIER)
+throw_invalid_bytecode_index:
+	*exceptionptr =
+		new_verifyerror(m, "Illegal bytecode index in exception table");
+	return NULL;
+#endif
+}
 
 static exceptiontable * fillextable(methodinfo *m, 
 									exceptiontable *extable, 
@@ -198,7 +263,7 @@ bool new_parse(jitdata *jd)
 
 	/* compute branch targets of exception table */
 
-	if (!fillextable(m,
+	if (!new_fillextable(jd, m,
 			&(cd->exceptiontable[cd->exceptiontablelength-1]),
 			m->exceptiontable,
 			m->exceptiontablelength,
@@ -630,7 +695,6 @@ fetch_opcode:
 		case JAVA_IF_ACMPEQ:
 		case JAVA_IF_ACMPNE:
 		case JAVA_GOTO:
-		case JAVA_JSR:
 			i = p + code_get_s2(p + 1,m);
 			CHECK_BYTECODE_INDEX(i);
 			new_block_insert(i);
@@ -639,13 +703,27 @@ fetch_opcode:
 			break;
 
 		case JAVA_GOTO_W:
-		case JAVA_JSR_W:
 			i = p + code_get_s4(p + 1,m);
 			CHECK_BYTECODE_INDEX(i);
 			new_block_insert(i);
 			blockend = true;
 			NEW_OP_INSINDEX(opcode, i);
 			break;
+
+		case JAVA_JSR:
+			i = p + code_get_s2(p + 1,m);
+jsr_tail:
+			CHECK_BYTECODE_INDEX(i);
+			new_block_insert(i);
+			blockend = true;
+			NEW_OP_PREPARE_ZEROFLAGS(JAVA_JSR);
+			iptr->sx.s23.s3.jsrtarget.insindex = i;
+			PINC;
+			break;
+
+		case JAVA_JSR_W:
+			i = p + code_get_s4(p + 1,m);
+			goto jsr_tail;
 
 		case JAVA_RET:
 			if (!iswide) {
@@ -1308,7 +1386,7 @@ invoke_method:
 
 			bptr->iinstr = /* XXX */ (instruction *) (jd->new_instructions + (jd->new_basicblockindex[p] >> 1));
 			if (b_count) {
-				bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
+				bptr[-1].icount = /*XXX*/ (new_instruction *)bptr->iinstr - (new_instruction*) bptr[-1].iinstr;
 			}
 			/* bptr->icount is set when the next block is allocated */
 

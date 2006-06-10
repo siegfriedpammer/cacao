@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5012 2006-06-01 22:53:52Z edwin $
+   $Id: stack.h 5024 2006-06-10 14:53:54Z edwin $
 
 */
 
@@ -164,7 +164,7 @@
 /* regs[rd->intregargnum has to be set for this */
 /* new->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }*/
 
-#define NEWSTACK(s,v,n) { NEWSTACK_(s,v,n); INC_LIFETIMES(1); }
+#define NEWSTACK(s,v,n) do { NEWSTACK_(s,v,n); INC_LIFETIMES(1); } while (0)
 
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)

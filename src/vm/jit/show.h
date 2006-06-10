@@ -43,8 +43,18 @@
 
 #include "vm/jit/jit.h"
 
+#define SHOW_INSTRUCTIONS  0
+#define SHOW_PARSE         1
+#define SHOW_STACK         2
+#define SHOW_REGS          3
+#define SHOW_CODE          4
+
 #if !defined(NDEBUG)
 bool show_init(void);
+
+void new_show_method(jitdata *jd, int stage);
+void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage);
+void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage);
 
 void show_method(jitdata *jd);
 void show_basicblock(jitdata *jd, basicblock *bptr);

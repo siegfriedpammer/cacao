@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5009 2006-06-01 22:46:54Z edwin $
+   $Id: jit.h 5024 2006-06-10 14:53:54Z edwin $
 
 */
 
@@ -213,6 +213,7 @@ typedef union {
     insinfo_inline            *inlineinfo;       /* for INLINE_START/END      */
     s4                         tablehigh;        /* for TABLESWITCH           */
     branch_target_t            lookupdefault;    /* for LOOKUPSWITCH          */
+    branch_target_t            jsrtarget;        /* for JSR                   */
     struct builtintable_entry *bte;
 } s3_operand_t;
 
@@ -237,6 +238,7 @@ typedef union {
     branch_target_t           *table;       /* for TABLESWITCH                */
     lookup_target_t           *lookup;      /* for LOOKUPSWITCH               */
     s4                         insindex;    /* used between parse and stack   */
+	stackptr                  *dupslots;    /* for SWAP, DUP* except DUP      */
 } dst_operand_t;
 
 /*** flags (32 bits) ***/

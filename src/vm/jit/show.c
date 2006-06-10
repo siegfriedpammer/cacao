@@ -312,6 +312,241 @@ static char *jit_type[] = {
 *******************************************************************************/
 
 #if !defined(NDEBUG)
+void new_show_method(jitdata *jd, int stage)
+{
+	methodinfo     *m;
+	codeinfo       *code;
+	codegendata    *cd;
+	registerdata   *rd;
+	basicblock     *bptr;
+	exceptiontable *ex;
+	s4              i, j;
+	u1             *u1ptr;
+
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
+
+#if defined(ENABLE_THREADS)
+	/* We need to enter a lock here, since the binutils disassembler
+	   is not reentrant-able and we could not read functions printed
+	   at the same time. */
+
+	builtin_monitorenter(show_global_lock);
+#endif
+
+	printf("\n");
+
+	method_println(m);
+
+	printf("\n(NEW INSTRUCTION FORMAT)\n");
+	printf("\nBasic blocks: %d\n", jd->new_basicblockcount);
+	printf("Max locals:   %d\n", cd->maxlocals);
+	printf("Max stack:    %d\n", cd->maxstack);
+	printf("Line number table length: %d\n", m->linenumbercount);
+
+	if (stage >= SHOW_PARSE) {
+		printf("Exceptions (Number: %d):\n", cd->exceptiontablelength);
+		for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
+			printf("    L%03d ... ", ex->start->debug_nr );
+			printf("L%03d  = ", ex->end->debug_nr);
+			printf("L%03d", ex->handler->debug_nr);
+			printf("  (catchtype: ");
+			if (ex->catchtype.any)
+				if (IS_CLASSREF(ex->catchtype))
+					utf_display_printable_ascii_classname(ex->catchtype.ref->name);
+				else
+					utf_display_printable_ascii_classname(ex->catchtype.cls->name);
+			else
+				printf("ANY");
+			printf(")\n");
+		}
+	}
+	
+	printf("Local Table:\n");
+	for (i = 0; i < cd->maxlocals; i++) {
+		printf("   %3d: ", i);
+
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+		for (j = TYPE_INT; j <= TYPE_ADR; j++) {
+# if defined(ENABLE_INTRP)
+			if (!opt_intrp) {
+# endif
+				if (rd->locals[i][j].type >= 0) {
+					printf("   (%s) ", jit_type[j]);
+					if (stage >= SHOW_REGS) {
+						if (rd->locals[i][j].flags & INMEMORY)
+							printf("m%2d", rd->locals[i][j].regoff);
+# ifdef HAS_ADDRESS_REGISTER_FILE
+						else if (j == TYPE_ADR)
+							printf("r%02d", rd->locals[i][j].regoff);
+# endif
+						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+							printf("f%02d", rd->locals[i][j].regoff);
+						else {
+# if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (IS_2_WORD_TYPE(j))
+								printf(" %3s/%3s",
+									   regs[GET_LOW_REG(rd->locals[i][j].regoff)],
+									   regs[GET_HIGH_REG(rd->locals[i][j].regoff)]);
+							else
+# endif
+								printf("%3s", regs[rd->locals[i][j].regoff]);
+						}
+					}
+				}
+# if defined(ENABLE_INTRP)
+			}
+# endif
+		}
+#endif /* defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER) */
+
+		printf("\n");
+	}
+	printf("\n");
+
+	if (stage >= SHOW_STACK) {
+#if defined(ENABLE_LSRA)
+	if (!opt_lsra) {
+#endif
+#if defined(ENABLE_INTRP)
+		if (!opt_intrp) {
+#endif
+	printf("Interface Table:\n");
+	for (i = 0; i < cd->maxstack; i++) {
+		if ((rd->interfaces[i][0].type >= 0) ||
+			(rd->interfaces[i][1].type >= 0) ||
+		    (rd->interfaces[i][2].type >= 0) ||
+			(rd->interfaces[i][3].type >= 0) ||
+		    (rd->interfaces[i][4].type >= 0)) {
+			printf("   %3d: ", i);
+
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+# if defined(ENABLE_INTRP)
+			if (!opt_intrp) {
+# endif
+				for (j = TYPE_INT; j <= TYPE_ADR; j++) {
+					if (rd->interfaces[i][j].type >= 0) {
+						printf("   (%s) ", jit_type[j]);
+						if (stage >= SHOW_REGS) {
+							if (rd->interfaces[i][j].flags & SAVEDVAR) {
+								if (rd->interfaces[i][j].flags & INMEMORY)
+									printf("M%2d", rd->interfaces[i][j].regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+								else if (j == TYPE_ADR)
+									printf("R%02d", rd->interfaces[i][j].regoff);
+#endif
+								else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+									printf("F%02d", rd->interfaces[i][j].regoff);
+								else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+									if (IS_2_WORD_TYPE(j))
+										printf(" %3s/%3s",
+											   regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
+											   regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
+									else
+#endif
+										printf("%3s",regs[rd->interfaces[i][j].regoff]);
+								}
+							}
+							else {
+								if (rd->interfaces[i][j].flags & INMEMORY)
+									printf("m%2d", rd->interfaces[i][j].regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+								else if (j == TYPE_ADR)
+									printf("r%02d", rd->interfaces[i][j].regoff);
+#endif
+								else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+									printf("f%02d", rd->interfaces[i][j].regoff);
+								else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+									if (IS_2_WORD_TYPE(j))
+										printf(" %3s/%3s",
+											   regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
+											   regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
+									else
+#endif
+										printf("%3s",regs[rd->interfaces[i][j].regoff]);
+								}
+							}
+						}
+					}
+				}
+				printf("\n");
+# if defined(ENABLE_INTRP)
+			}
+# endif
+#endif /* defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER) */
+
+		}
+	}
+	printf("\n");
+
+#if defined(ENABLE_INTRP)
+		}
+#endif
+#if defined(ENABLE_LSRA)
+  	}
+#endif
+	} /* if >= SHOW_STACK */
+
+	if (code->rplpoints) {
+		printf("Replacement Points:\n");
+		replace_show_replacement_points(code);
+		printf("\n");
+	}
+
+#if defined(ENABLE_DISASSEMBLER)
+	/* show code before first basic block */
+
+	if (stage >= SHOW_CODE && opt_showdisassemble) {
+		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen);
+
+		for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + jd->new_basicblocks[0].mpc);)
+			DISASSINSTR(u1ptr);
+
+		printf("\n");
+	}
+#endif
+
+	/* show code of all basic blocks */
+
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next)
+		new_show_basicblock(jd, bptr, stage);
+
+#if defined(ENABLE_DISASSEMBLER)
+	/* show stubs code */
+
+	if (stage >= SHOW_CODE && opt_showdisassemble && opt_showexceptionstubs) {
+		printf("\nException stubs code:\n");
+		printf("Length: %d\n\n", (s4) (code->mcodelength -
+									   ((ptrint) cd->dseglen +
+										jd->new_basicblocks[jd->new_basicblockcount].mpc)));
+
+		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen +
+						jd->new_basicblocks[jd->new_basicblockcount].mpc);
+
+		for (; (ptrint) u1ptr < ((ptrint) code->mcode + code->mcodelength);)
+			DISASSINSTR(u1ptr);
+
+		printf("\n");
+	}
+#endif
+
+#if defined(ENABLE_THREADS)
+	builtin_monitorexit(show_global_lock);
+#endif
+
+	/* finally flush the output */
+
+	fflush(stdout);
+}
+#endif /* !defined(NDEBUG) */
+
+#if !defined(NDEBUG)
 void show_method(jitdata *jd)
 {
 	methodinfo     *m;
@@ -547,6 +782,106 @@ void show_method(jitdata *jd)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
+void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
+{
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
+	s4           i, j;
+	bool         deadcode;
+	new_instruction *iptr;
+	u1          *u1ptr;
+
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+
+	if (bptr->flags != BBDELETED) {
+		deadcode = bptr->flags <= BBREACHED;
+
+		if (stage >= SHOW_STACK) {
+			printf("[");
+
+			if (deadcode)
+				for (j = cd->maxstack; j > 0; j--)
+					printf(" ?  ");
+			else
+				show_print_stack(cd, bptr->instack);
+			printf("] ");
+		}
+
+		printf("%sL%03d(flags: %d, bitflags: %01x, next: %d, type: ",
+				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
+			   bptr->debug_nr, bptr->flags, bptr->bitflags, 
+			   (bptr->next) ? (bptr->next->debug_nr) : -1);
+
+		switch (bptr->type) {
+		case BBTYPE_STD:
+			printf("STD");
+			break;
+		case BBTYPE_EXH:
+			printf("EXH");
+			break;
+		case BBTYPE_SBR:
+			printf("SBR");
+			break;
+		}
+
+		printf(", instruction count: %d, predecessors: %d):\n",
+			   bptr->icount, bptr->pre_count);
+
+		iptr = /*XXX*/ (new_instruction *) bptr->iinstr;
+
+		for (i = 0; i < bptr->icount; i++, iptr++) {
+			if (stage <= SHOW_PARSE) {
+				printf("%4d: ", (iptr - jd->new_instructions));
+			}
+
+			if (stage >= SHOW_STACK) {
+				printf("[");
+
+				if (deadcode)
+					for (j = cd->maxstack; j > 0; j--)
+						printf(" ?  ");
+				else {
+#if 0
+					show_print_stack(cd, iptr->dst);
+#endif
+				}
+
+				printf("] ");
+			}
+
+			printf("%5d (line: %5d)  ", i, iptr->line);
+
+			new_show_icmd(jd, iptr, deadcode, stage);
+			printf("\n");
+		}
+
+#if defined(ENABLE_DISASSEMBLER)
+		if (stage >= SHOW_CODE && opt_showdisassemble && (!deadcode)) {
+			printf("\n");
+			u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->mpc);
+
+			if (bptr->next != NULL) {
+				for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->next->mpc);)
+					DISASSINSTR(u1ptr);
+
+			} 
+			else {
+				for (; u1ptr < (u1 *) ((ptrint) code->mcode + code->mcodelength);)
+					DISASSINSTR(u1ptr); 
+			}
+			printf("\n");
+		}
+#endif
+	}
+}
+#endif /* !defined(NDEBUG) */
+
+#if !defined(NDEBUG)
 void show_basicblock(jitdata *jd, basicblock *bptr)
 {
 	methodinfo  *m;
@@ -640,6 +975,357 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
    NOTE: Currently this function may only be called after register allocation!
 
 *******************************************************************************/
+
+#if !defined(NDEBUG)
+
+#define SHOW_TARGET(target)                                          \
+		if (stage >= SHOW_STACK) {                                   \
+			printf("L%03d", (target).block->debug_nr);               \
+		}                                                            \
+		else if (stage >= SHOW_PARSE) {                              \
+			printf("insindex %d (L%03d)", (target).insindex,         \
+				jd->new_basicblocks[jd->new_basicblockindex[         \
+				(target).insindex]].debug_nr);                       \
+		}                                                            \
+		else {                                                       \
+			printf("insindex %d", (target).insindex);                \
+		}
+
+#define SHOW_INT_CONST(val)                                          \
+		if (stage >= SHOW_PARSE) {                                   \
+			printf("%ld", (long) (val));                             \
+		}                                                            \
+		else {                                                       \
+			printf("iconst");                                        \
+		}
+
+#define SHOW_LNG_CONST(val)                                          \
+		if (stage >= SHOW_PARSE) {                                   \
+			printf("%lld", (long long)(val));                        \
+		}                                                            \
+		else {                                                       \
+			printf("lconst");                                        \
+		}
+
+#define SHOW_FLT_CONST(val)                                          \
+		if (stage >= SHOW_PARSE) {                                   \
+			printf("%g", (val));                                     \
+		}                                                            \
+		else {                                                       \
+			printf("fconst");                                        \
+		}
+
+#define SHOW_DBL_CONST(val)                                          \
+		if (stage >= SHOW_PARSE) {                                   \
+			printf("%g", (val));                                     \
+		}                                                            \
+		else {                                                       \
+			printf("dconst");                                        \
+		}
+
+#define SHOW_INDEX(index)                                            \
+		if (stage >= SHOW_PARSE) {                                   \
+			printf("%d", index);                                     \
+		}                                                            \
+		else {                                                       \
+			printf("index");                                         \
+		}
+
+#define SHOW_STRING(val)                                             \
+		if (stage >= SHOW_PARSE) {                                   \
+			putchar('"');                                            \
+			utf_display_printable_ascii(                             \
+				javastring_toutf((java_lang_String *)(val), false)); \
+			putchar('"');                                            \
+		}                                                            \
+		else {                                                       \
+			printf("string");                                        \
+		}
+
+#define SHOW_CLASSREF_OR_CLASSINFO(c)                                \
+		if (stage >= SHOW_PARSE) {                                   \
+			if (IS_CLASSREF(c))                                      \
+				class_classref_print(c.ref);                         \
+			else                                                     \
+				class_print(c.cls);                                  \
+		}                                                            \
+		else {                                                       \
+			printf("class");                                         \
+		}
+
+#define SHOW_FIELD(fmiref)                                           \
+		if (stage >= SHOW_PARSE) {                                   \
+			field_fieldref_print(fmiref);                            \
+		}                                                            \
+		else {                                                       \
+			printf("field");                                         \
+		}
+
+void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
+{
+	u2                 opcode;
+	branch_target_t   *table;
+	lookup_target_t   *lookup;
+	constant_FMIref   *fmiref;
+
+	/* get the opcode and the condition */
+
+	opcode    =  iptr->opc;
+
+	printf("%s", icmd_names[opcode]);
+
+	if (stage < SHOW_PARSE)
+		return;
+
+	/* Print the condition for conditional instructions. */
+
+	/* XXX print condition from flags */
+
+	switch (opcode) {
+	case ICMD_IADDCONST:
+	case ICMD_ISUBCONST:
+	case ICMD_IMULCONST:
+	case ICMD_IMULPOW2:
+	case ICMD_IDIVPOW2:
+	case ICMD_IREMPOW2:
+	case ICMD_IANDCONST:
+	case ICMD_IORCONST:
+	case ICMD_IXORCONST:
+	case ICMD_ISHLCONST:
+	case ICMD_ISHRCONST:
+	case ICMD_IUSHRCONST:
+	case ICMD_LSHLCONST:
+	case ICMD_LSHRCONST:
+	case ICMD_LUSHRCONST:
+	case ICMD_ICONST:
+	case ICMD_IASTORECONST:
+	case ICMD_BASTORECONST:
+	case ICMD_CASTORECONST:
+	case ICMD_SASTORECONST:
+		SHOW_INT_CONST(iptr->sx.val.i);	
+		break;
+
+	case ICMD_IFEQ_ICONST:
+	case ICMD_IFNE_ICONST:
+	case ICMD_IFLT_ICONST:
+	case ICMD_IFGE_ICONST:
+	case ICMD_IFGT_ICONST:
+	case ICMD_IFLE_ICONST:
+		break;
+
+	case ICMD_ELSE_ICONST:
+		break;
+
+	case ICMD_LADDCONST:
+	case ICMD_LSUBCONST:
+	case ICMD_LMULCONST:
+	case ICMD_LMULPOW2:
+	case ICMD_LDIVPOW2:
+	case ICMD_LREMPOW2:
+	case ICMD_LANDCONST:
+	case ICMD_LORCONST:
+	case ICMD_LXORCONST:
+	case ICMD_LCONST:
+	case ICMD_LASTORECONST:
+		SHOW_LNG_CONST(iptr->sx.val.l);	
+		break;
+
+	case ICMD_FCONST:
+		SHOW_FLT_CONST(iptr->sx.val.f);	
+		break;
+
+	case ICMD_DCONST:
+		SHOW_DBL_CONST(iptr->sx.val.d);	
+		break;
+
+	case ICMD_ACONST:
+		if (iptr->flags.bits & INS_FLAG_CLASS) {
+			SHOW_CLASSREF_OR_CLASSINFO(iptr->sx.val.c);
+		}
+		else if (iptr->sx.val.anyptr == NULL) {
+			printf("NULL");
+		}
+		else {
+			SHOW_STRING(iptr->sx.val.stringconst);
+		}
+		break;
+
+	case ICMD_AASTORECONST:
+		break;
+
+	case ICMD_GETFIELD:
+	case ICMD_PUTFIELD:
+ 	case ICMD_PUTSTATIC:
+	case ICMD_GETSTATIC:
+	case ICMD_PUTSTATICCONST:
+	case ICMD_PUTFIELDCONST:
+		if (iptr->flags.bits & INS_FLAG_UNRESOLVED)
+			printf("(UNRESOLVED) ");
+		NEW_INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+		SHOW_FIELD(fmiref);
+		break;
+
+	case ICMD_IINC:
+		break;
+
+	case ICMD_IASTORE:
+	case ICMD_SASTORE:
+	case ICMD_BASTORE:
+	case ICMD_CASTORE:
+	case ICMD_LASTORE:
+	case ICMD_DASTORE:
+	case ICMD_FASTORE:
+	case ICMD_AASTORE:
+
+	case ICMD_IALOAD:
+	case ICMD_SALOAD:
+	case ICMD_BALOAD:
+	case ICMD_CALOAD:
+	case ICMD_LALOAD:
+	case ICMD_DALOAD:
+	case ICMD_FALOAD:
+	case ICMD_AALOAD:
+		break;
+
+	case ICMD_RET:
+	case ICMD_ILOAD:
+	case ICMD_LLOAD:
+	case ICMD_FLOAD:
+	case ICMD_DLOAD:
+	case ICMD_ALOAD:
+		SHOW_INDEX(iptr->s1.localindex);
+		break;
+
+	case ICMD_ISTORE:
+	case ICMD_LSTORE:
+	case ICMD_FSTORE:
+	case ICMD_DSTORE:
+	case ICMD_ASTORE:
+		SHOW_INDEX(iptr->dst.localindex);
+		break;
+
+	case ICMD_NEW:
+		break;
+
+	case ICMD_NEWARRAY:
+		break;
+
+	case ICMD_ANEWARRAY:
+		break;
+
+	case ICMD_MULTIANEWARRAY:
+		if (stage >= SHOW_PARSE) {
+			printf("argcount=%d", iptr->s1.argcount);
+		}
+		break;
+
+	case ICMD_CHECKCAST:
+	case ICMD_INSTANCEOF:
+		break;
+
+	case ICMD_INLINE_START:
+	case ICMD_INLINE_END:
+		break;
+
+	case ICMD_BUILTIN:
+		if (stage >= SHOW_PARSE) {
+			printf("%s", iptr->sx.s23.s3.bte->name);
+		}
+		break;
+
+	case ICMD_INVOKEVIRTUAL:
+	case ICMD_INVOKESPECIAL:
+	case ICMD_INVOKESTATIC:
+	case ICMD_INVOKEINTERFACE:
+		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) {
+			printf("(UNRESOLVED) ");
+		}
+		NEW_INSTRUCTION_GET_METHODREF(iptr, fmiref);
+		method_methodref_print(fmiref);
+		break;
+
+	case ICMD_IFEQ:
+	case ICMD_IFNE:
+	case ICMD_IFLT:
+	case ICMD_IFGE:
+	case ICMD_IFGT:
+	case ICMD_IFLE:
+		SHOW_TARGET(iptr->dst);
+		break;
+
+	case ICMD_IF_LEQ:
+	case ICMD_IF_LNE:
+	case ICMD_IF_LLT:
+	case ICMD_IF_LGE:
+	case ICMD_IF_LGT:
+	case ICMD_IF_LLE:
+		SHOW_TARGET(iptr->dst);
+		break;
+
+	case ICMD_JSR:
+	case ICMD_GOTO:
+	case ICMD_INLINE_GOTO:
+		SHOW_TARGET(iptr->dst);
+		break;
+
+	case ICMD_IFNULL:
+	case ICMD_IFNONNULL:
+	case ICMD_IF_ICMPEQ:
+	case ICMD_IF_ICMPNE:
+	case ICMD_IF_ICMPLT:
+	case ICMD_IF_ICMPGE:
+	case ICMD_IF_ICMPGT:
+	case ICMD_IF_ICMPLE:
+
+	case ICMD_IF_LCMPEQ:
+	case ICMD_IF_LCMPNE:
+	case ICMD_IF_LCMPLT:
+	case ICMD_IF_LCMPGE:
+	case ICMD_IF_LCMPGT:
+	case ICMD_IF_LCMPLE:
+
+	case ICMD_IF_FCMPEQ:
+	case ICMD_IF_FCMPNE:
+
+	case ICMD_IF_FCMPL_LT:
+	case ICMD_IF_FCMPL_GE:
+	case ICMD_IF_FCMPL_GT:
+	case ICMD_IF_FCMPL_LE:
+
+	case ICMD_IF_FCMPG_LT:
+	case ICMD_IF_FCMPG_GE:
+	case ICMD_IF_FCMPG_GT:
+	case ICMD_IF_FCMPG_LE:
+
+	case ICMD_IF_DCMPEQ:
+	case ICMD_IF_DCMPNE:
+
+	case ICMD_IF_DCMPL_LT:
+	case ICMD_IF_DCMPL_GE:
+	case ICMD_IF_DCMPL_GT:
+	case ICMD_IF_DCMPL_LE:
+
+	case ICMD_IF_DCMPG_LT:
+	case ICMD_IF_DCMPG_GE:
+	case ICMD_IF_DCMPG_GT:
+	case ICMD_IF_DCMPG_LE:
+
+	case ICMD_IF_ACMPEQ:
+	case ICMD_IF_ACMPNE:
+		SHOW_TARGET(iptr->dst);
+		break;
+
+	case ICMD_TABLESWITCH:
+		break;
+
+	case ICMD_LOOKUPSWITCH:
+		break;
+
+	case ICMD_ARETURN:
+		break;
+	}
+}
+#endif /* !defined(NDEBUG) */
 
 #if !defined(NDEBUG)
 void show_icmd(instruction *iptr, bool deadcode)
