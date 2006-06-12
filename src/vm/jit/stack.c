@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5027 2006-06-12 21:14:29Z edwin $
+   $Id: stack.c 5029 2006-06-12 21:34:04Z edwin $
 
 */
 
@@ -2539,7 +2539,9 @@ icmd_BUILTIN:
 								copy->varkind = ARGVAR;
 								copy->varnum = i;
 
-								IF_NO_INTRP(
+#if defined(ENABLE_INTRP)
+								if (!opt_intrp) {
+#endif
 									if (md->params[i].inmemory) {
 										copy->flags = INMEMORY;
 										copy->regoff = md->params[i].regoff;
@@ -2552,7 +2554,7 @@ icmd_BUILTIN:
 #else
 											copy->regoff =
 												rd->argfltregs[md->params[i].regoff];
-#endif
+#endif /* SUPPORT_PASS_FLOATARGS_IN_INTREGS */
 										}
 										else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -2561,12 +2563,14 @@ icmd_BUILTIN:
 													rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
 													rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
 											else
-#endif
+#endif /* SUPPORT_COMBINE_INTEGER_REGISTERS */
 												copy->regoff =
 													rd->argintregs[md->params[i].regoff];
 										}
 									}
-								)
+#if defined(ENABLE_INTRP)
+								} /* end if (!opt_intrp) */
+#endif
 							}
 							copy = copy->prev;
 						}
