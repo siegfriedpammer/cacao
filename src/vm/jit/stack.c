@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5025 2006-06-12 14:23:28Z edwin $
+   $Id: stack.c 5027 2006-06-12 21:14:29Z edwin $
 
 */
 
@@ -1494,7 +1494,8 @@ normal_ACONST:
 							i--;
 							copy = copy->prev;
 						}
-						/* XXX */
+
+						iptr->dst.localindex = iptr->s1.localindex;
 						break;
 
 						/* pop 1 push 0 store */

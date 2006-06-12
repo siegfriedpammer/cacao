@@ -328,7 +328,7 @@ void new_show_method(jitdata *jd, int stage)
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
+	rd   = jd->new_rd;
 
 #if defined(ENABLE_THREADS)
 	/* We need to enter a lock here, since the binutils disassembler
@@ -366,6 +366,7 @@ void new_show_method(jitdata *jd, int stage)
 		}
 	}
 	
+	if (stage >= SHOW_PARSE && rd) {
 	printf("Local Table:\n");
 	for (i = 0; i < cd->maxlocals; i++) {
 		printf("   %3d: ", i);
@@ -407,8 +408,9 @@ void new_show_method(jitdata *jd, int stage)
 		printf("\n");
 	}
 	printf("\n");
+	}
 
-	if (stage >= SHOW_STACK) {
+	if (stage >= SHOW_STACK && rd) {
 #if defined(ENABLE_LSRA)
 	if (!opt_lsra) {
 #endif
@@ -801,18 +803,7 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	if (bptr->flags != BBDELETED) {
 		deadcode = bptr->flags <= BBREACHED;
 
-		if (stage >= SHOW_STACK) {
-			printf("[");
-
-			if (deadcode)
-				for (j = cd->maxstack; j > 0; j--)
-					printf(" ?  ");
-			else
-				show_print_stack(cd, bptr->instack);
-			printf("] ");
-		}
-
-		printf("%sL%03d(flags: %d, bitflags: %01x, next: %d, type: ",
+		printf("======== %sL%03d ======== (flags: %d, bitflags: %01x, next: %d, type: ",
 				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
 			   bptr->debug_nr, bptr->flags, bptr->bitflags, 
 			   (bptr->next) ? (bptr->next->debug_nr) : -1);
@@ -839,7 +830,7 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 				printf("%4d: ", (iptr - jd->new_instructions));
 			}
 
-			printf("(line: %5d)  ", iptr->line);
+			printf("%4d:  ", iptr->line);
 
 			new_show_icmd(jd, iptr, deadcode, stage);
 			printf("\n");
@@ -1096,27 +1087,137 @@ static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 		default:       type = '?';
 	}
 	printf("S%c%d", type, sp - jd->new_stack);
+
 	if (stage >= SHOW_REGS) {
 		putchar('(');
-		j = sp->type;
-		if (sp->flags & INMEMORY)
-			printf("m%2d", sp->regoff);
-# ifdef HAS_ADDRESS_REGISTER_FILE
-		else if (j == TYPE_ADR)
-			printf("r%02d", sp->regoff);
+
+		if (sp->flags & SAVEDVAR) {
+			switch (sp->varkind) {
+			case TEMPVAR:
+				if (sp->flags & INMEMORY)
+					printf("M%02d", sp->regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				else if (sp->type == TYPE_ADR)
+					printf("R%02d", sp->regoff);
+#endif
+				else if (IS_FLT_DBL_TYPE(sp->type))
+					printf("F%02d", sp->regoff);
+				else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					if (IS_2_WORD_TYPE(sp->type)) {
+# if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+#  if defined(ENABLE_INTRP)
+						if (opt_intrp)
+							printf("%3d/%3d", GET_LOW_REG(sp->regoff),
+								   GET_HIGH_REG(sp->regoff));
+						else
+#  endif
+							printf("%3s/%3s", regs[GET_LOW_REG(sp->regoff)],
+								   regs[GET_HIGH_REG(sp->regoff)]);
+# else
+						printf("%3d/%3d", GET_LOW_REG(sp->regoff),
+							   GET_HIGH_REG(sp->regoff));
 # endif
-		else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-			printf("f%02d", sp->regoff);
-		else {
-# if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-			if (IS_2_WORD_TYPE(j))
-				printf(" %3s/%3s",
-						regs[GET_LOW_REG(sp->regoff)],
-						regs[GET_HIGH_REG(sp->regoff)]);
-			else
+					} 
+					else 
+#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
+						{
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+# if defined(ENABLE_INTRP)
+							if (opt_intrp)
+								printf("%3d", sp->regoff);
+							else
 # endif
-				printf("%3s", regs[sp->regoff]);
+								printf("%3s", regs[sp->regoff]);
+#else
+							printf("%3d", sp->regoff);
+#endif
+						}
+				}
+				break;
+			case STACKVAR:
+				printf("I%02d", sp->varnum);
+				break;
+			case LOCALVAR:
+				printf("L%02d", sp->varnum);
+				break;
+			case ARGVAR:
+				if (sp->varnum == -1) {
+					/* Return Value                                  */
+					/* varkind ARGVAR "misused for this special case */
+					printf(" V0");
+				} 
+				else /* "normal" Argvar */
+					printf("A%02d", sp->varnum);
+				break;
+			default:
+				printf("!xx");
+			}
 		}
+		else { /* not SAVEDVAR */
+			switch (sp->varkind) {
+			case TEMPVAR:
+				if (sp->flags & INMEMORY)
+					printf("m%02d", sp->regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				else if (sp->type == TYPE_ADR)
+					printf("r%02d", sp->regoff);
+#endif
+				else if (IS_FLT_DBL_TYPE(sp->type))
+					printf("f%02d", sp->regoff);
+				else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					if (IS_2_WORD_TYPE(sp->type)) {
+# if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+#  if defined(ENABLE_INTRP)
+						if (opt_intrp)
+							printf("%3d/%3d", GET_LOW_REG(sp->regoff),
+								   GET_HIGH_REG(sp->regoff));
+						else
+#  endif
+							printf("%3s/%3s", regs[GET_LOW_REG(sp->regoff)],
+								   regs[GET_HIGH_REG(sp->regoff)]);
+# else
+						printf("%3d/%3d", GET_LOW_REG(sp->regoff),
+							   GET_HIGH_REG(sp->regoff));
+# endif
+					} 
+					else
+#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
+						{
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+# if defined(ENABLE_INTRP)
+							if (opt_intrp)
+								printf("%3d", sp->regoff);
+							else
+# endif
+								printf("%3s", regs[sp->regoff]);
+#else
+							printf("%3d", sp->regoff);
+#endif
+						}
+				}
+				break;
+			case STACKVAR:
+				printf("i%02d", sp->varnum);
+				break;
+			case LOCALVAR:
+				printf("l%02d", sp->varnum);
+				break;
+			case ARGVAR:
+				if (sp->varnum == -1) {
+					/* Return Value                                  */
+					/* varkind ARGVAR "misused for this special case */
+					printf(" v0");
+				} 
+				else /* "normal" Argvar */
+				printf("a%02d", sp->varnum);
+				break;
+			default:
+				printf("?xx");
+			}
+		}
+
 		putchar(')');
 	}
 	putchar(' ');
@@ -1148,6 +1249,13 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	/* XXX print condition from flags */
 
 	switch (opcode) {
+
+	case ICMD_POP:
+	case ICMD_CHECKNULL:
+	case ICMD_CHECKNULL_POP:
+		SHOW_S1(iptr);
+		break;
+
 		/* unary */
 	case ICMD_ARRAYLENGTH:
 	case ICMD_INEG:
@@ -1342,6 +1450,7 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 
 	case ICMD_IINC:
 		SHOW_S1_LOCAL(iptr);
+		SHOW_INT_CONST(iptr->sx.val.i);
 		SHOW_DST_LOCAL(iptr);
 		break;
 
@@ -1560,6 +1669,10 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 		break;
 
 	case ICMD_ARETURN:
+		SHOW_S1(iptr);
+		break;
+
+	case ICMD_ATHROW:
 		SHOW_S1(iptr);
 		break;
 

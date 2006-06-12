@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5026 2006-06-12 18:50:13Z edwin $
+   $Id: simplereg.c 5027 2006-06-12 21:14:29Z edwin $
 
 */
 
@@ -1153,7 +1153,7 @@ static void new_reg_mark_copy(registerdata *rd, stackptr *dupslots,
 	/* linked from only top downwards */
 	
 	slots = nthrough + nout;
-	argp = dupslots + nin + slots;
+	argp = dupslots + nin + nout;
 	for (d_bottom = 6; slots--; ) {
 		sp = *--argp;
 		if (sp->varkind == TEMPVAR) {
