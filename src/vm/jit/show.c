@@ -839,22 +839,7 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 				printf("%4d: ", (iptr - jd->new_instructions));
 			}
 
-			if (stage >= SHOW_STACK) {
-				printf("[");
-
-				if (deadcode)
-					for (j = cd->maxstack; j > 0; j--)
-						printf(" ?  ");
-				else {
-#if 0
-					show_print_stack(cd, iptr->dst);
-#endif
-				}
-
-				printf("] ");
-			}
-
-			printf("%5d (line: %5d)  ", i, iptr->line);
+			printf("(line: %5d)  ", iptr->line);
 
 			new_show_icmd(jd, iptr, deadcode, stage);
 			printf("\n");
@@ -979,87 +964,139 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
 #if !defined(NDEBUG)
 
 #define SHOW_TARGET(target)                                          \
-		if (stage >= SHOW_STACK) {                                   \
-			printf("L%03d", (target).block->debug_nr);               \
-		}                                                            \
-		else if (stage >= SHOW_PARSE) {                              \
-			printf("insindex %d (L%03d)", (target).insindex,         \
-				jd->new_basicblocks[jd->new_basicblockindex[         \
-				(target).insindex]].debug_nr);                       \
-		}                                                            \
-		else {                                                       \
-			printf("insindex %d", (target).insindex);                \
-		}
+        if (stage >= SHOW_STACK) {                                   \
+            printf("--> L%03d ", (target).block->debug_nr);          \
+        }                                                            \
+        else if (stage >= SHOW_PARSE) {                              \
+            printf("--> insindex %d (L%03d) ", (target).insindex,    \
+                jd->new_basicblocks[jd->new_basicblockindex[         \
+                (target).insindex]].debug_nr);                       \
+        }                                                            \
+        else {                                                       \
+            printf("--> insindex %d ", (target).insindex);           \
+        }
 
 #define SHOW_INT_CONST(val)                                          \
-		if (stage >= SHOW_PARSE) {                                   \
-			printf("%ld", (long) (val));                             \
-		}                                                            \
-		else {                                                       \
-			printf("iconst");                                        \
-		}
+        if (stage >= SHOW_PARSE) {                                   \
+            printf("%ld ", (long) (val));                            \
+        }                                                            \
+        else {                                                       \
+            printf("iconst ");                                       \
+        }
 
 #define SHOW_LNG_CONST(val)                                          \
-		if (stage >= SHOW_PARSE) {                                   \
-			printf("%lld", (long long)(val));                        \
-		}                                                            \
-		else {                                                       \
-			printf("lconst");                                        \
-		}
+        if (stage >= SHOW_PARSE) {                                   \
+            printf("%lld ", (long long)(val));                       \
+        }                                                            \
+        else {                                                       \
+            printf("lconst ");                                       \
+        }
 
 #define SHOW_FLT_CONST(val)                                          \
-		if (stage >= SHOW_PARSE) {                                   \
-			printf("%g", (val));                                     \
-		}                                                            \
-		else {                                                       \
-			printf("fconst");                                        \
-		}
+        if (stage >= SHOW_PARSE) {                                   \
+            printf("%g ", (val));                                    \
+        }                                                            \
+        else {                                                       \
+            printf("fconst ");                                       \
+        }
 
 #define SHOW_DBL_CONST(val)                                          \
-		if (stage >= SHOW_PARSE) {                                   \
-			printf("%g", (val));                                     \
-		}                                                            \
-		else {                                                       \
-			printf("dconst");                                        \
-		}
+        if (stage >= SHOW_PARSE) {                                   \
+            printf("%g ", (val));                                    \
+        }                                                            \
+        else {                                                       \
+            printf("dconst ");                                       \
+        }
 
 #define SHOW_INDEX(index)                                            \
-		if (stage >= SHOW_PARSE) {                                   \
-			printf("%d", index);                                     \
-		}                                                            \
-		else {                                                       \
-			printf("index");                                         \
-		}
+        if (stage >= SHOW_PARSE) {                                   \
+            printf("%d ", index);                                    \
+        }                                                            \
+        else {                                                       \
+            printf("index");                                         \
+        }
 
 #define SHOW_STRING(val)                                             \
-		if (stage >= SHOW_PARSE) {                                   \
-			putchar('"');                                            \
-			utf_display_printable_ascii(                             \
-				javastring_toutf((java_lang_String *)(val), false)); \
-			putchar('"');                                            \
-		}                                                            \
-		else {                                                       \
-			printf("string");                                        \
-		}
+        if (stage >= SHOW_PARSE) {                                   \
+            putchar('"');                                            \
+            utf_display_printable_ascii(                             \
+                javastring_toutf((java_lang_String *)(val), false)); \
+            printf("\" ");                                           \
+        }                                                            \
+        else {                                                       \
+            printf("string ");                                       \
+        }
 
 #define SHOW_CLASSREF_OR_CLASSINFO(c)                                \
-		if (stage >= SHOW_PARSE) {                                   \
-			if (IS_CLASSREF(c))                                      \
-				class_classref_print(c.ref);                         \
-			else                                                     \
-				class_print(c.cls);                                  \
-		}                                                            \
-		else {                                                       \
-			printf("class");                                         \
-		}
+        if (stage >= SHOW_PARSE) {                                   \
+            if (IS_CLASSREF(c))                                      \
+                class_classref_print(c.ref);                         \
+            else                                                     \
+                class_print(c.cls);                                  \
+            putchar(' ');                                            \
+        }                                                            \
+        else {                                                       \
+            printf("class ");                                        \
+        }
 
 #define SHOW_FIELD(fmiref)                                           \
-		if (stage >= SHOW_PARSE) {                                   \
-			field_fieldref_print(fmiref);                            \
-		}                                                            \
-		else {                                                       \
-			printf("field");                                         \
-		}
+        if (stage >= SHOW_PARSE) {                                   \
+            field_fieldref_print(fmiref);                            \
+            putchar(' ');                                            \
+        }                                                            \
+        else {                                                       \
+            printf("field ");                                        \
+        }
+
+#define SHOW_STACKVAR(sp)                                            \
+        new_show_stackvar(jd, (sp), stage)
+
+#define SHOW_S1(iptr)                                                \
+        if (stage >= SHOW_STACK) {                                   \
+            SHOW_STACKVAR(iptr->s1.var);                             \
+        }
+
+#define SHOW_S2(iptr)                                                \
+        if (stage >= SHOW_STACK) {                                   \
+            SHOW_STACKVAR(iptr->sx.s23.s2.var);                      \
+        }
+
+#define SHOW_S3(iptr)                                                \
+        if (stage >= SHOW_STACK) {                                   \
+            SHOW_STACKVAR(iptr->sx.s23.s3.var);                      \
+        }
+
+#define SHOW_DST(iptr)                                               \
+        if (stage >= SHOW_STACK) {                                   \
+            printf("=> ");                                           \
+            SHOW_STACKVAR(iptr->dst.var);                            \
+        }
+
+#define SHOW_S1_LOCAL(iptr)                                          \
+        if (stage >= SHOW_STACK) {                                   \
+            printf("L%d ", iptr->s1.localindex);                     \
+        }
+
+#define SHOW_DST_LOCAL(iptr)                                         \
+        if (stage >= SHOW_STACK) {                                   \
+            printf("=> L%d ", iptr->dst.localindex);                 \
+        }
+
+static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
+{
+	char type;
+
+	switch (sp->type) {
+		case TYPE_INT: type = 'i'; break;
+		case TYPE_LNG: type = 'l'; break;
+		case TYPE_FLT: type = 'f'; break;
+		case TYPE_DBL: type = 'd'; break;
+		case TYPE_ADR: type = 'a'; break;
+		default:       type = '?';
+	}
+	printf("S%c%d", type, sp - jd->new_stack);
+	putchar(' ');
+}
 
 void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 {
@@ -1067,21 +1104,95 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	branch_target_t   *table;
 	lookup_target_t   *lookup;
 	constant_FMIref   *fmiref;
+	stackptr          *argp;
+	s4                 i;
 
 	/* get the opcode and the condition */
 
 	opcode    =  iptr->opc;
 
-	printf("%s", icmd_names[opcode]);
+	printf("%s ", icmd_names[opcode]);
 
 	if (stage < SHOW_PARSE)
 		return;
+
+	if (deadcode)
+		stage = SHOW_PARSE;
 
 	/* Print the condition for conditional instructions. */
 
 	/* XXX print condition from flags */
 
 	switch (opcode) {
+		/* unary */
+	case ICMD_ARRAYLENGTH:
+	case ICMD_INEG:
+	case ICMD_LNEG:
+	case ICMD_FNEG:
+	case ICMD_DNEG:
+	case ICMD_I2L:
+	case ICMD_I2F:
+	case ICMD_I2D:
+	case ICMD_L2I:
+	case ICMD_L2F:
+	case ICMD_L2D:
+	case ICMD_F2I:
+	case ICMD_F2L:
+	case ICMD_F2D:
+	case ICMD_D2I:
+	case ICMD_D2L:
+	case ICMD_D2F:
+	case ICMD_INT2BYTE:
+	case ICMD_INT2CHAR:
+	case ICMD_INT2SHORT:
+		SHOW_S1(iptr);
+		SHOW_DST(iptr);
+		break;
+
+		/* binary */
+	case ICMD_IADD:
+	case ICMD_LADD:
+	case ICMD_FADD:
+	case ICMD_DADD:
+	case ICMD_ISUB:
+	case ICMD_LSUB:
+	case ICMD_FSUB:
+	case ICMD_DSUB:
+	case ICMD_IMUL:
+	case ICMD_LMUL:
+	case ICMD_FMUL:
+	case ICMD_DMUL:
+	case ICMD_IDIV:
+	case ICMD_LDIV:
+	case ICMD_FDIV:
+	case ICMD_DDIV:
+	case ICMD_IREM:
+	case ICMD_LREM:
+	case ICMD_FREM:
+	case ICMD_DREM:
+	case ICMD_ISHL:
+	case ICMD_LSHL:
+	case ICMD_ISHR:
+	case ICMD_LSHR:
+	case ICMD_IUSHR:
+	case ICMD_LUSHR:
+	case ICMD_IAND:
+	case ICMD_LAND:
+	case ICMD_IOR:
+	case ICMD_LOR:
+	case ICMD_IXOR:
+	case ICMD_LXOR:
+	case ICMD_LCMP:
+	case ICMD_FCMPL:
+	case ICMD_FCMPG:
+	case ICMD_DCMPL:
+	case ICMD_DCMPG:
+		SHOW_S1(iptr);
+		SHOW_S2(iptr);
+		SHOW_DST(iptr);
+		break;
+
+		/* binary/const INT */
 	case ICMD_IADDCONST:
 	case ICMD_ISUBCONST:
 	case ICMD_IMULCONST:
@@ -1097,12 +1208,25 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_LSHLCONST:
 	case ICMD_LSHRCONST:
 	case ICMD_LUSHRCONST:
-	case ICMD_ICONST:
+		SHOW_S1(iptr);
+		SHOW_INT_CONST(iptr->sx.val.i);	
+		SHOW_DST(iptr);
+		break;
+
+		/* ?ASTORECONST */
 	case ICMD_IASTORECONST:
 	case ICMD_BASTORECONST:
 	case ICMD_CASTORECONST:
 	case ICMD_SASTORECONST:
+		SHOW_S1(iptr);
+		SHOW_S2(iptr);
+		SHOW_INT_CONST(iptr->sx.s23.s3.constval);
+		break;
+
+		/* const INT */
+	case ICMD_ICONST:
 		SHOW_INT_CONST(iptr->sx.val.i);	
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_IFEQ_ICONST:
@@ -1116,6 +1240,7 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_ELSE_ICONST:
 		break;
 
+		/* binary/const LNG */
 	case ICMD_LADDCONST:
 	case ICMD_LSUBCONST:
 	case ICMD_LMULCONST:
@@ -1125,47 +1250,75 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_LANDCONST:
 	case ICMD_LORCONST:
 	case ICMD_LXORCONST:
-	case ICMD_LCONST:
 	case ICMD_LASTORECONST:
+		SHOW_S1(iptr);
 		SHOW_LNG_CONST(iptr->sx.val.l);	
+		SHOW_DST(iptr);
 		break;
 
+		/* const LNG */
+	case ICMD_LCONST:
+		SHOW_LNG_CONST(iptr->sx.val.l);	
+		SHOW_DST(iptr);
+		break;
+
+		/* const FLT */
 	case ICMD_FCONST:
 		SHOW_FLT_CONST(iptr->sx.val.f);	
+		SHOW_DST(iptr);
 		break;
 
+		/* const DBL */
 	case ICMD_DCONST:
 		SHOW_DBL_CONST(iptr->sx.val.d);	
+		SHOW_DST(iptr);
 		break;
 
+		/* const ADR */
 	case ICMD_ACONST:
 		if (iptr->flags.bits & INS_FLAG_CLASS) {
 			SHOW_CLASSREF_OR_CLASSINFO(iptr->sx.val.c);
 		}
 		else if (iptr->sx.val.anyptr == NULL) {
-			printf("NULL");
+			printf("NULL ");
 		}
 		else {
 			SHOW_STRING(iptr->sx.val.stringconst);
 		}
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_AASTORECONST:
+		SHOW_S1(iptr);
+		SHOW_S2(iptr);
+		printf("%p ", (void*) iptr->sx.s23.s3.constval);
 		break;
 
-	case ICMD_GETFIELD:
-	case ICMD_PUTFIELD:
- 	case ICMD_PUTSTATIC:
-	case ICMD_GETSTATIC:
-	case ICMD_PUTSTATICCONST:
-	case ICMD_PUTFIELDCONST:
+	case ICMD_GETFIELD:        /* 1 -> 1 */
+	case ICMD_PUTFIELD:        /* 2 -> 0 */
+ 	case ICMD_PUTSTATIC:       /* 1 -> 0 */
+	case ICMD_GETSTATIC:       /* 0 -> 1 */
+	case ICMD_PUTSTATICCONST:  /* 0 -> 0 */
+	case ICMD_PUTFIELDCONST:   /* 1 -> 0 */
+		if (opcode != ICMD_GETSTATIC && opcode != ICMD_PUTSTATICCONST) {
+			SHOW_S1(iptr);
+			if (opcode == ICMD_PUTFIELD) {
+				SHOW_S2(iptr);
+			}
+		}
 		if (iptr->flags.bits & INS_FLAG_UNRESOLVED)
 			printf("(UNRESOLVED) ");
 		NEW_INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 		SHOW_FIELD(fmiref);
+
+		if (opcode == ICMD_GETSTATIC || opcode == ICMD_GETFIELD) {
+			SHOW_DST(iptr);
+		}
 		break;
 
 	case ICMD_IINC:
+		SHOW_S1_LOCAL(iptr);
+		SHOW_DST_LOCAL(iptr);
 		break;
 
 	case ICMD_IASTORE:
@@ -1176,6 +1329,10 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_DASTORE:
 	case ICMD_FASTORE:
 	case ICMD_AASTORE:
+		SHOW_S1(iptr);
+		SHOW_S2(iptr);
+		SHOW_S3(iptr);
+		break;
 
 	case ICMD_IALOAD:
 	case ICMD_SALOAD:
@@ -1185,15 +1342,22 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_DALOAD:
 	case ICMD_FALOAD:
 	case ICMD_AALOAD:
+		SHOW_S1(iptr);
+		SHOW_S2(iptr);
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_RET:
+		SHOW_S1_LOCAL(iptr);
+		break;
+
 	case ICMD_ILOAD:
 	case ICMD_LLOAD:
 	case ICMD_FLOAD:
 	case ICMD_DLOAD:
 	case ICMD_ALOAD:
-		SHOW_INDEX(iptr->s1.localindex);
+		SHOW_S1_LOCAL(iptr);
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_ISTORE:
@@ -1201,26 +1365,44 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_FSTORE:
 	case ICMD_DSTORE:
 	case ICMD_ASTORE:
-		SHOW_INDEX(iptr->dst.localindex);
+		SHOW_S1(iptr);
+		SHOW_DST_LOCAL(iptr);
 		break;
 
 	case ICMD_NEW:
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_NEWARRAY:
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_ANEWARRAY:
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_MULTIANEWARRAY:
-		if (stage >= SHOW_PARSE) {
-			printf("argcount=%d", iptr->s1.argcount);
+		if (stage >= SHOW_STACK) {
+			argp = iptr->sx.s23.s2.args;
+			i = iptr->s1.argcount;
+			while (i--) {
+				SHOW_STACKVAR(*(argp++));
+			}
 		}
+		else {
+			printf("argcount=%d ", iptr->s1.argcount);
+		}
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_CHECKCAST:
+		SHOW_S1(iptr);
+		SHOW_DST(iptr);
+		break;
+
 	case ICMD_INSTANCEOF:
+		SHOW_S1(iptr);
+		SHOW_DST(iptr);
 		break;
 
 	case ICMD_INLINE_START:
@@ -1228,8 +1410,16 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 		break;
 
 	case ICMD_BUILTIN:
-		if (stage >= SHOW_PARSE) {
-			printf("%s", iptr->sx.s23.s3.bte->name);
+		if (stage >= SHOW_STACK) {
+			argp = iptr->sx.s23.s2.args;
+			i = iptr->s1.argcount;
+			while (i--) {
+				SHOW_STACKVAR(*(argp++));
+			}
+		}
+		printf("%s ", iptr->sx.s23.s3.bte->name);
+		if (iptr->sx.s23.s3.bte->md->returntype.type != TYPE_VOID) {
+			SHOW_DST(iptr);
 		}
 		break;
 
@@ -1237,11 +1427,21 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_INVOKESPECIAL:
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
+		if (stage >= SHOW_STACK) {
+			argp = iptr->sx.s23.s2.args;
+			i = iptr->s1.argcount;
+			while (i--) {
+				SHOW_STACKVAR(*(argp++));
+			}
+		}
 		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) {
 			printf("(UNRESOLVED) ");
 		}
 		NEW_INSTRUCTION_GET_METHODREF(iptr, fmiref);
 		method_methodref_print(fmiref);
+		if (fmiref->parseddesc.md->returntype.type != TYPE_VOID) {
+			SHOW_DST(iptr);
+		}
 		break;
 
 	case ICMD_IFEQ:
@@ -1250,6 +1450,7 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_IFGE:
 	case ICMD_IFGT:
 	case ICMD_IFLE:
+		SHOW_S1(iptr);
 		SHOW_TARGET(iptr->dst);
 		break;
 
@@ -1259,17 +1460,26 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_IF_LGE:
 	case ICMD_IF_LGT:
 	case ICMD_IF_LLE:
+		SHOW_S1(iptr);
 		SHOW_TARGET(iptr->dst);
 		break;
 
-	case ICMD_JSR:
 	case ICMD_GOTO:
 	case ICMD_INLINE_GOTO:
 		SHOW_TARGET(iptr->dst);
 		break;
 
+	case ICMD_JSR:
+		SHOW_TARGET(iptr->sx.s23.s3.jsrtarget);
+		SHOW_DST(iptr);
+		break;
+
 	case ICMD_IFNULL:
 	case ICMD_IFNONNULL:
+		SHOW_S1(iptr);
+		SHOW_TARGET(iptr->dst);
+		break;
+
 	case ICMD_IF_ICMPEQ:
 	case ICMD_IF_ICMPNE:
 	case ICMD_IF_ICMPLT:
@@ -1312,17 +1522,102 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 
 	case ICMD_IF_ACMPEQ:
 	case ICMD_IF_ACMPNE:
+		SHOW_S1(iptr);
+		SHOW_S2(iptr);
 		SHOW_TARGET(iptr->dst);
 		break;
 
 	case ICMD_TABLESWITCH:
+		SHOW_S1(iptr);
 		break;
 
 	case ICMD_LOOKUPSWITCH:
+		SHOW_S1(iptr);
 		break;
 
 	case ICMD_ARETURN:
+		SHOW_S1(iptr);
 		break;
+
+	case ICMD_DUP:
+		SHOW_S1(iptr);
+		SHOW_DST(iptr);
+		break;
+
+	case ICMD_DUP2:
+		if (stage >= SHOW_STACK) {
+			SHOW_STACKVAR(iptr->dst.dupslots[0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			printf("=> ");
+			SHOW_STACKVAR(iptr->dst.dupslots[2+0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[2+1]);
+		}
+		break;
+
+	case ICMD_DUP_X1:
+		if (stage >= SHOW_STACK) {
+			SHOW_STACKVAR(iptr->dst.dupslots[0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			printf("=> ");
+			SHOW_STACKVAR(iptr->dst.dupslots[2+0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[2+1]);
+			SHOW_STACKVAR(iptr->dst.dupslots[2+2]);
+		}
+		break;
+
+	case ICMD_DUP2_X1:
+		if (stage >= SHOW_STACK) {
+			SHOW_STACKVAR(iptr->dst.dupslots[0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			SHOW_STACKVAR(iptr->dst.dupslots[2]);
+			printf("=> ");
+			SHOW_STACKVAR(iptr->dst.dupslots[3+0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[3+1]);
+			SHOW_STACKVAR(iptr->dst.dupslots[3+2]);
+			SHOW_STACKVAR(iptr->dst.dupslots[3+3]);
+			SHOW_STACKVAR(iptr->dst.dupslots[3+4]);
+		}
+		break;
+
+	case ICMD_DUP_X2:
+		if (stage >= SHOW_STACK) {
+			SHOW_STACKVAR(iptr->dst.dupslots[0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			SHOW_STACKVAR(iptr->dst.dupslots[2]);
+			printf("=> ");
+			SHOW_STACKVAR(iptr->dst.dupslots[3+0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[3+1]);
+			SHOW_STACKVAR(iptr->dst.dupslots[3+2]);
+			SHOW_STACKVAR(iptr->dst.dupslots[3+3]);
+		}
+		break;
+
+	case ICMD_DUP2_X2:
+		if (stage >= SHOW_STACK) {
+			SHOW_STACKVAR(iptr->dst.dupslots[0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			SHOW_STACKVAR(iptr->dst.dupslots[2]);
+			SHOW_STACKVAR(iptr->dst.dupslots[4]);
+			printf("=> ");
+			SHOW_STACKVAR(iptr->dst.dupslots[4+0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[4+1]);
+			SHOW_STACKVAR(iptr->dst.dupslots[4+2]);
+			SHOW_STACKVAR(iptr->dst.dupslots[4+3]);
+			SHOW_STACKVAR(iptr->dst.dupslots[4+4]);
+			SHOW_STACKVAR(iptr->dst.dupslots[4+5]);
+		}
+		break;
+
+	case ICMD_SWAP:
+		if (stage >= SHOW_STACK) {
+			SHOW_STACKVAR(iptr->dst.dupslots[0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			printf("=> ");
+			SHOW_STACKVAR(iptr->dst.dupslots[2+0]);
+			SHOW_STACKVAR(iptr->dst.dupslots[2+1]);
+		}
+		break;
+
 	}
 }
 #endif /* !defined(NDEBUG) */

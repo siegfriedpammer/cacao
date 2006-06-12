@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5024 2006-06-10 14:53:54Z edwin $
+   $Id: stack.c 5025 2006-06-12 14:23:28Z edwin $
 
 */
 
@@ -2477,7 +2477,8 @@ normal_DCMPG:
 						NEW_CHECKOVERFLOW;
 
 						/* calculate stack after return */
-						NEW_OP1_0_ANY;
+						POPANY;
+						stackdepth--;
 						break;
 
 					/* pop many push any */
