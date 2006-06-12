@@ -1085,6 +1085,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
 static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 {
 	char type;
+	int j;
 
 	switch (sp->type) {
 		case TYPE_INT: type = 'i'; break;
@@ -1095,6 +1096,29 @@ static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 		default:       type = '?';
 	}
 	printf("S%c%d", type, sp - jd->new_stack);
+	if (stage >= SHOW_REGS) {
+		putchar('(');
+		j = sp->type;
+		if (sp->flags & INMEMORY)
+			printf("m%2d", sp->regoff);
+# ifdef HAS_ADDRESS_REGISTER_FILE
+		else if (j == TYPE_ADR)
+			printf("r%02d", sp->regoff);
+# endif
+		else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+			printf("f%02d", sp->regoff);
+		else {
+# if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+			if (IS_2_WORD_TYPE(j))
+				printf(" %3s/%3s",
+						regs[GET_LOW_REG(sp->regoff)],
+						regs[GET_HIGH_REG(sp->regoff)]);
+			else
+# endif
+				printf("%3s", regs[sp->regoff]);
+		}
+		putchar(')');
+	}
 	putchar(' ');
 }
 

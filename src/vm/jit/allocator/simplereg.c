@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 4960 2006-05-26 12:19:43Z edwin $
+   $Id: simplereg.c 5026 2006-06-12 18:50:13Z edwin $
 
 */
 
@@ -60,6 +60,7 @@
 
 static void interface_regalloc(jitdata *jd);
 static void local_regalloc(jitdata *jd);
+static void new_allocate_scratch_registers(jitdata *jd);
 static void allocate_scratch_registers(jitdata *jd);
 
 
@@ -69,6 +70,31 @@ static void allocate_scratch_registers(jitdata *jd);
 	
 *******************************************************************************/
 	
+bool new_regalloc(jitdata *jd)
+{
+	jitdata *newjd;
+
+	/* There is a problem with the use of unused float argument
+	   registers in leafmethods for stackslots on c7 (2 * Dual Core
+	   AMD Opteron(tm) Processor 270) - runtime for the jvm98 _mtrt
+	   benchmark is heaviliy increased. This could be prevented by
+	   setting rd->argfltreguse to FLT_ARG_CNT before calling
+	   allocate_scratch_registers and setting it back to the original
+	   value before calling local_regalloc.  */
+
+	newjd = DNEW(jitdata);
+	*newjd = *jd;
+	newjd->rd = jd->new_rd;
+
+	interface_regalloc(newjd);
+	new_allocate_scratch_registers(newjd);
+	local_regalloc(newjd);
+
+	/* everthing's ok */
+
+	return true;
+}
+
 bool regalloc(jitdata *jd)
 {
 	/* There is a problem with the use of unused float argument
@@ -963,7 +989,7 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 }
 
 
-#define reg_free_temp(rd,s) if ((s->varkind == TEMPVAR) && (!(s->flags & STCOPY))) reg_free_temp_func(rd, s)
+#define reg_free_temp(rd,s) if (((s)->varkind == TEMPVAR) && (!((s)->flags & STCOPY))) reg_free_temp_func(rd, (s))
 
 /* Do not free regs/memory locations used by Stackslots flagged STCOPY! There is still another Stackslot */
 /* alive using this reg/memory location */
@@ -1084,6 +1110,102 @@ static bool reg_alloc_dup(stackptr src, stackptr dst) {
 }
 
 /* Mark the copies (STCOPY) at the dst stack right for DUPx and SWAP */
+static void new_reg_mark_copy(registerdata *rd, stackptr *dupslots, 
+							  int nin, int nout, int nthrough)
+{
+	s4 src_regoff[4];
+	s4 src_flags[4];
+	stackptr dst_stackslots[6];
+	int s_bottom, d_bottom, i, j, slots;
+	bool found;
+	stackptr sp;
+	stackptr *argp;
+
+	assert(nin <= 4 && (nout + nthrough) <= 6);
+
+	/* remember all different Registers/Memory Location of used TEMPVAR       */
+	/* instacks in src_varnum[] and src_flags[] _uniquely_. Take the STCOPY   */
+	/* flag of the last (deepest) occurence */
+	slots = nin;
+	argp = dupslots + slots;
+	for (s_bottom = 4; slots--; ) {
+		sp = *--argp;
+		if (sp->varkind == TEMPVAR) {
+			found = false;
+			for (i = 3; i >= s_bottom; i--) {
+				if ((src_regoff[i] == sp->regoff) && 
+					((src_flags[i] & INMEMORY) == (sp->flags & INMEMORY)) ) 
+				{
+					src_flags[i] &= (~STCOPY | (sp->flags & STCOPY));
+					found = true;
+				}
+			}
+			if (!found) {
+				s_bottom--;
+				src_regoff[s_bottom] = sp->regoff;
+				src_flags[s_bottom] = sp->flags;
+			}
+		}
+	}
+
+	/* Remember used TEMPVAR dst Stackslots in dst_stackslots[], since they   */
+	/* have to be from the "lowest" upwards, and the stackelements list is    */
+	/* linked from only top downwards */
+	
+	slots = nthrough + nout;
+	argp = dupslots + nin + slots;
+	for (d_bottom = 6; slots--; ) {
+		sp = *--argp;
+		if (sp->varkind == TEMPVAR) {
+			d_bottom--;
+			dst_stackslots[d_bottom] = sp;
+		}
+	}
+
+	/* Mark all reused reg/mem in dst stacklots with STCOPY, if the           */
+	/* corresponding src stackslot was marked STCOPY*/
+	/* if the correspondig STCOPY from the src stackslot was not set, do not  */
+	/* mark the lowest occurence at dst stackslots */
+	/* mark in src_flag reg/mem with STKEEP, if they where reused in the dst  */
+	/* stacklots, so they are not freed afterwards */
+	for (i = d_bottom; i < 6; i++) {
+		for (j = s_bottom; j < 4; j++) {
+			if ( (src_regoff[j] == dst_stackslots[i]->regoff) &&
+				 ((src_flags[j] & INMEMORY) == (dst_stackslots[i]->flags & INMEMORY)) ) 
+			{
+				if (src_flags[j] & STCOPY) {
+					dst_stackslots[i]->flags |= STCOPY;
+				}
+				else {
+					src_flags[j] |= STCOPY;
+					dst_stackslots[i]->flags &= ~STCOPY;
+				}
+				/* do not free reg/mem of src Stackslot */
+				src_flags[j] |= STKEEP;
+			}
+		}
+	}
+
+	/* free all reg/mem of src stack, which where not marked with STKEEP */
+	for (j=s_bottom; j < 4; j++) {
+		if ((src_flags[j] & STKEEP)==0) {
+			/* free, if STCOPY of src stackslot is not set */
+			/* STCOPY is already checked in reg_free_temp macro! */
+			slots = nin;
+			argp = dupslots + slots;
+			while (--slots) {
+				sp = *--argp;
+				if ((src_regoff[j] == sp->regoff) && 
+					((src_flags[j] & INMEMORY) == (sp->flags & INMEMORY)) ) 
+				{
+					reg_free_temp(rd, sp);
+				}
+			}
+		}
+	}
+}
+
+/* Mark the copies (STCOPY) at the dst stack right for DUPx and SWAP */
 static void reg_mark_copy(registerdata *rd, stackptr src_top, stackptr src_bottom, stackptr dst_top, stackptr dst_bottom) {
 	s4 src_regoff[4];
 	s4 src_flags[4];
@@ -1167,6 +1289,522 @@ static void reg_mark_copy(registerdata *rd, stackptr src_top, stackptr src_botto
    Allocate temporary (non-interface, non-local) registers.
 
 *******************************************************************************/
+
+static void new_allocate_scratch_registers(jitdata *jd)
+{
+	methodinfo         *m;
+	registerdata       *rd;
+	s4                  opcode;
+	s4                  i;
+	s4                  len;
+	new_instruction    *iptr;
+	basicblock         *bptr;
+	builtintable_entry *bte;
+	methoddesc         *md;
+	stackptr           *argp;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	rd = jd->rd;
+
+	/* initialize temp registers */
+	reg_init_temp(m, rd);
+
+	bptr = jd->new_basicblocks;
+
+	while (bptr != NULL) {
+		if (bptr->flags >= BBREACHED) {
+			iptr = /* XXX */ (new_instruction *) bptr->iinstr;
+			len = bptr->icount;
+
+			while (--len >= 0)  {
+				opcode = iptr->opc;
+
+				switch (opcode) {
+
+					/* pop 0 push 0 */
+
+				case ICMD_NOP:
+				case ICMD_ELSE_ICONST:
+				case ICMD_CHECKNULL:
+				case ICMD_IINC:
+				case ICMD_JSR:
+				case ICMD_RET:
+				case ICMD_RETURN:
+				case ICMD_GOTO:
+				case ICMD_PUTSTATICCONST:
+				case ICMD_INLINE_START:
+				case ICMD_INLINE_END:
+				case ICMD_INLINE_GOTO:
+					break;
+
+					/* pop 0 push 1 const */
+					
+				case ICMD_ICONST:
+				case ICMD_LCONST:
+				case ICMD_FCONST:
+				case ICMD_DCONST:
+				case ICMD_ACONST:
+
+					/* pop 0 push 1 load */
+					
+				case ICMD_ILOAD:
+				case ICMD_LLOAD:
+				case ICMD_FLOAD:
+				case ICMD_DLOAD:
+				case ICMD_ALOAD:
+					reg_new_temp(rd, iptr->dst.var);
+					break;
+
+					/* pop 2 push 1 */
+
+				case ICMD_IALOAD:
+				case ICMD_LALOAD:
+				case ICMD_FALOAD:
+				case ICMD_DALOAD:
+				case ICMD_AALOAD:
+
+				case ICMD_BALOAD:
+				case ICMD_CALOAD:
+				case ICMD_SALOAD:
+					reg_free_temp(rd, iptr->sx.s23.s2.var);
+					reg_free_temp(rd, iptr->s1.var);
+					reg_new_temp(rd, iptr->dst.var);
+					break;
+
+					/* pop 3 push 0 */
+
+				case ICMD_IASTORE:
+				case ICMD_LASTORE:
+				case ICMD_FASTORE:
+				case ICMD_DASTORE:
+				case ICMD_AASTORE:
+
+				case ICMD_BASTORE:
+				case ICMD_CASTORE:
+				case ICMD_SASTORE:
+					reg_free_temp(rd, iptr->sx.s23.s3.var);
+					reg_free_temp(rd, iptr->sx.s23.s2.var);
+					reg_free_temp(rd, iptr->s1.var);
+					break;
+
+					/* pop 1 push 0 store */
+
+				case ICMD_ISTORE:
+				case ICMD_LSTORE:
+				case ICMD_FSTORE:
+				case ICMD_DSTORE:
+				case ICMD_ASTORE:
+
+					/* pop 1 push 0 */
+
+				case ICMD_POP:
+
+				case ICMD_IRETURN:
+				case ICMD_LRETURN:
+				case ICMD_FRETURN:
+				case ICMD_DRETURN:
+				case ICMD_ARETURN:
+
+				case ICMD_ATHROW:
+
+				case ICMD_PUTSTATIC:
+				case ICMD_PUTFIELDCONST:
+
+					/* pop 1 push 0 branch */
+
+				case ICMD_IFNULL:
+				case ICMD_IFNONNULL:
+
+				case ICMD_IFEQ:
+				case ICMD_IFNE:
+				case ICMD_IFLT:
+				case ICMD_IFGE:
+				case ICMD_IFGT:
+				case ICMD_IFLE:
+
+				case ICMD_IF_LEQ:
+				case ICMD_IF_LNE:
+				case ICMD_IF_LLT:
+				case ICMD_IF_LGE:
+				case ICMD_IF_LGT:
+				case ICMD_IF_LLE:
+
+					/* pop 1 push 0 table branch */
+
+				case ICMD_TABLESWITCH:
+				case ICMD_LOOKUPSWITCH:
+
+				case ICMD_MONITORENTER:
+				case ICMD_MONITOREXIT:
+					reg_free_temp(rd, iptr->s1.var);
+					break;
+
+					/* pop 2 push 0 branch */
+
+				case ICMD_IF_ICMPEQ:
+				case ICMD_IF_ICMPNE:
+				case ICMD_IF_ICMPLT:
+				case ICMD_IF_ICMPGE:
+				case ICMD_IF_ICMPGT:
+				case ICMD_IF_ICMPLE:
+
+				case ICMD_IF_LCMPEQ:
+				case ICMD_IF_LCMPNE:
+				case ICMD_IF_LCMPLT:
+				case ICMD_IF_LCMPGE:
+				case ICMD_IF_LCMPGT:
+				case ICMD_IF_LCMPLE:
+
+				case ICMD_IF_FCMPEQ:
+				case ICMD_IF_FCMPNE:
+
+				case ICMD_IF_FCMPL_LT:
+				case ICMD_IF_FCMPL_GE:
+				case ICMD_IF_FCMPL_GT:
+				case ICMD_IF_FCMPL_LE:
+
+				case ICMD_IF_FCMPG_LT:
+				case ICMD_IF_FCMPG_GE:
+				case ICMD_IF_FCMPG_GT:
+				case ICMD_IF_FCMPG_LE:
+
+				case ICMD_IF_DCMPEQ:
+				case ICMD_IF_DCMPNE:
+
+				case ICMD_IF_DCMPL_LT:
+				case ICMD_IF_DCMPL_GE:
+				case ICMD_IF_DCMPL_GT:
+				case ICMD_IF_DCMPL_LE:
+
+				case ICMD_IF_DCMPG_LT:
+				case ICMD_IF_DCMPG_GE:
+				case ICMD_IF_DCMPG_GT:
+				case ICMD_IF_DCMPG_LE:
+
+				case ICMD_IF_ACMPEQ:
+				case ICMD_IF_ACMPNE:
+
+					/* pop 2 push 0 */
+
+				case ICMD_POP2:
+
+				case ICMD_PUTFIELD:
+
+				case ICMD_IASTORECONST:
+				case ICMD_LASTORECONST:
+				case ICMD_AASTORECONST:
+				case ICMD_BASTORECONST:
+				case ICMD_CASTORECONST:
+				case ICMD_SASTORECONST:
+					reg_free_temp(rd, iptr->sx.s23.s2.var);
+					reg_free_temp(rd, iptr->s1.var);
+					break;
+
+					/* pop 0 push 1 dup */
+					
+				case ICMD_DUP:
+					/* src === dst->prev (identical Stackslot Element)     */
+					/* src --> dst       (copied value, take same reg/mem) */
+
+					if (!reg_alloc_dup(iptr->s1.var, iptr->dst.var)) {
+						reg_new_temp(rd, iptr->dst.var);
+					} else {
+						iptr->dst.var->flags |= STCOPY;
+					}
+					break;
+
+					/* pop 0 push 2 dup */
+					
+				case ICMD_DUP2:
+					/* src->prev === dst->prev->prev->prev (identical Stackslot Element)     */
+					/* src       === dst->prev->prev       (identical Stackslot Element)     */
+					/* src->prev --> dst->prev             (copied value, take same reg/mem) */
+					/* src       --> dst                   (copied value, take same reg/mem) */
+												
+					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[2+0]))
+						reg_new_temp(rd, iptr->dst.dupslots[2+0]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+1]))
+						reg_new_temp(rd, iptr->dst.dupslots[2+1]);
+					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 2, 2);
+					break;
+
+					/* pop 2 push 3 dup */
+					
+				case ICMD_DUP_X1:
+					/* src->prev --> dst->prev       (copied value, take same reg/mem) */
+					/* src       --> dst             (copied value, take same reg/mem) */
+					/* src       --> dst->prev->prev (copied value, take same reg/mem) */
+												
+					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[2+0]))
+						reg_new_temp(rd, iptr->dst.dupslots[2+0]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+2]))
+						reg_new_temp(rd, iptr->dst.dupslots[2+2]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[2+1]))
+						reg_new_temp(rd, iptr->dst.dupslots[2+1]);
+					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 3, 0);
+					break;
+
+					/* pop 3 push 4 dup */
+					
+				case ICMD_DUP_X2:
+					/* src->prev->prev --> dst->prev->prev        */
+					/* src->prev       --> dst->prev              */
+					/* src             --> dst                    */
+					/* src             --> dst->prev->prev->prev  */
+					
+					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+0]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+0]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+3]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+3]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+2]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+2]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[3+1]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+1]);
+					new_reg_mark_copy(rd, iptr->dst.dupslots, 3, 4, 0);
+					break;
+
+					/* pop 3 push 5 dup */
+					
+				case ICMD_DUP2_X1:
+					/* src->prev->prev --> dst->prev->prev             */
+					/* src->prev       --> dst->prev                   */
+					/* src             --> dst                         */
+					/* src->prev       --> dst->prev->prev->prev->prev */
+					/* src             --> dst->prev->prev->prev       */
+												
+					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+1]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+1]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+4]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+4]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+0]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+0]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+3]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+3]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[3+2]))
+						reg_new_temp(rd, iptr->dst.dupslots[3+2]);
+					new_reg_mark_copy(rd, iptr->dst.dupslots, 3, 5, 0);
+					break;
+
+					/* pop 4 push 6 dup */
+					
+				case ICMD_DUP2_X2:
+					/* src->prev->prev->prev --> dst->prev->prev->prev             */
+					/* src->prev->prev       --> dst->prev->prev                   */
+					/* src->prev             --> dst->prev                         */
+					/* src                   --> dst                               */
+					/* src->prev             --> dst->prev->prev->prev->prev->prev */
+					/* src                   --> dst->prev->prev->prev->prev       */
+												
+					if (!reg_alloc_dup(iptr->dst.dupslots[3], iptr->dst.dupslots[4+1]))
+						reg_new_temp(rd, iptr->dst.dupslots[4+1]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[3], iptr->dst.dupslots[4+5]))
+						reg_new_temp(rd, iptr->dst.dupslots[4+5]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[4+0]))
+						reg_new_temp(rd, iptr->dst.dupslots[4+0]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[4+4]))
+						reg_new_temp(rd, iptr->dst.dupslots[4+4]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[4+3]))
+						reg_new_temp(rd, iptr->dst.dupslots[4+3]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[4+2]))
+						reg_new_temp(rd, iptr->dst.dupslots[4+2]);
+					new_reg_mark_copy(rd, iptr->dst.dupslots, 4, 6, 0);
+					break;
+
+					/* pop 2 push 2 swap */
+					
+				case ICMD_SWAP:
+					/* src       --> dst->prev   (copy) */
+					/* src->prev --> dst         (copy) */
+												
+					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[+0]))
+						reg_new_temp(rd, iptr->dst.dupslots[2+0]);
+					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[+1]))
+						reg_new_temp(rd, iptr->dst.dupslots[2+1]);
+					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 2, 0);
+					break;
+
+					/* pop 2 push 1 */
+					
+				case ICMD_IADD:
+				case ICMD_ISUB:
+				case ICMD_IMUL:
+				case ICMD_IDIV:
+				case ICMD_IREM:
+
+				case ICMD_ISHL:
+				case ICMD_ISHR:
+				case ICMD_IUSHR:
+				case ICMD_IAND:
+				case ICMD_IOR:
+				case ICMD_IXOR:
+
+				case ICMD_LADD:
+				case ICMD_LSUB:
+				case ICMD_LMUL:
+				case ICMD_LDIV:
+				case ICMD_LREM:
+
+				case ICMD_LOR:
+				case ICMD_LAND:
+				case ICMD_LXOR:
+
+				case ICMD_LSHL:
+				case ICMD_LSHR:
+				case ICMD_LUSHR:
+
+				case ICMD_FADD:
+				case ICMD_FSUB:
+				case ICMD_FMUL:
+				case ICMD_FDIV:
+				case ICMD_FREM:
+
+				case ICMD_DADD:
+				case ICMD_DSUB:
+				case ICMD_DMUL:
+				case ICMD_DDIV:
+				case ICMD_DREM:
+
+				case ICMD_LCMP:
+				case ICMD_FCMPL:
+				case ICMD_FCMPG:
+				case ICMD_DCMPL:
+				case ICMD_DCMPG:
+					reg_free_temp(rd, iptr->sx.s23.s2.var);
+					reg_free_temp(rd, iptr->s1.var);
+					reg_new_temp(rd, iptr->dst.var);
+					break;
+
+					/* pop 1 push 1 */
+					
+				case ICMD_IADDCONST:
+				case ICMD_ISUBCONST:
+				case ICMD_IMULCONST:
+				case ICMD_IMULPOW2:
+				case ICMD_IDIVPOW2:
+				case ICMD_IREMPOW2:
+				case ICMD_IANDCONST:
+				case ICMD_IORCONST:
+				case ICMD_IXORCONST:
+				case ICMD_ISHLCONST:
+				case ICMD_ISHRCONST:
+				case ICMD_IUSHRCONST:
+
+				case ICMD_LADDCONST:
+				case ICMD_LSUBCONST:
+				case ICMD_LMULCONST:
+				case ICMD_LMULPOW2:
+				case ICMD_LDIVPOW2:
+				case ICMD_LREMPOW2:
+				case ICMD_LANDCONST:
+				case ICMD_LORCONST:
+				case ICMD_LXORCONST:
+				case ICMD_LSHLCONST:
+				case ICMD_LSHRCONST:
+				case ICMD_LUSHRCONST:
+
+				case ICMD_IFEQ_ICONST:
+				case ICMD_IFNE_ICONST:
+				case ICMD_IFLT_ICONST:
+				case ICMD_IFGE_ICONST:
+				case ICMD_IFGT_ICONST:
+				case ICMD_IFLE_ICONST:
+
+				case ICMD_INEG:
+				case ICMD_INT2BYTE:
+				case ICMD_INT2CHAR:
+				case ICMD_INT2SHORT:
+				case ICMD_LNEG:
+				case ICMD_FNEG:
+				case ICMD_DNEG:
+
+				case ICMD_I2L:
+				case ICMD_I2F:
+				case ICMD_I2D:
+				case ICMD_L2I:
+				case ICMD_L2F:
+				case ICMD_L2D:
+				case ICMD_F2I:
+				case ICMD_F2L:
+				case ICMD_F2D:
+				case ICMD_D2I:
+				case ICMD_D2L:
+				case ICMD_D2F:
+
+				case ICMD_CHECKCAST:
+
+				case ICMD_ARRAYLENGTH:
+				case ICMD_INSTANCEOF:
+
+				case ICMD_NEWARRAY:
+				case ICMD_ANEWARRAY:
+
+				case ICMD_GETFIELD:
+					reg_free_temp(rd, iptr->s1.var);
+					reg_new_temp(rd, iptr->dst.var);
+					break;
+
+					/* pop 0 push 1 */
+					
+				case ICMD_GETSTATIC:
+
+				case ICMD_NEW:
+					reg_new_temp(rd, iptr->dst.var);
+					break;
+
+					/* pop many push any */
+					
+				case ICMD_INVOKESTATIC:
+				case ICMD_INVOKESPECIAL:
+				case ICMD_INVOKEVIRTUAL:
+				case ICMD_INVOKEINTERFACE:
+					NEW_INSTRUCTION_GET_METHODDESC(iptr,md);
+					i = md->paramcount;
+					argp = iptr->sx.s23.s2.args;
+					while (--i >= 0) {
+						reg_free_temp(rd, *argp);
+						argp++;
+					}
+					if (md->returntype.type != TYPE_VOID)
+						reg_new_temp(rd, iptr->dst.var);
+					break;
+
+				case ICMD_BUILTIN:
+					bte = iptr->sx.s23.s3.bte;
+					md = bte->md;
+					i = md->paramcount;
+					argp = iptr->sx.s23.s2.args;
+					while (--i >= 0) {
+						reg_free_temp(rd, *argp);
+						argp++;
+					}
+					if (md->returntype.type != TYPE_VOID)
+						reg_new_temp(rd, iptr->dst.var);
+					break;
+
+				case ICMD_MULTIANEWARRAY:
+					i = iptr->s1.argcount;
+					argp = iptr->sx.s23.s2.args;
+					while (--i >= 0) {
+						reg_free_temp(rd, *argp);
+						argp++;
+					}
+					reg_new_temp(rd, iptr->dst.var);
+					break;
+
+				default:
+					*exceptionptr =
+						new_internalerror("Unknown ICMD %d during register allocation",
+										  iptr->opc);
+					return;
+				} /* switch */
+				iptr++;
+			} /* while instructions */
+		} /* if */
+		bptr = bptr->next;
+	} /* while blocks */
+}
 
 static void allocate_scratch_registers(jitdata *jd)
 {

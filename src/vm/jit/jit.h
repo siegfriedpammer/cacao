@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5024 2006-06-10 14:53:54Z edwin $
+   $Id: jit.h 5026 2006-06-12 18:50:13Z edwin $
 
 */
 
@@ -107,6 +107,7 @@ struct jitdata {
 	s4               new_basicblockcount;
 	s4               new_stackcount;
 	s4               new_c_debug_nr;
+	registerdata    *new_rd;
 };
 
 
