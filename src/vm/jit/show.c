@@ -789,7 +789,7 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
-	s4           i, j;
+	s4           i;
 	bool         deadcode;
 	new_instruction *iptr;
 	u1          *u1ptr;
@@ -826,10 +826,6 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		iptr = /*XXX*/ (new_instruction *) bptr->iinstr;
 
 		for (i = 0; i < bptr->icount; i++, iptr++) {
-			if (stage <= SHOW_PARSE) {
-				printf("%4d: ", (iptr - jd->new_instructions));
-			}
-
 			printf("%4d:  ", iptr->line);
 
 			new_show_icmd(jd, iptr, deadcode, stage);
@@ -1076,7 +1072,6 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
 static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 {
 	char type;
-	int j;
 
 	switch (sp->type) {
 		case TYPE_INT: type = 'i'; break;
@@ -1086,7 +1081,7 @@ static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 		case TYPE_ADR: type = 'a'; break;
 		default:       type = '?';
 	}
-	printf("S%c%d", type, sp - jd->new_stack);
+	printf("S%c%d", type, (int) (sp - jd->new_stack));
 
 	if (stage >= SHOW_REGS) {
 		putchar('(');
