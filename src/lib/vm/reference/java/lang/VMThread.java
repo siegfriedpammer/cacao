@@ -1,5 +1,5 @@
 /* VMThread -- VM interface for Thread of executable code
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation
+   Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation
 
 This file is part of GNU Classpath.
 
@@ -36,8 +36,6 @@ obligated to do so.  If you do not wish to do so, delete this
 exception statement from your version. */
 
 package java.lang;
-
-import gnu.classpath.Pointer;
 
 /**
  * VM interface for Thread of executable code. Holds VM dependent state.
@@ -83,19 +81,6 @@ final class VMThread
      */
     private volatile boolean running;
 
-    private volatile byte status;
-    private volatile byte priority;
-    private volatile int restorePoint;
-    private volatile Pointer stackMem;
-    private volatile Pointer stackBase;
-    private volatile Pointer stackEnd;
-    private volatile Pointer usedStackTop;
-    private volatile long time;
-    private volatile Throwable texceptionptr;
-    private volatile Thread nextlive;
-    private volatile Thread next;
-    private volatile byte flags;
-
     /**
      * VM private data.
      */
@@ -138,7 +123,9 @@ final class VMThread
 	    {
 		try
 		{
-		    thread.group.uncaughtException(thread, t);
+		  Thread.UncaughtExceptionHandler handler;
+		  handler = thread.getUncaughtExceptionHandler();
+		  handler.uncaughtException(thread, t);
 		}
 		catch(Throwable ignore)
 		{
@@ -441,23 +428,23 @@ final class VMThread
      * @return true if the current thread is currently synchronized on obj
      * @throws NullPointerException if obj is null
      */
-//      static boolean holdsLock(Object obj) 
-//      {
-//        /* Use obj.notify to check if the current thread holds
-//         * the monitor of the object.
-//         * If it doesn't, notify will throw an exception.
-//         */
-//        try 
-//  	{
-//  	  obj.notify();
-//  	  // okay, current thread holds lock
-//  	  return true;
-//  	}
-//        catch (IllegalMonitorStateException e)
-//  	{
-//  	  // it doesn't hold the lock
-//  	  return false;
-//  	}
-//      }
+//     static boolean holdsLock(Object obj) 
+//     {
+//       /* Use obj.notify to check if the current thread holds
+//        * the monitor of the object.
+//        * If it doesn't, notify will throw an exception.
+//        */
+//       try 
+// 	{
+// 	  obj.notify();
+// 	  // okay, current thread holds lock
+// 	  return true;
+// 	}
+//       catch (IllegalMonitorStateException e)
+// 	{
+// 	  // it doesn't hold the lock
+// 	  return false;
+// 	}
+//     }
     static native boolean holdsLock(Object obj);
 }
