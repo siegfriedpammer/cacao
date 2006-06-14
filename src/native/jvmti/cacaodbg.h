@@ -138,6 +138,19 @@ jvmtiError jvmti_get_all_threads (jint * threads_count_ptr,
 jthread jvmti_get_current_thread();
 void jvmti_cacao_debug_init();
 void jvmti_cacaodbgserver_quit();
+
+void jvmti_ClassLoadPrepare(bool prepared, classinfo *c);
+void jvmti_ClassFileLoadHook(utf* name, int class_data_len, 
+							 unsigned char* class_data, 
+							 java_objectheader* loader, 
+							 java_objectheader* protection_domain, 
+							 jint* new_class_data_len, 
+							 unsigned char** new_class_data);
+void jvmti_MonitorContendedEntering(bool entered, jobject obj);
+void jvmti_MonitorWaiting(bool wait, jobject obj, jlong timeout);
+void jvmti_ThreadStartEnd(jvmtiEvent ev);
+void jvmti_NativeMethodBind(jmethodID method, void* address, 
+							void** new_address_ptr);
 #endif
 
 /*

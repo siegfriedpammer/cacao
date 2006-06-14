@@ -60,6 +60,10 @@
 #include "machine-instr.h"
 #endif
 
+#if defined(ENABLE_JVMTI)
+#include "native/jvmti/cacaodbg.h"
+#endif
+
 
 /******************************************************************************/
 /* DEBUGGING MACROS                                                           */
@@ -859,9 +863,19 @@ void lock_monitor_enter(threadobject *t, java_objectheader *o)
 
 		lr = lock_hashtable_get_lock_record(t, o);
 
+#if defined(ENABLE_JVMTI)
+        /* Monitor Contended Enter */
+		jvmti_MonitorContendedEntering(false, o);
+#endif
 		/* enter the monitor */
 
 		lock_record_enter(t, lr);
+
+
+#if defined(ENABLE_JVMTI)
+		/* Monitor Contended Entered */
+		jvmti_MonitorContendedEntering(true, o);
+#endif
 
 		/* inflation loop */
 

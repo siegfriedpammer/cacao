@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4906 2006-05-11 14:02:37Z twisti $
+   $Id: VMClassLoader.c 5031 2006-06-14 18:36:22Z motse $
 
 */
 
@@ -65,6 +65,10 @@
 #include "vm/zip.h"
 #include "vm/jit/asmpart.h"
 
+#if defined(ENABLE_JVMTI)
+#include "native/jvmti/cacaodbg.h"
+#endif
+
 
 /*
  * Class:     java/lang/VMClassLoader
@@ -77,6 +81,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	classinfo   *r;
 	classbuffer *cb;
 	utf         *utfname;
+#if defined(ENABLE_JVMTI)
+	jint new_class_data_len = 0;
+	unsigned char* new_class_data = NULL;
+#endif
 
 	/* check if data was passed */
 
@@ -110,6 +118,15 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		utfname = NULL;
 	}
 
+
+#if defined(ENABLE_JVMTI)
+	/* fire Class File Load Hook JVMTI event */
+	if (jvmti) jvmti_ClassFileLoadHook(utfname, len, (unsigned char*)data->data, 
+							(java_objectheader *)cl, (java_objectheader *)pd, 
+							&new_class_data_len, &new_class_data);
+#endif
+
+
 	/* create a new classinfo struct */
 
 	c = class_create_classinfo(utfname);
@@ -125,8 +142,18 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	cb = NEW(classbuffer);
 	cb->class = c;
+#if defined(ENABLE_JVMTI)
+	/* check if the JVMTI wants to modify the class */
+	if (new_class_data == NULL) {
+#endif
 	cb->size  = len;
 	cb->data  = (u1 *) &data->data[offset];
+#if defined(ENABLE_JVMTI)
+	} else {
+		cb->size  = new_class_data_len;
+		cb->data  = (u1 *) new_class_data;
+	}
+#endif
 	cb->pos   = cb->data;
 
 	/* preset the defining classloader */

@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: native.c 5031 2006-06-14 18:36:22Z motse $
 
 */
 
@@ -789,6 +789,11 @@ functionptr native_resolve_function(methodinfo *m)
 				printf("internal ]\n");
 	}
 
+
+#if defined(ENABLE_JVMTI)
+	/* fire Native Method Bind event */
+	jvmti_NativeMethodBind(m, sym, &sym);
+#endif
 
 	/* no symbol found? throw exception */
 

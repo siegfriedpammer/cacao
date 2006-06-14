@@ -318,6 +318,129 @@ void jvmti_cacao_debug_init() {
 }
 
 
+/* jvmti_ClassFileLoadHook ****************************************************
+
+  prepares firing a new Class File Load Hook event
+
+*******************************************************************************/
+
+void jvmti_ClassFileLoadHook(utf* name, int class_data_len, 
+							 unsigned char* class_data, 
+							 java_objectheader* loader, 
+							 java_objectheader* protection_domain, 
+							 jint* new_class_data_len, 
+							 unsigned char** new_class_data) {
+	genericEventData d;
+	
+	d.ev = JVMTI_EVENT_CLASS_FILE_LOAD_HOOK;
+	d.klass = NULL; /* class is not redefined */
+	d.object = loader;
+	d.name = (char*)MNEW(char,(utf_bytes(name)+1));
+	utf_sprint_convert_to_latin1(d.name, name);
+	d.protection_domain = protection_domain;
+	d.class_data = class_data;
+	d.jint1 = class_data_len;
+	d.new_class_data_len = new_class_data_len;
+	d.new_class_data = new_class_data;
+
+	jvmti_fireEvent(&d);
+	MFREE(d.name,char,utf_bytes(name)+1);
+}
+
+
+/* jvmti_ClassFileLoadHook ****************************************************
+
+  prepares firing a new Class Prepare or Load event
+
+*******************************************************************************/
+
+void jvmti_ClassLoadPrepare(bool prepared, classinfo *c) {
+	genericEventData d;
+
+	if (prepared) 
+		d.ev = JVMTI_EVENT_CLASS_PREPARE;
+	else 
+		d.ev = JVMTI_EVENT_CLASS_LOAD;
+
+	d.klass = c;
+	jvmti_fireEvent(&d);	
+}
+
+
+/* jvmti_MonitorContendedEntering *********************************************
+
+  prepares firing a new Monitor Contended Enter or Entered event
+
+*******************************************************************************/
+
+void jvmti_MonitorContendedEntering(bool entered, jobject obj) {
+	genericEventData d;
+
+	if (entered) 
+		d.ev = JVMTI_EVENT_MONITOR_CONTENDED_ENTERED;
+	else 
+		d.ev = JVMTI_EVENT_MONITOR_CONTENDED_ENTER;
+
+	d.object = obj;
+
+	jvmti_fireEvent(&d);	
+}
+
+/* jvmti_MonitorWaiting ******************************************************
+
+  prepares firing a new Monitor Wait or Waited event
+
+*******************************************************************************/
+
+void jvmti_MonitorWaiting(bool wait, jobject obj, jlong timeout) {
+	genericEventData d;
+
+	if (wait) {
+		d.ev = JVMTI_EVENT_MONITOR_WAIT;
+		d.jlong = timeout;
+	} else {
+		d.ev = JVMTI_EVENT_MONITOR_WAITED;
+		d.b = timeout != 0;
+	}
+
+	d.object = obj;
+
+	jvmti_fireEvent(&d);	
+}
+
+/* jvmti_ThreadStartEnd ********************************************************
+
+  prepares firing a new Thread Start or End event
+
+*******************************************************************************/
+
+void jvmti_ThreadStartEnd(jvmtiEvent ev) {
+	genericEventData d;
+
+	d.ev = ev;
+	jvmti_fireEvent(&d);	
+}
+
+/* jvmti_NativeMethodBind *****************************************************
+
+  prepares firing a new Native Method Bind event
+
+*******************************************************************************/
+
+void jvmti_NativeMethodBind(jmethodID method, void* address, 
+							void** new_address_ptr) {
+	genericEventData d;
+
+	d.ev = JVMTI_EVENT_NATIVE_METHOD_BIND;
+	d.method = method;
+	d.address = address;
+	d.new_address_ptr = new_address_ptr;
+	
+	jvmti_fireEvent(&d);	
+}
+
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

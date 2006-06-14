@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4969 2006-05-29 09:41:02Z motse $
+   $Id: jni.c 5031 2006-06-14 18:36:22Z motse $
 
 */
 
@@ -4884,6 +4884,9 @@ jint RegisterNatives(JNIEnv *env, jclass clazz, const JNINativeMethod *methods,
 	STATISTICS(jniinvokation());
 
     log_text("JNI-Call: RegisterNatives: IMPLEMENT ME!!!");
+	/* XXX: if implemented this needs a call to jvmti_NativeMethodBind
+	if (jvmti) jvmti_NativeMethodBind(method, address,  new_address_ptr);
+	*/
 
     return 0;
 }

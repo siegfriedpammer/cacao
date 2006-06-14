@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5019 2006-06-06 21:13:41Z motse $
+   $Id: threads.c 5031 2006-06-14 18:36:22Z motse $
 
 */
 
@@ -1014,10 +1014,6 @@ static void *threads_startup_thread(void *t)
 	methodinfo   *method;
 	functionptr   function;
 
-#if defined(ENABLE_JVMTI)
-	genericEventData d;
-#endif
-
 #if defined(ENABLE_INTRP)
 	u1 *intrp_thread_stack;
 
@@ -1089,11 +1085,8 @@ static void *threads_startup_thread(void *t)
 
 
 #if defined(ENABLE_JVMTI)
-	/* breakpoint for thread start event */
-	if (jvmti) {
-		d.ev = JVMTI_EVENT_THREAD_START;
-		jvmti_fireEvent(&d);
-	}
+	/* fire thread start event */
+	if (jvmti) jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_START);
 #endif
 
 
@@ -1119,11 +1112,8 @@ static void *threads_startup_thread(void *t)
 	}
 
 #if defined(ENABLE_JVMTI)
-	/* breakpoint for thread end event */
-	if (jvmti) {
-		d.ev = JVMTI_EVENT_THREAD_END;
-		jvmti_fireEvent(&d);
-	}	
+	/* fire thread end event */
+	if (jvmti) jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_END);
 #endif
 
 

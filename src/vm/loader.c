@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: loader.c 5031 2006-06-14 18:36:22Z motse $
 
 */
 
@@ -74,6 +74,9 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/rt-timing.h"
 
+#if defined(ENABLE_JVMTI)
+#include "native/jvmti/cacaodbg.h"
+#endif
 
 /******************************************************************************/
 /* DEBUG HELPERS                                                              */
@@ -1596,6 +1599,12 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			printf("]\n");
 		}
 
+#if defined(ENABLE_JVMTI)
+		/* fire Class Load JVMTI event */
+		if (jvmti) jvmti_ClassLoadPrepare(false, c);
+#endif
+
+
 		return c;
 	} 
 
@@ -2291,6 +2300,11 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* revert loading state and class is loaded */
 
 	c->state = (c->state & ~CLASS_LOADING) | CLASS_LOADED;
+#if defined(ENABLE_JVMTI)
+	/* fire Class Prepare JVMTI event */
+	if (jvmti) jvmti_ClassLoadPrepare(true, c);
+#endif
+	
 
 #if !defined(NDEBUG)
 	if (loadverbose)

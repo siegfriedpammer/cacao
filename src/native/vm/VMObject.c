@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 4957 2006-05-26 11:48:10Z edwin $
+   $Id: VMObject.c 5031 2006-06-14 18:36:22Z motse $
 
 */
 
@@ -59,6 +59,10 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+
+#if defined(ENABLE_JVMTI)
+#include "native/jvmti/cacaodbg.h"
+#endif
 
 
 /*
@@ -168,8 +172,19 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, s8 ms, s4 ns)
 {
+#if defined(ENABLE_JVMTI)
+	/* Monitor Wait */
+	if (jvmti) jvmti_MonitorWaiting(true, o, ms);
+#endif
+
 #if defined(ENABLE_THREADS)
 	lock_wait_for_object(&o->header, ms, ns);
+#endif
+
+#if defined(ENABLE_JVMTI)
+	/* Monitor Waited */
+	/* XXX: How do you know if wait timed out ?*/
+	if (jvmti) jvmti_MonitorWaiting(false, o, 0);
 #endif
 }
 

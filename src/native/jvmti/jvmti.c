@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 5019 2006-06-06 21:13:41Z motse $
+   $Id: jvmti.c 5031 2006-06-14 18:36:22Z motse $
 
 */
 
@@ -148,7 +148,7 @@ static jvmtiError check_thread_is_alive(jthread t) {
 	return JVMTI_ERROR_NONE;
 }
 
-/* execcallback ***************************************************************
+/* execute_callback ************************************************************
 
    executes the registerd callbacks for the given jvmti event with parameter
    in the data structure.
@@ -183,6 +183,13 @@ static void execute_callback(jvmtiEvent e, functionptr ec,
 										   data->class_data,
 										   data->new_class_data_len,
 										   data->new_class_data);
+
+		/* if class data has been modified use it as class data for other agents 
+		   waiting for the same event */
+		if (data->new_class_data != NULL) {
+			data->jint1 = *(data->new_class_data_len);
+			data->class_data = *(data->new_class_data); 
+		}
 		break;
 
 
@@ -703,7 +710,7 @@ GetThreadInfo (jvmtiEnv * env, jthread t, jvmtiThreadInfo * info_ptr)
 
 /* GetOwnedMonitorInfo *********************************************************
 
-   Get information about the monitors owned by the specified thread
+   Gets all  monitors owned by the specified thread
 
 *******************************************************************************/
 
@@ -716,8 +723,6 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 	java_objectheader **om;
 	lock_record_pool_t* lrp;
 	threadobject* t;
-
-	log_text("GetOwnedMonitorInfo called");
 
 	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -744,26 +749,30 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 	pthread_mutex_lock(&lock_global_pool_lock);
 	lrp=lock_global_pool;
 
+	/* iterate over all lock record pools */
 	while (lrp != NULL) {
+		/* iterate over every lock record in a pool */
 		for (j=0; j<lrp->header.size; j++) {
-/*			if((lrp->lr[j].owner==t)&&
-			   (!lrp->lr[j].waiting)) {
-				if (i>=size) {
-					MREALLOC(om,java_objectheader*,size,size*2);
-					size=size*2;
+			/* if the lock record is owned by the given thread add it to 
+			   the result array */
+			if(lrp->lr[j].owner == t) {
+				if (i >= size) {
+					MREALLOC(om, java_objectheader*, size, size * 2);
+					size = size * 2;
 				}
-				om[i]=lrp->lr[j].o;
+				om[i] = lrp->lr[j].obj;
 				i++;
-				}*/
+				}
 		}
 		lrp=lrp->header.next;
 	}
 
 	pthread_mutex_unlock(&lock_global_pool_lock);
 
-	*owned_monitors_ptr	= heap_allocate(sizeof(java_objectheader*)*i,true,NULL);
-	memcpy(*owned_monitors_ptr,om,i*sizeof(java_objectheader*));
-	MFREE(om,java_objectheader*,size);
+	*owned_monitors_ptr	= 
+		heap_allocate(sizeof(java_objectheader*) * i, true, NULL);
+	memcpy(*owned_monitors_ptr, om, i * sizeof(java_objectheader*));
+	MFREE(om, java_objectheader*, size);
 
 	*owned_monitor_count_ptr = i;
 
@@ -784,7 +793,8 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 {
 	int j;
 	lock_record_pool_t* lrp;
-	java_objectheader* monitor;
+	threadobject* t;
+	lock_waiter_t* waiter;
 
 	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -794,11 +804,15 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 	if (monitor_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 	*monitor_ptr=NULL;
 
-	if(!builtin_instanceof(thread,class_java_lang_Thread))
-		return JVMTI_ERROR_INVALID_THREAD;
-
-	CHECK_THREAD_IS_ALIVE(thread);
-
+	if (thread == NULL) {
+		t = jvmti_get_current_thread();
+	} else {
+		if(!builtin_instanceof(thread,class_java_lang_Thread))
+			return JVMTI_ERROR_INVALID_THREAD;
+		
+		CHECK_THREAD_IS_ALIVE(thread);
+		t = (threadobject*) thread;
+	}
 
 #if defined(ENABLE_THREADS)
 
@@ -806,22 +820,25 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 
 	lrp=lock_global_pool;
 
-	while ((lrp != NULL)&&(monitor == NULL)) {
+	/* iterate over all lock record pools */
+	while ((lrp != NULL) && (*monitor_ptr == NULL)) {
+		/* iterate over every lock record in a pool */
 		for (j=0; j<lrp->header.size; j++) {
-/*			if((lrp->lr[j].owner==(threadobject*)thread)&&(lrp->lr[j].waiting)) {
-				monitor=lrp->lr[j].o;
-				break;
-				}*/
+			/* iterate over every thread that is wait on this lock record */
+			waiter = lrp->lr[j].waiters;
+			while (waiter != NULL) 
+				/* if the waiting thread equals to the given thread we are 
+				   done. Stop iterateting. */
+				if(waiter->waiter == t) {
+					*monitor_ptr=lrp->lr[j].obj;
+					break;
+				}
 		}
 		lrp=lrp->header.next;
 	}
 
 	pthread_mutex_unlock(&lock_global_pool_lock);
 
-	if (monitor!=NULL) {
-		*monitor_ptr = heap_allocate(sizeof(java_objectheader*),true,NULL);
-		*monitor_ptr = (jobject)monitor;
-	}
 
 #endif
     return JVMTI_ERROR_NONE;
@@ -4230,7 +4247,7 @@ static jvmtiCapabilities JVMTI_Capabilities = {
   0,				/* can_generate_single_step_events */
   1,				/* can_generate_exception_events */
   0,				/* can_generate_frame_pop_events */
-  0,				/* can_generate_breakpoint_events */
+  1,				/* can_generate_breakpoint_events */
   1,				/* can_suspend */
   0,				/* can_redefine_any_class */
   0,				/* can_get_current_thread_cpu_time */
@@ -4239,7 +4256,7 @@ static jvmtiCapabilities JVMTI_Capabilities = {
   0,				/* can_generate_method_exit_events */
   0,				/* can_generate_all_class_hook_events */
   0,				/* can_generate_compiled_method_load_events */
-  0,				/* can_generate_monitor_events */
+  1,				/* can_generate_monitor_events */
   0,				/* can_generate_vm_object_alloc_events */
   0,				/* can_generate_native_method_bind_events */
   0,				/* can_generate_garbage_collection_events */
@@ -4403,6 +4420,11 @@ static struct jvmtiEnv_struct JVMTI_EnvTable = {
     &GetObjectSize
 };
 
+/* jvmti_set_phase ************************************************************
+
+  sets a new jvmti phase a fires an apropriate event.
+
+*******************************************************************************/
 
 void jvmti_set_phase(jvmtiPhase p) {
 	genericEventData d;
@@ -4440,6 +4462,13 @@ void jvmti_set_phase(jvmtiPhase p) {
 	jvmti_fireEvent(&d);
 }
 
+
+/* jvmti_new_environment ******************************************************
+
+  creates a new JVMTI environment
+
+*******************************************************************************/
+
 jvmtiEnv* jvmti_new_environment() {
     environment* env;
 
@@ -4468,6 +4497,13 @@ jvmtiEnv* jvmti_new_environment() {
 
 	return (jvmtiEnv*)env;
 }
+
+/* jvmti_agentload ************************************************************
+
+  loads the indicated shared library containing the jvmti agent and calls the
+  Agent_OnLoad function.
+
+*******************************************************************************/
 
 void jvmti_agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char **libname) {
 	lt_ptr onload;
@@ -4520,12 +4556,19 @@ void jvmti_agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char
 	if (retval != 0) exit (retval);
 }
 
+/* jvmti_agentunload **********************************************************
+
+  calls the Agent_UnLoad function in the jvmti agent if present.
+
+*******************************************************************************/
+
 void jvmti_agentunload() {
 	if (unload != NULL) {
 		((JNIEXPORT void JNICALL (*) (JavaVM *vm)) unload) 
 			((JavaVM*) &_Jv_JNIInvokeInterface);
 	}
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

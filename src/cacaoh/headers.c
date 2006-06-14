@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5019 2006-06-06 21:13:41Z motse $
+   $Id: headers.c 5031 2006-06-14 18:36:22Z motse $
 
 */
 
@@ -890,7 +890,9 @@ void print_classname(classinfo *clazz)
 /* jvmti releated functions ************************************************/
 
 #if defined(ENABLE_JVMTI)
-void jvmti_fireEvent(void* d) {;}
+void jvmti_ThreadStartEnd(int ev) {;}
+void jvmti_ClassLoadPrepare(bool prepared, classinfo *c) {;}
+void jvmti_MonitorContendedEntering(bool entered, jobject obj) {;}
 #endif
 
 
