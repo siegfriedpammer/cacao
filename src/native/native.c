@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5031 2006-06-14 18:36:22Z motse $
+   $Id: native.c 5032 2006-06-14 18:55:35Z motse $
 
 */
 
@@ -61,6 +61,10 @@
 #include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+
+#if defined(ENABLE_JVMTI)
+#include "native/jvmti/cacaodbg.h"
+#endif
 
 
 /* include table of native functions ******************************************/
@@ -792,7 +796,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 #if defined(ENABLE_JVMTI)
 	/* fire Native Method Bind event */
-	jvmti_NativeMethodBind(m, sym, &sym);
+	if (jvmti) jvmti_NativeMethodBind(m, sym, &sym);
 #endif
 
 	/* no symbol found? throw exception */
