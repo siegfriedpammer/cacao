@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4922 2006-05-15 14:39:05Z twisti $
+   $Id: asmpart.S 5040 2006-06-19 22:53:53Z twisti $
 
 */
 
@@ -136,7 +136,7 @@ asm_md_init:
 	.long   0                           /* isleaf                             */
 	.long   0                           /* IsSync                             */
 	.long   0                           /* frame size                         */
-	.long   0                           /* method pointer (pointer to name)   */
+	.long   0                           /* codeinfo pointer                   */
 
 asm_vm_call_method:
 asm_vm_call_method_int:
