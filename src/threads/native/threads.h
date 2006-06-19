@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 5019 2006-06-06 21:13:41Z motse $
+   $Id: threads.h 5039 2006-06-19 22:23:44Z twisti $
 
 */
 
@@ -161,6 +161,8 @@ struct threadobject {
 	bool                  interrupted;
 	bool                  signaled;
 	bool                  sleeping;
+
+	u1                   *pc;           /* current PC (used for profiling)    */
 
 	java_objectheader    *_exceptionptr;     /* current exception             */
 	stackframeinfo       *_stackframeinfo;   /* current native stackframeinfo */
