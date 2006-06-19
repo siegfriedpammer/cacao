@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 4957 2006-05-26 11:48:10Z edwin $
+   $Id: class.c 5037 2006-06-19 21:39:46Z twisti $
 
 */
 
@@ -813,22 +813,26 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 {
 	methodinfo *m;
 	s4          i;
-	
+
+	/* try to find the method in the class */
+
 	m = class_findmethod(c, name, desc);
 
-	if (m)
+	if (m != NULL)
 		return m;
 
-	/* try the superinterfaces */
+	/* no method found? try the superinterfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
 		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls,
-												name, desc);
+													name, desc);
 
-		if (m)
+		if (m != NULL)
 			return m;
 	}
-	
+
+	/* no method found */
+
 	return NULL;
 }
 
@@ -863,21 +867,21 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 
 	m = class_resolvemethod(cls, name, desc);
 
-	if (m)
+	if (m != NULL)
 		goto found;
 
 	/* try the superinterfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
 		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls,
-												 name, desc);
+												name, desc);
 
-		if (m)
+		if (m != NULL)
 			goto found;
 	}
 	
 	if (throwexception)
-		*exceptionptr = exceptions_new_nosuchmethoderror(c, name, desc);
+		exceptions_throw_nosuchmethoderror(c, name, desc);
 
 	return NULL;
 
