@@ -572,12 +572,12 @@ fi
 dnl check if profiling should be supported
 AC_MSG_CHECKING(whether profiling should be supported)
 AC_ARG_ENABLE([profiling],
-              [AS_HELP_STRING(--disable-profiling,disable profiling [[default=yes]])],
+              [AS_HELP_STRING(--enable-profiling,enable profiling [[default=no]])],
               [case "${enableval}" in
-                   no) ENABLE_PROFILING=no;;
-                   *) ENABLE_PROFILING=yes;;
+                   yes) ENABLE_PROFILING=yes;;
+                   *) ENABLE_PROFILING=no;;
                esac],
-              [ENABLE_PROFILING=yes])
+              [ENABLE_PROFILING=no])
 AC_MSG_RESULT(${ENABLE_PROFILING})
 AM_CONDITIONAL([ENABLE_PROFILING], test x"${ENABLE_PROFILING}" = "xyes")
    
