@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: methodheader.h 4384 2006-01-28 14:42:58Z twisti $
+   $Id: methodheader.h 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -43,7 +43,7 @@
 
 #if SIZEOF_VOID_P == 8
 
-#define MethodPointer           -8
+#define CodeinfoPointer         -8
 #define FrameSize               -12
 #define IsSync                  -16
 #define IsLeaf                  -20
@@ -64,7 +64,7 @@
 
 #else /* SIZEOF_VOID_P == 8 */
 
-#define MethodPointer           -4
+#define CodeinfoPointer         -4
 #define FrameSize               -8
 #define IsSync                  -12
 #define IsLeaf                  -16

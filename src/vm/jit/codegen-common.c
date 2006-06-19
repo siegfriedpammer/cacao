@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4960 2006-05-26 12:19:43Z edwin $
+   $Id: codegen-common.c 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -100,10 +100,8 @@
 
 /* in this tree we store all method addresses *********************************/
 
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 static avl_tree *methodtree = NULL;
 static s4 methodtree_comparator(const void *pc, const void *element);
-#endif
 
 
 /* codegen_init ****************************************************************
@@ -114,7 +112,6 @@ static s4 methodtree_comparator(const void *pc, const void *element);
 
 void codegen_init(void)
 {
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 	/* this tree is global, not method specific */
 
 	if (!methodtree) {
@@ -135,7 +132,6 @@ void codegen_init(void)
 		avl_insert(methodtree, mte);
 #endif /* defined(ENABLE_JIT) */
 	}
-#endif /* defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 }
 
 
@@ -466,7 +462,6 @@ void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
 }
 
 
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 /* methodtree_comparator *******************************************************
 
    Comparator function used for the AVL tree of methods.
@@ -542,17 +537,14 @@ u1 *codegen_findmethod(u1 *pc)
 
 	mte = avl_find(methodtree, &mtepc);
 
-	if (!mte) {
-		printf("Cannot find Java function at %p\n", (void *) (ptrint) pc);
-		assert(0);
+	if (mte == NULL) {
+/* 		fprintf(stderr, "Cannot find Java function at %p\n", (void *) (ptrint) pc); */
 
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Cannot find Java function at %p", pc);
+		return NULL;
 	}
 
 	return mte->startpc;
 }
-#endif /* defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
 /* codegen_finish **************************************************************
@@ -708,19 +700,15 @@ void codegen_finish(jitdata *jd)
 		}
 	}
 
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 	/* add method into methodtree to find the entrypoint */
 
 	codegen_insertmethod(code->entrypoint, code->entrypoint + mcodelen);
-#endif
-
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 	/* resolve data segment references */
 
 	dseg_resolve_datareferences(jd);
 #endif
-
 
 #if defined(ENABLE_THREADS)
 	{

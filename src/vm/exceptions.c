@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: exceptions.c 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -1344,6 +1344,7 @@ void exceptions_throw_stringindexoutofboundsexception(void)
 u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp)
 {
 	methodinfo            *m;
+	codeinfo              *code;
 	s4                     framesize;
 	s4                     issync;
 	exceptionentry        *ex;
@@ -1355,13 +1356,18 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	java_objectheader     *o;
 #endif
 
-	/* get methodinfo pointer from method header */
+	/* get info from the method header */
 
-	m                    = *((methodinfo **)    (pv + MethodPointer));
+	code                 = *((codeinfo **)      (pv + CodeinfoPointer));
 	framesize            = *((s4 *)             (pv + FrameSize));
 	issync               = *((s4 *)             (pv + IsSync));
 	ex                   =   (exceptionentry *) (pv + ExTableStart);
 	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
+
+	/* Get the methodinfo pointer form the codeinfo pointer. For
+	   asm_vm_call_method the codeinfo pointer is NULL. */
+
+	m = (code == NULL) ? NULL : code->m;
 
 #if !defined(NDEBUG)
 	/* print exception trace */

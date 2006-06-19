@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4962 2006-05-26 12:26:41Z edwin $
+   $Id: stacktrace.c 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -109,6 +109,7 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 {
 	stackframeinfo **psfi;
 	methodinfo      *m;
+	codeinfo        *code;
 
 	/* get current stackframe info pointer */
 
@@ -129,9 +130,13 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 			}
 	}
 
-	/* get methodinfo pointer from data segment */
+	/* get codeinfo pointer from data segment */
 
-	m = *((methodinfo **) (pv + MethodPointer));
+	code = *((codeinfo **) (pv + CodeinfoPointer));
+
+	/* For asm_vm_call_method the codeinfo pointer is NULL. */
+
+	m = (code == NULL) ? NULL : code->m;
 
 	/* fill new stackframe info structure */
 
@@ -288,10 +293,15 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 {
 	stackframeinfo **psfi;
 	methodinfo      *m;
+	codeinfo        *code;
 
-	/* get methodinfo pointer from data segment */
+	/* get codeinfo pointer from data segment */
 
-	m = *((methodinfo **) (pv + MethodPointer));
+	code = *((codeinfo **) (pv + CodeinfoPointer));
+
+	/* For asm_vm_call_method the codeinfo pointer is NULL. */
+
+	m = (code == NULL) ? NULL : code->m;
 
 	/* get current stackframe info pointer */
 
@@ -736,7 +746,13 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 	lntentry = (linenumbertable_entry *) (lntstart - SIZEOF_VOID_P);
 
-	/* find the realization of the method the pc is in    */
+	/* find the realization of the method the pc is in */
+
+#if 0
+	code = *((codeinfo **) (pv + CodeinfoPointer));
+#endif
+
+#if 1
 	/* XXX Note: This is preliminary. It would be cleaner */
 	/* to get the codeinfo * from the PV                  */
 
@@ -760,6 +776,7 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 		code = code->prev;
 	}
+#endif
 
 	/* search the line number table */
 
@@ -791,6 +808,7 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 	stacktracebuffer *stb;
 	stackframeinfo   *sfi;
 	methodinfo       *m;
+	codeinfo         *code;
 	u1               *pv;
 	u1               *sp;
 	u4                framesize;
@@ -836,7 +854,7 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 	m = NULL;
 
-	while (m || sfi) {
+	while ((m != NULL) || (sfi != NULL)) {
 		/* m == NULL should only happen for the first time and inline
 		   stackframe infos, like from the exception stubs or the
 		   patcher wrapper. */
@@ -877,7 +895,9 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 				/* get methodinfo pointer from parent data segment */
 
-				m = *((methodinfo **) (pv + MethodPointer));
+				code = *((codeinfo **) (pv + CodeinfoPointer));
+
+				m = code->m;
 
 			} else {
 				/* Inline stackframe infos are special: they have a
@@ -903,7 +923,12 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 				/* get methodinfo from current Java method */
 
-				m = *((methodinfo **) (pv + MethodPointer));
+				code = *((codeinfo **) (pv + CodeinfoPointer));
+
+				/* For asm_vm_call_method the codeinfo pointer is
+				   NULL. */
+
+				m = (code == NULL) ? NULL : code->m;
 
 				/* if m == NULL, this is a asm_calljavafunction call */
 
@@ -932,8 +957,8 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 					fflush(stdout);
 #endif
 
-					/* set stack pointer to stackframe of parent Java */
-					/* function of the current Java function */
+					/* Set stack pointer to stackframe of parent Java
+					   function of the current Java function. */
 
 #if defined(__I386__) || defined (__X86_64__)
 					sp += framesize + SIZEOF_VOID_P;
@@ -941,14 +966,19 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 					sp += framesize;
 #endif
 
-					/* get data segment and methodinfo pointer from parent */
-					/* method */
+					/* get data segment and methodinfo pointer from
+					   parent method */
 
 #if defined(ENABLE_JIT)
 					pv = md_codegen_findmethod(ra);
 #endif
 
-					m = *((methodinfo **) (pv + MethodPointer));
+					code = *((codeinfo **) (pv + CodeinfoPointer));
+
+					/* For asm_vm_call_method the codeinfo pointer is
+					   NULL. */
+
+					m = (code == NULL) ? NULL : code->m;
 
 #if defined(ENABLE_INTRP)
 					}
@@ -1016,7 +1046,11 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 #endif
 				}
 
-			m = *((methodinfo **) (pv + MethodPointer));
+			code = *((codeinfo **) (pv + CodeinfoPointer));
+
+			/* For asm_vm_call_method the codeinfo pointer is NULL. */
+
+			m = (code == NULL) ? NULL : code->m;
 
 			/* walk the stack */
 

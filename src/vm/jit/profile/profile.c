@@ -36,6 +36,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
 #include "vm/types.h"
 
@@ -54,6 +55,7 @@
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/jit/methodheader.h"
 
 
 /* list_method_entry **********************************************************/
@@ -93,32 +95,88 @@ bool profile_init(void)
 
 *******************************************************************************/
 
+static s4 runs = 0;
+static s4 hits = 0;
+static s4 misses = 0;
+
 #if defined(ENABLE_THREADS)
 static void profile_thread(void)
 {
-/* 	s4 i = 0; */
+	threadobject *tobj;
+	pthread_t     tid;
+	s4            nanos;
+	u1           *pc;
+	u1           *pv;
+	codeinfo     *code;
+	methodinfo   *m;
+
+	/* Get the thread id of the profiling thread, so we can skip it in
+	   the profiling runs. */
+
+	tobj = THREADOBJECT;
+
+	tid = tobj->tid;
 
 	while (true) {
-		/* sleep thread for 100 nanos */
+		/* sleep thread for 0.5-1 ms */
 
-		threads_sleep(0, 100);
+		nanos = 500 + (int) (500.0 * (rand() / (RAND_MAX + 1.0)));
+/* 		fprintf(stderr, "%d\n", nanos); */
 
-#if 0
-		/* get the lock on the finalizer lock object, so we can call wait */
+		threads_sleep(0, nanos);
+		runs++;
 
-		builtin_monitorenter(lock_profile_thread);
+		/* iterate over all started threads */
 
-		/* wait 1 ms */
-	
-		lock_wait_for_object(lock_profile_thread, 0, 100);
+		tobj = mainthreadobj;
 
-		/* leave the lock */
+		do {
+			/* are we a different thread? */
 
-		builtin_monitorexit(lock_profile_thread);
-#endif
+			if (tobj->tid != tid) {
+				/* send SIGUSR2 to thread to get the current PC */
 
-/* 		if ((i++ % 1000) == 0) */
-/* 			printf("profile_thread: %d\n", i); */
+				pthread_kill(tobj->tid, SIGUSR2);
+
+				/* the thread object now contains the current thread PC */
+
+				pc = tobj->pc;
+
+				/* get the PV for the current PC */
+
+				pv = codegen_findmethod(pc);
+
+				/* get methodinfo pointer from data segment */
+
+				if (pv == NULL) {
+					m = NULL;
+					misses++;
+				}
+				else {
+					code = *((codeinfo **) (pv + CodeinfoPointer));
+
+					/* For asm_vm_call_method the codeinfo pointer is
+					   NULL (which is also in the method tree). */
+
+					if (code != NULL) {
+						m = code->m;
+
+						/* increase the method incovation counter */
+
+						m->frequency++;
+						hits++;
+
+/* 						if (m->frequency > 1000) { */
+/* 							printf("Recompile: "); */
+/* 							method_println(m); */
+/* 							m->frequency = 0; */
+/* 						} */
+					}
+				}
+			}
+
+			tobj = tobj->next;
+		} while ((tobj != NULL) && (tobj != mainthreadobj));
 	}
 }
 #endif
@@ -205,10 +263,10 @@ void profile_printstats(void)
 			for (clsen = nmen->classes; clsen; clsen = clsen->next) {
 				c = clsen->classobj;
 
-				if (!c)
+				if (c == NULL)
 					continue;
 
-				/* compile all class methods */
+				/* interate over all class methods */
 
 				for (i = 0; i < c->methodscount; i++) {
 					m = &(c->methods[i]);
@@ -230,8 +288,8 @@ void profile_printstats(void)
 						
 						if ((tlme = list_first(l)) == NULL) {
 							list_addfirst(l, lme);
-
-						} else {
+						}
+						else {
 							for (; tlme != NULL; tlme = list_next(l, tlme)) {
 								/* check the frequency */
 
@@ -242,7 +300,7 @@ void profile_printstats(void)
 							}
 
 							/* if we are at the end of the list, add
-							   it at last */
+							   it as last entry */
 
 							if (tlme == NULL)
 								list_addlast(l, lme);
@@ -284,6 +342,10 @@ void profile_printstats(void)
 
 	printf("-----------           -------------- \n");
 	printf("%10d             %12ld\n", frequency, (long)cycles);
+
+	printf("\nruns  : %10d\n", runs);
+	printf("hits  : %10d\n", hits);
+	printf("misses: %10d\n", misses);
 }
 #endif /* !defined(NDEBUG) */
 

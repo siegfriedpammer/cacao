@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4933 2006-05-17 12:10:25Z twisti $
+   $Id: asmpart.S 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -104,7 +104,7 @@
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
 	.long   0                         /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
+	.long   0                         /* codeinfo pointer                     */
 
 asm_vm_call_method:
 asm_vm_call_method_int:

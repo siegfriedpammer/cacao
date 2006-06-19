@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 4966 2006-05-26 12:58:40Z twisti $
+   $Id: md-os.c 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -42,14 +42,23 @@
 
 #include "vm/jit/powerpc/linux/md-abi.h"
 
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#endif
+
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+
+#if defined(ENABLE_PROFILING)
+# include "vm/jit/profile/profile.h"
+#endif
+
 #include "vm/jit/stacktrace.h"
 
 
-/* md_signal_handle_sigsegv ****************************************************
+/* md_signal_handler_sigsegv ***************************************************
 
    NullPointerException signal handler for hardware null pointer
    check.
@@ -95,15 +104,42 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
+/* md_signal_handler_sigusr2 ***************************************************
+
+   Signal handler for profiling sampling.
+
+*******************************************************************************/
+
+void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
+{
+	threadobject *tobj;
+	ucontext_t   *_uc;
+	mcontext_t   *_mc;
+	u1           *pc;
+
+	tobj = THREADOBJECT;
+
+ 	_uc = (ucontext_t *) _p;
+ 	_mc = _uc->uc_mcontext.uc_regs;
+
+	pc = (u1 *) _mc->gregs[PT_NIP];
+
+	tobj->pc = pc;
+}
+
+
 #if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *_uc)
 {
 	mcontext_t *_mc;
+	u1         *pc;
 	void       *critical;
 
 	_mc = _uc->uc_mcontext.uc_regs;
 
-	critical = critical_find_restart_point((void *) _mc->gregs[PT_NIP]);
+	pc = (u1 *) _mc->gregs[PT_NIP];
+
+	critical = critical_find_restart_point(pc);
 
 	if (critical)
 		_mc->gregs[PT_NIP] = (ptrint) critical;

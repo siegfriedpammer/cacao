@@ -39,6 +39,8 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/global.h"
+
 
 /* function prototypes ********************************************************/
 

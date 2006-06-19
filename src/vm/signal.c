@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: signal.c 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -112,7 +112,6 @@ void signal_init(void)
 	sigaction(SIGINT, &act, NULL);
 
 
-
 	/* catch SIGQUIT for thread dump */
 
 #if defined(ENABLE_THREADS)
@@ -127,6 +126,14 @@ void signal_init(void)
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGUSR1, &act, NULL);
 #endif
+#endif
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)
+	/* install signal handler for profiling sampling */
+
+	act.sa_sigaction = md_signal_handler_sigusr2;
+	act.sa_flags = SA_SIGINFO;
+	sigaction(SIGUSR2, &act, NULL);
 #endif
 }
 

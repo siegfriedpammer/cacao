@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5031 2006-06-14 18:36:22Z motse $
+   $Id: headers.c 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -372,6 +372,12 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 	/* keep compiler happy */
 
 	return NULL;
+}
+
+
+void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
+{
+	(void) exceptions_new_nosuchmethoderror(c, name, desc);
 }
 
 

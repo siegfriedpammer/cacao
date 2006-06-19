@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: codegen-common.h 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -137,14 +137,14 @@ struct codegendata {
 };
 
 
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
-typedef struct _methodtree_element methodtree_element;
+/* methodtree_element *********************************************************/
 
-struct _methodtree_element {
+typedef struct methodtree_element methodtree_element;
+
+struct methodtree_element {
 	u1 *startpc;
 	u1 *endpc;
 };
-#endif
 
 
 /* function prototypes ********************************************************/

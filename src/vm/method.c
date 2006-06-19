@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: method.c 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -116,6 +116,7 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	methodptr   mptr;
 	methodptr  *pmptr;
 	methodinfo *resm;                   /* pointer to new resolved method     */
+	codeinfo   *code;
 
 	/* If the method is not an instance method, just return it. */
 
@@ -130,14 +131,16 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	if (m->class->flags & ACC_INTERFACE) {
 		pmptr = vftbl->interfacetable[-(m->class->index)];
 		mptr  = pmptr[(m - m->class->methods)];
-
-	} else {
+	}
+	else {
 		mptr = vftbl->table[m->vftblindex];
 	}
 
-	/* and now get the methodinfo* from the first data segment slot */
+	/* and now get the codeinfo pointer from the first data segment slot */
 
-	resm = *((methodinfo **) (mptr + MethodPointer));
+	code = *((codeinfo **) (mptr + CodeinfoPointer));
+
+	resm = code->m;
 
 	return resm;
 }

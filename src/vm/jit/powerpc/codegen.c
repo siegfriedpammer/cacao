@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4937 2006-05-18 14:33:32Z edwin $
+   $Id: codegen.c 5038 2006-06-19 22:22:34Z twisti $
 
 */
 
@@ -84,6 +84,7 @@ void codegen_trace_args(jitdata *jd, s4 stackframesize, bool nativestub);
 bool codegen(jitdata *jd)
 {
 	methodinfo         *m;
+	codeinfo           *code;
 	codegendata        *cd;
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
@@ -102,9 +103,10 @@ bool codegen(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	/* prevent compiler warnings */
 
@@ -121,7 +123,7 @@ bool codegen(jitdata *jd)
 	/* space to save used callee saved registers */
 
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
-	savedregs_num += 2 * (FLT_SAV_CNT - rd->savfltreguse);
+	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
 
 	stackframesize = rd->memuse + savedregs_num;
 
@@ -143,10 +145,16 @@ bool codegen(jitdata *jd)
 
 	/* create method header */
 
-	stackframesize = (stackframesize + 3) & ~3;    /* align stack to 16-bytes */
+	/* align stack to 16-bytes */
 
-	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, stackframesize * 4);              /* FrameSize      */
+/* 	if (!m->isleafmethod || opt_verbosecall) */
+		stackframesize = (stackframesize + 3) & ~3;
+
+/* 	else if (m->isleafmethod && (stackframesize == LA_WORD_SIZE)) */
+/* 		stackframesize = 0; */
+
+	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
+	(void) dseg_adds4(cd, stackframesize * 4);             /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -156,18 +164,18 @@ bool codegen(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 4);        /* IsSync         */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 4);       /* IsSync          */
 	else
 #endif
-		(void) dseg_adds4(cd, 0);                           /* IsSync         */
+		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);  /* IntSave        */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);  /* FltSave        */
+	(void) dseg_adds4(cd, m->isleafmethod);                /* IsLeaf          */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
 	dseg_addlinenumbertablesize(cd);
 
-	(void) dseg_adds4(cd, cd->exceptiontablelength);        /* ExTableSize    */
+	(void) dseg_adds4(cd, cd->exceptiontablelength);       /* ExTableSize     */
 
 	/* create exception table */
 
@@ -3675,7 +3683,7 @@ gen_method:
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_DATASIZE    2 * SIZEOF_VOID_P
+#define COMPILERSTUB_DATASIZE    3 * SIZEOF_VOID_P
 #define COMPILERSTUB_CODESIZE    4 * 4
 
 #define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
@@ -3685,6 +3693,7 @@ u1 *createcompilerstub(methodinfo *m)
 {
 	u1          *s;                     /* memory to hold the stub            */
 	ptrint      *d;
+	codeinfo    *code;
 	codegendata *cd;
 	s4           dumpsize;
 
@@ -3702,14 +3711,17 @@ u1 *createcompilerstub(methodinfo *m)
 	cd = DNEW(codegendata);
 	cd->mcodeptr = s;
 
-	/* Store the methodinfo* in the same place as in the methodheader
-	   for compiled methods. */
+	/* Store the codeinfo pointer in the same place as in the
+	   methodheader for compiled methods. */
+
+	code = code_codeinfo_new(m);
 
 	d[0] = (ptrint) asm_call_jit_compiler;
 	d[1] = (ptrint) m;
+	d[2] = (ptrint) code;
 
-	M_ALD_INTERN(REG_ITMP1, REG_PV, -1 * SIZEOF_VOID_P);
-	M_ALD_INTERN(REG_PV, REG_PV, -2 * SIZEOF_VOID_P);
+	M_ALD_INTERN(REG_ITMP1, REG_PV, -2 * SIZEOF_VOID_P);
+	M_ALD_INTERN(REG_PV, REG_PV, -3 * SIZEOF_VOID_P);
 	M_MTCTR(REG_PV);
 	M_RTS;
 
@@ -3737,6 +3749,7 @@ u1 *createcompilerstub(methodinfo *m)
 u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 	s4            stackframesize;       /* size of stackframe if needed       */
@@ -3749,9 +3762,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	/* set some variables */
 
@@ -3771,14 +3785,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, stackframesize * 4);              /* FrameSize      */
-	(void) dseg_adds4(cd, 0);                               /* IsSync         */
-	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
-	(void) dseg_adds4(cd, 0);                               /* IntSave        */
-	(void) dseg_adds4(cd, 0);                               /* FltSave        */
+	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
+	(void) dseg_adds4(cd, stackframesize * 4);             /* FrameSize       */
+	(void) dseg_adds4(cd, 0);                              /* IsSync          */
+	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
+	(void) dseg_adds4(cd, 0);                              /* IntSave         */
+	(void) dseg_adds4(cd, 0);                              /* FltSave         */
 	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
+	(void) dseg_adds4(cd, 0);                              /* ExTableSize     */
 
 	/* generate code */
 

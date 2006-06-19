@@ -665,7 +665,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				if (opt_arg[j] == '=') {
 					opt_arg[j] = '\0';
 					properties_add(opt_arg, opt_arg + j + 1);
-					goto didit;
+					goto opt_d_done;
 				}
 			}
 
@@ -673,7 +673,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			properties_add(opt_arg, "");
 
-		didit:
+		opt_d_done:
 			break;
 
 		case OPT_BOOTCLASSPATH:
@@ -1243,10 +1243,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!finalizer_start_thread())
 		throw_main_exception_exit();
 
+# if defined(ENABLE_PROFILING)
 	/* start the profile sampling thread */
 
-/* 	if (!profile_start_thread()) */
-/* 		throw_main_exception_exit(); */
+	if (opt_prof)
+		if (!profile_start_thread())
+			throw_main_exception_exit();
+# endif
 #endif
 
 #if defined(ENABLE_JVMTI)
