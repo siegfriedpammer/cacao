@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5031 2006-06-14 18:36:22Z motse $
+   $Id: jni.c 5033 2006-06-19 12:36:24Z twisti $
 
 */
 
@@ -5400,12 +5400,6 @@ jint AttachCurrentThread(JavaVM *vm, void **env, void *thr_args)
 
 	log_text("JNI-Call: AttachCurrentThread: IMPLEMENT ME!");
 
-#if !defined(HAVE___THREAD)
-/*	cacao_thread_attach();*/
-#else
-	#error "No idea how to implement that. Perhaps Stefan knows"
-#endif
-
 	*env = _Jv_env;
 
 	return 0;
@@ -5443,11 +5437,17 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 	}
 #endif
 
-	if ((version == JNI_VERSION_1_1) || (version == JNI_VERSION_1_2) ||
-		(version == JNI_VERSION_1_4)) {
-		*env = _Jv_env;
+	/* check the JNI version */
 
+	switch (version) {
+	case JNI_VERSION_1_1:
+	case JNI_VERSION_1_2:
+	case JNI_VERSION_1_4:
+		*env = _Jv_env;
 		return JNI_OK;
+
+	default:
+		;
 	}
 
 #if defined(ENABLE_JVMTI)
