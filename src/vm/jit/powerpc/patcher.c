@@ -28,12 +28,15 @@
 
    Changes:
 
-   $Id: patcher.c 4714 2006-03-31 07:14:10Z twisti $
+   $Id: patcher.c 5035 2006-06-19 21:00:05Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <assert.h>
+
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -566,13 +569,18 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch interfacetable index */
 
-	disp = (OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->class->index);
+	disp = OFFSET(vftbl_t, interfacetable[0]) -
+		sizeof(methodptr*) * m->class->index;
+
+	/* XXX TWISTI: check displacement */
 
 	*((s4 *) (ra + 1 * 4)) |= (disp & 0x0000ffff);
 
 	/* patch method offset */
 
-	disp = (sizeof(methodptr) * (m - m->class->methods));
+	disp = sizeof(methodptr) * (m - m->class->methods);
+
+	/* XXX TWISTI: check displacement */
 
 	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
 
