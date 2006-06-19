@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4973 2006-05-29 15:21:46Z edwin $
+   $Id: linker.c 5036 2006-06-19 21:04:37Z twisti $
 
 */
 
@@ -660,10 +660,11 @@ static classinfo *link_class_intern(classinfo *c)
 	RT_TIMING_GET_TIME(time_compute_vftbl);
 
 
-	/* Check all interfaces of an abtract class (maybe be an interface
-	   too) for unimplemented methods.  Such methods are called
-	   miranda-methods and are marked with the ACC_MIRANDA flag.
-	   VMClass.getDeclaredMethods does not return such methods. */
+	/* Check all interfaces of an abstract class (maybe be an
+	   interface too) for unimplemented methods.  Such methods are
+	   called miranda-methods and are marked with the ACC_MIRANDA
+	   flag.  VMClass.getDeclaredMethods does not return such
+	   methods. */
 
 	if (c->flags & ACC_ABSTRACT) {
 		classinfo  *ic;
@@ -674,7 +675,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 		abstractmethodscount = 0;
 
-		/* check all interfaces of the abtract class */
+		/* check all interfaces of the abstract class */
 
 		for (i = 0; i < c->interfacescount; i++) {
 			ic = c->interfaces[i].cls;
@@ -757,14 +758,14 @@ static classinfo *link_class_intern(classinfo *c)
 	/* compute interfacetable length */
 
 	interfacetablelength = 0;
-	tc = c;
-	while (tc) {
+
+	for (tc = c; tc != NULL; tc = tc->super.cls) {
 		for (i = 0; i < tc->interfacescount; i++) {
 			s4 h = class_highestinterface(tc->interfaces[i].cls) + 1;
+
 			if (h > interfacetablelength)
 				interfacetablelength = h;
 		}
-		tc = tc->super.cls;
 	}
 	RT_TIMING_GET_TIME(time_compute_iftbl);
 
@@ -775,11 +776,12 @@ static classinfo *link_class_intern(classinfo *c)
 							  sizeof(methodptr*) * (interfacetablelength - (interfacetablelength > 0)));
 	v = (vftbl_t *) (((methodptr *) v) +
 					 (interfacetablelength - 1) * (interfacetablelength > 1));
-	c->vftbl = v;
-	v->class = c;
-	v->vftbllength = vftbllength;
+
+	c->vftbl                = v;
+	v->class                = c;
+	v->vftbllength          = vftbllength;
 	v->interfacetablelength = interfacetablelength;
-	v->arraydesc = arraydesc;
+	v->arraydesc            = arraydesc;
 
 	/* store interface index in vftbl */
 
@@ -799,7 +801,7 @@ static classinfo *link_class_intern(classinfo *c)
 		/* Methods in ABSTRACT classes from interfaces maybe already
 		   have a stubroutine. */
 
-		if (!m->stubroutine) {
+		if (m->stubroutine == NULL) {
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 			if (opt_intrp)
@@ -1148,29 +1150,32 @@ static void linker_compute_class_values(classinfo *c)
 
 static bool linker_addinterface(classinfo *c, classinfo *ic)
 {
-	s4     j, m;
-	s4     i   = ic->index;
-	vftbl_t *v = c->vftbl;
+	s4          j, k;
+	vftbl_t    *v;
+	s4          i;
+	classinfo  *sc;
+	methodinfo *m;
 
-	if (i >= v->interfacetablelength) {
-		log_text("Inernal error: interfacetable overflow");
-		assert(0);
-	}
+	v = c->vftbl;
+	i = ic->index;
+
+	if (i >= v->interfacetablelength)
+		vm_abort("Internal error: interfacetable overflow");
 
 	/* if this interface has already been added, return immediately */
 
-	if (v->interfacetable[-i])
+	if (v->interfacetable[-i] != NULL)
 		return true;
 
 	if (ic->methodscount == 0) {  /* fake entry needed for subtype test */
 		v->interfacevftbllength[i] = 1;
-		v->interfacetable[-i] = MNEW(methodptr, 1);
-		v->interfacetable[-i][0] = NULL;
+		v->interfacetable[-i]      = MNEW(methodptr, 1);
+		v->interfacetable[-i][0]   = NULL;
 
 	}
 	else {
 		v->interfacevftbllength[i] = ic->methodscount;
-		v->interfacetable[-i] = MNEW(methodptr, ic->methodscount);
+		v->interfacetable[-i]      = MNEW(methodptr, ic->methodscount);
 
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat)
@@ -1179,17 +1184,16 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 #endif
 
 		for (j = 0; j < ic->methodscount; j++) {
-			classinfo *sc = c;
+			for (sc = c; sc != NULL; sc = sc->super.cls) {
+				for (k = 0; k < sc->methodscount; k++) {
+					m = &(sc->methods[k]);
 
-			while (sc) {
-				for (m = 0; m < sc->methodscount; m++) {
-					methodinfo *mi = &(sc->methods[m]);
-
-					if (method_canoverwrite(mi, &(ic->methods[j]))) {
-						/* method mi overwrites the (abstract) method    */
+					if (method_canoverwrite(m, &(ic->methods[j]))) {
+						/* method m overwrites the (abstract) method */
 #if defined(ENABLE_VERIFIER)
-						/* Add loading constraints (for the more general */
-						/* types of the method ic->methods[j]).          */
+						/* Add loading constraints (for the more
+						   general types of the method
+						   ic->methods[j]).  */
 						if (!classcache_add_constraints_for_params(
 									c->classloader, ic->classloader,
 									&(ic->methods[j])))
@@ -1197,11 +1201,19 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 							return false;
 						}
 #endif
-						v->interfacetable[-i][j] = v->table[mi->vftblindex];
+
+						/* XXX taken from gcj */
+						/* check for ACC_STATIC: IncompatibleClassChangeError */
+
+						/* check for !ACC_PUBLIC: IllegalAccessError */
+
+						/* check for ACC_ABSTRACT: AbstracMethodError,
+						   not sure about that one */
+
+						v->interfacetable[-i][j] = v->table[m->vftblindex];
 						goto foundmethod;
 					}
 				}
-				sc = sc->super.cls;
 			}
 		foundmethod:
 			;
@@ -1215,6 +1227,7 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 			return false;
 
 	/* everything ok */
+
 	return true;
 }
 
