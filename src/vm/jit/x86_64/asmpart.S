@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 4922 2006-05-15 14:39:05Z twisti $
+   $Id: asmpart.S 5041 2006-06-20 09:10:05Z twisti $
 
 */
 
@@ -97,16 +97,16 @@
 	.quad   0                           /* end pc                             */
 	.quad   0                           /* start pc                           */
 	.long   1                           /* extable size                       */
-	.long   0						    									 
+	.long   0                           /* ALIGNMENT PADDING                  */
 	.quad   0                           /* line number table  start           */
 	.quad   0                           /* line number table  size            */
-	.long   0						    									 
+	.long   0                           /* ALIGNMENT PADDING                  */
 	.long   0                           /* fltsave                            */
 	.long   0                           /* intsave                            */
 	.long   0                           /* isleaf                             */
 	.long   0                           /* IsSync                             */
 	.long   0                           /* frame size                         */
-	.quad   0                           /* method pointer (pointer to name)   */
+	.quad   0                           /* codeinfo pointer                   */
 
 asm_vm_call_method:
 asm_vm_call_method_int:

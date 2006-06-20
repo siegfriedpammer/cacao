@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4943 2006-05-23 08:51:33Z twisti $
+   $Id: codegen.c 5041 2006-06-20 09:10:05Z twisti $
 
 */
 
@@ -85,6 +85,7 @@
 bool codegen(jitdata *jd)
 {
 	methodinfo         *m;
+	codeinfo           *code;
 	codegendata        *cd;
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
@@ -103,9 +104,10 @@ bool codegen(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	/* prevent compiler warnings */
 
@@ -141,8 +143,8 @@ bool codegen(jitdata *jd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, stackframesize * 8);              /* FrameSize      */
+	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
+	(void) dseg_adds4(cd, stackframesize * 8);             /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -152,18 +154,18 @@ bool codegen(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);        /* IsSync         */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);       /* IsSync          */
 	else
 #endif
-		(void) dseg_adds4(cd, 0);                           /* IsSync         */
+		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);  /* IntSave        */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);  /* FltSave        */
+	(void) dseg_adds4(cd, m->isleafmethod);                /* IsLeaf          */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
 	(void) dseg_addlinenumbertablesize(cd);
 
-	(void) dseg_adds4(cd, cd->exceptiontablelength);        /* ExTableSize    */
+	(void) dseg_adds4(cd, cd->exceptiontablelength);       /* ExTableSize     */
 
 	/* create exception table */
 
@@ -3919,7 +3921,7 @@ gen_method:
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_DATASIZE    2 * SIZEOF_VOID_P
+#define COMPILERSTUB_DATASIZE    3 * SIZEOF_VOID_P
 #define COMPILERSTUB_CODESIZE    7 + 7 + 3
 
 #define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
@@ -3929,6 +3931,7 @@ u1 *createcompilerstub(methodinfo *m)
 {
 	u1          *s;                     /* memory to hold the stub            */
 	ptrint      *d;
+	codeinfo    *code;
 	codegendata *cd;
 	s4           dumpsize;
 
@@ -3946,16 +3949,19 @@ u1 *createcompilerstub(methodinfo *m)
 	cd = DNEW(codegendata);
 	cd->mcodeptr = s;
 
-	/* Store the methodinfo* in the same place as in the methodheader
-	   for compiled methods. */
+	/* Store the codeinfo pointer in the same place as in the
+	   methodheader for compiled methods. */
+
+	code = code_codeinfo_new(m);
 
 	d[0] = (ptrint) asm_call_jit_compiler;
 	d[1] = (ptrint) m;
+	d[2] = (ptrint) code;
 
 	/* code for the stub */
 
-	M_ALD(REG_ITMP1, RIP, -(7 * 1 + 1 * SIZEOF_VOID_P));       /* methodinfo  */
-	M_ALD(REG_ITMP3, RIP, -(7 * 2 + 2 * SIZEOF_VOID_P));  /* compiler pointer */
+	M_ALD(REG_ITMP1, RIP, -(7 * 1 + 2 * SIZEOF_VOID_P));       /* methodinfo  */
+	M_ALD(REG_ITMP3, RIP, -(7 * 2 + 3 * SIZEOF_VOID_P));  /* compiler pointer */
 	M_JMP(REG_ITMP3);
 
 #if defined(ENABLE_STATISTICS)
@@ -3980,6 +3986,7 @@ u1 *createcompilerstub(methodinfo *m)
 u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
@@ -3991,9 +3998,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	/* initialize variables */
 
@@ -4013,14 +4021,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, stackframesize * 8);              /* FrameSize      */
-	(void) dseg_adds4(cd, 0);                               /* IsSync         */
-	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
-	(void) dseg_adds4(cd, 0);                               /* IntSave        */
-	(void) dseg_adds4(cd, 0);                               /* FltSave        */
+	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
+	(void) dseg_adds4(cd, stackframesize * 8);             /* FrameSize       */
+	(void) dseg_adds4(cd, 0);                              /* IsSync          */
+	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
+	(void) dseg_adds4(cd, 0);                              /* IntSave         */
+	(void) dseg_adds4(cd, 0);                              /* FltSave         */
 	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
+	(void) dseg_adds4(cd, 0);                              /* ExTableSize     */
 
 	/* generate native method profiling code */
 
