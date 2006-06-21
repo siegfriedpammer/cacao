@@ -61,6 +61,11 @@ xdspcore )
     USE_SCHEDULER="1"
     ;;
 
+sparc64 )
+    ARCH_DIR="sparc64"
+    CFLAGS="$CFLAGS -mcpu=v9 -m64 -D__SPARC_64__"
+    ;;
+
 * )
     AC_MSG_ERROR($host_cpu systems are not supported at this time)
     ;;
@@ -335,7 +340,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
     dnl check for binutils headers and libraries on some architectures for the
     dnl disassembler
     case "${ARCH_DIR}" in
-        arm | i386 | powerpc | x86_64 )
+        arm | i386 | powerpc | x86_64 | sparc64 )
             AC_CHECK_HEADER([ansidecl.h],, [AC_MSG_ERROR(cannot find ansidecl.h)])
             AC_CHECK_HEADER([symcat.h],, [AC_MSG_ERROR(cannot find symcat.h)])
             AC_CHECK_HEADER([bfd.h],, [AC_MSG_ERROR(cannot find bfd.h)])
@@ -817,6 +822,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/powerpc/netbsd/Makefile]
 		[src/vm/jit/profile/Makefile]
 		[src/vm/jit/schedule/Makefile]
+		[src/vm/jit/sparc64/Makefile]
+		[src/vm/jit/sparc64/linux/Makefile]
 		[src/vm/jit/tools/Makefile]
 		[src/vm/jit/verify/Makefile]
 		[src/vm/jit/x86_64/Makefile]

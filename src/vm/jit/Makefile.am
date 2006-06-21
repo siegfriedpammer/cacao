@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 4998 2006-05-31 20:28:27Z edwin $
+## $Id: Makefile.am 5045 2006-06-21 16:29:29Z ajordan $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -51,7 +51,8 @@ DIST_SUBDIRS = \
 	i386 \
 	mips \
 	powerpc \
-	x86_64
+	x86_64 \
+	sparc64
 
 SUBDIRS = \
 	allocator \
