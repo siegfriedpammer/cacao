@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: utf8.h 4887 2006-05-05 19:31:39Z edwin $
+   $Id: utf8.h 5047 2006-06-22 18:48:45Z twisti $
 
 */
 
@@ -158,7 +158,7 @@ extern utf *utf_java_lang_String__java_lang_Class;
 extern utf *utf_java_lang_Throwable__void;
 
 extern utf *utf_not_named_yet;
-
+extern utf *utf_null;
 extern utf *array_packagename;
 
 
