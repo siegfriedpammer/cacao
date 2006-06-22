@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: utf8.c 5046 2006-06-22 14:39:10Z twisti $
 
 */
 
@@ -183,7 +183,7 @@ bool utf8_init(void)
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		count_utf_len += sizeof(utf*) * hashtable_utf.size;
+		count_utf_len += sizeof(utf*) * hashtable_utf->size;
 #endif
 
 	/* create utf-symbols for pointer comparison of frequently used strings */
