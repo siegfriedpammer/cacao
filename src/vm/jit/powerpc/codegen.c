@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5038 2006-06-19 22:22:34Z twisti $
+   $Id: codegen.c 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -306,64 +306,30 @@ bool codegen(jitdata *jd)
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-		/* stack offset for monitor argument */
+		p = dseg_addaddress(cd, BUILTIN_monitorenter);
+		M_ALD(REG_ITMP3, REG_PV, p);
+		M_MTCTR(REG_ITMP3);
 
-		s1 = rd->memuse;
-
-#if 0
-		if (opt_verbosecall) {
-			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT * 4 + FLT_ARG_CNT * 8));
-
-			for (p = 0; p < INT_ARG_CNT; p++)
-				M_IST(rd->argintregs[p], REG_SP, p * 4);
-
-			for (p = 0; p < FLT_ARG_CNT * 2; p += 2)
-				M_DST(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 4);
-
-			s1 += INT_ARG_CNT + FLT_ARG_CNT;
-		}
-#endif
-
-		/* decide which monitor enter function to call */
+		/* get or test the lock object */
 
 		if (m->flags & ACC_STATIC) {
-			p = dseg_addaddress(cd, BUILTIN_staticmonitorenter);
-			M_ALD(REG_ITMP3, REG_PV, p);
-			M_MTCTR(REG_ITMP3);
-			p = dseg_addaddress(cd, m->class);
+			p = dseg_addaddress(cd, &m->class->object.header);
 			M_ALD(rd->argintregs[0], REG_PV, p);
-			M_AST(rd->argintregs[0], REG_SP, s1 * 4);
-			M_JSR;
-
-		} else {
-			p = dseg_addaddress(cd, BUILTIN_monitorenter);
-			M_ALD(REG_ITMP3, REG_PV, p);
-			M_MTCTR(REG_ITMP3);
+		}
+		else {
 			M_TST(rd->argintregs[0]);
 			M_BEQ(0);
 			codegen_add_nullpointerexception_ref(cd);
-			M_AST(rd->argintregs[0], REG_SP, s1 * 4);
-			M_JSR;
 		}
 
-#if 0
-		if (opt_verbosecall) {
-			for (p = 0; p < INT_ARG_CNT; p++)
-				M_ILD(rd->argintregs[p], REG_SP, p * 4);
-
-			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_DLD(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 4);
-
-
-			M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
-		}
-#endif
+		M_AST(rd->argintregs[0], REG_SP, rd->memuse * 4);
+		M_JSR;
 	}
 #endif
 
 	/* call trace function */
 
-	if (opt_verbosecall)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		codegen_trace_args(jd, stackframesize, false);
 	}
 
@@ -2581,7 +2547,7 @@ nowperformreturn:
 
 			/* call trace function */
 
-			if (opt_verbosecall) {
+			if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 				M_MFLR(REG_ZERO);
 				M_LDA(REG_SP, REG_SP, -10 * 8);
 				M_DST(REG_FRESULT, REG_SP, 48+0);
@@ -3800,7 +3766,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STWU(REG_SP, REG_SP, -(stackframesize * 4));
 
-	if (opt_verbosecall)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		/* parent_argbase == stackframesize * 4 */
 		codegen_trace_args(jd, stackframesize * 4 , true);
 
@@ -4002,7 +3968,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* print call trace */
 
-	if (opt_verbosecall) {
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		 /* just restore the value we need, don't care about the other */
 
 		if (md->returntype.type != TYPE_VOID) {

@@ -62,12 +62,16 @@
 #include "vm/vm.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/asmpart.h"
+
+#include "vm/jit/recompile.h"
+
 #include "vm/jit/profile/profile.h"
 #include "vm/rt-timing.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
 #endif
+
 
 /* Invocation API variables ***************************************************/
 
@@ -1237,10 +1241,21 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		throw_main_exception_exit();
 #endif
 
+	/* initialize recompilation */
+
+	if (!recompile_init())
+		throw_main_exception_exit();
+		
 #if defined(ENABLE_THREADS)
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())
+		throw_main_exception_exit();
+
+	/* start the recompilation thread (must be done before the
+	   profiling thread) */
+
+	if (!recompile_start_thread())
 		throw_main_exception_exit();
 
 # if defined(ENABLE_PROFILING)

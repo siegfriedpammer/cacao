@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: list.c 4394 2006-01-31 22:27:23Z twisti $
+   $Id: list.c 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -37,51 +37,121 @@
 
 #include "vm/types.h"
 
+#include "mm/memory.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#endif
+
 #include "toolbox/list.h"
+#include "vm/builtin.h"
 
 
-void list_init(list *l, int nodeoffset)
+/* list_create *****************************************************************
+
+   Allocates a new list and initializes the lock object.
+
+*******************************************************************************/
+
+list *list_create(s4 nodeoffset)
 {
-	l->first = NULL;
-	l->last = NULL;
+	list *l;
+
+	l = NEW(list);
+
+#if defined(ENABLE_THREADS)
+	lock_init_object_lock((java_objectheader *) l);
+#endif
+
+	l->first      = NULL;
+	l->last       = NULL;
 	l->nodeoffset = nodeoffset;
+
+	return l;
 }
 
 
-void list_addfirst(list *l, void *element)
+void list_add_first(list *l, void *element)
 {
-	listnode *n = (listnode *) (((u1 *) element) + l->nodeoffset);
+	listnode *ln;
+
+	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
+
+	BUILTIN_MONITOR_ENTER(l);
 
 	if (l->first) {
-		n->prev = NULL;
-		n->next = l->first;
-		l->first->prev = n;
-		l->first = n;
-
-	} else {
-		n->prev = NULL;
-		n->next = NULL;
-		l->last = n;
-		l->first = n;
+		ln->prev       = NULL;
+		ln->next       = l->first;
+		l->first->prev = ln;
+		l->first       = ln;
 	}
+	else {
+		ln->prev = NULL;
+		ln->next = NULL;
+		l->last  = ln;
+		l->first = ln;
+	}
+
+	BUILTIN_MONITOR_EXIT(l);
 }
 
 
-void list_addlast(list *l, void *element)
+/* list_add_last ***************************************************************
+
+   Adds the element as last element.
+
+*******************************************************************************/
+
+void list_add_last(list *l, void *element)
 {
-	listnode *n = (listnode *) (((u1 *) element) + l->nodeoffset);
+	listnode *ln;
+
+	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
+
+	BUILTIN_MONITOR_ENTER(l);
 
 	if (l->last) {
-		n->prev = l->last;
-		n->next = NULL;
-		l->last->next = n;
-		l->last = n;
+		ln->prev      = l->last;
+		ln->next      = NULL;
+		l->last->next = ln;
+		l->last       = ln;
+	}
+	else {
+		ln->prev = NULL;
+		ln->next = NULL;
+		l->last  = ln;
+		l->first = ln;
+	}
 
-	} else {
-		n->prev = NULL;
-		n->next = NULL;
-		l->last = n;
-		l->first = n;
+	BUILTIN_MONITOR_EXIT(l);
+}
+
+
+/* list_add_list_unsynced ******************************************************
+
+   Adds the element as last element but does NO locking!
+
+   ATTENTION: This function is used during bootstrap.  DON'T USE IT!!!
+
+*******************************************************************************/
+
+void list_add_last_unsynced(list *l, void *element)
+{
+	listnode *ln;
+
+	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
+
+	if (l->last) {
+		ln->prev      = l->last;
+		ln->next      = NULL;
+		l->last->next = ln;
+		l->last       = ln;
+	}
+	else {
+		ln->prev = NULL;
+		ln->next = NULL;
+		l->last  = ln;
+		l->first = ln;
 	}
 }
 
@@ -96,89 +166,132 @@ void list_addlast(list *l, void *element)
 
 void list_add_before(list *l, void *element, void *newelement)
 {
-	listnode *n    = (listnode *) (((u1 *) element) + l->nodeoffset);
-	listnode *newn = (listnode *) (((u1 *) newelement) + l->nodeoffset);
+	listnode *ln;
+	listnode *newln;
+
+	ln    = (listnode *) (((u1 *) element) + l->nodeoffset);
+	newln = (listnode *) (((u1 *) newelement) + l->nodeoffset);
+
+	BUILTIN_MONITOR_ENTER(l);
 
 	/* set the new links */
 
-	newn->prev = n->prev;
-	newn->next = n;
+	newln->prev = ln->prev;
+	newln->next = ln;
 
-	if (newn->prev)
-		newn->prev->next = newn;
+	if (newln->prev)
+		newln->prev->next = newln;
 
-	n->prev = newn;
+	ln->prev = newln;
 
 	/* set list's first and last if necessary */
 
-	if (l->first == n)
-		l->first = newn;
+	if (l->first == ln)
+		l->first = newln;
 
-	if (l->last == n)
-		l->last = newn;
+	if (l->last == ln)
+		l->last = newln;
+
+	BUILTIN_MONITOR_EXIT(l);
 }
 
 
 void list_remove(list *l, void *element)
 {
-	listnode *n = (listnode *) (((u1 *) element) + l->nodeoffset);
+	listnode *ln;
+
+	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 	
-	if (n->next)
-		n->next->prev = n->prev;
-	else
-		l->last = n->prev;
+	BUILTIN_MONITOR_ENTER(l);
 
-	if (n->prev)
-		n->prev->next = n->next;
+	if (ln->next)
+		ln->next->prev = ln->prev;
 	else
-		l->first = n->next;
+		l->last = ln->prev;
 
-	n->next = NULL;
-	n->prev = NULL;
+	if (ln->prev)
+		ln->prev->next = ln->next;
+	else
+		l->first = ln->next;
+
+	ln->next = NULL;
+	ln->prev = NULL;
+
+	BUILTIN_MONITOR_EXIT(l);
 }
 
  
 void *list_first(list *l)
 {
-	if (!l->first)
-		return NULL;
+	void *el;
 
-	return ((u1 *) l->first) - l->nodeoffset;
+	BUILTIN_MONITOR_ENTER(l);
+
+	if (l->first == NULL)
+		el = NULL;
+	else
+		el = ((u1 *) l->first) - l->nodeoffset;
+
+	BUILTIN_MONITOR_EXIT(l);
+
+	return el;
 }
 
 
 void *list_last(list *l)
 {
-	if (!l->last)
-		return NULL;
+	void *el;
 
-	return ((u1 *) l->last) - l->nodeoffset;
+	BUILTIN_MONITOR_ENTER(l);
+
+	if (l->last == NULL)
+		el = NULL;
+	else
+		el = ((u1 *) l->last) - l->nodeoffset;
+
+	BUILTIN_MONITOR_EXIT(l);
+
+	return el;
 }
 
 
 void *list_next(list *l, void *element)
 {
-	listnode *n;
+	listnode *ln;
+	void     *el;
 
-	n = (listnode *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 
-	if (!n->next)
-		return NULL;
+	BUILTIN_MONITOR_ENTER(l);
 
-	return ((u1 *) n->next) - l->nodeoffset;
+	if (ln->next == NULL)
+		el = NULL;
+	else
+		el = ((u1 *) ln->next) - l->nodeoffset;
+
+	BUILTIN_MONITOR_EXIT(l);
+
+	return el;
 }
 
 	
 void *list_prev(list *l, void *element)
 {
-	listnode *n;
+	listnode *ln;
+	void     *el;
 
-	n = (listnode *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 
-	if (!n->prev)
-		return NULL;
+	BUILTIN_MONITOR_ENTER(l);
 
-	return ((u1 *) n->prev) - l->nodeoffset;
+	if (ln->prev == NULL)
+		el = NULL;
+	else
+		el = ((u1 *) ln->prev) - l->nodeoffset;
+
+	BUILTIN_MONITOR_EXIT(l);
+
+	return el;
 }
 
 

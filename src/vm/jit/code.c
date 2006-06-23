@@ -1,4 +1,4 @@
-/* vm/jit/code.c - codeinfo struct for representing compiled code
+/* src/vm/jit/code.c - codeinfo struct for representing compiled code
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   Changes:
+   Changes: Christian Thalinger
 
    $Id$
 
@@ -42,6 +42,7 @@
 #include "mm/memory.h"
 #include "vm/options.h"
 #include "arch.h"
+
 
 /* code_codeinfo_new ***********************************************************
 
@@ -74,6 +75,7 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 	
 	return code;
 }
+
 
 /* code_get_sync_slot_count ****************************************************
 
@@ -123,6 +125,7 @@ int code_get_sync_slot_count(codeinfo *code)
 
 #endif /* ENABLE_THREADS */
 }
+
 
 /* code_get_stack_frame_size ***************************************************
 
@@ -187,6 +190,7 @@ int code_get_stack_frame_size(codeinfo *code)
 	return count;
 }
 
+
 /* code_codeinfo_free **********************************************************
 
    Free the memory used by a codeinfo.
@@ -206,8 +210,9 @@ void code_codeinfo_free(codeinfo *code)
 
 	replace_free_replacement_points(code);
 
-	FREE(code,codeinfo);
+	FREE(code, codeinfo);
 }
+
 
 /* code_free_code_of_method ****************************************************
 

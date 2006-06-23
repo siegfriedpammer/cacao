@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: string.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: string.c 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -521,11 +521,12 @@ char *javastring_tochar(java_objectheader *so)
 
 *******************************************************************************/
 
-utf *javastring_toutf(java_lang_String *string, bool isclassname)
+utf *javastring_toutf(java_lang_String *s, bool isclassname)
 {
-	java_lang_String *str = (java_lang_String *) string;
+	if (s == NULL)
+		return utf_null;
 
-	return utf_new_u2(str->value->data + str->offset, str->count, isclassname);
+	return utf_new_u2(s->value->data + s->offset, s->count, isclassname);
 }
 
 
@@ -537,7 +538,7 @@ utf *javastring_toutf(java_lang_String *string, bool isclassname)
 
 s4 javastring_strlen(java_lang_String *s)
 {
-	if (!s)
+	if (s == NULL)
 		return 0;
 
 	return s->count;
@@ -624,7 +625,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	/* if we use eager loading, we have to check loaded String class */
 
 	if (opt_eager)
-		list_addfirst(&unlinkedclasses, class_java_lang_String);
+		list_add_first(&unlinkedclasses, class_java_lang_String);
 
 	/* create new javastring */
 

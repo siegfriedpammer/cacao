@@ -1,4 +1,4 @@
-/* vm/jit/code.h - codeinfo struct for representing compiled code
+/* src/vm/jit/code.h - codeinfo struct for representing compiled code
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   Changes:
+   Changes: Christian Thalinger
 
    $Id$
 
@@ -51,29 +51,30 @@ typedef struct codeinfo codeinfo;
 /* machine code.                                                       */
 
 struct codeinfo {
-	methodinfo   *m;                /* method this is a realization of */
-	codeinfo     *prev;             /* previous codeinfo of this method*/
-	
+	methodinfo   *m;                    /* method this is a realization of    */
+	codeinfo     *prev;                 /* previous codeinfo of this method   */
+
+	u1            optlevel;             /* optimization level of this code    */
+
 	/* machine code */
-	u1           *mcode;            /* pointer to machine code         */
-	u1           *entrypoint;       /* machine code entry point        */
-	s4            mcodelength;      /* length of generated machine code*/
-	bool          isleafmethod;     /* does method call subroutines    */
+	u1           *mcode;                /* pointer to machine code            */
+	u1           *entrypoint;           /* machine code entry point           */
+	s4            mcodelength;          /* length of generated machine code   */
+	bool          isleafmethod;         /* does method call subroutines       */
 
-	/* replacement */
-	rplpoint     *rplpoints;        /* replacement points              */
-	rplalloc     *regalloc;         /* register allocation info        */
-	s4            rplpointcount;    /* number of replacement points    */
-	s4            globalcount;      /* number of global allocations    */
-	s4            regalloccount;    /* number of total allocations     */
-	s4            memuse;           /* number of arg + local slots     */
-	u1            savedintcount;    /* number of callee saved int regs */
-	u1            savedfltcount;    /* number of callee saved flt regs */
+	/* replacement */				    
+	rplpoint     *rplpoints;            /* replacement points                 */
+	rplalloc     *regalloc;             /* register allocation info           */
+	s4            rplpointcount;        /* number of replacement points       */
+	s4            globalcount;          /* number of global allocations       */
+	s4            regalloccount;        /* number of total allocations        */
+	s4            memuse;               /* number of arg + local slots        */
+	u1            savedintcount;        /* number of callee saved int regs    */
+	u1            savedfltcount;        /* number of callee saved flt regs    */
 
-	/* profiling XXX will be removed */
-	u4            frequency;        /* number of method invocations    */
-	u4           *bbfrequency;
-	s8            cycles;           /* number of cpu cycles            */
+	u4            frequency;            /* number of method invocations       */
+	u4           *bbfrequency;		    
+	s8            cycles;               /* number of cpu cycles               */
 };
 
 codeinfo *code_codeinfo_new(methodinfo *m);

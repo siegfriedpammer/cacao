@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5026 2006-06-12 18:50:13Z edwin $
+   $Id: jit.h 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -87,17 +87,44 @@ typedef struct insinfo_inline insinfo_inline;
 
 /* jitdata ********************************************************************/
 
-#define JITDATA_FLAG_IFCONV    0x00000001
+#define JITDATA_FLAG_PARSE               0x00000001
+#define JITDATA_FLAG_VERIFY              0x00000002
+
+#define JITDATA_FLAG_IFCONV              0x00000004
+
+#define JITDATA_FLAG_SHOWINTERMEDIATE    0x20000000
+#define JITDATA_FLAG_SHOWDISASSEMBLE     0x40000000
+#define JITDATA_FLAG_VERBOSECALL         0x80000000
+
+
+#define JITDATA_HAS_FLAG_PARSE(jd) \
+    ((jd)->flags & JITDATA_FLAG_PARSE)
+
+#define JITDATA_HAS_FLAG_VERIFY(jd) \
+    ((jd)->flags & JITDATA_FLAG_VERIFY)
+
+#define JITDATA_HAS_FLAG_IFCONV(jd) \
+    ((jd)->flags & JITDATA_FLAG_IFCONV)
+
+#define JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd) \
+    ((jd)->flags & JITDATA_FLAG_SHOWINTERMEDIATE)
+
+#define JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) \
+    ((jd)->flags & JITDATA_FLAG_SHOWDISASSEMBLE)
+
+#define JITDATA_HAS_FLAG_VERBOSECALL(jd) \
+    ((jd)->flags & JITDATA_FLAG_VERBOSECALL)
+
 
 struct jitdata {
-	methodinfo   *m;                    /* methodinfo of the method compiled  */
-	codeinfo     *code;
-	codegendata  *cd;
-	registerdata *rd;
+	methodinfo      *m;                 /* methodinfo of the method compiled  */
+	codeinfo        *code;
+	codegendata     *cd;
+	registerdata    *rd;
 #if defined(ENABLE_LOOP)
-	loopdata     *ld;
+	loopdata        *ld;
 #endif
-	u4            flags;                /* contains JIT compiler flags        */
+	u4               flags;             /* contains JIT compiler flags        */
 
 	new_instruction *new_instructions;
 	basicblock      *new_basicblocks;
@@ -1201,6 +1228,7 @@ void jit_close(void);
 
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);
+u1 *jit_recompile(methodinfo *m);
 
 /* patch the method entrypoint */
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);

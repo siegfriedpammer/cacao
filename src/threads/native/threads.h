@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 5039 2006-06-19 22:23:44Z twisti $
+   $Id: threads.h 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -133,6 +133,10 @@ struct threads_table_t {
 
 *******************************************************************************/
 
+#define THREAD_FLAG_JAVA        0x01    /* a normal Java thread               */
+#define THREAD_FLAG_INTERNAL    0x02    /* CACAO internal thread              */
+
+
 struct threadobject {
 	java_lang_VMThread    o;            /* the java.lang.VMThread object      */
 
@@ -143,9 +147,10 @@ struct threadobject {
 
 	ptrint                thinlock;     /* pre-computed thin lock value       */
 
-	s4                    index;        /* thread index, startin with 1       */
+	s4                    index;        /* thread index, starting with 1      */
+	u1                    flags;        /* flag field                         */
 
-	pthread_t             tid;               /* pthread id                    */
+	pthread_t             tid;          /* pthread id                         */
 
 #if defined(__DARWIN__)
 	mach_port_t           mach_thread;       /* Darwin thread id              */

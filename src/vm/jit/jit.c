@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5007 2006-06-01 15:09:24Z edwin $
+   $Id: jit.c 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -990,18 +990,14 @@ u1 *jit_compile(methodinfo *m)
 			return m->code->entrypoint;
 	}
 
-#if defined(ENABLE_THREADS)
 	/* enter a monitor on the method */
 
-	builtin_monitorenter((java_objectheader *) m);
-#endif
+	BUILTIN_MONITOR_ENTER(m);
 
 	/* if method has been already compiled return immediately */
 
-	if (m->code) {
-#if defined(ENABLE_THREADS)
-		builtin_monitorexit((java_objectheader *) m);
-#endif
+	if (m->code != NULL) {
+		BUILTIN_MONITOR_EXIT(m);
 
 		assert(m->code->entrypoint);
 		return m->code->entrypoint;
@@ -1030,7 +1026,6 @@ u1 *jit_compile(methodinfo *m)
 #if defined(ENABLE_LOOP)
 	jd->ld    = DNEW(loopdata);
 #endif
-	jd->flags = 0;
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
@@ -1038,8 +1033,22 @@ u1 *jit_compile(methodinfo *m)
 
 	/* set the flags for the current JIT run */
 
+	jd->flags = JITDATA_FLAG_PARSE;
+
+	if (opt_verify)
+		jd->flags |= JITDATA_FLAG_VERIFY;
+
 	if (opt_ifconv)
 		jd->flags |= JITDATA_FLAG_IFCONV;
+
+	if (opt_showintermediate)
+		jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
+
+	if (opt_showdisassemble)
+		jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
+
+	if (opt_verbosecall)
+		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -1065,6 +1074,23 @@ u1 *jit_compile(methodinfo *m)
 	m->instructions    = NULL;
 	m->stack           = NULL;
 
+	if (r != NULL) {
+		DEBUG_JIT_COMPILEVERBOSE("Running: ");
+	}
+	else {
+		/* We had an exception! Finish stuff here if necessary. */
+
+		/* release codeinfo */
+
+		code_codeinfo_free(jd->code);
+
+		/* Release memory for basic block profiling information. */
+
+		if (opt_prof)
+			if (m->bbfrequency)
+				MFREE(m->bbfrequency, u4, m->basicblockcount);
+	}
+
 	/* release dump area */
 
 	dump_release(dumpsize);
@@ -1076,30 +1102,129 @@ u1 *jit_compile(methodinfo *m)
 		compilingtime_stop();
 #endif
 
-
-#if defined(ENABLE_THREADS)
 	/* leave the monitor */
 
-	builtin_monitorexit((java_objectheader *) m);
-#endif
-
-	if (r) {
-		DEBUG_JIT_COMPILEVERBOSE("Running: ");
-
-	} else {
-		/* We had an exception! Finish stuff here if necessary. */
-
-		/* Release memory for basic block profiling information. */
-
-		if (opt_prof)
-			if (m->bbfrequency)
-				MFREE(m->bbfrequency, u4, m->basicblockcount);
-	}
+	BUILTIN_MONITOR_EXIT(m);
 
 	/* return pointer to the methods entry point */
 
 	return r;
 }
+
+
+/* jit_recompile ***************************************************************
+
+   Recompiles a Java method.
+
+*******************************************************************************/
+
+u1 *jit_recompile(methodinfo *m)
+{
+	u1      *r;
+	jitdata *jd;
+	u1       optlevel;
+	s4       dumpsize;
+
+	/* check for max. optimization level */
+
+	optlevel = m->code->optlevel;
+
+	if (optlevel == 1) {
+		log_message_method("not recompiling: ", m);
+		return NULL;
+	}
+
+	log_message_method("Recompiling start: ", m);
+
+	STATISTICS(count_jit_calls++);
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_start();
+#endif
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* allocate jitdata structure and fill it */
+
+	jd = DNEW(jitdata);
+
+	jd->m     = m;
+	jd->cd    = DNEW(codegendata);
+	jd->rd    = DNEW(registerdata);
+#if defined(ENABLE_LOOP)
+	jd->ld    = DNEW(loopdata);
+#endif
+	jd->flags = 0;
+
+	/* Allocate codeinfo memory from the heap as we need to keep them. */
+
+	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+
+	/* set the current optimization level to the previous one plus 1 */
+
+	jd->code->optlevel = optlevel + 1;
+
+	/* get the optimization flags for the current JIT run */
+
+	jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
+	jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
+/* 	jd->flags |= JITDATA_FLAG_VERBOSECALL; */
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp)
+# endif
+		/* initialize the register allocator */
+
+		reg_setup(jd);
+#endif
+
+	/* setup the codegendata memory */
+
+	codegen_setup(jd);
+
+	/* now call internal compile function */
+
+	r = jit_compile_intern(jd);
+
+	/* clear pointers to dump memory area */
+
+	m->basicblocks     = NULL;
+	m->basicblockindex = NULL;
+	m->instructions    = NULL;
+	m->stack           = NULL;
+
+	if (r == NULL) {
+		/* We had an exception! Finish stuff here if necessary. */
+
+		/* release codeinfo */
+
+		code_codeinfo_free(jd->code);
+	}
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getcompilingtime)
+		compilingtime_stop();
+#endif
+
+	log_message_method("Recompiling done: ", m);
+
+	/* return pointer to the methods entry point */
+
+	return r;
+}
+
 
 /* jit_compile_intern **********************************************************
 
@@ -1142,7 +1267,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 		if (f == NULL)
 			return NULL;
 #else
-
 		f = NULL;
 #endif
 
@@ -1156,7 +1280,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	/* if there is no javacode, print error message and return empty method   */
 
-	if (!m->jcode) {
+	if (m->jcode == NULL) {
 		DEBUG_JIT_COMPILEVERBOSE("No code given for: ");
 
 		code->entrypoint = (u1 *) (ptrint) do_nothing_function;
@@ -1207,7 +1331,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
 
 #ifdef ENABLE_VERIFIER
-	if (opt_verify) {
+	if (jd->flags & JITDATA_FLAG_VERIFY) {
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
 
 		/* call typecheck pass */
@@ -1232,7 +1356,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	RT_TIMING_GET_TIME(time_loop);
 
 #if defined(ENABLE_IFCONV)
-	if (jd->flags & JITDATA_FLAG_IFCONV)
+	if (JITDATA_HAS_FLAG_IFCONV(jd))
 		if (!ifconv_static(jd))
 			return NULL;
 #endif
@@ -1317,10 +1441,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 #if !defined(NDEBUG)
 	/* intermediate and assembly code listings */
 		
-	if (opt_showintermediate) {
+	if (JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd)) {
 		show_method(jd);
-
-	} else if (opt_showdisassemble) {
+	}
+	else if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
 # if defined(ENABLE_DISASSEMBLER)
 		DISASSEMBLE(code->entrypoint,
 					code->entrypoint + (code->mcodelength - cd->dseglen));
@@ -1361,10 +1485,13 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 /* jit_asm_compile *************************************************************
 
-   This method is called from asm_vm_call_method and does things like:
-   create stackframe info for exceptions, compile the method, patch
-   the entrypoint of the method into the calculated address in the JIT
-   code, and flushes the instruction cache.
+   This method is called from asm_vm_call_method and does:
+
+     - create stackframe info for exceptions
+     - compile the method
+     - patch the entrypoint of the method into the calculated address in
+       the JIT code
+     - flushes the instruction cache.
 
 *******************************************************************************/
 

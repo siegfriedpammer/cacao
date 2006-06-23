@@ -1,4 +1,4 @@
-/* src/toolbox/list.h - 
+/* src/toolbox/list.h - synchronized linked list
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,13 +28,19 @@
 
    Changes: Christian Thalinger
 
-   $Id: list.h 4394 2006-01-31 22:27:23Z twisti $
+   $Id: list.h 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
 
 #ifndef _LIST_H
 #define _LIST_H
+
+#include "config.h"
+#include "vm/types.h"
+
+#include "vm/global.h"
+
 
 /* ---------------------- interface description -----------------------------
 
@@ -93,25 +99,37 @@ distinct list).
 
 */
 
-typedef struct listnode {           /* structure for list element */
-	struct listnode *next;
-	struct listnode *prev;
-} listnode;
+/* listnode *******************************************************************/
+
+typedef struct listnode listnode;
+
+struct listnode {
+	listnode *next;
+	listnode *prev;
+};
 
 
-typedef struct list {               /* structure for list head */
-	listnode *first;
-	listnode *last;
-	int nodeoffset;
-} list;
+/* list ***********************************************************************/
+
+typedef struct list list;
+
+struct list {
+#if defined(ENABLE_THREADS)
+	java_objectheader  lock;            /* threads lock object                */
+#endif
+	listnode          *first;
+	listnode          *last;
+	s4                 nodeoffset;
+};
 
 
 /* function prototypes ********************************************************/
 
-void list_init(list *l, int nodeoffset);
+list *list_create(s4 nodeoffset);
 
-void list_addfirst(list *l, void *element);
-void list_addlast(list *l, void *element);
+void list_add_first(list *l, void *element);
+void list_add_last(list *l, void *element);
+void list_add_last_unsynced(list *l, void *element);
 
 void list_add_before(list *l, void *element, void *newelement);
 

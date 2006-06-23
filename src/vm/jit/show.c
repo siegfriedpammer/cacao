@@ -1,4 +1,4 @@
-/* vm/jit/show.c - showing the intermediate representation
+/* src/vm/jit/show.c - showing the intermediate representation
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -504,7 +504,7 @@ void new_show_method(jitdata *jd, int stage)
 #if defined(ENABLE_DISASSEMBLER)
 	/* show code before first basic block */
 
-	if (stage >= SHOW_CODE && opt_showdisassemble) {
+	if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
 		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen);
 
 		for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + jd->new_basicblocks[0].mpc);)
@@ -730,7 +730,7 @@ void show_method(jitdata *jd)
 #if defined(ENABLE_DISASSEMBLER)
 	/* show code before first basic block */
 
-	if (opt_showdisassemble) {
+	if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
 		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen);
 
 		for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + m->basicblocks[0].mpc);)
@@ -748,7 +748,7 @@ void show_method(jitdata *jd)
 #if defined(ENABLE_DISASSEMBLER)
 	/* show stubs code */
 
-	if (opt_showdisassemble && opt_showexceptionstubs) {
+	if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) && opt_showexceptionstubs) {
 		printf("\nException stubs code:\n");
 		printf("Length: %d\n\n", (s4) (code->mcodelength -
 									   ((ptrint) cd->dseglen +
@@ -833,7 +833,8 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		}
 
 #if defined(ENABLE_DISASSEMBLER)
-		if (stage >= SHOW_CODE && opt_showdisassemble && (!deadcode)) {
+		if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) &&
+			(!deadcode)) {
 			printf("\n");
 			u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->mpc);
 
@@ -919,7 +920,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
 		}
 
 #if defined(ENABLE_DISASSEMBLER)
-		if (opt_showdisassemble && (!deadcode)) {
+		if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) && (!deadcode)) {
 			printf("\n");
 			u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->mpc);
 

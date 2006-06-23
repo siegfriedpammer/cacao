@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 5022 2006-06-07 12:51:50Z twisti $
+   $Id: suck.c 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -70,9 +70,7 @@ list *list_classpath_entries;
 
 bool suck_init(void)
 {
-	list_classpath_entries = NEW(list);
-
-	list_init(list_classpath_entries, OFFSET(list_classpath_entry, linkage));
+	list_classpath_entries = list_create(OFFSET(list_classpath_entry, linkage));
 
 	/* everything's ok */
 
@@ -216,7 +214,7 @@ void suck_add(char *classpath)
 			/* add current classpath entry, if no error */
 
 			if (lce)
-				list_addlast(list_classpath_entries, lce);
+				list_add_last(list_classpath_entries, lce);
 		}
 
 		/* goto next classpath entry, skip ':' delimiter */

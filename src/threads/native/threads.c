@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5031 2006-06-14 18:36:22Z motse $
+   $Id: threads.c 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -756,6 +756,10 @@ bool threads_init(void)
 
 	threads_table_add(mainthreadobj);
 
+	/* mark main thread as Java thread */
+
+	mainthreadobj->flags = THREAD_FLAG_JAVA;
+
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
 
@@ -993,6 +997,9 @@ void threads_init_threadobject(java_lang_VMThread *t)
 
    Thread startup function called by pthread_create.
 
+   Thread which have a startup.function != NULL are marked as internal
+   threads. All other threads are threated as normal Java threads.
+
    NOTE: This function is not called directly by pthread_create. The Boehm GC
          inserts its own GC_start_routine in between, which then calls
 		 threads_startup.
@@ -1093,19 +1100,27 @@ static void *threads_startup_thread(void *t)
 	/* find and run the Thread.run()V method if no other function was passed */
 
 	if (function == NULL) {
+		/* this is a normal Java thread */
+
+		thread->flags |= THREAD_FLAG_JAVA;
+
 		method = class_resolveclassmethod(thread->o.header.vftbl->class,
 										  utf_run,
 										  utf_void__void,
 										  thread->o.header.vftbl->class,
 										  true);
 
-		if (!method)
+		if (method == NULL)
 			throw_exception();
 
 		(void) vm_call_method(method, (java_objectheader *) thread);
 
 	}
 	else {
+		/* this is an internal thread */
+
+		thread->flags |= THREAD_FLAG_INTERNAL;
+
 		/* call passed function, e.g. finalizer_thread */
 
 		(function)();

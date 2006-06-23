@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: builtin.h 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -195,6 +195,12 @@ void builtin_staticmonitorenter(classinfo *c);
 #define BUILTIN_staticmonitorenter (functionptr) builtin_staticmonitorenter
 void builtin_monitorexit(java_objectheader *o);
 #define BUILTIN_monitorexit (functionptr) builtin_monitorexit
+
+# define BUILTIN_MONITOR_ENTER(o) builtin_monitorenter((java_objectheader *) o)
+# define BUILTIN_MONITOR_EXIT(o)  builtin_monitorexit((java_objectheader *) o)
+#else
+# define BUILTIN_MONITOR_ENTER(o) /* noop */
+# define BUILTIN_MONITOR_EXIT(o)  /* noop */
 #endif
 
 s4 builtin_idiv(s4 a, s4 b);

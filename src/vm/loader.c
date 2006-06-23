@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5031 2006-06-14 18:36:22Z motse $
+   $Id: loader.c 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -679,7 +679,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 			/* link the class later, because we cannot link the class currently
 			   loading */
-			list_addfirst(&unlinkedclasses, tc);
+			list_add_first(&unlinkedclasses, tc);
 		}
 
 		/* the classref is created later */
@@ -2454,12 +2454,12 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 		tc = class_java_lang_Cloneable;
 		LOADER_ASSERT(tc->state & CLASS_LOADED);
-		list_addfirst(&unlinkedclasses, tc);
+		list_add_first(&unlinkedclasses, tc);
 		c->interfaces[0].cls = tc;
 
 		tc = class_java_io_Serializable;
 		LOADER_ASSERT(tc->state & CLASS_LOADED);
-		list_addfirst(&unlinkedclasses, tc);
+		list_add_first(&unlinkedclasses, tc);
 		c->interfaces[1].cls = tc;
 
 	} else {

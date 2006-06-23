@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: properties.c 4958 2006-05-26 11:57:20Z twisti $
+   $Id: properties.c 5049 2006-06-23 12:07:26Z twisti $
 
 */
 
@@ -79,9 +79,7 @@ static methodinfo *mput;
 
 bool properties_init(void)
 {
-	list_properties = NEW(list);
-
-	list_init(list_properties, OFFSET(list_properties_entry, linkage));
+	list_properties = list_create(OFFSET(list_properties_entry, linkage));
 
 	/* everything's ok */
 
@@ -131,7 +129,7 @@ void properties_add(char *key, char *value)
 	p->key   = key;
 	p->value = value;
 
-	list_addlast(list_properties, p);
+	list_add_last_unsynced(list_properties, p);
 }
 
 

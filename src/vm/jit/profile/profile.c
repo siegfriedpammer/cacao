@@ -55,23 +55,15 @@
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
-
-
-/* list_method_entry **********************************************************/
-
-typedef struct list_method_entry list_method_entry;
-
-struct list_method_entry {
-	methodinfo *m;
-	listnode    linkage;
-};
+#include "vm/jit/recompile.h"
 
 
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
-static java_lang_VMThread *profile_vmthread;
+static threadobject *profile_threadobject;
 #endif
 
 
@@ -102,23 +94,15 @@ static s4 misses = 0;
 #if defined(ENABLE_THREADS)
 static void profile_thread(void)
 {
-	threadobject *tobj;
-	pthread_t     tid;
+	threadobject *t;
 	s4            nanos;
 	u1           *pc;
 	u1           *pv;
-	codeinfo     *code;
 	methodinfo   *m;
-
-	/* Get the thread id of the profiling thread, so we can skip it in
-	   the profiling runs. */
-
-	tobj = THREADOBJECT;
-
-	tid = tobj->tid;
+	codeinfo     *code;
 
 	while (true) {
-		/* sleep thread for 0.5-1 ms */
+		/* sleep thread for 0.5-1.0 ms */
 
 		nanos = 500 + (int) (500.0 * (rand() / (RAND_MAX + 1.0)));
 /* 		fprintf(stderr, "%d\n", nanos); */
@@ -128,19 +112,19 @@ static void profile_thread(void)
 
 		/* iterate over all started threads */
 
-		tobj = mainthreadobj;
+		t = mainthreadobj;
 
 		do {
-			/* are we a different thread? */
+			/* is this a Java thread? */
 
-			if (tobj->tid != tid) {
+			if (t->flags & THREAD_FLAG_JAVA) {
 				/* send SIGUSR2 to thread to get the current PC */
 
-				pthread_kill(tobj->tid, SIGUSR2);
+				pthread_kill(t->tid, SIGUSR2);
 
 				/* the thread object now contains the current thread PC */
 
-				pc = tobj->pc;
+				pc = t->pc;
 
 				/* get the PV for the current PC */
 
@@ -149,7 +133,6 @@ static void profile_thread(void)
 				/* get methodinfo pointer from data segment */
 
 				if (pv == NULL) {
-					m = NULL;
 					misses++;
 				}
 				else {
@@ -161,22 +144,32 @@ static void profile_thread(void)
 					if (code != NULL) {
 						m = code->m;
 
-						/* increase the method incovation counter */
+						/* native methods are never recompiled */
 
-						m->frequency++;
-						hits++;
+						if (!(m->flags & ACC_NATIVE)) {
+							/* increase the method incovation counter */
 
-/* 						if (m->frequency > 1000) { */
-/* 							printf("Recompile: "); */
-/* 							method_println(m); */
-/* 							m->frequency = 0; */
-/* 						} */
+							code->frequency++;
+							hits++;
+
+							if (code->frequency > 500) {
+								/* clear frequency count before
+								   recompilation */
+
+								code->frequency = 0;
+
+								/* add this method to the method list
+								   and start recompilation */
+
+								recompile_queue_method(m);
+							}
+						}
 					}
 				}
 			}
 
-			tobj = tobj->next;
-		} while ((tobj != NULL) && (tobj != mainthreadobj));
+			t = t->next;
+		} while ((t != NULL) && (t != mainthreadobj));
 	}
 }
 #endif
@@ -195,20 +188,19 @@ bool profile_start_thread(void)
 
 	/* create the profile object */
 
-	profile_vmthread =
-		(java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+	profile_threadobject = NEW(threadobject);
 
-	if (!profile_vmthread)
+	if (profile_threadobject == NULL)
 		return false;
 
 	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	t->vmThread = profile_vmthread;
+	t->vmThread = (java_lang_VMThread *) profile_threadobject;
 	t->name     = javastring_new_from_ascii("Profiling Sampler");
 	t->daemon   = true;
 	t->priority = 5;
 
-	profile_vmthread->thread = t;
+	profile_threadobject->o.thread = t;
 
 	/* actually start the profile sampling thread */
 
@@ -235,6 +227,7 @@ void profile_printstats(void)
 	list_method_entry      *tlme;
 	classinfo              *c;
 	methodinfo             *m;
+	codeinfo               *code;
 	u4                      slot;
 	classcache_name_entry  *nmen;
 	classcache_class_entry *clsen;
@@ -248,9 +241,7 @@ void profile_printstats(void)
 
 	/* create new method list */
 
-	l = NEW(list);
-
-	list_init(l, OFFSET(list_method_entry, linkage));
+	l = list_create(OFFSET(list_method_entry, linkage));
 
 	/* iterate through all classes and methods */
 
@@ -271,13 +262,15 @@ void profile_printstats(void)
 				for (i = 0; i < c->methodscount; i++) {
 					m = &(c->methods[i]);
 
+					code = m->code;
+
 					/* was this method actually called? */
 
-					if (m->frequency > 0) {
+					if ((code != NULL) && (code->frequency > 0)) {
 						/* add to overall stats */
 
-						frequency += m->frequency;
-						cycles    += m->cycles;
+						frequency += code->frequency;
+						cycles    += code->cycles;
 
 						/* create new list entry */
 
@@ -287,13 +280,13 @@ void profile_printstats(void)
 						/* sort the new entry into the list */
 						
 						if ((tlme = list_first(l)) == NULL) {
-							list_addfirst(l, lme);
+							list_add_first(l, lme);
 						}
 						else {
 							for (; tlme != NULL; tlme = list_next(l, tlme)) {
 								/* check the frequency */
 
-								if (m->frequency > tlme->m->frequency) {
+								if (code->frequency > tlme->m->code->frequency) {
 									list_add_before(l, tlme, lme);
 									break;
 								}
@@ -303,7 +296,7 @@ void profile_printstats(void)
 							   it as last entry */
 
 							if (tlme == NULL)
-								list_addlast(l, lme);
+								list_add_last(l, lme);
 						}
 					}
 				}
@@ -323,11 +316,13 @@ void profile_printstats(void)
 
 		m = lme->m;
 
+		code = m->code;
+
 		printf("%10d   %.5f   %12ld   %.5f   ",
-			   m->frequency,
-			   (double) m->frequency / (double) frequency,
-			   (long)m->cycles,
-			   (double) m->cycles / (double) cycles);
+			   code->frequency,
+			   (double) code->frequency / (double) frequency,
+			   (long) code->cycles,
+			   (double) code->cycles / (double) cycles);
 
 		method_println(m);
 
@@ -341,7 +336,7 @@ void profile_printstats(void)
 	}
 
 	printf("-----------           -------------- \n");
-	printf("%10d             %12ld\n", frequency, (long)cycles);
+	printf("%10d             %12ld\n", frequency, (long) cycles);
 
 	printf("\nruns  : %10d\n", runs);
 	printf("hits  : %10d\n", hits);
