@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5036 2006-06-19 21:04:37Z twisti $
+   $Id: linker.c 5048 2006-06-23 09:23:02Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #include "vm/stringlocal.h"
 #include "vm/access.h"
 #include "vm/rt-timing.h"
+#include "vm/vm.h"
 
 
 /* global variables ***********************************************************/
