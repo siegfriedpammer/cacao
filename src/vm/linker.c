@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5053 2006-06-28 19:11:20Z twisti $
+   $Id: linker.c 5056 2006-06-28 21:01:21Z edwin $
 
 */
 
@@ -806,6 +806,9 @@ static classinfo *link_class_intern(classinfo *c)
 
 	for (i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &(c->methods[i]);
+
+		if (m->flags & ACC_ABSTRACT)
+			continue;
 
 		/* Methods in ABSTRACT classes from interfaces maybe already
 		   have a stubroutine. */
