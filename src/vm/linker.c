@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5056 2006-06-28 21:01:21Z edwin $
+   $Id: linker.c 5057 2006-06-28 21:44:16Z edwin $
 
 */
 
@@ -807,24 +807,21 @@ static classinfo *link_class_intern(classinfo *c)
 	for (i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &(c->methods[i]);
 
+		assert(m->stubroutine == NULL);
+
 		if (m->flags & ACC_ABSTRACT)
 			continue;
 
-		/* Methods in ABSTRACT classes from interfaces maybe already
-		   have a stubroutine. */
-
-		if (m->stubroutine == NULL) {
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
-			if (opt_intrp)
-				m->stubroutine = intrp_createcompilerstub(m);
-			else
-#endif
-				m->stubroutine = createcompilerstub(m);
-#else
+		if (opt_intrp)
 			m->stubroutine = intrp_createcompilerstub(m);
+		else
 #endif
-		}
+			m->stubroutine = createcompilerstub(m);
+#else
+		m->stubroutine = intrp_createcompilerstub(m);
+#endif
 
 		if (!(m->flags & ACC_STATIC))
 			v->table[m->vftblindex] = (methodptr) (ptrint) m->stubroutine;
