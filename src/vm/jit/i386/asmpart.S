@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 5053 2006-06-28 19:11:20Z twisti $
+   $Id: asmpart.S 5054 2006-06-28 19:43:42Z twisti $
 
 */
 
@@ -482,8 +482,17 @@ noflt:
 *******************************************************************************/
 
 asm_abstractmethoderror:
-	call	exceptions_new_abstractmethoderror
+	sub     $(2*4),sp                   /* create stack frame                 */
+	mov     sp,itmp1                    /* pass java sp                       */
+	add     $((1+2)*4),itmp1
+	mov     itmp1,0*4(sp)
+	mov     2*4(sp),itmp2               /* pass exception address             */
+	sub     $2,itmp2
+	mov     itmp2,1*4(sp)
+	call	exceptions_asm_new_abstractmethoderror
 	                                    /* exception pointer is return value  */
+	add     $(2*4),sp                   /* remove stack frame                 */
+
 	pop     xpc                         /* get exception address              */
 	sub     $2,xpc                      /* exception address is ra - 2        */
 	jmp     L_asm_handle_exception

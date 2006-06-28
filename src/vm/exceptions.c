@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5053 2006-06-28 19:11:20Z twisti $
+   $Id: exceptions.c 5054 2006-06-28 19:43:42Z twisti $
 
 */
 
@@ -514,6 +514,34 @@ java_objectheader *exceptions_new_abstractmethoderror(void)
 
 	if (e == NULL)
 		return *exceptionptr;
+
+	return e;
+}
+
+
+/* exceptions_asm_new_abstractmethoderror **************************************
+
+   Generates a java.lang.AbstractMethodError for
+   asm_abstractmethoderror.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
+{
+	stackframeinfo     sfi;
+	java_objectheader *e;
+
+	/* create the stackframeinfo (XPC is equal to RA) */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, ra);
+
+	/* create the exception */
+
+	e = exceptions_new_abstractmethoderror();
+
+	/* remove the stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	return e;
 }

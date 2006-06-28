@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 5053 2006-06-28 19:11:20Z twisti $
+   $Id: exceptions.h 5054 2006-06-28 19:43:42Z twisti $
 
 */
 
@@ -119,6 +119,7 @@ java_objectheader *new_exception_int(const char *classname, s4 i);
 /* functions to generate compiler exceptions */
 
 java_objectheader *exceptions_new_abstractmethoderror(void);
+java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
 void exceptions_throw_abstractmethoderror(void);
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);

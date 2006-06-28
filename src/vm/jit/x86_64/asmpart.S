@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 5053 2006-06-28 19:11:20Z twisti $
+   $Id: asmpart.S 5054 2006-06-28 19:43:42Z twisti $
 
 */
 
@@ -59,6 +59,7 @@
 	.globl asm_vm_call_method_exception_handler
 
 	.globl asm_call_jit_compiler
+
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
@@ -507,10 +508,14 @@ noflt:
 *******************************************************************************/
 
 asm_abstractmethoderror:
-	call	exceptions_new_abstractmethoderror@PLT
+	mov     sp,a0                       /* pass java sp                       */
+	add     $1*8,a0
+	mov     0*8(sp),a1                  /* pass exception address             */
+	sub     $3,a1
+	call	exceptions_asm_new_abstractmethoderror@PLT
 	                                    /* exception pointer is return value  */
 	pop     xpc                         /* get exception address              */
-	sub     $5,xpc                      /* exception address is ra - 5        */
+	sub     $3,xpc                      /* exception address is ra - 3        */
 	jmp     L_asm_handle_exception
 
 
