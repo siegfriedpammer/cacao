@@ -28,14 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4895 2006-05-08 11:09:18Z twisti $
+## $Id: Makefile.am 5050 2006-06-28 08:24:35Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 bin_SCRIPTS = \
-	jarsigner \
 	java \
-	keytool \
 	rmic \
 	rmiregistry
 
