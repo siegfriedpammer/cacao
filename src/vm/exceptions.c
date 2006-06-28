@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5054 2006-06-28 19:43:42Z twisti $
+   $Id: exceptions.c 5059 2006-06-28 21:51:56Z twisti $
 
 */
 
@@ -1431,7 +1431,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	ex                   =   (exceptionentry *) (pv + ExTableStart);
 	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
 
-	/* Get the methodinfo pointer form the codeinfo pointer. For
+	/* Get the methodinfo pointer from the codeinfo pointer. For
 	   asm_vm_call_method the codeinfo pointer is NULL. */
 
 	m = (code == NULL) ? NULL : code->m;
