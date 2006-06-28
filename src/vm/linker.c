@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5057 2006-06-28 21:44:16Z edwin $
+   $Id: linker.c 5058 2006-06-28 21:46:41Z twisti $
 
 */
 
@@ -800,7 +800,7 @@ static classinfo *link_class_intern(classinfo *c)
 	   initialized). */
 
 	for (; i < vftbllength; i++)
-		v->table[i] = &asm_abstractmethoderror;
+		v->table[i] = (methodptr) (ptrint) &asm_abstractmethoderror;
 
 	/* add method stubs into virtual function table */
 
@@ -808,6 +808,10 @@ static classinfo *link_class_intern(classinfo *c)
 		methodinfo *m = &(c->methods[i]);
 
 		assert(m->stubroutine == NULL);
+
+		/* Don't create a compiler stub for abstract methods as they
+		   throw an AbstractMethodError with the default stub in the
+		   vftbl.  This entry is simply copied by sub-classes. */
 
 		if (m->flags & ACC_ABSTRACT)
 			continue;
@@ -823,8 +827,14 @@ static classinfo *link_class_intern(classinfo *c)
 		m->stubroutine = intrp_createcompilerstub(m);
 #endif
 
-		if (!(m->flags & ACC_STATIC))
-			v->table[m->vftblindex] = (methodptr) (ptrint) m->stubroutine;
+		/* static methods are not in the vftbl */
+
+		if (m->flags & ACC_STATIC)
+			continue;
+
+		/* insert the stubroutine into the vftbl */
+
+		v->table[m->vftblindex] = (methodptr) (ptrint) m->stubroutine;
 	}
 	RT_TIMING_GET_TIME(time_fill_vftbl);
 
@@ -1227,7 +1237,8 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 			/* If no method was found, insert the AbstractMethodError
 			   stub. */
 
-			v->interfacetable[-i][j] = &asm_abstractmethoderror;
+			v->interfacetable[-i][j] =
+				(methodptr) (ptrint) &asm_abstractmethoderror;
 
 		foundmethod:
 			;
