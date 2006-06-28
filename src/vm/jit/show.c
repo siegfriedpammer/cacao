@@ -1758,8 +1758,10 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 #if !defined(NDEBUG)
 void show_icmd(instruction *iptr, bool deadcode)
 {
+#if 0
 	u2                 opcode;
 	u2                 condition;
+#endif
 	int j;
 	s4  *s4ptr;
 	void **tptr = NULL;
@@ -1768,19 +1770,21 @@ void show_icmd(instruction *iptr, bool deadcode)
 	constant_classref *cr;
 	unresolved_field  *uf;
 
+#if 0
 	/* get the opcode and the condition */
 
 	opcode    =  iptr->opc & ICMD_OPCODE_MASK;
 	condition = (iptr->opc & ICMD_CONDITION_MASK) >> 8;
 
-	printf("%s", icmd_names[opcode]);
-
 	/* Print the condition for conditional instructions. */
 
 	if (condition != 0)
 		printf(" (condition: %s)", icmd_names[condition]);
+#endif
 
-	switch (opcode) {
+	printf("%s", icmd_names[iptr->opc]);
+
+	switch (iptr->opc) {
 	case ICMD_IADDCONST:
 	case ICMD_ISUBCONST:
 	case ICMD_IMULCONST:
@@ -2102,12 +2106,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IFLE:
 		printf(" %d (0x%08x)", iptr->val.i, iptr->val.i);
 
-		if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
+/* 		if ((iptr->opc & ICMD_CONDITION_MASK) == 0) { */
 			if (deadcode || !iptr->target)
 				printf(" op1=%d", iptr->op1);
 			else
 				printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr, iptr->target);
-		}
+/* 		} */
 		break;
 
 	case ICMD_IF_LEQ:
@@ -2122,12 +2126,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(" %ld (%016lx)", iptr->val.l, iptr->val.l);
 #endif
 
-		if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
+/* 		if ((iptr->opc & ICMD_CONDITION_MASK) == 0) { */
 			if (deadcode || !iptr->target)
 				printf(" op1=%d", iptr->op1);
 			else
 				printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
-		}
+/* 		} */
 		break;
 
 	case ICMD_JSR:
@@ -2183,12 +2187,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_IF_ACMPEQ:
 	case ICMD_IF_ACMPNE:
-		if (!(iptr->opc & ICMD_CONDITION_MASK)) {
+/* 		if (!(iptr->opc & ICMD_CONDITION_MASK)) { */
 			if (deadcode || !iptr->target)
 				printf(" op1=%d", iptr->op1);
 			else
 				printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr,iptr->target);
-		}
+/* 		} */
 		break;
 
 	case ICMD_TABLESWITCH:

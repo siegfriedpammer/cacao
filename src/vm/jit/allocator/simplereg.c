@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5027 2006-06-12 21:14:29Z edwin $
+   $Id: simplereg.c 5052 2006-06-28 17:05:46Z twisti $
 
 */
 
@@ -1294,7 +1294,6 @@ static void new_allocate_scratch_registers(jitdata *jd)
 {
 	methodinfo         *m;
 	registerdata       *rd;
-	s4                  opcode;
 	s4                  i;
 	s4                  len;
 	new_instruction    *iptr;
@@ -1319,9 +1318,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 			len = bptr->icount;
 
 			while (--len >= 0)  {
-				opcode = iptr->opc;
-
-				switch (opcode) {
+				switch (iptr->opc) {
 
 					/* pop 0 push 0 */
 
@@ -1810,7 +1807,6 @@ static void allocate_scratch_registers(jitdata *jd)
 {
 	methodinfo         *m;
 	registerdata       *rd;
-	s4                  opcode;
 	s4                  i;
 	s4                  len;
 	stackptr            src;
@@ -1834,16 +1830,14 @@ static void allocate_scratch_registers(jitdata *jd)
 		if (bptr->flags >= BBREACHED) {
 			dst = bptr->instack;
 
-
 			iptr = bptr->iinstr;
 			len = bptr->icount;
 
 			while (--len >= 0)  {
 				src = dst;
 				dst = iptr->dst;
-				opcode = iptr->opc & ICMD_OPCODE_MASK;
 
-				switch (opcode) {
+				switch (iptr->opc) {
 
 					/* pop 0 push 0 */
 

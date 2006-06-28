@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5049 2006-06-23 12:07:26Z twisti $
+   $Id: jit.h 5052 2006-06-28 17:05:46Z twisti $
 
 */
 
@@ -87,35 +87,6 @@ typedef struct insinfo_inline insinfo_inline;
 
 /* jitdata ********************************************************************/
 
-#define JITDATA_FLAG_PARSE               0x00000001
-#define JITDATA_FLAG_VERIFY              0x00000002
-
-#define JITDATA_FLAG_IFCONV              0x00000004
-
-#define JITDATA_FLAG_SHOWINTERMEDIATE    0x20000000
-#define JITDATA_FLAG_SHOWDISASSEMBLE     0x40000000
-#define JITDATA_FLAG_VERBOSECALL         0x80000000
-
-
-#define JITDATA_HAS_FLAG_PARSE(jd) \
-    ((jd)->flags & JITDATA_FLAG_PARSE)
-
-#define JITDATA_HAS_FLAG_VERIFY(jd) \
-    ((jd)->flags & JITDATA_FLAG_VERIFY)
-
-#define JITDATA_HAS_FLAG_IFCONV(jd) \
-    ((jd)->flags & JITDATA_FLAG_IFCONV)
-
-#define JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd) \
-    ((jd)->flags & JITDATA_FLAG_SHOWINTERMEDIATE)
-
-#define JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) \
-    ((jd)->flags & JITDATA_FLAG_SHOWDISASSEMBLE)
-
-#define JITDATA_HAS_FLAG_VERBOSECALL(jd) \
-    ((jd)->flags & JITDATA_FLAG_VERBOSECALL)
-
-
 struct jitdata {
 	methodinfo      *m;                 /* methodinfo of the method compiled  */
 	codeinfo        *code;
@@ -136,6 +107,40 @@ struct jitdata {
 	s4               new_c_debug_nr;
 	registerdata    *new_rd;
 };
+
+
+#define JITDATA_FLAG_PARSE               0x00000001
+#define JITDATA_FLAG_VERIFY              0x00000002
+
+#define JITDATA_FLAG_INSTRUMENT          0x00000004
+
+#define JITDATA_FLAG_IFCONV              0x00000008
+
+#define JITDATA_FLAG_SHOWINTERMEDIATE    0x20000000
+#define JITDATA_FLAG_SHOWDISASSEMBLE     0x40000000
+#define JITDATA_FLAG_VERBOSECALL         0x80000000
+
+
+#define JITDATA_HAS_FLAG_PARSE(jd) \
+    ((jd)->flags & JITDATA_FLAG_PARSE)
+
+#define JITDATA_HAS_FLAG_VERIFY(jd) \
+    ((jd)->flags & JITDATA_FLAG_VERIFY)
+
+#define JITDATA_HAS_FLAG_INSTRUMENT(jd) \
+    ((jd)->flags & JITDATA_FLAG_INSTRUMENT)
+
+#define JITDATA_HAS_FLAG_IFCONV(jd) \
+    ((jd)->flags & JITDATA_FLAG_IFCONV)
+
+#define JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd) \
+    ((jd)->flags & JITDATA_FLAG_SHOWINTERMEDIATE)
+
+#define JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) \
+    ((jd)->flags & JITDATA_FLAG_SHOWDISASSEMBLE)
+
+#define JITDATA_HAS_FLAG_VERBOSECALL(jd) \
+    ((jd)->flags & JITDATA_FLAG_VERBOSECALL)
 
 
 /************************** stack element structure ***************************/
@@ -1187,11 +1192,6 @@ extern int jcommandsize[256];
 #define ICMD_INLINE_GOTO      253       /* jump to caller of inlined method   */
 
 #define ICMD_BUILTIN          255       /* internal opcode                    */
-
-/* define some ICMD masks *****************************************************/
-
-#define ICMD_OPCODE_MASK      0x00ff    /* mask to get the opcode             */
-#define ICMD_CONDITION_MASK   0xff00    /* mask to get the condition          */
 
 
 /******************* description of JavaVM instructions ***********************/

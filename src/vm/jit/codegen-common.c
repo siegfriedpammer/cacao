@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5049 2006-06-23 12:07:26Z twisti $
+   $Id: codegen-common.c 5052 2006-06-28 17:05:46Z twisti $
 
 */
 
@@ -1040,12 +1040,14 @@ s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum)
 {
 	varinfo *var;
 
+#if 0
 	/* Do we have to generate a conditional move?  Yes, then always
 	   return the temporary register.  The real register is identified
 	   during the store. */
 
 	if (opcode & ICMD_CONDITION_MASK)
 		return tempregnum;
+#endif
 
 	switch (v->varkind) {
 	case TEMPVAR:

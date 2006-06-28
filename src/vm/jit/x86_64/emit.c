@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 4994 2006-05-31 12:33:40Z twisti $
+   $Id: emit.c 5052 2006-06-28 17:05:46Z twisti $
 
 */
 
@@ -186,14 +186,17 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 	codegendata  *cd;
 	registerdata *rd;
 	s4            disp;
+#if 0
 	s4            s;
 	u2            opcode;
+#endif
 
 	/* get required compiler data */
 
 	cd = jd->cd;
 	rd = jd->rd;
 
+#if 0
 	/* do we have to generate a conditional move? */
 
 	if ((iptr != NULL) && (iptr->opc & ICMD_CONDITION_MASK)) {
@@ -214,6 +217,7 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 		emit_cmovxx(cd, iptr, s, d);
 	}
+#endif
 
 	if (dst->flags & INMEMORY) {
 		COUNT_SPILLS;
@@ -268,7 +272,8 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 
 void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
 {
-	switch ((iptr->opc & ICMD_CONDITION_MASK) >> 8) {
+#if 0
+	switch (iptr->flags.fields.condition) {
 	case ICMD_IFEQ:
 		M_CMOVEQ(s, d);
 		break;
@@ -288,6 +293,7 @@ void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
 		M_CMOVLE(s, d);
 		break;
 	}
+#endif
 }
 
 
