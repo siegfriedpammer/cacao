@@ -1,3 +1,8 @@
+New in release 0.97 (xxx xx, 2006)
+
+  * Fixed AbstractMethodError bug.
+
+
 New in release 0.96 (May 29, 2006)
 
   * New tasuki lock implementation resolves deadlock problems on
