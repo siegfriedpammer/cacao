@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: asmpart.c 5055 2006-06-28 20:33:38Z edwin $
 
 */
 
@@ -188,7 +188,8 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 
 	  /* get methodinfo pointer from method header */
 
-	  methodinfo *m = *(methodinfo **) (((u1 *) f) + MethodPointer);
+	  codeinfo *code = *((codeinfo **) ((u1 *)f + CodeinfoPointer));
+	  methodinfo *m = code->m;
 
 	  framesize = (*((s4 *) (((u1 *) f) + FrameSize)));
 	  ex = (exceptionentry *) (((u1 *) f) + ExTableStart);

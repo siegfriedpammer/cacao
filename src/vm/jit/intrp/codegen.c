@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: codegen.c 5055 2006-06-28 20:33:38Z edwin $
 
 */
 
@@ -312,7 +312,7 @@ bool intrp_codegen(jitdata *jd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
+	(void) dseg_addaddress(cd, jd->code);                  /* CodeinfoPointer */
 	(void) dseg_adds4(cd, m->maxlocals * SIZEOF_VOID_P);    /* FrameSize      */
 
 #if defined(ENABLE_THREADS)
@@ -1840,7 +1840,7 @@ bool intrp_codegen(jitdata *jd)
    A stub consists of:
 
    +-------------+
-   | methodinfo* |
+   | codeinfo *  |
    +-------------+ <-- stub
    | codeptr     |
    +-------------+
@@ -1868,6 +1868,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	Inst        *s;
 	Inst        *d;
 	codegendata *cd;
+	codeinfo    *code;
 	s4           dumpsize;
 
 	s = CNEW(Inst, COMPILERSTUB_SIZE);
@@ -1877,10 +1878,11 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	d = s;
 	s = s + COMPILERSTUB_DATASIZE;
 
-	/* Store the methodinfo* in the same place as in the methodheader
-	   for compiled methods. */
+	/* Store the codeinfo pointer in the same place as in the
+	   methodheader for compiled methods. */
 
-	d[0] = (Inst *) m;
+	code = code_codeinfo_new(m);
+	d[0] = (Inst *) code;
 
 	/* mark start of dump memory area */
 
@@ -1995,6 +1997,7 @@ static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
 u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 #if defined(WITH_FFI)
@@ -2011,7 +2014,12 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
+	/* Store the codeinfo pointer in the same place as in the
+	   methodheader for compiled methods. */
+
+	code = code_codeinfo_new(m);
+
+	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
 	(void) dseg_adds4(cd, nmd->paramslots * SIZEOF_VOID_P); /* FrameSize      */
 	(void) dseg_adds4(cd, 0);                               /* IsSync         */
 	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
@@ -2250,7 +2258,7 @@ u1 *createcalljavafunction(methodinfo *m)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, NULL);                       /* MethodPointer  */
+	(void) dseg_addaddress(cd, NULL);                      /* CodeinfoPointer */
 	(void) dseg_adds4(cd, md->paramslots * SIZEOF_VOID_P);  /* FrameSize      */
 	(void) dseg_adds4(cd, 0);                               /* IsSync         */
 	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
