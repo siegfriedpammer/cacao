@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5038 2006-06-19 22:22:34Z twisti $
+   $Id: asmpart.S 5060 2006-06-28 21:52:26Z twisti $
 
 */
 
@@ -65,6 +65,8 @@
 
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
+
+	.globl asm_abstractmethoderror
 
 	.globl asm_wrapper_patcher
 
@@ -972,6 +974,29 @@ ex_flt2:
 	add     pv,pv,itmp3
 
 	b       L_asm_handle_exception_stack_loop
+
+
+/* asm_abstractmethoderror *****************************************************
+
+   Creates and throws an AbstractMethodError.
+
+*******************************************************************************/
+
+asm_abstractmethoderror:
+	mflr	r0
+	stw     r0,LA_LR_OFFSET(sp)
+	stwu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
+	addi    a0,sp,LA_SIZE_ALIGNED       /* pass java sp                       */
+	mr      a1,r0                       /* pass exception address             */
+	bl      exceptions_asm_new_abstractmethoderror
+	lwz     r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
+	mtlr    r0                          /* restore return address             */
+	addi    sp,sp,LA_SIZE_ALIGNED
+
+	mr      xptr,v0                     /* get exception pointer              */
+	mr      xpc,r0                      /* we can't use r0 directly in addi   */
+	addi    xpc,xpc,-4                  /* exception address is ra - 4        */
+	b       L_asm_handle_nat_exception
 
 
 /* asm_wrapper_patcher *********************************************************
