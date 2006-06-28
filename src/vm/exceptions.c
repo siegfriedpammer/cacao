@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5038 2006-06-19 22:22:34Z twisti $
+   $Id: exceptions.c 5053 2006-06-28 19:11:20Z twisti $
 
 */
 
@@ -97,11 +97,11 @@ bool exceptions_init(void)
 		!link_class(class_java_lang_Error))
 		return false;
 
-	/* java/lang/NoClassDefFoundError */
+	/* java/lang/AbstractMethodError */
 
-	if (!(class_java_lang_NoClassDefFoundError =
-		  load_class_bootstrap(utf_java_lang_NoClassDefFoundError)) ||
-		!link_class(class_java_lang_NoClassDefFoundError))
+	if (!(class_java_lang_AbstractMethodError =
+		  load_class_bootstrap(utf_java_lang_AbstractMethodError)) ||
+		!link_class(class_java_lang_AbstractMethodError))
 		return false;
 
 	/* java/lang/LinkageError */
@@ -109,6 +109,13 @@ bool exceptions_init(void)
 	if (!(class_java_lang_LinkageError =
 		  load_class_bootstrap(utf_java_lang_LinkageError)) ||
 		!link_class(class_java_lang_LinkageError))
+		return false;
+
+	/* java/lang/NoClassDefFoundError */
+
+	if (!(class_java_lang_NoClassDefFoundError =
+		  load_class_bootstrap(utf_java_lang_NoClassDefFoundError)) ||
+		!link_class(class_java_lang_NoClassDefFoundError))
 		return false;
 
 	/* java/lang/NoSuchMethodError */
@@ -490,6 +497,37 @@ java_objectheader *new_exception_int(const char *classname, s4 i)
 		return *exceptionptr;
 
 	return o;
+}
+
+
+/* exceptions_new_abstractmethoderror ******************************************
+
+   Generates a java.lang.AbstractMethodError for the VM.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_new_abstractmethoderror(void)
+{
+	java_objectheader *e;
+
+	e = native_new_and_init(class_java_lang_AbstractMethodError);
+
+	if (e == NULL)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* exceptions_throw_abstractmethoderror ****************************************
+
+   Generates a java.lang.AbstractMethodError for the VM and throws it.
+
+*******************************************************************************/
+
+void exceptions_throw_abstractmethoderror(void)
+{
+	*exceptionptr = exceptions_new_abstractmethoderror();
 }
 
 
@@ -1053,6 +1091,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 
 	*exceptionptr = o;
 }
+
 
 /* new_arithmeticexception *****************************************************
 

@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5038 2006-06-19 22:22:34Z twisti $
+   $Id: headers.c 5053 2006-06-28 19:11:20Z twisti $
 
 */
 
@@ -138,7 +138,7 @@ u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p) { return NULL; }
 
 void asm_handle_builtin_exception(classinfo *c) {}
-
+void asm_abstractmethoderror(void) {}
 
 #if defined(ENABLE_JIT)
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
@@ -279,6 +279,14 @@ java_objectheader *new_exception_javastring(const char *classname,
 	/* keep compiler happy */
 
 	return NULL;
+}
+
+
+void exceptions_throw_abstractmethoderror(void)
+{
+	fprintf(stderr, "java.lang.AbstractMethodError\n");
+
+	exit(1);
 }
 
 

@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5008 2006-06-01 16:00:18Z edwin $
+   $Id: resolve.c 5053 2006-06-28 19:11:20Z twisti $
 
 */
 
@@ -1560,9 +1560,10 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 			mi = class_resolvemethod(referer->super.cls,
 									 mi->name,
 									 mi->descriptor);
-			if (!mi) {
+
+			if (mi == NULL) {
 				/* the spec calls for an AbstractMethodError in this case */
-				*exceptionptr = new_exception(string_java_lang_AbstractMethodError);
+				exceptions_throw_abstractmethoderror();
 				return NULL;
 			}
 		}

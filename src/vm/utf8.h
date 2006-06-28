@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: utf8.h 5047 2006-06-22 18:48:45Z twisti $
+   $Id: utf8.h 5053 2006-06-28 19:11:20Z twisti $
 
 */
 
@@ -77,8 +77,9 @@ extern utf *utf_java_io_Serializable;
 extern utf *utf_java_lang_Throwable;
 extern utf *utf_java_lang_VMThrowable;
 extern utf *utf_java_lang_Error;
-extern utf *utf_java_lang_NoClassDefFoundError;
+extern utf *utf_java_lang_AbstractMethodError;
 extern utf *utf_java_lang_LinkageError;
+extern utf *utf_java_lang_NoClassDefFoundError;
 extern utf *utf_java_lang_NoSuchMethodError;
 extern utf *utf_java_lang_OutOfMemoryError;
 

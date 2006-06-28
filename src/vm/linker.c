@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5048 2006-06-23 09:23:02Z twisti $
+   $Id: linker.c 5053 2006-06-28 19:11:20Z twisti $
 
 */
 
@@ -57,6 +57,7 @@
 #include "vm/access.h"
 #include "vm/rt-timing.h"
 #include "vm/vm.h"
+#include "vm/jit/asmpart.h"
 
 
 /* global variables ***********************************************************/
@@ -793,7 +794,14 @@ static classinfo *link_class_intern(classinfo *c)
 
 	for (i = 0; i < supervftbllength; i++) 
 		v->table[i] = super->vftbl->table[i];
-	
+
+	/* Fill the remaining vftbl slots with the AbstractMethodError
+	   stub (all after the super class slots, because they are already
+	   initialized). */
+
+	for (; i < vftbllength; i++)
+		v->table[i] = &asm_abstractmethoderror;
+
 	/* add method stubs into virtual function table */
 
 	for (i = 0; i < c->methodscount; i++) {
@@ -1172,7 +1180,6 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 		v->interfacevftbllength[i] = 1;
 		v->interfacetable[-i]      = MNEW(methodptr, 1);
 		v->interfacetable[-i][0]   = NULL;
-
 	}
 	else {
 		v->interfacevftbllength[i] = ic->methodscount;
@@ -1216,6 +1223,12 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 					}
 				}
 			}
+
+			/* If no method was found, insert the AbstractMethodError
+			   stub. */
+
+			v->interfacetable[-i][j] = &asm_abstractmethoderror;
+
 		foundmethod:
 			;
 		}

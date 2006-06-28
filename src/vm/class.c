@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 5037 2006-06-19 21:39:46Z twisti $
+   $Id: class.c 5053 2006-06-28 19:11:20Z twisti $
 
 */
 
@@ -106,8 +106,9 @@ classinfo *class_java_io_Serializable;
 classinfo *class_java_lang_Throwable;
 classinfo *class_java_lang_VMThrowable;
 classinfo *class_java_lang_Error;
-classinfo *class_java_lang_NoClassDefFoundError;
+classinfo *class_java_lang_AbstractMethodError;
 classinfo *class_java_lang_LinkageError;
+classinfo *class_java_lang_NoClassDefFoundError;
 classinfo *class_java_lang_NoSuchMethodError;
 classinfo *class_java_lang_OutOfMemoryError;
 
@@ -888,7 +889,7 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
  found:
 	if ((m->flags & ACC_ABSTRACT) && !(c->flags & ACC_ABSTRACT)) {
 		if (throwexception)
-			*exceptionptr = new_exception(string_java_lang_AbstractMethodError);
+			exceptions_throw_abstractmethoderror();
 
 		return NULL;
 	}

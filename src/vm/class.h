@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 4582 2006-03-11 20:30:48Z edwin $
+   $Id: class.h 5053 2006-06-28 19:11:20Z twisti $
 
 */
 
@@ -173,8 +173,9 @@ extern classinfo *class_java_io_Serializable;
 extern classinfo *class_java_lang_Throwable;
 extern classinfo *class_java_lang_VMThrowable;
 extern classinfo *class_java_lang_Error;
-extern classinfo *class_java_lang_NoClassDefFoundError;
+extern classinfo *class_java_lang_AbstractMethodError;
 extern classinfo *class_java_lang_LinkageError;
+extern classinfo *class_java_lang_NoClassDefFoundError;
 extern classinfo *class_java_lang_NoSuchMethodError;
 extern classinfo *class_java_lang_OutOfMemoryError;
 

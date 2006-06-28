@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 5041 2006-06-20 09:10:05Z twisti $
+   $Id: asmpart.S 5053 2006-06-28 19:11:20Z twisti $
 
 */
 
@@ -61,6 +61,8 @@
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
+
+	.globl asm_abstractmethoderror
 
 	.globl asm_wrapper_patcher
 
@@ -496,6 +498,20 @@ noflt:
 	xor     a3,a3                       /* prepare a3 for handle_exception    */
 	
 	jmp		L_asm_handle_exception_stack_loop
+
+
+/* asm_abstractmethoderror *****************************************************
+
+   Creates and throws an AbstractMethodError.
+
+*******************************************************************************/
+
+asm_abstractmethoderror:
+	call	exceptions_new_abstractmethoderror@PLT
+	                                    /* exception pointer is return value  */
+	pop     xpc                         /* get exception address              */
+	sub     $5,xpc                      /* exception address is ra - 5        */
+	jmp     L_asm_handle_exception
 
 
 /* asm_wrapper_patcher *********************************************************
