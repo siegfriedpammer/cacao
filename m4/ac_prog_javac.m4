@@ -37,9 +37,9 @@ dnl @license GPLWithACException
 AC_DEFUN([AC_PROG_JAVAC],[
 AC_REQUIRE([AC_EXEEXT])dnl
 if test "x$JAVAPREFIX" = x; then
-        test "x$JAVAC" = x && AC_CHECK_PROGS(JAVAC, "ecj$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "gcj$EXEEXT -C -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "jikes$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "javac$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}")
+        test "x$JAVAC" = x && AC_CHECK_PROGS(JAVAC, "ecj$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP} -1.5" "gcj$EXEEXT -C -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "jikes$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "javac$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}")
 else
-        test "x$JAVAC" = x && AC_CHECK_PROGS(JAVAC, "ecj$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "gcj$EXEEXT -C -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "jikes$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "javac$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}", $JAVAPREFIX)
+        test "x$JAVAC" = x && AC_CHECK_PROGS(JAVAC, "ecj$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP} -1.5" "gcj$EXEEXT -C -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "jikes$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}" "javac$EXEEXT -bootclasspath ${CLASSPATH_GLIBJ_ZIP}", $JAVAPREFIX)
 fi
 test "x$JAVAC" = x && AC_MSG_ERROR([no acceptable Java compiler found in \$PATH])
 AC_PROG_JAVAC_WORKS
