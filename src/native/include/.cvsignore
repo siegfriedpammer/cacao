@@ -7,6 +7,7 @@ gnu_classpath_Pointer32.h
 gnu_classpath_Pointer64.h
 gnu_classpath_VMStackWalker.h
 gnu_classpath_VMSystemProperties.h
+gnu_java_lang_management_VMRuntimeMXBeanImpl.h
 java_io_File.h
 java_io_InputStream.h
 java_io_PrintStream.h

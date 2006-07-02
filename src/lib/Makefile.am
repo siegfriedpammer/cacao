@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5013 2006-06-06 11:22:56Z twisti $
+## $Id: Makefile.am 5066 2006-07-02 18:31:02Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,6 +39,7 @@ CLEANFILES = vm.zip
 
 VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMStackWalker.java \
+	$(top_srcdir)/src/lib/vm/reference/gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMClassLoader.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMString.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMThread.java \
@@ -47,6 +48,7 @@ VM_JAVA_FILES = \
 
 VM_CLASS_FILES = \
 	classes/gnu/classpath/VMStackWalker.class \
+	classes/gnu/java/lang/management/VMRuntimeMXBeanImpl.class \
 	classes/java/lang/VMClassLoader.class \
 	classes/java/lang/VMString.class \
 	classes/java/lang/VMThread.class \
@@ -60,11 +62,7 @@ VM_ZIP = ../vm.zip
 
 vm.zip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	@if test "$(JAVAC)" = "ecj"; then \
-	    $(JAVAC) -bootclasspath $(CLASSPATH_GLIBJ_ZIP) -d classes -1.5 $(VM_JAVA_FILES); \
-	else \
-	    $(JAVAC) -bootclasspath $(CLASSPATH_GLIBJ_ZIP) -d classes $(VM_JAVA_FILES); \
-	fi
+	$(JAVAC) -d classes $(VM_JAVA_FILES)
 	@if test "$(JAR)" = "zip"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \
 	else \
@@ -75,11 +73,7 @@ pkgdata_DATA = nozip
 
 nozip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	@if test "$(JAVAC)" = "ecj"; then \
-	    $(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes -1.5 $(VM_JAVA_FILES); \
-	else \
-	    $(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES); \
-	fi
+	$(JAVAC) -d classes $(VM_JAVA_FILES)
 endif
 
 clean-local:

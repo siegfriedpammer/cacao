@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4661 2006-03-21 00:04:59Z motse $
+## $Id: Makefile.am 5066 2006-07-02 18:31:02Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -48,6 +48,7 @@ libnativevm_la_SOURCES = \
 	VMObject.c \
 	VMProxy.c \
 	VMRuntime.c \
+	gnu_java_lang_management_VMRuntimeMXBeanImpl.c \
 	VMStackWalker.c \
 	VMString.c \
 	VMSystem.c \

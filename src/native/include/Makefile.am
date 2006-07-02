@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5013 2006-06-06 11:22:56Z twisti $
+## $Id: Makefile.am 5066 2006-07-02 18:31:02Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -80,9 +80,11 @@ GEN_JVMTI_HEADER_FILES = \
 	gnu_classpath_jdwp_event_EventRequest.h \
 	gnu_classpath_jdwp_util_VariableTable.h
 
+
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
 	gnu_classpath_VMSystemProperties.h \
+	gnu_java_lang_management_VMRuntimeMXBeanImpl.h \
 	java_lang_VMClass.h \
 	java_lang_VMClassLoader.h \
 	java_lang_VMRuntime.h \
@@ -132,6 +134,7 @@ endif
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
 CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
+VM_ZIP = $(top_builddir)/src/lib/vm.zip
 
 noinst_DATA = $(DO_HEADER_FILES)
 

@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5032 2006-06-14 18:55:35Z motse $
+   $Id: native.c 5066 2006-07-02 18:31:02Z twisti $
 
 */
 
@@ -76,6 +76,7 @@
 
 #include "native/include/gnu_classpath_VMStackWalker.h"
 #include "native/include/gnu_classpath_VMSystemProperties.h"
+#include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_VMClass.h"
@@ -91,6 +92,7 @@
 #include "native/include/java_lang_reflect_Method.h"
 #include "native/include/java_lang_reflect_VMProxy.h"
 #include "native/include/java_security_VMAccessController.h"
+
 #if defined(ENABLE_JVMTI)
 #include "native/include/gnu_classpath_jdwp_event_EventRequest.h"
 #include "native/include/java_nio_ByteBuffer.h"
@@ -130,6 +132,9 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_gnu_classpath_VMStackWalker_getClassContext,
 
 	(functionptr) Java_gnu_classpath_VMSystemProperties_preInit,
+
+	(functionptr) Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments,
+	(functionptr) Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime,
 
 	(functionptr) Java_java_lang_VMClass_isInstance,
 	(functionptr) Java_java_lang_VMClass_isAssignableFrom,
@@ -232,6 +237,7 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_reflect_VMProxy_generateProxyClass,
 
 	(functionptr) Java_java_security_VMAccessController_getStack,
+
 #if defined(ENABLE_JVMTI)
 	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread,
 	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread,
