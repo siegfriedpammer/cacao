@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 5054 2006-06-28 19:43:42Z twisti $
+   $Id: exceptions.h 5067 2006-07-03 10:18:56Z twisti $
 
 */
 
@@ -163,6 +163,8 @@ java_objectheader *exceptions_new_stringindexoutofboundsexception(void);
 void exceptions_throw_stringindexoutofboundsexception(void);
 
 void classnotfoundexception_to_noclassdeffounderror(void);
+
+java_objectheader *exceptions_get_and_clear_exception(void);
 
 void exceptions_print_exception(java_objectheader *xptr);
 

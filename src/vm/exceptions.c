@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5059 2006-06-28 21:51:56Z twisti $
+   $Id: exceptions.c 5067 2006-07-03 10:18:56Z twisti $
 
 */
 
@@ -1387,6 +1387,36 @@ java_objectheader *exceptions_new_stringindexoutofboundsexception(void)
 void exceptions_throw_stringindexoutofboundsexception(void)
 {
 	*exceptionptr = exceptions_new_stringindexoutofboundsexception();
+}
+
+
+/* exceptions_get_and_clear_exception ******************************************
+
+   Gets the exception pointer of the current thread and clears it.
+   This function may return NULL.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_get_and_clear_exception(void)
+{
+	java_objectheader **p;
+	java_objectheader  *e;
+
+	/* get the pointer of the exception pointer */
+
+	p = exceptionptr;
+
+	/* get the exception */
+
+	e = *p;
+
+	/* and clear the exception */
+
+	*p = NULL;
+
+	/* return the exception */
+
+	return e;
 }
 
 
