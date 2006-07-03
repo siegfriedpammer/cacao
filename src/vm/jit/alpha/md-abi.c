@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 4960 2006-05-26 12:19:43Z edwin $
+   $Id: md-abi.c 5070 2006-07-03 13:46:42Z twisti $
 
 */
 
@@ -45,10 +45,18 @@
 /* register descripton array **************************************************/
 
 s4 nregdescint[] = {
+	/*   v0,      t0,      t1,      t2,      t3,      t4,      t5,      t6,   */
 	REG_RET, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+
+	/*   t7,      s0,      s1,      s2,      s3,      s4,      s5,      s6,   */
 	REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, 
+
+	/*   a0,      a1,      a2,      a3,      a4,      a5,      t8,      t9,   */
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP,
+
+	/*  t10,   itmp1,      ra,      pv,      at,   itmp3,      sp,    zero,   */
 	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+
 	REG_END
 };
 
