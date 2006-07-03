@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: md-os.c 5069 2006-07-03 13:45:15Z twisti $
 
 */
 
@@ -95,18 +95,45 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
+/* md_signal_handler_sigusr2 ***************************************************
+
+   Signal handler for profiling sampling.
+
+*******************************************************************************/
+
+void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
+{
+	threadobject *tobj;
+	ucontext_t   *_uc;
+	mcontext_t   *_mc;
+	u1           *pc;
+
+	tobj = THREADOBJECT;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	pc = (u1 *) _mc->sc_pc;
+
+	tobj->pc = pc;
+}
+
+
 #if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *_uc)
 {
 	mcontext_t *_mc;
-	void       *critical;
+	u1         *pc;
+	u1         *npc;
 
 	_mc = &_uc->uc_mcontext;
 
-	critical = critical_find_restart_point((void *) _mc->sc_pc);
+	pc = (u1 *) _mc->sc_pc;
 
-	if (critical)
-		_mc->sc_pc = (ptrint) critical;
+	npc = critical_find_restart_point(pc);
+
+	if (npc != NULL)
+		_mc->sc_pc = (ptrint) npc;
 }
 #endif
 
