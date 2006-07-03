@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 5068 2006-07-03 12:06:51Z twisti $
+   $Id: asmpart.S 5072 2006-07-03 14:06:05Z twisti $
 
 */
 
@@ -243,19 +243,14 @@ asm_call_jit_compiler:
 	                              /* directly to the caller (ra).             */
 
 L_asm_call_jit_compiler_exception:
-#if defined(ENABLE_THREADS)
 	subq    sp,2*8,sp
 	stq     ra,0*8(sp)            /* save return address (xpc)                */
-	jsr     ra,builtin_asm_get_exceptionptrptr
+	jsr     ra,exceptions_get_and_clear_exception
 	ldq     ra,0*8(sp)            /* restore return address (xpc)             */
 	addq    sp,2*8,sp
-#else
-	lda     v0,_exceptionptr
-#endif
-	ldq     xptr,0(v0)            /* get the exception pointer                */
-	stq     zero,0(v0)            /* clear the exception pointer              */
 
-	subq    ra,4,xpc
+	mov     v0,xptr               /* get exception                            */
+	subq    ra,4,xpc              /* exception address is ra - 4              */
 	br      L_asm_handle_nat_exception
 
 	.end    asm_call_jit_compiler
@@ -527,21 +522,17 @@ L_asm_wrapper_patcher_exception:
 L_asm_wrapper_patcher_exception_load_gp:
 	ldgp    gp,0(itmp1)           /* itmp3 == gp, load the current gp         */
 
-#if defined(ENABLE_THREADS)
-	subq    sp,3*8,sp
+	subq    sp,4*8,sp
 	stq     xpc,0*8(sp)           /* save return address (xpc)                */
 	stq     ra,1*8(sp)
 	stq     pv,2*8(sp)
-	jsr     ra,builtin_asm_get_exceptionptrptr
+	jsr     ra,exceptions_get_and_clear_exception
 	ldq     xpc,0*8(sp)           /* restore return address (xpc)             */
 	ldq     ra,1*8(sp)
 	ldq     pv,2*8(sp)
-	addq    sp,3*8,sp
-#else
-	lda     v0,_exceptionptr
-#endif
-	ldq     xptr,0(v0)            /* get the exception pointer                */
-	stq     zero,0(v0)            /* clear the exception pointer              */
+	addq    sp,4*8,sp
+
+	mov     v0,xptr               /* get exception                            */
 	br      L_asm_handle_exception/* we have the pv of the calling java func. */
 
 	.end	asm_wrapper_patcher
