@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5038 2006-06-19 22:22:34Z twisti $
+   $Id: codegen-common.h 5071 2006-07-03 13:49:14Z twisti $
 
 */
 
@@ -184,7 +184,7 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
 #endif
 
 void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
-void codegen_finish_native_call(u1 *datasp);
+java_objectheader *codegen_finish_native_call(u1 *datasp);
 
 u1 *createcompilerstub(methodinfo *m);
 u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd);

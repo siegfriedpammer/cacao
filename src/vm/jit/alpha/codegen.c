@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5042 2006-06-20 11:55:40Z twisti $
+   $Id: codegen.c 5071 2006-07-03 13:49:14Z twisti $
 
 */
 
@@ -4259,19 +4259,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* save return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type))
-		M_LST(REG_RESULT, REG_SP, 0 * 8);
-	else
-		M_DST(REG_FRESULT, REG_SP, 0 * 8);
-
-	/* remove native stackframe info */
-
-	M_LDA(rd->argintregs[0], REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
-	disp = dseg_addaddress(cd, codegen_finish_native_call);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
-	disp = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_LDA(REG_PV, REG_RA, -disp);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LST(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DST(REG_FRESULT, REG_SP, 0 * 8);
+	}
 
 	/* call finished trace */
 
@@ -4279,10 +4272,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	if (opt_verbosecall) {
 		/* just restore the value we need, don't care about the other */
 
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			M_LLD(REG_RESULT, REG_SP, 0 * 8);
-		else
-			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		if (md->returntype.type != TYPE_VOID) {
+			if (IS_INT_LNG_TYPE(md->returntype.type))
+				M_LLD(REG_RESULT, REG_SP, 0 * 8);
+			else
+				M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		}
 
 		disp = dseg_addaddress(cd, m);
 		M_ALD(rd->argintregs[0], REG_PV, disp);
@@ -4299,42 +4294,36 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 #endif /* !defined(NDEBUG) */
 
-	/* check for exception */
+	/* remove native stackframe info */
 
-#if defined(ENABLE_THREADS)
-	disp = dseg_addaddress(cd, builtin_get_exceptionptrptr);
+	M_LDA(rd->argintregs[0], REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
+	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
 	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);
-	M_MOV(REG_RESULT, REG_ITMP3);
-#else
-	disp = dseg_addaddress(cd, &_exceptionptr);
-	M_ALD(REG_RESULT, REG_PV, disp);    /* get address of exceptionptr        */
-#endif
-	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
+	M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 	/* restore return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type))
-		M_LLD(REG_RESULT, REG_SP, 0 * 8);
-	else
-		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
-
-	M_BNEZ(REG_ITMP1, 3);               /* if no exception then return        */
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+	}
 
 	M_ALD(REG_RA, REG_SP, (stackframesize - 1) * 8); /* load return address   */
 	M_LDA(REG_SP, REG_SP, stackframesize * 8);
+
+	/* check for exception */
+
+	M_BNEZ(REG_ITMP1_XPTR, 1);          /* if no exception then return        */
 	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
 
 	/* handle exception */
 
-	M_AST(REG_ZERO, REG_ITMP3, 0);      /* store NULL into exceptionptr       */
-
-	M_ALD(REG_RA, REG_SP, (stackframesize - 1) * 8); /* load return address   */
-	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
-
-	M_LDA(REG_SP, REG_SP, stackframesize * 8);
+	M_ASUB_IMM(REG_RA, 4, REG_ITMP2_XPC); /* get exception address            */
 
 	disp = dseg_addaddress(cd, asm_handle_nat_exception);
 	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */

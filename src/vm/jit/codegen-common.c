@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5052 2006-06-28 17:05:46Z twisti $
+   $Id: codegen-common.c 5071 2006-07-03 13:49:14Z twisti $
 
 */
 
@@ -939,16 +939,19 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 /* codegen_finish_native_call **************************************************
 
    Removes the stuff required for a native (JNI) function call.
+   Additionally it checks for an exceptions and in case, get the
+   exception object and clear the pointer.
 
 *******************************************************************************/
 
-void codegen_finish_native_call(u1 *datasp)
+java_objectheader *codegen_finish_native_call(u1 *datasp)
 {
-	stackframeinfo  *sfi;
-	stackframeinfo **psfi;
-	localref_table  *lrt;
-	localref_table  *plrt;
-	s4               localframes;
+	stackframeinfo     *sfi;
+	stackframeinfo    **psfi;
+	localref_table     *lrt;
+	localref_table     *plrt;
+	s4                  localframes;
+	java_objectheader  *e;
 
 	/* get data structures from stack */
 
@@ -989,6 +992,12 @@ void codegen_finish_native_call(u1 *datasp)
 	/* now store the previous local frames in the thread structure */
 
 	LOCALREFTABLE = lrt;
+
+	/* get the exception and return it */
+
+	e = exceptions_get_and_clear_exception();
+
+	return e;
 }
 
 

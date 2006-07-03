@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 4899 2006-05-10 16:14:28Z twisti $
+   $Id: codegen.h 5071 2006-07-03 13:49:14Z twisti $
 
 */
 
@@ -287,6 +287,7 @@
 #define M_LMUL_IMM(a,b,c)       M_OP3 (0x13,0x20, a,b,c,1)      /* 64 mul     */
 
 #define M_AADD_IMM(a,b,c)       M_LADD_IMM(a,b,c)
+#define M_ASUB_IMM(a,b,c)       M_LSUB_IMM(a,b,c)
 
 #define M_CMPEQ(a,b,c)          M_OP3 (0x10,0x2d, a,b,c,0)      /* c = a == b */
 #define M_CMPLT(a,b,c)          M_OP3 (0x10,0x4d, a,b,c,0)      /* c = a <  b */
