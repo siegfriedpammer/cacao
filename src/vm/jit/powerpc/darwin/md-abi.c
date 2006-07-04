@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 4710 2006-03-30 10:23:11Z twisti $
+   $Id: md-abi.c 5073 2006-07-04 16:02:19Z twisti $
 
 */
 
@@ -128,44 +128,51 @@ void md_param_alloc(methoddesc *md)
 				pd->inmemory = false;
 				pd->regoff = iarg;           /* rd->arg[int|flt]regs index !! */
 				iarg++;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 			}
 			stacksize++;
 			break;
+
 		case TYPE_LNG:
 			if (iarg < INT_ARG_CNT - 1) {
 				pd->inmemory = false;
 				                             /* rd->arg[int|flt]regs index !! */
 				pd->regoff = PACK_REGS(iarg + 1, iarg); 
 				iarg += 2;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 				iarg = INT_ARG_CNT;
 			}
 			stacksize += 2;
 			break;
+
 		case TYPE_FLT:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = farg;           /* rd->arg[int|flt]regs index !! */
-				iarg++;     /* skip 1 integer argument register */
+				iarg++;                   /* skip 1 integer argument register */
 				farg++;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 			}
 			stacksize++;
 			break;
+
 		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = farg;           /* rd->arg[int|flt]regs index !! */
-				iarg += 2;  /* skip 2 integer argument registers */
+				iarg += 2;               /* skip 2 integer argument registers */
 				farg++;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 			}
@@ -177,19 +184,22 @@ void md_param_alloc(methoddesc *md)
 
 	/* Since R3/R4, F1 (==A0/A1, A0) are used for passing return values, this */
 	/* argument register usage has to be regarded, too                        */
+
 	if (IS_INT_LNG_TYPE(md->returntype.type)) {
 		if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1))
 			iarg = IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1;
-	} else {
+	}
+	else {
 		if (IS_FLT_DBL_TYPE(md->returntype.type))
 			if (farg < 1)
 				farg = 1;
 	}
 
 	/* fill register and stack usage */
+
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
-	md->memuse = stacksize;
+	md->memuse       = stacksize;
 }
 
 
