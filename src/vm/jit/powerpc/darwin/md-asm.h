@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: md-asm.h 5074 2006-07-04 16:05:35Z twisti $
 
 */
 
@@ -238,8 +238,11 @@
 
 #define asm_handle_nat_exception              _asm_handle_nat_exception
 #define asm_handle_exception                  _asm_handle_exception
-#define asm_handle_nullptr_exception          _asm_handle_nullptr_exception
+
+#define asm_abstractmethoderror               _asm_abstractmethoderror
+
 #define asm_wrapper_patcher                   _asm_wrapper_patcher
+
 #define asm_replacement_out                   _asm_replacement_out
 #define asm_replacement_in                    _asm_replacement_in
 
@@ -259,6 +262,10 @@
 #define builtin_throw_exception               L_builtin_throw_exception$stub
 #define exceptions_handle_exception           L_exceptions_handle_exception$stub
 #define jit_asm_compile                       L_jit_asm_compile$stub
+
+#define exceptions_asm_new_abstractmethoderror \
+    L_exceptions_asm_new_abstractmethoderror$stub
+
 #define replace_me                            L_replace_me$stub
 
 #define stacktrace_create_extern_stackframeinfo \

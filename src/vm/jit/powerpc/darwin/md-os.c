@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 4966 2006-05-26 12:58:40Z twisti $
+   $Id: md-os.c 5074 2006-07-04 16:05:35Z twisti $
 
 */
 
@@ -101,6 +101,32 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 					   "Segmentation fault: 0x%08lx at 0x%08lx",
 					   addr, _ss->srr0);
 	}
+}
+
+
+/* md_signal_handler_sigusr2 ***************************************************
+
+   Signal handler for profiling sampling.
+
+*******************************************************************************/
+
+void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
+{
+	threadobject       *t;
+	ucontext_t         *_uc;
+	mcontext_t          _mc;
+	ppc_thread_state_t *_ss;
+	u1                 *pc;
+
+	t = THREADOBJECT;
+
+	_uc = (ucontext_t *) _p;
+	_mc = _uc->uc_mcontext;
+	_ss = &_mc->ss;
+
+	pc = (u1 *) _ss->srr0;
+
+	t->pc = pc;
 }
 
 
