@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5049 2006-06-23 12:07:26Z twisti $
+   $Id: codegen.c 5076 2006-07-04 18:24:24Z twisti $
 
 */
 
@@ -3950,21 +3950,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			if (IS_2_WORD_TYPE(md->returntype.type))
 				M_IST(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
 			M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-		} else {
+		}
+		else {
 			if (IS_2_WORD_TYPE(md->returntype.type))
 				M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
 			else
 				M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
 		}
 	}
-
-	/* remove native stackframe info */
-
-	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[0]);
-	disp = dseg_addaddress(cd, codegen_finish_native_call);
-	M_ALD(REG_ITMP1, REG_PV, disp);
-	M_MTCTR(REG_ITMP1);
-	M_JSR;
 
 	/* print call trace */
 
@@ -3976,7 +3969,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				if (IS_2_WORD_TYPE(md->returntype.type))
 					M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
 				M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-			} else {
+			}
+			else {
 				if (IS_2_WORD_TYPE(md->returntype.type))
 					M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
 				else
@@ -4023,19 +4017,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		M_LDA(REG_SP, REG_SP, LA_SIZE + (1 + 2 + 2 + 1) * 4);
 	}
 
-	/* check for exception */
+	/* remove native stackframe info */
 
-#if defined(ENABLE_THREADS)
-	disp = dseg_addaddress(cd, builtin_get_exceptionptrptr);
+	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[0]);
+	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
-	M_MOV(REG_RESULT, REG_ITMP2);
-#else
-	disp = dseg_addaddress(cd, &_no_threads_exceptionptr);
-	M_ALD(REG_ITMP2, REG_PV, disp);
-#endif
-	M_ALD(REG_ITMP1_XPTR, REG_ITMP2, 0);/* load exception into reg. itmp1     */
+	M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 	/* restore return value */
 
@@ -4044,7 +4033,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			if (IS_2_WORD_TYPE(md->returntype.type))
 				M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
 			M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-		} else {
+		}
+		else {
 			if (IS_2_WORD_TYPE(md->returntype.type))
 				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
 			else
@@ -4052,25 +4042,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		}
 	}
 
-	M_TST(REG_ITMP1_XPTR);
-	M_BNE(4);                           /* if no exception then return        */
-
-	M_ALD(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET); /* load ra   */
-	M_MTLR(REG_ZERO);
+	M_ALD(REG_ITMP2_XPC, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
+	M_MTLR(REG_ITMP2_XPC);
 	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
+
+	/* check for exception */
+
+	M_TST(REG_ITMP1_XPTR);
+	M_BNE(1);                           /* if no exception then return        */
+
 	M_RET;
 
 	/* handle exception */
 
-	M_CLR(REG_ITMP3);
-	M_AST(REG_ITMP3, REG_ITMP2, 0);     /* store NULL into exceptionptr       */
-
-	M_ALD(REG_ITMP2, REG_SP, stackframesize * 4 + LA_LR_OFFSET); /* load ra   */
-	M_MTLR(REG_ITMP2);
-
-	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
-
-	M_IADD_IMM(REG_ITMP2, -4, REG_ITMP2_XPC);  /* fault address               */
+	M_IADD_IMM(REG_ITMP2_XPC, -4, REG_ITMP2_XPC);  /* exception address       */
 
 	disp = dseg_addaddress(cd, asm_handle_nat_exception);
 	M_ALD(REG_ITMP3, REG_PV, disp);
