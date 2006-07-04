@@ -61,14 +61,14 @@ public class test extends Thread {
 
 
     final private static void invokestatic() {
-        System.out.print("invokestatic: ");
         try {
+            p("invokestatic: ");
             if (doit)
                 invokestatic.sub();
             else
-                System.out.println("OK");
-        } catch (Throwable t) {
-            System.out.println("FAILED: " + t);
+                ok();
+        } catch (NoClassDefFoundError t) {
+            failed(t);
         }
     }
 
@@ -80,7 +80,7 @@ public class test extends Thread {
                 check(getstaticI.i, 123);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -90,7 +90,7 @@ public class test extends Thread {
                 check(getstaticJ.l, 1234567890123L);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -100,7 +100,7 @@ public class test extends Thread {
                 check(getstaticF.f, 123.456F);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -110,7 +110,7 @@ public class test extends Thread {
                 check(getstaticD.d, 789.012);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -120,7 +120,7 @@ public class test extends Thread {
                 check(getstaticL.o, null);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -134,7 +134,7 @@ public class test extends Thread {
                 check(putstaticI.i, i);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -146,7 +146,7 @@ public class test extends Thread {
                 check(putstaticJ.l, l);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -158,7 +158,7 @@ public class test extends Thread {
                 check(putstaticF.f, f);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -170,7 +170,7 @@ public class test extends Thread {
                 check(putstaticD.d, d);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -183,7 +183,7 @@ public class test extends Thread {
                 check(putstaticL.o, o);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -196,7 +196,7 @@ public class test extends Thread {
                 check(putstaticconstI.i, 123);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -207,7 +207,7 @@ public class test extends Thread {
                 check(putstaticconstJ.l, 1234567890123L);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -218,7 +218,7 @@ public class test extends Thread {
                 check(putstaticconstF.f, 123.456F);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -229,7 +229,7 @@ public class test extends Thread {
                 check(putstaticconstD.d, 789.012);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -240,7 +240,7 @@ public class test extends Thread {
                 check(putstaticconstI.i, 0);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -251,7 +251,7 @@ public class test extends Thread {
                 check(putstaticconstJ.l, 0L);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -262,7 +262,7 @@ public class test extends Thread {
                 check(putstaticconstF.f, 0.0F);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -273,7 +273,7 @@ public class test extends Thread {
                 check(putstaticconstD.d, 0.0);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -284,7 +284,7 @@ public class test extends Thread {
                 check(putstaticconstL.o, null);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -295,7 +295,9 @@ public class test extends Thread {
                 check(putstaticconstC.c, Class.forName("putstaticconstC"));
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
+            failed(t);
+        } catch (ClassNotFoundException t) {
             failed(t);
         }
     }
@@ -307,7 +309,7 @@ public class test extends Thread {
                 check(new getfieldI().i, 123);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -317,7 +319,7 @@ public class test extends Thread {
                 check(new getfieldJ().l, 1234567890123L);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -327,7 +329,7 @@ public class test extends Thread {
                 check(new getfieldF().f, 123.456F);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -337,7 +339,7 @@ public class test extends Thread {
                 check(new getfieldD().d, 789.012);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -347,7 +349,7 @@ public class test extends Thread {
                 check(new getfieldL().o, null);
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -362,7 +364,7 @@ public class test extends Thread {
                 check(pfi.i, i);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -375,7 +377,7 @@ public class test extends Thread {
                 check(pfj.l, l);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -388,7 +390,7 @@ public class test extends Thread {
                 check(pff.f, f);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -401,7 +403,7 @@ public class test extends Thread {
                 check(pfd.d, d);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -414,7 +416,7 @@ public class test extends Thread {
                 check(pfl.o, o);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -428,7 +430,7 @@ public class test extends Thread {
                 check(pfci.i, 123);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
  
@@ -440,7 +442,7 @@ public class test extends Thread {
                 check(pfcj.l, 1234567890123L);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -452,7 +454,7 @@ public class test extends Thread {
                 check(pfcf.f, 123.456F);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
  
@@ -464,7 +466,7 @@ public class test extends Thread {
                 check(pfcd.d, 789.012);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -476,7 +478,7 @@ public class test extends Thread {
                 check(pfci.i, 0);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
  
@@ -488,7 +490,7 @@ public class test extends Thread {
                 check(pfcj.l, 0L);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -500,7 +502,7 @@ public class test extends Thread {
                 check(pfcf.f, 0.0F);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
  
@@ -512,7 +514,7 @@ public class test extends Thread {
                 check(pfcd.d, 0.0);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -524,7 +526,7 @@ public class test extends Thread {
                 check(pfcl.o, null);
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -536,7 +538,9 @@ public class test extends Thread {
                 check(pfcc.c, Class.forName("putfieldconstC"));
             } else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
+            failed(t);
+        } catch (ClassNotFoundException t) {
             failed(t);
         }
     }
@@ -548,7 +552,7 @@ public class test extends Thread {
                 newarray[] na = new newarray[1];
             }
             ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -560,7 +564,7 @@ public class test extends Thread {
                 multianewarray[][] ma = new multianewarray[1][1];
             }
             ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -572,7 +576,7 @@ public class test extends Thread {
                 new invokespecial();
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -590,7 +594,7 @@ public class test extends Thread {
                 ok();
         } catch (ClassCastException e) {
             ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -604,7 +608,7 @@ public class test extends Thread {
                 ok();
         } catch (ClassCastException e) {
             ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -622,7 +626,7 @@ public class test extends Thread {
                 ok();
         } catch (ClassCastException e) {
             ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -639,7 +643,7 @@ public class test extends Thread {
                     ok();
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -652,7 +656,7 @@ public class test extends Thread {
                     ok();
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
 
@@ -670,7 +674,7 @@ public class test extends Thread {
                     ok();
             else
                 ok();
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
             failed(t);
         }
     }
@@ -692,8 +696,9 @@ public class test extends Thread {
                 check(ca[0],Class.forName("aastoreconstClass"));
             } else
                 ok();
-
-        } catch (Throwable t) {
+        } catch (NoClassDefFoundError t) {
+            failed(t);
+        } catch (ClassNotFoundException t) {
             failed(t);
         }
     }
