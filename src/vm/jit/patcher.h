@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: patcher.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: patcher.h 5077 2006-07-04 19:06:56Z twisti $
 
 */
 
@@ -37,12 +37,18 @@
 #define _PATCHER_H
 
 #include "config.h"
+
+#include <assert.h>
+
 #include "vm/types.h"
 
 #include "vm/global.h"
 
 
 /* patcher macros *************************************************************/
+
+#define PATCHER_FLAG_PATCHED    (vftbl_t *) 0xdeadbeef
+
 
 #if defined(ENABLE_THREADS)
 
@@ -53,10 +59,12 @@
 	                                                     \
 	/* check if the position has already been patched */ \
 	                                                     \
-	if (o->vftbl) {                                      \
+	if (o->vftbl != NULL) {                              \
+        assert(o->vftbl == PATCHER_FLAG_PATCHED);        \
+                                                         \
 		builtin_monitorexit(o);                          \
 	                                                     \
-		return true;                                     \
+		return NULL;                                     \
 	}                                                    \
 
 
@@ -69,7 +77,7 @@
 #define PATCHER_MARK_PATCHED_MONITOREXIT \
 	/* mark position as patched */                       \
 	                                                     \
-	o->vftbl = (vftbl_t *) 1;                            \
+	o->vftbl = PATCHER_FLAG_PATCHED;                     \
 	                                                     \
 	PATCHER_MONITOREXIT
 
@@ -83,6 +91,9 @@
 
 
 /* function prototypes ********************************************************/
+
+java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra);
+#define PATCHER_wrapper (functionptr) patcher_wrapper
 
 bool patcher_get_putstatic(u1 *sp);
 #define PATCHER_get_putstatic (functionptr) patcher_get_putstatic

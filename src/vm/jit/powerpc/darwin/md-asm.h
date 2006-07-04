@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5074 2006-07-04 16:05:35Z twisti $
+   $Id: md-asm.h 5077 2006-07-04 19:06:56Z twisti $
 
 */
 
@@ -256,8 +256,8 @@
 
 /* external defines ***********************************************************/
 
-#define builtin_asm_get_exceptionptrptr \
-    L_builtin_asm_get_exceptionptrptr$stub
+#define exceptions_get_and_clear_exception \
+    L_exceptions_get_and_clear_exception$stub
 
 #define builtin_throw_exception               L_builtin_throw_exception$stub
 #define exceptions_handle_exception           L_exceptions_handle_exception$stub
@@ -273,10 +273,6 @@
 
 #define stacktrace_remove_stackframeinfo \
     L_stacktrace_remove_stackframeinfo$stub
-
-#if !defined(ENABLE_THREADS)
-#define _no_threads_exceptionptr              __no_threads_exceptionptr
-#endif
 
 #endif /* _MD_ASM_H */
 

@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5074 2006-07-04 16:05:35Z twisti $
+   $Id: asmpart.S 5077 2006-07-04 19:06:56Z twisti $
 
 */
 
@@ -768,29 +768,16 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	bctr                                /* and call the Java method           */
 
 L_asm_call_jit_compiler_exception:
-#if defined(ENABLE_THREADS)
 	mflr	r0
 	stw     r0,LA_LR_OFFSET(sp)
 	stwu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
-	bl      builtin_asm_get_exceptionptrptr
-	lwz     r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
-	mtlr    r0	
+	bl      exceptions_get_and_clear_exception
+	lwz     xpc,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
+	mtlr    xpc	
 	addi    sp,sp,LA_SIZE_ALIGNED
-#else
-# if defined(__DARWIN__)
-	lis     v0,ha16(_no_threads_exceptionptr)
-	addi    v0,v0,lo16(_no_threads_exceptionptr)
-# else
-	lis     v0,_no_threads_exceptionptr@ha
-	addi    v0,v0,_no_threads_exceptionptr@l
-# endif
-#endif
-	lwz     xptr,0(v0)                  /* get the exception pointer          */
-	li      itmp3,0
-	stw     itmp3,0(v0)                 /* clear the exception pointer        */
 
-	mflr    xpc
-	addi    xpc,xpc,-4
+	mr      xptr,v0                     /* get exception                      */
+	addi    xpc,xpc,-4                  /* exception address is ra - 4        */
 	b       L_asm_handle_nat_exception
 
 
@@ -1017,7 +1004,7 @@ asm_wrapper_patcher:
 	mflr	r0                    /* get Java return address (leaf)           */
 	stw     r0,6*4(sp)            /* store it in the stub stackframe          */
 	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
-	stwu    sp,-(LA_SIZE+(5+58)*4+sizestackframeinfo)(sp)
+	stwu    sp,-(LA_SIZE+(5+58)*4)(sp)
 
 #if defined(__DARWIN__)
 	stw     a0,LA_SIZE+(5+0)*4(r1)      /* save argument registers            */
@@ -1067,23 +1054,11 @@ asm_wrapper_patcher:
 	stw     itmp2,LA_SIZE+(5+55)*4(sp)
 	stw     pv,LA_SIZE+(5+56)*4(sp)
 
-	addi    a0,sp,LA_SIZE+(5+58)*4      /* create stackframe info             */
-	mr      a1,pv
-	addi    a2,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
-	mr      a3,r0                       /* this is correct for leafs          */
-	lwz     a4,((5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo)(sp) /* pass xpc   */
-	bl      stacktrace_create_extern_stackframeinfo
-
-	addi    a0,sp,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo  /* pass sp      */
-	lwz     pv,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp) /* get function */
-	lwz     itmp1,LA_SIZE+(5+56)*4(sp)  /* move pv to position of fp          */
-	stw     itmp1,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp)
-	mtctr   pv                          /* call the patcher function          */
-	bctrl
+	addi    a0,sp,LA_SIZE+(5+58)*4      /* pass SP of patcher stub            */
+	mr      a1,pv                       /* pass PV                            */
+	mr      a2,r0                       /* pass RA (correct for leafs)        */
+	bl      patcher_wrapper
 	stw     v0,LA_SIZE+(5+57)*4(sp)     /* save return value                  */
-
-	addi    a0,sp,LA_SIZE+(5+58)*4
-	bl      stacktrace_remove_stackframeinfo /* remove stackframe info        */
 
 #if defined(__DARWIN__)
 	lwz     a0,LA_SIZE+(5+0)*4(r1)
@@ -1134,48 +1109,25 @@ asm_wrapper_patcher:
 	lwz     pv,LA_SIZE+(5+56)*4(sp)
 	lwz     itmp3,LA_SIZE+(5+57)*4(sp)  /* restore return value into temp reg.*/
 
-	lwz     r0,(6+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp) /* restore RA   */
+	lwz     r0,(6+LA_WORD_SIZE+5+58)*4(sp) /* restore RA                      */
 	mtlr	r0
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
-	beq     L_asm_wrapper_patcher_exception
+	bne     L_asm_wrapper_patcher_exception
 
 	                              /* get return address (into JIT code)       */
-	lwz     itmp3,(5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp)
+	lwz     itmp3,(5+LA_WORD_SIZE+5+58)*4(sp)
 
 	                              /* remove stack frame + patcher stub stack  */
-	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
+	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4
 
 	mtctr   itmp3
 	bctr                          /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
-	lwz     xpc,(5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp)
-	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
-
-#if defined(ENABLE_THREADS)
-	mflr	r0
-	stw     r0,LA_LR_OFFSET(sp)
-	stwu    sp,-(LA_SIZE+1*4)(sp) /* preserve linkage area                    */
-	stw     xpc,LA_SIZE+0*4(sp)
-	bl      builtin_asm_get_exceptionptrptr
-	lwz     xpc,LA_SIZE+0*4(sp)
-	lwz     r0,LA_SIZE+1*4+LA_LR_OFFSET(sp)
-	mtlr    r0
-	addi    sp,sp,LA_SIZE+1*4
-#else
-# if defined(__DARWIN__)
-	lis     v0,ha16(_no_threads_exceptionptr)
-	addi    v0,v0,lo16(_no_threads_exceptionptr)
-# else
-	lis     v0,_no_threads_exceptionptr@ha
-	addi    v0,v0,_no_threads_exceptionptr@l
-# endif
-#endif
-
-	lwz     xptr,0(v0)            /* get the exception pointer                */
-	li      itmp3,0
-	stw     itmp3,0(v0)           /* clear the exception pointer              */
+	mr      xptr,itmp3                  /* get exception                      */
+	lwz     xpc,(5+LA_WORD_SIZE+5+58)*4(sp)
+	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4
 	b       L_asm_handle_exception
 
 
@@ -1547,21 +1499,21 @@ L_stacktrace_remove_stackframeinfo$lazy_ptr:
 
 .section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
 	.align 2
-L_builtin_asm_get_exceptionptrptr$stub:
-	.indirect_symbol _builtin_asm_get_exceptionptrptr
+L_exceptions_get_and_clear_exception$stub:
+	.indirect_symbol _exceptions_get_and_clear_exception
 	mflr r0
-	bcl 20,31,L00$_builtin_asm_get_exceptionptrptr
-L00$_builtin_asm_get_exceptionptrptr:
+	bcl 20,31,L00$_exceptions_get_and_clear_exception
+L00$_exceptions_get_and_clear_exception:
 	mflr r11
-	addis r11,r11,ha16(L_builtin_asm_get_exceptionptrptr$lazy_ptr - L00$_builtin_asm_get_exceptionptrptr)
+	addis r11,r11,ha16(L_exceptions_get_and_clear_exception$lazy_ptr - L00$_exceptions_get_and_clear_exception)
 	mtlr r0
-	lwzu r12,lo16(L_builtin_asm_get_exceptionptrptr$lazy_ptr - L00$_builtin_asm_get_exceptionptrptr)(r11)
+	lwzu r12,lo16(L_exceptions_get_and_clear_exception$lazy_ptr - L00$_exceptions_get_and_clear_exception)(r11)
 	mtctr r12
 	bctr
 .data
 .lazy_symbol_pointer
-L_builtin_asm_get_exceptionptrptr$lazy_ptr:
-	.indirect_symbol _builtin_asm_get_exceptionptrptr
+L_exceptions_get_and_clear_exception$lazy_ptr:
+	.indirect_symbol _exceptions_get_and_clear_exception
 	.long dyld_stub_binding_helper
 
 
