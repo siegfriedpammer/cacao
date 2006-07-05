@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: descriptor.h 5078 2006-07-05 11:48:49Z twisti $
 
 */
 
@@ -48,7 +48,7 @@ typedef struct paramdesc paramdesc;
 #include "vm/references.h"
 
 
-/* data structures ************************************************************/ 
+/* data structures ************************************************************/
 
 /*----------------------------------------------------------------------------*/
 /* Descriptor Pools                                                           */
