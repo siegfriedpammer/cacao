@@ -340,7 +340,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
     dnl check for binutils headers and libraries on some architectures for the
     dnl disassembler
     case "${ARCH_DIR}" in
-        arm | i386 | powerpc | x86_64 | sparc64 )
+        arm | i386 | powerpc | x86_64 | sparc64 | powerpc64)
             AC_CHECK_HEADER([ansidecl.h],, [AC_MSG_ERROR(cannot find ansidecl.h)])
             AC_CHECK_HEADER([symcat.h],, [AC_MSG_ERROR(cannot find symcat.h)])
             AC_CHECK_HEADER([bfd.h],, [AC_MSG_ERROR(cannot find bfd.h)])
@@ -818,6 +818,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/powerpc/darwin/Makefile]
 		[src/vm/jit/powerpc/linux/Makefile]
 		[src/vm/jit/powerpc/netbsd/Makefile]
+		[src/vm/jit/powerpc64/Makefile]
+		[src/vm/jit/powerpc64/linux/Makefile]
 		[src/vm/jit/profile/Makefile]
 		[src/vm/jit/schedule/Makefile]
 		[src/vm/jit/sparc64/Makefile]

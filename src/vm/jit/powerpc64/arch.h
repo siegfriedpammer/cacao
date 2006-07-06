@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 4912 2006-05-14 12:22:25Z edwin $
+   $Id: arch.h 5081 2006-07-06 13:59:01Z tbfg $
 
 */
 
@@ -51,17 +51,17 @@
 
 #define SUPPORT_FMOD                     0
 #define SUPPORT_FICVT                    1
-#define SUPPORT_IFCVT                    0
+#define SUPPORT_IFCVT                    1
 
 #define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 1
 #define SUPPORT_LONG_CMP_CONST           1
 #define SUPPORT_LONG_LOGICAL             1
-#define SUPPORT_LONG_SHIFT               0
-#define SUPPORT_LONG_MUL                 0
-#define SUPPORT_LONG_DIV                 0
-#define SUPPORT_LONG_ICVT                0
-#define SUPPORT_LONG_FCVT                0
+#define SUPPORT_LONG_SHIFT               1
+#define SUPPORT_LONG_MUL                 1
+#define SUPPORT_LONG_DIV                 1
+#define SUPPORT_LONG_ICVT                1
+#define SUPPORT_LONG_FCVT                1
 
 #define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
 #define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: patcher.h 5077 2006-07-04 19:06:56Z twisti $
+   $Id: patcher.h 5081 2006-07-06 13:59:01Z tbfg $
 
 */
 
@@ -150,7 +150,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp);
 bool patcher_checkcast_instanceof_interface(u1 *sp);
 #define PATCHER_checkcast_instanceof_interface (functionptr) patcher_checkcast_instanceof_interface
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__) || defined(__POWERPC64__)
 
 bool patcher_checkcast_class(u1 *sp);
 #define PATCHER_checkcast_class (functionptr) patcher_checkcast_class
@@ -158,12 +158,12 @@ bool patcher_checkcast_class(u1 *sp);
 bool patcher_instanceof_class(u1 *sp);
 #define PATCHER_instanceof_class (functionptr) patcher_instanceof_class
 
-#else /* defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__) */
+#else /* defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__) || defined(__POWERPC64__)*/
 
 bool patcher_checkcast_instanceof_class(u1 *sp);
 #define PATCHER_checkcast_instanceof_class (functionptr) patcher_checkcast_instanceof_class
 
-#endif /* defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__) */
+#endif /* defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__) || defined(__POWERPC64__)*/
 
 bool patcher_clinit(u1 *sp);
 #define PATCHER_clinit (functionptr) patcher_clinit

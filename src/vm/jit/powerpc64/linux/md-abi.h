@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.h 5081 2006-07-06 13:59:01Z tbfg $
 
 */
 
@@ -42,7 +42,7 @@
   
 #define REG_RESULT       3   /* to deliver method results                     */
 
-#define REG_PV          13   /* procedure vector, must be provided by caller  */
+#define REG_PV          14   /* procedure vector, must be provided by caller  */
 #define REG_METHODPTR   12   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
 #define REG_ITMP1       11   /* temporary register                            */
