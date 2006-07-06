@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5077 2006-07-04 19:06:56Z twisti $
+   $Id: md-asm.h 5084 2006-07-06 22:52:23Z twisti $
 
 */
 
@@ -265,6 +265,8 @@
 
 #define exceptions_asm_new_abstractmethoderror \
     L_exceptions_asm_new_abstractmethoderror$stub
+
+#define patcher_wrapper                       L_patcher_wrapper$stub
 
 #define replace_me                            L_replace_me$stub
 

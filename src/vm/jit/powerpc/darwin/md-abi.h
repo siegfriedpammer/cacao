@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.h 5084 2006-07-06 22:52:23Z twisti $
 
 */
 
@@ -79,6 +79,12 @@
 #define FLT_RES_CNT      3   /* number of float reserved registers            */
 
 #define TRACE_ARGS_NUM   8
+
+
+/* packed register defines ****************************************************/
+
+#define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
+#define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 
 
 /* ABI defines ****************************************************************/

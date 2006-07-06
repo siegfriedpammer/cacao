@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5077 2006-07-04 19:06:56Z twisti $
+   $Id: asmpart.S 5084 2006-07-06 22:52:23Z twisti $
 
 */
 
@@ -1534,6 +1534,26 @@ L00$_exceptions_asm_new_abstractmethoderror:
 .lazy_symbol_pointer
 L_exceptions_asm_new_abstractmethoderror$lazy_ptr:
 	.indirect_symbol _exceptions_asm_new_abstractmethoderror
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_patcher_wrapper$stub:
+	.indirect_symbol _patcher_wrapper
+	mflr r0
+	bcl 20,31,L00$_patcher_wrapper
+L00$_patcher_wrapper:
+	mflr r11
+	addis r11,r11,ha16(L_patcher_wrapper$lazy_ptr - L00$_patcher_wrapper)
+	mtlr r0
+	lwzu r12,lo16(L_patcher_wrapper$lazy_ptr - L00$_patcher_wrapper)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_patcher_wrapper$lazy_ptr:
+	.indirect_symbol _patcher_wrapper
 	.long dyld_stub_binding_helper
 
 
