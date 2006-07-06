@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4943 2006-05-23 08:51:33Z twisti $
+   $Id: codegen.h 5083 2006-07-06 14:19:04Z twisti $
 
 */
 
@@ -348,14 +348,14 @@
 
 #define PROFILE_CYCLE_START \
     do { \
-        if (opt_prof) { \
+        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
             M_PUSH(RAX); \
             M_PUSH(RDX); \
             \
-            M_MOV_IMM((ptrint) m, REG_ITMP3); \
+            M_MOV_IMM(code, REG_ITMP3); \
             M_RDTSC; \
-            M_ISUB_MEMBASE(RAX, REG_ITMP3, OFFSET(methodinfo, cycles)); \
-            M_ISBB_MEMBASE(RDX, REG_ITMP3, OFFSET(methodinfo, cycles) + 4); \
+            M_ISUB_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
+            M_ISBB_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
             \
             M_POP(RDX); \
             M_POP(RAX); \
@@ -364,14 +364,14 @@
 
 #define PROFILE_CYCLE_STOP \
     do { \
-        if (opt_prof) { \
+        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
             M_PUSH(RAX); \
             M_PUSH(RDX); \
             \
-            M_MOV_IMM((ptrint) m, REG_ITMP3); \
+            M_MOV_IMM(code, REG_ITMP3); \
             M_RDTSC; \
-            M_IADD_MEMBASE(RAX, REG_ITMP3, OFFSET(methodinfo, cycles)); \
-            M_IADC_MEMBASE(RDX, REG_ITMP3, OFFSET(methodinfo, cycles) + 4); \
+            M_IADD_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
+            M_IADC_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
             \
             M_POP(RDX); \
             M_POP(RAX); \

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 4488 2006-02-12 12:59:52Z christian $
+   $Id: md-abi.c 5083 2006-07-06 14:19:04Z twisti $
 
 */
 
@@ -89,24 +89,27 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = iarg;
-			} else {
+				pd->regoff   = iarg;
+			}
+			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 			}
 			if (iarg < INT_ARG_CNT)
 				iarg++;
 			else
 				stacksize++;
 			break;
+
 		case TYPE_FLT:
 		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = farg;
-			} else {
+				pd->regoff   = farg;
+			}
+			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 			}
 			if (farg < FLT_ARG_CNT)
 				farg++;
@@ -116,8 +119,9 @@ void md_param_alloc(methoddesc *md)
 		}
 	}
 
-	/* Since XMM0 (==A0) is used for passing return values, this */
-	/* argument register usage has to be regarded, too           */
+	/* Since XMM0 (==A0) is used for passing return values, this
+	   argument register usage has to be regarded, too. */
+
 	if (IS_FLT_DBL_TYPE(md->returntype.type))
 		if (farg < 1)
 			farg = 1;
@@ -126,7 +130,7 @@ void md_param_alloc(methoddesc *md)
 
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
-	md->memuse = stacksize;
+	md->memuse       = stacksize;
 }
 
 
@@ -153,27 +157,39 @@ void md_param_alloc(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
+	methodinfo   *m;
+	codeinfo     *code;
+	registerdata *rd;
+	methoddesc   *md;
+
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	rd   = jd->rd;
+
+	md   = m->parseddesc;
+
 	/* precoloring only straightforward possible with flt/dbl types
 	   For Address/Integer/Long REG_RESULT == rax == REG_ITMP1 and so
 	   could be destroyed if the return value Stack Slot "lives too
 	   long" */
 
-	if (IS_FLT_DBL_TYPE(return_type)) {
+	if (IS_FLT_DBL_TYPE(md->returntype.type)) {
 		/* In Leafmethods Local Vars holding parameters are precolored
 		   to their argument register -> so leafmethods with
 		   paramcount > 0 could already use a00! */
 
-		if (!m->isleafmethod || (m->parseddesc->paramcount == 0)) {
+		if (!code->isleafmethod || (md->paramcount == 0)) {
 			/* Only precolor the stackslot, if it is not a SAVEDVAR
 			   <-> has not to survive method invokations */
 
 			if (!(stackslot->flags & SAVEDVAR)) {
 				stackslot->varkind = ARGVAR;
-				stackslot->varnum = -1;
-				stackslot->flags = 0;
+				stackslot->varnum  = -1;
+				stackslot->flags   = 0;
 
 			    /* float/double */
 				if (rd->argfltreguse < 1)

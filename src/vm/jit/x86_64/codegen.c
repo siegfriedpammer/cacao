@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5041 2006-06-20 09:10:05Z twisti $
+   $Id: codegen.c 5083 2006-07-06 14:19:04Z twisti $
 
 */
 
@@ -135,10 +135,11 @@ bool codegen(jitdata *jd)
 		stackframesize++;
 #endif
 
-    /* Keep stack of non-leaf functions 16-byte aligned for calls into native */
-	/* code e.g. libc or jni (alignment problems with movaps).                */
+	/* Keep stack of non-leaf functions 16-byte aligned for calls into
+	   native code e.g. libc or jni (alignment problems with
+	   movaps). */
 
-	if (!m->isleafmethod || opt_verbosecall)
+	if (!code->isleafmethod || opt_verbosecall)
 		stackframesize |= 0x1;
 
 	/* create method header */
@@ -159,7 +160,7 @@ bool codegen(jitdata *jd)
 #endif
 		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, m->isleafmethod);                /* IsLeaf          */
+	(void) dseg_adds4(cd, code->isleafmethod);             /* IsLeaf          */
 	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
 	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
@@ -178,11 +179,11 @@ bool codegen(jitdata *jd)
 	
 	/* generate method profiling code */
 
-	if (opt_prof) {
+	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 		/* count frequency */
 
-		M_MOV_IMM(m, REG_ITMP3);
-		M_IINC_MEMBASE(REG_ITMP3, OFFSET(methodinfo, frequency));
+		M_MOV_IMM(code, REG_ITMP3);
+		M_IINC_MEMBASE(REG_ITMP3, OFFSET(codeinfo, frequency));
 
 		PROFILE_CYCLE_START;
 	}
@@ -325,7 +326,7 @@ bool codegen(jitdata *jd)
 
 		/* save temporary registers for leaf methods */
 
-		if (m->isleafmethod) {
+		if (code->isleafmethod) {
 			for (p = 0; p < INT_TMP_CNT; p++)
 				M_LST(rd->tmpintregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
 
@@ -365,7 +366,7 @@ bool codegen(jitdata *jd)
 
 		/* restore temporary registers for leaf methods */
 
-		if (m->isleafmethod) {
+		if (code->isleafmethod) {
 			for (p = 0; p < INT_TMP_CNT; p++)
 				M_LLD(rd->tmpintregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
 
@@ -417,19 +418,21 @@ bool codegen(jitdata *jd)
 		len = bptr->indepth;
 		MCODECHECK(512);
 
+#if 0
 		/* generate basicblock profiling code */
 
-		if (opt_prof_bb) {
+		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 			/* count frequency */
 
-			M_MOV_IMM(m->bbfrequency, REG_ITMP2);
-			M_IINC_MEMBASE(REG_ITMP2, bptr->debug_nr * 4);
+			M_MOV_IMM(code->bbfrequency, REG_ITMP3);
+			M_IINC_MEMBASE(REG_ITMP3, bptr->debug_nr * 4);
 
 			/* if this is an exception handler, start profiling again */
 
 			if (bptr->type == BBTYPE_EXH)
 				PROFILE_CYCLE_START;
 		}
+#endif
 
 #if defined(ENABLE_LSRA)
 		if (opt_lsra) {
@@ -4032,11 +4035,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* generate native method profiling code */
 
-	if (opt_prof) {
+	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 		/* count frequency */
 
-		M_MOV_IMM(m, REG_ITMP2);
-		M_IINC_MEMBASE(REG_ITMP2, OFFSET(methodinfo, frequency));
+		M_MOV_IMM(code, REG_ITMP3);
+		M_IINC_MEMBASE(REG_ITMP3, OFFSET(codeinfo, frequency));
 	}
 
 	/* generate stub code */
@@ -4224,12 +4227,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			M_DST(REG_FRESULT, REG_SP, 0 * 8);
 	}
 
-	/* remove native stackframe info */
-
-	M_ALEA(REG_SP, stackframesize * 8, rd->argintregs[0]);
-	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
-	M_CALL(REG_ITMP1);
-
 #if !defined(NDEBUG)
 	/* generate call trace */
 
@@ -4253,15 +4250,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 #endif /* !defined(NDEBUG) */
 
-	/* check for exception */
+	/* remove native stackframe info */
 
-#if defined(ENABLE_THREADS)
-	M_MOV_IMM(builtin_get_exceptionptrptr, REG_ITMP3);
-	M_CALL(REG_ITMP3);
-#else
-	M_MOV_IMM(&_no_threads_exceptionptr, REG_RESULT);
-#endif
-	M_ALD(REG_ITMP2, REG_RESULT, 0);
+	M_ALEA(REG_SP, stackframesize * 8, rd->argintregs[0]);
+	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
+	M_CALL(REG_ITMP1);
+	M_MOV(REG_RESULT, REG_ITMP3);
 
 	/* restore return value */
 
@@ -4272,36 +4266,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 	}
 
-	/* test for exception */
-
-	M_TEST(REG_ITMP2);
-	M_BNE(7 + 1);
-
 	/* remove stackframe */
 
 	M_AADD_IMM(stackframesize * 8, REG_SP);
-	M_RET;
 
+	/* test for exception */
+
+	M_TEST(REG_ITMP3);
+	M_BNE(1);
+	M_RET;
 
 	/* handle exception */
 
-#if defined(ENABLE_THREADS)
-	M_LST(REG_ITMP2, REG_SP, 0 * 8);
-	M_MOV_IMM(builtin_get_exceptionptrptr, REG_ITMP3);
-	M_CALL(REG_ITMP3);
-	M_AST_IMM32(0, REG_RESULT, 0);                 /* clear exception pointer */
-	M_LLD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
-#else
 	M_MOV(REG_ITMP3, REG_ITMP1_XPTR);
-	M_MOV_IMM(&_no_threads_exceptionptr, REG_ITMP3);
-	M_AST_IMM32(0, REG_ITMP3, 0);                  /* clear exception pointer */
-#endif
-
-	/* remove stackframe */
-
-	M_AADD_IMM(stackframesize * 8, REG_SP);
-
-	M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);     /* get return address from stack */
+	M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);     /* get return address from stack */
 	M_ASUB_IMM(3, REG_ITMP2_XPC);                                    /* callq */
 
 	M_MOV_IMM(asm_handle_nat_exception, REG_ITMP3);
