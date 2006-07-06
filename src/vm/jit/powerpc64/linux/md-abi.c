@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: md-abi.c 5082 2006-07-06 14:10:23Z tbfg $
 
 */
 
@@ -218,14 +218,26 @@ void md_param_alloc(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
+	methodinfo *m;
+	codeinfo *code;
+	registerdata *rd;
+	methoddesc *md;
+
+	/* get required compiler data */
+
+	m = jd->m;
+	code = jd->code;
+	rd = jd->rd;
+
+	md = m->parseddesc;
+	
 	/* In Leafmethods Local Vars holding parameters are precolored to
 	   their argument register -> so leafmethods with paramcount > 0
 	   could already use R3 == a00! */
 
-	if (!m->isleafmethod || (m->parseddesc->paramcount == 0)) {
+	if (!code->isleafmethod || (md->paramcount == 0)) {
 		/* Only precolor the stackslot, if it is not a SAVEDVAR <->
 		   has not to survive method invokations. */
 
@@ -234,8 +246,8 @@ void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
 			stackslot->varnum = -1;
 			stackslot->flags = 0;
 
-			if (IS_INT_LNG_TYPE(return_type)) {
-				if (!IS_2_WORD_TYPE(return_type)) {
+			if (IS_INT_LNG_TYPE(md->returntype.type)) {
+				if (!IS_2_WORD_TYPE(md->returntype.type)) {
 					if (rd->argintreguse < 1)
 						rd->argintreguse = 1;
 
