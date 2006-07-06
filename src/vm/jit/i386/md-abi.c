@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-abi.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.c 5080 2006-07-06 12:42:23Z twisti $
 
 */
 
@@ -105,8 +105,7 @@ void md_param_alloc(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
 	/* nothing */
 }

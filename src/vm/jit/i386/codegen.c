@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5040 2006-06-19 22:53:53Z twisti $
+   $Id: codegen.c 5080 2006-07-06 12:42:23Z twisti $
 
 */
 
@@ -150,7 +150,7 @@ bool codegen(jitdata *jd)
 
     /* Keep stack of non-leaf functions 16-byte aligned. */
 
-	if (!m->isleafmethod)
+	if (!code->isleafmethod)
 		stackframesize |= 0x3;
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
@@ -169,7 +169,7 @@ bool codegen(jitdata *jd)
 #endif
 		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, m->isleafmethod);                /* IsLeaf          */
+	(void) dseg_adds4(cd, code->isleafmethod);             /* IsLeaf          */
 	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
 	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
@@ -193,11 +193,11 @@ bool codegen(jitdata *jd)
 	
 	/* generate method profiling code */
 
-	if (opt_prof) {
+	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 		/* count frequency */
 
-		M_MOV_IMM(m, REG_ITMP1);
-		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(methodinfo, frequency));
+		M_MOV_IMM(code, REG_ITMP3);
+		M_IADD_IMM_MEMBASE(1, REG_ITMP3, OFFSET(codeinfo, frequency));
 	}
 
 	/* create stack frame (if necessary) */
@@ -467,15 +467,16 @@ bool codegen(jitdata *jd)
 		len = bptr->indepth;
 		MCODECHECK(512);
 
+#if 0
 		/* generate basic block profiling code */
 
-		if (opt_prof) {
+		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 			/* count frequency */
 
-			M_MOV_IMM(m->bbfrequency, REG_ITMP1);
-			M_IADD_IMM_MEMBASE(1, REG_ITMP1, bptr->debug_nr * 4);
+			M_MOV_IMM(code->bbfrequency, REG_ITMP3);
+			M_IADD_IMM_MEMBASE(1, REG_ITMP3, bptr->debug_nr * 4);
 		}
-
+#endif
 
 #if defined(ENABLE_LSRA)
 		if (opt_lsra) {
@@ -5387,11 +5388,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* generate native method profiling code */
 
-	if (opt_prof) {
+	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 		/* count frequency */
 
-		M_MOV_IMM(m, REG_ITMP1);
-		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(methodinfo, frequency));
+		M_MOV_IMM(code, REG_ITMP1);
+		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(codeinfo, frequency));
 	}
 
 	/* calculate stackframe size for native function */
