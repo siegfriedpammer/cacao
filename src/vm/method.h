@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 4758 2006-04-12 17:51:10Z edwin $
+   $Id: method.h 5079 2006-07-06 11:36:01Z twisti $
 */
 
 
@@ -61,8 +61,6 @@ struct methodinfo {                 /* method structure                       */
 	utf          *name;             /* name of method                         */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */
 	methoddesc   *parseddesc;       /* parsed descriptor                      */
-			     
-	bool          isleafmethod;     /* does method call subroutines           */ /* XXX */
 			     
 	classinfo    *class;            /* class, the method belongs to           */
 	s4            vftblindex;       /* index of method in virtual function    */
@@ -103,11 +101,6 @@ struct methodinfo {                 /* method structure                       */
 #if defined(ENABLE_LSRA)
 	s4            maxlifetimes;     /* helper for lsra                        */
 #endif
-
-	u4            frequency;        /* number of method invocations           */ /* XXX */
-	u4           *bbfrequency; /* XXX */
-
-	s8            cycles;           /* number of cpu cycles                   */ /* XXX */
 };
 
 

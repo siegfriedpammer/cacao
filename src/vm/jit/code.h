@@ -47,14 +47,21 @@ typedef struct codeinfo codeinfo;
 #include "vm/jit/replace.h"
 
 
-/* A `codeinfo` represents a particular realization of a method in     */
-/* machine code.                                                       */
+/* codeinfo *******************************************************************
+
+   A codeinfo represents a particular realization of a method in
+   machine code.
+
+*******************************************************************************/
 
 struct codeinfo {
 	methodinfo   *m;                    /* method this is a realization of    */
 	codeinfo     *prev;                 /* previous codeinfo of this method   */
 
 	u1            optlevel;             /* optimization level of this code    */
+
+	s4            basicblockcount;      /* number of basic blocks             */
+	basicblock   *basicblocks;          /* points to basic block array        */
 
 	/* machine code */
 	u1           *mcode;                /* pointer to machine code            */
@@ -77,6 +84,9 @@ struct codeinfo {
 	s8            cycles;               /* number of cpu cycles               */
 };
 
+
+/* function prototypes ********************************************************/
+
 codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);
 
@@ -86,6 +96,7 @@ int code_get_stack_frame_size(codeinfo *code);
 void code_free_code_of_method(methodinfo *m);
 
 #endif /* _CODE_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

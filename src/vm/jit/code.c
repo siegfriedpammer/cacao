@@ -68,10 +68,8 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 	code = NEW(codeinfo);
 
-	memset(code,0,sizeof(codeinfo));
-
-	code->m = m;
-	code->isleafmethod = m->isleafmethod; /* XXX will be moved to codeinfo */
+	code->m            = m;
+	code->isleafmethod = true;          /* initially all methods are leafs    */
 	
 	return code;
 }

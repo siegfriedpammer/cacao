@@ -228,15 +228,14 @@ bool replace_create_replacement_points(jitdata *jd)
 
 	/* store the data in the codeinfo */
 
-	code->rplpoints = rplpoints;
+	code->rplpoints     = rplpoints;
 	code->rplpointcount = count;
-	code->regalloc = regalloc;
+	code->regalloc      = regalloc;
 	code->regalloccount = alloccount;
-	code->globalcount = globalcount;
+	code->globalcount   = globalcount;
 	code->savedintcount = INT_SAV_CNT - rd->savintreguse;
 	code->savedfltcount = FLT_SAV_CNT - rd->savfltreguse;
-	code->memuse = rd->memuse;
-	code->isleafmethod = m->isleafmethod; /* XXX will be moved to codeinfo */
+	code->memuse        = rd->memuse;
 
 	/* everything alright */
 

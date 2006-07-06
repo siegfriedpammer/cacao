@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5052 2006-06-28 17:05:46Z twisti $
+   $Id: simplereg.c 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -124,6 +124,7 @@ bool regalloc(jitdata *jd)
 static void interface_regalloc(jitdata *jd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 
@@ -139,9 +140,10 @@ static void interface_regalloc(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	/* rd->memuse was already set in stack.c to allocate stack space
 	   for passing arguments to called methods. */
@@ -154,7 +156,7 @@ static void interface_regalloc(jitdata *jd)
 	}
 #endif
 
- 	if (m->isleafmethod) {
+ 	if (code->isleafmethod) {
 		/* Reserve argument register, which will be used for Locals acting */
 		/* as Parameters */
 		if (rd->argintreguse < m->parseddesc->argintreguse)
@@ -189,7 +191,7 @@ static void interface_regalloc(jitdata *jd)
 				if (!saved) {
 #if defined(HAS_ADDRESS_REGISTER_FILE)
 					if (IS_ADR_TYPE(t)) {
-						if (!m->isleafmethod 
+						if (!code->isleafmethod 
 							&&(rd->argadrreguse < ADR_ARG_CNT)) {
 							v->regoff = rd->argadrregs[rd->argadrreguse++];
 						} else if (rd->tmpadrreguse > 0) {
@@ -418,6 +420,7 @@ static void interface_regalloc(jitdata *jd)
 static void local_regalloc(jitdata *jd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 
@@ -434,11 +437,12 @@ static void local_regalloc(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
-	if (m->isleafmethod) {
+	if (code->isleafmethod) {
 		methoddesc *md = m->parseddesc;
 
 		iargcnt = rd->argintreguse;

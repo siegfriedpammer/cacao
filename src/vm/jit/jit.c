@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5049 2006-06-23 12:07:26Z twisti $
+   $Id: jit.c 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -1029,7 +1029,7 @@ u1 *jit_compile(methodinfo *m)
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
-	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+	jd->code  = code_codeinfo_new(m);
 
 	/* set the flags for the current JIT run */
 
@@ -1037,6 +1037,9 @@ u1 *jit_compile(methodinfo *m)
 
 	if (opt_verify)
 		jd->flags |= JITDATA_FLAG_VERIFY;
+
+	if (opt_prof)
+		jd->flags |= JITDATA_FLAG_INSTRUMENT;
 
 	if (opt_ifconv)
 		jd->flags |= JITDATA_FLAG_IFCONV;
@@ -1074,10 +1077,7 @@ u1 *jit_compile(methodinfo *m)
 	m->instructions    = NULL;
 	m->stack           = NULL;
 
-	if (r != NULL) {
-		DEBUG_JIT_COMPILEVERBOSE("Running: ");
-	}
-	else {
+	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
 
 		/* release codeinfo */
@@ -1086,9 +1086,12 @@ u1 *jit_compile(methodinfo *m)
 
 		/* Release memory for basic block profiling information. */
 
-		if (opt_prof)
-			if (m->bbfrequency)
-				MFREE(m->bbfrequency, u4, m->basicblockcount);
+		if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
+			if (jd->code->bbfrequency != NULL)
+				MFREE(jd->code->bbfrequency, u4, jd->code->basicblockcount);
+	}
+	else {
+		DEBUG_JIT_COMPILEVERBOSE("Running: ");
 	}
 
 	/* release dump area */
@@ -1289,10 +1292,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 		return code->entrypoint;        /* return empty method                */
 	}
 
-	/* initialisation of variables and subsystems */
-
-	m->isleafmethod = true;
-
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_tryblocks    += m->exceptiontablelength;
@@ -1397,8 +1396,8 @@ static u1 *jit_compile_intern(jitdata *jd)
 	   _must_ be done after loop optimization and register allocation,
 	   since they can change the basic block count. */
 
-	if (opt_prof)
-		m->bbfrequency = MNEW(u4, m->basicblockcount);
+	if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
+		code->bbfrequency = MNEW(u4, code->basicblockcount);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 

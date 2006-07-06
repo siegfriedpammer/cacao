@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5053 2006-06-28 19:11:20Z twisti $
+   $Id: headers.c 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -720,11 +720,11 @@ void printmethod(methodinfo *m)
 	fprintf(file, "_");
 	printID(m->name);
 
-	/* ATTENTION: We use the methodinfo's isleafmethod variable as
+	/* ATTENTION: We use the methodinfo's stackcount variable as
 	   nativelyoverloaded, so we can save some space during
 	   runtime. */
 
-	if (m->isleafmethod)
+	if (m->stackcount)
 		printOverloadPart(m->descriptor);
 
 	fprintf(file, "(JNIEnv *env");
@@ -846,11 +846,11 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 		if (!(m->flags & ACC_NATIVE))
 			continue;
 
-		/* We use the methodinfo's isleafmethod variable as
+		/* We use the methodinfo's stackcount variable as
 		   nativelyoverloaded, so we can save some space during
 		   runtime. */
 
-		if (!m->isleafmethod) {
+		if (!m->stackcount) {
 			nativelyoverloaded = false;
 
 			for (j = i + 1; j < c->methodscount; j++) {
@@ -860,13 +860,13 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 					continue;
 
 				if (m->name == m2->name) {
-					m2->isleafmethod = true;
+					m2->stackcount     = true;
 					nativelyoverloaded = true;
 				}
 			}
 		}
 
-		m->isleafmethod = nativelyoverloaded;
+		m->stackcount = nativelyoverloaded;
 	}
 
 	for (i = 0; i < c->methodscount; i++) {

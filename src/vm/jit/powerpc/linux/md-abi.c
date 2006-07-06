@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 4715 2006-03-31 07:50:19Z twisti $
+   $Id: md-abi.c 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -219,37 +219,49 @@ void md_param_alloc(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
+	methodinfo   *m;
+	codeinfo     *code;
+	registerdata *rd;
+	methoddesc   *md;
+
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	rd   = jd->rd;
+
+	md   = m->parseddesc;
+
 	/* In Leafmethods Local Vars holding parameters are precolored to
 	   their argument register -> so leafmethods with paramcount > 0
 	   could already use R3 == a00! */
 
-	if (!m->isleafmethod || (m->parseddesc->paramcount == 0)) {
+	if (!code->isleafmethod || (md->paramcount == 0)) {
 		/* Only precolor the stackslot, if it is not a SAVEDVAR <->
 		   has not to survive method invokations. */
 
 		if (!(stackslot->flags & SAVEDVAR)) {
 			stackslot->varkind = ARGVAR;
-			stackslot->varnum = -1;
-			stackslot->flags = 0;
+			stackslot->varnum  = -1;
+			stackslot->flags   = 0;
 
-			if (IS_INT_LNG_TYPE(return_type)) {
-				if (!IS_2_WORD_TYPE(return_type)) {
+			if (IS_INT_LNG_TYPE(md->returntype.type)) {
+				if (!IS_2_WORD_TYPE(md->returntype.type)) {
 					if (rd->argintreguse < 1)
 						rd->argintreguse = 1;
 
 					stackslot->regoff = REG_RESULT;
-
-				} else {
+				}
+				else {
 					if (rd->argintreguse < 2)
 						rd->argintreguse = 2;
 
-					stackslot->regoff = PACK_REGS(REG_RESULT2, REG_RESULT);
+					stackslot->regoff = REG_RESULT_PACKED;
 				}
-
-			} else { /* float/double */
+			}
+			else { /* float/double */
 				if (rd->argfltreguse < 1)
 					rd->argfltreguse = 1;
 

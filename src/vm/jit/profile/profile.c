@@ -329,9 +329,9 @@ void profile_printstats(void)
 		/* print basic block frequencies */
 
 		if (opt_prof_bb) {
-			for (j = 0; j < m->basicblockcount; j++)
+			for (j = 0; j < code->basicblockcount; j++)
 				printf("                                                    L%03d: %10d\n",
-					   j, m->bbfrequency[j]);
+					   j, code->bbfrequency[j]);
 		}
 	}
 

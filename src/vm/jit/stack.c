@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5029 2006-06-12 21:34:04Z edwin $
+   $Id: stack.c 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -370,6 +370,7 @@ bool stack_init(void)
 bool new_stack_analyse(jitdata *jd)
 {
 	methodinfo   *m;              /* method being analyzed                    */
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 	int           b_count;        /* basic block counter                      */
@@ -411,9 +412,10 @@ bool new_stack_analyse(jitdata *jd)
 
 	/* get required compiler data - initialization */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 #if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
@@ -622,11 +624,11 @@ bool new_stack_analyse(jitdata *jd)
 						bte = builtintable_get_automatic(opcode);
 
 						if (bte && bte->opcode == opcode) {
-							iptr->opc = ICMD_BUILTIN;
-							iptr->flags.bits = INS_FLAG_NOCHECK;
+							iptr->opc           = ICMD_BUILTIN;
+							iptr->flags.bits    = INS_FLAG_NOCHECK;
 							iptr->sx.s23.s3.bte = bte;
 							/* iptr->line is already set */
-							m->isleafmethod = false;
+							code->isleafmethod = false;
 							goto icmd_BUILTIN;
 						}
 					);
@@ -1616,8 +1618,7 @@ normal_ACONST:
 					case ICMD_FRETURN:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
-						IF_JIT( md_return_alloc(m, rd, opcode - ICMD_IRETURN,
-											    curstack); )
+						IF_JIT( md_return_alloc(jd, curstack); )
 						COUNT(count_pcmd_return);
 						NEW_OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
@@ -2835,6 +2836,7 @@ throw_stack_category_error:
 bool stack_analyse(jitdata *jd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 	int           b_count;
@@ -2865,9 +2867,10 @@ bool stack_analyse(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 #if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
@@ -3017,10 +3020,10 @@ bool stack_analyse(jitdata *jd)
 						bte = builtintable_get_automatic(opcode);
 
 						if (bte && bte->opcode == opcode) {
-							iptr->opc = ICMD_BUILTIN;
-							iptr->op1 = false;   /* don't check for exception */
+							iptr->opc   = ICMD_BUILTIN;
+							iptr->op1   = false; /* don't check for exception */
 							iptr->val.a = bte;
-							m->isleafmethod = false;
+							code->isleafmethod = false;
 							goto builtin;
 						}
 # if defined(ENABLE_INTRP)
@@ -4114,8 +4117,7 @@ bool stack_analyse(jitdata *jd)
 # if defined(ENABLE_INTRP)
 						if (!opt_intrp)
 # endif
-							md_return_alloc(m, rd, opcode - ICMD_IRETURN,
-											curstack);
+							md_return_alloc(jd, curstack);
 #endif
 						COUNT(count_pcmd_return);
 						OP1_0(opcode - ICMD_IRETURN);

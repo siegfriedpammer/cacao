@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: abi.h 4710 2006-03-30 10:23:11Z twisti $
+   $Id: abi.h 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -47,6 +47,12 @@
 extern s4 nregdescint[];
 extern char *regs[];
 extern s4 nregdescfloat[];
+
+
+/* function prototypes ********************************************************/
+
+/* machine dependent return value handling function */
+void md_return_alloc(jitdata *jd, stackptr stackslot);
 
 #endif /* _ABI_H */
 

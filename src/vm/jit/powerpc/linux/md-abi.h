@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.h 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -63,7 +63,7 @@
 #define REG_FTMP2       17   /* temporary floating point register             */
 #define REG_FTMP3        0   /* temporary floating point register             */
 
-#define REG_IFTMP        0   /* temporary integer and floating point register */
+#define REG_IFTMP       16   /* temporary integer and floating point register */
 
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
@@ -79,6 +79,12 @@
 #define FLT_RES_CNT      3   /* number of float reserved registers            */
 
 #define TRACE_ARGS_NUM   8
+
+
+/* packed register defines ****************************************************/
+
+#define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
+#define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 
 
 /* ABI defines ****************************************************************/

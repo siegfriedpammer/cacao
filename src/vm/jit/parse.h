@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5010 2006-06-01 22:49:31Z edwin $
+   $Id: parse.h 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -238,20 +238,20 @@
     } while (0)
 
 #define NEW_OP_BUILTIN_CHECK_EXCEPTION(bte)                            \
-    m->isleafmethod          = false;                                  \
+    code->isleafmethod       = false;                                  \
 	NEW_OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                            \
     iptr->sx.s23.s3.bte      = (bte);                                  \
     PINC
 
 #define NEW_OP_BUILTIN_NO_EXCEPTION(bte)                               \
-    m->isleafmethod          = false;                                  \
+    code->isleafmethod       = false;                                  \
 	NEW_OP_PREPARE(ICMD_BUILTIN);                                      \
     iptr->sx.s23.s3.bte      = (bte);                                  \
     iptr->flags.bits         = INS_FLAG_NOCHECK;                       \
     PINC
 
 #define NEW_OP_BUILTIN_ARITHMETIC(opcode, bte)                         \
-    m->isleafmethod          = false;                                  \
+    code->isleafmethod       = false;                                  \
 	NEW_OP_PREPARE_ZEROFLAGS(opcode);                                  \
     iptr->sx.s23.s3.bte      = (bte);                                  \
     PINC
@@ -344,12 +344,12 @@
     PINC
 
 #define BUILTIN(v,o1,t,l) \
-    m->isleafmethod = false; \
-    iptr->opc    = ICMD_BUILTIN; \
-    iptr->op1    = (o1); \
-    iptr->val.a  = (v); \
-    iptr->target = (t); \
-    iptr->line   = (l); \
+    code->isleafmethod = false; \
+    iptr->opc          = ICMD_BUILTIN; \
+    iptr->op1          = (o1); \
+    iptr->val.a        = (v); \
+    iptr->target       = (t); \
+    iptr->line         = (l); \
     PINC
 
 #define OP1LOAD_ONEWORD(o,o1) \

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5024 2006-06-10 14:53:54Z edwin $
+   $Id: stack.h 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -475,10 +475,6 @@
 bool stack_init(void);
 
 bool stack_analyse(jitdata *jd);
-
-/* machine dependent return value handling function */
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot);
 
 #endif /* _STACK_H */
 

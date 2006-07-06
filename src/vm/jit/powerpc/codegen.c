@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5076 2006-07-04 18:24:24Z twisti $
+   $Id: codegen.c 5079 2006-07-06 11:36:01Z twisti $
 
 */
 
@@ -63,6 +63,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
@@ -147,10 +148,10 @@ bool codegen(jitdata *jd)
 
 	/* align stack to 16-bytes */
 
-/* 	if (!m->isleafmethod || opt_verbosecall) */
+/* 	if (!code->isleafmethod || opt_verbosecall) */
 		stackframesize = (stackframesize + 3) & ~3;
 
-/* 	else if (m->isleafmethod && (stackframesize == LA_WORD_SIZE)) */
+/* 	else if (code->isleafmethod && (stackframesize == LA_WORD_SIZE)) */
 /* 		stackframesize = 0; */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
@@ -169,7 +170,7 @@ bool codegen(jitdata *jd)
 #endif
 		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, m->isleafmethod);                /* IsLeaf          */
+	(void) dseg_adds4(cd, code->isleafmethod);             /* IsLeaf          */
 	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
 	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
@@ -186,9 +187,22 @@ bool codegen(jitdata *jd)
 		(void) dseg_addaddress(cd, ex->catchtype.cls);
 	}
 	
+	/* generate method profiling code */
+
+	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
+		/* count frequency */
+
+		M_ALD(REG_ITMP1, REG_PV, CodeinfoPointer);
+		M_ALD(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
+		M_IADD_IMM(REG_ITMP2, 1, REG_ITMP2);
+		M_AST(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
+
+/* 		PROFILE_CYCLE_START; */
+	}
+
 	/* create stack frame (if necessary) */
 
-	if (!m->isleafmethod) {
+	if (!code->isleafmethod) {
 		M_MFLR(REG_ZERO);
 		M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	}
@@ -335,9 +349,10 @@ bool codegen(jitdata *jd)
 
 	/* end of header generation */
 
-	replacementpoint = jd->code->rplpoints;
+	replacementpoint = code->rplpoints;
 
 	/* walk through all basic blocks */
+
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
@@ -361,6 +376,23 @@ bool codegen(jitdata *jd)
 			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
+		}
+
+		/* generate basicblock profiling code */
+
+		if (JITDATA_HAS_FLAG_INSTRUMENT(jd) && 0) {
+			/* count frequency */
+
+			disp = dseg_addaddress(cd, code->bbfrequency);
+			M_ALD(REG_ITMP2, REG_PV, disp);
+			M_ALD(REG_ITMP3, REG_ITMP2, bptr->debug_nr * 4);
+			M_IADD_IMM(REG_ITMP3, 1, REG_ITMP3);
+			M_AST(REG_ITMP3, REG_ITMP2, bptr->debug_nr * 4);
+
+			/* if this is an exception handler, start profiling again */
+
+/* 			if (bptr->type == BBTYPE_EXH) */
+/* 				PROFILE_CYCLE_START; */
 		}
 
 		/* copy interface registers to their destination */
@@ -392,9 +424,10 @@ bool codegen(jitdata *jd)
 				d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
 				M_INTMOVE(REG_ITMP1, d);
 				emit_store(jd, NULL, src, d);
-			} else {
+			}
+			else {
 				if (src->type == TYPE_LNG)
-					d = codegen_reg_of_var(rd, 0, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
+					d = codegen_reg_of_var(rd, 0, src, REG_ITMP12_PACKED);
 				else
 					d = codegen_reg_of_var(rd, 0, src, REG_IFTMP);
 				if ((src->varkind != STACKVAR)) {
@@ -403,26 +436,28 @@ bool codegen(jitdata *jd)
 						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
 							s1 = rd->interfaces[len][s2].regoff;
 							M_FLTMOVE(s1, d);
-						} else {
+						}
+						else {
 							if (IS_2_WORD_TYPE(s2)) {
 								M_DLD(d, REG_SP,
 									  rd->interfaces[len][s2].regoff * 4);
-							} else {
+							}
+							else {
 								M_FLD(d, REG_SP,
 									  rd->interfaces[len][s2].regoff * 4);
 							}	
 						}
-
 						emit_store(jd, NULL, src, d);
-
-					} else {
+					}
+					else {
 						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
 							s1 = rd->interfaces[len][s2].regoff;
 							if (IS_2_WORD_TYPE(s2))
 								M_LNGMOVE(s1, d);
 							else
 								M_INTMOVE(s1, d);
-						} else {
+						} 
+						else {
 							if (IS_2_WORD_TYPE(s2))
 								M_LLD(d, REG_SP,
 									  rd->interfaces[len][s2].regoff * 4);
@@ -430,7 +465,6 @@ bool codegen(jitdata *jd)
 								M_ILD(d, REG_SP,
 									  rd->interfaces[len][s2].regoff * 4);
 						}
-
 						emit_store(jd, NULL, src, d);
 					}
 				}
@@ -482,7 +516,7 @@ bool codegen(jitdata *jd)
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
 
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP12_PACKED);
 			LCONST(d, iptr->val.l);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
@@ -546,7 +580,7 @@ bool codegen(jitdata *jd)
 		                      /* op1 = local variable                         */
 
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP12_PACKED);
 			if ((iptr->dst->varkind == LOCALVAR) &&
 				(iptr->dst->varnum == iptr->op1))
 				break;
@@ -610,7 +644,7 @@ bool codegen(jitdata *jd)
 				break;
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
-				s1 = emit_load_s1(jd, iptr, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP12_PACKED);
 				M_LST(s1, REG_SP, var->regoff * 4);
 			} else {
 				s1 = emit_load_s1(jd, iptr, src, var->regoff);
@@ -720,8 +754,8 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
-			s1 = emit_load_s1(jd, iptr, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			s1 = emit_load_s1(jd, iptr, src, REG_ITMP12_PACKED);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP12_PACKED);
 			M_SUBFIC(GET_LOW_REG(s1), 0, GET_LOW_REG(d));
 			M_SUBFZE(GET_HIGH_REG(s1), GET_HIGH_REG(d));
 			emit_store(jd, iptr, iptr->dst, d);
@@ -730,7 +764,7 @@ bool codegen(jitdata *jd)
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP12_PACKED);
 			M_INTMOVE(s1, GET_LOW_REG(d));
 			M_SRA_IMM(GET_LOW_REG(d), 31, GET_HIGH_REG(d));
 			emit_store(jd, iptr, iptr->dst, d);
@@ -2088,12 +2122,16 @@ bool codegen(jitdata *jd)
 			M_ALD(REG_ITMP2, REG_PV, disp);
 			M_MTCTR(REG_ITMP2);
 
-			if (m->isleafmethod) M_MFLR(REG_ITMP3);         /* save LR        */
+			if (code->isleafmethod)
+				M_MFLR(REG_ITMP3);                          /* save LR        */
+
 			M_BL(0);                                        /* get current PC */
 			M_MFLR(REG_ITMP2_XPC);
-			if (m->isleafmethod) M_MTLR(REG_ITMP3);         /* restore LR     */
-			M_RTS;                                          /* jump to CTR    */
 
+			if (code->isleafmethod)
+				M_MTLR(REG_ITMP3);                          /* restore LR     */
+
+			M_RTS;                                          /* jump to CTR    */
 			ALIGNCODENOP;
 			break;
 
@@ -2107,13 +2145,16 @@ bool codegen(jitdata *jd)
 		case ICMD_JSR:          /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 
-			if (m->isleafmethod)
+			if (code->isleafmethod)
 				M_MFLR(REG_ITMP2);
+
 			M_BL(0);
 			M_MFLR(REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, m->isleafmethod ? 4*4 : 3*4, REG_ITMP1);
-			if (m->isleafmethod)
+			M_IADD_IMM(REG_ITMP1, code->isleafmethod ? 4*4 : 3*4, REG_ITMP1);
+
+			if (code->isleafmethod)
 				M_MTLR(REG_ITMP2);
+
 			M_BR(0);
 			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
@@ -2646,7 +2687,7 @@ nowperformreturn:
 
 			/* restore return address                                         */
 
-			if (!m->isleafmethod) {
+			if (!code->isleafmethod) {
 				/* ATTENTION: Don't use REG_ZERO (r0) here, as M_ALD
 				   may have a displacement overflow. */
 
@@ -3467,7 +3508,7 @@ gen_method:
 			} else {
 				savedmcodeptr = cd->mcodeptr;
 
-				if (m->isleafmethod) {
+				if (code->isleafmethod) {
 					M_MFLR(REG_ZERO);
 					M_AST(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
 				}
@@ -3475,7 +3516,7 @@ gen_method:
 				M_MOV(REG_PV, rd->argintregs[0]);
 				M_MOV(REG_SP, rd->argintregs[1]);
 
-				if (m->isleafmethod)
+				if (code->isleafmethod)
 					M_MOV(REG_ZERO, rd->argintregs[2]);
 				else
 					M_ALD(rd->argintregs[2],
@@ -3494,7 +3535,7 @@ gen_method:
 				M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
 				M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
 
-				if (m->isleafmethod) {
+				if (code->isleafmethod) {
 					/* XXX FIXME: REG_ZERO can cause problems here! */
 					assert(stackframesize * 4 <= 32767);
 
