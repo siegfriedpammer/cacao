@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5067 2006-07-03 10:18:56Z twisti $
+   $Id: exceptions.c 5088 2006-07-08 20:16:05Z twisti $
 
 */
 
@@ -138,6 +138,13 @@ bool exceptions_init(void)
 	if (!(class_java_lang_Exception =
 		  load_class_bootstrap(utf_java_lang_Exception)) ||
 		!link_class(class_java_lang_Exception))
+		return false;
+
+	/* java/lang/ClassCastException */
+
+	if (!(class_java_lang_ClassCastException =
+		  load_class_bootstrap(utf_java_lang_ClassCastException)) ||
+		!link_class(class_java_lang_ClassCastException))
 		return false;
 
 	/* java/lang/ClassNotFoundException */
@@ -1223,19 +1230,25 @@ java_objectheader *new_arraystoreexception(void)
 }
 
 
-/* new_classcastexception ******************************************************
+/* exceptions_new_classcastexception *******************************************
 
-   generates a java.lang.ClassCastException for the jit compiler
+   Generates a java.lang.ClassCastException for the JIT compiler.
 
 *******************************************************************************/
 
-java_objectheader *new_classcastexception(void)
+java_objectheader *exceptions_new_classcastexception(java_objectheader *o)
 {
 	java_objectheader *e;
+	utf               *classname;
+	java_lang_String  *s;
 
-	e = new_exception(string_java_lang_ClassCastException);
+	classname = o->vftbl->class->name;
 
-	if (!e)
+	s = javastring_new(classname);
+
+	e = native_new_and_init_string(class_java_lang_ClassCastException, s);
+
+	if (e == NULL)
 		return *exceptionptr;
 
 	return e;

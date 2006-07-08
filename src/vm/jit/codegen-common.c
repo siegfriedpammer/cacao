@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5071 2006-07-03 13:49:14Z twisti $
+   $Id: codegen-common.c 5088 2006-07-08 20:16:05Z twisti $
 
 */
 
@@ -396,9 +396,9 @@ void codegen_add_arraystoreexception_ref(codegendata *cd)
 
 *******************************************************************************/
 
-void codegen_add_classcastexception_ref(codegendata *cd)
+void codegen_add_classcastexception_ref(codegendata *cd, s4 reg)
 {
-	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_classcastexception);
+	codegen_add_exception_ref(cd, reg, STACKTRACE_inline_classcastexception);
 }
 
 

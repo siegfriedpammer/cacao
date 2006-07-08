@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5071 2006-07-03 13:49:14Z twisti $
+   $Id: codegen-common.h 5088 2006-07-08 20:16:05Z twisti $
 
 */
 
@@ -165,7 +165,7 @@ void codegen_addreference(codegendata *cd, basicblock *target);
 void codegen_add_arithmeticexception_ref(codegendata *cd);
 void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd, s4 reg);
 void codegen_add_arraystoreexception_ref(codegendata *cd);
-void codegen_add_classcastexception_ref(codegendata *cd);
+void codegen_add_classcastexception_ref(codegendata *cd, s4 reg);
 void codegen_add_nullpointerexception_ref(codegendata *cd);
 void codegen_add_fillinstacktrace_ref(codegendata *cd);
 

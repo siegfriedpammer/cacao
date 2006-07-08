@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5079 2006-07-06 11:36:01Z twisti $
+   $Id: codegen.c 5088 2006-07-08 20:16:05Z twisti $
 
 */
 
@@ -378,9 +378,10 @@ bool codegen(jitdata *jd)
 			replacementpoint++;
 		}
 
+#if 0
 		/* generate basicblock profiling code */
 
-		if (JITDATA_HAS_FLAG_INSTRUMENT(jd) && 0) {
+		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 			/* count frequency */
 
 			disp = dseg_addaddress(cd, code->bbfrequency);
@@ -394,6 +395,7 @@ bool codegen(jitdata *jd)
 /* 			if (bptr->type == BBTYPE_EXH) */
 /* 				PROFILE_CYCLE_START; */
 		}
+#endif
 
 		/* copy interface registers to their destination */
 
@@ -3091,12 +3093,12 @@ gen_method:
 
 				/* interface checkcast code */
 
-				if (!super || (super->flags & ACC_INTERFACE)) {
-					if (super) {
+				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+					if (super != NULL) {
 						M_TST(s1);
 						M_BEQ(s2);
-
-					} else {
+					}
+					else {
 						codegen_addpatchref(cd,
 											PATCHER_checkcast_instanceof_interface,
 											(constant_classref *) iptr->target,
@@ -3110,28 +3112,28 @@ gen_method:
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 					M_LDATST(REG_ITMP3, REG_ITMP3, -superindex);
 					M_BLE(0);
-					codegen_add_classcastexception_ref(cd);
+					codegen_add_classcastexception_ref(cd, s1);
 					M_ALD(REG_ITMP3, REG_ITMP2,
 						  OFFSET(vftbl_t, interfacetable[0]) -
 						  superindex * sizeof(methodptr*));
 					M_TST(REG_ITMP3);
 					M_BEQ(0);
-					codegen_add_classcastexception_ref(cd);
+					codegen_add_classcastexception_ref(cd, s1);
 
-					if (!super)
+					if (super == NULL)
 						M_BR(s3);
 				}
 
 				/* class checkcast code */
 
-				if (!super || !(super->flags & ACC_INTERFACE)) {
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 					disp = dseg_addaddress(cd, supervftbl);
 
-					if (super) {
+					if (super != NULL) {
 						M_TST(s1);
 						M_BEQ(s3);
-
-					} else {
+					}
+					else {
 						codegen_addpatchref(cd, PATCHER_checkcast_class,
 											(constant_classref *) iptr->target,
 											disp);
@@ -3164,11 +3166,11 @@ gen_method:
 					}
 					M_CMPU(REG_ITMP3, REG_ITMP2);
 					M_BGT(0);
-					codegen_add_classcastexception_ref(cd);
+					codegen_add_classcastexception_ref(cd, s1);
 				}
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
-
-			} else {
+			}
+			else {
 				/* array type cast-check */
 
 				s1 = emit_load_s1(jd, iptr, src, rd->argintregs[0]);
@@ -3192,7 +3194,7 @@ gen_method:
 				M_JSR;
 				M_TST(REG_RESULT);
 				M_BEQ(0);
-				codegen_add_classcastexception_ref(cd);
+				codegen_add_classcastexception_ref(cd, s1);
 
 				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
@@ -3485,9 +3487,8 @@ gen_method:
 
 			MCODECHECK(100);
 
-			/* Check if the exception is an
-			   ArrayIndexOutOfBoundsException.  If so, move index register
-			   into REG_ITMP1. */
+			/* Move the value register to a temporary register, if
+			   there is the need for it. */
 
 			if (eref->reg != -1)
 				M_MOV(eref->reg, REG_ITMP1);
@@ -3504,8 +3505,8 @@ gen_method:
 			if (savedmcodeptr != NULL) {
 				disp = ((u4 *) savedmcodeptr) - (((u4 *) cd->mcodeptr) + 1);
 				M_BR(disp);
-
-			} else {
+			}
+			else {
 				savedmcodeptr = cd->mcodeptr;
 
 				if (code->isleafmethod) {

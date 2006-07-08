@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 5053 2006-06-28 19:11:20Z twisti $
+   $Id: utf8.c 5088 2006-07-08 20:16:05Z twisti $
 
 */
 
@@ -90,6 +90,7 @@ utf *utf_java_lang_NoSuchMethodError;
 utf *utf_java_lang_OutOfMemoryError;
 
 utf *utf_java_lang_Exception;
+utf *utf_java_lang_ClassCastException;
 utf *utf_java_lang_ClassNotFoundException;
 utf *utf_java_lang_IllegalArgumentException;
 utf *utf_java_lang_IllegalMonitorStateException;
@@ -220,6 +221,9 @@ bool utf8_init(void)
 		utf_new_char(string_java_lang_OutOfMemoryError);
 
 	utf_java_lang_Exception        = utf_new_char(string_java_lang_Exception);
+
+	utf_java_lang_ClassCastException =
+		utf_new_char(string_java_lang_ClassCastException);
 
 	utf_java_lang_ClassNotFoundException =
 		utf_new_char(string_java_lang_ClassNotFoundException);

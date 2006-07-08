@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 5067 2006-07-03 10:18:56Z twisti $
+   $Id: exceptions.h 5088 2006-07-08 20:16:05Z twisti $
 
 */
 
@@ -52,7 +52,7 @@ typedef struct exceptionentry exceptionentry;
 
 
 #if defined(ENABLE_THREADS)
-#define exceptionptr    builtin_get_exceptionptrptr()
+#define exceptionptr    &(THREADOBJECT->_exceptionptr)
 #else
 #define exceptionptr    &_no_threads_exceptionptr
 #endif
@@ -146,7 +146,7 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index);
 void exceptions_throw_arrayindexoutofboundsexception(void);
 
 java_objectheader *new_arraystoreexception(void);
-java_objectheader *new_classcastexception(void);
+java_objectheader *exceptions_new_classcastexception(java_objectheader *o);
 
 java_objectheader *new_illegalargumentexception(void);
 void exceptions_throw_illegalargumentexception(void);

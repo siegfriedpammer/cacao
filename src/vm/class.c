@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 5053 2006-06-28 19:11:20Z twisti $
+   $Id: class.c 5088 2006-07-08 20:16:05Z twisti $
 
 */
 
@@ -113,6 +113,7 @@ classinfo *class_java_lang_NoSuchMethodError;
 classinfo *class_java_lang_OutOfMemoryError;
 
 classinfo *class_java_lang_Exception;
+classinfo *class_java_lang_ClassCastException;
 classinfo *class_java_lang_ClassNotFoundException;
 classinfo *class_java_lang_IllegalArgumentException;
 classinfo *class_java_lang_IllegalMonitorStateException;
