@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5038 2006-06-19 22:22:34Z twisti $
+   $Id: stacktrace.c 5085 2006-07-08 14:20:59Z twisti $
 
 */
 
@@ -897,7 +897,10 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 				code = *((codeinfo **) (pv + CodeinfoPointer));
 
-				m = code->m;
+				/* For asm_vm_call_method the codeinfo pointer is
+				   NULL. */
+
+				m = (code == NULL) ? NULL : code->m;
 
 			} else {
 				/* Inline stackframe infos are special: they have a
