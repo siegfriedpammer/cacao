@@ -14,56 +14,58 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl set optimization and debugging for all architectures and systems
 if test x"$CFLAGS" = "x"; then
-    CFLAGS="-O0 -g3"
+    OPT_CFLAGS="-O0 -g3"
+else
+    OPT_CFLAGS=$CFLAGS
 fi
 
 dnl system type
 case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
     ARCH_DIR="alpha"
-    CFLAGS="$CFLAGS -mieee -D__ALPHA__"
+    ARCH_CFLAGS="-mieee -D__ALPHA__"
     ;;
 
 arm | armv4tl | armv5b | armv5l )
     ARCH_DIR="arm"
-    CFLAGS="$CFLAGS -D__ARM__"
+    ARCH_CFLAGS="-D__ARM__"
     ;;
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
-    CFLAGS="$CFLAGS -D__I386__"
+    ARCH_CFLAGS="-D__I386__"
     ;;
 
 mips )
     ARCH_DIR="mips"
-    CFLAGS="$CFLAGS -D__MIPS__"
+    ARCH_CFLAGS="-D__MIPS__"
     ;;
 
 powerpc )
     ARCH_DIR="powerpc"
-    CFLAGS="$CFLAGS -D__POWERPC__"
+    ARCH_CFLAGS="-D__POWERPC__"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
-    CFLAGS="$CFLAGS -D__POWERPC64__"
+    ARCH_CFLAGS="-D__POWERPC64__"
+    ;;
+
+sparc64 )
+    ARCH_DIR="sparc64"
+    ARCH_CFLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
     ;;
 
 x86_64 )
     ARCH_DIR="x86_64"
-    CFLAGS="$CFLAGS -D__X86_64__"
+    ARCH_CFLAGS="-D__X86_64__"
     ;;
 
 xdspcore )
     ARCH_DIR="xdspcore"
     ENABLE_STATICVM="yes"
-    CFLAGS="$CFLAGS -D__XDSPCORE__"
+    ARCH_CFLAGS="-D__XDSPCORE__"
     USE_SCHEDULER="1"
-    ;;
-
-sparc64 )
-    ARCH_DIR="sparc64"
-    CFLAGS="$CFLAGS -mcpu=v9 -m64 -D__SPARC_64__"
     ;;
 
 * )
@@ -75,32 +77,32 @@ dnl host type
 case "$host_os" in
 *darwin* )
     OS_DIR="darwin"
-    INTRP_CFLAGS="$CFLAGS -D__DARWIN__ -Wall -Wno-long-long"
-    CFLAGS="$CFLAGS -D__DARWIN__ -ansi -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -Wall -Wno-long-long"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -ansi -pedantic -Wall -Wno-long-long"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
-    INTRP_CFLAGS="$CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
-    CFLAGS="$CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
     ;;
 
 *irix* )
     OS_DIR="irix"
-    INTRP_CFLAGS="$CFLAGS -D__IRIX__"
-    CFLAGS="$CFLAGS -D__IRIX__"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__IRIX__"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__IRIX__"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
-    INTRP_CFLAGS="$CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    CFLAGS="$CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
-    INTRP_CFLAGS="$CFLAGS -D__NETBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    CFLAGS="$CFLAGS -D__NETBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
 * )
@@ -108,10 +110,15 @@ case "$host_os" in
 esac
 
 
+dnl temporary set the CFLAGS for configure tests
+dnl we set it properly at the end of this file
+CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
+
+
 dnl define some stuff required for --fullversion
 AC_DEFINE_UNQUOTED(VERSION_CONFIGURE_ARGS, "$ac_configure_args", [configure arguments])
 AC_DEFINE_UNQUOTED(VERSION_CC, "$CC", [CC used])
-AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$CFLAGS", [CFLAGS used])
+AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS", [CFLAGS used])
 
 
 dnl define and substitute some architecture specific variables
@@ -474,7 +481,10 @@ native | posix | pthreads)
     AC_MSG_RESULT(yes, native)
     AC_CHECK_LIB(pthread, main)
     
-    CFLAGS="$CFLAGS -D_REENTRANT"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D_REENTRANT"
+
+    dnl we changed ARCH_CFLAGS, set CFLAGS again
+    CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
     
     dnl tell boehm to support threads as well
     ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
@@ -492,7 +502,7 @@ if test "x$use__thread" != xno; then
   [cat > conftest.c <<\EOF
 __thread int a = 42;
 EOF
-  if AC_TRY_COMMAND([${CC-cc} $CFLAGS -c conftest.c >&AS_MESSAGE_LOG_FD]); then
+  if AC_TRY_COMMAND([${CC-cc} $ARCH_CFLAGS $OPT_CFLAGS -c conftest.c >&AS_MESSAGE_LOG_FD]); then
     ac_cv_gcc___thread=yes 
   else
     ac_cv_gcc___thread=no
@@ -771,6 +781,12 @@ dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
 AC_CONFIG_SUBDIRS(src/boehm-gc)
+
+
+dnl finally pass CFLAGS to Makefiles via AM_CFLAGS
+CFLAGS=$OPT_CFLAGS
+AM_CFLAGS=$ARCH_CFLAGS
+AC_SUBST(AM_CFLAGS)
 
 
 AC_CONFIG_FILES([Makefile]
