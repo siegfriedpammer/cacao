@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5080 2006-07-06 12:42:23Z twisti $
+   $Id: codegen.c 5087 2006-07-08 19:08:13Z twisti $
 
 */
 
@@ -5545,26 +5545,19 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* save return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type)) {
-		if (IS_2_WORD_TYPE(md->returntype.type))
-			M_IST(REG_RESULT2, REG_SP, 2 * 4);
-		M_IST(REG_RESULT, REG_SP, 1 * 4);
-	
-	} else {
-		if (IS_2_WORD_TYPE(md->returntype.type))
-			i386_fstl_membase(cd, REG_SP, 1 * 4);
-		else
-			i386_fsts_membase(cd, REG_SP, 1 * 4);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_IST(REG_RESULT2, REG_SP, 2 * 4);
+			M_IST(REG_RESULT, REG_SP, 1 * 4);
+		}
+		else {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				i386_fstl_membase(cd, REG_SP, 1 * 4);
+			else
+				i386_fsts_membase(cd, REG_SP, 1 * 4);
+		}
 	}
-
-	/* remove data structures for native function call */
-
-	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(stackframesize * 4, REG_ITMP1);
-
-	M_AST(REG_ITMP1, REG_SP, 0 * 4);
-	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
-	M_CALL(REG_ITMP1);
 
 #if !defined(NDEBUG)
     if (opt_verbosecall) {
@@ -5599,32 +5592,35 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
     }
 #endif /* !defined(NDEBUG) */
 
-	/* check for exception */
+	/* remove native stackframe info */
 
-#if defined(ENABLE_THREADS)
-/* 	i386_call_mem(cd, (ptrint) builtin_get_exceptionptrptr); */
-	i386_call_mem(cd, (ptrint) &callgetexceptionptrptr);
-#else
-	M_MOV_IMM(&_no_threads_exceptionptr, REG_RESULT);
-#endif
-	/* we can't use REG_ITMP3 == REG_RESULT2 */
-	M_ALD(REG_ITMP2, REG_RESULT, 0);
+	M_MOV(REG_SP, REG_ITMP1);
+	M_AADD_IMM(stackframesize * 4, REG_ITMP1);
+
+	M_AST(REG_ITMP1, REG_SP, 0 * 4);
+	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
+	M_CALL(REG_ITMP1);
+	M_MOV(REG_RESULT, REG_ITMP2);                 /* REG_ITMP3 == REG_RESULT2 */
 
 	/* restore return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type)) {
-		if (IS_2_WORD_TYPE(md->returntype.type))
-			M_ILD(REG_RESULT2, REG_SP, 2 * 4);
-		M_ILD(REG_RESULT, REG_SP, 1 * 4);
-	
-	} else {
-		if (IS_2_WORD_TYPE(md->returntype.type))
-			i386_fldl_membase(cd, REG_SP, 1 * 4);
-		else
-			i386_flds_membase(cd, REG_SP, 1 * 4);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_ILD(REG_RESULT2, REG_SP, 2 * 4);
+			M_ILD(REG_RESULT, REG_SP, 1 * 4);
+		}
+		else {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				i386_fldl_membase(cd, REG_SP, 1 * 4);
+			else
+				i386_flds_membase(cd, REG_SP, 1 * 4);
+		}
 	}
 
 	M_AADD_IMM(stackframesize * 4, REG_SP);
+
+	/* check for exception */
 
 	M_TEST(REG_ITMP2);
 	M_BNE(1);
@@ -5633,17 +5629,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* handle exception */
 
-#if defined(ENABLE_THREADS)
-	i386_push_reg(cd, REG_ITMP2);
-/* 	i386_call_mem(cd, (ptrint) builtin_get_exceptionptrptr); */
-	i386_call_mem(cd, (ptrint) &callgetexceptionptrptr);
-	i386_mov_imm_membase(cd, 0, REG_RESULT, 0);
-	i386_pop_reg(cd, REG_ITMP1_XPTR);
-#else
 	M_MOV(REG_ITMP2, REG_ITMP1_XPTR);
-	M_MOV_IMM(&_no_threads_exceptionptr, REG_ITMP2);
-	i386_mov_imm_membase(cd, 0, REG_ITMP2, 0);
-#endif
 	M_ALD(REG_ITMP2_XPC, REG_SP, 0);
 	M_ASUB_IMM(2, REG_ITMP2_XPC);
 
