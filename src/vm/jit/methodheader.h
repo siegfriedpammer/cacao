@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: methodheader.h 5038 2006-06-19 22:22:34Z twisti $
+   $Id: methodheader.h 5090 2006-07-08 22:07:05Z twisti $
 
 */
 
@@ -56,12 +56,6 @@
 #define ExTableSize             -56
 #define ExTableStart            -56
        
-#define ExEntrySize             -32
-#define ExStartPC               -8
-#define ExEndPC                 -16
-#define ExHandlerPC             -24
-#define ExCatchType             -32
-
 #else /* SIZEOF_VOID_P == 8 */
 
 #define CodeinfoPointer         -4
@@ -74,12 +68,6 @@
 #define LineNumberTableStart    -32
 #define ExTableSize             -36
 #define ExTableStart            -36
-
-#define ExEntrySize             -16
-#define ExStartPC               -4
-#define ExEndPC                 -8
-#define ExHandlerPC             -12
-#define ExCatchType             -16
 
 #endif /* SIZEOF_VOID_P == 8 */
 
