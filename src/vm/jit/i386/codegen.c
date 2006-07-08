@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5087 2006-07-08 19:08:13Z twisti $
+   $Id: codegen.c 5089 2006-07-08 20:32:30Z twisti $
 
 */
 
@@ -4628,12 +4628,12 @@ gen_method:
 
 				s3 += 2 /* cmp */ + 6 /* jcc */;
 
-				if (!super)
+				if (super == NULL)
 					s3 += (opt_showdisassemble ? 5 : 0);
 
 				/* if class is not resolved, check which code to call */
 
-				if (!super) {
+				if (super == NULL) {
 					i386_test_reg_reg(cd, s1, s1);
 					i386_jcc(cd, I386_CC_Z, 5 + (opt_showdisassemble ? 5 : 0) + 6 + 6 + s2 + 5 + s3);
 
@@ -4651,8 +4651,8 @@ gen_method:
 
 				/* interface checkcast code */
 
-				if (!super || (super->flags & ACC_INTERFACE)) {
-					if (super) {
+				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+					if (super != NULL) {
 						i386_test_reg_reg(cd, s1, s1);
 						i386_jcc(cd, I386_CC_Z, s2);
 					}
@@ -4661,10 +4661,11 @@ gen_method:
 										 OFFSET(java_objectheader, vftbl),
 										 REG_ITMP2);
 
-					if (!super) {
+					if (super == NULL) {
 						codegen_addpatchref(cd,
 											PATCHER_checkcast_instanceof_interface,
-											(constant_classref *) iptr->target, 0);
+											(constant_classref *) iptr->target,
+											0);
 
 						if (opt_showdisassemble) {
 							M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4677,32 +4678,32 @@ gen_method:
 					i386_alu_imm32_reg(cd, ALU_SUB, superindex, REG_ITMP3);
 					i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
 					i386_jcc(cd, I386_CC_LE, 0);
-					codegen_add_classcastexception_ref(cd);
+					codegen_add_classcastexception_ref(cd, s1);
 					i386_mov_membase32_reg(cd, REG_ITMP2,
 										   OFFSET(vftbl_t, interfacetable[0]) -
 										   superindex * sizeof(methodptr*),
 										   REG_ITMP3);
-					i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
-					i386_jcc(cd, I386_CC_E, 0);
-					codegen_add_classcastexception_ref(cd);
+					M_TEST(REG_ITMP3);
+					M_BEQ(0);
+					codegen_add_classcastexception_ref(cd, s1);
 
-					if (!super)
-						i386_jmp_imm(cd, s3);
+					if (super == NULL)
+						M_JMP_IMM(s3);
 				}
 
 				/* class checkcast code */
 
-				if (!super || !(super->flags & ACC_INTERFACE)) {
-					if (super) {
-						i386_test_reg_reg(cd, s1, s1);
-						i386_jcc(cd, I386_CC_Z, s3);
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
+					if (super != NULL) {
+						M_TEST(s1);
+						M_BEQ(s3);
 					}
 
 					i386_mov_membase_reg(cd, s1,
 										 OFFSET(java_objectheader, vftbl),
 										 REG_ITMP2);
 
-					if (!super) {
+					if (super == NULL) {
 						codegen_addpatchref(cd, PATCHER_checkcast_class,
 											(constant_classref *) iptr->target,
 											0);
@@ -4744,11 +4745,12 @@ gen_method:
 
 					i386_alu_reg_reg(cd, ALU_CMP, REG_ITMP3, REG_ITMP2);
 					i386_jcc(cd, I386_CC_A, 0);    /* (u) REG_ITMP2 > (u) REG_ITMP3 -> jump */
-					codegen_add_classcastexception_ref(cd);
+					codegen_add_classcastexception_ref(cd, s1);
 				}
-				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
 
-			} else {
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
+			}
+			else {
 				/* array type cast-check */
 
 				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
@@ -4768,11 +4770,12 @@ gen_method:
 				M_CALL(REG_ITMP3);
 				M_TEST(REG_RESULT);
 				M_BEQ(0);
-				codegen_add_classcastexception_ref(cd);
+				codegen_add_classcastexception_ref(cd, s1);
 
 				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
 			}
+
 			M_INTMOVE(s1, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
