@@ -1,6 +1,8 @@
 New in release 0.97 (xxx xx, 2006)
 
   * Fixed AbstractMethodError bug.
+  * Added failed class as message to ClassCastException's.
+  * Added enable/disable system assertion support (-esa/-dsa).
 
 
 New in release 0.96 (May 29, 2006)
