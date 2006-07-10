@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5052 2006-06-28 17:05:46Z twisti $
+   $Id: jit.h 5096 2006-07-10 14:02:25Z twisti $
 
 */
 
@@ -95,7 +95,9 @@ struct jitdata {
 #if defined(ENABLE_LOOP)
 	loopdata        *ld;
 #endif
+
 	u4               flags;             /* contains JIT compiler flags        */
+	bool             isleafmethod;      /* does method call subroutines       */
 
 	new_instruction *new_instructions;
 	basicblock      *new_basicblocks;

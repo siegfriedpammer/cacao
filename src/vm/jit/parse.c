@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5079 2006-07-06 11:36:01Z twisti $
+   $Id: parse.c 5096 2006-07-10 14:02:25Z twisti $
 
 */
 
@@ -278,7 +278,7 @@ bool new_parse(jitdata *jd)
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		code->isleafmethod = false;
+		jd->isleafmethod = false;
 #endif
 
 	/* setup line number info */
@@ -658,7 +658,7 @@ fetch_opcode:
 			break;
 
 		case JAVA_MULTIANEWARRAY:
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 			i = code_get_u2(p + 1, m);
 			{
 				s4 v = code_get_u1(p + 3, m);
@@ -900,7 +900,7 @@ jsr_tail:
 
 		case JAVA_AASTORE:
 			NEW_OP(opcode);
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 			break;
 
 		case JAVA_GETSTATIC:
@@ -987,7 +987,7 @@ invoke_nonstatic_method:
 					return false;
 
 invoke_method:
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 
 			NEW_OP_PREPARE_ZEROFLAGS(opcode);
 			iptr->sx.s23.s3.fmiref = mr;
@@ -1047,7 +1047,7 @@ invoke_method:
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
 				flags = INS_FLAG_ARRAY;
-				code->isleafmethod = false;
+				jd->isleafmethod = false;
 			}
 			else {
 				/* object type cast-check */
@@ -1544,7 +1544,7 @@ bool parse(jitdata *jd)
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		code->isleafmethod = false;
+		jd->isleafmethod = false;
 #endif
 
 	/* scan all java instructions */
@@ -1913,7 +1913,7 @@ fetch_opcode:
 			break;
 
 		case JAVA_MULTIANEWARRAY:
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 			i = code_get_u2(p + 1, m);
 			{
 				s4 v = code_get_u1(p + 3, m);
@@ -2135,7 +2135,7 @@ fetch_opcode:
 
 		case JAVA_AASTORE:
 			OP(opcode);
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 			break;
 
 		case JAVA_GETSTATIC:
@@ -2232,7 +2232,7 @@ invoke_nonstatic_method:
 					return false;
 
 invoke_method:
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 
 			OP2A_NOINC(opcode, 0, mr, currentline);
 
@@ -2302,7 +2302,7 @@ invoke_method:
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
 				OP2AT(opcode, 0, c, cr, currentline);
-				code->isleafmethod = false;
+				jd->isleafmethod = false;
 
 			} 
 			else {
@@ -2368,7 +2368,7 @@ invoke_method:
 #if !SUPPORT_DIVISION
 			bte = builtintable_get_internal(BUILTIN_idiv);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 #else
 			OP(opcode);
 #endif
@@ -2378,7 +2378,7 @@ invoke_method:
 #if !SUPPORT_DIVISION
 			bte = builtintable_get_internal(BUILTIN_irem);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 #else
 			OP(opcode);
 #endif
@@ -2388,7 +2388,7 @@ invoke_method:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_ldiv);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 #else
 			OP(opcode);
 #endif
@@ -2398,7 +2398,7 @@ invoke_method:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_lrem);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			code->isleafmethod = false;
+			jd->isleafmethod = false;
 #else
 			OP(opcode);
 #endif

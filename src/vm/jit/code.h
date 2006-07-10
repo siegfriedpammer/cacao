@@ -59,15 +59,12 @@ struct codeinfo {
 	codeinfo     *prev;                 /* previous codeinfo of this method   */
 
 	u1            optlevel;             /* optimization level of this code    */
-
 	s4            basicblockcount;      /* number of basic blocks             */
-	basicblock   *basicblocks;          /* points to basic block array        */
 
 	/* machine code */
 	u1           *mcode;                /* pointer to machine code            */
 	u1           *entrypoint;           /* machine code entry point           */
 	s4            mcodelength;          /* length of generated machine code   */
-	bool          isleafmethod;         /* does method call subroutines       */
 
 	/* replacement */				    
 	rplpoint     *rplpoints;            /* replacement points                 */
