@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5079 2006-07-06 11:36:01Z twisti $
+   $Id: jit.c 5099 2006-07-10 14:20:38Z twisti $
 
 */
 
@@ -953,6 +953,40 @@ static u1 *do_nothing_function(void)
 }
 
 
+/* jit_jitdata_new *************************************************************
+
+   Allocates and initalizes a new jitdata structure.
+
+*******************************************************************************/
+
+static jitdata *jit_jitdata_new(methodinfo *m)
+{
+	jitdata *jd;
+
+	/* allocate jitdata structure and fill it */
+
+	jd = DNEW(jitdata);
+
+	jd->m     = m;
+	jd->cd    = DNEW(codegendata);
+	jd->rd    = DNEW(registerdata);
+#if defined(ENABLE_LOOP)
+	jd->ld    = DNEW(loopdata);
+#endif
+
+	/* Allocate codeinfo memory from the heap as we need to keep them. */
+
+	jd->code  = code_codeinfo_new(m);
+
+	/* initialize variables */
+
+	jd->flags        = 0;
+	jd->isleafmethod = true;
+
+	return jd;
+}
+
+
 /* jit_compile *****************************************************************
 
    Translates one method to machine code.
@@ -1016,20 +1050,9 @@ u1 *jit_compile(methodinfo *m)
 
 	dumpsize = dump_size();
 
-	/* allocate jitdata structure and fill it */
+	/* create jitdata structure */
 
-	jd = DNEW(jitdata);
-
-	jd->m     = m;
-	jd->cd    = DNEW(codegendata);
-	jd->rd    = DNEW(registerdata);
-#if defined(ENABLE_LOOP)
-	jd->ld    = DNEW(loopdata);
-#endif
-
-	/* Allocate codeinfo memory from the heap as we need to keep them. */
-
-	jd->code  = code_codeinfo_new(m);
+	jd = jit_jitdata_new(m);
 
 	/* set the flags for the current JIT run */
 
@@ -1152,21 +1175,9 @@ u1 *jit_recompile(methodinfo *m)
 
 	dumpsize = dump_size();
 
-	/* allocate jitdata structure and fill it */
+	/* create jitdata structure */
 
-	jd = DNEW(jitdata);
-
-	jd->m     = m;
-	jd->cd    = DNEW(codegendata);
-	jd->rd    = DNEW(registerdata);
-#if defined(ENABLE_LOOP)
-	jd->ld    = DNEW(loopdata);
-#endif
-	jd->flags = 0;
-
-	/* Allocate codeinfo memory from the heap as we need to keep them. */
-
-	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+	jd = jit_jitdata_new(m);
 
 	/* set the current optimization level to the previous one plus 1 */
 
