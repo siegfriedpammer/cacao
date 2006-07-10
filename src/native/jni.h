@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: jni.h 5091 2006-07-10 10:01:47Z twisti $
 
 */
 
@@ -64,6 +64,10 @@ typedef struct _Jv_JavaVM _Jv_JavaVM;
 
 struct _Jv_JavaVM {
 	const struct JNIInvokeInterface *functions;/* This MUST be the first entry*/
+
+	/* JVM instance-specific variables */
+
+	s4 Java_java_lang_VMClassLoader_defaultAssertionStatus;
 };
 
 

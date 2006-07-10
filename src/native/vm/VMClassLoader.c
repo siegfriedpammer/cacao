@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 5031 2006-06-14 18:36:22Z motse $
+   $Id: VMClassLoader.c 5091 2006-07-10 10:01:47Z twisti $
 
 */
 
@@ -468,6 +468,17 @@ return_NULL:
 	MFREE(buffer, char, bufsize);
 
 	return NULL;
+}
+
+
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    defaultAssertionStatus
+ * Signature: ()Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv *env, jclass clazz)
+{
+	return _Jv_jvm->Java_java_lang_VMClassLoader_defaultAssertionStatus;
 }
 
 

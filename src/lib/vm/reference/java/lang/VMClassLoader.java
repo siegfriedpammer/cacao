@@ -363,10 +363,11 @@ final class VMClassLoader
    *
    * @return the system-wide default assertion status
    */
-  static final boolean defaultAssertionStatus()
-  {
-    return true;
-  }
+//   static final boolean defaultAssertionStatus()
+//   {
+//     return true;
+//   }
+  static native final boolean defaultAssertionStatus();
 
   /**
    * The system default for package assertion status. This is used for all

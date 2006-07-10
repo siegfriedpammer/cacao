@@ -128,6 +128,9 @@ enum {
 	OPT_HELP,
 	OPT_X,
 
+	OPT_ESA,
+	OPT_DSA,
+
 	/* Java non-standard options */
 
 	OPT_JIT,
@@ -235,6 +238,11 @@ opt_struct opts[] = {
 	{ "help",              false, OPT_HELP },
 	{ "?",                 false, OPT_HELP },
 	{ "X",                 false, OPT_X },
+
+	{ "esa",                     false, OPT_ESA },
+	{ "enablesystemassertions",  false, OPT_ESA },
+	{ "dsa",                     false, OPT_DSA },
+	{ "disablesystemassertions", false, OPT_DSA },
 
 	{ "noasyncgc",         false, OPT_IGNORE },
 #if defined(ENABLE_VERIFIER)
@@ -351,7 +359,12 @@ void usage(void)
 	puts("    -fullversion             print jpackage-compatible product version and exit");
 	puts("    -showversion             print product version and continue");
 	puts("    -help, -?                print this help message");
-	puts("    -X                       print help on non-standard Java options\n");
+	puts("    -X                       print help on non-standard Java options");
+	puts("    -esa | -enablesystemassertions");
+	puts("                             enable system assertions");
+	puts("    -dsa | -disablesystemassertions");
+	puts("                             disable system assertions");
+	puts("");
 
 #ifdef ENABLE_JVMTI
 	puts("    -agentlib:<agent-lib-name>=<options>  library to load containg JVMTI agent");
@@ -989,6 +1002,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 		case OPT_X:
 			Xusage();
+			break;
+
+		case OPT_ESA:
+			_Jv_jvm->Java_java_lang_VMClassLoader_defaultAssertionStatus = true;
+			break;
+
+		case OPT_DSA:
+			_Jv_jvm->Java_java_lang_VMClassLoader_defaultAssertionStatus = false;
 			break;
 
 		case OPT_PROF_OPTION:
