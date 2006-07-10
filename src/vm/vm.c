@@ -49,6 +49,7 @@
 # include "threads/native/threads.h"
 #endif
 
+#include "toolbox/util.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
@@ -401,14 +402,17 @@ void usage(void)
 	puts("    -all                     compile all methods, no execution");
 	puts("    -m                       compile only a specific method");
 	puts("    -sig                     specify signature for a specific method");
-	puts("    -s(how)a(ssembler)       show disassembled listing");
-	puts("           c(onstants)       show the constant pool");
-	puts("           d(atasegment)     show data segment listing");
-	puts("           e(xceptionstubs)  show disassembled exception stubs (only with -sa)");
-	puts("           i(ntermediate)    show intermediate representation");
-	puts("           m(ethods)         show class fields and methods");
-	puts("           n(ative)          show disassembled native stubs");
-	puts("           u(tf)             show the utf - hash");
+	puts("    -s(how)...               show...");
+	puts("           c(onstants)       the constant pool");
+	puts("           m(ethods)         class fields and methods");
+	puts("           u(tf)             the utf - hash");
+	puts("           i(ntermediate)    intermediate representation");
+#if defined(ENABLE_DISASSEMBLER)
+	puts("           a(ssembler)       disassembled listing");
+	puts("           e(xceptionstubs)  disassembled exception stubs (only with -sa)");
+	puts("           n(ative)          disassembled native stubs");
+#endif
+	puts("           d(atasegment)     data segment listing");
 #if defined(ENABLE_INLINING)
 	puts("    -i     n(line)           activate inlining");
 	puts("           v(irtual)         inline virtual methods (uses/turns rt option on)");
@@ -574,6 +578,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	if (vms > 0)
 		return false;
+
+	/* set the VM starttime */
+
+	_Jv_jvm->starttime = util_current_time_millis();
 
 	/* get stuff from the environment *****************************************/
 
@@ -918,32 +926,42 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_SHOW:       /* Display options */
 			for (j = 0; j < strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
-				case 'a':
-					opt_showdisassemble = true;
-					compileverbose = true;
-					break;
 				case 'c':
 					showconstantpool = true;
 					break;
-				case 'd':
-					opt_showddatasegment = true;
+
+				case 'u':
+					showutf = true;
 					break;
-				case 'e':
-					opt_showexceptionstubs = true;
+
+				case 'm':
+					showmethods = true;
 					break;
+
 				case 'i':
 					opt_showintermediate = true;
 					compileverbose = true;
 					break;
-				case 'm':
-					showmethods = true;
+
+#if defined(ENABLE_DISASSEMBLER)
+				case 'a':
+					opt_showdisassemble = true;
+					compileverbose = true;
 					break;
+
+				case 'e':
+					opt_showexceptionstubs = true;
+					break;
+
 				case 'n':
 					opt_shownativestub = true;
 					break;
-				case 'u':
-					showutf = true;
+#endif
+
+				case 'd':
+					opt_showddatasegment = true;
 					break;
+
 				default:
 					usage();
 				}

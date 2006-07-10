@@ -28,24 +28,28 @@
 
    Changes:
 
-   $Id: util.c 4960 2006-05-26 12:19:43Z edwin $
+   $Id: util.c 5104 2006-07-10 17:22:18Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "vm/types.h"
 
 #include "mm/memory.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 
-/* getcwd **********************************************************************
+/* _Jv_getcwd ******************************************************************
 
    Return the current working directory.
 
@@ -133,6 +137,28 @@ int get_variable_message_length(const char *fmt, va_list ap)
 #endif
 
 	return n;
+}
+
+
+/* util_current_time_millis ****************************************************
+
+   Return the current time in milliseconds.
+
+*******************************************************************************/
+
+s8 util_current_time_millis(void)
+{
+	struct timeval tv;
+	s8             result;
+
+	if (gettimeofday(&tv, NULL) == -1)
+		vm_abort("gettimeofday failed: %s", strerror(errno));
+
+	result = (s8) tv.tv_sec;
+	result *= 1000;
+	result += (tv.tv_usec / 1000);
+
+	return result;
 }
 
 

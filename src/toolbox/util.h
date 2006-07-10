@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: util.h 5104 2006-07-10 17:22:18Z twisti $
 
 */
 
@@ -36,13 +36,18 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+#include "config.h"
+
 #include <stdarg.h>
+
+#include "vm/types.h"
 
 
 /* function prototypes ********************************************************/
 
 char *_Jv_getcwd(void);
-int get_variable_message_length(const char *fmt, va_list ap);
+int   get_variable_message_length(const char *fmt, va_list ap);
+s8    util_current_time_millis(void);
 
 #endif /* _UTIL_H */
 

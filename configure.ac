@@ -332,12 +332,12 @@ AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xyes")
 dnl check for disassembler support
 AC_MSG_CHECKING(whether disassembler should be enabled)
 AC_ARG_ENABLE([disassembler],
-              [AS_HELP_STRING(--disable-disassembler,disable disassembler [[default=yes]])],
+              [AS_HELP_STRING(--enable-disassembler,enable disassembler [[default=no]])],
               [case "${enableval}" in
-                   no) ENABLE_DISASSEMBLER=no;;
-                   *) ENABLE_DISASSEMBLER=yes;;
+                   yes) ENABLE_DISASSEMBLER=yes;;
+                   *) ENABLE_DISASSEMBLER=no;;
                esac],
-              [ENABLE_DISASSEMBLER=yes])
+              [ENABLE_DISASSEMBLER=no])
 AC_MSG_RESULT(${ENABLE_DISASSEMBLER})
 AM_CONDITIONAL([ENABLE_DISASSEMBLER], test x"${ENABLE_DISASSEMBLER}" = "xyes")
 
