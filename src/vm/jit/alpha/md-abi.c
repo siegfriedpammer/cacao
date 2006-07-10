@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5070 2006-07-03 13:46:42Z twisti $
+   $Id: md-abi.c 5094 2006-07-10 13:51:38Z twisti $
 
 */
 
@@ -102,13 +102,14 @@ void md_param_alloc(methoddesc *md)
 				pd->regoff = reguse;
 				reguse++;
 				md->argintreguse = reguse;
-
-			} else {
+			}
+			else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 				stacksize++;
 			}
 			break;
+
 		case TYPE_FLT:
 		case TYPE_DBL:
 			if (i < FLT_ARG_CNT) {
@@ -116,7 +117,8 @@ void md_param_alloc(methoddesc *md)
 				pd->regoff = reguse;
 				reguse++;
 				md->argfltreguse = reguse;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 				stacksize++;
@@ -154,22 +156,29 @@ void md_param_alloc(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
-	/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has not   */
-	/* to survive method invokations */
+	methodinfo *m;
+	methoddesc *md;
+
+	/* get required compiler data */
+
+	m = jd->m;
+
+	md = m->parseddesc;
+
+	/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has
+	   not to survive method invokations. */
 
 	if (!(stackslot->flags & SAVEDVAR)) {
 		stackslot->varkind = ARGVAR;
-		stackslot->varnum = -1;
-		stackslot->flags = 0;
+		stackslot->varnum  = -1;
+		stackslot->flags   = 0;
 
-		if (IS_INT_LNG_TYPE(return_type)) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
 			stackslot->regoff = REG_RESULT;
-		} else { /* float/double */
+		else
 			stackslot->regoff = REG_FRESULT;
-		}
 	}
 }
 

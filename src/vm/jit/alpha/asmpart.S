@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 5072 2006-07-03 14:06:05Z twisti $
+   $Id: asmpart.S 5094 2006-07-10 13:51:38Z twisti $
 
 */
 
@@ -462,7 +462,7 @@ asm_abstractmethoderror:
 	.ent    asm_wrapper_patcher
 
 asm_wrapper_patcher:
-	lda     sp,-((2+12+27+4)*8+sizestackframeinfo)(sp) /* create stack frame  */
+	lda     sp,-((2+12+27+4)*8)(sp) /* create stack frame                     */
 
 	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
 	SAVE_ARGUMENT_REGISTERS(2)    /* save 6 int/6 float argument registers    */
@@ -477,25 +477,12 @@ asm_wrapper_patcher:
 L_asm_wrapper_patcher_load_gp:
 	ldgp    gp,0(ra)              /* load gp (it's not set correctly in jit)  */
 
-	lda     a0,(2+12+27+4)*8(sp)  /* create stackframe info                   */
-	mov     pv,a1                 /* pass java pv                             */
-	lda     a2,((6+2+12+27+4)*8+sizestackframeinfo)(sp) /* pass java sp       */
-	ldq     a3,(2+12+27+2)*8(sp)  /* this is correct for leafs                */
-	ldq     a4,((5+2+12+27+4)*8+sizestackframeinfo)(sp) /* pass xpc           */
-	jsr     ra,stacktrace_create_extern_stackframeinfo
+	lda     a0,(2+12+27+4)*8(sp)  /* pass SP of patcher stub                  */
+	mov     pv,a1                 /* pass PV                                  */
+	ldq     a2,(2+12+27+2)*8(sp)  /* pass RA (correct for leafs)              */
+	jsr     ra,patcher_wrapper
 	ldgp    gp,0(ra)
-
-	lda     a0,((0+2+12+27+4)*8+sizestackframeinfo)(sp) /* pass sp            */
-	ldq     pv,((0+2+12+27+4)*8+sizestackframeinfo)(sp) /* get function       */
-	ldq     itmp1,(2+12+27+3)*8(sp) /* save pv to the position of fp          */
-	stq     itmp1,((0+2+12+27+4)*8+sizestackframeinfo)(sp)
-	jmp     ra,(pv)               /* call the patcher function                */
-	ldgp    gp,0(ra)
-	stq     v0,((0+2+12+27+4)*8+sizestackframeinfo)(sp) /* save return value  */
-
-	lda     a0,(2+12+27+4)*8(sp)  /* remove stackframe info                   */
-	jsr     ra,stacktrace_remove_stackframeinfo
-	ldgp    gp,0(ra)
+	stq     v0,(0+2+12+27+4)*8(sp) /* save return value                       */
 
 	RESTORE_RETURN_REGISTERS(0)   /* restore 1 int/1 float return registers   */
 	RESTORE_ARGUMENT_REGISTERS(2) /* restore 6 int/6 float argument registers */
@@ -506,34 +493,19 @@ L_asm_wrapper_patcher_load_gp:
 	ldq     ra,(2+12+27+2)*8(sp)  /* restore method return address (for leafs)*/
 	ldq     pv,(2+12+27+3)*8(sp)  /* restore pv of calling java function      */
 
-	ldq     itmp3,((0+2+12+27+4)*8+sizestackframeinfo)(sp) /* get return value*/
-	beq     itmp3,L_asm_wrapper_patcher_exception
+	ldq     itmp3,(0+2+12+27+4)*8(sp) /* get return value                     */
+	bne     itmp3,L_asm_wrapper_patcher_exception
 
-	ldq     itmp3,((5+2+12+27+4)*8+sizestackframeinfo)(sp)/* get RA to JIT    */
-	lda     sp,((6+2+12+27+4)*8+sizestackframeinfo)(sp) /* remove stack frame */
+	ldq     itmp3,(5+2+12+27+4)*8(sp) /* get RA to JIT                        */
+	lda     sp,(6+2+12+27+4)*8(sp) /* remove stack frame                      */
 
 	jmp     zero,(itmp3)          /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
-	ldq     xpc,((5+2+12+27+4)*8+sizestackframeinfo)(sp) /* RA is xpc         */
-	lda     sp,((6+2+12+27+4)*8+sizestackframeinfo)(sp) /* remove stack frame */
-
-	br      itmp1,L_asm_wrapper_patcher_exception_load_gp
-L_asm_wrapper_patcher_exception_load_gp:
-	ldgp    gp,0(itmp1)           /* itmp3 == gp, load the current gp         */
-
-	subq    sp,4*8,sp
-	stq     xpc,0*8(sp)           /* save return address (xpc)                */
-	stq     ra,1*8(sp)
-	stq     pv,2*8(sp)
-	jsr     ra,exceptions_get_and_clear_exception
-	ldq     xpc,0*8(sp)           /* restore return address (xpc)             */
-	ldq     ra,1*8(sp)
-	ldq     pv,2*8(sp)
-	addq    sp,4*8,sp
-
-	mov     v0,xptr               /* get exception                            */
-	br      L_asm_handle_exception/* we have the pv of the calling java func. */
+	mov     itmp3,xptr            /* get exception                            */
+	ldq     xpc,(5+2+12+27+4)*8(sp) /* RA is xpc                              */
+	lda     sp,(6+2+12+27+4)*8(sp) /* remove stack frame                      */
+	br      L_asm_handle_exception
 
 	.end	asm_wrapper_patcher
 
