@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5100 2006-07-10 14:22:28Z twisti $
+   $Id: codegen.c 5101 2006-07-10 14:41:36Z twisti $
 
 */
 
@@ -4753,7 +4753,7 @@ gen_method:
 			else {
 				/* array type cast-check */
 
-				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
 				M_AST(s1, REG_SP, 0 * 4);
 
 				if (iptr->val.a == NULL) {
@@ -4768,11 +4768,12 @@ gen_method:
 				M_AST_IMM(iptr->val.a, REG_SP, 1 * 4);
 				M_MOV_IMM(BUILTIN_arraycheckcast, REG_ITMP3);
 				M_CALL(REG_ITMP3);
+
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
 				M_TEST(REG_RESULT);
 				M_BEQ(0);
 				codegen_add_classcastexception_ref(cd, s1);
 
-				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
 			}
 
@@ -5337,12 +5338,6 @@ u1 *createcompilerstub(methodinfo *m)
    Creates a stub routine which calls a native method.
 
 *******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-/* this way we can call the function directly with a memory call */
-
-static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
-#endif
 
 u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 {
