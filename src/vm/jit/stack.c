@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5079 2006-07-06 11:36:01Z twisti $
+   $Id: stack.c 5097 2006-07-10 14:11:07Z twisti $
 
 */
 
@@ -628,7 +628,7 @@ bool new_stack_analyse(jitdata *jd)
 							iptr->flags.bits    = INS_FLAG_NOCHECK;
 							iptr->sx.s23.s3.bte = bte;
 							/* iptr->line is already set */
-							code->isleafmethod = false;
+							jd->isleafmethod = false;
 							goto icmd_BUILTIN;
 						}
 					);
@@ -3023,7 +3023,7 @@ bool stack_analyse(jitdata *jd)
 							iptr->opc   = ICMD_BUILTIN;
 							iptr->op1   = false; /* don't check for exception */
 							iptr->val.a = bte;
-							code->isleafmethod = false;
+							jd->isleafmethod = false;
 							goto builtin;
 						}
 # if defined(ENABLE_INTRP)
