@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5089 2006-07-08 20:32:30Z twisti $
+   $Id: codegen.c 5100 2006-07-10 14:22:28Z twisti $
 
 */
 
@@ -150,7 +150,7 @@ bool codegen(jitdata *jd)
 
     /* Keep stack of non-leaf functions 16-byte aligned. */
 
-	if (!code->isleafmethod)
+	if (!jd->isleafmethod)
 		stackframesize |= 0x3;
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
@@ -169,7 +169,7 @@ bool codegen(jitdata *jd)
 #endif
 		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, code->isleafmethod);             /* IsLeaf          */
+	(void) dseg_adds4(cd, jd->isleafmethod);               /* IsLeaf          */
 	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
 	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
