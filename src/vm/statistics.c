@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: statistics.c 4397 2006-01-31 23:29:59Z twisti $
+   $Id: statistics.c 5093 2006-07-10 13:36:47Z twisti $
 
 */
 
@@ -70,7 +70,14 @@ s4 maxdumpsize = 0;
 s4 globalallocateddumpsize = 0;
 s4 globaluseddumpsize = 0;
 
-int count_class_infos = 0;              /* variables for measurements         */
+
+/* variables for measurements *************************************************/
+
+s4 size_classinfo  = 0;
+s4 size_fieldinfo  = 0;
+s4 size_methodinfo = 0;
+s4 size_codeinfo   = 0;
+
 int count_const_pool_len = 0;
 int count_classref_len = 0;
 int count_parsed_desc_len = 0;
@@ -498,20 +505,23 @@ void print_stats(void)
 	}
 	log_finish();
 
-	dolog("Size of Code Area:        %10.3f kB", (float) count_code_len / 1024);
-	dolog("Size of Data Area:        %10.3f kB", (float) count_data_len / 1024);
-	dolog("Size of Class Infos:      %10.3f kB", (float) count_class_infos / 1024);
-	dolog("Size of Const Pool:       %10.3f kB", (float) (count_const_pool_len + count_utf_len) / 1024);
-	dolog("Size of Class refs:       %10.3f kB", (float) count_classref_len / 1024);
-	dolog("Size of descriptors:      %10.3f kB", (float) count_parsed_desc_len / 1024);
-	dolog("Size of vftbl:            %10.3f kB", (float) count_vftbl_len / 1024);
-	dolog("Size of compiler stubs:   %10.3f kB", (float) count_cstub_len / 1024);
-	dolog("Size of native stubs:     %10.3f kB", (float) count_nstub_len / 1024);
-	dolog("Size of utf:              %10.3f kB", (float) count_utf_len / 1024);
-	dolog("Size of VMCode:           %10.3f kB (%d)",
-		  (float) count_vmcode_len / 1024,
-		  count_vmcode_len - 18 * count_all_methods);
-	dolog("Size of exception tables: %10.3f kB\n", (float) count_extable_len / 1024);
+	log_println("Size of Code Area:          %10.3f kB", (float) count_code_len / 1024);
+	log_println("Size of Data Area:          %10.3f kB", (float) count_data_len / 1024);
+
+	log_println("Size of classinfo  (%3d B): %10.3f kB", sizeof(classinfo), (float) size_classinfo / 1024);
+	log_println("Size of fieldinfo  (%3d B): %10.3f kB", sizeof(fieldinfo), (float) size_fieldinfo / 1024);
+	log_println("Size of methodinfo (%3d B): %10.3f kB", sizeof(methodinfo), (float) size_methodinfo / 1024);
+	log_println("Size of codeinfo   (%3d B): %10.3f kB", sizeof(codeinfo), (float) size_codeinfo / 1024);
+
+	log_println("Size of Const Pool:         %10.3f kB", (float) (count_const_pool_len + count_utf_len) / 1024);
+	log_println("Size of Class refs:         %10.3f kB", (float) count_classref_len / 1024);
+	log_println("Size of descriptors:        %10.3f kB", (float) count_parsed_desc_len / 1024);
+	log_println("Size of vftbl:              %10.3f kB", (float) count_vftbl_len / 1024);
+	log_println("Size of compiler stubs:     %10.3f kB", (float) count_cstub_len / 1024);
+	log_println("Size of native stubs:       %10.3f kB", (float) count_nstub_len / 1024);
+	log_println("Size of utf:                %10.3f kB", (float) count_utf_len / 1024);
+	log_println("Size of VMCode:             %10.3f kB", (float) count_vmcode_len / 1024);
+	log_println("Size of exception tables:   %10.3f kB\n", (float) count_extable_len / 1024);
 
 	dolog("Number of class loads:    %6d", count_class_loads);
 	dolog("Number of class inits:    %6d", count_class_inits);

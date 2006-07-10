@@ -68,9 +68,13 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 	code = NEW(codeinfo);
 
-	code->m            = m;
-	code->isleafmethod = true;          /* initially all methods are leafs    */
-	
+	code->m = m;
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_codeinfo += sizeof(codeinfo);
+#endif
+
 	return code;
 }
 
@@ -200,15 +204,20 @@ int code_get_stack_frame_size(codeinfo *code)
 
 void code_codeinfo_free(codeinfo *code)
 {
-	if (!code)
+	if (code == NULL)
 		return;
 
-	if (code->mcode)
+	if (code->mcode != NULL)
 		CFREE((void *) (ptrint) code->mcode, code->mcodelength);
 
 	replace_free_replacement_points(code);
 
 	FREE(code, codeinfo);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_codeinfo -= sizeof(codeinfo);
+#endif
 }
 
 

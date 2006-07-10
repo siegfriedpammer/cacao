@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 5088 2006-07-08 20:16:05Z twisti $
+   $Id: class.c 5093 2006-07-10 13:36:47Z twisti $
 
 */
 
@@ -205,7 +205,7 @@ classinfo *class_create_classinfo(utf *classname)
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		count_class_infos += sizeof(classinfo);
+		size_classinfo += sizeof(classinfo);
 #endif
 
 	/* we use a safe name for temporarily unnamed classes */

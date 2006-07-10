@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5049 2006-06-23 12:07:26Z twisti $
+   $Id: loader.c 5093 2006-07-10 13:36:47Z twisti $
 
 */
 
@@ -2261,9 +2261,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
-		count_class_infos += sizeof(classinfo*) * c->interfacescount;
-		count_class_infos += sizeof(fieldinfo)  * c->fieldscount;
-		count_class_infos += sizeof(methodinfo) * c->methodscount;
+		size_classinfo  += sizeof(classinfo*) * c->interfacescount;
+		size_fieldinfo  += sizeof(fieldinfo)  * c->fieldscount;
+		size_methodinfo += sizeof(methodinfo) * c->methodscount;
 	}
 #endif
 

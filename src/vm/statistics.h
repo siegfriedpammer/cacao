@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: statistics.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: statistics.h 5093 2006-07-10 13:36:47Z twisti $
 
 */
 
@@ -92,7 +92,14 @@ extern s4 maxdumpsize;
 extern s4 globalallocateddumpsize;
 extern s4 globaluseddumpsize;
 
-extern int count_class_infos;           /* variables for measurements         */
+
+/* variables for measurements *************************************************/
+
+extern s4 size_classinfo;
+extern s4 size_fieldinfo;
+extern s4 size_methodinfo;
+extern s4 size_codeinfo;
+
 extern int count_const_pool_len;
 extern int count_classref_len;
 extern int count_parsed_desc_len;
