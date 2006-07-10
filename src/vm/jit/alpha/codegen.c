@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5096 2006-07-10 14:02:25Z twisti $
+   $Id: codegen.c 5103 2006-07-10 14:47:08Z twisti $
 
 */
 
@@ -3472,10 +3472,10 @@ gen_method:
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 				M_BEQZ(REG_RESULT, 0);
 				codegen_add_classcastexception_ref(cd, s1);
 
-				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
 			}
 
