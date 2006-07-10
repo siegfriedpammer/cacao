@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 4849 2006-04-26 14:09:15Z twisti $
+   $Id: emit.c 5102 2006-07-10 14:42:16Z twisti $
 
 */
 
@@ -1128,13 +1128,6 @@ void i386_call_imm(codegendata *cd, s4 imm)
 {
 	*(cd->mcodeptr++) = 0xe8;
 	i386_emit_imm32((imm));
-}
-
-
-void i386_call_mem(codegendata *cd, s4 mem)
-{
-	*(cd->mcodeptr++) = 0xff;
-	i386_emit_mem(2,(mem));
 }
 
 
