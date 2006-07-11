@@ -77,6 +77,11 @@ s4 emit_load_s3_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 
 void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
 
+#if SIZEOF_VOID_P == 4
+void emit_store_low(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
+void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
+#endif
+
 void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst);
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);
