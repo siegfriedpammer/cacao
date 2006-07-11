@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4849 2006-04-26 14:09:15Z twisti $
+   $Id: codegen.h 5109 2006-07-11 19:17:23Z twisti $
 
 */
 
@@ -84,19 +84,10 @@
 
 #define gen_bound_check \
     if (checkbounds) { \
-        M_CMP_MEMBASE(s1, OFFSET(java_arrayheader, size), s2); \
+        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
+        M_CMP(REG_ITMP3, s2); \
         M_BAE(0); \
         codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-    }
-
-#define gen_div_check(v) \
-    if (checknull) { \
-        if ((v)->flags & INMEMORY) \
-            M_CMP_IMM_MEMBASE(0, REG_SP, src->regoff * 4); \
-        else \
-            M_TEST(src->regoff); \
-        M_BEQ(0); \
-        codegen_add_arithmeticexception_ref(cd); \
     }
 
 
@@ -147,189 +138,34 @@
 
 #define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
 
-
-/* macros to create code ******************************************************/
-
-typedef enum {
-    REG_AL = 0,
-    REG_CL = 1,
-    REG_DL = 2,
-    REG_BL = 3,
-    REG_AH = 4,
-    REG_CH = 5,
-    REG_DH = 6,
-    REG_BH = 7,
-    REG_NREGB
-} I386_RegB_No;
-
-
-/* opcodes for alu instructions */
-
-typedef enum {
-    ALU_ADD = 0,
-    ALU_OR  = 1,
-    ALU_ADC = 2,
-    ALU_SBB = 3,
-    ALU_AND = 4,
-    ALU_SUB = 5,
-    ALU_XOR = 6,
-    ALU_CMP = 7,
-    ALU_NALU
-} I386_ALU_Opcode;
-
-typedef enum {
-    I386_ROL = 0,
-    I386_ROR = 1,
-    I386_RCL = 2,
-    I386_RCR = 3,
-    I386_SHL = 4,
-    I386_SHR = 5,
-    I386_SAR = 7,
-    I386_NSHIFT = 8
-} I386_Shift_Opcode;
-
-typedef enum {
-    I386_CC_O = 0,
-    I386_CC_NO = 1,
-    I386_CC_B = 2, I386_CC_C = 2, I386_CC_NAE = 2,
-    I386_CC_BE = 6, I386_CC_NA = 6,
-    I386_CC_AE = 3, I386_CC_NB = 3, I386_CC_NC = 3,
-    I386_CC_E = 4, I386_CC_Z = 4,
-    I386_CC_NE = 5, I386_CC_NZ = 5,
-    I386_CC_A = 7, I386_CC_NBE = 7,
-    I386_CC_S = 8, I386_CC_LZ = 8,
-    I386_CC_NS = 9, I386_CC_GEZ = 9,
-    I386_CC_P = 0x0a, I386_CC_PE = 0x0a,
-    I386_CC_NP = 0x0b, I386_CC_PO = 0x0b,
-    I386_CC_L = 0x0c, I386_CC_NGE = 0x0c,
-    I386_CC_GE = 0x0d, I386_CC_NL = 0x0d,
-    I386_CC_LE = 0x0e, I386_CC_NG = 0x0e,
-    I386_CC_G = 0x0f, I386_CC_NLE = 0x0f,
-    I386_NCC
-} I386_CC;
-
-
-/* modrm and stuff */
-
-#define i386_address_byte(mod,reg,rm) \
-    *(cd->mcodeptr++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | (((rm) & 0x07)));
-
-
-#define i386_emit_reg(reg,rm) \
-    i386_address_byte(3,(reg),(rm));
-
-
-#define i386_is_imm8(imm) \
-    (((int)(imm) >= -128 && (int)(imm) <= 127))
-
-
-#define i386_emit_imm8(imm) \
-    *(cd->mcodeptr++) = (u1) ((imm) & 0xff);
-
-
-#define i386_emit_imm16(imm) \
+#define ICONST(d,c) \
     do { \
-        imm_union imb; \
-        imb.i = (int) (imm); \
-        *(cd->mcodeptr++) = imb.b[0]; \
-        *(cd->mcodeptr++) = imb.b[1]; \
+        if ((c) == 0) \
+            M_CLR(d); \
+        else \
+            M_MOV_IMM((c), d); \
     } while (0)
 
 
-#define i386_emit_imm32(imm) \
+#define LCONST(d,c) \
     do { \
-        imm_union imb; \
-        imb.i = (int) (imm); \
-        *(cd->mcodeptr++) = imb.b[0]; \
-        *(cd->mcodeptr++) = imb.b[1]; \
-        *(cd->mcodeptr++) = imb.b[2]; \
-        *(cd->mcodeptr++) = imb.b[3]; \
-    } while (0)
-
-
-#define i386_emit_mem(r,mem) \
-    do { \
-        i386_address_byte(0,(r),5); \
-        i386_emit_imm32((mem)); \
-    } while (0)
-
-
-#define i386_emit_membase(basereg,disp,dreg) \
-    do { \
-        if ((basereg) == ESP) { \
-            if ((disp) == 0) { \
-                i386_address_byte(0, (dreg), ESP); \
-                i386_address_byte(0, ESP, ESP); \
-            } else if (i386_is_imm8((disp))) { \
-                i386_address_byte(1, (dreg), ESP); \
-                i386_address_byte(0, ESP, ESP); \
-                i386_emit_imm8((disp)); \
-            } else { \
-                i386_address_byte(2, (dreg), ESP); \
-                i386_address_byte(0, ESP, ESP); \
-                i386_emit_imm32((disp)); \
-            } \
-            break; \
-        } \
-        \
-        if ((disp) == 0 && (basereg) != EBP) { \
-            i386_address_byte(0, (dreg), (basereg)); \
-            break; \
-        } \
-        \
-        if (i386_is_imm8((disp))) { \
-            i386_address_byte(1, (dreg), (basereg)); \
-            i386_emit_imm8((disp)); \
+        if ((c) == 0) { \
+            M_CLR(GET_LOW_REG(d)); \
+            M_CLR(GET_HIGH_REG(d)); \
         } else { \
-            i386_address_byte(2, (dreg), (basereg)); \
-            i386_emit_imm32((disp)); \
+            M_MOV_IMM((c), GET_LOW_REG(d)); \
+            M_MOV_IMM((c) >> 32, GET_HIGH_REG(d)); \
         } \
     } while (0)
-
-
-#define i386_emit_membase32(basereg,disp,dreg) \
-    do { \
-        if ((basereg) == ESP) { \
-            i386_address_byte(2, (dreg), ESP); \
-            i386_address_byte(0, ESP, ESP); \
-            i386_emit_imm32((disp)); \
-        } else { \
-            i386_address_byte(2, (dreg), (basereg)); \
-            i386_emit_imm32((disp)); \
-        } \
-    } while (0)
-
-
-#define i386_emit_memindex(reg,disp,basereg,indexreg,scale) \
-    do { \
-        if ((basereg) == -1) { \
-            i386_address_byte(0, (reg), 4); \
-            i386_address_byte((scale), (indexreg), 5); \
-            i386_emit_imm32((disp)); \
-        \
-        } else if ((disp) == 0 && (basereg) != EBP) { \
-            i386_address_byte(0, (reg), 4); \
-            i386_address_byte((scale), (indexreg), (basereg)); \
-        \
-        } else if (i386_is_imm8((disp))) { \
-            i386_address_byte(1, (reg), 4); \
-            i386_address_byte((scale), (indexreg), (basereg)); \
-            i386_emit_imm8 ((disp)); \
-        \
-        } else { \
-            i386_address_byte(2, (reg), 4); \
-            i386_address_byte((scale), (indexreg), (basereg)); \
-            i386_emit_imm32((disp)); \
-        }    \
-     } while (0)
 
 
 /* macros to create code ******************************************************/
 
-#define M_ILD(a,b,disp)         i386_mov_membase_reg(cd, (b), (disp), (a))
+#define M_ILD(a,b,disp)         emit_mov_membase_reg(cd, (b), (disp), (a))
+#define M_ILD32(a,b,disp)       emit_mov_membase32_reg(cd, (b), (disp), (a))
+
 #define M_ALD(a,b,disp)         M_ILD(a,b,disp)
-
-#define M_ILD32(a,b,disp)       i386_mov_membase32_reg(cd, (b), (disp), (a))
+#define M_ALD32(a,b,disp)       M_ILD32(a,b,disp)
 
 #define M_LLD(a,b,disp) \
     do { \
@@ -343,13 +179,13 @@ typedef enum {
         M_ILD32(GET_HIGH_REG(a),b,disp + 4); \
     } while (0)
 
-#define M_IST(a,b,disp)         i386_mov_reg_membase(cd, (a), (b), (disp))
-#define M_IST_IMM(a,b,disp)     i386_mov_imm_membase(cd, (u4) (a), (b), (disp))
+#define M_IST(a,b,disp)         emit_mov_reg_membase(cd, (a), (b), (disp))
+#define M_IST_IMM(a,b,disp)     emit_mov_imm_membase(cd, (u4) (a), (b), (disp))
 #define M_AST(a,b,disp)         M_IST(a,b,disp)
 #define M_AST_IMM(a,b,disp)     M_IST_IMM(a,b,disp)
 
-#define M_IST32(a,b,disp)       i386_mov_reg_membase32(cd, (a), (b), (disp))
-#define M_IST32_IMM(a,b,disp)   i386_mov_imm_membase32(cd, (u4) (a), (b), (disp))
+#define M_IST32(a,b,disp)       emit_mov_reg_membase32(cd, (a), (b), (disp))
+#define M_IST32_IMM(a,b,disp)   emit_mov_imm_membase32(cd, (u4) (a), (b), (disp))
 
 #define M_LST(a,b,disp) \
     do { \
@@ -375,62 +211,116 @@ typedef enum {
         M_IST32_IMM(a >> 32,b,disp + 4); \
     } while (0)
 
-#define M_IADD_IMM(a,b)         i386_alu_imm_reg(cd, ALU_ADD, (a), (b))
-#define M_IADD_IMM32(a,b)       i386_alu_imm32_reg(cd, ALU_ADD, (a), (b))
-#define M_ISUB_IMM(a,b)         i386_alu_imm_reg(cd, ALU_SUB, (a), (b))
+#define M_IADD(a,b)             emit_alu_reg_reg(cd, ALU_ADD, (a), (b))
+#define M_ISUB(a,b)             emit_alu_reg_reg(cd, ALU_SUB, (a), (b))
+#define M_IMUL(a,b)             emit_imul_reg_reg(cd, (a), (b))
+#define M_IDIV(a)               emit_idiv_reg(cd, (a))
 
-#define M_IADD_IMM_MEMBASE(a,b,c) i386_alu_imm_membase(cd, ALU_ADD, (a), (b), (c))
+#define M_MUL(a)                emit_mul_reg(cd, (a))
+
+#define M_IADD_IMM(a,b)         emit_alu_imm_reg(cd, ALU_ADD, (a), (b))
+#define M_ISUB_IMM(a,b)         emit_alu_imm_reg(cd, ALU_SUB, (a), (b))
+#define M_IMUL_IMM(a,b,c)       emit_imul_imm_reg_reg(cd, (b), (a), (c))
+
+#define M_IADD_IMM32(a,b)       emit_alu_imm32_reg(cd, ALU_ADD, (a), (b))
+#define M_ISUB_IMM32(a,b)       emit_alu_imm32_reg(cd, ALU_SUB, (a), (b))
+
+#define M_IADD_IMM_MEMBASE(a,b,c) emit_alu_imm_membase(cd, ALU_ADD, (a), (b), (c))
+
+#define M_IADDC(a,b)            emit_alu_reg_reg(cd, ALU_ADC, (a), (b))
+#define M_ISUBB(a,b)            emit_alu_reg_reg(cd, ALU_SBB, (a), (b))
+
+#define M_IADDC_IMM(a,b)        emit_alu_imm_reg(cd, ALU_ADC, (a), (b))
+#define M_ISUBB_IMM(a,b)        emit_alu_imm_reg(cd, ALU_SBB, (a), (b))
 
 #define M_AADD_IMM(a,b)         M_IADD_IMM(a,b)
 #define M_AADD_IMM32(a,b)       M_IADD_IMM32(a,b)
 #define M_ASUB_IMM(a,b)         M_ISUB_IMM(a,b)
 
-#define M_OR_MEMBASE(a,b,c)     i386_alu_membase_reg(cd, ALU_OR, (a), (b), (c))
-#define M_XOR(a,b)              i386_alu_reg_reg(cd, ALU_XOR, (a), (b))
+#define M_NEG(a)                emit_neg_reg(cd, (a))
+
+#define M_AND(a,b)              emit_alu_reg_reg(cd, ALU_AND, (a), (b))
+#define M_OR(a,b)               emit_alu_reg_reg(cd, ALU_OR, (a), (b))
+#define M_XOR(a,b)              emit_alu_reg_reg(cd, ALU_XOR, (a), (b))
+
+#define M_AND_IMM(a,b)          emit_alu_imm_reg(cd, ALU_AND, (a), (b))
+#define M_OR_IMM(a,b)           emit_alu_imm_reg(cd, ALU_OR, (a), (b))
+#define M_XOR_IMM(a,b)          emit_alu_imm_reg(cd, ALU_XOR, (a), (b))
+
+#define M_AND_IMM32(a,b)        emit_alu_imm32_reg(cd, ALU_AND, (a), (b))
+
 #define M_CLR(a)                M_XOR(a,a)
 
-#define M_PUSH(a)               i386_push_reg(cd, (a))
-#define M_PUSH_IMM(a)           i386_push_imm(cd, (s4) (a))
-#define M_POP(a)                i386_pop_reg(cd, (a))
+#define M_PUSH(a)               emit_push_reg(cd, (a))
+#define M_PUSH_IMM(a)           emit_push_imm(cd, (s4) (a))
+#define M_POP(a)                emit_pop_reg(cd, (a))
 
-#define M_MOV(a,b)              i386_mov_reg_reg(cd, (a), (b))
-#define M_MOV_IMM(a,b)          i386_mov_imm_reg(cd, (u4) (a), (b))
+#define M_MOV(a,b)              emit_mov_reg_reg(cd, (a), (b))
+#define M_MOV_IMM(a,b)          emit_mov_imm_reg(cd, (u4) (a), (b))
 
-#define M_TEST(a)               i386_test_reg_reg(cd, (a), (a))
+#define M_TEST(a)               emit_test_reg_reg(cd, (a), (a))
+#define M_TEST_IMM(a,b)         emit_test_imm_reg(cd, (a), (b))
 
-#define M_CMP(a,b)              i386_alu_reg_reg(cd, ALU_CMP, (a), (b))
-#define M_CMP_MEMBASE(a,b,c)    i386_alu_membase_reg(cd, ALU_CMP, (a), (b), (c))
+#define M_CMP(a,b)              emit_alu_reg_reg(cd, ALU_CMP, (a), (b))
+#define M_CMP_MEMBASE(a,b,c)    emit_alu_membase_reg(cd, ALU_CMP, (a), (b), (c))
 
-#define M_CMP_IMM_MEMBASE(a,b,c) i386_alu_imm_membase(cd, ALU_CMP, (a), (b), (c))
+#define M_CMP_IMM(a,b)          emit_alu_imm_reg(cd, ALU_CMP, (a), (b))
+#define M_CMP_IMM_MEMBASE(a,b,c) emit_alu_imm_membase(cd, ALU_CMP, (a), (b), (c))
 
-#define M_CALL(a)               i386_call_reg(cd, (a))
-#define M_CALL_IMM(a)           i386_call_imm(cd, (a))
-#define M_RET                   i386_ret(cd)
+#define M_CMP_IMM32(a,b)        emit_alu_imm32_reg(cd, ALU_CMP, (a), (b))
 
-#define M_BEQ(a)                i386_jcc(cd, I386_CC_E, (a))
-#define M_BNE(a)                i386_jcc(cd, I386_CC_NE, (a))
-#define M_BLT(a)                i386_jcc(cd, I386_CC_L, (a))
-#define M_BLE(a)                i386_jcc(cd, I386_CC_LE, (a))
-#define M_BGE(a)                i386_jcc(cd, I386_CC_GE, (a))
-#define M_BGT(a)                i386_jcc(cd, I386_CC_G, (a))
+#define M_BSEXT(a,b)            /* XXX does not work, because of nibbles */
+#define M_SSEXT(a,b)            emit_movswl_reg_reg(cd, (a), (b))
 
-#define M_BBE(a)                i386_jcc(cd, I386_CC_BE, (a))
-#define M_BAE(a)                i386_jcc(cd, I386_CC_AE, (a))
+#define M_CZEXT(a,b)            emit_movzwl_reg_reg(cd, (a), (b))
 
-#define M_JMP(a)                i386_jmp_reg(cd, (a))
-#define M_JMP_IMM(a)            i386_jmp_imm(cd, (a))
+#define M_CLTD                  emit_cltd(cd)
 
-#define M_NOP                   i386_nop(cd)
+#define M_SLL(a)                emit_shift_reg(cd, SHIFT_SHL, (a))
+#define M_SRA(a)                emit_shift_reg(cd, SHIFT_SAR, (a))
+#define M_SRL(a)                emit_shift_reg(cd, SHIFT_SHR, (a))
+
+#define M_SLL_IMM(a,b)          emit_shift_imm_reg(cd, SHIFT_SHL, (a), (b))
+#define M_SRA_IMM(a,b)          emit_shift_imm_reg(cd, SHIFT_SAR, (a), (b))
+#define M_SRL_IMM(a,b)          emit_shift_imm_reg(cd, SHIFT_SHR, (a), (b))
+
+#define M_SLLD(a,b)             emit_shld_reg_reg(cd, (a), (b))
+#define M_SRLD(a,b)             emit_shrd_reg_reg(cd, (a), (b))
+
+#define M_SLLD_IMM(a,b,c)       emit_shld_imm_reg_reg(cd, (a), (b), (c))
+#define M_SRLD_IMM(a,b,c)       emit_shrd_imm_reg_reg(cd, (a), (b), (c))
+
+#define M_CALL(a)               emit_call_reg(cd, (a))
+#define M_CALL_IMM(a)           emit_call_imm(cd, (a))
+#define M_RET                   emit_ret(cd)
+
+#define M_BEQ(a)                emit_jcc(cd, CC_E, (a))
+#define M_BNE(a)                emit_jcc(cd, CC_NE, (a))
+#define M_BLT(a)                emit_jcc(cd, CC_L, (a))
+#define M_BLE(a)                emit_jcc(cd, CC_LE, (a))
+#define M_BGE(a)                emit_jcc(cd, CC_GE, (a))
+#define M_BGT(a)                emit_jcc(cd, CC_G, (a))
+
+#define M_BB(a)                 emit_jcc(cd, CC_B, (a))
+#define M_BBE(a)                emit_jcc(cd, CC_BE, (a))
+#define M_BAE(a)                emit_jcc(cd, CC_AE, (a))
+#define M_BA(a)                 emit_jcc(cd, CC_A, (a))
+#define M_BNS(a)                emit_jcc(cd, CC_NS, (a))
+
+#define M_JMP(a)                emit_jmp_reg(cd, (a))
+#define M_JMP_IMM(a)            emit_jmp_imm(cd, (a))
+
+#define M_NOP                   emit_nop(cd)
 
 
-#define M_FLD(a,b,disp)         i386_flds_membase(cd, (b), (disp))
-#define M_DLD(a,b,disp)         i386_fldl_membase(cd, (b), (disp))
+#define M_FLD(a,b,disp)         emit_flds_membase(cd, (b), (disp))
+#define M_DLD(a,b,disp)         emit_fldl_membase(cd, (b), (disp))
 
-#define M_FLD32(a,b,disp)       i386_flds_membase32(cd, (b), (disp))
-#define M_DLD32(a,b,disp)       i386_fldl_membase32(cd, (b), (disp))
+#define M_FLD32(a,b,disp)       emit_flds_membase32(cd, (b), (disp))
+#define M_DLD32(a,b,disp)       emit_fldl_membase32(cd, (b), (disp))
 
-#define M_FST(a,b,disp)         i386_fstps_membase(cd, (b), (disp))
-#define M_DST(a,b,disp)         i386_fstpl_membase(cd, (b), (disp))
+#define M_FST(a,b,disp)         emit_fstps_membase(cd, (b), (disp))
+#define M_DST(a,b,disp)         emit_fstpl_membase(cd, (b), (disp))
 
 
 /* function gen_resolvebranch **************************************************

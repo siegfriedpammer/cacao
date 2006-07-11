@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4838 2006-04-25 15:46:06Z edwin $
+   $Id: md.c 5109 2006-07-11 19:17:23Z twisti $
 
 */
 
@@ -93,15 +93,15 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
    INVOKEVIRTUAL:
 
    8b 08                      mov    (%eax),%ecx
-   8b 81 00 00 00 00          mov    0x0(%ecx),%eax
-   ff d0                      call   *%eax
+   8b 91 00 00 00 00          mov    0x0(%ecx),%edx
+   ff d2                      call   *%edx
 
    INVOKEINTERFACE:
 
-   8b 00                      mov    (%eax),%eax
-   8b 88 00 00 00 00          mov    0x0(%eax),%ecx
-   8b 81 00 00 00 00          mov    0x0(%ecx),%eax
-   ff d0                      call   *%eax
+   8b 08                      mov    (%eax),%ecx
+   8b 89 00 00 00 00          mov    0x0(%ecx),%ecx
+   8b 91 00 00 00 00          mov    0x0(%ecx),%edx
+   ff d2                      call   *%edx
 
 *******************************************************************************/
 
@@ -121,14 +121,14 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 	/* check for the different calls */
 
-	/* INVOKESTATIC/SPECIAL */
-
 	if (mcode == 0xd1) {
-		/* patch address is 8-bytes before the call instruction */
+		/* INVOKESTATIC/SPECIAL */
+
+		/* patch address is 4-bytes before the call instruction */
 
 		pa = ra - 4;
-
-	} else if (mcode == 0xd0) {
+	}
+	else if (mcode == 0xd2) {
 		/* INVOKEVIRTUAL/INTERFACE */
 
 		/* Get the offset from the instruction (the offset address is
@@ -139,12 +139,13 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		/* add the offset to the method pointer */
 
 		pa = mptr + offset;
-
-	} else {
+	}
+	else {
 		/* catch any problems */
 
 		pa = NULL; /* avoid warnings */
-		assert(0);
+
+		vm_abort("couldn't find a proper call instruction sequence");
 	}
 
 	return pa;

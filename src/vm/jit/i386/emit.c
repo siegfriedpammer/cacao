@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 5102 2006-07-10 14:42:16Z twisti $
+   $Id: emit.c 5109 2006-07-11 19:17:23Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "vm/types.h"
 
 #include "vm/statistics.h"
+#include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/i386/md-abi.h"
 #include "vm/jit/i386/md-emit.h"
@@ -170,9 +171,145 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 }
 
 
+/* emit_load_s1_low ************************************************************
+
+   Emits a possible load of the low 32-bits of the first long source
+   operand.
+
+*******************************************************************************/
+
+s4 emit_load_s1_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp);
+
+		reg = tempreg;
+	} else
+		reg = GET_LOW_REG(src->regoff);
+
+	return reg;
+}
+
+
+/* emit_load_s2_low ************************************************************
+
+   Emits a possible load of the low 32-bits of the second long source
+   operand.
+
+*******************************************************************************/
+
+s4 emit_load_s2_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp);
+
+		reg = tempreg;
+	} else
+		reg = GET_LOW_REG(src->regoff);
+
+	return reg;
+}
+
+
+/* emit_load_s1_high ***********************************************************
+
+   Emits a possible load of the high 32-bits of the first long source
+   operand.
+
+*******************************************************************************/
+
+s4 emit_load_s1_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp + 4);
+
+		reg = tempreg;
+	} else
+		reg = GET_HIGH_REG(src->regoff);
+
+	return reg;
+}
+
+
+/* emit_load_s2_high ***********************************************************
+
+   Emits a possible load of the high 32-bits of the second long source
+   operand.
+
+*******************************************************************************/
+
+s4 emit_load_s2_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp + 4);
+
+		reg = tempreg;
+	} else
+		reg = GET_HIGH_REG(src->regoff);
+
+	return reg;
+}
+
+
 /* emit_store ******************************************************************
 
-   XXX
+   Emits a possible store of the destination operand.
 
 *******************************************************************************/
 
@@ -203,6 +340,54 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 }
 
 
+/* emit_store_low **************************************************************
+
+   Emits a possible store of the low 32-bits of the destination
+   operand.
+
+*******************************************************************************/
+
+void emit_store_low(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+{
+	codegendata  *cd;
+
+	assert(dst->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (dst->flags & INMEMORY) {
+		COUNT_SPILLS;
+		M_IST(GET_LOW_REG(d), REG_SP, dst->regoff * 4);
+	}
+}
+
+
+/* emit_store_high *************************************************************
+
+   Emits a possible store of the high 32-bits of the destination
+   operand.
+
+*******************************************************************************/
+
+void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+{
+	codegendata  *cd;
+
+	assert(dst->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (dst->flags & INMEMORY) {
+		COUNT_SPILLS;
+		M_IST(GET_HIGH_REG(d), REG_SP, dst->regoff * 4 + 4);
+	}
+}
+
+
 /* emit_copy *******************************************************************
 
    XXX
@@ -223,7 +408,7 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
 		if (IS_LNG_TYPE(src->type))
-			d = codegen_reg_of_var(rd, iptr->opc, dst, PACK_REGS(REG_ITMP1, REG_ITMP2));
+			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP12_PACKED);
 		else
 			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP1);
 
@@ -245,347 +430,150 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 }
 
 
-void i386_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
-{
-	if (iptr->dst->flags & INMEMORY) {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (src->regoff == iptr->dst->regoff) {
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-
-			} else if (src->prev->regoff == iptr->dst->regoff) {
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-
-			} else {
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, alu_op, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-			}
-
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-			if (src->regoff == iptr->dst->regoff) {
-				i386_alu_reg_membase(cd, alu_op, src->prev->regoff, REG_SP, iptr->dst->regoff * 4);
-
-			} else {
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_reg(cd, alu_op, src->prev->regoff, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-			}
-
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (src->prev->regoff == iptr->dst->regoff) {
-				i386_alu_reg_membase(cd, alu_op, src->regoff, REG_SP, iptr->dst->regoff * 4);
-						
-			} else {
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_reg_reg(cd, alu_op, src->regoff, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-			}
-
-		} else {
-			i386_mov_reg_membase(cd, src->prev->regoff, REG_SP, iptr->dst->regoff * 4);
-			i386_alu_reg_membase(cd, alu_op, src->regoff, REG_SP, iptr->dst->regoff * 4);
-		}
-
-	} else {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, iptr->dst->regoff);
-			i386_alu_membase_reg(cd, alu_op, REG_SP, src->regoff * 4, iptr->dst->regoff);
-
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-			if (src->prev->regoff != iptr->dst->regoff)
-				i386_mov_reg_reg(cd, src->prev->regoff, iptr->dst->regoff);
-
-			i386_alu_membase_reg(cd, alu_op, REG_SP, src->regoff * 4, iptr->dst->regoff);
-
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (src->regoff != iptr->dst->regoff)
-				i386_mov_reg_reg(cd, src->regoff, iptr->dst->regoff);
-
-			i386_alu_membase_reg(cd, alu_op, REG_SP, src->prev->regoff * 4, iptr->dst->regoff);
-
-		} else {
-			if (src->regoff == iptr->dst->regoff) {
-				i386_alu_reg_reg(cd, alu_op, src->prev->regoff, iptr->dst->regoff);
-
-			} else {
-				if (src->prev->regoff != iptr->dst->regoff)
-					i386_mov_reg_reg(cd, src->prev->regoff, iptr->dst->regoff);
-
-				i386_alu_reg_reg(cd, alu_op, src->regoff, iptr->dst->regoff);
-			}
-		}
-	}
-}
-
-
-void i386_emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
-{
-	if (iptr->dst->flags & INMEMORY) {
-		if (src->flags & INMEMORY) {
-			if (src->regoff == iptr->dst->regoff) {
-				i386_alu_imm_membase(cd, alu_op, iptr->val.i, REG_SP, iptr->dst->regoff * 4);
-
-			} else {
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_imm_reg(cd, alu_op, iptr->val.i, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-			}
-
-		} else {
-			i386_mov_reg_membase(cd, src->regoff, REG_SP, iptr->dst->regoff * 4);
-			i386_alu_imm_membase(cd, alu_op, iptr->val.i, REG_SP, iptr->dst->regoff * 4);
-		}
-
-	} else {
-		if (src->flags & INMEMORY) {
-			i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, iptr->dst->regoff);
-			i386_alu_imm_reg(cd, alu_op, iptr->val.i, iptr->dst->regoff);
-
-		} else {
-			if (src->regoff != iptr->dst->regoff)
-				i386_mov_reg_reg(cd, src->regoff, iptr->dst->regoff);
-
-			/* `inc reg' is slower on p4's (regarding to ia32 optimization    */
-			/* reference manual and benchmarks) and as fast on athlon's.      */
-			i386_alu_imm_reg(cd, alu_op, iptr->val.i, iptr->dst->regoff);
-		}
-	}
-}
-
-
-void i386_emit_lalu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
-{
-	if (iptr->dst->flags & INMEMORY) {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (src->regoff == iptr->dst->regoff) {
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
-
-			} else if (src->prev->regoff == iptr->dst->regoff) {
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
-
-			} else {
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, alu_op, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, alu_op, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
-			}
-		}
-	}
-}
-
-
-void i386_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
-{
-	if (iptr->dst->flags & INMEMORY) {
-		if (src->flags & INMEMORY) {
-			if (src->regoff == iptr->dst->regoff) {
-				i386_alu_imm_membase(cd, alu_op, iptr->val.l, REG_SP, iptr->dst->regoff * 4);
-				i386_alu_imm_membase(cd, alu_op, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
-
-			} else {
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_imm_reg(cd, alu_op, iptr->val.l, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
-				i386_alu_imm_reg(cd, alu_op, iptr->val.l >> 32, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
-			}
-		}
-	}
-}
-
-
-void i386_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
-{
-	if (iptr->dst->flags & INMEMORY) {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (src->prev->regoff == iptr->dst->regoff) {
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, ECX);
-				i386_shift_membase(cd, shift_op, REG_SP, iptr->dst->regoff * 4);
-
-			} else {
-				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, ECX);
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_shift_reg(cd, shift_op, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-			}
-
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-			i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, ECX);
-			i386_mov_reg_membase(cd, src->prev->regoff, REG_SP, iptr->dst->regoff * 4);
-			i386_shift_membase(cd, shift_op, REG_SP, iptr->dst->regoff * 4);
-
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (src->prev->regoff == iptr->dst->regoff) {
-				if (src->regoff != ECX)
-					i386_mov_reg_reg(cd, src->regoff, ECX);
-
-				i386_shift_membase(cd, shift_op, REG_SP, iptr->dst->regoff * 4);
-
-			} else {	
-				if (src->regoff != ECX)
-					i386_mov_reg_reg(cd, src->regoff, ECX);
-
-				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_shift_reg(cd, shift_op, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-			}
-
-		} else {
-			if (src->regoff != ECX)
-				i386_mov_reg_reg(cd, src->regoff, ECX);
-
-			i386_mov_reg_membase(cd, src->prev->regoff, REG_SP, iptr->dst->regoff * 4);
-			i386_shift_membase(cd, shift_op, REG_SP, iptr->dst->regoff * 4);
-		}
-
-	} else {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, ECX);
-			i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, iptr->dst->regoff);
-			i386_shift_reg(cd, shift_op, iptr->dst->regoff);
-
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-			i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, ECX);
-
-			if (src->prev->regoff != iptr->dst->regoff)
-				i386_mov_reg_reg(cd, src->prev->regoff, iptr->dst->regoff);
-
-			i386_shift_reg(cd, shift_op, iptr->dst->regoff);
-
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (src->regoff != ECX)
-				i386_mov_reg_reg(cd, src->regoff, ECX);
-
-			i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, iptr->dst->regoff);
-			i386_shift_reg(cd, shift_op, iptr->dst->regoff);
-
-		} else {
-			if (src->regoff != ECX)
-				i386_mov_reg_reg(cd, src->regoff, ECX);
-
-			if (src->prev->regoff != iptr->dst->regoff)
-				i386_mov_reg_reg(cd, src->prev->regoff, iptr->dst->regoff);
-
-			i386_shift_reg(cd, shift_op, iptr->dst->regoff);
-		}
-	}
-}
-
-
-void i386_emit_ishiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
-{
-	if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
-		if (src->regoff == iptr->dst->regoff) {
-			i386_shift_imm_membase(cd, shift_op, iptr->val.i, REG_SP, iptr->dst->regoff * 4);
-
-		} else {
-			i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-			i386_shift_imm_reg(cd, shift_op, iptr->val.i, REG_ITMP1);
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
-		}
-
-	} else if ((src->flags & INMEMORY) && !(iptr->dst->flags & INMEMORY)) {
-		i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, iptr->dst->regoff);
-		i386_shift_imm_reg(cd, shift_op, iptr->val.i, iptr->dst->regoff);
-				
-	} else if (!(src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
-		i386_mov_reg_membase(cd, src->regoff, REG_SP, iptr->dst->regoff * 4);
-		i386_shift_imm_membase(cd, shift_op, iptr->val.i, REG_SP, iptr->dst->regoff * 4);
-
-	} else {
-		if (src->regoff != iptr->dst->regoff)
-			i386_mov_reg_reg(cd, src->regoff, iptr->dst->regoff);
-
-		i386_shift_imm_reg(cd, shift_op, iptr->val.i, iptr->dst->regoff);
-	}
-}
-
-
-void i386_emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
+void emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
 {
 	if (iptr->dst->flags & INMEMORY) {
 		s4 offset = 0;
 
 		if (src->flags & INMEMORY) {
-			i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
+			emit_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 
 		} else {
-			i386_test_reg_reg(cd, src->regoff, src->regoff);
+			emit_test_reg_reg(cd, src->regoff, src->regoff);
 		}
 
 		offset += 7;
 		CALCOFFSETBYTES(offset, REG_SP, iptr->dst->regoff * 4);
 	
-		i386_jcc(cd, if_op, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
-		i386_mov_imm_membase(cd, iptr->val.i, REG_SP, iptr->dst->regoff * 4);
+		emit_jcc(cd, if_op, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
+		emit_mov_imm_membase(cd, iptr->val.i, REG_SP, iptr->dst->regoff * 4);
 
 		if (iptr[1].opc == ICMD_ELSE_ICONST) {
-			i386_jmp_imm(cd, offset);
-			i386_mov_imm_membase(cd, iptr[1].val.i, REG_SP, iptr->dst->regoff * 4);
+			emit_jmp_imm(cd, offset);
+			emit_mov_imm_membase(cd, iptr[1].val.i, REG_SP, iptr->dst->regoff * 4);
 		}
 
 	} else {
 		if (src->flags & INMEMORY) {
-			i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
+			emit_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 
 		} else {
-			i386_test_reg_reg(cd, src->regoff, src->regoff);
+			emit_test_reg_reg(cd, src->regoff, src->regoff);
 		}
 
-		i386_jcc(cd, if_op, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
-		i386_mov_imm_reg(cd, iptr->val.i, iptr->dst->regoff);
+		emit_jcc(cd, if_op, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
+		emit_mov_imm_reg(cd, iptr->val.i, iptr->dst->regoff);
 
 		if (iptr[1].opc == ICMD_ELSE_ICONST) {
-			i386_jmp_imm(cd, 5);
-			i386_mov_imm_reg(cd, iptr[1].val.i, iptr->dst->regoff);
+			emit_jmp_imm(cd, 5);
+			emit_mov_imm_reg(cd, iptr[1].val.i, iptr->dst->regoff);
 		}
 	}
 }
 
 
+/* code generation functions **************************************************/
 
-/*
- * mov ops
- */
-void i386_mov_reg_reg(codegendata *cd, s4 reg, s4 dreg)
+static void emit_membase(codegendata *cd, s4 basereg, s4 disp, s4 dreg)
+{
+	if (basereg == ESP) {
+		if (disp == 0) {
+			emit_address_byte(0, dreg, ESP);
+			emit_address_byte(0, ESP, ESP);
+		}
+		else if (IS_IMM8(disp)) {
+			emit_address_byte(1, dreg, ESP);
+			emit_address_byte(0, ESP, ESP);
+			emit_imm8(disp);
+		}
+		else {
+			emit_address_byte(2, dreg, ESP);
+			emit_address_byte(0, ESP, ESP);
+			emit_imm32(disp);
+		}
+	}
+	else if ((disp == 0) && (basereg != EBP)) {
+		emit_address_byte(0, dreg, basereg);
+	}
+	else if (IS_IMM8(disp)) {
+		emit_address_byte(1, dreg, basereg);
+		emit_imm8(disp);
+	}
+	else {
+		emit_address_byte(2, dreg, basereg);
+		emit_imm32(disp);
+	}
+}
+
+
+static void emit_membase32(codegendata *cd, s4 basereg, s4 disp, s4 dreg)
+{
+	if (basereg == ESP) {
+		emit_address_byte(2, dreg, ESP);
+		emit_address_byte(0, ESP, ESP);
+		emit_imm32(disp);
+	}
+	else {
+		emit_address_byte(2, dreg, basereg);
+		emit_imm32(disp);
+	}
+}
+
+
+static void emit_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+{
+	if (basereg == -1) {
+		emit_address_byte(0, reg, 4);
+		emit_address_byte(scale, indexreg, 5);
+		emit_imm32(disp);
+	}
+	else if ((disp == 0) && (basereg != EBP)) {
+		emit_address_byte(0, reg, 4);
+		emit_address_byte(scale, indexreg, basereg);
+	}
+	else if (IS_IMM8(disp)) {
+		emit_address_byte(1, reg, 4);
+		emit_address_byte(scale, indexreg, basereg);
+		emit_imm8(disp);
+	}
+	else {
+		emit_address_byte(2, reg, 4);
+		emit_address_byte(scale, indexreg, basereg);
+		emit_imm32(disp);
+	}
+}
+
+
+/* low-level code emitter functions *******************************************/
+
+void emit_mov_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
 	COUNT(count_mov_reg_reg);
 	*(cd->mcodeptr++) = 0x89;
-	i386_emit_reg((reg),(dreg));
+	emit_reg((reg),(dreg));
 }
 
 
-void i386_mov_imm_reg(codegendata *cd, s4 imm, s4 reg)
+void emit_mov_imm_reg(codegendata *cd, s4 imm, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xb8 + ((reg) & 0x07);
-	i386_emit_imm32((imm));
+	emit_imm32((imm));
 }
 
 
-void i386_movb_imm_reg(codegendata *cd, s4 imm, s4 reg)
+void emit_movb_imm_reg(codegendata *cd, s4 imm, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xc6;
-	i386_emit_reg(0,(reg));
-	i386_emit_imm8((imm));
+	emit_reg(0,(reg));
+	emit_imm8((imm));
 }
 
 
-void i386_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
+void emit_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 {
 	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
-	i386_emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -593,235 +581,251 @@ void i386_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
  * this one is for INVOKEVIRTUAL/INVOKEINTERFACE to have a
  * constant membase immediate length of 32bit
  */
-void i386_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
+void emit_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 {
 	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
-	i386_emit_membase32((basereg),(disp),(reg));
+	emit_membase32(cd, (basereg),(disp),(reg));
 }
 
 
-void i386_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
+void emit_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 {
 	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x89;
-	i386_emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
-void i386_mov_reg_membase32(codegendata *cd, s4 reg, s4 basereg, s4 disp)
+void emit_mov_reg_membase32(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 {
 	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x89;
-	i386_emit_membase32((basereg),(disp),(reg));
+	emit_membase32(cd, (basereg),(disp),(reg));
 }
 
 
-void i386_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
+void emit_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
 	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
-	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x89;
-	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x66;
 	*(cd->mcodeptr++) = 0x89;
-	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x88;
-	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_mov_reg_mem(codegendata *cd, s4 reg, s4 mem)
+void emit_mov_reg_mem(codegendata *cd, s4 reg, s4 mem)
 {
 	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x89;
-	i386_emit_mem((reg),(mem));
+	emit_mem((reg),(mem));
 }
 
 
-void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg)
+void emit_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg)
 {
 	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
-	i386_emit_mem((dreg),(mem));
+	emit_mem((dreg),(mem));
 }
 
 
-void i386_mov_imm_mem(codegendata *cd, s4 imm, s4 mem)
+void emit_mov_imm_mem(codegendata *cd, s4 imm, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xc7;
-	i386_emit_mem(0, mem);
-	i386_emit_imm32(imm);
+	emit_mem(0, mem);
+	emit_imm32(imm);
 }
 
 
-void i386_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
+void emit_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xc7;
-	i386_emit_membase((basereg),(disp),0);
-	i386_emit_imm32((imm));
+	emit_membase(cd, (basereg),(disp),0);
+	emit_imm32((imm));
 }
 
 
-void i386_mov_imm_membase32(codegendata *cd, s4 imm, s4 basereg, s4 disp)
+void emit_mov_imm_membase32(codegendata *cd, s4 imm, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xc7;
-	i386_emit_membase32((basereg),(disp),0);
-	i386_emit_imm32((imm));
+	emit_membase32(cd, (basereg),(disp),0);
+	emit_imm32((imm));
 }
 
 
-void i386_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
+void emit_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xc6;
-	i386_emit_membase((basereg),(disp),0);
-	i386_emit_imm8((imm));
+	emit_membase(cd, (basereg),(disp),0);
+	emit_imm8((imm));
 }
 
 
-void i386_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
+void emit_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
 	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbe;
-	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
+void emit_movswl_reg_reg(codegendata *cd, s4 a, s4 b)
+{
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0xbf;
+	emit_reg((b),(a));
+}
+
+
+void emit_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
 	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbf;
-	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_movzwl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
+void emit_movzwl_reg_reg(codegendata *cd, s4 a, s4 b)
+{
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0xb7;
+	emit_reg((b),(a));
+}
+
+
+void emit_movzwl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
 	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xb7;
-	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_mov_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_mov_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0xc7;
-	i386_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
-	i386_emit_imm32((imm));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
+	emit_imm32((imm));
 }
 
 
-void i386_movw_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_movw_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0x66;
 	*(cd->mcodeptr++) = 0xc7;
-	i386_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
-	i386_emit_imm16((imm));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
+	emit_imm16((imm));
 }
 
 
-void i386_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0xc6;
-	i386_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
-	i386_emit_imm8((imm));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
+	emit_imm8((imm));
 }
 
 
 /*
  * alu operations
  */
-void i386_alu_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg)
+void emit_alu_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg)
 {
 	*(cd->mcodeptr++) = (((u1) (opc)) << 3) + 1;
-	i386_emit_reg((reg),(dreg));
+	emit_reg((reg),(dreg));
 }
 
 
-void i386_alu_reg_membase(codegendata *cd, s4 opc, s4 reg, s4 basereg, s4 disp)
+void emit_alu_reg_membase(codegendata *cd, s4 opc, s4 reg, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = (((u1) (opc)) << 3) + 1;
-	i386_emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
-void i386_alu_membase_reg(codegendata *cd, s4 opc, s4 basereg, s4 disp, s4 reg)
+void emit_alu_membase_reg(codegendata *cd, s4 opc, s4 basereg, s4 disp, s4 reg)
 {
 	*(cd->mcodeptr++) = (((u1) (opc)) << 3) + 3;
-	i386_emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
-void i386_alu_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg)
+void emit_alu_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg)
 {
-	if (i386_is_imm8(imm)) { 
+	if (IS_IMM8(imm)) { 
 		*(cd->mcodeptr++) = 0x83;
-		i386_emit_reg((opc),(dreg));
-		i386_emit_imm8((imm));
+		emit_reg((opc),(dreg));
+		emit_imm8((imm));
 	} else { 
 		*(cd->mcodeptr++) = 0x81;
-		i386_emit_reg((opc),(dreg));
-		i386_emit_imm32((imm));
+		emit_reg((opc),(dreg));
+		emit_imm32((imm));
 	} 
 }
 
 
-void i386_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg)
+void emit_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x81;
-	i386_emit_reg((opc),(dreg));
-	i386_emit_imm32((imm));
+	emit_reg((opc),(dreg));
+	emit_imm32((imm));
 }
 
 
-void i386_alu_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp)
+void emit_alu_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp)
 {
-	if (i386_is_imm8(imm)) { 
+	if (IS_IMM8(imm)) { 
 		*(cd->mcodeptr++) = 0x83;
-		i386_emit_membase((basereg),(disp),(opc));
-		i386_emit_imm8((imm));
+		emit_membase(cd, (basereg),(disp),(opc));
+		emit_imm8((imm));
 	} else { 
 		*(cd->mcodeptr++) = 0x81;
-		i386_emit_membase((basereg),(disp),(opc));
-		i386_emit_imm32((imm));
+		emit_membase(cd, (basereg),(disp),(opc));
+		emit_imm32((imm));
 	} 
 }
 
 
-void i386_test_reg_reg(codegendata *cd, s4 reg, s4 dreg)
+void emit_test_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x85;
-	i386_emit_reg((reg),(dreg));
+	emit_reg((reg),(dreg));
 }
 
 
-void i386_test_imm_reg(codegendata *cd, s4 imm, s4 reg)
+void emit_test_imm_reg(codegendata *cd, s4 imm, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xf7;
-	i386_emit_reg(0,(reg));
-	i386_emit_imm32((imm));
+	emit_reg(0,(reg));
+	emit_imm32((imm));
 }
 
 
@@ -829,92 +833,99 @@ void i386_test_imm_reg(codegendata *cd, s4 imm, s4 reg)
 /*
  * inc, dec operations
  */
-void i386_dec_mem(codegendata *cd, s4 mem)
+void emit_dec_mem(codegendata *cd, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xff;
-	i386_emit_mem(1,(mem));
+	emit_mem(1,(mem));
 }
 
 
-void i386_cltd(codegendata *cd)
+void emit_cltd(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0x99;
 }
 
 
-void i386_imul_reg_reg(codegendata *cd, s4 reg, s4 dreg)
+void emit_imul_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xaf;
-	i386_emit_reg((dreg),(reg));
+	emit_reg((dreg),(reg));
 }
 
 
-void i386_imul_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 dreg)
+void emit_imul_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xaf;
-	i386_emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
-void i386_imul_imm_reg(codegendata *cd, s4 imm, s4 dreg)
+void emit_imul_imm_reg(codegendata *cd, s4 imm, s4 dreg)
 {
-	if (i386_is_imm8((imm))) { 
+	if (IS_IMM8((imm))) { 
 		*(cd->mcodeptr++) = 0x6b;
-		i386_emit_reg(0,(dreg));
-		i386_emit_imm8((imm));
+		emit_reg(0,(dreg));
+		emit_imm8((imm));
 	} else { 
 		*(cd->mcodeptr++) = 0x69;
-		i386_emit_reg(0,(dreg));
-		i386_emit_imm32((imm));
+		emit_reg(0,(dreg));
+		emit_imm32((imm));
 	} 
 }
 
 
-void i386_imul_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg)
+void emit_imul_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg)
 {
-	if (i386_is_imm8((imm))) { 
+	if (IS_IMM8((imm))) { 
 		*(cd->mcodeptr++) = 0x6b;
-		i386_emit_reg((dreg),(reg));
-		i386_emit_imm8((imm));
+		emit_reg((dreg),(reg));
+		emit_imm8((imm));
 	} else { 
 		*(cd->mcodeptr++) = 0x69;
-		i386_emit_reg((dreg),(reg));
-		i386_emit_imm32((imm));
+		emit_reg((dreg),(reg));
+		emit_imm32((imm));
 	} 
 }
 
 
-void i386_imul_imm_membase_reg(codegendata *cd, s4 imm, s4 basereg, s4 disp, s4 dreg)
+void emit_imul_imm_membase_reg(codegendata *cd, s4 imm, s4 basereg, s4 disp, s4 dreg)
 {
-	if (i386_is_imm8((imm))) {
+	if (IS_IMM8((imm))) {
 		*(cd->mcodeptr++) = 0x6b;
-		i386_emit_membase((basereg),(disp),(dreg));
-		i386_emit_imm8((imm));
+		emit_membase(cd, (basereg),(disp),(dreg));
+		emit_imm8((imm));
 	} else {
 		*(cd->mcodeptr++) = 0x69;
-		i386_emit_membase((basereg),(disp),(dreg));
-		i386_emit_imm32((imm));
+		emit_membase(cd, (basereg),(disp),(dreg));
+		emit_imm32((imm));
 	}
 }
 
 
-void i386_mul_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_mul_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xf7;
-	i386_emit_membase((basereg),(disp),4);
+	emit_reg(4, reg);
 }
 
 
-void i386_idiv_reg(codegendata *cd, s4 reg)
+void emit_mul_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xf7;
-	i386_emit_reg(7,(reg));
+	emit_membase(cd, (basereg),(disp),4);
 }
 
 
-void i386_ret(codegendata *cd)
+void emit_idiv_reg(codegendata *cd, s4 reg)
+{
+	*(cd->mcodeptr++) = 0xf7;
+	emit_reg(7,(reg));
+}
+
+
+void emit_ret(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xc3;
 }
@@ -924,93 +935,73 @@ void i386_ret(codegendata *cd)
 /*
  * shift ops
  */
-void i386_shift_reg(codegendata *cd, s4 opc, s4 reg)
+void emit_shift_reg(codegendata *cd, s4 opc, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xd3;
-	i386_emit_reg((opc),(reg));
+	emit_reg((opc),(reg));
 }
 
 
-void i386_shift_membase(codegendata *cd, s4 opc, s4 basereg, s4 disp)
-{
-	*(cd->mcodeptr++) = 0xd3;
-	i386_emit_membase((basereg),(disp),(opc));
-}
-
-
-void i386_shift_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg)
+void emit_shift_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg)
 {
 	if ((imm) == 1) {
 		*(cd->mcodeptr++) = 0xd1;
-		i386_emit_reg((opc),(dreg));
+		emit_reg((opc),(dreg));
 	} else {
 		*(cd->mcodeptr++) = 0xc1;
-		i386_emit_reg((opc),(dreg));
-		i386_emit_imm8((imm));
+		emit_reg((opc),(dreg));
+		emit_imm8((imm));
 	}
 }
 
 
-void i386_shift_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp)
-{
-	if ((imm) == 1) {
-		*(cd->mcodeptr++) = 0xd1;
-		i386_emit_membase((basereg),(disp),(opc));
-	} else {
-		*(cd->mcodeptr++) = 0xc1;
-		i386_emit_membase((basereg),(disp),(opc));
-		i386_emit_imm8((imm));
-	}
-}
-
-
-void i386_shld_reg_reg(codegendata *cd, s4 reg, s4 dreg)
+void emit_shld_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xa5;
-	i386_emit_reg((reg),(dreg));
+	emit_reg((reg),(dreg));
 }
 
 
-void i386_shld_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg)
+void emit_shld_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xa4;
-	i386_emit_reg((reg),(dreg));
-	i386_emit_imm8((imm));
+	emit_reg((reg),(dreg));
+	emit_imm8((imm));
 }
 
 
-void i386_shld_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
+void emit_shld_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xa5;
-	i386_emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
-void i386_shrd_reg_reg(codegendata *cd, s4 reg, s4 dreg)
+void emit_shrd_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xad;
-	i386_emit_reg((reg),(dreg));
+	emit_reg((reg),(dreg));
 }
 
 
-void i386_shrd_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg)
+void emit_shrd_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xac;
-	i386_emit_reg((reg),(dreg));
-	i386_emit_imm8((imm));
+	emit_reg((reg),(dreg));
+	emit_imm8((imm));
 }
 
 
-void i386_shrd_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
+void emit_shrd_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xad;
-	i386_emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -1018,25 +1009,25 @@ void i386_shrd_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 /*
  * jump operations
  */
-void i386_jmp_imm(codegendata *cd, s4 imm)
+void emit_jmp_imm(codegendata *cd, s4 imm)
 {
 	*(cd->mcodeptr++) = 0xe9;
-	i386_emit_imm32((imm));
+	emit_imm32((imm));
 }
 
 
-void i386_jmp_reg(codegendata *cd, s4 reg)
+void emit_jmp_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xff;
-	i386_emit_reg(4,(reg));
+	emit_reg(4,(reg));
 }
 
 
-void i386_jcc(codegendata *cd, s4 opc, s4 imm)
+void emit_jcc(codegendata *cd, s4 opc, s4 imm)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) =  0x80 + (u1) (opc);
-	i386_emit_imm32((imm));
+	emit_imm32((imm));
 }
 
 
@@ -1044,71 +1035,64 @@ void i386_jcc(codegendata *cd, s4 opc, s4 imm)
 /*
  * conditional set operations
  */
-void i386_setcc_reg(codegendata *cd, s4 opc, s4 reg)
+void emit_setcc_reg(codegendata *cd, s4 opc, s4 reg)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x90 + (u1) (opc);
-	i386_emit_reg(0,(reg));
+	emit_reg(0,(reg));
 }
 
 
-void i386_setcc_membase(codegendata *cd, s4 opc, s4 basereg, s4 disp)
+void emit_setcc_membase(codegendata *cd, s4 opc, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) =  0x90 + (u1) (opc);
-	i386_emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 }
 
 
-void i386_xadd_reg_mem(codegendata *cd, s4 reg, s4 mem)
+void emit_xadd_reg_mem(codegendata *cd, s4 reg, s4 mem)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xc1;
-	i386_emit_mem((reg),(mem));
+	emit_mem((reg),(mem));
 }
 
 
-void i386_neg_reg(codegendata *cd, s4 reg)
+void emit_neg_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xf7;
-	i386_emit_reg(3,(reg));
-}
-
-
-void i386_neg_membase(codegendata *cd, s4 basereg, s4 disp)
-{
-	*(cd->mcodeptr++) = 0xf7;
-	i386_emit_membase((basereg),(disp),3);
+	emit_reg(3,(reg));
 }
 
 
 
-void i386_push_imm(codegendata *cd, s4 imm)
+void emit_push_imm(codegendata *cd, s4 imm)
 {
 	*(cd->mcodeptr++) = 0x68;
-	i386_emit_imm32((imm));
+	emit_imm32((imm));
 }
 
 
-void i386_pop_reg(codegendata *cd, s4 reg)
+void emit_pop_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0x58 + (0x07 & (u1) (reg));
 }
 
 
-void i386_push_reg(codegendata *cd, s4 reg)
+void emit_push_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0x50 + (0x07 & (u1) (reg));
 }
 
 
-void i386_nop(codegendata *cd)
+void emit_nop(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0x90;
 }
 
 
-void i386_lock(codegendata *cd)
+void emit_lock(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xf0;
 }
@@ -1117,17 +1101,17 @@ void i386_lock(codegendata *cd)
 /*
  * call instructions
  */
-void i386_call_reg(codegendata *cd, s4 reg)
+void emit_call_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xff;
-	i386_emit_reg(2,(reg));
+	emit_reg(2,(reg));
 }
 
 
-void i386_call_imm(codegendata *cd, s4 imm)
+void emit_call_imm(codegendata *cd, s4 imm)
 {
 	*(cd->mcodeptr++) = 0xe8;
-	i386_emit_imm32((imm));
+	emit_imm32((imm));
 }
 
 
@@ -1135,461 +1119,461 @@ void i386_call_imm(codegendata *cd, s4 imm)
 /*
  * floating point instructions
  */
-void i386_fld1(codegendata *cd)
+void emit_fld1(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xe8;
 }
 
 
-void i386_fldz(codegendata *cd)
+void emit_fldz(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xee;
 }
 
 
-void i386_fld_reg(codegendata *cd, s4 reg)
+void emit_fld_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xc0 + (0x07 & (u1) (reg));
 }
 
 
-void i386_flds_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_flds_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 }
 
 
-void i386_flds_membase32(codegendata *cd, s4 basereg, s4 disp)
+void emit_flds_membase32(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_membase32((basereg),(disp),0);
+	emit_membase32(cd, (basereg),(disp),0);
 }
 
 
-void i386_fldl_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fldl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 }
 
 
-void i386_fldl_membase32(codegendata *cd, s4 basereg, s4 disp)
+void emit_fldl_membase32(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_membase32((basereg),(disp),0);
+	emit_membase32(cd, (basereg),(disp),0);
 }
 
 
-void i386_fldt_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fldt_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdb;
-	i386_emit_membase((basereg),(disp),5);
+	emit_membase(cd, (basereg),(disp),5);
 }
 
 
-void i386_flds_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_flds_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_fldl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_fldl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_memindex(0,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 0,(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_flds_mem(codegendata *cd, s4 mem)
+void emit_flds_mem(codegendata *cd, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_mem(0,(mem));
+	emit_mem(0,(mem));
 }
 
 
-void i386_fldl_mem(codegendata *cd, s4 mem)
+void emit_fldl_mem(codegendata *cd, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_mem(0,(mem));
+	emit_mem(0,(mem));
 }
 
 
-void i386_fildl_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fildl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdb;
-	i386_emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 }
 
 
-void i386_fildll_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fildll_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdf;
-	i386_emit_membase((basereg),(disp),5);
+	emit_membase(cd, (basereg),(disp),5);
 }
 
 
-void i386_fst_reg(codegendata *cd, s4 reg)
+void emit_fst_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdd;
 	*(cd->mcodeptr++) = 0xd0 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fsts_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fsts_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_membase((basereg),(disp),2);
+	emit_membase(cd, (basereg),(disp),2);
 }
 
 
-void i386_fstl_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fstl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_membase((basereg),(disp),2);
+	emit_membase(cd, (basereg),(disp),2);
 }
 
 
-void i386_fsts_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_fsts_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_memindex(2,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 2,(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_fstl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_fstl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_memindex(2,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 2,(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_fstp_reg(codegendata *cd, s4 reg)
+void emit_fstp_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdd;
 	*(cd->mcodeptr++) = 0xd8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fstps_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fstps_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_membase((basereg),(disp),3);
+	emit_membase(cd, (basereg),(disp),3);
 }
 
 
-void i386_fstps_membase32(codegendata *cd, s4 basereg, s4 disp)
+void emit_fstps_membase32(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_membase32((basereg),(disp),3);
+	emit_membase32(cd, (basereg),(disp),3);
 }
 
 
-void i386_fstpl_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fstpl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_membase((basereg),(disp),3);
+	emit_membase(cd, (basereg),(disp),3);
 }
 
 
-void i386_fstpl_membase32(codegendata *cd, s4 basereg, s4 disp)
+void emit_fstpl_membase32(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_membase32((basereg),(disp),3);
+	emit_membase32(cd, (basereg),(disp),3);
 }
 
 
-void i386_fstpt_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fstpt_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdb;
-	i386_emit_membase((basereg),(disp),7);
+	emit_membase(cd, (basereg),(disp),7);
 }
 
 
-void i386_fstps_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_fstps_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_memindex(3,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 3,(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_fstpl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
+void emit_fstpl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_memindex(3,(disp),(basereg),(indexreg),(scale));
+	emit_memindex(cd, 3,(disp),(basereg),(indexreg),(scale));
 }
 
 
-void i386_fstps_mem(codegendata *cd, s4 mem)
+void emit_fstps_mem(codegendata *cd, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_mem(3,(mem));
+	emit_mem(3,(mem));
 }
 
 
-void i386_fstpl_mem(codegendata *cd, s4 mem)
+void emit_fstpl_mem(codegendata *cd, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xdd;
-	i386_emit_mem(3,(mem));
+	emit_mem(3,(mem));
 }
 
 
-void i386_fistl_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fistl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdb;
-	i386_emit_membase((basereg),(disp),2);
+	emit_membase(cd, (basereg),(disp),2);
 }
 
 
-void i386_fistpl_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fistpl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdb;
-	i386_emit_membase((basereg),(disp),3);
+	emit_membase(cd, (basereg),(disp),3);
 }
 
 
-void i386_fistpll_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fistpll_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdf;
-	i386_emit_membase((basereg),(disp),7);
+	emit_membase(cd, (basereg),(disp),7);
 }
 
 
-void i386_fchs(codegendata *cd)
+void emit_fchs(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xe0;
 }
 
 
-void i386_faddp(codegendata *cd)
+void emit_faddp(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xde;
 	*(cd->mcodeptr++) = 0xc1;
 }
 
 
-void i386_fadd_reg_st(codegendata *cd, s4 reg)
+void emit_fadd_reg_st(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xd8;
 	*(cd->mcodeptr++) = 0xc0 + (0x0f & (u1) (reg));
 }
 
 
-void i386_fadd_st_reg(codegendata *cd, s4 reg)
+void emit_fadd_st_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdc;
 	*(cd->mcodeptr++) = 0xc0 + (0x0f & (u1) (reg));
 }
 
 
-void i386_faddp_st_reg(codegendata *cd, s4 reg)
+void emit_faddp_st_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xde;
 	*(cd->mcodeptr++) = 0xc0 + (0x0f & (u1) (reg));
 }
 
 
-void i386_fadds_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fadds_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd8;
-	i386_emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 }
 
 
-void i386_faddl_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_faddl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdc;
-	i386_emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 }
 
 
-void i386_fsub_reg_st(codegendata *cd, s4 reg)
+void emit_fsub_reg_st(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xd8;
 	*(cd->mcodeptr++) = 0xe0 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fsub_st_reg(codegendata *cd, s4 reg)
+void emit_fsub_st_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdc;
 	*(cd->mcodeptr++) = 0xe8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fsubp_st_reg(codegendata *cd, s4 reg)
+void emit_fsubp_st_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xde;
 	*(cd->mcodeptr++) = 0xe8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fsubp(codegendata *cd)
+void emit_fsubp(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xde;
 	*(cd->mcodeptr++) = 0xe9;
 }
 
 
-void i386_fsubs_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fsubs_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd8;
-	i386_emit_membase((basereg),(disp),4);
+	emit_membase(cd, (basereg),(disp),4);
 }
 
 
-void i386_fsubl_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fsubl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdc;
-	i386_emit_membase((basereg),(disp),4);
+	emit_membase(cd, (basereg),(disp),4);
 }
 
 
-void i386_fmul_reg_st(codegendata *cd, s4 reg)
+void emit_fmul_reg_st(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xd8;
 	*(cd->mcodeptr++) = 0xc8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fmul_st_reg(codegendata *cd, s4 reg)
+void emit_fmul_st_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdc;
 	*(cd->mcodeptr++) = 0xc8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fmulp(codegendata *cd)
+void emit_fmulp(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xde;
 	*(cd->mcodeptr++) = 0xc9;
 }
 
 
-void i386_fmulp_st_reg(codegendata *cd, s4 reg)
+void emit_fmulp_st_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xde;
 	*(cd->mcodeptr++) = 0xc8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fmuls_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fmuls_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd8;
-	i386_emit_membase((basereg),(disp),1);
+	emit_membase(cd, (basereg),(disp),1);
 }
 
 
-void i386_fmull_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fmull_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdc;
-	i386_emit_membase((basereg),(disp),1);
+	emit_membase(cd, (basereg),(disp),1);
 }
 
 
-void i386_fdiv_reg_st(codegendata *cd, s4 reg)
+void emit_fdiv_reg_st(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xd8;
 	*(cd->mcodeptr++) = 0xf0 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fdiv_st_reg(codegendata *cd, s4 reg)
+void emit_fdiv_st_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdc;
 	*(cd->mcodeptr++) = 0xf8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fdivp(codegendata *cd)
+void emit_fdivp(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xde;
 	*(cd->mcodeptr++) = 0xf9;
 }
 
 
-void i386_fdivp_st_reg(codegendata *cd, s4 reg)
+void emit_fdivp_st_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xde;
 	*(cd->mcodeptr++) = 0xf8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fxch(codegendata *cd)
+void emit_fxch(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xc9;
 }
 
 
-void i386_fxch_reg(codegendata *cd, s4 reg)
+void emit_fxch_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xc8 + (0x07 & (reg));
 }
 
 
-void i386_fprem(codegendata *cd)
+void emit_fprem(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xf8;
 }
 
 
-void i386_fprem1(codegendata *cd)
+void emit_fprem1(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xf5;
 }
 
 
-void i386_fucom(codegendata *cd)
+void emit_fucom(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xdd;
 	*(cd->mcodeptr++) = 0xe1;
 }
 
 
-void i386_fucom_reg(codegendata *cd, s4 reg)
+void emit_fucom_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdd;
 	*(cd->mcodeptr++) = 0xe0 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fucomp_reg(codegendata *cd, s4 reg)
+void emit_fucomp_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdd;
 	*(cd->mcodeptr++) = 0xe8 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fucompp(codegendata *cd)
+void emit_fucompp(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xda;
 	*(cd->mcodeptr++) = 0xe9;
 }
 
 
-void i386_fnstsw(codegendata *cd)
+void emit_fnstsw(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xdf;
 	*(cd->mcodeptr++) = 0xe0;
 }
 
 
-void i386_sahf(codegendata *cd)
+void emit_sahf(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0x9e;
 }
 
 
-void i386_finit(codegendata *cd)
+void emit_finit(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0x9b;
 	*(cd->mcodeptr++) = 0xdb;
@@ -1597,41 +1581,41 @@ void i386_finit(codegendata *cd)
 }
 
 
-void i386_fldcw_mem(codegendata *cd, s4 mem)
+void emit_fldcw_mem(codegendata *cd, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_mem(5,(mem));
+	emit_mem(5,(mem));
 }
 
 
-void i386_fldcw_membase(codegendata *cd, s4 basereg, s4 disp)
+void emit_fldcw_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xd9;
-	i386_emit_membase((basereg),(disp),5);
+	emit_membase(cd, (basereg),(disp),5);
 }
 
 
-void i386_wait(codegendata *cd)
+void emit_wait(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0x9b;
 }
 
 
-void i386_ffree_reg(codegendata *cd, s4 reg)
+void emit_ffree_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xdd;
 	*(cd->mcodeptr++) = 0xc0 + (0x07 & (u1) (reg));
 }
 
 
-void i386_fdecstp(codegendata *cd)
+void emit_fdecstp(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xf6;
 }
 
 
-void i386_fincstp(codegendata *cd)
+void emit_fincstp(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0xd9;
 	*(cd->mcodeptr++) = 0xf7;

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 4848 2006-04-26 11:02:51Z twisti $
+   $Id: md-emit.h 5109 2006-07-11 19:17:23Z twisti $
 
 */
 
@@ -39,163 +39,273 @@
 #include "vm/types.h"
 
 
+#define REG_AL       0
+#define REG_CL       1
+#define REG_DL       2
+#define REG_BL       3
+#define REG_AH       4
+#define REG_CH       5
+#define REG_DH       6
+#define REG_BH       7
+
+
+/* opcodes for alu instructions */
+
+#define ALU_ADD      0
+#define ALU_OR       1
+#define ALU_ADC      2
+#define ALU_SBB      3
+#define ALU_AND      4
+#define ALU_SUB      5
+#define ALU_XOR      6
+#define ALU_CMP      7
+
+
+#define SHIFT_ROL    0
+#define SHIFT_ROR    1
+#define SHIFT_RCL    2
+#define SHIFT_RCR    3
+#define SHIFT_SHL    4
+#define SHIFT_SHR    5
+#define SHIFT_SAR    7
+
+
+#define CC_O         0
+#define CC_NO        1
+#define CC_B         2
+#define CC_C         2
+#define CC_NAE       2
+#define CC_AE        3
+#define CC_NB        3
+#define CC_NC        3
+#define CC_E         4
+#define CC_Z         4
+#define CC_NE        5
+#define CC_NZ        5
+#define CC_BE        6
+#define CC_NA        6
+#define CC_A         7
+#define CC_NBE       7
+#define CC_S         8
+#define CC_LZ        8
+#define CC_NS        9
+#define CC_GEZ       9
+#define CC_P         0x0a
+#define CC_PE        0x0a
+#define CC_NP        0x0b
+#define CC_PO        0x0b
+#define CC_L         0x0c
+#define CC_NGE       0x0c
+#define CC_GE        0x0d
+#define CC_NL        0x0d
+#define CC_LE        0x0e
+#define CC_NG        0x0e
+#define CC_G         0x0f
+#define CC_NLE       0x0f
+
+
+/* modrm and stuff */
+
+#define emit_address_byte(mod,reg,rm) \
+    do { \
+        *(cd->mcodeptr++) = ((((mod) & 0x03) << 6) | (((reg) & 0x07) << 3) | (((rm) & 0x07))); \
+    } while (0)
+
+
+#define emit_imm8(imm) \
+    do { \
+        *(cd->mcodeptr++) = (u1) ((imm) & 0xff); \
+    } while (0)
+
+
+#define emit_imm16(imm) \
+    do { \
+        imm_union imb; \
+        imb.i = (int) (imm); \
+        *(cd->mcodeptr++) = imb.b[0]; \
+        *(cd->mcodeptr++) = imb.b[1]; \
+    } while (0)
+
+
+#define emit_imm32(imm) \
+    do { \
+        imm_union imb; \
+        imb.i = (int) (imm); \
+        *(cd->mcodeptr++) = imb.b[0]; \
+        *(cd->mcodeptr++) = imb.b[1]; \
+        *(cd->mcodeptr++) = imb.b[2]; \
+        *(cd->mcodeptr++) = imb.b[3]; \
+    } while (0)
+
+
+#define emit_mem(r,mem) \
+    do { \
+        emit_address_byte(0,(r),5); \
+        emit_imm32((mem)); \
+    } while (0)
+
+
+/* convenience macros *********************************************************/
+
+#define emit_reg(reg,rm)                emit_address_byte(3,(reg),(rm))
+
+
 /* code generation prototypes *************************************************/
 
-void i386_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void i386_emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void i386_emit_lalu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void i386_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void i386_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
-void i386_emit_ishiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
-void i386_emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
+void emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
+void emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
+void emit_lalu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
+void emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
+void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
+void emit_ishiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
+void emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
 
 
 /* integer instructions */
 
-void i386_mov_reg_reg(codegendata *cd, s4 reg, s4 dreg);
-void i386_mov_imm_reg(codegendata *cd, s4 imm, s4 dreg);
-void i386_movb_imm_reg(codegendata *cd, s4 imm, s4 dreg);
-void i386_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);
-void i386_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);
-void i386_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp);
-void i386_mov_reg_membase32(codegendata *cd, s4 reg, s4 basereg, s4 disp);
-void i386_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
-void i386_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_mov_reg_mem(codegendata *cd, s4 reg, s4 mem);
-void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg);
-void i386_mov_imm_mem(codegendata *cd, s4 imm, s4 mem);
-void i386_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
-void i386_mov_imm_membase32(codegendata *cd, s4 imm, s4 basereg, s4 disp);
-void i386_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
-void i386_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
-void i386_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
-void i386_movzwl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
-void i386_mov_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_movw_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_mov_reg_reg(codegendata *cd, s4 reg, s4 dreg);
+void emit_mov_imm_reg(codegendata *cd, s4 imm, s4 dreg);
+void emit_movb_imm_reg(codegendata *cd, s4 imm, s4 dreg);
+void emit_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);
+void emit_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);
+void emit_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp);
+void emit_mov_reg_membase32(codegendata *cd, s4 reg, s4 basereg, s4 disp);
+void emit_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
+void emit_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_mov_reg_mem(codegendata *cd, s4 reg, s4 mem);
+void emit_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg);
+void emit_mov_imm_mem(codegendata *cd, s4 imm, s4 mem);
+void emit_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
+void emit_mov_imm_membase32(codegendata *cd, s4 imm, s4 basereg, s4 disp);
+void emit_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
+void emit_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
+void emit_movswl_reg_reg(codegendata *cd, s4 a, s4 b);
+void emit_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
+void emit_movzwl_reg_reg(codegendata *cd, s4 a, s4 b);
+void emit_movzwl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
+void emit_mov_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_movw_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 
-void i386_alu_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg);
-void i386_alu_reg_membase(codegendata *cd, s4 opc, s4 reg, s4 basereg, s4 disp);
-void i386_alu_membase_reg(codegendata *cd, s4 opc, s4 basereg, s4 disp, s4 reg);
-void i386_alu_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
-void i386_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
-void i386_alu_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp);
-void i386_test_reg_reg(codegendata *cd, s4 reg, s4 dreg);
-void i386_test_imm_reg(codegendata *cd, s4 imm, s4 dreg);
-void i386_dec_mem(codegendata *cd, s4 mem);
-void i386_cltd(codegendata *cd);
-void i386_imul_reg_reg(codegendata *cd, s4 reg, s4 dreg);
-void i386_imul_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 dreg);
-void i386_imul_imm_reg(codegendata *cd, s4 imm, s4 reg);
-void i386_imul_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg);
-void i386_imul_imm_membase_reg(codegendata *cd, s4 imm, s4 basereg, s4 disp, s4 dreg);
-void i386_mul_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_idiv_reg(codegendata *cd, s4 reg);
-void i386_ret(codegendata *cd);
-void i386_shift_reg(codegendata *cd, s4 opc, s4 reg);
-void i386_shift_membase(codegendata *cd, s4 opc, s4 basereg, s4 disp);
-void i386_shift_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
-void i386_shift_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp);
-void i386_shld_reg_reg(codegendata *cd, s4 reg, s4 dreg);
-void i386_shld_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg);
-void i386_shld_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp);
-void i386_shrd_reg_reg(codegendata *cd, s4 reg, s4 dreg);
-void i386_shrd_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg);
-void i386_shrd_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp);
-void i386_jmp_imm(codegendata *cd, s4 imm);
-void i386_jmp_reg(codegendata *cd, s4 reg);
-void i386_jcc(codegendata *cd, s4 opc, s4 imm);
-void i386_setcc_reg(codegendata *cd, s4 opc, s4 reg);
-void i386_setcc_membase(codegendata *cd, s4 opc, s4 basereg, s4 disp);
-void i386_xadd_reg_mem(codegendata *cd, s4 reg, s4 mem);
-void i386_neg_reg(codegendata *cd, s4 reg);
-void i386_neg_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_push_imm(codegendata *cd, s4 imm);
-void i386_pop_reg(codegendata *cd, s4 reg);
-void i386_push_reg(codegendata *cd, s4 reg);
-void i386_nop(codegendata *cd);
-void i386_lock(codegendata *cd);
-void i386_call_reg(codegendata *cd, s4 reg);
-void i386_call_imm(codegendata *cd, s4 imm);
-void i386_call_mem(codegendata *cd, s4 mem);
+void emit_alu_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg);
+void emit_alu_reg_membase(codegendata *cd, s4 opc, s4 reg, s4 basereg, s4 disp);
+void emit_alu_membase_reg(codegendata *cd, s4 opc, s4 basereg, s4 disp, s4 reg);
+void emit_alu_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
+void emit_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
+void emit_alu_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp);
+void emit_test_reg_reg(codegendata *cd, s4 reg, s4 dreg);
+void emit_test_imm_reg(codegendata *cd, s4 imm, s4 dreg);
+void emit_dec_mem(codegendata *cd, s4 mem);
+void emit_cltd(codegendata *cd);
+void emit_imul_reg_reg(codegendata *cd, s4 reg, s4 dreg);
+void emit_imul_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 dreg);
+void emit_imul_imm_reg(codegendata *cd, s4 imm, s4 reg);
+void emit_imul_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg);
+void emit_imul_imm_membase_reg(codegendata *cd, s4 imm, s4 basereg, s4 disp, s4 dreg);
+void emit_mul_reg(codegendata *cd, s4 reg);
+void emit_idiv_reg(codegendata *cd, s4 reg);
+void emit_ret(codegendata *cd);
+void emit_shift_reg(codegendata *cd, s4 opc, s4 reg);
+void emit_shift_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
+void emit_shld_reg_reg(codegendata *cd, s4 reg, s4 dreg);
+void emit_shld_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg);
+void emit_shld_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp);
+void emit_shrd_reg_reg(codegendata *cd, s4 reg, s4 dreg);
+void emit_shrd_imm_reg_reg(codegendata *cd, s4 imm, s4 reg, s4 dreg);
+void emit_shrd_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp);
+void emit_jmp_imm(codegendata *cd, s4 imm);
+void emit_jmp_reg(codegendata *cd, s4 reg);
+void emit_jcc(codegendata *cd, s4 opc, s4 imm);
+void emit_setcc_reg(codegendata *cd, s4 opc, s4 reg);
+void emit_setcc_membase(codegendata *cd, s4 opc, s4 basereg, s4 disp);
+void emit_xadd_reg_mem(codegendata *cd, s4 reg, s4 mem);
+void emit_neg_reg(codegendata *cd, s4 reg);
+void emit_push_imm(codegendata *cd, s4 imm);
+void emit_pop_reg(codegendata *cd, s4 reg);
+void emit_push_reg(codegendata *cd, s4 reg);
+void emit_nop(codegendata *cd);
+void emit_lock(codegendata *cd);
+void emit_call_reg(codegendata *cd, s4 reg);
+void emit_call_imm(codegendata *cd, s4 imm);
+void emit_call_mem(codegendata *cd, s4 mem);
 
 
 /* floating point instructions */
 
-void i386_fld1(codegendata *cd);
-void i386_fldz(codegendata *cd);
-void i386_fld_reg(codegendata *cd, s4 reg);
-void i386_flds_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_flds_membase32(codegendata *cd, s4 basereg, s4 disp);
-void i386_fldl_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fldl_membase32(codegendata *cd, s4 basereg, s4 disp);
-void i386_fldt_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_flds_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fldl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_flds_mem(codegendata *cd, s4 mem);
-void i386_fldl_mem(codegendata *cd, s4 mem);
-void i386_fildl_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fildll_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fst_reg(codegendata *cd, s4 reg);
-void i386_fsts_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fstl_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fsts_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fstl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fstp_reg(codegendata *cd, s4 reg);
-void i386_fstps_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fstps_membase32(codegendata *cd, s4 basereg, s4 disp);
-void i386_fstpl_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fstpl_membase32(codegendata *cd, s4 basereg, s4 disp);
-void i386_fstpt_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fstps_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fstpl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
-void i386_fstps_mem(codegendata *cd, s4 mem);
-void i386_fstpl_mem(codegendata *cd, s4 mem);
-void i386_fistl_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fistpl_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fistpll_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fchs(codegendata *cd);
-void i386_faddp(codegendata *cd);
-void i386_fadd_reg_st(codegendata *cd, s4 reg);
-void i386_fadd_st_reg(codegendata *cd, s4 reg);
-void i386_faddp_st_reg(codegendata *cd, s4 reg);
-void i386_fadds_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_faddl_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fsub_reg_st(codegendata *cd, s4 reg);
-void i386_fsub_st_reg(codegendata *cd, s4 reg);
-void i386_fsubp_st_reg(codegendata *cd, s4 reg);
-void i386_fsubp(codegendata *cd);
-void i386_fsubs_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fsubl_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fmul_reg_st(codegendata *cd, s4 reg);
-void i386_fmul_st_reg(codegendata *cd, s4 reg);
-void i386_fmulp(codegendata *cd);
-void i386_fmulp_st_reg(codegendata *cd, s4 reg);
-void i386_fmuls_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fmull_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_fdiv_reg_st(codegendata *cd, s4 reg);
-void i386_fdiv_st_reg(codegendata *cd, s4 reg);
-void i386_fdivp(codegendata *cd);
-void i386_fdivp_st_reg(codegendata *cd, s4 reg);
-void i386_fxch(codegendata *cd);
-void i386_fxch_reg(codegendata *cd, s4 reg);
-void i386_fprem(codegendata *cd);
-void i386_fprem1(codegendata *cd);
-void i386_fucom(codegendata *cd);
-void i386_fucom_reg(codegendata *cd, s4 reg);
-void i386_fucomp_reg(codegendata *cd, s4 reg);
-void i386_fucompp(codegendata *cd);
-void i386_fnstsw(codegendata *cd);
-void i386_sahf(codegendata *cd);
-void i386_finit(codegendata *cd);
-void i386_fldcw_mem(codegendata *cd, s4 mem);
-void i386_fldcw_membase(codegendata *cd, s4 basereg, s4 disp);
-void i386_wait(codegendata *cd);
-void i386_ffree_reg(codegendata *cd, s4 reg);
-void i386_fdecstp(codegendata *cd);
-void i386_fincstp(codegendata *cd);
+void emit_fld1(codegendata *cd);
+void emit_fldz(codegendata *cd);
+void emit_fld_reg(codegendata *cd, s4 reg);
+void emit_flds_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_flds_membase32(codegendata *cd, s4 basereg, s4 disp);
+void emit_fldl_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fldl_membase32(codegendata *cd, s4 basereg, s4 disp);
+void emit_fldt_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_flds_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_fldl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_flds_mem(codegendata *cd, s4 mem);
+void emit_fldl_mem(codegendata *cd, s4 mem);
+void emit_fildl_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fildll_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fst_reg(codegendata *cd, s4 reg);
+void emit_fsts_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fstl_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fsts_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_fstl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_fstp_reg(codegendata *cd, s4 reg);
+void emit_fstps_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fstps_membase32(codegendata *cd, s4 basereg, s4 disp);
+void emit_fstpl_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fstpl_membase32(codegendata *cd, s4 basereg, s4 disp);
+void emit_fstpt_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fstps_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_fstpl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+void emit_fstps_mem(codegendata *cd, s4 mem);
+void emit_fstpl_mem(codegendata *cd, s4 mem);
+void emit_fistl_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fistpl_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fistpll_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fchs(codegendata *cd);
+void emit_faddp(codegendata *cd);
+void emit_fadd_reg_st(codegendata *cd, s4 reg);
+void emit_fadd_st_reg(codegendata *cd, s4 reg);
+void emit_faddp_st_reg(codegendata *cd, s4 reg);
+void emit_fadds_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_faddl_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fsub_reg_st(codegendata *cd, s4 reg);
+void emit_fsub_st_reg(codegendata *cd, s4 reg);
+void emit_fsubp_st_reg(codegendata *cd, s4 reg);
+void emit_fsubp(codegendata *cd);
+void emit_fsubs_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fsubl_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fmul_reg_st(codegendata *cd, s4 reg);
+void emit_fmul_st_reg(codegendata *cd, s4 reg);
+void emit_fmulp(codegendata *cd);
+void emit_fmulp_st_reg(codegendata *cd, s4 reg);
+void emit_fmuls_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fmull_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_fdiv_reg_st(codegendata *cd, s4 reg);
+void emit_fdiv_st_reg(codegendata *cd, s4 reg);
+void emit_fdivp(codegendata *cd);
+void emit_fdivp_st_reg(codegendata *cd, s4 reg);
+void emit_fxch(codegendata *cd);
+void emit_fxch_reg(codegendata *cd, s4 reg);
+void emit_fprem(codegendata *cd);
+void emit_fprem1(codegendata *cd);
+void emit_fucom(codegendata *cd);
+void emit_fucom_reg(codegendata *cd, s4 reg);
+void emit_fucomp_reg(codegendata *cd, s4 reg);
+void emit_fucompp(codegendata *cd);
+void emit_fnstsw(codegendata *cd);
+void emit_sahf(codegendata *cd);
+void emit_finit(codegendata *cd);
+void emit_fldcw_mem(codegendata *cd, s4 mem);
+void emit_fldcw_membase(codegendata *cd, s4 basereg, s4 disp);
+void emit_wait(codegendata *cd);
+void emit_ffree_reg(codegendata *cd, s4 reg);
+void emit_fdecstp(codegendata *cd);
+void emit_fincstp(codegendata *cd);
 
 #endif /* _EMITFUNCS_H */
 
