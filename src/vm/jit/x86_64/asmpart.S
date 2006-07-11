@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 5054 2006-06-28 19:43:42Z twisti $
+   $Id: asmpart.S 5110 2006-07-11 22:23:55Z twisti $
 
 */
 
@@ -345,17 +345,9 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	jmp     *v0                         /* ...and now call the new method     */
 
 L_asm_call_jit_compiler_exception:
-#if defined(ENABLE_THREADS)
-	call    builtin_asm_get_exceptionptrptr@PLT
-	mov     v0,itmp2                    /* v0 == xptr                         */
-#else
-	lea     _no_threads_exceptionptr(%rip),itmp2
-#endif
-	mov     (itmp2),xptr                /* get the exception pointer          */
-	movl    $0,(itmp2)                  /* clear exception pointer            */
-
+	call    exceptions_get_and_clear_exception@PLT
 	pop     xpc                         /* delete return address              */
-	sub     $5,xpc                      /* faulting address is ra - 5         */
+	sub     $3,xpc                      /* faulting address is ra - 3         */
 	jmp     L_asm_handle_exception
 
 
@@ -582,15 +574,7 @@ asm_wrapper_patcher:
 	ret                                 /* call new patched code              */
 
 L_asm_wrapper_patcher_exception:
-#if defined(ENABLE_THREADS)
-	call    builtin_asm_get_exceptionptrptr@PLT
-	mov     v0,itmp2                    /* v0 == xptr                         */
-#else
-	mov     _no_threads_exceptionptr,itmp2
-#endif
-	mov     (itmp2),xptr                /* get the exception pointer          */
-	movl    $0,(itmp2)                  /* clear exception pointer            */
-
+	call    exceptions_get_and_clear_exception@PLT
 	pop     xpc                         /* get and remove return address      */
 	jmp     L_asm_handle_exception
 
