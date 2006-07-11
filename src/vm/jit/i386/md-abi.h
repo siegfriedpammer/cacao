@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.h 5106 2006-07-11 18:34:45Z twisti $
 
 */
 
@@ -46,6 +46,9 @@
 #define REG_ITMP1       EAX     /* temporary register                         */
 #define REG_ITMP2       ECX     /* temporary register                         */
 #define REG_ITMP3       EDX     /* temporary register                         */
+
+#define REG_METHODPTR   REG_ITMP2/* pointer to the place from where the       */
+                                 /* procedure vector has been fetched         */
 
 #define REG_NULL        -1      /* used for reg_of_var where d is not needed  */
 
@@ -76,7 +79,18 @@
 
 #define TRACE_ARGS_NUM  8
 
-#define REG_RES_CNT     3    /* number of reserved registers                  */
+#define REG_RES_CNT     3       /* number of reserved registers               */
+
+
+/* packed register defines ****************************************************/
+
+#define REG_ITMP12_PACKED               PACK_REGS(REG_ITMP1, REG_ITMP2)
+#define REG_ITMP13_PACKED               PACK_REGS(REG_ITMP1, REG_ITMP3)
+#define REG_ITMP23_PACKED               PACK_REGS(REG_ITMP2, REG_ITMP3)
+
+#define REG_RESULT_PACKED               PACK_REGS(REG_RESULT, REG_RESULT2)
+
+#define EAX_EDX_PACKED                  PACK_REGS(EAX, EDX)
 
 #endif /* _MD_ABI_H */
 
