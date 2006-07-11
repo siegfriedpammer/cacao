@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5094 2006-07-10 13:51:38Z twisti $
+   $Id: patcher.c 5105 2006-07-11 17:10:01Z twisti $
 
 */
 
@@ -85,6 +85,12 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	xpc = (u1 *)                *((ptrint *) (sp + 5 * 8));
 	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 8));
+
+	/* calculate and set the new return address */
+
+	xpc = xpc - 1 * 4;
+
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) xpc;
 
 	/* store PV into the patcher function position */
 
@@ -153,11 +159,6 @@ bool patcher_get_putstatic(u1 *sp)
 	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	/* get the fieldinfo */
 
 	if (!(fi = resolve_field_eager(uf)))
@@ -204,11 +205,6 @@ bool patcher_get_putfield(u1 *sp)
 	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
 	mcode =                       *((u4 *)     (sp + 3 * 8));
 	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -262,11 +258,6 @@ bool patcher_aconst(u1 *sp)
 	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
@@ -317,11 +308,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
@@ -371,11 +357,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
@@ -424,11 +405,6 @@ bool patcher_invokestatic_special(u1 *sp)
 	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
@@ -473,11 +449,6 @@ bool patcher_invokevirtual(u1 *sp)
 	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
 	mcode =                       *((u4 *)     (sp + 3 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -530,11 +501,6 @@ bool patcher_invokeinterface(u1 *sp)
 	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
 	mcode =                       *((u4 *)     (sp + 3 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -593,11 +559,6 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
@@ -644,11 +605,6 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
 	mcode =                       *((u4 *)     (sp + 3 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -706,11 +662,6 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
@@ -749,11 +700,6 @@ bool patcher_clinit(u1 *sp)
 	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
 	mcode =                       *((u4 *)     (sp + 3 * 8));
 	c     = (classinfo *)         *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* check if the class is initialized */
 
@@ -794,11 +740,6 @@ bool patcher_athrow_areturn(u1 *sp)
 	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
 	mcode =                       *((u4 *)     (sp + 3 * 8));
 	uc    = (unresolved_class *)  *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* resolve the class */
 
@@ -841,11 +782,6 @@ bool patcher_resolve_native(u1 *sp)
 	m     = (methodinfo *) *((ptrint *) (sp + 2 * 8));
 	disp  =                *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)         *((ptrint *) (sp + 0 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* resolve native function */
 
