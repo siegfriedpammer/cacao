@@ -1280,12 +1280,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		throw_main_exception_exit();
 #endif
 
+#if defined(ENABLE_THREADS)
 	/* initialize recompilation */
 
 	if (!recompile_init())
 		throw_main_exception_exit();
 		
-#if defined(ENABLE_THREADS)
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())

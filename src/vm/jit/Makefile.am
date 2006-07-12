@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5049 2006-06-23 12:07:26Z twisti $
+## $Id: Makefile.am 5121 2006-07-12 21:32:21Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -89,6 +89,12 @@ SUBDIRS += profile
 PROFILE_LIB = profile/libprofile.la
 endif
 
+if ENABLE_THREADS
+RECOMPILE_SOURCES = \
+	recompile.c \
+	recompile.h
+endif
+
 if USE_SCHEDULER
 SUBDIRS += schedule
 SCHEDULE_LIB = schedule/libschedule.la
@@ -125,8 +131,7 @@ libjit_la_SOURCES = \
 	parse.h \
 	reg.c \
 	reg.h \
-	recompile.c \
-	recompile.h \
+	$(RECOMPILE_SOURCES) \
 	replace.c \
 	replace.h \
 	show.c \
