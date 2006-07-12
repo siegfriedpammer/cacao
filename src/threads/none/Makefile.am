@@ -1,3 +1,5 @@
+## src/threads/none/Makefile.am
+##
 ## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
@@ -26,19 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5119 2006-07-12 21:26:54Z twisti $
+## $Id: Makefile.am 4908 2006-05-12 16:49:50Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
-DIST_SUBDIRS = \
-	native \
-	none
-
-if ENABLE_THREADS
-SUBDIRS = native
-else
-SUBDIRS = none
-endif
+EXTRA_DIST = \
+	lock.h \
+	threads.h
 
 
 ## Local variables:
