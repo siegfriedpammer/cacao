@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5103 2006-07-10 14:47:08Z twisti $
+   $Id: codegen.c 5125 2006-07-12 22:12:47Z twisti $
 
 */
 
@@ -52,6 +52,11 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -266,25 +271,20 @@ bool codegen(jitdata *jd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			disp = dseg_addaddress(cd, m->class);
+			disp = dseg_addaddress(cd, &m->class->object.header);
 			M_ALD(rd->argintregs[0], REG_PV, disp);
-			M_AST(rd->argintregs[0], REG_SP, s1 * 8);
-			disp = dseg_addaddress(cd, BUILTIN_staticmonitorenter);
-			M_ALD(REG_PV, REG_PV, disp);
-			M_JSR(REG_RA, REG_PV);
-			disp = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_LDA(REG_PV, REG_RA, -disp);
-
-		} else {
+		}
+		else {
 			M_BEQZ(rd->argintregs[0], 0);
 			codegen_add_nullpointerexception_ref(cd);
-			M_AST(rd->argintregs[0], REG_SP, s1 * 8);
-			disp = dseg_addaddress(cd, BUILTIN_monitorenter);
-			M_ALD(REG_PV, REG_PV, disp);
-			M_JSR(REG_RA, REG_PV);
-			disp = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_LDA(REG_PV, REG_RA, -disp);
 		}
+
+		M_AST(rd->argintregs[0], REG_SP, s1 * 8);
+		disp = dseg_addaddress(cd, LOCK_monitor_enter);
+		M_ALD(REG_PV, REG_PV, disp);
+		M_JSR(REG_RA, REG_PV);
+		disp = (s4) (cd->mcodeptr - cd->mcodebase);
+		M_LDA(REG_PV, REG_RA, -disp);
 
 #if !defined(NDEBUG)
 		if (opt_verbosecall) {
@@ -2970,7 +2970,7 @@ nowperformreturn:
 					break;
 				}
 
-				disp = dseg_addaddress(cd, BUILTIN_monitorexit);
+				disp = dseg_addaddress(cd, LOCK_monitor_exit);
 				M_ALD(REG_PV, REG_PV, disp);
 				M_JSR(REG_RA, REG_PV);
 				disp = -(s4) (cd->mcodeptr - cd->mcodebase);
