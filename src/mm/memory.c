@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: memory.c 5126 2006-07-12 22:55:05Z twisti $
 
 */
 
@@ -70,6 +70,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 
 /*******************************************************************************
@@ -136,7 +137,7 @@ static void *memory_checked_alloc(s4 size)
 
 	void *p = calloc(size, 1);
 
-	if (!p)
+	if (p == NULL)
 		exceptions_throw_outofmemory_exit();
 
 	return p;
@@ -197,8 +198,7 @@ void *memory_cnew(s4 size)
 		/* make the memory read-, write-, and executeable */
 
 		if (mprotect(p, codememsize, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
-			throw_cacao_exception_exit(string_java_lang_InternalError,
-									   strerror(errno));
+			vm_abort("mprotect failed: %s", strerror(errno));
 
 		/* set global code memory pointer */
 
@@ -253,7 +253,7 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 
 	dst = realloc(src, len2);
 
-	if (!dst)
+	if (dst == NULL)
 		exceptions_throw_outofmemory_exit();
 
 	return dst;
@@ -452,9 +452,8 @@ void dump_release(s4 size)
 
 	di = DUMPINFO;
 
-	if (size < 0 || size > di->useddumpsize)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Illegal dump release size %d", size);
+	if ((size < 0) || (size > di->useddumpsize))
+		vm_abort("Illegal dump release size: %d", size);
 
 	/* reset the used dump size to the size specified */
 

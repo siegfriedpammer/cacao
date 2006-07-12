@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.c 5104 2006-07-10 17:22:18Z twisti $
+   $Id: util.c 5126 2006-07-12 22:55:05Z twisti $
 
 */
 
@@ -77,8 +77,7 @@ char *_Jv_getcwd(void)
 		/* too small buffer or a more serious problem */
 
 		if (errno != ERANGE)
-			throw_cacao_exception_exit(string_java_lang_InternalError,
-									   strerror(errno));
+			vm_abort("getcwd failed: %s", strerror(errno));
 
 		/* double the buffer size */
 
