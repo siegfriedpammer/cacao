@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5115 2006-07-12 14:55:04Z twisti $
+   $Id: md-abi.c 5118 2006-07-12 20:27:55Z twisti $
 
 */
 
@@ -229,23 +229,21 @@ void md_param_alloc(methoddesc *md)
 void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
 	methodinfo   *m;
-	codeinfo     *code;
 	registerdata *rd;
 	methoddesc   *md;
 
 	/* get required compiler data */
 
-	m    = jd->m;
-	code = jd->code;
-	rd   = jd->rd;
+	m  = jd->m;
+	rd = jd->rd;
 
-	md   = m->parseddesc;
+	md = m->parseddesc;
 
 	/* In Leafmethods Local Vars holding parameters are precolored to
 	   their argument register -> so leafmethods with paramcount > 0
 	   could already use R3 == a00! */
 
-	if (!code->isleafmethod || (md->paramcount == 0)) {
+	if (!jd->isleafmethod || (md->paramcount == 0)) {
 		/* Only precolor the stackslot, if it is not a SAVEDVAR <->
 		   has not to survive method invokations. */
 
