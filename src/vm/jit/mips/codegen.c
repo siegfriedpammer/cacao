@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5043 2006-06-20 15:50:58Z twisti $
+   $Id: codegen.c 5114 2006-07-12 14:53:28Z twisti $
 
 */
 
@@ -111,7 +111,7 @@ bool codegen(jitdata *jd)
 	s4 i, p, t, l;
 	s4 savedregs_num;
 
-	savedregs_num = (m->isleafmethod) ? 0 : 1;        /* space to save the RA */
+	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the RA */
 
 	/* space to save used callee saved registers */
 
@@ -153,7 +153,7 @@ bool codegen(jitdata *jd)
 #endif
 		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, m->isleafmethod);                /* IsLeaf          */
+	(void) dseg_adds4(cd, jd->isleafmethod);               /* IsLeaf          */
 	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
 	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 	dseg_addlinenumbertablesize(cd);
@@ -176,7 +176,7 @@ bool codegen(jitdata *jd)
 	/* save return address and used callee saved registers */
 
 	p = parentargs_base;
-	if (!m->isleafmethod) {
+	if (!jd->isleafmethod) {
 		p--; M_AST(REG_RA, REG_SP, p * 8);
 	}
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
@@ -328,7 +328,7 @@ bool codegen(jitdata *jd)
 
 		/* save temporary registers for leaf methods */
 
-		if (m->isleafmethod) {
+		if (jd->isleafmethod) {
 			for (p = 0; p < INT_TMP_CNT; p++)
 				M_LST(rd->tmpintregs[p], REG_SP, (2 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
 
@@ -371,7 +371,7 @@ bool codegen(jitdata *jd)
 
 		/* restore temporary registers for leaf methods */
 
-		if (m->isleafmethod) {
+		if (jd->isleafmethod) {
 			for (p = 0; p < INT_TMP_CNT; p++)
 				M_LLD(rd->tmpintregs[p], REG_SP, (2 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
 
@@ -2930,7 +2930,7 @@ nowperformreturn:
 
 			/* restore return address                                         */
 
-			if (!m->isleafmethod) {
+			if (!jd->isleafmethod) {
 				p--; M_ALD(REG_RA, REG_SP, p * 8);
 			}
 
@@ -3280,11 +3280,11 @@ gen_method:
 
 				super = (classinfo *) iptr->val.a;
 
-				if (!super) {
+				if (super == NULL) {
 					superindex = 0;
 					supervftbl = NULL;
-
-				} else {
+				}
+				else {
 					superindex = super->index;
 					supervftbl = super->vftbl;
 				}
@@ -3298,18 +3298,18 @@ gen_method:
 				/* calculate interface checkcast code size */
 
 				s2 = 8;
-				if (!super)
+				if (super == NULL)
 					s2 += (opt_showdisassemble ? 2 : 0);
 
 				/* calculate class checkcast code size */
 
 				s3 = 10 /* 10 + (s1 == REG_ITMP1) */;
-				if (!super)
+				if (super == NULL)
 					s3 += (opt_showdisassemble ? 2 : 0);
 
 				/* if class is not resolved, check which code to call */
 
-				if (!super) {
+				if (super == NULL) {
 					M_BEQZ(s1, 5 + (opt_showdisassemble ? 2 : 0) + s2 + 2 + s3);
 					M_NOP;
 
@@ -3332,12 +3332,12 @@ gen_method:
 
 				/* interface checkcast code */
 
-				if (!super || super->flags & ACC_INTERFACE) {
-					if (super) {
+				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+					if (super != NULL) {
 						M_BEQZ(s1, 1 + s2);
 						M_NOP;
-
-					} else {
+					}
+					else {
 						codegen_addpatchref(cd,
 											PATCHER_checkcast_instanceof_interface,
 											(constant_classref *) iptr->target,
@@ -3352,16 +3352,16 @@ gen_method:
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 					M_IADD_IMM(REG_ITMP3, -superindex, REG_ITMP3);
 					M_BLEZ(REG_ITMP3, 0);
-					codegen_add_classcastexception_ref(cd);
+					codegen_add_classcastexception_ref(cd, s1);
 					M_NOP;
 					M_ALD(REG_ITMP3, REG_ITMP2,
 						  OFFSET(vftbl_t, interfacetable[0]) -
 						  superindex * sizeof(methodptr*));
 					M_BEQZ(REG_ITMP3, 0);
-					codegen_add_classcastexception_ref(cd);
+					codegen_add_classcastexception_ref(cd, s1);
 					M_NOP;
 
-					if (!super) {
+					if (super == NULL) {
 						M_BR(1 + s3);
 						M_NOP;
 					}
@@ -3369,14 +3369,14 @@ gen_method:
 
 				/* class checkcast code */
 
-				if (!super || !(super->flags & ACC_INTERFACE)) {
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 					disp = dseg_addaddress(cd, (void *) supervftbl);
 
-					if (super) {
+					if (super != NULL) {
 						M_BEQZ(s1, 1 + s3);
 						M_NOP;
-
-					} else {
+					}
+					else {
 						codegen_addpatchref(cd,
 											PATCHER_checkcast_instanceof_class,
 											(constant_classref *) iptr->target,
@@ -3411,12 +3411,13 @@ gen_method:
 					/* 				} */
 					M_CMPULT(REG_ITMP3, REG_ITMP2, REG_ITMP3);
 					M_BNEZ(REG_ITMP3, 0);
-					codegen_add_classcastexception_ref(cd);
+					codegen_add_classcastexception_ref(cd, s1);
 					M_NOP;
 				}
-				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
 
-			} else {
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
+			}
+			else {
 				s1 = emit_load_s1(jd, iptr, src, rd->argintregs[0]);
 				M_INTMOVE(s1, rd->argintregs[0]);
 
@@ -3438,13 +3439,14 @@ gen_method:
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
 
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 				M_BEQZ(REG_RESULT, 0);
-				codegen_add_classcastexception_ref(cd);
+				codegen_add_classcastexception_ref(cd, s1);
 				M_NOP;
 
-				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
 			}
+
 			M_INTMOVE(s1, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
@@ -3473,11 +3475,11 @@ gen_method:
 
 			super = (classinfo *) iptr->val.a;
 
-			if (!super) {
+			if (super == NULL) {
 				superindex = 0;
 				supervftbl = NULL;
-
-			} else {
+			}
+			else {
 				superindex = super->index;
 				supervftbl = super->vftbl;
 			}
@@ -3496,20 +3498,20 @@ gen_method:
 			/* calculate interface instanceof code size */
 
 			s2 = 7;
-			if (!super)
+			if (super == NULL)
 				s2 += (opt_showdisassemble ? 2 : 0);
 
 			/* calculate class instanceof code size */
 
 			s3 = 8;
-			if (!super)
+			if (super == NULL)
 				s3 += (opt_showdisassemble ? 2 : 0);
 
 			M_CLR(d);
 
 			/* if class is not resolved, check which code to call */
 
-			if (!super) {
+			if (super == NULL) {
 				M_BEQZ(s1, 5 + (opt_showdisassemble ? 2 : 0) + s2 + 2 + s3);
 				M_NOP;
 
@@ -3531,12 +3533,12 @@ gen_method:
 
 			/* interface instanceof code */
 
-			if (!super || (super->flags & ACC_INTERFACE)) {
-				if (super) {
+			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+				if (super != NULL) {
 					M_BEQZ(s1, 1 + s2);
 					M_NOP;
-
-				} else {
+				}
+				else {
 					codegen_addpatchref(cd,
 										PATCHER_checkcast_instanceof_interface,
 										(constant_classref *) iptr->target, 0);
@@ -3556,7 +3558,7 @@ gen_method:
 					  superindex * sizeof(methodptr*));
 				M_CMPULT(REG_ZERO, REG_ITMP1, d);      /* REG_ITMP1 != 0  */
 
-				if (!super) {
+				if (super == NULL) {
 					M_BR(1 + s3);
 					M_NOP;
 				}
@@ -3564,14 +3566,14 @@ gen_method:
 
 			/* class instanceof code */
 
-			if (!super || !(super->flags & ACC_INTERFACE)) {
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 				disp = dseg_addaddress(cd, supervftbl);
 
-				if (super) {
+				if (super != NULL) {
 					M_BEQZ(s1, 1 + s3);
 					M_NOP;
-
-				} else {
+				}
+				else {
 					codegen_addpatchref(cd, PATCHER_checkcast_instanceof_class,
 										(constant_classref *) iptr->target,
 										disp);
@@ -3767,7 +3769,7 @@ gen_method:
 				M_MOV(REG_PV, rd->argintregs[0]);
 				M_MOV(REG_SP, rd->argintregs[1]);
 
-				if (m->isleafmethod)
+				if (jd->isleafmethod)
 					M_MOV(REG_RA, rd->argintregs[2]);
 				else
 					M_ALD(rd->argintregs[2],
@@ -3779,14 +3781,14 @@ gen_method:
 				M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
 				M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-				if (m->isleafmethod)
+				if (jd->isleafmethod)
 					M_AST(REG_RA, REG_SP, 1 * 8);
 
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
 				M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-				if (m->isleafmethod)
+				if (jd->isleafmethod)
 					M_ALD(REG_RA, REG_SP, 1 * 8);
 
 				M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
