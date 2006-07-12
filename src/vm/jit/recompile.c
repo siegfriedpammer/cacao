@@ -144,8 +144,10 @@ static void recompile_replace_vftbl(methodinfo *m)
 
 				for (i = 0; i < vftbl->vftbllength; i++) {
 					if (vftbl->table[i] == pcode->entrypoint) {
+#if !defined(NDEBUG)
 						printf("replacing vftbl in: ");
 						class_println(c);
+#endif
 						vftbl->table[i] = code->entrypoint;
 					}
 				}
