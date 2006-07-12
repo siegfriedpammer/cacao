@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5052 2006-06-28 17:05:46Z twisti $
+   $Id: emit.c 5113 2006-07-12 14:42:38Z edwin $
 
 */
 
@@ -45,6 +45,48 @@
 
 
 /* code generation functions **************************************************/
+
+/* emit_load *******************************************************************
+
+   Emits a possible load of an operand.
+
+*******************************************************************************/
+
+s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 8;
+
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
+
+		} else {
+			if (IS_INT_TYPE(src->type))
+				M_ILD(tempreg, REG_SP, disp);
+			else
+				M_LLD(tempreg, REG_SP, disp);
+		}
+
+		reg = tempreg;
+	} else
+		reg = src->regoff;
+
+	return reg;
+}
+
 
 /* emit_load_s1 ****************************************************************
 

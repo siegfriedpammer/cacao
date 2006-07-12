@@ -61,6 +61,7 @@
 
 /* code generation functions **************************************************/
 
+s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
