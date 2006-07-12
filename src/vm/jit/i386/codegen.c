@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5109 2006-07-11 19:17:23Z twisti $
+   $Id: codegen.c 5124 2006-07-12 21:59:24Z twisti $
 
 */
 
@@ -51,6 +51,11 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -331,22 +336,19 @@ bool codegen(jitdata *jd)
 		s1 = rd->memuse;
 
 		if (m->flags & ACC_STATIC) {
-			M_MOV_IMM(m->class, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, s1 * 4);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM(BUILTIN_staticmonitorenter, REG_ITMP1);
-			M_CALL(REG_ITMP1);
-
-		} else {
+			M_MOV_IMM(&m->class->object.header, REG_ITMP1);
+		}
+		else {
 			M_ALD(REG_ITMP1, REG_SP, stackframesize * 4 + 4);
 			M_TEST(REG_ITMP1);
 			M_BEQ(0);
 			codegen_add_nullpointerexception_ref(cd);
-			M_AST(REG_ITMP1, REG_SP, s1 * 4);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM(BUILTIN_monitorenter, REG_ITMP1);
-			M_CALL(REG_ITMP1);
 		}
+
+		M_AST(REG_ITMP1, REG_SP, s1 * 4);
+		M_AST(REG_ITMP1, REG_SP, 0 * 4);
+		M_MOV_IMM(LOCK_monitor_enter, REG_ITMP3);
+		M_CALL(REG_ITMP3);
 	}			
 #endif
 
@@ -597,10 +599,8 @@ bool codegen(jitdata *jd)
 				if (insinfo->synchronize) {
 					/* add monitor enter code */
 					if (insinfo->method->flags & ACC_STATIC) {
-						M_MOV_IMM(insinfo->method->class, REG_ITMP1);
+						M_MOV_IMM(&insinfo->method->class->object.header, REG_ITMP1);
 						M_AST(REG_ITMP1, REG_SP, 0 * 4);
-						M_MOV_IMM(BUILTIN_staticmonitorenter, REG_ITMP1);
-						M_CALL(REG_ITMP1);
 					} 
 					else {
 						/* nullpointer check must have been performed before */
@@ -613,9 +613,10 @@ bool codegen(jitdata *jd)
 						else {
 							M_AST(var->regoff, REG_SP, 0 * 4);
 						}
-						M_MOV_IMM(BUILTIN_monitorenter, REG_ITMP1);
-						M_CALL(REG_ITMP1);
 					}
+
+					M_MOV_IMM(LOCK_monitor_enter, REG_ITMP3);
+					M_CALL(REG_ITMP3);
 				}
 #endif
 				dseg_addlinenumber_inline_start(cd, iptr);
@@ -633,10 +634,8 @@ bool codegen(jitdata *jd)
 				if (insinfo->synchronize) {
 					/* add monitor exit code */
 					if (insinfo->method->flags & ACC_STATIC) {
-						M_MOV_IMM(insinfo->method->class, REG_ITMP1);
+						M_MOV_IMM(&insinfo->method->class->object.header, REG_ITMP1);
 						M_AST(REG_ITMP1, REG_SP, 0 * 4);
-						M_MOV_IMM(BUILTIN_monitorexit, REG_ITMP1);
-						M_CALL(REG_ITMP1);
 					} 
 					else {
 						var = &(rd->locals[insinfo->synclocal][TYPE_ADR]);
@@ -647,9 +646,10 @@ bool codegen(jitdata *jd)
 						else {
 							M_AST(var->regoff, REG_SP, 0 * 4);
 						}
-						M_MOV_IMM(BUILTIN_monitorexit, REG_ITMP1);
-						M_CALL(REG_ITMP1);
 					}
+
+					M_MOV_IMM(LOCK_monitor_exit, REG_ITMP3);
+					M_CALL(REG_ITMP3);
 				}
 #endif
 			}
@@ -3306,8 +3306,8 @@ nowperformreturn:
 				}
 
 				M_AST(REG_ITMP2, REG_SP, 0);
-				M_MOV_IMM(BUILTIN_monitorexit, REG_ITMP1);
-				M_CALL(REG_ITMP1);
+				M_MOV_IMM(LOCK_monitor_exit, REG_ITMP3);
+				M_CALL(REG_ITMP3);
 
 				/* and now restore the proper return value */
 				switch (iptr->opc) {
