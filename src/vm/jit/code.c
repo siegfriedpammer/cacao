@@ -152,6 +152,7 @@ int code_get_sync_slot_count(codeinfo *code)
 
 int code_get_stack_frame_size(codeinfo *code)
 {
+#if 0
 	int count;
 	
 	assert(code);
@@ -190,6 +191,9 @@ int code_get_stack_frame_size(codeinfo *code)
 #endif
 
 	return count;
+#endif
+
+	return 0;
 }
 
 
