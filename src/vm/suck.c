@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 5049 2006-06-23 12:07:26Z twisti $
+   $Id: suck.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -41,6 +41,13 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
+
 #include "toolbox/list.h"
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
@@ -551,21 +558,17 @@ classbuffer *suck_start(classinfo *c)
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 
-#if defined(ENABLE_THREADS)
 			/* enter a monitor on zip/jar archives */
 
-			builtin_monitorenter((java_objectheader *) lce);
-#endif
+			LOCK_MONITOR_ENTER(lce);
 
 			/* try to get the file in current archive */
 
 			cb = zip_get(lce, c);
 
-#if defined(ENABLE_THREADS)
 			/* leave the monitor */
 
-			builtin_monitorexit((java_objectheader *) lce);
-#endif
+			LOCK_MONITOR_EXIT(lce);
 
 		} else {
 #endif /* defined(ENABLE_ZLIB) */

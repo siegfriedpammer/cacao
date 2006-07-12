@@ -29,10 +29,12 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 4957 2006-05-26 11:48:10Z edwin $
+   $Id: memory.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -48,7 +50,6 @@
 # include <sys/types.h>
 #endif
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "arch.h"
@@ -57,7 +58,10 @@
 #include "native/native.h"
 
 #if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
 # include "threads/native/threads.h"
+#else
+# include "threads/none/lock.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -151,9 +155,7 @@ void *memory_cnew(s4 size)
 	void *p;
 	int   pagesize;
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(codememlock);
-#endif
+	LOCK_MONITOR_ENTER(codememlock);
 
 	size = ALIGN(size, ALIGNSIZE);
 
@@ -209,9 +211,7 @@ void *memory_cnew(s4 size)
 	codememptr = (void *) ((ptrint) codememptr + size);
 	codememsize -= size;
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(codememlock);
-#endif
+	LOCK_MONITOR_EXIT(codememlock);
 
 	return p;
 }

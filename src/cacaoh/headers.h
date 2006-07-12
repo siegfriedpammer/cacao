@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: headers.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: headers.h 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -37,6 +37,8 @@
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
+#else
+# include "threads/none/threads.h"
 #endif
 
 #include "toolbox/chain.h"

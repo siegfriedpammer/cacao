@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5033 2006-06-19 12:36:24Z twisti $
+   $Id: jni.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -82,7 +82,10 @@
 #endif
 
 #if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
 # include "threads/native/threads.h"
+#else
+# include "threads/none/lock.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -4929,14 +4932,12 @@ jint MonitorEnter(JNIEnv *env, jobject obj)
 {
 	STATISTICS(jniinvokation());
 
-	if (!obj) {
+	if (obj == NULL) {
 		exceptions_throw_nullpointerexception();
 		return JNI_ERR;
 	}
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(obj);
-#endif
+	LOCK_MONITOR_ENTER(obj);
 
 	return JNI_OK;
 }
@@ -4956,14 +4957,12 @@ jint MonitorExit(JNIEnv *env, jobject obj)
 {
 	STATISTICS(jniinvokation());
 
-	if (!obj) {
+	if (obj == NULL) {
 		exceptions_throw_nullpointerexception();
 		return JNI_ERR;
 	}
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(obj);
-#endif
+	LOCK_MONITOR_EXIT(obj);
 
 	return JNI_OK;
 }
@@ -5120,9 +5119,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject obj)
 
 	STATISTICS(jniinvokation());
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(hashtable_global_ref->header);
-#endif
+	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
@@ -5138,9 +5135,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject obj)
 
 			gre->refs++;
 
-#if defined(ENABLE_THREADS)
-			builtin_monitorexit(hashtable_global_ref->header);
-#endif
+			LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 
 			return obj;
 		}
@@ -5165,9 +5160,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject obj)
 
 	hashtable_global_ref->entries++;
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(hashtable_global_ref->header);
-#endif
+	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 
 	return obj;
 }
@@ -5188,9 +5181,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	STATISTICS(jniinvokation());
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(hashtable_global_ref->header);
-#endif
+	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
@@ -5223,9 +5214,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 				FREE(gre, hashtable_global_ref_entry);
 			}
 
-#if defined(ENABLE_THREADS)
-			builtin_monitorexit(hashtable_global_ref->header);
-#endif
+			LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 
 			return;
 		}
@@ -5236,9 +5225,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	log_println("JNI-DeleteGlobalRef: global reference not found");
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(hashtable_global_ref->header);
-#endif
+	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 }
 
 

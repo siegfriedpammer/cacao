@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5058 2006-06-28 21:46:41Z twisti $
+   $Id: linker.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -45,7 +45,13 @@
 
 #include "mm/memory.h"
 #include "native/native.h"
-#include "vm/builtin.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
+
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
@@ -366,23 +372,17 @@ classinfo *link_class(classinfo *c)
 
 	RT_TIMING_GET_TIME(time_start);
 
-	if (!c) {
+	if (c == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-#if defined(ENABLE_THREADS)
-	/* enter a monitor on the class */
-
-	builtin_monitorenter((java_objectheader *) c);
-#endif
+	LOCK_MONITOR_ENTER(c);
 
 	/* maybe the class is already linked */
 
 	if (c->state & CLASS_LINKED) {
-#if defined(ENABLE_THREADS)
-		builtin_monitorexit((java_objectheader *) c);
-#endif
+		LOCK_MONITOR_EXIT(c);
 
 		return c;
 	}
@@ -416,11 +416,7 @@ classinfo *link_class(classinfo *c)
 		compilingtime_start();
 #endif
 
-#if defined(ENABLE_THREADS)
-	/* leave the monitor */
-
-	builtin_monitorexit((java_objectheader *) c);
-#endif
+	LOCK_MONITOR_EXIT(c);
 
 	RT_TIMING_GET_TIME(time_end);
 

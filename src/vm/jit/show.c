@@ -41,6 +41,13 @@
 #include <assert.h>
 
 #include "mm/memory.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
+
 #include "vm/global.h"
 #include "vm/options.h"
 #include "vm/builtin.h"
@@ -49,9 +56,6 @@
 #include "vm/jit/show.h"
 #include "vm/jit/disass.h"
 
-#if defined(ENABLE_THREADS)
-#include "threads/native/lock.h"
-#endif
 
 /* global variables ***********************************************************/
 
@@ -330,13 +334,11 @@ void new_show_method(jitdata *jd, int stage)
 	cd   = jd->cd;
 	rd   = jd->new_rd;
 
-#if defined(ENABLE_THREADS)
 	/* We need to enter a lock here, since the binutils disassembler
 	   is not reentrant-able and we could not read functions printed
 	   at the same time. */
 
-	builtin_monitorenter(show_global_lock);
-#endif
+	LOCK_MONITOR_ENTER(show_global_lock);
 
 	printf("\n");
 
@@ -538,9 +540,7 @@ void new_show_method(jitdata *jd, int stage)
 	}
 #endif
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(show_global_lock);
-#endif
+	LOCK_MONITOR_EXIT(show_global_lock);
 
 	/* finally flush the output */
 
@@ -567,13 +567,11 @@ void show_method(jitdata *jd)
 	cd   = jd->cd;
 	rd   = jd->rd;
 
-#if defined(ENABLE_THREADS)
 	/* We need to enter a lock here, since the binutils disassembler
 	   is not reentrant-able and we could not read functions printed
 	   at the same time. */
 
-	builtin_monitorenter(show_global_lock);
-#endif
+	LOCK_MONITOR_ENTER(show_global_lock);
 
 	printf("\n");
 
@@ -764,9 +762,7 @@ void show_method(jitdata *jd)
 	}
 #endif
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(show_global_lock);
-#endif
+	LOCK_MONITOR_EXIT(show_global_lock);
 
 	/* finally flush the output */
 

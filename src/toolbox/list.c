@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: list.c 5049 2006-06-23 12:07:26Z twisti $
+   $Id: list.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -40,11 +40,13 @@
 #include "mm/memory.h"
 
 #if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
 # include "threads/native/threads.h"
+#else
+# include "threads/none/lock.h"
 #endif
 
 #include "toolbox/list.h"
-#include "vm/builtin.h"
 
 
 /* list_create *****************************************************************
@@ -77,7 +79,7 @@ void list_add_first(list *l, void *element)
 
 	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 
-	BUILTIN_MONITOR_ENTER(l);
+	LOCK_MONITOR_ENTER(l);
 
 	if (l->first) {
 		ln->prev       = NULL;
@@ -92,7 +94,7 @@ void list_add_first(list *l, void *element)
 		l->first = ln;
 	}
 
-	BUILTIN_MONITOR_EXIT(l);
+	LOCK_MONITOR_EXIT(l);
 }
 
 
@@ -108,7 +110,7 @@ void list_add_last(list *l, void *element)
 
 	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 
-	BUILTIN_MONITOR_ENTER(l);
+	LOCK_MONITOR_ENTER(l);
 
 	if (l->last) {
 		ln->prev      = l->last;
@@ -123,7 +125,7 @@ void list_add_last(list *l, void *element)
 		l->first = ln;
 	}
 
-	BUILTIN_MONITOR_EXIT(l);
+	LOCK_MONITOR_EXIT(l);
 }
 
 
@@ -172,7 +174,7 @@ void list_add_before(list *l, void *element, void *newelement)
 	ln    = (listnode *) (((u1 *) element) + l->nodeoffset);
 	newln = (listnode *) (((u1 *) newelement) + l->nodeoffset);
 
-	BUILTIN_MONITOR_ENTER(l);
+	LOCK_MONITOR_ENTER(l);
 
 	/* set the new links */
 
@@ -192,7 +194,7 @@ void list_add_before(list *l, void *element, void *newelement)
 	if (l->last == ln)
 		l->last = newln;
 
-	BUILTIN_MONITOR_EXIT(l);
+	LOCK_MONITOR_EXIT(l);
 }
 
 
@@ -202,7 +204,7 @@ void list_remove(list *l, void *element)
 
 	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 	
-	BUILTIN_MONITOR_ENTER(l);
+	LOCK_MONITOR_ENTER(l);
 
 	if (ln->next)
 		ln->next->prev = ln->prev;
@@ -217,7 +219,7 @@ void list_remove(list *l, void *element)
 	ln->next = NULL;
 	ln->prev = NULL;
 
-	BUILTIN_MONITOR_EXIT(l);
+	LOCK_MONITOR_EXIT(l);
 }
 
  
@@ -225,14 +227,14 @@ void *list_first(list *l)
 {
 	void *el;
 
-	BUILTIN_MONITOR_ENTER(l);
+	LOCK_MONITOR_ENTER(l);
 
 	if (l->first == NULL)
 		el = NULL;
 	else
 		el = ((u1 *) l->first) - l->nodeoffset;
 
-	BUILTIN_MONITOR_EXIT(l);
+	LOCK_MONITOR_EXIT(l);
 
 	return el;
 }
@@ -242,14 +244,14 @@ void *list_last(list *l)
 {
 	void *el;
 
-	BUILTIN_MONITOR_ENTER(l);
+	LOCK_MONITOR_ENTER(l);
 
 	if (l->last == NULL)
 		el = NULL;
 	else
 		el = ((u1 *) l->last) - l->nodeoffset;
 
-	BUILTIN_MONITOR_EXIT(l);
+	LOCK_MONITOR_EXIT(l);
 
 	return el;
 }
@@ -262,14 +264,14 @@ void *list_next(list *l, void *element)
 
 	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 
-	BUILTIN_MONITOR_ENTER(l);
+	LOCK_MONITOR_ENTER(l);
 
 	if (ln->next == NULL)
 		el = NULL;
 	else
 		el = ((u1 *) ln->next) - l->nodeoffset;
 
-	BUILTIN_MONITOR_EXIT(l);
+	LOCK_MONITOR_EXIT(l);
 
 	return el;
 }
@@ -282,14 +284,14 @@ void *list_prev(list *l, void *element)
 
 	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 
-	BUILTIN_MONITOR_ENTER(l);
+	LOCK_MONITOR_ENTER(l);
 
 	if (ln->prev == NULL)
 		el = NULL;
 	else
 		el = ((u1 *) ln->prev) - l->nodeoffset;
 
-	BUILTIN_MONITOR_EXIT(l);
+	LOCK_MONITOR_EXIT(l);
 
 	return el;
 }

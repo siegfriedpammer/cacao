@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5051 2006-06-28 15:39:22Z twisti $
+   $Id: md.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -143,6 +143,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 *******************************************************************************/
 
+#if defined(ENABLE_THREADS)
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
 	threadobject *t;
@@ -162,6 +163,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 	t->pc = pc;
 }
+#endif
 
 
 #if defined(ENABLE_THREADS)

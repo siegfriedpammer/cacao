@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: string.c 5049 2006-06-23 12:07:26Z twisti $
+   $Id: string.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -46,6 +46,14 @@
 
 #include "mm/memory.h"
 #include "native/include/java_lang_String.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
+
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
@@ -564,9 +572,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     u4                slot;
     u2                i;
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(lock_hashtable_string);
-#endif
+	LOCK_MONITOR_ENTER(lock_hashtable_string);
 
     /* find location in hashtable */
 
@@ -589,9 +595,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 			if (!copymode)
 				mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
 
-#if defined(ENABLE_THREADS)
-			builtin_monitorexit(lock_hashtable_string);
-#endif
+			LOCK_MONITOR_EXIT(lock_hashtable_string);
 
 			return (java_objectheader *) js;
 		}
@@ -692,9 +696,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 		hashtable_string = newhash;
 	}
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(lock_hashtable_string);
-#endif
+	LOCK_MONITOR_EXIT(lock_hashtable_string);
 
 	return (java_objectheader *) js;
 }

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: finalizer.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: finalizer.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -43,6 +43,11 @@
 #include "native/jni.h"
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_VMThread.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -94,7 +99,7 @@ static void finalizer_thread(void)
 	while (true) {
 		/* get the lock on the finalizer lock object, so we can call wait */
 
-		builtin_monitorenter(lock_finalizer_thread);
+		lock_monitor_enter(lock_finalizer_thread);
 
 		/* wait forever (0, 0) on that object till we are signaled */
 	
@@ -102,7 +107,7 @@ static void finalizer_thread(void)
 
 		/* leave the lock */
 
-		builtin_monitorexit(lock_finalizer_thread);
+		lock_monitor_exit(lock_finalizer_thread);
 
 		/* and call the finalizers */
 
@@ -163,7 +168,7 @@ void finalizer_notify(void)
 #if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
 
-	builtin_monitorenter(lock_finalizer_thread);
+	lock_monitor_enter(lock_finalizer_thread);
 
 	/* signal the finalizer thread */
 	
@@ -171,7 +176,7 @@ void finalizer_notify(void)
 
 	/* leave the lock */
 
-	builtin_monitorexit(lock_finalizer_thread);
+	lock_monitor_exit(lock_finalizer_thread);
 #else
 	/* if we don't have threads, just run the finalizers */
 

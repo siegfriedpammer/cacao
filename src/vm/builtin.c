@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4960 2006-05-26 12:19:43Z edwin $
+   $Id: builtin.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -88,8 +88,6 @@
 #include "vm/builtintable.inc"
 
 
-CYCLES_STATS_DECLARE(builtin_monitorenter,100,2)
-CYCLES_STATS_DECLARE(builtin_monitorexit ,100,2)
 CYCLES_STATS_DECLARE(builtin_new         ,100,5)
 CYCLES_STATS_DECLARE(builtin_overhead    , 80,1)
 
@@ -1708,59 +1706,11 @@ void builtin_print_cycles_stats(FILE *file)
 	fprintf(file,"builtin cylce count statistics:\n");
 
 	CYCLES_STATS_PRINT_OVERHEAD(builtin_overhead,file);
-	CYCLES_STATS_PRINT(builtin_monitorenter,file);
-	CYCLES_STATS_PRINT(builtin_monitorexit ,file);
 	CYCLES_STATS_PRINT(builtin_new         ,file);
 
 	fprintf(file,"\n");
 }
 #endif /* defined(ENABLE_CYCLES_STATS) */
-
-#if defined(ENABLE_THREADS)
-void builtin_monitorenter(java_objectheader *o)
-{
-#if defined(ENABLE_CYCLES_STATS)
-	u8 cycles_start, cycles_overhead, cycles_end;
-#endif
-
-	CYCLES_STATS_GET(cycles_start);
-	CYCLES_STATS_GET(cycles_overhead);
-
-	lock_monitor_enter((threadobject *) THREADOBJECT, o);
-
-	CYCLES_STATS_GET(cycles_end);
-	CYCLES_STATS_COUNT(builtin_monitorenter, cycles_end - cycles_overhead);
-	CYCLES_STATS_COUNT(builtin_overhead    , cycles_overhead - cycles_start);
-}
-#endif
-
-
-#if defined(ENABLE_THREADS)
-/*
- * Locks the class object - needed for static synchronized methods.
- */
-void builtin_staticmonitorenter(classinfo *c)
-{
-	builtin_monitorenter(&c->object.header);
-}
-#endif
-
-
-#if defined(ENABLE_THREADS)
-void builtin_monitorexit(java_objectheader *o)
-{
-#if defined(ENABLE_CYCLES_STATS)
-	u8 cycles_start, cycles_end;
-#endif
-
-	CYCLES_STATS_GET(cycles_start);
-
-	lock_monitor_exit((threadobject *) THREADOBJECT, o);
-
-	CYCLES_STATS_GET(cycles_end);
-	CYCLES_STATS_COUNT(builtin_monitorexit, cycles_end - cycles_start);
-}
-#endif
 
 
 /*****************************************************************************

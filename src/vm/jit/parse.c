@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5096 2006-07-10 14:02:25Z twisti $
+   $Id: parse.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -45,6 +45,11 @@
 
 #include "mm/memory.h"
 #include "native/native.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -1084,7 +1089,7 @@ invoke_method:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
 				/* XXX null check */
-				bte = builtintable_get_internal(BUILTIN_monitorenter);
+				bte = builtintable_get_internal(LOCK_monitor_enter);
 				NEW_OP_BUILTIN_CHECK_EXCEPTION(bte);
 			}
 			else
@@ -1098,7 +1103,7 @@ invoke_method:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
 				/* XXX null check */
-				bte = builtintable_get_internal(BUILTIN_monitorexit);
+				bte = builtintable_get_internal(LOCK_monitor_exit);
 				NEW_OP_BUILTIN_CHECK_EXCEPTION(bte);
 			}
 			else
@@ -2338,7 +2343,7 @@ invoke_method:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
 				OP(ICMD_CHECKNULL);
-				bte = builtintable_get_internal(BUILTIN_monitorenter);
+				bte = builtintable_get_internal(LOCK_monitor_enter);
 				BUILTIN(bte, false, NULL, currentline);
 			} 
 			else
@@ -2352,7 +2357,7 @@ invoke_method:
 		case JAVA_MONITOREXIT:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
-				bte = builtintable_get_internal(BUILTIN_monitorexit);
+				bte = builtintable_get_internal(LOCK_monitor_exit);
 				BUILTIN(bte, false, NULL, currentline);
 			} 
 			else

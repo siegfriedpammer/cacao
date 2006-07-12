@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5088 2006-07-08 20:16:05Z twisti $
+   $Id: exceptions.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -1570,7 +1570,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 		assert(o != NULL);
 
-		builtin_monitorexit(o);
+		lock_monitor_exit(o);
 	}
 #endif
 

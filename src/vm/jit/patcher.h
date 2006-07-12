@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: patcher.h 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: patcher.h 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -41,6 +41,10 @@
 #include <assert.h>
 
 #include "vm/types.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
 
 #include "vm/global.h"
 
@@ -55,14 +59,14 @@
 #define PATCHER_MONITORENTER \
 	/* enter a monitor on the patching position */       \
 	                                                     \
-	builtin_monitorenter(o);                             \
+	lock_monitor_enter(o);                               \
 	                                                     \
 	/* check if the position has already been patched */ \
 	                                                     \
 	if (o->vftbl != NULL) {                              \
         assert(o->vftbl == PATCHER_FLAG_PATCHED);        \
                                                          \
-		builtin_monitorexit(o);                          \
+		lock_monitor_exit(o);                            \
 	                                                     \
 		return NULL;                                     \
 	}                                                    \
@@ -71,7 +75,7 @@
 #define PATCHER_MONITOREXIT \
 	/* leave the monitor on the patching position */     \
 	                                                     \
-	builtin_monitorexit(o);
+	lock_monitor_exit(o);
 
 
 #define PATCHER_MARK_PATCHED_MONITOREXIT \

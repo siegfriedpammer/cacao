@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4945 2006-05-23 19:52:47Z motse $
+   $Id: classcache.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -39,6 +39,11 @@
 #include <assert.h>
 
 #include "mm/memory.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/hashtable.h"
@@ -213,8 +218,8 @@ void classcache_print_statistics(FILE *file) {
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 #if defined(ENABLE_THREADS)
-# define CLASSCACHE_LOCK()      builtin_monitorenter(lock_hashtable_classcache)
-# define CLASSCACHE_UNLOCK()    builtin_monitorexit(lock_hashtable_classcache)
+# define CLASSCACHE_LOCK()      LOCK_MONITOR_ENTER(lock_hashtable_classcache)
+# define CLASSCACHE_UNLOCK()    LOCK_MONITOR_EXIT(lock_hashtable_classcache)
 #else
 # define CLASSCACHE_LOCK()
 # define CLASSCACHE_UNLOCK()

@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5066 2006-07-02 18:31:02Z twisti $
+   $Id: native.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -49,6 +49,13 @@
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Throwable.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
+
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -351,9 +358,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(hashtable_library->header);
-#endif
+	LOCK_MONITOR_ENTER(hashtable_library->header);
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
@@ -396,9 +401,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 
 	while (ne) {
 		if (ne->name == filename) {
-#if defined(ENABLE_THREADS)
-			builtin_monitorexit(hashtable_library->header);
-#endif
+			LOCK_MONITOR_EXIT(hashtable_library->header);
 
 			return;
 		}
@@ -418,9 +421,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(hashtable_library->header);
-#endif
+	LOCK_MONITOR_EXIT(hashtable_library->header);
 }
 #endif /* !defined(WITH_STATIC_CLASSPATH) */
 

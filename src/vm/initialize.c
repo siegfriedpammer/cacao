@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: initialize.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -40,6 +40,12 @@
 #include <string.h>
 
 #include "vm/types.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
 
 #include "vm/global.h"
 #include "vm/initialize.h"
@@ -74,19 +80,13 @@ bool initialize_class(classinfo *c)
 	if (!makeinitializations)
 		return true;
 
-#if defined(ENABLE_THREADS)
-	/* enter a monitor on the class */
-
-	builtin_monitorenter((java_objectheader *) c);
-#endif
+	LOCK_MONITOR_ENTER(c);
 
 	/* maybe the class is already initalized or the current thread, which can
 	   pass the monitor, is currently initalizing this class */
 
 	if (CLASS_IS_OR_ALMOST_INITIALIZED(c)) {
-#if defined(ENABLE_THREADS)
-		builtin_monitorexit((java_objectheader *) c);
-#endif
+		LOCK_MONITOR_EXIT(c);
 
 		return true;
 	}
@@ -97,9 +97,7 @@ bool initialize_class(classinfo *c)
 	if (c->state & CLASS_ERROR) {
 		*exceptionptr = new_noclassdeffounderror(c->name);
 
-#if defined(ENABLE_THREADS)
-		builtin_monitorexit((java_objectheader *) c);
-#endif
+		LOCK_MONITOR_EXIT(c);
 
 		/* ...but return true, this is ok (mauve test) */
 
@@ -124,11 +122,7 @@ bool initialize_class(classinfo *c)
 
 	c->state &= ~CLASS_INITIALIZING;
 
-#if defined(ENABLE_THREADS)
-	/* leave the monitor */
-
-	builtin_monitorexit((java_objectheader *) c);
-#endif
+	LOCK_MONITOR_EXIT(c);
 
 	return r;
 }

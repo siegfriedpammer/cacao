@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 4921 2006-05-15 14:24:36Z twisti $
+   $Id: builtintable.inc 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -36,6 +36,10 @@
 #include "config.h"
 
 #include "arch.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
 
 #include "vm/builtin.h"
 #include "vm/jit/jit.h"
@@ -223,14 +227,14 @@ static builtintable_entry builtintable_internal[] = {
 #if defined(ENABLE_THREADS)
 	{
 		ICMD_MONITORENTER,
-		BUILTIN_monitorenter,
+		LOCK_monitor_enter,
 		"(Ljava/lang/Object;)V",
 		"monitorenter",
 		NULL
 	},
 	{
 		ICMD_MONITOREXIT,
-		BUILTIN_monitorexit,
+		LOCK_monitor_exit,
 		"(Ljava/lang/Object;)V",
 		"monitorexit",
 		NULL

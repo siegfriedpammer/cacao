@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5112 2006-07-12 13:52:08Z twisti $
+   $Id: codegen.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -52,6 +52,11 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -280,20 +285,17 @@ bool codegen(jitdata *jd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			M_MOV_IMM(m->class, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, s1 * 8);
-			M_INTMOVE(REG_ITMP1, rd->argintregs[0]);
-			M_MOV_IMM(BUILTIN_staticmonitorenter, REG_ITMP1);
-			M_CALL(REG_ITMP1);
-
-		} else {
+			M_MOV_IMM(&m->class->object.header, rd->argintregs[0]);
+		}
+		else {
 			M_TEST(rd->argintregs[0]);
 			M_BEQ(0);
 			codegen_add_nullpointerexception_ref(cd);
-			M_AST(rd->argintregs[0], REG_SP, s1 * 8);
-			M_MOV_IMM(BUILTIN_monitorenter, REG_ITMP1);
-			M_CALL(REG_ITMP1);
 		}
+
+		M_AST(rd->argintregs[0], REG_SP, s1 * 8);
+		M_MOV_IMM(LOCK_monitor_enter, REG_ITMP1);
+		M_CALL(REG_ITMP1);
 
 		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
@@ -2927,7 +2929,7 @@ nowperformreturn:
 					break;
 				}
 
-				M_MOV_IMM(builtin_monitorexit, REG_ITMP1);
+				M_MOV_IMM(LOCK_monitor_exit, REG_ITMP1);
 				M_CALL(REG_ITMP1);
 
 				/* and now restore the proper return value */

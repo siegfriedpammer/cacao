@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 5088 2006-07-08 20:16:05Z twisti $
+   $Id: utf8.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -46,7 +46,9 @@
 #include "mm/memory.h"
 
 #if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
 #endif
 
 #include "vm/builtin.h"
@@ -509,9 +511,7 @@ utf *utf_new(const char *text, u2 length)
 	utf *u;                             /* hashtable element                  */
 	u2 i;
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(hashtable_utf->header);
-#endif
+	LOCK_MONITOR_ENTER(hashtable_utf->header);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -539,9 +539,7 @@ utf *utf_new(const char *text, u2 length)
 
 			/* symbol found in hashtable */
 
-#if defined(ENABLE_THREADS)
-			builtin_monitorexit(hashtable_utf->header);
-#endif
+			LOCK_MONITOR_EXIT(hashtable_utf->header);
 
 			return u;
 		}
@@ -612,9 +610,7 @@ utf *utf_new(const char *text, u2 length)
 		hashtable_utf = newhash;
 	}
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(hashtable_utf->header);
-#endif
+	LOCK_MONITOR_EXIT(hashtable_utf->header);
 
 	return u;
 }

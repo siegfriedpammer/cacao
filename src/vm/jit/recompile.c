@@ -46,6 +46,7 @@
 #include "native/include/java_lang_VMThread.h"
 
 #if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
 # include "threads/native/threads.h"
 #endif
 
@@ -170,7 +171,7 @@ static void recompile_thread(void)
 	while (true) {
 		/* get the lock on the recompile lock object, so we can call wait */
 
-		builtin_monitorenter(lock_recompile_thread);
+		lock_monitor_enter(lock_recompile_thread);
 
 		/* wait forever (0, 0) on that object till we are signaled */
 	
@@ -178,7 +179,7 @@ static void recompile_thread(void)
 
 		/* leave the lock */
 
-		builtin_monitorexit(lock_recompile_thread);
+		lock_monitor_exit(lock_recompile_thread);
 
 		/* get the next method and recompile it */
 
@@ -261,7 +262,7 @@ void recompile_queue_method(methodinfo *m)
 
 	/* get the lock on the recompile lock object, so we can call notify */
 
-	builtin_monitorenter(lock_recompile_thread);
+	lock_monitor_enter(lock_recompile_thread);
 
 	/* signal the recompiler thread */
 	
@@ -269,7 +270,7 @@ void recompile_queue_method(methodinfo *m)
 
 	/* leave the lock */
 
-	builtin_monitorexit(lock_recompile_thread);
+	lock_monitor_exit(lock_recompile_thread);
 }
 
 

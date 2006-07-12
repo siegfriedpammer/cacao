@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5099 2006-07-10 14:20:38Z twisti $
+   $Id: jit.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -44,7 +44,13 @@
 #include "mm/memory.h"
 #include "native/native.h"
 #include "toolbox/logging.h"
-#include "vm/builtin.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
+
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
@@ -1026,12 +1032,12 @@ u1 *jit_compile(methodinfo *m)
 
 	/* enter a monitor on the method */
 
-	BUILTIN_MONITOR_ENTER(m);
+	LOCK_MONITOR_ENTER(m);
 
 	/* if method has been already compiled return immediately */
 
 	if (m->code != NULL) {
-		BUILTIN_MONITOR_EXIT(m);
+		LOCK_MONITOR_EXIT(m);
 
 		assert(m->code->entrypoint);
 		return m->code->entrypoint;
@@ -1130,7 +1136,7 @@ u1 *jit_compile(methodinfo *m)
 
 	/* leave the monitor */
 
-	BUILTIN_MONITOR_EXIT(m);
+	LOCK_MONITOR_EXIT(m);
 
 	/* return pointer to the methods entry point */
 

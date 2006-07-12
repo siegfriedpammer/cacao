@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 5049 2006-06-23 12:07:26Z twisti $
+   $Id: builtin.h 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -187,21 +187,6 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f);
 /* NOT AN OP */
-
-#if defined(ENABLE_THREADS)
-void builtin_monitorenter(java_objectheader *o);
-#define BUILTIN_monitorenter (functionptr) builtin_monitorenter
-void builtin_staticmonitorenter(classinfo *c);
-#define BUILTIN_staticmonitorenter (functionptr) builtin_staticmonitorenter
-void builtin_monitorexit(java_objectheader *o);
-#define BUILTIN_monitorexit (functionptr) builtin_monitorexit
-
-# define BUILTIN_MONITOR_ENTER(o) builtin_monitorenter((java_objectheader *) o)
-# define BUILTIN_MONITOR_EXIT(o)  builtin_monitorexit((java_objectheader *) o)
-#else
-# define BUILTIN_MONITOR_ENTER(o) /* noop */
-# define BUILTIN_MONITOR_EXIT(o)  /* noop */
-#endif
 
 s4 builtin_idiv(s4 a, s4 b);
 #define BUILTIN_idiv (functionptr) builtin_idiv

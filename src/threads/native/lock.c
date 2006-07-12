@@ -785,11 +785,14 @@ static void lock_inflate(threadobject *t, java_objectheader *o, lock_record_t *l
 
 *******************************************************************************/
 
-void lock_monitor_enter(threadobject *t, java_objectheader *o)
+void lock_monitor_enter(java_objectheader *o)
 {
+	threadobject *t;
 	/* CAUTION: This code assumes that ptrint is unsigned! */
-	ptrint lockword;
-	ptrint thinlock;
+	ptrint        lockword;
+	ptrint        thinlock;
+
+	t = THREADOBJECT;
 
 	thinlock = t->thinlock;
 
@@ -929,10 +932,13 @@ void lock_monitor_enter(threadobject *t, java_objectheader *o)
 
 *******************************************************************************/
 
-bool lock_monitor_exit(threadobject *t, java_objectheader *o)
+bool lock_monitor_exit(java_objectheader *o)
 {
-	ptrint lockword;
-	ptrint thinlock;
+	threadobject *t;
+	ptrint        lockword;
+	ptrint        thinlock;
+
+	t = THREADOBJECT;
 
 	/* We don't have to worry about stale values here, as any stale value */
 	/* will indicate that we don't own the lock.                          */

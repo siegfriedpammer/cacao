@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: avl.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: avl.c 5123 2006-07-12 21:45:34Z twisti $
 
 */
 
@@ -43,10 +43,11 @@
 #include "toolbox/avl.h"
 
 #if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
 # include "threads/native/threads.h"
+#else
+# include "threads/none/lock.h"
 #endif
-
-#include "vm/builtin.h"
 
 
 /* avl_create ******************************************************************
@@ -319,9 +320,7 @@ bool avl_insert(avl_tree *tree, void *data)
 	assert(tree);
 	assert(data);
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(tree->lock);
-#endif
+	LOCK_MONITOR_ENTER(tree->lock);
 
 	/* if we don't have a root node, create one */
 
@@ -344,9 +343,7 @@ bool avl_insert(avl_tree *tree, void *data)
 	printf("-------------------\n");
 #endif
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(tree->lock);
-#endif
+	LOCK_MONITOR_EXIT(tree->lock);
 
 	/* insertion was ok */
 
@@ -369,9 +366,7 @@ void *avl_find(avl_tree *tree, void *data)
 	assert(tree);
 	assert(data);
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorenter(tree->lock);
-#endif
+	LOCK_MONITOR_ENTER(tree->lock);
 
 	/* search the tree for the given node */
 
@@ -383,9 +378,7 @@ void *avl_find(avl_tree *tree, void *data)
 		/* was the entry found? return it */
 
 		if (res == 0) {
-#if defined(ENABLE_THREADS)
-			builtin_monitorexit(tree->lock);
-#endif
+			LOCK_MONITOR_EXIT(tree->lock);
 
 			return node->data;
 		}
@@ -395,9 +388,7 @@ void *avl_find(avl_tree *tree, void *data)
 		node = node->childs[(res < 0) ? AVL_LEFT : AVL_RIGHT];
 	}
 
-#if defined(ENABLE_THREADS)
-	builtin_monitorexit(tree->lock);
-#endif
+	LOCK_MONITOR_EXIT(tree->lock);
 
 	/* entry was not found, returning NULL */
 

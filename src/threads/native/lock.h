@@ -26,11 +26,12 @@
 
    Authors: Edwin Steiner
 
-   Changes: 
+   Changes: Christian Thalinger
 
    $Id: threads.h 4866 2006-05-01 21:40:38Z edwin $
 
 */
+
 
 #ifndef _LOCK_H
 #define _LOCK_H
@@ -149,8 +150,14 @@ lock_record_t *lock_get_initial_lock_word(void);
 
 ptrint lock_pre_compute_thinlock(s4 index);
 
-void lock_monitor_enter(struct threadobject *, java_objectheader *);
-bool lock_monitor_exit(struct threadobject *, java_objectheader *);
+void lock_monitor_enter(java_objectheader *);
+bool lock_monitor_exit(java_objectheader *);
+
+#define LOCK_monitor_enter    (functionptr) lock_monitor_enter
+#define LOCK_monitor_exit     (functionptr) lock_monitor_exit
+
+#define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_objectheader *) (o))
+#define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_objectheader *) (o))
 
 bool lock_is_held_by_current_thread(java_objectheader *o);
 
