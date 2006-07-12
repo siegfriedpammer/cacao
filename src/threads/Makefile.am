@@ -1,3 +1,5 @@
+## src/threads/Makefile.am
+##
 ## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
@@ -26,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5119 2006-07-12 21:26:54Z twisti $
+## $Id: Makefile.am 5122 2006-07-12 21:33:30Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
