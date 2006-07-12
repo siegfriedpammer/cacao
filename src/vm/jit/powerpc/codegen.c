@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5088 2006-07-08 20:16:05Z twisti $
+   $Id: codegen.c 5117 2006-07-12 20:14:00Z twisti $
 
 */
 
@@ -148,10 +148,10 @@ bool codegen(jitdata *jd)
 
 	/* align stack to 16-bytes */
 
-/* 	if (!code->isleafmethod || opt_verbosecall) */
+/* 	if (!jd->isleafmethod || opt_verbosecall) */
 		stackframesize = (stackframesize + 3) & ~3;
 
-/* 	else if (code->isleafmethod && (stackframesize == LA_WORD_SIZE)) */
+/* 	else if (jd->isleafmethod && (stackframesize == LA_WORD_SIZE)) */
 /* 		stackframesize = 0; */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
@@ -170,7 +170,7 @@ bool codegen(jitdata *jd)
 #endif
 		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, code->isleafmethod);             /* IsLeaf          */
+	(void) dseg_adds4(cd, jd->isleafmethod);               /* IsLeaf          */
 	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
 	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
@@ -202,7 +202,7 @@ bool codegen(jitdata *jd)
 
 	/* create stack frame (if necessary) */
 
-	if (!code->isleafmethod) {
+	if (!jd->isleafmethod) {
 		M_MFLR(REG_ZERO);
 		M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	}
@@ -2124,13 +2124,13 @@ bool codegen(jitdata *jd)
 			M_ALD(REG_ITMP2, REG_PV, disp);
 			M_MTCTR(REG_ITMP2);
 
-			if (code->isleafmethod)
+			if (jd->isleafmethod)
 				M_MFLR(REG_ITMP3);                          /* save LR        */
 
 			M_BL(0);                                        /* get current PC */
 			M_MFLR(REG_ITMP2_XPC);
 
-			if (code->isleafmethod)
+			if (jd->isleafmethod)
 				M_MTLR(REG_ITMP3);                          /* restore LR     */
 
 			M_RTS;                                          /* jump to CTR    */
@@ -2147,14 +2147,14 @@ bool codegen(jitdata *jd)
 		case ICMD_JSR:          /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 
-			if (code->isleafmethod)
+			if (jd->isleafmethod)
 				M_MFLR(REG_ITMP2);
 
 			M_BL(0);
 			M_MFLR(REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, code->isleafmethod ? 4*4 : 3*4, REG_ITMP1);
+			M_IADD_IMM(REG_ITMP1, jd->isleafmethod ? 4*4 : 3*4, REG_ITMP1);
 
-			if (code->isleafmethod)
+			if (jd->isleafmethod)
 				M_MTLR(REG_ITMP2);
 
 			M_BR(0);
@@ -2689,7 +2689,7 @@ nowperformreturn:
 
 			/* restore return address                                         */
 
-			if (!code->isleafmethod) {
+			if (!jd->isleafmethod) {
 				/* ATTENTION: Don't use REG_ZERO (r0) here, as M_ALD
 				   may have a displacement overflow. */
 
@@ -3509,7 +3509,7 @@ gen_method:
 			else {
 				savedmcodeptr = cd->mcodeptr;
 
-				if (code->isleafmethod) {
+				if (jd->isleafmethod) {
 					M_MFLR(REG_ZERO);
 					M_AST(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
 				}
@@ -3517,7 +3517,7 @@ gen_method:
 				M_MOV(REG_PV, rd->argintregs[0]);
 				M_MOV(REG_SP, rd->argintregs[1]);
 
-				if (code->isleafmethod)
+				if (jd->isleafmethod)
 					M_MOV(REG_ZERO, rd->argintregs[2]);
 				else
 					M_ALD(rd->argintregs[2],
@@ -3536,7 +3536,7 @@ gen_method:
 				M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
 				M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
 
-				if (code->isleafmethod) {
+				if (jd->isleafmethod) {
 					/* XXX FIXME: REG_ZERO can cause problems here! */
 					assert(stackframesize * 4 <= 32767);
 
