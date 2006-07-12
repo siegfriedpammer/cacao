@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5092 2006-07-10 10:18:28Z twisti $
+   $Id: codegen.c 5112 2006-07-12 13:52:08Z twisti $
 
 */
 
@@ -139,7 +139,7 @@ bool codegen(jitdata *jd)
 	   native code e.g. libc or jni (alignment problems with
 	   movaps). */
 
-	if (!code->isleafmethod || opt_verbosecall)
+	if (!jd->isleafmethod || opt_verbosecall)
 		stackframesize |= 0x1;
 
 	/* create method header */
@@ -160,7 +160,7 @@ bool codegen(jitdata *jd)
 #endif
 		(void) dseg_adds4(cd, 0);                          /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, code->isleafmethod);             /* IsLeaf          */
+	(void) dseg_adds4(cd, jd->isleafmethod);               /* IsLeaf          */
 	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
 	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
@@ -326,7 +326,7 @@ bool codegen(jitdata *jd)
 
 		/* save temporary registers for leaf methods */
 
-		if (code->isleafmethod) {
+		if (jd->isleafmethod) {
 			for (p = 0; p < INT_TMP_CNT; p++)
 				M_LST(rd->tmpintregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
 
@@ -366,7 +366,7 @@ bool codegen(jitdata *jd)
 
 		/* restore temporary registers for leaf methods */
 
-		if (code->isleafmethod) {
+		if (jd->isleafmethod) {
 			for (p = 0; p < INT_TMP_CNT; p++)
 				M_LLD(rd->tmpintregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
 

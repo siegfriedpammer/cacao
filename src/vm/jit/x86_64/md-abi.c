@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 5083 2006-07-06 14:19:04Z twisti $
+   $Id: md-abi.c 5112 2006-07-12 13:52:08Z twisti $
 
 */
 
@@ -160,17 +160,15 @@ void md_param_alloc(methoddesc *md)
 void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
 	methodinfo   *m;
-	codeinfo     *code;
 	registerdata *rd;
 	methoddesc   *md;
 
 	/* get required compiler data */
 
-	m    = jd->m;
-	code = jd->code;
-	rd   = jd->rd;
+	m  = jd->m;
+	rd = jd->rd;
 
-	md   = m->parseddesc;
+	md = m->parseddesc;
 
 	/* precoloring only straightforward possible with flt/dbl types
 	   For Address/Integer/Long REG_RESULT == rax == REG_ITMP1 and so
@@ -182,7 +180,7 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 		   to their argument register -> so leafmethods with
 		   paramcount > 0 could already use a00! */
 
-		if (!code->isleafmethod || (md->paramcount == 0)) {
+		if (!jd->isleafmethod || (md->paramcount == 0)) {
 			/* Only precolor the stackslot, if it is not a SAVEDVAR
 			   <-> has not to survive method invokations */
 
