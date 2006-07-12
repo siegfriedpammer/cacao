@@ -40,6 +40,7 @@
 
 #include "vm/descriptor.h"
 #include "vm/global.h"
+#include "vm/jit/abi.h"
 
 
 #define _ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)

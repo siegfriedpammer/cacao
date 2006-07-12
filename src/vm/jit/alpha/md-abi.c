@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5094 2006-07-10 13:51:38Z twisti $
+   $Id: md-abi.c 5115 2006-07-12 14:55:04Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 
 #include "vm/descriptor.h"
 #include "vm/global.h"
+#include "vm/jit/abi.h"
 
 
 /* register descripton array **************************************************/
