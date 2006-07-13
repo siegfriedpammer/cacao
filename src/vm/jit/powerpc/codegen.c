@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5117 2006-07-12 20:14:00Z twisti $
+   $Id: codegen.c 5129 2006-07-13 11:54:16Z twisti $
 
 */
 
@@ -51,6 +51,11 @@
 
 #include "mm/memory.h"
 #include "native/native.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -129,10 +134,11 @@ bool codegen(jitdata *jd)
 	stackframesize = rd->memuse + savedregs_num;
 
 #if defined(ENABLE_THREADS)
-	/* space to save argument of monitor_enter and Return Values to survive */
-    /* monitor_exit. The stack position for the argument can not be shared  */
-	/* with place to save the return register on PPC, since both values     */
-	/* reside in R3 */
+	/* Space to save argument of monitor_enter and Return Values to
+	   survive monitor_exit. The stack position for the argument can
+	   not be shared with place to save the return register on PPC,
+	   since both values reside in R3. */
+
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* reserve 2 slots for long/double return values for monitorexit */
 
@@ -316,11 +322,11 @@ bool codegen(jitdata *jd)
 		}
 	} /* end for */
 
-	/* save monitorenter argument */
-
 #if defined(ENABLE_THREADS)
+	/* call monitorenter function */
+
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-		p = dseg_addaddress(cd, BUILTIN_monitorenter);
+		p = dseg_addaddress(cd, LOCK_monitor_enter);
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_MTCTR(REG_ITMP3);
 
@@ -2642,7 +2648,7 @@ nowperformreturn:
 			
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				disp = dseg_addaddress(cd, BUILTIN_monitorexit);
+				disp = dseg_addaddress(cd, LOCK_monitor_exit);
 				M_ALD(REG_ITMP3, REG_PV, disp);
 				M_MTCTR(REG_ITMP3);
 
