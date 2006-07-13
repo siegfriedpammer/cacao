@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5114 2006-07-12 14:53:28Z twisti $
+   $Id: codegen.c 5127 2006-07-13 10:26:38Z twisti $
 
 */
 
@@ -54,6 +54,11 @@
 #include "vm/jit/mips/codegen.h"
 
 #include "native/native.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/exceptions.h"
@@ -251,6 +256,7 @@ bool codegen(jitdata *jd)
 
 		s1 = rd->memuse;
 
+# if !defined(NDEBUG)
 		if (opt_verbosecall) {
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
@@ -262,26 +268,25 @@ bool codegen(jitdata *jd)
 
 			s1 += INT_ARG_CNT + FLT_ARG_CNT;
 		}
+# endif
 
-		/* decide which monitor enter function to call */
+		/* get correct lock object */
 
 		if (m->flags & ACC_STATIC) {
-			p = dseg_addaddress(cd, m->class);
+			p = dseg_addaddress(cd, &m->class->object.header);
 			M_ALD(rd->argintregs[0], REG_PV, p);
-			p = dseg_addaddress(cd, BUILTIN_staticmonitorenter);
-			M_ALD(REG_ITMP3, REG_PV, p);
-			M_JSR(REG_RA, REG_ITMP3);
-			M_AST(rd->argintregs[0], REG_SP, s1 * 8);         /* branch delay */
-
-		} else {
+		}
+		else {
 			M_BEQZ(rd->argintregs[0], 0);
 			codegen_add_nullpointerexception_ref(cd);
-			p = dseg_addaddress(cd, BUILTIN_monitorenter);
-			M_ALD(REG_ITMP3, REG_PV, p);
-			M_JSR(REG_RA, REG_ITMP3);
-			M_AST(rd->argintregs[0], REG_SP, s1 * 8);         /* branch delay */
 		}
 
+		p = dseg_addaddress(cd, LOCK_monitor_enter);
+		M_ALD(REG_ITMP3, REG_PV, p);
+		M_JSR(REG_RA, REG_ITMP3);
+		M_AST(rd->argintregs[0], REG_SP, s1 * 8);         /* branch delay */
+
+# if !defined(NDEBUG)
 		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
 				M_LLD(rd->argintregs[p], REG_SP, p * 8);
@@ -292,6 +297,7 @@ bool codegen(jitdata *jd)
 
 			M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
 		}
+# endif
 	}
 #endif
 
@@ -2887,7 +2893,7 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				disp = dseg_addaddress(cd, (void *) builtin_monitorexit);
+				disp = dseg_addaddress(cd, LOCK_monitor_exit);
 				M_ALD(REG_ITMP3, REG_PV, disp);
 
 				/* we need to save the proper return value */
@@ -4079,9 +4085,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_LDA(REG_SP, REG_SP, -stackframesize * 8); /* build up stackframe        */
 	M_AST(REG_RA, REG_SP, stackframesize * 8 - SIZEOF_VOID_P); /* store ra    */
 
+#if !defined(NDEBUG)
 	/* call trace function */
 
-	if (opt_verbosecall) {
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		M_LDA(REG_SP, REG_SP, -(1 + INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 		/* save integer argument registers */
@@ -4131,6 +4138,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 		M_LDA(REG_SP, REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT) * 8);
 	}
+#endif /* !defined(NDEBUG) */
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -4266,26 +4274,23 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* save return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type))
-		M_LST(REG_RESULT, REG_SP, 0 * 8);
-	else
-		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LST(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DST(REG_FRESULT, REG_SP, 0 * 8);
+	}
 
-	/* remove native stackframe info */
-
-	M_AADD_IMM(REG_SP, stackframesize * 8 - SIZEOF_VOID_P, rd->argintregs[0]);
-	disp = dseg_addaddress(cd, codegen_finish_native_call);
-	M_ALD(REG_ITMP3, REG_PV, disp);
-	M_JSR(REG_RA, REG_ITMP3);
-	M_NOP; /* XXX fill me! */
-
+#if !defined(NDEBUG)
 	/* call finished trace function */
 
-	if (opt_verbosecall) {
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			M_LLD(REG_RESULT, REG_SP, 0 * 8);
-		else
-			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		if (md->returntype.type != TYPE_VOID) {
+			if (IS_INT_LNG_TYPE(md->returntype.type))
+				M_LLD(REG_RESULT, REG_SP, 0 * 8);
+			else
+				M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		}
 
 		disp = dseg_addaddress(cd, m);
 		M_ALD(rd->argintregs[0], REG_PV, disp);
@@ -4300,45 +4305,42 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		M_JSR(REG_RA, REG_ITMP3);
 		M_NOP;
 	}
+#endif
 
-	/* check for exception */
+	/* remove native stackframe info */
 
-#if defined(ENABLE_THREADS)
-	disp = dseg_addaddress(cd, builtin_get_exceptionptrptr);
+	M_AADD_IMM(REG_SP, stackframesize * 8 - SIZEOF_VOID_P, rd->argintregs[0]);
+	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
-	M_NOP;
-	M_MOV(REG_RESULT, REG_ITMP3);
-#else
-	disp = dseg_addaddress(cd, &_exceptionptr);
-	M_ALD(REG_ITMP3, REG_PV, disp);     /* get address of exceptionptr        */
-#endif
-	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
-
-	M_ALD(REG_RA, REG_SP, stackframesize * 8 - SIZEOF_VOID_P); /* load ra     */
+	M_NOP; /* XXX fill me! */
+	M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 	/* restore return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type))
-		M_LLD(REG_RESULT, REG_SP, 0 * 8);
-	else
-		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+	}
 
-	M_BNEZ(REG_ITMP1, 2);               /* if no exception then return        */
-	M_LDA(REG_SP, REG_SP, stackframesize * 8);/* remove stackframe, DELAY SLOT*/
+	M_ALD(REG_RA, REG_SP, stackframesize * 8 - SIZEOF_VOID_P); /* load ra     */
+
+	/* check for exception */
+
+	M_BNEZ(REG_ITMP1_XPTR, 2);          /* if no exception then return        */
+	M_LDA(REG_SP, REG_SP, stackframesize * 8); /* remove stackframe (DELAY)   */
 
 	M_RET(REG_RA);                      /* return to caller                   */
 	M_NOP;                              /* DELAY SLOT                         */
 
 	/* handle exception */
 	
-	M_AST(REG_ZERO, REG_ITMP3, 0);      /* store NULL into exceptionptr       */
-
 	disp = dseg_addaddress(cd, asm_handle_nat_exception);
 	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
 	M_JMP(REG_ITMP3);                   /* jump to asm exception handler      */
-	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
-	                                    /* DELAY SLOT                         */
+	M_ASUB_IMM(REG_RA, 4, REG_ITMP2_XPC); /* get exception address (DELAY)    */
 
 	/* generate static stub call code                                         */
 
