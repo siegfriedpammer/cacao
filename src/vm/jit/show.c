@@ -1143,7 +1143,7 @@ static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 					printf("A%02d", sp->varnum);
 				break;
 			default:
-				printf("!xx");
+				printf("!xx {kind=%d, num=%d}", sp->varkind, sp->varnum);
 			}
 		}
 		else { /* not SAVEDVAR */
@@ -1206,7 +1206,7 @@ static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 				printf("a%02d", sp->varnum);
 				break;
 			default:
-				printf("?xx");
+				printf("?xx {kind=%d, num=%d}", sp->varkind, sp->varnum);
 			}
 		}
 
