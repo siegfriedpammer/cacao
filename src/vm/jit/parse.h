@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5096 2006-07-10 14:02:25Z twisti $
+   $Id: parse.h 5130 2006-07-14 16:52:36Z edwin $
 
 */
 
@@ -228,13 +228,17 @@
 #define NEW_OP_STORE_ONEWORD(o,index)                                  \
     do {                                                               \
         INDEX_ONEWORD(index);                                          \
-        NEW_OP_LOCALINDEX(o,index);                                    \
+        NEW_OP_PREPARE_ZEROFLAGS(o);                                   \
+        iptr->dst.localindex = (index);                                \
+        PINC;                                                          \
     } while (0)
 
 #define NEW_OP_STORE_TWOWORD(o,index)                                  \
     do {                                                               \
         INDEX_TWOWORD(index);                                          \
-        NEW_OP_LOCALINDEX(o,index);                                    \
+        NEW_OP_PREPARE_ZEROFLAGS(o);                                   \
+        iptr->dst.localindex = (index);                                \
+        PINC;                                                          \
     } while (0)
 
 #define NEW_OP_BUILTIN_CHECK_EXCEPTION(bte)                            \
