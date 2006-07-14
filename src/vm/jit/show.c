@@ -1337,7 +1337,7 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 		SHOW_DST(iptr);
 		break;
 
-		/* ?ASTORECONST */
+		/* ?ASTORECONST (trinary/const INT) */
 	case ICMD_IASTORECONST:
 	case ICMD_BASTORECONST:
 	case ICMD_CASTORECONST:
@@ -1374,10 +1374,16 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 	case ICMD_LANDCONST:
 	case ICMD_LORCONST:
 	case ICMD_LXORCONST:
-	case ICMD_LASTORECONST:
 		SHOW_S1(iptr);
 		SHOW_LNG_CONST(iptr->sx.val.l);	
 		SHOW_DST(iptr);
+		break;
+
+		/* trinary/const LNG (<= pointer size) */
+	case ICMD_LASTORECONST:
+		SHOW_S1(iptr);
+		SHOW_S2(iptr);
+		SHOW_LNG_CONST(iptr->sx.s23.s3.constval);
 		break;
 
 		/* const LNG */
