@@ -1240,6 +1240,9 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 
 	/* XXX print condition from flags */
 
+	if (iptr->flags.bits & INS_FLAG_UNRESOLVED)
+		printf("(UNRESOLVED) ");
+
 	switch (opcode) {
 
 	case ICMD_POP:
@@ -1436,8 +1439,6 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 				SHOW_S2(iptr);
 			}
 		}
-		if (iptr->flags.bits & INS_FLAG_UNRESOLVED)
-			printf("(UNRESOLVED) ");
 		NEW_INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 		SHOW_FIELD(fmiref);
 
@@ -1564,9 +1565,6 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 			while (i--) {
 				SHOW_STACKVAR(*(argp++));
 			}
-		}
-		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) {
-			printf("(UNRESOLVED) ");
 		}
 		NEW_INSTRUCTION_GET_METHODREF(iptr, fmiref);
 		method_methodref_print(fmiref);
