@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5097 2006-07-10 14:11:07Z twisti $
+   $Id: stack.c 5132 2006-07-14 16:56:35Z edwin $
 
 */
 
@@ -1830,7 +1830,7 @@ icmd_DUP_X1:
 						iptr->dst.dupslots = DMNEW(stackptr, 2 + 3);
 						iptr->dst.dupslots[0] = curstack->prev;
 						iptr->dst.dupslots[1] = curstack;
-						curstack = curstack->prev->prev;
+						POPANY; POPANY;
 
 						DUP_SLOT(iptr->dst.dupslots[1]);
 						iptr->dst.dupslots[2+0] = curstack;
@@ -1871,7 +1871,7 @@ icmd_DUP2_X1:
 							iptr->dst.dupslots[0] = curstack->prev->prev;
 							iptr->dst.dupslots[1] = curstack->prev;
 							iptr->dst.dupslots[2] = curstack;
-							curstack = curstack->prev->prev->prev;
+							POPANY; POPANY; POPANY;
 
 							DUP_SLOT(iptr->dst.dupslots[1]);
 							iptr->dst.dupslots[3+0] = curstack;
@@ -1918,7 +1918,7 @@ icmd_DUP_X2:
 							iptr->dst.dupslots[0] = curstack->prev->prev;
 							iptr->dst.dupslots[1] = curstack->prev;
 							iptr->dst.dupslots[2] = curstack;
-							curstack = curstack->prev->prev->prev;
+							POPANY; POPANY; POPANY;
 
 							DUP_SLOT(iptr->dst.dupslots[2]);
 							iptr->dst.dupslots[3+0] = curstack;
@@ -1985,7 +1985,7 @@ icmd_DUP_X2:
 							iptr->dst.dupslots[1] = curstack->prev->prev;
 							iptr->dst.dupslots[2] = curstack->prev;
 							iptr->dst.dupslots[3] = curstack;
-							curstack = curstack->prev->prev->prev->prev;
+							POPANY; POPANY; POPANY; POPANY;
 
 							DUP_SLOT(iptr->dst.dupslots[2]);
 							iptr->dst.dupslots[4+0] = curstack;
@@ -2018,7 +2018,7 @@ icmd_DUP_X2:
 						iptr->dst.dupslots = DMNEW(stackptr, 2 + 2);
 						iptr->dst.dupslots[0] = curstack->prev;
 						iptr->dst.dupslots[1] = curstack;
-						curstack = curstack->prev->prev;
+						POPANY; POPANY;
 
 						DUP_SLOT(iptr->dst.dupslots[1]);
 						iptr->dst.dupslots[2+0] = curstack;
