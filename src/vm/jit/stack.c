@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5135 2006-07-14 17:03:36Z edwin $
+   $Id: stack.c 5136 2006-07-14 17:05:12Z edwin $
 
 */
 
@@ -1005,10 +1005,13 @@ icmd_NOP:
 
 putconst_tail:
 								/* set the field reference (s3) */
-								if (iptr[1].flags.bits & INS_FLAG_UNRESOLVED)
-									iptr->sx.s23.s3.fmiref = iptr[1].sx.s23.s3.fmiref;
-								else
+								if (iptr[1].flags.bits & INS_FLAG_UNRESOLVED) {
 									iptr->sx.s23.s3.uf = iptr[1].sx.s23.s3.uf;
+									iptr->flags.bits |= INS_FLAG_UNRESOLVED;
+								}
+								else {
+									iptr->sx.s23.s3.fmiref = iptr[1].sx.s23.s3.fmiref;
+								}
 								
 								switch (iptr[1].opc) {
 									case ICMD_PUTSTATIC:
