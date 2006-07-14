@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5096 2006-07-10 14:02:25Z twisti $
+   $Id: simplereg.c 5131 2006-07-14 16:54:11Z edwin $
 
 */
 
@@ -1534,7 +1534,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 					/* src       --> dst             (copied value, take same reg/mem) */
 					/* src       --> dst->prev->prev (copied value, take same reg/mem) */
 												
-					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[2+0]))
+					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+0]))
 						reg_new_temp(rd, iptr->dst.dupslots[2+0]);
 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+2]))
 						reg_new_temp(rd, iptr->dst.dupslots[2+2]);
