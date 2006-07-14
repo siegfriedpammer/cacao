@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: parse.c 5134 2006-07-14 17:02:24Z edwin $
 
 */
 
@@ -1090,7 +1090,7 @@ invoke_method:
 			if (checksync) {
 				/* XXX null check */
 				bte = builtintable_get_internal(LOCK_monitor_enter);
-				NEW_OP_BUILTIN_CHECK_EXCEPTION(bte);
+				NEW_OP_BUILTIN_NO_EXCEPTION(bte);
 			}
 			else
 #endif
