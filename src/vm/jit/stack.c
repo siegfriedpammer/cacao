@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5132 2006-07-14 16:56:35Z edwin $
+   $Id: stack.c 5135 2006-07-14 17:03:36Z edwin $
 
 */
 
@@ -361,7 +361,7 @@ bool stack_init(void)
 
 #define DUP_SLOT(sp)                                                 \
     do {                                                             \
-        if ((sp)->varkind == STACKVAR)                               \
+        if ((sp)->varkind != TEMPVAR)                                \
             NEWSTACK((sp)->type, TEMPVAR, stackdepth);               \
         else                                                         \
             NEWSTACK((sp)->type, (sp)->varkind, (sp)->varnum);       \
