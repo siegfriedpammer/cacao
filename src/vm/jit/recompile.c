@@ -59,7 +59,7 @@
 
 /* global variables ***********************************************************/
 
-static threadobject *recompile_threadobject;
+static java_lang_VMThread *recompile_vmthread;
 static java_objectheader *lock_recompile_thread;
 static list *list_recompile_methods;
 
@@ -216,19 +216,20 @@ bool recompile_start_thread(void)
 
 	/* create the profile object */
 
-	recompile_threadobject = NEW(threadobject);
+	recompile_vmthread =
+		(java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
-	if (recompile_threadobject == NULL)
+	if (recompile_vmthread == NULL)
 		return false;
 
 	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	t->vmThread = (java_lang_VMThread *) recompile_threadobject;
+	t->vmThread = recompile_vmthread;
 	t->name     = javastring_new_from_ascii("Recompiler");
 	t->daemon   = true;
 	t->priority = 5;
 
-	recompile_threadobject->o.thread = t;
+	recompile_vmthread->thread = t;
 
 	/* actually start the recompilation thread */
 

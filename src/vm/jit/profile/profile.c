@@ -63,7 +63,7 @@
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
-static threadobject *profile_threadobject;
+static java_lang_VMThread *profile_vmthread;
 #endif
 
 
@@ -128,7 +128,7 @@ static void profile_thread(void)
 
 				/* get the PV for the current PC */
 
-				pv = codegen_findmethod(pc);
+				pv = codegen_get_pv_from_pc_nocheck(pc);
 
 				/* get methodinfo pointer from data segment */
 
@@ -188,19 +188,20 @@ bool profile_start_thread(void)
 
 	/* create the profile object */
 
-	profile_threadobject = NEW(threadobject);
+	profile_vmthread =
+		(java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
-	if (profile_threadobject == NULL)
+	if (profile_vmthread == NULL)
 		return false;
 
 	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	t->vmThread = (java_lang_VMThread *) profile_threadobject;
+	t->vmThread = profile_vmthread;
 	t->name     = javastring_new_from_ascii("Profiling Sampler");
 	t->daemon   = true;
 	t->priority = 5;
 
-	profile_threadobject->o.thread = t;
+	profile_vmthread->thread = t;
 
 	/* actually start the profile sampling thread */
 

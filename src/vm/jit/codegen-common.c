@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5088 2006-07-08 20:16:05Z twisti $
+   $Id: codegen-common.c 5140 2006-07-16 15:38:12Z twisti $
 
 */
 
@@ -521,7 +521,8 @@ void codegen_insertmethod(u1 *startpc, u1 *endpc)
 
 /* codegen_findmethod **********************************************************
 
-   Find the PV for the given PC by searching in the AVL tree of methods.
+   Find the PV for the given PC by searching in the AVL tree of
+   methods.
 
 *******************************************************************************/
 
@@ -538,12 +539,52 @@ u1 *codegen_findmethod(u1 *pc)
 	mte = avl_find(methodtree, &mtepc);
 
 	if (mte == NULL) {
-/* 		fprintf(stderr, "Cannot find Java function at %p\n", (void *) (ptrint) pc); */
+		/* No method was found.  Let's dump a stacktrace. */
 
-		return NULL;
+		log_println("We received a SIGSEGV and tried to handle it, but we were");
+		log_println("unable to find a Java method at:");
+		log_println("");
+#if SIZEOF_VOID_P == 8
+		log_println("PC=0x%016lx", pc);
+#else
+		log_println("PC=0x%08x", pc);
+#endif
+		log_println("");
+		log_println("Dumping the current stacktrace:");
+
+		stacktrace_dump_trace();
+
+		vm_abort("Exiting...");
 	}
 
 	return mte->startpc;
+}
+
+
+/* codegen_get_pv_from_pc_nocheck **********************************************
+
+   Find the PV for the given PC by searching in the AVL tree of
+   methods.  This method does not check the return value and is used
+   by the profiler.
+
+*******************************************************************************/
+
+u1 *codegen_get_pv_from_pc_nocheck(u1 *pc)
+{
+	methodtree_element  mtepc;
+	methodtree_element *mte;
+
+	/* allocation of the search structure on the stack is much faster */
+
+	mtepc.startpc = pc;
+	mtepc.endpc   = pc;
+
+	mte = avl_find(methodtree, &mtepc);
+
+	if (mte == NULL)
+		return NULL;
+	else
+		return mte->startpc;
 }
 
 
