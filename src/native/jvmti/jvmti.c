@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 5031 2006-06-14 18:36:22Z motse $
+   $Id: jvmti.c 5141 2006-07-16 15:58:21Z twisti $
 
 */
 
@@ -1495,7 +1495,7 @@ DestroyRawMonitor (jvmtiEnv * env, jrawMonitorID monitor)
 	if (!lock_is_held_by_current_thread((java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 	
-	lock_monitor_exit((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name);
+	lock_monitor_exit((java_objectheader *) monitor->name);
 
 	heap_free(monitor);
 #else
@@ -1519,7 +1519,7 @@ RawMonitorEnter (jvmtiEnv * env, jrawMonitorID monitor)
 		return JVMTI_ERROR_INVALID_MONITOR;
 
 #if defined(ENABLE_THREADS)
-	builtin_monitorenter((java_objectheader*)monitor->name);        
+	lock_monitor_enter((java_objectheader *) monitor->name);
 #else
 	log_text ("RawMonitorEnter not supported");
 #endif
@@ -1545,7 +1545,7 @@ RawMonitorExit (jvmtiEnv * env, jrawMonitorID monitor)
 	if (!lock_is_held_by_current_thread((java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
-	builtin_monitorexit((java_objectheader*)monitor->name);
+	lock_monitor_exit((java_objectheader *) monitor->name);
 #else
 	log_text ("RawMonitorExit not supported");
 #endif
