@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5096 2006-07-10 14:02:25Z twisti $
+   $Id: jit.h 5149 2006-07-17 16:11:35Z twisti $
 
 */
 
@@ -165,6 +165,8 @@ struct jitdata {
 #define IS_INT_TYPE(a)          ((a) == TYPE_INT)
 #define IS_LNG_TYPE(a)          ((a) == TYPE_LNG)
 #define IS_ADR_TYPE(a)          ((a) == TYPE_ADR)
+
+#define IS_VOID_TYPE(a)         ((a) == TYPE_VOID)
 
 
 /* flags */

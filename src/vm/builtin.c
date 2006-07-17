@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: builtin.c 5149 2006-07-17 16:11:35Z twisti $
 
 */
 
@@ -1267,6 +1267,113 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 #endif /* !defined(NDEBUG) */
 
 
+/* builtin_print_argument ******************************************************
+
+*******************************************************************************/
+
+static char *builtin_print_argument(char *logtext, s4 logtextlen,
+									typedesc *paramtype, s8 value)
+{
+	imm_union          imu;
+	java_objectheader *o;
+	java_lang_String  *s;
+	classinfo         *c;
+	utf               *u;
+	u4                 len;
+
+	switch (paramtype->type) {
+	case TYPE_INT:
+		sprintf(logtext + strlen(logtext), "0x%x", (s4) value);
+		break;
+
+	case TYPE_LNG:
+#if SIZEOF_VOID_P == 4
+		sprintf(logtext + strlen(logtext), "0x%llx", value);
+#else
+		sprintf(logtext + strlen(logtext), "0x%lx", value);
+#endif
+		break;
+
+	case TYPE_FLT:
+		imu.l = value;
+		sprintf(logtext + strlen(logtext), "%.8f (0x%08x)", imu.f, imu.i);
+		break;
+
+	case TYPE_DBL:
+		imu.l = value;
+#if SIZEOF_VOID_P == 4
+		sprintf(logtext + strlen(logtext), "%.16g (0x%016llx)", imu.d, imu.l);
+#else
+		sprintf(logtext + strlen(logtext), "%.16g (0x%016lx)", imu.d, imu.l);
+#endif
+		break;
+
+	case TYPE_ADR:
+		sprintf(logtext + strlen(logtext), "%p", (void *) (ptrint) value);
+
+		/* cast to java.lang.Object */
+
+		o = (java_objectheader *) (ptrint) value;
+
+		/* check return argument for java.lang.Class or java.lang.String */
+
+		if (o != NULL) {
+			if (o->vftbl->class == class_java_lang_String) {
+				/* get java.lang.String object and the length of the
+				   string */
+
+				s = (java_lang_String *) o;
+
+				u = javastring_toutf(s, false);
+
+				len = strlen(" (String = \"") + utf_bytes(u) + strlen("\")");
+
+				/* realloc memory for string length */
+
+				DMREALLOC(logtext, char, logtextlen, logtextlen + len);
+
+				/* convert to utf8 string and strcat it to the logtext */
+
+				strcat(logtext, " (String = \"");
+				utf_cat(logtext, u);
+				strcat(logtext, "\")");
+			}
+			else {
+				if (o->vftbl->class == class_java_lang_Class) {
+					/* if the object returned is a java.lang.Class
+					   cast it to classinfo structure and get the name
+					   of the class */
+
+					c = (classinfo *) o;
+
+					u = c->name;
+				}
+				else {
+					/* if the object returned is not a java.lang.String or
+					   a java.lang.Class just print the name of the class */
+
+					u = o->vftbl->class->name;
+				}
+
+				len = strlen(" (Class = \"") + utf_bytes(u) + strlen("\")");
+
+				/* realloc memory for string length */
+
+				DMREALLOC(logtext, char, logtextlen, logtextlen + len);
+
+				/* strcat to the logtext */
+
+				strcat(logtext, " (Class = \"");
+				utf_cat_classname(logtext, u);
+				strcat(logtext, "\")");
+			}
+		}
+	}
+
+	return logtext;
+}
+
+
 /* builtin_trace_args **********************************************************
 
    Print method call with arguments for -verbose:call.
@@ -1351,172 +1458,67 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 	strcat(logtext, "(");
 
-	/* xxxprintf ?Bug? an PowerPc Linux (rlwinm.inso)                */
-	/* Only Arguments in integer Registers are passed correctly here */
-	/* long longs spilled on Stack have an wrong offset of +4        */
-	/* So preliminary Bugfix: Only pass 3 params at once to sprintf  */
-	/* for SIZEOG_VOID_P == 4 && TRACE_ARGS_NUM == 8                 */
-	switch (md->paramcount) {
-	case 0:
-		break;
+	if (md->paramcount >= 1) {
+		logtext = builtin_print_argument(logtext, logtextlen,
+										 &md->paramtypes[0], a0);
+	}
 
-#if SIZEOF_VOID_P == 4
-	case 1:
-		sprintf(logtext + strlen(logtext),
-				"0x%llx",
-				a0);
-		break;
+	if (md->paramcount >= 2) {
+		strcat(logtext, ", ");
 
-	case 2:
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx",
-				a0, a1);
-		break;
+		logtext = builtin_print_argument(logtext, logtextlen,
+										 &md->paramtypes[1], a1);
+	}
 
-#if TRACE_ARGS_NUM >= 4
-	case 3:
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx",
-				a0, a1, a2);
-		break;
+	if (md->paramcount >= 3) {
+		strcat(logtext, ", ");
 
-	case 4:
-		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
-				, a0, a1, a2);
-		sprintf(logtext + strlen(logtext), ", 0x%llx", a3);
+		logtext = builtin_print_argument(logtext, logtextlen,
+										 &md->paramtypes[2], a2);
+	}
 
-		break;
-#endif /* TRACE_ARGS_NUM >= 4 */
+	if (md->paramcount >= 4) {
+		strcat(logtext, ", ");
+
+		logtext = builtin_print_argument(logtext, logtextlen,
+										 &md->paramtypes[3], a3);
+	}
 
 #if TRACE_ARGS_NUM >= 6
-	case 5:
-		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
-				, a0, a1, a2);
-		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx", a3, a4);
-		break;
+	if (md->paramcount >= 5) {
+		strcat(logtext, ", ");
 
+		logtext = builtin_print_argument(logtext, logtextlen,
+										 &md->paramtypes[4], a4);
+	}
 
-	case 6:
-		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
-				, a0, a1, a2);
-		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx, 0x%llx"
-				, a3, a4, a5);
-		break;
+	if (md->paramcount >= 6) {
+		strcat(logtext, ", ");
+
+		logtext = builtin_print_argument(logtext, logtextlen,
+										 &md->paramtypes[5], a5);
+	}
 #endif /* TRACE_ARGS_NUM >= 6 */
 
 #if TRACE_ARGS_NUM == 8
-	case 7:
-		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
-				, a0, a1, a2);
-		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx, 0x%llx"
-				, a3, a4, a5);
-		sprintf(logtext + strlen(logtext), ", 0x%llx", a6);
-		break;
+	if (md->paramcount >= 7) {
+		strcat(logtext, ", ");
 
-	case 8:
-		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
-				, a0, a1, a2);
-		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx, 0x%llx"
-				, a3, a4, a5);
-		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx", a6, a7);
-		break;
+		logtext = builtin_print_argument(logtext, logtextlen,
+										 &md->paramtypes[6], a6);
+	}
+
+	if (md->paramcount >= 8) {
+		strcat(logtext, ", ");
+
+		logtext = builtin_print_argument(logtext, logtextlen,
+										 &md->paramtypes[7], a7);
+	}
 #endif /* TRACE_ARGS_NUM == 8 */
 
-	default:
-#if TRACE_ARGS_NUM == 2
-		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, ...(%d)", a0, a1, md->paramcount - 2);
-
-#elif TRACE_ARGS_NUM == 4
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
-				a0, a1, a2, a3, md->paramcount - 4);
-
-#elif TRACE_ARGS_NUM == 6
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
-				a0, a1, a2, a3, a4, a5, md->paramcount - 6);
-
-#elif TRACE_ARGS_NUM == 8
-		sprintf(logtext + strlen(logtext),"0x%llx, 0x%llx, 0x%llx,"
-				, a0, a1, a2);
-		sprintf(logtext + strlen(logtext)," 0x%llx, 0x%llx, 0x%llx,"
-				, a3, a4, a5);
-		sprintf(logtext + strlen(logtext)," 0x%llx, 0x%llx, ...(%d)"
-				, a6, a7, md->paramcount - 8);
-#endif
-		break;
-
-#else /* SIZEOF_VOID_P == 4 */
-
-	case 1:
-		sprintf(logtext + strlen(logtext),
-				"0x%lx",
-				a0);
-		break;
-
-	case 2:
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx",
-				a0, a1);
-		break;
-
-	case 3:
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx", a0, a1, a2);
-		break;
-
-	case 4:
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx, 0x%lx",
-				a0, a1, a2, a3);
-		break;
-
-#if TRACE_ARGS_NUM >= 6
-	case 5:
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx",
-				a0, a1, a2, a3, a4);
-		break;
-
-	case 6:
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx",
-				a0, a1, a2, a3, a4, a5);
-		break;
-#endif /* TRACE_ARGS_NUM >= 6 */
-
-#if TRACE_ARGS_NUM == 8
-	case 7:
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx",
-				a0, a1, a2, a3, a4, a5, a6);
-		break;
-
-	case 8:
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx",
-				a0, a1, a2, a3, a4, a5, a6, a7);
-		break;
-#endif /* TRACE_ARGS_NUM == 8 */
-
-	default:
-#if TRACE_ARGS_NUM == 4
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
-				a0, a1, a2, a3, md->paramcount - 4);
-
-#elif TRACE_ARGS_NUM == 6
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
-				a0, a1, a2, a3, a4, a5, md->paramcount - 6);
-
-#elif TRACE_ARGS_NUM == 8
-		sprintf(logtext + strlen(logtext),
-				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
-				a0, a1, a2, a3, a4, a5, a6, a7, md->paramcount - 8);
-#endif
-		break;
-#endif /* SIZEOF_VOID_P == 4 */
+	if (md->paramcount > 8) {
+		sprintf(logtext + strlen(logtext), ", ...(%d)",
+				md->paramcount - TRACE_ARGS_NUM);
 	}
 
 	strcat(logtext, ")");
@@ -1542,18 +1544,12 @@ void builtin_trace_args(s8 a0, s8 a1,
 #if !defined(NDEBUG)
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 {
-	methoddesc  	  *md;
-	char        	  *logtext;
-	s4          	   logtextlen;
-	s4          	   dumpsize;
-	s4          	   i;
-	s4                 pos;
-	java_objectheader *o;
-	java_lang_String  *s;
-	classinfo         *c;
-	s4                 len;
-	utf               *u;
-	imm_union          imu;
+	methoddesc *md;
+	char       *logtext;
+	s4          logtextlen;
+	s4          dumpsize;
+	s4          i;
+	s4          pos;
 
 	md = m->parseddesc;
 
@@ -1603,93 +1599,10 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	utf_cat(logtext, m->name);
 	utf_cat(logtext, m->descriptor);
 
-	switch (md->returntype.type) {
-	case TYPE_INT:
-		sprintf(logtext + strlen(logtext), "->%d (0x%08x)", (s4) l, (s4) l);
-		break;
+	if (!IS_VOID_TYPE(md->returntype.type))
+		strcat(logtext, "->");
 
-	case TYPE_LNG:
-#if SIZEOF_VOID_P == 4
-		sprintf(logtext + strlen(logtext), "->%lld (0x%016llx)", (s8) l, l);
-#else
-		sprintf(logtext + strlen(logtext), "->%ld (0x%016lx)", (s8) l, l);
-#endif
-		break;
-
-	case TYPE_ADR:
-		sprintf(logtext + strlen(logtext), "->%p", (void *) (ptrint) l);
-
-		/* check return argument for java.lang.Class or java.lang.String */
-
-		o = (java_objectheader *) (ptrint) l;
-
-		if (o != NULL) {
-			if (o->vftbl->class == class_java_lang_String) {
-				/* get java.lang.String object and the length of the
-                   string */
-
-				s = (java_lang_String *) (ptrint) l;
-
-				u = javastring_toutf(s, false);
-
-				len = strlen(", String = \"") + utf_bytes(u) + strlen("\"");
-
-				/* realloc memory for string length */
-
-				DMREALLOC(logtext, char, logtextlen, logtextlen + len);
-
-				/* convert to utf8 string and strcat it to the logtext */
-
-				strcat(logtext, ", String = \"");
-				utf_cat(logtext, u);
-				strcat(logtext, "\"");
-
-			} else {
-				if (o->vftbl->class == class_java_lang_Class) {
-					/* if the object returned is a java.lang.Class
-					   cast it to classinfo structure and get the name
-					   of the class */
-
-					c = (classinfo *) (ptrint) l;
-
-					u = c->name;
-
-				} else {
-					/* if the object returned is not a java.lang.String or
-					   a java.lang.Class just print the name of the class */
-
-					u = o->vftbl->class->name;
-				}
-
-				len = strlen(", Class = \"") + utf_bytes(u) + strlen("\"");
-
-				/* realloc memory for string length */
-
-				DMREALLOC(logtext, char, logtextlen, logtextlen + len);
-
-				/* strcat to the logtext */
-
-				strcat(logtext, ", Class = \"");
-				utf_cat_classname(logtext, u);
-				strcat(logtext, "\"");
-			}
-		}
-		break;
-
-	case TYPE_FLT:
-		imu.f = f;
-		sprintf(logtext + strlen(logtext), "->%.8f (0x%08x)", f, imu.i);
-		break;
-
-	case TYPE_DBL:
-		imu.d = d;
-#if SIZEOF_VOID_P == 4
-		sprintf(logtext + strlen(logtext), "->%.16g (0x%016llx)", d, imu.l);
-#else
-		sprintf(logtext + strlen(logtext), "->%.16g (0x%016lx)", d, imu.l);
-#endif
-		break;
-	}
+	logtext = builtin_print_argument(logtext, logtextlen, &md->returntype, l);
 
 	log_text(logtext);
 
