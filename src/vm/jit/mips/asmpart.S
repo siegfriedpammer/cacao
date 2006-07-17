@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5063 2006-07-02 10:42:03Z twisti $
+   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
 
 */
 
@@ -64,7 +64,7 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_wrapper_patcher
+	.globl asm_patcher_wrapper
 
 	.globl asm_replacement_out
 	.globl asm_replacement_in
@@ -474,7 +474,7 @@ asm_abstractmethoderror:
 	b       asm_handle_nat_exception
 
 
-/* asm_wrapper_patcher *********************************************************
+/* asm_patcher_wrapper *********************************************************
 
    XXX
 
@@ -488,9 +488,9 @@ asm_abstractmethoderror:
 
 *******************************************************************************/
 		
-    .ent    asm_wrapper_patcher
+    .ent    asm_patcher_wrapper
 
-asm_wrapper_patcher:
+asm_patcher_wrapper:
 	aaddiu  sp,sp,-((2+16+22+4)*8+sizestackframeinfo) /* create stack frame   */
 
 	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
@@ -529,14 +529,14 @@ asm_wrapper_patcher:
 	ald     pv,(2+16+22+3)*8(sp)  /* restore pv of calling java function      */
 
 	ald     itmp3,((0+2+16+22+4)*8+sizestackframeinfo)(sp) /* get return value*/
-	beqz    itmp3,L_asm_wrapper_patcher_exception
+	beqz    itmp3,L_asm_patcher_wrapper_exception
 
 	ald     itmp3,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* get RA to JIT   */
 	aaddiu  sp,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* remove stack frame  */
 
 	jr      itmp3                 /* jump to new patched code                 */
 
-L_asm_wrapper_patcher_exception:
+L_asm_patcher_wrapper_exception:
 	ald     xpc,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* RA to JIT is xpc  */
 	aaddiu  sp,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* remove stack frame  */
 
@@ -557,7 +557,7 @@ L_asm_wrapper_patcher_exception:
 	sd      zero,0(v0)            /* clear the exception pointer              */
 	b       asm_handle_exception
 
-	.end	asm_wrapper_patcher
+	.end	asm_patcher_wrapper
 
 		
 /* asm_replacement_out *********************************************************

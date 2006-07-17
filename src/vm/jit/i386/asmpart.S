@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 5109 2006-07-11 19:17:23Z twisti $
+   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
 
 */
 
@@ -67,7 +67,7 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_wrapper_patcher
+	.globl asm_patcher_wrapper
 
 	.globl asm_replacement_out
 	.globl asm_replacement_in
@@ -453,7 +453,7 @@ asm_abstractmethoderror:
 	jmp     L_asm_handle_exception
 
 
-/* asm_wrapper_patcher *********************************************************
+/* asm_patcher_wrapper *********************************************************
 
    XXX
 
@@ -468,7 +468,7 @@ asm_abstractmethoderror:
 
 *******************************************************************************/
 
-asm_wrapper_patcher:
+asm_patcher_wrapper:
 	sub     $((2+4)*4),sp               /* create stack frame                 */
 
 	mov     itmp1,(0+4)*4(sp)           /* save itmp1 and itmp2               */
@@ -489,11 +489,11 @@ asm_wrapper_patcher:
 	add     $((6+2+4)*4),sp             /* remove stack frame, keep RA        */
 
 	test    itmp3,itmp3                 /* exception thrown?                  */
-	jne     L_asm_wrapper_patcher_exception
+	jne     L_asm_patcher_wrapper_exception
 
 	ret                                 /* jump to new patched code           */
 
-L_asm_wrapper_patcher_exception:
+L_asm_patcher_wrapper_exception:
 	mov     itmp3,xptr                  /* get exception                      */
 	pop     xpc                         /* get and remove return address      */
 	jmp     L_asm_handle_exception

@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
 
 */
 
@@ -68,7 +68,7 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_wrapper_patcher
+	.globl asm_patcher_wrapper
 
 	.globl asm_replacement_out
 	.globl asm_replacement_in
@@ -986,7 +986,7 @@ asm_abstractmethoderror:
 	b       L_asm_handle_nat_exception
 
 
-/* asm_wrapper_patcher *********************************************************
+/* asm_patcher_wrapper *********************************************************
 
    XXX
 
@@ -1000,7 +1000,7 @@ asm_abstractmethoderror:
 
 *******************************************************************************/
 
-asm_wrapper_patcher:
+asm_patcher_wrapper:
 	mflr	r0                    /* get Java return address (leaf)           */
 	stw     r0,6*4(sp)            /* store it in the stub stackframe          */
 	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
@@ -1113,7 +1113,7 @@ asm_wrapper_patcher:
 	mtlr	r0
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
-	bne     L_asm_wrapper_patcher_exception
+	bne     L_asm_patcher_wrapper_exception
 
 	                              /* get return address (into JIT code)       */
 	lwz     itmp3,(5+LA_WORD_SIZE+5+58)*4(sp)
@@ -1124,7 +1124,7 @@ asm_wrapper_patcher:
 	mtctr   itmp3
 	bctr                          /* jump to new patched code                 */
 
-L_asm_wrapper_patcher_exception:
+L_asm_patcher_wrapper_exception:
 	mr      xptr,itmp3                  /* get exception                      */
 	lwz     xpc,(5+LA_WORD_SIZE+5+58)*4(sp)
 	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4

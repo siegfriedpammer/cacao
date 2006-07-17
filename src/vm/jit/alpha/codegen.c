@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5125 2006-07-12 22:12:47Z twisti $
+   $Id: codegen.c 5145 2006-07-17 11:48:38Z twisti $
 
 */
 
@@ -3891,7 +3891,7 @@ gen_method:
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_AST(REG_ITMP3, REG_SP, 0 * 8);
 
-			disp = dseg_addaddress(cd, asm_wrapper_patcher);
+			disp = dseg_addaddress(cd, asm_patcher_wrapper);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_ZERO, REG_ITMP3);
 		}
@@ -4410,7 +4410,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_AST(REG_ITMP3, REG_SP, 0 * 8);
 
-			disp = dseg_addaddress(cd, asm_wrapper_patcher);
+			disp = dseg_addaddress(cd, asm_patcher_wrapper);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_ZERO, REG_ITMP3);
 		}

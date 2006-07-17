@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5124 2006-07-12 21:59:24Z twisti $
+   $Id: codegen.c 5145 2006-07-17 11:48:38Z twisti $
 
 */
 
@@ -4276,7 +4276,7 @@ gen_method:
 			M_PUSH_IMM(pref->ref);
 			M_PUSH_IMM(pref->patcher);
 
-			M_MOV_IMM(asm_wrapper_patcher, REG_ITMP3);
+			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 		}
 	}
@@ -4737,14 +4737,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			M_PUSH_IMM(pref->ref);
 			M_PUSH_IMM(pref->patcher);
 
-			M_MOV_IMM(asm_wrapper_patcher, REG_ITMP3);
+			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 		}
 	}
 
 	codegen_finish(jd);
 
-	return jd->code->entrypoint;
+	return code->entrypoint;
 }
 
 

@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 5142 2006-07-17 09:47:02Z twisti $
+   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
 
 */
 
@@ -65,7 +65,7 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_wrapper_patcher
+	.globl asm_patcher_wrapper
 
 	.globl asm_replacement_out
 	.globl asm_replacement_in
@@ -511,7 +511,7 @@ asm_abstractmethoderror:
 	jmp     L_asm_handle_exception
 
 
-/* asm_wrapper_patcher *********************************************************
+/* asm_patcher_wrapper *********************************************************
 
    XXX
 
@@ -526,7 +526,7 @@ asm_abstractmethoderror:
 
 *******************************************************************************/
 
-asm_wrapper_patcher:
+asm_patcher_wrapper:
 	push    bp                          /* save base pointer                  */
 	mov     sp,bp                       /* move actual sp to bp               */
 	sub     $((3+ARG_CNT+TMP_CNT)*8+sizestackframeinfo),sp
@@ -558,10 +558,10 @@ asm_wrapper_patcher:
 	add     $(5*8),sp                   /* remove patcher stackframe, keep RA */
 
 	test    itmp3,itmp3                 /* exception thrown?                  */
-	jne     L_asm_wrapper_patcher_exception
+	jne     L_asm_patcher_wrapper_exception
 	ret                                 /* call new patched code              */
 
-L_asm_wrapper_patcher_exception:
+L_asm_patcher_wrapper_exception:
 	mov     itmp3,xptr                  /* get exception                      */
 	pop     xpc                         /* get and remove return address      */
 	jmp     L_asm_handle_exception

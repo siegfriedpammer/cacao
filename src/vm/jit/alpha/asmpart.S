@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 5094 2006-07-10 13:51:38Z twisti $
+   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
 
 */
 
@@ -67,7 +67,7 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_wrapper_patcher
+	.globl asm_patcher_wrapper
 
 	.globl asm_replacement_out
 	.globl asm_replacement_in
@@ -443,7 +443,7 @@ asm_abstractmethoderror:
 	.end    asm_abstractmethoderror
 
 
-/* asm_wrapper_patcher *********************************************************
+/* asm_patcher_wrapper *********************************************************
 
    XXX
 
@@ -459,9 +459,9 @@ asm_abstractmethoderror:
 
 *******************************************************************************/
 		
-	.ent    asm_wrapper_patcher
+	.ent    asm_patcher_wrapper
 
-asm_wrapper_patcher:
+asm_patcher_wrapper:
 	lda     sp,-((2+12+27+4)*8)(sp) /* create stack frame                     */
 
 	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
@@ -473,8 +473,8 @@ asm_wrapper_patcher:
 	stq     ra,(2+12+27+2)*8(sp)  /* save method return address (for leafs)   */
 	stq     pv,(2+12+27+3)*8(sp)  /* save pv of calling java function         */
 
-	br      ra,L_asm_wrapper_patcher_load_gp
-L_asm_wrapper_patcher_load_gp:
+	br      ra,L_asm_patcher_wrapper_load_gp
+L_asm_patcher_wrapper_load_gp:
 	ldgp    gp,0(ra)              /* load gp (it's not set correctly in jit)  */
 
 	lda     a0,(2+12+27+4)*8(sp)  /* pass SP of patcher stub                  */
@@ -494,20 +494,20 @@ L_asm_wrapper_patcher_load_gp:
 	ldq     pv,(2+12+27+3)*8(sp)  /* restore pv of calling java function      */
 
 	ldq     itmp3,(0+2+12+27+4)*8(sp) /* get return value                     */
-	bne     itmp3,L_asm_wrapper_patcher_exception
+	bne     itmp3,L_asm_patcher_wrapper_exception
 
 	ldq     itmp3,(5+2+12+27+4)*8(sp) /* get RA to JIT                        */
 	lda     sp,(6+2+12+27+4)*8(sp) /* remove stack frame                      */
 
 	jmp     zero,(itmp3)          /* jump to new patched code                 */
 
-L_asm_wrapper_patcher_exception:
+L_asm_patcher_wrapper_exception:
 	mov     itmp3,xptr            /* get exception                            */
 	ldq     xpc,(5+2+12+27+4)*8(sp) /* RA is xpc                              */
 	lda     sp,(6+2+12+27+4)*8(sp) /* remove stack frame                      */
 	br      L_asm_handle_exception
 
-	.end	asm_wrapper_patcher
+	.end	asm_patcher_wrapper
 
 		
 /* asm_replacement_out *********************************************************

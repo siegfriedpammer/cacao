@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 5053 2006-06-28 19:11:20Z twisti $
+   $Id: asmpart.h 5145 2006-07-17 11:48:38Z twisti $
 
 */
 
@@ -141,7 +141,7 @@ void asm_handle_nat_exception(void);
 void asm_abstractmethoderror(void);
 
 /* wrapper for code patching functions */
-void asm_wrapper_patcher(void);
+void asm_patcher_wrapper(void);
 
 /* functions for on-stack replacement */
 void asm_replacement_out(void);
