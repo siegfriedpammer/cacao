@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: classcache.c 5147 2006-07-17 15:11:15Z twisti $
 
 */
 
@@ -232,11 +232,7 @@ void classcache_print_statistics(FILE *file) {
 hashtable hashtable_classcache;
 
 #if defined(ENABLE_THREADS)
-#if defined(ENABLE_JVMTI)
-java_objectheader *lock_hashtable_classcache;
-#else
 static java_objectheader *lock_hashtable_classcache;
-#endif
 #endif
 
 
@@ -1333,6 +1329,59 @@ bool classcache_add_constraints_for_params(classloader * a,
 	return true;
 }
 #endif /* defined(ENABLE_VERIFIER) */
+
+
+/* classcache_jvmti_GetLoadedClasses *******************************************
+
+   
+*******************************************************************************/
+
+#if defined(ENABLE_JVMTI)
+void classcache_jvmti_GetLoadedClasses(jint *class_count_ptr,
+									   jclass **classes_ptr)
+{
+	classcache_name_entry  *en;
+	classcache_class_entry *clsen;
+	s4                      i;
+	s4                      j;
+
+	CLASSCACHE_LOCK();
+
+	*classes_ptr = GCMNEW(jclass, hashtable_classcache.entries);
+	
+	/* look in every slot of the hashtable */
+
+	for (i = 0, j = 0; i < hashtable_classcache.size; i++) {
+		/* iterate over hashlink */
+
+		for (en = hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
+			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
+
+			if (en->name->text[0] == '$') {
+				*class_count_ptr -= 1;
+				break;
+			}
+
+			/* iterate over classes with same name */
+
+			for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+				/* get only loaded classes */
+
+				if (clsen->classobj != NULL) {
+					assert(j < hashtable_classcache.entries);
+					(*classes_ptr)[j] = clsen->classobj;
+					j++;
+				}
+			}
+		}
+	}
+ 
+	CLASSCACHE_UNLOCK();
+
+	*class_count_ptr = j;
+}
+#endif /* defined(ENABLE_JVMTI) */
+
 
 /*============================================================================*/
 /* DEBUG DUMPS                                                                */

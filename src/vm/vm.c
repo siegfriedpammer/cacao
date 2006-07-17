@@ -549,7 +549,7 @@ static void fullversion(void)
 bool vm_create(JavaVMInitArgs *vm_args)
 {
 	char *cp;
-	s4    cplen;
+	s4    len;
 	s4    opt;
 	s4    i, j, k;
 	bool  opt_version;
@@ -598,12 +598,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		strcpy(bootclasspath, cp);
 
 	} else {
-		cplen = strlen(CACAO_VM_ZIP) +
+		len = strlen(CACAO_VM_ZIP) +
 			strlen(":") +
 			strlen(CLASSPATH_GLIBJ_ZIP) +
 			strlen("0");
 
-		bootclasspath = MNEW(char, cplen);
+		bootclasspath = MNEW(char, len);
 		strcat(bootclasspath, CACAO_VM_ZIP);
 		strcat(bootclasspath, ":");
 		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP);
@@ -714,12 +714,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_BOOTCLASSPATH_A:
 			/* append to end of bootclasspath */
 
-			cplen = strlen(bootclasspath);
+			len = strlen(bootclasspath);
 
 			bootclasspath = MREALLOC(bootclasspath,
 									 char,
-									 cplen,
-									 cplen + strlen(":") +
+									 len,
+									 len + strlen(":") +
 									 strlen(opt_arg) + strlen("0"));
 
 			strcat(bootclasspath, ":");
@@ -730,16 +730,16 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			/* prepend in front of bootclasspath */
 
 			cp = bootclasspath;
-			cplen = strlen(cp);
+			len = strlen(cp);
 
 			bootclasspath = MNEW(char, strlen(opt_arg) + strlen(":") +
-								 cplen + strlen("0"));
+								 len + strlen("0"));
 
 			strcpy(bootclasspath, opt_arg);
 			strcat(bootclasspath, ":");
 			strcat(bootclasspath, cp);
 
-			MFREE(cp, char, cplen);
+			MFREE(cp, char, len);
 			break;
 
 		case OPT_GLIBJ:
@@ -747,12 +747,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			MFREE(bootclasspath, char, strlen(bootclasspath));
 
-			cplen = strlen(CACAO_VM_ZIP) +
+			len = strlen(CACAO_VM_ZIP) +
 				strlen(":") +
 				strlen(opt_arg) +
 				strlen("0");
 
-			bootclasspath = MNEW(char, cplen);
+			bootclasspath = MNEW(char, len);
 
 			strcpy(bootclasspath, CACAO_VM_ZIP);
 			strcat(bootclasspath, ":");
@@ -763,21 +763,35 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_DEBUG:
 			/* this option exists only for compatibility reasons */
 			break;
+
 		case OPT_NOAGENT:
 			/* I don't know yet what Xnoagent should do. This is only for 
 			   compatiblity with eclipse - motse */
 			break;
+
 		case OPT_XRUNJDWP:
-			agentbypath=jvmti=jdwp=true;
-			i = strlen(opt_arg)+33;
-			agentarg = MNEW(char,i);
-			/* XXX how can I get the <prefix>/lib directory ? */
-			snprintf(agentarg,i,"/usr/local/cacao/lib/libjdwp.so=%s",&opt_arg[1]);
+			agentbypath = true;
+			jvmti       = true;
+			jdwp        = true;
+
+			len =
+				strlen(CACAO_LIBDIR) +
+				strlen("/libjdwp.so=") +
+				strlen(opt_arg) +
+				strlen("0");
+
+			agentarg = MNEW(char, len);
+
+			strcpy(agentarg, CACAO_LIBDIR);
+			strcat(agentarg, "/libjdwp.so=");
+			strcat(agentarg, &opt_arg[1]);
 			break;
+
 		case OPT_AGENTPATH:
 			agentbypath = true;
+
 		case OPT_AGENTLIB:
-			jvmti=true;
+			jvmti = true;
 			agentarg = opt_arg;
 			break;
 #endif
@@ -1143,7 +1157,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (jvmti) {
 		jvmti_set_phase(JVMTI_PHASE_ONLOAD);
 		jvmti_agentload(agentarg, agentbypath, &handle, &libname);
-		if (jdwp) MFREE(agentarg,char,strlen(agentarg));
+
+		if (jdwp)
+			MFREE(agentarg, char, strlen(agentarg));
+
 		jvmti_set_phase(JVMTI_PHASE_PRIMORDIAL);
 	}
 

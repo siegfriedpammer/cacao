@@ -192,6 +192,17 @@ fi
 AC_DEFINE_UNQUOTED([CACAO_PREFIX], "${CACAO_PREFIX}", [installation prefix])
 AC_SUBST(CACAO_PREFIX)
 
+dnl define libdir prefix
+if test "x$libdir" = "xNONE"; then
+    CACAO_LIBDIR=$ac_default_libdir
+else
+    CACAO_LIBDIR=$libdir
+fi
+dnl expand CACAO_LIBDIR to something that is usable in C code
+AS_AC_EXPAND([CACAO_LIBDIR], ${CACAO_LIBDIR})
+AC_DEFINE_UNQUOTED([CACAO_LIBDIR], "${CACAO_LIBDIR}", [library installation prefix])
+AC_SUBST(CACAO_LIBDIR)
+
 
 dnl Features
 

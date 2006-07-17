@@ -29,13 +29,24 @@
 
    Changes: Edwin Steiner
             Samuel Vinson
-
+            Christan Thalinger
    
-   $Id: jvmti.c 5141 2006-07-16 15:58:21Z twisti $
+   $Id: jvmti.c 5147 2006-07-17 15:11:15Z twisti $
 
 */
 
+
+#include "config.h"
+
 #include <assert.h>
+#include <string.h>
+#include <linux/unistd.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <ltdl.h>
+#include <unistd.h>
+#include <sched.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -66,16 +77,6 @@
 #include "native/include/java_lang_VMClass.h"
 #include "vm/suck.h"
 #include "boehm-gc/include/gc.h"
-
-#include <string.h>
-#include <linux/unistd.h>
-#include <sys/time.h>
-#include "toolbox/logging.h"
-#include <stdlib.h>
-#include <sys/types.h>
-#include <ltdl.h>
-#include <unistd.h>
-#include <sched.h>
 
 #if defined(ENABLE_THREADS)
 #include "threads/native/threads.h"
@@ -2621,49 +2622,17 @@ IsMethodSynthetic (jvmtiEnv * env, jmethodID method,
 static jvmtiError
 GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr, jclass ** classes_ptr)
 {
-	int i,j=0;
-	classcache_name_entry *nameentry;
-	classcache_class_entry *classentry;
-
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
 
-    if (class_count_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
-    if (classes_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
+    if (class_count_ptr == NULL)
+		return JVMTI_ERROR_NULL_POINTER;
 
-	CLASSCACHE_LOCK();
-	*classes_ptr = 
-		heap_allocate(sizeof(jclass)*(hashtable_classcache.entries),true,NULL);
-	
-	/*	look in every slot of the hashtable */
-	for (i=0; i<hashtable_classcache.size; i++) {
-		nameentry = hashtable_classcache.ptr[i];
-		while (nameentry != NULL) { /* iterate over hashlink */
+    if (classes_ptr == NULL)
+		return JVMTI_ERROR_NULL_POINTER;
 
-			/* filter pseudo classes $NEW$,$NULL$,$ARRAYSTUB$ out */
-			if (nameentry->name->text[0] == '$')
-			{
-				*class_count_ptr -= 1;
-				break;
-			}
-
-			classentry = nameentry->classes;
-			while (classentry != NULL){ /* iterate over classes with same name */
-				if (classentry->classobj != NULL) { /*get only loaded classes */
-					 assert(j<hashtable_classcache.entries);
-					(*classes_ptr)[j]=classentry->classobj;
-					j++;
-				}
-				classentry = classentry->next;
-			}
-			nameentry = nameentry->hashlink;
-		}
-	}
- 
-	CLASSCACHE_UNLOCK();
-
-	*class_count_ptr = j;
+	classcache_jvmti_GetLoadedClasses(class_count_ptr, classes_ptr);
 
     return JVMTI_ERROR_NONE;
 }
@@ -4513,24 +4482,35 @@ void jvmti_agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char
 
 	len = strlen(opt_arg);
 	
-	/* separate argumtents */
-	while ((opt_arg[i] != '=') && (i<len)) i++;
-	if (i<len)
-		arg = &opt_arg[i+1];
+	/* separate arguments */
+
+	while ((opt_arg[i] != '=') && (i < len))
+		i++;
+
+	opt_arg[i] = '\0';
+
+	if (i < len)
+		arg = &opt_arg[i + 1];
 	else
 		arg = "";
 
 	if (agentbypath) {
 		/* -agentpath */
-		*libname=heap_allocate(sizeof(char)*i,true,NULL);
-		strncpy(*libname,opt_arg,i);
-		(*libname)[i]='\0';
-	} else {
+
+		*libname = GCMNEW(char, i);
+
+		strcpy(*libname, opt_arg);
+	}
+	else {
 		/* -agentlib */
-		*libname=heap_allocate(sizeof(char)*(i+7),true,NULL);
-		strncpy(*libname,"lib",3);
-		strncpy(&(*libname)[3],opt_arg,i);
-		strncpy(&(*libname)[i+3],".so",3);
+
+		len = strlen("lib") + i + strlen(".so") + strlen("0");
+
+		*libname = GCMNEW(char, len);
+
+		strcpy(*libname, "lib");
+		strcat(*libname, opt_arg);
+		strcat(*libname, ".so");
 	}
 
 	/* try to open the library */

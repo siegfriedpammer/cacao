@@ -26,9 +26,9 @@
 
    Authors: Edwin Steiner
 
-   Changes:
+   Changes: Christian Thalinger
 
-   $Id: classcache.h 4957 2006-05-26 11:48:10Z edwin $
+   $Id: classcache.h 5147 2006-07-17 15:11:15Z twisti $
 
 */
 
@@ -40,6 +40,10 @@
 #include "vm/types.h"
 
 #include <stdio.h>  /* for FILE */
+
+#if defined(ENABLE_JVMTI)
+# include "native/jni.h"
+#endif
 
 #include "vm/hashtable.h"
 #include "vm/references.h"
@@ -57,17 +61,6 @@ typedef java_objectheader classloader;
 
 extern hashtable hashtable_classcache;
 
-#if defined(ENABLE_JVMTI)
-#if defined(ENABLE_THREADS)
-# define CLASSCACHE_LOCK()      builtin_monitorenter(lock_hashtable_classcache)
-# define CLASSCACHE_UNLOCK()    builtin_monitorexit(lock_hashtable_classcache)
-#else
-# define CLASSCACHE_LOCK()
-# define CLASSCACHE_UNLOCK()
-#endif
-
-extern java_objectheader *lock_hashtable_classcache;
-#endif 
 
 /* structs ********************************************************************/
 
@@ -148,6 +141,11 @@ classinfo * classcache_store_defined(classinfo *cls);
 bool classcache_add_constraint(classloader *a,classloader *b,utf *classname);
 bool classcache_add_constraints_for_params(classloader *a,classloader *b,
 										   methodinfo *m);
+#endif
+
+#if defined(ENABLE_JVMTI)
+void classcache_jvmti_GetLoadedClasses(jint *class_count_ptr,
+									   jclass **classes_ptr);
 #endif
 
 #ifndef NDEBUG
