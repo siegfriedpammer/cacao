@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 5110 2006-07-11 22:23:55Z twisti $
+   $Id: asmpart.S 5142 2006-07-17 09:47:02Z twisti $
 
 */
 
@@ -539,24 +539,12 @@ asm_wrapper_patcher:
 	mov     itmp1,0*8(sp)               /* save itmp1 and itmp2               */
 	mov     itmp2,1*8(sp)               /* can be used by some instructions   */
 
-	mov     sp,a0                       /* create stackframe info             */
-	add     $((3+ARG_CNT+TMP_CNT)*8),a0
-	xor     a1,a1                       /* if pv is NULL, use findmethod      */
-	mov     bp,a2                       /* pass java sp                       */
-	add     $((6+1)*8),a2
-	mov     ((5+1)*8)(bp),a3            /* pass ra to java function           */
-	mov     a3,a4                       /* xpc is equal to ra                 */
-	call    stacktrace_create_extern_stackframeinfo@PLT
-
-	mov     bp,a0                       /* pass stack pointer                 */
-	add     $((1+1)*8),a0               /* skip function pointer              */
-	mov     1*8(bp),itmp3               /* get function pointer               */
-	call    *itmp3                      /* call the patcher function          */
+	mov     bp,a0                       /* pass SP of patcher stub            */
+	add     $(1*8),a0
+	mov     $0,a1                       /* pass PV (if NULL, use findmethod)  */
+	mov     $0,a2                       /* pass RA (it's on the stack)        */
+	call    patcher_wrapper@PLT
 	mov     v0,2*8(sp)                  /* save return value                  */
-
-	mov     sp,a0                       /* remove stackframe info             */
-	add     $((3+ARG_CNT+TMP_CNT)*8),a0
-	call    stacktrace_remove_stackframeinfo@PLT
 
 	RESTORE_ARGUMENT_REGISTERS(3)
 	RESTORE_TEMPORARY_REGISTERS(3+ARG_CNT)
@@ -567,14 +555,14 @@ asm_wrapper_patcher:
 
 	mov     bp,sp                       /* restore original sp                */
 	pop     bp                          /* restore bp                         */
-	add     $(5*8),sp                   /* remove patcher stackframe, keep ra */
+	add     $(5*8),sp                   /* remove patcher stackframe, keep RA */
 
 	test    itmp3,itmp3                 /* exception thrown?                  */
-	jz      L_asm_wrapper_patcher_exception
+	jne     L_asm_wrapper_patcher_exception
 	ret                                 /* call new patched code              */
 
 L_asm_wrapper_patcher_exception:
-	call    exceptions_get_and_clear_exception@PLT
+	mov     itmp3,xptr                  /* get exception                      */
 	pop     xpc                         /* get and remove return address      */
 	jmp     L_asm_handle_exception
 
