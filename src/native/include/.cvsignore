@@ -53,6 +53,8 @@ java_nio_MappedByteBufferImpl.h
 java_nio_channels_spi_SelectorProvider.h
 
 gnu_classpath_jdwp_VMFrame.h
+gnu_classpath_jdwp_VMMethod.h
 gnu_classpath_jdwp_VMVirtualMachine.h
 gnu_classpath_jdwp_event_EventRequest.h
+gnu_classpath_jdwp_util_VariableTable.h
 java_nio_ByteBuffer.h

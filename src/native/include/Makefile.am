@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5066 2006-07-02 18:31:02Z twisti $
+## $Id: Makefile.am 5146 2006-07-17 13:50:35Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -73,12 +73,12 @@ GEN_HEADER_FILES = \
 	java_util_Vector.h 
 
 GEN_JVMTI_HEADER_FILES = \
-	java_nio_ByteBuffer.h \
 	gnu_classpath_jdwp_VMFrame.h \
 	gnu_classpath_jdwp_VMMethod.h \
 	gnu_classpath_jdwp_VMVirtualMachine.h \
 	gnu_classpath_jdwp_event_EventRequest.h \
-	gnu_classpath_jdwp_util_VariableTable.h
+	gnu_classpath_jdwp_util_VariableTable.h \
+	java_nio_ByteBuffer.h
 
 
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
