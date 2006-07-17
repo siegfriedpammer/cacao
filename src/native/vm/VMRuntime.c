@@ -30,7 +30,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: VMRuntime.c 4891 2006-05-06 14:13:04Z edwin $
+   $Id: VMRuntime.c 5143 2006-07-17 10:00:33Z twisti $
 
 */
 
@@ -118,7 +118,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass cl
 
 
 /*
- * Class:     java_lang_VMRuntime
+ * Class:     java/lang/VMRuntime
  * Method:    maxMemory
  * Signature: ()J
  */
@@ -204,7 +204,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jc
 
 
 /*
- * Class:     java_lang_Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    availableProcessors
  * Signature: ()I
  */
