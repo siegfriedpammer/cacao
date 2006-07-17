@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 4955 2006-05-26 09:30:22Z twisti $
+   $Id: boehm.c 5144 2006-07-17 11:09:21Z twisti $
 
 */
 
@@ -59,7 +59,6 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
-#include "vm/jit/asmpart.h"
 
 
 /* global variables ***********************************************************/
@@ -122,38 +121,47 @@ static void gc_ignore_warnings(char *msg, GC_word arg)
 
 void *heap_alloc_uncollectable(u4 bytelength)
 {
-	void *result;
+	void *p;
 
-	result = GC_MALLOC_UNCOLLECTABLE(bytelength);
+	p = GC_MALLOC_UNCOLLECTABLE(bytelength);
 
 	/* clear allocated memory region */
 
-	MSET(result, 0, u1, bytelength);
+	MSET(p, 0, u1, bytelength);
 
-	return result;
+	return p;
 }
 
 
-void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
+/* heap_allocate ***************************************************************
+
+   Allocates memory on the Java heap.
+
+*******************************************************************************/
+
+void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 {
-	void *result;
+	void *p;
 
-	if (references)
-		result = GC_MALLOC(bytelength);
+	/* We can't use a bool here for references, as it's passed as a
+	   bitmask in builtin_new.  Thus we check for != 0. */
+
+	if (references != 0)
+		p = GC_MALLOC(bytelength);
 	else
-		result = GC_MALLOC_ATOMIC(bytelength);
+		p = GC_MALLOC_ATOMIC(bytelength);
 
-	if (result == NULL)
+	if (p == NULL)
 		return NULL;
 
-	if (finalizer)
-		GC_REGISTER_FINALIZER(result, finalizer_run, 0, 0, 0);
+	if (finalizer != NULL)
+		GC_REGISTER_FINALIZER(p, finalizer_run, 0, 0, 0);
 
 	/* clear allocated memory region */
 
-	MSET(result, 0, u1, bytelength);
+	MSET(p, 0, u1, bytelength);
 
-	return (u1 *) result;
+	return p;
 }
 
 

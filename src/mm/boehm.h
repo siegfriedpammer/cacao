@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: boehm.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: boehm.h 5144 2006-07-17 11:09:21Z twisti $
 
 */
 
@@ -47,7 +47,7 @@
 void  gc_init(u4 heapmaxsize, u4 heapstartsize);
 
 void *heap_alloc_uncollectable(u4 bytelength);
-void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer);
+void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer);
 void  heap_free(void *p);
 
 void  gc_call(void);
