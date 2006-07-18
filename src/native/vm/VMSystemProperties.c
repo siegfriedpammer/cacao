@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4852 2006-04-27 11:05:03Z twisti $
+   $Id: VMSystemProperties.c 5150 2006-07-18 08:05:02Z twisti $
 
 */
 
@@ -191,12 +191,15 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		/* XXX We don't support java.lang.Compiler */
 /*  		properties_system_add("java.compiler", "cacao.intrp"); */
 		properties_system_add("java.vm.info", "interpreted mode");
-	} else
+		properties_system_add("gnu.java.compiler.name", "cacao.intrp");
+	}
+	else
 #endif
 	{
 		/* XXX We don't support java.lang.Compiler */
 /*  		properties_system_add("java.compiler", "cacao.jit"); */
 		properties_system_add("java.vm.info", "JIT mode");
+		properties_system_add("gnu.java.compiler.name", "cacao.jit");
 	}
 
 	/* set the java.ext.dirs property */
