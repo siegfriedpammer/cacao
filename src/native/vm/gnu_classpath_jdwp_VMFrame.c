@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: 
 
 
-$Id: VMFrame.c 4996 2006-05-31 13:53:16Z motse $
+$Id: gnu_classpath_jdwp_VMFrame.c 5157 2006-07-18 11:09:47Z twisti $
 
 */
 

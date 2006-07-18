@@ -29,7 +29,7 @@
    Changes:             
 
 
-   $Id: VMjdwp.c 5156 2006-07-18 11:02:28Z motse $
+   $Id: VMjdwp.c 5157 2006-07-18 11:09:47Z twisti $
 
 */
 

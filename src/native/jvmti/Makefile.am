@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5001 2006-05-31 22:07:13Z twisti $
+## $Id: Makefile.am 5157 2006-07-18 11:09:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,7 +36,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-noinst_LTLIBRARIES = libjvmti.la
+noinst_LTLIBRARIES = \
+	libjvmti.la
 
 libjvmti_la_SOURCES = \
 	jvmti.c \
@@ -55,13 +56,6 @@ cacaodbgserver_SOURCES = \
 cacaodbgserver_LDADD = \
 	libjvmti.la
 
-
-lib_LTLIBRARIES = \
-	libjdwp.la
-
-libjdwp_la_SOURCES = \
-	VMjdwp.c \
-	VMjdwp.h
 
 ## Local variables:
 ## mode: Makefile

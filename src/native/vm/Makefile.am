@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5153 2006-07-18 08:19:24Z twisti $
+## $Id: Makefile.am 5157 2006-07-18 11:09:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,7 +36,13 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-noinst_LTLIBRARIES = libnativevm.la
+noinst_LTLIBRARIES = \
+	libnativevm.la
+
+if ENABLE_JVMTI
+lib_LTLIBRARIES = \
+	libjdwp.la
+endif
 
 libnativevm_la_SOURCES = \
 	gnu_classpath_VMStackWalker.c \
@@ -57,10 +63,12 @@ libnativevm_la_SOURCES = \
 	java_security_VMAccessController.c
 
 if ENABLE_JVMTI
-libnativevm_la_SOURCES += \
-	VMFrame.c \
-	VMVirtualMachine.c \
-	VMMethod.c
+libjdwp_la_SOURCES = \
+	gnu_classpath_jdwp_VMFrame.c \
+	gnu_classpath_jdwp_VMMethod.c \
+	gnu_classpath_jdwp_VMVirtualMachine.c \
+	VMjdwp.c \
+	VMjdwp.h
 endif
 
 

@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: Samuel Vinson
 
 
-$Id: VMVirtualMachine.c 5019 2006-06-06 21:13:41Z motse $
+$Id: gnu_classpath_jdwp_VMVirtualMachine.c 5157 2006-07-18 11:09:47Z twisti $
 
 */
 
