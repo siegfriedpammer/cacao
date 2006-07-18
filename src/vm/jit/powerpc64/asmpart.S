@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
+   $Id: asmpart.S 5159 2006-07-18 18:38:49Z tbfg $
 
 */
 
@@ -43,7 +43,7 @@
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/powerpc64/offsets.h"
+#include "vm/jit/powerpc/offsets.h"
 
 
 	.text
@@ -445,14 +445,14 @@ asm_vm_call_method_exception_handler:
 	.align  2
 
 L_jumptable_int:
-	.long   L_handle_a0
-	.long   L_handle_a1
-	.long   L_handle_a2
-	.long   L_handle_a3
-	.long   L_handle_a4
-	.long   L_handle_a5
-	.long   L_handle_a6
-	.long   L_handle_a7
+	.quad   L_handle_a0
+	.quad   L_handle_a1
+	.quad   L_handle_a2
+	.quad   L_handle_a3
+	.quad   L_handle_a4
+	.quad   L_handle_a5
+	.quad   L_handle_a6
+	.quad   L_handle_a7
 
 	.text
 	.align  2
@@ -488,24 +488,24 @@ L_handle_a7:
 
 L_jumptable_long:
 #if defined(__DARWIN__)
-	.long   L_handle_a0_a1
-	.long   L_handle_a1_a2
-	.long   L_handle_a2_a3
-	.long   L_handle_a3_a4
-	.long   L_handle_a4_a5
-	.long   L_handle_a5_a6
-	.long   L_handle_a6_a7
+	.quad   L_handle_a0_a1
+	.quad   L_handle_a1_a2
+	.quad   L_handle_a2_a3
+	.quad   L_handle_a3_a4
+	.quad   L_handle_a4_a5
+	.quad   L_handle_a5_a6
+	.quad   L_handle_a6_a7
 #else
 	/* we have two entries here, so we get the even argument register
 	alignment for linux */
 
-	.long   L_handle_a0_a1
-	.long   0
-	.long   L_handle_a2_a3
-	.long   0
-	.long   L_handle_a4_a5
-	.long   0
-	.long   L_handle_a6_a7
+	.quad   L_handle_a0_a1
+	.quad   0
+	.quad   L_handle_a2_a3
+	.quad   0
+	.quad   L_handle_a4_a5
+	.quad   0
+	.quad   L_handle_a6_a7
 #endif
 
 	.text
@@ -551,21 +551,21 @@ L_handle_a6_a7:
 	.align  2
 
 L_jumptable_float:
-	.long   L_handle_fa0
-	.long   L_handle_fa1
-	.long   L_handle_fa2
-	.long   L_handle_fa3
-	.long   L_handle_fa4
-	.long   L_handle_fa5
-	.long   L_handle_fa6
-	.long   L_handle_fa7
+	.quad   L_handle_fa0
+	.quad   L_handle_fa1
+	.quad   L_handle_fa2
+	.quad   L_handle_fa3
+	.quad   L_handle_fa4
+	.quad   L_handle_fa5
+	.quad   L_handle_fa6
+	.quad   L_handle_fa7
 
 #if defined(__DARWIN__)
-	.long   L_handle_fa8
-	.long   L_handle_fa9
-	.long   L_handle_fa10
-	.long   L_handle_fa11
-	.long   L_handle_fa12
+	.quad   L_handle_fa8
+	.quad   L_handle_fa9
+	.quad   L_handle_fa10
+	.quad   L_handle_fa11
+	.quad   L_handle_fa12
 #endif
 
 	.text
@@ -619,21 +619,21 @@ L_handle_fa12:
 	.align  2
 
 L_jumptable_double:
-	.long   L_handle_fda0
-	.long   L_handle_fda1
-	.long   L_handle_fda2
-	.long   L_handle_fda3
-	.long   L_handle_fda4
-	.long   L_handle_fda5
-	.long   L_handle_fda6
-	.long   L_handle_fda7
+	.quad   L_handle_fda0
+	.quad   L_handle_fda1
+	.quad   L_handle_fda2
+	.quad   L_handle_fda3
+	.quad   L_handle_fda4
+	.quad   L_handle_fda5
+	.quad   L_handle_fda6
+	.quad   L_handle_fda7
 
 #if defined(__DARWIN__)
-	.long   L_handle_fda8
-	.long   L_handle_fda9
-	.long   L_handle_fda10
-	.long   L_handle_fda11
-	.long   L_handle_fda12
+	.quad   L_handle_fda8
+	.quad   L_handle_fda9
+	.quad   L_handle_fda10
+	.quad   L_handle_fda11
+	.quad   L_handle_fda12
 #endif
 
 	.text
@@ -1388,11 +1388,11 @@ _crit_end:
 
 asm_criticalsections:
 #if defined(ENABLE_THREADS)
-	.long   _crit_begin
-	.long   _crit_end
-	.long   _crit_restart
+	.quad   _crit_begin
+	.quad   _crit_end
+	.quad   _crit_restart
 #endif
-	.long 0
+	.quad 0
 
 
 #if defined(__DARWIN__)
@@ -1534,6 +1534,26 @@ L00$_exceptions_asm_new_abstractmethoderror:
 .lazy_symbol_pointer
 L_exceptions_asm_new_abstractmethoderror$lazy_ptr:
 	.indirect_symbol _exceptions_asm_new_abstractmethoderror
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_patcher_wrapper$stub:
+	.indirect_symbol _patcher_wrapper
+	mflr r0
+	bcl 20,31,L00$_patcher_wrapper
+L00$_patcher_wrapper:
+	mflr r11
+	addis r11,r11,ha16(L_patcher_wrapper$lazy_ptr - L00$_patcher_wrapper)
+	mtlr r0
+	lwzu r12,lo16(L_patcher_wrapper$lazy_ptr - L00$_patcher_wrapper)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_patcher_wrapper$lazy_ptr:
+	.indirect_symbol _patcher_wrapper
 	.long dyld_stub_binding_helper
 
 

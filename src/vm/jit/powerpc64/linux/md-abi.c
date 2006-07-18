@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5115 2006-07-12 14:55:04Z twisti $
+   $Id: md-abi.c 5159 2006-07-18 18:38:49Z tbfg $
 
 */
 
@@ -238,7 +238,7 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 	   their argument register -> so leafmethods with paramcount > 0
 	   could already use R3 == a00! */
 
-	if (!code->isleafmethod || (md->paramcount == 0)) {
+	if (!jd->isleafmethod || (md->paramcount == 0)) {
 		/* Only precolor the stackslot, if it is not a SAVEDVAR <->
 		   has not to survive method invokations. */
 
