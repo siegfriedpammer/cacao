@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMString.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: java_lang_VMString.c 5153 2006-07-18 08:19:24Z twisti $
 
 */
 

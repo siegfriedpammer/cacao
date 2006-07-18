@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5066 2006-07-02 18:31:02Z twisti $
+## $Id: Makefile.am 5153 2006-07-18 08:19:24Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,22 +39,22 @@ LIBS =
 noinst_LTLIBRARIES = libnativevm.la
 
 libnativevm_la_SOURCES = \
-	Constructor.c \
-	Field.c \
-	Method.c \
-	VMAccessController.c \
-	VMClass.c \
-	VMClassLoader.c \
-	VMObject.c \
-	VMProxy.c \
-	VMRuntime.c \
+	gnu_classpath_VMStackWalker.c \
+	gnu_classpath_VMSystemProperties.c \
 	gnu_java_lang_management_VMRuntimeMXBeanImpl.c \
-	VMStackWalker.c \
-	VMString.c \
-	VMSystem.c \
-	VMSystemProperties.c \
-	VMThread.c \
-	VMThrowable.c
+	java_lang_VMClass.c \
+	java_lang_VMClassLoader.c \
+	java_lang_VMObject.c \
+	java_lang_VMRuntime.c \
+	java_lang_VMString.c \
+	java_lang_VMSystem.c \
+	java_lang_VMThread.c \
+	java_lang_VMThrowable.c \
+	java_lang_reflect_Constructor.c \
+	java_lang_reflect_Field.c \
+	java_lang_reflect_Method.c \
+	java_lang_reflect_VMProxy.c \
+	java_security_VMAccessController.c
 
 if ENABLE_JVMTI
 libnativevm_la_SOURCES += \

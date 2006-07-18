@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 5150 2006-07-18 08:05:02Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 5153 2006-07-18 08:19:24Z twisti $
 
 */
 

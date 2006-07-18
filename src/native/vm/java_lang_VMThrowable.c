@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: java_lang_VMThrowable.c 5153 2006-07-18 08:19:24Z twisti $
 
 */
 

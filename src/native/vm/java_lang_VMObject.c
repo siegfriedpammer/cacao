@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 5031 2006-06-14 18:36:22Z motse $
+   $Id: java_lang_VMObject.c 5153 2006-07-18 08:19:24Z twisti $
 
 */
 

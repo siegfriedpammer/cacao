@@ -30,7 +30,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: VMRuntime.c 5143 2006-07-17 10:00:33Z twisti $
+   $Id: java_lang_VMRuntime.c 5153 2006-07-18 08:19:24Z twisti $
 
 */
 

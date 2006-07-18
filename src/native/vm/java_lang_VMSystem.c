@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMSystem.c 4485 2006-02-12 00:30:13Z twisti $
+   $Id: java_lang_VMSystem.c 5153 2006-07-18 08:19:24Z twisti $
 
 */
 

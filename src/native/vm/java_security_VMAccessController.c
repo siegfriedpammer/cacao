@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMAccessController.c 4406 2006-02-03 13:19:36Z twisti $
+   $Id: java_security_VMAccessController.c 5153 2006-07-18 08:19:24Z twisti $
 
 */
 
