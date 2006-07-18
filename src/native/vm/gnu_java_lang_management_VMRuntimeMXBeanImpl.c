@@ -40,6 +40,7 @@
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/global.h"
+#include "vm/vm.h"
 
 
 /*
@@ -62,9 +63,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_java_lang_management_VMRuntimeMXBea
  */
 JNIEXPORT s8 JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime(JNIEnv *env, jclass clazz)
 {
-	log_println("Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime: IMPLEMENT ME!");
-
-	return 0;
+	return _Jv_jvm->starttime;
 }
 
 /*
