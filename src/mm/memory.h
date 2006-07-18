@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 4840 2006-04-25 17:45:02Z edwin $
+   $Id: memory.h 5158 2006-07-18 14:05:43Z twisti $
 
 */
 
@@ -163,7 +163,7 @@ struct dumpinfo {
 #define MMOVE(dest,src,type,num) memmove((dest), (src), sizeof(type) * (num))
 
 #define CNEW(type,num)        ((type *) memory_cnew(sizeof(type) * (num)))
-#define CFREE(ptr,num)        MFREE(ptr,u1,num)
+#define CFREE(ptr,num)        memory_cfree((ptr),(num))
 
 
 /* GC macros ******************************************************************/
@@ -184,6 +184,7 @@ struct dumpinfo {
 bool memory_init(void);
 
 void *memory_cnew(s4 size);
+void  memory_cfree(void *p, s4 size);
 
 void *mem_alloc(s4 size);
 void  mem_free(void *m, s4 size);

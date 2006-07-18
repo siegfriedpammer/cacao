@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 5126 2006-07-12 22:55:05Z twisti $
+   $Id: memory.c 5158 2006-07-18 14:05:43Z twisti $
 
 */
 
@@ -214,6 +214,21 @@ void *memory_cnew(s4 size)
 	LOCK_MONITOR_EXIT(codememlock);
 
 	return p;
+}
+
+
+/* memory_cfree ****************************************************************
+
+   Frees the code memory pointed to.
+
+   ATTENTION: This function currently does NOTHING!  Because we don't
+   have a memory management for code memory.
+
+*******************************************************************************/
+
+void memory_cfree(void *p, s4 size)
+{
+	/* do nothing */
 }
 
 
