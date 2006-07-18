@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5149 2006-07-17 16:11:35Z twisti $
+   $Id: builtin.c 5155 2006-07-18 08:56:55Z twisti $
 
 */
 
@@ -1470,6 +1470,7 @@ void builtin_trace_args(s8 a0, s8 a1,
 										 &md->paramtypes[1], a1);
 	}
 
+#if TRACE_ARGS_NUM >= 4
 	if (md->paramcount >= 3) {
 		strcat(logtext, ", ");
 
@@ -1483,6 +1484,7 @@ void builtin_trace_args(s8 a0, s8 a1,
 		logtext = builtin_print_argument(logtext, logtextlen,
 										 &md->paramtypes[3], a3);
 	}
+#endif
 
 #if TRACE_ARGS_NUM >= 6
 	if (md->paramcount >= 5) {
@@ -1498,7 +1500,7 @@ void builtin_trace_args(s8 a0, s8 a1,
 		logtext = builtin_print_argument(logtext, logtextlen,
 										 &md->paramtypes[5], a5);
 	}
-#endif /* TRACE_ARGS_NUM >= 6 */
+#endif
 
 #if TRACE_ARGS_NUM == 8
 	if (md->paramcount >= 7) {
@@ -1514,7 +1516,7 @@ void builtin_trace_args(s8 a0, s8 a1,
 		logtext = builtin_print_argument(logtext, logtextlen,
 										 &md->paramtypes[7], a7);
 	}
-#endif /* TRACE_ARGS_NUM == 8 */
+#endif
 
 	if (md->paramcount > 8) {
 		sprintf(logtext + strlen(logtext), ", ...(%d)",
