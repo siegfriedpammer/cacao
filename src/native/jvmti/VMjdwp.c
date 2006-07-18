@@ -29,7 +29,7 @@
    Changes:             
 
 
-   $Id: VMjdwp.c 5019 2006-06-06 21:13:41Z motse $
+   $Id: VMjdwp.c 5156 2006-07-18 11:02:28Z motse $
 
 */
 
@@ -168,8 +168,9 @@ static void Breakpoint (jvmtiEnv *jvmti_env, JNIEnv* jni_env, jthread thread,
 		return;
 	}
 	
+	/* XXX todo: get object instance - needs jvmti local variable support */
 	ev = (*jni_env)->NewObject(jni_env, breakpointclass, breakpointmid, 
-									 thread, loc);
+									 thread, loc,NULL);
 	if ((*jni_env)->ExceptionOccurred(jni_env) != NULL) {
         fprintf(stderr,"error calling breakpoint constructor\n");
 		(*jni_env)->ExceptionDescribe(jni_env);
@@ -233,7 +234,7 @@ static void setup_jdwp_thread(JNIEnv* jni_env) {
 		exit(1); 
 	}
 
-
+	
 	s = (*jni_env)->NewStringUTF(jni_env,jdwpoptions);
     if (s == NULL) {
         fprintf(stderr,"could not get new java string from jdwp options\n");
@@ -322,7 +323,7 @@ static void fillidcache(JNIEnv* jni_env) {
 		breakpointclass, 
 		"gnu/classpath/jdwp/event/BreakpointEvent", 
 		breakpointmid, "<init>", 
-		"(Ljava/lang/Thread;Lgnu/classpath/jdwp/util/Location;)V");
+		"(Ljava/lang/Thread;Lgnu/classpath/jdwp/util/Location;Ljava/lang/Object;)V");
 
 }
 
