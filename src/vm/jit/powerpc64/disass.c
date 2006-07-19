@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/disass.c - wrapper functions for GNU binutils disassembler
+/* src/vm/jit/powerpc64/disass.c - wrapper functions for GNU binutils disassembler
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: disass.c 5162 2006-07-19 13:07:00Z tbfg $
 
 */
 

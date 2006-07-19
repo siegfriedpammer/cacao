@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/asmpart.S - Java-C interface functions for PowerPC
+/* src/vm/jit/powerpc64/asmpart.S - Java-C interface functions for PowerPC
 		
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5159 2006-07-18 18:38:49Z tbfg $
+   $Id: asmpart.S 5162 2006-07-19 13:07:00Z tbfg $
 
 */
 
@@ -43,7 +43,7 @@
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/powerpc/offsets.h"
+#include "vm/jit/powerpc64/offsets.h"
 
 
 	.text
@@ -1351,7 +1351,7 @@ asm_cacheflush:
 	rlwinm  r3,r3,0,0,26
 	addi    r4,r4,31
 	rlwinm  r4,r4,0,0,26
-	mr      r5,r3
+	mr      r6,r3
 1:
 	cmplw   r3,r4
 	bge     0f

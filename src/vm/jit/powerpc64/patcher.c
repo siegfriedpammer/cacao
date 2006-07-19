@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/patcher.c - PowerPC code patching functions
+/* src/vm/jit/powerpc64/patcher.c - PowerPC code patching functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: patcher.c 5162 2006-07-19 13:07:00Z tbfg $
 
 */
 

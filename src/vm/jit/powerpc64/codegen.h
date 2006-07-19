@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/codegen.h - code generation macros and definitions for
+/* src/vm/jit/powerpc64/codegen.h - code generation macros and definitions for
                                   32-bit PowerPC
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: codegen.h 5162 2006-07-19 13:07:00Z tbfg $
 
 */
 

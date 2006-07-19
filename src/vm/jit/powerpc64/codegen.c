@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/codegen.c - machine code generator for 32-bit PowerPC
+/* src/vm/jit/powerpc64/codegen.c - machine code generator for 32-bit PowerPC
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5159 2006-07-18 18:38:49Z tbfg $
+   $Id: codegen.c 5162 2006-07-19 13:07:00Z tbfg $
 
 */
 

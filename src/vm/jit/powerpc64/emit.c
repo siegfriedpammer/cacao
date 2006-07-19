@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/emit.c - PowerPC code emitter functions
+/* src/vm/jit/powerpc64/emit.c - PowerPC code emitter functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -43,7 +43,7 @@
 
 #include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/powerpc/codegen.h"
+#include "vm/jit/powerpc64/codegen.h"
 
 
 /* code generation functions **************************************************/
