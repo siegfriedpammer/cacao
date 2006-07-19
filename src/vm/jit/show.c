@@ -348,6 +348,7 @@ void new_show_method(jitdata *jd, int stage)
 	printf("\nBasic blocks: %d\n", jd->new_basicblockcount);
 	printf("Code length:  %d\n", (jd->new_basicblocks[jd->new_basicblockcount].mpc - 
 								  jd->new_basicblocks[0].mpc));
+	printf("Data length:  %d\n", cd->dseglen);
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
@@ -582,6 +583,7 @@ void show_method(jitdata *jd)
 	printf("\nBasic blocks: %d\n", m->basicblockcount);
 	printf("Code length:  %d\n", (m->basicblocks[m->basicblockcount].mpc - 
 								  m->basicblocks[0].mpc));
+	printf("Data length:  %d\n", cd->dseglen);
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
