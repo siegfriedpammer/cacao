@@ -346,6 +346,8 @@ void new_show_method(jitdata *jd, int stage)
 
 	printf("\n(NEW INSTRUCTION FORMAT)\n");
 	printf("\nBasic blocks: %d\n", jd->new_basicblockcount);
+	printf("Code length:  %d\n", (jd->new_basicblocks[jd->new_basicblockcount].mpc - 
+								  jd->new_basicblocks[0].mpc));
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
@@ -578,6 +580,8 @@ void show_method(jitdata *jd)
 	method_println(m);
 
 	printf("\nBasic blocks: %d\n", m->basicblockcount);
+	printf("Code length:  %d\n", (m->basicblocks[m->basicblockcount].mpc - 
+								  m->basicblocks[0].mpc));
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
@@ -748,9 +752,9 @@ void show_method(jitdata *jd)
 
 	if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) && opt_showexceptionstubs) {
 		printf("\nException stubs code:\n");
-		printf("Length: %d\n\n", (s4) (code->mcodelength -
-									   ((ptrint) cd->dseglen +
-										m->basicblocks[m->basicblockcount].mpc)));
+		printf("Code length: %d\n\n", (s4) (code->mcodelength -
+											((ptrint) cd->dseglen +
+											 m->basicblocks[m->basicblockcount].mpc)));
 
 		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen +
 						m->basicblocks[m->basicblockcount].mpc);
