@@ -28,18 +28,22 @@
 
    Changes:
 
-   $Id: patcher.c 4640 2006-03-16 17:24:18Z twisti $
+   $Id: patcher.c 5164 2006-07-19 15:54:01Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <assert.h>
+
 #include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/exceptions.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
 #include "vm/options.h"
@@ -47,6 +51,78 @@
 #include "vm/references.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
+
+
+/* patcher_wrapper *************************************************************
+
+   Wrapper for all patchers.  It also creates the stackframe info
+   structure.
+
+   If the return value of the patcher function is false, it gets the
+   exception object, clears the exception pointer and returns the
+   exception.
+
+*******************************************************************************/
+
+java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
+{
+	stackframeinfo     sfi;
+	u1                *xpc;
+	java_objectheader *o;
+	functionptr        f;
+	bool               result;
+	java_objectheader *e;
+
+	/* define the patcher function */
+
+	bool (*patcher_function)(u1 *);
+
+	assert(pv != NULL);
+
+	/* get stuff from the stack */
+
+	xpc = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	f   = (functionptr)         *((ptrint *) (sp + 0 * 8));
+
+	/* store PV into the patcher function position */
+
+	*((ptrint *) (sp + 0 * 8)) = (ptrint) pv;
+
+	/* cast the passed function to a patcher function */
+
+	patcher_function = (bool (*)(u1 *)) (ptrint) f;
+
+	/* enter a monitor on the patching position */
+
+	PATCHER_MONITORENTER;
+
+	/* create the stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 8, ra, xpc);
+
+	/* call the proper patcher function */
+
+	result = (patcher_function)(sp);
+
+	/* remove the stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	/* check for return value and exit accordingly */
+
+	if (result == false) {
+		e = exceptions_get_and_clear_exception();
+
+		PATCHER_MONITOREXIT;
+
+		return e;
+	}
+
+	PATCHER_MARK_PATCHED_MONITOREXIT;
+
+	return NULL;
+}
 
 
 /* patcher_get_putstatic *******************************************************
@@ -61,51 +137,40 @@
 
 bool patcher_get_putstatic(u1 *sp)
 {
-	u1                *ra;
-	java_objectheader *o;
+	u1               *ra;
 #if SIZEOF_VOID_P == 8
-	u8                 mcode;
+	u8                mcode;
 #else
-	u4                 mcode[2];
+	u4                mcode[2];
 #endif
-	unresolved_field  *uf;
-	s4                 disp;
-	u1                *pv;
-	fieldinfo         *fi;
+	unresolved_field *uf;
+	s4                disp;
+	u1               *pv;
+	fieldinfo        *fi;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
 #if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
+	mcode    =                      *((u8 *)     (sp + 3 * 8));
 #else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
 #endif
-	uf       = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	PATCHER_MONITORENTER;
+	uf       = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
+	disp     =                      *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)               *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
-	if (!(fi = resolve_field_eager(uf))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(fi = resolve_field_eager(uf)))
 		return false;
-	}
 
 	/* check if the field's class is initialized */
 
-	if (!(fi->class->state & CLASS_INITIALIZED)) {
-		if (!initialize_class(fi->class)) {
-			PATCHER_MONITOREXIT;
-
+	if (!(fi->class->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->class))
 			return false;
-		}
-	}
 
 	/* patch back original code */
 
@@ -129,8 +194,6 @@ bool patcher_get_putstatic(u1 *sp)
 
 	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 
@@ -146,35 +209,28 @@ bool patcher_get_putstatic(u1 *sp)
 
 bool patcher_get_putfield(u1 *sp)
 {
-	u1                *ra;
-	java_objectheader *o;
+	u1               *ra;
 #if SIZEOF_VOID_P == 8
-	u8                 mcode;
+	u8                mcode;
 #else
-	u4                 mcode[2];
+	u4                mcode[2];
 #endif
-	unresolved_field  *uf;
-	fieldinfo         *fi;
+	unresolved_field *uf;
+	fieldinfo        *fi;
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
 #if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
+	mcode    =                      *((u8 *)     (sp + 3 * 8));
 #else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
 #endif
-	uf       = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
-
-	PATCHER_MONITORENTER;
+	uf       = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
-	if (!(fi = resolve_field_eager(uf))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(fi = resolve_field_eager(uf)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -212,16 +268,15 @@ bool patcher_get_putfield(u1 *sp)
 
 	if (opt_showdisassemble) {
 #if SIZEOF_VOID_P == 4
-		if (fi->type == TYPE_LNG) {
+		if (fi->type == TYPE_LNG)
 			md_icacheflush(ra - 2 * 4, 4 * 4);
-		} else
+		else
 #endif
 			md_icacheflush(ra - 2 * 4, 3 * 4);
-	} else {
+	}
+	else {
 		md_icacheflush(ra, 2 * 4);
 	}
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -239,7 +294,6 @@ bool patcher_get_putfield(u1 *sp)
 bool patcher_aconst(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else
@@ -253,7 +307,6 @@ bool patcher_aconst(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -264,15 +317,10 @@ bool patcher_aconst(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the classinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -295,8 +343,6 @@ bool patcher_aconst(u1 *sp)
 	/* synchronize data cache */
 
 	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -318,7 +364,6 @@ bool patcher_aconst(u1 *sp)
 bool patcher_builtin_multianewarray(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else	
@@ -332,7 +377,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -343,15 +387,10 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the classinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -374,8 +413,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	/* synchronize data cache */
 
 	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -396,7 +433,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 bool patcher_builtin_arraycheckcast(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else
@@ -410,7 +446,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -421,15 +456,10 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the classinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -453,8 +483,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 
@@ -473,7 +501,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 bool patcher_invokestatic_special(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else
@@ -487,7 +514,6 @@ bool patcher_invokestatic_special(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -498,15 +524,10 @@ bool patcher_invokestatic_special(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the fieldinfo */
 
-	if (!(m = resolve_method_eager(um))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(m = resolve_method_eager(um)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -530,8 +551,6 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 
@@ -551,7 +570,6 @@ bool patcher_invokestatic_special(u1 *sp)
 bool patcher_invokevirtual(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else
@@ -563,7 +581,6 @@ bool patcher_invokevirtual(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -572,15 +589,10 @@ bool patcher_invokevirtual(u1 *sp)
 #endif
 	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the fieldinfo */
 
-	if (!(m = resolve_method_eager(um))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(m = resolve_method_eager(um)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -609,8 +621,6 @@ bool patcher_invokevirtual(u1 *sp)
 	else
 		md_icacheflush(ra, 2 * 4);
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 
@@ -631,7 +641,6 @@ bool patcher_invokevirtual(u1 *sp)
 bool patcher_invokeinterface(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else
@@ -643,7 +652,6 @@ bool patcher_invokeinterface(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -652,15 +660,10 @@ bool patcher_invokeinterface(u1 *sp)
 #endif
 	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the fieldinfo */
 
-	if (!(m = resolve_method_eager(um))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(m = resolve_method_eager(um)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -694,8 +697,6 @@ bool patcher_invokeinterface(u1 *sp)
 	else
 		md_icacheflush(ra, 3 * 4);
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 
@@ -715,7 +716,6 @@ bool patcher_invokeinterface(u1 *sp)
 bool patcher_checkcast_instanceof_flags(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else
@@ -729,7 +729,6 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -740,15 +739,10 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the fieldinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -772,8 +766,6 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	md_dcacheflush(pv + disp, sizeof(s4));
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 
@@ -795,7 +787,6 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else
@@ -807,7 +798,6 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -816,15 +806,10 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 #endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the fieldinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -855,8 +840,6 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	else
 		md_icacheflush(ra, 6 * 4);
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 
@@ -874,7 +857,6 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 bool patcher_checkcast_instanceof_class(u1 *sp)
 {
 	u1                *ra;
-	java_objectheader *o;
 #if SIZEOF_VOID_P == 8
 	u8                 mcode;
 #else
@@ -888,7 +870,6 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
 #if SIZEOF_VOID_P == 8
 	mcode    =                       *((u8 *)     (sp + 3 * 8));
 #else
@@ -899,15 +880,10 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	PATCHER_MONITORENTER;
-
 	/* get the fieldinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -931,8 +907,6 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 
@@ -945,38 +919,30 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 bool patcher_clinit(u1 *sp)
 {
-	u1                *ra;
-	java_objectheader *o;
+	u1        *ra;
 #if SIZEOF_VOID_P == 8
-	u8                 mcode;
+	u8         mcode;
 #else
-	u4                 mcode[2];
+	u4         mcode[2];
 #endif
-	classinfo         *c;
+	classinfo *c;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	ra       = (u1 *)        *((ptrint *) (sp + 5 * 8));
 #if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
+	mcode    =               *((u8 *)     (sp + 3 * 8));
 #else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+	mcode[0] =               *((u4 *)     (sp + 3 * 8));
+	mcode[1] =               *((u4 *)     (sp + 3 * 8 + 4));
 #endif
-	c        = (classinfo *)         *((ptrint *) (sp + 2 * 8));
-
-	PATCHER_MONITORENTER;
+	c        = (classinfo *) *((ptrint *) (sp + 2 * 8));
 
 	/* check if the class is initialized */
 
-	if (!(c->state & CLASS_INITIALIZED)) {
-		if (!initialize_class(c)) {
-			PATCHER_MONITOREXIT;
-
+	if (!(c->state & CLASS_INITIALIZED))
+		if (!initialize_class(c))
 			return false;
-		}
-	}
 
 	/* patch back original code */
 
@@ -991,8 +957,6 @@ bool patcher_clinit(u1 *sp)
 	/* synchronize instruction cache */
 
 	md_icacheflush(ra, 2 * 4);
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -1009,37 +973,30 @@ bool patcher_clinit(u1 *sp)
 #ifdef ENABLE_VERIFIER
 bool patcher_athrow_areturn(u1 *sp)
 {
-	u1                *ra;
-	java_objectheader *o;
+	u1               *ra;
 #if SIZEOF_VOID_P == 8
-	u8                 mcode;
+	u8                mcode;
 #else
-	u4                 mcode[2];
+	u4                mcode[2];
 #endif
-	unresolved_class  *uc;
-	classinfo         *c;
+	unresolved_class *uc;
+	classinfo        *c;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
 #if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
+	mcode    =                      *((u8 *)     (sp + 3 * 8));
 #else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
 #endif
-	uc       = (unresolved_class *)  *((ptrint *) (sp + 2 * 8));
-
-	PATCHER_MONITORENTER;
+	uc       = (unresolved_class *) *((ptrint *) (sp + 2 * 8));
 
 	/* resolve the class */
 
-	if (!resolve_class(uc, resolveEager, false, &c)) {
-		PATCHER_MONITOREXIT;
-
+	if (!resolve_class(uc, resolveEager, false, &c))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -1055,8 +1012,6 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	md_icacheflush(ra, 2 * 4);
 
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
 	return true;
 }
 #endif /* ENABLE_VERIFIER */
@@ -1071,46 +1026,39 @@ bool patcher_athrow_areturn(u1 *sp)
 #if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native(u1 *sp)
 {
-	u1                *ra;
-	java_objectheader *o;
+	u1          *ra;
 #if SIZEOF_VOID_P == 8
-	u8                 mcode;
+	u8           mcode;
 #else
-	u4                 mcode[2];
+	u4           mcode[2];
 #endif
-	methodinfo        *m;
-	s4                 disp;
-	u1                *pv;
-	functionptr        f;
+	methodinfo  *m;
+	s4           disp;
+	u1          *pv;
+	functionptr  f;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	ra       = (u1 *)         *((ptrint *) (sp + 5 * 8));
 #if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
+	mcode    =                *((u8 *)     (sp + 3 * 8));
 #else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+	mcode[0] =                *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                *((u4 *)     (sp + 3 * 8 + 4));
 #endif
-	m        = (methodinfo *)        *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	m        = (methodinfo *) *((ptrint *) (sp + 2 * 8));
+	disp     =                *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)         *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
 	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
-	PATCHER_MONITORENTER;
-
 	/* resolve native function */
 
-	if (!(f = native_resolve_function(m))) {
-		PATCHER_MONITOREXIT;
-
+	if (!(f = native_resolve_function(m)))
 		return false;
-	}
 
 	/* patch back original code */
 
@@ -1133,8 +1081,6 @@ bool patcher_resolve_native(u1 *sp)
 	/* synchronize data cache */
 
 	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }

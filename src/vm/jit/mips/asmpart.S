@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
+   $Id: asmpart.S 5164 2006-07-19 15:54:01Z twisti $
 
 */
 
@@ -301,19 +301,14 @@ asm_call_jit_compiler:
 	                              /* directly to the caller (ra).             */
 
 L_asm_call_jit_compiler_exception:
-#if defined(ENABLE_THREADS)
 	aaddiu  sp,sp,-2*8
 	ast     ra,0*8(sp)
-	jal     builtin_asm_get_exceptionptrptr
+	jal     exceptions_get_and_clear_exception
 	ald     ra,0*8(sp)
 	aaddiu  sp,sp,2*8
-#else
-	la      v0,_exceptionptr
-#endif
-	ald     xptr,0(v0)            /* get the exception pointer                */
-	ast     zero,0(v0)            /* clear the exception pointer              */
 
-	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
+	move    xptr,v0               /* get exception                            */
+	aaddiu  xpc,ra,-4             /* exception address is RA - 4              */
 	b       asm_handle_nat_exception
 
 	.end    asm_call_jit_compiler
@@ -460,6 +455,8 @@ ex_flt2:
 
 *******************************************************************************/
 
+	.ent    asm_abstractmethoderror
+
 asm_abstractmethoderror:
 	aaddiu  sp,sp,-2*8                  /* create stackframe                  */
 	ast     ra,0*8(sp)                  /* save return address                */
@@ -472,6 +469,8 @@ asm_abstractmethoderror:
 	move    xptr,v0                     /* get exception pointer              */
 	aaddiu  xpc,ra,-4                   /* exception address is ra - 4        */
 	b       asm_handle_nat_exception
+
+	.end    asm_abstractmethoderror
 
 
 /* asm_patcher_wrapper *********************************************************
@@ -491,7 +490,7 @@ asm_abstractmethoderror:
     .ent    asm_patcher_wrapper
 
 asm_patcher_wrapper:
-	aaddiu  sp,sp,-((2+16+22+4)*8+sizestackframeinfo) /* create stack frame   */
+	aaddiu  sp,sp,-((2+16+22+4)*8)/* create stack frame                       */
 
 	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
 	SAVE_ARGUMENT_REGISTERS(2)    /* save 8 int/8 float argument registers    */
@@ -502,22 +501,11 @@ asm_patcher_wrapper:
 	ast     ra,(2+16+22+2)*8(sp)  /* save method return address (for leafs)   */
 	ast     pv,(2+16+22+3)*8(sp)  /* save pv of calling java function         */
 
-	aaddiu  a0,sp,(2+16+22+4)*8   /* create stackframe info                   */
-	move    a1,pv                 /* pass java pv                             */
-	aaddiu  a2,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* pass java sp        */
-	move    a3,ra                 /* this is correct for leafs                */
-	ald     a4,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* pass xpc           */
-	jal     stacktrace_create_extern_stackframeinfo
-
-	aaddiu  a0,sp,((0+2+16+22+4)*8+sizestackframeinfo) /* pass sp             */
-	ald     itmp3,((0+2+16+22+4)*8+sizestackframeinfo)(sp) /* get function    */
-	ald     itmp1,(2+16+22+3)*8(sp) /* save pv to the position of fp          */
-	ast     itmp1,((0+2+16+22+4)*8+sizestackframeinfo)(sp)
-	jalr    itmp3
-	ast     v0,((0+2+16+22+4)*8+sizestackframeinfo)(sp) /* save return value  */
-
-	aaddiu  a0,sp,(2+16+22+4)*8   /* remove stackframe info                   */
-	jal     stacktrace_remove_stackframeinfo
+	aaddiu  a0,sp,(2+16+22+4)*8   /* pass SP of patcher stub                  */
+	move    a1,pv                 /* pass PV                                  */
+	move    a2,ra                 /* pass RA (correct for leafs)              */
+	jal     patcher_wrapper
+	move    itmp3,v0
 
 	RESTORE_RETURN_REGISTERS(0)   /* restore 1 int/1 float return registers   */
 	RESTORE_ARGUMENT_REGISTERS(2) /* restore 8 int/8 float argument registers */
@@ -528,33 +516,17 @@ asm_patcher_wrapper:
 	ald     ra,(2+16+22+2)*8(sp)  /* restore method return address (for leafs)*/
 	ald     pv,(2+16+22+3)*8(sp)  /* restore pv of calling java function      */
 
-	ald     itmp3,((0+2+16+22+4)*8+sizestackframeinfo)(sp) /* get return value*/
-	beqz    itmp3,L_asm_patcher_wrapper_exception
+	bnez    itmp3,L_asm_patcher_wrapper_exception
 
-	ald     itmp3,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* get RA to JIT   */
-	aaddiu  sp,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* remove stack frame  */
+	ald     itmp3,(5+2+16+22+4)*8(sp) /* load RA                              */
+	aaddiu  sp,sp,(6+2+16+22+4)*8 /* remove stack frame                       */
 
 	jr      itmp3                 /* jump to new patched code                 */
 
 L_asm_patcher_wrapper_exception:
-	ald     xpc,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* RA to JIT is xpc  */
-	aaddiu  sp,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* remove stack frame  */
-
-#if defined(ENABLE_THREADS)
-	daddiu  sp,sp,-4*8
-	sd      xpc,0*8(sp)
-	sd      ra,1*8(sp)
-	sd      pv,2*8(sp)
-	jal     builtin_asm_get_exceptionptrptr
-	ld      xpc,0*8(sp)
-	ld      ra,1*8(sp)
-	ld      pv,2*8(sp)
-	daddiu  sp,sp,4*8
-#else
-	la      v0,_exceptionptr
-#endif
-	ld      xptr,0(v0)            /* get the exception pointer                */
-	sd      zero,0(v0)            /* clear the exception pointer              */
+	move    xptr,itmp3            /* get exception                            */
+	ald     xpc,(5+2+16+22+4)*8(sp) /* xpc is RA                              */
+	aaddiu  sp,sp,(6+2+16+22+4)*8 /* remove stack frame                       */
 	b       asm_handle_exception
 
 	.end	asm_patcher_wrapper
