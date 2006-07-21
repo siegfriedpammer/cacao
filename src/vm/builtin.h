@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 5123 2006-07-12 21:45:34Z twisti $
+   $Id: builtin.h 5165 2006-07-21 09:24:03Z twisti $
 
 */
 
@@ -298,15 +298,6 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
 
 /* this is a wrapper for calls from asmpart */
 java_objectheader **builtin_asm_get_exceptionptrptr(void);
-
-#if defined(ENABLE_THREADS)
-static inline java_objectheader **builtin_get_exceptionptrptr(void);
-
-inline java_objectheader **builtin_get_exceptionptrptr(void)
-{
-	return &(THREADOBJECT->_exceptionptr);
-}
-#endif
 
 #if defined(ENABLE_CYCLES_STATS)
 void builtin_print_cycles_stats(FILE *file);

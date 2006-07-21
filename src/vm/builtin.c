@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5155 2006-07-18 08:56:55Z twisti $
+   $Id: builtin.c 5165 2006-07-21 09:24:03Z twisti $
 
 */
 
@@ -2435,20 +2435,6 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 
 	return ah;
 }
-
-
-/* builtin_asm_get_exceptionptrptr *********************************************
-
-   this is a wrapper for calls from asmpart
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-java_objectheader **builtin_asm_get_exceptionptrptr(void)
-{
-	return builtin_get_exceptionptrptr();
-}
-#endif
 
 
 /*
