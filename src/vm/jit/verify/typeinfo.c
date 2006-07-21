@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: typeinfo.c 5166 2006-07-21 10:09:33Z twisti $
 
 */
 
@@ -1701,7 +1701,7 @@ typeinfo_merge_error(methodinfo *m,char *str,typeinfo *x,typeinfo *y) {
 #endif
 
     log_text(str);
-	*exceptionptr = new_verifyerror(m,str);
+	exceptions_throw_verifyerror(m, str);
 }
 
 /* Condition: clsx != clsy. */

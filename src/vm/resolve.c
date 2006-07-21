@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5053 2006-06-28 19:11:20Z twisti $
+   $Id: resolve.c 5166 2006-07-21 10:09:33Z twisti $
 
 */
 
@@ -592,7 +592,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 	/* returnAddresses are illegal here */
 
 	if (TYPEINFO_IS_PRIMITIVE(*subtinfo)) {
-		*exceptionptr = new_verifyerror(refmethod,
+		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of returnAddress");
 		return resolveFailed;
 	}
@@ -600,7 +600,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 	/* uninitialized objects are illegal here */
 
 	if (TYPEINFO_IS_NEWOBJECT(*subtinfo)) {
-		*exceptionptr = new_verifyerror(refmethod,
+		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of uninitialized object");
 		return resolveFailed;
 	}
@@ -876,7 +876,7 @@ classinfo * resolve_classref_eager_nonabstract(constant_classref *ref)
 	/* ensure that the class is not abstract */
 
 	if (c->flags & ACC_ABSTRACT) {
-		*exceptionptr = new_verifyerror(NULL,"creating instance of abstract class");
+		exceptions_throw_verifyerror(NULL,"creating instance of abstract class");
 		return NULL;
 	}
 
@@ -1047,11 +1047,11 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 		assert(instanceslot->type == TYPE_ADR); /* checked earlier */
 
 		if (!TYPEINFO_IS_REFERENCE(instanceslot->typeinfo)) {
-			*exceptionptr = new_verifyerror(refmethod, "illegal instruction: field access on non-reference");
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on non-reference");
 			return resolveFailed;
 		}
 		if (TYPEINFO_IS_ARRAY(instanceslot->typeinfo)) {
-			*exceptionptr = new_verifyerror(refmethod, "illegal instruction: field access on array");
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on array");
 			return resolveFailed;
 		}
 
@@ -1065,7 +1065,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
 
 			if (ins != NULL) {
-				*exceptionptr = new_verifyerror(refmethod,"accessing field of uninitialized object");
+				exceptions_throw_verifyerror(refmethod,"accessing field of uninitialized object");
 				return resolveFailed;
 			}
 
@@ -1548,7 +1548,7 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 		/* check that declarer is a super class of the current class   */
 
 		if (!class_issubclass(referer,declarer)) {
-			*exceptionptr = new_verifyerror(refmethod,
+			exceptions_throw_verifyerror(refmethod,
 					"INVOKESPECIAL calling non-super class method");
 			return NULL;
 		}
@@ -2280,13 +2280,13 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 #endif
 
 	if (TYPEINFO_IS_PRIMITIVE(*tinfo)) {
-		*exceptionptr = new_verifyerror(refmethod,
+		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of returnAddress");
 		return false;
 	}
 
 	if (TYPEINFO_IS_NEWOBJECT(*tinfo)) {
-		*exceptionptr = new_verifyerror(refmethod,
+		exceptions_throw_verifyerror(refmethod,
 				"Invalid use of uninitialized object");
 		return false;
 	}
@@ -2620,11 +2620,11 @@ bool constrain_unresolved_field(unresolved_field *ref,
 
 		/* The instanceslot must contain a reference to a non-array type */
 		if (!TYPEINFO_IS_REFERENCE(instanceslot->typeinfo)) {
-			*exceptionptr = new_verifyerror(refmethod, "illegal instruction: field access on non-reference");
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on non-reference");
 			return false;
 		}
 		if (TYPEINFO_IS_ARRAY(instanceslot->typeinfo)) {
-			*exceptionptr = new_verifyerror(refmethod, "illegal instruction: field access on array");
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on array");
 			return false;
 		}
 
@@ -2639,7 +2639,7 @@ bool constrain_unresolved_field(unresolved_field *ref,
 			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
 
 			if (ins != NULL) {
-				*exceptionptr = new_verifyerror(refmethod,"accessing field of uninitialized object");
+				exceptions_throw_verifyerror(refmethod,"accessing field of uninitialized object");
 				return false;
 			}
 			/* XXX check that class of field == refmethod->class */

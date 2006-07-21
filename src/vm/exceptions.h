@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 5088 2006-07-08 20:16:05Z twisti $
+   $Id: exceptions.h 5166 2006-07-21 10:09:33Z twisti $
 
 */
 
@@ -134,7 +134,9 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc);
 
 java_objectheader *new_internalerror(const char *message, ...);
 
-java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...);
+java_objectheader *exceptions_new_verifyerror(methodinfo *m,
+											  const char *message, ...);
+void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
 void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
 
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,

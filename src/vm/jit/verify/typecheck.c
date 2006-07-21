@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5000 2006-05-31 21:31:29Z edwin $
+   $Id: typecheck.c 5166 2006-07-21 10:09:33Z twisti $
 
 */
 
@@ -398,7 +398,7 @@ void typecheck_print_statistics(FILE *file) {
 
 #define TYPECHECK_VERIFYERROR_ret(m,msg,retval) \
     do { \
-        *exceptionptr = new_verifyerror((m), (msg)); \
+        exceptions_throw_verifyerror((m), (msg)); \
         return (retval); \
     } while (0)
 
@@ -412,7 +412,7 @@ void typecheck_print_statistics(FILE *file) {
 #define TYPECHECK_CHECK_TYPE(sp,tp,msg) \
     do { \
 		if ((sp)->type != (tp)) { \
-        	*exceptionptr = new_verifyerror(state->m, (msg)); \
+        	exceptions_throw_verifyerror(state->m, (msg)); \
         	return false; \
 		} \
     } while (0)
@@ -516,11 +516,11 @@ typestack_copy(verifier_state *state,stackptr dst,stackptr y,typevector *selecte
 	for (;dst; dst=dst->prev, y=y->prev) {
 		/* XXX only check the following two in debug mode? */
 		if (!y) {
-			*exceptionptr = new_verifyerror(state->m,"Stack depth mismatch");
+			exceptions_throw_verifyerror(state->m,"Stack depth mismatch");
 			return false;
 		}
 		if (dst->type != y->type) {
-			*exceptionptr = new_verifyerror(state->m,"Stack type mismatch");
+			exceptions_throw_verifyerror(state->m,"Stack type mismatch");
 			return false;
 		}
 		LOG3("copy %p -> %p (type %d)",y,dst,dst->type);
@@ -551,7 +551,7 @@ typestack_copy(verifier_state *state,stackptr dst,stackptr y,typevector *selecte
 		}
 	}
 	if (y) {
-		*exceptionptr = new_verifyerror(state->m,"Stack depth mismatch");
+		exceptions_throw_verifyerror(state->m,"Stack depth mismatch");
 		return false;
 	}
 	return true;
@@ -633,25 +633,25 @@ typestack_merge(verifier_state *state,stackptr dst,stackptr y)
 	
 	for (; dst; dst = dst->prev, y=y->prev) {
 		if (!y) {
-			*exceptionptr = new_verifyerror(state->m,"Stack depth mismatch");
+			exceptions_throw_verifyerror(state->m,"Stack depth mismatch");
 			return typecheck_FAIL;
 		}
 		if (dst->type != y->type) {
-			*exceptionptr = new_verifyerror(state->m,"Stack type mismatch");
+			exceptions_throw_verifyerror(state->m,"Stack type mismatch");
 			return typecheck_FAIL;
 		}
 		if (dst->type == TYPE_ADDRESS) {
 			if (TYPEINFO_IS_PRIMITIVE(dst->typeinfo)) {
 				/* dst has returnAddress type */
 				if (!TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
-					*exceptionptr = new_verifyerror(state->m,"Merging returnAddress with reference");
+					exceptions_throw_verifyerror(state->m,"Merging returnAddress with reference");
 					return typecheck_FAIL;
 				}
 			}
 			else {
 				/* dst has reference type */
 				if (TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
-					*exceptionptr = new_verifyerror(state->m,"Merging reference with returnAddress");
+					exceptions_throw_verifyerror(state->m,"Merging reference with returnAddress");
 					return typecheck_FAIL;
 				}
 				r = typeinfo_merge(state->m,&(dst->typeinfo),&(y->typeinfo));
@@ -662,7 +662,7 @@ typestack_merge(verifier_state *state,stackptr dst,stackptr y)
 		}
 	}
 	if (y) {
-		*exceptionptr = new_verifyerror(state->m,"Stack depth mismatch");
+		exceptions_throw_verifyerror(state->m,"Stack depth mismatch");
 		return typecheck_FAIL;
 	}
 	return changed;
@@ -972,14 +972,14 @@ typestate_reach(verifier_state *state,
 				if (sp->type == TYPE_ADR &&
                 		TYPEINFO_IS_NEWOBJECT(sp->typeinfo)) {
 					/*printf("current: %d, dest: %d\n", state->bptr->debug_nr, destblock->debug_nr);*/
-					*exceptionptr = new_verifyerror(state->m,"Branching backwards with uninitialized object on stack");
+					exceptions_throw_verifyerror(state->m,"Branching backwards with uninitialized object on stack");
 					return false;
 				}
 
 			for (i=0; i<state->numlocals; ++i)
 				if (yloc->td[i].type == TYPE_ADR &&
 					TYPEINFO_IS_NEWOBJECT(yloc->td[i].info)) {
-					*exceptionptr = new_verifyerror(state->m,"Branching backwards with uninitialized object in local variable");
+					exceptions_throw_verifyerror(state->m,"Branching backwards with uninitialized object in local variable");
 					return false;
 				}
 		}
@@ -1047,7 +1047,7 @@ typestate_ret(verifier_state *state,int retindex)
 
 	for (yvec=state->localset; yvec; ) {
 		if (!TYPEDESC_IS_RETURNADDRESS(yvec->td[retindex])) {
-			*exceptionptr = new_verifyerror(state->m,"Illegal instruction: RET on non-returnAddress");
+			exceptions_throw_verifyerror(state->m,"Illegal instruction: RET on non-returnAddress");
 			return false;
 		}
 

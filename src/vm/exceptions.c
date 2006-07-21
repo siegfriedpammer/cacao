@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: exceptions.c 5166 2006-07-21 10:09:33Z twisti $
 
 */
 
@@ -984,7 +984,7 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 }
 
 
-/* new_verifyerror *************************************************************
+/* exceptions_new_verifyerror **************************************************
 
    Generates a java.lang.VerifyError for the JIT compiler.
 
@@ -998,7 +998,8 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 
 *******************************************************************************/
 
-java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
+java_objectheader *exceptions_new_verifyerror(methodinfo *m,
+											  const char *message, ...)
 {
 	java_objectheader *o;
 	va_list            ap;
@@ -1050,6 +1051,18 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 	MFREE(msg, char, msglen);
 
 	return o;
+}
+
+
+/* exceptions_throw_verifyerror ************************************************
+
+   Throws a java.lang.VerifyError for the VM system.
+
+*******************************************************************************/
+
+void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
+{
+	*exceptionptr = exceptions_new_verifyerror(m, message);
 }
 
 

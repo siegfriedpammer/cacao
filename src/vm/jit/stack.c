@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5136 2006-07-14 17:05:12Z edwin $
+   $Id: stack.c 5166 2006-07-21 10:09:33Z twisti $
 
 */
 
@@ -2812,16 +2812,15 @@ icmd_BUILTIN:
 #if defined(ENABLE_VERIFIER)
 
 throw_stack_underflow:
-	*exceptionptr =
-		new_verifyerror(m, "Unable to pop operand off an empty stack");
+	exceptions_throw_verifyerror(m, "Unable to pop operand off an empty stack");
 	return false;
 
 throw_stack_overflow:
-	*exceptionptr = new_verifyerror(m, "Stack size too large");
+	exceptions_throw_verifyerror(m, "Stack size too large");
 	return false;
 
 throw_stack_depth_error:
-	*exceptionptr = new_verifyerror(m,"Stack depth mismatch");
+	exceptions_throw_verifyerror(m,"Stack depth mismatch");
 	return false;
 
 throw_stack_type_error:
@@ -2829,8 +2828,7 @@ throw_stack_type_error:
 	return false;
 
 throw_stack_category_error:
-	*exceptionptr =
-		new_verifyerror(m, "Attempt to split long or double on the stack");
+	exceptions_throw_verifyerror(m, "Attempt to split long or double on the stack");
 	return false;
 
 #endif
@@ -2898,9 +2896,9 @@ bool stack_analyse(jitdata *jd)
 		NEWXSTACK;
 	}
 
-#if CONDITIONAL_LOADCONST
 	b_count = m->basicblockcount;
 	bptr = m->basicblocks;
+
 	while (--b_count >= 0) {
 		if (bptr->icount != 0) {
 			iptr = bptr->iinstr + bptr->icount - 1;
@@ -2935,6 +2933,7 @@ bool stack_analyse(jitdata *jd)
 			case ICMD_IF_ACMPEQ:
 			case ICMD_IF_ACMPNE:
 				bptr[1].pre_count++;
+
 			case ICMD_GOTO:
 				m->basicblocks[m->basicblockindex[iptr->op1]].pre_count++;
 				break;
@@ -2958,6 +2957,7 @@ bool stack_analyse(jitdata *jd)
 					s4ptr += 2;
 				}
 				break;
+
 			default:
 				bptr[1].pre_count++;
 				break;
@@ -2965,8 +2965,6 @@ bool stack_analyse(jitdata *jd)
 		}
 		bptr++;
 	}
-#endif /* CONDITIONAL_LOADCONST */
-
 
 	do {
 		loops++;
@@ -5327,16 +5325,15 @@ bool stack_analyse(jitdata *jd)
 #if defined(ENABLE_VERIFIER)
 
 throw_stack_underflow:
-	*exceptionptr =
-		new_verifyerror(m, "Unable to pop operand off an empty stack");
+	exceptions_throw_verifyerror(m, "Unable to pop operand off an empty stack");
 	return false;
 
 throw_stack_overflow:
-	*exceptionptr = new_verifyerror(m, "Stack size too large");
+	exceptions_throw_verifyerror(m, "Stack size too large");
 	return false;
 
 throw_stack_depth_error:
-	*exceptionptr = new_verifyerror(m,"Stack depth mismatch");
+	exceptions_throw_verifyerror(m,"Stack depth mismatch");
 	return false;
 
 throw_stack_type_error:
@@ -5344,8 +5341,7 @@ throw_stack_type_error:
 	return false;
 
 throw_stack_category_error:
-	*exceptionptr =
-		new_verifyerror(m, "Attempt to split long or double on the stack");
+	exceptions_throw_verifyerror(m, "Attempt to split long or double on the stack");
 	return false;
 
 #endif

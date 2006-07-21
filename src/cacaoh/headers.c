@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5079 2006-07-06 11:36:01Z twisti $
+   $Id: headers.c 5166 2006-07-21 10:09:33Z twisti $
 
 */
 
@@ -189,13 +189,9 @@ void throw_main_exception_exit(void) { assert(0); }
 void throw_exception(void) { assert(0); }
 void throw_exception_exit(void) { assert(0); }
 
-java_objectheader *new_verifyerror(methodinfo *m, const char *message)
+void exceptions_throw_verifyerror(methodinfo *m, const char *message)
 {
 	assert(0);
-
-	/* keep compiler happy */
-
-	return NULL;
 }
 
 java_objectheader *new_exception_throwable(const char *classname, java_lang_Throwable *throwable)

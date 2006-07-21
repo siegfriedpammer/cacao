@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5134 2006-07-14 17:02:24Z edwin $
+   $Id: parse.c 5166 2006-07-21 10:09:33Z twisti $
 
 */
 
@@ -105,7 +105,7 @@ static exceptiontable * new_fillextable(
 
 #if defined(ENABLE_VERIFIER)
 		if (p <= raw_extable[src].startpc) {
-			*exceptionptr = new_verifyerror(m,
+			exceptions_throw_verifyerror(m,
 				"Invalid exception handler range");
 			return NULL;
 		}
@@ -137,8 +137,8 @@ static exceptiontable * new_fillextable(
 
 #if defined(ENABLE_VERIFIER)
 throw_invalid_bytecode_index:
-	*exceptionptr =
-		new_verifyerror(m, "Illegal bytecode index in exception table");
+	exceptions_throw_verifyerror(m,
+								 "Illegal bytecode index in exception table");
 	return NULL;
 #endif
 }
@@ -168,7 +168,7 @@ static exceptiontable * fillextable(methodinfo *m,
 
 #if defined(ENABLE_VERIFIER)
 		if (p <= raw_extable[src].startpc) {
-			*exceptionptr = new_verifyerror(m,
+			exceptions_throw_verifyerror(m,
 				"Invalid exception handler range");
 			return NULL;
 		}
@@ -200,8 +200,8 @@ static exceptiontable * fillextable(methodinfo *m,
 
 #if defined(ENABLE_VERIFIER)
 throw_invalid_bytecode_index:
-	*exceptionptr =
-		new_verifyerror(m, "Illegal bytecode index in exception table");
+	exceptions_throw_verifyerror(m,
+								 "Illegal bytecode index in exception table");
 	return NULL;
 #endif
 }
@@ -379,7 +379,7 @@ fetch_opcode:
 
 #if defined(ENABLE_VERIFIER)
 			if (i >= m->class->cpcount) {
-				*exceptionptr = new_verifyerror(m,
+				exceptions_throw_verifyerror(m,
 					"Attempt to access constant outside range");
 				return false;
 			}
@@ -416,7 +416,7 @@ fetch_opcode:
 
 #if defined(ENABLE_VERIFIER)
 			default:
-				*exceptionptr = new_verifyerror(m,
+				exceptions_throw_verifyerror(m,
 						"Invalid constant type to push");
 				return false;
 #endif
@@ -636,7 +636,7 @@ fetch_opcode:
 				break;
 #if defined(ENABLE_VERIFIER)
 			default:
-				*exceptionptr = new_verifyerror(m,
+				exceptions_throw_verifyerror(m,
 						"Invalid array-type to create");
 				return false;
 #endif
@@ -814,7 +814,7 @@ jsr_tail:
 					/* check if the lookup table is sorted correctly */
 
 					if (i && (j <= prevvalue)) {
-						*exceptionptr = new_verifyerror(m, "Unsorted lookup switch");
+						exceptions_throw_verifyerror(m, "Unsorted lookup switch");
 						return false;
 					}
 					prevvalue = j;
@@ -872,7 +872,7 @@ jsr_tail:
 
 #if defined(ENABLE_VERIFIER)
 				if (num < 1) {
-					*exceptionptr = new_verifyerror(m,
+					exceptions_throw_verifyerror(m,
 							"invalid TABLESWITCH: upper bound < lower bound");
 					return false;
 				}
@@ -1226,8 +1226,7 @@ invoke_method:
 			/* check for invalid opcodes if the verifier is enabled */
 #if defined(ENABLE_VERIFIER)
 		case JAVA_BREAKPOINT:
-			*exceptionptr =
-				new_verifyerror(m, "Quick instructions shouldn't appear, yet.");
+			exceptions_throw_verifyerror(m, "Quick instructions shouldn't appear, yet.");
 			return false;
 
 		case 186: /* unused opcode */
@@ -1284,9 +1283,8 @@ invoke_method:
 		case 253:
 		case 254:
 		case 255:
-			*exceptionptr =
-				new_verifyerror(m,"Illegal opcode %d at instr %d\n",
-								  opcode, ipc);
+			exceptions_throw_verifyerror(m, "Illegal opcode %d at instr %d\n",
+										 opcode, ipc);
 			return false;
 			break;
 #endif /* defined(ENABLE_VERIFIER) */
@@ -1305,7 +1303,7 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 		/* If WIDE was used correctly, iswide should have been reset by now. */
 		if (iswide) {
-			*exceptionptr = new_verifyerror(m,
+			exceptions_throw_verifyerror(m,
 					"Illegal instruction: WIDE before incompatible opcode");
 			return false;
 		}
@@ -1324,13 +1322,13 @@ invoke_method:
 
 #if defined(ENABLE_VERIFIER)
 	if (p != m->jcodelength) {
-		*exceptionptr = new_verifyerror(m,
+		exceptions_throw_verifyerror(m,
 				"Command-sequence crosses code-boundary");
 		return false;
 	}
 
 	if (!blockend) {
-		*exceptionptr = new_verifyerror(m, "Falling off the end of the code");
+		exceptions_throw_verifyerror(m, "Falling off the end of the code");
 		return false;
 	}
 #endif /* defined(ENABLE_VERIFIER) */
@@ -1380,7 +1378,7 @@ invoke_method:
 			/* instruction.                                               */
 #if defined(ENABLE_VERIFIER)
 			if (!instructionstart[p]) {
-				*exceptionptr = new_verifyerror(m,
+				exceptions_throw_verifyerror(m,
 						"Branch into middle of instruction");
 				return false;
 			}
@@ -1460,17 +1458,15 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 
 throw_unexpected_end_of_bytecode:
-	*exceptionptr = new_verifyerror(m, "Unexpected end of bytecode");
+	exceptions_throw_verifyerror(m, "Unexpected end of bytecode");
 	return false;
 
 throw_invalid_bytecode_index:
-	*exceptionptr =
-		new_verifyerror(m, "Illegal target of branch instruction");
+	exceptions_throw_verifyerror(m, "Illegal target of branch instruction");
 	return false;
 
 throw_illegal_local_variable_number:
-	*exceptionptr =
-		new_verifyerror(m, "Illegal local variable number");
+	exceptions_throw_verifyerror(m, "Illegal local variable number");
 	return false;
 
 #endif /* ENABLE_VERIFIER */
@@ -1626,7 +1622,7 @@ fetch_opcode:
 
 #if defined(ENABLE_VERIFIER)
 			if (i >= m->class->cpcount) {
-				*exceptionptr = new_verifyerror(m,
+				exceptions_throw_verifyerror(m,
 					"Attempt to access constant outside range");
 				return false;
 			}
@@ -1669,7 +1665,7 @@ fetch_opcode:
 
 #if defined(ENABLE_VERIFIER)
 			default:
-				*exceptionptr = new_verifyerror(m,
+				exceptions_throw_verifyerror(m,
 						"Invalid constant type to push");
 				return false;
 #endif
@@ -1891,7 +1887,7 @@ fetch_opcode:
 				break;
 #if defined(ENABLE_VERIFIER)
 			default:
-				*exceptionptr = new_verifyerror(m,
+				exceptions_throw_verifyerror(m,
 						"Invalid array-type to create");
 				return false;
 #endif
@@ -2054,7 +2050,7 @@ fetch_opcode:
 					/* check if the lookup table is sorted correctly */
 					
 					if (i && (j <= prevvalue)) {
-						*exceptionptr = new_verifyerror(m, "Unsorted lookup switch");
+						exceptions_throw_verifyerror(m, "Unsorted lookup switch");
 						return false;
 					}
 					prevvalue = j;
@@ -2115,7 +2111,7 @@ fetch_opcode:
 
 #if defined(ENABLE_VERIFIER)
 				if (num < 0) {
-					*exceptionptr = new_verifyerror(m,
+					exceptions_throw_verifyerror(m,
 							"invalid TABLESWITCH: upper bound < lower bound");
 					return false;
 				}
@@ -2482,8 +2478,7 @@ invoke_method:
 			/* check for invalid opcodes if the verifier is enabled */
 #if defined(ENABLE_VERIFIER)
 		case JAVA_BREAKPOINT:
-			*exceptionptr =
-				new_verifyerror(m, "Quick instructions shouldn't appear yet.");
+			exceptions_throw_verifyerror(m, "Quick instructions shouldn't appear yet.");
 			return false;
 
 		case 186: /* unused opcode */
@@ -2540,9 +2535,8 @@ invoke_method:
 		case 253:
 		case 254:
 		case 255:
-			*exceptionptr =
-				new_verifyerror(m,"Illegal opcode %d at instr %d\n",
-								  opcode, ipc);
+			exceptions_throw_verifyerror(m, "Illegal opcode %d at instr %d\n",
+										 opcode, ipc);
 			return false;
 			break;
 #endif /* defined(ENABLE_VERIFIER) */
@@ -2557,7 +2551,7 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 		/* If WIDE was used correctly, iswide should have been reset by now. */
 		if (iswide) {
-			*exceptionptr = new_verifyerror(m,
+			exceptions_throw_verifyerror(m,
 					"Illegal instruction: WIDE before incompatible opcode");
 			return false;
 		}
@@ -2567,13 +2561,13 @@ invoke_method:
 
 #if defined(ENABLE_VERIFIER)
 	if (p != m->jcodelength) {
-		*exceptionptr = new_verifyerror(m,
+		exceptions_throw_verifyerror(m,
 				"Command-sequence crosses code-boundary");
 		return false;
 	}
 
 	if (!blockend) {
-		*exceptionptr = new_verifyerror(m, "Falling off the end of the code");
+		exceptions_throw_verifyerror(m, "Falling off the end of the code");
 		return false;
 	}
 #endif /* defined(ENABLE_VERIFIER) */
@@ -2622,7 +2616,7 @@ invoke_method:
 				/* instruction.                                               */
 #if defined(ENABLE_VERIFIER)
 				if (!instructionstart[p]) {
-					*exceptionptr = new_verifyerror(m,
+					exceptions_throw_verifyerror(m,
 						"Branch into middle of instruction");
 					return false;
 				}
@@ -2702,17 +2696,15 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 
 throw_unexpected_end_of_bytecode:
-	*exceptionptr = new_verifyerror(m, "Unexpected end of bytecode");
+	exceptions_throw_verifyerror(m, "Unexpected end of bytecode");
 	return false;
 
 throw_invalid_bytecode_index:
-	*exceptionptr =
-		new_verifyerror(m, "Illegal target of branch instruction");
+	exceptions_throw_verifyerror(m, "Illegal target of branch instruction");
 	return false;
 
 throw_illegal_local_variable_number:
-	*exceptionptr =
-		new_verifyerror(m, "Illegal local variable number");
+	exceptions_throw_verifyerror(m, "Illegal local variable number");
 	return false;
 		
 #endif /* ENABLE_VERIFIER */
