@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-asm.h 5167 2006-07-21 14:15:10Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #ifndef _MD_ASM_H
 #define _MD_ASM_H
 
+#define __ASSEMBLY__                    /* required by <asm/ppc_asm.h>        */
 #include <asm/ppc_asm.h>
 
 
