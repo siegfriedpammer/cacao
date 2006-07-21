@@ -120,10 +120,10 @@ endif
 
 ## We have our own definition of LTCOMPILE because we want to use our
 ## CFLAGS, not those passed in from the top level make.
-LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) \
-	$(AM_CFLAGS) $(MY_CFLAGS) $(GC_CFLAGS) 
-LINK = $(LIBTOOL) --mode=link $(CC) $(AM_CFLAGS) $(MY_CFLAGS) $(LDFLAGS) -o $@
+#LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) \
+#	$(AM_CPPFLAGS) $(CPPFLAGS) \
+#	$(AM_CFLAGS) $(MY_CFLAGS) $(GC_CFLAGS) 
+#LINK = $(LIBTOOL) --mode=link $(CC) $(AM_CFLAGS) $(MY_CFLAGS) $(LDFLAGS) -o $@
 
 ## We need to add DEFS to assembler flags
 ## :FIXME: what if assembler does not accept -D... ?
