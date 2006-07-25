@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 5109 2006-07-11 19:17:23Z twisti $
+   $Id: md-emit.h 5174 2006-07-25 16:00:55Z twisti $
 
 */
 
@@ -148,17 +148,6 @@
 /* convenience macros *********************************************************/
 
 #define emit_reg(reg,rm)                emit_address_byte(3,(reg),(rm))
-
-
-/* code generation prototypes *************************************************/
-
-void emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void emit_lalu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
-void emit_ishiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
-void emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
 
 
 /* integer instructions */
