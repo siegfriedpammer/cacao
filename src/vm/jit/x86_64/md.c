@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: md.c 5172 2006-07-25 15:33:58Z twisti $
 
 */
 
@@ -138,8 +138,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 /* md_signal_handler_sigusr2 ***************************************************
 
-   NullPointerException signal handler for hardware null pointer
-   check.
+   Signal handler for profiling sampling.
 
 *******************************************************************************/
 

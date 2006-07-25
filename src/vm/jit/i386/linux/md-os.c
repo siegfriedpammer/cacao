@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: md-os.c 5172 2006-07-25 15:33:58Z twisti $
 
 */
 
@@ -106,6 +106,32 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
+
+
+/* md_signal_handler_sigusr2 ***************************************************
+
+   Signal handler for profiling sampling.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
+{
+	threadobject *t;
+	ucontext_t   *_uc;
+	mcontext_t   *_mc;
+	u1           *pc;
+
+	t = THREADOBJECT;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	pc = (u1 *) _mc->gregs[REG_EIP];
+
+	t->pc = pc;
+}
+#endif
 
 
 #if defined(ENABLE_THREADS)
