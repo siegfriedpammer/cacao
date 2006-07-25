@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 5109 2006-07-11 19:17:23Z twisti $
+   $Id: emit.c 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -426,48 +426,6 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 		}
 
 		emit_store(jd, iptr, dst, d);
-	}
-}
-
-
-void emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
-{
-	if (iptr->dst->flags & INMEMORY) {
-		s4 offset = 0;
-
-		if (src->flags & INMEMORY) {
-			emit_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
-
-		} else {
-			emit_test_reg_reg(cd, src->regoff, src->regoff);
-		}
-
-		offset += 7;
-		CALCOFFSETBYTES(offset, REG_SP, iptr->dst->regoff * 4);
-	
-		emit_jcc(cd, if_op, offset + (iptr[1].opc == ICMD_ELSE_ICONST) ? 5 + offset : 0);
-		emit_mov_imm_membase(cd, iptr->val.i, REG_SP, iptr->dst->regoff * 4);
-
-		if (iptr[1].opc == ICMD_ELSE_ICONST) {
-			emit_jmp_imm(cd, offset);
-			emit_mov_imm_membase(cd, iptr[1].val.i, REG_SP, iptr->dst->regoff * 4);
-		}
-
-	} else {
-		if (src->flags & INMEMORY) {
-			emit_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
-
-		} else {
-			emit_test_reg_reg(cd, src->regoff, src->regoff);
-		}
-
-		emit_jcc(cd, if_op, (iptr[1].opc == ICMD_ELSE_ICONST) ? 10 : 5);
-		emit_mov_imm_reg(cd, iptr->val.i, iptr->dst->regoff);
-
-		if (iptr[1].opc == ICMD_ELSE_ICONST) {
-			emit_jmp_imm(cd, 5);
-			emit_mov_imm_reg(cd, iptr[1].val.i, iptr->dst->regoff);
-		}
 	}
 }
 

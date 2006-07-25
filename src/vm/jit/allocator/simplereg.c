@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5139 2006-07-14 17:08:32Z edwin $
+   $Id: simplereg.c 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -1323,7 +1323,6 @@ static void new_allocate_scratch_registers(jitdata *jd)
 					/* pop 0 push 0 */
 
 				case ICMD_NOP:
-				case ICMD_ELSE_ICONST:
 				case ICMD_CHECKNULL:
 				case ICMD_IINC:
 				case ICMD_JSR:
@@ -1701,13 +1700,6 @@ static void new_allocate_scratch_registers(jitdata *jd)
 				case ICMD_LSHRCONST:
 				case ICMD_LUSHRCONST:
 
-				case ICMD_IFEQ_ICONST:
-				case ICMD_IFNE_ICONST:
-				case ICMD_IFLT_ICONST:
-				case ICMD_IFGE_ICONST:
-				case ICMD_IFGT_ICONST:
-				case ICMD_IFLE_ICONST:
-
 				case ICMD_INEG:
 				case ICMD_INT2BYTE:
 				case ICMD_INT2CHAR:
@@ -1842,7 +1834,6 @@ static void allocate_scratch_registers(jitdata *jd)
 					/* pop 0 push 0 */
 
 				case ICMD_NOP:
-				case ICMD_ELSE_ICONST:
 				case ICMD_CHECKNULL:
 				case ICMD_IINC:
 				case ICMD_JSR:
@@ -2219,13 +2210,6 @@ static void allocate_scratch_registers(jitdata *jd)
 				case ICMD_LSHLCONST:
 				case ICMD_LSHRCONST:
 				case ICMD_LUSHRCONST:
-
-				case ICMD_IFEQ_ICONST:
-				case ICMD_IFNE_ICONST:
-				case ICMD_IFLT_ICONST:
-				case ICMD_IFGE_ICONST:
-				case ICMD_IFGT_ICONST:
-				case ICMD_IFLE_ICONST:
 
 				case ICMD_INEG:
 				case ICMD_INT2BYTE:

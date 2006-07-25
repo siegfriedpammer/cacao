@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5166 2006-07-21 10:09:33Z twisti $
+   $Id: stack.c 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -649,18 +649,6 @@ icmd_NOP:
 					case ICMD_CHECKNULL:
 						COUNT(count_check_null);
 						USE_S1(TYPE_ADR);
-						CLR_SX;
-						CLR_DST; /* XXX live through? */
-						break;
-
-					case ICMD_IFEQ_ICONST:
-					case ICMD_IFNE_ICONST:
-					case ICMD_IFLT_ICONST:
-					case ICMD_IFGE_ICONST:
-					case ICMD_IFGT_ICONST:
-					case ICMD_IFLE_ICONST:
-					case ICMD_ELSE_ICONST:
-						USE_S1(TYPE_INT);
 						CLR_SX;
 						CLR_DST; /* XXX live through? */
 						break;
@@ -3041,14 +3029,6 @@ bool stack_analyse(jitdata *jd)
 					case ICMD_CHECKNULL:
 						COUNT(count_check_null);
 					case ICMD_NOP:
-
-					case ICMD_IFEQ_ICONST:
-					case ICMD_IFNE_ICONST:
-					case ICMD_IFLT_ICONST:
-					case ICMD_IFGE_ICONST:
-					case ICMD_IFGT_ICONST:
-					case ICMD_IFLE_ICONST:
-					case ICMD_ELSE_ICONST:
 						SETDST;
 						break;
 
@@ -4158,82 +4138,6 @@ bool stack_analyse(jitdata *jd)
 					case ICMD_IFGT:
 					case ICMD_IFLE:
 						COUNT(count_pcmd_bra);
-#if CONDITIONAL_LOADCONST && 0
-# if defined(ENABLE_INTRP)
-						if (!opt_intrp) {
-# endif
-							tbptr = m->basicblocks + b_index;
-
-							if ((b_count >= 3) &&
-								((b_index + 2) == m->basicblockindex[iptr[0].op1]) &&
-								(tbptr[1].pre_count == 1) &&
-								(tbptr[1].iinstr[0].opc == ICMD_ICONST) &&
-								(tbptr[1].iinstr[1].opc == ICMD_GOTO)   &&
-								((b_index + 3) == m->basicblockindex[tbptr[1].iinstr[1].op1]) &&
-								(tbptr[2].pre_count == 1) &&
-								(tbptr[2].iinstr[0].opc == ICMD_ICONST)  &&
-								(tbptr[2].icount==1)) {
-								/*printf("tbptr[2].icount=%d\n",tbptr[2].icount);*/
-								OP1_1(TYPE_INT, TYPE_INT);
-								switch (iptr[0].opc) {
-								case ICMD_IFEQ:
-									iptr[0].opc = ICMD_IFNE_ICONST;
-									break;
-								case ICMD_IFNE:
-									iptr[0].opc = ICMD_IFEQ_ICONST;
-									break;
-								case ICMD_IFLT:
-									iptr[0].opc = ICMD_IFGE_ICONST;
-									break;
-								case ICMD_IFGE:
-									iptr[0].opc = ICMD_IFLT_ICONST;
-									break;
-								case ICMD_IFGT:
-									iptr[0].opc = ICMD_IFLE_ICONST;
-									break;
-								case ICMD_IFLE:
-									iptr[0].opc = ICMD_IFGT_ICONST;
-									break;
-								}
-#if 1
-								iptr[0].val.i = iptr[1].val.i;
-								iptr[1].opc = ICMD_ELSE_ICONST;
-								iptr[1].val.i = iptr[3].val.i;
-								iptr[2].opc = ICMD_NOP;
-								iptr[3].opc = ICMD_NOP;
-#else
-								/* HACK: save compare value in iptr[1].op1 */ 	 
-								iptr[1].op1 = iptr[0].val.i; 	 
-								iptr[0].val.i = tbptr[1].iinstr[0].val.i; 	 
-								iptr[1].opc = ICMD_ELSE_ICONST; 	 
-								iptr[1].val.i = tbptr[2].iinstr[0].val.i; 	 
-								tbptr[1].iinstr[0].opc = ICMD_NOP; 	 
-								tbptr[1].iinstr[1].opc = ICMD_NOP; 	 
-								tbptr[2].iinstr[0].opc = ICMD_NOP; 	 
-#endif
-								tbptr[1].flags = BBDELETED;
-								tbptr[2].flags = BBDELETED;
-								tbptr[1].icount = 0;
-								tbptr[2].icount = 0;
-								if (tbptr[3].pre_count == 2) {
-									len += tbptr[3].icount + 3;
-									bptr->icount += tbptr[3].icount + 3;
-									tbptr[3].flags = BBDELETED;
-									tbptr[3].icount = 0;
-									b_index++;
-								}
-								else {
-									bptr->icount++;
-									len ++;
-								}
-								b_index += 2;
-								break;
-							}
-# if defined(ENABLE_INTRP)
-						}
-# endif
-
-#endif /* CONDITIONAL_LOADCONST */
 
 						/* iptr->val.i is set implicitly in parse by
 						   clearing the memory or from IF_ICMPxx

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5171 2006-07-25 13:52:38Z twisti $
+   $Id: typecheck.c 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -2387,14 +2387,6 @@ return_tail:
 			case ICMD_LCONST:
 			case ICMD_FCONST:
 			case ICMD_DCONST:
-
-			case ICMD_IFEQ_ICONST:
-			case ICMD_IFNE_ICONST:
-			case ICMD_IFLT_ICONST:
-			case ICMD_IFGE_ICONST:
-			case ICMD_IFGT_ICONST:
-			case ICMD_IFLE_ICONST:
-			case ICMD_ELSE_ICONST:
 
 			case ICMD_IADD:
 			case ICMD_ISUB:

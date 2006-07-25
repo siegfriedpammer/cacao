@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: arch.h 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -69,8 +69,6 @@
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
-
-/* #define CONDITIONAL_LOADCONST            1 */
 
 #define SPECIALMEMUSE
 /* #define HAS_4BYTE_STACKSLOT */

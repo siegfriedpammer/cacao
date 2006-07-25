@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5171 2006-07-25 13:52:38Z twisti $
+   $Id: jit.h 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -566,28 +566,21 @@ extern int jcommandsize[256];
 #define JAVA_FCONST_1         12
 
 #define JAVA_FCONST_2         13
-#define ICMD_ELSE_ICONST      13
 
 #define JAVA_DCONST_0         14
 #define ICMD_DCONST           14        /* val.d = constant                   */
 
 #define JAVA_DCONST_1         15
-#define ICMD_IFEQ_ICONST      15
 
 #define JAVA_BIPUSH           16
-#define ICMD_IFNE_ICONST      16
 
 #define JAVA_SIPUSH           17
-#define ICMD_IFLT_ICONST      17
 
 #define JAVA_LDC1             18
-#define ICMD_IFGE_ICONST      18
 
 #define JAVA_LDC2             19
-#define ICMD_IFGT_ICONST      19
 
 #define JAVA_LDC2W            20
-#define ICMD_IFLE_ICONST      20
 
 	                                    /* order of LOAD instructions must be */
 	                                    /* equal to order of TYPE_* defines   */

@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5145 2006-07-17 11:48:38Z twisti $
+   $Id: codegen.c 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -2788,60 +2788,6 @@ bool codegen(jitdata *jd)
 			M_LCMP(s2, s1);
 			M_BGE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target);
-			break;
-
-		/* (value xx 0) ? IFxx_ICONST : ELSE_ICONST                           */
-
-		case ICMD_ELSE_ICONST:  /* handled by IFxx_ICONST                     */
-			break;
-
-		case ICMD_IFEQ_ICONST:  /* ..., value ==> ..., constant               */
-		case ICMD_IFNE_ICONST:  /* val.i = constant                           */
-		case ICMD_IFLT_ICONST:
-		case ICMD_IFGE_ICONST:
-		case ICMD_IFGT_ICONST:
-		case ICMD_IFLE_ICONST:
-
-			s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
-			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if (s1 == d) {
-					M_INTMOVE(s1, REG_ITMP1);
-					s1 = REG_ITMP1;
-				}
-				if (iptr[1].val.i == 0)
-					M_CLR(d);
-				else
-					M_IMOV_IMM(iptr[1].val.i, d);
-			}
-			if (iptr->val.i == 0)
-				M_CLR(REG_ITMP2);
-			else
-				M_IMOV_IMM(iptr->val.i, REG_ITMP2);
-			M_ITEST(s1);
-
-			switch (iptr->opc) {
-			case ICMD_IFEQ_ICONST:
-				M_CMOVEQ(REG_ITMP2, d);
-				break;
-			case ICMD_IFNE_ICONST:
-				M_CMOVNE(REG_ITMP2, d);
-				break;
-			case ICMD_IFLT_ICONST:
-				M_CMOVLT(REG_ITMP2, d);
-				break;
-			case ICMD_IFGE_ICONST:
-				M_CMOVGE(REG_ITMP2, d);
-				break;
-			case ICMD_IFGT_ICONST:
-				M_CMOVGT(REG_ITMP2, d);
-				break;
-			case ICMD_IFLE_ICONST:
-				M_CMOVLE(REG_ITMP2, d);
-				break;
-			}
-
-			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
 

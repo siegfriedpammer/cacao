@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: jit.c 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -369,14 +369,14 @@ char *icmd_names[256] = {
 	"LCMPCONST      ", /* LCONST_1     10 */
 	"FCONST         ", /*              11 */
 	"UNDEF12        ", /* FCONST_1     12 */
-	"ELSE_ICONST    ", /* FCONST_2     13 */
+	"UNDEF13        ", /* FCONST_2     13 */
 	"DCONST         ", /*              14 */
-	"IFEQ_ICONST    ", /* DCONST_1     15 */
-	"IFNE_ICONST    ", /* BIPUSH       16 */
-	"IFLT_ICONST    ", /* SIPUSH       17 */
-	"IFGE_ICONST    ", /* LDC1         18 */
-	"IFGT_ICONST    ", /* LDC2         19 */
-	"IFLE_ICONST    ", /* LDC2W        20 */
+	"UNDEF15        ", /* DCONST_1     15 */
+	"UNDEF16        ", /* BIPUSH       16 */
+	"UNDEF17        ", /* SIPUSH       17 */
+	"UNDEF18        ", /* LDC1         18 */
+	"UNDEF19        ", /* LDC2         19 */
+	"UNDEF20        ", /* LDC2W        20 */
 	"ILOAD          ", /*              21 */
 	"LLOAD          ", /*              22 */
 	"FLOAD          ", /*              23 */

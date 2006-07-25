@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5017 2006-06-06 18:05:16Z twisti $
+   $Id: arch.h 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -80,8 +80,6 @@
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
 
-/* #define CONDITIONAL_LOADCONST           1 */
-
 #else /* SIZEOF_VOID_P == 8 */
 
 #define SUPPORT_DIVISION                 1
@@ -116,8 +114,6 @@
 #define SUPPORT_CONST_STORE              1  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
-
-/* #define CONDITIONAL_LOADCONST           1 */
 
 #define SUPPORT_COMBINE_INTEGER_REGISTERS
 #define SUPPORT_PASS_FLOATARGS_IN_INTREGS

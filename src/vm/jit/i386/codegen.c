@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5145 2006-07-17 11:48:38Z twisti $
+   $Id: codegen.c 5173 2006-07-25 15:57:11Z twisti $
 
 */
 
@@ -3164,53 +3164,6 @@ bool codegen(jitdata *jd)
 			M_CMP(s2, s1);
 			M_BAE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target);
-			break;
-
-		/* (value xx 0) ? IFxx_ICONST : ELSE_ICONST                           */
-
-		case ICMD_ELSE_ICONST:  /* handled by IFxx_ICONST                     */
-			break;
-
-		case ICMD_IFEQ_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
-			emit_ifcc_iconst(cd, CC_NE, src, iptr);
-			break;
-
-		case ICMD_IFNE_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
-			emit_ifcc_iconst(cd, CC_E, src, iptr);
-			break;
-
-		case ICMD_IFLT_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
-			emit_ifcc_iconst(cd, CC_GE, src, iptr);
-			break;
-
-		case ICMD_IFGE_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
-			emit_ifcc_iconst(cd, CC_L, src, iptr);
-			break;
-
-		case ICMD_IFGT_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
-			emit_ifcc_iconst(cd, CC_LE, src, iptr);
-			break;
-
-		case ICMD_IFLE_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
-			emit_ifcc_iconst(cd, CC_G, src, iptr);
 			break;
 
 

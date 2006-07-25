@@ -1362,17 +1362,6 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 		SHOW_DST(iptr);
 		break;
 
-	case ICMD_IFEQ_ICONST:
-	case ICMD_IFNE_ICONST:
-	case ICMD_IFLT_ICONST:
-	case ICMD_IFGE_ICONST:
-	case ICMD_IFGT_ICONST:
-	case ICMD_IFLE_ICONST:
-		break;
-
-	case ICMD_ELSE_ICONST:
-		break;
-
 		/* binary/const LNG */
 	case ICMD_LADDCONST:
 	case ICMD_LSUBCONST:
@@ -1812,19 +1801,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_CASTORECONST:
 	case ICMD_SASTORECONST:
 		printf(" %d (0x%08x)", iptr->val.i, iptr->val.i);
-		break;
-
-	case ICMD_IFEQ_ICONST:
-	case ICMD_IFNE_ICONST:
-	case ICMD_IFLT_ICONST:
-	case ICMD_IFGE_ICONST:
-	case ICMD_IFGT_ICONST:
-	case ICMD_IFLE_ICONST:
-		printf(" %d, %d (0x%08x)", iptr[1].op1, iptr->val.i, iptr->val.i);
-		break;
-
-	case ICMD_ELSE_ICONST:
-		printf("    %d (0x%08x)", iptr->val.i, iptr->val.i);
 		break;
 
 	case ICMD_LADDCONST:
