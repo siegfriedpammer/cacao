@@ -170,10 +170,10 @@ dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
 AC_TYPE_SIGNAL
 AC_FUNC_MEMCMP
-AC_CHECK_FUNCS([calloc mprotect getpagesize free])
+AC_FUNC_MMAP
+AC_CHECK_FUNCS([calloc mmap getpagesize free])
 AC_CHECK_FUNCS([getcwd gettimeofday])
 AC_CHECK_FUNCS([scandir])
-AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([isnan])
 
 dnl Checks for libraries.
@@ -491,7 +491,7 @@ native | posix | pthreads)
     
     AC_MSG_RESULT(yes, native)
     AC_CHECK_LIB(pthread, main)
-    
+
     ARCH_CFLAGS="$ARCH_CFLAGS -D_REENTRANT"
 
     dnl we changed ARCH_CFLAGS, set CFLAGS again

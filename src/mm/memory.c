@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 5158 2006-07-18 14:05:43Z twisti $
+   $Id: memory.c 5169 2006-07-25 11:38:18Z twisti $
 
 */
 
@@ -93,13 +93,14 @@ static dumpinfo _no_threads_dumpinfo;
 
 /* global code memory variables ***********************************************/
 
-#define DEFAULT_CODEMEM_SIZE    128 * 1024  /* defaulting to 128kB            */
+#define DEFAULT_CODE_MEMORY_SIZE    128 * 1024 /* defaulting to 128kB         */
 
 #if defined(ENABLE_THREADS)
-static java_objectheader *codememlock = NULL;
+static java_objectheader *lock_code_memory = NULL;
 #endif
-static int                codememsize = 0;
-static void              *codememptr  = NULL;
+static void              *code_memory      = NULL;
+static int                code_memory_size = 0;
+static int                pagesize         = 0;
 
 
 /* memory_init *****************************************************************
@@ -111,10 +112,14 @@ static void              *codememptr  = NULL;
 bool memory_init(void)
 {
 #if defined(ENABLE_THREADS)
-	codememlock = NEW(java_objectheader);
+	lock_code_memory = NEW(java_objectheader);
 
-	lock_init_object_lock(codememlock);
+	lock_init_object_lock(lock_code_memory);
 #endif
+
+	/* get the pagesize of this architecture */
+
+	pagesize = getpagesize();
 
 	/* everything's ok */
 
@@ -146,72 +151,80 @@ static void *memory_checked_alloc(s4 size)
 
 /* memory_cnew *****************************************************************
 
-   Allocates memory from the heap, aligns it to architecutres PAGESIZE
-   and make the memory read-, write-, and executeable.
+   Allocates memory from the heap via mmap and make the memory read-,
+   write-, and executeable.
 
 *******************************************************************************/
 
 void *memory_cnew(s4 size)
 {
 	void *p;
-	int   pagesize;
 
-	LOCK_MONITOR_ENTER(codememlock);
+	LOCK_MONITOR_ENTER(lock_code_memory);
 
 	size = ALIGN(size, ALIGNSIZE);
 
 	/* check if enough memory is available */
 
-	if (size > codememsize) {
+	if (size > code_memory_size) {
 		/* set default code size */
 
-		codememsize = DEFAULT_CODEMEM_SIZE;
+		code_memory_size = DEFAULT_CODE_MEMORY_SIZE;
 
 		/* do we need more? */
 
-		if (size > codememsize)
-			codememsize = size;
+		if (size > code_memory_size)
+			code_memory_size = size;
 
-		/* get the pagesize of this architecture */
+		/* align the size of the memory to be allocated */
 
-		pagesize = getpagesize();
-
-		/* allocate normal heap memory */
-
-		if ((p = memory_checked_alloc(codememsize + pagesize - 1)) == NULL)
-			return NULL;
+		code_memory_size = ALIGN(code_memory_size, pagesize);
 
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
-			codememusage += codememsize + pagesize - 1;
+			codememusage += code_memory_size;
 
 			if (codememusage > maxcodememusage)
 				maxcodememusage = codememusage;
 		}
 #endif
 
-		/* align the memory allocated to a multiple of PAGESIZE,
-		   mprotect requires this */
+		/* allocate the memory */
 
-		p = (void *) (((ptrint) p + pagesize - 1) & ~(pagesize - 1));
+		p = mmap(NULL,
+				 (size_t) code_memory_size,
+				 PROT_READ | PROT_WRITE | PROT_EXEC,
+				 MAP_PRIVATE |
+#if defined(MAP_ANONYMOUS)
+				 MAP_ANONYMOUS,
+#elif defined(MAP_ANON)
+				 MAP_ANON,
+#else
+				 0,
+#endif
+				 -1, 	 
+				 (off_t) 0);
 
-		/* make the memory read-, write-, and executeable */
-
-		if (mprotect(p, codememsize, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
-			vm_abort("mprotect failed: %s", strerror(errno));
+#if defined(MAP_FAILED)
+		if (p == MAP_FAILED)
+#else
+		if (p == (void *) -1)
+#endif
+			vm_abort("mmap failed: %s", strerror(errno));
 
 		/* set global code memory pointer */
 
-		codememptr = p;
+		code_memory = p;
 	}
 
 	/* get a memory chunk of the allocated memory */
 
-	p = codememptr;
-	codememptr = (void *) ((ptrint) codememptr + size);
-	codememsize -= size;
+	p = code_memory;
 
-	LOCK_MONITOR_EXIT(codememlock);
+	code_memory       = (void *) ((ptrint) code_memory + size);
+	code_memory_size -= size;
+
+	LOCK_MONITOR_EXIT(lock_code_memory);
 
 	return p;
 }
