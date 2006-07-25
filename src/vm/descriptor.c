@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: descriptor.c 5171 2006-07-25 13:52:38Z twisti $
 
 */
 
@@ -159,11 +159,11 @@ u2 descriptor_to_basic_type(utf *descriptor)
 		case 'I':
 		case 'S':  
 		case 'Z':  return TYPE_INT;
-		case 'D':  return TYPE_DOUBLE;
-		case 'F':  return TYPE_FLOAT;
-		case 'J':  return TYPE_LONG;
+		case 'D':  return TYPE_DBL;
+		case 'F':  return TYPE_FLT;
+		case 'J':  return TYPE_LNG;
 		case 'L':
-		case '[':  return TYPE_ADDRESS;
+		case '[':  return TYPE_ADR;
 	}
 			
 	assert(0);
@@ -188,11 +188,11 @@ u2 descriptor_typesize(typedesc *td)
 	assert(td);
 
 	switch (td->type) {
-		case TYPE_INT:     return 4;
-		case TYPE_LONG:    return 8;
-		case TYPE_FLOAT:   return 4;
-		case TYPE_DOUBLE:  return 8;
-		case TYPE_ADDRESS: return sizeof(voidptr);
+		case TYPE_INT: return 4;
+		case TYPE_LNG: return 8;
+		case TYPE_FLT: return 4;
+		case TYPE_DBL: return 8;
+		case TYPE_ADR: return sizeof(voidptr);
 	}
 
 	assert(0);
@@ -323,8 +323,8 @@ descriptor_to_typedesc(descriptor_pool *pool, char *utf_ptr, char *end_pos,
 
 	if (name) {
 		/* a reference type */
-		td->type = TYPE_ADDRESS;
-		td->decltype = TYPE_ADDRESS;
+		td->type = TYPE_ADR;
+		td->decltype = TYPE_ADR;
 		td->arraydim = 0;
 		for (utf_ptr = name->text; *utf_ptr == '['; ++utf_ptr)
 			td->arraydim++;
@@ -355,15 +355,15 @@ descriptor_to_typedesc(descriptor_pool *pool, char *utf_ptr, char *end_pos,
 			break;
 		case 'D':
 			td->decltype = PRIMITIVETYPE_DOUBLE;
-			td->type = TYPE_DOUBLE;
+			td->type = TYPE_DBL;
 			break;
 		case 'F':
 			td->decltype = PRIMITIVETYPE_FLOAT;
-			td->type = TYPE_FLOAT;
+			td->type = TYPE_FLT;
 			break;
 		case 'J':
 			td->decltype = PRIMITIVETYPE_LONG;
-			td->type = TYPE_LONG;
+			td->type = TYPE_LNG;
 			break;
 		case 'V':
 			td->decltype = PRIMITIVETYPE_VOID;
@@ -929,7 +929,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 		if (!descriptor_to_typedesc(pool, utf_ptr, end_pos, &utf_ptr, td))
 			return NULL;
 
-		if (td->type == TYPE_LONG || td->type == TYPE_DOUBLE)
+		if (IS_2_WORD_TYPE(td->type))
 			paramslots++;
 		
 		td++;
@@ -1173,7 +1173,7 @@ descriptor_debug_print_typedesc(FILE *file,typedesc *d)
 		return;
 	}
 	
-	if (d->type == TYPE_ADDRESS) {
+	if (d->type == TYPE_ADR) {
 		if (d->classref)
 			utf_fprint_printable_ascii(file,d->classref->name);
 		else

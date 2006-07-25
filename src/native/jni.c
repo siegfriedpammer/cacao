@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: jni.c 5171 2006-07-25 13:52:38Z twisti $
 
 */
 
@@ -245,9 +245,9 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 		switch (paramtypes->type) {
 		/* primitive types */
 		case TYPE_INT:
-		case TYPE_LONG:
-		case TYPE_FLOAT:
-		case TYPE_DOUBLE:
+		case TYPE_LNG:
+		case TYPE_FLT:
+		case TYPE_DBL:
 			param = params->data[j];
 
 			if (param == NULL)
@@ -348,7 +348,7 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 			}
 			break;
 		
-			case TYPE_ADDRESS:
+			case TYPE_ADR:
 				if (!resolve_class_from_typedesc(paramtypes, true, true, &c))
 					return false;
 

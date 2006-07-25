@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5093 2006-07-10 13:36:47Z twisti $
+   $Id: loader.c 5171 2006-07-25 13:52:38Z twisti $
 
 */
 
@@ -875,19 +875,32 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	f->class  = c;
 
 	switch (f->type) {
-	case TYPE_INT:     f->value.i = 0; break;
-	case TYPE_FLOAT:   f->value.f = 0.0; break;
-	case TYPE_DOUBLE:  f->value.d = 0.0; break;
-	case TYPE_ADDRESS: f->value.a = NULL;
-					   if (!(f->flags & ACC_STATIC))
-						   c->flags |= ACC_CLASS_HAS_POINTERS;
-					   break;
-	case TYPE_LONG:
+	case TYPE_INT:
+		f->value.i = 0;
+		break;
+
+	case TYPE_FLT:
+		f->value.f = 0.0;
+		break;
+
+	case TYPE_DBL:
+		f->value.d = 0.0;
+		break;
+
+	case TYPE_ADR:
+		f->value.a = NULL;
+		if (!(f->flags & ACC_STATIC))
+			c->flags |= ACC_CLASS_HAS_POINTERS;
+		break;
+
+	case TYPE_LNG:
 #if U8_AVAILABLE
-		f->value.l = 0; break;
+		f->value.l = 0;
 #else
-		f->value.l.low = 0; f->value.l.high = 0; break;
+		f->value.l.low  = 0;
+		f->value.l.high = 0;
 #endif
+		break;
 	}
 
 	/* read attributes */
@@ -933,7 +946,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			}
 			break;
 					
-			case TYPE_LONG: {
+			case TYPE_LNG: {
 				constant_long *cl; 
 
 				if (!(cl = class_getconstant(c, pindex, CONSTANT_Long)))
@@ -943,7 +956,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			}
 			break;
 
-			case TYPE_FLOAT: {
+			case TYPE_FLT: {
 				constant_float *cf;
 
 				if (!(cf = class_getconstant(c, pindex, CONSTANT_Float)))
@@ -953,7 +966,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			}
 			break;
 											
-			case TYPE_DOUBLE: {
+			case TYPE_DBL: {
 				constant_double *cd;
 
 				if (!(cd = class_getconstant(c, pindex, CONSTANT_Double)))
@@ -963,7 +976,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			}
 			break;
 						
-			case TYPE_ADDRESS:
+			case TYPE_ADR:
 				if (!(u = class_getconstant(c, pindex, CONSTANT_String)))
 					return false;
 
@@ -2477,7 +2490,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	/* create descriptor for clone method */
 	/* we need one paramslot which is reserved for the 'this' parameter */
 	clonedesc = NEW(methoddesc);
-	clonedesc->returntype.type = TYPE_ADDRESS;
+	clonedesc->returntype.type = TYPE_ADR;
 	clonedesc->returntype.classref = classrefs + 1;
 	clonedesc->returntype.arraydim = 0;
 	/* initialize params to "empty", add real params below in

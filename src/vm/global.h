@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5021 2006-06-07 12:19:27Z twisti $
+   $Id: global.h 5171 2006-07-25 13:52:38Z twisti $
 
 */
 
@@ -86,14 +86,29 @@ typedef struct java_objectarray java_objectarray;
 
 /* basic data types ***********************************************************/
 
-/* CAUTION: jit/jit.h relies on these numerical values! */
-#define TYPE_INT      0         /* the JavaVM types must numbered in the      */
-#define TYPE_LONG     1         /* same order as the ICMD_Ixxx to ICMD_Axxx   */
-#define TYPE_FLOAT    2         /* instructions (LOAD and STORE)              */
-#define TYPE_DOUBLE   3         /* integer, long, float, double, address      */
-#define TYPE_ADDRESS  4         /* all other types can be numbered arbitrarly */
+/* The JavaVM types must numbered in the same order as the ICMD_Ixxx
+   to ICMD_Axxx instructions (LOAD and STORE).  All other types can be
+   numbered arbitrarily. */
+
+#define TYPE_INT     0
+#define TYPE_LNG     1
+#define TYPE_FLT     2
+#define TYPE_DBL     3
+#define TYPE_ADR     4
 
 #define TYPE_VOID    10
+
+
+#define IS_INT_LNG_TYPE(a)      (!((a) & TYPE_FLT))
+#define IS_FLT_DBL_TYPE(a)      ((a) & TYPE_FLT)
+#define IS_2_WORD_TYPE(a)       ((a) & TYPE_LNG)
+
+#define IS_INT_TYPE(a)          ((a) == TYPE_INT)
+#define IS_LNG_TYPE(a)          ((a) == TYPE_LNG)
+#define IS_ADR_TYPE(a)          ((a) == TYPE_ADR)
+
+#define IS_VOID_TYPE(a)         ((a) == TYPE_VOID)
+
 
 /* primitive data types *******************************************************/
 
@@ -107,9 +122,9 @@ typedef struct java_objectarray java_objectarray;
    used as indices into the primitive type table. */
 
 #define PRIMITIVETYPE_INT     TYPE_INT
-#define PRIMITIVETYPE_LONG    TYPE_LONG
-#define PRIMITIVETYPE_FLOAT   TYPE_FLOAT
-#define PRIMITIVETYPE_DOUBLE  TYPE_DOUBLE
+#define PRIMITIVETYPE_LONG    TYPE_LNG
+#define PRIMITIVETYPE_FLOAT   TYPE_FLT
+#define PRIMITIVETYPE_DOUBLE  TYPE_DBL
 #define PRIMITIVETYPE_DUMMY1  TYPE_ADR     /* not used! */
 #define PRIMITIVETYPE_BYTE    5
 #define PRIMITIVETYPE_CHAR    6

@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5166 2006-07-21 10:09:33Z twisti $
+   $Id: typeinfo.c 5171 2006-07-25 13:52:38Z twisti $
 
 */
 
@@ -242,7 +242,7 @@ typevectorset_copymergedtype(methodinfo *m,typevector *vec,int index,typeinfo *d
 			if (type != td->type)
 				return TYPE_VOID;
 
-			if (type == TYPE_ADDRESS) {
+			if (type == TYPE_ADR) {
 				if ((TYPEINFO_IS_PRIMITIVE(td->info) ? 1 : 0) != primitive)
 					return TYPE_VOID;
 				/* there cannot be any merge errors now. In the worst case */
@@ -366,7 +366,7 @@ typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
 	do {
 		TYPEINFO_ASSERT(adr);
 
-		vec->td[index].type = TYPE_ADDRESS;
+		vec->td[index].type = TYPE_ADR;
 		TYPEINFO_INIT_RETURNADDRESS(vec->td[index].info,adr->addr);
 		if (index > 0 && IS_2_WORD_TYPE(vec->td[index-1].type))
 			vec->td[index-1].type = TYPE_VOID;
@@ -382,7 +382,7 @@ typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
    IN:
 	   vec..............typevector set, must be != NULL
 	   index............index of component to set
-	   type.............TYPE_* constant of type to set (TYPE_LONG, TYPE_DOUBLE)
+	   type.............TYPE_* constant of type to set (TYPE_LNG, TYPE_DBL)
 
    NOTE:
        If there is a two-word type stored at INDEX-1 in any typevector, it is
@@ -396,7 +396,7 @@ void
 typevectorset_store_twoword(typevector *vec,int index,int type)
 {
 	TYPEINFO_ASSERT(vec);
-	TYPEINFO_ASSERT(type == TYPE_LONG || type == TYPE_DOUBLE);
+	TYPEINFO_ASSERT(type == TYPE_LNG || type == TYPE_DBL);
 
 	do {
 		vec->td[index].type = type;
@@ -480,7 +480,7 @@ typevector_merge(methodinfo *m,typevector *dst,typevector *y,int size)
 			a->type = TYPE_VOID;
 			changed = true;
 		}
-		else if (a->type == TYPE_ADDRESS) {
+		else if (a->type == TYPE_ADR) {
 			if (TYPEINFO_IS_PRIMITIVE(a->info)) {
 				/* 'a' is a returnAddress */
 				if (!TYPEINFO_IS_PRIMITIVE(b->info)
@@ -1428,7 +1428,7 @@ typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 		if (!typeinfo_init_from_typedesc(desc->paramtypes + i,typebuf++,infobuf++))
 			return false;
 		
-		if (twoword && (typebuf[-1] == TYPE_LONG || typebuf[-1] == TYPE_DOUBLE)) {
+		if (twoword && (typebuf[-1] == TYPE_LNG || typebuf[-1] == TYPE_DBL)) {
 			if (++args > buflen) {
 				*exceptionptr = new_internalerror("Buffer too small for method arguments.");
 				return false;
@@ -1535,7 +1535,7 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 			return -1;
 		td++;
 
-		if (twoword && (td[-1].type == TYPE_LONG || td[-1].type == TYPE_DOUBLE)) {
+		if (twoword && (td[-1].type == TYPE_LNG || td[-1].type == TYPE_DBL)) {
 			if (++args > buflen) {
 				*exceptionptr = new_internalerror("Buffer too small for method arguments.");
 				return -1;
@@ -2417,7 +2417,7 @@ typeinfo_test_parse(typeinfo *info,char *str)
         info->merged->count = num;
 
         for (i=0; i<num; ++i) {
-            if (typebuf[i] != TYPE_ADDRESS) {
+            if (typebuf[i] != TYPE_ADR) {
                 log_text("non-reference type in mergedlist");
 				assert(0);
 			}
@@ -2759,12 +2759,12 @@ void
 typeinfo_print_type(FILE *file,int type,typeinfo *info)
 {
     switch (type) {
-      case TYPE_VOID:   fprintf(file,"V"); break;
-      case TYPE_INT:    fprintf(file,"I"); break;
-      case TYPE_FLOAT:  fprintf(file,"F"); break;
-      case TYPE_DOUBLE: fprintf(file,"D"); break;
-      case TYPE_LONG:   fprintf(file,"J"); break;
-      case TYPE_ADDRESS:
+      case TYPE_VOID: fprintf(file,"V"); break;
+      case TYPE_INT:  fprintf(file,"I"); break;
+      case TYPE_FLT:  fprintf(file,"F"); break;
+      case TYPE_DBL:  fprintf(file,"D"); break;
+      case TYPE_LNG:  fprintf(file,"J"); break;
+      case TYPE_ADR:
 		  typeinfo_print_short(file,info);
           break;
           
@@ -2777,8 +2777,8 @@ void
 typeinfo_print_stacktype(FILE *file,int type,typeinfo *info)
 {
 	TYPEINFO_ASSERT(file);
-	TYPEINFO_ASSERT(type != TYPE_ADDRESS || info != NULL);
-	if (type == TYPE_ADDRESS && TYPEINFO_IS_PRIMITIVE(*info)) {	
+	TYPEINFO_ASSERT(type != TYPE_ADR || info != NULL);
+	if (type == TYPE_ADR && TYPEINFO_IS_PRIMITIVE(*info)) {	
 		typeinfo_retaddr_set *set = (typeinfo_retaddr_set*)
 			TYPEINFO_RETURNADDRESS(*info);
 		if (set) {

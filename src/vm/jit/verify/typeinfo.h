@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 4863 2006-04-30 16:17:44Z edwin $
+   $Id: typeinfo.h 5171 2006-07-25 13:52:38Z twisti $
 
 */
 
@@ -399,11 +399,11 @@ struct typevector {
               && TYPEINFO_IS_ARRAY_OF_REFS_NOCHECK(info) )
 
 #define TYPE_IS_RETURNADDRESS(type,info)                        \
-            ( ((type)==TYPE_ADDRESS)                            \
+            ( ((type)==TYPE_ADR)                                \
               && TYPEINFO_IS_PRIMITIVE(info) )
 
 #define TYPE_IS_REFERENCE(type,info)                            \
-            ( ((type)==TYPE_ADDRESS)                            \
+            ( ((type)==TYPE_ADR)                                \
               && !TYPEINFO_IS_PRIMITIVE(info) )
 
 #define TYPEDESC_IS_RETURNADDRESS(td)                           \

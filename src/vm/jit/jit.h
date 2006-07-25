@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5149 2006-07-17 16:11:35Z twisti $
+   $Id: jit.h 5171 2006-07-25 13:52:38Z twisti $
 
 */
 
@@ -146,28 +146,6 @@ struct jitdata {
 
 
 /************************** stack element structure ***************************/
-
-/* slot types */
-
-/* Unified these with longer names. Maybe someday use only
- * one set of names? -Edwin
- */
-/*#define TYPE_INT   0*/               /* the stack slot types must numbered in the  */
-#define TYPE_LNG   TYPE_LONG    /*1*/  /* same order as the ICMD_Ixxx to ICMD_Axxx   */
-#define TYPE_FLT   TYPE_FLOAT   /*2*/  /* instructions (LOAD and STORE)              */
-#define TYPE_DBL   TYPE_DOUBLE  /*3*/  /* integer, long, float, double, address      */
-#define TYPE_ADR   TYPE_ADDRESS /*4*/
-
-#define IS_INT_LNG_TYPE(a)      (!((a) & TYPE_FLT))
-#define IS_FLT_DBL_TYPE(a)      ((a) & TYPE_FLT)
-#define IS_2_WORD_TYPE(a)       ((a) & TYPE_LNG)
-
-#define IS_INT_TYPE(a)          ((a) == TYPE_INT)
-#define IS_LNG_TYPE(a)          ((a) == TYPE_LNG)
-#define IS_ADR_TYPE(a)          ((a) == TYPE_ADR)
-
-#define IS_VOID_TYPE(a)         ((a) == TYPE_VOID)
-
 
 /* flags */
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5166 2006-07-21 10:09:33Z twisti $
+   $Id: typecheck.c 5171 2006-07-25 13:52:38Z twisti $
 
 */
 
@@ -524,7 +524,7 @@ typestack_copy(verifier_state *state,stackptr dst,stackptr y,typevector *selecte
 			return false;
 		}
 		LOG3("copy %p -> %p (type %d)",y,dst,dst->type);
-		if (dst->type == TYPE_ADDRESS) {
+		if (dst->type == TYPE_ADR) {
 			if (TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
 				/* We copy the returnAddresses from the selected
 				 * states only. */
@@ -576,7 +576,7 @@ typestack_copy(verifier_state *state,stackptr dst,stackptr y,typevector *selecte
 static void
 typestack_put_retaddr(stackptr dst,void *retaddr,typevector *loc)
 {
-	TYPECHECK_ASSERT(dst->type == TYPE_ADDRESS);
+	TYPECHECK_ASSERT(dst->type == TYPE_ADR);
 	
 	TYPEINFO_INIT_RETURNADDRESS(dst->typeinfo,NULL);
 	for (;loc; loc=loc->alt) {
@@ -640,7 +640,7 @@ typestack_merge(verifier_state *state,stackptr dst,stackptr y)
 			exceptions_throw_verifyerror(state->m,"Stack type mismatch");
 			return typecheck_FAIL;
 		}
-		if (dst->type == TYPE_ADDRESS) {
+		if (dst->type == TYPE_ADR) {
 			if (TYPEINFO_IS_PRIMITIVE(dst->typeinfo)) {
 				/* dst has returnAddress type */
 				if (!TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
@@ -1750,20 +1750,20 @@ verify_basic_block(verifier_state *state)
 			case ICMD_IINC:  if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_INT))
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
 							 break;
-			case ICMD_FLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_FLOAT))
+			case ICMD_FLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_FLT))
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
 							 break;
-			case ICMD_LLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_LONG))
+			case ICMD_LLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_LNG))
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
 							 break;
-			case ICMD_DLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_DOUBLE))
+			case ICMD_DLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_DBL))
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
 							 break;
 
 			case ICMD_ISTORE: typevectorset_store(state->localset,state->iptr->op1,TYPE_INT,NULL); break;
-			case ICMD_FSTORE: typevectorset_store(state->localset,state->iptr->op1,TYPE_FLOAT,NULL); break;
-			case ICMD_LSTORE: typevectorset_store_twoword(state->localset,state->iptr->op1,TYPE_LONG); break;
-			case ICMD_DSTORE: typevectorset_store_twoword(state->localset,state->iptr->op1,TYPE_DOUBLE); break;
+			case ICMD_FSTORE: typevectorset_store(state->localset,state->iptr->op1,TYPE_FLT,NULL); break;
+			case ICMD_LSTORE: typevectorset_store_twoword(state->localset,state->iptr->op1,TYPE_LNG); break;
+			case ICMD_DSTORE: typevectorset_store_twoword(state->localset,state->iptr->op1,TYPE_DBL); break;
 
 				/****************************************/
 				/* LOADING ADDRESS FROM VARIABLE        */
@@ -1799,7 +1799,7 @@ verify_basic_block(verifier_state *state)
 					typevectorset_store_retaddr(state->localset,state->iptr->op1,&(state->curstack->typeinfo));
 				}
 				else {
-					typevectorset_store(state->localset,state->iptr->op1,TYPE_ADDRESS,
+					typevectorset_store(state->localset,state->iptr->op1,TYPE_ADR,
 							&(state->curstack->typeinfo));
 				}
 				break;
@@ -2209,7 +2209,7 @@ switch_instruction_tail:
 				if (!TYPEINFO_IS_REFERENCE(state->curstack->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: ARETURN on non-reference");
 
-				if (state->returntype.type != TYPE_ADDRESS
+				if (state->returntype.type != TYPE_ADR
 						|| (r = typeinfo_is_assignable(&state->curstack->typeinfo,&(state->returntype.info))) 
 								== typecheck_FALSE)
 					TYPECHECK_VERIFYERROR_bool("Return type mismatch");
@@ -2233,15 +2233,15 @@ switch_instruction_tail:
 				goto return_tail;
 
 			case ICMD_LRETURN:
-				if (state->returntype.type != TYPE_LONG) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
+				if (state->returntype.type != TYPE_LNG) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
 				goto return_tail;
 
 			case ICMD_FRETURN:
-				if (state->returntype.type != TYPE_FLOAT) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
+				if (state->returntype.type != TYPE_FLT) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
 				goto return_tail;
 
 			case ICMD_DRETURN:
-				if (state->returntype.type != TYPE_DOUBLE) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
+				if (state->returntype.type != TYPE_DBL) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
 				goto return_tail;
 
 			case ICMD_RETURN:
@@ -2591,7 +2591,7 @@ verify_init_locals(verifier_state *state)
     if (!(state->m->flags & ACC_STATIC)) {
 		if (!i)
 			TYPECHECK_VERIFYERROR_bool("Not enough local variables for method arguments");
-        td->type = TYPE_ADDRESS;
+        td->type = TYPE_ADR;
         if (state->initmethod)
             TYPEINFO_INIT_NEWOBJECT(td->info,NULL);
         else
