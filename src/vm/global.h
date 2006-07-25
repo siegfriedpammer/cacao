@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5171 2006-07-25 13:52:38Z twisti $
+   $Id: global.h 5175 2006-07-25 18:30:59Z twisti $
 
 */
 
@@ -105,6 +105,8 @@ typedef struct java_objectarray java_objectarray;
 
 #define IS_INT_TYPE(a)          ((a) == TYPE_INT)
 #define IS_LNG_TYPE(a)          ((a) == TYPE_LNG)
+#define IS_FLT_TYPE(a)          ((a) == TYPE_FLT)
+#define IS_DBL_TYPE(a)          ((a) == TYPE_DBL)
 #define IS_ADR_TYPE(a)          ((a) == TYPE_ADR)
 
 #define IS_VOID_TYPE(a)         ((a) == TYPE_VOID)
