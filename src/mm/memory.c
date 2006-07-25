@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 5169 2006-07-25 11:38:18Z twisti $
+   $Id: memory.c 5170 2006-07-25 12:33:52Z twisti $
 
 */
 
@@ -191,26 +191,33 @@ void *memory_cnew(s4 size)
 
 		/* allocate the memory */
 
+#if defined(MAP_ANONYMOUS) || defined(MAP_ANON)
 		p = mmap(NULL,
 				 (size_t) code_memory_size,
 				 PROT_READ | PROT_WRITE | PROT_EXEC,
 				 MAP_PRIVATE |
-#if defined(MAP_ANONYMOUS)
+# if defined(MAP_ANONYMOUS)
 				 MAP_ANONYMOUS,
-#elif defined(MAP_ANON)
+# elif defined(MAP_ANON)
 				 MAP_ANON,
-#else
+# else
 				 0,
-#endif
+# endif
 				 -1, 	 
 				 (off_t) 0);
 
-#if defined(MAP_FAILED)
+# if defined(MAP_FAILED)
 		if (p == MAP_FAILED)
-#else
+# else
 		if (p == (void *) -1)
-#endif
+# endif
 			vm_abort("mmap failed: %s", strerror(errno));
+
+#else
+		/* This works a least on IRIX. */
+
+		p = memory_checked_alloc(code_memory_size);
+#endif
 
 		/* set global code memory pointer */
 
