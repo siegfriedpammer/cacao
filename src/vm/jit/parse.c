@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5166 2006-07-21 10:09:33Z twisti $
+   $Id: parse.c 5181 2006-07-26 13:27:54Z twisti $
 
 */
 
@@ -60,6 +60,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/suck.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
@@ -325,7 +326,7 @@ next_linenumber:
 
 		/* fetch next opcode  */
 fetch_opcode:
-		opcode = code_get_u1(p, m);
+		opcode = SUCK_BE_U1(m->jcode + p);
 
 		/* store intermediate instruction count (bit 0 mark block starts) */
 
@@ -360,20 +361,20 @@ fetch_opcode:
 		/* pushing constants onto the stack ***********************************/
 
 		case JAVA_BIPUSH:
-			NEW_OP_LOADCONST_I(code_get_s1(p+1,m));
+			NEW_OP_LOADCONST_I(SUCK_BE_S1(m->jcode + p + 1));
 			break;
 
 		case JAVA_SIPUSH:
-			NEW_OP_LOADCONST_I(code_get_s2(p+1,m));
+			NEW_OP_LOADCONST_I(SUCK_BE_S2(m->jcode + p + 1));
 			break;
 
 		case JAVA_LDC1:
-			i = code_get_u1(p + 1, m);
+			i = SUCK_BE_U1(m->jcode + p + 1);
 			goto pushconstantitem;
 
 		case JAVA_LDC2:
 		case JAVA_LDC2W:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 
 		pushconstantitem:
 
@@ -458,11 +459,11 @@ fetch_opcode:
 		case JAVA_ILOAD:
 		case JAVA_FLOAD:
 		case JAVA_ALOAD:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			}
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				nextp = p + 3;
 				iswide = false;
 			}
@@ -471,11 +472,11 @@ fetch_opcode:
 
 		case JAVA_LLOAD:
 		case JAVA_DLOAD:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			}
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				nextp = p + 3;
 				iswide = false;
 			}
@@ -520,11 +521,11 @@ fetch_opcode:
 		case JAVA_ISTORE:
 		case JAVA_FSTORE:
 		case JAVA_ASTORE:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			}
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				iswide = false;
 				nextp = p + 3;
 			}
@@ -533,11 +534,11 @@ fetch_opcode:
 
 		case JAVA_LSTORE:
 		case JAVA_DSTORE:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			}
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				iswide = false;
 				nextp = p + 3;
 			}
@@ -583,14 +584,14 @@ fetch_opcode:
 			{
 				int v;
 
-				if (!iswide) {
-					i = code_get_u1(p + 1,m);
-					v = code_get_s1(p + 2,m);
+				if (iswide == false) {
+					i = SUCK_BE_U1(m->jcode + p + 1);
+					v = SUCK_BE_S1(m->jcode + p + 2);
 
 				}
 				else {
-					i = code_get_u2(p + 1,m);
-					v = code_get_s2(p + 3,m);
+					i = SUCK_BE_U2(m->jcode + p + 1);
+					v = SUCK_BE_S2(m->jcode + p + 3);
 					iswide = false;
 					nextp = p + 5;
 				}
@@ -609,7 +610,7 @@ fetch_opcode:
 		/* managing arrays ****************************************************/
 
 		case JAVA_NEWARRAY:
-			switch (code_get_s1(p + 1, m)) {
+			switch (SUCK_BE_S1(m->jcode + p + 1)) {
 			case 4:
 				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
 				break;
@@ -636,8 +637,7 @@ fetch_opcode:
 				break;
 #if defined(ENABLE_VERIFIER)
 			default:
-				exceptions_throw_verifyerror(m,
-						"Invalid array-type to create");
+				exceptions_throw_verifyerror(m, "Invalid array-type to create");
 				return false;
 #endif
 			}
@@ -645,7 +645,7 @@ fetch_opcode:
 			break;
 
 		case JAVA_ANEWARRAY:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			compr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!compr)
 				return false;
@@ -664,9 +664,9 @@ fetch_opcode:
 
 		case JAVA_MULTIANEWARRAY:
 			jd->isleafmethod = false;
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			{
-				s4 v = code_get_u1(p + 3, m);
+				s4 v = SUCK_BE_U1(m->jcode + p + 3);
 
 				cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 				if (!cr)
@@ -701,7 +701,7 @@ fetch_opcode:
 		case JAVA_IF_ACMPEQ:
 		case JAVA_IF_ACMPNE:
 		case JAVA_GOTO:
-			i = p + code_get_s2(p + 1,m);
+			i = p + SUCK_BE_S2(m->jcode + p + 1);
 			CHECK_BYTECODE_INDEX(i);
 			new_block_insert(i);
 			blockend = true;
@@ -709,7 +709,7 @@ fetch_opcode:
 			break;
 
 		case JAVA_GOTO_W:
-			i = p + code_get_s4(p + 1,m);
+			i = p + SUCK_BE_S4(m->jcode + p + 1);
 			CHECK_BYTECODE_INDEX(i);
 			new_block_insert(i);
 			blockend = true;
@@ -717,7 +717,7 @@ fetch_opcode:
 			break;
 
 		case JAVA_JSR:
-			i = p + code_get_s2(p + 1,m);
+			i = p + SUCK_BE_S2(m->jcode + p + 1);
 jsr_tail:
 			CHECK_BYTECODE_INDEX(i);
 			new_block_insert(i);
@@ -728,15 +728,15 @@ jsr_tail:
 			break;
 
 		case JAVA_JSR_W:
-			i = p + code_get_s4(p + 1,m);
+			i = p + SUCK_BE_S4(m->jcode + p + 1);
 			goto jsr_tail;
 
 		case JAVA_RET:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			}
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				nextp = p + 3;
 				iswide = false;
 			}
@@ -781,7 +781,7 @@ jsr_tail:
 
 				/* default target */
 
-				j =  p + code_get_s4(nextp, m);
+				j = p + SUCK_BE_S4(m->jcode + nextp);
 				iptr->sx.s23.s3.lookupdefault.insindex = j;
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(j);
@@ -789,7 +789,7 @@ jsr_tail:
 
 				/* number of pairs */
 
-				num = code_get_u4(nextp, m);
+				num = SUCK_BE_U4(m->jcode + nextp);
 				iptr->sx.s23.s2.lookupcount = num;
 				nextp += 4;
 
@@ -805,7 +805,7 @@ jsr_tail:
 				for (i = 0; i < num; i++) {
 					/* value */
 
-					j = code_get_s4(nextp, m);
+					j = SUCK_BE_S4(m->jcode + nextp);
 					lookup->value = j;
 
 					nextp += 4;
@@ -821,7 +821,7 @@ jsr_tail:
 #endif
 					/* target */
 
-					j = p + code_get_s4(nextp,m);
+					j = p + SUCK_BE_S4(m->jcode + nextp);
 					lookup->target.insindex = j;
 					lookup++;
 					nextp += 4;
@@ -849,20 +849,20 @@ jsr_tail:
 
 				/* default target */
 
-				deftarget = p + code_get_s4(nextp, m);
+				deftarget = p + SUCK_BE_S4(m->jcode + nextp);
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(deftarget);
 				new_block_insert(deftarget);
 
 				/* lower bound */
 
-				j = code_get_s4(nextp, m);
+				j = SUCK_BE_S4(m->jcode + nextp);
 				iptr->sx.s23.s2.tablelow = j;
 				nextp += 4;
 
 				/* upper bound */
 
-				num = code_get_s4(nextp, m);
+				num = SUCK_BE_S4(m->jcode + nextp);
 				iptr->sx.s23.s3.tablehigh = num;
 				nextp += 4;
 
@@ -889,7 +889,7 @@ jsr_tail:
 				CHECK_END_OF_BYTECODE(nextp + 4 * num);
 
 				for (i = 0; i < num; i++) {
-					j = p + code_get_s4(nextp,m);
+					j = p + SUCK_BE_S4(m->jcode + nextp);
 					(table++)->insindex = j;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
@@ -916,7 +916,7 @@ jsr_tail:
 				constant_FMIref  *fr;
 				unresolved_field *uf;
 
-				i = code_get_u2(p + 1, m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
 				if (!fr)
 					return false;
@@ -955,7 +955,7 @@ jsr_tail:
 		/* method invocation **************************************************/
 
 		case JAVA_INVOKESTATIC:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 			if (!mr)
 				return false;
@@ -969,7 +969,7 @@ jsr_tail:
 			goto invoke_method;
 
 		case JAVA_INVOKEINTERFACE:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 
 			mr = class_getconstant(m->class, i,
 					CONSTANT_InterfaceMethodref);
@@ -978,7 +978,7 @@ jsr_tail:
 
 		case JAVA_INVOKESPECIAL:
 		case JAVA_INVOKEVIRTUAL:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 
 invoke_nonstatic_method:
@@ -1026,7 +1026,7 @@ invoke_method:
 		/* instructions taking class arguments ********************************/
 
 		case JAVA_NEW:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return false;
@@ -1041,7 +1041,7 @@ invoke_method:
 			break;
 
 		case JAVA_CHECKCAST:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return false;
@@ -1062,7 +1062,7 @@ invoke_method:
 			break;
 
 		case JAVA_INSTANCEOF:
-			i = code_get_u2(p + 1,m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return false;
@@ -1578,7 +1578,7 @@ next_linenumber:
 
 		/* fetch next opcode  */
 fetch_opcode:
-		opcode = code_get_u1(p, m);
+		opcode = SUCK_BE_U1(m->jcode + p);
 
 		m->basicblockindex[p] |= (ipc << 1); /*store intermed cnt*/
 
@@ -1603,20 +1603,20 @@ fetch_opcode:
 			/* pushing constants onto the stack p */
 
 		case JAVA_BIPUSH:
-			LOADCONST_I(code_get_s1(p+1,m));
+			LOADCONST_I(SUCK_BE_S1(m->jcode + p + 1));
 			break;
 
 		case JAVA_SIPUSH:
-			LOADCONST_I(code_get_s2(p+1,m));
+			LOADCONST_I(SUCK_BE_S2(m->jcode + p + 1));
 			break;
 
 		case JAVA_LDC1:
-			i = code_get_u1(p + 1, m);
+			i = SUCK_BE_U1(m->jcode + p + 1);
 			goto pushconstantitem;
 
 		case JAVA_LDC2:
 		case JAVA_LDC2W:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 
 		pushconstantitem:
 
@@ -1707,11 +1707,11 @@ fetch_opcode:
 		case JAVA_ILOAD:
 		case JAVA_FLOAD:
 		case JAVA_ALOAD:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			} 
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				nextp = p + 3;
 				iswide = false;
 			}
@@ -1720,11 +1720,11 @@ fetch_opcode:
 
 		case JAVA_LLOAD:
 		case JAVA_DLOAD:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			} 
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				nextp = p + 3;
 				iswide = false;
 			}
@@ -1771,11 +1771,11 @@ fetch_opcode:
 		case JAVA_ISTORE:
 		case JAVA_FSTORE:
 		case JAVA_ASTORE:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			} 
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				iswide = false;
 				nextp = p + 3;
 			}
@@ -1784,11 +1784,11 @@ fetch_opcode:
 
 		case JAVA_LSTORE:
 		case JAVA_DSTORE:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			} 
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				iswide = false;
 				nextp = p + 3;
 			}
@@ -1834,14 +1834,14 @@ fetch_opcode:
 			{
 				int v;
 				
-				if (!iswide) {
-					i = code_get_u1(p + 1,m);
-					v = code_get_s1(p + 2,m);
+				if (iswide == false) {
+					i = SUCK_BE_U1(m->jcode + p + 1);
+					v = SUCK_BE_S1(m->jcode + p + 2);
 
 				} 
 				else {
-					i = code_get_u2(p + 1,m);
-					v = code_get_s2(p + 3,m);
+					i = SUCK_BE_U2(m->jcode + p + 1);
+					v = SUCK_BE_S2(m->jcode + p + 3);
 					iswide = false;
 					nextp = p + 5;
 				}
@@ -1860,7 +1860,7 @@ fetch_opcode:
 		/* managing arrays ****************************************************/
 
 		case JAVA_NEWARRAY:
-			switch (code_get_s1(p + 1, m)) {
+			switch (SUCK_BE_S1(m->jcode + p + 1)) {
 			case 4:
 				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
 				break;
@@ -1896,7 +1896,7 @@ fetch_opcode:
 			break;
 
 		case JAVA_ANEWARRAY:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			compr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!compr)
 				return false;
@@ -1915,9 +1915,9 @@ fetch_opcode:
 
 		case JAVA_MULTIANEWARRAY:
 			jd->isleafmethod = false;
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			{
-				s4 v = code_get_u1(p + 3, m);
+				s4 v = SUCK_BE_U1(m->jcode + p + 3);
 
 				cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 				if (!cr)
@@ -1949,7 +1949,7 @@ fetch_opcode:
 		case JAVA_IF_ACMPNE:
 		case JAVA_GOTO:
 		case JAVA_JSR:
-			i = p + code_get_s2(p + 1,m);
+			i = p + SUCK_BE_S2(m->jcode + p + 1);
 			CHECK_BYTECODE_INDEX(i);
 			block_insert(i);
 			blockend = true;
@@ -1958,7 +1958,7 @@ fetch_opcode:
 
 		case JAVA_GOTO_W:
 		case JAVA_JSR_W:
-			i = p + code_get_s4(p + 1,m);
+			i = p + SUCK_BE_S4(m->jcode + p + 1);
 			CHECK_BYTECODE_INDEX(i);
 			block_insert(i);
 			blockend = true;
@@ -1966,11 +1966,11 @@ fetch_opcode:
 			break;
 
 		case JAVA_RET:
-			if (!iswide) {
-				i = code_get_u1(p + 1,m);
+			if (iswide == false) {
+				i = SUCK_BE_U1(m->jcode + p + 1);
 			} 
 			else {
-				i = code_get_u2(p + 1,m);
+				i = SUCK_BE_U2(m->jcode + p + 1);
 				nextp = p + 3;
 				iswide = false;
 			}
@@ -2022,7 +2022,7 @@ fetch_opcode:
 
 				/* default target */
 
-				j =  p + code_get_s4(nextp, m);
+				j =  p + SUCK_BE_S4(m->jcode + nextp);
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -2031,7 +2031,7 @@ fetch_opcode:
 
 				/* number of pairs */
 
-				num = code_get_u4(nextp, m);
+				num = SUCK_BE_U4(m->jcode + nextp);
 				*tablep = num;
 				tablep++;
 				nextp += 4;
@@ -2041,7 +2041,7 @@ fetch_opcode:
 				for (i = 0; i < num; i++) {
 					/* value */
 
-					j = code_get_s4(nextp, m);
+					j = SUCK_BE_S4(m->jcode + nextp);
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -2058,7 +2058,7 @@ fetch_opcode:
 
 					/* target */
 
-					j = p + code_get_s4(nextp,m);
+					j = p + SUCK_BE_S4(m->jcode + nextp);
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -2086,7 +2086,7 @@ fetch_opcode:
 
 				/* default target */
 
-				j = p + code_get_s4(nextp, m);
+				j = p + SUCK_BE_S4(m->jcode + nextp);
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -2095,14 +2095,14 @@ fetch_opcode:
 
 				/* lower bound */
 
-				j = code_get_s4(nextp, m);
+				j = SUCK_BE_S4(m->jcode + nextp);
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
 
 				/* upper bound */
 
-				num = code_get_s4(nextp, m);
+				num = SUCK_BE_S4(m->jcode + nextp);
 				*tablep = num;   /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -2120,7 +2120,7 @@ fetch_opcode:
 				CHECK_END_OF_BYTECODE(nextp + 4 * (num + 1));
 
 				for (i = 0; i <= num; i++) {
-					j = p + code_get_s4(nextp,m);
+					j = p + SUCK_BE_S4(m->jcode + nextp);
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -2147,9 +2147,8 @@ fetch_opcode:
 				constant_FMIref  *fr;
 				unresolved_field *uf;
 
-				i = code_get_u2(p + 1, m);
-				fr = class_getconstant(m->class, i,
-									   CONSTANT_Fieldref);
+				i = SUCK_BE_U2(m->jcode + p + 1);
+				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
 				if (!fr)
 					return false;
 
@@ -2194,9 +2193,8 @@ fetch_opcode:
 		/* method invocation **************************************************/
 
 		case JAVA_INVOKESTATIC:
-			i = code_get_u2(p + 1, m);
-			mr = class_getconstant(m->class, i,
-					CONSTANT_Methodref);
+			i = SUCK_BE_U2(m->jcode + p + 1);
+			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 			if (!mr)
 				return false;
 
@@ -2209,7 +2207,7 @@ fetch_opcode:
 			goto invoke_method;
 
 		case JAVA_INVOKEINTERFACE:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 				
 			mr = class_getconstant(m->class, i,
 					CONSTANT_InterfaceMethodref);
@@ -2218,7 +2216,7 @@ fetch_opcode:
 
 		case JAVA_INVOKESPECIAL:
 		case JAVA_INVOKEVIRTUAL:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			mr = class_getconstant(m->class, i,
 					CONSTANT_Methodref);
 
@@ -2275,7 +2273,7 @@ invoke_method:
 		/* miscellaneous object operations ************************************/
 
 		case JAVA_NEW:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return false;
@@ -2291,7 +2289,7 @@ invoke_method:
 			break;
 
 		case JAVA_CHECKCAST:
-			i = code_get_u2(p + 1, m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return false;
@@ -2313,7 +2311,7 @@ invoke_method:
 			break;
 
 		case JAVA_INSTANCEOF:
-			i = code_get_u2(p + 1,m);
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return false;

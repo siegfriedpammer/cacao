@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5130 2006-07-14 16:52:36Z edwin $
+   $Id: parse.h 5181 2006-07-26 13:27:54Z twisti $
 
 */
 
@@ -379,23 +379,6 @@
 		INDEX_TWOWORD(o1); \
         OP1(o,o1); \
     } while (0)
-
-
-/* macros for byte code fetching ***********************************************
-
-	fetch a byte code of given size from position p in code array jcode
-
-*******************************************************************************/
-
-#define code_get_u1(p,m)  m->jcode[p]
-#define code_get_s1(p,m)  ((s1)m->jcode[p])
-#define code_get_u2(p,m)  ((((u2)m->jcode[p]) << 8) + m->jcode[p + 1])
-#define code_get_s2(p,m)  ((s2)((((u2)m->jcode[p]) << 8) + m->jcode[p + 1]))
-#define code_get_u4(p,m)  ((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
-                        +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3])
-#define code_get_s4(p,m)  ((s4)((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
-                             +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3]))
-/* XXX read 32bit aligned big-endian values directly */
 
 
 /* function prototypes ********************************************************/

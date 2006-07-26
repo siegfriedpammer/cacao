@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: suck.h 5181 2006-07-26 13:27:54Z twisti $
 
 */
 
@@ -144,6 +144,12 @@ struct list_classpath_entry {
      (((u8) (p)[6]) << 8) + \
       ((u8) (p)[7]))
 #endif
+
+
+#define SUCK_BE_S1(p)    (s1) SUCK_BE_U1(p)
+#define SUCK_BE_S2(p)    (s2) SUCK_BE_U2(p)
+#define SUCK_BE_S4(p)    (s4) SUCK_BE_U4(p)
+#define SUCK_BE_S8(p)    (s8) SUCK_BE_U8(p)
 
 
 /* signed suck defines ********************************************************/
