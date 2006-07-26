@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5167 2006-07-21 14:15:10Z twisti $
+   $Id: md-asm.h 5176 2006-07-26 09:43:08Z twisti $
 
 */
 
@@ -36,50 +36,46 @@
 #ifndef _MD_ASM_H
 #define _MD_ASM_H
 
-#define __ASSEMBLY__                    /* required by <asm/ppc_asm.h>        */
-#include <asm/ppc_asm.h>
-
-
 /* register defines ***********************************************************/
 
-#define zero  r0
-#define sp    r1
+#define r0    0
+#define sp    1
 
 /* #define XXX   r2  -  system reserved register */
 
-#define a0    r3
-#define a1    r4
-#define a2    r5
-#define a3    r6
-#define a4    r7
-#define a5    r8
-#define a6    r9
-#define a7    r10
+#define a0    3
+#define a1    4
+#define a2    5
+#define a3    6
+#define a4    7
+#define a5    8
+#define a6    9
+#define a7    10
 
-#define itmp1 r11
-#define itmp2 r12
-#define pv    r13
+#define itmp1 11
+#define itmp2 12
+#define pv    13
 
-#define s0    r14
-#define s1    r15
+#define s0    14
+#define s1    15
 
-#define itmp3 r16
-#define t0    r17
-#define t1    r18
-#define t2    r19
-#define t3    r20
-#define t4    r21
-#define t5    r22
-#define t6    r23
+#define itmp3 16
+#define t0    17
+#define t1    18
+#define t2    19
+#define t3    20
+#define t4    21
+#define t5    22
+#define t6    23
 
-#define s2    r24
-#define s3    r25
-#define s4    r26
-#define s5    r27
-#define s6    r28
-#define s7    r29
-#define s8    r30
-#define s9    r31
+#define s2    24
+#define s3    25
+#define s4    26
+#define s5    27
+#define s6    28
+#define s7    29
+#define s8    30
+#define s9    31
 
 #define v0    a0
 #define v1    a1
@@ -87,48 +83,48 @@
 #define xptr  itmp1
 #define xpc   itmp2
 
-#define mptr  r12
-#define mptrn 12
+#define mptr  itmp2
+#define mptrn itmp2
 
 
-#define ftmp3 fr0
+#define ftmp3 0
 
-#define fa0   fr1
-#define fa1   fr2
-#define fa2   fr3
-#define fa3   fr4
-#define fa4   fr5
-#define fa5   fr6
-#define fa6   fr7
-#define fa7   fr8
+#define fa0   1
+#define fa1   2
+#define fa2   3
+#define fa3   4
+#define fa4   5
+#define fa5   6
+#define fa6   7
+#define fa7   8
 
-#define fa8   fr9
-#define fa9   fr10
-#define fa10  fr11
-#define fa11  fr12
-#define fa12  fr13
+#define fa8   9
+#define fa9   10
+#define fa10  11
+#define fa11  12
+#define fa12  13
 
-#define fs0   fr14
-#define fs1   fr15
+#define fs0   14
+#define fs1   15
 
-#define ftmp1 fr16
-#define ftmp2 fr17
+#define ftmp1 16
+#define ftmp2 17
 
-#define ft0   fr18
-#define ft1   fr19
-#define ft2   fr20
-#define ft3   fr21
-#define ft4   fr22
-#define ft5   fr23
+#define ft0   18
+#define ft1   19
+#define ft2   20
+#define ft3   21
+#define ft4   22
+#define ft5   23
 
-#define fs2   fr24
-#define fs3   fr25
-#define fs4   fr26
-#define fs5   fr27
-#define fs6   fr28
-#define fs7   fr29
-#define fs8   fr30
-#define fs9   fr31
+#define fs2   24
+#define fs3   25
+#define fs4   26
+#define fs5   27
+#define fs6   28
+#define fs7   29
+#define fs8   30
+#define fs9   31
 
 #define fv0   fa0
 

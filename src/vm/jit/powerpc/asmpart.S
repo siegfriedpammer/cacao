@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
+   $Id: asmpart.S 5176 2006-07-26 09:43:08Z twisti $
 
 */
 
@@ -103,7 +103,7 @@
 	.long   0                         /* line number table size               */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
+	.long   0                         /* IsLeaf                               */
 	.long   0                         /* IsSync                               */
 	.long   0                         /* frame size                           */
 	.long   0                         /* codeinfo pointer                     */
@@ -114,8 +114,8 @@ asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
 	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-40*4(r1)
+	stw     r0,LA_LR_OFFSET(sp)
+	stwu    sp,-40*4(sp)
 
 	stw     s0,8*4(sp)                /* save used callee saved registers     */
 	stw     a0,9*4(sp)                /* save method pointer for compiler     */
@@ -130,20 +130,20 @@ asm_vm_call_method_double:
 	stfd	ftmp2,16*4(sp)
 
 #if defined(__DARWIN__)
-	stw     t1,18*4(r1)
-	stw     t2,19*4(r1)
-	stw     t3,20*4(r1)
-	stw     t4,21*4(r1)
-	stw     t5,22*4(r1)
-	stw     t6,23*4(r1)
-	stw     t7,24*4(r1)
+	stw     t1,18*4(sp)
+	stw     t2,19*4(sp)
+	stw     t3,20*4(sp)
+	stw     t4,21*4(sp)
+	stw     t5,22*4(sp)
+	stw     t6,23*4(sp)
+	stw     t7,24*4(sp)
 
-	stfd	ft0,26*4(r1)
-	stfd	ft1,28*4(r1)
-	stfd	ft2,30*4(r1)
-	stfd	ft3,32*4(r1)
-	stfd	ft4,34*4(r1)
-	stfd	ft5,36*4(r1)
+	stfd	ft0,26*4(sp)
+	stfd	ft1,28*4(sp)
+	stfd	ft2,30*4(sp)
+	stfd	ft3,32*4(sp)
+	stfd	ft4,34*4(sp)
+	stfd	ft5,36*4(sp)
 #else
 	SAVE_TEMPORARY_REGISTERS(18)      /* the offset has to be even            */
 #endif
@@ -412,31 +412,31 @@ L_asm_vm_call_method_return:
 	lfd     ftmp2,16*4(sp)
 
 #if defined(__DARWIN__)
-	lwz     t1,18*4(r1)
-	lwz     t2,19*4(r1)
-	lwz     t3,20*4(r1)
-	lwz     t4,21*4(r1)
-	lwz     t5,22*4(r1)
-	lwz     t6,23*4(r1)
-	lwz     t7,24*4(r1)
+	lwz     t1,18*4(sp)
+	lwz     t2,19*4(sp)
+	lwz     t3,20*4(sp)
+	lwz     t4,21*4(sp)
+	lwz     t5,22*4(sp)
+	lwz     t6,23*4(sp)
+	lwz     t7,24*4(sp)
 
-	lfd     ft0,26*4(r1)
-	lfd     ft1,28*4(r1)
-	lfd     ft2,30*4(r1)
-	lfd     ft3,32*4(r1)
-	lfd     ft4,34*4(r1)
-	lfd     ft5,36*4(r1)
+	lfd     ft0,26*4(sp)
+	lfd     ft1,28*4(sp)
+	lfd     ft2,30*4(sp)
+	lfd     ft3,32*4(sp)
+	lfd     ft4,34*4(sp)
+	lfd     ft5,36*4(sp)
 #else
 	RESTORE_TEMPORARY_REGISTERS(18)   /* the offset has to be even            */
 #endif
 
-	lwz     r0,40*4+LA_LR_OFFSET(r1)
+	lwz     r0,40*4+LA_LR_OFFSET(sp)
 	mtlr    r0
-	addi    r1,r1,40*4
+	addi    sp,sp,40*4
 	blr
 
 asm_vm_call_method_exception_handler:
-	mr      r3,itmp1
+	mr      a0,itmp1
 	bl      builtin_throw_exception
 	b       L_asm_vm_call_method_return
 
@@ -692,32 +692,32 @@ L_handle_fda12:
 asm_call_jit_compiler:
 L_asm_call_jit_compiler:                /* required for PIC code              */
 	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)         /* save return address                */
-	stwu    r1,-(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)(r1)
+	stw     r0,LA_LR_OFFSET(sp)         /* save return address                */
+	stwu    sp,-(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)(sp)
 
 #if defined(__DARWIN__)
-	stw     a0,(LA_WORD_SIZE+5+0)*4(r1)
-	stw     a1,(LA_WORD_SIZE+5+1)*4(r1)
-	stw     a2,(LA_WORD_SIZE+5+2)*4(r1)
-	stw     a3,(LA_WORD_SIZE+5+3)*4(r1)
-	stw     a4,(LA_WORD_SIZE+5+4)*4(r1)
-	stw     a5,(LA_WORD_SIZE+5+5)*4(r1)
-	stw     a6,(LA_WORD_SIZE+5+6)*4(r1)
-	stw     a7,(LA_WORD_SIZE+5+7)*4(r1)
+	stw     a0,(LA_WORD_SIZE+5+0)*4(sp)
+	stw     a1,(LA_WORD_SIZE+5+1)*4(sp)
+	stw     a2,(LA_WORD_SIZE+5+2)*4(sp)
+	stw     a3,(LA_WORD_SIZE+5+3)*4(sp)
+	stw     a4,(LA_WORD_SIZE+5+4)*4(sp)
+	stw     a5,(LA_WORD_SIZE+5+5)*4(sp)
+	stw     a6,(LA_WORD_SIZE+5+6)*4(sp)
+	stw     a7,(LA_WORD_SIZE+5+7)*4(sp)
 
-	stfd    fa0,(LA_WORD_SIZE+5+8)*4(r1)
-	stfd    fa1,(LA_WORD_SIZE+5+10)*4(r1)
-	stfd    fa2,(LA_WORD_SIZE+5+12)*4(r1)
-	stfd    fa3,(LA_WORD_SIZE+5+14)*4(r1)
-	stfd    fa4,(LA_WORD_SIZE+5+16)*4(r1)
-	stfd    fa5,(LA_WORD_SIZE+5+18)*4(r1)
-	stfd    fa6,(LA_WORD_SIZE+5+20)*4(r1)
-	stfd    fa7,(LA_WORD_SIZE+5+22)*4(r1)
-	stfd    fa8,(LA_WORD_SIZE+5+24)*4(r1)
-	stfd    fa9,(LA_WORD_SIZE+5+26)*4(r1)
-	stfd    fa10,(LA_WORD_SIZE+5+28)*4(r1)
-	stfd    fa11,(LA_WORD_SIZE+5+30)*4(r1)
-	stfd    fa12,(LA_WORD_SIZE+5+32)*4(r1)
+	stfd    fa0,(LA_WORD_SIZE+5+8)*4(sp)
+	stfd    fa1,(LA_WORD_SIZE+5+10)*4(sp)
+	stfd    fa2,(LA_WORD_SIZE+5+12)*4(sp)
+	stfd    fa3,(LA_WORD_SIZE+5+14)*4(sp)
+	stfd    fa4,(LA_WORD_SIZE+5+16)*4(sp)
+	stfd    fa5,(LA_WORD_SIZE+5+18)*4(sp)
+	stfd    fa6,(LA_WORD_SIZE+5+20)*4(sp)
+	stfd    fa7,(LA_WORD_SIZE+5+22)*4(sp)
+	stfd    fa8,(LA_WORD_SIZE+5+24)*4(sp)
+	stfd    fa9,(LA_WORD_SIZE+5+26)*4(sp)
+	stfd    fa10,(LA_WORD_SIZE+5+28)*4(sp)
+	stfd    fa11,(LA_WORD_SIZE+5+30)*4(sp)
+	stfd    fa12,(LA_WORD_SIZE+5+32)*4(sp)
 #else
 	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
 #endif
@@ -730,33 +730,33 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	mr      pv,v0                       /* move address to pv register        */
 
 #if defined(__DARWIN__)
-	lwz     a0,(LA_WORD_SIZE+5+0)*4(r1)
-	lwz     a1,(LA_WORD_SIZE+5+1)*4(r1)
-	lwz     a2,(LA_WORD_SIZE+5+2)*4(r1)
-	lwz     a3,(LA_WORD_SIZE+5+3)*4(r1)
-	lwz     a4,(LA_WORD_SIZE+5+4)*4(r1)
-	lwz     a5,(LA_WORD_SIZE+5+5)*4(r1)
-	lwz     a6,(LA_WORD_SIZE+5+6)*4(r1)
-	lwz     a7,(LA_WORD_SIZE+5+7)*4(r1)
+	lwz     a0,(LA_WORD_SIZE+5+0)*4(sp)
+	lwz     a1,(LA_WORD_SIZE+5+1)*4(sp)
+	lwz     a2,(LA_WORD_SIZE+5+2)*4(sp)
+	lwz     a3,(LA_WORD_SIZE+5+3)*4(sp)
+	lwz     a4,(LA_WORD_SIZE+5+4)*4(sp)
+	lwz     a5,(LA_WORD_SIZE+5+5)*4(sp)
+	lwz     a6,(LA_WORD_SIZE+5+6)*4(sp)
+	lwz     a7,(LA_WORD_SIZE+5+7)*4(sp)
 
-	lfd     fa0,(LA_WORD_SIZE+5+8)*4(r1)
-	lfd     fa1,(LA_WORD_SIZE+5+10)*4(r1)
-	lfd     fa2,(LA_WORD_SIZE+5+12)*4(r1)
-	lfd     fa3,(LA_WORD_SIZE+5+14)*4(r1)
-	lfd     fa4,(LA_WORD_SIZE+5+16)*4(r1)
-	lfd     fa5,(LA_WORD_SIZE+5+18)*4(r1)
-	lfd     fa6,(LA_WORD_SIZE+5+20)*4(r1)
-	lfd     fa7,(LA_WORD_SIZE+5+22)*4(r1)
-	lfd     fa8,(LA_WORD_SIZE+5+24)*4(r1)
-	lfd     fa9,(LA_WORD_SIZE+5+26)*4(r1)
-	lfd     fa10,(LA_WORD_SIZE+5+28)*4(r1)
-	lfd     fa11,(LA_WORD_SIZE+5+30)*4(r1)
-	lfd     fa12,(LA_WORD_SIZE+5+32)*4(r1)
+	lfd     fa0,(LA_WORD_SIZE+5+8)*4(sp)
+	lfd     fa1,(LA_WORD_SIZE+5+10)*4(sp)
+	lfd     fa2,(LA_WORD_SIZE+5+12)*4(sp)
+	lfd     fa3,(LA_WORD_SIZE+5+14)*4(sp)
+	lfd     fa4,(LA_WORD_SIZE+5+16)*4(sp)
+	lfd     fa5,(LA_WORD_SIZE+5+18)*4(sp)
+	lfd     fa6,(LA_WORD_SIZE+5+20)*4(sp)
+	lfd     fa7,(LA_WORD_SIZE+5+22)*4(sp)
+	lfd     fa8,(LA_WORD_SIZE+5+24)*4(sp)
+	lfd     fa9,(LA_WORD_SIZE+5+26)*4(sp)
+	lfd     fa10,(LA_WORD_SIZE+5+28)*4(sp)
+	lfd     fa11,(LA_WORD_SIZE+5+30)*4(sp)
+	lfd     fa12,(LA_WORD_SIZE+5+32)*4(sp)
 #else
 	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
 #endif
 
-	lwz     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(r1)
+	lwz     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
 	mtlr    itmp1
 
 	addi    sp,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
@@ -795,17 +795,37 @@ L_asm_call_jit_compiler_exception:
 		
 asm_handle_nat_exception:
 L_asm_handle_nat_exception:             /* required for PIC code              */
-	mflr    r9
-	lwz     itmp3,4(r9)
+#if 1
+	mflr    a6
+	lwz     itmp3,4(a6)
 	extsh   itmp3,itmp3
-	add     pv,itmp3,r9
-	lwz     itmp3,8(r9)
+	add     pv,itmp3,a6
+	lwz     itmp3,8(a6)
 	srwi    itmp3,itmp3,16
 	cmpwi   itmp3,0x3dad
 	bne     L_asm_handle_exception
-	lwz     itmp3,8(r9)
+	lwz     itmp3,8(a6)
 	slwi    itmp3,itmp3,16
 	add     pv,pv,itmp3
+#else
+	mflr    r0
+	addi    sp,sp,-(LA_WORD_SIZE+6)*4   /* allocate stack                     */
+	stw     xptr,LA_SIZE+0*8(sp)        /* save exception pointer             */
+	stw     xpc,LA_SIZE+1*8(sp)         /* save exception pc                  */
+	stw     r0,LA_SIZE+3*8(sp)          /* save return address                */
+	stw     zero,LA_SIZE+4*8(sp)        /* save maybe-leaf flag (cleared)     */
+
+	mr      a0,r0                       /* pass return address                */
+	bl      md_codegen_findmethod       /* get PV from RA                     */
+	stw     v0,LA_SIZE+2*8(sp)          /* save data segment pointer          */
+
+	lwz     a0,LA_SIZE+0*8(sp)          /* pass exception pointer             */
+	lwz     a1,LA_SIZE+1*8(sp)          /* pass exception pc                  */
+	mr      a2,v0                       /* pass data segment pointer          */
+	addi    a3,sp,(LA_WORD_SIZE+6)*4    /* pass Java stack pointer            */
+
+	b       L_asm_handle_exception_continue
+#endif
 
 asm_handle_exception:
 L_asm_handle_exception:                 /* required for PIC code              */
@@ -1007,14 +1027,14 @@ asm_patcher_wrapper:
 	stwu    sp,-(LA_SIZE+(5+58)*4)(sp)
 
 #if defined(__DARWIN__)
-	stw     a0,LA_SIZE+(5+0)*4(r1)      /* save argument registers            */
-	stw     a1,LA_SIZE+(5+1)*4(r1)      /* preserve linkage area (24 bytes)   */
-	stw     a2,LA_SIZE+(5+2)*4(r1)      /* and 4 bytes for 4 argument         */
-	stw     a3,LA_SIZE+(5+3)*4(r1)
-	stw     a4,LA_SIZE+(5+4)*4(r1)
-	stw     a5,LA_SIZE+(5+5)*4(r1)
-	stw     a6,LA_SIZE+(5+6)*4(r1)
-	stw     a7,LA_SIZE+(5+7)*4(r1)
+	stw     a0,LA_SIZE+(5+0)*4(sp)      /* save argument registers            */
+	stw     a1,LA_SIZE+(5+1)*4(sp)      /* preserve linkage area (24 bytes)   */
+	stw     a2,LA_SIZE+(5+2)*4(sp)      /* and 4 bytes for 4 argument         */
+	stw     a3,LA_SIZE+(5+3)*4(sp)
+	stw     a4,LA_SIZE+(5+4)*4(sp)
+	stw     a5,LA_SIZE+(5+5)*4(sp)
+	stw     a6,LA_SIZE+(5+6)*4(sp)
+	stw     a7,LA_SIZE+(5+7)*4(sp)
 
 	stfd    fa0,LA_SIZE+(5+8)*4(sp)
 	stfd    fa1,LA_SIZE+(5+10)*4(sp)
@@ -1030,21 +1050,21 @@ asm_patcher_wrapper:
 	stfd    fa11,LA_SIZE+(5+30)*4(sp)
 	stfd    fa12,LA_SIZE+(5+32)*4(sp)
 
-	stw     t0,(LA_WORD_SIZE+5+33)*4(r1)
-	stw     t1,(LA_WORD_SIZE+5+34)*4(r1)
-	stw     t2,(LA_WORD_SIZE+5+35)*4(r1)
-	stw     t3,(LA_WORD_SIZE+5+36)*4(r1)
-	stw     t4,(LA_WORD_SIZE+5+37)*4(r1)
-	stw     t5,(LA_WORD_SIZE+5+38)*4(r1)
-	stw     t6,(LA_WORD_SIZE+5+39)*4(r1)
-	stw     t7,(LA_WORD_SIZE+5+40)*4(r1)
+	stw     t0,(LA_WORD_SIZE+5+33)*4(sp)
+	stw     t1,(LA_WORD_SIZE+5+34)*4(sp)
+	stw     t2,(LA_WORD_SIZE+5+35)*4(sp)
+	stw     t3,(LA_WORD_SIZE+5+36)*4(sp)
+	stw     t4,(LA_WORD_SIZE+5+37)*4(sp)
+	stw     t5,(LA_WORD_SIZE+5+38)*4(sp)
+	stw     t6,(LA_WORD_SIZE+5+39)*4(sp)
+	stw     t7,(LA_WORD_SIZE+5+40)*4(sp)
 
-	stfd    ft0,(LA_WORD_SIZE+5+42)*4(r1)
-	stfd    ft1,(LA_WORD_SIZE+5+44)*4(r1)
-	stfd    ft2,(LA_WORD_SIZE+5+46)*4(r1)
-	stfd    ft3,(LA_WORD_SIZE+5+48)*4(r1)
-	stfd    ft4,(LA_WORD_SIZE+5+50)*4(r1)
-	stfd    ft5,(LA_WORD_SIZE+5+52)*4(r1)
+	stfd    ft0,(LA_WORD_SIZE+5+42)*4(sp)
+	stfd    ft1,(LA_WORD_SIZE+5+44)*4(sp)
+	stfd    ft2,(LA_WORD_SIZE+5+46)*4(sp)
+	stfd    ft3,(LA_WORD_SIZE+5+48)*4(sp)
+	stfd    ft4,(LA_WORD_SIZE+5+50)*4(sp)
+	stfd    ft5,(LA_WORD_SIZE+5+52)*4(sp)
 #else
 	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1) /* save 8 int/8 float arguments   */
 	SAVE_TEMPORARY_REGISTERS(LA_WORD_SIZE+1+24)
@@ -1061,14 +1081,14 @@ asm_patcher_wrapper:
 	stw     v0,LA_SIZE+(5+57)*4(sp)     /* save return value                  */
 
 #if defined(__DARWIN__)
-	lwz     a0,LA_SIZE+(5+0)*4(r1)
-	lwz     a1,LA_SIZE+(5+1)*4(r1)
-	lwz     a2,LA_SIZE+(5+2)*4(r1)
-	lwz     a3,LA_SIZE+(5+3)*4(r1)
-	lwz     a4,LA_SIZE+(5+4)*4(r1)
-	lwz     a5,LA_SIZE+(5+5)*4(r1)
-	lwz     a6,LA_SIZE+(5+6)*4(r1)
-	lwz     a7,LA_SIZE+(5+7)*4(r1)
+	lwz     a0,LA_SIZE+(5+0)*4(sp)
+	lwz     a1,LA_SIZE+(5+1)*4(sp)
+	lwz     a2,LA_SIZE+(5+2)*4(sp)
+	lwz     a3,LA_SIZE+(5+3)*4(sp)
+	lwz     a4,LA_SIZE+(5+4)*4(sp)
+	lwz     a5,LA_SIZE+(5+5)*4(sp)
+	lwz     a6,LA_SIZE+(5+6)*4(sp)
+	lwz     a7,LA_SIZE+(5+7)*4(sp)
 
 	lfd     fa0,LA_SIZE+(5+8)*4(sp)
 	lfd     fa1,LA_SIZE+(5+10)*4(sp)
@@ -1084,21 +1104,21 @@ asm_patcher_wrapper:
 	lfd     fa11,LA_SIZE+(5+30)*4(sp)
 	lfd     fa12,LA_SIZE+(5+32)*4(sp)
 
-	lwz     t0,(LA_WORD_SIZE+5+33)*4(r1)
-	lwz     t1,(LA_WORD_SIZE+5+34)*4(r1)
-	lwz     t2,(LA_WORD_SIZE+5+35)*4(r1)
-	lwz     t3,(LA_WORD_SIZE+5+36)*4(r1)
-	lwz     t4,(LA_WORD_SIZE+5+37)*4(r1)
-	lwz     t5,(LA_WORD_SIZE+5+38)*4(r1)
-	lwz     t6,(LA_WORD_SIZE+5+39)*4(r1)
-	lwz     t7,(LA_WORD_SIZE+5+40)*4(r1)
+	lwz     t0,(LA_WORD_SIZE+5+33)*4(sp)
+	lwz     t1,(LA_WORD_SIZE+5+34)*4(sp)
+	lwz     t2,(LA_WORD_SIZE+5+35)*4(sp)
+	lwz     t3,(LA_WORD_SIZE+5+36)*4(sp)
+	lwz     t4,(LA_WORD_SIZE+5+37)*4(sp)
+	lwz     t5,(LA_WORD_SIZE+5+38)*4(sp)
+	lwz     t6,(LA_WORD_SIZE+5+39)*4(sp)
+	lwz     t7,(LA_WORD_SIZE+5+40)*4(sp)
 
-	lfd     ft0,(LA_WORD_SIZE+5+42)*4(r1)
-	lfd     ft1,(LA_WORD_SIZE+5+44)*4(r1)
-	lfd     ft2,(LA_WORD_SIZE+5+46)*4(r1)
-	lfd     ft3,(LA_WORD_SIZE+5+48)*4(r1)
-	lfd     ft4,(LA_WORD_SIZE+5+50)*4(r1)
-	lfd     ft5,(LA_WORD_SIZE+5+52)*4(r1)
+	lfd     ft0,(LA_WORD_SIZE+5+42)*4(sp)
+	lfd     ft1,(LA_WORD_SIZE+5+44)*4(sp)
+	lfd     ft2,(LA_WORD_SIZE+5+46)*4(sp)
+	lfd     ft3,(LA_WORD_SIZE+5+48)*4(sp)
+	lfd     ft4,(LA_WORD_SIZE+5+50)*4(sp)
+	lfd     ft5,(LA_WORD_SIZE+5+52)*4(sp)
 #else
 	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1) /* restore 8 int/8 float args  */
 	RESTORE_TEMPORARY_REGISTERS(LA_WORD_SIZE+1+24)
@@ -1157,74 +1177,74 @@ asm_replacement_out:
 	addi    sp,sp,-(sizeexecutionstate + REPLACEMENT_ROOM) /* XXX align */
 
 	/* save link register */
-	mflr    r16
+	mflr    itmp3
 
 	/* save registers in execution state */
-	stw     r0 ,( 0*8+offes_intregs)(sp)
-	stw     r1 ,( 1*8+offes_intregs)(sp)
-	stw     r2 ,( 2*8+offes_intregs)(sp)
-	stw     r3 ,( 3*8+offes_intregs)(sp)
-	stw     r4 ,( 4*8+offes_intregs)(sp)
-	stw     r5 ,( 5*8+offes_intregs)(sp)
-	stw     r6 ,( 6*8+offes_intregs)(sp)
-	stw     r7 ,( 7*8+offes_intregs)(sp)
-	stw     r8 ,( 8*8+offes_intregs)(sp)
-	stw     r9 ,( 9*8+offes_intregs)(sp)
-	stw     r10,(10*8+offes_intregs)(sp)
-	stw     r11,(11*8+offes_intregs)(sp)
-	stw     r12,(12*8+offes_intregs)(sp)
-	stw     r13,(13*8+offes_intregs)(sp)
-	stw     r14,(14*8+offes_intregs)(sp)
-	stw     r15,(15*8+offes_intregs)(sp)
-	stw     r16,(16*8+offes_intregs)(sp) /* link register */
-	stw     r17,(17*8+offes_intregs)(sp)
-	stw     r18,(18*8+offes_intregs)(sp)
-	stw     r19,(19*8+offes_intregs)(sp)
-	stw     r20,(20*8+offes_intregs)(sp)
-	stw     r21,(21*8+offes_intregs)(sp)
-	stw     r22,(22*8+offes_intregs)(sp)
-	stw     r23,(23*8+offes_intregs)(sp)
-	stw     r24,(24*8+offes_intregs)(sp)
-	stw     r25,(25*8+offes_intregs)(sp)
-	stw     r26,(26*8+offes_intregs)(sp)
-	stw     r27,(27*8+offes_intregs)(sp)
-	stw     r28,(28*8+offes_intregs)(sp)
-	stw     r29,(29*8+offes_intregs)(sp)
-	stw     r30,(30*8+offes_intregs)(sp)
-	stw     r31,(31*8+offes_intregs)(sp)
+	stw     0 ,( 0*8+offes_intregs)(sp)
+	stw     1 ,( 1*8+offes_intregs)(sp)
+	stw     2 ,( 2*8+offes_intregs)(sp)
+	stw     3 ,( 3*8+offes_intregs)(sp)
+	stw     4 ,( 4*8+offes_intregs)(sp)
+	stw     5 ,( 5*8+offes_intregs)(sp)
+	stw     6 ,( 6*8+offes_intregs)(sp)
+	stw     7 ,( 7*8+offes_intregs)(sp)
+	stw     8 ,( 8*8+offes_intregs)(sp)
+	stw     9 ,( 9*8+offes_intregs)(sp)
+	stw     10,(10*8+offes_intregs)(sp)
+	stw     11,(11*8+offes_intregs)(sp)
+	stw     12,(12*8+offes_intregs)(sp)
+	stw     13,(13*8+offes_intregs)(sp)
+	stw     14,(14*8+offes_intregs)(sp)
+	stw     15,(15*8+offes_intregs)(sp)
+	stw     16,(16*8+offes_intregs)(sp) /* link register */
+	stw     17,(17*8+offes_intregs)(sp)
+	stw     18,(18*8+offes_intregs)(sp)
+	stw     19,(19*8+offes_intregs)(sp)
+	stw     20,(20*8+offes_intregs)(sp)
+	stw     21,(21*8+offes_intregs)(sp)
+	stw     22,(22*8+offes_intregs)(sp)
+	stw     23,(23*8+offes_intregs)(sp)
+	stw     24,(24*8+offes_intregs)(sp)
+	stw     25,(25*8+offes_intregs)(sp)
+	stw     26,(26*8+offes_intregs)(sp)
+	stw     27,(27*8+offes_intregs)(sp)
+	stw     28,(28*8+offes_intregs)(sp)
+	stw     29,(29*8+offes_intregs)(sp)
+	stw     30,(30*8+offes_intregs)(sp)
+	stw     31,(31*8+offes_intregs)(sp)
 	
-	stfd    fr0 ,( 0*8+offes_fltregs)(sp)
-	stfd    fr1 ,( 1*8+offes_fltregs)(sp)
-	stfd    fr2 ,( 2*8+offes_fltregs)(sp)
-	stfd    fr3 ,( 3*8+offes_fltregs)(sp)
-	stfd    fr4 ,( 4*8+offes_fltregs)(sp)
-	stfd    fr5 ,( 5*8+offes_fltregs)(sp)
-	stfd    fr6 ,( 6*8+offes_fltregs)(sp)
-	stfd    fr7 ,( 7*8+offes_fltregs)(sp)
-	stfd    fr8 ,( 8*8+offes_fltregs)(sp)
-	stfd    fr9 ,( 9*8+offes_fltregs)(sp)
-	stfd    fr10,(10*8+offes_fltregs)(sp)
-	stfd    fr11,(11*8+offes_fltregs)(sp)
-	stfd    fr12,(12*8+offes_fltregs)(sp)
-	stfd    fr13,(13*8+offes_fltregs)(sp)
-	stfd    fr14,(14*8+offes_fltregs)(sp)
-	stfd    fr15,(15*8+offes_fltregs)(sp)
-	stfd    fr16,(16*8+offes_fltregs)(sp)
-	stfd    fr17,(17*8+offes_fltregs)(sp)
-	stfd    fr18,(18*8+offes_fltregs)(sp)
-	stfd    fr19,(19*8+offes_fltregs)(sp)
-	stfd    fr20,(20*8+offes_fltregs)(sp)
-	stfd    fr21,(21*8+offes_fltregs)(sp)
-	stfd    fr22,(22*8+offes_fltregs)(sp)
-	stfd    fr23,(23*8+offes_fltregs)(sp)
-	stfd    fr24,(24*8+offes_fltregs)(sp)
-	stfd    fr25,(25*8+offes_fltregs)(sp)
-	stfd    fr26,(26*8+offes_fltregs)(sp)
-	stfd    fr27,(27*8+offes_fltregs)(sp)
-	stfd    fr28,(28*8+offes_fltregs)(sp)
-	stfd    fr29,(29*8+offes_fltregs)(sp)
-	stfd    fr30,(30*8+offes_fltregs)(sp)
-	stfd    fr31,(31*8+offes_fltregs)(sp)
+	stfd    0 ,( 0*8+offes_fltregs)(sp)
+	stfd    1 ,( 1*8+offes_fltregs)(sp)
+	stfd    2 ,( 2*8+offes_fltregs)(sp)
+	stfd    3 ,( 3*8+offes_fltregs)(sp)
+	stfd    4 ,( 4*8+offes_fltregs)(sp)
+	stfd    5 ,( 5*8+offes_fltregs)(sp)
+	stfd    6 ,( 6*8+offes_fltregs)(sp)
+	stfd    7 ,( 7*8+offes_fltregs)(sp)
+	stfd    8 ,( 8*8+offes_fltregs)(sp)
+	stfd    9 ,( 9*8+offes_fltregs)(sp)
+	stfd    10,(10*8+offes_fltregs)(sp)
+	stfd    11,(11*8+offes_fltregs)(sp)
+	stfd    12,(12*8+offes_fltregs)(sp)
+	stfd    13,(13*8+offes_fltregs)(sp)
+	stfd    14,(14*8+offes_fltregs)(sp)
+	stfd    15,(15*8+offes_fltregs)(sp)
+	stfd    16,(16*8+offes_fltregs)(sp)
+	stfd    17,(17*8+offes_fltregs)(sp)
+	stfd    18,(18*8+offes_fltregs)(sp)
+	stfd    19,(19*8+offes_fltregs)(sp)
+	stfd    20,(20*8+offes_fltregs)(sp)
+	stfd    21,(21*8+offes_fltregs)(sp)
+	stfd    22,(22*8+offes_fltregs)(sp)
+	stfd    23,(23*8+offes_fltregs)(sp)
+	stfd    24,(24*8+offes_fltregs)(sp)
+	stfd    25,(25*8+offes_fltregs)(sp)
+	stfd    26,(26*8+offes_fltregs)(sp)
+	stfd    27,(27*8+offes_fltregs)(sp)
+	stfd    28,(28*8+offes_fltregs)(sp)
+	stfd    29,(29*8+offes_fltregs)(sp)
+	stfd    30,(30*8+offes_fltregs)(sp)
+	stfd    31,(31*8+offes_fltregs)(sp)
 	
 	/* calculate sp of method */
 	addi    itmp1,sp,(sizeexecutionstate + REPLACEMENT_ROOM + 4*4)
@@ -1265,71 +1285,71 @@ asm_replacement_in:
 	/* r1 is sp                       */
 	/* r2 is reserved                 */
 	/* a0 is loaded below             */
-	lwz     r4 ,( 4*8+offes_intregs)(a0)
-	lwz     r5 ,( 5*8+offes_intregs)(a0)
-	lwz     r6 ,( 6*8+offes_intregs)(a0)
-	lwz     r7 ,( 7*8+offes_intregs)(a0)
-	lwz     r8 ,( 8*8+offes_intregs)(a0)
-	lwz     r9 ,( 9*8+offes_intregs)(a0)
-	lwz     r10,(10*8+offes_intregs)(a0)
-	lwz     r11,(11*8+offes_intregs)(a0)
-	lwz     r12,(12*8+offes_intregs)(a0)
+	lwz     4 ,( 4*8+offes_intregs)(a0)
+	lwz     5 ,( 5*8+offes_intregs)(a0)
+	lwz     6 ,( 6*8+offes_intregs)(a0)
+	lwz     7 ,( 7*8+offes_intregs)(a0)
+	lwz     8 ,( 8*8+offes_intregs)(a0)
+	lwz     9 ,( 9*8+offes_intregs)(a0)
+	lwz     10,(10*8+offes_intregs)(a0)
+	lwz     11,(11*8+offes_intregs)(a0)
+	lwz     12,(12*8+offes_intregs)(a0)
 	/* r13 is pv                      */
-	lwz     r14,(14*8+offes_intregs)(a0)
-	lwz     r15,(15*8+offes_intregs)(a0)
-	lwz     r16,(16*8+offes_intregs)(a0) /* link register */
-	lwz     r17,(17*8+offes_intregs)(a0)
-	lwz     r18,(18*8+offes_intregs)(a0)
-	lwz     r19,(19*8+offes_intregs)(a0)
-	lwz     r20,(20*8+offes_intregs)(a0)
-	lwz     r21,(21*8+offes_intregs)(a0)
-	lwz     r22,(22*8+offes_intregs)(a0)
-	lwz     r23,(23*8+offes_intregs)(a0)
-	lwz     r24,(24*8+offes_intregs)(a0)
-	lwz     r25,(25*8+offes_intregs)(a0)
-	lwz     r26,(26*8+offes_intregs)(a0)
-	lwz     r27,(27*8+offes_intregs)(a0)
-	lwz     r28,(28*8+offes_intregs)(a0)
-	lwz     r29,(29*8+offes_intregs)(a0)
-	lwz     r30,(30*8+offes_intregs)(a0)
-	lwz     r31,(31*8+offes_intregs)(a0)
+	lwz     14,(14*8+offes_intregs)(a0)
+	lwz     15,(15*8+offes_intregs)(a0)
+	lwz     16,(16*8+offes_intregs)(a0) /* link register */
+	lwz     17,(17*8+offes_intregs)(a0)
+	lwz     18,(18*8+offes_intregs)(a0)
+	lwz     19,(19*8+offes_intregs)(a0)
+	lwz     20,(20*8+offes_intregs)(a0)
+	lwz     21,(21*8+offes_intregs)(a0)
+	lwz     22,(22*8+offes_intregs)(a0)
+	lwz     23,(23*8+offes_intregs)(a0)
+	lwz     24,(24*8+offes_intregs)(a0)
+	lwz     25,(25*8+offes_intregs)(a0)
+	lwz     26,(26*8+offes_intregs)(a0)
+	lwz     27,(27*8+offes_intregs)(a0)
+	lwz     28,(28*8+offes_intregs)(a0)
+	lwz     29,(29*8+offes_intregs)(a0)
+	lwz     30,(30*8+offes_intregs)(a0)
+	lwz     31,(31*8+offes_intregs)(a0)
 	
-	lfd     fr0 ,( 0*8+offes_fltregs)(a0)
-	lfd     fr1 ,( 1*8+offes_fltregs)(a0)
-	lfd     fr2 ,( 2*8+offes_fltregs)(a0)
-	lfd     fr3 ,( 3*8+offes_fltregs)(a0)
-	lfd     fr4 ,( 4*8+offes_fltregs)(a0)
-	lfd     fr5 ,( 5*8+offes_fltregs)(a0)
-	lfd     fr6 ,( 6*8+offes_fltregs)(a0)
-	lfd     fr7 ,( 7*8+offes_fltregs)(a0)
-	lfd     fr8 ,( 8*8+offes_fltregs)(a0)
-	lfd     fr9 ,( 9*8+offes_fltregs)(a0)
-	lfd     fr10,(10*8+offes_fltregs)(a0)
-	lfd     fr11,(11*8+offes_fltregs)(a0)
-	lfd     fr12,(12*8+offes_fltregs)(a0)
-	lfd     fr13,(13*8+offes_fltregs)(a0)
-	lfd     fr14,(14*8+offes_fltregs)(a0)
-	lfd     fr15,(15*8+offes_fltregs)(a0)
-	lfd     fr16,(16*8+offes_fltregs)(a0)
-	lfd     fr17,(17*8+offes_fltregs)(a0)
-	lfd     fr18,(18*8+offes_fltregs)(a0)
-	lfd     fr19,(19*8+offes_fltregs)(a0)
-	lfd     fr20,(20*8+offes_fltregs)(a0)
-	lfd     fr21,(21*8+offes_fltregs)(a0)
-	lfd     fr22,(22*8+offes_fltregs)(a0)
-	lfd     fr23,(23*8+offes_fltregs)(a0)
-	lfd     fr24,(24*8+offes_fltregs)(a0)
-	lfd     fr25,(25*8+offes_fltregs)(a0)
-	lfd     fr26,(26*8+offes_fltregs)(a0)
-	lfd     fr27,(27*8+offes_fltregs)(a0)
-	lfd     fr28,(28*8+offes_fltregs)(a0)
-	lfd     fr29,(29*8+offes_fltregs)(a0)
-	lfd     fr30,(30*8+offes_fltregs)(a0)
-	lfd     fr31,(31*8+offes_fltregs)(a0)
+	lfd     0 ,( 0*8+offes_fltregs)(a0)
+	lfd     1 ,( 1*8+offes_fltregs)(a0)
+	lfd     2 ,( 2*8+offes_fltregs)(a0)
+	lfd     3 ,( 3*8+offes_fltregs)(a0)
+	lfd     4 ,( 4*8+offes_fltregs)(a0)
+	lfd     5 ,( 5*8+offes_fltregs)(a0)
+	lfd     6 ,( 6*8+offes_fltregs)(a0)
+	lfd     7 ,( 7*8+offes_fltregs)(a0)
+	lfd     8 ,( 8*8+offes_fltregs)(a0)
+	lfd     9 ,( 9*8+offes_fltregs)(a0)
+	lfd     10,(10*8+offes_fltregs)(a0)
+	lfd     11,(11*8+offes_fltregs)(a0)
+	lfd     12,(12*8+offes_fltregs)(a0)
+	lfd     13,(13*8+offes_fltregs)(a0)
+	lfd     14,(14*8+offes_fltregs)(a0)
+	lfd     15,(15*8+offes_fltregs)(a0)
+	lfd     16,(16*8+offes_fltregs)(a0)
+	lfd     17,(17*8+offes_fltregs)(a0)
+	lfd     18,(18*8+offes_fltregs)(a0)
+	lfd     19,(19*8+offes_fltregs)(a0)
+	lfd     20,(20*8+offes_fltregs)(a0)
+	lfd     21,(21*8+offes_fltregs)(a0)
+	lfd     22,(22*8+offes_fltregs)(a0)
+	lfd     23,(23*8+offes_fltregs)(a0)
+	lfd     24,(24*8+offes_fltregs)(a0)
+	lfd     25,(25*8+offes_fltregs)(a0)
+	lfd     26,(26*8+offes_fltregs)(a0)
+	lfd     27,(27*8+offes_fltregs)(a0)
+	lfd     28,(28*8+offes_fltregs)(a0)
+	lfd     29,(29*8+offes_fltregs)(a0)
+	lfd     30,(30*8+offes_fltregs)(a0)
+	lfd     31,(31*8+offes_fltregs)(a0)
 
 	/* restore link register */
 
-	mtlr    r16
+	mtlr    itmp3
 	
 	/* load new pc */
 
@@ -1347,24 +1367,24 @@ asm_replacement_in:
 /*********************************************************************/
 
 asm_cacheflush:
-	add     r4,r3,r4
-	rlwinm  r3,r3,0,0,26
-	addi    r4,r4,31
-	rlwinm  r4,r4,0,0,26
-	mr      r5,r3
+	add     a1,a0,a1
+	rlwinm  a0,a0,0,0,26
+	addi    a1,a1,31
+	rlwinm  a1,a1,0,0,26
+	mr      a2,a0
 1:
-	cmplw   r3,r4
+	cmplw   a0,a1
 	bge     0f
-	dcbst   0,r3
-	addi    r3,r3,32
+	dcbst   0,a0
+	addi    a0,a0,32
 	b       1b
 0:
 	sync
 1:
-	cmplw   r5,r4
+	cmplw   a2,a1
 	bge     0f
-	icbi    0,r5
-	addi    r5,r5,32
+	icbi    0,a2
+	addi    a2,a2,32
 	b       1b
 0:
 	sync
@@ -1375,13 +1395,13 @@ asm_cacheflush:
 asm_getclassvalues_atomic:
 _crit_restart:
 _crit_begin:
-	lwz     r6,offbaseval(r3)
-	lwz     r7,offdiffval(r3)
-	lwz     r8,offbaseval(r4)
+	lwz     a3,offbaseval(a0)
+	lwz     a4,offdiffval(a0)
+	lwz     a5,offbaseval(a1)
 _crit_end:
-	stw     r6,offcast_super_baseval(r5)
-	stw     r7,offcast_super_diffval(r5)
-	stw     r8,offcast_sub_baseval(r5)
+	stw     a3,offcast_super_baseval(a2)
+	stw     a4,offcast_super_diffval(a2)
+	stw     a5,offcast_sub_baseval(a2)
 	blr
 
 	.data
