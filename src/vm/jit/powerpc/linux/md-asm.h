@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5176 2006-07-26 09:43:08Z twisti $
+   $Id: md-asm.h 5179 2006-07-26 10:16:50Z twisti $
 
 */
 
@@ -38,44 +38,113 @@
 
 /* register defines ***********************************************************/
 
-#define r0    0
-#define sp    1
+#define r0      0
+#define r1      1
+#define r2      2
+#define r3      3
+#define r4      4
+#define r5      5
+#define r6      6
+#define r7      7
+#define r8      8
+#define r9      9
+#define r10     10
+#define r11     11
+#define r12     12
+#define r13     13
+#define r14     14
+#define r15     15
+#define r16     16
+#define r17     17
+#define r18     18
+#define r19     19
+#define r20     20
+#define r21     21
+#define r22     22
+#define r23     23
+#define r24     24
+#define r25     25
+#define r26     26
+#define r27     27
+#define r28     28
+#define r29     29
+#define r30     30
+#define r31     31
 
-/* #define XXX   r2  -  system reserved register */
+#define fr0     0
+#define fr1     1
+#define fr2     2
+#define fr3     3
+#define fr4     4
+#define fr5     5
+#define fr6     6
+#define fr7     7
+#define fr8     8
+#define fr9     9
+#define fr10    10
+#define fr11    11
+#define fr12    12
+#define fr13    13
+#define fr14    14
+#define fr15    15
+#define fr16    16
+#define fr17    17
+#define fr18    18
+#define fr19    19
+#define fr20    20
+#define fr21    21
+#define fr22    22
+#define fr23    23
+#define fr24    24
+#define fr25    25
+#define fr26    26
+#define fr27    27
+#define fr28    28
+#define fr29    29
+#define fr30    30
+#define fr31    31
 
-#define a0    3
-#define a1    4
-#define a2    5
-#define a3    6
-#define a4    7
-#define a5    8
-#define a6    9
-#define a7    10
 
-#define itmp1 11
-#define itmp2 12
-#define pv    13
+/* register defines ***********************************************************/
 
-#define s0    14
-#define s1    15
+#define zero  r0
+#define sp    r1
 
-#define itmp3 16
-#define t0    17
-#define t1    18
-#define t2    19
-#define t3    20
-#define t4    21
-#define t5    22
-#define t6    23
+/* #define foo   r2  -  system reserved register */
 
-#define s2    24
-#define s3    25
-#define s4    26
-#define s5    27
-#define s6    28
-#define s7    29
-#define s8    30
-#define s9    31
+#define a0    r3
+#define a1    r4
+#define a2    r5
+#define a3    r6
+#define a4    r7
+#define a5    r8
+#define a6    r9
+#define a7    r10
+
+#define itmp1 r11
+#define itmp2 r12
+#define pv    r13
+
+#define s0    r14
+#define s1    r15
+
+#define itmp3 r16
+#define t0    r17
+#define t1    r18
+#define t2    r19
+#define t3    r20
+#define t4    r21
+#define t5    r22
+#define t6    r23
+
+#define s2    r24
+#define s3    r25
+#define s4    r26
+#define s5    r27
+#define s6    r28
+#define s7    r29
+#define s8    r30
+#define s9    r31
 
 #define v0    a0
 #define v1    a1
@@ -87,44 +156,44 @@
 #define mptrn itmp2
 
 
-#define ftmp3 0
+#define ftmp3 r0
 
-#define fa0   1
-#define fa1   2
-#define fa2   3
-#define fa3   4
-#define fa4   5
-#define fa5   6
-#define fa6   7
-#define fa7   8
+#define fa0   r1
+#define fa1   r2
+#define fa2   r3
+#define fa3   r4
+#define fa4   r5
+#define fa5   r6
+#define fa6   r7
+#define fa7   r8
 
-#define fa8   9
-#define fa9   10
-#define fa10  11
-#define fa11  12
-#define fa12  13
+#define fa8   r9
+#define fa9   r10
+#define fa10  r11
+#define fa11  r12
+#define fa12  r13
 
-#define fs0   14
-#define fs1   15
+#define fs0   r14
+#define fs1   r15
 
-#define ftmp1 16
-#define ftmp2 17
+#define ftmp1 r16
+#define ftmp2 r17
 
-#define ft0   18
-#define ft1   19
-#define ft2   20
-#define ft3   21
-#define ft4   22
-#define ft5   23
+#define ft0   r18
+#define ft1   r19
+#define ft2   r20
+#define ft3   r21
+#define ft4   r22
+#define ft5   r23
 
-#define fs2   24
-#define fs3   25
-#define fs4   26
-#define fs5   27
-#define fs6   28
-#define fs7   29
-#define fs8   30
-#define fs9   31
+#define fs2   r24
+#define fs3   r25
+#define fs4   r26
+#define fs5   r27
+#define fs6   r28
+#define fs7   r29
+#define fs8   r30
+#define fs9   r31
 
 #define fv0   fa0
 
