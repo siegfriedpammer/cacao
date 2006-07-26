@@ -28,52 +28,13 @@
 
    Changes:
 
-   $Id: md-asm.h 5154 2006-07-18 08:36:08Z twisti $
+   $Id: md-asm.h 5177 2006-07-26 09:59:30Z twisti $
 
 */
 
 
 #ifndef _MD_ASM_H
 #define _MD_ASM_H
-
-#include <mach/ppc/asm.h>
-
-
-/* define register names compatible with Linux names **************************/
-
-#define fr0     f0
-#define fr1     f1
-#define fr2     f2
-#define fr3     f3
-#define fr4     f4
-#define fr5     f5
-#define fr6     f6
-#define fr7     f7
-#define fr8     f8
-#define fr9     f9
-#define fr10    f10
-#define fr11    f11
-#define fr12    f12
-#define fr13    f13
-#define fr14    f14
-#define fr15    f15
-#define fr16    f16
-#define fr17    f17
-#define fr18    f18
-#define fr19    f19
-#define fr20    f20
-#define fr21    f21
-#define fr22    f22
-#define fr23    f23
-#define fr24    f24
-#define fr25    f25
-#define fr26    f26
-#define fr27    f27
-#define fr28    f28
-#define fr29    f29
-#define fr30    f30
-#define fr31    f31
-
 
 /* register defines ***********************************************************/
 
@@ -126,44 +87,44 @@
 #define mptrn 12
 
 
-#define ftmp3 fr0
+#define ftmp3 f0
 
-#define fa0   fr1
-#define fa1   fr2
-#define fa2   fr3
-#define fa3   fr4
-#define fa4   fr5
-#define fa5   fr6
-#define fa6   fr7
+#define fa0   f1
+#define fa1   f2
+#define fa2   f3
+#define fa3   f4
+#define fa4   f5
+#define fa5   f6
+#define fa6   f7
 
-#define fa7   fr8
-#define fa8   fr9
-#define fa9   fr10
-#define fa10  fr11
-#define fa11  fr12
-#define fa12  fr13
+#define fa7   f8
+#define fa8   f9
+#define fa9   f10
+#define fa10  f11
+#define fa11  f12
+#define fa12  f13
 
-#define fs0   fr14
-#define fs1   fr15
+#define fs0   f14
+#define fs1   f15
 
-#define ftmp1 fr16
-#define ftmp2 fr17
+#define ftmp1 f16
+#define ftmp2 f17
 
-#define ft0   fr18
-#define ft1   fr19
-#define ft2   fr20
-#define ft3   fr21
-#define ft4   fr22
-#define ft5   fr23
+#define ft0   f18
+#define ft1   f19
+#define ft2   f20
+#define ft3   f21
+#define ft4   f22
+#define ft5   f23
 
-#define fs2   fr24
-#define fs3   fr25
-#define fs4   fr26
-#define fs5   fr27
-#define fs6   fr28
-#define fs7   fr29
-#define fs8   fr30
-#define fs9   fr31
+#define fs2   f24
+#define fs3   f25
+#define fs4   f26
+#define fs5   f27
+#define fs6   f28
+#define fs7   f29
+#define fs8   f30
+#define fs9   f31
 
 #define fv0   fa0
 
