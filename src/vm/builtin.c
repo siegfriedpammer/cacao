@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5165 2006-07-21 09:24:03Z twisti $
+   $Id: builtin.c 5180 2006-07-26 11:04:18Z twisti $
 
 */
 
@@ -1269,8 +1269,11 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 /* builtin_print_argument ******************************************************
 
+   Prints arguments and return values for the call trace.
+
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 static char *builtin_print_argument(char *logtext, s4 logtextlen,
 									typedesc *paramtype, s8 value)
 {
@@ -1372,6 +1375,7 @@ static char *builtin_print_argument(char *logtext, s4 logtextlen,
 
 	return logtext;
 }
+#endif /* !defined(NDEBUG) */
 
 
 /* builtin_trace_args **********************************************************
