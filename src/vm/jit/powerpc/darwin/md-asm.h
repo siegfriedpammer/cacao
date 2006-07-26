@@ -28,13 +28,49 @@
 
    Changes:
 
-   $Id: md-asm.h 5177 2006-07-26 09:59:30Z twisti $
+   $Id: md-asm.h 5178 2006-07-26 10:06:22Z twisti $
 
 */
 
 
 #ifndef _MD_ASM_H
 #define _MD_ASM_H
+
+/* define register names compatible with Linux names **************************/
+
+#define fr0     f0
+#define fr1     f1
+#define fr2     f2
+#define fr3     f3
+#define fr4     f4
+#define fr5     f5
+#define fr6     f6
+#define fr7     f7
+#define fr8     f8
+#define fr9     f9
+#define fr10    f10
+#define fr11    f11
+#define fr12    f12
+#define fr13    f13
+#define fr14    f14
+#define fr15    f15
+#define fr16    f16
+#define fr17    f17
+#define fr18    f18
+#define fr19    f19
+#define fr20    f20
+#define fr21    f21
+#define fr22    f22
+#define fr23    f23
+#define fr24    f24
+#define fr25    f25
+#define fr26    f26
+#define fr27    f27
+#define fr28    f28
+#define fr29    f29
+#define fr30    f30
+#define fr31    f31
+
 
 /* register defines ***********************************************************/
 
