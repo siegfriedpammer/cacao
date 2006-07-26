@@ -349,6 +349,9 @@ void new_show_method(jitdata *jd, int stage)
 	printf("Code length:  %d\n", (jd->new_basicblocks[jd->new_basicblockcount].mpc - 
 								  jd->new_basicblocks[0].mpc));
 	printf("Data length:  %d\n", cd->dseglen);
+	printf("Stub length:  %d\n", (s4) (code->mcodelength -
+									   ((ptrint) cd->dseglen +
+										jd->new_basicblocks[jd->new_basicblockcount].mpc)));
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
@@ -528,7 +531,7 @@ void new_show_method(jitdata *jd, int stage)
 	/* show stubs code */
 
 	if (stage >= SHOW_CODE && opt_showdisassemble && opt_showexceptionstubs) {
-		printf("\nException stubs code:\n");
+		printf("\nStubs code:\n");
 		printf("Length: %d\n\n", (s4) (code->mcodelength -
 									   ((ptrint) cd->dseglen +
 										jd->new_basicblocks[jd->new_basicblockcount].mpc)));
@@ -584,6 +587,9 @@ void show_method(jitdata *jd)
 	printf("Code length:  %d\n", (m->basicblocks[m->basicblockcount].mpc - 
 								  m->basicblocks[0].mpc));
 	printf("Data length:  %d\n", cd->dseglen);
+	printf("Stub length:  %d\n", (s4) (code->mcodelength -
+									   ((ptrint) cd->dseglen +
+										m->basicblocks[m->basicblockcount].mpc)));
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
@@ -753,10 +759,10 @@ void show_method(jitdata *jd)
 	/* show stubs code */
 
 	if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) && opt_showexceptionstubs) {
-		printf("\nException stubs code:\n");
-		printf("Code length: %d\n\n", (s4) (code->mcodelength -
-											((ptrint) cd->dseglen +
-											 m->basicblocks[m->basicblockcount].mpc)));
+		printf("\nStubs code:\n");
+		printf("Length: %d\n\n", (s4) (code->mcodelength -
+									   ((ptrint) cd->dseglen +
+										m->basicblocks[m->basicblockcount].mpc)));
 
 		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen +
 						m->basicblocks[m->basicblockcount].mpc);

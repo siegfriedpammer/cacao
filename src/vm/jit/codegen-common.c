@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5140 2006-07-16 15:38:12Z twisti $
+   $Id: codegen-common.c 5182 2006-07-26 14:50:39Z twisti $
 
 */
 
@@ -438,7 +438,7 @@ void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
 	patchref *pr;
 	s4        branchpos;
 
-	branchpos = (u1 *) cd->mcodeptr - cd->mcodebase;
+	branchpos = cd->mcodeptr - cd->mcodebase;
 
 	pr = DNEW(patchref);
 
@@ -457,7 +457,7 @@ void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
 	   the basic block code generation is completed, we check the
 	   range and maybe generate some nop's. */
 
-	cd->lastmcodeptr = ((u1 *) cd->mcodeptr) + PATCHER_CALL_SIZE;
+	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
 #endif
 }
 
