@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5173 2006-07-25 15:57:11Z twisti $
+   $Id: jit.h 5183 2006-07-26 15:20:15Z twisti $
 
 */
 
@@ -388,6 +388,9 @@ struct instruction {
 		else \
 			md = ((constant_FMIref *)(iptr)->val.a)->parseddesc.md; \
 	} while (0)
+
+#define INSTRUCTION_UNRESOLVED_CLASS(iptr) \
+	((unresolved_class *) (iptr)->val.a)
 
 #define INSTRUCTION_UNRESOLVED_METHOD(iptr) \
 	((unresolved_method *) (iptr)->val.a)
