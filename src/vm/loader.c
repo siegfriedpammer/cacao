@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5171 2006-07-25 13:52:38Z twisti $
+   $Id: loader.c 5184 2006-07-28 10:12:58Z twisti $
 
 */
 
@@ -2288,12 +2288,12 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (!load_attributes(cb, suck_u2(cb)))
 		goto return_exception;
 
-#if 0
-	/* Pre java 1.5 version don't check this. This implementation is like
-	   java 1.5 do it: for class file version 45.3 we don't check it, older
+	/* Pre Java 1.5 version don't check this. This implementation is like
+	   Java 1.5 do it: for class file version 45.3 we don't check it, older
 	   versions are checked.
 	 */
-	if ((ma == 45 && mi > 3) || ma > 45) {
+
+	if (((ma == 45) && (mi > 3)) || (ma > 45)) {
 		/* check if all data has been read */
 		s4 classdata_left = ((cb->data + cb->size) - cb->pos);
 
@@ -2302,7 +2302,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			goto return_exception;
 		}
 	}
-#endif
 
 	RT_TIMING_GET_TIME(time_attrs);
 
@@ -2313,11 +2312,13 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* revert loading state and class is loaded */
 
 	c->state = (c->state & ~CLASS_LOADING) | CLASS_LOADED;
+
 #if defined(ENABLE_JVMTI)
 	/* fire Class Prepare JVMTI event */
-	if (jvmti) jvmti_ClassLoadPrepare(true, c);
+
+	if (jvmti)
+		jvmti_ClassLoadPrepare(true, c);
 #endif
-	
 
 #if !defined(NDEBUG)
 	if (loadverbose)
