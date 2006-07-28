@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 5084 2006-07-06 22:52:23Z twisti $
+   $Id: md-abi.h 5185 2006-07-28 10:54:47Z twisti $
 
 */
 
@@ -84,6 +84,7 @@
 /* packed register defines ****************************************************/
 
 #define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
+#define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)
 #define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 
 
