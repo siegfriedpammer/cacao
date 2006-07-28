@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5140 2006-07-16 15:38:12Z twisti $
+   $Id: codegen-common.h 5186 2006-07-28 13:24:43Z twisti $
 
 */
 
@@ -103,8 +103,7 @@ struct codegendata {
 	struct superstart *superstarts; /* list of supers without patchers        */
 #endif
 
-	u1             *dsegtop;        /* pointer to top (end) of data area      */
-	s4              dsegsize;       /* complete size of data area (bytes)     */
+	dsegentry      *dseg;           /* chain of data segment entries          */
 	s4              dseglen;        /* used size of data area (bytes)         */
                                     /* data area grows from top to bottom     */
 

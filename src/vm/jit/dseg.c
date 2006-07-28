@@ -31,7 +31,7 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 4826 2006-04-24 16:06:16Z twisti $
+   $Id: dseg.c 5186 2006-07-28 13:24:43Z twisti $
 
 */
 
@@ -46,102 +46,528 @@
 #include "vm/jit/codegen-common.h"
 
 
-/* desg_increase ***************************************************************
+/* dseg_finish *****************************************************************
 
-   Doubles data area.
+   Fills the data segment with the values stored.
 
 *******************************************************************************/
 
-static void dseg_increase(codegendata *cd)
+void dseg_finish(jitdata *jd)
 {
-	u1 *newstorage;
+	codeinfo    *code;
+	codegendata *cd;
+	dsegentry   *de;
 
-	newstorage = DMNEW(u1, cd->dsegsize * 2);
+	/* get required compiler data */
 
-	MCOPY(newstorage + cd->dsegsize, cd->dsegtop - cd->dsegsize, u1,
-		  cd->dsegsize);
+	code = jd->code;
+	cd   = jd->cd;
 
-	cd->dsegtop   = newstorage;
-	cd->dsegsize *= 2;
-	cd->dsegtop  += cd->dsegsize;
+	/* process all data segment entries */
+
+	for (de = cd->dseg; de != NULL; de = de->next) {
+		switch (de->type) {
+		case TYPE_INT:
+			*((s4 *)     (code->entrypoint + de->disp)) = de->val.i;
+			break;
+
+		case TYPE_LNG:
+			*((s8 *)     (code->entrypoint + de->disp)) = de->val.l;
+			break;
+
+		case TYPE_FLT:
+			*((float *)  (code->entrypoint + de->disp)) = de->val.f;
+			break;
+
+		case TYPE_DBL:
+			*((double *) (code->entrypoint + de->disp)) = de->val.d;
+			break;
+
+		case TYPE_ADR:
+			*((void **)  (code->entrypoint + de->disp)) = de->val.a;
+			break;
+		}
+	}
 }
 
 
-s4 dseg_adds4(codegendata *cd, s4 value)
+static s4 dseg_find_s4(codegendata *cd, s4 value)
 {
-	s4 *dataptr;
+	dsegentry *de;
+
+	/* search all data segment entries for a matching entry */
+
+	for (de = cd->dseg; de != NULL; de = de->next) {
+		if (IS_INT_TYPE(de->type))
+			if (de->flags & DSEG_FLAG_READONLY)
+				if (de->val.i == value)
+					return de->disp;
+	}
+
+	/* no matching entry was found */
+
+	return 0;
+}
+
+
+static s4 dseg_find_s8(codegendata *cd, s8 value)
+{
+	dsegentry *de;
+
+	/* search all data segment entries for a matching entry */
+
+	for (de = cd->dseg; de != NULL; de = de->next) {
+		if (IS_LNG_TYPE(de->type))
+			if (de->flags & DSEG_FLAG_READONLY)
+				if (de->val.l == value)
+					return de->disp;
+	}
+
+	/* no matching entry was found */
+
+	return 0;
+}
+
+
+static s4 dseg_find_float(codegendata *cd, float value)
+{
+	dsegentry *de;
+
+	/* search all data segment entries for a matching entry */
+
+	for (de = cd->dseg; de != NULL; de = de->next) {
+		if (IS_FLT_TYPE(de->type))
+			if (de->flags & DSEG_FLAG_READONLY)
+				if (de->val.f == value)
+					return de->disp;
+	}
+
+	/* no matching entry was found */
+
+	return 0;
+}
+
+
+static s4 dseg_find_double(codegendata *cd, double value)
+{
+	dsegentry *de;
+
+	/* search all data segment entries for a matching entry */
+
+	for (de = cd->dseg; de != NULL; de = de->next) {
+		if (IS_DBL_TYPE(de->type))
+			if (de->flags & DSEG_FLAG_READONLY)
+				if (de->val.d == value)
+					return de->disp;
+	}
+
+	/* no matching entry was found */
+
+	return 0;
+}
+
+
+static s4 dseg_find_address(codegendata *cd, void *value)
+{
+	dsegentry *de;
+
+	/* search all data segment entries for a matching entry */
+
+	for (de = cd->dseg; de != NULL; de = de->next) {
+		if (IS_ADR_TYPE(de->type))
+			if (de->flags & DSEG_FLAG_READONLY)
+				if (de->val.a == value)
+					return de->disp;
+	}
+
+	/* no matching entry was found */
+
+	return 0;
+}
+
+
+/* dseg_add_s4_intern **********************************************************
+
+   Internal function to add an s4 value to the data segment.
+
+*******************************************************************************/
+
+static s4 dseg_add_s4_intern(codegendata *cd, s4 value, u4 flags)
+{
+	dsegentry *de;
+
+	/* Increase data segment size, which is also the displacement into
+	   the data segment. */
 
 	cd->dseglen += 4;
 
-	if (cd->dseglen > cd->dsegsize)
-		dseg_increase(cd);
+	/* allocate new entry */
 
-	dataptr = (s4 *) (cd->dsegtop - cd->dseglen);
+	de = DNEW(dsegentry);
 
-	*dataptr = value;
+	de->type  = TYPE_INT;
+	de->flags = flags;
+	de->disp  = -(cd->dseglen);
+	de->val.i = value;
+	de->next  = cd->dseg;
 
-	return -(cd->dseglen);
+	/* insert into the chain */
+
+	cd->dseg = de;
+
+	return de->disp;
 }
 
 
-s4 dseg_adds8(codegendata *cd, s8 value)
+/* dseg_add_unique_s4 **********************************************************
+
+   Adds uniquely an s4 value to the data segment.
+
+*******************************************************************************/
+
+s4 dseg_add_unique_s4(codegendata *cd, s4 value)
 {
-	s8 *dataptr;
+	s4 disp;
+
+	disp = dseg_add_s4_intern(cd, value, DSEG_FLAG_UNIQUE);
+
+	return disp;
+}
+
+
+/* dseg_add_s4 *****************************************************************
+
+   Adds an s4 value to the data segment. It tries to reuse previously
+   added values.
+
+*******************************************************************************/
+
+s4 dseg_add_s4(codegendata *cd, s4 value)
+{
+	s4 disp;
+
+	/* search the data segment if the value is already stored */
+
+	disp = dseg_find_s4(cd, value);
+
+	if (disp != 0)
+		return disp;
+		
+	disp = dseg_add_s4_intern(cd, value, DSEG_FLAG_READONLY);
+
+	return disp;
+}
+
+
+/* dseg_add_s8_intern **********************************************************
+
+   Internal function to add an s8 value to the data segment.
+
+*******************************************************************************/
+
+static s4 dseg_add_s8_intern(codegendata *cd, s8 value, u4 flags)
+{
+	dsegentry *de;
+
+	/* Increase data segment size, which is also the displacement into
+	   the data segment. */
 
 	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
 
-	if (cd->dseglen > cd->dsegsize)
-		dseg_increase(cd);
+	/* allocate new entry */
 
-	dataptr = (s8 *) (cd->dsegtop - cd->dseglen);
+	de = DNEW(dsegentry);
 
-	*dataptr = value;
+	de->type  = TYPE_LNG;
+	de->flags = flags;
+	de->disp  = -(cd->dseglen);
+	de->val.l = value;
+	de->next  = cd->dseg;
 
-	return -(cd->dseglen);
+	/* insert into the chain */
+
+	cd->dseg = de;
+
+	return de->disp;
 }
 
 
-s4 dseg_addfloat(codegendata *cd, float value)
+/* dseg_add_unique_s8 **********************************************************
+
+   Adds uniquely an s8 value to the data segment.
+
+*******************************************************************************/
+
+s4 dseg_add_unique_s8(codegendata *cd, s8 value)
 {
-	float *dataptr;
+	s4 disp;
+
+	disp = dseg_add_s8_intern(cd, value, DSEG_FLAG_UNIQUE);
+
+	return disp;
+}
+
+
+/* dseg_add_s8 *****************************************************************
+
+   Adds an s8 value to the data segment. It tries to reuse previously
+   added values.
+
+*******************************************************************************/
+
+s4 dseg_add_s8(codegendata *cd, s8 value)
+{
+	s4 disp;
+
+	/* search the data segment if the value is already stored */
+
+	disp = dseg_find_s8(cd, value);
+
+	if (disp != 0)
+		return disp;
+		
+	disp = dseg_add_s8_intern(cd, value, DSEG_FLAG_READONLY);
+
+	return disp;
+}
+
+
+/* dseg_add_float_intern *******************************************************
+
+   Internal function to add a float value to the data segment.
+
+*******************************************************************************/
+
+static s4 dseg_add_float_intern(codegendata *cd, float value, u4 flags)
+{
+	dsegentry *de;
+		
+	/* Increase data segment size, which is also the displacement into
+	   the data segment. */
 
 	cd->dseglen += 4;
 
-	if (cd->dseglen > cd->dsegsize)
-		dseg_increase(cd);
+	/* allocate new entry */
 
-	dataptr = (float *) (cd->dsegtop - cd->dseglen);
+	de = DNEW(dsegentry);
 
-	*dataptr = value;
+	de->type  = TYPE_FLT;
+	de->flags = flags;
+	de->disp  = -(cd->dseglen);
+	de->val.f = value;
+	de->next  = cd->dseg;
 
-	return -(cd->dseglen);
+	/* insert into the chain */
+
+	cd->dseg = de;
+
+	return de->disp;
 }
 
 
-s4 dseg_adddouble(codegendata *cd, double value)
+/* dseg_add_unique_float *******************************************************
+
+   Adds uniquely an float value to the data segment.
+
+*******************************************************************************/
+
+s4 dseg_add_unique_float(codegendata *cd, float value)
 {
-	double *dataptr;
+	s4 disp;
+
+	disp = dseg_add_float_intern(cd, value, DSEG_FLAG_UNIQUE);
+
+	return disp;
+}
+
+
+/* dseg_add_float **************************************************************
+
+   Adds an float value to the data segment. It tries to reuse
+   previously added values.
+
+*******************************************************************************/
+
+s4 dseg_add_float(codegendata *cd, float value)
+{
+	s4 disp;
+
+	/* search the data segment if the value is already stored */
+
+	disp = dseg_find_float(cd, value);
+
+	if (disp != 0)
+		return disp;
+		
+	disp = dseg_add_float_intern(cd, value, DSEG_FLAG_READONLY);
+
+	return disp;
+}
+
+
+/* dseg_add_double_intern ******************************************************
+
+   Internal function to add a double value to the data segment.
+
+*******************************************************************************/
+
+static s4 dseg_add_double_intern(codegendata *cd, double value, u4 flags)
+{
+	dsegentry *de;
+		
+	/* Increase data segment size, which is also the displacement into
+	   the data segment. */
 
 	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
 
-	if (cd->dseglen > cd->dsegsize)
-		dseg_increase(cd);
+	/* allocate new entry */
 
-	dataptr = (double *) (cd->dsegtop - cd->dseglen);
+	de = DNEW(dsegentry);
 
-	*dataptr = value;
+	de->type  = TYPE_DBL;
+	de->flags = flags;
+	de->disp  = -(cd->dseglen);
+	de->val.d = value;
+	de->next  = cd->dseg;
 
-	return -(cd->dseglen);
+	/* insert into the chain */
+
+	cd->dseg = de;
+
+	return de->disp;
 }
 
 
-void dseg_addtarget(codegendata *cd, basicblock *target)
+/* dseg_add_unique_double ******************************************************
+
+   Adds uniquely a double value to the data segment.
+
+*******************************************************************************/
+
+s4 dseg_add_unique_double(codegendata *cd, double value)
+{
+	s4 disp;
+
+	disp = dseg_add_double_intern(cd, value, DSEG_FLAG_UNIQUE);
+
+	return disp;
+}
+
+
+/* dseg_add_double *************************************************************
+
+   Adds a double value to the data segment. It tries to reuse
+   previously added values.
+
+*******************************************************************************/
+
+s4 dseg_add_double(codegendata *cd, double value)
+{
+	s4 disp;
+
+	/* search the data segment if the value is already stored */
+
+	disp = dseg_find_double(cd, value);
+
+	if (disp != 0)
+		return disp;
+		
+	disp = dseg_add_double_intern(cd, value, DSEG_FLAG_READONLY);
+
+	return disp;
+}
+
+
+/* dseg_add_address_intern *****************************************************
+
+   Internal function to add an address pointer to the data segment.
+
+*******************************************************************************/
+
+static s4 dseg_add_address_intern(codegendata *cd, void *value, u4 flags)
+{
+	dsegentry *de;
+
+	/* Increase data segment size, which is also the displacement into
+	   the data segment. */
+
+#if SIZEOF_VOID_P == 8
+	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
+#else
+	cd->dseglen += 4;
+#endif
+
+	/* allocate new entry */
+
+	de = DNEW(dsegentry);
+
+	de->type  = TYPE_ADR;
+	de->flags = flags;
+	de->disp  = -(cd->dseglen);
+	de->val.a = value;
+	de->next  = cd->dseg;
+
+	/* insert into the chain */
+
+	cd->dseg = de;
+
+	return de->disp;
+}
+
+
+/* dseg_add_unique_address *****************************************************
+
+   Adds uniquely an address value to the data segment.
+
+*******************************************************************************/
+
+s4 dseg_add_unique_address(codegendata *cd, void *value)
+{
+	s4 disp;
+
+	disp = dseg_add_address_intern(cd, value, DSEG_FLAG_UNIQUE);
+
+	return disp;
+}
+
+
+/* dseg_add_address ************************************************************
+
+   Adds an address value to the data segment. It tries to reuse
+   previously added values.
+
+*******************************************************************************/
+
+s4 dseg_add_address(codegendata *cd, void *value)
+{
+	s4 disp;
+
+	/* search the data segment if the value is already stored */
+
+	disp = dseg_find_address(cd, value);
+
+	if (disp != 0)
+		return disp;
+		
+	disp = dseg_add_address_intern(cd, value, DSEG_FLAG_READONLY);
+
+	return disp;
+}
+
+
+/* dseg_add_target *************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void dseg_add_target(codegendata *cd, basicblock *target)
 {
 	jumpref *jr;
 
 	jr = DNEW(jumpref);
 
-	jr->tablepos = dseg_addaddress(cd, NULL);
+	jr->tablepos = dseg_add_unique_address(cd, NULL);
 	jr->target   = target;
 	jr->next     = cd->jumpreferences;
 
@@ -160,16 +586,16 @@ void dseg_addlinenumbertablesize(codegendata *cd)
 #if SIZEOF_VOID_P == 8
 	/* 4-byte ALIGNMENT PADDING */
 
-	dseg_adds4(cd, 0);
+	dseg_add_unique_s4(cd, 0);
 #endif
 
-	cd->linenumbertablesizepos  = dseg_addaddress(cd, NULL);
-	cd->linenumbertablestartpos = dseg_addaddress(cd, NULL);
+	cd->linenumbertablesizepos  = dseg_add_unique_address(cd, NULL);
+	cd->linenumbertablestartpos = dseg_add_unique_address(cd, NULL);
 
 #if SIZEOF_VOID_P == 8
 	/* 4-byte ALIGNMENT PADDING */
 
-	dseg_adds4(cd, 0);
+	dseg_add_unique_s4(cd, 0);
 #endif
 }
 
@@ -193,7 +619,7 @@ void dseg_addlinenumber(codegendata *cd, u2 linenumber)
 
 	lr->linenumber = linenumber;
 	lr->tablepos   = 0;
-	lr->targetmpc  = (u1 *) cd->mcodeptr - cd->mcodebase;
+	lr->targetmpc  = cd->mcodeptr - cd->mcodebase;
 	lr->next       = cd->linenumberreferences;
 
 	cd->linenumberreferences = lr;
@@ -290,12 +716,17 @@ void dseg_createlinenumbertable(codegendata *cd)
 	linenumberref *lr;
 
 	for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
-		lr->tablepos = dseg_addaddress(cd, NULL);
+		lr->tablepos = dseg_add_unique_address(cd, NULL);
 
 		if (cd->linenumbertab == 0)
 			cd->linenumbertab = lr->tablepos;
 
-		dseg_addaddress(cd, lr->linenumber);
+#if SIZEOF_VOID_P == 8
+		/* This is for alignment and easier usage. */
+		(void) dseg_add_unique_s8(cd, lr->linenumber);
+#else
+		(void) dseg_add_unique_s4(cd, lr->linenumber);
+#endif
 	}
 }
 
@@ -313,7 +744,7 @@ void dseg_adddata(codegendata *cd)
 
 	dr = DNEW(dataref);
 
-	dr->datapos = (u1 *) cd->mcodeptr - cd->mcodebase;
+	dr->datapos = cd->mcodeptr - cd->mcodebase;
 	dr->next    = cd->datareferences;
 
 	cd->datareferences = dr;

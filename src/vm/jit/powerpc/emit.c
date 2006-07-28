@@ -41,6 +41,7 @@
 
 #include "md-abi.h"
 
+#include "vm/jit/dseg.h"
 #include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/powerpc/codegen.h"
@@ -467,7 +468,7 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	if ((value >= -32768) && (value <= 32767))
 		M_LDA_INTERN(d, REG_ZERO, value);
 	else {
-		disp = dseg_adds4(cd, value);
+		disp = dseg_add_s4(cd, value);
 		M_ILD(d, REG_PV, disp);
 	}
 }

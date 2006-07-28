@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 4826 2006-04-24 16:06:16Z twisti $
+   $Id: dseg.h 5186 2006-07-28 13:24:43Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 
 /* forward typedefs ***********************************************************/
 
+typedef struct dsegentry dsegentry;
 typedef struct jumpref jumpref;
 typedef struct dataref dataref;
 typedef struct exceptionref exceptionref;
@@ -55,13 +56,34 @@ typedef struct linenumberref linenumberref;
 #include "vm/jit/codegen-common.h"
 
 
-/* global macros **************************************************************/
+/* XXX don't-break-trunk macros ***********************************************/
 
-#if SIZEOF_VOID_P == 8
-# define dseg_addaddress(cd,value)    dseg_adds8((cd), (s8) (value))
-#else
-# define dseg_addaddress(cd,value)    dseg_adds4((cd), (s4) (value))
-#endif
+#define dseg_adds4(cd,value)         dseg_add_unique_s4((cd), (value))
+#define dseg_adds8(cd,value)         dseg_add_unique_s8((cd), (value))
+#define dseg_addfloat(cd,value)      dseg_add_unique_float((cd), (value))
+#define dseg_adddouble(cd,value)     dseg_add_unique_double((cd), (value))
+#define dseg_addaddress(cd,value)    dseg_add_unique_address((cd), (void *) (ptrint) (value))
+#define dseg_addtarget(cd,value)     dseg_add_target((cd), (value))
+
+
+/* convenience macros *********************************************************/
+
+#define dseg_add_functionptr(cd,value) \
+    dseg_add_address((cd), (void *) (ptrint) (value))
+
+
+/* dataentry ******************************************************************/
+
+#define DSEG_FLAG_UNIQUE      0x0001
+#define DSEG_FLAG_READONLY    0x0002
+
+struct dsegentry {
+	u2         type;
+	u2         flags;
+	s4         disp;
+	imm_union  val;
+	dsegentry *next;
+};
 
 
 /* jumpref ********************************************************************/
@@ -122,12 +144,22 @@ struct linenumberref {
 
 /* function prototypes ********************************************************/
 
-s4 dseg_adds4(codegendata *cd, s4 value);
-s4 dseg_adds8(codegendata *cd, s8 value);
-s4 dseg_addfloat(codegendata *cd, float value);
-s4 dseg_adddouble(codegendata *cd, double value);
+void dseg_finish(jitdata *jd);
 
-void dseg_addtarget(codegendata *cd, basicblock *target);
+s4 dseg_add_unique_s4(codegendata *cd, s4 value);
+s4 dseg_add_unique_s8(codegendata *cd, s8 value);
+s4 dseg_add_unique_float(codegendata *cd, float value);
+s4 dseg_add_unique_double(codegendata *cd, double value);
+s4 dseg_add_unique_address(codegendata *cd, void *value);
+
+s4 dseg_add_s4(codegendata *cd, s4 value);
+s4 dseg_add_s8(codegendata *cd, s8 value);
+s4 dseg_add_float(codegendata *cd, float value);
+s4 dseg_add_double(codegendata *cd, double value);
+s4 dseg_add_address(codegendata *cd, void *value);
+
+void dseg_add_unique_target(codegendata *cd, basicblock *target);
+void dseg_add_target(codegendata *cd, basicblock *target);
 
 void dseg_addlinenumbertablesize(codegendata *cd);
 void dseg_addlinenumber(codegendata *cd, u2 linenumber);

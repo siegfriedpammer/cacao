@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5182 2006-07-26 14:50:39Z twisti $
+   $Id: codegen-common.c 5186 2006-07-28 13:24:43Z twisti $
 
 */
 
@@ -175,11 +175,9 @@ void codegen_setup(jitdata *jd)
 		cd->superstarts = NULL;
 	}
 #endif
-	
-	cd->dsegtop = DMNEW(u1, DSEGINITSIZE);
-	cd->dsegsize = DSEGINITSIZE;
-	cd->dsegtop += cd->dsegsize;
-	cd->dseglen = 0;
+
+	cd->dseg           = NULL;
+	cd->dseglen        = 0;
 
 	cd->jumpreferences = NULL;
 
@@ -623,7 +621,7 @@ void codegen_finish(jitdata *jd)
 
 	/* calculate the code length */
 
-	mcodelen = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+	mcodelen = (s4) (cd->mcodeptr - cd->mcodebase);
 
 #if defined(ENABLE_THREADS)
 	extralen = sizeof(critical_section_node_t) * cd->threadcritcount;
@@ -660,17 +658,20 @@ void codegen_finish(jitdata *jd)
 	/* allocate new memory */
 
 	code->mcodelength = mcodelen + cd->dseglen;
-	code->mcode = CNEW(u1, alignedlen + extralen);
-
-	/* copy data and code to their new location */
-
-	MCOPY((void *) code->mcode, cd->dsegtop - cd->dseglen, u1, cd->dseglen);
-	MCOPY((void *) (code->mcode + cd->dseglen), cd->mcodebase, u1, mcodelen);
+	code->mcode       = CNEW(u1, alignedlen + extralen);
 
 	/* set the entrypoint of the method */
 	
 	assert(code->entrypoint == NULL);
 	code->entrypoint = epoint = (code->mcode + cd->dseglen);
+
+	/* fill the data segment (code->entrypoint must already be set!) */
+
+	dseg_finish(jd);
+
+	/* copy code to the new location */
+
+	MCOPY((void *) code->entrypoint, cd->mcodebase, u1, mcodelen);
 
 #if defined(ENABLE_INTRP)
 	/* relocate native dynamic superinstruction code (if any) */
