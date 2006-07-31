@@ -10,6 +10,7 @@ gnu_classpath_VMSystemProperties.h
 gnu_java_lang_management_VMClassLoadingMXBeanImpl.h
 gnu_java_lang_management_VMRuntimeMXBeanImpl.h
 gnu_java_lang_management_VMMemoryMXBeanImpl.h
+gnu_java_lang_management_VMThreadMXBeanImpl.h
 java_io_File.h
 java_io_InputStream.h
 java_io_PrintStream.h
@@ -30,6 +31,7 @@ java_lang_VMRuntime.h
 java_lang_VMString.h
 java_lang_VMSystem.h
 java_lang_management_MemoryUsage.h
+java_lang_management_ThreadInfo.h
 java_lang_reflect_Constructor.h
 java_lang_reflect_Field.h
 java_lang_reflect_Method.h
