@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 5144 2006-07-17 11:09:21Z twisti $
+   $Id: boehm.c 5189 2006-07-31 12:25:09Z twisti $
 
 */
 
@@ -189,6 +189,18 @@ s8 gc_get_heap_size(void)
 s8 gc_get_free_bytes(void)
 {
 	return GC_get_free_bytes();
+}
+
+
+/* gc_get_total_bytes **********************************************************
+
+   Returns the number of total bytes currently used on the Java heap.
+
+*******************************************************************************/
+
+s8 gc_get_total_bytes(void)
+{
+	return GC_get_total_bytes();
 }
 
 

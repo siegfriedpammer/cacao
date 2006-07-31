@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: boehm.h 5144 2006-07-17 11:09:21Z twisti $
+   $Id: boehm.h 5189 2006-07-31 12:25:09Z twisti $
 
 */
 
@@ -53,6 +53,7 @@ void  heap_free(void *p);
 void  gc_call(void);
 s8    gc_get_heap_size(void);
 s8    gc_get_free_bytes(void);
+s8    gc_get_total_bytes(void);
 s8    gc_get_max_heap_size(void);
 void  gc_invoke_finalizers(void);
 void  gc_finalize_all(void);
