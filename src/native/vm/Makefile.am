@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5195 2006-07-31 15:26:10Z twisti $
+## $Id: Makefile.am 5198 2006-07-31 16:25:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -59,6 +59,7 @@ libnativevm_la_SOURCES = \
 	java_lang_VMSystem.c \
 	java_lang_VMThread.c \
 	java_lang_VMThrowable.c \
+	java_lang_management_VMManagementFactory.c \
 	java_lang_reflect_Constructor.c \
 	java_lang_reflect_Field.c \
 	java_lang_reflect_Method.c \

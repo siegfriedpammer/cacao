@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5197 2006-07-31 15:35:00Z twisti $
+## $Id: Makefile.am 5198 2006-07-31 16:25:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -93,6 +93,7 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	java_lang_VMRuntime.h \
 	java_lang_VMString.h \
 	java_lang_VMSystem.h \
+	java_lang_management_VMManagementFactory.h \
 	java_lang_management_MemoryUsage.h \
 	java_lang_management_ThreadInfo.h \
 	java_lang_reflect_VMProxy.h \
