@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5193 2006-07-31 14:35:41Z twisti $
+   $Id: native.c 5200 2006-07-31 16:30:33Z twisti $
 
 */
 
@@ -96,6 +96,7 @@
 #include "native/include/java_lang_VMSystem.h"
 #include "native/include/java_lang_VMThread.h"
 #include "native/include/java_lang_VMThrowable.h"
+#include "native/include/java_lang_management_VMManagementFactory.h"
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Method.h"
@@ -221,6 +222,10 @@ static functionptr dummynativetable[] = {
 
 	(functionptr) Java_java_lang_VMThrowable_fillInStackTrace,
 	(functionptr) Java_java_lang_VMThrowable_getStackTrace,
+
+	(functionptr) Java_java_lang_management_VMManagementFactory_getMemoryPoolNames,
+	(functionptr) Java_java_lang_management_VMManagementFactory_getMemoryManagerNames,
+	(functionptr) Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames,
 
 	(functionptr) Java_java_lang_reflect_Constructor_getModifiersInternal,
 	(functionptr) Java_java_lang_reflect_Constructor_constructNative,
