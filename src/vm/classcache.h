@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.h 5147 2006-07-17 15:11:15Z twisti $
+   $Id: classcache.h 5192 2006-07-31 14:21:15Z twisti $
 
 */
 
@@ -143,9 +143,11 @@ bool classcache_add_constraints_for_params(classloader *a,classloader *b,
 										   methodinfo *m);
 #endif
 
+s4 classcache_get_loaded_class_count(void);
+
 #if defined(ENABLE_JVMTI)
-void classcache_jvmti_GetLoadedClasses(jint *class_count_ptr,
-									   jclass **classes_ptr);
+void classcache_get_loaded_classes(s4 *class_count_ptr,
+								   classinfo ***classes_ptr);
 #endif
 
 #ifndef NDEBUG

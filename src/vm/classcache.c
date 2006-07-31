@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 5147 2006-07-17 15:11:15Z twisti $
+   $Id: classcache.c 5192 2006-07-31 14:21:15Z twisti $
 
 */
 
@@ -1331,24 +1331,96 @@ bool classcache_add_constraints_for_params(classloader * a,
 #endif /* defined(ENABLE_VERIFIER) */
 
 
-/* classcache_jvmti_GetLoadedClasses *******************************************
+/* classcache_number_of_loaded_classes *****************************************
 
-   
+   Counts the number of loaded classes and returns it.
+
+   Note: This function assumes that the CLASSCACHE_LOCK is held by the
+   caller!
+
 *******************************************************************************/
 
-#if defined(ENABLE_JVMTI)
-void classcache_jvmti_GetLoadedClasses(jint *class_count_ptr,
-									   jclass **classes_ptr)
+static s4 classcache_number_of_loaded_classes(void)
 {
 	classcache_name_entry  *en;
 	classcache_class_entry *clsen;
+	s4                      number;
 	s4                      i;
-	s4                      j;
+
+	/* initialize class counter */
+
+	number = 0;
+
+	for (i = 0; i < hashtable_classcache.size; i++) {
+		/* iterate over hashlink */
+
+		for (en = hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
+			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
+
+			if (en->name->text[0] == '$')
+				continue;
+
+			/* iterate over classes with same name */
+
+			for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+				/* get only loaded classes */
+
+				if (clsen->classobj != NULL)
+					number++;
+			}
+		}
+	}
+
+	return number;
+}
+
+
+/* classcache_get_loaded_class_count *******************************************
+
+   Counts the number of loaded classes and returns it.
+
+*******************************************************************************/
+
+s4 classcache_get_loaded_class_count(void)
+{
+	s4 count;
 
 	CLASSCACHE_LOCK();
 
-	*classes_ptr = GCMNEW(jclass, hashtable_classcache.entries);
+	count = classcache_number_of_loaded_classes();
 	
+	CLASSCACHE_UNLOCK();
+
+	return count;
+}
+
+
+/* classcache_get_loaded_classes ***********************************************
+
+   Returns an array of all loaded classes as array.  The array is
+   allocaed on the Java heap.
+
+*******************************************************************************/
+
+#if defined(ENABLE_JVMTI)
+void classcache_get_loaded_classes(s4 *class_count_ptr,
+								   classinfo ***classes_ptr)
+{
+	classinfo              **classes;
+	s4                       class_count;
+	classcache_name_entry   *en;
+	classcache_class_entry  *clsen;
+	s4                       i;
+	s4                       j;
+
+	CLASSCACHE_LOCK();
+
+	/* get the number of loaded classes and allocate the array */
+
+	class_count = classcache_number_of_loaded_classes();
+
+	classes = GCMNEW(classinfo*, class_count);
+
 	/* look in every slot of the hashtable */
 
 	for (i = 0, j = 0; i < hashtable_classcache.size; i++) {
@@ -1357,10 +1429,8 @@ void classcache_jvmti_GetLoadedClasses(jint *class_count_ptr,
 		for (en = hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
 			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
 
-			if (en->name->text[0] == '$') {
-				*class_count_ptr -= 1;
-				break;
-			}
+			if (en->name->text[0] == '$')
+				continue;
 
 			/* iterate over classes with same name */
 
@@ -1368,17 +1438,19 @@ void classcache_jvmti_GetLoadedClasses(jint *class_count_ptr,
 				/* get only loaded classes */
 
 				if (clsen->classobj != NULL) {
-					assert(j < hashtable_classcache.entries);
-					(*classes_ptr)[j] = clsen->classobj;
+					classes[j] = clsen->classobj;
 					j++;
 				}
 			}
 		}
 	}
- 
-	CLASSCACHE_UNLOCK();
 
-	*class_count_ptr = j;
+	/* pass the return values */
+
+	*class_count_ptr = class_count;
+	*classes_ptr     = classes;
+
+	CLASSCACHE_UNLOCK();
 }
 #endif /* defined(ENABLE_JVMTI) */
 
