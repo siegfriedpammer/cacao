@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5195 2006-07-31 15:26:10Z twisti $
+## $Id: Makefile.am 5197 2006-07-31 15:35:00Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -149,7 +149,7 @@ $(NO_GEN_HEADER_FILES):
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
 
-$(DO_HEADER_FILES): $(CACAOH) $(CACAO_VM_ZIP) $(CLASSPATH_GLIBJ_ZIP)
+$(DO_HEADER_FILES): $(CACAOH) $(CLASSPATH_GLIBJ_ZIP)
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
