@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: native.c 5193 2006-07-31 14:35:41Z twisti $
 
 */
 
@@ -83,6 +83,8 @@
 
 #include "native/include/gnu_classpath_VMStackWalker.h"
 #include "native/include/gnu_classpath_VMSystemProperties.h"
+#include "native/include/gnu_java_lang_management_VMClassLoadingMXBeanImpl.h"
+#include "native/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
 #include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
@@ -139,6 +141,17 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_gnu_classpath_VMStackWalker_getClassContext,
 
 	(functionptr) Java_gnu_classpath_VMSystemProperties_preInit,
+
+	(functionptr) Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount,
+	(functionptr) Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount,
+	(functionptr) Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose,
+	(functionptr) Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose,
+
+	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage,
+	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage,
+	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount,
+	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose,
+	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose,
 
 	(functionptr) Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments,
 	(functionptr) Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime,
