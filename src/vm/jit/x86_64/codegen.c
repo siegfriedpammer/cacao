@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5173 2006-07-25 15:57:11Z twisti $
+   $Id: codegen.c 5201 2006-07-31 20:42:46Z twisti $
 
 */
 
@@ -564,7 +564,7 @@ bool codegen(jitdata *jd)
 
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			disp = dseg_addfloat(cd, iptr->val.f);
-			emit_movdl_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + ((d > 7) ? 9 : 8)) - (s8) cd->mcodebase) + disp, d);
+			emit_movdl_membase_reg(cd, RIP, -((cd->mcodeptr + ((d > 7) ? 9 : 8)) - cd->mcodebase) + disp, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 		
@@ -573,7 +573,7 @@ bool codegen(jitdata *jd)
 
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			disp = dseg_adddouble(cd, iptr->val.d);
-			emit_movd_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + disp, d);
+			emit_movd_membase_reg(cd, RIP, -((cd->mcodeptr + 9) - cd->mcodebase) + disp, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -1157,7 +1157,7 @@ bool codegen(jitdata *jd)
 
 			/* check as described in jvm spec */
 			disp = dseg_adds8(cd, 0x8000000000000000LL);
-  			M_LCMP_MEMBASE(RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, RAX);
+  			M_LCMP_MEMBASE(RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + disp, RAX);
 			M_BNE(4 + 6);
 			M_LCMP_IMM(-1, REG_ITMP3);                              /* 4 bytes */
 			M_BEQ(3 + 2 + 3);                                      /* 6 bytes */
@@ -1202,7 +1202,7 @@ bool codegen(jitdata *jd)
 
 			/* check as described in jvm spec */
 			disp = dseg_adds8(cd, 0x8000000000000000LL);
-  			M_LCMP_MEMBASE(RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP1);
+  			M_LCMP_MEMBASE(RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + disp, REG_ITMP1);
 			M_BNE(3 + 4 + 6);
 
 #if 0
@@ -1541,7 +1541,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			disp = dseg_adds4(cd, 0x80000000);
 			M_FLTMOVE(s1, d);
-			emit_movss_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + disp, REG_FTMP2);
+			emit_movss_membase_reg(cd, RIP, -((cd->mcodeptr + 9) - cd->mcodebase) + disp, REG_FTMP2);
 			emit_xorps_reg_reg(cd, REG_FTMP2, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
@@ -1552,7 +1552,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			disp = dseg_adds8(cd, 0x8000000000000000);
 			M_FLTMOVE(s1, d);
-			emit_movd_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + disp, REG_FTMP2);
+			emit_movd_membase_reg(cd, RIP, -((cd->mcodeptr + 9) - cd->mcodebase) + disp, REG_FTMP2);
 			emit_xorpd_reg_reg(cd, REG_FTMP2, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
@@ -2151,6 +2151,12 @@ bool codegen(jitdata *jd)
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				disp = dseg_addaddress(cd, NULL);
+				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
+
+				/* must be calculated before codegen_addpatchref */
+
+				if (opt_showdisassemble)
+					disp -= PATCHER_CALL_SIZE;
 
 /* 				PROFILE_CYCLE_STOP; */
 
@@ -2162,11 +2168,9 @@ bool codegen(jitdata *jd)
 				}
 
 /* 				PROFILE_CYCLE_START; */
-
-			} else {
+			}
+			else {
 				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
-
-				disp = dseg_addaddress(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
@@ -2179,13 +2183,15 @@ bool codegen(jitdata *jd)
 
 					PROFILE_CYCLE_START;
 				}
+
+				disp = dseg_addaddress(cd, &(fi->value));
+				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
   			}
 
 			/* This approach is much faster than moving the field
 			   address inline into a register. */
 
-  			M_ALD(REG_ITMP1, RIP, -(((ptrint) cd->mcodeptr + 7) -
-									(ptrint) cd->mcodebase) + disp);
+  			M_ALD(REG_ITMP1, RIP, disp);
 
 			switch (iptr->op1) {
 			case TYPE_INT:
@@ -2214,6 +2220,12 @@ bool codegen(jitdata *jd)
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				disp = dseg_addaddress(cd, NULL);
+				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
+
+				/* must be calculated before codegen_addpatchref */
+
+				if (opt_showdisassemble)
+					disp -= PATCHER_CALL_SIZE;
 
 /* 				PROFILE_CYCLE_STOP; */
 
@@ -2225,11 +2237,9 @@ bool codegen(jitdata *jd)
 				}
 
 /* 				PROFILE_CYCLE_START; */
-
-			} else {
+			}
+			else {
 				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
-
-				disp = dseg_addaddress(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
@@ -2238,17 +2248,20 @@ bool codegen(jitdata *jd)
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+						disp -= PATCHER_CALL_SIZE;
 					}
 
 					PROFILE_CYCLE_START;
 				}
+
+				disp = dseg_addaddress(cd, &(fi->value));
+				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
   			}
 
 			/* This approach is much faster than moving the field
 			   address inline into a register. */
 
-  			M_ALD(REG_ITMP1, RIP, -(((ptrint) cd->mcodeptr + 7) -
-									(ptrint) cd->mcodebase) + disp);
+  			M_ALD(REG_ITMP1, RIP, disp);
 
 			switch (iptr->op1) {
 			case TYPE_INT:
@@ -2278,22 +2291,28 @@ bool codegen(jitdata *jd)
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr + 1)) {
 				disp = dseg_addaddress(cd, NULL);
+				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
+
+				/* must be calculated before codegen_addpatchref */
+
+				if (opt_showdisassemble)
+					disp -= PATCHER_CALL_SIZE;
+
 
 /* 				PROFILE_CYCLE_STOP; */
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic,
-									INSTRUCTION_UNRESOLVED_FIELD(iptr + 1), disp);
+									INSTRUCTION_UNRESOLVED_FIELD(iptr + 1),
+									disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
 /* 				PROFILE_CYCLE_START; */
-
-			} else {
+			}
+			else {
 				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr + 1);
-
-				disp = dseg_addaddress(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
@@ -2306,13 +2325,15 @@ bool codegen(jitdata *jd)
 
 					PROFILE_CYCLE_START;
 				}
+
+				disp = dseg_addaddress(cd, &(fi->value));
+				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
   			}
 
 			/* This approach is much faster than moving the field
 			   address inline into a register. */
 
-  			M_ALD(REG_ITMP1, RIP, -(((ptrint) cd->mcodeptr + 7) -
-									(ptrint) cd->mcodebase) + disp);
+  			M_ALD(REG_ITMP1, RIP, disp);
 
 			switch (iptr->op1) {
 			case TYPE_INT:
@@ -2351,8 +2372,8 @@ bool codegen(jitdata *jd)
 /* 				PROFILE_CYCLE_START; */
 
 				disp = 0;
-
-			} else
+			}
+			else
 				disp = INSTRUCTION_RESOLVED_FIELDINFO(iptr)->offset;
 
 			switch (iptr->op1) {
@@ -2401,8 +2422,8 @@ bool codegen(jitdata *jd)
 /* 				PROFILE_CYCLE_START; */
 
 				disp = 0;
-
-			} else
+			}
+			else
 				disp = INSTRUCTION_RESOLVED_FIELDINFO(iptr)->offset;
 
 			switch (iptr->op1) {
@@ -2443,8 +2464,8 @@ bool codegen(jitdata *jd)
 /* 				PROFILE_CYCLE_START; */
 
 				disp = 0;
-
-			} else
+			}
+			else
 				disp = INSTRUCTION_RESOLVED_FIELDINFO(iptr + 1)->offset;
 
 			switch (iptr->op1) {
@@ -3079,20 +3100,22 @@ gen_method:
 				M_BEQ(0);
 				codegen_add_nullpointerexception_ref(cd);
 
-				/* first argument contains pointer */
-/*  				gen_nullptr_check(rd->argintregs[0]); */
-
-				/* access memory for hardware nullptr */
-/*  				emit_mov_membase_reg(cd, rd->argintregs[0], 0, REG_ITMP2); */
-
 				/* fall through */
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
 					unresolved_method *um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 
+					disp = dseg_addaddress(cd, NULL);
+					disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
+
+					/* must be calculated before codegen_addpatchref */
+
+					if (opt_showdisassemble)
+						disp -= PATCHER_CALL_SIZE;
+
 					codegen_addpatchref(cd, PATCHER_invokestatic_special,
-										um, 0);
+										um, disp);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3100,13 +3123,17 @@ gen_method:
 
 					a = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
+				}
+				else {
+					disp = dseg_addaddress(cd, lm->stubroutine);
+					disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
-				} else {
 					a = (ptrint) lm->stubroutine;
 					d = lm->parseddesc->returntype.type;
 				}
 
-				M_MOV_IMM(a, REG_ITMP2);
+/* 				M_MOV_IMM(a, REG_ITMP2); */
+				M_ALD(REG_ITMP2, RIP, disp);
 				M_CALL(REG_ITMP2);
 				break;
 
@@ -3757,7 +3784,7 @@ gen_method:
 			} else {
 				savedmcodeptr = cd->mcodeptr;
 
-				emit_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+				emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), rd->argintregs[0]);
 				M_MOV(REG_SP, rd->argintregs[1]);
 				M_ALD(rd->argintregs[2], REG_SP, stackframesize * 8);
 
@@ -3806,7 +3833,7 @@ gen_method:
 			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
 			a = dseg_addaddress(cd, NULL);                            /* vftbl      */
 
-  			emit_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + a, REG_ITMP3);
+  			emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + a, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
 #else
 			M_PUSH_IMM(0);
@@ -4089,7 +4116,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* create dynamic stack info */
 
 	M_ALEA(REG_SP, stackframesize * 8, rd->argintregs[0]);
-	emit_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
+	emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), rd->argintregs[1]);
 	M_ALEA(REG_SP, stackframesize * 8 + SIZEOF_VOID_P, rd->argintregs[2]);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8);
 	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
@@ -4274,7 +4301,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
 			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
 
-  			emit_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP3);
+  			emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + disp, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
 #else
 			M_PUSH_IMM(0);

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5142 2006-07-17 09:47:02Z twisti $
+   $Id: patcher.c 5201 2006-07-31 20:42:46Z twisti $
 
 */
 
@@ -144,7 +144,6 @@ bool patcher_get_putstatic(u1 *sp)
 	unresolved_field *uf;
 	s4                disp;
 	fieldinfo        *fi;
-	s4                offset;
 
 	/* get stuff from the stack */
 
@@ -173,13 +172,9 @@ bool patcher_get_putstatic(u1 *sp)
 	if (opt_showdisassemble)
 		ra = ra + 5;
 
-	/* get RIP offset from machine instruction */
+	/* patch the field value's address */
 
-	offset = *((u4 *) (ra + 3));
-
-	/* patch the field value's address (+ 7: is the size of the RIP move) */
-
-	*((ptrint *) (ra + 7 + offset)) = (ptrint) &(fi->value);
+	*((ptrint *) (ra + 7 + disp)) = (ptrint) &(fi->value);
 
 	return true;
 }
@@ -402,10 +397,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) c;
 
-	/* patch new function address */
-
-	*((ptrint *) (ra + 10 + 10 + 3 + 2)) = (ptrint) BUILTIN_multianewarray;
-
 	return true;
 }
 
@@ -471,6 +462,7 @@ bool patcher_invokestatic_special(u1 *sp)
 	u1                *ra;
 	u8                 mcode;
 	unresolved_method *um;
+	s4                 disp;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
@@ -478,6 +470,7 @@ bool patcher_invokestatic_special(u1 *sp)
 	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
 	mcode =                       *((u8 *)     (sp + 3 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 
 	/* get the fieldinfo */
 
@@ -495,7 +488,8 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* patch stubroutine */
 
-	*((ptrint *) (ra + 2)) = (ptrint) m->stubroutine;
+/* 	*((ptrint *) (ra + 2)) = (ptrint) m->stubroutine; */
+	*((ptrint *) (ra + 7 + disp)) = (ptrint) m->stubroutine;
 
 	return true;
 }

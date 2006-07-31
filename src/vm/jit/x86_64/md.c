@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5172 2006-07-25 15:33:58Z twisti $
+   $Id: md.c 5201 2006-07-31 20:42:46Z twisti $
 
 */
 
@@ -79,11 +79,11 @@ void md_init(void)
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t  *_uc;
-	mcontext_t  *_mc;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u1         *sp;
+	u1         *ra;
+	u1         *xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -94,6 +94,12 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	sp  = (u1 *) _mc->gregs[REG_RSP];
 	xpc = (u1 *) _mc->gregs[REG_RIP];
 	ra  = xpc;                          /* return address is equal to xpc     */
+
+#if 0
+	/* check for StackOverflowException */
+
+	threads_check_stackoverflow(sp);
+#endif
 
 	_mc->gregs[REG_RAX] =
 		(ptrint) stacktrace_hardware_nullpointerexception(NULL, sp, ra, xpc);
@@ -208,7 +214,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
    INVOKESTATIC/SPECIAL:
 
-   49 ba 98 3a ed ab aa 2a 00 00    mov    $0x2aaaabed3a98,%r10
+   4d 8b 15 e2 fe ff ff             mov    -286(%rip),%r10
    49 ff d2                         rex64Z callq  *%r10
 
    INVOKEVIRTUAL:
@@ -242,14 +248,19 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 	/* check for the different calls */
 
-	/* INVOKESTATIC/SPECIAL */
-
 	if (mcode == 0xd2) {
-		/* patch address is 8-bytes before the call instruction */
+		/* INVOKESTATIC/SPECIAL */
 
-		pa = ra - 8;
+		/* Get the offset from the instruction (the offset address is
+		   4-bytes before the call instruction). */
 
-	} else if (mcode == 0xd3) {
+		offset = *((s4 *) (ra - 4));
+
+		/* add the offset to the return address (IP-relative addressing) */
+
+		pa = ra + offset;
+	}
+	else if (mcode == 0xd3) {
 		/* INVOKEVIRTUAL/INTERFACE */
 
 		/* Get the offset from the instruction (the offset address is
@@ -260,8 +271,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		/* add the offset to the method pointer */
 
 		pa = mptr + offset;
-
-	} else {
+	}
+	else {
 		/* catch any problems */
 
 		assert(0);
