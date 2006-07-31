@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5049 2006-06-23 12:07:26Z twisti $
+   $Id: threads.c 5195 2006-07-31 15:26:10Z twisti $
 
 */
 
@@ -1113,13 +1113,20 @@ static void *threads_startup_thread(void *t)
 		if (method == NULL)
 			throw_exception();
 
-		(void) vm_call_method(method, (java_objectheader *) thread);
+		/* increase total started thread count */
 
+		_Jv_jvm->total_started_thread_count++;
+
+		(void) vm_call_method(method, (java_objectheader *) thread);
 	}
 	else {
 		/* this is an internal thread */
 
 		thread->flags |= THREAD_FLAG_INTERNAL;
+
+		/* increase total started thread count */
+
+		_Jv_jvm->total_started_thread_count++;
 
 		/* call passed function, e.g. finalizer_thread */
 

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 5193 2006-07-31 14:35:41Z twisti $
+   $Id: jni.h 5195 2006-07-31 15:26:10Z twisti $
 
 */
 
@@ -68,6 +68,7 @@ struct _Jv_JavaVM {
 	/* JVM instance-specific variables */
 
 	s8 starttime;                       /* VM startup time                    */
+	s8 total_started_thread_count;
 
 	s4 Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose;
 	s4 Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose;

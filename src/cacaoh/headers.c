@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5166 2006-07-21 10:09:33Z twisti $
+   $Id: headers.c 5195 2006-07-31 15:26:10Z twisti $
 
 */
 
@@ -67,6 +67,11 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+
+
+/* Invocation API variables ***************************************************/
+
+_Jv_JavaVM *_Jv_jvm;                    /* denotes a Java VM                  */
 
 
 #if defined(ENABLE_INTRP)

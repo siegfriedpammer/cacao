@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4954 2006-05-25 21:59:49Z motse $
+   $Id: cacao.c 5195 2006-07-31 15:26:10Z twisti $
 
 */
 
@@ -310,6 +310,12 @@ int main(int argc, char **argv)
 #if defined(ENABLE_JVMTI)
 		jvmti_set_phase(JVMTI_PHASE_LIVE);
 #endif
+
+		/* increase total started thread count */
+
+		_Jv_jvm->total_started_thread_count++;
+
+		/* start the main thread */
 
 		(void) vm_call_method(m, NULL, oa);
 

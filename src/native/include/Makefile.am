@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5193 2006-07-31 14:35:41Z twisti $
+## $Id: Makefile.am 5195 2006-07-31 15:26:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -87,12 +87,14 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_java_lang_management_VMClassLoadingMXBeanImpl.h \
 	gnu_java_lang_management_VMMemoryMXBeanImpl.h \
 	gnu_java_lang_management_VMRuntimeMXBeanImpl.h \
+	gnu_java_lang_management_VMThreadMXBeanImpl.h \
 	java_lang_VMClass.h \
 	java_lang_VMClassLoader.h \
 	java_lang_VMRuntime.h \
 	java_lang_VMString.h \
 	java_lang_VMSystem.h \
 	java_lang_management_MemoryUsage.h \
+	java_lang_management_ThreadInfo.h \
 	java_lang_reflect_VMProxy.h \
 	java_security_VMAccessController.h
 
@@ -137,7 +139,6 @@ endif
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
 CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
-VM_ZIP = $(top_builddir)/src/lib/vm.zip
 
 noinst_DATA = $(DO_HEADER_FILES)
 
@@ -148,7 +149,7 @@ $(NO_GEN_HEADER_FILES):
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
 
-$(DO_HEADER_FILES): $(VM_ZIP) $(CLASSPATH_GLIBJ_ZIP)
+$(DO_HEADER_FILES): $(CACAOH) $(CACAO_VM_ZIP) $(CLASSPATH_GLIBJ_ZIP)
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class

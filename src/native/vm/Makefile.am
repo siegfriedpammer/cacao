@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5193 2006-07-31 14:35:41Z twisti $
+## $Id: Makefile.am 5195 2006-07-31 15:26:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -50,6 +50,7 @@ libnativevm_la_SOURCES = \
 	gnu_java_lang_management_VMClassLoadingMXBeanImpl.c \
 	gnu_java_lang_management_VMMemoryMXBeanImpl.c \
 	gnu_java_lang_management_VMRuntimeMXBeanImpl.c \
+	gnu_java_lang_management_VMThreadMXBeanImpl.c \
 	java_lang_VMClass.c \
 	java_lang_VMClassLoader.c \
 	java_lang_VMObject.c \
