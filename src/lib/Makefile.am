@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5066 2006-07-02 18:31:02Z twisti $
+## $Id: Makefile.am 5190 2006-07-31 12:28:23Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,6 +39,7 @@ CLEANFILES = vm.zip
 
 VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMStackWalker.java \
+	$(top_srcdir)/src/lib/vm/reference/gnu/java/lang/management/VMMemoryMXBeanImpl.java \
 	$(top_srcdir)/src/lib/vm/reference/gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMClassLoader.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMString.java \
@@ -48,6 +49,7 @@ VM_JAVA_FILES = \
 
 VM_CLASS_FILES = \
 	classes/gnu/classpath/VMStackWalker.class \
+	classes/gnu/java/lang/management/VMMemoryMXBeanImpl.class \
 	classes/gnu/java/lang/management/VMRuntimeMXBeanImpl.class \
 	classes/java/lang/VMClassLoader.class \
 	classes/java/lang/VMString.class \

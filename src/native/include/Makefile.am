@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5146 2006-07-17 13:50:35Z twisti $
+## $Id: Makefile.am 5190 2006-07-31 12:28:23Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -85,11 +85,13 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
 	gnu_classpath_VMSystemProperties.h \
 	gnu_java_lang_management_VMRuntimeMXBeanImpl.h \
+	gnu_java_lang_management_VMMemoryMXBeanImpl.h \
 	java_lang_VMClass.h \
 	java_lang_VMClassLoader.h \
 	java_lang_VMRuntime.h \
 	java_lang_VMString.h \
 	java_lang_VMSystem.h \
+	java_lang_management_MemoryUsage.h \
 	java_lang_reflect_VMProxy.h \
 	java_security_VMAccessController.h
 

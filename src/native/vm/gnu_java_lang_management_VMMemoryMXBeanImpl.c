@@ -44,6 +44,7 @@
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/global.h"
+#include "vm/loader.h"                   /* XXX only for load_class_bootstrap */
 #include "vm/options.h"
 #include "vm/vm.h"
 
@@ -65,6 +66,7 @@ JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_managemen
 	s8                                maximum;
 
 	/* get the class */
+	/* XXX optimize me! sometime... */
 
 	if (!(class_java_lang_management_MemoryUsage = load_class_bootstrap(utf_new_char("java/lang/management/MemoryUsage"))))
 		return false;
