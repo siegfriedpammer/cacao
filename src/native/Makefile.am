@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5013 2006-06-06 11:22:56Z twisti $
+## $Id: Makefile.am 5187 2006-07-31 12:15:27Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -55,7 +55,7 @@ CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
 
 $(srcdir)/native.c: nativetable.inc
 
-nativetable.inc: $(VM_ZIP) $(CLASSPATH_GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
+nativetable.inc: $(CACAO_VM_ZIP) $(CLASSPATH_GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
 	$(top_builddir)/src/native/tools/gennativetable -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc
 endif
 
