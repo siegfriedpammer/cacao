@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5181 2006-07-26 13:27:54Z twisti $
+   $Id: parse.c 5202 2006-08-01 13:10:48Z twisti $
 
 */
 
@@ -927,7 +927,7 @@ jsr_tail:
 				/* only with -noverify, otherwise the typechecker does this */
 
 #if defined(ENABLE_VERIFIER)
-				if (!opt_verify) {
+				if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
 					result = new_resolve_field_lazy(iptr, NULL, m);
 					if (result == resolveFailed)
@@ -936,7 +936,7 @@ jsr_tail:
 					if (result != resolveSucceeded) {
 						uf = new_create_unresolved_field(m->class, m, iptr);
 
-						if (!uf)
+						if (uf == NULL)
 							return false;
 
 						/* store the unresolved_field pointer */
@@ -1000,7 +1000,7 @@ invoke_method:
 			/* only with -noverify, otherwise the typechecker does this */
 
 #if defined(ENABLE_VERIFIER)
-			if (!opt_verify) {
+			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
 				result = new_resolve_method_lazy(iptr, NULL, m);
 				if (result == resolveFailed)
@@ -2157,17 +2157,16 @@ fetch_opcode:
 				/* only with -noverify, otherwise the typechecker does this */
 
 #if defined(ENABLE_VERIFIER)
-				if (!opt_verify) {
+				if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-					result = resolve_field_lazy(iptr,NULL,m);
+					result = resolve_field_lazy(iptr, NULL, m);
 					if (result == resolveFailed)
 						return false;
 
 					if (result != resolveSucceeded) {
-						uf = create_unresolved_field(m->class,
-													 m, iptr);
+						uf = create_unresolved_field(m->class, m, iptr);
 
-						if (!uf)
+						if (uf == NULL)
 							return false;
 
 						/* store the unresolved_field pointer */
@@ -2208,17 +2207,14 @@ fetch_opcode:
 
 		case JAVA_INVOKEINTERFACE:
 			i = SUCK_BE_U2(m->jcode + p + 1);
-				
-			mr = class_getconstant(m->class, i,
-					CONSTANT_InterfaceMethodref);
+			mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
 
 			goto invoke_nonstatic_method;
 
 		case JAVA_INVOKESPECIAL:
 		case JAVA_INVOKEVIRTUAL:
 			i = SUCK_BE_U2(m->jcode + p + 1);
-			mr = class_getconstant(m->class, i,
-					CONSTANT_Methodref);
+			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 
 invoke_nonstatic_method:
 			if (!mr)
@@ -2238,17 +2234,16 @@ invoke_method:
 			/* only with -noverify, otherwise the typechecker does this */
 
 #if defined(ENABLE_VERIFIER)
-			if (!opt_verify) {
+			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = resolve_method_lazy(iptr,NULL,m);
+				result = resolve_method_lazy(iptr, NULL, m);
 				if (result == resolveFailed)
 					return false;
 
 				if (result != resolveSucceeded) {
-					um = create_unresolved_method(m->class,
-							m, iptr);
+					um = create_unresolved_method(m->class, m, iptr);
 
-					if (!um)
+					if (um == NULL)
 						return false;
 
 					/* store the unresolved_method pointer */
