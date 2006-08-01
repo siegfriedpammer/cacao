@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5186 2006-07-28 13:24:43Z twisti $
+   $Id: codegen-common.c 5204 2006-08-01 15:51:07Z twisti $
 
 */
 
@@ -812,6 +812,9 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 	code = jd->code;
 
 	/* set the flags for the current JIT run */
+
+	if (opt_prof)
+		jd->flags |= JITDATA_FLAG_INSTRUMENT;
 
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
