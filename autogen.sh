@@ -57,7 +57,7 @@ for CACAO_AUTOHEADER in autoheader autoheader259; do
         CACAO_AUTOHEADER_VERSION=`${CACAO_AUTOHEADER} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${CACAO_AUTOHEADER_VERSION}
         case ${CACAO_AUTOHEADER_VERSION} in
-            2.59* )
+            2.59* | 2.6* )
                 CACAO_HAVE_AUTOHEADER=true
                 break;
                 ;;
@@ -67,7 +67,7 @@ done
 
 if test ${CACAO_HAVE_AUTOHEADER} = false; then
     echo "No proper autoheader was found."
-    echo "You must have autoconf 2.59 installed."
+    echo "You must have autoconf 2.59 or later installed."
     exit 1
 fi
 
@@ -105,7 +105,7 @@ for CACAO_AUTOCONF in autoconf autoconf259; do
         CACAO_AUTOCONF_VERSION=`${CACAO_AUTOCONF} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${CACAO_AUTOCONF_VERSION}
         case ${CACAO_AUTOCONF_VERSION} in
-            2.59* )
+            2.59* | 2.6* )
                 CACAO_HAVE_AUTOCONF=true
                 break;
                 ;;
@@ -115,7 +115,7 @@ done
 
 if test ${CACAO_HAVE_AUTOCONF} = false; then
     echo "No proper autoconf was found."
-    echo "You must have autoconf 2.59 installed."
+    echo "You must have autoconf 2.59 or later installed."
     exit 1
 fi
 
