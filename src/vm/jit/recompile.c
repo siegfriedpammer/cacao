@@ -186,11 +186,14 @@ static void recompile_thread(void)
 		while ((lme = list_first(list_recompile_methods)) != NULL) {
 			/* recompile this method */
 
-			(void) jit_recompile(lme->m);
+			if (jit_recompile(lme->m) != NULL) {
+				/* replace in vftbl's */
 
-			/* replace in vftbl's */
-
-			recompile_replace_vftbl(lme->m);
+				recompile_replace_vftbl(lme->m);
+			}
+			else {
+				throw_exception();
+			}
 
 			/* remove the compiled method */
 
