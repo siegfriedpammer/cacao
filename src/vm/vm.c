@@ -110,6 +110,8 @@ bool startit = true;
 /* define command line options ************************************************/
 
 enum {
+	OPT_FOO,
+
 	/* Java options */
 
 	OPT_JAR,
@@ -219,6 +221,8 @@ enum {
 
 
 opt_struct opts[] = {
+	{ "foo",               false, OPT_FOO },
+
 	/* Java options */
 
 	{ "jar",               false, OPT_JAR },
@@ -656,6 +660,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	while ((opt = options_get(opts, vm_args)) != OPT_DONE) {
 		switch (opt) {
+		case OPT_FOO:
+			opt_foo = true;
+			break;
+
 		case OPT_IGNORE:
 			break;
 			

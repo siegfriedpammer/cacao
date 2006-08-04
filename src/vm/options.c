@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 4942 2006-05-23 08:42:46Z twisti $
+   $Id: options.c 5206 2006-08-04 14:10:29Z twisti $
 
 */
 
@@ -48,6 +48,8 @@
 
 s4    opt_index = 0;            /* index of processed arguments               */
 char *opt_arg;                  /* this one exports the option argument       */
+
+bool opt_foo = false;           /* option for development                     */
 
 bool opt_jar = false;
 

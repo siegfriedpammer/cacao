@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4942 2006-05-23 08:42:46Z twisti $
+   $Id: options.h 5206 2006-08-04 14:10:29Z twisti $
 
 */
 
@@ -66,6 +66,8 @@ struct opt_struct {
 
 extern s4    opt_index;
 extern char *opt_arg;
+
+extern bool opt_foo;
 
 extern bool opt_jit;
 extern bool opt_intrp;
