@@ -205,7 +205,8 @@ bool ifconv_static(jitdata *jd)
 		case ICMD_IF_ACMPNE:
 			/* basic blocks can only have 1 predecessor */
 
-			if ((bptr[1].pre_count != 1) || (bptr[2].pre_count != 1))
+			if ((bptr[1].predecessorcount != 1) ||
+				(bptr[2].predecessorcount != 1))
 				break;
 
 			check(jd, bptr);

@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5173 2006-07-25 15:57:11Z twisti $
+   $Id: stack.c 5208 2006-08-04 14:42:57Z twisti $
 
 */
 
@@ -442,12 +442,12 @@ bool new_stack_analyse(jitdata *jd)
 		bptr->type = BBTYPE_EXH;
 		bptr->instack = new;
 		bptr->indepth = 1;
-		bptr->pre_count = 10000;
+		bptr->predecessorcount = 10000;
 		STACKRESET;
 		NEWXSTACK;
 	}
 
-	/* count predecessors of each block **************************************/
+	/* count predecessors of each block ***************************************/
 
 #if CONDITIONAL_LOADCONST
 	/* XXX move this to a separate function */
@@ -492,37 +492,37 @@ bool new_stack_analyse(jitdata *jd)
 				case ICMD_IF_ACMPEQ:
 				case ICMD_IF_ACMPNE:
 					/* XXX add missing conditional branches */
-					bptr[1].pre_count++;
+					bptr[1].predecessorcount++;
 					/* FALLTHROUGH */
 
 					/* unconditional branch */
 				case ICMD_GOTO:
-					BLOCK_OF(iptr->dst.insindex)->pre_count++;
+					BLOCK_OF(iptr->dst.insindex)->predecessorcount++;
 					break;
 
 					/* switches */
 				case ICMD_TABLESWITCH:
 					table = iptr->dst.table;
-					BLOCK_OF((table++)->insindex)->pre_count++;
+					BLOCK_OF((table++)->insindex)->predecessorcount++;
 					i = iptr->sx.s23.s3.tablehigh
 						- iptr->sx.s23.s2.tablelow + 1;
 					while (--i >= 0) {
-						BLOCK_OF((table++)->insindex)->pre_count++;
+						BLOCK_OF((table++)->insindex)->predecessorcount++;
 					}
 					break;
 
 				case ICMD_LOOKUPSWITCH:
 					lookup = iptr->dst.lookup;
-					BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex)->pre_count++;
+					BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex)->predecessorcount++;
 					i = iptr->sx.s23.s2.lookupcount;
 					while (--i >= 0) {
-						BLOCK_OF((lookup++)->target.insindex)->pre_count++;
+						BLOCK_OF((lookup++)->target.insindex)->predecessorcount++;
 					}
 					break;
 
 					/* default - fall into next block */
 				default:
-					bptr[1].pre_count++;
+					bptr[1].predecessorcount++;
 					break;
 			} /* end switch */
 		} /* end basic block loop */
@@ -2879,79 +2879,9 @@ bool stack_analyse(jitdata *jd)
 		bptr->type = BBTYPE_EXH;
 		bptr->instack = new;
 		bptr->indepth = 1;
-		bptr->pre_count = 10000;
+		bptr->predecessorcount = 10000;
 		STACKRESET;
 		NEWXSTACK;
-	}
-
-	b_count = m->basicblockcount;
-	bptr = m->basicblocks;
-
-	while (--b_count >= 0) {
-		if (bptr->icount != 0) {
-			iptr = bptr->iinstr + bptr->icount - 1;
-			switch (iptr->opc) {
-			case ICMD_RET:
-			case ICMD_RETURN:
-			case ICMD_IRETURN:
-			case ICMD_LRETURN:
-			case ICMD_FRETURN:
-			case ICMD_DRETURN:
-			case ICMD_ARETURN:
-			case ICMD_ATHROW:
-				break;
-
-			case ICMD_IFEQ:
-			case ICMD_IFNE:
-			case ICMD_IFLT:
-			case ICMD_IFGE:
-			case ICMD_IFGT:
-			case ICMD_IFLE:
-
-			case ICMD_IFNULL:
-			case ICMD_IFNONNULL:
-
-			case ICMD_IF_ICMPEQ:
-			case ICMD_IF_ICMPNE:
-			case ICMD_IF_ICMPLT:
-			case ICMD_IF_ICMPGE:
-			case ICMD_IF_ICMPGT:
-			case ICMD_IF_ICMPLE:
-
-			case ICMD_IF_ACMPEQ:
-			case ICMD_IF_ACMPNE:
-				bptr[1].pre_count++;
-
-			case ICMD_GOTO:
-				m->basicblocks[m->basicblockindex[iptr->op1]].pre_count++;
-				break;
-
-			case ICMD_TABLESWITCH:
-				s4ptr = iptr->val.a;
-				m->basicblocks[m->basicblockindex[*s4ptr++]].pre_count++;
-				i = *s4ptr++;                               /* low     */
-				i = *s4ptr++ - i + 1;                       /* high    */
-				while (--i >= 0) {
-					m->basicblocks[m->basicblockindex[*s4ptr++]].pre_count++;
-				}
-				break;
-					
-			case ICMD_LOOKUPSWITCH:
-				s4ptr = iptr->val.a;
-				m->basicblocks[m->basicblockindex[*s4ptr++]].pre_count++;
-				i = *s4ptr++;                               /* count   */
-				while (--i >= 0) {
-					m->basicblocks[m->basicblockindex[s4ptr[1]]].pre_count++;
-					s4ptr += 2;
-				}
-				break;
-
-			default:
-				bptr[1].pre_count++;
-				break;
-			}
-		}
-		bptr++;
 	}
 
 	do {

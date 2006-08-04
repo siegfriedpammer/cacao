@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5202 2006-08-01 13:10:48Z twisti $
+   $Id: parse.c 5208 2006-08-04 14:42:57Z twisti $
 
 */
 
@@ -1354,6 +1354,10 @@ invoke_method:
 
 	bptr = jd->new_basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
 
+	/* zero out all basic block structures */
+
+	MZERO(bptr, basicblock, b_count + 1);
+
 	b_count = 0;
 	jd->new_c_debug_nr = 0;
 
@@ -2584,6 +2588,10 @@ invoke_method:
 		basicblock *bptr;
 
 		bptr = m->basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
+
+		/* zero out all basic block structures */
+
+		MZERO(bptr, basicblock, b_count + 1);
 
 		b_count = 0;
 		m->c_debug_nr = 0;

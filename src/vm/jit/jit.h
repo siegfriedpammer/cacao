@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5183 2006-07-26 15:20:15Z twisti $
+   $Id: jit.h 5208 2006-08-04 14:42:57Z twisti $
 
 */
 
@@ -117,6 +117,7 @@ struct jitdata {
 #define JITDATA_FLAG_INSTRUMENT          0x00000004
 
 #define JITDATA_FLAG_IFCONV              0x00000008
+#define JITDATA_FLAG_REORDER             0x00000010
 
 #define JITDATA_FLAG_SHOWINTERMEDIATE    0x20000000
 #define JITDATA_FLAG_SHOWDISASSEMBLE     0x40000000
@@ -134,6 +135,9 @@ struct jitdata {
 
 #define JITDATA_HAS_FLAG_IFCONV(jd) \
     ((jd)->flags & JITDATA_FLAG_IFCONV)
+
+#define JITDATA_HAS_FLAG_REORDER(jd) \
+    ((jd)->flags & JITDATA_FLAG_REORDER)
 
 #define JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd) \
     ((jd)->flags & JITDATA_FLAG_SHOWINTERMEDIATE)
@@ -484,7 +488,12 @@ struct basicblock {
 	stackptr     outstack;      /* stack at end of basic block                */
 	s4           indepth;       /* stack depth at begin of basic block        */
 	s4           outdepth;      /* stack depth end of basic block             */
-	s4           pre_count;     /* count of predecessor basic blocks          */
+
+	s4           predecessorcount;
+	s4           successorcount;
+	basicblock  *predecessors;  /* array of predecessor basic blocks          */
+	basicblock  *successors;    /* array of successor basic blocks            */
+
 	branchref   *branchrefs;    /* list of branches to be patched             */
 
 	basicblock  *next;          /* used to build a BB list (instead of array) */
@@ -496,20 +505,18 @@ struct basicblock {
 	methodinfo  *method;        /* method this block belongs to               */
 };
 
-/* macro for initializing newly allocated basicblock:s                        */
+
+/* Macro for initializing newly allocated basic block's. It does not
+   need to zero fields, as we zero out the whole basic block array. */
 
 #define BASICBLOCK_INIT(bptr,m)                            \
-		do {                                               \
-			bptr->mpc = -1;                                \
-			bptr->flags = -1;                              \
-			bptr->bitflags = 0;                            \
-			bptr->lflags = 0;                              \
-			bptr->type = BBTYPE_STD;                       \
-			bptr->branchrefs = NULL;                       \
-			bptr->pre_count = 0;                           \
-			bptr->method = (m);                            \
-			bptr->debug_nr = (m)->c_debug_nr++;            \
-		} while (0)
+	do {                                                   \
+		bptr->mpc        = -1;                             \
+		bptr->flags      = -1;                             \
+		bptr->type       = BBTYPE_STD;                     \
+		bptr->method     = (m);                            \
+		bptr->debug_nr   = (m)->c_debug_nr++;              \
+	} while (0)
 			
 
 /* branchref *****************************************************************/

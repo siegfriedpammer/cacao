@@ -829,7 +829,7 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		}
 
 		printf(", instruction count: %d, predecessors: %d):\n",
-			   bptr->icount, bptr->pre_count);
+			   bptr->icount, bptr->predecessorcount);
 
 		iptr = /*XXX*/ (new_instruction *) bptr->iinstr;
 
@@ -908,7 +908,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
 		}
 
 		printf(", instruction count: %d, predecessors: %d):\n",
-			   bptr->icount, bptr->pre_count);
+			   bptr->icount, bptr->predecessorcount);
 
 		iptr = bptr->iinstr;
 
