@@ -43,6 +43,38 @@
 #include "vm/jit/jit.h"
 
 
+/* reorder_place_next_unplaced_block *******************************************
+
+   Find next unplaced basic block in the array and place it.
+
+*******************************************************************************/
+
+static basicblock *reorder_place_next_unplaced_block(methodinfo *m, u1 *blocks,
+													 basicblock *bptr)
+{
+	basicblock *tbptr;
+	s4          i;
+
+	for (i = 0; i < m->basicblockcount; i++) {
+		if (blocks[i] == false) {
+			tbptr = &m->basicblocks[i];
+
+			/* place the block */
+
+			blocks[tbptr->debug_nr] = true;
+
+			/* change the basic block order */
+
+			bptr->next = tbptr;
+
+			return tbptr;
+		}
+	}
+
+	return NULL;
+}
+
+
 /* reorder *********************************************************************
 
    Reorders basic blocks in respect to their execution frequency.
@@ -56,12 +88,15 @@ bool reorder(jitdata *jd)
 	basicblock  *bptr;
 	basicblock  *tbptr;                 /* taken basic block pointer          */
 	basicblock  *ntbptr;                /* not-taken basic block pointer      */
+	basicblock  *pbptr;                 /* predecessor basic block pointer    */
 	u4           freq;
 	u4           tfreq;
 	u4           ntfreq;
+	u4           pfreq;
 	instruction *iptr;
 	u1          *blocks;                /* flag array                         */
 	s4           placed;                /* number of placed basic blocks      */
+	s4           i;
 
 	/* get required compiler data */
 
@@ -71,6 +106,10 @@ bool reorder(jitdata *jd)
 	/* get the codeinfo of the previous method */
 
 	pcode = m->code;
+
+	/* XXX debug */
+	if (m->basicblockcount > 8)
+		return true;
 
 	/* allocate flag array for blocks which are placed */
 
@@ -84,7 +123,12 @@ bool reorder(jitdata *jd)
 	bptr   = m->basicblocks;
 	placed = 0;
 
-	while (placed < m->basicblockcount) {
+	/* the first block is always placed as the first one */
+
+	blocks[0] = true;
+	placed++;
+
+	while (placed <= m->basicblockcount) {
 		/* get last instruction of basic block */
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -103,7 +147,8 @@ bool reorder(jitdata *jd)
 			break;
 		}
 
-		printf(", predecessors: %d, frequency: %d -> ", bptr->predecessorcount,
+		printf(", predecessors: %d, successors: %d, frequency: %d -> ",
+			   bptr->predecessorcount, bptr->successorcount,
 			   pcode->bbfrequency[bptr->debug_nr]);
 
 		switch (iptr->opc) {
@@ -115,6 +160,19 @@ bool reorder(jitdata *jd)
 		case ICMD_ARETURN:
 		case ICMD_ATHROW:
 			puts("return");
+
+			tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
+
+			placed++;
+
+			/* all blocks placed? return. */
+
+			if (tbptr == NULL)
+				continue;
+
+			/* set last placed block */
+
+			bptr = tbptr;
 			break;
 
 		case ICMD_IFEQ:
@@ -155,51 +213,110 @@ bool reorder(jitdata *jd)
 
 			printf("cond. L%03d\n", tbptr->debug_nr);
 
-			if ((tbptr != NULL) && (ntbptr != NULL)) {
-				tfreq  = pcode->bbfrequency[tbptr->debug_nr];
-				ntfreq = pcode->bbfrequency[ntbptr->debug_nr];
+			tfreq  = pcode->bbfrequency[tbptr->debug_nr];
+			ntfreq = pcode->bbfrequency[ntbptr->debug_nr];
 
-				/* check which branch is more frequently */
+			/* check which branch is more frequently */
 
-				if (tfreq > ntfreq) {
-					/* place taken block */
+			if ((blocks[tbptr->debug_nr] == false) && (tfreq > ntfreq)) {
+				/* If we place the taken block, we need to change the
+				   conditional instruction (opcode and target). */
 
-					blocks[tbptr->debug_nr] = true;
+				iptr->opc    = jit_complement_condition(iptr->opc);
+				iptr->target = ntbptr;
 
-					/* set last placed block */
+				/* change the basic block order */
 
-					bptr = tbptr;
-				}
-				else {
-					/* place not-taken block */
+				bptr->next = tbptr;
 
-					blocks[ntbptr->debug_nr] = true;
+				/* place taken block */
 
-					/* set last placed block */
+				blocks[tbptr->debug_nr] = true;
+				placed++;
 
-					bptr = ntbptr;
-				}
+				/* set last placed block */
+
+				bptr = tbptr;
 			}
+			else if (blocks[ntbptr->debug_nr] == false) {
+				/* place not-taken block */
 
-			placed++;
+				blocks[ntbptr->debug_nr] = true;
+				placed++;
+
+				/* set last placed block */
+
+				bptr = ntbptr;
+			}
+			else {
+				tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
+
+				placed++;
+
+				/* all blocks placed? return. */
+
+				if (tbptr == NULL)
+					continue;
+
+				/* set last placed block */
+
+				bptr = tbptr;
+			}
 			break;
 
 		case ICMD_GOTO:
-			tbptr  = (basicblock *) iptr->target;
-			ntbptr = NULL;
+			tbptr = (basicblock *) iptr->target;
 
 			printf("L%03d\n", tbptr->debug_nr);
 
-			/* Check if the target block has other predecessors.  And
-			   if the other predecessors have a higher frequency,
-			   don't place it. */
+			/* If next block is already placed, search for another
+			   one. */
 
-			if (tbptr->predecessorcount > 1) {
-				freq  = pcode->bbfrequency[bptr->debug_nr];
-				tfreq = pcode->bbfrequency[tbptr->debug_nr];
+			if (blocks[tbptr->debug_nr] == true) {
+				tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
 
-				/* XXX check */
+				placed++;
 
+				/* all block placed? return. */
+
+				if (tbptr == NULL)
+					continue;
+			}
+			else if (tbptr->predecessorcount > 1) {
+				/* Check if the target block has other predecessors.
+				   And if the other predecessors have a higher
+				   frequency, don't place it. */
+
+				freq = pcode->bbfrequency[bptr->debug_nr];
+
+				for (i = 0; i < tbptr->predecessorcount; i++) {
+					pbptr = tbptr->predecessors[i];
+
+					/* skip the current basic block */
+
+					if (pbptr->debug_nr != bptr->debug_nr) {
+						pfreq = pcode->bbfrequency[pbptr->debug_nr];
+
+						/* Other predecessor has a higher frequency?
+						   Search for another block to place. */
+
+ 						if (pfreq > freq) {
+							tbptr = reorder_place_next_unplaced_block(m, blocks,
+																	  bptr);
+
+							placed++;
+
+							/* all block placed? return. */
+
+							if (tbptr == NULL)
+								break;
+
+							goto goto_continue;
+						}
+					}
+				}
+
+			goto_continue:
 				/* place block */
 
 				blocks[tbptr->debug_nr] = true;
@@ -215,14 +332,29 @@ bool reorder(jitdata *jd)
 			/* No control flow instruction at the end of the basic
 			   block (fall-through).  Just place the block. */
 
-			tbptr = bptr->next;
-
 			puts("next");
 
-			/* place block */
+			tbptr = bptr->next;
 
-			blocks[tbptr->debug_nr] = true;
-			placed++;
+			/* If next block is already placed, search for another
+			   one. */
+
+			if (blocks[tbptr->debug_nr] == true) {
+				tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
+
+				placed++;
+
+				/* all block placed? return. */
+
+				if (tbptr == NULL)
+					continue;
+			}
+			else {
+				/* place block */
+
+				blocks[tbptr->debug_nr] = true;
+				placed++;
+			}
 
 			/* set last placed block */
 
@@ -231,7 +363,15 @@ bool reorder(jitdata *jd)
 		}
 	}
 
+	/* close the basic block chain with the last dummy basic block */
+
+	bptr->next = &m->basicblocks[m->basicblockcount];
+
 	puts("");
+
+	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
+		printf("L%03d\n", bptr->debug_nr);
+	}
 
 	/* everything's ok */
 

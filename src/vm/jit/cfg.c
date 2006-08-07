@@ -43,6 +43,40 @@
 #include "vm/jit/jit.h"
 
 
+/* cfg_allocate_predecessors ***************************************************
+
+   Allocates the predecessor array, if there is none, and resets the
+   predecessor count.
+
+*******************************************************************************/
+
+static void cfg_allocate_predecessors(basicblock *bptr)
+{
+	if (bptr->predecessors == NULL) {
+		bptr->predecessors = DMNEW(basicblock*, bptr->predecessorcount);
+
+		bptr->predecessorcount = 0;
+	}
+}
+
+
+/* cfg_allocate_successors *****************************************************
+
+   Allocates the succecessor array, if there is none, and resets the
+   predecessor count.
+
+*******************************************************************************/
+
+static void cfg_allocate_successors(basicblock *bptr)
+{
+	if (bptr->successors == NULL) {
+		bptr->successors = DMNEW(basicblock*, bptr->successorcount);
+
+		bptr->successorcount = 0;
+	}
+}
+
+
 /* cfg_build *******************************************************************
 
    Build a control-flow graph in finding all predecessors and
@@ -59,6 +93,7 @@ bool cfg_build(jitdata *jd)
 	instruction *iptr;
 	s4          *s4ptr;
 	s4           i;
+	s4           n;
 
 	/* get required compiler data */
 
@@ -128,10 +163,10 @@ bool cfg_build(jitdata *jd)
 			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
 			tbptr->predecessorcount++;
 
-			i = *s4ptr++;                               /* low     */
-			i = *s4ptr++ - i + 1;                       /* high    */
+			n = *s4ptr++;                               /* low     */
+			n = *s4ptr++ - n + 1;                       /* high    */
 
-			while (--i >= 0) {
+			while (--n >= 0) {
 				bptr->successorcount++;
 
 				tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
@@ -147,12 +182,12 @@ bool cfg_build(jitdata *jd)
 			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
 			tbptr->predecessorcount++;
 
-			i = *s4ptr++;                               /* count   */
+			n = *s4ptr++;                               /* count   */
 
-			while (--i >= 0) {
+			while (--n >= 0) {
 				bptr->successorcount++;
 
-				bptr = m->basicblocks + m->basicblockindex[s4ptr[1]];
+				tbptr = m->basicblocks + m->basicblockindex[s4ptr[1]];
 				tbptr->predecessorcount++;
 
 				s4ptr += 2;
@@ -212,22 +247,14 @@ bool cfg_build(jitdata *jd)
 			tbptr  = m->basicblocks + m->basicblockindex[iptr->op1];
 			ntbptr = bptr->next;
 
+			cfg_allocate_successors(bptr);
+
 			bptr->successors[0] = tbptr;
 			bptr->successors[1] = ntbptr;
+			bptr->successorcount += 2;
 
-			if (tbptr->predecessors == NULL) {
-				tbptr->predecessors =
-					DMNEW(basicblock*, tbptr->predecessorcount);
-
-				tbptr->predecessorcount = 0;
-			}
-
-			if (ntbptr == NULL) {
-				ntbptr->predecessors =
-					DMNEW(basicblock*, ntbptr->predecessorcount);
-
-				ntbptr->predecessorcount = 0;
-			}
+			cfg_allocate_predecessors(tbptr);
+			cfg_allocate_predecessors(ntbptr);
 
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
@@ -239,14 +266,12 @@ bool cfg_build(jitdata *jd)
 		case ICMD_GOTO:
 			tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
 
+			cfg_allocate_successors(bptr);
+
 			bptr->successors[0] = tbptr;
+			bptr->successorcount++;
 
-			if (tbptr->predecessors == NULL) {
-				tbptr->predecessors =
-					DMNEW(basicblock*, tbptr->predecessorcount);
-
-				tbptr->predecessorcount = 0;
-			}
+			cfg_allocate_predecessors(tbptr);
 
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
@@ -255,18 +280,30 @@ bool cfg_build(jitdata *jd)
 		case ICMD_TABLESWITCH:
 			s4ptr = iptr->val.a;
 
+			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+
+			cfg_allocate_successors(bptr);
+
+			bptr->successors[0] = tbptr;
 			bptr->successorcount++;
 
-			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+			cfg_allocate_predecessors(tbptr);
+
+			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			i = *s4ptr++;                               /* low     */
-			i = *s4ptr++ - i + 1;                       /* high    */
+			n = *s4ptr++;                               /* low     */
+			n = *s4ptr++ - n + 1;                       /* high    */
 
-			while (--i >= 0) {
+			while (--n >= 0) {
+				tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+
+				bptr->successors[bptr->successorcount] = tbptr;
 				bptr->successorcount++;
 
-				tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+				cfg_allocate_predecessors(tbptr);
+
+				tbptr->predecessors[tbptr->predecessorcount] = bptr;
 				tbptr->predecessorcount++;
 			}
 			break;
@@ -274,17 +311,29 @@ bool cfg_build(jitdata *jd)
 		case ICMD_LOOKUPSWITCH:
 			s4ptr = iptr->val.a;
 
+			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+
+			cfg_allocate_successors(bptr);
+
+			bptr->successors[0] = tbptr;
 			bptr->successorcount++;
 
-			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+			cfg_allocate_predecessors(tbptr);
+
+			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			i = *s4ptr++;                               /* count   */
+			n = *s4ptr++;                               /* count   */
 
-			while (--i >= 0) {
+			while (--n >= 0) {
+				tbptr = m->basicblocks + m->basicblockindex[s4ptr[1]];
+
+				bptr->successors[bptr->successorcount] = tbptr;
 				bptr->successorcount++;
 
-				bptr = m->basicblocks + m->basicblockindex[s4ptr[1]];
+				cfg_allocate_predecessors(tbptr);
+
+				tbptr->predecessors[tbptr->predecessorcount] = bptr;
 				tbptr->predecessorcount++;
 
 				s4ptr += 2;
@@ -294,14 +343,12 @@ bool cfg_build(jitdata *jd)
 		default:
 			tbptr = bptr + 1;
 
+			cfg_allocate_successors(bptr);
+
 			bptr->successors[0] = tbptr;
+			bptr->successorcount++;
 
-			if (tbptr->predecessors == NULL) {
-				tbptr->predecessors =
-					DMNEW(basicblock*, tbptr->predecessorcount);
-
-				tbptr->predecessorcount = 0;
-			}
+			cfg_allocate_predecessors(tbptr);
 
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;

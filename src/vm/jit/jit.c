@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5173 2006-07-25 15:57:11Z twisti $
+   $Id: jit.c 5210 2006-08-07 11:10:01Z twisti $
 
 */
 
@@ -59,15 +59,19 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/jit/asmpart.h"
+
+# include "vm/jit/cfg.h"
+
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/show.h"
-
-
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
+
+# include "vm/jit/reorder.h"
+
+#include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 
 #include "vm/jit/allocator/simplereg.h"
@@ -1162,7 +1166,7 @@ u1 *jit_recompile(methodinfo *m)
 	optlevel = m->code->optlevel;
 
 	if (optlevel == 1) {
-		log_message_method("not recompiling: ", m);
+/* 		log_message_method("not recompiling: ", m); */
 		return NULL;
 	}
 
@@ -1191,6 +1195,7 @@ u1 *jit_recompile(methodinfo *m)
 
 	/* get the optimization flags for the current JIT run */
 
+	jd->flags |= JITDATA_FLAG_REORDER;
 	jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
 	jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
 /* 	jd->flags |= JITDATA_FLAG_VERBOSECALL; */
@@ -1333,6 +1338,12 @@ static u1 *jit_compile_intern(jitdata *jd)
 	RT_TIMING_GET_TIME(time_parse);
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
+
+	/* build the CFG */
+
+	if (!cfg_build(jd))
+		return NULL;
+
 	DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
 
 	/* call stack analysis pass */
@@ -1378,6 +1389,14 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 	RT_TIMING_GET_TIME(time_ifconv);
 
+	/* Basic block reordering.  I think this should be done after
+	   if-conversion, as we could lose the ability to do the
+	   if-conversion. */
+
+	if (JITDATA_HAS_FLAG_REORDER(jd))
+		if (!reorder(jd))
+			return NULL;
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
@@ -1414,7 +1433,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	   since they can change the basic block count. */
 
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
-		code->bbfrequency = MNEW(u4, code->basicblockcount);
+		code->bbfrequency = MNEW(u4, m->basicblockcount);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 
@@ -1550,6 +1569,45 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 	md_icacheflush(pa, SIZEOF_VOID_P);
 
 	return entrypoint;
+}
+
+
+/* jit_complement_condition ****************************************************
+
+   Returns the complement of the passed conditional instruction.
+
+   We use the order of the different conditions, e.g.:
+
+   ICMD_IFEQ         153
+   ICMD_IFNE         154
+
+   If the passed opcode is odd, we simply add 1 to get the complement.
+   If the opcode is even, we subtract 1.
+
+   Exception:
+
+   ICMD_IFNULL       198
+   ICMD_IFNONNULL    199
+
+*******************************************************************************/
+
+s4 jit_complement_condition(s4 opcode)
+{
+	switch (opcode) {
+	case ICMD_IFNULL:
+		return ICMD_IFNONNULL;
+
+	case ICMD_IFNONNULL:
+		return ICMD_IFNULL;
+
+	default:
+		/* check if opcode is odd */
+
+		if (opcode & 0x1)
+			return opcode + 1;
+		else
+			return opcode - 1;
+	}
 }
 
 

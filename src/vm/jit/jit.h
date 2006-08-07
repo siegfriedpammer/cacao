@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5208 2006-08-04 14:42:57Z twisti $
+   $Id: jit.h 5210 2006-08-07 11:10:01Z twisti $
 
 */
 
@@ -477,32 +477,32 @@ struct insinfo_inline {
 /* the others by using bitfields.                                             */
 
 struct basicblock {
-	s4           debug_nr;      /* basic block number                         */
-	s4           flags;         /* used during stack analysis, init with -1   */
-	s4           bitflags;      /* OR of BBFLAG_... constants, init with 0    */
-	s4           type;          /* basic block type (std, xhandler, subroutine*/
-	instruction *iinstr;        /* pointer to intermediate code instructions  */
-	s4           icount;        /* number of intermediate code instructions   */
-	s4           mpc;           /* machine code pc at start of block          */
-	stackptr     instack;       /* stack at begin of basic block              */
-	stackptr     outstack;      /* stack at end of basic block                */
-	s4           indepth;       /* stack depth at begin of basic block        */
-	s4           outdepth;      /* stack depth end of basic block             */
+	s4            debug_nr;     /* basic block number                         */
+	s4            flags;        /* used during stack analysis, init with -1   */
+	s4            bitflags;     /* OR of BBFLAG_... constants, init with 0    */
+	s4            type;         /* basic block type (std, xhandler, subroutine*/
+	instruction  *iinstr;       /* pointer to intermediate code instructions  */
+	s4            icount;       /* number of intermediate code instructions   */
+	s4            mpc;          /* machine code pc at start of block          */
+	stackptr      instack;      /* stack at begin of basic block              */
+	stackptr      outstack;     /* stack at end of basic block                */
+	s4            indepth;      /* stack depth at begin of basic block        */
+	s4            outdepth;     /* stack depth end of basic block             */
 
-	s4           predecessorcount;
-	s4           successorcount;
-	basicblock  *predecessors;  /* array of predecessor basic blocks          */
-	basicblock  *successors;    /* array of successor basic blocks            */
+	s4            predecessorcount;
+	s4            successorcount;
+	basicblock  **predecessors; /* array of predecessor basic blocks          */
+	basicblock  **successors;   /* array of successor basic blocks            */
 
-	branchref   *branchrefs;    /* list of branches to be patched             */
+	branchref    *branchrefs;   /* list of branches to be patched             */
 
-	basicblock  *next;          /* used to build a BB list (instead of array) */
-	s4           lflags;        /* used during loop copying, init with 0	  */
-	basicblock  *copied_to;     /* points to the copy of this basic block	  */
+	basicblock   *next;         /* used to build a BB list (instead of array) */
+	s4            lflags;       /* used during loop copying, init with 0	  */
+	basicblock   *copied_to;    /* points to the copy of this basic block	  */
                                 /* when loop nodes are copied                 */
-	stackptr     stack;         /* start of stack array for this block        */
+	stackptr      stack;        /* start of stack array for this block        */
 	                            /* (see doc/stack.txt)                        */
-	methodinfo  *method;        /* method this block belongs to               */
+	methodinfo   *method;       /* method this block belongs to               */
 };
 
 
@@ -1217,6 +1217,8 @@ u1 *jit_recompile(methodinfo *m);
 
 /* patch the method entrypoint */
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);
+
+s4 jit_complement_condition(s4 opcode);
 
 /* machine dependent functions */
 #if defined(ENABLE_JIT)

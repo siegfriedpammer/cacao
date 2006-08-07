@@ -323,6 +323,7 @@ void new_show_method(jitdata *jd, int stage)
 	codegendata    *cd;
 	registerdata   *rd;
 	basicblock     *bptr;
+	basicblock     *lastbptr;
 	exceptiontable *ex;
 	s4              i, j;
 	u1             *u1ptr;
@@ -340,18 +341,20 @@ void new_show_method(jitdata *jd, int stage)
 
 	LOCK_MONITOR_ENTER(show_global_lock);
 
+	/* get the last basic block */
+
+	for (lastbptr = jd->new_basicblocks; lastbptr != NULL; lastbptr = lastbptr->next);
+
 	printf("\n");
 
 	method_println(m);
 
 	printf("\n(NEW INSTRUCTION FORMAT)\n");
 	printf("\nBasic blocks: %d\n", jd->new_basicblockcount);
-	printf("Code length:  %d\n", (jd->new_basicblocks[jd->new_basicblockcount].mpc - 
-								  jd->new_basicblocks[0].mpc));
+	printf("Code length:  %d\n", (lastbptr->mpc - jd->new_basicblocks[0].mpc));
 	printf("Data length:  %d\n", cd->dseglen);
 	printf("Stub length:  %d\n", (s4) (code->mcodelength -
-									   ((ptrint) cd->dseglen +
-										jd->new_basicblocks[jd->new_basicblockcount].mpc)));
+									   ((ptrint) cd->dseglen + lastbptr->mpc)));
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
@@ -533,11 +536,9 @@ void new_show_method(jitdata *jd, int stage)
 	if (stage >= SHOW_CODE && opt_showdisassemble && opt_showexceptionstubs) {
 		printf("\nStubs code:\n");
 		printf("Length: %d\n\n", (s4) (code->mcodelength -
-									   ((ptrint) cd->dseglen +
-										jd->new_basicblocks[jd->new_basicblockcount].mpc)));
+									   ((ptrint) cd->dseglen + lastbptr->mpc)));
 
-		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen +
-						jd->new_basicblocks[jd->new_basicblockcount].mpc);
+		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + lastbptr->mpc);
 
 		for (; (ptrint) u1ptr < ((ptrint) code->mcode + code->mcodelength);)
 			DISASSINSTR(u1ptr);
@@ -562,6 +563,7 @@ void show_method(jitdata *jd)
 	codegendata    *cd;
 	registerdata   *rd;
 	basicblock     *bptr;
+	basicblock     *lastbptr;
 	exceptiontable *ex;
 	s4              i, j;
 	u1             *u1ptr;
@@ -579,17 +581,20 @@ void show_method(jitdata *jd)
 
 	LOCK_MONITOR_ENTER(show_global_lock);
 
+	/* get the last basic block */
+
+	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next)
+		lastbptr = bptr;
+
 	printf("\n");
 
 	method_println(m);
 
 	printf("\nBasic blocks: %d\n", m->basicblockcount);
-	printf("Code length:  %d\n", (m->basicblocks[m->basicblockcount].mpc - 
-								  m->basicblocks[0].mpc));
+	printf("Code length:  %d\n", (lastbptr->mpc - m->basicblocks[0].mpc));
 	printf("Data length:  %d\n", cd->dseglen);
 	printf("Stub length:  %d\n", (s4) (code->mcodelength -
-									   ((ptrint) cd->dseglen +
-										m->basicblocks[m->basicblockcount].mpc)));
+									   ((ptrint) cd->dseglen + lastbptr->mpc)));
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
@@ -761,11 +766,9 @@ void show_method(jitdata *jd)
 	if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) && opt_showexceptionstubs) {
 		printf("\nStubs code:\n");
 		printf("Length: %d\n\n", (s4) (code->mcodelength -
-									   ((ptrint) cd->dseglen +
-										m->basicblocks[m->basicblockcount].mpc)));
+									   ((ptrint) cd->dseglen + lastbptr->mpc)));
 
-		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen +
-						m->basicblocks[m->basicblockcount].mpc);
+		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + lastbptr->mpc);
 
 		for (; (ptrint) u1ptr < ((ptrint) code->mcode + code->mcodelength);)
 			DISASSINSTR(u1ptr);
@@ -844,15 +847,15 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) &&
 			(!deadcode)) {
 			printf("\n");
-			u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->mpc);
+			u1ptr = (u1 *) (code->mcode + cd->dseglen + bptr->mpc);
 
 			if (bptr->next != NULL) {
-				for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->next->mpc);)
+				for (; u1ptr < (u1 *) (code->mcode + cd->dseglen + bptr->next->mpc);)
 					DISASSINSTR(u1ptr);
 
 			} 
 			else {
-				for (; u1ptr < (u1 *) ((ptrint) code->mcode + code->mcodelength);)
+				for (; u1ptr < (u1 *) (code->mcode + code->mcodelength);)
 					DISASSINSTR(u1ptr); 
 			}
 			printf("\n");
@@ -930,15 +933,15 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
 #if defined(ENABLE_DISASSEMBLER)
 		if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) && (!deadcode)) {
 			printf("\n");
-			u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->mpc);
+			u1ptr = (u1 *) (code->mcode + cd->dseglen + bptr->mpc);
 
 			if (bptr->next != NULL) {
-				for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->next->mpc);)
+				for (; u1ptr < (u1 *) (code->mcode + cd->dseglen + bptr->next->mpc);)
 					DISASSINSTR(u1ptr);
 
 			} 
 			else {
-				for (; u1ptr < (u1 *) ((ptrint) code->mcode + code->mcodelength);)
+				for (; u1ptr < (u1 *) (code->mcode + code->mcodelength);)
 					DISASSINSTR(u1ptr); 
 			}
 			printf("\n");
