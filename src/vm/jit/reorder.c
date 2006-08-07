@@ -101,7 +101,10 @@ bool reorder(jitdata *jd)
 	/* get required compiler data */
 
 	m = jd->m;
+
+#if !defined(NDEBUG)
 	method_println(m);
+#endif
 
 	/* get the codeinfo of the previous method */
 
