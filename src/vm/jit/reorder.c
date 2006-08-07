@@ -131,7 +131,7 @@ bool reorder(jitdata *jd)
 	blocks[0] = true;
 	placed++;
 
-	while (placed <= m->basicblockcount) {
+	while (placed <= m->basicblockcount + 1) {
 		/* get last instruction of basic block */
 
 		iptr = bptr->iinstr + bptr->icount - 1;
