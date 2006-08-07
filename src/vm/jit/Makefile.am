@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5121 2006-07-12 21:32:21Z twisti $
+## $Id: Makefile.am 5211 2006-08-07 11:12:40Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -140,6 +140,12 @@ libjit_la_SOURCES = \
 	stack.h \
 	stacktrace.c \
 	stacktrace.h
+
+libjit_la_SOURCES += \
+	cfg.c \
+	cfg.h \
+	reorder.c \
+	reorder.h
 
 libjit_la_LIBADD = \
 	allocator/liballocator.la \
