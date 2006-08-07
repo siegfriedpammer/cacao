@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5162 2006-07-19 13:07:00Z tbfg $
+   $Id: asmpart.S 5213 2006-08-07 15:12:20Z tbfg $
 
 */
 
@@ -45,19 +45,19 @@
 #include "vm/jit/methodheader.h"
 #include "vm/jit/powerpc64/offsets.h"
 
+.section ".toc","aw"
+.section ".text"
 
-	.text
-
-	.align 2
+	.align 2	
 
 
 /* export functions ***********************************************************/
 
 	.globl asm_vm_call_method
-	.globl asm_vm_call_method_int
-	.globl asm_vm_call_method_long
-	.globl asm_vm_call_method_float
-	.globl asm_vm_call_method_double
+	.globl .asm_vm_call_method_int
+	.globl .asm_vm_call_method_long
+	.globl .asm_vm_call_method_float
+	.globl .asm_vm_call_method_double
 
 	.globl asm_vm_call_method_exception_handler
 
@@ -71,9 +71,9 @@
 	.globl asm_patcher_wrapper
 
 	.globl asm_replacement_out
-	.globl asm_replacement_in
+	.globl .asm_replacement_in
 
-	.globl asm_cacheflush
+	.globl .asm_cacheflush		/* no function descriptor needed, only called direct */
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 
@@ -108,11 +108,21 @@
 	.long   0                         /* frame size                           */
 	.long   0                         /* codeinfo pointer                     */
 
+.section ".opd","aw"
+.align 3
+
 asm_vm_call_method:
-asm_vm_call_method_int:
-asm_vm_call_method_long:
-asm_vm_call_method_float:
-asm_vm_call_method_double:
+	.quad	.asm_vm_call_method,.TOC.@tocbase,0
+	.previous
+	.size asm_vm_call_method, 24
+	.type .asm_vm_call_method,@function
+	.globl .asm_vm_call_method
+
+.asm_vm_call_method:
+.asm_vm_call_method_int:
+.asm_vm_call_method_long:
+.asm_vm_call_method_float:
+.asm_vm_call_method_double:
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-40*4(r1)
@@ -392,9 +402,9 @@ L_stack_copy_done:
 1:
 	mflr    itmp1
 #if defined(__DARWIN__)
-	addi    pv,itmp1,lo16(asm_vm_call_method - 1b)
+	addi    pv,itmp1,lo16(.asm_vm_call_method - 1b)
 #else
-	addi    pv,itmp1,(asm_vm_call_method - 1b)@l
+	addi    pv,itmp1,(.asm_vm_call_method - 1b)@l
 #endif
 
 L_asm_vm_call_method_return:
@@ -1253,7 +1263,7 @@ asm_replacement_out:
 
 *******************************************************************************/
 
-asm_replacement_in:
+.asm_replacement_in:
 	/* a0 == executionstate *es */
 
 	/* set new sp and pv */
@@ -1345,15 +1355,22 @@ asm_replacement_in:
 	bctr
 
 /*********************************************************************/
-
+/*
 asm_cacheflush:
+	.quad .asm_cacheflush,.TOC.@tocbase,0
+	.previous
+	.size asm_cacheflush,24
+	.type .asm_cacheflush,@function
+	.globl .asm_cacheflush
+*/
+.asm_cacheflush:
 	add     r4,r3,r4
-	rlwinm  r3,r3,0,0,26
+	rldimi  r3,r3,0,26
 	addi    r4,r4,31
-	rlwinm  r4,r4,0,0,26
-	mr      r6,r3
+	rldimi  r4,r4,0,26
+	mr      r5,r3
 1:
-	cmplw   r3,r4
+	cmpld   r3,r4
 	bge     0f
 	dcbst   0,r3
 	addi    r3,r3,32
@@ -1361,7 +1378,7 @@ asm_cacheflush:
 0:
 	sync
 1:
-	cmplw   r5,r4
+	cmpld   r5,r4
 	bge     0f
 	icbi    0,r5
 	addi    r5,r5,32
@@ -1373,6 +1390,7 @@ asm_cacheflush:
 
 
 asm_getclassvalues_atomic:
+.globl .asm_getclassvalues_atomic
 _crit_restart:
 _crit_begin:
 	lwz     r6,offbaseval(r3)
