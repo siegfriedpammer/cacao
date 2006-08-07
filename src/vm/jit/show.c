@@ -362,9 +362,9 @@ void new_show_method(jitdata *jd, int stage)
 	if (stage >= SHOW_PARSE) {
 		printf("Exceptions (Number: %d):\n", cd->exceptiontablelength);
 		for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
-			printf("    L%03d ... ", ex->start->debug_nr );
-			printf("L%03d  = ", ex->end->debug_nr);
-			printf("L%03d", ex->handler->debug_nr);
+			printf("    L%03d ... ", ex->start->nr );
+			printf("L%03d  = ", ex->end->nr);
+			printf("L%03d", ex->handler->nr);
 			printf("  (catchtype: ");
 			if (ex->catchtype.any)
 				if (IS_CLASSREF(ex->catchtype))
@@ -601,9 +601,9 @@ void show_method(jitdata *jd)
 
 	printf("Exceptions (Number: %d):\n", cd->exceptiontablelength);
 	for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
-		printf("    L%03d ... ", ex->start->debug_nr );
-		printf("L%03d  = ", ex->end->debug_nr);
-		printf("L%03d", ex->handler->debug_nr);
+		printf("    L%03d ... ", ex->start->nr );
+		printf("L%03d  = ", ex->end->nr);
+		printf("L%03d", ex->handler->nr);
 		printf("  (catchtype: ");
 		if (ex->catchtype.any)
 			if (IS_CLASSREF(ex->catchtype))
@@ -816,8 +816,8 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 		printf("======== %sL%03d ======== (flags: %d, bitflags: %01x, next: %d, type: ",
 				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
-			   bptr->debug_nr, bptr->flags, bptr->bitflags, 
-			   (bptr->next) ? (bptr->next->debug_nr) : -1);
+			   bptr->nr, bptr->flags, bptr->bitflags, 
+			   (bptr->next) ? (bptr->next->nr) : -1);
 
 		switch (bptr->type) {
 		case BBTYPE_STD:
@@ -895,8 +895,8 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
 
 		printf("] %sL%03d(flags: %d, bitflags: %01x, next: %d, type: ",
 				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
-			   bptr->debug_nr, bptr->flags, bptr->bitflags, 
-			   (bptr->next) ? (bptr->next->debug_nr) : -1);
+			   bptr->nr, bptr->flags, bptr->bitflags, 
+			   (bptr->next) ? (bptr->next->nr) : -1);
 
 		switch (bptr->type) {
 		case BBTYPE_STD:
@@ -964,12 +964,12 @@ void show_basicblock(jitdata *jd, basicblock *bptr)
 
 #define SHOW_TARGET(target)                                          \
         if (stage >= SHOW_STACK) {                                   \
-            printf("--> L%03d ", (target).block->debug_nr);          \
+            printf("--> L%03d ", (target).block->nr);                \
         }                                                            \
         else if (stage >= SHOW_PARSE) {                              \
             printf("--> insindex %d (L%03d) ", (target).insindex,    \
                 jd->new_basicblocks[jd->new_basicblockindex[         \
-                (target).insindex]].debug_nr);                       \
+                (target).insindex]].nr);                             \
         }                                                            \
         else {                                                       \
             printf("--> insindex %d ", (target).insindex);           \
@@ -2101,7 +2101,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			if (deadcode || !iptr->target)
 				printf(" op1=%d", iptr->op1);
 			else
-				printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr, iptr->target);
+				printf(" L%03d (%p)", ((basicblock *) iptr->target)->nr, iptr->target);
 /* 		} */
 		break;
 
@@ -2121,7 +2121,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			if (deadcode || !iptr->target)
 				printf(" op1=%d", iptr->op1);
 			else
-				printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
+				printf(" L%03d", ((basicblock *) iptr->target)->nr);
 /* 		} */
 		break;
 
@@ -2131,7 +2131,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		if (deadcode || !iptr->target)
 			printf(" op1=%d", iptr->op1);
 		else
-			printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr,iptr->target);
+			printf(" L%03d (%p)", ((basicblock *) iptr->target)->nr,iptr->target);
 		break;
 
 	case ICMD_IFNULL:
@@ -2182,7 +2182,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			if (deadcode || !iptr->target)
 				printf(" op1=%d", iptr->op1);
 			else
-				printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr,iptr->target);
+				printf(" L%03d (%p)", ((basicblock *) iptr->target)->nr,iptr->target);
 /* 		} */
 		break;
 
@@ -2194,7 +2194,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		else {
 			tptr = (void **) iptr->target;
-			printf(" L%03d;", ((basicblock *) *tptr)->debug_nr); 
+			printf(" L%03d;", ((basicblock *) *tptr)->nr); 
 			tptr++;
 		}
 
@@ -2205,7 +2205,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			if (deadcode || !*tptr)
 				printf(" %d", *s4ptr++);
 			else {
-				printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+				printf(" L%03d", ((basicblock *) *tptr)->nr);
 				tptr++;
 			}
 			j--;
@@ -2220,7 +2220,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		else {
 			tptr = (void **) iptr->target;
-			printf(" L%03d;", ((basicblock *) *tptr)->debug_nr);
+			printf(" L%03d;", ((basicblock *) *tptr)->nr);
 			tptr++;
 		}
 		s4ptr++;                                         /* default */
@@ -2232,7 +2232,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 				printf(" %d",*s4ptr++);
 			}
 			else {
-				printf(" L%03d", ((basicblock *) *tptr)->debug_nr);
+				printf(" L%03d", ((basicblock *) *tptr)->nr);
 				tptr++;
 			}
 		}

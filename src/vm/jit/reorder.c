@@ -61,7 +61,7 @@ static basicblock *reorder_place_next_unplaced_block(methodinfo *m, u1 *blocks,
 
 			/* place the block */
 
-			blocks[tbptr->debug_nr] = true;
+			blocks[tbptr->nr] = true;
 
 			/* change the basic block order */
 
@@ -136,7 +136,7 @@ bool reorder(jitdata *jd)
 
 		iptr = bptr->iinstr + bptr->icount - 1;
 
-		printf("L%03d, ", bptr->debug_nr);
+		printf("L%03d, ", bptr->nr);
 
 		switch (bptr->type) {
 		case BBTYPE_STD:
@@ -152,7 +152,7 @@ bool reorder(jitdata *jd)
 
 		printf(", predecessors: %d, successors: %d, frequency: %d -> ",
 			   bptr->predecessorcount, bptr->successorcount,
-			   pcode->bbfrequency[bptr->debug_nr]);
+			   pcode->bbfrequency[bptr->nr]);
 
 		switch (iptr->opc) {
 		case ICMD_RETURN:
@@ -214,14 +214,14 @@ bool reorder(jitdata *jd)
 			tbptr  = (basicblock *) iptr->target;
 			ntbptr = bptr->next;
 
-			printf("cond. L%03d\n", tbptr->debug_nr);
+			printf("cond. L%03d\n", tbptr->nr);
 
-			tfreq  = pcode->bbfrequency[tbptr->debug_nr];
-			ntfreq = pcode->bbfrequency[ntbptr->debug_nr];
+			tfreq  = pcode->bbfrequency[tbptr->nr];
+			ntfreq = pcode->bbfrequency[ntbptr->nr];
 
 			/* check which branch is more frequently */
 
-			if ((blocks[tbptr->debug_nr] == false) && (tfreq > ntfreq)) {
+			if ((blocks[tbptr->nr] == false) && (tfreq > ntfreq)) {
 				/* If we place the taken block, we need to change the
 				   conditional instruction (opcode and target). */
 
@@ -234,17 +234,17 @@ bool reorder(jitdata *jd)
 
 				/* place taken block */
 
-				blocks[tbptr->debug_nr] = true;
+				blocks[tbptr->nr] = true;
 				placed++;
 
 				/* set last placed block */
 
 				bptr = tbptr;
 			}
-			else if (blocks[ntbptr->debug_nr] == false) {
+			else if (blocks[ntbptr->nr] == false) {
 				/* place not-taken block */
 
-				blocks[ntbptr->debug_nr] = true;
+				blocks[ntbptr->nr] = true;
 				placed++;
 
 				/* set last placed block */
@@ -270,12 +270,12 @@ bool reorder(jitdata *jd)
 		case ICMD_GOTO:
 			tbptr = (basicblock *) iptr->target;
 
-			printf("L%03d\n", tbptr->debug_nr);
+			printf("L%03d\n", tbptr->nr);
 
 			/* If next block is already placed, search for another
 			   one. */
 
-			if (blocks[tbptr->debug_nr] == true) {
+			if (blocks[tbptr->nr] == true) {
 				tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
 
 				placed++;
@@ -290,15 +290,15 @@ bool reorder(jitdata *jd)
 				   And if the other predecessors have a higher
 				   frequency, don't place it. */
 
-				freq = pcode->bbfrequency[bptr->debug_nr];
+				freq = pcode->bbfrequency[bptr->nr];
 
 				for (i = 0; i < tbptr->predecessorcount; i++) {
 					pbptr = tbptr->predecessors[i];
 
 					/* skip the current basic block */
 
-					if (pbptr->debug_nr != bptr->debug_nr) {
-						pfreq = pcode->bbfrequency[pbptr->debug_nr];
+					if (pbptr->nr != bptr->nr) {
+						pfreq = pcode->bbfrequency[pbptr->nr];
 
 						/* Other predecessor has a higher frequency?
 						   Search for another block to place. */
@@ -322,7 +322,7 @@ bool reorder(jitdata *jd)
 			goto_continue:
 				/* place block */
 
-				blocks[tbptr->debug_nr] = true;
+				blocks[tbptr->nr] = true;
 				placed++;
 			}
 
@@ -342,7 +342,7 @@ bool reorder(jitdata *jd)
 			/* If next block is already placed, search for another
 			   one. */
 
-			if (blocks[tbptr->debug_nr] == true) {
+			if (blocks[tbptr->nr] == true) {
 				tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
 
 				placed++;
@@ -355,7 +355,7 @@ bool reorder(jitdata *jd)
 			else {
 				/* place block */
 
-				blocks[tbptr->debug_nr] = true;
+				blocks[tbptr->nr] = true;
 				placed++;
 			}
 
@@ -373,7 +373,7 @@ bool reorder(jitdata *jd)
 	puts("");
 
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
-		printf("L%03d\n", bptr->debug_nr);
+		printf("L%03d\n", bptr->nr);
 	}
 
 	/* everything's ok */

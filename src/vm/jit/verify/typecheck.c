@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5173 2006-07-25 15:57:11Z twisti $
+   $Id: typecheck.c 5214 2006-08-07 15:30:19Z twisti $
 
 */
 
@@ -1654,7 +1654,7 @@ verify_basic_block(verifier_state *state)
 				/* of eclipse 3.0.2                                                  */
 				if (TYPEINFO_NEWOBJECT_INSTRUCTION(state->localset->td[i].info) != NULL) {
 					/*show_icmd_method(state->m, state->cd, state->rd);*/
-					printf("Uninitialized variable: %d, block: %d\n", i, state->bptr->debug_nr);
+					printf("Uninitialized variable: %d, block: %d\n", i, state->bptr->nr);
 					TYPECHECK_VERIFYERROR_bool("Uninitialized object in local variable inside try block");
 				}
 			}
@@ -2171,7 +2171,7 @@ switch_instruction_tail:
 
 				while (--i >= 0) {
 					tbptr = *tptr++;
-					LOG2("target %d is block %04d",(tptr-(basicblock **)state->iptr->target)-1,tbptr->debug_nr);
+					LOG2("target %d is block %04d",(tptr-(basicblock **)state->iptr->target)-1,tbptr->nr);
 					if (!typestate_reach(state,tbptr,dst,state->localset))
 						return false;
 				}
@@ -2525,7 +2525,7 @@ return_tail:
 			tbptr++;
 #ifdef TYPECHECK_DEBUG
 			/* this must be checked in parse.c */
-			if ((tbptr->debug_nr) >= state->m->basicblockcount)
+			if ((tbptr->nr) >= state->m->basicblockcount)
 				TYPECHECK_VERIFYERROR_bool("Control flow falls off the last block");
 #endif
 		}
@@ -2687,7 +2687,7 @@ typecheck_reset_flags(verifier_state *state)
 													 * that's ok. */
 		{
 			LOG2("block L%03d has invalid flags after typecheck: %d",
-				 state->m->basicblocks[i].debug_nr,state->m->basicblocks[i].flags);
+				 state->m->basicblocks[i].nr,state->m->basicblocks[i].flags);
 			TYPECHECK_ASSERT(false);
 		}
 	}
@@ -2814,7 +2814,7 @@ bool typecheck(jitdata *jd)
         state.bptr = state.m->basicblocks;
 
         while (--i >= 0) {
-            LOGSTR1("---- BLOCK %04d, ",state.bptr->debug_nr);
+            LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
             LOGSTR1("blockflags: %d\n",state.bptr->flags);
             LOGFLUSH;
             

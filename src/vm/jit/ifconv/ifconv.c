@@ -968,7 +968,7 @@ static void check(jitdata *jd, basicblock *bptr)
 
 #if !defined(NDEBUG)
 	if (pattern != 0) {
-		printf("PATTERN %02d: (BB: %3d) ", pattern, m->basicblockcount - bptr->debug_nr);
+		printf("PATTERN %02d: (BB: %3d) ", pattern, m->basicblockcount - bptr->nr);
 		method_println(m);
 
 		/* 								if (pattern == 27) { */
@@ -984,7 +984,7 @@ static void check(jitdata *jd, basicblock *bptr)
 
 			(bptr[1].iinstr[1].opc == ICMD_GOTO))
 			{
-				printf("CHECK 1   : (BB: %3d) ", m->basicblockcount - bptr->debug_nr);
+				printf("CHECK 1   : (BB: %3d) ", m->basicblockcount - bptr->nr);
 				method_println(m);
 				show_basicblock(jd, &bptr[1]);
 				show_basicblock(jd, &bptr[2]);
@@ -996,7 +996,7 @@ static void check(jitdata *jd, basicblock *bptr)
 
 			(bptr[1].iinstr[2].opc == ICMD_GOTO))
 			{
-				printf("CHECK 2   : (BB: %3d) ", m->basicblockcount - bptr->debug_nr);
+				printf("CHECK 2   : (BB: %3d) ", m->basicblockcount - bptr->nr);
 				method_println(m);
 				show_basicblock(jd, &bptr[1]);
 				show_basicblock(jd, &bptr[2]);
@@ -1008,7 +1008,7 @@ static void check(jitdata *jd, basicblock *bptr)
 
 			(bptr[1].iinstr[3].opc == ICMD_GOTO))
 			{
-				printf("CHECK 3   : (BB: %3d) ", m->basicblockcount - bptr->debug_nr);
+				printf("CHECK 3   : (BB: %3d) ", m->basicblockcount - bptr->nr);
 				method_println(m);
 				show_basicblock(jd, &bptr[1]);
 				show_basicblock(jd, &bptr[2]);
@@ -1020,7 +1020,7 @@ static void check(jitdata *jd, basicblock *bptr)
 
 			(bptr[1].iinstr[2].opc == ICMD_GOTO))
 			{
-				printf("CHECK 4   : (BB: %3d) ", m->basicblockcount - bptr->debug_nr);
+				printf("CHECK 4   : (BB: %3d) ", m->basicblockcount - bptr->nr);
 				method_println(m);
 				show_basicblock(jd, &bptr[1]);
 				show_basicblock(jd, &bptr[2]);

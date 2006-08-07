@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5171 2006-07-25 13:52:38Z twisti $
+   $Id: typeinfo.c 5214 2006-08-07 15:30:19Z twisti $
 
 */
 
@@ -2642,7 +2642,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     if (TYPEINFO_IS_PRIMITIVE(*info)) {
 		bptr = (basicblock*) TYPEINFO_RETURNADDRESS(*info);
 		if (bptr)
-			fprintf(file,"%sreturnAddress (L%03d)\n",ind,bptr->debug_nr);
+			fprintf(file,"%sreturnAddress (L%03d)\n",ind,bptr->nr);
 		else
 			fprintf(file,"%sprimitive\n",ind);
         return;
@@ -2720,7 +2720,7 @@ typeinfo_print_short(FILE *file,typeinfo *info)
     if (TYPEINFO_IS_PRIMITIVE(*info)) {
 		bptr = (basicblock*) TYPEINFO_RETURNADDRESS(*info);
 		if (bptr)
-			fprintf(file,"ret(L%03d)",bptr->debug_nr);
+			fprintf(file,"ret(L%03d)",bptr->nr);
 		else
 			fprintf(file,"primitive");
         return;
@@ -2782,10 +2782,10 @@ typeinfo_print_stacktype(FILE *file,int type,typeinfo *info)
 		typeinfo_retaddr_set *set = (typeinfo_retaddr_set*)
 			TYPEINFO_RETURNADDRESS(*info);
 		if (set) {
-			fprintf(file,"ret(L%03d",((basicblock*)(set->addr))->debug_nr);
+			fprintf(file,"ret(L%03d",((basicblock*)(set->addr))->nr);
 			set = set->alt;
 			while (set) {
-				fprintf(file,"|L%03d",((basicblock*)(set->addr))->debug_nr);
+				fprintf(file,"|L%03d",((basicblock*)(set->addr))->nr);
 				set = set->alt;
 			}
 		}

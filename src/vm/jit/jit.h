@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5210 2006-08-07 11:10:01Z twisti $
+   $Id: jit.h 5214 2006-08-07 15:30:19Z twisti $
 
 */
 
@@ -477,7 +477,7 @@ struct insinfo_inline {
 /* the others by using bitfields.                                             */
 
 struct basicblock {
-	s4            debug_nr;     /* basic block number                         */
+	s4            nr;           /* basic block number                         */
 	s4            flags;        /* used during stack analysis, init with -1   */
 	s4            bitflags;     /* OR of BBFLAG_... constants, init with 0    */
 	s4            type;         /* basic block type (std, xhandler, subroutine*/
@@ -509,13 +509,13 @@ struct basicblock {
 /* Macro for initializing newly allocated basic block's. It does not
    need to zero fields, as we zero out the whole basic block array. */
 
-#define BASICBLOCK_INIT(bptr,m)                            \
-	do {                                                   \
-		bptr->mpc        = -1;                             \
-		bptr->flags      = -1;                             \
-		bptr->type       = BBTYPE_STD;                     \
-		bptr->method     = (m);                            \
-		bptr->debug_nr   = (m)->c_debug_nr++;              \
+#define BASICBLOCK_INIT(bptr,m)                        \
+	do {                                               \
+		bptr->mpc    = -1;                             \
+		bptr->flags  = -1;                             \
+		bptr->type   = BBTYPE_STD;                     \
+		bptr->method = (m);                            \
+		bptr->nr     = (m)->c_debug_nr++;              \
 	} while (0)
 			
 

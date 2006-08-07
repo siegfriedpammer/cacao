@@ -34,7 +34,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: analyze.c 5214 2006-08-07 15:30:19Z twisti $
 
 */
 
@@ -329,7 +329,7 @@ void insert_exception(methodinfo *m, struct LoopContainer *lc, exceptiontable *e
 	struct LoopElement *le;
 
 #ifdef LOOP_DEBUG
-	/* printf("insert_exception called with %d-%d and loop %d\n", ex->start->debug_nr, ex->end->debug_nr, lc->loop_head); */
+	/* printf("insert_exception called with %d-%d and loop %d\n", ex->start->nr, ex->end->nr, lc->loop_head); */
 #endif
 	
 	/* if child node is reached immediately insert exception into the tree    */
@@ -2322,7 +2322,7 @@ void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicbl
 	/* copy node                                                              */
 	new = DMNEW(basicblock, 1);    
 	memcpy(new, bptr, sizeof(basicblock));
-	new->debug_nr = m->c_debug_nr++;
+	new->nr = m->c_debug_nr++;
 
 	ld->c_last_block_copied = new;
 
@@ -2610,7 +2610,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	{
 		bptr = DMNEW(basicblock, 1);    
 		memcpy(bptr, le->block, sizeof(basicblock));
-		bptr->debug_nr = m->c_debug_nr++;
+		bptr->nr = m->c_debug_nr++;
 
 		/* determine beginning of copied loop to extend exception handler, that */
 		/* protect this loop                                                    */
@@ -2644,7 +2644,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 
 	/* copy current loop header to new basic block                              */
 	memcpy(bptr, loop_head, sizeof(basicblock));
-    bptr->debug_nr = m->c_debug_nr++;
+    bptr->nr = m->c_debug_nr++;
 
 	/* insert the new basic block and move header before first loop node        */
 	le = lc->nodes;
