@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5218 2006-08-08 12:56:15Z edwin $
+   $Id: stack.c 5221 2006-08-08 13:25:33Z twisti $
 
 */
 
@@ -550,7 +550,7 @@ bool new_stack_analyse(jitdata *jd)
 
 		while (--b_count >= 0) {
 #if defined(STACK_VERBOSE)
-			printf("ANALYZING BLOCK L%03d\n", bptr->debug_nr);
+			printf("ANALYZING BLOCK L%03d\n", bptr->nr);
 #endif
 
 			if (bptr->flags == BBDELETED) {

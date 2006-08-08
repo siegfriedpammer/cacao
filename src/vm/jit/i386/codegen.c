@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5173 2006-07-25 15:57:11Z twisti $
+   $Id: codegen.c 5221 2006-08-08 13:25:33Z twisti $
 
 */
 
@@ -473,7 +473,7 @@ bool codegen(jitdata *jd)
 			/* count frequency */
 
 			M_MOV_IMM(code->bbfrequency, REG_ITMP3);
-			M_IADD_IMM_MEMBASE(1, REG_ITMP3, bptr->debug_nr * 4);
+			M_IADD_IMM_MEMBASE(1, REG_ITMP3, bptr->nr * 4);
 		}
 #endif
 

@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5186 2006-07-28 13:24:43Z twisti $
+   $Id: codegen.c 5221 2006-08-08 13:25:33Z twisti $
 
 */
 
@@ -392,9 +392,9 @@ bool codegen(jitdata *jd)
 
 			disp = dseg_add_address(cd, code->bbfrequency);
 			M_ALD(REG_ITMP2, REG_PV, disp);
-			M_ALD(REG_ITMP3, REG_ITMP2, bptr->debug_nr * 4);
+			M_ALD(REG_ITMP3, REG_ITMP2, bptr->nr * 4);
 			M_IADD_IMM(REG_ITMP3, 1, REG_ITMP3);
-			M_AST(REG_ITMP3, REG_ITMP2, bptr->debug_nr * 4);
+			M_AST(REG_ITMP3, REG_ITMP2, bptr->nr * 4);
 
 			/* if this is an exception handler, start profiling again */
 

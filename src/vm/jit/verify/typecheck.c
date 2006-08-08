@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5214 2006-08-07 15:30:19Z twisti $
+   $Id: typecheck.c 5221 2006-08-08 13:25:33Z twisti $
 
 */
 
@@ -953,7 +953,7 @@ typestate_reach(verifier_state *state,
 	bool changed = false;
 	typecheck_result r;
 
-	LOG1("reaching block L%03d",destblock->debug_nr);
+	LOG1("reaching block L%03d",destblock->nr);
 	TYPECHECK_COUNT(stat_reached);
 	
 	destidx = destblock - state->cd->method->basicblocks;
@@ -971,7 +971,7 @@ typestate_reach(verifier_state *state,
 		        for (sp = ystack; sp; sp=sp->prev)
 				if (sp->type == TYPE_ADR &&
                 		TYPEINFO_IS_NEWOBJECT(sp->typeinfo)) {
-					/*printf("current: %d, dest: %d\n", state->bptr->debug_nr, destblock->debug_nr);*/
+					/*printf("current: %d, dest: %d\n", state->bptr->nr, destblock->nr);*/
 					exceptions_throw_verifyerror(state->m,"Branching backwards with uninitialized object on stack");
 					return false;
 				}
@@ -1612,7 +1612,7 @@ verify_basic_block(verifier_state *state)
 	typecheck_result r;
 	resolve_result_t result;
 
-	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->debug_nr);
+	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
 	LOGFLUSH;
 
 	superblockend = false;
@@ -1632,7 +1632,7 @@ verify_basic_block(verifier_state *state)
 	len = 0;
 	for (i = 0; i < state->cd->exceptiontablelength; ++i) {
 		if ((state->cd->exceptiontable[i].start <= state->bptr) && (state->cd->exceptiontable[i].end > state->bptr)) {
-			LOG1("active handler L%03d", state->cd->exceptiontable[i].handler->debug_nr);
+			LOG1("active handler L%03d", state->cd->exceptiontable[i].handler->nr);
 			state->handlers[len++] = state->cd->exceptiontable + i;
 		}
 	}
