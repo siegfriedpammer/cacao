@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_Constructor.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_reflect_Constructor.c 5223 2006-08-08 16:21:22Z edwin $
 
 */
 
@@ -92,13 +92,6 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 		return NULL;
 	}
 
-	/* create object */
-
-	o = builtin_new(c);
-
-	if (!o)
-		return NULL;
-        
 	m = &(c->methods[this->slot]);
 
 	if (m->name != utf_init) {
@@ -107,6 +100,21 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 		assert(0);
 	}
 
+	/* check method access */
+	/* check if we should bypass security checks (AccessibleObject) */
+
+	if (this->flag == false) {
+		if (!access_check_caller(c, m->flags, 1))
+			return NULL;
+	}
+
+	/* create object */
+
+	o = builtin_new(c);
+
+	if (!o)
+		return NULL;
+        
 	/* call initializer */
 
 	(void) _Jv_jni_invokeNative(m, o, args);

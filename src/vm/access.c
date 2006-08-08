@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: access.c 4435 2006-02-04 23:59:54Z twisti $
+   $Id: access.c 5223 2006-08-08 16:21:22Z edwin $
 
 */
 
@@ -42,6 +42,8 @@
 #include "vm/access.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/exceptions.h"
+#include "vm/stringlocal.h"
 
 
 /****************************************************************************/
@@ -161,6 +163,64 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 	return false;
 }
 
+
+/* access_check_caller *********************************************************
+ 
+   Check if the (indirect) caller has access rights to a member.
+  
+   IN:
+       declarer.........the class declaring the member
+       memberflags......the access flags of the member
+	   calldepth........number of callers to ignore
+	                    For example if the stacktrace looks like this:
+
+					   java.lang.reflect.Method.invokeNative (Native Method)
+				   [0] java.lang.reflect.Method.invoke (Method.java:329)
+				   [1] <caller>
+
+				        you must specify 1 so the access rights of <caller> 
+						are checked.
+  
+   RETURN VALUE:
+       true.............access permitted
+       false............access denied, an exception has been thrown
+   
+*******************************************************************************/
+
+bool access_check_caller(classinfo *declarer, s4 memberflags, s4 calldepth)
+{
+	java_objectarray *oa;
+	classinfo        *callerclass;
+
+	/* if everything is public, there is nothing to check */
+
+	if ((declarer->flags & ACC_PUBLIC) && (memberflags & ACC_PUBLIC))
+		return true;
+
+	/* get the caller's class */
+
+	oa = stacktrace_getClassContext();
+	if (!oa)
+		return false;
+
+	assert(calldepth >= 0 && calldepth < oa->header.size);
+
+	callerclass = (classinfo *) oa->data[calldepth];
+
+	/* check access rights */
+
+	if (!access_is_accessible_class(callerclass, declarer)
+		|| !access_is_accessible_member(callerclass, declarer, memberflags))
+	{
+		*exceptionptr =
+			new_exception(string_java_lang_IllegalAccessException);
+		return false;
+	}
+
+	/* access granted */
+
+	return true;
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

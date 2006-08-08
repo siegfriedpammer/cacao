@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: access.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: access.h 5223 2006-08-08 16:21:22Z edwin $
 
 */
 
@@ -53,6 +53,8 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls);
 
 bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 								 s4 memberflags);
+
+bool access_check_caller(classinfo *declarer, s4 memberflags, s4 calldepth);
 
 #endif /* _ACCESS_H */
 

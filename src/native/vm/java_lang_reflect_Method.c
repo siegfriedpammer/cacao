@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_Method.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_reflect_Method.c 5223 2006-08-08 16:21:22Z edwin $
 
 */
 
@@ -137,34 +137,11 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 	m = &(c->methods[slot]);
 
 	/* check method access */
+	/* check if we should bypass security checks (AccessibleObject) */
 
-	if (!(m->flags & ACC_PUBLIC) || !(c->flags & ACC_PUBLIC)) {
-		/* check if we should bypass security checks (AccessibleObject) */
-
-		if (this->flag == false) {
-			/* get the calling class */
-
-			oa = stacktrace_getClassContext();
-			if (!oa)
-				return NULL;
-
-			/* this function is always called like this:
-
-			       java.lang.reflect.Method.invokeNative (Native Method)
-			   [0] java.lang.reflect.Method.invoke (Method.java:329)
-			   [1] <caller>
-			*/
-
-			callerclass = (classinfo *) oa->data[1];
-
-			if (!access_is_accessible_class(callerclass,c)
-				|| !access_is_accessible_member(callerclass, c, m->flags)) 
-			{
-				*exceptionptr =
-					new_exception(string_java_lang_IllegalAccessException);
-				return NULL;
-			}
-		}
+	if (this->flag == false) {
+		if (!access_check_caller(c, m->flags, 1))
+			return NULL;
 	}
 
 	/* check if method class is initialized */
