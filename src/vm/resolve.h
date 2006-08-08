@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5008 2006-06-01 16:00:18Z edwin $
+   $Id: resolve.h 5219 2006-08-08 13:01:28Z edwin $
 
 */
 
@@ -182,26 +182,33 @@ void unresolved_class_free(unresolved_class *ref);
 void unresolved_field_free(unresolved_field *ref);
 void unresolved_method_free(unresolved_method *ref);
 
-resolve_result_t new_resolve_method_lazy(new_instruction *iptr,stackptr curstack,
+resolve_result_t new_resolve_method_lazy(new_instruction *iptr,
 									 methodinfo *refmethod);
 resolve_result_t resolve_method_lazy(instruction *iptr,stackptr curstack,
 									 methodinfo *refmethod);
-resolve_result_t new_resolve_field_lazy(new_instruction *iptr,stackptr curstack,
-									methodinfo *refmethod);
+resolve_result_t new_resolve_field_lazy(new_instruction *iptr,
+									 methodinfo *refmethod);
 resolve_result_t resolve_field_lazy(instruction *iptr,stackptr curstack,
 									methodinfo *refmethod);
 
 #ifdef ENABLE_VERIFIER
+bool new_constrain_unresolved_field(unresolved_field *ref,
+						   classinfo *referer,methodinfo *refmethod,
+						   new_instruction *iptr);
+
 bool constrain_unresolved_field(unresolved_field *ref,
 						   classinfo *referer,methodinfo *refmethod,
 						   instruction *iptr,
 						   stackelement *stack);
 
+bool new_constrain_unresolved_method(unresolved_method *ref,
+						 	classinfo *referer,methodinfo *refmethod,
+						 	new_instruction *iptr);
+
 bool constrain_unresolved_method(unresolved_method *ref,
 						 	classinfo *referer,methodinfo *refmethod,
 						 	instruction *iptr,
 						 	stackelement *stack);
-
 #endif
 
 #ifndef NDEBUG

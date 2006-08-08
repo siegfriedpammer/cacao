@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5166 2006-07-21 10:09:33Z twisti $
+   $Id: resolve.c 5219 2006-08-08 13:01:28Z edwin $
 
 */
 
@@ -913,6 +913,230 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 /* FIELD RESOLUTION                                                           */
 /******************************************************************************/
 
+/* new_resolve_field_verifier_checks *******************************************
+ 
+   Do the verifier checks necessary after field has been resolved.
+  
+   IN:
+       refmethod........the method containing the reference
+	   fieldref.........the field reference
+	   container........the class where the field was found
+	   fi...............the fieldinfo of the resolved field
+	   opc..............opcode of the {GET,PUT}{STATIC,FIELD} instruction
+	   iptr.............field instruction or NULL
+  
+   RETURN VALUE:
+       resolveSucceeded....everything ok
+	   resolveDeferred.....tests could not be done, have been deferred
+       resolveFailed.......exception has been thrown
+   
+*******************************************************************************/
+
+#if defined(ENABLE_VERIFIER)
+resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
+											   constant_FMIref *fieldref,
+											   classinfo *container,
+											   fieldinfo *fi,
+											   s4 opc,
+											   new_instruction *iptr)
+{
+	classinfo *declarer;
+	classinfo *referer;
+	resolve_result_t result;
+	bool isstatic = false;
+	bool isput = false;
+	stackelement *instanceslot = NULL;
+	stackelement *valueslot = NULL;
+	constant_classref *fieldtyperef;
+
+	assert(refmethod);
+	assert(fieldref);
+	assert(container);
+	assert(fi);
+
+	/* get the classinfos and the field type */
+
+	referer = refmethod->class;
+	assert(referer);
+
+	declarer = fi->class;
+	assert(declarer);
+	assert(referer->state & CLASS_LINKED);
+
+	fieldtyperef = fieldref->parseddesc.fd->classref;
+
+	/* get opcode dependent values */
+
+	switch (opc) {
+		case ICMD_PUTFIELD:
+			isput = true;
+			if (iptr) {
+				valueslot = iptr->sx.s23.s2.var;
+				instanceslot = iptr->s1.var;
+			}
+			break;
+
+		case ICMD_PUTFIELDCONST:
+			isput = true;
+			if (iptr)
+				instanceslot = iptr->s1.var;
+			break;
+
+		case ICMD_PUTSTATIC:
+			isput = true;
+			isstatic = true;
+			if (iptr)
+				valueslot = iptr->s1.var;
+			break;
+
+		case ICMD_PUTSTATICCONST:
+			isput = true;
+			isstatic = true;
+			break;
+
+		case ICMD_GETFIELD:
+			if (iptr)
+				instanceslot = iptr->s1.var;
+			break;
+
+		case ICMD_GETSTATIC:
+			isstatic = true;
+			break;
+	}
+
+	/* check static */
+
+#if true != 1
+#error This code assumes that `true` is `1`. Otherwise, use the ternary operator below.
+#endif
+
+	if (((fi->flags & ACC_STATIC) != 0) != isstatic) {
+		/* a static field is accessed via an instance, or vice versa */
+		*exceptionptr =
+			new_exception_message(string_java_lang_IncompatibleClassChangeError,
+				(fi->flags & ACC_STATIC) ? "static field accessed via instance"
+				                         : "instance field  accessed without instance");
+		return resolveFailed;
+	}
+
+	/* check access rights */
+
+	if (!access_is_accessible_member(referer,declarer,fi->flags)) {
+		int msglen;
+		char *message;
+
+		msglen = utf_bytes(declarer->name) + utf_bytes(fi->name) + utf_bytes(referer->name) + 100;
+		message = MNEW(char, msglen);
+		strcpy(message, "field is not accessible (");
+		utf_cat_classname(message, declarer->name);
+		strcat(message, ".");
+		utf_cat(message, fi->name);
+		strcat(message, " from ");
+		utf_cat_classname(message, referer->name);
+		strcat(message, ")");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException, message);
+		MFREE(message,char,msglen);
+		return resolveFailed; /* exception */
+	}
+
+	/* for non-static methods we have to check the constraints on the         */
+	/* instance type                                                          */
+
+	if (instanceslot) {
+		typeinfo *insttip;
+		typeinfo tinfo;
+
+		/* The instanceslot must contain a reference to a non-array type */
+
+		assert(instanceslot->type == TYPE_ADR); /* checked earlier */
+
+		if (!TYPEINFO_IS_REFERENCE(instanceslot->typeinfo)) {
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on non-reference");
+			return resolveFailed;
+		}
+		if (TYPEINFO_IS_ARRAY(instanceslot->typeinfo)) {
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on array");
+			return resolveFailed;
+		}
+
+		if (isput && TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
+		{
+			/* The instruction writes a field in an uninitialized object. */
+			/* This is only allowed when a field of an uninitialized 'this' object is */
+			/* written inside an initialization method                                */
+
+			classinfo *initclass;
+			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+
+			if (ins != NULL) {
+				exceptions_throw_verifyerror(refmethod,"accessing field of uninitialized object");
+				return resolveFailed;
+			}
+
+			/* XXX check that class of field == refmethod->class */
+			initclass = referer; /* XXX classrefs */
+			assert(initclass->state & CLASS_LINKED);
+
+			typeinfo_init_classinfo(&tinfo,initclass);
+			insttip = &tinfo;
+		}
+		else {
+			insttip = &(instanceslot->typeinfo);
+		}
+
+		result = resolve_lazy_subtype_checks(refmethod,
+				insttip,
+				CLASSREF_OR_CLASSINFO(container),
+				resolveLinkageError);
+		if (result != resolveSucceeded)
+			return result;
+
+		/* check protected access */
+
+		if (((fi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer))
+		{
+			result = resolve_lazy_subtype_checks(refmethod,
+					&(instanceslot->typeinfo),
+					CLASSREF_OR_CLASSINFO(referer),
+					resolveIllegalAccessError);
+			if (result != resolveSucceeded)
+				return result;
+		}
+
+	}
+
+	/* for PUT* instructions we have to check the constraints on the value type */
+
+	if (valueslot && valueslot->type == TYPE_ADR) {
+		assert(fieldtyperef);
+
+		/* check subtype constraints */
+		result = resolve_lazy_subtype_checks(refmethod,
+				&(valueslot->typeinfo),
+				CLASSREF_OR_CLASSINFO(fieldtyperef),
+				resolveLinkageError);
+
+		if (result != resolveSucceeded)
+			return result;
+	}
+
+	/* impose loading constraint on field type */
+
+	if (fi->type == TYPE_ADR) {
+		assert(fieldtyperef);
+		if (!classcache_add_constraint(declarer->classloader,
+									   referer->classloader,
+									   fieldtyperef->name))
+			return resolveFailed;
+	}
+
+	/* XXX impose loading constraing on instance? */
+
+	/* everything ok */
+	return resolveSucceeded;
+}
+#endif /* defined(ENABLE_VERIFIER) */
+
 /* resolve_field_verifier_checks ***********************************************
  
    Do the verifier checks necessary after field has been resolved.
@@ -1139,7 +1363,6 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
   
    IN:
        iptr.............instruction containing the field reference
-       curstack.........instack of the instruction
 	   refmethod........the referer method
   
    RETURN VALUE:
@@ -1150,7 +1373,6 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 *******************************************************************************/
 
 resolve_result_t new_resolve_field_lazy(new_instruction *iptr,
-										stackptr curstack,
 										methodinfo *refmethod)
 {
 	classinfo *referer;
@@ -1217,10 +1439,10 @@ resolved_the_field:
 
 #if defined(ENABLE_VERIFIER)
 	if (opt_verify) {
-		result = resolve_field_verifier_checks(refmethod, fieldref, container,
+		result = new_resolve_field_verifier_checks(refmethod, fieldref, container,
 											   fi,
 											   iptr->opc,
-											   curstack);
+											   iptr);
 
 		if (result != resolveSucceeded)
 			return result;
@@ -1573,6 +1795,223 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 	return mi;
 }
 
+/* new_resolve_method_verifier_checks ******************************************
+ 
+   Do the verifier checks necessary after a method has been resolved.
+  
+   IN:
+       refmethod........the method containing the reference
+	   methodref........the method reference
+	   container........the class where the method was found
+	   mi...............the methodinfo of the resolved method
+	   invokestatic.....true if the method is invoked by INVOKESTATIC
+	   iptr.............the invoke instruction, or NULL
+  
+   RETURN VALUE:
+       resolveSucceeded....everything ok
+	   resolveDeferred.....tests could not be done, have been deferred
+       resolveFailed.......exception has been thrown
+   
+*******************************************************************************/
+
+#if defined(ENABLE_VERIFIER)
+resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
+												constant_FMIref *methodref,
+												classinfo *container,
+												methodinfo *mi,
+												bool invokestatic,
+												bool invokespecial,
+												new_instruction *iptr)
+{
+	classinfo *declarer;
+	classinfo *referer;
+	resolve_result_t result;
+	int instancecount;
+	typedesc *paramtypes;
+	int i;
+	stackelement *instanceslot = NULL;
+	stackelement *param;
+	methoddesc *md;
+	typeinfo tinfo;
+	int type;
+
+	assert(refmethod);
+	assert(methodref);
+	assert(container);
+	assert(mi);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"resolve_method_verifier_checks\n");
+	fprintf(stderr,"    flags: %02x\n",mi->flags);
+#endif
+
+	/* get the classinfos and the method descriptor */
+
+	referer = refmethod->class;
+	assert(referer);
+
+	declarer = mi->class;
+	assert(declarer);
+	assert(referer->state & CLASS_LINKED);
+
+	md = methodref->parseddesc.md;
+	assert(md);
+	assert(md->params);
+
+	instancecount = (invokestatic) ? 0 : 1;
+
+	/* check static */
+
+	if (((mi->flags & ACC_STATIC) != 0) != (invokestatic != false)) {
+		/* a static method is accessed via an instance, or vice versa */
+		*exceptionptr =
+			new_exception_message(string_java_lang_IncompatibleClassChangeError,
+				(mi->flags & ACC_STATIC) ? "static method called via instance"
+				                         : "instance method called without instance");
+		return resolveFailed;
+	}
+
+	/* check access rights */
+
+	if (!access_is_accessible_member(referer,declarer,mi->flags)) {
+		int msglen;
+		char *message;
+
+		/* XXX clean this up. this should be in exceptions.c */
+		msglen = utf_bytes(declarer->name) + utf_bytes(mi->name) +
+			utf_bytes(mi->descriptor) + utf_bytes(referer->name) + 100;
+		message = MNEW(char, msglen);
+		strcpy(message, "method is not accessible (");
+		utf_cat_classname(message, declarer->name);
+		strcat(message, ".");
+		utf_cat(message, mi->name);
+		utf_cat(message, mi->descriptor);
+		strcat(message," from ");
+		utf_cat_classname(message, referer->name);
+		strcat(message,")");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException, message);
+		MFREE(message, char, msglen);
+		return resolveFailed; /* exception */
+	}
+
+	if (iptr) {
+		/* for non-static methods we have to check the constraints on the         */
+		/* instance type                                                          */
+
+		if (!invokestatic) {
+			/* find the instance slot under all the parameter slots on the stack */
+			instanceslot = iptr->sx.s23.s2.args[0];
+		}
+
+		assert((instanceslot && instancecount == 1) || invokestatic);
+
+		/* record subtype constraints for the instance type, if any */
+		if (instanceslot) {
+			typeinfo *tip;
+
+			assert(instanceslot->type == TYPE_ADR);
+
+			if (invokespecial &&
+					TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
+			{   /* XXX clean up */
+				instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+				classref_or_classinfo initclass = (ins) ? ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1)
+											 : CLASSREF_OR_CLASSINFO(refmethod->class);
+				tip = &tinfo;
+				if (!typeinfo_init_class(tip,initclass))
+					return false;
+			}
+			else {
+				tip = &(instanceslot->typeinfo);
+			}
+
+			result = resolve_lazy_subtype_checks(refmethod,
+												 tip,
+												 CLASSREF_OR_CLASSINFO(container),
+												 resolveLinkageError);
+			if (result != resolveSucceeded)
+				return result;
+
+			/* check protected access */
+
+			if (((mi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer))
+			{
+				result = resolve_lazy_subtype_checks(refmethod,
+						tip,
+						CLASSREF_OR_CLASSINFO(referer),
+						resolveIllegalAccessError);
+				if (result != resolveSucceeded)
+					return result;
+			}
+
+		}
+
+		/* check subtype constraints for TYPE_ADR parameters */
+
+		assert(md->paramcount == methodref->parseddesc.md->paramcount);
+		paramtypes = md->paramtypes;
+
+		for (i = md->paramcount-1-instancecount; i>=0; --i) {
+			param = iptr->sx.s23.s2.args[i+instancecount];
+			type = md->paramtypes[i+instancecount].type;
+
+			assert(param);
+			assert(type == param->type);
+
+			if (type == TYPE_ADR) {
+				result = resolve_lazy_subtype_checks(refmethod,
+						&(param->typeinfo),
+						CLASSREF_OR_CLASSINFO(paramtypes[i+instancecount].classref),
+						resolveLinkageError);
+				if (result != resolveSucceeded)
+					return result;
+			}
+		}
+
+	} /* if (iptr) */
+
+	/* impose loading constraints on parameters (including instance) */
+
+	paramtypes = md->paramtypes;
+
+	for (i = 0; i < md->paramcount; i++) {
+		if (i < instancecount || paramtypes[i].type == TYPE_ADR) {
+			utf *name;
+
+			if (i < instancecount) {
+				/* The type of the 'this' pointer is the class containing */
+				/* the method definition. Since container is the same as, */
+				/* or a subclass of declarer, we also constrain declarer  */
+				/* by transitivity of loading constraints.                */
+				name = container->name;
+			}
+			else {
+				name = paramtypes[i].classref->name;
+			}
+
+			/* The caller (referer) and the callee (container) must agree */
+			/* on the types of the parameters.                            */
+			if (!classcache_add_constraint(referer->classloader,
+										   container->classloader, name))
+				return resolveFailed; /* exception */
+		}
+	}
+
+	/* impose loading constraint onto return type */
+
+	if (md->returntype.type == TYPE_ADR) {
+		/* The caller (referer) and the callee (container) must agree */
+		/* on the return type.                                        */
+		if (!classcache_add_constraint(referer->classloader,container->classloader,
+				md->returntype.classref->name))
+			return resolveFailed; /* exception */
+	}
+
+	/* everything ok */
+	return resolveSucceeded;
+}
+#endif /* defined(ENABLE_VERIFIER) */
+
 /* resolve_method_verifier_checks **********************************************
  
    Do the verifier checks necessary after a method has been resolved.
@@ -1797,7 +2236,6 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
   
    IN:
        iptr.............instruction containing the method reference
-	   curstack.........instack of the instruction
 	   refmethod........the referer method
   
    RETURN VALUE:
@@ -1808,7 +2246,6 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 *******************************************************************************/
 
 resolve_result_t new_resolve_method_lazy(new_instruction *iptr,
-										 stackptr curstack,
 										 methodinfo *refmethod)
 {
 	classinfo *referer;
@@ -1899,12 +2336,12 @@ resolved_the_method:
 
 #if defined(ENABLE_VERIFIER)
 	if (opt_verify) {
-		result = resolve_method_verifier_checks(refmethod, methodref,
+		result = new_resolve_method_verifier_checks(refmethod, methodref,
 												container,
 												mi,
 												iptr->opc == ICMD_INVOKESTATIC,
 												iptr->opc == ICMD_INVOKESPECIAL,
-												curstack);
+												iptr);
 		if (result != resolveSucceeded)
 			return result;
 	}
@@ -2543,6 +2980,149 @@ unresolved_field * create_unresolved_field(classinfo *referer, methodinfo *refme
 	return ref;
 }
 
+/* new_constrain_unresolved_field **********************************************
+ 
+   Record subtype constraints for a field access.
+  
+   IN:
+       ref..............the unresolved_field structure of the access
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the {GET,PUT}{FIELD,STATIC}{,CONST} instruction
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+#ifdef ENABLE_VERIFIER
+bool new_constrain_unresolved_field(unresolved_field *ref,
+							    classinfo *referer, methodinfo *refmethod,
+							    new_instruction *iptr)
+{
+	constant_FMIref *fieldref;
+	stackelement *instanceslot = NULL;
+	int type;
+	typeinfo tinfo;
+	typeinfo *tip = NULL;
+	typedesc *fd;
+
+	assert(ref);
+
+	fieldref = ref->fieldref;
+	assert(fieldref);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"constrain_unresolved_field\n");
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
+	fputc('\n',stderr);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
+#endif
+
+	switch (iptr[0].opc) {
+		case ICMD_PUTFIELD:
+			instanceslot = iptr->s1.var;
+			tip = &(iptr->sx.s23.s2.var->typeinfo);
+			break;
+
+		case ICMD_PUTFIELDCONST:
+			instanceslot = iptr->s1.var;
+			break;
+
+		case ICMD_PUTSTATIC:
+			tip = &(iptr->s1.var->typeinfo);
+			break;
+
+		case ICMD_GETFIELD:
+			instanceslot = iptr->s1.var;
+			break;
+	}
+
+	assert(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
+	fd = fieldref->parseddesc.fd;
+	assert(fd);
+
+	/* record subtype constraints for the instance type, if any */
+	if (instanceslot) {
+		typeinfo *insttip;
+
+		/* The instanceslot must contain a reference to a non-array type */
+		if (!TYPEINFO_IS_REFERENCE(instanceslot->typeinfo)) {
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on non-reference");
+			return false;
+		}
+		if (TYPEINFO_IS_ARRAY(instanceslot->typeinfo)) {
+			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on array");
+			return false;
+		}
+
+		if (((ref->flags & RESOLVE_PUTFIELD) != 0) &&
+				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
+		{
+			/* The instruction writes a field in an uninitialized object. */
+			/* This is only allowed when a field of an uninitialized 'this' object is */
+			/* written inside an initialization method                                */
+
+			classinfo *initclass;
+			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+
+			if (ins != NULL) {
+				exceptions_throw_verifyerror(refmethod,"accessing field of uninitialized object");
+				return false;
+			}
+			/* XXX check that class of field == refmethod->class */
+			initclass = refmethod->class; /* XXX classrefs */
+			assert(initclass->state & CLASS_LOADED);
+			assert(initclass->state & CLASS_LINKED);
+
+			typeinfo_init_classinfo(&tinfo,initclass);
+			insttip = &tinfo;
+		}
+		else {
+			insttip = &(instanceslot->typeinfo);
+		}
+		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
+					&(ref->instancetypes),insttip,fieldref->p.classref))
+			return false;
+	}
+	else {
+		UNRESOLVED_SUBTYPE_SET_EMTPY(ref->instancetypes);
+	}
+
+	/* record subtype constraints for the value type, if any */
+	type = fd->type;
+	if (type == TYPE_ADR && ((ref->flags & RESOLVE_PUTFIELD) != 0)) {
+		if (!tip) {
+			/* we have a PUTSTATICCONST or PUTFIELDCONST with TYPE_ADR */
+			tip = &tinfo;
+			if (iptr->sx.val.anyptr) {
+				assert(class_java_lang_String);
+				assert(class_java_lang_String->state & CLASS_LOADED);
+				assert(class_java_lang_String->state & CLASS_LINKED);
+				typeinfo_init_classinfo(&tinfo,class_java_lang_String);
+			}
+			else
+				TYPEINFO_INIT_NULLTYPE(tinfo);
+		}
+		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
+					&(ref->valueconstraints),tip,fieldref->parseddesc.fd->classref))
+			return false;
+	}
+	else {
+		UNRESOLVED_SUBTYPE_SET_EMTPY(ref->valueconstraints);
+	}
+
+	return true;
+}
+#endif /* ENABLE_VERIFIER */
+
 /* constrain_unresolved_field **************************************************
  
    Record subtype constraints for a field access.
@@ -2783,6 +3363,125 @@ unresolved_method * create_unresolved_method(classinfo *referer, methodinfo *ref
 
 	return ref;
 }
+
+/* new_constrain_unresolved_method *********************************************
+ 
+   Record subtype constraints for the arguments of a method call.
+  
+   IN:
+       ref..............the unresolved_method structure of the call
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the INVOKE* instruction
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+#ifdef ENABLE_VERIFIER
+bool new_constrain_unresolved_method(unresolved_method *ref,
+								 classinfo *referer, methodinfo *refmethod,
+								 new_instruction *iptr)
+{
+	constant_FMIref *methodref;
+	constant_classref *instanceref;
+	stackelement *instanceslot = NULL;
+	stackelement *param;
+	methoddesc *md;
+	typeinfo tinfo;
+	int i,j;
+	int type;
+	int instancecount;
+
+	assert(ref);
+	methodref = ref->methodref;
+	assert(methodref);
+	md = methodref->parseddesc.md;
+	assert(md);
+	assert(md->params != NULL);
+
+	/* XXX clean this up */
+	instanceref = IS_FMIREF_RESOLVED(methodref)
+		? class_get_self_classref(methodref->p.method->class)
+		: methodref->p.classref;
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"constrain_unresolved_method\n");
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
+#endif
+
+	if ((ref->flags & RESOLVE_STATIC) == 0) {
+		/* find the instance slot under all the parameter slots on the stack */
+		instanceslot = iptr->sx.s23.s2.args[0];
+		instancecount = 1;
+	}
+	else {
+		instancecount = 0;
+	}
+
+	assert((instanceslot && instancecount==1) || ((ref->flags & RESOLVE_STATIC) != 0));
+
+	/* record subtype constraints for the instance type, if any */
+	if (instanceslot) {
+		typeinfo *tip;
+
+		assert(instanceslot->type == TYPE_ADR);
+
+		if (iptr[0].opc == ICMD_INVOKESPECIAL &&
+				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
+		{   /* XXX clean up */
+			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+			classref_or_classinfo initclass = (ins) ? ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1)
+										 : CLASSREF_OR_CLASSINFO(refmethod->class);
+			tip = &tinfo;
+			if (!typeinfo_init_class(tip,initclass))
+				return false;
+		}
+		else {
+			tip = &(instanceslot->typeinfo);
+		}
+		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
+					&(ref->instancetypes),tip,instanceref))
+			return false;
+	}
+
+	/* record subtype constraints for the parameter types, if any */
+	for (i=md->paramcount-1-instancecount; i>=0; --i) {
+		param = iptr->sx.s23.s2.args[i+instancecount];
+		type = md->paramtypes[i+instancecount].type;
+
+		assert(param);
+		assert(type == param->type);
+
+		if (type == TYPE_ADR) {
+			if (!ref->paramconstraints) {
+				ref->paramconstraints = MNEW(unresolved_subtype_set,md->paramcount);
+				for (j=md->paramcount-1-instancecount; j>i; --j)
+					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
+			}
+			assert(ref->paramconstraints);
+			if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
+						ref->paramconstraints + i,&(param->typeinfo),
+						md->paramtypes[i+instancecount].classref))
+				return false;
+		}
+		else {
+			if (ref->paramconstraints)
+				UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[i]);
+		}
+	}
+
+	return true;
+}
+#endif /* ENABLE_VERIFIER */
 
 /* constrain_unresolved_method *************************************************
  

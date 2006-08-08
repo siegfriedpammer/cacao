@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5208 2006-08-04 14:42:57Z twisti $
+   $Id: parse.c 5219 2006-08-08 13:01:28Z edwin $
 
 */
 
@@ -929,7 +929,7 @@ jsr_tail:
 #if defined(ENABLE_VERIFIER)
 				if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-					result = new_resolve_field_lazy(iptr, NULL, m);
+					result = new_resolve_field_lazy(iptr, m);
 					if (result == resolveFailed)
 						return false;
 
@@ -1002,7 +1002,7 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = new_resolve_method_lazy(iptr, NULL, m);
+				result = new_resolve_method_lazy(iptr, m);
 				if (result == resolveFailed)
 					return false;
 
