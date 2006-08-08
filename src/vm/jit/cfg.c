@@ -77,6 +77,33 @@ static void cfg_allocate_successors(basicblock *bptr)
 }
 
 
+/* cfg_insert_predecessor ******************************************************
+
+   Inserts a predecessor into the array, but checks for duplicate
+   entries.  This is used for TABLESWITCH and LOOKUPSWITCH.
+
+*******************************************************************************/
+
+static void cfg_insert_predecessors(basicblock *bptr, basicblock *pbptr)
+{
+	basicblock **tbptr;
+	s4           i;
+
+	tbptr = bptr->predecessors;
+
+	/* check if the predecessors is already stored in the array */
+
+	for (i = 0; i < bptr->predecessorcount; i++, tbptr++)
+		if (*tbptr == pbptr)
+			return;
+
+	/* not found, insert it */
+
+	bptr->predecessors[bptr->predecessorcount] = pbptr;
+	bptr->predecessorcount++;
+}
+
+
 /* cfg_build *******************************************************************
 
    Build a control-flow graph in finding all predecessors and
@@ -302,9 +329,7 @@ bool cfg_build(jitdata *jd)
 				bptr->successorcount++;
 
 				cfg_allocate_predecessors(tbptr);
-
-				tbptr->predecessors[tbptr->predecessorcount] = bptr;
-				tbptr->predecessorcount++;
+				cfg_insert_predecessors(tbptr, bptr);
 			}
 			break;
 					
@@ -332,9 +357,7 @@ bool cfg_build(jitdata *jd)
 				bptr->successorcount++;
 
 				cfg_allocate_predecessors(tbptr);
-
-				tbptr->predecessors[tbptr->predecessorcount] = bptr;
-				tbptr->predecessorcount++;
+				cfg_insert_predecessors(tbptr, bptr);
 
 				s4ptr += 2;
 			}
