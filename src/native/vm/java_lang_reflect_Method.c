@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_Method.c 5223 2006-08-08 16:21:22Z edwin $
+   $Id: java_lang_reflect_Method.c 5225 2006-08-08 19:23:44Z edwin $
 
 */
 
@@ -130,8 +130,6 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 {
 	classinfo        *c;
 	methodinfo       *m;
-	java_objectarray *oa;
-	classinfo        *callerclass;
 
 	c = (classinfo *) declaringClass;
 	m = &(c->methods[slot]);

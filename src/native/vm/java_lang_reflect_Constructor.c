@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_Constructor.c 5223 2006-08-08 16:21:22Z edwin $
+   $Id: java_lang_reflect_Constructor.c 5225 2006-08-08 19:23:44Z edwin $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/method.h"
+#include "vm/access.h"
 #include "vm/stringlocal.h"
 
 
