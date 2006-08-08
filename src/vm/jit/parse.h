@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5181 2006-07-26 13:27:54Z twisti $
+   $Id: parse.h 5222 2006-08-08 14:24:08Z twisti $
 
 */
 
@@ -91,7 +91,7 @@
 
 /* basic block generating macro ***********************************************/
 
-#define new_block_insert(i) \
+#define NEW_MARK_BASICBLOCK(i) \
     do { \
         if (!(jd->new_basicblockindex[(i)] & 1)) { \
             b_count++; \
@@ -99,7 +99,7 @@
         } \
     } while (0)
 
-#define block_insert(i) \
+#define MARK_BASICBLOCK(i) \
     do { \
         if (!(m->basicblockindex[(i)] & 1)) { \
             b_count++; \

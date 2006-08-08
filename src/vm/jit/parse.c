@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5219 2006-08-08 13:01:28Z edwin $
+   $Id: parse.c 5222 2006-08-08 14:24:08Z twisti $
 
 */
 
@@ -99,7 +99,7 @@ static exceptiontable * new_fillextable(
    		p = raw_extable[src].startpc;
 		CHECK_BYTECODE_INDEX(p);
 		extable->startpc = p;
-		new_block_insert(p);
+		NEW_MARK_BASICBLOCK(p);
 		
 		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
 		CHECK_BYTECODE_INDEX_EXCLUSIVE(p);
@@ -117,13 +117,13 @@ static exceptiontable * new_fillextable(
 		/* (If it is the bytecode end, we'll use the special     */
 		/* end block that is created anyway.)                    */
 		if (p < m->jcodelength) 
-			new_block_insert(p);
+			NEW_MARK_BASICBLOCK(p);
 
 		/* the start of the handler becomes a basic block start  */
 		p = raw_extable[src].handlerpc;
 		CHECK_BYTECODE_INDEX(p);
 		extable->handlerpc = p;
-		new_block_insert(p);
+		NEW_MARK_BASICBLOCK(p);
 
 		extable->catchtype = raw_extable[src].catchtype;
 		extable->next = NULL;
@@ -162,7 +162,7 @@ static exceptiontable * fillextable(methodinfo *m,
    		p = raw_extable[src].startpc;
 		CHECK_BYTECODE_INDEX(p);
 		extable->startpc = p;
-		block_insert(p);
+		MARK_BASICBLOCK(p);
 		
 		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
 		CHECK_BYTECODE_INDEX_EXCLUSIVE(p);
@@ -180,13 +180,13 @@ static exceptiontable * fillextable(methodinfo *m,
 		/* (If it is the bytecode end, we'll use the special     */
 		/* end block that is created anyway.)                    */
 		if (p < m->jcodelength) 
-			block_insert(p);
+			MARK_BASICBLOCK(p);
 
 		/* the start of the handler becomes a basic block start  */
 		p = raw_extable[src].handlerpc;
 		CHECK_BYTECODE_INDEX(p);
 		extable->handlerpc = p;
-		block_insert(p);
+		MARK_BASICBLOCK(p);
 
 		extable->catchtype = raw_extable[src].catchtype;
 		extable->next = NULL;
@@ -337,7 +337,7 @@ fetch_opcode:
 		if (blockend && (opcode != JAVA_NOP)) {
 			/* start new block */
 
-			new_block_insert(p);
+			NEW_MARK_BASICBLOCK(p);
 			blockend = false;
 		}
 
@@ -703,7 +703,7 @@ fetch_opcode:
 		case JAVA_GOTO:
 			i = p + SUCK_BE_S2(m->jcode + p + 1);
 			CHECK_BYTECODE_INDEX(i);
-			new_block_insert(i);
+			NEW_MARK_BASICBLOCK(i);
 			blockend = true;
 			NEW_OP_INSINDEX(opcode, i);
 			break;
@@ -711,7 +711,7 @@ fetch_opcode:
 		case JAVA_GOTO_W:
 			i = p + SUCK_BE_S4(m->jcode + p + 1);
 			CHECK_BYTECODE_INDEX(i);
-			new_block_insert(i);
+			NEW_MARK_BASICBLOCK(i);
 			blockend = true;
 			NEW_OP_INSINDEX(opcode, i);
 			break;
@@ -720,7 +720,7 @@ fetch_opcode:
 			i = p + SUCK_BE_S2(m->jcode + p + 1);
 jsr_tail:
 			CHECK_BYTECODE_INDEX(i);
-			new_block_insert(i);
+			NEW_MARK_BASICBLOCK(i);
 			blockend = true;
 			NEW_OP_PREPARE_ZEROFLAGS(JAVA_JSR);
 			iptr->sx.s23.s3.jsrtarget.insindex = i;
@@ -785,7 +785,7 @@ jsr_tail:
 				iptr->sx.s23.s3.lookupdefault.insindex = j;
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(j);
-				new_block_insert(j);
+				NEW_MARK_BASICBLOCK(j);
 
 				/* number of pairs */
 
@@ -826,7 +826,7 @@ jsr_tail:
 					lookup++;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
-					new_block_insert(j);
+					NEW_MARK_BASICBLOCK(j);
 				}
 
 				PINC;
@@ -852,7 +852,7 @@ jsr_tail:
 				deftarget = p + SUCK_BE_S4(m->jcode + nextp);
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(deftarget);
-				new_block_insert(deftarget);
+				NEW_MARK_BASICBLOCK(deftarget);
 
 				/* lower bound */
 
@@ -893,7 +893,7 @@ jsr_tail:
 					(table++)->insindex = j;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
-					new_block_insert(j);
+					NEW_MARK_BASICBLOCK(j);
 				}
 
 				PINC;
@@ -1416,12 +1416,6 @@ invoke_method:
 
 	BASICBLOCK_INIT(bptr,m);
 
-	bptr->instack = bptr->outstack = NULL;
-	bptr->indepth = bptr->outdepth = 0;
-	bptr->iinstr = NULL;
-	bptr->icount = 0;
-	bptr->next = NULL;
-
 	/* set basicblock pointers in exception table */
 
 	if (cd->exceptiontablelength > 0) {
@@ -1515,24 +1509,27 @@ bool parse(jitdata *jd)
 	code = jd->code;
 	cd   = jd->cd;
 
-	/* allocate instruction array and block index table */
-	
-	/* 1 additional for end ipc  */
+	/* Allocate instruction array and block index table (1 additional
+	   for end ipc). */
+
 	m->basicblockindex = DMNEW(s4, m->jcodelength + 1);
-	memset(m->basicblockindex, 0, sizeof(s4) * (m->jcodelength + 1));
+
+	MZERO(m->basicblockindex, s4, m->jcodelength + 1);
 
 	instructionstart = DMNEW(u1, m->jcodelength + 1);
-	memset(instructionstart, 0, sizeof(u1) * (m->jcodelength + 1));
 
-	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
-	/* additional MONITOREXITS are reached by branches which are 3 bytes */
+	MZERO(instructionstart, u1, m->jcodelength + 1);
+
+	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT
+	   additional MONITOREXITS are reached by branches which are 3
+	   bytes */
 	
 	iptr = m->instructions = DMNEW(instruction, m->jcodelength + 5);
 
 	/* Zero the intermediate instructions array so we don't have any
-	 * invalid pointers in it if we cannot finish analyse_stack(). */
+	   invalid pointers in it if we cannot finish stack_analyse(). */
 
-	memset(iptr, 0, sizeof(instruction) * (m->jcodelength + 5));
+	MZERO(iptr, instruction, m->jcodelength + 5);
 	
 	/* compute branch targets of exception table */
 
@@ -1591,7 +1588,7 @@ fetch_opcode:
 		if (blockend && (opcode != JAVA_NOP)) {
 			/* start new block */
 
-			block_insert(p);
+			MARK_BASICBLOCK(p);
 			blockend = false;
 		}
 
@@ -1955,7 +1952,7 @@ fetch_opcode:
 		case JAVA_JSR:
 			i = p + SUCK_BE_S2(m->jcode + p + 1);
 			CHECK_BYTECODE_INDEX(i);
-			block_insert(i);
+			MARK_BASICBLOCK(i);
 			blockend = true;
 			OP1(opcode, i);
 			break;
@@ -1964,7 +1961,7 @@ fetch_opcode:
 		case JAVA_JSR_W:
 			i = p + SUCK_BE_S4(m->jcode + p + 1);
 			CHECK_BYTECODE_INDEX(i);
-			block_insert(i);
+			MARK_BASICBLOCK(i);
 			blockend = true;
 			OP1(opcode, i);
 			break;
@@ -2031,7 +2028,7 @@ fetch_opcode:
 				tablep++;
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(j);
-				block_insert(j);
+				MARK_BASICBLOCK(j);
 
 				/* number of pairs */
 
@@ -2067,7 +2064,7 @@ fetch_opcode:
 					tablep++;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
-					block_insert(j);
+					MARK_BASICBLOCK(j);
 				}
 
 				break;
@@ -2095,7 +2092,7 @@ fetch_opcode:
 				tablep++;
 				nextp += 4;
 				CHECK_BYTECODE_INDEX(j);
-				block_insert(j);
+				MARK_BASICBLOCK(j);
 
 				/* lower bound */
 
@@ -2129,7 +2126,7 @@ fetch_opcode:
 					tablep++;
 					nextp += 4;
 					CHECK_BYTECODE_INDEX(j);
-					block_insert(j);
+					MARK_BASICBLOCK(j);
 				}
 
 				break;
@@ -2649,14 +2646,8 @@ invoke_method:
 
 		/* allocate additional block at end */
 
-		BASICBLOCK_INIT(bptr,m);
+		BASICBLOCK_INIT(bptr, m);
 		
-		bptr->instack = bptr->outstack = NULL;
-		bptr->indepth = bptr->outdepth = 0;
-		bptr->iinstr = NULL;
-		bptr->icount = 0;
-		bptr->next = NULL;
-
 		/* set basicblock pointers in exception table */
 
 		if (cd->exceptiontablelength > 0) {
