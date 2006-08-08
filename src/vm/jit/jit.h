@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5214 2006-08-07 15:30:19Z twisti $
+   $Id: jit.h 5217 2006-08-08 12:46:51Z edwin $
 
 */
 
@@ -336,6 +336,15 @@ struct instruction {
 
 #define INSTRUCTION_IS_UNRESOLVED(iptr) \
 	((ptrint)(iptr)->target & 0x01) /* XXX target used temporarily as flag */
+
+#define NEW_INSTRUCTION_IS_RESOLVED(iptr) \
+	(!((iptr)->flags.bits & INS_FLAG_UNRESOLVED))
+
+#define NEW_INSTRUCTION_IS_UNRESOLVED(iptr) \
+	((iptr)->flags.bits & INS_FLAG_UNRESOLVED)
+
+#define NEW_INSTRUCTION_MUST_CHECK(iptr) \
+	(!((iptr)->flags.bits & INS_FLAG_NOCHECK))
 
 #define NEW_INSTRUCTION_GET_FIELDREF(iptr,fref) \
 	do { \
