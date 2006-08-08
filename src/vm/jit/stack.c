@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5216 2006-08-08 12:45:31Z twisti $
+   $Id: stack.c 5218 2006-08-08 12:56:15Z edwin $
 
 */
 
@@ -2511,8 +2511,9 @@ icmd_BUILTIN:
 						REQUIRE(i);
 
 						/* XXX optimize for <= 2 args */
-						iptr->s1.argcount = i;
-						iptr->sx.s23.s2.args = DMNEW(stackptr, i);
+						/* XXX not for ICMD_BUILTIN */
+						iptr->s1.argcount = stackdepth;
+						iptr->sx.s23.s2.args = DMNEW(stackptr, stackdepth);
 
 						copy = curstack;
 						for (i-- ; i >= 0; i--) {
@@ -2568,10 +2569,18 @@ icmd_BUILTIN:
 							copy = copy->prev;
 						}
 
+						/* deal with live-through stack slots "under" the arguments */
+						/* XXX not for ICMD_BUILTIN */
+
+						i = md->paramcount;
+
 						while (copy) {
+							iptr->sx.s23.s2.args[i++] = copy;
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
+
+						/* pop the arguments */
 
 						i = md->paramcount;
 
@@ -2579,6 +2588,8 @@ icmd_BUILTIN:
 						while (--i >= 0) {
 							POPANY;
 						}
+
+						/* push the return value */
 
 						if (md->returntype.type != TYPE_VOID) {
 							NEW_DST(md->returntype.type, stackdepth);
