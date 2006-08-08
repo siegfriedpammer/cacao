@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5208 2006-08-04 14:42:57Z twisti $
+   $Id: stack.c 5216 2006-08-08 12:45:31Z twisti $
 
 */
 
@@ -55,6 +55,7 @@
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/jit/cfg.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/abi.h"
 #include "vm/jit/show.h"
@@ -442,7 +443,7 @@ bool new_stack_analyse(jitdata *jd)
 		bptr->type = BBTYPE_EXH;
 		bptr->instack = new;
 		bptr->indepth = 1;
-		bptr->predecessorcount = 10000;
+		bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
 		STACKRESET;
 		NEWXSTACK;
 	}
@@ -2879,7 +2880,7 @@ bool stack_analyse(jitdata *jd)
 		bptr->type = BBTYPE_EXH;
 		bptr->instack = new;
 		bptr->indepth = 1;
-		bptr->predecessorcount = 10000;
+		bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
 		STACKRESET;
 		NEWXSTACK;
 	}

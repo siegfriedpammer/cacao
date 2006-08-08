@@ -42,6 +42,11 @@
 #include "vm/jit/jit.h"
 
 
+/* defines ********************************************************************/
+
+#define CFG_UNKNOWN_PREDECESSORS    -1
+
+
 /* function prototypes ********************************************************/
 
 bool cfg_build(jitdata *jd);
