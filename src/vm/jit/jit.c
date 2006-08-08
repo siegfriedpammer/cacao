@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5210 2006-08-07 11:10:01Z twisti $
+   $Id: jit.c 5226 2006-08-08 19:57:19Z edwin $
 
 */
 
@@ -110,7 +110,264 @@
  
 /* global switches ************************************************************/
 
-int stackreq[256];
+int stackreq[256] = {
+	0,    /* JAVA_NOP                         0 */
+	1,    /* JAVA_ACONST                      1 */
+	1,    /* JAVA_ICONST_M1                   2 */
+	1,    /* JAVA_ICONST_0                    3 */
+	1,    /* JAVA_ICONST_1                    4 */
+	1,    /* JAVA_ICONST_2                    5 */
+	1,    /* JAVA_ICONST_3                    6 */
+	1,    /* JAVA_ICONST_4                    7 */
+	1,    /* JAVA_ICONST_5                    8 */
+	1,    /* JAVA_LCONST_0                    9 */
+	1,    /* JAVA_LCONST_1                   10 */
+	1,    /* JAVA_FCONST_0                   11 */
+	1,    /* JAVA_FCONST_1                   12 */
+	1,    /* JAVA_FCONST_2                   13 */
+	1,    /* JAVA_DCONST_0                   14 */
+	1,    /* JAVA_DCONST_1                   15 */
+	1,    /* JAVA_BIPUSH                     16 */
+	1,    /* JAVA_SIPUSH                     17 */
+	1,    /* JAVA_LDC                        18 */
+	1,    /* JAVA_LDC_W                      19 */
+	1,    /* JAVA_LDC2_W                     20 */
+	1,    /* JAVA_ILOAD                      21 */
+	1,    /* JAVA_LLOAD                      22 */
+	1,    /* JAVA_FLOAD                      23 */
+	1,    /* JAVA_DLOAD                      24 */
+	1,    /* JAVA_ALOAD                      25 */
+	1,    /* JAVA_ILOAD_0                    26 */
+	1,    /* JAVA_ILOAD_1                    27 */
+	1,    /* JAVA_ILOAD_2                    28 */
+	1,    /* JAVA_ILOAD_3                    29 */
+	1,    /* JAVA_LLOAD_0                    30 */
+	1,    /* JAVA_LLOAD_1                    31 */
+	1,    /* JAVA_LLOAD_2                    32 */
+	1,    /* JAVA_LLOAD_3                    33 */
+	1,    /* JAVA_FLOAD_0                    34 */
+	1,    /* JAVA_FLOAD_1                    35 */
+	1,    /* JAVA_FLOAD_2                    36 */
+	1,    /* JAVA_FLOAD_3                    37 */
+	1,    /* JAVA_DLOAD_0                    38 */
+	1,    /* JAVA_DLOAD_1                    39 */
+	1,    /* JAVA_DLOAD_2                    40 */
+	1,    /* JAVA_DLOAD_3                    41 */
+	1,    /* JAVA_ALOAD_0                    42 */
+	1,    /* JAVA_ALOAD_1                    43 */
+	1,    /* JAVA_ALOAD_2                    44 */
+	1,    /* JAVA_ALOAD_3                    45 */
+	1,    /* JAVA_IALOAD                     46 */
+	1,    /* JAVA_LALOAD                     47 */
+	1,    /* JAVA_FALOAD                     48 */
+	1,    /* JAVA_DALOAD                     49 */
+	1,    /* JAVA_AALOAD                     50 */
+	1,    /* JAVA_BALOAD                     51 */
+	1,    /* JAVA_CALOAD                     52 */
+	1,    /* JAVA_SALOAD                     53 */
+	0,    /* JAVA_ISTORE                     54 */
+	0,    /* JAVA_LSTORE                     55 */
+	0,    /* JAVA_FSTORE                     56 */
+	0,    /* JAVA_DSTORE                     57 */
+	0,    /* JAVA_ASTORE                     58 */
+	0,    /* JAVA_ISTORE_0                   59 */
+	0,    /* JAVA_ISTORE_1                   60 */
+	0,    /* JAVA_ISTORE_2                   61 */
+	0,    /* JAVA_ISTORE_3                   62 */
+	0,    /* JAVA_LSTORE_0                   63 */
+	0,    /* JAVA_LSTORE_1                   64 */
+	0,    /* JAVA_LSTORE_2                   65 */
+	0,    /* JAVA_LSTORE_3                   66 */
+	0,    /* JAVA_FSTORE_0                   67 */
+	0,    /* JAVA_FSTORE_1                   68 */
+	0,    /* JAVA_FSTORE_2                   69 */
+	0,    /* JAVA_FSTORE_3                   70 */
+	0,    /* JAVA_DSTORE_0                   71 */
+	0,    /* JAVA_DSTORE_1                   72 */
+	0,    /* JAVA_DSTORE_2                   73 */
+	0,    /* JAVA_DSTORE_3                   74 */
+	0,    /* JAVA_ASTORE_0                   75 */
+	0,    /* JAVA_ASTORE_1                   76 */
+	0,    /* JAVA_ASTORE_2                   77 */
+	0,    /* JAVA_ASTORE_3                   78 */
+	0,    /* JAVA_IASTORE                    79 */
+	0,    /* JAVA_LASTORE                    80 */
+	0,    /* JAVA_FASTORE                    81 */
+	0,    /* JAVA_DASTORE                    82 */
+	0,    /* JAVA_AASTORE                    83 */
+	0,    /* JAVA_BASTORE                    84 */
+	0,    /* JAVA_CASTORE                    85 */
+	0,    /* JAVA_SASTORE                    86 */
+	0,    /* JAVA_POP                        87 */
+	0,    /* JAVA_POP2                       88 */
+	1,    /* JAVA_DUP                        89 */
+	3,    /* JAVA_DUP_X1                     90 */
+	4,    /* JAVA_DUP_X2                     91 */
+	2,    /* JAVA_DUP2                       92 */
+	3,    /* JAVA_DUP2_X1                    93 */
+	4,    /* JAVA_DUP2_X2                    94 */
+	2,    /* JAVA_SWAP                       95 */
+	1,    /* JAVA_IADD                       96 */
+	1,    /* JAVA_LADD                       97 */
+	1,    /* JAVA_FADD                       98 */
+	1,    /* JAVA_DADD                       99 */
+	1,    /* JAVA_ISUB                      100 */
+	1,    /* JAVA_LSUB                      101 */
+	1,    /* JAVA_FSUB                      102 */
+	1,    /* JAVA_DSUB                      103 */
+	1,    /* JAVA_IMUL                      104 */
+	1,    /* JAVA_LMUL                      105 */
+	1,    /* JAVA_FMUL                      106 */
+	1,    /* JAVA_DMUL                      107 */
+	1,    /* JAVA_IDIV                      108 */
+	1,    /* JAVA_LDIV                      109 */
+	1,    /* JAVA_FDIV                      110 */
+	1,    /* JAVA_DDIV                      111 */
+	1,    /* JAVA_IREM                      112 */
+	1,    /* JAVA_LREM                      113 */
+	1,    /* JAVA_FREM                      114 */
+	1,    /* JAVA_DREM                      115 */
+	1,    /* JAVA_INEG                      116 */
+	1,    /* JAVA_LNEG                      117 */
+	1,    /* JAVA_FNEG                      118 */
+	1,    /* JAVA_DNEG                      119 */
+	1,    /* JAVA_ISHL                      120 */
+	1,    /* JAVA_LSHL                      121 */
+	1,    /* JAVA_ISHR                      122 */
+	1,    /* JAVA_LSHR                      123 */
+	1,    /* JAVA_IUSHR                     124 */
+	1,    /* JAVA_LUSHR                     125 */
+	1,    /* JAVA_IAND                      126 */
+	1,    /* JAVA_LAND                      127 */
+	1,    /* JAVA_IOR                       128 */
+	1,    /* JAVA_LOR                       129 */
+	1,    /* JAVA_IXOR                      130 */
+	1,    /* JAVA_LXOR                      131 */
+	0,    /* JAVA_IINC                      132 */
+	1,    /* JAVA_I2L                       133 */
+	1,    /* JAVA_I2F                       134 */
+	1,    /* JAVA_I2D                       135 */
+	1,    /* JAVA_L2I                       136 */
+	1,    /* JAVA_L2F                       137 */
+	1,    /* JAVA_L2D                       138 */
+	1,    /* JAVA_F2I                       139 */
+	1,    /* JAVA_F2L                       140 */
+	1,    /* JAVA_F2D                       141 */
+	1,    /* JAVA_D2I                       142 */
+	1,    /* JAVA_D2L                       143 */
+	1,    /* JAVA_D2F                       144 */
+	1,    /* JAVA_INT2BYTE                  145 */
+	1,    /* JAVA_INT2CHAR                  146 */
+	1,    /* JAVA_INT2SHORT                 147 */
+	1,    /* JAVA_LCMP                      148 */
+	1,    /* JAVA_FCMPL                     149 */
+	1,    /* JAVA_FCMPG                     150 */
+	1,    /* JAVA_DCMPL                     151 */
+	1,    /* JAVA_DCMPG                     152 */
+	0,    /* JAVA_IFEQ                      153 */
+	0,    /* JAVA_IFNE                      154 */
+	0,    /* JAVA_IFLT                      155 */
+	0,    /* JAVA_IFGE                      156 */
+	0,    /* JAVA_IFGT                      157 */
+	0,    /* JAVA_IFLE                      158 */
+	0,    /* JAVA_IF_ICMPEQ                 159 */
+	0,    /* JAVA_IF_ICMPNE                 160 */
+	0,    /* JAVA_IF_ICMPLT                 161 */
+	0,    /* JAVA_IF_ICMPGE                 162 */
+	0,    /* JAVA_IF_ICMPGT                 163 */
+	0,    /* JAVA_IF_ICMPLE                 164 */
+	0,    /* JAVA_IF_ACMPEQ                 165 */
+	0,    /* JAVA_IF_ACMPNE                 166 */
+	0,    /* JAVA_GOTO                      167 */
+	1,    /* JAVA_JSR                       168 */
+	0,    /* JAVA_RET                       169 */
+	0,    /* JAVA_TABLESWITCH               170 */
+	0,    /* JAVA_LOOKUPSWITCH              171 */
+	0,    /* JAVA_IRETURN                   172 */
+	0,    /* JAVA_LRETURN                   173 */
+	0,    /* JAVA_FRETURN                   174 */
+	0,    /* JAVA_DRETURN                   175 */
+	0,    /* JAVA_ARETURN                   176 */
+	0,    /* JAVA_RETURN                    177 */
+	1,    /* JAVA_GETSTATIC                 178 */
+	0,    /* JAVA_PUTSTATIC                 179 */
+	1,    /* JAVA_GETFIELD                  180 */
+	0,    /* JAVA_PUTFIELD                  181 */
+	1,    /* JAVA_INVOKEVIRTUAL             182 */
+	1,    /* JAVA_INVOKESPECIAL             183 */
+	1,    /* JAVA_INVOKESTATIC              184 */
+	1,    /* JAVA_INVOKEINTERFACE           185 */
+	1,    /* JAVA_UNDEF186                  186 */
+	1,    /* JAVA_NEW                       187 */
+	1,    /* JAVA_NEWARRAY                  188 */
+	1,    /* JAVA_ANEWARRAY                 189 */
+	1,    /* JAVA_ARRAYLENGTH               190 */
+	1,    /* JAVA_ATHROW                    191 */
+	1,    /* JAVA_CHECKCAST                 192 */
+	1,    /* JAVA_INSTANCEOF                193 */
+	0,    /* JAVA_MONITORENTER              194 */
+	0,    /* JAVA_MONITOREXIT               195 */
+	0,    /* JAVA_WIDE                      196 */
+	1,    /* JAVA_MULTIANEWARRAY            197 */
+	0,    /* JAVA_IFNULL                    198 */
+	0,    /* JAVA_IFNONNULL                 199 */
+	0,    /* JAVA_GOTO_W                    200 */
+	1,    /* JAVA_JSR_W                     201 */
+	0,    /* JAVA_BREAKPOINT                202 */
+	1,    /* JAVA_UNDEF203                  203 */
+	1,    /* JAVA_UNDEF204                  204 */
+	1,    /* JAVA_UNDEF205                  205 */
+	1,    /* JAVA_UNDEF206                  206 */
+	1,    /* JAVA_UNDEF207                  207 */
+	1,    /* JAVA_UNDEF208                  208 */
+	1,    /* JAVA_UNDEF209                  209 */
+	1,    /* JAVA_UNDEF210                  210 */
+	1,    /* JAVA_UNDEF211                  211 */
+	1,    /* JAVA_UNDEF212                  212 */
+	1,    /* JAVA_UNDEF213                  213 */
+	1,    /* JAVA_UNDEF214                  214 */
+	1,    /* JAVA_UNDEF215                  215 */
+	1,    /* JAVA_UNDEF216                  216 */
+	1,    /* JAVA_UNDEF217                  217 */
+	1,    /* JAVA_UNDEF218                  218 */
+	1,    /* JAVA_UNDEF219                  219 */
+	1,    /* JAVA_UNDEF220                  220 */
+	1,    /* JAVA_UNDEF221                  221 */
+	1,    /* JAVA_UNDEF222                  222 */
+	1,    /* JAVA_UNDEF223                  223 */
+	1,    /* JAVA_UNDEF224                  224 */
+	1,    /* JAVA_UNDEF225                  225 */
+	1,    /* JAVA_UNDEF226                  226 */
+	1,    /* JAVA_UNDEF227                  227 */
+	1,    /* JAVA_UNDEF228                  228 */
+	1,    /* JAVA_UNDEF229                  229 */
+	1,    /* JAVA_UNDEF230                  230 */
+	1,    /* JAVA_UNDEF231                  231 */
+	1,    /* JAVA_UNDEF232                  232 */
+	1,    /* JAVA_UNDEF233                  233 */
+	1,    /* JAVA_UNDEF234                  234 */
+	1,    /* JAVA_UNDEF235                  235 */
+	1,    /* JAVA_UNDEF236                  236 */
+	1,    /* JAVA_UNDEF237                  237 */
+	1,    /* JAVA_UNDEF238                  238 */
+	1,    /* JAVA_UNDEF239                  239 */
+	1,    /* JAVA_UNDEF240                  240 */
+	1,    /* JAVA_UNDEF241                  241 */
+	1,    /* JAVA_UNDEF242                  242 */
+	1,    /* JAVA_UNDEF243                  243 */
+	1,    /* JAVA_UNDEF244                  244 */
+	1,    /* JAVA_UNDEF245                  245 */
+	1,    /* JAVA_UNDEF246                  246 */
+	1,    /* JAVA_UNDEF247                  247 */
+	1,    /* JAVA_UNDEF248                  248 */
+	1,    /* JAVA_UNDEF249                  249 */
+	1,    /* JAVA_UNDEF250                  250 */
+	1,    /* JAVA_UNDEF251                  251 */
+	1,    /* JAVA_UNDEF252                  252 */
+	1,    /* JAVA_UNDEF253                  253 */
+	1,    /* JAVA_UNDEF254                  254 */
+	1,    /* JAVA_UNDEF255                  255 */
+};
 
                                 
 int jcommandsize[256] = {
@@ -844,89 +1101,6 @@ char *opcode_names[256] = {
 
 void jit_init(void)
 {
-	s4 i;
-
-	for (i = 0; i < 256; i++)
-		stackreq[i] = 1;
-
-	stackreq[JAVA_NOP]          = 0;
-	stackreq[JAVA_ISTORE]       = 0;
-	stackreq[JAVA_LSTORE]       = 0;
-	stackreq[JAVA_FSTORE]       = 0;
-	stackreq[JAVA_DSTORE]       = 0;
-	stackreq[JAVA_ASTORE]       = 0;
-	stackreq[JAVA_ISTORE_0]     = 0;
-	stackreq[JAVA_ISTORE_1]     = 0;
-	stackreq[JAVA_ISTORE_2]     = 0;
-	stackreq[JAVA_ISTORE_3]     = 0;
-	stackreq[JAVA_LSTORE_0]     = 0;
-	stackreq[JAVA_LSTORE_1]     = 0;
-	stackreq[JAVA_LSTORE_2]     = 0;
-	stackreq[JAVA_LSTORE_3]     = 0;
-	stackreq[JAVA_FSTORE_0]     = 0;
-	stackreq[JAVA_FSTORE_1]     = 0;
-	stackreq[JAVA_FSTORE_2]     = 0;
-	stackreq[JAVA_FSTORE_3]     = 0;
-	stackreq[JAVA_DSTORE_0]     = 0;
-	stackreq[JAVA_DSTORE_1]     = 0;
-	stackreq[JAVA_DSTORE_2]     = 0;
-	stackreq[JAVA_DSTORE_3]     = 0;
-	stackreq[JAVA_ASTORE_0]     = 0;
-	stackreq[JAVA_ASTORE_1]     = 0;
-	stackreq[JAVA_ASTORE_2]     = 0;
-	stackreq[JAVA_ASTORE_3]     = 0;
-	stackreq[JAVA_IASTORE]      = 0;
-	stackreq[JAVA_LASTORE]      = 0;
-	stackreq[JAVA_FASTORE]      = 0;
-	stackreq[JAVA_DASTORE]      = 0;
-	stackreq[JAVA_AASTORE]      = 0;
-	stackreq[JAVA_BASTORE]      = 0;
-	stackreq[JAVA_CASTORE]      = 0;
-	stackreq[JAVA_SASTORE]      = 0;
-	stackreq[JAVA_POP]          = 0;
-	stackreq[JAVA_POP2]         = 0;
-	stackreq[JAVA_IFEQ]         = 0;
-	stackreq[JAVA_IFNE]         = 0;
-	stackreq[JAVA_IFLT]         = 0;
-	stackreq[JAVA_IFGE]         = 0;
-	stackreq[JAVA_IFGT]         = 0;
-	stackreq[JAVA_IFLE]         = 0;
-	stackreq[JAVA_IF_ICMPEQ]    = 0;
-	stackreq[JAVA_IF_ICMPNE]    = 0;
-	stackreq[JAVA_IF_ICMPLT]    = 0;
-	stackreq[JAVA_IF_ICMPGE]    = 0;
-	stackreq[JAVA_IF_ICMPGT]    = 0;
-	stackreq[JAVA_IF_ICMPLE]    = 0;
-	stackreq[JAVA_IF_ACMPEQ]    = 0;
-	stackreq[JAVA_IF_ACMPNE]    = 0;
-	stackreq[JAVA_GOTO]         = 0;
-	stackreq[JAVA_RET]          = 0;
-	stackreq[JAVA_TABLESWITCH]  = 0;
-	stackreq[JAVA_LOOKUPSWITCH] = 0;
-	stackreq[JAVA_IRETURN]      = 0;
-	stackreq[JAVA_LRETURN]      = 0;
-	stackreq[JAVA_FRETURN]      = 0;
-	stackreq[JAVA_DRETURN]      = 0;
-	stackreq[JAVA_ARETURN]      = 0;
-	stackreq[JAVA_RETURN]       = 0;
-	stackreq[JAVA_PUTSTATIC]    = 0;
-	stackreq[JAVA_PUTFIELD]     = 0;
-	stackreq[JAVA_MONITORENTER] = 0;
-	stackreq[JAVA_MONITOREXIT]  = 0;
-	stackreq[JAVA_WIDE]         = 0;
-	stackreq[JAVA_IFNULL]       = 0;
-	stackreq[JAVA_IFNONNULL]    = 0;
-	stackreq[JAVA_GOTO_W]       = 0;
-	stackreq[JAVA_BREAKPOINT]   = 0;
-	stackreq[JAVA_IINC]         = 0;
-	
-	stackreq[JAVA_SWAP] = 2;
-	stackreq[JAVA_DUP2] = 2;
-	stackreq[JAVA_DUP_X1] = 3;
-	stackreq[JAVA_DUP_X2] = 4;
-	stackreq[JAVA_DUP2_X1] = 3;
-	stackreq[JAVA_DUP2_X2] = 4;
-
 	/* initialize stack analysis subsystem */
 
 	(void) stack_init();
