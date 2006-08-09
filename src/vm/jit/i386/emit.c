@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 5173 2006-07-25 15:57:11Z twisti $
+   $Id: emit.c 5227 2006-08-09 15:10:51Z twisti $
 
 */
 
@@ -71,8 +71,8 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 				M_DLD(tempreg, REG_SP, disp);
 			else
 				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
+		}
+		else {
 			if (IS_2_WORD_TYPE(src->type))
 				M_LLD(tempreg, REG_SP, disp);
 			else
@@ -80,7 +80,8 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		}
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = src->regoff;
 
 	return reg;
@@ -113,8 +114,8 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 				M_DLD(tempreg, REG_SP, disp);
 			else
 				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
+		}
+		else {
 			if (IS_2_WORD_TYPE(src->type))
 				M_LLD(tempreg, REG_SP, disp);
 			else
@@ -122,7 +123,8 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		}
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = src->regoff;
 
 	return reg;
@@ -155,8 +157,8 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 				M_DLD(tempreg, REG_SP, disp);
 			else
 				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
+		}
+		else {
 			if (IS_2_WORD_TYPE(src->type))
 				M_LLD(tempreg, REG_SP, disp);
 			else
@@ -164,7 +166,8 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		}
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = src->regoff;
 
 	return reg;
@@ -198,7 +201,8 @@ s4 emit_load_s1_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		M_ILD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = GET_LOW_REG(src->regoff);
 
 	return reg;
@@ -232,7 +236,8 @@ s4 emit_load_s2_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		M_ILD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = GET_LOW_REG(src->regoff);
 
 	return reg;
@@ -266,7 +271,8 @@ s4 emit_load_s1_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		M_ILD(tempreg, REG_SP, disp + 4);
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = GET_HIGH_REG(src->regoff);
 
 	return reg;
@@ -329,8 +335,8 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 				M_DST(d, REG_SP, dst->regoff * 4);
 			else
 				M_FST(d, REG_SP, dst->regoff * 4);
-
-		} else {
+		}
+		else {
 			if (IS_2_WORD_TYPE(dst->type))
 				M_LST(d, REG_SP, dst->regoff * 4);
 			else
