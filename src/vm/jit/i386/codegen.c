@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5221 2006-08-08 13:25:33Z twisti $
+   $Id: codegen.c 5228 2006-08-09 15:11:29Z twisti $
 
 */
 
@@ -1167,28 +1167,27 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			s1 = emit_load_s1_low(jd, iptr, src->prev, EAX);
-			s2 = emit_load_s2_low(jd, iptr, src, REG_ITMP2);
+			s1 = emit_load_s1_high(jd, iptr, src->prev, REG_ITMP2);
+			s2 = emit_load_s2_low(jd, iptr, src, EDX);
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, EAX_EDX_PACKED);
 
+			M_INTMOVE(s1, REG_ITMP2);
+			M_IMUL(s2, REG_ITMP2);
+
+			s1 = emit_load_s1_low(jd, iptr, src->prev, EAX);
+			s2 = emit_load_s2_high(jd, iptr, src, EDX);
+			M_INTMOVE(s2, EDX);
+			M_IMUL(s1, EDX);
+			M_IADD(EDX, REG_ITMP2);
+
+			s1 = emit_load_s1_low(jd, iptr, src->prev, EAX);
+			s2 = emit_load_s2_low(jd, iptr, src, EDX);
 			M_INTMOVE(s1, EAX);
 			M_MUL(s2);
 			M_INTMOVE(EAX, GET_LOW_REG(d));
-			emit_store_low(jd, iptr, iptr->dst, d);         /* free REG_ITMP1 */
+			M_IADD(REG_ITMP2, GET_HIGH_REG(d));
 
-			s1 = emit_load_s1_high(jd, iptr, src->prev, REG_ITMP1);
-			M_INTMOVE(s1, REG_ITMP1);
-			M_IMUL(s2, REG_ITMP1);
-			M_IADD(REG_ITMP1, EDX);
-
-			s1 = emit_load_s1_low(jd, iptr, src->prev, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, src, REG_ITMP2);
-			M_INTMOVE(s1, REG_ITMP1);
-			M_IMUL(s2, REG_ITMP1);
-			M_IADD(REG_ITMP1, EDX);
-			M_INTMOVE(EDX, GET_HIGH_REG(d));
-
-			emit_store_high(jd, iptr, iptr->dst, d);
+			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
 		case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant        */
