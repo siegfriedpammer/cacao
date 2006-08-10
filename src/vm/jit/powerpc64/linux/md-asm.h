@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: md-asm.h 5230 2006-08-10 19:45:28Z tbfg $
 
 */
 
@@ -57,10 +57,9 @@
 
 #define itmp1 r11
 #define itmp2 r12
-#define pv    r13
+#define pv    r14
 
-#define s0    r14
-#define s1    r15
+#define s0    r15
 
 #define itmp3 r16
 #define t0    r17
@@ -71,14 +70,14 @@
 #define t5    r22
 #define t6    r23
 
-#define s2    r24
-#define s3    r25
-#define s4    r26
-#define s5    r27
-#define s6    r28
-#define s7    r29
-#define s8    r30
-#define s9    r31
+#define s1    r24
+#define s2    r25
+#define s3    r26
+#define s4    r27
+#define s5    r28
+#define s6    r29
+#define s7    r30
+#define s8    r31
 
 #define v0    a0
 #define v1    a1
@@ -135,75 +134,75 @@
 /* save and restore macros ****************************************************/
 
 #define SAVE_ARGUMENT_REGISTERS(off) \
-	stw     a0,(0+(off))*4(sp); \
-	stw     a1,(1+(off))*4(sp); \
-	stw     a2,(2+(off))*4(sp); \
-	stw     a3,(3+(off))*4(sp); \
-	stw     a4,(4+(off))*4(sp); \
-	stw     a5,(5+(off))*4(sp); \
-	stw     a6,(6+(off))*4(sp); \
-	stw     a7,(7+(off))*4(sp); \
+	std     a0,(0+(off))*8(sp); \
+	std     a1,(1+(off))*8(sp); \
+	std     a2,(2+(off))*8(sp); \
+	std     a3,(3+(off))*8(sp); \
+	std     a4,(4+(off))*8(sp); \
+	std     a5,(5+(off))*8(sp); \
+	std     a6,(6+(off))*8(sp); \
+	std     a7,(7+(off))*8(sp); \
 	\
-	stfd    fa0,(8+(off))*4(sp); \
-	stfd    fa1,(10+(off))*4(sp); \
-	stfd    fa2,(12+(off))*4(sp); \
-	stfd    fa3,(14+(off))*4(sp); \
-	stfd    fa4,(16+(off))*4(sp); \
-	stfd    fa5,(18+(off))*4(sp); \
-	stfd    fa6,(20+(off))*4(sp); \
-	stfd    fa7,(22+(off))*4(sp);
+	stfd    fa0,(8+(off))*8(sp); \
+	stfd    fa1,(9+(off))*8(sp); \
+	stfd    fa2,(10+(off))*8(sp); \
+	stfd    fa3,(11+(off))*8(sp); \
+	stfd    fa4,(12+(off))*8(sp); \
+	stfd    fa5,(13+(off))*8(sp); \
+	stfd    fa6,(14+(off))*8(sp); \
+	stfd    fa7,(15+(off))*8(sp);
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
-	lwz     a0,(0+(off))*4(sp); \
-	lwz     a1,(1+(off))*4(sp); \
-	lwz     a2,(2+(off))*4(sp); \
-	lwz     a3,(3+(off))*4(sp); \
-	lwz     a4,(4+(off))*4(sp); \
-	lwz     a5,(5+(off))*4(sp); \
-	lwz     a6,(6+(off))*4(sp); \
-	lwz     a7,(7+(off))*4(sp); \
+	ld     a0,(0+(off))*8(sp); \
+	ld     a1,(1+(off))*8(sp); \
+	ld     a2,(2+(off))*8(sp); \
+	ld     a3,(3+(off))*8(sp); \
+	ld     a4,(4+(off))*8(sp); \
+	ld     a5,(5+(off))*8(sp); \
+	ld     a6,(6+(off))*8(sp); \
+	ld     a7,(7+(off))*8(sp); \
 	\
-	lfd     fa0,(8+(off))*4(sp); \
-	lfd     fa1,(10+(off))*4(sp); \
-	lfd     fa2,(12+(off))*4(sp); \
-	lfd     fa3,(14+(off))*4(sp); \
-	lfd     fa4,(16+(off))*4(sp); \
-	lfd     fa5,(18+(off))*4(sp); \
-	lfd     fa6,(20+(off))*4(sp); \
-	lfd     fa7,(22+(off))*4(sp);
+	lfd     fa0,(8+(off))*8(sp); \
+	lfd     fa1,(9+(off))*8(sp); \
+	lfd     fa2,(10+(off))*8(sp); \
+	lfd     fa3,(11+(off))*8(sp); \
+	lfd     fa4,(12+(off))*8(sp); \
+	lfd     fa5,(13+(off))*8(sp); \
+	lfd     fa6,(14+(off))*8(sp); \
+	lfd     fa7,(15+(off))*8(sp);
 
 
 #define SAVE_TEMPORARY_REGISTERS(off) \
-	stw     t0,(0+(off))*4(sp); \
-	stw     t1,(1+(off))*4(sp); \
-	stw     t2,(2+(off))*4(sp); \
-	stw     t3,(3+(off))*4(sp); \
-	stw     t4,(4+(off))*4(sp); \
-	stw     t5,(5+(off))*4(sp); \
-	stw     t6,(6+(off))*4(sp); \
+	std     t0,(0+(off))*8(sp); \
+	std     t1,(1+(off))*8(sp); \
+	std     t2,(2+(off))*8(sp); \
+	std     t3,(3+(off))*8(sp); \
+	std     t4,(4+(off))*8(sp); \
+	std     t5,(5+(off))*8(sp); \
+	std     t6,(6+(off))*8(sp); \
 	\
-	stfd    ft0,(8+(off))*4(sp); \
-	stfd    ft1,(10+(off))*4(sp); \
-	stfd    ft2,(12+(off))*4(sp); \
-	stfd    ft3,(14+(off))*4(sp); \
-	stfd    ft4,(16+(off))*4(sp); \
-	stfd    ft5,(18+(off))*4(sp);
+	stfd    ft0,(7+(off))*8(sp); \
+	stfd    ft1,(8+(off))*8(sp); \
+	stfd    ft2,(9+(off))*8(sp); \
+	stfd    ft3,(10+(off))*8(sp); \
+	stfd    ft4,(11+(off))*8(sp); \
+	stfd    ft5,(12+(off))*8(sp);
 
 #define RESTORE_TEMPORARY_REGISTERS(off) \
-	lwz     t0,(0+(off))*4(sp); \
-	lwz     t1,(1+(off))*4(sp); \
-	lwz     t2,(2+(off))*4(sp); \
-	lwz     t3,(3+(off))*4(sp); \
-	lwz     t4,(4+(off))*4(sp); \
-	lwz     t5,(5+(off))*4(sp); \
-	lwz     t6,(6+(off))*4(sp); \
+	ld     t0,(0+(off))*8(sp); \
+	ld     t1,(1+(off))*8(sp); \
+	ld     t2,(2+(off))*8(sp); \
+	ld     t3,(3+(off))*8(sp); \
+	ld     t4,(4+(off))*8(sp); \
+	ld     t5,(5+(off))*8(sp); \
+	ld     t6,(6+(off))*8(sp); \
 	\
-	lfd     ft0,(8+(off))*4(sp); \
-	lfd     ft1,(10+(off))*4(sp); \
-	lfd     ft2,(12+(off))*4(sp); \
-	lfd     ft3,(14+(off))*4(sp); \
-	lfd     ft4,(16+(off))*4(sp); \
-	lfd     ft5,(18+(off))*4(sp);
+	lfd     ft0,(7+(off))*8(sp); \
+	lfd     ft1,(8+(off))*8(sp); \
+	lfd     ft2,(9+(off))*8(sp); \
+	lfd     ft3,(10+(off))*8(sp); \
+	lfd     ft4,(11+(off))*8(sp); \
+	lfd     ft5,(12+(off))*8(sp);
 
 #endif /* _MD_ASM_H */
 

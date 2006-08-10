@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5213 2006-08-07 15:12:20Z tbfg $
+   $Id: asmpart.S 5230 2006-08-10 19:45:28Z tbfg $
 
 */
 
@@ -54,10 +54,10 @@
 /* export functions ***********************************************************/
 
 	.globl asm_vm_call_method
-	.globl .asm_vm_call_method_int
-	.globl .asm_vm_call_method_long
-	.globl .asm_vm_call_method_float
-	.globl .asm_vm_call_method_double
+	.globl asm_vm_call_method_int
+	.globl asm_vm_call_method_long
+	.globl asm_vm_call_method_float
+	.globl asm_vm_call_method_double
 
 	.globl asm_vm_call_method_exception_handler
 
@@ -112,6 +112,10 @@
 .align 3
 
 asm_vm_call_method:
+asm_vm_call_method_int:
+asm_vm_call_method_long:
+asm_vm_call_method_float:
+asm_vm_call_method_double:
 	.quad	.asm_vm_call_method,.TOC.@tocbase,0
 	.previous
 	.size asm_vm_call_method, 24
@@ -119,43 +123,39 @@ asm_vm_call_method:
 	.globl .asm_vm_call_method
 
 .asm_vm_call_method:
-.asm_vm_call_method_int:
-.asm_vm_call_method_long:
-.asm_vm_call_method_float:
-.asm_vm_call_method_double:
 	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-40*4(r1)
-
-	stw     s0,8*4(sp)                /* save used callee saved registers     */
-	stw     a0,9*4(sp)                /* save method pointer for compiler     */
+	std     r0,LA_LR_OFFSET(sp)
+	stdu    sp,-40*8(sp)
+	
+	std     s0,8*8(sp)                /* save used callee saved registers     */
+	std     a0,9*8(sp)                /* save method pointer for compiler     */
 
 #if defined(__DARWIN__)
-	stw     itmp1,10*4(sp)            /* register r11 is callee saved         */
+	std     itmp1,10*8(sp)            /* register r11 is callee saved         */
 #endif
-	stw     pv,11*4(sp)               /* save PV register                     */
+	std     pv,11*8(sp)               /* save PV register                     */
 
-	stw     itmp3,12*4(sp)            /* registers r14-r31 are callee saved   */
-	stfd	ftmp1,14*4(sp)            /* registers f14-f31 are callee saved   */
-	stfd	ftmp2,16*4(sp)
+	std     itmp3,12*8(sp)            /* registers r14-r31 are callee saved   */
+	stfd	ftmp1,13*8(sp)            /* registers f14-f31 are callee saved   */
+	stfd	ftmp2,14*8(sp)
 
 #if defined(__DARWIN__)
-	stw     t1,18*4(r1)
-	stw     t2,19*4(r1)
-	stw     t3,20*4(r1)
-	stw     t4,21*4(r1)
-	stw     t5,22*4(r1)
-	stw     t6,23*4(r1)
-	stw     t7,24*4(r1)
+	std     t1,15*8(r1)
+	std     t2,16*8(r1)
+	std     t3,17*8(r1)
+	std     t4,18*8(r1)
+	std     t5,19*8(r1)
+	std     t6,20*8(r1)
+	std     t7,21*8(r1)
 
-	stfd	ft0,26*4(r1)
-	stfd	ft1,28*4(r1)
-	stfd	ft2,30*4(r1)
-	stfd	ft3,32*4(r1)
-	stfd	ft4,34*4(r1)
-	stfd	ft5,36*4(r1)
+	stfd	ft0,22*8(r1)
+	stfd	ft1,23*8(r1)
+	stfd	ft2,24*8(r1)
+	stfd	ft3,25*8(r1)
+	stfd	ft4,26*8(r1)
+	stfd	ft5,27*8(r1)
 #else
-	SAVE_TEMPORARY_REGISTERS(18)      /* the offset has to be even            */
+	SAVE_TEMPORARY_REGISTERS(15)      /* the offset has to be even            */
 #endif
 
 	mr      itmp2,a1                  /* arg count                            */
@@ -202,13 +202,16 @@ L_register_handle_int:
 	addis   itmp3,t3,ha16(L_jumptable_int - L_asm_vm_call_method_get_pc)
 	la      itmp3,lo16(L_jumptable_int - L_asm_vm_call_method_get_pc)(itmp3)
 #else
-	lis     itmp3,L_jumptable_int@ha
-	addi    itmp3,itmp3,L_jumptable_int@l
+	lis     itmp3,L_jumptable_int@highest		/* load 64bit address	*/
+	ori	itmp3,itmp3,L_jumptable_int@higher
+	rldicr 	itmp3,itmp3,32,31
+	oris	itmp3,itmp3,L_jumptable_int@h
+	ori	itmp3,itmp3,L_jumptable_int@l
 #endif
 
 	slwi    t2,t6,2                   /* multiple of 4-bytes                  */
 	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	lwz     itmp3,0(itmp3)            /* load function address                */
+	ld     itmp3,0(itmp3)             /* load function address                */
 	mtctr   itmp3
 	addi    t0,t0,1                   /* integer argument counter             */
 	addi    t6,t6,1                   /* integer argument register counter    */
@@ -384,19 +387,22 @@ L_stack_handle_double:
 	b       L_stack_copy_loop
 
 L_stack_copy_done:
-	lwz     itmp1,9*4(s0)             /* pass method pointer via tmp1         */
+	ld      itmp1,9*8(s0)             /* pass method pointer via tmp1         */
 
 #if defined(__DARWIN__)
 	addis   mptr,t3,ha16(L_asm_call_jit_compiler - L_asm_vm_call_method_get_pc)
 	la      mptr,lo16(L_asm_call_jit_compiler - L_asm_vm_call_method_get_pc)(mptr)
 #else
-	lis     mptr,L_asm_call_jit_compiler@ha
-	addi    mptr,mptr,L_asm_call_jit_compiler@l
+	lis     mptr,L_asm_call_jit_compiler@highest	/* load 64bit address	*/
+	ori	mptr,mptr,L_asm_call_jit_compiler@higher
+	rldicr	mptr,mptr,32,31
+	oris	mptr,mptr,L_asm_call_jit_compiler@h
+	ori	mptr,mptr,L_asm_call_jit_compiler@l
 #endif
-	stw     mptr,7*4(s0)
-	addi    mptr,s0,7*4
+	std     mptr,7*8(s0)
+	addi    mptr,s0,7*8
 
-	lwz     pv,0*4(mptr)
+	ld 	pv,0*8(mptr)
 	mtctr   pv
 	bctrl
 1:
@@ -452,7 +458,7 @@ asm_vm_call_method_exception_handler:
 
 
 	.data
-	.align  2
+	.align  4
 
 L_jumptable_int:
 	.quad   L_handle_a0
@@ -465,7 +471,7 @@ L_jumptable_int:
 	.quad   L_handle_a7
 
 	.text
-	.align  2
+	.align  4
 
 L_handle_a0:
 	lwz     a0,offvmargdata+4(itmp1)
@@ -702,8 +708,8 @@ L_handle_fda12:
 asm_call_jit_compiler:
 L_asm_call_jit_compiler:                /* required for PIC code              */
 	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)         /* save return address                */
-	stwu    r1,-(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)(r1)
+	std     r0,LA_LR_OFFSET(r1)         /* save return address                */
+	stdu    r1,-(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)(r1)
 
 #if defined(__DARWIN__)
 	stw     a0,(LA_WORD_SIZE+5+0)*4(r1)
@@ -734,9 +740,10 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 
 	mr      a0,itmp1
 	mr      a1,mptr
-	addi    a2,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
-	lwz     a3,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
+	addi    a2,sp,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)
+	ld      a3,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
 	bl      jit_asm_compile
+	ori	r0,r0,0			    /* nop needed after jump to function desc. */
 	mr      pv,v0                       /* move address to pv register        */
 
 #if defined(__DARWIN__)
@@ -766,10 +773,10 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
 #endif
 
-	lwz     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(r1)
-	mtlr    itmp1
+	ld     itmp1,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)+LA_LR_OFFSET(r1)
+	mtlr   itmp1
 
-	addi    sp,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
+	addi    sp,sp,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)
 
 	mr.     pv,pv                       /* test for exception                 */
 	beq     L_asm_call_jit_compiler_exception
@@ -923,7 +930,7 @@ ex_int1:
 	lwz     s6,-4*4(t0)
 	lwz     s7,-3*4(t0)
 	lwz     s8,-2*4(t0)
-	lwz     s9,-1*4(t0)
+	/*lwz     s9,-1*4(t0) XXX */
 
 ex_int2:
 	subf    t0,t1,t0                    /* t0 = t0 - register count * 4       */
