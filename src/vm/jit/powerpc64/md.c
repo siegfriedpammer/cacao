@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5162 2006-07-19 13:07:00Z tbfg $
+   $Id: md.c 5232 2006-08-11 13:11:44Z tbfg $
 
 */
 
@@ -174,13 +174,13 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
    Machine code:
 
    7d6802a6    mflr    r11
-   39abffe0    addi    r13,r11,-32
+   39cbffe0    addi    r14r11,-32
 
    or
 
    7d6802a6    mflr    r11
-   3dabffff    addis   r13,r11,-1
-   39ad68b0    addi    r13,r13,26800
+   3dcbffff    addis   r14r11,-1
+   39ce68b0    addi    r14,r13,26800
 
 *******************************************************************************/
 
@@ -196,7 +196,7 @@ u1 *md_codegen_findmethod(u1 *ra)
 
 	/* check if we have 2 instructions (addis, addi) */
 
-	if ((mcode >> 16) == 0x3dab) {
+	if ((mcode >> 16) == 0x3dcb) {
 		/* get displacement of first instruction (addis) */
 
 		offset = (s4) (mcode << 16);
@@ -207,14 +207,14 @@ u1 *md_codegen_findmethod(u1 *ra)
 
 		/* check for addi instruction */
 
-		assert((mcode >> 16) == 0x39ad);
+		assert((mcode >> 16) == 0x39ce);
 
 		offset += (s2) (mcode & 0x0000ffff);
 
 	} else {
 		/* check for addi instruction */
 
-		assert((mcode >> 16) == 0x39ab);
+		assert((mcode >> 16) == 0x39cb);
 
 		/* get offset of first instruction (addi) */
 

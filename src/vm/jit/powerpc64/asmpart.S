@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5230 2006-08-10 19:45:28Z tbfg $
+   $Id: asmpart.S 5232 2006-08-11 13:11:44Z tbfg $
 
 */
 
@@ -712,30 +712,30 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	stdu    r1,-(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)(r1)
 
 #if defined(__DARWIN__)
-	stw     a0,(LA_WORD_SIZE+5+0)*4(r1)
-	stw     a1,(LA_WORD_SIZE+5+1)*4(r1)
-	stw     a2,(LA_WORD_SIZE+5+2)*4(r1)
-	stw     a3,(LA_WORD_SIZE+5+3)*4(r1)
-	stw     a4,(LA_WORD_SIZE+5+4)*4(r1)
-	stw     a5,(LA_WORD_SIZE+5+5)*4(r1)
-	stw     a6,(LA_WORD_SIZE+5+6)*4(r1)
-	stw     a7,(LA_WORD_SIZE+5+7)*4(r1)
+	stw     a0,LA_SIZE+(5+0)*8(r1)
+	stw     a1,LA_SIZE+(5+1)*8(r1)
+	stw     a2,LA_SIZE+(5+2)*8(r1)
+	stw     a3,LA_SIZE+(5+3)*8(r1)
+	stw     a4,LA_SIZE+(5+4)*8(r1)
+	stw     a5,LA_SIZE+(5+5)*8(r1)
+	stw     a6,LA_SIZE+(5+6)*8(r1)
+	stw     a7,LA_SIZE+(5+7)*8(r1)
 
-	stfd    fa0,(LA_WORD_SIZE+5+8)*4(r1)
-	stfd    fa1,(LA_WORD_SIZE+5+10)*4(r1)
-	stfd    fa2,(LA_WORD_SIZE+5+12)*4(r1)
-	stfd    fa3,(LA_WORD_SIZE+5+14)*4(r1)
-	stfd    fa4,(LA_WORD_SIZE+5+16)*4(r1)
-	stfd    fa5,(LA_WORD_SIZE+5+18)*4(r1)
-	stfd    fa6,(LA_WORD_SIZE+5+20)*4(r1)
-	stfd    fa7,(LA_WORD_SIZE+5+22)*4(r1)
-	stfd    fa8,(LA_WORD_SIZE+5+24)*4(r1)
-	stfd    fa9,(LA_WORD_SIZE+5+26)*4(r1)
-	stfd    fa10,(LA_WORD_SIZE+5+28)*4(r1)
-	stfd    fa11,(LA_WORD_SIZE+5+30)*4(r1)
-	stfd    fa12,(LA_WORD_SIZE+5+32)*4(r1)
+	stfd    fa0,LA_SIZE+(5+8)*8(r1)
+	stfd    fa1,LA_SIZE+(5+10)*8(r1)
+	stfd    fa2,LA_SIZE+(5+12)*8(r1)
+	stfd    fa3,LA_SIZE+(5+14)*8(r1)
+	stfd    fa4,LA_SIZE+(5+16)*8(r1)
+	stfd    fa5,LA_SIZE+(5+18)*8(r1)
+	stfd    fa6,LA_SIZE+(5+20)*8(r1)
+	stfd    fa7,LA_SIZE+(5+22)*8(r1)
+	stfd    fa8,LA_SIZE+(5+24)*8(r1)
+	stfd    fa9,LA_SIZE+(5+26)*8(r1)
+	stfd    fa10,LA_SIZE+(5+28)*8(r1)
+	stfd    fa11,LA_SIZE+(5+30)*8(r1)
+	stfd    fa12,LA_SIZE+(5+32)*8(r1)
 #else
-	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
+	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1)
 #endif
 
 	mr      a0,itmp1
@@ -747,30 +747,30 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	mr      pv,v0                       /* move address to pv register        */
 
 #if defined(__DARWIN__)
-	lwz     a0,(LA_WORD_SIZE+5+0)*4(r1)
-	lwz     a1,(LA_WORD_SIZE+5+1)*4(r1)
-	lwz     a2,(LA_WORD_SIZE+5+2)*4(r1)
-	lwz     a3,(LA_WORD_SIZE+5+3)*4(r1)
-	lwz     a4,(LA_WORD_SIZE+5+4)*4(r1)
-	lwz     a5,(LA_WORD_SIZE+5+5)*4(r1)
-	lwz     a6,(LA_WORD_SIZE+5+6)*4(r1)
-	lwz     a7,(LA_WORD_SIZE+5+7)*4(r1)
+	lwz     a0,LA_SIZE+(+5+0)*8(r1)
+	lwz     a1,LA_SIZE+(+5+1)*8(r1)
+	lwz     a2,LA_SIZE+(+5+2)*8(r1)
+	lwz     a3,LA_SIZE+(+5+3)*8(r1)
+	lwz     a4,LA_SIZE+(+5+4)*8(r1)
+	lwz     a5,LA_SIZE+(+5+5)*8(r1)
+	lwz     a6,LA_SIZE+(+5+6)*8(r1)
+	lwz     a7,LA_SIZE+(+5+7)*8(r1)
 
-	lfd     fa0,(LA_WORD_SIZE+5+8)*4(r1)
-	lfd     fa1,(LA_WORD_SIZE+5+10)*4(r1)
-	lfd     fa2,(LA_WORD_SIZE+5+12)*4(r1)
-	lfd     fa3,(LA_WORD_SIZE+5+14)*4(r1)
-	lfd     fa4,(LA_WORD_SIZE+5+16)*4(r1)
-	lfd     fa5,(LA_WORD_SIZE+5+18)*4(r1)
-	lfd     fa6,(LA_WORD_SIZE+5+20)*4(r1)
-	lfd     fa7,(LA_WORD_SIZE+5+22)*4(r1)
-	lfd     fa8,(LA_WORD_SIZE+5+24)*4(r1)
-	lfd     fa9,(LA_WORD_SIZE+5+26)*4(r1)
-	lfd     fa10,(LA_WORD_SIZE+5+28)*4(r1)
-	lfd     fa11,(LA_WORD_SIZE+5+30)*4(r1)
-	lfd     fa12,(LA_WORD_SIZE+5+32)*4(r1)
+	lfd     fa0,LA_SIZE+(+5+8)*8(r1)
+	lfd     fa1,LA_SIZE+(+5+10)*8(r1)
+	lfd     fa2,LA_SIZE+(+5+12)*8(r1)
+	lfd     fa3,LA_SIZE+(+5+14)*8(r1)
+	lfd     fa4,LA_SIZE+(+5+16)*8(r1)
+	lfd     fa5,LA_SIZE+(+5+18)*8(r1)
+	lfd     fa6,LA_SIZE+(+5+20)*8(r1)
+	lfd     fa7,LA_SIZE+(+5+22)*8(r1)
+	lfd     fa8,LA_SIZE+(+5+24)*8(r1)
+	lfd     fa9,LA_SIZE+(+5+26)*8(r1)
+	lfd     fa10,LA_SIZE+(+5+28)*8(r1)
+	lfd     fa11,LA_SIZE+(+5+30)*8(r1)
+	lfd     fa12,LA_SIZE+(+5+32)*8(r1)
 #else
-	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
+	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1)
 #endif
 
 	ld     itmp1,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)+LA_LR_OFFSET(r1)
@@ -838,14 +838,14 @@ L_asm_handle_exception:                 /* required for PIC code              */
 	li      a4,1                        /* set maybe-leaf flag                */
 
 L_asm_handle_exception_stack_loop:
-	addi    sp,sp,-(LA_WORD_SIZE+4+5)*4 /* allocate stack                     */
+	addi    sp,sp,-(LA_SIZE_IN_POINTERS+4+5)*8 /* allocate stack                     */
 	stw     xptr,LA_SIZE+4*4(sp)        /* save exception pointer             */
 	stw     xpc,LA_SIZE+5*4(sp)         /* save exception pc                  */
 	stw     pv,LA_SIZE+6*4(sp)          /* save data segment pointer          */
 	mflr    r0                          /* save return address                */
 	stw     r0,LA_SIZE+5*4(sp)
 	add     a3,a3,sp                    /* calculate Java sp into a3...       */
-	addi    a3,a3,(LA_WORD_SIZE+4+5)*4
+	addi    a3,a3,LA_SIZE+(4+5)*8
 	stw     a4,LA_SIZE+8*4(sp)          /* save maybe-leaf flag               */
 
 	mr      a0,xptr                     /* pass exception pointer             */
@@ -863,7 +863,7 @@ L_asm_handle_exception_stack_loop:
 	lwz     r0,LA_SIZE+5*4(sp)          /* restore return address             */
 	mtlr    r0
 	lwz     a4,LA_SIZE+8*4(sp)          /* get maybe-leaf flag                */
-	addi    sp,sp,(LA_WORD_SIZE+4+5)*4  /* free stack frame                   */
+	addi    sp,sp,LA_SIZE+(4+5)*8  /* free stack frame                   */
 
 	mr.     a4,a4
 	beq     L_asm_handle_exception_no_leaf
@@ -881,12 +881,12 @@ L_asm_handle_exception_no_leaf:
 	bctr
 
 L_asm_handle_exception_not_catched:
-	lwz     xptr,LA_SIZE+4*4(sp)        /* restore exception pointer          */
-	lwz     pv,LA_SIZE+6*4(sp)          /* restore data segment pointer       */
-	lwz     r0,LA_SIZE+5*4(sp)          /* restore return address             */
+	lwz     xptr,LA_SIZE+4*8(sp)        /* restore exception pointer          */
+	lwz     pv,LA_SIZE+6*8(sp)          /* restore data segment pointer       */
+	lwz     r0,LA_SIZE+5*8(sp)          /* restore return address             */
 	mtlr    r0
-	lwz     a4,LA_SIZE+8*4(sp)          /* get maybe-leaf flag                */
-	addi    sp,sp,(LA_WORD_SIZE+4+5)*4  /* free stack frame                   */
+	lwz     a4,LA_SIZE+8*8(sp)          /* get maybe-leaf flag                */
+	addi    sp,sp,LA_SIZE+(4+5)*8  /* free stack frame                   */
 
 	mr.     a4,a4
 	beq     L_asm_handle_exception_no_leaf_stack
@@ -1024,47 +1024,47 @@ asm_patcher_wrapper:
 	stwu    sp,-(LA_SIZE+(5+58)*4)(sp)
 
 #if defined(__DARWIN__)
-	stw     a0,LA_SIZE+(5+0)*4(r1)      /* save argument registers            */
-	stw     a1,LA_SIZE+(5+1)*4(r1)      /* preserve linkage area (24 bytes)   */
-	stw     a2,LA_SIZE+(5+2)*4(r1)      /* and 4 bytes for 4 argument         */
-	stw     a3,LA_SIZE+(5+3)*4(r1)
-	stw     a4,LA_SIZE+(5+4)*4(r1)
-	stw     a5,LA_SIZE+(5+5)*4(r1)
-	stw     a6,LA_SIZE+(5+6)*4(r1)
-	stw     a7,LA_SIZE+(5+7)*4(r1)
+	stw     a0,LA_SIZE+(5+0)*8(r1)      /* save argument registers            */
+	stw     a1,LA_SIZE+(5+1)*8(r1)      /* preserve linkage area (24 bytes)   */
+	stw     a2,LA_SIZE+(5+2)*8(r1)      /* and 4 bytes for 4 argument         */
+	stw     a3,LA_SIZE+(5+3)*8(r1)
+	stw     a4,LA_SIZE+(5+4)*8(r1)
+	stw     a5,LA_SIZE+(5+5)*8(r1)
+	stw     a6,LA_SIZE+(5+6)*8(r1)
+	stw     a7,LA_SIZE+(5+7)*8(r1)
 
-	stfd    fa0,LA_SIZE+(5+8)*4(sp)
-	stfd    fa1,LA_SIZE+(5+10)*4(sp)
-	stfd    fa2,LA_SIZE+(5+12)*4(sp)
-	stfd    fa3,LA_SIZE+(5+14)*4(sp)
-	stfd    fa4,LA_SIZE+(5+16)*4(sp)
-	stfd    fa5,LA_SIZE+(5+18)*4(sp)
-	stfd    fa6,LA_SIZE+(5+20)*4(sp)
-	stfd    fa7,LA_SIZE+(5+22)*4(sp)
-	stfd    fa8,LA_SIZE+(5+24)*4(sp)
-	stfd    fa9,LA_SIZE+(5+26)*4(sp)
-	stfd    fa10,LA_SIZE+(5+28)*4(sp)
-	stfd    fa11,LA_SIZE+(5+30)*4(sp)
-	stfd    fa12,LA_SIZE+(5+32)*4(sp)
+	stfd    fa0,LA_SIZE+(5+8)*8(sp)
+	stfd    fa1,LA_SIZE+(5+10)*8(sp)
+	stfd    fa2,LA_SIZE+(5+12)*8(sp)
+	stfd    fa3,LA_SIZE+(5+14)*8(sp)
+	stfd    fa4,LA_SIZE+(5+16)*8(sp)
+	stfd    fa5,LA_SIZE+(5+18)*8(sp)
+	stfd    fa6,LA_SIZE+(5+20)*8(sp)
+	stfd    fa7,LA_SIZE+(5+22)*8(sp)
+	stfd    fa8,LA_SIZE+(5+24)*8(sp)
+	stfd    fa9,LA_SIZE+(5+26)*8(sp)
+	stfd    fa10,LA_SIZE+(5+28)*8(sp)
+	stfd    fa11,LA_SIZE+(5+30)*8(sp)
+	stfd    fa12,LA_SIZE+(5+32)*8(sp)
 
-	stw     t0,(LA_WORD_SIZE+5+33)*4(r1)
-	stw     t1,(LA_WORD_SIZE+5+34)*4(r1)
-	stw     t2,(LA_WORD_SIZE+5+35)*4(r1)
-	stw     t3,(LA_WORD_SIZE+5+36)*4(r1)
-	stw     t4,(LA_WORD_SIZE+5+37)*4(r1)
-	stw     t5,(LA_WORD_SIZE+5+38)*4(r1)
-	stw     t6,(LA_WORD_SIZE+5+39)*4(r1)
-	stw     t7,(LA_WORD_SIZE+5+40)*4(r1)
+	stw     t0,LA_SIZE+(+5+33)*8(r1)
+	stw     t1,LA_SIZE+(+5+34)*8(r1)
+	stw     t2,LA_SIZE+(+5+35)*8(r1)
+	stw     t3,LA_SIZE+(+5+36)*8(r1)
+	stw     t4,LA_SIZE+(+5+37)*8(r1)
+	stw     t5,LA_SIZE+(+5+38)*8(r1)
+	stw     t6,LA_SIZE+(+5+39)*8(r1)
+	stw     t7,LA_SIZE+(+5+40)*8(r1)
 
-	stfd    ft0,(LA_WORD_SIZE+5+42)*4(r1)
-	stfd    ft1,(LA_WORD_SIZE+5+44)*4(r1)
-	stfd    ft2,(LA_WORD_SIZE+5+46)*4(r1)
-	stfd    ft3,(LA_WORD_SIZE+5+48)*4(r1)
-	stfd    ft4,(LA_WORD_SIZE+5+50)*4(r1)
-	stfd    ft5,(LA_WORD_SIZE+5+52)*4(r1)
+	stfd    ft0,LA_SIZE+(+5+42)*8(r1)
+	stfd    ft1,LA_SIZE+(+5+44)*8(r1)
+	stfd    ft2,LA_SIZE+(+5+46)*8(r1)
+	stfd    ft3,LA_SIZE+(+5+48)*8(r1)
+	stfd    ft4,LA_SIZE+(+5+50)*8(r1)
+	stfd    ft5,LA_SIZE+(+5+52)*8(r1)
 #else
-	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1) /* save 8 int/8 float arguments   */
-	SAVE_TEMPORARY_REGISTERS(LA_WORD_SIZE+1+24)
+	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1) /* save 8 int/8 float arguments   */
+	SAVE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+1+24)
 #endif
 
 	stw     itmp1,LA_SIZE+(5+54)*4(sp)
@@ -1078,47 +1078,47 @@ asm_patcher_wrapper:
 	stw     v0,LA_SIZE+(5+57)*4(sp)     /* save return value                  */
 
 #if defined(__DARWIN__)
-	lwz     a0,LA_SIZE+(5+0)*4(r1)
-	lwz     a1,LA_SIZE+(5+1)*4(r1)
-	lwz     a2,LA_SIZE+(5+2)*4(r1)
-	lwz     a3,LA_SIZE+(5+3)*4(r1)
-	lwz     a4,LA_SIZE+(5+4)*4(r1)
-	lwz     a5,LA_SIZE+(5+5)*4(r1)
-	lwz     a6,LA_SIZE+(5+6)*4(r1)
-	lwz     a7,LA_SIZE+(5+7)*4(r1)
+	lwz     a0,LA_SIZE+(5+0)*8(r1)
+	lwz     a1,LA_SIZE+(5+1)*8(r1)
+	lwz     a2,LA_SIZE+(5+2)*8(r1)
+	lwz     a3,LA_SIZE+(5+3)*8(r1)
+	lwz     a4,LA_SIZE+(5+4)*8(r1)
+	lwz     a5,LA_SIZE+(5+5)*8(r1)
+	lwz     a6,LA_SIZE+(5+6)*8(r1)
+	lwz     a7,LA_SIZE+(5+7)*8(r1)
 
-	lfd     fa0,LA_SIZE+(5+8)*4(sp)
-	lfd     fa1,LA_SIZE+(5+10)*4(sp)
-	lfd     fa2,LA_SIZE+(5+12)*4(sp)
-	lfd     fa3,LA_SIZE+(5+14)*4(sp)
-	lfd     fa4,LA_SIZE+(5+16)*4(sp)
-	lfd     fa5,LA_SIZE+(5+18)*4(sp)
-	lfd     fa6,LA_SIZE+(5+20)*4(sp)
-	lfd     fa7,LA_SIZE+(5+22)*4(sp)
-	lfd     fa8,LA_SIZE+(5+24)*4(sp)
-	lfd     fa9,LA_SIZE+(5+26)*4(sp)
-	lfd     fa10,LA_SIZE+(5+28)*4(sp)
-	lfd     fa11,LA_SIZE+(5+30)*4(sp)
-	lfd     fa12,LA_SIZE+(5+32)*4(sp)
+	lfd     fa0,LA_SIZE+(5+8)*8(sp)
+	lfd     fa1,LA_SIZE+(5+10)*8(sp)
+	lfd     fa2,LA_SIZE+(5+12)*8(sp)
+	lfd     fa3,LA_SIZE+(5+14)*8(sp)
+	lfd     fa4,LA_SIZE+(5+16)*8(sp)
+	lfd     fa5,LA_SIZE+(5+18)*8(sp)
+	lfd     fa6,LA_SIZE+(5+20)*8(sp)
+	lfd     fa7,LA_SIZE+(5+22)*8(sp)
+	lfd     fa8,LA_SIZE+(5+24)*8(sp)
+	lfd     fa9,LA_SIZE+(5+26)*8(sp)
+	lfd     fa10,LA_SIZE+(5+28)*8(sp)
+	lfd     fa11,LA_SIZE+(5+30)*8(sp)
+	lfd     fa12,LA_SIZE+(5+32)*8(sp)
 
-	lwz     t0,(LA_WORD_SIZE+5+33)*4(r1)
-	lwz     t1,(LA_WORD_SIZE+5+34)*4(r1)
-	lwz     t2,(LA_WORD_SIZE+5+35)*4(r1)
-	lwz     t3,(LA_WORD_SIZE+5+36)*4(r1)
-	lwz     t4,(LA_WORD_SIZE+5+37)*4(r1)
-	lwz     t5,(LA_WORD_SIZE+5+38)*4(r1)
-	lwz     t6,(LA_WORD_SIZE+5+39)*4(r1)
-	lwz     t7,(LA_WORD_SIZE+5+40)*4(r1)
+	lwz     t0,LA_SIZE+(+5+33)*8(r1)
+	lwz     t1,LA_SIZE+(+5+34)*8(r1)
+	lwz     t2,LA_SIZE+(+5+35)*8(r1)
+	lwz     t3,LA_SIZE+(+5+36)*8(r1)
+	lwz     t4,LA_SIZE+(+5+37)*8(r1)
+	lwz     t5,LA_SIZE+(+5+38)*8(r1)
+	lwz     t6,LA_SIZE+(+5+39)*8(r1)
+	lwz     t7,LA_SIZE+(+5+40)*8(r1)
 
-	lfd     ft0,(LA_WORD_SIZE+5+42)*4(r1)
-	lfd     ft1,(LA_WORD_SIZE+5+44)*4(r1)
-	lfd     ft2,(LA_WORD_SIZE+5+46)*4(r1)
-	lfd     ft3,(LA_WORD_SIZE+5+48)*4(r1)
-	lfd     ft4,(LA_WORD_SIZE+5+50)*4(r1)
-	lfd     ft5,(LA_WORD_SIZE+5+52)*4(r1)
+	lfd     ft0,LA_SIZE+(+5+42)*8(r1)
+	lfd     ft1,LA_SIZE+(+5+44)*8(r1)
+	lfd     ft2,LA_SIZE+(+5+46)*8(r1)
+	lfd     ft3,LA_SIZE+(+5+48)*8(r1)
+	lfd     ft4,LA_SIZE+(+5+50)*8(r1)
+	lfd     ft5,LA_SIZE+(+5+52)*8(r1)
 #else
-	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1) /* restore 8 int/8 float args  */
-	RESTORE_TEMPORARY_REGISTERS(LA_WORD_SIZE+1+24)
+	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1) /* restore 8 int/8 float args  */
+	RESTORE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+1+24)
 #endif
 
 	lwz     itmp1,LA_SIZE+(5+54)*4(sp)
@@ -1126,25 +1126,25 @@ asm_patcher_wrapper:
 	lwz     pv,LA_SIZE+(5+56)*4(sp)
 	lwz     itmp3,LA_SIZE+(5+57)*4(sp)  /* restore return value into temp reg.*/
 
-	lwz     r0,(6+LA_WORD_SIZE+5+58)*4(sp) /* restore RA                      */
+	lwz     r0,LA_SIZE+(6+5+58)*8(sp) /* restore RA                      */
 	mtlr	r0
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
 	bne     L_asm_patcher_wrapper_exception
 
 	                              /* get return address (into JIT code)       */
-	lwz     itmp3,(5+LA_WORD_SIZE+5+58)*4(sp)
+	lwz     itmp3,LA_SIZE+(5+5+58)*8(sp)
 
 	                              /* remove stack frame + patcher stub stack  */
-	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4
+	addi    sp,sp,LA_SIZE+(8+5+58)*8
 
 	mtctr   itmp3
 	bctr                          /* jump to new patched code                 */
 
 L_asm_patcher_wrapper_exception:
 	mr      xptr,itmp3                  /* get exception                      */
-	lwz     xpc,(5+LA_WORD_SIZE+5+58)*4(sp)
-	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4
+	lwz     xpc,LA_SIZE+(5+5+58)*8(sp)
+	addi    sp,sp,LA_SIZE+(8+5+58)*8
 	b       L_asm_handle_exception
 
 

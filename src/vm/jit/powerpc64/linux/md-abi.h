@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 5230 2006-08-10 19:45:28Z tbfg $
+   $Id: md-abi.h 5232 2006-08-11 13:11:44Z tbfg $
 
 */
 
@@ -84,7 +84,7 @@
 
 #define LA_SIZE         48   /* linkage area size                             */
 #define LA_SIZE_ALIGNED 16   /* linkage area size aligned to 16-byte          */
-#define LA_WORD_SIZE     8   /* linkage area size in words: 2 * 8 = 16        */
+#define LA_SIZE_IN_POINTERS	LA_SIZE / SIZEOF_VOID_P   
 
 #define LA_LR_OFFSET    16   /* link register offset in linkage area          */
 

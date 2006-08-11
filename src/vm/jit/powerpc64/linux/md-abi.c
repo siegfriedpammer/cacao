@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5159 2006-07-18 18:38:49Z tbfg $
+   $Id: md-abi.c 5232 2006-08-11 13:11:44Z tbfg $
 
 */
 
@@ -117,7 +117,7 @@ void md_param_alloc(methoddesc *md)
 
 	iarg = 0;
 	farg = 0;
-	stacksize = LA_WORD_SIZE;
+	stacksize = LA_SIZE_IN_POINTERS;
 
 	/* get params field of methoddesc */
 
