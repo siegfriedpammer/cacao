@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5118 2006-07-12 20:27:55Z twisti $
+   $Id: md-abi.c 5231 2006-08-11 10:13:28Z twisti $
 
 */
 
@@ -115,7 +115,7 @@ void md_param_alloc(methoddesc *md)
 
 	iarg = 0;
 	farg = 0;
-	stacksize = LA_WORD_SIZE;
+	stacksize = LA_SIZE_IN_POINTERS;
 
 	/* get params field of methoddesc */
 

@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: reg.c 4959 2006-05-26 12:09:29Z edwin $
+   $Id: reg.c 5231 2006-08-11 10:13:28Z twisti $
 
 */
 
@@ -236,9 +236,9 @@ void reg_setup(jitdata *jd)
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
 	/* 6*4=24 byte linkage area + 8*4=32 byte minimum parameter Area */
-	rd->memuse = LA_WORD_SIZE + INT_ARG_CNT; 
+	rd->memuse = LA_SIZE_IN_POINTERS + INT_ARG_CNT; 
 # else
-	rd->memuse = LA_WORD_SIZE;
+	rd->memuse = LA_SIZE_IN_POINTERS;
 # endif
 #else
 	rd->memuse = 0; /* init to zero -> analyse_stack will set it to a higher  */

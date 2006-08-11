@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 5185 2006-07-28 10:54:47Z twisti $
+   $Id: md-abi.h 5231 2006-08-11 10:13:28Z twisti $
 
 */
 
@@ -90,11 +90,11 @@
 
 /* ABI defines ****************************************************************/
 
-#define LA_SIZE          8   /* linkage area size                             */
-#define LA_SIZE_ALIGNED 16   /* linkage area size aligned to 16-byte          */
-#define LA_WORD_SIZE     2   /* linkage area size in words: 2 * 4 = 8         */
+#define LA_SIZE              8  /* linkage area size                          */
+#define LA_SIZE_ALIGNED     16  /* linkage area size aligned to 16-byte       */
+#define LA_SIZE_IN_POINTERS LA_SIZE / SIZEOF_VOID_P
 
-#define LA_LR_OFFSET     4   /* link register offset in linkage area          */
+#define LA_LR_OFFSET         4  /* link register offset in linkage area       */
 
 /* #define ALIGN_FRAME_SIZE(sp)       (sp) */
 

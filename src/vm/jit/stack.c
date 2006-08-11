@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5221 2006-08-08 13:25:33Z twisti $
+   $Id: stack.c 5231 2006-08-11 10:13:28Z twisti $
 
 */
 
@@ -2615,11 +2615,11 @@ icmd_BUILTIN:
 
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-						if (rd->memuse < (i + INT_ARG_CNT + LA_WORD_SIZE))
-							rd->memuse = i + LA_WORD_SIZE + INT_ARG_CNT;
+						if (rd->memuse < (i + INT_ARG_CNT + LA_SIZE_IN_POINTERS))
+							rd->memuse = i + LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
-						if (rd->memuse < (i + LA_WORD_SIZE + 3))
-							rd->memuse = i + LA_WORD_SIZE + 3;
+						if (rd->memuse < (i + LA_SIZE_IN_POINTERS + 3))
+							rd->memuse = i + LA_SIZE_IN_POINTERS + 3;
 # endif
 #else
 # if defined(__I386__)
@@ -2643,9 +2643,9 @@ icmd_BUILTIN:
 								copy->flags |= INMEMORY;
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-								copy->regoff = i + LA_WORD_SIZE + INT_ARG_CNT;
+								copy->regoff = i + LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
-								copy->regoff = i + LA_WORD_SIZE + 3;
+								copy->regoff = i + LA_SIZE_IN_POINTERS + 3;
 # endif
 #else
 # if defined(__I386__)
@@ -4985,11 +4985,11 @@ bool stack_analyse(jitdata *jd)
 						REQUIRE(i);
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-						if (rd->memuse < (i + INT_ARG_CNT + LA_WORD_SIZE))
-							rd->memuse = i + LA_WORD_SIZE + INT_ARG_CNT;
+						if (rd->memuse < (i + INT_ARG_CNT + LA_SIZE_IN_POINTERS))
+							rd->memuse = i + LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
-						if (rd->memuse < (i + LA_WORD_SIZE + 3))
-							rd->memuse = i + LA_WORD_SIZE + 3;
+						if (rd->memuse < (i + LA_SIZE_IN_POINTERS + 3))
+							rd->memuse = i + LA_SIZE_IN_POINTERS + 3;
 # endif
 #else
 # if defined(__I386__)
@@ -5012,9 +5012,9 @@ bool stack_analyse(jitdata *jd)
 								copy->flags |= INMEMORY;
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-								copy->regoff = i + LA_WORD_SIZE + INT_ARG_CNT;
+								copy->regoff = i + LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
-								copy->regoff = i + LA_WORD_SIZE + 3;
+								copy->regoff = i + LA_SIZE_IN_POINTERS + 3;
 # endif
 #else
 # if defined(__I386__)
