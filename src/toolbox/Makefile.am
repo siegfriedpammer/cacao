@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4627 2006-03-16 12:53:32Z twisti $
+## $Id: Makefile.am 5234 2006-08-14 17:50:12Z christian $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -50,7 +50,11 @@ libtoolbox_la_SOURCES = \
 	tree.c \
 	tree.h \
 	util.c \
-	util.h
+	util.h \
+	bitvector.c \
+	bitvector.h \
+	worklist.c \
+	worklist.h
 
 
 ## Local variables:

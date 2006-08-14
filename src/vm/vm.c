@@ -188,7 +188,7 @@ enum {
 	OPT_IFCONV,
 #endif
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 	OPT_LSRA,
 #endif
 
@@ -279,7 +279,7 @@ opt_struct opts[] = {
 #if defined(ENABLE_IFCONV)
 	{ "ifconv",            false, OPT_IFCONV },
 #endif
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 	{ "lsra",              false, OPT_LSRA },
 #endif
 
@@ -429,6 +429,9 @@ void usage(void)
 #endif
 #if defined(ENABLE_LSRA)
 	puts("    -lsra                    use linear scan register allocation");
+#endif
+#if defined(ENABLE_SSA)
+	puts("    -lsra                    use linear scan register allocation (with SSA)");
 #endif
 
 	/* exit with error code */
@@ -1030,7 +1033,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 #endif
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 		case OPT_LSRA:
 			opt_lsra = true;
 			break;

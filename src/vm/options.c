@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 5206 2006-08-04 14:10:29Z twisti $
+   $Id: options.c 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -131,7 +131,7 @@ bool opt_prof_bb = false;
 bool opt_ifconv = false;
 #endif
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 bool opt_lsra = false;
 #endif
 

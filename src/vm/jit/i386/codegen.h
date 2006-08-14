@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 5109 2006-07-11 19:17:23Z twisti $
+   $Id: codegen.h 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -136,7 +136,17 @@
     } while (0)
 
 
-#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
+#if defined(ENABLE_SSA)
+#define M_COPY(from,to)                                                   \
+        { \
+        if ((ls==NULL) || (to->varkind != TEMPVAR) || \
+                (ls->lifetime[-to->varnum-1].type != -1)) \
+                { _M_COPY(from,to);     } }
+#else
+#define M_COPY(from,to) _M_COPY(from,to);
+#endif
+
+#define _M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
 
 #define ICONST(d,c) \
     do { \

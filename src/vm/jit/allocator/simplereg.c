@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5173 2006-07-25 15:57:11Z twisti $
+   $Id: simplereg.c 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -2010,7 +2010,7 @@ static void allocate_scratch_registers(jitdata *jd)
 					break;
 
 					/* pop 0 push 1 dup */
-					
+
 				case ICMD_DUP:
 					/* src === dst->prev (identical Stackslot Element)     */
 					/* src --> dst       (copied value, take same reg/mem) */
@@ -2133,7 +2133,7 @@ static void allocate_scratch_registers(jitdata *jd)
 					break;
 
 					/* pop 2 push 1 */
-					
+
 				case ICMD_IADD:
 				case ICMD_ISUB:
 				case ICMD_IMUL:
@@ -2346,7 +2346,7 @@ void reg_make_statistics(jitdata *jd)
 		while (bptr != NULL) {
 			if (bptr->flags >= BBREACHED) {
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 			if (!opt_lsra) {
 #endif	
 				/* check for memory moves from interface to BB instack */
@@ -2395,7 +2395,7 @@ void reg_make_statistics(jitdata *jd)
 
 					dst = dst->prev;
 				}
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 			}
 #endif	
 
@@ -2462,6 +2462,9 @@ void reg_make_statistics(jitdata *jd)
 		} /* while blocks */
 		count_interface_size += size_interface; /* accummulate the size of the interface (between bb boundaries) */
 		if (in_register) count_method_in_register++;
+		if (in_register) {
+			printf("INREGISTER: %s%s%s\n",m->class->name->text, m->name->text, m->descriptor->text);
+		}
 }
 #endif /* defined(ENABLE_STATISTICS) */
 

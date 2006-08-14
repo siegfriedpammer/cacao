@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 5206 2006-08-04 14:10:29Z twisti $
+   $Id: options.h 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -143,7 +143,7 @@ extern bool opt_prof_bb;
 extern bool opt_ifconv;
 #endif
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 extern bool opt_lsra;
 #endif
 

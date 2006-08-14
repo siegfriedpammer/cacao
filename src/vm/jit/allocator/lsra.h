@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: lsra.h 4957 2006-05-26 11:48:10Z edwin $
+   $Id: lsra.h 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -38,13 +38,23 @@
 
 #include "config.h"
 
-/* #define LSRA_DEBUG */  /* lsra debug messages */
+#if !defined(NDEBUG)
+# include <assert.h>
+# define LSRA_DEBUG_CHECK
+# define LSRA_DEBUG_VERBOSE
+#endif
+
+#ifdef SSA_DEBUG_CHECK
+# define _LSRA_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
+# define _LSRA_ASSERT(a) assert((a));
+#else
+# define _LSRA_CHECK_BOUNDS(i,l,h)
+# define _LSRA_ASSERT(a)
+#endif
+
+/* #define LSRA_DEBUG  */ /* lsra debug messages */
 /* #define LSRA_SAVEDVAR */
 /* #define LSRA_MEMORY */
-/* #define LSRA_PRINTLIFETIMES */
-/* #define LSRA_USES_REG_RES */ /* is now in i386/codegen.h */
-/*  #define LSRA_TESTLT */
-/* #define LSRA_LEAF */
 #if defined(__I386__) || defined(__X86_64__)
 #define JOIN_DEST_STACK           /* The destination stackslot gets the same  */
         /* register as one of the src stackslots. Important for i386 & X86_64 */
@@ -54,20 +64,9 @@
 #define JOIN_DUP_STACK         /* join "identical" stackslots created by dup* */
 
 #define USAGE_COUNT        /* influence LSRA with usagecount */
+#define USEAGE_COUNT_EXACT /* search all active lifetimes and regard */
+                           /* usage_count */
 #define USAGE_PER_INSTR    /* divide usagecount by lifetimelength */
-
-#ifdef LSRA_DEBUG
-#undef LSRA_LEAF
-#endif
-
-#ifdef LSRA_TESTLT
-#define VS 999999
-#endif
-
-
-#ifdef LSRA_DEBUG
-#define LSRA_PRINTLIFETIMES
-#endif
 
 #define LSRA_BB_IN 3
 #define LSRA_BB_OUT 2
@@ -114,8 +113,8 @@ struct lifetime {
 	struct stackslot *local_ss; /* Stackslots for this Lifetime or NULL ( ==  */
                                 /* "pure" Local Var) */
 	int bb_last_use;
-	int i_last_use;
 	int bb_first_def;
+	int i_last_use;
 	int i_first_def;
 };
 
@@ -193,6 +192,7 @@ struct lsradata {
 	struct lsra_exceptiontable *ex;
 	int v_index;               /* next free index for stack slot lifetimes    */
 	                           /* decrements from -1 */
+	int *icount_block;
 };
 
 struct freemem {

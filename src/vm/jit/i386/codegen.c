@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5228 2006-08-09 15:11:29Z twisti $
+   $Id: codegen.c 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -74,11 +74,12 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 
-#if defined(ENABLE_LSRA)
-# ifdef LSRA_USES_REG_RES
-#  include "vm/jit/i386/icmd_uses_reg_res.inc"
-# endif
+#if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 # include "vm/jit/allocator/lsra.h"
+#endif
+#if defined(ENABLE_SSA)
+# include "vm/jit/optimizing/lsra.h"
+# include "vm/jit/optimizing/ssa.h"
 #endif
 
 
@@ -87,6 +88,13 @@
    Generates machine code.
 
 *******************************************************************************/
+
+#if defined(ENABLE_SSA)
+void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
+			 s4 dst_regoff, s4 dst_flags);
+void codegen_insert_phi_moves(codegendata *cd, registerdata *rd, lsradata *ls,
+							  basicblock *bptr);
+#endif
 
 bool codegen(jitdata *jd)
 {
@@ -106,6 +114,13 @@ bool codegen(jitdata *jd)
 	builtintable_entry *bte;
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
+#if defined(ENABLE_SSA)
+	lsradata *ls;
+	bool last_cmd_was_goto;
+
+	last_cmd_was_goto = false;
+	ls = jd->ls;
+#endif
 
 	/* get required compiler data */
 
@@ -226,6 +241,11 @@ bool codegen(jitdata *jd)
 	stack_off = 0;
  	for (p = 0, l = 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
+#if defined(ENABLE_SSA)
+		if ( ls != NULL ) {
+			l = ls->local_0[p];
+		}
+#endif
  		var = &(rd->locals[l][t]);
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
@@ -233,54 +253,65 @@ bool codegen(jitdata *jd)
  		if (var->type < 0)
 			continue;
 		s1 = md->params[p].regoff;
+
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
 			if (!md->params[p].inmemory) {           /* register arguments    */
 				log_text("integer register argument");
 				assert(0);
 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
 					/* rd->argintregs[md->params[p].regoff -> var->regoff     */
-				} else {                             /* reg arg -> spilled    */
+				} 
+				else {                               /* reg arg -> spilled    */
 					/* rd->argintregs[md->params[p].regoff -> var->regoff * 4 */
 				}
-			} else {                                 /* stack arguments       */
+			} 
+			else {                                   /* stack arguments       */
 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					emit_mov_membase_reg(           /* + 4 for return address */
 					   cd, REG_SP, (stackframesize + s1) * 4 + 4, var->regoff);
 					                                /* + 4 for return address */
-				} else {                             /* stack arg -> spilled  */
+				} 
+				else {                               /* stack arg -> spilled  */
 					if (!IS_2_WORD_TYPE(t)) {
-#if 0
-						emit_mov_membase_reg(       /* + 4 for return address */
-					         cd, REG_SP, (stackframesize + s1) * 4 + 4,
-							 REG_ITMP1);    
-						emit_mov_reg_membase(
-						    cd, REG_ITMP1, REG_SP, var->regoff * 4);
-#else
+#if defined(ENABLE_SSA)
+						/* no copy avoiding by now possible with SSA */
+						if (ls != NULL) {
+							emit_mov_membase_reg(   /* + 4 for return address */
+								 cd, REG_SP, (stackframesize + s1) * 4 + 4,
+								 REG_ITMP1);    
+							emit_mov_reg_membase(
+								 cd, REG_ITMP1, REG_SP, var->regoff * 4);
+						}
+						else 
+#endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
-						var->regoff = stackframesize + s1 + 1;
-#endif
+							var->regoff = stackframesize + s1 + 1;
 
-					} else {
-#if 0
-						emit_mov_membase_reg(       /* + 4 for return address */
-						    cd, REG_SP, (stackframesize + s1) * 4 + 4,
-							REG_ITMP1);
-						emit_mov_reg_membase(
-						    cd, REG_ITMP1, REG_SP, var->regoff * 4);
-						emit_mov_membase_reg(       /* + 4 for return address */
-                            cd, REG_SP, (stackframesize + s1) * 4 + 4 + 4,
-                            REG_ITMP1);             
-						emit_mov_reg_membase(
-					        cd, REG_ITMP1, REG_SP, var->regoff * 4 + 4);
-#else
+					} 
+					else {
+#if defined(ENABLE_SSA)
+						/* no copy avoiding by now possible with SSA */
+						if (ls != NULL) {
+							emit_mov_membase_reg(  /* + 4 for return address */
+								 cd, REG_SP, (stackframesize + s1) * 4 + 4,
+								 REG_ITMP1);
+							emit_mov_reg_membase(
+								 cd, REG_ITMP1, REG_SP, var->regoff * 4);
+							emit_mov_membase_reg(   /* + 4 for return address */
+								  cd, REG_SP, (stackframesize + s1) * 4 + 4 + 4,
+								  REG_ITMP1);             
+							emit_mov_reg_membase(
+								 cd, REG_ITMP1, REG_SP, var->regoff * 4 + 4);
+						}
+						else
+#endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
-						var->regoff = stackframesize + s1 + 1;
-#endif
+							var->regoff = stackframesize + s1 + 1;
 					}
 				}
 			}
-		
-		} else {                                     /* floating args         */
+		}
+		else {                                       /* floating args         */
 			if (!md->params[p].inmemory) {           /* register arguments    */
 				log_text("There are no float argument registers!");
 				assert(0);
@@ -290,7 +321,8 @@ bool codegen(jitdata *jd)
 					/* rd->argfltregs[md->params[p].regoff -> var->regoff * 4 */
 				}
 
-			} else {                                 /* stack arguments       */
+			} 
+			else {                                   /* stack arguments       */
 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (t == TYPE_FLT) {
 						emit_flds_membase(
@@ -298,7 +330,8 @@ bool codegen(jitdata *jd)
 						assert(0);
 /* 						emit_fstp_reg(cd, var->regoff + fpu_st_offset); */
 
-					} else {
+					} 
+					else {
 						emit_fldl_membase(
                             cd, REG_SP, (stackframesize + s1) * 4 + 4);
 						assert(0);
@@ -306,24 +339,28 @@ bool codegen(jitdata *jd)
 					}
 
 				} else {                             /* stack-arg -> spilled  */
-#if 0
-					emit_mov_membase_reg(
-                        cd, REG_SP, (stackframesize + s1) * 4 + 4, REG_ITMP1);
-					emit_mov_reg_membase(
-					    cd, REG_ITMP1, REG_SP, var->regoff * 4);
-					if (t == TYPE_FLT) {
-						emit_flds_membase(
-						    cd, REG_SP, (stackframesize + s1) * 4 + 4);
-						emit_fstps_membase(cd, REG_SP, var->regoff * 4);
-					} else {
-						emit_fldl_membase(
-                            cd, REG_SP, (stackframesize + s1) * 4 + 4);
-						emit_fstpl_membase(cd, REG_SP, var->regoff * 4);
+#if defined(ENABLE_SSA)
+					/* no copy avoiding by now possible with SSA */
+					if (ls != NULL) {
+						emit_mov_membase_reg(
+						 cd, REG_SP, (stackframesize + s1) * 4 + 4, REG_ITMP1);
+						emit_mov_reg_membase(
+ 									 cd, REG_ITMP1, REG_SP, var->regoff * 4);
+						if (t == TYPE_FLT) {
+							emit_flds_membase(
+								  cd, REG_SP, (stackframesize + s1) * 4 + 4);
+							emit_fstps_membase(cd, REG_SP, var->regoff * 4);
+						} 
+						else {
+							emit_fldl_membase(
+								  cd, REG_SP, (stackframesize + s1) * 4 + 4);
+							emit_fstpl_membase(cd, REG_SP, var->regoff * 4);
+						}
 					}
-#else
+					else
+#endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
 						var->regoff = stackframesize + s1 + 1;
-#endif
 				}
 			}
 		}
@@ -427,7 +464,13 @@ bool codegen(jitdata *jd)
 	}
 #endif /* !defined(NDEBUG) */
 
-	}
+	} 
+
+#if defined(ENABLE_SSA)
+	/* with SSA Header is Basic Block 0 - insert phi Moves if necessary */
+	if ( ls != NULL)
+			codegen_insert_phi_moves(cd, rd, ls, ls->basicblocks[0]);
+#endif
 
 	/* end of header generation */
 
@@ -477,24 +520,26 @@ bool codegen(jitdata *jd)
 		}
 #endif
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
+# if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 		if (opt_lsra) {
-			while (src != NULL) {
+# endif
+# if defined(ENABLE_SSA)
+		if (ls != NULL) {
+			last_cmd_was_goto = false;
+# endif
+			if (src != NULL) {
 				len--;
-				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+				if (bptr->type != BBTYPE_STD) {
 					if (!IS_2_WORD_TYPE(src->type)) {
 						if (bptr->type == BBTYPE_SBR) {
-							/* 							d = reg_of_var(m, src, REG_ITMP1); */
 							if (!(src->flags & INMEMORY))
 								d = src->regoff;
 							else
 								d = REG_ITMP1;
-
 							emit_pop_reg(cd, d);
 							emit_store(jd, NULL, src, d);
-
 						} else if (bptr->type == BBTYPE_EXH) {
-							/* 							d = reg_of_var(m, src, REG_ITMP1); */
 							if (!(src->flags & INMEMORY))
 								d = src->regoff;
 							else
@@ -511,8 +556,9 @@ bool codegen(jitdata *jd)
 				src = src->prev;
 			}
 
-		} else {
-#endif
+		} else
+#endif /* defined(ENABLE_LSRA) || defined(ENABLE_SSA) */
+		{
 		while (src != NULL) {
 			len--;
 			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
@@ -521,12 +567,12 @@ bool codegen(jitdata *jd)
 						d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
 						emit_pop_reg(cd, d);
 						emit_store(jd, NULL, src, d);
+
 					} else if (bptr->type == BBTYPE_EXH) {
 						d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 						emit_store(jd, NULL, src, d);
 					}
-
 				} else {
 					log_text("copy interface registers: longs have to be in memory (begin 1)");
 					assert(0);
@@ -574,9 +620,7 @@ bool codegen(jitdata *jd)
 			}
 			src = src->prev;
 		}
-#if defined(ENABLE_LSRA)
 		}
-#endif
 
 		/* walk through all instructions */
 		
@@ -921,7 +965,16 @@ bool codegen(jitdata *jd)
 
 			M_COPY(src,       iptr->dst);
 			M_COPY(src->prev, iptr->dst->prev);
-			M_COPY(iptr->dst, iptr->dst->prev->prev);
+#if defined(ENABLE_SSA)
+			if ((ls==NULL) || (iptr->dst->varkind != TEMPVAR) ||
+				(ls->lifetime[-iptr->dst->varnum-1].type != -1)) {
+#endif
+				M_COPY(iptr->dst, iptr->dst->prev->prev);
+#if defined(ENABLE_SSA)
+			} else {
+				M_COPY(src, iptr->dst->prev->prev);
+			}
+#endif
 			break;
 
 		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
@@ -929,7 +982,16 @@ bool codegen(jitdata *jd)
 			M_COPY(src,             iptr->dst);
 			M_COPY(src->prev,       iptr->dst->prev);
 			M_COPY(src->prev->prev, iptr->dst->prev->prev);
-			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+#if defined(ENABLE_SSA)
+			if ((ls==NULL) || (iptr->dst->varkind != TEMPVAR) ||
+				(ls->lifetime[-iptr->dst->varnum-1].type != -1)) {
+#endif
+				M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+#if defined(ENABLE_SSA)
+			} else {
+				M_COPY(src, iptr->dst->prev->prev->prev);
+			}
+#endif
 			break;
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
@@ -1741,22 +1803,58 @@ bool codegen(jitdata *jd)
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
 
-			var = &(rd->locals[iptr->op1][TYPE_INT]);
-			if (var->flags & INMEMORY) {
-				s1 = REG_ITMP1;
-				M_ILD(s1, REG_SP, var->regoff * 4);
+#if defined(ENABLE_SSA)
+			if ( ls != NULL ) {
+				varinfo      *var_t;
+				/* with SSA in op1 is the source Local Var, in val._i.op1_t  */
+				/* the target Local Var, in val._i.i the constant            */
+				/* val._i.op1_t <- op1 + val._i.i                            */
+
+				
+				var = &(rd->locals[iptr->op1][TYPE_INT]);
+				var_t = &(rd->locals[iptr->val._i.op1_t][TYPE_INT]);
+
+				if (var->flags & INMEMORY) {
+					if (!(var_t->flags & INMEMORY))
+						s1 = var_t->regoff;
+					else
+						s1 = REG_ITMP1;
+					M_ILD(s1, REG_SP, var->regoff * 4);
+				}
+				else 
+					s1 = var->regoff;
+
+				/* `inc reg' is slower on p4's (regarding to ia32
+				   optimization reference manual and benchmarks) and as
+				   fast on athlon's. */
+
+				M_IADD_IMM(iptr->val._i.i, s1);
+
+				if (var_t->flags && INMEMORY)
+					M_IST(s1, REG_SP, var_t->regoff * 4);
+				else if (!(var_t->flags && INMEMORY))
+					M_INTMOVE(s1, var_t->regoff);
+
+			} else
+#endif /* defined(ENABLE_SSA) */
+			{
+				var = &(rd->locals[iptr->op1][TYPE_INT]);
+				if (var->flags & INMEMORY) {
+					s1 = REG_ITMP1;
+					M_ILD(s1, REG_SP, var->regoff * 4);
+				}
+				else 
+					s1 = var->regoff;
+
+				/* `inc reg' is slower on p4's (regarding to ia32
+				   optimization reference manual and benchmarks) and as
+				   fast on athlon's. */
+
+				M_IADD_IMM(iptr->val.i, s1);
+
+				if (var->flags & INMEMORY)
+					M_IST(s1, REG_SP, var->regoff * 4);
 			}
-			else
-				s1 = var->regoff;
-
-			/* `inc reg' is slower on p4's (regarding to ia32
-			   optimization reference manual and benchmarks) and as
-			   fast on athlon's. */
-
-			M_IADD_IMM(iptr->val.i, s1);
-
-			if (var->flags & INMEMORY)
-				M_IST(s1, REG_SP, var->regoff * 4);
 			break;
 
 
@@ -2807,6 +2905,14 @@ bool codegen(jitdata *jd)
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 
+#if defined(ENABLE_SSA)
+			if ( ls != NULL ) {
+				last_cmd_was_goto = true;
+				/* In case of a Goto phimoves have to be inserted before the */
+				/* jump */
+				codegen_insert_phi_moves(cd, rd, ls, bptr);
+			}
+#endif
 			M_JMP_IMM(0);
 			codegen_addreference(cd, (basicblock *) iptr->target);
 			ALIGNCODENOP;
@@ -3564,20 +3670,27 @@ gen_method:
 			/* d contains return type */
 
 			if (d != TYPE_VOID) {
-				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
-					if (IS_2_WORD_TYPE(iptr->dst->type)) {
-						s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT_PACKED);
-						M_LNGMOVE(REG_RESULT_PACKED, s1);
+#if defined(ENABLE_SSA)
+				if ((ls == NULL) || (iptr->dst->varkind != TEMPVAR) ||
+					(ls->lifetime[-iptr->dst->varnum-1].type != -1)) 
+					/* a "living" stackslot */
+#endif
+				{
+					if (IS_INT_LNG_TYPE(iptr->dst->type)) {
+						if (IS_2_WORD_TYPE(iptr->dst->type)) {
+							s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT_PACKED);
+							M_LNGMOVE(REG_RESULT_PACKED, s1);
+						}
+						else {
+							s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
+							M_INTMOVE(REG_RESULT, s1);
+						}
 					}
 					else {
-						s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
-						M_INTMOVE(REG_RESULT, s1);
+						s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 					}
+					emit_store(jd, iptr, iptr->dst, s1);
 				}
-				else {
-					s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
-				}
-				emit_store(jd, iptr, iptr->dst, s1);
 			}
 			break;
 
@@ -4056,8 +4169,16 @@ gen_method:
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 	if (!opt_lsra)
+#endif
+#if defined(ENABLE_SSA)
+	if ( ls != NULL ) {
+		/* by edge splitting, in Blocks with phi moves there can only */
+		/* be a goto as last command, no other Jump/Branch Command    */
+		if (!last_cmd_was_goto)
+			codegen_insert_phi_moves(cd, rd, ls, bptr);
+	} else
 #endif
 	while (src) {
 		len--;
@@ -4272,6 +4393,164 @@ gen_method:
 	return true;
 }
 
+#if defined(ENABLE_SSA)
+void codegen_insert_phi_moves(codegendata *cd, registerdata *rd, lsradata *ls, basicblock *bptr) {
+	/* look for phi moves */
+	int t_a,s_a,i, type;
+	int t_lt, s_lt; /* lifetime indices of phi_moves */
+	bool t_inmemory, s_inmemory;
+	s4 t_regoff, s_regoff, s_flags, t_flags;
+	MCODECHECK(512);
+	
+	/* Moves from phi functions with highest indices have to be */
+	/* inserted first, since this is the order as is used for   */
+	/* conflict resolution */
+	for(i = ls->num_phi_moves[bptr->nr] - 1; i >= 0 ; i--) {
+		t_a = ls->phi_moves[bptr->nr][i][0];
+		s_a = ls->phi_moves[bptr->nr][i][1];
+#if defined(SSA_DEBUG_VERBOSE)
+		if (compileverbose)
+			printf("BB %3i Move %3i <- %3i ",bptr->nr,t_a,s_a);
+#endif
+		if (t_a >= 0) {
+			/* local var lifetimes */
+			t_lt = ls->maxlifetimes + t_a;
+			type = ls->lifetime[t_lt].type;
+		} else {
+			t_lt = -t_a-1;
+			type = ls->lifetime[t_lt].local_ss->s->type;
+			/* stackslot lifetime */
+		}
+		if (type == -1) {
+#if defined(SSA_DEBUG_VERBOSE)
+		if (compileverbose)
+			printf("...returning - phi lifetimes where joined\n");
+#endif
+			return;
+		}
+		if (s_a >= 0) {
+			/* local var lifetimes */
+			s_lt = ls->maxlifetimes + s_a;
+			type = ls->lifetime[s_lt].type;
+		} else {
+			s_lt = -s_a-1;
+			type = ls->lifetime[s_lt].type;
+			/* stackslot lifetime */
+		}
+		if (type == -1) {
+#if defined(SSA_DEBUG_VERBOSE)
+		if (compileverbose)
+			printf("...returning - phi lifetimes where joined\n");
+#endif
+			return;
+		}
+		if (t_a >= 0) {
+
+			t_inmemory = rd->locals[t_a][type].flags & INMEMORY;
+			t_flags = rd->locals[t_a][type].flags;
+			t_regoff = rd->locals[t_a][type].regoff;
+			
+		} else {
+			t_inmemory = ls->lifetime[t_lt].local_ss->s->flags & INMEMORY;
+			t_flags = ls->lifetime[t_lt].local_ss->s->flags;
+			t_regoff = ls->lifetime[t_lt].local_ss->s->regoff;
+		}
+
+		if (s_a >= 0) {
+			/* local var move */
+			
+			s_inmemory = rd->locals[s_a][type].flags & INMEMORY;
+			s_flags = rd->locals[s_a][type].flags;
+			s_regoff = rd->locals[s_a][type].regoff;
+		} else {
+			/* stackslot lifetime */
+			s_inmemory = ls->lifetime[s_lt].local_ss->s->flags & INMEMORY;
+			s_flags = ls->lifetime[s_lt].local_ss->s->flags;
+			s_regoff = ls->lifetime[s_lt].local_ss->s->regoff;
+		}
+		if (type == -1) {
+#if defined(SSA_DEBUG_VERBOSE)
+		if (compileverbose)
+			printf("...returning - phi lifetimes where joined\n");
+#endif
+			return;
+		}
+
+		cg_move(cd, type, s_regoff, s_flags, t_regoff, t_flags);
+
+#if defined(SSA_DEBUG_VERBOSE)
+		if (compileverbose) {
+			if ((t_inmemory) && (s_inmemory)) {
+				/* mem -> mem */
+				printf("M%3i <- M%3i",t_regoff,s_regoff);
+			} else 	if (s_inmemory) {
+				/* mem -> reg */
+				printf("R%3i <- M%3i",t_regoff,s_regoff);
+			} else if (t_inmemory) {
+				/* reg -> mem */
+				printf("M%3i <- R%3i",t_regoff,s_regoff);
+			} else {
+				/* reg -> reg */
+				printf("R%3i <- R%3i",t_regoff,s_regoff);
+			}
+			printf("\n");
+		}
+#endif /* defined(SSA_DEBUG_VERBOSE) */
+	}
+}
+
+void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
+			 s4 dst_regoff, s4 dst_flags) {
+	if ((dst_flags & INMEMORY) && (src_flags & INMEMORY)) {
+		/* mem -> mem */
+		if (dst_regoff != src_regoff) {
+			if (!IS_2_WORD_TYPE(type)) {
+				if (IS_FLT_DBL_TYPE(type)) {
+					emit_flds_membase(cd, REG_SP, src_regoff * 4);
+					emit_fstps_membase(cd, REG_SP, dst_regoff * 4);
+				} else{
+					emit_mov_membase_reg(cd, REG_SP, src_regoff * 4,
+							REG_ITMP1);
+					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, dst_regoff * 4);
+				}
+			} else { /* LONG OR DOUBLE */
+				if (IS_FLT_DBL_TYPE(type)) {
+					emit_fldl_membase( cd, REG_SP, src_regoff * 4);
+					emit_fstpl_membase(cd, REG_SP, dst_regoff * 4);
+				} else {
+					emit_mov_membase_reg(cd, REG_SP, src_regoff * 4,
+							REG_ITMP1);
+					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, dst_regoff * 4);
+					emit_mov_membase_reg(cd, REG_SP, src_regoff * 4 + 4,
+                            REG_ITMP1);             
+					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, 
+							dst_regoff * 4 + 4);
+				}
+			}
+		}
+	} else {
+		if (IS_FLT_DBL_TYPE(type)) {
+			log_text("cg_move: flt/dbl type have to be in memory\n");
+/* 			assert(0); */
+		}
+		if (IS_2_WORD_TYPE(type)) {
+			log_text("cg_move: longs have to be in memory\n");
+/* 			assert(0); */
+		}
+		if (src_flags & INMEMORY) {
+			/* mem -> reg */
+			emit_mov_membase_reg(cd, REG_SP, src_regoff * 4, dst_regoff);
+		} else if (dst_flags & INMEMORY) {
+			/* reg -> mem */
+			emit_mov_reg_membase(cd, src_regoff, REG_SP, dst_regoff * 4);
+		} else {
+			/* reg -> reg */
+			/* only ints can be in regs on i386 */
+			M_INTMOVE(src_regoff,dst_regoff);
+		}
+	}
+}
+#endif /* defined(ENABLE_SSA) */
 
 /* createcompilerstub **********************************************************
 

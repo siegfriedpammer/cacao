@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5226 2006-08-08 19:57:19Z edwin $
+   $Id: jit.c 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -75,9 +75,14 @@
 #include "vm/jit/stack.h"
 
 #include "vm/jit/allocator/simplereg.h"
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 # include "vm/jit/allocator/lsra.h"
 #endif
+#if defined(ENABLE_SSA)
+# include "vm/jit/optimizing/lsra.h"
+# include "vm/jit/optimizing/ssa.h"
+#endif
+
 
 #if defined(ENABLE_IFCONV)
 # include "vm/jit/ifconv/ifconv.h"
@@ -1092,6 +1097,7 @@ char *opcode_names[256] = {
 	"UNDEF251", "UNDEF252", "UNDEF253", "UNDEF254", "UNDEF255"
 };
 
+int op_needs_saved[256];
 
 /* jit_init ********************************************************************
 
@@ -1101,6 +1107,29 @@ char *opcode_names[256] = {
 
 void jit_init(void)
 {
+	s4 i;
+	for( i = 0; i < 256; i++) {
+		op_needs_saved[i] = 0;
+	}
+
+	op_needs_saved[ICMD_AASTORE  ] = 1;
+#if !SUPPORT_DIVISION
+	op_needs_saved[ICMD_IDIV     ] = 1;
+	op_needs_saved[ICMD_IREM     ] = 1;
+#endif
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+	op_needs_saved[ICMD_LDIV     ] = 1;
+	op_needs_saved[ICMD_LREM     ] = 1;
+#endif
+	op_needs_saved[ICMD_CHECKCAST] = 1;
+
+	op_needs_saved[ICMD_BUILTIN        ] = 1;
+	op_needs_saved[ICMD_INVOKESTATIC   ] = 1;
+	op_needs_saved[ICMD_INVOKESPECIAL  ] = 1;
+	op_needs_saved[ICMD_INVOKEVIRTUAL  ] = 1;
+	op_needs_saved[ICMD_INVOKEINTERFACE] = 1;
+	op_needs_saved[ICMD_MULTIANEWARRAY ] = 1;
+
 	/* initialize stack analysis subsystem */
 
 	(void) stack_init();
@@ -1447,6 +1476,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	/* get required compiler data */
 
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
+	jd->ls = NULL;
+#endif
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
@@ -1577,8 +1609,8 @@ static u1 *jit_compile_intern(jitdata *jd)
 # endif
 		DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
 
+#if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 		/* allocate registers */
-# if defined(ENABLE_LSRA)
 		if (opt_lsra) {
 			if (!lsra(jd))
 				return NULL;
@@ -1586,7 +1618,17 @@ static u1 *jit_compile_intern(jitdata *jd)
 			STATISTICS(count_methods_allocated_by_lsra++);
 
 		} else
-# endif /* defined(ENABLE_LSRA) */
+# endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
+#if defined(ENABLE_SSA)
+		/* allocate registers */
+		if ((opt_lsra) && (cd->exceptiontablelength == 0)) {
+			jd->ls = DNEW(lsradata);
+			lsra(jd);
+
+			STATISTICS(count_methods_allocated_by_lsra++);
+
+		} else
+# endif /* defined(ENABLE_SSA) */
 		{
 			STATISTICS(count_locals_conflicts += (cd->maxlocals - 1) * (cd->maxlocals));
 

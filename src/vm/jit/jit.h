@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5217 2006-08-08 12:46:51Z edwin $
+   $Id: jit.h 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -70,9 +70,14 @@ typedef struct insinfo_inline insinfo_inline;
 #if defined(ENABLE_LOOP)
 # include "vm/jit/loop/loop.h"
 #endif
+#if defined(ENABLE_SSA) 
+# include "vm/jit/optimizing/lsra.h"
+#endif
+#if defined(ENABLE_LSRA)
+# include "vm/jit/allocator/lsra.h"
+#endif
 
 #include "vm/jit/verify/typeinfo.h"
-
 
 /* common jit/codegen macros **************************************************/
 
@@ -95,7 +100,9 @@ struct jitdata {
 #if defined(ENABLE_LOOP)
 	loopdata        *ld;
 #endif
-
+#if defined(ENABLE_SSA) || defined(ENABLE_LSRA)
+	lsradata     *ls;
+#endif
 	u4               flags;             /* contains JIT compiler flags        */
 	bool             isleafmethod;      /* does method call subroutines       */
 
@@ -1210,7 +1217,7 @@ extern int jcommandsize[256];
 /***************************** register info block ****************************/
 
 extern int stackreq[256];
-
+extern int op_needs_saved[256]; /* if ICMD needs a SAVEDVAR */
 
 /* function prototypes ********************************************************/
 

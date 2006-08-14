@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5211 2006-08-07 11:12:40Z twisti $
+## $Id: Makefile.am 5234 2006-08-14 17:50:12Z christian $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -100,6 +100,11 @@ SUBDIRS += schedule
 SCHEDULE_LIB = schedule/libschedule.la
 endif
 
+if ENABLE_SSA
+SUBDIRS += optimizing
+OPTIMIZING_LIB = optimizing/liboptimizing.la
+endif
+
 if WITH_BINUTILS_DISASSEMBLER
 DISASS_SOURCES = disass-common.c
 else
@@ -150,9 +155,11 @@ libjit_la_SOURCES += \
 libjit_la_LIBADD = \
 	allocator/liballocator.la \
 	verify/libverify.la \
+	$(ALLOCATOR_LIB) \
 	$(IFCONV_LIB) \
 	$(INLINE_LIB) \
 	$(LOOP_LIB) \
+	$(OPTIMIZING_LIB) \
 	$(PROFILE_LIB) \
 	$(SCHEDULE_LIB) \
 	$(INTRP_LIB) \

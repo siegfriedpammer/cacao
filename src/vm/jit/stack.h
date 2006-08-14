@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5079 2006-07-06 11:36:01Z twisti $
+   $Id: stack.h 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -47,12 +47,6 @@
 
 
 /* macros used internally by analyse_stack ************************************/
-
-#if defined(ENABLE_LSRA)
-# define INC_LIFETIMES(a) { m->maxlifetimes += (a); }
-#else
-# define INC_LIFETIMES(a)
-#endif
 
 /* convenient abbreviations */
 #define CURKIND    curstack->varkind
@@ -148,7 +142,7 @@
 /* ALLOCATING STACK SLOTS                           */
 /*--------------------------------------------------*/
 
-#define NEWSTACK_(s,v,n) \
+#define NEWSTACK(s,v,n) \
     do { \
         new->prev = curstack; \
         new->type = (s); \
@@ -159,12 +153,9 @@
         new++; \
     } while (0)
 
-
 /* Initialize regoff, so -sia can show regnames even before reg.inc */
-/* regs[rd->intregargnum has to be set for this */
-/* new->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }*/
-
-#define NEWSTACK(s,v,n) do { NEWSTACK_(s,v,n); INC_LIFETIMES(1); } while (0)
+/* regs[rd->intregargnum] has to be set for this                    */
+/* new->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }       */
 
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
@@ -376,32 +367,32 @@
 					 } else { \
 						 NEWSTACK(CURTYPE, TEMPVAR, stackdepth); \
 					 } \
-					 SETDST; stackdepth++; INC_LIFETIMES(1);}
+					 SETDST; stackdepth++;}
 #define SWAP        {REQUIRE_2;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
                     curstack=new+1;new+=2;SETDST;}
 #define DUP_X1      {REQUIRE_2;COPY(curstack,new);COPY(curstack,new+2);POPANY;\
                     COPY(curstack,new+1);POPANY;new[0].prev=curstack;\
                     new[1].prev=new;new[2].prev=new+1;\
-                    curstack=new+2;new+=3;SETDST;stackdepth++; INC_LIFETIMES(3);}
+                    curstack=new+2;new+=3;SETDST;stackdepth++;}
 #define DUP2_X1     {REQUIRE_3;COPY(curstack,new+1);COPY(curstack,new+4);POPANY;\
                     COPY(curstack,new);COPY(curstack,new+3);POPANY;\
                     COPY(curstack,new+2);POPANY;new[0].prev=curstack;\
                     new[1].prev=new;new[2].prev=new+1;\
                     new[3].prev=new+2;new[4].prev=new+3;\
-                    curstack=new+4;new+=5;SETDST;stackdepth+=2; INC_LIFETIMES(5);}
+                    curstack=new+4;new+=5;SETDST;stackdepth+=2;}
 #define DUP_X2      {REQUIRE_3;COPY(curstack,new);COPY(curstack,new+3);POPANY;\
                     COPY(curstack,new+2);POPANY;COPY(curstack,new+1);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
                     new[2].prev=new+1;new[3].prev=new+2;\
-                    curstack=new+3;new+=4;SETDST;stackdepth++; INC_LIFETIMES(4);}
+                    curstack=new+3;new+=4;SETDST;stackdepth++;}
 #define DUP2_X2     {REQUIRE_4;COPY(curstack,new+1);COPY(curstack,new+5);POPANY;\
                     COPY(curstack,new);COPY(curstack,new+4);POPANY;\
                     COPY(curstack,new+3);POPANY;COPY(curstack,new+2);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
                     new[2].prev=new+1;new[3].prev=new+2;\
                     new[4].prev=new+3;new[5].prev=new+4;\
-                    curstack=new+5;new+=6;SETDST;stackdepth+=2; INC_LIFETIMES(6);}
+                    curstack=new+5;new+=6;SETDST;stackdepth+=2;}
 
 
 /*--------------------------------------------------*/

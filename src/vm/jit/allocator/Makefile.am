@@ -28,7 +28,7 @@
 ##
 ## Changes: Christian Thalinger
 ##
-## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
+## $Id: Makefile.am 5234 2006-08-14 17:50:12Z christian $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,7 +46,9 @@ liballocator_la_SOURCES = \
 if ENABLE_LSRA
 liballocator_la_SOURCES += \
 	lsra.c \
-	lsra.h
+	lsra.h \
+	liveness.c \
+	liveness.h
 endif		
 
 

@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5175 2006-07-25 18:30:59Z twisti $
+   $Id: global.h 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -57,6 +57,15 @@ typedef unsigned int bool;              /* boolean data type                  */
 #define false        0
 
 
+#if defined(ENABLE_SSA)
+/* immediate to get an addidional target Local Var Index */
+/* for IINC in Combination with SSA */
+struct imm {
+	s4 i;
+	s4 op1_t;
+};
+#endif
+
 /* immediate data union */
 
 typedef union {
@@ -67,6 +76,9 @@ typedef union {
 	void       *a;
 	functionptr fp;
 	u1          b[8];
+#if defined(ENABLE_SSA)
+	struct imm  _i;
+#endif
 } imm_union;
 
 

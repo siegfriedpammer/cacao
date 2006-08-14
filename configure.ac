@@ -578,6 +578,24 @@ if test x"${ENABLE_LOOP}" = "xyes"; then
 fi
 
 
+dnl check if linear scan register allocator(lsra) with SSA should be used
+AC_MSG_CHECKING(whether lsra with ssa should be supported)
+AC_ARG_ENABLE([ssa],
+              [AS_HELP_STRING(--disable-ssa,disable ssa [[default=no]])],
+              [case "${enableval}" in
+                   no) ENABLE_SSA=no;;
+                   *) ENABLE_SSA=yes;;
+               esac],
+              [ENABLE_SSA=no])
+AC_MSG_RESULT(${ENABLE_SSA})
+AM_CONDITIONAL([ENABLE_SSA], test x"${ENABLE_SSA}" = "xyes")
+
+if test x"${ENABLE_SSA}" = "xyes"; then
+    AC_DEFINE([ENABLE_SSA], 1, [enable lsra with ssa])
+    ENABLE_LSRA="no"
+fi
+
+
 dnl check if linear scan register allocator(lsra) should be used
 AC_MSG_CHECKING(whether lsra should be supported)
 AC_ARG_ENABLE([lsra],
@@ -587,9 +605,15 @@ AC_ARG_ENABLE([lsra],
                    *) ENABLE_LSRA=no;;
                esac],
               [ENABLE_LSRA=no])
+   
+if test x"${ENABLE_LSRA}" = "xyes"; then
+    if test x"${ENABLE_SSA}" = "xyes"; then
+        ENABLE_LSRA="no"
+    fi
+fi
 AC_MSG_RESULT(${ENABLE_LSRA})
 AM_CONDITIONAL([ENABLE_LSRA], test x"${ENABLE_LSRA}" = "xyes")
-   
+ 
 if test x"${ENABLE_LSRA}" = "xyes"; then
     AC_DEFINE([ENABLE_LSRA], 1, [enable lsra])
 fi
@@ -842,6 +866,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/mips/Makefile]
 		[src/vm/jit/mips/irix/Makefile]
 		[src/vm/jit/mips/linux/Makefile]
+                [src/vm/jit/optimizing/Makefile]
 		[src/vm/jit/powerpc/Makefile]
 		[src/vm/jit/powerpc/darwin/Makefile]
 		[src/vm/jit/powerpc/linux/Makefile]

@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5231 2006-08-11 10:13:28Z twisti $
+   $Id: stack.c 5234 2006-08-14 17:50:12Z christian $
 
 */
 
@@ -2872,10 +2872,6 @@ bool stack_analyse(jitdata *jd)
 	code = jd->code;
 	cd   = jd->cd;
 	rd   = jd->rd;
-
-#if defined(ENABLE_LSRA)
-	m->maxlifetimes = 0;
-#endif
 
 	last_store = DMNEW(s4 , cd->maxlocals * 5);
 	
