@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5164 2006-07-19 15:54:01Z twisti $
+   $Id: asmpart.S 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -335,7 +335,7 @@ L_asm_handle_exception_stack_loop:
 	ast     zero,4*8(sp)                /* save maybe-leaf flag (cleared)     */
 
 	move    a0,ra                       /* pass return address                */
-	jal     md_codegen_findmethod       /* get PV from RA                     */
+	jal     md_codegen_get_pv_from_pc   /* get PV from RA                     */
 	ast     v0,2*8(sp)                  /* save data segment pointer          */
 
 	ald     a0,0*8(sp)                  /* pass exception pointer             */

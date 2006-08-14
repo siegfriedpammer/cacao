@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5232 2006-08-11 13:11:44Z tbfg $
+   $Id: md.c 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -169,7 +169,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 }
 
 
-/* md_codegen_findmethod *******************************************************
+/* md_codegen_get_pv_from_pc ***************************************************
 
    Machine code:
 
@@ -184,7 +184,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 *******************************************************************************/
 
-u1 *md_codegen_findmethod(u1 *ra)
+u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
 	u1 *pv;
 	u4  mcode;

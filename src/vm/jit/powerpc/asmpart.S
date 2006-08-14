@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5231 2006-08-11 10:13:28Z twisti $
+   $Id: asmpart.S 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -816,7 +816,7 @@ L_asm_handle_nat_exception:             /* required for PIC code              */
 	stw     zero,LA_SIZE+4*8(sp)        /* save maybe-leaf flag (cleared)     */
 
 	mr      a0,r0                       /* pass return address                */
-	bl      md_codegen_findmethod       /* get PV from RA                     */
+	bl      md_codegen_get_pv_from_pc   /* get PV from RA                     */
 	stw     v0,LA_SIZE+2*8(sp)          /* save data segment pointer          */
 
 	lwz     a0,LA_SIZE+0*8(sp)          /* pass exception pointer             */

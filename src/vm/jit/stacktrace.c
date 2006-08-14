@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5088 2006-07-08 20:16:05Z twisti $
+   $Id: stacktrace.c 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -120,12 +120,12 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 	if (pv == NULL) {
 #if defined(ENABLE_INTRP)
 		if (opt_intrp)
-			pv = codegen_findmethod(ra);
+			pv = codegen_get_pv_from_pc(ra);
 		else
 #endif
 			{
 #if defined(ENABLE_JIT)
-				pv = md_codegen_findmethod(ra);
+				pv = md_codegen_get_pv_from_pc(ra);
 #endif
 			}
 	}
@@ -177,7 +177,7 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 		/* if we don't have pv handy */
 
 		if (pv == NULL)
-			pv = codegen_findmethod(ra);
+			pv = codegen_get_pv_from_pc(ra);
 
 	}
 #endif
@@ -225,12 +225,12 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 	if (pv == NULL) {
 #if defined(ENABLE_INTRP)
 		if (opt_intrp)
-			pv = codegen_findmethod(ra);
+			pv = codegen_get_pv_from_pc(ra);
 		else
 #endif
 			{
 #if defined(ENABLE_JIT)
-				pv = md_codegen_findmethod(ra);
+				pv = md_codegen_get_pv_from_pc(ra);
 #endif
 			}
 	}
@@ -885,12 +885,12 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 #if defined(ENABLE_INTRP)
 				if (opt_intrp)
-					pv = codegen_findmethod(ra);
+					pv = codegen_get_pv_from_pc(ra);
 				else
 #endif
 					{
 #if defined(ENABLE_JIT)
-						pv = md_codegen_findmethod(ra);
+						pv = md_codegen_get_pv_from_pc(ra);
 #endif
 					}
 
@@ -974,7 +974,7 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 					   parent method */
 
 #if defined(ENABLE_JIT)
-					pv = md_codegen_findmethod(ra);
+					pv = md_codegen_get_pv_from_pc(ra);
 #endif
 
 					code = *((codeinfo **) (pv + CodeinfoPointer));
@@ -1041,12 +1041,12 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 #if defined(ENABLE_INTRP)
 			if (opt_intrp)
-				pv = codegen_findmethod(ra);
+				pv = codegen_get_pv_from_pc(ra);
 			else
 #endif
 				{
 #if defined(ENABLE_JIT)
-					pv = md_codegen_findmethod(ra);
+					pv = md_codegen_get_pv_from_pc(ra);
 #endif
 				}
 

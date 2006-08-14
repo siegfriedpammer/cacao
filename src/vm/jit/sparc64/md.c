@@ -38,8 +38,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
-/* md_codegen_findmethod *******************************************************
-
+/* md_codegen_get_pv_from_pc ***************************************************
 
    This reconstructs and returns the PV of a method given a return address
    pointer. (basically, same was as the generated code following the jump does)
@@ -52,7 +51,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 *******************************************************************************/
 
-u1 *md_codegen_findmethod(u1 *ra)
+u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
 	u1 *pv;
 	u4  mcode;

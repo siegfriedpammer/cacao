@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5055 2006-06-28 20:33:38Z edwin $
+   $Id: asmpart.c 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -184,7 +184,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
   /* for a description of the stack see IRETURN in java.vmg */
 
   for (; fp != NULL; ) {
-	  u1 *f = codegen_findmethod((u1 *) (ip - 1));
+	  u1 *f = codegen_get_pv_from_pc((u1 *) (ip - 1));
 
 	  /* get methodinfo pointer from method header */
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5201 2006-07-31 20:42:46Z twisti $
+   $Id: patcher.c 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -99,7 +99,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	/* RA is passed as NULL, but the XPC is correct and can be used in
 	   stacktrace_create_extern_stackframeinfo for
-	   md_codegen_findmethod. */
+	   md_codegen_get_pv_from_pc. */
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 8, xpc, xpc);
 

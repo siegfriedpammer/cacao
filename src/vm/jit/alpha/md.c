@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: md.c 4817 2006-04-23 23:03:50Z twisti $
+   $Id: md.c 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -205,7 +205,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 }
 
 
-/* md_codegen_findmethod *******************************************************
+/* md_codegen_get_pv_from_pc ***************************************************
 
    Machine code:
 
@@ -215,7 +215,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 *******************************************************************************/
 
-u1 *md_codegen_findmethod(u1 *ra)
+u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
 	u1 *pv;
 	u4  mcode;
@@ -243,8 +243,8 @@ u1 *md_codegen_findmethod(u1 *ra)
 
 		offset = (s2) (mcode & 0x0000ffff);
 		pv += offset;
-
-	} else {
+	}
+	else {
 		/* get displacement of first instruction (lda) */
 
 		assert((mcode >> 16) == 0x237a);

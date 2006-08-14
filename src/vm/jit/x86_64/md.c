@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5201 2006-07-31 20:42:46Z twisti $
+   $Id: md.c 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -282,20 +282,21 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 }
 
 
-/* md_codegen_findmethod *******************************************************
+/* md_codegen_get_pv_from_pc ***************************************************
 
-   On this architecture just a wrapper function to codegen_findmethod.
+   On this architecture just a wrapper function to
+   codegen_get_pv_from_pc.
 
 *******************************************************************************/
 
-u1 *md_codegen_findmethod(u1 *ra)
+u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
 	u1 *pv;
 
-	/* the the start address of the function which contains this
-       address from the method table */
+	/* Get the start address of the function which contains this
+       address from the method table. */
 
-	pv = codegen_findmethod(ra);
+	pv = codegen_get_pv_from_pc(ra);
 
 	return pv;
 }

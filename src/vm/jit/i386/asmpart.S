@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
+   $Id: asmpart.S 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -324,7 +324,7 @@ L_asm_handle_exception_stack_loop:
 	mov     t0,8*4(sp)                  /* save maybe-leaf flag               */
 
 	mov     xpc,0*4(sp)                 /* pass exception pc                  */
-	call    codegen_findmethod
+	call    codegen_get_pv_from_pc
 	mov     v0,6*4(sp)                  /* save data segment pointer          */
 
 	mov     4*4(sp),itmp3               /* pass exception pointer             */

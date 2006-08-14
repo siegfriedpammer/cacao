@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5186 2006-07-28 13:24:43Z twisti $
+   $Id: codegen-common.h 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -173,7 +173,7 @@ void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
 						 s4 disp);
 
 void codegen_insertmethod(u1 *startpc, u1 *endpc);
-u1 *codegen_findmethod(u1 *pc);
+u1 *codegen_get_pv_from_pc(u1 *pc);
 u1 *codegen_get_pv_from_pc_nocheck(u1 *pc);
 
 void codegen_finish(jitdata *jd);
@@ -206,7 +206,7 @@ void codegen_threadcritstop(codegendata *cd, int offset);
 #endif
 
 /* machine dependent functions */
-u1 *md_codegen_findmethod(u1 *ra);
+u1 *md_codegen_get_pv_from_pc(u1 *ra);
 
 bool codegen(jitdata *jd);
 

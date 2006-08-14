@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
+   $Id: asmpart.S 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -384,7 +384,7 @@ L_asm_handle_exception_stack_loop:
 	mov     t0,4*8(sp)                  /* save maybe-leaf flag               */
 
 	mov     xpc,a0                      /* exception pc                       */
-	call    codegen_findmethod@PLT
+	call    codegen_get_pv_from_pc@PLT
 	mov     v0,2*8(sp)                  /* save data segment pointer          */
         
 	mov     0*8(sp),a0                  /* pass exception pointer             */

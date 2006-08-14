@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5204 2006-08-01 15:51:07Z twisti $
+   $Id: codegen-common.c 5233 2006-08-14 10:59:39Z twisti $
 
 */
 
@@ -517,14 +517,14 @@ void codegen_insertmethod(u1 *startpc, u1 *endpc)
 }
 
 
-/* codegen_findmethod **********************************************************
+/* codegen_get_pv_from_pc ******************************************************
 
    Find the PV for the given PC by searching in the AVL tree of
    methods.
 
 *******************************************************************************/
 
-u1 *codegen_findmethod(u1 *pc)
+u1 *codegen_get_pv_from_pc(u1 *pc)
 {
 	methodtree_element  mtepc;
 	methodtree_element *mte;
