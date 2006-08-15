@@ -540,6 +540,8 @@ void LifenessAnalysis(methodinfo *m, lsradata *ls, graphdata *gd) {
 			if ((lt->def->b_index == use_site->b_index) &&
 				(iindex < 0) &&
 				(iindex <= lt->def->iindex)) {
+				if (iindex == lt->def->iindex) /* check this */
+					continue;
 				/* do normal analysis */
 				/* there is a use in a phi function before def site */
 			} else if (bv_get_bit(use, use_site->b_index)) {
@@ -579,13 +581,18 @@ void LifenessAnalysis(methodinfo *m, lsradata *ls, graphdata *gd) {
 
 				phi = ls->phi[use_site->b_index][-iindex-1];
 				_LT_ASSERT(phi != NULL);
+
+				if (lt->v_index != phi[0]) { /* check this */
+					/* ignore "Self use/def" in phi function */
+					
 				
-				pred = graph_get_first_predecessor(gd, use_site->b_index,
-												   &pred_iter);
-				for(i = 1; (pred != -1); i++,pred = 
-						graph_get_next(&pred_iter))
-					if (lt->v_index == phi[i]) 
-						LifeOutAtBlock(ls, gd, M, pred, lt);
+					pred = graph_get_first_predecessor(gd, use_site->b_index,
+													   &pred_iter);
+					for(i = 1; (pred != -1); i++,pred = 
+							graph_get_next(&pred_iter))
+						if (lt->v_index == phi[i]) 
+							LifeOutAtBlock(ls, gd, M, pred, lt);
+				}
 			} else
 				LifeInAtStatement(ls, gd, M, use_site->b_index, 
 								  iindex, lt);

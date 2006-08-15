@@ -422,7 +422,7 @@ void new_show_method(jitdata *jd, int stage)
 	}
 
 	if (stage >= SHOW_STACK && rd) {
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 	if (!opt_lsra) {
 #endif
 #if defined(ENABLE_INTRP)
@@ -501,7 +501,7 @@ void new_show_method(jitdata *jd, int stage)
 #if defined(ENABLE_INTRP)
 		}
 #endif
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
   	}
 #endif
 	} /* if >= SHOW_STACK */
@@ -655,7 +655,7 @@ void show_method(jitdata *jd)
 	}
 	printf("\n");
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 	if (!opt_lsra) {
 #endif
 #if defined(ENABLE_INTRP)
@@ -732,7 +732,7 @@ void show_method(jitdata *jd)
 #if defined(ENABLE_INTRP)
 		}
 #endif
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
   	}
 #endif
 
@@ -1957,7 +1957,11 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_IINC:
+#if defined(ENABLE_SSA)
+		printf(" %d + %d -> %d", iptr->op1, iptr->val._i.i, iptr->val._i.op1_t);
+#else
 		printf(" %d + %d", iptr->op1, iptr->val.i);
+#endif
 		break;
 
 	case ICMD_IASTORE:

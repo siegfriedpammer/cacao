@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5234 2006-08-14 17:50:12Z christian $
+   $Id: codegen.c 5237 2006-08-15 14:54:25Z christian $
 
 */
 
@@ -1814,15 +1814,17 @@ bool codegen(jitdata *jd)
 				var = &(rd->locals[iptr->op1][TYPE_INT]);
 				var_t = &(rd->locals[iptr->val._i.op1_t][TYPE_INT]);
 
-				if (var->flags & INMEMORY) {
-					if (!(var_t->flags & INMEMORY))
-						s1 = var_t->regoff;
-					else
-						s1 = REG_ITMP1;
-					M_ILD(s1, REG_SP, var->regoff * 4);
-				}
-				else 
-					s1 = var->regoff;
+				/* set s1 to reg of destination or REG_ITMP1 */
+				if (var_t->flags & INMEMORY)
+					s1 = REG_ITMP1;
+				else
+					s1 = var_t->regoff;
+
+				/* move source value to s1 */
+				if (var->flags & INMEMORY)
+					M_ILD( s1, REG_SP, var->regoff * 4);
+				else
+					M_INTMOVE(var->regoff, s1);
 
 				/* `inc reg' is slower on p4's (regarding to ia32
 				   optimization reference manual and benchmarks) and as
@@ -1830,10 +1832,8 @@ bool codegen(jitdata *jd)
 
 				M_IADD_IMM(iptr->val._i.i, s1);
 
-				if (var_t->flags && INMEMORY)
+				if (var_t->flags & INMEMORY)
 					M_IST(s1, REG_SP, var_t->regoff * 4);
-				else if (!(var_t->flags && INMEMORY))
-					M_INTMOVE(s1, var_t->regoff);
 
 			} else
 #endif /* defined(ENABLE_SSA) */
