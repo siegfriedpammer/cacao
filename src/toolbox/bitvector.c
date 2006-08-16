@@ -38,26 +38,51 @@
 
 Bitvector Implementation
 
-
 ******************************************************************************/
 
 #ifdef BV_DEBUG_CHECK
+
   /* Number of ints needed for size bits */
-# define BV_NUM_INTS(size) (((((size) + 7)/ 8) + sizeof(int) - 1) / sizeof(int) + 1)
+
+# define BV_NUM_INTS(size) (((((size) + 7)/ 8) + sizeof(int) - 1)\
+							/ sizeof(int) + 1)
+
   /* Get index in bitvector */
+
 # define BV_INT_INDEX(bit) ( ((bit) / 8) / sizeof(int) + 1)
+
   /* Get bit index inside int */
+
 # define BV_BIT_INDEX(bit, index) ( (bit) - (index - 1) * sizeof(int) * 8 );
+
 #else
+
   /* Number of ints needed for size bits */
+
 # define BV_NUM_INTS(size) (((((size) + 7)/ 8) + sizeof(int) - 1) / sizeof(int))
+
   /* Get index in bitvector */
+
 # define BV_INT_INDEX(bit) ( ((bit) / 8) / sizeof(int) )
+
   /* Get bit index inside int */
+
 # define BV_BIT_INDEX(bit, index) ( (bit) - (index) * sizeof(int) * 8 );
+
 #endif
 
+/************************************************************************
+bv_to_string
 
+Transforms the bitvector bv to a string of 1's and 0's.
+
+IN: bitvector bv      bitvector created with bv_new()
+    int       size    size of bitvector bv 
+
+IN/OUT:   char      *string allocated buffer, at least size + 1 elements
+
+RETURN:pointer to string
+******************************************************************************/
 char *bv_to_string(bitvector bv, char *string, int size) {
 	int i;
 
@@ -73,12 +98,22 @@ char *bv_to_string(bitvector bv, char *string, int size) {
 	return string;
 }
 
-int *bv_new(int size) {
+/******************************************************************************
+bv_new
+
+Creates a new bitvector and initializes all bits to 0.
+
+IN: int       size    size of bitvector bv 
+
+RETURN: bitvector
+
+*******************************************************************************/
+bitvector bv_new(int size) {
 	int i,n;
 	int *bv;
 
 	/* Number of ints needed for size bits */
-/* 	n = (((size+7)/8) + sizeof(int) - 1)/sizeof(int);  */
+    /* n = (((size+7)/8) + sizeof(int) - 1)/sizeof(int);  */
 	n = BV_NUM_INTS(size);
 
 	bv = DMNEW(int, n);
@@ -92,6 +127,16 @@ int *bv_new(int size) {
 	return bv;
 }
 
+/******************************************************************************
+bv_get_bit
+
+Checks if a specific bit of the bitvector is set.
+
+IN:   bitvector bv
+      int       bit    Index of bit to check (0..size( 
+
+RETURN:  bool      true if bit is set otherwise false
+*******************************************************************************/
 bool bv_get_bit(bitvector bv, int bit) {
 	int i, n;
 
@@ -104,6 +149,14 @@ bool bv_get_bit(bitvector bv, int bit) {
 	return (bv[i] & (1<<n));
 }
 
+/******************************************************************************
+bv_set_bit
+
+Sets a specific bit of the bitvector
+
+IN:   bitvector bv
+      int       bit    Index of bit to set (0..size( 
+*******************************************************************************/
 void bv_set_bit(bitvector bv, int bit) {
 	int i, n;
 
@@ -117,6 +170,14 @@ void bv_set_bit(bitvector bv, int bit) {
 	bv[i] |= 1<<n;
 }
 
+/******************************************************************************
+bv_reset_bit
+
+Resets a specific bit of the bitvector
+
+IN:   bitvector bv
+      int       bit    Index of bit to reset (0..size( 
+*******************************************************************************/
 void bv_reset_bit(bitvector bv, int bit) {
 	int i, n;
 
@@ -130,6 +191,14 @@ void bv_reset_bit(bitvector bv, int bit) {
 	bv[i] &= ~(1<<n);
 }
 
+/******************************************************************************
+bv_reset
+
+Resets all bits of the bitvector
+
+IN:   bitvector bv
+      int       size    Size of the bitvector
+*******************************************************************************/
 void bv_reset(bitvector bv, int size) {
 	int i,n;
 
@@ -145,6 +214,16 @@ void bv_reset(bitvector bv, int size) {
 		bv[i] = 0;
 }
 
+/******************************************************************************
+bv_is_empty
+
+Checks if no bits of the bitvector are set == bitvector is "empty"
+
+IN:   bitvector bv
+      int       size    Size of the bitvector
+
+RETURN: bool  return true if bv is empty, false otherwise
+*******************************************************************************/
 bool bv_is_empty(bitvector bv, int size) {
 	int i,n;
 	bool empty;
@@ -163,6 +242,15 @@ bool bv_is_empty(bitvector bv, int size) {
 	return empty;
 }
 
+/******************************************************************************
+bv_copy
+
+Copyes bitvector src to dst
+
+IN:   bitvector dst     bitvector created with bv_new
+      bitvector src     bitvector created with bv_new
+      int       size    Size of the bitvector
+*******************************************************************************/
 void bv_copy(bitvector dst, bitvector src, int size) {
 	int i,n;
 	/* copy the whole bitvector    */
@@ -178,6 +266,17 @@ void bv_copy(bitvector dst, bitvector src, int size) {
 		dst[i] = src[i];
 }
 
+/******************************************************************************
+bv_equal
+
+Compares two  bitvectors
+
+IN:   bitvector s1      bitvector created with bv_new
+      bitvector s2      bitvector created with bv_new
+      int       size    Size of the bitvector
+
+RETURN: bool    true if s1==s1, false otherwise
+*******************************************************************************/
 bool bv_equal(bitvector s1, bitvector s2, int size) {
 	int i,n;
 	int mask;
@@ -218,6 +317,18 @@ bool bv_equal(bitvector s1, bitvector s2, int size) {
 	return equal;
 }
 
+/******************************************************************************
+bv_minus
+
+d = s1 \ s2. ( set minus operator )
+
+IN:    bitvector s1      bitvector created with bv_new
+       bitvector s2      bitvector created with bv_new
+       int       size    Size of the bitvector
+
+IN/OUT:bitvector d       bitvector created with bv_new
+
+*******************************************************************************/
 void bv_minus(bitvector d, bitvector s1, bitvector s2, int size) {
 	int i,n;
     /* d = s1 - s2     */
@@ -233,6 +344,18 @@ void bv_minus(bitvector d, bitvector s1, bitvector s2, int size) {
 		d[i] = s1[i] & (~s2[i]);
 }
 
+/******************************************************************************
+bv_minus
+
+d = s1 "union" s2. ( set union operator )
+
+IN:    bitvector s1      bitvector created with bv_new
+       bitvector s2      bitvector created with bv_new
+       int       size    Size of the bitvector
+
+IN/OUT:bitvector d       bitvector created with bv_new
+
+*******************************************************************************/
 void bv_union(bitvector d, bitvector s1, bitvector s2, int size) {
 	int i,n;
     /* d = s1 union s2 */

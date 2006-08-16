@@ -38,9 +38,18 @@
 
 Worklist Implementation
 
+New Elements (integers) are pushed on a stack and remembered in a
+bitvector, to ensure efficitently uniqueness.
 
 ******************************************************************************/
 
+/*******************************************************************************
+wl_new
+
+IN:     int size    size of worklist
+
+RETURN: worklist *  new worklist
+*******************************************************************************/
 worklist *wl_new(int size) {
 	worklist *w;
 
@@ -54,6 +63,15 @@ worklist *wl_new(int size) {
 	return w;
 }
 
+/*******************************************************************************
+wl_add
+
+Adds the integer element to the worklist, if this value is not already
+in the worklist.
+
+IN:     worklist *w    pointer to worklist created with wl_new
+        int element    integer element to be added
+*******************************************************************************/
 void wl_add(worklist *w, int element) {
 	_WL_CHECK_BOUNDS(element, 0, w->size);
 	if (!bv_get_bit(w->W_bv, element)) {
@@ -63,6 +81,15 @@ void wl_add(worklist *w, int element) {
 	}
 }
 
+/*******************************************************************************
+wl_get
+
+Returns and removes an element from the worklist.
+
+IN:     worklist *w    pointer to worklist created with wl_new
+
+RETURN  int            an element removed from the worklist
+*******************************************************************************/
 int wl_get(worklist *w) {
 	int element;
 
@@ -72,6 +99,15 @@ int wl_get(worklist *w) {
 	return element;
 }
 
+/*******************************************************************************
+wl_is_empty
+
+Checks if the worklist is empty.
+
+IN:     worklist *w    pointer to worklist created with wl_new
+
+RETURN  bool           true if w is empty, false otherwise
+*******************************************************************************/
 bool wl_is_empty(worklist *w) {
 	return (w->W_top == 0);
 }
