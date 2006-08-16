@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5234 2006-08-14 17:50:12Z christian $
+   $Id: stack.c 5244 2006-08-16 12:21:35Z christian $
 
 */
 
@@ -2940,6 +2940,12 @@ bool stack_analyse(jitdata *jd)
 				while (--len >= 0)  {
 					opcode = iptr->opc;
 
+					/* check if ICMD opcode could throw an exception        */
+					/* and if so remember the instruction index in last_pei */
+
+					if (op_data[opcode][PEI])
+						last_pei = bptr->icount - len - 1;
+
 #if defined(USEBUILTINTABLE)
 # if defined(ENABLE_INTRP)
 					if (!opt_intrp) {
@@ -4892,7 +4898,7 @@ bool stack_analyse(jitdata *jd)
 
 					_callhandling:
 
-						last_pei = bptr->icount - len - 1;
+/* 						last_pei = bptr->icount - len - 1; */
 
 						i = md->paramcount;
 
