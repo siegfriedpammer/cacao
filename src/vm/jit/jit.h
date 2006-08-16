@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5234 2006-08-14 17:50:12Z christian $
+   $Id: jit.h 5238 2006-08-16 11:18:05Z christian $
 
 */
 
@@ -1217,7 +1217,14 @@ extern int jcommandsize[256];
 /***************************** register info block ****************************/
 
 extern int stackreq[256];
-extern int op_needs_saved[256]; /* if ICMD needs a SAVEDVAR */
+/* extern int op_needs_saved[256];  */
+/* extern int op_is_pei[256];       */
+#define NEEDS_SAVED  0
+#define PEI          1
+#define OP_DATA_SIZE 2
+extern int op_data[256][OP_DATA_SIZE]; 
+/* [0..255][NEEDS_SAVED] ... if ICMD needs a SAVEDVAR         */
+/* [0..255][PEI]         ... if ICMD could throw an exception */
 
 /* function prototypes ********************************************************/
 

@@ -1051,10 +1051,10 @@ void ssa_print_phi(lsradata *ls, graphdata *gd) {
 	for(i = 0; i < ls->basicblockcount; i++) {
 		for(j = 0; j < ls->max_vars; j++) {
 			if (ls->phi[i][j] != NULL) {
-				printf("BB %3i phi(%3i) = ", i, ls->phi[i][j][0]);
+				printf("BB %3i %3i = phi(", i, ls->phi[i][j][0]);
 				for(k = 1; k <= graph_get_num_predecessor(gd, i); k++)
 					printf("%3i ",ls->phi[i][j][k]);
-				printf("\n");
+				printf(")\n");
 			}
 		}
 	}
@@ -1287,234 +1287,239 @@ void dead_code_elimination(methodinfo *m,registerdata *rd, lsradata *ls, graphda
 
 				for (i = 1;i <= graph_get_num_predecessor(gd, lt->def->b_index);
 					 i++) 
-				{
-					source = ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
-					if ((source != ls->max_vars_with_indices) && 
-						(source != lt->v_index)) {
-						/* phi Argument was not already removed (already in 
-						   because of selfdefinition) */
-						if (source >= 0) {
-							/* Local Var */
-							s_lt = &(ls->lifetime[ls->maxlifetimes + source]);
-						} else {
-							/* Interface Stackslot */
-							s_lt = &(ls->lifetime[-source-1]);
-						}
-						/* remove it */
-						remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
-						/*  put it on the Worklist */
-						if (source >= 0) {
-							/* Local Var */
-							wl_add(W, ls->maxlifetimes + source);
-						} else {
-							/* Interface Stackslot */
-							wl_add(W, -source - 1);
+					{
+						source = ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
+						if ((source != ls->max_vars_with_indices) && 
+							(source != lt->v_index)) {
+							/* phi Argument was not already removed (already in 
+							   because of selfdefinition) */
+							if (source >= 0) {
+								/* Local Var */
+								s_lt = &(ls->lifetime[ls->maxlifetimes + source]);
+							} else {
+								/* Interface Stackslot */
+								s_lt = &(ls->lifetime[-source-1]);
+							}
+							/* remove it */
+							remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
+							/*  put it on the Worklist */
+							if (source >= 0) {
+								/* Local Var */
+								wl_add(W, ls->maxlifetimes + source);
+							} else {
+								/* Interface Stackslot */
+								wl_add(W, -source - 1);
+							}
 						}
 					}
-				}
 				/* now delete phi function itself */
 				ls->phi[lt->def->b_index][-lt->def->iindex-1] = NULL;
 			} else {
 				/* "normal" Use by ICMD */
+				remove_statement = false;
 				if (lt->def->b_index != 0) {
 					/* do not look at artificial block 0 (parameter init) */
 					iptr = ls->basicblocks[lt->def->b_index]->iinstr + 
 						lt->def->iindex;
 
-					/* get src stack */
-					if (lt->def->iindex == 0)
-						src = ls->basicblocks[lt->def->b_index]->instack;
-					else
-						src = (iptr-1)->dst;
+					if (op_data[iptr->opc][PEI])
+						remove_statement = false;
+					/* if ICMD could throw an exception do not remove it! */
+					else {
+						/* get src stack */
+						if (lt->def->iindex == 0)
+							src = ls->basicblocks[lt->def->b_index]->instack;
+						else
+							src = (iptr-1)->dst;
 	 
-					remove_statement = true;
-					/* Statement has side effects? (== ICMD_INVOKE*) */
-					switch (iptr->opc) {
-					case ICMD_INVOKEVIRTUAL:
-					case ICMD_INVOKESPECIAL:
-					case ICMD_INVOKESTATIC:
-					case ICMD_INVOKEINTERFACE:
-					case ICMD_BUILTIN:   
-						/* check if really a side effect is possible */
-					case ICMD_MULTIANEWARRAY: /* here, too */
-						/* side effects by Statement possible -> 
-						   do not remove it */
-						remove_statement = false;
-						break;
+						remove_statement = true;
+						/* Statement has side effects? (== ICMD_INVOKE*) */
+						switch (iptr->opc) {
+						case ICMD_INVOKEVIRTUAL:
+						case ICMD_INVOKESPECIAL:
+						case ICMD_INVOKESTATIC:
+						case ICMD_INVOKEINTERFACE:
+						case ICMD_BUILTIN:   
+							/* check if really a side effect is possible */
+						case ICMD_MULTIANEWARRAY: /* here, too */
+							/* side effects by Statement possible -> 
+							   do not remove it */
+							remove_statement = false;
+							break;
 
-						/* delete use of vars by these statments: */
+							/* delete use of vars by these statments: */
 
-						/* use of iptr->op1 */
-					case ICMD_IINC:
-					case ICMD_ILOAD:
-					case ICMD_LLOAD:
-					case ICMD_FLOAD:
-					case ICMD_DLOAD:
-					case ICMD_ALOAD:
-						s_lt = &(ls->lifetime[ls->maxlifetimes + iptr->op1]);
-						remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
-						/* put it on the Worklist */
-						wl_add(W, ls->maxlifetimes + iptr->op1);
-						break;
+							/* use of iptr->op1 */
+						case ICMD_IINC:
+						case ICMD_ILOAD:
+						case ICMD_LLOAD:
+						case ICMD_FLOAD:
+						case ICMD_DLOAD:
+						case ICMD_ALOAD:
+							s_lt = &(ls->lifetime[ls->maxlifetimes + iptr->op1]);
+							remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
+							/* put it on the Worklist */
+							wl_add(W, ls->maxlifetimes + iptr->op1);
+							break;
 
-						/* remove src->prev and src */
-					case ICMD_IALOAD:
-					case ICMD_LALOAD:
-					case ICMD_FALOAD:
-					case ICMD_DALOAD:
-					case ICMD_AALOAD:
+							/* remove src->prev and src */
+						case ICMD_IALOAD:
+						case ICMD_LALOAD:
+						case ICMD_FALOAD:
+						case ICMD_DALOAD:
+						case ICMD_AALOAD:
 
-					case ICMD_BALOAD:
-					case ICMD_CALOAD:
-					case ICMD_SALOAD:
+						case ICMD_BALOAD:
+						case ICMD_CALOAD:
+						case ICMD_SALOAD:
 
-					case ICMD_LADD:
-					case ICMD_LSUB:
-					case ICMD_LMUL:
+						case ICMD_LADD:
+						case ICMD_LSUB:
+						case ICMD_LMUL:
 
-					case ICMD_LOR:
-					case ICMD_LAND:
-					case ICMD_LXOR:
+						case ICMD_LOR:
+						case ICMD_LAND:
+						case ICMD_LXOR:
 
-					case ICMD_LSHL:
-					case ICMD_LSHR:
-					case ICMD_LUSHR:
+						case ICMD_LSHL:
+						case ICMD_LSHR:
+						case ICMD_LUSHR:
 
-					case ICMD_IADD:
-					case ICMD_IMUL:
+						case ICMD_IADD:
+						case ICMD_IMUL:
 
-					case ICMD_ISHL:
-					case ICMD_ISHR:
-					case ICMD_IUSHR:
-					case ICMD_IAND:
-					case ICMD_IOR:
-					case ICMD_IXOR:
+						case ICMD_ISHL:
+						case ICMD_ISHR:
+						case ICMD_IUSHR:
+						case ICMD_IAND:
+						case ICMD_IOR:
+						case ICMD_IXOR:
 
 
-					case ICMD_FADD:
-					case ICMD_FSUB:
-					case ICMD_FMUL:
+						case ICMD_FADD:
+						case ICMD_FSUB:
+						case ICMD_FMUL:
 
-					case ICMD_DADD:
-					case ICMD_DSUB:
-					case ICMD_DMUL:
-					case ICMD_DDIV:
-					case ICMD_DREM:
-					case ICMD_ISUB:
-					case ICMD_LDIV:
-					case ICMD_LREM:
+						case ICMD_DADD:
+						case ICMD_DSUB:
+						case ICMD_DMUL:
+						case ICMD_DDIV:
+						case ICMD_DREM:
+						case ICMD_ISUB:
+						case ICMD_LDIV:
+						case ICMD_LREM:
 
-					case ICMD_IDIV:
-					case ICMD_IREM:
+						case ICMD_IDIV:
+						case ICMD_IREM:
 
-					case ICMD_FDIV:
-					case ICMD_FREM:
+						case ICMD_FDIV:
+						case ICMD_FREM:
 
-					case ICMD_LCMP:
-					case ICMD_FCMPL:
-					case ICMD_FCMPG:
-					case ICMD_DCMPL:
-					case ICMD_DCMPG:
-						/* Remove src->prev and then "fall through" for removal
-						   of src */
-						s_lt = &(ls->lifetime[-src->prev->varnum-1]);
-						remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
-						/* put it on the Worklist */
-						wl_add(W, -src->prev->varnum - 1);
-						/* remove src */
-					case ICMD_ISTORE:
-					case ICMD_LSTORE:
-					case ICMD_FSTORE:
-					case ICMD_DSTORE:
-					case ICMD_ASTORE:
-					case ICMD_LADDCONST:
-					case ICMD_LSUBCONST:
-					case ICMD_LMULCONST:
-					case ICMD_LMULPOW2:
-					case ICMD_LDIVPOW2:
-					case ICMD_LREMPOW2:
-					case ICMD_LANDCONST:
-					case ICMD_LORCONST:
-					case ICMD_LXORCONST:
-					case ICMD_LSHLCONST:
-					case ICMD_LSHRCONST:
-					case ICMD_LUSHRCONST:
+						case ICMD_LCMP:
+						case ICMD_FCMPL:
+						case ICMD_FCMPG:
+						case ICMD_DCMPL:
+						case ICMD_DCMPG:
+							/* Remove src->prev and then "fall through" for removal
+							   of src */
+							s_lt = &(ls->lifetime[-src->prev->varnum-1]);
+							remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
+							/* put it on the Worklist */
+							wl_add(W, -src->prev->varnum - 1);
+							/* remove src */
+						case ICMD_ISTORE:
+						case ICMD_LSTORE:
+						case ICMD_FSTORE:
+						case ICMD_DSTORE:
+						case ICMD_ASTORE:
+						case ICMD_LADDCONST:
+						case ICMD_LSUBCONST:
+						case ICMD_LMULCONST:
+						case ICMD_LMULPOW2:
+						case ICMD_LDIVPOW2:
+						case ICMD_LREMPOW2:
+						case ICMD_LANDCONST:
+						case ICMD_LORCONST:
+						case ICMD_LXORCONST:
+						case ICMD_LSHLCONST:
+						case ICMD_LSHRCONST:
+						case ICMD_LUSHRCONST:
 
-					case ICMD_IADDCONST:
-					case ICMD_ISUBCONST:
-					case ICMD_IMULCONST:
-					case ICMD_IMULPOW2:
-					case ICMD_IDIVPOW2:
-					case ICMD_IREMPOW2:
-					case ICMD_IANDCONST:
-					case ICMD_IORCONST:
-					case ICMD_IXORCONST:
-					case ICMD_ISHLCONST:
-					case ICMD_ISHRCONST:
-					case ICMD_IUSHRCONST:
+						case ICMD_IADDCONST:
+						case ICMD_ISUBCONST:
+						case ICMD_IMULCONST:
+						case ICMD_IMULPOW2:
+						case ICMD_IDIVPOW2:
+						case ICMD_IREMPOW2:
+						case ICMD_IANDCONST:
+						case ICMD_IORCONST:
+						case ICMD_IXORCONST:
+						case ICMD_ISHLCONST:
+						case ICMD_ISHRCONST:
+						case ICMD_IUSHRCONST:
 
-/* 					case ICMD_IFEQ_ICONST: */
-/* 					case ICMD_IFNE_ICONST: */
-/* 					case ICMD_IFLT_ICONST: */
-/* 					case ICMD_IFGE_ICONST: */
-/* 					case ICMD_IFGT_ICONST: */
-/* 					case ICMD_IFLE_ICONST: */
+							/* 					case ICMD_IFEQ_ICONST: */
+							/* 					case ICMD_IFNE_ICONST: */
+							/* 					case ICMD_IFLT_ICONST: */
+							/* 					case ICMD_IFGE_ICONST: */
+							/* 					case ICMD_IFGT_ICONST: */
+							/* 					case ICMD_IFLE_ICONST: */
 
-					case ICMD_INEG:
-					case ICMD_INT2BYTE:
-					case ICMD_INT2CHAR:
-					case ICMD_INT2SHORT:
-					case ICMD_LNEG:
-					case ICMD_FNEG:
-					case ICMD_DNEG:
+						case ICMD_INEG:
+						case ICMD_INT2BYTE:
+						case ICMD_INT2CHAR:
+						case ICMD_INT2SHORT:
+						case ICMD_LNEG:
+						case ICMD_FNEG:
+						case ICMD_DNEG:
 
-					case ICMD_I2L:
-					case ICMD_I2F:
-					case ICMD_I2D:
-					case ICMD_L2I:
-					case ICMD_L2F:
-					case ICMD_L2D:
-					case ICMD_F2I:
-					case ICMD_F2L:
-					case ICMD_F2D:
-					case ICMD_D2I:
-					case ICMD_D2L:
-					case ICMD_D2F:
-					case ICMD_CHECKCAST:
-					case ICMD_ARRAYLENGTH:
-					case ICMD_INSTANCEOF:
+						case ICMD_I2L:
+						case ICMD_I2F:
+						case ICMD_I2D:
+						case ICMD_L2I:
+						case ICMD_L2F:
+						case ICMD_L2D:
+						case ICMD_F2I:
+						case ICMD_F2L:
+						case ICMD_F2D:
+						case ICMD_D2I:
+						case ICMD_D2L:
+						case ICMD_D2F:
+						case ICMD_CHECKCAST:
+						case ICMD_ARRAYLENGTH:
+						case ICMD_INSTANCEOF:
 
-					case ICMD_NEWARRAY:
-					case ICMD_ANEWARRAY:
+						case ICMD_NEWARRAY:
+						case ICMD_ANEWARRAY:
 
-					case ICMD_GETFIELD:
-						/* Remove src->prev and then "fall through" for removal
-						   of src */
-						s_lt = &(ls->lifetime[-src->varnum-1]);
-						remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
-						/* put it on the Worklist */
-						wl_add(W, -src->varnum - 1);
-						break;
-						/* ignore these for now */
-					case ICMD_DUP:
-					case ICMD_DUP2:
-					case ICMD_DUP_X1:
-					case ICMD_DUP_X2:
-					case ICMD_DUP2_X1:
-					case ICMD_DUP2_X2:
-					case ICMD_SWAP:
+						case ICMD_GETFIELD:
+							/* Remove src->prev and then "fall through" for removal
+							   of src */
+							s_lt = &(ls->lifetime[-src->varnum-1]);
+							remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
+							/* put it on the Worklist */
+							wl_add(W, -src->varnum - 1);
+							break;
+							/* ignore these for now */
+						case ICMD_DUP:
+						case ICMD_DUP2:
+						case ICMD_DUP_X1:
+						case ICMD_DUP_X2:
+						case ICMD_DUP2_X1:
+						case ICMD_DUP2_X2:
+						case ICMD_SWAP:
 #ifdef SSA_DEBUG_VERBOSE
-						if (compileverbose)
-							printf("INFO2: ICMD_DUPX to be removed\n");
+							if (compileverbose)
+								printf("INFO2: ICMD_DUPX to be removed\n");
 #endif
-						/* DUPX has sideefects - cannot be removed, only because
-						   one of the output vars is unused
-						   TODO: extend the dead code elimination, so that all 
-							     output ss are checked*/
-						remove_statement = false;
-						break;
-					} /* switch (iptr->opc) */
-				
+							/* DUPX has sideefects - cannot be removed, only because
+							   one of the output vars is unused
+							   TODO: extend the dead code elimination, so that all 
+							   output ss are checked*/
+							remove_statement = false;
+							break;
+						} /* switch (iptr->opc) */
+					}
 					if (remove_statement) {
 						/* remove statement */
 #ifdef SSA_DEBUG_VERBOSE

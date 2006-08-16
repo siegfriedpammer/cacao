@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5234 2006-08-14 17:50:12Z christian $
+   $Id: jit.c 5238 2006-08-16 11:18:05Z christian $
 
 */
 
@@ -1097,7 +1097,9 @@ char *opcode_names[256] = {
 	"UNDEF251", "UNDEF252", "UNDEF253", "UNDEF254", "UNDEF255"
 };
 
-int op_needs_saved[256];
+int op_data[256][OP_DATA_SIZE];
+/* int op_needs_saved[256]; */
+/* int op_is_pei[256]; */
 
 /* jit_init ********************************************************************
 
@@ -1108,27 +1110,81 @@ int op_needs_saved[256];
 void jit_init(void)
 {
 	s4 i;
+
 	for( i = 0; i < 256; i++) {
-		op_needs_saved[i] = 0;
+		op_data[i][NEEDS_SAVED] = 0;
+		op_data[i][PEI] = 0;
 	}
 
-	op_needs_saved[ICMD_AASTORE  ] = 1;
+	op_data[ICMD_AASTORE  ][NEEDS_SAVED] = 1;
 #if !SUPPORT_DIVISION
-	op_needs_saved[ICMD_IDIV     ] = 1;
-	op_needs_saved[ICMD_IREM     ] = 1;
+	op_data[ICMD_IDIV     ][NEEDS_SAVED] = 1;
+	op_data[ICMD_IREM     ][NEEDS_SAVED] = 1;
 #endif
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
-	op_needs_saved[ICMD_LDIV     ] = 1;
-	op_needs_saved[ICMD_LREM     ] = 1;
+	op_data[ICMD_LDIV     ][NEEDS_SAVED] = 1;
+	op_data[ICMD_LREM     ][NEEDS_SAVED] = 1;
 #endif
-	op_needs_saved[ICMD_CHECKCAST] = 1;
+	op_data[ICMD_CHECKCAST][NEEDS_SAVED] = 1;
 
-	op_needs_saved[ICMD_BUILTIN        ] = 1;
-	op_needs_saved[ICMD_INVOKESTATIC   ] = 1;
-	op_needs_saved[ICMD_INVOKESPECIAL  ] = 1;
-	op_needs_saved[ICMD_INVOKEVIRTUAL  ] = 1;
-	op_needs_saved[ICMD_INVOKEINTERFACE] = 1;
-	op_needs_saved[ICMD_MULTIANEWARRAY ] = 1;
+	op_data[ICMD_BUILTIN        ][NEEDS_SAVED] = 1;
+	op_data[ICMD_INVOKESTATIC   ][NEEDS_SAVED] = 1;
+	op_data[ICMD_INVOKESPECIAL  ][NEEDS_SAVED] = 1;
+	op_data[ICMD_INVOKEVIRTUAL  ][NEEDS_SAVED] = 1;
+	op_data[ICMD_INVOKEINTERFACE][NEEDS_SAVED] = 1;
+	op_data[ICMD_MULTIANEWARRAY ][NEEDS_SAVED] = 1;
+
+	op_data[ICMD_ACONST][PEI] = 1; /* OutOfMemoryError */
+	op_data[ICMD_NEWARRAY][PEI] = 1; /* NegativeArraySizeException,OutOfMemoryError */
+	op_data[ICMD_ANEWARRAY][PEI] = 1; /* NegativeArraySizeException,OutOfMemoryError */
+	op_data[ICMD_MULTIANEWARRAY][PEI] = 1; /* NegativeArraySizeException,OutOfMemoryError */
+	op_data[ICMD_ARRAYLENGTH][PEI] = 1; /* NullPointerException */
+	op_data[ICMD_IALOAD][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_LALOAD][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_FALOAD][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_DALOAD][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_AALOAD][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_BALOAD][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_CALOAD][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_SALOAD][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_IASTORE][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_LASTORE][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_FASTORE][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_DASTORE][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_AASTORE][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	/* ArrayStoreException */
+	op_data[ICMD_BASTORE][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_CASTORE][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+	op_data[ICMD_SASTORE][PEI] = 1; /* NullPointerException, ArrayIndexOutOfBoundsException */
+
+	op_data[ICMD_IDIV][PEI] = 1; /* "/ by Zero" ArithmeticException */
+	op_data[ICMD_LDIV][PEI] = 1; /* "/ by Zero" ArithmeticException */
+	op_data[ICMD_IREM][PEI] = 1; /* "/ by Zero" ArithmeticException */
+	op_data[ICMD_LREM][PEI] = 1; /* "/ by Zero" ArithmeticException */
+
+	op_data[ICMD_PUTFIELD][PEI] = 1; /* NullPointerException, IncompatibleClassChangeError */
+	op_data[ICMD_GETFIELD][PEI] = 1; /* NullPointerException, IncompatibleClassChangeError */
+#if 0
+	op_data[ICMD_PUTFIELDCONST][PEI] = 1; /*NullPointerException, IncompatibleClassChangeError */
+	op_data[ICMD_GETFIELDCONST][PEI] = 1; /*NullPointerException, IncompatibleClassChangeError */
+#endif
+	op_data[ICMD_PUTSTATIC][PEI] = 1; /* IncompatibleClassChangeError */
+	op_data[ICMD_GETSTATIC][PEI] = 1; /* IncompatibleClassChangeError */
+
+	op_data[ICMD_BUILTIN][PEI] = 1; /* ?NullPointerException, StackOverflowError,? * */
+	op_data[ICMD_INVOKEVIRTUAL][PEI] = 1; /* NullPointerException, StackOverflowError, * */
+	op_data[ICMD_INVOKESPECIAL][PEI] = 1; /* NullPointerException, StackOverflowError, * */
+	op_data[ICMD_INVOKESTATIC][PEI] = 1; /* StackOverflowError, * */
+	op_data[ICMD_INVOKEINTERFACE][PEI] = 1; /* NullPointerException, StackOverflowError, * */
+
+	op_data[ICMD_ATHROW][PEI] = 1; /* NullPointerException, * */
+
+	op_data[ICMD_CHECKCAST][PEI] = 1; /* ClassCastException */
+
+	op_data[ICMD_MONITORENTER][PEI] = 1; /* NullPointerException */
+	op_data[ICMD_MONITOREXIT][PEI] = 1; /* NullPointerException */
+
+	op_data[ICMD_CHECKNULL][PEI] = 1; /* NullPointerException */
 
 	/* initialize stack analysis subsystem */
 
