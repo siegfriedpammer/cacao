@@ -1,6 +1,6 @@
 /* src/vm/jit/allocator/lsra.h - linear scan register allocator header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: lsra.h 5234 2006-08-14 17:50:12Z christian $
+   $Id: lsra.h 5240 2006-08-16 11:31:02Z christian $
 
 */
 
