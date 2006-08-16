@@ -1,6 +1,6 @@
-/* src/vm/jit/lsra/ssa.h - static single assignment form header
+/* src/vm/jit/optimizing/ssa.h - static single assignment form header
 
-   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
