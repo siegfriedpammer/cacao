@@ -38,8 +38,15 @@
 
 #if !defined(NDEBUG)
 #include <assert.h>
+
+/* define WL_DEBUG_CHECK to activate the bound checks */
+
 /* #define WL_DEBUG_CHECK */
+
+/* no debug messages implemented till now */
+
 /* #define WL_DEBUG_VERBOSE */
+
 #endif
 
 #if defined(WL_DEBUG_CHECK)
