@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 5233 2006-08-14 10:59:39Z twisti $
+   $Id: asmpart.S 5247 2006-08-17 09:59:26Z twisti $
 
 */
 
@@ -486,14 +486,16 @@ asm_patcher_wrapper:
 	mov     (1+4)*4(sp),itmp2
 
 	mov     0*4(sp),itmp3               /* restore return value               */
-	add     $((6+2+4)*4),sp             /* remove stack frame, keep RA        */
-
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jne     L_asm_patcher_wrapper_exception
+
+	mov     (5+2+4)*4(sp),itmp3         /* restore REG_ITMP3                  */
+	add     $((6+2+4)*4),sp             /* remove stack frame, keep RA        */
 
 	ret                                 /* jump to new patched code           */
 
 L_asm_patcher_wrapper_exception:
+	add     $((6+2+4)*4),sp             /* remove stack frame, keep RA        */
 	mov     itmp3,xptr                  /* get exception                      */
 	pop     xpc                         /* get and remove return address      */
 	jmp     L_asm_handle_exception
