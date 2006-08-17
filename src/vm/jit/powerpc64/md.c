@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: md.c 5248 2006-08-17 17:51:40Z tbfg $
 
 */
 
@@ -88,24 +88,25 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
    INVOKESTATIC/SPECIAL:
 
-   81adffd4    lwz     r13,-44(r13)
-   7da903a6    mtctr   r13
+   e9ceffb8    ld      r14,-72(r14)	
+   7dc903a6    mtctr   r14		
    4e800421    bctrl
 
    INVOKEVIRTUAL:
 
-   81830000    lwz     r12,0(r3)
-   81ac0000    lwz     r13,0(r12)
-   7da903a6    mtctr   r13
-   4e800421    bctrl
+FIXME   81830000    lwz     r12,0(r3)
+   e9cc0000     ld      r14,0(r12)
+   7dc903a6     mtctr   r14
+   4e800421     bctrl
+
 
    INVOKEINTERFACE:
 
-   81830000    lwz     r12,0(r3)
-   818c0000    lwz     r12,0(r12)
-   81ac0000    lwz     r13,0(r12)
-   7da903a6    mtctr   r13
-   4e800421    bctrl
+FIXME   81830000    lwz     r12,0(r3)
+FIXME   818c0000    lwz     r12,0(r12)
+FIXME   81ac0000    lwz     r13,0(r12)
+  7dc903a6    mtctr   r14
+  4e800421    bctrl
 
 *******************************************************************************/
 
@@ -148,12 +149,12 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		/* check for load from PV */
 
-		if ((mcode >> 16) == 0x81ad) {
+		if ((mcode >> 16) == 0xe9ce) {	
 			/* get the final data segment address */
 
 			pa = sfi->pv + offset;
 
-		} else if ((mcode >> 16) == 0x81ac) {
+		} else if ((mcode >> 16) == 0xe9cc) { 
 			/* in this case we use the passed method pointer */
 
 			pa = mptr + offset;

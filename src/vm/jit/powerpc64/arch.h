@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5173 2006-07-25 15:57:11Z twisti $
+   $Id: arch.h 5248 2006-08-17 17:51:40Z tbfg $
 
 */
 
@@ -36,7 +36,7 @@
 #ifndef _ARCH_H
 #define _ARCH_H
 
-#define USE_FAKE_ATOMIC_INSTRUCTIONS 1
+#define USE_FAKE_ATOMIC_INSTRUCTIONS 	0
 
 /* define architecture features ***********************************************/
 
@@ -44,27 +44,27 @@
 
 #define USEBUILTINTABLE
 
-#define SUPPORT_DIVISION                 1
-#define SUPPORT_LONG                     1
-#define SUPPORT_FLOAT                    1
-#define SUPPORT_DOUBLE                   1
+#define SUPPORT_DIVISION                 0
+#define SUPPORT_LONG                     0
+#define SUPPORT_FLOAT                    0
+#define SUPPORT_DOUBLE                   0
 
 #define SUPPORT_FMOD                     0
-#define SUPPORT_FICVT                    1
-#define SUPPORT_IFCVT                    1
+#define SUPPORT_FICVT                    0
+#define SUPPORT_IFCVT                    0
 
-#define SUPPORT_LONG_ADD                 1
-#define SUPPORT_LONG_CMP                 1
-#define SUPPORT_LONG_CMP_CONST           1
-#define SUPPORT_LONG_LOGICAL             1
-#define SUPPORT_LONG_SHIFT               1
-#define SUPPORT_LONG_MUL                 1
-#define SUPPORT_LONG_DIV                 1
-#define SUPPORT_LONG_ICVT                1
-#define SUPPORT_LONG_FCVT                1
+#define SUPPORT_LONG_ADD                 0
+#define SUPPORT_LONG_CMP                 0
+#define SUPPORT_LONG_CMP_CONST           0
+#define SUPPORT_LONG_LOGICAL             0
+#define SUPPORT_LONG_SHIFT               0
+#define SUPPORT_LONG_MUL                 0
+#define SUPPORT_LONG_DIV                 0
+#define SUPPORT_LONG_ICVT                0
+#define SUPPORT_LONG_FCVT                0
 
-#define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
-#define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
+#define SUPPORT_CONST_LOGICAL            0  /* AND, OR, XOR with immediates   */
+#define SUPPORT_CONST_MUL                0  /* mutiply with immediate         */
 
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */

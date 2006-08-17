@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5162 2006-07-19 13:07:00Z tbfg $
+   $Id: codegen.c 5248 2006-08-17 17:51:40Z tbfg $
 
 */
 
@@ -194,16 +194,16 @@ bool codegen(jitdata *jd)
 	}
 
 	if (stackframesize)
-		M_STWU(REG_SP, REG_SP, -stackframesize * 4);
+		M_STDU(REG_SP, REG_SP, -stackframesize * 8);
 
 	/* save return address and used callee saved registers */
 
 	p = stackframesize;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-		p--; M_IST(rd->savintregs[i], REG_SP, p * 4);
+		p--; M_LST(rd->savintregs[i], REG_SP, p * 8);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p -= 2; M_DST(rd->savfltregs[i], REG_SP, p * 4);
+		p --; M_DST(rd->savfltregs[i], REG_SP, p * 8);
 	}
 
 	/* take arguments out of register or stack frame */
@@ -227,7 +227,7 @@ bool codegen(jitdata *jd)
 				s2 = rd->argintregs[s1];
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
-					if (IS_2_WORD_TYPE(t))
+					if (IS_2_WORD_TYPE(t))		/* FIXME, only M_INTMOVE here */
 						M_LNGMOVE(s2, var->regoff);
 					else
 						M_INTMOVE(s2, var->regoff);
@@ -482,7 +482,7 @@ bool codegen(jitdata *jd)
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
 
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			LCONST(d, iptr->val.l);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
@@ -507,7 +507,6 @@ bool codegen(jitdata *jd)
 
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.a = constant                    */
-
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			disp = dseg_addaddress(cd, iptr->val.a);
 
@@ -1992,14 +1991,8 @@ bool codegen(jitdata *jd)
 				M_ILD(d, s1, disp);
 				break;
 			case TYPE_LNG:
-   				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
-				if (GET_HIGH_REG(d) == s1) {
-					M_ILD(GET_LOW_REG(d), s1, disp + 4);
-					M_ILD(GET_HIGH_REG(d), s1, disp);
-				} else {
-					M_ILD(GET_HIGH_REG(d), s1, disp);
-					M_ILD(GET_LOW_REG(d), s1, disp + 4);
-				}
+   				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
+				M_LLD(d, s1, disp);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
@@ -3484,7 +3477,7 @@ gen_method:
 				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 				M_MOV(REG_ITMP1, rd->argintregs[4]);
 
-				M_STWU(REG_SP, REG_SP, -(LA_SIZE + 6 * 4));
+				M_STDU(REG_SP, REG_SP, -(LA_SIZE + 6 * 4));	/* FIXME, changed from M_STWU, but what about *4 in here? and +6? */
 				M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
 
 				M_MTCTR(REG_ITMP3);
@@ -3764,7 +3757,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	M_MFLR(REG_ZERO);
 	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
-	M_STWU(REG_SP, REG_SP, -(stackframesize * 4));
+	M_STDU(REG_SP, REG_SP, -(stackframesize * 8));
 
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		/* parent_argbase == stackframesize * 4 */

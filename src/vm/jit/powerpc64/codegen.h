@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5162 2006-07-19 13:07:00Z tbfg $
+   $Id: codegen.h 5248 2006-08-17 17:51:40Z tbfg $
 
 */
 
@@ -89,17 +89,7 @@
         } \
     } while (0)
 
-#define M_LNGMOVE(a,b) \
-    do { \
-        if (GET_HIGH_REG(a) == GET_LOW_REG(b)) { \
-            assert((GET_LOW_REG(a) != GET_HIGH_REG(b))); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-        } else { \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-        } \
-    } while (0)
+#define M_LNGMOVE(a,b) M_INTMOVE(a,b)
 
 
 /* M_FLTMOVE:
@@ -117,10 +107,7 @@
 
 #define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
 #define ICONST(d,c)                     emit_iconst(cd, (d), (c))
-
-#define LCONST(reg,c) \
-    ICONST(GET_HIGH_REG((reg)), (s4) ((s8) (c) >> 32));	\
-    ICONST(GET_LOW_REG((reg)), (s4) ((s8) (c)));
+#define LCONST(reg,c) 			ICONST(reg,c)
 
 
 #define ALIGNCODENOP \
@@ -226,8 +213,8 @@
 #define M_STFSX(a,b,c)                  M_OP3(31, 663, 0, 0, a, b, c)
 #define M_STFDX(a,b,c)                  M_OP3(31, 727, 0, 0, a, b, c)
 
+/*
 #define M_STWU_INTERN(a,b,disp)         M_OP2_IMM(37,a,b,disp)
-
 #define M_STWU(a,b,disp) \
     do { \
         s4 lo = (disp) & 0x0000ffff; \
@@ -242,6 +229,22 @@
     } while (0)
 
 #define M_STWUX(a,b,c)                  M_OP3(31,183,0,0,a,b,c)
+*/
+
+#define M_STDU_INTERN(a,b,disp)		M_OP2_IMM(62,a,b,(disp)|0x0001)
+#define M_STDU(a,b,disp) \
+    do { \
+        s4 lo = (disp) & 0x0000ffff; \
+        s4 hi = ((disp) >> 16); \
+        if (((disp) >= -32678) && ((disp) <= 32767)) { \
+            M_STDU_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(REG_ZERO,hi,REG_ITMP3); \
+            M_OR_IMM(REG_ITMP3,lo,REG_ITMP3); \
+            M_STDUX(REG_SP,REG_SP,REG_ITMP3); \
+        } \
+    } while (0)
+#define M_STDUX(a,b,c)			M_OP3(31,181,0,0,a,b,c)
 
 #define M_LDAH(a,b,c)                   M_ADDIS(b, c, a)
 #define M_TRAP                          M_OP3(31, 4, 0, 0, 31, 0, 0)
@@ -271,10 +274,10 @@
 #define M_FCMPU(a,b)                    M_OP3(63, 0, 0, 0, 0, a, b)
 #define M_FCMPO(a,b)                    M_OP3(63, 32, 0, 0, 0, a, b)
 
-#define M_BLDU(a,b,c)                   M_OP2_IMM(34, a, b, c)
-#define M_SLDU(a,b,c)                   M_OP2_IMM(40, a, b, c)
+#define M_BLDU(a,b,c)                   M_OP2_IMM(34, a, b, c)	/* LBZ */
+#define M_SLDU(a,b,c)                   M_OP2_IMM(40, a, b, c)	/* LHZ */
 
-#define M_ILD_INTERN(a,b,disp)          M_OP2_IMM(32,a,b,disp)
+#define M_ILD_INTERN(a,b,disp)          M_OP2_IMM(32,a,b,disp)	/* LWZ */
 
 #define M_ILD(a,b,disp) \
     do { \
@@ -288,11 +291,7 @@
         } \
     } while (0)
 
-#define M_LLD_INTERN(a,b,disp) \
-    do { \
-        M_ILD_INTERN(GET_HIGH_REG(a), b, disp); \
-        M_ILD_INTERN(GET_LOW_REG(a), b, disp + 4); \
-    } while (0)
+#define M_LLD_INTERN(a,b,disp) 		M_OP2_IMM(58,a,b,disp)	/* LD */
 
 #define M_LLD(a,b,disp) \
     do { \
@@ -306,13 +305,13 @@
         } \
     } while (0)
 
-#define M_ALD_INTERN(a,b,disp)          M_ILD_INTERN(a,b,disp)
-#define M_ALD(a,b,disp)                 M_ILD(a,b,disp)
+#define M_ALD_INTERN(a,b,disp)          M_LLD_INTERN(a,b,disp)
+#define M_ALD(a,b,disp)                 M_LLD(a,b,disp)
 
-#define M_BST(a,b,c)                    M_OP2_IMM(38, a, b, c)
-#define M_SST(a,b,c)                    M_OP2_IMM(44, a, b, c)
+#define M_BST(a,b,c)                    M_OP2_IMM(38, a, b, c)	/* STB */
+#define M_SST(a,b,c)                    M_OP2_IMM(44, a, b, c)	/* LMW */
 
-#define M_IST_INTERN(a,b,disp)          M_OP2_IMM(36,a,b,disp)
+#define M_IST_INTERN(a,b,disp)          M_OP2_IMM(36,a,b,disp)	/* STW */
 
 /* Stores with displacement overflow should only happen with PUTFIELD
    or on the stack. The PUTFIELD instruction does not use REG_ITMP3
@@ -330,11 +329,7 @@
         } \
     } while (0)
 
-#define M_LST_INTERN(a,b,disp) \
-    do { \
-        M_IST_INTERN(GET_HIGH_REG(a), b, disp); \
-        M_IST_INTERN(GET_LOW_REG(a), b, disp + 4); \
-    } while (0)
+#define M_LST_INTERN(a,b,disp) M_OP2_IMM(62,a,b,disp)	/* STD */
 
 #define M_LST(a,b,disp) \
     do { \
@@ -348,8 +343,8 @@
         } \
     } while (0)
 
-#define M_AST_INTERN(a,b,disp)          M_IST_INTERN(a,b,disp)
-#define M_AST(a,b,disp)                 M_IST(a,b,disp)
+#define M_AST_INTERN(a,b,disp)          M_LST_INTERN(a,b,disp)
+#define M_AST(a,b,disp)                 M_LST(a,b,disp)
 
 #define M_BSEXT(a,b)                    M_OP3(31, 954, 0, 0, a, b, 0)
 #define M_SSEXT(a,b)                    M_OP3(31, 922, 0, 0, a, b, 0)
@@ -401,8 +396,8 @@
         } \
     } while (0)
 
-#define M_FST_INTERN(a,b,disp)          M_OP2_IMM(52,a,b,disp)
-#define M_DST_INTERN(a,b,disp)          M_OP2_IMM(54,a,b,disp)
+#define M_FST_INTERN(a,b,disp)          M_OP2_IMM(52,a,b,disp)	/* STFS */
+#define M_DST_INTERN(a,b,disp)          M_OP2_IMM(54,a,b,disp)	/* STFD */
 
 #define M_FST(a,b,disp) \
     do { \
