@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 5234 2006-08-14 17:50:12Z christian $
+   $Id: options.c 5253 2006-08-18 18:37:19Z tbfg $
 
 */
 
@@ -68,6 +68,7 @@ s4   opt_heapstartsize = 0;     /* initial heap size                          */
 s4   opt_stacksize     = 0;     /* thread stack size                          */
 
 bool opt_verbose = false;
+bool opt_colorverbose = false;	/* use ANSI terminal sequences 		      */
 bool compileall = false;
 
 bool loadverbose = false;
@@ -197,6 +198,10 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 
 			} else {
 				/* parameter and option have no space between */
+
+				/* FIXME: this assumption is plain wrong, hits you if there is a
+				 * parameter with no argument starting with same letter as param with argument
+				 * but named after that one, ouch! */
 
 				size_t l = strlen(opts[i].name);
 

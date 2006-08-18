@@ -167,6 +167,7 @@ enum {
 	OPT_METHOD,
 	OPT_SIGNATURE,
 	OPT_SHOW,
+	OPT_COLORVERBOSE,
 	OPT_ALL,
 
 #if defined(ENABLE_VERIFIER)
@@ -329,6 +330,7 @@ opt_struct opts[] = {
 #endif
 	{ "m",                 true,  OPT_METHOD },
 	{ "s",                 true,  OPT_SHOW },
+	{ "verbosecolor",     false,  OPT_COLORVERBOSE },
 
 	{ NULL,                false, 0 }
 };
@@ -380,6 +382,7 @@ void usage(void)
 	puts("    -v                       write state-information");
 	puts("    -verbose[:call|exception|jit]");
 	puts("                             enable specific verbose output");
+	puts("    -verbosecolor            colored output for ANSI terms");
 #ifdef TYPECHECK_VERBOSE
 	puts("    -verbosetc               write debug messages while typechecking");
 #endif
@@ -857,6 +860,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			}
 			else if (strcmp("exception", opt_arg) == 0)
 				opt_verboseexception = true;
+			break;
+		case OPT_COLORVERBOSE:
+			opt_colorverbose = true;
 			break;
 
 #if defined(ENABLE_VERIFIER) && defined(TYPECHECK_VERBOSE)

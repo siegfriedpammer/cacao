@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 5038 2006-06-19 22:22:34Z twisti $
+   $Id: method.c 5253 2006-08-18 18:37:19Z tbfg $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/method.h"
+#include "vm/options.h"
 #include "vm/jit/methodheader.h"
 
 
@@ -212,7 +213,9 @@ void method_print(methodinfo *m)
 #if !defined(NDEBUG)
 void method_println(methodinfo *m)
 {
+	if (opt_colorverbose) printf("\033[31m");	/* red */
 	method_print(m);
+	if (opt_colorverbose) printf("\033[m");	
 	printf("\n");
 }
 #endif /* !defined(NDEBUG) */

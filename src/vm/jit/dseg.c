@@ -31,7 +31,7 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 5186 2006-07-28 13:24:43Z twisti $
+   $Id: dseg.c 5253 2006-08-18 18:37:19Z tbfg $
 
 */
 
@@ -40,10 +40,12 @@
 
 #include <assert.h>
 
+#include "vm/options.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
 #include "vm/jit/codegen-common.h"
+
 
 
 /* dseg_finish *****************************************************************
@@ -799,6 +801,7 @@ void dseg_display(jitdata *jd)
 
 	s4ptr = (s4 *) (ptrint) code->mcode;
 
+	if (opt_colorverbose) printf("\033[34m");	/* blue */
 	printf("  --- dump of datasegment\n");
 
 	for (i = cd->dseglen; i > 0 ; i -= 4) {
@@ -813,6 +816,7 @@ void dseg_display(jitdata *jd)
 	}
 
 	printf("  --- begin of data segment: %p\n", (void *) s4ptr);
+	if (opt_colorverbose) printf("\033[m");
 }
 #endif /* !defined(NDEBUG) */
 
