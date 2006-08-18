@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc64/linux/md-os.c - machine dependent PowerPC Linux functions
+/* src/vm/jit/powerpc64/linux/md-os.c - machine dependent PowerPC64 Linux functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 5081 2006-07-06 13:59:01Z tbfg $
+   $Id: md-os.c 5249 2006-08-18 10:22:17Z tbfg $
 
 */
 
@@ -65,11 +65,6 @@
 
 *******************************************************************************/
 
-void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p) {}
-void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p) {}
-void thread_restartcriticalsection(ucontext_t *_uc) {}
-
-#if 0
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t  *_uc;
@@ -83,28 +78,29 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	u1          *xpc;
 
  	_uc = (ucontext_t *) _p;
- 	_mc = _uc->uc_mcontext.uc_regs;
+ 	_mc = &(_uc->uc_mcontext);
+	
 
-	instr = *((u4 *) _mc->gregs[PT_NIP]);
+	instr = *((u4 *) _mc->gp_regs[PT_NIP]);
 	reg = (instr >> 16) & 0x1f;
-	addr = _mc->gregs[reg];
+	addr = _mc->gp_regs[reg];
 
 	if (addr == 0) {
-		pv  = (u1 *) _mc->gregs[REG_PV];
-		sp  = (u1 *) _mc->gregs[REG_SP];
-		ra  = (u1 *) _mc->gregs[PT_LNK];         /* this is correct for leafs */
-		xpc = (u1 *) _mc->gregs[PT_NIP];
+		pv  = (u1 *) _mc->gp_regs[REG_PV];
+		sp  = (u1 *) _mc->gp_regs[REG_SP];
+		ra  = (u1 *) _mc->gp_regs[PT_LNK];         /* this is correct for leafs */
+		xpc = (u1 *) _mc->gp_regs[PT_NIP];
 
-		_mc->gregs[REG_ITMP1_XPTR] =
+		_mc->gp_regs[REG_ITMP1_XPTR] =
 			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
-		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
-		_mc->gregs[PT_NIP] = (ptrint) asm_handle_exception;
+		_mc->gp_regs[REG_ITMP2_XPC] = (ptrint) xpc;
+		_mc->gp_regs[PT_NIP] = (ptrint) asm_handle_exception;
 
 	} else {
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Segmentation fault: 0x%08lx at 0x%08lx",
-								   addr, _mc->gregs[PT_NIP]);
+								   addr, _mc->gp_regs[PT_NIP]);
 	}		
 }
 
@@ -125,9 +121,9 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	tobj = THREADOBJECT;
 
  	_uc = (ucontext_t *) _p;
- 	_mc = _uc->uc_mcontext.uc_regs;
+ 	_mc = &(_uc->uc_mcontext);
 
-	pc = (u1 *) _mc->gregs[PT_NIP];
+	pc = (u1 *) _mc->gp_regs[PT_NIP];
 
 	tobj->pc = pc;
 }
@@ -140,18 +136,17 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 	u1         *pc;
 	void       *critical;
 
-	_mc = _uc->uc_mcontext.uc_regs;
+	_mc = &(_uc->uc_mcontext);
 
-	pc = (u1 *) _mc->gregs[PT_NIP];
+	pc = (u1 *) _mc->gp_regs[PT_NIP];
 
 	critical = critical_find_restart_point(pc);
 
 	if (critical)
-		_mc->gregs[PT_NIP] = (ptrint) critical;
+		_mc->gp_regs[PT_NIP] = (ptrint) critical;
 }
 #endif
 
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
