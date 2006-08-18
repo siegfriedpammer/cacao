@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 5123 2006-07-12 21:45:34Z twisti $
+   $Id: builtintable.inc 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
@@ -53,29 +53,49 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		ICMD_F2L,
 		BUILTIN_f2l,
-		"(F)J",
+		NULL,
 		"f2l",
+		"(F)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_D2L,
 		BUILTIN_d2l,
-		"(D)J",
+		NULL,
 		"d2l",
+		"(D)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_F2I,
 		BUILTIN_f2i,
-		"(F)I",
+		NULL,
 		"f2i",
+		"(F)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_D2I,
 		BUILTIN_d2i,
-		"(D)I",
+		NULL,
 		"d2i",
+		"(D)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -84,15 +104,25 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		ICMD_IDIV,
 		BUILTIN_idiv,
-		"(II)I",
+		NULL,
 		"idiv",
+		"(II)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_IREM,
 		BUILTIN_irem,
-		"(II)I",
+		NULL,
 		"irem",
+		"(II)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -101,15 +131,25 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		ICMD_LDIV,
 		BUILTIN_ldiv,
-		"(JJ)J",
+		NULL,
 		"ldiv",
+		"(JJ)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_LREM,
 		BUILTIN_lrem,
-		"(JJ)J",
+		NULL,
 		"lrem",
+		"(JJ)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -117,15 +157,25 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		ICMD_FREM,
 		BUILTIN_frem,
-		"(FF)F",
+		NULL,
 		"frem",
+		"(FF)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_DREM,
 		BUILTIN_drem,
-		"(DD)D",
+		NULL,
 		"drem",
+		"(DD)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 
@@ -135,92 +185,157 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		ICMD_NEW,
 		BUILTIN_new,
-		"(Ljava/lang/Class;)Ljava/lang/Object;",
+		NULL,
 		"new",
+		"(Ljava/lang/Class;)Ljava/lang/Object;",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_ANEWARRAY,
 		BUILTIN_newarray,
-        "(ILjava/lang/Class;)[Ljava/lang/Object;",
+		NULL,
 		"newarray",
+        "(ILjava/lang/Class;)[Ljava/lang/Object;",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_NEWARRAY,
 		BUILTIN_newarray_boolean,
-		"(I)[Z",
+		NULL,
 		"newarray_boolean",
+		"(I)[Z",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_NEWARRAY,
 		BUILTIN_newarray_byte,
-		"(I)[B",
+		NULL,
 		"newarray_byte",
+		"(I)[B",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_NEWARRAY,
 		BUILTIN_newarray_char,
-		"(I)[C",
+		NULL,
 		"newarray_char",
+		"(I)[C",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_NEWARRAY,
 		BUILTIN_newarray_short,
-		"(I)[S",
+		NULL,
 		"newarray_short",
+		"(I)[S",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_NEWARRAY,
 		BUILTIN_newarray_int,
-		"(I)[I",
+		NULL,
 		"newarray_int",
+		"(I)[I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_NEWARRAY,
 		BUILTIN_newarray_long,
-		"(I)[J",
+		NULL,
 		"newarray_long",
+		"(I)[J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_NEWARRAY,
 		BUILTIN_newarray_float,
-		"(I)[F",
+		NULL,
 		"newarray_float",
+		"(I)[F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_NEWARRAY,
 		BUILTIN_newarray_double,
-		"(I)[D",
+		NULL,
 		"newarray_double",
+		"(I)[D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_CHECKCAST,
 		BUILTIN_arraycheckcast,
-		"([Ljava/lang/Object;[Ljava/lang/Object;)[Ljava/lang/Object;",
+		NULL,
 		"arraycheckcast",
+		"([Ljava/lang/Object;[Ljava/lang/Object;)[Ljava/lang/Object;",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_INSTANCEOF,
 		BUILTIN_arrayinstanceof,
-		"([Ljava/lang/Object;[Ljava/lang/Object;)I",
+		NULL,
 		"arrayinstanceof",
+		"([Ljava/lang/Object;[Ljava/lang/Object;)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_AASTORE,
 		BUILTIN_canstore,
-		"([Ljava/lang/Object;Ljava/lang/Object;)I",
+		NULL,
 		"canstore",
+		"([Ljava/lang/Object;Ljava/lang/Object;)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 
@@ -228,18 +343,44 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		ICMD_MONITORENTER,
 		LOCK_monitor_enter,
-		"(Ljava/lang/Object;)V",
+		NULL,
 		"monitorenter",
+		"(Ljava/lang/Object;)V",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_MONITOREXIT,
 		LOCK_monitor_exit,
-		"(Ljava/lang/Object;)V",
+		NULL,
 		"monitorexit",
+		"(Ljava/lang/Object;)V",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
+
+
+	/* stop entry */
+
+	{
+		255,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		false,
+		NULL
+	},
 };
 
 
@@ -251,8 +392,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_LCMP,
 		BUILTIN_lcmp,
-		"(JJ)I",
+		NULL,
 		"lcmp",
+		"(JJ)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -261,22 +407,37 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_LAND,
 		BUILTIN_land,
-		"(JJ)J",
+		NULL,
 		"land",
+		"(JJ)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_LOR,
 		BUILTIN_lor,
-		"(JJ)J",
+		NULL,
 		"lor",
+		"(JJ)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_LXOR,
 		BUILTIN_lxor,
-		"(JJ)J",
+		NULL,
 		"lxor",
+		"(JJ)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif /* !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL) */
@@ -285,22 +446,37 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_LSHL,
 		BUILTIN_lshl,
-		"(JI)J",
+		NULL,
 		"lshl",
+		"(JI)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_LSHR,
 		BUILTIN_lshr,
-		"(JI)J",
+		NULL,
 		"lshr",
+		"(JI)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_LUSHR,
 		BUILTIN_lushr,
-		"(JI)J",
+		NULL,
 		"lushr",
+		"(JI)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif /* !(SUPPORT_LONG && SUPPORT_LONG_SHIFT) */
@@ -309,22 +485,37 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_LADD,
 		BUILTIN_ladd,
-		"(JJ)J",
+		NULL,
 		"ladd",
+		"(JJ)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_LSUB,
 		BUILTIN_lsub,
-		"(JJ)J",
+		NULL,
 		"lsub",
+		"(JJ)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_LNEG,
 		BUILTIN_lneg,
-		"(J)J",
+		NULL,
 		"lneg",
+		"(J)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif /* !(SUPPORT_LONG && SUPPORT_LONG_ADD) */
@@ -333,8 +524,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_LMUL,
 		BUILTIN_lmul,
-		"(JJ)J",
+		NULL,
 		"lmul",
+		"(JJ)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -343,8 +539,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_I2F,
 		BUILTIN_i2f,
-		"(I)F",
+		NULL,
 		"i2f",
+		"(I)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -353,8 +554,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_I2D,
 		BUILTIN_i2d,
-		"(I)D",
+		NULL,
 		"i2d",
+		"(I)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -363,8 +569,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_L2F,
 		BUILTIN_l2f,
-		"(J)F",
+		NULL,
 		"l2f",
+		"(J)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -373,8 +584,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_L2D,
 		BUILTIN_l2d,
-		"(J)D",
+		NULL,
 		"l2d",
+		"(J)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -383,8 +599,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_F2I,
 		BUILTIN_f2i,
-		"(F)I",
+		NULL,
 		"f2i",
+		"(F)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -393,8 +614,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_F2L,
 		BUILTIN_f2l,
-		"(F)J",
+		NULL,
 		"f2l",
+		"(F)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -403,8 +629,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_D2I,
 		BUILTIN_d2i,
-		"(D)I",
+		NULL,
 		"d2i",
+		"(D)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -413,8 +644,13 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_D2L,
 		BUILTIN_d2l,
-		"(D)J",
+		NULL,
 		"d2l",
+		"(D)J",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif
@@ -426,50 +662,85 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_FADD,
 		BUILTIN_fadd,
-		"(FF)F",
+		NULL,
 		"fadd",
+		"(FF)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_FSUB,
 		BUILTIN_fsub,
-		"(FF)F",
+		NULL,
 		"fsub",
+		"(FF)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_FMUL,
 		BUILTIN_fmul,
-		"(FF)F",
+		NULL,
 		"fmul",
+		"(FF)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_FDIV,
 		BUILTIN_fdiv,
-		"(FF)F",
+		NULL,
 		"fdiv",
+		"(FF)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_FNEG,
 		BUILTIN_fneg,
-		"(F)F",
+		NULL,
 		"fneg",
+		"(F)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_FCMPL,
 		BUILTIN_fcmpl,
-		"(FF)I",
+		NULL,
 		"fcmpl",
+		"(FF)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_FCMPG,
 		BUILTIN_fcmpg,
-		"(FF)I",
+		NULL,
 		"fcmpg",
+		"(FF)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif /* !SUPPORT_FLOAT */
@@ -481,50 +752,85 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_DADD,
 		BUILTIN_dadd,
-		"(DD)D",
+		NULL,
 		"dadd",
+		"(DD)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_DSUB,
 		BUILTIN_dsub,
-		"(DD)D",
+		NULL,
 		"dsub",
+		"(DD)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_DMUL,
 		BUILTIN_dmul,
-		"(DD)D",
+		NULL,
 		"dmul",
+		"(DD)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_DDIV,
 		BUILTIN_ddiv,
-		"(DD)D",
+		NULL,
 		"ddiv",
+		"(DD)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_DNEG,
 		BUILTIN_dneg,
-		"(D)D",
+		NULL,
 		"dneg",
+		"(D)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_DCMPL,
 		BUILTIN_dcmpl,
-		"(DD)I",
+		NULL,
 		"dcmpl",
+		"(DD)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_DCMPG,
 		BUILTIN_dcmpg,
-		"(DD)I",
+		NULL,
 		"dcmpg",
+		"(DD)I",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif /* !SUPPORT_DOUBLE */
@@ -536,15 +842,25 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		ICMD_F2D,
 		BUILTIN_f2d,
-		"(F)D",
+		NULL,
 		"f2d",
+		"(F)D",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 	{
 		ICMD_D2F,
 		BUILTIN_d2f,
-		"(D)F",
+		NULL,
 		"d2f",
+		"(D)F",
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 #endif /* !(SUPPORT_FLOAT && SUPPORT_DOUBLE) */
@@ -557,6 +873,97 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		false,
+		NULL
+	},
+};
+
+
+/* automatically replaced functions *******************************************/
+
+static builtintable_entry builtintable_function[] = {
+
+	/* java.lang.VMSystem.arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V STATIC NATIVE */
+
+	{
+		ICMD_BUILTIN,
+		BUILTIN_arraycopy,
+		"java/lang/VMSystem",
+		"arraycopy",
+		"(Ljava/lang/Object;ILjava/lang/Object;II)V",
+		NULL,
+		NULL,
+		NULL,
+		true,
+		NULL
+	},
+
+	/* java.lang.System.arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V PUBLIC STATIC */
+
+#if 0
+	/* We disable this one until we have a fix for the stacktrace
+	   issue. */
+
+	{
+		ICMD_BUILTIN,
+		BUILTIN_arraycopy,
+		"java/lang/System",
+		"arraycopy",
+		"(Ljava/lang/Object;ILjava/lang/Object;II)V",
+		NULL,
+		NULL,
+		NULL,
+		true,
+		NULL
+	},
+#endif
+
+	/* java.lang.VMSystem.currentTimeMillis()J PUBLIC STATIC */
+
+	{
+		ICMD_BUILTIN,
+		BUILTIN_currenttimemillis,
+		"java/lang/VMSystem",
+		"currentTimeMillis",
+		"()J",
+		NULL,
+		NULL,
+		NULL,
+		false,
+		NULL
+	},
+
+	/* java.lang.System.currentTimeMillis()J PUBLIC STATIC */
+
+	{
+		ICMD_BUILTIN,
+		BUILTIN_currenttimemillis,
+		"java/lang/System",
+		"currentTimeMillis",
+		"()J",
+		NULL,
+		NULL,
+		NULL,
+		false,
+		NULL
+	},
+
+	/* stop entry */
+
+	{
+		255,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		false,
 		NULL
 	},
 };

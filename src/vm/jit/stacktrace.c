@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: stacktrace.c 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
@@ -419,7 +419,7 @@ java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp, u1 *ra,
 
 	/* create exception */
 
-	o = new_arraystoreexception();
+	o = exceptions_new_arraystoreexception();
 
 	/* remove stackframeinfo */
 

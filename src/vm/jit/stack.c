@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5244 2006-08-16 12:21:35Z christian $
+   $Id: stack.c 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
@@ -2950,6 +2950,8 @@ bool stack_analyse(jitdata *jd)
 # if defined(ENABLE_INTRP)
 					if (!opt_intrp) {
 # endif
+						/* check for opcodes to replace */
+
 						bte = builtintable_get_automatic(opcode);
 
 						if (bte && bte->opcode == opcode) {
@@ -2963,6 +2965,12 @@ bool stack_analyse(jitdata *jd)
 					}
 # endif
 #endif /* defined(USEBUILTINTABLE) */
+
+					/* Check for functions to replace with builtin
+					   functions. */
+
+					if (builtintable_replace_function(iptr))
+						goto builtin;
 
 					/* this is the main switch */
 
@@ -4880,9 +4888,7 @@ bool stack_analyse(jitdata *jd)
 					/* pop many push any */
 
 					case ICMD_BUILTIN:
-#if defined(USEBUILTINTABLE)
 					builtin:
-#endif
 						bte = (builtintable_entry *) iptr->val.a;
 						md = bte->md;
 						goto _callhandling;
@@ -5181,7 +5187,7 @@ throw_stack_overflow:
 	return false;
 
 throw_stack_depth_error:
-	exceptions_throw_verifyerror(m,"Stack depth mismatch");
+	exceptions_throw_verifyerror(m, "Stack depth mismatch");
 	return false;
 
 throw_stack_type_error:

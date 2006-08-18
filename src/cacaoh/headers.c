@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5223 2006-08-08 16:21:22Z edwin $
+   $Id: headers.c 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
@@ -426,6 +426,30 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 	/* keep compiler happy */
 
 	return NULL;
+}
+
+
+void exceptions_throw_arrayindexoutofboundsexception(void)
+{
+	fprintf(stderr, "%s", string_java_lang_ArrayIndexOutOfBoundsException);
+	exit(1);
+}
+
+
+java_objectheader *exceptions_new_arraystoreexception(void)
+{
+	fprintf(stderr, "%s", string_java_lang_ArrayStoreException);
+	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
+}
+
+
+void exceptions_throw_arraystoreexception(void)
+{
+	(void) exceptions_new_arraystoreexception();
 }
 
 

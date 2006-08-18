@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5180 2006-07-26 11:04:18Z twisti $
+   $Id: builtin.c 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
@@ -45,9 +45,11 @@
 #include "config.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "vm/types.h"
 
@@ -100,12 +102,9 @@ CYCLES_STATS_DECLARE(builtin_overhead    , 80,1)
 
 static bool builtintable_init(void)
 {
-	descriptor_pool *descpool;
-	s4               dumpsize;
-	utf             *descriptor;
-	s4               entries_internal;
-	s4               entries_automatic;
-	s4               i;
+	descriptor_pool    *descpool;
+	s4                  dumpsize;
+	builtintable_entry *bte;
 
 	/* mark start of dump memory area */
 
@@ -123,23 +122,14 @@ static bool builtintable_init(void)
 	if (!descriptor_pool_add_class(descpool, utf_java_lang_Class))
 		return false;
 
-	/* calculate table entries statically */
-
-	entries_internal =
-		sizeof(builtintable_internal) / sizeof(builtintable_entry);
-
-	entries_automatic =
-		sizeof(builtintable_automatic) / sizeof(builtintable_entry)
-		- 1; /* last filler entry (comment see builtintable.inc) */
-
 	/* first add all descriptors to the pool */
 
-	for (i = 0; i < entries_internal; i++) {
+	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
 		/* create a utf8 string from descriptor */
 
-		descriptor = utf_new_char(builtintable_internal[i].descriptor);
+		bte->descriptor = utf_new_char(bte->cdescriptor);
 
-		if (!descriptor_pool_add(descpool, descriptor, NULL)) {
+		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
 			/* release dump area */
 
 			dump_release(dumpsize);
@@ -148,16 +138,22 @@ static bool builtintable_init(void)
 		}
 	}
 
-	for (i = 0; i < entries_automatic; i++) {
-		/* create a utf8 string from descriptor */
+	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
+		bte->descriptor = utf_new_char(bte->cdescriptor);
 
-		descriptor = utf_new_char(builtintable_automatic[i].descriptor);
-
-		if (!descriptor_pool_add(descpool, descriptor, NULL)) {
-			/* release dump area */
-
+		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
 			dump_release(dumpsize);
+			return false;
+		}
+	}
 
+	for (bte = builtintable_function; bte->fp != NULL; bte++) {
+		bte->classname  = utf_new_char(bte->cclassname);
+		bte->name       = utf_new_char(bte->cname);
+		bte->descriptor = utf_new_char(bte->cdescriptor);
+
+		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
+			dump_release(dumpsize);
 			return false;
 		}
 	}
@@ -172,28 +168,24 @@ static bool builtintable_init(void)
 
 	/* now parse all descriptors */
 
-	for (i = 0; i < entries_internal; i++) {
-		/* create a utf8 string from descriptor */
-
-		descriptor = utf_new_char(builtintable_internal[i].descriptor);
-
+	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
 		/* parse the descriptor, builtin is always static (no `this' pointer) */
 
-		builtintable_internal[i].md =
-			descriptor_pool_parse_method_descriptor(descpool, descriptor,
-													ACC_STATIC, NULL);
+		bte->md = descriptor_pool_parse_method_descriptor(descpool,
+														  bte->descriptor,
+														  ACC_STATIC, NULL);
 	}
 
-	for (i = 0; i < entries_automatic; i++) {
-		/* create a utf8 string from descriptor */
+	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
+		bte->md = descriptor_pool_parse_method_descriptor(descpool,
+														  bte->descriptor,
+														  ACC_STATIC, NULL);
+	}
 
-		descriptor = utf_new_char(builtintable_automatic[i].descriptor);
-
-		/* parse the descriptor, builtin is always static (no `this' pointer) */
-
-		builtintable_automatic[i].md =
-			descriptor_pool_parse_method_descriptor(descpool, descriptor,
-													ACC_STATIC, NULL);
+	for (bte = builtintable_function; bte->fp != NULL; bte++) {
+		bte->md = descriptor_pool_parse_method_descriptor(descpool,
+														  bte->descriptor,
+														  ACC_STATIC, NULL);
 	}
 
 	/* release dump area */
@@ -271,11 +263,11 @@ bool builtin_init(void)
 
 builtintable_entry *builtintable_get_internal(functionptr fp)
 {
-	s4 i;
+	builtintable_entry *bte;
 
-	for (i = 0; builtintable_internal[i].fp != NULL; i++) {
-		if (builtintable_internal[i].fp == fp)
-			return &builtintable_internal[i];
+	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
+		if (bte->fp == fp)
+			return bte;
 	}
 
 	return NULL;
@@ -316,6 +308,56 @@ builtintable_entry *builtintable_get_automatic(s4 opcode)
 	}
 
 	return (first != last ? first : NULL);
+}
+
+
+/* builtintable_replace_function ***********************************************
+
+   XXX
+
+*******************************************************************************/
+
+bool builtintable_replace_function(instruction *iptr)
+{
+	constant_FMIref    *mr;
+	builtintable_entry *bte;
+
+	/* get name and descriptor of the function */
+
+	switch (iptr->opc) {
+	case ICMD_INVOKESTATIC:
+		/* The instruction MUST be resolved, otherwise we run into
+		   lazy loading troubles.  Anyway, we should/can only replace
+		   very VM-close functions. */
+
+		if (INSTRUCTION_IS_UNRESOLVED(iptr))
+			return false;
+
+		mr = INSTRUCTION_RESOLVED_FMIREF(iptr);
+		break;
+
+	default:
+		return false;
+	}
+
+	/* search the function table */
+
+	for (bte = builtintable_function; bte->fp != NULL; bte++) {
+		if ((mr->p.classref->name == bte->classname) &&
+			(mr->name             == bte->name) &&
+			(mr->descriptor       == bte->descriptor)) {
+
+			/* set the values in the instruction */
+
+			iptr->opc   = bte->opcode;
+			iptr->op1   = bte->checkexception;
+			iptr->val.a = bte;
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
@@ -2420,6 +2462,118 @@ float builtin_d2f(double a)
 	}
 }
 #endif /* !(SUPPORT_FLOAT && SUPPORT_DOUBLE) */
+
+
+/* builtin_arraycopy ***********************************************************
+
+   Builtin for java.lang.System.arraycopy.
+
+   ATTENTION: This builtin function returns a boolean value to signal
+   the ICMD_BUILTIN if there was an exception.
+
+*******************************************************************************/
+
+bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
+					   java_arrayheader *dest, s4 destStart, s4 len)
+{
+	arraydescriptor *sdesc;
+	arraydescriptor *ddesc;
+	s4               i;
+
+	if ((src == NULL) || (dest == NULL)) { 
+		exceptions_throw_nullpointerexception();
+		return false;
+	}
+
+	sdesc = src->objheader.vftbl->arraydesc;
+	ddesc = dest->objheader.vftbl->arraydesc;
+
+	if (!sdesc || !ddesc || (sdesc->arraytype != ddesc->arraytype)) {
+		exceptions_throw_arraystoreexception();
+		return false;
+	}
+
+	/* we try to throw exception with the same message as SUN does */
+
+	if ((len < 0) || (srcStart < 0) || (destStart < 0) ||
+		(srcStart  + len < 0) || (srcStart  + len > src->size) ||
+		(destStart + len < 0) || (destStart + len > dest->size)) {
+		exceptions_throw_arrayindexoutofboundsexception();
+		return false;
+	}
+
+	if (sdesc->componentvftbl == ddesc->componentvftbl) {
+		/* We copy primitive values or references of exactly the same type */
+
+		s4 dataoffset = sdesc->dataoffset;
+		s4 componentsize = sdesc->componentsize;
+
+		memmove(((u1 *) dest) + dataoffset + componentsize * destStart,
+				((u1 *) src)  + dataoffset + componentsize * srcStart,
+				(size_t) len * componentsize);
+	}
+	else {
+		/* We copy references of different type */
+
+		java_objectarray *oas = (java_objectarray *) src;
+		java_objectarray *oad = (java_objectarray *) dest;
+                
+		if (destStart <= srcStart) {
+			for (i = 0; i < len; i++) {
+				java_objectheader *o = oas->data[srcStart + i];
+
+				if (!builtin_canstore(oad, o)) {
+					exceptions_throw_arraystoreexception();
+					return false;
+				}
+
+				oad->data[destStart + i] = o;
+			}
+		}
+		else {
+			/* XXX this does not completely obey the specification!
+			   If an exception is thrown only the elements above the
+			   current index have been copied. The specification
+			   requires that only the elements *below* the current
+			   index have been copied before the throw. */
+
+			for (i = len - 1; i >= 0; i--) {
+				java_objectheader *o = oas->data[srcStart + i];
+
+				if (!builtin_canstore(oad, o)) {
+					exceptions_throw_arraystoreexception();
+					return false;
+				}
+
+				oad->data[destStart + i] = o;
+			}
+		}
+	}
+
+	return true;
+}
+
+
+/* builtin_currenttimemillis ***************************************************
+
+   Return the current time in milliseconds.
+
+*******************************************************************************/
+
+s8 builtin_currenttimemillis(void)
+{
+	struct timeval tv;
+	s8             result;
+
+	if (gettimeofday(&tv, NULL) == -1)
+		vm_abort("gettimeofday failed: %s", strerror(errno));
+
+	result = (s8) tv.tv_sec;
+	result *= 1000;
+	result += (tv.tv_usec / 1000);
+
+	return result;
+}
 
 
 /* builtin_clone_array *********************************************************

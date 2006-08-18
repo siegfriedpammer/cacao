@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5166 2006-07-21 10:09:33Z twisti $
+   $Id: exceptions.c 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
@@ -1223,13 +1223,13 @@ void exceptions_throw_arrayindexoutofboundsexception(void)
 }
 
 
-/* new_arraystoreexception *****************************************************
+/* exceptions_new_arraystoreexception ******************************************
 
-   generates a java.lang.ArrayStoreException for the jit compiler
+   Generates a java.lang.ArrayStoreException for the VM compiler.
 
 *******************************************************************************/
 
-java_objectheader *new_arraystoreexception(void)
+java_objectheader *exceptions_new_arraystoreexception(void)
 {
 	java_objectheader *e;
 
@@ -1240,6 +1240,19 @@ java_objectheader *new_arraystoreexception(void)
 		return *exceptionptr;
 
 	return e;
+}
+
+
+/* exceptions_throw_arraystoreexception ****************************************
+
+   Generates a java.lang.ArrayStoreException for the VM system and
+   throw it in the VM system.
+
+*******************************************************************************/
+
+void exceptions_throw_arraystoreexception(void)
+{
+	*exceptionptr = exceptions_new_arraystoreexception();
 }
 
 

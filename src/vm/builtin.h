@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 5165 2006-07-21 09:24:03Z twisti $
+   $Id: builtin.h 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
@@ -77,8 +77,13 @@ typedef struct builtintable_entry builtintable_entry;
 struct builtintable_entry {
 	s4           opcode;                /* opcode which is replaced           */
 	functionptr  fp;                    /* function pointer of builtin        */
-	char        *descriptor;
-	char        *name;
+	char        *cclassname;            /* char name of the class             */
+	char        *cname;                 /* char name of the function          */
+	char        *cdescriptor;           /* char name of the descriptor        */
+	utf         *classname;             /* class of the function              */
+	utf         *name;                  /* name of the function               */
+	utf         *descriptor;            /* descriptor of the function         */
+	bool         checkexception;        /* check for exception after return   */
 	methoddesc  *md;
 };
 
@@ -89,6 +94,8 @@ bool builtin_init(void);
 
 builtintable_entry *builtintable_get_internal(functionptr fp);
 builtintable_entry *builtintable_get_automatic(s4 opcode);
+
+bool builtintable_replace_function(instruction *iptr);
 
 
 /**********************************************************************/
@@ -296,8 +303,12 @@ float    builtin_d2f(double a);
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
 /* NOT AN OP */
 
-/* this is a wrapper for calls from asmpart */
-java_objectheader **builtin_asm_get_exceptionptrptr(void);
+bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
+					   java_arrayheader *dest, s4 destStart, s4 len);
+#define BUILTIN_arraycopy (functionptr) builtin_arraycopy
+
+s8 builtin_currenttimemillis(void);
+#define BUILTIN_currenttimemillis (functionptr) builtin_currenttimemillis
 
 #if defined(ENABLE_CYCLES_STATS)
 void builtin_print_cycles_stats(FILE *file);

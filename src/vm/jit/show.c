@@ -1563,7 +1563,7 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 				SHOW_STACKVAR(*(argp++));
 			}
 		}
-		printf("%s ", iptr->sx.s23.s3.bte->name);
+		printf("%s ", iptr->sx.s23.s3.bte->cname);
 		if (iptr->sx.s23.s3.bte->md->returntype.type != TYPE_VOID) {
 			SHOW_DST(iptr);
 		}
@@ -2081,7 +2081,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_BUILTIN:
-		printf(" %s", ((builtintable_entry *) iptr->val.a)->name);
+		printf(" %s", ((builtintable_entry *) iptr->val.a)->cname);
 		break;
 
 	case ICMD_INVOKEVIRTUAL:

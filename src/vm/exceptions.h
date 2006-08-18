@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 5166 2006-07-21 10:09:33Z twisti $
+   $Id: exceptions.h 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
@@ -147,7 +147,9 @@ java_objectheader *new_arithmeticexception(void);
 java_objectheader *new_arrayindexoutofboundsexception(s4 index);
 void exceptions_throw_arrayindexoutofboundsexception(void);
 
-java_objectheader *new_arraystoreexception(void);
+java_objectheader *exceptions_new_arraystoreexception(void);
+void exceptions_throw_arraystoreexception(void);
+
 java_objectheader *exceptions_new_classcastexception(java_objectheader *o);
 
 java_objectheader *new_illegalargumentexception(void);

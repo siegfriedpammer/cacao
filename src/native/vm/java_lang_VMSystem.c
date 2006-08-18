@@ -29,23 +29,21 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_VMSystem.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_VMSystem.c 5251 2006-08-18 13:01:00Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "native/jni.h"
-#include "native/native.h"
 #include "native/include/java_lang_Object.h"
-#include "toolbox/logging.h"
+
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
-#include "vm/stringlocal.h"
 
 
 /*
@@ -53,84 +51,10 @@
  * Method:    arraycopy
  * Signature: (Ljava/lang/Object;ILjava/lang/Object;II)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *source, s4 sp, java_lang_Object *dest, s4 dp, s4 len)
+JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, s4 srcStart, java_lang_Object *dest, s4 destStart, s4 len)
 {
-	java_arrayheader *s;
-	java_arrayheader *d;
-	arraydescriptor  *sdesc;
-	arraydescriptor  *ddesc;
-	s4                i;
-
-	s = (java_arrayheader *) source;
-	d = (java_arrayheader *) dest;
-
-	if (!s || !d) { 
-		exceptions_throw_nullpointerexception();
-		return; 
-	}
-
-	sdesc = s->objheader.vftbl->arraydesc;
-	ddesc = d->objheader.vftbl->arraydesc;
-
-	if (!sdesc || !ddesc || (sdesc->arraytype != ddesc->arraytype)) {
-		*exceptionptr = new_arraystoreexception();
-		return; 
-	}
-
-	/* we try to throw exception with the same message as SUN does */
-
-	if ((len < 0) || (sp < 0) || (dp < 0) ||
-		(sp + len < 0) || (sp + len > s->size) ||
-		(dp + len < 0) || (dp + len > d->size)) {
-		exceptions_throw_arrayindexoutofboundsexception();
-		return; 
-	}
-
-	if (sdesc->componentvftbl == ddesc->componentvftbl) {
-		/* We copy primitive values or references of exactly the same type */
-
-		s4 dataoffset = sdesc->dataoffset;
-		s4 componentsize = sdesc->componentsize;
-
-		memmove(((u1 *) d) + dataoffset + componentsize * dp,
-				((u1 *) s) + dataoffset + componentsize * sp,
-				(size_t) len * componentsize);
-
-	} else {
-		/* We copy references of different type */
-
-		java_objectarray *oas = (java_objectarray *) s;
-		java_objectarray *oad = (java_objectarray *) d;
-                
-		if (dp <= sp) {
-			for (i = 0; i < len; i++) {
-				java_objectheader *o = oas->data[sp + i];
-				if (!builtin_canstore(oad, o)) {
-					*exceptionptr = new_arraystoreexception();
-					return;
-				}
-				oad->data[dp + i] = o;
-			}
-
-		} else {
-			/* XXX this does not completely obey the specification!
-			   If an exception is thrown only the elements above the
-			   current index have been copied. The specification
-			   requires that only the elements *below* the current
-			   index have been copied before the throw. */
-
-			for (i = len - 1; i >= 0; i--) {
-				java_objectheader *o = oas->data[sp + i];
-
-				if (!builtin_canstore(oad, o)) {
-					*exceptionptr = new_arraystoreexception();
-					return;
-				}
-
-				oad->data[dp + i] = o;
-			}
-		}
-	}
+	(void) builtin_arraycopy((java_arrayheader *) src, srcStart,
+							 (java_arrayheader *) dest, destStart, len);
 }
 
 
