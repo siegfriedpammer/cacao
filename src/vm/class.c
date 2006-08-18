@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 5093 2006-07-10 13:36:47Z twisti $
+   $Id: class.c 5250 2006-08-18 12:24:10Z twisti $
 
 */
 
@@ -97,6 +97,7 @@ classinfo *class_java_lang_String;
 classinfo *class_java_lang_System;
 classinfo *class_java_lang_Thread;
 classinfo *class_java_lang_ThreadGroup;
+classinfo *class_java_lang_VMSystem;
 classinfo *class_java_lang_VMThread;
 classinfo *class_java_io_Serializable;
 

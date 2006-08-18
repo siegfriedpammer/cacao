@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 5088 2006-07-08 20:16:05Z twisti $
+   $Id: class.h 5250 2006-08-18 12:24:10Z twisti $
 
 */
 
@@ -164,6 +164,7 @@ extern classinfo *class_java_lang_String;
 extern classinfo *class_java_lang_System;
 extern classinfo *class_java_lang_Thread;
 extern classinfo *class_java_lang_ThreadGroup;
+extern classinfo *class_java_lang_VMSystem;
 extern classinfo *class_java_lang_VMThread;
 extern classinfo *class_java_io_Serializable;
 

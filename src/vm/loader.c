@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5184 2006-07-28 10:12:58Z twisti $
+   $Id: loader.c 5250 2006-08-18 12:24:10Z twisti $
 
 */
 
@@ -185,6 +185,10 @@ bool loader_init(void)
 
 	if (!(class_java_lang_ThreadGroup =
 		  load_class_bootstrap(utf_java_lang_ThreadGroup)))
+		return false;
+
+	if (!(class_java_lang_VMSystem =
+		  load_class_bootstrap(utf_new_char("java/lang/VMSystem"))))
 		return false;
 
 	if (!(class_java_lang_VMThread =
