@@ -49,7 +49,6 @@
 # include "threads/native/threads.h"
 #endif
 
-#include "toolbox/util.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
@@ -588,7 +587,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* set the VM starttime */
 
-	_Jv_jvm->starttime = util_current_time_millis();
+	_Jv_jvm->starttime = builtin_currenttimemillis();
 
 	/* get stuff from the environment *****************************************/
 

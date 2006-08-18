@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.c 5126 2006-07-12 22:55:05Z twisti $
+   $Id: util.c 5252 2006-08-18 13:07:21Z twisti $
 
 */
 
@@ -39,7 +39,6 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <unistd.h>
-#include <sys/time.h>
 
 #include "vm/types.h"
 
@@ -136,28 +135,6 @@ int get_variable_message_length(const char *fmt, va_list ap)
 #endif
 
 	return n;
-}
-
-
-/* util_current_time_millis ****************************************************
-
-   Return the current time in milliseconds.
-
-*******************************************************************************/
-
-s8 util_current_time_millis(void)
-{
-	struct timeval tv;
-	s8             result;
-
-	if (gettimeofday(&tv, NULL) == -1)
-		vm_abort("gettimeofday failed: %s", strerror(errno));
-
-	result = (s8) tv.tv_sec;
-	result *= 1000;
-	result += (tv.tv_usec / 1000);
-
-	return result;
 }
 
 

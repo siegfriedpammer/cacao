@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.h 5104 2006-07-10 17:22:18Z twisti $
+   $Id: util.h 5252 2006-08-18 13:07:21Z twisti $
 
 */
 
@@ -47,7 +47,6 @@
 
 char *_Jv_getcwd(void);
 int   get_variable_message_length(const char *fmt, va_list ap);
-s8    util_current_time_millis(void);
 
 #endif /* _UTIL_H */
 
