@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5237 2006-08-15 14:54:25Z christian $
+   $Id: codegen.c 5255 2006-08-21 15:17:48Z twisti $
 
 */
 
@@ -4654,6 +4654,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		4 * 4 +                         /* 4 arguments (start_native_call)    */
 		nmd->memuse;
 
+    /* keep stack 16-byte aligned */
+
+	stackframesize |= 0x3;
+
 	/* create method header */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
@@ -4812,11 +4816,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* if function is static, put class into second argument */
 
 	if (m->flags & ACC_STATIC)
-		M_AST_IMM((ptrint) m->class, REG_SP, 1 * 4);
+		M_AST_IMM(m->class, REG_SP, 1 * 4);
 
 	/* put env into first argument */
 
-	M_AST_IMM((ptrint) _Jv_env, REG_SP, 0 * 4);
+	M_AST_IMM(_Jv_env, REG_SP, 0 * 4);
 
 	/* call the native function */
 

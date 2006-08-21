@@ -31,16 +31,17 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 5247 2006-08-17 09:59:26Z twisti $
+   $Id: asmpart.S 5255 2006-08-21 15:17:48Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include "md-asm.h"
+
 #include "vm/jit/i386/arch.h"
 #include "vm/jit/i386/md-abi.h"
-#include "vm/jit/i386/md-asm.h"
 #include "vm/jit/i386/offsets.h"
 
 #include "vm/jit/abi-asm.h"
@@ -265,7 +266,7 @@ asm_vm_call_method_exception_handler:
 
 asm_call_jit_compiler:
 L_asm_call_jit_compiler:                /* required for PIC code              */
-	sub     $(4*4),sp                   /* create stack frame                 */
+	sub     $(4*4),sp                   /* keep stack 16-byte aligned         */
 
 	mov     itmp1,0*4(sp)               /* pass methodinfo pointer            */
 	mov     mptr,1*4(sp)                /* pass method pointer                */
@@ -306,20 +307,20 @@ asm_handle_nat_exception:
 		
 asm_handle_exception:
 L_asm_handle_exception:                 /* required for PIC code              */
-	sub     $((ARG_CNT+TMP_CNT)*4),sp   /* create maybe-leaf stackframe       */
+	sub     $((ARG_CNT+TMP_CNT+3)*4),sp /* keep stack 16-byte aligned         */
 
 	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
 	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
 
-	mov     $((ARG_CNT+TMP_CNT)*4),itmp3/* prepare a3 for handle_exception    */
+	mov     $((ARG_CNT+TMP_CNT+3)*4),itmp3 /* prepare a3 for handle_exception */
 	mov     $1,t0                       /* set maybe-leaf flag                */
 
 L_asm_handle_exception_stack_loop:
-	sub     $(10*4),sp                  /* create stackframe                  */
+	sub     $(12*4),sp                  /* keep stack 16-byte aligned         */
 	mov     xptr,4*4(sp)                /* save exception pointer             */
 	mov     xpc,5*4(sp)                 /* save exception pc                  */
 	add     sp,itmp3                    /* calculate Java sp into a3...       */
-	add     $(10*4),itmp3
+	add     $(12*4),itmp3
 	mov     itmp3,7*4(sp)               /* ...and save it                     */
 	mov     t0,8*4(sp)                  /* save maybe-leaf flag               */
 
@@ -342,7 +343,7 @@ L_asm_handle_exception_stack_loop:
 	mov     v0,xpc                      /* move handlerpc into xpc            */
 	mov     4*4(sp),xptr                /* restore exception pointer          */
 	mov     8*4(sp),t0                  /* get maybe-leaf flag                */
-	add     $(10*4),sp                  /* free stackframe                    */
+	add     $(12*4),sp                  /* free stackframe                    */
 
 	test    t0,t0                       /* test for maybe-leaf flag           */
 	jz      L_asm_handle_exception_no_leaf
@@ -350,7 +351,7 @@ L_asm_handle_exception_stack_loop:
 	RESTORE_ARGUMENT_REGISTERS(0)       /* if this is a leaf method, we have  */
 	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)/* to restore arg and temp registers  */
 
-	add     $((ARG_CNT+TMP_CNT)*4),sp   /* remove maybe-leaf stackframe       */
+	add     $((ARG_CNT+TMP_CNT+3)*4),sp /* remove maybe-leaf stackframe       */
 
 L_asm_handle_exception_no_leaf:
 	jmp     *xpc                        /* jump to exception handler          */
@@ -359,12 +360,12 @@ L_asm_handle_exception_not_catched:
 	mov     4*4(sp),xptr                /* restore exception pointer          */
 	mov     6*4(sp),itmp3               /* restore data segment pointer       */
 	mov     8*4(sp),t0                  /* get maybe-leaf flag                */
-	add     $(10*4),sp                  /* free stackframe                    */
+	add     $(12*4),sp                  /* free stackframe                    */
 
 	test    t0,t0
 	jz      L_asm_handle_exception_no_leaf_stack
 
-	add     $((ARG_CNT+TMP_CNT)*4),sp   /* remove maybe-leaf stackframe       */
+	add     $((ARG_CNT+TMP_CNT+3)*4),sp /* remove maybe-leaf stackframe       */
 	xor     t0,t0                       /* clear the maybe-leaf flag          */
 
 L_asm_handle_exception_no_leaf_stack:
@@ -437,16 +438,16 @@ noflt:
 *******************************************************************************/
 
 asm_abstractmethoderror:
-	sub     $(2*4),sp                   /* create stack frame                 */
+	sub     $(3*4),sp                   /* keep stack 16-byte aligned         */
 	mov     sp,itmp1                    /* pass java sp                       */
-	add     $((1+2)*4),itmp1
+	add     $((1+3)*4),itmp1
 	mov     itmp1,0*4(sp)
-	mov     2*4(sp),itmp2               /* pass exception address             */
+	mov     3*4(sp),itmp2               /* pass exception address             */
 	sub     $2,itmp2
 	mov     itmp2,1*4(sp)
 	call	exceptions_asm_new_abstractmethoderror
 	                                    /* exception pointer is return value  */
-	add     $(2*4),sp                   /* remove stack frame                 */
+	add     $(3*4),sp                   /* remove stack frame                 */
 
 	pop     xpc                         /* get exception address              */
 	sub     $2,xpc                      /* exception address is ra - 2        */
@@ -469,33 +470,33 @@ asm_abstractmethoderror:
 *******************************************************************************/
 
 asm_patcher_wrapper:
-	sub     $((2+4)*4),sp               /* create stack frame                 */
+	sub     $((1+4+4)*4),sp             /* keep stack 16-byte aligned         */
 
 	mov     itmp1,(0+4)*4(sp)           /* save itmp1 and itmp2               */
 	mov     itmp2,(1+4)*4(sp)
 
 	mov     sp,itmp1                    /* pass SP of patcher stub            */
-	add     $((2+4)*4),itmp1
+	add     $((1+4+4)*4),itmp1
 	mov     itmp1,0*4(sp)
 	movl    $0,1*4(sp)                  /* pass PV (if NULL, use findmethod)  */
 	movl    $0,2*4(sp)                  /* pass RA (it's on the stack)        */
 	call    patcher_wrapper
-	mov     v0,0*4(sp)                  /* save return value                  */
+	mov     v0,itmp3                    /* save return value                  */
 
 	mov     (0+4)*4(sp),itmp1           /* restore itmp1 and itmp2            */
 	mov     (1+4)*4(sp),itmp2
 
-	mov     0*4(sp),itmp3               /* restore return value               */
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jne     L_asm_patcher_wrapper_exception
 
-	mov     (5+2+4)*4(sp),itmp3         /* restore REG_ITMP3                  */
-	add     $((6+2+4)*4),sp             /* remove stack frame, keep RA        */
+	mov     (5+1+4+4)*4(sp),itmp3       /* restore itmp3                      */
+	add     $((6+1+4+4)*4),sp           /* remove stack frame, keep RA        */
 
 	ret                                 /* jump to new patched code           */
 
 L_asm_patcher_wrapper_exception:
 	add     $((6+2+4)*4),sp             /* remove stack frame, keep RA        */
+	add     $((6+1+4+4)*4),sp           /* remove stack frame, keep RA        */
 	mov     itmp3,xptr                  /* get exception                      */
 	pop     xpc                         /* get and remove return address      */
 	jmp     L_asm_handle_exception
@@ -559,7 +560,7 @@ asm_replacement_out:
     push    sp                          /* arg1: execution state              */
     push    itmp1                       /* arg0: replacement point            */
     call    replace_me                  /* call C function replace_me         */
-    call    abort                       /* NEVER REACHED                      */
+
 
 /* asm_replacement_in **********************************************************
 
@@ -595,6 +596,7 @@ asm_replacement_in:
 	/* jump to new code */
 	ret
 
+
 /************************ function asm_builtin_x2x *****************************
 *                                                                              *
 *   Wrapper functions for corner cases                                         *
@@ -602,31 +604,31 @@ asm_replacement_in:
 *******************************************************************************/
 
 asm_builtin_f2i:
-	sub     $4,%esp
+	sub     $(3*4),%esp
 	fsts    (%esp)
 	call    builtin_f2i
-	add     $4,%esp
+	add     $(3*4),%esp
 	ret
 
 asm_builtin_d2i:
-	sub     $8,%esp
+	sub     $(3*4),%esp
 	fstl    (%esp)
 	call    builtin_d2i
-	add     $8,%esp
+	add     $(3*4),%esp
 	ret
 
 asm_builtin_f2l:
-	sub     $4,%esp
+	sub     $(3*4),%esp
 	fsts    (%esp)
 	call    builtin_f2l
-	add     $4,%esp
+	add     $(3*4),%esp
 	ret
 
 asm_builtin_d2l:
-	sub     $8,%esp
+	sub     $(3*4),%esp
 	fstl    (%esp)
 	call    builtin_d2l
-	add     $8,%esp
+	add     $(3*4),%esp
 	ret
 
 

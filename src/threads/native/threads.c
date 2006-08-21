@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5195 2006-07-31 15:26:10Z twisti $
+   $Id: threads.c 5255 2006-08-21 15:17:48Z twisti $
 
 */
 
@@ -494,9 +494,13 @@ static void threads_cast_darwinstop(void)
 	do {
 		if (tobj != self)
 		{
-			thread_state_flavor_t flavor = PPC_THREAD_STATE;
-			mach_msg_type_number_t thread_state_count = PPC_THREAD_STATE_COUNT;
+			thread_state_flavor_t flavor = MACHINE_THREAD_STATE;
+			mach_msg_type_number_t thread_state_count = MACHINE_THREAD_STATE_COUNT;
+#if defined(__I386__)
+			i386_thread_state_t thread_state;
+#else
 			ppc_thread_state_t thread_state;
+#endif
 			mach_port_t thread = tobj->mach_thread;
 			kern_return_t r;
 
