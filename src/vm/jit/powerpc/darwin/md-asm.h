@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5178 2006-07-26 10:06:22Z twisti $
+   $Id: md-asm.h 5254 2006-08-21 14:52:20Z twisti $
 
 */
 
@@ -244,9 +244,7 @@
 #define asm_replacement_in                    _asm_replacement_in
 
 #define asm_cacheflush                        _asm_cacheflush
-#define asm_initialize_thread_stack           _asm_initialize_thread_stack
-#define asm_perform_threadswitch              _asm_perform_threadswitch
-#define asm_switchstackandcall                _asm_switchstackandcall
+
 #define asm_criticalsections                  _asm_criticalsections
 #define asm_getclassvalues_atomic             _asm_getclassvalues_atomic
 
