@@ -1,4 +1,4 @@
-/* src/native/vm/VMStackWalker.c - gnu/classpath/VMStackWalker
+/* src/native/vm/gnu_classpath_VMStackWalker.c - gnu/classpath/VMStackWalker
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: gnu_classpath_VMStackWalker.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: gnu_classpath_VMStackWalker.c 5257 2006-08-21 17:37:01Z twisti $
 
 */
 
@@ -52,28 +52,11 @@
  */
 JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
 {
-/*  	if (cacao_initializing) */
-/*  		return NULL; */
+	java_objectarray *oa;
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
-	/* these JITs support stacktraces, and so does the interpreter */
+	oa = stacktrace_getClassContext();
 
-	return stacktrace_getClassContext();
-
-#else
-# if defined(ENABLE_INTRP)
-	/* the interpreter supports stacktraces, even if the JIT does not */
-
-	if (opt_intrp) {
-		return stacktrace_getClassContext();
-
-	} 
-	else
-# endif
-	{
-		return builtin_anewarray(0, class_java_lang_Class);
-	}
-#endif
+	return oa;
 }
 
 
@@ -84,43 +67,17 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
  */
 JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClass(JNIEnv *env, jclass clazz)
 {
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
-	/* these JITs support stacktraces, and so does the interpreter */
-
 	java_objectarray *oa;
 
 	oa = stacktrace_getClassContext();
-	if (!oa)
+
+	if (oa == NULL)
 		return NULL;
 
 	if (oa->header.size < 2)
 		return NULL;
 
 	return (java_lang_Class *) oa->data[1];
-
-#else
-# if defined(ENABLE_INTRP)
-	/* the interpreter supports stacktraces, even if the JIT does not */
-
-	if (opt_intrp) {
-		java_objectarray *oa;
-
-		oa = stacktrace_getClassContext();
-		if (!oa)
-			return NULL;
-
-		if (oa->header.size < 2)
-			return NULL;
-
-		return (java_lang_Class *) oa->data[1];
-
-	} 
-	else
-# endif
-	{
-		return NULL;
-	}
-#endif
 }
 
 
@@ -135,44 +92,47 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 	classinfo         *c;
 	java_objectheader *cl;
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
-	/* these JITs support stacktraces, and so does the interpreter */
-
 	oa = stacktrace_getClassContext();
-	if (!oa)
+
+	if (oa == NULL)
 		return NULL;
 
 	if (oa->header.size < 2)
 		return NULL;
   	 
-	c = (classinfo *) oa->data[1];
-
+	c  = (classinfo *) oa->data[1];
 	cl = c->classloader;
-#else
-# if defined(ENABLE_INTRP)
-	/* the interpreter supports stacktraces, even if the JIT does not */
-
-	if (opt_intrp) {
-		oa = stacktrace_getClassContext();
-		if (!oa)
-			return NULL;
-
-		if (oa->header.size < 2)
-			return NULL;
-  	 
-		c = (classinfo *) oa->data[1];
-
-		cl = c->classloader;
-
-	} 
-	else
-# endif
-	{
-		cl = NULL;
-	}
-#endif
 
 	return (java_lang_ClassLoader *) cl;
+}
+
+
+/*
+ * Class:     gnu/classpath/VMStackWalker
+ * Method:    firstNonNullClassLoader
+ * Signature: ()Ljava/lang/ClassLoader;
+ */
+JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader(JNIEnv *env, jclass clazz)
+{
+	java_objectarray  *oa;
+	classinfo         *c;
+	java_objectheader *cl;
+	s4                 i;
+
+	oa = stacktrace_getClassContext();
+
+	if (oa == NULL)
+		return NULL;
+
+	for (i = 0; i < oa->header.size; i++) {
+		c  = (classinfo *) oa->data[i];
+		cl = c->classloader;
+
+		if (cl != NULL)
+			return (java_lang_ClassLoader *) cl;
+	}
+
+	return NULL;
 }
 
 
