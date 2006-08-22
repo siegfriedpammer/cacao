@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5232 2006-08-11 13:11:44Z tbfg $
+   $Id: asmpart.S 5261 2006-08-22 15:49:25Z tbfg $
 
 */
 
@@ -708,8 +708,8 @@ L_handle_fda12:
 asm_call_jit_compiler:
 L_asm_call_jit_compiler:                /* required for PIC code              */
 	mflr    r0
-	std     r0,LA_LR_OFFSET(r1)         /* save return address                */
-	stdu    r1,-(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)(r1)
+	std     r0,LA_LR_OFFSET(sp)         /* save return address                */
+	stdu    r1,-(LA_SIZE+PA_SIZE+ARG_CNT*8)(sp)
 
 #if defined(__DARWIN__)
 	stw     a0,LA_SIZE+(5+0)*8(r1)
@@ -735,13 +735,13 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	stfd    fa11,LA_SIZE+(5+30)*8(r1)
 	stfd    fa12,LA_SIZE+(5+32)*8(r1)
 #else
-	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1)
+	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS)
 #endif
 
 	mr      a0,itmp1
 	mr      a1,mptr
-	addi    a2,sp,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)
-	ld      a3,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
+	addi    a2,sp,(LA_SIZE + PA_SIZE+ ARG_CNT*8)
+	ld      a3,(LA_SIZE + PA_SIZE + ARG_CNT*8)+LA_LR_OFFSET(sp)
 	bl      jit_asm_compile
 	ori	r0,r0,0			    /* nop needed after jump to function desc. */
 	mr      pv,v0                       /* move address to pv register        */
@@ -770,13 +770,13 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	lfd     fa11,LA_SIZE+(+5+30)*8(r1)
 	lfd     fa12,LA_SIZE+(+5+32)*8(r1)
 #else
-	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1)
+	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS)
 #endif
 
-	ld     itmp1,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)+LA_LR_OFFSET(r1)
+	ld     itmp1,(LA_SIZE + PA_SIZE + ARG_CNT*8)+LA_LR_OFFSET(sp)
 	mtlr   itmp1
 
-	addi    sp,sp,(LA_SIZE + 5*8 + INT_ARG_CNT*8 + FLT_ARG_CNT*8)
+	addi    sp,sp,(LA_SIZE + PA_SIZE + ARG_CNT*8)
 
 	mr.     pv,pv                       /* test for exception                 */
 	beq     L_asm_call_jit_compiler_exception
@@ -1008,20 +1008,20 @@ asm_abstractmethoderror:
    XXX
 
    Stack layout:
-     20   return address into JIT code (patch position)
-     16   pointer to virtual java_objectheader
-     12   machine code (which is patched back later)
-      8   unresolved class/method/field reference
-      4   data segment displacement from load instructions
+     40   return address into JIT code (patch position)
+     32   pointer to virtual java_objectheader
+     24   machine code (which is patched back later)
+     16   unresolved class/method/field reference
+      8   data segment displacement from load instructions
       0   patcher function pointer to call (pv is saved here afterwards)
 
 *******************************************************************************/
 
 asm_patcher_wrapper:
 	mflr	r0                    /* get Java return address (leaf)           */
-	stw     r0,6*4(sp)            /* store it in the stub stackframe          */
+	std     r0,6*8(sp)            /* store it in the stub stackframe          */
 	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
-	stwu    sp,-(LA_SIZE+(5+58)*4)(sp)
+	stdu    sp,-(LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8)(sp)
 
 #if defined(__DARWIN__)
 	stw     a0,LA_SIZE+(5+0)*8(r1)      /* save argument registers            */
@@ -1045,7 +1045,7 @@ asm_patcher_wrapper:
 	stfd    fa9,LA_SIZE+(5+26)*8(sp)
 	stfd    fa10,LA_SIZE+(5+28)*8(sp)
 	stfd    fa11,LA_SIZE+(5+30)*8(sp)
-	stfd    fa12,LA_SIZE+(5+32)*8(sp)
+	stfd    fa12,LA_SIZE+(5+32)*8(sp)	/* XXX */
 
 	stw     t0,LA_SIZE+(+5+33)*8(r1)
 	stw     t1,LA_SIZE+(+5+34)*8(r1)
@@ -1063,19 +1063,19 @@ asm_patcher_wrapper:
 	stfd    ft4,LA_SIZE+(+5+50)*8(r1)
 	stfd    ft5,LA_SIZE+(+5+52)*8(r1)
 #else
-	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1) /* save 8 int/8 float arguments   */
-	SAVE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+1+24)
+	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS) /* save 8 int/8 float arguments   */
+	SAVE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS+ARG_CNT)
 #endif
 
-	stw     itmp1,LA_SIZE+(5+54)*4(sp)
-	stw     itmp2,LA_SIZE+(5+55)*4(sp)
-	stw     pv,LA_SIZE+(5+56)*4(sp)
+	std     itmp1,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+1*8(sp)
+	std     itmp2,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+2*8(sp)
+	std     pv,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+3*8(sp)
 
-	addi    a0,sp,LA_SIZE+(5+58)*4      /* pass SP of patcher stub            */
+	addi    a0,sp,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8      /* pass SP of patcher stub            */
 	mr      a1,pv                       /* pass PV                            */
 	mr      a2,r0                       /* pass RA (correct for leafs)        */
 	bl      patcher_wrapper
-	stw     v0,LA_SIZE+(5+57)*4(sp)     /* save return value                  */
+	std     v0,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+4*8(sp)     /* save return value                  */
 
 #if defined(__DARWIN__)
 	lwz     a0,LA_SIZE+(5+0)*8(r1)
@@ -1117,26 +1117,26 @@ asm_patcher_wrapper:
 	lfd     ft4,LA_SIZE+(+5+50)*8(r1)
 	lfd     ft5,LA_SIZE+(+5+52)*8(r1)
 #else
-	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1) /* restore 8 int/8 float args  */
-	RESTORE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+1+24)
+	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS) /* restore 8 int/8 float args  */
+	RESTORE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS+ARG_CNT)
 #endif
 
-	lwz     itmp1,LA_SIZE+(5+54)*4(sp)
-	lwz     itmp2,LA_SIZE+(5+55)*4(sp)
-	lwz     pv,LA_SIZE+(5+56)*4(sp)
-	lwz     itmp3,LA_SIZE+(5+57)*4(sp)  /* restore return value into temp reg.*/
+	ld     itmp1,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+1*8(sp)
+	ld     itmp2,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+2*8(sp)
+	ld     pv,LA_SIZE+(ARG_CNT+TMP_CNT)*8+3*8(sp)
+	ld     itmp3,LA_SIZE+(ARG_CNT+TMP_CNT)*8+4*8(sp)
 
-	lwz     r0,LA_SIZE+(6+5+58)*8(sp) /* restore RA                      */
+	ld    	r0,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+6*8(sp) /* restore RA                      */
 	mtlr	r0
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
 	bne     L_asm_patcher_wrapper_exception
 
 	                              /* get return address (into JIT code)       */
-	lwz     itmp3,LA_SIZE+(5+5+58)*8(sp)
+	lwz     itmp3,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+5*8(sp)
 
 	                              /* remove stack frame + patcher stub stack  */
-	addi    sp,sp,LA_SIZE+(8+5+58)*8
+	addi    sp,sp,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+8*8
 
 	mtctr   itmp3
 	bctr                          /* jump to new patched code                 */

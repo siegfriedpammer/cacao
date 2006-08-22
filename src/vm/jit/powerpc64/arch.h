@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5248 2006-08-17 17:51:40Z tbfg $
+   $Id: arch.h 5261 2006-08-22 15:49:25Z tbfg $
 
 */
 
@@ -36,7 +36,7 @@
 #ifndef _ARCH_H
 #define _ARCH_H
 
-#define USE_FAKE_ATOMIC_INSTRUCTIONS 	0
+/*#define USE_FAKE_ATOMIC_INSTRUCTIONS 	0 */
 
 /* define architecture features ***********************************************/
 

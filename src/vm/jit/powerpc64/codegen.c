@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5248 2006-08-17 17:51:40Z tbfg $
+   $Id: codegen.c 5261 2006-08-22 15:49:25Z tbfg $
 
 */
 
@@ -227,6 +227,7 @@ bool codegen(jitdata *jd)
 				s2 = rd->argintregs[s1];
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
+					M_NOP;
 					if (IS_2_WORD_TYPE(t))		/* FIXME, only M_INTMOVE here */
 						M_LNGMOVE(s2, var->regoff);
 					else
@@ -446,7 +447,7 @@ bool codegen(jitdata *jd)
 		src = bptr->instack;
 		len = bptr->icount;
 		currentline = 0;
-
+			
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
 			if (iptr->line != currentline) {
 				dseg_addlinenumber(cd, iptr->line);
@@ -455,6 +456,7 @@ bool codegen(jitdata *jd)
 
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 
+			M_NOP; M_NOP; /* XXX */
 			switch (iptr->opc) {
 			case ICMD_NOP:    /* ...  ==> ...                                 */
 			case ICMD_INLINE_START:
@@ -527,7 +529,6 @@ bool codegen(jitdata *jd)
 		/* load/store operations **********************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_ALOAD:      /* op1 = local variable                         */
 
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
@@ -541,6 +542,7 @@ bool codegen(jitdata *jd)
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
+		case ICMD_ALOAD:      /* op1 = local variable                         */
 		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
@@ -1947,7 +1949,7 @@ bool codegen(jitdata *jd)
 				M_IST_INTERN(s2, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-				s2 = emit_load_s2(jd, iptr, src, PACK_REGS(REG_ITMP2, REG_ITMP3));
+				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
 				M_LST_INTERN(s2, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
@@ -2017,11 +2019,7 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (!IS_FLT_DBL_TYPE(iptr->op1)) {
-				if (IS_2_WORD_TYPE(iptr->op1)) {
-					s2 = emit_load_s2(jd, iptr, src, PACK_REGS(REG_ITMP2, REG_ITMP3));
-				} else {
-					s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-				}
+				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
 			} else {
 				s2 = emit_load_s2(jd, iptr, src, REG_FTMP2);
 			}
@@ -2044,8 +2042,7 @@ bool codegen(jitdata *jd)
 				M_IST(s2, s1, disp);
 				break;
 			case TYPE_LNG:
-				M_IST(GET_LOW_REG(s2), s1, disp + 4);      /* keep this order */
-				M_IST(GET_HIGH_REG(s2), s1, disp);         /* keep this order */
+				M_LST(s2, s1, disp);
 				break;
 			case TYPE_ADR:
 				M_AST(s2, s1, disp);
@@ -2643,23 +2640,23 @@ nowperformreturn:
 				/* ATTENTION: Don't use REG_ZERO (r0) here, as M_ALD
 				   may have a displacement overflow. */
 
-				M_ALD(REG_ITMP1, REG_SP, p * 4 + LA_LR_OFFSET);
+				M_ALD(REG_ITMP1, REG_SP, p * 8 + LA_LR_OFFSET);
 				M_MTLR(REG_ITMP1);
 			}
 
 			/* restore saved registers                                        */
 
 			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--; M_ILD(rd->savintregs[i], REG_SP, p * 4);
+				p--; M_ILD(rd->savintregs[i], REG_SP, p * 8);
 			}
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-				p -= 2; M_DLD(rd->savfltregs[i], REG_SP, p * 4);
+				p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
 			}
 
 			/* deallocate stack                                               */
 
 			if (stackframesize)
-				M_LDA(REG_SP, REG_SP, stackframesize * 4);
+				M_LDA(REG_SP, REG_SP, stackframesize * 8);
 
 			M_RET;
 			ALIGNCODENOP;
@@ -2791,9 +2788,7 @@ gen_method:
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (!md->params[s3].inmemory) {
 						if (IS_2_WORD_TYPE(src->type)) {
-							s1 = PACK_REGS(
-						   rd->argintregs[GET_LOW_REG(md->params[s3].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[s3].regoff)]);
+							s1 = rd->argintregs[md->params[s3].regoff];	/* removed PACKREGS */
 							d = emit_load_s1(jd, iptr, src, s1);
 							M_LNGMOVE(d, s1);
 						} else {
@@ -2804,8 +2799,8 @@ gen_method:
 
 					} else {
 						if (IS_2_WORD_TYPE(src->type)) {
-							d = emit_load_s1(jd, iptr, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
-							M_LST(d, REG_SP, md->params[s3].regoff * 4);
+							d = emit_load_s1(jd, iptr, src, REG_ITMP1);
+							M_LST(d, REG_SP, md->params[s3].regoff * 4);	/* XXX */
 						} else {
 							d = emit_load_s1(jd, iptr, src, REG_ITMP1);
 							M_IST(d, REG_SP, md->params[s3].regoff * 4);

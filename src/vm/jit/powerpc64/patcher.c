@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5248 2006-08-17 17:51:40Z tbfg $
+   $Id: patcher.c 5261 2006-08-22 15:49:25Z tbfg $
 
 */
 
@@ -82,13 +82,13 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	/* get stuff from the stack */
 
-	xpc = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
-	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
+	xpc = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	f   = (functionptr)         *((ptrint *) (sp + 0 * 8));
 
 	/* store PV into the patcher function position */
 
-	*((ptrint *) (sp + 0 * 4)) = (ptrint) pv;
+	*((ptrint *) (sp + 0 * 8)) = (ptrint) pv;
 
 	/* cast the passed function to a patcher function */
 
@@ -100,7 +100,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	/* create the stackframeinfo */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 8 * 4, ra, xpc);
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 8 * 8, ra, xpc);
 
 	/* call the proper patcher function */
 
@@ -147,11 +147,11 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
@@ -201,10 +201,10 @@ bool patcher_get_putfield(u1 *sp)
 	u1               *pv;
 	fieldinfo        *fi;
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 1 * 8));
 
 	/* get the fieldinfo */
 
@@ -280,11 +280,11 @@ bool patcher_aconst(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the classinfo */
 
@@ -335,11 +335,11 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the classinfo */
 
@@ -389,11 +389,11 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the classinfo */
 
@@ -442,11 +442,11 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
@@ -495,9 +495,9 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
@@ -550,9 +550,9 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
@@ -613,11 +613,11 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
@@ -667,9 +667,9 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
@@ -725,11 +725,11 @@ bool patcher_checkcast_class(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
@@ -777,11 +777,11 @@ bool patcher_instanceof_class(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
@@ -822,9 +822,9 @@ bool patcher_clinit(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)        *((ptrint *) (sp + 5 * 4));
-	mcode =               *((u4 *)     (sp + 3 * 4));
-	c     = (classinfo *) *((ptrint *) (sp + 2 * 4));
+	ra    = (u1 *)        *((ptrint *) (sp + 5 * 8));
+	mcode =               *((u4 *)     (sp + 3 * 8));
+	c     = (classinfo *) *((ptrint *) (sp + 2 * 8));
 
 	/* check if the class is initialized */
 
@@ -862,9 +862,9 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 5 * 4));
-	mcode =                      *((u4 *)     (sp + 3 * 4));
-	uc    = (unresolved_class *) *((ptrint *) (sp + 2 * 4));
+	ra    = (u1 *)               *((ptrint *) (sp + 5 * 8));
+	mcode =                      *((u4 *)     (sp + 3 * 8));
+	uc    = (unresolved_class *) *((ptrint *) (sp + 2 * 8));
 
 	/* resolve the class */
 
@@ -902,16 +902,16 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	m     = (methodinfo *)        *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
+	m     = (methodinfo *)        *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 4)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* resolve native function */
 
