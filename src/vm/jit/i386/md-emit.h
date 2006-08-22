@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 5174 2006-07-25 16:00:55Z twisti $
+   $Id: md-emit.h 5263 2006-08-22 20:48:16Z twisti $
 
 */
 
@@ -37,6 +37,8 @@
 #define _EMITFUNCS_H
 
 #include "vm/types.h"
+
+#include "vm/jit/codegen-common.h"
 
 
 #define REG_AL       0
