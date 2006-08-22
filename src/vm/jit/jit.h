@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5238 2006-08-16 11:18:05Z christian $
+   $Id: jit.h 5262 2006-08-22 19:53:56Z twisti $
 
 */
 
@@ -103,8 +103,10 @@ struct jitdata {
 #if defined(ENABLE_SSA) || defined(ENABLE_LSRA)
 	lsradata     *ls;
 #endif
+
 	u4               flags;             /* contains JIT compiler flags        */
 	bool             isleafmethod;      /* does method call subroutines       */
+	s4               stackframesize;    /* size of the current stackframe     */
 
 	new_instruction *new_instructions;
 	basicblock      *new_basicblocks;

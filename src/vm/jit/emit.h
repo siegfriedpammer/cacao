@@ -87,6 +87,9 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst);
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);
 
+void emit_exception_stubs(jitdata *jd);
+void emit_patcher_stubs(jitdata *jd);
+
 #endif /* _EMIT_H */
 
 
