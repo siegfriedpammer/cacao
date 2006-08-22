@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5200 2006-07-31 16:30:33Z twisti $
+   $Id: native.c 5259 2006-08-22 12:43:00Z twisti $
 
 */
 
@@ -133,13 +133,23 @@
 
 #include "native/nativetable.inc"
 
-#else /* defined(WITH_STATIC_CLASSPATH) */
+#elif !defined(ENABLE_LIBJVM)
 
-/* Ensure that symbols for functions implemented within CACAO are used
-   and exported to dlopen. */
+/* dummynativetable ************************************************************
 
-static functionptr dummynativetable[] = {
+   Ensure that symbols for functions implemented within CACAO are used
+   and exported to dlopen.
+
+   ATTENTION: Don't make this table static!!!  Otherwise the compiler
+   may optimize it away!
+
+*******************************************************************************/
+
+functionptr dummynativetable[] = {
 	(functionptr) Java_gnu_classpath_VMStackWalker_getClassContext,
+	(functionptr) Java_gnu_classpath_VMStackWalker_getCallingClass,
+	(functionptr) Java_gnu_classpath_VMStackWalker_getCallingClassLoader,
+	(functionptr) Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader,
 
 	(functionptr) Java_gnu_classpath_VMSystemProperties_preInit,
 
@@ -293,7 +303,7 @@ static functionptr dummynativetable[] = {
 
 };
 
-#endif /* defined(WITH_STATIC_CLASSPATH) */
+#endif /* defined(ENABLE_LIBJVM) */
 
 
 /* tables for methods *********************************************************/
@@ -326,14 +336,6 @@ static lt_dlhandle mainhandle;
 bool native_init(void)
 {
 #if !defined(WITH_STATIC_CLASSPATH)
-	void *p;
-
-	/* We need to access the dummy native table, not only to remove a
-	   warning but to be sure that the table is not optimized away
-	   (gcc does this since 3.4). */
-
-	p = &dummynativetable;
-
 	/* initialize libltdl */
 
 	if (lt_dlinit()) {
