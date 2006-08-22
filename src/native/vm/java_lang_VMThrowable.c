@@ -1,4 +1,4 @@
-/* src/native/vm/VMThrowable.c - java/lang/VMThrowable
+/* src/native/vm/java_lang_VMThrowable.c - java/lang/VMThrowable
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: java_lang_VMThrowable.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_VMThrowable.c 5260 2006-08-22 14:39:36Z twisti $
 
 */
 
@@ -71,14 +71,12 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	if (o == NULL)
 		return NULL;
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	stb = stacktrace_fillInStackTrace();
 
 	if (stb == NULL)
 		return NULL;
 
 	o->vmData = (gnu_classpath_Pointer *) stb;
-#endif
 
 	return o;
 }
@@ -91,7 +89,6 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	stacktracebuffer            *stb;
 	stacktrace_entry            *ste;
 	stacktrace_entry            *tmpste;
@@ -175,7 +172,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 						 utf_init,
 						 utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
 
-	if (!m)
+	if (m == NULL)
 		return NULL;
 
 	/* count entries with a method name */
@@ -188,7 +185,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 	oa = builtin_anewarray(oalength, class_java_lang_StackTraceElement);
 
-	if (!oa)
+	if (oa == NULL)
 		return NULL;
 
 	for (i = 0; size > 0; size--, ste++, i++) {
@@ -204,7 +201,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 		o = (java_lang_StackTraceElement *)
 			builtin_new(class_java_lang_StackTraceElement);
 
-		if (!o)
+		if (o == NULL)
 			return NULL;
 
 		/* get filename */
@@ -214,10 +211,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 				filename = javastring_new(ste->method->class->sourcefile);
 			else
 				filename = NULL;
-
-		} else {
-			filename = NULL;
 		}
+		else
+			filename = NULL;
 
 		/* get line number */
 
@@ -243,9 +239,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	}
 
 	return oa;
-#else
-	return NULL;
-#endif
 }
 
 
