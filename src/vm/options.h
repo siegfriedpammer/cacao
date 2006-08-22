@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 5253 2006-08-18 18:37:19Z tbfg $
+   $Id: options.h 5258 2006-08-22 09:02:25Z tbfg $
 
 */
 
@@ -80,7 +80,7 @@ extern s4   opt_heapstartsize;
 extern s4   opt_stacksize;
 
 extern bool opt_verbose;
-extern bool opt_colorverbose;
+extern bool opt_debugcolor;
 extern bool compileall;
 
 extern bool loadverbose;         /* Print debug messages during loading */

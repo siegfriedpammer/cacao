@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 5253 2006-08-18 18:37:19Z tbfg $
+   $Id: method.c 5258 2006-08-22 09:02:25Z tbfg $
 
 */
 
@@ -213,9 +213,9 @@ void method_print(methodinfo *m)
 #if !defined(NDEBUG)
 void method_println(methodinfo *m)
 {
-	if (opt_colorverbose) printf("\033[31m");	/* red */
+	if (opt_debugcolor) printf("\033[31m");	/* red */
 	method_print(m);
-	if (opt_colorverbose) printf("\033[m");	
+	if (opt_debugcolor) printf("\033[m");	
 	printf("\n");
 }
 #endif /* !defined(NDEBUG) */

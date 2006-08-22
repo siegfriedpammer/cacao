@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5253 2006-08-18 18:37:19Z tbfg $
+## $Id: Makefile.am 5258 2006-08-22 09:02:25Z tbfg $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -144,8 +144,7 @@ libjit_la_SOURCES = \
 	stack.c \
 	stack.h \
 	stacktrace.c \
-	stacktrace.h \
-	../options.h
+	stacktrace.h
 
 libjit_la_SOURCES += \
 	cfg.c \

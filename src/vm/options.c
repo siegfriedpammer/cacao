@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 5253 2006-08-18 18:37:19Z tbfg $
+   $Id: options.c 5258 2006-08-22 09:02:25Z tbfg $
 
 */
 
@@ -68,7 +68,7 @@ s4   opt_heapstartsize = 0;     /* initial heap size                          */
 s4   opt_stacksize     = 0;     /* thread stack size                          */
 
 bool opt_verbose = false;
-bool opt_colorverbose = false;	/* use ANSI terminal sequences 		      */
+bool opt_debugcolor = false;	/* use ANSI terminal sequences 		      */
 bool compileall = false;
 
 bool loadverbose = false;
