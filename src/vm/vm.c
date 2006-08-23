@@ -164,11 +164,14 @@ enum {
 	OPT_LOG,
 	OPT_CHECK,
 	OPT_LOAD,
-	OPT_METHOD,
-	OPT_SIGNATURE,
 	OPT_SHOW,
 	OPT_DEBUGCOLOR,
+
+#if !defined(NDEBUG)
 	OPT_ALL,
+	OPT_METHOD,
+	OPT_SIGNATURE,
+#endif
 
 #if defined(ENABLE_VERIFIER)
 	OPT_NOVERIFY,
@@ -271,8 +274,12 @@ opt_struct opts[] = {
 	{ "c",                 true,  OPT_CHECK },
 	{ "l",                 false, OPT_LOAD },
 	{ "eager",             false, OPT_EAGER },
-	{ "sig",               true,  OPT_SIGNATURE },
+
+#if !defined(NDEBUG)
 	{ "all",               false, OPT_ALL },
+	{ "sig",               true,  OPT_SIGNATURE },
+#endif
+
 #if defined(ENABLE_LOOP)
 	{ "oloop",             false, OPT_OLOOP },
 #endif
@@ -328,7 +335,11 @@ opt_struct opts[] = {
 #if defined(ENABLE_INLINING)
 	{ "i",                 true,  OPT_INLINING },
 #endif
+
+#if !defined(NDEBUG)
 	{ "m",                 true,  OPT_METHOD },
+#endif
+
 	{ "s",                 true,  OPT_SHOW },
 	{ "debug-color",      false,  OPT_DEBUGCOLOR },
 
@@ -405,9 +416,12 @@ void usage(void)
 #endif
 	puts("    -l                       don't start the class after loading");
 	puts("    -eager                   perform eager class loading and linking");
+#if !defined(NDEBUG)
 	puts("    -all                     compile all methods, no execution");
 	puts("    -m                       compile only a specific method");
 	puts("    -sig                     specify signature for a specific method");
+#endif
+
 	puts("    -s(how)...               show...");
 	puts("           c(onstants)       the constant pool");
 	puts("           m(ethods)         class fields and methods");
@@ -937,22 +951,24 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			opt_eager = true;
 			break;
 
-		case OPT_METHOD:
-			opt_run = false;
-			opt_method = opt_arg;
-			makeinitializations = false;
-			break;
-         		
-		case OPT_SIGNATURE:
-			opt_signature = opt_arg;
-			break;
-         		
+#if !defined(NDEBUG)
 		case OPT_ALL:
 			compileall = true;
 			opt_run = false;
 			makeinitializations = false;
 			break;
-         		
+
+		case OPT_METHOD:
+			opt_run = false;
+			opt_method = opt_arg;
+			makeinitializations = false;
+			break;
+
+		case OPT_SIGNATURE:
+			opt_signature = opt_arg;
+			break;
+#endif
+
 		case OPT_SHOW:       /* Display options */
 			for (j = 0; j < strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
