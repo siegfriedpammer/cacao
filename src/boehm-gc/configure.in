@@ -22,7 +22,7 @@ AC_INIT(gc,6.8,Hans.Boehm@hp.com)
 AC_CONFIG_SRCDIR(gcj_mlc.c)
 AC_CANONICAL_TARGET 
 AC_PREREQ(2.53)
-AC_REVISION($Revision: 5267 $)
+AC_REVISION($Revision: 5268 $)
 GC_SET_VERSION
 AM_INIT_AUTOMAKE
 
@@ -34,6 +34,9 @@ AC_SUBST(GC_VERSION)
 AC_PROG_CC
 AC_PROG_CXX
 
+dnl temporary set the CFLAGS for configure tests (e.g. inline keyword)
+dnl we set it properly later in this file
+CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
 AC_C_INLINE
 
 AM_PROG_AS
