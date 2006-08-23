@@ -89,6 +89,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value);
 
 void emit_exception_stubs(jitdata *jd);
 void emit_patcher_stubs(jitdata *jd);
+void emit_replacement_stubs(jitdata *jd);
 
 #endif /* _EMIT_H */
 
