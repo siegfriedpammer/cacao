@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 5269 2006-08-23 14:55:28Z twisti $
+   $Id: asmpart.S 5271 2006-08-23 15:45:52Z twisti $
 
 */
 
@@ -272,58 +272,64 @@ L_asm_call_jit_compiler_exception:
 
 asm_handle_nat_exception:
 L_asm_handle_nat_exception:       /* required for PIC code                    */
-	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,48,t0
-	sra     t0,48,t0              /* isolate offset                           */
-	addq    t0,ra,pv              /* compute update address                   */
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	srl     t0,16,t0              /* isolate instruction code                 */
-	lda     t0,-0x177b(t0)        /* test for LDAH                            */
-	bne     t0,L_asm_handle_exception
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	sll     t0,16,t0              /* compute high offset                      */
-	addl    t0,0,t0               /* sign extend high offset                  */
-	addq    t0,pv,pv              /* compute update address                   */
+L_asm_handle_exception_stack_loop:
+	lda     sp,-6*8(sp)                 /* keep stack 16-byte aligned         */
+	stq     xptr,0*8(sp)                /* save xptr                          */
+	stq     xpc,1*8(sp)                 /* save xpc                           */
+	stq     ra,3*8(sp)                  /* save RA                            */
+	stq     zero,4*8(sp)                /* save maybe-leaf flag (cleared)     */
+
+	mov     ra,a0                       /* pass RA                            */
+
+	br      ra,L_asm_handle_exception_load_gp
+L_asm_handle_exception_load_gp:
+	ldgp    gp,0(ra)                    /* load gp                            */
+
+	jsr     ra,md_codegen_get_pv_from_pc/* get PV from RA                     */
+	stq     v0,2*8(sp)                  /* save PV                            */
+
+	ldq     a0,0*8(sp)                  /* pass xptr                          */
+	ldq     a1,1*8(sp)                  /* pass xpc                           */
+	mov     v0,a2                       /* pass PV                            */
+	addq    sp,6*8,a3                   /* pass Java SP                       */
+
+	br      L_asm_handle_exception_continue
 
 	.aent    asm_handle_exception
 
 asm_handle_exception:
 L_asm_handle_exception:                 /* required for PIC code              */
-	lda     sp,-(ARG_CNT+TMP_CNT)*8(sp) /* create maybe-leaf stackframe       */
+	lda     sp,-(ARG_CNT+TMP_CNT+6)*8(sp) /* create maybe-leaf stackframe     */
 
 	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
 	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
 
-	lda     a3,(ARG_CNT+TMP_CNT)*8(zero)/* prepare a3 for handle_exception */
+	stq     xptr,0*8(sp)                /* save xptr                          */
+	stq     pv,2*8(sp)                  /* save PV                            */
+	stq     ra,3*8(sp)                  /* save RA                            */
 	lda     a4,1(zero)                  /* set maybe-leaf flag                */
+	stq     a4,4*8(sp)                  /* save maybe-leaf flag               */
 
-L_asm_handle_exception_stack_loop:
-	lda     sp,-4*8(sp)                 /* allocate stack                     */
-	stq     xptr,0*8(sp)                /* save exception pointer             */
-	stq     pv,1*8(sp)                  /* save data segment pointer          */
-	stq     ra,2*8(sp)                  /* save return address                */
-	addq    a3,sp,a3                    /* calculate Java sp into a3...       */
-	addq    a3,4*8,a3
-	stq     a4,3*8(sp)                  /* save maybe-leaf flag               */
-
-	br      ra,L_asm_handle_exception_load_gp /* set ra for gp loading        */
-L_asm_handle_exception_load_gp:
+	br      ra,L_asm_handle_exception_load_gp_2
+L_asm_handle_exception_load_gp_2:
 	ldgp    gp,0(ra)                    /* load gp                            */
 
-	mov     xptr,a0                     /* pass exception pointer             */
-	mov     xpc,a1                      /* pass exception pc                  */
-	mov     pv,a2                       /* pass data segment pointer          */
-	                                    /* a3 is still set                    */
+	mov     xptr,a0                     /* pass xptr                          */
+	mov     xpc,a1                      /* pass xpc                           */
+	mov     pv,a2                       /* pass PV                            */
+	lda     a3,(ARG_CNT+TMP_CNT+6)*8(sp)/* pass Java SP                       */
+
+L_asm_handle_exception_continue:
 	jsr     ra,exceptions_handle_exception
 
 	beq     v0,L_asm_handle_exception_not_catched
 
 	mov     v0,xpc                      /* move handlerpc into xpc            */
-	ldq     xptr,0*8(sp)                /* restore exception pointer          */
-	ldq     pv,1*8(sp)                  /* restore data segment pointer       */
-	ldq     ra,2*8(sp)                  /* restore return address             */
-	ldq     a4,3*8(sp)                  /* get maybe-leaf flag                */
-	lda     sp,4*8(sp)                  /* free stack frame                   */
+	ldq     xptr,0*8(sp)                /* restore xptr                       */
+	ldq     pv,2*8(sp)                  /* restore PV                         */
+	ldq     ra,3*8(sp)                  /* restore RA                         */
+	ldq     a4,4*8(sp)                  /* get maybe-leaf flag                */
+	lda     sp,6*8(sp)                  /* free stack frame                   */
 
 	beq     a4,L_asm_handle_exception_no_leaf
 
@@ -336,11 +342,11 @@ L_asm_handle_exception_no_leaf:
 	jmp     zero,(xpc)                  /* jump to the handler                */
 
 L_asm_handle_exception_not_catched:
-	ldq     xptr,0*8(sp)                /* restore exception pointer          */
-	ldq     pv,1*8(sp)                  /* restore data segment pointer       */
-	ldq     ra,2*8(sp)                  /* restore return address             */
-	ldq     a4,3*8(sp)                  /* get maybe-leaf flag                */
-	lda     sp,4*8(sp)
+	ldq     xptr,0*8(sp)                /* restore xptr                       */
+	ldq     pv,2*8(sp)                  /* restore PV                         */
+	ldq     ra,3*8(sp)                  /* restore RA                         */
+	ldq     a4,4*8(sp)                  /* get maybe-leaf flag                */
+	lda     sp,6*8(sp)
 
 	beq     a4,L_asm_handle_exception_no_leaf_stack
 
@@ -398,21 +404,6 @@ ex_flt1:
 ex_flt2:
 	ldl     t0,FrameSize(pv)            /* get frame size                     */
 	addq    sp,t0,sp                    /* unwind stack                       */
-	mov     zero,a3                     /* prepare a3 for handle_exception    */
-
-	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,48,t0
-	sra     t0,48,t0              /* isolate offset                           */
-	addq    t0,ra,pv              /* compute update address                   */
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	srl     t0,16,t0              /* isolate instruction code                 */
-	lda     t0,-0x177b(t0)        /* test for LDAH                            */
-	bne     t0,L_asm_handle_exception_stack_loop
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(RA)         */
-	sll     t0,16,t0              /* compute high offset                      */
-	addl    t0,0,t0               /* sign extend high offset                  */
-	addq    t0,pv,pv              /* compute update address                   */
-
 	br      L_asm_handle_exception_stack_loop
 
 	.end    asm_handle_nat_exception
