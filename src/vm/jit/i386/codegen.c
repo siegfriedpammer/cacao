@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5255 2006-08-21 15:17:48Z twisti $
+   $Id: codegen.c 5273 2006-08-23 16:04:03Z twisti $
 
 */
 
@@ -102,8 +102,7 @@ bool codegen(jitdata *jd)
 	codeinfo           *code;
 	codegendata        *cd;
 	registerdata       *rd;
-	s4                  len, s1, s2, s3, d, off, disp;
-	s4                  stackframesize;
+	s4                  len, s1, s2, s3, d, disp;
 	stackptr            src;
 	varinfo            *var;
 	basicblock         *bptr;
@@ -149,7 +148,7 @@ bool codegen(jitdata *jd)
 	/* float register are saved on 2 4-byte stackslots */
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
 
-	stackframesize = rd->memuse + savedregs_num;
+	jd->stackframesize = rd->memuse + savedregs_num;
 
 	   
 #if defined(ENABLE_THREADS)
@@ -159,9 +158,9 @@ bool codegen(jitdata *jd)
 		/* reserve 2 slots for long/double return values for monitorexit */
 
 		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
-			stackframesize += 2;
+			jd->stackframesize += 2;
 		else
-			stackframesize++;
+			jd->stackframesize++;
 	}
 #endif
 
@@ -170,10 +169,10 @@ bool codegen(jitdata *jd)
     /* Keep stack of non-leaf functions 16-byte aligned. */
 
 	if (!jd->isleafmethod)
-		stackframesize |= 0x3;
+		jd->stackframesize |= 0x3;
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * 4);             /* FrameSize       */
+	(void) dseg_adds4(cd, jd->stackframesize * 4);         /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -221,12 +220,12 @@ bool codegen(jitdata *jd)
 
 	/* create stack frame (if necessary) */
 
-	if (stackframesize)
-		M_ASUB_IMM(stackframesize * 4, REG_SP);
+	if (jd->stackframesize)
+		M_ASUB_IMM(jd->stackframesize * 4, REG_SP);
 
 	/* save return address and used callee saved registers */
 
-  	p = stackframesize;
+  	p = jd->stackframesize;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
  		p--; M_AST(rd->savintregs[i], REG_SP, p * 4);
 	}
@@ -268,7 +267,7 @@ bool codegen(jitdata *jd)
 			else {                                   /* stack arguments       */
 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					emit_mov_membase_reg(           /* + 4 for return address */
-					   cd, REG_SP, (stackframesize + s1) * 4 + 4, var->regoff);
+					   cd, REG_SP, (jd->stackframesize + s1) * 4 + 4, var->regoff);
 					                                /* + 4 for return address */
 				} 
 				else {                               /* stack arg -> spilled  */
@@ -277,7 +276,7 @@ bool codegen(jitdata *jd)
 						/* no copy avoiding by now possible with SSA */
 						if (ls != NULL) {
 							emit_mov_membase_reg(   /* + 4 for return address */
-								 cd, REG_SP, (stackframesize + s1) * 4 + 4,
+								 cd, REG_SP, (jd->stackframesize + s1) * 4 + 4,
 								 REG_ITMP1);    
 							emit_mov_reg_membase(
 								 cd, REG_ITMP1, REG_SP, var->regoff * 4);
@@ -285,7 +284,7 @@ bool codegen(jitdata *jd)
 						else 
 #endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
-							var->regoff = stackframesize + s1 + 1;
+							var->regoff = jd->stackframesize + s1 + 1;
 
 					} 
 					else {
@@ -293,12 +292,12 @@ bool codegen(jitdata *jd)
 						/* no copy avoiding by now possible with SSA */
 						if (ls != NULL) {
 							emit_mov_membase_reg(  /* + 4 for return address */
-								 cd, REG_SP, (stackframesize + s1) * 4 + 4,
+								 cd, REG_SP, (jd->stackframesize + s1) * 4 + 4,
 								 REG_ITMP1);
 							emit_mov_reg_membase(
 								 cd, REG_ITMP1, REG_SP, var->regoff * 4);
 							emit_mov_membase_reg(   /* + 4 for return address */
-								  cd, REG_SP, (stackframesize + s1) * 4 + 4 + 4,
+								  cd, REG_SP, (jd->stackframesize + s1) * 4 + 4 + 4,
 								  REG_ITMP1);             
 							emit_mov_reg_membase(
 								 cd, REG_ITMP1, REG_SP, var->regoff * 4 + 4);
@@ -306,7 +305,7 @@ bool codegen(jitdata *jd)
 						else
 #endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
-							var->regoff = stackframesize + s1 + 1;
+							var->regoff = jd->stackframesize + s1 + 1;
 					}
 				}
 			}
@@ -326,14 +325,14 @@ bool codegen(jitdata *jd)
 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (t == TYPE_FLT) {
 						emit_flds_membase(
-                            cd, REG_SP, (stackframesize + s1) * 4 + 4);
+                            cd, REG_SP, (jd->stackframesize + s1) * 4 + 4);
 						assert(0);
 /* 						emit_fstp_reg(cd, var->regoff + fpu_st_offset); */
 
 					} 
 					else {
 						emit_fldl_membase(
-                            cd, REG_SP, (stackframesize + s1) * 4 + 4);
+                            cd, REG_SP, (jd->stackframesize + s1) * 4 + 4);
 						assert(0);
 /* 						emit_fstp_reg(cd, var->regoff + fpu_st_offset); */
 					}
@@ -343,24 +342,24 @@ bool codegen(jitdata *jd)
 					/* no copy avoiding by now possible with SSA */
 					if (ls != NULL) {
 						emit_mov_membase_reg(
-						 cd, REG_SP, (stackframesize + s1) * 4 + 4, REG_ITMP1);
+						 cd, REG_SP, (jd->stackframesize + s1) * 4 + 4, REG_ITMP1);
 						emit_mov_reg_membase(
  									 cd, REG_ITMP1, REG_SP, var->regoff * 4);
 						if (t == TYPE_FLT) {
 							emit_flds_membase(
-								  cd, REG_SP, (stackframesize + s1) * 4 + 4);
+								  cd, REG_SP, (jd->stackframesize + s1) * 4 + 4);
 							emit_fstps_membase(cd, REG_SP, var->regoff * 4);
 						} 
 						else {
 							emit_fldl_membase(
-								  cd, REG_SP, (stackframesize + s1) * 4 + 4);
+								  cd, REG_SP, (jd->stackframesize + s1) * 4 + 4);
 							emit_fstpl_membase(cd, REG_SP, var->regoff * 4);
 						}
 					}
 					else
 #endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
-						var->regoff = stackframesize + s1 + 1;
+						var->regoff = jd->stackframesize + s1 + 1;
 				}
 			}
 		}
@@ -376,7 +375,7 @@ bool codegen(jitdata *jd)
 			M_MOV_IMM(&m->class->object.header, REG_ITMP1);
 		}
 		else {
-			M_ALD(REG_ITMP1, REG_SP, stackframesize * 4 + 4);
+			M_ALD(REG_ITMP1, REG_SP, jd->stackframesize * 4 + 4);
 			M_TEST(REG_ITMP1);
 			M_BEQ(0);
 			codegen_add_nullpointerexception_ref(cd);
@@ -396,7 +395,7 @@ bool codegen(jitdata *jd)
 #if !defined(NDEBUG)
 	if (opt_verbosecall) {
 		stack_off = 0;
-		s1 = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + stackframesize * 4;
+		s1 = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + jd->stackframesize * 4;
 
 		M_ISUB_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
 
@@ -3313,7 +3312,7 @@ nowperformreturn:
 			{
 			s4 i, p;
 			
-  			p = stackframesize;
+  			p = jd->stackframesize;
 			
 #if !defined(NDEBUG)
 			/* call trace function */
@@ -3409,8 +3408,8 @@ nowperformreturn:
 
 			/* deallocate stack */
 
-			if (stackframesize)
-				M_AADD_IMM(stackframesize * 4, REG_SP);
+			if (jd->stackframesize)
+				M_AADD_IMM(jd->stackframesize * 4, REG_SP);
 
 			emit_ret(cd);
 			}
@@ -4234,158 +4233,10 @@ gen_method:
 
 	/* generate exception and patcher stubs */
 
-	{
-		exceptionref *eref;
-		patchref     *pref;
-		u8            mcode;
-		u1           *savedmcodeptr;
-		u1           *tmpmcodeptr;
+	emit_exception_stubs(jd);
+	emit_patcher_stubs(jd);
+	emit_replacement_stubs(jd);
 
-		savedmcodeptr = NULL;
-
-		/* generate exception stubs */
-
-		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-			gen_resolvebranch(cd->mcodebase + eref->branchpos,
-							  eref->branchpos,
-							  cd->mcodeptr - cd->mcodebase);
-
-			MCODECHECK(512);
-
-			/* Check if the exception is an
-			   ArrayIndexOutOfBoundsException.  If so, move index register
-			   into REG_ITMP1. */
-
-			if (eref->reg != -1)
-				M_INTMOVE(eref->reg, REG_ITMP1);
-
-			/* calcuate exception address */
-
-			M_MOV_IMM(0, REG_ITMP2_XPC);
-			dseg_adddata(cd);
-			M_AADD_IMM32(eref->branchpos - 6, REG_ITMP2_XPC);
-
-			/* move function to call into REG_ITMP3 */
-
-			M_MOV_IMM(eref->function, REG_ITMP3);
-
-			if (savedmcodeptr != NULL) {
-				M_JMP_IMM((savedmcodeptr - cd->mcodeptr) - 5);
-
-			} else {
-				savedmcodeptr = cd->mcodeptr;
-
-				M_ASUB_IMM(5 * 4, REG_SP);
-
-				/* first save REG_ITMP1 so we can use it */
-
-				M_AST(REG_ITMP1, REG_SP, 4 * 4);                /* for AIOOBE */
-
-				M_AST_IMM(0, REG_SP, 0 * 4);
-				dseg_adddata(cd);
-				M_MOV(REG_SP, REG_ITMP1);
-				M_AADD_IMM(5 * 4, REG_ITMP1);
-				M_AST(REG_ITMP1, REG_SP, 1 * 4);
-				M_ALD(REG_ITMP1, REG_SP, (5 + stackframesize) * 4);
-				M_AST(REG_ITMP1, REG_SP, 2 * 4);
-				M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
-
-				M_CALL(REG_ITMP3);
-
-				M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
-				M_AADD_IMM(5 * 4, REG_SP);
-
-				M_MOV_IMM(asm_handle_exception, REG_ITMP3);
-				M_JMP(REG_ITMP3);
-			}
-		}
-
-
-		/* generate code patching stub call code */
-
-		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* check code segment size */
-
-			MCODECHECK(512);
-
-			/* Get machine code which is patched back in later. A
-			   `call rel32' is 5 bytes long. */
-
-			savedmcodeptr = cd->mcodebase + pref->branchpos;
-			mcode = *((u8 *) savedmcodeptr);
-
-			/* patch in `call rel32' to call the following code */
-
-			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
-			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
-
-			M_CALL_IMM(tmpmcodeptr - (savedmcodeptr + PATCHER_CALL_SIZE));
-
-			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
-
-			/* save REG_ITMP3 */
-
-			M_PUSH(REG_ITMP3);
-
-			/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
-			off = dseg_addaddress(cd, NULL);                          /* vftbl      */
-
-			M_MOV_IMM(0, REG_ITMP3);
-			dseg_adddata(cd);
-			M_AADD_IMM(off, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-#else
-			M_PUSH_IMM(0);
-#endif
-
-			/* move machine code bytes and classinfo pointer into registers */
-
-			M_PUSH_IMM(mcode >> 32);
-			M_PUSH_IMM(mcode);
-			M_PUSH_IMM(pref->ref);
-			M_PUSH_IMM(pref->patcher);
-
-			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate replacement-out stubs */
-
-	{
-		int i;
-
-		replacementpoint = jd->code->rplpoints;
-
-		for (i = 0; i < jd->code->rplpointcount; ++i, ++replacementpoint) {
-			/* check code segment size */
-
-			MCODECHECK(512);
-
-			/* note start of stub code */
-
-			replacementpoint->outcode = (u1*) (ptrint)(cd->mcodeptr - cd->mcodebase);
-
-			/* make machine code for patching */
-
-			disp = (ptrint)(replacementpoint->outcode - replacementpoint->pc) - 5;
-			replacementpoint->mcode = 0xe9 | ((u8)disp << 8);
-
-			/* push address of `rplpoint` struct */
-			
-			M_PUSH_IMM(replacementpoint);
-
-			/* jump to replacement function */
-
-			M_PUSH_IMM(asm_replacement_out);
-			M_RET;
-		}
-	}
-	
 	codegen_finish(jd);
 
 	/* everything's ok */
@@ -4627,7 +4478,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
-	s4            stackframesize;
 	s4            nativeparams;
 	s4            i, j;                 /* count variables                    */
 	s4            t;
@@ -4647,7 +4497,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* calculate stackframe size */
 
-	stackframesize =
+	jd->stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		1 +                             /* function pointer                   */
@@ -4656,12 +4506,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
     /* keep stack 16-byte aligned */
 
-	stackframesize |= 0x3;
+	jd->stackframesize |= 0x3;
 
 	/* create method header */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * 4);             /* FrameSize       */
+	(void) dseg_adds4(cd, jd->stackframesize * 4);         /* FrameSize       */
 	(void) dseg_adds4(cd, 0);                              /* IsSync          */
 	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
 	(void) dseg_adds4(cd, 0);                              /* IntSave         */
@@ -4680,13 +4530,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* calculate stackframe size for native function */
 
-	M_ASUB_IMM(stackframesize * 4, REG_SP);
+	M_ASUB_IMM(jd->stackframesize * 4, REG_SP);
 
 #if !defined(NDEBUG)
 	if (opt_verbosecall) {
 		s4 p, t;
 
-		disp = stackframesize * 4;
+		disp = jd->stackframesize * 4;
 
 		M_ASUB_IMM(TRACE_ARGS_NUM * 8 + 4, REG_SP);
     
@@ -4776,17 +4626,17 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* prepare data structures for native function call */
 
 	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(stackframesize * 4, REG_ITMP1);
+	M_AADD_IMM(jd->stackframesize * 4, REG_ITMP1);
 
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
 	M_IST_IMM(0, REG_SP, 1 * 4);
 	dseg_adddata(cd);
 
 	M_MOV(REG_SP, REG_ITMP2);
-	M_AADD_IMM(stackframesize * 4 + SIZEOF_VOID_P, REG_ITMP2);
+	M_AADD_IMM(jd->stackframesize * 4 + SIZEOF_VOID_P, REG_ITMP2);
 
 	M_AST(REG_ITMP2, REG_SP, 2 * 4);
-	M_ALD(REG_ITMP3, REG_SP, stackframesize * 4);
+	M_ALD(REG_ITMP3, REG_SP, jd->stackframesize * 4);
 	M_AST(REG_ITMP3, REG_SP, 3 * 4);
 	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
@@ -4801,7 +4651,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		if (!md->params[i].inmemory) {
 			/* no integer argument registers */
 		} else {       /* float/double in memory can be copied like int/longs */
-			s1 = (md->params[i].regoff + stackframesize + 1) * 4;
+			s1 = (md->params[i].regoff + jd->stackframesize + 1) * 4;
 			s2 = nmd->params[j].regoff * 4;
 
 			M_ILD(REG_ITMP1, REG_SP, s1);
@@ -4878,7 +4728,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* remove native stackframe info */
 
 	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(stackframesize * 4, REG_ITMP1);
+	M_AADD_IMM(jd->stackframesize * 4, REG_ITMP1);
 
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
 	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
@@ -4901,7 +4751,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		}
 	}
 
-	M_AADD_IMM(stackframesize * 4, REG_SP);
+	M_AADD_IMM(jd->stackframesize * 4, REG_SP);
 
 	/* check for exception */
 
@@ -4920,62 +4770,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_JMP(REG_ITMP3);
 
 
-	/* process patcher calls **************************************************/
+	/* generate patcher stubs */
 
-	{
-		u1       *xcodeptr;
-		patchref *pref;
-		u8        mcode;
-		u1       *tmpmcodeptr;
-
-		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* Get machine code which is patched back in later. A
-			   `call rel32' is 5 bytes long. */
-
-			xcodeptr = cd->mcodebase + pref->branchpos;
-			mcode =  *((u8 *) xcodeptr);
-
-			/* patch in `call rel32' to call the following code */
-
-			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
-			cd->mcodeptr = xcodeptr;        /* set mcodeptr to patch position */
-
-			M_CALL_IMM(tmpmcodeptr - (xcodeptr + PATCHER_CALL_SIZE));
-
-			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
-
-			/* save REG_ITMP3 */
-
-			M_PUSH(REG_ITMP3);
-
-			/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-			/* create a virtual java_objectheader */
-
-			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
-			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
-
-			M_MOV_IMM(0, REG_ITMP3);
-			dseg_adddata(cd);
-			M_AADD_IMM(disp, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-#else
-			M_PUSH_IMM(0);
-#endif
-
-			/* move machine code bytes and classinfo pointer onto stack */
-
-			M_PUSH_IMM((mcode >> 32));
-			M_PUSH_IMM(mcode);
-			M_PUSH_IMM(pref->ref);
-			M_PUSH_IMM(pref->patcher);
-
-			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
+	emit_patcher_stubs(jd);
 
 	codegen_finish(jd);
 

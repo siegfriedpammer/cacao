@@ -1,4 +1,4 @@
-/* vm/jit/i386/emit.c - i386 code emitter functions
+/* src/vm/jit/i386/emit.c - i386 code emitter functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 5227 2006-08-09 15:10:51Z twisti $
+   Changes:
+
+   $Id: emit.c 5273 2006-08-23 16:04:03Z twisti $
 
 */
 
@@ -37,12 +39,19 @@
 
 #include "vm/types.h"
 
-#include "vm/statistics.h"
-#include "vm/jit/emit.h"
-#include "vm/jit/jit.h"
 #include "vm/jit/i386/md-abi.h"
 #include "vm/jit/i386/md-emit.h"
 #include "vm/jit/i386/codegen.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
+#include "vm/statistics.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/dseg.h"
+#include "vm/jit/emit.h"
+#include "vm/jit/jit.h"
 
 
 /* emit_load_s1 ****************************************************************
@@ -435,6 +444,207 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	}
 }
 
+
+/* emit_exception_stubs ********************************************************
+
+   Generates the code for the exception stubs.
+
+*******************************************************************************/
+
+void emit_exception_stubs(jitdata *jd)
+{
+	codegendata  *cd;
+	registerdata *rd;
+	exceptionref *eref;
+	u1           *savedmcodeptr;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+	rd = jd->rd;
+
+	savedmcodeptr = NULL;
+
+	/* generate exception stubs */
+
+	for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
+		gen_resolvebranch(cd->mcodebase + eref->branchpos,
+						  eref->branchpos,
+						  cd->mcodeptr - cd->mcodebase);
+
+		MCODECHECK(512);
+
+		/* Check if the exception is an
+		   ArrayIndexOutOfBoundsException.  If so, move index register
+		   into REG_ITMP1. */
+
+		if (eref->reg != -1)
+			M_INTMOVE(eref->reg, REG_ITMP1);
+
+		/* calcuate exception address */
+
+		M_MOV_IMM(0, REG_ITMP2_XPC);
+		dseg_adddata(cd);
+		M_AADD_IMM32(eref->branchpos - 6, REG_ITMP2_XPC);
+
+		/* move function to call into REG_ITMP3 */
+
+		M_MOV_IMM(eref->function, REG_ITMP3);
+
+		if (savedmcodeptr != NULL) {
+			M_JMP_IMM((savedmcodeptr - cd->mcodeptr) - 5);
+		}
+		else {
+			savedmcodeptr = cd->mcodeptr;
+
+			M_ASUB_IMM(5 * 4, REG_SP);
+
+			/* first save REG_ITMP1 so we can use it */
+
+			M_AST(REG_ITMP1, REG_SP, 4 * 4);                /* for AIOOBE */
+
+			M_AST_IMM(0, REG_SP, 0 * 4);
+			dseg_adddata(cd);
+			M_MOV(REG_SP, REG_ITMP1);
+			M_AADD_IMM(5 * 4, REG_ITMP1);
+			M_AST(REG_ITMP1, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP1, REG_SP, (5 + jd->stackframesize) * 4);
+			M_AST(REG_ITMP1, REG_SP, 2 * 4);
+			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
+
+			M_CALL(REG_ITMP3);
+
+			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AADD_IMM(5 * 4, REG_SP);
+
+			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
+		}
+	}
+}
+
+
+/* emit_patcher_stubs **********************************************************
+
+   Generates the code for the patcher stubs.
+
+*******************************************************************************/
+
+void emit_patcher_stubs(jitdata *jd)
+{
+	codegendata *cd;
+	patchref    *pref;
+	u8           mcode;
+	u1          *savedmcodeptr;
+	u1          *tmpmcodeptr;
+	s4           disp;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	/* generate code patching stub call code */
+
+	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
+		/* check code segment size */
+
+		MCODECHECK(512);
+
+		/* Get machine code which is patched back in later. A
+		   `call rel32' is 5 bytes long. */
+
+		savedmcodeptr = cd->mcodebase + pref->branchpos;
+		mcode = *((u8 *) savedmcodeptr);
+
+		/* patch in `call rel32' to call the following code */
+
+		tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr              */
+		cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position     */
+
+		M_CALL_IMM(tmpmcodeptr - (savedmcodeptr + PATCHER_CALL_SIZE));
+
+		cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr       */
+
+		/* save REG_ITMP3 */
+
+		M_PUSH(REG_ITMP3);
+
+		/* move pointer to java_objectheader onto stack */
+
+#if defined(ENABLE_THREADS)
+		(void) dseg_addaddress(cd, NULL);                          /* flcword */
+		(void) dseg_addaddress(cd, lock_get_initial_lock_word());
+		disp = dseg_addaddress(cd, NULL);                          /* vftbl   */
+
+		M_MOV_IMM(0, REG_ITMP3);
+		dseg_adddata(cd);
+		M_AADD_IMM(disp, REG_ITMP3);
+		M_PUSH(REG_ITMP3);
+#else
+		M_PUSH_IMM(0);
+#endif
+
+		/* move machine code bytes and classinfo pointer into registers */
+
+		M_PUSH_IMM(mcode >> 32);
+		M_PUSH_IMM(mcode);
+		M_PUSH_IMM(pref->ref);
+		M_PUSH_IMM(pref->patcher);
+
+		M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
+		M_JMP(REG_ITMP3);
+	}
+}
+
+
+/* emit_replacement_stubs ******************************************************
+
+   Generates the code for the replacement stubs.
+
+*******************************************************************************/
+
+void emit_replacement_stubs(jitdata *jd)
+{
+	codegendata *cd;
+	codeinfo    *code;
+	rplpoint    *rplp;
+	u1          *savedmcodeptr;
+	s4           disp;
+	s4           i;
+
+	/* get required compiler data */
+
+	cd   = jd->cd;
+	code = jd->code;
+
+	rplp = code->rplpoints;
+
+	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
+		/* check code segment size */
+
+		MCODECHECK(512);
+
+		/* note start of stub code */
+
+		rplp->outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
+
+		/* make machine code for patching */
+
+		disp = (ptrint) (rplp->outcode - rplp->pc) - 5;
+
+		rplp->mcode = 0xe9 | ((u8) disp << 8);
+
+		/* push address of `rplpoint` struct */
+			
+		M_PUSH_IMM(rplp);
+
+		/* jump to replacement function */
+
+		M_PUSH_IMM(asm_replacement_out);
+		M_RET;
+	}
+}
+	
 
 /* code generation functions **************************************************/
 
