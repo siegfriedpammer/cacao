@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5233 2006-08-14 10:59:39Z twisti $
+   $Id: asmpart.S 5270 2006-08-23 15:10:16Z twisti $
 
 */
 
@@ -328,20 +328,20 @@ L_asm_call_jit_compiler_exception:
 
 asm_handle_nat_exception:
 L_asm_handle_exception_stack_loop:
-	aaddiu  sp,sp,-6*8                  /* allocate stack                     */
+	aaddiu  sp,sp,-6*8                  /* keep stack 16-byte aligned         */
 	ast     xptr,0*8(sp)                /* save exception pointer             */
 	ast     xpc,1*8(sp)                 /* save exception pc                  */
-	ast     ra,3*8(sp)                  /* save return address                */
+	ast     ra,3*8(sp)                  /* save RA                            */
 	ast     zero,4*8(sp)                /* save maybe-leaf flag (cleared)     */
 
-	move    a0,ra                       /* pass return address                */
+	move    a0,ra                       /* pass RA                            */
 	jal     md_codegen_get_pv_from_pc   /* get PV from RA                     */
-	ast     v0,2*8(sp)                  /* save data segment pointer          */
+	ast     v0,2*8(sp)                  /* save PV                            */
 
-	ald     a0,0*8(sp)                  /* pass exception pointer             */
-	ald     a1,1*8(sp)                  /* pass exception pc                  */
-	move    a2,v0                       /* pass data segment pointer          */
-	aaddiu  a3,sp,6*8                   /* pass Java stack pointer            */
+	ald     a0,0*8(sp)                  /* pass xptr                          */
+	ald     a1,1*8(sp)                  /* pass xpc                           */
+	move    a2,v0                       /* pass PV                            */
+	aaddiu  a3,sp,6*8                   /* pass Java SP                       */
 
 	b       L_asm_handle_exception_continue
 
@@ -355,16 +355,15 @@ asm_handle_exception:
 
 	aaddiu  sp,sp,-6*8                  /* allocate stack                     */
 	ast     xptr,0*8(sp)                /* save exception pointer             */
-	ast     xpc,1*8(sp)                 /* save exception pc                  */
-	ast     pv,2*8(sp)                  /* save data segment pointer          */
-	ast     ra,3*8(sp)                  /* save return address                */
+	ast     pv,2*8(sp)                  /* save PV                            */
+	ast     ra,3*8(sp)                  /* save RA                            */
 	addu    t0,zero,1                   /* set maybe-leaf flag                */
 	ast     t0,4*8(sp)                  /* save maybe-leaf flag               */
 
-	move    a0,xptr                     /* pass exception pointer             */
-	move    a1,xpc                      /* pass exception pc                  */
-	move    a2,pv                       /* pass data segment pointer          */
-	aaddiu  a3,sp,(ARG_CNT+TMP_CNT+6)*8 /* pass Java stack pointer            */
+	move    a0,xptr                     /* pass xptr                          */
+	move    a1,xpc                      /* pass xpc                           */
+	move    a2,pv                       /* pass PV                            */
+	aaddiu  a3,sp,(ARG_CNT+TMP_CNT+6)*8 /* pass Java SP                       */
 
 L_asm_handle_exception_continue:
 	jal     exceptions_handle_exception
@@ -373,8 +372,8 @@ L_asm_handle_exception_continue:
 
 	move    xpc,v0                      /* move handlerpc into xpc            */
 	ald     xptr,0*8(sp)                /* restore exception pointer          */
-	ald     pv,2*8(sp)                  /* restore data segment pointer       */
-	ald     ra,3*8(sp)                  /* restore return address             */
+	ald     pv,2*8(sp)                  /* restore PV                         */
+	ald     ra,3*8(sp)                  /* restore RA                         */
 	ald     t0,4*8(sp)                  /* get maybe-leaf flag                */
 	aaddiu  sp,sp,6*8                   /* free stackframe                    */
 	
@@ -389,9 +388,9 @@ L_asm_handle_exception_no_leaf:
 	jr      xpc                         /* jump to the handler                */
 
 L_asm_handle_exception_not_catched:
-	ald     xptr,0*8(sp)                /* restore exception pointer          */
-	ald     pv,2*8(sp)                  /* restore data segment pointer       */
-	ald     ra,3*8(sp)                  /* restore return address             */
+	ald     xptr,0*8(sp)                /* restore xptr                       */
+	ald     pv,2*8(sp)                  /* restore PV                         */
+	ald     ra,3*8(sp)                  /* restore RA                         */
 	ald     t0,4*8(sp)                  /* get maybe-leaf flag                */
 	aaddiu  sp,sp,6*8                   /* free stackframe                    */
 	
