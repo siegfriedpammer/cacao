@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 5271 2006-08-23 15:45:52Z twisti $
+   $Id: asmpart.S 5272 2006-08-23 15:55:38Z twisti $
 
 */
 
@@ -299,16 +299,17 @@ L_asm_handle_exception_load_gp:
 
 asm_handle_exception:
 L_asm_handle_exception:                 /* required for PIC code              */
-	lda     sp,-(ARG_CNT+TMP_CNT+6)*8(sp) /* create maybe-leaf stackframe     */
+	lda     sp,-(ARG_CNT+TMP_CNT)*8(sp) /* create maybe-leaf stackframe       */
 
 	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
 	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
 
+	lda     sp,-6*8(sp)                 /* keep stack 16-byte aligned         */
 	stq     xptr,0*8(sp)                /* save xptr                          */
 	stq     pv,2*8(sp)                  /* save PV                            */
 	stq     ra,3*8(sp)                  /* save RA                            */
-	lda     a4,1(zero)                  /* set maybe-leaf flag                */
-	stq     a4,4*8(sp)                  /* save maybe-leaf flag               */
+	lda     t0,1(zero)                  /* set maybe-leaf flag                */
+	stq     t0,4*8(sp)                  /* save maybe-leaf flag               */
 
 	br      ra,L_asm_handle_exception_load_gp_2
 L_asm_handle_exception_load_gp_2:
@@ -328,10 +329,10 @@ L_asm_handle_exception_continue:
 	ldq     xptr,0*8(sp)                /* restore xptr                       */
 	ldq     pv,2*8(sp)                  /* restore PV                         */
 	ldq     ra,3*8(sp)                  /* restore RA                         */
-	ldq     a4,4*8(sp)                  /* get maybe-leaf flag                */
+	ldq     t0,4*8(sp)                  /* get maybe-leaf flag                */
 	lda     sp,6*8(sp)                  /* free stack frame                   */
 
-	beq     a4,L_asm_handle_exception_no_leaf
+	beq     t0,L_asm_handle_exception_no_leaf
 
 	RESTORE_ARGUMENT_REGISTERS(0)       /* if this is a leaf method, we have  */
 	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)/* to restore arg and temp registers  */
@@ -345,65 +346,65 @@ L_asm_handle_exception_not_catched:
 	ldq     xptr,0*8(sp)                /* restore xptr                       */
 	ldq     pv,2*8(sp)                  /* restore PV                         */
 	ldq     ra,3*8(sp)                  /* restore RA                         */
-	ldq     a4,4*8(sp)                  /* get maybe-leaf flag                */
+	ldq     t0,4*8(sp)                  /* get maybe-leaf flag                */
 	lda     sp,6*8(sp)
 
-	beq     a4,L_asm_handle_exception_no_leaf_stack
+	beq     t0,L_asm_handle_exception_no_leaf_stack
 
 	lda     sp,(ARG_CNT+TMP_CNT)*8(sp)  /* remove maybe-leaf stackframe       */
-	mov     zero,a4                     /* clear the maybe-leaf flag          */
+	mov     zero,t0                     /* clear the maybe-leaf flag          */
 
 L_asm_handle_exception_no_leaf_stack:
-	ldl     t0,FrameSize(pv)            /* get frame size                     */
-	addq    t0,sp,t0                    /* pointer to save area               */
+	ldl     t1,FrameSize(pv)            /* get frame size                     */
+	addq    t1,sp,t1                    /* pointer to save area               */
 
-	ldl     t1,IsLeaf(pv)               /* is leaf procedure                  */
-	bne     t1,L_asm_handle_exception_no_ra_restore
+	ldl     t2,IsLeaf(pv)               /* is leaf procedure                  */
+	bne     t2,L_asm_handle_exception_no_ra_restore
 
-	ldq     ra,-1*8(t0)                 /* restore ra                         */
-	subq    t0,8,t0                     /* t0--                               */
+	ldq     ra,-1*8(t1)                 /* restore ra                         */
+	subq    t1,8,t1                     /* t1--                               */
 
 L_asm_handle_exception_no_ra_restore:
 	mov     ra,xpc                      /* the new xpc is ra                  */
-	ldl     t1,IntSave(pv)              /* t1 = saved int register count      */
-	br      t2,ex_int1                  /* t2 = current pc                    */
+	ldl     t2,IntSave(pv)              /* t2 = saved int register count      */
+	br      t3,ex_int1                  /* t3 = current pc                    */
 ex_int1:
-	lda     t2,(ex_int2-ex_int1)(t2)
-	negl    t1,t1                       /* negate register count              */
-	s4addq  t1,t2,t2                    /* t2 = IntSave - register count * 4  */
-	jmp     zero,(t2)                   /* jump to save position              */
+	lda     t3,(ex_int2 - ex_int1)(t3)
+	negl    t2,t2                       /* negate register count              */
+	s4addq  t2,t3,t3                    /* t2 = IntSave - register count * 4  */
+	jmp     zero,(t3)                   /* jump to save position              */
 
-	ldq     s0,-7*8(t0)
-	ldq     s1,-6*8(t0)
-	ldq     s2,-5*8(t0)
-	ldq     s3,-4*8(t0)
-	ldq     s4,-3*8(t0)
-	ldq     s5,-2*8(t0)
-	ldq     s6,-1*8(t0)
+	ldq     s0,-7*8(t1)
+	ldq     s1,-6*8(t1)
+	ldq     s2,-5*8(t1)
+	ldq     s3,-4*8(t1)
+	ldq     s4,-3*8(t1)
+	ldq     s5,-2*8(t1)
+	ldq     s6,-1*8(t1)
 
 ex_int2:
-	s8addq  t1,t0,t0                    /* t0 = t0 - 8 * register count       */
+	s8addq  t2,t1,t1                    /* t1 = t1 - 8 * register count       */
 
-	ldl     t1,FltSave(pv)              /* t1 = saved flt register count      */
-	br      t2,ex_flt1                  /* t2 = current pc                    */
+	ldl     t2,FltSave(pv)              /* t2 = saved flt register count      */
+	br      t3,ex_flt1                  /* t3 = current pc                    */
 ex_flt1:
-	lda     t2,(ex_flt2-ex_flt1)(t2)
-	negl    t1,t1                       /* negate register count              */
-	s4addq  t1,t2,t2                    /* t2 = FltSave - 4 * register count  */
-	jmp     zero,(t2)                   /* jump to save position              */
+	lda     t3,(ex_flt2 - ex_flt1)(t3)
+	negl    t2,t2                       /* negate register count              */
+	s4addq  t2,t3,t3                    /* t2 = FltSave - 4 * register count  */
+	jmp     zero,(t3)                   /* jump to save position              */
 
-	ldt     fs0,-8*8(t0)
-	ldt     fs1,-7*8(t0)
-	ldt     fs2,-6*8(t0)
-	ldt     fs3,-5*8(t0)
-	ldt     fs4,-4*8(t0)
-	ldt     fs5,-3*8(t0)
-	ldt     fs6,-2*8(t0)
-	ldt     fs7,-1*8(t0)
+	ldt     fs0,-8*8(t1)
+	ldt     fs1,-7*8(t1)
+	ldt     fs2,-6*8(t1)
+	ldt     fs3,-5*8(t1)
+	ldt     fs4,-4*8(t1)
+	ldt     fs5,-3*8(t1)
+	ldt     fs6,-2*8(t1)
+	ldt     fs7,-1*8(t1)
 
 ex_flt2:
-	ldl     t0,FrameSize(pv)            /* get frame size                     */
-	addq    sp,t0,sp                    /* unwind stack                       */
+	ldl     t1,FrameSize(pv)            /* get frame size                     */
+	addq    sp,t1,sp                    /* unwind stack                       */
 	br      L_asm_handle_exception_stack_loop
 
 	.end    asm_handle_nat_exception
