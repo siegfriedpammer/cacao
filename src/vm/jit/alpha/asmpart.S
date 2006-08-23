@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 5145 2006-07-17 11:48:38Z twisti $
+   $Id: asmpart.S 5269 2006-08-23 14:55:28Z twisti $
 
 */
 
@@ -298,14 +298,13 @@ L_asm_handle_exception:                 /* required for PIC code              */
 	lda     a4,1(zero)                  /* set maybe-leaf flag                */
 
 L_asm_handle_exception_stack_loop:
-	lda     sp,-5*8(sp)                 /* allocate stack                     */
+	lda     sp,-4*8(sp)                 /* allocate stack                     */
 	stq     xptr,0*8(sp)                /* save exception pointer             */
-	stq     xpc,1*8(sp)                 /* save exception pc                  */
-	stq     pv,2*8(sp)                  /* save data segment pointer          */
-	stq     ra,3*8(sp)                  /* save return address                */
+	stq     pv,1*8(sp)                  /* save data segment pointer          */
+	stq     ra,2*8(sp)                  /* save return address                */
 	addq    a3,sp,a3                    /* calculate Java sp into a3...       */
-	addq    a3,5*8,a3
-	stq     a4,4*8(sp)                  /* save maybe-leaf flag               */
+	addq    a3,4*8,a3
+	stq     a4,3*8(sp)                  /* save maybe-leaf flag               */
 
 	br      ra,L_asm_handle_exception_load_gp /* set ra for gp loading        */
 L_asm_handle_exception_load_gp:
@@ -321,10 +320,10 @@ L_asm_handle_exception_load_gp:
 
 	mov     v0,xpc                      /* move handlerpc into xpc            */
 	ldq     xptr,0*8(sp)                /* restore exception pointer          */
-	ldq     pv,2*8(sp)                  /* restore data segment pointer       */
-	ldq     ra,3*8(sp)                  /* restore return address             */
-	ldq     a4,4*8(sp)                  /* get maybe-leaf flag                */
-	lda     sp,5*8(sp)                  /* free stack frame                   */
+	ldq     pv,1*8(sp)                  /* restore data segment pointer       */
+	ldq     ra,2*8(sp)                  /* restore return address             */
+	ldq     a4,3*8(sp)                  /* get maybe-leaf flag                */
+	lda     sp,4*8(sp)                  /* free stack frame                   */
 
 	beq     a4,L_asm_handle_exception_no_leaf
 
@@ -338,10 +337,10 @@ L_asm_handle_exception_no_leaf:
 
 L_asm_handle_exception_not_catched:
 	ldq     xptr,0*8(sp)                /* restore exception pointer          */
-	ldq     pv,2*8(sp)                  /* restore data segment pointer       */
-	ldq     ra,3*8(sp)                  /* restore return address             */
-	ldq     a4,4*8(sp)                  /* get maybe-leaf flag                */
-	lda     sp,5*8(sp)
+	ldq     pv,1*8(sp)                  /* restore data segment pointer       */
+	ldq     ra,2*8(sp)                  /* restore return address             */
+	ldq     a4,3*8(sp)                  /* get maybe-leaf flag                */
+	lda     sp,4*8(sp)
 
 	beq     a4,L_asm_handle_exception_no_leaf_stack
 
