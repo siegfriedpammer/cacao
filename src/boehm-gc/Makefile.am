@@ -70,8 +70,9 @@ libgccpp_la_LDFLAGS = -version-info 1:2:0
 
 EXTRA_DIST += alpha_mach_dep.S mips_sgi_mach_dep.s sparc_mach_dep.S
 
-AM_CXXFLAGS = @GC_CFLAGS@
-AM_CFLAGS = @GC_CFLAGS@ -I$(top_builddir)/include
+#AM_CXXFLAGS = @GC_CFLAGS@
+#AM_CFLAGS = @GC_CFLAGS@ -I$(top_builddir)/include
+AM_CPPFLAGS = -I$(top_builddir)/include
 
 if CPLUSPLUS
 extra_checks = test_cpp

@@ -22,7 +22,7 @@ AC_INIT(gc,6.8,Hans.Boehm@hp.com)
 AC_CONFIG_SRCDIR(gcj_mlc.c)
 AC_CANONICAL_TARGET 
 AC_PREREQ(2.53)
-AC_REVISION($Revision: 5229 $)
+AC_REVISION($Revision: 5267 $)
 GC_SET_VERSION
 AM_INIT_AUTOMAKE
 
@@ -419,6 +419,11 @@ esac
 dnl We need to override the top-level CFLAGS.  This is how we do it.
 dnl MY_CFLAGS="$CFLAGS"
 dnl AC_SUBST(MY_CFLAGS)
+
+dnl pass CFLAGS to Makefiles via AM_CFLAGS
+CFLAGS=$OPT_CFLAGS
+AM_CFLAGS=$ARCH_CFLAGS
+AC_SUBST(AM_CFLAGS)
 
 dnl Include defines that have become de facto standard.
 dnl ALL_INTERIOR_POINTERS can be overridden in startup code.

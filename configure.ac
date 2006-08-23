@@ -110,7 +110,7 @@ case "$host_os" in
 esac
 
 
-dnl temporary set the CFLAGS for configure tests
+dnl temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file
 CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
 
@@ -496,7 +496,7 @@ native | posix | pthreads)
 
     dnl we changed ARCH_CFLAGS, set CFLAGS again
     CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
-    
+
     dnl tell boehm to support threads as well
     ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
     ;;
@@ -812,12 +812,6 @@ AC_PROG_JAVAC
 AC_PROG_JAR
 
 
-dnl now configure subpackages
-dnl the export is not my favorite (is there another way?)
-export CFLAGS
-AC_CONFIG_SUBDIRS(src/boehm-gc)
-
-
 dnl finally pass CFLAGS to Makefiles via AM_CFLAGS
 CFLAGS=$OPT_CFLAGS
 AM_CFLAGS=$ARCH_CFLAGS
@@ -885,6 +879,13 @@ AC_CONFIG_FILES([Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/codepatching/Makefile]
 		[tests/regression/native/Makefile])
+
+
+dnl now configure subpackages with OPT_CFLAGS and ARCH_CFLAGS
+export OPT_CFLAGS
+export ARCH_CFLAGS
+AC_CONFIG_SUBDIRS(src/boehm-gc)
+
 
 AC_OUTPUT
 
