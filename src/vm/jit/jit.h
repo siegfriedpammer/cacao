@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5262 2006-08-22 19:53:56Z twisti $
+   $Id: jit.h 5275 2006-08-24 18:42:48Z twisti $
 
 */
 
@@ -106,7 +106,6 @@ struct jitdata {
 
 	u4               flags;             /* contains JIT compiler flags        */
 	bool             isleafmethod;      /* does method call subroutines       */
-	s4               stackframesize;    /* size of the current stackframe     */
 
 	new_instruction *new_instructions;
 	basicblock      *new_basicblocks;

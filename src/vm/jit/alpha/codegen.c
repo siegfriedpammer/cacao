@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5266 2006-08-23 12:57:41Z twisti $
+   $Id: codegen.c 5275 2006-08-24 18:42:48Z twisti $
 
 */
 
@@ -128,21 +128,21 @@ bool codegen(jitdata *jd)
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
-	jd->stackframesize = rd->memuse + savedregs_num;
+	cd->stackframesize = rd->memuse + savedregs_num;
 
 #if defined(ENABLE_THREADS)        /* space to save argument of monitor_enter */
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		jd->stackframesize++;
+		cd->stackframesize++;
 #endif
 
 	/* create method header */
 
 #if 0
-	jd->stackframesize = (jd->stackframesize + 1) & ~1; /* align stack to 16-bytes */
+	cd->stackframesize = (cd->stackframesize + 1) & ~1; /* align stack to 16-bytes */
 #endif
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, jd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -176,12 +176,12 @@ bool codegen(jitdata *jd)
 	
 	/* create stack frame (if necessary) */
 
-	if (jd->stackframesize)
-		M_LDA(REG_SP, REG_SP, -(jd->stackframesize * 8));
+	if (cd->stackframesize)
+		M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
 
 	/* save return address and used callee saved registers */
 
-	p = jd->stackframesize;
+	p = cd->stackframesize;
 	if (!jd->isleafmethod) {
 		p--; M_AST(REG_RA, REG_SP, p * 8);
 	}
@@ -217,10 +217,10 @@ bool codegen(jitdata *jd)
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
- 					M_LLD(var->regoff, REG_SP, (jd->stackframesize + s1) * 8);
+ 					M_LLD(var->regoff, REG_SP, (cd->stackframesize + s1) * 8);
 
  				} else {                             /* stack arg -> spilled  */
-					var->regoff = jd->stackframesize + s1;
+					var->regoff = cd->stackframesize + s1;
 				}
 			}
 
@@ -236,10 +236,10 @@ bool codegen(jitdata *jd)
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
- 					M_DLD(var->regoff, REG_SP, (jd->stackframesize + s1) * 8);
+ 					M_DLD(var->regoff, REG_SP, (cd->stackframesize + s1) * 8);
 
  				} else {                             /* stack-arg -> spilled  */
-					var->regoff = jd->stackframesize + s1;
+					var->regoff = cd->stackframesize + s1;
 				}
 			}
 		}
@@ -2739,7 +2739,7 @@ nowperformreturn:
 			{
 			s4 i, p;
 			
-			p = jd->stackframesize;
+			p = cd->stackframesize;
 			
 			/* call trace function */
 
@@ -2822,8 +2822,8 @@ nowperformreturn:
 
 			/* deallocate stack                                               */
 
-			if (jd->stackframesize)
-				M_LDA(REG_SP, REG_SP, jd->stackframesize * 8);
+			if (cd->stackframesize)
+				M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
 
 			M_RET(REG_ZERO, REG_RA);
 			ALIGNCODENOP;
@@ -3665,7 +3665,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* calculate stack frame size */
 
-	jd->stackframesize =
+	cd->stackframesize =
 		1 +                             /* return address                     */
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
@@ -3676,7 +3676,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, jd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
@@ -3686,8 +3686,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* generate stub code */
 
-	M_LDA(REG_SP, REG_SP, -(jd->stackframesize * 8));
-	M_AST(REG_RA, REG_SP, jd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
+	M_AST(REG_RA, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 
 	/* call trace function */
 
@@ -3781,10 +3781,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* prepare data structures for native function call */
 
-	M_LDA(rd->argintregs[0], REG_SP, jd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_LDA(rd->argintregs[0], REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 	M_MOV(REG_PV, rd->argintregs[1]);
-	M_LDA(rd->argintregs[2], REG_SP, jd->stackframesize * 8);
-	M_ALD(rd->argintregs[3], REG_SP, jd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_LDA(rd->argintregs[2], REG_SP, cd->stackframesize * 8);
+	M_ALD(rd->argintregs[3], REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
@@ -3826,7 +3826,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				}
 
 			} else {
-				s1 = md->params[i].regoff + jd->stackframesize;
+				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
 				M_LST(REG_ITMP1, REG_SP, s2 * 8);
@@ -3849,7 +3849,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				}
 
 			} else {
-				s1 = md->params[i].regoff + jd->stackframesize;
+				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 				M_DLD(REG_FTMP1, REG_SP, s1 * 8);
 				if (IS_2_WORD_TYPE(t))
@@ -3918,7 +3918,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	M_LDA(rd->argintregs[0], REG_SP, jd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_LDA(rd->argintregs[0], REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
@@ -3935,8 +3935,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 	}
 
-	M_ALD(REG_RA, REG_SP, (jd->stackframesize - 1) * 8); /* get RA            */
-	M_LDA(REG_SP, REG_SP, jd->stackframesize * 8);
+	M_ALD(REG_RA, REG_SP, (cd->stackframesize - 1) * 8); /* get RA            */
+	M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
 
 	/* check for exception */
 

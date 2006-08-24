@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5233 2006-08-14 10:59:39Z twisti $
+   $Id: codegen-common.h 5275 2006-08-24 18:42:48Z twisti $
 
 */
 
@@ -133,6 +133,7 @@ struct codegendata {
 
 	s4              maxstack;
 	s4              maxlocals;
+	s4              stackframesize;    /* stackframe size of this method      */
 };
 
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5273 2006-08-23 16:04:03Z twisti $
+   $Id: emit.c 5275 2006-08-24 18:42:48Z twisti $
 
 */
 
@@ -508,7 +508,7 @@ void emit_exception_stubs(jitdata *jd)
 			M_MOV(REG_SP, REG_ITMP1);
 			M_AADD_IMM(5 * 4, REG_ITMP1);
 			M_AST(REG_ITMP1, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP1, REG_SP, (5 + jd->stackframesize) * 4);
+			M_ALD(REG_ITMP1, REG_SP, (5 + cd->stackframesize) * 4);
 			M_AST(REG_ITMP1, REG_SP, 2 * 4);
 			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
 

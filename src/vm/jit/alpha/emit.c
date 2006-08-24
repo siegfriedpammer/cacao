@@ -283,7 +283,7 @@ void emit_exception_stubs(jitdata *jd)
 				M_MOV(REG_RA, rd->argintregs[2]);
 			else
 				M_ALD(rd->argintregs[2],
-					  REG_SP, jd->stackframesize * 8 - SIZEOF_VOID_P);
+					  REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 
 			M_LDA(REG_SP, REG_SP, -2 * 8);
 			M_AST(rd->argintregs[3], REG_SP, 0 * 8);             /* store XPC */
