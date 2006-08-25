@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 5162 2006-07-19 13:07:00Z tbfg $
+   $Id: disass.c 5279 2006-08-25 11:55:21Z tbfg $
 
 */
 
@@ -68,7 +68,7 @@ u1 *disassinstr(u1 *code)
 		disass_initialized = true;
 	}
 
-	printf("0x%08x:   %08x    ", (s4) code, *((s4 *) code));
+	printf("0x%016lx:   %08x    ", (s8) code, *((s4 *) code));
 
 	print_insn_big_powerpc((bfd_vma) code, &info);
 

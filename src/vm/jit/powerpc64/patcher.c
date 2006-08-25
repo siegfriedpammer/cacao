@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5261 2006-08-22 15:49:25Z tbfg $
+   $Id: patcher.c 5279 2006-08-25 11:55:21Z tbfg $
 
 */
 
@@ -262,10 +262,10 @@ bool patcher_get_putfield(u1 *sp)
    Machine code:
 
    <patched call postition>
-   806dffc4    lwz   r3,-60(r13)
-   81adffc0    lwz   r13,-64(r13)
-   7da903a6    mtctr r13
-   4e800421    bctrl
+   --------	ld	r3,-64(r14)
+   --------	ld	r14,-72(r14)
+   --------	mtcr	r14
+   --------	bctrl
 
 *******************************************************************************/
 

@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5261 2006-08-22 15:49:25Z tbfg $
+   $Id: codegen.c 5279 2006-08-25 11:55:21Z tbfg $
 
 */
 
@@ -2062,7 +2062,7 @@ bool codegen(jitdata *jd)
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
 			s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
-			M_INTMOVE(s1, REG_ITMP1_XPTR);
+			M_LNGMOVE(s1, REG_ITMP1_XPTR);
 
 #ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
@@ -2492,16 +2492,17 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
+		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 
 			s1 = emit_load_s1(jd, iptr, src, REG_RESULT);
-			M_INTMOVE(s1, REG_RESULT);
+			M_LNGMOVE(s1, REG_RESULT);
 			goto nowperformreturn;
 
 		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
 
 			s1 = emit_load_s1(jd, iptr, src, REG_RESULT);
-			M_INTMOVE(s1, REG_RESULT);
+			M_LNGMOVE(s1, REG_RESULT);
 
 #ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
@@ -2512,12 +2513,7 @@ bool codegen(jitdata *jd)
 					M_NOP;
 			}
 #endif /* ENABLE_VERIFIER */
-			goto nowperformreturn;
 
-		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
-
-			/*s1 = emit_load_s1(jd, iptr, src, PACK_REGS(REG_RESULT2, REG_RESULT)); FIXME*/
-			/*M_LNGMOVE(s1, PACK_REGS(REG_RESULT2, REG_RESULT)); FIXME*/
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
@@ -2539,11 +2535,10 @@ nowperformreturn:
 
 			if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 				M_MFLR(REG_ZERO);
-				M_LDA(REG_SP, REG_SP, -10 * 8);
-				M_DST(REG_FRESULT, REG_SP, 48+0);
-				M_IST(REG_RESULT, REG_SP, 48+8);
-				M_AST(REG_ZERO, REG_SP, 48+12);
-				/*M_IST(REG_RESULT2, REG_SP, 48+16); FIXME*/
+				M_LDA(REG_SP, REG_SP, -(LA_SIZE+PA_SIZE+10*8));
+				M_DST(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
+				M_LST(REG_RESULT, REG_SP, LA_SIZE+PA_SIZE+1*8);
+				M_AST(REG_ZERO, REG_SP, LA_SIZE+PA_SIZE+2*8);
 
 				/* keep this order */
 				switch (iptr->opc) {
@@ -2560,10 +2555,8 @@ nowperformreturn:
 
 				case ICMD_LRETURN:
 #if defined(__DARWIN__)
-					/*M_MOV(REG_RESULT2, rd->argintregs[2]); FIXME */
 					M_MOV(REG_RESULT, rd->argintregs[1]);
 #else
-					/*M_MOV(REG_RESULT2, rd->argintregs[3]); FIXME*/
 					M_MOV(REG_RESULT, rd->argintregs[2]);
 #endif
 					break;
@@ -2579,11 +2572,10 @@ nowperformreturn:
 				M_MTCTR(REG_ITMP2);
 				M_JSR;
 
-				M_DLD(REG_FRESULT, REG_SP, 48+0);
-				M_ILD(REG_RESULT, REG_SP, 48+8);
-				M_ALD(REG_ZERO, REG_SP, 48+12);
-				/*M_ILD(REG_RESULT2, REG_SP, 48+16); FIXME*/
-				M_LDA(REG_SP, REG_SP, 10 * 8);
+				M_DLD(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
+				M_LLD(REG_RESULT, REG_SP, LA_SIZE+PA_SIZE+1*8);
+				M_ALD(REG_ZERO, REG_SP, LA_SIZE+PA_SIZE+2*8);
+				M_LDA(REG_SP, REG_SP, LA_SIZE+PA_SIZE+10*8);
 				M_MTLR(REG_ZERO);
 			}
 			
@@ -3457,7 +3449,7 @@ gen_method:
 
 				if (jd->isleafmethod) {
 					M_MFLR(REG_ZERO);
-					M_AST(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
+					M_AST(REG_ZERO, REG_SP, stackframesize * 8 + LA_LR_OFFSET);
 				}
 
 				M_MOV(REG_PV, rd->argintregs[0]);
@@ -3467,26 +3459,26 @@ gen_method:
 					M_MOV(REG_ZERO, rd->argintregs[2]);
 				else
 					M_ALD(rd->argintregs[2],
-						  REG_SP, stackframesize * 4 + LA_LR_OFFSET);
+						  REG_SP, stackframesize * 8 + LA_LR_OFFSET);
 
 				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 				M_MOV(REG_ITMP1, rd->argintregs[4]);
 
-				M_STDU(REG_SP, REG_SP, -(LA_SIZE + 6 * 4));	/* FIXME, changed from M_STWU, but what about *4 in here? and +6? */
-				M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
+				M_STDU(REG_SP, REG_SP, -(LA_SIZE + 6 * 8));
+				M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 8);
 
 				M_MTCTR(REG_ITMP3);
 				M_JSR;
 				M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-				M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
-				M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
+				M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 8);
+				M_LADD_IMM(REG_SP, LA_SIZE + 6 * 8, REG_SP);
 
 				if (jd->isleafmethod) {
 					/* XXX FIXME: REG_ZERO can cause problems here! */
-					assert(stackframesize * 4 <= 32767);
+					assert(stackframesize * 8 <= 32767);
 
-					M_ALD(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
+					M_ALD(REG_ZERO, REG_SP, stackframesize * 8 + LA_LR_OFFSET);
 					M_MTLR(REG_ZERO);
 				}
 
@@ -3525,12 +3517,12 @@ gen_method:
 
 			/* create stack frame - keep stack 16-byte aligned */
 
-			M_AADD_IMM(REG_SP, -8 * 4, REG_SP);
+			M_AADD_IMM(REG_SP, -8 * 8, REG_SP);
 
 			/* calculate return address and move it onto the stack */
 
 			M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
-			M_AST_INTERN(REG_ITMP3, REG_SP, 5 * 4);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 5 * 8);
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -3542,7 +3534,7 @@ gen_method:
 			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
 
 			M_LDA(REG_ITMP3, REG_PV, disp);
-			M_AST_INTERN(REG_ITMP3, REG_SP, 4 * 4);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 4 * 8);
 #else
 			/* do nothing */
 #endif
@@ -3551,25 +3543,25 @@ gen_method:
 
 			disp = dseg_adds4(cd, mcode);
 			M_ILD(REG_ITMP3, REG_PV, disp);
-			M_IST_INTERN(REG_ITMP3, REG_SP, 3 * 4);
+			M_IST_INTERN(REG_ITMP3, REG_SP, 3 * 8);
 
 			/* move class/method/field reference onto stack */
 
 			disp = dseg_addaddress(cd, pref->ref);
 			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST_INTERN(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 2 * 8);
 
 			/* move data segment displacement onto stack */
 
 			disp = dseg_addaddress(cd, pref->disp);
 			M_ILD(REG_ITMP3, REG_PV, disp);
-			M_IST_INTERN(REG_ITMP3, REG_SP, 1 * 4);
+			M_IST_INTERN(REG_ITMP3, REG_SP, 1 * 8);
 
 			/* move patcher function pointer onto stack */
 
 			disp = dseg_addaddress(cd, pref->patcher);
 			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST_INTERN(REG_ITMP3, REG_SP, 0 * 4);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 0 * 8);
 
 			disp = dseg_addaddress(cd, asm_patcher_wrapper);
 			M_ALD(REG_ITMP3, REG_PV, disp);
@@ -3935,15 +3927,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	if (md->returntype.type != TYPE_VOID) {
 		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				/*M_IST(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4); // FIXME*/
-			M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+			M_LST(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
 		}
 		else {
 			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+				M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
 			else
-				M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+				M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);	/* FIXME, needed ?*/
 		}
 	}
 
@@ -3954,19 +3944,17 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 		if (md->returntype.type != TYPE_VOID) {
 			if (IS_INT_LNG_TYPE(md->returntype.type)) {
-				if (IS_2_WORD_TYPE(md->returntype.type))
-					/*M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4); FIXME*/
-				M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+				M_LLD(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
 			}
 			else {
 				if (IS_2_WORD_TYPE(md->returntype.type))
-					M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+					M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
 				else
-					M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+					M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);	/* FIXME, needed ? */
 			}
 		}
 
-		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (1 + 2 + 2 + 1) * 4));
+		M_LDA(REG_SP, REG_SP, -(LA_SIZE + PA_SIZE + (1 + 1 + 1 + 1) * 8));
 
 		/* keep this order */
 		switch (md->returntype.type) {
@@ -3983,10 +3971,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 		case TYPE_LNG:
 #if defined(__DARWIN__)
-			/*M_MOV(REG_RESULT2, rd->argintregs[2]);FIXME*/
 			M_MOV(REG_RESULT, rd->argintregs[1]);
 #else
-			/*M_MOV(REG_RESULT2, rd->argintregs[3]);FIXME*/
 			M_MOV(REG_RESULT, rd->argintregs[2]);
 #endif
 			break;
@@ -4002,7 +3988,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		M_MTCTR(REG_ITMP2);
 		M_JSR;
 
-		M_LDA(REG_SP, REG_SP, LA_SIZE + (1 + 2 + 2 + 1) * 4);
+		M_LDA(REG_SP, REG_SP, LA_SIZE + PA_SIZE + (1 + 1+ 1 + 1) * 8);
 	}
 
 	/* remove native stackframe info */
@@ -4030,9 +4016,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		}
 	}
 
-	M_ALD(REG_ITMP2_XPC, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
+	M_ALD(REG_ITMP2_XPC, REG_SP, stackframesize * 8 + LA_LR_OFFSET);
 	M_MTLR(REG_ITMP2_XPC);
-	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
+	M_LDA(REG_SP, REG_SP, stackframesize * 8); /* remove stackframe           */
 
 	/* check for exception */
 
@@ -4043,7 +4029,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* handle exception */
 
-	M_IADD_IMM(REG_ITMP2_XPC, -4, REG_ITMP2_XPC);  /* exception address       */
+	M_LADD_IMM(REG_ITMP2_XPC, -4, REG_ITMP2_XPC);  /* exception address       */
 
 	disp = dseg_addaddress(cd, asm_handle_nat_exception);
 	M_ALD(REG_ITMP3, REG_PV, disp);
@@ -4079,12 +4065,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 			/* create stack frame - keep stack 16-byte aligned */
 
-			M_AADD_IMM(REG_SP, -8 * 4, REG_SP);
+			M_AADD_IMM(REG_SP, -8 * 8, REG_SP);
 
 			/* move return address onto stack */
 
 			M_MFLR(REG_ZERO);
-			M_AST(REG_ZERO, REG_SP, 5 * 4);
+			M_AST(REG_ZERO, REG_SP, 5 * 8);
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -4096,7 +4082,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
 
 			M_LDA(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 4 * 4);
+			M_AST(REG_ITMP3, REG_SP, 4 * 8);
 #else
 			/* do nothing */
 #endif
@@ -4105,25 +4091,25 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 			disp = dseg_adds4(cd, mcode);
 			M_ILD(REG_ITMP3, REG_PV, disp);
-			M_IST(REG_ITMP3, REG_SP, 3 * 4);
+			M_IST(REG_ITMP3, REG_SP, 3 * 8);
 
 			/* move class/method/field reference onto stack */
 
 			disp = dseg_addaddress(cd, pref->ref);
 			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST(REG_ITMP3, REG_SP, 2 * 8);
 
 			/* move data segment displacement onto stack */
 
 			disp = dseg_addaddress(cd, pref->disp);
 			M_ILD(REG_ITMP3, REG_PV, disp);
-			M_IST(REG_ITMP3, REG_SP, 1 * 4);
+			M_IST(REG_ITMP3, REG_SP, 1 * 8);
 
 			/* move patcher function pointer onto stack */
 
 			disp = dseg_addaddress(cd, pref->patcher);
 			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 0 * 4);
+			M_AST(REG_ITMP3, REG_SP, 0 * 8);
 
 			disp = dseg_addaddress(cd, asm_patcher_wrapper);
 			M_ALD(REG_ITMP3, REG_PV, disp);

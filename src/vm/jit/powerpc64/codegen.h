@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5248 2006-08-17 17:51:40Z tbfg $
+   $Id: codegen.h 5279 2006-08-25 11:55:21Z tbfg $
 
 */
 
@@ -155,7 +155,8 @@
 /* instruction macros *********************************************************/
 
 #define M_IADD(a,b,c)                   M_OP3(31, 266, 0, 0, c, a, b)
-#define M_IADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)
+#define M_LADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)
+#define M_IADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)	/* XXX */
 #define M_ADDC(a,b,c)                   M_OP3(31, 10, 0, 0, c, a, b)
 #define M_ADDIC(a,b,c)                  M_OP2_IMM(12, c, a, b)
 #define M_ADDICTST(a,b,c)               M_OP2_IMM(13, c, a, b)
@@ -430,7 +431,7 @@
 #define M_MTXER(a)                      M_OP3(31, 467, 0, 0, a, 1, 0)
 #define M_MTCTR(a)                      M_OP3(31, 467, 0, 0, a, 9, 0)
 
-#define M_LDA_INTERN(a,b,c)             M_IADD_IMM(b, c, a)
+#define M_LDA_INTERN(a,b,c)             M_LADD_IMM(b, c, a)
 
 #define M_LDA(a,b,disp) \
     do { \
@@ -446,8 +447,8 @@
 
 
 #define M_LDATST(a,b,c)                 M_ADDICTST(b, c, a)
-#define M_CLR(a)                        M_IADD_IMM(0, 0, a)
-#define M_AADD_IMM(a,b,c)               M_IADD_IMM(a, b, c)
+#define M_CLR(a)                        M_LADD_IMM(0, 0, a)
+#define M_AADD_IMM(a,b,c)               M_LADD_IMM(a, b, c)
 
 
 /* function gen_resolvebranch **************************************************

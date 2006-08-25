@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 5249 2006-08-18 10:22:17Z tbfg $
+   $Id: md-os.c 5279 2006-08-25 11:55:21Z tbfg $
 
 */
 
@@ -111,6 +111,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 *******************************************************************************/
 
+#if defined(ENABLE_THREADS)
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
 	threadobject *tobj;
@@ -129,7 +130,6 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-#if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *_uc)
 {
 	mcontext_t *_mc;

@@ -590,6 +590,7 @@ void show_method(jitdata *jd)
 
 	method_println(m);
 
+	if (opt_debugcolor) printf("\033[30;m");	/* reset terminal color, this helps less -r, which gets confused else */
 	printf("\nBasic blocks: %d\n", m->basicblockcount);
 	printf("Code length:  %d\n", (lastbptr->mpc - m->basicblocks[0].mpc));
 	printf("Data length:  %d\n", cd->dseglen);
@@ -764,6 +765,7 @@ void show_method(jitdata *jd)
 	/* show stubs code */
 
 	if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) && opt_showexceptionstubs) {
+		if (opt_debugcolor) printf("\033[32m");	/* green */
 		printf("\nStubs code:\n");
 		printf("Length: %d\n\n", (s4) (code->mcodelength -
 									   ((ptrint) cd->dseglen + lastbptr->mpc)));
@@ -773,6 +775,7 @@ void show_method(jitdata *jd)
 		for (; (ptrint) u1ptr < ((ptrint) code->mcode + code->mcodelength);)
 			DISASSINSTR(u1ptr);
 
+		if (opt_debugcolor) printf("\033[m");
 		printf("\n");
 	}
 #endif
