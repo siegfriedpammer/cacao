@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5275 2006-08-24 18:42:48Z twisti $
+   $Id: emit.c 5277 2006-08-25 07:29:05Z twisti $
 
 */
 
@@ -456,16 +456,16 @@ void emit_exception_stubs(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	exceptionref *eref;
-	u1           *savedmcodeptr;
+	s4            targetdisp;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
 	rd = jd->rd;
 
-	savedmcodeptr = NULL;
-
 	/* generate exception stubs */
+
+	targetdisp = 0;
 
 	for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
 		gen_resolvebranch(cd->mcodebase + eref->branchpos,
@@ -491,17 +491,14 @@ void emit_exception_stubs(jitdata *jd)
 
 		M_MOV_IMM(eref->function, REG_ITMP3);
 
-		if (savedmcodeptr != NULL) {
-			M_JMP_IMM((savedmcodeptr - cd->mcodeptr) - 5);
-		}
-		else {
-			savedmcodeptr = cd->mcodeptr;
+		if (targetdisp == 0) {
+			targetdisp = cd->mcodeptr - cd->mcodebase;
 
 			M_ASUB_IMM(5 * 4, REG_SP);
 
-			/* first save REG_ITMP1 so we can use it */
+			/* first store REG_ITMP1 so we can use it */
 
-			M_AST(REG_ITMP1, REG_SP, 4 * 4);                /* for AIOOBE */
+			M_AST(REG_ITMP1, REG_SP, 4 * 4);                    /* for AIOOBE */
 
 			M_AST_IMM(0, REG_SP, 0 * 4);
 			dseg_adddata(cd);
@@ -520,6 +517,10 @@ void emit_exception_stubs(jitdata *jd)
 			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 		}
+		else {
+			M_JMP_IMM((cd->mcodebase + targetdisp) -
+					  (cd->mcodeptr + PATCHER_CALL_SIZE));
+		}
 	}
 }
 
@@ -537,6 +538,7 @@ void emit_patcher_stubs(jitdata *jd)
 	u8           mcode;
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
+	s4           targetdisp;
 	s4           disp;
 
 	/* get required compiler data */
@@ -544,6 +546,8 @@ void emit_patcher_stubs(jitdata *jd)
 	cd = jd->cd;
 
 	/* generate code patching stub call code */
+
+	targetdisp = 0;
 
 	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 		/* check code segment size */
@@ -591,8 +595,16 @@ void emit_patcher_stubs(jitdata *jd)
 		M_PUSH_IMM(pref->ref);
 		M_PUSH_IMM(pref->patcher);
 
-		M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
-		M_JMP(REG_ITMP3);
+		if (targetdisp == 0) {
+			targetdisp = cd->mcodeptr - cd->mcodebase;
+
+			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
+			M_JMP(REG_ITMP3);
+		}
+		else {
+			M_JMP_IMM((cd->mcodebase + targetdisp) -
+					  (cd->mcodeptr + PATCHER_CALL_SIZE));
+		}
 	}
 }
 
@@ -608,7 +620,6 @@ void emit_replacement_stubs(jitdata *jd)
 	codegendata *cd;
 	codeinfo    *code;
 	rplpoint    *rplp;
-	u1          *savedmcodeptr;
 	s4           disp;
 	s4           i;
 
