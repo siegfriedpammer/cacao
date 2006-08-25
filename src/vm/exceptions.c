@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5251 2006-08-18 13:01:00Z twisti $
+   $Id: exceptions.c 5278 2006-08-25 07:54:27Z twisti $
 
 */
 
@@ -1313,23 +1313,36 @@ void exceptions_throw_illegalargumentexception(void)
 }
 
 
-/* new_illegalmonitorstateexception ********************************************
+/* exceptions_new_illegalmonitorstateexception *********************************
 
    Generates a java.lang.IllegalMonitorStateException for the VM
    thread system.
 
 *******************************************************************************/
 
-java_objectheader *new_illegalmonitorstateexception(void)
+java_objectheader *exceptions_new_illegalmonitorstateexception(void)
 {
 	java_objectheader *e;
 
 	e = native_new_and_init(class_java_lang_IllegalMonitorStateException);
 
-	if (!e)
+	if (e == NULL)
 		return *exceptionptr;
 
 	return e;
+}
+
+
+/* exceptions_throw_illegalmonitorstateexception *******************************
+
+   Generates a java.lang.IllegalMonitorStateException for the VM
+   system and throw it in the VM system.
+
+*******************************************************************************/
+
+void exceptions_throw_illegalmonitorstateexception(void)
+{
+	*exceptionptr = exceptions_new_illegalmonitorstateexception();
 }
 
 

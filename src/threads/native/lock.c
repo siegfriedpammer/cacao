@@ -1004,7 +1004,7 @@ bool lock_monitor_exit(java_objectheader *o)
 		/* will be != t and thus fail this check.                             */
 
 		if (lr->owner != t) {
-			*exceptionptr = new_illegalmonitorstateexception();
+			exceptions_throw_illegalmonitorstateexception();
 			return false;
 		}
 
@@ -1027,7 +1027,8 @@ bool lock_monitor_exit(java_objectheader *o)
 
 	/* legal thin lock cases have been handled above, so this is an error */
 
-	*exceptionptr = new_illegalmonitorstateexception();
+	exceptions_throw_illegalmonitorstateexception();
+
 	return false;
 }
 
@@ -1161,7 +1162,7 @@ static void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, 
 		lr = GET_FAT_LOCK(lockword);
 
 		if (lr->owner != t) {
-			*exceptionptr = new_illegalmonitorstateexception();
+			exceptions_throw_illegalmonitorstateexception();
 			return;
 		}
 	}
@@ -1169,7 +1170,7 @@ static void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, 
 		/* it's a thin lock */
 
 		if (LOCK_WORD_WITHOUT_COUNT(lockword) != t->thinlock) {
-			*exceptionptr = new_illegalmonitorstateexception();
+			exceptions_throw_illegalmonitorstateexception();
 			return;
 		}
 
@@ -1259,7 +1260,7 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 		lr = GET_FAT_LOCK(lockword);
 
 		if (lr->owner != t) {
-			*exceptionptr = new_illegalmonitorstateexception();
+			exceptions_throw_illegalmonitorstateexception();
 			return;
 		}
 	}
@@ -1267,7 +1268,7 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 		/* it's a thin lock */
 
 		if (LOCK_WORD_WITHOUT_COUNT(lockword) != t->thinlock) {
-			*exceptionptr = new_illegalmonitorstateexception();
+			exceptions_throw_illegalmonitorstateexception();
 			return;
 		}
 

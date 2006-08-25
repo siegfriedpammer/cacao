@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5251 2006-08-18 13:01:00Z twisti $
+   $Id: headers.c 5278 2006-08-25 07:54:27Z twisti $
 
 */
 
@@ -453,7 +453,7 @@ void exceptions_throw_arraystoreexception(void)
 }
 
 
-java_objectheader *new_illegalmonitorstateexception(void)
+java_objectheader *exceptions_throw_illegalmonitorstateexception(void)
 {
 	fprintf(stderr, "%s", string_java_lang_IllegalMonitorStateException);
 	exit(1);
