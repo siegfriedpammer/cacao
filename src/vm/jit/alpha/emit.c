@@ -233,7 +233,7 @@ void emit_exception_stubs(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	exceptionref *eref;
-	u1           *savedmcodeptr;
+	s4            targetdisp;
 	s4            disp;
 
 	/* get required compiler data */
@@ -241,9 +241,9 @@ void emit_exception_stubs(jitdata *jd)
 	cd = jd->cd;
 	rd = jd->rd;
 
-	savedmcodeptr = NULL;
-
 	/* generate exception stubs */
+
+	targetdisp = 0;
 
 	for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
 		gen_resolvebranch(cd->mcodebase + eref->branchpos, 
@@ -269,12 +269,8 @@ void emit_exception_stubs(jitdata *jd)
 		disp = dseg_add_functionptr(cd, eref->function);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 
-		if (savedmcodeptr != NULL) {
-			disp = ((u4 *) savedmcodeptr) - (((u4 *) cd->mcodeptr) + 1);
-			M_BR(disp);
-		}
-		else {
-			savedmcodeptr = cd->mcodeptr;
+		if (targetdisp == 0) {
+			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
@@ -308,6 +304,12 @@ void emit_exception_stubs(jitdata *jd)
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_ZERO, REG_ITMP3);
 		}
+		else {
+			disp = (((u4 *) cd->mcodebase) + targetdisp) -
+				(((u4 *) cd->mcodeptr) + 1);
+
+			M_BR(disp);
+		}
 	}
 }
 
@@ -325,6 +327,7 @@ void emit_patcher_stubs(jitdata *jd)
 	u4           mcode;
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
+	s4           targetdisp;
 	s4           disp;
 
 	/* get required compiler data */
@@ -332,6 +335,8 @@ void emit_patcher_stubs(jitdata *jd)
 	cd = jd->cd;
 
 	/* generate code patching stub call code */
+
+	targetdisp = 0;
 
 	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 		/* check code segment size */
@@ -376,7 +381,7 @@ void emit_patcher_stubs(jitdata *jd)
 		M_LDA(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 4 * 8);
 #else
-		M_AST(REG_ZERO, REG_SP, 4 * 8);
+		/* nothing to do */
 #endif
 
 		/* move machine code onto stack */
@@ -403,9 +408,19 @@ void emit_patcher_stubs(jitdata *jd)
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 0 * 8);
 
-		disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_JMP(REG_ZERO, REG_ITMP3);
+		if (targetdisp == 0) {
+			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
+
+			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JMP(REG_ZERO, REG_ITMP3);
+		}
+		else {
+			disp = (((u4 *) cd->mcodebase) + targetdisp) -
+				(((u4 *) cd->mcodeptr) + 1);
+
+			M_BR(disp);
+		}
 	}
 }
 
