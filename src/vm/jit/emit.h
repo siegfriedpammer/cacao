@@ -91,6 +91,9 @@ void emit_exception_stubs(jitdata *jd);
 void emit_patcher_stubs(jitdata *jd);
 void emit_replacement_stubs(jitdata *jd);
 
+void emit_verbosecall_enter(jitdata *jd);
+void emit_verbosecall_exit(jitdata *jd);
+
 #endif /* _EMIT_H */
 
 
