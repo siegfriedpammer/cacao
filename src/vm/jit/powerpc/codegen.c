@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5280 2006-08-28 13:05:03Z twisti $
+   $Id: codegen.c 5281 2006-08-28 15:18:54Z twisti $
 
 */
 
@@ -3079,7 +3079,7 @@ gen_method:
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
 					codegen_addpatchref(cd,
-										PATCHER_checkcast_instanceof_flags,
+										PATCHER_resolve_classref_to_flags,
 										(constant_classref *) iptr->target,
 										disp);
 
@@ -3266,7 +3266,7 @@ gen_method:
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
-				codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
+				codegen_addpatchref(cd, PATCHER_resolve_classref_to_flags,
 									(constant_classref *) iptr->target, disp);
 
 				if (opt_showdisassemble)
@@ -3613,7 +3613,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
-		codegen_addpatchref(cd, PATCHER_resolve_native, m, funcdisp);
+		codegen_addpatchref(cd, PATCHER_resolve_native_function, m, funcdisp);
 
 		if (opt_showdisassemble)
 			M_NOP;

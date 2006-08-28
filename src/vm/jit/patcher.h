@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: patcher.h 5123 2006-07-12 21:45:34Z twisti $
+   $Id: patcher.h 5281 2006-08-28 15:18:54Z twisti $
 
 */
 
@@ -98,6 +98,27 @@
 
 java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra);
 #define PATCHER_wrapper (functionptr) patcher_wrapper
+
+bool patcher_resolve_class(u1 *sp);
+#define PATCHER_resolve_class (functionptr) patcher_resolve_class
+
+bool patcher_initialize_class(u1 *sp);
+#define PATCHER_initialize_class (functionptr) patcher_initialize_class
+
+bool patcher_resolve_classref_to_classinfo(u1 *sp);
+#define PATCHER_resolve_classref_to_classinfo (functionptr) patcher_resolve_classref_to_classinfo
+
+bool patcher_resolve_classref_to_vftbl(u1 *sp);
+#define PATCHER_resolve_classref_to_vftbl (functionptr) patcher_resolve_classref_to_vftbl
+
+bool patcher_resolve_classref_to_flags(u1 *sp);
+#define PATCHER_resolve_classref_to_flags (functionptr) patcher_resolve_classref_to_flags
+
+#if !defined(WITH_STATIC_CLASSPATH)
+bool patcher_resolve_native_function(u1 *sp);
+#define PATCHER_resolve_native_function (functionptr) patcher_resolve_native_function
+#endif
+
 
 bool patcher_get_putstatic(u1 *sp);
 #define PATCHER_get_putstatic (functionptr) patcher_get_putstatic
