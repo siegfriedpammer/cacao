@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5279 2006-08-25 11:55:21Z tbfg $
+   $Id: asmpart.S 5282 2006-08-28 19:31:37Z tbfg $
 
 */
 
@@ -53,12 +53,19 @@
 
 /* export functions ***********************************************************/
 
+#ifdef ENABLE_LIBJVM
 	.globl asm_vm_call_method
 	.globl asm_vm_call_method_int
 	.globl asm_vm_call_method_long
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
-
+#else
+	.globl .asm_vm_call_method
+	.globl .asm_vm_call_method_int
+	.globl .asm_vm_call_method_long
+	.globl .asm_vm_call_method_float
+	.globl .asm_vm_call_method_double
+#endif
 	.globl asm_vm_call_method_exception_handler
 
 	.globl asm_call_jit_compiler
@@ -75,7 +82,7 @@
 
 	.globl .asm_cacheflush		/* no function descriptor needed, only called direct */
 	.globl asm_criticalsections
-	.globl asm_getclassvalues_atomic
+	.globl .asm_getclassvalues_atomic
 
 
 /* asm_vm_call_method **********************************************************
@@ -108,21 +115,30 @@
 	.long   0                         /* frame size                           */
 	.long   0                         /* codeinfo pointer                     */
 
-.section ".opd","aw"
-.align 3
+#ifdef ENABLE_LIBJVM
+	.section ".opd","aw"
+	.align 3
 
-asm_vm_call_method:
-asm_vm_call_method_int:
-asm_vm_call_method_long:
-asm_vm_call_method_float:
-asm_vm_call_method_double:
-	.quad	.asm_vm_call_method,.TOC.@tocbase,0
-	.previous
-	.size asm_vm_call_method, 24
-	.type .asm_vm_call_method,@function
-	.globl .asm_vm_call_method
+	asm_vm_call_method:
+	asm_vm_call_method_int:
+	asm_vm_call_method_long:
+	asm_vm_call_method_float:
+	asm_vm_call_method_double:
+		.quad	.asm_vm_call_method,.TOC.@tocbase,0
+		.previous
+		.size asm_vm_call_method, 24
+		.type .asm_vm_call_method,@function
+		.globl .asm_vm_call_method
+#else
+	asm_vm_call_method:
+	.globl asm_vm_call_method
+#endif
 
 .asm_vm_call_method:
+.asm_vm_call_method_int:
+.asm_vm_call_method_long:
+.asm_vm_call_method_float:
+.asm_vm_call_method_double:
 	mflr    r0
 	std     r0,LA_LR_OFFSET(sp)
 	stdu    sp,-40*8(sp)
@@ -1395,8 +1411,7 @@ asm_cacheflush:
 	blr
 
 
-asm_getclassvalues_atomic:
-.globl .asm_getclassvalues_atomic
+.asm_getclassvalues_atomic:
 _crit_restart:
 _crit_begin:
 	lwz     r6,offbaseval(r3)

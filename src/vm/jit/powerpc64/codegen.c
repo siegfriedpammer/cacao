@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5279 2006-08-25 11:55:21Z tbfg $
+   $Id: codegen.c 5282 2006-08-28 19:31:37Z tbfg $
 
 */
 
@@ -2820,9 +2820,13 @@ gen_method:
 				disp = dseg_addaddress(cd, bte->fp);
 				d = md->returntype.type;
 
-				M_ALD(REG_PV, REG_PV, disp);  /* pointer to built-in-function */
-				M_MTCTR(REG_PV);
+				M_ALD(REG_PV, REG_PV, disp);  	/* pointer to built-in-function descriptor */
+				M_ALD(REG_ITMP1, REG_PV, 0);	/* function entry point address */
+				M_ALD(REG_ITMP2, REG_PV, 8);	/* TOC of callee */
+				M_MOV(REG_TOC, REG_ITMP2);		/* load TOC for callee */
+				M_MTCTR(REG_ITMP1);
 				M_JSR;
+				/* TODO: restore TOC */
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
@@ -3554,7 +3558,7 @@ gen_method:
 			/* move data segment displacement onto stack */
 
 			disp = dseg_addaddress(cd, pref->disp);
-			M_ILD(REG_ITMP3, REG_PV, disp);
+			M_LLD(REG_ITMP3, REG_PV, disp);
 			M_IST_INTERN(REG_ITMP3, REG_SP, 1 * 8);
 
 			/* move patcher function pointer onto stack */
@@ -4101,8 +4105,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 			/* move data segment displacement onto stack */
 
-			disp = dseg_addaddress(cd, pref->disp);
-			M_ILD(REG_ITMP3, REG_PV, disp);
+			disp = dseg_adds4(cd, pref->disp);
+			M_LLD(REG_ITMP3, REG_PV, disp);
 			M_IST(REG_ITMP3, REG_SP, 1 * 8);
 
 			/* move patcher function pointer onto stack */

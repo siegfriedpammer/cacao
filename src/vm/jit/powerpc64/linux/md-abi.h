@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 5261 2006-08-22 15:49:25Z tbfg $
+   $Id: md-abi.h 5282 2006-08-28 19:31:37Z tbfg $
 
 */
 
@@ -39,7 +39,8 @@
 /* preallocated registers *****************************************************/
 
 /* integer registers */
-  
+
+#define REG_TOC		 2   /* TOC (see function descriptors ELF ABI)        */
 #define REG_RESULT       3   /* to deliver method results                     */
 
 #define REG_PV          14   /* procedure vector, must be provided by caller  */
