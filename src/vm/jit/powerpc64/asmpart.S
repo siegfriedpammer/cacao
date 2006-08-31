@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5282 2006-08-28 19:31:37Z tbfg $
+   $Id: asmpart.S 5284 2006-08-31 19:58:15Z tbfg $
 
 */
 
@@ -215,8 +215,7 @@ L_register_handle_int:
 	bne     L_register_handle_long
 
 #if defined(__DARWIN__)
-	addis   itmp3,t3,ha16(L_jumptable_int - L_asm_vm_call_method_get_pc)
-	la      itmp3,lo16(L_jumptable_int - L_asm_vm_call_method_get_pc)(itmp3)
+	#error "FIXME for darwin"
 #else
 	lis     itmp3,L_jumptable_int@highest		/* load 64bit address	*/
 	ori	itmp3,itmp3,L_jumptable_int@higher
@@ -224,46 +223,29 @@ L_register_handle_int:
 	oris	itmp3,itmp3,L_jumptable_int@h
 	ori	itmp3,itmp3,L_jumptable_int@l
 #endif
+	b	L_register_do_copy_longint
 
-	slwi    t2,t6,2                   /* multiple of 4-bytes                  */
+L_register_handle_long:
+
+#if defined(__DARWIN__)
+	#error "FIXME for darwin"
+#else
+	lis     itmp3,L_jumptable_long@highest		/* load 64bit address	*/
+	ori	itmp3,itmp3,L_jumptable_long@higher
+	rldicr 	itmp3,itmp3,32,31
+	oris	itmp3,itmp3,L_jumptable_long@h
+	ori	itmp3,itmp3,L_jumptable_long@l
+#endif
+
+L_register_do_copy_longint:
+	slwi    t2,t6,3                   /* multiple of 8-bytes                  */
 	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	ld     itmp3,0(itmp3)             /* load function address                */
+	ld      itmp3,0(itmp3)            /* load function address                */
 	mtctr   itmp3
 	addi    t0,t0,1                   /* integer argument counter             */
 	addi    t6,t6,1                   /* integer argument register counter    */
 #if defined(__DARWIN__)
 	addi    t7,t7,1                   /* stack slot counter                   */
-#endif
-	bctr
-
-L_register_handle_long:
-#if defined(__DARWIN__)
-	addis   itmp3,t3,ha16(L_jumptable_long - L_asm_vm_call_method_get_pc)
-	la      itmp3,lo16(L_jumptable_long - L_asm_vm_call_method_get_pc)(itmp3)
-#else
-	lis     itmp3,L_jumptable_long@ha
-	addi    itmp3,itmp3,L_jumptable_long@l
-#endif
-#if !defined(__DARWIN__)
-	addi    t6,t6,1                   /* align to even numbers                */
-	andi.   t6,t6,0xfffe
-#endif
-
-	cmpwi   t6,(INT_ARG_CNT - 1)      /* are we out of integer argument       */
-	blt     L_register_handle_long_continue /* registers?                     */
-
-	li      t6,INT_ARG_CNT            /* yes, set integer argument register   */
-	b       L_register_copy           /* count to max and next loop           */
-
-L_register_handle_long_continue:
-	slwi    t2,t6,2                   /* multiple of 4-bytes                  */
-	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	lwz     itmp3,0(itmp3)            /* load function address                */
-	mtctr   itmp3
-	addi    t0,t0,1                   /* integer argument counter             */
-	addi    t6,t6,2                   /* integer argument register counter    */
-#if defined(__DARWIN__)
-	addi    t7,t7,2                   /* stack slot counter                   */
 #endif
 	bctr
 
@@ -275,14 +257,32 @@ L_register_handle_float:
 	bne     L_register_handle_double
 
 #if defined(__DARWIN__)
-	addis   itmp3,t3,ha16(L_jumptable_float - L_asm_vm_call_method_get_pc)
-	la      itmp3,lo16(L_jumptable_float - L_asm_vm_call_method_get_pc)(itmp3)
+	#error "FIXME for darwin"
 #else
-	lis     itmp3,L_jumptable_float@ha
-	addi    itmp3,itmp3,L_jumptable_float@l
+	lis     itmp3,L_jumptable_float@highest		/* load 64bit address	*/
+	ori	itmp3,itmp3,L_jumptable_float@higher
+	rldicr 	itmp3,itmp3,32,31
+	oris	itmp3,itmp3,L_jumptable_float@h
+	ori	itmp3,itmp3,L_jumptable_float@l
+#endif
+	b L_register_do_copy_floatdouble
+
+L_register_handle_double:
+
+#if defined(__DARWIN__)
+	#error "FIXME for darwin"
+#else
+	lis     itmp3,L_jumptable_double@highest		/* load 64bit address	*/
+	ori	itmp3,itmp3,L_jumptable_double@higher
+	rldicr 	itmp3,itmp3,32,31
+	oris	itmp3,itmp3,L_jumptable_double@h
+	ori	itmp3,itmp3,L_jumptable_double@l
 #endif
 
-	slwi    t2,t1,2                   /* multiple of 4-bytes                  */
+
+L_register_do_copy_floatdouble:
+
+	slwi    t2,t1,3                   /* multiple of 8-bytes                  */
 	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
 	lwz     itmp3,0(itmp3)            /* load function address                */
 	mtctr   itmp3
@@ -293,25 +293,6 @@ L_register_handle_float:
 #endif
 	bctr
 
-L_register_handle_double:
-#if defined(__DARWIN__)
-	addis   itmp3,t3,ha16(L_jumptable_double - L_asm_vm_call_method_get_pc)
-	la      itmp3,lo16(L_jumptable_double - L_asm_vm_call_method_get_pc)(itmp3)
-#else
-	lis     itmp3,L_jumptable_double@ha
-	addi    itmp3,itmp3,L_jumptable_double@l
-#endif
-
-	slwi    t2,t1,2                   /* multiple of 4-bytes                  */
-	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	lwz     itmp3,0(itmp3)            /* load function address                */
-	mtctr   itmp3
-	addi    t1,t1,1                   /* float argument counter               */
-#if defined(__DARWIN__)
-	addi    t7,t7,2                   /* stack slot counter                   */
-	addi    t6,t6,2                   /* skip 2 integer argument registers    */
-#endif
-	bctr
 
 L_register_copy_done:
 	                                  /* calculate remaining arguments        */
@@ -474,7 +455,7 @@ asm_vm_call_method_exception_handler:
 
 
 	.data
-	.align  4
+	.align  8
 
 L_jumptable_int:
 	.quad   L_handle_a0
@@ -516,71 +497,48 @@ L_handle_a7:
 
 
 	.data
-	.align  2
+	.align  8
 
 L_jumptable_long:
-#if defined(__DARWIN__)
-	.quad   L_handle_a0_a1
-	.quad   L_handle_a1_a2
-	.quad   L_handle_a2_a3
-	.quad   L_handle_a3_a4
-	.quad   L_handle_a4_a5
-	.quad   L_handle_a5_a6
-	.quad   L_handle_a6_a7
-#else
-	/* we have two entries here, so we get the even argument register
-	alignment for linux */
-
-	.quad   L_handle_a0_a1
-	.quad   0
-	.quad   L_handle_a2_a3
-	.quad   0
-	.quad   L_handle_a4_a5
-	.quad   0
-	.quad   L_handle_a6_a7
-#endif
+	.quad   L_handle_a0l
+	.quad   L_handle_a1l
+	.quad   L_handle_a2l
+	.quad   L_handle_a3l
+	.quad   L_handle_a4l
+	.quad   L_handle_a5l
+	.quad   L_handle_a6l
+	.quad   L_handle_a7l
 
 	.text
-	.align  2
+	.align  4
 
-L_handle_a0_a1:
-	lwz     a0,offvmargdata+0(itmp1)
-	lwz     a1,offvmargdata+4(itmp1)
+L_handle_a0l:
+	ld     a0,offvmargdata(itmp1)
 	b       L_register_copy
-#if defined(__DARWIN__)
-L_handle_a1_a2:
-	lwz     a1,offvmargdata+0(itmp1)
-	lwz     a2,offvmargdata+4(itmp1)
+L_handle_a1l:
+	ld     a1,offvmargdata(itmp1)
 	b       L_register_copy
-#endif
-L_handle_a2_a3:
-	lwz     a2,offvmargdata+0(itmp1)
-	lwz     a3,offvmargdata+4(itmp1)
+L_handle_a2l:
+	ld     a2,offvmargdata(itmp1)
 	b       L_register_copy
-#if defined(__DARWIN__)
-L_handle_a3_a4:
-	lwz     a3,offvmargdata+0(itmp1)
-	lwz     a4,offvmargdata+4(itmp1)
+L_handle_a3l:
+	ld     a3,offvmargdata(itmp1)
 	b       L_register_copy
-#endif
-L_handle_a4_a5:
-	lwz     a4,offvmargdata+0(itmp1)
-	lwz     a5,offvmargdata+4(itmp1)
+L_handle_a4l:
+	ld     a4,offvmargdata(itmp1)
 	b       L_register_copy
-#if defined(__DARWIN__)
-L_handle_a5_a6:
-	lwz     a5,offvmargdata+0(itmp1)
-	lwz     a6,offvmargdata+4(itmp1)
+L_handle_a5l:
+	ld     a5,offvmargdata(itmp1)
 	b       L_register_copy
-#endif
-L_handle_a6_a7:
-	lwz     a6,offvmargdata+0(itmp1)
-	lwz     a7,offvmargdata+4(itmp1)
+L_handle_a6l:
+	ld     a6,offvmargdata(itmp1)
 	b       L_register_copy
-
+L_handle_a7l:
+	ld     a7,offvmargdata(itmp1)
+	b       L_register_copy
 
 	.data
-	.align  2
+	.align  8
 
 L_jumptable_float:
 	.quad   L_handle_fa0
@@ -601,7 +559,7 @@ L_jumptable_float:
 #endif
 
 	.text
-	.align  2
+	.align  4
 
 L_handle_fa0:
 	lfs     fa0,offvmargdata(itmp1)
@@ -648,7 +606,7 @@ L_handle_fa12:
 
 
 	.data
-	.align  2
+	.align  8
 
 L_jumptable_double:
 	.quad   L_handle_fda0
@@ -669,7 +627,7 @@ L_jumptable_double:
 #endif
 
 	.text
-	.align  2
+	.align  4
 
 L_handle_fda0:
 	lfd     fa0,offvmargdata(itmp1)
