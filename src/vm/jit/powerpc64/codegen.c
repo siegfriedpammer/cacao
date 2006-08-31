@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5282 2006-08-28 19:31:37Z tbfg $
+   $Id: codegen.c 5283 2006-08-31 13:32:19Z tbfg $
 
 */
 
@@ -72,8 +72,6 @@
 # include "vm/jit/allocator/lsra.h"
 #endif
 
-
-void codegen_trace_args(jitdata *jd, s4 stackframesize, bool nativestub);
 
 /* codegen *********************************************************************
 
@@ -331,7 +329,8 @@ bool codegen(jitdata *jd)
 	/* call trace function */
 
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		codegen_trace_args(jd, stackframesize, false);
+		emit_verbosecall_enter(jd);
+
 	}
 
 	/* end of header generation */
@@ -2534,49 +2533,7 @@ nowperformreturn:
 			/* call trace function */
 
 			if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
-				M_MFLR(REG_ZERO);
-				M_LDA(REG_SP, REG_SP, -(LA_SIZE+PA_SIZE+10*8));
-				M_DST(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
-				M_LST(REG_RESULT, REG_SP, LA_SIZE+PA_SIZE+1*8);
-				M_AST(REG_ZERO, REG_SP, LA_SIZE+PA_SIZE+2*8);
-
-				/* keep this order */
-				switch (iptr->opc) {
-				case ICMD_IRETURN:
-				case ICMD_ARETURN:
-#if defined(__DARWIN__)
-					M_MOV(REG_RESULT, rd->argintregs[2]);
-					M_CLR(rd->argintregs[1]);
-#else
-					M_MOV(REG_RESULT, rd->argintregs[3]);
-					M_CLR(rd->argintregs[2]);
-#endif
-					break;
-
-				case ICMD_LRETURN:
-#if defined(__DARWIN__)
-					M_MOV(REG_RESULT, rd->argintregs[1]);
-#else
-					M_MOV(REG_RESULT, rd->argintregs[2]);
-#endif
-					break;
-				}
-
-				disp = dseg_addaddress(cd, m);
-				M_ALD(rd->argintregs[0], REG_PV, disp);
-
-				M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
-				M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
-				disp = dseg_addaddress(cd, builtin_displaymethodstop);
-				M_ALD(REG_ITMP2, REG_PV, disp);
-				M_MTCTR(REG_ITMP2);
-				M_JSR;
-
-				M_DLD(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
-				M_LLD(REG_RESULT, REG_SP, LA_SIZE+PA_SIZE+1*8);
-				M_ALD(REG_ZERO, REG_SP, LA_SIZE+PA_SIZE+2*8);
-				M_LDA(REG_SP, REG_SP, LA_SIZE+PA_SIZE+10*8);
-				M_MTLR(REG_ZERO);
+				emit_verbosecall_exit(jd);
 			}
 			
 #if defined(ENABLE_THREADS)
@@ -2639,7 +2596,7 @@ nowperformreturn:
 			/* restore saved registers                                        */
 
 			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--; M_ILD(rd->savintregs[i], REG_SP, p * 8);
+				p--; M_LLD(rd->savintregs[i], REG_SP, p * 8);
 			}
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 				p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
@@ -3728,7 +3685,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		4 +                             /* 4 stackframeinfo arguments (darwin)*/
-		nmd->paramcount * 2 +           /* assume all arguments are doubles   */
+		nmd->paramcount  + 
 		nmd->memuse;
 
 	stackframesize = (stackframesize + 3) & ~3; /* keep stack 16-byte aligned */
@@ -3751,8 +3708,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_STDU(REG_SP, REG_SP, -(stackframesize * 8));
 
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		/* parent_argbase == stackframesize * 4 */
-		codegen_trace_args(jd, stackframesize * 4 , true);
+		emit_verbosecall_enter(jd);
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -3777,13 +3733,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-				if (IS_2_WORD_TYPE(t)) {
-					M_IST(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-					j++;
-					M_IST(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				} else {
-					M_IST(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				}
+				M_LST(rd->argintregs[s1], REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + j * 8);
 				j++;
 			}
 		}
@@ -3793,7 +3743,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-				M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
+				M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + j * 8);
 				j++;
 			}
 		}
@@ -3801,10 +3751,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create native stack info */
 
-	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[0]);
+	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[0]);
 	M_MOV(REG_PV, rd->argintregs[1]);
-	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[2]);
-	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 4 + LA_LR_OFFSET);
+	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[2]);
+	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8 + LA_LR_OFFSET);
 	disp = dseg_addaddress(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
@@ -3820,14 +3770,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-
-				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-					j++;
-					M_ILD(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				} else {
-					M_ILD(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				}
+				M_LLD(rd->argintregs[s1], REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + j * 8);
 				j++;
 			}
 		}
@@ -3837,7 +3780,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-				M_DLD(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
+				M_DLD(rd->argfltregs[s1], REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + j * 8);
 				j++;
 			}
 		}
@@ -3850,43 +3793,22 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
-				if (IS_2_WORD_TYPE(t))
-					s1 = PACK_REGS(
-						rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
-					    rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
-				else
-					s1 = rd->argintregs[md->params[i].regoff];
+				s1 = rd->argintregs[md->params[i].regoff];
 
 				if (!nmd->params[j].inmemory) {
-					if (IS_2_WORD_TYPE(t)) {
-						s2 = PACK_REGS(
-						   rd->argintregs[GET_LOW_REG(nmd->params[j].regoff)],
-						   rd->argintregs[GET_HIGH_REG(nmd->params[j].regoff)]);
-						M_LNGMOVE(s1, s2);
-					} else {
-						s2 = rd->argintregs[nmd->params[j].regoff];
-						M_INTMOVE(s1, s2);
-					}
-
+					s2 = rd->argintregs[nmd->params[j].regoff];
+					M_INTMOVE(s1, s2);
 				} else {
 					s2 = nmd->params[j].regoff;
-					if (IS_2_WORD_TYPE(t))
-						M_LST(s1, REG_SP, s2 * 4);
-					else
-						M_IST(s1, REG_SP, s2 * 4);
+					M_LST(s1, REG_SP, s2 * 8);
 				}
 
 			} else {
 				s1 = md->params[i].regoff + stackframesize;
 				s2 = nmd->params[j].regoff;
 
-				M_ILD(REG_ITMP1, REG_SP, s1 * 4);
-				if (IS_2_WORD_TYPE(t))
-					M_ILD(REG_ITMP2, REG_SP, s1 * 4 + 4);
-
-				M_IST(REG_ITMP1, REG_SP, s2 * 4);
-				if (IS_2_WORD_TYPE(t))
-					M_IST(REG_ITMP2, REG_SP, s2 * 4 + 4);
+				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
+				M_LST(REG_ITMP1, REG_SP, s2 * 8);
 			}
 
 		} else {
@@ -3898,12 +3820,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				s2 = nmd->params[j].regoff;
 
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, s1 * 4);
-					M_DST(REG_FTMP1, REG_SP, s2 * 4);
+					M_DLD(REG_FTMP1, REG_SP, s1 * 8);
+					M_DST(REG_FTMP1, REG_SP, s2 * 8);
 
 				} else {
-					M_FLD(REG_FTMP1, REG_SP, s1 * 4);
-					M_FST(REG_FTMP1, REG_SP, s2 * 4);
+					M_FLD(REG_FTMP1, REG_SP, s1 * 8);
+					M_FST(REG_FTMP1, REG_SP, s2 * 8);
 				}
 			}
 		}
@@ -3931,35 +3853,38 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	if (md->returntype.type != TYPE_VOID) {
 		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			M_LST(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
+			M_LST(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 		}
 		else {
 			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
+				M_DST(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 			else
-				M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);	/* FIXME, needed ?*/
+				M_FST(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);	/* FIXME, needed ?*/
 		}
 	}
 
 	/* print call trace */
 
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		emit_verbosecall_exit(jd);
+#if 0
 		 /* just restore the value we need, don't care about the other */
 
 		if (md->returntype.type != TYPE_VOID) {
 			if (IS_INT_LNG_TYPE(md->returntype.type)) {
-				M_LLD(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
+				M_LLD(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 			}
 			else {
 				if (IS_2_WORD_TYPE(md->returntype.type))
-					M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
+					M_DLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 				else
-					M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);	/* FIXME, needed ? */
+					M_FLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);	/* FIXME, needed ? */
 			}
 		}
 
 		M_LDA(REG_SP, REG_SP, -(LA_SIZE + PA_SIZE + (1 + 1 + 1 + 1) * 8));
 
+#if 0
 		/* keep this order */
 		switch (md->returntype.type) {
 		case TYPE_INT:
@@ -3981,6 +3906,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #endif
 			break;
 		}
+#endif
+#endif
+		/* result as first argument for builtin_displaymethodstop */
+		M_MOV(REG_RESULT, rd->argintregs[1]);
 
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
@@ -3988,7 +3917,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		M_ALD(rd->argintregs[0], REG_PV, disp);
 
 		disp = dseg_addaddress(cd, builtin_displaymethodstop);
+		/* call via function descriptor, XXX: what about TOC ? */
 		M_ALD(REG_ITMP2, REG_PV, disp);
+		M_ALD(REG_ITMP2, REG_ITMP2, 0);
 		M_MTCTR(REG_ITMP2);
 		M_JSR;
 
@@ -3997,7 +3928,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[0]);
+	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[0]);
 	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
@@ -4008,15 +3939,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	if (md->returntype.type != TYPE_VOID) {
 		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				/*M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);FIXME*/
-			M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+			M_LLD(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 		}
 		else {
 			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 			else
-				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 		}
 	}
 
@@ -4128,210 +4057,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 }
 
 
-void codegen_trace_args(jitdata *jd, s4 stackframesize, bool nativestub)
-{
-	methodinfo   *m;
-	codegendata  *cd;
-	registerdata *rd;
-	s4 s1, p, t, d;
-	int stack_off;
-	int stack_size;
-	methoddesc *md;
-
-	/* get required compiler data */
-
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
-
-	md = m->parseddesc;
-	
-	if (!nativestub)
-		M_MFLR(REG_ITMP3);
-	/* Build up Stackframe for builtin_trace_args call (a multiple of 16) */
-	/* For Darwin:                                                        */
-	/* LA + TRACE_ARGS_NUM u8 args + methodinfo + LR                      */
-	/* LA_SIZE(=6*4) + 8*8         + 4          + 4  + 0(Padding)         */
-	/* 6 * 4 + 8 * 8 + 2 * 4 = 12 * 8 = 6 * 16                            */
-	/* For Linux:                                                         */
-	/* LA + (TRACE_ARGS_NUM - INT_ARG_CNT/2) u8 args + methodinfo         */
-	/* + INT_ARG_CNT * 4 ( save integer registers) + LR + 8 + 8 (Padding) */
-	/* LA_SIZE(=2*4) + 4 * 8 + 4 + 8 * 4 + 4 + 8                          */
-	/* 2 * 4 + 4 * 8 + 10 * 4 + 1 * 8 + 8= 12 * 8 = 6 * 16                */
-	
-	/* in nativestubs no Place to save the LR (Link Register) would be needed */
-	/* but since the stack frame has to be aligned the 4 Bytes would have to  */
-	/* be padded again */
-
-#if defined(__DARWIN__)
-	stack_size = LA_SIZE + (TRACE_ARGS_NUM + 1) * 8;
-#else
-	stack_size = 6 * 16;
-#endif
-	M_LDA(REG_SP, REG_SP, -stack_size);
-
-	/* Save LR */
-	if (!nativestub)
-		M_IST(REG_ITMP3, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8 + 1 * 4);
-
-	M_CLR(REG_ITMP1);    /* clear help register */
-
-	/* save up to TRACE_ARGS_NUM arguments into the reserved stack space */
-#if defined(__DARWIN__)
-	/* Copy Params starting from first to Stack                          */
-	/* since TRACE_ARGS == INT_ARG_CNT all used integer argument regs    */ 
-	/* are saved                                                         */
-	p = 0;
-#else
-	/* Copy Params starting from fifth to Stack (INT_ARG_CNT/2) are in   */
-	/* integer argument regs                                             */
-	/* all integer argument registers have to be saved                   */
-	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
-		/* save integer argument registers */
-		M_IST(d, REG_SP, LA_SIZE + 4 * 8 + 4 + p * 4);
-	}
-	p = 4;
-#endif
-	stack_off = LA_SIZE;
-	for (; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
-		t = md->paramtypes[p].type;
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[p].inmemory) { /* Param in Arg Reg */
-				if (IS_2_WORD_TYPE(t)) {
-					M_IST(rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]
-						  , REG_SP, stack_off);
-					M_IST(rd->argintregs[GET_LOW_REG(md->params[p].regoff)]
-						  , REG_SP, stack_off + 4);
-				} else {
-					M_IST(REG_ITMP1, REG_SP, stack_off);
-					M_IST(rd->argintregs[md->params[p].regoff]
-						  , REG_SP, stack_off + 4);
-				}
-			} else { /* Param on Stack */
-				s1 = (md->params[p].regoff + stackframesize) * 4 
-					+ stack_size;
-				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(REG_ITMP2, REG_SP, s1);
-					M_IST(REG_ITMP2, REG_SP, stack_off);
-					M_ILD(REG_ITMP2, REG_SP, s1 + 4);
-					M_IST(REG_ITMP2, REG_SP, stack_off + 4);
-				} else {
-					M_IST(REG_ITMP1, REG_SP, stack_off);
-					M_ILD(REG_ITMP2, REG_SP, s1);
-					M_IST(REG_ITMP2, REG_SP, stack_off + 4);
-				}
-			}
-		} else { /* IS_FLT_DBL_TYPE(t) */
-			if (!md->params[p].inmemory) { /* in Arg Reg */
-				s1 = rd->argfltregs[md->params[p].regoff];
-				if (!IS_2_WORD_TYPE(t)) {
-					M_IST(REG_ITMP1, REG_SP, stack_off);
-					M_FST(s1, REG_SP, stack_off + 4);
-				} else {
-					M_DST(s1, REG_SP, stack_off);
-				}
-			} else { /* on Stack */
-				/* this should not happen */
-			}
-		}
-	}
-
-	/* load first 4 (==INT_ARG_CNT/2) arguments into integer registers */
-#if defined(__DARWIN__)
-	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
-		M_ILD(d, REG_SP, LA_SIZE + p * 4);
-	}
-#else
-	/* LINUX */
-	/* Set integer and float argument registers vor trace_args call */
-	/* offset to saved integer argument registers                   */
-	stack_off = LA_SIZE + 4 * 8 + 4;
-	for (p = 0; (p < 4) && (p < md->paramcount); p++) {
-		t = md->paramtypes[p].type;
-		if (IS_INT_LNG_TYPE(t)) {
-			/* "stretch" int types */
-			if (!IS_2_WORD_TYPE(t)) {
-				M_CLR(rd->argintregs[2 * p]);
-				M_ILD(rd->argintregs[2 * p + 1], REG_SP,stack_off);
-				stack_off += 4;
-			} else {
-				M_ILD(rd->argintregs[2 * p + 1], REG_SP,stack_off + 4);
-				M_ILD(rd->argintregs[2 * p], REG_SP,stack_off);
-				stack_off += 8;
-			}
-		} else { /* Float/Dbl */
-			if (!md->params[p].inmemory) { /* Param in Arg Reg */
-				/* use reserved Place on Stack (sp + 5 * 16) to copy  */
-				/* float/double arg reg to int reg                    */
-				s1 = rd->argfltregs[md->params[p].regoff];
-				if (!IS_2_WORD_TYPE(t)) {
-					M_FST(s1, REG_SP, 5 * 16);
-					M_ILD(rd->argintregs[2 * p + 1], REG_SP, 5 * 16);
-					M_CLR(rd->argintregs[2 * p]);
-				} else {
-					M_DST(s1, REG_SP, 5 * 16);
-					M_ILD(rd->argintregs[2 * p + 1], REG_SP,  5 * 16 + 4);
-					M_ILD(rd->argintregs[2 * p], REG_SP, 5 * 16);
-				}
-			}
-		}
-	}
-#endif
-
-	/* put methodinfo pointer on Stackframe */
-	p = dseg_addaddress(cd, m);
-	M_ALD(REG_ITMP1, REG_PV, p);
-#if defined(__DARWIN__)
-	M_AST(REG_ITMP1, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8); 
-#else
-	M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
-#endif
-	p = dseg_addaddress(cd, builtin_trace_args);
-	M_ALD(REG_ITMP2, REG_PV, p);
-	M_MTCTR(REG_ITMP2);
-	M_JSR;
-
-#if defined(__DARWIN__)
-	/* restore integer argument registers from the reserved stack space */
-
-	stack_off = LA_SIZE;
-	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; 
-		 p++, stack_off += 8) {
-		t = md->paramtypes[p].type;
-
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[p].inmemory) {
-				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]
-						  , REG_SP, stack_off);
-					M_ILD(rd->argintregs[GET_LOW_REG(md->params[p].regoff)]
-						  , REG_SP, stack_off + 4);
-				} else {
-					M_ILD(rd->argintregs[md->params[p].regoff]
-						  , REG_SP, stack_off + 4);
-				}
-			}
-		}
-	}
-#else
-	/* LINUX */
-	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
-		/* save integer argument registers */
-		M_ILD(d, REG_SP, LA_SIZE + 4 * 8 + 4 + p * 4);
-	}
-#endif
-
-	if (!nativestub)
-		M_ILD(REG_ITMP3, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8 + 1 * 4);
-
-	M_LDA(REG_SP, REG_SP, stack_size);
-
-	if (!nativestub)
-		M_MTLR(REG_ITMP3);
-}
 
 
 /*

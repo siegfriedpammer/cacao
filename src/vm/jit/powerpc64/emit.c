@@ -44,6 +44,7 @@
 #include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/powerpc64/codegen.h"
+#include "vm/builtin.h"
 
 
 /* code generation functions **************************************************/
@@ -471,6 +472,213 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 		M_ILD(d, REG_PV, disp);
 	}
 }
+
+/* emit_verbosecall_enter ******************************************************
+ *
+ *    Generates the code for the call trace.
+ *
+ ********************************************************************************/
+void emit_verbosecall_enter (jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+	s4 s1, p, t, d;
+	int stack_off;
+	int stack_size;
+	methoddesc *md;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	md = m->parseddesc;
+	
+	/* Build up Stackframe for builtin_trace_args call (a multiple of 16) */
+	/* For Darwin:                                                        */
+	/* TODO                                                               */
+	/* For Linux:                                                         */
+	/* setup stack for TRACE_ARGS_NUM registers                           */
+	/* == LA_SIZE + PA_SIZE + 8 (methodinfo argument) + TRACE_ARGS_NUM*8 + 8 (itmp1)              */
+	
+	/* in nativestubs no Place to save the LR (Link Register) would be needed */
+	/* but since the stack frame has to be aligned the 4 Bytes would have to  */
+	/* be padded again */
+
+#if defined(__DARWIN__)
+	stack_size = LA_SIZE + (TRACE_ARGS_NUM + 1) * 8;
+#else
+	stack_size = LA_SIZE + PA_SIZE + 8 + TRACE_ARGS_NUM * 8 + 8;
+#endif
+
+	/* mark trace code */
+	M_NOP;
+
+	/* save up to TRACE_ARGS_NUM arguments into the reserved stack space */
+#if 0
+#if defined(__DARWIN__)
+	/* Copy Params starting from first to Stack                          */
+	/* since TRACE_ARGS == INT_ARG_CNT all used integer argument regs    */ 
+	/* are saved                                                         */
+	p = 0;
+#else
+	/* Copy Params starting from fifth to Stack (INT_ARG_CNT/2) are in   */
+	/* integer argument regs                                             */
+	/* all integer argument registers have to be saved                   */
+	for (p = 0; p < 8; p++) {
+		d = rd->argintregs[p];
+		/* save integer argument registers */
+		M_LST(d, REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + 8 + p * 8);
+	}
+	p = 4;
+#endif
+#endif
+	M_MFLR(REG_ZERO);
+	M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
+	M_STDU(REG_SP, REG_SP, -stack_size);
+	stack_off = LA_SIZE + PA_SIZE;
+	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
+		t = md->paramtypes[p].type;
+		if (IS_INT_LNG_TYPE(t)) {
+			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+				M_LST(rd->argintregs[md->params[p].regoff], REG_SP, stack_off);
+			} else { /* Param on Stack */
+				s1 = (md->params[p].regoff + cd->stackframesize) * 8 + stack_size;
+				M_LLD(REG_ITMP2, REG_SP, s1);
+				M_LST(REG_ITMP2, REG_SP, stack_off);
+			}
+		} else { /* IS_FLT_DBL_TYPE(t) */
+			if (!md->params[p].inmemory) { /* in Arg Reg */
+				s1 = rd->argfltregs[md->params[p].regoff];
+				M_DST(s1, REG_SP, stack_off);
+			} else { /* on Stack */
+				/* this should not happen */
+				assert(0);
+			}
+		}
+	}
+
+	/* load first 4 (==INT_ARG_CNT/2) arguments into integer registers */
+#if defined(__DARWIN__)
+	for (p = 0; p < 8; p++) {
+		d = rd->argintregs[p];
+		M_ILD(d, REG_SP, LA_SIZE + p * 4);
+	}
+#else
+	/* LINUX */
+	/* Set integer and float argument registers for trace_args call */
+	/* offset to saved integer argument registers                   */
+	stack_off = LA_SIZE + PA_SIZE;
+	for (p = 0; (p < TRACE_ARGS_NUM) && (p < md->paramcount); p++, stack_off += 8) {
+		t = md->paramtypes[p].type;
+		if (IS_INT_LNG_TYPE(t)) {
+			M_LLD(rd->argintregs[p], REG_SP,stack_off);
+		} else { /* Float/Dbl */
+			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+				/* use reserved Place on Stack (sp + 5 * 16) to copy  */
+				/* float/double arg reg to int reg                    */
+				s1 = rd->argfltregs[md->params[p].regoff];
+				M_MOV(s1, rd->argintregs[p]);
+			} else	{
+				assert(0);
+			}
+		}
+	}
+#endif
+
+	/* put methodinfo pointer on Stackframe */
+	p = dseg_addaddress(cd, m);
+	M_ALD(REG_ITMP1, REG_PV, p);
+#if defined(__DARWIN__)
+	M_AST(REG_ITMP1, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8); 
+#else
+	if (TRACE_ARGS_NUM == 8)	{
+		/* need to pass via stack */
+		M_AST(REG_ITMP1, REG_SP, LA_SIZE + PA_SIZE);
+	} else {
+		/* pass via register, reg 3 is the first  */
+		M_MOV(REG_ITMP1, 3 + TRACE_ARGS_NUM);
+	}
+#endif
+	/* call via function descriptor */
+	/* XXX: what about TOC? */
+	p = dseg_addaddress(cd, builtin_trace_args);
+	M_ALD(REG_ITMP2, REG_PV, p);
+	M_ALD(REG_ITMP1, REG_ITMP2, 0);
+	M_MTCTR(REG_ITMP1);
+	M_JSR;
+
+#if defined(__DARWIN__)
+	/* restore integer argument registers from the reserved stack space */
+
+	stack_off = LA_SIZE;
+	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
+		t = md->paramtypes[p].type;
+
+		if (IS_INT_LNG_TYPE(t)) {
+			if (!md->params[p].inmemory) {
+				M_LLD(rd->argintregs[md->params[p].regoff], REG_SP, stack_off);
+			} else  {
+				assert(0);
+			}
+		}
+	}
+#else
+	/* LINUX */
+	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
+		d = rd->argintregs[p];
+		/* restore integer argument registers */
+		M_LLD(d, REG_SP, LA_SIZE + PA_SIZE + p * 8);
+	}
+#endif
+	M_ALD(REG_ZERO, REG_SP, stack_size + LA_LR_OFFSET);
+	M_MTLR(REG_ZERO);
+	M_LDA(REG_SP, REG_SP, stack_size);
+}
+
+/* emit_verbosecall_exit ******************************************************
+ *
+ *    Generates the code for the call trace.
+ *
+ ********************************************************************************/
+void emit_verbosecall_exit(jitdata *jd)
+{
+	codegendata *cd = jd->cd;
+	s4 disp;
+
+	M_MFLR(REG_ZERO);
+	M_LDA(REG_SP, REG_SP, -(LA_SIZE+PA_SIZE+10*8));
+	M_DST(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
+	M_LST(REG_RESULT, REG_SP, LA_SIZE+PA_SIZE+1*8);
+	M_AST(REG_ZERO, REG_SP, LA_SIZE+PA_SIZE+2*8);
+
+#if defined(__DARWIN__)
+	M_MOV(REG_RESULT, jd->rd->argintregs[1]);
+#else
+	M_MOV(REG_RESULT, jd->rd->argintregs[1]);
+#endif
+
+	disp = dseg_addaddress(cd, jd->m);
+	M_ALD(jd->rd->argintregs[0], REG_PV, disp);
+
+	M_FLTMOVE(REG_FRESULT, jd->rd->argfltregs[0]);
+	M_FLTMOVE(REG_FRESULT, jd->rd->argfltregs[1]);
+	disp = dseg_addaddress(cd, builtin_displaymethodstop);
+	/* call via function descriptor, XXX: what about TOC ? */
+	M_ALD(REG_ITMP2, REG_PV, disp);
+	M_ALD(REG_ITMP2, REG_ITMP2, 0);
+	M_MTCTR(REG_ITMP2);
+	M_JSR;
+
+	M_DLD(REG_FRESULT, REG_SP, LA_SIZE+PA_SIZE+0*8);
+	M_LLD(REG_RESULT, REG_SP, LA_SIZE+PA_SIZE+1*8);
+	M_ALD(REG_ZERO, REG_SP, LA_SIZE+PA_SIZE+2*8);
+	M_LDA(REG_SP, REG_SP, LA_SIZE+PA_SIZE+10*8);
+	M_MTLR(REG_ZERO);
+}
+
 
 
 /*
