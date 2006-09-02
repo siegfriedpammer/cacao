@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5261 2006-08-22 15:49:25Z tbfg $
+   $Id: arch.h 5285 2006-09-02 14:26:04Z tbfg $
 
 */
 
@@ -44,24 +44,24 @@
 
 #define USEBUILTINTABLE
 
-#define SUPPORT_DIVISION                 0
-#define SUPPORT_LONG                     0
-#define SUPPORT_FLOAT                    0
-#define SUPPORT_DOUBLE                   0
+#define SUPPORT_DIVISION                 1
+#define SUPPORT_LONG                     1
+#define SUPPORT_FLOAT                    1
+#define SUPPORT_DOUBLE                   1
 
 #define SUPPORT_FMOD                     0
 #define SUPPORT_FICVT                    0
 #define SUPPORT_IFCVT                    0
 
-#define SUPPORT_LONG_ADD                 0
-#define SUPPORT_LONG_CMP                 0
-#define SUPPORT_LONG_CMP_CONST           0
-#define SUPPORT_LONG_LOGICAL             0
-#define SUPPORT_LONG_SHIFT               0
-#define SUPPORT_LONG_MUL                 0
-#define SUPPORT_LONG_DIV                 0
-#define SUPPORT_LONG_ICVT                0
-#define SUPPORT_LONG_FCVT                0
+#define SUPPORT_LONG_ADD                 1
+#define SUPPORT_LONG_CMP                 1
+#define SUPPORT_LONG_CMP_CONST           1
+#define SUPPORT_LONG_LOGICAL             1
+#define SUPPORT_LONG_SHIFT               1
+#define SUPPORT_LONG_MUL                 1
+#define SUPPORT_LONG_DIV                 1
+#define SUPPORT_LONG_ICVT                1
+#define SUPPORT_LONG_FCVT                1
 
 #define SUPPORT_CONST_LOGICAL            0  /* AND, OR, XOR with immediates   */
 #define SUPPORT_CONST_MUL                0  /* mutiply with immediate         */

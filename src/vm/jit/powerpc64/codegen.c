@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5283 2006-08-31 13:32:19Z tbfg $
+   $Id: codegen.c 5285 2006-09-02 14:26:04Z tbfg $
 
 */
 
@@ -121,7 +121,7 @@ bool codegen(jitdata *jd)
 	/* space to save used callee saved registers */
 
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
-	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
+	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
 	stackframesize = rd->memuse + savedregs_num;
 
@@ -152,7 +152,7 @@ bool codegen(jitdata *jd)
 /* 		stackframesize = 0; */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * 4);             /* FrameSize       */
+	(void) dseg_adds4(cd, stackframesize * 8);             /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -3707,8 +3707,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STDU(REG_SP, REG_SP, -(stackframesize * 8));
 
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		emit_verbosecall_enter(jd);
+	}
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -3757,6 +3758,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8 + LA_LR_OFFSET);
 	disp = dseg_addaddress(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
+	M_ALD(REG_ITMP1, REG_ITMP1, 0);	/* FIXME what about TOC? */
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
 
@@ -3846,6 +3848,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* generate the actual native call */
 
 	M_ALD(REG_ITMP3, REG_PV, funcdisp);
+	M_ALD(REG_ITMP3, REG_ITMP3, 0);		/* XXX what about TOC ? */
 	M_MTCTR(REG_ITMP3);
 	M_JSR;
 
@@ -3867,63 +3870,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		emit_verbosecall_exit(jd);
-#if 0
-		 /* just restore the value we need, don't care about the other */
-
-		if (md->returntype.type != TYPE_VOID) {
-			if (IS_INT_LNG_TYPE(md->returntype.type)) {
-				M_LLD(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
-			}
-			else {
-				if (IS_2_WORD_TYPE(md->returntype.type))
-					M_DLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
-				else
-					M_FLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);	/* FIXME, needed ? */
-			}
-		}
-
-		M_LDA(REG_SP, REG_SP, -(LA_SIZE + PA_SIZE + (1 + 1 + 1 + 1) * 8));
-
-#if 0
-		/* keep this order */
-		switch (md->returntype.type) {
-		case TYPE_INT:
-		case TYPE_ADR:
-#if defined(__DARWIN__)
-			M_MOV(REG_RESULT, rd->argintregs[2]);
-			M_CLR(rd->argintregs[1]);
-#else
-			M_MOV(REG_RESULT, rd->argintregs[3]);
-			M_CLR(rd->argintregs[2]);
-#endif
-			break;
-
-		case TYPE_LNG:
-#if defined(__DARWIN__)
-			M_MOV(REG_RESULT, rd->argintregs[1]);
-#else
-			M_MOV(REG_RESULT, rd->argintregs[2]);
-#endif
-			break;
-		}
-#endif
-#endif
-		/* result as first argument for builtin_displaymethodstop */
-		M_MOV(REG_RESULT, rd->argintregs[1]);
-
-		M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
-		M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
-		disp = dseg_addaddress(cd, m);
-		M_ALD(rd->argintregs[0], REG_PV, disp);
-
-		disp = dseg_addaddress(cd, builtin_displaymethodstop);
-		/* call via function descriptor, XXX: what about TOC ? */
-		M_ALD(REG_ITMP2, REG_PV, disp);
-		M_ALD(REG_ITMP2, REG_ITMP2, 0);
-		M_MTCTR(REG_ITMP2);
-		M_JSR;
-
-		M_LDA(REG_SP, REG_SP, LA_SIZE + PA_SIZE + (1 + 1+ 1 + 1) * 8);
 	}
 
 	/* remove native stackframe info */
@@ -3931,6 +3877,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[0]);
 	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
+	M_ALD(REG_ITMP1, REG_ITMP1, 0);	/* XXX what about TOC? */
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
 	M_MOV(REG_RESULT, REG_ITMP1_XPTR);
@@ -4035,7 +3982,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			/* move data segment displacement onto stack */
 
 			disp = dseg_adds4(cd, pref->disp);
-			M_LLD(REG_ITMP3, REG_PV, disp);
+			M_ILD(REG_ITMP3, REG_PV, disp);
 			M_IST(REG_ITMP3, REG_SP, 1 * 8);
 
 			/* move patcher function pointer onto stack */
