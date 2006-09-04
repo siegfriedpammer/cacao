@@ -33,13 +33,25 @@
 */
 
 
+#include "config.h"
+
 #include "vm/types.h"
 
 #include "md-abi.h"
 
+#include "vm/jit/mips/codegen.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
+#include "vm/exceptions.h"
+#include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
+#include "vm/jit/asmpart.h"
+#include "vm/jit/dseg.h"
 #include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/mips/codegen.h"
+#include "vm/jit/replace.h"
 
 
 /* code generation functions **************************************************/
@@ -261,6 +273,293 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	else {
 		disp = dseg_adds8(cd, value);
 		M_LLD(d, REG_PV, disp);
+	}
+}
+
+
+/* emit_exception_stubs ********************************************************
+
+   Generates the code for the exception stubs.
+
+*******************************************************************************/
+
+void emit_exception_stubs(jitdata *jd)
+{
+	codegendata  *cd;
+	registerdata *rd;
+	exceptionref *eref;
+	s4            targetdisp;
+	s4            disp;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+	rd = jd->rd;
+
+	/* generate exception stubs */
+
+	targetdisp = 0;
+
+	for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
+		gen_resolvebranch(cd->mcodebase + eref->branchpos, 
+						  eref->branchpos, cd->mcodeptr - cd->mcodebase);
+
+		MCODECHECK(100);
+
+		/* Check if the exception is an
+		   ArrayIndexOutOfBoundsException.  If so, move index register
+		   into REG_ITMP1. */
+
+		if (eref->reg != -1)
+			M_MOV(eref->reg, REG_ITMP1);
+
+		/* calcuate exception address */
+
+		M_LDA(REG_ITMP2_XPC, REG_PV, eref->branchpos - 4);
+
+		/* move function to call into REG_ITMP3 */
+
+		disp = dseg_addaddress(cd, eref->function);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+
+		if (targetdisp == 0) {
+			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
+
+			M_MOV(REG_PV, rd->argintregs[0]);
+			M_MOV(REG_SP, rd->argintregs[1]);
+
+			if (jd->isleafmethod)
+				M_MOV(REG_RA, rd->argintregs[2]);
+			else
+				M_ALD(rd->argintregs[2],
+					  REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+			M_MOV(REG_ITMP1, rd->argintregs[4]);
+
+			M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			if (jd->isleafmethod)
+				M_AST(REG_RA, REG_SP, 1 * 8);
+
+			M_JSR(REG_RA, REG_ITMP3);
+			M_NOP;
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+			if (jd->isleafmethod)
+				M_ALD(REG_RA, REG_SP, 1 * 8);
+
+			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_AADD_IMM(REG_SP, 2 * 8, REG_SP);
+
+			disp = dseg_addaddress(cd, asm_handle_exception);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JMP(REG_ITMP3);
+			M_NOP;
+		}
+		else {
+			disp = (((u4 *) cd->mcodebase) + targetdisp) -
+				(((u4 *) cd->mcodeptr) + 1);
+			M_BR(disp);
+			M_NOP;
+		}
+	}
+}
+
+
+/* emit_patcher_stubs **********************************************************
+
+   Generates the code for the patcher stubs.
+
+*******************************************************************************/
+
+void emit_patcher_stubs(jitdata *jd)
+{
+	codegendata *cd;
+	patchref    *pref;
+	u4           mcode;
+	u1          *savedmcodeptr;
+	u1          *tmpmcodeptr;
+	s4           targetdisp;
+	s4           disp;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	/* generate code patching stub call code */
+
+	targetdisp = 0;
+
+	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
+		/* check code segment size */
+
+		MCODECHECK(100);
+
+		/* Get machine code which is patched back in later. The
+		   call is 2 instruction words long. */
+
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
+
+		/* We need to split this, because an unaligned 8 byte read
+		   causes a SIGSEGV. */
+
+		mcode = ((u8) ((u4 *) tmpmcodeptr)[1] << 32) +
+			((u4 *) tmpmcodeptr)[0];
+
+		/* Patch in the call to call the following code (done at
+		   compile time). */
+
+		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
+		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
+
+		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
+
+		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
+			*exceptionptr =
+				new_internalerror("Jump offset is out of range: %d > +/-%d",
+								  disp, 0x00007fff);
+			return;
+		}
+
+		M_BR(disp);
+		M_NOP;
+
+		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
+
+		/* create stack frame */
+
+		M_ASUB_IMM(REG_SP, 6 * 8, REG_SP);
+
+		/* calculate return address and move it onto the stack */
+
+		M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
+		M_AST(REG_ITMP3, REG_SP, 5 * 8);
+
+		/* move pointer to java_objectheader onto stack */
+
+#if defined(ENABLE_THREADS)
+		/* create a virtual java_objectheader */
+
+		(void) dseg_addaddress(cd, NULL);                          /* flcword */
+		(void) dseg_addaddress(cd, lock_get_initial_lock_word());
+		disp = dseg_addaddress(cd, NULL);                          /* vftbl   */
+
+		M_LDA(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, 4 * 8);
+#else
+		/* do nothing */
+#endif
+
+		/* move machine code onto stack */
+
+		disp = dseg_adds8(cd, mcode);
+		M_LLD(REG_ITMP3, REG_PV, disp);
+		M_LST(REG_ITMP3, REG_SP, 3 * 8);
+
+		/* move class/method/field reference onto stack */
+
+		disp = dseg_addaddress(cd, pref->ref);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, 2 * 8);
+
+		/* move data segment displacement onto stack */
+
+		disp = dseg_adds4(cd, pref->disp);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, 1 * 8);
+
+		/* move patcher function pointer onto stack */
+
+		disp = dseg_addaddress(cd, pref->patcher);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, 0 * 8);
+
+		if (targetdisp == 0) {
+			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
+
+			disp = dseg_addaddress(cd, asm_patcher_wrapper);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JMP(REG_ITMP3);
+			M_NOP;
+		}
+		else {
+			disp = (((u4 *) cd->mcodebase) + targetdisp) -
+				(((u4 *) cd->mcodeptr) + 1);
+			M_BR(disp);
+			M_NOP;
+		}
+	}
+}
+
+
+/* emit_replacement_stubs ******************************************************
+
+   Generates the code for the replacement stubs.
+
+*******************************************************************************/
+
+void emit_replacement_stubs(jitdata *jd)
+{
+	codegendata *cd;
+	codeinfo    *code;
+	rplpoint    *rplp;
+	u1          *savedmcodeptr;
+	s4           disp;
+	s4           i;
+
+	/* get required compiler data */
+
+	cd   = jd->cd;
+	code = jd->code;
+
+	rplp = code->rplpoints;
+
+	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
+		/* check code segment size */
+
+		MCODECHECK(100);
+
+		/* note start of stub code */
+
+		rplp->outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
+
+		/* make machine code for patching */
+
+		savedmcodeptr = cd->mcodeptr;
+		cd->mcodeptr  = (u1 *) &(rplp->mcode);
+
+		disp = (ptrint) ((s4 *) rplp->outcode - (s4 *) rplp->pc) - 1;
+
+		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
+			*exceptionptr =
+				new_internalerror("Jump offset is out of range: %d > +/-%d",
+								  disp, 0x00007fff);
+			return;
+		}
+
+		M_BR(disp);
+		M_NOP; /* delay slot */
+
+		cd->mcodeptr = savedmcodeptr;
+
+		/* create stack frame - 16-byte aligned */
+
+		M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
+
+		/* push address of `rplpoint` struct */
+
+		disp = dseg_addaddress(cd, rplp);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, 0 * 8);
+
+		/* jump to replacement function */
+
+		disp = dseg_addaddress(cd, asm_replacement_out);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_JMP(REG_ITMP3);
+		M_NOP; /* delay slot */
 	}
 }
 
