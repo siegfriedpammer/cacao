@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5222 2006-08-08 14:24:08Z twisti $
+   $Id: parse.c 5292 2006-09-04 23:24:39Z edwin $
 
 */
 
@@ -1120,7 +1120,7 @@ invoke_method:
 			bte = builtintable_get_internal(BUILTIN_idiv);
 			NEW_OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
-			OP(opcode);
+			NEW_OP(opcode);
 #endif
 			break;
 
@@ -1129,7 +1129,7 @@ invoke_method:
 			bte = builtintable_get_internal(BUILTIN_irem);
 			NEW_OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
-			OP(opcode);
+			NEW_OP(opcode);
 #endif
 			break;
 
@@ -1138,7 +1138,7 @@ invoke_method:
 			bte = builtintable_get_internal(BUILTIN_ldiv);
 			NEW_OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
-			OP(opcode);
+			NEW_OP(opcode);
 #endif
 			break;
 
@@ -1147,7 +1147,7 @@ invoke_method:
 			bte = builtintable_get_internal(BUILTIN_lrem);
 			NEW_OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
-			OP(opcode);
+			NEW_OP(opcode);
 #endif
 			break;
 
