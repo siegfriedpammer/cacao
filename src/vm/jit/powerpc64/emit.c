@@ -484,7 +484,7 @@ void emit_verbosecall_enter (jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	s4 s1, p, t, d;
-	int stack_off;
+/*	int stack_off; */
 	int stack_size;
 	methoddesc *md;
 
@@ -538,21 +538,21 @@ void emit_verbosecall_enter (jitdata *jd)
 	M_MFLR(REG_ZERO);
 	M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STDU(REG_SP, REG_SP, -stack_size);
-	stack_off = LA_SIZE + PA_SIZE;
-	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
+
+	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
 		t = md->paramtypes[p].type;
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[p].inmemory) { /* Param in Arg Reg */
-				M_LST(rd->argintregs[md->params[p].regoff], REG_SP, stack_off);
+				M_LST(rd->argintregs[md->params[p].regoff], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			} else { /* Param on Stack */
 				s1 = (md->params[p].regoff + cd->stackframesize) * 8 + stack_size;
 				M_LLD(REG_ITMP2, REG_SP, s1);
-				M_LST(REG_ITMP2, REG_SP, stack_off);
+				M_LST(REG_ITMP2, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			}
 		} else { /* IS_FLT_DBL_TYPE(t) */
 			if (!md->params[p].inmemory) { /* in Arg Reg */
 				s1 = rd->argfltregs[md->params[p].regoff];
-				M_DST(s1, REG_SP, stack_off);
+				M_DST(s1, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			} else { /* on Stack */
 				/* this should not happen */
 				assert(0);
@@ -570,11 +570,10 @@ void emit_verbosecall_enter (jitdata *jd)
 	/* LINUX */
 	/* Set integer and float argument registers for trace_args call */
 	/* offset to saved integer argument registers                   */
-	stack_off = LA_SIZE + PA_SIZE;
-	for (p = 0; (p < TRACE_ARGS_NUM) && (p < md->paramcount); p++, stack_off += 8) {
+	for (p = 0; (p < TRACE_ARGS_NUM) && (p < md->paramcount); p++) {
 		t = md->paramtypes[p].type;
 		if (IS_INT_LNG_TYPE(t)) {
-			M_LLD(rd->argintregs[p], REG_SP,stack_off);
+			M_LLD(rd->argintregs[p], REG_SP,LA_SIZE + PA_SIZE + 8 + p * 8);
 		} else { /* Float/Dbl */
 			if (!md->params[p].inmemory) { /* Param in Arg Reg */
 				/* use reserved Place on Stack (sp + 5 * 16) to copy  */
@@ -630,7 +629,7 @@ void emit_verbosecall_enter (jitdata *jd)
 	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
 		d = rd->argintregs[p];
 		/* restore integer argument registers */
-		M_LLD(d, REG_SP, LA_SIZE + PA_SIZE + p * 8);
+		M_LLD(d, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 	}
 #endif
 	M_ALD(REG_ZERO, REG_SP, stack_size + LA_LR_OFFSET);

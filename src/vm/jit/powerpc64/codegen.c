@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5285 2006-09-02 14:26:04Z tbfg $
+   $Id: codegen.c 5286 2006-09-04 12:38:21Z tbfg $
 
 */
 
@@ -2749,10 +2749,10 @@ gen_method:
 					} else {
 						if (IS_2_WORD_TYPE(src->type)) {
 							d = emit_load_s1(jd, iptr, src, REG_ITMP1);
-							M_LST(d, REG_SP, md->params[s3].regoff * 4);	/* XXX */
+							M_LST(d, REG_SP, md->params[s3].regoff * 8);	/* XXX */
 						} else {
 							d = emit_load_s1(jd, iptr, src, REG_ITMP1);
-							M_IST(d, REG_SP, md->params[s3].regoff * 4);
+							M_LST(d, REG_SP, md->params[s3].regoff * 8);
 						}
 					}
 						
@@ -2765,9 +2765,9 @@ gen_method:
 					} else {
 						d = emit_load_s1(jd, iptr, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 4);
+							M_DST(d, REG_SP, md->params[s3].regoff * 8);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 4);
+							M_FST(d, REG_SP, md->params[s3].regoff * 8);
 					}
 				}
 			} /* end of for */
