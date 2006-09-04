@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5160 2006-07-19 09:13:34Z twisti $
+   $Id: patcher.c 5290 2006-09-04 17:12:48Z christian $
 
 */
 
@@ -142,6 +142,211 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	return NULL;
 }
 
+/* patcher_initialize_class ****************************************************
+
+   Initalizes a given classinfo pointer.  This function does not patch
+   any data.
+
+*******************************************************************************/
+
+bool patcher_initialize_class(u1 *sp)
+{
+	classinfo *c;
+
+	/* get stuff from the stack */
+
+	c = (classinfo *) *((ptrint *) (sp + 2 * 8));
+
+	/* check if the class is initialized */
+
+	if (!(c->state & CLASS_INITIALIZED))
+		if (!initialize_class(c))
+			return false;
+
+	return true;
+}
+
+/* patcher_resolve_class *****************************************************
+
+   Initalizes a given classinfo pointer.  This function does not patch
+   any data.
+
+*******************************************************************************/
+
+#ifdef ENABLE_VERIFIER
+bool patcher_resolve_class(u1 *sp)
+{
+	unresolved_class *uc;
+	classinfo        *c;
+
+	/* get stuff from the stack */
+
+	uc = (unresolved_class *)  *((ptrint *) (sp + 2 * 8));
+
+	/* resolve the class */
+
+	if (!resolve_class(uc, resolveEager, false, &c))
+		return false;
+
+	return true;
+}
+#endif /* ENABLE_VERIFIER */
+
+
+/* patcher_resolve_classref_to_classinfo ***************************************
+
+   ACONST:
+
+   <patched call postition>
+   a61bff80    ldq     a0,-128(pv)
+
+   MULTIANEWARRAY:
+
+   <patched call position>
+   a63bff80    ldq     a1,-128(pv)
+   47de0412    mov     sp,a2
+   a77bff78    ldq     pv,-136(pv)
+   6b5b4000    jsr     (pv)
+
+   ARRAYCHECKCAST:
+
+   <patched call position>
+   a63bfe60    ldq     a1,-416(pv)
+   a77bfe58    ldq     pv,-424(pv)
+   6b5b4000    jsr     (pv)
+
+*******************************************************************************/
+
+bool patcher_resolve_classref_to_classinfo(u1 *sp)
+{
+	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+
+	/* get the classinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch the classinfo pointer */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c;
+
+	return true;
+}
+
+
+/* patcher_resolve_classref_to_vftbl *******************************************
+
+   CHECKCAST (class):
+   INSTANCEOF (class):
+
+   <patched call position>
+   a7940000    ldq     at,0(a4)
+   a7bbff28    ldq     gp,-216(pv)
+
+*******************************************************************************/
+
+bool patcher_resolve_classref_to_vftbl(u1 *sp)
+{
+	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch super class' vftbl */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+
+	return true;
+}
+
+
+/* patcher_resolve_classref_to_flags *******************************************
+
+   CHECKCAST/INSTANCEOF:
+
+   <patched call position>
+
+*******************************************************************************/
+
+bool patcher_resolve_classref_to_flags(u1 *sp)
+{
+	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch class flags */
+
+	*((s4 *) (pv + disp)) = (s4) c->flags;
+
+	return true;
+}
+
+
+/* patcher_resolve_native_function *********************************************
+
+   XXX
+
+*******************************************************************************/
+
+#if !defined(WITH_STATIC_CLASSPATH)
+bool patcher_resolve_native_function(u1 *sp)
+{
+	methodinfo  *m;
+	s4           disp;
+	u1          *pv;
+	functionptr  f;
+
+	/* get stuff from the stack */
+
+	m     = (methodinfo *) *((ptrint *) (sp + 2 * 8));
+	disp  =                *((s4 *)     (sp + 1 * 8));
+	pv    = (u1 *)         *((ptrint *) (sp + 0 * 8));
+
+	/* resolve native function */
+
+	if (!(f = native_resolve_function(m)))
+		return false;
+
+	/* patch native function pointer */
+
+	*((ptrint *) (pv + disp)) = (ptrint) f;
+
+	return true;
+}
+#endif /* !defined(WITH_STATIC_CLASSPATH) */
+
 
 /* patcher_get_putstatic *******************************************************
 
@@ -220,116 +425,6 @@ bool patcher_get_putfield(u1 *sp)
 
 		*((u4 *) (sp + 3 * 8)) |= (s2) (fi->offset & 0x0000ffff);
 	}
-
-	return true;
-}
-
-
-/* patcher_aconst **************************************************************
-
-   Machine code:
-
-   <patched call postition>
-   a61bff80    ldq     a0,-128(pv)
-
-*******************************************************************************/
-
-bool patcher_aconst(u1 *sp)
-{
-	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager(cr)))
-		return false;
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) (pv + disp)) = (ptrint) c;
-
-	return true;
-}
-
-
-/* patcher_builtin_multianewarray **********************************************
-
-   Machine code:
-
-   <patched call position>
-   a63bff80    ldq     a1,-128(pv)
-   47de0412    mov     sp,a2
-   a77bff78    ldq     pv,-136(pv)
-   6b5b4000    jsr     (pv)
-
-*******************************************************************************/
-
-bool patcher_builtin_multianewarray(u1 *sp)
-{
-	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager(cr)))
-		return false;
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) (pv + disp)) = (ptrint) c;
-
-	return true;
-}
-
-
-/* patcher_builtin_arraycheckcast **********************************************
-
-   Machine code:
-
-   <patched call position>
-   a63bfe60    ldq     a1,-416(pv)
-   a77bfe58    ldq     pv,-424(pv)
-   6b5b4000    jsr     (pv)
-
-*******************************************************************************/
-
-bool patcher_builtin_arraycheckcast(u1 *sp)
-{
-	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager(cr)))
-		return false;
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) (pv + disp)) = (ptrint) c;
 
 	return true;
 }
@@ -459,40 +554,6 @@ bool patcher_invokeinterface(u1 *sp)
 }
 
 
-/* patcher_checkcast_instanceof_flags ******************************************
-
-   Machine code:
-
-   <patched call position>
-
-*******************************************************************************/
-
-bool patcher_checkcast_instanceof_flags(u1 *sp)
-{
-	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* get the fieldinfo */
-
-	if (!(c = resolve_classref_eager(cr)))
-		return false;
-
-	/* patch class flags */
-
-	*((s4 *) (pv + disp)) = (s4) c->flags;
-
-	return true;
-}
-
-
 /* patcher_checkcast_instanceof_interface **************************************
 
    Machine code:
@@ -536,128 +597,6 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	return true;
 }
-
-
-/* patcher_checkcast_instanceof_class ******************************************
-
-   Machine code:
-
-   <patched call position>
-   a7940000    ldq     at,0(a4)
-   a7bbff28    ldq     gp,-216(pv)
-
-*******************************************************************************/
-
-bool patcher_checkcast_instanceof_class(u1 *sp)
-{
-	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* get the fieldinfo */
-
-	if (!(c = resolve_classref_eager(cr)))
-		return false;
-
-	/* patch super class' vftbl */
-
-	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
-
-	return true;
-}
-
-
-/* patcher_clinit **************************************************************
-
-   XXX
-
-*******************************************************************************/
-
-bool patcher_clinit(u1 *sp)
-{
-	classinfo *c;
-
-	/* get stuff from the stack */
-
-	c = (classinfo *) *((ptrint *) (sp + 2 * 8));
-
-	/* check if the class is initialized */
-
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return false;
-
-	return true;
-}
-
-
-/* patcher_athrow_areturn ******************************************************
-
-   Machine code:
-
-   <patched call position>
-
-*******************************************************************************/
-
-#ifdef ENABLE_VERIFIER
-bool patcher_athrow_areturn(u1 *sp)
-{
-	unresolved_class *uc;
-	classinfo        *c;
-
-	/* get stuff from the stack */
-
-	uc = (unresolved_class *)  *((ptrint *) (sp + 2 * 8));
-
-	/* resolve the class */
-
-	if (!resolve_class(uc, resolveEager, false, &c))
-		return false;
-
-	return true;
-}
-#endif /* ENABLE_VERIFIER */
-
-
-/* patcher_resolve_native ******************************************************
-
-   XXX
-
-*******************************************************************************/
-
-#if !defined(WITH_STATIC_CLASSPATH)
-bool patcher_resolve_native(u1 *sp)
-{
-	methodinfo  *m;
-	s4           disp;
-	u1          *pv;
-	functionptr  f;
-
-	/* get stuff from the stack */
-
-	m     = (methodinfo *) *((ptrint *) (sp + 2 * 8));
-	disp  =                *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)         *((ptrint *) (sp + 0 * 8));
-
-	/* resolve native function */
-
-	if (!(f = native_resolve_function(m)))
-		return false;
-
-	/* patch native function pointer */
-
-	*((ptrint *) (pv + disp)) = (ptrint) f;
-
-	return true;
-}
-#endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
 /*

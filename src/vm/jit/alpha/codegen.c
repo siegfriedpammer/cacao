@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5289 2006-09-04 16:33:57Z twisti $
+   $Id: codegen.c 5290 2006-09-04 17:12:48Z christian $
 
 */
 
@@ -476,7 +476,8 @@ bool codegen(jitdata *jd)
 				   resolved the same class, the returned displacement
 				   of dseg_addaddress is ok to use. */
 
-				codegen_addpatchref(cd, PATCHER_aconst, cr, disp);
+				codegen_addpatchref(cd, PATCHER_resolve_classref_to_classinfo,
+									cr, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -2000,7 +2001,8 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
+										0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2052,7 +2054,8 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
+										0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2105,7 +2108,8 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
+										0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2279,7 +2283,7 @@ bool codegen(jitdata *jd)
 			if (iptr->val.a) {
 				unresolved_class *uc = INSTRUCTION_UNRESOLVED_CLASS(iptr);
 
-				codegen_addpatchref(cd, PATCHER_athrow_areturn, uc, 0);
+				codegen_addpatchref(cd, PATCHER_resolve_class, uc, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -2656,7 +2660,7 @@ bool codegen(jitdata *jd)
 			if (iptr->val.a) {
 				unresolved_class *uc = INSTRUCTION_UNRESOLVED_CLASS(iptr);
 
-				codegen_addpatchref(cd, PATCHER_athrow_areturn, uc, 0);
+				codegen_addpatchref(cd, PATCHER_resolve_class, uc, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -3086,7 +3090,7 @@ gen_method:
 
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
-					codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
+					codegen_addpatchref(cd, PATCHER_resolve_classref_to_flags,
 										(constant_classref *) iptr->target,
 										disp);
 
@@ -3138,7 +3142,7 @@ gen_method:
 						disp = dseg_add_unique_address(cd, NULL);
 
 						codegen_addpatchref(cd,
-											PATCHER_checkcast_instanceof_class,
+											PATCHER_resolve_classref_to_vftbl,
 											(constant_classref *) iptr->target,
 											disp);
 
@@ -3190,7 +3194,8 @@ gen_method:
 				disp = dseg_addaddress(cd, iptr->val.a);
 
 				if (iptr->val.a == NULL) {
-					codegen_addpatchref(cd, PATCHER_builtin_arraycheckcast,
+					codegen_addpatchref(cd,
+										PATCHER_resolve_classref_to_classinfo,
 										(constant_classref *) iptr->target,
 										disp);
 
@@ -3280,7 +3285,7 @@ gen_method:
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
-				codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
+				codegen_addpatchref(cd, PATCHER_resolve_classref_to_flags,
 									(constant_classref *) iptr->target, disp);
 
 				if (opt_showdisassemble)
@@ -3334,7 +3339,7 @@ gen_method:
 				if (super == NULL) {
 					disp = dseg_add_unique_address(cd, NULL);
 
-					codegen_addpatchref(cd, PATCHER_checkcast_instanceof_class,
+					codegen_addpatchref(cd, PATCHER_resolve_classref_to_vftbl,
 										(constant_classref *) iptr->target,
 										disp);
 
@@ -3391,7 +3396,7 @@ gen_method:
 			if (iptr->val.a == NULL) {
 				disp = dseg_add_unique_address(cd, 0);
 
-				codegen_addpatchref(cd, PATCHER_builtin_multianewarray,
+				codegen_addpatchref(cd, PATCHER_resolve_classref_to_classinfo,
 									(constant_classref *) iptr->target,
 									disp);
 
@@ -3619,7 +3624,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
-		codegen_addpatchref(cd, PATCHER_resolve_native, m, funcdisp);
+		codegen_addpatchref(cd, PATCHER_resolve_native_function, m, funcdisp);
 
 		if (opt_showdisassemble)
 			M_NOP;
