@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5221 2006-08-08 13:25:33Z twisti $
+   $Id: codegen.c 5288 2006-09-04 15:48:16Z twisti $
 
 */
 
@@ -310,74 +310,8 @@ bool codegen(jitdata *jd)
 #endif
 
 #if !defined(NDEBUG)
-	/* Copy argument registers to stack and call trace function with
-	   pointer to arguments on stack. */
-
-	if (opt_verbosecall) {
-		M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT + 1 + 1) * 8, REG_SP);
-
-		/* save integer argument registers */
-
-		for (p = 0; p < INT_ARG_CNT; p++)
-			M_LST(rd->argintregs[p], REG_SP, (1 + p) * 8);
-
-		/* save float argument registers */
-
-		for (p = 0; p < FLT_ARG_CNT; p++)
-			M_DST(rd->argfltregs[p], REG_SP, (1 + INT_ARG_CNT + p) * 8);
-
-		/* save temporary registers for leaf methods */
-
-		if (jd->isleafmethod) {
-			for (p = 0; p < INT_TMP_CNT; p++)
-				M_LST(rd->tmpintregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
-
-			for (p = 0; p < FLT_TMP_CNT; p++)
-				M_DST(rd->tmpfltregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
-		}
-
-		/* show integer hex code for float arguments */
-
-		for (p = 0, l = 0; p < md->paramcount && p < INT_ARG_CNT; p++) {
-			/* If the paramtype is a float, we have to right shift all
-			   following integer registers. */
-	
-			if (IS_FLT_DBL_TYPE(md->paramtypes[p].type)) {
-				for (s1 = INT_ARG_CNT - 2; s1 >= p; s1--)
-					M_MOV(rd->argintregs[s1], rd->argintregs[s1 + 1]);
-
-				emit_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[p]);
-				l++;
-			}
-		}
-
-		M_MOV_IMM(m, REG_ITMP2);
-		M_AST(REG_ITMP2, REG_SP, 0 * 8);
-		M_MOV_IMM(builtin_trace_args, REG_ITMP1);
-		M_CALL(REG_ITMP1);
-
-		/* restore integer argument registers */
-
-		for (p = 0; p < INT_ARG_CNT; p++)
-			M_LLD(rd->argintregs[p], REG_SP, (1 + p) * 8);
-
-		/* restore float argument registers */
-
-		for (p = 0; p < FLT_ARG_CNT; p++)
-			M_DLD(rd->argfltregs[p], REG_SP, (1 + INT_ARG_CNT + p) * 8);
-
-		/* restore temporary registers for leaf methods */
-
-		if (jd->isleafmethod) {
-			for (p = 0; p < INT_TMP_CNT; p++)
-				M_LLD(rd->tmpintregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
-
-			for (p = 0; p < FLT_TMP_CNT; p++)
-				M_DLD(rd->tmpfltregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
-		}
-
-		M_LADD_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT + 1 + 1) * 8, REG_SP);
-	}
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
 #endif /* !defined(NDEBUG) */
 
 	}
@@ -2854,27 +2788,8 @@ nowperformreturn:
   			p = stackframesize;
 
 #if !defined(NDEBUG)
-			/* generate call trace */
-
-			if (opt_verbosecall) {
-				emit_alu_imm_reg(cd, ALU_SUB, 2 * 8, REG_SP);
-
-				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, 0 * 8);
-				emit_movq_reg_membase(cd, REG_FRESULT, REG_SP, 1 * 8);
-
-  				emit_mov_imm_reg(cd, (u8) m, rd->argintregs[0]);
-  				emit_mov_reg_reg(cd, REG_RESULT, rd->argintregs[1]);
-				M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
- 				M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
-
-  				M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
-				M_CALL(REG_ITMP1);
-
-				emit_mov_membase_reg(cd, REG_SP, 0 * 8, REG_RESULT);
-				emit_movq_membase_reg(cd, REG_SP, 1 * 8, REG_FRESULT);
-
-				emit_alu_imm_reg(cd, ALU_ADD, 2 * 8, REG_SP);
-			}
+			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+				emit_verbosecall_exit(jd);
 #endif /* !defined(NDEBUG) */
 
 #if defined(ENABLE_THREADS)
@@ -3738,155 +3653,12 @@ gen_method:
 
 	dseg_createlinenumbertable(cd);
 
+	/* generate stubs */
 
-	/* generate exception and patcher stubs */
+	emit_exception_stubs(jd);
+	emit_patcher_stubs(jd);
+	emit_replacement_stubs(jd);
 
-	{
-		exceptionref *eref;
-		patchref     *pref;
-		ptrint        mcode;
-		u1           *savedmcodeptr;
-		u1           *tmpmcodeptr;
-
-		savedmcodeptr = NULL;
-
-		/* generate exception stubs */
-	
-		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-			gen_resolvebranch(cd->mcodebase + eref->branchpos, 
-							  eref->branchpos,
-							  cd->mcodeptr - cd->mcodebase);
-
-			MCODECHECK(512);
-
-			/* Check if the exception is an
-			   ArrayIndexOutOfBoundsException.  If so, move index register
-			   into a4. */
-
-			if (eref->reg != -1)
-				M_MOV(eref->reg, rd->argintregs[4]);
-
-			/* calcuate exception address */
-
-			M_MOV_IMM(0, rd->argintregs[3]);
-			dseg_adddata(cd);
-			M_AADD_IMM32(eref->branchpos - 6, rd->argintregs[3]);
-
-			/* move function to call into REG_ITMP3 */
-
-			M_MOV_IMM(eref->function, REG_ITMP3);
-
-			if (savedmcodeptr != NULL) {
-				M_JMP_IMM(savedmcodeptr - cd->mcodeptr - 5);
-		
-			} else {
-				savedmcodeptr = cd->mcodeptr;
-
-				emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), rd->argintregs[0]);
-				M_MOV(REG_SP, rd->argintregs[1]);
-				M_ALD(rd->argintregs[2], REG_SP, stackframesize * 8);
-
-				M_ASUB_IMM(2 * 8, REG_SP);
-				M_AST(rd->argintregs[3], REG_SP, 0 * 8);         /* store XPC */
-
-				M_CALL(REG_ITMP3);
-
-				M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-				M_AADD_IMM(2 * 8, REG_SP);
-
-				M_MOV_IMM(asm_handle_exception, REG_ITMP3);
-				M_JMP(REG_ITMP3);
-			}
-		}
-
-
-		/* generate code patching stub call code */
-
-		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* check size of code segment */
-
-			MCODECHECK(512);
-
-			/* Get machine code which is patched back in later. A
-			   `call rel32' is 5 bytes long (but read 8 bytes). */
-
-			savedmcodeptr = cd->mcodebase + pref->branchpos;
-			mcode = *((ptrint *) savedmcodeptr);
-
-			/* patch in `call rel32' to call the following code */
-
-			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
-			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
-
-			M_CALL_IMM(tmpmcodeptr - (savedmcodeptr + PATCHER_CALL_SIZE));
-
-			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
-
-			/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-			/* create a virtual java_objectheader */
-
-			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
-			a = dseg_addaddress(cd, NULL);                            /* vftbl      */
-
-  			emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + a, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-#else
-			M_PUSH_IMM(0);
-#endif
-
-			/* move machine code bytes and classinfo pointer into registers */
-
-			M_MOV_IMM(mcode, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-			M_MOV_IMM(pref->ref, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-			M_MOV_IMM(pref->disp, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-
-			M_MOV_IMM(pref->patcher, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-
-			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate replacement-out stubs */
-
-	{
-		int i;
-
-		replacementpoint = jd->code->rplpoints;
-
-		for (i = 0; i < jd->code->rplpointcount; ++i, ++replacementpoint) {
-			/* check code segment size */
-
-			MCODECHECK(512);
-
-			/* note start of stub code */
-
-			replacementpoint->outcode = (u1*) (ptrint)(cd->mcodeptr - cd->mcodebase);
-
-			/* make machine code for patching */
-
-			disp = (ptrint)(replacementpoint->outcode - replacementpoint->pc) - 5;
-			replacementpoint->mcode = 0xe9 | ((u8)disp << 8);
-
-			/* push address of `rplpoint` struct */
-			
-			M_MOV_IMM(replacementpoint, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-
-			/* jump to replacement function */
-
-			M_MOV_IMM(asm_replacement_out, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-	
 	codegen_finish(jd);
 
 	/* everything's ok */
@@ -4024,60 +3796,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_ASUB_IMM(stackframesize * 8, REG_SP);
 
 #if !defined(NDEBUG)
-	/* generate call trace */
-
-	if (opt_verbosecall) {
-		/* save integer and float argument registers */
-
-		for (i = 0, j = 1; i < md->paramcount; i++) {
-			if (!md->params[i].inmemory) {
-				s1 = md->params[i].regoff;
-
-				if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
-					M_LST(rd->argintregs[s1], REG_SP, j * 8);
-				else
-					M_DST(rd->argfltregs[s1], REG_SP, j * 8);
-
-				j++;
-			}
-		}
-
-		/* show integer hex code for float arguments */
-
-		for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++) {
-			/* if the paramtype is a float, we have to right shift all
-			   following integer registers */
-
-			if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-				for (s1 = INT_ARG_CNT - 2; s1 >= i; s1--)
-					M_MOV(rd->argintregs[s1], rd->argintregs[s1 + 1]);
-
-				emit_movd_freg_reg(cd, rd->argfltregs[j], rd->argintregs[i]);
-				j++;
-			}
-		}
-
-		M_MOV_IMM(m, REG_ITMP1);
-		M_AST(REG_ITMP1, REG_SP, 0 * 8);
-		M_MOV_IMM(builtin_trace_args, REG_ITMP1);
-		M_CALL(REG_ITMP1);
-
-		/* restore integer and float argument registers */
-
-		for (i = 0, j = 1; i < md->paramcount; i++) {
-			if (!md->params[i].inmemory) {
-				s1 = md->params[i].regoff;
-
-				if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
-					M_LLD(rd->argintregs[s1], REG_SP, j * 8);
-				else
-					M_DLD(rd->argfltregs[s1], REG_SP, j * 8);
-
-				j++;
-			}
-		}
-	}
-#endif /* !defined(NDEBUG) */
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
+#endif
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -4205,27 +3926,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 #if !defined(NDEBUG)
-	/* generate call trace */
-
-	if (opt_verbosecall) {
-		/* just restore the value we need, don't care about the other */
-
-		if (md->returntype.type != TYPE_VOID) {
-			if (IS_INT_LNG_TYPE(md->returntype.type))
-				M_LLD(REG_RESULT, REG_SP, 0 * 8);
-			else
-				M_DLD(REG_FRESULT, REG_SP, 0 * 8);
-		}
-
-  		M_MOV_IMM(m, rd->argintregs[0]);
-  		M_MOV(REG_RESULT, rd->argintregs[1]);
-		M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
-  		M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
-
-		M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
-		M_CALL(REG_ITMP1);
-	}
-#endif /* !defined(NDEBUG) */
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_exit(jd);
+#endif
 
 	/* remove native stackframe info */
 
@@ -4262,65 +3965,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_MOV_IMM(asm_handle_nat_exception, REG_ITMP3);
 	M_JMP(REG_ITMP3);
 
+	/* generate patcher stubs */
 
-	/* process patcher calls **************************************************/
-
-	{
-		patchref *pref;
-		ptrint    mcode;
-		u1       *savedmcodeptr;
-		u1       *tmpmcodeptr;
-#if defined(ENABLE_THREADS)
-		s4        disp;
-#endif
-
-		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* Get machine code which is patched back in later. A
-			   `call rel32' is 5 bytes long (but read 8 bytes). */
-
-			savedmcodeptr = cd->mcodebase + pref->branchpos;
-			mcode = *((ptrint *) savedmcodeptr);
-
-			/* patch in `call rel32' to call the following code               */
-
-			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
-			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
-
-			M_CALL_IMM(tmpmcodeptr - (savedmcodeptr + PATCHER_CALL_SIZE));
-
-			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
-
-			/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-			/* create a virtual java_objectheader */
-
-			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
-			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
-
-  			emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + disp, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-#else
-			M_PUSH_IMM(0);
-#endif
-
-			/* move machine code bytes and classinfo pointer into registers */
-
-			M_MOV_IMM(mcode, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-			M_MOV_IMM(pref->ref, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-			M_MOV_IMM(pref->disp, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-
-			M_MOV_IMM(pref->patcher, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-
-			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
+	emit_patcher_stubs(jd);
 
 	codegen_finish(jd);
 
