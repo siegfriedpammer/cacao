@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5233 2006-08-14 10:59:39Z twisti $
+   $Id: asmpart.S 5287 2006-09-04 14:21:11Z twisti $
 
 */
 
@@ -115,7 +115,7 @@ asm_vm_call_method_float:
 asm_vm_call_method_double:
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(sp)
-	stwu    sp,-40*4(sp)
+	stwu    sp,-40*4(sp)              /* keep stack 16-byte aligned           */
 
 	stw     s0,8*4(sp)                /* save used callee saved registers     */
 	stw     a0,9*4(sp)                /* save method pointer for compiler     */
@@ -693,73 +693,73 @@ asm_call_jit_compiler:
 L_asm_call_jit_compiler:                /* required for PIC code              */
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(sp)         /* save return address                */
-	stwu    sp,-(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)(sp)
+	stwu    sp,-(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)(sp)
 
 #if defined(__DARWIN__)
-	stw     a0,LA_SIZE+(5+0)*4(sp)
-	stw     a1,LA_SIZE+(5+1)*4(sp)
-	stw     a2,LA_SIZE+(5+2)*4(sp)
-	stw     a3,LA_SIZE+(5+3)*4(sp)
-	stw     a4,LA_SIZE+(5+4)*4(sp)
-	stw     a5,LA_SIZE+(5+5)*4(sp)
-	stw     a6,LA_SIZE+(5+6)*4(sp)
-	stw     a7,LA_SIZE+(5+7)*4(sp)
+	stw     a0,LA_SIZE+(4+0)*4(sp)
+	stw     a1,LA_SIZE+(4+1)*4(sp)
+	stw     a2,LA_SIZE+(4+2)*4(sp)
+	stw     a3,LA_SIZE+(4+3)*4(sp)
+	stw     a4,LA_SIZE+(4+4)*4(sp)
+	stw     a5,LA_SIZE+(4+5)*4(sp)
+	stw     a6,LA_SIZE+(4+6)*4(sp)
+	stw     a7,LA_SIZE+(4+7)*4(sp)
 
-	stfd    fa0,LA_SIZE+(5+8)*4(sp)
-	stfd    fa1,LA_SIZE+(5+10)*4(sp)
-	stfd    fa2,LA_SIZE+(5+12)*4(sp)
-	stfd    fa3,LA_SIZE+(5+14)*4(sp)
-	stfd    fa4,LA_SIZE+(5+16)*4(sp)
-	stfd    fa5,LA_SIZE+(5+18)*4(sp)
-	stfd    fa6,LA_SIZE+(5+20)*4(sp)
-	stfd    fa7,LA_SIZE+(5+22)*4(sp)
-	stfd    fa8,LA_SIZE+(5+24)*4(sp)
-	stfd    fa9,LA_SIZE+(5+26)*4(sp)
-	stfd    fa10,LA_SIZE+(5+28)*4(sp)
-	stfd    fa11,LA_SIZE+(5+30)*4(sp)
-	stfd    fa12,LA_SIZE+(5+32)*4(sp)
+	stfd    fa0,LA_SIZE+(4+8)*4(sp)
+	stfd    fa1,LA_SIZE+(4+10)*4(sp)
+	stfd    fa2,LA_SIZE+(4+12)*4(sp)
+	stfd    fa3,LA_SIZE+(4+14)*4(sp)
+	stfd    fa4,LA_SIZE+(4+16)*4(sp)
+	stfd    fa5,LA_SIZE+(4+18)*4(sp)
+	stfd    fa6,LA_SIZE+(4+20)*4(sp)
+	stfd    fa7,LA_SIZE+(4+22)*4(sp)
+	stfd    fa8,LA_SIZE+(4+24)*4(sp)
+	stfd    fa9,LA_SIZE+(4+26)*4(sp)
+	stfd    fa10,LA_SIZE+(4+28)*4(sp)
+	stfd    fa11,LA_SIZE+(4+30)*4(sp)
+	stfd    fa12,LA_SIZE+(4+32)*4(sp)
 #else
-	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1)
+	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS)
 #endif
 
 	mr      a0,itmp1
 	mr      a1,mptr
-	addi    a2,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
-	lwz     a3,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
+	addi    a2,sp,(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
+	lwz     a3,(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
 	bl      jit_asm_compile
 	mr      pv,v0                       /* move address to pv register        */
 
 #if defined(__DARWIN__)
-	lwz     a0,LA_SIZE+(5+0)*4(sp)
-	lwz     a1,LA_SIZE+(5+1)*4(sp)
-	lwz     a2,LA_SIZE+(5+2)*4(sp)
-	lwz     a3,LA_SIZE+(5+3)*4(sp)
-	lwz     a4,LA_SIZE+(5+4)*4(sp)
-	lwz     a5,LA_SIZE+(5+5)*4(sp)
-	lwz     a6,LA_SIZE+(5+6)*4(sp)
-	lwz     a7,LA_SIZE+(5+7)*4(sp)
+	lwz     a0,LA_SIZE+(4+0)*4(sp)
+	lwz     a1,LA_SIZE+(4+1)*4(sp)
+	lwz     a2,LA_SIZE+(4+2)*4(sp)
+	lwz     a3,LA_SIZE+(4+3)*4(sp)
+	lwz     a4,LA_SIZE+(4+4)*4(sp)
+	lwz     a5,LA_SIZE+(4+5)*4(sp)
+	lwz     a6,LA_SIZE+(4+6)*4(sp)
+	lwz     a7,LA_SIZE+(4+7)*4(sp)
 
-	lfd     fa0,LA_SIZE+(5+8)*4(sp)
-	lfd     fa1,LA_SIZE+(5+10)*4(sp)
-	lfd     fa2,LA_SIZE+(5+12)*4(sp)
-	lfd     fa3,LA_SIZE+(5+14)*4(sp)
-	lfd     fa4,LA_SIZE+(5+16)*4(sp)
-	lfd     fa5,LA_SIZE+(5+18)*4(sp)
-	lfd     fa6,LA_SIZE+(5+20)*4(sp)
-	lfd     fa7,LA_SIZE+(5+22)*4(sp)
-	lfd     fa8,LA_SIZE+(5+24)*4(sp)
-	lfd     fa9,LA_SIZE+(5+26)*4(sp)
-	lfd     fa10,LA_SIZE+(5+28)*4(sp)
-	lfd     fa11,LA_SIZE+(5+30)*4(sp)
-	lfd     fa12,LA_SIZE+(5+32)*4(sp)
+	lfd     fa0,LA_SIZE+(4+8)*4(sp)
+	lfd     fa1,LA_SIZE+(4+10)*4(sp)
+	lfd     fa2,LA_SIZE+(4+12)*4(sp)
+	lfd     fa3,LA_SIZE+(4+14)*4(sp)
+	lfd     fa4,LA_SIZE+(4+16)*4(sp)
+	lfd     fa5,LA_SIZE+(4+18)*4(sp)
+	lfd     fa6,LA_SIZE+(4+20)*4(sp)
+	lfd     fa7,LA_SIZE+(4+22)*4(sp)
+	lfd     fa8,LA_SIZE+(4+24)*4(sp)
+	lfd     fa9,LA_SIZE+(4+26)*4(sp)
+	lfd     fa10,LA_SIZE+(4+28)*4(sp)
+	lfd     fa11,LA_SIZE+(4+30)*4(sp)
+	lfd     fa12,LA_SIZE+(4+32)*4(sp)
 #else
-	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1)
+	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS)
 #endif
 
-	lwz     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
+	lwz     itmp1,(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
 	mtlr    itmp1
 
-	addi    sp,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
+	addi    sp,sp,(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
 
 	mr.     pv,pv                       /* test for exception                 */
 	beq     L_asm_call_jit_compiler_exception
@@ -795,37 +795,25 @@ L_asm_call_jit_compiler_exception:
 		
 asm_handle_nat_exception:
 L_asm_handle_nat_exception:             /* required for PIC code              */
-#if 1
-	mflr    a6
-	lwz     itmp3,4(a6)
-	extsh   itmp3,itmp3
-	add     pv,itmp3,a6
-	lwz     itmp3,8(a6)
-	srwi    itmp3,itmp3,16
-	cmpwi   itmp3,0x3dad
-	bne     L_asm_handle_exception
-	lwz     itmp3,8(a6)
-	slwi    itmp3,itmp3,16
-	add     pv,pv,itmp3
-#else
+L_asm_handle_exception_stack_loop:
 	mflr    r0
-	addi    sp,sp,-(LA_SIZE+(6*4))      /* allocate stack                     */
-	stw     xptr,LA_SIZE+0*8(sp)        /* save exception pointer             */
-	stw     xpc,LA_SIZE+1*8(sp)         /* save exception pc                  */
-	stw     r0,LA_SIZE+3*8(sp)          /* save return address                */
-	stw     zero,LA_SIZE+4*8(sp)        /* save maybe-leaf flag (cleared)     */
+	addi    sp,sp,-(LA_SIZE+((4+6)*4))  /* allocate stack (+4 for darwin)     */
+	stw     xptr,LA_SIZE+(4+0)*4(sp)    /* save exception pointer             */
+	stw     xpc,LA_SIZE+(4+1)*4(sp)     /* save exception pc                  */
+	stw     r0,LA_SIZE+(4+3)*4(sp)      /* save return address                */
+	li      itmp3,0
+	stw     itmp3,LA_SIZE+(4+4)*4(sp)   /* save maybe-leaf flag (cleared)     */
 
 	mr      a0,r0                       /* pass return address                */
 	bl      md_codegen_get_pv_from_pc   /* get PV from RA                     */
-	stw     v0,LA_SIZE+2*8(sp)          /* save data segment pointer          */
+	stw     v0,LA_SIZE+(4+2)*4(sp)      /* save data segment pointer          */
 
-	lwz     a0,LA_SIZE+0*8(sp)          /* pass exception pointer             */
-	lwz     a1,LA_SIZE+1*8(sp)          /* pass exception pc                  */
-	mr      a2,v0                       /* pass data segment pointer          */
-	addi    a3,sp,LA_SIZE+(6*4)         /* pass Java stack pointer            */
+	lwz     a0,LA_SIZE+(4+0)*4(sp)      /* pass xptr                          */
+	lwz     a1,LA_SIZE+(4+1)*4(sp)      /* pass xpc                           */
+	lwz     a2,LA_SIZE+(4+2)*4(sp)      /* pass PV (v0 == a0)                 */
+	addi    a3,sp,LA_SIZE+((4+6)*4)     /* pass Java SP                       */
 
 	b       L_asm_handle_exception_continue
-#endif
 
 asm_handle_exception:
 L_asm_handle_exception:                 /* required for PIC code              */
@@ -837,38 +825,34 @@ L_asm_handle_exception:                 /* required for PIC code              */
 	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
 #endif
 
-	li      a3,(ARG_CNT+TMP_CNT)*8      /* prepare a3 for handle_exception    */
-	li      a4,1                        /* set maybe-leaf flag                */
-
-L_asm_handle_exception_stack_loop:
-	addi    sp,sp,-(LA_SIZE+(4+5)*4)    /* allocate stack                     */
-	stw     xptr,LA_SIZE+4*4(sp)        /* save exception pointer             */
-	stw     xpc,LA_SIZE+5*4(sp)         /* save exception pc                  */
-	stw     pv,LA_SIZE+6*4(sp)          /* save data segment pointer          */
-	mflr    r0                          /* save return address                */
-	stw     r0,LA_SIZE+5*4(sp)
-	add     a3,a3,sp                    /* calculate Java sp into a3...       */
-	addi    a3,a3,LA_SIZE+(4+5)*4
-	stw     a4,LA_SIZE+8*4(sp)          /* save maybe-leaf flag               */
+	addi    sp,sp,-(LA_SIZE+(4+6)*4)    /* allocate stack                     */
+	stw     xptr,LA_SIZE+(4+0)*4(sp)    /* save xptr                          */
+	stw     pv,LA_SIZE+(4+2)*4(sp)      /* save PV                            */
+	mflr    r0                          /* save RA                            */
+	stw     r0,LA_SIZE+(4+3)*4(sp)
+	li      t0,1                        /* set maybe-leaf flag                */
+	stw     t0,LA_SIZE+(4+4)*4(sp)      /* save maybe-leaf flag               */
 
 	mr      a0,xptr                     /* pass exception pointer             */
 	mr      a1,xpc                      /* pass exception pc                  */
 	mr      a2,pv                       /* pass data segment pointer          */
-	                                    /* a3 is still set                    */
+	addi    a3,sp,LA_SIZE+(ARG_CNT+TMP_CNT)*8+(4+6)*4
+
+L_asm_handle_exception_continue:
 	bl      exceptions_handle_exception
 
 	mr.     v0,v0
 	beq     L_asm_handle_exception_not_catched
 
 	mr      xpc,v0                      /* move handlerpc into xpc            */
-	lwz     xptr,LA_SIZE+4*4(sp)        /* restore exception pointer          */
-	lwz     pv,LA_SIZE+6*4(sp)          /* restore data segment pointer       */
-	lwz     r0,LA_SIZE+5*4(sp)          /* restore return address             */
+	lwz     xptr,LA_SIZE+(4+0)*4(sp)    /* restore xptr                       */
+	lwz     pv,LA_SIZE+(4+2)*4(sp)      /* restore PV                         */
+	lwz     r0,LA_SIZE+(4+3)*4(sp)      /* restore RA                         */
 	mtlr    r0
-	lwz     a4,LA_SIZE+8*4(sp)          /* get maybe-leaf flag                */
-	addi    sp,sp,LA_SIZE+(4+5)*4       /* free stack frame                   */
+	lwz     t0,LA_SIZE+(4+4)*4(sp)      /* get maybe-leaf flag                */
+	addi    sp,sp,LA_SIZE+(4+6)*4       /* free stack frame                   */
 
-	mr.     a4,a4
+	mr.     t0,t0
 	beq     L_asm_handle_exception_no_leaf
 
 #if defined(__DARWIN__)
@@ -884,102 +868,90 @@ L_asm_handle_exception_no_leaf:
 	bctr
 
 L_asm_handle_exception_not_catched:
-	lwz     xptr,LA_SIZE+4*4(sp)        /* restore exception pointer          */
-	lwz     pv,LA_SIZE+6*4(sp)          /* restore data segment pointer       */
-	lwz     r0,LA_SIZE+5*4(sp)          /* restore return address             */
+	lwz     xptr,LA_SIZE+(4+0)*4(sp)    /* restore xptr                       */
+	lwz     pv,LA_SIZE+(4+2)*4(sp)      /* restore PV                         */
+	lwz     r0,LA_SIZE+(4+3)*4(sp)      /* restore RA                         */
 	mtlr    r0
-	lwz     a4,LA_SIZE+8*4(sp)          /* get maybe-leaf flag                */
-	addi    sp,sp,LA_SIZE+(4+5)*4       /* free stack frame                   */
+	lwz     t0,LA_SIZE+(4+4)*4(sp)      /* get maybe-leaf flag                */
+	addi    sp,sp,LA_SIZE+(4+6)*4       /* free stack frame                   */
 
-	mr.     a4,a4
+	mr.     t0,t0
 	beq     L_asm_handle_exception_no_leaf_stack
 
 	addi    sp,sp,(ARG_CNT+TMP_CNT)*8   /* remove maybe-leaf stackframe       */
-	li      a4,0                        /* clear the maybe-leaf flag          */
+	li      t0,0                        /* clear the maybe-leaf flag          */
 
 L_asm_handle_exception_no_leaf_stack:
-	lwz     t0,FrameSize(pv)            /* get frame size                     */
-	add     t0,sp,t0                    /* pointer to save area               */
+	lwz     t1,FrameSize(pv)            /* get frame size                     */
+	add     t1,sp,t1                    /* pointer to save area               */
 
-	lwz     t1,IsLeaf(pv)               /* is leaf procedure                  */
-	mr.     t1,t1
+	lwz     t2,IsLeaf(pv)               /* is leaf procedure                  */
+	mr.     t2,t2
 	bne     L_asm_handle_exception_no_ra_restore
 
-	lwz     r0,LA_LR_OFFSET(t0)         /* restore ra                         */
+	lwz     r0,LA_LR_OFFSET(t1)         /* restore ra                         */
 	mtlr    r0
 
 L_asm_handle_exception_no_ra_restore:
 	mflr    xpc                         /* the new xpc is ra                  */
-	lwz     t1,IntSave(pv)              /* t1 = saved int register count      */
+	mr      t4,xpc                      /* save RA                            */
+	lwz     t2,IntSave(pv)              /* t2 = saved int register count      */
 	bl      ex_int1
 ex_int1:
-	mflr    t2                          /* t2 = current pc                    */
+	mflr    t3                          /* t3 = current pc                    */
 #if defined(__DARWIN__)
-	addi    t2,t2,lo16(ex_int2-ex_int1)
+	addi    t3,t3,lo16(ex_int2-ex_int1)
 #else
-	addi    t2,t2,(ex_int2-ex_int1)@l
+	addi    t3,t3,(ex_int2-ex_int1)@l
 #endif
-	slwi    t1,t1,2                     /* t1 = register count * 4            */
-	subf    t2,t1,t2                    /* t2 = IntSave - t1                  */
-	mtctr   t2
+	slwi    t2,t2,2                     /* t2 = register count * 4            */
+	subf    t3,t2,t3                    /* t3 = IntSave - t2                  */
+	mtctr   t3
 	bctr
 
-	lwz     s0,-10*4(t0)
-	lwz     s1,-9*4(t0)
-	lwz     s2,-8*4(t0)
-	lwz     s3,-7*4(t0)
-	lwz     s4,-6*4(t0)
-	lwz     s5,-5*4(t0)
-	lwz     s6,-4*4(t0)
-	lwz     s7,-3*4(t0)
-	lwz     s8,-2*4(t0)
-	lwz     s9,-1*4(t0)
+	lwz     s0,-10*4(t1)
+	lwz     s1,-9*4(t1)
+	lwz     s2,-8*4(t1)
+	lwz     s3,-7*4(t1)
+	lwz     s4,-6*4(t1)
+	lwz     s5,-5*4(t1)
+	lwz     s6,-4*4(t1)
+	lwz     s7,-3*4(t1)
+	lwz     s8,-2*4(t1)
+	lwz     s9,-1*4(t1)
 
 ex_int2:
-	subf    t0,t1,t0                    /* t0 = t0 - register count * 4       */
+	subf    t1,t2,t1                    /* t1 = t1 - register count * 4       */
 
-	lwz     t1,FltSave(pv)
+	lwz     t2,FltSave(pv)
 	bl      ex_flt1
 ex_flt1:
-	mflr    t2
+	mflr    t3
 #if defined(__DARWIN__)
-	addi    t2,t2,lo16(ex_flt2-ex_flt1)
+	addi    t3,t3,lo16(ex_flt2-ex_flt1)
 #else
-	addi    t2,t2,(ex_flt2-ex_flt1)@l
+	addi    t3,t3,(ex_flt2-ex_flt1)@l
 #endif
-	slwi    t1,t1,2                     /* t1 = register count * 4            */
-	subf    t2,t1,t2                    /* t2 = FltSave - t1                  */
-	mtctr   t2
+	slwi    t2,t2,2                     /* t2 = register count * 4            */
+	subf    t3,t2,t3                    /* t3 = FltSave - t2                  */
+	mtctr   t3
 	bctr
 
-	lfd     fs0,-10*8(t0)
-	lfd     fs1,-9*8(t0)
-	lfd     fs2,-8*8(t0)
-	lfd     fs3,-7*8(t0)
-	lfd     fs4,-6*8(t0)
-	lfd     fs5,-5*8(t0)
-	lfd     fs6,-4*8(t0)
-	lfd     fs7,-3*8(t0)
-	lfd     fs8,-2*8(t0)
-	lfd     fs9,-1*8(t0)
+	lfd     fs0,-10*8(t1)
+	lfd     fs1,-9*8(t1)
+	lfd     fs2,-8*8(t1)
+	lfd     fs3,-7*8(t1)
+	lfd     fs4,-6*8(t1)
+	lfd     fs5,-5*8(t1)
+	lfd     fs6,-4*8(t1)
+	lfd     fs7,-3*8(t1)
+	lfd     fs8,-2*8(t1)
+	lfd     fs9,-1*8(t1)
 
 ex_flt2:
-	lwz     t0,FrameSize(pv)            /* get frame size                     */
-	add     sp,sp,t0                    /* unwind stack                       */
-	li      a3,0                        /* prepare a3 for handle_exception    */
-
-	mtlr    xpc
-	lwz     itmp3,4(xpc)
-	extsh   itmp3,itmp3
-	add     pv,itmp3,xpc
-	lwz     itmp3,8(xpc)
-	srwi    itmp3,itmp3,16
-	cmpwi   itmp3,0x3dad
-	bne     L_asm_handle_exception_stack_loop
-	lwz     itmp3,8(xpc)
-	slwi    itmp3,itmp3,16
-	add     pv,pv,itmp3
-
+	mtlr    t4                          /* restore RA                         */
+	lwz     t1,FrameSize(pv)            /* get frame size                     */
+	add     sp,sp,t1                    /* unwind stack                       */
 	b       L_asm_handle_exception_stack_loop
 
 
