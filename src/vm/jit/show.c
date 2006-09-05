@@ -55,6 +55,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/show.h"
 #include "vm/jit/disass.h"
+#include "vm/jit/stack.h"
 
 
 /* global variables ***********************************************************/
@@ -1190,7 +1191,7 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 				printf("L%03d\n", table->block->nr);
 			}
 			else {
-				printf("insindex %d\n", table->insindex);
+				printf("insindex %d (L%03d)\n", table->insindex, BLOCK_OF(table->insindex)->nr);
 			}
 			table++;
 		}
