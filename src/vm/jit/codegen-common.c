@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: codegen-common.c 5295 2006-09-05 09:59:53Z edwin $
 
 */
 
@@ -1102,6 +1102,82 @@ s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum)
 	if (opcode & ICMD_CONDITION_MASK)
 		return tempregnum;
 #endif
+
+	switch (v->varkind) {
+	case TEMPVAR:
+		if (!(v->flags & INMEMORY))
+			return(v->regoff);
+		break;
+
+	case STACKVAR:
+		var = &(rd->interfaces[v->varnum][v->type]);
+		v->regoff = var->regoff;
+		if (!(var->flags & INMEMORY))
+			return(var->regoff);
+		break;
+
+	case LOCALVAR:
+		var = &(rd->locals[v->varnum][v->type]);
+		v->regoff = var->regoff;
+		if (!(var->flags & INMEMORY)) {
+#if defined(__ARM__) && defined(__ARMEL__)
+			if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(var->regoff) == REG_SPLIT))
+				return(PACK_REGS(GET_LOW_REG(var->regoff), GET_HIGH_REG(tempregnum)));
+#endif
+#if defined(__ARM__) && defined(__ARMEB__)
+			if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(var->regoff) == REG_SPLIT))
+				return(PACK_REGS(GET_LOW_REG(tempregnum), GET_HIGH_REG(var->regoff)));
+#endif
+			return(var->regoff);
+		}
+		break;
+
+	case ARGVAR:
+		if (!(v->flags & INMEMORY)) {
+#if defined(__ARM__) && defined(__ARMEL__)
+			if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->regoff) == REG_SPLIT))
+				return(PACK_REGS(GET_LOW_REG(v->regoff), GET_HIGH_REG(tempregnum)));
+#endif
+#if defined(__ARM__) && defined(__ARMEB__)
+			if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->regoff) == REG_SPLIT))
+				return(PACK_REGS(GET_LOW_REG(tempregnum), GET_HIGH_REG(v->regoff)));
+#endif
+			return(v->regoff);
+		}
+		break;
+	}
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		count_spills_read++;
+#endif
+
+	v->flags |= INMEMORY;
+
+	return tempregnum;
+}
+
+/* codegen_reg_of_dst **********************************************************
+
+   This function determines a register, to which the result of an
+   operation should go, when it is ultimatively intended to store the
+   result in iptr->dst.var.  If dst.var is assigned to an actual
+   register, this register will be returned.  Otherwise (when it is
+   spilled) this function returns tempregnum.  If not already done,
+   regoff and flags are set in the stack location.
+       
+   On ARM we have to check if a long/double variable is splitted
+   across reg/stack (HIGH_REG == REG_SPLIT). We return the actual
+   register of dst.var for LOW_REG and the tempregnum for HIGH_REG in such
+   cases.  (michi 2005/07/24)
+
+*******************************************************************************/
+
+s4 codegen_reg_of_dst(jitdata *jd, new_instruction *iptr, s4 tempregnum)
+{
+	varinfo *var;
+	stackptr v = iptr->dst.var;
+	registerdata *rd = jd->rd;
 
 	switch (v->varkind) {
 	case TEMPVAR:
