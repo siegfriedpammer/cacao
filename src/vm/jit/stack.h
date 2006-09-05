@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5234 2006-08-14 17:50:12Z christian $
+   $Id: stack.h 5303 2006-09-05 10:39:58Z edwin $
 
 */
 
@@ -465,7 +465,7 @@
 
 bool stack_init(void);
 
-bool stack_analyse(jitdata *jd);
+bool new_stack_analyse(jitdata *jd);
 
 #endif /* _STACK_H */
 
