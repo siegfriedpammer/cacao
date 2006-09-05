@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5296 2006-09-05 10:03:40Z twisti $
+   $Id: codegen.c 5322 2006-09-05 16:26:44Z edwin $
 
 */
 
@@ -2196,21 +2196,21 @@ bool codegen(jitdata *jd)
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-				M_IST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
+				M_IST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
-				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-				M_LST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
+				M_LST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_FLT:
-				s2 = emit_load_s2(jd, iptr, src, REG_FTMP1);
-				M_FST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_FTMP1);
+				M_FST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_DBL:
-				s2 = emit_load_s2(jd, iptr, src, REG_FTMP1);
-				M_DST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_FTMP1);
+				M_DST(s1, REG_ITMP1, 0);
 				break;
 			}
 			break;
