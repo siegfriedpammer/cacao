@@ -410,12 +410,24 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 		printf("]):\n");
 
+		if (stage >= SHOW_STACK) {
+			printf("IN:  ");
+			new_show_variable_array(jd, bptr->invars, bptr->indepth, stage);
+			printf("\n");
+		}
+
 		iptr = /*XXX*/ (new_instruction *) bptr->iinstr;
 
 		for (i = 0; i < bptr->icount; i++, iptr++) {
 			printf("%4d:  ", iptr->line);
 
 			new_show_icmd(jd, iptr, deadcode, stage);
+			printf("\n");
+		}
+
+		if (stage >= SHOW_STACK) {
+			printf("OUT: ");
+			new_show_variable_array(jd, bptr->outvars, bptr->outdepth, stage);
 			printf("\n");
 		}
 

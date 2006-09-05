@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5310 2006-09-05 11:34:49Z edwin $
+   $Id: stack.c 5311 2006-09-05 11:40:03Z edwin $
 
 */
 
@@ -432,7 +432,8 @@ bool new_stack_analyse(jitdata *jd)
 
 	new = jd->new_stack;
 	jd->new_basicblocks[0].flags = BBREACHED;
-	jd->new_basicblocks[0].instack = 0;
+	jd->new_basicblocks[0].instack = NULL;
+	jd->new_basicblocks[0].invars = NULL;
 	jd->new_basicblocks[0].indepth = 0;
 
 	/* initialize in-stack of exception handlers */
@@ -442,6 +443,8 @@ bool new_stack_analyse(jitdata *jd)
 		bptr->flags = BBREACHED;
 		bptr->type = BBTYPE_EXH;
 		bptr->instack = new;
+		bptr->invars = DMNEW(stackptr, 1);
+		bptr->invars[0] = new;
 		bptr->indepth = 1;
 		bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
 		STACKRESET;
@@ -572,6 +575,9 @@ bool new_stack_analyse(jitdata *jd)
 					/* by falling through from the previous block.  */
 					COPYCURSTACK(copy);
 					bptr->instack = copy;
+					bptr->invars = DMNEW(stackptr, stackdepth);
+					for (i=stackdepth; i--; copy = copy->prev)
+						bptr->invars[i] = copy;
 					bptr->indepth = stackdepth;
 				}
 				else {
@@ -2692,6 +2698,9 @@ icmd_BUILTIN:
 
 				bptr->outstack = curstack;
 				bptr->outdepth = stackdepth;
+				bptr->outvars = DMNEW(stackptr, stackdepth);
+				for (i = stackdepth, copy = curstack; i--; copy = copy->prev)
+					bptr->outvars[i] = copy;
 
 				/* stack slots at basic block end become interfaces */
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5303 2006-09-05 10:39:58Z edwin $
+   $Id: stack.h 5311 2006-09-05 11:40:03Z edwin $
 
 */
 
@@ -439,15 +439,21 @@
  * c...current stack
  */
 
+/* XXX this macro is much too big! */
+
 #define MARKREACHED(b,c) \
     do { \
 		if ((b) <= (bptr)) \
 			(b)->bitflags |= BBFLAG_REPLACEMENT; \
 	    if ((b)->flags < BBREACHED) { \
+			int locali; \
 		    COPYCURSTACK((c)); \
             (b)->flags = BBREACHED; \
             (b)->instack = (c); \
             (b)->indepth = stackdepth; \
+			(b)->invars = DMNEW(stackptr, stackdepth); \
+			for (locali = stackdepth; locali--; (c) = (c)->prev) \
+				(b)->invars[locali] = (c); \
         } else { \
             stackptr s = curstack; \
             stackptr t = (b)->instack; \
