@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5278 2006-08-25 07:54:27Z twisti $
+   $Id: headers.c 5340 2006-09-05 21:15:02Z twisti $
 
 */
 
@@ -519,6 +519,8 @@ void print_dynamic_super_statistics(void) {}
 
 /************************ global variables **********************/
 
+#define ACC_NATIVELY_OVERLOADED    0x10000000
+
 chain *ident_chain;     /* chain with method and field names in current class */
 FILE *file = NULL;
 static u4 outputsize;
@@ -745,11 +747,9 @@ void printmethod(methodinfo *m)
 	fprintf(file, "_");
 	printID(m->name);
 
-	/* ATTENTION: We use the methodinfo's stackcount variable as
-	   nativelyoverloaded, so we can save some space during
-	   runtime. */
+	/* ATTENTION: We use a dummy flag here. */
 
-	if (m->stackcount)
+	if (m->flags & ACC_NATIVELY_OVERLOADED)
 		printOverloadPart(m->descriptor);
 
 	fprintf(file, "(JNIEnv *env");
@@ -871,11 +871,9 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 		if (!(m->flags & ACC_NATIVE))
 			continue;
 
-		/* We use the methodinfo's stackcount variable as
-		   nativelyoverloaded, so we can save some space during
-		   runtime. */
+		/* We use a dummy flag here. */
 
-		if (!m->stackcount) {
+		if (!(m->flags & ACC_NATIVELY_OVERLOADED)) {
 			nativelyoverloaded = false;
 
 			for (j = i + 1; j < c->methodscount; j++) {
@@ -885,13 +883,14 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 					continue;
 
 				if (m->name == m2->name) {
-					m2->stackcount     = true;
-					nativelyoverloaded = true;
+					m2->flags          |= ACC_NATIVELY_OVERLOADED;
+					nativelyoverloaded  = true;
 				}
 			}
 		}
 
-		m->stackcount = nativelyoverloaded;
+		if (nativelyoverloaded == true)
+			m->flags |= ACC_NATIVELY_OVERLOADED;
 	}
 
 	for (i = 0; i < c->methodscount; i++) {
