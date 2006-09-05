@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5288 2006-09-04 15:48:16Z twisti $
+   $Id: emit.c 5315 2006-09-05 11:53:11Z edwin $
 
 */
 
@@ -62,7 +62,7 @@
 
 *******************************************************************************/
 
-s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load(jitdata *jd, new_instruction *iptr, stackptr src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -104,15 +104,17 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s1(jitdata *jd, new_instruction *iptr, s4 tempreg)
 {
 	codegendata  *cd;
+	stackptr      src;
 	s4            disp;
 	s4            reg;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
+	src = iptr->s1.var;
 
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
@@ -146,15 +148,17 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s2(jitdata *jd, new_instruction *iptr, s4 tempreg)
 {
 	codegendata  *cd;
+	stackptr      src;
 	s4            disp;
 	s4            reg;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
+	src = iptr->sx.s23.s2.var;
 
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
@@ -188,15 +192,17 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s3(jitdata *jd, new_instruction *iptr, s4 tempreg)
 {
 	codegendata  *cd;
+	stackptr      src;
 	s4            disp;
 	s4            reg;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
+	src = iptr->sx.s23.s3.var;
 
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
@@ -233,7 +239,7 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
     
 *******************************************************************************/
 
-void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+inline void emit_store(jitdata *jd, new_instruction *iptr, stackptr dst, s4 d)
 {
 	codegendata  *cd;
 	registerdata *rd;
@@ -288,13 +294,28 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 }
 
 
+/* emit_store_dst **************************************************************
+
+   This function generates the code to store the result of an
+   operation back into a spilled pseudo-variable.  If the
+   pseudo-variable has not been spilled in the first place, this
+   function will generate nothing.
+    
+*******************************************************************************/
+
+void emit_store_dst(jitdata *jd, new_instruction *iptr, s4 d)
+{
+	emit_store(jd, iptr, iptr->dst.var, d);
+}
+
+
 /* emit_copy *******************************************************************
 
    XXX
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
+void emit_copy(jitdata *jd, new_instruction *iptr, stackptr src, stackptr dst)
 {
 	codegendata  *cd;
 	registerdata *rd;
@@ -308,7 +329,7 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
 		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
-		s1 = emit_load_s1(jd, iptr, src, d);
+		s1 = emit_load(jd, iptr, src, d);
 
 		if (s1 != d) {
 			if (IS_FLT_DBL_TYPE(src->type))
@@ -322,7 +343,7 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 }
 
 
-void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
+void emit_cmovxx(codegendata *cd, new_instruction *iptr, s4 s, s4 d)
 {
 #if 0
 	switch (iptr->flags.fields.condition) {
@@ -779,17 +800,17 @@ static void emit_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 index
 }
 
 
-void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
+void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, new_instruction *iptr)
 {
-	s4 s1 = src->prev->regoff;
-	s4 s2 = src->regoff;
-	s4 d = iptr->dst->regoff;
+	s4 s1 = iptr->s1.var->regoff;
+	s4 s2 = iptr->sx.s23.s2.var->regoff;
+	s4 d = iptr->dst.var->regoff;
 	s4 d_old;
 
 	M_INTMOVE(RCX, REG_ITMP1);                                    /* save RCX */
 
-	if (iptr->dst->flags & INMEMORY) {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+	if (iptr->dst.var->flags & INMEMORY) {
+		if ((iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
 			if (s1 == d) {
 				M_ILD(RCX, REG_SP, s2 * 8);
 				emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
@@ -801,7 +822,7 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 				M_IST(REG_ITMP2, REG_SP, d * 8);
 			}
 
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+		} else if ((iptr->sx.s23.s2.var->flags & INMEMORY) && !(iptr->s1.var->flags & INMEMORY)) {
 			/* s1 may be equal to RCX */
 			if (s1 == RCX) {
 				if (s2 == d) {
@@ -821,7 +842,7 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 
 			emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
 
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+		} else if (!(iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
 			if (s1 == d) {
 				M_INTMOVE(s2, RCX);
 				emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
@@ -848,18 +869,18 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 			d = REG_ITMP3;
 		}
 					
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+		if ((iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
 			M_ILD(RCX, REG_SP, s2 * 8);
 			M_ILD(d, REG_SP, s1 * 8);
 			emit_shiftl_reg(cd, shift_op, d);
 
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+		} else if ((iptr->sx.s23.s2.var->flags & INMEMORY) && !(iptr->s1.var->flags & INMEMORY)) {
 			/* s1 may be equal to RCX */
 			M_INTMOVE(s1, d);
 			M_ILD(RCX, REG_SP, s2 * 8);
 			emit_shiftl_reg(cd, shift_op, d);
 
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+		} else if (!(iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
 			M_INTMOVE(s2, RCX);
 			M_ILD(d, REG_SP, s1 * 8);
 			emit_shiftl_reg(cd, shift_op, d);
@@ -895,17 +916,17 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 }
 
 
-void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
+void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, new_instruction *iptr)
 {
-	s4 s1 = src->prev->regoff;
-	s4 s2 = src->regoff;
-	s4 d = iptr->dst->regoff;
+	s4 s1 = iptr->s1.var->regoff;
+	s4 s2 = iptr->sx.s23.s2.var->regoff;
+	s4 d = iptr->dst.var->regoff;
 	s4 d_old;
 	
 	M_INTMOVE(RCX, REG_ITMP1);                                    /* save RCX */
 
-	if (iptr->dst->flags & INMEMORY) {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+	if (iptr->dst.var->flags & INMEMORY) {
+		if ((iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
 			if (s1 == d) {
 				M_ILD(RCX, REG_SP, s2 * 8);
 				emit_shift_membase(cd, shift_op, REG_SP, d * 8);
@@ -917,7 +938,7 @@ void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 				M_LST(REG_ITMP2, REG_SP, d * 8);
 			}
 
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+		} else if ((iptr->sx.s23.s2.var->flags & INMEMORY) && !(iptr->s1.var->flags & INMEMORY)) {
 			/* s1 may be equal to RCX */
 			if (s1 == RCX) {
 				if (s2 == d) {
@@ -937,7 +958,7 @@ void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 
 			emit_shift_membase(cd, shift_op, REG_SP, d * 8);
 
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+		} else if (!(iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
 			if (s1 == d) {
 				M_INTMOVE(s2, RCX);
 				emit_shift_membase(cd, shift_op, REG_SP, d * 8);
@@ -964,18 +985,18 @@ void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 			d = REG_ITMP3;
 		}
 
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+		if ((iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
 			M_ILD(RCX, REG_SP, s2 * 8);
 			M_LLD(d, REG_SP, s1 * 8);
 			emit_shift_reg(cd, shift_op, d);
 
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
+		} else if ((iptr->sx.s23.s2.var->flags & INMEMORY) && !(iptr->s1.var->flags & INMEMORY)) {
 			/* s1 may be equal to RCX */
 			M_INTMOVE(s1, d);
 			M_ILD(RCX, REG_SP, s2 * 8);
 			emit_shift_reg(cd, shift_op, d);
 
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
+		} else if (!(iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
 			M_INTMOVE(s2, RCX);
 			M_LLD(d, REG_SP, s1 * 8);
 			emit_shift_reg(cd, shift_op, d);
