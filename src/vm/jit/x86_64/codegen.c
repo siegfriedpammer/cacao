@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5339 2006-09-05 21:14:00Z edwin $
+   $Id: codegen.c 5341 2006-09-05 21:16:30Z twisti $
 
 */
 
@@ -3108,15 +3108,15 @@ gen_method:
 			/* d contains return type */
 
 			if (d != TYPE_VOID) {
-				if (IS_INT_LNG_TYPE(iptr->dst.var->type)) {
+				if (IS_INT_LNG_TYPE(d)) {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
 					M_INTMOVE(REG_RESULT, s1);
-					emit_store_dst(jd, iptr, s1);
-				} else {
+				}
+				else {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
 					M_FLTMOVE(REG_FRESULT, s1);
-					emit_store_dst(jd, iptr, s1);
 				}
+				emit_store_dst(jd, iptr, s1);
 			}
 			break;
 
