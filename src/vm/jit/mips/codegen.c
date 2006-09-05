@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5323 2006-09-05 16:45:24Z edwin $
+   $Id: codegen.c 5324 2006-09-05 17:11:32Z twisti $
 
 */
 
@@ -300,92 +300,10 @@ bool codegen(jitdata *jd)
 	}
 #endif
 
-	/* copy argument registers to stack and call trace function */
-
-	if (opt_verbosecall) {
-		M_LDA(REG_SP, REG_SP, -(2 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT) * 8);
-		M_AST(REG_RA, REG_SP, 1 * 8);
-
-		/* save integer argument registers */
-
-		for (p = 0; p < md->paramcount && p < INT_ARG_CNT; p++)
-			M_LST(rd->argintregs[p], REG_SP, (2 + p) * 8);
-
-		/* save and copy float arguments into integer registers */
-
-		for (p = 0; p < md->paramcount && p < FLT_ARG_CNT; p++) {
-			t = md->paramtypes[p].type;
-
-			if (IS_FLT_DBL_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					M_DST(rd->argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
-					M_LLD(rd->argintregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
-
-				} else {
-					M_FST(rd->argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
-					M_ILD(rd->argintregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
-				}
-
-			} else {
-				M_DST(rd->argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
-			}
-		}
-
-		/* save temporary registers for leaf methods */
-
-		if (jd->isleafmethod) {
-			for (p = 0; p < INT_TMP_CNT; p++)
-				M_LST(rd->tmpintregs[p], REG_SP, (2 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
-
-			for (p = 0; p < FLT_TMP_CNT; p++)
-				M_DST(rd->tmpfltregs[p], REG_SP, (2 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
-		}
-
-		p = dseg_addaddress(cd, m);
-		M_ALD(REG_ITMP1, REG_PV, p);
-		M_AST(REG_ITMP1, REG_SP, 0 * 8);
-		disp = dseg_addaddress(cd, (void *) builtin_trace_args);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_JSR(REG_RA, REG_ITMP3);
-		M_NOP;
-
-		M_ALD(REG_RA, REG_SP, 1 * 8);
-
-		/* restore integer argument registers */
-
-		for (p = 0; p < md->paramcount && p < INT_ARG_CNT; p++)
-			M_LLD(rd->argintregs[p], REG_SP, (2 + p) * 8);
-
-		/* restore float argument registers */
-
-		for (p = 0; p < md->paramcount && p < FLT_ARG_CNT; p++) {
-			t = md->paramtypes[p].type;
-
-			if (IS_FLT_DBL_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(rd->argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
-
-				} else {
-					M_FLD(rd->argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
-				}
-
-			} else {
-				M_DLD(rd->argfltregs[p], REG_SP, (2 + INT_ARG_CNT + p) * 8);
-			}
-		}
-
-		/* restore temporary registers for leaf methods */
-
-		if (jd->isleafmethod) {
-			for (p = 0; p < INT_TMP_CNT; p++)
-				M_LLD(rd->tmpintregs[p], REG_SP, (2 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
-
-			for (p = 0; p < FLT_TMP_CNT; p++)
-				M_DLD(rd->tmpfltregs[p], REG_SP, (2 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
-		}
-
-		M_LDA(REG_SP, REG_SP, (2 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT) * 8);
-	}
+#if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
+#endif
 
 	}
 
@@ -2663,31 +2581,11 @@ nowperformreturn:
 			s4 i, p;
 			
 			p = cd->stackframesize;
-			
-			/* call trace function */
 
-			if (opt_verbosecall) {
-				M_LDA(REG_SP, REG_SP, -3 * 8);
-				M_LST(REG_RA, REG_SP, 0 * 8);
-				M_LST(REG_RESULT, REG_SP, 1 * 8);
-				M_DST(REG_FRESULT, REG_SP, 2 * 8);
-
-				disp = dseg_addaddress(cd, m);
-				M_ALD(rd->argintregs[0], REG_PV, disp);
-				M_MOV(REG_RESULT, rd->argintregs[1]);
-				M_DMOV(REG_FRESULT, rd->argfltregs[2]);
-				M_FMOV(REG_FRESULT, rd->argfltregs[3]);
-
-				disp = dseg_addaddress(cd, (void *) builtin_displaymethodstop);
-				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_JSR(REG_RA, REG_ITMP3);
-				M_NOP;
-
-				M_DLD(REG_FRESULT, REG_SP, 2 * 8);
-				M_LLD(REG_RESULT, REG_SP, 1 * 8);
-				M_LLD(REG_RA, REG_SP, 0 * 8);
-				M_LDA(REG_SP, REG_SP, 3 * 8);
-			}
+#if !defined(NDEBUG)
+			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+				emit_verbosecall_exit(jd);
+#endif
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
@@ -3664,59 +3562,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_AST(REG_RA, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P); /* store RA*/
 
 #if !defined(NDEBUG)
-	/* call trace function */
-
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
-		M_LDA(REG_SP, REG_SP, -(1 + INT_ARG_CNT + FLT_ARG_CNT) * 8);
-
-		/* save integer argument registers */
-
-		for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
-			if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
-				M_LST(rd->argintregs[i], REG_SP, (1 + i) * 8);
-
-		/* save and copy float arguments into integer registers */
-
-		for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
-			t = md->paramtypes[i].type;
-
-			if (IS_FLT_DBL_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					M_DST(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-					M_LLD(rd->argintregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-				} else {
-					M_FST(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-					M_ILD(rd->argintregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-				}
-			}
-		}
-
-		disp = dseg_addaddress(cd, m);
-		M_ALD(REG_ITMP1, REG_PV, disp);
-		M_AST(REG_ITMP1, REG_SP, 0 * 8);
-		disp = dseg_addaddress(cd, builtin_trace_args);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_JSR(REG_RA, REG_ITMP3);
-		M_NOP;
-
-		for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
-			if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
-				M_LLD(rd->argintregs[i], REG_SP, (1 + i) * 8);
-
-		for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
-			t = md->paramtypes[i].type;
-
-			if (IS_FLT_DBL_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t))
-					M_DLD(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-				else
-					M_FLD(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-			}
-		}
-
-		M_LDA(REG_SP, REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT) * 8);
-	}
-#endif /* !defined(NDEBUG) */
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
+#endif
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -3860,29 +3708,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 #if !defined(NDEBUG)
-	/* call finished trace function */
-
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
-		if (md->returntype.type != TYPE_VOID) {
-			if (IS_INT_LNG_TYPE(md->returntype.type))
-				M_LLD(REG_RESULT, REG_SP, 0 * 8);
-			else
-				M_DLD(REG_FRESULT, REG_SP, 0 * 8);
-		}
-
-		disp = dseg_addaddress(cd, m);
-		M_ALD(rd->argintregs[0], REG_PV, disp);
-
-		M_MOV(REG_RESULT, rd->argintregs[1]);
-		M_DMFC1(REG_ITMP1, REG_FRESULT);
-		M_DMTC1(REG_ITMP1, rd->argfltregs[2]);
-		M_DMTC1(REG_ITMP1, rd->argfltregs[3]);
-
-		disp = dseg_addaddress(cd, builtin_displaymethodstop);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_JSR(REG_RA, REG_ITMP3);
-		M_NOP;
-	}
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_exit(jd);
 #endif
 
 	/* remove native stackframe info */

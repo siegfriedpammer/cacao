@@ -47,6 +47,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
+#include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit.h"
@@ -569,6 +570,163 @@ void emit_replacement_stubs(jitdata *jd)
 		M_NOP; /* delay slot */
 	}
 }
+
+
+/* emit_verbosecall_enter ******************************************************
+
+   Generates the code for the call trace.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void emit_verbosecall_enter(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+	methoddesc   *md;
+	s4            disp;
+	s4            i, t;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	md = m->parseddesc;
+
+	/* mark trace code */
+
+	M_NOP;
+
+	M_LDA(REG_SP, REG_SP, -(2 + ARG_CNT + TMP_CNT) * 8);
+	M_AST(REG_RA, REG_SP, 1 * 8);
+
+	/* save argument registers */
+
+	for (i = 0; i < INT_ARG_CNT; i++)
+		M_LST(rd->argintregs[i], REG_SP, (2 + i) * 8);
+
+	for (i = 0; i < FLT_ARG_CNT; i++)
+		M_DST(rd->argfltregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
+
+	/* save temporary registers for leaf methods */
+
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_LST(rd->tmpintregs[i], REG_SP, (2 + ARG_CNT + i) * 8);
+
+		for (i = 0; i < FLT_TMP_CNT; i++)
+			M_DST(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
+	}
+
+	/* load float arguments into integer registers */
+
+	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
+		t = md->paramtypes[i].type;
+
+		if (IS_FLT_DBL_TYPE(t)) {
+			if (IS_2_WORD_TYPE(t)) {
+				M_DST(rd->argfltregs[i], REG_SP, 0 * 8);
+				M_LLD(rd->argintregs[i], REG_SP, 0 * 8);
+			}
+			else {
+				M_FST(rd->argfltregs[i], REG_SP, 0 * 8);
+				M_ILD(rd->argintregs[i], REG_SP, 0 * 8);
+			}
+		}
+	}
+
+	disp = dseg_addaddress(cd, m);
+	M_ALD(REG_ITMP1, REG_PV, disp);
+	M_AST(REG_ITMP1, REG_SP, 0 * 8);
+	disp = dseg_addaddress(cd, builtin_trace_args);
+	M_ALD(REG_ITMP3, REG_PV, disp);
+	M_JSR(REG_RA, REG_ITMP3);
+	M_NOP;
+
+	/* restore argument registers */
+
+	for (i = 0; i < INT_ARG_CNT; i++)
+		M_LLD(rd->argintregs[i], REG_SP, (2 + i) * 8);
+
+	for (i = 0; i < FLT_ARG_CNT; i++)
+		M_DLD(rd->argfltregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
+
+	/* restore temporary registers for leaf methods */
+
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_LLD(rd->tmpintregs[i], REG_SP, (2 + ARG_CNT + i) * 8);
+
+		for (i = 0; i < FLT_TMP_CNT; i++)
+			M_DLD(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
+	}
+
+	M_ALD(REG_RA, REG_SP, 1 * 8);
+	M_LDA(REG_SP, REG_SP, (2 + ARG_CNT + TMP_CNT) * 8);
+
+	/* mark trace code */
+
+	M_NOP;
+}
+#endif /* !defined(NDEBUG) */
+
+
+/* emit_verbosecall_exit *******************************************************
+
+   Generates the code for the call trace.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void emit_verbosecall_exit(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+	s4            disp;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	/* mark trace code */
+
+	M_NOP;
+
+	M_LDA(REG_SP, REG_SP, -4 * 8);              /* keep stack 16-byte aligned */
+	M_LST(REG_RA, REG_SP, 0 * 8);
+
+	M_LST(REG_RESULT, REG_SP, 1 * 8);
+	M_DST(REG_FRESULT, REG_SP, 2 * 8);
+
+	disp = dseg_addaddress(cd, m);
+	M_ALD(rd->argintregs[0], REG_PV, disp);
+
+	M_MOV(REG_RESULT, rd->argintregs[1]);
+	M_DMOV(REG_FRESULT, rd->argfltregs[2]);
+	M_FMOV(REG_FRESULT, rd->argfltregs[3]);
+
+	disp = dseg_addaddress(cd, builtin_displaymethodstop);
+	M_ALD(REG_ITMP3, REG_PV, disp);
+	M_JSR(REG_RA, REG_ITMP3);
+	M_NOP;
+
+	M_DLD(REG_FRESULT, REG_SP, 2 * 8);
+	M_LLD(REG_RESULT, REG_SP, 1 * 8);
+
+	M_LLD(REG_RA, REG_SP, 0 * 8);
+	M_LDA(REG_SP, REG_SP, 4 * 8);
+
+	/* mark trace code */
+
+	M_NOP;
+}
+#endif /* !defined(NDEBUG) */
 
 
 /*
