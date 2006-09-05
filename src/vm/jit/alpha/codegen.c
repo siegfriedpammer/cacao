@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5331 2006-09-05 19:06:22Z edwin $
+   $Id: codegen.c 5333 2006-09-05 20:11:30Z edwin $
 
 */
 
@@ -102,6 +102,7 @@ bool codegen(jitdata *jd)
 	builtintable_entry *bte;
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
+	s4                  fieldtype;
 
 	/* get required compiler data */
 
@@ -402,7 +403,7 @@ bool codegen(jitdata *jd)
 		src = bptr->instack;
 		len = bptr->icount;
 
-		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
+		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
 			if (iptr->line != currentline) {
 				dseg_addlinenumber(cd, iptr->line);
 				currentline = iptr->line;
@@ -570,53 +571,54 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
-			M_COPY(src, iptr->dst);
+
+			M_COPY(iptr->s1.var, iptr->dst.var);
 			break;
 
 		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
 
-			M_COPY(src,       iptr->dst);
-			M_COPY(src->prev, iptr->dst->prev);
-			M_COPY(iptr->dst, iptr->dst->prev->prev);
+			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+2]);
+			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+1]);
+			M_COPY(iptr->dst.dupslots[2+2], iptr->dst.dupslots[2+0]);
 			break;
 
 		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
 
-			M_COPY(src,             iptr->dst);
-			M_COPY(src->prev,       iptr->dst->prev);
-			M_COPY(src->prev->prev, iptr->dst->prev->prev);
-			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
+			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[3+3]);
+			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[3+2]);
+			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[3+1]);
+			M_COPY(iptr->dst.dupslots[3+3], iptr->dst.dupslots[3+0]);
 			break;
 
 		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
 
-			M_COPY(src,       iptr->dst);
-			M_COPY(src->prev, iptr->dst->prev);
+			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+1]);
+			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+0]);
 			break;
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
 
-			M_COPY(src,             iptr->dst);
-			M_COPY(src->prev,       iptr->dst->prev);
-			M_COPY(src->prev->prev, iptr->dst->prev->prev);
-			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
-			M_COPY(iptr->dst->prev, iptr->dst->prev->prev->prev->prev);
+			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[3+4]);
+			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[3+3]);
+			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[3+2]);
+			M_COPY(iptr->dst.dupslots[3+4], iptr->dst.dupslots[3+1]);
+			M_COPY(iptr->dst.dupslots[3+3], iptr->dst.dupslots[3+0]);
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
 
-			M_COPY(src,                   iptr->dst);
-			M_COPY(src->prev,             iptr->dst->prev);
-			M_COPY(src->prev->prev,       iptr->dst->prev->prev);
-			M_COPY(src->prev->prev->prev, iptr->dst->prev->prev->prev);
-			M_COPY(iptr->dst,             iptr->dst->prev->prev->prev->prev);
-			M_COPY(iptr->dst->prev,       iptr->dst->prev->prev->prev->prev->prev);
+			M_COPY(iptr->dst.dupslots[  3], iptr->dst.dupslots[4+5]);
+			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[4+4]);
+			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[4+3]);
+			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[4+2]);
+			M_COPY(iptr->dst.dupslots[4+5], iptr->dst.dupslots[4+1]);
+			M_COPY(iptr->dst.dupslots[4+4], iptr->dst.dupslots[4+0]);
 			break;
 
 		case ICMD_SWAP:       /* ..., a, b ==> ..., b, a                      */
 
-			M_COPY(src,       iptr->dst->prev);
-			M_COPY(src->prev, iptr->dst);
+			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+0]);
+			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+1]);
 			break;
 
 
@@ -838,7 +840,7 @@ bool codegen(jitdata *jd)
 
 			M_MOV(s1, rd->argintregs[0]);
 			M_MOV(s2, rd->argintregs[1]);
-			bte = iptr->val.a;
+			bte = iptr->sx.s23.s3.bte;
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
@@ -860,7 +862,7 @@ bool codegen(jitdata *jd)
 
 			M_MOV(s1, rd->argintregs[0]);
 			M_MOV(s2, rd->argintregs[1]);
-			bte = iptr->val.a;
+			bte = iptr->sx.s23.s3.bte;
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
@@ -1984,8 +1986,6 @@ bool codegen(jitdata *jd)
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
 				disp = dseg_add_unique_address(cd, uf);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
@@ -2039,8 +2039,6 @@ bool codegen(jitdata *jd)
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
 
 				disp = dseg_add_unique_address(cd, uf);
 
@@ -2097,8 +2095,6 @@ bool codegen(jitdata *jd)
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				unresolved_field *uf = uf;
-
 				disp = dseg_add_unique_address(cd, uf);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
@@ -2154,8 +2150,6 @@ bool codegen(jitdata *jd)
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
@@ -2209,8 +2203,6 @@ bool codegen(jitdata *jd)
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
@@ -2253,8 +2245,6 @@ bool codegen(jitdata *jd)
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				unresolved_field *uf = uf;
 
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
@@ -2757,15 +2747,14 @@ nowperformreturn:
 
 		case ICMD_TABLESWITCH:  /* ..., index ==> ...                         */
 			{
-			s4 i, l, *s4ptr;
-			void **tptr;
+			s4 i, l;
+			branch_target_t *table;
 
-			tptr = iptr->dst.table;
+			table = iptr->dst.table;
 
-			s4ptr = iptr->val.a;
-			l = s4ptr[1];                          /* low     */
-			i = s4ptr[2];                          /* high    */
-			
+			l = iptr->sx.s23.s2.tablelow;
+			i = iptr->sx.s23.s3.tablehigh;
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (l == 0) {
 				M_INTMOVE(s1, REG_ITMP1);
@@ -2775,6 +2764,8 @@ nowperformreturn:
 				ICONST(REG_ITMP2, l);
 				M_ISUB(s1, REG_ITMP2, REG_ITMP1);
 			}
+
+			/* number of targets */
 			i = i - l + 1;
 
 			/* range check */
@@ -2786,16 +2777,15 @@ nowperformreturn:
 				M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
 			}
 			M_BEQZ(REG_ITMP2, 0);
-			codegen_addreference(cd, (basicblock *) tptr[0]);
+			codegen_addreference(cd, table[0].block);
 
 			/* build jump table top down and use address of lowest entry */
 
-			/* s4ptr += 3 + i; */
-			tptr += i;
+			table += i;
 
 			while (--i >= 0) {
-				dseg_add_target(cd, (basicblock *) tptr[0]); 
-				--tptr;
+				dseg_add_target(cd, table->block); 
+				--table;
 			}
 			}
 
@@ -2810,22 +2800,18 @@ nowperformreturn:
 
 		case ICMD_LOOKUPSWITCH: /* ..., key ==> ...                           */
 			{
-			s4 i, l, val, *s4ptr;
-			void **tptr;
+			s4 i, val;
+			lookup_target_t *lookup;
 
-			tptr = iptr->dst.lookup;
+			lookup = iptr->dst.lookup;
 
-			s4ptr = iptr->val.a;
-			l = s4ptr[0];                          /* default  */
-			i = s4ptr[1];                          /* count    */
+			i = iptr->sx.s23.s2.lookupcount;
 			
 			MCODECHECK((i<<2)+8);
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			while (--i >= 0) {
-				s4ptr += 2;
-				++tptr;
 
-				val = s4ptr[0];
+			while (--i >= 0) {
+				val = lookup->value;
 				if ((val >= 0) && (val <= 255)) {
 					M_CMPEQ_IMM(s1, val, REG_ITMP2);
 				} else {
@@ -2838,13 +2824,13 @@ nowperformreturn:
 					M_CMPEQ(s1, REG_ITMP2, REG_ITMP2);
 				}
 				M_BNEZ(REG_ITMP2, 0);
-				codegen_addreference(cd, (basicblock *) tptr[0]); 
+				codegen_addreference(cd, lookup->target.block);
+				lookup++;
 			}
 
 			M_BR(0);
 			
-			tptr = iptr->dst.lookup;
-			codegen_addreference(cd, (basicblock *) tptr[0]);
+			codegen_addreference(cd, iptr->sx.s23.s3.lookupdefault.block);
 
 			ALIGNCODENOP;
 			break;
@@ -2853,7 +2839,7 @@ nowperformreturn:
 
 		case ICMD_BUILTIN:      /* ..., arg1, arg2, arg3 ==> ...              */
 
-			bte = iptr->val.a;
+			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
 			goto gen_method;
 
@@ -3016,7 +3002,7 @@ gen_method:
 			/* d contains return type */
 
 			if (d != TYPE_VOID) {
-				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
+				if (IS_INT_LNG_TYPE(d)) {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
 					M_INTMOVE(REG_RESULT, s1);
 /* 					emit_store_dst(jd, iptr, s1); */
@@ -3242,17 +3228,17 @@ gen_method:
 			vftbl_t   *supervftbl;
 			s4         superindex;
 
-			super = (classinfo *) iptr->val.a;
-
-			if (super == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				super = NULL;
 				superindex = 0;
 				supervftbl = NULL;
-			}
-			else {
+
+			} else {
+				super = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
 				supervftbl = super->vftbl;
 			}
-			
+
 #if defined(ENABLE_THREADS)
 			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
