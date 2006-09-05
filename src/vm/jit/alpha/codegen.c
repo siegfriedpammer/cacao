@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5335 2006-09-05 20:50:21Z edwin $
+   $Id: codegen.c 5336 2006-09-05 20:57:13Z edwin $
 
 */
 
@@ -315,7 +315,7 @@ bool codegen(jitdata *jd)
 
 	/* walk through all basic blocks */
 
-	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
