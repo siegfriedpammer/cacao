@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5311 2006-09-05 11:40:03Z edwin $
+   $Id: jit.h 5314 2006-09-05 11:50:47Z edwin $
 
 */
 
@@ -234,6 +234,7 @@ typedef union {
     stackptr                   var;
     ptrint                     constval;
     classref_or_classinfo      c;
+	vftbl_t                   *arrayvftbl;
     constant_FMIref           *fmiref;
     unresolved_method         *um;
     unresolved_field          *uf;
