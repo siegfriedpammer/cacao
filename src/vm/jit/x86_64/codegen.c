@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5317 2006-09-05 12:29:16Z edwin $
+   $Id: codegen.c 5318 2006-09-05 12:42:12Z edwin $
 
 */
 
@@ -3560,9 +3560,9 @@ gen_method:
 
 			M_MOV_IMM(iptr->s1.argcount, rd->argintregs[0]);
 
-			/* a1 = arrayvftbl */
+			/* a1 = classinfo */
 
-			M_MOV_IMM(iptr->sx.s23.s3.arrayvftbl, rd->argintregs[1]);
+			M_MOV_IMM(iptr->sx.s23.s3.c.cls, rd->argintregs[1]);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
