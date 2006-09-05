@@ -433,7 +433,8 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 #if defined(ENABLE_DISASSEMBLER)
 		if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd) &&
-			(!deadcode)) {
+			(!deadcode)) 
+		{
 			printf("\n");
 			u1ptr = (u1 *) (code->mcode + cd->dseglen + bptr->mpc);
 
