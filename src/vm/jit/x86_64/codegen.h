@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 5083 2006-07-06 14:19:04Z twisti $
+   $Id: codegen.h 5298 2006-09-05 10:09:52Z edwin $
 
 */
 
@@ -128,22 +128,22 @@
 
 #define ICONST(r,c) \
     do { \
-        if (iptr->val.i == 0) \
-            M_CLR(d); \
+        if ((c) == 0) \
+            M_CLR((d)); \
         else \
-            M_IMOV_IMM(iptr->val.i, d); \
+            M_IMOV_IMM((c), (d)); \
     } while (0)
 /*     do { \ */
-/*        M_IMOV_IMM(iptr->val.i, d); \ */
+/*        M_IMOV_IMM((c), (d)); \ */
 /*     } while (0) */
 
 
 #define LCONST(r,c) \
     do { \
-        if (iptr->val.l == 0) \
-            M_CLR(d); \
+        if ((c) == 0) \
+            M_CLR((d)); \
         else \
-            M_MOV_IMM(iptr->val.l, d); \
+            M_MOV_IMM((c), (d)); \
     } while (0)
 
 
