@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5308 2006-09-05 11:16:06Z edwin $
+   $Id: builtin.c 5330 2006-09-05 18:43:12Z edwin $
 
 */
 
@@ -1343,7 +1343,7 @@ static char *builtin_print_argument(char *logtext, s4 logtextlen,
 		break;
 
 	case TYPE_FLT:
-		imu.l = value;
+		imu.i = (s4) value;
 		sprintf(logtext + strlen(logtext), "%.8f (0x%08x)", imu.f, imu.i);
 		break;
 

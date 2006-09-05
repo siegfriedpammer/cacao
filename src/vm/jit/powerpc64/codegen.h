@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5279 2006-08-25 11:55:21Z tbfg $
+   $Id: codegen.h 5329 2006-09-05 18:26:32Z tbfg $
 
 */
 
@@ -348,8 +348,9 @@
 #define M_AST(a,b,disp)                 M_LST(a,b,disp)
 
 #define M_BSEXT(a,b)                    M_OP3(31, 954, 0, 0, a, b, 0)
-#define M_SSEXT(a,b)                    M_OP3(31, 922, 0, 0, a, b, 0)
 #define M_CZEXT(a,b)                    M_RLWINM(a,0,16,31,b)
+#define M_SSEXT(a,b)                    M_OP3(31, 922, 0, 0, a, b, 0)
+#define M_ISEXT(a,b)			M_OP3(31, 986, 0, 0, a, b, 0)
 
 #define M_BR(a)                         M_BRA(18, a, 0, 0)
 #define M_BL(a)                         M_BRA(18, a, 0, 1)

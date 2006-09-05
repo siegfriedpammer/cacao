@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5328 2006-09-05 17:42:22Z edwin $
+   $Id: codegen.c 5330 2006-09-05 18:43:12Z edwin $
 
 */
 
@@ -45,6 +45,7 @@
 #include "vm/types.h"
 
 #include "md-abi.h"
+#include "vm/jit/abi-asm.h"
 
 #include "vm/jit/powerpc64/arch.h"
 #include "vm/jit/powerpc64/codegen.h"
@@ -300,7 +301,25 @@ bool codegen(jitdata *jd)
 	/* save monitorenter argument */
 
 #if defined(ENABLE_THREADS)
+
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+
+		/* stackoffset for argument used for LOCK_monitor_exit */
+		s1 = rd->memuse;
+#if !defined (NDEBUG)
+		if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+			M_AADD_IMM(REG_SP, -((LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS + ARG_CNT) * 8), REG_SP);
+
+			for (p = 0; p < INT_ARG_CNT; p++)
+				M_LST(rd->argintregs[p], REG_SP, LA_SIZE + PA_SIZE + p * 8);
+
+			for (p = 0; p < FLT_ARG_CNT; p++)
+				M_DST(rd->argfltregs[p], REG_SP, LA_SIZE + PA_SIZE + (INT_ARG_CNT + p) * 8);
+
+			/* used for LOCK_monitor_exit, adopt size because we created another stackframe */
+			s1 += (LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS + ARG_CNT);
+		}
+#endif
 		p = dseg_addaddress(cd, LOCK_monitor_enter);
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_ALD(REG_ITMP3, REG_ITMP3, 0); /* TOC */
@@ -318,17 +337,29 @@ bool codegen(jitdata *jd)
 			codegen_add_nullpointerexception_ref(cd);
 		}
 
-		M_AST(rd->argintregs[0], REG_SP, rd->memuse * 8);
+		M_AST(rd->argintregs[0], REG_SP, s1 * 8);	/* rd->memuse * 8 */
 		M_JSR;
+#if !defined (NDEBUG)
+		if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+			for (p = 0; p < INT_ARG_CNT; p++)
+				M_LLD(rd->argintregs[p], REG_SP, LA_SIZE + PA_SIZE + p * 8);
+
+			for (p = 0; p < FLT_ARG_CNT; p++)
+				M_DLD(rd->argfltregs[p], REG_SP, LA_SIZE + PA_SIZE + (INT_ARG_CNT + p) * 8);
+
+			M_AADD_IMM(REG_SP, (LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS + ARG_CNT) * 8, REG_SP);
+		}
+#endif
 	}
 #endif
 
 	/* call trace function */
-
+#if !defined (NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		emit_verbosecall_enter(jd);
 
 	}
+#endif
 
 	/* end of header generation */
 
@@ -735,9 +766,9 @@ bool codegen(jitdata *jd)
 
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
 
-			s1 = emit_load_s1_low(jd, iptr, src, REG_ITMP2);
+			s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
-			M_INTMOVE(s1, d);
+			M_ISEXT(s1, d);	
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -791,13 +822,10 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			s1 = emit_load_s1_low(jd, iptr, src->prev, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, src, REG_ITMP2);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			M_ADDC(s1, s2, GET_LOW_REG(d));
-			s1 = emit_load_s1_high(jd, iptr, src->prev, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, src, REG_ITMP3);   /* don't use REG_ITMP2 */
-			M_ADDE(s1, s2, GET_HIGH_REG(d));
+			s1 = emit_load_s1(jd, iptr, src->prev, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
+			M_LADD(s1, s2, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -2175,7 +2203,7 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
-
+		#if 0
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
@@ -2252,7 +2280,7 @@ bool codegen(jitdata *jd)
 			M_BLE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
-			
+
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
@@ -2307,6 +2335,7 @@ bool codegen(jitdata *jd)
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
+			/* TODO, remove me */
 			s1 = emit_load_s1_low(jd, iptr, src, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, src, REG_ITMP2);
 			if (iptr->val.l == 0) {
@@ -2330,27 +2359,14 @@ bool codegen(jitdata *jd)
 			M_BGE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
+		#endif
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
+		case ICMD_IF_LCMPEQ: 
 
 			s1 = emit_load_s1(jd, iptr, src->prev, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BEQ(0);
-			codegen_addreference(cd, (basicblock *) iptr->target);
-			break;
-
-		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
-
-			s1 = emit_load_s1_high(jd, iptr, src->prev, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, src, REG_ITMP2);
-			M_CMP(s1, s2);
-			/* load low-bits before the branch, so we know the distance */
-			s1 = emit_load_s1_low(jd, iptr, src->prev, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, src, REG_ITMP2);
-			M_BNE(2);
 			M_CMP(s1, s2);
 			M_BEQ(0);
 			codegen_addreference(cd, (basicblock *) iptr->target);
@@ -2358,6 +2374,7 @@ bool codegen(jitdata *jd)
 
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
+		case ICMD_IF_LCMPNE:  
 
 			s1 = emit_load_s1(jd, iptr, src->prev, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
@@ -2366,20 +2383,6 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
-		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
-
-			s1 = emit_load_s1_high(jd, iptr, src->prev, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, src, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BNE(0);
-			codegen_addreference(cd, (basicblock *) iptr->target);
-			s1 = emit_load_s1_low(jd, iptr, src->prev, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, src, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BNE(0);
-			codegen_addreference(cd, (basicblock *) iptr->target);
-			break;
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
@@ -2530,10 +2533,12 @@ nowperformreturn:
 
 			/* call trace function */
 
+#if !defined(NDEBUG)
 			if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 				emit_verbosecall_exit(jd);
 			}
-			
+#endif		
+
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				disp = dseg_addaddress(cd, LOCK_monitor_exit);
@@ -2548,13 +2553,13 @@ nowperformreturn:
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 					/* fall through */
-					M_LST(REG_RESULT , REG_SP, rd->memuse * 4 + 8);
+					M_LST(REG_RESULT , REG_SP, rd->memuse * 8 + 8);
 					break;
 				case ICMD_FRETURN:
-					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 8);
+					M_FST(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
 					break;
 				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4 + 8);
+					M_DST(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
 					break;
 				}
 
@@ -2568,13 +2573,13 @@ nowperformreturn:
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 					/* fall through */
-					M_LLD(REG_RESULT , REG_SP, rd->memuse * 4 + 8);
+					M_LLD(REG_RESULT , REG_SP, rd->memuse * 8 + 8);
 					break;
 				case ICMD_FRETURN:
-					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 8);
+					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
 					break;
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 8);
+					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
 					break;
 				}
 			}
@@ -2775,12 +2780,10 @@ gen_method:
 				d = md->returntype.type;
 
 				M_ALD(REG_PV, REG_PV, disp);  	/* pointer to built-in-function descriptor */
-				M_ALD(REG_ITMP1, REG_PV, 0);	/* function entry point address */
-				M_ALD(REG_ITMP2, REG_PV, 8);	/* TOC of callee */
-				M_MOV(REG_TOC, REG_ITMP2);		/* load TOC for callee */
+				M_ALD(REG_ITMP1, REG_PV, 0);	/* function entry point address, what about TOC */
 				M_MTCTR(REG_ITMP1);
 				M_JSR;
-				/* TODO: restore TOC */
+
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
@@ -3704,10 +3707,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STDU(REG_SP, REG_SP, -(stackframesize * 8));
 
+#if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		emit_verbosecall_enter(jd);
 	}
-
+#endif
 	/* get function address (this must happen before the stackframeinfo) */
 
 	funcdisp = dseg_addaddress(cd, f);
@@ -3872,11 +3876,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 	/* print call trace */
-
+#if ! defined(NDEBGUU)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		emit_verbosecall_exit(jd);
 	}
-
+#endif
 	/* remove native stackframe info */
 
 	M_NOP;
