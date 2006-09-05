@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5291 2006-09-04 17:45:32Z twisti $
+   $Id: codegen.c 5319 2006-09-05 12:54:10Z twisti $
 
 */
 
@@ -3920,91 +3920,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_JMP(REG_ITMP3);                   /* jump to asm exception handler      */
 	M_ASUB_IMM(REG_RA, 4, REG_ITMP2_XPC); /* get exception address (DELAY)    */
 
-	/* generate static stub call code                                         */
+	/* generate patcher stubs */
 
-	{
-		patchref *pref;
-		u8        mcode;
-		u1       *savedmcodeptr;
-		u1       *tmpmcodeptr;
-
-		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* Get machine code which is patched back in later. The
-			   call is 2 instruction words long. */
-
-			tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
-
-			/* We need to split this, because an unaligned 8 byte read
-			   causes a SIGSEGV. */
-
-			mcode = ((u8) ((u4 *) tmpmcodeptr)[1] << 32) +
-				((u4 *) tmpmcodeptr)[0];
-
-			/* Patch in the call to call the following code (done at
-			   compile time). */
-
-			savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
-			cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
-
-			disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
-			M_BRS(disp);
-			M_NOP;                          /* branch delay slot              */
-
-			cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
-
-			/* create stack frame                                             */
-
-			M_LSUB_IMM(REG_SP, 6 * 8, REG_SP);
-
-			/* move return address onto stack */
-
-			M_AST(REG_RA, REG_SP, 5 * 8);
-
-			/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-			/* order reversed because of data segment layout */
-
-			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
-			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
-
-			M_LDA(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 4 * 8);
-#else
-			M_AST(REG_ZERO, REG_SP, 4 * 8);
-#endif
-
-			/* move machine code onto stack */
-
-			disp = dseg_adds8(cd, mcode);
-			M_LLD(REG_ITMP3, REG_PV, disp);
-			M_LST(REG_ITMP3, REG_SP, 3 * 8);
-
-			/* move class/method/field reference onto stack */
-
-			disp = dseg_addaddress(cd, pref->ref);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 2 * 8);
-
-			/* move data segment displacement onto stack */
-
-			disp = dseg_adds4(cd, pref->disp);
-			M_ILD(REG_ITMP3, REG_PV, disp);
-			M_IST(REG_ITMP3, REG_SP, 1 * 8);
-
-			/* move patcher function pointer onto stack */
-
-			disp = dseg_addaddress(cd, pref->patcher);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 0 * 8);
-
-			disp = dseg_addaddress(cd, asm_patcher_wrapper);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_JMP(REG_ITMP3);
-			M_NOP;
-		}
-	}
+	emit_patcher_stubs(jd);
 
 	codegen_finish(jd);
 

@@ -361,6 +361,7 @@ void emit_exception_stubs(jitdata *jd)
 		else {
 			disp = (((u4 *) cd->mcodebase) + targetdisp) -
 				(((u4 *) cd->mcodeptr) + 1);
+
 			M_BR(disp);
 			M_NOP;
 		}
@@ -378,7 +379,7 @@ void emit_patcher_stubs(jitdata *jd)
 {
 	codegendata *cd;
 	patchref    *pref;
-	u4           mcode;
+	u4           mcode[2];
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
 	s4           targetdisp;
@@ -402,11 +403,12 @@ void emit_patcher_stubs(jitdata *jd)
 
 		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
 
-		/* We need to split this, because an unaligned 8 byte read
-		   causes a SIGSEGV. */
+		/* We use 2 loads here as an unaligned 8-byte read on 64-bit
+		   MIPS causes a SIGSEGV and using the same code for both
+		   architectures is much better. */
 
-		mcode = ((u8) ((u4 *) tmpmcodeptr)[1] << 32) +
-			((u4 *) tmpmcodeptr)[0];
+		mcode[0] = ((u4 *) tmpmcodeptr)[0];
+		mcode[1] = ((u4 *) tmpmcodeptr)[1];
 
 		/* Patch in the call to call the following code (done at
 		   compile time). */
@@ -454,9 +456,13 @@ void emit_patcher_stubs(jitdata *jd)
 
 		/* move machine code onto stack */
 
-		disp = dseg_adds8(cd, mcode);
-		M_LLD(REG_ITMP3, REG_PV, disp);
-		M_LST(REG_ITMP3, REG_SP, 3 * 8);
+		disp = dseg_adds4(cd, mcode[0]);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, 3 * 8);
+
+		disp = dseg_adds4(cd, mcode[1]);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, 3 * 8 + 4);
 
 		/* move class/method/field reference onto stack */
 
@@ -487,6 +493,7 @@ void emit_patcher_stubs(jitdata *jd)
 		else {
 			disp = (((u4 *) cd->mcodebase) + targetdisp) -
 				(((u4 *) cd->mcodeptr) + 1);
+
 			M_BR(disp);
 			M_NOP;
 		}

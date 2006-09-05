@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5164 2006-07-19 15:54:01Z twisti $
+   $Id: patcher.c 5319 2006-09-05 12:54:10Z twisti $
 
 */
 
@@ -138,11 +138,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 bool patcher_get_putstatic(u1 *sp)
 {
 	u1               *ra;
-#if SIZEOF_VOID_P == 8
-	u8                mcode;
-#else
 	u4                mcode[2];
-#endif
 	unresolved_field *uf;
 	s4                disp;
 	u1               *pv;
@@ -151,12 +147,8 @@ bool patcher_get_putstatic(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                      *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	uf       = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
 	disp     =                      *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)               *((ptrint *) (sp + 0 * 8));
@@ -174,13 +166,8 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -210,21 +197,13 @@ bool patcher_get_putstatic(u1 *sp)
 bool patcher_get_putfield(u1 *sp)
 {
 	u1               *ra;
-#if SIZEOF_VOID_P == 8
-	u8                mcode;
-#else
 	u4                mcode[2];
-#endif
 	unresolved_field *uf;
 	fieldinfo        *fi;
 
 	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                      *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	uf       = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
@@ -234,13 +213,8 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -294,11 +268,7 @@ bool patcher_get_putfield(u1 *sp)
 bool patcher_aconst(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
 	u4                 mcode[2];
-#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -307,12 +277,8 @@ bool patcher_aconst(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -324,13 +290,8 @@ bool patcher_aconst(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -364,11 +325,7 @@ bool patcher_aconst(u1 *sp)
 bool patcher_builtin_multianewarray(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else	
 	u4                 mcode[2];
-#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -377,12 +334,8 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -394,13 +347,8 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -433,11 +381,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 bool patcher_builtin_arraycheckcast(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
 	u4                 mcode[2];
-#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -446,12 +390,8 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -463,13 +403,8 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -501,11 +436,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 bool patcher_invokestatic_special(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
 	u4                 mcode[2];
-#endif
 	unresolved_method *um;
 	s4                 disp;
 	u1                *pv;
@@ -514,12 +445,8 @@ bool patcher_invokestatic_special(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -531,13 +458,8 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -570,23 +492,15 @@ bool patcher_invokestatic_special(u1 *sp)
 bool patcher_invokevirtual(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
 	u4                 mcode[2];
-#endif
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
@@ -596,13 +510,8 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -641,23 +550,15 @@ bool patcher_invokevirtual(u1 *sp)
 bool patcher_invokeinterface(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
 	u4                 mcode[2];
-#endif
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
@@ -667,13 +568,8 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -716,11 +612,7 @@ bool patcher_invokeinterface(u1 *sp)
 bool patcher_checkcast_instanceof_flags(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
 	u4                 mcode[2];
-#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -729,12 +621,8 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -746,13 +634,8 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -787,23 +670,15 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
 	u4                 mcode[2];
-#endif
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
@@ -813,13 +688,8 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -857,11 +727,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 bool patcher_checkcast_instanceof_class(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
 	u4                 mcode[2];
-#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -870,12 +736,8 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -887,13 +749,8 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -920,22 +777,14 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 bool patcher_clinit(u1 *sp)
 {
 	u1        *ra;
-#if SIZEOF_VOID_P == 8
-	u8         mcode;
-#else
 	u4         mcode[2];
-#endif
 	classinfo *c;
 
 	/* get stuff from the stack */
 
 	ra       = (u1 *)        *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =               *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =               *((u4 *)     (sp + 3 * 8));
 	mcode[1] =               *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	c        = (classinfo *) *((ptrint *) (sp + 2 * 8));
 
 	/* check if the class is initialized */
@@ -946,13 +795,8 @@ bool patcher_clinit(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -974,23 +818,15 @@ bool patcher_clinit(u1 *sp)
 bool patcher_athrow_areturn(u1 *sp)
 {
 	u1               *ra;
-#if SIZEOF_VOID_P == 8
-	u8                mcode;
-#else
 	u4                mcode[2];
-#endif
 	unresolved_class *uc;
 	classinfo        *c;
 
 	/* get stuff from the stack */
 
 	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                      *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	uc       = (unresolved_class *) *((ptrint *) (sp + 2 * 8));
 
 	/* resolve the class */
@@ -1000,13 +836,8 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
@@ -1027,11 +858,7 @@ bool patcher_athrow_areturn(u1 *sp)
 bool patcher_resolve_native(u1 *sp)
 {
 	u1          *ra;
-#if SIZEOF_VOID_P == 8
-	u8           mcode;
-#else
 	u4           mcode[2];
-#endif
 	methodinfo  *m;
 	s4           disp;
 	u1          *pv;
@@ -1040,20 +867,11 @@ bool patcher_resolve_native(u1 *sp)
 	/* get stuff from the stack */
 
 	ra       = (u1 *)         *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                *((u8 *)     (sp + 3 * 8));
-#else
 	mcode[0] =                *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	m        = (methodinfo *) *((ptrint *) (sp + 2 * 8));
 	disp     =                *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)         *((ptrint *) (sp + 0 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* resolve native function */
 
@@ -1062,13 +880,8 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* patch back original code */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
 	*((u4 *) (ra + 0 * 4)) = mcode[0];
 	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
 
 	/* synchronize instruction cache */
 
