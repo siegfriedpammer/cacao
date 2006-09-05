@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5338 2006-09-05 21:06:54Z edwin $
+   $Id: codegen.c 5339 2006-09-05 21:14:00Z edwin $
 
 */
 
@@ -333,11 +333,13 @@ bool codegen(jitdata *jd)
 
 		/* handle replacement points */
 
+#if 0
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
 		}
+#endif
 
 		/* copy interface registers to their destination */
 
@@ -3467,7 +3469,9 @@ gen_method:
 
 	emit_exception_stubs(jd);
 	emit_patcher_stubs(jd);
+#if 0
 	emit_replacement_stubs(jd);
+#endif
 
 	codegen_finish(jd);
 

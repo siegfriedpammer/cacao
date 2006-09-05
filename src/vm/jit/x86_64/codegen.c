@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5321 2006-09-05 16:12:09Z edwin $
+   $Id: codegen.c 5339 2006-09-05 21:14:00Z edwin $
 
 */
 
@@ -3642,7 +3642,9 @@ gen_method:
 
 	emit_exception_stubs(jd);
 	emit_patcher_stubs(jd);
+#if 0
 	emit_replacement_stubs(jd);
+#endif
 
 	codegen_finish(jd);
 
