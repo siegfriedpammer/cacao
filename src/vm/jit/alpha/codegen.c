@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5344 2006-09-05 21:20:34Z edwin $
+   $Id: codegen.c 5350 2006-09-05 22:27:36Z edwin $
 
 */
 
@@ -3366,7 +3366,10 @@ gen_method:
 
 			MCODECHECK((iptr->s1.argcount << 1) + 64);
 
-			for (s1 = iptr->s1.argcount; --s1 >= 0; src = src->prev) {
+			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
+
+				src = iptr->sx.s23.s2.args[s1];
+	
 				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
