@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 5320 2006-09-05 16:10:21Z twisti $
+   $Id: codegen.h 5352 2006-09-05 22:51:48Z christian $
 
 */
 
@@ -141,9 +141,9 @@
         { \
         if ((ls==NULL) || (to->varkind != TEMPVAR) || \
                 (ls->lifetime[-to->varnum-1].type != -1)) \
-                { _M_COPY(from,to);     } }
+			{ _M_COPY((from),(to));     } }
 #else
-#define M_COPY(from,to) _M_COPY(from,to);
+#define M_COPY(from,to) _M_COPY((from),(to));
 #endif
 
 #define _M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))

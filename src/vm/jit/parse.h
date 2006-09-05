@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5302 2006-09-05 10:37:26Z edwin $
+   $Id: parse.h 5352 2006-09-05 22:51:48Z christian $
 
 */
 
@@ -205,31 +205,42 @@
     iptr->sx.val.i           = (v);                                    \
     PINC
 
-#define NEW_OP_LOAD_ONEWORD(o,index)                                   \
+#define LOCALTYPE_USED(index,type)
+/*
+	do {															   \
+		local_map[index * 5 +type] = 1;									   \
+	} while (0)
+*/
+
+#define NEW_OP_LOAD_ONEWORD(o,index,type)							   \
     do {                                                               \
         INDEX_ONEWORD(index);                                          \
         NEW_OP_LOCALINDEX(o,index);                                    \
+		LOCALTYPE_USED(index,type);								   \
     } while (0)
 
-#define NEW_OP_LOAD_TWOWORD(o,index)                                   \
+#define NEW_OP_LOAD_TWOWORD(o,index,type)							   \
     do {                                                               \
         INDEX_TWOWORD(index);                                          \
         NEW_OP_LOCALINDEX(o,index);                                    \
-    } while (0)
+		LOCALTYPE_USED(index,type);									   \
+	} while (0)
 
-#define NEW_OP_STORE_ONEWORD(o,index)                                  \
+#define NEW_OP_STORE_ONEWORD(o,index,type)							   \
     do {                                                               \
         INDEX_ONEWORD(index);                                          \
         NEW_OP_PREPARE_ZEROFLAGS(o);                                   \
         iptr->dst.localindex = (index);                                \
+		LOCALTYPE_USED(index,type);									   \
         PINC;                                                          \
     } while (0)
 
-#define NEW_OP_STORE_TWOWORD(o,index)                                  \
+#define NEW_OP_STORE_TWOWORD(o,index,type)							   \
     do {                                                               \
         INDEX_TWOWORD(index);                                          \
         NEW_OP_PREPARE_ZEROFLAGS(o);                                   \
         iptr->dst.localindex = (index);                                \
+		LOCALTYPE_USED(index,type);									   \
         PINC;                                                          \
     } while (0)
 

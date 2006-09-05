@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5349 2006-09-05 22:23:06Z edwin $
+   $Id: parse.c 5352 2006-09-05 22:51:48Z christian $
 
 */
 
@@ -186,11 +186,23 @@ bool new_parse(jitdata *jd)
 	u4                  flags;
 	basicblock         *bptr;
 
+/* 	int                *local_map; */
+
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
+
+	/* allocate buffers for local variable renaming */
+/* 	local_map = DMNEW(int, cd->maxlocals * 5); */
+/* 	for (i = 0; i < cd->maxlocals; i++) { */
+/* 		local_map[i * 5 + 0] = 0; */
+/* 		local_map[i * 5 + 1] = 0; */
+/* 		local_map[i * 5 + 2] = 0; */
+/* 		local_map[i * 5 + 3] = 0; */
+/* 		local_map[i * 5 + 4] = 0; */
+/* 	} */
 
 	/* allocate instruction array and block index table */
 
@@ -404,7 +416,7 @@ fetch_opcode:
 				nextp = p + 3;
 				iswide = false;
 			}
-			NEW_OP_LOAD_ONEWORD(opcode, i);
+			NEW_OP_LOAD_ONEWORD(opcode, i, opcode - JAVA_ILOAD);
 			break;
 
 		case JAVA_LLOAD:
@@ -417,42 +429,42 @@ fetch_opcode:
 				nextp = p + 3;
 				iswide = false;
 			}
-			NEW_OP_LOAD_TWOWORD(opcode, i);
+			NEW_OP_LOAD_TWOWORD(opcode, i, opcode - JAVA_ILOAD);
 			break;
 
 		case JAVA_ILOAD_0:
 		case JAVA_ILOAD_1:
 		case JAVA_ILOAD_2:
 		case JAVA_ILOAD_3:
-			NEW_OP_LOAD_ONEWORD(ICMD_ILOAD, opcode - JAVA_ILOAD_0);
+			NEW_OP_LOAD_ONEWORD(ICMD_ILOAD, opcode - JAVA_ILOAD_0, TYPE_INT);
 			break;
 
 		case JAVA_LLOAD_0:
 		case JAVA_LLOAD_1:
 		case JAVA_LLOAD_2:
 		case JAVA_LLOAD_3:
-			NEW_OP_LOAD_TWOWORD(ICMD_LLOAD, opcode - JAVA_LLOAD_0);
+			NEW_OP_LOAD_TWOWORD(ICMD_LLOAD, opcode - JAVA_LLOAD_0, TYPE_LNG);
 			break;
 
 		case JAVA_FLOAD_0:
 		case JAVA_FLOAD_1:
 		case JAVA_FLOAD_2:
 		case JAVA_FLOAD_3:
-			NEW_OP_LOAD_ONEWORD(ICMD_FLOAD, opcode - JAVA_FLOAD_0);
+			NEW_OP_LOAD_ONEWORD(ICMD_FLOAD, opcode - JAVA_FLOAD_0, TYPE_FLT);
 			break;
 
 		case JAVA_DLOAD_0:
 		case JAVA_DLOAD_1:
 		case JAVA_DLOAD_2:
 		case JAVA_DLOAD_3:
-			NEW_OP_LOAD_TWOWORD(ICMD_DLOAD, opcode - JAVA_DLOAD_0);
+			NEW_OP_LOAD_TWOWORD(ICMD_DLOAD, opcode - JAVA_DLOAD_0, TYPE_DBL);
 			break;
 
 		case JAVA_ALOAD_0:
 		case JAVA_ALOAD_1:
 		case JAVA_ALOAD_2:
 		case JAVA_ALOAD_3:
-			NEW_OP_LOAD_ONEWORD(ICMD_ALOAD, opcode - JAVA_ALOAD_0);
+			NEW_OP_LOAD_ONEWORD(ICMD_ALOAD, opcode - JAVA_ALOAD_0, TYPE_ADR);
 			break;
 
 		case JAVA_ISTORE:
@@ -466,7 +478,7 @@ fetch_opcode:
 				iswide = false;
 				nextp = p + 3;
 			}
-			NEW_OP_STORE_ONEWORD(opcode, i);
+			NEW_OP_STORE_ONEWORD(opcode, i, opcode - JAVA_ISTORE);
 			break;
 
 		case JAVA_LSTORE:
@@ -479,42 +491,42 @@ fetch_opcode:
 				iswide = false;
 				nextp = p + 3;
 			}
-			NEW_OP_STORE_TWOWORD(opcode, i);
+			NEW_OP_STORE_TWOWORD(opcode, i, opcode - JAVA_ISTORE);
 			break;
 
 		case JAVA_ISTORE_0:
 		case JAVA_ISTORE_1:
 		case JAVA_ISTORE_2:
 		case JAVA_ISTORE_3:
-			NEW_OP_STORE_ONEWORD(ICMD_ISTORE, opcode - JAVA_ISTORE_0);
+			NEW_OP_STORE_ONEWORD(ICMD_ISTORE, opcode - JAVA_ISTORE_0, TYPE_INT);
 			break;
 
 		case JAVA_LSTORE_0:
 		case JAVA_LSTORE_1:
 		case JAVA_LSTORE_2:
 		case JAVA_LSTORE_3:
-			NEW_OP_STORE_TWOWORD(ICMD_LSTORE, opcode - JAVA_LSTORE_0);
+			NEW_OP_STORE_TWOWORD(ICMD_LSTORE, opcode - JAVA_LSTORE_0, TYPE_LNG);
 			break;
 
 		case JAVA_FSTORE_0:
 		case JAVA_FSTORE_1:
 		case JAVA_FSTORE_2:
 		case JAVA_FSTORE_3:
-			NEW_OP_STORE_ONEWORD(ICMD_FSTORE, opcode - JAVA_FSTORE_0);
+			NEW_OP_STORE_ONEWORD(ICMD_FSTORE, opcode - JAVA_FSTORE_0, TYPE_FLT);
 			break;
 
 		case JAVA_DSTORE_0:
 		case JAVA_DSTORE_1:
 		case JAVA_DSTORE_2:
 		case JAVA_DSTORE_3:
-			NEW_OP_STORE_TWOWORD(ICMD_DSTORE, opcode - JAVA_DSTORE_0);
+			NEW_OP_STORE_TWOWORD(ICMD_DSTORE, opcode - JAVA_DSTORE_0, TYPE_DBL);
 			break;
 
 		case JAVA_ASTORE_0:
 		case JAVA_ASTORE_1:
 		case JAVA_ASTORE_2:
 		case JAVA_ASTORE_3:
-			NEW_OP_STORE_ONEWORD(ICMD_ASTORE, opcode - JAVA_ASTORE_0);
+			NEW_OP_STORE_ONEWORD(ICMD_ASTORE, opcode - JAVA_ASTORE_0, TYPE_ADR);
 			break;
 
 		case JAVA_IINC:
@@ -533,6 +545,7 @@ fetch_opcode:
 					nextp = p + 5;
 				}
 				INDEX_ONEWORD(i);
+				LOCALTYPE_USED(i, TYPE_INT);
 				NEW_OP_LOCALINDEX_I(opcode, i, v);
 			}
 			break;
@@ -679,7 +692,7 @@ jsr_tail:
 			}
 			blockend = true;
 
-			NEW_OP_LOAD_ONEWORD(opcode, i);
+			NEW_OP_LOAD_ONEWORD(opcode, i, TYPE_ADR);
 			break;
 
 		case JAVA_IRETURN:
@@ -1281,6 +1294,7 @@ invoke_method:
 	jd->new_basicblockcount = b_count;
 	jd->new_stackcount = s_count + jd->new_basicblockcount * m->maxstack; /* in-stacks */
 
+/* 	jd->local_map = local_map; */
 	/* allocate stack table */
 
 	jd->new_stack = DMNEW(stackelement, jd->new_stackcount);
@@ -1381,6 +1395,21 @@ invoke_method:
 		m->exceptiontable[i].handler = jd->new_basicblocks + jd->new_basicblockindex[p];
 	}
 #endif
+
+	/* calculate local variable renaming */
+
+/* 	{ */
+/* 		s4 nlocals = 0; */
+/* 		s4 i,t; */
+
+/* 		for (i = 0; i < m->maxlocals; i++)  */
+/* 			for (t = 0; t < 5; t++) { */
+/* 				if (local_map[i * 5 + t] == 1) */
+/* 					local_map[i * 5 + t] = nlocals++; */
+/* 				else */
+/* 					local_map[i * 5 + t] = LOCAL_UNUSED; */
+/* 			} */
+/* 	} */
 
 	/* everything's ok */
 

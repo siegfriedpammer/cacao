@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5320 2006-09-05 16:10:21Z twisti $
+   $Id: emit.c 5352 2006-09-05 22:51:48Z christian $
 
 */
 
@@ -56,13 +56,13 @@
 #include "vm/jit/replace.h"
 
 
-/* emit_load_s1 ****************************************************************
+/* emit_load ******************************************************************
 
-   Emits a possible load of the first source operand.
+   Emits a possible load of an operand.
 
 *******************************************************************************/
 
-s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+inline s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -95,6 +95,96 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 	else
 		reg = src->regoff;
 
+	return reg;
+}
+
+
+/* emit_load_low ************************************************************
+
+   Emits a possible load of the low 32-bits of an operand.
+
+*******************************************************************************/
+
+inline s4 emit_load_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp);
+
+		reg = tempreg;
+	}
+	else
+		reg = GET_LOW_REG(src->regoff);
+
+	return reg;
+}
+
+
+/* emit_load_high ***********************************************************
+
+   Emits a possible load of the high 32-bits of an operand.
+
+*******************************************************************************/
+
+inline s4 emit_load_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	/* get required compiler data */
+
+	assert(src->type == TYPE_LNG);
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp + 4);
+
+		reg = tempreg;
+	}
+	else
+		reg = GET_HIGH_REG(src->regoff);
+
+	return reg;
+}
+
+
+/* emit_load_s1 ****************************************************************
+
+   Emits a possible load of the first source operand.
+
+*******************************************************************************/
+
+s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
+{
+	stackptr      src;
+	s4            reg;
+
+	/* get required compiler data */
+
+	src = iptr->s1.var;
+
+	reg = emit_load(jd, iptr, src, tempreg);
+   
 	return reg;
 }
 
@@ -105,39 +195,17 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	s4            disp;
+	stackptr      src;
 	s4            reg;
 
 	/* get required compiler data */
 
-	cd = jd->cd;
+	src = iptr->sx.s23.s2.var;
 
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 4;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-		}
-		else {
-			if (IS_2_WORD_TYPE(src->type))
-				M_LLD(tempreg, REG_SP, disp);
-			else
-				M_ILD(tempreg, REG_SP, disp);
-		}
-
-		reg = tempreg;
-	}
-	else
-		reg = src->regoff;
-
+	reg = emit_load(jd, iptr, src, tempreg);
+	
 	return reg;
 }
 
@@ -148,38 +216,16 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	s4            disp;
+	stackptr      src;
 	s4            reg;
 
 	/* get required compiler data */
 
-	cd = jd->cd;
+	src = iptr->sx.s23.s3.var;
 
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 4;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-		}
-		else {
-			if (IS_2_WORD_TYPE(src->type))
-				M_LLD(tempreg, REG_SP, disp);
-			else
-				M_ILD(tempreg, REG_SP, disp);
-		}
-
-		reg = tempreg;
-	}
-	else
-		reg = src->regoff;
+	reg = emit_load(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -192,32 +238,22 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s1_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	s4            disp;
+	stackptr      src;
 	s4            reg;
 
-	assert(src->type == TYPE_LNG);
 
 	/* get required compiler data */
 
-	cd = jd->cd;
+	src = iptr->s1.var;
 
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 4;
-
-		M_ILD(tempreg, REG_SP, disp);
-
-		reg = tempreg;
-	}
-	else
-		reg = GET_LOW_REG(src->regoff);
+	reg = emit_load_low(jd, iptr, src, tempreg);
 
 	return reg;
 }
+
+
 
 
 /* emit_load_s2_low ************************************************************
@@ -227,29 +263,16 @@ s4 emit_load_s1_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s2_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	s4            disp;
+	stackptr      src;
 	s4            reg;
-
-	assert(src->type == TYPE_LNG);
 
 	/* get required compiler data */
 
-	cd = jd->cd;
+	src = iptr->sx.s23.s2.var;
 
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 4;
-
-		M_ILD(tempreg, REG_SP, disp);
-
-		reg = tempreg;
-	}
-	else
-		reg = GET_LOW_REG(src->regoff);
+	reg = emit_load_low(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -262,29 +285,16 @@ s4 emit_load_s2_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s1_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	s4            disp;
+	stackptr      src;
 	s4            reg;
-
-	assert(src->type == TYPE_LNG);
 
 	/* get required compiler data */
 
-	cd = jd->cd;
+	src = iptr->s1.var;
 
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 4;
-
-		M_ILD(tempreg, REG_SP, disp + 4);
-
-		reg = tempreg;
-	}
-	else
-		reg = GET_HIGH_REG(src->regoff);
+	reg = emit_load_high(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -297,28 +307,16 @@ s4 emit_load_s1_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s2_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	s4            disp;
+	stackptr      src;
 	s4            reg;
-
-	assert(src->type == TYPE_LNG);
 
 	/* get required compiler data */
 
-	cd = jd->cd;
+	src = iptr->sx.s23.s2.var;
 
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 4;
-
-		M_ILD(tempreg, REG_SP, disp + 4);
-
-		reg = tempreg;
-	} else
-		reg = GET_HIGH_REG(src->regoff);
+	reg = emit_load_high(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -330,7 +328,7 @@ s4 emit_load_s2_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+inline void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 {
 	codegendata  *cd;
 
@@ -364,7 +362,7 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 *******************************************************************************/
 
-void emit_store_low(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+inline void emit_store_low(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 {
 	codegendata  *cd;
 
@@ -388,7 +386,7 @@ void emit_store_low(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 *******************************************************************************/
 
-void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+inline void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 {
 	codegendata  *cd;
 
@@ -404,6 +402,23 @@ void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 	}
 }
 
+/* emit_store_dst **************************************************************
+
+   This function generates the code to store the result of an
+   operation back into a spilled pseudo-variable.  If the
+   pseudo-variable has not been spilled in the first place, this
+   function will generate nothing.
+    
+*******************************************************************************/
+
+void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
+{
+	stackptr dst;
+	
+	dst = iptr->dst.var;
+
+	emit_store(jd, iptr, dst, d);
+}
 
 /* emit_copy *******************************************************************
 
@@ -429,7 +444,7 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 		else
 			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP1);
 
-		s1 = emit_load_s1(jd, iptr, src, d);
+		s1 = emit_load(jd, iptr, src, d);
 
 		if (s1 != d) {
 			if (IS_FLT_DBL_TYPE(src->type)) {
