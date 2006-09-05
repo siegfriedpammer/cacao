@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5339 2006-09-05 21:14:00Z edwin $
+   $Id: codegen.c 5344 2006-09-05 21:20:34Z edwin $
 
 */
 
@@ -3045,17 +3045,17 @@ gen_method:
 				vftbl_t   *supervftbl;
 				s4         superindex;
 
-				super = iptr->sx.s23.s3.c.cls;
-
-				if (super == NULL) {
+				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+					super = NULL;
 					superindex = 0;
 					supervftbl = NULL;
 				}
 				else {
+					super = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
 					supervftbl = super->vftbl;
 				}
-			
+
 #if defined(ENABLE_THREADS)
 				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
