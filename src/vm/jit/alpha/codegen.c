@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5334 2006-09-05 20:17:46Z edwin $
+   $Id: codegen.c 5335 2006-09-05 20:50:21Z edwin $
 
 */
 
@@ -341,13 +341,13 @@ bool codegen(jitdata *jd)
 
 		/* copy interface registers to their destination */
 
-		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64+len);
 #if defined(ENABLE_LSRA)
 		if (opt_lsra) {
-		while (src != NULL) {
+		while (len) {
 			len--;
+			src = bptr->invars[len];
 			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 					/* 				d = reg_of_var(m, src, REG_ITMP1); */
 					if (!(src->flags & INMEMORY))
@@ -357,12 +357,12 @@ bool codegen(jitdata *jd)
 					M_INTMOVE(REG_ITMP1, d);
 					emit_store(jd, NULL, src, d);
 				}
-				src = src->prev;
 			}
 		} else {
 #endif
-			while (src != NULL) {
+			while (len) {
 				len--;
+				src = bptr->invars[len];
 				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 					d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
 					M_INTMOVE(REG_ITMP1, d);
@@ -392,7 +392,6 @@ bool codegen(jitdata *jd)
 						}
 					}
 				}
-				src = src->prev;
 			}
 #if defined(ENABLE_LSRA)
 		}
@@ -400,7 +399,6 @@ bool codegen(jitdata *jd)
 
 		/* walk through all instructions */
 		
-		src = bptr->instack;
 		len = bptr->icount;
 
 		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
@@ -3425,14 +3423,14 @@ gen_method:
 		
 	/* copy values to interface registers */
 
-	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
 #if defined(ENABLE_LSRA)
 	if (!opt_lsra) 
 #endif
-	while (src) {
+	while (len) {
 		len--;
+		src = bptr->outvars[len];
 		if ((src->varkind != STACKVAR)) {
 			s2 = src->type;
 			if (IS_FLT_DBL_TYPE(s2)) {
@@ -3456,7 +3454,6 @@ gen_method:
 					}
 				}
 			}
-		src = src->prev;
 		}
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
