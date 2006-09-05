@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5336 2006-09-05 20:57:13Z edwin $
+   $Id: codegen.c 5338 2006-09-05 21:06:54Z edwin $
 
 */
 
@@ -1994,6 +1994,7 @@ bool codegen(jitdata *jd)
 			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 
+				fieldtype = fi->type;
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
@@ -2048,6 +2049,7 @@ bool codegen(jitdata *jd)
 			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 
+				fieldtype = fi->type;
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
@@ -2104,8 +2106,6 @@ bool codegen(jitdata *jd)
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
-
-	
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
@@ -2157,6 +2157,8 @@ bool codegen(jitdata *jd)
 			}
 			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+
+				fieldtype = fi->type;
 				disp = fi->offset;
 			}
 
@@ -2210,6 +2212,8 @@ bool codegen(jitdata *jd)
 			}
 			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+
+				fieldtype = fi->type;
 				disp = fi->offset;
 			}
 
@@ -2255,7 +2259,6 @@ bool codegen(jitdata *jd)
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
-
 				disp = fi->offset;
 			}
 
