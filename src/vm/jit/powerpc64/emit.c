@@ -635,6 +635,9 @@ void emit_verbosecall_enter (jitdata *jd)
 	M_ALD(REG_ZERO, REG_SP, stack_size + LA_LR_OFFSET);
 	M_MTLR(REG_ZERO);
 	M_LDA(REG_SP, REG_SP, stack_size);
+
+	/* mark trace code */
+	M_NOP;
 }
 
 /* emit_verbosecall_exit ******************************************************
@@ -646,6 +649,9 @@ void emit_verbosecall_exit(jitdata *jd)
 {
 	codegendata *cd = jd->cd;
 	s4 disp;
+
+	/* mark trace code */
+	M_NOP;
 
 	M_MFLR(REG_ZERO);
 	M_LDA(REG_SP, REG_SP, -(LA_SIZE+PA_SIZE+10*8));
@@ -676,6 +682,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_ALD(REG_ZERO, REG_SP, LA_SIZE+PA_SIZE+2*8);
 	M_LDA(REG_SP, REG_SP, LA_SIZE+PA_SIZE+10*8);
 	M_MTLR(REG_ZERO);
+
+	/* mark trace code */
+	M_NOP;
 }
 
 

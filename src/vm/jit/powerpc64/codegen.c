@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5286 2006-09-04 12:38:21Z tbfg $
+   $Id: codegen.c 5316 2006-09-05 12:24:48Z tbfg $
 
 */
 
@@ -128,15 +128,11 @@ bool codegen(jitdata *jd)
 #if defined(ENABLE_THREADS)
 	/* space to save argument of monitor_enter and Return Values to survive */
     /* monitor_exit. The stack position for the argument can not be shared  */
-	/* with place to save the return register on PPC, since both values     */
+	/* with place to save the return register on PPC64, since both values     */
 	/* reside in R3 */
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* reserve 2 slots for long/double return values for monitorexit */
-
-		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
-			stackframesize += 3;
-		else
-			stackframesize += 2;
+		stackframesize += 2;
 	}
 
 #endif
@@ -162,7 +158,7 @@ bool codegen(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 4);       /* IsSync          */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);       /* IsSync          */
 	else
 #endif
 		(void) dseg_adds4(cd, 0);                          /* IsSync          */
@@ -307,6 +303,7 @@ bool codegen(jitdata *jd)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		p = dseg_addaddress(cd, LOCK_monitor_enter);
 		M_ALD(REG_ITMP3, REG_PV, p);
+		M_ALD(REG_ITMP3, REG_ITMP3, 0); /* TOC */
 		M_MTCTR(REG_ITMP3);
 
 		/* get or test the lock object */
@@ -321,7 +318,7 @@ bool codegen(jitdata *jd)
 			codegen_add_nullpointerexception_ref(cd);
 		}
 
-		M_AST(rd->argintregs[0], REG_SP, rd->memuse * 4);
+		M_AST(rd->argintregs[0], REG_SP, rd->memuse * 8);
 		M_JSR;
 	}
 #endif
@@ -1844,6 +1841,7 @@ bool codegen(jitdata *jd)
 
 			disp = dseg_addaddress(cd, BUILTIN_canstore);
 			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_ALD(REG_ITMP3, REG_ITMP3, 0); /* TOC */
 			M_MTCTR(REG_ITMP3);
 
 			M_INTMOVE(s1, rd->argintregs[0]);
@@ -2540,44 +2538,43 @@ nowperformreturn:
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				disp = dseg_addaddress(cd, LOCK_monitor_exit);
 				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_ALD(REG_ITMP3, REG_ITMP3, 0); /* TOC */
 				M_MTCTR(REG_ITMP3);
 
 				/* we need to save the proper return value */
 
 				switch (iptr->opc) {
 				case ICMD_LRETURN:
-					/*M_IST(REG_RESULT2, REG_SP, rd->memuse * 4 + 8); FIXME*/
-					/* fall through */
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_IST(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
+					/* fall through */
+					M_LST(REG_RESULT , REG_SP, rd->memuse * 4 + 8);
 					break;
 				case ICMD_FRETURN:
-					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 8);
 					break;
 				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4 + 8);
 					break;
 				}
 
-				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 4);
+				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
 				M_JSR;
 
 				/* and now restore the proper return value */
 
 				switch (iptr->opc) {
 				case ICMD_LRETURN:
-					/*M_ILD(REG_RESULT2, REG_SP, rd->memuse * 4 + 8); FIXME*/
-					/* fall through */
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
+					/* fall through */
+					M_LLD(REG_RESULT , REG_SP, rd->memuse * 4 + 8);
 					break;
 				case ICMD_FRETURN:
-					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 8);
 					break;
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 8);
 					break;
 				}
 			}
@@ -3684,7 +3681,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
-		4 +                             /* 4 stackframeinfo arguments (darwin)*/
+		4 +                            /* 4 stackframeinfo arguments (darwin)*/
 		nmd->paramcount  + 
 		nmd->memuse;
 
@@ -3693,7 +3690,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* create method header */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * 4);             /* FrameSize       */
+	(void) dseg_adds4(cd, stackframesize * 8);             /* FrameSize       */
 	(void) dseg_adds4(cd, 0);                              /* IsSync          */
 	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
 	(void) dseg_adds4(cd, 0);                              /* IntSave         */
@@ -3761,6 +3758,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_ALD(REG_ITMP1, REG_ITMP1, 0);	/* FIXME what about TOC? */
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
+
+	M_NOP;
+	M_NOP;
+	M_NOP;
 
 	/* restore integer and float argument registers */
 
@@ -3852,6 +3853,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_MTCTR(REG_ITMP3);
 	M_JSR;
 
+	M_NOP;
+	M_NOP;
+	M_NOP;
+
 	/* save return value */
 
 	if (md->returntype.type != TYPE_VOID) {
@@ -3873,6 +3878,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 	/* remove native stackframe info */
+
+	M_NOP;
+	M_NOP;
+	M_NOP;
 
 	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[0]);
 	disp = dseg_addaddress(cd, codegen_finish_native_call);

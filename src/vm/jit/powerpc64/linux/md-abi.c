@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5232 2006-08-11 13:11:44Z tbfg $
+   $Id: md-abi.c 5316 2006-09-05 12:24:48Z tbfg $
 
 */
 
@@ -117,7 +117,7 @@ void md_param_alloc(methoddesc *md)
 
 	iarg = 0;
 	farg = 0;
-	stacksize = LA_SIZE_IN_POINTERS;
+	stacksize = LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS;
 
 	/* get params field of methoddesc */
 
@@ -125,6 +125,7 @@ void md_param_alloc(methoddesc *md)
 
 	for (i = 0; i < md->paramcount; i++, pd++) {
 		switch (md->paramtypes[i].type) {
+		case TYPE_LNG:
 		case TYPE_INT:
 		case TYPE_ADR:
 			if (iarg < INT_ARG_CNT) {
@@ -135,21 +136,6 @@ void md_param_alloc(methoddesc *md)
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 				stacksize++;
-			}
-			break;
-		case TYPE_LNG:
-			if (iarg < INT_ARG_CNT - 1) {
-				_ALIGN(iarg);
-				pd->inmemory = false;
-				                             /* rd->arg[int|flt]regs index !! */
-				pd->regoff = PACK_REGS(iarg + 1, iarg); 
-				iarg += 2;
-			} else {
-				_ALIGN(stacksize);
-				pd->inmemory = true;
-				pd->regoff = stacksize;
-				iarg = INT_ARG_CNT;
-				stacksize += 2;
 			}
 			break;
 		case TYPE_FLT:
@@ -181,12 +167,11 @@ void md_param_alloc(methoddesc *md)
 	/* Since R3/R4, F1 (==A0/A1, A0) are used for passing return values, this */
 	/* argument register usage has to be regarded, too                        */
 	if (IS_INT_LNG_TYPE(md->returntype.type)) {
-		if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1))
-			iarg = IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1;
-	} else {
-		if (IS_FLT_DBL_TYPE(md->returntype.type))
-			if (farg < 1)
-				farg = 1;
+		if (iarg < 1)
+			iarg = 1;
+	} else if (IS_FLT_DBL_TYPE(md->returntype.type)) {
+		if (farg < 1)
+			farg = 1;
 	}
 
 	/* fill register and stack usage */
@@ -248,19 +233,10 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 			stackslot->flags = 0;
 
 			if (IS_INT_LNG_TYPE(md->returntype.type)) {
-				if (!IS_2_WORD_TYPE(md->returntype.type)) {
-					if (rd->argintreguse < 1)
-						rd->argintreguse = 1;
+				if (rd->argintreguse < 1)
+					rd->argintreguse = 1;
 
-					stackslot->regoff = REG_RESULT;
-
-				} else {
-					if (rd->argintreguse < 2)
-						rd->argintreguse = 2;
-
-	/*					stackslot->regoff = PACK_REGS(REG_RESULT2, REG_RESULT);	// FIXME */
-				}
-
+				stackslot->regoff = REG_RESULT;
 			} else { /* float/double */
 				if (rd->argfltreguse < 1)
 					rd->argfltreguse = 1;
