@@ -64,6 +64,13 @@ static java_objectheader *show_global_lock;
 #endif
 
 
+/* forward declarations *******************************************************/
+
+#if !defined(NDEBUG)
+static void new_show_variable_array(jitdata *jd, stackptr *vars, int n, int stage);
+#endif
+
+
 /* show_init *******************************************************************
 
    Initialized the show subsystem (called by jit_init).
@@ -135,7 +142,7 @@ void new_show_method(jitdata *jd, int stage)
 
 	/* get the last basic block */
 
-	for (lastbptr = jd->new_basicblocks; lastbptr != NULL; lastbptr = lastbptr->next);
+	for (lastbptr = jd->new_basicblocks; lastbptr->next != NULL; lastbptr = lastbptr->next);
 
 	printf("\n");
 
@@ -143,10 +150,12 @@ void new_show_method(jitdata *jd, int stage)
 
 	printf("\n(NEW INSTRUCTION FORMAT)\n");
 	printf("\nBasic blocks: %d\n", jd->new_basicblockcount);
-	printf("Code length:  %d\n", (lastbptr->mpc - jd->new_basicblocks[0].mpc));
-	printf("Data length:  %d\n", cd->dseglen);
-	printf("Stub length:  %d\n", (s4) (code->mcodelength -
-									   ((ptrint) cd->dseglen + lastbptr->mpc)));
+	if (stage >= SHOW_CODE) {
+		printf("Code length:  %d\n", (lastbptr->mpc - jd->new_basicblocks[0].mpc));
+		printf("Data length:  %d\n", cd->dseglen);
+		printf("Stub length:  %d\n", (s4) (code->mcodelength -
+										   ((ptrint) cd->dseglen + lastbptr->mpc)));
+	}
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
@@ -709,6 +718,19 @@ static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 		putchar(')');
 	}
 	putchar(' ');
+}
+
+static void new_show_variable_array(jitdata *jd, stackptr *vars, int n, int stage)
+{
+	int i;
+
+	printf("[");
+	for (i=0; i<n; ++i) {
+		if (i)
+			printf(" ");
+		new_show_stackvar(jd, vars[i], stage);
+	}
+	printf("]");
 }
 
 void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
