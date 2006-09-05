@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5214 2006-08-07 15:30:19Z twisti $
+   $Id: typeinfo.c 5309 2006-09-05 11:20:04Z edwin $
 
 */
 
@@ -2630,7 +2630,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
 {
     int i;
     char ind[TYPEINFO_MAXINDENT + 1];
-    instruction *ins;
+    new_instruction *ins;
 	basicblock *bptr;
 
     if (indent > TYPEINFO_MAXINDENT) indent = TYPEINFO_MAXINDENT;
@@ -2654,10 +2654,10 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     }
 
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
-        ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
+        ins = (new_instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
             fprintf(file,"%sNEW(%p):",ind,(void*)ins);
-			typeinfo_print_class(file,ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1));
+			typeinfo_print_class(file,ins[-1].sx.val.c);
             fprintf(file,"\n");
         }
         else {
@@ -2707,7 +2707,7 @@ void
 typeinfo_print_short(FILE *file,typeinfo *info)
 {
     int i;
-    instruction *ins;
+    new_instruction *ins;
 	basicblock *bptr;
 
 	/*fprintf(file,"<typeinfo %p>",info);*/
@@ -2732,11 +2732,11 @@ typeinfo_print_short(FILE *file,typeinfo *info)
     }
     
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
-        ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
+        ins = (new_instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
 			/*fprintf(file,"<ins %p>",ins);*/
             fprintf(file,"NEW(%p):",(void*)ins);
-			typeinfo_print_class(file,ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1));
+			typeinfo_print_class(file,ins[-1].sx.val.c);
         }
         else
             fprintf(file,"NEW(this)");
