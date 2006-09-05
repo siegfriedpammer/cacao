@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5288 2006-09-04 15:48:16Z twisti $
+   $Id: codegen.c 5296 2006-09-05 10:03:40Z twisti $
 
 */
 
@@ -96,7 +96,6 @@ bool codegen(jitdata *jd)
 	s4                  len, s1, s2, s3, d, disp;
 	u2                  currentline;
 	ptrint              a;
-	s4                  stackframesize;
 	stackptr            src;
 	varinfo            *var;
 	basicblock         *bptr;
@@ -131,13 +130,13 @@ bool codegen(jitdata *jd)
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
-	stackframesize = rd->memuse + savedregs_num;
+	cd->stackframesize = rd->memuse + savedregs_num;
 
 #if defined(ENABLE_THREADS)
 	/* space to save argument of monitor_enter */
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		stackframesize++;
+		cd->stackframesize++;
 #endif
 
 	/* Keep stack of non-leaf functions 16-byte aligned for calls into
@@ -145,12 +144,12 @@ bool codegen(jitdata *jd)
 	   movaps). */
 
 	if (!jd->isleafmethod || opt_verbosecall)
-		stackframesize |= 0x1;
+		cd->stackframesize |= 0x1;
 
 	/* create method header */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * 8);             /* FrameSize       */
+	(void) dseg_adds4(cd, cd->stackframesize * 8);         /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -195,12 +194,12 @@ bool codegen(jitdata *jd)
 
 	/* create stack frame (if necessary) */
 
-	if (stackframesize)
-		M_ASUB_IMM(stackframesize * 8, REG_SP);
+	if (cd->stackframesize)
+		M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
 
 	/* save used callee saved registers */
 
-  	p = stackframesize;
+  	p = cd->stackframesize;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
  		p--; M_LST(rd->savintregs[i], REG_SP, p * 8);
 	}
@@ -234,10 +233,10 @@ bool codegen(jitdata *jd)
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					/* + 8 for return address */
- 					M_LLD(var->regoff, REG_SP, (stackframesize + s1) * 8 + 8);
+ 					M_LLD(var->regoff, REG_SP, (cd->stackframesize + s1) * 8 + 8);
 
 				} else {                             /* stack arg -> spilled  */
-					var->regoff = stackframesize + s1 + 1;
+					var->regoff = cd->stackframesize + s1 + 1;
 				}
 			}
 
@@ -253,10 +252,10 @@ bool codegen(jitdata *jd)
 
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
-					M_DLD(var->regoff, REG_SP, (stackframesize + s1) * 8 + 8);
+					M_DLD(var->regoff, REG_SP, (cd->stackframesize + s1) * 8 + 8);
 
 				} else {
-					var->regoff = stackframesize + s1 + 1;
+					var->regoff = cd->stackframesize + s1 + 1;
 				}
 			}
 		}
@@ -2785,7 +2784,7 @@ nowperformreturn:
 			{
 			s4 i, p;
 
-  			p = stackframesize;
+  			p = cd->stackframesize;
 
 #if !defined(NDEBUG)
 			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
@@ -2838,8 +2837,8 @@ nowperformreturn:
 
 			/* deallocate stack */
 
-			if (stackframesize)
-				M_AADD_IMM(stackframesize * 8, REG_SP);
+			if (cd->stackframesize)
+				M_AADD_IMM(cd->stackframesize * 8, REG_SP);
 
 			/* generate method profiling code */
 
@@ -3742,7 +3741,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
-	s4            stackframesize;       /* size of stackframe if needed       */
 	s4            nativeparams;
 	s4            i, j;                 /* count variables                    */
 	s4            t;
@@ -3762,19 +3760,19 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* calculate stack frame size */
 
-	stackframesize =
+	cd->stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
-		INT_ARG_CNT + FLT_ARG_CNT + 1 +         /* + 1 for function address   */
+		INT_ARG_CNT + FLT_ARG_CNT +
+		1 +                       /* functionptr, TODO: store in data segment */
 		nmd->memuse;
 
-	if (!(stackframesize & 0x1))                /* keep stack 16-byte aligned */
-		stackframesize++;
+	cd->stackframesize |= 0x1;                  /* keep stack 16-byte aligned */
 
 	/* create method header */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * 8);             /* FrameSize       */
+	(void) dseg_adds4(cd, cd->stackframesize * 8);         /* FrameSize       */
 	(void) dseg_adds4(cd, 0);                              /* IsSync          */
 	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
 	(void) dseg_adds4(cd, 0);                              /* IntSave         */
@@ -3793,7 +3791,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* generate stub code */
 
-	M_ASUB_IMM(stackframesize * 8, REG_SP);
+	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
@@ -3834,10 +3832,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create dynamic stack info */
 
-	M_ALEA(REG_SP, stackframesize * 8, rd->argintregs[0]);
+	M_ALEA(REG_SP, cd->stackframesize * 8, rd->argintregs[0]);
 	emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), rd->argintregs[1]);
-	M_ALEA(REG_SP, stackframesize * 8 + SIZEOF_VOID_P, rd->argintregs[2]);
-	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8);
+	M_ALEA(REG_SP, cd->stackframesize * 8 + SIZEOF_VOID_P, rd->argintregs[2]);
+	M_ALD(rd->argintregs[3], REG_SP, cd->stackframesize * 8);
 	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
@@ -3878,7 +3876,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				}
 
 			} else {
-				s1 = md->params[i].regoff + stackframesize + 1;   /* + 1 (RA) */
+				s1 = md->params[i].regoff + cd->stackframesize + 1;   /* + 1 (RA) */
 				s2 = nmd->params[j].regoff;
 				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
 				M_LST(REG_ITMP1, REG_SP, s2 * 8);
@@ -3889,7 +3887,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			/* registers keep unchanged.                                      */
 
 			if (md->params[i].inmemory) {
-				s1 = md->params[i].regoff + stackframesize + 1;   /* + 1 (RA) */
+				s1 = md->params[i].regoff + cd->stackframesize + 1;   /* + 1 (RA) */
 				s2 = nmd->params[j].regoff;
 
 				if (IS_2_WORD_TYPE(t)) {
@@ -3932,7 +3930,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	M_ALEA(REG_SP, stackframesize * 8, rd->argintregs[0]);
+	M_ALEA(REG_SP, cd->stackframesize * 8, rd->argintregs[0]);
 	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 	M_MOV(REG_RESULT, REG_ITMP3);
@@ -3948,7 +3946,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove stackframe */
 
-	M_AADD_IMM(stackframesize * 8, REG_SP);
+	M_AADD_IMM(cd->stackframesize * 8, REG_SP);
 
 	/* test for exception */
 
