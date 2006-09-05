@@ -156,7 +156,7 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		reg = tempreg;
 	}
 	else
-		reg = GET_LOW_REG(src->regoff);
+		reg = GET_HIGH_REG(src->regoff);
 
 	return reg;
 }
@@ -211,7 +211,7 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 	stackptr src;
 	s4       reg;
 
-	src = iptr->sx.s23.s2.var;
+	src = iptr->sx.s23.s3.var;
 
 	reg = emit_load(jd, iptr, src, tempreg);
 
@@ -230,8 +230,6 @@ s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	stackptr src;
 	s4       reg;
-
-	assert(src->type == TYPE_LNG);
 
 	src = iptr->s1.var;
 
@@ -253,8 +251,6 @@ s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg)
 	stackptr src;
 	s4       reg;
 
-	assert(src->type == TYPE_LNG);
-
 	src = iptr->sx.s23.s2.var;
 
 	reg = emit_load_low(jd, iptr, src, tempreg);
@@ -274,8 +270,6 @@ s4 emit_load_s3_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	stackptr src;
 	s4       reg;
-
-	assert(src->type == TYPE_LNG);
 
 	src = iptr->sx.s23.s3.var;
 
@@ -297,8 +291,6 @@ s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg)
 	stackptr src;
 	s4       reg;
 
-	assert(src->type == TYPE_LNG);
-
 	src = iptr->s1.var;
 
 	reg = emit_load_high(jd, iptr, src, tempreg);
@@ -318,8 +310,6 @@ s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	stackptr src;
 	s4       reg;
-
-	assert(src->type == TYPE_LNG);
 
 	src = iptr->sx.s23.s2.var;
 
@@ -341,8 +331,6 @@ s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg)
 	stackptr src;
 	s4       reg;
 
-	assert(src->type == TYPE_LNG);
-
 	src = iptr->sx.s23.s3.var;
 
 	reg = emit_load_high(jd, iptr, src, tempreg);
@@ -359,7 +347,7 @@ s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg)
 
 void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 {
-	codegendata  *cd;
+	codegendata *cd;
 
 	/* get required compiler data */
 
@@ -373,14 +361,29 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 				M_DST(d, REG_SP, dst->regoff * 4);
 			else
 				M_FST(d, REG_SP, dst->regoff * 4);
-
-		} else {
+		}
+		else {
 			if (IS_2_WORD_TYPE(dst->type))
 				M_LST(d, REG_SP, dst->regoff * 4);
 			else
 				M_IST(d, REG_SP, dst->regoff * 4);
 		}
 	}
+}
+
+
+/* emit_store_dst **************************************************************
+
+   This function generates the code to store the result of an
+   operation back into a spilled pseudo-variable.  If the
+   pseudo-variable has not been spilled in the first place, this
+   function will generate nothing.
+    
+*******************************************************************************/
+
+void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
+{
+	emit_store(jd, iptr, iptr->dst.var, d);
 }
 
 
