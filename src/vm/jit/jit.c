@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5313 2006-09-05 11:47:44Z edwin $
+   $Id: jit.c 5317 2006-09-05 12:29:16Z edwin $
 
 */
 
@@ -1352,10 +1352,6 @@ u1 *jit_compile(methodinfo *m)
 		/* initialize the register allocator */
 	{
 		reg_setup(jd);
-
-		jd->new_rd = jd->rd;
-		jd->rd = DNEW(registerdata);
-		reg_setup(jd);
 	}
 #endif
 
@@ -1693,16 +1689,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		{
 			STATISTICS(count_locals_conflicts += (cd->maxlocals - 1) * (cd->maxlocals));
 
-			jd->new_rd->argintreguse = jd->rd->argintreguse;
-			jd->new_rd->argfltreguse = jd->rd->argfltreguse;
-			jd->new_rd->memuse       = jd->rd->memuse;
-			memcpy(jd->new_rd->locals, jd->rd->locals, sizeof(varinfo5) * jd->m->maxlocals);
-			memcpy(jd->new_rd->interfaces, jd->rd->interfaces, sizeof(varinfo5) * jd->m->maxstack);
 			new_regalloc(jd);
-
-#if 0
-			regalloc(jd);
-#endif
 		}
 
 		STATISTICS(reg_make_statistics(jd));
@@ -1722,9 +1709,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 		code->bbfrequency = MNEW(u4, m->basicblockcount);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
-
-	/* XXX */
-	jd->rd = jd->new_rd;
 
 	/* create the replacement points */
 

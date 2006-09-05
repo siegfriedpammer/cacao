@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5315 2006-09-05 11:53:11Z edwin $
+   $Id: codegen.c 5317 2006-09-05 12:29:16Z edwin $
 
 */
 
@@ -112,7 +112,7 @@ bool codegen(jitdata *jd)
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->new_rd;
+	rd   = jd->rd;
 
 	/* prevent compiler warnings */
 

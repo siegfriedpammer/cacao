@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5309 2006-09-05 11:20:04Z edwin $
+   $Id: typecheck.c 5317 2006-09-05 12:29:16Z edwin $
 
 */
 
@@ -1608,8 +1608,6 @@ verify_basic_block(verifier_state *state)
 	new_instruction *iptr;                  /* the current instruction */
 	stackptr dst;
     basicblock *tbptr;                   /* temporary for target block */
-    basicblock **tptr;    /* pointer into target list of switch instr. */
-    classinfo *cls;                                       /* temporary */
     bool maythrow;               /* true if this instruction may throw */
 	unresolved_field *uf;                        /* for field accesses */
 	constant_FMIref *fieldref;                   /* for field accesses */
@@ -2729,7 +2727,7 @@ bool typecheck(jitdata *jd)
 
 	meth = jd->m;
 	cd   = jd->cd;
-	rd   = jd->new_rd;
+	rd   = jd->rd;
 
 	/* some logging on entry */
 
