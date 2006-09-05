@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: builtin.c 5353 2006-09-05 23:07:08Z twisti $
 
 */
 
@@ -1331,14 +1331,16 @@ static char *builtin_print_argument(char *logtext, s4 logtextlen,
 
 	switch (paramtype->type) {
 	case TYPE_INT:
-		sprintf(logtext + strlen(logtext), "0x%x", (s4) value);
+		imu.i = (s4) value;
+		sprintf(logtext + strlen(logtext), "%d (0x%08x)", imu.i, imu.i);
 		break;
 
 	case TYPE_LNG:
+		imu.l = value;
 #if SIZEOF_VOID_P == 4
-		sprintf(logtext + strlen(logtext), "0x%llx", value);
+		sprintf(logtext + strlen(logtext), "%lld (0x%016llx)", imu.l, imu.l);
 #else
-		sprintf(logtext + strlen(logtext), "0x%lx", value);
+		sprintf(logtext + strlen(logtext), "%ld (0x%016lx)", imu.l, imu.l);
 #endif
 		break;
 
