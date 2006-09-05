@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5333 2006-09-05 20:11:30Z edwin $
+   $Id: codegen.c 5334 2006-09-05 20:17:46Z edwin $
 
 */
 
@@ -2865,7 +2865,9 @@ gen_method:
 
 			/* copy arguments to registers or stack location                  */
 
-			for (s3 = s3 - 1; s3 >= 0; s3--, src = src->prev) {
+			for (s3 = s3 - 1; s3 >= 0; s3--) {
+				src = iptr->sx.s23.s2.args[s3];
+
 				if (src->varkind == ARGVAR)
 					continue;
 				if (IS_INT_LNG_TYPE(src->type)) {
