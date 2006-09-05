@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5352 2006-09-05 22:51:48Z christian $
+   $Id: codegen.c 5356 2006-09-05 23:37:37Z edwin $
 
 */
 
@@ -2537,7 +2537,7 @@ bool codegen(jitdata *jd)
 				gen_bound_check;
 			}
 			emit_mov_imm_memindex(cd, (u4) (iptr->sx.s23.s3.constval & 0x00000000ffffffff), OFFSET(java_longarray, data[0]), s1, s2, 3);
-			emit_mov_imm_memindex(cd, (u4) (iptr->sx.s23.s3.constval >> 32), OFFSET(java_longarray, data[0]) + 4, s1, s2, 3);
+			emit_mov_imm_memindex(cd, ((s4)iptr->sx.s23.s3.constval) >> 31, OFFSET(java_longarray, data[0]) + 4, s1, s2, 3);
 			break;
 
 		case ICMD_AASTORECONST: /* ..., arrayref, index  ==> ...              */
@@ -2701,14 +2701,15 @@ bool codegen(jitdata *jd)
 			M_MOV_IMM(disp, REG_ITMP1);
 			switch (fieldtype) {
 			case TYPE_INT:
-			case TYPE_FLT:
 			case TYPE_ADR:
 				M_IST_IMM(iptr->sx.s23.s2.constval, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-			case TYPE_DBL:
-				M_LST_IMM(iptr->sx.s23.s2.constval, REG_ITMP1, 0);
+				M_IST_IMM(iptr->sx.s23.s2.constval & 0xffffffff, REG_ITMP1, 0);
+				M_IST_IMM(((s4)iptr->sx.s23.s2.constval) >> 31, REG_ITMP1, 4);
 				break;
+			default:
+				assert(0);
 			}
 			break;
 
@@ -2856,14 +2857,15 @@ bool codegen(jitdata *jd)
 
 			switch (fieldtype) {
 			case TYPE_INT:
-			case TYPE_FLT:
 			case TYPE_ADR:
 				M_IST32_IMM(iptr->sx.s23.s2.constval, s1, disp);
 				break;
 			case TYPE_LNG:
-			case TYPE_DBL:
-				M_LST32_IMM(iptr->sx.s23.s2.constval, s1, disp);
+				M_IST32_IMM(iptr->sx.s23.s2.constval & 0xffffffff, s1, disp);
+				M_IST32_IMM(((s4)iptr->sx.s23.s2.constval) >> 31, s1, disp + 4);
 				break;
+			default:
+				assert(0);
 			}
 			break;
 
