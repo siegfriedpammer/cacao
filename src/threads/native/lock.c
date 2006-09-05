@@ -783,14 +783,23 @@ static void lock_inflate(threadobject *t, java_objectheader *o, lock_record_t *l
       t............the current thread
 	  o............the object of which to enter the monitor
 
+   RETURN VALUE:
+      true.........the lock has been successfully acquired
+	  false........an exception has been thrown
+
 *******************************************************************************/
 
-void lock_monitor_enter(java_objectheader *o)
+bool lock_monitor_enter(java_objectheader *o)
 {
 	threadobject *t;
 	/* CAUTION: This code assumes that ptrint is unsigned! */
 	ptrint        lockword;
 	ptrint        thinlock;
+
+	if (o == NULL) {
+		exceptions_throw_nullpointerexception();
+		return false;
+	}
 
 	t = THREADOBJECT;
 
@@ -802,7 +811,7 @@ void lock_monitor_enter(java_objectheader *o)
 		/* success. we locked it */
 		/* The Java Memory Model requires a memory barrier here: */
 		MEMORY_BARRIER();
-		return;
+		return true;
 	}
 
 	/* next common case: recursive lock with small recursion count */
@@ -820,7 +829,7 @@ void lock_monitor_enter(java_objectheader *o)
 			o->monitorPtr = (lock_record_t *) (lockword + THIN_LOCK_COUNT_INCR);
 
 			/* success. we locked it */
-			return;
+			return true;
 		}
 		else {
 			lock_record_t *lr;
@@ -832,7 +841,7 @@ void lock_monitor_enter(java_objectheader *o)
 			lock_inflate(t, o, lr);
 			lr->count++;
 
-			return;
+			return true;
 		}
 	}
 
@@ -848,7 +857,7 @@ void lock_monitor_enter(java_objectheader *o)
 			/* check for recursive entering */
 			if (lr->owner == t) {
 				lr->count++;
-				return;
+				return true;
 			}
 
 			/* acquire the mutex of the lock record */
@@ -857,7 +866,7 @@ void lock_monitor_enter(java_objectheader *o)
 
 			assert(lr->count == 0);
 
-			return;
+			return true;
 		}
 
 		/****** inflation path ******/
@@ -909,7 +918,7 @@ void lock_monitor_enter(java_objectheader *o)
 
 		/* we own the inflated lock now */
 
-		return;
+		return true;
 	}
 }
 

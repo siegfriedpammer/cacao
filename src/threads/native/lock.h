@@ -150,7 +150,7 @@ lock_record_t *lock_get_initial_lock_word(void);
 
 ptrint lock_pre_compute_thinlock(s4 index);
 
-void lock_monitor_enter(java_objectheader *);
+bool lock_monitor_enter(java_objectheader *);
 bool lock_monitor_exit(java_objectheader *);
 
 #define LOCK_monitor_enter    (functionptr) lock_monitor_enter
