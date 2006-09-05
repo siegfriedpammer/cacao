@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5318 2006-09-05 12:42:12Z edwin $
+   $Id: jit.h 5321 2006-09-05 16:12:09Z edwin $
 
 */
 
@@ -412,7 +412,7 @@ struct basicblock {
 	s4            flags;        /* used during stack analysis, init with -1   */
 	s4            bitflags;     /* OR of BBFLAG_... constants, init with 0    */
 	s4            type;         /* basic block type (std, xhandler, subroutine*/
-	instruction  *iinstr;       /* pointer to intermediate code instructions  */
+	new_instruction  *iinstr;       /* pointer to intermediate code instructions  */
 	s4            icount;       /* number of intermediate code instructions   */
 	s4            mpc;          /* machine code pc at start of block          */
 	stackptr      instack;      /* stack at begin of basic block              */

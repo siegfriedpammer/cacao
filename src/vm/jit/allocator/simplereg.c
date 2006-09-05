@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5317 2006-09-05 12:29:16Z edwin $
+   $Id: simplereg.c 5321 2006-09-05 16:12:09Z edwin $
 
 */
 
@@ -1211,7 +1211,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 
 	while (bptr != NULL) {
 		if (bptr->flags >= BBREACHED) {
-			iptr = /* XXX */ (new_instruction *) bptr->iinstr;
+			iptr = bptr->iinstr;
 			len = bptr->icount;
 
 			while (--len >= 0)  {

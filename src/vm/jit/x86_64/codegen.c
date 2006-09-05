@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5318 2006-09-05 12:42:12Z edwin $
+   $Id: codegen.c 5321 2006-09-05 16:12:09Z edwin $
 
 */
 
@@ -449,7 +449,7 @@ bool codegen(jitdata *jd)
 		len = bptr->icount;
 		currentline = 0;
 
-		for (iptr = /* XXX */ (new_instruction *) bptr->iinstr; len > 0; len--, iptr++) {
+		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
 			if (iptr->line != currentline) {
 				dseg_addlinenumber(cd, iptr->line);
 				currentline = iptr->line;

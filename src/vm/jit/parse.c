@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5302 2006-09-05 10:37:26Z edwin $
+   $Id: parse.c 5321 2006-09-05 16:12:09Z edwin $
 
 */
 
@@ -1303,7 +1303,7 @@ invoke_method:
 	if (!jd->new_basicblockindex[0] || (jd->new_basicblockindex[0] > 1)) {
 		BASICBLOCK_INIT(bptr, m);
 
-		bptr->iinstr = /* XXX */ (instruction *) jd->new_instructions;
+		bptr->iinstr = jd->new_instructions;
 		/* bptr->icount is set when the next block is allocated */
 
 		bptr++;
@@ -1329,9 +1329,9 @@ invoke_method:
 
 			BASICBLOCK_INIT(bptr, m);
 
-			bptr->iinstr = /* XXX */ (instruction *) (jd->new_instructions + (jd->new_basicblockindex[p] >> 1));
+			bptr->iinstr = jd->new_instructions + (jd->new_basicblockindex[p] >> 1);
 			if (b_count) {
-				bptr[-1].icount = /*XXX*/ (new_instruction *)bptr->iinstr - (new_instruction*) bptr[-1].iinstr;
+				bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
 			}
 			/* bptr->icount is set when the next block is allocated */
 
@@ -1346,7 +1346,7 @@ invoke_method:
 	/* set instruction count of last real block */
 
 	if (b_count) {
-		bptr[-1].icount = (jd->new_instructions + jd->new_instructioncount) - /* XXX */ (new_instruction *) bptr[-1].iinstr;
+		bptr[-1].icount = (jd->new_instructions + jd->new_instructioncount) - bptr[-1].iinstr;
 	}
 
 	/* allocate additional block at end */

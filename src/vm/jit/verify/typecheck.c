@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5317 2006-09-05 12:29:16Z edwin $
+   $Id: typecheck.c 5321 2006-09-05 16:12:09Z edwin $
 
 */
 
@@ -1667,7 +1667,7 @@ verify_basic_block(verifier_state *state)
 
 	/* loop over the instructions */
 	len = state->bptr->icount;
-	state->iptr = /* XXX */ (new_instruction *) state->bptr->iinstr;
+	state->iptr = state->bptr->iinstr;
 	while (--len >= 0)  {
 		TYPECHECK_COUNT(stat_ins);
 

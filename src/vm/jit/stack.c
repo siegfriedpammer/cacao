@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5311 2006-09-05 11:40:03Z edwin $
+   $Id: stack.c 5321 2006-09-05 16:12:09Z edwin $
 
 */
 
@@ -464,7 +464,7 @@ bool new_stack_analyse(jitdata *jd)
 
 			/* get the last instruction of the block */
 
-			iptr = /* XXX */ (new_instruction *) bptr->iinstr + (bptr->icount - 1);
+			iptr = bptr->iinstr + (bptr->icount - 1);
 
 			switch (iptr->opc) {
 				/* instruction stopping control flow */
@@ -594,7 +594,7 @@ bool new_stack_analyse(jitdata *jd)
 				superblockend = false;
 				bptr->flags = BBFINISHED;
 				len = bptr->icount;
-				iptr = /* XXX */ (new_instruction *) bptr->iinstr;
+				iptr = bptr->iinstr;
 				b_index = bptr - jd->new_basicblocks;
 
 				/* reset variables for dependency checking */

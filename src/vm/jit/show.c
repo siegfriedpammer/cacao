@@ -416,7 +416,7 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			printf("\n");
 		}
 
-		iptr = /*XXX*/ (new_instruction *) bptr->iinstr;
+		iptr = bptr->iinstr;
 
 		for (i = 0; i < bptr->icount; i++, iptr++) {
 			printf("%4d:  ", iptr->line);
