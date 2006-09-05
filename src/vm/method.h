@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 5079 2006-07-06 11:36:01Z twisti $
+   $Id: method.h 5343 2006-09-05 21:20:33Z twisti $
 */
 
 
@@ -69,19 +69,6 @@ struct methodinfo {                 /* method structure                       */
 	s4            maxlocals;        /* maximum number of local variables      */
 	s4            jcodelength;      /* length of JavaVM code                  */
 	u1           *jcode;            /* pointer to JavaVM code                 */
-			     
-	s4            basicblockcount;  /* number of basic blocks                 */
-	basicblock   *basicblocks;      /* points to basic block array            */
-	s4           *basicblockindex;  /* a table which contains for every byte  */
-	                                /* of JavaVM code a basic block index if  */
-	                                /* at this byte is the start of a basic   */
-	                                /* block                                  */
-
-	s4            instructioncount; /* number of JavaVM instructions          */
-	instruction  *instructions;     /* points to intermediate code instr.     */
-
-	s4            stackcount;       /* number of stack elements               */
-	stackelement *stack;            /* points to stack elements               */
 
 	s4            exceptiontablelength; /* exceptiontable length              */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */

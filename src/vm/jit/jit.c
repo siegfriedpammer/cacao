@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5317 2006-09-05 12:29:16Z edwin $
+   $Id: jit.c 5343 2006-09-05 21:20:33Z twisti $
 
 */
 
@@ -1333,8 +1333,10 @@ u1 *jit_compile(methodinfo *m)
 	if (opt_prof)
 		jd->flags |= JITDATA_FLAG_INSTRUMENT;
 
+#if defined(ENABLE_IFCONV)
 	if (opt_ifconv)
 		jd->flags |= JITDATA_FLAG_IFCONV;
+#endif
 
 	if (opt_showintermediate)
 		jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
@@ -1362,13 +1364,6 @@ u1 *jit_compile(methodinfo *m)
 	/* now call internal compile function */
 
 	r = jit_compile_intern(jd);
-
-	/* clear pointers to dump memory area */
-
-	m->basicblocks     = NULL;
-	m->basicblockindex = NULL;
-	m->instructions    = NULL;
-	m->stack           = NULL;
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
@@ -1476,13 +1471,6 @@ u1 *jit_recompile(methodinfo *m)
 	/* now call internal compile function */
 
 	r = jit_compile_intern(jd);
-
-	/* clear pointers to dump memory area */
-
-	m->basicblocks     = NULL;
-	m->basicblockindex = NULL;
-	m->instructions    = NULL;
-	m->stack           = NULL;
 
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
@@ -1706,7 +1694,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	   since they can change the basic block count. */
 
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
-		code->bbfrequency = MNEW(u4, m->basicblockcount);
+		code->bbfrequency = MNEW(u4, jd->new_basicblockcount);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 

@@ -129,9 +129,9 @@ bool cfg_build(jitdata *jd)
 
 	/* process all basic blocks to find the predecessor/successor counts */
 
-	bptr = m->basicblocks;
+	bptr = jd->new_basicblocks;
 
-	for (i = 0; i < m->basicblockcount; i++, bptr++) {
+	for (i = 0; i < jd->new_basicblockcount; i++, bptr++) {
 		if (bptr->icount == 0)
 			continue;
 
@@ -169,7 +169,7 @@ bool cfg_build(jitdata *jd)
 		case ICMD_IF_ACMPNE:
 			bptr->successorcount += 2;
 
-			tbptr  = m->basicblocks + m->basicblockindex[iptr->dst.insindex];
+			tbptr  = BLOCK_OF(iptr->dst.insindex);
 			ntbptr = bptr->next;
 
 			tbptr->predecessorcount++;
@@ -179,7 +179,7 @@ bool cfg_build(jitdata *jd)
 		case ICMD_GOTO:
 			bptr->successorcount++;
 
-			tbptr = m->basicblocks + m->basicblockindex[iptr->dst.insindex];
+			tbptr = BLOCK_OF(iptr->dst.insindex);
 			tbptr->predecessorcount++;
 			break;
 
@@ -231,9 +231,9 @@ bool cfg_build(jitdata *jd)
 	/* Second iteration to allocate the arrays and insert the basic
 	   block pointers. */
 
-	bptr = m->basicblocks;
+	bptr = jd->new_basicblocks;
 
-	for (i = 0; i < m->basicblockcount; i++, bptr++) {
+	for (i = 0; i < jd->new_basicblockcount; i++, bptr++) {
 		if (bptr->icount == 0)
 			continue;
 
@@ -269,7 +269,7 @@ bool cfg_build(jitdata *jd)
 
 		case ICMD_IF_ACMPEQ:
 		case ICMD_IF_ACMPNE:
-			tbptr  = m->basicblocks + m->basicblockindex[iptr->dst.insindex];
+			tbptr  = BLOCK_OF(iptr->dst.insindex);
 			ntbptr = bptr->next;
 
 			cfg_allocate_successors(bptr);
@@ -289,7 +289,7 @@ bool cfg_build(jitdata *jd)
 			break;
 
 		case ICMD_GOTO:
-			tbptr = m->basicblocks + m->basicblockindex[iptr->dst.insindex];
+			tbptr = BLOCK_OF(iptr->dst.insindex);
 
 			cfg_allocate_successors(bptr);
 

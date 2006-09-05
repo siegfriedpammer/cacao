@@ -49,15 +49,15 @@
 
 *******************************************************************************/
 
-static basicblock *reorder_place_next_unplaced_block(methodinfo *m, u1 *blocks,
+static basicblock *reorder_place_next_unplaced_block(jitdata *jd, u1 *blocks,
 													 basicblock *bptr)
 {
 	basicblock *tbptr;
 	s4          i;
 
-	for (i = 0; i < m->basicblockcount; i++) {
+	for (i = 0; i < jd->new_basicblockcount; i++) {
 		if (blocks[i] == false) {
-			tbptr = &m->basicblocks[i];
+			tbptr = &jd->new_basicblocks[i];
 
 			/* place the block */
 
@@ -111,19 +111,19 @@ bool reorder(jitdata *jd)
 	pcode = m->code;
 
 	/* XXX debug */
-	if (m->basicblockcount > 8)
+	if (jd->new_basicblockcount > 8)
 		return true;
 
 	/* allocate flag array for blocks which are placed */
 
-	blocks = DMNEW(u1, m->basicblockcount);
+	blocks = DMNEW(u1, jd->new_basicblockcount);
 
-	MZERO(blocks, u1, m->basicblockcount);
+	MZERO(blocks, u1, jd->new_basicblockcount);
 
 	/* Get the entry block and iterate over all basic blocks until we
 	   have placed all blocks. */
 
-	bptr   = m->basicblocks;
+	bptr   = jd->new_basicblocks;
 	placed = 0;
 
 	/* the first block is always placed as the first one */
@@ -131,7 +131,7 @@ bool reorder(jitdata *jd)
 	blocks[0] = true;
 	placed++;
 
-	while (placed <= m->basicblockcount + 1) {
+	while (placed <= jd->new_basicblockcount + 1) {
 		/* get last instruction of basic block */
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -164,7 +164,7 @@ bool reorder(jitdata *jd)
 		case ICMD_ATHROW:
 			puts("return");
 
-			tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
+			tbptr = reorder_place_next_unplaced_block(jd, blocks, bptr);
 
 			placed++;
 
@@ -252,7 +252,7 @@ bool reorder(jitdata *jd)
 				bptr = ntbptr;
 			}
 			else {
-				tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
+				tbptr = reorder_place_next_unplaced_block(jd, blocks, bptr);
 
 				placed++;
 
@@ -276,7 +276,7 @@ bool reorder(jitdata *jd)
 			   one. */
 
 			if (blocks[tbptr->nr] == true) {
-				tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
+				tbptr = reorder_place_next_unplaced_block(jd, blocks, bptr);
 
 				placed++;
 
@@ -304,7 +304,8 @@ bool reorder(jitdata *jd)
 						   Search for another block to place. */
 
  						if (pfreq > freq) {
-							tbptr = reorder_place_next_unplaced_block(m, blocks,
+							tbptr = reorder_place_next_unplaced_block(jd,
+																	  blocks,
 																	  bptr);
 
 							placed++;
@@ -343,7 +344,7 @@ bool reorder(jitdata *jd)
 			   one. */
 
 			if (blocks[tbptr->nr] == true) {
-				tbptr = reorder_place_next_unplaced_block(m, blocks, bptr);
+				tbptr = reorder_place_next_unplaced_block(jd, blocks, bptr);
 
 				placed++;
 
@@ -368,11 +369,11 @@ bool reorder(jitdata *jd)
 
 	/* close the basic block chain with the last dummy basic block */
 
-	bptr->next = &m->basicblocks[m->basicblockcount];
+	bptr->next = &jd->new_basicblocks[jd->new_basicblockcount];
 
 	puts("");
 
-	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
 		printf("L%03d\n", bptr->nr);
 	}
 

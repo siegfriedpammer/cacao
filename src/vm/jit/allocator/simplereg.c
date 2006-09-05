@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: simplereg.c 5343 2006-09-05 21:20:33Z twisti $
 
 */
 
@@ -1730,9 +1730,11 @@ void reg_make_statistics(jitdata *jd)
 					else
 						count_locals_register++;
 				}
+
 		/* count how many stack slots are held in memory or register */
 
-		bptr = m->basicblocks;
+		bptr = jd->new_basicblocks;
+
 		while (bptr != NULL) {
 			if (bptr->flags >= BBREACHED) {
 
