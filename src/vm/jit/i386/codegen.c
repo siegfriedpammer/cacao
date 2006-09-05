@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5323 2006-09-05 16:45:24Z edwin $
+   $Id: codegen.c 5328 2006-09-05 17:42:22Z edwin $
 
 */
 
@@ -3443,10 +3443,10 @@ gen_method:
 
 					} else {
 						if (IS_2_WORD_TYPE(src->type)) {
-							d = emit_load_s1(jd, iptr, src, REG_ITMP12_PACKED);
+							d = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
 							M_LST(d, REG_SP, md->params[s3].regoff * 4);
 						} else {
-							d = emit_load_s1(jd, iptr, src, REG_ITMP1);
+							d = emit_load(jd, iptr, src, REG_ITMP1);
 							M_IST(d, REG_SP, md->params[s3].regoff * 4);
 						}
 					}
@@ -3454,11 +3454,11 @@ gen_method:
 				} else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load_s1(jd, iptr, src, s1);
+						d = emit_load(jd, iptr, src, s1);
 						M_FLTMOVE(d, s1);
 
 					} else {
-						d = emit_load_s1(jd, iptr, src, REG_FTMP1);
+						d = emit_load(jd, iptr, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
 							M_DST(d, REG_SP, md->params[s3].regoff * 4);
 						else
@@ -4095,7 +4095,7 @@ gen_method:
 		if ((src->varkind != STACKVAR)) {
 			s2 = src->type;
 			if (IS_FLT_DBL_TYPE(s2)) {
-				s1 = emit_load_s1(jd, iptr, src, REG_FTMP1);
+				s1 = emit_load(jd, iptr, src, REG_FTMP1);
 				if (!(rd->interfaces[len][s2].flags & INMEMORY))
 					M_FLTMOVE(s1, rd->interfaces[len][s2].regoff);
 				else
@@ -4104,9 +4104,9 @@ gen_method:
 			} else {
 				if (IS_2_WORD_TYPE(s2))
 					assert(0);
-/* 					s1 = emit_load_s1(jd, iptr, src, PACK_REGS(REG_ITMP1, REG_ITMP2)); */
+/* 					s1 = emit_load(jd, iptr, src, PACK_REGS(REG_ITMP1, REG_ITMP2)); */
 				else
-					s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
+					s1 = emit_load(jd, iptr, src, REG_ITMP1);
 
 				if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(s2))

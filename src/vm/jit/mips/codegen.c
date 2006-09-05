@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5324 2006-09-05 17:11:32Z twisti $
+   $Id: codegen.c 5328 2006-09-05 17:42:22Z edwin $
 
 */
 
@@ -2795,24 +2795,24 @@ gen_method:
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argintregs[md->params[s3].regoff];
-						d = emit_load_s1(jd, iptr, src, s1);
+						d = emit_load(jd, iptr, src, s1);
 						M_INTMOVE(d, s1);
 					} else  {
-						d = emit_load_s1(jd, iptr, src, REG_ITMP1);
+						d = emit_load(jd, iptr, src, REG_ITMP1);
 						M_LST(d, REG_SP, md->params[s3].regoff * 8);
 					}
 
 				} else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load_s1(jd, iptr, src, s1);
+						d = emit_load(jd, iptr, src, s1);
 						if (IS_2_WORD_TYPE(src->type))
 							M_DMOV(d, s1);
 						else
 							M_FMOV(d, s1);
 
 					} else {
-						d = emit_load_s1(jd, iptr, src, REG_FTMP1);
+						d = emit_load(jd, iptr, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
 							M_DST(d, REG_SP, md->params[s3].regoff * 8);
 						else
@@ -3315,7 +3315,7 @@ gen_method:
 				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
-					s2 = emit_load_s2(jd, iptr, src, REG_ITMP1);
+					s2 = emit_load(jd, iptr, src, REG_ITMP1);
 					M_LST(s2, REG_SP, s1 * 8);
 				}
 			}
@@ -3384,7 +3384,7 @@ gen_method:
 		if ((src->varkind != STACKVAR)) {
 			s2 = src->type;
 			if (IS_FLT_DBL_TYPE(s2)) {
-				s1 = emit_load_s1(jd, iptr, src, REG_FTMP1);
+				s1 = emit_load(jd, iptr, src, REG_FTMP1);
 				if (rd->interfaces[len][s2].flags & INMEMORY) {
 					if (IS_2_WORD_TYPE(s2))
 						M_DST(s1, REG_SP, rd->interfaces[len][s2].regoff * 8);
@@ -3399,7 +3399,7 @@ gen_method:
 				}
 
 			} else {
-				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
+				s1 = emit_load(jd, iptr, src, REG_ITMP1);
 				if (rd->interfaces[len][s2].flags & INMEMORY)
 					M_LST(s1, REG_SP, rd->interfaces[len][s2].regoff * 8);
 				else
