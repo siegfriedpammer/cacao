@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5281 2006-08-28 15:18:54Z twisti $
+   $Id: codegen.c 5323 2006-09-05 16:45:24Z edwin $
 
 */
 
@@ -2022,24 +2022,24 @@ bool codegen(jitdata *jd)
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			switch (iptr->op1) {
 			case TYPE_INT:
-				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-				M_IST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
+				M_IST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-				s2 = emit_load_s2(jd, iptr, src, REG_ITMP23_PACKED);
-				M_LST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP23_PACKED);
+				M_LST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
-				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-				M_AST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
+				M_AST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_FLT:
-				s2 = emit_load_s2(jd, iptr, src, REG_FTMP2);
-				M_FST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_FTMP2);
+				M_FST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_DBL:
-				s2 = emit_load_s2(jd, iptr, src, REG_FTMP2);
-				M_DST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_FTMP2);
+				M_DST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			}
 			break;

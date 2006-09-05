@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5290 2006-09-04 17:12:48Z christian $
+   $Id: codegen.c 5323 2006-09-05 16:45:24Z edwin $
 
 */
 
@@ -2065,24 +2065,24 @@ bool codegen(jitdata *jd)
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			switch (iptr->op1) {
 			case TYPE_INT:
-				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-				M_IST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
+				M_IST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-				M_LST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
+				M_LST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
-				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
-				M_AST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_ITMP2);
+				M_AST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_FLT:
-				s2 = emit_load_s2(jd, iptr, src, REG_FTMP2);
-				M_FST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_FTMP2);
+				M_FST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_DBL:
-				s2 = emit_load_s2(jd, iptr, src, REG_FTMP2);
-				M_DST(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, src, REG_FTMP2);
+				M_DST(s1, REG_ITMP1, 0);
 				break;
 			}
 			break;
