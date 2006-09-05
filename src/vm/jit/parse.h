@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5222 2006-08-08 14:24:08Z twisti $
+   $Id: parse.h 5302 2006-09-05 10:37:26Z edwin $
 
 */
 
@@ -96,14 +96,6 @@
         if (!(jd->new_basicblockindex[(i)] & 1)) { \
             b_count++; \
             jd->new_basicblockindex[(i)] |= 1; \
-        } \
-    } while (0)
-
-#define MARK_BASICBLOCK(i) \
-    do { \
-        if (!(m->basicblockindex[(i)] & 1)) { \
-            b_count++; \
-            m->basicblockindex[(i)] |= 1; \
         } \
     } while (0)
 
@@ -265,125 +257,10 @@
 	NEW_OP_PREPARE(o);                                                 \
     iptr->sx.s23.s3.fmiref   = (fmiref);
 
-/* old macros for intermediate code generation ********************************/
-
-#define LOADCONST_I(v) \
-    iptr->opc    = ICMD_ICONST; \
-    iptr->val.i  = (v); \
-    iptr->line   = currentline; \
-    PINC
-
-#define LOADCONST_L(v) \
-    iptr->opc    = ICMD_LCONST; \
-    iptr->val.l  = (v); \
-    iptr->line   = currentline; \
-    PINC
-
-#define LOADCONST_F(v) \
-    iptr->opc    = ICMD_FCONST; \
-    iptr->val.f  = (v); \
-    iptr->line   = currentline; \
-    PINC
-
-#define LOADCONST_D(v) \
-    iptr->opc    = ICMD_DCONST; \
-    iptr->val.d  = (v); \
-    iptr->line   = currentline; \
-    PINC
-
-#define LOADCONST_A(v) \
-    iptr->opc    = ICMD_ACONST; \
-    iptr->val.a  = (v); \
-    iptr->line   = currentline; \
-    PINC
-
-/* ACONST instructions generated as arguments for builtin functions
- * have op1 set to non-zero. This is used for stack overflow checking
- * in stack.c. */
-/* XXX in the new instruction format use a flag for this */
-/* XXX target used temporarily as flag */
-#define LOADCONST_A_BUILTIN(c,cr) \
-    iptr->opc    = ICMD_ACONST; \
-    iptr->op1    = 1; \
-    iptr->line   = currentline; \
-	if (c) { \
-		iptr->val.a = c; iptr->target = (void*) 0x02; \
-	} \
-	else { \
-		iptr->val.a = cr; iptr->target = (void*) 0x03; \
-	} \
-    PINC
-
-#define OP(o) \
-    iptr->opc    = (o); \
-    iptr->line   = currentline; \
-    PINC
-
-#define OP1(o,o1) \
-    iptr->opc    = (o); \
-    iptr->op1    = (o1); \
-    iptr->line   = currentline; \
-    PINC
-
-#define OP2I(o,o1,v) \
-    iptr->opc    = (o); \
-    iptr->op1    = (o1); \
-    iptr->val.i  = (v); \
-    iptr->line   = currentline; \
-    PINC
-
-#define OP2A_NOINC(o,o1,v,l) \
-    iptr->opc    = (o); \
-    iptr->op1    = (o1); \
-    iptr->val.a  = (v); \
-    iptr->line   = (l);
-
-#define OP2A(o,o1,v,l) \
-    OP2A_NOINC(o,o1,v,l); \
-    PINC
-
-#define OP2AT(o,o1,v,t,l) \
-    OP2A_NOINC(o,o1,v,l); \
-    iptr->target = (t); \
-    PINC
-
-#define BUILTIN(v,o1,t,l) \
-    jd->isleafmethod = false; \
-    iptr->opc        = ICMD_BUILTIN; \
-    iptr->op1        = (o1); \
-    iptr->val.a      = (v); \
-    iptr->target     = (t); \
-    iptr->line       = (l); \
-    PINC
-
-#define OP1LOAD_ONEWORD(o,o1) \
-    do { \
-		INDEX_ONEWORD(o1); \
-        OP1(o,o1); \
-    } while (0)
-
-#define OP1LOAD_TWOWORD(o,o1) \
-    do { \
-		INDEX_TWOWORD(o1); \
-        OP1(o,o1); \
-    } while (0)
-
-#define OP1STORE_ONEWORD(o,o1) \
-    do { \
-		INDEX_ONEWORD(o1); \
-        OP1(o,o1); \
-    } while (0)
-
-#define OP1STORE_TWOWORD(o,o1) \
-    do { \
-		INDEX_TWOWORD(o1); \
-        OP1(o,o1); \
-    } while (0)
-
 
 /* function prototypes ********************************************************/
 
-bool parse(jitdata *jd);
+bool new_parse(jitdata *jd);
 
 #endif /* _PARSE_H */
 
