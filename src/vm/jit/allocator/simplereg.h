@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: simplereg.h 5026 2006-06-12 18:50:13Z edwin $
+   $Id: simplereg.h 5305 2006-09-05 10:47:11Z edwin $
 
 */
 
@@ -49,7 +49,6 @@
 /* function prototypes ********************************************************/
 
 bool new_regalloc(jitdata *jd);
-bool regalloc(jitdata *jd);
 
 #if defined(ENABLE_STATISTICS)
 void reg_make_statistics(jitdata *jd);
