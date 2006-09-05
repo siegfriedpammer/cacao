@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5251 2006-08-18 13:01:00Z twisti $
+   $Id: builtin.c 5308 2006-09-05 11:16:06Z edwin $
 
 */
 
@@ -317,7 +317,7 @@ builtintable_entry *builtintable_get_automatic(s4 opcode)
 
 *******************************************************************************/
 
-bool builtintable_replace_function(instruction *iptr)
+bool builtintable_replace_function(new_instruction *iptr)
 {
 	constant_FMIref    *mr;
 	builtintable_entry *bte;
@@ -333,8 +333,8 @@ bool builtintable_replace_function(instruction *iptr)
 		if (INSTRUCTION_IS_UNRESOLVED(iptr))
 			return false;
 
-		mr = INSTRUCTION_RESOLVED_FMIREF(iptr);
-		break;
+		mr = iptr->sx.s23.s3.fmiref;
+		break;	
 
 	default:
 		return false;
@@ -343,15 +343,18 @@ bool builtintable_replace_function(instruction *iptr)
 	/* search the function table */
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
-		if ((mr->p.classref->name == bte->classname) &&
+		if ((METHODREF_CLASSNAME(mr) == bte->classname) &&
 			(mr->name             == bte->name) &&
 			(mr->descriptor       == bte->descriptor)) {
 
 			/* set the values in the instruction */
 
 			iptr->opc   = bte->opcode;
-			iptr->op1   = bte->checkexception;
-			iptr->val.a = bte;
+			iptr->sx.s23.s3.bte = bte;
+			if (bte->checkexception)
+				iptr->flags.bits &= ~INS_FLAG_NOCHECK;
+			else
+				iptr->flags.bits |= INS_FLAG_NOCHECK;
 
 			return true;
 		}
