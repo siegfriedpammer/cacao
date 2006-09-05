@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5321 2006-09-05 16:12:09Z edwin $
+   $Id: stack.c 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -143,9 +143,6 @@ bool stack_init(void)
    types are not discerned.
 
 *******************************************************************************/
-
-#define BLOCK_OF(index)                                              \
-    (jd->new_basicblocks + jd->new_basicblockindex[index])
 
 #define CLR_S1                                                       \
     (iptr->s1.var = NULL)
@@ -386,7 +383,7 @@ bool new_stack_analyse(jitdata *jd)
 	bool          superblockend;  /* if true, no fallthrough to next block    */
 	bool          repeat;         /* if true, outermost loop must run again   */
 	bool          deadcode;       /* true if no live code has been reached    */
-	new_instruction *iptr;        /* the current instruction                  */
+	instruction  *iptr;           /* the current instruction                  */
 	basicblock   *bptr;           /* the current basic block                  */
 	basicblock   *tbptr;
 	s4           *last_store;     /* instruction index of last XSTORE         */

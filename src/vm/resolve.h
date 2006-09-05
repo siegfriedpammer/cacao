@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5306 2006-09-05 10:52:12Z edwin $
+   $Id: resolve.h 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -168,29 +168,30 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 						typeinfo *valuetype);
 #endif
 
-unresolved_field * new_create_unresolved_field(classinfo *referer,methodinfo *refmethod,
-						new_instruction *iptr);
+unresolved_field *new_create_unresolved_field(classinfo *referer,
+											  methodinfo *refmethod,
+											  instruction *iptr);
 
-unresolved_method * new_create_unresolved_method(classinfo *referer,methodinfo *refmethod,
-						 new_instruction *iptr);
+unresolved_method *new_create_unresolved_method(classinfo *referer,
+												methodinfo *refmethod,
+												instruction *iptr);
 
 void unresolved_class_free(unresolved_class *ref);
 void unresolved_field_free(unresolved_field *ref);
 void unresolved_method_free(unresolved_method *ref);
 
-resolve_result_t new_resolve_method_lazy(new_instruction *iptr,
-									 methodinfo *refmethod);
-resolve_result_t new_resolve_field_lazy(new_instruction *iptr,
-									 methodinfo *refmethod);
+resolve_result_t new_resolve_method_lazy(instruction *iptr,
+										 methodinfo *refmethod);
+
+resolve_result_t new_resolve_field_lazy(instruction *iptr,
+										methodinfo *refmethod);
 
 #ifdef ENABLE_VERIFIER
-bool new_constrain_unresolved_field(unresolved_field *ref,
-						   classinfo *referer,methodinfo *refmethod,
-						   new_instruction *iptr);
+bool new_constrain_unresolved_field(unresolved_field *ref, classinfo *referer,
+									methodinfo *refmethod, instruction *iptr);
 
-bool new_constrain_unresolved_method(unresolved_method *ref,
-						 	classinfo *referer,methodinfo *refmethod,
-						 	new_instruction *iptr);
+bool new_constrain_unresolved_method(unresolved_method *ref, classinfo *referer,
+									 methodinfo *refmethod, instruction *iptr);
 
 #endif
 

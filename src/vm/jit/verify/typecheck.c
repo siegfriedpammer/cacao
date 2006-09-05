@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5321 2006-09-05 16:12:09Z edwin $
+   $Id: typecheck.c 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -431,7 +431,7 @@ void typecheck_print_statistics(FILE *file) {
 /* bytecode verifier for passing it between verifier functions.        */
 
 typedef struct verifier_state {
-    new_instruction *iptr;           /* pointer to current instruction */
+    instruction *iptr;               /* pointer to current instruction */
     basicblock *bptr;                /* pointer to current basic block */
 
 	methodinfo *m;                               /* the current method */
@@ -1170,7 +1170,7 @@ verify_invocation(verifier_state *state)
 	bool specialmethod;            /* true if a <...> method is called */
 	int opcode;                                   /* invocation opcode */
 	bool callinginit;                      /* true if <init> is called */
-	new_instruction *ins;
+	instruction *ins;
 	classref_or_classinfo initclass;
 	typedesc *td;
 	stackelement *arg;                             /* argument pointer */
@@ -1242,7 +1242,7 @@ verify_invocation(verifier_state *state)
 
 				/* get the address of the NEW instruction */
 				LOGINFO(&(arg->typeinfo));
-				ins = (new_instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(arg->typeinfo);
+				ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(arg->typeinfo);
 				if (ins)
 					initclass = ins[-1].sx.val.c;
 				else
@@ -1605,7 +1605,7 @@ verify_basic_block(verifier_state *state)
     int opcode;                                      /* current opcode */
     int len;                        /* for counting instructions, etc. */
     bool superblockend;        /* true if no fallthrough to next block */
-	new_instruction *iptr;                  /* the current instruction */
+	instruction *iptr;                      /* the current instruction */
 	stackptr dst;
     basicblock *tbptr;                   /* temporary for target block */
     bool maythrow;               /* true if this instruction may throw */

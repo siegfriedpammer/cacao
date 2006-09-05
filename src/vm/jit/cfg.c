@@ -41,6 +41,7 @@
 
 #include "mm/memory.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/stack.h"
 
 
 /* cfg_allocate_predecessors ***************************************************
@@ -113,14 +114,14 @@ static void cfg_insert_predecessors(basicblock *bptr, basicblock *pbptr)
 
 bool cfg_build(jitdata *jd)
 {
-	methodinfo  *m;
-	basicblock  *bptr;
-	basicblock  *tbptr;
-	basicblock  *ntbptr;
-	instruction *iptr;
-	s4          *s4ptr;
-	s4           i;
-	s4           n;
+	methodinfo      *m;
+	basicblock      *bptr;
+	basicblock      *tbptr;
+	basicblock      *ntbptr;
+	instruction     *iptr;
+	branch_target_t *table;
+	lookup_target_t *lookup;
+	s4               i;
 
 	/* get required compiler data */
 
@@ -168,7 +169,7 @@ bool cfg_build(jitdata *jd)
 		case ICMD_IF_ACMPNE:
 			bptr->successorcount += 2;
 
-			tbptr  = m->basicblocks + m->basicblockindex[iptr->op1];
+			tbptr  = m->basicblocks + m->basicblockindex[iptr->dst.insindex];
 			ntbptr = bptr->next;
 
 			tbptr->predecessorcount++;
@@ -178,46 +179,43 @@ bool cfg_build(jitdata *jd)
 		case ICMD_GOTO:
 			bptr->successorcount++;
 
-			tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
+			tbptr = m->basicblocks + m->basicblockindex[iptr->dst.insindex];
 			tbptr->predecessorcount++;
 			break;
 
 		case ICMD_TABLESWITCH:
-			s4ptr = iptr->val.a;
+			table = iptr->dst.table;
 
 			bptr->successorcount++;
 
-			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+			tbptr = BLOCK_OF((table++)->insindex);
 			tbptr->predecessorcount++;
 
-			n = *s4ptr++;                               /* low     */
-			n = *s4ptr++ - n + 1;                       /* high    */
+			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
-			while (--n >= 0) {
+			while (--i >= 0) {
 				bptr->successorcount++;
 
-				tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+				tbptr = BLOCK_OF((table++)->insindex);
 				tbptr->predecessorcount++;
 			}
 			break;
 					
 		case ICMD_LOOKUPSWITCH:
-			s4ptr = iptr->val.a;
+			lookup = iptr->dst.lookup;
 
 			bptr->successorcount++;
 
-			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+			tbptr = BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex);
 			tbptr->predecessorcount++;
 
-			n = *s4ptr++;                               /* count   */
+			i = iptr->sx.s23.s2.lookupcount;
 
-			while (--n >= 0) {
+			while (--i >= 0) {
 				bptr->successorcount++;
 
-				tbptr = m->basicblocks + m->basicblockindex[s4ptr[1]];
+				tbptr = BLOCK_OF((lookup++)->target.insindex);
 				tbptr->predecessorcount++;
-
-				s4ptr += 2;
 			}
 			break;
 
@@ -271,7 +269,7 @@ bool cfg_build(jitdata *jd)
 
 		case ICMD_IF_ACMPEQ:
 		case ICMD_IF_ACMPNE:
-			tbptr  = m->basicblocks + m->basicblockindex[iptr->op1];
+			tbptr  = m->basicblocks + m->basicblockindex[iptr->dst.insindex];
 			ntbptr = bptr->next;
 
 			cfg_allocate_successors(bptr);
@@ -291,7 +289,7 @@ bool cfg_build(jitdata *jd)
 			break;
 
 		case ICMD_GOTO:
-			tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
+			tbptr = m->basicblocks + m->basicblockindex[iptr->dst.insindex];
 
 			cfg_allocate_successors(bptr);
 
@@ -305,9 +303,9 @@ bool cfg_build(jitdata *jd)
 			break;
 
 		case ICMD_TABLESWITCH:
-			s4ptr = iptr->val.a;
+			table = iptr->dst.table;
 
-			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+			tbptr = BLOCK_OF((table++)->insindex);
 
 			cfg_allocate_successors(bptr);
 
@@ -319,11 +317,10 @@ bool cfg_build(jitdata *jd)
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			n = *s4ptr++;                               /* low     */
-			n = *s4ptr++ - n + 1;                       /* high    */
+			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
-			while (--n >= 0) {
-				tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+			while (--i >= 0) {
+				tbptr = BLOCK_OF((table++)->insindex);
 
 				bptr->successors[bptr->successorcount] = tbptr;
 				bptr->successorcount++;
@@ -334,9 +331,9 @@ bool cfg_build(jitdata *jd)
 			break;
 					
 		case ICMD_LOOKUPSWITCH:
-			s4ptr = iptr->val.a;
+			lookup = iptr->dst.lookup;
 
-			tbptr = m->basicblocks + m->basicblockindex[*s4ptr++];
+			tbptr = BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex);
 
 			cfg_allocate_successors(bptr);
 
@@ -348,18 +345,16 @@ bool cfg_build(jitdata *jd)
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			n = *s4ptr++;                               /* count   */
+			i = iptr->sx.s23.s2.lookupcount;
 
-			while (--n >= 0) {
-				tbptr = m->basicblocks + m->basicblockindex[s4ptr[1]];
+			while (--i >= 0) {
+				tbptr = BLOCK_OF((lookup++)->target.insindex);
 
 				bptr->successors[bptr->successorcount] = tbptr;
 				bptr->successorcount++;
 
 				cfg_allocate_predecessors(tbptr);
 				cfg_insert_predecessors(tbptr, bptr);
-
-				s4ptr += 2;
 			}
 			break;
 

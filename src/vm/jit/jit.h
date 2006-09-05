@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5321 2006-09-05 16:12:09Z edwin $
+   $Id: jit.h 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -46,7 +46,6 @@ typedef stackelement *stackptr;
 typedef struct basicblock basicblock;
 typedef struct branchref branchref;
 typedef struct instruction instruction;
-typedef struct new_instruction new_instruction;
 typedef struct insinfo_inline insinfo_inline;
 
 
@@ -107,7 +106,7 @@ struct jitdata {
 	u4               flags;             /* contains JIT compiler flags        */
 	bool             isleafmethod;      /* does method call subroutines       */
 
-	new_instruction *new_instructions;
+	instruction     *new_instructions;
 	basicblock      *new_basicblocks;
 	s4              *new_basicblockindex;
 	stackelement    *new_stack;
@@ -303,9 +302,9 @@ typedef union {
 
 /*** instruction ***/
 
-/* The new instruction format for the intermediate representation: */
+/* The instruction format for the intermediate representation: */
 
-struct new_instruction {
+struct instruction {
     u2                      opc;    /* opcode       */
     u2                      line;   /* line number  */
 #if SIZEOF_VOID_P == 8
@@ -325,18 +324,6 @@ struct new_instruction {
 #endif
 };
 
-/* XXX This instruction format will become obsolete. */
-
-struct instruction {
-	stackptr    dst;            /* stack index of destination operand stack   */
-	u2          opc;            /* opcode of intermediate code command        */
-	s4          op1;            /* first operand, usually variable number     */
-	imm_union   val;            /* immediate constant                         */
-	void       *target;         /* used for targets of branches and jumps     */
-	                            /* and as address for list of targets for     */
-	                            /* statements                                 */
-	u2          line;           /* line number in source file                 */
-};
 
 #define INSTRUCTION_IS_RESOLVED(iptr) \
 	(!((iptr)->flags.bits & INS_FLAG_UNRESOLVED))
@@ -412,7 +399,7 @@ struct basicblock {
 	s4            flags;        /* used during stack analysis, init with -1   */
 	s4            bitflags;     /* OR of BBFLAG_... constants, init with 0    */
 	s4            type;         /* basic block type (std, xhandler, subroutine*/
-	new_instruction  *iinstr;       /* pointer to intermediate code instructions  */
+	instruction  *iinstr;       /* pointer to intermediate code instructions  */
 	s4            icount;       /* number of intermediate code instructions   */
 	s4            mpc;          /* machine code pc at start of block          */
 	stackptr      instack;      /* stack at begin of basic block              */

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4929 2006-05-15 23:31:56Z twisti $
+## $Id: Makefile.am 5332 2006-09-05 19:38:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -61,7 +61,6 @@ endif
 
 libarch_la_SOURCES = \
 	asmpart.S \
-	codegen.c \
 	codegen.h \
 	$(DISASS_SOURCES) \
 	emit.c \

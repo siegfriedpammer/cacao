@@ -26,9 +26,12 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5309 2006-09-05 11:20:04Z edwin $
+   $Id: typeinfo.c 5332 2006-09-05 19:38:28Z twisti $
 
 */
+
+
+#include "config.h"
 
 #include <assert.h>
 #include <string.h>
@@ -2630,7 +2633,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
 {
     int i;
     char ind[TYPEINFO_MAXINDENT + 1];
-    new_instruction *ins;
+    instruction *ins;
 	basicblock *bptr;
 
     if (indent > TYPEINFO_MAXINDENT) indent = TYPEINFO_MAXINDENT;
@@ -2654,7 +2657,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
     }
 
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
-        ins = (new_instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
+        ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
             fprintf(file,"%sNEW(%p):",ind,(void*)ins);
 			typeinfo_print_class(file,ins[-1].sx.val.c);
@@ -2707,7 +2710,7 @@ void
 typeinfo_print_short(FILE *file,typeinfo *info)
 {
     int i;
-    new_instruction *ins;
+    instruction *ins;
 	basicblock *bptr;
 
 	/*fprintf(file,"<typeinfo %p>",info);*/
@@ -2732,7 +2735,7 @@ typeinfo_print_short(FILE *file,typeinfo *info)
     }
     
     if (TYPEINFO_IS_NEWOBJECT(*info)) {
-        ins = (new_instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
+        ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
 			/*fprintf(file,"<ins %p>",ins);*/
             fprintf(file,"NEW(%p):",(void*)ins);

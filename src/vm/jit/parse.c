@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5321 2006-09-05 16:12:09Z edwin $
+   $Id: parse.c 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -170,7 +170,7 @@ bool new_parse(jitdata *jd)
 	int  s_count = 0;           /* stack element counter                    */
 	bool blockend = false;      /* true if basic block end has been reached */
 	bool iswide = false;        /* true if last instruction was a wide      */
-	new_instruction *iptr;      /* current ptr into instruction array       */
+	instruction *iptr;          /* current ptr into instruction array       */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts  */
 	constant_classref  *cr;
 	constant_classref  *compr;
@@ -204,7 +204,7 @@ bool new_parse(jitdata *jd)
 	/* IMPORTANT: We assume that parsing creates at most one instruction per */
 	/*            byte of original bytecode!                                 */
 
-	iptr = jd->new_instructions = DMNEW(new_instruction, m->jcodelength);
+	iptr = jd->new_instructions = DMNEW(instruction, m->jcodelength);
 
 	/* compute branch targets of exception table */
 

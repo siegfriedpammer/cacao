@@ -132,7 +132,7 @@ void new_show_method(jitdata *jd, int stage)
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->new_rd;
+	rd   = jd->rd;
 
 	/* We need to enter a lock here, since the binutils disassembler
 	   is not reentrant-able and we could not read functions printed
@@ -373,7 +373,7 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	codegendata *cd;
 	s4           i;
 	bool         deadcode;
-	new_instruction *iptr;
+	instruction *iptr;
 	u1          *u1ptr;
 
 	/* get required compiler data */
@@ -745,7 +745,7 @@ static void new_show_variable_array(jitdata *jd, stackptr *vars, int n, int stag
 	printf("]");
 }
 
-void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
+void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 {
 	u2                 opcode;
 	branch_target_t   *table;

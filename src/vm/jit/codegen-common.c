@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5295 2006-09-05 09:59:53Z edwin $
+   $Id: codegen-common.c 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -1173,7 +1173,7 @@ s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum)
 
 *******************************************************************************/
 
-s4 codegen_reg_of_dst(jitdata *jd, new_instruction *iptr, s4 tempregnum)
+s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 {
 	varinfo *var;
 	stackptr v = iptr->dst.var;

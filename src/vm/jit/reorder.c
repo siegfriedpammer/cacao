@@ -211,7 +211,7 @@ bool reorder(jitdata *jd)
 		case ICMD_IF_LCMPGE:
 		case ICMD_IF_LCMPGT:
 		case ICMD_IF_LCMPLE:
-			tbptr  = (basicblock *) iptr->target;
+			tbptr  = iptr->dst.block;
 			ntbptr = bptr->next;
 
 			printf("cond. L%03d\n", tbptr->nr);
@@ -225,8 +225,8 @@ bool reorder(jitdata *jd)
 				/* If we place the taken block, we need to change the
 				   conditional instruction (opcode and target). */
 
-				iptr->opc    = jit_complement_condition(iptr->opc);
-				iptr->target = ntbptr;
+				iptr->opc       = jit_complement_condition(iptr->opc);
+				iptr->dst.block = ntbptr;
 
 				/* change the basic block order */
 
@@ -268,7 +268,7 @@ bool reorder(jitdata *jd)
 			break;
 
 		case ICMD_GOTO:
-			tbptr = (basicblock *) iptr->target;
+			tbptr = iptr->dst.block;
 
 			printf("L%03d\n", tbptr->nr);
 

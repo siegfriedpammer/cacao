@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5311 2006-09-05 11:40:03Z edwin $
+   $Id: stack.h 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -465,6 +465,12 @@
 			} \
 		} \
     } while (0)
+
+
+/* external macros ************************************************************/
+
+#define BLOCK_OF(index)                                              \
+    (jd->new_basicblocks + jd->new_basicblockindex[index])
 
 
 /* function prototypes ********************************************************/

@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 5308 2006-09-05 11:16:06Z edwin $
+   $Id: builtin.h 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -95,7 +95,7 @@ bool builtin_init(void);
 builtintable_entry *builtintable_get_internal(functionptr fp);
 builtintable_entry *builtintable_get_automatic(s4 opcode);
 
-bool builtintable_replace_function(new_instruction *iptr);
+bool builtintable_replace_function(instruction *iptr);
 
 
 /**********************************************************************/

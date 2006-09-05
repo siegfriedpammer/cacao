@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5321 2006-09-05 16:12:09Z edwin $
+   $Id: simplereg.c 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -1193,7 +1193,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 	registerdata       *rd;
 	s4                  i;
 	s4                  len;
-	new_instruction    *iptr;
+	instruction        *iptr;
 	basicblock         *bptr;
 	builtintable_entry *bte;
 	methoddesc         *md;
@@ -1205,6 +1205,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 	rd = jd->rd;
 
 	/* initialize temp registers */
+
 	reg_init_temp(m, rd);
 
 	bptr = jd->new_basicblocks;
@@ -1796,7 +1797,7 @@ void reg_make_statistics(jitdata *jd)
 
 				while (--len >= 0)  {
 					src = dst;
-					dst = iptr->dst;
+					dst = iptr->dst.var;
 
 					if ((src!= NULL) && (src != src_old)) { /* new stackslot */
 						switch (src->varkind) {

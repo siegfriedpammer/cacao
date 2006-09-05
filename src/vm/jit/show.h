@@ -54,7 +54,7 @@ bool show_init(void);
 
 void new_show_method(jitdata *jd, int stage);
 void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage);
-void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage);
+void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage);
 #endif /* !defined(NDEBUG) */
 
 #endif /* _SHOW_H */

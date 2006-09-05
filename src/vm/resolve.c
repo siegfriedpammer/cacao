@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5310 2006-09-05 11:34:49Z edwin $
+   $Id: resolve.c 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -938,7 +938,7 @@ resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
 											   classinfo *container,
 											   fieldinfo *fi,
 											   s4 opc,
-											   new_instruction *iptr)
+											   instruction *iptr)
 {
 	classinfo *declarer;
 	classinfo *referer;
@@ -1066,7 +1066,7 @@ resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
 			/* written inside an initialization method                                */
 
 			classinfo *initclass;
-			new_instruction *ins = (new_instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
 
 			if (ins != NULL) {
 				exceptions_throw_verifyerror(refmethod,"accessing field of uninitialized object");
@@ -1152,7 +1152,7 @@ resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
    
 *******************************************************************************/
 
-resolve_result_t new_resolve_field_lazy(new_instruction *iptr,
+resolve_result_t new_resolve_field_lazy(instruction *iptr,
 										methodinfo *refmethod)
 {
 	classinfo *referer;
@@ -1517,7 +1517,7 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
 												methodinfo *mi,
 												bool invokestatic,
 												bool invokespecial,
-												new_instruction *iptr)
+												instruction *iptr)
 {
 	classinfo *declarer;
 	classinfo *referer;
@@ -1610,7 +1610,7 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
 			if (invokespecial &&
 					TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
 			{   /* XXX clean up */
-				new_instruction *ins = (new_instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+				instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
 				classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
 											 : CLASSREF_OR_CLASSINFO(refmethod->class);
 				tip = &tinfo;
@@ -1723,7 +1723,7 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
    
 *******************************************************************************/
 
-resolve_result_t new_resolve_method_lazy(new_instruction *iptr,
+resolve_result_t new_resolve_method_lazy(instruction *iptr,
 										 methodinfo *refmethod)
 {
 	classinfo *referer;
@@ -2215,7 +2215,7 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 
 unresolved_field * new_create_unresolved_field(classinfo *referer,
 											   methodinfo *refmethod,
-											   new_instruction *iptr)
+											   instruction *iptr)
 {
 	unresolved_field *ref;
 	constant_FMIref *fieldref = NULL;
@@ -2298,8 +2298,8 @@ unresolved_field * new_create_unresolved_field(classinfo *referer,
 
 #ifdef ENABLE_VERIFIER
 bool new_constrain_unresolved_field(unresolved_field *ref,
-							    classinfo *referer, methodinfo *refmethod,
-							    new_instruction *iptr)
+									classinfo *referer, methodinfo *refmethod,
+									instruction *iptr)
 {
 	constant_FMIref *fieldref;
 	stackelement *instanceslot = NULL;
@@ -2371,7 +2371,7 @@ bool new_constrain_unresolved_field(unresolved_field *ref,
 			/* written inside an initialization method                                */
 
 			classinfo *initclass;
-			new_instruction *ins = (new_instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
 
 			if (ins != NULL) {
 				exceptions_throw_verifyerror(refmethod,"accessing field of uninitialized object");
@@ -2440,7 +2440,7 @@ bool new_constrain_unresolved_field(unresolved_field *ref,
 
 unresolved_method * new_create_unresolved_method(classinfo *referer,
 												 methodinfo *refmethod,
-												 new_instruction *iptr)
+												 instruction *iptr)
 {
 	unresolved_method *ref;
 	constant_FMIref *methodref;
@@ -2497,8 +2497,8 @@ unresolved_method * new_create_unresolved_method(classinfo *referer,
 
 #ifdef ENABLE_VERIFIER
 bool new_constrain_unresolved_method(unresolved_method *ref,
-								 classinfo *referer, methodinfo *refmethod,
-								 new_instruction *iptr)
+									 classinfo *referer, methodinfo *refmethod,
+									 instruction *iptr)
 {
 	constant_FMIref *methodref;
 	constant_classref *instanceref;
@@ -2553,7 +2553,7 @@ bool new_constrain_unresolved_method(unresolved_method *ref,
 		if (iptr[0].opc == ICMD_INVOKESPECIAL &&
 				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
 		{   /* XXX clean up */
-			new_instruction *ins = (new_instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
 			classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
 										 : CLASSREF_OR_CLASSINFO(refmethod->class);
 			tip = &tinfo;

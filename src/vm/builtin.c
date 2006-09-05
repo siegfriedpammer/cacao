@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5330 2006-09-05 18:43:12Z edwin $
+   $Id: builtin.c 5332 2006-09-05 19:38:28Z twisti $
 
 */
 
@@ -317,7 +317,7 @@ builtintable_entry *builtintable_get_automatic(s4 opcode)
 
 *******************************************************************************/
 
-bool builtintable_replace_function(new_instruction *iptr)
+bool builtintable_replace_function(instruction *iptr)
 {
 	constant_FMIref    *mr;
 	builtintable_entry *bte;
