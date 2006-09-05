@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5238 2006-08-16 11:18:05Z christian $
+   $Id: jit.c 5313 2006-09-05 11:47:44Z edwin $
 
 */
 
@@ -1350,8 +1350,13 @@ u1 *jit_compile(methodinfo *m)
 	if (!opt_intrp)
 # endif
 		/* initialize the register allocator */
-
+	{
 		reg_setup(jd);
+
+		jd->new_rd = jd->rd;
+		jd->rd = DNEW(registerdata);
+		reg_setup(jd);
+	}
 #endif
 
 	/* setup the codegendata memory */
@@ -1592,7 +1597,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	/* call parse pass */
 
-	if (!parse(jd)) {
+	if (!new_parse(jd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
 
 		return NULL;
@@ -1600,7 +1605,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	RT_TIMING_GET_TIME(time_parse);
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
-
+	
 	/* build the CFG */
 
 	if (!cfg_build(jd))
@@ -1610,7 +1615,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	/* call stack analysis pass */
 
-	if (!stack_analyse(jd)) {
+	if (!new_stack_analyse(jd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
 
 		return NULL;
@@ -1688,7 +1693,16 @@ static u1 *jit_compile_intern(jitdata *jd)
 		{
 			STATISTICS(count_locals_conflicts += (cd->maxlocals - 1) * (cd->maxlocals));
 
+			jd->new_rd->argintreguse = jd->rd->argintreguse;
+			jd->new_rd->argfltreguse = jd->rd->argfltreguse;
+			jd->new_rd->memuse       = jd->rd->memuse;
+			memcpy(jd->new_rd->locals, jd->rd->locals, sizeof(varinfo5) * jd->m->maxlocals);
+			memcpy(jd->new_rd->interfaces, jd->rd->interfaces, sizeof(varinfo5) * jd->m->maxstack);
+			new_regalloc(jd);
+
+#if 0
 			regalloc(jd);
+#endif
 		}
 
 		STATISTICS(reg_make_statistics(jd));
@@ -1708,6 +1722,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 		code->bbfrequency = MNEW(u4, m->basicblockcount);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
+
+	/* XXX */
+	jd->rd = jd->new_rd;
 
 	/* create the replacement points */
 
@@ -1749,7 +1766,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	/* intermediate and assembly code listings */
 		
 	if (JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd)) {
-		show_method(jd);
+		new_show_method(jd, SHOW_CODE);
 	}
 	else if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
 # if defined(ENABLE_DISASSEMBLER)
