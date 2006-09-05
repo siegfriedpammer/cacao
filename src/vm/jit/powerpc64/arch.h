@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5285 2006-09-02 14:26:04Z tbfg $
+   $Id: arch.h 5329 2006-09-05 18:26:32Z tbfg $
 
 */
 
@@ -57,14 +57,14 @@
 #define SUPPORT_LONG_CMP                 1
 #define SUPPORT_LONG_CMP_CONST           1
 #define SUPPORT_LONG_LOGICAL             1
-#define SUPPORT_LONG_SHIFT               1
+#define SUPPORT_LONG_SHIFT               0	/* TODO: implement ICMD_IMULPOW2 and reenable*/
 #define SUPPORT_LONG_MUL                 1
 #define SUPPORT_LONG_DIV                 1
 #define SUPPORT_LONG_ICVT                1
 #define SUPPORT_LONG_FCVT                1
 
 #define SUPPORT_CONST_LOGICAL            0  /* AND, OR, XOR with immediates   */
-#define SUPPORT_CONST_MUL                0  /* mutiply with immediate         */
+#define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
 
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */

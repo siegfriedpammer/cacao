@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 5282 2006-08-28 19:31:37Z tbfg $
+   $Id: md-abi.h 5329 2006-09-05 18:26:32Z tbfg $
 
 */
 
@@ -63,7 +63,7 @@
 #define REG_FTMP2       17   /* temporary floating point register             */
 #define REG_FTMP3        0   /* temporary floating point register             */
 
-#define REG_IFTMP        0   /* temporary integer and floating point register */
+#define REG_IFTMP       16   /* temporary integer and floating point register */
 
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
