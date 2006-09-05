@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5306 2006-09-05 10:52:12Z edwin $
+   $Id: resolve.c 5310 2006-09-05 11:34:49Z edwin $
 
 */
 
@@ -1171,7 +1171,7 @@ resolve_result_t new_resolve_field_lazy(new_instruction *iptr,
 
 	/* get the field reference */
 
-	NEW_INSTRUCTION_GET_FIELDREF(iptr, fieldref);
+	INSTRUCTION_GET_FIELDREF(iptr, fieldref);
 
 	/* check if the field itself is already resolved */
 
@@ -1746,7 +1746,7 @@ resolve_result_t new_resolve_method_lazy(new_instruction *iptr,
 
 	/* the method reference */
 
-	NEW_INSTRUCTION_GET_METHODREF(iptr, methodref);
+	INSTRUCTION_GET_METHODREF(iptr, methodref);
 
 	/* check if the method itself is already resolved */
 

@@ -946,7 +946,7 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 				SHOW_S2(iptr);
 			}
 		}
-		NEW_INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+		INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 		SHOW_FIELD(fmiref);
 
 		if (opcode == ICMD_GETSTATIC || opcode == ICMD_GETFIELD) {
@@ -1073,7 +1073,7 @@ void new_show_icmd(jitdata *jd, new_instruction *iptr, bool deadcode, int stage)
 				SHOW_STACKVAR(*(argp++));
 			}
 		}
-		NEW_INSTRUCTION_GET_METHODREF(iptr, fmiref);
+		INSTRUCTION_GET_METHODREF(iptr, fmiref);
 		method_methodref_print(fmiref);
 		if (fmiref->parseddesc.md->returntype.type != TYPE_VOID) {
 			SHOW_DST(iptr);

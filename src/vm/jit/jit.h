@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5275 2006-08-24 18:42:48Z twisti $
+   $Id: jit.h 5310 2006-09-05 11:34:49Z edwin $
 
 */
 
@@ -340,21 +340,15 @@ struct instruction {
 };
 
 #define INSTRUCTION_IS_RESOLVED(iptr) \
-	(!((ptrint)(iptr)->target & 0x01)) /* XXX target used temporarily as flag */
-
-#define INSTRUCTION_IS_UNRESOLVED(iptr) \
-	((ptrint)(iptr)->target & 0x01) /* XXX target used temporarily as flag */
-
-#define NEW_INSTRUCTION_IS_RESOLVED(iptr) \
 	(!((iptr)->flags.bits & INS_FLAG_UNRESOLVED))
 
-#define NEW_INSTRUCTION_IS_UNRESOLVED(iptr) \
+#define INSTRUCTION_IS_UNRESOLVED(iptr) \
 	((iptr)->flags.bits & INS_FLAG_UNRESOLVED)
 
-#define NEW_INSTRUCTION_MUST_CHECK(iptr) \
+#define INSTRUCTION_MUST_CHECK(iptr) \
 	(!((iptr)->flags.bits & INS_FLAG_NOCHECK))
 
-#define NEW_INSTRUCTION_GET_FIELDREF(iptr,fref) \
+#define INSTRUCTION_GET_FIELDREF(iptr,fref) \
 	do { \
 		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
 			fref = iptr->sx.s23.s3.uf->fieldref; \
@@ -362,15 +356,7 @@ struct instruction {
 			fref = iptr->sx.s23.s3.fmiref; \
 	} while (0)
 
-#define INSTRUCTION_GET_FIELDREF(iptr,fref) \
-	do { \
-		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
-			fref = ((unresolved_field *) (iptr)->val.a)->fieldref; \
-		else \
-			fref = ((constant_FMIref *)(iptr)->val.a); \
-	} while (0)
-
-#define NEW_INSTRUCTION_GET_METHODREF(iptr,mref) \
+#define INSTRUCTION_GET_METHODREF(iptr,mref) \
 	do { \
 		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
 			mref = iptr->sx.s23.s3.um->methodref; \
@@ -378,84 +364,13 @@ struct instruction {
 			mref = iptr->sx.s23.s3.fmiref; \
 	} while (0)
 
-#define INSTRUCTION_GET_METHODREF(iptr,mref) \
-	do { \
-		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
-			mref = ((unresolved_method *) (iptr)->val.a)->methodref; \
-		else \
-			mref = ((constant_FMIref *)(iptr)->val.a); \
-	} while (0)
-
-#define INSTRUCTION_GET_FIELDDESC(iptr,fd) \
-	do { \
-		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
-			fd = ((unresolved_field *)(iptr)->val.a)->fieldref->parseddesc.fd; \
-		else \
-			fd = ((constant_FMIref *)(iptr)->val.a)->parseddesc.fd; \
-	} while (0)
-
-#define NEW_INSTRUCTION_GET_METHODDESC(iptr, md) \
+#define INSTRUCTION_GET_METHODDESC(iptr, md) \
 	do { \
 		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
 			md = iptr->sx.s23.s3.um->methodref->parseddesc.md; \
 		else \
 			md = iptr->sx.s23.s3.fmiref->parseddesc.md; \
 	} while (0)
-
-#define INSTRUCTION_GET_METHODDESC(iptr,md) \
-	do { \
-		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
-			md = ((unresolved_method *) (iptr)->val.a)->methodref->parseddesc.md; \
-		else \
-			md = ((constant_FMIref *)(iptr)->val.a)->parseddesc.md; \
-	} while (0)
-
-#define INSTRUCTION_UNRESOLVED_CLASS(iptr) \
-	((unresolved_class *) (iptr)->val.a)
-
-#define INSTRUCTION_UNRESOLVED_METHOD(iptr) \
-	((unresolved_method *) (iptr)->val.a)
-
-#define INSTRUCTION_UNRESOLVED_FIELD(iptr) \
-	((unresolved_field *) (iptr)->val.a)
-
-#define INSTRUCTION_RESOLVED_FMIREF(iptr) \
-    ((constant_FMIref *)(iptr)->val.a)
-
-#define INSTRUCTION_RESOLVED_FIELDINFO(iptr) \
-    (INSTRUCTION_RESOLVED_FMIREF(iptr)->p.field)
-
-#define INSTRUCTION_RESOLVED_METHODINFO(iptr) \
-    (INSTRUCTION_RESOLVED_FMIREF(iptr)->p.method)
-
-#define INSTRUCTION_PUTCONST_TYPE(iptr) \
-	((iptr)[0].op1)
-
-#define INSTRUCTION_PUTCONST_VALUE_ADR(iptr) \
-	((iptr)[0].val.a)
-
-#define INSTRUCTION_PUTCONST_FIELDINFO(iptr) \
-	((fieldinfo *)((iptr)[1].val.a))
-
-#define INSTRUCTION_PUTCONST_FIELDINFO_PTR(iptr) \
-	((fieldinfo **) &((iptr)[1].val.a))
-
-#define INSTRUCTION_PUTCONST_FIELDREF(iptr) \
-	((unresolved_field *)((iptr)[1].target))
-
-/* for ICMD_ACONST */
-
-#define ICMD_ACONST_IS_CLASS(iptr) \
-	((ptrint)(iptr)->target & 0x02) /* XXX target used temporarily as flag */
-
-#define ICMD_ACONST_CLASSREF_OR_CLASSINFO(iptr) \
-(CLASSREF_OR_CLASSINFO((iptr)->val.a))
-
-#define ICMD_ACONST_RESOLVED_CLASSINFO(iptr) \
-	((classinfo *) (iptr)->val.a)
-
-#define ICMD_ACONST_UNRESOLVED_CLASSREF(iptr) \
-	((constant_classref *) (iptr)->val.a)
 
 
 /* additional info structs for special instructions ***************************/

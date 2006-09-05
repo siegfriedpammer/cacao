@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5305 2006-09-05 10:47:11Z edwin $
+   $Id: simplereg.c 5310 2006-09-05 11:34:49Z edwin $
 
 */
 
@@ -1651,7 +1651,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 				case ICMD_INVOKESPECIAL:
 				case ICMD_INVOKEVIRTUAL:
 				case ICMD_INVOKEINTERFACE:
-					NEW_INSTRUCTION_GET_METHODDESC(iptr,md);
+					INSTRUCTION_GET_METHODDESC(iptr,md);
 					i = md->paramcount;
 					argp = iptr->sx.s23.s2.args;
 					while (--i >= 0) {

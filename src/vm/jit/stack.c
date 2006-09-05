@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5303 2006-09-05 10:39:58Z edwin $
+   $Id: stack.c 5310 2006-09-05 11:34:49Z edwin $
 
 */
 
@@ -1625,7 +1625,7 @@ normal_ACONST:
 
 					case ICMD_PUTSTATIC:
 						COUNT(count_pcmd_mem);
-						NEW_INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						NEW_OP1_0(fmiref->parseddesc.fd->type);
 						break;
 
@@ -1733,7 +1733,7 @@ normal_ACONST:
 					case ICMD_PUTFIELD:
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
-						NEW_INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						NEW_OP2_0(TYPE_ADR, fmiref->parseddesc.fd->type);
 						break;
 
@@ -2443,7 +2443,7 @@ normal_DCMPG:
 					case ICMD_GETFIELD:
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
-						NEW_INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						NEW_OP1_1(TYPE_ADR, fmiref->parseddesc.fd->type);
 						break;
 
@@ -2451,7 +2451,7 @@ normal_DCMPG:
 
 					case ICMD_GETSTATIC:
 						COUNT(count_pcmd_mem);
-						NEW_INSTRUCTION_GET_FIELDREF(iptr, fmiref);
+						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						NEW_OP0_1(fmiref->parseddesc.fd->type);
 						break;
 
@@ -2478,9 +2478,7 @@ normal_DCMPG:
 					/* pop many push any */
 
 					case ICMD_BUILTIN:
-#if defined(USEBUILTINTABLE)
 icmd_BUILTIN:
-#endif
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
 						goto _callhandling;
@@ -2490,7 +2488,14 @@ icmd_BUILTIN:
 					case ICMD_INVOKEVIRTUAL:
 					case ICMD_INVOKEINTERFACE:
 						COUNT(count_pcmd_met);
-						NEW_INSTRUCTION_GET_METHODDESC(iptr, md);
+
+						/* Check for functions to replace with builtin
+						 * functions. */
+
+						if (builtintable_replace_function(iptr))
+							goto icmd_BUILTIN;
+
+						INSTRUCTION_GET_METHODDESC(iptr, md);
 						/* XXX resurrect this COUNT? */
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */
