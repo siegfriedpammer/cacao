@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5277 2006-08-25 07:29:05Z twisti $
+   $Id: emit.c 5320 2006-09-05 16:10:21Z twisti $
 
 */
 
@@ -47,11 +47,13 @@
 # include "threads/native/lock.h"
 #endif
 
+#include "vm/builtin.h"
 #include "vm/statistics.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/replace.h"
 
 
 /* emit_load_s1 ****************************************************************
@@ -656,6 +658,145 @@ void emit_replacement_stubs(jitdata *jd)
 	}
 }
 	
+
+/* emit_verbosecall_enter ******************************************************
+
+   Generates the code for the call trace.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void emit_verbosecall_enter(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+	methoddesc   *md;
+	s4            disp;
+	s4            i, t;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	md = m->parseddesc;
+
+	/* mark trace code */
+
+	M_NOP;
+
+	/* methodinfo* + arguments + return address */
+
+	disp = TRACE_ARGS_NUM * 8 + 4 + INT_TMP_CNT * 4 +
+		cd->stackframesize * 4 + 4;
+
+	M_ASUB_IMM(TRACE_ARGS_NUM * 8 + 4 + INT_TMP_CNT * 4, REG_SP);
+
+	/* save temporary registers for leaf methods */
+
+	for (i = 0; i < INT_TMP_CNT; i++)
+		M_IST(rd->tmpintregs[i], REG_SP, TRACE_ARGS_NUM * 8 + 4 + i * 4);
+
+	for (i = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
+		t = md->paramtypes[i].type;
+
+		if (IS_INT_LNG_TYPE(t)) {
+			if (IS_2_WORD_TYPE(t)) {
+				M_LLD(REG_ITMP12_PACKED, REG_SP, disp);
+				M_LST(REG_ITMP12_PACKED, REG_SP, i * 8);
+			}
+			else if (IS_ADR_TYPE(t)) {
+				M_ALD(REG_ITMP1, REG_SP, disp);
+				M_AST(REG_ITMP1, REG_SP, i * 8);
+				M_IST_IMM(0, REG_SP, i * 8 + 4);
+			}
+			else {
+				M_ILD(EAX, REG_SP, disp);
+				emit_cltd(cd);
+				M_LST(EAX_EDX_PACKED, REG_SP, i * 8);
+			}
+		}
+		else {
+			if (IS_2_WORD_TYPE(t)) {
+				M_DLD(REG_NULL, REG_SP, disp);
+				M_DST(REG_NULL, REG_SP, i * 8);
+			}
+			else {
+				M_FLD(REG_NULL, REG_SP, disp);
+				M_FST(REG_NULL, REG_SP, i * 8);
+				M_IST_IMM(0, REG_SP, i * 8 + 4);
+			}
+		}
+
+		disp += (IS_2_WORD_TYPE(t)) ? 8 : 4;
+	}
+	
+	M_AST_IMM(m, REG_SP, TRACE_ARGS_NUM * 8);
+
+	M_MOV_IMM(builtin_trace_args, REG_ITMP1);
+	M_CALL(REG_ITMP1);
+
+	/* restore temporary registers for leaf methods */
+
+	for (i = 0; i < INT_TMP_CNT; i++)
+		M_ILD(rd->tmpintregs[i], REG_SP, TRACE_ARGS_NUM * 8 + 4 + i * 4);
+
+	M_AADD_IMM(TRACE_ARGS_NUM * 8 + 4 + INT_TMP_CNT * 4, REG_SP);
+
+	/* mark trace code */
+
+	M_NOP;
+}
+#endif /* !defined(NDEBUG) */
+
+
+/* emit_verbosecall_exit *******************************************************
+
+   Generates the code for the call trace.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void emit_verbosecall_exit(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	/* mark trace code */
+
+	M_NOP;
+
+	M_ASUB_IMM(4 + 8 + 8 + 4 + 8, REG_SP);  /* +8: keep stack 16-byte aligned */
+
+	M_AST_IMM(m, REG_SP, 0 * 4);
+
+	M_LST(REG_RESULT_PACKED, REG_SP, 1 * 4);
+
+	M_DSTNP(REG_NULL, REG_SP, 1 * 4 + 1 * 8);
+	M_FSTNP(REG_NULL, REG_SP, 1 * 4 + 2 * 8);
+
+	M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
+	M_CALL(REG_ITMP1);
+
+	M_LLD(REG_RESULT_PACKED, REG_SP, 1 * 4);
+
+	M_AADD_IMM(4 + 8 + 8 + 4 + 8, REG_SP);
+
+	/* mark trace code */
+
+	M_NOP;
+}
+#endif /* !defined(NDEBUG) */
+
 
 /* code generation functions **************************************************/
 

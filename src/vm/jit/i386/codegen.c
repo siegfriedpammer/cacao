@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5275 2006-08-24 18:42:48Z twisti $
+   $Id: codegen.c 5320 2006-09-05 16:10:21Z twisti $
 
 */
 
@@ -388,80 +388,10 @@ bool codegen(jitdata *jd)
 	}			
 #endif
 
-	/* copy argument registers to stack and call trace function with pointer
-	   to arguments on stack.
-	*/
-
 #if !defined(NDEBUG)
-	if (opt_verbosecall) {
-		stack_off = 0;
-		s1 = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + cd->stackframesize * 4;
-
-		M_ISUB_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
-
-		/* save temporary registers for leaf methods */
-
-		for (p = 0; p < INT_TMP_CNT; p++)
-			M_IST(rd->tmpintregs[p], REG_SP, TRACE_ARGS_NUM * 8 + 4 + p * 4);
-
-		for (p = 0, l = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = md->paramtypes[p].type;
-
-			if (IS_INT_LNG_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					emit_mov_membase_reg(cd, REG_SP, s1 + stack_off, REG_ITMP1);
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-					emit_mov_membase_reg(cd, REG_SP, s1 + stack_off + 4, REG_ITMP1);
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-
- 				} else if (t == TYPE_ADR) {
-/* 				} else { */
-					emit_mov_membase_reg(cd, REG_SP, s1 + stack_off, REG_ITMP1);
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-					emit_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-
- 				} else {
- 					emit_mov_membase_reg(cd, REG_SP, s1 + stack_off, EAX);
- 					emit_cltd(cd);
- 					emit_mov_reg_membase(cd, EAX, REG_SP, p * 8);
- 					emit_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4);
-				}
-
-			} else {
-				if (!IS_2_WORD_TYPE(t)) {
-					emit_flds_membase(cd, REG_SP, s1 + stack_off);
-					emit_fstps_membase(cd, REG_SP, p * 8);
-					emit_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-
-				} else {
-					emit_fldl_membase(cd, REG_SP, s1 + stack_off);
-					emit_fstpl_membase(cd, REG_SP, p * 8);
-				}
-			}
-			stack_off += (IS_2_WORD_TYPE(t)) ? 8 : 4;
-		}
-
-		/* fill up the remaining arguments */
-		emit_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
-		for (p = md->paramcount; p < TRACE_ARGS_NUM; p++) {
-			emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-			emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-		}
-
-		emit_mov_imm_membase(cd, (ptrint) m, REG_SP, TRACE_ARGS_NUM * 8);
-  		emit_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
-		emit_call_reg(cd, REG_ITMP1);
-
-		/* restore temporary registers for leaf methods */
-
-		for (p = 0; p < INT_TMP_CNT; p++)
-			M_ILD(rd->tmpintregs[p], REG_SP, TRACE_ARGS_NUM * 8 + 4 + p * 4);
-
-		M_IADD_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
-	}
-#endif /* !defined(NDEBUG) */
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
+#endif
 
 	} 
 
@@ -3315,28 +3245,9 @@ nowperformreturn:
   			p = cd->stackframesize;
 			
 #if !defined(NDEBUG)
-			/* call trace function */
-
-			if (opt_verbosecall) {
-				M_ISUB_IMM(4 + 8 + 8 + 4, REG_SP);
-
-				emit_mov_imm_membase(cd, (s4) m, REG_SP, 0);
-
-				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, 4);
-				emit_mov_reg_membase(cd, REG_RESULT2, REG_SP, 4 + 4);
-				
-				emit_fstl_membase(cd, REG_SP, 4 + 8);
-				emit_fsts_membase(cd, REG_SP, 4 + 8 + 8);
-
-  				emit_mov_imm_reg(cd, (s4) builtin_displaymethodstop, REG_ITMP1);
-				emit_call_reg(cd, REG_ITMP1);
-
-				emit_mov_membase_reg(cd, REG_SP, 4, REG_RESULT);
-				emit_mov_membase_reg(cd, REG_SP, 4 + 4, REG_RESULT2);
-
-				emit_alu_imm_reg(cd, ALU_ADD, 4 + 8 + 8 + 4, REG_SP);
-			}
-#endif /* !defined(NDEBUG) */
+			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+				emit_verbosecall_exit(jd);
+#endif
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
@@ -4533,69 +4444,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_ASUB_IMM(cd->stackframesize * 4, REG_SP);
 
 #if !defined(NDEBUG)
-	if (opt_verbosecall) {
-		s4 p, t;
-
-		disp = cd->stackframesize * 4;
-
-		M_ASUB_IMM(TRACE_ARGS_NUM * 8 + 4, REG_SP);
-    
-		for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = md->paramtypes[p].type;
-			if (IS_INT_LNG_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(REG_ITMP1, REG_SP,
-						  4 + TRACE_ARGS_NUM * 8 + 4 + disp);
-					M_ILD(REG_ITMP2, REG_SP,
-						  4 + TRACE_ARGS_NUM * 8 + 4 + disp + 4);
-					M_IST(REG_ITMP1, REG_SP, p * 8);
-					M_IST(REG_ITMP2, REG_SP, p * 8 + 4);
-
-				} else if (t == TYPE_ADR) {
-					M_ALD(REG_ITMP1, REG_SP,
-						  4 + TRACE_ARGS_NUM * 8 + 4 + disp);
-					M_CLR(REG_ITMP2);
-					M_AST(REG_ITMP1, REG_SP, p * 8);
-					M_AST(REG_ITMP2, REG_SP, p * 8 + 4);
-
-				} else {
-					M_ILD(EAX, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + disp);
-					emit_cltd(cd);
-					M_IST(EAX, REG_SP, p * 8);
-					M_IST(EDX, REG_SP, p * 8 + 4);
-				}
-
-			} else {
-				if (!IS_2_WORD_TYPE(t)) {
-					emit_flds_membase(cd, REG_SP,
-									  4 + TRACE_ARGS_NUM * 8 + 4 + disp);
-					emit_fstps_membase(cd, REG_SP, p * 8);
-					emit_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2);
-					M_IST(REG_ITMP2, REG_SP, p * 8 + 4);
-
-				} else {
-					emit_fldl_membase(cd, REG_SP,
-					    4 + TRACE_ARGS_NUM * 8 + 4 + disp);
-					emit_fstpl_membase(cd, REG_SP, p * 8);
-				}
-			}
-			disp += (IS_2_WORD_TYPE(t)) ? 8 : 4;
-		}
-	
-		M_CLR(REG_ITMP1);
-		for (p = md->paramcount; p < TRACE_ARGS_NUM; p++) {
-			M_IST(REG_ITMP1, REG_SP, p * 8);
-			M_IST(REG_ITMP1, REG_SP, p * 8 + 4);
-		}
-
-		M_AST_IMM(m, REG_SP, TRACE_ARGS_NUM * 8);
-
-		M_MOV_IMM(builtin_trace_args, REG_ITMP1);
-		M_CALL(REG_ITMP1);
-
-		M_AADD_IMM(TRACE_ARGS_NUM * 8 + 4, REG_SP);
-	}
-#endif /* !defined(NDEBUG) */
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
+#endif
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -4693,37 +4544,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 #if !defined(NDEBUG)
-    if (opt_verbosecall) {
-		/* restore return value */
-
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_ILD(REG_RESULT2, REG_SP, 2 * 4);
-			M_ILD(REG_RESULT, REG_SP, 1 * 4);
-	
-		} else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				emit_fldl_membase(cd, REG_SP, 1 * 4);
-			else
-				emit_flds_membase(cd, REG_SP, 1 * 4);
-		}
-
-		M_ASUB_IMM(4 + 8 + 8 + 4, REG_SP);
-
-		M_AST_IMM((ptrint) m, REG_SP, 0);
-
-		M_IST(REG_RESULT, REG_SP, 4);
-		M_IST(REG_RESULT2, REG_SP, 4 + 4);
-
-		emit_fstl_membase(cd, REG_SP, 4 + 8);
-		emit_fsts_membase(cd, REG_SP, 4 + 8 + 8);
-
-		M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
-		M_CALL(REG_ITMP1);
-
-		M_AADD_IMM(4 + 8 + 8 + 4, REG_SP);
-    }
-#endif /* !defined(NDEBUG) */
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_exit(jd);
+#endif
 
 	/* remove native stackframe info */
 

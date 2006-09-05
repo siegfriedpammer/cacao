@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 5234 2006-08-14 17:50:12Z christian $
+   $Id: codegen.h 5320 2006-09-05 16:10:21Z twisti $
 
 */
 
@@ -331,6 +331,9 @@
 
 #define M_FST(a,b,disp)         emit_fstps_membase(cd, (b), (disp))
 #define M_DST(a,b,disp)         emit_fstpl_membase(cd, (b), (disp))
+
+#define M_FSTNP(a,b,disp)       emit_fsts_membase(cd, (b), (disp))
+#define M_DSTNP(a,b,disp)       emit_fstl_membase(cd, (b), (disp))
 
 
 /* function gen_resolvebranch **************************************************
