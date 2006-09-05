@@ -1200,6 +1200,27 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 	case ICMD_LOOKUPSWITCH:
 		SHOW_S1(iptr);
+
+		printf("count=%d, default=", iptr->sx.s23.s2.lookupcount);
+		if (stage >= SHOW_STACK) {
+			printf("L%03d\n", iptr->sx.s23.s3.lookupdefault.block->nr);
+		}
+		else {
+			printf("insindex %d (L%03d)\n", iptr->sx.s23.s3.lookupdefault.insindex, BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex)->nr);
+		}
+
+		lookup = iptr->dst.lookup;
+		i = iptr->sx.s23.s2.lookupcount;
+		while (--i >= 0) {
+			printf("\t\t%d --> ", lookup->value);
+			if (stage >= SHOW_STACK) {
+				printf("L%03d\n", lookup->target.block->nr);
+			}
+			else {
+				printf("insindex %d (L%03d)\n", lookup->target.insindex, BLOCK_OF(lookup->target.insindex)->nr);
+			}
+			lookup++;
+		}
 		break;
 
 	case ICMD_ARETURN:
