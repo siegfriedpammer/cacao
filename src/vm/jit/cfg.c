@@ -121,7 +121,7 @@ bool cfg_build(jitdata *jd)
 	instruction     *iptr;
 	branch_target_t *table;
 	lookup_target_t *lookup;
-	s4               i;
+	s4               i, j;
 
 	/* get required compiler data */
 
@@ -191,9 +191,9 @@ bool cfg_build(jitdata *jd)
 			tbptr = BLOCK_OF((table++)->insindex);
 			tbptr->predecessorcount++;
 
-			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+			j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
-			while (--i >= 0) {
+			while (--j >= 0) {
 				bptr->successorcount++;
 
 				tbptr = BLOCK_OF((table++)->insindex);
@@ -209,9 +209,9 @@ bool cfg_build(jitdata *jd)
 			tbptr = BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex);
 			tbptr->predecessorcount++;
 
-			i = iptr->sx.s23.s2.lookupcount;
+			j = iptr->sx.s23.s2.lookupcount;
 
-			while (--i >= 0) {
+			while (--j >= 0) {
 				bptr->successorcount++;
 
 				tbptr = BLOCK_OF((lookup++)->target.insindex);
@@ -317,9 +317,9 @@ bool cfg_build(jitdata *jd)
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+			j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
-			while (--i >= 0) {
+			while (--j >= 0) {
 				tbptr = BLOCK_OF((table++)->insindex);
 
 				bptr->successors[bptr->successorcount] = tbptr;
@@ -345,9 +345,9 @@ bool cfg_build(jitdata *jd)
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			i = iptr->sx.s23.s2.lookupcount;
+			j = iptr->sx.s23.s2.lookupcount;
 
-			while (--i >= 0) {
+			while (--j >= 0) {
 				tbptr = BLOCK_OF((lookup++)->target.insindex);
 
 				bptr->successors[bptr->successorcount] = tbptr;
