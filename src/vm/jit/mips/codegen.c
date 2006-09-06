@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5357 2006-09-06 00:07:01Z edwin $
+   $Id: codegen.c 5381 2006-09-06 17:05:14Z twisti $
 
 */
 
@@ -100,6 +100,7 @@ bool codegen(jitdata *jd)
 	exceptiontable     *ex;
 	u2                  currentline;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
+	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
@@ -2761,7 +2762,7 @@ nowperformreturn:
 		case ICMD_BUILTIN:      /* ..., arg1 ==> ...                          */
 
 			bte = iptr->sx.s23.s3.bte;
-			md = bte->md;
+			md  = bte->md;
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
@@ -2771,11 +2772,13 @@ nowperformreturn:
 		case ICMD_INVOKEINTERFACE:
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				md = iptr->sx.s23.s3.um->methodref->parseddesc.md;
 				lm = NULL;
+				um = iptr->sx.s23.s3.um;
+				md = um->methodref->parseddesc.md;
 			}
 			else {
 				lm = iptr->sx.s23.s3.fmiref->p.method;
+				um = NULL;
 				md = lm->parseddesc;
 			}
 
@@ -2791,17 +2794,19 @@ gen_method:
 
 				if (src->varkind == ARGVAR)
 					continue;
+
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argintregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, src, s1);
 						M_INTMOVE(d, s1);
-					} else  {
+					}
+					else  {
 						d = emit_load(jd, iptr, src, REG_ITMP1);
 						M_LST(d, REG_SP, md->params[s3].regoff * 8);
 					}
-
-				} else {
+				}
+				else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, src, s1);
@@ -2809,8 +2814,8 @@ gen_method:
 							M_DMOV(d, s1);
 						else
 							M_FMOV(d, s1);
-
-					} else {
+					}
+					else {
 						d = emit_load(jd, iptr, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
 							M_DST(d, REG_SP, md->params[s3].regoff * 8);
@@ -2823,20 +2828,12 @@ gen_method:
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
 				disp = dseg_addaddress(cd, bte->fp);
-				d = md->returntype.type;
 
 				M_ALD(REG_ITMP3, REG_PV, disp);  /* built-in-function pointer */
-				M_JSR(REG_RA, REG_ITMP3);
-				M_NOP;
-				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_LDA(REG_PV, REG_RA, -disp);
 
-
-				if (INSTRUCTION_MUST_CHECK(iptr)) {
-					M_BEQZ(REG_RESULT, 0);
-					codegen_add_fillinstacktrace_ref(cd);
-					M_NOP;
-				}
+				/* TWISTI: i actually don't know the reason for using
+				   REG_ITMP3 here instead of REG_PV. */
+				s1 = REG_ITMP3;
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2847,8 +2844,6 @@ gen_method:
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					disp = dseg_addaddress(cd, NULL);
 
 					codegen_addpatchref(cd, PATCHER_invokestatic_special,
@@ -2857,27 +2852,18 @@ gen_method:
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP;
 					}
-
-					d = um->methodref->parseddesc.md->returntype.type;
-
-				} else {
-					disp = dseg_addaddress(cd, lm->stubroutine);
-					d = lm->parseddesc->returntype.type;
 				}
+				else
+					disp = dseg_addaddress(cd, lm->stubroutine);
 
 				M_ALD(REG_PV, REG_PV, disp);          /* method pointer in pv */
-				M_JSR(REG_RA, REG_PV);
-				M_NOP;
-				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_LDA(REG_PV, REG_RA, -disp);
+				s1 = REG_PV;
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
 				gen_nullptr_check(rd->argintregs[0]);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble) {
@@ -2885,29 +2871,21 @@ gen_method:
 					}
 
 					s1 = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
-
-				} else {
+				}
+				else
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
-					d = lm->parseddesc->returntype.type;
-				}
 
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
-				M_JSR(REG_RA, REG_PV);
-				M_NOP;
-				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_LDA(REG_PV, REG_RA, -disp);
+				s1 = REG_PV;
 				break;
 
 			case ICMD_INVOKEINTERFACE:
 				gen_nullptr_check(rd->argintregs[0]);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble) {
@@ -2916,35 +2894,47 @@ gen_method:
 
 					s1 = 0;
 					s2 = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
-
-				} else {
+				}
+				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
 						sizeof(methodptr*) * lm->class->index;
 
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
-
-					d = lm->parseddesc->returntype.type;
 				}
 
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
-				M_JSR(REG_RA, REG_PV);
-				M_NOP;
-				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_LDA(REG_PV, REG_RA, -disp);
+				s1 = REG_PV;
 				break;
 			}
 
-			/* d contains return type */
+			/* generate the actual call */
+
+			M_JSR(REG_RA, s1);
+			M_NOP;
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
+			M_LDA(REG_PV, REG_RA, -disp);
+
+			/* actually only used for ICMD_BUILTIN */
+
+			if (INSTRUCTION_MUST_CHECK(iptr)) {
+				M_BEQZ(REG_RESULT, 0);
+				codegen_add_fillinstacktrace_ref(cd);
+				M_NOP;
+			}
+
+			/* store return value */
+
+			d = md->returntype.type;
 
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(d)) {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
 					M_INTMOVE(REG_RESULT, s1);
-				} else {
+				}
+				else {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
 					if (IS_2_WORD_TYPE(d))
 						M_DMOV(REG_FRESULT, s1);
