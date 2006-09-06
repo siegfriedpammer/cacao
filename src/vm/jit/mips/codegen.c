@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5355 2006-09-05 23:10:05Z edwin $
+   $Id: codegen.c 5357 2006-09-06 00:07:01Z edwin $
 
 */
 
@@ -2747,6 +2747,7 @@ nowperformreturn:
 				M_BEQ(s1, REG_ITMP2, 0);
 				codegen_addreference(cd, lookup->target.block); 
 				M_NOP;
+				++lookup;
 			}
 
 			M_BR(0);
