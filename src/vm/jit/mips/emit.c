@@ -99,7 +99,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	stackptr src;
 	s4       reg;
@@ -118,7 +118,7 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	stackptr src;
 	s4       reg;
@@ -137,7 +137,7 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	stackptr src;
 	s4       reg;
