@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5369 2006-09-06 12:37:19Z twisti $
+   $Id: codegen.c 5376 2006-09-06 16:06:01Z twisti $
 
 */
 
@@ -102,6 +102,7 @@ bool codegen(jitdata *jd)
 	exceptiontable     *ex;
 	u2                  currentline;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
+	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
@@ -2806,11 +2807,13 @@ nowperformreturn:
 		case ICMD_INVOKEINTERFACE:
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				md = iptr->sx.s23.s3.um->methodref->parseddesc.md;
 				lm = NULL;
+				um = iptr->sx.s23.s3.um;
+				md = um->methodref->parseddesc.md;
 			}
 			else {
 				lm = iptr->sx.s23.s3.fmiref->p.method;
+				um = NULL;
 				md = lm->parseddesc;
 			}
 
@@ -2872,20 +2875,8 @@ gen_method:
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
 				disp = dseg_add_functionptr(cd, bte->fp);
-				d = md->returntype.type;
 
 				M_ALD(REG_PV, REG_PV, disp);  /* pointer to built-in-function */
-				M_MTCTR(REG_PV);
-				M_JSR;
-				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_MFLR(REG_ITMP1);
-				M_LDA(REG_PV, REG_ITMP1, -disp);
-
-				if (INSTRUCTION_MUST_CHECK(iptr)) {
-					M_CMPI(REG_RESULT, 0);
-					M_BEQ(0);
-					codegen_add_fillinstacktrace_ref(cd);
-				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2895,8 +2886,6 @@ gen_method:
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					disp = dseg_add_unique_address(cd, um);
 
 					codegen_addpatchref(cd, PATCHER_invokestatic_special,
@@ -2904,58 +2893,38 @@ gen_method:
 
 					if (opt_showdisassemble)
 						M_NOP;
-
-					d = md->returntype.type;
 				}
-				else {
+				else
 					disp = dseg_add_address(cd, lm->stubroutine);
-					d = md->returntype.type;
-				}
 
 				M_ALD(REG_PV, REG_PV, disp);
-				M_MTCTR(REG_PV);
-				M_JSR;
-				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_MFLR(REG_ITMP1);
-				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
 				gen_nullptr_check(rd->argintregs[0]);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble)
 						M_NOP;
 
 					s1 = 0;
-					d = md->returntype.type;
 				}
 				else {
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
-					d = md->returntype.type;
 				}
 
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
-				M_MTCTR(REG_PV);
-				M_JSR;
-				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_MFLR(REG_ITMP1);
-				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
 				gen_nullptr_check(rd->argintregs[0]);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble)
@@ -2963,30 +2932,40 @@ gen_method:
 
 					s1 = 0;
 					s2 = 0;
-					d = md->returntype.type;
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
 						sizeof(methodptr*) * lm->class->index;
 
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
-
-					d = md->returntype.type;
 				}
 
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
 					  OFFSET(java_objectheader, vftbl));    
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
-				M_MTCTR(REG_PV);
-				M_JSR;
-				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_MFLR(REG_ITMP1);
-				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
 			}
 
-			/* d contains return type */
+			/* generate the actual call */
+
+			M_MTCTR(REG_PV);
+			M_JSR;
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
+			M_MFLR(REG_ITMP1);
+			M_LDA(REG_PV, REG_ITMP1, -disp);
+			
+			/* actually only used for ICMD_BUILTIN */
+
+			if (INSTRUCTION_MUST_CHECK(iptr)) {
+				M_CMPI(REG_RESULT, 0);
+				M_BEQ(0);
+				codegen_add_fillinstacktrace_ref(cd);
+			}
+
+			/* store return value */
+
+			d = md->returntype.type;
 
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(d)) {
