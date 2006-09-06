@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: stack.c 5358 2006-09-06 00:18:21Z christian $
 
 */
 
@@ -1446,6 +1446,10 @@ normal_ACONST:
 					case ICMD_ALOAD:
 						COUNT(count_load_instruction);
 						i = opcode - ICMD_ILOAD;
+
+						/* for new vars */
+/* 						iptr->s1.localindex = jd->local_map[iptr->s1.localindex * 5 + i]; */
+
 						IF_NO_INTRP( rd->locals[iptr->s1.localindex][i].type = i; )
 						NEW_LOAD(i, iptr->s1.localindex);
 						break;
@@ -1477,6 +1481,9 @@ normal_ACONST:
 					case ICMD_IINC:
 						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
 
+						/* for new vars */
+/* 						iptr->s1.localindex = jd->local_map[iptr->s1.localindex * 5 + i]; */
+
 						last_store[5 * iptr->s1.localindex + TYPE_INT] = bptr->icount - len - 1;
 
 						copy = curstack;
@@ -1505,6 +1512,10 @@ normal_ACONST:
 						REQUIRE_1;
 
 						i = opcode - ICMD_ISTORE; /* type */
+
+						/* for new vars */
+/* 						iptr->s1.localindex = jd->local_map[iptr->s1.localindex * 5 + i]; */
+
 						IF_NO_INTRP( rd->locals[iptr->dst.localindex][i].type = i; )
 
 #if defined(ENABLE_STATISTICS)
@@ -2527,6 +2538,9 @@ icmd_BUILTIN:
 						for (i-- ; i >= 0; i--) {
 							iptr->sx.s23.s2.args[i] = copy;
 
+							/* do not change STACKVARs to ARGVAR -> won't help anyway */
+							if (copy->varkind != STACKVAR) {
+
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 							/* If we pass float arguments in integer argument registers, we
 							 * are not allowed to precolor them here. Floats have to be moved
@@ -2573,6 +2587,7 @@ icmd_BUILTIN:
 #if defined(ENABLE_INTRP)
 								} /* end if (!opt_intrp) */
 #endif
+							}
 							}
 							copy = copy->prev;
 						}
@@ -2645,7 +2660,7 @@ icmd_BUILTIN:
 						while (--i >= 0) {
 							/* check INT type here? Currently typecheck does this. */
 							iptr->sx.s23.s2.args[i] = copy;
-							if (!(copy->flags & SAVEDVAR)) {
+							if (!(copy->flags & SAVEDVAR) && (copy->varkind != STACKVAR)) {
 								copy->varkind = ARGVAR;
 								copy->varnum = i + INT_ARG_CNT;
 								copy->flags |= INMEMORY;
@@ -2703,9 +2718,10 @@ icmd_BUILTIN:
 
 				i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
-					if ((copy->varkind == STACKVAR) && (copy->varnum > i))
+					if ((copy->varkind == STACKVAR) && (copy->varnum > i)) {
+						assert(0);
 						copy->varkind = TEMPVAR;
-					else {
+					} else {
 						copy->varkind = STACKVAR;
 						copy->varnum = i;
 					}

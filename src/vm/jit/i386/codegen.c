@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5356 2006-09-05 23:37:37Z edwin $
+   $Id: codegen.c 5358 2006-09-06 00:18:21Z christian $
 
 */
 
@@ -511,7 +511,7 @@ bool codegen(jitdata *jd)
 				}
 
 			} else {
-#if 0
+#if 1
 				assert(src->varkind == STACKVAR);
 				/* will be done directly in simplereg lateron */
 				d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
@@ -2207,8 +2207,8 @@ bool codegen(jitdata *jd)
 		case ICMD_DCMPL:
 
 			/* exchanged to skip fxch */
-			s2 = emit_load_s2(jd, iptr, REG_FTMP1);
-			s1 = emit_load_s1(jd, iptr, REG_FTMP2);
+			s2 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s1 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 /*    			emit_fxch(cd); */
 			emit_fucompp(cd);
@@ -2230,8 +2230,8 @@ bool codegen(jitdata *jd)
 		case ICMD_DCMPG:
 
 			/* exchanged to skip fxch */
-			s2 = emit_load_s2(jd, iptr, REG_FTMP1);
-			s1 = emit_load_s1(jd, iptr, REG_FTMP2);
+			s2 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s1 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 /*    			emit_fxch(cd); */
 			emit_fucompp(cd);
@@ -4126,7 +4126,7 @@ gen_method:
 	else
  #endif
 #endif
-#if 1
+#if 0
 	while (len) {
 		len--;
 		src = bptr->outvars[len];
