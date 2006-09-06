@@ -83,11 +83,13 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 				M_DLD(tempreg, REG_SP, disp);
 			else
 				M_FLD(tempreg, REG_SP, disp);
-		} else
+		}
+		else
 			M_LLD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = src->regoff;
 
 	return reg;
@@ -209,18 +211,10 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	cd = jd->cd;
 	rd = jd->rd;
 
-	stackptr src;
-	s4       reg;
-
-	src = iptr->sx.s23.s3.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
 		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
-		s1 = emit_load_s1(jd, iptr, src, d);
+		s1 = emit_load(jd, iptr, src, d);
 
 		if (s1 != d) {
 			if (IS_FLT_DBL_TYPE(src->type)) {
@@ -228,7 +222,8 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 					M_DMOV(s1, d);
 				else
 					M_FMOV(s1, d);
-			} else
+			}
+			else
 				M_MOV(s1, d);
 		}
 
