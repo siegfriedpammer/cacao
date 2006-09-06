@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5366 2006-09-06 11:01:11Z edwin $
+   $Id: parse.c 5370 2006-09-06 13:46:37Z christian $
 
 */
 
@@ -1298,10 +1298,6 @@ invoke_method:
 	jd->new_basicblockcount = b_count;
 	jd->new_stackcount = s_count + jd->new_basicblockcount * m->maxstack; /* in-stacks */
 
-#if defined(NEW_VAR)
-	jd->local_map = local_map;
-#endif
-
 	/* allocate stack table */
 
 	jd->new_stack = DMNEW(stackelement, jd->new_stackcount);
@@ -1404,6 +1400,8 @@ invoke_method:
 #endif
 
 #if defined(NEW_VAR)
+	jd->local_map = local_map;
+
 	/* calculate local variable renaming */
 
 	{
@@ -1425,7 +1423,14 @@ invoke_method:
 		}
 
 		jd->localcount = nlocals;
-
+		/* if dropped varindices for temp stackslots get reused(?max 2*       */
+		/* m->maxstack elements for stack), nlocals + s_count would be        */
+		/* sufficient */
+		jd->varcount   = nlocals + s_count + 
+			jd->new_basicblockcount * m->maxstack;        /* out-stacks */
+		
+		jd->var_top = nlocals;
+		jd->var = DMNEW(varinfo, jd->varcount);
 	}
 #endif
 

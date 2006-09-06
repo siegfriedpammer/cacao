@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5366 2006-09-06 11:01:11Z edwin $
+   $Id: parse.h 5370 2006-09-06 13:46:37Z christian $
 
 */
 
@@ -194,25 +194,36 @@
     iptr->dst.insindex       = (iindex);                               \
     PINC
 
-#define OP_LOCALINDEX(o,index)                                         \
+#if defined(NEW_VAR)
+# define OP_LOCALINDEX(o,index)                                        \
 	OP_PREPARE_ZEROFLAGS(o);                                           \
-    iptr->s1.localindex      = (index);                                \
+    iptr->s1.varindex      = (index);                                \
     PINC
 
-#define OP_LOCALINDEX_I(o,index,v)                                     \
+# define OP_LOCALINDEX_I(o,index,v)                                    \
+	OP_PREPARE_ZEROFLAGS(o);                                           \
+    iptr->s1.varindex      = (index);                                  \
+    iptr->sx.val.i           = (v);                                    \
+    PINC
+
+# define LOCALTYPE_USED(index,type)									   \
+	do {															   \
+		local_map[index * 5 +type] = 1;								   \
+	} while (0)
+#else 
+# define OP_LOCALINDEX(o,index)                                        \
+	OP_PREPARE_ZEROFLAGS(o);                                           \
+    iptr->s1.localindex      = (index);                                  \
+    PINC
+
+# define OP_LOCALINDEX_I(o,index,v)                                    \
 	OP_PREPARE_ZEROFLAGS(o);                                           \
     iptr->s1.localindex      = (index);                                \
     iptr->sx.val.i           = (v);                                    \
     PINC
 
-#if defined(VAR)
-#define LOCALTYPE_USED(index,type)									   \
-	do {															   \
-		local_map[index * 5 +type] = 1;								   \
-	} while (0)
-#else
-#define LOCALTYPE_USED(index,type)
-#endif
+# define LOCALTYPE_USED(index,type)
+#endif /* defined(NEW_VAR) */
 
 #define OP_LOAD_ONEWORD(o,index,type)							       \
     do {                                                               \
@@ -228,7 +239,26 @@
 		LOCALTYPE_USED(index,type);									   \
 	} while (0)
 
-#define OP_STORE_ONEWORD(o,index,type)							       \
+#if defined(NEW_VAR)
+# define OP_STORE_ONEWORD(o,index,type)							       \
+    do {                                                               \
+        INDEX_ONEWORD(index);                                          \
+        OP_PREPARE_ZEROFLAGS(o);                                       \
+        iptr->dst.varindex = (index);                                  \
+		LOCALTYPE_USED(index,type);									   \
+        PINC;                                                          \
+    } while (0)
+
+# define OP_STORE_TWOWORD(o,index,type)							       \
+    do {                                                               \
+        INDEX_TWOWORD(index);                                          \
+        OP_PREPARE_ZEROFLAGS(o);                                       \
+        iptr->dst.varindex = (index);                                  \
+		LOCALTYPE_USED(index,type);									   \
+        PINC;                                                          \
+    } while (0)
+#else
+# define OP_STORE_ONEWORD(o,index,type)							       \
     do {                                                               \
         INDEX_ONEWORD(index);                                          \
         OP_PREPARE_ZEROFLAGS(o);                                       \
@@ -237,7 +267,7 @@
         PINC;                                                          \
     } while (0)
 
-#define OP_STORE_TWOWORD(o,index,type)							       \
+# define OP_STORE_TWOWORD(o,index,type)							       \
     do {                                                               \
         INDEX_TWOWORD(index);                                          \
         OP_PREPARE_ZEROFLAGS(o);                                       \
@@ -245,6 +275,7 @@
 		LOCALTYPE_USED(index,type);									   \
         PINC;                                                          \
     } while (0)
+#endif /*  defined(NEW_VAR) */
 
 #define OP_BUILTIN_CHECK_EXCEPTION(bte)                                \
     jd->isleafmethod         = false;                                  \

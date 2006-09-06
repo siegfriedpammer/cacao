@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5363 2006-09-06 10:20:07Z christian $
+   $Id: jit.h 5370 2006-09-06 13:46:37Z christian $
 
 */
 
@@ -116,8 +116,8 @@ struct jitdata {
 	s4               new_c_debug_nr;
 
 #if defined(NEW_VAR)
-/* 	varinfo **var; */
-/* 	int     var_top; */
+	varinfo *var;
+	int     vartop;
     
 	int     varcount;
 	int     localcount;
@@ -222,16 +222,25 @@ typedef struct {
 /*** s1 operand ***/
 
 typedef union {
+#if defined(NEW_VAR)
+	s4                         varindex;
+#else
     stackptr                   var;
     s4                         localindex;
+#endif
     s4                         argcount;
 } s1_operand_t;
 
 /*** s2 operand ***/
 
 typedef union {
+#if defined(NEW_VAR)
+	s4                         varindex;
+	s4                         *args;
+#else
     stackptr                   var;
     stackptr                  *args;
+#endif
     classref_or_classinfo      c;
     unresolved_class          *uc;
     ptrint                     constval;         /* for PUT*CONST             */
@@ -242,7 +251,11 @@ typedef union {
 /*** s3 operand ***/
 
 typedef union {
+#if defined(NEW_VAR)
+	s4                         varindex;
+#else
     stackptr                   var;
+#endif
     ptrint                     constval;
     classref_or_classinfo      c;
     constant_FMIref           *fmiref;
@@ -270,8 +283,12 @@ typedef union {
 /*** dst operand ***/
 
 typedef union {
+#if defined(VAR_NEW)
+	s4                         varindex;
+#else
     stackptr                   var;
     s4                         localindex;
+#endif
     basicblock                *block;       /* valid after stack analysis     */
     branch_target_t           *table;       /* for TABLESWITCH                */
     lookup_target_t           *lookup;      /* for LOOKUPSWITCH               */

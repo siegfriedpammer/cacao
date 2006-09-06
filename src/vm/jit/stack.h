@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5367 2006-09-06 11:12:55Z edwin $
+   $Id: stack.h 5370 2006-09-06 13:46:37Z christian $
 
 */
 
@@ -130,7 +130,7 @@
 /* ALLOCATING STACK SLOTS                           */
 /*--------------------------------------------------*/
 
-#define NEWSTACK(s,v,n) \
+#define NEWSTACK(s,v,n)	\
     do { \
         new->prev = curstack; \
         new->type = (s); \
@@ -150,7 +150,6 @@
 
 /* allocate the input stack for an exception handler */
 #define NEWXSTACK   {NEWSTACK(TYPE_ADR,STACKVAR,0);curstack=0;}
-
 
 /*--------------------------------------------------*/
 /* STACK MANIPULATION                               */
@@ -213,7 +212,31 @@
  * block to another. The destination block receives the copy as its
  * input stack.
  */
-#define COPYCURSTACK(copy) {\
+#if defined(NEW_VAR)
+# define COPYCURSTACK(copy) {\
+	stackptr s;\
+	if(curstack){\
+		s=curstack;\
+		new+=stackdepth;\
+		copy=new;\
+		while(s){\
+			copy--;								\
+			copy->prev=copy-1;\
+			copy->type=s->type;\
+			copy->flags=0;\
+			copy->varkind=STACKVAR;\
+			copy->varnum=s->varnum;\
+			assert(s->varkind == STACKVAR); \
+			s=s->prev;\
+			}\
+		copy->prev=NULL;\
+		copy=new-1;\
+		}\
+	else\
+		copy=NULL;\
+}
+#else
+# define COPYCURSTACK(copy) {\
 	int d;\
 	stackptr s;\
 	if(curstack){\
@@ -236,6 +259,7 @@
 	else\
 		copy=NULL;\
 }
+#endif
 
 /* MARKREACHED marks the destination block <b> as reached. If this
  * block has been reached before we check if stack depth and types
