@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5350 2006-09-05 22:27:36Z edwin $
+   $Id: codegen.c 5373 2006-09-06 14:38:38Z twisti $
 
 */
 
@@ -643,7 +643,7 @@ bool codegen(jitdata *jd)
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_INTMOVE(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -854,15 +854,16 @@ bool codegen(jitdata *jd)
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			bte = iptr->sx.s23.s3.bte;
+
+			s1 = emit_load_s1(jd, iptr, rd->argintregs[0]);
+			s2 = emit_load_s2(jd, iptr, rd->argintregs[1]);
 			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
 			M_BEQZ(s2, 0);
 			codegen_add_arithmeticexception_ref(cd);
 
-			M_MOV(s1, rd->argintregs[0]);
-			M_MOV(s2, rd->argintregs[1]);
-			bte = iptr->sx.s23.s3.bte;
+			M_INTMOVE(s1, rd->argintregs[0]);
+			M_INTMOVE(s2, rd->argintregs[1]);
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
@@ -1162,7 +1163,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1176,7 +1177,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1200,7 +1201,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1214,7 +1215,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1241,7 +1242,7 @@ bool codegen(jitdata *jd)
 
 
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
-		                      /* s1.localindex = variable, sx.val.i = constant             */
+		                      /* s1.localindex = variable, sx.val.i = constant*/
 
 			var = &(rd->locals[iptr->s1.localindex][TYPE_INT]);
 			if (var->flags & INMEMORY) {
