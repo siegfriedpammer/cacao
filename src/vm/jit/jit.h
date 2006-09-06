@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5352 2006-09-05 22:51:48Z christian $
+   $Id: jit.h 5363 2006-09-06 10:20:07Z christian $
 
 */
 
@@ -115,15 +115,17 @@ struct jitdata {
 	s4               new_stackcount;
 	s4               new_c_debug_nr;
 
-/* #if defined(NEW_VAR) */
+#if defined(NEW_VAR)
 /* 	varinfo **var; */
 /* 	int     var_top; */
     
+	int     varcount;
+	int     localcount;
     int     *local_map; /* internal structure to rename(de-coallesc) locals  */
 	                     /* and keep the coalescing info for simplereg.       */
 	                     /* local_map[local_index * 5 + local_type] = new_index in */
                          /* rd->var or LOCAL_UNUSED    */
-/* #endif */
+#endif
 };
 
 #define LOCAL_UNUSED                     -1

@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5359 2006-09-06 09:57:21Z edwin $
+   $Id: stack.c 5363 2006-09-06 10:20:07Z christian $
 
 */
 
@@ -1450,7 +1450,8 @@ normal_ACONST:
 						/* for new vars */
 /* 						iptr->s1.localindex = jd->local_map[iptr->s1.localindex * 5 + i]; */
 
-						IF_NO_INTRP( rd->locals[iptr->s1.localindex][i].type = i; )
+						IF_NO_INTRP( rd->locals[iptr->s1.localindex][i].type = 
+									 i; )
 						NEW_LOAD(i, iptr->s1.localindex);
 						break;
 
@@ -1554,7 +1555,8 @@ normal_ACONST:
 						/* if the variable is already coalesced, don't bother */
 
 						if (curstack->varkind == STACKVAR
-							|| (curstack->varkind == LOCALVAR && curstack->varnum != j))
+							|| (curstack->varkind == LOCALVAR 
+								&& curstack->varnum != j))
 							goto store_tail;
 
 						/* there is no STORE Lj while curstack is live */
@@ -2597,7 +2599,8 @@ icmd_BUILTIN:
 						for (i-- ; i >= 0; i--) {
 							iptr->sx.s23.s2.args[i] = copy;
 
-							/* do not change STACKVARs to ARGVAR -> won't help anyway */
+							/* do not change STACKVARs to ARGVAR ->
+							   won't help anyway */
 							if (copy->varkind != STACKVAR) {
 
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
@@ -2720,7 +2723,8 @@ icmd_BUILTIN:
 						while (--i >= 0) {
 							/* check INT type here? Currently typecheck does this. */
 							iptr->sx.s23.s2.args[i] = copy;
-							if (!(copy->flags & SAVEDVAR) && (copy->varkind != STACKVAR)) {
+							if (!(copy->flags & SAVEDVAR) 
+								&& (copy->varkind != STACKVAR)) {
 								copy->varkind = ARGVAR;
 								copy->varnum = i + INT_ARG_CNT;
 								copy->flags |= INMEMORY;
@@ -2779,7 +2783,13 @@ icmd_BUILTIN:
 				i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
 					if ((copy->varkind == STACKVAR) && (copy->varnum > i)) {
+#if defined(NEW_VAR)
+						/* with the new vars rd->interfaces will be removed */
+						/* and all in and outvars have to be STACKVARS!     */
+						/* in the moment i.e. SWAP with in and out vars     */
+						/* an unresolvable conflict */
 						assert(0);
+#endif
 						copy->varkind = TEMPVAR;
 					} else {
 						copy->varkind = STACKVAR;

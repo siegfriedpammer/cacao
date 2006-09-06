@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5358 2006-09-06 00:18:21Z christian $
+   $Id: codegen.c 5363 2006-09-06 10:20:07Z christian $
 
 */
 
@@ -506,45 +506,48 @@ bool codegen(jitdata *jd)
 						emit_store(jd, NULL, src, d);
 					}
 				} else {
-					log_text("copy interface registers: longs have to be in memory (begin 1)");
+					log_text("copy interface registers: longs have to be in \
+                               memory (begin 1)");
 					assert(0);
 				}
 
 			} else {
-#if 1
+#if defined(NEW_VAR)
 				assert(src->varkind == STACKVAR);
-				/* will be done directly in simplereg lateron */
+				/* will be done directly in simplereg lateron          */ 
+				/* for now codegen_reg_of_var has to be called here to */
+				/* set the regoff and flags for all bptr->invars[]     */
 				d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
-					
 #else
 				if (IS_LNG_TYPE(src->type))
-					d = codegen_reg_of_var(rd, 0, src, PACK_REGS(REG_ITMP1, REG_ITMP2));
+					d = codegen_reg_of_var(rd, 0, src, 
+										   PACK_REGS(REG_ITMP1, REG_ITMP2));
 				else
 					d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
-/* 					d = codegen_reg_of_var(rd, 0, src, REG_IFTMP); */
-
+/* 			    d = codegen_reg_of_var(rd, 0, src, REG_IFTMP); */
+				
 				if ((src->varkind != STACKVAR)) {
 					s2 = src->type;
 					s1 = rd->interfaces[len][s2].regoff;
-
+					
 					if (IS_FLT_DBL_TYPE(s2)) {
 						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
 							M_FLTMOVE(s1, d);
-
+							
 						} else {
 							if (IS_2_WORD_TYPE(s2))
 								M_DLD(d, REG_SP, s1 * 4);
 							else
 								M_FLD(d, REG_SP, s1 * 4);
 						}
-
+						
 					} else {
 						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
 							if (IS_2_WORD_TYPE(s2))
 								M_LNGMOVE(s1, d);
 							else
 								M_INTMOVE(s1, d);
-
+							
 						} else {
 							if (IS_2_WORD_TYPE(s2))
 								M_LLD(d, REG_SP, s1 * 4);
@@ -552,7 +555,7 @@ bool codegen(jitdata *jd)
 								M_ILD(d, REG_SP, s1 * 4);
 						}
 					}
-
+					
 					emit_store(jd, NULL, src, d);
 				}
 #endif
@@ -1529,7 +1532,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
@@ -1537,10 +1540,12 @@ bool codegen(jitdata *jd)
 			if (iptr->sx.val.i & 0x20) {
 				M_MOV(GET_HIGH_REG(d), GET_LOW_REG(d));
 				M_SRA_IMM(31, GET_HIGH_REG(d));
-				M_SRLD_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d), GET_LOW_REG(d));
+				M_SRLD_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d), 
+						   GET_LOW_REG(d));
 			}
 			else {
-				M_SRLD_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d), GET_LOW_REG(d));
+				M_SRLD_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d), 
+						   GET_LOW_REG(d));
 				M_SRA_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d));
 			}
 			emit_store_dst(jd, iptr, d);
@@ -1563,7 +1568,7 @@ bool codegen(jitdata *jd)
 			break;
 
   		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
-  		                      /* sx.val.l = constant                             */
+  		                      /* sx.val.l = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
@@ -1571,10 +1576,12 @@ bool codegen(jitdata *jd)
 			if (iptr->sx.val.i & 0x20) {
 				M_MOV(GET_HIGH_REG(d), GET_LOW_REG(d));
 				M_CLR(GET_HIGH_REG(d));
-				M_SRLD_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d), GET_LOW_REG(d));
+				M_SRLD_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d), 
+						   GET_LOW_REG(d));
 			}
 			else {
-				M_SRLD_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d), GET_LOW_REG(d));
+				M_SRLD_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d), 
+						   GET_LOW_REG(d));
 				M_SRL_IMM(iptr->sx.val.i & 0x3f, GET_HIGH_REG(d));
 			}
 			emit_store_dst(jd, iptr, d);
@@ -4122,11 +4129,11 @@ gen_method:
 		if (!last_cmd_was_goto)
 			codegen_insert_phi_moves(cd, rd, ls, bptr);
 	}
- #if 0
+ #if !defined(NEW_VAR)
 	else
  #endif
 #endif
-#if 0
+#if !defined(NEW_VAR)
 	while (len) {
 		len--;
 		src = bptr->outvars[len];
@@ -4138,20 +4145,21 @@ gen_method:
 					M_FLTMOVE(s1, rd->interfaces[len][s2].regoff);
 				else
 					M_DST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
-
+				
 			} else {
 				if (IS_2_WORD_TYPE(s2))
 					assert(0);
-/* 					s1 = emit_load(jd, iptr, src, PACK_REGS(REG_ITMP1, REG_ITMP2)); */
+/*                  s1 = emit_load(jd, iptr, src, 
+					               PACK_REGS(REG_ITMP1, REG_ITMP2)); */
 				else
 					s1 = emit_load(jd, iptr, src, REG_ITMP1);
-
+				
 				if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(s2))
 						M_LNGMOVE(s1, rd->interfaces[len][s2].regoff);
 					else
 						M_INTMOVE(s1, rd->interfaces[len][s2].regoff);
-
+					
 				} else {
 					if (IS_2_WORD_TYPE(s2))
 						M_LST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);

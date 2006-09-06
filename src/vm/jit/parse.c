@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5352 2006-09-05 22:51:48Z christian $
+   $Id: parse.c 5363 2006-09-06 10:20:07Z christian $
 
 */
 
@@ -186,23 +186,27 @@ bool new_parse(jitdata *jd)
 	u4                  flags;
 	basicblock         *bptr;
 
-/* 	int                *local_map; */
-
+#if defined(NEW_VAR)
+ 	int                *local_map; /* local pointer to renaming structore     */
+	                               /* is assigned to rd->local_map at the end */
+#endif
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
 
+#if defined(NEW_VAR)
 	/* allocate buffers for local variable renaming */
-/* 	local_map = DMNEW(int, cd->maxlocals * 5); */
-/* 	for (i = 0; i < cd->maxlocals; i++) { */
-/* 		local_map[i * 5 + 0] = 0; */
-/* 		local_map[i * 5 + 1] = 0; */
-/* 		local_map[i * 5 + 2] = 0; */
-/* 		local_map[i * 5 + 3] = 0; */
-/* 		local_map[i * 5 + 4] = 0; */
-/* 	} */
+	local_map = DMNEW(int, cd->maxlocals * 5);
+	for (i = 0; i < cd->maxlocals; i++) {
+		local_map[i * 5 + 0] = 0;
+		local_map[i * 5 + 1] = 0;
+		local_map[i * 5 + 2] = 0;
+		local_map[i * 5 + 3] = 0;
+		local_map[i * 5 + 4] = 0;
+	}
+#endif
 
 	/* allocate instruction array and block index table */
 
@@ -1294,7 +1298,10 @@ invoke_method:
 	jd->new_basicblockcount = b_count;
 	jd->new_stackcount = s_count + jd->new_basicblockcount * m->maxstack; /* in-stacks */
 
-/* 	jd->local_map = local_map; */
+#if defined(NEW_VAR)
+	jd->local_map = local_map;
+#endif
+
 	/* allocate stack table */
 
 	jd->new_stack = DMNEW(stackelement, jd->new_stackcount);
@@ -1396,20 +1403,31 @@ invoke_method:
 	}
 #endif
 
+#if defined(NEW_VAR)
 	/* calculate local variable renaming */
 
-/* 	{ */
-/* 		s4 nlocals = 0; */
-/* 		s4 i,t; */
+	{
+		s4 nlocals = 0;
+		s4 i;
 
-/* 		for (i = 0; i < m->maxlocals; i++)  */
-/* 			for (t = 0; t < 5; t++) { */
-/* 				if (local_map[i * 5 + t] == 1) */
-/* 					local_map[i * 5 + t] = nlocals++; */
-/* 				else */
-/* 					local_map[i * 5 + t] = LOCAL_UNUSED; */
-/* 			} */
-/* 	} */
+		s4 *mapptr;
+
+		mapptr = local_map;
+
+		/* iterate over local_map[0..m->maxlocals*5] and set all existing  */
+		/* index,type pairs (localmap[index*5+type]==1) to an unique value */
+		/* -> == new local var index */
+		for(i = 0; i < (m->maxlocals * 5); i++, mapptr++) {
+			if (*mapptr)
+				*mapptr = nlocals++;
+			else
+				*mapptr = LOCAL_UNUSED;
+		}
+
+		jd->localcount = nlocals;
+
+	}
+#endif
 
 	/* everything's ok */
 

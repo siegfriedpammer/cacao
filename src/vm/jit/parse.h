@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5352 2006-09-05 22:51:48Z christian $
+   $Id: parse.h 5363 2006-09-06 10:20:07Z christian $
 
 */
 
@@ -205,12 +205,14 @@
     iptr->sx.val.i           = (v);                                    \
     PINC
 
-#define LOCALTYPE_USED(index,type)
-/*
+#if defined(NEW_VAR)
+#define LOCALTYPE_USED(index,type)									   \
 	do {															   \
-		local_map[index * 5 +type] = 1;									   \
+		local_map[index * 5 +type] = 1;								   \
 	} while (0)
-*/
+#else
+#define LOCALTYPE_USED(index,type)
+#endif
 
 #define NEW_OP_LOAD_ONEWORD(o,index,type)							   \
     do {                                                               \
