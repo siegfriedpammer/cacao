@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5370 2006-09-06 13:46:37Z christian $
+   $Id: parse.h 5374 2006-09-06 15:22:35Z edwin $
 
 */
 
@@ -98,6 +98,10 @@
             jd->new_basicblockindex[(i)] |= 1; \
         } \
     } while (0)
+
+#define INSTRUCTIONS_CHECK(i) \
+	    if ((ipc + (i)) > pd.instructionslength) \
+        iptr = parse_check_instructions(&pd, ipc)
 
 
 /* intermediate code generating macros ****************************************/

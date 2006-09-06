@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5371 2006-09-06 14:01:23Z edwin $
+   $Id: parse.c 5374 2006-09-06 15:22:35Z edwin $
 
 */
 
@@ -238,20 +238,21 @@ throw_invalid_bytecode_index:
 
 bool new_parse(jitdata *jd)
 {
-	methodinfo  *m;             /* method being parsed                      */
+	methodinfo  *m;                     /* method being parsed                */
 	codeinfo    *code;
 	codegendata *cd;
-	int  p;                     /* java instruction counter                 */
-	int  nextp;                 /* start of next java instruction           */
-	int  opcode;                /* java opcode                              */
-	int  i;                     /* temporary for different uses (ctrs)      */
-	int  ipc = 0;               /* intermediate instruction counter         */
+	parsedata_t  pd;
+	instruction *iptr;                  /* current ptr into instruction array */
+	s4           ipc;                   /* intermediate instruction counter   */
+	s4           p;                     /* java instruction counter           */
+	s4           nextp;                 /* start of next java instruction     */
+	s4           opcode;                /* java opcode                        */
+	s4           i;
+	s4           j;
 	int  b_count = 0;           /* basic block counter                      */
 	int  s_count = 0;           /* stack element counter                    */
 	bool blockend = false;      /* true if basic block end has been reached */
 	bool iswide = false;        /* true if last instruction was a wide      */
-	instruction *iptr;          /* current ptr into instruction array       */
-	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts  */
 	constant_classref  *cr;
 	constant_classref  *compr;
 	classinfo          *c;
@@ -288,20 +289,15 @@ bool new_parse(jitdata *jd)
 	}
 #endif
 
-	/* allocate instruction array and block index table */
-
-	/* 1 additional for end ipc  */
-	jd->new_basicblockindex = DMNEW(s4, m->jcodelength + 1);
-	memset(jd->new_basicblockindex, 0, sizeof(s4) * (m->jcodelength + 1));
-
-	instructionstart = DMNEW(u1, m->jcodelength + 1);
-	memset(instructionstart, 0, sizeof(u1) * (m->jcodelength + 1));
-
-	/* IMPORTANT: We assume that parsing creates at most one instruction per */
-	/*            byte of original bytecode!                                 */
-
-	iptr = jd->new_instructions = DMNEW(instruction, m->jcodelength);
-
+ 	/* initialize the parse data structures */
+  
+ 	parse_setup(jd, &pd);
+  
+ 	/* initialize local variables */
+  
+ 	iptr = pd.instructions;
+ 	ipc  = 0;
+  
 	/* compute branch targets of exception table */
 
 	if (!new_fillextable(jd, m,
@@ -338,7 +334,7 @@ bool new_parse(jitdata *jd)
 
 		/* mark this position as a valid instruction start */
 
-		instructionstart[p] = 1;
+		pd.instructionstart[p] = 1;
 
 		/* change the current line number, if necessary */
 
@@ -357,13 +353,10 @@ next_linenumber:
 			}
 		}
 
-		/* fetch next opcode  */
 fetch_opcode:
+		/* fetch next opcode  */	
+
 		opcode = SUCK_BE_U1(m->jcode + p);
-
-		/* store intermediate instruction count (bit 0 mark block starts) */
-
-		jd->new_basicblockindex[p] |= (ipc << 1);
 
 		/* some compilers put a JAVA_NOP after a blockend instruction */
 
@@ -374,6 +367,10 @@ fetch_opcode:
 			blockend = false;
 		}
 
+		/* store intermediate instruction count (bit 0 mark block starts) */
+
+		jd->new_basicblockindex[p] |= (ipc << 1);
+
 		/* compute next instruction start */
 
 		nextp = p + jcommandsize[opcode];
@@ -383,6 +380,13 @@ fetch_opcode:
 		/* add stack elements produced by this instruction */
 
 		s_count += stackreq[opcode];
+
+		/* We check here for the space of 1 instruction in the
+		   instruction array.  If an opcode is converted to more than
+		   1 instruction, this is checked in the corresponding
+		   case. */
+
+		INSTRUCTIONS_CHECK(1);
 
 		/* translate this bytecode instruction */
 
@@ -438,8 +442,7 @@ fetch_opcode:
 			case CONSTANT_Class:
 				cr = (constant_classref *) (m->class->cpinfos[i]);
 
-				if (!resolve_classref(m, cr, resolveLazy, true,
-									  true, &c))
+				if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 					return false;
 
 				/* if not resolved, c == NULL */
@@ -690,6 +693,7 @@ fetch_opcode:
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
+			INSTRUCTIONS_CHECK(2);
 			OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
 			bte = builtintable_get_internal(BUILTIN_newarray);
 			OP_BUILTIN_CHECK_EXCEPTION(bte);
@@ -699,21 +703,19 @@ fetch_opcode:
 		case JAVA_MULTIANEWARRAY:
 			jd->isleafmethod = false;
 			i = SUCK_BE_U2(m->jcode + p + 1);
-			{
-				s4 v = SUCK_BE_U1(m->jcode + p + 3);
-
-				cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
-				if (!cr)
-					return false;
-
-				if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
-					return false;
-
-				/* if unresolved, c == NULL */
-
-				iptr->s1.argcount = v;
-				OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, 0 /* flags */);
-			}
+ 			j = SUCK_BE_U1(m->jcode + p + 3);
+  
+ 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
+ 			if (cr == NULL)
+ 				return false;
+  
+ 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
+ 				return false;
+  
+ 			/* if unresolved, c == NULL */
+  
+ 			iptr->s1.argcount = j;
+ 			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, 0 /* flags */);
 			break;
 
 		/* control flow instructions ******************************************/
@@ -991,12 +993,13 @@ jsr_tail:
 		case JAVA_INVOKESTATIC:
 			i = SUCK_BE_U2(m->jcode + p + 1);
 			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
-			if (!mr)
+
+			if (mr == NULL)
 				return false;
 
 			md = mr->parseddesc.md;
 
-			if (!md->params)
+			if (md->params == NULL)
 				if (!descriptor_params_from_paramtypes(md, ACC_STATIC))
 					return false;
 
@@ -1005,8 +1008,7 @@ jsr_tail:
 		case JAVA_INVOKEINTERFACE:
 			i = SUCK_BE_U2(m->jcode + p + 1);
 
-			mr = class_getconstant(m->class, i,
-					CONSTANT_InterfaceMethodref);
+			mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
 
 			goto invoke_nonstatic_method;
 
@@ -1016,12 +1018,12 @@ jsr_tail:
 			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 
 invoke_nonstatic_method:
-			if (!mr)
+			if (mr == NULL)
 				return false;
 
 			md = mr->parseddesc.md;
 
-			if (!md->params)
+			if (md->params == NULL)
 				if (!descriptor_params_from_paramtypes(md, 0))
 					return false;
 
@@ -1068,6 +1070,7 @@ invoke_method:
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return false;
 
+			INSTRUCTIONS_CHECK(2);
 			OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
 			bte = builtintable_get_internal(BUILTIN_new);
 			OP_BUILTIN_CHECK_EXCEPTION(bte);
@@ -1077,7 +1080,7 @@ invoke_method:
 		case JAVA_CHECKCAST:
 			i = SUCK_BE_U2(m->jcode + p + 1);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
-			if (!cr)
+			if (cr == NULL)
 				return false;
 
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
@@ -1098,7 +1101,7 @@ invoke_method:
 		case JAVA_INSTANCEOF:
 			i = SUCK_BE_U2(m->jcode + p + 1);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
-			if (!cr)
+			if (cr == NULL)
 				return false;
 
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
@@ -1106,6 +1109,7 @@ invoke_method:
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
+				INSTRUCTIONS_CHECK(2);
 				OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
 				bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
 				OP_BUILTIN_NO_EXCEPTION(bte);
@@ -1343,12 +1347,17 @@ invoke_method:
 
 	} /* end for */
 
+	/* add a NOP to the last basic block */
+
+	INSTRUCTIONS_CHECK(1);
+	OP(ICMD_NOP);
+
 	/*** END OF LOOP **********************************************************/
 
 	/* assert that we did not write more ICMDs than allocated */
 
-	assert(ipc == (iptr - jd->new_instructions));
-	assert(ipc <= m->jcodelength);
+	assert(ipc <= pd.instructionslength);
+	assert(ipc == (iptr - pd.instructions));
 
 	/*** verifier checks ******************************************************/
 
@@ -1374,6 +1383,7 @@ invoke_method:
 
 	/* copy local to method variables */
 
+	jd->new_instructions = pd.instructions;
 	jd->new_instructioncount = ipc;
 	jd->new_basicblockcount = b_count;
 	jd->new_stackcount = s_count + jd->new_basicblockcount * m->maxstack; /* in-stacks */
@@ -1410,10 +1420,11 @@ invoke_method:
 
 	for (p = 0; p < m->jcodelength; p++) {
 		if (jd->new_basicblockindex[p] & 1) {
-			/* Check if this block starts at the beginning of an          */
-			/* instruction.                                               */
 #if defined(ENABLE_VERIFIER)
-			if (!instructionstart[p]) {
+			/* Check if this block starts at the beginning of an
+			   instruction. */
+
+			if (!pd.instructionstart[p]) {
 				exceptions_throw_verifyerror(m,
 						"Branch into middle of instruction");
 				return false;
