@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5363 2006-09-06 10:20:07Z christian $
+   $Id: stack.c 5365 2006-09-06 10:56:43Z edwin $
 
 */
 
@@ -243,103 +243,103 @@ bool stack_init(void)
 #define CLR_DST                                                      \
     (iptr->dst.var = NULL)
 
-#define NEW_DST(typed, depth)                                        \
+#define DST(typed, depth)                                            \
     do {                                                             \
         NEWSTACKn(typed, (depth));                                   \
         iptr->dst.var = curstack;                                    \
     } while (0)
 
-#define NEW_DST_LOCALVAR(typed, index)                               \
+#define DST_LOCALVAR(typed, index)                                   \
     do {                                                             \
         NEWSTACK(typed, LOCALVAR, (index));                          \
         iptr->dst.var = curstack;                                    \
     } while (0)
 
-#define NEW_OP0_0                                                    \
+#define OP0_0                                                        \
     do {                                                             \
         CLR_S1;                                                      \
         CLR_DST;                                                     \
     } while (0)
 
-#define NEW_OP0_BRANCH                                               \
+#define OP0_BRANCH                                                   \
     do {                                                             \
         CLR_S1;                                                      \
     } while (0)
 
-#define NEW_OP0_1(typed)                                             \
+#define OP0_1(typed)                                                 \
     do {                                                             \
         CLR_S1;                                                      \
-        NEW_DST(typed, stackdepth);                                  \
+        DST(typed, stackdepth);                                      \
         stackdepth++;                                                \
     } while (0)
 
-#define NEW_OP1_0(type1)                                             \
+#define OP1_0(type1)                                                 \
     do {                                                             \
         POP_S1(type1);                                               \
         CLR_DST;                                                     \
         stackdepth--;                                                \
     } while (0)
 
-#define NEW_OP1_0_ANY                                                \
+#define OP1_0_ANY                                                    \
     do {                                                             \
         POP_S1_ANY;                                                  \
         CLR_DST;                                                     \
         stackdepth--;                                                \
     } while (0)
 
-#define NEW_OP1_BRANCH(type1)                                        \
+#define OP1_BRANCH(type1)                                            \
     do {                                                             \
         POP_S1(type1);                                               \
         stackdepth--;                                                \
     } while (0)
 
-#define NEW_OP1_1(type1, typed)                                      \
+#define OP1_1(type1, typed)                                          \
     do {                                                             \
         POP_S1(type1);                                               \
-        NEW_DST(typed, stackdepth - 1);                              \
+        DST(typed, stackdepth - 1);                                  \
     } while (0)
 
-#define NEW_OP2_0(type1, type2)                                      \
+#define OP2_0(type1, type2)                                          \
     do {                                                             \
         POP_S1_S2(type1, type2);                                     \
         CLR_DST;                                                     \
         stackdepth -= 2;                                             \
     } while (0)
 
-#define NEW_OP2_BRANCH(type1, type2)                                 \
+#define OP2_BRANCH(type1, type2)                                     \
     do {                                                             \
         POP_S1_S2(type1, type2);                                     \
         stackdepth -= 2;                                             \
     } while (0)
 
-#define NEW_OP2_0_ANY_ANY                                            \
+#define OP2_0_ANY_ANY                                                \
     do {                                                             \
         POP_S1_S2_ANY_ANY;                                           \
         CLR_DST;                                                     \
         stackdepth -= 2;                                             \
     } while (0)
 
-#define NEW_OP2_1(type1, type2, typed)                               \
+#define OP2_1(type1, type2, typed)                                   \
     do {                                                             \
         POP_S1_S2(type1, type2);                                     \
-        NEW_DST(typed, stackdepth - 2);                              \
+        DST(typed, stackdepth - 2);                                  \
         stackdepth--;                                                \
     } while (0)
 
-#define NEW_OP3_0(type1, type2, type3)                               \
+#define OP3_0(type1, type2, type3)                                   \
     do {                                                             \
         POP_S1_S2_S3(type1, type2, type3);                           \
         CLR_DST;                                                     \
         stackdepth -= 3;                                             \
     } while (0)
 
-#define NEW_LOAD(type1, index)                                       \
+#define LOAD(type1, index)                                           \
     do {                                                             \
-        NEW_DST_LOCALVAR(type1, index);                              \
+        DST_LOCALVAR(type1, index);                                  \
         stackdepth++;                                                \
     } while (0)
 
-#define NEW_STORE(type1, index)                                      \
+#define STORE(type1, index)                                          \
     do {                                                             \
         POP_S1(type1);                                               \
         stackdepth--;                                                \
@@ -645,7 +645,7 @@ bool new_stack_analyse(jitdata *jd)
 					case ICMD_NOP:
 icmd_NOP:
 						CLR_SX;
-						NEW_OP0_0;
+						OP0_0;
 						break;
 
 					case ICMD_CHECKNULL:
@@ -667,7 +667,7 @@ icmd_NOP:
 					case ICMD_RETURN:
 						COUNT(count_pcmd_return);
 						CLR_SX;
-						NEW_OP0_0;
+						OP0_0;
 						superblockend = true;
 						break;
 
@@ -688,7 +688,7 @@ icmd_NOP:
 
 							icmd_iconst_tail:
 								iptr[1].opc = ICMD_NOP;
-								NEW_OP1_1(TYPE_INT, TYPE_INT);
+								OP1_1(TYPE_INT, TYPE_INT);
 								COUNT(count_pcmd_op);
 								break;
 
@@ -977,7 +977,7 @@ icmd_NOP:
 								/* copy the constant to s3 */
 								/* XXX constval -> astoreconstval? */
 								iptr->sx.s23.s3.constval = iptr->sx.val.i;
-								NEW_OP2_0(TYPE_ADR, TYPE_INT);
+								OP2_0(TYPE_ADR, TYPE_INT);
 								COUNT(count_pcmd_op);
 								break;
 
@@ -1007,11 +1007,11 @@ putconst_tail:
 								switch (iptr[1].opc) {
 									case ICMD_PUTSTATIC:
 										iptr->opc = ICMD_PUTSTATICCONST;
-										NEW_OP0_0;
+										OP0_0;
 										break;
 									case ICMD_PUTFIELD:
 										iptr->opc = ICMD_PUTFIELDCONST;
-										NEW_OP1_0(TYPE_ADR);
+										OP1_0(TYPE_ADR);
 										break;
 								}
 
@@ -1029,7 +1029,7 @@ putconst_tail:
 
 normal_ICONST:
 						/* normal case of an unoptimized ICONST */
-						NEW_OP0_1(TYPE_INT);
+						OP0_1(TYPE_INT);
 						break;
 
 	/************************** LCONST OPTIMIZATIONS **************************/
@@ -1050,7 +1050,7 @@ normal_ICONST:
 							icmd_lconst_tail:
 								/* instruction of type LONG -> LONG */
 								iptr[1].opc = ICMD_NOP;
-								NEW_OP1_1(TYPE_LNG, TYPE_LNG);
+								OP1_1(TYPE_LNG, TYPE_LNG);
 								COUNT(count_pcmd_op);
 								break;
 
@@ -1280,7 +1280,7 @@ normal_ICONST:
 										iptr[1].opc = ICMD_NOP;
 										iptr[2].opc = ICMD_NOP;
 
-										NEW_OP1_BRANCH(TYPE_LNG);
+										OP1_BRANCH(TYPE_LNG);
 										BRANCH(tbptr, copy);
 										COUNT(count_pcmd_bra);
 										COUNT(count_pcmd_op);
@@ -1328,7 +1328,7 @@ normal_ICONST:
 								iptr->sx.s23.s3.constval = iptr->sx.val.l;
 
 								iptr->opc = ICMD_LASTORECONST;
-								NEW_OP2_0(TYPE_ADR, TYPE_INT);
+								OP2_0(TYPE_ADR, TYPE_INT);
 
 								iptr[1].opc = ICMD_NOP;
 								COUNT(count_pcmd_op);
@@ -1365,19 +1365,19 @@ normal_ICONST:
 
 normal_LCONST:
 						/* the normal case of an unoptimized LCONST */
-						NEW_OP0_1(TYPE_LNG);
+						OP0_1(TYPE_LNG);
 						break;
 
 	/************************ END OF LCONST OPTIMIZATIONS *********************/
 
 					case ICMD_FCONST:
 						COUNT(count_pcmd_load);
-						NEW_OP0_1(TYPE_FLT);
+						OP0_1(TYPE_FLT);
 						break;
 
 					case ICMD_DCONST:
 						COUNT(count_pcmd_load);
-						NEW_OP0_1(TYPE_DBL);
+						OP0_1(TYPE_DBL);
 						break;
 
 	/************************** ACONST OPTIMIZATIONS **************************/
@@ -1405,7 +1405,7 @@ normal_LCONST:
 								/* copy the constant (NULL) to s3 */
 								iptr->sx.s23.s3.constval = 0;
 								iptr->opc = ICMD_AASTORECONST;
-								NEW_OP2_0(TYPE_ADR, TYPE_INT);
+								OP2_0(TYPE_ADR, TYPE_INT);
 
 								iptr[1].opc = ICMD_NOP;
 								COUNT(count_pcmd_op);
@@ -1433,7 +1433,7 @@ normal_LCONST:
 
 normal_ACONST:
 #endif /* SUPPORT_CONST_STORE */
-						NEW_OP0_1(TYPE_ADR);
+						OP0_1(TYPE_ADR);
 						break;
 
 
@@ -1452,7 +1452,7 @@ normal_ACONST:
 
 						IF_NO_INTRP( rd->locals[iptr->s1.localindex][i].type = 
 									 i; )
-						NEW_LOAD(i, iptr->s1.localindex);
+						LOAD(i, iptr->s1.localindex);
 						break;
 
 						/* pop 2 push 1 */
@@ -1465,7 +1465,7 @@ normal_ACONST:
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
-						NEW_OP2_1(TYPE_ADR, TYPE_INT, opcode - ICMD_IALOAD);
+						OP2_1(TYPE_ADR, TYPE_INT, opcode - ICMD_IALOAD);
 						break;
 
 					case ICMD_IALOAD:
@@ -1476,7 +1476,7 @@ normal_ACONST:
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
-						NEW_OP2_1(TYPE_ADR, TYPE_INT, TYPE_INT);
+						OP2_1(TYPE_ADR, TYPE_INT, TYPE_INT);
 						break;
 
 						/* pop 0 push 0 iinc */
@@ -1601,7 +1601,7 @@ assume_conflict:
 store_tail:
 						last_store_boundary[j] = new;
 
-						NEW_STORE(opcode - ICMD_ISTORE, j);
+						STORE(opcode - ICMD_ISTORE, j);
 						break;
 
 					/* pop 3 push 0 */
@@ -1629,7 +1629,7 @@ store_tail:
 							copy = copy->prev;
 						}
 
-						NEW_OP3_0(TYPE_ADR, TYPE_INT, TYPE_ADR);
+						OP3_0(TYPE_ADR, TYPE_INT, TYPE_ADR);
 						break;
 
 
@@ -1640,7 +1640,7 @@ store_tail:
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
-						NEW_OP3_0(TYPE_ADR, TYPE_INT, opcode - ICMD_IASTORE);
+						OP3_0(TYPE_ADR, TYPE_INT, opcode - ICMD_IASTORE);
 						break;
 
 					case ICMD_IASTORE:
@@ -1651,7 +1651,7 @@ store_tail:
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
-						NEW_OP3_0(TYPE_ADR, TYPE_INT, TYPE_INT);
+						OP3_0(TYPE_ADR, TYPE_INT, TYPE_INT);
 						break;
 
 						/* pop 1 push 0 */
@@ -1664,7 +1664,7 @@ store_tail:
 								goto throw_stack_category_error;
 						}
 #endif
-						NEW_OP1_0_ANY;
+						OP1_0_ANY;
 						break;
 
 					case ICMD_IRETURN:
@@ -1675,14 +1675,14 @@ store_tail:
 						last_pei_boundary = new;
 						IF_JIT( md_return_alloc(jd, curstack); )
 						COUNT(count_pcmd_return);
-						NEW_OP1_0(opcode - ICMD_IRETURN);
+						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
 						break;
 
 					case ICMD_ATHROW:
 						last_pei_boundary = new;
 						COUNT(count_check_null);
-						NEW_OP1_0(TYPE_ADR);
+						OP1_0(TYPE_ADR);
 						STACKRESET;
 						superblockend = true;
 						break;
@@ -1691,7 +1691,7 @@ store_tail:
 						last_pei_boundary = new;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-						NEW_OP1_0(fmiref->parseddesc.fd->type);
+						OP1_0(fmiref->parseddesc.fd->type);
 						break;
 
 						/* pop 1 push 0 branch */
@@ -1699,7 +1699,7 @@ store_tail:
 					case ICMD_IFNULL:
 					case ICMD_IFNONNULL:
 						COUNT(count_pcmd_bra);
-						NEW_OP1_BRANCH(TYPE_ADR);
+						OP1_BRANCH(TYPE_ADR);
 						BRANCH(tbptr, copy);
 						break;
 
@@ -1714,7 +1714,7 @@ store_tail:
 						   clearing the memory or from IF_ICMPxx
 						   optimization. */
 
-						NEW_OP1_BRANCH(TYPE_INT);
+						OP1_BRANCH(TYPE_INT);
 /* 						iptr->sx.val.i = 0; */
 						BRANCH(tbptr, copy);
 						break;
@@ -1723,7 +1723,7 @@ store_tail:
 
 					case ICMD_GOTO:
 						COUNT(count_pcmd_bra);
-						NEW_OP0_BRANCH;
+						OP0_BRANCH;
 						BRANCH(tbptr, copy);
 						superblockend = true;
 						break;
@@ -1732,7 +1732,7 @@ store_tail:
 
 					case ICMD_TABLESWITCH:
 						COUNT(count_pcmd_table);
-						NEW_OP1_BRANCH(TYPE_INT);
+						OP1_BRANCH(TYPE_INT);
 
 						table = iptr->dst.table;
 						BRANCH_TARGET(*table, tbptr, copy);
@@ -1752,7 +1752,7 @@ store_tail:
 
 					case ICMD_LOOKUPSWITCH:
 						COUNT(count_pcmd_table);
-						NEW_OP1_BRANCH(TYPE_INT);
+						OP1_BRANCH(TYPE_INT);
 
 						BRANCH_TARGET(iptr->sx.s23.s3.lookupdefault, tbptr, copy);
 
@@ -1771,7 +1771,7 @@ store_tail:
 					case ICMD_MONITOREXIT:
 						last_pei_boundary = new;
 						COUNT(count_check_null);
-						NEW_OP1_0(TYPE_ADR);
+						OP1_0(TYPE_ADR);
 						break;
 
 						/* pop 2 push 0 branch */
@@ -1783,14 +1783,14 @@ store_tail:
 					case ICMD_IF_ICMPGT:
 					case ICMD_IF_ICMPLE:
 						COUNT(count_pcmd_bra);
-						NEW_OP2_BRANCH(TYPE_INT, TYPE_INT);
+						OP2_BRANCH(TYPE_INT, TYPE_INT);
 						BRANCH(tbptr, copy);
 						break;
 
 					case ICMD_IF_ACMPEQ:
 					case ICMD_IF_ACMPNE:
 						COUNT(count_pcmd_bra);
-						NEW_OP2_BRANCH(TYPE_ADR, TYPE_ADR);
+						OP2_BRANCH(TYPE_ADR, TYPE_ADR);
 						BRANCH(tbptr, copy);
 						break;
 
@@ -1801,7 +1801,7 @@ store_tail:
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-						NEW_OP2_0(TYPE_ADR, fmiref->parseddesc.fd->type);
+						OP2_0(TYPE_ADR, fmiref->parseddesc.fd->type);
 						break;
 
 					case ICMD_POP2:
@@ -1815,11 +1815,11 @@ store_tail:
 									goto throw_stack_category_error;
 							}
 #endif
-							NEW_OP2_0_ANY_ANY; /* pop two slots */
+							OP2_0_ANY_ANY; /* pop two slots */
 						}
 						else {
 							iptr->opc = ICMD_POP;
-							NEW_OP1_0_ANY; /* pop one (two-word) slot */
+							OP1_0_ANY; /* pop one (two-word) slot */
 						}
 						break;
 
@@ -2120,7 +2120,7 @@ icmd_DUP_X2:
 					case ICMD_IOR:
 					case ICMD_IXOR:
 						COUNT(count_pcmd_op);
-						NEW_OP2_1(TYPE_INT, TYPE_INT, TYPE_INT);
+						OP2_1(TYPE_INT, TYPE_INT, TYPE_INT);
 						break;
 
 					case ICMD_LDIV:
@@ -2156,14 +2156,14 @@ icmd_DUP_X2:
 					case ICMD_LXOR:
 #endif /* SUPPORT_LONG_LOGICAL */
 						COUNT(count_pcmd_op);
-						NEW_OP2_1(TYPE_LNG, TYPE_LNG, TYPE_LNG);
+						OP2_1(TYPE_LNG, TYPE_LNG, TYPE_LNG);
 						break;
 
 					case ICMD_LSHL:
 					case ICMD_LSHR:
 					case ICMD_LUSHR:
 						COUNT(count_pcmd_op);
-						NEW_OP2_1(TYPE_LNG, TYPE_INT, TYPE_LNG);
+						OP2_1(TYPE_LNG, TYPE_INT, TYPE_LNG);
 						break;
 
 					case ICMD_FADD:
@@ -2172,7 +2172,7 @@ icmd_DUP_X2:
 					case ICMD_FDIV:
 					case ICMD_FREM:
 						COUNT(count_pcmd_op);
-						NEW_OP2_1(TYPE_FLT, TYPE_FLT, TYPE_FLT);
+						OP2_1(TYPE_FLT, TYPE_FLT, TYPE_FLT);
 						break;
 
 					case ICMD_DADD:
@@ -2181,7 +2181,7 @@ icmd_DUP_X2:
 					case ICMD_DDIV:
 					case ICMD_DREM:
 						COUNT(count_pcmd_op);
-						NEW_OP2_1(TYPE_DBL, TYPE_DBL, TYPE_DBL);
+						OP2_1(TYPE_DBL, TYPE_DBL, TYPE_DBL);
 						break;
 
 					case ICMD_LCMP:
@@ -2197,7 +2197,7 @@ icmd_DUP_X2:
 							iptr->dst.insindex = iptr[1].dst.insindex;
 							iptr[1].opc = ICMD_NOP;
 
-							NEW_OP2_BRANCH(TYPE_LNG, TYPE_LNG);
+							OP2_BRANCH(TYPE_LNG, TYPE_LNG);
 							BRANCH(tbptr, copy);
 
 							COUNT(count_pcmd_bra);
@@ -2223,7 +2223,7 @@ icmd_DUP_X2:
 						break;
 normal_LCMP:
 #endif /* SUPPORT_LONG_CMP_CONST */
-							NEW_OP2_1(TYPE_LNG, TYPE_LNG, TYPE_INT);
+							OP2_1(TYPE_LNG, TYPE_LNG, TYPE_INT);
 						break;
 
 						/* XXX why is this deactivated? */
@@ -2240,7 +2240,7 @@ normal_LCMP:
 							iptr->dst.insindex = iptr[1].dst.insindex;
 							iptr[1].opc = ICMD_NOP;
 
-							NEW_OP2_BRANCH(TYPE_FLT, TYPE_FLT);
+							OP2_BRANCH(TYPE_FLT, TYPE_FLT);
 							BRANCH(tbptr, copy);
 
 							COUNT(count_pcmd_bra);
@@ -2281,7 +2281,7 @@ normal_FCMPL:
 							iptr->dst.insindex = iptr[1].dst.insindex;
 							iptr[1].opc = ICMD_NOP;
 
-							NEW_OP2_BRANCH(TYPE_FLT, TYPE_FLT);
+							OP2_BRANCH(TYPE_FLT, TYPE_FLT);
 							BRANCH(tbptr, copy);
 
 							COUNT(count_pcmd_bra);
@@ -2307,7 +2307,7 @@ normal_FCMPL:
 						break;
 
 normal_FCMPG:
-						NEW_OP2_1(TYPE_FLT, TYPE_FLT, TYPE_INT);
+						OP2_1(TYPE_FLT, TYPE_FLT, TYPE_INT);
 						break;
 
 					case ICMD_DCMPL:
@@ -2322,7 +2322,7 @@ normal_FCMPG:
 							iptr->dst.insindex = iptr[1].dst.insindex;
 							iptr[1].opc = ICMD_NOP;
 
-							NEW_OP2_BRANCH(TYPE_DBL, TYPE_DBL);
+							OP2_BRANCH(TYPE_DBL, TYPE_DBL);
 							BRANCH(tbptr, copy);
 
 							COUNT(count_pcmd_bra);
@@ -2363,7 +2363,7 @@ normal_DCMPL:
 							iptr->dst.insindex = iptr[1].dst.insindex;
 							iptr[1].opc = ICMD_NOP;
 
-							NEW_OP2_BRANCH(TYPE_DBL, TYPE_DBL);
+							OP2_BRANCH(TYPE_DBL, TYPE_DBL);
 							BRANCH(tbptr, copy);
 
 							COUNT(count_pcmd_bra);
@@ -2389,19 +2389,19 @@ normal_DCMPL:
 						break;
 
 normal_DCMPG:
-						NEW_OP2_1(TYPE_DBL, TYPE_DBL, TYPE_INT);
+						OP2_1(TYPE_DBL, TYPE_DBL, TYPE_INT);
 						break;
 #else
 					case ICMD_FCMPL:
 					case ICMD_FCMPG:
 						COUNT(count_pcmd_op);
-						NEW_OP2_1(TYPE_FLT, TYPE_FLT, TYPE_INT);
+						OP2_1(TYPE_FLT, TYPE_FLT, TYPE_INT);
 						break;
 
 					case ICMD_DCMPL:
 					case ICMD_DCMPG:
 						COUNT(count_pcmd_op);
-						NEW_OP2_1(TYPE_DBL, TYPE_DBL, TYPE_INT);
+						OP2_1(TYPE_DBL, TYPE_DBL, TYPE_INT);
 						break;
 #endif
 
@@ -2412,68 +2412,68 @@ normal_DCMPG:
 					case ICMD_INT2CHAR:
 					case ICMD_INT2SHORT:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_INT, TYPE_INT);
+						OP1_1(TYPE_INT, TYPE_INT);
 						break;
 					case ICMD_LNEG:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_LNG, TYPE_LNG);
+						OP1_1(TYPE_LNG, TYPE_LNG);
 						break;
 					case ICMD_FNEG:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_FLT, TYPE_FLT);
+						OP1_1(TYPE_FLT, TYPE_FLT);
 						break;
 					case ICMD_DNEG:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_DBL, TYPE_DBL);
+						OP1_1(TYPE_DBL, TYPE_DBL);
 						break;
 
 					case ICMD_I2L:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_INT, TYPE_LNG);
+						OP1_1(TYPE_INT, TYPE_LNG);
 						break;
 					case ICMD_I2F:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_INT, TYPE_FLT);
+						OP1_1(TYPE_INT, TYPE_FLT);
 						break;
 					case ICMD_I2D:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_INT, TYPE_DBL);
+						OP1_1(TYPE_INT, TYPE_DBL);
 						break;
 					case ICMD_L2I:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_LNG, TYPE_INT);
+						OP1_1(TYPE_LNG, TYPE_INT);
 						break;
 					case ICMD_L2F:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_LNG, TYPE_FLT);
+						OP1_1(TYPE_LNG, TYPE_FLT);
 						break;
 					case ICMD_L2D:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_LNG, TYPE_DBL);
+						OP1_1(TYPE_LNG, TYPE_DBL);
 						break;
 					case ICMD_F2I:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_FLT, TYPE_INT);
+						OP1_1(TYPE_FLT, TYPE_INT);
 						break;
 					case ICMD_F2L:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_FLT, TYPE_LNG);
+						OP1_1(TYPE_FLT, TYPE_LNG);
 						break;
 					case ICMD_F2D:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_FLT, TYPE_DBL);
+						OP1_1(TYPE_FLT, TYPE_DBL);
 						break;
 					case ICMD_D2I:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_DBL, TYPE_INT);
+						OP1_1(TYPE_DBL, TYPE_INT);
 						break;
 					case ICMD_D2L:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_DBL, TYPE_LNG);
+						OP1_1(TYPE_DBL, TYPE_LNG);
 						break;
 					case ICMD_D2F:
 						COUNT(count_pcmd_op);
-						NEW_OP1_1(TYPE_DBL, TYPE_FLT);
+						OP1_1(TYPE_DBL, TYPE_FLT);
 						break;
 
 					case ICMD_CHECKCAST:
@@ -2497,19 +2497,19 @@ normal_DCMPG:
 								copy = copy->prev;
 							}
 						}
-						NEW_OP1_1(TYPE_ADR, TYPE_ADR);
+						OP1_1(TYPE_ADR, TYPE_ADR);
 						break;
 
 					case ICMD_INSTANCEOF:
 					case ICMD_ARRAYLENGTH:
 						last_pei_boundary = new;
-						NEW_OP1_1(TYPE_ADR, TYPE_INT);
+						OP1_1(TYPE_ADR, TYPE_INT);
 						break;
 
 					case ICMD_NEWARRAY:
 					case ICMD_ANEWARRAY:
 						last_pei_boundary = new;
-						NEW_OP1_1(TYPE_INT, TYPE_ADR);
+						OP1_1(TYPE_INT, TYPE_ADR);
 						break;
 
 					case ICMD_GETFIELD:
@@ -2517,7 +2517,7 @@ normal_DCMPG:
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-						NEW_OP1_1(TYPE_ADR, fmiref->parseddesc.fd->type);
+						OP1_1(TYPE_ADR, fmiref->parseddesc.fd->type);
 						break;
 
 						/* pop 0 push 1 */
@@ -2526,16 +2526,16 @@ normal_DCMPG:
  						last_pei_boundary = new;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
-						NEW_OP0_1(fmiref->parseddesc.fd->type);
+						OP0_1(fmiref->parseddesc.fd->type);
 						break;
 
 					case ICMD_NEW:
  						last_pei_boundary = new;
-						NEW_OP0_1(TYPE_ADR);
+						OP0_1(TYPE_ADR);
 						break;
 
 					case ICMD_JSR:
-						NEW_OP0_1(TYPE_ADR);
+						OP0_1(TYPE_ADR);
 
 						BRANCH_TARGET(iptr->sx.s23.s3.jsrtarget, tbptr, copy);
 
@@ -2543,7 +2543,7 @@ normal_DCMPG:
 
 						/* We need to check for overflow right here because
 						 * the pushed value is poped afterwards */
-						NEW_CHECKOVERFLOW;
+						CHECKOVERFLOW;
 
 						/* calculate stack after return */
 						POPANY;
@@ -2677,7 +2677,7 @@ icmd_BUILTIN:
 						/* push the return value */
 
 						if (md->returntype.type != TYPE_VOID) {
-							NEW_DST(md->returntype.type, stackdepth);
+							DST(md->returntype.type, stackdepth);
 							stackdepth++;
 						}
 						break;
@@ -2756,7 +2756,7 @@ icmd_BUILTIN:
 						while (--i >= 0) {
 							POPANY;
 						}
-						NEW_DST(TYPE_ADR, stackdepth);
+						DST(TYPE_ADR, stackdepth);
 						stackdepth++;
 						break;
 
@@ -2766,7 +2766,7 @@ icmd_BUILTIN:
 						return false;
 					} /* switch */
 
-					NEW_CHECKOVERFLOW;
+					CHECKOVERFLOW;
 					iptr++;
 				} /* while instructions */
 

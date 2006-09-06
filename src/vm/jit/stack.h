@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5332 2006-09-05 19:38:28Z twisti $
+   $Id: stack.h 5365 2006-09-06 10:56:43Z edwin $
 
 */
 
@@ -116,22 +116,10 @@
 
 /* XXX we should find a way to remove the opc/op1 check */
 #if defined(ENABLE_VERIFIER)
-#define NEW_CHECKOVERFLOW \
-	do { \
-		if (stackdepth > m->maxstack) \
-			if ((iptr->opc != ICMD_ACONST) || !(iptr->flags.bits & INS_FLAG_NOCHECK)) \
-				goto throw_stack_overflow; \
-	} while(0)
-#else /* !ENABLE_VERIFIER */
-#define NEW_CHECKOVERFLOW
-#endif /* ENABLE_VERIFIER */
-
-/* XXX we should find a way to remove the opc/op1 check */
-#if defined(ENABLE_VERIFIER)
 #define CHECKOVERFLOW \
 	do { \
 		if (stackdepth > m->maxstack) \
-			if ((iptr[0].opc != ICMD_ACONST) || (iptr[0].op1 == 0)) \
+			if ((iptr->opc != ICMD_ACONST) || !(iptr->flags.bits & INS_FLAG_NOCHECK)) \
 				goto throw_stack_overflow; \
 	} while(0)
 #else /* !ENABLE_VERIFIER */
