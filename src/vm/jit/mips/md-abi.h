@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.h 5388 2006-09-06 22:34:46Z twisti $
 
 */
 
@@ -69,6 +69,10 @@
 #define REG_ITMP1_XPTR  REG_ITMP1 /* exception pointer = temporary register 1 */
 #define REG_ITMP2_XPC   REG_ITMP2 /* exception pc = temporary register 2      */
 
+#define REG_A0           4   /* define some argument registers                */
+#define REG_A1           5
+#define REG_A2           6
+#define REG_A3           7
 
 /* floating point registers */
 

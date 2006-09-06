@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5381 2006-09-06 17:05:14Z twisti $
+   $Id: codegen.c 5388 2006-09-06 22:34:46Z twisti $
 
 */
 
@@ -275,17 +275,17 @@ bool codegen(jitdata *jd)
 
 		if (m->flags & ACC_STATIC) {
 			p = dseg_addaddress(cd, &m->class->object.header);
-			M_ALD(rd->argintregs[0], REG_PV, p);
+			M_ALD(REG_A0, REG_PV, p);
 		}
 		else {
-			M_BEQZ(rd->argintregs[0], 0);
+			M_BEQZ(REG_A0, 0);
 			codegen_add_nullpointerexception_ref(cd);
 		}
 
 		p = dseg_addaddress(cd, LOCK_monitor_enter);
 		M_ALD(REG_ITMP3, REG_PV, p);
 		M_JSR(REG_RA, REG_ITMP3);
-		M_AST(rd->argintregs[0], REG_SP, s1 * 8);         /* branch delay */
+		M_AST(REG_A0, REG_SP, s1 * 8);         /* branch delay */
 
 # if !defined(NDEBUG)
 		if (opt_verbosecall) {
@@ -1785,8 +1785,8 @@ bool codegen(jitdata *jd)
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 
-			M_MOV(s1, rd->argintregs[0]);
-			M_MOV(s3, rd->argintregs[1]);
+			M_MOV(s1, REG_A0);
+			M_MOV(s3, REG_A1);
 			disp = dseg_addaddress(cd, BUILTIN_canstore);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JSR(REG_RA, REG_ITMP3);
@@ -2604,19 +2604,19 @@ nowperformreturn:
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 				case ICMD_LRETURN:
-					M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
+					M_ALD(REG_A0, REG_SP, rd->memuse * 8);
 					M_JSR(REG_RA, REG_ITMP3);
 					M_LST(REG_RESULT, REG_SP, rd->memuse * 8);  /* delay slot */
 					break;
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
-					M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
+					M_ALD(REG_A0, REG_SP, rd->memuse * 8);
 					M_JSR(REG_RA, REG_ITMP3);
 					M_DST(REG_FRESULT, REG_SP, rd->memuse * 8); /* delay slot */
 					break;
 				case ICMD_RETURN:
 					M_JSR(REG_RA, REG_ITMP3);
-					M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8); /* delay*/
+					M_ALD(REG_A0, REG_SP, rd->memuse * 8); /* delay*/
 					break;
 				}
 
@@ -2837,7 +2837,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				M_BEQZ(rd->argintregs[0], 0);
+				M_BEQZ(REG_A0, 0);
 				codegen_add_nullpointerexception_ref(cd);
 				M_NOP;
 				/* fall through */
@@ -2861,7 +2861,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				gen_nullptr_check(rd->argintregs[0]);
+				gen_nullptr_check(REG_A0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
@@ -2876,14 +2876,14 @@ gen_method:
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
 
-				M_ALD(REG_METHODPTR, rd->argintregs[0],
+				M_ALD(REG_METHODPTR, REG_A0,
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 				s1 = REG_PV;
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				gen_nullptr_check(rd->argintregs[0]);
+				gen_nullptr_check(REG_A0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
@@ -2902,7 +2902,7 @@ gen_method:
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 				}
 
-				M_ALD(REG_METHODPTR, rd->argintregs[0],
+				M_ALD(REG_METHODPTR, REG_A0,
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
@@ -3107,8 +3107,8 @@ gen_method:
 				d = codegen_reg_of_dst(jd, iptr, s1);
 			}
 			else {
-				s1 = emit_load_s1(jd, iptr, rd->argintregs[0]);
-				M_INTMOVE(s1, rd->argintregs[0]);
+				s1 = emit_load_s1(jd, iptr, REG_A0);
+				M_INTMOVE(s1, REG_A0);
 
 				disp = dseg_addaddress(cd, iptr->sx.s23.s3.c.cls);
 
@@ -3122,7 +3122,7 @@ gen_method:
 					}
 				}
 
-				M_ALD(rd->argintregs[1], REG_PV, disp);
+				M_ALD(REG_A1, REG_PV, disp);
 				disp = dseg_addaddress(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_ITMP3, REG_PV, disp);
 				M_JSR(REG_RA, REG_ITMP3);
@@ -3312,7 +3312,7 @@ gen_method:
 
 			/* a0 = dimension count */
 
-			ICONST(rd->argintregs[0], iptr->s1.argcount);
+			ICONST(REG_A0, iptr->s1.argcount);
 
 			/* is patcher function set? */
 
@@ -3332,11 +3332,11 @@ gen_method:
 
 			/* a1 = arraydescriptor */
 
-			M_ALD(rd->argintregs[1], REG_PV, disp);
+			M_ALD(REG_A1, REG_PV, disp);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-			M_INTMOVE(REG_SP, rd->argintregs[2]);
+			M_INTMOVE(REG_SP, REG_A2);
 
 			disp = dseg_addaddress(cd, BUILTIN_multianewarray);
 			M_ALD(REG_ITMP3, REG_PV, disp);
@@ -3590,10 +3590,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* prepare data structures for native function call */
 
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P, rd->argintregs[0]);
-	M_MOV(REG_PV, rd->argintregs[1]);
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8, rd->argintregs[2]);
-	M_ALD(rd->argintregs[3], REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_AADD_IMM(REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P, REG_A0);
+	M_MOV(REG_PV, REG_A1);
+	M_AADD_IMM(REG_SP, cd->stackframesize * 8, REG_A2);
+	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 	disp = dseg_addaddress(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
@@ -3676,13 +3676,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	if (m->flags & ACC_STATIC) {
 		disp = dseg_addaddress(cd, m->class);
-		M_ALD(rd->argintregs[1], REG_PV, disp);
+		M_ALD(REG_A1, REG_PV, disp);
 	}
 
 	/* put env into first argument register */
 
 	disp = dseg_addaddress(cd, _Jv_env);
-	M_ALD(rd->argintregs[0], REG_PV, disp);
+	M_ALD(REG_A0, REG_PV, disp);
 
 	/* do the native function call */
 
@@ -3706,7 +3706,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P, rd->argintregs[0]);
+	M_AADD_IMM(REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P, REG_A0);
 	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
