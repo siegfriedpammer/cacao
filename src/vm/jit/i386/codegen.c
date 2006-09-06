@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5378 2006-09-06 16:30:33Z twisti $
+   $Id: codegen.c 5379 2006-09-06 16:41:26Z twisti $
 
 */
 
@@ -3518,9 +3518,7 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = (ptrint) bte->fp;
-
-				M_MOV_IMM(disp, REG_ITMP1);
+				M_MOV_IMM(bte->fp, REG_ITMP1);
 				M_CALL(REG_ITMP1);
 
 				if (INSTRUCTION_MUST_CHECK(iptr)) {
