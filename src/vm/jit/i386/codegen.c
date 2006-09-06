@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5363 2006-09-06 10:20:07Z christian $
+   $Id: codegen.c 5378 2006-09-06 16:30:33Z twisti $
 
 */
 
@@ -110,6 +110,7 @@ bool codegen(jitdata *jd)
 	exceptiontable     *ex;
 	u2                  currentline;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
+	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
@@ -3450,7 +3451,7 @@ nowperformreturn:
 		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
 
 			bte = iptr->sx.s23.s3.bte;
-			md = bte->md;
+			md  = bte->md;
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
@@ -3460,11 +3461,13 @@ nowperformreturn:
 		case ICMD_INVOKEINTERFACE:
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				md = iptr->sx.s23.s3.um->methodref->parseddesc.md;
 				lm = NULL;
+				um = iptr->sx.s23.s3.um;
+				md = um->methodref->parseddesc.md;
 			}
 			else {
 				lm = iptr->sx.s23.s3.fmiref->p.method;
+				um = NULL;
 				md = lm->parseddesc;
 			}
 
@@ -3480,28 +3483,30 @@ gen_method:
 		
 				if (src->varkind == ARGVAR)
 					continue;
+
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (!md->params[s3].inmemory) {
 						log_text("No integer argument registers available!");
 						assert(0);
-
-					} else {
+					}
+					else {
 						if (IS_2_WORD_TYPE(src->type)) {
 							d = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
 							M_LST(d, REG_SP, md->params[s3].regoff * 4);
-						} else {
+						}
+						else {
 							d = emit_load(jd, iptr, src, REG_ITMP1);
 							M_IST(d, REG_SP, md->params[s3].regoff * 4);
 						}
 					}
-
-				} else {
+				}
+				else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, src, s1);
 						M_FLTMOVE(d, s1);
-
-					} else {
+					}
+					else {
 						d = emit_load(jd, iptr, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
 							M_DST(d, REG_SP, md->params[s3].regoff * 4);
@@ -3509,16 +3514,14 @@ gen_method:
 							M_FST(d, REG_SP, md->params[s3].regoff * 4);
 					}
 				}
-			} /* end of for */
+			}
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
 				disp = (ptrint) bte->fp;
-				d = md->returntype.type;
 
 				M_MOV_IMM(disp, REG_ITMP1);
 				M_CALL(REG_ITMP1);
-
 
 				if (INSTRUCTION_MUST_CHECK(iptr)) {
 					M_TEST(REG_RESULT);
@@ -3537,8 +3540,6 @@ gen_method:
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokestatic_special,
 										um, 0);
 
@@ -3547,12 +3548,9 @@ gen_method:
 					}
 
 					disp = 0;
-					d = md->returntype.type;
 				}
-				else {
+				else
 					disp = (ptrint) lm->stubroutine;
-					d = lm->parseddesc->returntype.type;
-				}
 
 				M_MOV_IMM(disp, REG_ITMP2);
 				M_CALL(REG_ITMP2);
@@ -3563,8 +3561,6 @@ gen_method:
 				gen_nullptr_check(REG_ITMP1);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble) {
@@ -3572,13 +3568,10 @@ gen_method:
 					}
 
 					s1 = 0;
-					d = md->returntype.type;
 				}
-				else {
+				else
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
-					d = md->returntype.type;
-				}
 
 				M_ALD(REG_METHODPTR, REG_ITMP1,
 					  OFFSET(java_objectheader, vftbl));
@@ -3591,8 +3584,6 @@ gen_method:
 				gen_nullptr_check(REG_ITMP1);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble) {
@@ -3601,15 +3592,12 @@ gen_method:
 
 					s1 = 0;
 					s2 = 0;
-					d = md->returntype.type;
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
 						sizeof(methodptr) * lm->class->index;
 
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
-
-					d = md->returntype.type;
 				}
 
 				M_ALD(REG_METHODPTR, REG_ITMP1,
@@ -3620,7 +3608,9 @@ gen_method:
 				break;
 			}
 
-			/* d contains return type */
+			/* store return value */
+
+			d = md->returntype.type;
 
 			if (d != TYPE_VOID) {
 #if defined(ENABLE_SSA)
@@ -4441,7 +4431,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	s4            nativeparams;
 	s4            i, j;                 /* count variables                    */
 	s4            t;
-	s4            s1, s2, disp;
+	s4            s1, s2;
 
 	/* get required compiler data */
 
