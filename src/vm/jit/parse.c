@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5370 2006-09-06 13:46:37Z christian $
+   $Id: parse.c 5371 2006-09-06 14:01:23Z edwin $
 
 */
 
@@ -66,6 +66,86 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/loop/loop.h"
+
+#define INSTRUCTIONS_INCREMENT  5  /* number of additional instructions to    */
+                                   /* allocate if space runs out              */
+
+
+/* parserdata_t ***************************************************************/
+
+typedef struct parsedata_t parsedata_t;
+
+struct parsedata_t {
+	instruction *instructions;          /* instruction array                  */
+	s4           instructionslength;    /* length of the instruction array    */
+	u1          *instructionstart;
+};
+
+
+/* parse_setup *****************************************************************
+
+   Fills the passed parsedata_t structure.
+
+*******************************************************************************/
+
+static void parse_setup(jitdata *jd, parsedata_t *pd)
+{
+	methodinfo *m;
+
+	/* get required compiler data */
+
+	m = jd->m;
+
+	/* Allocate instruction array and block index table (1 additional
+	   for end ipc). */
+
+	jd->new_basicblockindex = DMNEW(s4, m->jcodelength + 1);
+	pd->instructionstart = DMNEW(u1, m->jcodelength + 1);
+
+	MZERO(jd->new_basicblockindex, s4, m->jcodelength + 1);
+	MZERO(pd->instructionstart, u1, m->jcodelength + 1);
+
+	/* Set the length of the instruction array.  We simply add 5 more
+	   instruction, as this seems to be a reasonable value. */
+
+	pd->instructionslength = m->jcodelength + 1;
+
+	/* allocate the instruction array */
+
+	pd->instructions = DMNEW(instruction, pd->instructionslength);
+
+	/* Zero the intermediate instructions array so we don't have any
+	   invalid pointers in it if we cannot finish stack_analyse(). */
+
+	MZERO(pd->instructions, instruction, pd->instructionslength);
+}
+
+
+/* parse_check_instructions ****************************************************
+
+   Checks if there's enough room in the instructions array for the
+   required instructions.  If not, reallocate the data structures.
+
+*******************************************************************************/
+
+static instruction *parse_check_instructions(parsedata_t *pd, s4 ipc)
+{
+	puts("REALLOCATE!");
+
+	/* increase the size of the instruction array */
+
+	pd->instructionslength += INSTRUCTIONS_INCREMENT;
+
+	/* reallocate the array */
+
+	pd->instructions = DMREALLOC(pd->instructions, instruction, ipc,
+								 pd->instructionslength);
+
+	/* return the iptr */
+
+	return pd->instructions + ipc;
+}
+
 
 /*******************************************************************************
 
