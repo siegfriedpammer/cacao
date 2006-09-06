@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5375 2006-09-06 16:01:23Z edwin $
+   $Id: stack.c 5385 2006-09-06 21:40:50Z twisti $
 
 */
 
@@ -579,88 +579,6 @@ bool new_stack_analyse(jitdata *jd)
 		NEWXSTACK;
 #endif
 	}
-
-	/* count predecessors of each block ***************************************/
-
-#if CONDITIONAL_LOADCONST
-	/* XXX move this to a separate function */
-	{
-		b_count = jd->new_basicblockcount;
-		bptr = jd->new_basicblocks;
-		for (; --b_count >= 0; bptr++) {
-			if (bptr->icount == 0)
-				continue;
-
-			/* get the last instruction of the block */
-
-			iptr = bptr->iinstr + (bptr->icount - 1);
-
-			switch (iptr->opc) {
-				/* instruction stopping control flow */
-				case ICMD_RET:
-				case ICMD_RETURN:
-				case ICMD_IRETURN:
-				case ICMD_LRETURN:
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-				case ICMD_ARETURN:
-				case ICMD_ATHROW:
-					break;
-
-					/* conditional branches */
-				case ICMD_IFEQ:
-				case ICMD_IFNE:
-				case ICMD_IFLT:
-				case ICMD_IFGE:
-				case ICMD_IFGT:
-				case ICMD_IFLE:
-				case ICMD_IFNULL:
-				case ICMD_IFNONNULL:
-				case ICMD_IF_ICMPEQ:
-				case ICMD_IF_ICMPNE:
-				case ICMD_IF_ICMPLT:
-				case ICMD_IF_ICMPGE:
-				case ICMD_IF_ICMPGT:
-				case ICMD_IF_ICMPLE:
-				case ICMD_IF_ACMPEQ:
-				case ICMD_IF_ACMPNE:
-					/* XXX add missing conditional branches */
-					bptr[1].predecessorcount++;
-					/* FALLTHROUGH */
-
-					/* unconditional branch */
-				case ICMD_GOTO:
-					BLOCK_OF(iptr->dst.insindex)->predecessorcount++;
-					break;
-
-					/* switches */
-				case ICMD_TABLESWITCH:
-					table = iptr->dst.table;
-					BLOCK_OF((table++)->insindex)->predecessorcount++;
-					i = iptr->sx.s23.s3.tablehigh
-						- iptr->sx.s23.s2.tablelow + 1;
-					while (--i >= 0) {
-						BLOCK_OF((table++)->insindex)->predecessorcount++;
-					}
-					break;
-
-				case ICMD_LOOKUPSWITCH:
-					lookup = iptr->dst.lookup;
-					BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex)->predecessorcount++;
-					i = iptr->sx.s23.s2.lookupcount;
-					while (--i >= 0) {
-						BLOCK_OF((lookup++)->target.insindex)->predecessorcount++;
-					}
-					break;
-
-					/* default - fall into next block */
-				default:
-					bptr[1].predecessorcount++;
-					break;
-			} /* end switch */
-		} /* end basic block loop */
-	}
-#endif /* CONDITIONAL_LOADCONST */
 
 	/* stack analysis loop (until fixpoint reached) **************************/
 
