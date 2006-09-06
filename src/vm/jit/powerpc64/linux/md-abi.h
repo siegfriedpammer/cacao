@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 5329 2006-09-05 18:26:32Z tbfg $
+   $Id: md-abi.h 5389 2006-09-06 23:18:27Z twisti $
 
 */
 
@@ -67,10 +67,10 @@
 
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
-#define INT_SAV_CNT     10   /* number of int callee saved registers          */
+#define INT_SAV_CNT      9   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
 #define INT_TMP_CNT      7   /* number of integer temporary registers         */
-#define INT_RES_CNT      7   /* number of integer reserved registers          */
+#define INT_RES_CNT      8   /* number of integer reserved registers          */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT     10   /* number of float callee saved registers        */

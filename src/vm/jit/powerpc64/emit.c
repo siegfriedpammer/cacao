@@ -208,11 +208,11 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	cd = jd->cd;
 	rd = jd->rd;
 
-	if ((src->regoff != dst->regoff) || 
-			((src->flags ^ dst->flags) & INMEMORY)) {
+	if ((src->regoff != dst->regoff) ||
+		((src->flags ^ dst->flags) & INMEMORY)) {
 
 		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
-		s1 = emit_load_s1(jd, iptr, src, d);
+		s1 = emit_load(jd, iptr, src, d);
 
 		if (IS_FLT_DBL_TYPE(src->type))
 			M_FLTMOVE(s1, d);

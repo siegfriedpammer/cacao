@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5357 2006-09-06 00:07:01Z edwin $
+   $Id: codegen.c 5389 2006-09-06 23:18:27Z twisti $
 
 */
 
@@ -552,37 +552,23 @@ bool codegen(jitdata *jd)
 		/* load/store operations **********************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
+		case ICMD_ALOAD:      /* s1.localindex = local variable               */
+		case ICMD_LLOAD:
 
-			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			if ((iptr->dst.var->varkind == LOCALVAR) &&
-			    (iptr->dst.var->varnum == iptr->s1.localindex))
-				break;
-			if (var->flags & INMEMORY)
-				M_ILD(d, REG_SP, var->regoff * 4);
-			else
-				M_INTMOVE(var->regoff, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_ALOAD:      /* op1 = local variable                         */
-		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable                         */
-
-			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, REG_ITMP1);
 			if ((iptr->dst.var->varkind == LOCALVAR) &&
 				(iptr->dst.var->varnum == iptr->s1.localindex))
 				break;
+			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
 			if (var->flags & INMEMORY)
-				M_LLD(d, REG_SP, var->regoff * 4);
+				M_LLD(d, REG_SP, var->regoff * 8);
 			else
 				M_LNGMOVE(var->regoff, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable                         */
+		                      /* s1.localindex = local variable               */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			if ((iptr->dst.var->varkind == LOCALVAR) &&
@@ -597,7 +583,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable                         */
+		                      /* s1.localindex = local variable               */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			if ((iptr->dst.var->varkind == LOCALVAR) &&
@@ -613,60 +599,52 @@ bool codegen(jitdata *jd)
 
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_ASTORE:     /* op1 = local variable                         */
+		case ICMD_ASTORE:     /* dst.localindex = local variable              */
+		case ICMD_LSTORE:
 
-			if ((iptr->s1.var->varkind == LOCALVAR) && (iptr->s1.var->varnum == iptr->dst.localindex))
+			if ((iptr->s1.var->varkind == LOCALVAR) &&
+				(iptr->s1.var->varnum == iptr->dst.localindex))
 				break;
 			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-				M_IST(s1, REG_SP, var->regoff * 4);
-			} else {
-				s1 = emit_load_s1(jd, iptr, var->regoff);
-				M_INTMOVE(s1, var->regoff);
+				M_LST(s1, REG_SP, var->regoff * 8);
 			}
-			break;
-
-		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable                         */
-
-			if ((iptr->s1.var->varkind == LOCALVAR) && (iptr->s1.var->varnum == iptr->dst.localindex))
-				break;
-			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (var->flags & INMEMORY) {
-				s1 = emit_load_s1(jd, iptr, iptr->s1.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-				M_LST(s1, REG_SP, var->regoff * 4);
-			} else {
+			else {
 				s1 = emit_load_s1(jd, iptr, var->regoff);
 				M_LNGMOVE(s1, var->regoff);
 			}
 			break;
 
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable                         */
+		                      /* dst.localindex = local variable              */
 
-			if ((iptr->s1.var->varkind == LOCALVAR) && (iptr->s1.var->varnum == iptr->dst.localindex))
+			if ((iptr->s1.var->varkind == LOCALVAR) &&
+				(iptr->s1.var->varnum == iptr->dst.localindex))
 				break;
 			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-				M_FST(s1, REG_SP, var->regoff * 4);
-			} else {
+				M_FST(s1, REG_SP, var->regoff * 8);
+			}
+			else {
 				s1 = emit_load_s1(jd, iptr, var->regoff);
 				M_FLTMOVE(s1, var->regoff);
 			}
 			break;
 
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable                         */
+		                      /* dst.localindex = local variable              */
 
-			if ((iptr->s1.var->varkind == LOCALVAR) && (iptr->s1.var->varnum == iptr->dst.localindex))
+			if ((iptr->s1.var->varkind == LOCALVAR) &&
+				(iptr->s1.var->varnum == iptr->dst.localindex))
 				break;
 			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-				M_DST(s1, REG_SP, var->regoff * 4);
-			} else {
+				M_DST(s1, REG_SP, var->regoff * 8);
+			}
+			else {
 				s1 = emit_load_s1(jd, iptr, var->regoff);
 				M_FLTMOVE(s1, var->regoff);
 			}
@@ -745,19 +723,17 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
-			s1 = emit_load_s1(jd, iptr, iptr->s1.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			M_SUBFIC(GET_LOW_REG(s1), 0, GET_LOW_REG(d));
-			M_SUBFZE(GET_HIGH_REG(s1), GET_HIGH_REG(d));
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_NEG(s1, d); /* XXX */
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			M_INTMOVE(s1, GET_LOW_REG(d));
-			M_SRA_IMM(GET_LOW_REG(d), 31, GET_HIGH_REG(d));
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_INTMOVE(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -804,7 +780,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -827,26 +803,16 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
-			s3 = iptr->sx.val.l & 0xffffffff;
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			if ((s3 >= -32768) && (s3 <= 32767)) {
-				M_ADDIC(s1, s3, GET_LOW_REG(d));
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			/* XXX check me */
+			if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767)) {
+				M_LADD_IMM(s1, iptr->sx.val.l, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_ADDC(s1, REG_ITMP2, GET_LOW_REG(d));
-			}
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s3 = iptr->sx.val.l >> 32;
-			if (s3 == -1) {
-				M_ADDME(s1, GET_HIGH_REG(d));
-			} else if (s3 == 0) {
-				M_ADDZE(s1, GET_HIGH_REG(d));
-			} else {
-				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
-				M_ADDE(s1, REG_ITMP3, GET_HIGH_REG(d));
+				LCONST(REG_ITMP2, iptr->sx.val.l);
+				M_LADD(s1, REG_ITMP2, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -861,52 +827,39 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_ISUBCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.i >= -32767) && (iptr->sx.val.i <= 32768)) {
 				M_IADD_IMM(s1, -iptr->sx.val.i, d);
 			} else {
-				ICONST(REG_ITMP2, -iptr->sx.val.i);
-				M_IADD(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP2, iptr->sx.val.i);
+				M_ISUB(s1, REG_ITMP2, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			M_SUBC(s1, s2, GET_LOW_REG(d));
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);   /* don't use REG_ITMP2 */
-			M_SUBE(s1, s2, GET_HIGH_REG(d));
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
+			M_LSUB(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
-			s3 = (-iptr->sx.val.l) & 0xffffffff;
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			if ((s3 >= -32768) && (s3 <= 32767)) {
-				M_ADDIC(s1, s3, GET_LOW_REG(d));
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			/* XXX check me */
+			if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767)) {
+				M_LADD_IMM(s1, -iptr->sx.val.l, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_ADDC(s1, REG_ITMP2, GET_LOW_REG(d));
-			}
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s3 = (-iptr->sx.val.l) >> 32;
-			if (s3 == -1)
-				M_ADDME(s1, GET_HIGH_REG(d));
-			else if (s3 == 0)
-				M_ADDZE(s1, GET_HIGH_REG(d));
-			else {
-				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
-				M_ADDE(s1, REG_ITMP3, GET_HIGH_REG(d));
+				LCONST(REG_ITMP2, iptr->sx.val.l);
+				M_LSUB(s1, REG_ITMP2, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -955,30 +908,22 @@ bool codegen(jitdata *jd)
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			bte = iptr->sx.s23.s3.bte;
-			md = bte->md;
 
-			s2 = emit_load_s2(jd, iptr, iptr->sx.s23.s2.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			M_OR_TST(GET_HIGH_REG(s2), GET_LOW_REG(s2), REG_ITMP3);
+			s1 = emit_load_s1(jd, iptr, rd->argintregs[0]);
+			s2 = emit_load_s2(jd, iptr, rd->argintregs[1]);
+			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+			M_TST(s2);
 			M_BEQ(0);
 			codegen_add_arithmeticexception_ref(cd);
 
+			M_INTMOVE(s1, rd->argintregs[0]);
+			M_INTMOVE(s2, rd->argintregs[1]);
 			disp = dseg_addaddress(cd, bte->fp);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_MTCTR(REG_ITMP3);
-
-			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[1].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[1].regoff)]);
-			M_LNGMOVE(s2, s3);
-
-			s1 = emit_load_s1(jd, iptr, iptr->s1.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[0].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[0].regoff)]);
-			M_LNGMOVE(s1, s3);
-
 			M_JSR;
 
-			/*d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_RESULT2, REG_RESULT));	//FIXME	*/
-			/*M_LNGMOVE(PACK_REGS(REG_RESULT2, REG_RESULT), d); FIXME*/
+			M_LNGMOVE(REG_RESULT, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -992,13 +937,13 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IMULCONST:  /* ..., value  ==> ..., value * constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767)) {
+			if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767))
 				M_IMUL_IMM(s1, iptr->sx.val.i, d);
-			} else {
+			else {
 				ICONST(REG_ITMP3, iptr->sx.val.i);
 				M_IMUL(s1, REG_ITMP3, d);
 			}
@@ -1076,16 +1021,17 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
+		case ICMD_LAND:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			M_AND(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1104,37 +1050,21 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
-
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			M_AND(s1, s2, GET_LOW_REG(d));
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);   /* don't use REG_ITMP2 */
-			M_AND(s1, s2, GET_HIGH_REG(d));
-			emit_store_dst(jd, iptr, d);
-			break;
-
 		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
-			s3 = iptr->sx.val.l & 0xffffffff;
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			if ((s3 >= 0) && (s3 <= 65535)) {
-				M_AND_IMM(s1, s3, GET_LOW_REG(d));
-			} else {
-				ICONST(REG_ITMP3, s3);
-				M_AND(s1, REG_ITMP3, GET_LOW_REG(d));
-			}
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s3 = iptr->sx.val.l >> 32;
-			if ((s3 >= 0) && (s3 <= 65535)) {
-				M_AND_IMM(s1, s3, GET_HIGH_REG(d));
-			} else {
-				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
-				M_AND(s1, REG_ITMP3, GET_HIGH_REG(d));
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 65535))
+				M_AND_IMM(s1, iptr->sx.val.l, d);
+			/*
+			else if (iptr->sx.val.l == 0xffffff) {
+				M_RLWINM(s1, 0, 8, 31, d);
+				}
+			*/
+			else {
+				LCONST(REG_ITMP3, iptr->sx.val.l);
+				M_AND(s1, REG_ITMP3, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1165,64 +1095,46 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
+		case ICMD_LOR:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			M_OR(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 65535)) {
+			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 65535))
 				M_OR_IMM(s1, iptr->sx.val.i, d);
-			} else {
+			else {
 				ICONST(REG_ITMP3, iptr->sx.val.i);
 				M_OR(s1, REG_ITMP3, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_LOR:       /* ..., val1, val2  ==> ..., val1 | val2        */
-
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			M_OR(s1, s2, GET_LOW_REG(d));
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);   /* don't use REG_ITMP2 */
-			M_OR(s1, s2, GET_HIGH_REG(d));
-			emit_store_dst(jd, iptr, d);
-			break;
-
 		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
-			s3 = iptr->sx.val.l & 0xffffffff;
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			if ((s3 >= 0) && (s3 <= 65535)) {
-				M_OR_IMM(s1, s3, GET_LOW_REG(d));
-			} else {
-				ICONST(REG_ITMP3, s3);
-				M_OR(s1, REG_ITMP3, GET_LOW_REG(d));
-			}
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s3 = iptr->sx.val.l >> 32;
-			if ((s3 >= 0) && (s3 <= 65535)) {
-				M_OR_IMM(s1, s3, GET_HIGH_REG(d));
-			} else {
-				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
-				M_OR(s1, REG_ITMP3, GET_HIGH_REG(d));
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 65535))
+				M_OR_IMM(s1, iptr->sx.val.l, d);
+			else {
+				LCONST(REG_ITMP3, iptr->sx.val.l);
+				M_OR(s1, REG_ITMP3, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
+
 
 		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
+		case ICMD_LXOR:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -1232,119 +1144,60 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 65535)) {
+			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 65535))
 				M_XOR_IMM(s1, iptr->sx.val.i, d);
-			} else {
+			else {
 				ICONST(REG_ITMP3, iptr->sx.val.i);
 				M_XOR(s1, REG_ITMP3, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
-
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			M_XOR(s1, s2, GET_LOW_REG(d));
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);   /* don't use REG_ITMP2 */
-			M_XOR(s1, s2, GET_HIGH_REG(d));
-			emit_store_dst(jd, iptr, d);
-			break;
-
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
-			s3 = iptr->sx.val.l & 0xffffffff;
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			if ((s3 >= 0) && (s3 <= 65535)) {
-				M_XOR_IMM(s1, s3, GET_LOW_REG(d));
-			} else {
-				ICONST(REG_ITMP3, s3);
-				M_XOR(s1, REG_ITMP3, GET_LOW_REG(d));
-			}
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s3 = iptr->sx.val.l >> 32;
-			if ((s3 >= 0) && (s3 <= 65535)) {
-				M_XOR_IMM(s1, s3, GET_HIGH_REG(d));
-			} else {
-				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
-				M_XOR(s1, REG_ITMP3, GET_HIGH_REG(d));
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 65535))
+				M_XOR_IMM(s1, iptr->sx.val.l, d);
+			else {
+				LCONST(REG_ITMP3, iptr->sx.val.l);
+				M_XOR(s1, REG_ITMP3, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_LCMP:       /* ..., val1, val2  ==> ..., val1 cmp val2      */
-			/*******************************************************************
-                TODO: CHANGE THIS TO A VERSION THAT WORKS !!!
-			*******************************************************************/
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP3);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			{
-				int tempreg = false;
-				int dreg;
-				u1  *br1;
 
-				if (iptr->s1.var->flags & INMEMORY) {
-					tempreg = tempreg || (d == REG_ITMP3) || (d == REG_ITMP2);
-				} else {
-					tempreg = tempreg || (d == GET_HIGH_REG(iptr->s1.var->regoff))
-						        || (d == GET_LOW_REG(iptr->s1.var->regoff));
-				}
-				if (iptr->sx.s23.s2.var->flags & INMEMORY) {
-					tempreg = tempreg || (d == REG_ITMP3) || (d == REG_ITMP2);
-				} else {
-					tempreg = tempreg || (d == GET_HIGH_REG(iptr->sx.s23.s2.var->regoff))
-                                 || (d == GET_LOW_REG(iptr->sx.s23.s2.var->regoff));
-				}
-
-				dreg = tempreg ? REG_ITMP1 : d;
-				M_IADD_IMM(REG_ZERO, 1, dreg);
-				M_CMP(s1, s2);
-				M_BGT(0);
-				br1 = cd->mcodeptr;
-				M_BLT(0);
-				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-				M_CMPU(s1, s2);
-				M_BGT(3);
-				M_BEQ(1);
-				M_IADD_IMM(dreg, -1, dreg);
-				M_IADD_IMM(dreg, -1, dreg);
-				gen_resolvebranch(br1, br1, cd->mcodeptr);
-				gen_resolvebranch(br1 + 1 * 4, br1 + 1 * 4, cd->mcodeptr - 2 * 4);
-				M_INTMOVE(dreg, d);
-			}
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
+			/* XXX implement me!!! */
 			emit_store_dst(jd, iptr, d);
+			break;
 			break;
 
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
-		                      /* s1.localindex = variable, sx.val.i = constant             */
+		                      /* s1.localindex = variable, sx.val.i = constant*/
 
 			var = &(rd->locals[iptr->s1.localindex][TYPE_INT]);
 			if (var->flags & INMEMORY) {
 				s1 = REG_ITMP1;
-				M_ILD(s1, REG_SP, var->regoff * 4);
-			} else
-				s1 = var->regoff;
-			{
-				u4 m = iptr->sx.val.i;
-				if (m & 0x8000)
-					m += 65536;
-				if (m & 0xffff0000)
-					M_ADDIS(s1, m >> 16, s1);
-				if (m & 0xffff)
-					M_IADD_IMM(s1, m & 0xffff, s1);
+				M_LLD(s1, REG_SP, var->regoff * 8);
 			}
+			else
+				s1 = var->regoff;
+
+			/* XXX implement me more efficiently */
+			ICONST(REG_ITMP2, iptr->sx.val.i);
+			M_IADD(s1, REG_ITMP2, s1);
+
 			if (var->flags & INMEMORY)
-				M_IST(s1, REG_SP, var->regoff * 4);
+				M_LST(s1, REG_SP, var->regoff * 8);
 			break;
 
 
@@ -1817,12 +1670,10 @@ bool codegen(jitdata *jd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
+			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_longarray, data[0]), REG_ITMP2);
-			M_STWX(s3, s1, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, 4, REG_ITMP2);
-			s3 = emit_load_s3_low(jd, iptr, REG_ITMP3);
+			/* XXX fix me!!! */
 			M_STWX(s3, s1, REG_ITMP2);
 			break;
 
@@ -2389,81 +2240,37 @@ bool codegen(jitdata *jd)
 
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPLT:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMP(s1, s2);
-			M_BLT(0);
-			codegen_addreference(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BLT(0);
-			codegen_addreference(cd, iptr->dst.block);
-			/* load low-bits before the branch, so we know the distance */
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BGT(2);
-			M_CMPU(s1, s2);
 			M_BLT(0);
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPGT:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMP(s1, s2);
-			M_BGT(0);
-			codegen_addreference(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BGT(0);
-			codegen_addreference(cd, iptr->dst.block);
-			/* load low-bits before the branch, so we know the distance */	
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BLT(2);
-			M_CMPU(s1, s2);
 			M_BGT(0);
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPLE:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMP(s1, s2);
-			M_BLE(0);
-			codegen_addreference(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BLT(0);
-			codegen_addreference(cd, iptr->dst.block);
-			/* load low-bits before the branch, so we know the distance */
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BGT(2);
-			M_CMPU(s1, s2);
 			M_BLE(0);
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPGE:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -2472,21 +2279,6 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 
-		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BGT(0);
-			codegen_addreference(cd, iptr->dst.block);
-			/* load low-bits before the branch, so we know the distance */
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BLT(2);
-			M_CMPU(s1, s2);
-			M_BGE(0);
-			codegen_addreference(cd, iptr->dst.block);
-			break;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
@@ -2687,7 +2479,6 @@ nowperformreturn:
 			}
 
 			M_BR(0);
-			tptr = iptr->dst.lookup;
 			codegen_addreference(cd, iptr->sx.s23.s3.lookupdefault.block);
 
 			ALIGNCODENOP;

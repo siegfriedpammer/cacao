@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5329 2006-09-05 18:26:32Z tbfg $
+   $Id: codegen.h 5389 2006-09-06 23:18:27Z twisti $
 
 */
 
@@ -155,15 +155,18 @@
 /* instruction macros *********************************************************/
 
 #define M_IADD(a,b,c)                   M_OP3(31, 266, 0, 0, c, a, b)
-#define M_LADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)
+#define M_LADD(a,b,c)                   M_OP3(31, 266, 0, 0, c, a, b) /* XXX */
 #define M_IADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)	/* XXX */
+#define M_LADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)
 #define M_ADDC(a,b,c)                   M_OP3(31, 10, 0, 0, c, a, b)
 #define M_ADDIC(a,b,c)                  M_OP2_IMM(12, c, a, b)
 #define M_ADDICTST(a,b,c)               M_OP2_IMM(13, c, a, b)
 #define M_ADDE(a,b,c)                   M_OP3(31, 138, 0, 0, c, a, b)
 #define M_ADDZE(a,b)                    M_OP3(31, 202, 0, 0, b, a, 0)
 #define M_ADDME(a,b)                    M_OP3(31, 234, 0, 0, b, a, 0)
+
 #define M_ISUB(a,b,c)                   M_OP3(31, 40, 0, 0, c, b, a)
+#define M_LSUB(a,b,c)                   M_OP3(31, 40, 0, 0, c, b, a) /* XXX */
 #define M_ISUBTST(a,b,c)                M_OP3(31, 40, 0, 1, c, b, a)
 #define M_SUBC(a,b,c)                   M_OP3(31, 8, 0, 0, c, b, a)
 #define M_SUBIC(a,b,c)                  M_OP2_IMM(8, c, b, a)
@@ -202,12 +205,14 @@
 #define M_SRL_IMM(a,b,c)                M_RLWINM(a,32-(b),b,31,c)
 #define M_ADDIS(a,b,c)                  M_OP2_IMM(15, c, a, b)
 #define M_STFIWX(a,b,c)                 M_OP3(31, 983, 0, 0, a, b, c)
+
 #define M_LWZX(a,b,c)                   M_OP3(31, 23, 0, 0, a, b, c)
 #define M_LHZX(a,b,c)                   M_OP3(31, 279, 0, 0, a, b, c)
 #define M_LHAX(a,b,c)                   M_OP3(31, 343, 0, 0, a, b, c)
 #define M_LBZX(a,b,c)                   M_OP3(31, 87, 0, 0, a, b, c)
 #define M_LFSX(a,b,c)                   M_OP3(31, 535, 0, 0, a, b, c)
 #define M_LFDX(a,b,c)                   M_OP3(31, 599, 0, 0, a, b, c)
+
 #define M_STWX(a,b,c)                   M_OP3(31, 151, 0, 0, a, b, c)
 #define M_STHX(a,b,c)                   M_OP3(31, 407, 0, 0, a, b, c)
 #define M_STBX(a,b,c)                   M_OP3(31, 215, 0, 0, a, b, c)
