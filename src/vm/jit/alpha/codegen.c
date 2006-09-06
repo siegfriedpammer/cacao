@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5377 2006-09-06 16:24:46Z twisti $
+   $Id: codegen.c 5387 2006-09-06 22:16:48Z twisti $
 
 */
 
@@ -273,14 +273,14 @@ bool codegen(jitdata *jd)
 
 		if (m->flags & ACC_STATIC) {
 			disp = dseg_add_address(cd, &m->class->object.header);
-			M_ALD(rd->argintregs[0], REG_PV, disp);
+			M_ALD(REG_A0, REG_PV, disp);
 		}
 		else {
-			M_BEQZ(rd->argintregs[0], 0);
+			M_BEQZ(REG_A0, 0);
 			codegen_add_nullpointerexception_ref(cd);
 		}
 
-		M_AST(rd->argintregs[0], REG_SP, s1 * 8);
+		M_AST(REG_A0, REG_SP, s1 * 8);
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
 		M_ALD(REG_PV, REG_PV, disp);
 		M_JSR(REG_RA, REG_PV);
@@ -839,8 +839,8 @@ bool codegen(jitdata *jd)
 			M_BEQZ(s2, 0);
 			codegen_add_arithmeticexception_ref(cd);
 
-			M_MOV(s1, rd->argintregs[0]);
-			M_MOV(s2, rd->argintregs[1]);
+			M_MOV(s1, REG_A0);
+			M_MOV(s2, REG_A1);
 			bte = iptr->sx.s23.s3.bte;
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_ALD(REG_PV, REG_PV, disp);
@@ -857,14 +857,14 @@ bool codegen(jitdata *jd)
 
 			bte = iptr->sx.s23.s3.bte;
 
-			s1 = emit_load_s1(jd, iptr, rd->argintregs[0]);
-			s2 = emit_load_s2(jd, iptr, rd->argintregs[1]);
+			s1 = emit_load_s1(jd, iptr, REG_A0);
+			s2 = emit_load_s2(jd, iptr, REG_A1);
 			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
 			M_BEQZ(s2, 0);
 			codegen_add_arithmeticexception_ref(cd);
 
-			M_INTMOVE(s1, rd->argintregs[0]);
-			M_INTMOVE(s2, rd->argintregs[1]);
+			M_INTMOVE(s1, REG_A0);
+			M_INTMOVE(s2, REG_A1);
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
@@ -1844,16 +1844,17 @@ bool codegen(jitdata *jd)
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s1 = emit_load_s1(jd, iptr, REG_A0);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+			s3 = emit_load_s3(jd, iptr, REG_A1);
 
-			M_MOV(s1, rd->argintregs[0]);
-			M_MOV(s3, rd->argintregs[1]);
+			M_INTMOVE(s1, REG_A0);
+			M_INTMOVE(s3, REG_A1);
+
 			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
@@ -2690,7 +2691,7 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
+				M_ALD(REG_A0, REG_SP, rd->memuse * 8);
 
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
@@ -2910,7 +2911,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				M_BEQZ(rd->argintregs[0], 0);
+				M_BEQZ(REG_A0, 0);
 				codegen_add_nullpointerexception_ref(cd);
 				/* fall through */
 
@@ -2931,7 +2932,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				gen_nullptr_check(rd->argintregs[0]);
+				gen_nullptr_check(REG_A0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
@@ -2945,13 +2946,13 @@ gen_method:
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
 
-				M_ALD(REG_METHODPTR, rd->argintregs[0],
+				M_ALD(REG_METHODPTR, REG_A0,
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				gen_nullptr_check(rd->argintregs[0]);
+				gen_nullptr_check(REG_A0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
@@ -2969,7 +2970,7 @@ gen_method:
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 				}
 					
-				M_ALD(REG_METHODPTR, rd->argintregs[0],
+				M_ALD(REG_METHODPTR, REG_A0,
 					  OFFSET(java_objectheader, vftbl));    
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
@@ -3164,8 +3165,8 @@ gen_method:
 			else {
 				/* array type cast-check */
 
-				s1 = emit_load_s1(jd, iptr, rd->argintregs[0]);
-				M_INTMOVE(s1, rd->argintregs[0]);
+				s1 = emit_load_s1(jd, iptr, REG_A0);
+				M_INTMOVE(s1, REG_A0);
 
 				disp = dseg_addaddress(cd, iptr->sx.s23.s3.c.cls);
 
@@ -3179,7 +3180,7 @@ gen_method:
 						M_NOP;
 				}
 
-				M_ALD(rd->argintregs[1], REG_PV, disp);
+				M_ALD(REG_A1, REG_PV, disp);
 				disp = dseg_addaddress(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_PV, REG_PV, disp);
 				M_JSR(REG_RA, REG_PV);
@@ -3366,7 +3367,7 @@ gen_method:
 
 			/* a0 = dimension count */
 
-			ICONST(rd->argintregs[0], iptr->s1.argcount);
+			ICONST(REG_A0, iptr->s1.argcount);
 
 			/* is patcher function set? */
 
@@ -3385,11 +3386,11 @@ gen_method:
 
 			/* a1 = arraydescriptor */
 
-			M_ALD(rd->argintregs[1], REG_PV, disp);
+			M_ALD(REG_A1, REG_PV, disp);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-			M_INTMOVE(REG_SP, rd->argintregs[2]);
+			M_INTMOVE(REG_SP, REG_A2);
 
 			disp = dseg_add_functionptr(cd, BUILTIN_multianewarray);
 			M_ALD(REG_PV, REG_PV, disp);
@@ -3627,10 +3628,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* prepare data structures for native function call */
 
-	M_LDA(rd->argintregs[0], REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
-	M_MOV(REG_PV, rd->argintregs[1]);
-	M_LDA(rd->argintregs[2], REG_SP, cd->stackframesize * 8);
-	M_ALD(rd->argintregs[3], REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_LDA(REG_A0, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_MOV(REG_PV, REG_A1);
+	M_LDA(REG_A2, REG_SP, cd->stackframesize * 8);
+	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
@@ -3710,13 +3711,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	if (m->flags & ACC_STATIC) {
 		disp = dseg_add_address(cd, m->class);
-		M_ALD(rd->argintregs[1], REG_PV, disp);
+		M_ALD(REG_A1, REG_PV, disp);
 	}
 
 	/* put env into first argument register */
 
 	disp = dseg_add_address(cd, _Jv_env);
-	M_ALD(rd->argintregs[0], REG_PV, disp);
+	M_ALD(REG_A0, REG_PV, disp);
 
 	/* do the native function call */
 
@@ -3743,7 +3744,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	M_LDA(rd->argintregs[0], REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_LDA(REG_A0, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.h 5387 2006-09-06 22:16:48Z twisti $
 
 */
 
@@ -55,6 +55,11 @@
 
 #define REG_SP          30   /* stack pointer                                 */
 #define REG_ZERO        31   /* always zero                                   */
+
+#define REG_A0          16   /* define some argument registers                */
+#define REG_A1          17
+#define REG_A2          18
+#define REG_A3          19
 
 /* floating point registers */
 
