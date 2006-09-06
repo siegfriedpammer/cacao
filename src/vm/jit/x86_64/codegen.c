@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5380 2006-09-06 16:43:28Z twisti $
+   $Id: codegen.c 5386 2006-09-06 21:56:21Z twisti $
 
 */
 
@@ -286,15 +286,15 @@ bool codegen(jitdata *jd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			M_MOV_IMM(&m->class->object.header, rd->argintregs[0]);
+			M_MOV_IMM(&m->class->object.header, REG_A0);
 		}
 		else {
-			M_TEST(rd->argintregs[0]);
+			M_TEST(REG_A0);
 			M_BEQ(0);
 			codegen_add_nullpointerexception_ref(cd);
 		}
 
-		M_AST(rd->argintregs[0], REG_SP, s1 * 8);
+		M_AST(REG_A0, REG_SP, s1 * 8);
 		M_MOV_IMM(LOCK_monitor_enter, REG_ITMP1);
 		M_CALL(REG_ITMP1);
 
@@ -1987,8 +1987,8 @@ bool codegen(jitdata *jd)
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 
-			M_MOV(s1, rd->argintregs[0]);
-			M_MOV(s3, rd->argintregs[1]);
+			M_MOV(s1, REG_A0);
+			M_MOV(s3, REG_A1);
 			M_MOV_IMM(BUILTIN_canstore, REG_ITMP1);
 			M_CALL(REG_ITMP1);
 			M_TEST(REG_RESULT);
@@ -2785,7 +2785,7 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
+				M_ALD(REG_A0, REG_SP, rd->memuse * 8);
 	
 				/* we need to save the proper return value */
 				switch (iptr->opc) {
@@ -2993,7 +2993,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				M_TEST(rd->argintregs[0]);
+				M_TEST(REG_A0);
 				M_BEQ(0);
 				codegen_add_nullpointerexception_ref(cd);
 
@@ -3031,7 +3031,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				gen_nullptr_check(rd->argintregs[0]);
+				gen_nullptr_check(REG_A0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
@@ -3046,14 +3046,14 @@ gen_method:
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
 
-				M_ALD(REG_METHODPTR, rd->argintregs[0],
+				M_ALD(REG_METHODPTR, REG_A0,
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
 				M_CALL(REG_ITMP3);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				gen_nullptr_check(rd->argintregs[0]);
+				gen_nullptr_check(REG_A0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
@@ -3072,7 +3072,7 @@ gen_method:
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 				}
 
-				M_ALD(REG_METHODPTR, rd->argintregs[0],
+				M_ALD(REG_METHODPTR, REG_A0,
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
@@ -3301,7 +3301,7 @@ gen_method:
 				/* array type cast-check */
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
-				M_INTMOVE(s1, rd->argintregs[0]);
+				M_INTMOVE(s1, REG_A0);
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					codegen_addpatchref(cd, PATCHER_builtin_arraycheckcast,
@@ -3312,7 +3312,7 @@ gen_method:
 					}
 				}
 
-				M_MOV_IMM(iptr->sx.s23.s3.c.cls, rd->argintregs[1]);
+				M_MOV_IMM(iptr->sx.s23.s3.c.cls, REG_A1);
 				M_MOV_IMM(BUILTIN_arraycheckcast, REG_ITMP1);
 				M_CALL(REG_ITMP1);
 
@@ -3539,15 +3539,15 @@ gen_method:
 
 			/* a0 = dimension count */
 
-			M_MOV_IMM(iptr->s1.argcount, rd->argintregs[0]);
+			M_MOV_IMM(iptr->s1.argcount, REG_A0);
 
 			/* a1 = classinfo */
 
-			M_MOV_IMM(iptr->sx.s23.s3.c.cls, rd->argintregs[1]);
+			M_MOV_IMM(iptr->sx.s23.s3.c.cls, REG_A1);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-			M_MOV(REG_SP, rd->argintregs[2]);
+			M_MOV(REG_SP, REG_A2);
 
 			M_MOV_IMM(BUILTIN_multianewarray, REG_ITMP1);
 			M_CALL(REG_ITMP1);
@@ -3801,10 +3801,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create dynamic stack info */
 
-	M_ALEA(REG_SP, cd->stackframesize * 8, rd->argintregs[0]);
-	emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), rd->argintregs[1]);
-	M_ALEA(REG_SP, cd->stackframesize * 8 + SIZEOF_VOID_P, rd->argintregs[2]);
-	M_ALD(rd->argintregs[3], REG_SP, cd->stackframesize * 8);
+	M_ALEA(REG_SP, cd->stackframesize * 8, REG_A0);
+	emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), REG_A1);
+	M_ALEA(REG_SP, cd->stackframesize * 8 + SIZEOF_VOID_P, REG_A2);
+	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8);
 	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
@@ -3873,11 +3873,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* put class into second argument register */
 
 	if (m->flags & ACC_STATIC)
-		M_MOV_IMM(m->class, rd->argintregs[1]);
+		M_MOV_IMM(m->class, REG_A1);
 
 	/* put env into first argument register */
 
-	M_MOV_IMM(_Jv_env, rd->argintregs[0]);
+	M_MOV_IMM(_Jv_env, REG_A0);
 
 	/* do the native function call */
 
@@ -3899,7 +3899,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	M_ALEA(REG_SP, cd->stackframesize * 8, rd->argintregs[0]);
+	M_ALEA(REG_SP, cd->stackframesize * 8, REG_A0);
 	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 	M_MOV(REG_RESULT, REG_ITMP3);

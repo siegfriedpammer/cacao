@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 4794 2006-04-20 10:42:01Z twisti $
+   $Id: md-abi.h 5386 2006-09-06 21:56:21Z twisti $
 
 */
 
@@ -94,6 +94,11 @@
 #define REG_ITMP2_XPC   REG_ITMP2/* exception pc = temporary register 2       */
 
 #define REG_SP          RSP      /* stack pointer                             */
+
+#define REG_A0          RDI      /* define some argument registers            */
+#define REG_A1          RSI
+#define REG_A2          RDX
+#define REG_A3          RCX
 
 /* floating point registers */
 
