@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5315 2006-09-05 11:53:11Z edwin $
+   $Id: emit.c 5364 2006-09-06 10:48:06Z edwin $
 
 */
 
@@ -62,7 +62,7 @@
 
 *******************************************************************************/
 
-s4 emit_load(jitdata *jd, new_instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -104,7 +104,7 @@ s4 emit_load(jitdata *jd, new_instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s1(jitdata *jd, new_instruction *iptr, s4 tempreg)
+s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	codegendata  *cd;
 	stackptr      src;
@@ -148,7 +148,7 @@ s4 emit_load_s1(jitdata *jd, new_instruction *iptr, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s2(jitdata *jd, new_instruction *iptr, s4 tempreg)
+s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	codegendata  *cd;
 	stackptr      src;
@@ -192,7 +192,7 @@ s4 emit_load_s2(jitdata *jd, new_instruction *iptr, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_s3(jitdata *jd, new_instruction *iptr, s4 tempreg)
+s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 {
 	codegendata  *cd;
 	stackptr      src;
@@ -239,7 +239,7 @@ s4 emit_load_s3(jitdata *jd, new_instruction *iptr, s4 tempreg)
     
 *******************************************************************************/
 
-inline void emit_store(jitdata *jd, new_instruction *iptr, stackptr dst, s4 d)
+inline void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 {
 	codegendata  *cd;
 	registerdata *rd;
@@ -303,7 +303,7 @@ inline void emit_store(jitdata *jd, new_instruction *iptr, stackptr dst, s4 d)
     
 *******************************************************************************/
 
-void emit_store_dst(jitdata *jd, new_instruction *iptr, s4 d)
+void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 {
 	emit_store(jd, iptr, iptr->dst.var, d);
 }
@@ -315,7 +315,7 @@ void emit_store_dst(jitdata *jd, new_instruction *iptr, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, new_instruction *iptr, stackptr src, stackptr dst)
+void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 {
 	codegendata  *cd;
 	registerdata *rd;
@@ -343,7 +343,7 @@ void emit_copy(jitdata *jd, new_instruction *iptr, stackptr src, stackptr dst)
 }
 
 
-void emit_cmovxx(codegendata *cd, new_instruction *iptr, s4 s, s4 d)
+void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
 {
 #if 0
 	switch (iptr->flags.fields.condition) {
@@ -800,7 +800,7 @@ static void emit_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 index
 }
 
 
-void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, new_instruction *iptr)
+void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 {
 	s4 s1 = iptr->s1.var->regoff;
 	s4 s2 = iptr->sx.s23.s2.var->regoff;
@@ -916,7 +916,7 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, new_instruction *ip
 }
 
 
-void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, new_instruction *iptr)
+void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 {
 	s4 s1 = iptr->s1.var->regoff;
 	s4 s2 = iptr->sx.s23.s2.var->regoff;

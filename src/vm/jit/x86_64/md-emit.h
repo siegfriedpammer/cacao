@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 5315 2006-09-05 11:53:11Z edwin $
+   $Id: md-emit.h 5364 2006-09-06 10:48:06Z edwin $
 
 */
 
@@ -184,13 +184,13 @@ typedef union {
 
 /* function prototypes ********************************************************/
 
-void emit_cmovxx(codegendata *cd, new_instruction *iptr, s4 s, s4 d);
+void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d);
 
 
 /* code generation prototypes */
 
-void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, new_instruction *iptr);
-void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, new_instruction *iptr);
+void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
+void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
 
 
 /* integer instructions */

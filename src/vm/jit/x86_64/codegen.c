@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5341 2006-09-05 21:16:30Z twisti $
+   $Id: codegen.c 5364 2006-09-06 10:48:06Z edwin $
 
 */
 
@@ -100,7 +100,7 @@ bool codegen(jitdata *jd)
 	stackptr            src;
 	varinfo            *var;
 	basicblock         *bptr;
-	new_instruction    *iptr;
+	instruction        *iptr;
 	exceptiontable     *ex;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
