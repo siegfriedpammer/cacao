@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5370 2006-09-06 13:46:37Z christian $
+   $Id: stack.h 5375 2006-09-06 16:01:23Z edwin $
 
 */
 
@@ -119,7 +119,7 @@
 #define CHECKOVERFLOW \
 	do { \
 		if (stackdepth > m->maxstack) \
-			if ((iptr->opc != ICMD_ACONST) || !(iptr->flags.bits & INS_FLAG_NOCHECK)) \
+			if ((iptr->opc != ICMD_ACONST) || INSTRUCTION_MUST_CHECK(iptr)) \
 				goto throw_stack_overflow; \
 	} while(0)
 #else /* !ENABLE_VERIFIER */

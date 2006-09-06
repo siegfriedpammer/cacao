@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5370 2006-09-06 13:46:37Z christian $
+   $Id: stack.c 5375 2006-09-06 16:01:23Z edwin $
 
 */
 
@@ -767,7 +767,7 @@ bool new_stack_analyse(jitdata *jd)
 
 						if (bte && bte->opcode == opcode) {
 							iptr->opc           = ICMD_BUILTIN;
-							iptr->flags.bits    = INS_FLAG_NOCHECK;
+							iptr->flags.bits    = 0;
 							iptr->sx.s23.s3.bte = bte;
 							/* iptr->line is already set */
 							jd->isleafmethod = false;
@@ -1102,15 +1102,19 @@ icmd_NOP:
 								switch (iptr[1].opc) {
 									case ICMD_IASTORE:
 										iptr->opc = ICMD_IASTORECONST;
+										iptr->flags.bits |= INS_FLAG_CHECK;
 										break;
 									case ICMD_BASTORE:
 										iptr->opc = ICMD_BASTORECONST;
+										iptr->flags.bits |= INS_FLAG_CHECK;
 										break;
 									case ICMD_CASTORE:
 										iptr->opc = ICMD_CASTORECONST;
+										iptr->flags.bits |= INS_FLAG_CHECK;
 										break;
 									case ICMD_SASTORE:
 										iptr->opc = ICMD_SASTORECONST;
+										iptr->flags.bits |= INS_FLAG_CHECK;
 										break;
 								}
 
@@ -1470,6 +1474,7 @@ normal_ICONST:
 								iptr->sx.s23.s3.constval = iptr->sx.val.l;
 
 								iptr->opc = ICMD_LASTORECONST;
+								iptr->flags.bits |= INS_FLAG_CHECK;
 								OP2_0(TYPE_ADR, TYPE_INT);
 
 								iptr[1].opc = ICMD_NOP;
@@ -1547,6 +1552,7 @@ normal_LCONST:
 								/* copy the constant (NULL) to s3 */
 								iptr->sx.s23.s3.constval = 0;
 								iptr->opc = ICMD_AASTORECONST;
+								iptr->flags.bits |= INS_FLAG_CHECK;
 								OP2_0(TYPE_ADR, TYPE_INT);
 
 								iptr[1].opc = ICMD_NOP;
@@ -1608,6 +1614,7 @@ normal_ACONST:
 					case ICMD_DALOAD:
 					case ICMD_AALOAD:
 						last_pei_boundary = new;
+						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1619,6 +1626,7 @@ normal_ACONST:
 					case ICMD_CALOAD:
 					case ICMD_SALOAD:
 						last_pei_boundary = new;
+						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1783,6 +1791,7 @@ store_tail:
 
 					case ICMD_AASTORE:
 						last_pei_boundary = new;
+						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1812,6 +1821,7 @@ store_tail:
 					case ICMD_FASTORE:
 					case ICMD_DASTORE:
 						last_pei_boundary = new;
+						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1823,6 +1833,7 @@ store_tail:
 					case ICMD_CASTORE:
 					case ICMD_SASTORE:
 						last_pei_boundary = new;
+						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);

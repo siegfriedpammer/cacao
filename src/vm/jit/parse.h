@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5374 2006-09-06 15:22:35Z edwin $
+   $Id: parse.h 5375 2006-09-06 16:01:23Z edwin $
 
 */
 
@@ -129,10 +129,13 @@
     iptr->opc                = (o);                                    \
     iptr->line               = currentline;
 
-#define OP_PREPARE_ZEROFLAGS(o)                                        \
+#define OP_PREPARE_FLAGS(o, f)                                         \
     iptr->opc                = (o);                                    \
     iptr->line               = currentline;                            \
-    iptr->flags.bits         = 0;
+    iptr->flags.bits         = (f);
+
+#define OP_PREPARE_ZEROFLAGS(o)                                        \
+	OP_PREPARE_FLAGS(o, 0)
 
 #define OP(o)                                                          \
 	OP_PREPARE_ZEROFLAGS(o);                                           \
@@ -159,19 +162,19 @@
     PINC
 
 #define OP_LOADCONST_NULL()                                            \
-	OP_PREPARE_ZEROFLAGS(ICMD_ACONST);                                 \
+	OP_PREPARE_FLAGS(ICMD_ACONST, INS_FLAG_CHECK);                     \
     iptr->sx.val.anyptr      = NULL;                                   \
     PINC
 
 #define OP_LOADCONST_STRING(v)                                         \
-	OP_PREPARE_ZEROFLAGS(ICMD_ACONST);                                 \
+	OP_PREPARE_FLAGS(ICMD_ACONST, INS_FLAG_CHECK);                     \
     iptr->sx.val.stringconst = (v);                                    \
     PINC
 
-#define OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, extraflags)          \
+#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS(cl, cr, extraflags)   \
 	OP_PREPARE(ICMD_ACONST);                                           \
-    if (c) {                                                           \
-        iptr->sx.val.c.cls   = (c);                                    \
+    if (cl) {                                                          \
+        iptr->sx.val.c.cls   = (cl);                                   \
         iptr->flags.bits     = INS_FLAG_CLASS | (extraflags);          \
     }                                                                  \
     else {                                                             \
@@ -180,6 +183,12 @@
                              | (extraflags);                           \
     }                                                                  \
     PINC
+
+#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_CHECK(c, cr)                \
+	OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS((c), (cr), INS_FLAG_CHECK)
+
+#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr)              \
+	OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS((c), (cr), 0)
 
 #define OP_S3_CLASSINFO_OR_CLASSREF(o, c, cr, extraflags)              \
 	OP_PREPARE(o);                                                     \
@@ -283,20 +292,19 @@
 
 #define OP_BUILTIN_CHECK_EXCEPTION(bte)                                \
     jd->isleafmethod         = false;                                  \
-	OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                                \
+	OP_PREPARE_FLAGS(ICMD_BUILTIN, INS_FLAG_CHECK);                    \
     iptr->sx.s23.s3.bte      = (bte);                                  \
     PINC
 
 #define OP_BUILTIN_NO_EXCEPTION(bte)                                   \
     jd->isleafmethod         = false;                                  \
-	OP_PREPARE(ICMD_BUILTIN);                                          \
+	OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                                \
     iptr->sx.s23.s3.bte      = (bte);                                  \
-    iptr->flags.bits         = INS_FLAG_NOCHECK;                       \
     PINC
 
 #define OP_BUILTIN_ARITHMETIC(opcode, bte)                             \
     jd->isleafmethod         = false;                                  \
-	OP_PREPARE_ZEROFLAGS(opcode);                                      \
+	OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);                          \
     iptr->sx.s23.s3.bte      = (bte);                                  \
     PINC
 

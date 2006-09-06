@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5353 2006-09-05 23:07:08Z twisti $
+   $Id: builtin.c 5375 2006-09-06 16:01:23Z edwin $
 
 */
 
@@ -352,9 +352,9 @@ bool builtintable_replace_function(instruction *iptr)
 			iptr->opc   = bte->opcode;
 			iptr->sx.s23.s3.bte = bte;
 			if (bte->checkexception)
-				iptr->flags.bits &= ~INS_FLAG_NOCHECK;
+				iptr->flags.bits |= INS_FLAG_CHECK;
 			else
-				iptr->flags.bits |= INS_FLAG_NOCHECK;
+				iptr->flags.bits &= ~INS_FLAG_CHECK;
 
 			return true;
 		}

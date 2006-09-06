@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5370 2006-09-06 13:46:37Z christian $
+   $Id: jit.h 5375 2006-09-06 16:01:23Z edwin $
 
 */
 
@@ -301,7 +301,8 @@ typedef union {
 #define INS_FLAG_UNRESOLVED    0x01    /* contains unresolved field/meth/class*/
 #define INS_FLAG_CLASS         0x02    /* for ACONST with class               */
 #define INS_FLAG_ARRAY         0x04    /* for CHECKCAST/INSTANCEOF with array */
-#define INS_FLAG_NOCHECK       0x08
+#define INS_FLAG_CHECK         0x08    /* for *ALOAD|*ASTORE: check index     */
+                                       /* for BUILTIN: check exception        */
 
 typedef union {
     u4                  bits;
@@ -362,7 +363,7 @@ struct instruction {
 	((iptr)->flags.bits & INS_FLAG_UNRESOLVED)
 
 #define INSTRUCTION_MUST_CHECK(iptr) \
-	(!((iptr)->flags.bits & INS_FLAG_NOCHECK))
+	((iptr)->flags.bits & INS_FLAG_CHECK)
 
 #define INSTRUCTION_GET_FIELDREF(iptr,fref) \
 	do { \

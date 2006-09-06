@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5374 2006-09-06 15:22:35Z edwin $
+   $Id: parse.c 5375 2006-09-06 16:01:23Z edwin $
 
 */
 
@@ -447,7 +447,7 @@ fetch_opcode:
 
 				/* if not resolved, c == NULL */
 
-				OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, 0 /* no extra flags */);
+				OP_LOADCONST_CLASSINFO_OR_CLASSREF_CHECK(c, cr);
 
 				break;
 
@@ -694,7 +694,7 @@ fetch_opcode:
 				return false;
 
 			INSTRUCTIONS_CHECK(2);
-			OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
+			OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr);
 			bte = builtintable_get_internal(BUILTIN_newarray);
 			OP_BUILTIN_CHECK_EXCEPTION(bte);
 			s_count++;
@@ -1071,7 +1071,7 @@ invoke_method:
 				return false;
 
 			INSTRUCTIONS_CHECK(2);
-			OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
+			OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr);
 			bte = builtintable_get_internal(BUILTIN_new);
 			OP_BUILTIN_CHECK_EXCEPTION(bte);
 			s_count++;
@@ -1110,7 +1110,7 @@ invoke_method:
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
 				INSTRUCTIONS_CHECK(2);
-				OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, INS_FLAG_NOCHECK);
+				OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr);
 				bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
 				OP_BUILTIN_NO_EXCEPTION(bte);
 				s_count++;
