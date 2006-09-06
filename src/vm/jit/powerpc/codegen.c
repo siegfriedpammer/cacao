@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5354 2006-09-05 23:08:01Z twisti $
+   $Id: codegen.c 5369 2006-09-06 12:37:19Z twisti $
 
 */
 
@@ -915,11 +915,11 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.i >= -32767) && (iptr->sx.val.i <= 32768)) {
+			if ((iptr->sx.val.i >= -32767) && (iptr->sx.val.i <= 32768))
 				M_IADD_IMM(s1, -iptr->sx.val.i, d);
-			} else {
-				ICONST(REG_ITMP2, -iptr->sx.val.i);
-				M_IADD(s1, REG_ITMP2, d);
+			else {
+				ICONST(REG_ITMP2, iptr->sx.val.i);
+				M_ISUB(s1, REG_ITMP2, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
