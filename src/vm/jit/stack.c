@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5358 2006-09-06 00:18:21Z christian $
+   $Id: stack.c 5359 2006-09-06 09:57:21Z edwin $
 
 */
 
@@ -386,12 +386,11 @@ bool new_stack_analyse(jitdata *jd)
 	instruction  *iptr;           /* the current instruction                  */
 	basicblock   *bptr;           /* the current basic block                  */
 	basicblock   *tbptr;
-	s4           *last_store;     /* instruction index of last XSTORE         */
-	                              /* [ local_index * 5 + type ]               */
-	s4            last_pei;       /* ins. index of last possible exception    */
-	                              /* used for conflict resolution for copy    */
-                                  /* elimination (XLOAD, IINC, XSTORE)        */
-	s4            last_dupx;
+
+	stackptr     *last_store_boundary;
+	stackptr      last_pei_boundary;
+	stackptr      last_dup_boundary;
+
 	branch_target_t *table;
 	lookup_target_t *lookup;
 #if defined(ENABLE_VERIFIER)
@@ -423,7 +422,7 @@ bool new_stack_analyse(jitdata *jd)
 	iteration_count = 0;
 #endif
 
-	last_store = DMNEW(s4 , cd->maxlocals * 5);
+	last_store_boundary = DMNEW(stackptr , cd->maxlocals);
 
 	/* initialize in-stack of first block */
 
@@ -596,11 +595,10 @@ bool new_stack_analyse(jitdata *jd)
 
 				/* reset variables for dependency checking */
 
-				last_pei = -1;
-				last_dupx = -1;
+				last_pei_boundary = new;
+				last_dup_boundary = new;
 				for( i = 0; i < cd->maxlocals; i++)
-					for( j = 0; j < 5; j++)
-						last_store[5 * i + j] = -1;
+					last_store_boundary[i] = new;
 
 				/* XXX store the start of the block's stack representation */
 
@@ -651,6 +649,7 @@ icmd_NOP:
 						break;
 
 					case ICMD_CHECKNULL:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						USE_S1(TYPE_ADR);
 						CLR_SX;
@@ -1384,6 +1383,7 @@ normal_LCONST:
 	/************************** ACONST OPTIMIZATIONS **************************/
 
 					case ICMD_ACONST:
+						last_pei_boundary = new;
 						COUNT(count_pcmd_load);
 #if SUPPORT_CONST_STORE
 						IF_INTRP( goto normal_ACONST; )
@@ -1460,6 +1460,7 @@ normal_ACONST:
 					case ICMD_FALOAD:
 					case ICMD_DALOAD:
 					case ICMD_AALOAD:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1470,6 +1471,7 @@ normal_ACONST:
 					case ICMD_BALOAD:
 					case ICMD_CALOAD:
 					case ICMD_SALOAD:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1484,7 +1486,7 @@ normal_ACONST:
 						/* for new vars */
 /* 						iptr->s1.localindex = jd->local_map[iptr->s1.localindex * 5 + i]; */
 
-						last_store[5 * iptr->s1.localindex + TYPE_INT] = bptr->icount - len - 1;
+						last_store_boundary[iptr->s1.localindex] = new;
 
 						copy = curstack;
 						i = stackdepth - 1;
@@ -1512,11 +1514,12 @@ normal_ACONST:
 						REQUIRE_1;
 
 						i = opcode - ICMD_ISTORE; /* type */
+ 						j = iptr->dst.localindex; /* index */
 
 						/* for new vars */
-/* 						iptr->s1.localindex = jd->local_map[iptr->s1.localindex * 5 + i]; */
+/* 						iptr->dst.localindex = jd->local_map[iptr->dst.localindex * 5 + i]; */
 
-						IF_NO_INTRP( rd->locals[iptr->dst.localindex][i].type = i; )
+						IF_NO_INTRP( rd->locals[j][i].type = i; )
 
 #if defined(ENABLE_STATISTICS)
 						if (opt_stat) {
@@ -1534,11 +1537,12 @@ normal_ACONST:
 						}
 #endif
 						/* check for conflicts as described in Figure 5.2 */
+
 						copy = curstack->prev;
 						i = stackdepth - 2;
 						while (copy) {
 							if ((copy->varkind == LOCALVAR) &&
-								(copy->varnum == iptr->dst.localindex))
+								(copy->varnum == j))
 							{
 								copy->varkind = TEMPVAR;
 								copy->varnum = i;
@@ -1547,21 +1551,61 @@ normal_ACONST:
 							copy = copy->prev;
 						}
 
+						/* if the variable is already coalesced, don't bother */
+
+						if (curstack->varkind == STACKVAR
+							|| (curstack->varkind == LOCALVAR && curstack->varnum != j))
+							goto store_tail;
+
+						/* there is no STORE Lj while curstack is live */
+
+						if (curstack < last_store_boundary[j])
+							goto assume_conflict;
+
+						/* there is no PEI while curstack is live */
+
+						if (curstack < last_pei_boundary)
+							goto assume_conflict;
+
+						/* there is no non-consuming USE while curstack is live */
+
+						if (curstack < last_dup_boundary)
+							goto assume_conflict;
+
+						/* there is no DEF LOCALVAR(j) while curstack is live */
+
+						copy = new; /* most recent stackslot created + 1 */
+						while (--copy > curstack) {
+							if (copy->varkind == LOCALVAR && copy->varnum == j)
+								goto assume_conflict;
+						}
+
+						/* coalesce the temporary variable with Lj */
+
+						curstack->varkind = LOCALVAR;
+						curstack->varnum = j;
+						goto store_tail;
+
+						/* revert the coalescing, if it has been done earlier */
+assume_conflict:
 						if ((curstack->varkind == LOCALVAR)
-							&& (curstack->varnum == iptr->dst.localindex))
+							&& (curstack->varnum == j))
 						{
 							curstack->varkind = TEMPVAR;
 							curstack->varnum = stackdepth-1;
 						}
 
-						last_store[5 * iptr->dst.localindex + (opcode - ICMD_ISTORE)] = bptr->icount - len - 1;
+						/* remember the stack boundary at this store */
+store_tail:
+						last_store_boundary[j] = new;
 
-						NEW_STORE(opcode - ICMD_ISTORE, iptr->dst.localindex);
+						NEW_STORE(opcode - ICMD_ISTORE, j);
 						break;
 
 					/* pop 3 push 0 */
 
 					case ICMD_AASTORE:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1590,6 +1634,7 @@ normal_ACONST:
 					case ICMD_LASTORE:
 					case ICMD_FASTORE:
 					case ICMD_DASTORE:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1600,6 +1645,7 @@ normal_ACONST:
 					case ICMD_BASTORE:
 					case ICMD_CASTORE:
 					case ICMD_SASTORE:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1624,6 +1670,7 @@ normal_ACONST:
 					case ICMD_FRETURN:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
+						last_pei_boundary = new;
 						IF_JIT( md_return_alloc(jd, curstack); )
 						COUNT(count_pcmd_return);
 						NEW_OP1_0(opcode - ICMD_IRETURN);
@@ -1631,6 +1678,7 @@ normal_ACONST:
 						break;
 
 					case ICMD_ATHROW:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						NEW_OP1_0(TYPE_ADR);
 						STACKRESET;
@@ -1638,6 +1686,7 @@ normal_ACONST:
 						break;
 
 					case ICMD_PUTSTATIC:
+						last_pei_boundary = new;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						NEW_OP1_0(fmiref->parseddesc.fd->type);
@@ -1718,6 +1767,7 @@ normal_ACONST:
 
 					case ICMD_MONITORENTER:
 					case ICMD_MONITOREXIT:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						NEW_OP1_0(TYPE_ADR);
 						break;
@@ -1745,6 +1795,7 @@ normal_ACONST:
 						/* pop 2 push 0 */
 
 					case ICMD_PUTFIELD:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
@@ -1780,18 +1831,17 @@ normal_ACONST:
 								goto throw_stack_category_error;
 						}
 #endif
-						last_dupx = bptr->icount - len - 1;
 						COUNT(count_dup_instruction);
 
 icmd_DUP:
 						USE_S1_ANY; /* XXX live through */
 						DUP_SLOT(iptr->s1.var);
+						last_dup_boundary = new - 1;
 						iptr->dst.var = curstack;
 						stackdepth++;
 						break;
 
 					case ICMD_DUP2:
-						last_dupx = bptr->icount - len - 1;
 						REQUIRE_1;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., cat2 */
@@ -1815,6 +1865,7 @@ icmd_DUP:
 							iptr->dst.dupslots[2+0] = curstack;
 							DUP_SLOT(iptr->dst.dupslots[1]);
 							iptr->dst.dupslots[2+1] = curstack;
+							last_dup_boundary = new;
 							stackdepth += 2;
 						}
 						break;
@@ -1830,7 +1881,6 @@ icmd_DUP:
 									goto throw_stack_category_error;
 						}
 #endif
-						last_dupx = bptr->icount - len - 1;
 
 icmd_DUP_X1:
 						iptr->dst.dupslots = DMNEW(stackptr, 2 + 3);
@@ -1844,11 +1894,11 @@ icmd_DUP_X1:
 						iptr->dst.dupslots[2+1] = curstack;
 						DUP_SLOT(iptr->dst.dupslots[1]);
 						iptr->dst.dupslots[2+2] = curstack;
+						last_dup_boundary = new;
 						stackdepth++;
 						break;
 
 					case ICMD_DUP2_X1:
-						last_dupx = bptr->icount - len - 1;
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., ????, cat2 */
@@ -1889,6 +1939,7 @@ icmd_DUP2_X1:
 							iptr->dst.dupslots[3+3] = curstack;
 							DUP_SLOT(iptr->dst.dupslots[2]);
 							iptr->dst.dupslots[3+4] = curstack;
+							last_dup_boundary = new;
 							stackdepth += 2;
 						}
 						break;
@@ -1896,7 +1947,6 @@ icmd_DUP2_X1:
 						/* pop 3 push 4 dup */
 
 					case ICMD_DUP_X2:
-						last_dupx = bptr->icount - len - 1;
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->prev->type)) {
 							/* ..., cat2, ???? */
@@ -1934,12 +1984,12 @@ icmd_DUP_X2:
 							iptr->dst.dupslots[3+2] = curstack;
 							DUP_SLOT(iptr->dst.dupslots[2]);
 							iptr->dst.dupslots[3+3] = curstack;
+							last_dup_boundary = new;
 							stackdepth++;
 						}
 						break;
 
 					case ICMD_DUP2_X2:
-						last_dupx = bptr->icount - len - 1;
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., ????, cat2 */
@@ -2005,6 +2055,7 @@ icmd_DUP_X2:
 							iptr->dst.dupslots[4+4] = curstack;
 							DUP_SLOT(iptr->dst.dupslots[3]);
 							iptr->dst.dupslots[4+5] = curstack;
+							last_dup_boundary = new;
 							stackdepth += 2;
 						}
 						break;
@@ -2012,7 +2063,6 @@ icmd_DUP_X2:
 						/* pop 2 push 2 swap */
 
 					case ICMD_SWAP:
-						last_dupx = bptr->icount - len - 1;
 #ifdef ENABLE_VERIFIER
 						if (opt_verify) {
 							REQUIRE_2;
@@ -2030,12 +2080,14 @@ icmd_DUP_X2:
 						iptr->dst.dupslots[2+0] = curstack;
 						DUP_SLOT(iptr->dst.dupslots[0]);
 						iptr->dst.dupslots[2+1] = curstack;
+						last_dup_boundary = new;
 						break;
 
 						/* pop 2 push 1 */
 
 					case ICMD_IDIV:
 					case ICMD_IREM:
+						last_pei_boundary = new;
 #if !SUPPORT_DIVISION
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
@@ -2071,6 +2123,7 @@ icmd_DUP_X2:
 
 					case ICMD_LDIV:
 					case ICMD_LREM:
+						last_pei_boundary = new;
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
@@ -2422,6 +2475,7 @@ normal_DCMPG:
 						break;
 
 					case ICMD_CHECKCAST:
+						last_pei_boundary = new;
 						if (iptr->flags.bits & INS_FLAG_ARRAY) {
 							/* array type cast-check */
 
@@ -2446,15 +2500,18 @@ normal_DCMPG:
 
 					case ICMD_INSTANCEOF:
 					case ICMD_ARRAYLENGTH:
+						last_pei_boundary = new;
 						NEW_OP1_1(TYPE_ADR, TYPE_INT);
 						break;
 
 					case ICMD_NEWARRAY:
 					case ICMD_ANEWARRAY:
+						last_pei_boundary = new;
 						NEW_OP1_1(TYPE_INT, TYPE_ADR);
 						break;
 
 					case ICMD_GETFIELD:
+						last_pei_boundary = new;
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
@@ -2464,12 +2521,14 @@ normal_DCMPG:
 						/* pop 0 push 1 */
 
 					case ICMD_GETSTATIC:
+ 						last_pei_boundary = new;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						NEW_OP0_1(fmiref->parseddesc.fd->type);
 						break;
 
 					case ICMD_NEW:
+ 						last_pei_boundary = new;
 						NEW_OP0_1(TYPE_ADR);
 						break;
 
@@ -2516,7 +2575,7 @@ icmd_BUILTIN:
 
 					_callhandling:
 
-						last_pei = bptr->icount - len - 1;
+						last_pei_boundary = new;
 
 						i = md->paramcount;
 
@@ -2627,6 +2686,7 @@ icmd_BUILTIN:
 						break;
 
 					case ICMD_MULTIANEWARRAY:
+						last_pei_boundary = new;
 						if (rd->argintreguse < 3)
 							rd->argintreguse = 3;
 

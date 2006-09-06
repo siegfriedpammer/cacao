@@ -597,7 +597,14 @@ static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
 		case TYPE_ADR: type = 'a'; break;
 		default:       type = '?';
 	}
-	printf("S%c%d", type, (int) (sp - jd->new_stack));
+
+	switch (sp->varkind) {
+		case TEMPVAR: printf("T%c%d", type, (int) (sp - jd->new_stack)); break;
+		case LOCALVAR: printf("L%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
+		case STACKVAR: printf("I%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
+		case ARGVAR: printf("A%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
+		default: printf("?%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
+	}
 
 	if (stage >= SHOW_REGS) {
 		putchar('(');
