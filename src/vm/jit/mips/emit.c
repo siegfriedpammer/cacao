@@ -57,13 +57,13 @@
 
 /* code generation functions **************************************************/
 
-/* emit_load_s1 ****************************************************************
+/* emit_load *******************************************************************
 
-   Emits a possible load of the first source operand.
+   Emits a possible load of an operand.
 
 *******************************************************************************/
 
-s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -89,6 +89,24 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		reg = tempreg;
 	} else
 		reg = src->regoff;
+
+	return reg;
+}
+
+/* emit_load_s1 ****************************************************************
+
+   Emits a possible load of the first source operand.
+
+*******************************************************************************/
+
+s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	stackptr src;
+	s4       reg;
+
+	src = iptr->s1.var;
+
+	reg = emit_load(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -102,30 +120,12 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 {
-	codegendata  *cd;
-	s4            disp;
-	s4            reg;
+	stackptr src;
+	s4       reg;
 
-	/* get required compiler data */
+	src = iptr->sx.s23.s2.var;
 
-	cd = jd->cd;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-		} else
-			M_LLD(tempreg, REG_SP, disp);
-
-		reg = tempreg;
-	} else
-		reg = src->regoff;
+	reg = emit_load(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -139,30 +139,12 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 {
-	codegendata  *cd;
-	s4            disp;
-	s4            reg;
+	stackptr src;
+	s4       reg;
 
-	/* get required compiler data */
+	src = iptr->sx.s23.s3.var;
 
-	cd = jd->cd;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-		} else
-			M_LLD(tempreg, REG_SP, disp);
-
-		reg = tempreg;
-	} else
-		reg = src->regoff;
+	reg = emit_load(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -170,7 +152,7 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 /* emit_store ******************************************************************
 
-   XXX
+   Emits a possible store to variable.
 
 *******************************************************************************/
 
@@ -198,6 +180,17 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 	}
 }
 
+/* emit_store_dst **************************************************************
+
+   Emits a possible store to the destination operand of an instruction.
+
+*******************************************************************************/
+
+void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
+{
+	emit_store(jd, iptr, iptr->dst.var, d);
+}
+
 
 /* emit_copy *******************************************************************
 
@@ -216,6 +209,14 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	cd = jd->cd;
 	rd = jd->rd;
 
+	stackptr src;
+	s4       reg;
+
+	src = iptr->sx.s23.s3.var;
+
+	reg = emit_load(jd, iptr, src, tempreg);
+
+	return reg;
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
 		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
