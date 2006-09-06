@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5363 2006-09-06 10:20:07Z christian $
+   $Id: parse.h 5366 2006-09-06 11:01:11Z edwin $
 
 */
 
@@ -91,7 +91,7 @@
 
 /* basic block generating macro ***********************************************/
 
-#define NEW_MARK_BASICBLOCK(i) \
+#define MARK_BASICBLOCK(i) \
     do { \
         if (!(jd->new_basicblockindex[(i)] & 1)) { \
             b_count++; \
@@ -121,51 +121,51 @@
     iptr++; ipc++
 
 /* CAUTION: You must set iptr->flags yourself when using this!                */
-#define NEW_OP_PREPARE(o)                                              \
+#define OP_PREPARE(o)                                                  \
     iptr->opc                = (o);                                    \
     iptr->line               = currentline;
 
-#define NEW_OP_PREPARE_ZEROFLAGS(o)                                    \
+#define OP_PREPARE_ZEROFLAGS(o)                                        \
     iptr->opc                = (o);                                    \
     iptr->line               = currentline;                            \
     iptr->flags.bits         = 0;
 
-#define NEW_OP(o)                                                      \
-	NEW_OP_PREPARE_ZEROFLAGS(o);                                       \
+#define OP(o)                                                          \
+	OP_PREPARE_ZEROFLAGS(o);                                           \
     PINC
 
-#define NEW_OP_LOADCONST_I(v)                                          \
-	NEW_OP_PREPARE_ZEROFLAGS(ICMD_ICONST);                             \
+#define OP_LOADCONST_I(v)                                              \
+	OP_PREPARE_ZEROFLAGS(ICMD_ICONST);                                 \
     iptr->sx.val.i           = (v);                                    \
     PINC
 
-#define NEW_OP_LOADCONST_L(v)                                          \
-	NEW_OP_PREPARE_ZEROFLAGS(ICMD_LCONST);                             \
+#define OP_LOADCONST_L(v)                                              \
+	OP_PREPARE_ZEROFLAGS(ICMD_LCONST);                                 \
     iptr->sx.val.l           = (v);                                    \
     PINC
 
-#define NEW_OP_LOADCONST_F(v)                                          \
-	NEW_OP_PREPARE_ZEROFLAGS(ICMD_FCONST);                             \
+#define OP_LOADCONST_F(v)                                              \
+	OP_PREPARE_ZEROFLAGS(ICMD_FCONST);                                 \
     iptr->sx.val.f           = (v);                                    \
     PINC
 
-#define NEW_OP_LOADCONST_D(v)                                          \
-	NEW_OP_PREPARE_ZEROFLAGS(ICMD_DCONST);                             \
+#define OP_LOADCONST_D(v)                                              \
+	OP_PREPARE_ZEROFLAGS(ICMD_DCONST);                                 \
     iptr->sx.val.d           = (v);                                    \
     PINC
 
-#define NEW_OP_LOADCONST_NULL()                                        \
-	NEW_OP_PREPARE_ZEROFLAGS(ICMD_ACONST);                             \
+#define OP_LOADCONST_NULL()                                            \
+	OP_PREPARE_ZEROFLAGS(ICMD_ACONST);                                 \
     iptr->sx.val.anyptr      = NULL;                                   \
     PINC
 
-#define NEW_OP_LOADCONST_STRING(v)                                     \
-	NEW_OP_PREPARE_ZEROFLAGS(ICMD_ACONST);                             \
+#define OP_LOADCONST_STRING(v)                                         \
+	OP_PREPARE_ZEROFLAGS(ICMD_ACONST);                                 \
     iptr->sx.val.stringconst = (v);                                    \
     PINC
 
-#define NEW_OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, extraflags)      \
-	NEW_OP_PREPARE(ICMD_ACONST);                                       \
+#define OP_LOADCONST_CLASSINFO_OR_CLASSREF(c, cr, extraflags)          \
+	OP_PREPARE(ICMD_ACONST);                                           \
     if (c) {                                                           \
         iptr->sx.val.c.cls   = (c);                                    \
         iptr->flags.bits     = INS_FLAG_CLASS | (extraflags);          \
@@ -177,8 +177,8 @@
     }                                                                  \
     PINC
 
-#define NEW_OP_S3_CLASSINFO_OR_CLASSREF(o, c, cr, extraflags)          \
-	NEW_OP_PREPARE(o);                                                 \
+#define OP_S3_CLASSINFO_OR_CLASSREF(o, c, cr, extraflags)              \
+	OP_PREPARE(o);                                                     \
     if (c) {                                                           \
         iptr->sx.s23.s3.c.cls= (c);                                    \
         iptr->flags.bits     = (extraflags);                           \
@@ -189,23 +189,23 @@
     }                                                                  \
     PINC
 
-#define NEW_OP_INSINDEX(o, iindex)                                     \
-	NEW_OP_PREPARE_ZEROFLAGS(o);                                       \
+#define OP_INSINDEX(o, iindex)                                         \
+	OP_PREPARE_ZEROFLAGS(o);                                           \
     iptr->dst.insindex       = (iindex);                               \
     PINC
 
-#define NEW_OP_LOCALINDEX(o,index)                                     \
-	NEW_OP_PREPARE_ZEROFLAGS(o);                                       \
+#define OP_LOCALINDEX(o,index)                                         \
+	OP_PREPARE_ZEROFLAGS(o);                                           \
     iptr->s1.localindex      = (index);                                \
     PINC
 
-#define NEW_OP_LOCALINDEX_I(o,index,v)                                 \
-	NEW_OP_PREPARE_ZEROFLAGS(o);                                       \
+#define OP_LOCALINDEX_I(o,index,v)                                     \
+	OP_PREPARE_ZEROFLAGS(o);                                           \
     iptr->s1.localindex      = (index);                                \
     iptr->sx.val.i           = (v);                                    \
     PINC
 
-#if defined(NEW_VAR)
+#if defined(VAR)
 #define LOCALTYPE_USED(index,type)									   \
 	do {															   \
 		local_map[index * 5 +type] = 1;								   \
@@ -214,60 +214,60 @@
 #define LOCALTYPE_USED(index,type)
 #endif
 
-#define NEW_OP_LOAD_ONEWORD(o,index,type)							   \
+#define OP_LOAD_ONEWORD(o,index,type)							       \
     do {                                                               \
         INDEX_ONEWORD(index);                                          \
-        NEW_OP_LOCALINDEX(o,index);                                    \
-		LOCALTYPE_USED(index,type);								   \
+        OP_LOCALINDEX(o,index);                                        \
+		LOCALTYPE_USED(index,type);								       \
     } while (0)
 
-#define NEW_OP_LOAD_TWOWORD(o,index,type)							   \
+#define OP_LOAD_TWOWORD(o,index,type)							       \
     do {                                                               \
         INDEX_TWOWORD(index);                                          \
-        NEW_OP_LOCALINDEX(o,index);                                    \
+        OP_LOCALINDEX(o,index);                                        \
 		LOCALTYPE_USED(index,type);									   \
 	} while (0)
 
-#define NEW_OP_STORE_ONEWORD(o,index,type)							   \
+#define OP_STORE_ONEWORD(o,index,type)							       \
     do {                                                               \
         INDEX_ONEWORD(index);                                          \
-        NEW_OP_PREPARE_ZEROFLAGS(o);                                   \
+        OP_PREPARE_ZEROFLAGS(o);                                       \
         iptr->dst.localindex = (index);                                \
 		LOCALTYPE_USED(index,type);									   \
         PINC;                                                          \
     } while (0)
 
-#define NEW_OP_STORE_TWOWORD(o,index,type)							   \
+#define OP_STORE_TWOWORD(o,index,type)							       \
     do {                                                               \
         INDEX_TWOWORD(index);                                          \
-        NEW_OP_PREPARE_ZEROFLAGS(o);                                   \
+        OP_PREPARE_ZEROFLAGS(o);                                       \
         iptr->dst.localindex = (index);                                \
 		LOCALTYPE_USED(index,type);									   \
         PINC;                                                          \
     } while (0)
 
-#define NEW_OP_BUILTIN_CHECK_EXCEPTION(bte)                            \
+#define OP_BUILTIN_CHECK_EXCEPTION(bte)                                \
     jd->isleafmethod         = false;                                  \
-	NEW_OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                            \
+	OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                                \
     iptr->sx.s23.s3.bte      = (bte);                                  \
     PINC
 
-#define NEW_OP_BUILTIN_NO_EXCEPTION(bte)                               \
+#define OP_BUILTIN_NO_EXCEPTION(bte)                                   \
     jd->isleafmethod         = false;                                  \
-	NEW_OP_PREPARE(ICMD_BUILTIN);                                      \
+	OP_PREPARE(ICMD_BUILTIN);                                          \
     iptr->sx.s23.s3.bte      = (bte);                                  \
     iptr->flags.bits         = INS_FLAG_NOCHECK;                       \
     PINC
 
-#define NEW_OP_BUILTIN_ARITHMETIC(opcode, bte)                         \
+#define OP_BUILTIN_ARITHMETIC(opcode, bte)                             \
     jd->isleafmethod         = false;                                  \
-	NEW_OP_PREPARE_ZEROFLAGS(opcode);                                  \
+	OP_PREPARE_ZEROFLAGS(opcode);                                      \
     iptr->sx.s23.s3.bte      = (bte);                                  \
     PINC
 
 /* CAUTION: You must set iptr->flags yourself when using this!                */
-#define NEW_OP_FMIREF_PREPARE(o, fmiref)                               \
-	NEW_OP_PREPARE(o);                                                 \
+#define OP_FMIREF_PREPARE(o, fmiref)                                   \
+	OP_PREPARE(o);                                                     \
     iptr->sx.s23.s3.fmiref   = (fmiref);
 
 
