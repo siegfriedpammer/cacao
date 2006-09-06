@@ -3,10 +3,17 @@
 VERBOSE=0
 EXITCODE=0
 
+if [ -z "$JAVA" ] ; then
+	JAVA=../../../src/cacao/cacao
+fi
+
 if [ "$1" = "--verbose" ] ; then
 	shift
 	VERBOSE=1
 fi
+
+JASMIN_JAR=/usr/share/java/jasmin-sable.jar
+JASMIN="$JAVA -cp $JASMIN_JAR jasmin.Main"
 
 while [ -n "$1" ]
 do
@@ -17,8 +24,8 @@ do
     TESTEXPECT="TESTEXPECT"
     TESTLOG="TESTLOG"
 
-    jasmin "$TEST" || exit 2
-    cacao "$TESTBASENAME" >"$TESTOUT" || exit 2
+    $JASMIN "$TEST" || exit 2
+    $JAVA "$TESTBASENAME" >"$TESTOUT" || exit 2
 
     grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:\s*,,' >"$TESTEXPECT"
 
@@ -30,7 +37,7 @@ do
     fi
 
     if [ "$VERBOSE" -eq "1" ] ; then
-	cacao -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
+	$JAVA -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
 	./show "$TESTLOG"
     fi
 
@@ -40,3 +47,4 @@ done
 #rm -f "$TESTOUT" "$TESTEXPECT" "$TESTLOG"
 
 exit $EXITCODE
+
