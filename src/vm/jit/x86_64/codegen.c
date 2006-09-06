@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5364 2006-09-06 10:48:06Z edwin $
+   $Id: codegen.c 5380 2006-09-06 16:43:28Z twisti $
 
 */
 
@@ -103,6 +103,7 @@ bool codegen(jitdata *jd)
 	instruction        *iptr;
 	exceptiontable     *ex;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
+	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
@@ -2914,16 +2915,7 @@ nowperformreturn:
 		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
 
 			bte = iptr->sx.s23.s3.bte;
-			md = bte->md;
-
-			/* CHECKNULL for MONITORENTER/EXIT */
-			if (bte->opcode == ICMD_MONITORENTER || bte->opcode == ICMD_MONITOREXIT) {
-				s1 = emit_load(jd, iptr, iptr->sx.s23.s2.args[0], REG_ITMP1);
-				M_TEST(s1);
-				M_BEQ(0);
-				codegen_add_nullpointerexception_ref(cd);
-			}
-
+			md  = bte->md;
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
@@ -2933,11 +2925,13 @@ nowperformreturn:
 		case ICMD_INVOKEINTERFACE:
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				md = iptr->sx.s23.s3.um->methodref->parseddesc.md;
 				lm = NULL;
+				um = iptr->sx.s23.s3.um;
+				md = um->methodref->parseddesc.md;
 			}
 			else {
 				lm = iptr->sx.s23.s3.fmiref->p.method;
+				um = NULL;
 				md = lm->parseddesc;
 			}
 
@@ -2953,22 +2947,25 @@ gen_method:
 
 				if (src->varkind == ARGVAR)
 					continue;
+
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argintregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, src, s1);
 						M_INTMOVE(d, s1);
-					} else {
+					}
+					else {
 						d = emit_load(jd, iptr, src, REG_ITMP1);
 						M_LST(d, REG_SP, md->params[s3].regoff * 8);
 					}
-						
-				} else {
+				}
+				else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, src, s1);
 						M_FLTMOVE(d, s1);
-					} else {
+					}
+					else {
 						d = emit_load(jd, iptr, src, REG_FTMP1);
 
 						if (IS_2_WORD_TYPE(src->type))
@@ -2985,12 +2982,8 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				a = (ptrint) bte->fp;
-				d = md->returntype.type;
-
-				M_MOV_IMM(a, REG_ITMP1);
+				M_MOV_IMM(bte->fp, REG_ITMP1);
 				M_CALL(REG_ITMP1);
-
 
 				if (INSTRUCTION_MUST_CHECK(iptr)) {
 					M_TEST(REG_RESULT);
@@ -3008,8 +3001,6 @@ gen_method:
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					disp = dseg_addaddress(cd, NULL);
 					disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
@@ -3025,15 +3016,13 @@ gen_method:
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
 
-					a = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
+/* 					a = 0; */
 				}
 				else {
 					disp = dseg_addaddress(cd, lm->stubroutine);
 					disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
-					a = (ptrint) lm->stubroutine;
-					d = lm->parseddesc->returntype.type;
+/* 					a = (ptrint) lm->stubroutine; */
 				}
 
 /* 				M_MOV_IMM(a, REG_ITMP2); */
@@ -3045,8 +3034,6 @@ gen_method:
 				gen_nullptr_check(rd->argintregs[0]);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble) {
@@ -3054,13 +3041,10 @@ gen_method:
 					}
 
 					s1 = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
-
-				} else {
+				}
+				else
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
-					d = lm->parseddesc->returntype.type;
-				}
 
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
 					  OFFSET(java_objectheader, vftbl));
@@ -3072,8 +3056,6 @@ gen_method:
 				gen_nullptr_check(rd->argintregs[0]);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble) {
@@ -3082,15 +3064,12 @@ gen_method:
 
 					s1 = 0;
 					s2 = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
-
-				} else {
+				}
+				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
 						sizeof(methodptr) * lm->class->index;
 
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
-
-					d = lm->parseddesc->returntype.type;
 				}
 
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
@@ -3105,7 +3084,9 @@ gen_method:
 
 			PROFILE_CYCLE_START;
 
-			/* d contains return type */
+			/* store return value */
+
+			d = md->returntype.type;
 
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(d)) {
