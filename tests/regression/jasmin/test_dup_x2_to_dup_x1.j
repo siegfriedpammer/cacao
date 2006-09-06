@@ -1,4 +1,4 @@
-.class public test_dup_x2
+.class public test_dup_x2_to_dup_x1
 .super java/lang/Object
 
 ; ======================================================================
@@ -44,15 +44,16 @@
 	; --------------------------------------------------
 
 	ldc 17
-	ldc 32
+	ldc2_w 32
 	ldc 91
-	dup_x2 ; 91 17 32 91
-	isub
-	invokestatic test_dup_x2/check(I)V
+	dup_x2 ; 17 91 32 91
+	i2l
+	lsub
+	invokestatic test_dup_x2_to_dup_x1/check(J)V
 	; OUTPUT: -59
 	isub
-	invokestatic test_dup_x2/check(I)V
-	; OUTPUT: 74
+	invokestatic test_dup_x2_to_dup_x1/check(I)V
+	; OUTPUT: -74
 
 	; --------------------------------------------------
 
