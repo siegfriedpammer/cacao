@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5343 2006-09-05 21:20:33Z twisti $
+   $Id: simplereg.c 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -80,16 +80,317 @@ bool new_regalloc(jitdata *jd)
 	   allocate_scratch_registers and setting it back to the original
 	   value before calling local_regalloc.  */
 
+	printf("------- rd->memuse bef %d\n",jd->rd->memuse);
+
 	interface_regalloc(jd);
+	printf("------- rd->memuse int %d\n",jd->rd->memuse);
 	new_allocate_scratch_registers(jd);
+	printf("------- rd->memuse scr %d\n",jd->rd->memuse);
 	local_regalloc(jd);
+	printf("------- rd->memuse loc %d\n",jd->rd->memuse);
 
 	/* everthing's ok */
 
 	return true;
 }
 
+#if defined(NEW_VAR)
+/* interface_regalloc **********************************************************
 
+   Allocates registers for all interface variables.
+	
+*******************************************************************************/
+	
+static void interface_regalloc(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+
+	int     s, t, tt, saved;
+	int     intalloc, fltalloc; /* Remember allocated Register/Memory offset */
+	                /* in case more vars are packed into this interface slot */
+	varinfo *v;
+	int		intregsneeded = 0;
+	int		memneeded = 0;
+    /* allocate LNG and DBL Types first to ensure 2 memory slots or registers */
+	/* on HAS_4BYTE_STACKSLOT architectures */
+	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	/* rd->memuse was already set in stack.c to allocate stack space
+	   for passing arguments to called methods. */
+
+#if defined(__I386__)
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		/* reserve 0(%esp) for Monitorenter/exit Argument on i386 */
+		if (rd->memuse < 1)
+			rd->memuse = 1;
+	}
+#endif
+
+ 	if (jd->isleafmethod) {
+		/* Reserve argument register, which will be used for Locals acting */
+		/* as Parameters */
+		if (rd->argintreguse < m->parseddesc->argintreguse)
+			rd->argintreguse = m->parseddesc->argintreguse;
+		if (rd->argfltreguse < m->parseddesc->argfltreguse)
+			rd->argfltreguse = m->parseddesc->argfltreguse;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+		if (rd->argadrreguse < m->parseddesc->argadrreguse)
+			rd->argadrreguse = m->parseddesc->argadrreguse;
+#endif
+
+ 	}
+
+	for (s = 0; s < cd->maxstack; s++) {
+		intalloc = -1; fltalloc = -1;
+
+		saved = 0;
+
+		for (tt = 0; tt <=4; tt++) {
+			if ((t = jd->interface_map[s * 5 + TYPE_INT]) != UNUSED) {
+				saved |= (jd->var[t].flags & SAVEDVAR);
+			}
+		}
+
+		for (tt = 0; tt <= 4; tt++) {
+			t = typeloop[tt];
+			if (jd->interface_map[s * 5 + t] == UNUSED)
+				continue;
+
+			v = &(jd->var[jd->interface_map[s * 5 + t]]);
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
+#if defined(HAS_4BYTE_STACKSLOT)
+				memneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
+				if (!saved) {
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+					if (IS_ADR_TYPE(t)) {
+						if (!jd->isleafmethod 
+							&&(rd->argadrreguse < ADR_ARG_CNT)) {
+							v->regoff = rd->argadrregs[rd->argadrreguse++];
+						} else if (rd->tmpadrreguse > 0) {
+								v->regoff = rd->tmpadrregs[--rd->tmpadrreguse];
+						} else if (rd->savadrreguse > 0) {
+								v->regoff = rd->savadrregs[--rd->savadrreguse];
+						} else {
+							v->flags |= INMEMORY;
+							v->regoff = rd->memuse++;
+						}						
+					} else /* !IS_ADR_TYPE */
+#endif /* defined(HAS_ADDRESS_REGISTER_FILE) */
+					{
+						if (IS_FLT_DBL_TYPE(t)) {
+							if (fltalloc >= 0) {
+		       /* Reuse memory slot(s)/register(s) for shared interface slots */
+								v->flags |= jd->var[fltalloc].flags & INMEMORY;
+								v->regoff = jd->var[fltalloc].regoff;
+							} else if (rd->argfltreguse < FLT_ARG_CNT) {
+								v->regoff = rd->argfltregs[rd->argfltreguse++];
+							} else if (rd->tmpfltreguse > 0) {
+								v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
+							} else if (rd->savfltreguse > 0) {
+								v->regoff = rd->savfltregs[--rd->savfltreguse];
+							} else {
+								v->flags |= INMEMORY;
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
+								/* Align doubles in Memory */
+								if ( (memneeded) && (rd->memuse & 1))
+									rd->memuse++;
+#endif
+								v->regoff = rd->memuse;
+								rd->memuse += memneeded + 1;
+							}
+							fltalloc = jd->interface_map[s * 5 + t];
+						} else { /* !IS_FLT_DBL_TYPE(t) */
+#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							/*
+							 * for i386 put all longs in memory
+							 */
+							if (IS_2_WORD_TYPE(t)) {
+								v->flags |= INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+								/* Align longs in Memory */
+								if (rd->memuse & 1)
+									rd->memuse++;
+#endif
+								v->regoff = rd->memuse;
+								rd->memuse += memneeded + 1;
+							} else
+#endif /* defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE...GISTERS) */
+								if (intalloc >= 0) {
+		       /* Reuse memory slot(s)/register(s) for shared interface slots */
+									v->flags |= jd->var[intalloc].flags 
+										        & INMEMORY;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+									if (!(v->flags & INMEMORY) 
+									  && IS_2_WORD_TYPE(jd->var[intalloc].type))
+										v->regoff = GET_LOW_REG(
+											jd->var[intalloc].regoff);
+									else
+#endif
+										v->regoff = 
+										    jd->var[intalloc].regoff;
+								} else 
+									if (rd->argintreguse + intregsneeded 
+										< INT_ARG_CNT) {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+										if (intregsneeded) 
+											v->regoff=PACK_REGS( 
+										  rd->argintregs[rd->argintreguse],
+										  rd->argintregs[rd->argintreguse + 1]);
+										else
+#endif
+											v->regoff = 
+											   rd->argintregs[rd->argintreguse];
+										rd->argintreguse += intregsneeded + 1;
+									}
+									else if (rd->tmpintreguse > intregsneeded) {
+										rd->tmpintreguse -= intregsneeded + 1;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+										if (intregsneeded) 
+											v->regoff=PACK_REGS( 
+										  rd->tmpintregs[rd->tmpintreguse],
+										  rd->tmpintregs[rd->tmpintreguse + 1]);
+										else
+#endif
+											v->regoff = 
+											   rd->tmpintregs[rd->tmpintreguse];
+									}
+									else if (rd->savintreguse > intregsneeded) {
+										rd->savintreguse -= intregsneeded + 1;
+										v->regoff = 
+											rd->savintregs[rd->savintreguse];
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+										if (intregsneeded) 
+											v->regoff=PACK_REGS( 
+										  rd->savintregs[rd->savintreguse],
+										  rd->savintregs[rd->savintreguse + 1]);
+										else
+#endif
+											v->regoff = 
+											   rd->savintregs[rd->savintreguse];
+									}
+									else {
+										v->flags |= INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+										/* Align longs in Memory */
+										if ( (memneeded) && (rd->memuse & 1))
+											rd->memuse++;
+#endif
+										v->regoff = rd->memuse;
+										rd->memuse += memneeded + 1;
+									}
+
+							intalloc = jd->interface_map[s * 5 + t];
+						} /* if (IS_FLT_DBL_TYPE(t)) */
+					} 
+				} else { /* (saved) */
+/* now the same like above, but without a chance to take a temporary register */
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					if (IS_ADR_TYPE(t)) {
+						if (rd->savadrreguse > 0) {
+							v->regoff = rd->savadrregs[--rd->savadrreguse];
+						}
+						else {
+							v->flags |= INMEMORY;
+							v->regoff = rd->memuse++;
+						}						
+					} else
+#endif
+					{
+						if (IS_FLT_DBL_TYPE(t)) {
+							if (fltalloc >= 0) {
+								v->flags |= jd->var[fltalloc].flags & INMEMORY;
+								v->regoff = jd->var[fltalloc].regoff;
+							} else
+								if (rd->savfltreguse > 0) {
+									v->regoff = 
+										rd->savfltregs[--rd->savfltreguse];
+								}
+								else {
+									v->flags |= INMEMORY;
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
+									/* Align doubles in Memory */
+									if ( (memneeded) && (rd->memuse & 1))
+										rd->memuse++;
+#endif
+									v->regoff = rd->memuse;
+									rd->memuse += memneeded + 1;
+								}
+							fltalloc = jd->interface_map[s * 5 + t];
+						}
+						else { /* IS_INT_LNG */
+#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							/*
+							 * for i386 put all longs in memory
+							 */
+							if (IS_2_WORD_TYPE(t)) {
+								v->flags |= INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+								/* Align longs in Memory */
+								if (rd->memuse & 1)
+									rd->memuse++;
+#endif
+								v->regoff = rd->memuse;
+								rd->memuse += memneeded + 1;
+							} else
+#endif
+							{
+								if (intalloc >= 0) {
+									v->flags |= jd->var[intalloc].flags 
+										        & INMEMORY;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+									if (!(v->flags & INMEMORY)
+									  && IS_2_WORD_TYPE(jd->var[intalloc].type))
+										v->regoff =
+											GET_LOW_REG(
+											jd->var[intalloc].regoff);
+									else
+#endif
+										v->regoff =
+										    jd->var[intalloc].regoff;
+								} else {
+									if (rd->savintreguse > intregsneeded) {
+										rd->savintreguse -= intregsneeded + 1;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+										if (intregsneeded) 
+											v->regoff = PACK_REGS( 
+										  rd->savintregs[rd->savintreguse],
+										  rd->savintregs[rd->savintreguse + 1]);
+										else
+#endif
+											v->regoff =
+											   rd->savintregs[rd->savintreguse];
+									} else {
+										v->flags |= INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+									/* Align longs in Memory */
+									if ( (memneeded) && (rd->memuse & 1))
+										rd->memuse++;
+#endif
+										v->regoff = rd->memuse;
+										rd->memuse += memneeded + 1;
+									}
+								}
+								intalloc = t;
+							}
+						} /* if (IS_FLT_DBL_TYPE(t) else */
+					} /* if (IS_ADR_TYPE(t)) else */
+				} /* if (saved) else */
+			/* if (type >= 0) */
+		} /* for t */
+	} /* for s */
+}
+#else
 /* interface_regalloc **********************************************************
 
    Allocates registers for all interface variables.
@@ -382,8 +683,370 @@ static void interface_regalloc(jitdata *jd)
 		} /* for t */
 	} /* for s */
 }
+#endif /* defined(NEW_VAR) */
 
 
+#if defined(NEW_VAR)
+/* local_regalloc **************************************************************
+
+   Allocates registers for all local variables.
+	
+*******************************************************************************/
+	
+static void local_regalloc(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+
+	int     p, s, t, tt,lm;
+	int     intalloc, fltalloc;
+	varinfo *v;
+	int     intregsneeded = 0;
+	int     memneeded = 0;
+	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
+	int     fargcnt, iargcnt;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	int     aargcnt;
+#endif
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	if (jd->isleafmethod) {
+		methoddesc *md = m->parseddesc;
+
+		iargcnt = rd->argintreguse;
+		fargcnt = rd->argfltreguse;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+		aargcnt = rd->argadrreguse;
+#endif
+		for (p = 0, s = 0; s < cd->maxlocals; s++, p++) {
+			intalloc = -1; fltalloc = -1;
+			for (tt = 0; tt <= 4; tt++) {
+				t = typeloop[tt];
+				lm = jd->local_map[s * 5 + t];
+				if (lm == UNUSED)
+					continue;
+
+				v = &(jd->var[lm]);
+
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
+#if defined(HAS_4BYTE_STACKSLOT)
+				memneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
+
+				/*
+				 *  The order of
+				 *
+				 *  #ifdef HAS_ADDRESS_REGISTER_FILE
+				 *  if (IS_ADR_TYPE) { 
+				 *  ...
+				 *  } else 
+				 *  #endif
+				 *  if (IS_FLT_DBL) {
+				 *  ...
+				 *  } else { / int & lng
+				 *  ...
+				 *  }
+				 *
+				 *  must not to be changed!
+				 */
+
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				if (IS_ADR_TYPE(t)) {
+					if ((p < md->paramcount) && !md->params[p].inmemory) {
+						v->flags = 0;
+						v->regoff = rd->argadrregs[md->params[p].regoff];
+					}
+					else if (rd->tmpadrreguse > 0) {
+						v->flags = 0;
+						v->regoff = rd->tmpadrregs[--rd->tmpadrreguse];
+					}
+					/* use unused argument registers as local registers */
+					else if ((p >= md->paramcount) &&
+							 (aargcnt < ADR_ARG_CNT)) {
+						v->flags = 0;
+						v->regoff = rd->argadrregs[aargcnt++];
+					}
+					else if (rd->savadrreguse > 0) {
+						v->flags = 0;
+						v->regoff = rd->savadrregs[--rd->savadrreguse];
+					}
+					else {
+						v->flags |= INMEMORY;
+						v->regoff = rd->memuse++;
+					}						
+				} else {
+#endif
+					if (IS_FLT_DBL_TYPE(t)) {
+						if (fltalloc >= 0) {
+							v->flags = jd->var[fltalloc].flags;
+							v->regoff = jd->var[fltalloc].regoff;
+						}
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
+						/* We can only use float arguments as local variables,
+						 * if we do not pass them in integer registers. */
+  						else if ((p < md->paramcount) &&
+								 !md->params[p].inmemory) {
+							v->flags = 0;
+							v->regoff = rd->argfltregs[md->params[p].regoff];
+						}
+#endif
+						else if (rd->tmpfltreguse > 0) {
+							v->flags = 0;
+							v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
+						}
+						/* use unused argument registers as local registers */
+						else if ((p >= md->paramcount) &&
+								 (fargcnt < FLT_ARG_CNT)) {
+							v->flags = 0;
+							v->regoff = rd->argfltregs[fargcnt];
+							fargcnt++;
+						}
+						else if (rd->savfltreguse > 0) {
+							v->flags = 0;
+							v->regoff = rd->savfltregs[--rd->savfltreguse];
+						}
+						else {
+							v->flags = INMEMORY;
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
+							/* Align doubles in Memory */
+							if ( (memneeded) && (rd->memuse & 1))
+								rd->memuse++;
+#endif
+							v->regoff = rd->memuse;
+							rd->memuse += memneeded + 1;
+						}
+						fltalloc = jd->local_map[s * 5 + t];
+
+					} else {
+#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+						/*
+						 * for i386 put all longs in memory
+						 */
+						if (IS_2_WORD_TYPE(t)) {
+							v->flags = INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+							/* Align longs in Memory */
+							if (rd->memuse & 1)
+								rd->memuse++;
+#endif
+							v->regoff = rd->memuse;
+							rd->memuse += memneeded + 1;
+						} else 
+#endif
+						{
+							if (intalloc >= 0) {
+								v->flags = jd->var[intalloc].flags;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								if (!(v->flags & INMEMORY)
+									&& IS_2_WORD_TYPE(jd->var[intalloc].type))
+									v->regoff = GET_LOW_REG(
+													jd->var[intalloc].regoff);
+								else
+#endif
+									v->regoff = jd->var[intalloc].regoff;
+							}
+							else if ((p < md->paramcount) && 
+									 !md->params[p].inmemory) {
+								v->flags = 0;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								if (IS_2_WORD_TYPE(t))
+									v->regoff = PACK_REGS(
+							rd->argintregs[GET_LOW_REG(md->params[p].regoff)],
+							rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]);
+									else
+#endif
+										v->regoff =
+									       rd->argintregs[md->params[p].regoff];
+							}
+							else if (rd->tmpintreguse > intregsneeded) {
+								rd->tmpintreguse -= intregsneeded + 1;
+								v->flags = 0;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								if (intregsneeded) 
+									v->regoff = PACK_REGS(
+									    rd->tmpintregs[rd->tmpintreguse],
+										rd->tmpintregs[rd->tmpintreguse + 1]);
+								else
+#endif
+									v->regoff = 
+										rd->tmpintregs[rd->tmpintreguse];
+							}
+							/*
+							 * use unused argument registers as local registers
+							 */
+							else if ((p >= m->parseddesc->paramcount) &&
+									 (iargcnt + intregsneeded < INT_ARG_CNT)) {
+								v->flags = 0;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								if (intregsneeded) 
+									v->regoff=PACK_REGS( 
+												   rd->argintregs[iargcnt],
+												   rd->argintregs[iargcnt + 1]);
+								else
+#endif
+								v->regoff = rd->argintregs[iargcnt];
+  								iargcnt += intregsneeded + 1;
+							}
+							else if (rd->savintreguse > intregsneeded) {
+								rd->savintreguse -= intregsneeded + 1;
+								v->flags = 0;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								if (intregsneeded) 
+									v->regoff = PACK_REGS(
+									    rd->savintregs[rd->savintreguse],
+										rd->savintregs[rd->savintreguse + 1]);
+								else
+#endif
+									v->regoff =rd->savintregs[rd->savintreguse];
+							}
+							else {
+								v->flags = INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+								/* Align longs in Memory */
+								if ( (memneeded) && (rd->memuse & 1))
+									rd->memuse++;
+#endif
+								v->regoff = rd->memuse;
+								rd->memuse += memneeded + 1;
+							}
+						}
+						intalloc = jd->local_map[s * 5 + t];
+					}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				}
+#endif
+			} /* for (tt=0;...) */
+
+			/* If the current parameter is a 2-word type, the next local slot */
+			/* is skipped.                                                    */
+
+			if (p < md->paramcount)
+				if (IS_2_WORD_TYPE(md->paramtypes[p].type))
+					s++;
+		}
+		return;
+	}
+
+	for (s = 0; s < cd->maxlocals; s++) {
+		intalloc = -1; fltalloc = -1;
+		for (tt=0; tt<=4; tt++) {
+			t = typeloop[tt];
+
+			lm = jd->local_map[s * 5 + t];
+			if (lm == UNUSED)
+				continue;
+
+			v = &(jd->var[lm]);
+
+#ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
+				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
+#if defined(HAS_4BYTE_STACKSLOT)
+				memneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				if ( IS_ADR_TYPE(t) ) {
+					if (rd->savadrreguse > 0) {
+						v->flags = 0;
+						v->regoff = rd->savadrregs[--rd->savadrreguse];
+					}
+					else {
+						v->flags = INMEMORY;
+						v->regoff = rd->memuse++;
+					}
+				} else {
+#endif
+				if (IS_FLT_DBL_TYPE(t)) {
+					if (fltalloc >= 0) {
+						v->flags = jd->var[fltalloc].flags;
+						v->regoff = jd->var[fltalloc].regoff;
+					}
+					else if (rd->savfltreguse > 0) {
+						v->flags = 0;
+						v->regoff = rd->savfltregs[--rd->savfltreguse];
+					}
+					else {
+						v->flags = INMEMORY;
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
+						/* Align doubles in Memory */
+						if ( (memneeded) && (rd->memuse & 1))
+							rd->memuse++;
+#endif
+						v->regoff = rd->memuse;
+						rd->memuse += memneeded + 1;
+					}
+					fltalloc = jd->local_map[s * 5 + t];
+				}
+				else {
+#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					/*
+					 * for i386 put all longs in memory
+					 */
+					if (IS_2_WORD_TYPE(t)) {
+						v->flags = INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+						/* Align longs in Memory */
+						if (rd->memuse & 1)
+							rd->memuse++;
+#endif
+						v->regoff = rd->memuse;
+						rd->memuse += memneeded + 1;
+					} else {
+#endif
+						if (intalloc >= 0) {
+							v->flags = jd->var[intalloc].flags;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (!(v->flags & INMEMORY)
+								&& IS_2_WORD_TYPE(jd->var[intalloc].type))
+								v->regoff = GET_LOW_REG(
+											    jd->var[intalloc].regoff);
+							else
+#endif
+								v->regoff = jd->var[intalloc].regoff;
+						}
+						else if (rd->savintreguse > intregsneeded) {
+							rd->savintreguse -= intregsneeded+1;
+							v->flags = 0;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								if (intregsneeded) 
+									v->regoff = PACK_REGS(
+										rd->savintregs[rd->savintreguse],
+									    rd->savintregs[rd->savintreguse + 1]);
+								else
+#endif
+									v->regoff =rd->savintregs[rd->savintreguse];
+						}
+						else {
+							v->flags = INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+							/* Align longs in Memory */
+							if ( (memneeded) && (rd->memuse & 1))
+								rd->memuse++;
+#endif
+							v->regoff = rd->memuse;
+							rd->memuse += memneeded + 1;
+						}
+#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					}
+#endif
+					intalloc = jd->local_map[s * 5 + t];
+				}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				}
+#endif
+
+		}
+	}
+}
+#else
 /* local_regalloc **************************************************************
 
    Allocates registers for all local variables.
@@ -739,6 +1402,7 @@ static void local_regalloc(jitdata *jd)
 		}
 	}
 }
+#endif /* defined(NEW_VAR) */
 
 static void reg_init_temp(methodinfo *m, registerdata *rd)
 {
@@ -763,7 +1427,216 @@ static void reg_init_temp(methodinfo *m, registerdata *rd)
 #endif
 }
 
+#if defined(NEW_VAR)
 
+#define reg_new_temp(jd,index) \
+	if ( (index >= jd->localcount) \
+		 && (!(jd->var[index].flags & OUTVAR))	 \
+		 && (!(jd->var[index].flags & PREALLOC)) )	\
+		reg_new_temp_func(jd, index)
+
+static void reg_new_temp_func(jitdata *jd, s4 index)
+{
+	s4 intregsneeded;
+	s4 memneeded;
+	s4 tryagain;
+	registerdata *rd;
+	varinfo      *v;
+
+	rd = jd->rd;
+	v = &(jd->var[index]);
+
+	/* Try to allocate a saved register if there is no temporary one          */
+	/* available. This is what happens during the second run.                 */
+	tryagain = (v->flags & SAVEDVAR) ? 1 : 2;
+
+#ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
+	intregsneeded = (IS_2_WORD_TYPE(v->type)) ? 1 : 0;
+#else
+	intregsneeded = 0;
+#endif
+#if defined(HAS_4BYTE_STACKSLOT)
+	memneeded = (IS_2_WORD_TYPE(v->type)) ? 1 : 0;
+#else
+	memneeded = 0;
+#endif
+
+	for(; tryagain; --tryagain) {
+		if (tryagain == 1) {
+			if (!(v->flags & SAVEDVAR))
+				v->flags |= SAVEDTMP;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+			if (IS_ADR_TYPE(v->type)) {
+				if (rd->freesavadrtop > 0) {
+					v->regoff = rd->freesavadrregs[--rd->freesavadrtop];
+					return;
+				} else if (rd->savadrreguse > 0) {
+					v->regoff = rd->savadrregs[--rd->savadrreguse];
+					return;
+				}
+			} else
+#endif
+			{
+				if (IS_FLT_DBL_TYPE(v->type)) {
+					if (rd->freesavflttop > 0) {
+						v->regoff = rd->freesavfltregs[--rd->freesavflttop];
+						return;
+					} else if (rd->savfltreguse > 0) {
+						v->regoff = rd->savfltregs[--rd->savfltreguse];
+						return;
+					}
+				} else {
+#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					/*
+					 * for i386 put all longs in memory
+					 */
+					if (!IS_2_WORD_TYPE(v->type))
+#endif
+					{
+						if (rd->freesavinttop > intregsneeded) {
+							rd->freesavinttop -= intregsneeded + 1;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (intregsneeded)
+								v->regoff = PACK_REGS(
+							        rd->freesavintregs[rd->freesavinttop],
+									rd->freesavintregs[rd->freesavinttop + 1]);
+						else
+#endif
+								v->regoff =
+									rd->freesavintregs[rd->freesavinttop];
+							return;
+						} else if (rd->savintreguse > intregsneeded) {
+							rd->savintreguse -= intregsneeded + 1;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (intregsneeded)
+								v->regoff = PACK_REGS(
+									rd->savintregs[rd->savintreguse],
+							        rd->savintregs[rd->savintreguse + 1]);
+							else
+#endif
+								v->regoff = rd->savintregs[rd->savintreguse];
+							return;
+						}
+					}
+				}
+			}
+		} else { /* tryagain == 2 */
+#ifdef HAS_ADDRESS_REGISTER_FILE
+			if (IS_ADR_TYPE(v->type)) {
+				if (rd->freetmpadrtop > 0) {
+					v->regoff = rd->freetmpadrregs[--rd->freetmpadrtop];
+					return;
+				} else if (rd->tmpadrreguse > 0) {
+					v->regoff = rd->tmpadrregs[--rd->tmpadrreguse];
+					return;
+				}
+			} else
+#endif
+			{
+				if (IS_FLT_DBL_TYPE(v->type)) {
+					if (rd->freeargflttop > 0) {
+						v->regoff = rd->freeargfltregs[--rd->freeargflttop];
+						v->flags |= TMPARG;
+						return;
+					} else if (rd->argfltreguse < FLT_ARG_CNT) {
+						v->regoff = rd->argfltregs[rd->argfltreguse++];
+						v->flags |= TMPARG;
+						return;
+					} else if (rd->freetmpflttop > 0) {
+						v->regoff = rd->freetmpfltregs[--rd->freetmpflttop];
+						return;
+					} else if (rd->tmpfltreguse > 0) {
+						v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
+						return;
+					}
+
+				} else {
+#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					/*
+					 * for i386 put all longs in memory
+					 */
+					if (!IS_2_WORD_TYPE(v->type))
+#endif
+					{
+						if (rd->freearginttop > intregsneeded) {
+							rd->freearginttop -= intregsneeded + 1;
+							v->flags |= TMPARG;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (intregsneeded) 
+								v->regoff = PACK_REGS(
+									rd->freeargintregs[rd->freearginttop],
+							        rd->freeargintregs[rd->freearginttop + 1]);
+							else
+#endif
+								v->regoff =
+									rd->freeargintregs[rd->freearginttop];
+							return;
+						} else if (rd->argintreguse 
+								   < INT_ARG_CNT - intregsneeded) {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (intregsneeded) 
+								v->regoff = PACK_REGS(
+									rd->argintregs[rd->argintreguse],
+								    rd->argintregs[rd->argintreguse + 1]);
+							else
+#endif
+								v->regoff = rd->argintregs[rd->argintreguse];
+							v->flags |= TMPARG;
+							rd->argintreguse += intregsneeded + 1;
+							return;
+						} else if (rd->freetmpinttop > intregsneeded) {
+							rd->freetmpinttop -= intregsneeded + 1;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (intregsneeded) 
+								v->regoff = PACK_REGS(
+									rd->freetmpintregs[rd->freetmpinttop],
+								    rd->freetmpintregs[rd->freetmpinttop + 1]);
+							else
+#endif
+								v->regoff = rd->freetmpintregs[rd->freetmpinttop];
+							return;
+						} else if (rd->tmpintreguse > intregsneeded) {
+							rd->tmpintreguse -= intregsneeded + 1;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (intregsneeded) 
+								v->regoff = PACK_REGS(
+									rd->tmpintregs[rd->tmpintreguse],
+								    rd->tmpintregs[rd->tmpintreguse + 1]);
+							else
+#endif
+								v->regoff = rd->tmpintregs[rd->tmpintreguse];
+							return;
+						}
+					} /* if (!IS_2_WORD_TYPE(s->type)) */
+				} /* if (IS_FLT_DBL_TYPE(s->type)) */
+			} /* if (IS_ADR_TYPE(s->type)) */
+		} /* if (tryagain == 1) else */
+	} /* for(; tryagain; --tryagain) */
+
+#if defined(HAS_4BYTE_STACKSLOT)
+	if ((memneeded == 1) && (rd->freememtop_2 > 0)) {
+		rd->freememtop_2--;
+		v->regoff = rd->freemem_2[rd->freememtop_2];
+	} else
+#endif /*defined(HAS_4BYTE_STACKSLOT) */
+		if ((memneeded == 0) && (rd->freememtop > 0)) {
+			rd->freememtop--;;
+			v->regoff = rd->freemem[rd->freememtop];
+		} else {
+#if defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY)
+			/* align 2 Word Types */
+			if ((memneeded) && ((rd->memuse & 1) == 1)) { 
+				/* Put patched memory slot on freemem */
+				rd->freemem[rd->freememtop++] = rd->memuse;
+				rd->memuse++;
+			}
+#endif /* defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY) */
+			v->regoff = rd->memuse;
+			rd->memuse += memneeded + 1;
+		}
+	v->flags |= INMEMORY;
+}
+#else
 #define reg_new_temp(rd,s) if (s->varkind == TEMPVAR) reg_new_temp_func(rd, s)
 
 static void reg_new_temp_func(registerdata *rd, stackptr s)
@@ -962,8 +1835,113 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 		}
 	s->flags |= INMEMORY;
 }
+#endif
+
+#if defined(NEW_VAR)
+#define reg_free_temp(jd,index) \
+	if ((index > jd->localcount) \
+		&& (!(jd->var[index].flags & OUTVAR))	\
+		&& (!(jd->var[index].flags & STCOPY))	 \
+		&& (!(jd->var[index].flags & PREALLOC)) ) \
+		reg_free_temp_func(jd, index)
+
+/* Do not free regs/memory locations used by Stackslots flagged STCOPY! There is still another Stackslot */
+/* alive using this reg/memory location */
+
+static void reg_free_temp_func(jitdata *jd, s4 index)
+{
+	s4 intregsneeded;
+	s4 memneeded;
+	registerdata *rd;
+	varinfo *v;
+
+	rd = jd->rd;
+	v = &(jd->var[index]);
 
 
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+	intregsneeded = (IS_2_WORD_TYPE(v->type)) ? 1 : 0;
+#else
+	intregsneeded = 0;
+#endif
+
+#if defined(HAS_4BYTE_STACKSLOT)
+	memneeded = (IS_2_WORD_TYPE(v->type)) ? 1 : 0;
+#else
+	memneeded = 0;
+#endif
+
+	if (v->flags & INMEMORY) {
+#if defined(HAS_4BYTE_STACKSLOT)
+		if (memneeded > 0) {
+			rd->freemem_2[rd->freememtop_2] = v->regoff;
+			rd->freememtop_2++;
+		} else 
+#endif
+		{
+			rd->freemem[rd->freememtop] = v->regoff;
+			rd->freememtop++;
+		}
+
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	} else if (IS_ADR_TYPE(v->type)) {
+		if (v->flags & (SAVEDVAR | SAVEDTMP)) {
+/* 			v->flags &= ~SAVEDTMP; */
+			rd->freesavadrregs[rd->freesavadrtop++] = v->regoff;
+		} else
+			rd->freetmpadrregs[rd->freetmpadrtop++] = v->regoff;
+#endif
+	} else if (IS_FLT_DBL_TYPE(v->type)) {
+		if (v->flags & (SAVEDVAR | SAVEDTMP)) {
+/* 			v->flags &= ~SAVEDTMP; */
+			rd->freesavfltregs[rd->freesavflttop++] = v->regoff;
+		} else if (v->flags & TMPARG) {
+/* 			v->flags &= ~TMPARG; */
+			rd->freeargfltregs[rd->freeargflttop++] = v->regoff;
+		} else
+			rd->freetmpfltregs[rd->freetmpflttop++] = v->regoff;
+	} else { /* IS_INT_LNG_TYPE */
+		if (v->flags & (SAVEDVAR | SAVEDTMP)) {
+/* 			v->flags &= ~SAVEDTMP; */
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+			if (intregsneeded) {
+				rd->freesavintregs[rd->freesavinttop] =
+					GET_LOW_REG(v->regoff);
+				rd->freesavintregs[rd->freesavinttop + 1] =
+					GET_HIGH_REG(v->regoff);
+			} else
+#endif
+			rd->freesavintregs[rd->freesavinttop] = v->regoff;
+			rd->freesavinttop += intregsneeded + 1;
+
+		} else if (v->flags & TMPARG) {
+/* 			s->flags &= ~TMPARG; */
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+			if (intregsneeded) {
+				rd->freeargintregs[rd->freearginttop] =
+					GET_LOW_REG(v->regoff);
+				rd->freeargintregs[rd->freearginttop + 1] =
+					GET_HIGH_REG(v->regoff);
+			} else 
+#endif
+			rd->freeargintregs[rd->freearginttop] = v->regoff;
+			rd->freearginttop += intregsneeded + 1;
+		} else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+			if (intregsneeded) {
+				rd->freetmpintregs[rd->freetmpinttop] =
+					GET_LOW_REG(s->regoff);
+				rd->freetmpintregs[rd->freetmpinttop + 1] =
+					GET_HIGH_REG(s->regoff);
+			} else
+#endif
+		    rd->freetmpintregs[rd->freetmpinttop] = v->regoff;
+			rd->freetmpinttop += intregsneeded + 1;
+		}
+	}
+}
+
+#else
 #define reg_free_temp(rd,s) if (((s)->varkind == TEMPVAR) && (!((s)->flags & STCOPY))) reg_free_temp_func(rd, (s))
 
 /* Do not free regs/memory locations used by Stackslots flagged STCOPY! There is still another Stackslot */
@@ -1056,6 +2034,9 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 	}
 }
 
+#endif
+
+#if !defined(NEW_VAR)
 static bool reg_alloc_dup(stackptr src, stackptr dst) {
 	/* only copy TEMPVARS, do not mess with STACKVAR,      */
 	/* LOCALVAR, or ARGVAR        */
@@ -1084,6 +2065,7 @@ static bool reg_alloc_dup(stackptr src, stackptr dst) {
 	return false;
 }
 
+
 /* Mark the copies (STCOPY) at the dst stack right for DUPx and SWAP */
 static void new_reg_mark_copy(registerdata *rd, stackptr *dupslots, 
 							  int nin, int nout, int nthrough)
@@ -1095,6 +2077,9 @@ static void new_reg_mark_copy(registerdata *rd, stackptr *dupslots,
 	bool found;
 	stackptr sp;
 	stackptr *argp;
+	registerdata *rd;
+
+	rd = jd->rd;
 
 	assert(nin <= 4 && (nout + nthrough) <= 6);
 
@@ -1179,8 +2164,522 @@ static void new_reg_mark_copy(registerdata *rd, stackptr *dupslots,
 		}
 	}
 }
+#endif
 
+#if defined(NEW_VAR)
+/* allocate_scratch_registers **************************************************
 
+   Allocate temporary (non-interface, non-local) registers.
+
+*******************************************************************************/
+
+static void new_allocate_scratch_registers(jitdata *jd)
+{
+	methodinfo         *m;
+	registerdata       *rd;
+	s4                  i;
+	s4                  len;
+	instruction        *iptr;
+	basicblock         *bptr;
+	builtintable_entry *bte;
+	methoddesc         *md;
+	s4                 *argp;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	rd = jd->rd;
+
+	/* initialize temp registers */
+
+	reg_init_temp(m, rd);
+
+	bptr = jd->new_basicblocks;
+
+	while (bptr != NULL) {
+		if (bptr->flags >= BBREACHED) {
+			iptr = bptr->iinstr;
+			len = bptr->icount;
+
+			while (--len >= 0)  {
+				switch (iptr->opc) {
+
+					/* pop 0 push 0 */
+
+				case ICMD_NOP:
+				case ICMD_CHECKNULL:
+				case ICMD_IINC:
+				case ICMD_JSR:
+				case ICMD_RET:
+				case ICMD_RETURN:
+				case ICMD_GOTO:
+				case ICMD_PUTSTATICCONST:
+				case ICMD_INLINE_START:
+				case ICMD_INLINE_END:
+				case ICMD_INLINE_GOTO:
+					break;
+
+					/* pop 0 push 1 const */
+					
+				case ICMD_ICONST:
+				case ICMD_LCONST:
+				case ICMD_FCONST:
+				case ICMD_DCONST:
+				case ICMD_ACONST:
+
+					/* pop 0 push 1 load */
+					
+				case ICMD_ILOAD:
+				case ICMD_LLOAD:
+				case ICMD_FLOAD:
+				case ICMD_DLOAD:
+				case ICMD_ALOAD:
+					reg_new_temp(jd, iptr->dst.varindex);
+					break;
+
+					/* pop 2 push 1 */
+
+				case ICMD_IALOAD:
+				case ICMD_LALOAD:
+				case ICMD_FALOAD:
+				case ICMD_DALOAD:
+				case ICMD_AALOAD:
+
+				case ICMD_BALOAD:
+				case ICMD_CALOAD:
+				case ICMD_SALOAD:
+					reg_free_temp(jd, iptr->sx.s23.s2.varindex);
+					reg_free_temp(jd, iptr->s1.varindex);
+					reg_new_temp(jd, iptr->dst.varindex);
+					break;
+
+					/* pop 3 push 0 */
+
+				case ICMD_IASTORE:
+				case ICMD_LASTORE:
+				case ICMD_FASTORE:
+				case ICMD_DASTORE:
+				case ICMD_AASTORE:
+
+				case ICMD_BASTORE:
+				case ICMD_CASTORE:
+				case ICMD_SASTORE:
+					reg_free_temp(jd, iptr->sx.s23.s3.varindex);
+					reg_free_temp(jd, iptr->sx.s23.s2.varindex);
+					reg_free_temp(jd, iptr->s1.varindex);
+					break;
+
+					/* pop 1 push 0 store */
+
+				case ICMD_ISTORE:
+				case ICMD_LSTORE:
+				case ICMD_FSTORE:
+				case ICMD_DSTORE:
+				case ICMD_ASTORE:
+
+					/* pop 1 push 0 */
+
+				case ICMD_POP:
+
+				case ICMD_IRETURN:
+				case ICMD_LRETURN:
+				case ICMD_FRETURN:
+				case ICMD_DRETURN:
+				case ICMD_ARETURN:
+
+				case ICMD_ATHROW:
+
+				case ICMD_PUTSTATIC:
+				case ICMD_PUTFIELDCONST:
+
+					/* pop 1 push 0 branch */
+
+				case ICMD_IFNULL:
+				case ICMD_IFNONNULL:
+
+				case ICMD_IFEQ:
+				case ICMD_IFNE:
+				case ICMD_IFLT:
+				case ICMD_IFGE:
+				case ICMD_IFGT:
+				case ICMD_IFLE:
+
+				case ICMD_IF_LEQ:
+				case ICMD_IF_LNE:
+				case ICMD_IF_LLT:
+				case ICMD_IF_LGE:
+				case ICMD_IF_LGT:
+				case ICMD_IF_LLE:
+
+					/* pop 1 push 0 table branch */
+
+				case ICMD_TABLESWITCH:
+				case ICMD_LOOKUPSWITCH:
+
+				case ICMD_MONITORENTER:
+				case ICMD_MONITOREXIT:
+					reg_free_temp(jd, iptr->s1.varindex);
+					break;
+
+					/* pop 2 push 0 branch */
+
+				case ICMD_IF_ICMPEQ:
+				case ICMD_IF_ICMPNE:
+				case ICMD_IF_ICMPLT:
+				case ICMD_IF_ICMPGE:
+				case ICMD_IF_ICMPGT:
+				case ICMD_IF_ICMPLE:
+
+				case ICMD_IF_LCMPEQ:
+				case ICMD_IF_LCMPNE:
+				case ICMD_IF_LCMPLT:
+				case ICMD_IF_LCMPGE:
+				case ICMD_IF_LCMPGT:
+				case ICMD_IF_LCMPLE:
+
+				case ICMD_IF_FCMPEQ:
+				case ICMD_IF_FCMPNE:
+
+				case ICMD_IF_FCMPL_LT:
+				case ICMD_IF_FCMPL_GE:
+				case ICMD_IF_FCMPL_GT:
+				case ICMD_IF_FCMPL_LE:
+
+				case ICMD_IF_FCMPG_LT:
+				case ICMD_IF_FCMPG_GE:
+				case ICMD_IF_FCMPG_GT:
+				case ICMD_IF_FCMPG_LE:
+
+				case ICMD_IF_DCMPEQ:
+				case ICMD_IF_DCMPNE:
+
+				case ICMD_IF_DCMPL_LT:
+				case ICMD_IF_DCMPL_GE:
+				case ICMD_IF_DCMPL_GT:
+				case ICMD_IF_DCMPL_LE:
+
+				case ICMD_IF_DCMPG_LT:
+				case ICMD_IF_DCMPG_GE:
+				case ICMD_IF_DCMPG_GT:
+				case ICMD_IF_DCMPG_LE:
+
+				case ICMD_IF_ACMPEQ:
+				case ICMD_IF_ACMPNE:
+
+					/* pop 2 push 0 */
+
+				case ICMD_POP2:
+
+				case ICMD_PUTFIELD:
+
+				case ICMD_IASTORECONST:
+				case ICMD_LASTORECONST:
+				case ICMD_AASTORECONST:
+				case ICMD_BASTORECONST:
+				case ICMD_CASTORECONST:
+				case ICMD_SASTORECONST:
+					reg_free_temp(jd, iptr->sx.s23.s2.varindex);
+					reg_free_temp(jd, iptr->s1.varindex);
+					break;
+
+					/* pop 0 push 1 dup */
+					
+				case ICMD_DUP:
+					/* src === dst->prev (identical Stackslot Element)     */
+					/* src --> dst       (copied value, take same reg/mem) */
+
+/* 					if (!reg_alloc_dup(iptr->s1.varindex, iptr->dst.varindex)) { */
+						reg_new_temp(jd, iptr->dst.varindex);
+/* 					} else { */
+/* 						iptr->dst.varindex->flags |= STCOPY; */
+/* 					} */
+					break;
+
+					/* pop 0 push 2 dup */
+					
+				case ICMD_DUP2:
+					/* src->prev === dst->prev->prev->prev (identical Stackslot Element)     */
+					/* src       === dst->prev->prev       (identical Stackslot Element)     */
+					/* src->prev --> dst->prev             (copied value, take same reg/mem) */
+					/* src       --> dst                   (copied value, take same reg/mem) */
+												
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[2+0])) */
+						reg_new_temp(jd, iptr->dst.dupslots[2+0]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+1])) */
+						reg_new_temp(jd, iptr->dst.dupslots[2+1]);
+/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 2, 2); */
+					break;
+
+					/* pop 2 push 3 dup */
+					
+				case ICMD_DUP_X1:
+					/* src->prev --> dst->prev       (copied value, take same reg/mem) */
+					/* src       --> dst             (copied value, take same reg/mem) */
+					/* src       --> dst->prev->prev (copied value, take same reg/mem) */
+												
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+0])) */
+						reg_new_temp(jd, iptr->dst.dupslots[2+0]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+2])) */
+						reg_new_temp(jd, iptr->dst.dupslots[2+2]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[2+1])) */
+						reg_new_temp(jd, iptr->dst.dupslots[2+1]);
+/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 3, 0); */
+					break;
+
+					/* pop 3 push 4 dup */
+					
+				case ICMD_DUP_X2:
+					/* src->prev->prev --> dst->prev->prev        */
+					/* src->prev       --> dst->prev              */
+					/* src             --> dst                    */
+					/* src             --> dst->prev->prev->prev  */
+					
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+0])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+0]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+3])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+3]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+2])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+2]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[3+1])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+1]);
+/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 3, 4, 0); */
+					break;
+
+					/* pop 3 push 5 dup */
+					
+				case ICMD_DUP2_X1:
+					/* src->prev->prev --> dst->prev->prev             */
+					/* src->prev       --> dst->prev                   */
+					/* src             --> dst                         */
+					/* src->prev       --> dst->prev->prev->prev->prev */
+					/* src             --> dst->prev->prev->prev       */
+												
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+1])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+1]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+4])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+4]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+0])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+0]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+3])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+3]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[3+2])) */
+						reg_new_temp(jd, iptr->dst.dupslots[3+2]);
+/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 3, 5, 0); */
+					break;
+
+					/* pop 4 push 6 dup */
+					
+				case ICMD_DUP2_X2:
+					/* src->prev->prev->prev --> dst->prev->prev->prev             */
+					/* src->prev->prev       --> dst->prev->prev                   */
+					/* src->prev             --> dst->prev                         */
+					/* src                   --> dst                               */
+					/* src->prev             --> dst->prev->prev->prev->prev->prev */
+					/* src                   --> dst->prev->prev->prev->prev       */
+												
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[3], iptr->dst.dupslots[4+1])) */
+						reg_new_temp(jd, iptr->dst.dupslots[4+1]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[3], iptr->dst.dupslots[4+5])) */
+						reg_new_temp(jd, iptr->dst.dupslots[4+5]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[4+0])) */
+						reg_new_temp(jd, iptr->dst.dupslots[4+0]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[4+4])) */
+						reg_new_temp(jd, iptr->dst.dupslots[4+4]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[4+3])) */
+						reg_new_temp(jd, iptr->dst.dupslots[4+3]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[4+2])) */
+						reg_new_temp(jd, iptr->dst.dupslots[4+2]);
+/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 4, 6, 0); */
+					break;
+
+					/* pop 2 push 2 swap */
+					
+				case ICMD_SWAP:
+					/* src       --> dst->prev   (copy) */
+					/* src->prev --> dst         (copy) */
+												
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+0])) */
+						reg_new_temp(jd, iptr->dst.dupslots[2+0]);
+/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[2+1])) */
+						reg_new_temp(jd, iptr->dst.dupslots[2+1]);
+/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 2, 0); */
+					break;
+
+					/* pop 2 push 1 */
+					
+				case ICMD_IADD:
+				case ICMD_ISUB:
+				case ICMD_IMUL:
+				case ICMD_IDIV:
+				case ICMD_IREM:
+
+				case ICMD_ISHL:
+				case ICMD_ISHR:
+				case ICMD_IUSHR:
+				case ICMD_IAND:
+				case ICMD_IOR:
+				case ICMD_IXOR:
+
+				case ICMD_LADD:
+				case ICMD_LSUB:
+				case ICMD_LMUL:
+				case ICMD_LDIV:
+				case ICMD_LREM:
+
+				case ICMD_LOR:
+				case ICMD_LAND:
+				case ICMD_LXOR:
+
+				case ICMD_LSHL:
+				case ICMD_LSHR:
+				case ICMD_LUSHR:
+
+				case ICMD_FADD:
+				case ICMD_FSUB:
+				case ICMD_FMUL:
+				case ICMD_FDIV:
+				case ICMD_FREM:
+
+				case ICMD_DADD:
+				case ICMD_DSUB:
+				case ICMD_DMUL:
+				case ICMD_DDIV:
+				case ICMD_DREM:
+
+				case ICMD_LCMP:
+				case ICMD_FCMPL:
+				case ICMD_FCMPG:
+				case ICMD_DCMPL:
+				case ICMD_DCMPG:
+					reg_free_temp(jd, iptr->sx.s23.s2.varindex);
+					reg_free_temp(jd, iptr->s1.varindex);
+					reg_new_temp(jd, iptr->dst.varindex);
+					break;
+
+					/* pop 1 push 1 */
+					
+				case ICMD_IADDCONST:
+				case ICMD_ISUBCONST:
+				case ICMD_IMULCONST:
+				case ICMD_IMULPOW2:
+				case ICMD_IDIVPOW2:
+				case ICMD_IREMPOW2:
+				case ICMD_IANDCONST:
+				case ICMD_IORCONST:
+				case ICMD_IXORCONST:
+				case ICMD_ISHLCONST:
+				case ICMD_ISHRCONST:
+				case ICMD_IUSHRCONST:
+
+				case ICMD_LADDCONST:
+				case ICMD_LSUBCONST:
+				case ICMD_LMULCONST:
+				case ICMD_LMULPOW2:
+				case ICMD_LDIVPOW2:
+				case ICMD_LREMPOW2:
+				case ICMD_LANDCONST:
+				case ICMD_LORCONST:
+				case ICMD_LXORCONST:
+				case ICMD_LSHLCONST:
+				case ICMD_LSHRCONST:
+				case ICMD_LUSHRCONST:
+
+				case ICMD_INEG:
+				case ICMD_INT2BYTE:
+				case ICMD_INT2CHAR:
+				case ICMD_INT2SHORT:
+				case ICMD_LNEG:
+				case ICMD_FNEG:
+				case ICMD_DNEG:
+
+				case ICMD_I2L:
+				case ICMD_I2F:
+				case ICMD_I2D:
+				case ICMD_L2I:
+				case ICMD_L2F:
+				case ICMD_L2D:
+				case ICMD_F2I:
+				case ICMD_F2L:
+				case ICMD_F2D:
+				case ICMD_D2I:
+				case ICMD_D2L:
+				case ICMD_D2F:
+
+				case ICMD_CHECKCAST:
+
+				case ICMD_ARRAYLENGTH:
+				case ICMD_INSTANCEOF:
+
+				case ICMD_NEWARRAY:
+				case ICMD_ANEWARRAY:
+
+				case ICMD_GETFIELD:
+					reg_free_temp(jd, iptr->s1.varindex);
+					reg_new_temp(jd, iptr->dst.varindex);
+					break;
+
+					/* pop 0 push 1 */
+					
+				case ICMD_GETSTATIC:
+
+				case ICMD_NEW:
+					reg_new_temp(jd, iptr->dst.varindex);
+					break;
+
+					/* pop many push any */
+					
+				case ICMD_INVOKESTATIC:
+				case ICMD_INVOKESPECIAL:
+				case ICMD_INVOKEVIRTUAL:
+				case ICMD_INVOKEINTERFACE:
+					INSTRUCTION_GET_METHODDESC(iptr,md);
+					i = md->paramcount;
+					argp = iptr->sx.s23.s2.args;
+					while (--i >= 0) {
+						reg_free_temp(jd, *argp);
+						argp++;
+					}
+					if (md->returntype.type != TYPE_VOID)
+						reg_new_temp(jd, iptr->dst.varindex);
+					break;
+
+				case ICMD_BUILTIN:
+					bte = iptr->sx.s23.s3.bte;
+					md = bte->md;
+					i = md->paramcount;
+					argp = iptr->sx.s23.s2.args;
+					while (--i >= 0) {
+						reg_free_temp(jd, *argp);
+						argp++;
+					}
+					if (md->returntype.type != TYPE_VOID)
+						reg_new_temp(jd, iptr->dst.varindex);
+					break;
+
+				case ICMD_MULTIANEWARRAY:
+					i = iptr->s1.argcount;
+					argp = iptr->sx.s23.s2.args;
+					while (--i >= 0) {
+						reg_free_temp(jd, *argp);
+						argp++;
+					}
+					reg_new_temp(jd, iptr->dst.varindex);
+					break;
+
+				default:
+					*exceptionptr =
+						new_internalerror("Unknown ICMD %d during register allocation",
+										  iptr->opc);
+					return;
+				} /* switch */
+				iptr++;
+			} /* while instructions */
+		} /* if */
+		bptr = bptr->next;
+	} /* while blocks */
+}
+
+#else
 /* allocate_scratch_registers **************************************************
 
    Allocate temporary (non-interface, non-local) registers.
@@ -1692,7 +3191,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 		bptr = bptr->next;
 	} /* while blocks */
 }
-
+#endif
 
 #if defined(ENABLE_STATISTICS)
 void reg_make_statistics(jitdata *jd)

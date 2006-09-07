@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: reg.c 5231 2006-08-11 10:13:28Z twisti $
+   $Id: reg.c 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -62,7 +62,9 @@ void reg_setup(jitdata *jd)
 	methodinfo   *m;
 	registerdata *rd;
 	s4            i;
+#if !defined(NEW_VAR)
 	varinfo5     *v;
+#endif
 
 	/* get required compiler data */
 
@@ -198,6 +200,7 @@ void reg_setup(jitdata *jd)
 #if defined(HAS_4BYTE_STACKSLOT)
 	rd->freemem_2  = DMNEW(s4, m->maxstack);
 #endif
+#if !defined(NEW_VAR)
 	rd->locals     = DMNEW(varinfo5, m->maxlocals);
 	rd->interfaces = DMNEW(varinfo5, m->maxstack);
 	for (v = rd->locals, i = m->maxlocals; i > 0; v++, i--) {
@@ -232,6 +235,7 @@ void reg_setup(jitdata *jd)
 		v[0][TYPE_DBL].regoff = 0;
 		v[0][TYPE_ADR].regoff = 0;
 	}
+#endif
 
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)

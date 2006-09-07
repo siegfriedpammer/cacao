@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: typecheck.c 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -184,7 +184,7 @@ of the typeinfo of the stack slot.
 #include "vm/resolve.h"
 #include "vm/exceptions.h"
 
-
+#if !defined(NEW_VAR)
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
 /****************************************************************************/
@@ -2835,7 +2835,7 @@ bool typecheck(jitdata *jd)
     LOGimp("exiting typecheck");
 	return true;
 }
-
+#endif /* !defined(NEW_VAR) */
 #endif /* ENABLE_VERIFIER */
 
 /*

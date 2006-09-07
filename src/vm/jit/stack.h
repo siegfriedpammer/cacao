@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5375 2006-09-06 16:01:23Z edwin $
+   $Id: stack.h 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -138,6 +138,8 @@
         new->varkind = (v); \
         new->varnum = (n); \
         curstack = new; \
+		jd->var[(n)].type = (s); \
+		jd->var[(n)].flags = 0;	 \
         new++; \
     } while (0)
 
@@ -226,7 +228,7 @@
 			copy->flags=0;\
 			copy->varkind=STACKVAR;\
 			copy->varnum=s->varnum;\
-			assert(s->varkind == STACKVAR); \
+			SET_OUTVAR(s);		   \
 			s=s->prev;\
 			}\
 		copy->prev=NULL;\
@@ -282,9 +284,11 @@
             (b)->flags = BBREACHED; \
             (b)->instack = (c); \
             (b)->indepth = stackdepth; \
-			(b)->invars = DMNEW(stackptr, stackdepth); \
-			for (locali = stackdepth; locali--; (c) = (c)->prev) \
-				(b)->invars[locali] = (c); \
+			(b)->invars = DMNEW(s4, stackdepth); \
+			for (locali = stackdepth; locali--; (c) = (c)->prev) {	\
+				(b)->invars[locali] = (c)->varnum;					\
+				SET_OUTVAR((c));							\
+			}														\
         } else { \
             stackptr s = curstack; \
             stackptr t = (b)->instack; \

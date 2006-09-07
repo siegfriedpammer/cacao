@@ -68,7 +68,7 @@ static java_objectheader *show_global_lock;
 /* forward declarations *******************************************************/
 
 #if !defined(NDEBUG)
-static void new_show_variable_array(jitdata *jd, stackptr *vars, int n, int stage);
+static void new_show_variable_array(jitdata *jd, s4 *vars, int n, int stage);
 #endif
 
 
@@ -185,37 +185,38 @@ void new_show_method(jitdata *jd, int stage)
 		printf("   %3d: ", i);
 
 #if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
-		for (j = TYPE_INT; j <= TYPE_ADR; j++) {
+/* 		for (j = TYPE_INT; j <= TYPE_ADR; j++) { */
 # if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
 # endif
-				if (rd->locals[i][j].type >= 0) {
-					printf("   (%s) ", jit_type[j]);
+/* 				if (rd->locals[i][j].type >= 0) { */
+					printf("   (%s) ", jit_type[jd->var[i].type]);
 					if (stage >= SHOW_REGS) {
-						if (rd->locals[i][j].flags & INMEMORY)
-							printf("m%2d", rd->locals[i][j].regoff);
+						if (jd->var[i].flags & INMEMORY)
+							printf("m%2d", jd->var[i].regoff);
 # ifdef HAS_ADDRESS_REGISTER_FILE
-						else if (j == TYPE_ADR)
-							printf("r%02d", rd->locals[i][j].regoff);
+						else if (jd->var[i].type == TYPE_ADR)
+							printf("r%02d", jd->var[i].regoff);
 # endif
-						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-							printf("f%02d", rd->locals[i][j].regoff);
+						else if ((jd->var[i].type == TYPE_FLT) ||
+								 (jd->var[i].type == TYPE_DBL))
+							printf("f%02d", jd->var[i].regoff);
 						else {
 # if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (IS_2_WORD_TYPE(j))
 								printf(" %3s/%3s",
-									   regs[GET_LOW_REG(rd->locals[i][j].regoff)],
-									   regs[GET_HIGH_REG(rd->locals[i][j].regoff)]);
+									   regs[GET_LOW_REG(jd->var[i].regoff)],
+									   regs[GET_HIGH_REG(jd->var[i].regoff)]);
 							else
 # endif
-								printf("%3s", regs[rd->locals[i][j].regoff]);
+								printf("%3s", regs[jd->var[i].regoff]);
 						}
 					}
-				}
+/* 				} */
 # if defined(ENABLE_INTRP)
 			}
 # endif
-		}
+/* 		} */
 #endif /* defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER) */
 
 		printf("\n");
@@ -223,90 +224,36 @@ void new_show_method(jitdata *jd, int stage)
 	printf("\n");
 	}
 
-	if (stage >= SHOW_STACK && rd) {
-#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
-	if (!opt_lsra) {
-#endif
-#if defined(ENABLE_INTRP)
-		if (!opt_intrp) {
-#endif
-	printf("Interface Table:\n");
-	for (i = 0; i < cd->maxstack; i++) {
-		if ((rd->interfaces[i][0].type >= 0) ||
-			(rd->interfaces[i][1].type >= 0) ||
-		    (rd->interfaces[i][2].type >= 0) ||
-			(rd->interfaces[i][3].type >= 0) ||
-		    (rd->interfaces[i][4].type >= 0)) {
-			printf("   %3d: ", i);
+	if (cd->maxlocals > 0) {
+		for (i = 0; i < 5; i++) {
+			printf("%5s ",jit_type[i]);
+			for (j = 0; j < cd->maxlocals; j++)
+				printf("%3i ",jd->local_map[j*5+i]);
+			printf("\n");
+		}
+		printf("\n");
+	}
 
-#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
-# if defined(ENABLE_INTRP)
-			if (!opt_intrp) {
-# endif
-				for (j = TYPE_INT; j <= TYPE_ADR; j++) {
-					if (rd->interfaces[i][j].type >= 0) {
-						printf("   (%s) ", jit_type[j]);
-						if (stage >= SHOW_REGS) {
-							if (rd->interfaces[i][j].flags & SAVEDVAR) {
-								if (rd->interfaces[i][j].flags & INMEMORY)
-									printf("M%2d", rd->interfaces[i][j].regoff);
-#ifdef HAS_ADDRESS_REGISTER_FILE
-								else if (j == TYPE_ADR)
-									printf("R%02d", rd->interfaces[i][j].regoff);
-#endif
-								else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-									printf("F%02d", rd->interfaces[i][j].regoff);
-								else {
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-									if (IS_2_WORD_TYPE(j))
-										printf(" %3s/%3s",
-											   regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
-											   regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
-									else
-#endif
-										printf("%3s",regs[rd->interfaces[i][j].regoff]);
-								}
-							}
-							else {
-								if (rd->interfaces[i][j].flags & INMEMORY)
-									printf("m%2d", rd->interfaces[i][j].regoff);
-#ifdef HAS_ADDRESS_REGISTER_FILE
-								else if (j == TYPE_ADR)
-									printf("r%02d", rd->interfaces[i][j].regoff);
-#endif
-								else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-									printf("f%02d", rd->interfaces[i][j].regoff);
-								else {
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-									if (IS_2_WORD_TYPE(j))
-										printf(" %3s/%3s",
-											   regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
-											   regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
-									else
-#endif
-										printf("%3s",regs[rd->interfaces[i][j].regoff]);
-								}
-							}
-						}
-					}
+	printf("Interface Table:(In/Outvars)\n");
+	if (cd->maxstack > 0) {
+		bool exist = false;
+		s4 *mapptr = jd->interface_map;
+		
+		/* look if there exist IN/OUTVARS */
+		if (mapptr != NULL) {
+			for (i = 0; (i < (5 * cd->maxstack)) && !exist; i++, mapptr++)
+				exist = (*mapptr != UNUSED);
+		
+			if (exist)
+				for (i = 0; i < 5; i++) {
+					printf("%5s ",jit_type[i]);
+					for (j = 0; j < cd->maxstack; j++)
+						printf("%3i ",jd->interface_map[j*5+i]);
+					printf("\n");
 				}
-				printf("\n");
-# if defined(ENABLE_INTRP)
-			}
-# endif
-#endif /* defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER) */
-
+			printf("\n");
 		}
 	}
-	printf("\n");
-
-#if defined(ENABLE_INTRP)
-		}
-#endif
-#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
-  	}
-#endif
-	} /* if >= SHOW_STACK */
 
 	if (code->rplpoints) {
 		printf("Replacement Points:\n");
@@ -552,196 +499,125 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         }
 
 #define SHOW_STACKVAR(sp)                                            \
-        new_show_stackvar(jd, (sp), stage)
+	new_show_stackvar(jd, (sp), stage)
 
 #define SHOW_S1(iptr)                                                \
         if (stage >= SHOW_STACK) {                                   \
-            SHOW_STACKVAR(iptr->s1.var);                             \
+            SHOW_STACKVAR(iptr->s1.varindex);			 \
         }
 
 #define SHOW_S2(iptr)                                                \
         if (stage >= SHOW_STACK) {                                   \
-            SHOW_STACKVAR(iptr->sx.s23.s2.var);                      \
+            SHOW_STACKVAR(iptr->sx.s23.s2.varindex);			 \
         }
 
 #define SHOW_S3(iptr)                                                \
-        if (stage >= SHOW_STACK) {                                   \
-            SHOW_STACKVAR(iptr->sx.s23.s3.var);                      \
-        }
+	if (stage >= SHOW_STACK) {										 \
+		SHOW_STACKVAR(iptr->sx.s23.s3.varindex);					 \
+	}
 
 #define SHOW_DST(iptr)                                               \
-        if (stage >= SHOW_STACK) {                                   \
-            printf("=> ");                                           \
-            SHOW_STACKVAR(iptr->dst.var);                            \
-        }
+	if (stage >= SHOW_STACK) {										 \
+		printf("=> ");												 \
+		SHOW_STACKVAR(iptr->dst.varindex);							 \
+	}
 
 #define SHOW_S1_LOCAL(iptr)                                          \
-        if (stage >= SHOW_STACK) {                                   \
-            printf("L%d ", iptr->s1.localindex);                     \
-        }
+	if (stage >= SHOW_STACK) {										 \
+		printf("L%d ", iptr->s1.varindex);							 \
+	}
 
 #define SHOW_DST_LOCAL(iptr)                                         \
-        if (stage >= SHOW_STACK) {                                   \
-            printf("=> L%d ", iptr->dst.localindex);                 \
-        }
+	if (stage >= SHOW_STACK) {										 \
+		printf("=> L%d ", iptr->dst.varindex);						 \
+	}
 
-static void new_show_stackvar(jitdata *jd, stackptr sp, int stage)
+static void new_show_stackvar(jitdata *jd, s4 index, int stage)
 {
 	char type;
+	varinfo *sp;
+
+	sp = &(jd->var[index]);
 
 	switch (sp->type) {
-		case TYPE_INT: type = 'i'; break;
-		case TYPE_LNG: type = 'l'; break;
-		case TYPE_FLT: type = 'f'; break;
-		case TYPE_DBL: type = 'd'; break;
-		case TYPE_ADR: type = 'a'; break;
-		default:       type = '?';
+	case TYPE_INT: type = 'i'; break;
+	case TYPE_LNG: type = 'l'; break;
+	case TYPE_FLT: type = 'f'; break;
+	case TYPE_DBL: type = 'd'; break;
+	case TYPE_ADR: type = 'a'; break;
+	default:       type = '?';
 	}
-
+#if 0
 	switch (sp->varkind) {
-		case TEMPVAR: printf("T%c%d", type, (int) (sp - jd->new_stack)); break;
-		case LOCALVAR: printf("L%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
-		case STACKVAR: printf("I%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
-		case ARGVAR: printf("A%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
-		default: printf("?%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
+	case TEMPVAR: printf("T%c%d", type, (int) (sp - jd->new_stack)); break;
+	case LOCALVAR: printf("L%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
+	case STACKVAR: printf("I%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
+	case ARGVAR: printf("A%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
+	default: printf("?%c%d", type, index); break;
 	}
+#endif
+
+	if (sp->flags & PREALLOC)
+		printf("A");
+	else if (sp->flags & OUTVAR)
+		printf("I");
+	else if (index < jd->localcount)
+		printf("L");
+	else printf("T");
+	printf("%c%d", type, index);
 
 	if (stage >= SHOW_REGS) {
 		putchar('(');
 
-		if (sp->flags & SAVEDVAR) {
-			switch (sp->varkind) {
-			case TEMPVAR:
-				if (sp->flags & INMEMORY)
-					printf("M%02d", sp->regoff);
+		if (sp->flags & INMEMORY)
+			printf("M%02d", sp->regoff);
 #ifdef HAS_ADDRESS_REGISTER_FILE
-				else if (sp->type == TYPE_ADR)
-					printf("R%02d", sp->regoff);
+		else if (sp->type == TYPE_ADR)
+			printf("R%02d", sp->regoff);
 #endif
-				else if (IS_FLT_DBL_TYPE(sp->type))
-					printf("F%02d", sp->regoff);
-				else {
+		else if (IS_FLT_DBL_TYPE(sp->type))
+			printf("F%02d", sp->regoff);
+		else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					if (IS_2_WORD_TYPE(sp->type)) {
+			if (IS_2_WORD_TYPE(sp->type)) {
 # if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 #  if defined(ENABLE_INTRP)
-						if (opt_intrp)
-							printf("%3d/%3d", GET_LOW_REG(sp->regoff),
-								   GET_HIGH_REG(sp->regoff));
-						else
+				if (opt_intrp)
+					printf("%3d/%3d", GET_LOW_REG(sp->regoff),
+						   GET_HIGH_REG(sp->regoff));
+				else
 #  endif
-							printf("%3s/%3s", regs[GET_LOW_REG(sp->regoff)],
-								   regs[GET_HIGH_REG(sp->regoff)]);
+					printf("%3s/%3s", regs[GET_LOW_REG(sp->regoff)],
+						   regs[GET_HIGH_REG(sp->regoff)]);
 # else
-						printf("%3d/%3d", GET_LOW_REG(sp->regoff),
-							   GET_HIGH_REG(sp->regoff));
+				printf("%3d/%3d", GET_LOW_REG(sp->regoff),
+					   GET_HIGH_REG(sp->regoff));
 # endif
-					} 
-					else 
+			} 
+			else 
 #endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
-						{
+				{
 #if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 # if defined(ENABLE_INTRP)
-							if (opt_intrp)
-								printf("%3d", sp->regoff);
-							else
-# endif
-								printf("%3s", regs[sp->regoff]);
-#else
-							printf("%3d", sp->regoff);
-#endif
-						}
-				}
-				break;
-			case STACKVAR:
-				printf("I%02d", sp->varnum);
-				break;
-			case LOCALVAR:
-				printf("L%02d", sp->varnum);
-				break;
-			case ARGVAR:
-				if (sp->varnum == -1) {
-					/* Return Value                                  */
-					/* varkind ARGVAR "misused for this special case */
-					printf(" V0");
-				} 
-				else /* "normal" Argvar */
-					printf("A%02d", sp->varnum);
-				break;
-			default:
-				printf("!xx {kind=%d, num=%d}", sp->varkind, sp->varnum);
-			}
-		}
-		else { /* not SAVEDVAR */
-			switch (sp->varkind) {
-			case TEMPVAR:
-				if (sp->flags & INMEMORY)
-					printf("m%02d", sp->regoff);
-#ifdef HAS_ADDRESS_REGISTER_FILE
-				else if (sp->type == TYPE_ADR)
-					printf("r%02d", sp->regoff);
-#endif
-				else if (IS_FLT_DBL_TYPE(sp->type))
-					printf("f%02d", sp->regoff);
-				else {
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					if (IS_2_WORD_TYPE(sp->type)) {
-# if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
-#  if defined(ENABLE_INTRP)
-						if (opt_intrp)
-							printf("%3d/%3d", GET_LOW_REG(sp->regoff),
-								   GET_HIGH_REG(sp->regoff));
-						else
-#  endif
-							printf("%3s/%3s", regs[GET_LOW_REG(sp->regoff)],
-								   regs[GET_HIGH_REG(sp->regoff)]);
-# else
-						printf("%3d/%3d", GET_LOW_REG(sp->regoff),
-							   GET_HIGH_REG(sp->regoff));
-# endif
-					} 
+					if (opt_intrp)
+						printf("%3d", sp->regoff);
 					else
-#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
-						{
-#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
-# if defined(ENABLE_INTRP)
-							if (opt_intrp)
-								printf("%3d", sp->regoff);
-							else
 # endif
-								printf("%3s", regs[sp->regoff]);
+						printf("%3s", regs[sp->regoff]);
 #else
-							printf("%3d", sp->regoff);
+					printf("%3d", sp->regoff);
 #endif
-						}
 				}
-				break;
-			case STACKVAR:
-				printf("i%02d", sp->varnum);
-				break;
-			case LOCALVAR:
-				printf("l%02d", sp->varnum);
-				break;
-			case ARGVAR:
-				if (sp->varnum == -1) {
-					/* Return Value                                  */
-					/* varkind ARGVAR "misused for this special case */
-					printf(" v0");
-				} 
-				else /* "normal" Argvar */
-				printf("a%02d", sp->varnum);
-				break;
-			default:
-				printf("?xx {kind=%d, num=%d}", sp->varkind, sp->varnum);
-			}
 		}
+
 
 		putchar(')');
 	}
 	putchar(' ');
+	fflush(stdout);
 }
 
-static void new_show_variable_array(jitdata *jd, stackptr *vars, int n, int stage)
+static void new_show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
 {
 	int i;
 
@@ -760,7 +636,7 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	branch_target_t   *table;
 	lookup_target_t   *lookup;
 	constant_FMIref   *fmiref;
-	stackptr          *argp;
+	s4          *argp;
 	s4                 i;
 
 	/* get the opcode and the condition */
@@ -1245,8 +1121,8 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		break;
 
 	case ICMD_DUP:
-	case ICMD_COPY:
-	case ICMD_MOVE:
+/* 	case ICMD_COPY: */
+/* 	case ICMD_MOVE: */
 		SHOW_S1(iptr);
 		SHOW_DST(iptr);
 		break;
@@ -1326,6 +1202,7 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		break;
 
 	}
+	fflush(stdout);
 }
 #endif /* !defined(NDEBUG) */
 

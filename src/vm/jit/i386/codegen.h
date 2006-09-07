@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 5352 2006-09-05 22:51:48Z christian $
+   $Id: codegen.h 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -146,7 +146,7 @@
 #define M_COPY(from,to) _M_COPY((from),(to));
 #endif
 
-#define _M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
+#define _M_COPY(s,d)    emit_copy(jd, iptr, &(jd->var[(s)]), &(jd->var[(d)]))
 
 #define ICONST(d,c) \
     do { \

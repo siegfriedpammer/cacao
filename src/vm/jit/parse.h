@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5375 2006-09-06 16:01:23Z edwin $
+   $Id: parse.h 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -221,7 +221,7 @@
 
 # define LOCALTYPE_USED(index,type)									   \
 	do {															   \
-		local_map[index * 5 +type] = 1;								   \
+		local_map[(index) * 5 + (type)] = 1;						   \
 	} while (0)
 #else 
 # define OP_LOCALINDEX(o,index)                                        \
@@ -234,7 +234,7 @@
     iptr->s1.localindex      = (index);                                \
     iptr->sx.val.i           = (v);                                    \
     PINC
-
+#error 333
 # define LOCALTYPE_USED(index,type)
 #endif /* defined(NEW_VAR) */
 

@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5343 2006-09-05 21:20:33Z twisti $
+   $Id: jit.c 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -1327,8 +1327,10 @@ u1 *jit_compile(methodinfo *m)
 
 	jd->flags = JITDATA_FLAG_PARSE;
 
+#if defined(ENABLE_VERIFY)
 	if (opt_verify)
 		jd->flags |= JITDATA_FLAG_VERIFY;
+#endif
 
 	if (opt_prof)
 		jd->flags |= JITDATA_FLAG_INSTRUMENT;
@@ -1613,6 +1615,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
 
 		/* call typecheck pass */
+#if !defined(NEW_VAR)
 		if (!typecheck(jd)) {
 			DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
 
@@ -1620,6 +1623,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
+#endif
 	}
 #endif
 	RT_TIMING_GET_TIME(time_typecheck);

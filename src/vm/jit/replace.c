@@ -82,6 +82,7 @@
 
 bool replace_create_replacement_points(jitdata *jd)
 {
+#if 0
 	codeinfo     *code;
 	registerdata *rd;
 	basicblock *bptr;
@@ -242,6 +243,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	/* everything alright */
 
 	return true;
+#endif
 }
 
 /* replace_free_replacement_points *********************************************

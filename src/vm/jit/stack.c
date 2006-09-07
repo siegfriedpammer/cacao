@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5385 2006-09-06 21:40:50Z twisti $
+   $Id: stack.c 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -144,14 +144,64 @@ bool stack_init(void)
 
 *******************************************************************************/
 #if defined(NEW_VAR)
-#define GET_NEW_INDEX(new_varindex)				\
+#define GET_NEW_INDEX(new_varindex)									 \
 	do {															 \
 		assert(jd->vartop < jd->varcount);							 \
 		(new_varindex) = (jd->vartop)++;							 \
+	} while (0)
+
+/* not implemented now, can be used to reuse varindices          */
+/* pay attention to not release a localvar once implementing it! */
+#define RELEASE_INDEX(varindex)
+
+/* with the new vars setting an OUTVAR is not as trivial as changing */
+/* the varkind before. If varindex was a localvar, a new TEMPVAR has */
+/* to be created for the slot and the OUTVAR flag set */
+#define SET_OUTVAR(sp)							\
+	do {										\
+		if (IS_LOCALVAR((sp))) {				\
+			GET_NEW_INDEX(new_index);			\
+			sp->varnum = new_index;				\
+			sp->flags = 0;						\
+		}										\
+		SET_OUTVAR_BY_INDEX((sp)->varnum);		\
 	} while(0)
 
-/* not implemented now, can be used to reuse varindices */
-#define RELEASE_INDEX(varindex)
+#define SET_OUTVAR_BY_INDEX(index) \
+	do {														\
+		assert(index >= jd->localcount);						\
+		jd->var[(index)].flags |=OUTVAR;						\
+	} while (0);
+
+
+#define SET_TEMPVAR(sp) \
+	do {														\
+		if ( IS_LOCALVAR( (sp) ) ) {							\
+			GET_NEW_INDEX(new_index);							\
+			(sp)->varnum = new_index;							\
+			jd->var[(sp)->varnum].flags = copy->flags;			\
+		}														\
+		jd->var[(sp)->varnum].flags &= ~(OUTVAR | PREALLOC);	\
+	} while (0);
+
+#define SET_PREALLOC(sp) \
+	do { \
+		assert(!IS_LOCALVAR((sp))); \
+		jd->var[(sp)->varnum].flags |= PREALLOC; \
+	} while (0);
+
+#define IS_OUTVAR(sp) \
+	(jd->var[(sp)->varnum].flags & OUTVAR)
+
+#define IS_PREALLOC(sp) \
+	(jd->var[(sp)->varnum].flags & PREALLOC)
+
+#define IS_TEMPVAR(sp) \
+	( (jd->var[(sp)->varnum].flags & (OUTVAR | PREALLOC)	\
+	   && (((sp)->varnum < jd->localcount)) == 0) )
+
+#define IS_LOCALVAR(sp)							\
+		 ((sp)->varnum < jd->localcount)
 
 #define CLR_S1                                                       \
     (iptr->s1.varindex = -1)
@@ -201,10 +251,10 @@ bool stack_init(void)
 #define CLR_DST                                                      \
     (iptr->dst.varindex = -1)
 
-#define DST(typed, varindex)                                         \
+#define DST(typed, index)											 \
     do {                                                             \
-        NEWSTACKn((varindex));										 \
-        iptr->dst.varindex = (varindex);							 \
+        NEWSTACKn((typed),(index));									 \
+        iptr->dst.varindex = (index);								 \
     } while (0)
 
 #define DST_LOCALVAR(typed, index)                                   \
@@ -238,7 +288,7 @@ bool stack_init(void)
     do {                                                             \
         POP_S1(type1);                                               \
 		GET_NEW_INDEX(new_index);									 \
-        DST(typed, new_index;										 \
+        DST(typed, new_index);										 \
     } while (0)
 
 #define OP2_1(type1, type2, typed)                                   \
@@ -545,6 +595,12 @@ bool new_stack_analyse(jitdata *jd)
 #endif
 
 #if defined(NEW_VAR)
+	/* init jd->interface_map */
+
+	jd->interface_map = DMNEW(s4, m->maxstack * 5);
+	for (i = 0; i < m->maxstack * 5; i++)
+		jd->interface_map[i] = UNUSED;
+
 	last_store_boundary = DMNEW(stackptr, jd->localcount);
 #else
 	last_store_boundary = DMNEW(stackptr , cd->maxlocals);
@@ -572,7 +628,10 @@ bool new_stack_analyse(jitdata *jd)
 		GET_NEW_INDEX(new_index);
 		bptr->invars = DMNEW(s4, 1);
 		bptr->invars[0] = new_index;
-		NEWSTACK(TYPE_ADR, STACKVAR,new_index);
+		NEWSTACK(TYPE_ADR, STACKVAR, new_index);
+
+		jd->interface_map[0 * 5 + TYPE_ADR] = new_index;
+		SET_OUTVAR_BY_INDEX(new_index);
 #else
 		bptr->invars = DMNEW(stackptr, 1);
 		bptr->invars[0] = new;
@@ -600,7 +659,11 @@ bool new_stack_analyse(jitdata *jd)
 
 		while (--b_count >= 0) {
 #if defined(STACK_VERBOSE)
-			printf("ANALYZING BLOCK L%03d\n", bptr->nr);
+			printf("----\nANALYZING BLOCK L%03d ", bptr->nr);
+			if (bptr->type == BBTYPE_EXH) printf("EXH\n");
+			else if (bptr->type == BBTYPE_SBR) printf("SBR\n");
+			else printf("STD\n");
+			   
 #endif
 
 			if (bptr->flags == BBDELETED) {
@@ -661,14 +724,31 @@ bool new_stack_analyse(jitdata *jd)
 				/* XXX store the start of the block's stack representation */
 
 				bptr->stack = new;
+#if defined(STACK_VERBOSE)
+				printf("INVARS\n");
+					for( copy = bptr->instack; copy; copy = copy->prev ) {
+						printf("%2d(%d", copy->varnum, copy->type);
+						if (IS_OUTVAR(copy))
+							printf("S");
+						if (IS_PREALLOC(copy))
+							printf("A");
+						printf(") ");
+					}
+					printf("\n");
 
+#endif
 				/* iterate over ICMDs ****************************************/
 
 				while (--len >= 0)  {
 #if defined(STACK_VERBOSE)
 					new_show_icmd(jd, iptr, false, SHOW_PARSE); printf("\n");
 					for( copy = curstack; copy; copy = copy->prev ) {
-						printf("%d ", copy->type);
+						printf("%2d(%d", copy->varnum, copy->type);
+						if (IS_OUTVAR(copy))
+							printf("S");
+						if (IS_PREALLOC(copy))
+							printf("A");
+						printf(") ");
 					}
 					printf("\n");
 #endif
@@ -1569,12 +1649,12 @@ normal_ACONST:
 						i = stackdepth - 1;
 						while (copy) {
 							if ((copy->varkind == LOCALVAR) &&
-								(copy->varnum == iptr->s1.localindex))
+								(copy->varnum == iptr->s1.varindex))
 							{
 								copy->varkind = TEMPVAR;
 #if defined(NEW_VAR)
-								GET_NEW_INDEX(new_index);
-								copy->varnum = new_index;
+								assert(IS_LOCALVAR(copy));
+								SET_TEMPVAR(copy);
 #else
 								copy->varnum = i;
 #endif
@@ -1602,7 +1682,7 @@ normal_ACONST:
 						i = opcode - ICMD_ISTORE; /* type */
 #if defined(NEW_VAR)
 						j = iptr->dst.varindex = 
-							jd->local_map[iptr->dst.varindex * 5 + 1]:
+							jd->local_map[iptr->dst.varindex * 5 + i];
 
 #else
  						j = iptr->dst.localindex; /* index */
@@ -1635,8 +1715,8 @@ normal_ACONST:
 							{
 								copy->varkind = TEMPVAR;
 #if defined(NEW_VAR)
-								GET_NEW_INDEX(new_index);
-								copy->varnum = new_index;
+								assert(IS_LOCALVAR(copy));
+								SET_TEMPVAR(copy);
 #else
 								copy->varnum = i;
 #endif
@@ -1647,7 +1727,7 @@ normal_ACONST:
 
 						/* if the variable is already coalesced, don't bother */
 
-						if (curstack->varkind == STACKVAR
+						if (IS_OUTVAR(curstack)
 							|| (curstack->varkind == LOCALVAR 
 								&& curstack->varnum != j))
 							goto store_tail;
@@ -1662,7 +1742,7 @@ normal_ACONST:
 						if (curstack < last_pei_boundary)
 							goto assume_conflict;
 
-						/* there is no non-consuming USE while curstack is live */
+						/*there is no non-consuming USE while curstack is live*/
 
 						if (curstack < last_dup_boundary)
 							goto assume_conflict;
@@ -1677,8 +1757,12 @@ normal_ACONST:
 
 						/* coalesce the temporary variable with Lj */
 #if defined(NEW_VAR)
-						assert(currstack->varkind == TEMPVAR);
-						RELEASE_INDEX(curstack->varnum);
+						assert( (CURKIND == TEMPVAR) || (CURKIND == UNDEFVAR));
+						assert(!IS_LOCALVAR(curstack));
+						assert(!IS_OUTVAR(curstack));
+						assert(!IS_PREALLOC(curstack));
+
+						RELEASE_INDEX(curstack);
 #endif
 						curstack->varkind = LOCALVAR;
 						curstack->varnum = j;
@@ -1691,8 +1775,8 @@ assume_conflict:
 						{
 							curstack->varkind = TEMPVAR;
 #if defined(NEW_VAR)
-							GET_NEW_INDEX(new_index);
-							curstack->varnum = new_index;
+							assert(IS_LOCALVAR(curstack));
+							SET_TEMPVAR(curstack);
 #else
 							curstack->varnum = stackdepth-1;
 #endif
@@ -1727,6 +1811,13 @@ store_tail:
 
 						copy = curstack;
 						while (copy) {
+#if defined(NEW_VAR)
+							jd->var[copy->varnum].flags |= SAVEDVAR;
+							/* in case copy->varnum is/will be a LOCALVAR */
+							/* once and set back to a non LOCALVAR        */
+							/* the correct SAVEDVAR flag has to be        */
+							/* remembered in copy->flags, too             */
+#endif
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
@@ -1968,6 +2059,19 @@ icmd_DUP:
 									goto throw_stack_category_error;
 							}
 #endif
+#if defined(NEW_VAR)
+							iptr->dst.dupslots = DMNEW(s4, 2 + 2);
+							                         /* XXX live through */
+							iptr->dst.dupslots[0] = curstack->prev->varnum;
+							                   /* XXX live through */
+							iptr->dst.dupslots[1] = curstack->varnum;
+							copy = curstack;
+
+							DUP_SLOT(copy->prev);
+							iptr->dst.dupslots[2+0] = curstack->varnum;
+							DUP_SLOT(copy);
+							iptr->dst.dupslots[2+1] = curstack->varnum;
+#else
 							iptr->dst.dupslots = DMNEW(stackptr, 2 + 2);
 							iptr->dst.dupslots[0] = curstack->prev; /* XXX live through */
 							iptr->dst.dupslots[1] = curstack;       /* XXX live through */
@@ -1976,6 +2080,7 @@ icmd_DUP:
 							iptr->dst.dupslots[2+0] = curstack;
 							DUP_SLOT(iptr->dst.dupslots[1]);
 							iptr->dst.dupslots[2+1] = curstack;
+#endif
 							last_dup_boundary = new;
 							stackdepth += 2;
 						}
@@ -1994,6 +2099,20 @@ icmd_DUP:
 #endif
 
 icmd_DUP_X1:
+#if defined(NEW_VAR)
+						iptr->dst.dupslots = DMNEW(int, 2 + 3);
+						iptr->dst.dupslots[0] = curstack->prev->varnum;
+						iptr->dst.dupslots[1] = curstack->varnum;
+						copy = curstack;
+						POPANY; POPANY;
+
+						DUP_SLOT(copy);
+						iptr->dst.dupslots[2+0] = curstack->varnum;
+						DUP_SLOT(copy->prev);
+						iptr->dst.dupslots[2+1] = curstack->varnum;
+						DUP_SLOT(copy);
+						iptr->dst.dupslots[2+2] = curstack->varnum;
+#else
 						iptr->dst.dupslots = DMNEW(stackptr, 2 + 3);
 						iptr->dst.dupslots[0] = curstack->prev;
 						iptr->dst.dupslots[1] = curstack;
@@ -2005,6 +2124,7 @@ icmd_DUP_X1:
 						iptr->dst.dupslots[2+1] = curstack;
 						DUP_SLOT(iptr->dst.dupslots[1]);
 						iptr->dst.dupslots[2+2] = curstack;
+#endif
 						last_dup_boundary = new;
 						stackdepth++;
 						break;
@@ -2034,6 +2154,25 @@ icmd_DUP_X1:
 #endif
 
 icmd_DUP2_X1:
+#if defined(NEW_VAR)
+							iptr->dst.dupslots = DMNEW(s4, 3 + 5);
+							iptr->dst.dupslots[0] =curstack->prev->prev->varnum;
+							iptr->dst.dupslots[1] = curstack->prev->varnum;
+							iptr->dst.dupslots[2] = curstack->varnum;
+							copy = curstack;
+							POPANY; POPANY; POPANY;
+
+							DUP_SLOT(copy->prev);
+							iptr->dst.dupslots[3+0] = curstack->varnum;
+							DUP_SLOT(copy);
+							iptr->dst.dupslots[3+1] = curstack->varnum;
+							DUP_SLOT(copy->prev->prev);
+							iptr->dst.dupslots[3+2] = curstack->varnum;
+							DUP_SLOT(copy->prev);
+							iptr->dst.dupslots[3+3] = curstack->varnum;
+							DUP_SLOT(copy);
+							iptr->dst.dupslots[3+4] = curstack->varnum;
+#else
 							iptr->dst.dupslots = DMNEW(stackptr, 3 + 5);
 							iptr->dst.dupslots[0] = curstack->prev->prev;
 							iptr->dst.dupslots[1] = curstack->prev;
@@ -2050,6 +2189,7 @@ icmd_DUP2_X1:
 							iptr->dst.dupslots[3+3] = curstack;
 							DUP_SLOT(iptr->dst.dupslots[2]);
 							iptr->dst.dupslots[3+4] = curstack;
+#endif
 							last_dup_boundary = new;
 							stackdepth += 2;
 						}
@@ -2081,6 +2221,23 @@ icmd_DUP2_X1:
 							}
 #endif
 icmd_DUP_X2:
+#if defined(NEW_VAR)
+							iptr->dst.dupslots = DMNEW(s4, 3 + 4);
+							iptr->dst.dupslots[0] =curstack->prev->prev->varnum;
+							iptr->dst.dupslots[1] = curstack->prev->varnum;
+							iptr->dst.dupslots[2] = curstack->varnum;
+							copy = curstack;
+							POPANY; POPANY; POPANY;
+
+							DUP_SLOT(copy);
+							iptr->dst.dupslots[3+0] = curstack->varnum;
+							DUP_SLOT(copy->prev->prev);
+							iptr->dst.dupslots[3+1] = curstack->varnum;
+							DUP_SLOT(copy->prev);
+							iptr->dst.dupslots[3+2] = curstack->varnum;
+							DUP_SLOT(copy);
+							iptr->dst.dupslots[3+3] = curstack->varnum;
+#else
 							iptr->dst.dupslots = DMNEW(stackptr, 3 + 4);
 							iptr->dst.dupslots[0] = curstack->prev->prev;
 							iptr->dst.dupslots[1] = curstack->prev;
@@ -2095,6 +2252,7 @@ icmd_DUP_X2:
 							iptr->dst.dupslots[3+2] = curstack;
 							DUP_SLOT(iptr->dst.dupslots[2]);
 							iptr->dst.dupslots[3+3] = curstack;
+#endif
 							last_dup_boundary = new;
 							stackdepth++;
 						}
@@ -2147,6 +2305,31 @@ icmd_DUP_X2:
 									goto throw_stack_category_error;
 							}
 #endif
+
+#if defined(NEW_VAR)
+							iptr->dst.dupslots = DMNEW(s4, 4 + 6);
+							iptr->dst.dupslots[0] = 
+								curstack->prev->prev->prev->varnum;
+							iptr->dst.dupslots[1] = 
+								curstack->prev->prev->varnum;
+							iptr->dst.dupslots[2] = curstack->prev->varnum;
+							iptr->dst.dupslots[3] = curstack->varnum;
+							copy = curstack;
+							POPANY; POPANY; POPANY; POPANY;
+
+							DUP_SLOT(copy->prev);
+							iptr->dst.dupslots[4+0] = curstack->varnum;
+							DUP_SLOT(copy);
+							iptr->dst.dupslots[4+1] = curstack->varnum;
+							DUP_SLOT(copy->prev->prev->prev);
+							iptr->dst.dupslots[4+2] = curstack->varnum;
+							DUP_SLOT(copy->prev->prev);
+							iptr->dst.dupslots[4+3] = curstack->varnum;
+							DUP_SLOT(copy->prev);
+							iptr->dst.dupslots[4+4] = curstack->varnum;
+							DUP_SLOT(copy);
+							iptr->dst.dupslots[4+5] = curstack->varnum;
+#else
 							iptr->dst.dupslots = DMNEW(stackptr, 4 + 6);
 							iptr->dst.dupslots[0] = curstack->prev->prev->prev;
 							iptr->dst.dupslots[1] = curstack->prev->prev;
@@ -2166,6 +2349,7 @@ icmd_DUP_X2:
 							iptr->dst.dupslots[4+4] = curstack;
 							DUP_SLOT(iptr->dst.dupslots[3]);
 							iptr->dst.dupslots[4+5] = curstack;
+#endif
 							last_dup_boundary = new;
 							stackdepth += 2;
 						}
@@ -2182,6 +2366,19 @@ icmd_DUP_X2:
 								goto throw_stack_category_error;
 						}
 #endif
+
+#if defined(NEW_VAR)
+						iptr->dst.dupslots = DMNEW(s4, 2 + 2);
+						iptr->dst.dupslots[0] = curstack->prev->varnum;
+						iptr->dst.dupslots[1] = curstack->varnum;
+						copy = curstack;
+						POPANY; POPANY;
+
+						DUP_SLOT(copy);
+						iptr->dst.dupslots[2+0] = curstack->varnum;
+						DUP_SLOT(copy->prev);
+						iptr->dst.dupslots[2+1] = curstack->varnum;
+#else
 						iptr->dst.dupslots = DMNEW(stackptr, 2 + 2);
 						iptr->dst.dupslots[0] = curstack->prev;
 						iptr->dst.dupslots[1] = curstack;
@@ -2191,6 +2388,7 @@ icmd_DUP_X2:
 						iptr->dst.dupslots[2+0] = curstack;
 						DUP_SLOT(iptr->dst.dupslots[0]);
 						iptr->dst.dupslots[2+1] = curstack;
+#endif
 						last_dup_boundary = new;
 						break;
 
@@ -2212,6 +2410,9 @@ icmd_DUP_X2:
 
 						copy = curstack;
 						while (copy) {
+#if defined(NEW_VAR)
+							jd->var[copy->varnum].flags |= SAVEDVAR;
+#endif
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
@@ -2249,6 +2450,9 @@ icmd_DUP_X2:
 
 						copy = curstack;
 						while (copy) {
+#if defined(NEW_VAR)
+							jd->var[copy->varnum].flags |= SAVEDVAR;
+#endif
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
@@ -2602,6 +2806,9 @@ normal_DCMPG:
 
 							copy = curstack;
 							while (copy) {
+#if defined(NEW_VAR)
+								jd->var[copy->varnum].flags |= SAVEDVAR;
+#endif
 								copy->flags |= SAVEDVAR;
 								copy = copy->prev;
 							}
@@ -2702,57 +2909,111 @@ icmd_BUILTIN:
 						/* XXX optimize for <= 2 args */
 						/* XXX not for ICMD_BUILTIN */
 						iptr->s1.argcount = stackdepth;
+#if defined(NEW_VAR)
+						iptr->sx.s23.s2.args = DMNEW(s4, stackdepth);
+#else					  
 						iptr->sx.s23.s2.args = DMNEW(stackptr, stackdepth);
+#endif
 
 						copy = curstack;
 						for (i-- ; i >= 0; i--) {
+#if defined(NEW_VAR)
+							iptr->sx.s23.s2.args[i] = copy->varnum;
+#else
 							iptr->sx.s23.s2.args[i] = copy;
+#endif
 
-							/* do not change STACKVARs to ARGVAR ->
-							   won't help anyway */
+							/* do not change STACKVARs or LOCALVARS to ARGVAR*/
+							/* ->  won't help anyway */
+#if defined(NEW_VAR)
+							if (!(IS_OUTVAR(copy) || IS_LOCALVAR(copy))) {
+#else
 							if (copy->varkind != STACKVAR) {
+#endif
 
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
-							/* If we pass float arguments in integer argument registers, we
-							 * are not allowed to precolor them here. Floats have to be moved
-							 * to this regs explicitly in codegen().
-							 * Only arguments that are passed by stack anyway can be precolored
-							 * (michi 2005/07/24) */
+			/* If we pass float arguments in integer argument registers, we
+			 * are not allowed to precolor them here. Floats have to be moved
+			 * to this regs explicitly in codegen().
+			 * Only arguments that are passed by stack anyway can be precolored
+			 * (michi 2005/07/24) */
+# if defined(NEW_VAR)
+							if (!(jd->var[copy->varnum].flags & SAVEDVAR) &&
+							   (!IS_FLT_DBL_TYPE(copy->type) 
+								|| md->params[i].inmemory)) {
+# else /* defined(NEW_VAR) */
 							if (!(copy->flags & SAVEDVAR) &&
-							   (!IS_FLT_DBL_TYPE(copy->type) || md->params[i].inmemory)) {
+							   (!IS_FLT_DBL_TYPE(copy->type) 
+								|| md->params[i].inmemory)) {
+# endif /* defined(NEW_VAR) */
+#else
+# if defined(NEW_VAR)
+							if (!(jd->var[copy->varnum].flags & SAVEDVAR)) {
 #else
 							if (!(copy->flags & SAVEDVAR)) {
 #endif
+#endif
+
+#if defined(NEW_VAR)
+								SET_PREALLOC(copy);
+#else
 								copy->varkind = ARGVAR;
 								copy->varnum = i;
+#endif
 
 #if defined(ENABLE_INTRP)
 								if (!opt_intrp) {
 #endif
 									if (md->params[i].inmemory) {
+#if defined(NEW_VAR)
+										jd->var[copy->varnum].regoff =
+											md->params[i].regoff;
+										jd->var[copy->varnum].flags |= 
+											INMEMORY;
+#else	 
 										copy->flags = INMEMORY;
 										copy->regoff = md->params[i].regoff;
+#endif
 									}
 									else {
+#if !defined(NEW_VAR)
 										copy->flags = 0;
+#endif
 										if (IS_FLT_DBL_TYPE(copy->type)) {
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 											assert(0); /* XXX is this assert ok? */
 #else
+#if defined(NEW_VAR)
+											jd->var[copy->varnum].regoff = 
+										rd->argfltregs[md->params[i].regoff];
+#else											
 											copy->regoff =
-												rd->argfltregs[md->params[i].regoff];
+										rd->argfltregs[md->params[i].regoff];
+#endif
 #endif /* SUPPORT_PASS_FLOATARGS_IN_INTREGS */
 										}
 										else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 											if (IS_2_WORD_TYPE(copy->type))
-												copy->regoff = PACK_REGS(
-													rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
-													rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
+#if defined(NEW_VAR)
+												jd->var[copy->varnum].regoff = 
+				PACK_REGS( rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
+						   rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
+
+#else
+											    copy->regoff = PACK_REGS(
+							rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
+							rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
+#endif
 											else
 #endif /* SUPPORT_COMBINE_INTEGER_REGISTERS */
-												copy->regoff =
-													rd->argintregs[md->params[i].regoff];
+#if defined(NEW_VAR)
+												jd->var[copy->varnum].regoff = 
+										rd->argintregs[md->params[i].regoff];
+#else
+													copy->regoff =
+										rd->argintregs[md->params[i].regoff];
+#endif
 										}
 									}
 #if defined(ENABLE_INTRP)
@@ -2763,14 +3024,20 @@ icmd_BUILTIN:
 							copy = copy->prev;
 						}
 
-						/* deal with live-through stack slots "under" the arguments */
+						/* deal with live-through stack slots "under" the */
+						/* arguments */
 						/* XXX not for ICMD_BUILTIN */
 
 						i = md->paramcount;
 
 						while (copy) {
+#if defined(NEW_VAR)
+							iptr->sx.s23.s2.args[i++] = copy->varnum;
+							jd->var[copy->varnum].flags |= SAVEDVAR;
+#else
 							iptr->sx.s23.s2.args[i++] = copy;
 							copy->flags |= SAVEDVAR;
+#endif
 							copy = copy->prev;
 						}
 
@@ -2786,7 +3053,12 @@ icmd_BUILTIN:
 						/* push the return value */
 
 						if (md->returntype.type != TYPE_VOID) {
+#if defined(NEW_VAR)
+							GET_NEW_INDEX(new_index);
+							DST(md->returntype.type, new_index);
+#else
 							DST(md->returntype.type, stackdepth);
+#endif
 							stackdepth++;
 						}
 						break;
@@ -2806,11 +3078,15 @@ icmd_BUILTIN:
 
 						REQUIRE(i);
 
+#if defined(NEW_VAR)
+						iptr->sx.s23.s2.args = DMNEW(s4, i);
+#else
 						iptr->sx.s23.s2.args = DMNEW(stackptr, i);
+#endif
 
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-						if (rd->memuse < (i + INT_ARG_CNT + LA_SIZE_IN_POINTERS))
+						if (rd->memuse < (i + INT_ARG_CNT +LA_SIZE_IN_POINTERS))
 							rd->memuse = i + LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
 						if (rd->memuse < (i + LA_SIZE_IN_POINTERS + 3))
@@ -2830,11 +3106,39 @@ icmd_BUILTIN:
 #endif
 						copy = curstack;
 						while (--i >= 0) {
-							/* check INT type here? Currently typecheck does this. */
+					/* check INT type here? Currently typecheck does this. */
+#if defined(NEW_VAR)
+							iptr->sx.s23.s2.args[i] = copy->varnum;
+							if (!(jd->var[copy->varnum].flags & SAVEDVAR)
+								&& (!IS_OUTVAR(copy))
+								&& (!IS_LOCALVAR(copy)) ) {
+#else
 							iptr->sx.s23.s2.args[i] = copy;
 							if (!(copy->flags & SAVEDVAR) 
 								&& (copy->varkind != STACKVAR)) {
+#endif
 								copy->varkind = ARGVAR;
+#if defined(NEW_VAR)
+								jd->var[copy->varnum].flags |=
+									INMEMORY & PREALLOC;
+#if defined(SPECIALMEMUSE)
+# if defined(__DARWIN__)
+								jd->var[copy->varnum].regoff = i + 
+									LA_SIZE_IN_POINTERS + INT_ARG_CNT;
+# else
+								jd->var[copy->varnum].regoff = i + 
+									LA_SIZE_IN_POINTERS + 3;
+# endif
+#else
+# if defined(__I386__)
+								jd->var[copy->varnum].regoff = i + 3;
+# elif defined(__MIPS__) && SIZEOF_VOID_P == 4
+								jd->var[copy->varnum].regoff = i + 2;
+# else
+								jd->var[copy->varnum].regoff = i;
+# endif /* defined(__I386__) */
+#endif /* defined(SPECIALMEMUSE) */
+#else /* defined(NEW_VAR) */
 								copy->varnum = i + INT_ARG_CNT;
 								copy->flags |= INMEMORY;
 #if defined(SPECIALMEMUSE)
@@ -2852,11 +3156,17 @@ icmd_BUILTIN:
 								copy->regoff = i;
 # endif /* defined(__I386__) */
 #endif /* defined(SPECIALMEMUSE) */
+
+#endif /* defined(NEW_VAR) */
 							}
 							copy = copy->prev;
 						}
 						while (copy) {
+#if defined(NEW_VAR)
+							jd->var[copy->varnum].flags |= SAVEDVAR;
+#else
 							copy->flags |= SAVEDVAR;
+#endif
 							copy = copy->prev;
 						}
 
@@ -2865,7 +3175,12 @@ icmd_BUILTIN:
 						while (--i >= 0) {
 							POPANY;
 						}
+#if defined(NEW_VAR)
+						GET_NEW_INDEX(new_index);
+						DST(TYPE_ADR, new_index);
+#else
 						DST(TYPE_ADR, stackdepth);
+#endif
 						stackdepth++;
 						break;
 
@@ -2883,22 +3198,48 @@ icmd_BUILTIN:
 
 				bptr->outstack = curstack;
 				bptr->outdepth = stackdepth;
+#if defined(NEW_VAR)
+				bptr->outvars = DMNEW(s4, stackdepth);
+				for (i = stackdepth, copy = curstack; i--; copy = copy->prev)
+					bptr->outvars[i] = copy->varnum;
+#else
 				bptr->outvars = DMNEW(stackptr, stackdepth);
 				for (i = stackdepth, copy = curstack; i--; copy = copy->prev)
 					bptr->outvars[i] = copy;
+#endif
 
 				/* stack slots at basic block end become interfaces */
 
 				i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
-					if ((copy->varkind == STACKVAR) && (copy->varnum > i)) {
 #if defined(NEW_VAR)
-						/* with the new vars rd->interfaces will be removed */
-						/* and all in and outvars have to be STACKVARS!     */
-						/* in the moment i.e. SWAP with in and out vars     */
-						/* an unresolvable conflict */
-						assert(0);
-#endif
+					/* with the new vars rd->interfaces will be removed */
+					/* and all in and outvars have to be STACKVARS!     */
+					/* in the moment i.e. SWAP with in and out vars can */
+					/* create an unresolvable conflict */
+
+					j = jd->interface_map[i * 5 + copy->type];
+					if (j == UNUSED) {
+						/* no interface var until now for this depth and */
+						/* type */
+						
+						SET_OUTVAR(copy);
+						
+						if (! IS_LOCALVAR(copy) )
+							jd->var[j].flags |= jd->var[copy->varnum].flags;
+						jd->interface_map[i*5 + copy->type] = copy->varnum;
+					}
+					else if (j != copy->varnum) {
+						/* release copy->varnum and take already existing */
+						/* interface var */
+						RELEASE_INDEX(copy);
+						
+						if (! IS_LOCALVAR(copy) )
+							jd->var[j].flags |= jd->var[copy->varnum].flags;
+						copy->varnum = jd->interface_map[i*5 + copy->type];
+					} /* else <-> if (j == copy->varnum) --> nothing todo! */
+#else
+					if ((copy->varkind == STACKVAR) && (copy->varnum > i)) {
 						copy->varkind = TEMPVAR;
 					} else {
 						copy->varkind = STACKVAR;
@@ -2908,10 +3249,11 @@ icmd_BUILTIN:
 							rd->interfaces[i][copy->type].type = copy->type;
 							rd->interfaces[i][copy->type].flags |= copy->flags;
 					);
+#endif
 				}
 
 				/* check if interface slots at basic block begin must be saved */
-
+#if !defined(NEW_VAR)
 				IF_NO_INTRP(
 					i = bptr->indepth - 1;
 					for (copy = bptr->instack; copy; i--, copy = copy->prev) {
@@ -2922,8 +3264,21 @@ icmd_BUILTIN:
 						}
 					}
 				);
+#endif
 
-			} /* if */
+#if defined(STACK_VERBOSE)
+				printf("OUTVARS\n");
+				for( copy = bptr->outstack; copy; copy = copy->prev ) {
+					printf("%2d(%d", copy->varnum, copy->type);
+					if (IS_OUTVAR(copy))
+						printf("S");
+					if (IS_PREALLOC(copy))
+						printf("A");
+					printf(") ");
+				}
+				printf("\n");
+#endif
+		    } /* if */
 			else
 				superblockend = true;
 

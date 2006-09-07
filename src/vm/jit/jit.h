@@ -30,13 +30,15 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5392 2006-09-07 09:40:25Z twisti $
+   $Id: jit.h 5404 2006-09-07 13:29:05Z christian $
 
 */
 
 
 #ifndef _JIT_H
 #define _JIT_H
+
+#define NEW_VAR
 
 /* forward typedefs ***********************************************************/
 
@@ -117,18 +119,19 @@ struct jitdata {
 
 #if defined(NEW_VAR)
 	varinfo *var;
-	int     vartop;
+	s4      vartop;
     
-	int     varcount;
-	int     localcount;
-    int     *local_map; /* internal structure to rename(de-coallesc) locals  */
-	                     /* and keep the coalescing info for simplereg.       */
-	                     /* local_map[local_index * 5 + local_type] = new_index in */
-                         /* rd->var or LOCAL_UNUSED    */
+	s4      varcount;
+	s4      localcount;
+    s4      *local_map; /* internal structure to rename(de-coallesc) locals  */
+	                    /* and keep the coalescing info for simplereg.       */
+	                    /* local_map[local_index * 5 + local_type] =         */
+	                    /* new_index in rd->var or LOCAL_UNUSED              */
+	s4      *interface_map; /* like local_map for interfaces */
 #endif
 };
 
-#define LOCAL_UNUSED                     -1
+#define UNUSED                     -1
 
 #define JITDATA_FLAG_PARSE               0x00000001
 #define JITDATA_FLAG_VERIFY              0x00000002
@@ -180,6 +183,9 @@ struct jitdata {
                                 /* using the same register/memory location    */
 #define STKEEP    32            /* to prevent reg_mark_copy to free this      */
                                 /* stackslot */
+#define PREALLOC  64            /* preallocated var like for ARGVARS. Used    */
+                                /* with the new var system */
+#define OUTVAR   128            /* STACKVR flag for new var system */
 
 #define IS_SAVEDVAR(x)    ((x) & SAVEDVAR)
 #define IS_INMEMORY(x)    ((x) & INMEMORY)
@@ -287,7 +293,7 @@ typedef union {
 /*** dst operand ***/
 
 typedef union {
-#if defined(VAR_NEW)
+#if defined(NEW_VAR)
 	s4                         varindex;
 #else
     stackptr                   var;
@@ -297,7 +303,11 @@ typedef union {
     branch_target_t           *table;       /* for TABLESWITCH                */
     lookup_target_t           *lookup;      /* for LOOKUPSWITCH               */
     s4                         insindex;    /* used between parse and stack   */
+#if defined(NEW_VAR)
+	s4                        *dupslots;    /* for SWAP, DUP* except DUP      */
+#else
 	stackptr                  *dupslots;    /* for SWAP, DUP* except DUP      */
+#endif
 } dst_operand_t;
 
 /*** flags (32 bits) ***/
@@ -438,9 +448,14 @@ struct basicblock {
 	s4            icount;       /* number of intermediate code instructions   */
 	s4            mpc;          /* machine code pc at start of block          */
 	stackptr      instack;      /* stack at begin of basic block              */
-	stackptr     *invars;       /* array of in-variables at begin of block    */
 	stackptr      outstack;     /* stack at end of basic block                */
+#if defined(NEW_VAR)
+	s4           *invars;       /* array of in-variables at begin of block    */
+	s4           *outvars;      /* array of out-variables at end of block     */
+#else
+	stackptr     *invars;       /* array of in-variables at begin of block    */
 	stackptr     *outvars;      /* array of out-variables at end of block     */
+#endif
 	s4            indepth;      /* stack depth at begin of basic block        */
 	s4            outdepth;     /* stack depth end of basic block             */
 

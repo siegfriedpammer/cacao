@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: codegen-common.c 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -1090,7 +1090,42 @@ void removenativestub(u1 *stub)
 
 *******************************************************************************/
 
-s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum)
+#if defined(NEW_VAR)
+s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
+{
+
+#if 0
+	/* Do we have to generate a conditional move?  Yes, then always
+	   return the temporary register.  The real register is identified
+	   during the store. */
+
+	if (opcode & ICMD_CONDITION_MASK)
+		return tempregnum;
+#endif
+
+	if (!(v->flags & INMEMORY)) {
+#if defined(__ARM__) && defined(__ARMEL__)
+		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->regoff) == REG_SPLIT))
+			return(PACK_REGS(GET_LOW_REG(var->regoff),
+							 GET_HIGH_REG(tempregnum)));
+#endif
+#if defined(__ARM__) && defined(__ARMEB__)
+		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->regoff) == REG_SPLIT))
+			return(PACK_REGS(GET_LOW_REG(tempregnum),
+							 GET_HIGH_REG(var->regoff)));
+#endif
+		return(v->regoff);
+	}
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		count_spills_read++;
+#endif
+
+	return tempregnum;
+}
+#else
+s4 codegen_reg_of_var(u2 opcode, stackptr v, s4 tempregnum)
 {
 	varinfo *var;
 
@@ -1156,6 +1191,8 @@ s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum)
 
 	return tempregnum;
 }
+#endif
+
 
 /* codegen_reg_of_dst **********************************************************
 
@@ -1175,52 +1212,21 @@ s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum)
 
 s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 {
-	varinfo *var;
-	stackptr v = iptr->dst.var;
-	registerdata *rd = jd->rd;
+	varinfo *v = &jd->var[iptr->dst.varindex];
 
-	switch (v->varkind) {
-	case TEMPVAR:
-		if (!(v->flags & INMEMORY))
-			return(v->regoff);
-		break;
-
-	case STACKVAR:
-		var = &(rd->interfaces[v->varnum][v->type]);
-		v->regoff = var->regoff;
-		if (!(var->flags & INMEMORY))
-			return(var->regoff);
-		break;
-
-	case LOCALVAR:
-		var = &(rd->locals[v->varnum][v->type]);
-		v->regoff = var->regoff;
-		if (!(var->flags & INMEMORY)) {
+	if (!(v->flags & INMEMORY)) {
+		
 #if defined(__ARM__) && defined(__ARMEL__)
-			if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(var->regoff) == REG_SPLIT))
-				return(PACK_REGS(GET_LOW_REG(var->regoff), GET_HIGH_REG(tempregnum)));
+		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->regoff) == REG_SPLIT))
+			return(PACK_REGS(GET_LOW_REG(v->regoff),
+							 GET_HIGH_REG(tempregnum)));
 #endif
 #if defined(__ARM__) && defined(__ARMEB__)
-			if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(var->regoff) == REG_SPLIT))
-				return(PACK_REGS(GET_LOW_REG(tempregnum), GET_HIGH_REG(var->regoff)));
+		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->regoff) == REG_SPLIT))
+			return(PACK_REGS(GET_LOW_REG(tempregnum),
+							 GET_HIGH_REG(v->regoff)));
 #endif
-			return(var->regoff);
-		}
-		break;
-
-	case ARGVAR:
-		if (!(v->flags & INMEMORY)) {
-#if defined(__ARM__) && defined(__ARMEL__)
-			if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->regoff) == REG_SPLIT))
-				return(PACK_REGS(GET_LOW_REG(v->regoff), GET_HIGH_REG(tempregnum)));
-#endif
-#if defined(__ARM__) && defined(__ARMEB__)
-			if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->regoff) == REG_SPLIT))
-				return(PACK_REGS(GET_LOW_REG(tempregnum), GET_HIGH_REG(v->regoff)));
-#endif
-			return(v->regoff);
-		}
-		break;
+		return (v->regoff);
 	}
 
 #if defined(ENABLE_STATISTICS)
@@ -1228,6 +1234,8 @@ s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 		count_spills_read++;
 #endif
 
+	/* Not necessary anymore - either v is inmemory or not. Setting again */
+	/* won't change anything */
 	v->flags |= INMEMORY;
 
 	return tempregnum;

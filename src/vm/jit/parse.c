@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5375 2006-09-06 16:01:23Z edwin $
+   $Id: parse.c 5404 2006-09-07 13:29:05Z christian $
 
 */
 
@@ -389,7 +389,6 @@ fetch_opcode:
 		INSTRUCTIONS_CHECK(1);
 
 		/* translate this bytecode instruction */
-
 		switch (opcode) {
 
 		case JAVA_NOP:
@@ -1506,11 +1505,11 @@ invoke_method:
 		/* iterate over local_map[0..m->maxlocals*5] and set all existing  */
 		/* index,type pairs (localmap[index*5+type]==1) to an unique value */
 		/* -> == new local var index */
-		for(i = 0; i < (m->maxlocals * 5); i++, mapptr++) {
+		for(i = 0; i < (cd->maxlocals * 5); i++, mapptr++) {
 			if (*mapptr)
 				*mapptr = nlocals++;
 			else
-				*mapptr = LOCAL_UNUSED;
+				*mapptr = UNUSED;
 		}
 
 		jd->localcount = nlocals;
@@ -1520,8 +1519,15 @@ invoke_method:
 		jd->varcount   = nlocals + s_count + 
 			jd->new_basicblockcount * m->maxstack;        /* out-stacks */
 		
-		jd->var_top = nlocals;
+		jd->vartop = nlocals;
 		jd->var = DMNEW(varinfo, jd->varcount);
+		m->maxlocals = nlocals;
+		cd->maxlocals = nlocals;
+
+		/* set types of all Locals in jd->var */
+		for(mapptr = local_map, i = 0; i < (cd->maxlocals * 5); i++, mapptr++)
+			if (*mapptr != UNUSED)
+				jd->var[*mapptr].type = i%5;
 	}
 #endif
 
