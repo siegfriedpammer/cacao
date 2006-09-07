@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5404 2006-09-07 13:29:05Z christian $
+   $Id: jit.c 5405 2006-09-07 13:41:43Z edwin $
 
 */
 
@@ -1327,7 +1327,7 @@ u1 *jit_compile(methodinfo *m)
 
 	jd->flags = JITDATA_FLAG_PARSE;
 
-#if defined(ENABLE_VERIFY)
+#if defined(ENABLE_VERIFIER)
 	if (opt_verify)
 		jd->flags |= JITDATA_FLAG_VERIFY;
 #endif
