@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5405 2006-09-07 13:41:43Z edwin $
+   $Id: jit.c 5407 2006-09-07 14:24:00Z edwin $
 
 */
 
@@ -637,8 +637,8 @@ char *icmd_names[256] = {
 	"UNDEF12        ", /* FCONST_1     12 */
 	"UNDEF13        ", /* FCONST_2     13 */
 	"DCONST         ", /*              14 */
-	"UNDEF15        ", /* DCONST_1     15 */
-	"UNDEF16        ", /* BIPUSH       16 */
+	"COPY           ", /* DCONST_1     15 */
+	"MOVE           ", /* BIPUSH       16 */
 	"UNDEF17        ", /* SIPUSH       17 */
 	"UNDEF18        ", /* LDC1         18 */
 	"UNDEF19        ", /* LDC2         19 */

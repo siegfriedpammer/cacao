@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5404 2006-09-07 13:29:05Z christian $
+   $Id: jit.h 5407 2006-09-07 14:24:00Z edwin $
 
 */
 
@@ -551,8 +551,10 @@ extern int jcommandsize[256];
 #define ICMD_DCONST           14        /* val.d = constant                   */
 
 #define JAVA_DCONST_1         15
+#define ICMD_COPY             15
 
 #define JAVA_BIPUSH           16
+#define ICMD_MOVE             16
 
 #define JAVA_SIPUSH           17
 
