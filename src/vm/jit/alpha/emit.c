@@ -205,10 +205,12 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
 		}
 
-		if (IS_FLT_DBL_TYPE(src->type))
-			M_FLTMOVE(s1, d);
-		else
-			M_INTMOVE(s1, d);
+		if (s1 != d) {
+			if (IS_FLT_DBL_TYPE(src->type))
+				M_FMOV(s1, d);
+			else
+				M_MOV(s1, d);
+		}
 
 		emit_store(jd, iptr, dst, d);
 	}
