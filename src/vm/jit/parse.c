@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5404 2006-09-07 13:29:05Z christian $
+   $Id: parse.c 5409 2006-09-07 14:31:33Z edwin $
 
 */
 
@@ -130,8 +130,6 @@ static void parse_setup(jitdata *jd, parsedata_t *pd)
 
 static instruction *parse_check_instructions(parsedata_t *pd, s4 ipc)
 {
-	puts("REALLOCATE!");
-
 	/* increase the size of the instruction array */
 
 	pd->instructionslength += INSTRUCTIONS_INCREMENT;
@@ -487,6 +485,57 @@ fetch_opcode:
 		case JAVA_DCONST_0:
 		case JAVA_DCONST_1:
 			OP_LOADCONST_D(opcode - JAVA_DCONST_0);
+			break;
+
+		/* stack operations ***************************************************/
+
+		/* We need space for additional ICMDs so we can translate these       */
+		/* instructions to sequences of ICMD_COPY and ICMD_MOVE instructions. */
+
+		case JAVA_DUP_X1:
+			INSTRUCTIONS_CHECK(3);
+			OP(opcode);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			break;
+
+		case JAVA_DUP_X2:
+			INSTRUCTIONS_CHECK(4);
+			OP(opcode);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			break;
+
+		case JAVA_DUP2:
+			INSTRUCTIONS_CHECK(2);
+			OP(opcode);
+			OP(ICMD_NOP);
+			break;
+
+		case JAVA_DUP2_X1:
+			INSTRUCTIONS_CHECK(5);
+			OP(opcode);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			break;
+
+		case JAVA_DUP2_X2:
+			INSTRUCTIONS_CHECK(6);
+			OP(opcode);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			break;
+
+		case JAVA_SWAP:
+			INSTRUCTIONS_CHECK(2);
+			OP(opcode);
+			OP(ICMD_NOP);
 			break;
 
 		/* local variable access instructions *********************************/
