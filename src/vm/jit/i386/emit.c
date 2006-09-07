@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5395 2006-09-07 10:46:39Z twisti $
+   $Id: emit.c 5401 2006-09-07 12:52:31Z twisti $
 
 */
 
@@ -72,7 +72,7 @@ inline s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 	cd = jd->cd;
 
-	if (src->flags & INMEMORY) {
+	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
 		disp = src->regoff * 4;
@@ -118,7 +118,7 @@ inline s4 emit_load_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg
 	cd = jd->cd;
 
 
-	if (src->flags & INMEMORY) {
+	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
 		disp = src->regoff * 4;
@@ -152,7 +152,7 @@ inline s4 emit_load_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempre
 
 	cd = jd->cd;
 
-	if (src->flags & INMEMORY) {
+	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
 		disp = src->regoff * 4;
@@ -336,7 +336,7 @@ inline void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 	cd = jd->cd;
 
-	if (dst->flags & INMEMORY) {
+	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(dst->type)) {
@@ -372,7 +372,7 @@ inline void emit_store_low(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 	cd = jd->cd;
 
-	if (dst->flags & INMEMORY) {
+	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 		M_IST(GET_LOW_REG(d), REG_SP, dst->regoff * 4);
 	}
@@ -396,7 +396,7 @@ inline void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 	cd = jd->cd;
 
-	if (dst->flags & INMEMORY) {
+	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 		M_IST(GET_HIGH_REG(d), REG_SP, dst->regoff * 4 + 4);
 	}

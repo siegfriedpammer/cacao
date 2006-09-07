@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5379 2006-09-06 16:41:26Z twisti $
+   $Id: codegen.c 5401 2006-09-07 12:52:31Z twisti $
 
 */
 
@@ -259,7 +259,7 @@ bool codegen(jitdata *jd)
 			if (!md->params[p].inmemory) {           /* register arguments    */
 				log_text("integer register argument");
 				assert(0);
-				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
+				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
 					/* rd->argintregs[md->params[p].regoff -> var->regoff     */
 				} 
 				else {                               /* reg arg -> spilled    */
@@ -267,7 +267,7 @@ bool codegen(jitdata *jd)
 				}
 			} 
 			else {                                   /* stack arguments       */
-				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
+				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
 					emit_mov_membase_reg(           /* + 4 for return address */
 					   cd, REG_SP, (cd->stackframesize + s1) * 4 + 4, var->regoff);
 					                                /* + 4 for return address */
@@ -316,7 +316,7 @@ bool codegen(jitdata *jd)
 			if (!md->params[p].inmemory) {           /* register arguments    */
 				log_text("There are no float argument registers!");
 				assert(0);
-				if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
+				if (!IS_INMEMORY(var->flags)) {  /* reg arg -> register   */
 					/* rd->argfltregs[md->params[p].regoff -> var->regoff     */
 				} else {			             /* reg arg -> spilled    */
 					/* rd->argfltregs[md->params[p].regoff -> var->regoff * 4 */
@@ -324,7 +324,7 @@ bool codegen(jitdata *jd)
 
 			} 
 			else {                                   /* stack arguments       */
-				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
+				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
 					if (t == TYPE_FLT) {
 						emit_flds_membase(
                             cd, REG_SP, (cd->stackframesize + s1) * 4 + 4);
@@ -466,14 +466,14 @@ bool codegen(jitdata *jd)
 				if (bptr->type != BBTYPE_STD) {
 					if (!IS_2_WORD_TYPE(src->type)) {
 						if (bptr->type == BBTYPE_SBR) {
-							if (!(src->flags & INMEMORY))
+							if (!IS_INMEMORY(src->flags))
 								d = src->regoff;
 							else
 								d = REG_ITMP1;
 							emit_pop_reg(cd, d);
 							emit_store(jd, NULL, src, d);
 						} else if (bptr->type == BBTYPE_EXH) {
-							if (!(src->flags & INMEMORY))
+							if (!IS_INMEMORY(src->flags))
 								d = src->regoff;
 							else
 								d = REG_ITMP1;
@@ -532,7 +532,7 @@ bool codegen(jitdata *jd)
 					s1 = rd->interfaces[len][s2].regoff;
 					
 					if (IS_FLT_DBL_TYPE(s2)) {
-						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
+						if (!IS_INMEMORY(rd->interfaces[len][s2].flags)) {
 							M_FLTMOVE(s1, d);
 							
 						} else {
@@ -543,7 +543,7 @@ bool codegen(jitdata *jd)
 						}
 						
 					} else {
-						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
+						if (!IS_INMEMORY(rd->interfaces[len][s2].flags)) {
 							if (IS_2_WORD_TYPE(s2))
 								M_LNGMOVE(s1, d);
 							else
@@ -593,7 +593,7 @@ bool codegen(jitdata *jd)
 						/* nullpointer check must have been performed before */
 						/* (XXX not done, yet) */
 						var = &(rd->locals[insinfo->synclocal][TYPE_ADR]);
-						if (var->flags & INMEMORY) {
+						if (IS_INMEMORY(var->flags)) {
 							emit_mov_membase_reg(cd, REG_SP, var->regoff * 4, REG_ITMP1);
 							M_AST(REG_ITMP1, REG_SP, 0 * 4);
 						} 
@@ -628,7 +628,7 @@ bool codegen(jitdata *jd)
 					} 
 					else {
 						var = &(rd->locals[insinfo->synclocal][TYPE_ADR]);
-						if (var->flags & INMEMORY) {
+						if (IS_INMEMORY(var->flags)) {
 							M_ALD(REG_ITMP1, REG_SP, var->regoff * 4);
 							M_AST(REG_ITMP1, REG_SP, 0 * 4);
 						} 
@@ -762,7 +762,7 @@ bool codegen(jitdata *jd)
 			    (iptr->dst.var->varnum == iptr->s1.localindex))
 				break;
 			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			if (var->flags & INMEMORY)
+			if (IS_INMEMORY(var->flags))
 				M_ILD(d, REG_SP, var->regoff * 4);
 			else
 				M_INTMOVE(var->regoff, d);
@@ -770,14 +770,14 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable                         */
+		                      /* s1.localindex = local variable               */
   
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			if ((iptr->dst.var->varkind == LOCALVAR) &&
 			    (iptr->dst.var->varnum == iptr->s1.localindex))
 				break;
 			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			if (var->flags & INMEMORY)
+			if (IS_INMEMORY(var->flags))
 				M_LLD(d, REG_SP, var->regoff * 4);
 			else
 				M_LNGMOVE(var->regoff, d);
@@ -785,14 +785,14 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable                         */
+		                      /* s1.localindex = local variable               */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
   			if ((iptr->dst.var->varkind == LOCALVAR) &&
   			    (iptr->dst.var->varnum == iptr->s1.localindex))
     				break;
 			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			if (var->flags & INMEMORY)
+			if (IS_INMEMORY(var->flags))
 				M_FLD(d, REG_SP, var->regoff * 4);
 			else
 				M_FLTMOVE(var->regoff, d);
@@ -800,14 +800,14 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable                         */
+		                      /* s1.localindex = local variable               */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
   			if ((iptr->dst.var->varkind == LOCALVAR) &&
   			    (iptr->dst.var->varnum == iptr->s1.localindex))
 				break;
 			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			if (var->flags & INMEMORY)
+			if (IS_INMEMORY(var->flags))
 				M_DLD(d, REG_SP, var->regoff * 4);
 			else
 				M_FLTMOVE(var->regoff, d);
@@ -821,7 +821,7 @@ bool codegen(jitdata *jd)
 			    (iptr->s1.var->varnum == iptr->dst.localindex))
 				break;
 			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (var->flags & INMEMORY) {
+			if (IS_INMEMORY(var->flags)) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				M_IST(s1, REG_SP, var->regoff * 4);	
 			}
@@ -832,13 +832,13 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable                         */
+		                      /* dst.localindex = local variable              */
 
 			if ((iptr->s1.var->varkind == LOCALVAR) &&
 			    (iptr->s1.var->varnum == iptr->dst.localindex))
 				break;
 			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (var->flags & INMEMORY) {
+			if (IS_INMEMORY(var->flags)) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
 				M_LST(s1, REG_SP, var->regoff * 4);
 			}
@@ -849,13 +849,13 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable                         */
+		                      /* dst.localindex = local variable              */
 
 			if ((iptr->s1.var->varkind == LOCALVAR) &&
 			    (iptr->s1.var->varnum == iptr->dst.localindex))
 				break;
 			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (var->flags & INMEMORY) {
+			if (IS_INMEMORY(var->flags)) {
 				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 				M_FST(s1, REG_SP, var->regoff * 4);
 			}
@@ -866,13 +866,13 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable                         */
+		                      /* dst.localindex = local variable              */
 
 			if ((iptr->s1.var->varkind == LOCALVAR) &&
 			    (iptr->s1.var->varnum == iptr->dst.localindex))
 				break;
 			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (var->flags & INMEMORY) {
+			if (IS_INMEMORY(var->flags)) {
 				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 				M_DST(s1, REG_SP, var->regoff * 4);
 			}
@@ -1359,8 +1359,8 @@ bool codegen(jitdata *jd)
 		                      /* sx.val.l = constant                             */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_NULL);
-			if (iptr->dst.var->flags & INMEMORY) {
-				if (iptr->s1.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->dst.var->flags)) {
+				if (IS_INMEMORY(iptr->s1.var->flags)) {
 					/* Alpha algorithm */
 					disp = 3;
 					CALCOFFSETBYTES(disp, REG_SP, iptr->s1.var->regoff * 4);
@@ -1774,13 +1774,13 @@ bool codegen(jitdata *jd)
 				var_t = &(rd->locals[iptr->val._i.op1_t][TYPE_INT]);
 
 				/* set s1 to reg of destination or REG_ITMP1 */
-				if (var_t->flags & INMEMORY)
+				if (IS_INMEMORY(var_t->flags))
 					s1 = REG_ITMP1;
 				else
 					s1 = var_t->regoff;
 
 				/* move source value to s1 */
-				if (var->flags & INMEMORY)
+				if (IS_INMEMORY(var->flags))
 					M_ILD( s1, REG_SP, var->regoff * 4);
 				else
 					M_INTMOVE(var->regoff, s1);
@@ -1791,14 +1791,14 @@ bool codegen(jitdata *jd)
 
 				M_IADD_IMM(iptr->val._i.i, s1);
 
-				if (var_t->flags & INMEMORY)
+				if (IS_INMEMORY(var_t->flags))
 					M_IST(s1, REG_SP, var_t->regoff * 4);
 
 			} else
 #endif /* defined(ENABLE_SSA) */
 			{
 				var = &(rd->locals[iptr->s1.localindex][TYPE_INT]);
-				if (var->flags & INMEMORY) {
+				if (IS_INMEMORY(var->flags)) {
 					s1 = REG_ITMP1;
 					M_ILD(s1, REG_SP, var->regoff * 4);
 				}
@@ -1811,7 +1811,7 @@ bool codegen(jitdata *jd)
 
 				M_IADD_IMM(iptr->sx.val.i, s1);
 
-				if (var->flags & INMEMORY)
+				if (IS_INMEMORY(var->flags))
 					M_IST(s1, REG_SP, var->regoff * 4);
 			}
 			break;
@@ -1945,7 +1945,7 @@ bool codegen(jitdata *jd)
 		case ICMD_I2D:       /* ..., value  ==> ..., (double) value           */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			if (iptr->s1.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->s1.var->flags)) {
 				emit_fildl_membase(cd, REG_SP, iptr->s1.var->regoff * 4);
 
 			} else {
@@ -1962,7 +1962,7 @@ bool codegen(jitdata *jd)
 		case ICMD_L2D:       /* ..., value  ==> ..., (double) value           */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			if (iptr->s1.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->s1.var->flags)) {
 				emit_fildll_membase(cd, REG_SP, iptr->s1.var->regoff * 4);
 
 			} else {
@@ -1984,7 +1984,7 @@ bool codegen(jitdata *jd)
 			disp = dseg_adds4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
-			if (iptr->dst.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->dst.var->flags)) {
 				emit_fistpl_membase(cd, REG_SP, iptr->dst.var->regoff * 4);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
@@ -2021,7 +2021,7 @@ bool codegen(jitdata *jd)
 			emit_mov_imm_reg(cd, (ptrint) asm_builtin_f2i, REG_ITMP1);
 			emit_call_reg(cd, REG_ITMP1);
 
-			if (iptr->dst.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->dst.var->flags)) {
 				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, iptr->dst.var->regoff * 4);
 
 			} else {
@@ -2041,7 +2041,7 @@ bool codegen(jitdata *jd)
 			disp = dseg_adds4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
-			if (iptr->dst.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->dst.var->flags)) {
 				emit_fistpl_membase(cd, REG_SP, iptr->dst.var->regoff * 4);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
@@ -2078,7 +2078,7 @@ bool codegen(jitdata *jd)
 			emit_mov_imm_reg(cd, (ptrint) asm_builtin_d2i, REG_ITMP1);
 			emit_call_reg(cd, REG_ITMP1);
 
-			if (iptr->dst.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->dst.var->flags)) {
 				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, iptr->dst.var->regoff * 4);
 			} else {
 				M_INTMOVE(REG_RESULT, iptr->dst.var->regoff);
@@ -2097,7 +2097,7 @@ bool codegen(jitdata *jd)
 			disp = dseg_adds4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
-			if (iptr->dst.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->dst.var->flags)) {
 				emit_fistpll_membase(cd, REG_SP, iptr->dst.var->regoff * 4);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
@@ -2152,7 +2152,7 @@ bool codegen(jitdata *jd)
 			disp = dseg_adds4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
-			if (iptr->dst.var->flags & INMEMORY) {
+			if (IS_INMEMORY(iptr->dst.var->flags)) {
 				emit_fistpll_membase(cd, REG_SP, iptr->dst.var->regoff * 4);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
@@ -2330,7 +2330,7 @@ bool codegen(jitdata *jd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			assert(iptr->dst.var->flags & INMEMORY);
+			assert(IS_INMEMORY(iptr->dst.var->flags));
 			emit_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]), s1, s2, 3, REG_ITMP3);
 			emit_mov_reg_membase(cd, REG_ITMP3, REG_SP, iptr->dst.var->regoff * 4);
 			emit_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]) + 4, s1, s2, 3, REG_ITMP3);
@@ -2437,7 +2437,7 @@ bool codegen(jitdata *jd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			assert(iptr->sx.s23.s3.var->flags & INMEMORY);
+			assert(IS_INMEMORY(iptr->sx.s23.s3.var->flags));
 			emit_mov_membase_reg(cd, REG_SP, iptr->sx.s23.s3.var->regoff * 4, REG_ITMP3);
 			emit_mov_reg_memindex(cd, REG_ITMP3, OFFSET(java_longarray, data[0]), s1, s2, 3);
 			emit_mov_membase_reg(cd, REG_SP, iptr->sx.s23.s3.var->regoff * 4 + 4, REG_ITMP3);
@@ -2934,7 +2934,7 @@ bool codegen(jitdata *jd)
 		                        /* s1.localindex = local variable                       */
 
 			var = &(rd->locals[iptr->s1.localindex][TYPE_ADR]);
-			if (var->flags & INMEMORY) {
+			if (IS_INMEMORY(var->flags)) {
 				M_ALD(REG_ITMP1, REG_SP, var->regoff * 4);
 				M_JMP(REG_ITMP1);
 			}
@@ -4042,7 +4042,7 @@ gen_method:
 				src = iptr->sx.s23.s2.args[s1];
 
 				if (src->varkind != ARGVAR) {
-					if (src->flags & INMEMORY) {
+					if (IS_INMEMORY(src->flags)) {
 						M_ILD(REG_ITMP1, REG_SP, src->regoff * 4);
 						M_IST(REG_ITMP1, REG_SP, (s1 + 3) * 4);
 					}
@@ -4129,7 +4129,7 @@ gen_method:
 			s2 = src->type;
 			if (IS_FLT_DBL_TYPE(s2)) {
 				s1 = emit_load(jd, iptr, src, REG_FTMP1);
-				if (!(rd->interfaces[len][s2].flags & INMEMORY))
+				if (!IS_INMEMORY(rd->interfaces[len][s2].flags))
 					M_FLTMOVE(s1, rd->interfaces[len][s2].regoff);
 				else
 					M_DST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
@@ -4142,7 +4142,7 @@ gen_method:
 				else
 					s1 = emit_load(jd, iptr, src, REG_ITMP1);
 				
-				if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
+				if (!IS_INMEMORY(rd->interfaces[len][s2].flags)) {
 					if (IS_2_WORD_TYPE(s2))
 						M_LNGMOVE(s1, rd->interfaces[len][s2].regoff);
 					else
@@ -4300,7 +4300,7 @@ void codegen_insert_phi_moves(codegendata *cd, registerdata *rd, lsradata *ls, b
 
 void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
 			 s4 dst_regoff, s4 dst_flags) {
-	if ((dst_flags & INMEMORY) && (src_flags & INMEMORY)) {
+	if ((IS_INMEMORY(dst_flags)) && (IS_INMEMORY(src_flags))) {
 		/* mem -> mem */
 		if (dst_regoff != src_regoff) {
 			if (!IS_2_WORD_TYPE(type)) {
@@ -4336,10 +4336,10 @@ void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
 			log_text("cg_move: longs have to be in memory\n");
 /* 			assert(0); */
 		}
-		if (src_flags & INMEMORY) {
+		if (IS_INMEMORY(src_flags)) {
 			/* mem -> reg */
 			emit_mov_membase_reg(cd, REG_SP, src_regoff * 4, dst_regoff);
-		} else if (dst_flags & INMEMORY) {
+		} else if (IS_INMEMORY(dst_flags)) {
 			/* reg -> mem */
 			emit_mov_reg_membase(cd, src_regoff, REG_SP, dst_regoff * 4);
 		} else {
