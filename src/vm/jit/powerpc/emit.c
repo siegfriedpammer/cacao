@@ -389,7 +389,7 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 
 /* emit_copy *******************************************************************
 
-   XXX
+   Generates a register/memory to register/memory copy.
 
 *******************************************************************************/
 
@@ -404,14 +404,29 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	cd = jd->cd;
 	rd = jd->rd;
 
-	if (src->type == TYPE_LNG)
-		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP12_PACKED);
-	else
-		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
-
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
-		s1 = emit_load(jd, iptr, src, d);
+
+		/* If one of the variables resides in memory, we can eliminate
+		   the register move from/to the temporary register with the
+		   order of getting the destination register and the load. */
+
+		if (IS_INMEMORY(src->flags)) {
+			if (IS_LNG_TYPE(src->type))
+				d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP12_PACKED);
+			else
+				d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
+
+			s1 = emit_load(jd, iptr, src, d);
+		}
+		else {
+			if (IS_LNG_TYPE(src->type))
+				s1 = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
+			else
+				s1 = emit_load(jd, iptr, src, REG_IFTMP);
+
+			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
+		}
 
 		if (s1 != d) {
 			if (IS_FLT_DBL_TYPE(src->type))
