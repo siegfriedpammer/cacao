@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: reg.h 5404 2006-09-07 13:29:05Z christian $
+   $Id: reg.h 5410 2006-09-07 14:38:51Z edwin $
 
 */
 
@@ -57,6 +57,7 @@ struct varinfo {
 	int type;                   /* basic type of variable                     */
 	int flags;                  /* flags (SAVED, INMEMORY)                    */
 	int regoff;                 /* register number or memory offset           */
+	int copycount;              /* number of times this var has been dupped   */
 };
 
 typedef struct varinfo varinfo5[5];

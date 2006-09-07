@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5409 2006-09-07 14:31:33Z edwin $
+   $Id: parse.c 5410 2006-09-07 14:38:51Z edwin $
 
 */
 
@@ -1570,6 +1570,7 @@ invoke_method:
 		
 		jd->vartop = nlocals;
 		jd->var = DMNEW(varinfo, jd->varcount);
+		MZERO(jd->var, varinfo, jd->varcount);
 		m->maxlocals = nlocals;
 		cd->maxlocals = nlocals;
 
