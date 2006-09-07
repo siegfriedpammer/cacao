@@ -98,11 +98,11 @@ bool show_init(void)
 
 #if !defined(NDEBUG)
 static char *jit_type[] = {
-	"int",
-	"lng",
-	"flt",
-	"dbl",
-	"adr"
+	"INT",
+	"LNG",
+	"FLT",
+	"DBL",
+	"ADR"
 };
 #endif
 
@@ -225,32 +225,51 @@ void new_show_method(jitdata *jd, int stage)
 	}
 
 	if (cd->maxlocals > 0) {
+		printf("Local Map:\n");
+		printf("    index ");
+		for (j = 0; j < cd->maxlocals; j++) {
+			printf(" [%2d]", j);
+		}
+		printf("\n");
 		for (i = 0; i < 5; i++) {
-			printf("%5s ",jit_type[i]);
-			for (j = 0; j < cd->maxlocals; j++)
-				printf("%3i ",jd->local_map[j*5+i]);
+			printf("    %5s ",jit_type[i]);
+			for (j = 0; j < cd->maxlocals; j++) {
+				if (jd->local_map[j*5+i] == UNUSED)
+					printf("  -- ");
+				else
+					printf("%4i ",jd->local_map[j*5+i]);
+			}
 			printf("\n");
 		}
 		printf("\n");
 	}
 
-	printf("Interface Table:(In/Outvars)\n");
-	if (cd->maxstack > 0) {
+	if (cd->maxstack > 0 && jd->interface_map) {
 		bool exist = false;
 		s4 *mapptr = jd->interface_map;
 		
-		/* look if there exist IN/OUTVARS */
-		if (mapptr != NULL) {
-			for (i = 0; (i < (5 * cd->maxstack)) && !exist; i++, mapptr++)
-				exist = (*mapptr != UNUSED);
-		
-			if (exist)
-				for (i = 0; i < 5; i++) {
-					printf("%5s ",jit_type[i]);
-					for (j = 0; j < cd->maxstack; j++)
-						printf("%3i ",jd->interface_map[j*5+i]);
-					printf("\n");
+		/* look if there exist any IN/OUTVARS */
+		for (i = 0; (i < (5 * cd->maxstack)) && !exist; i++, mapptr++)
+			exist = (*mapptr != UNUSED);
+
+		if (exist) {
+			printf("Interface Table: (In/Outvars)\n");
+			printf("    depth ");
+			for (j = 0; j < cd->maxstack; j++) {
+				printf(" [%2d]", j);
+			}
+			printf("\n");
+
+			for (i = 0; i < 5; i++) {
+				printf("    %5s ",jit_type[i]);
+				for (j = 0; j < cd->maxstack; j++) {
+					if (jd->interface_map[j*5+i] == UNUSED)
+						printf("  -- ");
+					else
+						printf("%4i ", jd->interface_map[j*5+i]);
 				}
+				printf("\n");
+			}
 			printf("\n");
 		}
 	}
@@ -498,100 +517,94 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
             printf("field ");                                        \
         }
 
-#define SHOW_STACKVAR(sp)                                            \
-	new_show_stackvar(jd, (sp), stage)
+#define SHOW_VARIABLE(v)                                             \
+    show_variable(jd, (v), stage)
 
 #define SHOW_S1(iptr)                                                \
         if (stage >= SHOW_STACK) {                                   \
-            SHOW_STACKVAR(iptr->s1.varindex);			 \
+            SHOW_VARIABLE(iptr->s1.varindex);                        \
         }
 
 #define SHOW_S2(iptr)                                                \
         if (stage >= SHOW_STACK) {                                   \
-            SHOW_STACKVAR(iptr->sx.s23.s2.varindex);			 \
+            SHOW_VARIABLE(iptr->sx.s23.s2.varindex);                 \
         }
 
 #define SHOW_S3(iptr)                                                \
-	if (stage >= SHOW_STACK) {										 \
-		SHOW_STACKVAR(iptr->sx.s23.s3.varindex);					 \
-	}
+    if (stage >= SHOW_STACK) {                                       \
+        SHOW_VARIABLE(iptr->sx.s23.s3.varindex);                     \
+    }
 
 #define SHOW_DST(iptr)                                               \
-	if (stage >= SHOW_STACK) {										 \
-		printf("=> ");												 \
-		SHOW_STACKVAR(iptr->dst.varindex);							 \
-	}
+    if (stage >= SHOW_STACK) {                                       \
+        printf("=> ");                                               \
+        SHOW_VARIABLE(iptr->dst.varindex);                           \
+    }
 
 #define SHOW_S1_LOCAL(iptr)                                          \
-	if (stage >= SHOW_STACK) {										 \
-		printf("L%d ", iptr->s1.varindex);							 \
-	}
+    if (stage >= SHOW_STACK) {                                       \
+        printf("L%d ", iptr->s1.varindex);                           \
+    }
 
 #define SHOW_DST_LOCAL(iptr)                                         \
-	if (stage >= SHOW_STACK) {										 \
-		printf("=> L%d ", iptr->dst.varindex);						 \
-	}
+    if (stage >= SHOW_STACK) {                                       \
+        printf("=> L%d ", iptr->dst.varindex);                       \
+    }
 
-static void new_show_stackvar(jitdata *jd, s4 index, int stage)
+static void show_variable(jitdata *jd, s4 index, int stage)
 {
 	char type;
-	varinfo *sp;
+	char kind;
+	varinfo *v;
 
-	sp = &(jd->var[index]);
+	v = &(jd->var[index]);
 
-	switch (sp->type) {
-	case TYPE_INT: type = 'i'; break;
-	case TYPE_LNG: type = 'l'; break;
-	case TYPE_FLT: type = 'f'; break;
-	case TYPE_DBL: type = 'd'; break;
-	case TYPE_ADR: type = 'a'; break;
-	default:       type = '?';
+	switch (v->type) {
+		case TYPE_INT: type = 'i'; break;
+		case TYPE_LNG: type = 'l'; break;
+		case TYPE_FLT: type = 'f'; break;
+		case TYPE_DBL: type = 'd'; break;
+		case TYPE_ADR: type = 'a'; break;
+		default:       type = '?';
 	}
-#if 0
-	switch (sp->varkind) {
-	case TEMPVAR: printf("T%c%d", type, (int) (sp - jd->new_stack)); break;
-	case LOCALVAR: printf("L%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
-	case STACKVAR: printf("I%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
-	case ARGVAR: printf("A%c%d(T%d)", type, sp->varnum, (int) (sp - jd->new_stack)); break;
-	default: printf("?%c%d", type, index); break;
-	}
-#endif
 
-	if (sp->flags & PREALLOC)
-		printf("A");
-	else if (sp->flags & OUTVAR)
-		printf("I");
+	if (v->flags & PREALLOC)
+		kind = 'A';
+	else if (v->flags & OUTVAR)
+		kind = 'I';
 	else if (index < jd->localcount)
-		printf("L");
-	else printf("T");
-	printf("%c%d", type, index);
+		kind = 'L';
+	else
+		kind = 'T';
+
+	printf("%c%c%d", kind, type, index);
 
 	if (stage >= SHOW_REGS) {
 		putchar('(');
 
-		if (sp->flags & INMEMORY)
-			printf("M%02d", sp->regoff);
+		if (v->flags & INMEMORY)
+			printf("M%02d", v->regoff);
 #ifdef HAS_ADDRESS_REGISTER_FILE
-		else if (sp->type == TYPE_ADR)
-			printf("R%02d", sp->regoff);
+		else if (v->type == TYPE_ADR)
+			printf("R%02d", v->regoff);
 #endif
-		else if (IS_FLT_DBL_TYPE(sp->type))
-			printf("F%02d", sp->regoff);
+		else if (IS_FLT_DBL_TYPE(v->type))
+			printf("F%02d", v->regoff);
 		else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-			if (IS_2_WORD_TYPE(sp->type)) {
+			if (IS_2_WORD_TYPE(v->type)) {
 # if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 #  if defined(ENABLE_INTRP)
 				if (opt_intrp)
-					printf("%3d/%3d", GET_LOW_REG(sp->regoff),
-						   GET_HIGH_REG(sp->regoff));
+					printf("%3d/%3d", GET_LOW_REG(v->regoff),
+						   GET_HIGH_REG(v->regoff));
 				else
 #  endif
-					printf("%3s/%3s", regs[GET_LOW_REG(sp->regoff)],
-						   regs[GET_HIGH_REG(sp->regoff)]);
+					printf("%3s/%3s", regs[GET_LOW_REG(v->regoff)],
+						   regs[GET_HIGH_REG(v->regoff)]);
 # else
-				printf("%3d/%3d", GET_LOW_REG(sp->regoff),
-					   GET_HIGH_REG(sp->regoff));
+				printf("%3d/%3d", GET_LOW_REG(v->regoff),
+					   GET_HIGH_REG(v->regoff));
 # endif
 			} 
 			else 
@@ -600,12 +613,12 @@ static void new_show_stackvar(jitdata *jd, s4 index, int stage)
 #if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 # if defined(ENABLE_INTRP)
 					if (opt_intrp)
-						printf("%3d", sp->regoff);
+						printf("%3d", v->regoff);
 					else
 # endif
-						printf("%3s", regs[sp->regoff]);
+						printf("%3s", regs[v->regoff]);
 #else
-					printf("%3d", sp->regoff);
+					printf("%3d", v->regoff);
 #endif
 				}
 		}
@@ -625,7 +638,7 @@ static void new_show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
 	for (i=0; i<n; ++i) {
 		if (i)
 			printf(" ");
-		new_show_stackvar(jd, vars[i], stage);
+		show_variable(jd, vars[i], stage);
 	}
 	printf("]");
 }
@@ -922,7 +935,7 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 			argp = iptr->sx.s23.s2.args;
 			i = iptr->s1.argcount;
 			while (i--) {
-				SHOW_STACKVAR(*(argp++));
+				SHOW_VARIABLE(*(argp++));
 			}
 		}
 		else {
@@ -952,7 +965,7 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 			while (i--) {
 				if ((iptr->s1.argcount - 1 - i) == iptr->sx.s23.s3.bte->md->paramcount)
 					printf(" pass-through: ");
-				SHOW_STACKVAR(*(argp++));
+				SHOW_VARIABLE(*(argp++));
 			}
 		}
 		printf("%s ", iptr->sx.s23.s3.bte->cname);
@@ -973,12 +986,13 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 			while (i--) {
 				if ((iptr->s1.argcount - 1 - i) == md->paramcount)
 					printf(" pass-through: ");
-				SHOW_STACKVAR(*(argp++));
+				SHOW_VARIABLE(*(argp++));
 			}
 		}
 		INSTRUCTION_GET_METHODREF(iptr, fmiref);
 		method_methodref_print(fmiref);
 		if (fmiref->parseddesc.md->returntype.type != TYPE_VOID) {
+			putchar(' ');
 			SHOW_DST(iptr);
 		}
 		break;
@@ -1129,75 +1143,75 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 	case ICMD_DUP2:
 		if (stage >= SHOW_STACK) {
-			SHOW_STACKVAR(iptr->dst.dupslots[0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[1]);
 			printf("=> ");
-			SHOW_STACKVAR(iptr->dst.dupslots[2+0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[2+1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2+0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2+1]);
 		}
 		break;
 
 	case ICMD_DUP_X1:
 		if (stage >= SHOW_STACK) {
-			SHOW_STACKVAR(iptr->dst.dupslots[0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[1]);
 			printf("=> ");
-			SHOW_STACKVAR(iptr->dst.dupslots[2+0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[2+1]);
-			SHOW_STACKVAR(iptr->dst.dupslots[2+2]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2+0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2+1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2+2]);
 		}
 		break;
 
 	case ICMD_DUP2_X1:
 		if (stage >= SHOW_STACK) {
-			SHOW_STACKVAR(iptr->dst.dupslots[0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[1]);
-			SHOW_STACKVAR(iptr->dst.dupslots[2]);
+			SHOW_VARIABLE(iptr->dst.dupslots[0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2]);
 			printf("=> ");
-			SHOW_STACKVAR(iptr->dst.dupslots[3+0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[3+1]);
-			SHOW_STACKVAR(iptr->dst.dupslots[3+2]);
-			SHOW_STACKVAR(iptr->dst.dupslots[3+3]);
-			SHOW_STACKVAR(iptr->dst.dupslots[3+4]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+2]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+3]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+4]);
 		}
 		break;
 
 	case ICMD_DUP_X2:
 		if (stage >= SHOW_STACK) {
-			SHOW_STACKVAR(iptr->dst.dupslots[0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[1]);
-			SHOW_STACKVAR(iptr->dst.dupslots[2]);
+			SHOW_VARIABLE(iptr->dst.dupslots[0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2]);
 			printf("=> ");
-			SHOW_STACKVAR(iptr->dst.dupslots[3+0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[3+1]);
-			SHOW_STACKVAR(iptr->dst.dupslots[3+2]);
-			SHOW_STACKVAR(iptr->dst.dupslots[3+3]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+2]);
+			SHOW_VARIABLE(iptr->dst.dupslots[3+3]);
 		}
 		break;
 
 	case ICMD_DUP2_X2:
 		if (stage >= SHOW_STACK) {
-			SHOW_STACKVAR(iptr->dst.dupslots[0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[1]);
-			SHOW_STACKVAR(iptr->dst.dupslots[2]);
-			SHOW_STACKVAR(iptr->dst.dupslots[4]);
+			SHOW_VARIABLE(iptr->dst.dupslots[0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2]);
+			SHOW_VARIABLE(iptr->dst.dupslots[4]);
 			printf("=> ");
-			SHOW_STACKVAR(iptr->dst.dupslots[4+0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[4+1]);
-			SHOW_STACKVAR(iptr->dst.dupslots[4+2]);
-			SHOW_STACKVAR(iptr->dst.dupslots[4+3]);
-			SHOW_STACKVAR(iptr->dst.dupslots[4+4]);
-			SHOW_STACKVAR(iptr->dst.dupslots[4+5]);
+			SHOW_VARIABLE(iptr->dst.dupslots[4+0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[4+1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[4+2]);
+			SHOW_VARIABLE(iptr->dst.dupslots[4+3]);
+			SHOW_VARIABLE(iptr->dst.dupslots[4+4]);
+			SHOW_VARIABLE(iptr->dst.dupslots[4+5]);
 		}
 		break;
 
 	case ICMD_SWAP:
 		if (stage >= SHOW_STACK) {
-			SHOW_STACKVAR(iptr->dst.dupslots[0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[1]);
 			printf("=> ");
-			SHOW_STACKVAR(iptr->dst.dupslots[2+0]);
-			SHOW_STACKVAR(iptr->dst.dupslots[2+1]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2+0]);
+			SHOW_VARIABLE(iptr->dst.dupslots[2+1]);
 		}
 		break;
 
