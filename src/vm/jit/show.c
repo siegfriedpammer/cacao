@@ -1245,8 +1245,8 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		break;
 
 	case ICMD_DUP:
-	case ICMD_COPY:
-	case ICMD_MOVE:
+	/* case ICMD_COPY: */
+	/* case ICMD_MOVE: */
 		SHOW_S1(iptr);
 		SHOW_DST(iptr);
 		break;
