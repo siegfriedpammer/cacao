@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5375 2006-09-06 16:01:23Z edwin $
+   $Id: jit.h 5392 2006-09-07 09:40:25Z twisti $
 
 */
 
@@ -168,7 +168,7 @@ struct jitdata {
     ((jd)->flags & JITDATA_FLAG_VERBOSECALL)
 
 
-/************************** stack element structure ***************************/
+/* stack element structure ****************************************************/
 
 /* flags */
 
@@ -180,6 +180,10 @@ struct jitdata {
                                 /* using the same register/memory location    */
 #define STKEEP    32            /* to prevent reg_mark_copy to free this      */
                                 /* stackslot */
+
+#define IS_SAVEDVAR(x)    ((x) & SAVEDVAR)
+#define IS_INMEMORY(x)    ((x) & INMEMORY)
+
 
 /* variable kinds */
 
