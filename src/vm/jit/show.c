@@ -1074,6 +1074,8 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 			argp = iptr->sx.s23.s2.args;
 			i = iptr->s1.argcount;
 			while (i--) {
+				if ((iptr->s1.argcount - 1 - i) == iptr->sx.s23.s3.bte->md->paramcount)
+					printf(" pass-through: ");
 				SHOW_STACKVAR(*(argp++));
 			}
 		}
@@ -1239,6 +1241,8 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		break;
 
 	case ICMD_DUP:
+	case ICMD_COPY:
+	case ICMD_MOVE:
 		SHOW_S1(iptr);
 		SHOW_DST(iptr);
 		break;
