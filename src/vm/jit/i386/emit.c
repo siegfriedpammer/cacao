@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5352 2006-09-05 22:51:48Z christian $
+   $Id: emit.c 5395 2006-09-07 10:46:39Z twisti $
 
 */
 
@@ -420,9 +420,10 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 	emit_store(jd, iptr, dst, d);
 }
 
+
 /* emit_copy *******************************************************************
 
-   XXX
+   Generates a register/memory to register/memory copy.
 
 *******************************************************************************/
 
@@ -439,12 +440,27 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
-		if (IS_LNG_TYPE(src->type))
-			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP12_PACKED);
-		else
-			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP1);
 
-		s1 = emit_load(jd, iptr, src, d);
+		/* If one of the variables resides in memory, we can eliminate
+		   the register move from/to the temporary register with the
+		   order of getting the destination register and the load. */
+
+		if (IS_INMEMORY(src->flags)) {
+			if (IS_LNG_TYPE(src->type))
+				d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP12_PACKED);
+			else
+				d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP1);
+
+			s1 = emit_load(jd, iptr, src, d);
+		}
+		else {
+			if (IS_LNG_TYPE(src->type))
+				s1 = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
+			else
+				s1 = emit_load(jd, iptr, src, REG_ITMP1);
+
+			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
+		}
 
 		if (s1 != d) {
 			if (IS_FLT_DBL_TYPE(src->type)) {
