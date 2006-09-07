@@ -1090,9 +1090,13 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
 		if (stage >= SHOW_STACK) {
+			methoddesc *md;
+			INSTRUCTION_GET_METHODDESC(iptr, md);
 			argp = iptr->sx.s23.s2.args;
 			i = iptr->s1.argcount;
 			while (i--) {
+				if ((iptr->s1.argcount - 1 - i) == md->paramcount)
+					printf(" pass-through: ");
 				SHOW_STACKVAR(*(argp++));
 			}
 		}
