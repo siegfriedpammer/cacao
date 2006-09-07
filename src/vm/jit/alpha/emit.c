@@ -79,7 +79,8 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 			M_LLD(tempreg, REG_SP, src->regoff * 8);
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = src->regoff;
 
 	return reg;
@@ -171,6 +172,12 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 }
 
 
+/* emit_copy *******************************************************************
+
+   Generates a register/memory to register/memory copy.
+
+*******************************************************************************/
+
 void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 {
 	codegendata  *cd;
@@ -184,8 +191,19 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
-		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
-		s1 = emit_load(jd, iptr, src, d);
+
+		/* If one of the variables resides in memory, we can eliminate
+		   the register move from/to the temporary register with the
+		   order of getting the destination register and the load. */
+
+		if (IS_INMEMORY(src->flags)) {
+			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
+			s1 = emit_load(jd, iptr, src, d);
+		}
+		else {
+			s1 = emit_load(jd, iptr, src, REG_IFTMP);
+			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
+		}
 
 		if (IS_FLT_DBL_TYPE(src->type))
 			M_FLTMOVE(s1, d);
@@ -197,26 +215,38 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 }
 
 
+/* emit_iconst *****************************************************************
+
+   XXX
+
+*******************************************************************************/
+
 void emit_iconst(codegendata *cd, s4 d, s4 value)
 {
 	s4 disp;
 
-	if ((value >= -32768) && (value <= 32767)) {
+	if ((value >= -32768) && (value <= 32767))
 		M_LDA_INTERN(d, REG_ZERO, value);
-	} else {
+	else {
 		disp = dseg_adds4(cd, value);
 		M_ILD(d, REG_PV, disp);
 	}
 }
 
 
+/* emit_lconst *****************************************************************
+
+   XXX
+
+*******************************************************************************/
+
 void emit_lconst(codegendata *cd, s4 d, s8 value)
 {
 	s4 disp;
 
-	if ((value >= -32768) && (value <= 32767)) {
+	if ((value >= -32768) && (value <= 32767))
 		M_LDA_INTERN(d, REG_ZERO, value);
-	} else {
+	else {
 		disp = dseg_adds8(cd, value);
 		M_LLD(d, REG_PV, disp);
 	}
