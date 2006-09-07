@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5406 2006-09-07 14:00:39Z christian $
+   $Id: simplereg.c 5413 2006-09-07 22:39:39Z edwin $
 
 */
 
@@ -1385,135 +1385,6 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 
 #endif
 
-#if !defined(NEW_VAR)
-static bool reg_alloc_dup(stackptr src, stackptr dst) {
-	/* only copy TEMPVARS, do not mess with STACKVAR,      */
-	/* LOCALVAR, or ARGVAR        */
-	if ((src->varkind == TEMPVAR) && (dst->varkind == TEMPVAR)) {
-		/* can not allocate a REG_TMP to a REG_SAV Slot */
-		if (src->flags & INMEMORY) {
-			dst->regoff  = src->regoff;
-			dst->flags |= INMEMORY;
-			return true;
-		} else if ((src->flags & SAVEDVAR) == (dst->flags & SAVEDVAR)) {
-			dst->regoff  = src->regoff;
-			dst->flags |= src->flags & SAVEDTMP;
-			dst->flags |= src->flags & TMPARG;
-			return true;
-#if 0
-		} else if ((dst->flags & SAVEDVAR) == 0) {
-			/* can only use a REG_SAV as REG_TMP! */
-			dst->regoff = src->regoff;
-			dst->flags |= src->flags & TMPARG;
-			dst->flags |= SAVEDTMP;
-			return true;
-#endif
-		} 
-	}
-	/* no copy possible - allocate a new reg/memory location*/
-	return false;
-}
-
-
-/* Mark the copies (STCOPY) at the dst stack right for DUPx and SWAP */
-static void new_reg_mark_copy(registerdata *rd, stackptr *dupslots, 
-							  int nin, int nout, int nthrough)
-{
-	s4 src_regoff[4];
-	s4 src_flags[4];
-	stackptr dst_stackslots[6];
-	int s_bottom, d_bottom, i, j, slots;
-	bool found;
-	stackptr sp;
-	stackptr *argp;
-	registerdata *rd;
-
-	rd = jd->rd;
-
-	assert(nin <= 4 && (nout + nthrough) <= 6);
-
-	/* remember all different Registers/Memory Location of used TEMPVAR       */
-	/* instacks in src_varnum[] and src_flags[] _uniquely_. Take the STCOPY   */
-	/* flag of the last (deepest) occurence */
-	slots = nin;
-	argp = dupslots + slots;
-	for (s_bottom = 4; slots--; ) {
-		sp = *--argp;
-		if (sp->varkind == TEMPVAR) {
-			found = false;
-			for (i = 3; i >= s_bottom; i--) {
-				if ((src_regoff[i] == sp->regoff) && 
-					((src_flags[i] & INMEMORY) == (sp->flags & INMEMORY)) ) 
-				{
-					src_flags[i] &= (~STCOPY | (sp->flags & STCOPY));
-					found = true;
-				}
-			}
-			if (!found) {
-				s_bottom--;
-				src_regoff[s_bottom] = sp->regoff;
-				src_flags[s_bottom] = sp->flags;
-			}
-		}
-	}
-
-	/* Remember used TEMPVAR dst Stackslots in dst_stackslots[], since they   */
-	/* have to be from the "lowest" upwards, and the stackelements list is    */
-	/* linked from only top downwards */
-	
-	slots = nthrough + nout;
-	argp = dupslots + nin + nout;
-	for (d_bottom = 6; slots--; ) {
-		sp = *--argp;
-		if (sp->varkind == TEMPVAR) {
-			d_bottom--;
-			dst_stackslots[d_bottom] = sp;
-		}
-	}
-
-	/* Mark all reused reg/mem in dst stacklots with STCOPY, if the           */
-	/* corresponding src stackslot was marked STCOPY*/
-	/* if the correspondig STCOPY from the src stackslot was not set, do not  */
-	/* mark the lowest occurence at dst stackslots */
-	/* mark in src_flag reg/mem with STKEEP, if they where reused in the dst  */
-	/* stacklots, so they are not freed afterwards */
-	for (i = d_bottom; i < 6; i++) {
-		for (j = s_bottom; j < 4; j++) {
-			if ( (src_regoff[j] == dst_stackslots[i]->regoff) &&
-				 ((src_flags[j] & INMEMORY) == (dst_stackslots[i]->flags & INMEMORY)) ) 
-			{
-				if (src_flags[j] & STCOPY) {
-					dst_stackslots[i]->flags |= STCOPY;
-				}
-				else {
-					src_flags[j] |= STCOPY;
-					dst_stackslots[i]->flags &= ~STCOPY;
-				}
-				/* do not free reg/mem of src Stackslot */
-				src_flags[j] |= STKEEP;
-			}
-		}
-	}
-
-	/* free all reg/mem of src stack, which where not marked with STKEEP */
-	for (j=s_bottom; j < 4; j++) {
-		if ((src_flags[j] & STKEEP)==0) {
-			/* free, if STCOPY of src stackslot is not set */
-			/* STCOPY is already checked in reg_free_temp macro! */
-			slots = nin;
-			argp = dupslots + slots;
-			while (--slots) {
-				sp = *--argp;
-				if ((src_regoff[j] == sp->regoff) && 
-					((src_flags[j] & INMEMORY) == (sp->flags & INMEMORY)) ) 
-				{
-					reg_free_temp(rd, sp);
-				}
-			}
-		}
-	}
-}
-#endif
 
 #if defined(NEW_VAR)
 /* allocate_scratch_registers **************************************************
