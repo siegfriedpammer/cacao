@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5437 2006-09-08 20:41:20Z edwin $
+   $Id: stack.c 5438 2006-09-08 20:50:13Z edwin $
 
 */
 
@@ -603,8 +603,7 @@ bool new_stack_analyse(jitdata *jd)
 	basicblock   *tbptr;
 
 	stackptr     *last_store_boundary;
-	stackptr      last_pei_boundary;
-	stackptr      last_dup_boundary;
+	stackptr      coalescing_boundary;
 
 	stackptr      src1, src2, src3, src4, dst1, dst2;
 
@@ -760,8 +759,7 @@ bool new_stack_analyse(jitdata *jd)
 
 				/* reset variables for dependency checking */
 
-				last_pei_boundary = sd.new;
-				last_dup_boundary = sd.new;
+				coalescing_boundary = sd.new;
 				for( i = 0; i < cd->maxlocals; i++)
 					last_store_boundary[i] = sd.new;
 
@@ -840,7 +838,7 @@ icmd_NOP:
 						break;
 
 					case ICMD_CHECKNULL:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						COUNT(count_check_null);
 						USE_S1(TYPE_ADR);
 						CLR_SX;
@@ -1584,7 +1582,7 @@ normal_LCONST:
 	/************************** ACONST OPTIMIZATIONS **************************/
 
 					case ICMD_ACONST:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						COUNT(count_pcmd_load);
 #if SUPPORT_CONST_STORE
 						IF_INTRP( goto normal_ACONST; )
@@ -1661,7 +1659,7 @@ normal_ACONST:
 					case ICMD_FALOAD:
 					case ICMD_DALOAD:
 					case ICMD_AALOAD:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1673,7 +1671,7 @@ normal_ACONST:
 					case ICMD_BALOAD:
 					case ICMD_CALOAD:
 					case ICMD_SALOAD:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1765,14 +1763,9 @@ normal_ACONST:
 						if (curstack < last_store_boundary[javaindex])
 							goto assume_conflict;
 
-						/* there is no PEI while curstack is live */
+						/* curstack must be after the coalescing boundary */
 
-						if (curstack < last_pei_boundary)
-							goto assume_conflict;
-
-						/*there is no non-consuming USE while curstack is live*/
-
-						if (curstack < last_dup_boundary)
+						if (curstack < coalescing_boundary)
 							goto assume_conflict;
 
 						/* there is no DEF LOCALVAR(j) while curstack is live */
@@ -1783,8 +1776,6 @@ normal_ACONST:
 								goto assume_conflict;
 						}
 
-						/* XXX temporatily turn off coalescing */ goto assume_conflict;
-
 						/* coalesce the temporary variable with Lj */
 						assert( (CURKIND == TEMPVAR) || (CURKIND == UNDEFVAR));
 						assert(!IS_LOCALVAR(curstack));
@@ -1794,6 +1785,8 @@ normal_ACONST:
 						RELEASE_INDEX(sd, curstack);
 						curstack->varkind = LOCALVAR;
 						curstack->varnum = j;
+						if (curstack->creator)
+							curstack->creator->dst.varindex = j;
 						goto store_tail;
 
 						/* revert the coalescing, if it has been done earlier */
@@ -1801,7 +1794,6 @@ assume_conflict:
 						if ((curstack->varkind == LOCALVAR)
 							&& (curstack->varnum == j))
 						{
-							curstack->varkind = TEMPVAR;
 							assert(IS_LOCALVAR(curstack));
 							SET_TEMPVAR(curstack);
 						}
@@ -1816,7 +1808,7 @@ store_tail:
 					/* pop 3 push 0 */
 
 					case ICMD_AASTORE:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1851,7 +1843,7 @@ store_tail:
 					case ICMD_LASTORE:
 					case ICMD_FASTORE:
 					case ICMD_DASTORE:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1863,7 +1855,7 @@ store_tail:
 					case ICMD_BASTORE:
 					case ICMD_CASTORE:
 					case ICMD_SASTORE:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1889,7 +1881,7 @@ store_tail:
 					case ICMD_FRETURN:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						IF_JIT( md_return_alloc(jd, curstack); )
 						COUNT(count_pcmd_return);
 						OP1_0(opcode - ICMD_IRETURN);
@@ -1897,7 +1889,7 @@ store_tail:
 						break;
 
 					case ICMD_ATHROW:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						COUNT(count_check_null);
 						OP1_0(TYPE_ADR);
 						curstack = NULL; stackdepth = 0;
@@ -1905,7 +1897,7 @@ store_tail:
 						break;
 
 					case ICMD_PUTSTATIC:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_0(fmiref->parseddesc.fd->type);
@@ -1986,7 +1978,7 @@ store_tail:
 
 					case ICMD_MONITORENTER:
 					case ICMD_MONITOREXIT:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						COUNT(count_check_null);
 						OP1_0(TYPE_ADR);
 						break;
@@ -2014,7 +2006,7 @@ store_tail:
 						/* pop 2 push 0 */
 
 					case ICMD_PUTFIELD:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
@@ -2056,7 +2048,7 @@ icmd_DUP:
 						src1 = curstack;
 
 						COPY_UP(src1);
-						last_dup_boundary = sd.new - 1;
+						coalescing_boundary = sd.new - 1;
 						break;
 
 					case ICMD_DUP2:
@@ -2081,7 +2073,7 @@ icmd_DUP:
 							COPY_UP(src1); iptr++; len--;
 							COPY_UP(src2);
 
-							last_dup_boundary = sd.new;
+							coalescing_boundary = sd.new;
 						}
 						break;
 
@@ -2110,7 +2102,7 @@ icmd_DUP_X1:
 
 						COPY_DOWN(curstack, dst1);
 
-						last_dup_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						break;
 
 					case ICMD_DUP2_X1:
@@ -2154,7 +2146,7 @@ icmd_DUP2_X1:
 							COPY_DOWN(curstack, dst2); iptr++; len--;
 							COPY_DOWN(curstack->prev, dst1);
 
-							last_dup_boundary = sd.new;
+							coalescing_boundary = sd.new;
 						}
 						break;
 
@@ -2198,7 +2190,7 @@ icmd_DUP_X2:
 
 							COPY_DOWN(curstack, dst1);
 
-							last_dup_boundary = sd.new;
+							coalescing_boundary = sd.new;
 						}
 						break;
 
@@ -2268,7 +2260,7 @@ icmd_DUP_X2:
 							COPY_DOWN(curstack, dst2); iptr++; len--;
 							COPY_DOWN(curstack->prev, dst1);
 
-							last_dup_boundary = sd.new;
+							coalescing_boundary = sd.new;
 						}
 						break;
 
@@ -2292,14 +2284,14 @@ icmd_DUP_X2:
 						MOVE_UP(src2); iptr++; len--;
 						MOVE_UP(src1);
 
-						last_dup_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						break;
 
 						/* pop 2 push 1 */
 
 					case ICMD_IDIV:
 					case ICMD_IREM:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 #if !SUPPORT_DIVISION
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
@@ -2336,7 +2328,7 @@ icmd_DUP_X2:
 
 					case ICMD_LDIV:
 					case ICMD_LREM:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
@@ -2689,7 +2681,7 @@ normal_DCMPG:
 						break;
 
 					case ICMD_CHECKCAST:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						if (iptr->flags.bits & INS_FLAG_ARRAY) {
 							/* array type cast-check */
 
@@ -2715,18 +2707,18 @@ normal_DCMPG:
 
 					case ICMD_INSTANCEOF:
 					case ICMD_ARRAYLENGTH:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						OP1_1(TYPE_ADR, TYPE_INT);
 						break;
 
 					case ICMD_NEWARRAY:
 					case ICMD_ANEWARRAY:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						OP1_1(TYPE_INT, TYPE_ADR);
 						break;
 
 					case ICMD_GETFIELD:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
@@ -2736,14 +2728,14 @@ normal_DCMPG:
 						/* pop 0 push 1 */
 
 					case ICMD_GETSTATIC:
- 						last_pei_boundary = sd.new;
+ 						coalescing_boundary = sd.new;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP0_1(fmiref->parseddesc.fd->type);
 						break;
 
 					case ICMD_NEW:
- 						last_pei_boundary = sd.new;
+ 						coalescing_boundary = sd.new;
 						OP0_1(TYPE_ADR);
 						break;
 
@@ -2790,7 +2782,7 @@ icmd_BUILTIN:
 
 					_callhandling:
 
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 
 						i = md->paramcount;
 
@@ -2908,7 +2900,7 @@ icmd_BUILTIN:
 						break;
 
 					case ICMD_MULTIANEWARRAY:
-						last_pei_boundary = sd.new;
+						coalescing_boundary = sd.new;
 						if (rd->argintreguse < 3)
 							rd->argintreguse = 3;
 
