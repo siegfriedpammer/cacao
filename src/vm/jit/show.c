@@ -1177,87 +1177,11 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		SHOW_S1(iptr);
 		break;
 
-	case ICMD_DUP:
  	case ICMD_COPY:
  	case ICMD_MOVE:
 		SHOW_S1(iptr);
 		SHOW_DST(iptr);
 		break;
-
-	case ICMD_DUP2:
-		if (stage >= SHOW_STACK) {
-			SHOW_VARIABLE(iptr->dst.dupslots[0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[1]);
-			printf("=> ");
-			SHOW_VARIABLE(iptr->dst.dupslots[2+0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[2+1]);
-		}
-		break;
-
-	case ICMD_DUP_X1:
-		if (stage >= SHOW_STACK) {
-			SHOW_VARIABLE(iptr->dst.dupslots[0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[1]);
-			printf("=> ");
-			SHOW_VARIABLE(iptr->dst.dupslots[2+0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[2+1]);
-			SHOW_VARIABLE(iptr->dst.dupslots[2+2]);
-		}
-		break;
-
-	case ICMD_DUP2_X1:
-		if (stage >= SHOW_STACK) {
-			SHOW_VARIABLE(iptr->dst.dupslots[0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[1]);
-			SHOW_VARIABLE(iptr->dst.dupslots[2]);
-			printf("=> ");
-			SHOW_VARIABLE(iptr->dst.dupslots[3+0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[3+1]);
-			SHOW_VARIABLE(iptr->dst.dupslots[3+2]);
-			SHOW_VARIABLE(iptr->dst.dupslots[3+3]);
-			SHOW_VARIABLE(iptr->dst.dupslots[3+4]);
-		}
-		break;
-
-	case ICMD_DUP_X2:
-		if (stage >= SHOW_STACK) {
-			SHOW_VARIABLE(iptr->dst.dupslots[0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[1]);
-			SHOW_VARIABLE(iptr->dst.dupslots[2]);
-			printf("=> ");
-			SHOW_VARIABLE(iptr->dst.dupslots[3+0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[3+1]);
-			SHOW_VARIABLE(iptr->dst.dupslots[3+2]);
-			SHOW_VARIABLE(iptr->dst.dupslots[3+3]);
-		}
-		break;
-
-	case ICMD_DUP2_X2:
-		if (stage >= SHOW_STACK) {
-			SHOW_VARIABLE(iptr->dst.dupslots[0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[1]);
-			SHOW_VARIABLE(iptr->dst.dupslots[2]);
-			SHOW_VARIABLE(iptr->dst.dupslots[4]);
-			printf("=> ");
-			SHOW_VARIABLE(iptr->dst.dupslots[4+0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[4+1]);
-			SHOW_VARIABLE(iptr->dst.dupslots[4+2]);
-			SHOW_VARIABLE(iptr->dst.dupslots[4+3]);
-			SHOW_VARIABLE(iptr->dst.dupslots[4+4]);
-			SHOW_VARIABLE(iptr->dst.dupslots[4+5]);
-		}
-		break;
-
-	case ICMD_SWAP:
-		if (stage >= SHOW_STACK) {
-			SHOW_VARIABLE(iptr->dst.dupslots[0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[1]);
-			printf("=> ");
-			SHOW_VARIABLE(iptr->dst.dupslots[2+0]);
-			SHOW_VARIABLE(iptr->dst.dupslots[2+1]);
-		}
-		break;
-
 	}
 	fflush(stdout);
 }
