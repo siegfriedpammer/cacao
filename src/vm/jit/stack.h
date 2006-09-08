@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5404 2006-09-07 13:29:05Z christian $
+   $Id: stack.h 5419 2006-09-08 12:16:23Z edwin $
 
 */
 
@@ -132,15 +132,15 @@
 
 #define NEWSTACK(s,v,n)	\
     do { \
-        new->prev = curstack; \
-        new->type = (s); \
-        new->flags = 0; \
-        new->varkind = (v); \
-        new->varnum = (n); \
-        curstack = new; \
-		jd->var[(n)].type = (s); \
-		jd->var[(n)].flags = 0;	 \
-        new++; \
+        sd.new->prev = curstack; \
+        sd.new->type = (s); \
+        sd.new->flags = 0; \
+        sd.new->varkind = (v); \
+        sd.new->varnum = (n); \
+        curstack = sd.new; \
+		sd.var[(n)].type = (s); \
+		sd.var[(n)].flags = 0;	 \
+        sd.new++; \
     } while (0)
 
 /* Initialize regoff, so -sia can show regnames even before reg.inc */
@@ -214,13 +214,12 @@
  * block to another. The destination block receives the copy as its
  * input stack.
  */
-#if defined(NEW_VAR)
-# define COPYCURSTACK(copy) {\
+# define COPYCURSTACK(sd, copy) {\
 	stackptr s;\
-	if(curstack){\
+	if (curstack){\
 		s=curstack;\
-		new+=stackdepth;\
-		copy=new;\
+		(sd).new+=stackdepth;\
+		copy=(sd).new;\
 		while(s){\
 			copy--;								\
 			copy->prev=copy-1;\
@@ -228,78 +227,15 @@
 			copy->flags=0;\
 			copy->varkind=STACKVAR;\
 			copy->varnum=s->varnum;\
-			SET_OUTVAR(s);		   \
+			SET_OUTVAR((sd), s);	   \
 			s=s->prev;\
 			}\
 		copy->prev=NULL;\
-		copy=new-1;\
+		copy=(sd).new-1;\
 		}\
 	else\
 		copy=NULL;\
 }
-#else
-# define COPYCURSTACK(copy) {\
-	int d;\
-	stackptr s;\
-	if(curstack){\
-		s=curstack;\
-		new+=stackdepth;\
-		d=stackdepth;\
-		copy=new;\
-		while(s){\
-			copy--;d--;\
-			copy->prev=copy-1;\
-			copy->type=s->type;\
-			copy->flags=0;\
-			copy->varkind=STACKVAR;\
-			copy->varnum=d;\
-			s=s->prev;\
-			}\
-		copy->prev=NULL;\
-		copy=new-1;\
-		}\
-	else\
-		copy=NULL;\
-}
-#endif
-
-/* MARKREACHED marks the destination block <b> as reached. If this
- * block has been reached before we check if stack depth and types
- * match. Otherwise the destination block receives a copy of the
- * current stack as its input stack.
- *
- * b...destination block
- * c...current stack
- */
-
-/* XXX this macro is much too big! */
-
-#define MARKREACHED(b,c) \
-    do { \
-		if ((b) <= (bptr)) \
-			(b)->bitflags |= BBFLAG_REPLACEMENT; \
-	    if ((b)->flags < BBREACHED) { \
-			int locali; \
-		    COPYCURSTACK((c)); \
-            (b)->flags = BBREACHED; \
-            (b)->instack = (c); \
-            (b)->indepth = stackdepth; \
-			(b)->invars = DMNEW(s4, stackdepth); \
-			for (locali = stackdepth; locali--; (c) = (c)->prev) {	\
-				(b)->invars[locali] = (c)->varnum;					\
-				SET_OUTVAR((c));							\
-			}														\
-        } else { \
-            stackptr s = curstack; \
-            stackptr t = (b)->instack; \
-			CHECK_STACK_DEPTH((b)->indepth, stackdepth); \
-		    while (s) { \
-				CHECK_BASIC_TYPE(s->type,t->type); \
-			    s = s->prev; \
-                t = t->prev; \
-			} \
-		} \
-    } while (0)
 
 
 /* external macros ************************************************************/

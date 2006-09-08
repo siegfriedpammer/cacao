@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5404 2006-09-07 13:29:05Z christian $
+   $Id: stack.c 5419 2006-09-08 12:16:23Z edwin $
 
 */
 
@@ -108,6 +108,20 @@
 #define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)
 #endif
 
+/* stackdata_t ****************************************************************/
+
+typedef struct stackdata_t stackdata_t;
+
+struct stackdata_t {
+	basicblock *bptr;
+	stackptr new;
+	s4 vartop;
+	s4 localcount;
+	s4 varcount;
+	varinfo *var;
+};
+
+
 /* stack_init ******************************************************************
 
    Initialized the stack analysis subsystem (called by jit_init).
@@ -143,65 +157,67 @@ bool stack_init(void)
    types are not discerned.
 
 *******************************************************************************/
-#if defined(NEW_VAR)
-#define GET_NEW_INDEX(new_varindex)									 \
+
+#define GET_NEW_INDEX(sd, new_varindex)		         				 \
 	do {															 \
-		assert(jd->vartop < jd->varcount);							 \
-		(new_varindex) = (jd->vartop)++;							 \
+		assert((sd).vartop < (sd).varcount);			             \
+		(new_varindex) = ((sd).vartop)++;						     \
 	} while (0)
 
 /* not implemented now, can be used to reuse varindices          */
 /* pay attention to not release a localvar once implementing it! */
-#define RELEASE_INDEX(varindex)
+#define RELEASE_INDEX(sd, varindex)
 
 /* with the new vars setting an OUTVAR is not as trivial as changing */
 /* the varkind before. If varindex was a localvar, a new TEMPVAR has */
 /* to be created for the slot and the OUTVAR flag set */
-#define SET_OUTVAR(sp)							\
+#define SET_OUTVAR(sd, sp)                                           \
+    do {                                                             \
+        if (IS_LOCALVAR_SD(sd, (sp))) {                              \
+            GET_NEW_INDEX((sd),new_index);                           \
+            sp->varnum = new_index;                                  \
+            sp->flags = 0;                                           \
+        }                                                            \
+        SET_OUTVAR_BY_INDEX((sd), (sp)->varnum);                     \
+    } while(0)
+
+#define SET_OUTVAR_BY_INDEX(sd, index)          \
 	do {										\
-		if (IS_LOCALVAR((sp))) {				\
-			GET_NEW_INDEX(new_index);			\
-			sp->varnum = new_index;				\
-			sp->flags = 0;						\
-		}										\
-		SET_OUTVAR_BY_INDEX((sp)->varnum);		\
-	} while(0)
-
-#define SET_OUTVAR_BY_INDEX(index) \
-	do {														\
-		assert(index >= jd->localcount);						\
-		jd->var[(index)].flags |=OUTVAR;						\
+		assert(index >= (sd).localcount);						\
+		(sd).var[(index)].flags |= OUTVAR;						\
 	} while (0);
-
 
 #define SET_TEMPVAR(sp) \
 	do {														\
 		if ( IS_LOCALVAR( (sp) ) ) {							\
-			GET_NEW_INDEX(new_index);							\
+			GET_NEW_INDEX(sd, new_index);						\
 			(sp)->varnum = new_index;							\
-			jd->var[(sp)->varnum].flags = copy->flags;			\
+			sd.var[(sp)->varnum].flags = copy->flags;			\
 		}														\
-		jd->var[(sp)->varnum].flags &= ~(OUTVAR | PREALLOC);	\
+		sd.var[(sp)->varnum].flags &= ~(OUTVAR | PREALLOC);	\
 	} while (0);
 
 #define SET_PREALLOC(sp) \
 	do { \
 		assert(!IS_LOCALVAR((sp))); \
-		jd->var[(sp)->varnum].flags |= PREALLOC; \
+		sd.var[(sp)->varnum].flags |= PREALLOC; \
 	} while (0);
 
 #define IS_OUTVAR(sp) \
-	(jd->var[(sp)->varnum].flags & OUTVAR)
+	(sd.var[(sp)->varnum].flags & OUTVAR)
 
 #define IS_PREALLOC(sp) \
-	(jd->var[(sp)->varnum].flags & PREALLOC)
+	(sd.var[(sp)->varnum].flags & PREALLOC)
 
 #define IS_TEMPVAR(sp) \
-	( (jd->var[(sp)->varnum].flags & (OUTVAR | PREALLOC)	\
-	   && (((sp)->varnum < jd->localcount)) == 0) )
+	( (sd.var[(sp)->varnum].flags & (OUTVAR | PREALLOC)	\
+	   && (((sp)->varnum < sd.localcount)) == 0) )
+
+#define IS_LOCALVAR_SD(sd, sp)							\
+		 ((sp)->varnum < (sd).localcount)
 
 #define IS_LOCALVAR(sp)							\
-		 ((sp)->varnum < jd->localcount)
+	IS_LOCALVAR_SD(sd, (sp))
 
 #define CLR_S1                                                       \
     (iptr->s1.varindex = -1)
@@ -257,16 +273,26 @@ bool stack_init(void)
         iptr->dst.varindex = (index);								 \
     } while (0)
 
+/* XXX temporatily turn off coalescing */
+#if 0
 #define DST_LOCALVAR(typed, index)                                   \
-    do {															   \
-        NEWSTACK(typed, LOCALVAR, (index));							   \
-        iptr->dst.varindex = (index);								   \
+    do {                                                             \
+        NEWSTACK((typed), LOCALVAR, (index));                        \
+        iptr->dst.varindex = (index);                                \
     } while (0)
+#else
+#define DST_LOCALVAR(typed, index)                                   \
+    do {                                                             \
+        GET_NEW_INDEX(sd, new_index);                                \
+        NEWSTACKn((typed), (index));                                 \
+        iptr->dst.varindex = (index);                                \
+    } while (0)
+#endif
 
 #define OP0_1(typed)                                                 \
     do {                                                             \
         CLR_S1;                                                      \
-		GET_NEW_INDEX(new_index);									 \
+		GET_NEW_INDEX(sd, new_index);								 \
 		DST(typed, new_index);										 \
         stackdepth++;                                                \
     } while (0)
@@ -287,14 +313,14 @@ bool stack_init(void)
 #define OP1_1(type1, typed)                                          \
     do {                                                             \
         POP_S1(type1);                                               \
-		GET_NEW_INDEX(new_index);									 \
+		GET_NEW_INDEX(sd, new_index);									 \
         DST(typed, new_index);										 \
     } while (0)
 
 #define OP2_1(type1, type2, typed)                                   \
     do {                                                             \
         POP_S1_S2(type1, type2);                                     \
-		GET_NEW_INDEX(new_index);									 \
+		GET_NEW_INDEX(sd, new_index);									 \
         DST(typed, new_index);										 \
 		stackdepth--;                                                \
     } while (0)
@@ -302,118 +328,12 @@ bool stack_init(void)
 #define DUP_SLOT(sp)                                                 \
     do {                                                             \
         if ((sp)->varkind != TEMPVAR) {								 \
-			GET_NEW_INDEX(new_index);								 \
+			GET_NEW_INDEX(sd, new_index);								 \
             NEWSTACK((sp)->type, TEMPVAR, new_index);               \
 		}															 \
         else                                                         \
             NEWSTACK((sp)->type, (sp)->varkind, (sp)->varnum);       \
     } while(0)
-
-#else /* defined(NEW_VAR) */
-
-#define CLR_S1                                                       \
-    (iptr->s1.var = NULL)
-
-#define USE_S1_LOCAL(type1)
-
-#define USE_S1(type1)                                                \
-    do {                                                             \
-        REQUIRE_1;                                                   \
-        CHECK_BASIC_TYPE(type1, curstack->type);                     \
-        iptr->s1.var = curstack;                                     \
-    } while (0)
-
-#define USE_S1_ANY                                                   \
-    do {                                                             \
-        REQUIRE_1;                                                   \
-        iptr->s1.var = curstack;                                     \
-    } while (0)
-
-#define USE_S1_S2(type1, type2)                                      \
-    do {                                                             \
-        REQUIRE_2;                                                   \
-        CHECK_BASIC_TYPE(type1, curstack->prev->type);               \
-        CHECK_BASIC_TYPE(type2, curstack->type);                     \
-        iptr->sx.s23.s2.var = curstack;                              \
-        iptr->s1.var = curstack->prev;                               \
-    } while (0)
-
-#define USE_S1_S2_ANY_ANY                                            \
-    do {                                                             \
-        REQUIRE_2;                                                   \
-        iptr->sx.s23.s2.var = curstack;                              \
-        iptr->s1.var = curstack->prev;                               \
-    } while (0)
-
-#define USE_S1_S2_S3(type1, type2, type3)                            \
-    do {                                                             \
-        REQUIRE_3;                                                   \
-        CHECK_BASIC_TYPE(type1, curstack->prev->prev->type);         \
-        CHECK_BASIC_TYPE(type2, curstack->prev->type);               \
-        CHECK_BASIC_TYPE(type3, curstack->type);                     \
-        iptr->sx.s23.s3.var = curstack;                              \
-        iptr->sx.s23.s2.var = curstack->prev;                        \
-        iptr->s1.var = curstack->prev->prev;                         \
-    } while (0)
-
-#define CLR_DST                                                      \
-    (iptr->dst.var = NULL)
-
-#define DST(typed, depth)                                            \
-    do {                                                             \
-        NEWSTACKn(typed, (depth));                                   \
-        iptr->dst.var = curstack;                                    \
-    } while (0)
-
-#define DST_LOCALVAR(typed, index)                                   \
-    do {                                                             \
-        NEWSTACK(typed, LOCALVAR, (index));                          \
-        iptr->dst.var = curstack;                                    \
-    } while (0)
-
-#define OP0_1(typed)                                                 \
-    do {                                                             \
-        CLR_S1;                                                      \
-        DST(typed, stackdepth);                                      \
-        stackdepth++;                                                \
-    } while (0)
-
-#define OP1_0_ANY                                                    \
-    do {                                                             \
-        POP_S1_ANY;                                                  \
-        CLR_DST;                                                     \
-        stackdepth--;                                                \
-    } while (0)
-
-#define OP1_BRANCH(type1)                                            \
-    do {                                                             \
-        POP_S1(type1);                                               \
-        stackdepth--;                                                \
-    } while (0)
-
-#define OP1_1(type1, typed)                                          \
-    do {                                                             \
-        POP_S1(type1);                                               \
-        DST(typed, stackdepth - 1);                                  \
-    } while (0)
-
-#define OP2_1(type1, type2, typed)                                   \
-    do {                                                             \
-        POP_S1_S2(type1, type2);                                     \
-        DST(typed, stackdepth - 2);                                  \
-        stackdepth--;                                                \
-    } while (0)
-
-#define DUP_SLOT(sp)                                                 \
-    do {                                                             \
-        if ((sp)->varkind != TEMPVAR)                                \
-            NEWSTACK((sp)->type, TEMPVAR, stackdepth);               \
-        else                                                         \
-            NEWSTACK((sp)->type, (sp)->varkind, (sp)->varnum);       \
-    } while(0)
-
-#endif /* defined(NEW_VAR) */
-
 
 #define POP_S1(type1)                                                \
     do {                                                             \
@@ -521,7 +441,20 @@ bool stack_init(void)
     do {                                                             \
         POP_S1(type1);                                               \
         stackdepth--;                                                \
-    } while (0)
+	} while (0)
+
+#if defined(ENABLE_VERIFIER)
+#define MARKREACHED(b, c) \
+	do { \
+		if (!stack_mark_reached(&sd, (b), curstack, stackdepth))         \
+			return false; \
+	} while (0)
+#else
+#define MARKREACHED(b, c) \
+	do { \
+		(void) stack_mark_reached(&sd, (b), curstack, stackdepth); \
+	} while (0)
+#endif
 
 #define BRANCH_TARGET(bt, tempbptr, tempsp)                          \
     do {                                                             \
@@ -535,26 +468,84 @@ bool stack_init(void)
         MARKREACHED(tempbptr, tempsp);                               \
     } while (0)
 
+/* MARKREACHED marks the destination block <b> as reached. If this
+ * block has been reached before we check if stack depth and types
+ * match. Otherwise the destination block receives a copy of the
+ * current stack as its input stack.
+ *
+ * b...destination block
+ * c...current stack
+ */
+
+static bool stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack, int stackdepth) 
+{
+	stackptr sp, tsp;
+	int i;
+	s4 new_index;
+#if defined(ENABLE_VERIFIER)
+	int           expectedtype;   /* used by CHECK_BASIC_TYPE                 */
+#endif
+
+	if (b <= sd->bptr)
+		b->bitflags |= BBFLAG_REPLACEMENT;
+
+	if (b->flags < BBREACHED) {
+		/* b is reached for the first time. Create its instack */
+		COPYCURSTACK(*sd, sp);
+		b->flags = BBREACHED;
+		b->instack = sp;
+		b->indepth = stackdepth;
+		b->invars = DMNEW(s4, stackdepth);
+		for (i = stackdepth; i--; sp = sp->prev) { 
+			b->invars[i] = sp->varnum;
+			SET_OUTVAR(*sd, sp);
+		}
+	} 
+	else {
+		/* b has been reached before. Check that its instack matches */
+		sp = curstack;
+		tsp = b->instack;
+		CHECK_STACK_DEPTH(b->indepth, stackdepth);
+		while (sp) {
+			CHECK_BASIC_TYPE(sp->type,tsp->type);
+			sp = sp->prev;
+			tsp = tsp->prev;
+		}
+	}
+
+	return true;
+
+#if defined(ENABLE_VERIFIER)
+throw_stack_depth_error:
+	exceptions_throw_verifyerror(m,"Stack depth mismatch");
+	return false;
+
+throw_stack_type_error:
+	exceptions_throw_verifyerror_for_stack(m, expectedtype);
+	return false;
+#endif
+}
+
 bool new_stack_analyse(jitdata *jd)
 {
 	methodinfo   *m;              /* method being analyzed                    */
 	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
+	stackdata_t   sd;
 	int           b_count;        /* basic block counter                      */
 	int           b_index;        /* basic block index                        */
 	int           stackdepth;
 	stackptr      curstack;       /* current stack top                        */
-	stackptr      new;
 	stackptr      copy;
 	int           opcode;         /* opcode of current instruction            */
 	int           i, j;
+	int           javaindex;
 	int           len;            /* # of instructions after the current one  */
 	bool          superblockend;  /* if true, no fallthrough to next block    */
 	bool          repeat;         /* if true, outermost loop must run again   */
 	bool          deadcode;       /* true if no live code has been reached    */
 	instruction  *iptr;           /* the current instruction                  */
-	basicblock   *bptr;           /* the current basic block                  */
 	basicblock   *tbptr;
 
 	stackptr     *last_store_boundary;
@@ -572,9 +563,8 @@ bool new_stack_analyse(jitdata *jd)
 #if defined(ENABLE_STATISTICS)
 	int           iteration_count;  /* number of iterations of analysis       */
 #endif
-#if defined(NEW_VAR)
 	int           new_index; /* used to get a new var index with GET_NEW_INDEX*/
-#endif
+
 #if defined(STACK_VERBOSE)
 	new_show_method(jd, SHOW_PARSE);
 #endif
@@ -586,6 +576,14 @@ bool new_stack_analyse(jitdata *jd)
 	cd   = jd->cd;
 	rd   = jd->rd;
 
+	/* initialize the stackdata_t struct */
+
+	sd.varcount = jd->varcount;
+	sd.vartop =  jd->vartop;
+	sd.localcount = jd->localcount;
+	sd.var = jd->var;
+	sd.new = jd->new_stack;
+
 #if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
 #endif
@@ -594,21 +592,16 @@ bool new_stack_analyse(jitdata *jd)
 	iteration_count = 0;
 #endif
 
-#if defined(NEW_VAR)
 	/* init jd->interface_map */
 
 	jd->interface_map = DMNEW(s4, m->maxstack * 5);
 	for (i = 0; i < m->maxstack * 5; i++)
 		jd->interface_map[i] = UNUSED;
 
-	last_store_boundary = DMNEW(stackptr, jd->localcount);
-#else
-	last_store_boundary = DMNEW(stackptr , cd->maxlocals);
-#endif
+	last_store_boundary = DMNEW(stackptr, cd->maxlocals);
 
 	/* initialize in-stack of first block */
 
-	new = jd->new_stack;
 	jd->new_basicblocks[0].flags = BBREACHED;
 	jd->new_basicblocks[0].instack = NULL;
 	jd->new_basicblocks[0].invars = NULL;
@@ -617,26 +610,20 @@ bool new_stack_analyse(jitdata *jd)
 	/* initialize in-stack of exception handlers */
 
 	for (i = 0; i < cd->exceptiontablelength; i++) {
-		bptr = BLOCK_OF(cd->exceptiontable[i].handlerpc);
-		bptr->flags = BBREACHED;
-		bptr->type = BBTYPE_EXH;
-		bptr->instack = new;
-		bptr->indepth = 1;
-		bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
+		sd.bptr = BLOCK_OF(cd->exceptiontable[i].handlerpc);
+		sd.bptr->flags = BBREACHED;
+		sd.bptr->type = BBTYPE_EXH;
+		sd.bptr->instack = sd.new;
+		sd.bptr->indepth = 1;
+		sd.bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
 		STACKRESET;
-#if defined(NEW_VAR)
-		GET_NEW_INDEX(new_index);
-		bptr->invars = DMNEW(s4, 1);
-		bptr->invars[0] = new_index;
+		GET_NEW_INDEX(sd, new_index);
+		sd.bptr->invars = DMNEW(s4, 1);
+		sd.bptr->invars[0] = new_index;
 		NEWSTACK(TYPE_ADR, STACKVAR, new_index);
 
-		jd->interface_map[0 * 5 + TYPE_ADR] = new_index;
-		SET_OUTVAR_BY_INDEX(new_index);
-#else
-		bptr->invars = DMNEW(stackptr, 1);
-		bptr->invars[0] = new;
-		NEWXSTACK;
-#endif
+		jd->interface_map[0 * 5 + TYPE_ADR] = 0;
+		SET_OUTVAR_BY_INDEX(sd, new_index);
 	}
 
 	/* stack analysis loop (until fixpoint reached) **************************/
@@ -649,7 +636,7 @@ bool new_stack_analyse(jitdata *jd)
 		/* initialize loop over basic blocks */
 
 		b_count = jd->new_basicblockcount;
-		bptr = jd->new_basicblocks;
+		sd.bptr = jd->new_basicblocks;
 		superblockend = true;
 		repeat = false;
 		STACKRESET;
@@ -659,74 +646,75 @@ bool new_stack_analyse(jitdata *jd)
 
 		while (--b_count >= 0) {
 #if defined(STACK_VERBOSE)
-			printf("----\nANALYZING BLOCK L%03d ", bptr->nr);
-			if (bptr->type == BBTYPE_EXH) printf("EXH\n");
-			else if (bptr->type == BBTYPE_SBR) printf("SBR\n");
+			printf("----\nANALYZING BLOCK L%03d ", sd.bptr->nr);
+			if (sd.bptr->type == BBTYPE_EXH) printf("EXH\n");
+			else if (sd.bptr->type == BBTYPE_SBR) printf("SBR\n");
 			else printf("STD\n");
 			   
 #endif
 
-			if (bptr->flags == BBDELETED) {
+			if (sd.bptr->flags == BBDELETED) {
 				/* This block has been deleted - do nothing. */
 			}
-			else if (superblockend && (bptr->flags < BBREACHED)) {
+			else if (superblockend && (sd.bptr->flags < BBREACHED)) {
 				/* This block has not been reached so far, and we      */
 				/* don't fall into it, so we'll have to iterate again. */
 				repeat = true;
 			}
-			else if (bptr->flags <= BBREACHED) {
+			else if (sd.bptr->flags <= BBREACHED) {
 				if (superblockend) {
-					/* We know that bptr->flags == BBREACHED. */
+					/* We know that sd.bptr->flags == BBREACHED. */
 					/* This block has been reached before.    */
-					stackdepth = bptr->indepth;
+					stackdepth = sd.bptr->indepth;
 				}
-				else if (bptr->flags < BBREACHED) {
+				else if (sd.bptr->flags < BBREACHED) {
 					/* This block is reached for the first time now */
 					/* by falling through from the previous block.  */
-					COPYCURSTACK(copy);
-					bptr->instack = copy;
+					/* Create the instack (propagated).             */
+					COPYCURSTACK(sd, copy);
+					sd.bptr->instack = copy;
 
-#if defined(NEW_VAR)
-					bptr->invars = DMNEW(s4, stackdepth);
+					sd.bptr->invars = DMNEW(s4, stackdepth);
 					for (i=stackdepth; i--; copy = copy->prev)
-						bptr->invars[i] = copy->varnum;
-#else
-					bptr->invars = DMNEW(stackptr, stackdepth);
-					for (i=stackdepth; i--; copy = copy->prev)
-						bptr->invars[i] = copy;
-#endif
-					bptr->indepth = stackdepth;
+						sd.bptr->invars[i] = copy->varnum;
+					sd.bptr->indepth = stackdepth;
 				}
 				else {
 					/* This block has been reached before. now we are */
 					/* falling into it from the previous block.       */
 					/* Check that stack depth is well-defined.        */
-					CHECK_STACK_DEPTH(bptr->indepth, stackdepth);
+					CHECK_STACK_DEPTH(sd.bptr->indepth, stackdepth);
+
+					/* XXX check stack types? */
 				}
 
 				/* set up local variables for analyzing this block */
 
-				curstack = bptr->instack;
+				curstack = sd.bptr->instack;
 				deadcode = false;
 				superblockend = false;
-				bptr->flags = BBFINISHED;
-				len = bptr->icount;
-				iptr = bptr->iinstr;
-				b_index = bptr - jd->new_basicblocks;
+				len = sd.bptr->icount;
+				iptr = sd.bptr->iinstr;
+				b_index = sd.bptr - jd->new_basicblocks;
+
+				/* mark the block as analysed */
+
+				sd.bptr->flags = BBFINISHED;
 
 				/* reset variables for dependency checking */
 
-				last_pei_boundary = new;
-				last_dup_boundary = new;
+				last_pei_boundary = sd.new;
+				last_dup_boundary = sd.new;
 				for( i = 0; i < cd->maxlocals; i++)
-					last_store_boundary[i] = new;
+					last_store_boundary[i] = sd.new;
 
 				/* XXX store the start of the block's stack representation */
 
-				bptr->stack = new;
+				sd.bptr->stack = sd.new;
+
 #if defined(STACK_VERBOSE)
 				printf("INVARS\n");
-					for( copy = bptr->instack; copy; copy = copy->prev ) {
+					for( copy = sd.bptr->instack; copy; copy = copy->prev ) {
 						printf("%2d(%d", copy->varnum, copy->type);
 						if (IS_OUTVAR(copy))
 							printf("S");
@@ -737,9 +725,11 @@ bool new_stack_analyse(jitdata *jd)
 					printf("\n");
 
 #endif
+
 				/* iterate over ICMDs ****************************************/
 
 				while (--len >= 0)  {
+
 #if defined(STACK_VERBOSE)
 					new_show_icmd(jd, iptr, false, SHOW_PARSE); printf("\n");
 					for( copy = curstack; copy; copy = copy->prev ) {
@@ -787,7 +777,7 @@ icmd_NOP:
 						break;
 
 					case ICMD_CHECKNULL:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						COUNT(count_check_null);
 						USE_S1(TYPE_ADR);
 						CLR_SX;
@@ -1528,7 +1518,7 @@ normal_LCONST:
 	/************************** ACONST OPTIMIZATIONS **************************/
 
 					case ICMD_ACONST:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						COUNT(count_pcmd_load);
 #if SUPPORT_CONST_STORE
 						IF_INTRP( goto normal_ACONST; )
@@ -1591,18 +1581,12 @@ normal_ACONST:
 					case ICMD_DLOAD:
 					case ICMD_ALOAD:
 						COUNT(count_load_instruction);
-						i = opcode - ICMD_ILOAD;
-#if defined(NEW_VAR)
+						i = opcode - ICMD_ILOAD; /* type */
+
 						iptr->s1.varindex = 
 							jd->local_map[iptr->s1.varindex * 5 + i];
 		
 						LOAD(i, iptr->s1.varindex);
-#else
-
-						IF_NO_INTRP( rd->locals[iptr->s1.localindex][i].type = 
-									 i; )
-						LOAD(i, iptr->s1.localindex);
-#endif
 						break;
 
 						/* pop 2 push 1 */
@@ -1611,7 +1595,7 @@ normal_ACONST:
 					case ICMD_FALOAD:
 					case ICMD_DALOAD:
 					case ICMD_AALOAD:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1623,7 +1607,7 @@ normal_ACONST:
 					case ICMD_BALOAD:
 					case ICMD_CALOAD:
 					case ICMD_SALOAD:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1636,14 +1620,10 @@ normal_ACONST:
 					case ICMD_IINC:
 						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
 
-#if defined(NEW_VAR)
-						iptr->s1.varindex = 
-							jd->local_map[iptr->s1.varindex * 5 + i];
+						last_store_boundary[iptr->s1.varindex] = sd.new;
 
-						last_store_boundary[iptr->s1.varindex] = new;
-#else
-						last_store_boundary[iptr->s1.localindex] = new;
-#endif
+						iptr->s1.varindex = 
+							jd->local_map[iptr->s1.varindex * 5 + TYPE_INT];
 
 						copy = curstack;
 						i = stackdepth - 1;
@@ -1652,22 +1632,14 @@ normal_ACONST:
 								(copy->varnum == iptr->s1.varindex))
 							{
 								copy->varkind = TEMPVAR;
-#if defined(NEW_VAR)
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
-#else
-								copy->varnum = i;
-#endif
 							}
 							i--;
 							copy = copy->prev;
 						}
 
-#if defined(NEW_VAR)
 						iptr->dst.varindex = iptr->s1.varindex;
-#else
-						iptr->dst.localindex = iptr->s1.localindex;
-#endif
 						break;
 
 						/* pop 1 push 0 store */
@@ -1680,20 +1652,15 @@ normal_ACONST:
 						REQUIRE_1;
 
 						i = opcode - ICMD_ISTORE; /* type */
-#if defined(NEW_VAR)
+						javaindex = iptr->dst.varindex;
 						j = iptr->dst.varindex = 
-							jd->local_map[iptr->dst.varindex * 5 + i];
+							jd->local_map[javaindex * 5 + i];
 
-#else
- 						j = iptr->dst.localindex; /* index */
-
-						IF_NO_INTRP( rd->locals[j][i].type = i; )
-#endif
 
 #if defined(ENABLE_STATISTICS)
 						if (opt_stat) {
 							count_pcmd_store++;
-							i = new - curstack;
+							i = sd.new - curstack;
 							if (i >= 20)
 								count_store_length[20]++;
 							else
@@ -1714,12 +1681,8 @@ normal_ACONST:
 								(copy->varnum == j))
 							{
 								copy->varkind = TEMPVAR;
-#if defined(NEW_VAR)
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
-#else
-								copy->varnum = i;
-#endif
 							}
 							i--;
 							copy = copy->prev;
@@ -1734,7 +1697,7 @@ normal_ACONST:
 
 						/* there is no STORE Lj while curstack is live */
 
-						if (curstack < last_store_boundary[j])
+						if (curstack < last_store_boundary[javaindex])
 							goto assume_conflict;
 
 						/* there is no PEI while curstack is live */
@@ -1749,21 +1712,21 @@ normal_ACONST:
 
 						/* there is no DEF LOCALVAR(j) while curstack is live */
 
-						copy = new; /* most recent stackslot created + 1 */
+						copy = sd.new; /* most recent stackslot created + 1 */
 						while (--copy > curstack) {
 							if (copy->varkind == LOCALVAR && copy->varnum == j)
 								goto assume_conflict;
 						}
 
+						/* XXX temporatily turn off coalescing */ goto assume_conflict;
+
 						/* coalesce the temporary variable with Lj */
-#if defined(NEW_VAR)
 						assert( (CURKIND == TEMPVAR) || (CURKIND == UNDEFVAR));
 						assert(!IS_LOCALVAR(curstack));
 						assert(!IS_OUTVAR(curstack));
 						assert(!IS_PREALLOC(curstack));
 
-						RELEASE_INDEX(curstack);
-#endif
+						RELEASE_INDEX(sd, curstack);
 						curstack->varkind = LOCALVAR;
 						curstack->varnum = j;
 						goto store_tail;
@@ -1774,17 +1737,13 @@ assume_conflict:
 							&& (curstack->varnum == j))
 						{
 							curstack->varkind = TEMPVAR;
-#if defined(NEW_VAR)
 							assert(IS_LOCALVAR(curstack));
 							SET_TEMPVAR(curstack);
-#else
-							curstack->varnum = stackdepth-1;
-#endif
 						}
 
 						/* remember the stack boundary at this store */
 store_tail:
-						last_store_boundary[j] = new;
+						last_store_boundary[j] = sd.new;
 
 						STORE(opcode - ICMD_ISTORE, j);
 						break;
@@ -1792,7 +1751,7 @@ store_tail:
 					/* pop 3 push 0 */
 
 					case ICMD_AASTORE:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1811,13 +1770,11 @@ store_tail:
 
 						copy = curstack;
 						while (copy) {
-#if defined(NEW_VAR)
-							jd->var[copy->varnum].flags |= SAVEDVAR;
+							sd.var[copy->varnum].flags |= SAVEDVAR;
 							/* in case copy->varnum is/will be a LOCALVAR */
 							/* once and set back to a non LOCALVAR        */
 							/* the correct SAVEDVAR flag has to be        */
 							/* remembered in copy->flags, too             */
-#endif
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
@@ -1829,7 +1786,7 @@ store_tail:
 					case ICMD_LASTORE:
 					case ICMD_FASTORE:
 					case ICMD_DASTORE:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1841,7 +1798,7 @@ store_tail:
 					case ICMD_BASTORE:
 					case ICMD_CASTORE:
 					case ICMD_SASTORE:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						iptr->flags.bits |= INS_FLAG_CHECK;
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
@@ -1867,7 +1824,7 @@ store_tail:
 					case ICMD_FRETURN:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						IF_JIT( md_return_alloc(jd, curstack); )
 						COUNT(count_pcmd_return);
 						OP1_0(opcode - ICMD_IRETURN);
@@ -1875,7 +1832,7 @@ store_tail:
 						break;
 
 					case ICMD_ATHROW:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						COUNT(count_check_null);
 						OP1_0(TYPE_ADR);
 						STACKRESET;
@@ -1883,7 +1840,7 @@ store_tail:
 						break;
 
 					case ICMD_PUTSTATIC:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP1_0(fmiref->parseddesc.fd->type);
@@ -1964,7 +1921,7 @@ store_tail:
 
 					case ICMD_MONITORENTER:
 					case ICMD_MONITOREXIT:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						COUNT(count_check_null);
 						OP1_0(TYPE_ADR);
 						break;
@@ -1992,7 +1949,7 @@ store_tail:
 						/* pop 2 push 0 */
 
 					case ICMD_PUTFIELD:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
@@ -2034,12 +1991,8 @@ icmd_DUP:
 						USE_S1_ANY; /* XXX live through */
  						/* DUP_SLOT(iptr->s1.var); */
  						DUP_SLOT(curstack);
-						last_dup_boundary = new - 1;
-#if defined(NEW_VAR)
+						last_dup_boundary = sd.new - 1;
 						iptr->dst.varindex = curstack->varnum;
-#else
-						iptr->dst.var = curstack;
-#endif
 						stackdepth++;
 						break;
 
@@ -2059,7 +2012,6 @@ icmd_DUP:
 									goto throw_stack_category_error;
 							}
 #endif
-#if defined(NEW_VAR)
 							iptr->dst.dupslots = DMNEW(s4, 2 + 2);
 							                         /* XXX live through */
 							iptr->dst.dupslots[0] = curstack->prev->varnum;
@@ -2071,17 +2023,7 @@ icmd_DUP:
 							iptr->dst.dupslots[2+0] = curstack->varnum;
 							DUP_SLOT(copy);
 							iptr->dst.dupslots[2+1] = curstack->varnum;
-#else
-							iptr->dst.dupslots = DMNEW(stackptr, 2 + 2);
-							iptr->dst.dupslots[0] = curstack->prev; /* XXX live through */
-							iptr->dst.dupslots[1] = curstack;       /* XXX live through */
-
-							DUP_SLOT(iptr->dst.dupslots[0]);
-							iptr->dst.dupslots[2+0] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[1]);
-							iptr->dst.dupslots[2+1] = curstack;
-#endif
-							last_dup_boundary = new;
+							last_dup_boundary = sd.new;
 							stackdepth += 2;
 						}
 						break;
@@ -2099,7 +2041,6 @@ icmd_DUP:
 #endif
 
 icmd_DUP_X1:
-#if defined(NEW_VAR)
 						iptr->dst.dupslots = DMNEW(int, 2 + 3);
 						iptr->dst.dupslots[0] = curstack->prev->varnum;
 						iptr->dst.dupslots[1] = curstack->varnum;
@@ -2112,20 +2053,7 @@ icmd_DUP_X1:
 						iptr->dst.dupslots[2+1] = curstack->varnum;
 						DUP_SLOT(copy);
 						iptr->dst.dupslots[2+2] = curstack->varnum;
-#else
-						iptr->dst.dupslots = DMNEW(stackptr, 2 + 3);
-						iptr->dst.dupslots[0] = curstack->prev;
-						iptr->dst.dupslots[1] = curstack;
-						POPANY; POPANY;
-
-						DUP_SLOT(iptr->dst.dupslots[1]);
-						iptr->dst.dupslots[2+0] = curstack;
-						DUP_SLOT(iptr->dst.dupslots[0]);
-						iptr->dst.dupslots[2+1] = curstack;
-						DUP_SLOT(iptr->dst.dupslots[1]);
-						iptr->dst.dupslots[2+2] = curstack;
-#endif
-						last_dup_boundary = new;
+						last_dup_boundary = sd.new;
 						stackdepth++;
 						break;
 
@@ -2154,7 +2082,6 @@ icmd_DUP_X1:
 #endif
 
 icmd_DUP2_X1:
-#if defined(NEW_VAR)
 							iptr->dst.dupslots = DMNEW(s4, 3 + 5);
 							iptr->dst.dupslots[0] =curstack->prev->prev->varnum;
 							iptr->dst.dupslots[1] = curstack->prev->varnum;
@@ -2172,25 +2099,7 @@ icmd_DUP2_X1:
 							iptr->dst.dupslots[3+3] = curstack->varnum;
 							DUP_SLOT(copy);
 							iptr->dst.dupslots[3+4] = curstack->varnum;
-#else
-							iptr->dst.dupslots = DMNEW(stackptr, 3 + 5);
-							iptr->dst.dupslots[0] = curstack->prev->prev;
-							iptr->dst.dupslots[1] = curstack->prev;
-							iptr->dst.dupslots[2] = curstack;
-							POPANY; POPANY; POPANY;
-
-							DUP_SLOT(iptr->dst.dupslots[1]);
-							iptr->dst.dupslots[3+0] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[2]);
-							iptr->dst.dupslots[3+1] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[0]);
-							iptr->dst.dupslots[3+2] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[1]);
-							iptr->dst.dupslots[3+3] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[2]);
-							iptr->dst.dupslots[3+4] = curstack;
-#endif
-							last_dup_boundary = new;
+							last_dup_boundary = sd.new;
 							stackdepth += 2;
 						}
 						break;
@@ -2221,7 +2130,6 @@ icmd_DUP2_X1:
 							}
 #endif
 icmd_DUP_X2:
-#if defined(NEW_VAR)
 							iptr->dst.dupslots = DMNEW(s4, 3 + 4);
 							iptr->dst.dupslots[0] =curstack->prev->prev->varnum;
 							iptr->dst.dupslots[1] = curstack->prev->varnum;
@@ -2237,23 +2145,7 @@ icmd_DUP_X2:
 							iptr->dst.dupslots[3+2] = curstack->varnum;
 							DUP_SLOT(copy);
 							iptr->dst.dupslots[3+3] = curstack->varnum;
-#else
-							iptr->dst.dupslots = DMNEW(stackptr, 3 + 4);
-							iptr->dst.dupslots[0] = curstack->prev->prev;
-							iptr->dst.dupslots[1] = curstack->prev;
-							iptr->dst.dupslots[2] = curstack;
-							POPANY; POPANY; POPANY;
-
-							DUP_SLOT(iptr->dst.dupslots[2]);
-							iptr->dst.dupslots[3+0] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[0]);
-							iptr->dst.dupslots[3+1] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[1]);
-							iptr->dst.dupslots[3+2] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[2]);
-							iptr->dst.dupslots[3+3] = curstack;
-#endif
-							last_dup_boundary = new;
+							last_dup_boundary = sd.new;
 							stackdepth++;
 						}
 						break;
@@ -2306,7 +2198,6 @@ icmd_DUP_X2:
 							}
 #endif
 
-#if defined(NEW_VAR)
 							iptr->dst.dupslots = DMNEW(s4, 4 + 6);
 							iptr->dst.dupslots[0] = 
 								curstack->prev->prev->prev->varnum;
@@ -2329,28 +2220,7 @@ icmd_DUP_X2:
 							iptr->dst.dupslots[4+4] = curstack->varnum;
 							DUP_SLOT(copy);
 							iptr->dst.dupslots[4+5] = curstack->varnum;
-#else
-							iptr->dst.dupslots = DMNEW(stackptr, 4 + 6);
-							iptr->dst.dupslots[0] = curstack->prev->prev->prev;
-							iptr->dst.dupslots[1] = curstack->prev->prev;
-							iptr->dst.dupslots[2] = curstack->prev;
-							iptr->dst.dupslots[3] = curstack;
-							POPANY; POPANY; POPANY; POPANY;
-
-							DUP_SLOT(iptr->dst.dupslots[2]);
-							iptr->dst.dupslots[4+0] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[3]);
-							iptr->dst.dupslots[4+1] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[0]);
-							iptr->dst.dupslots[4+2] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[1]);
-							iptr->dst.dupslots[4+3] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[2]);
-							iptr->dst.dupslots[4+4] = curstack;
-							DUP_SLOT(iptr->dst.dupslots[3]);
-							iptr->dst.dupslots[4+5] = curstack;
-#endif
-							last_dup_boundary = new;
+							last_dup_boundary = sd.new;
 							stackdepth += 2;
 						}
 						break;
@@ -2367,7 +2237,6 @@ icmd_DUP_X2:
 						}
 #endif
 
-#if defined(NEW_VAR)
 						iptr->dst.dupslots = DMNEW(s4, 2 + 2);
 						iptr->dst.dupslots[0] = curstack->prev->varnum;
 						iptr->dst.dupslots[1] = curstack->varnum;
@@ -2378,25 +2247,14 @@ icmd_DUP_X2:
 						iptr->dst.dupslots[2+0] = curstack->varnum;
 						DUP_SLOT(copy->prev);
 						iptr->dst.dupslots[2+1] = curstack->varnum;
-#else
-						iptr->dst.dupslots = DMNEW(stackptr, 2 + 2);
-						iptr->dst.dupslots[0] = curstack->prev;
-						iptr->dst.dupslots[1] = curstack;
-						POPANY; POPANY;
-
-						DUP_SLOT(iptr->dst.dupslots[1]);
-						iptr->dst.dupslots[2+0] = curstack;
-						DUP_SLOT(iptr->dst.dupslots[0]);
-						iptr->dst.dupslots[2+1] = curstack;
-#endif
-						last_dup_boundary = new;
+						last_dup_boundary = sd.new;
 						break;
 
 						/* pop 2 push 1 */
 
 					case ICMD_IDIV:
 					case ICMD_IREM:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 #if !SUPPORT_DIVISION
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
@@ -2410,9 +2268,7 @@ icmd_DUP_X2:
 
 						copy = curstack;
 						while (copy) {
-#if defined(NEW_VAR)
-							jd->var[copy->varnum].flags |= SAVEDVAR;
-#endif
+							sd.var[copy->varnum].flags |= SAVEDVAR;
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
@@ -2435,7 +2291,7 @@ icmd_DUP_X2:
 
 					case ICMD_LDIV:
 					case ICMD_LREM:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						bte = iptr->sx.s23.s3.bte;
 						md = bte->md;
@@ -2450,9 +2306,7 @@ icmd_DUP_X2:
 
 						copy = curstack;
 						while (copy) {
-#if defined(NEW_VAR)
-							jd->var[copy->varnum].flags |= SAVEDVAR;
-#endif
+							sd.var[copy->varnum].flags |= SAVEDVAR;
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
@@ -2790,7 +2644,7 @@ normal_DCMPG:
 						break;
 
 					case ICMD_CHECKCAST:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						if (iptr->flags.bits & INS_FLAG_ARRAY) {
 							/* array type cast-check */
 
@@ -2806,9 +2660,7 @@ normal_DCMPG:
 
 							copy = curstack;
 							while (copy) {
-#if defined(NEW_VAR)
-								jd->var[copy->varnum].flags |= SAVEDVAR;
-#endif
+								sd.var[copy->varnum].flags |= SAVEDVAR;
 								copy->flags |= SAVEDVAR;
 								copy = copy->prev;
 							}
@@ -2818,18 +2670,18 @@ normal_DCMPG:
 
 					case ICMD_INSTANCEOF:
 					case ICMD_ARRAYLENGTH:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						OP1_1(TYPE_ADR, TYPE_INT);
 						break;
 
 					case ICMD_NEWARRAY:
 					case ICMD_ANEWARRAY:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						OP1_1(TYPE_INT, TYPE_ADR);
 						break;
 
 					case ICMD_GETFIELD:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
@@ -2839,14 +2691,14 @@ normal_DCMPG:
 						/* pop 0 push 1 */
 
 					case ICMD_GETSTATIC:
- 						last_pei_boundary = new;
+ 						last_pei_boundary = sd.new;
 						COUNT(count_pcmd_mem);
 						INSTRUCTION_GET_FIELDREF(iptr, fmiref);
 						OP0_1(fmiref->parseddesc.fd->type);
 						break;
 
 					case ICMD_NEW:
- 						last_pei_boundary = new;
+ 						last_pei_boundary = sd.new;
 						OP0_1(TYPE_ADR);
 						break;
 
@@ -2893,7 +2745,7 @@ icmd_BUILTIN:
 
 					_callhandling:
 
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 
 						i = md->paramcount;
 
@@ -2909,27 +2761,15 @@ icmd_BUILTIN:
 						/* XXX optimize for <= 2 args */
 						/* XXX not for ICMD_BUILTIN */
 						iptr->s1.argcount = stackdepth;
-#if defined(NEW_VAR)
 						iptr->sx.s23.s2.args = DMNEW(s4, stackdepth);
-#else					  
-						iptr->sx.s23.s2.args = DMNEW(stackptr, stackdepth);
-#endif
 
 						copy = curstack;
 						for (i-- ; i >= 0; i--) {
-#if defined(NEW_VAR)
 							iptr->sx.s23.s2.args[i] = copy->varnum;
-#else
-							iptr->sx.s23.s2.args[i] = copy;
-#endif
 
 							/* do not change STACKVARs or LOCALVARS to ARGVAR*/
 							/* ->  won't help anyway */
-#if defined(NEW_VAR)
 							if (!(IS_OUTVAR(copy) || IS_LOCALVAR(copy))) {
-#else
-							if (copy->varkind != STACKVAR) {
-#endif
 
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 			/* If we pass float arguments in integer argument registers, we
@@ -2937,83 +2777,44 @@ icmd_BUILTIN:
 			 * to this regs explicitly in codegen().
 			 * Only arguments that are passed by stack anyway can be precolored
 			 * (michi 2005/07/24) */
-# if defined(NEW_VAR)
-							if (!(jd->var[copy->varnum].flags & SAVEDVAR) &&
+							if (!(sd.var[copy->varnum].flags & SAVEDVAR) &&
 							   (!IS_FLT_DBL_TYPE(copy->type) 
 								|| md->params[i].inmemory)) {
-# else /* defined(NEW_VAR) */
-							if (!(copy->flags & SAVEDVAR) &&
-							   (!IS_FLT_DBL_TYPE(copy->type) 
-								|| md->params[i].inmemory)) {
-# endif /* defined(NEW_VAR) */
 #else
-# if defined(NEW_VAR)
-							if (!(jd->var[copy->varnum].flags & SAVEDVAR)) {
-#else
-							if (!(copy->flags & SAVEDVAR)) {
-#endif
+							if (!(sd.var[copy->varnum].flags & SAVEDVAR)) {
 #endif
 
-#if defined(NEW_VAR)
 								SET_PREALLOC(copy);
-#else
-								copy->varkind = ARGVAR;
-								copy->varnum = i;
-#endif
 
 #if defined(ENABLE_INTRP)
 								if (!opt_intrp) {
 #endif
 									if (md->params[i].inmemory) {
-#if defined(NEW_VAR)
-										jd->var[copy->varnum].regoff =
+										sd.var[copy->varnum].regoff =
 											md->params[i].regoff;
-										jd->var[copy->varnum].flags |= 
+										sd.var[copy->varnum].flags |= 
 											INMEMORY;
-#else	 
-										copy->flags = INMEMORY;
-										copy->regoff = md->params[i].regoff;
-#endif
 									}
 									else {
-#if !defined(NEW_VAR)
-										copy->flags = 0;
-#endif
 										if (IS_FLT_DBL_TYPE(copy->type)) {
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 											assert(0); /* XXX is this assert ok? */
 #else
-#if defined(NEW_VAR)
-											jd->var[copy->varnum].regoff = 
+											sd.var[copy->varnum].regoff = 
 										rd->argfltregs[md->params[i].regoff];
-#else											
-											copy->regoff =
-										rd->argfltregs[md->params[i].regoff];
-#endif
 #endif /* SUPPORT_PASS_FLOATARGS_IN_INTREGS */
 										}
 										else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 											if (IS_2_WORD_TYPE(copy->type))
-#if defined(NEW_VAR)
-												jd->var[copy->varnum].regoff = 
+												sd.var[copy->varnum].regoff = 
 				PACK_REGS( rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
 
-#else
-											    copy->regoff = PACK_REGS(
-							rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
-							rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
-#endif
 											else
 #endif /* SUPPORT_COMBINE_INTEGER_REGISTERS */
-#if defined(NEW_VAR)
-												jd->var[copy->varnum].regoff = 
+												sd.var[copy->varnum].regoff = 
 										rd->argintregs[md->params[i].regoff];
-#else
-													copy->regoff =
-										rd->argintregs[md->params[i].regoff];
-#endif
 										}
 									}
 #if defined(ENABLE_INTRP)
@@ -3031,13 +2832,8 @@ icmd_BUILTIN:
 						i = md->paramcount;
 
 						while (copy) {
-#if defined(NEW_VAR)
 							iptr->sx.s23.s2.args[i++] = copy->varnum;
-							jd->var[copy->varnum].flags |= SAVEDVAR;
-#else
-							iptr->sx.s23.s2.args[i++] = copy;
-							copy->flags |= SAVEDVAR;
-#endif
+							sd.var[copy->varnum].flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
 
@@ -3053,12 +2849,8 @@ icmd_BUILTIN:
 						/* push the return value */
 
 						if (md->returntype.type != TYPE_VOID) {
-#if defined(NEW_VAR)
-							GET_NEW_INDEX(new_index);
+							GET_NEW_INDEX(sd, new_index);
 							DST(md->returntype.type, new_index);
-#else
-							DST(md->returntype.type, stackdepth);
-#endif
 							stackdepth++;
 						}
 						break;
@@ -3070,7 +2862,7 @@ icmd_BUILTIN:
 						break;
 
 					case ICMD_MULTIANEWARRAY:
-						last_pei_boundary = new;
+						last_pei_boundary = sd.new;
 						if (rd->argintreguse < 3)
 							rd->argintreguse = 3;
 
@@ -3078,11 +2870,7 @@ icmd_BUILTIN:
 
 						REQUIRE(i);
 
-#if defined(NEW_VAR)
 						iptr->sx.s23.s2.args = DMNEW(s4, i);
-#else
-						iptr->sx.s23.s2.args = DMNEW(stackptr, i);
-#endif
 
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
@@ -3107,66 +2895,35 @@ icmd_BUILTIN:
 						copy = curstack;
 						while (--i >= 0) {
 					/* check INT type here? Currently typecheck does this. */
-#if defined(NEW_VAR)
 							iptr->sx.s23.s2.args[i] = copy->varnum;
-							if (!(jd->var[copy->varnum].flags & SAVEDVAR)
+							if (!(sd.var[copy->varnum].flags & SAVEDVAR)
 								&& (!IS_OUTVAR(copy))
 								&& (!IS_LOCALVAR(copy)) ) {
-#else
-							iptr->sx.s23.s2.args[i] = copy;
-							if (!(copy->flags & SAVEDVAR) 
-								&& (copy->varkind != STACKVAR)) {
-#endif
 								copy->varkind = ARGVAR;
-#if defined(NEW_VAR)
-								jd->var[copy->varnum].flags |=
+								sd.var[copy->varnum].flags |=
 									INMEMORY & PREALLOC;
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-								jd->var[copy->varnum].regoff = i + 
+								sd.var[copy->varnum].regoff = i + 
 									LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
-								jd->var[copy->varnum].regoff = i + 
+								sd.var[copy->varnum].regoff = i + 
 									LA_SIZE_IN_POINTERS + 3;
 # endif
 #else
 # if defined(__I386__)
-								jd->var[copy->varnum].regoff = i + 3;
+								sd.var[copy->varnum].regoff = i + 3;
 # elif defined(__MIPS__) && SIZEOF_VOID_P == 4
-								jd->var[copy->varnum].regoff = i + 2;
+								sd.var[copy->varnum].regoff = i + 2;
 # else
-								jd->var[copy->varnum].regoff = i;
+								sd.var[copy->varnum].regoff = i;
 # endif /* defined(__I386__) */
 #endif /* defined(SPECIALMEMUSE) */
-#else /* defined(NEW_VAR) */
-								copy->varnum = i + INT_ARG_CNT;
-								copy->flags |= INMEMORY;
-#if defined(SPECIALMEMUSE)
-# if defined(__DARWIN__)
-								copy->regoff = i + LA_SIZE_IN_POINTERS + INT_ARG_CNT;
-# else
-								copy->regoff = i + LA_SIZE_IN_POINTERS + 3;
-# endif
-#else
-# if defined(__I386__)
-								copy->regoff = i + 3;
-# elif defined(__MIPS__) && SIZEOF_VOID_P == 4
-								copy->regoff = i + 2;
-# else
-								copy->regoff = i;
-# endif /* defined(__I386__) */
-#endif /* defined(SPECIALMEMUSE) */
-
-#endif /* defined(NEW_VAR) */
 							}
 							copy = copy->prev;
 						}
 						while (copy) {
-#if defined(NEW_VAR)
-							jd->var[copy->varnum].flags |= SAVEDVAR;
-#else
-							copy->flags |= SAVEDVAR;
-#endif
+							sd.var[copy->varnum].flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
 
@@ -3175,12 +2932,8 @@ icmd_BUILTIN:
 						while (--i >= 0) {
 							POPANY;
 						}
-#if defined(NEW_VAR)
-						GET_NEW_INDEX(new_index);
+						GET_NEW_INDEX(sd, new_index);
 						DST(TYPE_ADR, new_index);
-#else
-						DST(TYPE_ADR, stackdepth);
-#endif
 						stackdepth++;
 						break;
 
@@ -3196,79 +2949,50 @@ icmd_BUILTIN:
 
 				/* set out-stack of block */
 
-				bptr->outstack = curstack;
-				bptr->outdepth = stackdepth;
-#if defined(NEW_VAR)
-				bptr->outvars = DMNEW(s4, stackdepth);
+				sd.bptr->outstack = curstack;
+				sd.bptr->outdepth = stackdepth;
+				sd.bptr->outvars = DMNEW(s4, stackdepth);
 				for (i = stackdepth, copy = curstack; i--; copy = copy->prev)
-					bptr->outvars[i] = copy->varnum;
-#else
-				bptr->outvars = DMNEW(stackptr, stackdepth);
-				for (i = stackdepth, copy = curstack; i--; copy = copy->prev)
-					bptr->outvars[i] = copy;
-#endif
+					sd.bptr->outvars[i] = copy->varnum;
 
 				/* stack slots at basic block end become interfaces */
 
 				i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
-#if defined(NEW_VAR)
+					varinfo *v;
+
 					/* with the new vars rd->interfaces will be removed */
 					/* and all in and outvars have to be STACKVARS!     */
 					/* in the moment i.e. SWAP with in and out vars can */
 					/* create an unresolvable conflict */
 
+					v = sd.var + copy->varnum;
 					j = jd->interface_map[i * 5 + copy->type];
+
+					SET_OUTVAR(sd, copy);
+
 					if (j == UNUSED) {
 						/* no interface var until now for this depth and */
 						/* type */
-						
-						SET_OUTVAR(copy);
-						
-						if (! IS_LOCALVAR(copy) )
-							jd->var[j].flags |= jd->var[copy->varnum].flags;
-						jd->interface_map[i*5 + copy->type] = copy->varnum;
+						jd->interface_map[i*5 + copy->type] = v->flags;
 					}
-					else if (j != copy->varnum) {
-						/* release copy->varnum and take already existing */
-						/* interface var */
-						RELEASE_INDEX(copy);
-						
-						if (! IS_LOCALVAR(copy) )
-							jd->var[j].flags |= jd->var[copy->varnum].flags;
-						copy->varnum = jd->interface_map[i*5 + copy->type];
-					} /* else <-> if (j == copy->varnum) --> nothing todo! */
-#else
-					if ((copy->varkind == STACKVAR) && (copy->varnum > i)) {
-						copy->varkind = TEMPVAR;
-					} else {
-						copy->varkind = STACKVAR;
-						copy->varnum = i;
+					else {
+						jd->interface_map[i*5 + copy->type] |= v->flags;
 					}
-					IF_NO_INTRP(
-							rd->interfaces[i][copy->type].type = copy->type;
-							rd->interfaces[i][copy->type].flags |= copy->flags;
-					);
-#endif
 				}
 
 				/* check if interface slots at basic block begin must be saved */
-#if !defined(NEW_VAR)
 				IF_NO_INTRP(
-					i = bptr->indepth - 1;
-					for (copy = bptr->instack; copy; i--, copy = copy->prev) {
-						rd->interfaces[i][copy->type].type = copy->type;
-						if (copy->varkind == STACKVAR) {
-							if (copy->flags & SAVEDVAR)
-								rd->interfaces[i][copy->type].flags |= SAVEDVAR;
-						}
+					for (i=0; i<sd.bptr->indepth; ++i) {
+						varinfo *v = sd.var + sd.bptr->invars[i];
+
+						jd->interface_map[i*5 + v->type] |= v->flags & SAVEDVAR;
 					}
 				);
-#endif
 
 #if defined(STACK_VERBOSE)
 				printf("OUTVARS\n");
-				for( copy = bptr->outstack; copy; copy = copy->prev ) {
+				for( copy = sd.bptr->outstack; copy; copy = copy->prev ) {
 					printf("%2d(%d", copy->varnum, copy->type);
 					if (IS_OUTVAR(copy))
 						printf("S");
@@ -3282,7 +3006,7 @@ icmd_BUILTIN:
 			else
 				superblockend = true;
 
-			bptr++;
+			sd.bptr++;
 		} /* while blocks */
 	} while (repeat && !deadcode);
 
@@ -3298,18 +3022,18 @@ icmd_BUILTIN:
 		count_javainstr += jd->new_instructioncount;
 		if (jd->new_stackcount > count_upper_bound_new_stack)
 			count_upper_bound_new_stack = jd->new_stackcount;
-		if ((new - jd->new_stack) > count_max_new_stack)
-			count_max_new_stack = (new - jd->new_stack);
+		if ((sd.new - jd->new_stack) > count_max_new_stack)
+			count_max_new_stack = (sd.new - jd->new_stack);
 
 		b_count = jd->new_basicblockcount;
-		bptr = jd->new_basicblocks;
+		sd.bptr = jd->new_basicblocks;
 		while (--b_count >= 0) {
-			if (bptr->flags > BBREACHED) {
-				if (bptr->indepth >= 10)
+			if (sd.bptr->flags > BBREACHED) {
+				if (sd.bptr->indepth >= 10)
 					count_block_stack[10]++;
 				else
-					count_block_stack[bptr->indepth]++;
-				len = bptr->icount;
+					count_block_stack[sd.bptr->indepth]++;
+				len = sd.bptr->icount;
 				if (len < 10)
 					count_block_size_distribution[len]++;
 				else if (len <= 12)
@@ -3329,7 +3053,7 @@ icmd_BUILTIN:
 				else
 					count_block_size_distribution[17]++;
 			}
-			bptr++;
+			sd.bptr++;
 		}
 
 		if (iteration_count == 1)
