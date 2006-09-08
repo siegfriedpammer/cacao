@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5411 2006-09-07 14:41:18Z edwin $
+   $Id: codegen.c 5424 2006-09-08 14:16:29Z edwin $
 
 */
 
@@ -514,7 +514,6 @@ bool codegen(jitdata *jd)
 				}
 
 			} else {
-				printf("block %i var %i\n",bptr->nr, varindex);
 				assert((var->flags & OUTVAR));
 				/* will be done directly in simplereg lateron          */ 
 				/* for now codegen_reg_of_var has to be called here to */
