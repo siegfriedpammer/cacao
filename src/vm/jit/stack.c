@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5435 2006-09-08 18:14:50Z edwin $
+   $Id: stack.c 5436 2006-09-08 19:48:27Z edwin $
 
 */
 
@@ -96,14 +96,14 @@
 
 #if defined(ENABLE_STATISTICS)
 #define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)                    \
-	do {                                                             \
-		if (opt_stat) {                                              \
-			if (stackdepth >= 10)                                    \
-				count_store_depth[10]++;                             \
-			else                                                     \
-				count_store_depth[stackdepth]++;                     \
-		}                                                            \
-	} while (0)
+    do {                                                             \
+        if (opt_stat) {                                              \
+            if (stackdepth >= 10)                                    \
+                count_store_depth[10]++;                             \
+            else                                                     \
+                count_store_depth[stackdepth]++;                     \
+        }                                                            \
+    } while (0)
 #else /* !defined(ENABLE_STATISTICS) */
 #define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)
 #endif
@@ -113,60 +113,48 @@
 typedef struct stackdata_t stackdata_t;
 
 struct stackdata_t {
-	basicblock *bptr;
-	stackptr new;
-	s4 vartop;
-	s4 localcount;
-	s4 varcount;
-	varinfo *var;
+    basicblock *bptr;
+    stackptr new;
+    s4 vartop;
+    s4 localcount;
+    s4 varcount;
+    varinfo *var;
 };
 
 
-/* stack_init ******************************************************************
+/* macros for allocating/releasing variable indices */
 
-   Initialized the stack analysis subsystem (called by jit_init).
-
-*******************************************************************************/
-
-bool stack_init(void)
-{
-	return true;
-}
-
-
-/* stack_analyse ***************************************************************
-
-   Analyse_stack uses the intermediate code created by parse.c to
-   build a model of the JVM operand stack for the current method.
-   
-   The following checks are performed:
-     - check for operand stack underflow (before each instruction)
-     - check for operand stack overflow (after[1] each instruction)
-     - check for matching stack depth at merging points
-     - check for matching basic types[2] at merging points
-     - check basic types for instruction input (except for BUILTIN*
-           opcodes, INVOKE* opcodes and MULTIANEWARRAY)
-   
-   [1]) Checking this after the instruction should be ok. parse.c
-   counts the number of required stack slots in such a way that it is
-   only vital that we don't exceed `maxstack` at basic block
-   boundaries.
-   
-   [2]) 'basic types' means the distinction between INT, LONG, FLOAT,
-   DOUBLE and ADDRESS types. Subtypes of INT and different ADDRESS
-   types are not discerned.
-
-*******************************************************************************/
-
-#define GET_NEW_INDEX(sd, new_varindex)		         				 \
-	do {															 \
-		assert((sd).vartop < (sd).varcount);			             \
-		(new_varindex) = ((sd).vartop)++;						     \
-	} while (0)
+#define GET_NEW_INDEX(sd, new_varindex)                              \
+    do {                                                             \
+        assert((sd).vartop < (sd).varcount);                         \
+        (new_varindex) = ((sd).vartop)++;                            \
+    } while (0)
 
 /* not implemented now, can be used to reuse varindices          */
 /* pay attention to not release a localvar once implementing it! */
 #define RELEASE_INDEX(sd, varindex)
+
+
+/* macros for querying variable properties **************************/
+
+#define IS_OUTVAR(sp)                                                \
+    (sd.var[(sp)->varnum].flags & OUTVAR)
+
+#define IS_PREALLOC(sp)                                              \
+    (sd.var[(sp)->varnum].flags & PREALLOC)
+
+#define IS_TEMPVAR(sp)                                               \
+    ( (sd.var[(sp)->varnum].flags & (OUTVAR | PREALLOC)              \
+       && (((sp)->varnum < sd.localcount)) == 0) )
+
+#define IS_LOCALVAR_SD(sd, sp)                                       \
+         ((sp)->varnum < (sd).localcount)
+
+#define IS_LOCALVAR(sp)                                              \
+    IS_LOCALVAR_SD(sd, (sp))
+
+
+/* macros for setting variable properties ****************************/
 
 /* with the new vars setting an OUTVAR is not as trivial as changing */
 /* the varkind before. If varindex was a localvar, a new TEMPVAR has */
@@ -181,43 +169,29 @@ bool stack_init(void)
         SET_OUTVAR_BY_INDEX((sd), (sp)->varnum);                     \
     } while(0)
 
-#define SET_OUTVAR_BY_INDEX(sd, index)          \
-	do {										\
-		assert(index >= (sd).localcount);						\
-		(sd).var[(index)].flags |= OUTVAR;						\
-	} while (0);
+#define SET_OUTVAR_BY_INDEX(sd, index)                               \
+    do {                                                             \
+        assert(index >= (sd).localcount);                            \
+        (sd).var[(index)].flags |= OUTVAR;                           \
+    } while (0);
 
-#define SET_TEMPVAR(sp) \
-	do {														\
-		if ( IS_LOCALVAR( (sp) ) ) {							\
-			GET_NEW_INDEX(sd, new_index);						\
-			(sp)->varnum = new_index;							\
-			sd.var[(sp)->varnum].flags = copy->flags;			\
-		}														\
-		sd.var[(sp)->varnum].flags &= ~(OUTVAR | PREALLOC);	\
-	} while (0);
+#define SET_TEMPVAR(sp)                                              \
+    do {                                                             \
+        if ( IS_LOCALVAR( (sp) ) ) {                                 \
+            GET_NEW_INDEX(sd, new_index);                            \
+            (sp)->varnum = new_index;                                \
+            sd.var[(sp)->varnum].flags = copy->flags;                \
+        }                                                            \
+        sd.var[(sp)->varnum].flags &= ~(OUTVAR | PREALLOC);          \
+    } while (0);
 
-#define SET_PREALLOC(sp) \
-	do { \
-		assert(!IS_LOCALVAR((sp))); \
-		sd.var[(sp)->varnum].flags |= PREALLOC; \
-	} while (0);
+#define SET_PREALLOC(sp)                                             \
+    do {                                                             \
+        assert(!IS_LOCALVAR((sp)));                                  \
+        sd.var[(sp)->varnum].flags |= PREALLOC;                      \
+    } while (0);
 
-#define IS_OUTVAR(sp) \
-	(sd.var[(sp)->varnum].flags & OUTVAR)
-
-#define IS_PREALLOC(sp) \
-	(sd.var[(sp)->varnum].flags & PREALLOC)
-
-#define IS_TEMPVAR(sp) \
-	( (sd.var[(sp)->varnum].flags & (OUTVAR | PREALLOC)	\
-	   && (((sp)->varnum < sd.localcount)) == 0) )
-
-#define IS_LOCALVAR_SD(sd, sp)							\
-		 ((sp)->varnum < (sd).localcount)
-
-#define IS_LOCALVAR(sp)							\
-	IS_LOCALVAR_SD(sd, (sp))
+/* macros for source operands ***************************************/
 
 #define CLR_S1                                                       \
     (iptr->s1.varindex = -1)
@@ -258,91 +232,19 @@ bool stack_init(void)
         REQUIRE_3;                                                   \
         CHECK_BASIC_TYPE(type1, curstack->prev->prev->type);         \
         CHECK_BASIC_TYPE(type2, curstack->prev->type);               \
-        CHECK_BASIC_TYPE(type3, curstack->type);						\
-        iptr->sx.s23.s3.varindex = curstack->varnum;					\
-        iptr->sx.s23.s2.varindex = curstack->prev->varnum;				\
-        iptr->s1.varindex = curstack->prev->prev->varnum;				\
+        CHECK_BASIC_TYPE(type3, curstack->type);                     \
+        iptr->sx.s23.s3.varindex = curstack->varnum;                 \
+        iptr->sx.s23.s2.varindex = curstack->prev->varnum;           \
+        iptr->s1.varindex = curstack->prev->prev->varnum;            \
     } while (0)
 
-#define CLR_DST                                                      \
-    (iptr->dst.varindex = -1)
-
-#define DST(typed, index)											 \
+/* The POPANY macro does NOT check stackdepth, or set stackdepth!   */
+#define POPANY                                                       \
     do {                                                             \
-        NEWSTACKn((typed),(index));									 \
-        iptr->dst.varindex = (index);								 \
+        if (curstack->varkind == UNDEFVAR)                           \
+            curstack->varkind = TEMPVAR;                             \
+        curstack = curstack->prev;                                   \
     } while (0)
-
-/* XXX temporatily turn off coalescing */
-#if 0
-#define DST_LOCALVAR(typed, index)                                   \
-    do {                                                             \
-        NEWSTACK((typed), LOCALVAR, (index));                        \
-        iptr->dst.varindex = (index);                                \
-    } while (0)
-#else
-#define DST_LOCALVAR(typed, index)                                   \
-    do {                                                             \
-        GET_NEW_INDEX(sd, new_index);                                \
-        NEWSTACKn((typed), (new_index));                             \
-        iptr->dst.varindex = (new_index);                            \
-    } while (0)
-#endif
-
-#define OP0_1(typed)                                                 \
-    do {                                                             \
-        CLR_S1;                                                      \
-		GET_NEW_INDEX(sd, new_index);								 \
-		DST(typed, new_index);										 \
-        stackdepth++;                                                \
-    } while (0)
-
-#define OP1_0_ANY                                                    \
-    do {                                                             \
-        POP_S1_ANY;                                                  \
-        CLR_DST;                                                     \
-        stackdepth--;                                                \
-    } while (0)
-
-#define OP1_BRANCH(type1)                                            \
-    do {                                                             \
-        POP_S1(type1);                                               \
-        stackdepth--;                                                \
-    } while (0)
-
-#define OP1_1(type1, typed)                                          \
-    do {                                                             \
-        POP_S1(type1);                                               \
-		GET_NEW_INDEX(sd, new_index);									 \
-        DST(typed, new_index);										 \
-    } while (0)
-
-#define OP2_1(type1, type2, typed)                                   \
-    do {                                                             \
-        POP_S1_S2(type1, type2);                                     \
-		GET_NEW_INDEX(sd, new_index);									 \
-        DST(typed, new_index);										 \
-		stackdepth--;                                                \
-    } while (0)
-
-/* XXX turn off coalescing */
-#if 0
-#define DUP_SLOT(sp)                                                 \
-    do {                                                             \
-        if ((sp)->varkind != TEMPVAR) {                              \
-            GET_NEW_INDEX(sd, new_index);                            \
-            NEWSTACK((sp)->type, TEMPVAR, new_index);                \
-        }                                                            \
-        else                                                         \
-            NEWSTACK((sp)->type, (sp)->varkind, (sp)->varnum);       \
-    } while(0)
-#else
-#define DUP_SLOT(sp)                                                 \
-    do {                                                             \
-            GET_NEW_INDEX(sd, new_index);                            \
-            NEWSTACK((sp)->type, TEMPVAR, new_index);                \
-    } while(0)
-#endif
 
 #define POP_S1(type1)                                                \
     do {                                                             \
@@ -394,6 +296,76 @@ bool stack_init(void)
 
 #define CLR_SX                                                       \
     (iptr->sx.val.l = 0)
+
+
+/* macros for setting the destination operand ***********************/
+
+#define CLR_DST                                                      \
+    (iptr->dst.varindex = -1)
+
+#define DST(typed, index)                                            \
+    do {                                                             \
+        NEWSTACKn((typed),(index));                                  \
+        curstack->creator = iptr;                                    \
+        iptr->dst.varindex = (index);                                \
+    } while (0)
+
+/* XXX temporatily turn off coalescing */
+#if 0
+#define DST_LOCALVAR(typed, index)                                   \
+    do {                                                             \
+        NEWSTACK((typed), LOCALVAR, (index));                        \
+        curstack->creator = iptr;                                    \
+        iptr->dst.varindex = (index);                                \
+    } while (0)
+#else
+#define DST_LOCALVAR(typed, index)                                   \
+    do {                                                             \
+        GET_NEW_INDEX(sd, new_index);                                \
+        NEWSTACKn((typed), (new_index));                             \
+        curstack->creator = iptr;                                    \
+        iptr->dst.varindex = (new_index);                            \
+    } while (0)
+#endif
+
+
+/* stack modelling macros *******************************************/
+
+#define OP0_1(typed)                                                 \
+    do {                                                             \
+        CLR_S1;                                                      \
+        GET_NEW_INDEX(sd, new_index);                                \
+        DST(typed, new_index);                                       \
+        stackdepth++;                                                \
+    } while (0)
+
+#define OP1_0_ANY                                                    \
+    do {                                                             \
+        POP_S1_ANY;                                                  \
+        CLR_DST;                                                     \
+        stackdepth--;                                                \
+    } while (0)
+
+#define OP1_BRANCH(type1)                                            \
+    do {                                                             \
+        POP_S1(type1);                                               \
+        stackdepth--;                                                \
+    } while (0)
+
+#define OP1_1(type1, typed)                                          \
+    do {                                                             \
+        POP_S1(type1);                                               \
+        GET_NEW_INDEX(sd, new_index);                                \
+        DST(typed, new_index);                                       \
+    } while (0)
+
+#define OP2_1(type1, type2, typed)                                   \
+    do {                                                             \
+        POP_S1_S2(type1, type2);                                     \
+        GET_NEW_INDEX(sd, new_index);                                \
+        DST(typed, new_index);                                       \
+        stackdepth--;                                                \
+    } while (0)
 
 #define OP0_0                                                        \
     do {                                                             \
@@ -450,19 +422,63 @@ bool stack_init(void)
     do {                                                             \
         POP_S1(type1);                                               \
         stackdepth--;                                                \
-	} while (0)
+    } while (0)
+
+
+/* macros for DUP elimination ***************************************/
+
+/* XXX turn off coalescing */
+#if 0
+#define DUP_SLOT(sp)                                                 \
+    do {                                                             \
+        if ((sp)->varkind != TEMPVAR) {                              \
+            GET_NEW_INDEX(sd, new_index);                            \
+            NEWSTACK((sp)->type, TEMPVAR, new_index);                \
+        }                                                            \
+        else                                                         \
+            NEWSTACK((sp)->type, (sp)->varkind, (sp)->varnum);       \
+    } while(0)
+#else
+#define DUP_SLOT(sp)                                                 \
+    do {                                                             \
+            GET_NEW_INDEX(sd, new_index);                            \
+            NEWSTACK((sp)->type, TEMPVAR, new_index);                \
+    } while(0)
+#endif
+
+/* does not check input stackdepth */
+#define MOVE_COPY_UP(o, v)                                           \
+    do {                                                             \
+        iptr->opc = (o);                                             \
+        iptr->s1.varindex = (v)->varnum;                             \
+        DUP_SLOT(v);                                                 \
+        curstack->creator = iptr;                                    \
+        iptr->dst.varindex = curstack->varnum;                       \
+        stackdepth++;                                                \
+    } while (0)
+
+#define COPY_DOWN(s, d)                                              \
+    do {                                                             \
+        iptr->opc = ICMD_COPY;                                       \
+        iptr->s1.varindex = (s)->varnum;                             \
+        iptr->dst.varindex = (d)->varnum;                            \
+        (d)->creator = iptr;                                         \
+    } while (0)
+
+
+/* macros for branching / reaching basic blocks *********************/
 
 #if defined(ENABLE_VERIFIER)
-#define MARKREACHED(b, c) \
-	do { \
-		if (!stack_mark_reached(&sd, (b), curstack, stackdepth))         \
-			return false; \
-	} while (0)
+#define MARKREACHED(b, c)                                            \
+    do {                                                             \
+        if (!stack_mark_reached(&sd, (b), curstack, stackdepth))     \
+            return false;                                            \
+    } while (0)
 #else
-#define MARKREACHED(b, c) \
-	do { \
-		(void) stack_mark_reached(&sd, (b), curstack, stackdepth); \
-	} while (0)
+#define MARKREACHED(b, c)                                            \
+    do {                                                             \
+        (void) stack_mark_reached(&sd, (b), curstack, stackdepth);   \
+    } while (0)
 #endif
 
 #define BRANCH_TARGET(bt, tempbptr, tempsp)                          \
@@ -477,22 +493,18 @@ bool stack_init(void)
         MARKREACHED(tempbptr, tempsp);                               \
     } while (0)
 
-/* does not check input stackdepth */
-#define MOVE_COPY_UP(o, v)                                           \
-    do {                                                             \
-        iptr->opc = (o);                                             \
-        iptr->s1.varindex = (v)->varnum;                             \
-        DUP_SLOT(v);                                                 \
-        iptr->dst.varindex = curstack->varnum;                       \
-        stackdepth++;                                                \
-    } while (0)
 
-#define COPY_DOWN(s, d)                                              \
-    do {                                                             \
-        iptr->opc = ICMD_COPY;                                       \
-        iptr->s1.varindex = (s)->varnum;                             \
-        iptr->dst.varindex = (d)->varnum;                            \
-    } while (0)
+/* stack_init ******************************************************************
+
+   Initialized the stack analysis subsystem (called by jit_init).
+
+*******************************************************************************/
+
+bool stack_init(void)
+{
+	return true;
+}
+
 
 /* MARKREACHED marks the destination block <b> as reached. If this
  * block has been reached before we check if stack depth and types
@@ -551,6 +563,31 @@ throw_stack_type_error:
 	return false;
 #endif
 }
+
+
+/* stack_analyse ***************************************************************
+
+   Analyse_stack uses the intermediate code created by parse.c to
+   build a model of the JVM operand stack for the current method.
+   
+   The following checks are performed:
+     - check for operand stack underflow (before each instruction)
+     - check for operand stack overflow (after[1] each instruction)
+     - check for matching stack depth at merging points
+     - check for matching basic types[2] at merging points
+     - check basic types for instruction input (except for BUILTIN*
+           opcodes, INVOKE* opcodes and MULTIANEWARRAY)
+   
+   [1]) Checking this after the instruction should be ok. parse.c
+   counts the number of required stack slots in such a way that it is
+   only vital that we don't exceed `maxstack` at basic block
+   boundaries.
+   
+   [2]) 'basic types' means the distinction between INT, LONG, FLOAT,
+   DOUBLE and ADDRESS types. Subtypes of INT and different ADDRESS
+   types are not discerned.
+
+*******************************************************************************/
 
 bool new_stack_analyse(jitdata *jd)
 {
@@ -644,11 +681,12 @@ bool new_stack_analyse(jitdata *jd)
 		sd.bptr->instack = sd.new;
 		sd.bptr->indepth = 1;
 		sd.bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
-		STACKRESET;
+		curstack = NULL; stackdepth = 0;
 		GET_NEW_INDEX(sd, new_index);
 		sd.bptr->invars = DMNEW(s4, 1);
 		sd.bptr->invars[0] = new_index;
 		NEWSTACK(TYPE_ADR, STACKVAR, new_index);
+		curstack->creator = NULL;
 
 		jd->interface_map[0 * 5 + TYPE_ADR].flags = 0;
 		SET_OUTVAR_BY_INDEX(sd, new_index);
@@ -667,7 +705,7 @@ bool new_stack_analyse(jitdata *jd)
 		sd.bptr = jd->new_basicblocks;
 		superblockend = true;
 		repeat = false;
-		STACKRESET;
+		curstack = NULL; stackdepth = 0;
 		deadcode = true;
 
 		/* iterate over basic blocks *****************************************/
@@ -1872,7 +1910,7 @@ store_tail:
 						last_pei_boundary = sd.new;
 						COUNT(count_check_null);
 						OP1_0(TYPE_ADR);
-						STACKRESET;
+						curstack = NULL; stackdepth = 0;
 						superblockend = true;
 						break;
 

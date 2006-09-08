@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5435 2006-09-08 18:14:50Z edwin $
+   $Id: jit.h 5436 2006-09-08 19:48:27Z edwin $
 
 */
 
@@ -205,6 +205,7 @@ struct jitdata {
 
 struct stackelement {
 	stackptr prev;              /* pointer to next element towards bottom     */
+	instruction *creator;       /* instruction that created this element      */
 	s4       type;              /* slot type of stack element                 */
 #ifdef ENABLE_VERIFIER
 	typeinfo typeinfo;          /* info on reference types                    */

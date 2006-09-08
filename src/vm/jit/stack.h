@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5419 2006-09-08 12:16:23Z edwin $
+   $Id: stack.h 5436 2006-09-08 19:48:27Z edwin $
 
 */
 
@@ -58,11 +58,11 @@
 /*--------------------------------------------------*/
 
 #if defined(ENABLE_VERIFIER)
-#define CHECK_STACK_DEPTH(depthA,depthB) \
-	do { \
-		if ((depthA) != (depthB)) \
-			goto throw_stack_depth_error; \
-	} while (0)
+#define CHECK_STACK_DEPTH(depthA,depthB)                             \
+    do {                                                             \
+        if ((depthA) != (depthB))                                    \
+            goto throw_stack_depth_error;                            \
+    } while (0)
 #else /* !ENABLE_VERIFIER */
 #define CHECK_STACK_DEPTH(depthA,depthB)
 #endif /* ENABLE_VERIFIER */
@@ -75,13 +75,13 @@
 /* XXX would be nice if we did not have to pass the expected type */
 
 #if defined(ENABLE_VERIFIER)
-#define CHECK_BASIC_TYPE(expected,actual) \
-	do { \
-		if ((actual) != (expected)) { \
-			expectedtype = (expected); \
-			goto throw_stack_type_error; \
-		} \
-	} while (0)
+#define CHECK_BASIC_TYPE(expected,actual)                            \
+    do {                                                             \
+        if ((actual) != (expected)) {                                \
+            expectedtype = (expected);                               \
+            goto throw_stack_type_error;                             \
+        }                                                            \
+    } while (0)
 #else /* !ENABLE_VERIFIER */
 #define CHECK_BASIC_TYPE(expected,actual)
 #endif /* ENABLE_VERIFIER */
@@ -93,11 +93,11 @@
 /* underflow checks */
 
 #if defined(ENABLE_VERIFIER)
-#define REQUIRE(num) \
-    do { \
-        if (stackdepth < (num)) \
-			goto throw_stack_underflow; \
-	} while (0)
+#define REQUIRE(num)                                                 \
+    do {                                                             \
+        if (stackdepth < (num))                                      \
+            goto throw_stack_underflow;                              \
+    } while (0)
 #else /* !ENABLE_VERIFIER */
 #define REQUIRE(num)
 #endif /* ENABLE_VERIFIER */
@@ -116,12 +116,12 @@
 
 /* XXX we should find a way to remove the opc/op1 check */
 #if defined(ENABLE_VERIFIER)
-#define CHECKOVERFLOW \
-	do { \
-		if (stackdepth > m->maxstack) \
-			if ((iptr->opc != ICMD_ACONST) || INSTRUCTION_MUST_CHECK(iptr)) \
-				goto throw_stack_overflow; \
-	} while(0)
+#define CHECKOVERFLOW                                                \
+    do {                                                             \
+        if (stackdepth > m->maxstack)                                \
+            if ((iptr->opc != ICMD_ACONST) || INSTRUCTION_MUST_CHECK(iptr))\
+                goto throw_stack_overflow;                           \
+    } while(0)
 #else /* !ENABLE_VERIFIER */
 #define CHECKOVERFLOW
 #endif /* ENABLE_VERIFIER */
@@ -130,17 +130,17 @@
 /* ALLOCATING STACK SLOTS                           */
 /*--------------------------------------------------*/
 
-#define NEWSTACK(s,v,n)	\
-    do { \
-        sd.new->prev = curstack; \
-        sd.new->type = (s); \
-        sd.new->flags = 0; \
-        sd.new->varkind = (v); \
-        sd.new->varnum = (n); \
-        curstack = sd.new; \
-		sd.var[(n)].type = (s); \
-		sd.var[(n)].flags = 0;	 \
-        sd.new++; \
+#define NEWSTACK(s,v,n)                                              \
+    do {                                                             \
+        sd.new->prev = curstack;                                     \
+        sd.new->type = (s);                                          \
+        sd.new->flags = 0;                                           \
+        sd.new->varkind = (v);                                       \
+        sd.new->varnum = (n);                                        \
+        curstack = sd.new;                                           \
+        sd.var[(n)].type = (s);                                      \
+        sd.var[(n)].flags = 0;                                       \
+        sd.new++;                                                    \
     } while (0)
 
 /* Initialize regoff, so -sia can show regnames even before reg.inc */
@@ -149,58 +149,6 @@
 
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
-
-/* allocate the input stack for an exception handler */
-#define NEWXSTACK   {NEWSTACK(TYPE_ADR,STACKVAR,0);curstack=0;}
-
-/*--------------------------------------------------*/
-/* STACK MANIPULATION                               */
-/*--------------------------------------------------*/
-
-/* resetting to an empty operand stack */
-
-#define STACKRESET \
-    do { \
-        curstack = 0; \
-        stackdepth = 0; \
-    } while (0)
-
-
-/* set the output stack of the current instruction */
-
-#define SETDST    iptr->dst = curstack;
-
-
-/* The following macros do NOT check stackdepth, set stackdepth or iptr->dst */
-
-#define POP(s) \
-    do { \
-		CHECK_BASIC_TYPE((s),curstack->type); \
-        if (curstack->varkind == UNDEFVAR) \
-            curstack->varkind = TEMPVAR; \
-        curstack = curstack->prev; \
-    } while (0)
-
-#define POPANY \
-    do { \
-        if (curstack->varkind == UNDEFVAR) \
-            curstack->varkind = TEMPVAR; \
-        curstack = curstack->prev; \
-    } while (0)
-
-/* Do not copy Interface Stackslots over DUPx, Swaps! */
-#define COPY(s,d) \
-    do { \
-        (d)->flags = 0; \
-        (d)->type = (s)->type; \
-		if ( (s)->varkind != STACKVAR) {		\
-			(d)->varkind = (s)->varkind; \
-			(d)->varnum = (s)->varnum;	 \
-		} else { \
-			(d)->varkind = TEMPVAR; \
-			(d)->varnum = 0; \
-		} \
-    } while (0)
 
 
 /*--------------------------------------------------*/
@@ -214,27 +162,28 @@
  * block to another. The destination block receives the copy as its
  * input stack.
  */
-# define COPYCURSTACK(sd, copy) {\
-	stackptr s;\
-	if (curstack){\
-		s=curstack;\
-		(sd).new+=stackdepth;\
-		copy=(sd).new;\
-		while(s){\
-			copy--;								\
-			copy->prev=copy-1;\
-			copy->type=s->type;\
-			copy->flags=0;\
-			copy->varkind=STACKVAR;\
-			copy->varnum=s->varnum;\
-			SET_OUTVAR((sd), s);	   \
-			s=s->prev;\
-			}\
-		copy->prev=NULL;\
-		copy=(sd).new-1;\
-		}\
-	else\
-		copy=NULL;\
+#define COPYCURSTACK(sd, copy) {                                     \
+    stackptr s;                                                      \
+    if (curstack) {                                                  \
+        s = curstack;                                                \
+        (sd).new += stackdepth;                                      \
+        copy = (sd).new;                                             \
+        while (s) {                                                  \
+            copy--;                                                  \
+            copy->prev = copy-1;                                     \
+            copy->creator = NULL;                                    \
+            copy->type = s->type;                                    \
+            copy->flags = 0;                                         \
+            copy->varkind = STACKVAR;                                \
+            copy->varnum = s->varnum;                                \
+            SET_OUTVAR((sd), s);                                     \
+            s = s->prev;                                             \
+        }                                                            \
+        copy->prev = NULL;                                           \
+        copy = (sd).new-1;                                           \
+    }                                                                \
+    else                                                             \
+        copy = NULL;                                                 \
 }
 
 
