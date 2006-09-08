@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5439 2006-09-08 20:54:05Z edwin $
+   $Id: stack.c 5440 2006-09-08 23:59:52Z edwin $
 
 */
 
@@ -149,8 +149,8 @@ struct stackdata_t {
     (sd.var[(sp)->varnum].flags & PREALLOC)
 
 #define IS_TEMPVAR(sp)                                               \
-    ( (sd.var[(sp)->varnum].flags & (OUTVAR | PREALLOC)              \
-       && (((sp)->varnum < sd.localcount)) == 0) )
+    ( ((sp)->varnum >= sd.localcount)                                \
+      && !(sd.var[(sp)->varnum].flags & (OUTVAR | PREALLOC)) )
 
 #define IS_LOCALVAR_SD(sd, sp)                                       \
          ((sp)->varnum < (sd).localcount)
