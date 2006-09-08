@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5407 2006-09-07 14:24:00Z edwin $
+   $Id: jit.h 5420 2006-09-08 12:17:29Z edwin $
 
 */
 
@@ -126,7 +126,7 @@ struct jitdata {
     s4      *local_map; /* internal structure to rename(de-coallesc) locals  */
 	                    /* and keep the coalescing info for simplereg.       */
 	                    /* local_map[local_index * 5 + local_type] =         */
-	                    /* new_index in rd->var or LOCAL_UNUSED              */
+	                    /* new_index in rd->var or UNUSED                    */
 	s4      *interface_map; /* like local_map for interfaces */
 #endif
 };
