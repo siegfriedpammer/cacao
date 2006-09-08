@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5407 2006-09-07 14:24:00Z edwin $
+   $Id: jit.c 5427 2006-09-08 16:07:48Z edwin $
 
 */
 
@@ -1699,6 +1699,8 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
 		code->bbfrequency = MNEW(u4, jd->new_basicblockcount);
+
+	/*new_show_method(jd, SHOW_REGS);*/
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 

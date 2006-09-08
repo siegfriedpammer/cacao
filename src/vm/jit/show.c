@@ -250,11 +250,11 @@ void new_show_method(jitdata *jd, int stage)
 
 	if (cd->maxstack > 0 && jd->interface_map && stage >= SHOW_STACK) {
 		bool exist = false;
-		s4 *mapptr = jd->interface_map;
+		interface_info *mapptr = jd->interface_map;
 		
 		/* look if there exist any IN/OUTVARS */
 		for (i = 0; (i < (5 * cd->maxstack)) && !exist; i++, mapptr++)
-			exist = (*mapptr != UNUSED);
+			exist = (mapptr->flags != UNUSED);
 
 		if (exist) {
 			printf("Interface Table: (In/Outvars)\n");
@@ -267,31 +267,32 @@ void new_show_method(jitdata *jd, int stage)
 			for (i = 0; i < 5; i++) {
 				printf("    %5s      ",jit_type[i]);
 				for (j = 0; j < cd->maxstack; j++) {
-					s4 val = jd->interface_map[j*5+i];
-					if (val == UNUSED)
+					s4 flags  = jd->interface_map[j*5+i].flags;
+					s4 regoff = jd->interface_map[j*5+i].regoff;
+					if (flags == UNUSED)
 						printf("  --      ");
 					else {
 						int ch;
 
 						if (stage >= SHOW_REGS) {
-							if (val & SAVEDVAR) {
-								if (val & INMEMORY)
+							if (flags & SAVEDVAR) {
+								if (flags & INMEMORY)
 									ch = 'M';
 								else
 									ch = 'R';
 							}
 							else {
-								if (val & INMEMORY)
+								if (flags & INMEMORY)
 									ch = 'm';
 								else
 									ch = 'r';
 							}
-							printf("%c%03d(", ch, val >> 16);
-							show_allocation(i, val & 0xffff, val >> 16);
+							printf("%c%03d(", ch, regoff);
+							show_allocation(i, flags, regoff);
 							printf(") ");
 						}
 						else {
-							if (val & SAVEDVAR)
+							if (flags & SAVEDVAR)
 								printf("  I       ");
 							else
 								printf("  i       ");
@@ -312,13 +313,10 @@ void new_show_method(jitdata *jd, int stage)
 				varinfo *v = jd->var + j;
 				if ((v->flags & INMEMORY) && (v->regoff == i)) {
 					show_variable(jd, j, stage);
-					goto found_stack_slot;
+					putchar(' ');
 				}
 			}
 
-			printf("<unknown>");
-
-found_stack_slot:
 			printf("\n");
 
 		}

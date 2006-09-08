@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5420 2006-09-08 12:17:29Z edwin $
+   $Id: jit.h 5427 2006-09-08 16:07:48Z edwin $
 
 */
 
@@ -90,6 +90,13 @@ typedef struct insinfo_inline insinfo_inline;
 # define COUNT_SPILLS    /* nothing */
 #endif
 
+typedef struct interface_info interface_info;
+
+struct interface_info {
+	s4 flags;
+	s4 regoff;
+};
+
 
 /* jitdata ********************************************************************/
 
@@ -117,7 +124,6 @@ struct jitdata {
 	s4               new_stackcount;
 	s4               new_c_debug_nr;
 
-#if defined(NEW_VAR)
 	varinfo *var;
 	s4      vartop;
     
@@ -127,8 +133,7 @@ struct jitdata {
 	                    /* and keep the coalescing info for simplereg.       */
 	                    /* local_map[local_index * 5 + local_type] =         */
 	                    /* new_index in rd->var or UNUSED                    */
-	s4      *interface_map; /* like local_map for interfaces */
-#endif
+	interface_info *interface_map;
 };
 
 #define UNUSED                     -1

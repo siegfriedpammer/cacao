@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5421 2006-09-08 12:19:49Z edwin $
+   $Id: simplereg.c 5427 2006-09-08 16:07:48Z edwin $
 
 */
 
@@ -148,14 +148,14 @@ static void interface_regalloc(jitdata *jd)
 		saved = 0;
 
 		for (tt = 0; tt <=4; tt++) {
-			if ((t = jd->interface_map[s * 5 + tt]) != UNUSED) {
+			if ((t = jd->interface_map[s * 5 + tt].flags) != UNUSED) {
 				saved |= t & SAVEDVAR;
 			}
 		}
 
 		for (tt = 0; tt <= 4; tt++) {
 			t = typeloop[tt];
-			if (jd->interface_map[s * 5 + t] == UNUSED)
+			if (jd->interface_map[s * 5 + t].flags == UNUSED)
 				continue;
 
 			flags = saved;
@@ -187,8 +187,8 @@ static void interface_regalloc(jitdata *jd)
 						if (IS_FLT_DBL_TYPE(t)) {
 							if (fltalloc >= 0) {
 		       /* Reuse memory slot(s)/register(s) for shared interface slots */
-								flags |= jd->var[fltalloc].flags & INMEMORY;
-								regoff = jd->var[fltalloc].regoff;
+								flags |= jd->interface_map[fltalloc].flags & INMEMORY;
+								regoff = jd->interface_map[fltalloc].regoff;
 							} else if (rd->argfltreguse < FLT_ARG_CNT) {
 								regoff = rd->argfltregs[rd->argfltreguse++];
 							} else if (rd->tmpfltreguse > 0) {
@@ -205,7 +205,7 @@ static void interface_regalloc(jitdata *jd)
 								regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							}
-							fltalloc = jd->interface_map[s * 5 + t];
+							fltalloc = s * 5 + t;
 						} else { /* !IS_FLT_DBL_TYPE(t) */
 #if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							/*
@@ -224,17 +224,16 @@ static void interface_regalloc(jitdata *jd)
 #endif /* defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE...GISTERS) */
 								if (intalloc >= 0) {
 		       /* Reuse memory slot(s)/register(s) for shared interface slots */
-									flags |= jd->var[intalloc].flags 
-										        & INMEMORY;
+									flags |= jd->interface_map[intalloc].flags & INMEMORY;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 									if (!(flags & INMEMORY) 
-									  && IS_2_WORD_TYPE(jd->var[intalloc].type))
+									  && IS_2_WORD_TYPE(intalloc % 5))
 										regoff = GET_LOW_REG(
-											jd->var[intalloc].regoff);
+											jd->interface_map[intalloc].regoff);
 									else
 #endif
 										regoff = 
-										    jd->var[intalloc].regoff;
+										    jd->interface_map[intalloc].regoff;
 								} else 
 									if (rd->argintreguse + intregsneeded 
 										< INT_ARG_CNT) {
@@ -286,7 +285,7 @@ static void interface_regalloc(jitdata *jd)
 										rd->memuse += memneeded + 1;
 									}
 
-							intalloc = jd->interface_map[s * 5 + t];
+							intalloc = s * 5 + t;
 						} /* if (IS_FLT_DBL_TYPE(t)) */
 					} 
 				} else { /* (saved) */
@@ -305,8 +304,8 @@ static void interface_regalloc(jitdata *jd)
 					{
 						if (IS_FLT_DBL_TYPE(t)) {
 							if (fltalloc >= 0) {
-								flags |= jd->var[fltalloc].flags & INMEMORY;
-								regoff = jd->var[fltalloc].regoff;
+								flags |= jd->interface_map[fltalloc].flags & INMEMORY;
+								regoff = jd->interface_map[fltalloc].regoff;
 							} else
 								if (rd->savfltreguse > 0) {
 									regoff = 
@@ -322,7 +321,7 @@ static void interface_regalloc(jitdata *jd)
 									regoff = rd->memuse;
 									rd->memuse += memneeded + 1;
 								}
-							fltalloc = jd->interface_map[s * 5 + t];
+							fltalloc = s * 5 + t;
 						}
 						else { /* IS_INT_LNG */
 #if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -342,18 +341,17 @@ static void interface_regalloc(jitdata *jd)
 #endif
 							{
 								if (intalloc >= 0) {
-									flags |= jd->var[intalloc].flags 
-										        & INMEMORY;
+									flags |= jd->interface_map[intalloc].flags & INMEMORY;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 									if (!(flags & INMEMORY)
-									  && IS_2_WORD_TYPE(jd->var[intalloc].type))
+									  && IS_2_WORD_TYPE(intalloc % 5))
 										regoff =
 											GET_LOW_REG(
-											jd->var[intalloc].regoff);
+											jd->interface_map[intalloc].regoff);
 									else
 #endif
 										regoff =
-										    jd->var[intalloc].regoff;
+										    jd->interface_map[intalloc].regoff;
 								} else {
 									if (rd->savintreguse > intregsneeded) {
 										rd->savintreguse -= intregsneeded + 1;
@@ -377,7 +375,7 @@ static void interface_regalloc(jitdata *jd)
 										rd->memuse += memneeded + 1;
 									}
 								}
-								intalloc = t;
+								intalloc = s*5 + t;
 							}
 						} /* if (IS_FLT_DBL_TYPE(t) else */
 					} /* if (IS_ADR_TYPE(t)) else */
@@ -385,7 +383,8 @@ static void interface_regalloc(jitdata *jd)
 			/* if (type >= 0) */
 
 			assert(regoff >= 0);
-			jd->interface_map[5*s + tt] = (regoff << 16) | flags | OUTVAR;
+			jd->interface_map[5*s + t].flags = flags | OUTVAR;
+			jd->interface_map[5*s + t].regoff = regoff;
 		} /* for t */
 	} /* for s */
 }
@@ -989,7 +988,6 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 #define reg_free_temp(jd,index) \
 	if ((index > jd->localcount) \
 		&& (!(jd->var[index].flags & OUTVAR))	\
-		&& (!(jd->var[index].flags & STCOPY))	 \
 		&& (!(jd->var[index].flags & PREALLOC)) ) \
 		reg_free_temp_func(jd, index)
 
@@ -1127,10 +1125,9 @@ static void new_allocate_scratch_registers(jitdata *jd)
 			for (i=0; i<bptr->indepth; ++i) 
 			{
 				varinfo *v = jd->var + bptr->invars[i];
-				s4 alloc = jd->interface_map[5*i + v->type];
 
-				v->regoff = alloc >> 16;
-				v->flags = alloc & 0xffff;
+				v->regoff = jd->interface_map[5*i + v->type].regoff;
+				v->flags  = jd->interface_map[5*i + v->type].flags;
 			}
 
 			/* set allocation of outvars */
@@ -1138,10 +1135,9 @@ static void new_allocate_scratch_registers(jitdata *jd)
 			for (i=0; i<bptr->outdepth; ++i) 
 			{
 				varinfo *v = jd->var + bptr->outvars[i];
-				s4 alloc = jd->interface_map[5*i + v->type];
 
-				v->regoff = alloc >> 16;
-				v->flags = alloc & 0xffff;
+				v->regoff = jd->interface_map[5*i + v->type].regoff;
+				v->flags  = jd->interface_map[5*i + v->type].flags;
 			}
 
 			/* iterate over ICMDS to allocate temporary variables */
@@ -1330,9 +1326,9 @@ static void new_allocate_scratch_registers(jitdata *jd)
 					reg_free_temp(jd, iptr->s1.varindex);
 					break;
 
-					/* pop 0 push 1 dup */
+					/* pop 0 push 1 copy */
 					
-				case ICMD_DUP:
+				case ICMD_COPY:
 					/* src === dst->prev (identical Stackslot Element)     */
 					/* src --> dst       (copied value, take same reg/mem) */
 
@@ -1343,115 +1339,12 @@ static void new_allocate_scratch_registers(jitdata *jd)
 /* 					} */
 					break;
 
-					/* pop 0 push 2 dup */
-					
-				case ICMD_DUP2:
-					/* src->prev === dst->prev->prev->prev (identical Stackslot Element)     */
-					/* src       === dst->prev->prev       (identical Stackslot Element)     */
-					/* src->prev --> dst->prev             (copied value, take same reg/mem) */
-					/* src       --> dst                   (copied value, take same reg/mem) */
-												
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[2+0])) */
-						reg_new_temp(jd, iptr->dst.dupslots[2+0]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+1])) */
-						reg_new_temp(jd, iptr->dst.dupslots[2+1]);
-/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 2, 2); */
-					break;
+					/* pop 1 push 1 move */
 
-					/* pop 2 push 3 dup */
-					
-				case ICMD_DUP_X1:
-					/* src->prev --> dst->prev       (copied value, take same reg/mem) */
-					/* src       --> dst             (copied value, take same reg/mem) */
-					/* src       --> dst->prev->prev (copied value, take same reg/mem) */
-												
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+0])) */
-						reg_new_temp(jd, iptr->dst.dupslots[2+0]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+2])) */
-						reg_new_temp(jd, iptr->dst.dupslots[2+2]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[2+1])) */
-						reg_new_temp(jd, iptr->dst.dupslots[2+1]);
-/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 3, 0); */
-					break;
-
-					/* pop 3 push 4 dup */
-					
-				case ICMD_DUP_X2:
-					/* src->prev->prev --> dst->prev->prev        */
-					/* src->prev       --> dst->prev              */
-					/* src             --> dst                    */
-					/* src             --> dst->prev->prev->prev  */
-					
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+0])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+0]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+3])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+3]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+2])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+2]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[3+1])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+1]);
-/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 3, 4, 0); */
-					break;
-
-					/* pop 3 push 5 dup */
-					
-				case ICMD_DUP2_X1:
-					/* src->prev->prev --> dst->prev->prev             */
-					/* src->prev       --> dst->prev                   */
-					/* src             --> dst                         */
-					/* src->prev       --> dst->prev->prev->prev->prev */
-					/* src             --> dst->prev->prev->prev       */
-												
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+1])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+1]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[3+4])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+4]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+0])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+0]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[3+3])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+3]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[3+2])) */
-						reg_new_temp(jd, iptr->dst.dupslots[3+2]);
-/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 3, 5, 0); */
-					break;
-
-					/* pop 4 push 6 dup */
-					
-				case ICMD_DUP2_X2:
-					/* src->prev->prev->prev --> dst->prev->prev->prev             */
-					/* src->prev->prev       --> dst->prev->prev                   */
-					/* src->prev             --> dst->prev                         */
-					/* src                   --> dst                               */
-					/* src->prev             --> dst->prev->prev->prev->prev->prev */
-					/* src                   --> dst->prev->prev->prev->prev       */
-												
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[3], iptr->dst.dupslots[4+1])) */
-						reg_new_temp(jd, iptr->dst.dupslots[4+1]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[3], iptr->dst.dupslots[4+5])) */
-						reg_new_temp(jd, iptr->dst.dupslots[4+5]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[4+0])) */
-						reg_new_temp(jd, iptr->dst.dupslots[4+0]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[2], iptr->dst.dupslots[4+4])) */
-						reg_new_temp(jd, iptr->dst.dupslots[4+4]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[4+3])) */
-						reg_new_temp(jd, iptr->dst.dupslots[4+3]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[4+2])) */
-						reg_new_temp(jd, iptr->dst.dupslots[4+2]);
-/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 4, 6, 0); */
-					break;
-
-					/* pop 2 push 2 swap */
-					
-				case ICMD_SWAP:
-					/* src       --> dst->prev   (copy) */
-					/* src->prev --> dst         (copy) */
-												
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[1], iptr->dst.dupslots[2+0])) */
-						reg_new_temp(jd, iptr->dst.dupslots[2+0]);
-/* 					if (!reg_alloc_dup(iptr->dst.dupslots[0], iptr->dst.dupslots[2+1])) */
-						reg_new_temp(jd, iptr->dst.dupslots[2+1]);
-/* 					new_reg_mark_copy(rd, iptr->dst.dupslots, 2, 2, 0); */
-					break;
+				case ICMD_MOVE:
+						reg_new_temp(jd, iptr->dst.varindex);
+						reg_free_temp(jd, iptr->s1.varindex);
+						break;
 
 					/* pop 2 push 1 */
 					
@@ -1784,6 +1677,7 @@ void reg_make_statistics(jitdata *jd)
 					iptr++;
 				} /* while instructions */
 			} /* if */
+
 			bptr = bptr->next;
 		} /* while blocks */
 		count_interface_size += size_interface; /* accummulate the size of the interface (between bb boundaries) */

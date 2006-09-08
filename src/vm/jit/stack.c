@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5423 2006-09-08 14:15:39Z edwin $
+   $Id: stack.c 5427 2006-09-08 16:07:48Z edwin $
 
 */
 
@@ -325,15 +325,24 @@ bool stack_init(void)
 		stackdepth--;                                                \
     } while (0)
 
+/* XXX turn off coalescing */
+#if 0
 #define DUP_SLOT(sp)                                                 \
     do {                                                             \
-        if ((sp)->varkind != TEMPVAR) {								 \
-			GET_NEW_INDEX(sd, new_index);								 \
-            NEWSTACK((sp)->type, TEMPVAR, new_index);               \
-		}															 \
+        if ((sp)->varkind != TEMPVAR) {                              \
+            GET_NEW_INDEX(sd, new_index);                            \
+            NEWSTACK((sp)->type, TEMPVAR, new_index);                \
+        }                                                            \
         else                                                         \
             NEWSTACK((sp)->type, (sp)->varkind, (sp)->varnum);       \
     } while(0)
+#else
+#define DUP_SLOT(sp)                                                 \
+    do {                                                             \
+            GET_NEW_INDEX(sd, new_index);                            \
+            NEWSTACK((sp)->type, TEMPVAR, new_index);                \
+    } while(0)
+#endif
 
 #define POP_S1(type1)                                                \
     do {                                                             \
@@ -468,6 +477,23 @@ bool stack_init(void)
         MARKREACHED(tempbptr, tempsp);                               \
     } while (0)
 
+/* does not check input stackdepth */
+#define MOVE_COPY_UP(o, v)                                           \
+    do {                                                             \
+        iptr->opc = (o);                                             \
+        iptr->s1.varindex = (v)->varnum;                             \
+        DUP_SLOT(v);                                                 \
+        iptr->dst.varindex = curstack->varnum;                       \
+        stackdepth++;                                                \
+    } while (0)
+
+#define COPY_DOWN(s, d)                                              \
+    do {                                                             \
+        iptr->opc = ICMD_COPY;                                       \
+        iptr->s1.varindex = (s)->varnum;                             \
+        iptr->dst.varindex = (d)->varnum;                            \
+    } while (0)
+
 /* MARKREACHED marks the destination block <b> as reached. If this
  * block has been reached before we check if stack depth and types
  * match. Otherwise the destination block receives a copy of the
@@ -552,6 +578,8 @@ bool new_stack_analyse(jitdata *jd)
 	stackptr      last_pei_boundary;
 	stackptr      last_dup_boundary;
 
+	stackptr      src1, src2, src3, src4, dst1, dst2;
+
 	branch_target_t *table;
 	lookup_target_t *lookup;
 #if defined(ENABLE_VERIFIER)
@@ -594,9 +622,9 @@ bool new_stack_analyse(jitdata *jd)
 
 	/* init jd->interface_map */
 
-	jd->interface_map = DMNEW(s4, m->maxstack * 5);
+	jd->interface_map = DMNEW(interface_info, m->maxstack * 5);
 	for (i = 0; i < m->maxstack * 5; i++)
-		jd->interface_map[i] = UNUSED;
+		jd->interface_map[i].flags = UNUSED;
 
 	last_store_boundary = DMNEW(stackptr, cd->maxlocals);
 
@@ -622,7 +650,7 @@ bool new_stack_analyse(jitdata *jd)
 		sd.bptr->invars[0] = new_index;
 		NEWSTACK(TYPE_ADR, STACKVAR, new_index);
 
-		jd->interface_map[0 * 5 + TYPE_ADR] = 0;
+		jd->interface_map[0 * 5 + TYPE_ADR].flags = 0;
 		SET_OUTVAR_BY_INDEX(sd, new_index);
 	}
 
@@ -723,6 +751,12 @@ bool new_stack_analyse(jitdata *jd)
 						printf(") ");
 					}
 					printf("\n");
+
+					printf("INVARS - indices:\t\n");
+					for (i=0; i<sd.bptr->indepth; ++i) {
+						printf("%d ", sd.bptr->invars[i]);
+					}
+					printf("\n\n");
 
 #endif
 
@@ -1743,7 +1777,7 @@ assume_conflict:
 
 						/* remember the stack boundary at this store */
 store_tail:
-						last_store_boundary[j] = sd.new;
+						last_store_boundary[javaindex] = sd.new;
 
 						STORE(opcode - ICMD_ISTORE, j);
 						break;
@@ -1988,12 +2022,10 @@ store_tail:
 						COUNT(count_dup_instruction);
 
 icmd_DUP:
-						USE_S1_ANY; /* XXX live through */
- 						/* DUP_SLOT(iptr->s1.var); */
- 						DUP_SLOT(curstack);
+						src1 = curstack;
+
+						MOVE_COPY_UP(ICMD_COPY, src1);
 						last_dup_boundary = sd.new - 1;
-						iptr->dst.varindex = curstack->varnum;
-						stackdepth++;
 						break;
 
 					case ICMD_DUP2:
@@ -2012,19 +2044,13 @@ icmd_DUP:
 									goto throw_stack_category_error;
 							}
 #endif
-							iptr->dst.dupslots = DMNEW(s4, 2 + 2);
-							                         /* XXX live through */
-							iptr->dst.dupslots[0] = curstack->prev->varnum;
-							                   /* XXX live through */
-							iptr->dst.dupslots[1] = curstack->varnum;
-							copy = curstack;
+							src1 = curstack->prev;
+							src2 = curstack;
 
-							DUP_SLOT(copy->prev);
-							iptr->dst.dupslots[2+0] = curstack->varnum;
-							DUP_SLOT(copy);
-							iptr->dst.dupslots[2+1] = curstack->varnum;
+							MOVE_COPY_UP(ICMD_COPY, src1); iptr++; len--;
+							MOVE_COPY_UP(ICMD_COPY, src2);
+
 							last_dup_boundary = sd.new;
-							stackdepth += 2;
 						}
 						break;
 
@@ -2041,20 +2067,19 @@ icmd_DUP:
 #endif
 
 icmd_DUP_X1:
-						iptr->dst.dupslots = DMNEW(int, 2 + 3);
-						iptr->dst.dupslots[0] = curstack->prev->varnum;
-						iptr->dst.dupslots[1] = curstack->varnum;
-						copy = curstack;
+						src1 = curstack->prev;
+						src2 = curstack;
 						POPANY; POPANY;
+						stackdepth -= 2;
 
-						DUP_SLOT(copy);
-						iptr->dst.dupslots[2+0] = curstack->varnum;
-						DUP_SLOT(copy->prev);
-						iptr->dst.dupslots[2+1] = curstack->varnum;
-						DUP_SLOT(copy);
-						iptr->dst.dupslots[2+2] = curstack->varnum;
+						DUP_SLOT(src2); dst1 = curstack; stackdepth++;
+
+						MOVE_COPY_UP(ICMD_MOVE, src1); iptr++; len--;
+						MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
+
+						COPY_DOWN(curstack, dst1);
+
 						last_dup_boundary = sd.new;
-						stackdepth++;
 						break;
 
 					case ICMD_DUP2_X1:
@@ -2082,25 +2107,23 @@ icmd_DUP_X1:
 #endif
 
 icmd_DUP2_X1:
-							iptr->dst.dupslots = DMNEW(s4, 3 + 5);
-							iptr->dst.dupslots[0] =curstack->prev->prev->varnum;
-							iptr->dst.dupslots[1] = curstack->prev->varnum;
-							iptr->dst.dupslots[2] = curstack->varnum;
-							copy = curstack;
+							src1 = curstack->prev->prev;
+							src2 = curstack->prev;
+							src3 = curstack;
 							POPANY; POPANY; POPANY;
+							stackdepth -= 3;
 
-							DUP_SLOT(copy->prev);
-							iptr->dst.dupslots[3+0] = curstack->varnum;
-							DUP_SLOT(copy);
-							iptr->dst.dupslots[3+1] = curstack->varnum;
-							DUP_SLOT(copy->prev->prev);
-							iptr->dst.dupslots[3+2] = curstack->varnum;
-							DUP_SLOT(copy->prev);
-							iptr->dst.dupslots[3+3] = curstack->varnum;
-							DUP_SLOT(copy);
-							iptr->dst.dupslots[3+4] = curstack->varnum;
+							DUP_SLOT(src2); dst1 = curstack; stackdepth++;
+							DUP_SLOT(src3); dst2 = curstack; stackdepth++;
+
+							MOVE_COPY_UP(ICMD_MOVE, src1); iptr++; len--;
+							MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
+							MOVE_COPY_UP(ICMD_MOVE, src3); iptr++; len--;
+
+							COPY_DOWN(curstack, dst2); iptr++; len--;
+							COPY_DOWN(curstack->prev, dst1);
+
 							last_dup_boundary = sd.new;
-							stackdepth += 2;
 						}
 						break;
 
@@ -2130,23 +2153,21 @@ icmd_DUP2_X1:
 							}
 #endif
 icmd_DUP_X2:
-							iptr->dst.dupslots = DMNEW(s4, 3 + 4);
-							iptr->dst.dupslots[0] =curstack->prev->prev->varnum;
-							iptr->dst.dupslots[1] = curstack->prev->varnum;
-							iptr->dst.dupslots[2] = curstack->varnum;
-							copy = curstack;
+							src1 = curstack->prev->prev;
+							src2 = curstack->prev;
+							src3 = curstack;
 							POPANY; POPANY; POPANY;
+							stackdepth -= 3;
 
-							DUP_SLOT(copy);
-							iptr->dst.dupslots[3+0] = curstack->varnum;
-							DUP_SLOT(copy->prev->prev);
-							iptr->dst.dupslots[3+1] = curstack->varnum;
-							DUP_SLOT(copy->prev);
-							iptr->dst.dupslots[3+2] = curstack->varnum;
-							DUP_SLOT(copy);
-							iptr->dst.dupslots[3+3] = curstack->varnum;
+							DUP_SLOT(src3); dst1 = curstack; stackdepth++;
+
+							MOVE_COPY_UP(ICMD_MOVE, src1); iptr++; len--;
+							MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
+							MOVE_COPY_UP(ICMD_MOVE, src3); iptr++; len--;
+
+							COPY_DOWN(curstack, dst1);
+
 							last_dup_boundary = sd.new;
-							stackdepth++;
 						}
 						break;
 
@@ -2198,30 +2219,25 @@ icmd_DUP_X2:
 							}
 #endif
 
-							iptr->dst.dupslots = DMNEW(s4, 4 + 6);
-							iptr->dst.dupslots[0] = 
-								curstack->prev->prev->prev->varnum;
-							iptr->dst.dupslots[1] = 
-								curstack->prev->prev->varnum;
-							iptr->dst.dupslots[2] = curstack->prev->varnum;
-							iptr->dst.dupslots[3] = curstack->varnum;
-							copy = curstack;
+							src1 = curstack->prev->prev->prev;
+							src2 = curstack->prev->prev;
+							src3 = curstack->prev;
+							src4 = curstack;
 							POPANY; POPANY; POPANY; POPANY;
+							stackdepth -= 4;
 
-							DUP_SLOT(copy->prev);
-							iptr->dst.dupslots[4+0] = curstack->varnum;
-							DUP_SLOT(copy);
-							iptr->dst.dupslots[4+1] = curstack->varnum;
-							DUP_SLOT(copy->prev->prev->prev);
-							iptr->dst.dupslots[4+2] = curstack->varnum;
-							DUP_SLOT(copy->prev->prev);
-							iptr->dst.dupslots[4+3] = curstack->varnum;
-							DUP_SLOT(copy->prev);
-							iptr->dst.dupslots[4+4] = curstack->varnum;
-							DUP_SLOT(copy);
-							iptr->dst.dupslots[4+5] = curstack->varnum;
+							DUP_SLOT(src3); dst1 = curstack; stackdepth++;
+							DUP_SLOT(src4); dst2 = curstack; stackdepth++;
+
+							MOVE_COPY_UP(ICMD_MOVE, src1); iptr++; len--;
+							MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
+							MOVE_COPY_UP(ICMD_MOVE, src3); iptr++; len--;
+							MOVE_COPY_UP(ICMD_MOVE, src4); iptr++; len--;
+
+							COPY_DOWN(curstack, dst2); iptr++; len--;
+							COPY_DOWN(curstack->prev, dst1);
+
 							last_dup_boundary = sd.new;
-							stackdepth += 2;
 						}
 						break;
 
@@ -2237,16 +2253,14 @@ icmd_DUP_X2:
 						}
 #endif
 
-						iptr->dst.dupslots = DMNEW(s4, 2 + 2);
-						iptr->dst.dupslots[0] = curstack->prev->varnum;
-						iptr->dst.dupslots[1] = curstack->varnum;
-						copy = curstack;
+						src1 = curstack->prev;
+						src2 = curstack;
 						POPANY; POPANY;
+						stackdepth -= 2;
 
-						DUP_SLOT(copy);
-						iptr->dst.dupslots[2+0] = curstack->varnum;
-						DUP_SLOT(copy->prev);
-						iptr->dst.dupslots[2+1] = curstack->varnum;
+						MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
+						MOVE_COPY_UP(ICMD_MOVE, src1);
+
 						last_dup_boundary = sd.new;
 						break;
 
@@ -2967,17 +2981,16 @@ icmd_BUILTIN:
 					/* create an unresolvable conflict */
 
 					v = sd.var + copy->varnum;
-					j = jd->interface_map[i * 5 + copy->type];
 
 					SET_OUTVAR(sd, copy);
 
-					if (j == UNUSED) {
+					if (jd->interface_map[i*5 + copy->type].flags == UNUSED) {
 						/* no interface var until now for this depth and */
 						/* type */
-						jd->interface_map[i*5 + copy->type] = v->flags;
+						jd->interface_map[i*5 + copy->type].flags = v->flags;
 					}
 					else {
-						jd->interface_map[i*5 + copy->type] |= v->flags;
+						jd->interface_map[i*5 + copy->type].flags |= v->flags;
 					}
 				}
 
@@ -2986,7 +2999,14 @@ icmd_BUILTIN:
 					for (i=0; i<sd.bptr->indepth; ++i) {
 						varinfo *v = sd.var + sd.bptr->invars[i];
 
-						jd->interface_map[i*5 + v->type] |= v->flags & SAVEDVAR;
+						if (jd->interface_map[i*5 + v->type].flags == UNUSED) {
+							/* no interface var until now for this depth and */
+							/* type */
+							jd->interface_map[i*5 + v->type].flags = v->flags;
+						}
+						else {
+							jd->interface_map[i*5 + v->type].flags |= v->flags;
+						}
 					}
 				);
 
