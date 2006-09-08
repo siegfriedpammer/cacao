@@ -69,6 +69,8 @@ static java_objectheader *show_global_lock;
 
 #if !defined(NDEBUG)
 static void new_show_variable_array(jitdata *jd, s4 *vars, int n, int stage);
+static void show_allocation(s4 type, s4 flags, s4 regoff);
+static void show_variable(jitdata *jd, s4 index, int stage);
 #endif
 
 
@@ -150,6 +152,8 @@ void new_show_method(jitdata *jd, int stage)
 	method_println(m);
 
 	printf("\n(NEW INSTRUCTION FORMAT)\n");
+	if (jd->isleafmethod)
+		printf("LEAFMETHOD\n");
 	printf("\nBasic blocks: %d\n", jd->new_basicblockcount);
 	if (stage >= SHOW_CODE) {
 		printf("Code length:  %d\n", (lastbptr->mpc - jd->new_basicblocks[0].mpc));
@@ -244,7 +248,7 @@ void new_show_method(jitdata *jd, int stage)
 		printf("\n");
 	}
 
-	if (cd->maxstack > 0 && jd->interface_map) {
+	if (cd->maxstack > 0 && jd->interface_map && stage >= SHOW_STACK) {
 		bool exist = false;
 		s4 *mapptr = jd->interface_map;
 		
@@ -256,22 +260,69 @@ void new_show_method(jitdata *jd, int stage)
 			printf("Interface Table: (In/Outvars)\n");
 			printf("    depth ");
 			for (j = 0; j < cd->maxstack; j++) {
-				printf(" [%2d]", j);
+				printf("      [%2d]", j);
 			}
 			printf("\n");
 
 			for (i = 0; i < 5; i++) {
-				printf("    %5s ",jit_type[i]);
+				printf("    %5s      ",jit_type[i]);
 				for (j = 0; j < cd->maxstack; j++) {
-					if (jd->interface_map[j*5+i] == UNUSED)
-						printf("  -- ");
-					else
-						printf("%4i ", jd->interface_map[j*5+i]);
+					s4 val = jd->interface_map[j*5+i];
+					if (val == UNUSED)
+						printf("  --      ");
+					else {
+						int ch;
+
+						if (stage >= SHOW_REGS) {
+							if (val & SAVEDVAR) {
+								if (val & INMEMORY)
+									ch = 'M';
+								else
+									ch = 'R';
+							}
+							else {
+								if (val & INMEMORY)
+									ch = 'm';
+								else
+									ch = 'r';
+							}
+							printf("%c%03d(", ch, val >> 16);
+							show_allocation(i, val & 0xffff, val >> 16);
+							printf(") ");
+						}
+						else {
+							if (val & SAVEDVAR)
+								printf("  I       ");
+							else
+								printf("  i       ");
+						}
+					}
 				}
 				printf("\n");
 			}
 			printf("\n");
 		}
+	}
+
+	if (rd->memuse && stage >= SHOW_REGS) {
+		printf("Stack slots: (memuse=%d)\n", rd->memuse);
+		for (i=0; i<rd->memuse; ++i) {
+			printf("    M%02d: ", i);
+			for (j=0; j<jd->varcount; ++j) {
+				varinfo *v = jd->var + j;
+				if ((v->flags & INMEMORY) && (v->regoff == i)) {
+					show_variable(jd, j, stage);
+					goto found_stack_slot;
+				}
+			}
+
+			printf("<unknown>");
+
+found_stack_slot:
+			printf("\n");
+
+		}
+		printf("\n");
 	}
 
 	if (code->rplpoints) {
@@ -551,6 +602,56 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         printf("=> L%d ", iptr->dst.varindex);                       \
     }
 
+static void show_allocation(s4 type, s4 flags, s4 regoff)
+{
+	if (flags & INMEMORY) {
+		printf("M%02d", regoff);
+		return;
+	}
+
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	if (type == TYPE_ADR) {
+		printf("R%02d", regoff);
+		return;
+	}
+#endif
+
+	if (IS_FLT_DBL_TYPE(type)) {
+		printf("F%02d", regoff);
+		return;
+	}
+
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+	if (IS_2_WORD_TYPE(type)) {
+# if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+#  if defined(ENABLE_INTRP)
+		if (opt_intrp)
+			printf("%3d/%3d", GET_LOW_REG(regoff),
+					GET_HIGH_REG(regoff));
+		else
+#  endif
+			printf("%3s/%3s", regs[GET_LOW_REG(regoff)],
+					regs[GET_HIGH_REG(regoff)]);
+# else
+		printf("%3d/%3d", GET_LOW_REG(regoff),
+				GET_HIGH_REG(regoff));
+# endif
+		return;
+	} 
+#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
+
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		printf("%3d", regoff);
+	else
+# endif
+		printf("%3s", regs[regoff]);
+#else
+	printf("%3d", regoff);
+#endif
+}
+
 static void show_variable(jitdata *jd, s4 index, int stage)
 {
 	char type;
@@ -579,51 +680,12 @@ static void show_variable(jitdata *jd, s4 index, int stage)
 
 	printf("%c%c%d", kind, type, index);
 
+	if (v->flags & SAVEDVAR)
+		putchar('!');
+
 	if (stage >= SHOW_REGS) {
 		putchar('(');
-
-		if (v->flags & INMEMORY)
-			printf("M%02d", v->regoff);
-#ifdef HAS_ADDRESS_REGISTER_FILE
-		else if (v->type == TYPE_ADR)
-			printf("R%02d", v->regoff);
-#endif
-		else if (IS_FLT_DBL_TYPE(v->type))
-			printf("F%02d", v->regoff);
-		else {
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-			if (IS_2_WORD_TYPE(v->type)) {
-# if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
-#  if defined(ENABLE_INTRP)
-				if (opt_intrp)
-					printf("%3d/%3d", GET_LOW_REG(v->regoff),
-						   GET_HIGH_REG(v->regoff));
-				else
-#  endif
-					printf("%3s/%3s", regs[GET_LOW_REG(v->regoff)],
-						   regs[GET_HIGH_REG(v->regoff)]);
-# else
-				printf("%3d/%3d", GET_LOW_REG(v->regoff),
-					   GET_HIGH_REG(v->regoff));
-# endif
-			} 
-			else 
-#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
-				{
-#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
-# if defined(ENABLE_INTRP)
-					if (opt_intrp)
-						printf("%3d", v->regoff);
-					else
-# endif
-						printf("%3s", regs[v->regoff]);
-#else
-					printf("%3d", v->regoff);
-#endif
-				}
-		}
-
-
+		show_allocation(v->type, v->flags, v->regoff);
 		putchar(')');
 	}
 	putchar(' ');
