@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5414 2006-09-07 22:44:07Z edwin $
+   $Id: simplereg.c 5421 2006-09-08 12:19:49Z edwin $
 
 */
 
@@ -80,14 +80,9 @@ bool new_regalloc(jitdata *jd)
 	   allocate_scratch_registers and setting it back to the original
 	   value before calling local_regalloc.  */
 
-	printf("------- rd->memuse bef %d\n",jd->rd->memuse);
-
 	interface_regalloc(jd);
-	printf("------- rd->memuse int %d\n",jd->rd->memuse);
 	new_allocate_scratch_registers(jd);
-	printf("------- rd->memuse scr %d\n",jd->rd->memuse);
 	local_regalloc(jd);
-	printf("------- rd->memuse loc %d\n",jd->rd->memuse);
 
 	/* everthing's ok */
 
@@ -109,12 +104,12 @@ static void interface_regalloc(jitdata *jd)
 	int     s, t, tt, saved;
 	int     intalloc, fltalloc; /* Remember allocated Register/Memory offset */
 	                /* in case more vars are packed into this interface slot */
-	varinfo *v;
 	int		intregsneeded = 0;
 	int		memneeded = 0;
     /* allocate LNG and DBL Types first to ensure 2 memory slots or registers */
 	/* on HAS_4BYTE_STACKSLOT architectures */
 	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
+	int flags, regoff;
 
 	/* get required compiler data */
 
@@ -153,8 +148,8 @@ static void interface_regalloc(jitdata *jd)
 		saved = 0;
 
 		for (tt = 0; tt <=4; tt++) {
-			if ((t = jd->interface_map[s * 5 + TYPE_INT]) != UNUSED) {
-				saved |= (jd->var[t].flags & SAVEDVAR);
+			if ((t = jd->interface_map[s * 5 + tt]) != UNUSED) {
+				saved |= t & SAVEDVAR;
 			}
 		}
 
@@ -163,7 +158,9 @@ static void interface_regalloc(jitdata *jd)
 			if (jd->interface_map[s * 5 + t] == UNUSED)
 				continue;
 
-			v = &(jd->var[jd->interface_map[s * 5 + t]]);
+			flags = saved;
+			regoff = -1; /* XXX for debugging */
+
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
@@ -175,14 +172,14 @@ static void interface_regalloc(jitdata *jd)
 					if (IS_ADR_TYPE(t)) {
 						if (!jd->isleafmethod 
 							&&(rd->argadrreguse < ADR_ARG_CNT)) {
-							v->regoff = rd->argadrregs[rd->argadrreguse++];
+							regoff = rd->argadrregs[rd->argadrreguse++];
 						} else if (rd->tmpadrreguse > 0) {
-								v->regoff = rd->tmpadrregs[--rd->tmpadrreguse];
+								regoff = rd->tmpadrregs[--rd->tmpadrreguse];
 						} else if (rd->savadrreguse > 0) {
-								v->regoff = rd->savadrregs[--rd->savadrreguse];
+								regoff = rd->savadrregs[--rd->savadrreguse];
 						} else {
-							v->flags |= INMEMORY;
-							v->regoff = rd->memuse++;
+							flags |= INMEMORY;
+							regoff = rd->memuse++;
 						}						
 					} else /* !IS_ADR_TYPE */
 #endif /* defined(HAS_ADDRESS_REGISTER_FILE) */
@@ -190,22 +187,22 @@ static void interface_regalloc(jitdata *jd)
 						if (IS_FLT_DBL_TYPE(t)) {
 							if (fltalloc >= 0) {
 		       /* Reuse memory slot(s)/register(s) for shared interface slots */
-								v->flags |= jd->var[fltalloc].flags & INMEMORY;
-								v->regoff = jd->var[fltalloc].regoff;
+								flags |= jd->var[fltalloc].flags & INMEMORY;
+								regoff = jd->var[fltalloc].regoff;
 							} else if (rd->argfltreguse < FLT_ARG_CNT) {
-								v->regoff = rd->argfltregs[rd->argfltreguse++];
+								regoff = rd->argfltregs[rd->argfltreguse++];
 							} else if (rd->tmpfltreguse > 0) {
-								v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
+								regoff = rd->tmpfltregs[--rd->tmpfltreguse];
 							} else if (rd->savfltreguse > 0) {
-								v->regoff = rd->savfltregs[--rd->savfltreguse];
+								regoff = rd->savfltregs[--rd->savfltreguse];
 							} else {
-								v->flags |= INMEMORY;
+								flags |= INMEMORY;
 #if defined(ALIGN_DOUBLES_IN_MEMORY)
 								/* Align doubles in Memory */
 								if ( (memneeded) && (rd->memuse & 1))
 									rd->memuse++;
 #endif
-								v->regoff = rd->memuse;
+								regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							}
 							fltalloc = jd->interface_map[s * 5 + t];
@@ -215,40 +212,40 @@ static void interface_regalloc(jitdata *jd)
 							 * for i386 put all longs in memory
 							 */
 							if (IS_2_WORD_TYPE(t)) {
-								v->flags |= INMEMORY;
+								flags |= INMEMORY;
 #if defined(ALIGN_LONGS_IN_MEMORY)
 								/* Align longs in Memory */
 								if (rd->memuse & 1)
 									rd->memuse++;
 #endif
-								v->regoff = rd->memuse;
+								regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							} else
 #endif /* defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE...GISTERS) */
 								if (intalloc >= 0) {
 		       /* Reuse memory slot(s)/register(s) for shared interface slots */
-									v->flags |= jd->var[intalloc].flags 
+									flags |= jd->var[intalloc].flags 
 										        & INMEMORY;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-									if (!(v->flags & INMEMORY) 
+									if (!(flags & INMEMORY) 
 									  && IS_2_WORD_TYPE(jd->var[intalloc].type))
-										v->regoff = GET_LOW_REG(
+										regoff = GET_LOW_REG(
 											jd->var[intalloc].regoff);
 									else
 #endif
-										v->regoff = 
+										regoff = 
 										    jd->var[intalloc].regoff;
 								} else 
 									if (rd->argintreguse + intregsneeded 
 										< INT_ARG_CNT) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
-											v->regoff=PACK_REGS( 
+											regoff=PACK_REGS( 
 										  rd->argintregs[rd->argintreguse],
 										  rd->argintregs[rd->argintreguse + 1]);
 										else
 #endif
-											v->regoff = 
+											regoff = 
 											   rd->argintregs[rd->argintreguse];
 										rd->argintreguse += intregsneeded + 1;
 									}
@@ -256,36 +253,36 @@ static void interface_regalloc(jitdata *jd)
 										rd->tmpintreguse -= intregsneeded + 1;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
-											v->regoff=PACK_REGS( 
+											regoff=PACK_REGS( 
 										  rd->tmpintregs[rd->tmpintreguse],
 										  rd->tmpintregs[rd->tmpintreguse + 1]);
 										else
 #endif
-											v->regoff = 
+											regoff = 
 											   rd->tmpintregs[rd->tmpintreguse];
 									}
 									else if (rd->savintreguse > intregsneeded) {
 										rd->savintreguse -= intregsneeded + 1;
-										v->regoff = 
+										regoff = 
 											rd->savintregs[rd->savintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
-											v->regoff=PACK_REGS( 
+											regoff=PACK_REGS( 
 										  rd->savintregs[rd->savintreguse],
 										  rd->savintregs[rd->savintreguse + 1]);
 										else
 #endif
-											v->regoff = 
+											regoff = 
 											   rd->savintregs[rd->savintreguse];
 									}
 									else {
-										v->flags |= INMEMORY;
+										flags |= INMEMORY;
 #if defined(ALIGN_LONGS_IN_MEMORY)
 										/* Align longs in Memory */
 										if ( (memneeded) && (rd->memuse & 1))
 											rd->memuse++;
 #endif
-										v->regoff = rd->memuse;
+										regoff = rd->memuse;
 										rd->memuse += memneeded + 1;
 									}
 
@@ -297,32 +294,32 @@ static void interface_regalloc(jitdata *jd)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 					if (IS_ADR_TYPE(t)) {
 						if (rd->savadrreguse > 0) {
-							v->regoff = rd->savadrregs[--rd->savadrreguse];
+							regoff = rd->savadrregs[--rd->savadrreguse];
 						}
 						else {
-							v->flags |= INMEMORY;
-							v->regoff = rd->memuse++;
+							flags |= INMEMORY;
+							regoff = rd->memuse++;
 						}						
 					} else
 #endif
 					{
 						if (IS_FLT_DBL_TYPE(t)) {
 							if (fltalloc >= 0) {
-								v->flags |= jd->var[fltalloc].flags & INMEMORY;
-								v->regoff = jd->var[fltalloc].regoff;
+								flags |= jd->var[fltalloc].flags & INMEMORY;
+								regoff = jd->var[fltalloc].regoff;
 							} else
 								if (rd->savfltreguse > 0) {
-									v->regoff = 
+									regoff = 
 										rd->savfltregs[--rd->savfltreguse];
 								}
 								else {
-									v->flags |= INMEMORY;
+									flags |= INMEMORY;
 #if defined(ALIGN_DOUBLES_IN_MEMORY)
 									/* Align doubles in Memory */
 									if ( (memneeded) && (rd->memuse & 1))
 										rd->memuse++;
 #endif
-									v->regoff = rd->memuse;
+									regoff = rd->memuse;
 									rd->memuse += memneeded + 1;
 								}
 							fltalloc = jd->interface_map[s * 5 + t];
@@ -333,50 +330,50 @@ static void interface_regalloc(jitdata *jd)
 							 * for i386 put all longs in memory
 							 */
 							if (IS_2_WORD_TYPE(t)) {
-								v->flags |= INMEMORY;
+								flags |= INMEMORY;
 #if defined(ALIGN_LONGS_IN_MEMORY)
 								/* Align longs in Memory */
 								if (rd->memuse & 1)
 									rd->memuse++;
 #endif
-								v->regoff = rd->memuse;
+								regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							} else
 #endif
 							{
 								if (intalloc >= 0) {
-									v->flags |= jd->var[intalloc].flags 
+									flags |= jd->var[intalloc].flags 
 										        & INMEMORY;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-									if (!(v->flags & INMEMORY)
+									if (!(flags & INMEMORY)
 									  && IS_2_WORD_TYPE(jd->var[intalloc].type))
-										v->regoff =
+										regoff =
 											GET_LOW_REG(
 											jd->var[intalloc].regoff);
 									else
 #endif
-										v->regoff =
+										regoff =
 										    jd->var[intalloc].regoff;
 								} else {
 									if (rd->savintreguse > intregsneeded) {
 										rd->savintreguse -= intregsneeded + 1;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
-											v->regoff = PACK_REGS( 
+											regoff = PACK_REGS( 
 										  rd->savintregs[rd->savintreguse],
 										  rd->savintregs[rd->savintreguse + 1]);
 										else
 #endif
-											v->regoff =
+											regoff =
 											   rd->savintregs[rd->savintreguse];
 									} else {
-										v->flags |= INMEMORY;
+										flags |= INMEMORY;
 #if defined(ALIGN_LONGS_IN_MEMORY)
 									/* Align longs in Memory */
 									if ( (memneeded) && (rd->memuse & 1))
 										rd->memuse++;
 #endif
-										v->regoff = rd->memuse;
+										regoff = rd->memuse;
 										rd->memuse += memneeded + 1;
 									}
 								}
@@ -386,6 +383,9 @@ static void interface_regalloc(jitdata *jd)
 					} /* if (IS_ADR_TYPE(t)) else */
 				} /* if (saved) else */
 			/* if (type >= 0) */
+
+			assert(regoff >= 0);
+			jd->interface_map[5*s + tt] = (regoff << 16) | flags | OUTVAR;
 		} /* for t */
 	} /* for s */
 }
@@ -1121,6 +1121,31 @@ static void new_allocate_scratch_registers(jitdata *jd)
 
 	while (bptr != NULL) {
 		if (bptr->flags >= BBREACHED) {
+
+			/* set allocation of invars */
+
+			for (i=0; i<bptr->indepth; ++i) 
+			{
+				varinfo *v = jd->var + bptr->invars[i];
+				s4 alloc = jd->interface_map[5*i + v->type];
+
+				v->regoff = alloc >> 16;
+				v->flags = alloc & 0xffff;
+			}
+
+			/* set allocation of outvars */
+
+			for (i=0; i<bptr->outdepth; ++i) 
+			{
+				varinfo *v = jd->var + bptr->outvars[i];
+				s4 alloc = jd->interface_map[5*i + v->type];
+
+				v->regoff = alloc >> 16;
+				v->flags = alloc & 0xffff;
+			}
+
+			/* iterate over ICMDS to allocate temporary variables */
+
 			iptr = bptr->iinstr;
 			len = bptr->icount;
 
