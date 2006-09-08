@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5431 2006-09-08 17:50:45Z edwin $
+   $Id: codegen.c 5432 2006-09-08 17:57:03Z edwin $
 
 */
 
@@ -803,102 +803,20 @@ bool codegen(jitdata *jd)
 			break;
 
 
-		/* pop/dup/swap operations ********************************************/
+		/* pop/copy/move operations *******************************************/
 
 		/* attention: double and longs are only one entry in CACAO ICMDs      */
 
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
+
 			break;
 
-		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
 		case ICMD_COPY:
 		case ICMD_MOVE:
 
 			M_COPY(iptr->s1.varindex, iptr->dst.varindex);
 			break;
-
-		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
-
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+2]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+1]);
-			M_COPY(iptr->dst.dupslots[2+2], iptr->dst.dupslots[2+0]);
-			break;
-
-		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
-
-			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[3+3]);
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[3+2]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[3+1]);
-			M_COPY(iptr->dst.dupslots[3+3], iptr->dst.dupslots[3+0]);
-			break;
-
-		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
-
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+1]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+0]);
-			break;
-
-		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
-
-			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[3+4]);
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[3+3]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[3+2]);
-			M_COPY(iptr->dst.dupslots[3+4], iptr->dst.dupslots[3+1]);
-			M_COPY(iptr->dst.dupslots[3+3], iptr->dst.dupslots[3+0]);
-			break;
-
-		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
-
-			M_COPY(iptr->dst.dupslots[  3], iptr->dst.dupslots[4+5]);
-			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[4+4]);
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[4+3]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[4+2]);
-			M_COPY(iptr->dst.dupslots[4+5], iptr->dst.dupslots[4+1]);
-			M_COPY(iptr->dst.dupslots[4+4], iptr->dst.dupslots[4+0]);
-			break;
-
-		case ICMD_SWAP:       /* ..., a, b ==> ..., b, a                      */
-
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+0]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+1]);
-			break;
-
-
-#if 0
-		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
-
-			M_COPY(src,       iptr->dst);
-			M_COPY(src->prev, iptr->dst->prev);
-#if defined(ENABLE_SSA)
-			if ((ls==NULL) || (iptr->dst->varkind != TEMPVAR) ||
-				(ls->lifetime[-iptr->dst->varnum-1].type != -1)) {
-#endif
-				M_COPY(iptr->dst, iptr->dst->prev->prev);
-#if defined(ENABLE_SSA)
-			} else {
-				M_COPY(src, iptr->dst->prev->prev);
-			}
-#endif
-			break;
-
-		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
-
-			M_COPY(src,             iptr->dst);
-			M_COPY(src->prev,       iptr->dst->prev);
-			M_COPY(src->prev->prev, iptr->dst->prev->prev);
-#if defined(ENABLE_SSA)
-			if ((ls==NULL) || (iptr->dst->varkind != TEMPVAR) ||
-				(ls->lifetime[-iptr->dst->varnum-1].type != -1)) {
-#endif
-				M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
-#if defined(ENABLE_SSA)
-			} else {
-				M_COPY(src, iptr->dst->prev->prev->prev);
-			}
-#endif
-			break;
-#endif
 
 		/* integer operations *************************************************/
 
