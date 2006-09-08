@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 5404 2006-09-07 13:29:05Z christian $
+   $Id: codegen.h 5426 2006-09-08 16:02:40Z edwin $
 
 */
 
@@ -129,10 +129,12 @@
     if a and b are the same float-register, no code will be generated
 */
 
-#define M_FLTMOVE(reg,dreg) \
-    do { \
-        log_text("M_FLTMOVE"); \
-        assert(0); \
+#define M_FLTMOVE(reg,dreg)                                          \
+    do {                                                             \
+        if ((reg) != (dreg)) {                                       \
+            log_text("M_FLTMOVE");                                   \
+            assert(0);                                               \
+        }                                                            \
     } while (0)
 
 
