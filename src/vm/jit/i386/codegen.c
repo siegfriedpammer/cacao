@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5424 2006-09-08 14:16:29Z edwin $
+   $Id: codegen.c 5430 2006-09-08 17:37:26Z edwin $
 
 */
 
@@ -774,7 +774,7 @@ bool codegen(jitdata *jd)
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
 		                      /* dst.localindex = local variable              */
 
-			if ( iptr->dst.varindex == iptr->dst.varindex)
+			if ( iptr->s1.varindex == iptr->dst.varindex)
 				break;
 
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
