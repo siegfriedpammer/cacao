@@ -183,49 +183,24 @@ void new_show_method(jitdata *jd, int stage)
 		}
 	}
 	
-	if (stage >= SHOW_PARSE && rd && cd->maxlocals > 0) {
-	printf("Local Table:\n");
-	for (i = 0; i < cd->maxlocals; i++) {
-		printf("   %3d: ", i);
+	if (stage >= SHOW_PARSE && rd && jd->localcount > 0) {
+		printf("Local Table:\n");
+		for (i = 0; i < jd->localcount; i++) {
+			printf("   %3d: ", i);
 
 #if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
-/* 		for (j = TYPE_INT; j <= TYPE_ADR; j++) { */
 # if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
 # endif
-/* 				if (rd->locals[i][j].type >= 0) { */
-					printf("   (%s) ", jit_type[jd->var[i].type]);
-					if (stage >= SHOW_REGS) {
-						if (jd->var[i].flags & INMEMORY)
-							printf("m%2d", jd->var[i].regoff);
-# ifdef HAS_ADDRESS_REGISTER_FILE
-						else if (jd->var[i].type == TYPE_ADR)
-							printf("r%02d", jd->var[i].regoff);
-# endif
-						else if ((jd->var[i].type == TYPE_FLT) ||
-								 (jd->var[i].type == TYPE_DBL))
-							printf("f%02d", jd->var[i].regoff);
-						else {
-# if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (IS_2_WORD_TYPE(j))
-								printf(" %3s/%3s",
-									   regs[GET_LOW_REG(jd->var[i].regoff)],
-									   regs[GET_HIGH_REG(jd->var[i].regoff)]);
-							else
-# endif
-								printf("%3s", regs[jd->var[i].regoff]);
-						}
-					}
-/* 				} */
+				printf("   (%s) ", jit_type[jd->var[i].type]);
+				show_allocation(jd->var[i].type, jd->var[i].flags, jd->var[i].regoff);
+				printf("\n");
 # if defined(ENABLE_INTRP)
 			}
 # endif
-/* 		} */
 #endif /* defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER) */
-
+		}
 		printf("\n");
-	}
-	printf("\n");
 	}
 
 	if (cd->maxlocals > 0) {
