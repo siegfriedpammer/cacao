@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5418 2006-09-08 12:10:39Z edwin $
+   $Id: parse.c 5435 2006-09-08 18:14:50Z edwin $
 
 */
 
@@ -265,17 +265,14 @@ bool new_parse(jitdata *jd)
 	u4                  flags;
 	basicblock         *bptr;
 
-#if defined(NEW_VAR)
  	int                *local_map; /* local pointer to renaming structore     */
 	                               /* is assigned to rd->local_map at the end */
-#endif
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
 
-#if defined(NEW_VAR)
 	/* allocate buffers for local variable renaming */
 	local_map = DMNEW(int, cd->maxlocals * 5);
 	for (i = 0; i < cd->maxlocals; i++) {
@@ -285,7 +282,6 @@ bool new_parse(jitdata *jd)
 		local_map[i * 5 + 3] = 0;
 		local_map[i * 5 + 4] = 0;
 	}
-#endif
 
  	/* initialize the parse data structures */
   
@@ -1538,7 +1534,6 @@ invoke_method:
 	}
 #endif
 
-#if defined(NEW_VAR)
 	jd->local_map = local_map;
 
 	/* calculate local variable renaming */
@@ -1577,7 +1572,6 @@ invoke_method:
 			if (*mapptr != UNUSED)
 				jd->var[*mapptr].type = i%5;
 	}
-#endif
 
 	/* everything's ok */
 

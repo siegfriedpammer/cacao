@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5427 2006-09-08 16:07:48Z edwin $
+   $Id: jit.c 5435 2006-09-08 18:14:50Z edwin $
 
 */
 
@@ -1615,7 +1615,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
 
 		/* call typecheck pass */
-#if !defined(NEW_VAR)
 		if (!typecheck(jd)) {
 			DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
 
@@ -1623,7 +1622,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
-#endif
 	}
 #endif
 	RT_TIMING_GET_TIME(time_typecheck);

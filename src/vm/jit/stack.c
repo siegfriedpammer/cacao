@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5428 2006-09-08 16:26:59Z edwin $
+   $Id: stack.c 5435 2006-09-08 18:14:50Z edwin $
 
 */
 
@@ -825,7 +825,7 @@ icmd_NOP:
 						USE_S1_LOCAL(TYPE_ADR);
 						CLR_SX;
 						CLR_DST;
-#if !defined(NEW_VAR)
+#if 0
 						IF_NO_INTRP( rd->locals[iptr->s1.localindex/*XXX invalid here*/][TYPE_ADR].type = TYPE_ADR; );
 #endif
 						superblockend = true;

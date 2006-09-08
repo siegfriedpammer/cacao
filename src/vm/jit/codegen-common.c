@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5404 2006-09-07 13:29:05Z christian $
+   $Id: codegen-common.c 5435 2006-09-08 18:14:50Z edwin $
 
 */
 
@@ -1090,7 +1090,6 @@ void removenativestub(u1 *stub)
 
 *******************************************************************************/
 
-#if defined(NEW_VAR)
 s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 {
 
@@ -1124,75 +1123,6 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 
 	return tempregnum;
 }
-#else
-s4 codegen_reg_of_var(u2 opcode, stackptr v, s4 tempregnum)
-{
-	varinfo *var;
-
-#if 0
-	/* Do we have to generate a conditional move?  Yes, then always
-	   return the temporary register.  The real register is identified
-	   during the store. */
-
-	if (opcode & ICMD_CONDITION_MASK)
-		return tempregnum;
-#endif
-
-	switch (v->varkind) {
-	case TEMPVAR:
-		if (!(v->flags & INMEMORY))
-			return(v->regoff);
-		break;
-
-	case STACKVAR:
-		var = &(rd->interfaces[v->varnum][v->type]);
-		v->regoff = var->regoff;
-		if (!(var->flags & INMEMORY))
-			return(var->regoff);
-		break;
-
-	case LOCALVAR:
-		var = &(rd->locals[v->varnum][v->type]);
-		v->regoff = var->regoff;
-		if (!(var->flags & INMEMORY)) {
-#if defined(__ARM__) && defined(__ARMEL__)
-			if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(var->regoff) == REG_SPLIT))
-				return(PACK_REGS(GET_LOW_REG(var->regoff), GET_HIGH_REG(tempregnum)));
-#endif
-#if defined(__ARM__) && defined(__ARMEB__)
-			if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(var->regoff) == REG_SPLIT))
-				return(PACK_REGS(GET_LOW_REG(tempregnum), GET_HIGH_REG(var->regoff)));
-#endif
-			return(var->regoff);
-		}
-		break;
-
-	case ARGVAR:
-		if (!(v->flags & INMEMORY)) {
-#if defined(__ARM__) && defined(__ARMEL__)
-			if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->regoff) == REG_SPLIT))
-				return(PACK_REGS(GET_LOW_REG(v->regoff), GET_HIGH_REG(tempregnum)));
-#endif
-#if defined(__ARM__) && defined(__ARMEB__)
-			if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->regoff) == REG_SPLIT))
-				return(PACK_REGS(GET_LOW_REG(tempregnum), GET_HIGH_REG(v->regoff)));
-#endif
-			return(v->regoff);
-		}
-		break;
-	}
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_spills_read++;
-#endif
-
-	v->flags |= INMEMORY;
-
-	return tempregnum;
-}
-#endif
-
 
 /* codegen_reg_of_dst **********************************************************
 

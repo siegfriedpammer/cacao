@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: reg.h 5410 2006-09-07 14:38:51Z edwin $
+   $Id: reg.h 5435 2006-09-08 18:14:50Z edwin $
 
 */
 
@@ -64,10 +64,6 @@ typedef struct varinfo varinfo5[5];
 
 
 struct registerdata {
-#if !defined(NEW_VAR)
-	varinfo5 *locals;
-	varinfo5 *interfaces;
-#endif
 	int intreg_ret;                 /* register to return integer values      */
 	int fltreg_ret;                 /* register for return float values       */
 

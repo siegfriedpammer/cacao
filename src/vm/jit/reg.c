@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: reg.c 5404 2006-09-07 13:29:05Z christian $
+   $Id: reg.c 5435 2006-09-08 18:14:50Z edwin $
 
 */
 
@@ -62,9 +62,6 @@ void reg_setup(jitdata *jd)
 	methodinfo   *m;
 	registerdata *rd;
 	s4            i;
-#if !defined(NEW_VAR)
-	varinfo5     *v;
-#endif
 
 	/* get required compiler data */
 
@@ -199,42 +196,6 @@ void reg_setup(jitdata *jd)
 	rd->freemem    = DMNEW(s4, m->maxstack);
 #if defined(HAS_4BYTE_STACKSLOT)
 	rd->freemem_2  = DMNEW(s4, m->maxstack);
-#endif
-#if !defined(NEW_VAR)
-	rd->locals     = DMNEW(varinfo5, m->maxlocals);
-	rd->interfaces = DMNEW(varinfo5, m->maxstack);
-	for (v = rd->locals, i = m->maxlocals; i > 0; v++, i--) {
-		v[0][TYPE_INT].type = -1;
-		v[0][TYPE_LNG].type = -1;
-		v[0][TYPE_FLT].type = -1;
-		v[0][TYPE_DBL].type = -1;
-		v[0][TYPE_ADR].type = -1;
-
-		v[0][TYPE_INT].regoff = 0;
-		v[0][TYPE_LNG].regoff = 0;
-		v[0][TYPE_FLT].regoff = 0;
-		v[0][TYPE_DBL].regoff = 0;
-		v[0][TYPE_ADR].regoff = 0;
-	}
-
-	for (v = rd->interfaces, i = m->maxstack; i > 0; v++, i--) {
-		v[0][TYPE_INT].type = -1;
-		v[0][TYPE_INT].flags = 0;
-		v[0][TYPE_LNG].type = -1;
-		v[0][TYPE_LNG].flags = 0;
-		v[0][TYPE_FLT].type = -1;
-		v[0][TYPE_FLT].flags = 0;
-		v[0][TYPE_DBL].type = -1;
-		v[0][TYPE_DBL].flags = 0;
-		v[0][TYPE_ADR].type = -1;
-		v[0][TYPE_ADR].flags = 0;
-
-		v[0][TYPE_INT].regoff = 0;
-		v[0][TYPE_LNG].regoff = 0;
-		v[0][TYPE_FLT].regoff = 0;
-		v[0][TYPE_DBL].regoff = 0;
-		v[0][TYPE_ADR].regoff = 0;
-	}
 #endif
 
 #if defined(SPECIALMEMUSE)

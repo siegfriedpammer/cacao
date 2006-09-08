@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5404 2006-09-07 13:29:05Z christian $
+   $Id: codegen-common.h 5435 2006-09-08 18:14:50Z edwin $
 
 */
 
@@ -198,11 +198,7 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *md);
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
 
-#if defined(NEW_VAR)
 s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum);
-#else
-s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum);
-#endif
 s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum);
 
 #if defined(ENABLE_THREADS)
