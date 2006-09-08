@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5419 2006-09-08 12:16:23Z edwin $
+   $Id: stack.c 5423 2006-09-08 14:15:39Z edwin $
 
 */
 
@@ -284,8 +284,8 @@ bool stack_init(void)
 #define DST_LOCALVAR(typed, index)                                   \
     do {                                                             \
         GET_NEW_INDEX(sd, new_index);                                \
-        NEWSTACKn((typed), (index));                                 \
-        iptr->dst.varindex = (index);                                \
+        NEWSTACKn((typed), (new_index));                             \
+        iptr->dst.varindex = (new_index);                            \
     } while (0)
 #endif
 
