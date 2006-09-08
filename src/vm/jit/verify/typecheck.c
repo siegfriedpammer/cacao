@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5404 2006-09-07 13:29:05Z christian $
+   $Id: typecheck.c 5433 2006-09-08 17:59:51Z edwin $
 
 */
 
@@ -1690,61 +1690,10 @@ verify_basic_block(verifier_state *state)
 			/* We just need to copy the typeinfo */
 			/* for slots containing addresses.   */
 
-			/* CAUTION: We assume that the destination stack
-			 * slots were continuously allocated in
-			 * memory!  (The current implementation in
-			 * stack.c)
-			 */
-
-			case ICMD_DUP:
+			case ICMD_MOVE:
+			case ICMD_COPY:
 				TYPECHECK_COUNT(stat_ins_stack);
 				COPYTYPE(iptr->s1.var, iptr->dst.var);
-				break;
-
-			case ICMD_DUP_X1:
-				TYPECHECK_COUNT(stat_ins_stack);
-				COPYTYPE(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+2]);
-				COPYTYPE(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+1]);
-				COPYTYPE(iptr->dst.dupslots[2+2], iptr->dst.dupslots[2+0]);
-				break;
-
-			case ICMD_DUP_X2:
-				TYPECHECK_COUNT(stat_ins_stack);
-				COPYTYPE(iptr->dst.dupslots[  2], iptr->dst.dupslots[3+3]);
-				COPYTYPE(iptr->dst.dupslots[  1], iptr->dst.dupslots[3+2]);
-				COPYTYPE(iptr->dst.dupslots[  0], iptr->dst.dupslots[3+1]);
-				COPYTYPE(iptr->dst.dupslots[3+3], iptr->dst.dupslots[3+0]);
-				break;
-
-			case ICMD_DUP2:
-				TYPECHECK_COUNT(stat_ins_stack);
-				COPYTYPE(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+1]);
-				COPYTYPE(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+0]);
-				break;
-
-			case ICMD_DUP2_X1:
-				TYPECHECK_COUNT(stat_ins_stack);
-				COPYTYPE(iptr->dst.dupslots[  2], iptr->dst.dupslots[3+4]);
-				COPYTYPE(iptr->dst.dupslots[  1], iptr->dst.dupslots[3+3]);
-				COPYTYPE(iptr->dst.dupslots[  0], iptr->dst.dupslots[3+2]);
-				COPYTYPE(iptr->dst.dupslots[3+4], iptr->dst.dupslots[3+1]);
-				COPYTYPE(iptr->dst.dupslots[3+3], iptr->dst.dupslots[3+0]);
-				break;
-
-			case ICMD_DUP2_X2:
-				TYPECHECK_COUNT(stat_ins_stack);
-				COPYTYPE(iptr->dst.dupslots[  3], iptr->dst.dupslots[4+5]);
-				COPYTYPE(iptr->dst.dupslots[  2], iptr->dst.dupslots[4+4]);
-				COPYTYPE(iptr->dst.dupslots[  1], iptr->dst.dupslots[4+3]);
-				COPYTYPE(iptr->dst.dupslots[  0], iptr->dst.dupslots[4+2]);
-				COPYTYPE(iptr->dst.dupslots[4+5], iptr->dst.dupslots[4+1]);
-				COPYTYPE(iptr->dst.dupslots[4+4], iptr->dst.dupslots[4+0]);
-				break;
-
-			case ICMD_SWAP:
-				TYPECHECK_COUNT(stat_ins_stack);
-				COPYTYPE(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+0]);
-				COPYTYPE(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+1]);
 				break;
 
 				/****************************************/
