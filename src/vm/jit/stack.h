@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5436 2006-09-08 19:48:27Z edwin $
+   $Id: stack.h 5437 2006-09-08 20:41:20Z edwin $
 
 */
 
@@ -169,14 +169,15 @@
         (sd).new += stackdepth;                                      \
         copy = (sd).new;                                             \
         while (s) {                                                  \
+			GET_NEW_VAR(sd, new_index, s->type);                     \
             copy--;                                                  \
             copy->prev = copy-1;                                     \
             copy->creator = NULL;                                    \
             copy->type = s->type;                                    \
             copy->flags = 0;                                         \
             copy->varkind = STACKVAR;                                \
-            copy->varnum = s->varnum;                                \
-            SET_OUTVAR((sd), s);                                     \
+            copy->varnum = new_index;                                \
+			(sd).var[new_index].flags = OUTVAR;                      \
             s = s->prev;                                             \
         }                                                            \
         copy->prev = NULL;                                           \

@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5436 2006-09-08 19:48:27Z edwin $
+   $Id: stack.c 5437 2006-09-08 20:41:20Z edwin $
 
 */
 
@@ -134,6 +134,11 @@ struct stackdata_t {
 /* pay attention to not release a localvar once implementing it! */
 #define RELEASE_INDEX(sd, varindex)
 
+#define GET_NEW_VAR(sd, new_varindex, newtype)                       \
+    do {                                                             \
+        GET_NEW_INDEX((sd), (new_varindex));                         \
+        (sd).var[new_index].type = (newtype);                        \
+    } while (0)
 
 /* macros for querying variable properties **************************/
 
@@ -156,31 +161,15 @@ struct stackdata_t {
 
 /* macros for setting variable properties ****************************/
 
-/* with the new vars setting an OUTVAR is not as trivial as changing */
-/* the varkind before. If varindex was a localvar, a new TEMPVAR has */
-/* to be created for the slot and the OUTVAR flag set */
-#define SET_OUTVAR(sd, sp)                                           \
-    do {                                                             \
-        if (IS_LOCALVAR_SD(sd, (sp))) {                              \
-            GET_NEW_INDEX((sd),new_index);                           \
-            sp->varnum = new_index;                                  \
-            sp->flags = 0;                                           \
-        }                                                            \
-        SET_OUTVAR_BY_INDEX((sd), (sp)->varnum);                     \
-    } while(0)
-
-#define SET_OUTVAR_BY_INDEX(sd, index)                               \
-    do {                                                             \
-        assert(index >= (sd).localcount);                            \
-        (sd).var[(index)].flags |= OUTVAR;                           \
-    } while (0);
-
 #define SET_TEMPVAR(sp)                                              \
     do {                                                             \
-        if ( IS_LOCALVAR( (sp) ) ) {                                 \
-            GET_NEW_INDEX(sd, new_index);                            \
+        if (IS_LOCALVAR((sp))) {                                     \
+            GET_NEW_VAR(sd, new_index, (sp)->type);                  \
+            sd.var[new_index].flags = (sp)->flags;                   \
             (sp)->varnum = new_index;                                \
-            sd.var[(sp)->varnum].flags = copy->flags;                \
+			(sp)->varkind = TEMPVAR;                                 \
+			if ((sp)->creator)                                       \
+				(sp)->creator->dst.varindex = new_index;             \
         }                                                            \
         sd.var[(sp)->varnum].flags &= ~(OUTVAR | PREALLOC);          \
     } while (0);
@@ -310,23 +299,12 @@ struct stackdata_t {
         iptr->dst.varindex = (index);                                \
     } while (0)
 
-/* XXX temporatily turn off coalescing */
-#if 0
 #define DST_LOCALVAR(typed, index)                                   \
     do {                                                             \
         NEWSTACK((typed), LOCALVAR, (index));                        \
         curstack->creator = iptr;                                    \
         iptr->dst.varindex = (index);                                \
     } while (0)
-#else
-#define DST_LOCALVAR(typed, index)                                   \
-    do {                                                             \
-        GET_NEW_INDEX(sd, new_index);                                \
-        NEWSTACKn((typed), (new_index));                             \
-        curstack->creator = iptr;                                    \
-        iptr->dst.varindex = (new_index);                            \
-    } while (0)
-#endif
 
 
 /* stack modelling macros *******************************************/
@@ -334,7 +312,7 @@ struct stackdata_t {
 #define OP0_1(typed)                                                 \
     do {                                                             \
         CLR_S1;                                                      \
-        GET_NEW_INDEX(sd, new_index);                                \
+        GET_NEW_VAR(sd, new_index, (typed));                         \
         DST(typed, new_index);                                       \
         stackdepth++;                                                \
     } while (0)
@@ -355,14 +333,14 @@ struct stackdata_t {
 #define OP1_1(type1, typed)                                          \
     do {                                                             \
         POP_S1(type1);                                               \
-        GET_NEW_INDEX(sd, new_index);                                \
+        GET_NEW_VAR(sd, new_index, (typed));                         \
         DST(typed, new_index);                                       \
     } while (0)
 
 #define OP2_1(type1, type2, typed)                                   \
     do {                                                             \
         POP_S1_S2(type1, type2);                                     \
-        GET_NEW_INDEX(sd, new_index);                                \
+        GET_NEW_VAR(sd, new_index, (typed));                         \
         DST(typed, new_index);                                       \
         stackdepth--;                                                \
     } while (0)
@@ -432,7 +410,7 @@ struct stackdata_t {
 #define DUP_SLOT(sp)                                                 \
     do {                                                             \
         if ((sp)->varkind != TEMPVAR) {                              \
-            GET_NEW_INDEX(sd, new_index);                            \
+            GET_NEW_VAR(sd, new_index, (sp)->type);                  \
             NEWSTACK((sp)->type, TEMPVAR, new_index);                \
         }                                                            \
         else                                                         \
@@ -441,17 +419,29 @@ struct stackdata_t {
 #else
 #define DUP_SLOT(sp)                                                 \
     do {                                                             \
-            GET_NEW_INDEX(sd, new_index);                            \
+            GET_NEW_VAR(sd, new_index, (sp)->type);                  \
             NEWSTACK((sp)->type, TEMPVAR, new_index);                \
     } while(0)
 #endif
 
 /* does not check input stackdepth */
-#define MOVE_COPY_UP(o, v)                                           \
+#define MOVE_UP(sp)                                                  \
     do {                                                             \
-        iptr->opc = (o);                                             \
-        iptr->s1.varindex = (v)->varnum;                             \
-        DUP_SLOT(v);                                                 \
+        iptr->opc = ICMD_MOVE;                                       \
+        iptr->s1.varindex = (sp)->varnum;                            \
+        DUP_SLOT(sp);                                                \
+        curstack->creator = iptr;                                    \
+        iptr->dst.varindex = curstack->varnum;                       \
+        stackdepth++;                                                \
+    } while (0)
+
+/* does not check input stackdepth */
+#define COPY_UP(sp)                                                  \
+    do {                                                             \
+        SET_TEMPVAR((sp));                                           \
+        iptr->opc = ICMD_COPY;                                       \
+        iptr->s1.varindex = (sp)->varnum;                            \
+        DUP_SLOT(sp);                                                \
         curstack->creator = iptr;                                    \
         iptr->dst.varindex = curstack->varnum;                       \
         stackdepth++;                                                \
@@ -459,6 +449,7 @@ struct stackdata_t {
 
 #define COPY_DOWN(s, d)                                              \
     do {                                                             \
+        SET_TEMPVAR((s));                                            \
         iptr->opc = ICMD_COPY;                                       \
         iptr->s1.varindex = (s)->varnum;                             \
         iptr->dst.varindex = (d)->varnum;                            \
@@ -536,7 +527,7 @@ static bool stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack
 		b->invars = DMNEW(s4, stackdepth);
 		for (i = stackdepth; i--; sp = sp->prev) { 
 			b->invars[i] = sp->varnum;
-			SET_OUTVAR(*sd, sp);
+			sd->var[sp->varnum].flags |= OUTVAR;
 		}
 	} 
 	else {
@@ -682,14 +673,14 @@ bool new_stack_analyse(jitdata *jd)
 		sd.bptr->indepth = 1;
 		sd.bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
 		curstack = NULL; stackdepth = 0;
-		GET_NEW_INDEX(sd, new_index);
+		GET_NEW_VAR(sd, new_index, TYPE_ADR);
 		sd.bptr->invars = DMNEW(s4, 1);
 		sd.bptr->invars[0] = new_index;
+		sd.var[new_index].flags |= OUTVAR;
 		NEWSTACK(TYPE_ADR, STACKVAR, new_index);
 		curstack->creator = NULL;
 
 		jd->interface_map[0 * 5 + TYPE_ADR].flags = 0;
-		SET_OUTVAR_BY_INDEX(sd, new_index);
 	}
 
 	/* stack analysis loop (until fixpoint reached) **************************/
@@ -1706,7 +1697,6 @@ normal_ACONST:
 							if ((copy->varkind == LOCALVAR) &&
 								(copy->varnum == iptr->s1.varindex))
 							{
-								copy->varkind = TEMPVAR;
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
 							}
@@ -2065,7 +2055,7 @@ store_tail:
 icmd_DUP:
 						src1 = curstack;
 
-						MOVE_COPY_UP(ICMD_COPY, src1);
+						COPY_UP(src1);
 						last_dup_boundary = sd.new - 1;
 						break;
 
@@ -2088,8 +2078,8 @@ icmd_DUP:
 							src1 = curstack->prev;
 							src2 = curstack;
 
-							MOVE_COPY_UP(ICMD_COPY, src1); iptr++; len--;
-							MOVE_COPY_UP(ICMD_COPY, src2);
+							COPY_UP(src1); iptr++; len--;
+							COPY_UP(src2);
 
 							last_dup_boundary = sd.new;
 						}
@@ -2115,8 +2105,8 @@ icmd_DUP_X1:
 
 						DUP_SLOT(src2); dst1 = curstack; stackdepth++;
 
-						MOVE_COPY_UP(ICMD_MOVE, src1); iptr++; len--;
-						MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
+						MOVE_UP(src1); iptr++; len--;
+						MOVE_UP(src2); iptr++; len--;
 
 						COPY_DOWN(curstack, dst1);
 
@@ -2157,9 +2147,9 @@ icmd_DUP2_X1:
 							DUP_SLOT(src2); dst1 = curstack; stackdepth++;
 							DUP_SLOT(src3); dst2 = curstack; stackdepth++;
 
-							MOVE_COPY_UP(ICMD_MOVE, src1); iptr++; len--;
-							MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
-							MOVE_COPY_UP(ICMD_MOVE, src3); iptr++; len--;
+							MOVE_UP(src1); iptr++; len--;
+							MOVE_UP(src2); iptr++; len--;
+							MOVE_UP(src3); iptr++; len--;
 
 							COPY_DOWN(curstack, dst2); iptr++; len--;
 							COPY_DOWN(curstack->prev, dst1);
@@ -2202,9 +2192,9 @@ icmd_DUP_X2:
 
 							DUP_SLOT(src3); dst1 = curstack; stackdepth++;
 
-							MOVE_COPY_UP(ICMD_MOVE, src1); iptr++; len--;
-							MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
-							MOVE_COPY_UP(ICMD_MOVE, src3); iptr++; len--;
+							MOVE_UP(src1); iptr++; len--;
+							MOVE_UP(src2); iptr++; len--;
+							MOVE_UP(src3); iptr++; len--;
 
 							COPY_DOWN(curstack, dst1);
 
@@ -2270,10 +2260,10 @@ icmd_DUP_X2:
 							DUP_SLOT(src3); dst1 = curstack; stackdepth++;
 							DUP_SLOT(src4); dst2 = curstack; stackdepth++;
 
-							MOVE_COPY_UP(ICMD_MOVE, src1); iptr++; len--;
-							MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
-							MOVE_COPY_UP(ICMD_MOVE, src3); iptr++; len--;
-							MOVE_COPY_UP(ICMD_MOVE, src4); iptr++; len--;
+							MOVE_UP(src1); iptr++; len--;
+							MOVE_UP(src2); iptr++; len--;
+							MOVE_UP(src3); iptr++; len--;
+							MOVE_UP(src4); iptr++; len--;
 
 							COPY_DOWN(curstack, dst2); iptr++; len--;
 							COPY_DOWN(curstack->prev, dst1);
@@ -2299,8 +2289,8 @@ icmd_DUP_X2:
 						POPANY; POPANY;
 						stackdepth -= 2;
 
-						MOVE_COPY_UP(ICMD_MOVE, src2); iptr++; len--;
-						MOVE_COPY_UP(ICMD_MOVE, src1);
+						MOVE_UP(src2); iptr++; len--;
+						MOVE_UP(src1);
 
 						last_dup_boundary = sd.new;
 						break;
@@ -2887,6 +2877,7 @@ icmd_BUILTIN:
 						i = md->paramcount;
 
 						while (copy) {
+							SET_TEMPVAR(copy);
 							iptr->sx.s23.s2.args[i++] = copy->varnum;
 							sd.var[copy->varnum].flags |= SAVEDVAR;
 							copy = copy->prev;
@@ -2904,7 +2895,7 @@ icmd_BUILTIN:
 						/* push the return value */
 
 						if (md->returntype.type != TYPE_VOID) {
-							GET_NEW_INDEX(sd, new_index);
+							GET_NEW_VAR(sd, new_index, md->returntype.type);
 							DST(md->returntype.type, new_index);
 							stackdepth++;
 						}
@@ -2987,7 +2978,7 @@ icmd_BUILTIN:
 						while (--i >= 0) {
 							POPANY;
 						}
-						GET_NEW_INDEX(sd, new_index);
+						GET_NEW_VAR(sd, new_index, TYPE_ADR);
 						DST(TYPE_ADR, new_index);
 						stackdepth++;
 						break;
@@ -3002,15 +2993,11 @@ icmd_BUILTIN:
 					iptr++;
 				} /* while instructions */
 
-				/* set out-stack of block */
+				/* stack slots at basic block end become interfaces */
 
 				sd.bptr->outstack = curstack;
 				sd.bptr->outdepth = stackdepth;
 				sd.bptr->outvars = DMNEW(s4, stackdepth);
-				for (i = stackdepth, copy = curstack; i--; copy = copy->prev)
-					sd.bptr->outvars[i] = copy->varnum;
-
-				/* stack slots at basic block end become interfaces */
 
 				i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
@@ -3021,9 +3008,10 @@ icmd_BUILTIN:
 					/* in the moment i.e. SWAP with in and out vars can */
 					/* create an unresolvable conflict */
 
-					v = sd.var + copy->varnum;
+					SET_TEMPVAR(copy);
 
-					SET_OUTVAR(sd, copy);
+					v = sd.var + copy->varnum;
+					v->flags |= OUTVAR;
 
 					if (jd->interface_map[i*5 + copy->type].flags == UNUSED) {
 						/* no interface var until now for this depth and */
@@ -3033,6 +3021,8 @@ icmd_BUILTIN:
 					else {
 						jd->interface_map[i*5 + copy->type].flags |= v->flags;
 					}
+
+					sd.bptr->outvars[i] = copy->varnum;
 				}
 
 				/* check if interface slots at basic block begin must be saved */
