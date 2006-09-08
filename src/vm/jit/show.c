@@ -669,14 +669,22 @@ static void show_variable(jitdata *jd, s4 index, int stage)
 		default:       type = '?';
 	}
 
-	if (v->flags & PREALLOC)
-		kind = 'A';
-	else if (v->flags & OUTVAR)
-		kind = 'I';
-	else if (index < jd->localcount)
+	if (index < jd->localcount) {
 		kind = 'L';
-	else
-		kind = 'T';
+		if (v->flags & (PREALLOC | OUTVAR))
+				printf("<INVALID FLAGS!>");
+	}
+	else {
+		if (v->flags & PREALLOC) {
+			kind = 'A';
+			if (v->flags & OUTVAR)
+				printf("<INVALID FLAGS!>");
+		}
+		else if (v->flags & OUTVAR)
+			kind = 'I';
+		else
+			kind = 'T';
+	}
 
 	printf("%c%c%d", kind, type, index);
 
