@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5438 2006-09-08 20:50:13Z edwin $
+   $Id: stack.c 5439 2006-09-08 20:54:05Z edwin $
 
 */
 
@@ -1782,11 +1782,12 @@ normal_ACONST:
 						assert(!IS_OUTVAR(curstack));
 						assert(!IS_PREALLOC(curstack));
 
+						assert(curstack->creator);
+						assert(curstack->creator->dst.varindex == curstack->varnum);
 						RELEASE_INDEX(sd, curstack);
 						curstack->varkind = LOCALVAR;
 						curstack->varnum = j;
-						if (curstack->creator)
-							curstack->creator->dst.varindex = j;
+						curstack->creator->dst.varindex = j;
 						goto store_tail;
 
 						/* revert the coalescing, if it has been done earlier */
