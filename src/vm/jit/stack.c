@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5427 2006-09-08 16:07:48Z edwin $
+   $Id: stack.c 5428 2006-09-08 16:26:59Z edwin $
 
 */
 
@@ -819,11 +819,14 @@ icmd_NOP:
 						break;
 
 					case ICMD_RET:
+						iptr->s1.varindex = 
+							jd->local_map[iptr->s1.varindex * 5 + TYPE_ADR];
+		
 						USE_S1_LOCAL(TYPE_ADR);
 						CLR_SX;
 						CLR_DST;
 #if !defined(NEW_VAR)
-						IF_NO_INTRP( rd->locals[iptr->s1.localindex][TYPE_ADR].type = TYPE_ADR; );
+						IF_NO_INTRP( rd->locals[iptr->s1.localindex/*XXX invalid here*/][TYPE_ADR].type = TYPE_ADR; );
 #endif
 						superblockend = true;
 						break;
