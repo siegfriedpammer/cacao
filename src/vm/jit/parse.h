@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5404 2006-09-07 13:29:05Z christian $
+   $Id: parse.h 5418 2006-09-08 12:10:39Z edwin $
 
 */
 
@@ -207,7 +207,6 @@
     iptr->dst.insindex       = (iindex);                               \
     PINC
 
-#if defined(NEW_VAR)
 # define OP_LOCALINDEX(o,index)                                        \
 	OP_PREPARE_ZEROFLAGS(o);                                           \
     iptr->s1.varindex      = (index);                                \
@@ -223,20 +222,6 @@
 	do {															   \
 		local_map[(index) * 5 + (type)] = 1;						   \
 	} while (0)
-#else 
-# define OP_LOCALINDEX(o,index)                                        \
-	OP_PREPARE_ZEROFLAGS(o);                                           \
-    iptr->s1.localindex      = (index);                                  \
-    PINC
-
-# define OP_LOCALINDEX_I(o,index,v)                                    \
-	OP_PREPARE_ZEROFLAGS(o);                                           \
-    iptr->s1.localindex      = (index);                                \
-    iptr->sx.val.i           = (v);                                    \
-    PINC
-#error 333
-# define LOCALTYPE_USED(index,type)
-#endif /* defined(NEW_VAR) */
 
 #define OP_LOAD_ONEWORD(o,index,type)							       \
     do {                                                               \
@@ -252,7 +237,6 @@
 		LOCALTYPE_USED(index,type);									   \
 	} while (0)
 
-#if defined(NEW_VAR)
 # define OP_STORE_ONEWORD(o,index,type)							       \
     do {                                                               \
         INDEX_ONEWORD(index);                                          \
@@ -270,25 +254,6 @@
 		LOCALTYPE_USED(index,type);									   \
         PINC;                                                          \
     } while (0)
-#else
-# define OP_STORE_ONEWORD(o,index,type)							       \
-    do {                                                               \
-        INDEX_ONEWORD(index);                                          \
-        OP_PREPARE_ZEROFLAGS(o);                                       \
-        iptr->dst.localindex = (index);                                \
-		LOCALTYPE_USED(index,type);									   \
-        PINC;                                                          \
-    } while (0)
-
-# define OP_STORE_TWOWORD(o,index,type)							       \
-    do {                                                               \
-        INDEX_TWOWORD(index);                                          \
-        OP_PREPARE_ZEROFLAGS(o);                                       \
-        iptr->dst.localindex = (index);                                \
-		LOCALTYPE_USED(index,type);									   \
-        PINC;                                                          \
-    } while (0)
-#endif /*  defined(NEW_VAR) */
 
 #define OP_BUILTIN_CHECK_EXCEPTION(bte)                                \
     jd->isleafmethod         = false;                                  \

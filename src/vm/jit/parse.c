@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5410 2006-09-07 14:38:51Z edwin $
+   $Id: parse.c 5418 2006-09-08 12:10:39Z edwin $
 
 */
 
@@ -1571,8 +1571,6 @@ invoke_method:
 		jd->vartop = nlocals;
 		jd->var = DMNEW(varinfo, jd->varcount);
 		MZERO(jd->var, varinfo, jd->varcount);
-		m->maxlocals = nlocals;
-		cd->maxlocals = nlocals;
 
 		/* set types of all Locals in jd->var */
 		for(mapptr = local_map, i = 0; i < (cd->maxlocals * 5); i++, mapptr++)
