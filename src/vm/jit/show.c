@@ -179,7 +179,7 @@ void new_show_method(jitdata *jd, int stage)
 		}
 	}
 	
-	if (stage >= SHOW_PARSE && rd) {
+	if (stage >= SHOW_PARSE && rd && cd->maxlocals > 0) {
 	printf("Local Table:\n");
 	for (i = 0; i < cd->maxlocals; i++) {
 		printf("   %3d: ", i);
