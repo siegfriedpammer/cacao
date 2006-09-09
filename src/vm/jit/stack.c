@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5449 2006-09-09 21:50:54Z edwin $
+   $Id: stack.c 5450 2006-09-09 21:58:35Z edwin $
 
 */
 
@@ -735,7 +735,6 @@ bool new_stack_analyse(jitdata *jd)
 	sd.vartop =  jd->vartop;
 	sd.localcount = jd->localcount;
 	sd.var = jd->var;
-	sd.new = jd->new_stack;
 
 #if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
@@ -753,13 +752,13 @@ bool new_stack_analyse(jitdata *jd)
 
 	last_store_boundary = DMNEW(stackptr, cd->maxlocals);
 
-	/* initialize in-stack of first block */
+	/* initialize flags and invars (none) of first block */
 
 	jd->new_basicblocks[0].flags = BBREACHED;
 	jd->new_basicblocks[0].invars = NULL;
 	jd->new_basicblocks[0].indepth = 0;
 
-	/* initialize in-stack of exception handlers */
+	/* initialize invars of exception handlers */
 
 	for (i = 0; i < cd->exceptiontablelength; i++) {
 		sd.bptr = BLOCK_OF(cd->exceptiontable[i].handlerpc);
@@ -773,6 +772,7 @@ bool new_stack_analyse(jitdata *jd)
 		sd.bptr->indepth = 1;
 		sd.var[new_index].flags |= OUTVAR;
 
+		/* mark this interface variable used */
 		jd->interface_map[0 * 5 + TYPE_ADR].flags = 0;
 	}
 
@@ -801,7 +801,6 @@ bool new_stack_analyse(jitdata *jd)
 			if (sd.bptr->type == BBTYPE_EXH) printf("EXH\n");
 			else if (sd.bptr->type == BBTYPE_SBR) printf("SBR\n");
 			else printf("STD\n");
-			   
 #endif
 
 			if (sd.bptr->flags == BBDELETED) {
@@ -851,6 +850,10 @@ bool new_stack_analyse(jitdata *jd)
 					if (!stack_check_invars(&sd, sd.bptr, curstack, stackdepth))
 						return false;
 				}
+
+				/* reset the new pointer for allocating stackslots */
+
+				sd.new = jd->new_stack;
 
 				/* create the instack of this block */
 
