@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5450 2006-09-09 21:58:35Z edwin $
+   $Id: stack.c 5452 2006-09-09 22:33:32Z edwin $
 
 */
 
@@ -168,9 +168,9 @@ struct stackdata_t {
             GET_NEW_VAR(sd, new_index, (sp)->type);                  \
             sd.var[new_index].flags = (sp)->flags;                   \
             (sp)->varnum = new_index;                                \
-			(sp)->varkind = TEMPVAR;                                 \
-			if ((sp)->creator)                                       \
-				(sp)->creator->dst.varindex = new_index;             \
+            (sp)->varkind = TEMPVAR;                                 \
+            if ((sp)->creator)                                       \
+                (sp)->creator->dst.varindex = new_index;             \
         }                                                            \
         sd.var[(sp)->varnum].flags &= ~(OUTVAR | PREALLOC);          \
     } while (0);
@@ -190,20 +190,20 @@ struct stackdata_t {
 
 #define USE_S1(type1)                                                \
     do {                                                             \
-        REQUIRE(1);                                                   \
+        REQUIRE(1);                                                  \
         CHECK_BASIC_TYPE(type1, curstack->type);                     \
         iptr->s1.varindex = curstack->varnum;                        \
     } while (0)
 
 #define USE_S1_ANY                                                   \
     do {                                                             \
-        REQUIRE(1);                                                   \
+        REQUIRE(1);                                                  \
         iptr->s1.varindex = curstack->varnum;                        \
     } while (0)
 
 #define USE_S1_S2(type1, type2)                                      \
     do {                                                             \
-        REQUIRE(2);                                                   \
+        REQUIRE(2);                                                  \
         CHECK_BASIC_TYPE(type1, curstack->prev->type);               \
         CHECK_BASIC_TYPE(type2, curstack->type);                     \
         iptr->sx.s23.s2.varindex = curstack->varnum;                 \
@@ -212,14 +212,14 @@ struct stackdata_t {
 
 #define USE_S1_S2_ANY_ANY                                            \
     do {                                                             \
-        REQUIRE(2);                                                   \
+        REQUIRE(2);                                                  \
         iptr->sx.s23.s2.varindex = curstack->varnum;                 \
         iptr->s1.varindex = curstack->prev->varnum;                  \
     } while (0)
 
 #define USE_S1_S2_S3(type1, type2, type3)                            \
     do {                                                             \
-        REQUIRE(3);                                                   \
+        REQUIRE(3);                                                  \
         CHECK_BASIC_TYPE(type1, curstack->prev->prev->type);         \
         CHECK_BASIC_TYPE(type2, curstack->prev->type);               \
         CHECK_BASIC_TYPE(type3, curstack->type);                     \
