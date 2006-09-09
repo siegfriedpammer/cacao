@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: stack.h 5443 2006-09-09 14:49:25Z edwin $
+   $Id: stack.h 5446 2006-09-09 20:05:35Z edwin $
 
 */
 
@@ -160,15 +160,12 @@
         (sd).new += stackdepth;                                      \
         copy = (sd).new;                                             \
         while (s) {                                                  \
-			GET_NEW_VAR(sd, new_index, s->type);                     \
             copy--;                                                  \
             copy->prev = copy-1;                                     \
             copy->creator = NULL;                                    \
             copy->type = s->type;                                    \
             copy->flags = 0;                                         \
             copy->varkind = STACKVAR;                                \
-            copy->varnum = new_index;                                \
-			(sd).var[new_index].flags = OUTVAR;                      \
             s = s->prev;                                             \
         }                                                            \
         copy->prev = NULL;                                           \

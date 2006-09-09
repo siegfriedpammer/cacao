@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5445 2006-09-09 19:37:19Z edwin $
+   $Id: stack.c 5446 2006-09-09 20:05:35Z edwin $
 
 */
 
@@ -497,6 +497,47 @@ bool stack_init(void)
 }
 
 
+/* stack_create_invars *********************************************************
+
+   Create the invars for the given basic block.
+
+   IN:
+      sd...........stack analysis data
+	  b............block to create the invars for
+	  curstack.....current stack top
+	  stackdepth...current stack depth
+
+   This function creates STACKDEPTH invars and sets their types to the
+   types to the types of the corresponding slot in the current stack.
+
+*******************************************************************************/
+
+static void stack_create_invars(stackdata_t *sd, basicblock *b, 
+								stackptr curstack, int stackdepth)
+{
+	stackptr sp;
+	int i;
+	int index;
+	varinfo *v;
+
+	assert(sd->vartop + stackdepth <= sd->varcount);
+
+	b->indepth = stackdepth;
+	b->invars = DMNEW(s4, stackdepth);
+
+	/* allocate the variable indices */
+	index = (sd->vartop += stackdepth);
+
+	i = stackdepth;
+	for (sp = curstack; i--; sp = sp->prev) {
+		b->invars[i] = --index;
+		v = sd->var + index;
+		v->type = sp->type;
+		v->flags = OUTVAR;
+	}
+}
+
+
 /* MARKREACHED marks the destination block <b> as reached. If this
  * block has been reached before we check if stack depth and types
  * match. Otherwise the destination block receives a copy of the
@@ -510,7 +551,6 @@ static bool stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack
 {
 	stackptr sp, tsp;
 	int i;
-	s4 new_index;
 #if defined(ENABLE_VERIFIER)
 	int           expectedtype;   /* used by CHECK_BASIC_TYPE                 */
 #endif
@@ -520,14 +560,17 @@ static bool stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack
 
 	if (b->flags < BBREACHED) {
 		/* b is reached for the first time. Create its instack */
+		stack_create_invars(sd, b, curstack, stackdepth);
+
 		COPYCURSTACK(*sd, sp);
-		b->flags = BBREACHED;
 		b->instack = sp;
-		b->indepth = stackdepth;
-		b->invars = DMNEW(s4, stackdepth);
-		for (i = stackdepth; i--; sp = sp->prev) { 
-			b->invars[i] = sp->varnum;
-			sd->var[sp->varnum].flags |= OUTVAR;
+		
+		b->flags = BBREACHED;
+
+		i = stackdepth;
+		while (i--) {
+			sp->varnum = b->invars[i];
+			sp = sp->prev;
 		}
 	} 
 	else {
@@ -727,13 +770,17 @@ bool new_stack_analyse(jitdata *jd)
 					/* This block is reached for the first time now */
 					/* by falling through from the previous block.  */
 					/* Create the instack (propagated).             */
+
+					stack_create_invars(&sd, sd.bptr, curstack, stackdepth);
+
 					COPYCURSTACK(sd, copy);
 					sd.bptr->instack = copy;
 
-					sd.bptr->invars = DMNEW(s4, stackdepth);
-					for (i=stackdepth; i--; copy = copy->prev)
-						sd.bptr->invars[i] = copy->varnum;
-					sd.bptr->indepth = stackdepth;
+					i = stackdepth;
+					while (i--) {
+						copy->varnum = sd.bptr->invars[i];
+						copy = copy->prev;
+					}
 				}
 				else {
 					/* This block has been reached before. now we are */
