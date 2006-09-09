@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5445 2006-09-09 19:37:19Z edwin $
+   $Id: jit.h 5447 2006-09-09 21:33:48Z edwin $
 
 */
 
@@ -431,8 +431,6 @@ struct basicblock {
 	s4            icount;       /* number of intermediate code instructions   */
 	instruction  *iinstr;       /* pointer to intermediate code instructions  */
 
-	stackptr      instack;      /* stack at begin of basic block              */
-	stackptr      outstack;     /* stack at end of basic block                */
 	s4           *invars;       /* array of in-variables at begin of block    */
 	s4           *outvars;      /* array of out-variables at end of block     */
 	s4            indepth;      /* stack depth at begin of basic block        */

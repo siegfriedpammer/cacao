@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5446 2006-09-09 20:05:35Z edwin $
+   $Id: stack.c 5447 2006-09-09 21:33:48Z edwin $
 
 */
 
@@ -119,6 +119,7 @@ struct stackdata_t {
     s4 localcount;
     s4 varcount;
     varinfo *var;
+	methodinfo *m;
 };
 
 
@@ -538,6 +539,89 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 }
 
 
+/* stack_check_invars **********************************************************
+
+   Check the current stack against the invars of the given basic block.
+   Depth and types must match.
+
+   IN:
+      sd...........stack analysis data
+	  b............block which invars to check against
+	  curstack.....current stack top
+	  stackdepth...current stack depth
+
+   RETURN VALUE:
+      true.........everything ok
+	  false........a VerifyError has been thrown
+
+*******************************************************************************/
+
+/* XXX only if ENABLE_VERIFIER */
+static bool stack_check_invars(stackdata_t *sd, basicblock *b,
+							   stackptr curstack, int stackdepth)
+{
+	int depth;
+
+	depth = b->indepth;
+
+	if (depth != stackdepth) {
+		exceptions_throw_verifyerror(sd->m, "Stack depth mismatch");
+		return false;
+	}
+
+	while (depth--) {
+		if (sd->var[b->invars[depth]].type != curstack->type) {
+			exceptions_throw_verifyerror_for_stack(sd->m, 
+					sd->var[b->invars[depth]].type);
+			return false;
+		}
+		curstack = curstack->prev;
+	}
+
+	return true;
+}
+
+
+/* stack_create_instack ********************************************************
+
+   Create the instack of the current basic block.
+
+   IN:
+      sd...........stack analysis data
+
+   RETURN VALUE:
+      the current stack top at the start of the basic block.
+
+*******************************************************************************/
+
+static stackptr stack_create_instack(stackdata_t *sd)
+{
+    stackptr sp;
+	int depth;
+	int index;
+
+	if ((depth = sd->bptr->indepth) == 0)
+		return NULL;
+
+    sp = (sd->new += depth);
+
+	while (depth--) {
+		sp--;
+		index = sd->bptr->invars[depth];
+		sp->varnum = index;
+		sp->type = sd->var[index].type;
+		sp->prev = sp - 1;
+		sp->creator = NULL;
+		sp->flags = 0;
+		sp->varkind = STACKVAR;
+	}
+	sp->prev = NULL;
+
+	/* return the top of the created stack */
+	return sd->new - 1;
+}
+
+
 /* MARKREACHED marks the destination block <b> as reached. If this
  * block has been reached before we check if stack depth and types
  * match. Otherwise the destination block receives a copy of the
@@ -549,12 +633,7 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 
 static bool stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack, int stackdepth) 
 {
-	stackptr sp, tsp;
-	int i;
-#if defined(ENABLE_VERIFIER)
-	int           expectedtype;   /* used by CHECK_BASIC_TYPE                 */
-#endif
-
+	/* mark targets of backward branches */
 	if (b <= sd->bptr)
 		b->bitflags |= BBFLAG_REPLACEMENT;
 
@@ -562,40 +641,15 @@ static bool stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack
 		/* b is reached for the first time. Create its instack */
 		stack_create_invars(sd, b, curstack, stackdepth);
 
-		COPYCURSTACK(*sd, sp);
-		b->instack = sp;
-		
 		b->flags = BBREACHED;
-
-		i = stackdepth;
-		while (i--) {
-			sp->varnum = b->invars[i];
-			sp = sp->prev;
-		}
 	} 
 	else {
 		/* b has been reached before. Check that its instack matches */
-		sp = curstack;
-		tsp = b->instack;
-		CHECK_STACK_DEPTH(b->indepth, stackdepth);
-		while (sp) {
-			CHECK_BASIC_TYPE(sp->type,tsp->type);
-			sp = sp->prev;
-			tsp = tsp->prev;
-		}
+		if (!stack_check_invars(sd, b, curstack, stackdepth))
+			return false;
 	}
 
 	return true;
-
-#if defined(ENABLE_VERIFIER)
-throw_stack_depth_error:
-	exceptions_throw_verifyerror(m,"Stack depth mismatch");
-	return false;
-
-throw_stack_type_error:
-	exceptions_throw_verifyerror_for_stack(m, expectedtype);
-	return false;
-#endif
 }
 
 
@@ -676,6 +730,7 @@ bool new_stack_analyse(jitdata *jd)
 
 	/* initialize the stackdata_t struct */
 
+	sd.m = m;
 	sd.varcount = jd->varcount;
 	sd.vartop =  jd->vartop;
 	sd.localcount = jd->localcount;
@@ -701,7 +756,6 @@ bool new_stack_analyse(jitdata *jd)
 	/* initialize in-stack of first block */
 
 	jd->new_basicblocks[0].flags = BBREACHED;
-	jd->new_basicblocks[0].instack = NULL;
 	jd->new_basicblocks[0].invars = NULL;
 	jd->new_basicblocks[0].indepth = 0;
 
@@ -711,16 +765,13 @@ bool new_stack_analyse(jitdata *jd)
 		sd.bptr = BLOCK_OF(cd->exceptiontable[i].handlerpc);
 		sd.bptr->flags = BBREACHED;
 		sd.bptr->type = BBTYPE_EXH;
-		sd.bptr->instack = sd.new;
-		sd.bptr->indepth = 1;
 		sd.bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
-		curstack = NULL; stackdepth = 0;
+
 		GET_NEW_VAR(sd, new_index, TYPE_ADR);
 		sd.bptr->invars = DMNEW(s4, 1);
 		sd.bptr->invars[0] = new_index;
+		sd.bptr->indepth = 1;
 		sd.var[new_index].flags |= OUTVAR;
-		NEWSTACK(TYPE_ADR, STACKVAR, new_index);
-		curstack->creator = NULL;
 
 		jd->interface_map[0 * 5 + TYPE_ADR].flags = 0;
 	}
@@ -765,6 +816,7 @@ bool new_stack_analyse(jitdata *jd)
 					/* We know that sd.bptr->flags == BBREACHED. */
 					/* This block has been reached before.    */
 					stackdepth = sd.bptr->indepth;
+					curstack = stack_create_instack(&sd);
 				}
 				else if (sd.bptr->flags < BBREACHED) {
 					/* This block is reached for the first time now */
@@ -773,27 +825,21 @@ bool new_stack_analyse(jitdata *jd)
 
 					stack_create_invars(&sd, sd.bptr, curstack, stackdepth);
 
-					COPYCURSTACK(sd, copy);
-					sd.bptr->instack = copy;
-
-					i = stackdepth;
-					while (i--) {
-						copy->varnum = sd.bptr->invars[i];
-						copy = copy->prev;
-					}
+					curstack = stack_create_instack(&sd);
 				}
 				else {
 					/* This block has been reached before. now we are */
 					/* falling into it from the previous block.       */
 					/* Check that stack depth is well-defined.        */
-					CHECK_STACK_DEPTH(sd.bptr->indepth, stackdepth);
 
-					/* XXX check stack types? */
+					if (!stack_check_invars(&sd, sd.bptr, curstack, stackdepth))
+						return false;
+
+					curstack = stack_create_instack(&sd);
 				}
 
 				/* set up local variables for analyzing this block */
 
-				curstack = sd.bptr->instack;
 				deadcode = false;
 				superblockend = false;
 				len = sd.bptr->icount;
@@ -815,23 +861,11 @@ bool new_stack_analyse(jitdata *jd)
  				sd.bptr->varstart = sd.vartop;
   
 #if defined(STACK_VERBOSE)
-				printf("INVARS\n");
-					for( copy = sd.bptr->instack; copy; copy = copy->prev ) {
-						printf("%2d(%d", copy->varnum, copy->type);
-						if (IS_OUTVAR(copy))
-							printf("S");
-						if (IS_PREALLOC(copy))
-							printf("A");
-						printf(") ");
-					}
-					printf("\n");
-
 					printf("INVARS - indices:\t\n");
 					for (i=0; i<sd.bptr->indepth; ++i) {
 						printf("%d ", sd.bptr->invars[i]);
 					}
 					printf("\n\n");
-
 #endif
 
 				/* iterate over ICMDs ****************************************/
@@ -3036,7 +3070,6 @@ icmd_BUILTIN:
 
 				/* stack slots at basic block end become interfaces */
 
-				sd.bptr->outstack = curstack;
 				sd.bptr->outdepth = stackdepth;
 				sd.bptr->outvars = DMNEW(s4, stackdepth);
 
@@ -3088,14 +3121,7 @@ icmd_BUILTIN:
 
 #if defined(STACK_VERBOSE)
 				printf("OUTVARS\n");
-				for( copy = sd.bptr->outstack; copy; copy = copy->prev ) {
-					printf("%2d(%d", copy->varnum, copy->type);
-					if (IS_OUTVAR(copy))
-						printf("S");
-					if (IS_PREALLOC(copy))
-						printf("A");
-					printf(") ");
-				}
+				/* XXX print something useful here */
 				printf("\n");
 #endif
 		    } /* if */

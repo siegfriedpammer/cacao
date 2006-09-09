@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: stack.h 5446 2006-09-09 20:05:35Z edwin $
+   $Id: stack.h 5447 2006-09-09 21:33:48Z edwin $
 
 */
 
@@ -140,40 +140,6 @@
 
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
-
-
-/*--------------------------------------------------*/
-/* MACROS FOR HANDLING BASIC BLOCKS                 */
-/*--------------------------------------------------*/
-
-/* COPYCURSTACK makes a copy of the current operand stack (curstack)
- * and returns it in the variable copy.
- *
- * This macro is used to propagate the operand stack from one basic
- * block to another. The destination block receives the copy as its
- * input stack.
- */
-#define COPYCURSTACK(sd, copy) {                                     \
-    stackptr s;                                                      \
-    if (curstack) {                                                  \
-        s = curstack;                                                \
-        (sd).new += stackdepth;                                      \
-        copy = (sd).new;                                             \
-        while (s) {                                                  \
-            copy--;                                                  \
-            copy->prev = copy-1;                                     \
-            copy->creator = NULL;                                    \
-            copy->type = s->type;                                    \
-            copy->flags = 0;                                         \
-            copy->varkind = STACKVAR;                                \
-            s = s->prev;                                             \
-        }                                                            \
-        copy->prev = NULL;                                           \
-        copy = (sd).new-1;                                           \
-    }                                                                \
-    else                                                             \
-        copy = NULL;                                                 \
-}
 
 
 /* external macros ************************************************************/
