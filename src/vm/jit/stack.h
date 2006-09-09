@@ -27,8 +27,9 @@
    Authors: Christian Thalinger
 
    Changes: Christian Ullrich
+   			Edwin Steiner
 
-   $Id: stack.h 5441 2006-09-09 14:41:03Z edwin $
+   $Id: stack.h 5442 2006-09-09 14:45:55Z edwin $
 
 */
 
