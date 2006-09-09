@@ -281,9 +281,21 @@ void new_show_method(jitdata *jd, int stage)
 	}
 
 	if (rd->memuse && stage >= SHOW_REGS) {
-		printf("Stack slots: (memuse=%d)\n", rd->memuse);
-		for (i=0; i<rd->memuse; ++i) {
-			printf("    M%02d: ", i);
+		int max;
+
+		max = rd->memuse;
+		printf("Stack slots: (memuse=%d", rd->memuse);
+		if (stage >= SHOW_CODE) {
+			printf(", stackframesize=%d", cd->stackframesize);
+			max = cd->stackframesize;
+		}
+		printf(")\n");
+		for (i=0; i<max; ++i) {
+#if defined(HAS_4BYTE_STACKSLOT)
+			printf("    M%02d = 0x%02x(sp): ", i, i * 4);
+#else
+			printf("    M%02d = 0x%02x(sp): ", i, i * 8);
+#endif
 			for (j=0; j<jd->varcount; ++j) {
 				varinfo *v = jd->var + j;
 				if ((v->flags & INMEMORY) && (v->regoff == i)) {
