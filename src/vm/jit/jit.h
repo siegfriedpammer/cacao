@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5436 2006-09-08 19:48:27Z edwin $
+   $Id: jit.h 5445 2006-09-09 19:37:19Z edwin $
 
 */
 
@@ -419,20 +419,26 @@ struct insinfo_inline {
 /* combined without loss of efficiency. The first one could be combined with  */
 /* the others by using bitfields.                                             */
 
+/* XXX "flags" should probably be called "state", as it is an integer state   */
+
 struct basicblock {
 	s4            nr;           /* basic block number                         */
 	s4            flags;        /* used during stack analysis, init with -1   */
 	s4            bitflags;     /* OR of BBFLAG_... constants, init with 0    */
 	s4            type;         /* basic block type (std, xhandler, subroutine*/
-	instruction  *iinstr;       /* pointer to intermediate code instructions  */
+	s4            lflags;       /* used during loop copying, init with 0	  */
+
 	s4            icount;       /* number of intermediate code instructions   */
-	s4            mpc;          /* machine code pc at start of block          */
+	instruction  *iinstr;       /* pointer to intermediate code instructions  */
+
 	stackptr      instack;      /* stack at begin of basic block              */
 	stackptr      outstack;     /* stack at end of basic block                */
 	s4           *invars;       /* array of in-variables at begin of block    */
 	s4           *outvars;      /* array of out-variables at end of block     */
 	s4            indepth;      /* stack depth at begin of basic block        */
 	s4            outdepth;     /* stack depth end of basic block             */
+	s4            varstart;     /* index of first non-invar block variable    */
+	s4            varcount;     /* number of non-invar block variables        */
 
 	s4            predecessorcount;
 	s4            successorcount;
@@ -442,12 +448,11 @@ struct basicblock {
 	branchref    *branchrefs;   /* list of branches to be patched             */
 
 	basicblock   *next;         /* used to build a BB list (instead of array) */
-	s4            lflags;       /* used during loop copying, init with 0	  */
 	basicblock   *copied_to;    /* points to the copy of this basic block	  */
                                 /* when loop nodes are copied                 */
-	stackptr      stack;        /* start of stack array for this block        */
-	                            /* (see doc/stack.txt)                        */
 	methodinfo   *method;       /* method this block belongs to               */
+
+	s4            mpc;          /* machine code pc at start of block          */
 };
 
 

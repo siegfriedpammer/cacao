@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5443 2006-09-09 14:49:25Z edwin $
+   $Id: stack.c 5445 2006-09-09 19:37:19Z edwin $
 
 */
 
@@ -763,6 +763,10 @@ bool new_stack_analyse(jitdata *jd)
 				for( i = 0; i < cd->maxlocals; i++)
 					last_store_boundary[i] = sd.new;
 
+ 				/* remember the start of this block's variables */
+  
+ 				sd.bptr->varstart = sd.vartop;
+  
 #if defined(STACK_VERBOSE)
 				printf("INVARS\n");
 					for( copy = sd.bptr->instack; copy; copy = copy->prev ) {
@@ -3030,6 +3034,10 @@ icmd_BUILTIN:
 						}
 					}
 				);
+
+				/* store the number of this block's variables */
+
+				sd.bptr->varcount = sd.vartop - sd.bptr->varstart;
 
 #if defined(STACK_VERBOSE)
 				printf("OUTVARS\n");
