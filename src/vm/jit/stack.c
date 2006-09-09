@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5447 2006-09-09 21:33:48Z edwin $
+   $Id: stack.c 5448 2006-09-09 21:41:45Z edwin $
 
 */
 
@@ -809,14 +809,15 @@ bool new_stack_analyse(jitdata *jd)
 			else if (superblockend && (sd.bptr->flags < BBREACHED)) {
 				/* This block has not been reached so far, and we      */
 				/* don't fall into it, so we'll have to iterate again. */
+
 				repeat = true;
 			}
 			else if (sd.bptr->flags <= BBREACHED) {
 				if (superblockend) {
 					/* We know that sd.bptr->flags == BBREACHED. */
 					/* This block has been reached before.    */
+
 					stackdepth = sd.bptr->indepth;
-					curstack = stack_create_instack(&sd);
 				}
 				else if (sd.bptr->flags < BBREACHED) {
 					/* This block is reached for the first time now */
@@ -824,8 +825,6 @@ bool new_stack_analyse(jitdata *jd)
 					/* Create the instack (propagated).             */
 
 					stack_create_invars(&sd, sd.bptr, curstack, stackdepth);
-
-					curstack = stack_create_instack(&sd);
 				}
 				else {
 					/* This block has been reached before. now we are */
@@ -834,9 +833,11 @@ bool new_stack_analyse(jitdata *jd)
 
 					if (!stack_check_invars(&sd, sd.bptr, curstack, stackdepth))
 						return false;
-
-					curstack = stack_create_instack(&sd);
 				}
+
+				/* create the instack of this block */
+
+				curstack = stack_create_instack(&sd);
 
 				/* set up local variables for analyzing this block */
 
