@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5441 2006-09-09 14:41:03Z edwin $
+   $Id: stack.c 5443 2006-09-09 14:49:25Z edwin $
 
 */
 
@@ -1773,7 +1773,8 @@ normal_ACONST:
 						}
 
 						/* coalesce the temporary variable with Lj */
-						assert( (CURKIND == TEMPVAR) || (CURKIND == UNDEFVAR));
+						assert((curstack->varkind == TEMPVAR)
+									|| (curstack->varkind == UNDEFVAR));
 						assert(!IS_LOCALVAR(curstack));
 						assert(!IS_OUTVAR(curstack));
 						assert(!IS_PREALLOC(curstack));

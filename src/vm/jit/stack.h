@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: stack.h 5442 2006-09-09 14:45:55Z edwin $
+   $Id: stack.h 5443 2006-09-09 14:49:25Z edwin $
 
 */
 
@@ -48,11 +48,6 @@
 
 
 /* macros used internally by analyse_stack ************************************/
-
-/* convenient abbreviations */
-#define CURKIND    curstack->varkind
-#define CURTYPE    curstack->type
-
 
 /*--------------------------------------------------*/
 /* STACK DEPTH CHECKING                             */
