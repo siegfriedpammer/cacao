@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5437 2006-09-08 20:41:20Z edwin $
+   $Id: stack.h 5441 2006-09-09 14:41:03Z edwin $
 
 */
 
@@ -101,11 +101,6 @@
 #else /* !ENABLE_VERIFIER */
 #define REQUIRE(num)
 #endif /* ENABLE_VERIFIER */
-
-#define REQUIRE_1     REQUIRE(1)
-#define REQUIRE_2     REQUIRE(2)
-#define REQUIRE_3     REQUIRE(3)
-#define REQUIRE_4     REQUIRE(4)
 
 
 /* overflow check */

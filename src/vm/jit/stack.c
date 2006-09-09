@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5440 2006-09-08 23:59:52Z edwin $
+   $Id: stack.c 5441 2006-09-09 14:41:03Z edwin $
 
 */
 
@@ -189,20 +189,20 @@ struct stackdata_t {
 
 #define USE_S1(type1)                                                \
     do {                                                             \
-        REQUIRE_1;                                                   \
+        REQUIRE(1);                                                   \
         CHECK_BASIC_TYPE(type1, curstack->type);                     \
         iptr->s1.varindex = curstack->varnum;                        \
     } while (0)
 
 #define USE_S1_ANY                                                   \
     do {                                                             \
-        REQUIRE_1;                                                   \
+        REQUIRE(1);                                                   \
         iptr->s1.varindex = curstack->varnum;                        \
     } while (0)
 
 #define USE_S1_S2(type1, type2)                                      \
     do {                                                             \
-        REQUIRE_2;                                                   \
+        REQUIRE(2);                                                   \
         CHECK_BASIC_TYPE(type1, curstack->prev->type);               \
         CHECK_BASIC_TYPE(type2, curstack->type);                     \
         iptr->sx.s23.s2.varindex = curstack->varnum;                 \
@@ -211,14 +211,14 @@ struct stackdata_t {
 
 #define USE_S1_S2_ANY_ANY                                            \
     do {                                                             \
-        REQUIRE_2;                                                   \
+        REQUIRE(2);                                                   \
         iptr->sx.s23.s2.varindex = curstack->varnum;                 \
         iptr->s1.varindex = curstack->prev->varnum;                  \
     } while (0)
 
 #define USE_S1_S2_S3(type1, type2, type3)                            \
     do {                                                             \
-        REQUIRE_3;                                                   \
+        REQUIRE(3);                                                   \
         CHECK_BASIC_TYPE(type1, curstack->prev->prev->type);         \
         CHECK_BASIC_TYPE(type2, curstack->prev->type);               \
         CHECK_BASIC_TYPE(type3, curstack->type);                     \
@@ -762,10 +762,6 @@ bool new_stack_analyse(jitdata *jd)
 				coalescing_boundary = sd.new;
 				for( i = 0; i < cd->maxlocals; i++)
 					last_store_boundary[i] = sd.new;
-
-				/* XXX store the start of the block's stack representation */
-
-				sd.bptr->stack = sd.new;
 
 #if defined(STACK_VERBOSE)
 				printf("INVARS\n");
@@ -1712,7 +1708,7 @@ normal_ACONST:
 					case ICMD_FSTORE:
 					case ICMD_DSTORE:
 					case ICMD_ASTORE:
-						REQUIRE_1;
+						REQUIRE(1);
 
 						i = opcode - ICMD_ISTORE; /* type */
 						javaindex = iptr->dst.varindex;
@@ -1869,7 +1865,7 @@ store_tail:
 					case ICMD_POP:
 #ifdef ENABLE_VERIFIER
 						if (opt_verify) {
-							REQUIRE_1;
+							REQUIRE(1);
 							if (IS_2_WORD_TYPE(curstack->type))
 								goto throw_stack_category_error;
 						}
@@ -2015,12 +2011,12 @@ store_tail:
 						break;
 
 					case ICMD_POP2:
-						REQUIRE_1;
+						REQUIRE(1);
 						if (!IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., cat1 */
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
-								REQUIRE_2;
+								REQUIRE(2);
 								if (IS_2_WORD_TYPE(curstack->prev->type))
 									goto throw_stack_category_error;
 							}
@@ -2038,7 +2034,7 @@ store_tail:
 					case ICMD_DUP:
 #ifdef ENABLE_VERIFIER
 						if (opt_verify) {
-							REQUIRE_1;
+							REQUIRE(1);
 							if (IS_2_WORD_TYPE(curstack->type))
 								goto throw_stack_category_error;
 						}
@@ -2053,14 +2049,14 @@ icmd_DUP:
 						break;
 
 					case ICMD_DUP2:
-						REQUIRE_1;
+						REQUIRE(1);
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., cat2 */
 							iptr->opc = ICMD_DUP;
 							goto icmd_DUP;
 						}
 						else {
-							REQUIRE_2;
+							REQUIRE(2);
 							/* ..., ????, cat1 */
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
@@ -2083,7 +2079,7 @@ icmd_DUP:
 					case ICMD_DUP_X1:
 #ifdef ENABLE_VERIFIER
 						if (opt_verify) {
-							REQUIRE_2;
+							REQUIRE(2);
 							if (IS_2_WORD_TYPE(curstack->type) ||
 								IS_2_WORD_TYPE(curstack->prev->type))
 									goto throw_stack_category_error;
@@ -2107,7 +2103,7 @@ icmd_DUP_X1:
 						break;
 
 					case ICMD_DUP2_X1:
-						REQUIRE_2;
+						REQUIRE(2);
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., ????, cat2 */
 #ifdef ENABLE_VERIFIER
@@ -2123,7 +2119,7 @@ icmd_DUP_X1:
 							/* ..., ????, cat1 */
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
-								REQUIRE_3;
+								REQUIRE(3);
 								if (IS_2_WORD_TYPE(curstack->prev->type)
 									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
 										goto throw_stack_category_error;
@@ -2154,7 +2150,7 @@ icmd_DUP2_X1:
 						/* pop 3 push 4 dup */
 
 					case ICMD_DUP_X2:
-						REQUIRE_2;
+						REQUIRE(2);
 						if (IS_2_WORD_TYPE(curstack->prev->type)) {
 							/* ..., cat2, ???? */
 #ifdef ENABLE_VERIFIER
@@ -2170,7 +2166,7 @@ icmd_DUP2_X1:
 							/* ..., cat1, ???? */
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
-								REQUIRE_3;
+								REQUIRE(3);
 								if (IS_2_WORD_TYPE(curstack->type)
 									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
 											goto throw_stack_category_error;
@@ -2196,7 +2192,7 @@ icmd_DUP_X2:
 						break;
 
 					case ICMD_DUP2_X2:
-						REQUIRE_2;
+						REQUIRE(2);
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., ????, cat2 */
 							if (IS_2_WORD_TYPE(curstack->prev->type)) {
@@ -2208,7 +2204,7 @@ icmd_DUP_X2:
 								/* ..., cat1, cat2 */
 #ifdef ENABLE_VERIFIER
 								if (opt_verify) {
-									REQUIRE_3;
+									REQUIRE(3);
 									if (IS_2_WORD_TYPE(curstack->prev->prev->type))
 											goto throw_stack_category_error;
 								}
@@ -2218,7 +2214,7 @@ icmd_DUP_X2:
 							}
 						}
 
-						REQUIRE_3;
+						REQUIRE(3);
 						/* ..., ????, ????, cat1 */
 
 						if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
@@ -2236,7 +2232,7 @@ icmd_DUP_X2:
 							/* ..., cat1, ????, cat1 */
 #ifdef ENABLE_VERIFIER
 							if (opt_verify) {
-								REQUIRE_4;
+								REQUIRE(4);
 								if (IS_2_WORD_TYPE(curstack->prev->type)
 									|| IS_2_WORD_TYPE(curstack->prev->prev->prev->type))
 									goto throw_stack_category_error;
@@ -2270,7 +2266,7 @@ icmd_DUP_X2:
 					case ICMD_SWAP:
 #ifdef ENABLE_VERIFIER
 						if (opt_verify) {
-							REQUIRE_2;
+							REQUIRE(2);
 							if (IS_2_WORD_TYPE(curstack->type)
 								|| IS_2_WORD_TYPE(curstack->prev->type))
 								goto throw_stack_category_error;
