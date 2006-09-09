@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5278 2006-08-25 07:54:27Z twisti $
+   $Id: exceptions.c 5444 2006-09-09 19:25:24Z edwin $
 
 */
 
@@ -1561,17 +1561,40 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 			/* resolve or load/link the exception class */
 
 			if (IS_CLASSREF(cr)) {
+				/* The exception class reference is unresolved. */
+				/* We have to do _eager_ resolving here. While the class of */
+				/* the exception object is guaranteed to be loaded, it may  */
+				/* well have been loaded by a different loader than the     */
+				/* defining loader of m's class, which is the one we must   */
+				/* use to resolve the catch class. Thus lazy resolving      */
+				/* might fail, even if the result of the resolution would   */
+				/* be an already loaded class.                              */
+
 				c = resolve_classref_eager(cr.ref);
 
+				if (c == NULL) {
+					/* Exception resolving the exception class, argh! */
+					return NULL;
+				}
+
+				/* Ok, we resolved it. Enter it in the table, so we don't */
+				/* have to do this again.                                 */
+				/* XXX this write should be atomic. Is it?                */
+
+				ex->catchtype.cls = c;
 			} else {
 				c = cr.cls;
 
+				/* XXX I don't think this case can ever happen. -Edwin */
 				if (!(c->state & CLASS_LOADED))
 					/* use the methods' classloader */
 					if (!load_class_from_classloader(c->name,
 													 m->class->classloader))
 						return NULL;
 
+				/* XXX I think, if it is not linked, we can be sure that     */
+				/* the exception object is no (indirect) instance of it, no? */
+				/* -Edwin                                                    */
 				if (!(c->state & CLASS_LINKED))
 					if (!link_class(c))
 						return NULL;
