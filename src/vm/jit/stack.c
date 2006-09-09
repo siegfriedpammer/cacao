@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5448 2006-09-09 21:41:45Z edwin $
+   $Id: stack.c 5449 2006-09-09 21:50:54Z edwin $
 
 */
 
@@ -794,7 +794,8 @@ bool new_stack_analyse(jitdata *jd)
 
 		/* iterate over basic blocks *****************************************/
 
-		while (--b_count >= 0) {
+		for (; --b_count >= 0; ++sd.bptr) {
+
 #if defined(STACK_VERBOSE)
 			printf("----\nANALYZING BLOCK L%03d ", sd.bptr->nr);
 			if (sd.bptr->type == BBTYPE_EXH) printf("EXH\n");
@@ -805,14 +806,30 @@ bool new_stack_analyse(jitdata *jd)
 
 			if (sd.bptr->flags == BBDELETED) {
 				/* This block has been deleted - do nothing. */
+
+				continue;
 			}
-			else if (superblockend && (sd.bptr->flags < BBREACHED)) {
+
+			if (superblockend && (sd.bptr->flags < BBREACHED)) {
 				/* This block has not been reached so far, and we      */
 				/* don't fall into it, so we'll have to iterate again. */
 
 				repeat = true;
+				continue;
 			}
-			else if (sd.bptr->flags <= BBREACHED) {
+
+			if (sd.bptr->flags > BBREACHED) {
+				/* This block is already finished. */
+
+				superblockend = true;
+				continue;
+			}
+
+			/* This block has to be analysed now. */
+
+			/* XXX The rest of this block is still indented one level too */
+			/* much in order to avoid a giant diff by changing that.      */
+
 				if (superblockend) {
 					/* We know that sd.bptr->flags == BBREACHED. */
 					/* This block has been reached before.    */
@@ -3125,12 +3142,9 @@ icmd_BUILTIN:
 				/* XXX print something useful here */
 				printf("\n");
 #endif
-		    } /* if */
-			else
-				superblockend = true;
 
-			sd.bptr++;
-		} /* while blocks */
+		} /* for blocks */
+
 	} while (repeat && !deadcode);
 
 	/* gather statistics *****************************************************/
