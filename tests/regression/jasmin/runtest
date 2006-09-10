@@ -70,7 +70,7 @@ do
     shift
 done
 
-#rm -f "$TESTOUT" "$TESTEXPECT" "$TESTLOG"
+rm -f "$TESTOUT" "$TESTEXPECT" "$TESTLOG" "$TESTERR"
 
 exit $EXITCODE
 
