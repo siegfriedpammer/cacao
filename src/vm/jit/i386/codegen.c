@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5435 2006-09-08 18:14:50Z edwin $
+   $Id: codegen.c 5455 2006-09-10 11:35:08Z christian $
 
 */
 
@@ -246,12 +246,17 @@ bool codegen(jitdata *jd)
 			l = ls->local_0[p];
 		}
 #endif
-		var = &(jd->var[jd->local_map[l * 5 + t]]);
- 		l++;
+		s1 = jd->local_map[l * 5 + t];
+
+		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
- 		if (var->type < 0)
+
+		if (s1 == UNUSED)
 			continue;
+ 
+		var = &(jd->var[s1]);
+
 		s1 = md->params[p].regoff;
 
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
