@@ -23,23 +23,49 @@ do
     TESTOUT="TESTOUT"
     TESTEXPECT="TESTEXPECT"
     TESTLOG="TESTLOG"
+    TESTERR="TESTERR"
+
+	EXPECTSTATUS=0
+
+	# compile the test
 
     $JASMIN "$TEST" || exit 2
-    $JAVA "$TESTBASENAME" >"$TESTOUT" || exit 2
 
-    grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:\s*,,' >"$TESTEXPECT"
+	if grep 'ERROR:' "$TEST" >/dev/null ; then
+		EXPECTSTATUS=1
+		EXPECTERROR=$(grep -o 'ERROR:.*' "$TEST" | sed 's,ERROR:\s*,,')
+	fi
 
-    if diff -u "$TESTEXPECT" "$TESTOUT" ; then
-    	echo "PASS: $TEST"
-    else
-    	echo "FAIL: $TEST"
-	EXITCODE=1
-    fi
+	# run the test
 
-    if [ "$VERBOSE" -eq "1" ] ; then
-	$JAVA -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
-	./show "$TESTLOG"
-    fi
+    $JAVA "$TESTBASENAME" >"$TESTOUT" 2>"$TESTERR"
+	TESTSTATUS=$?
+
+	if [ $TESTSTATUS -ne $EXPECTSTATUS ] ; then
+		echo "FAIL: $TEST - expected status $EXPECTSTATUS, but got $TESTSTATUS"
+	fi
+
+	if [ $EXPECTSTATUS -eq 0 ] ; then
+		grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:\s*,,' >"$TESTEXPECT"
+
+		if diff -u "$TESTEXPECT" "$TESTOUT" ; then
+			echo "PASS: $TEST"
+		else
+			echo "FAIL: $TEST"
+		EXITCODE=1
+		fi
+
+		if [ "$VERBOSE" -eq "1" ] ; then
+		$JAVA -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
+		./show "$TESTLOG"
+		fi
+	else
+		if grep "$EXPECTERROR" "$TESTERR" >/dev/null ; then
+			echo "PASS: $TEST - got expected error: $EXPECTERROR"
+		else
+			echo "FAIL: $TEST - did not get expected error: $EXPECTERROR"
+		fi
+	fi
 
     shift
 done
