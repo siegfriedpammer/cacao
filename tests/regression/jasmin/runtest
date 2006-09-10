@@ -43,6 +43,7 @@ do
 
 	if [ $TESTSTATUS -ne $EXPECTSTATUS ] ; then
 		echo "FAIL: $TEST - expected status $EXPECTSTATUS, but got $TESTSTATUS"
+		EXITCODE=1
 	fi
 
 	if [ $EXPECTSTATUS -eq 0 ] ; then
@@ -52,7 +53,7 @@ do
 			echo "PASS: $TEST"
 		else
 			echo "FAIL: $TEST"
-		EXITCODE=1
+			EXITCODE=1
 		fi
 
 		if [ "$VERBOSE" -eq "1" ] ; then
@@ -64,6 +65,7 @@ do
 			echo "PASS: $TEST - got expected error: $EXPECTERROR"
 		else
 			echo "FAIL: $TEST - did not get expected error: $EXPECTERROR"
+			EXITCODE=1
 		fi
 	fi
 
