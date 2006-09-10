@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5452 2006-09-09 22:33:32Z edwin $
+   $Id: stack.c 5454 2006-09-10 11:20:40Z edwin $
 
 */
 
@@ -406,24 +406,11 @@ struct stackdata_t {
 
 /* macros for DUP elimination ***************************************/
 
-/* XXX turn off coalescing */
-#if 0
-#define DUP_SLOT(sp)                                                 \
-    do {                                                             \
-        if ((sp)->varkind != TEMPVAR) {                              \
-            GET_NEW_VAR(sd, new_index, (sp)->type);                  \
-            NEWSTACK((sp)->type, TEMPVAR, new_index);                \
-        }                                                            \
-        else                                                         \
-            NEWSTACK((sp)->type, (sp)->varkind, (sp)->varnum);       \
-    } while(0)
-#else
 #define DUP_SLOT(sp)                                                 \
     do {                                                             \
             GET_NEW_VAR(sd, new_index, (sp)->type);                  \
             NEWSTACK((sp)->type, TEMPVAR, new_index);                \
     } while(0)
-#endif
 
 /* does not check input stackdepth */
 #define MOVE_UP(sp)                                                  \
