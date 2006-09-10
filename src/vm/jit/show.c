@@ -174,9 +174,9 @@ void new_show_method(jitdata *jd, int stage)
 			printf("  (catchtype: ");
 			if (ex->catchtype.any)
 				if (IS_CLASSREF(ex->catchtype))
-					utf_display_printable_ascii_classname(ex->catchtype.ref->name);
+					class_classref_print(ex->catchtype.ref);
 				else
-					utf_display_printable_ascii_classname(ex->catchtype.cls->name);
+					class_print(ex->catchtype.ref);
 			else
 				printf("ANY");
 			printf(")\n");
