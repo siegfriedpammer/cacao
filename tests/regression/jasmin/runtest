@@ -50,9 +50,11 @@ do
 		grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:\s*,,' >"$TESTEXPECT"
 
 		if diff -u "$TESTEXPECT" "$TESTOUT" ; then
-			echo "PASS: $TEST"
+			if [ $TESTSTATUS -eq 0 ] ; then
+				echo "PASS: $TEST"
+			fi
 		else
-			echo "FAIL: $TEST"
+			echo "FAIL: $TEST - wrong output"
 			EXITCODE=1
 		fi
 
