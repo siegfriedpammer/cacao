@@ -42,6 +42,15 @@
 	invokestatic test_verify_ok_jsr_handler_in_sub2/checkI(I)V
 	; OUTPUT: 35
 
+	ldc 1234
+	istore 1
+
+	jsr sbr_1
+	; OUTPUT: 48
+	iload 1
+	invokestatic test_verify_ok_jsr_handler_in_sub2/checkI(I)V
+	; OUTPUT: 1234
+
 	; --------------------------------------------------
 
 force_basic_block_boundary:
