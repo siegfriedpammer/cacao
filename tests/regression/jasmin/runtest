@@ -2,6 +2,11 @@
 
 VERBOSE=0
 EXITCODE=0
+COLOR=0
+PASSCOLOR=''
+FAILCOLOR=''
+NOCOLOR=''
+ECHOFLAGS=''
 
 if [ -z "$JAVA" ] ; then
 	JAVA=../../../src/cacao/cacao
@@ -10,6 +15,15 @@ fi
 if [ "$1" = "--verbose" ] ; then
 	shift
 	VERBOSE=1
+fi
+
+if [ "$1" = "--color" ] ; then
+	shift
+	COLOR=1
+	PASSCOLOR='\033[1;32m'
+	FAILCOLOR='\033[1;31m'
+	NOCOLOR='\033[0m'
+	ECHOFLAGS='-e'
 fi
 
 JASMIN_JAR=/usr/share/java/jasmin-sable.jar
@@ -42,7 +56,7 @@ do
 	TESTSTATUS=$?
 
 	if [ $TESTSTATUS -ne $EXPECTSTATUS ] ; then
-		echo "FAIL: $TEST - expected status $EXPECTSTATUS, but got $TESTSTATUS"
+		echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TEST - expected status $EXPECTSTATUS, but got $TESTSTATUS${NOCOLOR}"
 		EXITCODE=1
 	fi
 
@@ -51,10 +65,10 @@ do
 
 		if diff -u "$TESTEXPECT" "$TESTOUT" ; then
 			if [ $TESTSTATUS -eq 0 ] ; then
-				echo "PASS: $TEST"
+				echo $ECHOFLAGS "${PASSCOLOR}PASS: $TEST${NOCOLOR}"
 			fi
 		else
-			echo "FAIL: $TEST - wrong output"
+			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TEST - wrong output${NOCOLOR}"
 			EXITCODE=1
 		fi
 
@@ -64,9 +78,9 @@ do
 		fi
 	else
 		if grep "$EXPECTERROR" "$TESTERR" >/dev/null ; then
-			echo "PASS: $TEST - got expected error: $EXPECTERROR"
+			echo $ECHOFLAGS "${PASSCOLOR}PASS: $TEST - got expected error: $EXPECTERROR${NOCOLOR}"
 		else
-			echo "FAIL: $TEST - did not get expected error: $EXPECTERROR"
+			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TEST - did not get expected error: $EXPECTERROR${NOCOLOR}"
 			EXITCODE=1
 		fi
 	fi
