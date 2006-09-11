@@ -99,12 +99,27 @@ bool show_init(void)
 
 
 #if !defined(NDEBUG)
-static char *jit_type[] = {
+char *show_jit_type_names[] = {
 	"INT",
 	"LNG",
 	"FLT",
 	"DBL",
-	"ADR"
+	"ADR",
+	"??5",
+	"??6",
+	"??7",
+	"RET"
+};
+char show_jit_type_letters[] = {
+	'I',
+	'L',
+	'F',
+	'D',
+	'A',
+	'5',
+	'6',
+	'7',
+	'R'
 };
 #endif
 
@@ -176,7 +191,7 @@ void new_show_method(jitdata *jd, int stage)
 				if (IS_CLASSREF(ex->catchtype))
 					class_classref_print(ex->catchtype.ref);
 				else
-					class_print(ex->catchtype.ref);
+					class_print(ex->catchtype.cls);
 			else
 				printf("ANY");
 			printf(")\n");
@@ -192,7 +207,7 @@ void new_show_method(jitdata *jd, int stage)
 # if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
 # endif
-				printf("   (%s) ", jit_type[jd->var[i].type]);
+				printf("   (%s) ", show_jit_type_names[jd->var[i].type]);
 				show_allocation(jd->var[i].type, jd->var[i].flags, jd->var[i].vv.regoff);
 				printf("\n");
 # if defined(ENABLE_INTRP)
@@ -211,7 +226,7 @@ void new_show_method(jitdata *jd, int stage)
 		}
 		printf("\n");
 		for (i = 0; i < 5; i++) {
-			printf("    %5s ",jit_type[i]);
+			printf("    %5s ",show_jit_type_names[i]);
 			for (j = 0; j < cd->maxlocals; j++) {
 				if (jd->local_map[j*5+i] == UNUSED)
 					printf("  -- ");
@@ -240,7 +255,7 @@ void new_show_method(jitdata *jd, int stage)
 			printf("\n");
 
 			for (i = 0; i < 5; i++) {
-				printf("    %5s      ",jit_type[i]);
+				printf("    %5s      ",show_jit_type_names[i]);
 				for (j = 0; j < cd->maxstack; j++) {
 					s4 flags  = jd->interface_map[j*5+i].flags;
 					s4 regoff = jd->interface_map[j*5+i].regoff;
@@ -388,9 +403,11 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	if (bptr->flags != BBDELETED) {
 		deadcode = bptr->flags <= BBREACHED;
 
-		printf("======== %sL%03d ======== (flags: %d, bitflags: %01x, next: %d, type: ",
+		printf("======== %sL%03d ======== %s(flags: %d, bitflags: %01x, next: %d, type: ",
 				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
-			   bptr->nr, bptr->flags, bptr->bitflags, 
+			   bptr->nr, 
+			   (deadcode && stage >= SHOW_STACK) ? "DEADCODE! " : "",
+			   bptr->flags, bptr->bitflags, 
 			   (bptr->next) ? (bptr->next->nr) : -1);
 
 		switch (bptr->type) {
@@ -405,13 +422,27 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			break;
 		}
 
-		printf(", instruction count: %d, predecessors: %d [ ",
+		printf(", icount: %d, preds: %d [ ",
 			   bptr->icount, bptr->predecessorcount);
 
 		for (i = 0; i < bptr->predecessorcount; i++)
 			printf("%d ", bptr->predecessors[i]->nr);
 
-		printf("]):\n");
+		printf("]):");
+
+		if (bptr->original)
+			printf(" (clone of L%03d)", bptr->original->nr);
+		else {
+			basicblock *b = bptr->copied_to;
+			if (b) {
+				printf(" (copied to ");
+				for (; b; b = b->copied_to)
+					printf("L%03d ", b->nr);
+				printf(")");
+			}
+		}
+
+		printf("\n");
 
 		if (stage >= SHOW_STACK) {
 			printf("IN:  ");
@@ -580,11 +611,17 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 #define SHOW_S1_LOCAL(iptr)                                          \
     if (stage >= SHOW_STACK) {                                       \
         printf("L%d ", iptr->s1.varindex);                           \
+    }                                                                \
+    else {                                                           \
+        printf("JavaL%d ", iptr->s1.varindex);                       \
     }
 
 #define SHOW_DST_LOCAL(iptr)                                         \
     if (stage >= SHOW_STACK) {                                       \
         printf("=> L%d ", iptr->dst.varindex);                       \
+    }                                                                \
+    else {                                                           \
+        printf("=> JavaL%d ", iptr->dst.varindex);                   \
     }
 
 static void show_allocation(s4 type, s4 flags, s4 regoff)
@@ -651,6 +688,7 @@ static void show_variable(jitdata *jd, s4 index, int stage)
 		case TYPE_FLT: type = 'f'; break;
 		case TYPE_DBL: type = 'd'; break;
 		case TYPE_ADR: type = 'a'; break;
+		case TYPE_RET: type = 'r'; break;
 		default:       type = '?';
 	}
 
@@ -953,6 +991,9 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 	case ICMD_RET:
 		SHOW_S1_LOCAL(iptr);
+		if (stage >= SHOW_STACK) {
+			printf(" ---> L%03d", iptr->dst.block->nr);
+		}
 		break;
 
 	case ICMD_ILOAD:

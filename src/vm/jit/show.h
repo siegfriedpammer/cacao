@@ -50,6 +50,9 @@
 #define SHOW_CODE          4
 
 #if !defined(NDEBUG)
+extern char *show_jit_type_names[];
+extern char show_jit_type_letters[];
+
 bool show_init(void);
 
 void new_show_method(jitdata *jd, int stage);
