@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5427 2006-09-08 16:07:48Z edwin $
+   $Id: simplereg.c 5463 2006-09-11 14:37:06Z edwin $
 
 */
 
@@ -466,32 +466,32 @@ static void local_regalloc(jitdata *jd)
 				if (IS_ADR_TYPE(t)) {
 					if ((p < md->paramcount) && !md->params[p].inmemory) {
 						v->flags = 0;
-						v->regoff = rd->argadrregs[md->params[p].regoff];
+						v->vv.regoff = rd->argadrregs[md->params[p].regoff];
 					}
 					else if (rd->tmpadrreguse > 0) {
 						v->flags = 0;
-						v->regoff = rd->tmpadrregs[--rd->tmpadrreguse];
+						v->vv.regoff = rd->tmpadrregs[--rd->tmpadrreguse];
 					}
 					/* use unused argument registers as local registers */
 					else if ((p >= md->paramcount) &&
 							 (aargcnt < ADR_ARG_CNT)) {
 						v->flags = 0;
-						v->regoff = rd->argadrregs[aargcnt++];
+						v->vv.regoff = rd->argadrregs[aargcnt++];
 					}
 					else if (rd->savadrreguse > 0) {
 						v->flags = 0;
-						v->regoff = rd->savadrregs[--rd->savadrreguse];
+						v->vv.regoff = rd->savadrregs[--rd->savadrreguse];
 					}
 					else {
 						v->flags |= INMEMORY;
-						v->regoff = rd->memuse++;
+						v->vv.regoff = rd->memuse++;
 					}						
 				} else {
 #endif
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
 							v->flags = jd->var[fltalloc].flags;
-							v->regoff = jd->var[fltalloc].regoff;
+							v->vv.regoff = jd->var[fltalloc].vv.regoff;
 						}
 #if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 						/* We can only use float arguments as local variables,
@@ -499,23 +499,23 @@ static void local_regalloc(jitdata *jd)
   						else if ((p < md->paramcount) &&
 								 !md->params[p].inmemory) {
 							v->flags = 0;
-							v->regoff = rd->argfltregs[md->params[p].regoff];
+							v->vv.regoff = rd->argfltregs[md->params[p].regoff];
 						}
 #endif
 						else if (rd->tmpfltreguse > 0) {
 							v->flags = 0;
-							v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
+							v->vv.regoff = rd->tmpfltregs[--rd->tmpfltreguse];
 						}
 						/* use unused argument registers as local registers */
 						else if ((p >= md->paramcount) &&
 								 (fargcnt < FLT_ARG_CNT)) {
 							v->flags = 0;
-							v->regoff = rd->argfltregs[fargcnt];
+							v->vv.regoff = rd->argfltregs[fargcnt];
 							fargcnt++;
 						}
 						else if (rd->savfltreguse > 0) {
 							v->flags = 0;
-							v->regoff = rd->savfltregs[--rd->savfltreguse];
+							v->vv.regoff = rd->savfltregs[--rd->savfltreguse];
 						}
 						else {
 							v->flags = INMEMORY;
@@ -524,7 +524,7 @@ static void local_regalloc(jitdata *jd)
 							if ( (memneeded) && (rd->memuse & 1))
 								rd->memuse++;
 #endif
-							v->regoff = rd->memuse;
+							v->vv.regoff = rd->memuse;
 							rd->memuse += memneeded + 1;
 						}
 						fltalloc = jd->local_map[s * 5 + t];
@@ -541,7 +541,7 @@ static void local_regalloc(jitdata *jd)
 							if (rd->memuse & 1)
 								rd->memuse++;
 #endif
-							v->regoff = rd->memuse;
+							v->vv.regoff = rd->memuse;
 							rd->memuse += memneeded + 1;
 						} else 
 #endif
@@ -551,23 +551,23 @@ static void local_regalloc(jitdata *jd)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (!(v->flags & INMEMORY)
 									&& IS_2_WORD_TYPE(jd->var[intalloc].type))
-									v->regoff = GET_LOW_REG(
-													jd->var[intalloc].regoff);
+									v->vv.regoff = GET_LOW_REG(
+													jd->var[intalloc].vv.regoff);
 								else
 #endif
-									v->regoff = jd->var[intalloc].regoff;
+									v->vv.regoff = jd->var[intalloc].vv.regoff;
 							}
 							else if ((p < md->paramcount) && 
 									 !md->params[p].inmemory) {
 								v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (IS_2_WORD_TYPE(t))
-									v->regoff = PACK_REGS(
+									v->vv.regoff = PACK_REGS(
 							rd->argintregs[GET_LOW_REG(md->params[p].regoff)],
 							rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]);
 									else
 #endif
-										v->regoff =
+										v->vv.regoff =
 									       rd->argintregs[md->params[p].regoff];
 							}
 							else if (rd->tmpintreguse > intregsneeded) {
@@ -575,12 +575,12 @@ static void local_regalloc(jitdata *jd)
 								v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (intregsneeded) 
-									v->regoff = PACK_REGS(
+									v->vv.regoff = PACK_REGS(
 									    rd->tmpintregs[rd->tmpintreguse],
 										rd->tmpintregs[rd->tmpintreguse + 1]);
 								else
 #endif
-									v->regoff = 
+									v->vv.regoff = 
 										rd->tmpintregs[rd->tmpintreguse];
 							}
 							/*
@@ -591,12 +591,12 @@ static void local_regalloc(jitdata *jd)
 								v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (intregsneeded) 
-									v->regoff=PACK_REGS( 
+									v->vv.regoff=PACK_REGS( 
 												   rd->argintregs[iargcnt],
 												   rd->argintregs[iargcnt + 1]);
 								else
 #endif
-								v->regoff = rd->argintregs[iargcnt];
+								v->vv.regoff = rd->argintregs[iargcnt];
   								iargcnt += intregsneeded + 1;
 							}
 							else if (rd->savintreguse > intregsneeded) {
@@ -604,12 +604,12 @@ static void local_regalloc(jitdata *jd)
 								v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (intregsneeded) 
-									v->regoff = PACK_REGS(
+									v->vv.regoff = PACK_REGS(
 									    rd->savintregs[rd->savintreguse],
 										rd->savintregs[rd->savintreguse + 1]);
 								else
 #endif
-									v->regoff =rd->savintregs[rd->savintreguse];
+									v->vv.regoff =rd->savintregs[rd->savintreguse];
 							}
 							else {
 								v->flags = INMEMORY;
@@ -618,7 +618,7 @@ static void local_regalloc(jitdata *jd)
 								if ( (memneeded) && (rd->memuse & 1))
 									rd->memuse++;
 #endif
-								v->regoff = rd->memuse;
+								v->vv.regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							}
 						}
@@ -660,22 +660,22 @@ static void local_regalloc(jitdata *jd)
 				if ( IS_ADR_TYPE(t) ) {
 					if (rd->savadrreguse > 0) {
 						v->flags = 0;
-						v->regoff = rd->savadrregs[--rd->savadrreguse];
+						v->vv.regoff = rd->savadrregs[--rd->savadrreguse];
 					}
 					else {
 						v->flags = INMEMORY;
-						v->regoff = rd->memuse++;
+						v->vv.regoff = rd->memuse++;
 					}
 				} else {
 #endif
 				if (IS_FLT_DBL_TYPE(t)) {
 					if (fltalloc >= 0) {
 						v->flags = jd->var[fltalloc].flags;
-						v->regoff = jd->var[fltalloc].regoff;
+						v->vv.regoff = jd->var[fltalloc].vv.regoff;
 					}
 					else if (rd->savfltreguse > 0) {
 						v->flags = 0;
-						v->regoff = rd->savfltregs[--rd->savfltreguse];
+						v->vv.regoff = rd->savfltregs[--rd->savfltreguse];
 					}
 					else {
 						v->flags = INMEMORY;
@@ -684,7 +684,7 @@ static void local_regalloc(jitdata *jd)
 						if ( (memneeded) && (rd->memuse & 1))
 							rd->memuse++;
 #endif
-						v->regoff = rd->memuse;
+						v->vv.regoff = rd->memuse;
 						rd->memuse += memneeded + 1;
 					}
 					fltalloc = jd->local_map[s * 5 + t];
@@ -701,7 +701,7 @@ static void local_regalloc(jitdata *jd)
 						if (rd->memuse & 1)
 							rd->memuse++;
 #endif
-						v->regoff = rd->memuse;
+						v->vv.regoff = rd->memuse;
 						rd->memuse += memneeded + 1;
 					} else {
 #endif
@@ -710,23 +710,23 @@ static void local_regalloc(jitdata *jd)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (!(v->flags & INMEMORY)
 								&& IS_2_WORD_TYPE(jd->var[intalloc].type))
-								v->regoff = GET_LOW_REG(
-											    jd->var[intalloc].regoff);
+								v->vv.regoff = GET_LOW_REG(
+											    jd->var[intalloc].vv.regoff);
 							else
 #endif
-								v->regoff = jd->var[intalloc].regoff;
+								v->vv.regoff = jd->var[intalloc].vv.regoff;
 						}
 						else if (rd->savintreguse > intregsneeded) {
 							rd->savintreguse -= intregsneeded+1;
 							v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (intregsneeded) 
-									v->regoff = PACK_REGS(
+									v->vv.regoff = PACK_REGS(
 										rd->savintregs[rd->savintreguse],
 									    rd->savintregs[rd->savintreguse + 1]);
 								else
 #endif
-									v->regoff =rd->savintregs[rd->savintreguse];
+									v->vv.regoff =rd->savintregs[rd->savintreguse];
 						}
 						else {
 							v->flags = INMEMORY;
@@ -735,7 +735,7 @@ static void local_regalloc(jitdata *jd)
 							if ( (memneeded) && (rd->memuse & 1))
 								rd->memuse++;
 #endif
-							v->regoff = rd->memuse;
+							v->vv.regoff = rd->memuse;
 							rd->memuse += memneeded + 1;
 						}
 #if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -815,10 +815,10 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 			if (IS_ADR_TYPE(v->type)) {
 				if (rd->freesavadrtop > 0) {
-					v->regoff = rd->freesavadrregs[--rd->freesavadrtop];
+					v->vv.regoff = rd->freesavadrregs[--rd->freesavadrtop];
 					return;
 				} else if (rd->savadrreguse > 0) {
-					v->regoff = rd->savadrregs[--rd->savadrreguse];
+					v->vv.regoff = rd->savadrregs[--rd->savadrreguse];
 					return;
 				}
 			} else
@@ -826,10 +826,10 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 			{
 				if (IS_FLT_DBL_TYPE(v->type)) {
 					if (rd->freesavflttop > 0) {
-						v->regoff = rd->freesavfltregs[--rd->freesavflttop];
+						v->vv.regoff = rd->freesavfltregs[--rd->freesavflttop];
 						return;
 					} else if (rd->savfltreguse > 0) {
-						v->regoff = rd->savfltregs[--rd->savfltreguse];
+						v->vv.regoff = rd->savfltregs[--rd->savfltreguse];
 						return;
 					}
 				} else {
@@ -844,24 +844,24 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 							rd->freesavinttop -= intregsneeded + 1;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded)
-								v->regoff = PACK_REGS(
+								v->vv.regoff = PACK_REGS(
 							        rd->freesavintregs[rd->freesavinttop],
 									rd->freesavintregs[rd->freesavinttop + 1]);
 						else
 #endif
-								v->regoff =
+								v->vv.regoff =
 									rd->freesavintregs[rd->freesavinttop];
 							return;
 						} else if (rd->savintreguse > intregsneeded) {
 							rd->savintreguse -= intregsneeded + 1;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded)
-								v->regoff = PACK_REGS(
+								v->vv.regoff = PACK_REGS(
 									rd->savintregs[rd->savintreguse],
 							        rd->savintregs[rd->savintreguse + 1]);
 							else
 #endif
-								v->regoff = rd->savintregs[rd->savintreguse];
+								v->vv.regoff = rd->savintregs[rd->savintreguse];
 							return;
 						}
 					}
@@ -871,10 +871,10 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 			if (IS_ADR_TYPE(v->type)) {
 				if (rd->freetmpadrtop > 0) {
-					v->regoff = rd->freetmpadrregs[--rd->freetmpadrtop];
+					v->vv.regoff = rd->freetmpadrregs[--rd->freetmpadrtop];
 					return;
 				} else if (rd->tmpadrreguse > 0) {
-					v->regoff = rd->tmpadrregs[--rd->tmpadrreguse];
+					v->vv.regoff = rd->tmpadrregs[--rd->tmpadrreguse];
 					return;
 				}
 			} else
@@ -882,18 +882,18 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 			{
 				if (IS_FLT_DBL_TYPE(v->type)) {
 					if (rd->freeargflttop > 0) {
-						v->regoff = rd->freeargfltregs[--rd->freeargflttop];
+						v->vv.regoff = rd->freeargfltregs[--rd->freeargflttop];
 						v->flags |= TMPARG;
 						return;
 					} else if (rd->argfltreguse < FLT_ARG_CNT) {
-						v->regoff = rd->argfltregs[rd->argfltreguse++];
+						v->vv.regoff = rd->argfltregs[rd->argfltreguse++];
 						v->flags |= TMPARG;
 						return;
 					} else if (rd->freetmpflttop > 0) {
-						v->regoff = rd->freetmpfltregs[--rd->freetmpflttop];
+						v->vv.regoff = rd->freetmpfltregs[--rd->freetmpflttop];
 						return;
 					} else if (rd->tmpfltreguse > 0) {
-						v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
+						v->vv.regoff = rd->tmpfltregs[--rd->tmpfltreguse];
 						return;
 					}
 
@@ -910,24 +910,24 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 							v->flags |= TMPARG;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded) 
-								v->regoff = PACK_REGS(
+								v->vv.regoff = PACK_REGS(
 									rd->freeargintregs[rd->freearginttop],
 							        rd->freeargintregs[rd->freearginttop + 1]);
 							else
 #endif
-								v->regoff =
+								v->vv.regoff =
 									rd->freeargintregs[rd->freearginttop];
 							return;
 						} else if (rd->argintreguse 
 								   < INT_ARG_CNT - intregsneeded) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded) 
-								v->regoff = PACK_REGS(
+								v->vv.regoff = PACK_REGS(
 									rd->argintregs[rd->argintreguse],
 								    rd->argintregs[rd->argintreguse + 1]);
 							else
 #endif
-								v->regoff = rd->argintregs[rd->argintreguse];
+								v->vv.regoff = rd->argintregs[rd->argintreguse];
 							v->flags |= TMPARG;
 							rd->argintreguse += intregsneeded + 1;
 							return;
@@ -935,23 +935,23 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 							rd->freetmpinttop -= intregsneeded + 1;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded) 
-								v->regoff = PACK_REGS(
+								v->vv.regoff = PACK_REGS(
 									rd->freetmpintregs[rd->freetmpinttop],
 								    rd->freetmpintregs[rd->freetmpinttop + 1]);
 							else
 #endif
-								v->regoff = rd->freetmpintregs[rd->freetmpinttop];
+								v->vv.regoff = rd->freetmpintregs[rd->freetmpinttop];
 							return;
 						} else if (rd->tmpintreguse > intregsneeded) {
 							rd->tmpintreguse -= intregsneeded + 1;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded) 
-								v->regoff = PACK_REGS(
+								v->vv.regoff = PACK_REGS(
 									rd->tmpintregs[rd->tmpintreguse],
 								    rd->tmpintregs[rd->tmpintreguse + 1]);
 							else
 #endif
-								v->regoff = rd->tmpintregs[rd->tmpintreguse];
+								v->vv.regoff = rd->tmpintregs[rd->tmpintreguse];
 							return;
 						}
 					} /* if (!IS_2_WORD_TYPE(s->type)) */
@@ -963,12 +963,12 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 #if defined(HAS_4BYTE_STACKSLOT)
 	if ((memneeded == 1) && (rd->freememtop_2 > 0)) {
 		rd->freememtop_2--;
-		v->regoff = rd->freemem_2[rd->freememtop_2];
+		v->vv.regoff = rd->freemem_2[rd->freememtop_2];
 	} else
 #endif /*defined(HAS_4BYTE_STACKSLOT) */
 		if ((memneeded == 0) && (rd->freememtop > 0)) {
 			rd->freememtop--;;
-			v->regoff = rd->freemem[rd->freememtop];
+			v->vv.regoff = rd->freemem[rd->freememtop];
 		} else {
 #if defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY)
 			/* align 2 Word Types */
@@ -978,7 +978,7 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 				rd->memuse++;
 			}
 #endif /* defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY) */
-			v->regoff = rd->memuse;
+			v->vv.regoff = rd->memuse;
 			rd->memuse += memneeded + 1;
 		}
 	v->flags |= INMEMORY;
@@ -1020,12 +1020,12 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 	if (v->flags & INMEMORY) {
 #if defined(HAS_4BYTE_STACKSLOT)
 		if (memneeded > 0) {
-			rd->freemem_2[rd->freememtop_2] = v->regoff;
+			rd->freemem_2[rd->freememtop_2] = v->vv.regoff;
 			rd->freememtop_2++;
 		} else 
 #endif
 		{
-			rd->freemem[rd->freememtop] = v->regoff;
+			rd->freemem[rd->freememtop] = v->vv.regoff;
 			rd->freememtop++;
 		}
 
@@ -1033,31 +1033,31 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 	} else if (IS_ADR_TYPE(v->type)) {
 		if (v->flags & (SAVEDVAR | SAVEDTMP)) {
 /* 			v->flags &= ~SAVEDTMP; */
-			rd->freesavadrregs[rd->freesavadrtop++] = v->regoff;
+			rd->freesavadrregs[rd->freesavadrtop++] = v->vv.regoff;
 		} else
-			rd->freetmpadrregs[rd->freetmpadrtop++] = v->regoff;
+			rd->freetmpadrregs[rd->freetmpadrtop++] = v->vv.regoff;
 #endif
 	} else if (IS_FLT_DBL_TYPE(v->type)) {
 		if (v->flags & (SAVEDVAR | SAVEDTMP)) {
 /* 			v->flags &= ~SAVEDTMP; */
-			rd->freesavfltregs[rd->freesavflttop++] = v->regoff;
+			rd->freesavfltregs[rd->freesavflttop++] = v->vv.regoff;
 		} else if (v->flags & TMPARG) {
 /* 			v->flags &= ~TMPARG; */
-			rd->freeargfltregs[rd->freeargflttop++] = v->regoff;
+			rd->freeargfltregs[rd->freeargflttop++] = v->vv.regoff;
 		} else
-			rd->freetmpfltregs[rd->freetmpflttop++] = v->regoff;
+			rd->freetmpfltregs[rd->freetmpflttop++] = v->vv.regoff;
 	} else { /* IS_INT_LNG_TYPE */
 		if (v->flags & (SAVEDVAR | SAVEDTMP)) {
 /* 			v->flags &= ~SAVEDTMP; */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freesavintregs[rd->freesavinttop] =
-					GET_LOW_REG(v->regoff);
+					GET_LOW_REG(v->vv.regoff);
 				rd->freesavintregs[rd->freesavinttop + 1] =
-					GET_HIGH_REG(v->regoff);
+					GET_HIGH_REG(v->vv.regoff);
 			} else
 #endif
-			rd->freesavintregs[rd->freesavinttop] = v->regoff;
+			rd->freesavintregs[rd->freesavinttop] = v->vv.regoff;
 			rd->freesavinttop += intregsneeded + 1;
 
 		} else if (v->flags & TMPARG) {
@@ -1065,23 +1065,23 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freeargintregs[rd->freearginttop] =
-					GET_LOW_REG(v->regoff);
+					GET_LOW_REG(v->vv.regoff);
 				rd->freeargintregs[rd->freearginttop + 1] =
-					GET_HIGH_REG(v->regoff);
+					GET_HIGH_REG(v->vv.regoff);
 			} else 
 #endif
-			rd->freeargintregs[rd->freearginttop] = v->regoff;
+			rd->freeargintregs[rd->freearginttop] = v->vv.regoff;
 			rd->freearginttop += intregsneeded + 1;
 		} else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freetmpintregs[rd->freetmpinttop] =
-					GET_LOW_REG(s->regoff);
+					GET_LOW_REG(s->vv.regoff);
 				rd->freetmpintregs[rd->freetmpinttop + 1] =
-					GET_HIGH_REG(s->regoff);
+					GET_HIGH_REG(s->vv.regoff);
 			} else
 #endif
-		    rd->freetmpintregs[rd->freetmpinttop] = v->regoff;
+		    rd->freetmpintregs[rd->freetmpinttop] = v->vv.regoff;
 			rd->freetmpinttop += intregsneeded + 1;
 		}
 	}
@@ -1126,7 +1126,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 			{
 				varinfo *v = jd->var + bptr->invars[i];
 
-				v->regoff = jd->interface_map[5*i + v->type].regoff;
+				v->vv.regoff = jd->interface_map[5*i + v->type].regoff;
 				v->flags  = jd->interface_map[5*i + v->type].flags;
 			}
 
@@ -1136,7 +1136,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 			{
 				varinfo *v = jd->var + bptr->outvars[i];
 
-				v->regoff = jd->interface_map[5*i + v->type].regoff;
+				v->vv.regoff = jd->interface_map[5*i + v->type].regoff;
 				v->flags  = jd->interface_map[5*i + v->type].flags;
 			}
 
@@ -1581,7 +1581,7 @@ void reg_make_statistics(jitdata *jd)
 							 (rd->interfaces[len][dst->type].flags & INMEMORY) || 
 							 ( (dst->flags & INMEMORY) && 
 							   (rd->interfaces[len][dst->type].flags & INMEMORY) && 
-							   (dst->regoff != rd->interfaces[len][dst->type].regoff) ))
+							   (dst->vv.regoff != rd->interfaces[len][dst->type].regoff) ))
 						{
 							/* one in memory or both inmemory at different offsets */
 							count_mem_move_bb++;
@@ -1604,7 +1604,7 @@ void reg_make_statistics(jitdata *jd)
 							 (rd->interfaces[len][dst->type].flags & INMEMORY) || \
 							 ( (dst->flags & INMEMORY) && \
 							   (rd->interfaces[len][dst->type].flags & INMEMORY) && \
-							   (dst->regoff != rd->interfaces[len][dst->type].regoff) ))
+							   (dst->vv.regoff != rd->interfaces[len][dst->type].regoff) ))
 						{
 							/* one in memory or both inmemory at different offsets */
 							count_mem_move_bb++;

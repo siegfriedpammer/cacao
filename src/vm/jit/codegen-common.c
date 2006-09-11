@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5435 2006-09-08 18:14:50Z edwin $
+   $Id: codegen-common.c 5463 2006-09-11 14:37:06Z edwin $
 
 */
 
@@ -1104,16 +1104,16 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 
 	if (!(v->flags & INMEMORY)) {
 #if defined(__ARM__) && defined(__ARMEL__)
-		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->regoff) == REG_SPLIT))
-			return(PACK_REGS(GET_LOW_REG(var->regoff),
+		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->vv.regoff) == REG_SPLIT))
+			return(PACK_REGS(GET_LOW_REG(var->vv.regoff),
 							 GET_HIGH_REG(tempregnum)));
 #endif
 #if defined(__ARM__) && defined(__ARMEB__)
-		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->regoff) == REG_SPLIT))
+		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->vv.regoff) == REG_SPLIT))
 			return(PACK_REGS(GET_LOW_REG(tempregnum),
-							 GET_HIGH_REG(var->regoff)));
+							 GET_HIGH_REG(var->vv.regoff)));
 #endif
-		return(v->regoff);
+		return(v->vv.regoff);
 	}
 
 #if defined(ENABLE_STATISTICS)
@@ -1147,16 +1147,16 @@ s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 	if (!(v->flags & INMEMORY)) {
 		
 #if defined(__ARM__) && defined(__ARMEL__)
-		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->regoff) == REG_SPLIT))
-			return(PACK_REGS(GET_LOW_REG(v->regoff),
+		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->vv.regoff) == REG_SPLIT))
+			return(PACK_REGS(GET_LOW_REG(v->vv.regoff),
 							 GET_HIGH_REG(tempregnum)));
 #endif
 #if defined(__ARM__) && defined(__ARMEB__)
-		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->regoff) == REG_SPLIT))
+		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->vv.regoff) == REG_SPLIT))
 			return(PACK_REGS(GET_LOW_REG(tempregnum),
-							 GET_HIGH_REG(v->regoff)));
+							 GET_HIGH_REG(v->vv.regoff)));
 #endif
-		return (v->regoff);
+		return (v->vv.regoff);
 	}
 
 #if defined(ENABLE_STATISTICS)

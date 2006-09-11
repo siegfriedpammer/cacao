@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5404 2006-09-07 13:29:05Z christian $
+   $Id: emit.c 5463 2006-09-11 14:37:06Z edwin $
 
 */
 
@@ -75,7 +75,7 @@ inline s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->regoff * 4;
+		disp = src->vv.regoff * 4;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
 			if (IS_2_WORD_TYPE(src->type))
@@ -93,7 +93,7 @@ inline s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 		reg = tempreg;
 	}
 	else
-		reg = src->regoff;
+		reg = src->vv.regoff;
 
 	return reg;
 }
@@ -121,14 +121,14 @@ inline s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src,s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->regoff * 4;
+		disp = src->vv.regoff * 4;
 
 		M_ILD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
 	}
 	else
-		reg = GET_LOW_REG(src->regoff);
+		reg = GET_LOW_REG(src->vv.regoff);
 
 	return reg;
 }
@@ -155,14 +155,14 @@ inline s4 emit_load_high(jitdata *jd, instruction *iptr,varinfo *src,s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->regoff * 4;
+		disp = src->vv.regoff * 4;
 
 		M_ILD(tempreg, REG_SP, disp + 4);
 
 		reg = tempreg;
 	}
 	else
-		reg = GET_HIGH_REG(src->regoff);
+		reg = GET_HIGH_REG(src->vv.regoff);
 
 	return reg;
 }
@@ -341,15 +341,15 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 		if (IS_FLT_DBL_TYPE(dst->type)) {
 			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, dst->regoff * 4);
+				M_DST(d, REG_SP, dst->vv.regoff * 4);
 			else
-				M_FST(d, REG_SP, dst->regoff * 4);
+				M_FST(d, REG_SP, dst->vv.regoff * 4);
 		}
 		else {
 			if (IS_2_WORD_TYPE(dst->type))
-				M_LST(d, REG_SP, dst->regoff * 4);
+				M_LST(d, REG_SP, dst->vv.regoff * 4);
 			else
-				M_IST(d, REG_SP, dst->regoff * 4);
+				M_IST(d, REG_SP, dst->vv.regoff * 4);
 		}
 	}
 }
@@ -374,7 +374,7 @@ inline void emit_store_low(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
-		M_IST(GET_LOW_REG(d), REG_SP, dst->regoff * 4);
+		M_IST(GET_LOW_REG(d), REG_SP, dst->vv.regoff * 4);
 	}
 }
 
@@ -398,7 +398,7 @@ inline void emit_store_high(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
-		M_IST(GET_HIGH_REG(d), REG_SP, dst->regoff * 4 + 4);
+		M_IST(GET_HIGH_REG(d), REG_SP, dst->vv.regoff * 4 + 4);
 	}
 }
 
@@ -436,7 +436,7 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 
 	cd = jd->cd;
 
-	if ((src->regoff != dst->regoff) ||
+	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
 
 		/* If one of the variables resides in memory, we can eliminate

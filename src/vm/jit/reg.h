@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: reg.h 5435 2006-09-08 18:14:50Z edwin $
+   $Id: reg.h 5463 2006-09-11 14:37:06Z edwin $
 
 */
 
@@ -54,10 +54,16 @@ typedef struct registerdata registerdata;
 /************************* pseudo variable structure **************************/
 
 struct varinfo {
-	int type;                   /* basic type of variable                     */
-	int flags;                  /* flags (SAVED, INMEMORY)                    */
-	int regoff;                 /* register number or memory offset           */
-	int copycount;              /* number of times this var has been dupped   */
+	s4 type;                   /* basic type of variable                     */
+	s4 flags;                  /* flags (SAVED, INMEMORY)                    */
+	union {
+		s4 regoff;             /* register number or memory offset           */
+		s4 i;
+		s8 l;
+		float f;
+		double d;
+		basicblock *retaddr;
+	} vv;
 };
 
 typedef struct varinfo varinfo5[5];

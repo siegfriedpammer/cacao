@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5454 2006-09-10 11:20:40Z edwin $
+   $Id: stack.c 5463 2006-09-11 14:37:06Z edwin $
 
 */
 
@@ -2918,7 +2918,7 @@ icmd_BUILTIN:
 								if (!opt_intrp) {
 #endif
 									if (md->params[i].inmemory) {
-										sd.var[copy->varnum].regoff =
+										sd.var[copy->varnum].vv.regoff =
 											md->params[i].regoff;
 										sd.var[copy->varnum].flags |= 
 											INMEMORY;
@@ -2928,20 +2928,20 @@ icmd_BUILTIN:
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 											assert(0); /* XXX is this assert ok? */
 #else
-											sd.var[copy->varnum].regoff = 
+											sd.var[copy->varnum].vv.regoff = 
 										rd->argfltregs[md->params[i].regoff];
 #endif /* SUPPORT_PASS_FLOATARGS_IN_INTREGS */
 										}
 										else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 											if (IS_2_WORD_TYPE(copy->type))
-												sd.var[copy->varnum].regoff = 
+												sd.var[copy->varnum].vv.regoff = 
 				PACK_REGS( rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
 
 											else
 #endif /* SUPPORT_COMBINE_INTEGER_REGISTERS */
-												sd.var[copy->varnum].regoff = 
+												sd.var[copy->varnum].vv.regoff = 
 										rd->argintregs[md->params[i].regoff];
 										}
 									}
@@ -3033,19 +3033,19 @@ icmd_BUILTIN:
 									INMEMORY & PREALLOC;
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-								sd.var[copy->varnum].regoff = i + 
+								sd.var[copy->varnum].vv.regoff = i + 
 									LA_SIZE_IN_POINTERS + INT_ARG_CNT;
 # else
-								sd.var[copy->varnum].regoff = i + 
+								sd.var[copy->varnum].vv.regoff = i + 
 									LA_SIZE_IN_POINTERS + 3;
 # endif
 #else
 # if defined(__I386__)
-								sd.var[copy->varnum].regoff = i + 3;
+								sd.var[copy->varnum].vv.regoff = i + 3;
 # elif defined(__MIPS__) && SIZEOF_VOID_P == 4
-								sd.var[copy->varnum].regoff = i + 2;
+								sd.var[copy->varnum].vv.regoff = i + 2;
 # else
-								sd.var[copy->varnum].regoff = i;
+								sd.var[copy->varnum].vv.regoff = i;
 # endif /* defined(__I386__) */
 #endif /* defined(SPECIALMEMUSE) */
 							}

@@ -193,7 +193,7 @@ void new_show_method(jitdata *jd, int stage)
 			if (!opt_intrp) {
 # endif
 				printf("   (%s) ", jit_type[jd->var[i].type]);
-				show_allocation(jd->var[i].type, jd->var[i].flags, jd->var[i].regoff);
+				show_allocation(jd->var[i].type, jd->var[i].flags, jd->var[i].vv.regoff);
 				printf("\n");
 # if defined(ENABLE_INTRP)
 			}
@@ -298,7 +298,7 @@ void new_show_method(jitdata *jd, int stage)
 #endif
 			for (j=0; j<jd->varcount; ++j) {
 				varinfo *v = jd->var + j;
-				if ((v->flags & INMEMORY) && (v->regoff == i)) {
+				if ((v->flags & INMEMORY) && (v->vv.regoff == i)) {
 					show_variable(jd, j, stage);
 					putchar(' ');
 				}
@@ -678,7 +678,7 @@ static void show_variable(jitdata *jd, s4 index, int stage)
 
 	if (stage >= SHOW_REGS) {
 		putchar('(');
-		show_allocation(v->type, v->flags, v->regoff);
+		show_allocation(v->type, v->flags, v->vv.regoff);
 		putchar(')');
 	}
 	putchar(' ');
