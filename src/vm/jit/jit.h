@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5447 2006-09-09 21:33:48Z edwin $
+   $Id: jit.h 5460 2006-09-11 00:30:21Z edwin $
 
 */
 
@@ -431,6 +431,7 @@ struct basicblock {
 	s4            icount;       /* number of intermediate code instructions   */
 	instruction  *iinstr;       /* pointer to intermediate code instructions  */
 
+	varinfo      *inlocals;     /* copy of locals on block entry              */
 	s4           *invars;       /* array of in-variables at begin of block    */
 	s4           *outvars;      /* array of out-variables at end of block     */
 	s4            indepth;      /* stack depth at begin of basic block        */
@@ -448,6 +449,8 @@ struct basicblock {
 	basicblock   *next;         /* used to build a BB list (instead of array) */
 	basicblock   *copied_to;    /* points to the copy of this basic block	  */
                                 /* when loop nodes are copied                 */
+	basicblock   *original;     /* block of which this block is a clone       */
+	                            /* NULL for the original block itself         */
 	methodinfo   *method;       /* method this block belongs to               */
 
 	s4            mpc;          /* machine code pc at start of block          */
