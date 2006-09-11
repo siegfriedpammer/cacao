@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5463 2006-09-11 14:37:06Z edwin $
+   $Id: stack.c 5472 2006-09-11 23:24:46Z edwin $
 
 */
 
@@ -40,6 +40,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 
 #include "vm/types.h"
 
@@ -108,22 +109,32 @@
 #define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)
 #endif
 
-/* stackdata_t ****************************************************************/
+/* stackdata_t *****************************************************************
+
+   This struct holds internal data during stack analysis.
+
+*******************************************************************************/
 
 typedef struct stackdata_t stackdata_t;
 
 struct stackdata_t {
-    basicblock *bptr;
-    stackptr new;
-    s4 vartop;
-    s4 localcount;
-    s4 varcount;
-    varinfo *var;
-	methodinfo *m;
+    basicblock *bptr;             /* the current basic block being analysed   */
+    stackptr new;                 /* next free stackelement                   */
+    s4 vartop;                    /* next free variable index                 */
+    s4 localcount;                /* number of locals (at the start of var)   */
+    s4 varcount;                  /* total number of variables allocated      */
+    varinfo *var;                 /* variable array (same as jd->var)         */
+	methodinfo *m;                /* the method being analysed                */
+	jitdata *jd;                  /* current jitdata                          */
+	basicblock *last_real_block;  /* the last block before the empty one      */
+	bool repeat;                  /* if true, iterate the analysis again      */
+	exceptiontable **handlers;    /* exception handlers for the current block */
+	exceptiontable *extableend;   /* points to the last exception entry       */
+	stackelement exstack;         /* instack for exception handlers           */
 };
 
 
-/* macros for allocating/releasing variable indices */
+/* macros for allocating/releasing variable indices *****************/
 
 #define GET_NEW_INDEX(sd, new_varindex)                              \
     do {                                                             \
@@ -131,8 +142,8 @@ struct stackdata_t {
         (new_varindex) = ((sd).vartop)++;                            \
     } while (0)
 
-/* not implemented now, can be used to reuse varindices          */
-/* pay attention to not release a localvar once implementing it! */
+/* Not implemented now - could be used to reuse varindices.         */
+/* Pay attention to not release a localvar once implementing it!    */
 #define RELEASE_INDEX(sd, varindex)
 
 #define GET_NEW_VAR(sd, new_varindex, newtype)                       \
@@ -140,6 +151,7 @@ struct stackdata_t {
         GET_NEW_INDEX((sd), (new_varindex));                         \
         (sd).var[new_index].type = (newtype);                        \
     } while (0)
+
 
 /* macros for querying variable properties **************************/
 
@@ -181,12 +193,11 @@ struct stackdata_t {
         sd.var[(sp)->varnum].flags |= PREALLOC;                      \
     } while (0);
 
+
 /* macros for source operands ***************************************/
 
 #define CLR_S1                                                       \
     (iptr->s1.varindex = -1)
-
-#define USE_S1_LOCAL(type1)
 
 #define USE_S1(type1)                                                \
     do {                                                             \
@@ -308,6 +319,15 @@ struct stackdata_t {
     } while (0)
 
 
+/* macro for propagating constant values ****************************/
+
+#define COPY_VAL_AND_TYPE(sd, sindex, dindex)                        \
+    do {                                                             \
+        (sd).var[(dindex)].type = (sd).var[(sindex)].type;           \
+        (sd).var[(dindex)].vv  = (sd).var[(sindex)].vv;              \
+    } while (0)                                                      \
+
+
 /* stack modelling macros *******************************************/
 
 #define OP0_1(typed)                                                 \
@@ -406,10 +426,12 @@ struct stackdata_t {
 
 /* macros for DUP elimination ***************************************/
 
+/* XXX replace NEW_VAR with NEW_INDEX */
 #define DUP_SLOT(sp)                                                 \
     do {                                                             \
-            GET_NEW_VAR(sd, new_index, (sp)->type);                  \
-            NEWSTACK((sp)->type, TEMPVAR, new_index);                \
+        GET_NEW_VAR(sd, new_index, (sp)->type);                      \
+        COPY_VAL_AND_TYPE(sd, (sp)->varnum, new_index);              \
+        NEWSTACK((sp)->type, TEMPVAR, new_index);                    \
     } while(0)
 
 /* does not check input stackdepth */
@@ -473,6 +495,21 @@ struct stackdata_t {
     } while (0)
 
 
+/* forward declarations *******************************************************/
+
+static void stack_create_invars(stackdata_t *sd, basicblock *b, 
+								stackptr curstack, int stackdepth);
+static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b);
+
+#if defined(STACK_VERBOSE)
+static void stack_verbose_show_varinfo(stackdata_t *sd, varinfo *v);
+static void stack_verbose_show_variable(stackdata_t *sd, s4 index);
+static void stack_verbose_show_block(stackdata_t *sd, basicblock *bptr);
+static void stack_verbose_block_enter(stackdata_t *sd, bool reanalyse);
+static void stack_verbose_block_exit(stackdata_t *sd, bool superblockend);
+#endif
+
+
 /* stack_init ******************************************************************
 
    Initialized the stack analysis subsystem (called by jit_init).
@@ -485,9 +522,111 @@ bool stack_init(void)
 }
 
 
+/* stack_grow_variable_array ***************************************************
+
+   Grow the variable array so the given number of additional variables fits in.
+
+   IN:
+      sd...........stack analysis data
+	  num..........number of additional variables
+
+*******************************************************************************/
+
+static void stack_grow_variable_array(stackdata_t *sd, s4 num)
+{
+	s4 newcount;
+
+	assert(num >= 0);
+
+	if (num == 0)
+		return;
+
+	/* XXX avoid too many reallocations */
+	newcount = sd->varcount + num;
+
+	sd->var = DMREALLOC(sd->var, varinfo, sd->varcount, newcount);
+	sd->varcount = newcount;
+	sd->jd->var = sd->var;
+	sd->jd->varcount = newcount;
+}
+
+
+/* stack_append_block **********************************************************
+
+   Append the given block after the last real block of the method (before
+   the pseudo-block at the end).
+
+   IN:
+      sd...........stack analysis data
+	  b............the block to append
+
+*******************************************************************************/
+
+static void stack_append_block(stackdata_t *sd, basicblock *b)
+{
+#if defined(STACK_VERBOSE)
+	printf("APPENDING BLOCK L%0d\n", b->nr);
+#endif
+
+	b->next = sd->last_real_block->next;
+	sd->last_real_block->next = b;
+	sd->last_real_block = b;
+	sd->jd->new_basicblockcount++;
+}
+
+
+/* stack_clone_block ***********************************************************
+
+   Create a copy of the given block and insert it at the end of the method.
+
+   CAUTION: This function does not copy the any variables or the instruction
+   list. It _does_, however, reserve space for the block's invars in the
+   variable array.
+
+   IN:
+      sd...........stack analysis data
+	  b............the block to clone
+
+   RETURN VALUE:
+      a pointer to the copy
+
+*******************************************************************************/
+
+static basicblock * stack_clone_block(stackdata_t *sd, basicblock *b)
+{
+	basicblock *clone;
+
+	clone = DNEW(basicblock);
+	*clone  = *b;
+
+	clone->iinstr = NULL;
+	clone->inlocals = NULL;
+	clone->invars = NULL;
+
+	clone->original = (b->original) ? b->original : b;
+	clone->copied_to = clone->original->copied_to;
+	clone->original->copied_to = clone;
+	clone->nr = sd->m->c_debug_nr++;
+	clone->next = NULL;
+	clone->flags = BBREACHED;
+
+	stack_append_block(sd, clone);
+
+	/* allocate space for the invars of the clone */
+
+	stack_grow_variable_array(sd, b->indepth);
+
+#if defined(STACK_VERBOSE)
+	printf("cloning block L%03d ------> L%03d\n", b->nr, clone->nr);
+#endif
+
+	return clone;
+}
+
+
 /* stack_create_invars *********************************************************
 
-   Create the invars for the given basic block.
+   Create the invars for the given basic block. Also make a copy of the locals.
 
    IN:
       sd...........stack analysis data
@@ -522,7 +661,64 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 		v = sd->var + index;
 		v->type = sp->type;
 		v->flags = OUTVAR;
+		v->vv = sd->var[sp->varnum].vv;
+#if defined(STACK_VERBOSE) && 0
+		printf("\tinvar[%d]: %d\n", i, sd->var[b->invars[i]]);
+#endif
 	}
+
+	/* copy the current state of the local variables */
+
+	v = DMNEW(varinfo, sd->localcount);
+	b->inlocals = v;
+	for (i=0; i<sd->localcount; ++i)
+		*v++ = sd->var[i];
+}
+
+
+/* stack_create_invars_from_outvars ********************************************
+
+   Create the invars for the given basic block. Also make a copy of the locals.
+   Types are propagated from the outvars of the current block.
+
+   IN:
+      sd...........stack analysis data
+	  b............block to create the invars for
+
+*******************************************************************************/
+
+static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b)
+{
+	int i;
+	int n;
+	varinfo *sv, *dv;
+
+	n = sd->bptr->outdepth;
+	assert(sd->vartop + n <= sd->varcount);
+
+	b->indepth = n;
+	b->invars = DMNEW(s4, n);
+
+	if (n) {
+		dv = sd->var + sd->vartop;
+
+		/* allocate the invars */
+
+		for (i=0; i<n; ++i, ++dv) {
+			sv = sd->var + sd->bptr->outvars[i];
+			b->invars[i] = sd->vartop++;
+			dv->type = sv->type;
+			dv->flags = OUTVAR;
+			dv->vv = sv->vv;
+		}
+	}
+
+	/* copy the current state of the local variables */
+
+	dv = DMNEW(varinfo, sd->localcount);
+	b->inlocals = dv;
+	for (i=0; i<sd->localcount; ++i)
+		*dv++ = sd->var[i];
 }
 
 
@@ -538,34 +734,191 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 	  stackdepth...current stack depth
 
    RETURN VALUE:
-      true.........everything ok
-	  false........a VerifyError has been thrown
+      the destinaton block
+	  NULL.........a VerifyError has been thrown
 
 *******************************************************************************/
 
-/* XXX only if ENABLE_VERIFIER */
-static bool stack_check_invars(stackdata_t *sd, basicblock *b,
-							   stackptr curstack, int stackdepth)
+static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
+							  		   stackptr curstack, int stackdepth)
 {
-	int depth;
+	int i;
+	stackptr sp;
+	basicblock *orig;
+	bool separable;
 
-	depth = b->indepth;
+#if defined(STACK_VERBOSE)
+	printf("stack_check_invars(L%03d)\n", b->nr);
+#endif
 
-	if (depth != stackdepth) {
+	/* find original of b */
+	if (b->original)
+		b = b->original;
+	orig = b;
+
+#if defined(STACK_VERBOSE)
+	printf("original is L%03d\n", orig->nr);
+#endif
+
+	i = orig->indepth;
+
+	if (i != stackdepth) {
 		exceptions_throw_verifyerror(sd->m, "Stack depth mismatch");
-		return false;
+		return NULL;
 	}
 
-	while (depth--) {
-		if (sd->var[b->invars[depth]].type != curstack->type) {
-			exceptions_throw_verifyerror_for_stack(sd->m, 
-					sd->var[b->invars[depth]].type);
-			return false;
+	do {
+		separable = false;
+
+#if defined(STACK_VERBOSE)
+		printf("checking against ");
+		stack_verbose_show_block(sd, b); printf("\n");
+#endif
+
+		sp = curstack;
+		for (i = orig->indepth; i--; sp = sp->prev) {
+			if (sd->var[b->invars[i]].type != sp->type) {
+				exceptions_throw_verifyerror_for_stack(sd->m, 
+						sd->var[b->invars[i]].type);
+				return NULL;
+			}
+
+			if (sp->type == TYPE_RET) {
+				if (sd->var[b->invars[i]].vv.retaddr != sd->var[sp->varnum].vv.retaddr) {
+					separable = true;
+					break;
+				}
+			}
 		}
-		curstack = curstack->prev;
+
+		if (b->inlocals) {
+			for (i=0; i<sd->localcount; ++i) {
+				if (sd->var[i].type == TYPE_RET && b->inlocals[i].type == TYPE_RET) {
+					if (sd->var[i].vv.retaddr != b->inlocals[i].vv.retaddr) {
+						separable = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if (!separable) {
+			/* XXX mark mixed type variables void */
+			/* XXX cascading collapse? */
+#if defined(STACK_VERBOSE)
+			printf("------> using L%03d\n", b->nr);
+#endif
+			return b;
+		}
+	} while ((b = b->copied_to) != NULL);
+
+	b = stack_clone_block(sd, orig);
+	if (!b)
+		return NULL;
+
+	stack_create_invars(sd, b, curstack, stackdepth);
+	return b;
+}
+
+
+/* stack_check_invars_from_outvars *********************************************
+
+   Check the outvars of the current block against the invars of the given block.
+   Depth and types must match.
+
+   IN:
+      sd...........stack analysis data
+	  b............block which invars to check against
+
+   RETURN VALUE:
+      the destinaton block
+	  NULL.........a VerifyError has been thrown
+
+*******************************************************************************/
+
+static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock *b)
+{
+	int i;
+	int n;
+	varinfo *sv, *dv;
+	basicblock *orig;
+	bool separable;
+
+#if defined(STACK_VERBOSE)
+	printf("stack_check_invars_from_outvars(L%03d)\n", b->nr);
+#endif
+
+	/* find original of b */
+	if (b->original)
+		b = b->original;
+	orig = b;
+
+#if defined(STACK_VERBOSE)
+	printf("original is L%03d\n", orig->nr);
+#endif
+
+	i = orig->indepth;
+	n = sd->bptr->outdepth;
+
+	if (i != n) {
+		exceptions_throw_verifyerror(sd->m, "Stack depth mismatch");
+		return NULL;
 	}
 
-	return true;
+	do {
+		separable = false;
+
+#if defined(STACK_VERBOSE)
+		printf("checking against ");
+		stack_verbose_show_block(sd, b); printf("\n");
+#endif
+
+		if (n) {
+			dv = sd->var + b->invars[0];
+
+			for (i=0; i<n; ++i, ++dv) {
+				sv = sd->var + sd->bptr->outvars[i];
+				if (sv->type != dv->type) {
+					exceptions_throw_verifyerror_for_stack(sd->m, dv->type);
+					return NULL;
+				}
+
+				if (dv->type == TYPE_RET) {
+					if (sv->vv.retaddr != dv->vv.retaddr) {
+						separable = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if (b->inlocals) {
+			for (i=0; i<sd->localcount; ++i) {
+				if (sd->var[i].type == TYPE_RET && b->inlocals[i].type == TYPE_RET) {
+					if (sd->var[i].vv.retaddr != b->inlocals[i].vv.retaddr) {
+						separable = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if (!separable) {
+			/* XXX mark mixed type variables void */
+			/* XXX cascading collapse? */
+#if defined(STACK_VERBOSE)
+			printf("------> using L%03d\n", b->nr);
+#endif
+			return b;
+		}
+	} while ((b = b->copied_to) != NULL);
+
+	b = stack_clone_block(sd, orig);
+	if (!b)
+		return NULL;
+
+	stack_create_invars_from_outvars(sd, b);
+	return b;
 }
 
 
@@ -609,32 +962,784 @@ static stackptr stack_create_instack(stackdata_t *sd)
 }
 
 
-/* MARKREACHED marks the destination block <b> as reached. If this
- * block has been reached before we check if stack depth and types
- * match. Otherwise the destination block receives a copy of the
- * current stack as its input stack.
- *
- * b...destination block
- * c...current stack
- */
+/* stack_mark_reached **********************************************************
 
-static bool stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack, int stackdepth) 
+   Mark the given block reached and propagate the current stack and locals to
+   it. This function specializes the target block, if necessary, and returns
+   a pointer to the specialized target.
+
+   IN:
+      sd...........stack analysis data
+	  b............the block to reach
+	  curstack.....the current stack top
+	  stackdepth...the current stack depth
+
+   RETURN VALUE:
+      a pointer to (a specialized version of) the target
+	  NULL.........a VerifyError has been thrown
+
+*******************************************************************************/
+
+static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack, int stackdepth) 
 {
+#if defined(STACK_VERBOSE)
+	printf("stack_mark_reached(L%03d from L%03d)\n", b->nr, sd->bptr->nr);
+#endif
 	/* mark targets of backward branches */
 	if (b <= sd->bptr)
 		b->bitflags |= BBFLAG_REPLACEMENT;
 
 	if (b->flags < BBREACHED) {
-		/* b is reached for the first time. Create its instack */
+		/* b is reached for the first time. Create its invars. */
+
+#if defined(STACK_VERBOSE)
+		printf("reached L%03d for the first time\n", b->nr);
+#endif
+
 		stack_create_invars(sd, b, curstack, stackdepth);
 
 		b->flags = BBREACHED;
+
+		return b;
 	} 
 	else {
-		/* b has been reached before. Check that its instack matches */
-		if (!stack_check_invars(sd, b, curstack, stackdepth))
-			return false;
+		/* b has been reached before. Check that its invars match. */
+
+		return stack_check_invars(sd, b, curstack, stackdepth);
 	}
+}
+
+
+/* stack_mark_reached_from_outvars *********************************************
+
+   Mark the given block reached and propagate the outvars of the current block
+   and the current locals to it. This function specializes the target block, 
+   if necessary, and returns a pointer to the specialized target.
+
+   IN:
+      sd...........stack analysis data
+	  b............the block to reach
+
+   RETURN VALUE:
+      a pointer to (a specialized version of) the target
+	  NULL.........a VerifyError has been thrown
+
+*******************************************************************************/
+
+static basicblock *stack_mark_reached_from_outvars(stackdata_t *sd, basicblock *b)
+{
+#if defined(STACK_VERBOSE)
+	printf("stack_mark_reached_from_outvars(L%03d from L%03d)\n", b->nr, sd->bptr->nr);
+#endif
+	/* mark targets of backward branches */
+	if (b <= sd->bptr)
+		b->bitflags |= BBFLAG_REPLACEMENT;
+
+	if (b->flags < BBREACHED) {
+		/* b is reached for the first time. Create its invars. */
+
+#if defined(STACK_VERBOSE)
+		printf("reached L%03d for the first time\n", b->nr);
+#endif
+
+		stack_create_invars_from_outvars(sd, b);
+
+		b->flags = BBREACHED;
+
+		return b;
+	} 
+	else {
+		/* b has been reached before. Check that its invars match. */
+
+		return stack_check_invars_from_outvars(sd, b);
+	}
+}
+
+
+/* stack_reach_next_block ******************************************************
+
+   Mark the following block reached and propagate the outvars of the current block
+   and the current locals to it. This function specializes the target block, 
+   if necessary, and returns a pointer to the specialized target.
+
+   IN:
+      sd...........stack analysis data
+
+   RETURN VALUE:
+      a pointer to (a specialized version of) the following block
+	  NULL.........a VerifyError has been thrown
+
+*******************************************************************************/
+
+static bool stack_reach_next_block(stackdata_t *sd)
+{
+	basicblock *tbptr;
+	instruction *iptr;
+
+	tbptr = (sd->bptr->original) ? sd->bptr->original : sd->bptr;
+	tbptr = stack_mark_reached_from_outvars(sd, tbptr->next);
+	if (!tbptr)
+		return false;
+
+	if (tbptr != sd->bptr->next) {
+#if defined(STACK_VERBOSE)
+		printf("NEXT IS NON-CONSEQUITIVE L%03d\n", tbptr->nr);
+#endif
+		iptr = sd->bptr->iinstr + sd->bptr->icount - 1;
+		assert(iptr->opc == ICMD_NOP);
+		iptr->opc = ICMD_GOTO;
+		iptr->dst.block = tbptr;
+
+		if (tbptr->flags < BBFINISHED)
+			sd->repeat = true; /* XXX check if we really need to repeat */
+	}
+
+	return true;
+}
+
+
+/* stack_reach_handlers ********************************************************
+
+   Reach the exception handlers for the current block.
+
+   IN:
+      sd...........stack analysis data
+
+   RETURN VALUE:
+     true.........everything ok
+	 false........a VerifyError has been thrown
+
+*******************************************************************************/
+
+static bool stack_reach_handlers(stackdata_t *sd)
+{
+	s4 i;
+	basicblock *tbptr;
+
+#if defined(STACK_VERBOSE)
+	printf("reaching exception handlers...\n");
+#endif
+
+	for (i=0; sd->handlers[i]; ++i) {
+		tbptr = sd->handlers[i]->handler;
+
+		tbptr->type = BBTYPE_EXH;
+		tbptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
+
+		/* reach (and specialize) the handler block */
+
+		tbptr = stack_mark_reached(sd, tbptr, &(sd->exstack), 1);
+
+		if (tbptr == NULL)
+			return false;
+
+		sd->handlers[i]->handler = tbptr;
+	}
+
+	return true;
+}
+
+
+/* stack_reanalyse_block  ******************************************************
+
+   Re-analyse the current block. This is called if either the block itself
+   has already been analysed before, or the current block is a clone of an
+   already analysed block, and this clone is reached for the first time.
+   In the latter case, this function does all that is necessary for fully
+   cloning the block (cloning the instruction list and variables, etc.).
+
+   IN:
+      sd...........stack analysis data
+
+   RETURN VALUE:
+     true.........everything ok
+	 false........a VerifyError has been thrown
+
+*******************************************************************************/
+
+#define RELOCATE(index)                                              \
+    do {                                                             \
+        if ((index) >= blockvarstart)                                \
+            (index) += blockvarshift;                                \
+        else if ((index) >= invarstart)                              \
+            (index) += invarshift;                                   \
+    } while (0)
+
+bool stack_reanalyse_block(stackdata_t *sd)
+{
+	instruction *iptr;
+	basicblock *b;
+	basicblock *orig;
+	s4 len;
+	s4 invarstart;
+	s4 blockvarstart;
+	s4 invarshift;
+	s4 blockvarshift;
+	s4 i, j;
+	s4 *argp;
+	branch_target_t *table;
+	lookup_target_t *lookup;
+	bool superblockend;
+	bool maythrow;
+	bool cloneinstructions;
+	basicblock *tbptr;
+	exceptiontable *ex;
+
+#if defined(STACK_VERBOSE)
+	stack_verbose_block_enter(sd, true);
+#endif
+
+	b = sd->bptr;
+
+	if (!b->iinstr) {
+		orig = b->original;
+		assert(orig != NULL);
+
+		/* clone the instruction list */
+
+		cloneinstructions = true;
+
+		assert(orig->iinstr);
+		len = orig->icount;
+		iptr = DMNEW(instruction, len + 1);
+
+		MCOPY(iptr, orig->iinstr, instruction, len);
+		iptr[len].opc = ICMD_NOP;
+		b->iinstr = iptr;
+		b->icount = ++len;
+
+		/* allocate space for the clone's block variables */
+
+		stack_grow_variable_array(sd, orig->varcount);
+
+		/* we already have the invars set */
+
+		assert(b->indepth == orig->indepth);
+
+		/* calculate relocation shifts for invars and block variables */
+
+		if (orig->indepth) {
+			invarstart = orig->invars[0];
+			invarshift = b->invars[0] - invarstart;
+		}
+		else {
+			invarstart = INT_MAX;
+			invarshift = 0;
+		}
+		blockvarstart = orig->varstart;
+		blockvarshift = sd->vartop - blockvarstart;
+
+		/* copy block variables */
+
+		b->varstart = sd->vartop;
+		b->varcount = orig->varcount;
+		sd->vartop += b->varcount;
+		MCOPY(sd->var + b->varstart, sd->var + orig->varstart, varinfo, b->varcount);
+
+		/* copy outvars */
+
+		b->outdepth = orig->outdepth;
+		b->outvars = DMNEW(s4, orig->outdepth);
+		MCOPY(b->outvars, orig->outvars, s4, orig->outdepth);
+
+		/* clone exception handlers */
+
+		for (i=0; sd->handlers[i]; ++i) {
+			ex = DNEW(exceptiontable);
+			ex->handler = sd->handlers[i]->handler;
+			ex->start = b;
+			ex->end = b; /* XXX hack, see end of new_stack_analyse */
+			ex->catchtype = sd->handlers[i]->catchtype;
+			ex->down = NULL;
+
+			assert(sd->extableend->down == NULL);
+			sd->extableend->down = ex;
+			sd->extableend = ex;
+			sd->jd->cd->exceptiontablelength++;
+
+			sd->handlers[i] = ex;
+		}
+	}
+	else {
+		cloneinstructions = false;
+		invarshift = 0;
+		blockvarshift = 0;
+		invarstart = sd->vartop;
+		blockvarstart = sd->vartop;
+		iptr = b->iinstr;
+	}
+
+	if (b->original) {
+		/* find exception handlers for the cloned block */
+		len = 0;
+		ex = sd->jd->cd->exceptiontable;
+		for (; ex != NULL; ex = ex->down) {
+			/* XXX the cloned exception handlers have identical */
+			/* start end end blocks.                            */
+			if ((ex->start == b) && (ex->end == b)) {
+				sd->handlers[len++] = ex;
+			}
+		}
+		sd->handlers[len] = NULL;
+	}
+
+#if defined(STACK_VERBOSE)
+	printf("invarstart = %d, blockvarstart = %d\n", invarstart, blockvarstart);
+	printf("invarshift = %d, blockvarshift = %d\n", invarshift, blockvarshift);
+#endif
+
+	/* mark block as finished */
+
+	b->flags = BBFINISHED;
+
+	/* initialize locals at the start of this block */
+
+	if (b->inlocals)
+		MCOPY(sd->var, b->inlocals, varinfo, sd->localcount);
+
+	/* reach exception handlers for this block */
+
+	if (!stack_reach_handlers(sd))
+		return false;
+
+	superblockend = false;
+
+	for (len = b->icount; len--; iptr++) {
+#if defined(STACK_VERBOSE)
+		new_show_icmd(sd->jd, iptr, false, SHOW_STACK);
+		printf("\n");
+#endif
+
+		maythrow = false;
+
+		switch (iptr->opc) {
+			case ICMD_RET:
+				j = iptr->s1.varindex;
+
+				if (sd->var[j].type != TYPE_RET) {
+					exceptions_throw_verifyerror(sd->m, "RET with non-returnAddress value");
+					return false;
+				}
+
+				iptr->dst.block = stack_mark_reached_from_outvars(sd, sd->var[j].vv.retaddr);
+				superblockend = true;
+				break;
+
+			case ICMD_JSR:
+				iptr->sx.s23.s3.jsrtarget.block = stack_mark_reached_from_outvars(sd, iptr->sx.s23.s3.jsrtarget.block);
+				superblockend = true;
+				break;
+
+			case ICMD_RETURN:
+				superblockend = true;
+				break;
+
+			case ICMD_CHECKNULL:
+			case ICMD_PUTSTATICCONST:
+				maythrow = true;
+				break;
+
+			case ICMD_NOP:
+			case ICMD_IINC:
+			case ICMD_INLINE_START:
+			case ICMD_INLINE_END:
+			case ICMD_INLINE_GOTO:
+				break;
+
+			case ICMD_GOTO:
+				iptr->dst.block = stack_mark_reached_from_outvars(sd, iptr->dst.block);
+				superblockend = true;
+				break;
+
+				/* pop 0 push 1 const */
+
+			case ICMD_ACONST:
+				maythrow = true;
+			case ICMD_ICONST:
+			case ICMD_LCONST:
+			case ICMD_FCONST:
+			case ICMD_DCONST:
+
+				/* pop 0 push 1 load */
+
+			case ICMD_ILOAD:
+			case ICMD_LLOAD:
+			case ICMD_FLOAD:
+			case ICMD_DLOAD:
+			case ICMD_ALOAD:
+				RELOCATE(iptr->dst.varindex);
+				break;
+
+				/* pop 2 push 1 */
+
+			case ICMD_IALOAD:
+			case ICMD_LALOAD:
+			case ICMD_FALOAD:
+			case ICMD_DALOAD:
+			case ICMD_AALOAD:
+			case ICMD_BALOAD:
+			case ICMD_CALOAD:
+			case ICMD_SALOAD:
+				RELOCATE(iptr->sx.s23.s2.varindex);
+				RELOCATE(iptr->s1.varindex);
+				RELOCATE(iptr->dst.varindex);
+				maythrow = true;
+				break;
+
+				/* pop 3 push 0 */
+
+			case ICMD_IASTORE:
+			case ICMD_LASTORE:
+			case ICMD_FASTORE:
+			case ICMD_DASTORE:
+			case ICMD_AASTORE:
+			case ICMD_BASTORE:
+			case ICMD_CASTORE:
+			case ICMD_SASTORE:
+				RELOCATE(iptr->sx.s23.s3.varindex);
+				RELOCATE(iptr->sx.s23.s2.varindex);
+				RELOCATE(iptr->s1.varindex);
+				maythrow = true;
+				break;
+
+				/* pop 1 push 0 store */
+
+			case ICMD_ISTORE:
+			case ICMD_LSTORE:
+			case ICMD_FSTORE:
+			case ICMD_DSTORE:
+			case ICMD_ASTORE:
+				RELOCATE(iptr->s1.varindex);
+
+				j = iptr->dst.varindex;
+				COPY_VAL_AND_TYPE(*sd, iptr->s1.varindex, j);
+				break;
+
+				/* pop 1 push 0 */
+
+			case ICMD_ARETURN:
+			case ICMD_ATHROW:
+				maythrow = true;
+			case ICMD_IRETURN:
+			case ICMD_LRETURN:
+			case ICMD_FRETURN:
+			case ICMD_DRETURN:
+				RELOCATE(iptr->s1.varindex);
+				superblockend = true;
+				break;
+
+			case ICMD_PUTSTATIC:
+			case ICMD_PUTFIELDCONST:
+				maythrow = true;
+			case ICMD_POP:
+				RELOCATE(iptr->s1.varindex);
+				break;
+
+				/* pop 1 push 0 branch */
+
+			case ICMD_IFNULL:
+			case ICMD_IFNONNULL:
+
+			case ICMD_IFEQ:
+			case ICMD_IFNE:
+			case ICMD_IFLT:
+			case ICMD_IFGE:
+			case ICMD_IFGT:
+			case ICMD_IFLE:
+
+			case ICMD_IF_LEQ:
+			case ICMD_IF_LNE:
+			case ICMD_IF_LLT:
+			case ICMD_IF_LGE:
+			case ICMD_IF_LGT:
+			case ICMD_IF_LLE:
+				RELOCATE(iptr->s1.varindex);
+				iptr->dst.block = stack_mark_reached_from_outvars(sd, iptr->dst.block);
+				break;
+
+				/* pop 1 push 0 table branch */
+
+			case ICMD_TABLESWITCH:
+				i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1 + 1;
+
+				if (cloneinstructions) {
+					table = DMNEW(branch_target_t, i);
+					MCOPY(table, iptr->dst.table, branch_target_t, i);
+					iptr->dst.table = table;
+				}
+				else {
+					table = iptr->dst.table;
+				}
+
+				RELOCATE(iptr->s1.varindex);
+				while (i--) {
+					table->block = stack_mark_reached_from_outvars(sd, table->block);
+					table++;
+				}
+				superblockend = true;
+				break;
+
+			case ICMD_LOOKUPSWITCH:
+				i = iptr->sx.s23.s2.lookupcount;
+				if (cloneinstructions) {
+					lookup = DMNEW(lookup_target_t, i);
+					MCOPY(lookup, iptr->dst.lookup, lookup_target_t, i);
+					iptr->dst.lookup = lookup;
+				}
+				else {
+					lookup = iptr->dst.lookup;
+				}
+				RELOCATE(iptr->s1.varindex);
+				while (i--) {
+					lookup->target.block = stack_mark_reached_from_outvars(sd, lookup->target.block);
+					lookup++;
+				}
+				iptr->sx.s23.s3.lookupdefault.block = stack_mark_reached_from_outvars(sd, iptr->sx.s23.s3.lookupdefault.block);
+				superblockend = true;
+				break;
+
+			case ICMD_MONITORENTER:
+			case ICMD_MONITOREXIT:
+				RELOCATE(iptr->s1.varindex);
+				maythrow = true;
+				break;
+
+				/* pop 2 push 0 branch */
+
+			case ICMD_IF_ICMPEQ:
+			case ICMD_IF_ICMPNE:
+			case ICMD_IF_ICMPLT:
+			case ICMD_IF_ICMPGE:
+			case ICMD_IF_ICMPGT:
+			case ICMD_IF_ICMPLE:
+
+			case ICMD_IF_LCMPEQ:
+			case ICMD_IF_LCMPNE:
+			case ICMD_IF_LCMPLT:
+			case ICMD_IF_LCMPGE:
+			case ICMD_IF_LCMPGT:
+			case ICMD_IF_LCMPLE:
+
+			case ICMD_IF_FCMPEQ:
+			case ICMD_IF_FCMPNE:
+
+			case ICMD_IF_FCMPL_LT:
+			case ICMD_IF_FCMPL_GE:
+			case ICMD_IF_FCMPL_GT:
+			case ICMD_IF_FCMPL_LE:
+
+			case ICMD_IF_FCMPG_LT:
+			case ICMD_IF_FCMPG_GE:
+			case ICMD_IF_FCMPG_GT:
+			case ICMD_IF_FCMPG_LE:
+
+			case ICMD_IF_DCMPEQ:
+			case ICMD_IF_DCMPNE:
+
+			case ICMD_IF_DCMPL_LT:
+			case ICMD_IF_DCMPL_GE:
+			case ICMD_IF_DCMPL_GT:
+			case ICMD_IF_DCMPL_LE:
+
+			case ICMD_IF_DCMPG_LT:
+			case ICMD_IF_DCMPG_GE:
+			case ICMD_IF_DCMPG_GT:
+			case ICMD_IF_DCMPG_LE:
+
+			case ICMD_IF_ACMPEQ:
+			case ICMD_IF_ACMPNE:
+				RELOCATE(iptr->sx.s23.s2.varindex);
+				RELOCATE(iptr->s1.varindex);
+				iptr->dst.block = stack_mark_reached_from_outvars(sd, iptr->dst.block);
+				break;
+
+				/* pop 2 push 0 */
+
+			case ICMD_PUTFIELD:
+			case ICMD_IASTORECONST:
+			case ICMD_LASTORECONST:
+			case ICMD_AASTORECONST:
+			case ICMD_BASTORECONST:
+			case ICMD_CASTORECONST:
+			case ICMD_SASTORECONST:
+				maythrow = true;
+			case ICMD_POP2:
+				RELOCATE(iptr->sx.s23.s2.varindex);
+				RELOCATE(iptr->s1.varindex);
+				break;
+
+				/* pop 0 push 1 copy */
+
+			case ICMD_COPY:
+			case ICMD_MOVE:
+				RELOCATE(iptr->dst.varindex);
+				RELOCATE(iptr->s1.varindex);
+				COPY_VAL_AND_TYPE(*sd, iptr->s1.varindex, iptr->dst.varindex);
+				break;
+
+				/* pop 2 push 1 */
+
+			case ICMD_IDIV:
+			case ICMD_IREM:
+			case ICMD_LDIV:
+			case ICMD_LREM:
+				maythrow = true;
+			case ICMD_IADD:
+			case ICMD_ISUB:
+			case ICMD_IMUL:
+			case ICMD_ISHL:
+			case ICMD_ISHR:
+			case ICMD_IUSHR:
+			case ICMD_IAND:
+			case ICMD_IOR:
+			case ICMD_IXOR:
+			case ICMD_LADD:
+			case ICMD_LSUB:
+			case ICMD_LMUL:
+			case ICMD_LOR:
+			case ICMD_LAND:
+			case ICMD_LXOR:
+			case ICMD_LSHL:
+			case ICMD_LSHR:
+			case ICMD_LUSHR:
+			case ICMD_FADD:
+			case ICMD_FSUB:
+			case ICMD_FMUL:
+			case ICMD_FDIV:
+			case ICMD_FREM:
+			case ICMD_DADD:
+			case ICMD_DSUB:
+			case ICMD_DMUL:
+			case ICMD_DDIV:
+			case ICMD_DREM:
+			case ICMD_LCMP:
+			case ICMD_FCMPL:
+			case ICMD_FCMPG:
+			case ICMD_DCMPL:
+			case ICMD_DCMPG:
+				RELOCATE(iptr->sx.s23.s2.varindex);
+				RELOCATE(iptr->s1.varindex);
+				RELOCATE(iptr->dst.varindex);
+				break;
+
+				/* pop 1 push 1 */
+
+			case ICMD_CHECKCAST:
+			case ICMD_ARRAYLENGTH:
+			case ICMD_INSTANCEOF:
+			case ICMD_NEWARRAY:
+			case ICMD_ANEWARRAY:
+				maythrow = true;
+			case ICMD_GETFIELD:
+			case ICMD_IADDCONST:
+			case ICMD_ISUBCONST:
+			case ICMD_IMULCONST:
+			case ICMD_IMULPOW2:
+			case ICMD_IDIVPOW2:
+			case ICMD_IREMPOW2:
+			case ICMD_IANDCONST:
+			case ICMD_IORCONST:
+			case ICMD_IXORCONST:
+			case ICMD_ISHLCONST:
+			case ICMD_ISHRCONST:
+			case ICMD_IUSHRCONST:
+			case ICMD_LADDCONST:
+			case ICMD_LSUBCONST:
+			case ICMD_LMULCONST:
+			case ICMD_LMULPOW2:
+			case ICMD_LDIVPOW2:
+			case ICMD_LREMPOW2:
+			case ICMD_LANDCONST:
+			case ICMD_LORCONST:
+			case ICMD_LXORCONST:
+			case ICMD_LSHLCONST:
+			case ICMD_LSHRCONST:
+			case ICMD_LUSHRCONST:
+			case ICMD_INEG:
+			case ICMD_INT2BYTE:
+			case ICMD_INT2CHAR:
+			case ICMD_INT2SHORT:
+			case ICMD_LNEG:
+			case ICMD_FNEG:
+			case ICMD_DNEG:
+			case ICMD_I2L:
+			case ICMD_I2F:
+			case ICMD_I2D:
+			case ICMD_L2I:
+			case ICMD_L2F:
+			case ICMD_L2D:
+			case ICMD_F2I:
+			case ICMD_F2L:
+			case ICMD_F2D:
+			case ICMD_D2I:
+			case ICMD_D2L:
+			case ICMD_D2F:
+				RELOCATE(iptr->s1.varindex);
+				RELOCATE(iptr->dst.varindex);
+				break;
+
+				/* pop 0 push 1 */
+
+			case ICMD_GETSTATIC:
+			case ICMD_NEW:
+				maythrow = true;
+				RELOCATE(iptr->dst.varindex);
+				break;
+
+				/* pop many push any */
+
+			case ICMD_INVOKESTATIC:
+			case ICMD_INVOKESPECIAL:
+			case ICMD_INVOKEVIRTUAL:
+			case ICMD_INVOKEINTERFACE:
+			case ICMD_BUILTIN:
+			case ICMD_MULTIANEWARRAY:
+				i = iptr->s1.argcount;
+				if (cloneinstructions) {
+					argp = DMNEW(s4, i);
+					MCOPY(argp, iptr->sx.s23.s2.args, s4, i);
+					iptr->sx.s23.s2.args = argp;
+				}
+				else {
+					argp = iptr->sx.s23.s2.args;
+				}
+
+				maythrow = true;
+				while (--i >= 0) {
+					RELOCATE(*argp);
+					argp++;
+				}
+				RELOCATE(iptr->dst.varindex);
+				break;
+
+			default:
+				*exceptionptr =
+					new_internalerror("Unknown ICMD %d during stack re-analysis",
+							iptr->opc);
+				return false;
+		} /* switch */
+
+#if defined(STACK_VERBOSE)
+		new_show_icmd(sd->jd, iptr, false, SHOW_STACK);
+		printf("\n");
+#endif
+	}
+
+	/* relocate outvars */
+
+	for (i=0; i<b->outdepth; ++i) {
+		RELOCATE(b->outvars[i]);
+	}
+
+#if defined(STACK_VERBOSE)
+	stack_verbose_block_exit(sd, superblockend);
+#endif
+
+	/* propagate to the next block */
+
+	if (!superblockend)
+		if (!stack_reach_next_block(sd))
+			return false;
 
 	return true;
 }
@@ -671,7 +1776,6 @@ bool new_stack_analyse(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	stackdata_t   sd;
-	int           b_count;        /* basic block counter                      */
 	int           b_index;        /* basic block index                        */
 	int           stackdepth;
 	stackptr      curstack;       /* current stack top                        */
@@ -681,10 +1785,11 @@ bool new_stack_analyse(jitdata *jd)
 	int           javaindex;
 	int           len;            /* # of instructions after the current one  */
 	bool          superblockend;  /* if true, no fallthrough to next block    */
-	bool          repeat;         /* if true, outermost loop must run again   */
 	bool          deadcode;       /* true if no live code has been reached    */
 	instruction  *iptr;           /* the current instruction                  */
 	basicblock   *tbptr;
+	basicblock   *original;
+	exceptiontable *ex;
 
 	stackptr     *last_store_boundary;
 	stackptr      coalescing_boundary;
@@ -718,10 +1823,15 @@ bool new_stack_analyse(jitdata *jd)
 	/* initialize the stackdata_t struct */
 
 	sd.m = m;
+	sd.jd = jd;
 	sd.varcount = jd->varcount;
 	sd.vartop =  jd->vartop;
 	sd.localcount = jd->localcount;
 	sd.var = jd->var;
+	sd.handlers = DMNEW(exceptiontable *, cd->exceptiontablelength + 1);
+	sd.exstack.type = TYPE_ADR;
+	sd.exstack.prev = NULL;
+	sd.exstack.varnum = 0; /* XXX do we need a real variable index here? */
 
 #if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
@@ -730,6 +1840,23 @@ bool new_stack_analyse(jitdata *jd)
 #if defined(ENABLE_STATISTICS)
 	iteration_count = 0;
 #endif
+
+	/* find the last real basic block */
+	
+	sd.last_real_block = NULL;
+	tbptr = jd->new_basicblocks;
+	while (tbptr->next) {
+		sd.last_real_block = tbptr;
+		tbptr = tbptr->next;
+	}
+	assert(sd.last_real_block);
+
+	/* find the last exception handler */
+
+	if (cd->exceptiontablelength)
+		sd.extableend = cd->exceptiontable + cd->exceptiontablelength - 1;
+	else
+		sd.extableend = NULL;
 
 	/* init jd->interface_map */
 
@@ -745,24 +1872,6 @@ bool new_stack_analyse(jitdata *jd)
 	jd->new_basicblocks[0].invars = NULL;
 	jd->new_basicblocks[0].indepth = 0;
 
-	/* initialize invars of exception handlers */
-
-	for (i = 0; i < cd->exceptiontablelength; i++) {
-		sd.bptr = BLOCK_OF(cd->exceptiontable[i].handlerpc);
-		sd.bptr->flags = BBREACHED;
-		sd.bptr->type = BBTYPE_EXH;
-		sd.bptr->predecessorcount = CFG_UNKNOWN_PREDECESSORS;
-
-		GET_NEW_VAR(sd, new_index, TYPE_ADR);
-		sd.bptr->invars = DMNEW(s4, 1);
-		sd.bptr->invars[0] = new_index;
-		sd.bptr->indepth = 1;
-		sd.var[new_index].flags |= OUTVAR;
-
-		/* mark this interface variable used */
-		jd->interface_map[0 * 5 + TYPE_ADR].flags = 0;
-	}
-
 	/* stack analysis loop (until fixpoint reached) **************************/
 
 	do {
@@ -772,23 +1881,15 @@ bool new_stack_analyse(jitdata *jd)
 
 		/* initialize loop over basic blocks */
 
-		b_count = jd->new_basicblockcount;
 		sd.bptr = jd->new_basicblocks;
 		superblockend = true;
-		repeat = false;
+		sd.repeat = false;
 		curstack = NULL; stackdepth = 0;
 		deadcode = true;
 
 		/* iterate over basic blocks *****************************************/
 
-		for (; --b_count >= 0; ++sd.bptr) {
-
-#if defined(STACK_VERBOSE)
-			printf("----\nANALYZING BLOCK L%03d ", sd.bptr->nr);
-			if (sd.bptr->type == BBTYPE_EXH) printf("EXH\n");
-			else if (sd.bptr->type == BBTYPE_SBR) printf("SBR\n");
-			else printf("STD\n");
-#endif
+		for (; sd.bptr; sd.bptr = sd.bptr->next) {
 
 			if (sd.bptr->flags == BBDELETED) {
 				/* This block has been deleted - do nothing. */
@@ -800,7 +1901,7 @@ bool new_stack_analyse(jitdata *jd)
 				/* This block has not been reached so far, and we      */
 				/* don't fall into it, so we'll have to iterate again. */
 
-				repeat = true;
+				sd.repeat = true;
 				continue;
 			}
 
@@ -811,31 +1912,49 @@ bool new_stack_analyse(jitdata *jd)
 				continue;
 			}
 
+			if (sd.bptr->original && sd.bptr->original->flags < BBFINISHED) {
+				/* This block is a clone and the original has not been */
+				/* analysed, yet. Analyse it on the next iteration.    */
+
+				sd.repeat = true;
+				continue;
+			}
+
 			/* This block has to be analysed now. */
 
 			/* XXX The rest of this block is still indented one level too */
 			/* much in order to avoid a giant diff by changing that.      */
 
-				if (superblockend) {
-					/* We know that sd.bptr->flags == BBREACHED. */
-					/* This block has been reached before.    */
+				/* We know that sd.bptr->flags == BBREACHED. */
+				/* This block has been reached before.    */
 
-					stackdepth = sd.bptr->indepth;
+				assert(sd.bptr->flags == BBREACHED);
+				stackdepth = sd.bptr->indepth;
+
+				/* find exception handlers for this block */
+
+				/* determine the active exception handlers for this block */
+				/* XXX could use a faster algorithm with sorted lists or  */
+				/* something?                                             */
+
+				original = (sd.bptr->original) ? sd.bptr->original : sd.bptr;
+
+				len = 0;
+				ex = cd->exceptiontable;
+				for (; ex != NULL; ex = ex->down) {
+					if ((ex->start <= original) && (ex->end > original)) {
+						sd.handlers[len++] = ex;
+					}
 				}
-				else if (sd.bptr->flags < BBREACHED) {
-					/* This block is reached for the first time now */
-					/* by falling through from the previous block.  */
-					/* Create the instack (propagated).             */
+				sd.handlers[len] = NULL;
 
-					stack_create_invars(&sd, sd.bptr, curstack, stackdepth);
-				}
-				else {
-					/* This block has been reached before. now we are */
-					/* falling into it from the previous block.       */
-					/* Check that stack depth is well-defined.        */
 
-					if (!stack_check_invars(&sd, sd.bptr, curstack, stackdepth))
+				/* reanalyse cloned block */
+
+				if (sd.bptr->original) {
+					if (!stack_reanalyse_block(&sd))
 						return false;
+					continue;
 				}
 
 				/* reset the new pointer for allocating stackslots */
@@ -845,6 +1964,11 @@ bool new_stack_analyse(jitdata *jd)
 				/* create the instack of this block */
 
 				curstack = stack_create_instack(&sd);
+
+				/* initialize locals at the start of this block */
+
+				if (sd.bptr->inlocals)
+					MCOPY(sd.var, sd.bptr->inlocals, varinfo, sd.localcount);
 
 				/* set up local variables for analyzing this block */
 
@@ -867,14 +1991,15 @@ bool new_stack_analyse(jitdata *jd)
  				/* remember the start of this block's variables */
   
  				sd.bptr->varstart = sd.vartop;
-  
+
 #if defined(STACK_VERBOSE)
-					printf("INVARS - indices:\t\n");
-					for (i=0; i<sd.bptr->indepth; ++i) {
-						printf("%d ", sd.bptr->invars[i]);
-					}
-					printf("\n\n");
+				stack_verbose_block_enter(&sd, false);
 #endif
+  
+				/* reach exception handlers for this block */
+
+				if (!stack_reach_handlers(&sd))
+					return false;
 
 				/* iterate over ICMDs ****************************************/
 
@@ -935,12 +2060,17 @@ icmd_NOP:
 						break;
 
 					case ICMD_RET:
-						iptr->s1.varindex = 
+						j = iptr->s1.varindex = 
 							jd->local_map[iptr->s1.varindex * 5 + TYPE_ADR];
+
+						if (sd.var[j].type != TYPE_RET) {
+							exceptions_throw_verifyerror(m, "RET with non-returnAddress value");
+							return false;
+						}
 		
-						USE_S1_LOCAL(TYPE_ADR);
 						CLR_SX;
-						CLR_DST;
+
+						iptr->dst.block = stack_mark_reached(&sd, sd.var[j].vv.retaddr, curstack, stackdepth);
 #if 0
 						IF_NO_INTRP( rd->locals[iptr->s1.localindex/*XXX invalid here*/][TYPE_ADR].type = TYPE_ADR; );
 #endif
@@ -1736,10 +2866,15 @@ normal_ACONST:
 						COUNT(count_load_instruction);
 						i = opcode - ICMD_ILOAD; /* type */
 
-						iptr->s1.varindex = 
+						j = iptr->s1.varindex = 
 							jd->local_map[iptr->s1.varindex * 5 + i];
+
+						if (sd.var[j].type == TYPE_RET) {
+							exceptions_throw_verifyerror(m, "forbidden load of returnAddress");
+							return false;
+						}
 		
-						LOAD(i, iptr->s1.varindex);
+						LOAD(i, j);
 						break;
 
 						/* pop 2 push 1 */
@@ -1808,6 +2943,7 @@ normal_ACONST:
 						j = iptr->dst.varindex = 
 							jd->local_map[javaindex * 5 + i];
 
+						COPY_VAL_AND_TYPE(sd, curstack->varnum, j);
 
 #if defined(ENABLE_STATISTICS)
 						if (opt_stat) {
@@ -2831,19 +3967,27 @@ normal_DCMPG:
 						break;
 
 					case ICMD_JSR:
-						OP0_1(TYPE_ADR);
+						OP0_1(TYPE_RET);
 
-						BRANCH_TARGET(iptr->sx.s23.s3.jsrtarget, tbptr, copy);
+						assert(sd.bptr->next);  /* XXX exception */
+						sd.var[curstack->varnum].vv.retaddr = sd.bptr->next;
 
+						tbptr = BLOCK_OF(iptr->sx.s23.s3.jsrtarget.insindex);
 						tbptr->type = BBTYPE_SBR;
+
+						tbptr = stack_mark_reached(&sd, tbptr, curstack, stackdepth);
+						if (!tbptr)
+							return false;
+
+						iptr->sx.s23.s3.jsrtarget.block = tbptr;
 
 						/* We need to check for overflow right here because
 						 * the pushed value is poped afterwards */
 						CHECKOVERFLOW;
 
-						/* calculate stack after return */
-						POPANY;
-						stackdepth--;
+						superblockend = true;
+						/* XXX should not be marked as interface, as it does not need to be */
+						/* allocated. Same for the invar of the target. */
 						break;
 
 					/* pop many push any */
@@ -3084,6 +4228,7 @@ icmd_BUILTIN:
 				i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
 					varinfo *v;
+					s4 t;
 
 					/* with the new vars rd->interfaces will be removed */
 					/* and all in and outvars have to be STACKVARS!     */
@@ -3091,17 +4236,20 @@ icmd_BUILTIN:
 					/* create an unresolvable conflict */
 
 					SET_TEMPVAR(copy);
+					t = copy->type;
+					if (t == TYPE_RET)
+						t = TYPE_ADR;
 
 					v = sd.var + copy->varnum;
 					v->flags |= OUTVAR;
 
-					if (jd->interface_map[i*5 + copy->type].flags == UNUSED) {
+					if (jd->interface_map[i*5 + t].flags == UNUSED) {
 						/* no interface var until now for this depth and */
 						/* type */
-						jd->interface_map[i*5 + copy->type].flags = v->flags;
+						jd->interface_map[i*5 + t].flags = v->flags;
 					}
 					else {
-						jd->interface_map[i*5 + copy->type].flags |= v->flags;
+						jd->interface_map[i*5 + t].flags |= v->flags;
 					}
 
 					sd.bptr->outvars[i] = copy->varnum;
@@ -3111,14 +4259,19 @@ icmd_BUILTIN:
 				IF_NO_INTRP(
 					for (i=0; i<sd.bptr->indepth; ++i) {
 						varinfo *v = sd.var + sd.bptr->invars[i];
+						s4 t;
 
-						if (jd->interface_map[i*5 + v->type].flags == UNUSED) {
+						t = v->type;
+						if (t == TYPE_RET)
+							t = TYPE_ADR;
+
+						if (jd->interface_map[i*5 + t].flags == UNUSED) {
 							/* no interface var until now for this depth and */
 							/* type */
-							jd->interface_map[i*5 + v->type].flags = v->flags;
+							jd->interface_map[i*5 + t].flags = v->flags;
 						}
 						else {
-							jd->interface_map[i*5 + v->type].flags |= v->flags;
+							jd->interface_map[i*5 + t].flags |= v->flags;
 						}
 					}
 				);
@@ -3128,14 +4281,35 @@ icmd_BUILTIN:
 				sd.bptr->varcount = sd.vartop - sd.bptr->varstart;
 
 #if defined(STACK_VERBOSE)
-				printf("OUTVARS\n");
-				/* XXX print something useful here */
-				printf("\n");
+				stack_verbose_block_exit(&sd, superblockend);
 #endif
+
+				/* reach the following block, if any */
+
+				if (!superblockend)
+					if (!stack_reach_next_block(&sd))
+						return false;
 
 		} /* for blocks */
 
-	} while (repeat && !deadcode);
+	} while (sd.repeat && !deadcode);
+
+	/* XXX reset TYPE_RET to TYPE_ADR */
+
+	for (i=0; i<sd.vartop; ++i) {
+		if (sd.var[i].type == TYPE_RET)
+			sd.var[i].type = TYPE_ADR;
+	}
+
+	/* XXX hack to fix up the ranges of the cloned single-block handlers */
+
+	ex = cd->exceptiontable;
+	for (; ex != NULL; ex = ex->down) {
+		if (ex->start == ex->end) {
+			assert(ex->end->next);
+			ex->end = ex->end->next;
+		}
+	}
 
 	/* gather statistics *****************************************************/
 
@@ -3152,9 +4326,8 @@ icmd_BUILTIN:
 		if ((sd.new - jd->new_stack) > count_max_new_stack)
 			count_max_new_stack = (sd.new - jd->new_stack);
 
-		b_count = jd->new_basicblockcount;
 		sd.bptr = jd->new_basicblocks;
-		while (--b_count >= 0) {
+		for (; sd.bptr; sd.bptr = sd.bptr->next) {
 			if (sd.bptr->flags > BBREACHED) {
 				if (sd.bptr->indepth >= 10)
 					count_block_stack[10]++;
@@ -3180,7 +4353,6 @@ icmd_BUILTIN:
 				else
 					count_block_size_distribution[17]++;
 			}
-			sd.bptr++;
 		}
 
 		if (iteration_count == 1)
@@ -3245,6 +4417,103 @@ throw_stack_category_error:
 
 #endif
 }
+
+
+/* functions for verbose stack analysis output ********************************/
+
+#if defined(STACK_VERBOSE)
+static void stack_verbose_show_varinfo(stackdata_t *sd, varinfo *v)
+{
+	printf("%c", show_jit_type_letters[v->type]);
+	if (v->type == TYPE_RET)
+		printf("{L%03d}", v->vv.retaddr->nr);
+}
+
+
+static void stack_verbose_show_variable(stackdata_t *sd, s4 index)
+{
+	assert(index >= 0 && index < sd->vartop);
+	stack_verbose_show_varinfo(sd, sd->var + index);
+}
+
+
+static void stack_verbose_show_block(stackdata_t *sd, basicblock *bptr)
+{
+	s4 i;
+
+	printf("L%03d type:%d in:%d [", bptr->nr, bptr->type, bptr->indepth);
+	if (bptr->invars) {
+		for (i=0; i<bptr->indepth; ++i) {
+			if (i)
+				putchar(' ');
+			stack_verbose_show_variable(sd, bptr->invars[i]);
+		}
+	}
+	else
+		putchar('-');
+	printf("] inlocals [");
+	if (bptr->inlocals) {
+		for (i=0; i<sd->localcount; ++i) {
+			if (i)
+				putchar(' ');
+			stack_verbose_show_varinfo(sd, bptr->inlocals + i);
+		}
+	}
+	else
+		putchar('-');
+	printf("] out:%d [", bptr->outdepth);
+	if (bptr->outvars) {
+		for (i=0; i<bptr->outdepth; ++i) {
+			if (i)
+				putchar(' ');
+			stack_verbose_show_variable(sd, bptr->outvars[i]);
+		}
+	}
+	else
+		putchar('-');
+	printf("]");
+
+	if (bptr->original)
+		printf(" (clone of L%03d)", bptr->original->nr);
+	else {
+		basicblock *b = bptr->copied_to;
+		if (b) {
+			printf(" (copied to ");
+			for (; b; b = b->copied_to)
+				printf("L%03d ", b->nr);
+			printf(")");
+		}
+	}
+}
+
+
+static void stack_verbose_block_enter(stackdata_t *sd, bool reanalyse)
+{
+	int i;
+
+	printf("======================================== STACK %sANALYSE BLOCK ", 
+			(reanalyse) ? "RE-" : "");
+	stack_verbose_show_block(sd, sd->bptr);
+	printf("\n");
+
+	if (sd->handlers[0]) {
+		printf("HANDLERS: ");
+		for (i=0; sd->handlers[i]; ++i) {
+			printf("L%03d ", sd->handlers[i]->handler->nr);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+
+static void stack_verbose_block_exit(stackdata_t *sd, bool superblockend)
+{
+	printf("%s ", (superblockend) ? "SUPERBLOCKEND" : "END");
+	stack_verbose_show_block(sd, sd->bptr);
+	printf("\n");
+}
+#endif
 
 
 /*

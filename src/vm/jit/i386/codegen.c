@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5463 2006-09-11 14:37:06Z edwin $
+   $Id: codegen.c 5472 2006-09-11 23:24:46Z edwin $
 
 */
 
@@ -241,6 +241,7 @@ bool codegen(jitdata *jd)
 	stack_off = 0;
  	for (p = 0, l = 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
+
 #if defined(ENABLE_SSA)
 		if ( ls != NULL ) {
 			l = ls->local_0[p];
@@ -2788,15 +2789,9 @@ bool codegen(jitdata *jd)
 			break;
 			
 		case ICMD_RET:          /* ... ==> ...                                */
-		                        /* s1.localindex = local variable                       */
 
-			var = &(jd->var[iptr->s1.varindex]);
-			if (var->flags & INMEMORY) {
-				M_ALD(REG_ITMP1, REG_SP, var->vv.regoff * 4);
-				M_JMP(REG_ITMP1);
-			}
-			else
-				M_JMP(var->vv.regoff);
+  			M_JMP_IMM(0);
+			codegen_addreference(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
