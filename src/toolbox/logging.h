@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: logging.h 4967 2006-05-26 16:24:58Z edwin $
+   $Id: logging.h 5464 2006-09-11 14:45:13Z edwin $
 
 */
 
@@ -72,7 +72,7 @@ void log_message_class_message_class(const char *msg1, classinfo *c1,
 									 const char *msg2, classinfo *c2);
 void log_message_method(const char *msg, methodinfo *m);
 
-#define log_text log_println
+#define log_text(s) log_println("%s", (s))
 #define dolog log_println
 
 #endif /* _LOGGING_H */
