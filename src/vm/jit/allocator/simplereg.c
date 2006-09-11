@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5463 2006-09-11 14:37:06Z edwin $
+   $Id: simplereg.c 5466 2006-09-11 14:54:01Z edwin $
 
 */
 
@@ -1150,10 +1150,14 @@ static void new_allocate_scratch_registers(jitdata *jd)
 
 					/* pop 0 push 0 */
 
+				case ICMD_JSR:
+#if !defined(NDEBUG)
+					/* avoid problems with show_allocation */
+					jd->var[iptr->dst.varindex].vv.regoff = 0;
+#endif
 				case ICMD_NOP:
 				case ICMD_CHECKNULL:
 				case ICMD_IINC:
-				case ICMD_JSR:
 				case ICMD_RET:
 				case ICMD_RETURN:
 				case ICMD_GOTO:
