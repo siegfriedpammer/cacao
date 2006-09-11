@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5234 2006-08-14 17:50:12Z christian $
+   $Id: global.h 5461 2006-09-11 00:33:32Z edwin $
 
 */
 
@@ -107,6 +107,8 @@ typedef struct java_objectarray java_objectarray;
 #define TYPE_FLT     2
 #define TYPE_DBL     3
 #define TYPE_ADR     4
+
+#define TYPE_RET     8   /* must not share bits with TYPE_FLT or TYPE_LNG */
 
 #define TYPE_VOID    10
 
