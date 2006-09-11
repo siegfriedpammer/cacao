@@ -32,7 +32,7 @@
 ; ======================================================================
 
 .method public static main([Ljava/lang/String;)V
-	.limit stack 4
+	.limit stack 5
 	.limit locals 2
 
 	ldc 35
