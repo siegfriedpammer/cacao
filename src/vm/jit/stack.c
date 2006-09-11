@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5472 2006-09-11 23:24:46Z edwin $
+   $Id: stack.c 5473 2006-09-11 23:32:45Z edwin $
 
 */
 
@@ -1182,7 +1182,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 	bool superblockend;
 	bool maythrow;
 	bool cloneinstructions;
-	basicblock *tbptr;
 	exceptiontable *ex;
 
 #if defined(STACK_VERBOSE)
