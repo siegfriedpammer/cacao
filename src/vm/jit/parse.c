@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5435 2006-09-08 18:14:50Z edwin $
+   $Id: parse.c 5482 2006-09-12 21:34:03Z edwin $
 
 */
 
@@ -121,18 +121,21 @@ static void parse_setup(jitdata *jd, parsedata_t *pd)
 }
 
 
-/* parse_check_instructions ****************************************************
+/* parse_realloc_instructions **************************************************
 
-   Checks if there's enough room in the instructions array for the
-   required instructions.  If not, reallocate the data structures.
+   Reallocate the instructions array so there is room for at least N 
+   additional instructions.
+
+   RETURN VALUE:
+       the new value for iptr
 
 *******************************************************************************/
 
-static instruction *parse_check_instructions(parsedata_t *pd, s4 ipc)
+static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
 {
 	/* increase the size of the instruction array */
 
-	pd->instructionslength += INSTRUCTIONS_INCREMENT;
+	pd->instructionslength += (n + INSTRUCTIONS_INCREMENT);
 
 	/* reallocate the array */
 

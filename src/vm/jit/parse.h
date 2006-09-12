@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5418 2006-09-08 12:10:39Z edwin $
+   $Id: parse.h 5482 2006-09-12 21:34:03Z edwin $
 
 */
 
@@ -91,17 +91,17 @@
 
 /* basic block generating macro ***********************************************/
 
-#define MARK_BASICBLOCK(i) \
-    do { \
-        if (!(jd->new_basicblockindex[(i)] & 1)) { \
-            b_count++; \
-            jd->new_basicblockindex[(i)] |= 1; \
-        } \
+#define MARK_BASICBLOCK(i)                                           \
+    do {                                                             \
+        if (!(jd->new_basicblockindex[(i)] & 1)) {                   \
+            b_count++;                                               \
+            jd->new_basicblockindex[(i)] |= 1;                       \
+        }                                                            \
     } while (0)
 
-#define INSTRUCTIONS_CHECK(i) \
-	    if ((ipc + (i)) > pd.instructionslength) \
-        iptr = parse_check_instructions(&pd, ipc)
+#define INSTRUCTIONS_CHECK(i)                                        \
+    if ((ipc + (i)) > pd.instructionslength)                         \
+        iptr = parse_realloc_instructions(&pd, ipc, (i))
 
 
 /* intermediate code generating macros ****************************************/
