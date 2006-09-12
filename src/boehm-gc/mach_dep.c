@@ -494,28 +494,28 @@ ptr_t cold_gc_frame;
 /* On register window machines, we need a way to force registers into 	*/
 /* the stack.	Return sp.						*/
 # ifdef SPARC
-    asm("	.seg 	\"text\"");
+    __asm__("	.seg 	\"text\"");
 #   if defined(SVR4) || defined(NETBSD) || defined(FREEBSD)
-      asm("	.globl	GC_save_regs_in_stack");
-      asm("GC_save_regs_in_stack:");
-      asm("	.type GC_save_regs_in_stack,#function");
+      __asm__("	.globl	GC_save_regs_in_stack");
+      __asm__("GC_save_regs_in_stack:");
+      __asm__("	.type GC_save_regs_in_stack,#function");
 #   else
-      asm("	.globl	_GC_save_regs_in_stack");
-      asm("_GC_save_regs_in_stack:");
+      __asm__("	.globl	_GC_save_regs_in_stack");
+      __asm__("_GC_save_regs_in_stack:");
 #   endif
 #   if defined(__arch64__) || defined(__sparcv9)
-      asm("	save	%sp,-128,%sp");
-      asm("	flushw");
-      asm("	ret");
-      asm("	restore %sp,2047+128,%o0");
+      __asm__("	save	%sp,-128,%sp");
+      __asm__("	flushw");
+      __asm__("	ret");
+      __asm__("	restore %sp,2047+128,%o0");
 #   else
-      asm("	ta	0x3   ! ST_FLUSH_WINDOWS");
-      asm("	retl");
-      asm("	mov	%sp,%o0");
+      __asm__("	ta	0x3   ! ST_FLUSH_WINDOWS");
+      __asm__("	retl");
+      __asm__("	mov	%sp,%o0");
 #   endif
 #   ifdef SVR4
-      asm("	.GC_save_regs_in_stack_end:");
-      asm("	.size GC_save_regs_in_stack,.GC_save_regs_in_stack_end-GC_save_regs_in_stack");
+      __asm__("	.GC_save_regs_in_stack_end:");
+      __asm__("	.size GC_save_regs_in_stack,.GC_save_regs_in_stack_end-GC_save_regs_in_stack");
 #   endif
 #   ifdef LINT
 	word GC_save_regs_in_stack() { return(0 /* sp really */);}
@@ -578,47 +578,47 @@ ptr_t cold_gc_frame;
 	--> fix it
 #endif
 # ifdef SUNOS4
-    asm(".globl _GC_clear_stack_inner");
-    asm("_GC_clear_stack_inner:");
+    __asm__(".globl _GC_clear_stack_inner");
+    __asm__("_GC_clear_stack_inner:");
 # else
-    asm(".globl GC_clear_stack_inner");
-    asm("GC_clear_stack_inner:");
-    asm(".type GC_save_regs_in_stack,#function");
+    __asm__(".globl GC_clear_stack_inner");
+    __asm__("GC_clear_stack_inner:");
+    __asm__(".type GC_save_regs_in_stack,#function");
 # endif
 #if defined(__arch64__) || defined(__sparcv9)
-  asm("mov %sp,%o2");		/* Save sp			*/
-  asm("add %sp,2047-8,%o3");	/* p = sp+bias-8		*/
-  asm("add %o1,-2047-192,%sp");	/* Move sp out of the way,	*/
+  __asm__("mov %sp,%o2");		/* Save sp			*/
+  __asm__("add %sp,2047-8,%o3");	/* p = sp+bias-8		*/
+  __asm__("add %o1,-2047-192,%sp");	/* Move sp out of the way,	*/
   				/* so that traps still work.	*/
   				/* Includes some extra words	*/
   				/* so we can be sloppy below.	*/
-  asm("loop:");
-  asm("stx %g0,[%o3]");		/* *(long *)p = 0		*/
-  asm("cmp %o3,%o1");
-  asm("bgu,pt %xcc, loop");	/* if (p > limit) goto loop	*/
-    asm("add %o3,-8,%o3");	/* p -= 8 (delay slot) */
-  asm("retl");
-    asm("mov %o2,%sp");		/* Restore sp., delay slot	*/
+  __asm__("loop:");
+  __asm__("stx %g0,[%o3]");		/* *(long *)p = 0		*/
+  __asm__("cmp %o3,%o1");
+  __asm__("bgu,pt %xcc, loop");	/* if (p > limit) goto loop	*/
+    __asm__("add %o3,-8,%o3");	/* p -= 8 (delay slot) */
+  __asm__("retl");
+    __asm__("mov %o2,%sp");		/* Restore sp., delay slot	*/
 #else
-  asm("mov %sp,%o2");		/* Save sp	*/
-  asm("add %sp,-8,%o3");	/* p = sp-8	*/
-  asm("clr %g1");		/* [g0,g1] = 0	*/
-  asm("add %o1,-0x60,%sp");	/* Move sp out of the way,	*/
+  __asm__("mov %sp,%o2");		/* Save sp	*/
+  __asm__("add %sp,-8,%o3");	/* p = sp-8	*/
+  __asm__("clr %g1");		/* [g0,g1] = 0	*/
+  __asm__("add %o1,-0x60,%sp");	/* Move sp out of the way,	*/
   				/* so that traps still work.	*/
   				/* Includes some extra words	*/
   				/* so we can be sloppy below.	*/
-  asm("loop:");
-  asm("std %g0,[%o3]");		/* *(long long *)p = 0	*/
-  asm("cmp %o3,%o1");
-  asm("bgu loop	");		/* if (p > limit) goto loop	*/
-    asm("add %o3,-8,%o3");	/* p -= 8 (delay slot) */
-  asm("retl");
-    asm("mov %o2,%sp");		/* Restore sp., delay slot	*/
+  __asm__("loop:");
+  __asm__("std %g0,[%o3]");		/* *(long long *)p = 0	*/
+  __asm__("cmp %o3,%o1");
+  __asm__("bgu loop	");		/* if (p > limit) goto loop	*/
+    __asm__("add %o3,-8,%o3");	/* p -= 8 (delay slot) */
+  __asm__("retl");
+    __asm__("mov %o2,%sp");		/* Restore sp., delay slot	*/
 #endif /* old SPARC */
   /* First argument = %o0 = return value */
 #   ifdef SVR4
-      asm("	.GC_clear_stack_inner_end:");
-      asm("	.size GC_clear_stack_inner,.GC_clear_stack_inner_end-GC_clear_stack_inner");
+      __asm__("	.GC_clear_stack_inner_end:");
+      __asm__("	.size GC_clear_stack_inner,.GC_clear_stack_inner_end-GC_clear_stack_inner");
 #   endif
   
 # ifdef LINT

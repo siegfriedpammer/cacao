@@ -50,8 +50,8 @@ s4 nregdescint[] = {
 	/* zero  itmp1/g1 itmp2/g2 itmp3/g3 temp/g4  temp/g5  sys/g6   sys/g7 */  
 	REG_RES, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_RES, REG_RES,
 	
-	/* o0    o1       o2       o3       o4       o5       sp/o6    o7     */
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_TMP,
+	/* o0    o1       o2       o3       o4       pv/o5    sp/o6    o7/ra  */
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES,
 	
 	/* l0    l1       l2       l3       l4       l5       l6       l7     */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
@@ -154,26 +154,32 @@ void md_param_alloc(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
-	/* Only precolor the stackslot, if it is not used for parameter precoloring AND */
-	/* it is not a SAVEDVAR <-> has not to survive method invokations */
+	methodinfo *m;
+	methoddesc *md;
 
-	if (!m->isleafmethod || (m->parseddesc->paramcount == 0)) {
+	/* get required compiler data */
 
-		if (!(stackslot->flags & SAVEDVAR)) {
-			stackslot->varkind = ARGVAR;
-			stackslot->varnum = -1;
-			stackslot->flags = 0;
+	m = jd->m;
 
-			if (IS_INT_LNG_TYPE(return_type)) {
-				stackslot->regoff = REG_RESULT_CALLEE;
-			} else { /* float/double */
-				stackslot->regoff = REG_FRESULT;
-			}
+	md = m->parseddesc;
+
+	/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has
+	   not to survive method invokations. */
+
+
+	if (!(stackslot->flags & SAVEDVAR)) {
+		stackslot->varkind = ARGVAR;
+		stackslot->varnum = -1;
+		stackslot->flags = 0;
+
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			stackslot->regoff = REG_RESULT_CALLEE;
+		} else { /* float/double */
+			stackslot->regoff = REG_FRESULT;
 		}
-	}	
+	}
 }
 
 
