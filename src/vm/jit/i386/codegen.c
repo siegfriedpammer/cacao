@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5472 2006-09-11 23:24:46Z edwin $
+   $Id: codegen.c 5483 2006-09-12 22:32:07Z christian $
 
 */
 
@@ -74,12 +74,11 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 
-#if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
-# include "vm/jit/allocator/lsra.h"
-#endif
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"
 # include "vm/jit/optimizing/ssa.h"
+#elif defined(ENABLE_LSRA)
+# include "vm/jit/allocator/lsra.h"
 #endif
 
 
@@ -92,8 +91,7 @@
 #if defined(ENABLE_SSA)
 void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
 			 s4 dst_regoff, s4 dst_flags);
-void codegen_insert_phi_moves(codegendata *cd, registerdata *rd, lsradata *ls,
-							  basicblock *bptr);
+void codegen_insert_phi_moves(jitdata *jd, basicblock *bptr);
 #endif
 
 bool codegen(jitdata *jd)
@@ -247,12 +245,14 @@ bool codegen(jitdata *jd)
 			l = ls->local_0[p];
 		}
 #endif
-		var = &(jd->var[jd->local_map[l * 5 + t]]);
+		s1 = jd->local_map[l * 5 + t];
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
- 		if (var->type < 0)
+		if (s1 == UNUSED)
 			continue;
+		var = &(jd->var[s1]);
+		
 		s1 = md->params[p].regoff;
 
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
@@ -400,7 +400,7 @@ bool codegen(jitdata *jd)
 #if defined(ENABLE_SSA)
 	/* with SSA Header is Basic Block 0 - insert phi Moves if necessary */
 	if ( ls != NULL)
-			codegen_insert_phi_moves(cd, rd, ls, ls->basicblocks[0]);
+		codegen_insert_phi_moves(jd, ls->basicblocks[0]);
 #endif
 
 	/* end of header generation */
@@ -462,33 +462,32 @@ bool codegen(jitdata *jd)
 # endif
 			if (len > 0) {
 				len--;
-				src = bptr->invars[len];
+				varindex = bptr->invars[len];
+				var = &(jd->var[varindex]);
 				if (bptr->type != BBTYPE_STD) {
-					if (!IS_2_WORD_TYPE(src->type)) {
+					if (!IS_2_WORD_TYPE(var->type)) {
 						if (bptr->type == BBTYPE_SBR) {
-							if (!(src->flags & INMEMORY))
-								d = src->vv.regoff;
-							else
-								d = REG_ITMP1;
+							d = codegen_reg_of_var(0, var, REG_ITMP1);
 							emit_pop_reg(cd, d);
-							emit_store(jd, NULL, src, d);
-						} else if (bptr->type == BBTYPE_EXH) {
-							if (!(src->flags & INMEMORY))
-								d = src->vv.regoff;
-							else
-								d = REG_ITMP1;
+							emit_store(jd, NULL, var, d);
+						} 
+						else if (bptr->type == BBTYPE_EXH) {
+							d = codegen_reg_of_var(0, var, REG_ITMP1);
 							M_INTMOVE(REG_ITMP1, d);
-							emit_store(jd, NULL, src, d);
+							emit_store(jd, NULL, var, d);
 						}
 
-					} else {
-						log_text("copy interface registers(EXH, SBR): longs have to be in memory (begin 1)");
+					} 
+					else {
+						log_text("copy interface registers(EXH, SBR): longs \
+                                  have to be in memory (begin 1)");
 						assert(0);
 					}
 				}
 			}
 
-		} else
+		} 
+		else
 #endif /* defined(ENABLE_LSRA) || defined(ENABLE_SSA) */
 		{
 		while (len) {
@@ -502,18 +501,21 @@ bool codegen(jitdata *jd)
 						emit_pop_reg(cd, d);
 						emit_store(jd, NULL, var, d);
 
-					} else if (bptr->type == BBTYPE_EXH) {
+					} 
+					else if (bptr->type == BBTYPE_EXH) {
 						d = codegen_reg_of_var(0, var, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 						emit_store(jd, NULL, var, d);
 					}
-				} else {
+				} 
+				else {
 					log_text("copy interface registers: longs have to be in \
                                memory (begin 1)");
 					assert(0);
 				}
 
-			} else {
+			} 
+			else {
 				assert((var->flags & OUTVAR));
 				/* will be done directly in simplereg lateron          */ 
 				/* for now codegen_reg_of_var has to be called here to */
@@ -521,8 +523,8 @@ bool codegen(jitdata *jd)
 				d = codegen_reg_of_var(0, var, REG_ITMP1);
 
 			}
-		}
-		}
+		} /* while (len) */
+		} /* */
 
 		/* walk through all instructions */
 		
@@ -2774,7 +2776,7 @@ bool codegen(jitdata *jd)
 				last_cmd_was_goto = true;
 				/* In case of a Goto phimoves have to be inserted before the */
 				/* jump */
-				codegen_insert_phi_moves(cd, rd, ls, bptr);
+				codegen_insert_phi_moves(jd, bptr);
 			}
 #endif
 			M_JMP_IMM(0);
@@ -3479,8 +3481,8 @@ gen_method:
 
 			if (d != TYPE_VOID) {
 #if defined(ENABLE_SSA)
-				if ((ls == NULL) || (iptr->dst->varkind != TEMPVAR) ||
-					(ls->lifetime[-iptr->dst->varnum-1].type != -1)) 
+				if ((ls == NULL) || (!IS_TEMPVAR_INDEX(iptr->dst.varindex)) ||
+					(ls->lifetime[-iptr->dst.varindex-1].type != -1)) 
 					/* a "living" stackslot */
 #endif
 				{
@@ -3984,7 +3986,7 @@ gen_method:
 		/* by edge splitting, in Blocks with phi moves there can only */
 		/* be a goto as last command, no other Jump/Branch Command    */
 		if (!last_cmd_was_goto)
-			codegen_insert_phi_moves(cd, rd, ls, bptr);
+			codegen_insert_phi_moves(jd, bptr);
 	}
 
 #endif
@@ -4022,13 +4024,18 @@ gen_method:
 }
 
 #if defined(ENABLE_SSA)
-void codegen_insert_phi_moves(codegendata *cd, registerdata *rd, lsradata *ls, basicblock *bptr) {
+void codegen_insert_phi_moves(jitdata *jd, basicblock *bptr) {
 	/* look for phi moves */
 	int t_a,s_a,i, type;
 	int t_lt, s_lt; /* lifetime indices of phi_moves */
-	bool t_inmemory, s_inmemory;
 	s4 t_regoff, s_regoff, s_flags, t_flags;
+	codegendata *cd;
+	lsradata *ls;
+
 	MCODECHECK(512);
+
+	ls = jd->ls;
+	cd = jd->cd;
 	
 	/* Moves from phi functions with highest indices have to be */
 	/* inserted first, since this is the order as is used for   */
@@ -4038,68 +4045,70 @@ void codegen_insert_phi_moves(codegendata *cd, registerdata *rd, lsradata *ls, b
 		s_a = ls->phi_moves[bptr->nr][i][1];
 #if defined(SSA_DEBUG_VERBOSE)
 		if (compileverbose)
-			printf("BB %3i Move %3i <- %3i ",bptr->nr,t_a,s_a);
+			printf("BB %3i Move %3i <- %3i ", bptr->nr, t_a, s_a);
 #endif
 		if (t_a >= 0) {
 			/* local var lifetimes */
 			t_lt = ls->maxlifetimes + t_a;
 			type = ls->lifetime[t_lt].type;
-		} else {
+		}
+		else {
 			t_lt = -t_a-1;
 			type = ls->lifetime[t_lt].local_ss->s->type;
 			/* stackslot lifetime */
 		}
+
 		if (type == -1) {
 #if defined(SSA_DEBUG_VERBOSE)
-		if (compileverbose)
-			printf("...returning - phi lifetimes where joined\n");
+			if (compileverbose)
+				printf("...returning - phi lifetimes where joined\n");
 #endif
 			return;
 		}
+
 		if (s_a >= 0) {
 			/* local var lifetimes */
 			s_lt = ls->maxlifetimes + s_a;
 			type = ls->lifetime[s_lt].type;
-		} else {
+		}
+		else {
 			s_lt = -s_a-1;
 			type = ls->lifetime[s_lt].type;
 			/* stackslot lifetime */
 		}
+
 		if (type == -1) {
 #if defined(SSA_DEBUG_VERBOSE)
-		if (compileverbose)
-			printf("...returning - phi lifetimes where joined\n");
+			if (compileverbose)
+				printf("...returning - phi lifetimes where joined\n");
 #endif
 			return;
 		}
-		if (t_a >= 0) {
 
-			t_inmemory = rd->locals[t_a][type].flags & INMEMORY;
-			t_flags = rd->locals[t_a][type].flags;
-			t_regoff = rd->locals[t_a][type].vv.regoff;
+		if (t_a >= 0) {
+			t_flags = jd->var[t_a].flags;
+			t_regoff = jd->var[t_a].vv.regoff;
 			
-		} else {
-			t_inmemory = ls->lifetime[t_lt].local_ss->s->flags & INMEMORY;
+		}
+		else {
 			t_flags = ls->lifetime[t_lt].local_ss->s->flags;
-			t_regoff = ls->lifetime[t_lt].local_ss->s->vv.regoff;
+			t_regoff = ls->lifetime[t_lt].local_ss->s->regoff;
 		}
 
 		if (s_a >= 0) {
 			/* local var move */
-			
-			s_inmemory = rd->locals[s_a][type].flags & INMEMORY;
-			s_flags = rd->locals[s_a][type].flags;
-			s_regoff = rd->locals[s_a][type].vv.regoff;
+			s_flags = jd->var[s_a].flags;
+			s_regoff = jd->var[s_a].vv.regoff;
 		} else {
 			/* stackslot lifetime */
-			s_inmemory = ls->lifetime[s_lt].local_ss->s->flags & INMEMORY;
 			s_flags = ls->lifetime[s_lt].local_ss->s->flags;
-			s_regoff = ls->lifetime[s_lt].local_ss->s->vv.regoff;
+			s_regoff = ls->lifetime[s_lt].local_ss->s->regoff;
 		}
+
 		if (type == -1) {
 #if defined(SSA_DEBUG_VERBOSE)
-		if (compileverbose)
-			printf("...returning - phi lifetimes where joined\n");
+			if (compileverbose)
+				printf("...returning - phi lifetimes where joined\n");
 #endif
 			return;
 		}
@@ -4108,16 +4117,19 @@ void codegen_insert_phi_moves(codegendata *cd, registerdata *rd, lsradata *ls, b
 
 #if defined(SSA_DEBUG_VERBOSE)
 		if (compileverbose) {
-			if ((t_inmemory) && (s_inmemory)) {
+			if (IS_INMEMORY(t_flags) && IS_INMEMORY(s_flags)) {
 				/* mem -> mem */
 				printf("M%3i <- M%3i",t_regoff,s_regoff);
-			} else 	if (s_inmemory) {
+			}
+			else 	if (IS_INMEMORY(s_flags)) {
 				/* mem -> reg */
 				printf("R%3i <- M%3i",t_regoff,s_regoff);
-			} else if (t_inmemory) {
+			}
+			else if (IS_INMEMORY(t_flags)) {
 				/* reg -> mem */
 				printf("M%3i <- R%3i",t_regoff,s_regoff);
-			} else {
+			}
+			else {
 				/* reg -> reg */
 				printf("R%3i <- R%3i",t_regoff,s_regoff);
 			}
