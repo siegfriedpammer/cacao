@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 5251 2006-08-18 13:01:00Z twisti $
+   $Id: builtin.h 5332 2006-09-05 19:38:28Z twisti $
 
 */
 

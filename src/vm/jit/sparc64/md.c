@@ -1,4 +1,6 @@
 
+#include <assert.h>
+
 #include "config.h"
 
 #include "vm/types.h"
@@ -9,6 +11,11 @@
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
+#include "vm/options.h" /* XXX debug */
+#include "vm/jit/disass.h" /* XXX debug */
+#endif
 
 
 /* md_init *********************************************************************
@@ -32,9 +39,19 @@ void md_init(void)
 
 u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
-	/* where's it gonna be ? */
+	u1 *ra;
+	/* flush register windows to the stack */
+	__asm__ ("flushw");
 
-	return 0;
+	/* the return address resides in register i7, the last register in the
+	 * 16-extended-word save area
+	 */
+	ra = *((u1 **) (sp + 120));
+	
+	/* ra is the address of the call instr, advance to the real return address  */
+	ra += 8;
+
+	return ra;
 }
 
 
@@ -90,6 +107,105 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 	}
 
 	return pv;
+}
+
+/* md_get_method_patch_address *************************************************
+
+   Gets the patch address of the currently compiled method. The offset
+   is extracted from the load instruction(s) before the jump and added
+   to the right base address (PV or REG_METHODPTR).
+
+   INVOKESTATIC/SPECIAL:
+
+   dfdeffb8    ld       s8,-72(s8)
+   03c0f809    jalr     s8
+   00000000    nop
+
+   INVOKEVIRTUAL:
+
+   dc990000    ld       t9,0(a0)
+   df3e0000    ld       s8,0(t9)
+   03c0f809    jalr     s8
+   00000000    nop
+
+   INVOKEINTERFACE:
+
+   dc990000    ld       t9,0(a0)
+   df39ff90    ld       t9,-112(t9)
+   df3e0018    ld       s8,24(t9)
+   03c0f809    jalr     s8
+   00000000    nop
+
+*******************************************************************************/
+
+u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+{
+	u4  mcode;
+	s4  offset;
+	u1 *pa;
+
+	/* go back to the actual load instruction (3 instructions on MIPS) */
+
+	ra -= 3 * 4;
+
+	/* get first instruction word on current PC */
+
+	mcode = *((u4 *) ra);
+
+	/* check if we have 2 instructions (lui) */
+
+	if ((mcode >> 16) == 0x3c19) {
+		/* XXX write a regression for this */
+		assert(0);
+
+		/* get displacement of first instruction (lui) */
+
+		offset = (s4) (mcode << 16);
+
+		/* get displacement of second instruction (daddiu) */
+
+		mcode = *((u4 *) (ra + 1 * 4));
+
+		assert((mcode >> 16) != 0x6739);
+
+		offset += (s2) (mcode & 0x0000ffff);
+
+	} else {
+		/* get first instruction (ld) */
+
+		mcode = *((u4 *) ra);
+
+		/* get the offset from the instruction */
+
+		offset = (s2) (mcode & 0x0000ffff);
+
+		/* check for call with REG_METHODPTR: ld s8,x(t9) */
+
+#if SIZEOF_VOID_P == 8
+		if ((mcode >> 16) == 0xdf3e) {
+#else
+		if ((mcode >> 16) == 0x8f3e) {
+#endif
+			/* in this case we use the passed method pointer */
+
+			pa = mptr + offset;
+
+		} else {
+			/* in the normal case we check for a `ld s8,x(s8)' instruction */
+
+#if SIZEOF_VOID_P == 8
+			assert((mcode >> 16) == 0xdfde);
+#else
+			assert((mcode >> 16) == 0x8fde);
+#endif
+
+			/* and get the final data segment address */
+
+			pa = sfi->pv + offset;
+		}
+	}
+
+	return pa;
 }
 
 

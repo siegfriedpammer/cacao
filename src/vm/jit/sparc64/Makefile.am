@@ -50,27 +50,34 @@ CLEANFILES = offsets.h
 noinst_HEADERS = \
 	arch.h \
 	machine-instr.h 
-#	\
-#	md-asm.h
+	\
+	md-asm.h
 
 noinst_LTLIBRARIES = libarch.la
 
+if ENABLE_DISASSEMBLER
+DISASS_SOURCES = \
+    disass.c
+endif
+
+
 libarch_la_SOURCES = \
+	asmpart.S \
 	codegen.c \
 	codegen.h \
-	md.h \
+	$(DISASS_SOURCES) \
+	emit.c \
+	patcher.c \
+	\
+	md-abi.c \
 	md-abi.h \
 	md.c \
-	disass.c \
-	asmpart.S \
-	md-abi.c 
-#	patcher.c 
-
+	md.h
 
 libarch_la_LIBADD = \
 	$(OS_DIR)/libmd.la
 
-#$(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
+$(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 
 offsets.h: $(top_builddir)/src/vm/jit/tools/genoffsets $(top_builddir)/config.h
 	$(top_builddir)/src/vm/jit/tools/genoffsets > offsets.h

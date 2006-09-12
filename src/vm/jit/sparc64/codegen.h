@@ -78,7 +78,7 @@
 
 
 #define ALIGNCODENOP \
-    if ((s4) ((ptrint) mcodeptr & 7)) { \
+    if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
 
@@ -109,6 +109,8 @@
 
 
 #define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
+#define ICONST(d,c)                     emit_iconst(cd, (d), (c))
+#define LCONST(d,c)                     emit_lconst(cd, (d), (c))
 
 
 
@@ -130,7 +132,7 @@
  *                                                                       */
 
 #define M_OP3(op,op3,rd,rs1,rs2,imm) \
-	*(mcodeptr++) =  ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | (imm?((rs2)&0x1fff):(rs2)) )
+	*((u4 *) cd->mcodeptr++) =  ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | (imm?((rs2)&0x1fff):(rs2)) )
 
 /* 3-address-operations: M_OP3C
  *       rcond ... condition opcode
@@ -139,7 +141,7 @@
  */
  
 #define M_OP3C(op,op3,rcond,rd,rs1,rs2,imm) \
-	*(mcodeptr++) =  ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | \
+	*((u4 *) cd->mcodeptr++) =  ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | \
 		((rcond) << 10) | (imm?((rs2)&0x3ff):(rs2)) )
 	
 
@@ -154,7 +156,7 @@
  *    x ...... 0 => 32, 1 => 64 bit shift 
  */
 #define M_SHFT(op,op3,rs1,rs2,rd,imm,x) \
-	*(mcodeptr++) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((rs1) << 14) | ((rs2) << 0) | \
+	*((u4 *) cd->mcodeptr++) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((rs1) << 14) | ((rs2) << 0) | \
 		      ((imm) << 13) | ((x) << 12)  )
 
 /* Format 4
@@ -168,7 +170,7 @@
  */
  
  #define M_FMT4(op,op3,rd,rs2,cond,cc2,cc1,cc0,imm) \
- 	*(mcodeptr++) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((cc2) << 18) |  ((cond) << 14) | \
+ 	*((u4 *) cd->mcodeptr++) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((cc2) << 18) |  ((cond) << 14) | \
  		((imm) << 13) | ((cc1) << 12) | ((cc0) << 11) | ((rs2) << 0) )
 
 
@@ -177,10 +179,13 @@
 /* 3-address-floating-point-operation
      op .... opcode
      op3,opf .... function-number
-     XXX
+     rd .... dest reg
+     rs2 ... source reg
+     
+     !!! 6-bit to 5-bit conversion done here !!!
 */ 
 #define M_FOP3(op,op3,opf,rd,rs1,rs2) \
-	*(mcodeptr++) =  ( (((s4)(op))<<30) | ((rd)<<25) | ((op3)<<19) | ((rs1) << 14) | ((opf)<<5) | (rs2) )
+	*((u4 *) cd->mcodeptr++) =  ( (((s4)(op))<<30) | ((rd*2)<<25) | ((op3)<<19) | ((rs1*2) << 14) | ((opf)<<5) | (rs2*2) )
 
 
 /**** format 2 operations ********/
@@ -194,7 +199,7 @@
       anul .... annullment bit
 */
 #define M_BRAREG(op,rcond,rs1,disp16,p,anul) \
-	*(mcodeptr++) = ( (((s4)(op))<<30) | ((anul)<<29) | (0<<28) | ((rcond)<<25) | (3<<22) | \
+	*((u4 *) cd->mcodeptr++) = ( (((s4)(op))<<30) | ((anul)<<29) | (0<<28) | ((rcond)<<25) | (3<<22) | \
 		( ((disp16)& 0xC000) << 6 ) | (p << 19) | ((rs1) << 14) | ((disp16)&0x3fff) )
 		
 /* branch on integer reg instruction 
@@ -206,14 +211,14 @@
       anul .... annullment bit
 */		
 #define M_BRACC(op,op2,cond,disp19,ccx,p,anul) \
-	*(mcodeptr++) = ( (((s4)(op))<<30) | ((anul)<<29) | ((cond)<<25) | (op2<<22) | (ccx<<20) | \
+	*((u4 *) cd->mcodeptr++) = ( (((s4)(op))<<30) | ((anul)<<29) | ((cond)<<25) | (op2<<22) | (ccx<<20) | \
 		(p << 19 ) | (disp19)  )    
         
 /************** end-user instructions (try to follow asm style) ***************/
 
 
 #define M_SETHI(imm22, rd) \
-	*(mcodeptr++) = ((((s4)(0x00)) << 30) | ((rd) << 25) | ((0x04)<<22) | ((imm22)&0x3FFFFF) )
+	*((u4 *) cd->mcodeptr++) = ((((s4)(0x00)) << 30) | ((rd) << 25) | ((0x04)<<22) | ((imm22)&0x3FFFFF) )
 
 
 #define M_NOP (M_SETHI(0,0))	/* nop	*/
@@ -306,6 +311,19 @@
 
 /**** load/store operations ********/
 
+#define M_LDA(rd,rs,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 13); \
+        if (hi == 0) { \
+            M_AADD_IMM(rs,lo,rd); \
+        } else { \
+            M_SETHI(hi&0x3ffff8,rd); \
+            M_AADD_IMM(rd,lo,rd); \
+            M_AADD(rd,rs,rd); \
+        } \
+    } while (0)
+
 #define M_SLDU(rd,rs,disp)      M_OP3(0x03,0x02,rd,rs,disp,IMM)        /* 16-bit load, uns*/
 #define M_SLDS(rd,rs,disp)      M_OP3(0x03,0x0a,rd,rs,disp,IMM)        /* 16-bit load, sig*/
 #define M_BLDS(rd,rs,disp)      M_OP3(0x03,0x09,rd,rs,disp,IMM)        /* 8-bit load, sig */
@@ -394,26 +412,30 @@
 /* branch on (64-bit) integer condition codes */
 
 #define M_XBEQ(disp)            M_BRACC(0x00,0x1,0x1,disp,2,1,0)      /* branch a==b */
-#define M_XBNEQ(disp)           M_BRACC(0x00,0x1,0x9,disp,2,1,0)      /* branch a!=b */
+#define M_XBNE(disp)            M_BRACC(0x00,0x1,0x9,disp,2,1,0)      /* branch a!=b */
 #define M_XBGT(disp)            M_BRACC(0x00,0x1,0xa,disp,2,1,0)      /* branch a>b  */
 #define M_XBLT(disp)            M_BRACC(0x00,0x1,0x3,disp,2,1,0)      /* branch a<b  */
 #define M_XBGE(disp)            M_BRACC(0x00,0x1,0xb,disp,2,1,0)      /* branch a>=b */
 #define M_XBLE(disp)            M_BRACC(0x00,0x1,0x2,disp,2,1,0)      /* branch a<=b */
 #define M_XBUGE(disp)           M_BRACC(0x00,0x1,0xd,disp,2,1,0)      /* br uns a>=b */
+#define M_XBULT(disp)           M_BRACC(0x00,0x1,0x5,disp,2,1,0)      /* br uns a<b  */
 
 /* branch on (32-bit) integer condition codes */
 
 #define M_BR(disp)              M_BRACC(0x00,0x1,0x8,disp,0,1,0)      /* branch      */
 #define M_BEQ(disp)             M_BRACC(0x00,0x1,0x1,disp,0,1,0)      /* branch a==b */
-#define M_BNEQ(disp)            M_BRACC(0x00,0x1,0x9,disp,0,1,0)      /* branch a!=b */
+#define M_BNE(disp)             M_BRACC(0x00,0x1,0x9,disp,0,1,0)      /* branch a!=b */
 #define M_BGT(disp)             M_BRACC(0x00,0x1,0xa,disp,0,1,0)      /* branch a>b  */
 #define M_BLT(disp)             M_BRACC(0x00,0x1,0x3,disp,0,1,0)      /* branch a<b  */
 #define M_BGE(disp)             M_BRACC(0x00,0x1,0xb,disp,0,1,0)      /* branch a>=b */
 #define M_BLE(disp)             M_BRACC(0x00,0x1,0x2,disp,0,1,0)      /* branch a<=b */
+#define M_BULE(disp)            M_BRACC(0x00,0x1,0x4,disp,0,1,0)      /* br uns a<=b */
+#define M_BULT(disp)            M_BRACC(0x00,0x1,0x5,disp,0,1,0)      /* br uns a<b  */
 
 
 
-
+#define M_SAVE(rs1,rs2,rd)      M_OP3(0x02,0x36,rd,rs1,rs2,IMM)
+#define M_REST(rs1,rs2,rd)      M_OP3(0x02,0x37,rd,rs1,rs2,IMM)
 
 
 
@@ -421,13 +443,13 @@
 #define M_JMP_IMM(rd,rs1,rs2)   M_OP3(0x02,0x38,rd, rs1,rs2,IMM)
 #define M_RET(rs)				M_OP3(0x02,0x38,REG_ZERO,rs,REG_ZERO,REG)
 
-#define M_RETURN(rs)            M_OP3(0x02,0x39,0,rs,REG_ZERO,REG) /* like ret, does window restore */
+#define M_RETURN(rs)            M_OP3(0x02,0x39,0,rs,REG_ZERO,REG) /* like ret, but does window restore */
  
 /**** floating point operations **/
 
 
 #define M_DMOV(rs,rd)           M_FOP3(0x02,0x34,0x02,rd,0,rs)      /* rd = rs */
-#define M_FMOV(rs,rd)           M_FOP3(0x02,0x34,0x01,rd*2,0,rs*2)  /* rd = rs */
+#define M_FMOV(rs,rd)           M_FOP3(0x02,0x34,0x01,rd,0,rs)  /* rd = rs */
 
 #define M_FNEG(rs,rd)          	M_FOP3(0x02,0x34,0x05,rd,0,rs)	 	/* rd = -rs     */
 #define M_DNEG(rs,rd)          	M_FOP3(0x02,0x34,0x06,rd,0,rs)  	/* rd = -rs     */
@@ -445,28 +467,34 @@
 /**** compare and conditional FPU operations ***********/
 
 /* rd field 0 ==> fcc target unit is fcc0 */
-#define M_FCMP(rs1,rs2)		    M_FOP3(0x02,0x35,0x051,0,rs1*2,rs2*2) /* set fcc flt  */
+#define M_FCMP(rs1,rs2)		    M_FOP3(0x02,0x35,0x051,0,rs1,rs2) /* set fcc flt  */
 #define M_DCMP(rs1,rs2)		    M_FOP3(0x02,0x35,0x052,0,rs1,rs2)     /* set fcc dbl  */
 
 /* conversion functions */
 
-#define M_CVTIF(rs,rd)          M_FOP3(0x02,0x34,0x0c4,rd*2,0,rs*2)/* int2flt      */
-#define M_CVTID(rs,rd)          M_FOP3(0x02,0x34,0x0c8,rd,0,rs*2)  /* int2dbl      */
-#define M_CVTLF(rs,rd)          M_FOP3(0x02,0x34,0x084,rd*2,0,rs)  /* long2flt     */
+#define M_CVTIF(rs,rd)          M_FOP3(0x02,0x34,0x0c4,rd,0,rs)/* int2flt      */
+#define M_CVTID(rs,rd)          M_FOP3(0x02,0x34,0x0c8,rd,0,rs)  /* int2dbl      */
+#define M_CVTLF(rs,rd)          M_FOP3(0x02,0x34,0x084,rd,0,rs)  /* long2flt     */
 #define M_CVTLD(rs,rd)          M_FOP3(0x02,0x34,0x088,rd,0,rs)    /* long2dbl     */
 
-#define M_CVTFI(rs,rd)          M_FOP3(0x02,0x34,0x0d1,rd*2,0,rs*2)   /* flt2int   */
-#define M_CVTDI(rs,rd)          M_FOP3(0x02,0x34,0x0d2,rd*2,0,rs)     /* dbl2int   */
-#define M_CVTFL(rs,rd)          M_FOP3(0x02,0x34,0x081,rd,0,rs*2)     /* flt2long  */
+#define M_CVTFI(rs,rd)          M_FOP3(0x02,0x34,0x0d1,rd,0,rs)   /* flt2int   */
+#define M_CVTDI(rs,rd)          M_FOP3(0x02,0x34,0x0d2,rd,0,rs)     /* dbl2int   */
+#define M_CVTFL(rs,rd)          M_FOP3(0x02,0x34,0x081,rd,0,rs)     /* flt2long  */
 #define M_CVTDL(rs,rd)          M_FOP3(0x02,0x34,0x082,rd,0,rs)       /* dbl2long  */
 
-#define M_CVTFD(rs,rd)          M_FOP3(0x02,0x34,0x0c9,rd,0,rs*2)     /* flt2dbl   */
-#define M_CVTDF(rs,rd)          M_FOP3(0x02,0x34,0x0c6,rd*2,0,rs)     /* dbl2float */
+#define M_CVTFD(rs,rd)          M_FOP3(0x02,0x34,0x0c9,rd,0,rs)     /* flt2dbl   */
+#define M_CVTDF(rs,rd)          M_FOP3(0x02,0x34,0x0c6,rd,0,rs)     /* dbl2float */
 
 
-/* translate logical double register index to float index. (e.g. %d1 -> %f2, %d2 -> %f4, etc.) */
-/* we don't have to pack the 6-bit register number, since we are not using the upper 16 doubles */
-/* floats reside in lower register of a double pair, use same translation as above */
+/* a 6-bit double register index has to be converted into the 5-bit representation 
+ * (%d1 -> %f2, %d2 -> %f4, ie. shift left once )
+ * don't have to pack the MSB, since we are not using the upper 16 doubles
+ * 
+ * since single precision floats reside in the lower register of a double pair their
+ * register numbers need to be handled in the same way
+ */
+
+/* M_OP3 will not do the floar register number conversion */
 #define M_DLD_INTERN(rd,rs1,disp) M_OP3(0x03,0x23,rd*2,rs1,disp,IMM)    /* double (64-bit) load */
 #define M_DLD(rd,rs,disp) \
 	do { \
@@ -512,7 +540,7 @@
     } while (0)
     
 
-#define M_DST_INTERN(rd,rs1,disp) M_OP3(0x03,0x27,rd,rs1,disp,IMM)    /* double (64-bit) store */
+#define M_DST_INTERN(rd,rs1,disp) M_OP3(0x03,0x27,rd*2,rs1,disp,IMM)    /* double (64-bit) store */
 #define M_DST(rd,rs,disp) \
     do { \
         s4 lo = (short) (disp); \

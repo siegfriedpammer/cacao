@@ -38,8 +38,9 @@
 #include "md-abi.h"
 
 #include "vm/jit/jit.h"
+#include "vm/jit/dseg.h"
+#include "vm/jit/emit.h"
 #include "vm/jit/sparc64/codegen.h"
-#include "vm/jit/sparc64/emit.h"
 
 
 /* code generation functions **************************************************/
@@ -63,9 +64,9 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(src->type))
-			M_LDDF(REG_SP, src->regoff * 8, tempreg);
+			M_DLD(tempreg, REG_SP, src->regoff * 8);
 		else
-			M_LDX(REG_SP, src->regoff * 8, tempreg);
+			M_LDX(tempreg, REG_SP, src->regoff * 8);
 
 		reg = tempreg;
 	} else
@@ -94,9 +95,9 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(src->type))
-			M_LDDF(REG_SP, src->regoff * 8, tempreg);
+			M_DLD(tempreg, REG_SP, src->regoff * 8);
 		else
-			M_LDX(REG_SP, src->regoff * 8, tempreg);
+			M_LDX(tempreg, REG_SP, src->regoff * 8);
 
 		reg = tempreg;
 	} else
@@ -125,9 +126,9 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(src->type))
-			M_LDDF(REG_SP, src->regoff * 8, tempreg);
+			M_DLD(tempreg, REG_SP, src->regoff * 8);
 		else
-			M_LDX(REG_SP, src->regoff * 8, tempreg);
+			M_LDX(tempreg, REG_SP, src->regoff * 8);
 
 		reg = tempreg;
 	} else
@@ -155,7 +156,7 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(dst->type))
-			M_STDF(d, REG_SP, dst->regoff * 8);
+			M_DST(d, REG_SP, dst->regoff * 8);
 		else
 			M_STX(d, REG_SP, dst->regoff * 8);
 	}
@@ -196,11 +197,53 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	s4 disp;
 
 	if ((value >= -4096) && (value <= 4095)) {
-		M_IOR(REG_ZERO, value, d, IMM);
+		M_XOR(REG_ZERO, value, d);
 	} else {
 		disp = dseg_adds4(cd, value);
-		M_ILD(d, REG_PV, disp);
+		M_ILD(d, REG_PV_CALLEE, disp);
 	}
+}
+
+void emit_lconst(codegendata *cd, s4 d, s8 value)
+{
+	s4 disp;
+
+	if ((value >= -4096) && (value <= 4095)) {
+		M_XOR(REG_ZERO, value, d);	
+	} else {
+		disp = dseg_adds8(cd, value);
+		M_LDX(d, REG_PV_CALLEE, disp);
+	}
+}
+
+/* emit_exception_stubs ********************************************************
+
+   Generates the code for the exception stubs.
+
+*******************************************************************************/
+
+void emit_exception_stubs(jitdata *jd)
+{
+}
+
+/* emit_patcher_stubs **********************************************************
+
+   Generates the code for the patcher stubs.
+
+*******************************************************************************/
+
+void emit_patcher_stubs(jitdata *jd)
+{
+}
+
+/* emit_replacement_stubs ******************************************************
+
+   Generates the code for the replacement stubs.
+
+*******************************************************************************/
+
+void emit_replacement_stubs(jitdata *jd)
+{
 }
 
 

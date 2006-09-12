@@ -39,6 +39,8 @@
 #include "offsets.h"
 #include "md-asm.h"
 
+	.register %g2,#scratch                         /* define as scratch       */
+	.register %g3,#scratch                    /* XXX  reserve for application */
 	.text
 
 /* export functions ***********************************************************/
@@ -49,6 +51,17 @@
 	.global asm_vm_call_method_float  
 	.global asm_vm_call_method_double 
 	.global asm_vm_call_method_exception_handler
+
+	.global asm_call_jit_compiler
+
+	.global asm_handle_exception
+	.global asm_handle_nat_exception
+
+
+	.global asm_abstractmethoderror
+	
+	.global asm_criticalsections
+	.global asm_getclassvalues_atomic
 
 
 /* asm_vm_call_method ******************************************************
@@ -62,21 +75,21 @@
 
 	.align 8	/* v9: All data types are aligned to their size */
 
-/*x*/	.xword 0                         /* catch type all */
-/*x*/	.word calljava_xhandler2        /* handler pc */
-/*x*/	.word calljava_xhandler2        /* end pc */
-/*x*/	.word asm_vm_call_method        /* start pc */
+	.xword 0                         /* catch type all */
+	.xword 0                         /* handler pc */
+	.xword 0                         /* end pc */
+	.xword 0                         /* start pc */
 	.word  1                         /* extable size */
 	.word  0                         /* ALIGNMENT PADDING */
-/*x*/	.xword 0                         /* line number table start */
-/*x*/	.xword 0                         /* line number table size */
+	.xword 0                         /* line number table start */
+	.xword 0                         /* line number table size */
 	.word  0                         /* ALIGNMENT PADDING */
 	.word  0                         /* fltsave */
 	.word  1                         /* intsave */
 	.word  0                         /* isleaf */
 	.word  0                         /* IsSync */
 	.word  0                         /* frame size */
-/*x*/	.xword 0                         /* method pointer (pointer to name)*/ 
+	.xword 0                         /* method pointer (pointer to name)*/ 
 
 asm_vm_call_method:       
 asm_vm_call_method_int:   
@@ -84,7 +97,7 @@ asm_vm_call_method_long:
 asm_vm_call_method_float: 
 asm_vm_call_method_double:
 	
-	save %sp, -128, %sp		/* minimal (reg-window) frame */
+	save %sp, -144, %sp		/* 16 reg-save + 2 */
 
 
 	/* todo: copy fp registers */
@@ -131,10 +144,12 @@ calljava_nocopy:
 
 	mov		%i0,itmp1		/* pass method pointer via itmp1 */
 	
-	addx    %sp,1*8,mptr_itmp2    /* set method pointer      ???          */
-
-	/* setx asm_call_jit_compiler, %l1, %l0 */
-	call 	asm_call_jit_compiler	/* call JIT compiler                         */
+	setx asm_call_jit_compiler,%l0,mptr_itmp2 /* fake virtual function call (2 instr) */
+	stx mptr_itmp2,[%sp + 17*8] /* store function address               */
+	addx %sp,16*8,mptr_itmp2  /* set method pointer                   */
+	
+	ldx  [1*8 + mptr_itmp2], pv_caller     /* method call as in Java               */
+	jmpl pv_caller,ra_caller                      /* call JIT compiler          */
 	nop
 calljava_jit2:
 	/* no need to restore pv */
@@ -151,9 +166,7 @@ asm_vm_call_method_exception_handler:
 	return 	%i7 + 8         		 /* implicit window restore */
 	nop
 	
-	
-	
-	
+
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
@@ -180,64 +193,108 @@ asm_call_jit_compiler:
 	/* XXX save + reserve stack space          */
 	/* XXX save float arg registers */
 
-	mov     mptr_itmp2,%l0        /* save method pointer                      */
-	stq     itmp1,14*8(sp)        /* save methodinfo pointer                  */
-
-	addx    15*8,%sp,%o0          /* create stackframe info                   */
-	mov     zero,%o1              /* we don't have pv handy                   */
+	mov     itmp1,%o0             /* pass methodinfo pointer                  */
+	mov     mptr_itmp2,%o1        /* pass method pointer                      */
 	mov     %fp,%o2				  /* pass java sp (==fp)             		  */
-	mov     %ra,%o3               /* pass Java ra                             */
+	mov     ra_callee,%o3         /* pass Java ra                             */
 	mov     %o3,%o4               /* xpc is equal to ra                       */
-	call    stacktrace_create_extern_stackframeinfo
+	call    jit_asm_compile       /* call jit compiler                        */
 
-	mov     itmp1,%o0,            /* pass methodinfo pointer                  */
-	call    jit_compile           /* call jit compiler                        */
-	mov     %o0,pv_callee         /* save return value into callee pv         */
+	mov     %o0,pv_callee         /* save return value into callee(!) pv      */
 	                              /* the in's we have are also the in's of the*/
 	                              /* method that will be called               */
 
-	mov     %ra,%o0               /* pass return address                      */
-	addx    15*8,sp,%o1           /* pass stackframeinfo (for PV)             */
-	mov     %l0,%o2               /* pass method pointer                      */
-	jsr     ra,md_assembler_get_patch_address /* get address of patch position*/
-	mov     %o0,%l2               /* store patch address for later use        */
-
-	addx    15*8,sp,%o0           /* remove stackframe info                   */
-	call    stacktrace_remove_stackframeinfo
-	
-	
-	mov 	%l2, itmp3            /* move patch address out of window         */
 	/* XXX do a window restore here ???  */
 	/* XXX restore float argument registers */
 
-	beq     pv_callee,L_asm_call_jit_compiler_exception
+	brz     pv_callee,L_asm_call_jit_compiler_exception
 
-	stx     pv_callee,[itmp3]     /* patch method entry point                 */
+	/* synchronise instruction cache moved somewhere else           */
 
-	/* XXX synchronise instruction cache            */
-
-	jmpl    pv,zero               /* and call method, the method returns      */
+	jmpl    pv_callee,zero        /* and call method, the method returns      */
 	                              /* directly to the caller (ra).             */	
 	
 L_asm_call_jit_compiler_exception:
-	/* XXX how to handle stack & window here? */
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	/* itmpx shall be one of the application globals */
-	mov     %ra,itmpx             /* save return address (xpc)                */
+	/* no need to do a save, only ra needs to be preserved */
+
+	/* we save ra in one of the application globals */
+	mov     ra_caller,xpc_itmp3   /* save return address (xpc)                */
 	
-	call    builtin_asm_get_exceptionptrptr
-#else
-	setx    v0,_exceptionptr
+	call    exceptions_get_and_clear_exception
+
+	mov     xpc_itmp3,ra_caller   /* restore return address (xpc)             */
+
+	mov     %o0,xptr_itmp2        /* get exception                            */
+	sub     ra_caller,4,xpc_itmp3 /* exception address is ra - 4              */
+	ba      L_asm_handle_nat_exception
+
+
+
+/* asm_handle_exception ********************************************************
+
+   This function handles an exception. It does not use the usual calling
+   conventions. The exception pointer is passed in REG_ITMP2 and the
+   pc from the exception raising position is passed in REG_ITMP3. It searches
+   the local exception table for a handler. If no one is found, it unwinds
+   stacks and continues searching the callers.
+
+*******************************************************************************/
+
+
+asm_handle_nat_exception:
+L_asm_handle_nat_exception:       /* required for PIC code                    */
+asm_handle_exception:
+	
+	/* nothing here */
+
+	restore zero,0,zero
+
+
+/* asm_abstractmethoderror *****************************************************
+
+   Creates and throws an AbstractMethodError.
+
+*******************************************************************************/
+
+asm_abstractmethoderror:
+	/* do a window save */
+	save %sp,-192,%sp
+
+	mov     %fp,%o0                     /* pass java sp(==fp)                 */
+	mov     ra_callee,%o1               /* pass exception address             */
+	call    exceptions_asm_new_abstractmethoderror
+
+	mov     %o0,xptr_itmp2              /* get exception pointer              */
+	sub     ra_callee,4,xpc_itmp3       /* exception address is ra - 4        */
+	ba      L_asm_handle_nat_exception
+
+	/* XXX: leave the register window open for handle_exception ??? */
+
+asm_getclassvalues_atomic:
+_crit_restart:
+_crit_begin:
+/* not doing a window save, using the global temporary registers */
+	ldsw    [offbaseval+%o0],itmp1
+	ldsw    [offdiffval+%o0],itmp2
+	ldsw    [offbaseval+%o1],itmp3
+_crit_end:
+	stw     itmp1,[offcast_super_baseval+%o2]
+	stw     itmp2,[offcast_super_diffval+%o2]
+	stw     itmp3,[offcast_sub_baseval+%o2]
+	jmpl    ra_caller,zero  /* caller's ra, b/c no window save */
+
+	.end    asm_getclassvalues_atomic
+
+
+    .data
+
+asm_criticalsections:
+#if defined(ENABLE_THREADS)
+    .xword   _crit_begin
+    .xword   _crit_end
+    .xword   _crit_restart
 #endif
-	ldq     xptr,0(v0)            /* get the exception pointer                */
-	stq     zero,0(v0)            /* clear the exception pointer              */
-
-	subq    ra,4,xpc
-	br      L_asm_handle_nat_exception
-
-
-
-
+    .xword   0
 
 
 

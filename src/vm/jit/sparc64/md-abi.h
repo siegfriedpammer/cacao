@@ -42,14 +42,14 @@
 #define REG_RESULT_CALLEE	24   /* to deliver method results				  */
 #define REG_RESULT_CALLER	 8   /* to read method results                    */
 
-#define REG_RA_CALLEE     	26   /* callee reads return address here          */
+#define REG_RA_CALLEE     	31   /* callee reads return address here          */
 #define REG_RA_CALLER     	15   /* caller puts address of call instr here    */
 
 #define REG_PV_CALLEE  		29   /* procedure vector, as found by callee	  */
 #define REG_PV_CALLER		13   /* caller provides PV here */
 
 
-#define REG_METHODPTR    4   /* pointer to the place from where the procedure */
+#define REG_METHODPTR    2   /* pointer to the place from where the procedure */
                              /* vector has been fetched         */
                              
                              
@@ -78,10 +78,10 @@
 
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
-#define INT_SAV_CNT     16   /* number of int callee saved registers          */
+#define INT_SAV_CNT     12   /* number of int callee saved registers          */
 #define INT_ARG_CNT      5   /* number of int argument registers (-1 for PV)  */
-#define INT_TMP_CNT      5   /* int temp registers (%g1-%g5)                  */
-#define INT_RES_CNT      6   /* number of reserved integer registers          */
+#define INT_TMP_CNT      2   /* int temp registers (%g4-%g5)                  */
+#define INT_RES_CNT     12   /* number of reserved integer registers          */
                              /* pv, zero, %g6, %g7, sp, ra                    */
 
 #define FLT_REG_CNT     16   /* number of float registers                     */
@@ -92,6 +92,9 @@
                              /* the one "missing" register is the return reg  */
 
 /* #define TRACE_ARGS_NUM   5 */
+
+
+#define WINSAVE_REGS   16    /* number of regs that SPARC saves onto stack    */
 
 #endif /* _MD_ABI_H */
 
