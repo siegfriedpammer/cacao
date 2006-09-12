@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5473 2006-09-11 23:32:45Z edwin $
+   $Id: stack.c 5481 2006-09-12 21:23:56Z edwin $
 
 */
 
@@ -469,30 +469,18 @@ struct stackdata_t {
 
 /* macros for branching / reaching basic blocks *********************/
 
-#if defined(ENABLE_VERIFIER)
-#define MARKREACHED(b, c)                                            \
+#define BRANCH_TARGET(bt, tempbptr)                                  \
     do {                                                             \
-        if (!stack_mark_reached(&sd, (b), curstack, stackdepth))     \
+        tempbptr = BLOCK_OF((bt).insindex);                          \
+        tempbptr = stack_mark_reached(&sd, tempbptr, curstack,       \
+                                      stackdepth);                   \
+        if (tempbptr == NULL)                                        \
             return false;                                            \
-    } while (0)
-#else
-#define MARKREACHED(b, c)                                            \
-    do {                                                             \
-        (void) stack_mark_reached(&sd, (b), curstack, stackdepth);   \
-    } while (0)
-#endif
-
-#define BRANCH_TARGET(bt, tempbptr, tempsp)                          \
-    do {                                                             \
-        (bt).block = tempbptr = BLOCK_OF((bt).insindex);             \
-        MARKREACHED(tempbptr, tempsp);                               \
+        (bt).block = tempbptr;                                       \
     } while (0)
 
-#define BRANCH(tempbptr, tempsp)                                     \
-    do {                                                             \
-        iptr->dst.block = tempbptr = BLOCK_OF(iptr->dst.insindex);   \
-        MARKREACHED(tempbptr, tempsp);                               \
-    } while (0)
+#define BRANCH(tempbptr)                                             \
+    BRANCH_TARGET(iptr->dst, tempbptr)
 
 
 /* forward declarations *******************************************************/
@@ -2697,7 +2685,7 @@ normal_ICONST:
 										iptr[2].opc = ICMD_NOP;
 
 										OP1_BRANCH(TYPE_LNG);
-										BRANCH(tbptr, copy);
+										BRANCH(tbptr);
 										COUNT(count_pcmd_bra);
 										COUNT(count_pcmd_op);
 										break;
@@ -2977,9 +2965,10 @@ normal_ACONST:
 
 						/* if the variable is already coalesced, don't bother */
 
-						if (IS_OUTVAR(curstack)
-							|| (curstack->varkind == LOCALVAR 
-								&& curstack->varnum != j))
+						/* We do not need to check against OUTVAR, as invars */
+						/* are always before the coalescing boundary.        */
+
+						if (curstack->varkind == LOCALVAR)
 							goto store_tail;
 
 						/* there is no STORE Lj while curstack is live */
@@ -3003,7 +2992,7 @@ normal_ACONST:
 						/* coalesce the temporary variable with Lj */
 						assert((curstack->varkind == TEMPVAR)
 									|| (curstack->varkind == UNDEFVAR));
-						assert(!IS_LOCALVAR(curstack));
+						assert(!IS_LOCALVAR(curstack)); /* XXX correct? */
 						assert(!IS_OUTVAR(curstack));
 						assert(!IS_PREALLOC(curstack));
 
@@ -3135,7 +3124,7 @@ store_tail:
 					case ICMD_IFNONNULL:
 						COUNT(count_pcmd_bra);
 						OP1_BRANCH(TYPE_ADR);
-						BRANCH(tbptr, copy);
+						BRANCH(tbptr);
 						break;
 
 					case ICMD_IFEQ:
@@ -3151,7 +3140,7 @@ store_tail:
 
 						OP1_BRANCH(TYPE_INT);
 /* 						iptr->sx.val.i = 0; */
-						BRANCH(tbptr, copy);
+						BRANCH(tbptr);
 						break;
 
 						/* pop 0 push 0 branch */
@@ -3159,7 +3148,7 @@ store_tail:
 					case ICMD_GOTO:
 						COUNT(count_pcmd_bra);
 						OP0_BRANCH;
-						BRANCH(tbptr, copy);
+						BRANCH(tbptr);
 						superblockend = true;
 						break;
 
@@ -3170,14 +3159,14 @@ store_tail:
 						OP1_BRANCH(TYPE_INT);
 
 						table = iptr->dst.table;
-						BRANCH_TARGET(*table, tbptr, copy);
+						BRANCH_TARGET(*table, tbptr);
 						table++;
 
 						i = iptr->sx.s23.s3.tablehigh
 						  - iptr->sx.s23.s2.tablelow + 1;
 
 						while (--i >= 0) {
-							BRANCH_TARGET(*table, tbptr, copy);
+							BRANCH_TARGET(*table, tbptr);
 							table++;
 						}
 						superblockend = true;
@@ -3189,14 +3178,14 @@ store_tail:
 						COUNT(count_pcmd_table);
 						OP1_BRANCH(TYPE_INT);
 
-						BRANCH_TARGET(iptr->sx.s23.s3.lookupdefault, tbptr, copy);
+						BRANCH_TARGET(iptr->sx.s23.s3.lookupdefault, tbptr);
 
 						lookup = iptr->dst.lookup;
 
 						i = iptr->sx.s23.s2.lookupcount;
 
 						while (--i >= 0) {
-							BRANCH_TARGET(lookup->target, tbptr, copy);
+							BRANCH_TARGET(lookup->target, tbptr);
 							lookup++;
 						}
 						superblockend = true;
@@ -3219,14 +3208,14 @@ store_tail:
 					case ICMD_IF_ICMPLE:
 						COUNT(count_pcmd_bra);
 						OP2_BRANCH(TYPE_INT, TYPE_INT);
-						BRANCH(tbptr, copy);
+						BRANCH(tbptr);
 						break;
 
 					case ICMD_IF_ACMPEQ:
 					case ICMD_IF_ACMPNE:
 						COUNT(count_pcmd_bra);
 						OP2_BRANCH(TYPE_ADR, TYPE_ADR);
-						BRANCH(tbptr, copy);
+						BRANCH(tbptr);
 						break;
 
 						/* pop 2 push 0 */
@@ -3628,7 +3617,7 @@ icmd_DUP_X2:
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_LNG, TYPE_LNG);
-							BRANCH(tbptr, copy);
+							BRANCH(tbptr);
 
 							COUNT(count_pcmd_bra);
 							break;
@@ -3671,7 +3660,7 @@ normal_LCMP:
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_FLT, TYPE_FLT);
-							BRANCH(tbptr, copy);
+							BRANCH(tbptr);
 
 							COUNT(count_pcmd_bra);
 							break;
@@ -3712,7 +3701,7 @@ normal_FCMPL:
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_FLT, TYPE_FLT);
-							BRANCH(tbptr, copy);
+							BRANCH(tbptr);
 
 							COUNT(count_pcmd_bra);
 							break;
@@ -3753,7 +3742,7 @@ normal_FCMPG:
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_DBL, TYPE_DBL);
-							BRANCH(tbptr, copy);
+							BRANCH(tbptr);
 
 							COUNT(count_pcmd_bra);
 							break;
@@ -3794,7 +3783,7 @@ normal_DCMPL:
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_DBL, TYPE_DBL);
-							BRANCH(tbptr, copy);
+							BRANCH(tbptr);
 
 							COUNT(count_pcmd_bra);
 							break;
