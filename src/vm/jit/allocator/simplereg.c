@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5343 2006-09-05 21:20:33Z twisti $
+   $Id: simplereg.c 5480 2006-09-12 20:51:57Z edwin $
 
 */
 
@@ -1168,7 +1168,7 @@ static void new_reg_mark_copy(registerdata *rd, stackptr *dupslots,
 			/* STCOPY is already checked in reg_free_temp macro! */
 			slots = nin;
 			argp = dupslots + slots;
-			while (--slots) {
+			while (slots--) {
 				sp = *--argp;
 				if ((src_regoff[j] == sp->regoff) && 
 					((src_flags[j] & INMEMORY) == (sp->flags & INMEMORY)) ) 
