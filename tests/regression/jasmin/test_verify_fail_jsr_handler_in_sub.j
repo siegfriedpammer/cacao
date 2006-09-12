@@ -1,4 +1,4 @@
-.class public test_verify_ok_jsr_handler_in_sub
+.class public test_verify_fail_jsr_handler_in_sub
 .super java/lang/Object
 
 ; ======================================================================
@@ -37,10 +37,8 @@
 	; --------------------------------------------------
 
 	jsr sbr_1
-	; OUTPUT: 48
 	iload 1
-	invokestatic test_verify_ok_jsr_handler_in_sub/checkI(I)V
-	; OUTPUT: 35
+	invokestatic test_verify_fail_jsr_handler_in_sub/checkI(I)V
 
 	; --------------------------------------------------
 
@@ -48,6 +46,9 @@ force_basic_block_boundary:
 
 	return
 	
+; ERROR: VerifyError
+; This fails, because the "astore 2" is _after_ the exception range boundary
+
 sbr_1:
 test_start:
 	astore 2
@@ -56,14 +57,14 @@ test_start:
 	idiv
 	pop
 	ldc 666
-	invokestatic test_verify_ok_jsr_handler_in_sub/checkI(I)V
+	invokestatic test_verify_fail_jsr_handler_in_sub/checkI(I)V
 	return
 test_end:
 
 handler:
 	pop
 	ldc 48
-	invokestatic test_verify_ok_jsr_handler_in_sub/checkI(I)V
+	invokestatic test_verify_fail_jsr_handler_in_sub/checkI(I)V
 	ret 2
 
 .end method

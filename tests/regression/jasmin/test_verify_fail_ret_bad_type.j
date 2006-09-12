@@ -50,6 +50,6 @@ sbr_1:
 	ldc "string"
 	astore 2
 	ret 2
-	; ERROR: VerifyError.*RET with non-returnAddress
+	; ERROR: VerifyError
 
 .end method

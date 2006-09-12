@@ -34,6 +34,6 @@ force_basic_block_boundary:
 sbr_1:
 	pop
 	ret 2
-	; ERROR: VerifyError.*RET with non-returnAddress
+	; ERROR: VerifyError
 
 .end method

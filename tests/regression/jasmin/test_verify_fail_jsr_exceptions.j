@@ -1,4 +1,4 @@
-.class public test_verify_ok_jsr_exceptions
+.class public test_verify_fail_jsr_exceptions
 .super java/lang/Object
 
 ; ======================================================================
@@ -37,17 +37,21 @@
 	; --------------------------------------------------
 	jsr sbr_1
 	ldc 111
-	invokestatic test_verify_ok_jsr_exceptions/checkI(I)V
+	invokestatic test_verify_fail_jsr_exceptions/checkI(I)V
 	return
 
 continue_1:
 	jsr sbr_2
 	ldc 222
-	invokestatic test_verify_ok_jsr_exceptions/checkI(I)V
+	invokestatic test_verify_fail_jsr_exceptions/checkI(I)V
 	return
 
 test_start:
 continue_2:
+
+; ERROR: VerifyError
+; This fails, because the "astore 1" is _after_ the exception range boundary
+
 	astore 1
 	ldc 2
 	ldc 0

@@ -36,6 +36,6 @@ sbr_1:
 	aload 2 
 	pop
 	ret 2
-	; ERROR: VerifyError.*load of returnAddress
+	; ERROR: VerifyError
 
 .end method
