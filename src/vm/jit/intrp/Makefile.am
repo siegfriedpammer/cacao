@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4947 2006-05-24 14:08:56Z twisti $
+## $Id: Makefile.am 5489 2006-09-13 13:30:20Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-CFLAGS = $(INTRP_CFLAGS)
+AM_CFLAGS = $(INTRP_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src
 
 LIBS =
