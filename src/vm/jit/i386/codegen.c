@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5483 2006-09-12 22:32:07Z christian $
+   $Id: codegen.c 5487 2006-09-13 00:03:45Z edwin $
 
 */
 
@@ -716,94 +716,20 @@ bool codegen(jitdata *jd)
 
 		/* load/store operations **********************************************/
 
-		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_ALOAD:      /* op1 = local variable                         */
-
-			if (iptr->s1.varindex == iptr->dst.varindex)
-				break;
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-
-			s1 = emit_load_s1(jd, iptr, d);
-			M_INTMOVE(s1, d);
-			emit_store_dst(jd, iptr, d);
-
-			break;
-
-		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable                         */
-  
-			if (iptr->s1.varindex == iptr->dst.varindex)
-				break;
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-			M_LNGMOVE(s1, d);
-			emit_store_dst(jd, iptr, d);
-
-			break;
-
-		case ICMD_FLOAD:      
-		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable               */
-
-			if (iptr->s1.varindex == iptr->dst.varindex)
-				break;
-
-			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			M_FLTMOVE(s1, d);
-			emit_store_dst(jd, iptr, d);
-
-			break;
-
-
-		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_ASTORE:     /* op1 = local variable                         */
-
-			if (iptr->s1.varindex == iptr->dst.varindex)
-				break;
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-
-			M_INTMOVE(s1,d);
-			emit_store_dst(jd, iptr, d);
-
-			break;
-
-		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable              */
-
-			if (iptr->s1.varindex == iptr->dst.varindex)
-				break;
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-			M_LNGMOVE(s1,d);
-			emit_store_dst(jd, iptr, d);
-
-			break;
-
+		case ICMD_ILOAD:
+		case ICMD_ALOAD:
+		case ICMD_LLOAD:
+		case ICMD_FLOAD:
+		case ICMD_DLOAD:
+		case ICMD_ISTORE:
+		case ICMD_ASTORE:
+		case ICMD_LSTORE:
 		case ICMD_FSTORE:
-		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable              */
+		case ICMD_DSTORE:
 
-			if (iptr->s1.varindex == iptr->dst.varindex)
-				break;
-
-			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			M_FLTMOVE(s1, d);
-			emit_store_dst(jd, iptr, d);
-
+			emit_copy(jd, iptr, jd->var + iptr->s1.varindex, 
+								jd->var + iptr->dst.varindex);
 			break;
-
 
 		/* pop/copy/move operations *******************************************/
 
