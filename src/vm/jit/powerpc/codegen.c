@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5400 2006-09-07 12:26:44Z twisti $
+   $Id: codegen.c 5488 2006-09-13 00:21:40Z edwin $
 
 */
 
@@ -190,7 +190,7 @@ bool codegen(jitdata *jd)
 		dseg_add_target(cd, ex->start);
    		dseg_add_target(cd, ex->end);
 		dseg_add_target(cd, ex->handler);
-		(void) dseg_add_unique_address(cd, ex->catchtype.cls);
+		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
 	
 	/* generate method profiling code */

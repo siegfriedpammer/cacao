@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: asmpart.c 5488 2006-09-13 00:21:40Z edwin $
 
 */
 
@@ -202,7 +202,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 
 	  for (i = 0; i < exceptiontablelength; i++) {
 		  ex--;
-		  c = ex->catchtype.cls;
+		  c = ex->catchtype.cls; /* XXX this may also be a classref! */
 
 		  if (c != NULL) {
 			  if (!(c->state & CLASS_LOADED))

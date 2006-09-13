@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5388 2006-09-06 22:34:46Z twisti $
+   $Id: codegen.c 5488 2006-09-13 00:21:40Z edwin $
 
 */
 
@@ -171,7 +171,7 @@ bool codegen(jitdata *jd)
 		dseg_addtarget(cd, ex->start);
    		dseg_addtarget(cd, ex->end);
 		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype.cls);
+		(void) dseg_addaddress(cd, ex->catchtype.any);
 	}
 	
 	/* create stack frame (if necessary) */
