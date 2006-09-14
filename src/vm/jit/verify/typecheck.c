@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5498 2006-09-14 18:56:49Z edwin $
+   $Id: typecheck.c 5499 2006-09-14 20:36:33Z edwin $
 
 */
 
@@ -174,12 +174,12 @@ bool opt_typecheckverbose = false;
 
 #ifdef TYPECHECK_VERBOSE
 #define TYPECHECK_VERBOSE_IMPORTANT
-#define LOGNL              DOLOG(puts("\n"))
-#define LOG(str)           DOLOG(puts(str); LOGNL)
+#define LOGNL              DOLOG(puts(""))
+#define LOG(str)           DOLOG(puts(str);)
 #define LOG1(str,a)        DOLOG(printf(str,a); LOGNL)
 #define LOG2(str,a,b)      DOLOG(printf(str,a,b); LOGNL)
 #define LOG3(str,a,b,c)    DOLOG(printf(str,a,b,c); LOGNL)
-#define LOGIF(cond,str)    DOLOG(do {if (cond) { puts(str); LOGNL; }} while(0))
+#define LOGIF(cond,str)    DOLOG(do {if (cond) { puts(str); }} while(0))
 #ifdef  TYPEINFO_DEBUG
 #define LOGINFO(info)      DOLOG(do {typeinfo_print_short(stdout,(info)); LOGNL;} while(0))
 #else
@@ -187,12 +187,12 @@ bool opt_typecheckverbose = false;
 #define typevector_print(x,y,z)
 #endif
 #define LOGFLUSH           DOLOG(fflush(stdout))
-#define LOGSTR(str)        DOLOG(puts(str))
+#define LOGSTR(str)        DOLOG(printf("%s", str))
 #define LOGSTR1(str,a)     DOLOG(printf(str,a))
 #define LOGSTR2(str,a,b)   DOLOG(printf(str,a,b))
 #define LOGSTR3(str,a,b,c) DOLOG(printf(str,a,b,c))
 #define LOGNAME(c)         DOLOG(class_classref_or_classinfo_print(c))
-#define LOGMETHOD(str,m)   DOLOG(puts(str); method_println(m);)
+#define LOGMETHOD(str,m)   DOLOG(printf("%s", str); method_println(m);)
 #else
 #define LOG(str)
 #define LOG1(str,a)
@@ -423,6 +423,7 @@ typedef struct verifier_state {
 	s4 numlocals;                         /* number of local variables */
 	s4 validlocals;                /* number of Java-accessible locals */
 	typedescriptor returntype;    /* return type of the current method */
+	s4 *reverselocalmap;
 	
 	s4 *savedindices;
 	s4 *savedinvars;                            /* saved invar pointer */
@@ -1278,6 +1279,51 @@ verify_multianewarray(verifier_state *state)
 }
 
 
+static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool twoword)
+{
+	s4 i;
+	s4 t;
+	s4 mapped;
+	jitdata *jd = state->jd;
+	s4 *localmap = jd->local_map;
+	varinfo *vars = jd->var;
+
+	i = state->reverselocalmap[index];
+
+	if (i > 0) {
+		localmap += 5 * (i-1);
+		for (t=0; t<5; ++t) {
+			mapped = *localmap++;
+			if (mapped >= 0 && IS_2_WORD_TYPE(vars[mapped].type)) {
+				LOG1("invalidate local %d", mapped);
+				vars[mapped].type = TYPE_VOID;
+			}
+		}
+	}
+	else {
+		localmap += 5 * i;
+	}
+
+	for (t=0; t<5; ++t) {
+		mapped = *localmap++;
+		if (mapped >= 0) {
+			LOG1("invalidate local %d", mapped);
+			vars[mapped].type = TYPE_VOID;
+		}
+	}
+
+	if (twoword) {
+		for (t=0; t<5; ++t) {
+			mapped = *localmap++;
+			if (mapped >= 0) {
+				LOG1("invalidate local %d", mapped);
+				vars[mapped].type = TYPE_VOID;
+			}
+		}
+	}
+}
+
+
 /* verify_basic_block **********************************************************
  
    Perform bytecode verification of a basic block.
@@ -1313,6 +1359,7 @@ verify_basic_block(verifier_state *state)
 
 	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
 	LOGFLUSH;
+	DOLOG(new_show_basicblock(jd, state->bptr, SHOW_STACK));
 
 	superblockend = false;
 	state->bptr->flags = BBFINISHED;
@@ -1414,10 +1461,22 @@ verify_basic_block(verifier_state *state)
 							 dv->type = TYPE_DBL;
 							 break;
 
-			case ICMD_ISTORE: typevector_store(jd->var,state->iptr->dst.varindex,TYPE_INT,NULL); break;
-			case ICMD_FSTORE: typevector_store(jd->var,state->iptr->dst.varindex,TYPE_FLT,NULL); break;
-			case ICMD_LSTORE: typevector_store(jd->var,state->iptr->dst.varindex,TYPE_LNG,NULL); break;
-			case ICMD_DSTORE: typevector_store(jd->var,state->iptr->dst.varindex,TYPE_DBL,NULL); break;
+			case ICMD_ISTORE: 
+							 typecheck_invalidate_locals(state, state->iptr->dst.varindex, false);
+							 typevector_store(jd->var,state->iptr->dst.varindex,TYPE_INT,NULL); 
+							 break;
+			case ICMD_FSTORE: 
+							 typecheck_invalidate_locals(state, state->iptr->dst.varindex, false);
+							 typevector_store(jd->var,state->iptr->dst.varindex,TYPE_FLT,NULL); 
+							 break;
+			case ICMD_LSTORE: 
+							 typecheck_invalidate_locals(state, state->iptr->dst.varindex, true);
+							 typevector_store(jd->var,state->iptr->dst.varindex,TYPE_LNG,NULL); 
+							 break;
+			case ICMD_DSTORE: 
+							 typecheck_invalidate_locals(state, state->iptr->dst.varindex, true);
+							 typevector_store(jd->var,state->iptr->dst.varindex,TYPE_DBL,NULL); 
+							 break;
 
 				/****************************************/
 				/* LOADING ADDRESS FROM VARIABLE        */
@@ -1440,6 +1499,8 @@ verify_basic_block(verifier_state *state)
 				if (state->handlers[0] && TYPEINFO_IS_NEWOBJECT(VAROP(state->iptr->s1)->typeinfo)) {
 					TYPECHECK_VERIFYERROR_bool("Storing uninitialized object in local variable inside try block");
 				}
+
+				typecheck_invalidate_locals(state, state->iptr->dst.varindex, false);
 
 				if (TYPEINFO_IS_PRIMITIVE(VAROP(state->iptr->s1)->typeinfo)) {
 					typevector_store_retaddr(jd->var,state->iptr->dst.varindex,&(VAROP(state->iptr->s1)->typeinfo));
@@ -2382,6 +2443,8 @@ bool typecheck(jitdata *jd)
 	registerdata   *rd;
 	varinfo        *savedlocals;
 	verifier_state  state;             /* current state of the verifier */
+	s4              i;
+	s4              t;
 
 	/* collect statistics */
 
@@ -2438,6 +2501,14 @@ bool typecheck(jitdata *jd)
 	state.validlocals = state.numlocals;
     if (state.initmethod) 
 		state.numlocals++; /* VERIFIER_EXTRA_LOCALS */
+
+	state.reverselocalmap = DMNEW(s4, state.validlocals);
+	for (i=0; i<jd->m->maxlocals; ++i)
+		for (t=0; t<5; ++t) {
+			s4 mapped = jd->local_map[5*i + t];
+			if (mapped >= 0)
+				state.reverselocalmap[mapped] = i;
+		}
 
     /* allocate the buffer of active exception handlers */
 	
