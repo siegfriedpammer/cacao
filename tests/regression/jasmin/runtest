@@ -27,7 +27,16 @@ if [ "$1" = "--color" ] ; then
 fi
 
 JASMIN_JAR=/usr/share/java/jasmin-sable.jar
-JASMIN="$JAVA -cp $JASMIN_JAR jasmin.Main"
+
+if [ ! -r "$JASMIN_JAR" ] ; then
+	echo >&2 "$0: warning: jasmin .jar is not available at $JASMIN_JAR"
+	exit 0
+fi
+
+JASMIN="$JAVA $JAVAFLAGS -cp $JASMIN_JAR jasmin.Main"
+
+echo "java command: $JAVA $JAVAFLAGS"
+echo "jasmin command: $JASMIN"
 
 while [ -n "$1" ]
 do
@@ -52,7 +61,7 @@ do
 
 	# run the test
 
-    $JAVA "$TESTBASENAME" >"$TESTOUT" 2>"$TESTERR"
+    $JAVA $JAVAFLAGS "$TESTBASENAME" >"$TESTOUT" 2>"$TESTERR"
 	TESTSTATUS=$?
 
 	if [ $TESTSTATUS -ne $EXPECTSTATUS ] ; then
@@ -73,8 +82,8 @@ do
 		fi
 
 		if [ "$VERBOSE" -eq "1" ] ; then
-		$JAVA -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
-		./show "$TESTLOG"
+			$JAVA $JAVAFLAGS -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
+			./show "$TESTLOG"
 		fi
 	else
 		if grep "$EXPECTERROR" "$TESTERR" >/dev/null ; then

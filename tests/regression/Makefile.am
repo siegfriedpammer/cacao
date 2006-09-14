@@ -28,12 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5404 2006-09-07 13:29:05Z christian $
+## $Id: Makefile.am 5505 2006-09-14 22:51:12Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
 	codepatching \
+	jasmin \
 	native
 
 JAVA      = $(top_builddir)/src/cacao/cacao
