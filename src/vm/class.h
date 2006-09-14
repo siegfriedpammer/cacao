@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 5250 2006-08-18 12:24:10Z twisti $
+   $Id: class.h 5492 2006-09-14 18:20:28Z edwin $
 
 */
 
@@ -312,6 +312,8 @@ void class_print(classinfo *c);
 void class_println(classinfo *c);
 void class_classref_print(constant_classref *cr);
 void class_classref_println(constant_classref *cr);
+void class_classref_or_classinfo_print(classref_or_classinfo c);
+void class_classref_or_classinfo_println(classref_or_classinfo c);
 #endif
 
 /* debug purposes */

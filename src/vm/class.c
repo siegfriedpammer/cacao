@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 5250 2006-08-18 12:24:10Z twisti $
+   $Id: class.c 5492 2006-09-14 18:20:28Z edwin $
 
 */
 
@@ -1206,6 +1206,40 @@ void class_classref_println(constant_classref *cr)
 	printf("\n");
 }
 #endif
+
+
+/* class_classref_or_classinfo_print *******************************************
+
+   Prints classname plus referer class.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void class_classref_or_classinfo_print(classref_or_classinfo c)
+{
+	if (c.any == NULL) {
+		printf("(classref_or_classinfo) NULL");
+		return;
+	}
+	if (IS_CLASSREF(c))
+		class_classref_print(c.ref);
+	else
+		class_print(c.cls);
+}
+#endif
+
+
+/* class_classref_or_classinfo_println *****************************************
+
+   Prints classname plus referer class and a newline.
+
+*******************************************************************************/
+
+void class_classref_or_classinfo_println(classref_or_classinfo c)
+{
+	class_classref_or_classinfo_println(c);
+	printf("\n");
+}
 
 
 /* class_showconstantpool ******************************************************
