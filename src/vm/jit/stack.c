@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5481 2006-09-12 21:23:56Z edwin $
+   $Id: stack.c 5495 2006-09-14 18:44:10Z edwin $
 
 */
 
@@ -656,8 +656,9 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 	}
 
 	/* copy the current state of the local variables */
+	/* (one extra local is needed by the verifier)   */
 
-	v = DMNEW(varinfo, sd->localcount);
+	v = DMNEW(varinfo, sd->localcount + VERIFIER_EXTRA_LOCALS);
 	b->inlocals = v;
 	for (i=0; i<sd->localcount; ++i)
 		*v++ = sd->var[i];
@@ -702,8 +703,9 @@ static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b)
 	}
 
 	/* copy the current state of the local variables */
+	/* (one extra local is needed by the verifier)   */
 
-	dv = DMNEW(varinfo, sd->localcount);
+	dv = DMNEW(varinfo, sd->localcount + VERIFIER_EXTRA_LOCALS);
 	b->inlocals = dv;
 	for (i=0; i<sd->localcount; ++i)
 		*dv++ = sd->var[i];
@@ -1858,6 +1860,10 @@ bool new_stack_analyse(jitdata *jd)
 	jd->new_basicblocks[0].flags = BBREACHED;
 	jd->new_basicblocks[0].invars = NULL;
 	jd->new_basicblocks[0].indepth = 0;
+	jd->new_basicblocks[0].inlocals = 
+		DMNEW(varinfo, jd->localcount + VERIFIER_EXTRA_LOCALS);
+	MCOPY(jd->new_basicblocks[0].inlocals, jd->var, varinfo, 
+			jd->localcount + VERIFIER_EXTRA_LOCALS);
 
 	/* stack analysis loop (until fixpoint reached) **************************/
 
@@ -3017,7 +3023,10 @@ assume_conflict:
 store_tail:
 						last_store_boundary[javaindex] = sd.new;
 
-						STORE(opcode - ICMD_ISTORE, j);
+						if (opcode == ICMD_ASTORE && curstack->type == TYPE_RET)
+							STORE(TYPE_RET, j);
+						else
+							STORE(opcode - ICMD_ISTORE, j);
 						break;
 
 					/* pop 3 push 0 */
