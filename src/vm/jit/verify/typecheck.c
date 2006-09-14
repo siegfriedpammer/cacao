@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5499 2006-09-14 20:36:33Z edwin $
+   $Id: typecheck.c 5504 2006-09-14 22:49:37Z edwin $
 
 */
 
@@ -1531,19 +1531,6 @@ verify_basic_block(verifier_state *state)
 			case ICMD_PUTSTATIC:
 			case ICMD_PUTFIELDCONST:
 			case ICMD_PUTSTATICCONST:
-				TYPECHECK_COUNT(stat_ins_field);
-
-				if (INSTRUCTION_IS_UNRESOLVED(state->iptr)) {
-					uf = state->iptr->sx.s23.s3.uf;
-					fieldref = uf->fieldref;
-				}
-				else {
-					uf = NULL;
-					fieldref = state->iptr->sx.s23.s3.fmiref;
-				}
-
-				goto fieldaccess_tail;
-
 			case ICMD_GETFIELD:
 			case ICMD_GETSTATIC:
 				TYPECHECK_COUNT(stat_ins_field);
@@ -1557,14 +1544,6 @@ verify_basic_block(verifier_state *state)
 					fieldref = state->iptr->sx.s23.s3.fmiref;
 				}
 
-				/* the result is pushed on the stack */
-				dv->type = fieldref->parseddesc.fd->type;
-				if (dv->type == TYPE_ADR) {
-					if (!typeinfo_init_from_typedesc(fieldref->parseddesc.fd,NULL,&(dv->typeinfo)))
-						return false;
-				}
-
-fieldaccess_tail:
 				/* try to resolve the field reference lazily */
 				result = new_resolve_field_lazy(jd, state->iptr, state->m);
 				if (result == resolveFailed)
@@ -1588,6 +1567,15 @@ fieldaccess_tail:
 					TYPECHECK_COUNTIF(INSTRUCTION_IS_RESOLVED(state->iptr) && !state->iptr->sx.s23.s3.fmiref->p.field->class->initialized,stat_ins_field_uninitialized);
 				}
 					
+				if (iptr->opc == ICMD_GETFIELD || iptr->opc == ICMD_GETSTATIC) {
+					/* write the result type */
+					dv->type = fieldref->parseddesc.fd->type;
+					if (dv->type == TYPE_ADR) {
+						if (!typeinfo_init_from_typedesc(fieldref->parseddesc.fd,NULL,&(dv->typeinfo)))
+							return false;
+					}
+				}
+
 				maythrow = true;
 				break;
 
