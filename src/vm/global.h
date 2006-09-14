@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5461 2006-09-11 00:33:32Z edwin $
+   $Id: global.h 5493 2006-09-14 18:36:20Z edwin $
 
 */
 
@@ -316,6 +316,21 @@ struct java_objectarray {
 #if defined(ENABLE_THREADS)
 void compiler_lock();
 void compiler_unlock();
+#endif
+
+
+/* global constants related to the verifier ***********************************/
+
+/* The verifier needs additional variables in the variable array. Since these */
+/* must be reserved and set by parse.c and stack.c, we define these numbers   */
+/* here to avoid mysterious hard-coded constants.                             */
+
+#if defined(ENABLE_VERIFIER)
+#    define VERIFIER_EXTRA_LOCALS  1
+#    define VERIFIER_EXTRA_VARS    1
+#else
+#    define VERIFIER_EXTRA_LOCALS  0
+#    define VERIFIER_EXTRA_VARS    0
 #endif
 
 #endif /* _GLOBAL_H */
