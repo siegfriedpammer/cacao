@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: resolve.c 5497 2006-09-14 18:55:03Z edwin $
 
 */
 
@@ -116,11 +116,11 @@ bool resolve_class_from_name(classinfo *referer,
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_class_from_name(");
-	utf_fprint_printable_ascii(stderr,referer->name);
-	fprintf(stderr,",%p,",referer->classloader);
-	utf_fprint_printable_ascii(stderr,classname);
-	fprintf(stderr,",%d,%d)\n",(int)checkaccess,(int)link);
+	printf("resolve_class_from_name(");
+	utf_fprint_printable_ascii(stdout,referer->name);
+	printf(",%p,",(void*)referer->classloader);
+	utf_fprint_printable_ascii(stdout,classname);
+	printf(",%d,%d)\n",(int)checkaccess,(int)link);
 #endif
 
 	/* lookup if this class has already been loaded */
@@ -128,7 +128,7 @@ bool resolve_class_from_name(classinfo *referer,
 	cls = classcache_lookup(referer->classloader, classname);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    lookup result: %p\n",(void*)cls);
+	printf("    lookup result: %p\n",(void*)cls);
 #endif
 
 	if (!cls) {
@@ -169,7 +169,7 @@ bool resolve_class_from_name(classinfo *referer,
 		}
 
 #ifdef RESOLVE_VERBOSE
-		fprintf(stderr,"    loading...\n");
+		printf("    loading...\n");
 #endif
 
 		/* load the class */
@@ -185,7 +185,7 @@ bool resolve_class_from_name(classinfo *referer,
 	assert(cls->state & CLASS_LOADED);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    checking access rights...\n");
+	printf("    checking access rights...\n");
 #endif
 	
 	/* check access rights of referer to refered class */
@@ -216,7 +216,7 @@ bool resolve_class_from_name(classinfo *referer,
 
 	/* resolution succeeds */
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    success.\n");
+	printf("    success.\n");
 #endif
 	*result = cls;
 	return true;
@@ -304,9 +304,9 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 	assert(result);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_classref_or_classinfo(");
-	utf_fprint_printable_ascii(stderr,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
-	fprintf(stderr,",%i,%i,%i)\n",mode,(int)checkaccess,(int)link);
+	printf("resolve_classref_or_classinfo(");
+	utf_fprint_printable_ascii(stdout,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
+	printf(",%i,%i,%i)\n",mode,(int)checkaccess,(int)link);
 #endif
 
 	*result = NULL;
@@ -383,9 +383,9 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_class_from_typedesc(");
-	descriptor_debug_print_typedesc(stderr,d);
-	fprintf(stderr,",%i,%i)\n",(int)checkaccess,(int)link);
+	printf("resolve_class_from_typedesc(");
+	descriptor_debug_print_typedesc(stdout,d);
+	printf(",%i,%i)\n",(int)checkaccess,(int)link);
 #endif
 
 	if (d->type == TYPE_ADR) {
@@ -408,7 +408,7 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	assert(!link || (cls->state & CLASS_LINKED));
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    result = ");utf_fprint_printable_ascii(stderr,cls->name);fprintf(stderr,"\n");
+	printf("    result = ");utf_fprint_printable_ascii(stdout,cls->name);printf("\n");
 #endif
 
 	*result = cls;
@@ -518,6 +518,10 @@ check_again:
 
 		char *message;
 		int msglen;
+
+#if defined(RESOLVE_VERBOSE)
+		printf("SUBTYPE CHECK FAILED!\n");
+#endif
 
 		msglen = utf_bytes(subclass->name) + utf_bytes(CLASSREF_OR_CLASSINFO_NAME(supertype)) + 200;
 		message = MNEW(char, msglen);
@@ -722,6 +726,15 @@ static resolve_result_t resolve_and_check_subtype_set(methodinfo *refmethod,
 	assert(mode == resolveLazy || mode == resolveEager);
 	assert(error == resolveLinkageError || error == resolveIllegalAccessError);
 
+#if defined(RESOLVE_VERBOSE)
+	printf("resolve_and_check_subtype_set:\n");
+	unresolved_subtype_set_debug_dump(ref, stdout);
+	if (IS_CLASSREF(typeref))
+		class_classref_println(typeref.ref);
+	else
+		class_println(typeref.cls);
+#endif
+
 	setp = ref->subtyperefs;
 
 	/* an empty set of tests always succeeds */
@@ -741,6 +754,10 @@ static resolve_result_t resolve_and_check_subtype_set(methodinfo *refmethod,
 
 	for (; setp->any; ++setp) {
 		checkresult = resolve_subtype_check(refmethod,*setp,typeref,mode,error);
+#if defined(RESOLVE_VERBOSE)
+		if (checkresult != resolveSucceeded)
+			printf("SUBTYPE CHECK FAILED!\n");
+#endif
 		if (checkresult != resolveSucceeded)
 			return checkresult;
 	}
@@ -795,7 +812,7 @@ bool resolve_class(unresolved_class *ref,
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	unresolved_class_debug_dump(ref,stderr);
+	unresolved_class_debug_dump(ref,stdout);
 #endif
 
 	/* first we must resolve the class */
@@ -933,7 +950,8 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 *******************************************************************************/
 
 #if defined(ENABLE_VERIFIER)
-resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
+resolve_result_t new_resolve_field_verifier_checks(jitdata *jd,
+											   methodinfo *refmethod,
 											   constant_FMIref *fieldref,
 											   classinfo *container,
 											   fieldinfo *fi,
@@ -945,14 +963,15 @@ resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
 	resolve_result_t result;
 	bool isstatic = false;
 	bool isput = false;
-	stackelement *instanceslot = NULL;
-	stackelement *valueslot = NULL;
+	varinfo *instanceslot = NULL;
+	varinfo *valueslot = NULL;
 	constant_classref *fieldtyperef;
 
 	assert(refmethod);
 	assert(fieldref);
 	assert(container);
 	assert(fi);
+	assert(!iptr || jd);
 
 	/* get the classinfos and the field type */
 
@@ -971,22 +990,22 @@ resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
 		case ICMD_PUTFIELD:
 			isput = true;
 			if (iptr) {
-				valueslot = iptr->sx.s23.s2.var;
-				instanceslot = iptr->s1.var;
+				valueslot = VAROP(iptr->sx.s23.s2);
+				instanceslot = VAROP(iptr->s1);
 			}
 			break;
 
 		case ICMD_PUTFIELDCONST:
 			isput = true;
 			if (iptr)
-				instanceslot = iptr->s1.var;
+				instanceslot = VAROP(iptr->s1);
 			break;
 
 		case ICMD_PUTSTATIC:
 			isput = true;
 			isstatic = true;
 			if (iptr)
-				valueslot = iptr->s1.var;
+				valueslot = VAROP(iptr->s1);
 			break;
 
 		case ICMD_PUTSTATICCONST:
@@ -996,7 +1015,7 @@ resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
 
 		case ICMD_GETFIELD:
 			if (iptr)
-				instanceslot = iptr->s1.var;
+				instanceslot = VAROP(iptr->s1);
 			break;
 
 		case ICMD_GETSTATIC:
@@ -1152,7 +1171,8 @@ resolve_result_t new_resolve_field_verifier_checks(methodinfo *refmethod,
    
 *******************************************************************************/
 
-resolve_result_t new_resolve_field_lazy(instruction *iptr,
+resolve_result_t new_resolve_field_lazy(jitdata *jd,
+										instruction *iptr,
 										methodinfo *refmethod)
 {
 	classinfo *referer;
@@ -1219,10 +1239,9 @@ resolved_the_field:
 
 #if defined(ENABLE_VERIFIER)
 	if (opt_verify) {
-		result = new_resolve_field_verifier_checks(refmethod, fieldref, container,
-											   fi,
-											   iptr->opc,
-											   iptr);
+		result = new_resolve_field_verifier_checks(jd,
+				refmethod, fieldref, container, fi,
+				iptr->opc, iptr);
 
 		if (result != resolveSucceeded)
 			return result;
@@ -1275,7 +1294,7 @@ bool resolve_field(unresolved_field *ref,
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	unresolved_field_debug_dump(ref,stderr);
+	unresolved_field_debug_dump(ref,stdout);
 #endif
 
 	/* the class containing the reference */
@@ -1308,7 +1327,7 @@ bool resolve_field(unresolved_field *ref,
 	 * or one of its superclasses */
 
 #ifdef RESOLVE_VERBOSE
-		fprintf(stderr,"    resolving field in class...\n");
+		printf("    resolving field in class...\n");
 #endif
 
 	fi = class_resolvefield(container,
@@ -1334,7 +1353,8 @@ resolved_the_field:
 
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
-		checkresult = new_resolve_field_verifier_checks(ref->referermethod,
+		checkresult = new_resolve_field_verifier_checks(NULL,
+				ref->referermethod,
 				ref->fieldref,
 				container,
 				fi,
@@ -1511,7 +1531,8 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 *******************************************************************************/
 
 #if defined(ENABLE_VERIFIER)
-resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
+resolve_result_t new_resolve_method_verifier_checks(jitdata *jd,
+												methodinfo *refmethod,
 												constant_FMIref *methodref,
 												classinfo *container,
 												methodinfo *mi,
@@ -1525,8 +1546,8 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
 	int instancecount;
 	typedesc *paramtypes;
 	int i;
-	stackelement *instanceslot = NULL;
-	stackelement *param;
+	varinfo *instanceslot = NULL;
+	varinfo *param;
 	methoddesc *md;
 	typeinfo tinfo;
 	int type;
@@ -1537,8 +1558,8 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
 	assert(mi);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_method_verifier_checks\n");
-	fprintf(stderr,"    flags: %02x\n",mi->flags);
+	printf("resolve_method_verifier_checks\n");
+	printf("    flags: %02x\n",mi->flags);
 #endif
 
 	/* get the classinfos and the method descriptor */
@@ -1594,9 +1615,10 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
 		/* for non-static methods we have to check the constraints on the         */
 		/* instance type                                                          */
 
+		assert(jd);
+
 		if (!invokestatic) {
-			/* find the instance slot under all the parameter slots on the stack */
-			instanceslot = iptr->sx.s23.s2.args[0];
+			instanceslot = VAR(iptr->sx.s23.s2.args[0]);
 		}
 
 		assert((instanceslot && instancecount == 1) || invokestatic);
@@ -1648,7 +1670,7 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
 		paramtypes = md->paramtypes;
 
 		for (i = md->paramcount-1-instancecount; i>=0; --i) {
-			param = iptr->sx.s23.s2.args[i+instancecount];
+			param = VAR(iptr->sx.s23.s2.args[i+instancecount]);
 			type = md->paramtypes[i+instancecount].type;
 
 			assert(param);
@@ -1723,7 +1745,8 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
    
 *******************************************************************************/
 
-resolve_result_t new_resolve_method_lazy(instruction *iptr,
+resolve_result_t new_resolve_method_lazy(jitdata *jd,
+										 instruction *iptr,
 										 methodinfo *refmethod)
 {
 	classinfo *referer;
@@ -1736,7 +1759,7 @@ resolve_result_t new_resolve_method_lazy(instruction *iptr,
 	assert(refmethod);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_method_lazy\n");
+	printf("resolve_method_lazy\n");
 #endif
 
 	/* the class containing the reference */
@@ -1814,7 +1837,8 @@ resolved_the_method:
 
 #if defined(ENABLE_VERIFIER)
 	if (opt_verify) {
-		result = new_resolve_method_verifier_checks(refmethod, methodref,
+		result = new_resolve_method_verifier_checks(jd,
+												refmethod, methodref,
 												container,
 												mi,
 												iptr->opc == ICMD_INVOKESTATIC,
@@ -1877,7 +1901,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 	assert(mode == resolveLazy || mode == resolveEager);
 
 #ifdef RESOLVE_VERBOSE
-	unresolved_method_debug_dump(ref,stderr);
+	unresolved_method_debug_dump(ref,stdout);
 #endif
 
 	*result = NULL;
@@ -1961,7 +1985,8 @@ resolved_the_method:
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 
-		checkresult = new_resolve_method_verifier_checks(ref->referermethod,
+		checkresult = new_resolve_method_verifier_checks(NULL,
+				ref->referermethod,
 				ref->methodref,
 				container,
 				mi,
@@ -2064,7 +2089,7 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 												 methodinfo *refmethod,
 												 unresolved_subtype_set *stset,
 												 typeinfo *tinfo,
-												 constant_classref *declaredtype)
+												 utf *declaredclassname)
 {
 	int count;
 	int i;
@@ -2073,12 +2098,12 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 	assert(tinfo);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"unresolved_subtype_set_from_typeinfo\n");
+	printf("unresolved_subtype_set_from_typeinfo\n");
 #ifdef TYPEINFO_DEBUG
-	typeinfo_print(stderr,tinfo,4);
+	typeinfo_print(stdout,tinfo,4);
 #endif
-	fprintf(stderr,"    declared type:");utf_fprint_printable_ascii(stderr,declaredtype->name);
-	fprintf(stderr,"\n");
+	printf("    declared classname:");utf_fprint_printable_ascii(stdout,declaredclassname);
+	printf("\n");
 #endif
 
 	if (TYPEINFO_IS_PRIMITIVE(*tinfo)) {
@@ -2098,8 +2123,8 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 		goto empty_set;
 
 	/* every type is assignable to (BOOTSTRAP)java.lang.Object */
-	if (declaredtype->name == utf_java_lang_Object
-			&& referer->classloader == NULL)
+	if (declaredclassname == utf_java_lang_Object
+			&& referer->classloader == NULL) /* XXX do loading constraints make the second check obsolete? */
 	{
 		goto empty_set;
 	}
@@ -2127,7 +2152,7 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 	else {
 		if ((IS_CLASSREF(tinfo->typeclass)
 					? tinfo->typeclass.ref->name
-					: tinfo->typeclass.cls->name) == declaredtype->name)
+					: tinfo->typeclass.cls->name) == declaredclassname)
 		{
 			/* the class names are the same */
 		    /* equality is guaranteed by the loading constraints */
@@ -2172,13 +2197,13 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 	unresolved_class *ref;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"create_unresolved_class\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,classref->referer->name);fputc('\n',stderr);
+	printf("create_unresolved_class\n");
+	printf("    referer: ");utf_fprint_printable_ascii(stdout,classref->referer->name);fputc('\n',stdout);
 	if (refmethod) {
-		fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-		fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+		printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
+		printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
 	}
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,classref->name);fputc('\n',stderr);
+	printf("    name   : ");utf_fprint_printable_ascii(stdout,classref->name);fputc('\n',stdout);
 #endif
 
 	ref = NEW(unresolved_class);
@@ -2187,7 +2212,7 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 
 	if (valuetype) {
 		if (!unresolved_subtype_set_from_typeinfo(classref->referer,refmethod,
-					&(ref->subtypeconstraints),valuetype,classref))
+					&(ref->subtypeconstraints),valuetype,classref->name))
 			return NULL;
 	}
 	else {
@@ -2221,10 +2246,10 @@ unresolved_field * new_create_unresolved_field(classinfo *referer,
 	constant_FMIref *fieldref = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"create_unresolved_field\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+	printf("create_unresolved_field\n");
+	printf("    referer: ");utf_fprint_printable_ascii(stdout,referer->name);fputc('\n',stdout);
+	printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
+	printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
 #endif
 
 	ref = NEW(unresolved_field);
@@ -2267,12 +2292,12 @@ unresolved_field * new_create_unresolved_field(classinfo *referer,
 	assert(fieldref);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
-	fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
+/*	printf("    class  : ");utf_fprint_printable_ascii(stdout,fieldref->p.classref->name);fputc('\n',stdout);*/
+	printf("    name   : ");utf_fprint_printable_ascii(stdout,fieldref->name);fputc('\n',stdout);
+	printf("    desc   : ");utf_fprint_printable_ascii(stdout,fieldref->descriptor);fputc('\n',stdout);
+	printf("    type   : ");descriptor_debug_print_typedesc(stdout,fieldref->parseddesc.fd);
+	fputc('\n',stdout);
+	/*printf("    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
 #endif
 
 	ref->fieldref = fieldref;
@@ -2297,12 +2322,13 @@ unresolved_field * new_create_unresolved_field(classinfo *referer,
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-bool new_constrain_unresolved_field(unresolved_field *ref,
+bool new_constrain_unresolved_field(jitdata *jd,
+									unresolved_field *ref,
 									classinfo *referer, methodinfo *refmethod,
 									instruction *iptr)
 {
 	constant_FMIref *fieldref;
-	stackelement *instanceslot = NULL;
+	varinfo *instanceslot = NULL;
 	int type;
 	typeinfo tinfo;
 	typeinfo *tip = NULL;
@@ -2314,34 +2340,34 @@ bool new_constrain_unresolved_field(unresolved_field *ref,
 	assert(fieldref);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"constrain_unresolved_field\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
-	fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
+	printf("constrain_unresolved_field\n");
+	printf("    referer: ");utf_fprint_printable_ascii(stdout,referer->name);fputc('\n',stdout);
+	printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
+	printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
+/*	printf("    class  : ");utf_fprint_printable_ascii(stdout,fieldref->p.classref->name);fputc('\n',stdout); */
+	printf("    name   : ");utf_fprint_printable_ascii(stdout,fieldref->name);fputc('\n',stdout);
+	printf("    desc   : ");utf_fprint_printable_ascii(stdout,fieldref->descriptor);fputc('\n',stdout);
+	printf("    type   : ");descriptor_debug_print_typedesc(stdout,fieldref->parseddesc.fd);
+	fputc('\n',stdout);
+	/*printf("    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	switch (iptr[0].opc) {
 		case ICMD_PUTFIELD:
-			instanceslot = iptr->s1.var;
-			tip = &(iptr->sx.s23.s2.var->typeinfo);
+			instanceslot = VAROP(iptr->s1);
+			tip = &(VAROP(iptr->sx.s23.s2)->typeinfo);
 			break;
 
 		case ICMD_PUTFIELDCONST:
-			instanceslot = iptr->s1.var;
+			instanceslot = VAROP(iptr->s1);
 			break;
 
 		case ICMD_PUTSTATIC:
-			tip = &(iptr->s1.var->typeinfo);
+			tip = &(VAROP(iptr->s1)->typeinfo);
 			break;
 
 		case ICMD_GETFIELD:
-			instanceslot = iptr->s1.var;
+			instanceslot = VAROP(iptr->s1);
 			break;
 	}
 
@@ -2389,7 +2415,7 @@ bool new_constrain_unresolved_field(unresolved_field *ref,
 			insttip = &(instanceslot->typeinfo);
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-					&(ref->instancetypes),insttip,fieldref->p.classref))
+					&(ref->instancetypes),insttip, FIELDREF_CLASSNAME(fieldref)))
 			return false;
 	}
 	else {
@@ -2412,7 +2438,7 @@ bool new_constrain_unresolved_field(unresolved_field *ref,
 				TYPEINFO_INIT_NULLTYPE(tinfo);
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-					&(ref->valueconstraints),tip,fieldref->parseddesc.fd->classref))
+					&(ref->valueconstraints),tip,fieldref->parseddesc.fd->classref->name))
 			return false;
 	}
 	else {
@@ -2451,14 +2477,14 @@ unresolved_method * new_create_unresolved_method(classinfo *referer,
 	staticmethod = (iptr->opc == ICMD_INVOKESTATIC);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"create_unresolved_method\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
+	printf("create_unresolved_method\n");
+	printf("    referer: ");utf_fprint_printable_ascii(stdout,referer->name);fputc('\n',stdout);
+	printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
+	printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
+/*	printf("    class  : ");utf_fprint_printable_ascii(stdout,methodref->p.classref->name);fputc('\n',stdout);*/
+	printf("    name   : ");utf_fprint_printable_ascii(stdout,methodref->name);fputc('\n',stdout);
+	printf("    desc   : ");utf_fprint_printable_ascii(stdout,methodref->descriptor);fputc('\n',stdout);
+	/*printf("    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
 #endif
 
 	/* allocate params if necessary */
@@ -2496,14 +2522,15 @@ unresolved_method * new_create_unresolved_method(classinfo *referer,
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-bool new_constrain_unresolved_method(unresolved_method *ref,
+bool new_constrain_unresolved_method(jitdata *jd,
+									 unresolved_method *ref,
 									 classinfo *referer, methodinfo *refmethod,
 									 instruction *iptr)
 {
 	constant_FMIref *methodref;
 	constant_classref *instanceref;
-	stackelement *instanceslot = NULL;
-	stackelement *param;
+	varinfo *instanceslot = NULL;
+	varinfo *param;
 	methoddesc *md;
 	typeinfo tinfo;
 	int i,j;
@@ -2523,19 +2550,16 @@ bool new_constrain_unresolved_method(unresolved_method *ref,
 		: methodref->p.classref;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"constrain_unresolved_method\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
+	printf("constrain_unresolved_method\n");
+	printf("    referer: "); class_println(referer);
+	printf("    rmethod: "); method_println(refmethod);
+	printf("    mref   : "); method_methodref_println(methodref);
+	/*printf("    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	if ((ref->flags & RESOLVE_STATIC) == 0) {
 		/* find the instance slot under all the parameter slots on the stack */
-		instanceslot = iptr->sx.s23.s2.args[0];
+		instanceslot = VAR(iptr->sx.s23.s2.args[0]);
 		instancecount = 1;
 	}
 	else {
@@ -2564,13 +2588,13 @@ bool new_constrain_unresolved_method(unresolved_method *ref,
 			tip = &(instanceslot->typeinfo);
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-					&(ref->instancetypes),tip,instanceref))
+					&(ref->instancetypes),tip,instanceref->name))
 			return false;
 	}
 
 	/* record subtype constraints for the parameter types, if any */
 	for (i=md->paramcount-1-instancecount; i>=0; --i) {
-		param = iptr->sx.s23.s2.args[i+instancecount];
+		param = VAR(iptr->sx.s23.s2.args[i+instancecount]);
 		type = md->paramtypes[i+instancecount].type;
 
 		assert(param);
@@ -2585,7 +2609,7 @@ bool new_constrain_unresolved_method(unresolved_method *ref,
 			assert(ref->paramconstraints);
 			if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
 						ref->paramconstraints + i,&(param->typeinfo),
-						md->paramtypes[i+instancecount].classref))
+						md->paramtypes[i+instancecount].classref->name))
 				return false;
 		}
 		else {

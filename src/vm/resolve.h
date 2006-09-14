@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5332 2006-09-05 19:38:28Z twisti $
+   $Id: resolve.h 5497 2006-09-14 18:55:03Z edwin $
 
 */
 
@@ -49,6 +49,7 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "vm/global.h"
 #include "vm/references.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/reg.h"
 #include "vm/jit/verify/typeinfo.h"
 
 
@@ -180,17 +181,21 @@ void unresolved_class_free(unresolved_class *ref);
 void unresolved_field_free(unresolved_field *ref);
 void unresolved_method_free(unresolved_method *ref);
 
-resolve_result_t new_resolve_method_lazy(instruction *iptr,
+resolve_result_t new_resolve_method_lazy(jitdata *jd,
+										 instruction *iptr,
 										 methodinfo *refmethod);
 
-resolve_result_t new_resolve_field_lazy(instruction *iptr,
+resolve_result_t new_resolve_field_lazy(jitdata *jd,
+										instruction *iptr,
 										methodinfo *refmethod);
 
 #ifdef ENABLE_VERIFIER
-bool new_constrain_unresolved_field(unresolved_field *ref, classinfo *referer,
+bool new_constrain_unresolved_field(jitdata *jd, 
+									unresolved_field *ref, classinfo *referer,
 									methodinfo *refmethod, instruction *iptr);
 
-bool new_constrain_unresolved_method(unresolved_method *ref, classinfo *referer,
+bool new_constrain_unresolved_method(jitdata *jd,
+									 unresolved_method *ref, classinfo *referer,
 									 methodinfo *refmethod, instruction *iptr);
 
 #endif

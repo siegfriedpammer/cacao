@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5494 2006-09-14 18:40:21Z edwin $
+   $Id: parse.c 5497 2006-09-14 18:55:03Z edwin $
 
 */
 
@@ -1012,7 +1012,7 @@ jsr_tail:
 #if defined(ENABLE_VERIFIER)
 				if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-					result = new_resolve_field_lazy(iptr, m);
+					result = new_resolve_field_lazy(jd, iptr, m);
 					if (result == resolveFailed)
 						return false;
 
@@ -1085,7 +1085,7 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = new_resolve_method_lazy(iptr, m);
+				result = new_resolve_method_lazy(jd, iptr, m);
 				if (result == resolveFailed)
 					return false;
 
@@ -1550,7 +1550,7 @@ invoke_method:
 		mapptr = local_map;
 
 		/* iterate over local_map[0..m->maxlocals*5] and set all existing  */
-		/* index,type pairs (localmap[index*5+type]==1) to an unique value */
+		/* index,type pairs (local_map[index*5+type]==1) to an unique value */
 		/* -> == new local var index */
 		for(i = 0; i < (cd->maxlocals * 5); i++, mapptr++) {
 			if (*mapptr)
