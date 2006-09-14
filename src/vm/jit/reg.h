@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: reg.h 5463 2006-09-11 14:37:06Z edwin $
+   $Id: reg.h 5498 2006-09-14 18:56:49Z edwin $
 
 */
 
@@ -49,6 +49,7 @@ typedef struct registerdata registerdata;
 #include "arch.h"
 
 #include "vm/jit/jit.h"
+#include "vm/jit/verify/typeinfo.h"
 
 
 /************************* pseudo variable structure **************************/
@@ -64,6 +65,9 @@ struct varinfo {
 		double d;
 		basicblock *retaddr;
 	} vv;
+#if defined(ENABLE_VERIFIER)
+	typeinfo typeinfo;         /* type info for reference types              */
+#endif
 };
 
 typedef struct varinfo varinfo5[5];

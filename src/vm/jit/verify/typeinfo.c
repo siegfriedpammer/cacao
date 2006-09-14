@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: typeinfo.c 5498 2006-09-14 18:56:49Z edwin $
 
 */
 
@@ -66,69 +66,57 @@
 #endif
 
 /**********************************************************************/
-/* TYPEVECTOR (SET) FUNCTIONS                                         */
+/* TYPEVECTOR FUNCTIONS                                               */
 /**********************************************************************/
 
-/* typevectorset_copy **********************************************************
+#if defined(ENABLE_VERIFIER)
+
+/* typevector_copy *************************************************************
  
-   Return a copy of the given typevector set.
+   Return a copy of the given typevector.
   
    IN:
 	   src..............typevector set to copy, must be != NULL
-	   k................k-index to set in first typevector of resulting set
 	   size.............number of elements per typevector
 
    RETURN VALUE:
        a pointer to the new typevector set
 
-   NOTE:
-       This function recursively invokes itself with increasing k-index to
-	   copy the alternative typevectors in the given set.
-
 *******************************************************************************/
 
-typevector *
-typevectorset_copy(typevector *src,int k,int size)
+varinfo *
+typevector_copy(varinfo *src, int size)
 {
-	typevector *dst;
+	varinfo *dst;
 	
 	TYPEINFO_ASSERT(src);
 	
 	dst = DNEW_TYPEVECTOR(size);
 	memcpy(dst,src,TYPEVECTOR_SIZE(size));
-	dst->k = k;
-	if (src->alt)
-		dst->alt = typevectorset_copy(src->alt,k+1,size);
+
 	return dst;
 }
 
-/* typevectorset_copy_inplace **************************************************
+/* typevector_copy_inplace *****************************************************
  
-   Return a copy of the given typevector set.
+   Copy a typevector to a given destination.
 
-   The DST typevector is overwritten, but alternative vectors, if SRC has any,
-   are newly allocated.
-  
    IN:
-	   src..............typevector set to copy, must be != NULL
+	   src..............typevector to copy, must be != NULL
 	   dst..............destination to write the copy to
 	   size.............number of elements per typevector
 
 *******************************************************************************/
 
 void
-typevectorset_copy_inplace(typevector *src,typevector *dst,int size)
+typevector_copy_inplace(varinfo *src,varinfo *dst,int size)
 {
 	memcpy(dst,src,TYPEVECTOR_SIZE(size));
-	dst->k = 0; 
-	if ((src)->alt) {
-		(dst)->alt = typevectorset_copy((src)->alt,1,size);
-	}
 }
 
-/* typevectorset_checktype *****************************************************
+/* typevector_checktype ********************************************************
  
-   Check if all typevectors contain a given type at a given index.
+   Check if the typevector contains a given type at a given index.
   
    IN:
 	   vec..............typevector set, must be != NULL
@@ -136,177 +124,64 @@ typevectorset_copy_inplace(typevector *src,typevector *dst,int size)
 	   type.............TYPE_* constant to check against
 
    RETURN VALUE:
-       true if all typevectors in the set contain TYPE at INDEX,
+       true if the typevector contains TYPE at INDEX,
 	   false otherwise
 
 *******************************************************************************/
 
 bool
-typevectorset_checktype(typevector *vec,int index,int type)
+typevector_checktype(varinfo *vec,int index,int type)
 {
 	TYPEINFO_ASSERT(vec);
-	do {
-		if (vec->td[index].type != type)
-			return false;
-	} while ((vec = vec->alt) != NULL);
-	return true;
+
+	return vec[index].type == type;
 }
 
-/* typevectorset_checkreference ************************************************
+/* typevector_checkreference ***************************************************
  
-   Check if all typevectors contain a reference at a given index.
+   Check if the typevector contains a reference at a given index.
   
    IN:
-	   vec..............typevector set, must be != NULL
+	   vec..............typevector, must be != NULL
 	   index............index of component to check
 
    RETURN VALUE:
-       true if all typevectors in the set contain a reference at INDEX,
+       true if the typevector contains a reference at INDEX,
 	   false otherwise
 
 *******************************************************************************/
 
 bool
-typevectorset_checkreference(typevector *vec,int index)
+typevector_checkreference(varinfo *vec, int index)
 {
 	TYPEINFO_ASSERT(vec);
-	do {
-		if (!TYPEDESC_IS_REFERENCE(vec->td[index]))
-			return false;
-	} while ((vec = vec->alt) != NULL);
-	return true;
+	return TYPEDESC_IS_REFERENCE(vec[index]);
 }
 
 /* typevectorset_checkretaddr **************************************************
  
-   Check if all typevectors contain a returnAddress at a given index.
+   Check if the typevectors contains a returnAddress at a given index.
   
    IN:
-	   vec..............typevector set, must be != NULL
+	   vec..............typevector, must be != NULL
 	   index............index of component to check
 
    RETURN VALUE:
-       true if all typevectors in the set contain a returnAddress at INDEX,
+       true if the typevector contains a returnAddress at INDEX,
 	   false otherwise
 
 *******************************************************************************/
 
 bool
-typevectorset_checkretaddr(typevector *vec,int index)
+typevector_checkretaddr(varinfo *vec,int index)
 {
 	TYPEINFO_ASSERT(vec);
-	do {
-		if (!TYPEDESC_IS_RETURNADDRESS(vec->td[index]))
-			return false;
-	} while ((vec = vec->alt) != NULL);
-	return true;
+	return TYPEDESC_IS_RETURNADDRESS(vec[index]);
 }
 
-/* typevectorset_copymergedtype ************************************************
+/* typevector_store ************************************************************
  
-   Merge the types at a given index in the typevectors of a set and
-   copy the result to a destination typeinfo.
-  
-   IN:
-       m................method for exception messages
-	   vec..............typevector set, must be != NULL
-	   index............index of component to merge
-
-   OUT:
-       *dst.............destination typeinfo, receives the merge result
-
-   RETURN VALUE:
-       the TYPE_* constant of the resulting type
-	   TYPE_VOID if incompatible types were contained at INDEX in VEC, or
-	   -1...............an exception has been thrown
-
-*******************************************************************************/
-
-int
-typevectorset_copymergedtype(methodinfo *m,typevector *vec,int index,typeinfo *dst)
-{
-	int type;
-	typedescriptor *td;
-
-	TYPEINFO_ASSERT(vec);
-	TYPEINFO_ASSERT(dst);
-
-	td = vec->td + index;
-	type = td->type;
-	TYPEINFO_COPY(td->info,*dst);
-	
-	if (vec->alt) {
-		int primitive;
-		
-		primitive = TYPEINFO_IS_PRIMITIVE(*dst) ? 1 : 0;
-		
-		while ((vec = vec->alt) != NULL) {
-			td = vec->td + index;
-			if (type != td->type)
-				return TYPE_VOID;
-
-			if (type == TYPE_ADR) {
-				if ((TYPEINFO_IS_PRIMITIVE(td->info) ? 1 : 0) != primitive)
-					return TYPE_VOID;
-				/* there cannot be any merge errors now. In the worst case */
-				/* we either get a returnAddress type or a j.l.O reference */
-				if (typeinfo_merge(m,dst,&(td->info)) == typecheck_FAIL)
-					return -1;
-			}
-		}
-	}
-	return type;
-}
-
-/* typevectorset_mergedtype ****************************************************
- 
-   Return the merged type of the types at a given index in the typevectors 
-   of a set.
-  
-   IN:
-   	   m................method for exception messages
-	   vec..............typevector set, must be != NULL
-	   index............index of component to merge
-	   temp.............pointer to a typeinfo that may be used to merge the
-	                    result if necessary
-
-   OUT:
-       *result..........set to the address of a typeinfo containing the
-	                    merged type.
-
-   RETURN VALUE:
-       the TYPE_* constant of the resulting type
-	   TYPE_VOID if incompatible types were contained at INDEX in VEC, or
-	   -1...............an exception has been thrown
-
-   NOTE:
-       This function should be more efficient than typevectorset_copymergedtype
-	   assuming that most typevector sets contain exactly one typevector.
-
-*******************************************************************************/
-
-int
-typevectorset_mergedtype(methodinfo *m,typevector *vec,int index,typeinfo *temp,typeinfo **result)
-{
-	TYPEINFO_ASSERT(vec);
-	TYPEINFO_ASSERT(temp);
-	TYPEINFO_ASSERT(result);
-	
-	if (vec->alt) {
-		*result = temp;
-		return typevectorset_copymergedtype(m,vec,index,temp);
-	}
-
-	*result = &(vec->td[index].info);
-	return vec->td[index].type;
-}
-
-/* typevectorset_store *********************************************************
- 
-   Store a type at a given index in the typevectors of a set.
-   This function stores the same type in all typevectors of the set.
-   DO NOT use it to store returnAddress types!
-   DO NOT use it to store two-word types!
+   Store a type at a given index in the typevector.
   
    IN:
 	   vec..............typevector set, must be != NULL
@@ -315,41 +190,27 @@ typevectorset_mergedtype(methodinfo *m,typevector *vec,int index,typeinfo *temp,
 	   info.............typeinfo of type to set, may be NULL, 
 	                    if TYPE != TYPE_ADR
 
-   NOTE:
-       If there is a two-word type stored at INDEX-1 in any typevector, it is
-	   changed to TYPE_VOID (because its upper half has become invalid).
-
-	   The components at INDEX+1 are _not_ touched, regardless of TYPE.
-
 *******************************************************************************/
 
 void
-typevectorset_store(typevector *vec,int index,int type,typeinfo *info)
+typevector_store(varinfo *vec,int index,int type,typeinfo *info)
 {
 	TYPEINFO_ASSERT(vec);
 	TYPEINFO_ASSERT((info && !TYPEINFO_IS_PRIMITIVE(*info)) || type != TYPE_ADR);
 
-	do {
-		vec->td[index].type = type;
-		if (info)
-			TYPEINFO_COPY(*info,vec->td[index].info);
-		if (index > 0 && IS_2_WORD_TYPE(vec->td[index-1].type))
-			vec->td[index-1].type = TYPE_VOID;
-	} while ((vec = vec->alt) != NULL);
+	vec[index].type = type;
+	if (info)
+		TYPEINFO_COPY(*info,vec[index].typeinfo);
 }
 
-/* typevectorset_store_retaddr *************************************************
+/* typevector_store_retaddr ****************************************************
  
-   Store a returnAddress type at a given index in the typevectors of a set.
-   Each possible returnAddress of the type is stored in the corresponding
-   typevector of the set.
+   Store a returnAddress type at a given index in the typevector.
   
    IN:
 	   vec..............typevector set, must be != NULL
 	   index............index of component to set
-	   info.............typeinfo of the returnAddress. This typeinfo must
-	                    contain a return address set with at least as many
-						entries as there are typevectors in VEC.
+	   info.............typeinfo of the returnAddress.
 
    NOTE:
        If there is a two-word type stored at INDEX-1 in any typevector, it is
@@ -358,32 +219,25 @@ typevectorset_store(typevector *vec,int index,int type,typeinfo *info)
 *******************************************************************************/
 
 void
-typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
+typevector_store_retaddr(varinfo *vec,int index,typeinfo *info)
 {
-	typeinfo_retaddr_set *adr;
-
 	TYPEINFO_ASSERT(vec);
 	TYPEINFO_ASSERT(TYPEINFO_IS_PRIMITIVE(*info));
 	
-	adr = (typeinfo_retaddr_set*) TYPEINFO_RETURNADDRESS(*info);
-	do {
-		TYPEINFO_ASSERT(adr);
-
-		vec->td[index].type = TYPE_ADR;
-		TYPEINFO_INIT_RETURNADDRESS(vec->td[index].info,adr->addr);
-		if (index > 0 && IS_2_WORD_TYPE(vec->td[index-1].type))
-			vec->td[index-1].type = TYPE_VOID;
-		adr = adr->alt;
-	} while ((vec = vec->alt) != NULL);
+	vec[index].type = TYPE_ADR;
+	TYPEINFO_INIT_RETURNADDRESS(vec[index].typeinfo,
+			TYPEINFO_RETURNADDRESS(*info));
+	if (index > 0 && IS_2_WORD_TYPE(vec[index-1].type))
+		vec[index-1].type = TYPE_VOID;
 }
 
-/* typevectorset_store_twoword *************************************************
+/* typevector_store_twoword ****************************************************
  
    Store a two-word type at a given index in the typevectors of a set.
    This function stores the same type in all typevectors of the set.
   
    IN:
-	   vec..............typevector set, must be != NULL
+	   vec..............typevector, must be != NULL
 	   index............index of component to set
 	   type.............TYPE_* constant of type to set (TYPE_LNG, TYPE_DBL)
 
@@ -396,20 +250,18 @@ typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
 *******************************************************************************/
 
 void
-typevectorset_store_twoword(typevector *vec,int index,int type)
+typevector_store_twoword(varinfo *vec,int index,int type)
 {
 	TYPEINFO_ASSERT(vec);
 	TYPEINFO_ASSERT(type == TYPE_LNG || type == TYPE_DBL);
 
-	do {
-		vec->td[index].type = type;
-		vec->td[index+1].type = TYPE_VOID;
-		if (index > 0 && IS_2_WORD_TYPE(vec->td[index-1].type))
-			vec->td[index-1].type = TYPE_VOID;
-	} while ((vec = vec->alt) != NULL);
+	vec[index].type = type;
+	vec[index+1].type = TYPE_VOID;
+	if (index > 0 && IS_2_WORD_TYPE(vec[index-1].type))
+		vec[index-1].type = TYPE_VOID;
 }
 
-/* typevectorset_init_object ***************************************************
+/* typevector_init_object ******************************************************
  
    Replace all uninitialized object types in the typevector set which were 
    created by the given instruction by initialized object types.
@@ -429,21 +281,19 @@ typevectorset_store_twoword(typevector *vec,int index,int type)
 *******************************************************************************/
 
 bool
-typevectorset_init_object(typevector *set,void *ins,
-						  classref_or_classinfo initclass,
-						  int size)
+typevector_init_object(varinfo *set,void *ins,
+					   classref_or_classinfo initclass,
+					   int size)
 {
 	int i;
 
-	for (;set; set=set->alt) {
-		for (i=0; i<size; ++i) {
-			if (set->td[i].type == TYPE_ADR
-				&& TYPEINFO_IS_NEWOBJECT(set->td[i].info)
-				&& TYPEINFO_NEWOBJECT_INSTRUCTION(set->td[i].info) == ins)
-			{
-				if (!typeinfo_init_class(&(set->td[i].info),initclass))
-					return false;
-			}
+	for (i=0; i<size; ++i) {
+		if (set[i].type == TYPE_ADR
+			&& TYPEINFO_IS_NEWOBJECT(set[i].typeinfo)
+			&& TYPEINFO_NEWOBJECT_INSTRUCTION(set[i].typeinfo) == ins)
+		{
+			if (!typeinfo_init_class(&(set[i].typeinfo),initclass))
+				return false;
 		}
 	}
 	return true;
@@ -471,24 +321,24 @@ typevectorset_init_object(typevector *set,void *ins,
 *******************************************************************************/
 
 typecheck_result
-typevector_merge(methodinfo *m,typevector *dst,typevector *y,int size)
+typevector_merge(methodinfo *m,varinfo *dst,varinfo *y,int size)
 {
 	bool changed = false;
 	typecheck_result r;
 	
-	typedescriptor *a = dst->td;
-	typedescriptor *b = y->td;
+	varinfo *a = dst;
+	varinfo *b = y;
 	while (size--) {
 		if (a->type != TYPE_VOID && a->type != b->type) {
 			a->type = TYPE_VOID;
 			changed = true;
 		}
 		else if (a->type == TYPE_ADR) {
-			if (TYPEINFO_IS_PRIMITIVE(a->info)) {
+			if (TYPEINFO_IS_PRIMITIVE(a->typeinfo)) {
 				/* 'a' is a returnAddress */
-				if (!TYPEINFO_IS_PRIMITIVE(b->info)
-					|| (TYPEINFO_RETURNADDRESS(a->info)
-						!= TYPEINFO_RETURNADDRESS(b->info)))
+				if (!TYPEINFO_IS_PRIMITIVE(b->typeinfo)
+					|| (TYPEINFO_RETURNADDRESS(a->typeinfo)
+						!= TYPEINFO_RETURNADDRESS(b->typeinfo)))
 				{
 					a->type = TYPE_VOID;
 					changed = true;
@@ -496,14 +346,14 @@ typevector_merge(methodinfo *m,typevector *dst,typevector *y,int size)
 			}
 			else {
 				/* 'a' is a reference */
-				if (TYPEINFO_IS_PRIMITIVE(b->info)) {
+				if (TYPEINFO_IS_PRIMITIVE(b->typeinfo)) {
 					a->type = TYPE_VOID;
 					changed = true;
 				}
 				else {
 					/* two reference types are merged. There cannot be */
 					/* a merge error. In the worst case we get j.l.O.  */
-					r = typeinfo_merge(m,&(a->info),&(b->info));
+					r = typeinfo_merge(m,&(a->typeinfo),&(b->typeinfo));
 					if (r == typecheck_FAIL)
 						return r;
 					changed |= r;
@@ -512,190 +362,6 @@ typevector_merge(methodinfo *m,typevector *dst,typevector *y,int size)
 		}
 		a++;
 		b++;
-	}
-	return changed;
-}
-
-/* typevector_separable_from ***************************************************
- 
-   Check if two typevectors are separable. Two typevectors are considered
-   separable if there is an index i for which both typevectors contain a
-   returnAddress type and the return addresses of the types are different.
-   The typevectors must have the same number of components.
-  
-   IN:
-	   a................the first typevector
-	   b................the second typevector
-	   size.............number of elements per typevector
-
-   RETURN VALUE:
-       true.............typevectors are separable
-	   false............typevectors are not separable
-
-*******************************************************************************/
-
-bool 
-typevector_separable_from(typevector *a,typevector *b,int size)
-{
-	typedescriptor *tda = a->td;
-	typedescriptor *tdb = b->td;
-	for (;size--; tda++,tdb++) {
-		if (TYPEDESC_IS_RETURNADDRESS(*tda)
-			&& TYPEDESC_IS_RETURNADDRESS(*tdb)
-			&& TYPEINFO_RETURNADDRESS(tda->info)
-			   != TYPEINFO_RETURNADDRESS(tdb->info))
-			return true;
-	}
-	return false;
-}
-
-/* typevectorset_add ***********************************************************
- 
-   Add a typevector to a typevector set. The typevector is added at the end of
-   the set and the k-index of the typevector is set accordingly.
-  
-   IN:
-	   dst..............the typevector set to modify
-	   v................the typevector to add
-	   size.............number of elements per typevector
-
-*******************************************************************************/
-
-void
-typevectorset_add(typevector *dst,typevector *v,int size)
-{
-	TYPEINFO_ASSERT(dst);
-	TYPEINFO_ASSERT(v);
-
-	while (dst->alt)
-		dst = dst->alt;
-	dst->alt = DNEW_TYPEVECTOR(size);
-	memcpy(dst->alt,v,TYPEVECTOR_SIZE(size));
-	dst->alt->alt = NULL;
-	dst->alt->k = dst->k + 1;
-}
-
-/* typevectorset_select ********************************************************
- 
-   Pick the typevectors from a set which contain a given return address.
-  
-   IN:
-	   set..............points to the location containing the typevector set.
-	                    *set may be NULL.
-	   index............index to check against the return address. All
-	                    typevectors must contain a returnAddress type at
-						this index.
-	   retaddr..........the return address to select
-
-   OUT:
-       *set.............receives the typevector set after removing the
-	                    selected typevectors.
-
-   RETURN VALUE:
-       a typevector set consisting of the selected typevectors.
-
-*******************************************************************************/
-
-typevector *
-typevectorset_select(typevector **set,int index,void *retaddr)
-{
-	typevector *selected;
-
-	if (!*set) return NULL;
-	
-	if (TYPEINFO_RETURNADDRESS((*set)->td[index].info) == retaddr) {
-		selected = *set;
-		*set = selected->alt;
-		selected->alt = typevectorset_select(set,index,retaddr);
-	}
-	else {
-		selected = typevectorset_select(&((*set)->alt),index,retaddr);
-	}
-	return selected;
-}
-
-/* typevector_separable_with ***************************************************
- 
-   Check if a typevector set would be separable after adding a given
-   typevector. A typevector set is considered separable if there is an
-   index i for which all typevectors in the set contain a returnAddress type,
-   and at least two different return addresses occurr at index i.
-   The typevectors must have the same number of components.
-  
-   IN:
-	   set..............the typevector set
-	   add..............the typevector
-	   size.............number of elements per typevector
-
-   RETURN VALUE:
-       true.............result would be separable
-	   false............result would not be separable
-
-*******************************************************************************/
-
-bool
-typevectorset_separable_with(typevector *set,typevector *add,int size)
-{
-	int i;
-	typevector *v;
-	void *addr;
-	bool separable;
-
-	TYPEINFO_ASSERT(set);
-	TYPEINFO_ASSERT(add);
-
-	for (i=0; i<size; ++i) {
-		if (!TYPEDESC_IS_RETURNADDRESS(add->td[i]))
-			continue;
-		addr = TYPEINFO_RETURNADDRESS(add->td[i].info);
-		
-		v = set;
-		separable = false;
-		do {
-			if (!TYPEDESC_IS_RETURNADDRESS(v->td[i]))
-				goto next_index;
-			if (TYPEINFO_RETURNADDRESS(v->td[i].info) != addr)
-				separable = true;
-			v = v->alt;
-		} while (v);
-		if (separable) return true;
-	next_index:
-		;
-	}
-	return false;
-}
-
-/* typevectorset_collapse ******************************************************
- 
-   Collapse a typevector set into a single typevector by merging the
-   components of the typevectors at each index.
-   
-   IN:
-	   dst..............the type vector set
-	   size.............number of elements per typevector
-
-   OUT:
-       *dst.............the resulting typevector set (a single typevector)
-
-   RETURN VALUE:
-       typecheck_TRUE...dst has been modified
-	   typecheck_FALSE..dst has not been modified
-	   typecheck_FAIL...an exception has been thrown
-
-*******************************************************************************/
-
-typecheck_result
-typevectorset_collapse(methodinfo *m,typevector *dst,int size)
-{
-	bool changed = false;
-
-	TYPEINFO_ASSERT(dst);
-	
-	while (dst->alt) {
-		if (typevector_merge(m,dst,dst->alt,size) == typecheck_FAIL)
-			return typecheck_FAIL;
-		dst->alt = dst->alt->alt;
-		changed = true;
 	}
 	return changed;
 }
@@ -1478,12 +1144,128 @@ typedescriptor_init_from_typedesc(typedescriptor *td,
 
 	td->type = desc->type;
 	if (td->type == TYPE_ADR) {
-		if (!typeinfo_init_class(&(td->info),CLASSREF_OR_CLASSINFO(desc->classref)))
+		if (!typeinfo_init_class(&(td->typeinfo),CLASSREF_OR_CLASSINFO(desc->classref)))
 			return false;
 	}
 	else {
-		TYPEINFO_INIT_PRIMITIVE(td->info);
+		TYPEINFO_INIT_PRIMITIVE(td->typeinfo);
 	}
+	return true;
+}
+
+/* typeinfo_init_varinfo_from_typedesc *****************************************
+ 
+   Initialize a varinfo from a typedesc.
+   
+   IN:
+	   desc.............the typedesc
+
+   OUT:
+       *var.............receives the type
+	                    var must be != NULL
+
+   RETURN VALUE:
+       true.............success
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+bool
+typeinfo_init_varinfo_from_typedesc(varinfo *var,
+								  typedesc *desc)
+{
+	TYPEINFO_ASSERT(var);
+	TYPEINFO_ASSERT(desc);
+
+	var->type = desc->type;
+	if (var->type == TYPE_ADR) {
+		if (!typeinfo_init_class(&(var->typeinfo),CLASSREF_OR_CLASSINFO(desc->classref)))
+			return false;
+	}
+	else {
+		TYPEINFO_INIT_PRIMITIVE(var->typeinfo);
+	}
+	return true;
+}
+
+/* typeinfo_init_varinfos_from_methoddesc **************************************
+ 
+   Initialize an array of varinfos from a methoddesc.
+   
+   IN:
+       desc.............the methoddesc
+       buflen...........number of parameters the buffer can hold
+	   startindex.......the zero-based index of the first parameter to
+	                    write to the array. In other words the number of
+						parameters to skip at the beginning of the methoddesc.
+	   map..............map from parameter indices to varinfo indices
+	                    (indexed like jitdata.local_map)
+
+   OUT:
+       *vars............array receiving the varinfos
+	                    td[0] receives the type of the
+						(startindex+1)th parameter of the method
+       *returntype......receives the typedescriptor of the return type.
+	                    returntype may be NULL
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+   NOTE:
+       If (according to BUFLEN) the buffer is to small to hold the
+	   parameter types, an internal error is thrown. This must be
+	   avoided by checking the number of parameters and allocating enough
+	   space before calling this function.
+
+*******************************************************************************/
+
+bool
+typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
+									 methoddesc *desc,
+									 int buflen, int startindex,
+									 s4 *map,
+									 typedescriptor *returntype)
+{
+	s4 i;
+    s4 index;
+	s4 type;
+	s4 slot = 0;
+
+	/* skip arguments */
+	for (i=0; i<startindex; ++i) {
+		slot++;
+		if (IS_2_WORD_TYPE(desc->paramtypes[i].type))
+			slot++;
+	}
+
+    /* check arguments */
+    for (i=startindex; i<desc->paramcount; ++i) {
+		type = desc->paramtypes[i].type;
+		index = map[5*slot + type];
+
+		slot++;
+		if (IS_2_WORD_TYPE(type))
+			slot++;
+
+		if (index == UNUSED)
+			continue;
+
+		if (index >= buflen) {
+			*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+			return false;
+		}
+
+		if (!typeinfo_init_varinfo_from_typedesc(vars + index, desc->paramtypes + i))
+			return false;
+    }
+
+    /* check returntype */
+    if (returntype) {
+		if (!typedescriptor_init_from_typedesc(returntype,&(desc->returntype)))
+			return false;
+	}
+
 	return true;
 }
 
@@ -1545,7 +1327,7 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 			}
 
 			td->type = TYPE_VOID;
-			TYPEINFO_INIT_PRIMITIVE(td->info);
+			TYPEINFO_INIT_PRIMITIVE(td->typeinfo);
 			td++;
 		}
     }
@@ -2381,6 +2163,7 @@ return_simple:
 
     return changed;
 }
+#endif /* ENABLE_VERIFER */
 
 
 /**********************************************************************/
@@ -2777,71 +2560,19 @@ typeinfo_print_type(FILE *file,int type,typeinfo *info)
 }
 
 void
-typeinfo_print_stacktype(FILE *file,int type,typeinfo *info)
-{
-	TYPEINFO_ASSERT(file);
-	TYPEINFO_ASSERT(type != TYPE_ADR || info != NULL);
-	if (type == TYPE_ADR && TYPEINFO_IS_PRIMITIVE(*info)) {	
-		typeinfo_retaddr_set *set = (typeinfo_retaddr_set*)
-			TYPEINFO_RETURNADDRESS(*info);
-		if (set) {
-			fprintf(file,"ret(L%03d",((basicblock*)(set->addr))->nr);
-			set = set->alt;
-			while (set) {
-				fprintf(file,"|L%03d",((basicblock*)(set->addr))->nr);
-				set = set->alt;
-			}
-		}
-		else {
-			fprintf(file,"ret(<NULL>");
-		}
-		fprintf(file,")");
-	}
-	else
-		typeinfo_print_type(file,type,info);
-}
-
-void
 typedescriptor_print(FILE *file,typedescriptor *td)
 {
-	typeinfo_print_type(file,td->type,&(td->info));
+	typeinfo_print_type(file,td->type,&(td->typeinfo));
 }
 
 void
-typevector_print(FILE *file,typevector *vec,int size)
+typevector_print(FILE *file,varinfo *vec,int size)
 {
     int i;
 
-	fprintf(file,"[%d]",vec->k);
     for (i=0; i<size; ++i) {
 		fprintf(file," %d=",i);
-        typedescriptor_print(file,vec->td + i);
-    }
-}
-
-void
-typevectorset_print(FILE *file,typevector *set,int size)
-{
-    int i;
-	typevector *vec;
-
-	fprintf(file,"[%d",set->k);
-	vec = set->alt;
-	while (vec) {
-		fprintf(file,"|%d",vec->k);
-		vec = vec->alt;
-	}
-	fprintf(file,"]");
-	
-    for (i=0; i<size; ++i) {
-		fprintf(file," %d=",i);
-        typedescriptor_print(file,set->td + i);
-		vec = set->alt;
-		while (vec) {
-			fprintf(file,"|");
-			typedescriptor_print(file,vec->td + i);
-			vec = vec->alt;
-		}
+        typeinfo_print_type(file, vec[i].type, &(vec[i].typeinfo));
     }
 }
 

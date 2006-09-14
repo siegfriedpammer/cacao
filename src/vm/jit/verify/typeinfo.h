@@ -26,12 +26,18 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 5171 2006-07-25 13:52:38Z twisti $
+   $Id: typeinfo.h 5498 2006-09-14 18:56:49Z edwin $
 
 */
 
 #ifndef _TYPEINFO_H
 #define _TYPEINFO_H
+
+/* resolve typedef cycles *****************************************************/
+
+typedef struct typeinfo typeinfo;
+typedef struct typeinfo_mergedlist typeinfo_mergedlist;
+typedef struct typedescriptor typedescriptor;
 
 #include "config.h"
 #include "vm/types.h"
@@ -58,7 +64,7 @@
 /*#define TYPEINFO_VERBOSE*/
 #define TYPECHECK_DEBUG
 /*#define TYPEINFO_DEBUG_TEST*/
-/*#define TYPECHECK_VERBOSE*/
+#define TYPECHECK_VERBOSE
 /*#define TYPECHECK_VERBOSE_IMPORTANT*/
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
 #define TYPECHECK_VERBOSE_OPT
@@ -69,14 +75,6 @@
 #ifdef TYPECHECK_VERBOSE_OPT
 extern bool opt_typecheckverbose;
 #endif
-
-/* resolve typedef cycles *****************************************************/
-
-typedef struct typeinfo typeinfo;
-typedef struct typeinfo_mergedlist typeinfo_mergedlist;
-typedef struct typedescriptor typedescriptor;
-typedef struct typevector typevector;
-typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
 
 /* types **********************************************************************/
 
@@ -135,17 +133,7 @@ typedef enum {
  *
  * A) typeclass == NULL
  *
- *        This is a returnAddress type. The interpretation of the
- *        elementclass field depends on wether this typeinfo describes
- *        a stack slot or a local variable:
- *
- *        stack slot: elementclass is a pointer to a
- *            typeinfo_retaddr_set which contains a return target for
- *            every vector in the current set of local variable vectors.
- *            See typeinfo_retaddr_set and typevector below.
- *
- *        local variable: elementclass is the return target (when cast
- *            to basicblock *)
+ *        This is a returnAddress type.
  *
  *        Use TYPEINFO_IS_PRIMITIVE to check for this.
  *        Use TYPEINFO_RETURNADDRESS to access the pointer in elementclass.
@@ -261,46 +249,13 @@ struct typeinfo_mergedlist {
 	classref_or_classinfo list[1];       /* variable length!                        */
 };
 
-/*-----------------------------------------------------------------------*/
-/* a typeinfo_retaddr_set stores the set of possible returnAddresses     */
-/* that may be in a particular stack slot at a particular point in the   */
-/* program.                                                              */
-/*                                                                       */
-/* There may be one or more alternative returnAddresses if the           */
-/* instruction can be reached via one or more JSR jumps (among other     */
-/* control-flow paths                                                    */
-/*-----------------------------------------------------------------------*/
-
-struct typeinfo_retaddr_set {
-	typeinfo_retaddr_set *alt;  /* next alternative in set               */
-	void                 *addr; /* return address                        */
-};
-
 /* a type descriptor stores a basic type and the typeinfo                */
 /* this is used for storing the type of a local variable, and for        */
 /* storing types in the signature of a method                            */
 
 struct typedescriptor {
-	typeinfo        info;     /* valid if type == TYPE_ADR               */
+	typeinfo        typeinfo; /* valid if type == TYPE_ADR               */
 	u1              type;     /* basic type (TYPE_INT, ...)              */
-};
-
-/*-----------------------------------------------------------------------*/
-/* typevectors are used to store the types of all local variables        */
-/* at a given point in the program.                                      */
-/*                                                                       */
-/* There may be more than one possible typevector for the local          */
-/* variables at a given instruction if the instruction can be reached    */
-/* via one or more JSR jumps (among other control-flow paths).           */
-/*                                                                       */
-/* This is called the set of alternative type vectors at that            */
-/* particular point in the program.                                      */
-/*-----------------------------------------------------------------------*/
-
-struct typevector {
-	typevector      *alt;     /* next alternative in typevector set      */
-	int              k;       /* for lining up with the stack set        */
-	typedescriptor   td[1];   /* types of locals, variable length!       */
 };
 
 /****************************************************************************/
@@ -314,17 +269,16 @@ struct typevector {
 /* typevectors **************************************************************/
 
 #define TYPEVECTOR_SIZE(size)						\
-    ((sizeof(typevector) - sizeof(typedescriptor))	\
-     + (size)*sizeof(typedescriptor))
+    ((size) * sizeof(varinfo)) 
 
 #define DNEW_TYPEVECTOR(size)						\
-    ((typevector*)dump_alloc(TYPEVECTOR_SIZE(size)))
+    ((varinfo*)dump_alloc(TYPEVECTOR_SIZE(size)))
 
 #define DMNEW_TYPEVECTOR(num,size)						\
     ((void*)dump_alloc((num) * TYPEVECTOR_SIZE(size)))
 
 #define MGET_TYPEVECTOR(array,index,size) \
-    ((typevector*) (((u1*)(array)) + TYPEVECTOR_SIZE(size) * (index)))
+    ((varinfo*) (((u1*)(array)) + TYPEVECTOR_SIZE(size) * (index)))
 
 /* internally used macros ***************************************************/
 
@@ -407,10 +361,10 @@ struct typevector {
               && !TYPEINFO_IS_PRIMITIVE(info) )
 
 #define TYPEDESC_IS_RETURNADDRESS(td)                           \
-            TYPE_IS_RETURNADDRESS((td).type,(td).info)
+            TYPE_IS_RETURNADDRESS((td).type,(td).typeinfo)
 
 #define TYPEDESC_IS_REFERENCE(td)                               \
-            TYPE_IS_REFERENCE((td).type,(td).info)
+            TYPE_IS_REFERENCE((td).type,(td).typeinfo)
 
 /* queries allowing the null type ********************************************/
 
@@ -486,29 +440,19 @@ struct typevector {
 /* typevector functions *****************************************************/
 
 /* element read-only access */
-bool typevectorset_checktype(typevector *set,int index,int type);
-bool typevectorset_checkreference(typevector *set,int index);
-bool typevectorset_checkretaddr(typevector *set,int index);
-int typevectorset_copymergedtype(methodinfo *m,typevector *set,int index,typeinfo *dst);
-int typevectorset_mergedtype(methodinfo *m,typevector *set,int index,typeinfo *temp,typeinfo **result);
+bool typevector_checktype(varinfo *set,int index,int type);
+bool typevector_checkreference(varinfo *set,int index);
+bool typevector_checkretaddr(varinfo *set,int index);
 
 /* element write access */
-void typevectorset_store(typevector *set,int index,int type,typeinfo *info);
-void typevectorset_store_retaddr(typevector *set,int index,typeinfo *info);
-void typevectorset_store_twoword(typevector *set,int index,int type);
-bool typevectorset_init_object(typevector *set,void *ins,classref_or_classinfo initclass,int size);
+void typevector_store(varinfo *set,int index,int type,typeinfo *info);
+void typevector_store_retaddr(varinfo *set,int index,typeinfo *info);
+bool typevector_init_object(varinfo *set,void *ins,classref_or_classinfo initclass,int size);
 
 /* vector functions */
-bool typevector_separable_from(typevector *a,typevector *b,int size);
-typecheck_result typevector_merge(methodinfo *m,typevector *dst,typevector *y,int size);
-
-/* vector set functions */
-typevector *typevectorset_copy(typevector *src,int k,int size);
-void typevectorset_copy_inplace(typevector *src,typevector *dst,int size);
-bool typevectorset_separable_with(typevector *set,typevector *add,int size);
-typecheck_result typevectorset_collapse(methodinfo *m,typevector *dst,int size);
-void typevectorset_add(typevector *dst,typevector *v,int size);
-typevector *typevectorset_select(typevector **set,int retindex,void *retaddr);
+varinfo *typevector_copy(varinfo *src,int size);
+void typevector_copy_inplace(varinfo *src,varinfo *dst,int size);
+typecheck_result typevector_merge(methodinfo *m,varinfo *dst,varinfo *y,int size);
 
 /* inquiry functions (read-only) ********************************************/
 
@@ -540,9 +484,16 @@ bool typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,
                                    u1 *returntype,typeinfo *returntypeinfo);
 bool  typedescriptor_init_from_typedesc(typedescriptor *td,
 									    typedesc *desc);
+bool  typeinfo_init_varinfo_from_typedesc(varinfo *var,
+									    typedesc *desc);
 int  typedescriptors_init_from_methoddesc(typedescriptor *td,
 										  methoddesc *desc,
 										  int buflen,bool twoword,int startindex,
+										  typedescriptor *returntype);
+bool typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
+										  methoddesc *desc,
+										  int buflen, int startindex,
+										  s4 *map,
 										  typedescriptor *returntype);
 
 void typeinfo_clone(typeinfo *src,typeinfo *dest);
@@ -566,10 +517,8 @@ void typeinfo_print_class(FILE *file,classref_or_classinfo c);
 void typeinfo_print(FILE *file,typeinfo *info,int indent);
 void typeinfo_print_short(FILE *file,typeinfo *info);
 void typeinfo_print_type(FILE *file,int type,typeinfo *info);
-void typeinfo_print_stacktype(FILE *file,int type,typeinfo *info);
 void typedescriptor_print(FILE *file,typedescriptor *td);
-void typevector_print(FILE *file,typevector *vec,int size);
-void typevectorset_print(FILE *file,typevector *set,int size);
+void typevector_print(FILE *file,varinfo *vec,int size);
 
 #endif /* TYPEINFO_DEBUG */
 

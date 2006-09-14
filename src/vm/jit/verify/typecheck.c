@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5435 2006-09-08 18:14:50Z edwin $
+   $Id: typecheck.c 5498 2006-09-14 18:56:49Z edwin $
 
 */
 
@@ -101,19 +101,6 @@ checks for protected members.)
 	checked. (See the constrain_unresolved_... and the resolve_...
 	methods.)[3]
 
-*) The boundaries of jsr subroutines are not well-defined. For a given
-instruction it may be impossible to tell whether it is part of a
-subroutine, or to which subroutine it belongs.
-
-	Solution: The typechecker implements a method developed by
-	Alessandro Coglio[4] which treats each returnAddress as a distinct
-	type that is not merged with other returnAddresses. This way, when a
-	RET instruction is reached, we know exactly which types to propagate
-	to which return target among the possible targets of the RET. The
-	downside of this method is, that for each slot/variable we must
-	store not just one type, but one type *for each possible use of the
-	returnAddresses* that currently are in a slot/variable.[5]
-
 *) Checks for uninitialized object instances are hard because after the
 invocation of <init> on an uninitialized object *all* slots/variables
 referring to this object (and exactly those slots/variables) must be
@@ -143,22 +130,6 @@ An important difference is that Coglio's subtype constraints are checked
 after loading, while our constraints are checked when the field/method
 is accessed for the first time, so we can guarantee lexically correct
 error reporting.
-
-[4] Alessandro Coglio, Simple Verification Technique for Complex Java
-Bytecode Subroutines, 4th ECOOP Workshop on Formal Techniques for
-Java-like Programs, June 2002
-http://www.kestrel.edu/home/people/coglio/ftjp02.pdf
-
-[5] This is a major source of code complexity. The main data structures
-dealing with this are the "typevector set" and the typestack. The
-"typevector set" is a set of alternative typevectors, such that each
-typevector specifies the types of the local variables for a single
-combination of returnAddresses used. Thus we support full polymorphism
-of subroutines over the types of local variables. The typestack,
-however, does not support polymorphism, both for historical and JVM-spec
-reasons. A slot of the typestack may, however, contain multiple
-alternative returnAddresses, which is realized by a linked list hanging
-of the typeinfo of the stack slot.
 
 */
 
@@ -196,7 +167,6 @@ of the typeinfo of the stack slot.
 
 #ifdef TYPECHECK_VERBOSE_OPT
 bool opt_typecheckverbose = false;
-FILE *typecheck_logfile;
 #define DOLOG(action)  do { if (opt_typecheckverbose) {action;} } while(0)
 #else
 #define DOLOG(action)
@@ -204,25 +174,25 @@ FILE *typecheck_logfile;
 
 #ifdef TYPECHECK_VERBOSE
 #define TYPECHECK_VERBOSE_IMPORTANT
-#define LOG(str)           DOLOG(log_text(str))
-#define LOG1(str,a)        DOLOG(dolog(str,a))
-#define LOG2(str,a,b)      DOLOG(dolog(str,a,b))
-#define LOG3(str,a,b,c)    DOLOG(dolog(str,a,b,c))
-#define LOGIF(cond,str)    DOLOG(do {if (cond) log_text(str);} while(0))
+#define LOGNL              DOLOG(puts("\n"))
+#define LOG(str)           DOLOG(puts(str); LOGNL)
+#define LOG1(str,a)        DOLOG(printf(str,a); LOGNL)
+#define LOG2(str,a,b)      DOLOG(printf(str,a,b); LOGNL)
+#define LOG3(str,a,b,c)    DOLOG(printf(str,a,b,c); LOGNL)
+#define LOGIF(cond,str)    DOLOG(do {if (cond) { puts(str); LOGNL; }} while(0))
 #ifdef  TYPEINFO_DEBUG
-#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(typecheck_logfile,(info));log_finish();} while(0))
+#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(stdout,(info)); LOGNL;} while(0))
 #else
 #define LOGINFO(info)
-#define typevectorset_print(x,y,z)
+#define typevector_print(x,y,z)
 #endif
-#define LOGFLUSH           DOLOG(fflush(typecheck_logfile))
-#define LOGNL              DOLOG(log_finish())
-#define LOGSTR(str)        DOLOG(log_print(str))
-#define LOGSTR1(str,a)     DOLOG(log_print(str,a))
-#define LOGSTR2(str,a,b)   DOLOG(log_print(str,a,b))
-#define LOGSTR3(str,a,b,c) DOLOG(log_print(str,a,b,c))
-#define LOGNAME(c)         DOLOG(log_message_utf("class: ",(IS_CLASSREF(c) ? c.ref->name : c.cls->name)))
-#define LOGMETHOD(str,m)   DOLOG(log_message_method(str,m))
+#define LOGFLUSH           DOLOG(fflush(stdout))
+#define LOGSTR(str)        DOLOG(puts(str))
+#define LOGSTR1(str,a)     DOLOG(printf(str,a))
+#define LOGSTR2(str,a,b)   DOLOG(printf(str,a,b))
+#define LOGSTR3(str,a,b,c) DOLOG(printf(str,a,b,c))
+#define LOGNAME(c)         DOLOG(class_classref_or_classinfo_print(c))
+#define LOGMETHOD(str,m)   DOLOG(puts(str); method_println(m);)
 #else
 #define LOG(str)
 #define LOG1(str,a)
@@ -241,8 +211,8 @@ FILE *typecheck_logfile;
 #endif
 
 #ifdef TYPECHECK_VERBOSE_IMPORTANT
-#define LOGimp(str)     DOLOG(log_text(str))
-#define LOGimpSTR(str)  DOLOG(log_print(str))
+#define LOGimp(str)     DOLOG(puts(str);LOGNL)
+#define LOGimpSTR(str)  DOLOG(puts(str))
 #else
 #define LOGimp(str)
 #define LOGimpSTR(str)
@@ -252,31 +222,28 @@ FILE *typecheck_logfile;
 
 #include <stdio.h>
 
-static
-void
-typestack_print(FILE *file,stackptr stack)
+static void typecheck_print_var(FILE *file, jitdata *jd, s4 index)
 {
-#ifdef TYPEINFO_DEBUG
-    while (stack) {
-		/*fprintf(file,"<%p>",stack);*/
-        typeinfo_print_stacktype(file,stack->type,&(stack->typeinfo));
-        stack = stack->prev;
-        if (stack) fprintf(file," ");
-    }
-#endif
+	varinfo *var;
+
+	assert(index >= 0 && index < jd->varcount);
+	var = jd->var + index;
+	typeinfo_print_type(file, var->type, &(var->typeinfo));
 }
 
-static
-void
-typestate_print(FILE *file,stackptr instack,typevector *localset,int size)
+static void typecheck_print_vararray(FILE *file, jitdata *jd, s4 *vars, int len)
 {
-    fprintf(file,"Stack: ");
-    typestack_print(file,instack);
-    fprintf(file," Locals:");
-    typevectorset_print(file,localset,size);
+	s4 i;
+
+	for (i=0; i<len; ++i) {
+		if (i)
+			fputc(' ', file);
+		typecheck_print_var(file, jd, *vars++);
+	}
 }
 
 #endif
+
 
 /****************************************************************************/
 /* STATISTICS                                                               */
@@ -292,7 +259,6 @@ typestate_print(FILE *file,stackptr instack,typevector *localset,int size)
 #define STAT_LOCALS      16
 
 static int stat_typechecked = 0;
-static int stat_typechecked_jsr = 0;
 static int stat_methods_with_handlers = 0;
 static int stat_methods_maythrow = 0;
 static int stat_iterations[STAT_ITERATIONS+1] = { 0 };
@@ -345,7 +311,6 @@ static void print_freq(FILE *file,int *array,int limit)
 
 void typecheck_print_statistics(FILE *file) {
 	fprintf(file,"typechecked methods: %8d\n",stat_typechecked);
-	fprintf(file,"    with JSR       : %8d\n",stat_typechecked_jsr);
 	fprintf(file,"    with handler(s): %8d\n",stat_methods_with_handlers);
 	fprintf(file,"    with throw(s)  : %8d\n",stat_methods_maythrow);
 	fprintf(file,"reached blocks     : %8d\n",stat_reached);
@@ -391,6 +356,7 @@ void typecheck_print_statistics(FILE *file) {
 #define TYPECHECK_COUNT_FREQ(array,val,limit)
 #endif
 
+
 /****************************************************************************/
 /* MACROS FOR THROWING EXCEPTIONS                                           */
 /****************************************************************************/
@@ -404,23 +370,36 @@ void typecheck_print_statistics(FILE *file) {
 #define TYPECHECK_VERIFYERROR_main(msg)  TYPECHECK_VERIFYERROR_ret(state.m,(msg),NULL)
 #define TYPECHECK_VERIFYERROR_bool(msg)  TYPECHECK_VERIFYERROR_ret(state->m,(msg),false)
 
+
 /****************************************************************************/
-/* MACROS FOR STACK SLOT TYPE CHECKING                                      */
+/* MACROS FOR VARIABLE TYPE CHECKING                                        */
 /****************************************************************************/
 
-#define TYPECHECK_CHECK_TYPE(sp,tp,msg) \
-    do { \
-		if ((sp)->type != (tp)) { \
-        	exceptions_throw_verifyerror(state->m, (msg)); \
-        	return false; \
-		} \
+#define TYPECHECK_CHECK_TYPE(i,tp,msg)                               \
+    do {                                                             \
+        if (VAR(i)->type != (tp)) {                                  \
+            exceptions_throw_verifyerror(state->m, (msg));           \
+            return false;                                            \
+        }                                                            \
     } while (0)
 
-#define TYPECHECK_INT(sp)  TYPECHECK_CHECK_TYPE(sp,TYPE_INT,"Expected to find integer on stack")
-#define TYPECHECK_LNG(sp)  TYPECHECK_CHECK_TYPE(sp,TYPE_LNG,"Expected to find long on stack")
-#define TYPECHECK_FLT(sp)  TYPECHECK_CHECK_TYPE(sp,TYPE_FLT,"Expected to find float on stack")
-#define TYPECHECK_DBL(sp)  TYPECHECK_CHECK_TYPE(sp,TYPE_DBL,"Expected to find double on stack")
-#define TYPECHECK_ADR(sp)  TYPECHECK_CHECK_TYPE(sp,TYPE_ADR,"Expected to find object on stack")
+#define TYPECHECK_INT(i)                                             \
+    TYPECHECK_CHECK_TYPE(i,TYPE_INT,"Expected to find integer value")
+#define TYPECHECK_LNG(i)                                             \
+    TYPECHECK_CHECK_TYPE(i,TYPE_LNG,"Expected to find long value")
+#define TYPECHECK_FLT(i)                                             \
+    TYPECHECK_CHECK_TYPE(i,TYPE_FLT,"Expected to find float value")
+#define TYPECHECK_DBL(i)                                             \
+    TYPECHECK_CHECK_TYPE(i,TYPE_DBL,"Expected to find double value")
+#define TYPECHECK_ADR(i)                                             \
+    TYPECHECK_CHECK_TYPE(i,TYPE_ADR,"Expected to find object value")
+
+#define TYPECHECK_INT_OP(o)  TYPECHECK_INT((o).varindex)
+#define TYPECHECK_LNG_OP(o)  TYPECHECK_LNG((o).varindex)
+#define TYPECHECK_FLT_OP(o)  TYPECHECK_FLT((o).varindex)
+#define TYPECHECK_DBL_OP(o)  TYPECHECK_DBL((o).varindex)
+#define TYPECHECK_ADR_OP(o)  TYPECHECK_ADR((o).varindex)
+
 
 /****************************************************************************/
 /* VERIFIER STATE STRUCT                                                    */
@@ -443,24 +422,23 @@ typedef struct verifier_state {
 	
 	s4 numlocals;                         /* number of local variables */
 	s4 validlocals;                /* number of Java-accessible locals */
-	void *localbuf;       /* local variable types for each block start */
-	typevector *localset;        /* typevector set for local variables */
 	typedescriptor returntype;    /* return type of the current method */
 	
-	stackptr savedstackbuf;             /* buffer for saving the stack */
-	stackptr savedstack;             /* saved instack of current block */
+	s4 *savedindices;
+	s4 *savedinvars;                            /* saved invar pointer */
+
+	s4 exinvars;
 	
     exceptiontable **handlers;            /* active exception handlers */
-	stackelement excstack;           /* instack for exception handlers */
 	
     bool repeat;            /* if true, blocks are iterated over again */
     bool initmethod;             /* true if this is an "<init>" method */
-	bool jsrencountered;                 /* true if we there was a JSR */
 
 #ifdef TYPECHECK_STATISTICS
 	bool stat_maythrow;          /* at least one instruction may throw */
 #endif
 } verifier_state;
+
 
 /****************************************************************************/
 /* TYPESTACK MACROS AND FUNCTIONS                                           */
@@ -475,30 +453,15 @@ typedef struct verifier_state {
 /* is kept as a linked list dangling off the typeinfo of the stack slot.    */
 /****************************************************************************/
 
-#define TYPESTACK_IS_RETURNADDRESS(sptr) \
-            TYPE_IS_RETURNADDRESS((sptr)->type,(sptr)->typeinfo)
-
-#define TYPESTACK_RETURNADDRESSSET(sptr) \
-            ((typeinfo_retaddr_set*)TYPEINFO_RETURNADDRESS((sptr)->typeinfo))
-
-#define RETURNADDRESSSET_SEEK(set,pos) \
-            do {int i; for (i=pos;i--;) set=set->alt;} while(0)
-
-/* typestack_copy **************************************************************
+/* typecheck_copy_types ********************************************************
  
-   Copy the types on the given stack to the destination stack.
+   Copy the types of the source variables to the destination variables.
 
-   This function does a straight forward copy except for returnAddress types.
-   For returnAddress slots only the return addresses corresponding to
-   typevectors in the SELECTED set are copied.
-   
    IN:
 	   state............current verifier state
-	   y................stack with types to copy
-	   selected.........set of selected typevectors
-
-   OUT:
-       *dst.............the destination stack
+	   srcvars..........array of variable indices to copy
+	   dstvars..........array of the destination variables
+	   n................number of variables to copy
 
    RETURN VALUE:
        true.............success
@@ -507,298 +470,85 @@ typedef struct verifier_state {
 *******************************************************************************/
 
 static bool
-typestack_copy(verifier_state *state,stackptr dst,stackptr y,typevector *selected)
+typecheck_copy_types(verifier_state *state, s4 *srcvars, s4 *dstvars, s4 n)
 {
-	typevector *sel;
-	typeinfo_retaddr_set *sety;
-	typeinfo_retaddr_set *new;
-	typeinfo_retaddr_set **next;
-	int k;
-	
-	for (;dst; dst=dst->prev, y=y->prev) {
-		/* XXX only check the following two in debug mode? */
-		if (!y) {
-			exceptions_throw_verifyerror(state->m,"Stack depth mismatch");
-			return false;
-		}
-		if (dst->type != y->type) {
-			exceptions_throw_verifyerror(state->m,"Stack type mismatch");
-			return false;
-		}
-		LOG3("copy %p -> %p (type %d)",y,dst,dst->type);
-		if (dst->type == TYPE_ADR) {
-			if (TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
-				/* We copy the returnAddresses from the selected
-				 * states only. */
+	s4 i;
+	varinfo *sv;
+	varinfo *dv;
+	jitdata *jd = state->jd;
 
-				LOG("copying returnAddress");
-				sety = TYPESTACK_RETURNADDRESSSET(y);
-				next = &new;
-				for (k=0,sel=selected; sel; sel=sel->alt) {
-					LOG1("selected k=%d",sel->k);
-					while (k<sel->k) {
-						sety = sety->alt;
-						k++;
-					}
-					*next = DNEW(typeinfo_retaddr_set);
-					(*next)->addr = sety->addr;
-					next = &((*next)->alt);
-				}
-				*next = NULL;
-				TYPEINFO_INIT_RETURNADDRESS(dst->typeinfo,new);
-			}
-			else {
-				TYPEINFO_CLONE(y->typeinfo,dst->typeinfo);
-			}
+	for (i=0; i < n; ++i, ++srcvars, ++dstvars) {
+		sv = VAR(*srcvars);
+		dv = VAR(*dstvars);
+
+		dv->type = sv->type;
+		if (dv->type == TYPE_ADR) {
+			TYPEINFO_CLONE(sv->typeinfo,dv->typeinfo);
 		}
-	}
-	if (y) {
-		exceptions_throw_verifyerror(state->m,"Stack depth mismatch");
-		return false;
 	}
 	return true;
 }
 
-/* typestack_put_retaddr *******************************************************
+
+/* typecheck_merge_types *******************************************************
  
-   Put a returnAddress into a stack slot.
-
-   The stack slot receives a set of return addresses with as many members as
-   there are typevectors in the local variable set.
-
-   IN:
-	   retaddr..........the returnAddress to set (a basicblock *)
-	   loc..............the local variable typevector set
-
-   OUT:
-       *dst.............the destination stack slot
-
-*******************************************************************************/
-
-static void
-typestack_put_retaddr(stackptr dst,void *retaddr,typevector *loc)
-{
-	TYPECHECK_ASSERT(dst->type == TYPE_ADR);
-	
-	TYPEINFO_INIT_RETURNADDRESS(dst->typeinfo,NULL);
-	for (;loc; loc=loc->alt) {
-		typeinfo_retaddr_set *set = DNEW(typeinfo_retaddr_set);
-		set->addr = retaddr;
-		set->alt = TYPESTACK_RETURNADDRESSSET(dst);
-		TYPEINFO_INIT_RETURNADDRESS(dst->typeinfo,set);
-	}
-}
-
-/* typestack_collapse **********************************************************
- 
-   Collapse the given stack by shortening all return address sets to a single
-   member.
-
-   OUT:
-       *dst.............the destination stack to collapse
-
-*******************************************************************************/
-
-static void
-typestack_collapse(stackptr dst)
-{
-	for (; dst; dst = dst->prev) {
-		if (TYPESTACK_IS_RETURNADDRESS(dst))
-			TYPESTACK_RETURNADDRESSSET(dst)->alt = NULL;
-	}
-}
-
-/* typestack_merge *************************************************************
- 
-   Merge the types on one stack into the destination stack.
+   Merge the types of the source variables into the destination variables.
 
    IN:
        state............current state of the verifier
-	   dst..............the destination stack
-	   y................the second stack
-
-   OUT:
-       *dst.............receives the result of the stack merge
+	   srcvars..........source variable indices
+	   dstvars..........destination variable indices
+	   n................number of variables
 
    RETURN VALUE:
-       typecheck_TRUE...*dst has been modified
-	   typecheck_FALSE..*dst has not been modified
+       typecheck_TRUE...the destination variables have been modified
+	   typecheck_FALSE..the destination variables are unchanged
 	   typecheck_FAIL...an exception has been thrown
 
 *******************************************************************************/
 
 static typecheck_result
-typestack_merge(verifier_state *state,stackptr dst,stackptr y)
+typecheck_merge_types(verifier_state *state,s4 *srcvars, s4 *dstvars, s4 n)
 {
+	s4 i;
+	varinfo *sv;
+	varinfo *dv;
+	jitdata *jd = state->jd;
 	typecheck_result r;
 	bool changed = false;
 	
-	for (; dst; dst = dst->prev, y=y->prev) {
-		if (!y) {
-			exceptions_throw_verifyerror(state->m,"Stack depth mismatch");
-			return typecheck_FAIL;
-		}
-		if (dst->type != y->type) {
+	for (i=0; i < n; ++i, ++srcvars, ++dstvars) {
+		sv = VAR(*srcvars);
+		dv = VAR(*dstvars);
+
+		if (dv->type != sv->type) {
 			exceptions_throw_verifyerror(state->m,"Stack type mismatch");
 			return typecheck_FAIL;
 		}
-		if (dst->type == TYPE_ADR) {
-			if (TYPEINFO_IS_PRIMITIVE(dst->typeinfo)) {
-				/* dst has returnAddress type */
-				if (!TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
+		if (dv->type == TYPE_ADR) {
+			if (TYPEINFO_IS_PRIMITIVE(dv->typeinfo)) {
+				/* dv has returnAddress type */
+				if (!TYPEINFO_IS_PRIMITIVE(sv->typeinfo)) {
 					exceptions_throw_verifyerror(state->m,"Merging returnAddress with reference");
 					return typecheck_FAIL;
 				}
 			}
 			else {
-				/* dst has reference type */
-				if (TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
+				/* dv has reference type */
+				if (TYPEINFO_IS_PRIMITIVE(sv->typeinfo)) {
 					exceptions_throw_verifyerror(state->m,"Merging reference with returnAddress");
 					return typecheck_FAIL;
 				}
-				r = typeinfo_merge(state->m,&(dst->typeinfo),&(y->typeinfo));
+				r = typeinfo_merge(state->m,&(dv->typeinfo),&(sv->typeinfo));
 				if (r == typecheck_FAIL)
 					return r;
 				changed |= r;
 			}
 		}
 	}
-	if (y) {
-		exceptions_throw_verifyerror(state->m,"Stack depth mismatch");
-		return typecheck_FAIL;
-	}
 	return changed;
 }
 
-/* typestack_add ***************************************************************
- 
-   Add the return addresses in the given stack at a given k-index to the
-   corresponding return address sets in the destination stack.
-
-   IN:
-	   dst..............the destination stack
-	   y................the second stack
-	   ky...............the k-index which should be selected from the Y stack
-
-   OUT:
-       *dst.............receives the result of adding the addresses
-
-*******************************************************************************/
-
-static void
-typestack_add(stackptr dst,stackptr y,int ky)
-{
-	typeinfo_retaddr_set *setd;
-	typeinfo_retaddr_set *sety;
-	
-	for (; dst; dst = dst->prev, y=y->prev) {
-		if (TYPESTACK_IS_RETURNADDRESS(dst)) {
-			setd = TYPESTACK_RETURNADDRESSSET(dst);
-			sety = TYPESTACK_RETURNADDRESSSET(y);
-			RETURNADDRESSSET_SEEK(sety,ky);
-			while (setd->alt)
-				setd=setd->alt;
-			setd->alt = DNEW(typeinfo_retaddr_set);
-			setd->alt->addr = sety->addr;
-			setd->alt->alt = NULL;
-		}
-	}
-}
-
-/* typestack_separable_with ****************************************************
- 
-   This function answers the question: If variant 'kb' of typestack 'b' is
-   added to typestack 'a', will the result be separable?
-
-   A typestack is called 'separable' if it has at least one slot of type
-   returnAddress that contains at least two different return addresses.
-   (ie. a RET using the value in this slot could go to more than one target)
-   
-   IN:
-	   a................the first typestack
-	   b................the second typestack
-	   kb...............the k-index of the variant that should be selected
-	                    from typestack 'b'
-
-   OUT:
-       true.............the result would be separable
-	   false............the result would not be separable
-
-   PRE-CONDITION:
-       'a' and 'b' are assumed to have passed typestack_canmerge!
-
-*******************************************************************************/
-
-static bool
-typestack_separable_with(stackptr a,stackptr b,int kb)
-{
-	typeinfo_retaddr_set *seta;
-	typeinfo_retaddr_set *setb;
-	
-	for (; a; a = a->prev, b = b->prev) {
-		TYPECHECK_ASSERT(b);
-		if (TYPESTACK_IS_RETURNADDRESS(a)) {
-			TYPECHECK_ASSERT(TYPESTACK_IS_RETURNADDRESS(b));
-			seta = TYPESTACK_RETURNADDRESSSET(a);
-			setb = TYPESTACK_RETURNADDRESSSET(b);
-			RETURNADDRESSSET_SEEK(setb,kb);
-
-			for (;seta;seta=seta->alt)
-				if (seta->addr != setb->addr) return true;
-		}
-	}
-	TYPECHECK_ASSERT(!b);
-	return false;
-}
-
-/* typestack_separable_from ****************************************************
- 
-   This function answers the question: Is variant 'ka' of typestack 'a'
-   separable from variant 'kb' of typestack 'b'?
-
-   Two variants of typestacks are called 'separable' from each other, if there
-   is at least one slot for which the variants contain different return addresses.
-   (ie. a RET using the value in this slot would go to one target in the first
-   variant and to another target in the second variant)
-   
-   IN:
-	   a................the first typestack
-	   ka...............the k-index of the variant that should be selected
-	                    from typestack 'a'
-	   b................the second typestack
-	   kb...............the k-index of the variant that should be selected
-	                    from typestack 'b'
-
-   OUT:
-       true.............the variants are separable
-	   false............the variants are not separable
-
-   PRE-CONDITION:
-       'a' and 'b' are assumed to have passed typestack_canmerge!
-
-*******************************************************************************/
-
-static bool
-typestack_separable_from(stackptr a,int ka,stackptr b,int kb)
-{
-	typeinfo_retaddr_set *seta;
-	typeinfo_retaddr_set *setb;
-
-	for (; a; a = a->prev, b = b->prev) {
-		TYPECHECK_ASSERT(b);
-		if (TYPESTACK_IS_RETURNADDRESS(a)) {
-			TYPECHECK_ASSERT(TYPESTACK_IS_RETURNADDRESS(b));
-			seta = TYPESTACK_RETURNADDRESSSET(a);
-			setb = TYPESTACK_RETURNADDRESSSET(b);
-			RETURNADDRESSSET_SEEK(seta,ka);
-			RETURNADDRESSSET_SEEK(setb,kb);
-
-			if (seta->addr != setb->addr) return true;
-		}
-	}
-	TYPECHECK_ASSERT(!b);
-	return false;
-}
 
 /****************************************************************************/
 /* TYPESTATE FUNCTIONS                                                      */
@@ -814,14 +564,11 @@ typestack_separable_from(stackptr a,int ka,stackptr b,int kb)
 
    IN:
        state............current state of the verifier
-	   deststack........the destination stack
-	   destloc..........the destination set of local variable typevectors
-	   ystack...........the second stack
-	   yloc.............the second set of local variable typevectors
-
-   OUT:
-       *deststack.......receives the result of the stack merge
-	   *destloc.........receives the result of the local variable merge
+	   dstvars..........indices of the destinations invars
+	   dstlocals........the destinations inlocals
+	   srcvars..........indices of the source's outvars
+	   srclocals........the source locals
+	   n................number of invars (== number of outvars)
 
    RETURN VALUE:
        typecheck_TRUE...destination state has been modified
@@ -832,98 +579,38 @@ typestack_separable_from(stackptr a,int ka,stackptr b,int kb)
 
 static typecheck_result
 typestate_merge(verifier_state *state,
-				stackptr deststack,typevector *destloc,
-				stackptr ystack,typevector *yloc)
+				s4 *srcvars, varinfo *srclocals,
+				s4 *dstvars, varinfo *dstlocals,
+				s4 n)
 {
-	typevector *dvec,*yvec;
-	int kd,ky;
 	bool changed = false;
 	typecheck_result r;
 	
+#if 0
 	LOG("merge:");
-	LOGSTR("dstack: "); DOLOG(typestack_print(typecheck_logfile,deststack)); LOGNL;
-	LOGSTR("ystack: "); DOLOG(typestack_print(typecheck_logfile,ystack)); LOGNL;
-	LOGSTR("dloc  : "); DOLOG(typevectorset_print(typecheck_logfile,destloc,state->numlocals)); LOGNL;
-	LOGSTR("yloc  : "); DOLOG(typevectorset_print(typecheck_logfile,yloc,state->numlocals)); LOGNL;
+	LOGSTR("dstack: "); DOLOG(typestack_print(stdout,deststack)); LOGNL;
+	LOGSTR("ystack: "); DOLOG(typestack_print(stdout,ystack)); LOGNL;
+	LOGSTR("dloc  : "); DOLOG(typevector_print(stdout,destloc,state->numlocals)); LOGNL;
+	LOGSTR("yloc  : "); DOLOG(typevector_print(stdout,yloc,state->numlocals)); LOGNL;
 	LOGFLUSH;
+#endif
 
 	/* The stack is always merged. If there are returnAddresses on
 	 * the stack they are ignored in this step. */
 
-	r = typestack_merge(state,deststack,ystack);
+	r = typecheck_merge_types(state, srcvars, dstvars, n);
 	if (r == typecheck_FAIL)
 		return r;
 	changed |= r;
 
-	/* If there have not been any JSRs we just have a single typevector merge */
-	if (!state->jsrencountered) {
-		r = typevector_merge(state->m,destloc,yloc,state->numlocals);
-		if (r == typecheck_FAIL)
-			return r;
-		return changed | r;
-	}
+	/* merge the locals */
 
-	for (yvec=yloc; yvec; yvec=yvec->alt) {
-		ky = yvec->k;
-
-		/* Check if the typestates (deststack,destloc) will be
-		 * separable when (ystack,yvec) is added. */
-
-		if (!typestack_separable_with(deststack,ystack,ky)
-			&& !typevectorset_separable_with(destloc,yvec,state->numlocals))
-		{
-			/* No, the resulting set won't be separable, thus we
-			 * may merge all states in (deststack,destloc) and
-			 * (ystack,yvec). */
-
-			typestack_collapse(deststack);
-			if (typevectorset_collapse(state->m,destloc,state->numlocals) == typecheck_FAIL)
-				return typecheck_FAIL;
-			if (typevector_merge(state->m,destloc,yvec,state->numlocals) == typecheck_FAIL)
-				return typecheck_FAIL;
-		}
-		else {
-			/* Yes, the resulting set will be separable. Thus we check
-			 * if we may merge (ystack,yvec) with a single state in
-			 * (deststack,destloc). */
-		
-			for (dvec=destloc,kd=0; dvec; dvec=dvec->alt, kd++) {
-				if (!typestack_separable_from(ystack,ky,deststack,kd)
-					&& !typevector_separable_from(yvec,dvec,state->numlocals))
-				{
-					/* The typestate (ystack,yvec) is not separable from
-					 * (deststack,dvec) by any returnAddress. Thus we may
-					 * merge the states. */
-					
-					r = typevector_merge(state->m,dvec,yvec,state->numlocals);
-					if (r == typecheck_FAIL)
-						return r;
-					changed |= r;
-					
-					goto merged;
-				}
-			}
-
-			/* The typestate (ystack,yvec) is separable from all typestates
-			 * (deststack,destloc). Thus we must add this state to the
-			 * result set. */
-
-			typestack_add(deststack,ystack,ky);
-			typevectorset_add(destloc,yvec,state->numlocals);
-			changed = true;
-		}
-		   
-	merged:
-		;
-	}
-	
-	LOG("result:");
-	LOGSTR("dstack: "); DOLOG(typestack_print(typecheck_logfile,deststack)); LOGNL;
-	LOGSTR("dloc  : "); DOLOG(typevectorset_print(typecheck_logfile,destloc,state->numlocals)); LOGNL;
-	LOGFLUSH;
-	
-	return changed;
+	r = typevector_merge(state->m, dstlocals, srclocals, state->numlocals);
+	if (r == typecheck_FAIL)
+		return r;
+	return changed | r;
 }
+
 
 /* typestate_reach *************************************************************
  
@@ -932,8 +619,9 @@ typestate_merge(verifier_state *state,
    IN:
        state............current state of the verifier
 	   destblock........destination basic block
-	   ystack...........stack to propagate
-	   yloc.............set of local variable typevectors to propagate
+	   srcvars..........variable indices of the outvars to propagate
+	   srclocals........local variables to propagate
+	   n................number of srcvars
 
    OUT:
        state->repeat....set to true if the verifier must iterate again
@@ -948,42 +636,43 @@ typestate_merge(verifier_state *state,
 static bool
 typestate_reach(verifier_state *state,
 				basicblock *destblock,
-				stackptr ystack,typevector *yloc)
+				s4 *srcvars, varinfo *srclocals, s4 n)
 {
-	typevector *destloc;
-	int destidx;
+	s4 i;
+	varinfo *destloc;
+	varinfo *sv;
+	jitdata *jd = state->jd;
 	bool changed = false;
 	typecheck_result r;
 
 	LOG1("reaching block L%03d",destblock->nr);
 	TYPECHECK_COUNT(stat_reached);
 	
-	destidx = destblock - state->basicblocks;
-	destloc = MGET_TYPEVECTOR(state->localbuf,destidx,state->numlocals);
+	destloc = destblock->inlocals;
 
 	/* When branching backwards we have to check for uninitialized objects */
 	
 	if (destblock <= state->bptr) {
-		stackptr sp;
-		int i;
+		TYPECHECK_COUNT(stat_backwards);
+		LOG("BACKWARDS!");
+		for (i=0; i<n; ++i) {
+			sv = VAR(srcvars[i]);
+			if (sv->type == TYPE_ADR &&
+					TYPEINFO_IS_NEWOBJECT(sv->typeinfo)) {
+				exceptions_throw_verifyerror(state->m,
+						"Branching backwards with uninitialized object on stack");
+				return false;
+			}
+		}
 
-		if (!useinlining) {
-			TYPECHECK_COUNT(stat_backwards);
-        		LOG("BACKWARDS!");
-		        for (sp = ystack; sp; sp=sp->prev)
-				if (sp->type == TYPE_ADR &&
-                		TYPEINFO_IS_NEWOBJECT(sp->typeinfo)) {
-					/*printf("current: %d, dest: %d\n", state->bptr->nr, destblock->nr);*/
-					exceptions_throw_verifyerror(state->m,"Branching backwards with uninitialized object on stack");
-					return false;
-				}
-
-			for (i=0; i<state->numlocals; ++i)
-				if (yloc->td[i].type == TYPE_ADR &&
-					TYPEINFO_IS_NEWOBJECT(yloc->td[i].info)) {
-					exceptions_throw_verifyerror(state->m,"Branching backwards with uninitialized object in local variable");
-					return false;
-				}
+		for (i=0; i<state->numlocals; ++i) {
+			sv = srclocals + i;
+			if (sv->type == TYPE_ADR &&
+					TYPEINFO_IS_NEWOBJECT(sv->typeinfo)) {
+				exceptions_throw_verifyerror(state->m,
+						"Branching backwards with uninitialized object in local variable");
+				return false;
+			}
 		}
 	}
 	
@@ -991,20 +680,21 @@ typestate_reach(verifier_state *state,
 		/* The destblock has never been reached before */
 
 		TYPECHECK_COUNT(stat_copied);
-		LOG1("block (index %04d) reached first time",destidx);
+		LOG1("block L%03d reached first time",destblock->nr);
 		
-		if (!typestack_copy(state,destblock->instack,ystack,yloc))
+		if (!typecheck_copy_types(state, srcvars, destblock->invars, n))
 			return false;
-		typevectorset_copy_inplace(yloc,destloc,state->numlocals);
+		typevector_copy_inplace(srclocals, destloc, state->numlocals);
 		changed = true;
 	}
 	else {
 		/* The destblock has already been reached before */
 		
 		TYPECHECK_COUNT(stat_merged);
-		LOG1("block (index %04d) reached before",destidx);
+		LOG1("block L%03d reached before", destblock->nr);
 		
-		r = typestate_merge(state,destblock->instack,destloc,ystack,yloc);
+		r = typestate_merge(state, srcvars, srclocals, 
+				destblock->invars, destblock->inlocals, n);
 		if (r == typecheck_FAIL)
 			return false;
 		changed = r;
@@ -1022,58 +712,17 @@ typestate_reach(verifier_state *state,
 	return true;
 }
 
-/* typestate_ret ***************************************************************
+
+/* typestate_save_invars *******************************************************
  
-   Reach the destinations of a RET instruction.
+   Save the invars of the current basic block in the space reserved by
+   parse.
 
-   IN:
-       state............current state of the verifier
-	   retindex.........index of local variable containing the returnAddress
-
-   OUT:
-       state->repeat....set to true if the verifier must iterate again
-	                    over the basic blocks
-	   
-   RETURN VALUE:
-       true.............success
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
-static bool
-typestate_ret(verifier_state *state,int retindex)
-{
-	typevector *yvec;
-	typevector *selected;
-	basicblock *destblock;
-
-	for (yvec=state->localset; yvec; ) {
-		if (!TYPEDESC_IS_RETURNADDRESS(yvec->td[retindex])) {
-			exceptions_throw_verifyerror(state->m,"Illegal instruction: RET on non-returnAddress");
-			return false;
-		}
-
-		destblock = (basicblock*) TYPEINFO_RETURNADDRESS(yvec->td[retindex].info);
-
-		selected = typevectorset_select(&yvec,retindex,destblock);
-		
-		if (!typestate_reach(state,destblock,state->bptr->outstack,selected))
-			return false;
-	}
-	return true;
-}
-
-/* typestate_save_instack ******************************************************
- 
-   Save the input stack of the current basic block in the "savedstackbuf"
-   of the verifier state.
-
-   This function must be called before an instruction modifies a stack slot
-   that happens to be part of the instack of the current block. In such
-   cases the instack of the block must be saved, and restored at the end
-   of the analysis of this basic block, so that the instack again reflects
-   the *input* to this basic block (and does not randomly contain types
-   that appear within the block).
+   This function must be called before an instruction modifies a variable
+   that is an invar of the current block. In such cases the invars of the
+   block must be saved, and restored at the end of the analysis of this
+   basic block, so that the invars again reflect the *input* to this basic
+   block (and do not randomly contain types that appear within the block).
 
    IN:
        state............current state of the verifier
@@ -1081,33 +730,39 @@ typestate_ret(verifier_state *state,int retindex)
 *******************************************************************************/
 
 static void
-typestate_save_instack(verifier_state *state)
+typestate_save_invars(verifier_state *state)
 {
-	stackptr sp;
-	stackptr dest;
-	s4 i;
+	s4 i, index;
+	s4 *pindex;
 	
-	LOG("saving input stack types");
-	if (!state->savedstackbuf) {
-		LOG("allocating savedstack buffer");
-		state->savedstackbuf = DMNEW(stackelement, state->cd->maxstack);
-		state->savedstackbuf->prev = NULL;
-		for (i = 1; i < state->cd->maxstack; ++i)
-			state->savedstackbuf[i].prev = state->savedstackbuf+(i-1);
+	LOG("saving invars");
+
+	if (!state->savedindices) {
+		LOG("allocating savedindices buffer");
+		pindex = DMNEW(s4, state->m->maxstack);
+		state->savedindices = pindex;
+		index = state->numlocals + VERIFIER_EXTRA_VARS;
+		for (i=0; i<state->m->maxstack; ++i)
+			*pindex++ = index++;
 	}
-	sp = state->savedstack = state->bptr->instack;
-	dest = state->bptr->instack = state->savedstackbuf + (state->bptr->indepth-1);
-	
-	for(; sp; sp=sp->prev, dest=dest->prev) {
-		dest->type = sp->type;
-		TYPEINFO_COPY(sp->typeinfo,dest->typeinfo);
-	}
+
+	/* save types */
+
+	typecheck_copy_types(state, state->bptr->invars, state->savedindices, 
+			state->bptr->indepth);
+
+	/* set the invars of the block to the saved variables */
+	/* and remember the original invars                   */
+
+	state->savedinvars = state->bptr->invars;
+	state->bptr->invars = state->savedindices;
 }
 
-/* typestate_restore_instack ***************************************************
+
+/* typestate_restore_invars  ***************************************************
  
-   Restore the input stack of the current basic block that has been previously
-   saved by `typestate_save_instack`.
+   Restore the invars of the current basic block that have been previously
+   saved by `typestate_save_invars`.
 
    IN:
        state............current state of the verifier
@@ -1115,34 +770,36 @@ typestate_save_instack(verifier_state *state)
 *******************************************************************************/
 
 static void
-typestate_restore_instack(verifier_state *state)
+typestate_restore_invars(verifier_state *state)
 {
-	stackptr sp;
-	stackptr dest;
-	
 	TYPECHECK_COUNT(stat_savedstack);
-	LOG("restoring saved instack");
+	LOG("restoring saved invars");
 
-	sp = state->bptr->instack;
-	dest = state->savedstack;
-	for(; sp; sp=sp->prev, dest=dest->prev) {
-		dest->type = sp->type;
-		TYPEINFO_COPY(sp->typeinfo,dest->typeinfo);
-	}
+	/* restore the invars pointer */
 
-	state->bptr->instack = state->savedstack;
-	state->savedstack = NULL;
+	state->bptr->invars = state->savedinvars;
+
+	/* copy the types back */
+
+	typecheck_copy_types(state, state->savedindices, state->bptr->invars,
+			state->bptr->indepth);
+
+	/* mark that there are no saved invars currently */
+
+	state->savedinvars = NULL;
 }
+
 
 /****************************************************************************/
 /* MISC MACROS                                                              */
 /****************************************************************************/
 
-#define COPYTYPE(source,dest)   \
-	{if ((source)->type == TYPE_ADR)								\
-			TYPEINFO_COPY((source)->typeinfo,(dest)->typeinfo);}
+#define COPYTYPE(source,dest)                                        \
+    {if (VAROP(source)->type == TYPE_ADR)                            \
+            TYPEINFO_COPY(VAROP(source)->typeinfo,VAROP(dest)->typeinfo);}
 
 #define ISBUILTIN(v)   (bte->fp == (functionptr) (v))
+
 
 /* verify_invocation ***********************************************************
  
@@ -1172,11 +829,18 @@ verify_invocation(verifier_state *state)
 	instruction *ins;
 	classref_or_classinfo initclass;
 	typedesc *td;
-	stackelement *arg;                             /* argument pointer */
-	stackelement *dst;               /* result stack of the invocation */
+	s4 argindex;                            /* argument variable index */
+	varinfo *av;                                  /* argument variable */
+	varinfo *dv;                  /* result variable of the invocation */
 	int i;                                                  /* counter */
     u1 rtype;                          /* return type of called method */
 	resolve_result_t result;
+	jitdata *jd;
+
+	jd = state->jd;
+
+	/* get the FMIref and the unresolved_method struct (if any) */
+	/* from the instruction                                     */
 
 	if (INSTRUCTION_IS_UNRESOLVED(state->iptr)) {
 		/* unresolved method */
@@ -1189,8 +853,12 @@ verify_invocation(verifier_state *state)
 		mref = state->iptr->sx.s23.s3.fmiref;
 	}
 
+	/* get method descriptor and name */
+
 	md = mref->parseddesc.md;
 	mname = mref->name;
+
+	/* get method info (if resolved) and classname */
 
 	if (IS_FMIREF_RESOLVED(mref)) {
 		mi = mref->p.method;
@@ -1203,7 +871,7 @@ verify_invocation(verifier_state *state)
 
 	specialmethod = (mname->text[0] == '<');
 	opcode = state->iptr[0].opc;
-	dst = state->iptr->dst.var;
+	dv = VAROP(state->iptr->dst);
 
 	/* prevent compiler warnings */
 
@@ -1227,21 +895,24 @@ verify_invocation(verifier_state *state)
 	i = md->paramcount; /* number of parameters including 'this'*/
 	while (--i >= 0) {
 		LOG1("param %d",i);
-		arg = state->iptr->sx.s23.s2.args[i];
+		argindex = state->iptr->sx.s23.s2.args[i];
+		av = VAR(argindex);
 		td = md->paramtypes + i;
-		if (arg->type != td->type)
+
+		if (av->type != td->type)
 			TYPECHECK_VERIFYERROR_bool("Parameter type mismatch in method invocation");
-		if (arg->type == TYPE_ADR) {
-			LOGINFO(&(arg->typeinfo));
+
+		if (av->type == TYPE_ADR) {
+			LOGINFO(&(av->typeinfo));
 			if (i==0 && callinginit)
 			{
 				/* first argument to <init> method */
-				if (!TYPEINFO_IS_NEWOBJECT(arg->typeinfo))
+				if (!TYPEINFO_IS_NEWOBJECT(av->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("Calling <init> on initialized object");
 
 				/* get the address of the NEW instruction */
-				LOGINFO(&(arg->typeinfo));
-				ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(arg->typeinfo);
+				LOGINFO(&(av->typeinfo));
+				ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(av->typeinfo);
 				if (ins)
 					initclass = ins[-1].sx.val.c;
 				else
@@ -1259,43 +930,41 @@ verify_invocation(verifier_state *state)
 		LOG("ok");
 	}
 
-	LOG("checking return type");
-	rtype = md->returntype.type;
-	if (rtype != TYPE_VOID) {
-		if (rtype != dst->type)
-			TYPECHECK_VERIFYERROR_bool("Return type mismatch in method invocation");
-		if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dst->typeinfo)))
-			return false;
-	}
-
 	if (callinginit) {
 		LOG("replacing uninitialized object");
 		/* replace uninitialized object type on stack */
 
 		/* for all live-in and live-through variables */ 
 		for (i=0; i<state->iptr->s1.argcount; ++i) {
-			arg = state->iptr->sx.s23.s2.args[i];
-			if (arg->type == TYPE_ADR
-					&& TYPEINFO_IS_NEWOBJECT(arg->typeinfo)
-					&& TYPEINFO_NEWOBJECT_INSTRUCTION(arg->typeinfo) == ins)
+			argindex = state->iptr->sx.s23.s2.args[i];
+			av = VAR(argindex);
+			if (av->type == TYPE_ADR
+					&& TYPEINFO_IS_NEWOBJECT(av->typeinfo)
+					&& TYPEINFO_NEWOBJECT_INSTRUCTION(av->typeinfo) == ins)
 			{
-				LOG("replacing uninitialized type on stack");
+				LOG("replacing uninitialized type");
 
 				/* If this stackslot is in the instack of
 				 * this basic block we must save the type(s)
 				 * we are going to replace.
 				 */
 				/* XXX this needs a new check */
-				if (arg <= state->bptr->instack && !state->savedstack)
-					typestate_save_instack(state);
+				if (state->bptr->invars
+						&& argindex >= state->bptr->invars[0] 
+						&& argindex < state->bptr->varstart 
+						&& !state->savedinvars)
+				{
+					typestate_save_invars(state);
+				}
 
-				if (!typeinfo_init_class(&(arg->typeinfo),initclass))
+				if (!typeinfo_init_class(&(av->typeinfo),initclass))
 					return false;
 			}
 		}
 
 		/* replace uninitialized object type in locals */
-		if (!typevectorset_init_object(state->localset,ins,initclass,state->numlocals))
+		if (!typevector_init_object(state->jd->var, ins, initclass,
+					state->numlocals))
 			return false;
 
 		/* initializing the 'this' reference? */
@@ -1322,7 +991,7 @@ verify_invocation(verifier_state *state)
 
 			/* set our marker variable to type int */
 			LOG("setting <init> marker");
-			typevectorset_store(state->localset,state->numlocals-1,TYPE_INT,NULL);
+			typevector_store(jd->var, state->numlocals-1, TYPE_INT, NULL);
 		}
 		else {
 			/* { we are initializing an instance created with NEW } */
@@ -1334,7 +1003,7 @@ verify_invocation(verifier_state *state)
 
 	/* try to resolve the method lazily */
 
-	result = new_resolve_method_lazy(state->iptr,state->m);
+	result = new_resolve_method_lazy(jd, state->iptr, state->m);
 	if (result == resolveFailed)
 		return false;
 
@@ -1349,7 +1018,8 @@ verify_invocation(verifier_state *state)
 
 		/* record subtype constraints for parameters */
 
-		if (!new_constrain_unresolved_method(um,state->m->class,state->m,state->iptr))
+		if (!new_constrain_unresolved_method(jd, um, state->m->class, 
+					state->m, state->iptr))
 			return false; /* XXX maybe wrap exception */
 
 		/* store the unresolved_method pointer */
@@ -1361,8 +1031,16 @@ verify_invocation(verifier_state *state)
 		assert(IS_FMIREF_RESOLVED(state->iptr->sx.s23.s3.fmiref));
 	}
 
+	rtype = md->returntype.type;
+	if (rtype != TYPE_VOID) {
+		dv->type = rtype;
+		if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dv->typeinfo)))
+			return false;
+	}
+
 	return true;
 }
+
 
 /* verify_generic_builtin ******************************************************
  
@@ -1384,7 +1062,8 @@ verify_generic_builtin(verifier_state *state)
 	s4 i;
 	u1 rtype;
 	methoddesc *md;
-    stackptr arg;
+    varinfo *av;
+	jitdata *jd = state->jd;
 
 	TYPECHECK_COUNT(stat_ins_builtin_gen);
 
@@ -1395,36 +1074,36 @@ verify_generic_builtin(verifier_state *state)
 	/* check the types of the arguments on the stack */
 
 	for (i--; i >= 0; i--) {
-		arg = state->iptr->sx.s23.s2.args[i];
+		av = VAR(state->iptr->sx.s23.s2.args[i]);
 
-		if (arg->type != md->paramtypes[i].type) {
+		if (av->type != md->paramtypes[i].type) {
 			TYPECHECK_VERIFYERROR_bool("parameter type mismatch for builtin method");
 		}
 		
 #ifdef TYPECHECK_DEBUG
 		/* generic builtins may only take primitive types and java.lang.Object references */
-		if (arg->type == TYPE_ADR && md->paramtypes[i].classref->name != utf_java_lang_Object) {
+		if (av->type == TYPE_ADR && md->paramtypes[i].classref->name != utf_java_lang_Object) {
 			*exceptionptr = new_internalerror("generic builtin method with non-generic reference parameter");
 			return false;
 		}
 #endif
 	}
 
-	/* check the return type */
+	/* set the return type */
 
 	rtype = md->returntype.type;
 	if (rtype != TYPE_VOID) {
-		stackptr dst;
+		varinfo *dv;
 
-		dst = state->iptr->dst.var;
-		if (rtype != dst->type)
-			TYPECHECK_VERIFYERROR_bool("Return type mismatch in generic builtin invocation");
-		if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dst->typeinfo)))
+		dv = VAROP(state->iptr->dst);
+		dv->type = rtype;
+		if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dv->typeinfo)))
 			return false;
 	}
 
 	return true;
 }
+
 
 /* verify_builtin **************************************************************
  
@@ -1444,10 +1123,11 @@ verify_builtin(verifier_state *state)
 {
 	builtintable_entry *bte;
     classref_or_classinfo cls;
-    stackptr dst;               /* output stack of current instruction */
+    varinfo *dv;               /* output variable of current instruction */
+	jitdata *jd = state->jd;
 
 	bte = state->iptr->sx.s23.s3.bte;
-	dst = state->iptr->dst.var;
+	dv = VAROP(state->iptr->dst);
 
 	/* XXX this is an ugly if-chain but twisti did not want a function */
 	/* pointer in builtintable_entry for this, so here you go.. ;)     */
@@ -1456,39 +1136,48 @@ verify_builtin(verifier_state *state)
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
 		cls = state->iptr[-1].sx.val.c;
-		TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,state->iptr);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_NEWOBJECT(dv->typeinfo,state->iptr);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
 		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BOOLEAN);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_BOOLEAN);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_char)) {
 		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_CHAR);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_CHAR);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_float)) {
 		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_FLOAT);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_FLOAT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_double)) {
 		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_DOUBLE);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_DOUBLE);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_byte)) {
 		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BYTE);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_BYTE);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_short)) {
 		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_SHORT);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_SHORT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_int)) {
 		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_INT);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_INT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_long)) {
 		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
-		TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_LONG);
+		dv->type = TYPE_ADR;
+		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_LONG);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray))
 	{
@@ -1496,13 +1185,15 @@ verify_builtin(verifier_state *state)
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without class");
 		/* XXX check that it is an array class(ref) */
-		typeinfo_init_class(&(dst->typeinfo),state->iptr[-1].sx.val.c);
+		dv->type = TYPE_ADR;
+		typeinfo_init_class(&(dv->typeinfo),state->iptr[-1].sx.val.c);
 	}
 	else if (ISBUILTIN(BUILTIN_arrayinstanceof))
 	{
 		TYPECHECK_ADR(state->iptr->sx.s23.s2.args[0]);
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_arrayinstanceof without class");
+		dv->type = TYPE_INT;
 		/* XXX check that it is an array class(ref) */
 	}
 	else {
@@ -1510,6 +1201,7 @@ verify_builtin(verifier_state *state)
 	}
 	return true;
 }
+
 
 /* verify_multianewarray *******************************************************
  
@@ -1527,10 +1219,10 @@ verify_builtin(verifier_state *state)
 static bool
 verify_multianewarray(verifier_state *state)
 {
-    stackptr arg;
 	classinfo *arrayclass;
 	arraydescriptor *desc;
 	s4 i;
+	jitdata *jd = state->jd;
 
 	/* check the array lengths on the stack */
 	i = state->iptr->s1.argcount;
@@ -1538,11 +1230,7 @@ verify_multianewarray(verifier_state *state)
 		TYPECHECK_VERIFYERROR_bool("Illegal dimension argument");
 
 	while (i--) {
-		arg = state->iptr->sx.s23.s2.args[i];
-		/* XXX this should be checked in stack.c: */
-		if (!arg)
-			TYPECHECK_VERIFYERROR_bool("Unable to pop operand off an empty stack");
-		TYPECHECK_INT(arg);
+		TYPECHECK_INT(state->iptr->sx.s23.s2.args[i]);
 	}
 
 	/* check array descriptor */
@@ -1557,7 +1245,7 @@ verify_multianewarray(verifier_state *state)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		typeinfo_init_classinfo(&(state->iptr->dst.var->typeinfo), arrayclass);
+		typeinfo_init_classinfo(&(VAROP(state->iptr->dst)->typeinfo), arrayclass);
 	}
 	else {
 		const char *p;
@@ -1577,13 +1265,18 @@ verify_multianewarray(verifier_state *state)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		if (!typeinfo_init_class(&(state->iptr->dst.var->typeinfo),CLASSREF_OR_CLASSINFO(cr)))
+		if (!typeinfo_init_class(&(VAROP(state->iptr->dst)->typeinfo),CLASSREF_OR_CLASSINFO(cr)))
 			return false;
 	}
+
+	/* set return type */
+
+	VAROP(state->iptr->dst)->type = TYPE_ADR;
 
 	/* everything ok */
 	return true;
 }
+
 
 /* verify_basic_block **********************************************************
  
@@ -1605,49 +1298,48 @@ verify_basic_block(verifier_state *state)
     int len;                        /* for counting instructions, etc. */
     bool superblockend;        /* true if no fallthrough to next block */
 	instruction *iptr;                      /* the current instruction */
-	stackptr dst;
     basicblock *tbptr;                   /* temporary for target block */
     bool maythrow;               /* true if this instruction may throw */
 	unresolved_field *uf;                        /* for field accesses */
 	constant_FMIref *fieldref;                   /* for field accesses */
 	s4 i;
-	s4 b_index;
 	typecheck_result r;
 	resolve_result_t result;
 	branch_target_t *table;
 	lookup_target_t *lookup;
+	jitdata *jd = state->jd;
+	varinfo *dv;
+	exceptiontable *ex;
 
 	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
 	LOGFLUSH;
 
 	superblockend = false;
 	state->bptr->flags = BBFINISHED;
-	b_index = state->bptr - state->basicblocks;
 
 	/* prevent compiler warnings */
 
-	dst = NULL;
+	dv = NULL;
 
 	/* determine the active exception handlers for this block */
 	/* XXX could use a faster algorithm with sorted lists or  */
 	/* something?                                             */
 	len = 0;
-	for (i = 0; i < state->cd->exceptiontablelength; ++i) {
-		if ((state->cd->exceptiontable[i].start <= state->bptr) && (state->cd->exceptiontable[i].end > state->bptr)) {
-			LOG1("active handler L%03d", state->cd->exceptiontable[i].handler->nr);
-			state->handlers[len++] = state->cd->exceptiontable + i;
+	for (ex = state->cd->exceptiontable; ex ; ex = ex->down) {
+		if ((ex->start <= state->bptr) && (ex->end > state->bptr)) {
+			LOG1("active handler L%03d", ex->handler->nr);
+			state->handlers[len++] = ex;
 		}
 	}
 	state->handlers[len] = NULL;
 
 	/* init variable types at the start of this block */
-	typevectorset_copy_inplace(MGET_TYPEVECTOR(state->localbuf,b_index,state->numlocals),
-			state->localset,state->numlocals);
+	typevector_copy_inplace(state->bptr->inlocals, jd->var, state->numlocals);
 
 	if (state->handlers[0])
 		for (i=0; i<state->numlocals; ++i)
-			if (state->localset->td[i].type == TYPE_ADR
-					&& TYPEINFO_IS_NEWOBJECT(state->localset->td[i].info)) {
+			if (VAR(i)->type == TYPE_ADR
+					&& TYPEINFO_IS_NEWOBJECT(VAR(i)->typeinfo)) {
 				/* XXX we do not check this for the uninitialized 'this' instance in */
 				/* <init> methods. Otherwise there are problems with try blocks in   */
 				/* <init>. The spec seems to indicate that we should perform the test*/
@@ -1655,13 +1347,16 @@ verify_basic_block(verifier_state *state)
 				/* Example: org/eclipse/ui/internal/PerspectiveBarNewContributionItem*/
 				/* of eclipse 3.0.2                                                  */
 				/* XXX Try to show that the check is not necessary for 'this'!       */
-				if (TYPEINFO_NEWOBJECT_INSTRUCTION(state->localset->td[i].info) != NULL) {
+				if (TYPEINFO_NEWOBJECT_INSTRUCTION(VAR(i)->typeinfo) != NULL) {
 					/*show_icmd_method(state->m, state->cd, state->rd);*/
 					printf("Uninitialized variable: %d, block: %d\n", i, state->bptr->nr);
 					TYPECHECK_VERIFYERROR_bool("Uninitialized object in local variable inside try block");
 				}
 			}
-	DOLOG(typestate_print(typecheck_logfile,state->bptr->instack,state->localset,state->numlocals));
+
+	DOLOG(typecheck_print_vararray(stdout, jd, state->bptr->invars, 
+				state->bptr->indepth));
+	DOLOG(typevector_print(stdout, jd->var, state->numlocals));
 	LOGNL; LOGFLUSH;
 
 	/* loop over the instructions */
@@ -1672,13 +1367,12 @@ verify_basic_block(verifier_state *state)
 
 		iptr = state->iptr;
 
-		DOLOG(typestate_print(typecheck_logfile,NULL,state->localset,state->numlocals));
+		DOLOG(typevector_print(stdout, jd->var, state->numlocals));
 		LOGNL; LOGFLUSH;
-
-		DOLOG(show_icmd(state->iptr,false)); LOGNL; LOGFLUSH;
+		DOLOG(new_show_icmd(jd, state->iptr, false, SHOW_STACK)); LOGNL; LOGFLUSH;
 
 		opcode = iptr->opc;
-		dst = iptr->dst.var;
+		dv = VAROP(iptr->dst);
 		maythrow = false;
 
 		switch (opcode) {
@@ -1692,32 +1386,38 @@ verify_basic_block(verifier_state *state)
 			case ICMD_MOVE:
 			case ICMD_COPY:
 				TYPECHECK_COUNT(stat_ins_stack);
-				COPYTYPE(iptr->s1.var, iptr->dst.var);
+				COPYTYPE(iptr->s1, iptr->dst);
+				dv->type = VAROP(iptr->s1)->type;
 				break;
 
 				/****************************************/
 				/* PRIMITIVE VARIABLE ACCESS            */
 
-			case ICMD_ILOAD: if (!typevectorset_checktype(state->localset,state->iptr->s1.localindex,TYPE_INT)) 
+			case ICMD_ILOAD: if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_INT)) 
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 dv->type = TYPE_INT;
 							 break;
-			case ICMD_IINC:  if (!typevectorset_checktype(state->localset,state->iptr->s1.localindex,TYPE_INT))
+			case ICMD_IINC:  if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_INT))
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 dv->type = TYPE_INT;
 							 break;
-			case ICMD_FLOAD: if (!typevectorset_checktype(state->localset,state->iptr->s1.localindex,TYPE_FLT))
+			case ICMD_FLOAD: if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_FLT))
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 dv->type = TYPE_FLT;
 							 break;
-			case ICMD_LLOAD: if (!typevectorset_checktype(state->localset,state->iptr->s1.localindex,TYPE_LNG))
+			case ICMD_LLOAD: if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_LNG))
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 dv->type = TYPE_LNG;
 							 break;
-			case ICMD_DLOAD: if (!typevectorset_checktype(state->localset,state->iptr->s1.localindex,TYPE_DBL))
+			case ICMD_DLOAD: if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_DBL))
 								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 dv->type = TYPE_DBL;
 							 break;
 
-			case ICMD_ISTORE: typevectorset_store(state->localset,state->iptr->dst.localindex,TYPE_INT,NULL); break;
-			case ICMD_FSTORE: typevectorset_store(state->localset,state->iptr->dst.localindex,TYPE_FLT,NULL); break;
-			case ICMD_LSTORE: typevectorset_store_twoword(state->localset,state->iptr->dst.localindex,TYPE_LNG); break;
-			case ICMD_DSTORE: typevectorset_store_twoword(state->localset,state->iptr->dst.localindex,TYPE_DBL); break;
+			case ICMD_ISTORE: typevector_store(jd->var,state->iptr->dst.varindex,TYPE_INT,NULL); break;
+			case ICMD_FSTORE: typevector_store(jd->var,state->iptr->dst.varindex,TYPE_FLT,NULL); break;
+			case ICMD_LSTORE: typevector_store(jd->var,state->iptr->dst.varindex,TYPE_LNG,NULL); break;
+			case ICMD_DSTORE: typevector_store(jd->var,state->iptr->dst.varindex,TYPE_DBL,NULL); break;
 
 				/****************************************/
 				/* LOADING ADDRESS FROM VARIABLE        */
@@ -1726,35 +1426,27 @@ verify_basic_block(verifier_state *state)
 				TYPECHECK_COUNT(stat_ins_aload);
 
 				/* loading a returnAddress is not allowed */
-				if (state->jsrencountered) {
-					if (!typevectorset_checkreference(state->localset,state->iptr->s1.localindex)) {
-						TYPECHECK_VERIFYERROR_bool("illegal instruction: ALOAD loading non-reference");
-					}
-					if (typevectorset_copymergedtype(state->m,state->localset,state->iptr->s1.localindex,&(dst->typeinfo)) == -1)
-						return false;
+				if (!TYPEDESC_IS_REFERENCE(jd->var[state->iptr->s1.varindex])) {
+					TYPECHECK_VERIFYERROR_bool("illegal instruction: ALOAD loading non-reference");
 				}
-				else {
-					if (!TYPEDESC_IS_REFERENCE(state->localset->td[state->iptr->s1.localindex])) {
-						TYPECHECK_VERIFYERROR_bool("illegal instruction: ALOAD loading non-reference");
-					}
-					TYPEINFO_COPY(state->localset->td[state->iptr->s1.localindex].info,dst->typeinfo);
-				}
+				TYPEINFO_COPY(jd->var[state->iptr->s1.varindex].typeinfo,dv->typeinfo);
+				dv->type = TYPE_ADR;
 				break;
 
 				/****************************************/
 				/* STORING ADDRESS TO VARIABLE          */
 
 			case ICMD_ASTORE:
-				if (state->handlers[0] && TYPEINFO_IS_NEWOBJECT(state->iptr->s1.var->typeinfo)) {
+				if (state->handlers[0] && TYPEINFO_IS_NEWOBJECT(VAROP(state->iptr->s1)->typeinfo)) {
 					TYPECHECK_VERIFYERROR_bool("Storing uninitialized object in local variable inside try block");
 				}
 
-				if (TYPESTACK_IS_RETURNADDRESS(state->iptr->s1.var)) {
-					typevectorset_store_retaddr(state->localset,state->iptr->dst.localindex,&(state->iptr->s1.var->typeinfo));
+				if (TYPEINFO_IS_PRIMITIVE(VAROP(state->iptr->s1)->typeinfo)) {
+					typevector_store_retaddr(jd->var,state->iptr->dst.varindex,&(VAROP(state->iptr->s1)->typeinfo));
 				}
 				else {
-					typevectorset_store(state->localset,state->iptr->dst.localindex,TYPE_ADR,
-							&(state->iptr->s1.var->typeinfo));
+					typevector_store(jd->var,state->iptr->dst.varindex,TYPE_ADR,
+							&(VAROP(state->iptr->s1)->typeinfo));
 				}
 				break;
 
@@ -1762,11 +1454,12 @@ verify_basic_block(verifier_state *state)
 				/* LOADING ADDRESS FROM ARRAY           */
 
 			case ICMD_AALOAD:
-				if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(state->iptr->s1.var->typeinfo))
+				if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(VAROP(state->iptr->s1)->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: AALOAD on non-reference array");
 
-				if (!typeinfo_init_component(&state->iptr->s1.var->typeinfo,&dst->typeinfo))
+				if (!typeinfo_init_component(&VAROP(state->iptr->s1)->typeinfo,&dv->typeinfo))
 					return false;
+				dv->type = TYPE_ADR;
 				maythrow = true;
 				break;
 
@@ -1804,14 +1497,15 @@ verify_basic_block(verifier_state *state)
 				}
 
 				/* the result is pushed on the stack */
-				if (dst->type == TYPE_ADR) {
-					if (!typeinfo_init_from_typedesc(fieldref->parseddesc.fd,NULL,&(dst->typeinfo)))
+				dv->type = fieldref->parseddesc.fd->type;
+				if (dv->type == TYPE_ADR) {
+					if (!typeinfo_init_from_typedesc(fieldref->parseddesc.fd,NULL,&(dv->typeinfo)))
 						return false;
 				}
 
 fieldaccess_tail:
 				/* try to resolve the field reference lazily */
-				result = new_resolve_field_lazy(state->iptr, state->m);
+				result = new_resolve_field_lazy(jd, state->iptr, state->m);
 				if (result == resolveFailed)
 					return false;
 
@@ -1826,7 +1520,7 @@ fieldaccess_tail:
 					}
 
 					/* record the subtype constraints for this field access */
-					if (!new_constrain_unresolved_field(uf,state->m->class,state->m,state->iptr))
+					if (!new_constrain_unresolved_field(jd, uf,state->m->class,state->m,state->iptr))
 						return false; /* XXX maybe wrap exception? */
 
 					TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(state->iptr),stat_ins_field_unresolved);
@@ -1840,82 +1534,90 @@ fieldaccess_tail:
 				/* PRIMITIVE ARRAY ACCESS               */
 
 			case ICMD_ARRAYLENGTH:
-				if (!TYPEINFO_MAYBE_ARRAY(state->iptr->s1.var->typeinfo)
-						&& state->iptr->s1.var->typeinfo.typeclass.cls != pseudo_class_Arraystub)
+				if (!TYPEINFO_MAYBE_ARRAY(VAROP(state->iptr->s1)->typeinfo)
+						&& VAROP(state->iptr->s1)->typeinfo.typeclass.cls != pseudo_class_Arraystub)
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: ARRAYLENGTH on non-array");
+				dv->type = TYPE_INT;
 				maythrow = true;
 				break;
 
 			case ICMD_BALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_BOOLEAN)
-						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_BYTE))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_BOOLEAN)
+						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_BYTE))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
+				dv->type = TYPE_INT;
 				maythrow = true;
 				break;
 			case ICMD_CALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_CHAR))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_CHAR))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
+				dv->type = TYPE_INT;
 				maythrow = true;
 				break;
 			case ICMD_DALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_DOUBLE))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_DOUBLE))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
+				dv->type = TYPE_DBL;
 				maythrow = true;
 				break;
 			case ICMD_FALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_FLOAT))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_FLOAT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
+				dv->type = TYPE_FLT;
 				maythrow = true;
 				break;
 			case ICMD_IALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_INT))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_INT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
+				dv->type = TYPE_INT;
 				maythrow = true;
 				break;
 			case ICMD_SALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_SHORT))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_SHORT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
+				dv->type = TYPE_INT;
 				maythrow = true;
 				break;
 			case ICMD_LALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_LONG))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_LONG))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
+				dv->type = TYPE_LNG;
 				maythrow = true;
 				break;
 
 			case ICMD_BASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_BOOLEAN)
-						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_BYTE))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_BOOLEAN)
+						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_BYTE))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 			case ICMD_CASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_CHAR))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_CHAR))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 			case ICMD_DASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_DOUBLE))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_DOUBLE))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 			case ICMD_FASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_FLOAT))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_FLOAT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 			case ICMD_IASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_INT))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_INT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 			case ICMD_SASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_SHORT))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_SHORT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 			case ICMD_LASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo,ARRAYTYPE_LONG))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_LONG))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
@@ -1925,41 +1627,41 @@ fieldaccess_tail:
 				/* destination is an array of references. Assignability to    */
 				/* the actual array must be checked at runtime, each time the */
 				/* instruction is performed. (See builtin_canstore.)          */
-				TYPECHECK_ADR(state->iptr->sx.s23.s3.var);
-				TYPECHECK_INT(state->iptr->sx.s23.s2.var);
-				TYPECHECK_ADR(state->iptr->s1.var);
-				if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(state->iptr->s1.var->typeinfo))
+				TYPECHECK_ADR_OP(state->iptr->sx.s23.s3);
+				TYPECHECK_INT_OP(state->iptr->sx.s23.s2);
+				TYPECHECK_ADR_OP(state->iptr->s1);
+				if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(VAROP(state->iptr->s1)->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: AASTORE to non-reference array");
 				maythrow = true;
 				break;
 
 			case ICMD_IASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo, ARRAYTYPE_INT))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_INT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 
 			case ICMD_LASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo, ARRAYTYPE_LONG))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_LONG))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 
 			case ICMD_BASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo, ARRAYTYPE_BOOLEAN)
-						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo, ARRAYTYPE_BYTE))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_BOOLEAN)
+						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_BYTE))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 
 			case ICMD_CASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo, ARRAYTYPE_CHAR))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_CHAR))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
 
 			case ICMD_SASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->iptr->s1.var->typeinfo, ARRAYTYPE_SHORT))
+				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_SHORT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
 				maythrow = true;
 				break;
@@ -1970,44 +1672,47 @@ fieldaccess_tail:
 			case ICMD_ACONST:
 				if (state->iptr->flags.bits & INS_FLAG_CLASS) {
 					/* a java.lang.Class reference */
-					TYPEINFO_INIT_JAVA_LANG_CLASS(dst->typeinfo,state->iptr->sx.val.c);
+					TYPEINFO_INIT_JAVA_LANG_CLASS(dv->typeinfo,state->iptr->sx.val.c);
 				}
 				else {
 					if (state->iptr->sx.val.anyptr == NULL)
-						TYPEINFO_INIT_NULLTYPE(dst->typeinfo);
+						TYPEINFO_INIT_NULLTYPE(dv->typeinfo);
 					else {
 						/* string constant (or constant for builtin function) */
-						typeinfo_init_classinfo(&(dst->typeinfo),class_java_lang_String);
+						typeinfo_init_classinfo(&(dv->typeinfo),class_java_lang_String);
 					}
 				}
+				dv->type = TYPE_ADR;
 				break;
 
 				/****************************************/
 				/* CHECKCAST AND INSTANCEOF             */
 
 			case ICMD_CHECKCAST:
-				TYPECHECK_ADR(state->iptr->s1.var);
+				TYPECHECK_ADR_OP(state->iptr->s1);
 				/* returnAddress is not allowed */
-				if (!TYPEINFO_IS_REFERENCE(state->iptr->s1.var->typeinfo))
+				if (!TYPEINFO_IS_REFERENCE(VAROP(state->iptr->s1)->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("Illegal instruction: CHECKCAST on non-reference");
 
-				if (!typeinfo_init_class(&(dst->typeinfo),state->iptr->sx.s23.s3.c))
+				if (!typeinfo_init_class(&(dv->typeinfo),state->iptr->sx.s23.s3.c))
 						return false;
+				dv->type = TYPE_ADR;
 				maythrow = true;
 				break;
 
 			case ICMD_INSTANCEOF:
-				TYPECHECK_ADR(state->iptr->s1.var);
+				TYPECHECK_ADR_OP(state->iptr->s1);
 				/* returnAddress is not allowed */
-				if (!TYPEINFO_IS_REFERENCE(state->iptr->s1.var->typeinfo))
+				if (!TYPEINFO_IS_REFERENCE(VAROP(state->iptr->s1)->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("Illegal instruction: INSTANCEOF on non-reference");
+				dv->type = TYPE_INT;
 				break;
 
 				/****************************************/
 				/* BRANCH INSTRUCTIONS                  */
 
 			case ICMD_INLINE_GOTO:
-				COPYTYPE(state->iptr->s1.var,dst);
+				COPYTYPE(state->iptr->s1,state->iptr->dst);
 				/* FALLTHROUGH! */
 			case ICMD_GOTO:
 				superblockend = true;
@@ -2071,8 +1776,9 @@ fieldaccess_tail:
 				TYPECHECK_COUNT(stat_ins_branch);
 
 				/* propagate stack and variables to the target block */
-				if (!typestate_reach(state,state->iptr->dst.block,
-									 state->bptr->outstack,state->localset))
+				if (!typestate_reach(state, state->iptr->dst.block,
+									 state->bptr->outvars, jd->var, 
+									 state->bptr->outdepth))
 					return false;
 				break;
 
@@ -2089,8 +1795,8 @@ fieldaccess_tail:
 				while (--i >= 0) {
 					tbptr = (table++)->block;
 					LOG2("target %d is block %04d",i,tbptr->nr);
-					if (!typestate_reach(state,tbptr,state->bptr->outstack,
-										 state->localset))
+					if (!typestate_reach(state, tbptr, state->bptr->outvars,
+										 jd->var, state->bptr->outdepth))
 						return false;
 				}
 
@@ -2105,13 +1811,15 @@ fieldaccess_tail:
 				i = iptr->sx.s23.s2.lookupcount;
 
 				if (!typestate_reach(state,iptr->sx.s23.s3.lookupdefault.block,
-									 state->bptr->outstack,state->localset))
+									 state->bptr->outvars, jd->var,
+									 state->bptr->outdepth))
 					return false;
 
 				while (--i >= 0) {
 					tbptr = (lookup++)->target.block;
 					LOG2("target %d is block %04d",i,tbptr->nr);
-					if (!typestate_reach(state,tbptr,state->bptr->outstack,state->localset))
+					if (!typestate_reach(state, tbptr, state->bptr->outvars,
+								jd->var, state->bptr->outdepth))
 						return false;
 				}
 
@@ -2119,12 +1827,13 @@ fieldaccess_tail:
 				superblockend = true;
 				break;
 
+
 				/****************************************/
 				/* ADDRESS RETURNS AND THROW            */
 
 			case ICMD_ATHROW:
 				TYPECHECK_COUNT(stat_ins_athrow);
-				r = typeinfo_is_assignable_to_class(&state->iptr->s1.var->typeinfo,
+				r = typeinfo_is_assignable_to_class(&VAROP(state->iptr->s1)->typeinfo,
 						CLASSREF_OR_CLASSINFO(class_java_lang_Throwable));
 				if (r == typecheck_FALSE)
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: ATHROW on non-Throwable");
@@ -2138,7 +1847,7 @@ fieldaccess_tail:
 							/* XXX make this more efficient, use class_java_lang_Throwable
 							 * directly */
 							class_get_classref(state->m->class,utf_java_lang_Throwable),
-							&state->iptr->s1.var->typeinfo);
+							&VAROP(state->iptr->s1)->typeinfo);
 					iptr->flags.bits |= INS_FLAG_UNRESOLVED;
 				}
 				superblockend = true;
@@ -2147,11 +1856,11 @@ fieldaccess_tail:
 
 			case ICMD_ARETURN:
 				TYPECHECK_COUNT(stat_ins_areturn);
-				if (!TYPEINFO_IS_REFERENCE(state->iptr->s1.var->typeinfo))
+				if (!TYPEINFO_IS_REFERENCE(VAROP(state->iptr->s1)->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: ARETURN on non-reference");
 
 				if (state->returntype.type != TYPE_ADR
-						|| (r = typeinfo_is_assignable(&state->iptr->s1.var->typeinfo,&(state->returntype.info))) 
+						|| (r = typeinfo_is_assignable(&VAROP(state->iptr->s1)->typeinfo,&(state->returntype.typeinfo))) 
 								== typecheck_FALSE)
 					TYPECHECK_VERIFYERROR_bool("Return type mismatch");
 				if (r == typecheck_FAIL)
@@ -2162,7 +1871,7 @@ fieldaccess_tail:
 					iptr->sx.s23.s2.uc = create_unresolved_class(
 							state->m, 
 							state->m->parseddesc->returntype.classref,
-							&state->iptr->s1.var->typeinfo);
+							&VAROP(state->iptr->s1)->typeinfo);
 					iptr->flags.bits |= INS_FLAG_UNRESOLVED;
 				}
 				goto return_tail;
@@ -2194,7 +1903,7 @@ return_tail:
 				if (state->initmethod && state->m->class != class_java_lang_Object) {
 					/* Check if the 'this' instance has been initialized. */
 					LOG("Checking <init> marker");
-					if (!typevectorset_checktype(state->localset,state->numlocals-1,TYPE_INT))
+					if (!typevector_checktype(jd->var,state->numlocals-1,TYPE_INT))
 						TYPECHECK_VERIFYERROR_bool("<init> method does not initialize 'this'");
 				}
 
@@ -2207,13 +1916,11 @@ return_tail:
 
 			case ICMD_JSR:
 				LOG("jsr");
-				state->jsrencountered = true;
 
 				tbptr = state->iptr->sx.s23.s3.jsrtarget.block;
-				if (state->bptr + 1 == (state->basicblocks + state->basicblockcount + 1))
-					TYPECHECK_VERIFYERROR_bool("Illegal instruction: JSR at end of bytecode");
-				typestack_put_retaddr(dst,state->bptr+1,state->localset);
-				if (!typestate_reach(state,tbptr,dst,state->localset))
+				TYPEINFO_INIT_RETURNADDRESS(dv->typeinfo, state->bptr->next);
+				if (!typestate_reach(state, tbptr, state->bptr->outvars, jd->var,
+							state->bptr->outdepth))
 					return false;
 
 				superblockend = true;
@@ -2221,10 +1928,11 @@ return_tail:
 
 			case ICMD_RET:
 				/* check returnAddress variable */
-				if (!typevectorset_checkretaddr(state->localset,state->iptr->s1.localindex))
+				if (!typevector_checkretaddr(jd->var,state->iptr->s1.varindex))
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: RET using non-returnAddress variable");
 
-				if (!typestate_ret(state,state->iptr->s1.localindex))
+				if (!typestate_reach(state, iptr->dst.block, state->bptr->outvars, jd->var,
+							state->bptr->outdepth))
 					return false;
 
 				superblockend = true;
@@ -2240,7 +1948,7 @@ return_tail:
 				TYPECHECK_COUNT(stat_ins_invoke);
 				if (!verify_invocation(state))
 					return false;
-				TYPECHECK_COUNTIF(!state->iptr[0].val.a,stat_ins_invoke_unresolved);
+				TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(iptr), stat_ins_invoke_unresolved);
 				maythrow = true;
 				break;
 
@@ -2307,23 +2015,23 @@ return_tail:
 
 			case ICMD_IDIV:
 			case ICMD_IREM:
+				dv->type = TYPE_INT;
+				maythrow = true;
+				break;
+
 			case ICMD_LDIV:
 			case ICMD_LREM:
-
+				dv->type = TYPE_LNG;
 				maythrow = true;
 				break;
 
 				/* Instructions which never throw a runtime exception: */
-#if defined(TYPECHECK_DEBUG) || defined(TYPECHECK_STATISTICS)
 			case ICMD_NOP:
 			case ICMD_POP:
 			case ICMD_POP2:
+				break;
 
 			case ICMD_ICONST:
-			case ICMD_LCONST:
-			case ICMD_FCONST:
-			case ICMD_DCONST:
-
 			case ICMD_IADD:
 			case ICMD_ISUB:
 			case ICMD_IMUL:
@@ -2334,20 +2042,8 @@ return_tail:
 			case ICMD_ISHL:
 			case ICMD_ISHR:
 			case ICMD_IUSHR:
-			case ICMD_LADD:
-			case ICMD_LSUB:
-			case ICMD_LMUL:
-			case ICMD_LNEG:
-			case ICMD_LAND:
-			case ICMD_LOR:
-			case ICMD_LXOR:
-			case ICMD_LSHL:
-			case ICMD_LSHR:
-			case ICMD_LUSHR:
 			case ICMD_IMULPOW2:
-			case ICMD_LMULPOW2:
 			case ICMD_IDIVPOW2:
-			case ICMD_LDIVPOW2:
 			case ICMD_IADDCONST:
 			case ICMD_ISUBCONST:
 			case ICMD_IMULCONST:
@@ -2358,6 +2054,34 @@ return_tail:
 			case ICMD_ISHRCONST:
 			case ICMD_IUSHRCONST:
 			case ICMD_IREMPOW2:
+			case ICMD_INT2BYTE:
+			case ICMD_INT2CHAR:
+			case ICMD_INT2SHORT:
+			case ICMD_L2I:
+			case ICMD_F2I:
+			case ICMD_D2I:
+			case ICMD_LCMP:
+			case ICMD_LCMPCONST:
+			case ICMD_FCMPL:
+			case ICMD_FCMPG:
+			case ICMD_DCMPL:
+			case ICMD_DCMPG:
+				dv->type = TYPE_INT;
+				break;
+
+			case ICMD_LCONST:
+			case ICMD_LADD:
+			case ICMD_LSUB:
+			case ICMD_LMUL:
+			case ICMD_LNEG:
+			case ICMD_LAND:
+			case ICMD_LOR:
+			case ICMD_LXOR:
+			case ICMD_LSHL:
+			case ICMD_LSHR:
+			case ICMD_LUSHR:
+			case ICMD_LMULPOW2:
+			case ICMD_LDIVPOW2:
 			case ICMD_LADDCONST:
 			case ICMD_LSUBCONST:
 			case ICMD_LMULCONST:
@@ -2368,45 +2092,41 @@ return_tail:
 			case ICMD_LSHRCONST:
 			case ICMD_LUSHRCONST:
 			case ICMD_LREMPOW2:
-
 			case ICMD_I2L:
-			case ICMD_I2F:
-			case ICMD_I2D:
-			case ICMD_L2I:
-			case ICMD_L2F:
-			case ICMD_L2D:
-			case ICMD_F2I:
 			case ICMD_F2L:
-			case ICMD_F2D:
-			case ICMD_D2I:
 			case ICMD_D2L:
+				dv->type = TYPE_LNG;
+				break;
+
+			case ICMD_FCONST:
+			case ICMD_I2F:
+			case ICMD_L2F:
 			case ICMD_D2F:
-			case ICMD_INT2BYTE:
-			case ICMD_INT2CHAR:
-			case ICMD_INT2SHORT:
-
-			case ICMD_LCMP:
-			case ICMD_LCMPCONST:
-			case ICMD_FCMPL:
-			case ICMD_FCMPG:
-			case ICMD_DCMPL:
-			case ICMD_DCMPG:
-
 			case ICMD_FADD:
-			case ICMD_DADD:
 			case ICMD_FSUB:
-			case ICMD_DSUB:
 			case ICMD_FMUL:
-			case ICMD_DMUL:
 			case ICMD_FDIV:
-			case ICMD_DDIV:
 			case ICMD_FREM:
-			case ICMD_DREM:
 			case ICMD_FNEG:
+				dv->type = TYPE_FLT;
+				break;
+
+			case ICMD_DCONST:
+			case ICMD_I2D:
+			case ICMD_L2D:
+			case ICMD_F2D:
+			case ICMD_DADD:
+			case ICMD_DSUB:
+			case ICMD_DMUL:
+			case ICMD_DDIV:
+			case ICMD_DREM:
 			case ICMD_DNEG:
+				dv->type = TYPE_DBL;
+				break;
 
 			case ICMD_INLINE_START:
 			case ICMD_INLINE_END:
+				break;
 
 				/* XXX What shall we do with the following ?*/
 			case ICMD_AASTORECONST:
@@ -2418,10 +2138,10 @@ return_tail:
 			default:
 				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));
 				TYPECHECK_VERIFYERROR_bool("Missing ICMD code during typecheck");
-#endif
 		}
 
 		/* reach exception handlers for this instruction */
+
 		if (maythrow) {
 			TYPECHECK_COUNT(stat_ins_maythrow);
 			TYPECHECK_MARK(state->stat_maythrow);
@@ -2430,39 +2150,42 @@ return_tail:
 			while (state->handlers[i]) {
 				TYPECHECK_COUNT(stat_handlers_reached);
 				if (state->handlers[i]->catchtype.any)
-					state->excstack.typeinfo.typeclass = state->handlers[i]->catchtype;
+					VAR(state->exinvars)->typeinfo.typeclass = state->handlers[i]->catchtype;
 				else
-					state->excstack.typeinfo.typeclass.cls = class_java_lang_Throwable;
+					VAR(state->exinvars)->typeinfo.typeclass.cls = class_java_lang_Throwable;
 				if (!typestate_reach(state,
 						state->handlers[i]->handler,
-						&(state->excstack),state->localset))
+						&(state->exinvars), jd->var, 1))
 					return false;
 				i++;
 			}
 		}
 
-		LOG("next instruction");
+		LOG("\t\tnext instruction");
 		state->iptr++;
 	} /* while instructions */
 
 	LOG("instructions done");
 	LOGSTR("RESULT=> ");
-	DOLOG(typestate_print(typecheck_logfile,state->bptr->outstack,state->localset,state->numlocals));
+	DOLOG(typecheck_print_vararray(stdout, jd, state->bptr->outvars,
+				state->bptr->outdepth));
+	DOLOG(typevector_print(stdout, jd->var, state->numlocals));
 	LOGNL; LOGFLUSH;
 
 	/* propagate stack and variables to the following block */
 	if (!superblockend) {
 		LOG("reaching following block");
-		tbptr = state->bptr + 1;
+		tbptr = state->bptr->next;
 		while (tbptr->flags == BBDELETED) {
-			tbptr++;
+			tbptr = tbptr->next;
 #ifdef TYPECHECK_DEBUG
 			/* this must be checked in parse.c */
 			if ((tbptr->nr) >= state->basicblockcount)
 				TYPECHECK_VERIFYERROR_bool("Control flow falls off the last block");
 #endif
 		}
-		if (!typestate_reach(state,tbptr,state->bptr->outstack,state->localset))
+		if (!typestate_reach(state,tbptr,state->bptr->outvars, jd->var,
+					state->bptr->outdepth))
 			return false;
 	}
 
@@ -2470,11 +2193,12 @@ return_tail:
 	 * have been saved if an <init> call inside the block has
 	 * modified the instack types. (see INVOKESPECIAL) */
 
-	if (state->savedstack)
-		typestate_restore_instack(state);
+	if (state->savedinvars)
+		typestate_restore_invars(state);
 
 	return true;
 }
+
 
 /* verify_init_locals **********************************************************
  
@@ -2493,17 +2217,13 @@ static bool
 verify_init_locals(verifier_state *state)
 {
 	int i;
-	typedescriptor *td;
-	typevector *lset;
+	int index;
+	varinfo *locals;
+	varinfo *v;
+	jitdata *jd = state->jd;
+	int skip = 0;
 
-    /* initialize the variable types of the first block */
-    /* to the types of the arguments */
-
-	lset = MGET_TYPEVECTOR(state->localbuf,0,state->numlocals);
-	lset->k = 0;
-	lset->alt = NULL;
-	td = lset->td;
-	i = state->validlocals;
+	locals = state->basicblocks[0].inlocals;
 
 	/* allocate parameter descriptors if necessary */
 	
@@ -2511,44 +2231,48 @@ verify_init_locals(verifier_state *state)
 		if (!descriptor_params_from_paramtypes(state->m->parseddesc,state->m->flags))
 			return false;
 
+	/* pre-initialize variables as TYPE_VOID */
+	
+	i = state->numlocals;
+	v = locals;
+	while (i--) {
+		v->type = TYPE_VOID;
+		v++;
+	}
+
     /* if this is an instance method initialize the "this" ref type */
 	
     if (!(state->m->flags & ACC_STATIC)) {
-		if (!i)
-			TYPECHECK_VERIFYERROR_bool("Not enough local variables for method arguments");
-        td->type = TYPE_ADR;
-        if (state->initmethod)
-            TYPEINFO_INIT_NEWOBJECT(td->info,NULL);
-        else
-            typeinfo_init_classinfo(&(td->info), state->m->class);
-        td++;
-		i--;
+		index = jd->local_map[5*0 + TYPE_ADR];
+		if (index != UNUSED) {
+			if (state->validlocals < 1)
+				TYPECHECK_VERIFYERROR_bool("Not enough local variables for method arguments");
+			v = locals + index;
+			v->type = TYPE_ADR;
+			if (state->initmethod)
+				TYPEINFO_INIT_NEWOBJECT(v->typeinfo, NULL);
+			else
+				typeinfo_init_classinfo(&(v->typeinfo), state->m->class);
+		}
+
+		skip = 1;
     }
 
     LOG("'this' argument set.\n");
 
     /* the rest of the arguments and the return type */
 	
-    i = typedescriptors_init_from_methoddesc(td, state->m->parseddesc,
-											  i,
-											  true, /* two word types use two slots */
-											  (td - lset->td), /* skip 'this' pointer */
-											  &state->returntype);
-	if (i == -1)
+    if (!typeinfo_init_varinfos_from_methoddesc(locals, state->m->parseddesc,
+											  state->validlocals,
+											  skip, /* skip 'this' pointer */
+											  jd->local_map,
+											  &state->returntype))
 		return false;
-	td += i;
-
-	/* variables not used for arguments are initialized to TYPE_VOID */
-	
-	i = state->numlocals - (td - lset->td);
-	while (i--) {
-		td->type = TYPE_VOID;
-		td++;
-	}
 
     LOG("Arguments set.\n");
 	return true;
 }
+
 
 /* typecheck_init_flags ********************************************************
  
@@ -2568,9 +2292,7 @@ typecheck_init_flags(verifier_state *state)
     /* set all BBFINISHED blocks to BBTYPECHECK_UNDEF. */
 	
     i = state->basicblockcount;
-    block = state->basicblocks;
-
-    while (--i >= 0) {
+    for (block = state->basicblocks; block; block = block->next) {
 		
 #ifdef TYPECHECK_DEBUG
 		/* check for invalid flags */
@@ -2585,7 +2307,6 @@ typecheck_init_flags(verifier_state *state)
         if (block->flags >= BBFINISHED) {
             block->flags = BBTYPECHECK_UNDEF;
         }
-        block++;
     }
 
     /* the first block is always reached */
@@ -2593,6 +2314,7 @@ typecheck_init_flags(verifier_state *state)
     if (state->basicblockcount && state->basicblocks[0].flags == BBTYPECHECK_UNDEF)
         state->basicblocks[0].flags = BBTYPECHECK_REACHED;
 }
+
 
 /* typecheck_reset_flags *******************************************************
  
@@ -2606,21 +2328,21 @@ typecheck_init_flags(verifier_state *state)
 static void
 typecheck_reset_flags(verifier_state *state)
 {
-	s4 i;
+	basicblock *block;
 
 	/* check for invalid flags at exit */
 	
 #ifdef TYPECHECK_DEBUG
-	for (i=0; i<state->basicblockcount; ++i) {
-		if (state->basicblocks[i].flags != BBDELETED
-			&& state->basicblocks[i].flags != BBUNDEF
-			&& state->basicblocks[i].flags != BBFINISHED
-			&& state->basicblocks[i].flags != BBTYPECHECK_UNDEF) /* typecheck may never reach
+	for (block = state->basicblocks; block; block = block->next) {
+		if (block->flags != BBDELETED
+			&& block->flags != BBUNDEF
+			&& block->flags != BBFINISHED
+			&& block->flags != BBTYPECHECK_UNDEF) /* typecheck may never reach
 													 * some exception handlers,
 													 * that's ok. */
 		{
 			LOG2("block L%03d has invalid flags after typecheck: %d",
-				 state->basicblocks[i].nr,state->basicblocks[i].flags);
+				 block->nr,block->flags);
 			TYPECHECK_ASSERT(false);
 		}
 	}
@@ -2628,12 +2350,13 @@ typecheck_reset_flags(verifier_state *state)
 	
 	/* Reset blocks we never reached */
 	
-	for (i=0; i<state->basicblockcount; ++i) {
-		if (state->basicblocks[i].flags == BBTYPECHECK_UNDEF)
-			state->basicblocks[i].flags = BBFINISHED;
+	for (block = state->basicblocks; block; block = block->next) {
+		if (block->flags == BBTYPECHECK_UNDEF)
+			block->flags = BBFINISHED;
 	}
 }
-		
+
+
 /****************************************************************************/
 /* typecheck()                                                              */
 /* This is the main function of the bytecode verifier. It is called         */
@@ -2657,8 +2380,8 @@ bool typecheck(jitdata *jd)
 	methodinfo     *meth;
 	codegendata    *cd;
 	registerdata   *rd;
+	varinfo        *savedlocals;
 	verifier_state  state;             /* current state of the verifier */
-    int i;                                        /* temporary counter */
 
 	/* collect statistics */
 
@@ -2679,23 +2402,22 @@ bool typecheck(jitdata *jd)
 
 	/* some logging on entry */
 
-	DOLOG(typecheck_logfile = stdout);
+
     LOGSTR("\n==============================================================================\n");
-    /*DOLOG( show_icmd_method(cdata->method,cdata,rdata));*/
+    DOLOG( new_show_method(jd, SHOW_STACK) );
     LOGSTR("\n==============================================================================\n");
-    LOGMETHOD("Entering typecheck: ",cdata->method);
+    LOGMETHOD("Entering typecheck: ",cd->method);
 
 	/* initialize the verifier state */
 
-	state.savedstackbuf = NULL;
-	state.savedstack = NULL;
-	state.jsrencountered = false;
 	state.m = meth;
 	state.jd = jd;
 	state.cd = cd;
 	state.rd = rd;
 	state.basicblockcount = jd->new_basicblockcount;
 	state.basicblocks = jd->new_basicblocks;
+	state.savedindices = NULL;
+	state.savedinvars = NULL;
 
 	/* check if this method is an instance initializer method */
 
@@ -2711,31 +2433,31 @@ bool typecheck(jitdata *jd)
     /* the 'this' reference has been initialized.                           */
 	/*         TYPE_VOID...means 'this' has not been initialized,           */
 	/*         TYPE_INT....means 'this' has been initialized.               */
-    state.numlocals = state.cd->maxlocals;
+
+    state.numlocals = state.jd->localcount;
 	state.validlocals = state.numlocals;
-    if (state.initmethod) state.numlocals++;
-
-    /* allocate the buffers for local variables */
-	
-	state.localbuf = DMNEW_TYPEVECTOR(state.basicblockcount+1, state.numlocals);
-	state.localset = MGET_TYPEVECTOR(state.localbuf,state.basicblockcount,state.numlocals);
-
-    LOG("Variable buffer allocated.\n");
+    if (state.initmethod) 
+		state.numlocals++; /* VERIFIER_EXTRA_LOCALS */
 
     /* allocate the buffer of active exception handlers */
 	
     state.handlers = DMNEW(exceptiontable*, state.cd->exceptiontablelength + 1);
+
+	/* save local variables */
+
+	savedlocals = DMNEW(varinfo, state.numlocals);
+	MCOPY(savedlocals, jd->var, varinfo, state.numlocals);
 
 	/* initialized local variables of first block */
 
 	if (!verify_init_locals(&state))
 		return false;
 
-    /* initialize the input stack of exception handlers */
+    /* initialize invars of exception handlers */
 	
-	state.excstack.prev = NULL;
-	state.excstack.type = TYPE_ADR;
-	typeinfo_init_classinfo(&(state.excstack.typeinfo),
+	state.exinvars = state.numlocals;
+	VAR(state.exinvars)->type = TYPE_ADR;
+	typeinfo_init_classinfo(&(VAR(state.exinvars)->typeinfo),
 							class_java_lang_Throwable); /* changed later */
 
     LOG("Exception handler stacks set.\n");
@@ -2746,10 +2468,9 @@ bool typecheck(jitdata *jd)
 
         state.repeat = false;
         
-        i = state.basicblockcount;
         state.bptr = state.basicblocks;
 
-        while (--i >= 0) {
+        for (; state.bptr; state.bptr = state.bptr->next) {
             LOGSTR1("---- BLOCK %04d, ",state.bptr->nr);
             LOGSTR1("blockflags: %d\n",state.bptr->flags);
             LOGFLUSH;
@@ -2759,8 +2480,7 @@ bool typecheck(jitdata *jd)
                 if (!verify_basic_block(&state))
 					return false;
             }
-            state.bptr++;
-        } /* while blocks */
+        } /* for blocks */
 
         LOGIF(state.repeat,"state.repeat == true");
     } while (state.repeat);
@@ -2777,6 +2497,10 @@ bool typecheck(jitdata *jd)
 	/* reset the flags of blocks we haven't reached */
 
 	typecheck_reset_flags(&state);
+
+	/* restore locals */
+
+	MCOPY(jd->var, savedlocals, varinfo, state.numlocals);
 
 	/* everything's ok */
 
