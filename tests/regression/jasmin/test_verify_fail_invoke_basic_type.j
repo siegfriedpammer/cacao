@@ -1,7 +1,5 @@
-.class public test_verify_fail_long_local
+.class public test_verify_fail_invoke_basic_type
 .super java/lang/Object
-
-; long local overwrites int local in second half
 
 ; ======================================================================
 
@@ -13,7 +11,7 @@
 
 ; ======================================================================
 
-.method public static check(I)V
+.method public static checkI(I)V
 	.limit locals 1
 	.limit stack 10
 	getstatic java/lang/System/out Ljava/io/PrintStream;
@@ -26,26 +24,14 @@
 
 .method public static main([Ljava/lang/String;)V
 	.limit stack 2
-	.limit locals 3
+	.limit locals 2
 
-	ldc 42
-	istore 2
+	ldc "test"
+	astore 1
 
-	aload 0
-	ifnull force_basic_block_boundary
-
-	; --------------------------------------------------
-
-	ldc2_w 1234567890987654321
-	lstore 1
-
-	; --------------------------------------------------
-
-force_basic_block_boundary:
-
-	iload 2
+	aload 1
+	invokestatic test_verify_fail_invoke_basic_type/checkI(I)V
 	; ERROR: VerifyError
-	invokestatic test_verify_fail_long_local/check(I)V
 
 	return
 .end method
