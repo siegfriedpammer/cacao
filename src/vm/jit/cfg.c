@@ -121,7 +121,7 @@ bool cfg_build(jitdata *jd)
 	instruction     *iptr;
 	branch_target_t *table;
 	lookup_target_t *lookup;
-	s4               i, j;
+	s4               i;
 
 	/* get required compiler data */
 
@@ -131,8 +131,8 @@ bool cfg_build(jitdata *jd)
 
 	bptr = jd->new_basicblocks;
 
-	for (i = 0; i < jd->new_basicblockcount; i++, bptr++) {
-		if (bptr->icount == 0)
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
 			continue;
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -169,7 +169,7 @@ bool cfg_build(jitdata *jd)
 		case ICMD_IF_ACMPNE:
 			bptr->successorcount += 2;
 
-			tbptr  = BLOCK_OF(iptr->dst.insindex);
+			tbptr  = iptr->dst.block;
 			ntbptr = bptr->next;
 
 			tbptr->predecessorcount++;
@@ -179,7 +179,7 @@ bool cfg_build(jitdata *jd)
 		case ICMD_GOTO:
 			bptr->successorcount++;
 
-			tbptr = BLOCK_OF(iptr->dst.insindex);
+			tbptr = iptr->dst.block;
 			tbptr->predecessorcount++;
 			break;
 
@@ -188,16 +188,18 @@ bool cfg_build(jitdata *jd)
 
 			bptr->successorcount++;
 
-			tbptr = BLOCK_OF((table++)->insindex);
+			tbptr = table->block;
 			tbptr->predecessorcount++;
+			table++;
 
-			j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
-			while (--j >= 0) {
+			while (--i >= 0) {
 				bptr->successorcount++;
 
-				tbptr = BLOCK_OF((table++)->insindex);
+				tbptr = table->block;
 				tbptr->predecessorcount++;
+				table++;
 			}
 			break;
 					
@@ -206,16 +208,17 @@ bool cfg_build(jitdata *jd)
 
 			bptr->successorcount++;
 
-			tbptr = BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex);
+			tbptr = iptr->sx.s23.s3.lookupdefault.block;
 			tbptr->predecessorcount++;
 
-			j = iptr->sx.s23.s2.lookupcount;
+			i = iptr->sx.s23.s2.lookupcount;
 
-			while (--j >= 0) {
+			while (--i >= 0) {
 				bptr->successorcount++;
 
-				tbptr = BLOCK_OF((lookup++)->target.insindex);
+				tbptr = lookup->target.block;
 				tbptr->predecessorcount++;
+				lookup++;
 			}
 			break;
 
@@ -233,8 +236,8 @@ bool cfg_build(jitdata *jd)
 
 	bptr = jd->new_basicblocks;
 
-	for (i = 0; i < jd->new_basicblockcount; i++, bptr++) {
-		if (bptr->icount == 0)
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
 			continue;
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -269,7 +272,7 @@ bool cfg_build(jitdata *jd)
 
 		case ICMD_IF_ACMPEQ:
 		case ICMD_IF_ACMPNE:
-			tbptr  = BLOCK_OF(iptr->dst.insindex);
+			tbptr  = iptr->dst.block;
 			ntbptr = bptr->next;
 
 			cfg_allocate_successors(bptr);
@@ -289,7 +292,7 @@ bool cfg_build(jitdata *jd)
 			break;
 
 		case ICMD_GOTO:
-			tbptr = BLOCK_OF(iptr->dst.insindex);
+			tbptr = iptr->dst.block;
 
 			cfg_allocate_successors(bptr);
 
@@ -305,7 +308,8 @@ bool cfg_build(jitdata *jd)
 		case ICMD_TABLESWITCH:
 			table = iptr->dst.table;
 
-			tbptr = BLOCK_OF((table++)->insindex);
+			tbptr = table->block;
+			table++;
 
 			cfg_allocate_successors(bptr);
 
@@ -317,10 +321,11 @@ bool cfg_build(jitdata *jd)
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
-			while (--j >= 0) {
-				tbptr = BLOCK_OF((table++)->insindex);
+			while (--i >= 0) {
+				tbptr = table->block;
+				table++;
 
 				bptr->successors[bptr->successorcount] = tbptr;
 				bptr->successorcount++;
@@ -333,7 +338,7 @@ bool cfg_build(jitdata *jd)
 		case ICMD_LOOKUPSWITCH:
 			lookup = iptr->dst.lookup;
 
-			tbptr = BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex);
+			tbptr = iptr->sx.s23.s3.lookupdefault.block;
 
 			cfg_allocate_successors(bptr);
 
@@ -345,10 +350,11 @@ bool cfg_build(jitdata *jd)
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			j = iptr->sx.s23.s2.lookupcount;
+			i = iptr->sx.s23.s2.lookupcount;
 
-			while (--j >= 0) {
-				tbptr = BLOCK_OF((lookup++)->target.insindex);
+			while (--i >= 0) {
+				tbptr = lookup->target.block;
+				lookup++;
 
 				bptr->successors[bptr->successorcount] = tbptr;
 				bptr->successorcount++;
