@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5482 2006-09-12 21:34:03Z edwin $
+   $Id: parse.c 5494 2006-09-14 18:40:21Z edwin $
 
 */
 
@@ -1560,17 +1560,34 @@ invoke_method:
 		}
 
 		jd->localcount = nlocals;
-		/* if dropped varindices for temp stackslots get reused(?max 2*       */
-		/* m->maxstack elements for stack), nlocals + s_count would be        */
-		/* sufficient */
-		jd->varcount   = nlocals + s_count + 
-			jd->new_basicblockcount * m->maxstack;        /* out-stacks */
-		
+
+		/* calculate the (maximum) number of variables needed */
+
+		jd->varcount = 
+			  nlocals                                      /* local variables */
+			+ jd->new_basicblockcount * m->maxstack                 /* invars */
+			+ s_count;         /* variables created within blocks (non-invar) */
+
+		/* reserve the first indices for local variables */
+
 		jd->vartop = nlocals;
+
+		/* The verifier needs space for saving invars in some cases and */
+		/* extra variables.                                             */
+
+#if defined(ENABLE_VERIFIER)
+		if (JITDATA_HAS_FLAG_VERIFY(jd)) {
+			jd->varcount += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + m->maxstack;
+			jd->vartop   += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + m->maxstack;
+		}
+#endif
+		/* allocate and initialize the variable array */
+
 		jd->var = DMNEW(varinfo, jd->varcount);
 		MZERO(jd->var, varinfo, jd->varcount);
 
-		/* set types of all Locals in jd->var */
+		/* set types of all locals in jd->var */
+
 		for(mapptr = local_map, i = 0; i < (cd->maxlocals * 5); i++, mapptr++)
 			if (*mapptr != UNUSED)
 				jd->var[*mapptr].type = i%5;
