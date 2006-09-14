@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5171 2006-07-25 13:52:38Z twisti $
+   $Id: jni.c 5506 2006-09-14 23:16:03Z twisti $
 
 */
 
@@ -5320,6 +5320,9 @@ void *GetDirectBufferAddress(JNIEnv *env, jobject buf)
 #else
 	address = (gnu_classpath_Pointer32 *) nbuf->address;
 #endif
+
+	if (address == NULL)
+		return NULL;
 
 	return (void *) address->data;
 }
