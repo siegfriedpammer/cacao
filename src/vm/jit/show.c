@@ -208,7 +208,8 @@ void new_show_method(jitdata *jd, int stage)
 			if (!opt_intrp) {
 # endif
 				printf("   (%s) ", show_jit_type_names[jd->var[i].type]);
-				show_allocation(jd->var[i].type, jd->var[i].flags, jd->var[i].vv.regoff);
+				if (stage >= SHOW_REGS)
+					show_allocation(jd->var[i].type, jd->var[i].flags, jd->var[i].vv.regoff);
 				printf("\n");
 # if defined(ENABLE_INTRP)
 			}
@@ -1042,6 +1043,8 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 	case ICMD_CHECKCAST:
 		SHOW_S1(iptr);
+		putchar(' ');
+		class_classref_or_classinfo_print(iptr->sx.s23.s3.c);
 		SHOW_DST(iptr);
 		break;
 
