@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5460 2006-09-11 00:30:21Z edwin $
+   $Id: jit.h 5491 2006-09-14 18:16:06Z edwin $
 
 */
 
@@ -172,6 +172,17 @@ struct jitdata {
 
 #define JITDATA_HAS_FLAG_VERBOSECALL(jd) \
     ((jd)->flags & JITDATA_FLAG_VERBOSECALL)
+
+
+/* macros for accessing variables *********************************************
+ 
+   Use VAROP for s1, s2, s3 and dst operands (eg. VAROP(iptr->s1)),
+   use VAR if you have the variable index (eg. VAR(iptr->sx.s23.s2.args[0])).
+
+******************************************************************************/
+
+#define VAROP(v) (jd->var + (v).varindex)
+#define VAR(i)   (jd->var + (i))
 
 
 /* stack element structure ****************************************************/
