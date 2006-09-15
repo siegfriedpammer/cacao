@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5504 2006-09-14 22:49:37Z edwin $
+   $Id: typecheck.c 5508 2006-09-15 11:02:50Z edwin $
 
 */
 
@@ -1373,7 +1373,7 @@ verify_basic_block(verifier_state *state)
 	/* something?                                             */
 	len = 0;
 	for (ex = state->cd->exceptiontable; ex ; ex = ex->down) {
-		if ((ex->start <= state->bptr) && (ex->end > state->bptr)) {
+		if ((ex->start->nr <= state->bptr->nr) && (ex->end->nr > state->bptr->nr)) {
 			LOG1("active handler L%03d", ex->handler->nr);
 			state->handlers[len++] = ex;
 		}
