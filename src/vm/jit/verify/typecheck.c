@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5508 2006-09-15 11:02:50Z edwin $
+   $Id: typecheck.c 5512 2006-09-15 13:03:22Z edwin $
 
 */
 
@@ -2397,11 +2397,11 @@ typecheck_reset_flags(verifier_state *state)
 	}
 #endif
 	
-	/* Reset blocks we never reached */
+	/* Delete blocks we never reached */
 	
 	for (block = state->basicblocks; block; block = block->next) {
 		if (block->flags == BBTYPECHECK_UNDEF)
-			block->flags = BBFINISHED;
+			block->flags = BBDELETED;
 	}
 }
 
