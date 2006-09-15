@@ -57,7 +57,7 @@
 
 *******************************************************************************/
 
-s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata *cd;
 	s4           disp;
@@ -67,10 +67,10 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 	cd = jd->cd;
 
-	if (src->flags & INMEMORY) {
+	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->regoff * 4;
+		disp = src->vv.regoff * 4;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
 			if (IS_2_WORD_TYPE(src->type))
@@ -88,7 +88,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		reg = tempreg;
 	}
 	else
-		reg = src->regoff;
+		reg = src->vv.regoff;
 
 	return reg;
 }
@@ -100,7 +100,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -112,17 +112,17 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 	cd = jd->cd;
 
-	if (src->flags & INMEMORY) {
+	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->regoff * 4;
+		disp = src->vv.regoff * 4;
 
 		M_ILD(tempreg, REG_SP, disp + 4);
 
 		reg = tempreg;
 	}
 	else
-		reg = GET_LOW_REG(src->regoff);
+		reg = GET_LOW_REG(src->vv.regoff);
 
 	return reg;
 }
@@ -134,7 +134,7 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-s4 emit_load_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -146,17 +146,17 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 	cd = jd->cd;
 
-	if (src->flags & INMEMORY) {
+	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->regoff * 4;
+		disp = src->vv.regoff * 4;
 
 		M_ILD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
 	}
 	else
-		reg = GET_HIGH_REG(src->regoff);
+		reg = GET_HIGH_REG(src->vv.regoff);
 
 	return reg;
 }
@@ -170,10 +170,10 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->s1.var;
+	src = VAROP(iptr->s1);
 
 	reg = emit_load(jd, iptr, src, tempreg);
 
@@ -189,10 +189,10 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s2.var;
+	src = VAROP(iptr->sx.s23.s2);
 
 	reg = emit_load(jd, iptr, src, tempreg);
 
@@ -208,10 +208,10 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s3.var;
+	src = VAROP(iptr->sx.s23.s3);
 
 	reg = emit_load(jd, iptr, src, tempreg);
 
@@ -228,10 +228,10 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->s1.var;
+	src = VAROP(iptr->s1);
 
 	reg = emit_load_low(jd, iptr, src, tempreg);
 
@@ -248,10 +248,10 @@ s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s2.var;
+	src = VAROP(iptr->sx.s23.s2);
 
 	reg = emit_load_low(jd, iptr, src, tempreg);
 
@@ -268,10 +268,10 @@ s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s3_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s3.var;
+	src = VAROP(iptr->sx.s23.s3);
 
 	reg = emit_load_low(jd, iptr, src, tempreg);
 
@@ -288,10 +288,10 @@ s4 emit_load_s3_low(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->s1.var;
+	src = VAROP(iptr->s1);
 
 	reg = emit_load_high(jd, iptr, src, tempreg);
 
@@ -308,10 +308,10 @@ s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s2.var;
+	src = VAROP(iptr->sx.s23.s2);
 
 	reg = emit_load_high(jd, iptr, src, tempreg);
 
@@ -328,10 +328,10 @@ s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s3.var;
+	src = VAROP(iptr->sx.s23.s3);
 
 	reg = emit_load_high(jd, iptr, src, tempreg);
 
@@ -345,7 +345,7 @@ s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg)
 
 *******************************************************************************/
 
-void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata *cd;
 
@@ -353,20 +353,20 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 	cd = jd->cd;
 
-	if (dst->flags & INMEMORY) {
+	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(dst->type)) {
 			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, dst->regoff * 4);
+				M_DST(d, REG_SP, dst->vv.regoff * 4);
 			else
-				M_FST(d, REG_SP, dst->regoff * 4);
+				M_FST(d, REG_SP, dst->vv.regoff * 4);
 		}
 		else {
 			if (IS_2_WORD_TYPE(dst->type))
-				M_LST(d, REG_SP, dst->regoff * 4);
+				M_LST(d, REG_SP, dst->vv.regoff * 4);
 			else
-				M_IST(d, REG_SP, dst->regoff * 4);
+				M_IST(d, REG_SP, dst->vv.regoff * 4);
 		}
 	}
 }
@@ -383,7 +383,11 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 {
-	emit_store(jd, iptr, iptr->dst.var, d);
+	varinfo *dst;
+
+	dst = VAROP(iptr->dst);
+
+	emit_store(jd, iptr, dst, d);
 }
 
 
@@ -393,19 +397,17 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
+void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 {
 	codegendata  *cd;
-	registerdata *rd;
 	s4            s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
-	rd = jd->rd;
 
-	if ((src->regoff != dst->regoff) ||
-		((src->flags ^ dst->flags) & INMEMORY)) {
+	if ((src->vv.regoff != dst->vv.regoff) ||
+		(IS_INMEMORY(src->flags ^ dst->flags))) {
 
 		/* If one of the variables resides in memory, we can eliminate
 		   the register move from/to the temporary register with the
@@ -413,9 +415,9 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 
 		if (IS_INMEMORY(src->flags)) {
 			if (IS_LNG_TYPE(src->type))
-				d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP12_PACKED);
+				d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP12_PACKED);
 			else
-				d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
+				d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
 
 			s1 = emit_load(jd, iptr, src, d);
 		}
@@ -425,7 +427,7 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 			else
 				s1 = emit_load(jd, iptr, src, REG_IFTMP);
 
-			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
+			d = codegen_reg_of_var(iptr->opc, dst, s1);
 		}
 
 		if (s1 != d) {
@@ -917,12 +919,12 @@ void emit_verbosecall_enter(jitdata *jd)
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[p].inmemory) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]
+					M_ILD(rd->argintregs[GET_HIGH_REG(md->params[p].vv.regoff)]
 						  , REG_SP, stack_off);
-					M_ILD(rd->argintregs[GET_LOW_REG(md->params[p].regoff)]
+					M_ILD(rd->argintregs[GET_LOW_REG(md->params[p].vv.regoff)]
 						  , REG_SP, stack_off + 4);
 				} else {
-					M_ILD(rd->argintregs[md->params[p].regoff]
+					M_ILD(rd->argintregs[md->params[p].vv.regoff]
 						  , REG_SP, stack_off + 4);
 				}
 			}

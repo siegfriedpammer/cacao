@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5488 2006-09-13 00:21:40Z edwin $
+   $Id: codegen.c 5522 2006-09-15 17:05:58Z christian $
 
 */
 
@@ -95,8 +95,7 @@ bool codegen(jitdata *jd)
 	s4                  len, s1, s2, s3, d, disp;
 	ptrint              a;
 	s4                  fieldtype;
-	stackptr            src;
-	varinfo            *var;
+	varinfo            *var, *var1, *var2;
 	basicblock         *bptr;
 	instruction        *iptr;
 	exceptiontable     *ex;
@@ -106,6 +105,7 @@ bool codegen(jitdata *jd)
 	builtintable_entry *bte;
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
+	s4                 varindex;
 
 	/* get required compiler data */
 
@@ -232,12 +232,17 @@ bool codegen(jitdata *jd)
 
  	for (p = 0, l = 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
- 		var = &(rd->locals[l][t]);
+		varindex = jd->local_map[l * 5 + t];
+
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
- 		if (var->type < 0)
- 			continue;
+
+		if (varindex == UNUSED)
+			continue;
+
+		var = VAR(varindex);
+
 		s1 = md->params[p].regoff;
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
 			if (IS_2_WORD_TYPE(t))
@@ -248,35 +253,35 @@ bool codegen(jitdata *jd)
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
 					if (IS_2_WORD_TYPE(t))
-						M_LNGMOVE(s2, var->regoff);
+						M_LNGMOVE(s2, var->vv.regoff);
 					else
-						M_INTMOVE(s2, var->regoff);
+						M_INTMOVE(s2, var->vv.regoff);
 
 				} else {                             /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s2, REG_SP, var->regoff * 4);
+						M_LST(s2, REG_SP, var->vv.regoff * 4);
 					else
-						M_IST(s2, REG_SP, var->regoff * 4);
+						M_IST(s2, REG_SP, var->vv.regoff * 4);
 				}
 
 			} else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 					else
-						M_ILD(var->regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 
 				} else {                             /* stack arg -> spilled  */
 #if 1
  					M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4);
- 					M_IST(REG_ITMP1, REG_SP, var->regoff * 4);
+ 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4);
 					if (IS_2_WORD_TYPE(t)) {
 						M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4 +4);
-						M_IST(REG_ITMP1, REG_SP, var->regoff * 4 + 4);
+						M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4 + 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize + s1;
 #endif
 				}
 			}
@@ -285,37 +290,37 @@ bool codegen(jitdata *jd)
  			if (!md->params[p].inmemory) {           /* register arguments    */
 				s2 = rd->argfltregs[s1];
  				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
- 					M_FLTMOVE(s2, var->regoff);
+ 					M_FLTMOVE(s2, var->vv.regoff);
 
  				} else {			                 /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s2, REG_SP, var->regoff * 4);
+						M_DST(s2, REG_SP, var->vv.regoff * 4);
 					else
-						M_FST(s2, REG_SP, var->regoff * 4);
+						M_FST(s2, REG_SP, var->vv.regoff * 4);
  				}
 
  			} else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 
 					else
-						M_FLD(var->regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 
  				} else {                             /* stack-arg -> spilled  */
 #if 1
 					if (IS_2_WORD_TYPE(t)) {
 						M_DLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
-						M_DST(REG_FTMP1, REG_SP, var->regoff * 4);
-						var->regoff = cd->stackframesize + s1;
+						M_DST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
+						var->vv.regoff = cd->stackframesize + s1;
 
 					} else {
 						M_FLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
-						M_FST(REG_FTMP1, REG_SP, var->regoff * 4);
+						M_FST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize + s1;
 #endif
 				}
 			}
@@ -410,13 +415,13 @@ bool codegen(jitdata *jd)
 		}
 
 		/* handle replacement points */
-
+#if 0
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
 		}
-
+#endif
 		/* generate basicblock profiling code */
 
 		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
@@ -436,7 +441,6 @@ bool codegen(jitdata *jd)
 
 		/* copy interface registers to their destination */
 
-		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64+len);
 
@@ -447,7 +451,7 @@ bool codegen(jitdata *jd)
 				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 					/* d = reg_of_var(m, src, REG_ITMP1); */
 					if (!IS_INMEMORY(src->flags))
-						d = src->regoff;
+						d = src->vv.regoff;
 					else
 						d = REG_ITMP1;
 					M_INTMOVE(REG_ITMP1, d);
@@ -457,58 +461,22 @@ bool codegen(jitdata *jd)
 			}
 		} else {
 #endif
-		while (src != NULL) {
+		while (len > 0) {
 			len--;
-			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
-				d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
+			varindex = bptr->invars[len];
+			var = VAR(varindex);
+			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
+				d = codegen_reg_of_var(0, var, REG_ITMP1);
 				M_INTMOVE(REG_ITMP1, d);
-				emit_store(jd, NULL, src, d);
+				emit_store(jd, NULL, var, d);
 			}
 			else {
-				if (src->type == TYPE_LNG)
-					d = codegen_reg_of_var(rd, 0, src, REG_ITMP12_PACKED);
-				else
-					d = codegen_reg_of_var(rd, 0, src, REG_IFTMP);
-				if ((src->varkind != STACKVAR)) {
-					s2 = src->type;
-					if (IS_FLT_DBL_TYPE(s2)) {
-						if (!IS_INMEMORY(rd->interfaces[len][s2].flags)) {
-							s1 = rd->interfaces[len][s2].regoff;
-							M_FLTMOVE(s1, d);
-						}
-						else {
-							if (IS_2_WORD_TYPE(s2)) {
-								M_DLD(d, REG_SP,
-									  rd->interfaces[len][s2].regoff * 4);
-							}
-							else {
-								M_FLD(d, REG_SP,
-									  rd->interfaces[len][s2].regoff * 4);
-							}	
-						}
-						emit_store(jd, NULL, src, d);
-					}
-					else {
-						if (!IS_INMEMORY(rd->interfaces[len][s2].flags)) {
-							s1 = rd->interfaces[len][s2].regoff;
-							if (IS_2_WORD_TYPE(s2))
-								M_LNGMOVE(s1, d);
-							else
-								M_INTMOVE(s1, d);
-						} 
-						else {
-							if (IS_2_WORD_TYPE(s2))
-								M_LLD(d, REG_SP,
-									  rd->interfaces[len][s2].regoff * 4);
-							else
-								M_ILD(d, REG_SP,
-									  rd->interfaces[len][s2].regoff * 4);
-						}
-						emit_store(jd, NULL, src, d);
-					}
-				}
+				assert((var->flags & OUTVAR));
+				/* will be done directly in simplereg lateron          */ 
+				/* for now codegen_reg_of_var has to be called here to */
+				/* set the regoff and flags for all bptr->invars[]     */
+				d = codegen_reg_of_var(0, var, REG_ITMP1);
 			}
-			src = src->prev;
 		}
 
 #if defined(ENABLE_LSRA)
@@ -516,7 +484,6 @@ bool codegen(jitdata *jd)
 #endif
 		/* walk through all instructions */
 		
-		src = bptr->instack;
 		len = bptr->icount;
 		currentline = 0;
 
@@ -600,130 +567,19 @@ bool codegen(jitdata *jd)
 		/* load/store operations **********************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_ALOAD:      /* op1 = local variable                         */
-
-			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			if ((iptr->dst.var->varkind == LOCALVAR) &&
-			    (iptr->dst.var->varnum == iptr->s1.localindex))
-				break;
-			if (IS_INMEMORY(var->flags))
-				M_ILD(d, REG_SP, var->regoff * 4);
-			else
-				M_INTMOVE(var->regoff, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable               */
-
-			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			if ((iptr->dst.var->varkind == LOCALVAR) &&
-				(iptr->dst.var->varnum == iptr->s1.localindex))
-				break;
-			if (IS_INMEMORY(var->flags))
-				M_LLD(d, REG_SP, var->regoff * 4);
-			else
-				M_LNGMOVE(var->regoff, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable               */
-
-			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			if ((iptr->dst.var->varkind == LOCALVAR) &&
-				(iptr->dst.var->varnum == iptr->s1.localindex))
-				break;
-			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			if (IS_INMEMORY(var->flags))
-				M_FLD(d, REG_SP, var->regoff * 4);
-			else
-				M_FLTMOVE(var->regoff, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
-		                      /* s1.localindex = local variable               */
-
-			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			if ((iptr->dst.var->varkind == LOCALVAR) &&
-				(iptr->dst.var->varnum == iptr->s1.localindex))
-				break;
-			var = &(rd->locals[iptr->s1.localindex][iptr->opc - ICMD_ILOAD]);
-			if (IS_INMEMORY(var->flags))
-				M_DLD(d, REG_SP, var->regoff * 4);
-			else
-				M_FLTMOVE(var->regoff, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-
+		case ICMD_ALOAD:      /* s1 = local variable                          */
+		case ICMD_LLOAD:
+		case ICMD_FLOAD:  
+		case ICMD_DLOAD:  
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_ASTORE:     /* op1 = local variable                         */
-
-			if ((iptr->s1.var->varkind == LOCALVAR) &&
-				(iptr->s1.var->varnum == iptr->dst.localindex))
-				break;
-			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (IS_INMEMORY(var->flags)) {
-				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-				M_IST(s1, REG_SP, var->regoff * 4);
-			} else {
-				s1 = emit_load_s1(jd, iptr, var->regoff);
-				M_INTMOVE(s1, var->regoff);
-			}
+		case ICMD_ASTORE:     /* dst = local variable                         */
+		case ICMD_LSTORE:
+		case ICMD_FSTORE:
+		case ICMD_DSTORE: 
+			
+			emit_copy(jd, iptr, VAROP(iptr->s1), 
+					  VAROP(iptr->dst));
 			break;
-
-		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable              */
-
-			if ((iptr->s1.var->varkind == LOCALVAR) &&
-				(iptr->s1.var->varnum == iptr->dst.localindex))
-				break;
-			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (IS_INMEMORY(var->flags)) {
-				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-				M_LST(s1, REG_SP, var->regoff * 4);
-			} else {
-				s1 = emit_load_s1(jd, iptr, var->regoff);
-				M_LNGMOVE(s1, var->regoff);
-			}
-			break;
-
-		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable              */
-
-			if ((iptr->s1.var->varkind == LOCALVAR) &&
-				(iptr->s1.var->varnum == iptr->dst.localindex))
-				break;
-			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (IS_INMEMORY(var->flags)) {
-				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-				M_FST(s1, REG_SP, var->regoff * 4);
-			} else {
-				s1 = emit_load_s1(jd, iptr, var->regoff);
-				M_FLTMOVE(s1, var->regoff);
-			}
-			break;
-
-		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
-		                      /* dst.localindex = local variable              */
-
-			if ((iptr->s1.var->varkind == LOCALVAR) &&
-				(iptr->s1.var->varnum == iptr->dst.localindex))
-				break;
-			var = &(rd->locals[iptr->dst.localindex][iptr->opc - ICMD_ISTORE]);
-			if (IS_INMEMORY(var->flags)) {
-				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-				M_DST(s1, REG_SP, var->regoff * 4);
-			} else {
-				s1 = emit_load_s1(jd, iptr, var->regoff);
-				M_FLTMOVE(s1, var->regoff);
-			}
-			break;
-
 
 		/* pop/dup/swap operations ********************************************/
 
@@ -733,57 +589,11 @@ bool codegen(jitdata *jd)
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
 			break;
 
-		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
+		case ICMD_COPY:
+		case ICMD_MOVE:
 
-			M_COPY(iptr->s1.var, iptr->dst.var);
+			M_COPY(iptr->s1.varindex, iptr->dst.varindex);
 			break;
-
-		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
-
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+2]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+1]);
-			M_COPY(iptr->dst.dupslots[2+2], iptr->dst.dupslots[2+0]);
-			break;
-
-		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
-
-			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[3+3]);
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[3+2]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[3+1]);
-			M_COPY(iptr->dst.dupslots[3+3], iptr->dst.dupslots[3+0]);
-			break;
-
-		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
-
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+1]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+0]);
-			break;
-
-		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
-
-			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[3+4]);
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[3+3]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[3+2]);
-			M_COPY(iptr->dst.dupslots[3+4], iptr->dst.dupslots[3+1]);
-			M_COPY(iptr->dst.dupslots[3+3], iptr->dst.dupslots[3+0]);
-			break;
-
-		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
-
-			M_COPY(iptr->dst.dupslots[  3], iptr->dst.dupslots[4+5]);
-			M_COPY(iptr->dst.dupslots[  2], iptr->dst.dupslots[4+4]);
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[4+3]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[4+2]);
-			M_COPY(iptr->dst.dupslots[4+5], iptr->dst.dupslots[4+1]);
-			M_COPY(iptr->dst.dupslots[4+4], iptr->dst.dupslots[4+0]);
-			break;
-
-		case ICMD_SWAP:       /* ..., a, b ==> ..., b, a                      */
-
-			M_COPY(iptr->dst.dupslots[  1], iptr->dst.dupslots[2+0]);
-			M_COPY(iptr->dst.dupslots[  0], iptr->dst.dupslots[2+1]);
-			break;
-
 
 		/* integer operations *************************************************/
 
@@ -1347,17 +1157,20 @@ bool codegen(jitdata *jd)
 				int dreg;
 				u1  *br1;
 
-				if (IS_INMEMORY(iptr->s1.var->flags)) {
+				var1 = VAROP(iptr->s1);
+				var2 = VAROP(iptr->sx.s23.s2);
+
+				if (IS_INMEMORY(var1->flags)) {
 					tempreg = tempreg || (d == REG_ITMP3) || (d == REG_ITMP2);
 				} else {
-					tempreg = tempreg || (d == GET_HIGH_REG(iptr->s1.var->regoff))
-						        || (d == GET_LOW_REG(iptr->s1.var->regoff));
+					tempreg = tempreg || (d == GET_HIGH_REG(var1->vv.regoff))
+						        || (d == GET_LOW_REG(var1->vv.regoff));
 				}
-				if (IS_INMEMORY(iptr->sx.s23.s2.var->flags)) {
+				if (IS_INMEMORY(var2->flags)) {
 					tempreg = tempreg || (d == REG_ITMP3) || (d == REG_ITMP2);
 				} else {
-					tempreg = tempreg || (d == GET_HIGH_REG(iptr->sx.s23.s2.var->regoff))
-                                 || (d == GET_LOW_REG(iptr->sx.s23.s2.var->regoff));
+					tempreg = tempreg || (d == GET_HIGH_REG(var2->vv.regoff))
+                                 || (d == GET_LOW_REG(var2->vv.regoff));
 				}
 
 				dreg = tempreg ? REG_ITMP1 : d;
@@ -1383,23 +1196,19 @@ bool codegen(jitdata *jd)
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* s1.localindex = variable, sx.val.i = constant*/
 
-			var = &(rd->locals[iptr->s1.localindex][TYPE_INT]);
-			if (IS_INMEMORY(var->flags)) {
-				s1 = REG_ITMP1;
-				M_ILD(s1, REG_SP, var->regoff * 4);
-			} else
-				s1 = var->regoff;
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+
 			{
 				u4 m = iptr->sx.val.i;
 				if (m & 0x8000)
 					m += 65536;
 				if (m & 0xffff0000)
-					M_ADDIS(s1, m >> 16, s1);
+					M_ADDIS(s1, m >> 16, d);
 				if (m & 0xffff)
-					M_IADD_IMM(s1, m & 0xffff, s1);
+					M_IADD_IMM(s1, m & 0xffff, d);
 			}
-			if (IS_INMEMORY(var->flags))
-				M_IST(s1, REG_SP, var->regoff * 4);
+			emit_store_dst(jd, iptr, d);
 			break;
 
 
@@ -2217,14 +2026,8 @@ bool codegen(jitdata *jd)
 		case ICMD_RET:          /* ... ==> ...                                */
 		                        /* s1.localindex = local variable             */
 
-			var = &(rd->locals[iptr->s1.localindex][TYPE_ADR]);
-			if (IS_INMEMORY(var->flags)) {
-				M_ALD(REG_ITMP1, REG_SP, var->regoff * 4);
-				M_MTCTR(REG_ITMP1);
-			}
-			else
-				M_MTCTR(var->regoff);
-			M_RTS;
+			M_BR(0);
+			codegen_addreference(cd, iptr->dst.block);
 			ALIGNCODENOP;
 			break;
 
@@ -2829,33 +2632,34 @@ gen_method:
 			/* copy arguments to registers or stack location */
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
-				src = iptr->sx.s23.s2.args[s3];
+				var1 = VAR(iptr->sx.s23.s2.args[s3]);
 
-				if (src->varkind == ARGVAR)
+				/* Already Preallocated (ARGVAR) ? */
+				if (var1->flags & PREALLOC)
 					continue;
 
-				if (IS_INT_LNG_TYPE(src->type)) {
+				if (IS_INT_LNG_TYPE(var1->type)) {
 					if (!md->params[s3].inmemory) {
-						if (IS_2_WORD_TYPE(src->type)) {
+						if (IS_2_WORD_TYPE(var1->type)) {
 							s1 = PACK_REGS(
 						   rd->argintregs[GET_LOW_REG(md->params[s3].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[s3].regoff)]);
-							d = emit_load(jd, iptr, src, s1);
+							d = emit_load(jd, iptr, var1, s1);
 							M_LNGMOVE(d, s1);
 						}
 						else {
 							s1 = rd->argintregs[md->params[s3].regoff];
-							d = emit_load(jd, iptr, src, s1);
+							d = emit_load(jd, iptr, var1, s1);
 							M_INTMOVE(d, s1);
 						}
 					}
 					else {
-						if (IS_2_WORD_TYPE(src->type)) {
-							d = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
+						if (IS_2_WORD_TYPE(var1->type)) {
+							d = emit_load(jd, iptr, var1, REG_ITMP12_PACKED);
 							M_LST(d, REG_SP, md->params[s3].regoff * 4);
 						}
 						else {
-							d = emit_load(jd, iptr, src, REG_ITMP1);
+							d = emit_load(jd, iptr, var1, REG_ITMP1);
 							M_IST(d, REG_SP, md->params[s3].regoff * 4);
 						}
 					}
@@ -2863,12 +2667,12 @@ gen_method:
 				else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, src, s1);
+						d = emit_load(jd, iptr, var1, s1);
 						M_FLTMOVE(d, s1);
 					}
 					else {
-						d = emit_load(jd, iptr, src, REG_FTMP1);
-						if (IS_2_WORD_TYPE(src->type))
+						d = emit_load(jd, iptr, var1, REG_FTMP1);
+						if (IS_2_WORD_TYPE(var1->type))
 							M_DST(d, REG_SP, md->params[s3].regoff * 4);
 						else
 							M_FST(d, REG_SP, md->params[s3].regoff * 4);
@@ -3328,12 +3132,13 @@ gen_method:
 			MCODECHECK((iptr->s1.argcount << 1) + 64);
 
 			for (s1 = iptr->s1.argcount; --s1 >= 0;) {
-				src = iptr->sx.s23.s2.args[s1];
+				var1 = VAR(iptr->sx.s23.s2.args[s1]);
 
 				/* copy SAVEDVAR sizes to stack */
 
-				if (src->varkind != ARGVAR) {
-					s2 = emit_load(jd, iptr, src, REG_ITMP1);
+				/* Already Preallocated (ARGVAR) ? */
+				if (!(var1->flags & PREALLOC)) {
+					s2 = emit_load(jd, iptr, var1, REG_ITMP1);
 #if defined(__DARWIN__)
 					M_IST(s2, REG_SP, LA_SIZE + (s1 + INT_ARG_CNT) * 4);
 #else
@@ -3399,41 +3204,8 @@ gen_method:
 		
 	/* copy values to interface registers */
 
-	src = bptr->outstack;
-	len = bptr->outdepth;
 	MCODECHECK(64 + len);
-#if defined(ENABLE_LSRA)
-	if (!opt_lsra)
-#endif
-	while (src) {
-		len--;
-		if ((src->varkind != STACKVAR)) {
-			s2 = src->type;
-			if (IS_FLT_DBL_TYPE(s2)) {
-				s1 = emit_load(jd, iptr, src, REG_FTMP1);
-				if (!IS_INMEMORY(rd->interfaces[len][s2].flags))
-					M_FLTMOVE(s1, rd->interfaces[len][s2].regoff);
-				else
-					M_DST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
 
-			} else {
-				s1 = emit_load(jd, iptr, src, REG_ITMP1);
-				if (!IS_INMEMORY(rd->interfaces[len][s2].flags)) {
-					if (IS_2_WORD_TYPE(s2))
-						M_LNGMOVE(s1, rd->interfaces[len][s2].regoff);
-					else
-						M_INTMOVE(s1, rd->interfaces[len][s2].regoff);
-
-				} else {
-					if (IS_2_WORD_TYPE(s2))
-						M_LST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
-					else
-						M_IST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
-				}
-			}
-		}
-		src = src->prev;
-	}
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 

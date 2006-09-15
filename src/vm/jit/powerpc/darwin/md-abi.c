@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5231 2006-08-11 10:13:28Z twisti $
+   $Id: md-abi.c 5522 2006-09-15 17:05:58Z christian $
 
 */
 
@@ -218,11 +218,11 @@ void md_param_alloc(methoddesc *md)
    
    --- out
    if precoloring was possible:
-   stackslot->varkind       =ARGVAR
-            ->varnum        =-1
-            ->flags         =0
-            ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
+   jd->var[stackslot->varnum]->flags       = PREALLOC
+   			                 ->regoff      =[REG_RESULT|REG_FRESULT]
    rd->arg[flt|int]reguse   set to a value according the register usage
+
+   NOTE: Do not pass a LOCALVAR in stackslot->varnum.
 
 *******************************************************************************/
 
@@ -248,29 +248,33 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 		   has not to survive method invokations. */
 
 		if (!(stackslot->flags & SAVEDVAR)) {
-			stackslot->varkind = ARGVAR;
-			stackslot->varnum  = -1;
-			stackslot->flags   = 0;
+/* 			stackslot->varkind = ARGVAR; */
+/* 			stackslot->varnum  = -1; */
+/* 			stackslot->flags   = 0; */
+			jd->var[stackslot->varnum].flags = PREALLOC;
 
 			if (IS_INT_LNG_TYPE(md->returntype.type)) {
 				if (!IS_2_WORD_TYPE(md->returntype.type)) {
 					if (rd->argintreguse < 1)
 						rd->argintreguse = 1;
 
-					stackslot->regoff = REG_RESULT;
+/* 					stackslot->regoff = REG_RESULT; */
+					jd->var[stackslot->varnum].vv.regoff = REG_RESULT;
 				}
 				else {
 					if (rd->argintreguse < 2)
 						rd->argintreguse = 2;
 
-					stackslot->regoff = REG_RESULT_PACKED;
+/* 					stackslot->regoff = REG_RESULT_PACKED; */
+					jd->var[stackslot->varnum].vv.regoff = REG_RESULT_PACKED;
 				}
 			}
 			else {
 				if (rd->argfltreguse < 1)
 					rd->argfltreguse = 1;
 
-				stackslot->regoff = REG_FRESULT;
+/* 				stackslot->regoff = REG_FRESULT; */
+				jd->var[stackslot->varnum].vv.regoff = REG_FRESULT;
 			}
 		}
 	}

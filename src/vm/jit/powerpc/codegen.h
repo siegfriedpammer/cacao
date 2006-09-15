@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 4898 2006-05-10 15:51:46Z twisti $
+   $Id: codegen.h 5522 2006-09-15 17:05:58Z christian $
 
 */
 
@@ -115,7 +115,7 @@
     } while (0)
 
 
-#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
+#define M_COPY(s,d)                     emit_copy(jd, iptr, (VAR(s)), (VAR(d)))
 #define ICONST(d,c)                     emit_iconst(cd, (d), (c))
 
 #define LCONST(reg,c) \
