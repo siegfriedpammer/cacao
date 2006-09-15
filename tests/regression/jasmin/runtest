@@ -56,7 +56,7 @@ do
 
 	if grep 'ERROR:' "$TEST" >/dev/null ; then
 		EXPECTSTATUS=1
-		EXPECTERROR=$(grep -o 'ERROR:.*' "$TEST" | sed 's,ERROR:\s*,,')
+		EXPECTERROR=$(grep -o 'ERROR:.*' "$TEST" | sed 's,ERROR:[ \t]*,,')
 	fi
 
 	# run the test
@@ -70,7 +70,7 @@ do
 	fi
 
 	if [ $EXPECTSTATUS -eq 0 ] ; then
-		grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:\s*,,' >"$TESTEXPECT"
+		grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:[ \t]*,,' >"$TESTEXPECT"
 
 		if diff -u "$TESTEXPECT" "$TESTOUT" ; then
 			if [ $TESTSTATUS -eq 0 ] ; then
