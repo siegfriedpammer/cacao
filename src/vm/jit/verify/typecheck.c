@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5512 2006-09-15 13:03:22Z edwin $
+   $Id: typecheck.c 5514 2006-09-15 14:18:19Z edwin $
 
 */
 
@@ -651,32 +651,6 @@ typestate_reach(verifier_state *state,
 	
 	destloc = destblock->inlocals;
 
-	/* When branching backwards we have to check for uninitialized objects */
-	
-	if (destblock <= state->bptr) {
-		TYPECHECK_COUNT(stat_backwards);
-		LOG("BACKWARDS!");
-		for (i=0; i<n; ++i) {
-			sv = VAR(srcvars[i]);
-			if (sv->type == TYPE_ADR &&
-					TYPEINFO_IS_NEWOBJECT(sv->typeinfo)) {
-				exceptions_throw_verifyerror(state->m,
-						"Branching backwards with uninitialized object on stack");
-				return false;
-			}
-		}
-
-		for (i=0; i<state->numlocals; ++i) {
-			sv = srclocals + i;
-			if (sv->type == TYPE_ADR &&
-					TYPEINFO_IS_NEWOBJECT(sv->typeinfo)) {
-				exceptions_throw_verifyerror(state->m,
-						"Branching backwards with uninitialized object in local variable");
-				return false;
-			}
-		}
-	}
-	
 	if (destblock->flags == BBTYPECHECK_UNDEF) {
 		/* The destblock has never been reached before */
 
@@ -1383,24 +1357,6 @@ verify_basic_block(verifier_state *state)
 	/* init variable types at the start of this block */
 	typevector_copy_inplace(state->bptr->inlocals, jd->var, state->numlocals);
 
-	if (state->handlers[0])
-		for (i=0; i<state->numlocals; ++i)
-			if (VAR(i)->type == TYPE_ADR
-					&& TYPEINFO_IS_NEWOBJECT(VAR(i)->typeinfo)) {
-				/* XXX we do not check this for the uninitialized 'this' instance in */
-				/* <init> methods. Otherwise there are problems with try blocks in   */
-				/* <init>. The spec seems to indicate that we should perform the test*/
-				/* in all cases, but this fails with real code.                      */
-				/* Example: org/eclipse/ui/internal/PerspectiveBarNewContributionItem*/
-				/* of eclipse 3.0.2                                                  */
-				/* XXX Try to show that the check is not necessary for 'this'!       */
-				if (TYPEINFO_NEWOBJECT_INSTRUCTION(VAR(i)->typeinfo) != NULL) {
-					/*show_icmd_method(state->m, state->cd, state->rd);*/
-					printf("Uninitialized variable: %d, block: %d\n", i, state->bptr->nr);
-					TYPECHECK_VERIFYERROR_bool("Uninitialized object in local variable inside try block");
-				}
-			}
-
 	DOLOG(typecheck_print_vararray(stdout, jd, state->bptr->invars, 
 				state->bptr->indepth));
 	DOLOG(typevector_print(stdout, jd->var, state->numlocals));
@@ -1496,10 +1452,6 @@ verify_basic_block(verifier_state *state)
 				/* STORING ADDRESS TO VARIABLE          */
 
 			case ICMD_ASTORE:
-				if (state->handlers[0] && TYPEINFO_IS_NEWOBJECT(VAROP(state->iptr->s1)->typeinfo)) {
-					TYPECHECK_VERIFYERROR_bool("Storing uninitialized object in local variable inside try block");
-				}
-
 				typecheck_invalidate_locals(state, state->iptr->dst.varindex, false);
 
 				if (TYPEINFO_IS_PRIMITIVE(VAROP(state->iptr->s1)->typeinfo)) {

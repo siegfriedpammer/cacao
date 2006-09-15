@@ -1,10 +1,7 @@
-.class public test_verify_fail_backward_with_new_on_stack
+.class public test_verify_unspecced_ok_backward_with_new_in_local
 .super java/lang/Object
 
-; The check against backward branches with uninitialized objects on the stack
-; is unnecessary. In this case there is a VerifyError because the type merge
-; leads to the _|_ (bottom) type in a stack slot, which is forbidden.
-;
+; The check against backward branches with uninitialized objects is unnecessary
 ; Reference:
 ;     Alessandro Coglio
 ;     Improving the official specification of Java bytecode verification
@@ -22,6 +19,17 @@
 
 ; ======================================================================
 
+.method public toString()Ljava/lang/String;
+	.limit stack 1
+	.limit locals 1
+
+	ldc "it's me"
+	areturn
+
+.end method
+
+; ======================================================================
+
 .method public static main([Ljava/lang/String;)V
 	.limit stack 2
 	.limit locals 3
@@ -29,23 +37,22 @@
 	ldc 1
 	istore 1
 
-	; aconst_null
-	new test_verify_fail_backward_with_new_on_stack
-
 backward:
-	pop
-	new test_verify_fail_backward_with_new_on_stack
+	new test_verify_unspecced_ok_backward_with_new_in_local
+	astore 2
 
 	iload 1
 	ifeq backward
-	; ERROR: VerifyError
+	; this is ok
 
+	aload 2
 	dup
-	invokespecial test_verify_fail_backward_with_new_on_stack/<init>()V
+	invokespecial test_verify_unspecced_ok_backward_with_new_in_local/<init>()V
 
 	getstatic java/lang/System/out Ljava/io/PrintStream;
 	swap
 	invokevirtual java/io/PrintStream/println(Ljava/lang/Object;)V
+	; OUTPUT: it's me
 
 	return
 .end method
