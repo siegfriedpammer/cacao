@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5394 2006-09-07 10:16:04Z twisti $
+   $Id: emit.c 5507 2006-09-15 09:19:11Z christian $
 
 */
 
@@ -62,7 +62,7 @@
 
 *******************************************************************************/
 
-s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -72,10 +72,10 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 	cd = jd->cd;
 
-	if (src->flags & INMEMORY) {
+	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->regoff * 8;
+		disp = src->vv.regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
 			if (IS_2_WORD_TYPE(src->type))
@@ -92,7 +92,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 		reg = tempreg;
 	} else
-		reg = src->regoff;
+		reg = src->vv.regoff;
 
 	return reg;
 }
@@ -106,37 +106,12 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	stackptr      src;
-	s4            disp;
-	s4            reg;
+	varinfo *src;
+	s4      reg;
 
-	/* get required compiler data */
+	src = jd->var + iptr->s1.varindex;
 
-	cd = jd->cd;
-	src = iptr->s1.var;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
-			if (IS_INT_TYPE(src->type))
-				M_ILD(tempreg, REG_SP, disp);
-			else
-				M_LLD(tempreg, REG_SP, disp);
-		}
-
-		reg = tempreg;
-	} else
-		reg = src->regoff;
+	reg = emit_load(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -150,38 +125,15 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	stackptr      src;
-	s4            disp;
-	s4            reg;
+	varinfo *src;
+	s4      reg;
 
 	/* get required compiler data */
 
-	cd = jd->cd;
-	src = iptr->sx.s23.s2.var;
+	src = jd->var + iptr->sx.s23.s2.varindex;
 
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
-			if (IS_INT_TYPE(src->type))
-				M_ILD(tempreg, REG_SP, disp);
-			else
-				M_LLD(tempreg, REG_SP, disp);
-		}
-
-		reg = tempreg;
-	} else
-		reg = src->regoff;
-
+	reg = emit_load(jd, iptr, src, tempreg);
+	
 	return reg;
 }
 
@@ -194,37 +146,12 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	codegendata  *cd;
-	stackptr      src;
-	s4            disp;
-	s4            reg;
+	varinfo *src;
+	s4      reg;
 
-	/* get required compiler data */
+	src = jd->var + iptr->sx.s23.s3.varindex;
 
-	cd = jd->cd;
-	src = iptr->sx.s23.s3.var;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
-			if (IS_INT_TYPE(src->type))
-				M_ILD(tempreg, REG_SP, disp);
-			else
-				M_LLD(tempreg, REG_SP, disp);
-		}
-
-		reg = tempreg;
-	} else
-		reg = src->regoff;
+	reg = emit_load(jd, iptr, src, tempreg);
 
 	return reg;
 }
@@ -239,10 +166,9 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
     
 *******************************************************************************/
 
-inline void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
-	registerdata *rd;
 	s4            disp;
 #if 0
 	s4            s;
@@ -252,7 +178,6 @@ inline void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 	/* get required compiler data */
 
 	cd = jd->cd;
-	rd = jd->rd;
 
 #if 0
 	/* do we have to generate a conditional move? */
@@ -277,10 +202,10 @@ inline void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 	}
 #endif
 
-	if (dst->flags & INMEMORY) {
+	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		disp = dst->regoff * 8;
+		disp = dst->vv.regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(dst->type)) {
 			if (IS_2_WORD_TYPE(dst->type))
@@ -305,7 +230,11 @@ inline void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 {
-	emit_store(jd, iptr, iptr->dst.var, d);
+	varinfo *dst;
+	
+	dst = jd->var + iptr->dst.varindex;
+
+	emit_store(jd, iptr, dst, d);
 }
 
 
@@ -315,18 +244,16 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
+void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 {
 	codegendata  *cd;
-	registerdata *rd;
 	s4            s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
-	rd = jd->rd;
 
-	if ((src->regoff != dst->regoff) ||
+	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
 
 		/* If one of the variables resides in memory, we can eliminate
@@ -334,12 +261,12 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 		   order of getting the destination register and the load. */
 
 		if (IS_INMEMORY(src->flags)) {
-			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
+			d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
 			s1 = emit_load(jd, iptr, src, d);
 		}
 		else {
 			s1 = emit_load(jd, iptr, src, REG_IFTMP);
-			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
+			d = codegen_reg_of_var(iptr->opc, dst, s1);
 		}
 
 		if (s1 != d) {
@@ -811,17 +738,28 @@ static void emit_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 index
 }
 
 
-void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
+void emit_ishift(jitdata *jd, s4 shift_op, instruction *iptr)
 {
-	s4 s1 = iptr->s1.var->regoff;
-	s4 s2 = iptr->sx.s23.s2.var->regoff;
-	s4 d = iptr->dst.var->regoff;
-	s4 d_old;
+	s4 s1, s2, d, d_old;
+	varinfo *v_s1,*v_s2,*v_dst;
+	codegendata *cd;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	v_s1  = jd->var + iptr->s1.varindex;
+	v_s2  = jd->var + iptr->sx.s23.s2.varindex;
+	v_dst = jd->var + iptr->dst.varindex;
+
+	s1 = v_s1->vv.regoff;
+	s2 = v_s2->vv.regoff;
+	d  = v_dst->vv.regoff;
 
 	M_INTMOVE(RCX, REG_ITMP1);                                    /* save RCX */
 
-	if (iptr->dst.var->flags & INMEMORY) {
-		if ((iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
+	if (IS_INMEMORY(v_dst->flags)) {
+		if (IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			if (s1 == d) {
 				M_ILD(RCX, REG_SP, s2 * 8);
 				emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
@@ -833,7 +771,7 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 				M_IST(REG_ITMP2, REG_SP, d * 8);
 			}
 
-		} else if ((iptr->sx.s23.s2.var->flags & INMEMORY) && !(iptr->s1.var->flags & INMEMORY)) {
+		} else if (IS_INMEMORY(v_s2->flags) && !IS_INMEMORY(v_s1->flags)) {
 			/* s1 may be equal to RCX */
 			if (s1 == RCX) {
 				if (s2 == d) {
@@ -853,7 +791,7 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 
 			emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
 
-		} else if (!(iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
+		} else if (!IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			if (s1 == d) {
 				M_INTMOVE(s2, RCX);
 				emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
@@ -880,18 +818,18 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 			d = REG_ITMP3;
 		}
 					
-		if ((iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
+		if (IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			M_ILD(RCX, REG_SP, s2 * 8);
 			M_ILD(d, REG_SP, s1 * 8);
 			emit_shiftl_reg(cd, shift_op, d);
 
-		} else if ((iptr->sx.s23.s2.var->flags & INMEMORY) && !(iptr->s1.var->flags & INMEMORY)) {
+		} else if (IS_INMEMORY(v_s2->flags) && !IS_INMEMORY(v_s1->flags)) {
 			/* s1 may be equal to RCX */
 			M_INTMOVE(s1, d);
 			M_ILD(RCX, REG_SP, s2 * 8);
 			emit_shiftl_reg(cd, shift_op, d);
 
-		} else if (!(iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
+		} else if (!IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			M_INTMOVE(s2, RCX);
 			M_ILD(d, REG_SP, s1 * 8);
 			emit_shiftl_reg(cd, shift_op, d);
@@ -927,17 +865,28 @@ void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 }
 
 
-void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
+void emit_lshift(jitdata *jd, s4 shift_op, instruction *iptr)
 {
-	s4 s1 = iptr->s1.var->regoff;
-	s4 s2 = iptr->sx.s23.s2.var->regoff;
-	s4 d = iptr->dst.var->regoff;
-	s4 d_old;
+	s4 s1, s2, d, d_old;
+	varinfo *v_s1,*v_s2,*v_dst;
+	codegendata *cd;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	v_s1  = jd->var + iptr->s1.varindex;
+	v_s2  = jd->var + iptr->sx.s23.s2.varindex;
+	v_dst = jd->var + iptr->dst.varindex;
+
+	s1 = v_s1->vv.regoff;
+	s2 = v_s2->vv.regoff;
+	d  = v_dst->vv.regoff;
 	
 	M_INTMOVE(RCX, REG_ITMP1);                                    /* save RCX */
 
-	if (iptr->dst.var->flags & INMEMORY) {
-		if ((iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
+	if (IS_INMEMORY(v_dst->flags)) {
+		if (IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			if (s1 == d) {
 				M_ILD(RCX, REG_SP, s2 * 8);
 				emit_shift_membase(cd, shift_op, REG_SP, d * 8);
@@ -949,7 +898,7 @@ void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 				M_LST(REG_ITMP2, REG_SP, d * 8);
 			}
 
-		} else if ((iptr->sx.s23.s2.var->flags & INMEMORY) && !(iptr->s1.var->flags & INMEMORY)) {
+		} else if (IS_INMEMORY(v_s2->flags) && !IS_INMEMORY(v_s1->flags)) {
 			/* s1 may be equal to RCX */
 			if (s1 == RCX) {
 				if (s2 == d) {
@@ -969,7 +918,7 @@ void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 
 			emit_shift_membase(cd, shift_op, REG_SP, d * 8);
 
-		} else if (!(iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
+		} else if (!IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			if (s1 == d) {
 				M_INTMOVE(s2, RCX);
 				emit_shift_membase(cd, shift_op, REG_SP, d * 8);
@@ -996,18 +945,18 @@ void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 			d = REG_ITMP3;
 		}
 
-		if ((iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
+		if (IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			M_ILD(RCX, REG_SP, s2 * 8);
 			M_LLD(d, REG_SP, s1 * 8);
 			emit_shift_reg(cd, shift_op, d);
 
-		} else if ((iptr->sx.s23.s2.var->flags & INMEMORY) && !(iptr->s1.var->flags & INMEMORY)) {
+		} else if (IS_INMEMORY(v_s2->flags) && !IS_INMEMORY(v_s1->flags)) {
 			/* s1 may be equal to RCX */
 			M_INTMOVE(s1, d);
 			M_ILD(RCX, REG_SP, s2 * 8);
 			emit_shift_reg(cd, shift_op, d);
 
-		} else if (!(iptr->sx.s23.s2.var->flags & INMEMORY) && (iptr->s1.var->flags & INMEMORY)) {
+		} else if (!IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			M_INTMOVE(s2, RCX);
 			M_LLD(d, REG_SP, s1 * 8);
 			emit_shift_reg(cd, shift_op, d);

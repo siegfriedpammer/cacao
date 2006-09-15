@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5495 2006-09-14 18:44:10Z edwin $
+   $Id: stack.c 5507 2006-09-15 09:19:11Z christian $
 
 */
 
@@ -42,23 +42,26 @@
 #include <string.h>
 #include <limits.h>
 
-#include "vm/types.h"
-
 #include "arch.h"
 #include "md-abi.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/types.h"
+
+#include "vm/jit/abi.h"
 #include "vm/jit/cfg.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/abi.h"
 #include "vm/jit/show.h"
 
 #if defined(ENABLE_DISASSEMBLER)
@@ -68,7 +71,10 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/stack.h"
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_SSA)
+# include "vm/jit/optimizing/lsra.h"
+# include "vm/jit/optimizing/ssa.h"
+#elif defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
 
@@ -161,9 +167,10 @@ struct stackdata_t {
 #define IS_PREALLOC(sp)                                              \
     (sd.var[(sp)->varnum].flags & PREALLOC)
 
-#define IS_TEMPVAR(sp)                                               \
-    ( ((sp)->varnum >= sd.localcount)                                \
+#define IS_TEMPVAR(sp)												 \
+    ( ((sp)->varnum >= sd.localcount)								 \
       && !(sd.var[(sp)->varnum].flags & (OUTVAR | PREALLOC)) )
+
 
 #define IS_LOCALVAR_SD(sd, sp)                                       \
          ((sp)->varnum < (sd).localcount)
@@ -334,7 +341,7 @@ struct stackdata_t {
     do {                                                             \
         CLR_S1;                                                      \
         GET_NEW_VAR(sd, new_index, (typed));                         \
-        DST(typed, new_index);                                       \
+        DST((typed), new_index);									 \
         stackdepth++;                                                \
     } while (0)
 
@@ -1765,6 +1772,9 @@ bool new_stack_analyse(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	stackdata_t   sd;
+#if defined(ENABLE_SSA)
+	lsradata     *ls;
+#endif
 	int           b_index;        /* basic block index                        */
 	int           stackdepth;
 	stackptr      curstack;       /* current stack top                        */
@@ -1808,6 +1818,9 @@ bool new_stack_analyse(jitdata *jd)
 	code = jd->code;
 	cd   = jd->cd;
 	rd   = jd->rd;
+#if defined(ENABLE_SSA)
+	ls   = jd->ls;
+#endif
 
 	/* initialize the stackdata_t struct */
 
@@ -2867,7 +2880,17 @@ normal_ACONST:
 							return false;
 						}
 		
+#if defined(ENABLE_SSA)
+						if (ls != NULL) {
+							GET_NEW_VAR(sd, new_index, i);
+							DST(i, new_index);
+							stackdepth++;
+						}
+						else
+
+#else
 						LOAD(i, j);
+#endif
 						break;
 
 						/* pop 2 push 1 */
@@ -2900,7 +2923,13 @@ normal_ACONST:
 
 					case ICMD_IINC:
 						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
-
+#if defined(ENABLE_SSA)
+						if (ls != NULL) {
+							iptr->s1.varindex = 
+								jd->local_map[iptr->s1.varindex * 5 +TYPE_INT];
+						}
+						else {
+#endif
 						last_store_boundary[iptr->s1.varindex] = sd.new;
 
 						iptr->s1.varindex = 
@@ -2918,6 +2947,9 @@ normal_ACONST:
 							i--;
 							copy = copy->prev;
 						}
+#if defined(ENABLE_SSA)
+						}
+#endif
 
 						iptr->dst.varindex = iptr->s1.varindex;
 						break;
@@ -2952,6 +2984,10 @@ normal_ACONST:
 							else
 								count_store_depth[i]++;
 						}
+#endif
+
+#if defined(ENABLE_SSA)
+						if (ls != NULL) {
 #endif
 						/* check for conflicts as described in Figure 5.2 */
 
@@ -3022,6 +3058,9 @@ assume_conflict:
 						/* remember the stack boundary at this store */
 store_tail:
 						last_store_boundary[javaindex] = sd.new;
+#if defined(ENABLE_SSA)
+						} /* if (ls != NULL) */
+#endif
 
 						if (opcode == ICMD_ASTORE && curstack->type == TYPE_RET)
 							STORE(TYPE_RET, j);
@@ -3106,7 +3145,11 @@ store_tail:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
 						coalescing_boundary = sd.new;
-						IF_JIT( md_return_alloc(jd, curstack); )
+						/* Assert here that no LOCAL or OUTVARS get */
+						/* preallocated, since tha macros are not   */
+						/* available in md-abi.c! */
+						IF_JIT( if (IS_TEMPVAR(curstack))				\
+									md_return_alloc(jd, curstack); )
 						COUNT(count_pcmd_return);
 						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;

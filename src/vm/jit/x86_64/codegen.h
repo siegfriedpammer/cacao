@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 5298 2006-09-05 10:09:52Z edwin $
+   $Id: codegen.h 5507 2006-09-15 09:19:11Z christian $
 
 */
 
@@ -124,7 +124,7 @@
     } while (0)
 
 
-#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
+#define M_COPY(s,d)    emit_copy(jd, iptr, &(jd->var[(s)]), &(jd->var[(d)]))
 
 #define ICONST(r,c) \
     do { \

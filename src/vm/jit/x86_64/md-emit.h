@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 5364 2006-09-06 10:48:06Z edwin $
+   $Id: md-emit.h 5507 2006-09-15 09:19:11Z christian $
 
 */
 
@@ -189,8 +189,8 @@ void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d);
 
 /* code generation prototypes */
 
-void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
-void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
+void emit_ishift(jitdata *jd, s4 shift_op, instruction *iptr);
+void emit_lshift(jitdata *jd, s4 shift_op, instruction *iptr);
 
 
 /* integer instructions */

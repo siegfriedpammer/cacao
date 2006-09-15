@@ -1226,6 +1226,10 @@ void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		break;
 
 	case ICMD_ARETURN:
+	case ICMD_FRETURN:
+	case ICMD_IRETURN:
+	case ICMD_DRETURN:
+	case ICMD_LRETURN:
 		SHOW_S1(iptr);
 		break;
 
