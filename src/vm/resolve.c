@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5497 2006-09-14 18:55:03Z edwin $
+   $Id: resolve.c 5511 2006-09-15 12:51:12Z edwin $
 
 */
 
@@ -1238,7 +1238,7 @@ resolve_result_t new_resolve_field_lazy(jitdata *jd,
 resolved_the_field:
 
 #if defined(ENABLE_VERIFIER)
-	if (opt_verify) {
+	if (JITDATA_HAS_FLAG_VERIFY(jd)) {
 		result = new_resolve_field_verifier_checks(jd,
 				refmethod, fieldref, container, fi,
 				iptr->opc, iptr);
@@ -1352,13 +1352,14 @@ bool resolve_field(unresolved_field *ref,
 resolved_the_field:
 
 #ifdef ENABLE_VERIFIER
+	/* Checking opt_verify is ok here, because the NULL iptr guarantees */
+	/* that no missing parts of an instruction will be accessed.        */
 	if (opt_verify) {
 		checkresult = new_resolve_field_verifier_checks(NULL,
 				ref->referermethod,
 				ref->fieldref,
 				container,
 				fi,
-				/* XXX pass NULL instruction * */
 				(ref->flags & RESOLVE_STATIC) ? ICMD_GETSTATIC : ICMD_GETFIELD,
 				NULL);
 
@@ -1836,7 +1837,7 @@ resolve_result_t new_resolve_method_lazy(jitdata *jd,
 resolved_the_method:
 
 #if defined(ENABLE_VERIFIER)
-	if (opt_verify) {
+	if (JITDATA_HAS_FLAG_VERIFY(jd)) {
 		result = new_resolve_method_verifier_checks(jd,
 												refmethod, methodref,
 												container,
@@ -1983,6 +1984,8 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 resolved_the_method:
 
 #ifdef ENABLE_VERIFIER
+	/* Checking opt_verify is ok here, because the NULL iptr guarantees */
+	/* that no missing parts of an instruction will be accessed.        */
 	if (opt_verify) {
 
 		checkresult = new_resolve_method_verifier_checks(NULL,
