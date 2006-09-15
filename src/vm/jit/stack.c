@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5520 2006-09-15 16:44:37Z edwin $
+   $Id: stack.c 5524 2006-09-15 20:18:01Z edwin $
 
 */
 
@@ -4285,6 +4285,7 @@ icmd_BUILTIN:
 						}
 						while (copy) {
 							sd.var[copy->varnum].flags |= SAVEDVAR;
+							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
 
