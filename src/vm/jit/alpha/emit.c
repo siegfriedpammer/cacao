@@ -61,7 +61,7 @@
 
 *******************************************************************************/
 
-s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            reg;
@@ -70,18 +70,18 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 	cd = jd->cd;
 
-	if (src->flags & INMEMORY) {
+	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(src->type))
-			M_DLD(tempreg, REG_SP, src->regoff * 8);
+			M_DLD(tempreg, REG_SP, src->vv.regoff * 8);
 		else
-			M_LLD(tempreg, REG_SP, src->regoff * 8);
+			M_LLD(tempreg, REG_SP, src->vv.regoff * 8);
 
 		reg = tempreg;
 	}
 	else
-		reg = src->regoff;
+		reg = src->vv.regoff;
 
 	return reg;
 }
@@ -95,9 +95,12 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 {
+	varinfo       *src;
 	s4 r;
 	
-	r = emit_load(jd, iptr, iptr->s1.var, tempreg);
+	src = jd->var + iptr->s1.varindex;
+
+	r = emit_load(jd, iptr, src, tempreg);
 
 	return r;
 }
@@ -111,9 +114,12 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 {
+	varinfo       *src;
 	s4 r;
 
-	r = emit_load(jd, iptr, iptr->sx.s23.s2.var, tempreg);
+	src = jd->var + iptr->sx.s23.s2.varindex;
+
+	r = emit_load(jd, iptr, src, tempreg);
 
 	return r;
 }
@@ -127,9 +133,12 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 {
+	varinfo       *src;
 	s4 r;
 
-	r = emit_load(jd, iptr, iptr->sx.s23.s3.var, tempreg);
+	src = jd->var + iptr->sx.s23.s3.varindex;
+
+	r = emit_load(jd, iptr, src, tempreg);
 
 	return r;
 }
@@ -141,7 +150,7 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 
 *******************************************************************************/
 
-void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
 
@@ -149,13 +158,13 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 	cd = jd->cd;
 
-	if (dst->flags & INMEMORY) {
+	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(dst->type))
-			M_DST(d, REG_SP, dst->regoff * 8);
+			M_DST(d, REG_SP, dst->vv.regoff * 8);
 		else
-			M_LST(d, REG_SP, dst->regoff * 8);
+			M_LST(d, REG_SP, dst->vv.regoff * 8);
 	}
 }
 
@@ -168,7 +177,11 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 {
-	emit_store(jd, iptr, iptr->dst.var, d);
+	varinfo *dst;
+	
+	dst = jd->var + iptr->dst.varindex;
+
+	emit_store(jd, iptr, dst, d);
 }
 
 
@@ -178,18 +191,16 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
+void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 {
 	codegendata  *cd;
-	registerdata *rd;
 	s4            s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
-	rd = jd->rd;
 
-	if ((src->regoff != dst->regoff) ||
+	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
 
 		/* If one of the variables resides in memory, we can eliminate
@@ -197,12 +208,12 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 		   order of getting the destination register and the load. */
 
 		if (IS_INMEMORY(src->flags)) {
-			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
+			d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
 			s1 = emit_load(jd, iptr, src, d);
 		}
 		else {
 			s1 = emit_load(jd, iptr, src, REG_IFTMP);
-			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
+			d = codegen_reg_of_var(iptr->opc, dst, s1);
 		}
 
 		if (s1 != d) {

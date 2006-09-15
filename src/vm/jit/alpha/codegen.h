@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 5071 2006-07-03 13:49:14Z twisti $
+   $Id: codegen.h 5518 2006-09-15 16:31:47Z christian $
 
 */
 
@@ -101,9 +101,9 @@
     } while (0)
 
 
-#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
-#define ICONST(d,c)                     emit_iconst(cd, (d), (c))
-#define LCONST(d,c)                     emit_lconst(cd, (d), (c))
+#define M_COPY(s,d)        emit_copy(jd, iptr, &(jd->var[(s)]), &(jd->var[(d)]))
+#define ICONST(d,c)        emit_iconst(cd, (d), (c))
+#define LCONST(d,c)        emit_lconst(cd, (d), (c))
 
 
 /* macros to create code ******************************************************/
