@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5507 2006-09-15 09:19:11Z christian $
+   $Id: stack.c 5510 2006-09-15 12:48:24Z christian $
 
 */
 
@@ -4147,6 +4147,7 @@ icmd_BUILTIN:
 							SET_TEMPVAR(copy);
 							iptr->sx.s23.s2.args[i++] = copy->varnum;
 							sd.var[copy->varnum].flags |= SAVEDVAR;
+							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
 
