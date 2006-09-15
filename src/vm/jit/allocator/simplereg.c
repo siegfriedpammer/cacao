@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5466 2006-09-11 14:54:01Z edwin $
+   $Id: simplereg.c 5523 2006-09-15 17:19:16Z christian $
 
 */
 
@@ -1076,9 +1076,9 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freetmpintregs[rd->freetmpinttop] =
-					GET_LOW_REG(s->vv.regoff);
+					GET_LOW_REG(v->vv.regoff);
 				rd->freetmpintregs[rd->freetmpinttop + 1] =
-					GET_HIGH_REG(s->vv.regoff);
+					GET_HIGH_REG(v->vv.regoff);
 			} else
 #endif
 		    rd->freetmpintregs[rd->freetmpinttop] = v->vv.regoff;
