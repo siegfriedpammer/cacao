@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5514 2006-09-15 14:18:19Z edwin $
+   $Id: typecheck.c 5515 2006-09-15 14:43:22Z edwin $
 
 */
 
@@ -109,6 +109,9 @@ marked as initialized.
 	Solution: The JVM spec describes a solution, which has been
 	implemented in this typechecker.
 
+Note that some checks mentioned in the JVM spec are unnecessary[4] and
+not performed by either the reference implementation, or this implementation.
+
 
 --- Footnotes
 
@@ -131,6 +134,11 @@ after loading, while our constraints are checked when the field/method
 is accessed for the first time, so we can guarantee lexically correct
 error reporting.
 
+[4] Alessandro Coglio
+    Improving the official specification of Java bytecode verification
+    Proceedings of the 3rd ECOOP Workshop on Formal Techniques for Java Programs
+    June 2001
+    citeseer.ist.psu.edu/article/coglio03improving.html
 */
 
 #include <assert.h>
@@ -266,7 +274,6 @@ static int stat_reached = 0;
 static int stat_copied = 0;
 static int stat_merged = 0;
 static int stat_merging_changed = 0;
-static int stat_backwards = 0;
 static int stat_blocks[STAT_BLOCKS+1] = { 0 };
 static int stat_locals[STAT_LOCALS+1] = { 0 };
 static int stat_ins = 0;
@@ -317,7 +324,6 @@ void typecheck_print_statistics(FILE *file) {
 	fprintf(file,"copied states      : %8d\n",stat_copied);
 	fprintf(file,"merged states      : %8d\n",stat_merged);
 	fprintf(file,"merging changed    : %8d\n",stat_merging_changed);
-	fprintf(file,"backwards branches : %8d\n",stat_backwards);
 	fprintf(file,"handlers reached   : %8d\n",stat_handlers_reached);
 	fprintf(file,"saved stack (times): %8d\n",stat_savedstack);
 	fprintf(file,"instructions       : %8d\n",stat_ins);
@@ -361,10 +367,10 @@ void typecheck_print_statistics(FILE *file) {
 /* MACROS FOR THROWING EXCEPTIONS                                           */
 /****************************************************************************/
 
-#define TYPECHECK_VERIFYERROR_ret(m,msg,retval) \
-    do { \
-        exceptions_throw_verifyerror((m), (msg)); \
-        return (retval); \
+#define TYPECHECK_VERIFYERROR_ret(m,msg,retval)                      \
+    do {                                                             \
+        exceptions_throw_verifyerror((m), (msg));                    \
+        return (retval);                                             \
     } while (0)
 
 #define TYPECHECK_VERIFYERROR_main(msg)  TYPECHECK_VERIFYERROR_ret(state.m,(msg),NULL)
@@ -415,16 +421,16 @@ typedef struct verifier_state {
 	methodinfo *m;                               /* the current method */
 	jitdata *jd;                         /* jitdata for current method */
 	codegendata *cd;                 /* codegendata for current method */
-	registerdata *rd;               /* registerdata for current method */
 
 	basicblock *basicblocks;
 	s4 basicblockcount;
 	
 	s4 numlocals;                         /* number of local variables */
 	s4 validlocals;                /* number of Java-accessible locals */
-	typedescriptor returntype;    /* return type of the current method */
 	s4 *reverselocalmap;
 	
+	typedescriptor returntype;    /* return type of the current method */
+
 	s4 *savedindices;
 	s4 *savedinvars;                            /* saved invar pointer */
 
@@ -551,14 +557,6 @@ typecheck_merge_types(verifier_state *state,s4 *srcvars, s4 *dstvars, s4 n)
 }
 
 
-/****************************************************************************/
-/* TYPESTATE FUNCTIONS                                                      */
-/*                                                                          */
-/* These functions act on the 'type state', which comprises:                */
-/*     - the types of the stack slots of the current stack                  */
-/*     - the set of type vectors describing the local variables             */
-/****************************************************************************/
-
 /* typestate_merge *************************************************************
  
    Merge the types of one state into the destination state.
@@ -587,15 +585,6 @@ typestate_merge(verifier_state *state,
 	bool changed = false;
 	typecheck_result r;
 	
-#if 0
-	LOG("merge:");
-	LOGSTR("dstack: "); DOLOG(typestack_print(stdout,deststack)); LOGNL;
-	LOGSTR("ystack: "); DOLOG(typestack_print(stdout,ystack)); LOGNL;
-	LOGSTR("dloc  : "); DOLOG(typevector_print(stdout,destloc,state->numlocals)); LOGNL;
-	LOGSTR("yloc  : "); DOLOG(typevector_print(stdout,yloc,state->numlocals)); LOGNL;
-	LOGFLUSH;
-#endif
-
 	/* The stack is always merged. If there are returnAddresses on
 	 * the stack they are ignored in this step. */
 
@@ -639,10 +628,7 @@ typestate_reach(verifier_state *state,
 				basicblock *destblock,
 				s4 *srcvars, varinfo *srclocals, s4 n)
 {
-	s4 i;
 	varinfo *destloc;
-	varinfo *sv;
-	jitdata *jd = state->jd;
 	bool changed = false;
 	typecheck_result r;
 
@@ -1253,6 +1239,17 @@ verify_multianewarray(verifier_state *state)
 }
 
 
+/* typecheck_invalidate_locals *************************************************
+ 
+   Invalidate locals that are overwritten by writing to the given local.
+  
+   IN:
+       state............the current state of the verifier
+	   index............the index of the local that is written
+	   twoword..........true, if a two-word type is written
+
+*******************************************************************************/
+
 static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool twoword)
 {
 	s4 i;
@@ -1263,6 +1260,8 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 	varinfo *vars = jd->var;
 
 	i = state->reverselocalmap[index];
+
+	/* invalidate locals of two-word type at index i-1 */
 
 	if (i > 0) {
 		localmap += 5 * (i-1);
@@ -1278,6 +1277,8 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 		localmap += 5 * i;
 	}
 
+	/* invalidate locals at index i */
+
 	for (t=0; t<5; ++t) {
 		mapped = *localmap++;
 		if (mapped >= 0) {
@@ -1285,6 +1286,8 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 			vars[mapped].type = TYPE_VOID;
 		}
 	}
+
+	/* if a two-word type is written, invalidate locals at index i+1 */
 
 	if (twoword) {
 		for (t=0; t<5; ++t) {
@@ -2299,7 +2302,6 @@ typecheck_init_flags(verifier_state *state)
 		/* check for invalid flags */
         if (block->flags != BBFINISHED && block->flags != BBDELETED && block->flags != BBUNDEF)
         {
-            /*show_icmd_method(state->m,state->cd,state->rd);*/
             LOGSTR1("block flags: %d\n",block->flags); LOGFLUSH;
 			TYPECHECK_ASSERT(false);
         }
@@ -2380,7 +2382,6 @@ bool typecheck(jitdata *jd)
 {
 	methodinfo     *meth;
 	codegendata    *cd;
-	registerdata   *rd;
 	varinfo        *savedlocals;
 	verifier_state  state;             /* current state of the verifier */
 	s4              i;
@@ -2401,7 +2402,6 @@ bool typecheck(jitdata *jd)
 
 	meth = jd->m;
 	cd   = jd->cd;
-	rd   = jd->rd;
 
 	/* some logging on entry */
 
@@ -2416,7 +2416,6 @@ bool typecheck(jitdata *jd)
 	state.m = meth;
 	state.jd = jd;
 	state.cd = cd;
-	state.rd = rd;
 	state.basicblockcount = jd->new_basicblockcount;
 	state.basicblocks = jd->new_basicblocks;
 	state.savedindices = NULL;
