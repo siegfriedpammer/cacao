@@ -44,6 +44,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_dup_x1.j \
 	$(srcdir)/test_dup_x1_interface_slots.j \
 	$(srcdir)/test_dup_x2.j \
+	$(srcdir)/test_dup_x2_interface_slots.j \
 	$(srcdir)/test_dup_x2_to_dup_x1.j \
 	$(srcdir)/test.j \
 	$(srcdir)/test_load_store_conflict_by_exception.j \
