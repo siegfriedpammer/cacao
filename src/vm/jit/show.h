@@ -1,4 +1,4 @@
-/* vm/jit/show.h - showing the intermediate representation
+/* src/vm/jit/show.h - showing the intermediate representation
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -43,11 +43,18 @@
 
 #include "vm/jit/jit.h"
 
+
+/* compiler stage defines *****************************************************/
+
 #define SHOW_INSTRUCTIONS  0
 #define SHOW_PARSE         1
 #define SHOW_STACK         2
-#define SHOW_REGS          3
-#define SHOW_CODE          4
+#define SHOW_CFG           3
+#define SHOW_REGS          4
+#define SHOW_CODE          5
+
+
+/* function prototypes ********************************************************/
 
 #if !defined(NDEBUG)
 bool show_init(void);

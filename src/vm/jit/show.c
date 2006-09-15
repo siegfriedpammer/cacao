@@ -403,13 +403,18 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			break;
 		}
 
-		printf(", instruction count: %d, predecessors: %d [ ",
-			   bptr->icount, bptr->predecessorcount);
+		printf(", instruction count: %d", bptr->icount);
 
-		for (i = 0; i < bptr->predecessorcount; i++)
-			printf("%d ", bptr->predecessors[i]->nr);
+		if (stage >= SHOW_CFG) {
+			printf(", predecessors: %d [ ", bptr->predecessorcount);
 
-		printf("]):\n");
+			for (i = 0; i < bptr->predecessorcount; i++)
+				printf("%d ", bptr->predecessors[i]->nr);
+
+			printf("]");
+		}
+
+		printf("):\n");
 
 		if (stage >= SHOW_STACK) {
 			printf("IN:  ");
