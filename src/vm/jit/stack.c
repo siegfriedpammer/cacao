@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5510 2006-09-15 12:48:24Z christian $
+   $Id: stack.c 5517 2006-09-15 15:52:02Z edwin $
 
 */
 
@@ -3547,6 +3547,17 @@ icmd_DUP_X2:
 						src2 = curstack;
 						POPANY; POPANY;
 						stackdepth -= 2;
+
+						if (!IS_TEMPVAR(src1)) {
+							/* move src1 out of the way into a temporary */
+							GET_NEW_INDEX(sd, new_index);
+							iptr->opc = ICMD_MOVE;
+							iptr->s1.varindex = src1->varnum;
+							iptr->dst.varindex = new_index;
+							COPY_VAL_AND_TYPE(sd, src1->varnum, new_index);
+							iptr++; len--;
+							src1->varnum = new_index;
+						}
 
 						MOVE_UP(src2); iptr++; len--;
 						MOVE_UP(src1);

@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5497 2006-09-14 18:55:03Z edwin $
+   $Id: parse.c 5517 2006-09-15 15:52:02Z edwin $
 
 */
 
@@ -532,8 +532,9 @@ fetch_opcode:
 			break;
 
 		case JAVA_SWAP:
-			INSTRUCTIONS_CHECK(2);
+			INSTRUCTIONS_CHECK(3);
 			OP(opcode);
+			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			break;
 
