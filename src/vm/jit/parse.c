@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5517 2006-09-15 15:52:02Z edwin $
+   $Id: parse.c 5520 2006-09-15 16:44:37Z edwin $
 
 */
 
@@ -492,15 +492,18 @@ fetch_opcode:
 		/* instructions to sequences of ICMD_COPY and ICMD_MOVE instructions. */
 
 		case JAVA_DUP_X1:
-			INSTRUCTIONS_CHECK(3);
+			INSTRUCTIONS_CHECK(4);
 			OP(opcode);
+			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			break;
 
 		case JAVA_DUP_X2:
-			INSTRUCTIONS_CHECK(4);
+			INSTRUCTIONS_CHECK(6);
 			OP(opcode);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			OP(ICMD_NOP);
@@ -513,8 +516,10 @@ fetch_opcode:
 			break;
 
 		case JAVA_DUP2_X1:
-			INSTRUCTIONS_CHECK(5);
+			INSTRUCTIONS_CHECK(7);
 			OP(opcode);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			OP(ICMD_NOP);
@@ -522,8 +527,11 @@ fetch_opcode:
 			break;
 
 		case JAVA_DUP2_X2:
-			INSTRUCTIONS_CHECK(6);
+			INSTRUCTIONS_CHECK(9);
 			OP(opcode);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
+			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			OP(ICMD_NOP);
 			OP(ICMD_NOP);

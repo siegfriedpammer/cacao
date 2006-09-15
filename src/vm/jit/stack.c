@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5517 2006-09-15 15:52:02Z edwin $
+   $Id: stack.c 5520 2006-09-15 16:44:37Z edwin $
 
 */
 
@@ -473,6 +473,16 @@ struct stackdata_t {
         (d)->creator = iptr;                                         \
     } while (0)
 
+#define MOVE_TO_TEMP(sp)                                             \
+    do {                                                             \
+        GET_NEW_INDEX(sd, new_index);                                \
+        iptr->opc = ICMD_MOVE;                                       \
+        iptr->s1.varindex = (sp)->varnum;                            \
+        iptr->dst.varindex = new_index;                              \
+        COPY_VAL_AND_TYPE(sd, (sp)->varnum, new_index);              \
+        (sp)->varnum = new_index;                                    \
+		(sp)->varkind = TEMPVAR;                                     \
+    } while (0)
 
 /* macros for branching / reaching basic blocks *********************/
 
@@ -3362,6 +3372,11 @@ icmd_DUP_X1:
 						POPANY; POPANY;
 						stackdepth -= 2;
 
+						/* move non-temporary sources out of the way */
+						if (!IS_TEMPVAR(src2)) {
+							MOVE_TO_TEMP(src2); iptr++; len--;
+						}
+
 						DUP_SLOT(src2); dst1 = curstack; stackdepth++;
 
 						MOVE_UP(src1); iptr++; len--;
@@ -3402,6 +3417,14 @@ icmd_DUP2_X1:
 							src3 = curstack;
 							POPANY; POPANY; POPANY;
 							stackdepth -= 3;
+
+							/* move non-temporary sources out of the way */
+							if (!IS_TEMPVAR(src2)) {
+								MOVE_TO_TEMP(src2); iptr++; len--;
+							}
+							if (!IS_TEMPVAR(src3)) {
+								MOVE_TO_TEMP(src3); iptr++; len--;
+							}
 
 							DUP_SLOT(src2); dst1 = curstack; stackdepth++;
 							DUP_SLOT(src3); dst2 = curstack; stackdepth++;
@@ -3448,6 +3471,14 @@ icmd_DUP_X2:
 							src3 = curstack;
 							POPANY; POPANY; POPANY;
 							stackdepth -= 3;
+
+							/* move non-temporary sources out of the way */
+							if (!IS_TEMPVAR(src2)) {
+								MOVE_TO_TEMP(src2); iptr++; len--;
+							}
+							if (!IS_TEMPVAR(src3)) {
+								MOVE_TO_TEMP(src3); iptr++; len--;
+							}
 
 							DUP_SLOT(src3); dst1 = curstack; stackdepth++;
 
@@ -3516,6 +3547,17 @@ icmd_DUP_X2:
 							POPANY; POPANY; POPANY; POPANY;
 							stackdepth -= 4;
 
+							/* move non-temporary sources out of the way */
+							if (!IS_TEMPVAR(src2)) {
+								MOVE_TO_TEMP(src2); iptr++; len--;
+							}
+							if (!IS_TEMPVAR(src3)) {
+								MOVE_TO_TEMP(src3); iptr++; len--;
+							}
+							if (!IS_TEMPVAR(src4)) {
+								MOVE_TO_TEMP(src4); iptr++; len--;
+							}
+
 							DUP_SLOT(src3); dst1 = curstack; stackdepth++;
 							DUP_SLOT(src4); dst2 = curstack; stackdepth++;
 
@@ -3548,15 +3590,9 @@ icmd_DUP_X2:
 						POPANY; POPANY;
 						stackdepth -= 2;
 
+						/* move non-temporary sources out of the way */
 						if (!IS_TEMPVAR(src1)) {
-							/* move src1 out of the way into a temporary */
-							GET_NEW_INDEX(sd, new_index);
-							iptr->opc = ICMD_MOVE;
-							iptr->s1.varindex = src1->varnum;
-							iptr->dst.varindex = new_index;
-							COPY_VAL_AND_TYPE(sd, src1->varnum, new_index);
-							iptr++; len--;
-							src1->varnum = new_index;
+							MOVE_TO_TEMP(src1); iptr++; len--;
 						}
 
 						MOVE_UP(src2); iptr++; len--;
