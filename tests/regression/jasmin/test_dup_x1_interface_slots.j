@@ -1,4 +1,4 @@
-.class public test_dup2_x1
+.class public test_dup_x1_interface_slots
 .super java/lang/Object
 
 ; ======================================================================
@@ -23,58 +23,51 @@
 ; ======================================================================
 
 .method public static main([Ljava/lang/String;)V
-	.limit stack 6
+	.limit stack 3
 	.limit locals 2
 
-	ldc 35
+	ldc 4
 	istore 1
 
-	ldc 1032
-	ldc 1091
-	ldc 1047
-
-	aload 0
-	ifnull force_basic_block_boundary
+	ldc 18
+	ldc 100
 
 	; --------------------------------------------------
 
-	dup2_x1 ; 1091 1047 1032 1091 1047
-
-	aload 0
-	ifnull force_basic_block_boundary2
-
-	; --------------------------------------------------
-
-	isub
-	invokestatic test_dup2_x1/checkI(I)V
-	; OUTPUT: 44
-	isub
-	invokestatic test_dup2_x1/checkI(I)V
-	; OUTPUT:  15
-	invokestatic test_dup2_x1/checkI(I)V
-	; OUTPUT:  1091
-
-	ldc 32
-	ldc 91
-	ldc 47
-	dup2_x1 ; 91 47 32 91 47
-	isub
-	invokestatic test_dup2_x1/checkI(I)V
-	; OUTPUT: 44
-	isub
-	invokestatic test_dup2_x1/checkI(I)V
-	; OUTPUT:  15
-	invokestatic test_dup2_x1/checkI(I)V
-	; OUTPUT:  91
-
-	return
+loop:
+	dup_x1
+	iinc 1 -1
+	pop
+	iload 1
+	ifge loop
 
 	; --------------------------------------------------
 
-force_basic_block_boundary:
-	return
+	invokestatic test_dup_x1_interface_slots/checkI(I)V
+	; OUTPUT: 18
+	invokestatic test_dup_x1_interface_slots/checkI(I)V
+	; OUTPUT: 100
 
-force_basic_block_boundary2:
-	return
+	ldc 7
+	istore 1
 
+	ldc 28
+	ldc 200
+
+	; --------------------------------------------------
+
+loop2:
+	iinc 1 -1
+	swap
+	iload 1
+	ifge loop2
+
+	; --------------------------------------------------
+
+	invokestatic test_dup_x1_interface_slots/checkI(I)V
+	; OUTPUT: 200
+	invokestatic test_dup_x1_interface_slots/checkI(I)V
+	; OUTPUT: 28
+
+	return
 .end method
