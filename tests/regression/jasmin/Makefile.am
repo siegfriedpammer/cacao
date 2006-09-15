@@ -61,7 +61,6 @@ JASMIN_TESTS = \
 	$(srcdir)/test_swap.j \
 	$(srcdir)/test_swap_locals.j \
 	$(srcdir)/test_verify_fail_aload_retaddress.j \
-	$(srcdir)/test_verify_fail_backward_with_new_in_local.j \
 	$(srcdir)/test_verify_fail_backward_with_new_on_stack.j \
 	$(srcdir)/test_verify_fail_double_local_index.j \
 	$(srcdir)/test_verify_fail_double_overwritten.j \
@@ -74,7 +73,6 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_long_local_index.j \
 	$(srcdir)/test_verify_fail_long_local.j \
 	$(srcdir)/test_verify_fail_long_overwritten.j \
-	$(srcdir)/test_verify_fail_new_in_local_within_try.j \
 	$(srcdir)/test_verify_fail_retaddr_as_object.j \
 	$(srcdir)/test_verify_fail_ret_bad_type.j \
 	$(srcdir)/test_verify_fail_ret_uninit_var.j \
@@ -87,7 +85,11 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_ok_jsr_swap.j \
 	$(srcdir)/test_verify_ok_jsr_through_variable.j \
 	$(srcdir)/test_verify_ok_overwrite_local_type.j \
-	$(srcdir)/test_verify_ok_untyped_local.j
+	$(srcdir)/test_verify_ok_untyped_local.j \
+	$(srcdir)/test_verify_unspecced_ok_backward_with_new_in_local.j \
+	$(srcdir)/test_verify_unspecced_ok_backward_with_new_on_stack.j \
+	$(srcdir)/test_verify_unspecced_ok_new_in_local_within_try.j
+
 
 
 SOURCE_FILES = \
