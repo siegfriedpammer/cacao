@@ -43,6 +43,7 @@ java_security_ProtectionDomain.h
 java_security_VMAccessController.h
 java_util_Properties.h
 java_util_Vector.h
+sun_misc_Unsafe.h
 
 java_net_DatagramPacket.h
 java_net_InetAddress.h
