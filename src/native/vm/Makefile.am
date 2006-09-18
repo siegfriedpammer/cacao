@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5198 2006-07-31 16:25:55Z twisti $
+## $Id: Makefile.am 5526 2006-09-18 20:17:39Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -64,7 +64,8 @@ libnativevm_la_SOURCES = \
 	java_lang_reflect_Field.c \
 	java_lang_reflect_Method.c \
 	java_lang_reflect_VMProxy.c \
-	java_security_VMAccessController.c
+	java_security_VMAccessController.c \
+	sun_misc_Unsafe.c
 
 if ENABLE_JVMTI
 libjdwp_la_SOURCES = \

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5198 2006-07-31 16:25:55Z twisti $
+## $Id: Makefile.am 5526 2006-09-18 20:17:39Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -70,7 +70,8 @@ GEN_HEADER_FILES = \
 	java_nio_Buffer.h \
 	java_nio_DirectByteBufferImpl.h \
 	java_security_ProtectionDomain.h \
-	java_util_Vector.h 
+	java_util_Vector.h \
+	sun_misc_Unsafe.h
 
 GEN_JVMTI_HEADER_FILES = \
 	gnu_classpath_jdwp_VMFrame.h \
