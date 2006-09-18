@@ -43,11 +43,11 @@ java.lang.ArrayStoreException
    at extest.main(extest.java:144)
 
 ClassCastException:                           OK
-java.lang.ClassCastException
+java.lang.ClassCastException: java/lang/Object
    at extest.main(extest.java:155)
 
 ClassCastException:                           OK
-java.lang.ClassCastException
+java.lang.ClassCastException: java/lang/Object
    at extest.main(extest.java:166)
 
 NegativeArraySizeException (newarray):        OK
@@ -95,7 +95,7 @@ java.lang.ArrayIndexOutOfBoundsException: -559038737
    at extest.main(extest.java:267)
 
 ClassCastException:                           OK
-java.lang.ClassCastException
+java.lang.ClassCastException: java/lang/Object
    at extest.ccesub(extest.java:404)
    at extest.main(extest.java:284)
 
@@ -126,8 +126,7 @@ java.lang.UnsatisfiedLinkError: nsub
 
 NullPointerException (native):                OK
 java.lang.NullPointerException
-   at java.lang.VMSystem.arraycopy(Native Method)
-   at java.lang.System.arraycopy(System.java:251)
+   at java.lang.System.arraycopy(System.java:281)
    at extest.main(extest.java:345)
 
 
