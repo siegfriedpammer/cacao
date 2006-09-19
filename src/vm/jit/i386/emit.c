@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5401 2006-09-07 12:52:31Z twisti $
+   $Id: emit.c 5532 2006-09-19 10:39:30Z twisti $
 
 */
 
@@ -39,9 +39,9 @@
 
 #include "vm/types.h"
 
-#include "vm/jit/i386/md-abi.h"
-#include "vm/jit/i386/md-emit.h"
 #include "vm/jit/i386/codegen.h"
+#include "vm/jit/i386/emit.h"
+#include "vm/jit/i386/md-abi.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
@@ -51,7 +51,7 @@
 #include "vm/statistics.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit.h"
+#include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
 
@@ -168,160 +168,6 @@ inline s4 emit_load_high(jitdata *jd, instruction *iptr, stackptr src, s4 tempre
 }
 
 
-/* emit_load_s1 ****************************************************************
-
-   Emits a possible load of the first source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr      src;
-	s4            reg;
-
-	/* get required compiler data */
-
-	src = iptr->s1.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-   
-	return reg;
-}
-
-
-/* emit_load_s2 ****************************************************************
-
-   Emits a possible load of the second source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr      src;
-	s4            reg;
-
-	/* get required compiler data */
-
-	src = iptr->sx.s23.s2.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-	
-	return reg;
-}
-
-
-/* emit_load_s3 ****************************************************************
-
-   Emits a possible load of the third source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr      src;
-	s4            reg;
-
-	/* get required compiler data */
-
-	src = iptr->sx.s23.s3.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s1_low ************************************************************
-
-   Emits a possible load of the low 32-bits of the first long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr      src;
-	s4            reg;
-
-
-	/* get required compiler data */
-
-	src = iptr->s1.var;
-
-	reg = emit_load_low(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-
-
-/* emit_load_s2_low ************************************************************
-
-   Emits a possible load of the low 32-bits of the second long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr      src;
-	s4            reg;
-
-	/* get required compiler data */
-
-	src = iptr->sx.s23.s2.var;
-
-	reg = emit_load_low(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s1_high ***********************************************************
-
-   Emits a possible load of the high 32-bits of the first long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr      src;
-	s4            reg;
-
-	/* get required compiler data */
-
-	src = iptr->s1.var;
-
-	reg = emit_load_high(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s2_high ***********************************************************
-
-   Emits a possible load of the high 32-bits of the second long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr      src;
-	s4            reg;
-
-	/* get required compiler data */
-
-	src = iptr->sx.s23.s2.var;
-
-	reg = emit_load_high(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
 /* emit_store ******************************************************************
 
    Emits a possible store of the destination operand.
@@ -400,24 +246,6 @@ inline void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 		COUNT_SPILLS;
 		M_IST(GET_HIGH_REG(d), REG_SP, dst->regoff * 4 + 4);
 	}
-}
-
-/* emit_store_dst **************************************************************
-
-   This function generates the code to store the result of an
-   operation back into a spilled pseudo-variable.  If the
-   pseudo-variable has not been spilled in the first place, this
-   function will generate nothing.
-    
-*******************************************************************************/
-
-void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
-{
-	stackptr dst;
-	
-	dst = iptr->dst.var;
-
-	emit_store(jd, iptr, dst, d);
 }
 
 
