@@ -65,7 +65,7 @@ do
 	TESTSTATUS=$?
 
 	if [ $TESTSTATUS -ne $EXPECTSTATUS ] ; then
-		echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TEST - expected status $EXPECTSTATUS, but got $TESTSTATUS${NOCOLOR}"
+		echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TESTBASENAME - expected status $EXPECTSTATUS, but got $TESTSTATUS${NOCOLOR}"
 		EXITCODE=1
 	fi
 
@@ -74,10 +74,10 @@ do
 
 		if diff -u "$TESTEXPECT" "$TESTOUT" ; then
 			if [ $TESTSTATUS -eq 0 ] ; then
-				echo $ECHOFLAGS "${PASSCOLOR}PASS: $TEST${NOCOLOR}"
+				echo $ECHOFLAGS "${PASSCOLOR}PASS: $TESTBASENAME${NOCOLOR}"
 			fi
 		else
-			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TEST - wrong output${NOCOLOR}"
+			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TESTBASENAME - wrong output${NOCOLOR}"
 			EXITCODE=1
 		fi
 
@@ -87,9 +87,9 @@ do
 		fi
 	else
 		if grep "$EXPECTERROR" "$TESTERR" >/dev/null ; then
-			echo $ECHOFLAGS "${PASSCOLOR}PASS: $TEST - got expected error: $EXPECTERROR${NOCOLOR}"
+			echo $ECHOFLAGS "${PASSCOLOR}PASS: $TESTBASENAME - got expected error: $EXPECTERROR${NOCOLOR}"
 		else
-			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TEST - did not get expected error: $EXPECTERROR${NOCOLOR}"
+			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TESTBASENAME - did not get expected error: $EXPECTERROR${NOCOLOR}"
 			EXITCODE=1
 		fi
 	fi
