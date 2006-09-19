@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5258 2006-08-22 09:02:25Z tbfg $
+## $Id: Makefile.am 5530 2006-09-19 10:29:27Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -115,7 +115,6 @@ noinst_HEADERS = \
 	abi.h \
 	abi-asm.h \
 	asmpart.h \
-	emit.h \
 	methodheader.h \
 	patcher.h 
 
@@ -130,6 +129,8 @@ libjit_la_SOURCES = \
 	$(DISASS_SOURCES) \
 	dseg.c \
 	dseg.h \
+	emit-common.c \
+	emit-common.h \
 	jit.c \
 	jit.h \
 	parse.c \

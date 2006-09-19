@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5394 2006-09-07 10:16:04Z twisti $
+   $Id: emit.c 5530 2006-09-19 10:29:27Z twisti $
 
 */
 
@@ -39,7 +39,7 @@
 #include "md-abi.h"
 
 #include "vm/jit/x86_64/codegen.h"
-#include "vm/jit/x86_64/md-emit.h"
+#include "vm/jit/x86_64/emit.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
@@ -49,12 +49,10 @@
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/emit.h"
+#include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
 
-
-/* code generation functions **************************************************/
 
 /* emit_load *******************************************************************
 
@@ -82,8 +80,8 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 				M_DLD(tempreg, REG_SP, disp);
 			else
 				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
+		}
+		else {
 			if (IS_INT_TYPE(src->type))
 				M_ILD(tempreg, REG_SP, disp);
 			else
@@ -91,139 +89,8 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		}
 
 		reg = tempreg;
-	} else
-		reg = src->regoff;
-
-	return reg;
-}
-
-
-/* emit_load_s1 ****************************************************************
-
-   Emits a possible load of the first source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	codegendata  *cd;
-	stackptr      src;
-	s4            disp;
-	s4            reg;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-	src = iptr->s1.var;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
-			if (IS_INT_TYPE(src->type))
-				M_ILD(tempreg, REG_SP, disp);
-			else
-				M_LLD(tempreg, REG_SP, disp);
-		}
-
-		reg = tempreg;
-	} else
-		reg = src->regoff;
-
-	return reg;
-}
-
-
-/* emit_load_s2 ****************************************************************
-
-   Emits a possible load of the second source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	codegendata  *cd;
-	stackptr      src;
-	s4            disp;
-	s4            reg;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-	src = iptr->sx.s23.s2.var;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
-			if (IS_INT_TYPE(src->type))
-				M_ILD(tempreg, REG_SP, disp);
-			else
-				M_LLD(tempreg, REG_SP, disp);
-		}
-
-		reg = tempreg;
-	} else
-		reg = src->regoff;
-
-	return reg;
-}
-
-
-/* emit_load_s3 ****************************************************************
-
-   Emits a possible load of the third source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	codegendata  *cd;
-	stackptr      src;
-	s4            disp;
-	s4            reg;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-	src = iptr->sx.s23.s3.var;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		disp = src->regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
-			if (IS_INT_TYPE(src->type))
-				M_ILD(tempreg, REG_SP, disp);
-			else
-				M_LLD(tempreg, REG_SP, disp);
-		}
-
-		reg = tempreg;
-	} else
+	}
+	else
 		reg = src->regoff;
 
 	return reg;
@@ -287,25 +154,10 @@ inline void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 				M_DST(d, REG_SP, disp);
 			else
 				M_FST(d, REG_SP, disp);
-
-		} else
+		}
+		else
 			M_LST(d, REG_SP, disp);
 	}
-}
-
-
-/* emit_store_dst **************************************************************
-
-   This function generates the code to store the result of an
-   operation back into a spilled pseudo-variable.  If the
-   pseudo-variable has not been spilled in the first place, this
-   function will generate nothing.
-    
-*******************************************************************************/
-
-void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
-{
-	emit_store(jd, iptr, iptr->dst.var, d);
 }
 
 
