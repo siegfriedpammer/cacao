@@ -50,12 +50,10 @@
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit.h"
+#include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
 
-
-/* code generation functions **************************************************/
 
 /* emit_load *******************************************************************
 
@@ -95,62 +93,6 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 	return reg;
 }
 
-/* emit_load_s1 ****************************************************************
-
-   Emits a possible load of the first source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr src;
-	s4       reg;
-
-	src = iptr->s1.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s2 ****************************************************************
-
-   Emits a possible load of the second source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr src;
-	s4       reg;
-
-	src = iptr->sx.s23.s2.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s3 ****************************************************************
-
-   Emits a possible load of the third source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr src;
-	s4       reg;
-
-	src = iptr->sx.s23.s3.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
 
 /* emit_store ******************************************************************
 
@@ -177,20 +119,10 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 				M_DST(d, REG_SP, disp);
 			else
 				M_FST(d, REG_SP, disp);
-		} else
+		}
+		else
 			M_LST(d, REG_SP, disp);
 	}
-}
-
-/* emit_store_dst **************************************************************
-
-   Emits a possible store to the destination operand of an instruction.
-
-*******************************************************************************/
-
-void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
-{
-	emit_store(jd, iptr, iptr->dst.var, d);
 }
 
 
