@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 5263 2006-08-22 20:48:16Z twisti $
+   $Id: emit.h 5531 2006-09-19 10:33:00Z twisti $
 
 */
 
