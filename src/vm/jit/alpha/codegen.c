@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5387 2006-09-06 22:16:48Z twisti $
+   $Id: codegen.c 5534 2006-09-19 11:50:56Z twisti $
 
 */
 
@@ -67,7 +67,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit.h"
+#include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
