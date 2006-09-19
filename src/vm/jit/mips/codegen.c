@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5536 2006-09-19 19:22:41Z twisti $
+   $Id: codegen.c 5537 2006-09-19 19:56:59Z twisti $
 
 */
 
@@ -102,6 +102,8 @@ bool codegen(jitdata *jd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+	fieldinfo          *fi;
+	unresolved_field   *uf;
 	rplpoint           *replacementpoint;
 	s4                  fieldtype;
 
@@ -1875,10 +1877,9 @@ bool codegen(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_addaddress(cd, NULL);
+				disp      = dseg_addaddress(cd, NULL);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
@@ -1887,10 +1888,9 @@ bool codegen(jitdata *jd)
 				}
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_addaddress(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -1931,10 +1931,9 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_addaddress(cd, NULL);
+				disp      = dseg_addaddress(cd, NULL);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
@@ -1943,10 +1942,9 @@ bool codegen(jitdata *jd)
 				}
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_addaddress(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -1988,10 +1986,9 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_addaddress(cd, NULL);
+				disp      = dseg_addaddress(cd, NULL);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
@@ -2000,10 +1997,9 @@ bool codegen(jitdata *jd)
 				}
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_addaddress(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -2042,22 +2038,20 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
-
-				disp = 0;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -2087,30 +2081,31 @@ bool codegen(jitdata *jd)
 
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 
-			/* We use here REG_ITMP2, so we can use REG_IFTMP for s2
-			   (== REG_ITMP1). */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			gen_nullptr_check(s1);
-			s2 = emit_load_s2(jd, iptr, REG_IFTMP);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp      = fi->offset;
+			}
 
+			if (IS_INT_LNG_TYPE(fieldtype))
+				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			else
+				s2 = emit_load_s2(jd, iptr, REG_FTMP1);
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
-
-				disp = 0;
-			}
-			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-				fieldtype = fi->type;
-				disp = fi->offset;
 			}
 
 			switch (fieldtype) {
