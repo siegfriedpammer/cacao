@@ -271,8 +271,7 @@ void emit_exception_stubs(jitdata *jd)
 			if (jd->isleafmethod)
 				M_MOV(REG_RA, rd->argintregs[2]);
 			else
-				M_ALD(rd->argintregs[2],
-					  REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+				M_ALD(rd->argintregs[2], REG_SP, (cd->stackframesize - 1) * 8);
 
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 			M_MOV(REG_ITMP1, rd->argintregs[4]);
