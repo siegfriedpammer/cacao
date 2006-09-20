@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5375 2006-09-06 16:01:23Z edwin $
+   $Id: builtin.c 5540 2006-09-20 23:22:21Z michi $
 
 */
 
@@ -57,6 +57,9 @@
 #include "md-abi.h"
 
 #include "fdlibm/fdlibm.h"
+#if defined(__CYGWIN__) && defined(Bias)
+# undef Bias
+#endif
 
 #include "mm/boehm.h"
 #include "mm/memory.h"

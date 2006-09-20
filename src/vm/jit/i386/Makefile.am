@@ -28,11 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5300 2006-09-05 10:15:55Z twisti $
+## $Id: Makefile.am 5540 2006-09-20 23:22:21Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
+	cygwin \
 	darwin \
 	freebsd \
 	linux

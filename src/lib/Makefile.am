@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5190 2006-07-31 12:28:23Z twisti $
+## $Id: Makefile.am 5540 2006-09-20 23:22:21Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -65,7 +65,7 @@ VM_ZIP = ../vm.zip
 vm.zip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
 	$(JAVAC) -d classes $(VM_JAVA_FILES)
-	@if test "$(JAR)" = "zip"; then \
+	@if test "$(JAR)" = "zip" -o "$(JAR)" = "zip.exe"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \
 	else \
 	    cd classes && $(JAR) cvf $(VM_ZIP) .; \
