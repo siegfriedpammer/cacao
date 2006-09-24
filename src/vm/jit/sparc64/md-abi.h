@@ -64,6 +64,11 @@
 #define REG_FP          30   /* frame pointer                                 */
 #define REG_ZERO         0   /* always zero                                   */
 
+#define REG_A0           8   /* define some argument registers                */
+#define REG_A1           9
+#define REG_A2          10
+#define REG_A3          11
+
 /* floating point registers */
 /* only using the lower half of the floating registers for now */
 
