@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5544 2006-09-24 11:09:39Z twisti $
+   $Id: codegen.c 5545 2006-09-25 16:59:15Z tbfg $
 
 */
 
@@ -484,7 +484,7 @@ bool codegen(jitdata *jd)
 
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 
-			M_NOP; M_NOP; /* XXX */
+			/* M_NOP; M_NOP; XXX */
 			switch (iptr->opc) {
 			case ICMD_NOP:    /* ...  ==> ...                                 */
 			case ICMD_INLINE_START:
@@ -776,6 +776,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_IADD(s1, s2, d);
+			M_EXTSW(d,d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -822,7 +823,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_ISUB(s1, s2, d);
+			M_SUB(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -835,7 +836,7 @@ bool codegen(jitdata *jd)
 				M_IADD_IMM(s1, -iptr->sx.val.i, d);
 			} else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
-				M_ISUB(s1, REG_ITMP2, d);
+				M_SUB(s1, REG_ITMP2, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -845,7 +846,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			M_LSUB(s1, s2, d);
+			M_SUB(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -859,71 +860,39 @@ bool codegen(jitdata *jd)
 				M_LADD_IMM(s1, -iptr->sx.val.l, d);
 			} else {
 				LCONST(REG_ITMP2, iptr->sx.val.l);
-				M_LSUB(s1, REG_ITMP2, d);
+				M_SUB(s1, REG_ITMP2, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_TST(s2);
-			M_BEQ(0);
-			codegen_add_arithmeticexception_ref(cd);
-			M_LDAH(REG_ITMP3, REG_ZERO, 0x8000);
-			M_CMP(REG_ITMP3, s1);
-			M_BNE(3 + (s1 != d));
-			M_CMPI(s2, -1);
-			M_BNE(1 + (s1 != d));
-			M_INTMOVE(s1, d);
-			M_BR(1);
-			M_IDIV(s1, s2, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_TST(s2);
-			M_BEQ(0);
-			codegen_add_arithmeticexception_ref(cd);
-			M_LDAH(REG_ITMP3, REG_ZERO, 0x8000);
-			M_CMP(REG_ITMP3, s1);
-			M_BNE(4);
-			M_CMPI(s2, -1);
-			M_BNE(2);
-			M_CLR(d);
-			M_BR(3);
-			M_IDIV(s1, s2, REG_ITMP3);
-			M_IMUL(REG_ITMP3, s2, REG_ITMP3);
-			M_ISUB(s1, REG_ITMP3, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
+		case ICMD_IDIV:
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
-		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			bte = iptr->sx.s23.s3.bte;
-
-			s1 = emit_load_s1(jd, iptr, rd->argintregs[0]);
-			s2 = emit_load_s2(jd, iptr, rd->argintregs[1]);
-			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			M_TST(s2);
 			M_BEQ(0);
 			codegen_add_arithmeticexception_ref(cd);
 
-			M_INTMOVE(s1, rd->argintregs[0]);
-			M_INTMOVE(s2, rd->argintregs[1]);
-			disp = dseg_addaddress(cd, bte->fp);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_JSR;
+			M_DIV(d, s1, s2);
 
-			M_LNGMOVE(REG_RESULT, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IREM:
+		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
+			M_TST(s2);
+			M_BEQ(0);
+			codegen_add_arithmeticexception_ref(cd);
+
+			/* FIXME s1 == -2^63 && s2 == -1 does not work that way */
+			M_DIV(s1, s2, d);
+			M_MUL( d, s2, d);
+			M_SUB(s1,  d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -932,7 +901,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_IMUL(s1, s2, d);
+			M_MUL(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -942,10 +911,10 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767))
-				M_IMUL_IMM(s1, iptr->sx.val.i, d);
+				M_MUL_IMM(s1, iptr->sx.val.i, d);
 			else {
 				ICONST(REG_ITMP3, iptr->sx.val.i);
-				M_IMUL(s1, REG_ITMP3, d);
+				M_MUL(s1, REG_ITMP3, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1090,7 +1059,7 @@ bool codegen(jitdata *jd)
 					++b;
 				M_RLWINM(REG_ITMP2, 0, 0, 30-b, REG_ITMP2);
 			}
-			M_ISUB(s1, REG_ITMP2, d);
+			M_SUB(s1, REG_ITMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1512,7 +1481,7 @@ bool codegen(jitdata *jd)
 			}
 			M_SLL_IMM(s2, 1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_chararray, data[0]), REG_ITMP2);
-			M_LHZX(d, s1, REG_ITMP2);
+			M_LHAX(d, s1, REG_ITMP2);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1600,9 +1569,9 @@ bool codegen(jitdata *jd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_objectarray, data[0]), REG_ITMP2);
-			M_LWZX(d, s1, REG_ITMP2);
+			M_ALDX(d, s1, REG_ITMP2);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1673,8 +1642,7 @@ bool codegen(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_longarray, data[0]), REG_ITMP2);
-			/* XXX fix me!!! */
-			M_STWX(s3, s1, REG_ITMP2);
+			M_LST(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1731,9 +1699,9 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_objectarray, data[0]), REG_ITMP2);
-			M_STWX(s3, s1, REG_ITMP2);
+			M_ASTX(s3, s1, REG_ITMP2);
 			break;
 
 
@@ -2420,7 +2388,7 @@ nowperformreturn:
 				M_LDA(REG_ITMP1, s1, -l);
 			} else {
 				ICONST(REG_ITMP2, l);
-				M_ISUB(s1, REG_ITMP2, REG_ITMP1);
+				M_SUB(s1, REG_ITMP2, REG_ITMP1);
 			}
 
 			/* number of targets */
@@ -2681,14 +2649,8 @@ gen_method:
 
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(d)) {
-					if (IS_2_WORD_TYPE(d)) {
-						/*s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, 
-										PACK_REGS(REG_RESULT2, REG_RESULT)); FIXME*/
-						/*M_LNGMOVE(PACK_REGS(REG_RESULT2, REG_RESULT), s1); FIXME*/
-					} else {
-						s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
-						M_INTMOVE(REG_RESULT, s1);
-					}
+					s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+					M_MOV(REG_RESULT, s1);
 				} else {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
 					M_FLTMOVE(REG_FRESULT, s1);
@@ -2833,17 +2795,17 @@ gen_method:
 #if defined(ENABLE_THREADS)
 						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-						M_ISUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
+						M_SUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
 					} else {
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						M_ISUB(REG_ITMP3, REG_ITMP2, REG_ITMP3);
+						M_SUB(REG_ITMP3, REG_ITMP2, REG_ITMP3);
 						M_ALD(REG_ITMP2, REG_PV, disp);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(ENABLE_THREADS)
 						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					}
-					M_CMPU(REG_ITMP3, REG_ITMP2);
+					M_CMP(REG_ITMP3, REG_ITMP2);
 					M_BGT(0);
 					codegen_add_classcastexception_ref(cd, s1); /* XXX s1? */
 				}
@@ -3018,7 +2980,7 @@ gen_method:
 #if defined(ENABLE_THREADS)
 				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
+				M_SUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_CMPU(REG_ITMP1, REG_ITMP2);
 				M_CLR(d);
 				M_BGT(1);
@@ -3182,6 +3144,7 @@ gen_method:
 
 			disp = dseg_addaddress(cd, eref->function);
 			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_ALD(REG_ITMP3, REG_ITMP3, 0);	/* TOC */
 
 			if (savedmcodeptr != NULL) {
 				disp = ((u4 *) savedmcodeptr) - (((u4 *) cd->mcodeptr) + 1);

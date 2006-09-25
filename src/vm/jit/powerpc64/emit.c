@@ -196,7 +196,6 @@ void emit_verbosecall_enter (jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	s4 s1, p, t, d;
-/*	int stack_off; */
 	int stack_size;
 	methoddesc *md;
 
@@ -228,25 +227,6 @@ void emit_verbosecall_enter (jitdata *jd)
 	/* mark trace code */
 	M_NOP;
 
-	/* save up to TRACE_ARGS_NUM arguments into the reserved stack space */
-#if 0
-#if defined(__DARWIN__)
-	/* Copy Params starting from first to Stack                          */
-	/* since TRACE_ARGS == INT_ARG_CNT all used integer argument regs    */ 
-	/* are saved                                                         */
-	p = 0;
-#else
-	/* Copy Params starting from fifth to Stack (INT_ARG_CNT/2) are in   */
-	/* integer argument regs                                             */
-	/* all integer argument registers have to be saved                   */
-	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
-		/* save integer argument registers */
-		M_LST(d, REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + 8 + p * 8);
-	}
-	p = 4;
-#endif
-#endif
 	M_MFLR(REG_ZERO);
 	M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STDU(REG_SP, REG_SP, -stack_size);
@@ -272,12 +252,8 @@ void emit_verbosecall_enter (jitdata *jd)
 		}
 	}
 
-	/* load first 4 (==INT_ARG_CNT/2) arguments into integer registers */
 #if defined(__DARWIN__)
-	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
-		M_ILD(d, REG_SP, LA_SIZE + p * 4);
-	}
+	#warning "emit_verbosecall_enter not implemented"
 #else
 	/* LINUX */
 	/* Set integer and float argument registers for trace_args call */
@@ -322,26 +298,26 @@ void emit_verbosecall_enter (jitdata *jd)
 	M_JSR;
 
 #if defined(__DARWIN__)
-	/* restore integer argument registers from the reserved stack space */
-
-	stack_off = LA_SIZE;
-	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
-		t = md->paramtypes[p].type;
-
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[p].inmemory) {
-				M_LLD(rd->argintregs[md->params[p].regoff], REG_SP, stack_off);
-			} else  {
-				assert(0);
-			}
-		}
-	}
+	#warning "emit_verbosecall_enter not implemented"
 #else
 	/* LINUX */
 	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
-		d = rd->argintregs[p];
-		/* restore integer argument registers */
-		M_LLD(d, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+		t = md->paramtypes[p].type;
+		if (IS_INT_LNG_TYPE(t))	{
+			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+				/* restore integer argument registers */
+				M_LLD(rd->argintregs[p], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+			} else {
+				assert(0);	/* TODO: implement this */
+			}
+		} else { /* FLT/DBL */
+			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+				M_DLD(rd->argfltregs[md->params[p].regoff], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+			} else {
+				assert(0); /* this shoudl never happen */
+			}
+			
+		}
 	}
 #endif
 	M_ALD(REG_ZERO, REG_SP, stack_size + LA_LR_OFFSET);
