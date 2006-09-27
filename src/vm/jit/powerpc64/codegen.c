@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5545 2006-09-25 16:59:15Z tbfg $
+   $Id: codegen.c 5546 2006-09-27 10:56:34Z tbfg $
 
 */
 
@@ -2489,32 +2489,18 @@ gen_method:
 					continue;
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (!md->params[s3].inmemory) {
-						if (IS_2_WORD_TYPE(src->type)) {
-							s1 = rd->argintregs[md->params[s3].regoff];	/* removed PACKREGS */
-							d = emit_load(jd, iptr, src, s1);
-							M_LNGMOVE(d, s1);
-						} else {
-							s1 = rd->argintregs[md->params[s3].regoff];
-							d = emit_load(jd, iptr, src, s1);
-							M_INTMOVE(d, s1);
-						}
-
+						s1 = rd->argintregs[md->params[s3].regoff];
+						d = emit_load(jd, iptr, src, s1);
+						M_LNGMOVE(d, s1);
 					} else {
-						if (IS_2_WORD_TYPE(src->type)) {
-							d = emit_load(jd, iptr, src, REG_ITMP1);
-							M_LST(d, REG_SP, md->params[s3].regoff * 8);	/* XXX */
-						} else {
-							d = emit_load(jd, iptr, src, REG_ITMP1);
-							M_LST(d, REG_SP, md->params[s3].regoff * 8);
-						}
+						d = emit_load(jd, iptr, src, REG_ITMP1);
+						M_LST(d, REG_SP, md->params[s3].regoff * 8);
 					}
-						
 				} else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, src, s1);
 						M_FLTMOVE(d, s1);
-
 					} else {
 						d = emit_load(jd, iptr, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
@@ -2831,6 +2817,7 @@ gen_method:
 				M_ALD(rd->argintregs[1], REG_PV, disp);
 				disp = dseg_addaddress(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_ITMP2, REG_PV, disp);
+				M_ALD(REG_ITMP2, REG_ITMP2, 0);	/* TOC */
 				M_MTCTR(REG_ITMP2);
 				M_JSR;
 				M_TST(REG_RESULT);

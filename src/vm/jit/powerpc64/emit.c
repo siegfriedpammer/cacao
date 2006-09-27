@@ -75,10 +75,12 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 				M_FLD(tempreg, REG_SP, disp);
 		}
 		else {
-			if (IS_2_WORD_TYPE(src->type))
+		/*	if (IS_2_WORD_TYPE(src->type))
 				M_LLD(tempreg, REG_SP, disp);
 			else
 				M_ILD(tempreg, REG_SP, disp);
+		*/
+			M_LLD(tempreg, REG_SP, disp);
 		}
 
 		reg = tempreg;
