@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5546 2006-09-27 10:56:34Z tbfg $
+   $Id: codegen.c 5548 2006-09-27 13:39:22Z tbfg $
 
 */
 
@@ -875,7 +875,7 @@ bool codegen(jitdata *jd)
 			M_BEQ(0);
 			codegen_add_arithmeticexception_ref(cd);
 
-			M_DIV(d, s1, s2);
+			M_DIV(s1, s2, d);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -2557,6 +2557,7 @@ gen_method:
 					d = md->returntype.type;
 				}
 
+				M_NOP;
 				M_ALD(REG_PV, REG_PV, disp);
 				M_MTCTR(REG_PV);
 				M_JSR;
@@ -3492,14 +3493,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[2]);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8 + LA_LR_OFFSET);
 	disp = dseg_addaddress(cd, codegen_start_native_call);
+
 	M_ALD(REG_ITMP1, REG_PV, disp);
-	M_ALD(REG_ITMP1, REG_ITMP1, 0);	/* FIXME what about TOC? */
+	M_ALD(REG_ITMP1, REG_ITMP1, 0);		/* TOC */
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
-
-	M_NOP;
-	M_NOP;
-	M_NOP;
 
 	/* restore integer and float argument registers */
 
@@ -3585,11 +3583,15 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_ALD(rd->argintregs[0], REG_PV, disp);
 
 	/* generate the actual native call */
+	/* native functions have a different TOC for sure */
 
+	M_AST(REG_TOC, REG_SP, 40);	/* save old TOC */
 	M_ALD(REG_ITMP3, REG_PV, funcdisp);
-	M_ALD(REG_ITMP3, REG_ITMP3, 0);		/* XXX what about TOC ? */
+	M_ALD(REG_TOC, REG_ITMP3, 8);	/* load TOC from func. descriptor */
+	M_ALD(REG_ITMP3, REG_ITMP3, 0);		
 	M_MTCTR(REG_ITMP3);
 	M_JSR;
+	M_ALD(REG_TOC, REG_SP, 40);	/* restore TOC */
 
 	M_NOP;
 	M_NOP;
