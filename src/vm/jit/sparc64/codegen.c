@@ -28,7 +28,7 @@
             Reinhard Grafl
             Alexander Jordan
 
-   Changes:
+   Changes: Edwin Steiner
 
    $Id: codegen.c 4644 2006-03-16 18:44:46Z edwin $
 
@@ -174,7 +174,7 @@ bool codegen(jitdata *jd)
 		dseg_addtarget(cd, ex->start);
    		dseg_addtarget(cd, ex->end);
 		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype.cls);
+		(void) dseg_addaddress(cd, ex->catchtype.any);
 	}
 
 	/* save register window and create stack frame (if necessary) */
