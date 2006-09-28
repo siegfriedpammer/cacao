@@ -114,6 +114,8 @@ dnl temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file
 CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
 
+dnl set interpreter flags
+AC_SUBST(INTRP_CFLAGS)
 
 dnl define some stuff required for --fullversion
 AC_DEFINE_UNQUOTED(VERSION_CONFIGURE_ARGS, "$ac_configure_args", [configure arguments])
@@ -125,7 +127,6 @@ dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
 AC_SUBST(ARCH_DIR)
 AC_SUBST(OS_DIR)
-AC_SUBST(INTRP_CFLAGS)
 AC_SUBST(USE_SCHEDULER)
 
 
