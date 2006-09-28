@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5555 2006-09-28 19:24:16Z edwin $
+   $Id: jni.c 5572 2006-09-28 20:38:28Z edwin $
 
 */
 
@@ -1096,22 +1096,7 @@ jclass FindClass(JNIEnv *env, const char *name)
 	   its associated class loader. In that case, the result of
 	   ClassLoader.getBaseClassLoader is used." */
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
-	/* these JITs support stacktraces, and so does the interpreter */
-
 	cc = stacktrace_getCurrentClass();
-#else
-# if defined(ENABLE_INTRP)
-	/* the interpreter supports stacktraces, even if the JIT does not */
-
-	if (opt_intrp)
-		cc = stacktrace_getCurrentClass();
-	else
-# endif
-		cc = NULL;
-#endif
-
-	/* if no Java method was found, use the system classloader */
 
 	if (cc == NULL)
 		c = load_class_from_sysloader(u);
