@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
    $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
 
@@ -121,7 +121,7 @@ bool cfg_build(jitdata *jd)
 	instruction     *iptr;
 	branch_target_t *table;
 	lookup_target_t *lookup;
-	s4               i, j;
+	s4               i;
 
 	/* get required compiler data */
 
@@ -131,14 +131,21 @@ bool cfg_build(jitdata *jd)
 
 	bptr = jd->new_basicblocks;
 
-	for (i = 0; i < jd->new_basicblockcount; i++, bptr++) {
-		if (bptr->icount == 0)
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
 			continue;
 
 		iptr = bptr->iinstr + bptr->icount - 1;
 
+		/* skip NOPs at the end of the block */
+
+		while (iptr->opc == ICMD_NOP) {
+			if (iptr == bptr->iinstr)
+				continue;
+			iptr--;
+		}
+
 		switch (iptr->opc) {
-		case ICMD_RET:
 		case ICMD_RETURN:
 		case ICMD_IRETURN:
 		case ICMD_LRETURN:
@@ -169,17 +176,25 @@ bool cfg_build(jitdata *jd)
 		case ICMD_IF_ACMPNE:
 			bptr->successorcount += 2;
 
-			tbptr  = BLOCK_OF(iptr->dst.insindex);
+			tbptr  = iptr->dst.block;
 			ntbptr = bptr->next;
 
 			tbptr->predecessorcount++;
 			ntbptr->predecessorcount++;
 			break;
 
-		case ICMD_GOTO:
+		case ICMD_JSR:
 			bptr->successorcount++;
 
-			tbptr = BLOCK_OF(iptr->dst.insindex);
+			tbptr = iptr->sx.s23.s3.jsrtarget.block;
+			tbptr->predecessorcount++;
+			break;
+
+		case ICMD_GOTO:
+		case ICMD_RET:
+			bptr->successorcount++;
+
+			tbptr = iptr->dst.block;
 			tbptr->predecessorcount++;
 			break;
 
@@ -188,16 +203,18 @@ bool cfg_build(jitdata *jd)
 
 			bptr->successorcount++;
 
-			tbptr = BLOCK_OF((table++)->insindex);
+			tbptr = table->block;
 			tbptr->predecessorcount++;
+			table++;
 
-			j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
-			while (--j >= 0) {
+			while (--i >= 0) {
 				bptr->successorcount++;
 
-				tbptr = BLOCK_OF((table++)->insindex);
+				tbptr = table->block;
 				tbptr->predecessorcount++;
+				table++;
 			}
 			break;
 					
@@ -206,23 +223,24 @@ bool cfg_build(jitdata *jd)
 
 			bptr->successorcount++;
 
-			tbptr = BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex);
+			tbptr = iptr->sx.s23.s3.lookupdefault.block;
 			tbptr->predecessorcount++;
 
-			j = iptr->sx.s23.s2.lookupcount;
+			i = iptr->sx.s23.s2.lookupcount;
 
-			while (--j >= 0) {
+			while (--i >= 0) {
 				bptr->successorcount++;
 
-				tbptr = BLOCK_OF((lookup++)->target.insindex);
+				tbptr = lookup->target.block;
 				tbptr->predecessorcount++;
+				lookup++;
 			}
 			break;
 
 		default:
 			bptr->successorcount++;
 
-			tbptr = bptr + 1;
+			tbptr = bptr->next;
 			tbptr->predecessorcount++;
 			break;
 		}
@@ -233,14 +251,21 @@ bool cfg_build(jitdata *jd)
 
 	bptr = jd->new_basicblocks;
 
-	for (i = 0; i < jd->new_basicblockcount; i++, bptr++) {
-		if (bptr->icount == 0)
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
 			continue;
 
 		iptr = bptr->iinstr + bptr->icount - 1;
 
+		/* skip NOPs at the end of the block */
+
+		while (iptr->opc == ICMD_NOP) {
+			if (iptr == bptr->iinstr)
+				continue;
+			iptr--;
+		}
+
 		switch (iptr->opc) {
-		case ICMD_RET:
 		case ICMD_RETURN:
 		case ICMD_IRETURN:
 		case ICMD_LRETURN:
@@ -269,7 +294,7 @@ bool cfg_build(jitdata *jd)
 
 		case ICMD_IF_ACMPEQ:
 		case ICMD_IF_ACMPNE:
-			tbptr  = BLOCK_OF(iptr->dst.insindex);
+			tbptr  = iptr->dst.block;
 			ntbptr = bptr->next;
 
 			cfg_allocate_successors(bptr);
@@ -288,9 +313,14 @@ bool cfg_build(jitdata *jd)
 			ntbptr->predecessorcount++;
 			break;
 
-		case ICMD_GOTO:
-			tbptr = BLOCK_OF(iptr->dst.insindex);
+		case ICMD_JSR:
+			tbptr = iptr->sx.s23.s3.jsrtarget.block;
+			goto goto_tail;
 
+		case ICMD_GOTO:
+		case ICMD_RET:
+			tbptr = iptr->dst.block;
+goto_tail:
 			cfg_allocate_successors(bptr);
 
 			bptr->successors[0] = tbptr;
@@ -305,7 +335,8 @@ bool cfg_build(jitdata *jd)
 		case ICMD_TABLESWITCH:
 			table = iptr->dst.table;
 
-			tbptr = BLOCK_OF((table++)->insindex);
+			tbptr = table->block;
+			table++;
 
 			cfg_allocate_successors(bptr);
 
@@ -317,10 +348,11 @@ bool cfg_build(jitdata *jd)
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
-			while (--j >= 0) {
-				tbptr = BLOCK_OF((table++)->insindex);
+			while (--i >= 0) {
+				tbptr = table->block;
+				table++;
 
 				bptr->successors[bptr->successorcount] = tbptr;
 				bptr->successorcount++;
@@ -333,7 +365,7 @@ bool cfg_build(jitdata *jd)
 		case ICMD_LOOKUPSWITCH:
 			lookup = iptr->dst.lookup;
 
-			tbptr = BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex);
+			tbptr = iptr->sx.s23.s3.lookupdefault.block;
 
 			cfg_allocate_successors(bptr);
 
@@ -345,10 +377,11 @@ bool cfg_build(jitdata *jd)
 			tbptr->predecessors[tbptr->predecessorcount] = bptr;
 			tbptr->predecessorcount++;
 
-			j = iptr->sx.s23.s2.lookupcount;
+			i = iptr->sx.s23.s2.lookupcount;
 
-			while (--j >= 0) {
-				tbptr = BLOCK_OF((lookup++)->target.insindex);
+			while (--i >= 0) {
+				tbptr = lookup->target.block;
+				lookup++;
 
 				bptr->successors[bptr->successorcount] = tbptr;
 				bptr->successorcount++;
@@ -359,7 +392,7 @@ bool cfg_build(jitdata *jd)
 			break;
 
 		default:
-			tbptr = bptr + 1;
+			tbptr = bptr->next;
 
 			cfg_allocate_successors(bptr);
 

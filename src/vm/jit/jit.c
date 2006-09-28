@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5507 2006-09-15 09:19:11Z christian $
+   $Id: jit.c 5554 2006-09-28 19:22:33Z edwin $
 
 */
 
@@ -1592,11 +1592,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
 	
-	/* build the CFG */
-
-	if (!cfg_build(jd))
-		return NULL;
-
 	DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
 
 	/* call stack analysis pass */
@@ -1609,6 +1604,12 @@ static u1 *jit_compile_intern(jitdata *jd)
 	RT_TIMING_GET_TIME(time_stack);
 
 	DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
+
+	/* Build the CFG.  This has to be done after stack_analyse, as
+	   there happens the JSR elimination. */
+
+	if (!cfg_build(jd))
+		return NULL;
 
 #ifdef ENABLE_VERIFIER
 	if (jd->flags & JITDATA_FLAG_VERIFY) {
