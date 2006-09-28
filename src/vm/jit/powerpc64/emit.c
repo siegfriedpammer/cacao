@@ -40,14 +40,12 @@
 #include "vm/types.h"
 
 #include "md-abi.h"
-
-#include "vm/jit/emit.h"
-#include "vm/jit/jit.h"
 #include "vm/jit/powerpc64/codegen.h"
+
 #include "vm/builtin.h"
+#include "vm/jit/emit-common.h"
+#include "vm/jit/jit.h"
 
-
-/* code generation functions **************************************************/
 
 /* emit_load *******************************************************************
 
@@ -75,78 +73,23 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 				M_DLD(tempreg, REG_SP, disp);
 			else
 				M_FLD(tempreg, REG_SP, disp);
-
-		} else {
-			if (IS_2_WORD_TYPE(src->type))
+		}
+		else {
+		/*	if (IS_2_WORD_TYPE(src->type))
 				M_LLD(tempreg, REG_SP, disp);
 			else
 				M_ILD(tempreg, REG_SP, disp);
+		*/
+			M_LLD(tempreg, REG_SP, disp);
 		}
 
 		reg = tempreg;
-	} else
+	}
+	else
 		reg = src->regoff;
 
 	return reg;
 }
-
-
-/* emit_load_s1 ****************************************************************
-
-   Emits a possible load of the first source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr src;
-	s4       reg;
-
-	src = iptr->s1.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s2 ****************************************************************
-
-   Emits a possible load of the second source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr src;
-	s4       reg;
-
-	src = iptr->sx.s23.s2.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s3 ****************************************************************
-
-   Emits a possible load of the third source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	stackptr src;
-	s4       reg;
-
-	src = iptr->sx.s23.s3.var;
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
 
 
 /* emit_store ******************************************************************
@@ -171,23 +114,11 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 				M_DST(d, REG_SP, dst->regoff * 8);
 			else
 				M_FST(d, REG_SP, dst->regoff * 8);
-
-		} else {
+		}
+		else {
 			M_LST(d, REG_SP, dst->regoff * 8);
 		}
 	}
-}
-
-
-/* emit_store_dst **************************************************************
-
-   Emits a possible store to the destination operand of an instruction.
-
-*******************************************************************************/
-
-void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
-{
-	emit_store(jd, iptr, iptr->dst.var, d);
 }
 
 
@@ -267,7 +198,6 @@ void emit_verbosecall_enter (jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	s4 s1, p, t, d;
-/*	int stack_off; */
 	int stack_size;
 	methoddesc *md;
 
@@ -299,25 +229,6 @@ void emit_verbosecall_enter (jitdata *jd)
 	/* mark trace code */
 	M_NOP;
 
-	/* save up to TRACE_ARGS_NUM arguments into the reserved stack space */
-#if 0
-#if defined(__DARWIN__)
-	/* Copy Params starting from first to Stack                          */
-	/* since TRACE_ARGS == INT_ARG_CNT all used integer argument regs    */ 
-	/* are saved                                                         */
-	p = 0;
-#else
-	/* Copy Params starting from fifth to Stack (INT_ARG_CNT/2) are in   */
-	/* integer argument regs                                             */
-	/* all integer argument registers have to be saved                   */
-	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
-		/* save integer argument registers */
-		M_LST(d, REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + 8 + p * 8);
-	}
-	p = 4;
-#endif
-#endif
 	M_MFLR(REG_ZERO);
 	M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STDU(REG_SP, REG_SP, -stack_size);
@@ -343,12 +254,8 @@ void emit_verbosecall_enter (jitdata *jd)
 		}
 	}
 
-	/* load first 4 (==INT_ARG_CNT/2) arguments into integer registers */
 #if defined(__DARWIN__)
-	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
-		M_ILD(d, REG_SP, LA_SIZE + p * 4);
-	}
+	#warning "emit_verbosecall_enter not implemented"
 #else
 	/* LINUX */
 	/* Set integer and float argument registers for trace_args call */
@@ -393,26 +300,26 @@ void emit_verbosecall_enter (jitdata *jd)
 	M_JSR;
 
 #if defined(__DARWIN__)
-	/* restore integer argument registers from the reserved stack space */
-
-	stack_off = LA_SIZE;
-	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
-		t = md->paramtypes[p].type;
-
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[p].inmemory) {
-				M_LLD(rd->argintregs[md->params[p].regoff], REG_SP, stack_off);
-			} else  {
-				assert(0);
-			}
-		}
-	}
+	#warning "emit_verbosecall_enter not implemented"
 #else
 	/* LINUX */
 	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
-		d = rd->argintregs[p];
-		/* restore integer argument registers */
-		M_LLD(d, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+		t = md->paramtypes[p].type;
+		if (IS_INT_LNG_TYPE(t))	{
+			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+				/* restore integer argument registers */
+				M_LLD(rd->argintregs[p], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+			} else {
+				assert(0);	/* TODO: implement this */
+			}
+		} else { /* FLT/DBL */
+			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+				M_DLD(rd->argfltregs[md->params[p].regoff], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+			} else {
+				assert(0); /* this shoudl never happen */
+			}
+			
+		}
 	}
 #endif
 	M_ALD(REG_ZERO, REG_SP, stack_size + LA_LR_OFFSET);

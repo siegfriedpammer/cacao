@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5284 2006-08-31 19:58:15Z tbfg $
+   $Id: asmpart.S 5576 2006-09-28 22:33:48Z edwin $
 
 */
 
@@ -284,7 +284,7 @@ L_register_do_copy_floatdouble:
 
 	slwi    t2,t1,3                   /* multiple of 8-bytes                  */
 	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	lwz     itmp3,0(itmp3)            /* load function address                */
+	ld      itmp3,0(itmp3)            /* load function address                */
 	mtctr   itmp3
 	addi    t1,t1,1                   /* float argument counter               */
 #if defined(__DARWIN__)
