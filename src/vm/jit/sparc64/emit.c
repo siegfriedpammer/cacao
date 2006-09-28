@@ -39,19 +39,19 @@
 
 #include "vm/jit/jit.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit.h"
+#include "vm/jit/emit-common.h"
 #include "vm/jit/sparc64/codegen.h"
 
 
 /* code generation functions **************************************************/
 
-/* emit_load_s1 ****************************************************************
+/* emit_load *******************************************************************
 
-   Emits a possible load of the first source operand.
+   Emits a possible load of an operand.
 
 *******************************************************************************/
 
-s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            reg;
@@ -69,69 +69,8 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 			M_LDX(tempreg, REG_SP, src->regoff * 8);
 
 		reg = tempreg;
-	} else
-		reg = src->regoff;
-
-	return reg;
-}
-
-
-/* emit_load_s2 ****************************************************************
-
-   Emits a possible load of the second source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
-{
-	codegendata  *cd;
-	s4            reg;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		if (IS_FLT_DBL_TYPE(src->type))
-			M_DLD(tempreg, REG_SP, src->regoff * 8);
-		else
-			M_LDX(tempreg, REG_SP, src->regoff * 8);
-
-		reg = tempreg;
-	} else
-		reg = src->regoff;
-
-	return reg;
-}
-
-
-/* emit_load_s3 ****************************************************************
-
-   Emits a possible load of the third source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
-{
-	codegendata  *cd;
-	s4            reg;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-
-	if (src->flags & INMEMORY) {
-		COUNT_SPILLS;
-
-		if (IS_FLT_DBL_TYPE(src->type))
-			M_DLD(tempreg, REG_SP, src->regoff * 8);
-		else
-			M_LDX(tempreg, REG_SP, src->regoff * 8);
-
-		reg = tempreg;
-	} else
+	}
+	else
 		reg = src->regoff;
 
 	return reg;
@@ -140,7 +79,7 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 /* emit_store ******************************************************************
 
-   XXX
+   Emit a possible store for the given variable.
 
 *******************************************************************************/
 
@@ -163,6 +102,12 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 }
 
 
+/* emit_copy *******************************************************************
+
+   Generates a register/memory to register/memory copy.
+
+*******************************************************************************/
+
 void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 {
 	codegendata  *cd;
@@ -174,23 +119,39 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	cd = jd->cd;
 	rd = jd->rd;
 
-	d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
-
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
-		s1 = emit_load_s1(jd, iptr, src, d);
 
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			/* always move doubles for now */
-			M_DBLMOVE(s1, d);
+		/* If one of the variables resides in memory, we can eliminate
+		   the register move from/to the temporary register with the
+		   order of getting the destination register and the load. */
+
+		if (IS_INMEMORY(src->flags)) {
+			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
+			s1 = emit_load(jd, iptr, src, d);
 		}
+		else {
+			s1 = emit_load(jd, iptr, src, REG_IFTMP);
+			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
+		}
+
+		if (s1 != d) {
+			if (IS_FLT_DBL_TYPE(src->type))
+				M_FMOV(s1, d);
 		else
-			M_INTMOVE(s1, d);
+				M_MOV(s1, d);
+		}
 
 		emit_store(jd, iptr, dst, d);
 	}
 }
 
+
+/* emit_iconst *****************************************************************
+
+   XXX
+
+*******************************************************************************/
 
 void emit_iconst(codegendata *cd, s4 d, s4 value)
 {
@@ -204,6 +165,13 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	}
 }
 
+
+/* emit_lconst *****************************************************************
+
+   XXX
+
+*******************************************************************************/
+
 void emit_lconst(codegendata *cd, s4 d, s8 value)
 {
 	s4 disp;
@@ -215,6 +183,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 		M_LDX(d, REG_PV_CALLEE, disp);
 	}
 }
+
 
 /* emit_exception_stubs ********************************************************
 
