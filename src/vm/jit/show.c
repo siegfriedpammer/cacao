@@ -423,13 +423,18 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			break;
 		}
 
-		printf(", icount: %d, preds: %d [ ",
-			   bptr->icount, bptr->predecessorcount);
+		printf(", icount: %d", bptr->icount);
 
-		for (i = 0; i < bptr->predecessorcount; i++)
-			printf("%d ", bptr->predecessors[i]->nr);
+		if (stage >= SHOW_CFG) {
+			printf(", preds: %d [ ", bptr->predecessorcount);
 
-		printf("]):");
+			for (i = 0; i < bptr->predecessorcount; i++)
+				printf("%d ", bptr->predecessors[i]->nr);
+
+			printf("]");
+		}
+
+		printf("):\n");
 
 		if (bptr->original)
 			printf(" (clone of L%03d)", bptr->original->nr);
