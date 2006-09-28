@@ -46,7 +46,7 @@
 #include "vm/builtin.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit.h"
+#include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
 
@@ -162,183 +162,6 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 }
 
 
-/* emit_load_s1 ****************************************************************
-
-   Emits a possible load of the first source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->s1);
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s2 ****************************************************************
-
-   Emits a possible load of the second source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->sx.s23.s2);
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s3 ****************************************************************
-
-   Emits a possible load of the third source operand.
-
-*******************************************************************************/
-
-s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->sx.s23.s3);
-
-	reg = emit_load(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s1_low ************************************************************
-
-   Emits a possible load of the low 32-bits of the first long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->s1);
-
-	reg = emit_load_low(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s2_low ************************************************************
-
-   Emits a possible load of the low 32-bits of the second long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->sx.s23.s2);
-
-	reg = emit_load_low(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s3_low ************************************************************
-
-   Emits a possible load of the low 32-bits of the third long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s3_low(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->sx.s23.s3);
-
-	reg = emit_load_low(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s1_high ***********************************************************
-
-   Emits a possible load of the high 32-bits of the first long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->s1);
-
-	reg = emit_load_high(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s2_high ***********************************************************
-
-   Emits a possible load of the high 32-bits of the second long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->sx.s23.s2);
-
-	reg = emit_load_high(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
-/* emit_load_s3_high ***********************************************************
-
-   Emits a possible load of the high 32-bits of the third long source
-   operand.
-
-*******************************************************************************/
-
-s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg)
-{
-	varinfo *src;
-	s4       reg;
-
-	src = VAROP(iptr->sx.s23.s3);
-
-	reg = emit_load_high(jd, iptr, src, tempreg);
-
-	return reg;
-}
-
-
 /* emit_store ******************************************************************
 
    XXX
@@ -369,25 +192,6 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 				M_IST(d, REG_SP, dst->vv.regoff * 4);
 		}
 	}
-}
-
-
-/* emit_store_dst **************************************************************
-
-   This function generates the code to store the result of an
-   operation back into a spilled pseudo-variable.  If the
-   pseudo-variable has not been spilled in the first place, this
-   function will generate nothing.
-    
-*******************************************************************************/
-
-void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
-{
-	varinfo *dst;
-
-	dst = VAROP(iptr->dst);
-
-	emit_store(jd, iptr, dst, d);
 }
 
 
