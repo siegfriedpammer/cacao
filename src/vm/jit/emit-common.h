@@ -61,30 +61,32 @@
 
 /* code generation functions **************************************************/
 
-s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
+s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg);
 s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg);
 
 #if SIZEOF_VOID_P == 4
+s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg);
 s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s3_low(jitdata *jd, instruction *iptr, s4 tempreg);
 
+s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg);
 s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg);
 #endif
 
-void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d);
 void emit_store_dst(jitdata *jd, instruction *iptr, s4 d);
 
 #if SIZEOF_VOID_P == 4
-void emit_store_low(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
-void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
+void emit_store_low(jitdata *jd, instruction *iptr, varinfo *dst, s4 d);
+void emit_store_high(jitdata *jd, instruction *iptr, varinfo *dst, s4 d);
 #endif
 
-void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst);
+void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst);
 
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);

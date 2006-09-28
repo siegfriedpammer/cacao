@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
    $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
 
@@ -51,10 +51,10 @@
 
 s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->s1.var;
+	src = VAROP(iptr->s1);
 
 	reg = emit_load(jd, iptr, src, tempreg);
 
@@ -70,10 +70,10 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s2.var;
+	src = VAROP(iptr->sx.s23.s2);
 
 	reg = emit_load(jd, iptr, src, tempreg);
 
@@ -89,10 +89,10 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg)
 
 s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s3.var;
+	src = VAROP(iptr->sx.s23.s3);
 
 	reg = emit_load(jd, iptr, src, tempreg);
 
@@ -110,10 +110,10 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg)
 #if SIZEOF_VOID_P == 4
 s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->s1.var;
+	src = VAROP(iptr->s1);
 
 	reg = emit_load_low(jd, iptr, src, tempreg);
 
@@ -132,10 +132,10 @@ s4 emit_load_s1_low(jitdata *jd, instruction *iptr, s4 tempreg)
 #if SIZEOF_VOID_P == 4
 s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s2.var;
+	src = VAROP(iptr->sx.s23.s2);
 
 	reg = emit_load_low(jd, iptr, src, tempreg);
 
@@ -154,10 +154,10 @@ s4 emit_load_s2_low(jitdata *jd, instruction *iptr, s4 tempreg)
 #if SIZEOF_VOID_P == 4
 s4 emit_load_s3_low(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s3.var;
+	src = VAROP(iptr->sx.s23.s3);
 
 	reg = emit_load_low(jd, iptr, src, tempreg);
 
@@ -176,10 +176,10 @@ s4 emit_load_s3_low(jitdata *jd, instruction *iptr, s4 tempreg)
 #if SIZEOF_VOID_P == 4
 s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->s1.var;
+	src = VAROP(iptr->s1);
 
 	reg = emit_load_high(jd, iptr, src, tempreg);
 
@@ -198,10 +198,10 @@ s4 emit_load_s1_high(jitdata *jd, instruction *iptr, s4 tempreg)
 #if SIZEOF_VOID_P == 4
 s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s2.var;
+	src = VAROP(iptr->sx.s23.s2);
 
 	reg = emit_load_high(jd, iptr, src, tempreg);
 
@@ -220,10 +220,10 @@ s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg)
 #if SIZEOF_VOID_P == 4
 s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg)
 {
-	stackptr src;
+	varinfo *src;
 	s4       reg;
 
-	src = iptr->sx.s23.s3.var;
+	src = VAROP(iptr->sx.s23.s3);
 
 	reg = emit_load_high(jd, iptr, src, tempreg);
 
@@ -243,7 +243,7 @@ s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg)
 
 void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 {
-	emit_store(jd, iptr, iptr->dst.var, d);
+	emit_store(jd, iptr, VAROP(iptr->dst), d);
 }
 
 
