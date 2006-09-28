@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 5258 2006-08-22 09:02:25Z tbfg $
+   $Id: options.c 5574 2006-09-28 20:47:58Z twisti $
 
 */
 
@@ -217,31 +217,6 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 	}
 
 	return OPT_ERROR;
-}
-
-
-/* options_prepare *************************************************************
-
-   Prepare the JavaVMInitArgs.
-
-*******************************************************************************/
-
-JavaVMInitArgs *options_prepare(int argc, char **argv)
-{
-	JavaVMInitArgs *vm_args;
-	s4              i;
-
-	vm_args = NEW(JavaVMInitArgs);
-
-	vm_args->version            = JNI_VERSION_1_2;
-	vm_args->nOptions           = argc - 1;
-	vm_args->options            = MNEW(JavaVMOption, argc);
-	vm_args->ignoreUnrecognized = JNI_FALSE;
-
-	for (i = 1; i < argc; i++)
-		vm_args->options[i - 1].optionString = argv[i];
-
-	return vm_args;
 }
 
 

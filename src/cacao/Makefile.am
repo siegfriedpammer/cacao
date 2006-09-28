@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4970 2006-05-29 14:31:12Z twisti $
+## $Id: Makefile.am 5574 2006-09-28 20:47:58Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -60,6 +60,8 @@ libjvm_la_LDFLAGS = \
 
 cacao_LDFLAGS += \
 	-export-dynamic
+
+CACAO_LIBS =
 else
 noinst_LTLIBRARIES = \
 	libjvm.la
@@ -79,6 +81,10 @@ CLASSPATH_LIBS = \
 	$(CLASSPATH_LIBDIR)/classpath/libjavautil.a \
 	$(CLASSPATH_LIBDIR)/classpath/libjavalang.a \
 	$(CLASSPATH_LIBDIR)/classpath/libjavalangreflect.a
+
+CACAO_LIBS = \
+	libjvm.la \
+	$(CLASSPATH_LIBS)
 
 #if USE_GTK_PEER
 #cacao_CFLAGS = \
@@ -116,8 +122,7 @@ cacao_SOURCES = \
 	cacao.c
 
 cacao_LDADD = \
-	libjvm.la \
-	$(CLASSPATH_LIBS)
+	$(CACAO_LIBS)
 
 cacao_DEPENDENCIES = \
 	$(cacao_LDADD)

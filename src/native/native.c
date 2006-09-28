@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5567 2006-09-28 20:20:18Z edwin $
+   $Id: native.c 5574 2006-09-28 20:47:58Z twisti $
 
 */
 
@@ -328,9 +328,9 @@ static lt_dlhandle mainhandle;
 #endif
 
 
-/* native_loadclasses **********************************************************
+/* native_init *****************************************************************
 
-   Load classes required for native methods.
+   Initializes the native subsystem.
 
 *******************************************************************************/
 
@@ -339,17 +339,19 @@ bool native_init(void)
 #if !defined(WITH_STATIC_CLASSPATH)
 	/* initialize libltdl */
 
-	if (lt_dlinit()) {
-		/* XXX how can we throw an exception here? */
-		log_text(lt_dlerror());
+	if (lt_dlinit())
+		vm_abort("lt_dlinit failed: %s\n", lt_dlerror());
 
-		return false;
-	}
+	/* Get the handle for the main program or for the libjvm.so,
+	   depends on the configuration. */
 
-	/* get the handle for the main program */
-
+# if defined(ENABLE_LIBJVM)
+	if (!(mainhandle = lt_dlopenext(CACAO_LIBDIR"/libjvm")))
+		vm_abort("lt_dlopenext failed: %s\n", lt_dlerror());
+# else
 	if (!(mainhandle = lt_dlopen(NULL)))
-		return false;
+		vm_abort("lt_dlopen failed: %s\n", lt_dlerror());
+# endif
 
 	/* initialize library hashtable, 10 entries should be enough */
 

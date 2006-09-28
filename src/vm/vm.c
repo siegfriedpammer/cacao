@@ -36,6 +36,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <stdlib.h>
 
 #include "vm/types.h"
@@ -563,6 +564,13 @@ static void fullversion(void)
 }
 
 
+/* forward declarations *******************************************************/
+
+static char *vm_get_mainclass_from_jar(char *mainstring);
+static void  vm_compile_all(void);
+static void  vm_compile_method(void);
+
+
 /* vm_create *******************************************************************
 
    Creates a JVM.  Called by JNI_CreateJavaVM.
@@ -602,6 +610,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (vms > 0)
 		return false;
 
+	if (atexit(vm_exit_handler))
+		vm_abort("atexit failed: %s\n", strerror(errno));
+
+	if (opt_verbose)
+		log_text("CACAO started -------------------------------------------------------");
+
 	/* set the VM starttime */
 
 	_Jv_jvm->starttime = builtin_currenttimemillis();
@@ -639,8 +653,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (cp) {
 		classpath = MNEW(char, strlen(cp) + strlen("0"));
 		strcat(classpath, cp);
-
-	} else {
+	}
+	else {
 		classpath = MNEW(char, strlen(".") + strlen("0"));
 		strcpy(classpath, ".");
 	}
@@ -673,7 +687,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* add some default properties */
 
 	properties_add("java.endorsed.dirs", ""CACAO_PREFIX"/jre/lib/endorsed");
-
 
 	/* iterate over all passed options */
 
@@ -1175,8 +1188,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			classpath = MNEW(char, strlen(mainstring) + strlen("0"));
 
 			strcpy(classpath, mainstring);
-		
-		} else {
+		}
+		else {
 			/* replace .'s with /'s in classname */
 
 			for (i = strlen(mainstring) - 1; i >= 0; i--)
@@ -1376,6 +1389,138 @@ bool vm_create(JavaVMInitArgs *vm_args)
 }
 
 
+/* vm_run **********************************************************************
+
+   Runs the main-method of the passed class.
+
+*******************************************************************************/
+
+void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
+{
+	utf              *mainutf;
+	classinfo        *mainclass;
+	methodinfo       *m;
+	java_objectarray *oa; 
+	s4                oalength;
+	utf              *u;
+	java_lang_String *s;
+	s4                status;
+	s4                i;
+
+	if (compileall) {
+		vm_compile_all();
+		return;
+	}
+
+	if (opt_method != NULL) {
+		vm_compile_method();
+		return;
+	}
+
+	/* should we run the main-method? */
+
+	if (mainstring == NULL)
+		usage();
+
+	/* set return value to OK */
+
+	status = 0;
+
+	if (opt_jar == true)
+		/* open jar file with java.util.jar.JarFile */
+		mainstring = vm_get_mainclass_from_jar(mainstring);
+
+	/* load the main class */
+
+	mainutf = utf_new_char(mainstring);
+
+	if (!(mainclass = load_class_from_sysloader(mainutf)))
+		throw_main_exception_exit();
+
+	/* error loading class, clear exceptionptr for new exception */
+
+	if (*exceptionptr || !mainclass) {
+		/*  			*exceptionptr = NULL; */
+
+		/*  			*exceptionptr = */
+		/*  				new_exception_message(string_java_lang_NoClassDefFoundError, */
+		/*  									  mainstring); */
+		throw_main_exception_exit();
+	}
+
+	if (!link_class(mainclass))
+		throw_main_exception_exit();
+			
+	/* find the `main' method of the main class */
+
+	m = class_resolveclassmethod(mainclass,
+								 utf_new_char("main"), 
+								 utf_new_char("([Ljava/lang/String;)V"),
+								 class_java_lang_Object,
+								 false);
+
+	if (*exceptionptr) {
+		throw_main_exception_exit();
+	}
+
+	/* there is no main method or it isn't static */
+
+	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
+		*exceptionptr = NULL;
+
+		*exceptionptr =
+			new_exception_message(string_java_lang_NoSuchMethodError, "main");
+		throw_main_exception_exit();
+	}
+
+	/* build argument array */
+
+	oalength = vm_args->nOptions - opt_index;
+
+	oa = builtin_anewarray(oalength, class_java_lang_String);
+
+	for (i = 0; i < oalength; i++) {
+		u = utf_new_char(vm_args->options[opt_index + i].optionString);
+		s = javastring_new(u);
+
+		oa->data[i] = (java_objectheader *) s;
+	}
+
+#ifdef TYPEINFO_DEBUG_TEST
+	/* test the typeinfo system */
+	typeinfo_test();
+#endif
+	/*class_showmethods(currentThread->group->header.vftbl->class);	*/
+
+#if defined(ENABLE_JVMTI)
+	jvmti_set_phase(JVMTI_PHASE_LIVE);
+#endif
+
+	/* increase total started thread count */
+
+	_Jv_jvm->total_started_thread_count++;
+
+	/* start the main thread */
+
+	(void) vm_call_method(m, NULL, oa);
+
+	/* exception occurred? */
+
+	if (*exceptionptr) {
+		throw_main_exception();
+		status = 1;
+	}
+
+	/* unload the JavaVM */
+
+	vm_destroy(vm);
+
+	/* and exit */
+
+	vm_exit(status);
+}
+
+
 /* vm_destroy ******************************************************************
 
    Unloads a Java VM and reclaims its resources.
@@ -1564,6 +1709,237 @@ void vm_abort(const char *text, ...)
 
 	abort();
 }
+
+
+/* vm_get_mainclass_from_jar ***************************************************
+
+   Gets the name of the main class from a JAR's manifest file.
+
+*******************************************************************************/
+
+static char *vm_get_mainclass_from_jar(char *mainstring)
+{
+	classinfo         *c;
+	java_objectheader *o;
+	methodinfo        *m;
+	java_lang_String  *s;
+
+	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
+
+	if (c == NULL)
+		throw_main_exception_exit();
+	
+	/* create JarFile object */
+
+	o = builtin_new(c);
+
+	if (o == NULL)
+		throw_main_exception_exit();
+
+
+	m = class_resolveclassmethod(c,
+								 utf_init, 
+								 utf_java_lang_String__void,
+								 class_java_lang_Object,
+								 true);
+
+	if (m == NULL)
+		throw_main_exception_exit();
+
+	s = javastring_new_from_ascii(mainstring);
+
+	(void) vm_call_method(m, o, s);
+
+	if (*exceptionptr)
+		throw_main_exception_exit();
+
+	/* get manifest object */
+
+	m = class_resolveclassmethod(c,
+								 utf_new_char("getManifest"), 
+								 utf_new_char("()Ljava/util/jar/Manifest;"),
+								 class_java_lang_Object,
+								 true);
+
+	if (m == NULL)
+		throw_main_exception_exit();
+
+	o = vm_call_method(m, o);
+
+	if (o == NULL) {
+		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainstring);
+		vm_exit(1);
+	}
+
+
+	/* get Main Attributes */
+
+	m = class_resolveclassmethod(o->vftbl->class,
+								 utf_new_char("getMainAttributes"), 
+								 utf_new_char("()Ljava/util/jar/Attributes;"),
+								 class_java_lang_Object,
+								 true);
+
+	if (m == NULL)
+		throw_main_exception_exit();
+
+	o = vm_call_method(m, o);
+
+	if (o == NULL) {
+		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainstring);
+		vm_exit(1);
+	}
+
+
+	/* get property Main-Class */
+
+	m = class_resolveclassmethod(o->vftbl->class,
+								 utf_new_char("getValue"), 
+								 utf_new_char("(Ljava/lang/String;)Ljava/lang/String;"),
+								 class_java_lang_Object,
+								 true);
+
+	if (m == NULL)
+		throw_main_exception_exit();
+
+	s = javastring_new_from_ascii("Main-Class");
+
+	o = vm_call_method(m, o, s);
+
+	if (o == NULL)
+		throw_main_exception_exit();
+
+	return javastring_tochar(o);
+}
+
+
+/* vm_compile_all **************************************************************
+
+   Compile all methods found in the bootclasspath.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+static void vm_compile_all(void)
+{
+	classinfo              *c;
+	methodinfo             *m;
+	u4                      slot;
+	classcache_name_entry  *nmen;
+	classcache_class_entry *clsen;
+	s4                      i;
+
+	/* create all classes found in the bootclasspath */
+	/* XXX currently only works with zip/jar's */
+
+	loader_load_all_classes();
+
+	/* link all classes */
+
+	for (slot = 0; slot < hashtable_classcache.size; slot++) {
+		nmen = (classcache_name_entry *) hashtable_classcache.ptr[slot];
+
+		for (; nmen; nmen = nmen->hashlink) {
+			/* iterate over all class entries */
+
+			for (clsen = nmen->classes; clsen; clsen = clsen->next) {
+				c = clsen->classobj;
+
+				if (c == NULL)
+					continue;
+
+				if (!(c->state & CLASS_LINKED)) {
+					if (!link_class(c)) {
+						fprintf(stderr, "Error linking: ");
+						utf_fprint_printable_ascii_classname(stderr, c->name);
+						fprintf(stderr, "\n");
+
+						/* print out exception and cause */
+
+						exceptions_print_exception(*exceptionptr);
+
+						/* goto next class */
+
+						continue;
+					}
+				}
+
+				/* compile all class methods */
+
+				for (i = 0; i < c->methodscount; i++) {
+					m = &(c->methods[i]);
+
+					if (m->jcode != NULL) {
+						if (!jit_compile(m)) {
+							fprintf(stderr, "Error compiling: ");
+							utf_fprint_printable_ascii_classname(stderr, c->name);
+							fprintf(stderr, ".");
+							utf_fprint_printable_ascii(stderr, m->name);
+							utf_fprint_printable_ascii(stderr, m->descriptor);
+							fprintf(stderr, "\n");
+
+							/* print out exception and cause */
+
+							exceptions_print_exception(*exceptionptr);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+#endif /* !defined(NDEBUG) */
+
+
+/* vm_compile_method ***********************************************************
+
+   Compile a specific method.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+static void vm_compile_method(void)
+{
+	methodinfo *m;
+
+	/* create, load and link the main class */
+
+	if (!(mainclass = load_class_bootstrap(utf_new_char(mainstring))))
+		throw_main_exception_exit();
+
+	if (!link_class(mainclass))
+		throw_main_exception_exit();
+
+	if (opt_signature != NULL) {
+		m = class_resolveclassmethod(mainclass,
+									 utf_new_char(opt_method),
+									 utf_new_char(opt_signature),
+									 mainclass,
+									 false);
+	}
+	else {
+		m = class_resolveclassmethod(mainclass,
+									 utf_new_char(opt_method),
+									 NULL,
+									 mainclass,
+									 false);
+	}
+
+	if (m == NULL) {
+		char message[MAXLOGTEXT];
+		sprintf(message, "%s%s", opt_method,
+				opt_signature ? opt_signature : "");
+
+		*exceptionptr =
+			new_exception_message(string_java_lang_NoSuchMethodException,
+								  message);
+										 
+		throw_main_exception_exit();
+	}
+		
+	jit_compile(m);
+}
+#endif /* !defined(NDEBUG) */
 
 
 /* vm_vmargs_from_valist *******************************************************

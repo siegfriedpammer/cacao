@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 5258 2006-08-22 09:02:25Z tbfg $
+   $Id: options.h 5574 2006-09-28 20:47:58Z twisti $
 
 */
 
@@ -164,7 +164,6 @@ extern bool vm_debug;
 /* function prototypes ********************************************************/
 
 s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args);
-JavaVMInitArgs *options_prepare(int argc, char **argv);
 
 #endif /* _OPTIONS_H */
 
