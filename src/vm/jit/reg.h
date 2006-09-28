@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: reg.h 5498 2006-09-14 18:56:49Z edwin $
+   $Id: reg.h 5549 2006-09-28 17:02:56Z edwin $
 
 */
 
@@ -131,6 +131,10 @@ struct registerdata {
 	int freesavinttop;              /* free saved integer register count      */
 	int freetmpflttop;              /* free scratch float register count      */
 	int freesavflttop;              /* free saved float register count        */
+
+	int *regcopycount;              /* counts copies of each register regoff  */
+	int *memcopycount;              /* counts copies of each INMEMORY regoff  */
+	int memcopycountsize;           /* size of memcopycount buffer            */
 };
 
 

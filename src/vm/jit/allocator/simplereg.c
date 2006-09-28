@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5523 2006-09-15 17:19:16Z christian $
+   $Id: simplereg.c 5549 2006-09-28 17:02:56Z edwin $
 
 */
 
@@ -752,7 +752,7 @@ static void local_regalloc(jitdata *jd)
 }
 
 
-static void reg_init_temp(methodinfo *m, registerdata *rd)
+static void reg_init_temp(jitdata *jd, registerdata *rd)
 {
 	rd->freememtop = 0;
 #if defined(HAS_4BYTE_STACKSLOT)
@@ -773,6 +773,14 @@ static void reg_init_temp(methodinfo *m, registerdata *rd)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	rd->freeargadrtop = 0;
 #endif
+
+	rd->regcopycount = DMNEW(int, INT_REG_CNT + FLT_REG_CNT);
+	MZERO(rd->regcopycount, int, INT_REG_CNT + FLT_REG_CNT);
+
+	/* memcopycount is dynamically allocated when needed */
+
+	rd->memcopycount = NULL;
+	rd->memcopycountsize = 0;
 }
 
 
@@ -985,11 +993,10 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 }
 
 
-#define reg_free_temp(jd,index) \
-	if ((index > jd->localcount) \
-		&& (!(jd->var[index].flags & OUTVAR))	\
-		&& (!(jd->var[index].flags & PREALLOC)) ) \
-		reg_free_temp_func(jd, index)
+#define reg_free_temp(jd,index)                                      \
+    if ((index > jd->localcount)                                     \
+        && (!(jd->var[index].flags & (OUTVAR | PREALLOC))))          \
+        reg_free_temp_func(jd, index)
 
 /* Do not free regs/memory locations used by Stackslots flagged STCOPY! There is still another Stackslot */
 /* alive using this reg/memory location */
@@ -1004,6 +1011,20 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 	rd = jd->rd;
 	v = &(jd->var[index]);
 
+	/* if this is a copy of another variable, just decrement the copy counter */
+
+	if (v->flags & INMEMORY) {
+		if (v->vv.regoff < rd->memcopycountsize && rd->memcopycount[v->vv.regoff]) {
+			rd->memcopycount[v->vv.regoff]--;
+			return;
+		}
+	}
+	else {
+		if (rd->regcopycount[v->vv.regoff]) {
+			rd->regcopycount[v->vv.regoff]--;
+			return;
+		}
+	}
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 	intregsneeded = (IS_2_WORD_TYPE(v->type)) ? 1 : 0;
@@ -1088,6 +1109,45 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 }
 
 
+static bool reg_alloc_dup(jitdata *jd, s4 srcindex, s4 dstindex)
+{
+	varinfo *sv;
+	varinfo *dv;
+
+	/* do not coalesce local variables here */
+
+	if (srcindex <= jd->localcount || dstindex <= jd->localcount)
+		return false;
+
+	sv = VAR(srcindex);
+	dv = VAR(dstindex);
+
+	/* do not coalesce in/out vars or preallocated variables here */
+
+	if ((sv->flags | dv->flags) & (OUTVAR | PREALLOC))
+		return false;
+
+	/* if the source is in memory, we can coalesce in any case */
+
+	if (sv->flags & INMEMORY) {
+		dv->flags |= INMEMORY;
+		dv->vv.regoff = sv->vv.regoff;
+		return true;
+	}
+
+	/* we do not allocate a REG_TMP to a REG_SAV variable */
+
+	if ((sv->flags & SAVEDVAR) != (dv->flags & SAVEDVAR))
+		return false;
+
+	/* coalesce */
+	dv->vv.regoff = sv->vv.regoff;
+	dv->flags |= sv->flags & (SAVEDTMP | TMPARG);
+
+	return true;
+}
+
+
 /* allocate_scratch_registers **************************************************
 
    Allocate temporary (non-interface, non-local) registers.
@@ -1105,6 +1165,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 	builtintable_entry *bte;
 	methoddesc         *md;
 	s4                 *argp;
+	varinfo            *v;
 
 	/* get required compiler data */
 
@@ -1113,7 +1174,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 
 	/* initialize temp registers */
 
-	reg_init_temp(m, rd);
+	reg_init_temp(jd, rd);
 
 	bptr = jd->new_basicblocks;
 
@@ -1124,7 +1185,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 
 			for (i=0; i<bptr->indepth; ++i) 
 			{
-				varinfo *v = jd->var + bptr->invars[i];
+				v = jd->var + bptr->invars[i];
 
 				v->vv.regoff = jd->interface_map[5*i + v->type].regoff;
 				v->flags  = jd->interface_map[5*i + v->type].flags;
@@ -1134,7 +1195,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 
 			for (i=0; i<bptr->outdepth; ++i) 
 			{
-				varinfo *v = jd->var + bptr->outvars[i];
+				v = jd->var + bptr->outvars[i];
 
 				v->vv.regoff = jd->interface_map[5*i + v->type].regoff;
 				v->flags  = jd->interface_map[5*i + v->type].flags;
@@ -1336,19 +1397,35 @@ static void new_allocate_scratch_registers(jitdata *jd)
 					/* src === dst->prev (identical Stackslot Element)     */
 					/* src --> dst       (copied value, take same reg/mem) */
 
-/* 					if (!reg_alloc_dup(iptr->s1.varindex, iptr->dst.varindex)) { */
+ 					if (!reg_alloc_dup(jd, iptr->s1.varindex, iptr->dst.varindex)) {
 						reg_new_temp(jd, iptr->dst.varindex);
-/* 					} else { */
-/* 						iptr->dst.varindex->flags |= STCOPY; */
-/* 					} */
+ 					} else {
+						v = VAROP(iptr->dst);
+
+						if (v->flags & INMEMORY) {
+							if (v->vv.regoff >= rd->memcopycountsize) {
+								int newsize = (v->vv.regoff + 1) * 2;
+								i = rd->memcopycountsize;
+								rd->memcopycount = DMREALLOC(rd->memcopycount, int, i, newsize);
+								MZERO(rd->memcopycount + i, int, newsize - i);
+								rd->memcopycountsize = newsize;
+							}
+							rd->memcopycount[v->vv.regoff]++;
+						}
+						else {
+							rd->regcopycount[v->vv.regoff]++;
+						}
+ 					}
 					break;
 
 					/* pop 1 push 1 move */
 
 				case ICMD_MOVE:
+ 					if (!reg_alloc_dup(jd, iptr->s1.varindex, iptr->dst.varindex)) {
 						reg_new_temp(jd, iptr->dst.varindex);
 						reg_free_temp(jd, iptr->s1.varindex);
-						break;
+					}
+					break;
 
 					/* pop 2 push 1 */
 					
