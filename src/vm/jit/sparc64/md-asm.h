@@ -45,6 +45,16 @@
 #define itmp2	%g2
 #define itmp3	%g3
 
+#define mptr_itmp2 itmp2
+
+#define xptr_itmp2 itmp2
+#define xpc_itmp3  itmp3
+
+#define ra_caller  %o7
+#define ra_callee  %i7
+
+#define pv_caller  %o5
+#define pv_callee  %i5
 
 #endif /* _MD_ASM_H */
 
