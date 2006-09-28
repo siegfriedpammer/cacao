@@ -1,4 +1,4 @@
-/* src/vm/jit/emit.h - code emitter functions
+/* src/vm/jit/emit-common.h - common code emitter functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -61,7 +61,7 @@
 
 /* code generation functions **************************************************/
 
-s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg);
+s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s3(jitdata *jd, instruction *iptr, s4 tempreg);
@@ -76,15 +76,15 @@ s4 emit_load_s2_high(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg);
 #endif
 
-void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d);
+void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
 void emit_store_dst(jitdata *jd, instruction *iptr, s4 d);
 
 #if SIZEOF_VOID_P == 4
-void emit_store_low(jitdata *jd, instruction *iptr, varinfo *dst, s4 d);
-void emit_store_high(jitdata *jd, instruction *iptr, varinfo *dst, s4 d);
+void emit_store_low(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
+void emit_store_high(jitdata *jd, instruction *iptr, stackptr dst, s4 d);
 #endif
 
-void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst);
+void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst);
 
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);
