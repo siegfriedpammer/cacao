@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5566 2006-09-28 20:19:07Z edwin $
+   $Id: codegen.c 5568 2006-09-28 20:23:30Z edwin $
 
 */
 
@@ -3532,7 +3532,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* generate stub code */
 
 	M_LDA(REG_SP, REG_SP, -cd->stackframesize * 8); /* build up stackframe    */
-	M_AST(REG_RA, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P); /* store RA*/
+	M_AST(REG_RA, REG_SP, (cd->stackframesize - 1) * 8); /* store RA          */
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
@@ -3571,10 +3571,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* prepare data structures for native function call */
 
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P, REG_A0);
+	M_AADD_IMM(REG_SP, (cd->stackframesize - 1) * 8, REG_A0);
 	M_MOV(REG_PV, REG_A1);
 	M_AADD_IMM(REG_SP, cd->stackframesize * 8, REG_A2);
-	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_ALD(REG_A3, REG_SP, (cd->stackframesize - 1) * 8);
 	disp = dseg_addaddress(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
@@ -3687,7 +3687,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P, REG_A0);
+	M_AADD_IMM(REG_SP, (cd->stackframesize - 1) * 8, REG_A0);
 	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
@@ -3703,7 +3703,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 	}
 
-	M_ALD(REG_RA, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P); /* load RA */
+	M_ALD(REG_RA, REG_SP, (cd->stackframesize - 1) * 8); /* load RA           */
 
 	/* check for exception */
 
