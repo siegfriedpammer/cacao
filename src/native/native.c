@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5259 2006-08-22 12:43:00Z twisti $
+   $Id: native.c 5567 2006-09-28 20:20:18Z edwin $
 
 */
 
@@ -38,6 +38,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <ctype.h>
 
 #if !defined(WITH_STATIC_CLASSPATH)
 # include <ltdl.h>
@@ -662,6 +663,68 @@ static char *native_make_overloaded_function(char *name, utf *desc)
 }
 
 
+/* native_insert_char **********************************************************
+
+   Inserts the passed UTF character into the native method name.  If
+   necessary it is escaped properly.
+
+*******************************************************************************/
+
+static s4 native_insert_char(char *name, u4 pos, u2 c)
+{
+	s4 val;
+	s4 i;
+
+	switch (c) {
+	case '/':
+	case '.':
+		/* replace '/' or '.' with '_' */
+		name[pos] = '_';
+		break;
+
+	case '_':
+		/* escape sequence for '_' is '_1' */
+		name[pos]   = '_';
+		name[++pos] = '1';
+		break;
+
+	case ';':
+		/* escape sequence for ';' is '_2' */
+		name[pos]   = '_';
+		name[++pos] = '2';
+		break;
+
+	case '[':
+		/* escape sequence for '[' is '_1' */
+		name[pos]   = '_';
+		name[++pos] = '3';
+		break;
+
+	default:
+		if (isalnum(c))
+			name[pos] = c;
+		else {
+			/* unicode character */
+			name[pos]   = '_';
+			name[++pos] = '0';
+
+			for (i = 0; i < 4; ++i) {
+				val = c & 0x0f;
+				name[pos + 4 - i] = (val > 10) ? ('a' + val - 10) : ('0' + val);
+				c >>= 4;
+			}
+
+			pos += 4;
+		}
+		break;
+	}
+
+	/* return the new buffer index */
+
+	return pos;
+}
+
+
 /* native_resolve_function *****************************************************
 
    Resolves a native function, maybe from a dynamic library.
@@ -670,19 +733,19 @@ static char *native_make_overloaded_function(char *name, utf *desc)
 
 functionptr native_resolve_function(methodinfo *m)
 {
-	lt_ptr                     sym;
-	char                      *name;
-	char                      *newname;
-	s4                         namelen;
-	char                      *utf_ptr;
-	char                      *utf_endptr;
-	s4                         dumpsize;
+	lt_ptr                          sym;
+	char                           *name;
+	char                           *newname;
+	s4                              namelen;
+	char                           *utf_ptr;
+	char                           *utf_endptr;
+	u2                              c;
+	u4                              pos;
+	s4                              dumpsize;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne;
-	u4                         key;     /* hashkey                            */
-	u4                         slot;    /* slot in hashtable                  */
-	u4                         i;
-
+	u4                              key;    /* hashkey                        */
+	u4                              slot;   /* slot in hashtable              */
 
 	/* verbose output */
 
@@ -694,28 +757,15 @@ functionptr native_resolve_function(methodinfo *m)
 		printf(" ... ");
 	}
 		
-	/* calculate length of native function name */
+	/* Calculate length of native function name.  We multiply the
+	   class and method name length by 6 as this is the maxium
+	   escape-sequence that can be generated (unicode). */
 
-	namelen = strlen("Java_") + utf_get_number_of_u2s(m->class->name) + strlen("_") +
-		utf_get_number_of_u2s(m->name) + strlen("0");
-
-	/* check for underscores in class name */
-
-	utf_ptr = m->class->name->text;
-	utf_endptr = UTF_END(m->class->name);
-
-	while (utf_ptr < utf_endptr)
-		if (utf_nextu2(&utf_ptr) == '_')
-			namelen++;
-
-	/* check for underscores in method name */
-
-	utf_ptr = m->name->text;
-	utf_endptr = UTF_END(m->name);
-
-	while (utf_ptr < utf_endptr)
-		if (utf_nextu2(&utf_ptr) == '_')
-			namelen++;
+	namelen = strlen("Java_") +
+		utf_get_number_of_u2s(m->class->name) * 6 +
+		strlen("_") +
+		utf_get_number_of_u2s(m->name) * 6 +
+		strlen("0");
 
 	/* allocate memory */
 
@@ -723,49 +773,38 @@ functionptr native_resolve_function(methodinfo *m)
 
 	name = DMNEW(char, namelen);
 
-
 	/* generate name of native functions */
 
 	strcpy(name, "Java_");
-	i = strlen("Java_");
+	pos = strlen("Java_");
 
-	utf_ptr = m->class->name->text;
+	utf_ptr    = m->class->name->text;
 	utf_endptr = UTF_END(m->class->name);
 
-	for (; utf_ptr < utf_endptr; utf_ptr++, i++) {
-		name[i] = *utf_ptr;
-
-		/* escape sequence for '_' is '_1' */
-
-		if (name[i] == '_')
-			name[++i] = '1';
-
-		/* replace '/' with '_' */
-
-		if (name[i] == '/')
-			name[i] = '_';
+	for (; utf_ptr < utf_endptr; utf_ptr++, pos++) {
+		c   = *utf_ptr;
+		pos = native_insert_char(name, pos, c);
 	}
 
 	/* seperator between class and method */
 
-	name[i++] = '_';
+	name[pos++] = '_';
 
-	utf_ptr = m->name->text;
+	utf_ptr    = m->name->text;
 	utf_endptr = UTF_END(m->name);
 
-	for (; utf_ptr < utf_endptr; utf_ptr++, i++) {
-		name[i] = *utf_ptr;
-
-		/* escape sequence for '_' is '_1' */
-
-		if (name[i] == '_')
-			name[++i] = '1';
+	for (; utf_ptr < utf_endptr; utf_ptr++, pos++) {
+		c   = *utf_ptr;
+		pos = native_insert_char(name, pos, c);
 	}
 
 	/* close string */
 
-	name[i] = '\0';
+	name[pos] = '\0';
 
+	/* check for an buffer overflow */
+
+	assert(pos <= namelen);
 
 	/* generate overloaded function (having the types in it's name)           */
 
