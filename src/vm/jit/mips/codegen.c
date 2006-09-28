@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5564 2006-09-28 20:17:03Z edwin $
+   $Id: codegen.c 5565 2006-09-28 20:18:10Z edwin $
 
 */
 
@@ -68,7 +68,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit.h"
+#include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
@@ -92,7 +92,6 @@ bool codegen(jitdata *jd)
 	codegendata        *cd;
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
-	ptrint              a;
 	stackptr            src;
 	varinfo            *var;
 	basicblock         *bptr;
@@ -1881,14 +1880,13 @@ bool codegen(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp = dseg_addaddress(cd, NULL);
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic,
-									iptr->sx.s23.s3.uf, disp);
+				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
-
-			} else {
+			}
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
@@ -1904,33 +1902,30 @@ bool codegen(jitdata *jd)
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
+
 			switch (fieldtype) {
 			case TYPE_INT:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_ILD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_LNG:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_LLD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_ALD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_FLT:
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_FLD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_DBL:				
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			}
+			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
@@ -1941,14 +1936,13 @@ bool codegen(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp = dseg_addaddress(cd, NULL);
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic,
-									iptr->sx.s23.s3.uf, disp);
+				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
-
-			} else {
+			}
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
@@ -1964,6 +1958,7 @@ bool codegen(jitdata *jd)
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
+
 			switch (fieldtype) {
 			case TYPE_INT:
 				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
@@ -1998,14 +1993,13 @@ bool codegen(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp = dseg_addaddress(cd, NULL);
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic,
-									uf, disp);
+				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
-
-			} else {
+			}
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
@@ -2021,6 +2015,7 @@ bool codegen(jitdata *jd)
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
+
 			switch (fieldtype) {
 			case TYPE_INT:
 				M_IST_INTERN(REG_ZERO, REG_ITMP1, 0);
@@ -2051,103 +2046,93 @@ bool codegen(jitdata *jd)
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield,
-									iptr->sx.s23.s3.uf, 0);
+				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
 
-				a = 0;
-
-			} else {
+				disp = 0;
+			}
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				a = fi->offset;
+				disp = fi->offset;
 			}
 
 			switch (fieldtype) {
 			case TYPE_INT:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-				M_ILD(d, s1, a);
-				emit_store_dst(jd, iptr, d);
+				M_ILD(d, s1, disp);
 				break;
 			case TYPE_LNG:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-				M_LLD(d, s1, a);
-				emit_store_dst(jd, iptr, d);
+				M_LLD(d, s1, disp);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-				M_ALD(d, s1, a);
-				emit_store_dst(jd, iptr, d);
+				M_ALD(d, s1, disp);
 				break;
 			case TYPE_FLT:
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-				M_FLD(d, s1, a);
-				emit_store_dst(jd, iptr, d);
+				M_FLD(d, s1, disp);
 				break;
 			case TYPE_DBL:				
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-				M_DLD(d, s1, a);
-				emit_store_dst(jd, iptr, d);
+				M_DLD(d, s1, disp);
 				break;
 			}
+			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			/* We use here REG_ITMP2, so we can use REG_IFTMP for s2
+			   (== REG_ITMP1). */
 
-			if (!IS_FLT_DBL_TYPE(fieldtype)) {
-				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			} else {
-				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			}
+			s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+			gen_nullptr_check(s1);
+			s2 = emit_load_s2(jd, iptr, REG_IFTMP);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield,
-									iptr->sx.s23.s3.uf, 0);
+				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
 
-				a = 0;
-
-			} else {
+				disp = 0;
+			}
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				a = fi->offset;
+				disp = fi->offset;
 			}
 
 			switch (fieldtype) {
 			case TYPE_INT:
-				M_IST(s2, s1, a);
+				M_IST(s2, s1, disp);
 				break;
 			case TYPE_LNG:
-				M_LST(s2, s1, a);
+				M_LST(s2, s1, disp);
 				break;
 			case TYPE_ADR:
-				M_AST(s2, s1, a);
+				M_AST(s2, s1, disp);
 				break;
 			case TYPE_FLT:
-				M_FST(s2, s1, a);
+				M_FST(s2, s1, disp);
 				break;
 			case TYPE_DBL:
-				M_DST(s2, s1, a);
+				M_DST(s2, s1, disp);
 				break;
 			}
 			break;
 
 		case ICMD_PUTFIELDCONST:  /* ..., objectref  ==> ...                  */
-		                          /* val = value (in current instruction)     */
-		                          /* following NOP)                           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			gen_nullptr_check(s1);
@@ -2157,36 +2142,35 @@ bool codegen(jitdata *jd)
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield,
-									uf, 0);
+				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
 
-				a = 0;
-
-			} else {
+				disp = 0;
+			}
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				a = fi->offset;
+				disp = fi->offset;
 			}
 
 			switch (fieldtype) {
 			case TYPE_INT:
-				M_IST(REG_ZERO, s1, a);
+				M_IST(REG_ZERO, s1, disp);
 				break;
 			case TYPE_LNG:
-				M_LST(REG_ZERO, s1, a);
+				M_LST(REG_ZERO, s1, disp);
 				break;
 			case TYPE_ADR:
-				M_AST(REG_ZERO, s1, a);
+				M_AST(REG_ZERO, s1, disp);
 				break;
 			case TYPE_FLT:
-				M_FST(REG_ZERO, s1, a);
+				M_FST(REG_ZERO, s1, disp);
 				break;
 			case TYPE_DBL:
-				M_DST(REG_ZERO, s1, a);
+				M_DST(REG_ZERO, s1, disp);
 				break;
 			}
 			break;
