@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5530 2006-09-19 10:29:27Z twisti $
+## $Id: Makefile.am 5561 2006-09-28 19:53:05Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 

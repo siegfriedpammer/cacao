@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5538 2006-09-19 21:33:52Z twisti $
+   $Id: native.c 5567 2006-09-28 20:20:18Z edwin $
 
 */
 

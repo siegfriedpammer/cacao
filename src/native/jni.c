@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5547 2006-09-27 11:05:25Z twisti $
+   $Id: jni.c 5573 2006-09-28 20:39:40Z twisti $
 
 */
 
@@ -5805,7 +5805,7 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 {
 	JavaVMInitArgs *_vm_args;
 	_Jv_JNIEnv     *env;
-	_Jv_JavaVM     *jvm;
+	_Jv_JavaVM     *vm;
 	localref_table *lrt;
 
 	/* get the arguments for the new JVM */
@@ -5823,13 +5823,13 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	/* create and fill a JavaVM structure */
 
-	jvm = NEW(_Jv_JavaVM);
-	jvm->functions = &_Jv_JNIInvokeInterface;
+	vm = NEW(_Jv_JavaVM);
+	vm->functions = &_Jv_JNIInvokeInterface;
 
 	/* XXX Set the global variable.  Maybe we should do that differently. */
 	/* XXX JVMTI Agents needs a JavaVM  */
 
-	_Jv_jvm = jvm;
+	_Jv_jvm = vm;
 
 	/* actually create the JVM */
 
@@ -5837,7 +5837,7 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 		/* release allocated memory */
 
 		FREE(env, _Jv_JNIEnv);
-		FREE(jvm, _Jv_JavaVM);
+		FREE(vm, _Jv_JavaVM);
 
 		return -1;
 	}
@@ -5859,7 +5859,7 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	/* now return the values */
 
-	*p_vm  = (JavaVM *) jvm;
+	*p_vm  = (JavaVM *) vm;
 	*p_env = (void *) env;
 
 	return 0;
