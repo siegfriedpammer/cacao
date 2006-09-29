@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5549 2006-09-28 17:02:56Z edwin $
+   $Id: simplereg.c 5584 2006-09-29 14:02:39Z edwin $
 
 */
 
@@ -1013,6 +1013,8 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 
 	/* if this is a copy of another variable, just decrement the copy counter */
 
+	/* XXX split reg/mem variables on arm may need special handling here */
+
 	if (v->flags & INMEMORY) {
 		if (v->vv.regoff < rd->memcopycountsize && rd->memcopycount[v->vv.regoff]) {
 			rd->memcopycount[v->vv.regoff]--;
@@ -1020,10 +1022,17 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 		}
 	}
 	else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+		if (rd->regcopycount[GET_LOW_REG(v->vv.regoff)]) {
+			rd->regcopycount[GET_LOW_REG(v->vv.regoff)]--;
+			return;
+		}
+#else
 		if (rd->regcopycount[v->vv.regoff]) {
 			rd->regcopycount[v->vv.regoff]--;
 			return;
 		}
+#endif
 	}
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -1413,7 +1422,13 @@ static void new_allocate_scratch_registers(jitdata *jd)
 							rd->memcopycount[v->vv.regoff]++;
 						}
 						else {
+							/* XXX split reg/mem variables on arm may need special handling here */
+
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							rd->regcopycount[GET_LOW_REG(v->vv.regoff)]++;
+#else
 							rd->regcopycount[v->vv.regoff]++;
+#endif
 						}
  					}
 					break;
