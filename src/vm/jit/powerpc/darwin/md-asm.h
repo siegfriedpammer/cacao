@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5254 2006-08-21 14:52:20Z twisti $
+   $Id: md-asm.h 5578 2006-09-29 11:35:04Z twisti $
 
 */
 
@@ -255,7 +255,10 @@
     L_exceptions_get_and_clear_exception$stub
 
 #define builtin_throw_exception               L_builtin_throw_exception$stub
+
+#define md_codegen_get_pv_from_pc             L_md_codegen_get_pv_from_pc$stub
 #define exceptions_handle_exception           L_exceptions_handle_exception$stub
+
 #define jit_asm_compile                       L_jit_asm_compile$stub
 
 #define exceptions_asm_new_abstractmethoderror \

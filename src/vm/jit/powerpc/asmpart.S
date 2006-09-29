@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5287 2006-09-04 14:21:11Z twisti $
+   $Id: asmpart.S 5578 2006-09-29 11:35:04Z twisti $
 
 */
 
@@ -1408,6 +1408,26 @@ L00$_builtin_throw_exception:
 .lazy_symbol_pointer
 L_builtin_throw_exception$lazy_ptr:
 	.indirect_symbol _builtin_throw_exception
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_md_codegen_get_pv_from_pc$stub:
+	.indirect_symbol _md_codegen_get_pv_from_pc
+	mflr r0
+	bcl 20,31,L00$_md_codegen_get_pv_from_pc
+L00$_md_codegen_get_pv_from_pc:
+	mflr r11
+	addis r11,r11,ha16(L_md_codegen_get_pv_from_pc$lazy_ptr - L00$_md_codegen_get_pv_from_pc)
+	mtlr r0
+	lwzu r12,lo16(L_md_codegen_get_pv_from_pc$lazy_ptr - L00$_md_codegen_get_pv_from_pc)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_md_codegen_get_pv_from_pc$lazy_ptr:
+	.indirect_symbol _md_codegen_get_pv_from_pc
 	.long dyld_stub_binding_helper
 
 

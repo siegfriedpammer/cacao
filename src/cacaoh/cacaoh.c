@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 5013 2006-06-06 11:22:56Z twisti $
+   $Id: cacaoh.c 5577 2006-09-29 10:38:58Z twisti $
 
 */
 
@@ -147,6 +147,11 @@ static void version(void)
 }
 
 
+/* forward declarations *******************************************************/
+
+static JavaVMInitArgs *cacaoh_options_prepare(int argc, char **argv);
+
+
 /* main ************************************************************************
 
    Main program.
@@ -185,8 +190,8 @@ int main(int argc, char **argv)
 	if (cp) {
 		bootclasspath = MNEW(char, strlen(cp) + strlen("0"));
 		strcpy(bootclasspath, cp);
-
-	} else {
+	}
+	else {
 		cplen = strlen(CACAO_VM_ZIP) +
 			strlen(":") +
 			strlen(CLASSPATH_GLIBJ_ZIP) +
@@ -206,8 +211,8 @@ int main(int argc, char **argv)
 	if (cp) {
 		classpath = MNEW(char, strlen(cp) + strlen("0"));
 		strcat(classpath, cp);
-
-	} else {
+	}
+	else {
 		classpath = MNEW(char, strlen(".") + strlen("0"));
 		strcpy(classpath, ".");
 	}
@@ -224,7 +229,7 @@ int main(int argc, char **argv)
 
 	/* parse the options ******************************************************/
 
-	vm_args = options_prepare(argc, argv);
+	vm_args = cacaoh_options_prepare(argc, argv);
 
 	while ((opt = options_get(opts, vm_args)) != OPT_DONE) {
 		switch (opt) {
@@ -368,6 +373,29 @@ int main(int argc, char **argv)
 	}
 	
 	return 0;
+}
+
+
+/* cacaoh_options_prepare ******************************************************
+
+   Prepare the JavaVMInitArgs.
+
+*******************************************************************************/
+
+static JavaVMInitArgs *cacaoh_options_prepare(int argc, char **argv)
+{
+	JavaVMInitArgs *vm_args;
+	s4              i;
+
+	vm_args = NEW(JavaVMInitArgs);
+
+	vm_args->nOptions = argc - 1;
+	vm_args->options  = MNEW(JavaVMOption, argc);
+
+	for (i = 1; i < argc; i++)
+		vm_args->options[i - 1].optionString = argv[i];
+
+	return vm_args;
 }
 
 

@@ -84,6 +84,7 @@ struct vm_arg {
 void usage(void);
 
 bool vm_create(JavaVMInitArgs *vm_args);
+void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args);
 s4   vm_destroy(JavaVM *vm);
 void vm_exit(s4 status);
 void vm_shutdown(s4 status);
