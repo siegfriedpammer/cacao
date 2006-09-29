@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 5038 2006-06-19 22:22:34Z twisti $
+   $Id: signal.c 5540 2006-09-20 23:22:21Z michi $
 
 */
 
@@ -65,6 +65,7 @@ void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p);
 
 void signal_init(void)
 {
+#if !defined(__CYGWIN__)
 	struct sigaction act;
 
 	/* install signal handlers we need to convert to exceptions */
@@ -135,6 +136,8 @@ void signal_init(void)
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGUSR2, &act, NULL);
 #endif
+
+#endif /* !defined(__CYGWIN__) */
 }
 
 
