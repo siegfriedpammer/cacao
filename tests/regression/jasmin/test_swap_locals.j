@@ -1,4 +1,4 @@
-.class public test_load_store_conflict
+.class public test_swap_locals
 .super java/lang/Object
 
 ; ======================================================================
@@ -24,36 +24,65 @@
 
 .method public static main([Ljava/lang/String;)V
 	.limit stack 3
-	.limit locals 3
+	.limit locals 4
 
-	ldc 35
+	ldc 4
 	istore 1
-	ldc 777
+
+	ldc 18
 	istore 2
-
-	aload 0
-	ifnull force_basic_block_boundary
-
-	; --------------------------------------------------
-
-	ldc 42
-	iload 1  ; loads 35
 	ldc 100
-	iadd     ; result = 135
-	istore 2
-	istore 1
+	istore 3
 
 	; --------------------------------------------------
 
-force_basic_block_boundary:
-
+loop:
+	iload 2
+	iload 3
+	swap
+	istore 3
+	istore 2
+	iinc 1 -1
 	iload 1
-	invokestatic test_load_store_conflict/checkI(I)V
-	; OUTPUT: 42
+	ifge loop
+
+	; --------------------------------------------------
 
 	iload 2
-	invokestatic test_load_store_conflict/checkI(I)V
-	; OUTPUT: 135
+	invokestatic test_swap_interface_slots/checkI(I)V
+	; OUTPUT: 100
+	iload 3
+	invokestatic test_swap_interface_slots/checkI(I)V
+	; OUTPUT: 18
+
+	ldc 7
+	istore 1
+
+	ldc 28
+	istore 2
+	ldc 200
+	istore 3
+
+	; --------------------------------------------------
+
+loop2:
+	iinc 1 -1
+	iload 2
+	iload 3
+	swap
+	istore 3
+	istore 2
+	iload 1
+	ifge loop2
+
+	; --------------------------------------------------
+
+	iload 2
+	invokestatic test_swap_interface_slots/checkI(I)V
+	; OUTPUT: 28
+	iload 3
+	invokestatic test_swap_interface_slots/checkI(I)V
+	; OUTPUT: 200
 
 	return
 .end method

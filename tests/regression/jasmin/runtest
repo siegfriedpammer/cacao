@@ -2,6 +2,11 @@
 
 VERBOSE=0
 EXITCODE=0
+COLOR=0
+PASSCOLOR=''
+FAILCOLOR=''
+NOCOLOR=''
+ECHOFLAGS=''
 
 if [ -z "$JAVA" ] ; then
 	JAVA=../../../src/cacao/cacao
@@ -12,8 +17,26 @@ if [ "$1" = "--verbose" ] ; then
 	VERBOSE=1
 fi
 
+if [ "$1" = "--color" ] ; then
+	shift
+	COLOR=1
+	PASSCOLOR='\033[1;32m'
+	FAILCOLOR='\033[1;31m'
+	NOCOLOR='\033[0m'
+	ECHOFLAGS='-e'
+fi
+
 JASMIN_JAR=/usr/share/java/jasmin-sable.jar
-JASMIN="$JAVA -cp $JASMIN_JAR jasmin.Main"
+
+if [ ! -r "$JASMIN_JAR" ] ; then
+	echo >&2 "$0: warning: jasmin .jar is not available at $JASMIN_JAR"
+	exit 0
+fi
+
+JASMIN="$JAVA $JAVAFLAGS -cp $JASMIN_JAR jasmin.Main"
+
+echo "java command: $JAVA $JAVAFLAGS"
+echo "jasmin command: $JASMIN"
 
 while [ -n "$1" ]
 do
@@ -23,28 +46,58 @@ do
     TESTOUT="TESTOUT"
     TESTEXPECT="TESTEXPECT"
     TESTLOG="TESTLOG"
+    TESTERR="TESTERR"
+
+	EXPECTSTATUS=0
+
+	# compile the test
 
     $JASMIN "$TEST" || exit 2
-    $JAVA "$TESTBASENAME" >"$TESTOUT" || exit 2
 
-    grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:\s*,,' >"$TESTEXPECT"
+	if grep 'ERROR:' "$TEST" >/dev/null ; then
+		EXPECTSTATUS=1
+		EXPECTERROR=$(grep -o 'ERROR:.*' "$TEST" | sed 's,ERROR:[ \t]*,,')
+	fi
 
-    if diff -u "$TESTEXPECT" "$TESTOUT" ; then
-    	echo "PASS: $TEST"
-    else
-    	echo "FAIL: $TEST"
-	EXITCODE=1
-    fi
+	# run the test
 
-    if [ "$VERBOSE" -eq "1" ] ; then
-	$JAVA -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
-	./show "$TESTLOG"
-    fi
+    $JAVA $JAVAFLAGS "$TESTBASENAME" >"$TESTOUT" 2>"$TESTERR"
+	TESTSTATUS=$?
+
+	if [ $TESTSTATUS -ne $EXPECTSTATUS ] ; then
+		echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TESTBASENAME - expected status $EXPECTSTATUS, but got $TESTSTATUS${NOCOLOR}"
+		EXITCODE=1
+	fi
+
+	if [ $EXPECTSTATUS -eq 0 ] ; then
+		grep 'OUTPUT:' "$TEST" | sed 's,.*OUTPUT:[ \t]*,,' >"$TESTEXPECT"
+
+		if diff -u "$TESTEXPECT" "$TESTOUT" ; then
+			if [ $TESTSTATUS -eq 0 ] ; then
+				echo $ECHOFLAGS "${PASSCOLOR}PASS: $TESTBASENAME${NOCOLOR}"
+			fi
+		else
+			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TESTBASENAME - wrong output${NOCOLOR}"
+			EXITCODE=1
+		fi
+
+		if [ "$VERBOSE" -eq "1" ] ; then
+			$JAVA $JAVAFLAGS -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
+			./show "$TESTLOG"
+		fi
+	else
+		if grep "$EXPECTERROR" "$TESTERR" >/dev/null ; then
+			echo $ECHOFLAGS "${PASSCOLOR}PASS: $TESTBASENAME - got expected error: $EXPECTERROR${NOCOLOR}"
+		else
+			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TESTBASENAME - did not get expected error: $EXPECTERROR${NOCOLOR}"
+			EXITCODE=1
+		fi
+	fi
 
     shift
 done
 
-#rm -f "$TESTOUT" "$TESTEXPECT" "$TESTLOG"
+rm -f "$TESTOUT" "$TESTEXPECT" "$TESTLOG" "$TESTERR"
 
 exit $EXITCODE
 

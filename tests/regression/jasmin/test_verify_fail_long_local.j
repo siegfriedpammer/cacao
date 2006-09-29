@@ -1,5 +1,7 @@
-.class public test_load_store_conflict
+.class public test_verify_fail_long_local
 .super java/lang/Object
+
+; long local overwrites int local in second half
 
 ; ======================================================================
 
@@ -11,7 +13,7 @@
 
 ; ======================================================================
 
-.method public static checkI(I)V
+.method public static check(I)V
 	.limit locals 1
 	.limit stack 10
 	getstatic java/lang/System/out Ljava/io/PrintStream;
@@ -23,12 +25,10 @@
 ; ======================================================================
 
 .method public static main([Ljava/lang/String;)V
-	.limit stack 3
+	.limit stack 2
 	.limit locals 3
 
-	ldc 35
-	istore 1
-	ldc 777
+	ldc 42
 	istore 2
 
 	aload 0
@@ -36,24 +36,16 @@
 
 	; --------------------------------------------------
 
-	ldc 42
-	iload 1  ; loads 35
-	ldc 100
-	iadd     ; result = 135
-	istore 2
-	istore 1
+	ldc2_w 1234567890987654321
+	lstore 1
 
 	; --------------------------------------------------
 
 force_basic_block_boundary:
 
-	iload 1
-	invokestatic test_load_store_conflict/checkI(I)V
-	; OUTPUT: 42
-
 	iload 2
-	invokestatic test_load_store_conflict/checkI(I)V
-	; OUTPUT: 135
+	; ERROR: VerifyError
+	invokestatic test_verify_fail_long_local/check(I)V
 
 	return
 .end method

@@ -1,4 +1,4 @@
-.class public test_load_store_conflict
+.class public test_dup_x1_interface_slots
 .super java/lang/Object
 
 ; ======================================================================
@@ -24,36 +24,51 @@
 
 .method public static main([Ljava/lang/String;)V
 	.limit stack 3
-	.limit locals 3
+	.limit locals 2
 
-	ldc 35
+	ldc 4
 	istore 1
-	ldc 777
-	istore 2
 
-	aload 0
-	ifnull force_basic_block_boundary
-
-	; --------------------------------------------------
-
-	ldc 42
-	iload 1  ; loads 35
+	ldc 18
 	ldc 100
-	iadd     ; result = 135
-	istore 2
-	istore 1
 
 	; --------------------------------------------------
 
-force_basic_block_boundary:
-
+loop:
+	dup_x1
+	iinc 1 -1
+	pop
 	iload 1
-	invokestatic test_load_store_conflict/checkI(I)V
-	; OUTPUT: 42
+	ifge loop
 
-	iload 2
-	invokestatic test_load_store_conflict/checkI(I)V
-	; OUTPUT: 135
+	; --------------------------------------------------
+
+	invokestatic test_dup_x1_interface_slots/checkI(I)V
+	; OUTPUT: 18
+	invokestatic test_dup_x1_interface_slots/checkI(I)V
+	; OUTPUT: 100
+
+	ldc 7
+	istore 1
+
+	ldc 28
+	ldc 200
+
+	; --------------------------------------------------
+
+loop2:
+	iinc 1 -1
+	dup_x1
+	pop
+	iload 1
+	ifge loop2
+
+	; --------------------------------------------------
+
+	invokestatic test_dup_x1_interface_slots/checkI(I)V
+	; OUTPUT: 200
+	invokestatic test_dup_x1_interface_slots/checkI(I)V
+	; OUTPUT: 28
 
 	return
 .end method

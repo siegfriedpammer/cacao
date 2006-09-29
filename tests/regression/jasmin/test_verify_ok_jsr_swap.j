@@ -1,4 +1,4 @@
-.class public test_load_store_conflict
+.class public test_verify_ok_jsr_swap
 .super java/lang/Object
 
 ; ======================================================================
@@ -23,37 +23,33 @@
 ; ======================================================================
 
 .method public static main([Ljava/lang/String;)V
-	.limit stack 3
+	.limit stack 2
 	.limit locals 3
 
 	ldc 35
 	istore 1
-	ldc 777
-	istore 2
 
 	aload 0
 	ifnull force_basic_block_boundary
 
 	; --------------------------------------------------
 
-	ldc 42
-	iload 1  ; loads 35
-	ldc 100
-	iadd     ; result = 135
-	istore 2
-	istore 1
+	ldc 796
+	jsr sbr_1
+	iload 1
+	invokestatic test_verify_ok_jsr_swap/checkI(I)V
+	; OUTPUT: 796
 
 	; --------------------------------------------------
 
 force_basic_block_boundary:
 
-	iload 1
-	invokestatic test_load_store_conflict/checkI(I)V
-	; OUTPUT: 42
-
-	iload 2
-	invokestatic test_load_store_conflict/checkI(I)V
-	; OUTPUT: 135
-
 	return
+	
+sbr_1:
+	swap
+	istore 1
+	astore 2
+	ret 2
+
 .end method
