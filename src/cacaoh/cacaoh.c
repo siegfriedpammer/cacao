@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 5574 2006-09-28 20:47:58Z twisti $
+   $Id: cacaoh.c 5577 2006-09-29 10:38:58Z twisti $
 
 */
 
@@ -389,7 +389,8 @@ static JavaVMInitArgs *cacaoh_options_prepare(int argc, char **argv)
 
 	vm_args = NEW(JavaVMInitArgs);
 
-	vm_args->options = MNEW(JavaVMOption, argc);
+	vm_args->nOptions = argc - 1;
+	vm_args->options  = MNEW(JavaVMOption, argc);
 
 	for (i = 1; i < argc; i++)
 		vm_args->options[i - 1].optionString = argv[i];

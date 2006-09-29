@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5548 2006-09-27 13:39:22Z tbfg $
+   $Id: codegen.c 5576 2006-09-28 22:33:48Z edwin $
 
 */
 
