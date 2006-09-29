@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 5574 2006-09-28 20:47:58Z twisti $
+   $Id: cacao.c 5579 2006-09-29 11:37:12Z twisti $
 
 */
 
@@ -55,6 +55,8 @@
 # include "native/jvmti/jvmti.h"
 # include "native/jvmti/cacaodbg.h"
 #endif
+
+#include "vm/vm.h"
 
 
 /* forward declarations *******************************************************/
