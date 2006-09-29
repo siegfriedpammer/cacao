@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5055 2006-06-28 20:33:38Z edwin $
+   $Id: codegen.c 5488 2006-09-13 00:21:40Z edwin $
 
 */
 
@@ -336,7 +336,7 @@ bool intrp_codegen(jitdata *jd)
 		dseg_addtarget(cd, ex->start);
    		dseg_addtarget(cd, ex->end);
 		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype.cls);
+		(void) dseg_addaddress(cd, ex->catchtype.any);
 	}
 
 #if 0	
