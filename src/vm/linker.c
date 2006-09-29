@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5250 2006-08-18 12:24:10Z twisti $
+   $Id: linker.c 5444 2006-09-09 19:25:24Z edwin $
 
 */
 
@@ -903,15 +903,23 @@ static classinfo *link_class_intern(classinfo *c)
 
 	for (i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &(c->methods[i]);
+		classinfo *exclass;
 
 		for (j = 0; j < m->exceptiontablelength; j++) {
+			/* skip NULL (catch all) entries */
 			if (!m->exceptiontable[j].catchtype.any)
 				continue;
-			if (!resolve_classref_or_classinfo(NULL,
+
+			/* try to resolve the class reference lazily */
+			if (!resolve_classref_or_classinfo(m,
 											   m->exceptiontable[j].catchtype,
-											   resolveEager, true, false,
-											   &(m->exceptiontable[j].catchtype.cls)))
+											   resolveLazy, true, false,
+											   &exclass))
 				return NULL;
+
+			/* if resolved, enter the result of resolution in the table */
+			if (exclass != NULL)
+				m->exceptiontable[j].catchtype.cls = exclass;
 		}
 	}
 	RT_TIMING_GET_TIME(time_exceptions);
