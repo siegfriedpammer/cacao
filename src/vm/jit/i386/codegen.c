@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5562 2006-09-28 20:13:20Z edwin $
+   $Id: codegen.c 5594 2006-09-30 22:45:13Z edwin $
 
 */
 
@@ -251,7 +251,8 @@ bool codegen(jitdata *jd)
  			l++;
 		if (s1 == UNUSED)
 			continue;
-		var = &(jd->var[s1]);
+
+		var = VAR(s1);
 		
 		s1 = md->params[p].regoff;
 
@@ -463,7 +464,7 @@ bool codegen(jitdata *jd)
 			if (len > 0) {
 				len--;
 				varindex = bptr->invars[len];
-				var = &(jd->var[varindex]);
+				var = VAR(varindex);
 				if (bptr->type != BBTYPE_STD) {
 					if (!IS_2_WORD_TYPE(var->type)) {
 						if (bptr->type == BBTYPE_SBR) {
@@ -493,7 +494,7 @@ bool codegen(jitdata *jd)
 		while (len) {
 			len--;
 			varindex = bptr->invars[len];
-			var = &(jd->var[varindex]);
+			var = VAR(varindex);
 			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 				if (!IS_2_WORD_TYPE(var->type)) {
 					if (bptr->type == BBTYPE_SBR) {
@@ -727,8 +728,7 @@ bool codegen(jitdata *jd)
 		case ICMD_FSTORE:
 		case ICMD_DSTORE:
 
-			emit_copy(jd, iptr, jd->var + iptr->s1.varindex, 
-								jd->var + iptr->dst.varindex);
+			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
 		/* pop/copy/move operations *******************************************/
@@ -1677,7 +1677,7 @@ bool codegen(jitdata *jd)
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_I2D:       /* ..., value  ==> ..., (double) value           */
 
-			var = &(jd->var[iptr->s1.varindex]);
+			var = VAROP(iptr->s1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 
 			if (var->flags & INMEMORY) {
@@ -1696,7 +1696,7 @@ bool codegen(jitdata *jd)
 		case ICMD_L2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_L2D:       /* ..., value  ==> ..., (double) value           */
 
-			var = &(jd->var[iptr->s1.varindex]);
+			var = VAROP(iptr->s1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			if (var->flags & INMEMORY) {
 				emit_fildll_membase(cd, REG_SP, var->vv.regoff * 4);
@@ -1720,8 +1720,8 @@ bool codegen(jitdata *jd)
 			disp = dseg_adds4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
-			var = &(jd->var[iptr->dst.varindex]);
-			var1 = &(jd->var[iptr->s1.varindex]);
+			var = VAROP(iptr->dst);
+			var1 = VAROP(iptr->s1);
 
 			if (var->flags & INMEMORY) {
 				emit_fistpl_membase(cd, REG_SP, var->vv.regoff * 4);
@@ -1781,8 +1781,8 @@ bool codegen(jitdata *jd)
 			disp = dseg_adds4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
-			var  = &(jd->var[iptr->dst.varindex]);
-			var1 = &(jd->var[iptr->s1.varindex]);
+			var  = VAROP(iptr->dst);
+			var1 = VAROP(iptr->s1);
 
 			if (var->flags & INMEMORY) {
 				emit_fistpl_membase(cd, REG_SP, var->vv.regoff * 4);
@@ -1841,8 +1841,8 @@ bool codegen(jitdata *jd)
 			disp = dseg_adds4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
-			var  = &(jd->var[iptr->dst.varindex]);
-			var1 = &(jd->var[iptr->s1.varindex]);
+			var  = VAROP(iptr->dst);
+			var1 = VAROP(iptr->s1);
 
 			if (var->flags & INMEMORY) {
 				emit_fistpll_membase(cd, REG_SP, var->vv.regoff * 4);
@@ -1902,8 +1902,8 @@ bool codegen(jitdata *jd)
 			disp = dseg_adds4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
-			var  = &(jd->var[iptr->dst.varindex]);
-			var1 = &(jd->var[iptr->s1.varindex]);
+			var  = VAROP(iptr->dst);
+			var1 = VAROP(iptr->s1);
 
 			if (var->flags & INMEMORY) {
 				emit_fistpll_membase(cd, REG_SP, var->vv.regoff * 4);
@@ -2090,7 +2090,7 @@ bool codegen(jitdata *jd)
 				gen_bound_check;
 			}
 
-			var  = &(jd->var[iptr->dst.varindex]);
+			var  = VAROP(iptr->dst);
 
 			assert(var->flags & INMEMORY);
 			emit_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]), 
@@ -2208,7 +2208,7 @@ bool codegen(jitdata *jd)
 				gen_bound_check;
 			}
 
-			var  = &(jd->var[iptr->sx.s23.s3.varindex]);
+			var  = VAROP(iptr->sx.s23.s3);
 
 			assert(var->flags & INMEMORY);
 			emit_mov_membase_reg(cd, REG_SP, var->vv.regoff * 4, REG_ITMP3);
@@ -3258,7 +3258,7 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				s1 = iptr->sx.s23.s2.args[s3];
-				var1 = &(jd->var[s1]);
+				var1 = VAR(s1);
 	  
 				/* Already Preallocated (ARGVAR) ? */
 				if (var1->flags & PREALLOC)
@@ -3835,7 +3835,7 @@ gen_method:
 			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
 				/* copy SAVEDVAR sizes to stack */
 				s3 = iptr->sx.s23.s2.args[s1];
-				var1 = &(jd->var[s3]);
+				var1 = VAR(s3);
 
 				/* Already Preallocated (ARGVAR) ? */
 				if (!(var1->flags & PREALLOC)) {
@@ -4012,8 +4012,8 @@ void codegen_insert_phi_moves(jitdata *jd, basicblock *bptr) {
 		}
 
 		if (t_a >= 0) {
-			t_flags = jd->var[t_a].flags;
-			t_regoff = jd->var[t_a].vv.regoff;
+			t_flags = VAR(t_a)->flags;
+			t_regoff = VAR(t_a)->vv.regoff;
 			
 		}
 		else {
@@ -4023,8 +4023,8 @@ void codegen_insert_phi_moves(jitdata *jd, basicblock *bptr) {
 
 		if (s_a >= 0) {
 			/* local var move */
-			s_flags = jd->var[s_a].flags;
-			s_regoff = jd->var[s_a].vv.regoff;
+			s_flags = VAR(s_a)->flags;
+			s_regoff = VAR(s_a)->vv.regoff;
 		} else {
 			/* stackslot lifetime */
 			s_flags = ls->lifetime[s_lt].local_ss->s->flags;
