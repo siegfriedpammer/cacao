@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5595 2006-09-30 23:06:36Z edwin $
+   $Id: simplereg.c 5596 2006-09-30 23:12:05Z edwin $
 
 */
 
@@ -784,11 +784,10 @@ static void reg_init_temp(jitdata *jd, registerdata *rd)
 }
 
 
-#define reg_new_temp(jd,index) \
-	if ( (index >= jd->localcount) \
-		 && (!(VAR(index)->flags & OUTVAR))	 \
-		 && (!(VAR(index)->flags & PREALLOC)) )	\
-		reg_new_temp_func(jd, index)
+#define reg_new_temp(jd,index)                                       \
+    if ( (index >= jd->localcount)                                   \
+         && (!(VAR(index)->flags & (OUTVAR | PREALLOC))) )           \
+        reg_new_temp_func(jd, index)
 
 static void reg_new_temp_func(jitdata *jd, s4 index)
 {
@@ -995,7 +994,7 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 
 #define reg_free_temp(jd,index)                                      \
     if ((index > jd->localcount)                                     \
-        && (!(VAR(index)->flags & (OUTVAR | PREALLOC))))          \
+        && (!(VAR(index)->flags & (OUTVAR | PREALLOC))))             \
         reg_free_temp_func(jd, index)
 
 /* Do not free regs/memory locations used by Stackslots flagged STCOPY! There is still another Stackslot */
