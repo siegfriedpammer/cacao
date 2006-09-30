@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5392 2006-09-07 09:40:25Z twisti $
+   $Id: jit.h 5598 2006-09-30 23:42:17Z edwin $
 
 */
 
@@ -115,17 +115,6 @@ struct jitdata {
 	s4               new_stackcount;
 	s4               new_c_debug_nr;
 
-#if defined(NEW_VAR)
-	varinfo *var;
-	int     vartop;
-    
-	int     varcount;
-	int     localcount;
-    int     *local_map; /* internal structure to rename(de-coallesc) locals  */
-	                     /* and keep the coalescing info for simplereg.       */
-	                     /* local_map[local_index * 5 + local_type] = new_index in */
-                         /* rd->var or LOCAL_UNUSED    */
-#endif
 };
 
 #define LOCAL_UNUSED                     -1
@@ -226,25 +215,16 @@ typedef struct {
 /*** s1 operand ***/
 
 typedef union {
-#if defined(NEW_VAR)
-	s4                         varindex;
-#else
     stackptr                   var;
     s4                         localindex;
-#endif
     s4                         argcount;
 } s1_operand_t;
 
 /*** s2 operand ***/
 
 typedef union {
-#if defined(NEW_VAR)
-	s4                         varindex;
-	s4                         *args;
-#else
     stackptr                   var;
     stackptr                  *args;
-#endif
     classref_or_classinfo      c;
     unresolved_class          *uc;
     ptrint                     constval;         /* for PUT*CONST             */
@@ -255,11 +235,7 @@ typedef union {
 /*** s3 operand ***/
 
 typedef union {
-#if defined(NEW_VAR)
-	s4                         varindex;
-#else
     stackptr                   var;
-#endif
     ptrint                     constval;
     classref_or_classinfo      c;
     constant_FMIref           *fmiref;

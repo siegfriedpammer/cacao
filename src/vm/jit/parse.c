@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5462 2006-09-11 11:37:03Z twisti $
+   $Id: parse.c 5598 2006-09-30 23:42:17Z edwin $
 
 */
 
@@ -267,27 +267,12 @@ bool new_parse(jitdata *jd)
 	u4                  flags;
 	basicblock         *bptr;
 
-#if defined(NEW_VAR)
- 	int                *local_map; /* local pointer to renaming structore     */
-	                               /* is assigned to rd->local_map at the end */
-#endif
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
 
-#if defined(NEW_VAR)
-	/* allocate buffers for local variable renaming */
-	local_map = DMNEW(int, cd->maxlocals * 5);
-	for (i = 0; i < cd->maxlocals; i++) {
-		local_map[i * 5 + 0] = 0;
-		local_map[i * 5 + 1] = 0;
-		local_map[i * 5 + 2] = 0;
-		local_map[i * 5 + 3] = 0;
-		local_map[i * 5 + 4] = 0;
-	}
-#endif
 
  	/* initialize the parse data structures */
   
@@ -1503,40 +1488,6 @@ invoke_method:
 	}
 #endif
 
-#if defined(NEW_VAR)
-	jd->local_map = local_map;
-
-	/* calculate local variable renaming */
-
-	{
-		s4 nlocals = 0;
-		s4 i;
-
-		s4 *mapptr;
-
-		mapptr = local_map;
-
-		/* iterate over local_map[0..m->maxlocals*5] and set all existing  */
-		/* index,type pairs (localmap[index*5+type]==1) to an unique value */
-		/* -> == new local var index */
-		for(i = 0; i < (m->maxlocals * 5); i++, mapptr++) {
-			if (*mapptr)
-				*mapptr = nlocals++;
-			else
-				*mapptr = LOCAL_UNUSED;
-		}
-
-		jd->localcount = nlocals;
-		/* if dropped varindices for temp stackslots get reused(?max 2*       */
-		/* m->maxstack elements for stack), nlocals + s_count would be        */
-		/* sufficient */
-		jd->varcount   = nlocals + s_count + 
-			jd->new_basicblockcount * m->maxstack;        /* out-stacks */
-		
-		jd->var_top = nlocals;
-		jd->var = DMNEW(varinfo, jd->varcount);
-	}
-#endif
 
 	/* everything's ok */
 

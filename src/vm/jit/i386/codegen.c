@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5532 2006-09-19 10:39:30Z twisti $
+   $Id: codegen.c 5598 2006-09-30 23:42:17Z edwin $
 
 */
 
@@ -513,13 +513,6 @@ bool codegen(jitdata *jd)
 				}
 
 			} else {
-#if defined(NEW_VAR)
-				assert(src->varkind == STACKVAR);
-				/* will be done directly in simplereg lateron          */ 
-				/* for now codegen_reg_of_var has to be called here to */
-				/* set the regoff and flags for all bptr->invars[]     */
-				d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
-#else
 				if (IS_LNG_TYPE(src->type))
 					d = codegen_reg_of_var(rd, 0, src, 
 										   PACK_REGS(REG_ITMP1, REG_ITMP2));
@@ -559,7 +552,6 @@ bool codegen(jitdata *jd)
 					
 					emit_store(jd, NULL, src, d);
 				}
-#endif
 			}
 		}
 		}
@@ -4117,11 +4109,8 @@ gen_method:
 		if (!last_cmd_was_goto)
 			codegen_insert_phi_moves(cd, rd, ls, bptr);
 	}
- #if !defined(NEW_VAR)
 	else
- #endif
 #endif
-#if !defined(NEW_VAR)
 	while (len) {
 		len--;
 		src = bptr->outvars[len];
@@ -4158,7 +4147,6 @@ gen_method:
 		}
 		src = src->prev;
 	}
-#endif
 
 	/* At the end of a basic block we may have to append some nops,
 	   because the patcher stub calling code might be longer than the
