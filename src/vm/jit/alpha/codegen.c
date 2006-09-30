@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5563 2006-09-28 20:16:07Z edwin $
+   $Id: codegen.c 5588 2006-09-30 11:04:41Z christian $
 
 */
 
@@ -210,7 +210,7 @@ bool codegen(jitdata *jd)
 		if (varindex == UNUSED)
 			continue;
 
- 		var = jd->var + varindex;
+ 		var = VAR(varindex);
 
 		s1 = md->params[p].regoff;
 
@@ -373,7 +373,7 @@ bool codegen(jitdata *jd)
 			while (len) {
 				len--;
 				varindex = bptr->invars[len];
-				var = jd->var + varindex;
+				var = VAR(varindex);
  				if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 					d = codegen_reg_of_var(0, var, REG_ITMP1);
 					M_INTMOVE(REG_ITMP1, d);
@@ -496,8 +496,7 @@ bool codegen(jitdata *jd)
 		case ICMD_FSTORE:
 		case ICMD_DSTORE: 
 			
-			emit_copy(jd, iptr, jd->var + iptr->s1.varindex, 
-								jd->var + iptr->dst.varindex);
+			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
 		/* pop/copy/move operations *******************************************/
