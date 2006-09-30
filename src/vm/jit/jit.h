@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5598 2006-09-30 23:42:17Z edwin $
+   $Id: jit.h 5599 2006-09-30 23:47:29Z edwin $
 
 */
 
@@ -263,12 +263,8 @@ typedef union {
 /*** dst operand ***/
 
 typedef union {
-#if defined(VAR_NEW)
-	s4                         varindex;
-#else
     stackptr                   var;
     s4                         localindex;
-#endif
     basicblock                *block;       /* valid after stack analysis     */
     branch_target_t           *table;       /* for TABLESWITCH                */
     lookup_target_t           *lookup;      /* for LOOKUPSWITCH               */
