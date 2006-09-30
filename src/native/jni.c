@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5573 2006-09-28 20:39:40Z twisti $
+   $Id: jni.c 5580 2006-09-29 12:46:15Z edwin $
 
 */
 
