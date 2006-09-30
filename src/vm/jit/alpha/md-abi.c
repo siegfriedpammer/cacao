@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5518 2006-09-15 16:31:47Z christian $
+   $Id: md-abi.c 5595 2006-09-30 23:06:36Z edwin $
 
 */
 
@@ -178,14 +178,14 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 /* 		stackslot->varnum  = -1; */
 /* 		stackslot->flags   = 0; */
 
-		jd->var[stackslot->varnum].flags = PREALLOC;
+		VAR(stackslot->varnum)->flags = PREALLOC;
 
 		if (IS_INT_LNG_TYPE(md->returntype.type))
 /* 			stackslot->regoff = REG_RESULT; */
-			jd->var[stackslot->varnum].vv.regoff = REG_RESULT;
+			VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
 		else
 /* 			stackslot->regoff = REG_FRESULT; */
-			jd->var[stackslot->varnum].vv.regoff = REG_FRESULT;
+			VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
 	}
 }
 

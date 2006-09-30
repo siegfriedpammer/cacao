@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 5507 2006-09-15 09:19:11Z christian $
+   $Id: md-abi.c 5595 2006-09-30 23:06:36Z edwin $
 
 */
 
@@ -194,8 +194,8 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 					rd->argfltreguse = 1;
 
 /* 				stackslot->regoff = REG_FRESULT; */
-				jd->var[stackslot->varnum].flags = PREALLOC;
-				jd->var[stackslot->varnum].vv.regoff = REG_FRESULT;
+				VAR(stackslot->varnum)->flags = PREALLOC;
+				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
 			}
 		}
 	}

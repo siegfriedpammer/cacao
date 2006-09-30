@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5515 2006-09-15 14:43:22Z edwin $
+   $Id: typecheck.c 5595 2006-09-30 23:06:36Z edwin $
 
 */
 
@@ -235,7 +235,7 @@ static void typecheck_print_var(FILE *file, jitdata *jd, s4 index)
 	varinfo *var;
 
 	assert(index >= 0 && index < jd->varcount);
-	var = jd->var + index;
+	var = VAR(index);
 	typeinfo_print_type(file, var->type, &(var->typeinfo));
 }
 
@@ -1444,10 +1444,10 @@ verify_basic_block(verifier_state *state)
 				TYPECHECK_COUNT(stat_ins_aload);
 
 				/* loading a returnAddress is not allowed */
-				if (!TYPEDESC_IS_REFERENCE(jd->var[state->iptr->s1.varindex])) {
+				if (!TYPEDESC_IS_REFERENCE(*VAROP(state->iptr->s1))) {
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: ALOAD loading non-reference");
 				}
-				TYPEINFO_COPY(jd->var[state->iptr->s1.varindex].typeinfo,dv->typeinfo);
+				TYPEINFO_COPY(VAROP(state->iptr->s1)->typeinfo,dv->typeinfo);
 				dv->type = TYPE_ADR;
 				break;
 

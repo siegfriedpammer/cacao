@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5550 2006-09-28 18:31:47Z edwin $
+   $Id: parse.c 5595 2006-09-30 23:06:36Z edwin $
 
 */
 
@@ -1612,7 +1612,7 @@ invoke_method:
 
 		for(mapptr = local_map, i = 0; i < (cd->maxlocals * 5); i++, mapptr++)
 			if (*mapptr != UNUSED)
-				jd->var[*mapptr].type = i%5;
+				VAR(*mapptr)->type = i%5;
 	}
 
 	/* everything's ok */

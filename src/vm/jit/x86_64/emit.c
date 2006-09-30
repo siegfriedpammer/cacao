@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 5561 2006-09-28 19:53:05Z edwin $
+   $Id: emit.c 5595 2006-09-30 23:06:36Z edwin $
 
 */
 
@@ -669,9 +669,9 @@ void emit_ishift(jitdata *jd, s4 shift_op, instruction *iptr)
 
 	cd = jd->cd;
 
-	v_s1  = jd->var + iptr->s1.varindex;
-	v_s2  = jd->var + iptr->sx.s23.s2.varindex;
-	v_dst = jd->var + iptr->dst.varindex;
+	v_s1  = VAROP(iptr->s1);
+	v_s2  = VAROP(iptr->sx.s23.s2);
+	v_dst = VAROP(iptr->dst);
 
 	s1 = v_s1->vv.regoff;
 	s2 = v_s2->vv.regoff;
@@ -796,9 +796,9 @@ void emit_lshift(jitdata *jd, s4 shift_op, instruction *iptr)
 
 	cd = jd->cd;
 
-	v_s1  = jd->var + iptr->s1.varindex;
-	v_s2  = jd->var + iptr->sx.s23.s2.varindex;
-	v_dst = jd->var + iptr->dst.varindex;
+	v_s1  = VAROP(iptr->s1);
+	v_s2  = VAROP(iptr->sx.s23.s2);
+	v_dst = VAROP(iptr->dst);
 
 	s1 = v_s1->vv.regoff;
 	s2 = v_s2->vv.regoff;

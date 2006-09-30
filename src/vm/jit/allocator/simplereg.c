@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5584 2006-09-29 14:02:39Z edwin $
+   $Id: simplereg.c 5595 2006-09-30 23:06:36Z edwin $
 
 */
 
@@ -436,7 +436,7 @@ static void local_regalloc(jitdata *jd)
 				if (lm == UNUSED)
 					continue;
 
-				v = &(jd->var[lm]);
+				v = VAR(lm);
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
@@ -490,8 +490,8 @@ static void local_regalloc(jitdata *jd)
 #endif
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
-							v->flags = jd->var[fltalloc].flags;
-							v->vv.regoff = jd->var[fltalloc].vv.regoff;
+							v->flags = VAR(fltalloc)->flags;
+							v->vv.regoff = VAR(fltalloc)->vv.regoff;
 						}
 #if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 						/* We can only use float arguments as local variables,
@@ -547,15 +547,15 @@ static void local_regalloc(jitdata *jd)
 #endif
 						{
 							if (intalloc >= 0) {
-								v->flags = jd->var[intalloc].flags;
+								v->flags = VAR(intalloc)->flags;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (!(v->flags & INMEMORY)
-									&& IS_2_WORD_TYPE(jd->var[intalloc].type))
+									&& IS_2_WORD_TYPE(VAR(intalloc)->type))
 									v->vv.regoff = GET_LOW_REG(
-													jd->var[intalloc].vv.regoff);
+													VAR(intalloc)->vv.regoff);
 								else
 #endif
-									v->vv.regoff = jd->var[intalloc].vv.regoff;
+									v->vv.regoff = VAR(intalloc)->vv.regoff;
 							}
 							else if ((p < md->paramcount) && 
 									 !md->params[p].inmemory) {
@@ -648,7 +648,7 @@ static void local_regalloc(jitdata *jd)
 			if (lm == UNUSED)
 				continue;
 
-			v = &(jd->var[lm]);
+			v = VAR(lm);
 
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
@@ -670,8 +670,8 @@ static void local_regalloc(jitdata *jd)
 #endif
 				if (IS_FLT_DBL_TYPE(t)) {
 					if (fltalloc >= 0) {
-						v->flags = jd->var[fltalloc].flags;
-						v->vv.regoff = jd->var[fltalloc].vv.regoff;
+						v->flags = VAR(fltalloc)->flags;
+						v->vv.regoff = VAR(fltalloc)->vv.regoff;
 					}
 					else if (rd->savfltreguse > 0) {
 						v->flags = 0;
@@ -706,15 +706,15 @@ static void local_regalloc(jitdata *jd)
 					} else {
 #endif
 						if (intalloc >= 0) {
-							v->flags = jd->var[intalloc].flags;
+							v->flags = VAR(intalloc)->flags;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (!(v->flags & INMEMORY)
-								&& IS_2_WORD_TYPE(jd->var[intalloc].type))
+								&& IS_2_WORD_TYPE(VAR(intalloc)->type))
 								v->vv.regoff = GET_LOW_REG(
-											    jd->var[intalloc].vv.regoff);
+											    VAR(intalloc)->vv.regoff);
 							else
 #endif
-								v->vv.regoff = jd->var[intalloc].vv.regoff;
+								v->vv.regoff = VAR(intalloc)->vv.regoff;
 						}
 						else if (rd->savintreguse > intregsneeded) {
 							rd->savintreguse -= intregsneeded+1;
@@ -786,8 +786,8 @@ static void reg_init_temp(jitdata *jd, registerdata *rd)
 
 #define reg_new_temp(jd,index) \
 	if ( (index >= jd->localcount) \
-		 && (!(jd->var[index].flags & OUTVAR))	 \
-		 && (!(jd->var[index].flags & PREALLOC)) )	\
+		 && (!(VAR(index)->flags & OUTVAR))	 \
+		 && (!(VAR(index)->flags & PREALLOC)) )	\
 		reg_new_temp_func(jd, index)
 
 static void reg_new_temp_func(jitdata *jd, s4 index)
@@ -799,7 +799,7 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 	varinfo      *v;
 
 	rd = jd->rd;
-	v = &(jd->var[index]);
+	v = VAR(index);
 
 	/* Try to allocate a saved register if there is no temporary one          */
 	/* available. This is what happens during the second run.                 */
@@ -995,7 +995,7 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 
 #define reg_free_temp(jd,index)                                      \
     if ((index > jd->localcount)                                     \
-        && (!(jd->var[index].flags & (OUTVAR | PREALLOC))))          \
+        && (!(VAR(index)->flags & (OUTVAR | PREALLOC))))          \
         reg_free_temp_func(jd, index)
 
 /* Do not free regs/memory locations used by Stackslots flagged STCOPY! There is still another Stackslot */
@@ -1009,7 +1009,7 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 	varinfo *v;
 
 	rd = jd->rd;
-	v = &(jd->var[index]);
+	v = VAR(index);
 
 	/* if this is a copy of another variable, just decrement the copy counter */
 
@@ -1194,7 +1194,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 
 			for (i=0; i<bptr->indepth; ++i) 
 			{
-				v = jd->var + bptr->invars[i];
+				v = VAR(bptr->invars[i]);
 
 				v->vv.regoff = jd->interface_map[5*i + v->type].regoff;
 				v->flags  = jd->interface_map[5*i + v->type].flags;
@@ -1204,7 +1204,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 
 			for (i=0; i<bptr->outdepth; ++i) 
 			{
-				v = jd->var + bptr->outvars[i];
+				v = VAR(bptr->outvars[i]);
 
 				v->vv.regoff = jd->interface_map[5*i + v->type].regoff;
 				v->flags  = jd->interface_map[5*i + v->type].flags;
@@ -1223,7 +1223,7 @@ static void new_allocate_scratch_registers(jitdata *jd)
 				case ICMD_JSR:
 #if !defined(NDEBUG)
 					/* avoid problems with show_allocation */
-					jd->var[iptr->dst.varindex].vv.regoff = 0;
+					VAROP(iptr->dst)->vv.regoff = 0;
 #endif
 				case ICMD_NOP:
 				case ICMD_CHECKNULL:

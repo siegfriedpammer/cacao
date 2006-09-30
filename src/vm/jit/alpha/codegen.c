@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5588 2006-09-30 11:04:41Z christian $
+   $Id: codegen.c 5595 2006-09-30 23:06:36Z edwin $
 
 */
 
@@ -2766,7 +2766,7 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				s1 = iptr->sx.s23.s2.args[s3];
-				var1 = jd->var + s1;
+				var1 = VAR(s1);
 
 				/* Already Preallocated (ARGVAR) ? */
 				if (var1->flags & PREALLOC)
@@ -3249,7 +3249,7 @@ gen_method:
 			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
 
 				s3 = iptr->sx.s23.s2.args[s1];
-				var1 = jd->var + s3;
+				var1 = VAR(s3);
 	
 				/* copy SAVEDVAR sizes to stack */
 

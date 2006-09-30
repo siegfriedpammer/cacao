@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5522 2006-09-15 17:05:58Z christian $
+   $Id: md-abi.c 5595 2006-09-30 23:06:36Z edwin $
 
 */
 
@@ -245,7 +245,7 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 /* 			stackslot->varkind = ARGVAR; */
 /* 			stackslot->varnum  = -1; */
 /* 			stackslot->flags   = 0; */
-			jd->var[stackslot->varnum].flags = PREALLOC;
+			VAR(stackslot->varnum)->flags = PREALLOC;
 
 			if (IS_INT_LNG_TYPE(md->returntype.type)) {
 				if (!IS_2_WORD_TYPE(md->returntype.type)) {
@@ -253,14 +253,14 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 						rd->argintreguse = 1;
 
 /* 					stackslot->regoff = REG_RESULT; */
-					jd->var[stackslot->varnum].vv.regoff = REG_RESULT;
+					VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
 				}
 				else {
 					if (rd->argintreguse < 2)
 						rd->argintreguse = 2;
 
 /* 					stackslot->regoff = REG_RESULT_PACKED; */
-					jd->var[stackslot->varnum].vv.regoff = REG_RESULT_PACKED;
+					VAR(stackslot->varnum)->vv.regoff = REG_RESULT_PACKED;
 				}
 			}
 			else { /* float/double */
@@ -268,7 +268,7 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 					rd->argfltreguse = 1;
 
 /* 				stackslot->regoff = REG_FRESULT; */
-				jd->var[stackslot->varnum].vv.regoff = REG_FRESULT;
+				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
 			}
 		}
 	}
