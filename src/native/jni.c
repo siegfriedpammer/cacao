@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5580 2006-09-29 12:46:15Z edwin $
+   $Id: jni.c 5593 2006-09-30 22:24:28Z edwin $
 
 */
 
@@ -1016,14 +1016,14 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 }
 
 
-/* GetVersion ******************************************************************
+/* _Jv_GetVersion **************************************************************
 
    Returns the major version number in the higher 16 bits and the
    minor version number in the lower 16 bits.
 
 *******************************************************************************/
 
-jint GetVersion(JNIEnv *env)
+jint _Jv_GetVersion(JNIEnv *env)
 {
 	STATISTICS(jniinvokation());
 
@@ -5475,7 +5475,7 @@ struct JNINativeInterface _Jv_JNINativeInterface = {
 	NULL,
 	NULL,
 	NULL,    
-	GetVersion,
+	_Jv_GetVersion,
 
 	DefineClass,
 	FindClass,
