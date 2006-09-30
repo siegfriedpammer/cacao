@@ -77,7 +77,8 @@ dnl host type
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
-    CFLAGS="$CFLAGS -D__WINDOWS__ -D__CYGWIN__ -ansi -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -Wall -Wno-long-long"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -ansi -pedantic -Wall -Wno-long-long"
     ;;
 
 *darwin* )

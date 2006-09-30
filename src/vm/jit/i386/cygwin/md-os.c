@@ -37,6 +37,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <ucontext.h>
 
 #include "vm/types.h"
@@ -57,6 +58,7 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
+	assert(0);
 }
 
 
@@ -69,12 +71,14 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
+	assert(0);
 }
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *uc)
 {
+	assert(0);
 }
 #endif
 

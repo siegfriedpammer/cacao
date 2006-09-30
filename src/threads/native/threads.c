@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5255 2006-08-21 15:17:48Z twisti $
+   $Id: threads.c 5590 2006-09-30 13:51:12Z michi $
 
 */
 
@@ -569,6 +569,9 @@ void threads_cast_stopworld(void)
 	pthread_mutex_lock(&threadlistlock);
 #if defined(__DARWIN__)
 	threads_cast_darwinstop();
+#elif defined(__CYGWIN__)
+	/* TODO */
+	assert(0);
 #else
 	count = threads_cast_sendsignals(GC_signum1(), 0);
 	for (i=0; i<count; i++)
@@ -584,6 +587,9 @@ void threads_cast_startworld(void)
 	threads_cast_darwinresume();
 #elif defined(__MIPS__)
 	threads_cast_irixresume();
+#elif defined(__CYGWIN__)
+	/* TODO */
+	assert(0);
 #else
 	threads_cast_sendsignals(GC_signum2(), -1);
 #endif
@@ -609,6 +615,9 @@ static void threads_sigsuspend_handler(ucontext_t *ctx)
 	threads_sem_post(&suspend_ack);
 	pthread_cond_wait(&suspend_cond, &suspend_ack_lock);
 	pthread_mutex_unlock(&suspend_ack_lock);
+#elif defined(__CYGWIN__)
+	/* TODO */
+	assert(0);
 #else
 	threads_sem_post(&suspend_ack);
 

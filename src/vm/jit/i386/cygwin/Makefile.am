@@ -36,12 +36,15 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 LIBS =
 
-noinst_HEADERS =
+noinst_HEADERS = \
+	md-asm.h \
+	ucontext.h
 
 noinst_LTLIBRARIES = libmd.la
 
 libmd_la_SOURCES = \
-	md-os.c
+	md-os.c \
+	ucontext.c
 
 
 ## Local variables:
