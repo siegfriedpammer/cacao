@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 5375 2006-09-06 16:01:23Z edwin $
+   $Id: stack.h 5600 2006-09-30 23:54:14Z edwin $
 
 */
 
@@ -58,11 +58,11 @@
 /*--------------------------------------------------*/
 
 #if defined(ENABLE_VERIFIER)
-#define CHECK_STACK_DEPTH(depthA,depthB) \
-	do { \
-		if ((depthA) != (depthB)) \
-			goto throw_stack_depth_error; \
-	} while (0)
+#define CHECK_STACK_DEPTH(depthA,depthB)                             \
+    do {                                                             \
+        if ((depthA) != (depthB))                                    \
+            goto throw_stack_depth_error;                            \
+    } while (0)
 #else /* !ENABLE_VERIFIER */
 #define CHECK_STACK_DEPTH(depthA,depthB)
 #endif /* ENABLE_VERIFIER */
@@ -75,13 +75,13 @@
 /* XXX would be nice if we did not have to pass the expected type */
 
 #if defined(ENABLE_VERIFIER)
-#define CHECK_BASIC_TYPE(expected,actual) \
-	do { \
-		if ((actual) != (expected)) { \
-			expectedtype = (expected); \
-			goto throw_stack_type_error; \
-		} \
-	} while (0)
+#define CHECK_BASIC_TYPE(expected,actual)                            \
+    do {                                                             \
+        if ((actual) != (expected)) {                                \
+            expectedtype = (expected);                               \
+            goto throw_stack_type_error;                             \
+        }                                                            \
+    } while (0)
 #else /* !ENABLE_VERIFIER */
 #define CHECK_BASIC_TYPE(expected,actual)
 #endif /* ENABLE_VERIFIER */
@@ -93,11 +93,11 @@
 /* underflow checks */
 
 #if defined(ENABLE_VERIFIER)
-#define REQUIRE(num) \
-    do { \
-        if (stackdepth < (num)) \
-			goto throw_stack_underflow; \
-	} while (0)
+#define REQUIRE(num)                                                 \
+    do {                                                             \
+        if (stackdepth < (num))                                      \
+            goto throw_stack_underflow;                              \
+    } while (0)
 #else /* !ENABLE_VERIFIER */
 #define REQUIRE(num)
 #endif /* ENABLE_VERIFIER */
@@ -116,12 +116,12 @@
 
 /* XXX we should find a way to remove the opc/op1 check */
 #if defined(ENABLE_VERIFIER)
-#define CHECKOVERFLOW \
-	do { \
-		if (stackdepth > m->maxstack) \
-			if ((iptr->opc != ICMD_ACONST) || INSTRUCTION_MUST_CHECK(iptr)) \
-				goto throw_stack_overflow; \
-	} while(0)
+#define CHECKOVERFLOW                                                \
+    do {                                                             \
+        if (stackdepth > m->maxstack)                                \
+            if ((iptr->opc != ICMD_ACONST) || INSTRUCTION_MUST_CHECK(iptr))\
+                goto throw_stack_overflow;                           \
+    } while(0)
 #else /* !ENABLE_VERIFIER */
 #define CHECKOVERFLOW
 #endif /* ENABLE_VERIFIER */
@@ -130,15 +130,15 @@
 /* ALLOCATING STACK SLOTS                           */
 /*--------------------------------------------------*/
 
-#define NEWSTACK(s,v,n)	\
-    do { \
-        new->prev = curstack; \
-        new->type = (s); \
-        new->flags = 0; \
-        new->varkind = (v); \
-        new->varnum = (n); \
-        curstack = new; \
-        new++; \
+#define NEWSTACK(s,v,n)                                              \
+    do {                                                             \
+        new->prev = curstack;                                        \
+        new->type = (s);                                             \
+        new->flags = 0;                                              \
+        new->varkind = (v);                                          \
+        new->varnum = (n);                                           \
+        curstack = new;                                              \
+        new++;                                                       \
     } while (0)
 
 /* Initialize regoff, so -sia can show regnames even before reg.inc */
