@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5561 2006-09-28 19:53:05Z edwin $
+   $Id: codegen.c 5587 2006-09-30 10:16:48Z christian $
 
 */
 
@@ -225,7 +225,7 @@ bool codegen(jitdata *jd)
 		if (varindex == UNUSED)
 			continue;
 
- 		var = jd->var + varindex;
+ 		var = VAR(varindex);
 		
 		s1 = md->params[p].regoff;
 
@@ -382,7 +382,7 @@ bool codegen(jitdata *jd)
 			while (len) {
 				len--;
 				src = bptr->invars[len];
-				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+				if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 					if (bptr->type == BBTYPE_SBR) {
 /*  					d = reg_of_var(rd, src, REG_ITMP1); */
 						if (!IS_INMEMORY(src->flags))
@@ -410,7 +410,7 @@ bool codegen(jitdata *jd)
 		while (len) {
 			len--;
 			varindex = bptr->invars[len];
-			var = jd->var + varindex;
+			var = VAR(varindex);
   			if ((len ==  bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 				if (bptr->type == BBTYPE_SBR) {
 					d = codegen_reg_of_var(0, var, REG_ITMP1);
@@ -523,19 +523,18 @@ bool codegen(jitdata *jd)
 
 		/* load/store operations **********************************************/
 
-		case ICMD_ILOAD: 
-		case ICMD_ALOAD:   
+		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
+		case ICMD_ALOAD:      /* s1 = local variable                          */
 		case ICMD_LLOAD:
 		case ICMD_FLOAD:  
 		case ICMD_DLOAD:  
-		case ICMD_ISTORE:  
-		case ICMD_ASTORE:  
+		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
+		case ICMD_ASTORE:     /* dst = local variable                         */
 		case ICMD_LSTORE:
 		case ICMD_FSTORE:
 		case ICMD_DSTORE: 
 			
-			emit_copy(jd, iptr, jd->var + iptr->s1.varindex, 
-								jd->var + iptr->dst.varindex);
+			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
 		/* pop/copy/move operations *******************************************/
@@ -782,12 +781,12 @@ bool codegen(jitdata *jd)
 
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			var1 = jd->var + iptr->s1.varindex;
-			var2 = jd->var + iptr->sx.s23.s2.varindex;
-			dst  = jd->var + iptr->dst.varindex;
+			var1 = VAROP(iptr->s1);
+			var2 = VAROP(iptr->sx.s23.s2);
+			dst  = VAROP(iptr->dst);
 
 			d = codegen_reg_of_dst(jd, iptr, REG_NULL);
-	        if (IS_INMEMORY(var1->flags))
+			if (IS_INMEMORY(var1->flags))
 				M_ILD(RAX, REG_SP, var1->vv.regoff * 8);
 			else
 				M_INTMOVE(var1->vv.regoff, RAX);
@@ -796,7 +795,7 @@ bool codegen(jitdata *jd)
 				M_ILD(REG_ITMP3, REG_SP, var2->vv.regoff * 8);
 			else
 				M_INTMOVE(var2->vv.regoff, REG_ITMP3);
-
+			
 			if (checknull) {
 				M_ITEST(REG_ITMP3);
 				M_BEQ(0);
@@ -827,9 +826,9 @@ bool codegen(jitdata *jd)
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			var1 = jd->var + iptr->s1.varindex;
-			var2 = jd->var + iptr->sx.s23.s2.varindex;
-			dst  = jd->var + iptr->dst.varindex;
+			var1 = VAROP(iptr->s1);
+			var2 = VAROP(iptr->sx.s23.s2);
+			dst  = VAROP(iptr->dst);
 
 			d = codegen_reg_of_dst(jd, iptr, REG_NULL);
 			if (IS_INMEMORY(var1->flags))
@@ -906,9 +905,9 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			var1 = jd->var + iptr->s1.varindex;
-			var2 = jd->var + iptr->sx.s23.s2.varindex;
-			dst  = jd->var + iptr->dst.varindex;
+			var1 = VAROP(iptr->s1);
+			var2 = VAROP(iptr->sx.s23.s2);
+			dst  = VAROP(iptr->dst);
 
 			d = codegen_reg_of_dst(jd, iptr, REG_NULL);
 
@@ -954,9 +953,9 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			var1 = jd->var + iptr->s1.varindex;
-			var2 = jd->var + iptr->sx.s23.s2.varindex;
-			dst  = jd->var + iptr->dst.varindex;
+			var1 = VAROP(iptr->s1);
+			var2 = VAROP(iptr->sx.s23.s2);
+			dst  = VAROP(iptr->dst);
 
 			d = codegen_reg_of_dst(jd, iptr, REG_NULL);
 			
@@ -1296,8 +1295,8 @@ bool codegen(jitdata *jd)
 			break;
 
 
-		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
-		                      /* s1.localindex = variable, sx.val.i = constant             */
+		case ICMD_IINC:      /* ..., value  ==> ..., value + constant         */
+		                     /* s1.localindex = variable, sx.val.i = constant */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -2323,7 +2322,7 @@ bool codegen(jitdata *jd)
 			break;
 			
 		case ICMD_RET:          /* ... ==> ...                                */
-		                        /* s1.localindex = local variable                       */
+		                        /* s1.localindex = local variable             */
 
   			M_JMP_IMM(0);
 			codegen_addreference(cd, iptr->dst.block);

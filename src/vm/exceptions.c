@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5461 2006-09-11 00:33:32Z edwin $
+   $Id: exceptions.c 5586 2006-09-29 14:21:42Z edwin $
 
 */
 
