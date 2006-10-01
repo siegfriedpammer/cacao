@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 5498 2006-09-14 18:56:49Z edwin $
+   $Id: typeinfo.h 5601 2006-10-01 14:37:17Z edwin $
 
 */
 
@@ -64,7 +64,7 @@ typedef struct typedescriptor typedescriptor;
 /*#define TYPEINFO_VERBOSE*/
 #define TYPECHECK_DEBUG
 /*#define TYPEINFO_DEBUG_TEST*/
-#define TYPECHECK_VERBOSE
+/*#define TYPECHECK_VERBOSE*/
 /*#define TYPECHECK_VERBOSE_IMPORTANT*/
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
 #define TYPECHECK_VERBOSE_OPT
