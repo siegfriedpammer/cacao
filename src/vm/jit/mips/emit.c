@@ -61,7 +61,7 @@
 
 *******************************************************************************/
 
-s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -74,7 +74,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->regoff * 8;
+		disp = src->vv.regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
 			if (IS_2_WORD_TYPE(src->type))
@@ -88,7 +88,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		reg = tempreg;
 	}
 	else
-		reg = src->regoff;
+		reg = src->vv.regoff;
 
 	return reg;
 }
@@ -100,7 +100,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 *******************************************************************************/
 
-void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -112,7 +112,7 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 	if (dst->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = dst->regoff * 8;
+		disp = dst->vv.regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(dst->type)) {
 			if (IS_2_WORD_TYPE(dst->type))
@@ -132,7 +132,7 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
+void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 {
 	codegendata  *cd;
 	registerdata *rd;
@@ -143,7 +143,7 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	cd = jd->cd;
 	rd = jd->rd;
 
-	if ((src->regoff != dst->regoff) ||
+	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
 
 		/* If one of the variables resides in memory, we can eliminate
