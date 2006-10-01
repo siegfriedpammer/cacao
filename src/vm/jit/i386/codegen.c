@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5594 2006-09-30 22:45:13Z edwin $
+   $Id: codegen.c 5613 2006-10-01 20:49:49Z edwin $
 
 */
 
@@ -463,8 +463,7 @@ bool codegen(jitdata *jd)
 # endif
 			if (len > 0) {
 				len--;
-				varindex = bptr->invars[len];
-				var = VAR(varindex);
+				var = VAR(bptr->invars[len]);
 				if (bptr->type != BBTYPE_STD) {
 					if (!IS_2_WORD_TYPE(var->type)) {
 						if (bptr->type == BBTYPE_SBR) {
@@ -493,8 +492,7 @@ bool codegen(jitdata *jd)
 		{
 		while (len) {
 			len--;
-			varindex = bptr->invars[len];
-			var = VAR(varindex);
+			var = VAR(bptr->invars[len]);
 			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 				if (!IS_2_WORD_TYPE(var->type)) {
 					if (bptr->type == BBTYPE_SBR) {
@@ -3257,23 +3255,22 @@ gen_method:
 			/* copy arguments to registers or stack location                  */
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
-				s1 = iptr->sx.s23.s2.args[s3];
-				var1 = VAR(s1);
+				var = VAR(iptr->sx.s23.s2.args[s3]);
 	  
 				/* Already Preallocated (ARGVAR) ? */
-				if (var1->flags & PREALLOC)
+				if (var->flags & PREALLOC)
 					continue;
-				if (IS_INT_LNG_TYPE(var1->type)) {
+				if (IS_INT_LNG_TYPE(var->type)) {
 					if (!md->params[s3].inmemory) {
 						log_text("No integer argument registers available!");
 						assert(0);
 
 					} else {
-						if (IS_2_WORD_TYPE(var1->type)) {
-							d = emit_load(jd, iptr, var1, REG_ITMP12_PACKED);
+						if (IS_2_WORD_TYPE(var->type)) {
+							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
 							M_LST(d, REG_SP, md->params[s3].regoff * 4);
 						} else {
-							d = emit_load(jd, iptr, var1, REG_ITMP1);
+							d = emit_load(jd, iptr, var, REG_ITMP1);
 							M_IST(d, REG_SP, md->params[s3].regoff * 4);
 						}
 					}
@@ -3281,12 +3278,12 @@ gen_method:
 				} else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var1, s1);
+						d = emit_load(jd, iptr, var, s1);
 						M_FLTMOVE(d, s1);
 
 					} else {
-						d = emit_load(jd, iptr, var1, REG_FTMP1);
-						if (IS_2_WORD_TYPE(var1->type))
+						d = emit_load(jd, iptr, var, REG_FTMP1);
+						if (IS_2_WORD_TYPE(var->type))
 							M_DST(d, REG_SP, md->params[s3].regoff * 4);
 						else
 							M_FST(d, REG_SP, md->params[s3].regoff * 4);
@@ -3834,17 +3831,16 @@ gen_method:
 
 			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
 				/* copy SAVEDVAR sizes to stack */
-				s3 = iptr->sx.s23.s2.args[s1];
-				var1 = VAR(s3);
+				var = VAR(iptr->sx.s23.s2.args[s1]);
 
-				/* Already Preallocated (ARGVAR) ? */
-				if (!(var1->flags & PREALLOC)) {
-					if (var1->flags & INMEMORY) {
-						M_ILD(REG_ITMP1, REG_SP, var1->vv.regoff * 4);
+				/* Already Preallocated? */
+				if (!(var->flags & PREALLOC)) {
+					if (var->flags & INMEMORY) {
+						M_ILD(REG_ITMP1, REG_SP, var->vv.regoff * 4);
 						M_IST(REG_ITMP1, REG_SP, (s1 + 3) * 4);
 					}
 					else
-						M_IST(var1->vv.regoff, REG_SP, (s1 + 3) * 4);
+						M_IST(var->vv.regoff, REG_SP, (s1 + 3) * 4);
 				}
 			}
 
@@ -3900,10 +3896,8 @@ gen_method:
 		
 	} /* for instruction */
 		
-	/* copy values to interface registers */
+	MCODECHECK(64);
 
-	len = bptr->outdepth;
-	MCODECHECK(64+len);
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 	if (!opt_lsra)
 #endif
