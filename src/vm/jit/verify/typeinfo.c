@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5498 2006-09-14 18:56:49Z edwin $
+   $Id: typeinfo.c 5605 2006-10-01 15:44:13Z edwin $
 
 */
 
@@ -212,10 +212,6 @@ typevector_store(varinfo *vec,int index,int type,typeinfo *info)
 	   index............index of component to set
 	   info.............typeinfo of the returnAddress.
 
-   NOTE:
-       If there is a two-word type stored at INDEX-1 in any typevector, it is
-	   changed to TYPE_VOID (because its upper half has become invalid).
-
 *******************************************************************************/
 
 void
@@ -227,38 +223,6 @@ typevector_store_retaddr(varinfo *vec,int index,typeinfo *info)
 	vec[index].type = TYPE_ADR;
 	TYPEINFO_INIT_RETURNADDRESS(vec[index].typeinfo,
 			TYPEINFO_RETURNADDRESS(*info));
-	if (index > 0 && IS_2_WORD_TYPE(vec[index-1].type))
-		vec[index-1].type = TYPE_VOID;
-}
-
-/* typevector_store_twoword ****************************************************
- 
-   Store a two-word type at a given index in the typevectors of a set.
-   This function stores the same type in all typevectors of the set.
-  
-   IN:
-	   vec..............typevector, must be != NULL
-	   index............index of component to set
-	   type.............TYPE_* constant of type to set (TYPE_LNG, TYPE_DBL)
-
-   NOTE:
-       If there is a two-word type stored at INDEX-1 in any typevector, it is
-	   changed to TYPE_VOID (because its upper half has become invalid).
-
-	   The components at INDEX+1 are set to TYPE_VOID.
-
-*******************************************************************************/
-
-void
-typevector_store_twoword(varinfo *vec,int index,int type)
-{
-	TYPEINFO_ASSERT(vec);
-	TYPEINFO_ASSERT(type == TYPE_LNG || type == TYPE_DBL);
-
-	vec[index].type = type;
-	vec[index+1].type = TYPE_VOID;
-	if (index > 0 && IS_2_WORD_TYPE(vec[index-1].type))
-		vec[index-1].type = TYPE_VOID;
 }
 
 /* typevector_init_object ******************************************************
