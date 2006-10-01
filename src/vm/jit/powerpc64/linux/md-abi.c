@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5389 2006-09-06 23:18:27Z twisti $
+   $Id: md-abi.c 5618 2006-10-01 23:37:04Z edwin $
 
 */
 
@@ -197,10 +197,8 @@ void md_param_alloc(methoddesc *md)
 
    --- out
    if precoloring was possible:
-   stackslot->varkind       =ARGVAR
-            ->varnum        =-1
-   	        ->flags         =0
-   	        ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
+   VAR(stackslot->varnum)->flags     = PREALLOC
+   VAR(stackslot->varnum)->vv.regoff = [REG_RESULT, REG_FRESULT]
    rd->arg[flt|int]reguse   set to a value according the register usage
 
 *******************************************************************************/
@@ -229,20 +227,19 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 		   has not to survive method invokations. */
 
 		if (!(stackslot->flags & SAVEDVAR)) {
-			stackslot->varkind = ARGVAR;
-			stackslot->varnum = -1;
-			stackslot->flags = 0;
+
+			VAR(stackslot->varnum)->flags = PREALLOC;
 
 			if (IS_INT_LNG_TYPE(md->returntype.type)) {
 				if (rd->argintreguse < 1)
 					rd->argintreguse = 1;
 
-				stackslot->regoff = REG_RESULT;
+				VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
 			} else { /* float/double */
 				if (rd->argfltreguse < 1)
 					rd->argfltreguse = 1;
 
-				stackslot->regoff = REG_FRESULT;
+				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
 			}
 		}
 	}
