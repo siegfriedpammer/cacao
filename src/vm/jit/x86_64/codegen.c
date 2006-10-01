@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5595 2006-09-30 23:06:36Z edwin $
+   $Id: codegen.c 5612 2006-10-01 20:42:31Z edwin $
 
 */
 
@@ -409,8 +409,7 @@ bool codegen(jitdata *jd)
 
 		while (len) {
 			len--;
-			varindex = bptr->invars[len];
-			var = VAR(varindex);
+			var = VAR(bptr->invars[len]);
   			if ((len ==  bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 				if (bptr->type == BBTYPE_SBR) {
 					d = codegen_reg_of_var(0, var, REG_ITMP1);
@@ -2788,34 +2787,33 @@ gen_method:
 			/* copy arguments to registers or stack location */
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
-				s1 = iptr->sx.s23.s2.args[s3];
-				var1 = VAR(s1);
+				var = VAR(iptr->sx.s23.s2.args[s3]);
 
 				/* Already Preallocated (ARGVAR) ? */
-				if (var1->flags & PREALLOC)
+				if (var->flags & PREALLOC)
 					continue;
 
-				if (IS_INT_LNG_TYPE(var1->type)) {
+				if (IS_INT_LNG_TYPE(var->type)) {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argintregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var1, s1);
+						d = emit_load(jd, iptr, var, s1);
 						M_INTMOVE(d, s1);
 					}
 					else {
-						d = emit_load(jd, iptr, var1, REG_ITMP1);
+						d = emit_load(jd, iptr, var, REG_ITMP1);
 						M_LST(d, REG_SP, md->params[s3].regoff * 8);
 					}
 				}
 				else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var1, s1);
+						d = emit_load(jd, iptr, var, s1);
 						M_FLTMOVE(d, s1);
 					}
 					else {
-						d = emit_load(jd, iptr, var1, REG_FTMP1);
+						d = emit_load(jd, iptr, var, REG_FTMP1);
 
-						if (IS_2_WORD_TYPE(var1->type))
+						if (IS_2_WORD_TYPE(var->type))
 							M_DST(d, REG_SP, md->params[s3].regoff * 8);
 						else
 							M_FST(d, REG_SP, md->params[s3].regoff * 8);
@@ -3364,12 +3362,11 @@ gen_method:
 			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
 
 				/* copy SAVEDVAR sizes to stack */
-				s3 = iptr->sx.s23.s2.args[s1];
-				var1 = VAR(s3);
+				var = VAR(iptr->sx.s23.s2.args[s1]);
 
-				/* Already Preallocated (ARGVAR) ? */
-				if (!(var1->flags & PREALLOC)) {
-					s2 = emit_load(jd, iptr, var1, REG_ITMP1);
+				/* Already Preallocated? */
+				if (!(var->flags & PREALLOC)) {
+					s2 = emit_load(jd, iptr, var, REG_ITMP1);
 					M_LST(s2, REG_SP, s1 * 8);
 				}
 			}
@@ -3418,10 +3415,7 @@ gen_method:
 
 	} /* for instruction */
 		
-	/* copy values to interface registers */
-
-	len = bptr->outdepth;
-	MCODECHECK(512);
+	MCODECHECK(512); /* XXX require a lower number? */
 
 	/* At the end of a basic block we may have to append some nops,
 	   because the patcher stub calling code might be longer than the
