@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5615 2006-10-01 22:55:11Z edwin $
+   $Id: codegen.c 5619 2006-10-01 23:51:23Z edwin $
 
 */
 
@@ -105,6 +105,7 @@ bool codegen(jitdata *jd)
 	unresolved_field   *uf;
 	rplpoint           *replacementpoint;
 	s4                  fieldtype;
+	s4                  varindex;
 
 	/* get required compiler data */
 

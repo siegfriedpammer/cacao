@@ -151,12 +151,12 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		   order of getting the destination register and the load. */
 
 		if (IS_INMEMORY(src->flags)) {
-			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
+			d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
 			s1 = emit_load(jd, iptr, src, d);
 		}
 		else {
 			s1 = emit_load(jd, iptr, src, REG_IFTMP);
-			d = codegen_reg_of_var(rd, iptr->opc, dst, s1);
+			d = codegen_reg_of_var(iptr->opc, dst, s1);
 		}
 
 		if (s1 != d) {

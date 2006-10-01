@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5618 2006-10-01 23:37:04Z edwin $
+   $Id: codegen.c 5619 2006-10-01 23:51:23Z edwin $
 
 */
 
@@ -99,6 +99,7 @@ bool codegen(jitdata *jd)
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
 	s4                  fieldtype;
+	s4                  varindex;
 
 	/* get required compiler data */
 
@@ -419,7 +420,7 @@ bool codegen(jitdata *jd)
 			len--;
 			var = VAR(bptr->invars[len]);
 			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
-				d = codegen_reg_of_var(rd, 0, var, REG_ITMP1);
+				d = codegen_reg_of_var(0, var, REG_ITMP1);
 				M_INTMOVE(REG_ITMP1, d);
 				emit_store(jd, NULL, var, d);
 			} else {
@@ -1344,7 +1345,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			d = codegen_reg_of_dst(jd, iptr, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1565,7 +1566,7 @@ bool codegen(jitdata *jd)
 				M_ILD_INTERN(d, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst.var, PACK_REGS(REG_ITMP2, REG_ITMP1));
+				d = codegen_reg_of_dst(jd, iptr, PACK_REGS(REG_ITMP2, REG_ITMP1));
 				M_ILD_INTERN(GET_LOW_REG(d), REG_ITMP1, 4);/* keep this order */
 				M_ILD_INTERN(GET_HIGH_REG(d), REG_ITMP1, 0);/*keep this order */
 				break;
