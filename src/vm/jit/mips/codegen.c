@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5568 2006-09-28 20:23:30Z edwin $
+   $Id: codegen.c 5581 2006-09-29 13:14:08Z edwin $
 
 */
 
