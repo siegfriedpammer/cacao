@@ -886,6 +886,7 @@ AC_CONFIG_FILES([Makefile]
 		[tests/Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/codepatching/Makefile]
+		[tests/regression/jasmin/Makefile]
 		[tests/regression/native/Makefile])
 
 

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5015 2006-06-06 13:13:46Z twisti $
+## $Id: Makefile.am 5610 2006-10-01 20:27:54Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -67,7 +67,7 @@ TESTNAMES = \
 check: $(TESTNAMES)
 
 $(TESTNAMES) $(NOTESTNAMES):
-	@$(JAVAC) -d . $(srcdir)/$@.java
+	@$(JAVAC) -nowarn -d . $(srcdir)/$@.java
 	@$(JAVAH) $@
 	@$(CC) -shared $(AM_CPPFLAGS) $(CFLAGS) $(srcdir)/$@.c -o lib$@.so -fPIC
 	@$(SHELL) $(srcdir)/../Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)

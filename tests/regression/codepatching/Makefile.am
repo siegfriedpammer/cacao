@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5015 2006-06-06 13:13:46Z twisti $
+## $Id: Makefile.am 5610 2006-10-01 20:27:54Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -135,7 +135,7 @@ check: build
 	@$(JAVA) $(JAVAFLAGS) test
 
 build:
-	@$(JAVAC) -d . $(SOURCE_FILES)
+	@$(JAVAC) -nowarn -d . $(SOURCE_FILES)
 
 remove:
 	$(RM) $(CLASSES)
