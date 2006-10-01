@@ -26,7 +26,9 @@ if [ "$1" = "--color" ] ; then
 	ECHOFLAGS='-e'
 fi
 
-JASMIN_JAR=/usr/share/java/jasmin-sable.jar
+if [ -z "$JASMIN_JAR" ] ; then
+	JASMIN_JAR=/usr/share/java/jasmin-sable.jar
+fi
 
 if [ ! -r "$JASMIN_JAR" ] ; then
 	echo >&2 "$0: warning: jasmin .jar is not available at $JASMIN_JAR"
