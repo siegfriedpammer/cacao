@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5599 2006-09-30 23:47:29Z edwin $
+   $Id: stack.c 5606 2006-10-01 16:34:54Z edwin $
 
 */
 
@@ -96,14 +96,14 @@
 
 #if defined(ENABLE_STATISTICS)
 #define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)                    \
-	do {                                                             \
-		if (opt_stat) {                                              \
-			if (stackdepth >= 10)                                    \
-				count_store_depth[10]++;                             \
-			else                                                     \
-				count_store_depth[stackdepth]++;                     \
-		}                                                            \
-	} while (0)
+    do {                                                             \
+        if (opt_stat) {                                              \
+            if (stackdepth >= 10)                                    \
+                count_store_depth[10]++;                             \
+            else                                                     \
+                count_store_depth[stackdepth]++;                     \
+        }                                                            \
+    } while (0)
 #else /* !defined(ENABLE_STATISTICS) */
 #define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)
 #endif
