@@ -567,8 +567,10 @@ static void fullversion(void)
 /* forward declarations *******************************************************/
 
 static char *vm_get_mainclass_from_jar(char *mainstring);
+#if !defined(NDEBUG)
 static void  vm_compile_all(void);
 static void  vm_compile_method(void);
+#endif
 
 
 /* vm_create *******************************************************************
@@ -1407,6 +1409,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	s4                status;
 	s4                i;
 
+#if !defined(NDEBUG)
 	if (compileall) {
 		vm_compile_all();
 		return;
@@ -1416,6 +1419,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		vm_compile_method();
 		return;
 	}
+#endif /* !defined(NDEBUG) */
 
 	/* should we run the main-method? */
 
