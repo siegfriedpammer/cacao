@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5595 2006-09-30 23:06:36Z edwin $
+   $Id: codegen.c 5611 2006-10-01 20:37:33Z edwin $
 
 */
 
@@ -92,7 +92,7 @@ bool codegen(jitdata *jd)
 	codegendata        *cd;
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
-	varinfo            *var, *var1, *var2, *dst;
+	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
 	exceptiontable     *ex;
@@ -372,8 +372,7 @@ bool codegen(jitdata *jd)
 #endif
 			while (len) {
 				len--;
-				varindex = bptr->invars[len];
-				var = VAR(varindex);
+				var = VAR(bptr->invars[len]);
  				if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 					d = codegen_reg_of_var(0, var, REG_ITMP1);
 					M_INTMOVE(REG_ITMP1, d);
@@ -2765,32 +2764,31 @@ gen_method:
 			/* copy arguments to registers or stack location                  */
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
-				s1 = iptr->sx.s23.s2.args[s3];
-				var1 = VAR(s1);
+				var = VAR(iptr->sx.s23.s2.args[s3]);
 
 				/* Already Preallocated (ARGVAR) ? */
-				if (var1->flags & PREALLOC)
+				if (var->flags & PREALLOC)
 					continue;
 
-				if (IS_INT_LNG_TYPE(var1->type)) {
+				if (IS_INT_LNG_TYPE(var->type)) {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argintregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var1, s1);
+						d = emit_load(jd, iptr, var, s1);
 						M_INTMOVE(d, s1);
 					}
 					else {
-						d = emit_load(jd, iptr, var1, REG_ITMP1);
+						d = emit_load(jd, iptr, var, REG_ITMP1);
 						M_LST(d, REG_SP, md->params[s3].regoff * 8);
 					}
 				}
 				else {
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var1, s1);
+						d = emit_load(jd, iptr, var, s1);
 						M_FLTMOVE(d, s1);
 					}
 					else {
-						d = emit_load(jd, iptr, var1, REG_FTMP1);
+						d = emit_load(jd, iptr, var, REG_FTMP1);
 						M_DST(d, REG_SP, md->params[s3].regoff * 8);
 					}
 				}
@@ -3248,15 +3246,14 @@ gen_method:
 
 			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
 
-				s3 = iptr->sx.s23.s2.args[s1];
-				var1 = VAR(s3);
+				var = VAR(iptr->sx.s23.s2.args[s1]);
 	
 				/* copy SAVEDVAR sizes to stack */
 
-				/* Already Preallocated (ARGVAR) ? */
+				/* Already Preallocated? */
 
-				if (!(var1->flags & PREALLOC)) {
-					s2 = emit_load(jd, iptr, var1, REG_ITMP1);
+				if (!(var->flags & PREALLOC)) {
+					s2 = emit_load(jd, iptr, var, REG_ITMP1);
 					M_LST(s2, REG_SP, s1 * 8);
 				}
 			}
@@ -3312,11 +3309,6 @@ gen_method:
 		
 	} /* for instruction */
 		
-	/* copy values to interface registers */
-
-	len = bptr->outdepth;
-	MCODECHECK(64+len);
-
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
