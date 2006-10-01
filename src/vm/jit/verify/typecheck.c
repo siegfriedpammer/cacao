@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5595 2006-09-30 23:06:36Z edwin $
+   $Id: typecheck.c 5604 2006-10-01 15:25:21Z edwin $
 
 */
 
@@ -2448,6 +2448,12 @@ bool typecheck(jitdata *jd)
 			if (mapped >= 0)
 				state.reverselocalmap[mapped] = i;
 		}
+
+	DOLOG(
+		LOG("reverselocalmap:");
+		for (i=0; i<state.validlocals; ++i) {
+			LOG2("    %i => javaindex %i", i, state.reverselocalmap[i]);
+		});
 
     /* allocate the buffer of active exception handlers */
 	
