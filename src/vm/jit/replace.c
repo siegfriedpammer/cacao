@@ -241,9 +241,9 @@ bool replace_create_replacement_points(jitdata *jd)
 	code->memuse        = rd->memuse;
 
 	/* everything alright */
+#endif
 
 	return true;
-#endif
 }
 
 /* replace_free_replacement_points *********************************************
