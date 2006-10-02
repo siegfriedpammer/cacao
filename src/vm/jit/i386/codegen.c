@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5613 2006-10-01 20:49:49Z edwin $
+   $Id: codegen.c 5630 2006-10-02 13:16:20Z edwin $
 
 */
 
@@ -516,11 +516,6 @@ bool codegen(jitdata *jd)
 			} 
 			else {
 				assert((var->flags & OUTVAR));
-				/* will be done directly in simplereg lateron          */ 
-				/* for now codegen_reg_of_var has to be called here to */
-				/* set the regoff and flags for all bptr->invars[]     */
-				d = codegen_reg_of_var(0, var, REG_ITMP1);
-
 			}
 		} /* while (len) */
 		} /* */

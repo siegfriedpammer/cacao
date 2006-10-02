@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5612 2006-10-01 20:42:31Z edwin $
+   $Id: codegen.c 5630 2006-10-02 13:16:20Z edwin $
 
 */
 
@@ -423,9 +423,9 @@ bool codegen(jitdata *jd)
 					emit_store(jd, NULL, var, d);
 				}
 
-			} else {
+			} 
+			else {
 				assert((var->flags & OUTVAR));
-				d = codegen_reg_of_var(0, var, REG_ITMP1);
 			}
 		}
 #if defined(ENABLE_LSRA)

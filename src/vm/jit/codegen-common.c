@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5607 2006-10-01 18:01:26Z edwin $
+   $Id: codegen-common.c 5630 2006-10-02 13:16:20Z edwin $
 
 */
 
@@ -1090,7 +1090,7 @@ void removenativestub(u1 *stub)
 
 *******************************************************************************/
 
-s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
+inline s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 {
 
 #if 0
@@ -1105,15 +1105,15 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 	if (!(v->flags & INMEMORY)) {
 #if defined(__ARM__) && defined(__ARMEL__)
 		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->vv.regoff) == REG_SPLIT))
-			return(PACK_REGS(GET_LOW_REG(v->vv.regoff),
-							 GET_HIGH_REG(tempregnum)));
+			return PACK_REGS(GET_LOW_REG(v->vv.regoff),
+							 GET_HIGH_REG(tempregnum));
 #endif
 #if defined(__ARM__) && defined(__ARMEB__)
 		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->vv.regoff) == REG_SPLIT))
-			return(PACK_REGS(GET_LOW_REG(tempregnum),
-							 GET_HIGH_REG(v->vv.regoff)));
+			return PACK_REGS(GET_LOW_REG(tempregnum),
+							 GET_HIGH_REG(v->vv.regoff));
 #endif
-		return(v->vv.regoff);
+		return v->vv.regoff;
 	}
 
 #if defined(ENABLE_STATISTICS)
@@ -1142,33 +1142,7 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 
 s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 {
-	varinfo *v = VAROP(iptr->dst);
-
-	if (!(v->flags & INMEMORY)) {
-		
-#if defined(__ARM__) && defined(__ARMEL__)
-		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->vv.regoff) == REG_SPLIT))
-			return(PACK_REGS(GET_LOW_REG(v->vv.regoff),
-							 GET_HIGH_REG(tempregnum)));
-#endif
-#if defined(__ARM__) && defined(__ARMEB__)
-		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->vv.regoff) == REG_SPLIT))
-			return(PACK_REGS(GET_LOW_REG(tempregnum),
-							 GET_HIGH_REG(v->vv.regoff)));
-#endif
-		return (v->vv.regoff);
-	}
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_spills_read++;
-#endif
-
-	/* Not necessary anymore - either v is inmemory or not. Setting again */
-	/* won't change anything */
-	v->flags |= INMEMORY;
-
-	return tempregnum;
+	return codegen_reg_of_var(iptr->opc, VAROP(iptr->dst), tempregnum);
 }
 
 

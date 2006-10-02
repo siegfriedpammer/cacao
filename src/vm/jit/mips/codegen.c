@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5619 2006-10-01 23:51:23Z edwin $
+   $Id: codegen.c 5630 2006-10-02 13:16:20Z edwin $
 
 */
 
@@ -389,7 +389,6 @@ bool codegen(jitdata *jd)
 
 			} else {
 				assert((var->flags & OUTVAR));
-				d = codegen_reg_of_var(0, var, REG_IFTMP);
 			}
 		}
 #if defined(ENABLE_LSRA)

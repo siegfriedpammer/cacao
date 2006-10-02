@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5595 2006-09-30 23:06:36Z edwin $
+   $Id: md-abi.c 5630 2006-10-02 13:16:20Z edwin $
 
 */
 
@@ -212,8 +212,8 @@ void md_param_alloc(methoddesc *md)
 
    --- out
    if precoloring was possible:
-   jd->var[stackslot->varnum]->flags       = PREALLOC
-   			                 ->regoff      =[REG_RESULT|REG_FRESULT]
+   VAR(stackslot->varnum)->flags       = PREALLOC
+   			             ->regoff      = [REG_RESULT|REG_FRESULT]
    rd->arg[flt|int]reguse   set to a value according the register usage
 
    NOTE: Do not pass a LOCALVAR in stackslot->varnum.
@@ -242,9 +242,6 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 		   has not to survive method invokations. */
 
 		if (!(stackslot->flags & SAVEDVAR)) {
-/* 			stackslot->varkind = ARGVAR; */
-/* 			stackslot->varnum  = -1; */
-/* 			stackslot->flags   = 0; */
 			VAR(stackslot->varnum)->flags = PREALLOC;
 
 			if (IS_INT_LNG_TYPE(md->returntype.type)) {
@@ -252,14 +249,12 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 					if (rd->argintreguse < 1)
 						rd->argintreguse = 1;
 
-/* 					stackslot->regoff = REG_RESULT; */
 					VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
 				}
 				else {
 					if (rd->argintreguse < 2)
 						rd->argintreguse = 2;
 
-/* 					stackslot->regoff = REG_RESULT_PACKED; */
 					VAR(stackslot->varnum)->vv.regoff = REG_RESULT_PACKED;
 				}
 			}
@@ -267,7 +262,6 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 				if (rd->argfltreguse < 1)
 					rd->argfltreguse = 1;
 
-/* 				stackslot->regoff = REG_FRESULT; */
 				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
 			}
 		}
