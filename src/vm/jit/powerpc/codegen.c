@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5541 2006-09-21 10:34:08Z twisti $
+   $Id: codegen.c 5636 2006-10-02 17:43:23Z twisti $
 
 */
 
@@ -409,6 +409,7 @@ bool codegen(jitdata *jd)
 			}
 		}
 
+#if 0
 		/* handle replacement points */
 
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
@@ -416,6 +417,7 @@ bool codegen(jitdata *jd)
 			
 			replacementpoint++;
 		}
+#endif
 
 		/* generate basicblock profiling code */
 

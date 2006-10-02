@@ -548,6 +548,7 @@ void emit_replacement_stubs(jitdata *jd)
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void emit_verbosecall_enter(jitdata *jd)
 {
 	methodinfo   *m;
@@ -753,6 +754,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 }
+#endif /* !defined(NDEBUG) */
 
 
 /* emit_verbosecall_exit *******************************************************
@@ -761,6 +763,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void emit_verbosecall_exit(jitdata *jd)
 {
 	methodinfo   *m;
@@ -838,6 +841,7 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 }
+#endif /* !defined(NDEBUG) */
 
 
 /*
