@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: gennativetable.c 5638 2006-10-02 18:04:37Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/suck.h"
 
 
@@ -63,6 +64,8 @@
 
 #define HEAP_MAXSIZE      4 * 1024 * 1024   /* default 4MB                    */
 #define HEAP_STARTSIZE    100 * 1024        /* default 100kB                  */
+
+#define ACC_NATIVELY_OVERLOADED    0x10000000
 
 
 /* define cacaoh options ******************************************************/
@@ -86,8 +89,12 @@ opt_struct opts[] = {
 };
 
 
+static JavaVMInitArgs *gennativetable_options_prepare(int argc, char **argv);
+
+
 int main(int argc, char **argv)
 {
+	JavaVMInitArgs *vm_args;
 	char *bootclasspath;
 
 	chain *nativemethod_chain;
@@ -105,7 +112,9 @@ int main(int argc, char **argv)
 	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
 #endif
 
-	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
+	vm_args = gennativetable_options_prepare(argc, argv);
+
+	while ((i = options_get(opts, vm_args)) != OPT_DONE) {
 		switch (i) {
 		case OPT_IGNORE:
 			break;
@@ -196,7 +205,7 @@ int main(int argc, char **argv)
 			for (clsen = nmen->classes; clsen; clsen = clsen->next) {
 				c = clsen->classobj;
 
-				if (!c)
+				if (c == NULL)
 					continue;
 
 				/* find overloaded methods */
@@ -207,11 +216,7 @@ int main(int argc, char **argv)
 					if (!(m->flags & ACC_NATIVE))
 						continue;
 
-					/* ATTENTION: We use the methodinfo's isleafmethod
-					   variable as nativelyoverloaded, so we can save
-					   some space during runtime. */
-
-					if (!m->isleafmethod) {
+					if (!(m->flags & ACC_NATIVELY_OVERLOADED)) {
 						nativelyoverloaded = false;
 				
 						for (j = i + 1; j < c->methodscount; j++) {
@@ -221,12 +226,13 @@ int main(int argc, char **argv)
 								continue;
 
 							if (m->name == m2->name) {
-								m2->isleafmethod = true;
-								nativelyoverloaded = true;
+								m2->flags          |= ACC_NATIVELY_OVERLOADED;
+								nativelyoverloaded  = true;
 							}
 						}
 
-						m->isleafmethod = nativelyoverloaded;
+						if (nativelyoverloaded == true)
+							m->flags |= ACC_NATIVELY_OVERLOADED;
 					}
 				}
 
@@ -279,11 +285,7 @@ int main(int argc, char **argv)
 		fprintf(file, "_");
 		printID(m->name);
 	 
-		/* ATTENTION: We use the methodinfo's isleafmethod variable as
-		   nativelyoverloaded, so we can save some space during
-		   runtime. */
-
-		if (m->isleafmethod)
+		if (m->flags & ACC_NATIVELY_OVERLOADED)
 			printOverloadPart(m->descriptor);
 
 		fprintf(file,"\n   },\n");
@@ -304,6 +306,29 @@ int main(int argc, char **argv)
 	/* everything is ok */
 
 	return 0;
+}
+
+
+/* gennativetable_options_prepare **********************************************
+
+   Prepare the JavaVMInitArgs.
+
+*******************************************************************************/
+
+static JavaVMInitArgs *gennativetable_options_prepare(int argc, char **argv)
+{
+	JavaVMInitArgs *vm_args;
+	s4              i;
+
+	vm_args = NEW(JavaVMInitArgs);
+
+	vm_args->nOptions = argc - 1;
+	vm_args->options  = MNEW(JavaVMOption, argc);
+
+	for (i = 1; i < argc; i++)
+		vm_args->options[i - 1].optionString = argv[i];
+
+	return vm_args;
 }
 
 
