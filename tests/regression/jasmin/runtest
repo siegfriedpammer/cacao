@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 VERBOSE=0
 EXITCODE=0
