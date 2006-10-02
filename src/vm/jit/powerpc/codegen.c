@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5633 2006-10-02 13:59:13Z edwin $
+   $Id: codegen.c 5639 2006-10-02 19:24:56Z edwin $
 
 */
 
@@ -414,14 +414,15 @@ bool codegen(jitdata *jd)
 			}
 		}
 
-		/* handle replacement points */
 #if 0
+		/* handle replacement points */
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
 		}
 #endif
+
 		/* generate basicblock profiling code */
 
 		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
