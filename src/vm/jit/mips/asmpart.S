@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5270 2006-08-23 15:10:16Z twisti $
+   $Id: asmpart.S 5624 2006-10-02 11:35:33Z twisti $
 
 */
 
@@ -122,7 +122,7 @@ asm_vm_call_method_double:
 	.set    noreorder                 /* XXX we need to recompute pv          */
 
 	aaddiu  sp,sp,-12*8               /* allocate stack space (only 11 needed)*/
-	ast     ra,0(sp)                  /* save return address                  */
+	ast     ra,0*8(sp)                /* save return address                  */
 
 	bal     L_asm_vm_call_method_compute_pv
 	ast     pv,1*8(sp)                /* procedure vector                     */
@@ -194,7 +194,7 @@ calljava_argsloaded:
 	move    t8,sp                      /* save stack pointer                  */
 	blez    s7,calljava_nocopy
 	nop
-	subu    t1,zero,s7
+	subu    t1,zero,s7                 /* create argument stack frame         */
 	sll     t2,t1,3
 	aaddu   sp,sp,t2
 	aaddu   t2,t2,t8
@@ -202,9 +202,9 @@ calljava_argsloaded:
 calljava_copyloop:
     ald     t3,offvmargdata+sizevmarg*8(t0)
 	ast     t3,0(t2)
-	ala     t1,1(t1)
-	ala     t0,sizevmarg(t0)
-	ala     t2,8(t2)
+	aaddi   t1,t1,1
+	aaddi   t0,t0,sizevmarg
+	aaddi   t2,t2,8
 	bnez    t1,calljava_copyloop
 	nop
 
@@ -224,6 +224,9 @@ L_asm_vm_call_method_recompute_pv:
 
 	.set    reorder                   /* XXX we need to recompute pv          */
 
+	asll    s7,s7,3                   /* remove argument stack frame          */
+	aaddu   sp,sp,s7
+
 calljava_return2:
 	ald     ra,0(sp)                  /* restore return address               */
 	ald     pv,8(sp)                  /* restore procedure vector             */
@@ -240,8 +243,9 @@ calljava_return2:
 	j       ra                        /* return                               */
 
 asm_vm_call_method_exception_handler:
-	asll    s7,s7,3
-	aaddu   sp,s7,sp
+	asll    s7,s7,3                   /* remove argument stack frame          */
+	aaddu   sp,sp,s7
+
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
 	b       calljava_return2
