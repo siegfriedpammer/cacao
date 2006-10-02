@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5630 2006-10-02 13:16:20Z edwin $
+   $Id: codegen.c 5632 2006-10-02 13:43:15Z edwin $
 
 */
 
@@ -524,9 +524,8 @@ bool codegen(jitdata *jd)
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
 		case ICMD_COPY:
 		case ICMD_MOVE:
-		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
 
-			M_COPY(iptr->s1.varindex, iptr->dst.varindex);
+			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
 
@@ -1771,6 +1770,7 @@ bool codegen(jitdata *jd)
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		case ICMD_RET:          /* ... ==> ...                                */
+
 			M_BR(0);
 			codegen_addreference(cd, iptr->dst.block);
 			ALIGNCODENOP;

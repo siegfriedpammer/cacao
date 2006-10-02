@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5631 2006-10-02 13:26:39Z edwin $
+   $Id: codegen.c 5632 2006-10-02 13:43:15Z edwin $
 
 */
 
@@ -1995,6 +1995,8 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
+		case ICMD_RET:          /* ... ==> ...                                */
+
 			M_BR(0);
 			codegen_addreference(cd, iptr->dst.block);
 			ALIGNCODENOP;
@@ -2016,14 +2018,6 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
 			break;
 			
-		case ICMD_RET:          /* ... ==> ...                                */
-		                        /* s1.localindex = local variable             */
-
-			M_BR(0);
-			codegen_addreference(cd, iptr->dst.block);
-			ALIGNCODENOP;
-			break;
-
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);

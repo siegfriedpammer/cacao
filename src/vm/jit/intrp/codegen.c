@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5488 2006-09-13 00:21:40Z edwin $
+   $Id: codegen.c 5632 2006-10-02 13:43:15Z edwin $
 
 */
 
@@ -1315,6 +1315,7 @@ bool intrp_codegen(jitdata *jd)
 			break;
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
+		case ICMD_RET:          /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 			gen_branch(GOTO);
 			break;
@@ -1324,12 +1325,6 @@ bool intrp_codegen(jitdata *jd)
 			gen_branch(JSR);
 			break;
 			
-		case ICMD_RET:          /* ... ==> ...                                */
-		                        /* op1 = local variable                       */
-
-			gen_RET(cd, index2offset(iptr->op1));
-			break;
-
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc                     */
 

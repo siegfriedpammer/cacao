@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5630 2006-10-02 13:16:20Z edwin $
+   $Id: codegen.c 5632 2006-10-02 13:43:15Z edwin $
 
 */
 
@@ -708,7 +708,7 @@ bool codegen(jitdata *jd)
 			break;
 
 
-		/* load/store operations **********************************************/
+		/* load/store/copy/move operations ************************************/
 
 		case ICMD_ILOAD:
 		case ICMD_ALOAD:
@@ -720,11 +720,14 @@ bool codegen(jitdata *jd)
 		case ICMD_LSTORE:
 		case ICMD_FSTORE:
 		case ICMD_DSTORE:
+		case ICMD_COPY:
+		case ICMD_MOVE:
 
 			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
-		/* pop/copy/move operations *******************************************/
+
+		/* pop operations *****************************************************/
 
 		/* attention: double and longs are only one entry in CACAO ICMDs      */
 
@@ -733,11 +736,6 @@ bool codegen(jitdata *jd)
 
 			break;
 
-		case ICMD_COPY:
-		case ICMD_MOVE:
-
-			M_COPY(iptr->s1.varindex, iptr->dst.varindex);
-			break;
 
 		/* integer operations *************************************************/
 
@@ -2689,6 +2687,7 @@ bool codegen(jitdata *jd)
 			/* FALLTHROUGH! */
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
+		case ICMD_RET:          /* ... ==> ...                                */
 
 #if defined(ENABLE_SSA)
 			if ( ls != NULL ) {
@@ -2709,12 +2708,6 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
 			break;
 			
-		case ICMD_RET:          /* ... ==> ...                                */
-
-  			M_JMP_IMM(0);
-			codegen_addreference(cd, iptr->dst.block);
-			break;
-
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);

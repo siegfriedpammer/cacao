@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 5595 2006-09-30 23:06:36Z edwin $
+   $Id: codegen.h 5632 2006-10-02 13:43:15Z edwin $
 
 */
 
@@ -101,7 +101,6 @@
     } while (0)
 
 
-#define M_COPY(s,d)        emit_copy(jd, iptr, VAR(s), VAR(d))
 #define ICONST(d,c)        emit_iconst(cd, (d), (c))
 #define LCONST(d,c)        emit_lconst(cd, (d), (c))
 

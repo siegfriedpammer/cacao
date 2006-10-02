@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 5615 2006-10-01 22:55:11Z edwin $
+   $Id: codegen.h 5632 2006-10-02 13:43:15Z edwin $
 
 */
 
@@ -100,7 +100,6 @@
             M_DMOV(a, b); \
     } while (0)
 
-#define M_COPY(s,d)                     emit_copy(jd, iptr, VAR(s), VAR(d))
 #define ICONST(r,c)                     emit_iconst(cd, (r), (c))
 #define LCONST(r,c)                     emit_lconst(cd, (r), (c))
 

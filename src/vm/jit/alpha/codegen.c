@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5630 2006-10-02 13:16:20Z edwin $
+   $Id: codegen.c 5632 2006-10-02 13:43:15Z edwin $
 
 */
 
@@ -495,7 +495,7 @@ bool codegen(jitdata *jd)
 		case ICMD_COPY:
 		case ICMD_MOVE:
 
-			M_COPY(iptr->s1.varindex, iptr->dst.varindex);
+			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
 
@@ -2197,6 +2197,8 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
+		case ICMD_RET:          /* ... ==> ...                                */
+
 			M_BR(0);
 			codegen_addreference(cd, iptr->dst.block);
 			ALIGNCODENOP;
@@ -2208,21 +2210,6 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
 			break;
 			
-		case ICMD_RET:          /* ... ==> ...                                */
-		                        /* s1.localindex = local variable                       */
-
-  			M_BR(0);
-			codegen_addreference(cd, iptr->dst.block);
-/* 			var = &(rd->locals[iptr->s1.localindex][TYPE_ADR]); */
-/* 			if (var->flags & INMEMORY) { */
-/* 				M_ALD(REG_ITMP1, REG_SP, 8 * var->vv.regoff); */
-/* 				M_RET(REG_ZERO, REG_ITMP1); */
-/* 				} */
-/* 			else */
-/* 				M_RET(REG_ZERO, var->vv.regoff); */
-			ALIGNCODENOP;
-			break;
-
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
