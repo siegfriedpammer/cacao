@@ -58,7 +58,7 @@ do
 
 	if grep 'ERROR:' "$TEST" >/dev/null ; then
 		EXPECTSTATUS=1
-		EXPECTERROR=$(grep -o 'ERROR:.*' "$TEST" | sed 's,ERROR:[ \t]*,,')
+		EXPECTERROR=$(grep 'ERROR:.*' "$TEST" | sed 's,.*ERROR:[ \t]*,,')
 	fi
 
 	# run the test
