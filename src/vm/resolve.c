@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: resolve.c 5628 2006-10-02 12:37:09Z edwin $
 
 */
 
@@ -116,11 +116,11 @@ bool resolve_class_from_name(classinfo *referer,
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_class_from_name(");
-	utf_fprint_printable_ascii(stderr,referer->name);
-	fprintf(stderr,",%p,",referer->classloader);
-	utf_fprint_printable_ascii(stderr,classname);
-	fprintf(stderr,",%d,%d)\n",(int)checkaccess,(int)link);
+	printf("resolve_class_from_name(");
+	utf_fprint_printable_ascii(stdout,referer->name);
+	printf(",%p,",(void*)referer->classloader);
+	utf_fprint_printable_ascii(stdout,classname);
+	printf(",%d,%d)\n",(int)checkaccess,(int)link);
 #endif
 
 	/* lookup if this class has already been loaded */
@@ -128,7 +128,7 @@ bool resolve_class_from_name(classinfo *referer,
 	cls = classcache_lookup(referer->classloader, classname);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    lookup result: %p\n",(void*)cls);
+	printf("    lookup result: %p\n",(void*)cls);
 #endif
 
 	if (!cls) {
@@ -169,7 +169,7 @@ bool resolve_class_from_name(classinfo *referer,
 		}
 
 #ifdef RESOLVE_VERBOSE
-		fprintf(stderr,"    loading...\n");
+		printf("    loading...\n");
 #endif
 
 		/* load the class */
@@ -185,7 +185,7 @@ bool resolve_class_from_name(classinfo *referer,
 	assert(cls->state & CLASS_LOADED);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    checking access rights...\n");
+	printf("    checking access rights...\n");
 #endif
 	
 	/* check access rights of referer to refered class */
@@ -216,7 +216,7 @@ bool resolve_class_from_name(classinfo *referer,
 
 	/* resolution succeeds */
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    success.\n");
+	printf("    success.\n");
 #endif
 	*result = cls;
 	return true;
@@ -304,9 +304,9 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 	assert(result);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_classref_or_classinfo(");
-	utf_fprint_printable_ascii(stderr,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
-	fprintf(stderr,",%i,%i,%i)\n",mode,(int)checkaccess,(int)link);
+	printf("resolve_classref_or_classinfo(");
+	utf_fprint_printable_ascii(stdout,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
+	printf(",%i,%i,%i)\n",mode,(int)checkaccess,(int)link);
 #endif
 
 	*result = NULL;
@@ -383,9 +383,9 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_class_from_typedesc(");
-	descriptor_debug_print_typedesc(stderr,d);
-	fprintf(stderr,",%i,%i)\n",(int)checkaccess,(int)link);
+	printf("resolve_class_from_typedesc(");
+	descriptor_debug_print_typedesc(stdout,d);
+	printf(",%i,%i)\n",(int)checkaccess,(int)link);
 #endif
 
 	if (d->type == TYPE_ADR) {
@@ -408,7 +408,7 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	assert(!link || (cls->state & CLASS_LINKED));
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    result = ");utf_fprint_printable_ascii(stderr,cls->name);fprintf(stderr,"\n");
+	printf("    result = ");utf_fprint_printable_ascii(stdout,cls->name);printf("\n");
 #endif
 
 	*result = cls;
@@ -518,6 +518,10 @@ check_again:
 
 		char *message;
 		int msglen;
+
+#if defined(RESOLVE_VERBOSE)
+		printf("SUBTYPE CHECK FAILED!\n");
+#endif
 
 		msglen = utf_bytes(subclass->name) + utf_bytes(CLASSREF_OR_CLASSINFO_NAME(supertype)) + 200;
 		message = MNEW(char, msglen);
@@ -722,6 +726,15 @@ static resolve_result_t resolve_and_check_subtype_set(methodinfo *refmethod,
 	assert(mode == resolveLazy || mode == resolveEager);
 	assert(error == resolveLinkageError || error == resolveIllegalAccessError);
 
+#if defined(RESOLVE_VERBOSE)
+	printf("resolve_and_check_subtype_set:\n");
+	unresolved_subtype_set_debug_dump(ref, stdout);
+	if (IS_CLASSREF(typeref))
+		class_classref_println(typeref.ref);
+	else
+		class_println(typeref.cls);
+#endif
+
 	setp = ref->subtyperefs;
 
 	/* an empty set of tests always succeeds */
@@ -741,6 +754,10 @@ static resolve_result_t resolve_and_check_subtype_set(methodinfo *refmethod,
 
 	for (; setp->any; ++setp) {
 		checkresult = resolve_subtype_check(refmethod,*setp,typeref,mode,error);
+#if defined(RESOLVE_VERBOSE)
+		if (checkresult != resolveSucceeded)
+			printf("SUBTYPE CHECK FAILED!\n");
+#endif
 		if (checkresult != resolveSucceeded)
 			return checkresult;
 	}
@@ -795,7 +812,7 @@ bool resolve_class(unresolved_class *ref,
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	unresolved_class_debug_dump(ref,stderr);
+	unresolved_class_debug_dump(ref,stdout);
 #endif
 
 	/* first we must resolve the class */
@@ -1275,7 +1292,7 @@ bool resolve_field(unresolved_field *ref,
 	*result = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	unresolved_field_debug_dump(ref,stderr);
+	unresolved_field_debug_dump(ref,stdout);
 #endif
 
 	/* the class containing the reference */
@@ -1308,7 +1325,7 @@ bool resolve_field(unresolved_field *ref,
 	 * or one of its superclasses */
 
 #ifdef RESOLVE_VERBOSE
-		fprintf(stderr,"    resolving field in class...\n");
+		printf("    resolving field in class...\n");
 #endif
 
 	fi = class_resolvefield(container,
@@ -1537,8 +1554,8 @@ resolve_result_t new_resolve_method_verifier_checks(methodinfo *refmethod,
 	assert(mi);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_method_verifier_checks\n");
-	fprintf(stderr,"    flags: %02x\n",mi->flags);
+	printf("resolve_method_verifier_checks\n");
+	printf("    flags: %02x\n",mi->flags);
 #endif
 
 	/* get the classinfos and the method descriptor */
@@ -1736,7 +1753,7 @@ resolve_result_t new_resolve_method_lazy(instruction *iptr,
 	assert(refmethod);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"resolve_method_lazy\n");
+	printf("resolve_method_lazy\n");
 #endif
 
 	/* the class containing the reference */
@@ -1877,7 +1894,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 	assert(mode == resolveLazy || mode == resolveEager);
 
 #ifdef RESOLVE_VERBOSE
-	unresolved_method_debug_dump(ref,stderr);
+	unresolved_method_debug_dump(ref,stdout);
 #endif
 
 	*result = NULL;
@@ -2073,12 +2090,12 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 	assert(tinfo);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"unresolved_subtype_set_from_typeinfo\n");
+	printf("unresolved_subtype_set_from_typeinfo\n");
 #ifdef TYPEINFO_DEBUG
-	typeinfo_print(stderr,tinfo,4);
+	typeinfo_print(stdout,tinfo,4);
 #endif
-	fprintf(stderr,"    declared type:");utf_fprint_printable_ascii(stderr,declaredtype->name);
-	fprintf(stderr,"\n");
+	printf("    declared classname:");utf_fprint_printable_ascii(stdout,declaredtype->name);
+	printf("\n");
 #endif
 
 	if (TYPEINFO_IS_PRIMITIVE(*tinfo)) {
@@ -2172,13 +2189,13 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 	unresolved_class *ref;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"create_unresolved_class\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,classref->referer->name);fputc('\n',stderr);
+	printf("create_unresolved_class\n");
+	printf("    referer: ");utf_fprint_printable_ascii(stdout,classref->referer->name);fputc('\n',stdout);
 	if (refmethod) {
-		fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-		fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+		printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
+		printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
 	}
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,classref->name);fputc('\n',stderr);
+	printf("    name   : ");utf_fprint_printable_ascii(stdout,classref->name);fputc('\n',stdout);
 #endif
 
 	ref = NEW(unresolved_class);
@@ -2221,10 +2238,10 @@ unresolved_field * new_create_unresolved_field(classinfo *referer,
 	constant_FMIref *fieldref = NULL;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"create_unresolved_field\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+	printf("create_unresolved_field\n");
+	printf("    referer: ");utf_fprint_printable_ascii(stdout,referer->name);fputc('\n',stdout);
+	printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
+	printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
 #endif
 
 	ref = NEW(unresolved_field);
@@ -2267,12 +2284,12 @@ unresolved_field * new_create_unresolved_field(classinfo *referer,
 	assert(fieldref);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
-	fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
+/*	printf("    class  : ");utf_fprint_printable_ascii(stdout,fieldref->p.classref->name);fputc('\n',stdout);*/
+	printf("    name   : ");utf_fprint_printable_ascii(stdout,fieldref->name);fputc('\n',stdout);
+	printf("    desc   : ");utf_fprint_printable_ascii(stdout,fieldref->descriptor);fputc('\n',stdout);
+	printf("    type   : ");descriptor_debug_print_typedesc(stdout,fieldref->parseddesc.fd);
+	fputc('\n',stdout);
+	/*printf("    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
 #endif
 
 	ref->fieldref = fieldref;
@@ -2318,7 +2335,7 @@ bool new_constrain_unresolved_field(unresolved_field *ref,
 	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
 	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
 	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->p.classref->name);fputc('\n',stderr);
 	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
 	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
 	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
@@ -2451,14 +2468,14 @@ unresolved_method * new_create_unresolved_method(classinfo *referer,
 	staticmethod = (iptr->opc == ICMD_INVOKESTATIC);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"create_unresolved_method\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
+	printf("create_unresolved_method\n");
+	printf("    referer: ");utf_fprint_printable_ascii(stdout,referer->name);fputc('\n',stdout);
+	printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
+	printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
+/*	printf("    class  : ");utf_fprint_printable_ascii(stdout,methodref->p.classref->name);fputc('\n',stdout);*/
+	printf("    name   : ");utf_fprint_printable_ascii(stdout,methodref->name);fputc('\n',stdout);
+	printf("    desc   : ");utf_fprint_printable_ascii(stdout,methodref->descriptor);fputc('\n',stdout);
+	/*printf("    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
 #endif
 
 	/* allocate params if necessary */
@@ -2527,7 +2544,7 @@ bool new_constrain_unresolved_method(unresolved_method *ref,
 	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
 	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
 	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->p.classref->name);fputc('\n',stderr);
 	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
 	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
