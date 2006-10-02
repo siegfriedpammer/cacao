@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5628 2006-10-02 12:37:09Z edwin $
+   $Id: resolve.c 5629 2006-10-02 12:42:29Z edwin $
 
 */
 
@@ -2331,16 +2331,16 @@ bool new_constrain_unresolved_field(unresolved_field *ref,
 	assert(fieldref);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"constrain_unresolved_field\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->p.classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
-	fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
+	printf("constrain_unresolved_field\n");
+	printf("    referer: ");utf_fprint_printable_ascii(stdout,referer->name);fputc('\n',stdout);
+	printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
+	printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
+/*	printf("    class  : ");utf_fprint_printable_ascii(stdout,fieldref->p.classref->name);fputc('\n',stdout); */
+	printf("    name   : ");utf_fprint_printable_ascii(stdout,fieldref->name);fputc('\n',stdout);
+	printf("    desc   : ");utf_fprint_printable_ascii(stdout,fieldref->descriptor);fputc('\n',stdout);
+	printf("    type   : ");descriptor_debug_print_typedesc(stdout,fieldref->parseddesc.fd);
+	fputc('\n',stdout);
+	/*printf("    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	switch (iptr[0].opc) {
@@ -2540,14 +2540,11 @@ bool new_constrain_unresolved_method(unresolved_method *ref,
 		: methodref->p.classref;
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"constrain_unresolved_method\n");
-	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->p.classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
+	printf("constrain_unresolved_method\n");
+	printf("    referer: "); class_println(referer);
+	printf("    rmethod: "); method_println(refmethod);
+	printf("    mref   : "); method_methodref_println(methodref);
+	/*printf("    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	if ((ref->flags & RESOLVE_STATIC) == 0) {
