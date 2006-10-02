@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5596 2006-09-30 23:12:05Z edwin $
+   $Id: simplereg.c 5633 2006-10-02 13:59:13Z edwin $
 
 */
 
@@ -383,7 +383,7 @@ static void interface_regalloc(jitdata *jd)
 			/* if (type >= 0) */
 
 			assert(regoff >= 0);
-			jd->interface_map[5*s + t].flags = flags | OUTVAR;
+			jd->interface_map[5*s + t].flags = flags | INOUT;
 			jd->interface_map[5*s + t].regoff = regoff;
 		} /* for t */
 	} /* for s */
@@ -786,7 +786,7 @@ static void reg_init_temp(jitdata *jd, registerdata *rd)
 
 #define reg_new_temp(jd,index)                                       \
     if ( (index >= jd->localcount)                                   \
-         && (!(VAR(index)->flags & (OUTVAR | PREALLOC))) )           \
+         && (!(VAR(index)->flags & (INOUT | PREALLOC))) )            \
         reg_new_temp_func(jd, index)
 
 static void reg_new_temp_func(jitdata *jd, s4 index)
@@ -994,7 +994,7 @@ static void reg_new_temp_func(jitdata *jd, s4 index)
 
 #define reg_free_temp(jd,index)                                      \
     if ((index > jd->localcount)                                     \
-        && (!(VAR(index)->flags & (OUTVAR | PREALLOC))))             \
+        && (!(VAR(index)->flags & (INOUT | PREALLOC))))              \
         reg_free_temp_func(jd, index)
 
 /* Do not free regs/memory locations used by Stackslots flagged STCOPY! There is still another Stackslot */
@@ -1132,7 +1132,7 @@ static bool reg_alloc_dup(jitdata *jd, s4 srcindex, s4 dstindex)
 
 	/* do not coalesce in/out vars or preallocated variables here */
 
-	if ((sv->flags | dv->flags) & (OUTVAR | PREALLOC))
+	if ((sv->flags | dv->flags) & (INOUT | PREALLOC))
 		return false;
 
 	/* if the source is in memory, we can coalesce in any case */

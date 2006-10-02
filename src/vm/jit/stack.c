@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5524 2006-09-15 20:18:01Z edwin $
+   $Id: stack.c 5633 2006-10-02 13:59:13Z edwin $
 
 */
 
@@ -161,15 +161,15 @@ struct stackdata_t {
 
 /* macros for querying variable properties **************************/
 
-#define IS_OUTVAR(sp)                                                \
-    (sd.var[(sp)->varnum].flags & OUTVAR)
+#define IS_INOUT(sp)                                                 \
+    (sd.var[(sp)->varnum].flags & INOUT)
 
 #define IS_PREALLOC(sp)                                              \
     (sd.var[(sp)->varnum].flags & PREALLOC)
 
 #define IS_TEMPVAR(sp)												 \
     ( ((sp)->varnum >= sd.localcount)								 \
-      && !(sd.var[(sp)->varnum].flags & (OUTVAR | PREALLOC)) )
+      && !(sd.var[(sp)->varnum].flags & (INOUT | PREALLOC)) )
 
 
 #define IS_LOCALVAR_SD(sd, sp)                                       \
@@ -191,7 +191,7 @@ struct stackdata_t {
             if ((sp)->creator)                                       \
                 (sp)->creator->dst.varindex = new_index;             \
         }                                                            \
-        sd.var[(sp)->varnum].flags &= ~(OUTVAR | PREALLOC);          \
+        sd.var[(sp)->varnum].flags &= ~(INOUT | PREALLOC);           \
     } while (0);
 
 #define SET_PREALLOC(sp)                                             \
@@ -665,7 +665,7 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 		b->invars[i] = --index;
 		v = sd->var + index;
 		v->type = sp->type;
-		v->flags = OUTVAR;
+		v->flags = INOUT;
 		v->vv = sd->var[sp->varnum].vv;
 #if defined(STACK_VERBOSE) && 0
 		printf("\tinvar[%d]: %d\n", i, sd->var[b->invars[i]]);
@@ -714,7 +714,7 @@ static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b)
 			sv = sd->var + sd->bptr->outvars[i];
 			b->invars[i] = sd->vartop++;
 			dv->type = sv->type;
-			dv->flags = OUTVAR;
+			dv->flags = INOUT;
 			dv->vv = sv->vv;
 		}
 	}
@@ -2025,7 +2025,7 @@ bool new_stack_analyse(jitdata *jd)
 					new_show_icmd(jd, iptr, false, SHOW_PARSE); printf("\n");
 					for( copy = curstack; copy; copy = copy->prev ) {
 						printf("%2d(%d", copy->varnum, copy->type);
-						if (IS_OUTVAR(copy))
+						if (IS_INOUT(copy))
 							printf("S");
 						if (IS_PREALLOC(copy))
 							printf("A");
@@ -3017,7 +3017,7 @@ normal_ACONST:
 
 						/* if the variable is already coalesced, don't bother */
 
-						/* We do not need to check against OUTVAR, as invars */
+						/* We do not need to check against INOUT, as invars */
 						/* are always before the coalescing boundary.        */
 
 						if (curstack->varkind == LOCALVAR)
@@ -3045,7 +3045,7 @@ normal_ACONST:
 						assert((curstack->varkind == TEMPVAR)
 									|| (curstack->varkind == UNDEFVAR));
 						assert(!IS_LOCALVAR(curstack)); /* XXX correct? */
-						assert(!IS_OUTVAR(curstack));
+						assert(!IS_INOUT(curstack));
 						assert(!IS_PREALLOC(curstack));
 
 						assert(curstack->creator);
@@ -3155,7 +3155,7 @@ store_tail:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
 						coalescing_boundary = sd.new;
-						/* Assert here that no LOCAL or OUTVARS get */
+						/* Assert here that no LOCAL or INOUTS get */
 						/* preallocated, since tha macros are not   */
 						/* available in md-abi.c! */
 						IF_JIT( if (IS_TEMPVAR(curstack))				\
@@ -4128,7 +4128,7 @@ icmd_BUILTIN:
 
 							/* do not change STACKVARs or LOCALVARS to ARGVAR*/
 							/* ->  won't help anyway */
-							if (!(IS_OUTVAR(copy) || IS_LOCALVAR(copy))) {
+							if (!(IS_INOUT(copy) || IS_LOCALVAR(copy))) {
 
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 			/* If we pass float arguments in integer argument registers, we
@@ -4258,7 +4258,7 @@ icmd_BUILTIN:
 					/* check INT type here? Currently typecheck does this. */
 							iptr->sx.s23.s2.args[i] = copy->varnum;
 							if (!(sd.var[copy->varnum].flags & SAVEDVAR)
-								&& (!IS_OUTVAR(copy))
+								&& (!IS_INOUT(copy))
 								&& (!IS_LOCALVAR(copy)) ) {
 								copy->varkind = ARGVAR;
 								sd.var[copy->varnum].flags |=
@@ -4330,7 +4330,7 @@ icmd_BUILTIN:
 						t = TYPE_ADR;
 
 					v = sd.var + copy->varnum;
-					v->flags |= OUTVAR;
+					v->flags |= INOUT;
 
 					if (jd->interface_map[i*5 + t].flags == UNUSED) {
 						/* no interface var until now for this depth and */

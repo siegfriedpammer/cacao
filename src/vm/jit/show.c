@@ -243,7 +243,7 @@ void new_show_method(jitdata *jd, int stage)
 		bool exist = false;
 		interface_info *mapptr = jd->interface_map;
 		
-		/* look if there exist any IN/OUTVARS */
+		/* look if there exist any INOUTS */
 		for (i = 0; (i < (5 * cd->maxstack)) && !exist; i++, mapptr++)
 			exist = (mapptr->flags != UNUSED);
 
@@ -700,16 +700,16 @@ static void show_variable(jitdata *jd, s4 index, int stage)
 
 	if (index < jd->localcount) {
 		kind = 'L';
-		if (v->flags & (PREALLOC | OUTVAR))
+		if (v->flags & (PREALLOC | INOUT))
 				printf("<INVALID FLAGS!>");
 	}
 	else {
 		if (v->flags & PREALLOC) {
 			kind = 'A';
-			if (v->flags & OUTVAR)
+			if (v->flags & INOUT)
 				printf("<INVALID FLAGS!>");
 		}
-		else if (v->flags & OUTVAR)
+		else if (v->flags & INOUT)
 			kind = 'I';
 		else
 			kind = 'T';

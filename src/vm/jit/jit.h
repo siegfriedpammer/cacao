@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5491 2006-09-14 18:16:06Z edwin $
+   $Id: jit.h 5633 2006-10-02 13:59:13Z edwin $
 
 */
 
@@ -199,7 +199,7 @@ struct jitdata {
                                 /* stackslot */
 #define PREALLOC  64            /* preallocated var like for ARGVARS. Used    */
                                 /* with the new var system */
-#define OUTVAR   128            /* STACKVR flag for new var system */
+#define INOUT    128            /* variable is an invar or/and an outvar      */
 
 #define IS_SAVEDVAR(x)    ((x) & SAVEDVAR)
 #define IS_INMEMORY(x)    ((x) & INMEMORY)
