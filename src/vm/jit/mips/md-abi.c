@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5615 2006-10-01 22:55:11Z edwin $
+   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
 
 */
 
@@ -191,9 +191,7 @@ void md_param_alloc(methoddesc *md)
    (SAVEDVAR)
 
    --- in
-   m:                       Methodinfo of current method
-   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-                            TYPE_VOID is not allowed!
+   jd:                      jitdata of the current method
    stackslot:               Java Stackslot to contain the Return Value
    
    --- out

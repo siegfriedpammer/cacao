@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5618 2006-10-01 23:37:04Z edwin $
+   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
 
 */
 
@@ -190,9 +190,7 @@ void md_param_alloc(methoddesc *md)
    for float/double)
 
    --- in
-   m:                       Methodinfo of current method
-   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-                            TYPE_VOID is not allowed!
+   jd:                      jitdata of the current method
    stackslot:               Java Stackslot to contain the Return Value
 
    --- out

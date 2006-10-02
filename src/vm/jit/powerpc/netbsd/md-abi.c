@@ -198,56 +198,61 @@ void md_param_alloc(methoddesc *md)
    for float/double)
 
    --- in
-   m:                       Methodinfo of current method
-   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-                            TYPE_VOID is not allowed!
+   jd:                      jitdata of current method
    stackslot:               Java Stackslot to contain the Return Value
 
    --- out
    if precoloring was possible:
-   stackslot->varkind       =ARGVAR
-            ->varnum        =-1
-   	        ->flags         =0
-   	        ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
+   VAR(stackslot->varnum)->flags  = PREALLOC
+   VAR(stackslot->varnum)->vv.regoff = [REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
    rd->arg[flt|int]reguse   set to a value according the register usage
 
 *******************************************************************************/
 
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
+	methodinfo   *m;
+	registerdata *rd;
+	methoddesc   *md;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	rd = jd->rd;
+
+	md = m->parseddesc;
+
 	/* In Leafmethods Local Vars holding parameters are precolored to
 	   their argument register -> so leafmethods with paramcount > 0
 	   could already use R3 == a00! */
 
-	if (!m->isleafmethod || (m->parseddesc->paramcount == 0)) {
+	if (!m->isleafmethod || (md->paramcount == 0)) {
 		/* Only precolor the stackslot, if it is not a SAVEDVAR <->
 		   has not to survive method invokations. */
 
 		if (!(stackslot->flags & SAVEDVAR)) {
-			stackslot->varkind = ARGVAR;
-			stackslot->varnum = -1;
-			stackslot->flags = 0;
 
-			if (IS_INT_LNG_TYPE(return_type)) {
-				if (!IS_2_WORD_TYPE(return_type)) {
+			VAR(stackslot->varnum)->flags = PREALLOC;
+
+			if (IS_INT_LNG_TYPE(md->returntype.type)) {
+				if (!IS_2_WORD_TYPE(md->returntype.type)) {
 					if (rd->argintreguse < 1)
 						rd->argintreguse = 1;
 
-					stackslot->regoff = REG_RESULT;
+					VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
 
 				} else {
 					if (rd->argintreguse < 2)
 						rd->argintreguse = 2;
 
-					stackslot->regoff = PACK_REGS(REG_RESULT2, REG_RESULT);
+					VAR(stackslot->varnum)->vv.regoff = PACK_REGS(REG_RESULT2, REG_RESULT);
 				}
 
 			} else { /* float/double */
 				if (rd->argfltreguse < 1)
 					rd->argfltreguse = 1;
 
-				stackslot->regoff = REG_FRESULT;
+				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
 			}
 		}
 	}

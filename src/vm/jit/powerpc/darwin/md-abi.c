@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5630 2006-10-02 13:16:20Z edwin $
+   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
 
 */
 
@@ -211,9 +211,7 @@ void md_param_alloc(methoddesc *md)
    for float/double)
 
    --- in
-   m:                       Methodinfo of current method
-   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-                            TYPE_VOID is not allowed!
+   jd:                      jitdata of the current method
    stackslot:               Java Stackslot to contain the Return Value
    
    --- out
@@ -248,6 +246,7 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 		   has not to survive method invokations. */
 
 		if (!(stackslot->flags & SAVEDVAR)) {
+
 			VAR(stackslot->varnum)->flags = PREALLOC;
 
 			if (IS_INT_LNG_TYPE(md->returntype.type)) {

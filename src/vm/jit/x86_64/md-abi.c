@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 5595 2006-09-30 23:06:36Z edwin $
+   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
 
 */
 
@@ -142,15 +142,13 @@ void md_param_alloc(methoddesc *md)
    return register.
 
    --- in
-   m:                       Methodinfo of current method
-   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-   							TYPE_VOID is not allowed!
+   jd:                      jitdata of the current method
    stackslot:               Java Stackslot to contain the Return Value
 
    --- out
    if precoloring was possible:
-   jd->var[stackslot->varnum]->flags       = PREALLOC
-   			                 ->regoff      =[REG_RESULT|REG_FRESULT]
+   VAR(stackslot->varnum)->flags     = PREALLOC
+   			             ->vv.regoff = [REG_RESULT|REG_FRESULT]
    rd->arg[flt|int]reguse   set to a value according the register usage
 
    NOTE: Do not pass a LOCALVAR in stackslot->varnum.
@@ -185,16 +183,13 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 			   <-> has not to survive method invokations */
 
 			if (!(stackslot->flags & SAVEDVAR)) {
-/* 				stackslot->varkind = ARGVAR; */
-/* 				stackslot->varnum  = -1; */
-/* 				stackslot->flags   = 0; */
+
+				VAR(stackslot->varnum)->flags = PREALLOC;
 
 			    /* float/double */
 				if (rd->argfltreguse < 1)
 					rd->argfltreguse = 1;
 
-/* 				stackslot->regoff = REG_FRESULT; */
-				VAR(stackslot->varnum)->flags = PREALLOC;
 				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
 			}
 		}
