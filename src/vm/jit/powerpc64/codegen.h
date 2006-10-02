@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5576 2006-09-28 22:33:48Z edwin $
+   $Id: codegen.h 5545 2006-09-25 16:59:15Z tbfg $
 
 */
 
