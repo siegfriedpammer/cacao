@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
+   $Id: md-abi.c 5635 2006-10-02 16:36:54Z christian $
 
 */
 
@@ -161,8 +161,6 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 	methoddesc *md;
 
 	/* get required compiler data */
-
-	return; /* XXX why has this been deactivated? */
 
 	m = jd->m;
 
