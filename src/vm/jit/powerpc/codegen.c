@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5630 2006-10-02 13:16:20Z edwin $
+   $Id: codegen.c 5631 2006-10-02 13:26:39Z edwin $
 
 */
 
@@ -559,7 +559,7 @@ bool codegen(jitdata *jd)
 			break;
 
 
-		/* load/store operations **********************************************/
+		/* load/store/copy/move operations ************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
 		case ICMD_ALOAD:      /* s1 = local variable                          */
@@ -571,23 +571,22 @@ bool codegen(jitdata *jd)
 		case ICMD_LSTORE:
 		case ICMD_FSTORE:
 		case ICMD_DSTORE: 
+		case ICMD_COPY:
+		case ICMD_MOVE:
 			
 			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
-		/* pop/dup/swap operations ********************************************/
+
+		/* pop operations *****************************************************/
 
 		/* attention: double and longs are only one entry in CACAO ICMDs      */
 
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
+
 			break;
 
-		case ICMD_COPY:
-		case ICMD_MOVE:
-
-			M_COPY(iptr->s1.varindex, iptr->dst.varindex);
-			break;
 
 		/* integer operations *************************************************/
 
