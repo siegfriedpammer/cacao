@@ -255,7 +255,7 @@ bool codegen(jitdata *jd)
 
 	/* walk through all basic blocks */
 
-	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 

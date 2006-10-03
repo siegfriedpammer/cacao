@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5655 2006-10-03 20:44:46Z edwin $
+   $Id: typecheck.c 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -2416,8 +2416,8 @@ bool typecheck(jitdata *jd)
 	state.m = meth;
 	state.jd = jd;
 	state.cd = cd;
-	state.basicblockcount = jd->new_basicblockcount;
-	state.basicblocks = jd->new_basicblocks;
+	state.basicblockcount = jd->basicblockcount;
+	state.basicblocks = jd->basicblocks;
 	state.savedindices = NULL;
 	state.savedinvars = NULL;
 

@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5655 2006-10-03 20:44:46Z edwin $
+   $Id: stack.c 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -576,7 +576,7 @@ static void stack_append_block(stackdata_t *sd, basicblock *b)
 	b->next = sd->last_real_block->next;
 	sd->last_real_block->next = b;
 	sd->last_real_block = b;
-	sd->jd->new_basicblockcount++;
+	sd->jd->basicblockcount++;
 }
 
 
@@ -1856,7 +1856,7 @@ bool stack_analyse(jitdata *jd)
 	/* find the last real basic block */
 	
 	sd.last_real_block = NULL;
-	tbptr = jd->new_basicblocks;
+	tbptr = jd->basicblocks;
 	while (tbptr->next) {
 		sd.last_real_block = tbptr;
 		tbptr = tbptr->next;
@@ -1880,12 +1880,12 @@ bool stack_analyse(jitdata *jd)
 
 	/* initialize flags and invars (none) of first block */
 
-	jd->new_basicblocks[0].flags = BBREACHED;
-	jd->new_basicblocks[0].invars = NULL;
-	jd->new_basicblocks[0].indepth = 0;
-	jd->new_basicblocks[0].inlocals = 
+	jd->basicblocks[0].flags = BBREACHED;
+	jd->basicblocks[0].invars = NULL;
+	jd->basicblocks[0].indepth = 0;
+	jd->basicblocks[0].inlocals = 
 		DMNEW(varinfo, jd->localcount + VERIFIER_EXTRA_LOCALS);
-	MCOPY(jd->new_basicblocks[0].inlocals, jd->var, varinfo, 
+	MCOPY(jd->basicblocks[0].inlocals, jd->var, varinfo, 
 			jd->localcount + VERIFIER_EXTRA_LOCALS);
 
 	/* stack analysis loop (until fixpoint reached) **************************/
@@ -1897,7 +1897,7 @@ bool stack_analyse(jitdata *jd)
 
 		/* initialize loop over basic blocks */
 
-		sd.bptr = jd->new_basicblocks;
+		sd.bptr = jd->basicblocks;
 		superblockend = true;
 		sd.repeat = false;
 		curstack = NULL; stackdepth = 0;
@@ -1975,7 +1975,7 @@ bool stack_analyse(jitdata *jd)
 
 				/* reset the new pointer for allocating stackslots */
 
-				sd.new = jd->new_stack;
+				sd.new = jd->stack;
 
 				/* create the instack of this block */
 
@@ -1992,7 +1992,7 @@ bool stack_analyse(jitdata *jd)
 				superblockend = false;
 				len = sd.bptr->icount;
 				iptr = sd.bptr->iinstr;
-				b_index = sd.bptr - jd->new_basicblocks;
+				b_index = sd.bptr - jd->basicblocks;
 
 				/* mark the block as analysed */
 
@@ -4404,18 +4404,18 @@ icmd_BUILTIN:
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
-		if (jd->new_basicblockcount > count_max_basic_blocks)
-			count_max_basic_blocks = jd->new_basicblockcount;
-		count_basic_blocks += jd->new_basicblockcount;
-		if (jd->new_instructioncount > count_max_javainstr)
-			count_max_javainstr = jd->new_instructioncount;
-		count_javainstr += jd->new_instructioncount;
-		if (jd->new_stackcount > count_upper_bound_new_stack)
-			count_upper_bound_new_stack = jd->new_stackcount;
-		if ((sd.new - jd->new_stack) > count_max_new_stack)
-			count_max_new_stack = (sd.new - jd->new_stack);
+		if (jd->basicblockcount > count_max_basic_blocks)
+			count_max_basic_blocks = jd->basicblockcount;
+		count_basic_blocks += jd->basicblockcount;
+		if (jd->instructioncount > count_max_javainstr)
+			count_max_javainstr = jd->instructioncount;
+		count_javainstr += jd->instructioncount;
+		if (jd->stackcount > count_upper_bound_new_stack)
+			count_upper_bound_new_stack = jd->stackcount;
+		if ((sd.new - jd->stack) > count_max_new_stack)
+			count_max_new_stack = (sd.new - jd->stack);
 
-		sd.bptr = jd->new_basicblocks;
+		sd.bptr = jd->basicblocks;
 		for (; sd.bptr; sd.bptr = sd.bptr->next) {
 			if (sd.bptr->flags > BBREACHED) {
 				if (sd.bptr->indepth >= 10)
@@ -4455,21 +4455,21 @@ icmd_BUILTIN:
 		else
 			count_analyse_iterations[4]++;
 
-		if (jd->new_basicblockcount <= 5)
+		if (jd->basicblockcount <= 5)
 			count_method_bb_distribution[0]++;
-		else if (jd->new_basicblockcount <= 10)
+		else if (jd->basicblockcount <= 10)
 			count_method_bb_distribution[1]++;
-		else if (jd->new_basicblockcount <= 15)
+		else if (jd->basicblockcount <= 15)
 			count_method_bb_distribution[2]++;
-		else if (jd->new_basicblockcount <= 20)
+		else if (jd->basicblockcount <= 20)
 			count_method_bb_distribution[3]++;
-		else if (jd->new_basicblockcount <= 30)
+		else if (jd->basicblockcount <= 30)
 			count_method_bb_distribution[4]++;
-		else if (jd->new_basicblockcount <= 40)
+		else if (jd->basicblockcount <= 40)
 			count_method_bb_distribution[5]++;
-		else if (jd->new_basicblockcount <= 50)
+		else if (jd->basicblockcount <= 50)
 			count_method_bb_distribution[6]++;
-		else if (jd->new_basicblockcount <= 75)
+		else if (jd->basicblockcount <= 75)
 			count_method_bb_distribution[7]++;
 		else
 			count_method_bb_distribution[8]++;

@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5655 2006-10-03 20:44:46Z edwin $
+   $Id: parse.c 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -99,10 +99,10 @@ static void parse_setup(jitdata *jd, parsedata_t *pd)
 	/* Allocate instruction array and block index table (1 additional
 	   for end ipc). */
 
-	jd->new_basicblockindex = DMNEW(s4, m->jcodelength + 1);
+	jd->basicblockindex = DMNEW(s4, m->jcodelength + 1);
 	pd->instructionstart = DMNEW(u1, m->jcodelength + 1);
 
-	MZERO(jd->new_basicblockindex, s4, m->jcodelength + 1);
+	MZERO(jd->basicblockindex, s4, m->jcodelength + 1);
 	MZERO(pd->instructionstart, u1, m->jcodelength + 1);
 
 	/* Set the length of the instruction array.  We simply add 5 more
@@ -369,7 +369,7 @@ fetch_opcode:
 			   for basic block reordering (may be replaced with a GOTO
 			   later). */
 
-			if (jd->new_basicblockindex[p] & 1) {
+			if (jd->basicblockindex[p] & 1) {
 				INSTRUCTIONS_CHECK(1);
 				OP(ICMD_NOP);
 			}
@@ -377,7 +377,7 @@ fetch_opcode:
 
 		/* store intermediate instruction count (bit 0 mark block starts) */
 
-		jd->new_basicblockindex[p] |= (ipc << 1);
+		jd->basicblockindex[p] |= (ipc << 1);
 
 		/* compute next instruction start */
 
@@ -1447,37 +1447,37 @@ invoke_method:
 
 	/* adjust block count if target 0 is not first intermediate instruction */
 
-	if (!jd->new_basicblockindex[0] || (jd->new_basicblockindex[0] > 1))
+	if (!jd->basicblockindex[0] || (jd->basicblockindex[0] > 1))
 		b_count++;
 
 	/* copy local to method variables */
 
-	jd->new_instructions = pd.instructions;
-	jd->new_instructioncount = ipc;
-	jd->new_basicblockcount = b_count;
-	jd->new_stackcount = s_count + jd->new_basicblockcount * m->maxstack; /* in-stacks */
+	jd->instructions = pd.instructions;
+	jd->instructioncount = ipc;
+	jd->basicblockcount = b_count;
+	jd->stackcount = s_count + jd->basicblockcount * m->maxstack; /* in-stacks */
 
 	/* allocate stack table */
 
-	jd->new_stack = DMNEW(stackelement, jd->new_stackcount);
+	jd->stack = DMNEW(stackelement, jd->stackcount);
 
 	/* build basic block list */
 
-	bptr = jd->new_basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
+	bptr = jd->basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
 
 	/* zero out all basic block structures */
 
 	MZERO(bptr, basicblock, b_count + 1);
 
 	b_count = 0;
-	jd->new_c_debug_nr = 0;
+	jd->c_debug_nr = 0;
 
 	/* additional block if target 0 is not first intermediate instruction */
 
-	if (!jd->new_basicblockindex[0] || (jd->new_basicblockindex[0] > 1)) {
+	if (!jd->basicblockindex[0] || (jd->basicblockindex[0] > 1)) {
 		BASICBLOCK_INIT(bptr, m);
 
-		bptr->iinstr = jd->new_instructions;
+		bptr->iinstr = jd->instructions;
 		/* bptr->icount is set when the next block is allocated */
 
 		bptr++;
@@ -1488,7 +1488,7 @@ invoke_method:
 	/* allocate blocks */
 
 	for (p = 0; p < m->jcodelength; p++) {
-		if (jd->new_basicblockindex[p] & 1) {
+		if (jd->basicblockindex[p] & 1) {
 #if defined(ENABLE_VERIFIER)
 			/* Check if this block starts at the beginning of an
 			   instruction. */
@@ -1504,13 +1504,13 @@ invoke_method:
 
 			BASICBLOCK_INIT(bptr, m);
 
-			bptr->iinstr = jd->new_instructions + (jd->new_basicblockindex[p] >> 1);
+			bptr->iinstr = jd->instructions + (jd->basicblockindex[p] >> 1);
 			if (b_count) {
 				bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
 			}
 			/* bptr->icount is set when the next block is allocated */
 
-			jd->new_basicblockindex[p] = b_count;
+			jd->basicblockindex[p] = b_count;
 
 			bptr++;
 			b_count++;
@@ -1521,7 +1521,7 @@ invoke_method:
 	/* set instruction count of last real block */
 
 	if (b_count) {
-		bptr[-1].icount = (jd->new_instructions + jd->new_instructioncount) - bptr[-1].iinstr;
+		bptr[-1].icount = (jd->instructions + jd->instructioncount) - bptr[-1].iinstr;
 	}
 
 	/* allocate additional block at end */
@@ -1536,26 +1536,26 @@ invoke_method:
 
 	for (i = 0; i < cd->exceptiontablelength; ++i) {
 		p = cd->exceptiontable[i].startpc;
-		cd->exceptiontable[i].start = jd->new_basicblocks + jd->new_basicblockindex[p];
+		cd->exceptiontable[i].start = jd->basicblocks + jd->basicblockindex[p];
 
 		p = cd->exceptiontable[i].endpc;
-		cd->exceptiontable[i].end = (p == m->jcodelength) ? (jd->new_basicblocks + jd->new_basicblockcount /*+ 1*/) : (jd->new_basicblocks + jd->new_basicblockindex[p]);
+		cd->exceptiontable[i].end = (p == m->jcodelength) ? (jd->basicblocks + jd->basicblockcount /*+ 1*/) : (jd->basicblocks + jd->basicblockindex[p]);
 
 		p = cd->exceptiontable[i].handlerpc;
-		cd->exceptiontable[i].handler = jd->new_basicblocks + jd->new_basicblockindex[p];
+		cd->exceptiontable[i].handler = jd->basicblocks + jd->basicblockindex[p];
 	}
 
 	/* XXX activate this if you want to try inlining */
 #if 0
 	for (i = 0; i < m->exceptiontablelength; ++i) {
 		p = m->exceptiontable[i].startpc;
-		m->exceptiontable[i].start = jd->new_basicblocks + jd->new_basicblockindex[p];
+		m->exceptiontable[i].start = jd->basicblocks + jd->basicblockindex[p];
 
 		p = m->exceptiontable[i].endpc;
-		m->exceptiontable[i].end = (p == m->jcodelength) ? (jd->new_basicblocks + jd->new_basicblockcount /*+ 1*/) : (jd->new_basicblocks + jd->new_basicblockindex[p]);
+		m->exceptiontable[i].end = (p == m->jcodelength) ? (jd->basicblocks + jd->basicblockcount /*+ 1*/) : (jd->basicblocks + jd->basicblockindex[p]);
 
 		p = m->exceptiontable[i].handlerpc;
-		m->exceptiontable[i].handler = jd->new_basicblocks + jd->new_basicblockindex[p];
+		m->exceptiontable[i].handler = jd->basicblocks + jd->basicblockindex[p];
 	}
 #endif
 
@@ -1587,7 +1587,7 @@ invoke_method:
 
 		jd->varcount = 
 			  nlocals                                      /* local variables */
-			+ jd->new_basicblockcount * m->maxstack                 /* invars */
+			+ jd->basicblockcount * m->maxstack                 /* invars */
 			+ s_count;         /* variables created within blocks (non-invar) */
 
 		/* reserve the first indices for local variables */

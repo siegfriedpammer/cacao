@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5655 2006-10-03 20:44:46Z edwin $
+   $Id: parse.h 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -93,9 +93,9 @@
 
 #define MARK_BASICBLOCK(i)                                           \
     do {                                                             \
-        if (!(jd->new_basicblockindex[(i)] & 1)) {                   \
+        if (!(jd->basicblockindex[(i)] & 1)) {                   \
             b_count++;                                               \
-            jd->new_basicblockindex[(i)] |= 1;                       \
+            jd->basicblockindex[(i)] |= 1;                       \
         }                                                            \
     } while (0)
 

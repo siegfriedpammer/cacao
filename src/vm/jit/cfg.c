@@ -129,9 +129,9 @@ bool cfg_build(jitdata *jd)
 
 	/* process all basic blocks to find the predecessor/successor counts */
 
-	bptr = jd->new_basicblocks;
+	bptr = jd->basicblocks;
 
-	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
 			continue;
 
@@ -249,9 +249,9 @@ bool cfg_build(jitdata *jd)
 	/* Second iteration to allocate the arrays and insert the basic
 	   block pointers. */
 
-	bptr = jd->new_basicblocks;
+	bptr = jd->basicblocks;
 
-	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
 			continue;
 

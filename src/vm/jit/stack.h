@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: stack.h 5655 2006-10-03 20:44:46Z edwin $
+   $Id: stack.h 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -130,7 +130,7 @@
 /* external macros ************************************************************/
 
 #define BLOCK_OF(index)                                              \
-    (jd->new_basicblocks + jd->new_basicblockindex[index])
+    (jd->basicblocks + jd->basicblockindex[index])
 
 
 /* function prototypes ********************************************************/

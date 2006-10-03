@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5641 2006-10-03 16:32:15Z edwin $
+   $Id: codegen.c 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -322,7 +322,7 @@ bool codegen(jitdata *jd)
 
 	/* walk through all basic blocks */
 
-	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 
 		/* handle replacement points */
 

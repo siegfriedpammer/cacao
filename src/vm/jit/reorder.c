@@ -55,9 +55,9 @@ static basicblock *reorder_place_next_unplaced_block(jitdata *jd, u1 *blocks,
 	basicblock *tbptr;
 	s4          i;
 
-	for (i = 0; i < jd->new_basicblockcount; i++) {
+	for (i = 0; i < jd->basicblockcount; i++) {
 		if (blocks[i] == false) {
-			tbptr = &jd->new_basicblocks[i];
+			tbptr = &jd->basicblocks[i];
 
 			/* place the block */
 
@@ -111,19 +111,19 @@ bool reorder(jitdata *jd)
 	pcode = m->code;
 
 	/* XXX debug */
-	if (jd->new_basicblockcount > 8)
+	if (jd->basicblockcount > 8)
 		return true;
 
 	/* allocate flag array for blocks which are placed */
 
-	blocks = DMNEW(u1, jd->new_basicblockcount);
+	blocks = DMNEW(u1, jd->basicblockcount);
 
-	MZERO(blocks, u1, jd->new_basicblockcount);
+	MZERO(blocks, u1, jd->basicblockcount);
 
 	/* Get the entry block and iterate over all basic blocks until we
 	   have placed all blocks. */
 
-	bptr   = jd->new_basicblocks;
+	bptr   = jd->basicblocks;
 	placed = 0;
 
 	/* the first block is always placed as the first one */
@@ -131,7 +131,7 @@ bool reorder(jitdata *jd)
 	blocks[0] = true;
 	placed++;
 
-	while (placed <= jd->new_basicblockcount + 1) {
+	while (placed <= jd->basicblockcount + 1) {
 		/* get last instruction of basic block */
 
 		iptr = bptr->iinstr + bptr->icount - 1;
@@ -369,11 +369,11 @@ bool reorder(jitdata *jd)
 
 	/* close the basic block chain with the last dummy basic block */
 
-	bptr->next = &jd->new_basicblocks[jd->new_basicblockcount];
+	bptr->next = &jd->basicblocks[jd->basicblockcount];
 
 	puts("");
 
-	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 		printf("L%03d\n", bptr->nr);
 	}
 

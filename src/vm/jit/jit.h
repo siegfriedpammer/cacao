@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5633 2006-10-02 13:59:13Z edwin $
+   $Id: jit.h 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -113,14 +113,14 @@ struct jitdata {
 	u4               flags;             /* contains JIT compiler flags        */
 	bool             isleafmethod;      /* does method call subroutines       */
 
-	instruction     *new_instructions;
-	basicblock      *new_basicblocks;
-	s4              *new_basicblockindex;
-	stackelement    *new_stack;
-	s4               new_instructioncount;
-	s4               new_basicblockcount;
-	s4               new_stackcount;
-	s4               new_c_debug_nr;
+	instruction     *instructions;
+	basicblock      *basicblocks;
+	s4              *basicblockindex;
+	stackelement    *stack;
+	s4               instructioncount;
+	s4               basicblockcount;
+	s4               stackcount;
+	s4               c_debug_nr;
 
 	varinfo *var;
 	s4      vartop;

@@ -121,7 +121,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	count = 0;
 	alloccount = 0;
 
-	for (bptr = jd->new_basicblocks; bptr; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
 		if (!(bptr->bitflags & BBFLAG_REPLACEMENT))
 			continue;
 
@@ -200,7 +200,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 	rp = rplpoints;
 
-	for (bptr = jd->new_basicblocks; bptr; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
 		if (!(bptr->bitflags & BBFLAG_REPLACEMENT))
 			continue;
 

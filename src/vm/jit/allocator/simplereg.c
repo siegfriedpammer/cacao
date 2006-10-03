@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5655 2006-10-03 20:44:46Z edwin $
+   $Id: simplereg.c 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -1183,7 +1183,7 @@ static void allocate_scratch_registers(jitdata *jd)
 
 	reg_init_temp(jd, rd);
 
-	bptr = jd->new_basicblocks;
+	bptr = jd->basicblocks;
 
 	while (bptr != NULL) {
 		if (bptr->flags >= BBREACHED) {
@@ -1654,7 +1654,7 @@ void reg_make_statistics(jitdata *jd)
 
 		/* count how many stack slots are held in memory or register */
 
-		bptr = jd->new_basicblocks;
+		bptr = jd->basicblocks;
 
 		while (bptr != NULL) {
 			if (bptr->flags >= BBREACHED) {

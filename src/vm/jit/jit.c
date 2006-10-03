@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5655 2006-10-03 20:44:46Z edwin $
+   $Id: jit.c 5656 2006-10-03 20:57:15Z edwin $
 
 */
 
@@ -1697,7 +1697,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	   since they can change the basic block count. */
 
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
-		code->bbfrequency = MNEW(u4, jd->new_basicblockcount);
+		code->bbfrequency = MNEW(u4, jd->basicblockcount);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 

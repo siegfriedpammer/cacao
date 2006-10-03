@@ -160,7 +160,7 @@ void show_method(jitdata *jd, int stage)
 
 	/* get the last basic block */
 
-	for (lastbptr = jd->new_basicblocks; lastbptr->next != NULL; lastbptr = lastbptr->next);
+	for (lastbptr = jd->basicblocks; lastbptr->next != NULL; lastbptr = lastbptr->next);
 
 	printf("\n");
 
@@ -169,9 +169,9 @@ void show_method(jitdata *jd, int stage)
 	printf("\n(NEW INSTRUCTION FORMAT)\n");
 	if (jd->isleafmethod)
 		printf("LEAFMETHOD\n");
-	printf("\nBasic blocks: %d\n", jd->new_basicblockcount);
+	printf("\nBasic blocks: %d\n", jd->basicblockcount);
 	if (stage >= SHOW_CODE) {
-		printf("Code length:  %d\n", (lastbptr->mpc - jd->new_basicblocks[0].mpc));
+		printf("Code length:  %d\n", (lastbptr->mpc - jd->basicblocks[0].mpc));
 		printf("Data length:  %d\n", cd->dseglen);
 		printf("Stub length:  %d\n", (s4) (code->mcodelength -
 										   ((ptrint) cd->dseglen + lastbptr->mpc)));
@@ -338,7 +338,7 @@ void show_method(jitdata *jd, int stage)
 	if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
 		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen);
 
-		for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + jd->new_basicblocks[0].mpc);)
+		for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + jd->basicblocks[0].mpc);)
 			DISASSINSTR(u1ptr);
 
 		printf("\n");
@@ -347,7 +347,7 @@ void show_method(jitdata *jd, int stage)
 
 	/* show code of all basic blocks */
 
-	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next)
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next)
 		show_basicblock(jd, bptr, stage);
 
 #if defined(ENABLE_DISASSEMBLER)
@@ -511,7 +511,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         }                                                            \
         else if (stage >= SHOW_PARSE) {                              \
             printf("--> insindex %d (L%03d) ", (target).insindex,    \
-                jd->new_basicblocks[jd->new_basicblockindex[         \
+                jd->basicblocks[jd->basicblockindex[         \
                 (target).insindex]].nr);                             \
         }                                                            \
         else {                                                       \
