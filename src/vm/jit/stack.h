@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: stack.h 5447 2006-09-09 21:33:48Z edwin $
+   $Id: stack.h 5652 2006-10-03 20:22:28Z edwin $
 
 */
 
@@ -48,21 +48,6 @@
 
 
 /* macros used internally by analyse_stack ************************************/
-
-/*--------------------------------------------------*/
-/* STACK DEPTH CHECKING                             */
-/*--------------------------------------------------*/
-
-#if defined(ENABLE_VERIFIER)
-#define CHECK_STACK_DEPTH(depthA,depthB)                             \
-    do {                                                             \
-        if ((depthA) != (depthB))                                    \
-            goto throw_stack_depth_error;                            \
-    } while (0)
-#else /* !ENABLE_VERIFIER */
-#define CHECK_STACK_DEPTH(depthA,depthB)
-#endif /* ENABLE_VERIFIER */
-
 
 /*--------------------------------------------------*/
 /* BASIC TYPE CHECKING                              */

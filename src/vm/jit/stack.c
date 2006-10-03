@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5633 2006-10-02 13:59:13Z edwin $
+   $Id: stack.c 5652 2006-10-03 20:22:28Z edwin $
 
 */
 
@@ -4490,10 +4490,6 @@ throw_stack_underflow:
 
 throw_stack_overflow:
 	exceptions_throw_verifyerror(m, "Stack size too large");
-	return false;
-
-throw_stack_depth_error:
-	exceptions_throw_verifyerror(m,"Stack depth mismatch");
 	return false;
 
 throw_stack_type_error:
