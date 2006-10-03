@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5604 2006-10-01 15:25:21Z edwin $
+   $Id: typecheck.c 5655 2006-10-03 20:44:46Z edwin $
 
 */
 
@@ -964,13 +964,13 @@ verify_invocation(verifier_state *state)
 
 	/* try to resolve the method lazily */
 
-	result = new_resolve_method_lazy(jd, state->iptr, state->m);
+	result = resolve_method_lazy(jd, state->iptr, state->m);
 	if (result == resolveFailed)
 		return false;
 
 	if (result != resolveSucceeded) {
 		if (!um) {
-			um = new_create_unresolved_method(state->m->class,
+			um = create_unresolved_method(state->m->class,
 					state->m, state->iptr);
 
 			if (!um)
@@ -979,7 +979,7 @@ verify_invocation(verifier_state *state)
 
 		/* record subtype constraints for parameters */
 
-		if (!new_constrain_unresolved_method(jd, um, state->m->class, 
+		if (!constrain_unresolved_method(jd, um, state->m->class, 
 					state->m, state->iptr))
 			return false; /* XXX maybe wrap exception */
 
@@ -1336,7 +1336,7 @@ verify_basic_block(verifier_state *state)
 
 	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
 	LOGFLUSH;
-	DOLOG(new_show_basicblock(jd, state->bptr, SHOW_STACK));
+	DOLOG(show_basicblock(jd, state->bptr, SHOW_STACK));
 
 	superblockend = false;
 	state->bptr->flags = BBFINISHED;
@@ -1375,7 +1375,7 @@ verify_basic_block(verifier_state *state)
 
 		DOLOG(typevector_print(stdout, jd->var, state->numlocals));
 		LOGNL; LOGFLUSH;
-		DOLOG(new_show_icmd(jd, state->iptr, false, SHOW_STACK)); LOGNL; LOGFLUSH;
+		DOLOG(show_icmd(jd, state->iptr, false, SHOW_STACK)); LOGNL; LOGFLUSH;
 
 		opcode = iptr->opc;
 		dv = VAROP(iptr->dst);
@@ -1500,13 +1500,13 @@ verify_basic_block(verifier_state *state)
 				}
 
 				/* try to resolve the field reference lazily */
-				result = new_resolve_field_lazy(jd, state->iptr, state->m);
+				result = resolve_field_lazy(jd, state->iptr, state->m);
 				if (result == resolveFailed)
 					return false;
 
 				if (result != resolveSucceeded) {
 					if (!uf) {
-						uf = new_create_unresolved_field(state->m->class, state->m, state->iptr);
+						uf = create_unresolved_field(state->m->class, state->m, state->iptr);
 						if (!uf)
 							return false;
 
@@ -1515,7 +1515,7 @@ verify_basic_block(verifier_state *state)
 					}
 
 					/* record the subtype constraints for this field access */
-					if (!new_constrain_unresolved_field(jd, uf,state->m->class,state->m,state->iptr))
+					if (!constrain_unresolved_field(jd, uf,state->m->class,state->m,state->iptr))
 						return false; /* XXX maybe wrap exception? */
 
 					TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(state->iptr),stat_ins_field_unresolved);
@@ -2407,7 +2407,7 @@ bool typecheck(jitdata *jd)
 
 
     LOGSTR("\n==============================================================================\n");
-    DOLOG( new_show_method(jd, SHOW_STACK) );
+    DOLOG( show_method(jd, SHOW_STACK) );
     LOGSTR("\n==============================================================================\n");
     LOGMETHOD("Entering typecheck: ",cd->method);
 

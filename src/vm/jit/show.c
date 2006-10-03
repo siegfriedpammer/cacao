@@ -68,7 +68,7 @@ static java_objectheader *show_global_lock;
 /* forward declarations *******************************************************/
 
 #if !defined(NDEBUG)
-static void new_show_variable_array(jitdata *jd, s4 *vars, int n, int stage);
+static void show_variable_array(jitdata *jd, s4 *vars, int n, int stage);
 static void show_allocation(s4 type, s4 flags, s4 regoff);
 static void show_variable(jitdata *jd, s4 index, int stage);
 #endif
@@ -133,7 +133,7 @@ char show_jit_type_letters[] = {
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void new_show_method(jitdata *jd, int stage)
+void show_method(jitdata *jd, int stage)
 {
 	methodinfo     *m;
 	codeinfo       *code;
@@ -348,7 +348,7 @@ void new_show_method(jitdata *jd, int stage)
 	/* show code of all basic blocks */
 
 	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next)
-		new_show_basicblock(jd, bptr, stage);
+		show_basicblock(jd, bptr, stage);
 
 #if defined(ENABLE_DISASSEMBLER)
 	/* show stubs code */
@@ -385,7 +385,7 @@ void new_show_method(jitdata *jd, int stage)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
+void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 {
 	methodinfo  *m;
 	codeinfo    *code;
@@ -452,7 +452,7 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 		if (stage >= SHOW_STACK) {
 			printf("IN:  ");
-			new_show_variable_array(jd, bptr->invars, bptr->indepth, stage);
+			show_variable_array(jd, bptr->invars, bptr->indepth, stage);
 			printf("\n");
 		}
 
@@ -461,13 +461,13 @@ void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		for (i = 0; i < bptr->icount; i++, iptr++) {
 			printf("%4d:  ", iptr->line);
 
-			new_show_icmd(jd, iptr, deadcode, stage);
+			show_icmd(jd, iptr, deadcode, stage);
 			printf("\n");
 		}
 
 		if (stage >= SHOW_STACK) {
 			printf("OUT: ");
-			new_show_variable_array(jd, bptr->outvars, bptr->outdepth, stage);
+			show_variable_array(jd, bptr->outvars, bptr->outdepth, stage);
 			printf("\n");
 		}
 
@@ -729,7 +729,7 @@ static void show_variable(jitdata *jd, s4 index, int stage)
 	fflush(stdout);
 }
 
-static void new_show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
+static void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
 {
 	int i;
 
@@ -742,7 +742,7 @@ static void new_show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
 	printf("]");
 }
 
-void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
+void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 {
 	u2                 opcode;
 	branch_target_t   *table;

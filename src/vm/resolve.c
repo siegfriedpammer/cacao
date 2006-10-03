@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5511 2006-09-15 12:51:12Z edwin $
+   $Id: resolve.c 5655 2006-10-03 20:44:46Z edwin $
 
 */
 
@@ -930,7 +930,7 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 /* FIELD RESOLUTION                                                           */
 /******************************************************************************/
 
-/* new_resolve_field_verifier_checks *******************************************
+/* resolve_field_verifier_checks *******************************************
  
    Do the verifier checks necessary after field has been resolved.
   
@@ -950,7 +950,7 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 *******************************************************************************/
 
 #if defined(ENABLE_VERIFIER)
-resolve_result_t new_resolve_field_verifier_checks(jitdata *jd,
+resolve_result_t resolve_field_verifier_checks(jitdata *jd,
 											   methodinfo *refmethod,
 											   constant_FMIref *fieldref,
 											   classinfo *container,
@@ -1171,7 +1171,7 @@ resolve_result_t new_resolve_field_verifier_checks(jitdata *jd,
    
 *******************************************************************************/
 
-resolve_result_t new_resolve_field_lazy(jitdata *jd,
+resolve_result_t resolve_field_lazy(jitdata *jd,
 										instruction *iptr,
 										methodinfo *refmethod)
 {
@@ -1239,7 +1239,7 @@ resolved_the_field:
 
 #if defined(ENABLE_VERIFIER)
 	if (JITDATA_HAS_FLAG_VERIFY(jd)) {
-		result = new_resolve_field_verifier_checks(jd,
+		result = resolve_field_verifier_checks(jd,
 				refmethod, fieldref, container, fi,
 				iptr->opc, iptr);
 
@@ -1355,7 +1355,7 @@ resolved_the_field:
 	/* Checking opt_verify is ok here, because the NULL iptr guarantees */
 	/* that no missing parts of an instruction will be accessed.        */
 	if (opt_verify) {
-		checkresult = new_resolve_field_verifier_checks(NULL,
+		checkresult = resolve_field_verifier_checks(NULL,
 				ref->referermethod,
 				ref->fieldref,
 				container,
@@ -1512,7 +1512,7 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 	return mi;
 }
 
-/* new_resolve_method_verifier_checks ******************************************
+/* resolve_method_verifier_checks ******************************************
  
    Do the verifier checks necessary after a method has been resolved.
   
@@ -1532,7 +1532,7 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 *******************************************************************************/
 
 #if defined(ENABLE_VERIFIER)
-resolve_result_t new_resolve_method_verifier_checks(jitdata *jd,
+resolve_result_t resolve_method_verifier_checks(jitdata *jd,
 												methodinfo *refmethod,
 												constant_FMIref *methodref,
 												classinfo *container,
@@ -1746,7 +1746,7 @@ resolve_result_t new_resolve_method_verifier_checks(jitdata *jd,
    
 *******************************************************************************/
 
-resolve_result_t new_resolve_method_lazy(jitdata *jd,
+resolve_result_t resolve_method_lazy(jitdata *jd,
 										 instruction *iptr,
 										 methodinfo *refmethod)
 {
@@ -1838,7 +1838,7 @@ resolved_the_method:
 
 #if defined(ENABLE_VERIFIER)
 	if (JITDATA_HAS_FLAG_VERIFY(jd)) {
-		result = new_resolve_method_verifier_checks(jd,
+		result = resolve_method_verifier_checks(jd,
 												refmethod, methodref,
 												container,
 												mi,
@@ -1988,7 +1988,7 @@ resolved_the_method:
 	/* that no missing parts of an instruction will be accessed.        */
 	if (opt_verify) {
 
-		checkresult = new_resolve_method_verifier_checks(NULL,
+		checkresult = resolve_method_verifier_checks(NULL,
 				ref->referermethod,
 				ref->methodref,
 				container,
@@ -2241,7 +2241,7 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 
 *******************************************************************************/
 
-unresolved_field * new_create_unresolved_field(classinfo *referer,
+unresolved_field * create_unresolved_field(classinfo *referer,
 											   methodinfo *refmethod,
 											   instruction *iptr)
 {
@@ -2308,7 +2308,7 @@ unresolved_field * new_create_unresolved_field(classinfo *referer,
 	return ref;
 }
 
-/* new_constrain_unresolved_field **********************************************
+/* constrain_unresolved_field **********************************************
  
    Record subtype constraints for a field access.
   
@@ -2325,7 +2325,7 @@ unresolved_field * new_create_unresolved_field(classinfo *referer,
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-bool new_constrain_unresolved_field(jitdata *jd,
+bool constrain_unresolved_field(jitdata *jd,
 									unresolved_field *ref,
 									classinfo *referer, methodinfo *refmethod,
 									instruction *iptr)
@@ -2467,7 +2467,7 @@ bool new_constrain_unresolved_field(jitdata *jd,
 
 *******************************************************************************/
 
-unresolved_method * new_create_unresolved_method(classinfo *referer,
+unresolved_method * create_unresolved_method(classinfo *referer,
 												 methodinfo *refmethod,
 												 instruction *iptr)
 {
@@ -2508,7 +2508,7 @@ unresolved_method * new_create_unresolved_method(classinfo *referer,
 	return ref;
 }
 
-/* new_constrain_unresolved_method *********************************************
+/* constrain_unresolved_method *********************************************
  
    Record subtype constraints for the arguments of a method call.
   
@@ -2525,7 +2525,7 @@ unresolved_method * new_create_unresolved_method(classinfo *referer,
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-bool new_constrain_unresolved_method(jitdata *jd,
+bool constrain_unresolved_method(jitdata *jd,
 									 unresolved_method *ref,
 									 classinfo *referer, methodinfo *refmethod,
 									 instruction *iptr)

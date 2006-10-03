@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5482 2006-09-12 21:34:03Z edwin $
+   $Id: parse.h 5655 2006-10-03 20:44:46Z edwin $
 
 */
 
@@ -281,7 +281,7 @@
 
 /* function prototypes ********************************************************/
 
-bool new_parse(jitdata *jd);
+bool parse(jitdata *jd);
 
 #endif /* _PARSE_H */
 

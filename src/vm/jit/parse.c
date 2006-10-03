@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5595 2006-09-30 23:06:36Z edwin $
+   $Id: parse.c 5655 2006-10-03 20:44:46Z edwin $
 
 */
 
@@ -160,7 +160,7 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
 
 *******************************************************************************/
 
-static exceptiontable * new_fillextable(
+static exceptiontable * fillextable(
 									jitdata *jd,
 									methodinfo *m, 
 									exceptiontable *extable, 
@@ -237,7 +237,7 @@ throw_invalid_bytecode_index:
 #define CHECK_END_OF_BYTECODE(neededlength)
 #endif /* ENABLE_VERIFIER */
 
-bool new_parse(jitdata *jd)
+bool parse(jitdata *jd)
 {
 	methodinfo  *m;                     /* method being parsed                */
 	codeinfo    *code;
@@ -297,7 +297,7 @@ bool new_parse(jitdata *jd)
   
 	/* compute branch targets of exception table */
 
-	if (!new_fillextable(jd, m,
+	if (!fillextable(jd, m,
 			&(cd->exceptiontable[cd->exceptiontablelength-1]),
 			m->exceptiontable,
 			m->exceptiontablelength,
@@ -1032,12 +1032,12 @@ jsr_tail:
 #if defined(ENABLE_VERIFIER)
 				if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-					result = new_resolve_field_lazy(jd, iptr, m);
+					result = resolve_field_lazy(jd, iptr, m);
 					if (result == resolveFailed)
 						return false;
 
 					if (result != resolveSucceeded) {
-						uf = new_create_unresolved_field(m->class, m, iptr);
+						uf = create_unresolved_field(m->class, m, iptr);
 
 						if (uf == NULL)
 							return false;
@@ -1105,12 +1105,12 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = new_resolve_method_lazy(jd, iptr, m);
+				result = resolve_method_lazy(jd, iptr, m);
 				if (result == resolveFailed)
 					return false;
 
 				if (result != resolveSucceeded) {
-					um = new_create_unresolved_method(m->class, m, iptr);
+					um = create_unresolved_method(m->class, m, iptr);
 
 					if (!um)
 						return false;

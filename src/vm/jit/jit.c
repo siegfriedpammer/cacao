@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5597 2006-09-30 23:28:27Z edwin $
+   $Id: jit.c 5655 2006-10-03 20:44:46Z edwin $
 
 */
 
@@ -1583,7 +1583,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	/* call parse pass */
 
-	if (!new_parse(jd)) {
+	if (!parse(jd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
 
 		return NULL;
@@ -1596,7 +1596,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	/* call stack analysis pass */
 
-	if (!new_stack_analyse(jd)) {
+	if (!stack_analyse(jd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
 
 		return NULL;
@@ -1680,7 +1680,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		{
 			STATISTICS(count_locals_conflicts += (cd->maxlocals - 1) * (cd->maxlocals));
 
-			new_regalloc(jd);
+			regalloc(jd);
 		}
 
 		STATISTICS(reg_make_statistics(jd));
@@ -1742,7 +1742,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	/* intermediate and assembly code listings */
 		
 	if (JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd)) {
-		new_show_method(jd, SHOW_CODE);
+		show_method(jd, SHOW_CODE);
 	}
 	else if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
 # if defined(ENABLE_DISASSEMBLER)

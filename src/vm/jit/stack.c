@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5652 2006-10-03 20:22:28Z edwin $
+   $Id: stack.c 5655 2006-10-03 20:44:46Z edwin $
 
 */
 
@@ -1254,7 +1254,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			ex = DNEW(exceptiontable);
 			ex->handler = sd->handlers[i]->handler;
 			ex->start = b;
-			ex->end = b; /* XXX hack, see end of new_stack_analyse */
+			ex->end = b; /* XXX hack, see end of stack_analyse */
 			ex->catchtype = sd->handlers[i]->catchtype;
 			ex->down = NULL;
 
@@ -1312,7 +1312,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 	for (len = b->icount; len--; iptr++) {
 #if defined(STACK_VERBOSE)
-		new_show_icmd(sd->jd, iptr, false, SHOW_STACK);
+		show_icmd(sd->jd, iptr, false, SHOW_STACK);
 		printf("\n");
 #endif
 
@@ -1726,7 +1726,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 		} /* switch */
 
 #if defined(STACK_VERBOSE)
-		new_show_icmd(sd->jd, iptr, false, SHOW_STACK);
+		show_icmd(sd->jd, iptr, false, SHOW_STACK);
 		printf("\n");
 #endif
 	}
@@ -1775,7 +1775,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 *******************************************************************************/
 
-bool new_stack_analyse(jitdata *jd)
+bool stack_analyse(jitdata *jd)
 {
 	methodinfo   *m;              /* method being analyzed                    */
 	codeinfo     *code;
@@ -1819,7 +1819,7 @@ bool new_stack_analyse(jitdata *jd)
 	int           new_index; /* used to get a new var index with GET_NEW_INDEX*/
 
 #if defined(STACK_VERBOSE)
-	new_show_method(jd, SHOW_PARSE);
+	show_method(jd, SHOW_PARSE);
 #endif
 
 	/* get required compiler data - initialization */
@@ -2022,7 +2022,7 @@ bool new_stack_analyse(jitdata *jd)
 				while (--len >= 0)  {
 
 #if defined(STACK_VERBOSE)
-					new_show_icmd(jd, iptr, false, SHOW_PARSE); printf("\n");
+					show_icmd(jd, iptr, false, SHOW_PARSE); printf("\n");
 					for( copy = curstack; copy; copy = copy->prev ) {
 						printf("%2d(%d", copy->varnum, copy->type);
 						if (IS_INOUT(copy))

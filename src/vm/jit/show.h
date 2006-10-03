@@ -62,9 +62,9 @@ extern char show_jit_type_letters[];
 
 bool show_init(void);
 
-void new_show_method(jitdata *jd, int stage);
-void new_show_basicblock(jitdata *jd, basicblock *bptr, int stage);
-void new_show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage);
+void show_method(jitdata *jd, int stage);
+void show_basicblock(jitdata *jd, basicblock *bptr, int stage);
+void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage);
 #endif /* !defined(NDEBUG) */
 
 #endif /* _SHOW_H */

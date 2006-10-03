@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5654 2006-10-03 20:27:47Z edwin $
+   $Id: simplereg.c 5655 2006-10-03 20:44:46Z edwin $
 
 */
 
@@ -60,7 +60,7 @@
 
 static void interface_regalloc(jitdata *jd);
 static void local_regalloc(jitdata *jd);
-static void new_allocate_scratch_registers(jitdata *jd);
+static void allocate_scratch_registers(jitdata *jd);
 
 
 /* regalloc ********************************************************************
@@ -69,7 +69,7 @@ static void new_allocate_scratch_registers(jitdata *jd);
 	
 *******************************************************************************/
 	
-bool new_regalloc(jitdata *jd)
+bool regalloc(jitdata *jd)
 {
 	/* There is a problem with the use of unused float argument
 	   registers in leafmethods for stackslots on c7 (2 * Dual Core
@@ -80,7 +80,7 @@ bool new_regalloc(jitdata *jd)
 	   value before calling local_regalloc.  */
 
 	interface_regalloc(jd);
-	new_allocate_scratch_registers(jd);
+	allocate_scratch_registers(jd);
 	local_regalloc(jd);
 
 	/* everthing's ok */
@@ -1161,7 +1161,7 @@ static bool reg_alloc_dup(jitdata *jd, s4 srcindex, s4 dstindex)
 
 *******************************************************************************/
 
-static void new_allocate_scratch_registers(jitdata *jd)
+static void allocate_scratch_registers(jitdata *jd)
 {
 	methodinfo         *m;
 	registerdata       *rd;
