@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5641 2006-10-03 16:32:15Z edwin $
+   $Id: codegen.c 5650 2006-10-03 18:50:52Z edwin $
 
 */
 
@@ -659,17 +659,30 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* sx.val.i = constant                          */
+		                      /* s1.localindex = variable, sx.val.i = constant*/
+
+		case ICMD_IINC:
+		case ICMD_IADDCONST:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767)) {
 				M_IADD_IMM(s1, iptr->sx.val.i, d);
 			} else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_IADD(s1, REG_ITMP2, d);
 			}
+			/* XXX the old code for ICMD_IINC was as follows:
+			{
+				u4 m = iptr->sx.val.i;
+				if (m & 0x8000)
+					m += 65536;
+				if (m & 0xffff0000)
+					M_ADDIS(s1, m >> 16, d);
+				if (m & 0xffff)
+					M_IADD_IMM(s1, m & 0xffff, d);
+			}
+			*/
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1183,24 +1196,6 @@ bool codegen(jitdata *jd)
 				gen_resolvebranch(br1, br1, cd->mcodeptr);
 				gen_resolvebranch(br1 + 1 * 4, br1 + 1 * 4, cd->mcodeptr - 2 * 4);
 				M_INTMOVE(dreg, d);
-			}
-			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
-		                      /* s1.localindex = variable, sx.val.i = constant*/
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-
-			{
-				u4 m = iptr->sx.val.i;
-				if (m & 0x8000)
-					m += 65536;
-				if (m & 0xffff0000)
-					M_ADDIS(s1, m >> 16, d);
-				if (m & 0xffff)
-					M_IADD_IMM(s1, m & 0xffff, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
