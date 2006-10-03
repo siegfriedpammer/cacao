@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gnu_classpath_VMSystemProperties.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 5648 2006-10-03 18:21:55Z twisti $
 
 */
 
@@ -77,7 +77,6 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	char *ld_library_path;
-	char *libpath;
 #endif
 
 	if (p == NULL) {
@@ -149,40 +148,21 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 #if defined(WITH_STATIC_CLASSPATH)
 	properties_system_add("gnu.classpath.boot.library.path", ".");
 	properties_system_add("java.library.path" , ".");
-#else /* defined(WITH_STATIC_CLASSPATH) */
+#else
 	/* fill gnu.classpath.boot.library.path with GNU Classpath library
        path */
 
-	len = strlen(CLASSPATH_LIBRARY_PATH) + strlen("0");
-
-	libpath = MNEW(char, len);
-
-	strcpy(libpath, CLASSPATH_LIBRARY_PATH);
-
-	properties_system_add("gnu.classpath.boot.library.path", libpath);
-
-	MFREE(libpath, char, len);
-
+	properties_system_add("gnu.classpath.boot.library.path", CLASSPATH_LIBRARY_PATH);
 
 	/* now fill java.library.path */
 
 	ld_library_path = getenv("LD_LIBRARY_PATH");
 
-	if (ld_library_path) {
-		len = strlen(ld_library_path) + strlen("0");
-
-		libpath = MNEW(char, len);
-
-		strcpy(libpath, ld_library_path);
-
-		properties_system_add("java.library.path", libpath);
-
-		MFREE(libpath, char, len);
-
-	} else {
+	if (ld_library_path != NULL)
+		properties_system_add("java.library.path", ld_library_path);
+	else
 		properties_system_add("java.library.path", "");
-	}
-#endif /* defined(WITH_STATIC_CLASSPATH) */
+#endif
 
 	properties_system_add("java.io.tmpdir", "/tmp");
 
