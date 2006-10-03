@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5633 2006-10-02 13:59:13Z edwin $
+   $Id: codegen.c 5641 2006-10-03 16:32:15Z edwin $
 
 */
 
@@ -358,7 +358,7 @@ bool codegen(jitdata *jd)
 		while (len) {
 			len--;
 			src = bptr->invars[len];
-			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
+			if ((len == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
 					/* 				d = reg_of_var(m, src, REG_ITMP1); */
 					if (!(src->flags & INMEMORY))
 						d = src->vv.regoff;
@@ -373,11 +373,10 @@ bool codegen(jitdata *jd)
 			while (len) {
 				len--;
 				var = VAR(bptr->invars[len]);
- 				if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
+ 				if ((len == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
 					d = codegen_reg_of_var(0, var, REG_ITMP1);
 					M_INTMOVE(REG_ITMP1, d);
 					emit_store(jd, NULL, var, d);
-
 				}
 				else {
 					assert((var->flags & INOUT));
@@ -587,6 +586,7 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_IINC:
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* sx.val.i = constant                             */
 
@@ -594,7 +594,10 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 255)) {
 				M_IADD_IMM(s1, iptr->sx.val.i, d);
+			} else if ((iptr->sx.val.i > -256) && (iptr->sx.val.i < 0)) {
+				M_ISUB_IMM(s1, (-iptr->sx.val.i), d);
 			} else {
+				/* XXX maybe use M_LDA? */
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_IADD(s1, REG_ITMP2, d);
 			}
@@ -1124,25 +1127,6 @@ bool codegen(jitdata *jd)
 			M_CMPLT(s1, s2, REG_ITMP3);
 			M_CMPLT(s2, s1, REG_ITMP1);
 			M_LSUB(REG_ITMP1, REG_ITMP3, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-
-		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
-		                      /* s1.localindex = variable, sx.val.i = constant*/
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-
-			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 255)) {
-				M_IADD_IMM(s1, iptr->sx.val.i, d);
-			} else if ((iptr->sx.val.i > -256) && (iptr->sx.val.i < 0)) {
-				M_ISUB_IMM(s1, (-iptr->sx.val.i), d);
-			} else {
-				M_LDA (s1, s1, iptr->sx.val.i);
-				M_IADD(s1, REG_ZERO, d);
-			}
-
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -2206,8 +2190,9 @@ bool codegen(jitdata *jd)
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 
-			M_BSR(REG_ITMP1, 0);
+			M_BR(0);
 			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
+			ALIGNCODENOP;
 			break;
 			
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */

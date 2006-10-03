@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5639 2006-10-02 19:24:56Z edwin $
+   $Id: codegen.c 5641 2006-10-03 16:32:15Z edwin $
 
 */
 
@@ -449,7 +449,7 @@ bool codegen(jitdata *jd)
 		if (opt_lsra) {
 			while (src != NULL) {
 				len--;
-				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+				if ((len == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
 					/* d = reg_of_var(m, src, REG_ITMP1); */
 					if (!IS_INMEMORY(src->flags))
 						d = src->vv.regoff;
@@ -465,7 +465,7 @@ bool codegen(jitdata *jd)
 		while (len > 0) {
 			len--;
 			var = VAR(bptr->invars[len]);
-			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
+			if ((len == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
 				d = codegen_reg_of_var(0, var, REG_ITMP1);
 				M_INTMOVE(REG_ITMP1, d);
 				emit_store(jd, NULL, var, d);
@@ -2005,20 +2005,11 @@ bool codegen(jitdata *jd)
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 
-			if (jd->isleafmethod)
-				M_MFLR(REG_ITMP2);
-
-			M_BL(0);
-			M_MFLR(REG_ITMP1);
-			M_IADD_IMM(REG_ITMP1, jd->isleafmethod ? 4*4 : 3*4, REG_ITMP1);
-
-			if (jd->isleafmethod)
-				M_MTLR(REG_ITMP2);
-
 			M_BR(0);
 			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
+			ALIGNCODENOP;
 			break;
-			
+
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);

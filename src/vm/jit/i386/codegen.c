@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5633 2006-10-02 13:59:13Z edwin $
+   $Id: codegen.c 5641 2006-10-03 16:32:15Z edwin $
 
 */
 
@@ -466,17 +466,11 @@ bool codegen(jitdata *jd)
 				var = VAR(bptr->invars[len]);
 				if (bptr->type != BBTYPE_STD) {
 					if (!IS_2_WORD_TYPE(var->type)) {
-						if (bptr->type == BBTYPE_SBR) {
-							d = codegen_reg_of_var(0, var, REG_ITMP1);
-							emit_pop_reg(cd, d);
-							emit_store(jd, NULL, var, d);
-						} 
-						else if (bptr->type == BBTYPE_EXH) {
+						if (bptr->type == BBTYPE_EXH) {
 							d = codegen_reg_of_var(0, var, REG_ITMP1);
 							M_INTMOVE(REG_ITMP1, d);
 							emit_store(jd, NULL, var, d);
 						}
-
 					} 
 					else {
 						log_text("copy interface registers(EXH, SBR): longs \
@@ -495,13 +489,7 @@ bool codegen(jitdata *jd)
 			var = VAR(bptr->invars[len]);
 			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 				if (!IS_2_WORD_TYPE(var->type)) {
-					if (bptr->type == BBTYPE_SBR) {
-						d = codegen_reg_of_var(0, var, REG_ITMP1);
-						emit_pop_reg(cd, d);
-						emit_store(jd, NULL, var, d);
-
-					} 
-					else if (bptr->type == BBTYPE_EXH) {
+					if (bptr->type == BBTYPE_EXH) {
 						d = codegen_reg_of_var(0, var, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 						emit_store(jd, NULL, var, d);
@@ -818,11 +806,17 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_IINC:
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+				
+			/* `inc reg' is slower on p4's (regarding to ia32
+			   optimization reference manual and benchmarks) and as
+			   fast on athlon's. */
+
 			M_INTMOVE(s1, d);
 			M_IADD_IMM(iptr->sx.val.i, d);
 			emit_store_dst(jd, iptr, d);
@@ -1521,23 +1515,6 @@ bool codegen(jitdata *jd)
 			M_XOR_IMM(iptr->sx.val.l, GET_LOW_REG(d));
 			M_XOR_IMM(iptr->sx.val.l >> 32, GET_HIGH_REG(d));
 			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
-		                      /* s1.localindex = variable, sx.val.i = constant*/
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-				
-			/* `inc reg' is slower on p4's (regarding to ia32
-			   optimization reference manual and benchmarks) and as
-			   fast on athlon's. */
-
-			M_INTMOVE(s1, d);
-			M_IADD_IMM(iptr->sx.val.i, d);
-
-			emit_store_dst(jd, iptr, d);
-
 			break;
 
 
@@ -2704,7 +2681,7 @@ bool codegen(jitdata *jd)
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 
-  			M_CALL_IMM(0);
+  			M_JMP_IMM(0);
 			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
 			break;
 			
