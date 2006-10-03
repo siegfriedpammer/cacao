@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5649 2006-10-03 18:34:40Z edwin $
+   $Id: simplereg.c 5654 2006-10-03 20:27:47Z edwin $
 
 */
 
@@ -61,7 +61,6 @@
 static void interface_regalloc(jitdata *jd);
 static void local_regalloc(jitdata *jd);
 static void new_allocate_scratch_registers(jitdata *jd);
-static void allocate_scratch_registers(jitdata *jd);
 
 
 /* regalloc ********************************************************************
