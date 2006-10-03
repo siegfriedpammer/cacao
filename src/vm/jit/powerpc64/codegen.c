@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5641 2006-10-03 16:32:15Z edwin $
+   $Id: codegen.c 5651 2006-10-03 19:11:19Z edwin $
 
 */
 
@@ -608,11 +608,11 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* sx.val.i = constant                          */
+		case ICMD_IINC:
+		case ICMD_IADDCONST:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767)) {
 				M_IADD_IMM(s1, iptr->sx.val.i, d);
 			} else {
@@ -976,19 +976,6 @@ bool codegen(jitdata *jd)
 			/* XXX implement me!!! */
 			emit_store_dst(jd, iptr, d);
 			break;
-			break;
-
-		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
-		                      /* s1.localindex = variable, sx.val.i = constant*/
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-
-			/* XXX implement me more efficiently */
-			ICONST(REG_ITMP2, iptr->sx.val.i);
-			M_IADD(s1, REG_ITMP2, d);
-
-			emit_store_dst(jd, iptr, d);
 			break;
 
 
