@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5640 2006-10-03 12:02:37Z twisti $
+## $Id: Makefile.am 5642 2006-10-03 16:42:34Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
