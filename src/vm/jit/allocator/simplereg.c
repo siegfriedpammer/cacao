@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5647 2006-10-03 18:09:26Z edwin $
+   $Id: simplereg.c 5649 2006-10-03 18:34:40Z edwin $
 
 */
 
@@ -1681,7 +1681,7 @@ void reg_make_statistics(jitdata *jd)
 
 				while (len) {
 					len--;
-					var = VAR(bptr->invars[len]);
+					var = VAR(bptr->outvars[len]);
 
 					/* outvars statistics (currently none) */
 				}
