@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 5343 2006-09-05 21:20:33Z twisti $
+   $Id: method.h 5657 2006-10-03 21:19:05Z edwin $
 */
 
 
@@ -79,7 +79,7 @@ struct methodinfo {                 /* method structure                       */
 	u2            linenumbercount;  /* number of linenumber attributes        */
 	lineinfo     *linenumbers;      /* array of lineinfo items                */
 
-	int       c_debug_nr;           /* a counter to number all BB with an     */
+	int       c_block_nr;           /* a counter to number all BB with an     */
 	                                /* unique value                           */
 
 	u1           *stubroutine;      /* stub for compiling or calling natives  */

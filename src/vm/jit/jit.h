@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5656 2006-10-03 20:57:15Z edwin $
+   $Id: jit.h 5657 2006-10-03 21:19:05Z edwin $
 
 */
 
@@ -113,24 +113,26 @@ struct jitdata {
 	u4               flags;             /* contains JIT compiler flags        */
 	bool             isleafmethod;      /* does method call subroutines       */
 
-	instruction     *instructions;
-	basicblock      *basicblocks;
-	s4              *basicblockindex;
-	stackelement    *stack;
-	s4               instructioncount;
-	s4               basicblockcount;
-	s4               stackcount;
-	s4               c_debug_nr;
+	instruction     *instructions;    /* ICMDs, valid between parse and stack */
+	basicblock      *basicblocks;     /* start of basic block list            */
+	s4              *basicblockindex; /* block index for each JavaPC          */
+                                      /* valid between parse and stack        */
+	stackelement    *stack;           /* XXX should become stack.c internal   */
+	s4               instructioncount;/* XXX remove this?                     */
+	s4               basicblockcount; /* number of basic blocks               */
+	s4               stackcount;      /* number of stackelements to allocate  */
+                                      /* (passed from parse to stack)         */
+	s4               c_block_nr;      /* counter for basic block number       */
 
-	varinfo *var;
-	s4      vartop;
+	varinfo *var;                     /* array of variables                   */
+	s4      vartop;                   /* next free index in var array         */
     
-	s4      varcount;
-	s4      localcount;
-    s4      *local_map; /* internal structure to rename(de-coallesc) locals  */
-	                    /* and keep the coalescing info for simplereg.       */
-	                    /* local_map[local_index * 5 + local_type] =         */
-	                    /* new_index in rd->var or UNUSED                    */
+	s4      varcount;                 /* number of variables in var array     */
+	s4      localcount;               /* number of locals at start of var ar. */
+    s4      *local_map; /* internal structure to rename(de-coallesc) locals   */
+	                    /* and keep the coalescing info for simplereg.        */
+	                    /* local_map[local_index * 5 + local_type] =          */
+	                    /* new_index in rd->var or UNUSED                     */
 	interface_info *interface_map;
 };
 
@@ -477,7 +479,7 @@ struct basicblock {
 		bptr->flags  = -1;                             \
 		bptr->type   = BBTYPE_STD;                     \
 		bptr->method = (m);                            \
-		bptr->nr     = (m)->c_debug_nr++;              \
+		bptr->nr     = (m)->c_block_nr++;              \
 	} while (0)
 			
 

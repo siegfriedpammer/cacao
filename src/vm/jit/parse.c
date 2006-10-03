@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5656 2006-10-03 20:57:15Z edwin $
+   $Id: parse.c 5657 2006-10-03 21:19:05Z edwin $
 
 */
 
@@ -1470,7 +1470,7 @@ invoke_method:
 	MZERO(bptr, basicblock, b_count + 1);
 
 	b_count = 0;
-	jd->c_debug_nr = 0;
+	jd->c_block_nr = 0;
 
 	/* additional block if target 0 is not first intermediate instruction */
 
