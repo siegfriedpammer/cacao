@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5681 2006-10-04 22:53:51Z edwin $
+   $Id: codegen.c 5682 2006-10-04 23:05:15Z edwin $
 
 */
 
@@ -434,7 +434,7 @@ switch_again:
 
 			if (len >= 1 && iptr[1].opc == ICMD_IDIV) {
 				switch (iptr[0].sx.val.i) {
-	case 0x00000001: I( 0) case 0x00000002: I( 1) case 0x00000004: I( 2) case 0x00000008: I( 3)
+	                       case 0x00000002: I( 1) case 0x00000004: I( 2) case 0x00000008: I( 3)
 	case 0x00000010: I( 4) case 0x00000020: I( 5) case 0x00000040: I( 6) case 0x00000080: I( 7)
 	case 0x00000100: I( 8) case 0x00000200: I( 9) case 0x00000400: I(10) case 0x00000800: I(11)
 	case 0x00001000: I(12) case 0x00002000: I(13) case 0x00004000: I(14) case 0x00008000: I(15)
@@ -497,7 +497,7 @@ dont_opt_IFxx:
 
 			if (len >= 1 && iptr[1].opc == ICMD_LDIV) {
 				switch (iptr[0].sx.val.l) {
-	case 0x00000001: I( 0) case 0x00000002: I( 1) case 0x00000004: I( 2) case 0x00000008: I( 3)
+	                       case 0x00000002: I( 1) case 0x00000004: I( 2) case 0x00000008: I( 3)
 	case 0x00000010: I( 4) case 0x00000020: I( 5) case 0x00000040: I( 6) case 0x00000080: I( 7)
 	case 0x00000100: I( 8) case 0x00000200: I( 9) case 0x00000400: I(10) case 0x00000800: I(11)
 	case 0x00001000: I(12) case 0x00002000: I(13) case 0x00004000: I(14) case 0x00008000: I(15)
