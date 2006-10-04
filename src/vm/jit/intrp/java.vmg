@@ -1247,16 +1247,21 @@ ARRAYINSTANCEOF ( aRef aClass  -- iResult )
 MONITORENTER ( aRef -- )
 {
 #if defined(ENABLE_THREADS)
-  /* CHECK_NULL_PTR(aRef); is now done explicitly */
-  lock_monitor_enter(aRef);
+  /* CHECK_NULL_PTR(aRef); is now done explicitly inside lock_monitor_enter */
+  global_sp = sp;
+  if (!lock_monitor_enter(aRef))
+	THROW0;
+  CLEAR_global_sp;
 #endif
 }
 
 MONITOREXIT ( aRef -- )
 {
 #if defined(ENABLE_THREADS)
-  /* CHECK_NULL_PTR(aRef); cannot happen */
-  lock_monitor_exit(aRef);
+  global_sp = sp;
+  if (!lock_monitor_exit(aRef))
+	THROW0;
+  CLEAR_global_sp;
 #endif
 }
 

@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5668 2006-10-04 16:01:53Z edwin $
+   $Id: asmpart.c 5670 2006-10-04 18:23:19Z edwin $
 
 */
 
@@ -216,6 +216,11 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 				  /* use to resolve the catch class. Thus lazy resolving      */
 				  /* might fail, even if the result of the resolution would   */
 				  /* be an already loaded class.                              */
+
+				  /* The resolving may involve Java code, so we need a usable */
+				  /* global_sp. XXX is this a correct value for global_sp?    */
+
+				  global_sp = (Cell *)(((u1 *)fp) - framesize - SIZEOF_VOID_P);
 
 				  c = resolve_classref_eager(cr.ref);
 

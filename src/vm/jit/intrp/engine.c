@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: engine.c 5666 2006-10-04 15:04:52Z twisti $
+   $Id: engine.c 5670 2006-10-04 18:23:19Z edwin $
 */
 
 
@@ -150,7 +150,7 @@
 #define THROW_CLASSCASTEXCEPTION(o) \
     { \
 		classcastexception_object = o; \
-        THROW(nullpointerexception); \
+        THROW(classcastexception); \
 	}
 
 #define CHECK_OUT_OF_BOUNDS(_array, _idx)              \
