@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5632 2006-10-02 13:43:15Z edwin $
+   $Id: codegen.c 5661 2006-10-04 13:35:25Z twisti $
 
 */
 
@@ -72,7 +72,7 @@
 
 #define gen_branch(_inst) { \
   gen_##_inst(cd, 0); \
-  codegen_addreference(cd, (basicblock *) (iptr->target)); \
+  codegen_addreference(cd, iptr->dst.block); \
 }
 
 #define index2offset(_i) (-(_i) * SIZEOF_VOID_P)
@@ -240,8 +240,8 @@ struct builtin_gen builtin_gen_table[] = {
     {BUILTIN_arrayinstanceof,         gen_ARRAYINSTANCEOF, },
 
 #if defined(ENABLE_THREADS)
-    {BUILTIN_monitorenter,            gen_MONITORENTER,    },
-    {BUILTIN_monitorexit,             gen_MONITOREXIT,     },
+    {LOCK_monitor_enter,              gen_MONITORENTER,    },
+    {LOCK_monitor_exit,               gen_MONITOREXIT,     },
 #endif
 
 #if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
@@ -296,6 +296,9 @@ bool intrp_codegen(jitdata *jd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+	fieldinfo          *fi;
+	unresolved_field   *uf;
+	s4                  fieldtype;
 
 	/* get required compiler data */
 
@@ -366,9 +369,9 @@ bool intrp_codegen(jitdata *jd)
 
 	/* walk through all basic blocks */
 
-	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
 
-		bptr->mpc = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -379,7 +382,7 @@ bool intrp_codegen(jitdata *jd)
 
 		gen_BBSTART;
 
-		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
+		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
 			if (iptr->line != currentline) {
 				dseg_addlinenumber(cd, iptr->line);
 				currentline = iptr->line;
@@ -406,13 +409,13 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			break;
 
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			break;
 
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
@@ -420,7 +423,7 @@ bool intrp_codegen(jitdata *jd)
 			{
 				ptrint fi;
 
-				vm_f2Cell(iptr->val.f, fi);
+				vm_f2Cell(iptr->sx.val.f, fi);
 				gen_ICONST(cd, fi);
 			}
 			break;
@@ -428,17 +431,16 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.d = constant                    */
 
-			gen_LCONST(cd, *(s8 *)&(iptr->val.d));
+			gen_LCONST(cd, *(s8 *)&(iptr->sx.val.d));
 			break;
 
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.a = constant                    */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr))
-				gen_PATCHER_ACONST(cd, NULL,
-								   ICMD_ACONST_UNRESOLVED_CLASSREF(iptr));
+				gen_PATCHER_ACONST(cd, NULL, iptr->sx.val.c.ref);
 			else
-				gen_ACONST(cd, iptr->val.a);
+				gen_ACONST(cd, iptr->sx.val.anyptr);
 			break;
 
 
@@ -447,63 +449,63 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ILOAD(cd, index2offset(iptr->op1));
+			gen_ILOAD(cd, index2offset(iptr->s1.localindex));
 			break;
 
 		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_LLOAD(cd, index2offset(iptr->op1));
+			gen_LLOAD(cd, index2offset(iptr->s1.localindex));
 			break;
 
 		case ICMD_ALOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ALOAD(cd, index2offset(iptr->op1));
+			gen_ALOAD(cd, index2offset(iptr->s1.localindex));
 			break;
 
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ILOAD(cd, index2offset(iptr->op1));
+			gen_ILOAD(cd, index2offset(iptr->s1.localindex));
 			break;
 
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_LLOAD(cd, index2offset(iptr->op1));
+			gen_LLOAD(cd, index2offset(iptr->s1.localindex));
 			break;
 
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ISTORE(cd, index2offset(iptr->op1));
+			gen_ISTORE(cd, index2offset(iptr->dst.localindex));
 			break;
 
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_LSTORE(cd, index2offset(iptr->op1));
+			gen_LSTORE(cd, index2offset(iptr->dst.localindex));
 			break;
 
 		case ICMD_ASTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ASTORE(cd, index2offset(iptr->op1));
+			gen_ASTORE(cd, index2offset(iptr->dst.localindex));
 			break;
 
 
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ISTORE(cd, index2offset(iptr->op1));
+			gen_ISTORE(cd, index2offset(iptr->dst.localindex));
 			break;
 
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_LSTORE(cd, index2offset(iptr->op1));
+			gen_LSTORE(cd, index2offset(iptr->dst.localindex));
 			break;
 
 
@@ -517,10 +519,7 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 
-			if (IS_2_WORD_TYPE(src->type))
-				gen_POP2(cd);
-			else
-				gen_POP(cd);
+			gen_POP(cd);
 			break;
 
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
@@ -530,35 +529,17 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
 
-			if (IS_2_WORD_TYPE(src->type))
-				gen_DUP2(cd);
-			else
-				gen_DUP(cd);
+			gen_DUP(cd);
 			break;
 
 		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
 
-			if (IS_2_WORD_TYPE(src->type)) {
-				if (IS_2_WORD_TYPE(src->prev->type)) {
-					gen_DUP2_X2(cd);
-				} else {
-					gen_DUP2_X1(cd);
-				}
-			} else {
-				if (IS_2_WORD_TYPE(src->prev->type)) {
-					gen_DUP_X2(cd);
-				} else {
-					gen_DUP_X1(cd);
-				}
-			}
+			gen_DUP_X1(cd);
 			break;
 
 		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
 
-			if (IS_2_WORD_TYPE(src->type)) {
-				gen_DUP2_X2(cd);
-			} else
-				gen_DUP_X2(cd);
+			gen_DUP_X2(cd);
 			break;
 
 		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
@@ -568,10 +549,7 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
 
-			if (IS_2_WORD_TYPE(src->prev->prev->type))
-				gen_DUP2_X2(cd);
-			else
-				gen_DUP2_X1(cd);
+			gen_DUP2_X1(cd);
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
@@ -631,7 +609,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_IADD(cd);
 			break;
 
@@ -643,7 +621,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LADD(cd);
 			break;
 
@@ -655,7 +633,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_ISUBCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_ISUB(cd);
 			break;
 
@@ -667,7 +645,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LSUB(cd);
 			break;
 
@@ -678,7 +656,7 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_IMULCONST:  /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_IMUL(cd);
 			break;
 
@@ -689,7 +667,7 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_LMULCONST:  /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LMUL(cd);
 			break;
 
@@ -716,25 +694,25 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 		                      
-			gen_IDIVPOW2(cd, iptr->val.i);
+			gen_IDIVPOW2(cd, iptr->sx.val.i);
 			break;
 
 		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.i = constant                             */
 
-			gen_IREMPOW2(cd, iptr->val.i);
+			gen_IREMPOW2(cd, iptr->sx.val.i);
 			break;
 
 		case ICMD_LDIVPOW2:   /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 		                      
-			gen_LDIVPOW2(cd, iptr->val.i);
+			gen_LDIVPOW2(cd, iptr->sx.val.i);
 			break;
 
 		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.l = constant                             */
 
-			gen_LREMPOW2(cd, iptr->val.i);
+			gen_LREMPOW2(cd, iptr->sx.val.i);
 			break;
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
@@ -745,7 +723,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_ISHL(cd);
 			break;
 
@@ -757,7 +735,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_ISHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_ISHR(cd);
 			break;
 
@@ -769,7 +747,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_IUSHR(cd);
 			break;
 
@@ -781,7 +759,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_LSHL(cd);
 			break;
 
@@ -793,7 +771,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_LSHR(cd);
 			break;
 
@@ -805,7 +783,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_LUSHR(cd);
 			break;
 
@@ -817,7 +795,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_IAND(cd);
 			break;
 
@@ -829,7 +807,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LAND(cd);
 			break;
 
@@ -841,7 +819,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_IOR(cd);
 			break;
 
@@ -853,7 +831,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LOR(cd);
 			break;
 
@@ -865,7 +843,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(cd, iptr->val.i);
+			gen_ICONST(cd, iptr->sx.val.i);
 			gen_IXOR(cd);
 			break;
 
@@ -877,7 +855,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LXOR(cd);
 			break;
 
@@ -891,7 +869,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
 
-			gen_IINC(cd, index2offset(iptr->op1), iptr->val.i);
+			gen_IINC(cd, index2offset(iptr->s1.localindex), iptr->sx.val.i);
 			break;
 
 
@@ -1108,108 +1086,100 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			{
-			fieldinfo *fi = NULL;
-			unresolved_field *uf = NULL;
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				fi        = NULL;
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+			}
 
-			if (INSTRUCTION_IS_UNRESOLVED(iptr))
-				uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
-			else
-				fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
-
-			switch (iptr->op1) {
+			switch (fieldtype) {
 			case TYPE_INT:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_INT(cd, 0, uf);
-				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					gen_PATCHER_GETSTATIC_CLINIT_INT(cd, 0, fi);
-				} else {
-					gen_GETSTATIC_INT(cd, (u1 *)&(fi->value.i), fi);
-				}
+				else
+					gen_GETSTATIC_INT(cd, (u1 *) &(fi->value.i), fi);
 				break;
 			case TYPE_FLT:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_FLOAT(cd, 0, uf);
-				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					gen_PATCHER_GETSTATIC_CLINIT_FLOAT(cd, 0, fi);
-				} else {
-					gen_GETSTATIC_FLOAT(cd, (u1 *)&(fi->value.i), fi);
-				}
+				else
+					gen_GETSTATIC_FLOAT(cd, (u1 *) &(fi->value.i), fi);
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_LONG(cd, 0, uf);
-				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					gen_PATCHER_GETSTATIC_CLINIT_LONG(cd, 0, fi);
-				} else {
-					gen_GETSTATIC_LONG(cd, (u1 *)&(fi->value.l), fi);
-				}
+				else
+					gen_GETSTATIC_LONG(cd, (u1 *) &(fi->value.l), fi);
 				break;
 			case TYPE_ADR:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_CELL(cd, 0, uf);
-				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					gen_PATCHER_GETSTATIC_CLINIT_CELL(cd, 0, fi);
-				} else {
-					gen_GETSTATIC_CELL(cd, (u1 *)&(fi->value.a), fi);
-				}
+				else
+					gen_GETSTATIC_CELL(cd, (u1 *) &(fi->value.a), fi);
 				break;
-			}
 			}
 			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			{
-			fieldinfo *fi = NULL;
-			unresolved_field *uf = NULL;
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				fi        = NULL;
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+			}
 
-			if (INSTRUCTION_IS_UNRESOLVED(iptr))
-				uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
-			else
-				fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
-
-			switch (iptr->op1) {
+			switch (fieldtype) {
 			case TYPE_INT:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_INT(cd, 0, uf);
-				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					gen_PATCHER_PUTSTATIC_CLINIT_INT(cd, 0, fi);
-				} else {
-					gen_PUTSTATIC_INT(cd, (u1 *)&(fi->value.i), fi);
-				}
+				else
+					gen_PUTSTATIC_INT(cd, (u1 *) &(fi->value.i), fi);
 				break;
 			case TYPE_FLT:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_FLOAT(cd, 0, uf);
-				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					gen_PATCHER_PUTSTATIC_CLINIT_FLOAT(cd, 0, fi);
-				} else {
-					gen_PUTSTATIC_FLOAT(cd, (u1 *)&(fi->value.i), fi);
-				}
+				else
+					gen_PUTSTATIC_FLOAT(cd, (u1 *) &(fi->value.i), fi);
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_LONG(cd, 0, uf);
-				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					gen_PATCHER_PUTSTATIC_CLINIT_LONG(cd, 0, fi);
-				} else {
-					gen_PUTSTATIC_LONG(cd, (u1 *)&(fi->value.l), fi);
-				}
+				else
+					gen_PUTSTATIC_LONG(cd, (u1 *) &(fi->value.l), fi);
 				break;
 			case TYPE_ADR:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_CELL(cd, 0, uf);
-				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					gen_PATCHER_PUTSTATIC_CLINIT_CELL(cd, 0, fi);
-				} else {
-					gen_PUTSTATIC_CELL(cd, (u1 *)&(fi->value.a), fi);
-				}
+				else
+					gen_PUTSTATIC_CELL(cd, (u1 *) &(fi->value.a), fi);
 				break;
-			}
 			}
 			break;
 
@@ -1217,92 +1187,84 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			{
-			fieldinfo *fi = NULL;
-			unresolved_field *uf = NULL;
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				fi        = NULL;
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+			}
 
-			if (INSTRUCTION_IS_UNRESOLVED(iptr))
-				uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
-			else
-				fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
-
-			switch (iptr->op1) {
+			switch (fieldtype) {
 			case TYPE_INT:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_GETFIELD_INT(cd, 0, uf);
-				} else {
+				else
 					gen_GETFIELD_INT(cd, fi->offset, fi);
-				}
 				break;
 			case TYPE_FLT:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_GETFIELD_FLOAT(cd, 0, uf);
-				} else {
+				else
 					gen_GETFIELD_FLOAT(cd, fi->offset, fi);
-				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_GETFIELD_LONG(cd, 0, uf);
-				} else {
+				else
 					gen_GETFIELD_LONG(cd, fi->offset, fi);
-				}
 				break;
 			case TYPE_ADR:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_GETFIELD_CELL(cd, 0, uf);
-				} else {
+				else
 					gen_GETFIELD_CELL(cd, fi->offset, fi);
-				}
 				break;
-			}
 			}
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 		                      /* op1 = type, val.a = field address            */
 
-			{
-			fieldinfo *fi = NULL;
-			unresolved_field *uf = NULL;
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				fi        = NULL;
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+			}
 
-			if (INSTRUCTION_IS_UNRESOLVED(iptr))
-				uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
-			else
-				fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
-
-			switch (iptr->op1) {
+			switch (fieldtype) {
 			case TYPE_INT:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_PUTFIELD_INT(cd, 0, uf);
-				} else {
+				else
 					gen_PUTFIELD_INT(cd, fi->offset, fi);
-				}
 				break;
 			case TYPE_FLT:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_PUTFIELD_FLOAT(cd, 0, uf);
-				} else {
+				else
 					gen_PUTFIELD_FLOAT(cd, fi->offset, fi);
-				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_PUTFIELD_LONG(cd, 0, uf);
-				} else {
+				else
 					gen_PUTFIELD_LONG(cd, fi->offset, fi);
-				}
 				break;
 			case TYPE_ADR:
-				if (fi == NULL) {
+				if (fi == NULL)
 					gen_PATCHER_PUTFIELD_CELL(cd, 0, uf);
-				} else {
+				else
 					gen_PUTFIELD_CELL(cd, fi->offset, fi);
-				}
 				break;
-			}
 			}
 			break;
 
@@ -1322,7 +1284,9 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
-			gen_branch(JSR);
+
+			gen_JSR(cd, NULL);
+			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
 			break;
 			
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
@@ -1340,10 +1304,10 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
 
-			if (iptr->val.i == 0) {
+			if (iptr->sx.val.i == 0) {
 				gen_branch(IFEQ);
 			} else {
-				gen_ICONST(cd, iptr->val.i);
+				gen_ICONST(cd, iptr->sx.val.i);
 				gen_branch(IF_ICMPEQ);
 			}
 			break;
@@ -1351,10 +1315,10 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
 
-			if (iptr->val.i == 0) {
+			if (iptr->sx.val.i == 0) {
 				gen_branch(IFLT);
 			} else {
-				gen_ICONST(cd, iptr->val.i);
+				gen_ICONST(cd, iptr->sx.val.i);
 				gen_branch(IF_ICMPLT);
 			}
 			break;
@@ -1362,10 +1326,10 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
 
-			if (iptr->val.i == 0) {
+			if (iptr->sx.val.i == 0) {
 				gen_branch(IFLE);
 			} else {
-				gen_ICONST(cd, iptr->val.i);
+				gen_ICONST(cd, iptr->sx.val.i);
 				gen_branch(IF_ICMPLE);
 			}
 			break;
@@ -1373,10 +1337,10 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
 
-			if (iptr->val.i == 0) {
+			if (iptr->sx.val.i == 0) {
 				gen_branch(IFNE);
 			} else {
-				gen_ICONST(cd, iptr->val.i);
+				gen_ICONST(cd, iptr->sx.val.i);
 				gen_branch(IF_ICMPNE);
 			}
 			break;
@@ -1384,10 +1348,10 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
 
-			if (iptr->val.i == 0) {
+			if (iptr->sx.val.i == 0) {
 				gen_branch(IFGT);
 			} else {
-				gen_ICONST(cd, iptr->val.i);
+				gen_ICONST(cd, iptr->sx.val.i);
 				gen_branch(IF_ICMPGT);
 			}
 			break;
@@ -1395,10 +1359,10 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
 
-			if (iptr->val.i == 0) {
+			if (iptr->sx.val.i == 0) {
 				gen_branch(IFGE);
 			} else {
-				gen_ICONST(cd, iptr->val.i);
+				gen_ICONST(cd, iptr->sx.val.i);
 				gen_branch(IF_ICMPGE);
 			}
 			break;
@@ -1406,42 +1370,42 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_branch(IF_LCMPEQ);
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_branch(IF_LCMPLT);
 			break;
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_branch(IF_LCMPLE);
 			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_branch(IF_LCMPNE);
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_branch(IF_LCMPGT);
 			break;
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(cd, iptr->val.l);
+			gen_LCONST(cd, iptr->sx.val.l);
 			gen_branch(IF_LCMPGE);
 			break;
 
@@ -1590,14 +1554,13 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_TABLESWITCH:  /* ..., index ==> ...                         */
 			{
-			s4 i, l, *s4ptr;
-			void **tptr;
+			s4 i, l;
+			branch_target_t *table;
 
-			tptr = (void **) iptr->target;
+			table = iptr->dst.table;
 
-			s4ptr = iptr->val.a;
-			l = s4ptr[1];                          /* low     */
-			i = s4ptr[2];                          /* high    */
+			l = iptr->sx.s23.s2.tablelow;
+			i = iptr->sx.s23.s3.tablehigh;
 			
 			i = i - l + 1;
 
@@ -1612,15 +1575,15 @@ bool intrp_codegen(jitdata *jd)
 			dseg_adddata(cd);
 			cd->mcodeptr = (u1 *) cd->mcodeptr + 2 * sizeof(Inst);
 
-			codegen_addreference(cd, (basicblock *) tptr[0]);
+			codegen_addreference(cd, table[0].block);
 
 			/* build jump table top down and use address of lowest entry */
 
-			tptr += i;
+			table += i;
 
 			while (--i >= 0) {
-				dseg_addtarget(cd, (basicblock *) tptr[0]); 
-				--tptr;
+				dseg_addtarget(cd, table->block); 
+				--table;
 			}
 			}
 
@@ -1631,15 +1594,12 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_LOOKUPSWITCH: /* ..., key ==> ...                           */
 			{
-			s4 i, *s4ptr;
-			void **tptr;
+			s4 i;
+			lookup_target_t *lookup;
 
-			tptr = (void **) iptr->target;
+			lookup = iptr->dst.lookup;
 
-			s4ptr = iptr->val.a;
-
-			/* s4ptr[0] is equal to tptr[0] */
-			i = s4ptr[1];                          /* count    */
+			i = iptr->sx.s23.s2.lookupcount;
 			
 			/* arguments: count, datasegment address, table offset in         */
 			/* datasegment, default target                                    */
@@ -1651,19 +1611,15 @@ bool intrp_codegen(jitdata *jd)
 			dseg_adddata(cd);
 			cd->mcodeptr = (u1 *) cd->mcodeptr + 2 * sizeof(Inst);
 
-			codegen_addreference(cd, (basicblock *) tptr[0]);
-
 			/* build jump table top down and use address of lowest entry */
 
-			tptr += i;
-			s4ptr += i * 2;
-
 			while (--i >= 0) {
-				dseg_addtarget(cd, (basicblock *) tptr[0]); 
-				dseg_addaddress(cd, s4ptr[0]);
-				--tptr;
-				s4ptr -= 2;
+				dseg_addtarget(cd, lookup->target.block); 
+				dseg_addaddress(cd, lookup->value);
+				lookup++;
 			}
+
+			codegen_addreference(cd, iptr->sx.s23.s3.lookupdefault.block);
 			}
 
 			/* length of dataseg after last dseg_addtarget is used by load */
@@ -1673,7 +1629,7 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_BUILTIN:      /* ..., arg1, arg2, arg3 ==> ...              */
 		                        /* op1 = arg count val.a = builtintable entry */
-			bte = iptr->val.a;
+			bte = iptr->sx.s23.s3.bte;
 
 			for (i = 0; i < sizeof(builtin_gen_table)/sizeof(builtin_gen); i++) {
 				builtin_gen *bg = &builtin_gen_table[i];
@@ -1682,7 +1638,9 @@ bool intrp_codegen(jitdata *jd)
 					goto gen_builtin_end;
 				}
 			}
-			assert(0);
+
+			vm_abort(0);
+
 		gen_builtin_end:
 			break;
 
@@ -1690,40 +1648,40 @@ bool intrp_codegen(jitdata *jd)
 		                        /* op1 = arg count, val.a = method pointer    */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
+				um = iptr->sx.s23.s3.um;
 				md = um->methodref->parseddesc.md;
 				gen_PATCHER_INVOKESTATIC(cd, 0, md->paramslots, um);
-
-			} else {
-				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
+			}
+			else {
+				lm = iptr->sx.s23.s3.fmiref->p.method;
 				md = lm->parseddesc;
-				gen_INVOKESTATIC(cd, (Inst **)lm->stubroutine, md->paramslots, lm);
+				gen_INVOKESTATIC(cd, (Inst **) lm->stubroutine, md->paramslots, lm);
 			}
 			break;
 
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
+				um = iptr->sx.s23.s3.um;
 				md = um->methodref->parseddesc.md;
 				gen_PATCHER_INVOKESPECIAL(cd, 0, md->paramslots, um);
-
-			} else {
-				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
+			}
+			else {
+				lm = iptr->sx.s23.s3.fmiref->p.method;
 				md = lm->parseddesc;
-				gen_INVOKESPECIAL(cd, (Inst **)lm->stubroutine, md->paramslots, lm);
+				gen_INVOKESPECIAL(cd, (Inst **) lm->stubroutine, md->paramslots, lm);
 			}
 			break;
 
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
+				um = iptr->sx.s23.s3.um;
 				md = um->methodref->parseddesc.md;
 				gen_PATCHER_INVOKEVIRTUAL(cd, 0, md->paramslots, um);
-
-			} else {
-				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
+			}
+			else {
+				lm = iptr->sx.s23.s3.fmiref->p.method;
 				md = lm->parseddesc;
 
 				s1 = OFFSET(vftbl_t, table[0]) +
@@ -1736,12 +1694,12 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_INVOKEINTERFACE:/* op1 = arg count, val.a = method pointer  */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
+				um = iptr->sx.s23.s3.um;
 				md = um->methodref->parseddesc.md;
 				gen_PATCHER_INVOKEINTERFACE(cd, 0, 0, md->paramslots, um);
-
-			} else {
-				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
+			}
+			else {
+				lm = iptr->sx.s23.s3.fmiref->p.method;
 				md = lm->parseddesc;
 
 				s1 = OFFSET(vftbl_t, interfacetable[0]) -
@@ -1758,16 +1716,17 @@ bool intrp_codegen(jitdata *jd)
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo *) superclass              */
 
-			if (iptr->op1 == 1) {
-				if (iptr->val.a == NULL)
-					gen_PATCHER_CHECKCAST(cd, NULL, iptr->target);
+			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
+				if (INSTRUCTION_IS_UNRESOLVED(iptr))
+					gen_PATCHER_CHECKCAST(cd, NULL, iptr->sx.s23.s3.c.ref);
 				else
-					gen_CHECKCAST(cd, iptr->val.a, NULL);
-			} else {
-				if (iptr->val.a == NULL)
-					gen_PATCHER_ARRAYCHECKCAST(cd, NULL, iptr->target);
+					gen_CHECKCAST(cd, iptr->sx.s23.s3.c.cls, NULL);
+			}
+			else {
+				if (INSTRUCTION_IS_UNRESOLVED(iptr))
+					gen_PATCHER_ARRAYCHECKCAST(cd, NULL, iptr->sx.s23.s3.c.ref);
 				else
-					gen_ARRAYCHECKCAST(cd, iptr->val.a, NULL);
+					gen_ARRAYCHECKCAST(cd, iptr->sx.s23.s3.c.cls, NULL);
 			}
 			break;
 
@@ -1775,20 +1734,19 @@ bool intrp_codegen(jitdata *jd)
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo *) superclass              */
 
-			if (iptr->val.a == NULL)
-				gen_PATCHER_INSTANCEOF(cd, NULL, iptr->target);
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				gen_PATCHER_INSTANCEOF(cd, NULL, iptr->sx.s23.s3.c.ref);
 			else
-				gen_INSTANCEOF(cd, iptr->val.a, iptr->target);
+				gen_INSTANCEOF(cd, iptr->sx.s23.s3.c.cls, iptr->sx.s23.s3.c.ref);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = class               */
 
-			if (iptr->val.a == NULL) {
-				gen_PATCHER_MULTIANEWARRAY(cd, NULL, iptr->op1, iptr->target);
-			} else {
-				gen_MULTIANEWARRAY(cd, iptr->val.a, iptr->op1, NULL);
-			}
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				gen_PATCHER_MULTIANEWARRAY(cd, NULL, iptr->s1.argcount, iptr->sx.s23.s3.c.ref);
+			else
+				gen_MULTIANEWARRAY(cd, iptr->sx.s23.s3.c.cls, iptr->s1.argcount, NULL);
 			break;
 
 		default:
@@ -1813,7 +1771,7 @@ bool intrp_codegen(jitdata *jd)
 
 	/* branch resolving (walk through all basic blocks) */
 
-	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
 		branchref *brefs;
 
 		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
