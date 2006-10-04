@@ -105,7 +105,7 @@ CLEANFILES = \
 	TESTLOG TESTEXPECT TESTOUT TESTERR
 
 check:
-	JAVA=$(JAVA) JAVAFLAGS=$(JAVAFLAGS) $(srcdir)/runtest $(JASMIN_TESTS)
+	JAVA="$(JAVA)" JAVAFLAGS="$(JAVAFLAGS)" $(srcdir)/runtest $(JASMIN_TESTS)
 
 ## Local variables:
 ## mode: Makefile
