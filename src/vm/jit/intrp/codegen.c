@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5679 2006-10-04 22:12:02Z edwin $
+   $Id: codegen.c 5680 2006-10-04 22:39:44Z edwin $
 
 */
 
@@ -409,6 +409,25 @@ switch_again:
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
 
+			/* optimize ICONST (2^x) .. IREM --> IREMPOW2 (const) */
+
+			if (len >= 1 && iptr[1].opc == ICMD_IREM) {
+				switch (iptr[0].sx.val.i) {
+	case 0x00000001: case 0x00000002: case 0x00000004: case 0x00000008:
+	case 0x00000010: case 0x00000020: case 0x00000040: case 0x00000080:
+	case 0x00000100: case 0x00000200: case 0x00000400: case 0x00000800:
+	case 0x00001000: case 0x00002000: case 0x00004000: case 0x00008000:
+	case 0x00010000: case 0x00020000: case 0x00040000: case 0x00080000:
+	case 0x00100000: case 0x00200000: case 0x00400000: case 0x00800000:
+	case 0x01000000: case 0x02000000: case 0x04000000: case 0x08000000:
+	case 0x10000000: case 0x20000000: case 0x40000000: case 0x80000000:
+					iptr[0].opc = ICMD_IREMPOW2;
+					iptr[0].sx.val.i--;
+					iptr[1].opc = ICMD_NOP;
+					goto switch_again;
+				}
+			}
+
 			/* optimize ICONST .. IF_ICMPxx --> IFxx (const) */
 
 			if (len >= 1) {
@@ -419,19 +438,38 @@ switch_again:
 					case ICMD_IF_ICMPLE: iptr[0].opc = ICMD_IFLE; break;
 					case ICMD_IF_ICMPGT: iptr[0].opc = ICMD_IFGT; break;
 					case ICMD_IF_ICMPGE: iptr[0].opc = ICMD_IFGE; break;
-					default:        goto normal_ICONST;
+					default:        goto dont_opt_IFxx;
 				}
 				iptr[0].dst.insindex = iptr[1].dst.insindex;
 				iptr[1].opc = ICMD_NOP;
 				goto switch_again;
 			}
+dont_opt_IFxx:
 
-normal_ICONST:
 			gen_ICONST(cd, iptr->sx.val.i);
 			break;
 
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
+
+			/* optimize LCONST (2^x) .. LREM --> LREMPOW2 (const) */
+
+			if (len >= 1 && iptr[1].opc == ICMD_LREM) {
+				switch (iptr[0].sx.val.l) {
+	case 0x00000001: case 0x00000002: case 0x00000004: case 0x00000008:
+	case 0x00000010: case 0x00000020: case 0x00000040: case 0x00000080:
+	case 0x00000100: case 0x00000200: case 0x00000400: case 0x00000800:
+	case 0x00001000: case 0x00002000: case 0x00004000: case 0x00008000:
+	case 0x00010000: case 0x00020000: case 0x00040000: case 0x00080000:
+	case 0x00100000: case 0x00200000: case 0x00400000: case 0x00800000:
+	case 0x01000000: case 0x02000000: case 0x04000000: case 0x08000000:
+	case 0x10000000: case 0x20000000: case 0x40000000: case 0x80000000:
+					iptr[0].opc = ICMD_LREMPOW2;
+					iptr[0].sx.val.l--;
+					iptr[1].opc = ICMD_NOP;
+					goto switch_again;
+				}
+			}
 
 			/* optimize LCONST .. LCMP .. IFxx (0) --> IF_Lxx */
 
@@ -443,15 +481,15 @@ normal_ICONST:
 					case ICMD_IFLE: iptr[0].opc = ICMD_IF_LLE; break;
 					case ICMD_IFGT: iptr[0].opc = ICMD_IF_LGT; break;
 					case ICMD_IFGE: iptr[0].opc = ICMD_IF_LGE; break;
-					default:        goto normal_LCONST;
+					default:        goto dont_opt_IF_Lxx;
 				}
 				iptr[0].dst.insindex = iptr[2].dst.insindex;
 				iptr[1].opc = ICMD_NOP;
 				iptr[2].opc = ICMD_NOP;
 				goto switch_again;
 			}
+dont_opt_IF_Lxx:
 
-normal_LCONST:
 			gen_LCONST(cd, iptr->sx.val.l);
 			break;
 
@@ -689,6 +727,7 @@ normal_LCONST:
 		                      
 			gen_IDIVPOW2(cd, iptr->sx.val.i);
 			break;
+#endif
 
 		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.i = constant                             */
@@ -696,18 +735,19 @@ normal_LCONST:
 			gen_IREMPOW2(cd, iptr->sx.val.i);
 			break;
 
+#if 0
 		case ICMD_LDIVPOW2:   /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 		                      
 			gen_LDIVPOW2(cd, iptr->sx.val.i);
 			break;
+#endif
 
 		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.l = constant                             */
 
 			gen_LREMPOW2(cd, iptr->sx.val.i);
 			break;
-#endif
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
@@ -782,14 +822,14 @@ normal_LCONST:
 					case ICMD_IFLE: iptr[0].opc = ICMD_IF_LCMPLE; break;
 					case ICMD_IFGT: iptr[0].opc = ICMD_IF_LCMPGT; break;
 					case ICMD_IFGE: iptr[0].opc = ICMD_IF_LCMPGE; break;
-					default:        goto normal_LCMP;
+					default:        goto dont_opt_IF_LCMPxx;
 				}
 				iptr[0].dst.insindex = iptr[1].dst.insindex;
 				iptr[1].opc = ICMD_NOP;
 				goto switch_again;
 			}
+dont_opt_IF_LCMPxx:
 
-normal_LCMP:
 			gen_LCMP(cd);
 			break;
 
