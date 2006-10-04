@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5667 2006-10-04 15:14:19Z edwin $
+   $Id: codegen.c 5668 2006-10-04 16:01:53Z edwin $
 
 */
 
@@ -2100,7 +2100,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	av_call(alist);
 
-	codegen_finish_native_call(((u1 *) &s) + sizeof(s));
+	*exceptionptr = codegen_finish_native_call(((u1 *) &s) + sizeof(s));
 
 	CLEAR_global_sp;
 
@@ -2159,7 +2159,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	ffi_call(pcif, FFI_FN(f), endsp, values);
 
-	codegen_finish_native_call(((u1 *) &s) + sizeof(s));
+	*exceptionptr = codegen_finish_native_call(((u1 *) &s) + sizeof(s));
 
 	CLEAR_global_sp;
 

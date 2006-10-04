@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5666 2006-10-04 15:04:52Z twisti $
+   $Id: asmpart.c 5668 2006-10-04 16:01:53Z edwin $
 
 */
 
@@ -175,11 +175,12 @@ double intrp_asm_vm_call_method_double(methodinfo *m, s4 vmargscount,
 
 Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp)
 {
-	classinfo      *c;
-	s4              framesize;
-	exceptionentry *ex;
-	s4              exceptiontablelength;
-	s4              i;
+	classinfo            *c;
+	classref_or_classinfo cr;
+	s4                    framesize;
+	exceptionentry       *ex;
+	s4                    exceptiontablelength;
+	s4                    i;
 
   /* for a description of the stack see IRETURN in java.vmg */
 
@@ -202,17 +203,42 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 
 	  for (i = 0; i < exceptiontablelength; i++) {
 		  ex--;
-		  c = ex->catchtype.cls; /* XXX this may also be a classref! */
 
-		  if (c != NULL) {
-			  if (!(c->state & CLASS_LOADED))
-				  /* XXX fix me! */
-				  if (!load_class_bootstrap(c->name))
-					  assert(0);
+		  cr = ex->catchtype;
 
-			  if (!(c->state & CLASS_LINKED))
-				  if (!link_class(c))
+		  if (cr.any != NULL) {
+			  if (IS_CLASSREF(cr)) {
+				  /* The exception class reference is unresolved. */
+				  /* We have to do _eager_ resolving here. While the class of */
+				  /* the exception object is guaranteed to be loaded, it may  */
+				  /* well have been loaded by a different loader than the     */
+				  /* defining loader of m's class, which is the one we must   */
+				  /* use to resolve the catch class. Thus lazy resolving      */
+				  /* might fail, even if the result of the resolution would   */
+				  /* be an already loaded class.                              */
+
+				  c = resolve_classref_eager(cr.ref);
+
+				  if (c == NULL) {
+					  /* Exception resolving the exception class, argh! */
+					  /* XXX how to report that error? */
 					  assert(0);
+				  }
+
+				  /* Ok, we resolved it. Enter it in the table, so we don't */
+				  /* have to do this again.                                 */
+				  /* XXX this write should be atomic. Is it?                */
+
+				  ex->catchtype.cls = c;
+			  }
+			  else {
+				  c = cr.cls;
+				
+				  /* If the class is not linked, the exception object cannot */
+				  /* be an instance of it.                                   */
+				  if (!(c->state & CLASS_LINKED))
+					  continue;
+			  }
 		  }
 
 		  if (ip-1 >= (Inst *) ex->startpc && ip-1 < (Inst *) ex->endpc &&
