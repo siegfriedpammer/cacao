@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5662 2006-10-04 13:40:54Z edwin $
+   $Id: codegen.c 5664 2006-10-04 14:31:01Z edwin $
 
 */
 
@@ -508,12 +508,6 @@ bool intrp_codegen(jitdata *jd)
 
 
 		/* pop/dup/swap operations ********************************************/
-
-		/* attention: double and longs are only one entry in CACAO ICMDs      */
-
-		/* stack.c changes stack manipulation operations to treat
-		   longs/doubles as occupying a single slot.  Here we are
-		   undoing that (and only those things that stack.c did). */
 
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 
@@ -1275,7 +1269,6 @@ bool intrp_codegen(jitdata *jd)
 			break;
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
-		case ICMD_RET:          /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 			gen_branch(GOTO);
 			break;
@@ -1286,7 +1279,13 @@ bool intrp_codegen(jitdata *jd)
 			gen_JSR(cd, NULL);
 			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
 			break;
-			
+
+		case ICMD_RET:          /* ... ==> ...                                */
+		                        /* op1 = local variable                       */
+
+			gen_RET(cd, index2offset(iptr->s1.varindex));
+			break;
+
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc                     */
 
