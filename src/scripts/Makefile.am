@@ -28,12 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5659 2006-10-04 10:37:09Z twisti $
+## $Id: Makefile.am 5660 2006-10-04 12:09:26Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 bin_SCRIPTS = \
-	java \
+	java
 
 
 ## Local variables:
