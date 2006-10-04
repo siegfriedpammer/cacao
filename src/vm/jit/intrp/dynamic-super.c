@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 4953 2006-05-25 12:28:51Z twisti $
+   $Id: dynamic-super.c 5665 2006-10-04 14:50:21Z edwin $
 */
 
 
@@ -373,12 +373,12 @@ static void superreuse_insert(u1 *code, u4 length)
   sr->code = code;
   sr->length = length;
 #if defined(ENABLE_THREADS)
-  builtin_monitorenter(lock_hashtable_superreuse);
+  lock_monitor_enter(lock_hashtable_superreuse);
 #endif
   sr->next = *listp;
   *listp = sr;
 #if defined(ENABLE_THREADS)
-  builtin_monitorexit(lock_hashtable_superreuse);
+  lock_monitor_exit(lock_hashtable_superreuse);
 #endif
   count_supers_unique++;
 }
@@ -411,7 +411,7 @@ void patchersuper_rewrite(Inst *p)
   superstart *ss;
   count_patchers_exec++;
 #if defined(ENABLE_THREADS)
-  builtin_monitorenter(lock_hashtable_patchersupers);
+  lock_monitor_enter(lock_hashtable_patchersupers);
 #endif
   for (; ss=*listp,  ss!=NULL; listp = &(ss->next)) {
     if (p == ((Inst *)(ss->mcodebase + ss->patcherm))) {
@@ -430,7 +430,7 @@ void patchersuper_rewrite(Inst *p)
     }
   }
 #if defined(ENABLE_THREADS)
-  builtin_monitorexit(lock_hashtable_patchersupers);
+  lock_monitor_exit(lock_hashtable_patchersupers);
 #endif
 }
 
@@ -441,12 +441,12 @@ static void hashtable_patchersupers_insert(superstart *ss)
              ((1<<HASHTABLE_PATCHERSUPERS_BITS)-1));
   void **listp = &hashtable_patchersupers.ptr[slot];
 #if defined(ENABLE_THREADS)
-  builtin_monitorenter(lock_hashtable_patchersupers);
+  lock_monitor_enter(lock_hashtable_patchersupers);
 #endif
   ss->next = (superstart *)*listp;
   *listp = (void *)ss;
 #if defined(ENABLE_THREADS)
-  builtin_monitorexit(lock_hashtable_patchersupers);
+  lock_monitor_exit(lock_hashtable_patchersupers);
 #endif
   count_patchers_ins++;
 }
