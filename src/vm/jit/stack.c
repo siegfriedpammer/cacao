@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5657 2006-10-03 21:19:05Z edwin $
+   $Id: stack.c 5675 2006-10-04 19:38:28Z edwin $
 
 */
 
@@ -82,24 +82,6 @@
 
 
 /* macro for saving #ifdefs ***************************************************/
-
-#if defined(ENABLE_INTRP)
-#define IF_INTRP(x) if (opt_intrp) { x }
-#define IF_NO_INTRP(x) if (!opt_intrp) { x }
-#else
-#define IF_INTRP(x)
-#define IF_NO_INTRP(x) { x }
-#endif
-
-#if defined(ENABLE_INTRP)
-#if defined(ENABLE_JIT)
-#define IF_JIT(x) if (!opt_intrp) { x }
-#else
-#define IF_JIT(x)
-#endif
-#else /* !defined(ENABLE_INTRP) */
-#define IF_JIT(x) { x }
-#endif /* defined(ENABLE_INTRP) */
 
 #if defined(ENABLE_STATISTICS)
 #define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)                    \
@@ -2041,18 +2023,16 @@ bool stack_analyse(jitdata *jd)
 					/* automatically replace some ICMDs with builtins */
 
 #if defined(USEBUILTINTABLE)
-					IF_NO_INTRP(
-						bte = builtintable_get_automatic(opcode);
+					bte = builtintable_get_automatic(opcode);
 
-						if (bte && bte->opcode == opcode) {
-							iptr->opc           = ICMD_BUILTIN;
-							iptr->flags.bits    = 0;
-							iptr->sx.s23.s3.bte = bte;
-							/* iptr->line is already set */
-							jd->isleafmethod = false;
-							goto icmd_BUILTIN;
-						}
-					);
+					if (bte && bte->opcode == opcode) {
+						iptr->opc           = ICMD_BUILTIN;
+						iptr->flags.bits    = 0;
+						iptr->sx.s23.s3.bte = bte;
+						/* iptr->line is already set */
+						jd->isleafmethod = false;
+						goto icmd_BUILTIN;
+					}
 #endif /* defined(USEBUILTINTABLE) */
 
 					/* main opcode switch *************************************/
@@ -2087,9 +2067,6 @@ icmd_NOP:
 						CLR_SX;
 
 						iptr->dst.block = stack_mark_reached(&sd, sd.var[j].vv.retaddr, curstack, stackdepth);
-#if 0
-						IF_NO_INTRP( rd->locals[iptr->s1.localindex/*XXX invalid here*/][TYPE_ADR].type = TYPE_ADR; );
-#endif
 						superblockend = true;
 						break;
 
@@ -2381,7 +2358,6 @@ icmd_NOP:
 							case ICMD_BASTORE:
 							case ICMD_CASTORE:
 							case ICMD_SASTORE:
-								IF_INTRP( goto normal_ICONST; )
 # if SUPPORT_CONST_STORE_ZERO_ONLY
 								if (iptr->sx.val.i != 0)
 									goto normal_ICONST;
@@ -2416,7 +2392,6 @@ icmd_NOP:
 
 							case ICMD_PUTSTATIC:
 							case ICMD_PUTFIELD:
-								IF_INTRP( goto normal_ICONST; )
 # if SUPPORT_CONST_STORE_ZERO_ONLY
 								if (iptr->sx.val.i != 0)
 									goto normal_ICONST;
@@ -2747,7 +2722,6 @@ normal_ICONST:
 
 #if SUPPORT_CONST_STORE
 							case ICMD_LASTORE:
-								IF_INTRP( goto normal_LCONST; )
 # if SUPPORT_CONST_STORE_ZERO_ONLY
 								if (iptr->sx.val.l != 0)
 									goto normal_LCONST;
@@ -2770,7 +2744,6 @@ normal_ICONST:
 
 							case ICMD_PUTSTATIC:
 							case ICMD_PUTFIELD:
-								IF_INTRP( goto normal_LCONST; )
 # if SUPPORT_CONST_STORE_ZERO_ONLY
 								if (iptr->sx.val.l != 0)
 									goto normal_LCONST;
@@ -2820,8 +2793,6 @@ normal_LCONST:
 						coalescing_boundary = sd.new;
 						COUNT(count_pcmd_load);
 #if SUPPORT_CONST_STORE
-						IF_INTRP( goto normal_ACONST; )
-
 						/* We can only optimize if the ACONST is resolved
 						 * and there is an instruction after it. */
 
@@ -3158,8 +3129,8 @@ store_tail:
 						/* Assert here that no LOCAL or INOUTS get */
 						/* preallocated, since tha macros are not   */
 						/* available in md-abi.c! */
-						IF_JIT( if (IS_TEMPVAR(curstack))				\
-									md_return_alloc(jd, curstack); )
+						if (IS_TEMPVAR(curstack))
+							md_return_alloc(jd, curstack);
 						COUNT(count_pcmd_return);
 						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
@@ -4145,40 +4116,34 @@ icmd_BUILTIN:
 
 								SET_PREALLOC(copy);
 
-#if defined(ENABLE_INTRP)
-								if (!opt_intrp) {
-#endif
-									if (md->params[i].inmemory) {
-										sd.var[copy->varnum].vv.regoff =
-											md->params[i].regoff;
-										sd.var[copy->varnum].flags |= 
-											INMEMORY;
+								if (md->params[i].inmemory) {
+									sd.var[copy->varnum].vv.regoff =
+										md->params[i].regoff;
+									sd.var[copy->varnum].flags |= 
+										INMEMORY;
+								}
+								else {
+									if (IS_FLT_DBL_TYPE(copy->type)) {
+#if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
+										assert(0); /* XXX is this assert ok? */
+#else
+										sd.var[copy->varnum].vv.regoff = 
+									rd->argfltregs[md->params[i].regoff];
+#endif /* SUPPORT_PASS_FLOATARGS_IN_INTREGS */
 									}
 									else {
-										if (IS_FLT_DBL_TYPE(copy->type)) {
-#if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
-											assert(0); /* XXX is this assert ok? */
-#else
-											sd.var[copy->varnum].vv.regoff = 
-										rd->argfltregs[md->params[i].regoff];
-#endif /* SUPPORT_PASS_FLOATARGS_IN_INTREGS */
-										}
-										else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-											if (IS_2_WORD_TYPE(copy->type))
-												sd.var[copy->varnum].vv.regoff = 
-				PACK_REGS( rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
+										if (IS_2_WORD_TYPE(copy->type))
+											sd.var[copy->varnum].vv.regoff = 
+			PACK_REGS( rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
+					   rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
 
-											else
+										else
 #endif /* SUPPORT_COMBINE_INTEGER_REGISTERS */
-												sd.var[copy->varnum].vv.regoff = 
-										rd->argintregs[md->params[i].regoff];
-										}
+											sd.var[copy->varnum].vv.regoff = 
+									rd->argintregs[md->params[i].regoff];
 									}
-#if defined(ENABLE_INTRP)
-								} /* end if (!opt_intrp) */
-#endif
+								}
 							}
 							}
 							copy = copy->prev;
@@ -4345,25 +4310,24 @@ icmd_BUILTIN:
 				}
 
 				/* check if interface slots at basic block begin must be saved */
-				IF_NO_INTRP(
-					for (i=0; i<sd.bptr->indepth; ++i) {
-						varinfo *v = sd.var + sd.bptr->invars[i];
-						s4 t;
 
-						t = v->type;
-						if (t == TYPE_RET)
-							t = TYPE_ADR;
+				for (i=0; i<sd.bptr->indepth; ++i) {
+					varinfo *v = sd.var + sd.bptr->invars[i];
+					s4 t;
 
-						if (jd->interface_map[i*5 + t].flags == UNUSED) {
-							/* no interface var until now for this depth and */
-							/* type */
-							jd->interface_map[i*5 + t].flags = v->flags;
-						}
-						else {
-							jd->interface_map[i*5 + t].flags |= v->flags;
-						}
+					t = v->type;
+					if (t == TYPE_RET)
+						t = TYPE_ADR;
+
+					if (jd->interface_map[i*5 + t].flags == UNUSED) {
+						/* no interface var until now for this depth and */
+						/* type */
+						jd->interface_map[i*5 + t].flags = v->flags;
 					}
-				);
+					else {
+						jd->interface_map[i*5 + t].flags |= v->flags;
+					}
+				}
 
 				/* store the number of this block's variables */
 
