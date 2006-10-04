@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5677 2006-10-04 20:02:37Z edwin $
+   $Id: codegen.c 5679 2006-10-04 22:12:02Z edwin $
 
 */
 
@@ -389,6 +389,7 @@ bool intrp_codegen(jitdata *jd)
 
 		MCODECHECK(64);       /* an instruction usually needs < 64 words      */
 
+switch_again:
 		switch (iptr->opc) {
 
 		case ICMD_INLINE_START:
@@ -408,12 +409,49 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
 
+			/* optimize ICONST .. IF_ICMPxx --> IFxx (const) */
+
+			if (len >= 1) {
+				switch (iptr[1].opc) {
+					case ICMD_IF_ICMPEQ: iptr[0].opc = ICMD_IFEQ; break;
+					case ICMD_IF_ICMPNE: iptr[0].opc = ICMD_IFNE; break;
+					case ICMD_IF_ICMPLT: iptr[0].opc = ICMD_IFLT; break;
+					case ICMD_IF_ICMPLE: iptr[0].opc = ICMD_IFLE; break;
+					case ICMD_IF_ICMPGT: iptr[0].opc = ICMD_IFGT; break;
+					case ICMD_IF_ICMPGE: iptr[0].opc = ICMD_IFGE; break;
+					default:        goto normal_ICONST;
+				}
+				iptr[0].dst.insindex = iptr[1].dst.insindex;
+				iptr[1].opc = ICMD_NOP;
+				goto switch_again;
+			}
+
+normal_ICONST:
 			gen_ICONST(cd, iptr->sx.val.i);
 			break;
 
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
 
+			/* optimize LCONST .. LCMP .. IFxx (0) --> IF_Lxx */
+
+			if (len >= 2 && iptr[1].opc == ICMD_LCMP && iptr[2].sx.val.i == 0) {
+				switch (iptr[2].opc) {
+					case ICMD_IFEQ: iptr[0].opc = ICMD_IF_LEQ; break;
+					case ICMD_IFNE: iptr[0].opc = ICMD_IF_LNE; break;
+					case ICMD_IFLT: iptr[0].opc = ICMD_IF_LLT; break;
+					case ICMD_IFLE: iptr[0].opc = ICMD_IF_LLE; break;
+					case ICMD_IFGT: iptr[0].opc = ICMD_IF_LGT; break;
+					case ICMD_IFGE: iptr[0].opc = ICMD_IF_LGE; break;
+					default:        goto normal_LCONST;
+				}
+				iptr[0].dst.insindex = iptr[2].dst.insindex;
+				iptr[1].opc = ICMD_NOP;
+				iptr[2].opc = ICMD_NOP;
+				goto switch_again;
+			}
+
+normal_LCONST:
 			gen_LCONST(cd, iptr->sx.val.l);
 			break;
 
@@ -734,6 +772,24 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_LCMP:       /* ..., val1, val2  ==> ..., val1 cmp val2      */
 
+			/* optimize LCMP .. IFxx (0) --> IF_LCMPxx */
+
+			if (len >= 1 && iptr[1].sx.val.i == 0) {
+				switch (iptr[1].opc) {
+					case ICMD_IFEQ: iptr[0].opc = ICMD_IF_LCMPEQ; break;
+					case ICMD_IFNE: iptr[0].opc = ICMD_IF_LCMPNE; break;
+					case ICMD_IFLT: iptr[0].opc = ICMD_IF_LCMPLT; break;
+					case ICMD_IFLE: iptr[0].opc = ICMD_IF_LCMPLE; break;
+					case ICMD_IFGT: iptr[0].opc = ICMD_IF_LCMPGT; break;
+					case ICMD_IFGE: iptr[0].opc = ICMD_IF_LCMPGE; break;
+					default:        goto normal_LCMP;
+				}
+				iptr[0].dst.insindex = iptr[1].dst.insindex;
+				iptr[1].opc = ICMD_NOP;
+				goto switch_again;
+			}
+
+normal_LCMP:
 			gen_LCMP(cd);
 			break;
 
@@ -1244,8 +1300,7 @@ bool intrp_codegen(jitdata *jd)
 			}
 			break;
 
-			/* the long compare instructions are currently not used */
-#if 0
+
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
@@ -1323,7 +1378,7 @@ bool intrp_codegen(jitdata *jd)
 
 			gen_branch(IF_LCMPGE);
 			break;
-#endif
+
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
