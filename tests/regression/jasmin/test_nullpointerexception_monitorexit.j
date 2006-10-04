@@ -26,6 +26,8 @@
 	.limit stack 2
 	.limit locals 2
 
+	.catch java/lang/NullPointerException from ex_start to ex_end using handler
+
 	ldc 42
 	istore 1
 
@@ -34,16 +36,24 @@
 
 	; --------------------------------------------------
 
+ex_start:
 	aconst_null
 	monitorexit
+ex_end:
 
 	; --------------------------------------------------
 
 force_basic_block_boundary:
 
 	iload 1
-	invokestatic test_nullpointerexception_monitorexit/checkI(I)V
-	; OUTPUT: 42
-
+	invokestatic test_nullpointerexception_monitorexit/check(I)V
 	return
+
+handler:
+	
+	ldc 123
+	invokestatic test_nullpointerexception_monitorexit/check(I)V
+	; OUTPUT: 123
+	return
+
 .end method
