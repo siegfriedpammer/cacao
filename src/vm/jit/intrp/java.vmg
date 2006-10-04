@@ -1245,7 +1245,7 @@ MONITORENTER ( aRef -- )
 {
 #if defined(ENABLE_THREADS)
   /* CHECK_NULL_PTR(aRef); is now done explicitly */
-  builtin_monitorenter(aRef);
+  lock_monitor_enter(aRef);
 #endif
 }
 
@@ -1253,7 +1253,7 @@ MONITOREXIT ( aRef -- )
 {
 #if defined(ENABLE_THREADS)
   /* CHECK_NULL_PTR(aRef); cannot happen */
-  builtin_monitorexit(aRef);
+  lock_monitor_exit(aRef);
 #endif
 }
 
