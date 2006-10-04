@@ -1,5 +1,3 @@
 Makefile
 Makefile.in
 java
-rmic
-rmiregistry
