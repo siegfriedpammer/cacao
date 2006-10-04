@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5661 2006-10-04 13:35:25Z twisti $
+   $Id: codegen.c 5662 2006-10-04 13:40:54Z edwin $
 
 */
 
@@ -287,7 +287,6 @@ bool intrp_codegen(jitdata *jd)
 	codegendata        *cd;
 	registerdata       *rd;
 	s4                  i, len, s1, s2, d;
-	stackptr            src;
 	basicblock         *bptr;
 	instruction        *iptr;
 	exceptiontable     *ex;
@@ -369,7 +368,7 @@ bool intrp_codegen(jitdata *jd)
 
 	/* walk through all basic blocks */
 
-	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
@@ -377,7 +376,6 @@ bool intrp_codegen(jitdata *jd)
 
 		/* walk through all instructions */
 		
-		src = bptr->instack;
 		len = bptr->icount;
 
 		gen_BBSTART;
@@ -449,63 +447,63 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ILOAD(cd, index2offset(iptr->s1.localindex));
+			gen_ILOAD(cd, index2offset(iptr->s1.varindex));
 			break;
 
 		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_LLOAD(cd, index2offset(iptr->s1.localindex));
+			gen_LLOAD(cd, index2offset(iptr->s1.varindex));
 			break;
 
 		case ICMD_ALOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ALOAD(cd, index2offset(iptr->s1.localindex));
+			gen_ALOAD(cd, index2offset(iptr->s1.varindex));
 			break;
 
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ILOAD(cd, index2offset(iptr->s1.localindex));
+			gen_ILOAD(cd, index2offset(iptr->s1.varindex));
 			break;
 
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_LLOAD(cd, index2offset(iptr->s1.localindex));
+			gen_LLOAD(cd, index2offset(iptr->s1.varindex));
 			break;
 
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ISTORE(cd, index2offset(iptr->dst.localindex));
+			gen_ISTORE(cd, index2offset(iptr->dst.varindex));
 			break;
 
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_LSTORE(cd, index2offset(iptr->dst.localindex));
+			gen_LSTORE(cd, index2offset(iptr->dst.varindex));
 			break;
 
 		case ICMD_ASTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ASTORE(cd, index2offset(iptr->dst.localindex));
+			gen_ASTORE(cd, index2offset(iptr->dst.varindex));
 			break;
 
 
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ISTORE(cd, index2offset(iptr->dst.localindex));
+			gen_ISTORE(cd, index2offset(iptr->dst.varindex));
 			break;
 
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_LSTORE(cd, index2offset(iptr->dst.localindex));
+			gen_LSTORE(cd, index2offset(iptr->dst.varindex));
 			break;
 
 
@@ -869,7 +867,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
 
-			gen_IINC(cd, index2offset(iptr->s1.localindex), iptr->sx.val.i);
+			gen_IINC(cd, index2offset(iptr->s1.varindex), iptr->sx.val.i);
 			break;
 
 
@@ -1771,7 +1769,7 @@ bool intrp_codegen(jitdata *jd)
 
 	/* branch resolving (walk through all basic blocks) */
 
-	for (bptr = jd->new_basicblocks; bptr != NULL; bptr = bptr->next) {
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 		branchref *brefs;
 
 		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
