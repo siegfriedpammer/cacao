@@ -51,12 +51,16 @@ extern _Jv_JNIEnv *_Jv_env;
 extern bool vm_initializing;
 extern bool vm_exiting;
 
-extern u1 *intrp_main_stack;
+extern char      *cacao_prefix;
+extern char      *cacao_libjvm;
+extern char      *classpath_libdir;
 
-extern void **stackbottom;
-
-extern char *mainstring;
+extern char      *mainstring;
 extern classinfo *mainclass;
+
+#if defined(ENABLE_INTRP)
+extern u1 *intrp_main_stack;
+#endif
 
 
 /* vm_arg **********************************************************************

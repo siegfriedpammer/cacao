@@ -790,6 +790,20 @@ AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni.h],
                 [AC_MSG_ERROR(cannot find jni.h)])
 
 
+dnl if we compile for a JRE-style directory layout
+AC_MSG_CHECKING(if we compile for a JRE-style directory layout)
+AC_ARG_WITH([jre-layout],
+            [AS_HELP_STRING(--with-jre-layout,compile for JRE-style directory layout [[default=no]])],
+            [case "${enableval}" in
+                yes) WITH_JRE_LAYOUT=yes
+                     AC_DEFINE([WITH_JRE_LAYOUT], 1, [with JRE layout])
+                     ;;
+                *) WITH_JRE_LAYOUT=no;;
+             esac],
+            [WITH_JRE_LAYOUT=no])
+AC_MSG_RESULT(${WITH_JRE_LAYOUT})
+
+
 dnl check if GNU Classpath should be linked statically into CACAO
 AC_MSG_CHECKING(whether to link GNU Classpath native libraries statically into CACAO)
 AC_ARG_WITH([static-classpath],

@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 5574 2006-09-28 20:47:58Z twisti $
+   $Id: native.c 5658 2006-10-04 10:10:01Z twisti $
 
 */
 
@@ -346,7 +346,7 @@ bool native_init(void)
 	   depends on the configuration. */
 
 # if defined(ENABLE_LIBJVM)
-	if (!(mainhandle = lt_dlopenext(CACAO_LIBDIR"/libjvm")))
+	if (!(mainhandle = lt_dlopenext(cacao_libjvm)))
 		vm_abort("lt_dlopenext failed: %s\n", lt_dlerror());
 # else
 	if (!(mainhandle = lt_dlopen(NULL)))

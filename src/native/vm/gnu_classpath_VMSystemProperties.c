@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gnu_classpath_VMSystemProperties.c 5648 2006-10-03 18:21:55Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 5658 2006-10-04 10:10:01Z twisti $
 
 */
 
@@ -54,6 +54,7 @@
 #include "vm/options.h"
 #include "vm/properties.h"
 #include "vm/suck.h"
+#include "vm/vm.h"
 
 
 /*
@@ -102,7 +103,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	/* set JAVA_HOME to default prefix if not defined */
 
 	if (env_java_home == NULL)
-		env_java_home = CACAO_PREFIX;
+		env_java_home = cacao_prefix;
 
 	/* fill in system properties */
 
@@ -152,7 +153,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	/* fill gnu.classpath.boot.library.path with GNU Classpath library
        path */
 
-	properties_system_add("gnu.classpath.boot.library.path", CLASSPATH_LIBRARY_PATH);
+	properties_system_add("gnu.classpath.boot.library.path", classpath_libdir);
 
 	/* now fill java.library.path */
 
@@ -209,19 +210,19 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 #else
 	/* We need to set the os.arch hardcoded to be compatible with SUN. */
 
-#if defined(__I386__)
+# if defined(__I386__)
 	/* map all x86 architectures (i386, i486, i686) to i386 */
 
 	properties_system_add("os.arch", "i386");
-#elif defined(__POWERPC__)
+# elif defined(__POWERPC__)
 	properties_system_add("os.arch", "ppc");
-#elif defined(__X86_64__)
+# elif defined(__X86_64__)
 	properties_system_add("os.arch", "amd64");
-#else
+# else
 	/* default to what uname returns */
 
 	properties_system_add("os.arch", utsnamebuf.machine);
-#endif
+# endif
 
  	properties_system_add("os.name", utsnamebuf.sysname);
 	properties_system_add("os.version", utsnamebuf.release);
@@ -254,8 +255,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 		if (strlen(env_lang) <= 2) {
 			properties_system_add("user.language", env_lang);
-
-		} else {
+		}
+		else {
 			if ((env_lang[2] == '_') && (strlen(env_lang) >= 5)) {
 				lang = MNEW(char, 3);
 				strncpy(lang, (char *) &env_lang[0], 2);
@@ -269,8 +270,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 				properties_system_add("user.country", country);
 			}
 		}
-
-	} else {
+	}
+	else {
 		/* if no default locale was specified, use `en_US' */
 
 		properties_system_add("user.language", "en");

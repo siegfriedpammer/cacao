@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 5579 2006-09-29 11:37:12Z twisti $
+   $Id: cacao.c 5658 2006-10-04 10:10:01Z twisti $
 
 */
 
@@ -42,6 +42,12 @@
 
 #if defined(ENABLE_LIBJVM)
 # include <ltdl.h>
+#endif
+
+#if defined(WITH_JRE_LAYOUT)
+# include <errno.h>
+# include <libgen.h>
+# include <unistd.h>
 #endif
 
 #include <stdlib.h>
@@ -72,6 +78,8 @@ static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
+	char           *path;
+
 #if defined(ENABLE_LIBJVM)	
 	/* Variables for JNI_CreateJavaVM dlopen call. */
 	lt_dlhandle     libjvm_handle;
@@ -93,12 +101,38 @@ int main(int argc, char **argv)
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
 #if defined(ENABLE_LIBJVM)
+# if defined(WITH_JRE_LAYOUT)
+	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
+
+	path = malloc(sizeof(char) * 4096);
+
+	if (readlink("/proc/self/exe", path, 4095) == -1) {
+		fprintf(stderr, "readlink failed: %s\n", strerror(errno));
+		abort();
+	}
+
+	/* get the path of the current executable */
+
+	path = dirname(path);
+
+	if ((strlen(path) + strlen("/../lib/libjvm") + strlen("0")) > 4096) {
+		fprintf(stderr, "libjvm name to long for buffer\n");
+		abort();
+	}
+
+	/* concatinate the library name */
+
+	strcat(path, "/../lib/libjvm");
+# else
+	path = CACAO_LIBDIR"/libjvm";
+# endif
+
 	if (lt_dlinit()) {
 		fprintf(stderr, "lt_dlinit failed: %s\n", lt_dlerror());
 		abort();
 	}
 
-	if (!(libjvm_handle = lt_dlopenext(CACAO_LIBDIR"/libjvm"))) {
+	if (!(libjvm_handle = lt_dlopenext(path))) {
 		fprintf(stderr, "lt_dlopenext failed: %s\n", lt_dlerror());
 		abort();
 	}

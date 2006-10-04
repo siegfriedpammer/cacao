@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5493 2006-09-14 18:36:20Z edwin $
+   $Id: global.h 5658 2006-10-04 10:10:01Z twisti $
 
 */
 
@@ -86,11 +86,6 @@ typedef union {
 
 typedef struct java_objectheader java_objectheader; 
 typedef struct java_objectarray java_objectarray;
-
-
-/* define some CACAO paths ****************************************************/
-
-#define CLASSPATH_LIBRARY_PATH      CLASSPATH_LIBDIR "/classpath"
 
 
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */

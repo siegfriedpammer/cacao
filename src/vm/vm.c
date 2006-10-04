@@ -39,6 +39,11 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#if defined(WITH_JRE_LAYOUT)
+# include <libgen.h>
+# include <unistd.h>
+#endif
+
 #include "vm/types.h"
 
 #include "mm/boehm.h"
@@ -87,17 +92,21 @@ s4 vms = 0;                             /* number of VMs created              */
 bool vm_initializing = false;
 bool vm_exiting = false;
 
-#if defined(ENABLE_INTRP)
-u1 *intrp_main_stack = NULL;
-#endif
+char      *cacao_prefix = NULL;
+char      *cacao_libjvm = NULL;
+char      *classpath_libdir = NULL;
 
-char *mainstring = NULL;
+char      *mainstring = NULL;
 classinfo *mainclass = NULL;
 
 char *specificmethodname = NULL;
 char *specificsignature = NULL;
 
 bool startit = true;
+
+#if defined(ENABLE_INTRP)
+u1 *intrp_main_stack = NULL;
+#endif
 
 
 /* define heap sizes **********************************************************/
@@ -528,17 +537,18 @@ static void version(bool opt_exit)
 	puts("  CFLAGS     : "VERSION_CFLAGS"\n");
 
 	puts("Default variables:\n");
-	printf("  maximum heap size   : %d\n", HEAP_MAXSIZE);
-	printf("  initial heap size   : %d\n", HEAP_STARTSIZE);
-	printf("  stack size          : %d\n", STACK_SIZE);
-	puts("  java.boot.class.path: "CACAO_VM_ZIP":"CLASSPATH_GLIBJ_ZIP"");
-	puts("  java.library.path   : "CLASSPATH_LIBRARY_PATH"\n");
+	printf("  maximum heap size              : %d\n", HEAP_MAXSIZE);
+	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
+	printf("  stack size                     : %d\n", STACK_SIZE);
+	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"CLASSPATH_GLIBJ_ZIP"");
+	puts("  gnu.classpath.boot.library.path: "CLASSPATH_LIBDIR"/classpath\n");
 
 	puts("Runtime variables:\n");
-	printf("  maximum heap size   : %d\n", opt_heapmaxsize);
-	printf("  initial heap size   : %d\n", opt_heapstartsize);
-	printf("  stack size          : %d\n", opt_stacksize);
-	printf("  java.boot.class.path: %s\n", bootclasspath);
+	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
+	printf("  initial heap size              : %d\n", opt_heapstartsize);
+	printf("  stack size                     : %d\n", opt_stacksize);
+	printf("  java.boot.class.path           : %s\n", bootclasspath);
+	printf("  gnu.classpath.boot.library.path: %s\n", classpath_libdir);
 
 	/* exit normally, if requested */
 
@@ -628,15 +638,71 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
 #endif
 
+#if defined(WITH_JRE_LAYOUT)
+	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
+
+	cacao_prefix = MNEW(char, 4096);
+
+	if (readlink("/proc/self/exe", cacao_prefix, 4095) == -1)
+		vm_abort("readlink failed: %s\n", strerror(errno));
+
+	/* get the path of the current executable */
+
+	cacao_prefix = dirname(cacao_prefix);
+
+	if ((strlen(cacao_prefix) + strlen("/..") + strlen("0")) > 4096)
+		vm_abort("libjvm name to long for buffer\n");
+
+	/* concatenate the library name */
+
+	strcat(cacao_prefix, "/..");
+
+	/* now set path to libjvm.so */
+
+	len = strlen(cacao_prefix) + strlen("/lib/libjvm") + strlen("0");
+
+	cacao_libjvm = MNEW(char, len);
+	strcpy(cacao_libjvm, cacao_prefix);
+	strcat(cacao_libjvm, "/lib/libjvm");
+
+	/* and finally set the path to GNU Classpath libraries */
+
+	len = strlen(cacao_prefix) + strlen("/lib/classpath") + strlen("0");
+
+	classpath_libdir = MNEW(char, len);
+	strcpy(classpath_libdir, cacao_prefix);
+	strcat(classpath_libdir, "/lib/classpath");
+#else
+	cacao_prefix     = CACAO_PREFIX;
+	cacao_libjvm     = CACAO_LIBDIR"/libjvm";
+	classpath_libdir = CLASSPATH_LIBDIR"/classpath";
+#endif
+
 	/* set the bootclasspath */
 
 	cp = getenv("BOOTCLASSPATH");
 
-	if (cp) {
+	if (cp != NULL) {
 		bootclasspath = MNEW(char, strlen(cp) + strlen("0"));
 		strcpy(bootclasspath, cp);
+	}
+	else {
+#if defined(WITH_JRE_LAYOUT)
+		len =
+			strlen(cacao_prefix) +
+			strlen("/share/cacao/vm.zip") +
+			strlen(":") +
+			strlen(cacao_prefix) +
+			strlen("/share/classpath/glibj.zip") +
+			strlen("0");
 
-	} else {
+		bootclasspath = MNEW(char, len);
+		strcat(bootclasspath, cacao_prefix);
+		strcat(bootclasspath, "/share/cacao/vm.zip");
+		strcat(bootclasspath, ":");
+		strcat(bootclasspath, cacao_prefix);
+		strcat(bootclasspath, "/share/classpath/glibj.zip");
+#else
 		len = strlen(CACAO_VM_ZIP) +
 			strlen(":") +
 			strlen(CLASSPATH_GLIBJ_ZIP) +
@@ -646,13 +712,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		strcat(bootclasspath, CACAO_VM_ZIP);
 		strcat(bootclasspath, ":");
 		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP);
+#endif
 	}
 
 	/* set the classpath */
 
 	cp = getenv("CLASSPATH");
 
-	if (cp) {
+	if (cp != NULL) {
 		classpath = MNEW(char, strlen(cp) + strlen("0"));
 		strcat(classpath, cp);
 	}
