@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5676 2006-10-04 19:47:01Z edwin $
+   $Id: codegen.c 5677 2006-10-04 20:02:37Z edwin $
 
 */
 
@@ -644,6 +644,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_LREM(cd);
 			break;
 
+			/* the *POW2 instructions are not used currently */
+#if 0
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 		                      
@@ -667,6 +669,7 @@ bool intrp_codegen(jitdata *jd)
 
 			gen_LREMPOW2(cd, iptr->sx.val.i);
 			break;
+#endif
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
@@ -1241,6 +1244,8 @@ bool intrp_codegen(jitdata *jd)
 			}
 			break;
 
+			/* the long compare instructions are currently not used */
+#if 0
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
@@ -1283,16 +1288,47 @@ bool intrp_codegen(jitdata *jd)
 			gen_branch(IF_LCMPGE);
 			break;
 
-		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
-
-			gen_branch(IF_ICMPEQ);
-			break;
-
 		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
 
 			gen_branch(IF_LCMPEQ);
+			break;
+
+		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			gen_branch(IF_LCMPNE);
+			break;
+
+		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			gen_branch(IF_LCMPLT);
+			break;
+
+		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			gen_branch(IF_LCMPGT);
+			break;
+
+		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			gen_branch(IF_LCMPLE);
+			break;
+
+		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			gen_branch(IF_LCMPGE);
+			break;
+#endif
+
+		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			gen_branch(IF_ICMPEQ);
 			break;
 
 		case ICMD_IF_ACMPEQ:    /* ..., value, value ==> ...                  */
@@ -1307,12 +1343,6 @@ bool intrp_codegen(jitdata *jd)
 			gen_branch(IF_ICMPNE);
 			break;
 
-		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
-
-			gen_branch(IF_LCMPNE);
-			break;
-
 		case ICMD_IF_ACMPNE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
 
@@ -1325,22 +1355,10 @@ bool intrp_codegen(jitdata *jd)
 			gen_branch(IF_ICMPLT);
 			break;
 
-		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
-
-			gen_branch(IF_LCMPLT);
-			break;
-
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
 
 			gen_branch(IF_ICMPGT);
-			break;
-
-		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
-
-			gen_branch(IF_LCMPGT);
 			break;
 
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
@@ -1349,22 +1367,10 @@ bool intrp_codegen(jitdata *jd)
 			gen_branch(IF_ICMPLE);
 			break;
 
-		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
-
-			gen_branch(IF_LCMPLE);
-			break;
-
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
 
 			gen_branch(IF_ICMPGE);
-			break;
-
-		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
-		                        /* op1 = target JavaVM pc                     */
-
-			gen_branch(IF_LCMPGE);
 			break;
 
 
