@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 5665 2006-10-04 14:50:21Z edwin $
+   $Id: dynamic-super.c 5666 2006-10-04 15:04:52Z twisti $
 */
 
 
@@ -47,11 +47,10 @@
 #include "mm/memory.h"
 
 #if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
+# include "threads/native/lock.h"
 #endif
 
 #include "toolbox/logging.h"
-#include "vm/builtin.h"
 #include "vm/hashtable.h"
 #include "vm/options.h"
 #include "vm/types.h"
@@ -372,14 +371,14 @@ static void superreuse_insert(u1 *code, u4 length)
   superreuse *sr = NEW(superreuse);
   sr->code = code;
   sr->length = length;
-#if defined(ENABLE_THREADS)
-  lock_monitor_enter(lock_hashtable_superreuse);
-#endif
+
+  LOCK_MONITOR_ENTER(lock_hashtable_superreuse);
+
   sr->next = *listp;
   *listp = sr;
-#if defined(ENABLE_THREADS)
-  lock_monitor_exit(lock_hashtable_superreuse);
-#endif
+
+  LOCK_MONITOR_EXIT(lock_hashtable_superreuse);
+
   count_supers_unique++;
 }
 
@@ -410,9 +409,9 @@ void patchersuper_rewrite(Inst *p)
   superstart **listp = (superstart **)&hashtable_patchersupers.ptr[slot];
   superstart *ss;
   count_patchers_exec++;
-#if defined(ENABLE_THREADS)
-  lock_monitor_enter(lock_hashtable_patchersupers);
-#endif
+
+  LOCK_MONITOR_ENTER(lock_hashtable_patchersupers);
+
   for (; ss=*listp,  ss!=NULL; listp = &(ss->next)) {
     if (p == ((Inst *)(ss->mcodebase + ss->patcherm))) {
       Inst target;
@@ -429,9 +428,8 @@ void patchersuper_rewrite(Inst *p)
       break;
     }
   }
-#if defined(ENABLE_THREADS)
-  lock_monitor_exit(lock_hashtable_patchersupers);
-#endif
+
+  LOCK_MONITOR_EXIT(lock_hashtable_patchersupers);
 }
 
 static void hashtable_patchersupers_insert(superstart *ss)
@@ -440,14 +438,14 @@ static void hashtable_patchersupers_insert(superstart *ss)
   u4 slot = ((key + (key>>HASHTABLE_PATCHERSUPERS_BITS)) & 
              ((1<<HASHTABLE_PATCHERSUPERS_BITS)-1));
   void **listp = &hashtable_patchersupers.ptr[slot];
-#if defined(ENABLE_THREADS)
-  lock_monitor_enter(lock_hashtable_patchersupers);
-#endif
+
+  LOCK_MONITOR_ENTER(lock_hashtable_patchersupers);
+
   ss->next = (superstart *)*listp;
   *listp = (void *)ss;
-#if defined(ENABLE_THREADS)
-  lock_monitor_exit(lock_hashtable_patchersupers);
-#endif
+
+  LOCK_MONITOR_EXIT(lock_hashtable_patchersupers);
+
   count_patchers_ins++;
 }
 

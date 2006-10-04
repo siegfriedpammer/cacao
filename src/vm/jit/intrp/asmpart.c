@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5488 2006-09-13 00:21:40Z edwin $
+   $Id: asmpart.c 5666 2006-10-04 15:04:52Z twisti $
 
 */
 
@@ -191,9 +191,9 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 	  codeinfo *code = *((codeinfo **) ((u1 *)f + CodeinfoPointer));
 	  methodinfo *m = code->m;
 
-	  framesize = (*((s4 *) (((u1 *) f) + FrameSize)));
-	  ex = (exceptionentry *) (((u1 *) f) + ExTableStart);
-	  exceptiontablelength = *((s4 *) (((u1 *) f) + ExTableSize));
+	  framesize            = *((s4 *)             (((u1 *) f) + FrameSize));
+	  ex                   =   (exceptionentry *) (((u1 *) f) + ExTableStart);
+	  exceptiontablelength = *((s4 *)             (((u1 *) f) + ExTableSize));
 
 #if !defined(NDEBUG)
 	  if (opt_verbose || opt_verbosecall || opt_verboseexception)

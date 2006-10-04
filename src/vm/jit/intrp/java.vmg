@@ -790,13 +790,6 @@ JSR (  #ainstTarget -- ainstRA ) 0xa8
   SET_IP(ainstTarget);
 }
 
-RET ( #vOffset -- ) 0xa9
-{
-  Inst * saved_ip;
-  saved_ip = access_local_ref(vOffset);
-  SET_IP(saved_ip);
-}
-
 TABLESWITCH ( #iLow #iRange #addrSegment #iOffset #ainstDefault iIndex -- ) 0xaa
 {
   s4 idx = iIndex - iLow;
@@ -814,9 +807,12 @@ LOOKUPSWITCH ( #iNpairs #addrSegment #iOffset #ainstDefault iKey -- ) 0xab
      the table is sorted. Note also, we reversed the order
      of the parms */
   unsigned i;
-  for ( i = 0; i < iNpairs; i++ ) {
-    Cell *table = (Cell *)(addrSegment+iOffset);
-    if ( iKey == (s4)(table[2 * i]) ) {
+
+  i = iNpairs;
+
+  while (--i >= 0) {
+    Cell *table = (Cell *) (addrSegment+iOffset);
+    if (iKey == (s4) (table[2 * i])) {
       SET_IP((Inst *)(table[2 * i + 1])); INST_TAIL;
     }
   }
@@ -1206,14 +1202,14 @@ athrow:
 
 CHECKCAST ( #aClass #acr aRef -- aRef ) 0xc0
 {
-  if (!builtin_checkcast((java_objectheader *) aRef, (classinfo *) aClass))
-    THROW(classcastexception);
+  if (!builtin_checkcast(aRef, (classinfo *) aClass))
+    THROW_CLASSCASTEXCEPTION(aRef);
 }
 
 ARRAYCHECKCAST ( #aClass #acr aRef -- aRef ) 0xc0
 {
   if (!builtin_arraycheckcast(aRef, aClass))
-    THROW(classcastexception);
+    THROW_CLASSCASTEXCEPTION(aRef);
 }
 
 PATCHER_ARRAYCHECKCAST ( #avftbl #acr ... -- ) 0xc0

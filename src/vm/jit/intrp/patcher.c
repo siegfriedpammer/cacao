@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: patcher.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: patcher.c 5666 2006-10-04 15:04:52Z twisti $
 
 */
 
@@ -248,8 +248,9 @@ bool intrp_patcher_invokestatic_special(u1 *sp)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch stubroutine */
+	/* patch methodinfo and stubroutine */
 
+	ip[3] = (ptrint) m;
 	ip[1] = (ptrint) m->stubroutine;
 
 	return true;
@@ -276,8 +277,9 @@ bool intrp_patcher_invokevirtual(u1 *sp)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch vftbl index */
+	/* patch methodinfo and vftbl index */
 
+	ip[3] = (ptrint) m;
 	ip[1] = (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
 
 	return true;
@@ -309,8 +311,9 @@ bool intrp_patcher_invokeinterface(u1 *sp)
 	ip[1] = (OFFSET(vftbl_t, interfacetable[0]) -
 			 sizeof(methodptr*) * m->class->index);
 
-	/* patch method offset */
+	/* patch methodinfo and method offset */
 
+	ip[4] = (ptrint) m;
 	ip[2] = (sizeof(methodptr) * (m - m->class->methods));
 
 	return true;

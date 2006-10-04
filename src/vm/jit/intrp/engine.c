@@ -29,11 +29,11 @@
 
    Changes:
 
-   $Id: engine.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: engine.c 5666 2006-10-04 15:04:52Z twisti $
 */
 
 
-/* #define VM_DEBUG */
+#define VM_DEBUG
 
 #include "config.h"
 
@@ -147,6 +147,12 @@
 	    } \
 	}
 
+#define THROW_CLASSCASTEXCEPTION(o) \
+    { \
+		classcastexception_object = o; \
+        THROW(nullpointerexception); \
+	}
+
 #define CHECK_OUT_OF_BOUNDS(_array, _idx)              \
         {                                            \
           if (length_array(_array) <= (u4) (_idx)) { \
@@ -243,6 +249,7 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
   Label throw_classcastexception 			 = &&throw_classcastexception1;  
   Label throw_nullpointerexception 		     = &&throw_nullpointerexception1;
   Label throw_arraystoreexception            = &&throw_arraystoreexception1;
+  java_objectheader *classcastexception_object;
   s4 arrayindexoutofbounds_index; /* pass the index to the throw code */
 
   if (vm_debug)
@@ -265,9 +272,14 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
 
       /* the actual codes jumped to through the ...exception variables */
 	  THROWCODE(arithmeticexception);
-	  THROWCODE(classcastexception);
 	  THROWCODE(nullpointerexception);
 	  THROWCODE(arraystoreexception);
+
+  throw_classcastexception1:
+	  global_sp = sp;
+	  *exceptionptr = stacktrace_inline_classcastexception(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP, classcastexception_object);
+	  CLEAR_global_sp;
+	  THROW0;
 
   throw_arrayindexoutofboundsexception1:
 	  global_sp = sp;

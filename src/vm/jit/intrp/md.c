@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md.c 5666 2006-10-04 15:04:52Z twisti $
 
 */
 
@@ -58,7 +58,7 @@ FILE *vm_out = NULL;  /* debugging output for vmgenerated stuff */
 
 void intrp_md_init(void)
 {
-	vm_out = stdout;
+	vm_out = stderr;
 
     if (setvbuf(stdout,NULL, _IOLBF,0) != 0) {
 		perror("setvbuf error");
