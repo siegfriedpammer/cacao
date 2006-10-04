@@ -813,7 +813,7 @@ LOOKUPSWITCH ( #iNpairs #addrSegment #iOffset #ainstDefault iKey -- ) 0xab
   /* Note: This code should use a binary search, as
      the table is sorted. Note also, we reversed the order
      of the parms */
-  unsigned i;
+  int i;
 
   i = iNpairs;
 
