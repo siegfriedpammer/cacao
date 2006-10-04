@@ -56,6 +56,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_many_monitors.j \
 	$(srcdir)/test_no_store_load_conflict.j \
 	$(srcdir)/test_no_store_store_conflict.j \
+	$(srcdir)/test_nullpointerexception_monitorexit.j \
 	$(srcdir)/test_simple_load_store.j \
 	$(srcdir)/test_store_load_conflict.j \
 	$(srcdir)/test_store_store_conflict_2.j \
