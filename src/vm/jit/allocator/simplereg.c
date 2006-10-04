@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5656 2006-10-03 20:57:15Z edwin $
+   $Id: simplereg.c 5678 2006-10-04 20:44:03Z edwin $
 
 */
 
@@ -1020,17 +1020,20 @@ static void reg_free_temp_func(jitdata *jd, s4 index)
 		}
 	}
 	else {
+		s4 regindex;
+
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-		if (rd->regcopycount[GET_LOW_REG(v->vv.regoff)]) {
-			rd->regcopycount[GET_LOW_REG(v->vv.regoff)]--;
-			return;
-		}
+		regindex = GET_LOW_REG(v->vv.regoff);
 #else
-		if (rd->regcopycount[v->vv.regoff]) {
-			rd->regcopycount[v->vv.regoff]--;
+		regindex = v->vv.regoff;
+#endif
+		if (IS_FLT_DBL_TYPE(v->type))
+			regindex += INT_REG_CNT;
+
+		if (rd->regcopycount[regindex]) {
+			rd->regcopycount[regindex]--;
 			return;
 		}
-#endif
 	}
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -1421,12 +1424,17 @@ static void allocate_scratch_registers(jitdata *jd)
 						}
 						else {
 							/* XXX split reg/mem variables on arm may need special handling here */
+							s4 regindex;
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							rd->regcopycount[GET_LOW_REG(v->vv.regoff)]++;
+							regindex = GET_LOW_REG(v->vv.regoff);
 #else
-							rd->regcopycount[v->vv.regoff]++;
+							regindex = v->vv.regoff;
 #endif
+							if (IS_FLT_DBL_TYPE(v->type))
+								regindex += INT_REG_CNT;
+
+							rd->regcopycount[regindex]++;
 						}
  					}
 					break;
