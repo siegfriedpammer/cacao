@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5668 2006-10-04 16:01:53Z edwin $
+   $Id: codegen.c 5676 2006-10-04 19:47:01Z edwin $
 
 */
 
@@ -599,22 +599,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_IADD(cd);
 			break;
 
-		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_IADD(cd);
-			break;
-
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			gen_LADD(cd);
-			break;
-
-		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* val.l = constant                             */
-
-			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LADD(cd);
 			break;
 
@@ -623,22 +609,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_ISUB(cd);
 			break;
 
-		case ICMD_ISUBCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_ISUB(cd);
-			break;
-
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			gen_LSUB(cd);
-			break;
-
-		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
-		                      /* val.l = constant                             */
-
-			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LSUB(cd);
 			break;
 
@@ -647,20 +619,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_IMUL(cd);
 			break;
 
-		case ICMD_IMULCONST:  /* ..., val1, val2  ==> ..., val1 * val2        */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_IMUL(cd);
-			break;
-
 		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			gen_LMUL(cd);
-			break;
-
-		case ICMD_LMULCONST:  /* ..., val1, val2  ==> ..., val1 * val2        */
-
-			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LMUL(cd);
 			break;
 
@@ -713,22 +673,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_ISHL(cd);
 			break;
 
-		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_ISHL(cd);
-			break;
-
 		case ICMD_ISHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
 
-			gen_ISHR(cd);
-			break;
-
-		case ICMD_ISHRCONST:  /* ..., value  ==> ..., value >> constant       */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
 			gen_ISHR(cd);
 			break;
 
@@ -737,22 +683,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_IUSHR(cd);
 			break;
 
-		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_IUSHR(cd);
-			break;
-
 		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
-			gen_LSHL(cd);
-			break;
-
-		case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
 			gen_LSHL(cd);
 			break;
 
@@ -761,22 +693,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_LSHR(cd);
 			break;
 
-		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_LSHR(cd);
-			break;
-
 		case ICMD_LUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
 
-			gen_LUSHR(cd);
-			break;
-
-		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
 			gen_LUSHR(cd);
 			break;
 
@@ -785,22 +703,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_IAND(cd);
 			break;
 
-		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_IAND(cd);
-			break;
-
 		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
 
-			gen_LAND(cd);
-			break;
-
-		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
-		                      /* val.l = constant                             */
-
-			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LAND(cd);
 			break;
 
@@ -809,22 +713,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_IOR(cd);
 			break;
 
-		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_IOR(cd);
-			break;
-
 		case ICMD_LOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
 
-			gen_LOR(cd);
-			break;
-
-		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
-		                      /* val.l = constant                             */
-
-			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LOR(cd);
 			break;
 
@@ -833,22 +723,8 @@ bool intrp_codegen(jitdata *jd)
 			gen_IXOR(cd);
 			break;
 
-		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
-		                      /* val.i = constant                             */
-
-			gen_ICONST(cd, iptr->sx.val.i);
-			gen_IXOR(cd);
-			break;
-
 		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
 
-			gen_LXOR(cd);
-			break;
-
-		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
-		                      /* val.l = constant                             */
-
-			gen_LCONST(cd, iptr->sx.val.l);
 			gen_LXOR(cd);
 			break;
 
