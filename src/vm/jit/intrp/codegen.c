@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5664 2006-10-04 14:31:01Z edwin $
+   $Id: codegen.c 5667 2006-10-04 15:14:19Z edwin $
 
 */
 
@@ -68,11 +68,12 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
+#include "vm/jit/stack.h"
 
 
 #define gen_branch(_inst) { \
   gen_##_inst(cd, 0); \
-  codegen_addreference(cd, iptr->dst.block); \
+  codegen_addreference(cd, BLOCK_OF(iptr->dst.insindex)); \
 }
 
 #define index2offset(_i) (-(_i) * SIZEOF_VOID_P)
@@ -372,7 +373,7 @@ bool intrp_codegen(jitdata *jd)
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
-		if (bptr->flags >= BBREACHED) {
+		if (bptr->flags != BBDELETED) {
 
 		/* walk through all instructions */
 		
@@ -1277,7 +1278,7 @@ bool intrp_codegen(jitdata *jd)
 		                        /* op1 = target JavaVM pc                     */
 
 			gen_JSR(cd, NULL);
-			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
+			codegen_addreference(cd, BLOCK_OF(iptr->sx.s23.s3.jsrtarget.insindex));
 			break;
 
 		case ICMD_RET:          /* ... ==> ...                                */
@@ -1572,14 +1573,14 @@ bool intrp_codegen(jitdata *jd)
 			dseg_adddata(cd);
 			cd->mcodeptr = (u1 *) cd->mcodeptr + 2 * sizeof(Inst);
 
-			codegen_addreference(cd, table[0].block);
+			codegen_addreference(cd, BLOCK_OF(table[0].insindex));
 
 			/* build jump table top down and use address of lowest entry */
 
 			table += i;
 
 			while (--i >= 0) {
-				dseg_addtarget(cd, table->block); 
+				dseg_addtarget(cd, BLOCK_OF(table->insindex)); 
 				--table;
 			}
 			}
@@ -1611,12 +1612,12 @@ bool intrp_codegen(jitdata *jd)
 			/* build jump table top down and use address of lowest entry */
 
 			while (--i >= 0) {
-				dseg_addtarget(cd, lookup->target.block); 
+				dseg_addtarget(cd, BLOCK_OF(lookup->target.insindex)); 
 				dseg_addaddress(cd, lookup->value);
 				lookup++;
 			}
 
-			codegen_addreference(cd, iptr->sx.s23.s3.lookupdefault.block);
+			codegen_addreference(cd, BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex));
 			}
 
 			/* length of dataseg after last dseg_addtarget is used by load */
@@ -1755,7 +1756,7 @@ bool intrp_codegen(jitdata *jd)
 
 	gen_BBEND;
 
-	} /* if (bptr->flags >= BBREACHED) */
+	} /* if (bptr->flags != BBDELETED) */
 	} /* for basic block */
 
 	dseg_createlinenumbertable(cd);

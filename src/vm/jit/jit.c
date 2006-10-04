@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5656 2006-10-03 20:57:15Z edwin $
+   $Id: jit.c 5667 2006-10-04 15:14:19Z edwin $
 
 */
 
@@ -1592,69 +1592,69 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
 	
-	DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
-
-	/* call stack analysis pass */
-
-	if (!stack_analyse(jd)) {
-		DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
-
-		return NULL;
-	}
-	RT_TIMING_GET_TIME(time_stack);
-
-	DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
-
-	/* Build the CFG.  This has to be done after stack_analyse, as
-	   there happens the JSR elimination. */
-
-	if (!cfg_build(jd))
-		return NULL;
-
-#ifdef ENABLE_VERIFIER
-	if (jd->flags & JITDATA_FLAG_VERIFY) {
-		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
-
-		/* call typecheck pass */
-		if (!typecheck(jd)) {
-			DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
-
-			return NULL;
-		}
-
-		DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
-	}
-#endif
-	RT_TIMING_GET_TIME(time_typecheck);
-
-#if defined(ENABLE_LOOP)
-	if (opt_loops) {
-		depthFirst(jd);
-		analyseGraph(jd);
-		optimize_loops(jd);
-	}
-#endif
-	RT_TIMING_GET_TIME(time_loop);
-
-#if defined(ENABLE_IFCONV)
-	if (JITDATA_HAS_FLAG_IFCONV(jd))
-		if (!ifconv_static(jd))
-			return NULL;
-#endif
-	RT_TIMING_GET_TIME(time_ifconv);
-
-	/* Basic block reordering.  I think this should be done after
-	   if-conversion, as we could lose the ability to do the
-	   if-conversion. */
-
-	if (JITDATA_HAS_FLAG_REORDER(jd))
-		if (!reorder(jd))
-			return NULL;
-
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
 # endif
+		DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
+
+		/* call stack analysis pass */
+
+		if (!stack_analyse(jd)) {
+			DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
+
+			return NULL;
+		}
+		RT_TIMING_GET_TIME(time_stack);
+
+		DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
+
+		/* Build the CFG.  This has to be done after stack_analyse, as
+		   there happens the JSR elimination. */
+
+		if (!cfg_build(jd))
+			return NULL;
+
+#ifdef ENABLE_VERIFIER
+		if (jd->flags & JITDATA_FLAG_VERIFY) {
+			DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
+
+			/* call typecheck pass */
+			if (!typecheck(jd)) {
+				DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
+
+				return NULL;
+			}
+
+			DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
+		}
+#endif
+		RT_TIMING_GET_TIME(time_typecheck);
+
+#if defined(ENABLE_LOOP)
+		if (opt_loops) {
+			depthFirst(jd);
+			analyseGraph(jd);
+			optimize_loops(jd);
+		}
+#endif
+		RT_TIMING_GET_TIME(time_loop);
+
+#if defined(ENABLE_IFCONV)
+		if (JITDATA_HAS_FLAG_IFCONV(jd))
+			if (!ifconv_static(jd))
+				return NULL;
+#endif
+		RT_TIMING_GET_TIME(time_ifconv);
+
+		/* Basic block reordering.  I think this should be done after
+		   if-conversion, as we could lose the ability to do the
+		   if-conversion. */
+
+		if (JITDATA_HAS_FLAG_REORDER(jd))
+			if (!reorder(jd))
+				return NULL;
+
 		DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
 
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
