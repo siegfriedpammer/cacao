@@ -947,6 +947,11 @@ bool lock_monitor_exit(java_objectheader *o)
 	ptrint        lockword;
 	ptrint        thinlock;
 
+	if (o == NULL) {
+		exceptions_throw_nullpointerexception();
+		return false;
+	}
+
 	t = THREADOBJECT;
 
 	/* We don't have to worry about stale values here, as any stale value */
