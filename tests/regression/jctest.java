@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jctest.java 4357 2006-01-22 23:33:38Z twisti $
+   $Id: jctest.java 5683 2006-10-04 23:08:33Z edwin $
 
 */
 
@@ -1188,6 +1188,7 @@ public class jctest implements jcinterface {
     }
 
     static public void testdivremconst(int a) {
+        p("IDIVPOW2 (" + a + " / 0x00000001):  ", a / 0x00000001);
         p("IDIVPOW2 (" + a + " / 0x00000002):  ", a / 0x00000002);
         p("IDIVPOW2 (" + a + " / 0x00000004):  ", a / 0x00000004);
         p("IDIVPOW2 (" + a + " / 0x00000008):  ", a / 0x00000008);
@@ -1220,6 +1221,7 @@ public class jctest implements jcinterface {
         p("IDIVPOW2 (" + a + " / 0x40000000):  ", a / 0x40000000);
         p("IDIVPOW2 (" + a + " / 0x80000000):  ", a / 0x80000000);
 
+        p("IREMPOW2 (" + a + " % 0x00000001):  ", a % 0x00000001);
         p("IREMPOW2 (" + a + " % 0x00000002):  ", a % 0x00000002);
         p("IREMPOW2 (" + a + " % 0x00000004):  ", a % 0x00000004);
         p("IREMPOW2 (" + a + " % 0x00000008):  ", a % 0x00000008);
@@ -1254,6 +1256,7 @@ public class jctest implements jcinterface {
     }
 
     static public void testdivremconst(long a) {
+        p("LDIVPOW2 (" + a + " / 0x00000001):  ", a / 0x00000001);
         p("LDIVPOW2 (" + a + " / 0x00000002):  ", a / 0x00000002);
         p("LDIVPOW2 (" + a + " / 0x00000004):  ", a / 0x00000004);
         p("LDIVPOW2 (" + a + " / 0x00000008):  ", a / 0x00000008);
@@ -1286,6 +1289,7 @@ public class jctest implements jcinterface {
         p("LDIVPOW2 (" + a + " / 0x40000000):  ", a / 0x40000000);
         p("LDIVPOW2 (" + a + " / 0x80000000):  ", a / 0x80000000);
 
+        p("LREMPOW2 (" + a + " % 0x00000001):  ", a % 0x00000001L);
         p("LREMPOW2 (" + a + " % 0x00000002):  ", a % 0x00000002L);
         p("LREMPOW2 (" + a + " % 0x00000004):  ", a % 0x00000004L);
         p("LREMPOW2 (" + a + " % 0x00000008):  ", a % 0x00000008L);
