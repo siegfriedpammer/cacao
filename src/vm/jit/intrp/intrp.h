@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: intrp.h 5701 2006-10-05 20:04:38Z edwin $
+   $Id: intrp.h 5702 2006-10-05 20:18:41Z edwin $
 
 */
 
@@ -258,6 +258,9 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 void gen_inst(codegendata *cd, ptrint instr);
 void append_dispatch(codegendata *cd);
 void finish_ss(codegendata *cd);
+void patchersuper_rewrite(Inst *p);
+void dynamic_super_init(void);
+void dynamic_super_rewrite(codegendata *cd);
 
 #endif /* _INTRP_H */
 

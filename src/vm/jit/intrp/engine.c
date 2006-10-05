@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: engine.c 5700 2006-10-05 19:36:21Z edwin $
+   $Id: engine.c 5702 2006-10-05 20:18:41Z edwin $
 */
 
 
@@ -222,7 +222,7 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
 {
   Inst *ip;
   register Cell *sp SPREG = sp0;
-  Inst ca1; /* code address; this is the next dispatched instruction */
+  /* Inst ca1; XXX unused? */ /* code address; this is the next dispatched instruction */
   IF_spTOS(register Cell spTOS TOSREG;)
   static Inst   labels[] = {
 #define INST_ADDR(_inst) (&&I_##_inst)

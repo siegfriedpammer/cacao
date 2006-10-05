@@ -854,7 +854,7 @@ LOOKUPSWITCH ( #iNpairs #addrSegment #iOffset #ainstDefault iKey -- ) 0xab
 IRETURN ( #vOffsetFP ... vValue -- vResult ) 0xac
 {
   Inst *new_ip;
-  Cell *currentsp = sp;
+  MAYBE_UNUSED Cell *currentsp = sp;
   new_ip = (Inst *) access_local_cell(vOffsetFP - SIZEOF_VOID_P);
   sp = fp + 1;
   fp = (Cell *) access_local_cell(vOffsetFP);
@@ -866,7 +866,7 @@ IRETURN ( #vOffsetFP ... vValue -- vResult ) 0xac
 LRETURN ( #vOffsetFP ... lValue -- lResult ) 0xad
 {
   Inst *new_ip;
-  Cell *currentsp = sp;
+  MAYBE_UNUSED Cell *currentsp = sp;
   new_ip = (Inst *) access_local_cell(vOffsetFP - SIZEOF_VOID_P);
   sp = fp + 1;
   fp = (Cell *) access_local_cell(vOffsetFP);
@@ -878,7 +878,7 @@ LRETURN ( #vOffsetFP ... lValue -- lResult ) 0xad
 RETURN ( #vOffsetFP ... -- ) 0xb1
 {
   Inst *new_ip;
-  Cell *currentsp = sp;
+  MAYBE_UNUSED Cell *currentsp = sp;
   new_ip = (Inst *) access_local_cell(vOffsetFP - SIZEOF_VOID_P);
   sp = fp + 1;
   fp = (Cell *) access_local_cell(vOffsetFP);
