@@ -1197,6 +1197,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_INTRP:
 #if defined(ENABLE_INTRP)
 			opt_intrp = true;
+#if defined(ENABLE_VERIFIER)
+			/* XXX currently the verifier does not work with the interpreter */
+			opt_verify = false;
+#endif
 #else
 			printf("-Xint option not enabled.\n");
 			exit(1);
