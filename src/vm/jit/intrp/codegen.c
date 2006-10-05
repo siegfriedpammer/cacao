@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5682 2006-10-04 23:05:15Z edwin $
+   $Id: codegen.c 5689 2006-10-05 10:50:39Z edwin $
 
 */
 
@@ -413,7 +413,7 @@ switch_again:
 
 			/* optimize ICONST (2^x) .. IREM --> IREMPOW2 (const) */
 
-			if (len >= 1 && iptr[1].opc == ICMD_IREM) {
+			if (len >= 2 && iptr[1].opc == ICMD_IREM) {
 				switch (iptr[0].sx.val.i) {
 	case 0x00000001: case 0x00000002: case 0x00000004: case 0x00000008:
 	case 0x00000010: case 0x00000020: case 0x00000040: case 0x00000080:
@@ -432,7 +432,7 @@ switch_again:
 
 			/* optimize ICONST (2^x) .. IDIV --> IDIVPOW2 (const) */
 
-			if (len >= 1 && iptr[1].opc == ICMD_IDIV) {
+			if (len >= 2 && iptr[1].opc == ICMD_IDIV) {
 				switch (iptr[0].sx.val.i) {
 	                       case 0x00000002: I( 1) case 0x00000004: I( 2) case 0x00000008: I( 3)
 	case 0x00000010: I( 4) case 0x00000020: I( 5) case 0x00000040: I( 6) case 0x00000080: I( 7)
@@ -452,7 +452,7 @@ dont_opt_IDIVPOW2:
 
 			/* optimize ICONST .. IF_ICMPxx --> IFxx (const) */
 
-			if (len >= 1) {
+			if (len >= 2) {
 				switch (iptr[1].opc) {
 					case ICMD_IF_ICMPEQ: iptr[0].opc = ICMD_IFEQ; break;
 					case ICMD_IF_ICMPNE: iptr[0].opc = ICMD_IFNE; break;
@@ -476,7 +476,7 @@ dont_opt_IFxx:
 
 			/* optimize LCONST (2^x) .. LREM --> LREMPOW2 (const) */
 
-			if (len >= 1 && iptr[1].opc == ICMD_LREM) {
+			if (len >= 2 && iptr[1].opc == ICMD_LREM) {
 				switch (iptr[0].sx.val.l) {
 	case 0x00000001: case 0x00000002: case 0x00000004: case 0x00000008:
 	case 0x00000010: case 0x00000020: case 0x00000040: case 0x00000080:
@@ -495,7 +495,7 @@ dont_opt_IFxx:
 
 			/* optimize LCONST (2^x) .. LDIV --> LDIVPOW2 (const) */
 
-			if (len >= 1 && iptr[1].opc == ICMD_LDIV) {
+			if (len >= 2 && iptr[1].opc == ICMD_LDIV) {
 				switch (iptr[0].sx.val.l) {
 	                       case 0x00000002: I( 1) case 0x00000004: I( 2) case 0x00000008: I( 3)
 	case 0x00000010: I( 4) case 0x00000020: I( 5) case 0x00000040: I( 6) case 0x00000080: I( 7)
@@ -515,7 +515,7 @@ dont_opt_LDIVPOW2:
 
 			/* optimize LCONST .. LCMP .. IFxx (0) --> IF_Lxx */
 
-			if (len >= 2 && iptr[1].opc == ICMD_LCMP && iptr[2].sx.val.i == 0) {
+			if (len >= 3 && iptr[1].opc == ICMD_LCMP && iptr[2].sx.val.i == 0) {
 				switch (iptr[2].opc) {
 					case ICMD_IFEQ: iptr[0].opc = ICMD_IF_LEQ; break;
 					case ICMD_IFNE: iptr[0].opc = ICMD_IF_LNE; break;
@@ -851,7 +851,7 @@ dont_opt_IF_Lxx:
 
 			/* optimize LCMP .. IFxx (0) --> IF_LCMPxx */
 
-			if (len >= 1 && iptr[1].sx.val.i == 0) {
+			if (len >= 2 && iptr[1].sx.val.i == 0) {
 				switch (iptr[1].opc) {
 					case ICMD_IFEQ: iptr[0].opc = ICMD_IF_LCMPEQ; break;
 					case ICMD_IFNE: iptr[0].opc = ICMD_IF_LCMPNE; break;
