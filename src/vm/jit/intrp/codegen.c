@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5692 2006-10-05 15:33:42Z edwin $
+   $Id: codegen.c 5693 2006-10-05 15:43:38Z edwin $
 
 */
 
@@ -319,11 +319,9 @@ bool intrp_codegen(jitdata *jd)
 
 	cd->stackframesize = m->maxlocals;
 
-#if 0
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		cd->stackframesize += 1;
-#endif
 #endif
 
 	/* create method header */
@@ -1874,8 +1872,14 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 
 	if (m->flags & ACC_NATIVE) {
 		stackframesize = m->parseddesc->paramslots;
-	} else {
+	} 
+	else {
 		stackframesize = m->maxlocals;
+
+#if defined(ENABLE_THREADS)
+		if (checksync && (m->flags & ACC_SYNCHRONIZED))
+			stackframesize += 1;
+#endif
 	}
 
 	genarg_i(cd, stackframesize);
@@ -1984,12 +1988,17 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #else
 	u1      *cif;
 #endif
+	s4            stackframesize;
 
 	/* get required compiler data */
 
 	m  = jd->m;
 	cd = jd->cd;
 	rd = jd->rd;
+
+	/* determine stackframe size (in units of ptrint) */
+
+	stackframesize = nmd->paramslots;
 
 	/* create method header */
 
@@ -1999,7 +2008,7 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	code = code_codeinfo_new(m);
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, nmd->paramslots * SIZEOF_VOID_P); /* FrameSize      */
+	(void) dseg_adds4(cd, stackframesize * SIZEOF_VOID_P);  /* FrameSize      */
 	(void) dseg_adds4(cd, 0);                               /* IsSync         */
 	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
 	(void) dseg_adds4(cd, 0);                               /* IntSave        */
