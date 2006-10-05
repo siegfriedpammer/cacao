@@ -36,7 +36,7 @@ typedef struct Combination {
 } Combination;
 
 Combination peephole_table[] = {
-#include "java-peephole.i"
+#include <java-peephole.i>
   {-1,-1,-1} /* unnecessary; just to shut up lcc if the file is empty */
 };
 

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5553 2006-09-28 18:45:10Z edwin $
+## $Id: Makefile.am 5700 2006-10-05 19:36:21Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -77,7 +77,7 @@ libintrp_la_SOURCES = \
 	patcher.c \
 	peephole.c
 
-$(BUILT_SOURCES): java.vmg prims2x.fs vmgenx
+$(BUILT_SOURCES): $(srcdir)/java.vmg $(srcdir)/prims2x.fs $(srcdir)/vmgenx
 	$(srcdir)/vmgenx $(srcdir)/java.vmg && touch java-peephole.i
 	true #GFORTHPATH=.:/nfs/nfstmp/anton/cacao/:/usr/lib/gforth/site-forth:/usr/share/gforth/site-forth:/usr/lib/gforth/0.6.2:/usr/share/gforth/0.6.2 $(srcdir)/vmgenx $(srcdir)/java.vmg && touch java-peephole.i
 

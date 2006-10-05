@@ -22,8 +22,18 @@ prefix=/usr
 #test "x$GFORTHDIR" != x || GFORTHDIR=${prefix}/bin
 #test "x$GFORTHDATADIR" != x || GFORTHDATADIR=$prefix/share/gforth/0.6.2
 #GFORTH=$GFORTHDIR/gforth-fast
-PRIMS2X=`pwd`/prims2x.fs
+
+# We must get the absolute path of the srcdir, since gforth does not
+# seem to understand relative paths.
+
+relsrcdir=`dirname $0`
+srcdir=`/bin/sh -c "cd $relsrcdir ; pwd"`
+
+PRIMS2X="$srcdir"/prims2x.fs
+
 GFORTH=gforth
+FFLAGS="-m 1000000"
+
 if test $# = 0 || test $1 = --help || test $1 = -h; then
   echo "usage: `basename $0` <file>.vmg"
   exit 0
@@ -37,15 +47,28 @@ elif test $1 = --version || test $1 = -v; then
 else
     true #old shells require this
 fi
-file=`basename $1 .vmg`
-$GFORTH -m 1000000 -e "create vmgen" $PRIMS2X -e "c-flag on s\" $file-vm.i\" out-filename 2! s\" $1\" ' output-c ' output-c-combined process-file bye" > $file-vm.i &&
-$GFORTH -m 1000000 -e "create vmgen" $PRIMS2X -e "c-flag on s\" $1\" ' output-disasm dup process-file bye" > $file-disasm.i &&
-$GFORTH -m 1000000 -e "create vmgen" $PRIMS2X -e "c-flag on s\" $1\" ' output-gen ' noop process-file bye" > $file-gen.i &&
-$GFORTH -m 1000000 -e "create vmgen" $PRIMS2X -e "c-flag on s\" $1\" ' output-label dup process-file bye" > $file-labels.i &&
-$GFORTH -m 1000000 -e "create vmgen" $PRIMS2X -e "c-flag on s\" $1\" ' output-profile dup process-file bye" > $file-profile.i &&
-$GFORTH -m 1000000 -e "create vmgen" $PRIMS2X -e "c-flag on s\" $1\" ' noop ' output-peephole process-file bye" > $file-peephole.i &&
-$GFORTH -m 1000000 -e "create vmgen" $PRIMS2X -e "c-flag on s\" $1\" ' output-superend dup process-file bye" > $file-superend.i &&
-$GFORTH -m 1000000 -e "create vmgen" $PRIMS2X -e "c-flag on s\" $1\" ' output-forthname dup process-file bye" > $file-names.i &&
-true
 
+# basename of source file
+base=`basename $1 .vmg`
+
+# absolute source file name
+af="$srcdir"/`basename $1`
+
+$GFORTH $FFLAGS -e "create vmgen" "$PRIMS2X" \
+				-e "c-flag on s\" $base-vm.i\" out-filename 2! s\" $af\" ' output-c ' output-c-combined process-file bye" > $base-vm.i &&
+$GFORTH $FFLAGS -e "create vmgen" "$PRIMS2X" \
+				-e "c-flag on s\" $af\" ' output-disasm dup process-file bye" > $base-disasm.i &&
+$GFORTH $FFLAGS -e "create vmgen" "$PRIMS2X" \
+				-e "c-flag on s\" $af\" ' output-gen ' noop process-file bye" > $base-gen.i &&
+$GFORTH $FFLAGS -e "create vmgen" "$PRIMS2X" \
+				-e "c-flag on s\" $af\" ' output-label dup process-file bye" > $base-labels.i &&
+$GFORTH $FFLAGS -e "create vmgen" "$PRIMS2X" \
+				-e "c-flag on s\" $af\" ' output-profile dup process-file bye" > $base-profile.i &&
+$GFORTH $FFLAGS -e "create vmgen" "$PRIMS2X" \
+				-e "c-flag on s\" $af\" ' noop ' output-peephole process-file bye" > $base-peephole.i &&
+$GFORTH $FFLAGS -e "create vmgen" "$PRIMS2X" \
+				-e "c-flag on s\" $af\" ' output-superend dup process-file bye" > $base-superend.i &&
+$GFORTH $FFLAGS -e "create vmgen" "$PRIMS2X" \
+				-e "c-flag on s\" $af\" ' output-forthname dup process-file bye" > $base-names.i &&
+true
 

@@ -33,7 +33,7 @@
 Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[])
 {
 #define return do {fputs(" \n             0\t",vm_out); goto _endif2_; } while (0)
-#include "java-profile.i"
+#include <java-profile.i>
 #undef return
   /* else */
   {
@@ -49,7 +49,7 @@ Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[])
 Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[])
 {
   fprintf(vm_out,"%p: ",(void *)ip);
-#include "java-disasm.i"
+#include <java-disasm.i>
   {
     fprintf(vm_out,"unknown instruction %p",ip[0]);
     ip++;

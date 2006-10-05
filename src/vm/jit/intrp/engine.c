@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: engine.c 5699 2006-10-05 17:52:03Z edwin $
+   $Id: engine.c 5700 2006-10-05 19:36:21Z edwin $
 */
 
 
@@ -226,20 +226,20 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
   IF_spTOS(register Cell spTOS TOSREG;)
   static Inst   labels[] = {
 #define INST_ADDR(_inst) (&&I_##_inst)
-#include "java-labels.i"
+#include <java-labels.i>
 #undef INST_ADDR
 	  NULL,
 #define INST_ADDR(_inst) (&&J_##_inst)
-#include "java-labels.i"
+#include <java-labels.i>
 #undef INST_ADDR
 #define INST_ADDR(_inst) (&&K_##_inst)
-#include "java-labels.i"
+#include <java-labels.i>
 #undef INST_ADDR
     (Label)&&after_last,
     (Label)&&before_goto,
     (Label)&&after_goto,
 #define INST_ADDR(_inst) (&&H_##_inst)
-#include "java-labels.i"
+#include <java-labels.i>
 #undef INST_ADDR
   };
   /* local variables for the various throw codes; this helps make
@@ -297,7 +297,7 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
   NEXT;
 
 #define INST_ADDR(_inst) (&&I_##_inst)
-#include "java-vm.i"
+#include <java-vm.i>
 #undef NAME
  after_last: return NULL;
 }

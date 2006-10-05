@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5694 2006-10-05 16:12:16Z edwin $
+   $Id: codegen.c 5700 2006-10-05 19:36:21Z edwin $
 
 */
 
@@ -215,7 +215,8 @@ void genarg_avftbl(codegendata *cd1, vftbl_t *a)
 
 /* include the interpreter generation functions *******************************/
 
-#include "vm/jit/intrp/java-gen.i"
+/* Do not use "java-gen.i", it does not work with builddir. */
+#include <java-gen.i>
 
 
 typedef void (*genfunctionptr) (codegendata *);

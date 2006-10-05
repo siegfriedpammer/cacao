@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 5666 2006-10-04 15:04:52Z twisti $
+   $Id: dynamic-super.c 5700 2006-10-05 19:36:21Z edwin $
 */
 
 
@@ -61,16 +61,16 @@
 s4 no_super=0;   /* option: just use replication, but no dynamic superinsts */
 
 static char MAYBE_UNUSED superend[]={
-#include "java-superend.i"
+#include <java-superend.i>
 };
 
 const char * const prim_names[]={
-#include "java-names.i"
+#include <java-names.i>
 };
 
 enum {
 #define INST_ADDR(_inst) N_##_inst
-#include "java-labels.i"
+#include <java-labels.i>
 #undef INST_ADDR
 };
 
