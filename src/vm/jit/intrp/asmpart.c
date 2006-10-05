@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5694 2006-10-05 16:12:16Z edwin $
+   $Id: asmpart.c 5695 2006-10-05 16:18:10Z edwin $
 
 */
 
@@ -255,7 +255,8 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 		  }
 
 		  if (ip-1 >= (Inst *) ex->startpc && ip-1 < (Inst *) ex->endpc &&
-			  (c == NULL || builtin_instanceof(o, c))) {
+			  (c == NULL || builtin_instanceof(o, c))) 
+		  {
 			  *new_spp = (Cell *)(((u1 *)fp) - framesize - SIZEOF_VOID_P);
 			  *new_fpp = fp;
 			  return (Inst *) (ex->handlerpc);
