@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5698 2006-10-05 17:28:13Z twisti $
+   $Id: threads.c 5704 2006-10-05 20:30:12Z edwin $
 
 */
 
@@ -1275,7 +1275,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	if (opt_intrp) {
 		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-		t->_global_sp = intrp_main_stack + opt_stacksize;
+		thread->_global_sp = intrp_main_stack + opt_stacksize;
 	}
 #endif
 
