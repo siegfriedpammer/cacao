@@ -419,7 +419,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		else
 #endif
 		{
-			deadcode = (bptr->flags >= BBREACHED);
+			deadcode = (bptr->flags < BBREACHED);
 			irstage = stage;
 		}
 

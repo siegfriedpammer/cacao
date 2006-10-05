@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5685 2006-10-05 00:21:12Z edwin $
+   $Id: asmpart.c 5687 2006-10-05 10:39:09Z edwin $
 
 */
 
@@ -227,6 +227,8 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 				  global_sp = (Cell *)(((u1 *)fp) - framesize - SIZEOF_VOID_P);
 
 				  c = resolve_classref_eager(cr.ref);
+
+				  CLEAR_global_sp;
 
 				  if (c == NULL) {
 					  /* Exception resolving the exception class, argh! */
