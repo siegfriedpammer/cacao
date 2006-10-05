@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: utf8.c 5697 2006-10-05 17:23:48Z twisti $
 
 */
 
@@ -128,11 +128,12 @@ utf *utf_clone;                         /* clone                              */
 utf *utf_finalize;                      /* finalize                           */
 utf *utf_run;                           /* run                                */
 
-utf *utf_add;                           /* add                                */
-utf *utf_remove;                        /* remove                             */
-utf *utf_put;                           /* put                                */
-utf *utf_get;                           /* get                                */
-utf *utf_value;                         /* value                              */
+utf *utf_add;
+utf *utf_remove;
+utf *utf_removeThread;
+utf *utf_put;
+utf *utf_get;
+utf *utf_value;
 
 utf *utf_fillInStackTrace;
 utf *utf_getSystemClassLoader;
@@ -164,6 +165,7 @@ utf *utf_void__java_lang_Throwable;     /* ()Ljava/lang/Throwable;            */
 utf *utf_java_lang_Object__java_lang_Object;
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
+utf *utf_java_lang_Thread__V;           /* (Ljava/lang/Thread;)V              */
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
 
 utf *utf_not_named_yet;                 /* special name for unnamed classes   */
@@ -274,6 +276,7 @@ bool utf8_init(void)
 
 	utf_add                        = utf_new_char("add");
 	utf_remove                     = utf_new_char("remove");
+	utf_removeThread               = utf_new_char("removeThread");
 	utf_put                        = utf_new_char("put");
 	utf_get                        = utf_new_char("get");
 	utf_value                      = utf_new_char("value");
@@ -315,6 +318,7 @@ bool utf8_init(void)
 	utf_java_lang_String__java_lang_Class =
 		utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;");
 
+	utf_java_lang_Thread__V        = utf_new_char("(Ljava/lang/Thread;)V");
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
 
 	utf_null                       = utf_new_char("null");
