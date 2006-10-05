@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5630 2006-10-02 13:16:20Z edwin $
+   $Id: codegen-common.c 5703 2006-10-05 20:21:04Z edwin $
 
 */
 
@@ -96,6 +96,10 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/stacktrace.h"
 #include "vm/jit/replace.h"
+
+#if defined(ENABLE_INTRP)
+#include "vm/jit/intrp/intrp.h"
+#endif
 
 
 /* in this tree we store all method addresses *********************************/
