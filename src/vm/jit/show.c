@@ -144,6 +144,7 @@ void show_method(jitdata *jd, int stage)
 	exceptiontable *ex;
 	s4              i, j;
 	u1             *u1ptr;
+	int             irstage;
 
 	/* get required compiler data */
 
@@ -157,6 +158,13 @@ void show_method(jitdata *jd, int stage)
 	   at the same time. */
 
 	LOCK_MONITOR_ENTER(show_global_lock);
+
+#if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		irstage = SHOW_PARSE;
+	else
+#endif
+		irstage = stage;
 
 	/* get the last basic block */
 
@@ -198,7 +206,7 @@ void show_method(jitdata *jd, int stage)
 		}
 	}
 	
-	if (stage >= SHOW_PARSE && rd && jd->localcount > 0) {
+	if (irstage >= SHOW_PARSE && rd && jd->localcount > 0) {
 		printf("Local Table:\n");
 		for (i = 0; i < jd->localcount; i++) {
 			printf("   %3d: ", i);
@@ -208,7 +216,7 @@ void show_method(jitdata *jd, int stage)
 			if (!opt_intrp) {
 # endif
 				printf("   (%s) ", show_jit_type_names[VAR(i)->type]);
-				if (stage >= SHOW_REGS)
+				if (irstage >= SHOW_REGS)
 					show_allocation(VAR(i)->type, VAR(i)->flags, VAR(i)->vv.regoff);
 				printf("\n");
 # if defined(ENABLE_INTRP)
@@ -239,7 +247,7 @@ void show_method(jitdata *jd, int stage)
 		printf("\n");
 	}
 
-	if (cd->maxstack > 0 && jd->interface_map && stage >= SHOW_STACK) {
+	if (cd->maxstack > 0 && jd->interface_map && irstage >= SHOW_STACK) {
 		bool exist = false;
 		interface_info *mapptr = jd->interface_map;
 		
@@ -265,7 +273,7 @@ void show_method(jitdata *jd, int stage)
 					else {
 						int ch;
 
-						if (stage >= SHOW_REGS) {
+						if (irstage >= SHOW_REGS) {
 							if (flags & SAVEDVAR) {
 								if (flags & INMEMORY)
 									ch = 'M';
@@ -296,12 +304,12 @@ void show_method(jitdata *jd, int stage)
 		}
 	}
 
-	if (rd->memuse && stage >= SHOW_REGS) {
+	if (rd->memuse && irstage >= SHOW_REGS) {
 		int max;
 
 		max = rd->memuse;
 		printf("Stack slots: (memuse=%d", rd->memuse);
-		if (stage >= SHOW_CODE) {
+		if (irstage >= SHOW_CODE) {
 			printf(", stackframesize=%d", cd->stackframesize);
 			max = cd->stackframesize;
 		}
@@ -315,7 +323,7 @@ void show_method(jitdata *jd, int stage)
 			for (j=0; j<jd->varcount; ++j) {
 				varinfo *v = VAR(j);
 				if ((v->flags & INMEMORY) && (v->vv.regoff == i)) {
-					show_variable(jd, j, stage);
+					show_variable(jd, j, irstage);
 					putchar(' ');
 				}
 			}
@@ -394,6 +402,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	bool         deadcode;
 	instruction *iptr;
 	u1          *u1ptr;
+	int          irstage;
 
 	/* get required compiler data */
 
@@ -402,7 +411,17 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	cd   = jd->cd;
 
 	if (bptr->flags != BBDELETED) {
-		deadcode = bptr->flags <= BBREACHED;
+#if defined(ENABLE_INTRP)
+		if (opt_intrp) {
+			deadcode = false;
+			irstage = SHOW_PARSE;
+		}
+		else
+#endif
+		{
+			deadcode = (bptr->flags >= BBREACHED);
+			irstage = stage;
+		}
 
 		printf("======== %sL%03d ======== %s(flags: %d, bitflags: %01x, next: %d, type: ",
 				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
@@ -425,7 +444,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 		printf(", icount: %d", bptr->icount);
 
-		if (stage >= SHOW_CFG) {
+		if (irstage >= SHOW_CFG) {
 			printf(", preds: %d [ ", bptr->predecessorcount);
 
 			for (i = 0; i < bptr->predecessorcount; i++)
@@ -450,9 +469,9 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 		printf("\n");
 
-		if (stage >= SHOW_STACK) {
+		if (irstage >= SHOW_STACK) {
 			printf("IN:  ");
-			show_variable_array(jd, bptr->invars, bptr->indepth, stage);
+			show_variable_array(jd, bptr->invars, bptr->indepth, irstage);
 			printf("\n");
 		}
 
@@ -461,13 +480,13 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		for (i = 0; i < bptr->icount; i++, iptr++) {
 			printf("%4d:  ", iptr->line);
 
-			show_icmd(jd, iptr, deadcode, stage);
+			show_icmd(jd, iptr, deadcode, irstage);
 			printf("\n");
 		}
 
-		if (stage >= SHOW_STACK) {
+		if (irstage >= SHOW_STACK) {
 			printf("OUT: ");
-			show_variable_array(jd, bptr->outvars, bptr->outdepth, stage);
+			show_variable_array(jd, bptr->outvars, bptr->outdepth, irstage);
 			printf("\n");
 		}
 

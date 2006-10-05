@@ -31,7 +31,7 @@
             Anton Ertl
 			Edwin Steiner
 
-   $Id: disass.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: disass.c 5684 2006-10-05 00:06:23Z edwin $
 
 */
 
@@ -54,7 +54,15 @@
 
 u1 *intrp_disassinstr(u1 *code)
 {
-	return (u1 *) vm_disassemble_inst((Inst *) code, vm_prim);
+	FILE *savedout;
+	u1   *r;
+
+	savedout = vm_out;
+	vm_out = stdout;
+	r = (u1 *) vm_disassemble_inst((Inst *) code, vm_prim);
+	vm_out = savedout;
+
+	return r;
 }
 
 
@@ -68,8 +76,13 @@ u1 *intrp_disassinstr(u1 *code)
 
 void intrp_disassemble(u1 *start, u1 *end)
 {
+	FILE *savedout;
+
 	printf("  --- disassembler listing ---\n");
+	savedout = vm_out;
+	vm_out = stdout;
 	vm_disassemble((Inst *) start, (Inst *) end, vm_prim);
+	vm_out = savedout;
 }
 
 
