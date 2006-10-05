@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5687 2006-10-05 10:39:09Z edwin $
+   $Id: asmpart.c 5694 2006-10-05 16:12:16Z edwin $
 
 */
 
@@ -178,6 +178,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 	classinfo            *c;
 	classref_or_classinfo cr;
 	s4                    framesize;
+	s4                    issync;
 	exceptionentry       *ex;
 	s4                    exceptiontablelength;
 	s4                    i;
@@ -193,6 +194,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 	  methodinfo *m = code->m;
 
 	  framesize            = *((s4 *)             (((u1 *) f) + FrameSize));
+	  issync               = *((s4 *)             (((u1 *) f) + IsSync));
 	  ex                   =   (exceptionentry *) (((u1 *) f) + ExTableStart);
 	  exceptiontablelength = *((s4 *)             (((u1 *) f) + ExTableSize));
 
@@ -259,6 +261,29 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 			  return (Inst *) (ex->handlerpc);
 		  }
 	  }
+
+#if defined(ENABLE_THREADS)
+	  /* is this method synchronized? */
+
+	  if (issync) {
+		  java_objectheader *syncobj;
+
+		  /* get synchronization object */
+
+		  if (m->flags & ACC_STATIC) {
+			  syncobj = (java_objectheader *) m->class;
+		  }
+		  else {
+			  syncobj = (java_objectheader *) access_local_cell(-framesize + SIZEOF_VOID_P);
+		  }
+
+		  assert(syncobj != NULL);
+
+		  lock_monitor_exit(syncobj);
+	  }
+#endif /* defined(ENABLE_THREADS) */
+
+	  /* unwind stack frame */
 
 	  ip = (Inst *)access_local_cell(-framesize - SIZEOF_VOID_P);
 	  fp = (Cell *)access_local_cell(-framesize);

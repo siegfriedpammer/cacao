@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5693 2006-10-05 15:43:38Z edwin $
+   $Id: codegen.c 5694 2006-10-05 16:12:16Z edwin $
 
 */
 
@@ -364,10 +364,14 @@ bool intrp_codegen(jitdata *jd)
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-		if (m->flags & ACC_STATIC)
+		if (m->flags & ACC_STATIC) {
 			gen_ACONST(cd, (java_objectheader *) m->class);
-		else
+		}
+		else {
 			gen_ALOAD(cd, 0);
+			gen_DUP(cd);
+			gen_ASTORE(cd, index2offset(m->maxlocals));
+		}
 		
 		gen_MONITORENTER(cd);
 	}			
@@ -1524,7 +1528,7 @@ dont_opt_IF_LCMPxx:
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
-					gen_ALOAD(cd, 0);
+					gen_ALOAD(cd, index2offset(m->maxlocals));
 				}
 				gen_MONITOREXIT(cd);
 			}
@@ -1543,7 +1547,7 @@ dont_opt_IF_LCMPxx:
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
-					gen_ALOAD(cd, 0);
+					gen_ALOAD(cd, index2offset(m->maxlocals));
 				}
 				gen_MONITOREXIT(cd);
 			}
@@ -1561,7 +1565,7 @@ dont_opt_IF_LCMPxx:
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
-					gen_ALOAD(cd, 0);
+					gen_ALOAD(cd, index2offset(m->maxlocals));
 				}
 				gen_MONITOREXIT(cd);
 			}
