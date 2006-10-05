@@ -27,9 +27,9 @@
    Authors: Christian Thalinger
             Anton Ertl
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: asmpart.c 5695 2006-10-05 16:18:10Z edwin $
+   $Id: asmpart.c 5699 2006-10-05 17:52:03Z edwin $
 
 */
 
@@ -327,4 +327,5 @@ void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

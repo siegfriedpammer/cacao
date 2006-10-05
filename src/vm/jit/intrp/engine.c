@@ -27,9 +27,9 @@
    Authors: Christian Thalinger
             Anton Ertl
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: engine.c 5692 2006-10-05 15:33:42Z edwin $
+   $Id: engine.c 5699 2006-10-05 17:52:03Z edwin $
 */
 
 
@@ -314,4 +314,5 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
