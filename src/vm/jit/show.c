@@ -1127,6 +1127,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_IFGT:
 	case ICMD_IFLE:
 		SHOW_S1(iptr);
+		SHOW_INT_CONST(iptr->sx.val.i);	
 		SHOW_TARGET(iptr->dst);
 		break;
 
@@ -1137,6 +1138,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_IF_LGT:
 	case ICMD_IF_LLE:
 		SHOW_S1(iptr);
+		SHOW_LNG_CONST(iptr->sx.val.l);	
 		SHOW_TARGET(iptr->dst);
 		break;
 
