@@ -724,12 +724,12 @@ void emit_verbosecall_enter(jitdata *jd)
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[p].inmemory) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(rd->argintregs[GET_HIGH_REG(md->params[p].vv.regoff)]
+					M_ILD(rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]
 						  , REG_SP, stack_off);
-					M_ILD(rd->argintregs[GET_LOW_REG(md->params[p].vv.regoff)]
+					M_ILD(rd->argintregs[GET_LOW_REG(md->params[p].regoff)]
 						  , REG_SP, stack_off + 4);
 				} else {
-					M_ILD(rd->argintregs[md->params[p].vv.regoff]
+					M_ILD(rd->argintregs[md->params[p].regoff]
 						  , REG_SP, stack_off + 4);
 				}
 			}
