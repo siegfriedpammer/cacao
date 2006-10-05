@@ -991,7 +991,7 @@ INVOKEVIRTUAL ( #vOffset #iNargs #am ... -- ... acelloldfp ainstoldip ) 0xd8
   acelloldfp = fp;
   ainstoldip = IP;
   fp = sp - 1 + iNargs;
-  sp = fp - MAXLOCALS(stub) + 1;
+  sp = fp - FRAMESIZE(stub) + 1;
   SET_IP(target);
 }
 
@@ -1002,7 +1002,7 @@ INVOKESTATIC ( #aaTarget #iNargs #am ... -- ... acelloldfp ainstoldip ) 0xb8
   acelloldfp = fp;
   ainstoldip = IP;
   fp = sp - 1 + iNargs; /* !! scale nargs at translation time */
-  sp = fp - MAXLOCALS(aaTarget) + 1;
+  sp = fp - FRAMESIZE(aaTarget) + 1;
   SET_IP(target);
 }
 
@@ -1015,7 +1015,7 @@ INVOKESPECIAL ( #aaTarget #iNargs #am ... -- ... acelloldfp ainstoldip ) 0xb7
   acelloldfp = fp;
   ainstoldip = IP;
   fp = sp - 1 + iNargs; /* !! scale nargs at translation time */
-  sp = fp - MAXLOCALS(aaTarget) + 1;
+  sp = fp - FRAMESIZE(aaTarget) + 1;
   SET_IP(target);
 }
 
@@ -1035,7 +1035,7 @@ INVOKEINTERFACE ( #iInterfaceOffset #vOffset #iNargs #am ... -- ... acelloldfp a
   acelloldfp = fp;
   ainstoldip = IP;
   fp = sp - 1 + iNargs;
-  sp = fp - MAXLOCALS(stub) + 1;
+  sp = fp - FRAMESIZE(stub) + 1;
   SET_IP(target);
 }
 

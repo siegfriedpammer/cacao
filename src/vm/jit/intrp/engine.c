@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: engine.c 5670 2006-10-04 18:23:19Z edwin $
+   $Id: engine.c 5692 2006-10-05 15:33:42Z edwin $
 */
 
 
@@ -196,7 +196,8 @@
 #define access_array_float(array, index)               \
         ((((java_floatarray*)(array))->data)[index])
 
-#define MAXLOCALS(stub) (((Cell *)stub)[1])
+/* (see createcompilerstub in codegen.c) */
+#define FRAMESIZE(stub) (((Cell *)stub)[1])
 
 #if 0
 #define CLEARSTACK(_start, _end) \

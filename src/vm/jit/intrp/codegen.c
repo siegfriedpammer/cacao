@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5689 2006-10-05 10:50:39Z edwin $
+   $Id: codegen.c 5692 2006-10-05 15:33:42Z edwin $
 
 */
 
@@ -315,10 +315,21 @@ bool intrp_codegen(jitdata *jd)
 	lm = NULL;
 	bte = NULL;
 
+	/* determine stackframe size (in units of ptrint slots) */
+
+	cd->stackframesize = m->maxlocals;
+
+#if 0
+#if defined(ENABLE_THREADS)
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+		cd->stackframesize += 1;
+#endif
+#endif
+
 	/* create method header */
 
 	(void) dseg_addaddress(cd, jd->code);                  /* CodeinfoPointer */
-	(void) dseg_adds4(cd, m->maxlocals * SIZEOF_VOID_P);    /* FrameSize      */
+	(void) dseg_adds4(cd, cd->stackframesize * SIZEOF_VOID_P); /* FrameSize   */
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
@@ -1523,7 +1534,7 @@ dont_opt_IF_LCMPxx:
 			if (opt_verbosecall)
 				gen_TRACERETURN(cd, m);
 
-			gen_IRETURN(cd, index2offset(cd->maxlocals));
+			gen_IRETURN(cd, index2offset(cd->stackframesize));
 			break;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
@@ -1542,7 +1553,7 @@ dont_opt_IF_LCMPxx:
 			if (opt_verbosecall)
 				gen_TRACELRETURN(cd, m);
 
-			gen_LRETURN(cd, index2offset(cd->maxlocals));
+			gen_LRETURN(cd, index2offset(cd->stackframesize));
 			break;
 
 		case ICMD_RETURN:       /* ...  ==> ...                               */
@@ -1560,7 +1571,7 @@ dont_opt_IF_LCMPxx:
 			if (opt_verbosecall)
 				gen_TRACERETURN(cd, m);
 
-			gen_RETURN(cd, index2offset(cd->maxlocals));
+			gen_RETURN(cd, index2offset(cd->stackframesize));
 			break;
 
 
@@ -1809,7 +1820,7 @@ dont_opt_IF_LCMPxx:
    +-------------+ <-- stub
    | codeptr     |
    +-------------+
-   | maxlocals   |
+   | framesize   |  (in ptrint units, does not include return address)
    +-------------+
    | TRANSLATE   |
    +-------------+
@@ -1835,6 +1846,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	codegendata *cd;
 	codeinfo    *code;
 	s4           dumpsize;
+	s4           stackframesize;
 
 	s = CNEW(Inst, COMPILERSTUB_SIZE);
 
@@ -1861,10 +1873,12 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	genarg_ainst(cd, s + 2);
 
 	if (m->flags & ACC_NATIVE) {
-		genarg_i(cd, m->parseddesc->paramslots);
+		stackframesize = m->parseddesc->paramslots;
 	} else {
-		genarg_i(cd, m->maxlocals);
+		stackframesize = m->maxlocals;
 	}
+
+	genarg_i(cd, stackframesize);
 
 	gen_BBSTART;
 	gen_TRANSLATE(cd, m);
