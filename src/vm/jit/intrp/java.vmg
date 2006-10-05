@@ -1858,20 +1858,47 @@ assert(false);
 
 TRACECALL ( #am -- )
 #if !defined(NDEBUG)
-builtin_trace_args(
-	access_local_cell(0 * -SIZEOF_VOID_P),
-	access_local_cell(1 * -SIZEOF_VOID_P),
-	access_local_cell(2 * -SIZEOF_VOID_P),
-	access_local_cell(3 * -SIZEOF_VOID_P),
+#if SIZEOF_VOID_P == 4
+{
+    s8 args[TRACE_ARGS_NUM];
+    int i;
+    int ofs = 0;
+    typedesc *params = am->parseddesc->paramtypes;
+    for (i=0; i < TRACE_ARGS_NUM; ++i, ++params) {
+        if (IS_2_WORD_TYPE(params->type)) {
+            vm_twoCell2l(access_local_cell(ofs), access_local_cell(ofs - SIZEOF_VOID_P), args[i]);
+            ofs -= 2*SIZEOF_VOID_P;
+        }
+        else {
+            args[i] = access_local_cell(ofs);
+            ofs -= SIZEOF_VOID_P;
+        }
+    }
+    builtin_trace_args(args[0], args[1], args[2], args[3],  
 #if TRACE_ARGS_NUM > 4
-	access_local_cell(4 * -SIZEOF_VOID_P),
-	access_local_cell(5 * -SIZEOF_VOID_P),
+            args[4], args[5],
 #endif
 #if TRACE_ARGS_NUM == 8
-	access_local_cell(6 * -SIZEOF_VOID_P),
-	access_local_cell(7 * -SIZEOF_VOID_P),
+            args[6], args[7],
 #endif
-	am);
+            am);
+}
+#else /* SIZEOF_VOID_P */
+    builtin_trace_args(
+        access_local_cell(0 * -SIZEOF_VOID_P),
+        access_local_cell(1 * -SIZEOF_VOID_P),
+        access_local_cell(2 * -SIZEOF_VOID_P),
+        access_local_cell(3 * -SIZEOF_VOID_P),
+#if TRACE_ARGS_NUM > 4
+        access_local_cell(4 * -SIZEOF_VOID_P),
+        access_local_cell(5 * -SIZEOF_VOID_P),
+#endif
+#if TRACE_ARGS_NUM == 8
+        access_local_cell(6 * -SIZEOF_VOID_P),
+        access_local_cell(7 * -SIZEOF_VOID_P),
+#endif
+        am);
+#endif /* SIZEOF_VOID_P */
 #endif /* !defined(NDEBUG) */
 
 TRACERETURN ( #am v -- v )
