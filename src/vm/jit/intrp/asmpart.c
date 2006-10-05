@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 5670 2006-10-04 18:23:19Z edwin $
+   $Id: asmpart.c 5685 2006-10-05 00:21:12Z edwin $
 
 */
 
@@ -206,7 +206,11 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 
 		  cr = ex->catchtype;
 
-		  if (cr.any != NULL) {
+		  if (cr.any == NULL) {
+			  /* catch all */
+			  c = NULL;
+		  }
+		  else {
 			  if (IS_CLASSREF(cr)) {
 				  /* The exception class reference is unresolved. */
 				  /* We have to do _eager_ resolving here. While the class of */
