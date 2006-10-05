@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5691 2006-10-05 14:13:06Z twisti $
+   $Id: jni.c 5698 2006-10-05 17:28:13Z twisti $
 
 */
 
@@ -5540,13 +5540,9 @@ jint _Jv_JNI_DestroyJavaVM(JavaVM *vm)
 
 *******************************************************************************/
 
-jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
+static s4 jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon)
 {
 	JavaVMAttachArgs *vm_aargs;
-
-	STATISTICS(jniinvokation());
-
-	log_text("JNI-Call: AttachCurrentThread");
 
 #if defined(ENABLE_THREADS)
 	if (threads_get_current_threadobject() == NULL) {
@@ -5572,6 +5568,14 @@ jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 }
 
 
+jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
+{
+	STATISTICS(jniinvokation());
+
+	return jni_attach_current_thread(p_env, thr_args, false);
+}
+
+
 /* DetachCurrentThread *********************************************************
 
    Detaches the current thread from a Java VM. All Java monitors held
@@ -5591,11 +5595,19 @@ jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 
 jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 {
+	threadobject *thread;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: DetachCurrentThread: IMPLEMENT ME!");
+	thread = threads_get_current_threadobject();
 
-	return 0;
+	if (thread == NULL)
+		return JNI_ERR;
+
+	if (!threads_detach_thread(thread))
+		return JNI_ERR;
+
+	return JNI_OK;
 }
 
 
@@ -5667,9 +5679,7 @@ jint _Jv_JNI_AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
 {
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: AttachCurrentThreadAsDaemon: IMPLEMENT ME!");
-
-	return 0;
+	return jni_attach_current_thread(penv, args, true);
 }
 
 

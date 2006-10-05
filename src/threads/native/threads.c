@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5691 2006-10-05 14:13:06Z twisti $
+   $Id: threads.c 5698 2006-10-05 17:28:13Z twisti $
 
 */
 
@@ -212,8 +212,8 @@ static void threads_table_dump(FILE *file);
 /* the main thread                                                            */
 threadobject *mainthreadobj;
 
-methodinfo *method_thread_init;
-methodinfo *method_threadgroup_add;
+static methodinfo *method_thread_init;
+static methodinfo *method_threadgroup_add;
 
 /* the thread object of the current thread                                    */
 /* This is either a thread-local variable defined with __thread, or           */
@@ -751,6 +751,28 @@ bool threads_init(void)
 
 	class_java_lang_VMThread->instancesize = sizeof(threadobject);
 
+	/* get methods we need in this file */
+
+	method_thread_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
+								 class_java_lang_Thread,
+								 true);
+
+	if (method_thread_init == NULL)
+		return false;
+
+	method_threadgroup_add =
+		class_resolveclassmethod(class_java_lang_ThreadGroup,
+								 utf_new_char("addThread"),
+								 utf_new_char("(Ljava/lang/Thread;)V"),
+								 class_java_lang_ThreadGroup,
+								 true);
+
+	if (method_threadgroup_add == NULL)
+		return false;
+
 	/* create a VMThread */
 
 	mainthreadobj = (threadobject *) builtin_new(class_java_lang_VMThread);
@@ -805,16 +827,6 @@ bool threads_init(void)
 
 	/* call Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
 
-	method_thread_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
-								 class_java_lang_Thread,
-								 true);
-
-	if (method_thread_init == NULL)
-		return false;
-
 	(void) vm_call_method(method_thread_init, (java_objectheader *) mainthread,
 						  mainthreadobj, threadname, NORM_PRIORITY, false);
 
@@ -824,16 +836,6 @@ bool threads_init(void)
 	mainthread->group = threadgroup;
 
 	/* add mainthread to ThreadGroup */
-
-	method_threadgroup_add =
-		class_resolveclassmethod(class_java_lang_ThreadGroup,
-								 utf_new_char("addThread"),
-								 utf_new_char("(Ljava/lang/Thread;)V"),
-								 class_java_lang_ThreadGroup,
-								 true);
-
-	if (method_threadgroup_add == NULL)
-		return false;
 
 	(void) vm_call_method(method_threadgroup_add, 
 						  (java_objectheader *) threadgroup,
@@ -1107,13 +1109,12 @@ static void *threads_startup_thread(void *t)
 		thread->_global_sp = (void *) (intrp_thread_stack + opt_stacksize);
 #endif
 
-
-
 #if defined(ENABLE_JVMTI)
 	/* fire thread start event */
-	if (jvmti) jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_START);
-#endif
 
+	if (jvmti) 
+		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_START);
+#endif
 
 	/* find and run the Thread.run()V method if no other function was passed */
 
@@ -1153,37 +1154,12 @@ static void *threads_startup_thread(void *t)
 
 #if defined(ENABLE_JVMTI)
 	/* fire thread end event */
-	if (jvmti) jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_END);
+
+	if (jvmti)
+		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_END);
 #endif
 
-
-	/* Allow lock record pools to be used by other threads. They
-	   cannot be deleted so we'd better not waste them. */
-
-	/* XXX We have to find a new way to free lock records */
-	/*     with the new locking algorithm.                */
-	/* lock_record_free_pools(thread->ee.lockrecordpools); */
-
-	/* remove thread from thread list and threads table, do this inside a lock */
-
-	pthread_mutex_lock(&threadlistlock);
-
-	thread->next->prev = thread->prev;
-	thread->prev->next = thread->next;
-
-	threads_table_remove(thread);
-
-	pthread_mutex_unlock(&threadlistlock);
-
-	/* reset thread id (lock on joinmutex? TWISTI) */
-
-	pthread_mutex_lock(&thread->joinmutex);
-	thread->tid = 0;
-	pthread_mutex_unlock(&thread->joinmutex);
-
-	/* tell everyone that a thread has finished */
-
-	pthread_cond_broadcast(&thread->joincond);
+	threads_detach_thread(thread);
 
 	return NULL;
 }
@@ -1253,46 +1229,46 @@ void threads_start_thread(java_lang_Thread *t, functionptr function)
 
 /* threads_attach_current_thread ***********************************************
 
-   Attaches the current thread to the VM.  Required in JNI.
+   Attaches the current thread to the VM.  Used in JNI.
 
 *******************************************************************************/
 
 bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
-	threadobject          *t;
-	java_lang_Thread      *thread;
+	threadobject          *thread;
+	java_lang_Thread      *t;
 	utf                   *u;
 	java_lang_String      *s;
-	char                  *name;
 	java_lang_ThreadGroup *group;
+	java_objectheader     *o;
 
 	/* create a java.lang.VMThread object */
 
-	t = (threadobject *) builtin_new(class_java_lang_VMThread);
+	thread = (threadobject *) builtin_new(class_java_lang_VMThread);
 
-	if (t == NULL)
+	if (thread == NULL)
 		return false;
 
-	threads_init_threadobject(&t->o);
-	threads_set_current_threadobject(t);
-	lock_init_execution_env(t);
+	threads_init_threadobject(&thread->o);
+	threads_set_current_threadobject(thread);
+	lock_init_execution_env(thread);
 
 	/* insert the thread into the threadlist and the threads table */
 
 	pthread_mutex_lock(&threadlistlock);
 
-	t->prev             = mainthreadobj;
-	t->next             = mainthreadobj->next;
-	mainthreadobj->next = t;
-	t->next->prev       = t;
+	thread->prev        = mainthreadobj;
+	thread->next        = mainthreadobj->next;
+	mainthreadobj->next = thread;
+	thread->next->prev  = thread;
 
-	threads_table_add(t);
+	threads_table_add(thread);
 
 	pthread_mutex_unlock(&threadlistlock);
 
 	/* mark main thread as Java thread */
 
-	t->flags = THREAD_FLAG_JAVA;
+	thread->flags = THREAD_FLAG_JAVA;
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -1305,12 +1281,12 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* create a java.lang.Thread object */
 
-	thread = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	if (thread == NULL)
+	if (t == NULL)
 		return false;
 
-	t->o.thread = thread;
+	thread->o.thread = t;
 
 	if (vm_aargs != NULL) {
 		u     = utf_new_char(vm_aargs->name);
@@ -1323,20 +1299,97 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	s = javastring_new(u);
 
-	(void) vm_call_method(method_thread_init, (java_objectheader *) thread, t,
-						  s, NORM_PRIORITY, isdaemon);
+	o = (java_objectheader *) t;
+
+	(void) vm_call_method(method_thread_init, o, thread, s, NORM_PRIORITY,
+						  isdaemon);
 
 	if (*exceptionptr)
 		return false;
 
 	/* store the thread group in the object */
 
-	thread->group = group;
+	t->group = group;
 
-	(void) vm_call_method(method_threadgroup_add, group, thread);
+	o = (java_objectheader *) group;
+
+	(void) vm_call_method(method_threadgroup_add, o, t);
 
 	if (*exceptionptr)
 		return false;
+
+	return true;
+}
+
+
+/* threads_detach_thread *******************************************************
+
+   Detaches the passed thread from the VM.  Used in JNI.
+
+*******************************************************************************/
+
+bool threads_detach_thread(threadobject *thread)
+{
+	java_lang_Thread      *t;
+	java_lang_ThreadGroup *group;
+	methodinfo            *m;
+	java_objectheader     *o;
+
+	/* Allow lock record pools to be used by other threads. They
+	   cannot be deleted so we'd better not waste them. */
+
+	/* XXX We have to find a new way to free lock records */
+	/*     with the new locking algorithm.                */
+	/* lock_record_free_pools(thread->ee.lockrecordpools); */
+
+	/* XXX implement uncaught exception stuff (like JamVM does) */
+
+	/* remove thread from the thread group */
+
+	t     = thread->o.thread;
+	group = t->group;
+
+	/* XXX TWISTI: should all threads be in a ThreadGroup? */
+
+	if (group != NULL) {
+		m = class_resolveclassmethod(group->header.vftbl->class,
+									 utf_removeThread,
+									 utf_java_lang_Thread__V,
+									 class_java_lang_ThreadGroup,
+									 true);
+
+		if (m == NULL)
+			return false;
+
+		o = (java_objectheader *) group;
+
+		(void) vm_call_method(m, o, t);
+
+		if (*exceptionptr)
+			return false;
+	}
+
+	/* remove thread from thread list and threads table, do this
+	   inside a lock */
+
+	pthread_mutex_lock(&threadlistlock);
+
+	thread->next->prev = thread->prev;
+	thread->prev->next = thread->next;
+
+	threads_table_remove(thread);
+
+	pthread_mutex_unlock(&threadlistlock);
+
+	/* reset thread id (lock on joinmutex? TWISTI) */
+
+	pthread_mutex_lock(&thread->joinmutex);
+	thread->tid = 0;
+	pthread_mutex_unlock(&thread->joinmutex);
+
+	/* tell everyone that a thread has finished */
+
+	pthread_cond_broadcast(&thread->joincond);
 
 	return true;
 }

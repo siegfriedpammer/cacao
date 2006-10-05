@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 5691 2006-10-05 14:13:06Z twisti $
+   $Id: threads.h 5698 2006-10-05 17:28:13Z twisti $
 
 */
 
@@ -209,6 +209,7 @@ void threads_init_threadobject(java_lang_VMThread *);
 void threads_start_thread(java_lang_Thread *t, functionptr function);
 
 bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
+bool threads_detach_thread(threadobject *thread);
 
 void threads_join_all_threads(void);
 
