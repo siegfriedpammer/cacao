@@ -54,6 +54,7 @@
 \E s" u1 *"                single data-stack type-prefix addr
 \E s" functionptr"         single data-stack type-prefix af
 \E s" methodinfo *"        single data-stack type-prefix am
+\E s" fieldinfo *"         single data-stack type-prefix afi
 \E s" Cell *"              single data-stack type-prefix acell
 \E s" Inst *"              single data-stack type-prefix ainst
 \E s" unresolved_field *"  single data-stack type-prefix auf

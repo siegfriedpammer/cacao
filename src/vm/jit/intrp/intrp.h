@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: intrp.h 4953 2006-05-25 12:28:51Z twisti $
+   $Id: intrp.h 5701 2006-10-05 20:04:38Z edwin $
 
 */
 
@@ -207,15 +207,16 @@ extern Inst *vm_prim;
 extern Cell peeptable;
 extern FILE *vm_out;
 
+/* defined in peephole.c: */
 void init_peeptable(void);
 ptrint peephole_opt(ptrint inst1, ptrint inst2, Cell peeptable);
-void gen_inst(codegendata *cd, ptrint instr);
 
-void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[]);
-Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[]);
-
+/* defined in engine.c: */
 java_objectheader *engine(Inst *ip0, Cell * sp, Cell * fp);
 
+/* defined in disass.c: */
+void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[]);
+Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[]);
 
 /* print types for disassembler and tracer */
 void printarg_ui      (u4                 ui      );
@@ -242,13 +243,21 @@ void printarg_aum     (unresolved_method *aum     );
 void printarg_avftbl  (vftbl_t *          avftbl  );
 void printarg_Cell    (Cell               x       );
 
+/* defined in profile.c: */
 void vm_uncount_block(Inst *ip);
 block_count *vm_block_insert(Inst *ip);
 
+/* defined in codegen.c: */
 Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 *addrcif);
 u1 *createcalljavafunction(methodinfo *m);
 
+/* defined in asmpart.c: */
 Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp);
+
+/* defined in dynamic-super.c: */
+void gen_inst(codegendata *cd, ptrint instr);
+void append_dispatch(codegendata *cd);
+void finish_ss(codegendata *cd);
 
 #endif /* _INTRP_H */
 
