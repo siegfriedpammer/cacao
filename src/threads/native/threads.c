@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5590 2006-09-30 13:51:12Z michi $
+   $Id: threads.c 5691 2006-10-05 14:13:06Z twisti $
 
 */
 
@@ -211,6 +211,9 @@ static void threads_table_dump(FILE *file);
 
 /* the main thread                                                            */
 threadobject *mainthreadobj;
+
+methodinfo *method_thread_init;
+methodinfo *method_threadgroup_add;
 
 /* the thread object of the current thread                                    */
 /* This is either a thread-local variable defined with __thread, or           */
@@ -735,7 +738,6 @@ bool threads_init(void)
 	java_lang_Thread      *mainthread;
 	java_lang_ThreadGroup *threadgroup;
 	threadobject          *tempthread;
-	methodinfo            *method;
 
 	tempthread = mainthreadobj;
 
@@ -803,17 +805,18 @@ bool threads_init(void)
 
 	/* call Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
 
-	method = class_resolveclassmethod(class_java_lang_Thread,
-									  utf_init,
-									  utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
-									  class_java_lang_Thread,
-									  true);
+	method_thread_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
+								 class_java_lang_Thread,
+								 true);
 
-	if (method == NULL)
+	if (method_thread_init == NULL)
 		return false;
 
-	(void) vm_call_method(method, (java_objectheader *) mainthread,
-						  mainthreadobj, threadname, 5, false);
+	(void) vm_call_method(method_thread_init, (java_objectheader *) mainthread,
+						  mainthreadobj, threadname, NORM_PRIORITY, false);
 
 	if (*exceptionptr)
 		return false;
@@ -822,22 +825,24 @@ bool threads_init(void)
 
 	/* add mainthread to ThreadGroup */
 
-	method = class_resolveclassmethod(class_java_lang_ThreadGroup,
-									  utf_new_char("addThread"),
-									  utf_new_char("(Ljava/lang/Thread;)V"),
-									  class_java_lang_ThreadGroup,
-									  true);
+	method_threadgroup_add =
+		class_resolveclassmethod(class_java_lang_ThreadGroup,
+								 utf_new_char("addThread"),
+								 utf_new_char("(Ljava/lang/Thread;)V"),
+								 class_java_lang_ThreadGroup,
+								 true);
 
-	if (method == NULL)
+	if (method_threadgroup_add == NULL)
 		return false;
 
-	(void) vm_call_method(method, (java_objectheader *) threadgroup,
+	(void) vm_call_method(method_threadgroup_add, 
+						  (java_objectheader *) threadgroup,
 						  mainthread);
 
 	if (*exceptionptr)
 		return false;
 
-	threads_set_thread_priority(pthread_self(), 5);
+	threads_set_thread_priority(pthread_self(), NORM_PRIORITY);
 
 	/* initialize the thread attribute object */
 
@@ -1243,6 +1248,97 @@ void threads_start_thread(java_lang_Thread *t, functionptr function)
 
 	sem_destroy(&sem);
 	sem_destroy(&sem_first);
+}
+
+
+/* threads_attach_current_thread ***********************************************
+
+   Attaches the current thread to the VM.  Required in JNI.
+
+*******************************************************************************/
+
+bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
+{
+	threadobject          *t;
+	java_lang_Thread      *thread;
+	utf                   *u;
+	java_lang_String      *s;
+	char                  *name;
+	java_lang_ThreadGroup *group;
+
+	/* create a java.lang.VMThread object */
+
+	t = (threadobject *) builtin_new(class_java_lang_VMThread);
+
+	if (t == NULL)
+		return false;
+
+	threads_init_threadobject(&t->o);
+	threads_set_current_threadobject(t);
+	lock_init_execution_env(t);
+
+	/* insert the thread into the threadlist and the threads table */
+
+	pthread_mutex_lock(&threadlistlock);
+
+	t->prev             = mainthreadobj;
+	t->next             = mainthreadobj->next;
+	mainthreadobj->next = t;
+	t->next->prev       = t;
+
+	threads_table_add(t);
+
+	pthread_mutex_unlock(&threadlistlock);
+
+	/* mark main thread as Java thread */
+
+	t->flags = THREAD_FLAG_JAVA;
+
+#if defined(ENABLE_INTRP)
+	/* create interpreter stack */
+
+	if (opt_intrp) {
+		MSET(intrp_main_stack, 0, u1, opt_stacksize);
+		t->_global_sp = intrp_main_stack + opt_stacksize;
+	}
+#endif
+
+	/* create a java.lang.Thread object */
+
+	thread = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	if (thread == NULL)
+		return false;
+
+	t->o.thread = thread;
+
+	if (vm_aargs != NULL) {
+		u     = utf_new_char(vm_aargs->name);
+		group = (java_lang_ThreadGroup *) vm_aargs->group;
+	}
+	else {
+		u     = utf_null;
+		group = mainthreadobj->o.thread->group;
+	}
+
+	s = javastring_new(u);
+
+	(void) vm_call_method(method_thread_init, (java_objectheader *) thread, t,
+						  s, NORM_PRIORITY, isdaemon);
+
+	if (*exceptionptr)
+		return false;
+
+	/* store the thread group in the object */
+
+	thread->group = group;
+
+	(void) vm_call_method(method_threadgroup_add, group, thread);
+
+	if (*exceptionptr)
+		return false;
+
+	return true;
 }
 
 

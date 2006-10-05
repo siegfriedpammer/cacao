@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5616 2006-10-01 22:55:49Z twisti $
+   $Id: jni.c 5691 2006-10-05 14:13:06Z twisti $
 
 */
 
@@ -200,6 +200,36 @@ bool jni_init(void)
 		!link_class(class_gnu_classpath_Pointer32))
 		return false;
 #endif
+
+	return true;
+}
+
+
+/* jni_init_localref_table *****************************************************
+
+   Initializes the local references table of the current thread.
+
+*******************************************************************************/
+
+static bool jni_init_localref_table(void)
+{
+	localref_table *lrt;
+
+	lrt = GCNEW(localref_table);
+
+	if (lrt == NULL)
+		return false;
+
+	lrt->capacity    = LOCALREFTABLE_CAPACITY;
+	lrt->used        = 0;
+	lrt->localframes = 1;
+	lrt->prev        = LOCALREFTABLE;
+
+	/* clear the references array (memset is faster then a for-loop) */
+
+	MSET(lrt->refs, 0, java_objectheader*, LOCALREFTABLE_CAPACITY);
+
+	LOCALREFTABLE = lrt;
 
 	return true;
 }
@@ -5510,17 +5540,54 @@ jint _Jv_JNI_DestroyJavaVM(JavaVM *vm)
 
 *******************************************************************************/
 
-jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **env, void *thr_args)
+jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 {
+	JavaVMAttachArgs *vm_aargs;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: AttachCurrentThread: IMPLEMENT ME!");
+	log_text("JNI-Call: AttachCurrentThread");
 
-	*env = _Jv_env;
+#if defined(ENABLE_THREADS)
+	if (threads_get_current_threadobject() == NULL) {
+		vm_aargs = (JavaVMAttachArgs *) thr_args;
 
-	return 0;
+		if (vm_aargs != NULL) {
+			if ((vm_aargs->version != JNI_VERSION_1_2) &&
+				(vm_aargs->version != JNI_VERSION_1_4))
+				return JNI_EVERSION;
+		}
+
+		if (!threads_attach_current_thread(vm_aargs, false))
+			return JNI_ERR;
+
+		if (!jni_init_localref_table())
+			return JNI_ERR;
+	}
+#endif
+
+	*p_env = _Jv_env;
+
+	return JNI_OK;
 }
 
+
+/* DetachCurrentThread *********************************************************
+
+   Detaches the current thread from a Java VM. All Java monitors held
+   by this thread are released. All Java threads waiting for this
+   thread to die are notified.
+
+   In JDK 1.1, the main thread cannot be detached from the VM. It must
+   call DestroyJavaVM to unload the entire VM.
+
+   In the JDK, the main thread can be detached from the VM.
+
+   The main thread, which is the thread that created the Java VM,
+   cannot be detached from the VM. Instead, the main thread must call
+   JNI_DestroyJavaVM() to unload the entire VM.
+
+*******************************************************************************/
 
 jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 {
@@ -5583,8 +5650,20 @@ jint _Jv_JNI_GetEnv(JavaVM *vm, void **env, jint version)
 }
 
 
+/* AttachCurrentThreadAsDaemon *************************************************
 
-jint _Jv_JNI_AttachCurrentThreadAsDaemon(JavaVM *vm, void **par1, void *par2)
+   Same semantics as AttachCurrentThread, but the newly-created
+   java.lang.Thread instance is a daemon.
+
+   If the thread has already been attached via either
+   AttachCurrentThread or AttachCurrentThreadAsDaemon, this routine
+   simply sets the value pointed to by penv to the JNIEnv of the
+   current thread. In this case neither AttachCurrentThread nor this
+   routine have any effect on the daemon status of the thread.
+
+*******************************************************************************/
+
+jint _Jv_JNI_AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
 {
 	STATISTICS(jniinvokation());
 
@@ -5947,7 +6026,6 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 	JavaVMInitArgs *_vm_args;
 	_Jv_JNIEnv     *env;
 	_Jv_JavaVM     *vm;
-	localref_table *lrt;
 
 	/* get the arguments for the new JVM */
 
@@ -5974,36 +6052,28 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	/* actually create the JVM */
 
-	if (!vm_create(_vm_args)) {
-		/* release allocated memory */
-
-		FREE(env, _Jv_JNIEnv);
-		FREE(vm, _Jv_JavaVM);
-
-		return -1;
-	}
+	if (!vm_create(_vm_args))
+		goto error;
 
 	/* setup the local ref table (must be created after vm_create) */
 
-	lrt = GCNEW(localref_table);
-
-	lrt->capacity    = LOCALREFTABLE_CAPACITY;
-	lrt->used        = 0;
-	lrt->localframes = 1;
-	lrt->prev        = LOCALREFTABLE;
-
-	/* clear the references array (memset is faster then a for-loop) */
-
-	MSET(lrt->refs, 0, java_objectheader*, LOCALREFTABLE_CAPACITY);
-
-	LOCALREFTABLE = lrt;
+	if (!jni_init_localref_table())
+		goto error;
 
 	/* now return the values */
 
 	*p_vm  = (JavaVM *) vm;
 	*p_env = (void *) env;
 
-	return 0;
+	return JNI_OK;
+
+ error:
+	/* release allocated memory */
+
+	FREE(env, _Jv_JNIEnv);
+	FREE(vm, _Jv_JavaVM);
+
+	return JNI_ERR;
 }
 
 

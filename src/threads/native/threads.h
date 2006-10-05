@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 5049 2006-06-23 12:07:26Z twisti $
+   $Id: threads.h 5691 2006-10-05 14:13:06Z twisti $
 
 */
 
@@ -78,6 +78,13 @@ typedef struct {
 typedef struct threadobject          threadobject;
 typedef union  threads_table_entry_t threads_table_entry_t;
 typedef struct threads_table_t       threads_table_t;
+
+
+/* thread priorities **********************************************************/
+
+#define MIN_PRIORITY     1
+#define NORM_PRIORITY    5
+#define MAX_PRIORITY     10
 
 
 /* current threadobject *******************************************************/
@@ -200,6 +207,8 @@ bool threads_init(void);
 void threads_init_threadobject(java_lang_VMThread *);
 
 void threads_start_thread(java_lang_Thread *t, functionptr function);
+
+bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
 
 void threads_join_all_threads(void);
 
