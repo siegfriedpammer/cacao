@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5710 2006-10-06 23:41:02Z edwin $
+   $Id: simplereg.c 5711 2006-10-06 23:58:35Z edwin $
 
 */
 
@@ -193,6 +193,51 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 #define PUSH_FREE_SAV_INT(r)  PUSH_BACK_INT(rd->freesavintregs, rd->freesavinttop, r)
 
 
+/* macros for allocating memory slots ****************************************/
+
+#define NEW_MEM_SLOT(r)                                              \
+    do {                                                             \
+        (r) = rd->memuse;                                            \
+        rd->memuse += memneeded + 1;                                 \
+    } while (0)
+
+#define NEW_MEM_SLOT_ALIGNED(r)                                      \
+    do {                                                             \
+        if ( (memneeded) && (rd->memuse & 1))                        \
+            rd->memuse++;                                            \
+        (r) = rd->memuse;                                            \
+        rd->memuse += memneeded + 1;                                 \
+    } while (0)
+
+#define NEW_MEM_SLOT_ALIGNED_REUSE_PADDING(r)                        \
+    do {                                                             \
+        if ( (memneeded) && (rd->memuse & 1)) {                      \
+			PUSH_BACK(rd->freemem, rd->freememtop, rd->memuse);      \
+            rd->memuse++;                                            \
+		}                                                            \
+        (r) = rd->memuse;                                            \
+        rd->memuse += memneeded + 1;                                 \
+    } while (0)
+
+#if defined(ALIGN_LONGS_IN_MEMORY)
+#define NEW_MEM_SLOT_INT_LNG(r)  NEW_MEM_SLOT_ALIGNED(r)
+#else
+#define NEW_MEM_SLOT_INT_LNG(r)  NEW_MEM_SLOT(r)
+#endif
+
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
+#define NEW_MEM_SLOT_FLT_DBL(r)  NEW_MEM_SLOT_ALIGNED(r)
+#else
+#define NEW_MEM_SLOT_FLT_DBL(r)  NEW_MEM_SLOT(r)
+#endif
+
+#if defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY)
+#define NEW_MEM_SLOT_REUSE_PADDING(r)  NEW_MEM_SLOT_ALIGNED_REUSE_PADDING(r)
+#else
+#define NEW_MEM_SLOT_REUSE_PADDING(r)  NEW_MEM_SLOT(r)
+#endif
+
+
 /* macros for creating/freeing temporary variables ***************************/
 
 #define NEW_TEMP_REG(index)                                          \
@@ -260,10 +305,10 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 	int     intalloc, fltalloc; /* Remember allocated Register/Memory offset */
 	                /* in case more vars are packed into this interface slot */
 	int		memneeded = 0;
-    /* allocate LNG and DBL Types first to ensure 2 memory slots or registers */
-	/* on HAS_4BYTE_STACKSLOT architectures */
+	/* Allocate LNG and DBL types first to ensure 2 memory slots or          */
+	/* registers on HAS_4BYTE_STACKSLOT architectures.                       */
 	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
-	int flags, regoff;
+	int     flags, regoff;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 	int		intregsneeded;
 #endif
@@ -285,7 +330,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 	}
 #endif
 
- 	if (jd->isleafmethod) {
+	if (jd->isleafmethod) {
 		/* Reserve argument register, which will be used for Locals acting */
 		/* as Parameters */
 		if (rd->argintreguse < m->parseddesc->argintreguse)
@@ -296,11 +341,12 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 		if (rd->argadrreguse < m->parseddesc->argadrreguse)
 			rd->argadrreguse = m->parseddesc->argadrreguse;
 #endif
-
- 	}
+	}
 
 	for (s = 0; s < cd->maxstack; s++) {
 		intalloc = -1; fltalloc = -1;
+
+		/* check if the interface at this stack depth must be a SAVEDVAR */
 
 		saved = 0;
 
@@ -310,13 +356,15 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 			}
 		}
 
+		/* allocate reg/mem for each type the interface is used as */
+
 		for (tt = 0; tt <= 4; tt++) {
 			t = typeloop[tt];
 			if (jd->interface_map[s * 5 + t].flags == UNUSED)
 				continue;
 
 			flags = saved;
-			regoff = -1; /* XXX for debugging */
+			regoff = -1; /* initialize to invalid value */
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
@@ -325,6 +373,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 #if defined(HAS_4BYTE_STACKSLOT)
 			memneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
+
 			if (!saved) {
 #if defined(HAS_ADDRESS_REGISTER_FILE)
 				if (IS_ADR_TYPE(t)) {
@@ -366,16 +415,10 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 						} 
 						else {
 							flags |= INMEMORY;
-#if defined(ALIGN_DOUBLES_IN_MEMORY)
-							/* Align doubles in Memory */
-							if ( (memneeded) && (rd->memuse & 1))
-								rd->memuse++;
-#endif
-							regoff = rd->memuse;
-							rd->memuse += memneeded + 1;
+							NEW_MEM_SLOT_FLT_DBL(regoff);
 						}
 						fltalloc = s * 5 + t;
-					} 
+					}
 					else { /* !IS_FLT_DBL_TYPE(t) */
 #if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 						/*
@@ -383,28 +426,20 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 						 */
 						if (IS_2_WORD_TYPE(t)) {
 							flags |= INMEMORY;
-#if defined(ALIGN_LONGS_IN_MEMORY)
-							/* Align longs in Memory */
-							if (rd->memuse & 1)
-								rd->memuse++;
-#endif
-							regoff = rd->memuse;
-							rd->memuse += memneeded + 1;
+							NEW_MEM_SLOT_INT_LNG(regoff);
 						} 
 						else
 #endif /* defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE...GISTERS) */
 							if (intalloc >= 0) {
 								/* Reuse memory slot(s)/register(s) for shared interface slots */
 								flags |= jd->interface_map[intalloc].flags & INMEMORY;
+								regoff = jd->interface_map[intalloc].regoff;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								/* reuse lower half */
 								if (!(flags & INMEMORY) 
 										&& IS_2_WORD_TYPE(intalloc % 5))
-									regoff = GET_LOW_REG(
-											jd->interface_map[intalloc].regoff);
-								else
+									regoff = GET_LOW_REG(regoff);
 #endif
-									regoff = 
-										jd->interface_map[intalloc].regoff;
 							} 
 							else {
 								if (AVAIL_ARG_INT) {
@@ -420,13 +455,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 								}
 								else {
 									flags |= INMEMORY;
-#if defined(ALIGN_LONGS_IN_MEMORY)
-									/* Align longs in Memory */
-									if ( (memneeded) && (rd->memuse & 1))
-										rd->memuse++;
-#endif
-									regoff = rd->memuse;
-									rd->memuse += memneeded + 1;
+									NEW_MEM_SLOT_INT_LNG(regoff);
 								}
 							}
 
@@ -460,13 +489,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 							}
 							else {
 								flags |= INMEMORY;
-#if defined(ALIGN_DOUBLES_IN_MEMORY)
-								/* Align doubles in Memory */
-								if ( (memneeded) && (rd->memuse & 1))
-									rd->memuse++;
-#endif
-								regoff = rd->memuse;
-								rd->memuse += memneeded + 1;
+								NEW_MEM_SLOT_FLT_DBL(regoff);
 							}
 						}
 						fltalloc = s * 5 + t;
@@ -478,29 +501,20 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 						 */
 						if (IS_2_WORD_TYPE(t)) {
 							flags |= INMEMORY;
-#if defined(ALIGN_LONGS_IN_MEMORY)
-							/* Align longs in Memory */
-							if (rd->memuse & 1)
-								rd->memuse++;
-#endif
-							regoff = rd->memuse;
-							rd->memuse += memneeded + 1;
+							NEW_MEM_SLOT_INT_LNG(regoff);
 						} 
 						else
 #endif
 						{
 							if (intalloc >= 0) {
 								flags |= jd->interface_map[intalloc].flags & INMEMORY;
+								regoff = jd->interface_map[intalloc].regoff;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								/*  reuse lower half */
 								if (!(flags & INMEMORY)
 										&& IS_2_WORD_TYPE(intalloc % 5))
-									regoff =
-										GET_LOW_REG(
-												jd->interface_map[intalloc].regoff);
-								else
+									regoff = GET_LOW_REG(regoff);
 #endif
-									regoff =
-										jd->interface_map[intalloc].regoff;
 							} 
 							else {
 								if (AVAIL_SAV_INT) {
@@ -508,13 +522,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 								} 
 								else {
 									flags |= INMEMORY;
-#if defined(ALIGN_LONGS_IN_MEMORY)
-									/* Align longs in Memory */
-									if ( (memneeded) && (rd->memuse & 1))
-										rd->memuse++;
-#endif
-									regoff = rd->memuse;
-									rd->memuse += memneeded + 1;
+									NEW_MEM_SLOT_INT_LNG(regoff);
 								}
 							}
 							intalloc = s*5 + t;
@@ -614,7 +622,8 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 				}
 				/* use unused argument registers as local registers */
 				else if ((p >= md->paramcount) &&
-						 (aargcnt < ADR_ARG_CNT)) {
+						 (aargcnt < ADR_ARG_CNT)) 
+				{
 					v->flags = 0;
 					POP_FRONT(rd->argadrregs, aargcnt, v->vv.regoff);
 				}
@@ -638,7 +647,8 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 					/* We can only use float arguments as local variables,
 					 * if we do not pass them in integer registers. */
 					else if ((p < md->paramcount) &&
-							 !md->params[p].inmemory) {
+							 !md->params[p].inmemory) 
+					{
 						v->flags = 0;
 						v->vv.regoff = rd->argfltregs[md->params[p].regoff];
 					}
@@ -649,7 +659,8 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 					}
 					/* use unused argument registers as local registers */
 					else if ((p >= md->paramcount) &&
-							 (fargcnt < FLT_ARG_CNT)) {
+							 (fargcnt < FLT_ARG_CNT)) 
+					{
 						v->flags = 0;
 						POP_FRONT(rd->argfltregs, fargcnt, v->vv.regoff);
 					}
@@ -659,13 +670,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 					}
 					else {
 						v->flags = INMEMORY;
-#if defined(ALIGN_DOUBLES_IN_MEMORY)
-						/* Align doubles in Memory */
-						if ( (memneeded) && (rd->memuse & 1))
-							rd->memuse++;
-#endif
-						v->vv.regoff = rd->memuse;
-						rd->memuse += memneeded + 1;
+						NEW_MEM_SLOT_FLT_DBL(v->vv.regoff);
 					}
 					fltalloc = jd->local_map[s * 5 + t];
 
@@ -677,13 +682,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 					 */
 					if (IS_2_WORD_TYPE(t)) {
 						v->flags = INMEMORY;
-#if defined(ALIGN_LONGS_IN_MEMORY)
-						/* Align longs in Memory */
-						if (rd->memuse & 1)
-							rd->memuse++;
-#endif
-						v->vv.regoff = rd->memuse;
-						rd->memuse += memneeded + 1;
+						NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
 					} 
 					else 
 #endif
@@ -700,7 +699,8 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 								v->vv.regoff = VAR(intalloc)->vv.regoff;
 						}
 						else if ((p < md->paramcount) && 
-								 !md->params[p].inmemory) {
+								 !md->params[p].inmemory) 
+						{
 							v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (IS_2_WORD_TYPE(t))
@@ -731,13 +731,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 						}
 						else {
 							v->flags = INMEMORY;
-#if defined(ALIGN_LONGS_IN_MEMORY)
-							/* Align longs in Memory */
-							if ( (memneeded) && (rd->memuse & 1))
-								rd->memuse++;
-#endif
-							v->vv.regoff = rd->memuse;
-							rd->memuse += memneeded + 1;
+							NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
 						}
 					}
 					intalloc = jd->local_map[s * 5 + t];
@@ -829,13 +823,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 					}
 					else {
 						v->flags = INMEMORY;
-#if defined(ALIGN_DOUBLES_IN_MEMORY)
-						/* Align doubles in Memory */
-						if ( (memneeded) && (rd->memuse & 1))
-							rd->memuse++;
-#endif
-						v->vv.regoff = rd->memuse;
-						rd->memuse += memneeded + 1;
+						NEW_MEM_SLOT_FLT_DBL(v->vv.regoff);
 					}
 					fltalloc = jd->local_map[s * 5 + t];
 				}
@@ -846,13 +834,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 					 */
 					if (IS_2_WORD_TYPE(t)) {
 						v->flags = INMEMORY;
-#if defined(ALIGN_LONGS_IN_MEMORY)
-						/* Align longs in Memory */
-						if (rd->memuse & 1)
-							rd->memuse++;
-#endif
-						v->vv.regoff = rd->memuse;
-						rd->memuse += memneeded + 1;
+						NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
 					} 
 					else {
 #endif
@@ -873,13 +855,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 						}
 						else {
 							v->flags = INMEMORY;
-#if defined(ALIGN_LONGS_IN_MEMORY)
-							/* Align longs in Memory */
-							if ( (memneeded) && (rd->memuse & 1))
-								rd->memuse++;
-#endif
-							v->vv.regoff = rd->memuse;
-							rd->memuse += memneeded + 1;
+							NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
 						}
 #if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					}
@@ -1154,28 +1130,19 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 		} /* if (tryagain == 1) else */
 	} /* for(; tryagain; --tryagain) */
 
+	/* spill to memory */
+
+	v->flags |= INMEMORY;
+
 #if defined(HAS_4BYTE_STACKSLOT)
-	if ((memneeded == 1) && (rd->freememtop_2 > 0)) {
+	if ((memneeded == 1) && (rd->freememtop_2 > 0))
 		POP_BACK(rd->freemem_2, rd->freememtop_2, v->vv.regoff);
-	} 
 	else
 #endif /*defined(HAS_4BYTE_STACKSLOT) */
-		if ((memneeded == 0) && (rd->freememtop > 0)) {
+		if ((memneeded == 0) && (rd->freememtop > 0))
 			POP_BACK(rd->freemem, rd->freememtop, v->vv.regoff);
-		} 
-		else {
-#if defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY)
-			/* align 2 Word Types */
-			if ((memneeded) && ((rd->memuse & 1) == 1)) { 
-				/* Put patched memory slot on freemem */
-				PUSH_BACK(rd->freemem, rd->freememtop, rd->memuse);
-				rd->memuse++;
-			}
-#endif /* defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY) */
-			v->vv.regoff = rd->memuse;
-			rd->memuse += memneeded + 1;
-		}
-	v->flags |= INMEMORY;
+		else
+			NEW_MEM_SLOT_REUSE_PADDING(v->vv.regoff);
 }
 
 
