@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5708 2006-10-06 22:37:13Z edwin $
+   $Id: simplereg.c 5709 2006-10-06 23:03:55Z edwin $
 
 */
 
@@ -1629,15 +1629,8 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 						}
 						else {
 							/* XXX split reg/mem variables on arm may need special handling here */
-							s4 regindex;
 
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							regindex = GET_LOW_REG(v->vv.regoff);
-#else
-							regindex = v->vv.regoff;
-#endif
-							if (IS_FLT_DBL_TYPE(v->type))
-								regindex += INT_REG_CNT;
+							s4 regindex = SIMPLEREG_REG_INDEX(v->vv.regoff, v->type);
 
 							rd->regcopycount[regindex]++;
 						}
