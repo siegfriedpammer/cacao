@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5657 2006-10-03 21:19:05Z edwin $
+   $Id: jit.h 5708 2006-10-06 22:37:13Z edwin $
 
 */
 
@@ -193,12 +193,8 @@ struct jitdata {
 
 #define SAVEDVAR   1            /* variable has to survive method invocations */
 #define INMEMORY   2            /* variable stored in memory                  */
-#define SAVEDTMP   4            /* temporary variable using a saved register  */
-#define TMPARG     8            /* temporary variable using a arg register    */
-#define STCOPY    16            /* there is another stackslot alive "below"   */
-                                /* using the same register/memory location    */
-#define STKEEP    32            /* to prevent reg_mark_copy to free this      */
-                                /* stackslot */
+#define SAVREG     4            /* allocated to a saved register              */
+#define ARGREG     8            /* allocated to an arg register               */
 #define PREALLOC  64            /* preallocated var like for ARGVARS. Used    */
                                 /* with the new var system */
 #define INOUT    128            /* variable is an invar or/and an outvar      */

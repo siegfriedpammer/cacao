@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: reg.h 5549 2006-09-28 17:02:56Z edwin $
+   $Id: reg.h 5708 2006-10-06 22:37:13Z edwin $
 
 */
 
@@ -100,6 +100,8 @@ struct registerdata {
 	int *freetmpadrregs;            /* free scratch address registers         */
 	int *freesavadrregs;            /* free saved address registers           */
 
+	int *adrusedinout;              /* is this adr register uses as INOUT?    */
+
 	int argadrreguse;               /* used argument address register count   */
 	int tmpadrreguse;               /* used scratch address register count    */
 	int savadrreguse;               /* used saved address register count      */
@@ -132,6 +134,9 @@ struct registerdata {
 	int freetmpflttop;              /* free scratch float register count      */
 	int freesavflttop;              /* free saved float register count        */
 
+	int *intusedinout;              /* is this int register uses as INOUT?    */
+	int *fltusedinout;              /* is this flt register uses as INOUT?    */
+	int *regisoutvar;               /* true if reg. is outvar of this block   */
 	int *regcopycount;              /* counts copies of each register regoff  */
 	int *memcopycount;              /* counts copies of each INMEMORY regoff  */
 	int memcopycountsize;           /* size of memcopycount buffer            */

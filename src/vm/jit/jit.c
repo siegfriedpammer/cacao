@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5667 2006-10-04 15:14:19Z edwin $
+   $Id: jit.c 5708 2006-10-06 22:37:13Z edwin $
 
 */
 
@@ -1683,7 +1683,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			regalloc(jd);
 		}
 
-		STATISTICS(reg_make_statistics(jd));
+		STATISTICS(simplereg_make_statistics(jd));
 
 		DEBUG_JIT_COMPILEVERBOSE("Allocating registers done: ");
 # if defined(ENABLE_INTRP)
