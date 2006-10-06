@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5675 2006-10-04 19:38:28Z edwin $
+   $Id: stack.c 5707 2006-10-06 21:30:48Z edwin $
 
 */
 
@@ -96,6 +96,10 @@
 #else /* !defined(ENABLE_STATISTICS) */
 #define STATISTICS_STACKDEPTH_DISTRIBUTION(distr)
 #endif
+
+
+#define MIN(a,b)  (((a) < (b)) ? (a) : (b))
+
 
 /* stackdata_t *****************************************************************
 
@@ -4189,8 +4193,8 @@ icmd_BUILTIN:
 
 					case ICMD_MULTIANEWARRAY:
 						coalescing_boundary = sd.new;
-						if (rd->argintreguse < 3)
-							rd->argintreguse = 3;
+						if (rd->argintreguse < MIN(3, INT_ARG_CNT))
+							rd->argintreguse = MIN(3, INT_ARG_CNT);
 
 						i = iptr->s1.argcount;
 
