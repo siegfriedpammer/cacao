@@ -65,6 +65,8 @@ bool show_init(void);
 void show_method(jitdata *jd, int stage);
 void show_basicblock(jitdata *jd, basicblock *bptr, int stage);
 void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage);
+void show_variable(jitdata *jd, s4 index, int stage);
+void show_variable_array(jitdata *jd, s4 *vars, int n, int stage);
 #endif /* !defined(NDEBUG) */
 
 #endif /* _SHOW_H */

@@ -68,9 +68,7 @@ static java_objectheader *show_global_lock;
 /* forward declarations *******************************************************/
 
 #if !defined(NDEBUG)
-static void show_variable_array(jitdata *jd, s4 *vars, int n, int stage);
 static void show_allocation(s4 type, s4 flags, s4 regoff);
-static void show_variable(jitdata *jd, s4 index, int stage);
 #endif
 
 
@@ -699,7 +697,7 @@ static void show_allocation(s4 type, s4 flags, s4 regoff)
 #endif
 }
 
-static void show_variable(jitdata *jd, s4 index, int stage)
+void show_variable(jitdata *jd, s4 index, int stage)
 {
 	char type;
 	char kind;
@@ -748,7 +746,7 @@ static void show_variable(jitdata *jd, s4 index, int stage)
 	fflush(stdout);
 }
 
-static void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
+void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
 {
 	int i;
 
