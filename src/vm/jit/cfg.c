@@ -141,7 +141,7 @@ bool cfg_build(jitdata *jd)
 
 		while (iptr->opc == ICMD_NOP) {
 			if (iptr == bptr->iinstr)
-				continue;
+				break;
 			iptr--;
 		}
 
@@ -261,7 +261,7 @@ bool cfg_build(jitdata *jd)
 
 		while (iptr->opc == ICMD_NOP) {
 			if (iptr == bptr->iinstr)
-				continue;
+				break;
 			iptr--;
 		}
 

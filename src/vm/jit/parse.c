@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5657 2006-10-03 21:19:05Z edwin $
+   $Id: parse.c 5718 2006-10-07 23:56:43Z edwin $
 
 */
 
@@ -364,15 +364,13 @@ fetch_opcode:
 			blockend = false;
 		}
 
-		if (JITDATA_HAS_FLAG_REORDER(jd)) {
-			/* We need a NOP as last instruction in each basic block
-			   for basic block reordering (may be replaced with a GOTO
-			   later). */
+		/* We need a NOP as last instruction in each basic block
+		   for basic block reordering (may be replaced with a GOTO
+		   later). */
 
-			if (jd->basicblockindex[p] & 1) {
-				INSTRUCTIONS_CHECK(1);
-				OP(ICMD_NOP);
-			}
+		if (jd->basicblockindex[p] & 1) {
+			INSTRUCTIONS_CHECK(1);
+			OP(ICMD_NOP);
 		}
 
 		/* store intermediate instruction count (bit 0 mark block starts) */

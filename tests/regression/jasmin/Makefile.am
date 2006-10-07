@@ -72,6 +72,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_jsr_called_with_different_stackdepths.j \
 	$(srcdir)/test_verify_fail_jsr_exceptions.j \
 	$(srcdir)/test_verify_fail_jsr_handler_in_sub.j \
+	$(srcdir)/test_verify_fail_jsr_merge_subroutines.j \
 	$(srcdir)/test_verify_fail_jsr_polymorphic_pop.j \
 	$(srcdir)/test_verify_fail_load_wrong_type.j \
 	$(srcdir)/test_verify_fail_load_wrong_type_within_block.j \
