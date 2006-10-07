@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5715 2006-10-07 12:54:14Z edwin $
+   $Id: stack.c 5717 2006-10-07 23:02:53Z edwin $
 
 */
 
@@ -774,7 +774,7 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 			if (sp->type == TYPE_RET) {
 				if (sd->var[b->invars[i]].vv.retaddr != sd->var[sp->varnum].vv.retaddr) {
 					separable = true;
-					break;
+					/* don't break! have to check the remaining stackslots */
 				}
 			}
 		}
@@ -874,7 +874,7 @@ static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock 
 				if (dv->type == TYPE_RET) {
 					if (sv->vv.retaddr != dv->vv.retaddr) {
 						separable = true;
-						break;
+						/* don't break! have to check the remaining stackslots */
 					}
 				}
 			}
