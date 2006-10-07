@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5711 2006-10-06 23:58:35Z edwin $
+   $Id: simplereg.c 5712 2006-10-07 00:06:49Z edwin $
 
 */
 
@@ -399,7 +399,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
 							/* Reuse memory slot(s)/register(s) for shared interface slots */
-							flags |= jd->interface_map[fltalloc].flags & INMEMORY;
+							flags |= jd->interface_map[fltalloc].flags & ~SAVEDVAR;
 							regoff = jd->interface_map[fltalloc].regoff;
 						} 
 						else if (AVAIL_ARG_FLT) {
@@ -432,7 +432,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 #endif /* defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE...GISTERS) */
 							if (intalloc >= 0) {
 								/* Reuse memory slot(s)/register(s) for shared interface slots */
-								flags |= jd->interface_map[intalloc].flags & INMEMORY;
+								flags |= jd->interface_map[intalloc].flags & ~SAVEDVAR;
 								regoff = jd->interface_map[intalloc].regoff;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								/* reuse lower half */
@@ -480,7 +480,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 				{
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
-							flags |= jd->interface_map[fltalloc].flags & INMEMORY;
+							flags |= jd->interface_map[fltalloc].flags & ~SAVEDVAR;
 							regoff = jd->interface_map[fltalloc].regoff;
 						} 
 						else {
@@ -507,7 +507,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 #endif
 						{
 							if (intalloc >= 0) {
-								flags |= jd->interface_map[intalloc].flags & INMEMORY;
+								flags |= jd->interface_map[intalloc].flags & ~SAVEDVAR;
 								regoff = jd->interface_map[intalloc].regoff;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								/*  reuse lower half */
