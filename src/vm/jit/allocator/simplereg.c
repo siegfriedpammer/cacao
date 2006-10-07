@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5712 2006-10-07 00:06:49Z edwin $
+   $Id: simplereg.c 5713 2006-10-07 09:44:30Z edwin $
 
 */
 
@@ -551,6 +551,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
+	methoddesc *md;
 
 	int     p, s, t, tt, lm;
 	int     intalloc, fltalloc;
@@ -569,7 +570,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 	cd = jd->cd;
 	rd = jd->rd;
 
-	methoddesc *md = m->parseddesc;
+	md = m->parseddesc;
 
 	iargcnt = rd->argintreguse;
 	fargcnt = rd->argfltreguse;
