@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5707 2006-10-06 21:30:48Z edwin $
+   $Id: stack.c 5715 2006-10-07 12:54:14Z edwin $
 
 */
 
@@ -138,10 +138,10 @@ struct stackdata_t {
 /* Pay attention to not release a localvar once implementing it!    */
 #define RELEASE_INDEX(sd, varindex)
 
-#define GET_NEW_VAR(sd, new_varindex, newtype)                       \
+#define GET_NEW_VAR(sd, newvarindex, newtype)                        \
     do {                                                             \
-        GET_NEW_INDEX((sd), (new_varindex));                         \
-        (sd).var[new_index].type = (newtype);                        \
+        GET_NEW_INDEX((sd), (newvarindex));                          \
+        (sd).var[newvarindex].type = (newtype);                      \
     } while (0)
 
 
@@ -170,12 +170,7 @@ struct stackdata_t {
 #define SET_TEMPVAR(sp)                                              \
     do {                                                             \
         if (IS_LOCALVAR((sp))) {                                     \
-            GET_NEW_VAR(sd, new_index, (sp)->type);                  \
-            sd.var[new_index].flags = (sp)->flags;                   \
-            (sp)->varnum = new_index;                                \
-            (sp)->varkind = TEMPVAR;                                 \
-            if ((sp)->creator)                                       \
-                (sp)->creator->dst.varindex = new_index;             \
+            stack_change_to_tempvar(&sd, (sp), iptr);                \
         }                                                            \
         sd.var[(sp)->varnum].flags &= ~(INOUT | PREALLOC);           \
     } while (0);
@@ -1737,6 +1732,80 @@ bool stack_reanalyse_block(stackdata_t *sd)
 }
 
 
+/* stack_change_to_tempvar *****************************************************
+
+   Change the given stackslot to a TEMPVAR. This includes creating a new
+   temporary variable and changing the dst.varindex of the creator of the
+   stacklot to the new variable index. If this stackslot has been passed
+   through ICMDs between the point of its creation and the current point,
+   then the variable index is also changed in these ICMDs.
+
+   IN:
+      sd...........stack analysis data
+	  sp...........stackslot to change
+	  ilimit.......instruction up to which to look for ICMDs passing-through
+	               the stackslot (exclusive). This may point exactly after the 
+				   last instruction, in which case the search is done to the
+				   basic block end.
+
+*******************************************************************************/
+
+static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp, 
+									instruction *ilimit)
+{
+	s4 newindex;
+	s4 oldindex;
+	instruction *iptr;
+	int i;
+
+	oldindex = sp->varnum;
+
+	/* create a new temporary variable */
+
+	GET_NEW_VAR(*sd, newindex, sp->type);
+
+	sd->var[newindex].flags = sp->flags;
+
+	/* change the stackslot */
+
+	sp->varnum = newindex;
+	sp->varkind = TEMPVAR;
+
+	/* change the dst.varindex of the stackslot's creator */
+
+	if (sp->creator)
+		sp->creator->dst.varindex = newindex;
+
+	/* handle ICMDs this stackslot passed through, if any */
+
+	if (sp->flags & PASSTHROUGH) {
+		iptr = (sp->creator) ? (sp->creator + 1) : sd->bptr->iinstr;
+
+		/* asser that the limit point to an ICMD, or after the last one */
+		assert(ilimit >= sd->bptr->iinstr);
+	   	assert(ilimit <= sd->bptr->iinstr + sd->bptr->icount);
+
+		for (; iptr < ilimit; ++iptr) {
+			switch (iptr->opc) {
+				case ICMD_INVOKESTATIC:
+				case ICMD_INVOKESPECIAL:
+				case ICMD_INVOKEVIRTUAL:
+				case ICMD_INVOKEINTERFACE:
+				case ICMD_BUILTIN:
+
+					for (i=0; i<iptr->s1.argcount; ++i)
+						if (iptr->sx.s23.s2.args[i] == oldindex) {
+							iptr->sx.s23.s2.args[i] = newindex;
+						}
+					break;
+				/* IMPORTANT: If any ICMD sets the PASSTHROUGH flag of a */
+				/* stackslot, it must be added in this switch!           */
+			}
+		}
+	}
+}
+
+
 /* stack_analyse ***************************************************************
 
    Analyse_stack uses the intermediate code created by parse.c to
@@ -3025,6 +3094,7 @@ normal_ACONST:
 
 						assert(curstack->creator);
 						assert(curstack->creator->dst.varindex == curstack->varnum);
+						assert(!(curstack->flags & PASSTHROUGH));
 						RELEASE_INDEX(sd, curstack);
 						curstack->varkind = LOCALVAR;
 						curstack->varnum = j;
@@ -4092,8 +4162,6 @@ icmd_BUILTIN:
 
 						REQUIRE(i);
 
-						/* XXX optimize for <= 2 args */
-						/* XXX not for ICMD_BUILTIN */
 						iptr->s1.argcount = stackdepth;
 						iptr->sx.s23.s2.args = DMNEW(s4, stackdepth);
 
@@ -4155,15 +4223,13 @@ icmd_BUILTIN:
 
 						/* deal with live-through stack slots "under" the */
 						/* arguments */
-						/* XXX not for ICMD_BUILTIN */
 
 						i = md->paramcount;
 
 						while (copy) {
-							SET_TEMPVAR(copy);
 							iptr->sx.s23.s2.args[i++] = copy->varnum;
 							sd.var[copy->varnum].flags |= SAVEDVAR;
-							copy->flags |= SAVEDVAR;
+							copy->flags |= SAVEDVAR | PASSTHROUGH;
 							copy = copy->prev;
 						}
 
