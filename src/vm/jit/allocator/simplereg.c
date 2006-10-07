@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5713 2006-10-07 09:44:30Z edwin $
+   $Id: simplereg.c 5714 2006-10-07 10:22:00Z edwin $
 
 */
 
@@ -69,6 +69,15 @@
 static void simplereg_allocate_interfaces(jitdata *jd);
 static void simplereg_allocate_locals(jitdata *jd);
 static void simplereg_allocate_temporaries(jitdata *jd);
+
+
+/* total number of registers */
+
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+#define TOTAL_REG_CNT  (INT_REG_CNT + FLT_REG_CNT + ADR_REG_CNT)
+#else
+#define TOTAL_REG_CNT  (INT_REG_CNT + FLT_REG_CNT)
+#endif
 
 
 /* macros for handling register stacks ****************************************/
@@ -255,11 +264,18 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 /* macro for getting a unique register index *********************************/
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-#define SIMPLEREG_REG_INDEX(regoff, type)                            \
+#define REG_INDEX_NON_ADR(regoff, type)                              \
     (IS_FLT_DBL_TYPE(type) ? (INT_REG_CNT + (regoff)) : (GET_LOW_REG(regoff)))
 #else
-#define SIMPLEREG_REG_INDEX(regoff, type)                            \
+#define REG_INDEX_NON_ADR(regoff, type)                              \
     (IS_FLT_DBL_TYPE(type) ? (INT_REG_CNT + (regoff)) : (regoff))
+#endif
+
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+#define REG_INDEX(regoff, type)                                      \
+    (IS_ADR_TYPE(type) ? (regoff) : (ADR_REG_CNT + REG_INDEX_NON_ADR(regoff, type)))
+#else
+#define REG_INDEX(regoff, type)  REG_INDEX_NON_ADR(regoff, type)
 #endif
 
 
@@ -895,9 +911,9 @@ static void simplereg_init(jitdata *jd, registerdata *rd)
 	rd->freeargadrtop = 0;
 #endif
 
-	rd->regisoutvar = DMNEW(int, INT_REG_CNT + FLT_REG_CNT);
-	rd->regcopycount = DMNEW(int, INT_REG_CNT + FLT_REG_CNT);
-	MZERO(rd->regcopycount, int, INT_REG_CNT + FLT_REG_CNT);
+	rd->regisoutvar = DMNEW(int, TOTAL_REG_CNT);
+	rd->regcopycount = DMNEW(int, TOTAL_REG_CNT);
+	MZERO(rd->regcopycount, int, TOTAL_REG_CNT);
 
 	/* memcopycount is dynamically allocated when needed */
 
@@ -1165,7 +1181,7 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 	else {
 		s4 regindex;
 
-		regindex = SIMPLEREG_REG_INDEX(regoff, type);
+		regindex = REG_INDEX(regoff, type);
 
 		/* do not free interface registers that are needed as outvars */
 
@@ -1321,13 +1337,13 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 			/* assert that all copy counts are zero */
 
 #if !defined(NDEBUG)
-			for (i=0; i < INT_REG_CNT + FLT_REG_CNT; ++i)
+			for (i=0; i < TOTAL_REG_CNT; ++i)
 				assert(rd->regcopycount[i] == 0);
 #endif
 
 			/* reset outvar flags */
 
-			MZERO(rd->regisoutvar, int, INT_REG_CNT + FLT_REG_CNT);
+			MZERO(rd->regisoutvar, int, TOTAL_REG_CNT);
 
 			/* set allocation of invars */
 
@@ -1339,7 +1355,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 				v->flags  = jd->interface_map[5*i + v->type].flags;
 
 				if (!(v->flags & INMEMORY))
-					rd->regcopycount[SIMPLEREG_REG_INDEX(v->vv.regoff, v->type)] = 1;
+					rd->regcopycount[REG_INDEX(v->vv.regoff, v->type)] = 1;
 			}
 
 			/* set allocation of outvars */
@@ -1352,7 +1368,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 				v->flags  = jd->interface_map[5*i + v->type].flags;
 
 				if (!(v->flags & INMEMORY)) {
-					regindex = SIMPLEREG_REG_INDEX(v->vv.regoff, v->type);
+					regindex = REG_INDEX(v->vv.regoff, v->type);
 					rd->regcopycount[regindex] = 1;
 					rd->regisoutvar[regindex] = 1;
 				}
@@ -1366,21 +1382,20 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 				flags = jd->interface_map[i].flags;
 
 				if (!(flags & INMEMORY)) {
-					if (!rd->regcopycount[SIMPLEREG_REG_INDEX(regoff, type)]) {
+					if (!rd->regcopycount[REG_INDEX(regoff, type)]) {
 						LOG(("MAY REUSE interface register f=%02x r=%d t=%d\n", 
 									flags, regoff, type));
 						simplereg_free(rd, flags, regoff, type);
 
 						/* mark it, so it is not freed again */
-						rd->regcopycount[SIMPLEREG_REG_INDEX(regoff, type)] = -1;
+						rd->regcopycount[REG_INDEX(regoff, type)] = -1;
 					}
 				}
 			}
 
 			/* reset copy counts */
 
-			for (i=0; i < INT_REG_CNT + FLT_REG_CNT; ++i)
-				rd->regcopycount[i] = 0;
+			MZERO(rd->regcopycount, int, TOTAL_REG_CNT);
 
 			/* iterate over ICMDS to allocate temporary variables */
 
@@ -1598,7 +1613,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 						else {
 							/* XXX split reg/mem variables on arm may need special handling here */
 
-							s4 regindex = SIMPLEREG_REG_INDEX(v->vv.regoff, v->type);
+							s4 regindex = REG_INDEX(v->vv.regoff, v->type);
 
 							rd->regcopycount[regindex]++;
 						}
