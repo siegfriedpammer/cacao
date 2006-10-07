@@ -69,6 +69,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_double_local_index.j \
 	$(srcdir)/test_verify_fail_double_overwritten.j \
 	$(srcdir)/test_verify_fail_invoke_basic_type.j \
+	$(srcdir)/test_verify_fail_jsr_called_with_different_stackdepths.j \
 	$(srcdir)/test_verify_fail_jsr_exceptions.j \
 	$(srcdir)/test_verify_fail_jsr_handler_in_sub.j \
 	$(srcdir)/test_verify_fail_load_wrong_type.j \
