@@ -90,6 +90,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_ok_jsr_multiple_blocks.j \
 	$(srcdir)/test_verify_ok_jsr_pop.j \
 	$(srcdir)/test_verify_ok_jsr_push.j \
+	$(srcdir)/test_verify_ok_jsr_subroutine_loops_to_start.j \
 	$(srcdir)/test_verify_ok_jsr_swap.j \
 	$(srcdir)/test_verify_ok_jsr_through_variable.j \
 	$(srcdir)/test_verify_ok_overwrite_local_type.j \
