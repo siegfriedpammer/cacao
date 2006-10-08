@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5658 2006-10-04 10:10:01Z twisti $
+   $Id: global.h 5721 2006-10-08 11:39:41Z edwin $
 
 */
 
@@ -319,13 +319,16 @@ void compiler_unlock();
 /* The verifier needs additional variables in the variable array. Since these */
 /* must be reserved and set by parse.c and stack.c, we define these numbers   */
 /* here to avoid mysterious hard-coded constants.                             */
+/* stack.c needs an extra variable if the verifier is disabled.               */
 
 #if defined(ENABLE_VERIFIER)
 #    define VERIFIER_EXTRA_LOCALS  1
 #    define VERIFIER_EXTRA_VARS    1
+#    define STACK_EXTRA_VARS       0
 #else
 #    define VERIFIER_EXTRA_LOCALS  0
 #    define VERIFIER_EXTRA_VARS    0
+#    define STACK_EXTRA_VARS       1
 #endif
 
 #endif /* _GLOBAL_H */

@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5717 2006-10-07 23:02:53Z edwin $
+   $Id: stack.c 5721 2006-10-08 11:39:41Z edwin $
 
 */
 
@@ -99,6 +99,16 @@
 
 
 #define MIN(a,b)  (((a) < (b)) ? (a) : (b))
+
+
+/* For returnAddresses we use a field of the typeinfo to store from which  */
+/* subroutine the returnAddress will return, if used.                      */
+/* XXX It would be nicer to use typeinfo.typeclass, but the verifier seems */
+/* to need it initialised to NULL. This should be investigated.            */
+
+#if defined(ENABLE_VERIFIER)
+#define SBRSTART  typeinfo.elementclass.any
+#endif
 
 
 /* stackdata_t *****************************************************************
@@ -309,11 +319,23 @@ struct stackdata_t {
 
 /* macro for propagating constant values ****************************/
 
-#define COPY_VAL_AND_TYPE(sd, sindex, dindex)                        \
+#if defined(ENABLE_VERIFIER)
+#define COPY_VAL_AND_TYPE_VAR(sv, dv)                                \
     do {                                                             \
-        (sd).var[(dindex)].type = (sd).var[(sindex)].type;           \
-        (sd).var[(dindex)].vv  = (sd).var[(sindex)].vv;              \
-    } while (0)                                                      \
+        (dv)->type = (sv)->type;                                     \
+        (dv)->vv  = (sv)->vv;                                        \
+        (dv)->SBRSTART = (sv)->SBRSTART;                             \
+    } while (0)
+#else
+#define COPY_VAL_AND_TYPE_VAR(sv, dv)                                \
+    do {                                                             \
+        (dv)->type = (sv)->type;                                     \
+        (dv)->vv  = (sv)->vv;                                        \
+    } while (0)
+#endif
+
+#define COPY_VAL_AND_TYPE(sd, sindex, dindex)                        \
+	COPY_VAL_AND_TYPE_VAR((sd).var + (sindex), (sd).var + (dindex))
 
 
 /* stack modelling macros *******************************************/
@@ -631,7 +653,8 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 	stackptr sp;
 	int i;
 	int index;
-	varinfo *v;
+	varinfo *dv;
+	varinfo *sv;
 
 	assert(sd->vartop + stackdepth <= sd->varcount);
 
@@ -644,22 +667,19 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 	i = stackdepth;
 	for (sp = curstack; i--; sp = sp->prev) {
 		b->invars[i] = --index;
-		v = sd->var + index;
-		v->type = sp->type;
-		v->flags = INOUT;
-		v->vv = sd->var[sp->varnum].vv;
-#if defined(STACK_VERBOSE) && 0
-		printf("\tinvar[%d]: %d\n", i, sd->var[b->invars[i]]);
-#endif
+		dv = sd->var + index;
+		sv = sd->var + sp->varnum;
+		dv->flags = INOUT;
+		COPY_VAL_AND_TYPE_VAR(sv, dv);
 	}
 
 	/* copy the current state of the local variables */
 	/* (one extra local is needed by the verifier)   */
 
-	v = DMNEW(varinfo, sd->localcount + VERIFIER_EXTRA_LOCALS);
-	b->inlocals = v;
+	dv = DMNEW(varinfo, sd->localcount + VERIFIER_EXTRA_LOCALS);
+	b->inlocals = dv;
 	for (i=0; i<sd->localcount; ++i)
-		*v++ = sd->var[i];
+		*dv++ = sd->var[i];
 }
 
 
@@ -694,9 +714,8 @@ static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b)
 		for (i=0; i<n; ++i, ++dv) {
 			sv = sd->var + sd->bptr->outvars[i];
 			b->invars[i] = sd->vartop++;
-			dv->type = sv->type;
 			dv->flags = INOUT;
-			dv->vv = sv->vv;
+			COPY_VAL_AND_TYPE_VAR(sv, dv);
 		}
 	}
 
@@ -734,6 +753,8 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 	stackptr sp;
 	basicblock *orig;
 	bool separable;
+	varinfo *sv;
+	varinfo *dv;
 
 #if defined(STACK_VERBOSE)
 	printf("stack_check_invars(L%03d)\n", b->nr);
@@ -750,10 +771,12 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 
 	i = orig->indepth;
 
+#if defined(ENABLE_VERIFIER)
 	if (i != stackdepth) {
 		exceptions_throw_verifyerror(sd->m, "Stack depth mismatch");
 		return NULL;
 	}
+#endif
 
 	do {
 		separable = false;
@@ -765,14 +788,24 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 
 		sp = curstack;
 		for (i = orig->indepth; i--; sp = sp->prev) {
-			if (sd->var[b->invars[i]].type != sp->type) {
-				exceptions_throw_verifyerror_for_stack(sd->m, 
-						sd->var[b->invars[i]].type);
+			dv = sd->var + b->invars[i];
+			sv = sd->var + sp->varnum;
+
+#if defined(ENABLE_VERIFIER)
+			if (dv->type != sp->type) {
+				exceptions_throw_verifyerror_for_stack(sd->m, dv->type);
 				return NULL;
 			}
+#endif
 
 			if (sp->type == TYPE_RET) {
-				if (sd->var[b->invars[i]].vv.retaddr != sd->var[sp->varnum].vv.retaddr) {
+#if defined(ENABLE_VERIFIER)
+				if (dv->SBRSTART != sv->SBRSTART) {
+					exceptions_throw_verifyerror(sd->m, "Mismatched stack types");
+					return NULL;
+				}
+#endif
+				if (dv->vv.retaddr != sv->vv.retaddr) {
 					separable = true;
 					/* don't break! have to check the remaining stackslots */
 				}
@@ -781,8 +814,15 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 
 		if (b->inlocals) {
 			for (i=0; i<sd->localcount; ++i) {
-				if (sd->var[i].type == TYPE_RET && b->inlocals[i].type == TYPE_RET) {
-					if (sd->var[i].vv.retaddr != b->inlocals[i].vv.retaddr) {
+				dv = b->inlocals + i;
+				sv = sd->var + i;
+				if (sv->type == TYPE_RET && dv->type == TYPE_RET) {
+					if (
+#if defined(ENABLE_VERIFIER)
+							(sv->SBRSTART == dv->SBRSTART) &&
+#endif
+							(sv->vv.retaddr != dv->vv.retaddr)) 
+					{
 						separable = true;
 						break;
 					}
@@ -793,6 +833,22 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 		if (!separable) {
 			/* XXX mark mixed type variables void */
 			/* XXX cascading collapse? */
+#if defined(ENABLE_VERIFIER)
+			if (b->inlocals) {
+				for (i=0; i<sd->localcount; ++i) {
+					dv = b->inlocals + i;
+					sv = sd->var + i;
+					if ((sv->type == TYPE_RET && dv->type == TYPE_RET)
+						&& (sv->SBRSTART != dv->SBRSTART))
+					{
+						dv->type = TYPE_VOID;
+						b->flags = BBTYPECHECK_REACHED;
+						sd->repeat = true; /* This is very rare, so just repeat */
+					}
+				}
+			}
+#endif
+
 #if defined(STACK_VERBOSE)
 			printf("------> using L%03d\n", b->nr);
 #endif
@@ -848,10 +904,12 @@ static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock 
 	i = orig->indepth;
 	n = sd->bptr->outdepth;
 
+#if defined(ENABLE_VERIFIER)
 	if (i != n) {
 		exceptions_throw_verifyerror(sd->m, "Stack depth mismatch");
 		return NULL;
 	}
+#endif
 
 	do {
 		separable = false;
@@ -866,12 +924,21 @@ static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock 
 
 			for (i=0; i<n; ++i, ++dv) {
 				sv = sd->var + sd->bptr->outvars[i];
+
+#if defined(ENABLE_VERIFIER)
 				if (sv->type != dv->type) {
 					exceptions_throw_verifyerror_for_stack(sd->m, dv->type);
 					return NULL;
 				}
+#endif
 
 				if (dv->type == TYPE_RET) {
+#if defined(ENABLE_VERIFIER)
+					if (sv->SBRSTART != dv->SBRSTART) {
+						exceptions_throw_verifyerror(sd->m, "Mismatched stack types");
+						return NULL;
+					}
+#endif
 					if (sv->vv.retaddr != dv->vv.retaddr) {
 						separable = true;
 						/* don't break! have to check the remaining stackslots */
@@ -882,8 +949,15 @@ static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock 
 
 		if (b->inlocals) {
 			for (i=0; i<sd->localcount; ++i) {
-				if (sd->var[i].type == TYPE_RET && b->inlocals[i].type == TYPE_RET) {
-					if (sd->var[i].vv.retaddr != b->inlocals[i].vv.retaddr) {
+				dv = b->inlocals + i;
+				sv = sd->var + i;
+				if (
+#if defined(ENABLE_VERIFIER)
+						(sv->SBRSTART == dv->SBRSTART) &&
+#endif
+						(sv->type == TYPE_RET && dv->type == TYPE_RET))
+				{
+					if (sv->vv.retaddr != dv->vv.retaddr) {
 						separable = true;
 						break;
 					}
@@ -894,6 +968,22 @@ static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock 
 		if (!separable) {
 			/* XXX mark mixed type variables void */
 			/* XXX cascading collapse? */
+#if defined(ENABLE_VERIFIER)
+			if (b->inlocals) {
+				for (i=0; i<sd->localcount; ++i) {
+					dv = b->inlocals + i;
+					sv = sd->var + i;
+					if ((sv->type == TYPE_RET && dv->type == TYPE_RET)
+							&& (sv->SBRSTART != dv->SBRSTART))
+					{
+						dv->type = TYPE_VOID;
+						b->flags = BBTYPECHECK_REACHED;
+						sd->repeat = true; /* This is very rare, so just repeat */
+					}
+				}
+			}
+#endif
+
 #if defined(STACK_VERBOSE)
 			printf("------> using L%03d\n", b->nr);
 #endif
@@ -1303,10 +1393,12 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			case ICMD_RET:
 				j = iptr->s1.varindex;
 
+#if defined(ENABLE_VERIFIER)
 				if (sd->var[j].type != TYPE_RET) {
 					exceptions_throw_verifyerror(sd->m, "RET with non-returnAddress value");
 					return false;
 				}
+#endif
 
 				iptr->dst.block = stack_mark_reached_from_outvars(sd, sd->var[j].vv.retaddr);
 				superblockend = true;
@@ -1896,9 +1988,14 @@ bool stack_analyse(jitdata *jd)
 	sd.localcount = jd->localcount;
 	sd.var = jd->var;
 	sd.handlers = DMNEW(exceptiontable *, cd->exceptiontablelength + 1);
+
+	/* prepare the variable for exception handler stacks               */
+	/* (has been reserved by STACK_EXTRA_VARS, or VERIFIER_EXTRA_VARS) */
+
 	sd.exstack.type = TYPE_ADR;
 	sd.exstack.prev = NULL;
-	sd.exstack.varnum = 0; /* XXX do we need a real variable index here? */
+	sd.exstack.varnum = sd.localcount;
+	sd.var[sd.exstack.varnum].type = TYPE_ADR;
 
 #if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
@@ -1968,6 +2065,14 @@ bool stack_analyse(jitdata *jd)
 				continue;
 			}
 
+			if (sd.bptr->flags == BBTYPECHECK_REACHED) {
+				/* re-analyse a block because its input changed */
+				if (!stack_reanalyse_block(&sd))
+					return false;
+				superblockend = true; /* XXX */
+				continue;
+			}
+
 			if (superblockend && (sd.bptr->flags < BBREACHED)) {
 				/* This block has not been reached so far, and we      */
 				/* don't fall into it, so we'll have to iterate again. */
@@ -1988,6 +2093,7 @@ bool stack_analyse(jitdata *jd)
 				/* analysed, yet. Analyse it on the next iteration.    */
 
 				sd.repeat = true;
+				/* XXX superblockend? */
 				continue;
 			}
 
@@ -2132,10 +2238,12 @@ icmd_NOP:
 						j = iptr->s1.varindex = 
 							jd->local_map[iptr->s1.varindex * 5 + TYPE_ADR];
 
+#if defined(ENABLE_VERIFIER)
 						if (sd.var[j].type != TYPE_RET) {
 							exceptions_throw_verifyerror(m, "RET with non-returnAddress value");
 							return false;
 						}
+#endif
 		
 						CLR_SX;
 
@@ -2929,10 +3037,12 @@ normal_ACONST:
 						j = iptr->s1.varindex = 
 							jd->local_map[iptr->s1.varindex * 5 + i];
 
+#if defined(ENABLE_VERIFIER)
 						if (sd.var[j].type == TYPE_RET) {
 							exceptions_throw_verifyerror(m, "forbidden load of returnAddress");
 							return false;
 						}
+#endif
 		
 #if defined(ENABLE_SSA)
 						if (ls != NULL) {
@@ -4101,11 +4211,14 @@ normal_DCMPG:
 					case ICMD_JSR:
 						OP0_1(TYPE_RET);
 
-						assert(sd.bptr->next);  /* XXX exception */
-						sd.var[curstack->varnum].vv.retaddr = sd.bptr->next;
-
 						tbptr = BLOCK_OF(iptr->sx.s23.s3.jsrtarget.insindex);
 						tbptr->type = BBTYPE_SBR;
+
+						assert(sd.bptr->next);  /* XXX exception */
+						sd.var[curstack->varnum].vv.retaddr = sd.bptr->next;
+#if defined(ENABLE_VERIFIER)
+						sd.var[curstack->varnum].SBRSTART = (void*) tbptr;
+#endif
 
 						tbptr = stack_mark_reached(&sd, tbptr, curstack, stackdepth);
 						if (!tbptr)

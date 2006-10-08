@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5718 2006-10-07 23:56:43Z edwin $
+   $Id: parse.c 5721 2006-10-08 11:39:41Z edwin $
 
 */
 
@@ -1591,6 +1591,11 @@ invoke_method:
 		/* reserve the first indices for local variables */
 
 		jd->vartop = nlocals;
+
+		/* reserve extra variables needed by stack analyse */
+
+		jd->varcount += STACK_EXTRA_VARS;
+		jd->vartop   += STACK_EXTRA_VARS;
 
 		/* The verifier needs space for saving invars in some cases and */
 		/* extra variables.                                             */
