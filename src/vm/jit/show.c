@@ -451,7 +451,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			printf("]");
 		}
 
-		printf("):\n");
+		printf("):");
 
 		if (bptr->original)
 			printf(" (clone of L%03d)", bptr->original->nr);
