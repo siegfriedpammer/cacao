@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5727 2006-10-09 23:17:56Z edwin $
+   $Id: typecheck.c 5729 2006-10-09 23:53:42Z edwin $
 
 */
 
@@ -986,12 +986,16 @@ verify_invocation(verifier_state *state)
 
 	/* check types of parameters */
 
-	if (result == resolveSucceeded) {
-		result = resolve_method_type_checks(jd, state->m, 
-											state->iptr, mi,
-											invokestatic,
-											invokespecial);
-	}
+	if (result == resolveSucceeded && !invokestatic)
+		result = resolve_method_instance_type_checks(
+				state->m, mi, 
+				&(VAR(state->iptr->sx.s23.s2.args[0])->typeinfo), 
+				invokespecial);
+
+	if (result == resolveSucceeded)
+		result = resolve_method_param_type_checks(
+				jd, state->m, state->iptr,
+				mi, invokestatic);
 
 	/* impose loading constraints */
 

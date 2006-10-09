@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5727 2006-10-09 23:17:56Z edwin $
+   $Id: resolve.h 5729 2006-10-09 23:53:42Z edwin $
 
 */
 
@@ -190,7 +190,7 @@ resolve_result_t resolve_method_lazy(methodinfo *refmethod,
 resolve_result_t resolve_field_lazy(methodinfo *refmethod,
 									constant_FMIref *fieldref);
 
-#ifdef ENABLE_VERIFIER
+#if defined(ENABLE_VERIFIER)
 resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 											   constant_FMIref *fieldref,
 											   classinfo *container,
@@ -211,12 +211,16 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 												methodinfo *mi,
 												bool invokestatic);
 
-resolve_result_t resolve_method_type_checks(jitdata *jd, 
-											methodinfo *refmethod,
-											instruction *iptr, 
-											methodinfo *mi,
-											bool invokestatic,
-											bool invokespecial);
+resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
+													 methodinfo *mi,
+													 typeinfo *instanceti,
+													 bool invokespecial);
+
+resolve_result_t resolve_method_param_type_checks(jitdata *jd, 
+												  methodinfo *refmethod,
+												  instruction *iptr, 
+												  methodinfo *mi,
+												  bool invokestatic);
 
 bool resolve_method_loading_constraints(classinfo *referer,
 										methodinfo *mi);
@@ -225,7 +229,7 @@ bool constrain_unresolved_method(jitdata *jd,
 									 unresolved_method *ref, classinfo *referer,
 									 methodinfo *refmethod, instruction *iptr);
 
-#endif
+#endif /* defined(ENABLE_VERIFIER) */
 
 #ifndef NDEBUG
 void unresolved_class_debug_dump(unresolved_class *ref,FILE *file);
