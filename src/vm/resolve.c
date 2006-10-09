@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5723 2006-10-09 15:42:02Z edwin $
+   $Id: resolve.c 5724 2006-10-09 17:08:38Z edwin $
 
 */
 
@@ -1674,9 +1674,14 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
  
    Resolve an unresolved method reference lazily
   
+   NOTE: This function does NOT do any verification checks. In case of a
+         successful resolution, you must call resolve_method_verifier_checks
+		 in order to perform the necessary checks!
+  
    IN:
-       iptr.............instruction containing the method reference
 	   refmethod........the referer method
+	   methodref........the method reference
+	   invokespecial....true if this is an INVOKESPECIAL instruction
   
    RETURN VALUE:
        resolveSucceeded.....the reference has been resolved
@@ -1685,17 +1690,14 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
    
 *******************************************************************************/
 
-resolve_result_t resolve_method_lazy(jitdata *jd,
-										 instruction *iptr,
-										 methodinfo *refmethod)
+resolve_result_t resolve_method_lazy(methodinfo *refmethod,
+									 constant_FMIref *methodref,
+									 bool invokespecial)
 {
 	classinfo *referer;
 	classinfo *container;
 	methodinfo *mi;
-	constant_FMIref *methodref;
-	resolve_result_t result;
 
-	assert(iptr);
 	assert(refmethod);
 
 #ifdef RESOLVE_VERBOSE
@@ -1707,17 +1709,10 @@ resolve_result_t resolve_method_lazy(jitdata *jd,
 	referer = refmethod->class;
 	assert(referer);
 
-	/* the method reference */
-
-	INSTRUCTION_GET_METHODREF(iptr, methodref);
-
 	/* check if the method itself is already resolved */
 
-	if (IS_FMIREF_RESOLVED(methodref)) {
-		mi = methodref->p.method;
-		container = mi->class;
-		goto resolved_the_method;
-	}
+	if (IS_FMIREF_RESOLVED(methodref))
+		return resolveSucceeded;
 
 	/* first we must resolve the class containg the method */
 
@@ -1757,7 +1752,7 @@ resolve_result_t resolve_method_lazy(jitdata *jd,
 		return resolveDeferred; /* be lazy */
 	}
 
-	if (iptr->opc == ICMD_INVOKESPECIAL) {
+	if (invokespecial) {
 		mi = resolve_method_invokespecial_lookup(refmethod, mi);
 		if (!mi)
 			return resolveFailed; /* exception */
@@ -1773,31 +1768,8 @@ resolve_result_t resolve_method_lazy(jitdata *jd,
 
 	methodref->p.method = mi;
 
-resolved_the_method:
-
-#if defined(ENABLE_VERIFIER)
-	if (JITDATA_HAS_FLAG_VERIFY(jd)) {
-		result = resolve_method_verifier_checks(jd,
-												refmethod, methodref,
-												container,
-												mi,
-												iptr->opc == ICMD_INVOKESTATIC,
-												iptr->opc == ICMD_INVOKESPECIAL,
-												iptr);
-		if (result != resolveSucceeded)
-			return result;
-	}
-#endif /* defined(ENABLE_VERIFIER) */
-
-	/* if this call is monomorphic, turn it into an INVOKESPECIAL */
-
-	if ((iptr->opc == ICMD_INVOKEVIRTUAL)
-		&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))
-	{
-		iptr->opc = ICMD_INVOKESPECIAL;
-	}
-
 	/* succeed */
+
 	return resolveSucceeded;
 }
 
@@ -2366,7 +2338,7 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 }
 #endif /* ENABLE_VERIFIER */
 
-/* create_unresolved_method ****************************************************
+/* resolve_create_unresolved_method ********************************************
  
    Create an unresolved_method struct for the given method invocation
   
@@ -2381,39 +2353,35 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 
 *******************************************************************************/
 
-unresolved_method * create_unresolved_method(classinfo *referer,
-												 methodinfo *refmethod,
-												 instruction *iptr)
+unresolved_method * resolve_create_unresolved_method(classinfo *referer,
+													 methodinfo *refmethod,
+													 constant_FMIref *methodref,
+													 bool invokestatic,
+													 bool invokespecial)
 {
 	unresolved_method *ref;
-	constant_FMIref *methodref;
-	bool staticmethod;
 
-	methodref = iptr->sx.s23.s3.fmiref;
 	assert(methodref);
-	staticmethod = (iptr->opc == ICMD_INVOKESTATIC);
 
 #ifdef RESOLVE_VERBOSE
 	printf("create_unresolved_method\n");
 	printf("    referer: ");utf_fprint_printable_ascii(stdout,referer->name);fputc('\n',stdout);
 	printf("    rmethod: ");utf_fprint_printable_ascii(stdout,refmethod->name);fputc('\n',stdout);
 	printf("    rmdesc : ");utf_fprint_printable_ascii(stdout,refmethod->descriptor);fputc('\n',stdout);
-/*	printf("    class  : ");utf_fprint_printable_ascii(stdout,methodref->p.classref->name);fputc('\n',stdout);*/
 	printf("    name   : ");utf_fprint_printable_ascii(stdout,methodref->name);fputc('\n',stdout);
 	printf("    desc   : ");utf_fprint_printable_ascii(stdout,methodref->descriptor);fputc('\n',stdout);
-	/*printf("    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
 #endif
 
 	/* allocate params if necessary */
 	if (!methodref->parseddesc.md->params)
 		if (!descriptor_params_from_paramtypes(methodref->parseddesc.md,
-					(staticmethod) ? ACC_STATIC : ACC_NONE))
+					(invokestatic) ? ACC_STATIC : ACC_NONE))
 			return NULL;
 
 	/* create the data structure */
 	ref = NEW(unresolved_method);
-	ref->flags = ((staticmethod) ? RESOLVE_STATIC : 0)
-			   | ((iptr->opc == ICMD_INVOKESPECIAL) ? RESOLVE_SPECIAL : 0);
+	ref->flags = ((invokestatic) ? RESOLVE_STATIC : 0)
+			   | ((invokespecial) ? RESOLVE_SPECIAL : 0);
 	ref->referermethod = refmethod;
 	ref->methodref = methodref;
 	ref->paramconstraints = NULL;

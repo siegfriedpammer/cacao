@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5723 2006-10-09 15:42:02Z edwin $
+   $Id: resolve.h 5724 2006-10-09 17:08:38Z edwin $
 
 */
 
@@ -173,17 +173,19 @@ unresolved_field *resolve_create_unresolved_field(classinfo *referer,
 											  methodinfo *refmethod,
 											  instruction *iptr);
 
-unresolved_method *create_unresolved_method(classinfo *referer,
-												methodinfo *refmethod,
-												instruction *iptr);
+unresolved_method * resolve_create_unresolved_method(classinfo *referer,
+													 methodinfo *refmethod,
+													 constant_FMIref *methodref,
+													 bool invokestatic,
+													 bool invokespecial);
 
 void unresolved_class_free(unresolved_class *ref);
 void unresolved_field_free(unresolved_field *ref);
 void unresolved_method_free(unresolved_method *ref);
 
-resolve_result_t resolve_method_lazy(jitdata *jd,
-										 instruction *iptr,
-										 methodinfo *refmethod);
+resolve_result_t resolve_method_lazy(methodinfo *refmethod,
+									 constant_FMIref *methodref,
+									 bool invokespecial);
 
 resolve_result_t resolve_field_lazy(methodinfo *refmethod,
 									constant_FMIref *fieldref);
@@ -204,6 +206,14 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 									    typeinfo *instanceti,
 									    typeinfo *valueti);
 
+resolve_result_t resolve_method_verifier_checks(jitdata *jd,
+												methodinfo *refmethod,
+												constant_FMIref *methodref,
+												classinfo *container,
+												methodinfo *mi,
+												bool invokestatic,
+												bool invokespecial,
+												instruction *iptr);
 bool constrain_unresolved_method(jitdata *jd,
 									 unresolved_method *ref, classinfo *referer,
 									 methodinfo *refmethod, instruction *iptr);

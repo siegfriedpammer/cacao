@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5723 2006-10-09 15:42:02Z edwin $
+   $Id: parse.c 5724 2006-10-09 17:08:38Z edwin $
 
 */
 
@@ -1103,12 +1103,28 @@ invoke_method:
 #if defined(ENABLE_VERIFIER)
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = resolve_method_lazy(jd, iptr, m);
+				result = resolve_method_lazy(m, mr, 
+						(opcode == JAVA_INVOKESPECIAL));
 				if (result == resolveFailed)
 					return false;
 
-				if (result != resolveSucceeded) {
-					um = create_unresolved_method(m->class, m, iptr);
+				if (result == resolveSucceeded) {
+					methodinfo *mi = iptr->sx.s23.s3.fmiref->p.method;
+
+					/* if this call is monomorphic, turn it into an INVOKESPECIAL */
+
+					assert(IS_FMIREF_RESOLVED(iptr->sx.s23.s3.fmiref));
+
+					if ((iptr->opc == ICMD_INVOKEVIRTUAL)
+						&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))
+					{
+						iptr->opc = ICMD_INVOKESPECIAL;
+					}
+				}
+				else {
+					um = resolve_create_unresolved_method(m->class, m, mr,
+							(opcode == JAVA_INVOKESTATIC),
+							(opcode == JAVA_INVOKESPECIAL));
 
 					if (!um)
 						return false;

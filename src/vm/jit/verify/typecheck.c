@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5723 2006-10-09 15:42:02Z edwin $
+   $Id: typecheck.c 5724 2006-10-09 17:08:38Z edwin $
 
 */
 
@@ -797,6 +797,7 @@ verify_invocation(verifier_state *state)
     u1 rtype;                          /* return type of called method */
 	resolve_result_t result;
 	jitdata *jd;
+	bool invokespecial;
 
 	jd = state->jd;
 
@@ -830,8 +831,9 @@ verify_invocation(verifier_state *state)
 		mclassname = mref->p.classref->name;
 	}
 
-	specialmethod = (mname->text[0] == '<');
 	opcode = state->iptr[0].opc;
+	invokespecial = (opcode == ICMD_INVOKESPECIAL);
+	specialmethod = (mname->text[0] == '<');
 	dv = VAROP(state->iptr->dst);
 
 	/* prevent compiler warnings */
@@ -840,7 +842,7 @@ verify_invocation(verifier_state *state)
 
 	/* check whether we are calling <init> */
 	
-	callinginit = (opcode == ICMD_INVOKESPECIAL && mname == utf_init);
+	callinginit = (invokespecial && mname == utf_init);
 	if (specialmethod && !callinginit)
 		TYPECHECK_VERIFYERROR_bool("Invalid invocation of special method");
 
@@ -964,14 +966,47 @@ verify_invocation(verifier_state *state)
 
 	/* try to resolve the method lazily */
 
-	result = resolve_method_lazy(jd, state->iptr, state->m);
+	result = resolve_method_lazy(state->m, mref, invokespecial);
+
+	/* if resolved, perform verification checks */
+
+	if (result == resolveSucceeded) {
+		methodinfo *mi = mref->p.method;
+
+		result = resolve_method_verifier_checks(jd,
+												state->m, 
+												mref,
+												mi->class,
+												mi,
+												state->iptr->opc == ICMD_INVOKESTATIC,
+												invokespecial,
+												state->iptr);
+	}
+
 	if (result == resolveFailed)
 		return false;
 
-	if (result != resolveSucceeded) {
+	if (result == resolveSucceeded) {
+		methodinfo *mi = mref->p.method;
+
+		/* if this call is monomorphic, turn it into an INVOKESPECIAL */
+
+		assert(IS_FMIREF_RESOLVED(state->iptr->sx.s23.s3.fmiref));
+
+		if ((state->iptr->opc == ICMD_INVOKEVIRTUAL)
+			&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))
+		{
+			state->iptr->opc = ICMD_INVOKESPECIAL;
+		}
+	}
+	else {
+		/* resolution must be deferred */
+
 		if (!um) {
-			um = create_unresolved_method(state->m->class,
-					state->m, state->iptr);
+			um = resolve_create_unresolved_method(state->m->class, state->m,
+					mref, 
+					state->iptr->opc == ICMD_INVOKESTATIC,
+					invokespecial);
 
 			if (!um)
 				return false;
@@ -987,9 +1022,6 @@ verify_invocation(verifier_state *state)
 
 		state->iptr->sx.s23.s3.um = um;
 		state->iptr->flags.bits |= INS_FLAG_UNRESOLVED;
-	}
-	else {
-		assert(IS_FMIREF_RESOLVED(state->iptr->sx.s23.s3.fmiref));
 	}
 
 	rtype = md->returntype.type;
