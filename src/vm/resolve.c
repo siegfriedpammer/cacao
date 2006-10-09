@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5727 2006-10-09 23:17:56Z edwin $
+   $Id: resolve.c 5728 2006-10-09 23:21:37Z edwin $
 
 */
 
@@ -1476,7 +1476,6 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 {
 	classinfo *declarer;
 	classinfo *referer;
-	methoddesc *md;
 
 	assert(refmethod);
 	assert(methodref);
@@ -1494,11 +1493,6 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 
 	declarer = mi->class;
 	assert(declarer);
-	assert(referer->state & CLASS_LINKED);
-
-	md = methodref->parseddesc.md;
-	assert(md);
-	assert(md->params);
 
 	/* check static */
 
