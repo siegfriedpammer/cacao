@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5655 2006-10-03 20:44:46Z edwin $
+   $Id: resolve.h 5723 2006-10-09 15:42:02Z edwin $
 
 */
 
@@ -169,7 +169,7 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 						typeinfo *valuetype);
 #endif
 
-unresolved_field *create_unresolved_field(classinfo *referer,
+unresolved_field *resolve_create_unresolved_field(classinfo *referer,
 											  methodinfo *refmethod,
 											  instruction *iptr);
 
@@ -185,14 +185,24 @@ resolve_result_t resolve_method_lazy(jitdata *jd,
 										 instruction *iptr,
 										 methodinfo *refmethod);
 
-resolve_result_t resolve_field_lazy(jitdata *jd,
-										instruction *iptr,
-										methodinfo *refmethod);
+resolve_result_t resolve_field_lazy(methodinfo *refmethod,
+									constant_FMIref *fieldref);
 
 #ifdef ENABLE_VERIFIER
-bool constrain_unresolved_field(jitdata *jd, 
-									unresolved_field *ref, classinfo *referer,
-									methodinfo *refmethod, instruction *iptr);
+resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
+											   constant_FMIref *fieldref,
+											   classinfo *container,
+											   fieldinfo *fi,
+											   typeinfo *instanceti,
+											   typeinfo *valueti,
+											   bool isstatic,
+											   bool isput);
+
+bool resolve_constrain_unresolved_field(unresolved_field *ref,
+										classinfo *referer, 
+										methodinfo *refmethod,
+									    typeinfo *instanceti,
+									    typeinfo *valueti);
 
 bool constrain_unresolved_method(jitdata *jd,
 									 unresolved_method *ref, classinfo *referer,

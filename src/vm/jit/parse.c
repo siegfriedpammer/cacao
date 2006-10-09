@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5721 2006-10-08 11:39:41Z edwin $
+   $Id: parse.c 5723 2006-10-09 15:42:02Z edwin $
 
 */
 
@@ -1030,12 +1030,12 @@ jsr_tail:
 #if defined(ENABLE_VERIFIER)
 				if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-					result = resolve_field_lazy(jd, iptr, m);
+					result = resolve_field_lazy(m, fr);
 					if (result == resolveFailed)
 						return false;
 
 					if (result != resolveSucceeded) {
-						uf = create_unresolved_field(m->class, m, iptr);
+						uf = resolve_create_unresolved_field(m->class, m, iptr);
 
 						if (uf == NULL)
 							return false;

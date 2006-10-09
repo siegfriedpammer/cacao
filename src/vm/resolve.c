@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5655 2006-10-03 20:44:46Z edwin $
+   $Id: resolve.c 5723 2006-10-09 15:42:02Z edwin $
 
 */
 
@@ -939,8 +939,10 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 	   fieldref.........the field reference
 	   container........the class where the field was found
 	   fi...............the fieldinfo of the resolved field
-	   opc..............opcode of the {GET,PUT}{STATIC,FIELD} instruction
-	   iptr.............field instruction or NULL
+	   instanceti.......instance typeinfo, if available
+	   valueti..........value typeinfo, if available
+	   isstatic.........true if this is a *STATIC* instruction
+	   isput............true if this is a PUT* instruction
   
    RETURN VALUE:
        resolveSucceeded....everything ok
@@ -950,28 +952,24 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 *******************************************************************************/
 
 #if defined(ENABLE_VERIFIER)
-resolve_result_t resolve_field_verifier_checks(jitdata *jd,
-											   methodinfo *refmethod,
+resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 											   constant_FMIref *fieldref,
 											   classinfo *container,
 											   fieldinfo *fi,
-											   s4 opc,
-											   instruction *iptr)
+											   typeinfo *instanceti,
+											   typeinfo *valueti,
+											   bool isstatic,
+											   bool isput)
 {
 	classinfo *declarer;
 	classinfo *referer;
 	resolve_result_t result;
-	bool isstatic = false;
-	bool isput = false;
-	varinfo *instanceslot = NULL;
-	varinfo *valueslot = NULL;
 	constant_classref *fieldtyperef;
 
 	assert(refmethod);
 	assert(fieldref);
 	assert(container);
 	assert(fi);
-	assert(!iptr || jd);
 
 	/* get the classinfos and the field type */
 
@@ -983,45 +981,6 @@ resolve_result_t resolve_field_verifier_checks(jitdata *jd,
 	assert(referer->state & CLASS_LINKED);
 
 	fieldtyperef = fieldref->parseddesc.fd->classref;
-
-	/* get opcode dependent values */
-
-	switch (opc) {
-		case ICMD_PUTFIELD:
-			isput = true;
-			if (iptr) {
-				valueslot = VAROP(iptr->sx.s23.s2);
-				instanceslot = VAROP(iptr->s1);
-			}
-			break;
-
-		case ICMD_PUTFIELDCONST:
-			isput = true;
-			if (iptr)
-				instanceslot = VAROP(iptr->s1);
-			break;
-
-		case ICMD_PUTSTATIC:
-			isput = true;
-			isstatic = true;
-			if (iptr)
-				valueslot = VAROP(iptr->s1);
-			break;
-
-		case ICMD_PUTSTATICCONST:
-			isput = true;
-			isstatic = true;
-			break;
-
-		case ICMD_GETFIELD:
-			if (iptr)
-				instanceslot = VAROP(iptr->s1);
-			break;
-
-		case ICMD_GETSTATIC:
-			isstatic = true;
-			break;
-	}
 
 	/* check static */
 
@@ -1061,34 +1020,32 @@ resolve_result_t resolve_field_verifier_checks(jitdata *jd,
 	/* for non-static methods we have to check the constraints on the         */
 	/* instance type                                                          */
 
-	if (instanceslot) {
+	if (instanceti) {
 		typeinfo *insttip;
 		typeinfo tinfo;
 
 		/* The instanceslot must contain a reference to a non-array type */
 
-		assert(instanceslot->type == TYPE_ADR); /* checked earlier */
-
-		if (!TYPEINFO_IS_REFERENCE(instanceslot->typeinfo)) {
+		if (!TYPEINFO_IS_REFERENCE(*instanceti)) {
 			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on non-reference");
 			return resolveFailed;
 		}
-		if (TYPEINFO_IS_ARRAY(instanceslot->typeinfo)) {
+		if (TYPEINFO_IS_ARRAY(*instanceti)) {
 			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on array");
 			return resolveFailed;
 		}
 
-		if (isput && TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
+		if (isput && TYPEINFO_IS_NEWOBJECT(*instanceti))
 		{
 			/* The instruction writes a field in an uninitialized object. */
 			/* This is only allowed when a field of an uninitialized 'this' object is */
 			/* written inside an initialization method                                */
 
 			classinfo *initclass;
-			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
 
 			if (ins != NULL) {
-				exceptions_throw_verifyerror(refmethod,"accessing field of uninitialized object");
+				exceptions_throw_verifyerror(refmethod, "accessing field of uninitialized object");
 				return resolveFailed;
 			}
 
@@ -1096,11 +1053,11 @@ resolve_result_t resolve_field_verifier_checks(jitdata *jd,
 			initclass = referer; /* XXX classrefs */
 			assert(initclass->state & CLASS_LINKED);
 
-			typeinfo_init_classinfo(&tinfo,initclass);
+			typeinfo_init_classinfo(&tinfo, initclass);
 			insttip = &tinfo;
 		}
 		else {
-			insttip = &(instanceslot->typeinfo);
+			insttip = instanceti;
 		}
 
 		result = resolve_lazy_subtype_checks(refmethod,
@@ -1115,7 +1072,7 @@ resolve_result_t resolve_field_verifier_checks(jitdata *jd,
 		if (((fi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer))
 		{
 			result = resolve_lazy_subtype_checks(refmethod,
-					&(instanceslot->typeinfo),
+					instanceti,
 					CLASSREF_OR_CLASSINFO(referer),
 					resolveIllegalAccessError);
 			if (result != resolveSucceeded)
@@ -1126,12 +1083,12 @@ resolve_result_t resolve_field_verifier_checks(jitdata *jd,
 
 	/* for PUT* instructions we have to check the constraints on the value type */
 
-	if (valueslot && valueslot->type == TYPE_ADR) {
+	if (valueti) {
 		assert(fieldtyperef);
 
 		/* check subtype constraints */
 		result = resolve_lazy_subtype_checks(refmethod,
-				&(valueslot->typeinfo),
+				valueti,
 				CLASSREF_OR_CLASSINFO(fieldtyperef),
 				resolveLinkageError);
 
@@ -1149,7 +1106,7 @@ resolve_result_t resolve_field_verifier_checks(jitdata *jd,
 			return resolveFailed;
 	}
 
-	/* XXX impose loading constraing on instance? */
+	/* XXX impose loading constraint on instance? */
 
 	/* everything ok */
 	return resolveSucceeded;
@@ -1159,10 +1116,14 @@ resolve_result_t resolve_field_verifier_checks(jitdata *jd,
 /* resolve_field_lazy **********************************************************
  
    Resolve an unresolved field reference lazily
+
+   NOTE: This function does NOT do any verification checks. In case of a
+         successful resolution, you must call resolve_field_verifier_checks
+		 in order to perform the necessary checks!
   
    IN:
-       iptr.............instruction containing the field reference
 	   refmethod........the referer method
+	   fieldref.........the field reference
   
    RETURN VALUE:
        resolveSucceeded.....the reference has been resolved
@@ -1171,17 +1132,13 @@ resolve_result_t resolve_field_verifier_checks(jitdata *jd,
    
 *******************************************************************************/
 
-resolve_result_t resolve_field_lazy(jitdata *jd,
-										instruction *iptr,
-										methodinfo *refmethod)
+resolve_result_t resolve_field_lazy(methodinfo *refmethod,
+									constant_FMIref *fieldref)
 {
 	classinfo *referer;
 	classinfo *container;
 	fieldinfo *fi;
-	constant_FMIref *fieldref;
-	resolve_result_t result;
 
-	assert(iptr);
 	assert(refmethod);
 
 	/* the class containing the reference */
@@ -1189,17 +1146,10 @@ resolve_result_t resolve_field_lazy(jitdata *jd,
 	referer = refmethod->class;
 	assert(referer);
 
-	/* get the field reference */
-
-	INSTRUCTION_GET_FIELDREF(iptr, fieldref);
-
 	/* check if the field itself is already resolved */
 
-	if (IS_FMIREF_RESOLVED(fieldref)) {
-		fi = fieldref->p.field;
-		container = fi->class;
-		goto resolved_the_field;
-	}
+	if (IS_FMIREF_RESOLVED(fieldref))
+		return resolveSucceeded;
 
 	/* first we must resolve the class containg the field */
 
@@ -1234,19 +1184,6 @@ resolve_result_t resolve_field_lazy(jitdata *jd,
 	/* cache the result of the resolution */
 
 	fieldref->p.field = fi;
-
-resolved_the_field:
-
-#if defined(ENABLE_VERIFIER)
-	if (JITDATA_HAS_FLAG_VERIFY(jd)) {
-		result = resolve_field_verifier_checks(jd,
-				refmethod, fieldref, container, fi,
-				iptr->opc, iptr);
-
-		if (result != resolveSucceeded)
-			return result;
-	}
-#endif /* defined(ENABLE_VERIFIER) */
 
 	/* everything ok */
 	return resolveSucceeded;
@@ -1355,13 +1292,15 @@ resolved_the_field:
 	/* Checking opt_verify is ok here, because the NULL iptr guarantees */
 	/* that no missing parts of an instruction will be accessed.        */
 	if (opt_verify) {
-		checkresult = resolve_field_verifier_checks(NULL,
+		checkresult = resolve_field_verifier_checks(
 				ref->referermethod,
 				ref->fieldref,
 				container,
 				fi,
-				(ref->flags & RESOLVE_STATIC) ? ICMD_GETSTATIC : ICMD_GETFIELD,
-				NULL);
+				NULL, /* instanceti, handled by constraints below */
+				NULL, /* valueti, handled by constraints below  */
+				(ref->flags & RESOLVE_STATIC) != 0, /* isstatic */
+				(ref->flags & RESOLVE_PUTFIELD) != 0 /* isput */);
 
 		if (checkresult != resolveSucceeded)
 			return (bool) checkresult;
@@ -2226,7 +2165,7 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 }
 #endif /* ENABLE_VERIFIER */
 
-/* create_unresolved_field *****************************************************
+/* resolve_create_unresolved_field *********************************************
  
    Create an unresolved_field struct for the given field access instruction
   
@@ -2241,9 +2180,9 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 
 *******************************************************************************/
 
-unresolved_field * create_unresolved_field(classinfo *referer,
-											   methodinfo *refmethod,
-											   instruction *iptr)
+unresolved_field * resolve_create_unresolved_field(classinfo *referer,
+												   methodinfo *refmethod,
+												   instruction *iptr)
 {
 	unresolved_field *ref;
 	constant_FMIref *fieldref = NULL;
@@ -2308,7 +2247,7 @@ unresolved_field * create_unresolved_field(classinfo *referer,
 	return ref;
 }
 
-/* constrain_unresolved_field **********************************************
+/* resolve_constrain_unresolved_field ******************************************
  
    Record subtype constraints for a field access.
   
@@ -2316,7 +2255,8 @@ unresolved_field * create_unresolved_field(classinfo *referer,
        ref..............the unresolved_field structure of the access
        referer..........the class containing the reference
 	   refmethod........the method triggering the resolution (if any)
-	   iptr.............the {GET,PUT}{FIELD,STATIC}{,CONST} instruction
+	   instanceti.......instance typeinfo, if available
+	   valueti..........value typeinfo, if available
 
    RETURN VALUE:
        true.............everything ok
@@ -2324,17 +2264,16 @@ unresolved_field * create_unresolved_field(classinfo *referer,
 
 *******************************************************************************/
 
-#ifdef ENABLE_VERIFIER
-bool constrain_unresolved_field(jitdata *jd,
-									unresolved_field *ref,
-									classinfo *referer, methodinfo *refmethod,
-									instruction *iptr)
+#if defined(ENABLE_VERIFIER)
+bool resolve_constrain_unresolved_field(unresolved_field *ref,
+										classinfo *referer, 
+										methodinfo *refmethod,
+									    typeinfo *instanceti,
+									    typeinfo *valueti)
 {
 	constant_FMIref *fieldref;
-	varinfo *instanceslot = NULL;
 	int type;
 	typeinfo tinfo;
-	typeinfo *tip = NULL;
 	typedesc *fd;
 
 	assert(ref);
@@ -2355,55 +2294,39 @@ bool constrain_unresolved_field(jitdata *jd,
 	/*printf("    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
-	switch (iptr[0].opc) {
-		case ICMD_PUTFIELD:
-			instanceslot = VAROP(iptr->s1);
-			tip = &(VAROP(iptr->sx.s23.s2)->typeinfo);
-			break;
-
-		case ICMD_PUTFIELDCONST:
-			instanceslot = VAROP(iptr->s1);
-			break;
-
-		case ICMD_PUTSTATIC:
-			tip = &(VAROP(iptr->s1)->typeinfo);
-			break;
-
-		case ICMD_GETFIELD:
-			instanceslot = VAROP(iptr->s1);
-			break;
-	}
-
-	assert(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
+	assert(instanceti || ((ref->flags & RESOLVE_STATIC) != 0));
 	fd = fieldref->parseddesc.fd;
 	assert(fd);
 
 	/* record subtype constraints for the instance type, if any */
-	if (instanceslot) {
+	if (instanceti) {
 		typeinfo *insttip;
 
 		/* The instanceslot must contain a reference to a non-array type */
-		if (!TYPEINFO_IS_REFERENCE(instanceslot->typeinfo)) {
-			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on non-reference");
+		if (!TYPEINFO_IS_REFERENCE(*instanceti)) {
+			exceptions_throw_verifyerror(refmethod, 
+					"illegal instruction: field access on non-reference");
 			return false;
 		}
-		if (TYPEINFO_IS_ARRAY(instanceslot->typeinfo)) {
-			exceptions_throw_verifyerror(refmethod, "illegal instruction: field access on array");
+		if (TYPEINFO_IS_ARRAY(*instanceti)) {
+			exceptions_throw_verifyerror(refmethod, 
+					"illegal instruction: field access on array");
 			return false;
 		}
 
 		if (((ref->flags & RESOLVE_PUTFIELD) != 0) &&
-				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
+				TYPEINFO_IS_NEWOBJECT(*instanceti))
 		{
 			/* The instruction writes a field in an uninitialized object. */
 			/* This is only allowed when a field of an uninitialized 'this' object is */
 			/* written inside an initialization method                                */
 
 			classinfo *initclass;
-			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
 
 			if (ins != NULL) {
-				exceptions_throw_verifyerror(refmethod,"accessing field of uninitialized object");
+				exceptions_throw_verifyerror(refmethod, 
+						"accessing field of uninitialized object");
 				return false;
 			}
 			/* XXX check that class of field == refmethod->class */
@@ -2411,14 +2334,15 @@ bool constrain_unresolved_field(jitdata *jd,
 			assert(initclass->state & CLASS_LOADED);
 			assert(initclass->state & CLASS_LINKED);
 
-			typeinfo_init_classinfo(&tinfo,initclass);
+			typeinfo_init_classinfo(&tinfo, initclass);
 			insttip = &tinfo;
 		}
 		else {
-			insttip = &(instanceslot->typeinfo);
+			insttip = instanceti;
 		}
-		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-					&(ref->instancetypes),insttip, FIELDREF_CLASSNAME(fieldref)))
+		if (!unresolved_subtype_set_from_typeinfo(referer, refmethod,
+					&(ref->instancetypes), insttip, 
+					FIELDREF_CLASSNAME(fieldref)))
 			return false;
 	}
 	else {
@@ -2428,20 +2352,10 @@ bool constrain_unresolved_field(jitdata *jd,
 	/* record subtype constraints for the value type, if any */
 	type = fd->type;
 	if (type == TYPE_ADR && ((ref->flags & RESOLVE_PUTFIELD) != 0)) {
-		if (!tip) {
-			/* we have a PUTSTATICCONST or PUTFIELDCONST with TYPE_ADR */
-			tip = &tinfo;
-			if (iptr->sx.val.anyptr) {
-				assert(class_java_lang_String);
-				assert(class_java_lang_String->state & CLASS_LOADED);
-				assert(class_java_lang_String->state & CLASS_LINKED);
-				typeinfo_init_classinfo(&tinfo,class_java_lang_String);
-			}
-			else
-				TYPEINFO_INIT_NULLTYPE(tinfo);
-		}
-		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-					&(ref->valueconstraints),tip,fieldref->parseddesc.fd->classref->name))
+		assert(valueti);
+		if (!unresolved_subtype_set_from_typeinfo(referer, refmethod,
+					&(ref->valueconstraints), valueti, 
+					fieldref->parseddesc.fd->classref->name))
 			return false;
 	}
 	else {
