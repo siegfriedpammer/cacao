@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5724 2006-10-09 17:08:38Z edwin $
+   $Id: resolve.h 5725 2006-10-09 22:19:22Z edwin $
 
 */
 
@@ -214,6 +214,10 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
 												bool invokestatic,
 												bool invokespecial,
 												instruction *iptr);
+
+bool resolve_method_loading_constraints(classinfo *referer,
+										methodinfo *mi);
+
 bool constrain_unresolved_method(jitdata *jd,
 									 unresolved_method *ref, classinfo *referer,
 									 methodinfo *refmethod, instruction *iptr);

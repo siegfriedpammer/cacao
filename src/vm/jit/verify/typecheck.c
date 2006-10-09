@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5724 2006-10-09 17:08:38Z edwin $
+   $Id: typecheck.c 5725 2006-10-09 22:19:22Z edwin $
 
 */
 
@@ -971,7 +971,10 @@ verify_invocation(verifier_state *state)
 	/* if resolved, perform verification checks */
 
 	if (result == resolveSucceeded) {
-		methodinfo *mi = mref->p.method;
+
+		assert(IS_FMIREF_RESOLVED(mref));
+
+		mi = mref->p.method;
 
 		result = resolve_method_verifier_checks(jd,
 												state->m, 
@@ -983,15 +986,19 @@ verify_invocation(verifier_state *state)
 												state->iptr);
 	}
 
+	/* if resolved, impose loading constraints */
+
+	if (result == resolveSucceeded) {
+		/* XXX state->m->class may have to be wrong when inlining */
+		if (!resolve_method_loading_constraints(state->m->class, mi))
+			return false;
+	}
+
 	if (result == resolveFailed)
 		return false;
 
 	if (result == resolveSucceeded) {
-		methodinfo *mi = mref->p.method;
-
 		/* if this call is monomorphic, turn it into an INVOKESPECIAL */
-
-		assert(IS_FMIREF_RESOLVED(state->iptr->sx.s23.s3.fmiref));
 
 		if ((state->iptr->opc == ICMD_INVOKEVIRTUAL)
 			&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))

@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5724 2006-10-09 17:08:38Z edwin $
+   $Id: resolve.c 5725 2006-10-09 22:19:22Z edwin $
 
 */
 
@@ -1628,20 +1628,52 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
 
 	} /* if (iptr) */
 
+	/* everything ok */
+
+	return resolveSucceeded;
+}
+#endif /* defined(ENABLE_VERIFIER) */
+
+
+/* resolve_method_loading_constraints ******************************************
+
+   Impose loading constraints on the parameters and return type of the
+   given method.
+
+   IN:
+       referer..........the class refering to the method
+	   mi...............the method
+
+   RETURN VALUE:
+       true................everything ok
+	   false...............an exception has been thrown
+
+*******************************************************************************/
+
+#if defined(ENABLE_VERIFIER)
+bool resolve_method_loading_constraints(classinfo *referer,
+										methodinfo *mi)
+{
+	methoddesc *md;
+	typedesc   *paramtypes;
+	utf        *name;
+	s4          i;
+	s4          instancecount;
+
 	/* impose loading constraints on parameters (including instance) */
 
+	md = mi->parseddesc;
 	paramtypes = md->paramtypes;
+	instancecount = (mi->flags & ACC_STATIC) / ACC_STATIC;
 
 	for (i = 0; i < md->paramcount; i++) {
 		if (i < instancecount || paramtypes[i].type == TYPE_ADR) {
-			utf *name;
-
 			if (i < instancecount) {
 				/* The type of the 'this' pointer is the class containing */
 				/* the method definition. Since container is the same as, */
 				/* or a subclass of declarer, we also constrain declarer  */
 				/* by transitivity of loading constraints.                */
-				name = container->name;
+				name = mi->class->name;
 			}
 			else {
 				name = paramtypes[i].classref->name;
@@ -1650,8 +1682,8 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
 			/* The caller (referer) and the callee (container) must agree */
 			/* on the types of the parameters.                            */
 			if (!classcache_add_constraint(referer->classloader,
-										   container->classloader, name))
-				return resolveFailed; /* exception */
+										   mi->class->classloader, name))
+				return false; /* exception */
 		}
 	}
 
@@ -1660,15 +1692,18 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
 	if (md->returntype.type == TYPE_ADR) {
 		/* The caller (referer) and the callee (container) must agree */
 		/* on the return type.                                        */
-		if (!classcache_add_constraint(referer->classloader,container->classloader,
-				md->returntype.classref->name))
-			return resolveFailed; /* exception */
+		if (!classcache_add_constraint(referer->classloader,
+					mi->class->classloader,
+					md->returntype.classref->name))
+			return false; /* exception */
 	}
 
 	/* everything ok */
-	return resolveSucceeded;
+
+	return true;
 }
 #endif /* defined(ENABLE_VERIFIER) */
+
 
 /* resolve_method_lazy *********************************************************
  
@@ -1910,6 +1945,11 @@ resolved_the_method:
 
 		if (checkresult != resolveSucceeded)
 			return (bool) checkresult;
+
+		/* impose loading constraints on params and return type */
+
+		if (!resolve_method_loading_constraints(referer, mi))
+			return false;
 
 		declarer = mi->class;
 		assert(declarer);
