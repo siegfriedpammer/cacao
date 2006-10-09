@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5726 2006-10-09 23:06:39Z edwin $
+   $Id: resolve.h 5727 2006-10-09 23:17:56Z edwin $
 
 */
 
@@ -206,14 +206,10 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 									    typeinfo *instanceti,
 									    typeinfo *valueti);
 
-resolve_result_t resolve_method_verifier_checks(jitdata *jd,
-												methodinfo *refmethod,
+resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 												constant_FMIref *methodref,
-												classinfo *container,
 												methodinfo *mi,
-												bool invokestatic,
-												bool invokespecial,
-												instruction *iptr);
+												bool invokestatic);
 
 resolve_result_t resolve_method_type_checks(jitdata *jd, 
 											methodinfo *refmethod,

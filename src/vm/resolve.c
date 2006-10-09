@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5726 2006-10-09 23:06:39Z edwin $
+   $Id: resolve.c 5727 2006-10-09 23:17:56Z edwin $
 
 */
 
@@ -1458,10 +1458,8 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
    IN:
        refmethod........the method containing the reference
 	   methodref........the method reference
-	   container........the class where the method was found
 	   mi...............the methodinfo of the resolved method
 	   invokestatic.....true if the method is invoked by INVOKESTATIC
-	   iptr.............the invoke instruction, or NULL
   
    RETURN VALUE:
        resolveSucceeded....everything ok
@@ -1471,23 +1469,17 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 *******************************************************************************/
 
 #if defined(ENABLE_VERIFIER)
-resolve_result_t resolve_method_verifier_checks(jitdata *jd,
-												methodinfo *refmethod,
+resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 												constant_FMIref *methodref,
-												classinfo *container,
 												methodinfo *mi,
-												bool invokestatic,
-												bool invokespecial,
-												instruction *iptr)
+												bool invokestatic)
 {
 	classinfo *declarer;
 	classinfo *referer;
-	int instancecount;
 	methoddesc *md;
 
 	assert(refmethod);
 	assert(methodref);
-	assert(container);
 	assert(mi);
 
 #ifdef RESOLVE_VERBOSE
@@ -1507,8 +1499,6 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
 	md = methodref->parseddesc.md;
 	assert(md);
 	assert(md->params);
-
-	instancecount = (invokestatic) ? 0 : 1;
 
 	/* check static */
 
@@ -1970,18 +1960,13 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 resolved_the_method:
 
 #ifdef ENABLE_VERIFIER
-	/* Checking opt_verify is ok here, because the NULL iptr guarantees */
-	/* that no missing parts of an instruction will be accessed.        */
 	if (opt_verify) {
 
-		checkresult = resolve_method_verifier_checks(NULL,
+		checkresult = resolve_method_verifier_checks(
 				ref->referermethod,
 				ref->methodref,
-				container,
 				mi,
-				(ref->flags & RESOLVE_STATIC),
-				(ref->flags & RESOLVE_SPECIAL),
-				NULL);
+				(ref->flags & RESOLVE_STATIC));
 
 		if (checkresult != resolveSucceeded)
 			return (bool) checkresult;

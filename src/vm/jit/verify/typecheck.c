@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5726 2006-10-09 23:06:39Z edwin $
+   $Id: typecheck.c 5727 2006-10-09 23:17:56Z edwin $
 
 */
 
@@ -978,14 +978,10 @@ verify_invocation(verifier_state *state)
 
 		mi = mref->p.method;
 
-		result = resolve_method_verifier_checks(jd,
-												state->m, 
+		result = resolve_method_verifier_checks(state->m, 
 												mref,
-												mi->class,
 												mi,
-												invokestatic,
-												invokespecial,
-												state->iptr);
+												invokestatic);
 	}
 
 	/* check types of parameters */
