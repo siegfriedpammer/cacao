@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5725 2006-10-09 22:19:22Z edwin $
+   $Id: resolve.c 5726 2006-10-09 23:06:39Z edwin $
 
 */
 
@@ -1482,15 +1482,8 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
 {
 	classinfo *declarer;
 	classinfo *referer;
-	resolve_result_t result;
 	int instancecount;
-	typedesc *paramtypes;
-	int i;
-	varinfo *instanceslot = NULL;
-	varinfo *param;
 	methoddesc *md;
-	typeinfo tinfo;
-	int type;
 
 	assert(refmethod);
 	assert(methodref);
@@ -1551,82 +1544,129 @@ resolve_result_t resolve_method_verifier_checks(jitdata *jd,
 		return resolveFailed; /* exception */
 	}
 
-	if (iptr) {
-		/* for non-static methods we have to check the constraints on the         */
-		/* instance type                                                          */
+	/* everything ok */
 
-		assert(jd);
+	return resolveSucceeded;
+}
+#endif /* defined(ENABLE_VERIFIER) */
 
-		if (!invokestatic) {
-			instanceslot = VAR(iptr->sx.s23.s2.args[0]);
+
+/* resolve_method_type_checks **************************************************
+
+   Check parameter types of a method invocation.
+
+   IN:
+   	   jd...............jitdata of the method doing the call
+       refmethod........the method containing the reference
+	   iptr.............the invoke instruction
+	   mi...............the methodinfo of the resolved method
+	   invokestatic.....true if the method is invoked by INVOKESTATIC
+	   invokespecial....true if the method is invoked by INVOKESPECIAL
+
+   RETURN VALUE:
+       resolveSucceeded....everything ok
+	   resolveDeferred.....tests could not be done, have been deferred
+       resolveFailed.......exception has been thrown
+
+*******************************************************************************/
+
+#if defined(ENABLE_VERIFIER)
+resolve_result_t resolve_method_type_checks(jitdata *jd, 
+											methodinfo *refmethod,
+											instruction *iptr, 
+											methodinfo *mi,
+											bool invokestatic,
+											bool invokespecial)
+{
+	varinfo         *instanceslot;
+	varinfo         *param;
+	typeinfo         tinfo;
+	resolve_result_t result;
+	methoddesc      *md;
+	typedesc        *paramtypes;
+	s4               type;
+	s4               instancecount;
+	s4               i;
+
+	/* for non-static methods we have to check the constraints on the         */
+	/* instance type                                                          */
+
+	assert(jd);
+
+	if (invokestatic) {
+		instancecount = 0;
+		instanceslot = NULL;
+	}
+	else {
+		instancecount = 1;
+		instanceslot = VAR(iptr->sx.s23.s2.args[0]);
+	}
+
+	assert((instanceslot && instancecount == 1) || invokestatic);
+
+	/* record subtype constraints for the instance type, if any */
+	if (instanceslot) {
+		typeinfo *tip;
+
+		assert(instanceslot->type == TYPE_ADR);
+
+		if (invokespecial && TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
+		{   /* XXX clean up */
+			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
+			classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
+										 : CLASSREF_OR_CLASSINFO(refmethod->class);
+			tip = &tinfo;
+			if (!typeinfo_init_class(tip,initclass))
+				return false;
+		}
+		else {
+			tip = &(instanceslot->typeinfo);
 		}
 
-		assert((instanceslot && instancecount == 1) || invokestatic);
+		result = resolve_lazy_subtype_checks(refmethod,
+											 tip,
+											 CLASSREF_OR_CLASSINFO(mi->class),
+											 resolveLinkageError);
+		if (result != resolveSucceeded)
+			return result;
 
-		/* record subtype constraints for the instance type, if any */
-		if (instanceslot) {
-			typeinfo *tip;
+		/* check protected access */
 
-			assert(instanceslot->type == TYPE_ADR);
-
-			if (invokespecial &&
-					TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
-			{   /* XXX clean up */
-				instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
-				classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
-											 : CLASSREF_OR_CLASSINFO(refmethod->class);
-				tip = &tinfo;
-				if (!typeinfo_init_class(tip,initclass))
-					return false;
-			}
-			else {
-				tip = &(instanceslot->typeinfo);
-			}
-
+		/* XXX use other `declarer` than mi->class? */
+		if (((mi->flags & ACC_PROTECTED) != 0) 
+				&& !SAME_PACKAGE(mi->class, refmethod->class))
+		{
 			result = resolve_lazy_subtype_checks(refmethod,
-												 tip,
-												 CLASSREF_OR_CLASSINFO(container),
-												 resolveLinkageError);
+					tip,
+					CLASSREF_OR_CLASSINFO(refmethod->class),
+					resolveIllegalAccessError);
 			if (result != resolveSucceeded)
 				return result;
-
-			/* check protected access */
-
-			if (((mi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer))
-			{
-				result = resolve_lazy_subtype_checks(refmethod,
-						tip,
-						CLASSREF_OR_CLASSINFO(referer),
-						resolveIllegalAccessError);
-				if (result != resolveSucceeded)
-					return result;
-			}
-
 		}
 
-		/* check subtype constraints for TYPE_ADR parameters */
+	}
 
-		assert(md->paramcount == methodref->parseddesc.md->paramcount);
-		paramtypes = md->paramtypes;
+	/* check subtype constraints for TYPE_ADR parameters */
 
-		for (i = md->paramcount-1-instancecount; i>=0; --i) {
-			param = VAR(iptr->sx.s23.s2.args[i+instancecount]);
-			type = md->paramtypes[i+instancecount].type;
+	md = mi->parseddesc;
+	paramtypes = md->paramtypes;
 
-			assert(param);
-			assert(type == param->type);
+	for (i = md->paramcount-1-instancecount; i>=0; --i) {
+		param = VAR(iptr->sx.s23.s2.args[i+instancecount]);
+		type = md->paramtypes[i+instancecount].type;
 
-			if (type == TYPE_ADR) {
-				result = resolve_lazy_subtype_checks(refmethod,
-						&(param->typeinfo),
-						CLASSREF_OR_CLASSINFO(paramtypes[i+instancecount].classref),
-						resolveLinkageError);
-				if (result != resolveSucceeded)
-					return result;
-			}
+		assert(param);
+		assert(type == param->type);
+
+		if (type == TYPE_ADR) {
+			result = resolve_lazy_subtype_checks(refmethod,
+					&(param->typeinfo),
+					CLASSREF_OR_CLASSINFO(paramtypes[i+instancecount].classref),
+					resolveLinkageError);
+			if (result != resolveSucceeded)
+				return result;
 		}
-
-	} /* if (iptr) */
+	}
 
 	/* everything ok */
 

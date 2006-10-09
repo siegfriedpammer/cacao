@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5725 2006-10-09 22:19:22Z edwin $
+   $Id: typecheck.c 5726 2006-10-09 23:06:39Z edwin $
 
 */
 
@@ -797,6 +797,7 @@ verify_invocation(verifier_state *state)
     u1 rtype;                          /* return type of called method */
 	resolve_result_t result;
 	jitdata *jd;
+	bool invokestatic;
 	bool invokespecial;
 
 	jd = state->jd;
@@ -832,6 +833,7 @@ verify_invocation(verifier_state *state)
 	}
 
 	opcode = state->iptr[0].opc;
+	invokestatic = (opcode == ICMD_INVOKESTATIC);
 	invokespecial = (opcode == ICMD_INVOKESPECIAL);
 	specialmethod = (mname->text[0] == '<');
 	dv = VAROP(state->iptr->dst);
@@ -968,7 +970,7 @@ verify_invocation(verifier_state *state)
 
 	result = resolve_method_lazy(state->m, mref, invokespecial);
 
-	/* if resolved, perform verification checks */
+	/* perform verification checks */
 
 	if (result == resolveSucceeded) {
 
@@ -981,12 +983,21 @@ verify_invocation(verifier_state *state)
 												mref,
 												mi->class,
 												mi,
-												state->iptr->opc == ICMD_INVOKESTATIC,
+												invokestatic,
 												invokespecial,
 												state->iptr);
 	}
 
-	/* if resolved, impose loading constraints */
+	/* check types of parameters */
+
+	if (result == resolveSucceeded) {
+		result = resolve_method_type_checks(jd, state->m, 
+											state->iptr, mi,
+											invokestatic,
+											invokespecial);
+	}
+
+	/* impose loading constraints */
 
 	if (result == resolveSucceeded) {
 		/* XXX state->m->class may have to be wrong when inlining */
