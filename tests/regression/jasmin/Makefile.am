@@ -74,6 +74,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_jsr_handler_in_sub.j \
 	$(srcdir)/test_verify_fail_jsr_merge_subroutines.j \
 	$(srcdir)/test_verify_fail_jsr_merge_subroutines_via_stack.j \
+	$(srcdir)/test_verify_fail_jsr_multiple_returns.j \
 	$(srcdir)/test_verify_fail_jsr_polymorphic_pop.j \
 	$(srcdir)/test_verify_fail_jsr_recursion.j \
 	$(srcdir)/test_verify_fail_jsr_recursion_terminates.j \
@@ -88,6 +89,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_ret_uninit_var.j \
 	$(srcdir)/test_verify_fail_split_local.j \
 	$(srcdir)/test_verify_ok_jsr_handler_in_sub2.j \
+	$(srcdir)/test_verify_ok_jsr_improper_nesting.j \
 	$(srcdir)/test_verify_ok_jsr.j \
 	$(srcdir)/test_verify_ok_jsr_multiple_blocks.j \
 	$(srcdir)/test_verify_ok_jsr_pop.j \

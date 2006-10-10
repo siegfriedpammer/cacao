@@ -1,4 +1,4 @@
-.class public test_verify_fail_jsr_recursion_terminates
+.class public test_verify_fail_jsr_multiple_returns
 .super java/lang/Object
 
 ; ======================================================================
@@ -44,6 +44,7 @@
 	; --------------------------------------------------
 
 	jsr sbr_1
+
 	jsr sbr_1
 
 	; --------------------------------------------------
@@ -51,29 +52,31 @@
 force_basic_block_boundary:
 
 	iload 1
-	invokestatic test_verify_fail_jsr_recursion_terminates/check(I)V
+	invokestatic test_verify_fail_jsr_multiple_returns/check(I)V
 
 	return
 
 sbr_1:
-	ldc "entry"
-	invokestatic test_verify_fail_jsr_recursion_terminates/check(Ljava/lang/String;)V
-	iload 1
-	ifne second_time
-
 	astore 2
-	ldc "first"
-	invokestatic test_verify_fail_jsr_recursion_terminates/check(Ljava/lang/String;)V
+	ldc "one"
+	invokestatic test_verify_fail_jsr_multiple_returns/check(Ljava/lang/String;)V
+	jsr sbr_2
+	ldc "one-B"
+	invokestatic test_verify_fail_jsr_multiple_returns/check(Ljava/lang/String;)V
 	iinc 1 1
-	jsr sbr_1
-	; ERROR: VerifyError
 	ret 2
 
-second_time:
+sbr_2:
 	astore 3
-	ldc "second"
-	invokestatic test_verify_fail_jsr_recursion_terminates/check(Ljava/lang/String;)V
+	ldc "two"
+	invokestatic test_verify_fail_jsr_multiple_returns/check(Ljava/lang/String;)V
+	iload 1
+	ifne second_time
 	ret 3
+
+second_time:
+	ret 2
+	; ERROR: VerifyError
 
 .end method
 

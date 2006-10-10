@@ -54,6 +54,7 @@ sbr_1:
 	ifne  second_time
 	iinc 1 1
 	jsr sbr_1
+	; ERROR: VerifyError
 
 second_time:
 	ret 2
