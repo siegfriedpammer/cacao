@@ -75,6 +75,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_jsr_merge_subroutines.j \
 	$(srcdir)/test_verify_fail_jsr_merge_subroutines_via_stack.j \
 	$(srcdir)/test_verify_fail_jsr_polymorphic_pop.j \
+	$(srcdir)/test_verify_fail_jsr_recursion.j \
 	$(srcdir)/test_verify_fail_load_wrong_type.j \
 	$(srcdir)/test_verify_fail_load_wrong_type_within_block.j \
 	$(srcdir)/test_verify_fail_local_index.j \
