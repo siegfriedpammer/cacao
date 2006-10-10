@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5729 2006-10-09 23:53:42Z edwin $
+   $Id: resolve.c 5730 2006-10-10 00:29:26Z edwin $
 
 */
 
@@ -2459,9 +2459,10 @@ unresolved_method * resolve_create_unresolved_method(classinfo *referer,
 	return ref;
 }
 
-/* constrain_unresolved_method *********************************************
+
+/* resolve_constrain_unresolved_method_instance ********************************
  
-   Record subtype constraints for the arguments of a method call.
+   Record subtype constraints for the instance argument of a method call.
   
    IN:
        ref..............the unresolved_method structure of the call
@@ -2475,18 +2476,81 @@ unresolved_method * resolve_create_unresolved_method(classinfo *referer,
 
 *******************************************************************************/
 
-#ifdef ENABLE_VERIFIER
-bool constrain_unresolved_method(jitdata *jd,
-									 unresolved_method *ref,
-									 classinfo *referer, methodinfo *refmethod,
-									 instruction *iptr)
+#if defined(ENABLE_VERIFIER)
+bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
+												  methodinfo *refmethod,
+												  typeinfo *instanceti,
+												  bool invokespecial)
+{
+	constant_FMIref   *methodref;
+	constant_classref *instanceref;
+	typeinfo           tinfo;
+	typeinfo          *tip;
+
+	assert(ref);
+	methodref = ref->methodref;
+	assert(methodref);
+
+	/* XXX clean this up */
+	instanceref = IS_FMIREF_RESOLVED(methodref)
+		? class_get_self_classref(methodref->p.method->class)
+		: methodref->p.classref;
+
+#ifdef RESOLVE_VERBOSE
+	printf("resolve_constrain_unresolved_method_instance\n");
+	printf("    rmethod: "); method_println(refmethod);
+	printf("    mref   : "); method_methodref_println(methodref);
+#endif
+
+	/* record subtype constraints for the instance type, if any */
+
+	if (invokespecial && TYPEINFO_IS_NEWOBJECT(*instanceti))
+	{   /* XXX clean up */
+		instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
+		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
+									 : CLASSREF_OR_CLASSINFO(refmethod->class);
+		tip = &tinfo;
+		if (!typeinfo_init_class(tip, initclass))
+			return false;
+	}
+	else {
+		tip = instanceti;
+	}
+
+	if (!unresolved_subtype_set_from_typeinfo(refmethod->class, refmethod,
+				&(ref->instancetypes),tip,instanceref->name))
+		return false;
+
+	return true;
+}
+#endif /* defined(ENABLE_VERIFIER) */
+
+
+/* resolve_constrain_unresolved_method_params  *********************************
+ 
+   Record subtype constraints for the non-instance arguments of a method call.
+  
+   IN:
+       ref..............the unresolved_method structure of the call
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the INVOKE* instruction
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+#if defined(ENABLE_VERIFIER)
+bool resolve_constrain_unresolved_method_params(jitdata *jd,
+												unresolved_method *ref,
+												methodinfo *refmethod,
+												instruction *iptr)
 {
 	constant_FMIref *methodref;
-	constant_classref *instanceref;
-	varinfo *instanceslot = NULL;
 	varinfo *param;
 	methoddesc *md;
-	typeinfo tinfo;
 	int i,j;
 	int type;
 	int instancecount;
@@ -2498,55 +2562,17 @@ bool constrain_unresolved_method(jitdata *jd,
 	assert(md);
 	assert(md->params != NULL);
 
-	/* XXX clean this up */
-	instanceref = IS_FMIREF_RESOLVED(methodref)
-		? class_get_self_classref(methodref->p.method->class)
-		: methodref->p.classref;
-
 #ifdef RESOLVE_VERBOSE
-	printf("constrain_unresolved_method\n");
-	printf("    referer: "); class_println(referer);
+	printf("resolve_constrain_unresolved_method_params\n");
 	printf("    rmethod: "); method_println(refmethod);
 	printf("    mref   : "); method_methodref_println(methodref);
 	/*printf("    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
-	if ((ref->flags & RESOLVE_STATIC) == 0) {
-		/* find the instance slot under all the parameter slots on the stack */
-		instanceslot = VAR(iptr->sx.s23.s2.args[0]);
-		instancecount = 1;
-	}
-	else {
-		instancecount = 0;
-	}
-
-	assert((instanceslot && instancecount==1) || ((ref->flags & RESOLVE_STATIC) != 0));
-
-	/* record subtype constraints for the instance type, if any */
-	if (instanceslot) {
-		typeinfo *tip;
-
-		assert(instanceslot->type == TYPE_ADR);
-
-		if (iptr[0].opc == ICMD_INVOKESPECIAL &&
-				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
-		{   /* XXX clean up */
-			instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
-			classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
-										 : CLASSREF_OR_CLASSINFO(refmethod->class);
-			tip = &tinfo;
-			if (!typeinfo_init_class(tip,initclass))
-				return false;
-		}
-		else {
-			tip = &(instanceslot->typeinfo);
-		}
-		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-					&(ref->instancetypes),tip,instanceref->name))
-			return false;
-	}
+	instancecount = (ref->flags & RESOLVE_STATIC) ? 0 : 1;
 
 	/* record subtype constraints for the parameter types, if any */
+
 	for (i=md->paramcount-1-instancecount; i>=0; --i) {
 		param = VAR(iptr->sx.s23.s2.args[i+instancecount]);
 		type = md->paramtypes[i+instancecount].type;
@@ -2561,7 +2587,7 @@ bool constrain_unresolved_method(jitdata *jd,
 					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
 			}
 			assert(ref->paramconstraints);
-			if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
+			if (!unresolved_subtype_set_from_typeinfo(refmethod->class, refmethod,
 						ref->paramconstraints + i,&(param->typeinfo),
 						md->paramtypes[i+instancecount].classref->name))
 				return false;

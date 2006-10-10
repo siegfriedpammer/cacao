@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5729 2006-10-09 23:53:42Z edwin $
+   $Id: typecheck.c 5730 2006-10-10 00:29:26Z edwin $
 
 */
 
@@ -1032,8 +1032,14 @@ verify_invocation(verifier_state *state)
 
 		/* record subtype constraints for parameters */
 
-		if (!constrain_unresolved_method(jd, um, state->m->class, 
-					state->m, state->iptr))
+		if (!invokestatic && !resolve_constrain_unresolved_method_instance(
+					um, state->m, 
+					&(VAR(state->iptr->sx.s23.s2.args[0])->typeinfo),
+					invokespecial))
+			return false; /* XXX maybe wrap exception */
+
+		if (!resolve_constrain_unresolved_method_params(
+					jd, um, state->m, state->iptr))
 			return false; /* XXX maybe wrap exception */
 
 		/* store the unresolved_method pointer */

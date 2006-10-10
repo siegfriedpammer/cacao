@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5729 2006-10-09 23:53:42Z edwin $
+   $Id: resolve.h 5730 2006-10-10 00:29:26Z edwin $
 
 */
 
@@ -225,9 +225,15 @@ resolve_result_t resolve_method_param_type_checks(jitdata *jd,
 bool resolve_method_loading_constraints(classinfo *referer,
 										methodinfo *mi);
 
-bool constrain_unresolved_method(jitdata *jd,
-									 unresolved_method *ref, classinfo *referer,
-									 methodinfo *refmethod, instruction *iptr);
+bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
+												  methodinfo *refmethod,
+												  typeinfo *instanceti,
+												  bool invokespecial);
+
+bool resolve_constrain_unresolved_method_params(jitdata *jd,
+												unresolved_method *ref,
+												methodinfo *refmethod,
+												instruction *iptr);
 
 #endif /* defined(ENABLE_VERIFIER) */
 
