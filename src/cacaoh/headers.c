@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5340 2006-09-05 21:15:02Z twisti $
+   $Id: headers.c 5739 2006-10-11 19:43:12Z edwin $
 
 */
 
@@ -179,6 +179,7 @@ bool typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 }
 
 void typeinfo_print(FILE *file,typeinfo *info,int indent) {}
+void typeinfo_print_short(FILE *file,typeinfo *info) {}
 
 void exceptions_print_exception(java_objectheader *xptr) {}
 void stacktrace_print_trace(java_objectheader *xptr) {}
