@@ -66,6 +66,8 @@ JASMIN_TESTS = \
 	$(srcdir)/test_swap_locals.j \
 	$(srcdir)/test_verify_fail_aload_retaddress.j \
 	$(srcdir)/test_verify_fail_areturn_wrong_reftype.j \
+	$(srcdir)/test_verify_fail_athrow_wrong_reftype.j \
+	$(srcdir)/test_verify_fail_athrow_wrong_reftype_unresolved.j \
 	$(srcdir)/test_verify_fail_backward_with_new_on_stack.j \
 	$(srcdir)/test_verify_fail_double_local_index.j \
 	$(srcdir)/test_verify_fail_double_overwritten.j \
