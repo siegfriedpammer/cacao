@@ -68,6 +68,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_backward_with_new_on_stack.j \
 	$(srcdir)/test_verify_fail_double_local_index.j \
 	$(srcdir)/test_verify_fail_double_overwritten.j \
+	$(srcdir)/test_verify_fail_handler_bad_local.j \
 	$(srcdir)/test_verify_fail_invoke_basic_type.j \
 	$(srcdir)/test_verify_fail_jsr_called_with_different_stackdepths.j \
 	$(srcdir)/test_verify_fail_jsr_exceptions.j \
