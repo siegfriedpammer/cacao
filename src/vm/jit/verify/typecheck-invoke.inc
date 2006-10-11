@@ -70,7 +70,7 @@
 	
 	if (!md->params)
 		if (!descriptor_params_from_paramtypes(md,
-					(opcode == ICMD_INVOKESTATIC) ? ACC_STATIC : ACC_NONE))
+					(invokestatic) ? ACC_STATIC : ACC_NONE))
 			return false;
 
 	/* check parameter types */
@@ -106,7 +106,7 @@
 		else {
 			/* non-adress argument. if this is the first argument and we are */
 			/* invoking an instance method, this is an error.                */
-			if (i==0 && opcode != ICMD_INVOKESTATIC) {
+			if (i==0 && !invokestatic) {
 				TYPECHECK_VERIFYERROR_bool("Parameter type mismatch for 'this' argument");
 			}
 		}
@@ -182,7 +182,7 @@
 				TYPECHECK_VERIFYERROR_bool("wrong <init> called for uninitialized reference");
 			}
 		}
-	}
+	} /* end if (callinginit) */
 
 	/* try to resolve the method lazily */
 
@@ -241,7 +241,7 @@
 		if (!um) {
 			um = resolve_create_unresolved_method(state->m->class, state->m,
 					mref, 
-					state->iptr->opc == ICMD_INVOKESTATIC,
+					invokestatic,
 					invokespecial);
 
 			if (!um)
