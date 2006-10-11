@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5740 2006-10-11 23:00:01Z edwin $
+   $Id: typecheck.c 5741 2006-10-11 23:22:54Z edwin $
 
 */
 
@@ -801,6 +801,11 @@ verify_invocation(verifier_state *state)
 static bool
 verify_builtin(verifier_state *state)
 {
+	varinfo *dv;
+	jitdata *jd;
+
+	jd = state->jd;
+	dv = VAROP(state->iptr->dst);
 
 #include <typecheck-builtins.inc>
 

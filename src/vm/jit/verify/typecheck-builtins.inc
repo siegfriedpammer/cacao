@@ -1,11 +1,8 @@
 {
 	builtintable_entry *bte;
     classref_or_classinfo cls;
-    varinfo *dv;               /* output variable of current instruction */
-	jitdata *jd = state->jd;
 
 	bte = state->iptr->sx.s23.s3.bte;
-	dv = VAROP(state->iptr->dst);
 
 	/* XXX this is an ugly if-chain but twisti did not want a function */
 	/* pointer in builtintable_entry for this, so here you go.. ;)     */
@@ -109,9 +106,6 @@
 
 		rtype = md->returntype.type;
 		if (rtype != TYPE_VOID) {
-			varinfo *dv;
-
-			dv = VAROP(state->iptr->dst);
 			dv->type = rtype;
 			if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dv->typeinfo)))
 				return false;
