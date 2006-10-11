@@ -65,11 +65,14 @@ JASMIN_TESTS = \
 	$(srcdir)/test_swap.j \
 	$(srcdir)/test_swap_locals.j \
 	$(srcdir)/test_verify_fail_aload_retaddress.j \
+	$(srcdir)/test_verify_fail_areturn_wrong_reftype.j \
 	$(srcdir)/test_verify_fail_backward_with_new_on_stack.j \
 	$(srcdir)/test_verify_fail_double_local_index.j \
 	$(srcdir)/test_verify_fail_double_overwritten.j \
 	$(srcdir)/test_verify_fail_handler_bad_local.j \
 	$(srcdir)/test_verify_fail_invoke_basic_type.j \
+	$(srcdir)/test_verify_fail_invoke_return_basic_type.j \
+	$(srcdir)/test_verify_fail_ireturn_wrong_type.j \
 	$(srcdir)/test_verify_fail_jsr_called_with_different_stackdepths.j \
 	$(srcdir)/test_verify_fail_jsr_exceptions.j \
 	$(srcdir)/test_verify_fail_jsr_handler_in_sub.j \
