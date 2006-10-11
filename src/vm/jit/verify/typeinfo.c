@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5605 2006-10-01 15:44:13Z edwin $
+   $Id: typeinfo.c 5738 2006-10-11 19:42:07Z edwin $
 
 */
 
@@ -1324,6 +1324,8 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 bool
 typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 {
+	typeinfo_mergedlist *merged;
+
 	TYPEINFO_ASSERT(srcarray);
 	TYPEINFO_ASSERT(dst);
 
@@ -1337,6 +1339,10 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 		*exceptionptr = new_internalerror("Trying to access component of non-array");
 		return false;
 	}
+
+	/* save the mergedlist (maybe dst == srcarray) */
+
+	merged = srcarray->merged;
 
 	if (IS_CLASSREF(srcarray->typeclass)) {
 		constant_classref *comp;
@@ -1369,7 +1375,7 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 			TYPEINFO_INIT_PRIMITIVE(*dst);
 	}
     
-    dst->merged = srcarray->merged; /* XXX should we do a deep copy? */
+    dst->merged = merged; /* XXX should we do a deep copy? */
 	return true;
 }
 
