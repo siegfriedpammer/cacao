@@ -77,7 +77,7 @@
 
 	i = md->paramcount; /* number of parameters including 'this'*/
 	while (--i >= 0) {
-		LOG1("param %d",i);
+		LOG1("\t\tparam %d",i);
 		argindex = state->iptr->sx.s23.s2.args[i];
 		av = VAR(argindex);
 		td = md->paramtypes + i;
@@ -86,7 +86,7 @@
 			TYPECHECK_VERIFYERROR_bool("Parameter type mismatch in method invocation");
 
 		if (av->type == TYPE_ADR) {
-			LOGINFO(&(av->typeinfo));
+			LOGSTR("\t\t"); LOGINFO(&(av->typeinfo));
 			if (i==0 && callinginit)
 			{
 				/* first argument to <init> method */
@@ -94,13 +94,13 @@
 					TYPECHECK_VERIFYERROR_bool("Calling <init> on initialized object");
 
 				/* get the address of the NEW instruction */
-				LOGINFO(&(av->typeinfo));
+				LOGSTR("\t\t"); LOGINFO(&(av->typeinfo));
 				ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(av->typeinfo);
 				if (ins)
 					initclass = ins[-1].sx.val.c;
 				else
 					initclass.cls = state->m->class;
-				LOGSTR("class: "); LOGNAME(initclass); LOGNL;
+				LOGSTR("\t\tclass: "); LOGNAME(initclass); LOGNL;
 			}
 		}
 		else {
@@ -110,11 +110,11 @@
 				TYPECHECK_VERIFYERROR_bool("Parameter type mismatch for 'this' argument");
 			}
 		}
-		LOG("ok");
+		LOG("\tok");
 	}
 
 	if (callinginit) {
-		LOG("replacing uninitialized object");
+		LOG("\treplacing uninitialized object");
 		/* replace uninitialized object type on stack */
 
 		/* for all live-in and live-through variables */ 
@@ -125,7 +125,7 @@
 					&& TYPEINFO_IS_NEWOBJECT(av->typeinfo)
 					&& TYPEINFO_NEWOBJECT_INSTRUCTION(av->typeinfo) == ins)
 			{
-				LOG("replacing uninitialized type");
+				LOG("\treplacing uninitialized type");
 
 				/* If this stackslot is in the instack of
 				 * this basic block we must save the type(s)
@@ -173,7 +173,7 @@
 			}
 
 			/* set our marker variable to type int */
-			LOG("setting <init> marker");
+			LOG("\tsetting <init> marker");
 			typevector_store(jd->var, state->numlocals-1, TYPE_INT, NULL);
 		}
 		else {
