@@ -75,7 +75,6 @@
 		methoddesc *md;
 		s4 i;
 		u1 rtype;
-		varinfo *av;
 
 		/* verify a generic builtin call */
 
@@ -87,7 +86,7 @@
 		/* check the types of the arguments on the stack */
 
 		for (i--; i >= 0; i--) {
-			av = VAR(state->iptr->sx.s23.s2.args[i]);
+			varinfo *av = VAR(state->iptr->sx.s23.s2.args[i]);
 
 			if (av->type != md->paramtypes[i].type) {
 				TYPECHECK_VERIFYERROR_bool("parameter type mismatch for builtin method");
@@ -110,8 +109,6 @@
 			if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dv->typeinfo)))
 				return false;
 		}
-
-		return true;
 	}
 }
 
