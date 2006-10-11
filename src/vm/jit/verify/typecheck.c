@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5741 2006-10-11 23:22:54Z edwin $
+   $Id: typecheck.c 5742 2006-10-11 23:37:32Z edwin $
 
 */
 
@@ -778,6 +778,11 @@ typestate_restore_invars(verifier_state *state)
 static bool
 verify_invocation(verifier_state *state)
 {
+	jitdata *jd;
+	varinfo *dv;
+
+	jd = state->jd;
+	dv = VAROP(state->iptr->dst);
 
 #include <typecheck-invoke.inc>
 

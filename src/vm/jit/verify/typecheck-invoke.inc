@@ -13,15 +13,11 @@
 	typedesc *td;
 	s4 argindex;                            /* argument variable index */
 	varinfo *av;                                  /* argument variable */
-	varinfo *dv;                  /* result variable of the invocation */
 	int i;                                                  /* counter */
     u1 rtype;                          /* return type of called method */
 	resolve_result_t result;
-	jitdata *jd;
 	bool invokestatic;
 	bool invokespecial;
-
-	jd = state->jd;
 
 	/* get the FMIref and the unresolved_method struct (if any) */
 	/* from the instruction                                     */
@@ -53,11 +49,12 @@
 		mclassname = mref->p.classref->name;
 	}
 
-	opcode = state->iptr[0].opc;
+	/* gather some info about this instruction */
+
+	opcode = state->iptr->opc;
 	invokestatic = (opcode == ICMD_INVOKESTATIC);
 	invokespecial = (opcode == ICMD_INVOKESPECIAL);
 	specialmethod = (mname->text[0] == '<');
-	dv = VAROP(state->iptr->dst);
 
 	/* prevent compiler warnings */
 
