@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5730 2006-10-10 00:29:26Z edwin $
+   $Id: resolve.c 5737 2006-10-11 19:40:22Z edwin $
 
 */
 
@@ -1669,6 +1669,71 @@ resolve_result_t resolve_method_param_type_checks(jitdata *jd,
 #endif /* defined(ENABLE_VERIFIER) */
 
 
+/* resolve_method_param_type_checks_stackbased *********************************
+
+   Check non-instance parameter types of a method invocation.
+
+   IN:
+       refmethod........the method containing the reference
+	   mi...............the methodinfo of the resolved method
+	   invokestatic.....true if the method is invoked by INVOKESTATIC
+	   stack............TOS before the INVOKE instruction
+
+   RETURN VALUE:
+       resolveSucceeded....everything ok
+	   resolveDeferred.....tests could not be done, have been deferred
+       resolveFailed.......exception has been thrown
+
+*******************************************************************************/
+
+#if defined(ENABLE_VERIFIER)
+resolve_result_t resolve_method_param_type_checks_stackbased(
+		methodinfo *refmethod, 
+		methodinfo *mi,
+		bool invokestatic, 
+		typedescriptor *stack)
+{
+	typedescriptor  *param;
+	resolve_result_t result;
+	methoddesc      *md;
+	typedesc        *paramtypes;
+	s4               type;
+	s4               instancecount;
+	s4               i;
+
+	instancecount = (invokestatic) ? 0 : 1;
+
+	/* check subtype constraints for TYPE_ADR parameters */
+
+	md = mi->parseddesc;
+	paramtypes = md->paramtypes;
+
+	param = stack - (md->paramslots - 1 - instancecount);
+
+	for (i = instancecount; i < md->paramcount; ++i) {
+		type = md->paramtypes[i].type;
+
+		assert(type == param->type);
+
+		if (type == TYPE_ADR) {
+			result = resolve_lazy_subtype_checks(refmethod,
+					&(param->typeinfo),
+					CLASSREF_OR_CLASSINFO(paramtypes[i].classref),
+					resolveLinkageError);
+			if (result != resolveSucceeded)
+				return result;
+		}
+
+		param += (IS_2_WORD_TYPE(type)) ? 2 : 1;
+	}
+
+	/* everything ok */
+
+	return resolveSucceeded;
+}
+#endif /* defined(ENABLE_VERIFIER) */
+
+
 /* resolve_method_loading_constraints ******************************************
 
    Impose loading constraints on the parameters and return type of the
@@ -2531,8 +2596,8 @@ bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
    Record subtype constraints for the non-instance arguments of a method call.
   
    IN:
+       jd...............current jitdata (for looking up variables)
        ref..............the unresolved_method structure of the call
-       referer..........the class containing the reference
 	   refmethod........the method triggering the resolution (if any)
 	   iptr.............the INVOKE* instruction
 
@@ -2601,6 +2666,84 @@ bool resolve_constrain_unresolved_method_params(jitdata *jd,
 	return true;
 }
 #endif /* ENABLE_VERIFIER */
+
+
+/* resolve_constrain_unresolved_method_params_stackbased ***********************
+ 
+   Record subtype constraints for the non-instance arguments of a method call.
+  
+   IN:
+       ref..............the unresolved_method structure of the call
+	   refmethod........the method triggering the resolution (if any)
+	   stack............TOS before the INVOKE instruction
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+#if defined(ENABLE_VERIFIER)
+bool resolve_constrain_unresolved_method_params_stackbased(
+		unresolved_method *ref,
+		methodinfo *refmethod,
+		typedescriptor *stack)
+{
+	constant_FMIref *methodref;
+	typedescriptor *param;
+	methoddesc *md;
+	int i,j;
+	int type;
+	int instancecount;
+
+	assert(ref);
+	methodref = ref->methodref;
+	assert(methodref);
+	md = methodref->parseddesc.md;
+	assert(md);
+	assert(md->params != NULL);
+
+#ifdef RESOLVE_VERBOSE
+	printf("resolve_constrain_unresolved_method_params_stackbased\n");
+	printf("    rmethod: "); method_println(refmethod);
+	printf("    mref   : "); method_methodref_println(methodref);
+#endif
+
+	instancecount = (ref->flags & RESOLVE_STATIC) ? 0 : 1;
+
+	/* record subtype constraints for the parameter types, if any */
+
+	param = stack - (md->paramslots - 1 - instancecount);
+
+	for (i = instancecount; i < md->paramcount; ++i) {
+		type = md->paramtypes[i].type;
+
+		assert(type == param->type);
+
+		if (type == TYPE_ADR) {
+			if (!ref->paramconstraints) {
+				ref->paramconstraints = MNEW(unresolved_subtype_set,md->paramcount);
+				for (j = 0; j < i - instancecount; ++j)
+					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
+			}
+			assert(ref->paramconstraints);
+			if (!unresolved_subtype_set_from_typeinfo(refmethod->class, refmethod,
+						ref->paramconstraints + i - instancecount,&(param->typeinfo),
+						md->paramtypes[i].classref->name))
+				return false;
+		}
+		else {
+			if (ref->paramconstraints)
+				UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[i]);
+		}
+
+		param += (IS_2_WORD_TYPE(type)) ? 2 : 1;
+	}
+
+	return true;
+}
+#endif /* ENABLE_VERIFIER */
+
 
 /******************************************************************************/
 /* FREEING MEMORY                                                             */

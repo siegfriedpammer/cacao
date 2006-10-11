@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5730 2006-10-10 00:29:26Z edwin $
+   $Id: resolve.h 5737 2006-10-11 19:40:22Z edwin $
 
 */
 
@@ -222,6 +222,12 @@ resolve_result_t resolve_method_param_type_checks(jitdata *jd,
 												  methodinfo *mi,
 												  bool invokestatic);
 
+resolve_result_t resolve_method_param_type_checks_stackbased(
+		methodinfo *refmethod, 
+		methodinfo *mi,
+		bool invokestatic, 
+		typedescriptor *stack);
+
 bool resolve_method_loading_constraints(classinfo *referer,
 										methodinfo *mi);
 
@@ -234,6 +240,11 @@ bool resolve_constrain_unresolved_method_params(jitdata *jd,
 												unresolved_method *ref,
 												methodinfo *refmethod,
 												instruction *iptr);
+
+bool resolve_constrain_unresolved_method_params_stackbased(
+		unresolved_method *ref,
+		methodinfo *refmethod,
+		typedescriptor *stack);
 
 #endif /* defined(ENABLE_VERIFIER) */
 
