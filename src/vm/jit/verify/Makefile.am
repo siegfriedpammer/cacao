@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5740 2006-10-11 23:00:01Z edwin $
+## $Id: Makefile.am 5746 2006-10-12 10:10:06Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,6 +41,8 @@ noinst_LTLIBRARIES = libverify.la
 libverify_la_SOURCES = \
 	typecheck.c \
 	typecheck.h \
+	typecheck-common.c \
+	typecheck-common.h \
 	typecheck-builtins.inc \
 	typecheck-fields.inc \
 	typecheck-invoke.inc \

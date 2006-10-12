@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5742 2006-10-11 23:37:32Z edwin $
+   $Id: typecheck.c 5746 2006-10-12 10:10:06Z edwin $
 
 */
 
@@ -141,12 +141,12 @@ error reporting.
     citeseer.ist.psu.edu/article/coglio03improving.html
 */
 
-#include <assert.h>
-#include <string.h>
-
 #include "config.h"
 #include "vm/types.h"
 #include "vm/global.h"
+
+#include <assert.h>
+#include <string.h>
 
 #ifdef ENABLE_VERIFIER
 
@@ -163,218 +163,7 @@ error reporting.
 #include "vm/resolve.h"
 #include "vm/exceptions.h"
 
-/****************************************************************************/
-/* DEBUG HELPERS                                                            */
-/****************************************************************************/
-
-#ifdef TYPECHECK_DEBUG
-#define TYPECHECK_ASSERT(cond)  assert(cond)
-#else
-#define TYPECHECK_ASSERT(cond)
-#endif
-
-#ifdef TYPECHECK_VERBOSE_OPT
-bool opt_typecheckverbose = false;
-#define DOLOG(action)  do { if (opt_typecheckverbose) {action;} } while(0)
-#else
-#define DOLOG(action)
-#endif
-
-#ifdef TYPECHECK_VERBOSE
-#define TYPECHECK_VERBOSE_IMPORTANT
-#define LOGNL              DOLOG(puts(""))
-#define LOG(str)           DOLOG(puts(str);)
-#define LOG1(str,a)        DOLOG(printf(str,a); LOGNL)
-#define LOG2(str,a,b)      DOLOG(printf(str,a,b); LOGNL)
-#define LOG3(str,a,b,c)    DOLOG(printf(str,a,b,c); LOGNL)
-#define LOGIF(cond,str)    DOLOG(do {if (cond) { puts(str); }} while(0))
-#ifdef  TYPEINFO_DEBUG
-#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(stdout,(info)); LOGNL;} while(0))
-#else
-#define LOGINFO(info)
-#define typevector_print(x,y,z)
-#endif
-#define LOGFLUSH           DOLOG(fflush(stdout))
-#define LOGSTR(str)        DOLOG(printf("%s", str))
-#define LOGSTR1(str,a)     DOLOG(printf(str,a))
-#define LOGSTR2(str,a,b)   DOLOG(printf(str,a,b))
-#define LOGSTR3(str,a,b,c) DOLOG(printf(str,a,b,c))
-#define LOGNAME(c)         DOLOG(class_classref_or_classinfo_print(c))
-#define LOGMETHOD(str,m)   DOLOG(printf("%s", str); method_println(m);)
-#else
-#define LOG(str)
-#define LOG1(str,a)
-#define LOG2(str,a,b)
-#define LOG3(str,a,b,c)
-#define LOGIF(cond,str)
-#define LOGINFO(info)
-#define LOGFLUSH
-#define LOGNL
-#define LOGSTR(str)
-#define LOGSTR1(str,a)
-#define LOGSTR2(str,a,b)
-#define LOGSTR3(str,a,b,c)
-#define LOGNAME(c)
-#define LOGMETHOD(str,m)
-#endif
-
-#ifdef TYPECHECK_VERBOSE_IMPORTANT
-#define LOGimp(str)     DOLOG(puts(str);LOGNL)
-#define LOGimpSTR(str)  DOLOG(puts(str))
-#else
-#define LOGimp(str)
-#define LOGimpSTR(str)
-#endif
-
-#if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
-
-#include <stdio.h>
-
-static void typecheck_print_var(FILE *file, jitdata *jd, s4 index)
-{
-	varinfo *var;
-
-	assert(index >= 0 && index < jd->varcount);
-	var = VAR(index);
-	typeinfo_print_type(file, var->type, &(var->typeinfo));
-}
-
-static void typecheck_print_vararray(FILE *file, jitdata *jd, s4 *vars, int len)
-{
-	s4 i;
-
-	for (i=0; i<len; ++i) {
-		if (i)
-			fputc(' ', file);
-		typecheck_print_var(file, jd, *vars++);
-	}
-}
-
-#endif
-
-
-/****************************************************************************/
-/* STATISTICS                                                               */
-/****************************************************************************/
-
-#ifdef TYPECHECK_DEBUG
-/*#define TYPECHECK_STATISTICS*/
-#endif
-
-#ifdef TYPECHECK_STATISTICS
-#define STAT_ITERATIONS  10
-#define STAT_BLOCKS      10
-#define STAT_LOCALS      16
-
-static int stat_typechecked = 0;
-static int stat_methods_with_handlers = 0;
-static int stat_methods_maythrow = 0;
-static int stat_iterations[STAT_ITERATIONS+1] = { 0 };
-static int stat_reached = 0;
-static int stat_copied = 0;
-static int stat_merged = 0;
-static int stat_merging_changed = 0;
-static int stat_blocks[STAT_BLOCKS+1] = { 0 };
-static int stat_locals[STAT_LOCALS+1] = { 0 };
-static int stat_ins = 0;
-static int stat_ins_maythrow = 0;
-static int stat_ins_stack = 0;
-static int stat_ins_field = 0;
-static int stat_ins_field_unresolved = 0;
-static int stat_ins_field_uninitialized = 0;
-static int stat_ins_invoke = 0;
-static int stat_ins_invoke_unresolved = 0;
-static int stat_ins_primload = 0;
-static int stat_ins_aload = 0;
-static int stat_ins_builtin = 0;
-static int stat_ins_builtin_gen = 0;
-static int stat_ins_branch = 0;
-static int stat_ins_switch = 0;
-static int stat_ins_primitive_return = 0;
-static int stat_ins_areturn = 0;
-static int stat_ins_areturn_unresolved = 0;
-static int stat_ins_athrow = 0;
-static int stat_ins_athrow_unresolved = 0;
-static int stat_ins_unchecked = 0;
-static int stat_handlers_reached = 0;
-static int stat_savedstack = 0;
-
-#define TYPECHECK_MARK(var)   ((var) = true)
-#define TYPECHECK_COUNT(cnt)  (cnt)++
-#define TYPECHECK_COUNTIF(cond,cnt)  do{if(cond) (cnt)++;} while(0)
-#define TYPECHECK_COUNT_FREQ(array,val,limit) \
-	do {									  \
-		if ((val) < (limit)) (array)[val]++;  \
-		else (array)[limit]++;				  \
-	} while (0)
-
-static void print_freq(FILE *file,int *array,int limit)
-{
-	int i;
-	for (i=0; i<limit; ++i)
-		fprintf(file,"      %3d: %8d\n",i,array[i]);
-	fprintf(file,"    >=%3d: %8d\n",limit,array[limit]);
-}
-
-void typecheck_print_statistics(FILE *file) {
-	fprintf(file,"typechecked methods: %8d\n",stat_typechecked);
-	fprintf(file,"    with handler(s): %8d\n",stat_methods_with_handlers);
-	fprintf(file,"    with throw(s)  : %8d\n",stat_methods_maythrow);
-	fprintf(file,"reached blocks     : %8d\n",stat_reached);
-	fprintf(file,"copied states      : %8d\n",stat_copied);
-	fprintf(file,"merged states      : %8d\n",stat_merged);
-	fprintf(file,"merging changed    : %8d\n",stat_merging_changed);
-	fprintf(file,"handlers reached   : %8d\n",stat_handlers_reached);
-	fprintf(file,"saved stack (times): %8d\n",stat_savedstack);
-	fprintf(file,"instructions       : %8d\n",stat_ins);
-	fprintf(file,"    stack          : %8d\n",stat_ins_stack);
-	fprintf(file,"    field access   : %8d\n",stat_ins_field);
-	fprintf(file,"      (unresolved) : %8d\n",stat_ins_field_unresolved);
-	fprintf(file,"      (uninit.)    : %8d\n",stat_ins_field_uninitialized);
-	fprintf(file,"    invocations    : %8d\n",stat_ins_invoke);
-	fprintf(file,"      (unresolved) : %8d\n",stat_ins_invoke_unresolved);
-	fprintf(file,"    load primitive : (currently not counted) %8d\n",stat_ins_primload);
-	fprintf(file,"    load address   : %8d\n",stat_ins_aload);
-	fprintf(file,"    builtins       : %8d\n",stat_ins_builtin);
-	fprintf(file,"        generic    : %8d\n",stat_ins_builtin_gen);
-	fprintf(file,"    branches       : %8d\n",stat_ins_branch);
-	fprintf(file,"    switches       : %8d\n",stat_ins_switch);
-	fprintf(file,"    prim. return   : %8d\n",stat_ins_primitive_return);
-	fprintf(file,"    areturn        : %8d\n",stat_ins_areturn);
-	fprintf(file,"      (unresolved) : %8d\n",stat_ins_areturn_unresolved);
-	fprintf(file,"    athrow         : %8d\n",stat_ins_athrow);
-	fprintf(file,"      (unresolved) : %8d\n",stat_ins_athrow_unresolved);
-	fprintf(file,"    unchecked      : %8d\n",stat_ins_unchecked);
-	fprintf(file,"    maythrow       : %8d\n",stat_ins_maythrow);
-	fprintf(file,"iterations used:\n");
-	print_freq(file,stat_iterations,STAT_ITERATIONS);
-	fprintf(file,"basic blocks per method / 10:\n");
-	print_freq(file,stat_blocks,STAT_BLOCKS);
-	fprintf(file,"locals:\n");
-	print_freq(file,stat_locals,STAT_LOCALS);
-}
-						   
-#else
-						   
-#define TYPECHECK_COUNT(cnt)
-#define TYPECHECK_MARK(var)
-#define TYPECHECK_COUNTIF(cond,cnt)
-#define TYPECHECK_COUNT_FREQ(array,val,limit)
-#endif
-
-
-/****************************************************************************/
-/* MACROS FOR THROWING EXCEPTIONS                                           */
-/****************************************************************************/
-
-#define TYPECHECK_VERIFYERROR_ret(m,msg,retval)                      \
-    do {                                                             \
-        exceptions_throw_verifyerror((m), (msg));                    \
-        return (retval);                                             \
-    } while (0)
-
-#define TYPECHECK_VERIFYERROR_main(msg)  TYPECHECK_VERIFYERROR_ret(state.m,(msg),NULL)
-#define TYPECHECK_VERIFYERROR_bool(msg)  TYPECHECK_VERIFYERROR_ret(state->m,(msg),false)
+#include <typecheck-common.h>
 
 
 /****************************************************************************/
@@ -405,46 +194,6 @@ void typecheck_print_statistics(FILE *file) {
 #define TYPECHECK_FLT_OP(o)  TYPECHECK_FLT((o).varindex)
 #define TYPECHECK_DBL_OP(o)  TYPECHECK_DBL((o).varindex)
 #define TYPECHECK_ADR_OP(o)  TYPECHECK_ADR((o).varindex)
-
-
-/****************************************************************************/
-/* VERIFIER STATE STRUCT                                                    */
-/****************************************************************************/
-
-/* verifier_state - This structure keeps the current state of the      */
-/* bytecode verifier for passing it between verifier functions.        */
-
-typedef struct verifier_state {
-    instruction *iptr;               /* pointer to current instruction */
-    basicblock *bptr;                /* pointer to current basic block */
-
-	methodinfo *m;                               /* the current method */
-	jitdata *jd;                         /* jitdata for current method */
-	codegendata *cd;                 /* codegendata for current method */
-
-	basicblock *basicblocks;
-	s4 basicblockcount;
-	
-	s4 numlocals;                         /* number of local variables */
-	s4 validlocals;                /* number of Java-accessible locals */
-	s4 *reverselocalmap;
-	
-	typedescriptor returntype;    /* return type of the current method */
-
-	s4 *savedindices;
-	s4 *savedinvars;                            /* saved invar pointer */
-
-	s4 exinvars;
-	
-    exceptiontable **handlers;            /* active exception handlers */
-	
-    bool repeat;            /* if true, blocks are iterated over again */
-    bool initmethod;             /* true if this is an "<init>" method */
-
-#ifdef TYPECHECK_STATISTICS
-	bool stat_maythrow;          /* at least one instruction may throw */
-#endif
-} verifier_state;
 
 
 /****************************************************************************/
@@ -1889,88 +1638,6 @@ verify_init_locals(verifier_state *state)
 
     LOG("Arguments set.\n");
 	return true;
-}
-
-
-/* typecheck_init_flags ********************************************************
- 
-   Initialize the basic block flags for the following CFG traversal.
-  
-   IN:
-       state............the current state of the verifier
-
-*******************************************************************************/
-
-static void
-typecheck_init_flags(verifier_state *state)
-{
-	s4 i;
-	basicblock *block;
-
-    /* set all BBFINISHED blocks to BBTYPECHECK_UNDEF. */
-	
-    i = state->basicblockcount;
-    for (block = state->basicblocks; block; block = block->next) {
-		
-#ifdef TYPECHECK_DEBUG
-		/* check for invalid flags */
-        if (block->flags != BBFINISHED && block->flags != BBDELETED && block->flags != BBUNDEF)
-        {
-            LOGSTR1("block flags: %d\n",block->flags); LOGFLUSH;
-			TYPECHECK_ASSERT(false);
-        }
-#endif
-
-        if (block->flags >= BBFINISHED) {
-            block->flags = BBTYPECHECK_UNDEF;
-        }
-    }
-
-    /* the first block is always reached */
-	
-    if (state->basicblockcount && state->basicblocks[0].flags == BBTYPECHECK_UNDEF)
-        state->basicblocks[0].flags = BBTYPECHECK_REACHED;
-}
-
-
-/* typecheck_reset_flags *******************************************************
- 
-   Reset the flags of basic blocks we have not reached.
-  
-   IN:
-       state............the current state of the verifier
-
-*******************************************************************************/
-
-static void
-typecheck_reset_flags(verifier_state *state)
-{
-	basicblock *block;
-
-	/* check for invalid flags at exit */
-	
-#ifdef TYPECHECK_DEBUG
-	for (block = state->basicblocks; block; block = block->next) {
-		if (block->flags != BBDELETED
-			&& block->flags != BBUNDEF
-			&& block->flags != BBFINISHED
-			&& block->flags != BBTYPECHECK_UNDEF) /* typecheck may never reach
-													 * some exception handlers,
-													 * that's ok. */
-		{
-			LOG2("block L%03d has invalid flags after typecheck: %d",
-				 block->nr,block->flags);
-			TYPECHECK_ASSERT(false);
-		}
-	}
-#endif
-	
-	/* Delete blocks we never reached */
-	
-	for (block = state->basicblocks; block; block = block->next) {
-		if (block->flags == BBTYPECHECK_UNDEF)
-			block->flags = BBDELETED;
-	}
 }
 
 
