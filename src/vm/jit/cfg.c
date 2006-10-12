@@ -241,7 +241,11 @@ bool cfg_build(jitdata *jd)
 			bptr->successorcount++;
 
 			tbptr = bptr->next;
-			tbptr->predecessorcount++;
+
+			/* An exception handler has no predecessors. */
+
+			if (tbptr->type != BBTYPE_EXH)
+				tbptr->predecessorcount++;
 			break;
 		}
 	}
@@ -399,10 +403,14 @@ goto_tail:
 			bptr->successors[0] = tbptr;
 			bptr->successorcount++;
 
-			cfg_allocate_predecessors(tbptr);
+			/* An exception handler has no predecessors. */
 
-			tbptr->predecessors[tbptr->predecessorcount] = bptr;
-			tbptr->predecessorcount++;
+			if (tbptr->type != BBTYPE_EXH) {
+				cfg_allocate_predecessors(tbptr);
+
+				tbptr->predecessors[tbptr->predecessorcount] = bptr;
+				tbptr->predecessorcount++;
+			}
 			break;
 		}
 	}
