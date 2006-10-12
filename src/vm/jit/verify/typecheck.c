@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5749 2006-10-12 14:02:10Z edwin $
+   $Id: typecheck.c 5750 2006-10-12 14:12:41Z edwin $
 
 */
 
@@ -1793,7 +1793,7 @@ bool typecheck(jitdata *jd)
 
 	/* initialize the basic block flags for the following CFG traversal */
 
-	typecheck_init_flags(&state);
+	typecheck_init_flags(&state, BBFINISHED);
 
     /* number of local variables */
     

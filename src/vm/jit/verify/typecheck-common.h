@@ -196,7 +196,7 @@ typedef struct verifier_state {
 #endif
 } verifier_state;
 
-void typecheck_init_flags(verifier_state *state);
+void typecheck_init_flags(verifier_state *state, s4 minflags);
 void typecheck_reset_flags(verifier_state *state);
 
 #endif /* _TYPECHECK_COMMON_H */

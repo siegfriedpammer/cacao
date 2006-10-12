@@ -125,10 +125,12 @@ void typecheck_print_statistics(FILE *file) {
   
    IN:
        state............the current state of the verifier
+       minflags.........minimum flags value of blocks that should be
+                        considered
 
 *******************************************************************************/
 
-void typecheck_init_flags(verifier_state *state)
+void typecheck_init_flags(verifier_state *state, s4 minflags)
 {
 	s4 i;
 	basicblock *block;
@@ -147,7 +149,7 @@ void typecheck_init_flags(verifier_state *state)
         }
 #endif
 
-        if (block->flags >= BBFINISHED) {
+        if (block->flags >= minflags) {
             block->flags = BBTYPECHECK_UNDEF;
         }
     }
