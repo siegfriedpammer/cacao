@@ -1,3 +1,5 @@
+#define ISBUILTIN(v)   (bte->fp == (functionptr) (v))
+
 {
 	builtintable_entry *bte;
     classref_or_classinfo cls;
@@ -111,6 +113,8 @@
 		}
 	}
 }
+
+#undef ISBUILTIN
 
 /*
  * These are local overrides for various environment variables in Emacs.

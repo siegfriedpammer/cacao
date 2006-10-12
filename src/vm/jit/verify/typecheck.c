@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5751 2006-10-12 14:18:25Z edwin $
+   $Id: typecheck.c 5753 2006-10-12 14:39:43Z edwin $
 
 */
 
@@ -507,8 +507,6 @@ typestate_restore_invars(verifier_state *state)
 #define COPYTYPE(source,dest)                                        \
     {if (VAROP(source)->type == TYPE_ADR)                            \
             TYPEINFO_COPY(VAROP(source)->typeinfo,VAROP(dest)->typeinfo);}
-
-#define ISBUILTIN(v)   (bte->fp == (functionptr) (v))
 
 
 /* verify_fieldaccess **********************************************************
