@@ -1,3 +1,10 @@
+#include "config.h"
+#include "vm/types.h"
+#include "vm/global.h"
+
+#include <assert.h>
+
+#include <vm/jit/show.h>
 #include <typecheck-common.h>
 
 /****************************************************************************/
