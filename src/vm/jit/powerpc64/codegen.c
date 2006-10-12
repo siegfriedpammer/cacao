@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5656 2006-10-03 20:57:15Z edwin $
+   $Id: codegen.c 5752 2006-10-12 14:38:46Z tbfg $
 
 */
 
@@ -208,12 +208,13 @@ bool codegen(jitdata *jd)
 
  	for (p = 0, l = 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
- 		var = &(rd->locals[l][t]);
+ 		varindex = jd->local_map[l*5 + t];
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
- 		if (var->type < 0)
+ 		if (varindex == UNUSED)
  			continue;
+		var = VAR(varindex);
 		s1 = md->params[p].regoff;
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
 			if (IS_2_WORD_TYPE(t))
@@ -225,35 +226,35 @@ bool codegen(jitdata *jd)
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
 					M_NOP;
 					if (IS_2_WORD_TYPE(t))		/* FIXME, only M_INTMOVE here */
-						M_LNGMOVE(s2, var->regoff);
+						M_LNGMOVE(s2, var->vv.regoff);
 					else
-						M_INTMOVE(s2, var->regoff);
+						M_INTMOVE(s2, var->vv.regoff);
 
 				} else {                             /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s2, REG_SP, var->regoff * 4);
+						M_LST(s2, REG_SP, var->vv.regoff * 4);
 					else
-						M_IST(s2, REG_SP, var->regoff * 4);
+						M_IST(s2, REG_SP, var->vv.regoff * 4);
 				}
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->regoff, REG_SP, (stackframesize + s1) * 4);
+						M_LLD(var->vv.regoff, REG_SP, (stackframesize + s1) * 4);
 					else
-						M_ILD(var->regoff, REG_SP, (stackframesize + s1) * 4);
+						M_ILD(var->vv.regoff, REG_SP, (stackframesize + s1) * 4);
 
 				} else {                             /* stack arg -> spilled  */
 #if 1
  					M_ILD(REG_ITMP1, REG_SP, (stackframesize + s1) * 4);
- 					M_IST(REG_ITMP1, REG_SP, var->regoff * 4);
+ 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4);
 					if (IS_2_WORD_TYPE(t)) {
 						M_ILD(REG_ITMP1, REG_SP, (stackframesize + s1) * 4 +4);
-						M_IST(REG_ITMP1, REG_SP, var->regoff * 4 + 4);
+						M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4 + 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->regoff = stackframesize + s1;
+					var->vv.regoff = stackframesize + s1;
 #endif
 				}
 			}
@@ -262,37 +263,37 @@ bool codegen(jitdata *jd)
  			if (!md->params[p].inmemory) {           /* register arguments    */
 				s2 = rd->argfltregs[s1];
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_FLTMOVE(s2, var->regoff);
+ 					M_FLTMOVE(s2, var->vv.regoff);
 
  				} else {			                 /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s2, REG_SP, var->regoff * 4);
+						M_DST(s2, REG_SP, var->vv.regoff * 4);
 					else
-						M_FST(s2, REG_SP, var->regoff * 4);
+						M_FST(s2, REG_SP, var->vv.regoff * 4);
  				}
 
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->regoff, REG_SP, (stackframesize + s1) * 4);
+						M_DLD(var->vv.regoff, REG_SP, (stackframesize + s1) * 4);
 
 					else
-						M_FLD(var->regoff, REG_SP, (stackframesize + s1) * 4);
+						M_FLD(var->vv.regoff, REG_SP, (stackframesize + s1) * 4);
 
  				} else {                             /* stack-arg -> spilled  */
 #if 1
 					if (IS_2_WORD_TYPE(t)) {
 						M_DLD(REG_FTMP1, REG_SP, (stackframesize + s1) * 4);
-						M_DST(REG_FTMP1, REG_SP, var->regoff * 4);
-						var->regoff = stackframesize + s1;
+						M_DST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
+						var->vv.regoff = stackframesize + s1;
 
 					} else {
 						M_FLD(REG_FTMP1, REG_SP, (stackframesize + s1) * 4);
-						M_FST(REG_FTMP1, REG_SP, var->regoff * 4);
+						M_FST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->regoff = stackframesize + s1;
+					var->vv.regoff = stackframesize + s1;
 #endif
 				}
 			}
@@ -407,7 +408,7 @@ bool codegen(jitdata *jd)
 				if ((len == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
 					/* d = reg_of_var(m, var, REG_ITMP1); */
 					if (!(var->flags & INMEMORY))
-						d = var->regoff;
+						d = var->vv.regoff;
 					else
 						d = REG_ITMP1;
 					M_INTMOVE(REG_ITMP1, d);
