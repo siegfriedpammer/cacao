@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: md-os.c 5747 2006-10-12 12:44:50Z twisti $
 
 */
 
@@ -89,6 +89,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;
+	greg_t      *_gregs;
 	u4           instr;
 	ptrint       addr;
 	u1          *pv;
@@ -96,33 +97,50 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	u1          *ra;
 	u1          *xpc;
 
-	_uc = (struct ucontext *) _p;
-	_mc = &_uc->uc_mcontext;
+	_uc    = (struct ucontext *) _p;
+	_mc    = &_uc->uc_mcontext;
 
-	/* in ucontext.h the registers are defined as long long, even for
-	   MIPS32, so we cast them */
-	
-	instr = *((u4 *) ((ptrint) _mc->pc));
-	addr = _mc->gregs[(instr >> 21) & 0x1f];
+#if defined(__UCLIBC__)
+	_gregs = _mc->gpregs;
+#else	
+	_gregs = _mc->gregs;
+#endif
+
+	/* In glibc's ucontext.h the registers are defined as long long,
+	   even for MIPS32, so we cast them.  This is not the case for
+	   uClibc. */
+
+	pv  = (u1 *) (ptrint) _gregs[REG_PV];
+	sp  = (u1 *) (ptrint) _gregs[REG_SP];
+	ra  = (u1 *) (ptrint) _gregs[REG_RA];        /* this is correct for leafs */
+
+#if defined(__UCLIBC__)
+	xpc = (u1 *) (ptrint) _gregs[CTX_EPC];
+#else
+	xpc = (u1 *) (ptrint) _mc->pc;
+#endif
+
+	instr = *((u4 *) xpc);
+	addr  = _gregs[(instr >> 21) & 0x1f];
 
 	if (addr == 0) {
-		pv  = (u1 *) (ptrint) _mc->gregs[REG_PV];
-		sp  = (u1 *) (ptrint) _mc->gregs[REG_SP];
-		ra  = (u1 *) (ptrint) _mc->gregs[REG_RA]; /* this is correct for leafs*/
-		xpc = (u1 *) (ptrint) _mc->pc;
-
-		_mc->gregs[REG_ITMP1_XPTR] =
+		_gregs[REG_ITMP1_XPTR] =
 			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
-		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
-		_mc->pc = (ptrint) asm_handle_exception;
+		_gregs[REG_ITMP2_XPC] = (ptrint) xpc;
 
-	} else {
+#if defined(__UCLIBC__)
+		_gregs[CTX_EPC] = (ptrint) asm_handle_exception;
+#else
+		_mc->pc         = (ptrint) asm_handle_exception;
+#endif
+	}
+	else {
 		addr += (long) ((instr << 16) >> 16);
 
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "faulting address: 0x%lx at 0x%lx\n",
-								   addr, _mc->pc);
+								   addr, xpc);
 	}
 }
 
