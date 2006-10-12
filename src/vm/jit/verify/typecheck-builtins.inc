@@ -17,48 +17,48 @@
 		TYPEINFO_INIT_NEWOBJECT(dv->typeinfo,state->iptr);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_BOOLEAN);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_char)) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_CHAR);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_float)) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_FLOAT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_double)) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_DOUBLE);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_byte)) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_BYTE);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_short)) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_SHORT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_int)) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_INT);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_long)) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_PRIMITIVE_ARRAY(dv->typeinfo,ARRAYTYPE_LONG);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray))
 	{
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_INT(OP1);
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without class");
 		/* XXX check that it is an array class(ref) */
@@ -67,7 +67,7 @@
 	}
 	else if (ISBUILTIN(BUILTIN_arrayinstanceof))
 	{
-		TYPECHECK_ADR(state->iptr->sx.s23.s2.args[0]);
+		TYPECHECK_ADR(OP1);
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_arrayinstanceof without class");
 		dv->type = TYPE_INT;
@@ -77,6 +77,9 @@
 		methoddesc *md;
 		s4 i;
 		u1 rtype;
+#if defined(TYPECHECK_STACKBASED)
+		typedescriptor *av;
+#endif
 
 		/* verify a generic builtin call */
 
@@ -87,8 +90,14 @@
 
 		/* check the types of the arguments on the stack */
 
+#if defined(TYPECHECK_STACKBASED)
+		av = stack - (md->paramslots - 1);
+#endif
+
 		for (i--; i >= 0; i--) {
+#if defined(TYPECHECK_VARIABLESBASED)
 			varinfo *av = VAR(state->iptr->sx.s23.s2.args[i]);
+#endif
 
 			if (av->type != md->paramtypes[i].type) {
 				TYPECHECK_VERIFYERROR_bool("parameter type mismatch for builtin method");
@@ -100,6 +109,10 @@
 				*exceptionptr = new_internalerror("generic builtin method with non-generic reference parameter");
 				return false;
 			}
+#endif
+
+#if defined(TYPECHECK_STACKBASED)
+			av += (IS_2_WORD_TYPE(av->type)) ? 2 : 1;
 #endif
 		}
 
