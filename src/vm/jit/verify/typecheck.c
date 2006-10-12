@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5750 2006-10-12 14:12:41Z edwin $
+   $Id: typecheck.c 5751 2006-10-12 14:18:25Z edwin $
 
 */
 
@@ -560,12 +560,16 @@ static bool
 verify_invocation(verifier_state *state)
 {
 	jitdata *jd;
-	varinfo *dv;
+    varinfo *dv;               /* output variable of current instruction */
 
 	jd = state->jd;
 	dv = VAROP(state->iptr->dst);
 
+#define TYPECHECK_VARIABLESBASED
+#define OP1   VAR(state->iptr->sx.s23.s2.args[0])
 #include <typecheck-invoke.inc>
+#undef  OP1
+#undef  TYPECHECK_VARIABLESBASED
 
 	return true;
 }
@@ -587,17 +591,20 @@ verify_invocation(verifier_state *state)
 static bool
 verify_builtin(verifier_state *state)
 {
-	varinfo *dv;
 	jitdata *jd;
+    varinfo *dv;               /* output variable of current instruction */
 
 	jd = state->jd;
 	dv = VAROP(state->iptr->dst);
 
+#define TYPECHECK_VARIABLESBASED
+#define OP1   state->iptr->sx.s23.s2.args[0]
 #include <typecheck-builtins.inc>
+#undef  OP1
+#undef  TYPECHECK_VARIABLESBASED
 
 	return true;
 }
-
 
 /* verify_multianewarray *******************************************************
  
