@@ -1,12 +1,16 @@
 {
-	varinfo *valueslot = NULL;
-	typeinfo *instanceti = NULL;
-	typeinfo *valueti = NULL;
-	bool isstatic = false;
-	bool isput = false;
-	typeinfo constti;
+	unresolved_field *uf;
+	constant_FMIref *fieldref;
+	resolve_result_t result;
+	typeinfo *instanceti;
+	typeinfo *valueti;
 
 	TYPECHECK_COUNT(stat_ins_field);
+
+	instanceti = (instance) ? &(instance->typeinfo) : NULL;
+	valueti    = (value && value->type == TYPE_ADR) ? &(value->typeinfo) : NULL;
+
+	/* get the field reference from the instruction */
 
 	if (INSTRUCTION_IS_UNRESOLVED(state->iptr)) {
 		uf = state->iptr->sx.s23.s3.uf;
@@ -15,61 +19,6 @@
 	else {
 		uf = NULL;
 		fieldref = state->iptr->sx.s23.s3.fmiref;
-	}
-
-	/* get opcode dependent values */
-
-	switch (state->iptr->opc) {
-		case ICMD_PUTFIELD:
-			isput = true;
-			valueslot = VAROP(state->iptr->sx.s23.s2);
-			instanceti = &(VAROP(state->iptr->s1)->typeinfo);
-			break;
-
-		case ICMD_PUTFIELDCONST:
-			isput = true;
-			instanceti = &(VAROP(state->iptr->s1)->typeinfo);
-putfield_const_tail:
-			if (IS_ADR_TYPE(fieldref->parseddesc.fd->type)) {
-				/* XXX check for java.lang.Class constant values? */
-				if (state->iptr->sx.val.anyptr) {
-					assert(class_java_lang_String);
-					assert(class_java_lang_String->state & CLASS_LOADED);
-					assert(class_java_lang_String->state & CLASS_LINKED);
-					typeinfo_init_classinfo(&constti, class_java_lang_String);
-				}
-				else {
-					TYPEINFO_INIT_NULLTYPE(constti);
-				}
-				valueti = &constti;
-			}
-			break;
-
-		case ICMD_PUTSTATIC:
-			isput = true;
-			isstatic = true;
-			valueslot = VAROP(state->iptr->s1);
-			break;
-
-		case ICMD_PUTSTATICCONST:
-			isput = true;
-			isstatic = true;
-			goto putfield_const_tail;
-
-		case ICMD_GETFIELD:
-			instanceti = &(VAROP(state->iptr->s1)->typeinfo);
-			break;
-
-		case ICMD_GETSTATIC:
-			isstatic = true;
-			break;
-
-		default:
-			assert(false);
-	}
-
-	if (valueslot && IS_ADR_TYPE(valueslot->type)) {
-		valueti = &(valueslot->typeinfo);
 	}
 
 	/* try to resolve the field reference lazily */
@@ -85,11 +34,13 @@ putfield_const_tail:
 
 		result = resolve_field_verifier_checks(
 				state->m, fieldref, fi->class, fi,
-				instanceti, valueti, isstatic, isput);
+				instanceti, valueti,
+				(instance == NULL),
+				(value != NULL));
 	}
 
 	if (result == resolveFailed)
-		return false;
+		EXCEPTION;
 
 	/* if not resolved, yet, create an unresolved field */
 
@@ -98,7 +49,7 @@ putfield_const_tail:
 			uf = resolve_create_unresolved_field(state->m->class, 
 					state->m, state->iptr);
 			if (!uf)
-				return false;
+				EXCEPTION;
 
 			state->iptr->sx.s23.s3.uf = uf;
 			state->iptr->flags.bits |= INS_FLAG_UNRESOLVED;
@@ -109,7 +60,7 @@ putfield_const_tail:
 		if (!resolve_constrain_unresolved_field(
 					uf, state->m->class, state->m,
 					instanceti, valueti))
-			return false; /* XXX maybe wrap exception? */
+			EXCEPTION; /* XXX maybe wrap exception? */
 
 		TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(state->iptr),stat_ins_field_unresolved);
 		TYPECHECK_COUNTIF(INSTRUCTION_IS_RESOLVED(state->iptr) && 
@@ -119,13 +70,31 @@ putfield_const_tail:
 		
 	/* write the result type */
 
-	if (iptr->opc == ICMD_GETFIELD || iptr->opc == ICMD_GETSTATIC) {
-		dv->type = fieldref->parseddesc.fd->type;
-		if (dv->type == TYPE_ADR) {
-			if (!typeinfo_init_from_typedesc(fieldref->parseddesc.fd, 
-						NULL, &(dv->typeinfo)))
-				return false;
+	if (value == NULL) {
+#if defined(TYPECHECK_STACKBASED)
+		typedescriptor *dv;
+
+		if (IS_2_WORD_TYPE(fieldref->parseddesc.fd->type)) {
+			/* XXX CHECK_STACK_SPACE(2); */
+			stack += 2;
+			dv = &(stack[-1]);
+			stack[0].type = TYPE_VOID;
 		}
+		else {
+			/* CHECK_STACK_SPACE(1); XXX */
+			stack += 1;
+			dv = stack;
+		}
+#define DST dv
+#else
+#define DST VAROP(state->iptr->dst)
+#endif
+		DST->type = fieldref->parseddesc.fd->type;
+		if (DST->type == TYPE_ADR) {
+			if (!typeinfo_init_from_typedesc(fieldref->parseddesc.fd,NULL,&(DST->typeinfo)))
+				EXCEPTION;
+		}
+#undef DST
 	}
 }
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5746 2006-10-12 10:10:06Z edwin $
+   $Id: typecheck.c 5749 2006-10-12 14:02:10Z edwin $
 
 */
 
@@ -511,6 +511,38 @@ typestate_restore_invars(verifier_state *state)
 #define ISBUILTIN(v)   (bte->fp == (functionptr) (v))
 
 
+/* verify_fieldaccess **********************************************************
+ 
+   Verify an ICMD_{GET,PUT}{STATIC,FIELD}(CONST)?
+  
+   IN:
+       state............the current state of the verifier
+
+   RETURN VALUE:
+       true.............successful verification,
+	   false............an exception has been thrown.
+
+*******************************************************************************/
+
+static bool
+verify_fieldaccess(verifier_state *state, 
+				   varinfo *instance,
+				   varinfo *value)
+{
+	jitdata *jd;
+
+	jd = state->jd;
+
+#define TYPECHECK_VARIABLESBASED
+#define EXCEPTION  do { return false; } while (0)
+#include <typecheck-fields.inc>
+#undef  EXCEPTION
+#undef  TYPECHECK_VARIABLESBASED
+
+	return true;
+}
+
+
 /* verify_invocation ***********************************************************
  
    Verify an ICMD_INVOKE* instruction.
@@ -726,16 +758,15 @@ verify_basic_block(verifier_state *state)
 	instruction *iptr;                      /* the current instruction */
     basicblock *tbptr;                   /* temporary for target block */
     bool maythrow;               /* true if this instruction may throw */
-	unresolved_field *uf;                        /* for field accesses */
-	constant_FMIref *fieldref;                   /* for field accesses */
 	s4 i;
 	typecheck_result r;
-	resolve_result_t result;
 	branch_target_t *table;
 	lookup_target_t *lookup;
 	jitdata *jd = state->jd;
 	varinfo *dv;
 	exceptiontable *ex;
+	varinfo constvalue;                               /* for PUT*CONST */
+	constant_FMIref *fieldref;
 
 	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
 	LOGFLUSH;
@@ -886,14 +917,68 @@ verify_basic_block(verifier_state *state)
 				/* FIELD ACCESS                         */
 
 			case ICMD_PUTFIELD:
+				if (!verify_fieldaccess(state, VAROP(iptr->s1), 
+										VAROP(iptr->sx.s23.s2)))
+					return false;
+				maythrow = true;
+				break;
+
 			case ICMD_PUTSTATIC:
+				if (!verify_fieldaccess(state, NULL, VAROP(iptr->s1)))
+					return false;
+				maythrow = true;
+				break;
+
 			case ICMD_PUTFIELDCONST:
+				/* XXX this mess will go away with const operands */
+				INSTRUCTION_GET_FIELDREF(state->iptr, fieldref);
+				constvalue.type = fieldref->parseddesc.fd->type;
+				if (IS_ADR_TYPE(constvalue.type)) {
+					if (state->iptr->sx.val.anyptr) {
+						assert(class_java_lang_String);
+						assert(class_java_lang_String->state & CLASS_LINKED);
+						typeinfo_init_classinfo(&(constvalue.typeinfo), 
+												class_java_lang_String);
+					}
+					else {
+						TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
+					}
+				}
+				if (!verify_fieldaccess(state, VAROP(iptr->s1), 
+										&constvalue))
+					return false;
+				maythrow = true;
+				break;
+
 			case ICMD_PUTSTATICCONST:
+				/* XXX this mess will go away with const operands */
+				INSTRUCTION_GET_FIELDREF(state->iptr, fieldref);
+				constvalue.type = fieldref->parseddesc.fd->type;
+				if (IS_ADR_TYPE(constvalue.type)) {
+					if (state->iptr->sx.val.anyptr) {
+						assert(class_java_lang_String);
+						assert(class_java_lang_String->state & CLASS_LINKED);
+						typeinfo_init_classinfo(&(constvalue.typeinfo), 
+												class_java_lang_String);
+					}
+					else {
+						TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
+					}
+				}
+				if (!verify_fieldaccess(state, NULL, &constvalue))
+					return false;
+				maythrow = true;
+				break;
+
 			case ICMD_GETFIELD:
+				if (!verify_fieldaccess(state, VAROP(iptr->s1), NULL))
+					return false;
+				maythrow = true;
+				break;
+
 			case ICMD_GETSTATIC:
-
-#include <typecheck-fields.inc>
-
+				if (!verify_fieldaccess(state, NULL, NULL))
+					return false;
 				maythrow = true;
 				break;
 
