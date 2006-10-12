@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5721 2006-10-08 11:39:41Z edwin $
+   $Id: stack.c 5760 2006-10-12 23:34:27Z edwin $
 
 */
 
@@ -842,7 +842,8 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 						&& (sv->SBRSTART != dv->SBRSTART))
 					{
 						dv->type = TYPE_VOID;
-						b->flags = BBTYPECHECK_REACHED;
+						if (b->flags >= BBFINISHED)
+							b->flags = BBTYPECHECK_REACHED;
 						sd->repeat = true; /* This is very rare, so just repeat */
 					}
 				}
@@ -977,7 +978,8 @@ static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock 
 							&& (sv->SBRSTART != dv->SBRSTART))
 					{
 						dv->type = TYPE_VOID;
-						b->flags = BBTYPECHECK_REACHED;
+						if (b->flags >= BBFINISHED)
+							b->flags = BBTYPECHECK_REACHED;
 						sd->repeat = true; /* This is very rare, so just repeat */
 					}
 				}
