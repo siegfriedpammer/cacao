@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 5747 2006-10-12 12:44:50Z twisti $
+   $Id: md-os.c 5748 2006-10-12 13:13:18Z twisti $
 
 */
 
@@ -149,14 +149,26 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 void thread_restartcriticalsection(ucontext_t *_uc)
 {
 	mcontext_t *_mc;
-	void *critical;
+	u1         *pc;
+	u1         *npc;
 
 	_mc = &_uc->uc_mcontext;
 
-	critical = critical_find_restart_point((void *) (ptrint) _mc->pc);
+#if defined(__UCLIBC__)
+	pc = (u1 *) (ptrint) _mc->gpregs[CTX_EPC];
+#else
+	pc = (u1 *) (ptrint) _mc->pc;
+#endif
 
-	if (critical)
-		_mc->pc = (ptrint) critical;
+	npc = critical_find_restart_point(pc);
+
+	if (npc != NULL) {
+#if defined(__UCLIBC__)
+		_mc->gpregs[CTX_EPC] = (ptrint) npc;
+#else
+		_mc->pc              = (ptrint) npc;
+#endif
+	}
 }
 #endif
 
