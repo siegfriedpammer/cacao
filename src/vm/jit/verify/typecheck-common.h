@@ -135,13 +135,16 @@ extern int stat_savedstack;
 		else (array)[limit]++;				  \
 	} while (0)
 
-#else
+void typecheck_print_statistics(FILE *file);
+
+#else /* !defined(TYPECHECK_STATISTICS) */
 						   
 #define TYPECHECK_COUNT(cnt)
 #define TYPECHECK_MARK(var)
 #define TYPECHECK_COUNTIF(cond,cnt)
 #define TYPECHECK_COUNT_FREQ(array,val,limit)
-#endif
+
+#endif /* defined(TYPECHECK_STATISTICS) */
 
 
 /****************************************************************************/
@@ -157,6 +160,31 @@ extern int stat_savedstack;
 #define TYPECHECK_VERIFYERROR_main(msg)  TYPECHECK_VERIFYERROR_ret(state.m,(msg),NULL)
 #define TYPECHECK_VERIFYERROR_bool(msg)  TYPECHECK_VERIFYERROR_ret(state->m,(msg),false)
 
+
+/****************************************************************************/
+/* JSR VERIFICATION (stack-based verifier)                                  */
+/****************************************************************************/
+
+typedef struct typecheck_jsr_t typecheck_jsr_t;
+typedef struct typecheck_jsr_caller_t typecheck_jsr_caller_t;
+
+struct typecheck_jsr_caller_t {
+	typecheck_jsr_caller_t *next;                   /* next in linked list */
+	basicblock *callblock;             /* block containing the calling JSR */
+};
+
+struct typecheck_jsr_t {
+	typecheck_jsr_t *next;               /* next (lower) in the call chain */
+	basicblock  *start;                                   /* for debugging */
+	typecheck_jsr_caller_t *callers;  /* list of callers (blocks with JSR) */
+	basicblock  *retblock;              /* block with the RET for this sub */
+	bool         active;           /* true if this sub is currently active */
+	char        *blockflags;   /* saved block flags when JSR was traversed */
+	char        *usedlocals;       /* != 0 for each local used in this sub */
+	typedescriptor *retlocals;                   /* locals on the RET edge */
+	typedescriptor *retstack;                     /* stack on the RET edge */
+	s4              retdepth;               /* stack depth on the RET edge */
+};
 
 /****************************************************************************/
 /* VERIFIER STATE STRUCT                                                    */
@@ -195,6 +223,16 @@ typedef struct verifier_state {
 #ifdef TYPECHECK_STATISTICS
 	bool stat_maythrow;          /* at least one instruction may throw */
 #endif
+
+	/* the following fields are used by the stackbased verifier only:  */
+
+	typedescriptor *locals;                 /* current local variables */
+	typedescriptor *startlocals;  /* locals at the start of each block */
+	typedescriptor *startstack;    /* stack at the start of each block */
+	s4             *indepth;                  /* stack depth at --''-- */
+
+	typecheck_jsr_t *topjsr;        /* most recently called subroutine */
+	typecheck_jsr_t **jsrinfos;      /* subroutine info for each block */
 } verifier_state;
 
 void typecheck_init_flags(verifier_state *state, s4 minflags);
