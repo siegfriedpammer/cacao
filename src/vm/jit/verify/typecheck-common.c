@@ -45,38 +45,38 @@ void typecheck_print_vararray(FILE *file, jitdata *jd, s4 *vars, int len)
 /****************************************************************************/
 
 #if defined(TYPECHECK_STATISTICS)
-static int stat_typechecked = 0;
-static int stat_methods_with_handlers = 0;
-static int stat_methods_maythrow = 0;
-static int stat_iterations[STAT_ITERATIONS+1] = { 0 };
-static int stat_reached = 0;
-static int stat_copied = 0;
-static int stat_merged = 0;
-static int stat_merging_changed = 0;
-static int stat_blocks[STAT_BLOCKS+1] = { 0 };
-static int stat_locals[STAT_LOCALS+1] = { 0 };
-static int stat_ins = 0;
-static int stat_ins_maythrow = 0;
-static int stat_ins_stack = 0;
-static int stat_ins_field = 0;
-static int stat_ins_field_unresolved = 0;
-static int stat_ins_field_uninitialized = 0;
-static int stat_ins_invoke = 0;
-static int stat_ins_invoke_unresolved = 0;
-static int stat_ins_primload = 0;
-static int stat_ins_aload = 0;
-static int stat_ins_builtin = 0;
-static int stat_ins_builtin_gen = 0;
-static int stat_ins_branch = 0;
-static int stat_ins_switch = 0;
-static int stat_ins_primitive_return = 0;
-static int stat_ins_areturn = 0;
-static int stat_ins_areturn_unresolved = 0;
-static int stat_ins_athrow = 0;
-static int stat_ins_athrow_unresolved = 0;
-static int stat_ins_unchecked = 0;
-static int stat_handlers_reached = 0;
-static int stat_savedstack = 0;
+int stat_typechecked = 0;
+int stat_methods_with_handlers = 0;
+int stat_methods_maythrow = 0;
+int stat_iterations[STAT_ITERATIONS+1] = { 0 };
+int stat_reached = 0;
+int stat_copied = 0;
+int stat_merged = 0;
+int stat_merging_changed = 0;
+int stat_blocks[STAT_BLOCKS+1] = { 0 };
+int stat_locals[STAT_LOCALS+1] = { 0 };
+int stat_ins = 0;
+int stat_ins_maythrow = 0;
+int stat_ins_stack = 0;
+int stat_ins_field = 0;
+int stat_ins_field_unresolved = 0;
+int stat_ins_field_uninitialized = 0;
+int stat_ins_invoke = 0;
+int stat_ins_invoke_unresolved = 0;
+int stat_ins_primload = 0;
+int stat_ins_aload = 0;
+int stat_ins_builtin = 0;
+int stat_ins_builtin_gen = 0;
+int stat_ins_branch = 0;
+int stat_ins_switch = 0;
+int stat_ins_primitive_return = 0;
+int stat_ins_areturn = 0;
+int stat_ins_areturn_unresolved = 0;
+int stat_ins_athrow = 0;
+int stat_ins_athrow_unresolved = 0;
+int stat_ins_unchecked = 0;
+int stat_handlers_reached = 0;
+int stat_savedstack = 0;
 
 static void print_freq(FILE *file,int *array,int limit)
 {

@@ -75,8 +75,8 @@ extern bool opt_typecheckverbose;
 
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
 #include <stdio.h>
-static void typecheck_print_var(FILE *file, jitdata *jd, s4 index);
-static void typecheck_print_vararray(FILE *file, jitdata *jd, s4 *vars, int len);
+void typecheck_print_var(FILE *file, jitdata *jd, s4 index);
+void typecheck_print_vararray(FILE *file, jitdata *jd, s4 *vars, int len);
 #endif
 
 
@@ -93,38 +93,38 @@ static void typecheck_print_vararray(FILE *file, jitdata *jd, s4 *vars, int len)
 #define STAT_BLOCKS      10
 #define STAT_LOCALS      16
 
-static int stat_typechecked;
-static int stat_methods_with_handlers;
-static int stat_methods_maythrow;
-static int stat_iterations[STAT_ITERATIONS+1];
-static int stat_reached;
-static int stat_copied;
-static int stat_merged;
-static int stat_merging_changed;
-static int stat_blocks[STAT_BLOCKS+1];
-static int stat_locals[STAT_LOCALS+1];
-static int stat_ins;
-static int stat_ins_maythrow;
-static int stat_ins_stack;
-static int stat_ins_field;
-static int stat_ins_field_unresolved;
-static int stat_ins_field_uninitialized;
-static int stat_ins_invoke;
-static int stat_ins_invoke_unresolved;
-static int stat_ins_primload;
-static int stat_ins_aload;
-static int stat_ins_builtin;
-static int stat_ins_builtin_gen;
-static int stat_ins_branch;
-static int stat_ins_switch;
-static int stat_ins_primitive_return;
-static int stat_ins_areturn;
-static int stat_ins_areturn_unresolved;
-static int stat_ins_athrow;
-static int stat_ins_athrow_unresolved;
-static int stat_ins_unchecked;
-static int stat_handlers_reached;
-static int stat_savedstack;
+extern int stat_typechecked;
+extern int stat_methods_with_handlers;
+extern int stat_methods_maythrow;
+extern int stat_iterations[STAT_ITERATIONS+1];
+extern int stat_reached;
+extern int stat_copied;
+extern int stat_merged;
+extern int stat_merging_changed;
+extern int stat_blocks[STAT_BLOCKS+1];
+extern int stat_locals[STAT_LOCALS+1];
+extern int stat_ins;
+extern int stat_ins_maythrow;
+extern int stat_ins_stack;
+extern int stat_ins_field;
+extern int stat_ins_field_unresolved;
+extern int stat_ins_field_uninitialized;
+extern int stat_ins_invoke;
+extern int stat_ins_invoke_unresolved;
+extern int stat_ins_primload;
+extern int stat_ins_aload;
+extern int stat_ins_builtin;
+extern int stat_ins_builtin_gen;
+extern int stat_ins_branch;
+extern int stat_ins_switch;
+extern int stat_ins_primitive_return;
+extern int stat_ins_areturn;
+extern int stat_ins_areturn_unresolved;
+extern int stat_ins_athrow;
+extern int stat_ins_athrow_unresolved;
+extern int stat_ins_unchecked;
+extern int stat_handlers_reached;
+extern int stat_savedstack;
 
 #define TYPECHECK_MARK(var)   ((var) = true)
 #define TYPECHECK_COUNT(cnt)  (cnt)++
