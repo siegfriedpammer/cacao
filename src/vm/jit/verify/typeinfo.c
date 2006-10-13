@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5738 2006-10-11 19:42:07Z edwin $
+   $Id: typeinfo.c 5763 2006-10-13 10:36:34Z edwin $
 
 */
 
@@ -196,7 +196,6 @@ void
 typevector_store(varinfo *vec,int index,int type,typeinfo *info)
 {
 	TYPEINFO_ASSERT(vec);
-	TYPEINFO_ASSERT((info && !TYPEINFO_IS_PRIMITIVE(*info)) || type != TYPE_ADR);
 
 	vec[index].type = type;
 	if (info)
