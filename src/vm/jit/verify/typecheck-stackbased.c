@@ -57,13 +57,16 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 
 
 #define CHECK_STACK_DEPTH(d)                                         \
-    if (((u1*)stack - (u1*)stackfloor) < (((d)-1) * (int)sizeof(verifier_slot_t)))\
+    if (((u1*)stack - (u1*)stackfloor)                               \
+            < (((d)-1) * (int)sizeof(verifier_slot_t)))              \
         goto throw_stack_underflow;
 
 /* XXX don't need to check against ACONST for every ICMD */
 #define CHECK_STACK_SPACE(d)                                         \
-    if (((u1*)stackceiling - (u1*)stack) < (((d+1)) * (int)sizeof(verifier_slot_t)))\
-        if (IPTR->opc != ICMD_ACONST || INSTRUCTION_MUST_CHECK(IPTR))\
+    if (((u1*)STATE->stackceiling - (u1*)stack)                      \
+            < (((d)+1) * (int)sizeof(verifier_slot_t)))              \
+        if (STATE->iptr->opc != ICMD_ACONST                          \
+                || INSTRUCTION_MUST_CHECK(STATE->iptr))              \
             goto throw_stack_overflow;
 
 #define CHECK_STACK_TYPE(s, t)                                       \
@@ -130,7 +133,8 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 
 #define REACH_BLOCK(target)                                          \
     do {                                                             \
-        if (!typecheck_stackbased_reach(STATE, (target), stack, (stack - stackfloor) + 1))\
+        if (!typecheck_stackbased_reach(STATE, (target), stack,      \
+                    (stack - stackfloor) + 1))                       \
             return false;                                            \
     } while (0)
 
@@ -349,11 +353,18 @@ static typedescriptor *typecheck_stackbased_verify_fieldaccess(
 
 #define TYPECHECK_STACKBASED
 #define EXCEPTION  do { return NULL; } while (0)
+#define STATE  state
 #include <typecheck-fields.inc>
 #undef  EXCEPTION
+#undef  STATE
 #undef  TYPECHECK_STACKBASED
 
 	return stack;
+
+throw_stack_overflow:
+	LOG("STACK OVERFLOW!");
+	exceptions_throw_verifyerror(state->m, "Stack size too large");
+	return NULL;
 }
 
 static bool typecheck_stackbased_verify_invocation(verifier_state *state,
@@ -373,7 +384,8 @@ static bool typecheck_stackbased_verify_invocation(verifier_state *state,
 	paramslots = md->paramslots;
 
 	if ((stack - stackfloor) + 1 < paramslots) {
-		exceptions_throw_verifyerror(state->m, "Trying to pop operand of an empty stack");
+		exceptions_throw_verifyerror(state->m, 
+				"Trying to pop operand of an empty stack");
 		return false;
 	}
 
@@ -402,7 +414,8 @@ static bool typecheck_stackbased_verify_builtin(verifier_state *state,
 	paramslots = state->iptr->sx.s23.s3.bte->md->paramslots;
 
 	if ((stack - stackfloor) + 1 < paramslots) {
-		exceptions_throw_verifyerror(state->m, "Trying to pop operand of an empty stack");
+		exceptions_throw_verifyerror(state->m, 
+				"Trying to pop operand of an empty stack");
 		return false;
 	}
 
@@ -447,7 +460,8 @@ static bool typecheck_stackbased_multianewarray(verifier_state *state,
 	/* check the array lengths on the stack */
 
 	if ((stack - stackfloor) + 1 < i) {
-		exceptions_throw_verifyerror(state->m, "Trying to pop operand of an empty stack");
+		exceptions_throw_verifyerror(state->m, 
+				"Trying to pop operand of an empty stack");
 		return false;
 	}
 
@@ -556,7 +570,8 @@ static typedescriptor *typecheck_stackbased_jsr(verifier_state *state,
 
 		/* reach the following block */
 
-		if (!typecheck_stackbased_reach(state, state->bptr->next, stack, (stack - stackfloor) + 1))
+		if (!typecheck_stackbased_reach(state, state->bptr->next, stack, 
+					(stack - stackfloor) + 1))
 			return NULL;
 	}
 	else {
@@ -671,7 +686,6 @@ bool typecheck_stackbased(jitdata *jd)
 {
 	register verifier_slot_t *stack;
 	verifier_slot_t *stackfloor;
-	verifier_slot_t *stackceiling;
 	s4 len;
 	methoddesc *md;
 	bool maythrow;
@@ -680,7 +694,6 @@ bool typecheck_stackbased(jitdata *jd)
 	branch_target_t *table;
 	lookup_target_t *lookup;
 	s4 i;
-	constant_FMIref *fieldref;
 	typecheck_result r;
 	verifier_slot_t *dst;
 	verifier_state state;
@@ -714,7 +727,7 @@ bool typecheck_stackbased(jitdata *jd)
 	/* allocate the stack buffers */
 
 	stackfloor = DMNEW(verifier_slot_t, state.m->maxstack + 1);
-	stackceiling = stackfloor + state.m->maxstack;
+	state.stackceiling = stackfloor + state.m->maxstack;
 	stack = stackfloor - 1;
 	state.indepth = DMNEW(s4, state.basicblockcount);
 	state.startstack = DMNEW(verifier_slot_t, state.m->maxstack * state.basicblockcount);

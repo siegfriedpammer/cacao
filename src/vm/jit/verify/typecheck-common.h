@@ -265,6 +265,7 @@ typedef struct verifier_state {
 	typedescriptor *startlocals;  /* locals at the start of each block */
 	typedescriptor *startstack;    /* stack at the start of each block */
 	s4             *indepth;                  /* stack depth at --''-- */
+	typedescriptor *stackceiling;      /* upper edge of verifier stack */
 
 	typecheck_jsr_t *topjsr;        /* most recently called subroutine */
 	typecheck_jsr_t **jsrinfos;      /* subroutine info for each block */

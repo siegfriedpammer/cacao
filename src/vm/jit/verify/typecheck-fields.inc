@@ -110,13 +110,13 @@
 		typedescriptor *dv;
 
 		if (IS_2_WORD_TYPE(fieldref->parseddesc.fd->type)) {
-			/* XXX CHECK_STACK_SPACE(2); */
+			CHECK_STACK_SPACE(2);
 			stack += 2;
 			dv = &(stack[-1]);
 			stack[0].type = TYPE_VOID;
 		}
 		else {
-			/* CHECK_STACK_SPACE(1); XXX */
+			CHECK_STACK_SPACE(1);
 			stack += 1;
 			dv = stack;
 		}
