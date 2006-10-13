@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5703 2006-10-05 20:21:04Z edwin $
+   $Id: codegen-common.c 5774 2006-10-13 16:06:18Z edwin $
 
 */
 
@@ -1094,7 +1094,7 @@ void removenativestub(u1 *stub)
 
 *******************************************************************************/
 
-inline s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
+s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 {
 
 #if 0
