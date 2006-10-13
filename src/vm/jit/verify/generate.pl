@@ -850,7 +850,9 @@ sub write_icmd_table
 
 		print $file "", $icmd->{ACTION_FILLED}, "";
 
-		print $file " */},\n";
+		print $file " */}";
+		print $file "," unless $icmdname eq $icmds[-1];
+		print $file "\n";
 	}
 
 	print $file "\n";
