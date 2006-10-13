@@ -772,7 +772,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 	opcode    =  iptr->opc;
 
-	printf("%s ", icmd_names[opcode]);
+	printf("%s ", icmd_table[opcode].name);
 
 	if (stage < SHOW_PARSE)
 		return;

@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5767 2006-10-13 11:57:23Z edwin $
+   $Id: jit.h 5769 2006-10-13 12:49:25Z edwin $
 
 */
 
@@ -560,6 +560,11 @@ struct icmdtable_entry_t {
 };
 
 
+/* the ICMD table ************************************************************/
+
+extern icmdtable_entry_t icmd_table[256];
+
+
 /********** op1 values for ACONST instructions ********************************/
 
 #define ACONST_LOAD     0  /* ACONST_NULL or LDC instruction                  */
@@ -568,7 +573,6 @@ struct icmdtable_entry_t {
 
 /********** JavaVM operation codes (sorted) and instruction lengths ***********/
 
-extern char *icmd_names[256];
 extern char *opcode_names[256];
 extern int jcommandsize[256];
 

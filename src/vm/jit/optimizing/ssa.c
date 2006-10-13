@@ -46,7 +46,7 @@
 
 #if defined(SSA_DEBUG_VERBOSE)
 #include "vm/options.h"   /* compileverbose */
-#include "vm/jit/jit.h"          /* icmd_names */
+#include "vm/jit/jit.h"          /* icmd_table */
 #endif
 
 /* function prototypes */
@@ -1527,7 +1527,7 @@ void dead_code_elimination(methodinfo *m,registerdata *rd, lsradata *ls, graphda
 							printf("INFO: %s %s:at BB %3i II %3i NOP-<%s\n",
 								   m->class->name->text, m->name->text, 
 								   lt->def->b_index, lt->def->iindex, 
-								   icmd_names[iptr->opc]);
+								   icmd_table[iptr->opc].name);
 #endif
 						iptr->opc = ICMD_NOP;
   					}
