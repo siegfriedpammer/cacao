@@ -432,6 +432,9 @@ sub code
 {
 	my $text = join '', @_;
 
+	$text =~ s/\n/\n  GENERATED  /g;
+	$text =~ s/^#/\n#            /g;
+
 	my $newlines = () = $text =~ /\n/g;
 
 	print $codefile $text;
@@ -515,6 +518,15 @@ sub write_icmd_set_props
 	}
 }
 
+sub write_trailer
+{
+	my ($file) = @_;
+
+	print $file "\n#undef GENERATED\n";
+	print $file "/* vim:filetype=c:\n";
+	print $file " */\n";
+}
+
 sub write_verify_stackbased_code
 {
 	my ($file) = @_;
@@ -524,6 +536,9 @@ sub write_verify_stackbased_code
 	$codefile = $file;
 	$codeline = 1;
 	my $codefilename = $TYPECHECK_STACKBASED_INC;
+
+	print $file "#define GENERATED\n";
+	$codeline++;
 
 	my $condition = sub { $_[0]->{STAGE} ne '--' and $_[0]->{STAGE} ne 'S+' };
 
@@ -669,7 +684,7 @@ sub write_verify_stackbased_code
 			code "\n";
 			code "#\tline ".$icmd->{VERIFYCODELINE}." \"".$icmd->{VERIFYCODEFILE}."\"\n";
 			code $_ for @{$icmd->{VERIFYCODE}};
-			code "#\tline ", $codeline+1, " \"", $codefilename, "\"\n";
+			code "#\tline ", $codeline+2, " \"", $codefilename, "\"\n";
 			code "\n";
 		}
 
@@ -696,10 +711,7 @@ sub write_verify_stackbased_code
 		code "\n";
 	}
 
-	code "\n";
-
-	code "/* vim:filetype=c:\n";
-	code " */\n";
+	write_trailer($file);
 }
 
 sub write_verify_variablesbased_code
@@ -711,6 +723,9 @@ sub write_verify_variablesbased_code
 	$codefile = $file;
 	$codeline = 1;
 	my $codefilename = $TYPECHECK_VARIABLESBASED_INC;
+
+	print $file "#define GENERATED\n";
+	$codeline++;
 
 	my $condition = sub { $_[0]->{STAGE} ne '--' and $_[0]->{STAGE} ne '-S' };
 
@@ -789,7 +804,7 @@ sub write_verify_variablesbased_code
 			code "\n";
 			code "#\tline ".$icmd->{VERIFYCODELINE}." \"".$icmd->{VERIFYCODEFILE}."\"\n";
 			code $_ for @{$icmd->{VERIFYCODE}};
-			code "#\tline ", $codeline+1, " \"", $codefilename, "\"\n";
+			code "#\tline ", $codeline+2, " \"", $codefilename, "\"\n";
 			code "\n";
 		}
 
@@ -818,10 +833,7 @@ sub write_verify_variablesbased_code
 		code "\n";
 	}
 
-	code "\n";
-
-	code "/* vim:filetype=c:\n";
-	code " */\n";
+	write_trailer($file);
 }
 
 sub write_icmd_table
