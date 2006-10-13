@@ -30,8 +30,9 @@
    Changes: Christian Thalinger
             Christian Ullrich
             Edwin Steiner
+	    Roland Lezuo
 
-   $Id: codegen.c 5752 2006-10-12 14:38:46Z tbfg $
+   $Id: codegen.c 5776 2006-10-13 17:06:39Z tbfg $
 
 */
 

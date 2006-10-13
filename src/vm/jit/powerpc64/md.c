@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5248 2006-08-17 17:51:40Z tbfg $
+   $Id: md.c 5776 2006-10-13 17:06:39Z tbfg $
 
 */
 
@@ -175,12 +175,12 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
    Machine code:
 
    7d6802a6    mflr    r11
-   39cbffe0    addi    r14r11,-32
+   39cbffe0    addi    r14,r11,-32
 
    or
 
    7d6802a6    mflr    r11
-   3dcbffff    addis   r14r11,-1
+   3dcbffff    addis   r14,r11,-1
    39ce68b0    addi    r14,r13,26800
 
 *******************************************************************************/
