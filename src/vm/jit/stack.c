@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5760 2006-10-12 23:34:27Z edwin $
+   $Id: stack.c 5762 2006-10-13 10:33:20Z edwin $
 
 */
 
@@ -2233,7 +2233,7 @@ icmd_NOP:
 						COUNT(count_check_null);
 						USE_S1(TYPE_ADR);
 						CLR_SX;
-						CLR_DST; /* XXX live through? */
+						iptr->dst.varindex = iptr->s1.varindex;
 						break;
 
 					case ICMD_RET:
