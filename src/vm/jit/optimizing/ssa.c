@@ -1322,7 +1322,7 @@ void dead_code_elimination(methodinfo *m,registerdata *rd, lsradata *ls, graphda
 					iptr = ls->basicblocks[lt->def->b_index]->iinstr + 
 						lt->def->iindex;
 
-					if (op_data[iptr->opc][PEI])
+					if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI)
 						remove_statement = false;
 					/* if ICMD could throw an exception do not remove it! */
 					else {

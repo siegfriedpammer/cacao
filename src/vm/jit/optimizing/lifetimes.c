@@ -1007,7 +1007,7 @@ void LifeOutAtStatement(lsradata *ls, graphdata *gd, int *M, int b_index,
 			/* real ICMD */
 			_LT_ASSERT(ls->basicblocks[b_index]->iinstr != NULL);
 			iptr = ls->basicblocks[b_index]->iinstr + iindex;
-			if (op_data[iptr->opc][NEEDS_SAVED])
+			if (icmd_table[iptr->opc].flags & ICMDTABLE_CALLS)
 				lt->savedvar = SAVEDVAR;
 		}
 		LifeInAtStatement(ls, gd, M, b_index, iindex, lt);

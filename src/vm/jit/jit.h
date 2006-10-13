@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5769 2006-10-13 12:49:25Z edwin $
+   $Id: jit.h 5770 2006-10-13 13:11:09Z edwin $
 
 */
 
@@ -575,6 +575,7 @@ extern icmdtable_entry_t icmd_table[256];
 
 extern char *opcode_names[256];
 extern int jcommandsize[256];
+extern int stackreq[256];
 
 #define JAVA_NOP               0
 #define ICMD_NOP               0
@@ -1218,10 +1219,6 @@ extern int jcommandsize[256];
 #define ICMD_BUILTIN          255       /* internal opcode                    */
 
 
-/******************* description of JavaVM instructions ***********************/
-
-
-
 /***************************** register types *********************************/
 
 #define REG_RES   0         /* reserved register for OS or code generator     */
@@ -1236,18 +1233,6 @@ extern int jcommandsize[256];
 #define PARAMMODE_NUMBERED  0 
 #define PARAMMODE_STUFFED   1
 
-
-/***************************** register info block ****************************/
-
-extern int stackreq[256];
-/* extern int op_needs_saved[256];  */
-/* extern int op_is_pei[256];       */
-#define NEEDS_SAVED  0
-#define PEI          1
-#define OP_DATA_SIZE 2
-extern int op_data[256][OP_DATA_SIZE]; 
-/* [0..255][NEEDS_SAVED] ... if ICMD needs a SAVEDVAR         */
-/* [0..255][PEI]         ... if ICMD could throw an exception */
 
 /* function prototypes ********************************************************/
 
