@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5569 2006-09-28 20:29:44Z edwin $
+   $Id: builtin.c 5761 2006-10-13 00:47:59Z edwin $
 
 */
 
@@ -379,8 +379,9 @@ bool builtintable_replace_function(instruction *iptr)
 	are interpreted as super classes.
 	Return value:  1 ... sub is subclass of super
 				   0 ... otherwise
-					
-*****************************************************************************/					
+
+******************************************************************************/
+
 s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
 	s4 res;
@@ -394,6 +395,10 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 			(sub->vftbl->interfacetable[-super->index] != NULL);
 
 	} else {
+		/* java.lang.Object is the only super_class_ of any interface */
+		if (sub->flags & ACC_INTERFACE)
+			return (super == class_java_lang_Object);
+
 		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues);
 
 		res = (u4) (classvalues.sub_baseval - classvalues.super_baseval) <=
@@ -419,7 +424,12 @@ s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 		/* super is an interface */
 		res = (sub->interfacetablelength > -base) &&
 			(sub->interfacetable[base] != NULL);
-	} else {
+	} 
+	else {
+		/* java.lang.Object is the only super_class_ of any interface */
+		if (classvalues.sub_baseval <= 0)
+			return classvalues.super_baseval == 1;
+
 	    res = (u4) (classvalues.sub_baseval - classvalues.super_baseval)
 			<= (u4) classvalues.super_diffval;
 	}
