@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5737 2006-10-11 19:40:22Z edwin $
+   $Id: resolve.c 5768 2006-10-13 12:47:03Z edwin $
 
 */
 
@@ -2345,7 +2345,6 @@ unresolved_field * resolve_create_unresolved_field(classinfo *referer,
 	printf("    desc   : ");utf_fprint_printable_ascii(stdout,fieldref->descriptor);fputc('\n',stdout);
 	printf("    type   : ");descriptor_debug_print_typedesc(stdout,fieldref->parseddesc.fd);
 	fputc('\n',stdout);
-	/*printf("    opcode : %d %s\n",iptr->opc,icmd_names[iptr->opc]);*/
 #endif
 
 	ref->fieldref = fieldref;
@@ -2397,7 +2396,6 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 	printf("    desc   : ");utf_fprint_printable_ascii(stdout,fieldref->descriptor);fputc('\n',stdout);
 	printf("    type   : ");descriptor_debug_print_typedesc(stdout,fieldref->parseddesc.fd);
 	fputc('\n',stdout);
-	/*printf("    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	assert(instanceti || ((ref->flags & RESOLVE_STATIC) != 0));
@@ -2631,7 +2629,6 @@ bool resolve_constrain_unresolved_method_params(jitdata *jd,
 	printf("resolve_constrain_unresolved_method_params\n");
 	printf("    rmethod: "); method_println(refmethod);
 	printf("    mref   : "); method_methodref_println(methodref);
-	/*printf("    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	instancecount = (ref->flags & RESOLVE_STATIC) ? 0 : 1;
