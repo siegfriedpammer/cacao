@@ -1,3 +1,56 @@
+/*** The ICMD Table ***/
+
+/* IMPORTANT: This file must be in a fixed format, as it is both included in */
+/* src/vm/jit/jit.c, and parsed by src/vm/jit/verify/generate.pl!            */
+/*                                                                           */
+/* The comments at the start of the line and inside the braces are           */
+/* significant. If you want to add a comment to an ICMD, do that after the   */
+/* comma, or brace, at the end of the line.                                  */
+/*                                                                           */
+/* The format is as follows (slashes reversed for obvious reasons):          */
+/*                                                                           */
+/* \*#*\ { N( name )  data-flow, control-flow, flags \* stage (action) *\ }  */
+/*                                                                           */
+/*  ^^^                                                                      */
+/* opcode                                                                    */
+/*                                                                           */
+/* where                                                                     */
+/*     opcode...........is the opcode number (decimal)                       */
+/*     name.............is the quoted name without the ICMD_ prefix          */
+/*     data-flow........is one of the DF_ constants (see jit.h)              */
+/*     control-flow.....is one of the CF_ constants (see jit.h)              */
+/*     flags............is 0 or a |-combination of                           */
+/*                          PEI........may throw an exception                */
+/*                          CALLS......needs saved registers (calls out)     */
+/*                          *_CALLS....see jit.h for architecture specific   */
+/*                                     constants to put here                 */
+/*                                                                           */
+/*     stage............is either empty, or one of                           */
+/*                          --         ICMD is not used anywhere after parse */
+/*                          -S         ICMD is eliminated by stack_analyse   */
+/*                          S+         ICMD is introduced by stack_analyse   */
+/*                                                                           */
+/*     action...........is the stack action of the ICMD in the notation      */
+/*                      instack--outstack, TOS being rightmost.              */
+/*                                                                           */
+/*                      Valid type characters are                            */
+/*                          I, L, F, D, and A      the basic types           */
+/*                          1                      a category 1 type         */
+/*                          2                      a category 2 type         */
+/*                          .                      variable number of slots  */
+/*                                                                           */
+/*                      Whitespace is not allowed within the action.         */
+/*                                                                           */
+/*                      Some ICMDs may have several variants. In this case   */
+/*                      the action is build by joining the individual        */
+/*                      actions of the variants with |.                      */
+/*                                                                           */
+/*                                                                           */
+/* CAUTION: Do not use preprocessor directives in this file! They will       */
+/*          confuse the generator.                                           */
+/*                                                                           */
+
+
 /*  0*/ {N("NOP            ") DF_0_TO_0 , CF_NORMAL, 0              /*    (--)                 */},
 /*  1*/ {N("ACONST         ") DF_0_TO_1 , CF_NORMAL, PEI            /*    (--A)                */},
 /*  2*/ {N("CHECKNULL      ") DF_1_TO_1 , CF_NORMAL, PEI            /*    (A--A)               */},
