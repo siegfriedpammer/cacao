@@ -67,8 +67,10 @@ do
     TESTEXPECT="TESTEXPECT"
     TESTLOG="TESTLOG"
     TESTERR="TESTERR"
+	TESTSIA="TESTSIA"
 
 	EXPECTSTATUS=0
+	CHECKICMD=0
 
 	# compile the test
 
@@ -77,6 +79,11 @@ do
 	if grep 'ERROR:' "$TEST" >/dev/null ; then
 		EXPECTSTATUS=1
 		EXPECTERROR=$(grep 'ERROR:.*' "$TEST" | sed 's,.*ERROR:[ \t]*,,')
+	fi
+
+	if grep 'ICMD:' "$TEST" >/dev/null ; then
+		CHECKICMD=1
+		EXPECTICMD=$(grep 'ICMD:.*' "$TEST" | sed 's,.*ICMD:[ \t]*,,')
 	fi
 
 	# run the test
@@ -112,6 +119,13 @@ do
 			echo $ECHOFLAGS "${FAILCOLOR}FAIL: $TESTBASENAME - did not get expected error: $EXPECTERROR${NOCOLOR}"
 			EXITCODE=1
 		fi
+	fi
+
+	if [ "$CHECKICMD" -ne 0 ] ; then
+		rm -f "$TESTSIA"
+		touch "$TESTSIA"
+		$JAVA $JAVAFLAGS -sia "$TESTBASENAME" >"$TESTSIA" 2>/dev/null
+		cat "$TESTSIA" | sed -n '/^'"$TESTBASENAME"'\.main/,$p' | sed '/^=====.*flags: -1/,$d' | tee TEST | grep "$EXPECTICMD"
 	fi
 
     shift

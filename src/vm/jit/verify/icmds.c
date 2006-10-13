@@ -86,31 +86,30 @@ case ICMD_AALOAD:
 
 case ICMD_PUTFIELD: /* {STACKBASED} */
 	CHECK_STACK_DEPTH(2);
-	if (IS_CAT1(stack[0]))
-		stack -= 2;
-	else {
-		stack -= 3;
+	if (!IS_CAT1(stack[0])) {
+		CHECK_STACK_DEPTH(3);
+		stack -= 1;
 	}
-	stack = typecheck_stackbased_verify_fieldaccess(STATE, stack+1, stack+2, stack);
+	CHECK_STACK_TYPE(stack[-1], TYPE_ADR);
+	stack = typecheck_stackbased_verify_fieldaccess(STATE, stack-1, stack, stack-2);
 	if (stack == NULL)
 		EXCEPTION;
 	break;
 
 case ICMD_PUTSTATIC: /* {STACKBASED} */
 	CHECK_STACK_DEPTH(1);
-	if (IS_CAT1(stack[0]))
+	if (!IS_CAT1(stack[0])) {
+		/* (stack depth >= 2 is guaranteed) */
 		stack -= 1;
-	else {
-		stack -= 2;
 	}
-	stack = typecheck_stackbased_verify_fieldaccess(STATE, NULL, stack+1, stack);
+	stack = typecheck_stackbased_verify_fieldaccess(STATE, NULL, stack, stack-1);
 	if (stack == NULL)
 		EXCEPTION;
 	break;
 
 case ICMD_GETFIELD: /* {STACKBASED} */
-	stack -= 1;
-	stack = typecheck_stackbased_verify_fieldaccess(STATE, stack+1, NULL, stack);
+	CHECK_STACK_TYPE(stack[0], TYPE_ADR);
+	stack = typecheck_stackbased_verify_fieldaccess(STATE, stack, NULL, stack-1);
 	if (stack == NULL)
 		EXCEPTION;
 	break;

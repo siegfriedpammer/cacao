@@ -12,7 +12,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 308 "src/vm/jit/verify/icmds.c"
+#            	line 307 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (IPTR->flags.bits & INS_FLAG_CLASS) {
   GENERATED  		/* a java.lang.Class reference */
   GENERATED  		TYPEINFO_INIT_JAVA_LANG_CLASS(DST->typeinfo,IPTR->sx.val.c);
@@ -264,7 +264,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 219 "src/vm/jit/verify/icmds.c"
+#            	line 218 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -288,7 +288,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 229 "src/vm/jit/verify/icmds.c"
+#            	line 228 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -312,7 +312,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 214 "src/vm/jit/verify/icmds.c"
+#            	line 213 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -336,7 +336,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 209 "src/vm/jit/verify/icmds.c"
+#            	line 208 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -387,7 +387,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 198 "src/vm/jit/verify/icmds.c"
+#            	line 197 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BOOLEAN)
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
@@ -412,7 +412,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 204 "src/vm/jit/verify/icmds.c"
+#            	line 203 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -436,7 +436,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 224 "src/vm/jit/verify/icmds.c"
+#            	line 223 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -530,7 +530,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 362 "src/vm/jit/verify/icmds.c"
+#            	line 361 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -552,7 +552,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 255 "src/vm/jit/verify/icmds.c"
+#            	line 254 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -571,7 +571,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 265 "src/vm/jit/verify/icmds.c"
+#            	line 264 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -590,7 +590,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 250 "src/vm/jit/verify/icmds.c"
+#            	line 249 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -609,7 +609,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 245 "src/vm/jit/verify/icmds.c"
+#            	line 244 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -628,7 +628,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 270 "src/vm/jit/verify/icmds.c"
+#            	line 269 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we just check the basic input types and that the           */
   GENERATED  	/* destination is an array of references. Assignability to    */
   GENERATED  	/* the actual array must be checked at runtime, each time the */
@@ -651,7 +651,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 234 "src/vm/jit/verify/icmds.c"
+#            	line 233 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BOOLEAN)
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
@@ -671,7 +671,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 240 "src/vm/jit/verify/icmds.c"
+#            	line 239 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -690,7 +690,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 260 "src/vm/jit/verify/icmds.c"
+#            	line 259 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -739,7 +739,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 344 "src/vm/jit/verify/icmds.c"
+#            	line 343 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -758,7 +758,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 535 "src/vm/jit/verify/icmds.c"
+#            	line 534 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPEINFO_INIT_RETURNADDRESS(DST->typeinfo, BPTR->next);
   GENERATED  	REACH(IPTR->sx.s23.s3.jsrtarget);
   GENERATED  
@@ -776,7 +776,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 552 "src/vm/jit/verify/icmds.c"
+#            	line 551 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* check returnAddress variable */
   GENERATED  	if (!typevector_checkretaddr(jd->var,IPTR->s1.varindex))
   GENERATED  		VERIFY_ERROR("illegal instruction: RET using non-returnAddress variable");
@@ -794,7 +794,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 411 "src/vm/jit/verify/icmds.c"
+#            	line 410 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_switch);
   GENERATED  
@@ -824,7 +824,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 427 "src/vm/jit/verify/icmds.c"
+#            	line 426 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_switch);
   GENERATED  
@@ -854,7 +854,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 493 "src/vm/jit/verify/icmds.c"
+#            	line 492 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_INT)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -873,7 +873,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 498 "src/vm/jit/verify/icmds.c"
+#            	line 497 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_LNG)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -892,7 +892,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 503 "src/vm/jit/verify/icmds.c"
+#            	line 502 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_FLT)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -911,7 +911,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 508 "src/vm/jit/verify/icmds.c"
+#            	line 507 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_DBL)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -931,7 +931,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 468 "src/vm/jit/verify/icmds.c"
+#            	line 467 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_areturn);
   GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("illegal instruction: ARETURN on non-reference");
@@ -965,7 +965,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 513 "src/vm/jit/verify/icmds.c"
+#            	line 512 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_VOID)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -998,7 +998,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 183 "src/vm/jit/verify/icmds.c"
+#            	line 182 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!verify_fieldaccess(state, NULL, NULL))
   GENERATED  		return false;
   GENERATED  	maythrow = true;
@@ -1018,7 +1018,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 131 "src/vm/jit/verify/icmds.c"
+#            	line 130 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!verify_fieldaccess(state, NULL, VAROP(iptr->s1)))
   GENERATED  		return false;
   GENERATED  	maythrow = true;
@@ -1040,7 +1040,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 177 "src/vm/jit/verify/icmds.c"
+#            	line 176 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!verify_fieldaccess(state, VAROP(iptr->s1), NULL))
   GENERATED  		return false;
   GENERATED  	maythrow = true;
@@ -1062,7 +1062,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 125 "src/vm/jit/verify/icmds.c"
+#            	line 124 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!verify_fieldaccess(state, VAROP(iptr->s1), VAROP(iptr->sx.s23.s2)))
   GENERATED  		return false;
   GENERATED  	maythrow = true;
@@ -1085,7 +1085,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 572 "src/vm/jit/verify/icmds.c"
+#            	line 571 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_invoke);
   GENERATED  	if (!verify_invocation(state))
   GENERATED  		EXCEPTION;
@@ -1108,7 +1108,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 192 "src/vm/jit/verify/icmds.c"
+#            	line 191 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_ARRAY(OP1->typeinfo)
   GENERATED  			&& OP1->typeinfo.typeclass.cls != pseudo_class_Arraystub)
   GENERATED  		VERIFY_ERROR("illegal instruction: ARRAYLENGTH on non-array");
@@ -1132,7 +1132,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 447 "src/vm/jit/verify/icmds.c"
+#            	line 446 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_athrow);
   GENERATED  	r = typeinfo_is_assignable_to_class(&OP1->typeinfo,
   GENERATED  			CLASSREF_OR_CLASSINFO(class_java_lang_Throwable));
@@ -1169,7 +1169,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 326 "src/vm/jit/verify/icmds.c"
+#            	line 325 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* returnAddress is not allowed */
   GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("Illegal instruction: CHECKCAST on non-reference");
@@ -1197,7 +1197,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 335 "src/vm/jit/verify/icmds.c"
+#            	line 334 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* returnAddress is not allowed */
   GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("Illegal instruction: INSTANCEOF on non-reference");
@@ -1222,7 +1222,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 615 "src/vm/jit/verify/icmds.c"
+#            	line 614 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!verify_multianewarray(STATE))
   GENERATED  		EXCEPTION;
   GENERATED  
@@ -1244,7 +1244,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 279 "src/vm/jit/verify/icmds.c"
+#            	line 278 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -1263,7 +1263,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 284 "src/vm/jit/verify/icmds.c"
+#            	line 283 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -1282,7 +1282,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 289 "src/vm/jit/verify/icmds.c"
+#            	line 288 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_BOOLEAN)
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
@@ -1302,7 +1302,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 295 "src/vm/jit/verify/icmds.c"
+#            	line 294 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -1321,7 +1321,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 300 "src/vm/jit/verify/icmds.c"
+#            	line 299 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -1338,7 +1338,7 @@
   GENERATED  	maythrow = true;
   GENERATED  
   GENERATED  
-#            	line 157 "src/vm/jit/verify/icmds.c"
+#            	line 156 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* XXX this mess will go away with const operands */
   GENERATED  	INSTRUCTION_GET_FIELDREF(state->iptr, fieldref);
   GENERATED  	constvalue.type = fieldref->parseddesc.fd->type;
@@ -1369,7 +1369,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 137 "src/vm/jit/verify/icmds.c"
+#            	line 136 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* XXX this mess will go away with const operands */
   GENERATED  	INSTRUCTION_GET_FIELDREF(state->iptr, fieldref);
   GENERATED  	constvalue.type = fieldref->parseddesc.fd->type;
@@ -1403,7 +1403,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 630 "src/vm/jit/verify/icmds.c"
+#            	line 629 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_builtin);
   GENERATED  	if (!verify_builtin(state))
   GENERATED  		EXCEPTION;

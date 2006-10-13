@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5773 2006-10-13 14:34:19Z edwin $
+   $Id: typecheck.c 5777 2006-10-13 18:25:21Z edwin $
 
 */
 
@@ -533,8 +533,10 @@ verify_fieldaccess(verifier_state *state,
 
 #define TYPECHECK_VARIABLESBASED
 #define EXCEPTION  do { return false; } while (0)
+#define VERIFY_ERROR(msg)  TYPECHECK_VERIFYERROR_bool(msg)
 #include <typecheck-fields.inc>
 #undef  EXCEPTION
+#undef  VERIFY_ERROR
 #undef  TYPECHECK_VARIABLESBASED
 
 	return true;

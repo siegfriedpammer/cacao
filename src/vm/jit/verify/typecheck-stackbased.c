@@ -106,7 +106,7 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 #define VERIFY_ERROR(msg)                                            \
     do {                                                             \
         LOG1("VerifyError: %s", msg);                                \
-        exceptions_throw_verifyerror(state.m, msg);                  \
+        exceptions_throw_verifyerror(STATE->m, msg);                 \
         return false;                                                \
     } while (0)
 

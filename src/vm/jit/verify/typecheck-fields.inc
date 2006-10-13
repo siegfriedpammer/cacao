@@ -56,6 +56,11 @@
 		fieldref = state->iptr->sx.s23.s3.fmiref;
 	}
 
+	/* check the basic value type for PUT instructions */
+
+	if (value && value->type != fieldref->parseddesc.fd->type)
+		VERIFY_ERROR("Field type mismatch");
+
 	/* try to resolve the field reference lazily */
 
 	result = resolve_field_lazy(state->m, fieldref);
