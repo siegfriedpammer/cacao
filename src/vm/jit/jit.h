@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5715 2006-10-07 12:54:14Z edwin $
+   $Id: jit.h 5767 2006-10-13 11:57:23Z edwin $
 
 */
 
@@ -485,6 +485,78 @@ struct basicblock {
 struct branchref {
 	s4         branchpos;       /* patching position in code segment          */
 	branchref *next;            /* next element in branchref list             */
+};
+
+
+/* data-flow constants for the ICMD table ************************************/
+
+#define DF_0_TO_0      0
+#define DF_1_TO_0      1
+#define DF_2_TO_0      2
+#define DF_3_TO_0      3
+
+#define DF_DST_BASE    4      /* from this value on, iptr->dst is a variable */
+
+#define DF_0_TO_1      (DF_DST_BASE + 0)
+#define DF_1_TO_1      (DF_DST_BASE + 1)
+#define DF_2_TO_1      (DF_DST_BASE + 2)
+#define DF_3_TO_1      (DF_DST_BASE + 3)
+#define DF_N_TO_1      (DF_DST_BASE + 4)
+
+#define DF_INVOKE      (DF_DST_BASE + 5)
+#define DF_BUILTIN     (DF_DST_BASE + 6)
+
+#define DF_COPY        (DF_DST_BASE + 7)
+#define DF_MOVE        (DF_DST_BASE + 8)
+
+#define DF_DUP         -1
+#define DF_DUP_X1      -1
+#define DF_DUP_X2      -1
+#define DF_DUP2        -1
+#define DF_DUP2_X1     -1
+#define DF_DUP2_X2     -1
+#define DF_SWAP        -1
+
+/* special data-flow recognized by verify/generate.pl: */
+#define DF_LOAD        DF_COPY
+#define DF_STORE       DF_MOVE
+#define DF_IINC        DF_1_TO_1
+#define DF_POP         DF_1_TO_0
+#define DF_POP2        DF_2_TO_0
+
+
+/* control-flow constants for the ICMD table *********************************/
+
+#define CF_NORMAL      0
+#define CF_IF          1
+
+#define CF_END_BASE    2  /* from here on, they mark the end of a superblock */
+
+#define CF_END         (CF_END_BASE + 0)
+#define CF_GOTO        (CF_END_BASE + 1)
+#define CF_TABLE       (CF_END_BASE + 2)
+#define CF_LOOKUP      (CF_END_BASE + 3)
+#define CF_JSR         (CF_END_BASE + 4)
+#define CF_RET         (CF_END_BASE + 5)
+
+
+/* flag constants for the ICMD table *****************************************/
+
+#define ICMDTABLE_PEI    0x0001               /* ICMD may throw an exception */
+#define ICMDTABLE_CALLS  0x0002     /* needs registers to be saved, may call */
+
+
+/* ICMD table entry **********************************************************/
+
+typedef struct icmdtable_entry_t icmdtable_entry_t;
+
+struct icmdtable_entry_t {
+#if !defined(NDEBUG)
+	char *name;                                /* name, without ICMD_ prefix */
+#endif
+	s4    dataflow;                             /* a DF_ constant, see above */
+	s4    controlflow;                          /* a CF_ constant, see above */
+	s4    flags;                        /* a combination of ICMDTABLE_ flags */
 };
 
 
