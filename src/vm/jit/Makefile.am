@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5561 2006-09-28 19:53:05Z edwin $
+## $Id: Makefile.am 5766 2006-10-13 11:28:10Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -131,6 +131,7 @@ libjit_la_SOURCES = \
 	dseg.h \
 	emit-common.c \
 	emit-common.h \
+	icmdtable.inc \
 	jit.c \
 	jit.h \
 	parse.c \
