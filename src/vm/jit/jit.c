@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5770 2006-10-13 13:11:09Z edwin $
+   $Id: jit.c 5773 2006-10-13 14:34:19Z edwin $
 
 */
 
@@ -1422,6 +1422,16 @@ static u1 *jit_compile_intern(jitdata *jd)
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp) {
+#if defined(ENABLE_VERIFIER)
+		if (opt_verify) {
+			DEBUG_JIT_COMPILEVERBOSE("Typechecking (stackbased): ");
+
+			if (!typecheck_stackbased(jd)) {
+				DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking (stackbased): ");
+				return NULL;
+			}
+		}
+#endif
 		if (!intrp_codegen(jd)) {
 			DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
 

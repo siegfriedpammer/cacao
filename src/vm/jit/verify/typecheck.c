@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5753 2006-10-12 14:39:43Z edwin $
+   $Id: typecheck.c 5773 2006-10-13 14:34:19Z edwin $
 
 */
 
@@ -741,6 +741,40 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 }
 
 
+/* macros used by the generated code ******************************************/
+
+#define EXCEPTION          do { return false; } while (0)
+#define VERIFY_ERROR(msg)  TYPECHECK_VERIFYERROR_bool(msg)
+
+#define CHECK_LOCAL_TYPE(index, t)                                   \
+    do {                                                             \
+        if (!typevector_checktype(jd->var, (index), (t)))            \
+             VERIFY_ERROR("Local variable type mismatch");           \
+    } while (0)
+
+#define STORE_LOCAL(t, index)                                        \
+    do {                                                             \
+         typecheck_invalidate_locals(state, (index), false);         \
+         typevector_store(jd->var, (index), (t), NULL);              \
+    } while (0)
+
+#define STORE_LOCAL_2_WORD(t, index)                                 \
+    do {                                                             \
+         typecheck_invalidate_locals(state, (index), true);          \
+         typevector_store(jd->var, (index), (t), NULL);              \
+    } while (0)
+
+#define REACH_BLOCK(target)                                          \
+    do {                                                             \
+        if (!typestate_reach(state, (target),                        \
+                             state->bptr->outvars, jd->var,          \
+                             state->bptr->outdepth))                 \
+                return false;                                        \
+    } while (0)
+
+#define REACH(target)   REACH_BLOCK((target).block)
+
+
 /* verify_basic_block **********************************************************
  
    Perform bytecode verification of a basic block.
@@ -768,7 +802,6 @@ verify_basic_block(verifier_state *state)
 	branch_target_t *table;
 	lookup_target_t *lookup;
 	jitdata *jd = state->jd;
-	varinfo *dv;
 	exceptiontable *ex;
 	varinfo constvalue;                               /* for PUT*CONST */
 	constant_FMIref *fieldref;
@@ -782,7 +815,6 @@ verify_basic_block(verifier_state *state)
 
 	/* prevent compiler warnings */
 
-	dv = NULL;
 
 	/* determine the active exception handlers for this block */
 	/* XXX could use a faster algorithm with sorted lists or  */
@@ -817,783 +849,26 @@ verify_basic_block(verifier_state *state)
 		DOLOG(show_icmd(jd, state->iptr, false, SHOW_STACK)); LOGNL; LOGFLUSH;
 
 		opcode = iptr->opc;
-		dv = VAROP(iptr->dst);
 		maythrow = false;
 
 		switch (opcode) {
 
-			/****************************************/
-			/* STACK MANIPULATIONS                  */
-
-			/* We just need to copy the typeinfo */
-			/* for slots containing addresses.   */
-
-			case ICMD_MOVE:
-			case ICMD_COPY:
-				TYPECHECK_COUNT(stat_ins_stack);
-				COPYTYPE(iptr->s1, iptr->dst);
-				dv->type = VAROP(iptr->s1)->type;
-				break;
-
-				/****************************************/
-				/* PRIMITIVE VARIABLE ACCESS            */
-
-			case ICMD_ILOAD: if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_INT)) 
-								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
-							 dv->type = TYPE_INT;
-							 break;
-			case ICMD_IINC:  if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_INT))
-								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
-							 dv->type = TYPE_INT;
-							 break;
-			case ICMD_FLOAD: if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_FLT))
-								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
-							 dv->type = TYPE_FLT;
-							 break;
-			case ICMD_LLOAD: if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_LNG))
-								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
-							 dv->type = TYPE_LNG;
-							 break;
-			case ICMD_DLOAD: if (!typevector_checktype(jd->var,state->iptr->s1.varindex,TYPE_DBL))
-								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
-							 dv->type = TYPE_DBL;
-							 break;
-
-			case ICMD_ISTORE: 
-							 typecheck_invalidate_locals(state, state->iptr->dst.varindex, false);
-							 typevector_store(jd->var,state->iptr->dst.varindex,TYPE_INT,NULL); 
-							 break;
-			case ICMD_FSTORE: 
-							 typecheck_invalidate_locals(state, state->iptr->dst.varindex, false);
-							 typevector_store(jd->var,state->iptr->dst.varindex,TYPE_FLT,NULL); 
-							 break;
-			case ICMD_LSTORE: 
-							 typecheck_invalidate_locals(state, state->iptr->dst.varindex, true);
-							 typevector_store(jd->var,state->iptr->dst.varindex,TYPE_LNG,NULL); 
-							 break;
-			case ICMD_DSTORE: 
-							 typecheck_invalidate_locals(state, state->iptr->dst.varindex, true);
-							 typevector_store(jd->var,state->iptr->dst.varindex,TYPE_DBL,NULL); 
-							 break;
-
-				/****************************************/
-				/* LOADING ADDRESS FROM VARIABLE        */
-
-			case ICMD_ALOAD:
-				TYPECHECK_COUNT(stat_ins_aload);
-
-				/* loading a returnAddress is not allowed */
-				if (!TYPEDESC_IS_REFERENCE(*VAROP(state->iptr->s1))) {
-					TYPECHECK_VERIFYERROR_bool("illegal instruction: ALOAD loading non-reference");
-				}
-				TYPEINFO_COPY(VAROP(state->iptr->s1)->typeinfo,dv->typeinfo);
-				dv->type = TYPE_ADR;
-				break;
-
-				/****************************************/
-				/* STORING ADDRESS TO VARIABLE          */
-
-			case ICMD_ASTORE:
-				typecheck_invalidate_locals(state, state->iptr->dst.varindex, false);
-
-				if (TYPEINFO_IS_PRIMITIVE(VAROP(state->iptr->s1)->typeinfo)) {
-					typevector_store_retaddr(jd->var,state->iptr->dst.varindex,&(VAROP(state->iptr->s1)->typeinfo));
-				}
-				else {
-					typevector_store(jd->var,state->iptr->dst.varindex,TYPE_ADR,
-							&(VAROP(state->iptr->s1)->typeinfo));
-				}
-				break;
-
-				/****************************************/
-				/* LOADING ADDRESS FROM ARRAY           */
-
-			case ICMD_AALOAD:
-				if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(VAROP(state->iptr->s1)->typeinfo))
-					TYPECHECK_VERIFYERROR_bool("illegal instruction: AALOAD on non-reference array");
-
-				if (!typeinfo_init_component(&VAROP(state->iptr->s1)->typeinfo,&dv->typeinfo))
-					return false;
-				dv->type = TYPE_ADR;
-				maythrow = true;
-				break;
-
-				/****************************************/
-				/* FIELD ACCESS                         */
-
-			case ICMD_PUTFIELD:
-				if (!verify_fieldaccess(state, VAROP(iptr->s1), 
-										VAROP(iptr->sx.s23.s2)))
-					return false;
-				maythrow = true;
-				break;
-
-			case ICMD_PUTSTATIC:
-				if (!verify_fieldaccess(state, NULL, VAROP(iptr->s1)))
-					return false;
-				maythrow = true;
-				break;
-
-			case ICMD_PUTFIELDCONST:
-				/* XXX this mess will go away with const operands */
-				INSTRUCTION_GET_FIELDREF(state->iptr, fieldref);
-				constvalue.type = fieldref->parseddesc.fd->type;
-				if (IS_ADR_TYPE(constvalue.type)) {
-					if (state->iptr->sx.val.anyptr) {
-						assert(class_java_lang_String);
-						assert(class_java_lang_String->state & CLASS_LINKED);
-						typeinfo_init_classinfo(&(constvalue.typeinfo), 
-												class_java_lang_String);
-					}
-					else {
-						TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
-					}
-				}
-				if (!verify_fieldaccess(state, VAROP(iptr->s1), 
-										&constvalue))
-					return false;
-				maythrow = true;
-				break;
-
-			case ICMD_PUTSTATICCONST:
-				/* XXX this mess will go away with const operands */
-				INSTRUCTION_GET_FIELDREF(state->iptr, fieldref);
-				constvalue.type = fieldref->parseddesc.fd->type;
-				if (IS_ADR_TYPE(constvalue.type)) {
-					if (state->iptr->sx.val.anyptr) {
-						assert(class_java_lang_String);
-						assert(class_java_lang_String->state & CLASS_LINKED);
-						typeinfo_init_classinfo(&(constvalue.typeinfo), 
-												class_java_lang_String);
-					}
-					else {
-						TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
-					}
-				}
-				if (!verify_fieldaccess(state, NULL, &constvalue))
-					return false;
-				maythrow = true;
-				break;
-
-			case ICMD_GETFIELD:
-				if (!verify_fieldaccess(state, VAROP(iptr->s1), NULL))
-					return false;
-				maythrow = true;
-				break;
-
-			case ICMD_GETSTATIC:
-				if (!verify_fieldaccess(state, NULL, NULL))
-					return false;
-				maythrow = true;
-				break;
-
-				/****************************************/
-				/* PRIMITIVE ARRAY ACCESS               */
-
-			case ICMD_ARRAYLENGTH:
-				if (!TYPEINFO_MAYBE_ARRAY(VAROP(state->iptr->s1)->typeinfo)
-						&& VAROP(state->iptr->s1)->typeinfo.typeclass.cls != pseudo_class_Arraystub)
-					TYPECHECK_VERIFYERROR_bool("illegal instruction: ARRAYLENGTH on non-array");
-				dv->type = TYPE_INT;
-				maythrow = true;
-				break;
-
-			case ICMD_BALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_BOOLEAN)
-						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_BYTE))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				dv->type = TYPE_INT;
-				maythrow = true;
-				break;
-			case ICMD_CALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_CHAR))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				dv->type = TYPE_INT;
-				maythrow = true;
-				break;
-			case ICMD_DALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_DOUBLE))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				dv->type = TYPE_DBL;
-				maythrow = true;
-				break;
-			case ICMD_FALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_FLOAT))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				dv->type = TYPE_FLT;
-				maythrow = true;
-				break;
-			case ICMD_IALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_INT))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				dv->type = TYPE_INT;
-				maythrow = true;
-				break;
-			case ICMD_SALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_SHORT))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				dv->type = TYPE_INT;
-				maythrow = true;
-				break;
-			case ICMD_LALOAD:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_LONG))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				dv->type = TYPE_LNG;
-				maythrow = true;
-				break;
-
-			case ICMD_BASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_BOOLEAN)
-						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_BYTE))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-			case ICMD_CASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_CHAR))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-			case ICMD_DASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_DOUBLE))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-			case ICMD_FASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_FLOAT))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-			case ICMD_IASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_INT))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-			case ICMD_SASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_SHORT))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-			case ICMD_LASTORE:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo,ARRAYTYPE_LONG))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-
-			case ICMD_AASTORE:
-				/* we just check the basic input types and that the           */
-				/* destination is an array of references. Assignability to    */
-				/* the actual array must be checked at runtime, each time the */
-				/* instruction is performed. (See builtin_canstore.)          */
-				TYPECHECK_ADR_OP(state->iptr->sx.s23.s3);
-				TYPECHECK_INT_OP(state->iptr->sx.s23.s2);
-				TYPECHECK_ADR_OP(state->iptr->s1);
-				if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(VAROP(state->iptr->s1)->typeinfo))
-					TYPECHECK_VERIFYERROR_bool("illegal instruction: AASTORE to non-reference array");
-				maythrow = true;
-				break;
-
-			case ICMD_IASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_INT))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-
-			case ICMD_LASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_LONG))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-
-			case ICMD_BASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_BOOLEAN)
-						&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_BYTE))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-
-			case ICMD_CASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_CHAR))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-
-			case ICMD_SASTORECONST:
-				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(VAROP(state->iptr->s1)->typeinfo, ARRAYTYPE_SHORT))
-					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
-				maythrow = true;
-				break;
-
-				/****************************************/
-				/* ADDRESS CONSTANTS                    */
-
-			case ICMD_ACONST:
-				if (state->iptr->flags.bits & INS_FLAG_CLASS) {
-					/* a java.lang.Class reference */
-					TYPEINFO_INIT_JAVA_LANG_CLASS(dv->typeinfo,state->iptr->sx.val.c);
-				}
-				else {
-					if (state->iptr->sx.val.anyptr == NULL)
-						TYPEINFO_INIT_NULLTYPE(dv->typeinfo);
-					else {
-						/* string constant (or constant for builtin function) */
-						typeinfo_init_classinfo(&(dv->typeinfo),class_java_lang_String);
-					}
-				}
-				dv->type = TYPE_ADR;
-				break;
-
-				/****************************************/
-				/* CHECKCAST AND INSTANCEOF             */
-
-			case ICMD_CHECKCAST:
-				TYPECHECK_ADR_OP(state->iptr->s1);
-				/* returnAddress is not allowed */
-				if (!TYPEINFO_IS_REFERENCE(VAROP(state->iptr->s1)->typeinfo))
-					TYPECHECK_VERIFYERROR_bool("Illegal instruction: CHECKCAST on non-reference");
-
-				if (!typeinfo_init_class(&(dv->typeinfo),state->iptr->sx.s23.s3.c))
-						return false;
-				dv->type = TYPE_ADR;
-				maythrow = true;
-				break;
-
-			case ICMD_INSTANCEOF:
-				TYPECHECK_ADR_OP(state->iptr->s1);
-				/* returnAddress is not allowed */
-				if (!TYPEINFO_IS_REFERENCE(VAROP(state->iptr->s1)->typeinfo))
-					TYPECHECK_VERIFYERROR_bool("Illegal instruction: INSTANCEOF on non-reference");
-				dv->type = TYPE_INT;
-				break;
-
-				/****************************************/
-				/* BRANCH INSTRUCTIONS                  */
-
-			case ICMD_INLINE_GOTO:
-				COPYTYPE(state->iptr->s1,state->iptr->dst);
-				/* FALLTHROUGH! */
-			case ICMD_GOTO:
-				superblockend = true;
-				/* FALLTHROUGH! */
-			case ICMD_IFNULL:
-			case ICMD_IFNONNULL:
-			case ICMD_IFEQ:
-			case ICMD_IFNE:
-			case ICMD_IFLT:
-			case ICMD_IFGE:
-			case ICMD_IFGT:
-			case ICMD_IFLE:
-			case ICMD_IF_ICMPEQ:
-			case ICMD_IF_ICMPNE:
-			case ICMD_IF_ICMPLT:
-			case ICMD_IF_ICMPGE:
-			case ICMD_IF_ICMPGT:
-			case ICMD_IF_ICMPLE:
-			case ICMD_IF_ACMPEQ:
-			case ICMD_IF_ACMPNE:
-
-			case ICMD_IF_LEQ:
-			case ICMD_IF_LNE:
-			case ICMD_IF_LLT:
-			case ICMD_IF_LGE:
-			case ICMD_IF_LGT:
-			case ICMD_IF_LLE:
-
-			case ICMD_IF_LCMPEQ:
-			case ICMD_IF_LCMPNE:
-			case ICMD_IF_LCMPLT:
-			case ICMD_IF_LCMPGE:
-			case ICMD_IF_LCMPGT:
-			case ICMD_IF_LCMPLE:
-
-			case ICMD_IF_FCMPEQ:
-			case ICMD_IF_FCMPNE:
-
-			case ICMD_IF_FCMPL_LT:
-			case ICMD_IF_FCMPL_GE:
-			case ICMD_IF_FCMPL_GT:
-			case ICMD_IF_FCMPL_LE:
-
-			case ICMD_IF_FCMPG_LT:
-			case ICMD_IF_FCMPG_GE:
-			case ICMD_IF_FCMPG_GT:
-			case ICMD_IF_FCMPG_LE:
-
-			case ICMD_IF_DCMPEQ:
-			case ICMD_IF_DCMPNE:
-
-			case ICMD_IF_DCMPL_LT:
-			case ICMD_IF_DCMPL_GE:
-			case ICMD_IF_DCMPL_GT:
-			case ICMD_IF_DCMPL_LE:
-
-			case ICMD_IF_DCMPG_LT:
-			case ICMD_IF_DCMPG_GE:
-			case ICMD_IF_DCMPG_GT:
-			case ICMD_IF_DCMPG_LE:
-				TYPECHECK_COUNT(stat_ins_branch);
-
-				/* propagate stack and variables to the target block */
-				if (!typestate_reach(state, state->iptr->dst.block,
-									 state->bptr->outvars, jd->var, 
-									 state->bptr->outdepth))
-					return false;
-				break;
-
-				/****************************************/
-				/* SWITCHES                             */
-
-			case ICMD_TABLESWITCH:
-				TYPECHECK_COUNT(stat_ins_switch);
-
-				table = iptr->dst.table;
-				i = iptr->sx.s23.s3.tablehigh
-					- iptr->sx.s23.s2.tablelow + 1 + 1; /* plus default */
-
-				while (--i >= 0) {
-					tbptr = (table++)->block;
-					LOG2("target %d is block %04d",i,tbptr->nr);
-					if (!typestate_reach(state, tbptr, state->bptr->outvars,
-										 jd->var, state->bptr->outdepth))
-						return false;
-				}
-
-				LOG("switch done");
-				superblockend = true;
-				break;
-
-			case ICMD_LOOKUPSWITCH:
-				TYPECHECK_COUNT(stat_ins_switch);
-
-				lookup = iptr->dst.lookup;
-				i = iptr->sx.s23.s2.lookupcount;
-
-				if (!typestate_reach(state,iptr->sx.s23.s3.lookupdefault.block,
-									 state->bptr->outvars, jd->var,
-									 state->bptr->outdepth))
-					return false;
-
-				while (--i >= 0) {
-					tbptr = (lookup++)->target.block;
-					LOG2("target %d is block %04d",i,tbptr->nr);
-					if (!typestate_reach(state, tbptr, state->bptr->outvars,
-								jd->var, state->bptr->outdepth))
-						return false;
-				}
-
-				LOG("switch done");
-				superblockend = true;
-				break;
-
-
-				/****************************************/
-				/* ADDRESS RETURNS AND THROW            */
-
-			case ICMD_ATHROW:
-				TYPECHECK_COUNT(stat_ins_athrow);
-				r = typeinfo_is_assignable_to_class(&VAROP(state->iptr->s1)->typeinfo,
-						CLASSREF_OR_CLASSINFO(class_java_lang_Throwable));
-				if (r == typecheck_FALSE)
-					TYPECHECK_VERIFYERROR_bool("illegal instruction: ATHROW on non-Throwable");
-				if (r == typecheck_FAIL)
-					return false;
-				if (r == typecheck_MAYBE) {
-					/* the check has to be postponed. we need a patcher */
-					TYPECHECK_COUNT(stat_ins_athrow_unresolved);
-					iptr->sx.s23.s2.uc = create_unresolved_class(
-							state->m, 
-							/* XXX make this more efficient, use class_java_lang_Throwable
-							 * directly */
-							class_get_classref(state->m->class,utf_java_lang_Throwable),
-							&VAROP(state->iptr->s1)->typeinfo);
-					iptr->flags.bits |= INS_FLAG_UNRESOLVED;
-				}
-				superblockend = true;
-				maythrow = true;
-				break;
-
-			case ICMD_ARETURN:
-				TYPECHECK_COUNT(stat_ins_areturn);
-				if (!TYPEINFO_IS_REFERENCE(VAROP(state->iptr->s1)->typeinfo))
-					TYPECHECK_VERIFYERROR_bool("illegal instruction: ARETURN on non-reference");
-
-				if (state->returntype.type != TYPE_ADR
-						|| (r = typeinfo_is_assignable(&VAROP(state->iptr->s1)->typeinfo,&(state->returntype.typeinfo))) 
-								== typecheck_FALSE)
-					TYPECHECK_VERIFYERROR_bool("Return type mismatch");
-				if (r == typecheck_FAIL)
-					return false;
-				if (r == typecheck_MAYBE) {
-					/* the check has to be postponed, we need a patcher */
-					TYPECHECK_COUNT(stat_ins_areturn_unresolved);
-					iptr->sx.s23.s2.uc = create_unresolved_class(
-							state->m, 
-							state->m->parseddesc->returntype.classref,
-							&VAROP(state->iptr->s1)->typeinfo);
-					iptr->flags.bits |= INS_FLAG_UNRESOLVED;
-				}
-				goto return_tail;
-
-				/****************************************/
-				/* PRIMITIVE RETURNS                    */
-
-			case ICMD_IRETURN:
-				if (state->returntype.type != TYPE_INT) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
-				goto return_tail;
-
-			case ICMD_LRETURN:
-				if (state->returntype.type != TYPE_LNG) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
-				goto return_tail;
-
-			case ICMD_FRETURN:
-				if (state->returntype.type != TYPE_FLT) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
-				goto return_tail;
-
-			case ICMD_DRETURN:
-				if (state->returntype.type != TYPE_DBL) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
-				goto return_tail;
-
-			case ICMD_RETURN:
-				if (state->returntype.type != TYPE_VOID) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
-return_tail:
-				TYPECHECK_COUNT(stat_ins_primitive_return);
-
-				if (state->initmethod && state->m->class != class_java_lang_Object) {
-					/* Check if the 'this' instance has been initialized. */
-					LOG("Checking <init> marker");
-					if (!typevector_checktype(jd->var,state->numlocals-1,TYPE_INT))
-						TYPECHECK_VERIFYERROR_bool("<init> method does not initialize 'this'");
-				}
-
-				superblockend = true;
-				maythrow = true;
-				break;
-
-				/****************************************/
-				/* SUBROUTINE INSTRUCTIONS              */
-
-			case ICMD_JSR:
-				LOG("jsr");
-
-				tbptr = state->iptr->sx.s23.s3.jsrtarget.block;
-				TYPEINFO_INIT_RETURNADDRESS(dv->typeinfo, state->bptr->next);
-				if (!typestate_reach(state, tbptr, state->bptr->outvars, jd->var,
-							state->bptr->outdepth))
-					return false;
-
-				superblockend = true;
-				break;
-
-			case ICMD_RET:
-				/* check returnAddress variable */
-				if (!typevector_checkretaddr(jd->var,state->iptr->s1.varindex))
-					TYPECHECK_VERIFYERROR_bool("illegal instruction: RET using non-returnAddress variable");
-
-				if (!typestate_reach(state, iptr->dst.block, state->bptr->outvars, jd->var,
-							state->bptr->outdepth))
-					return false;
-
-				superblockend = true;
-				break;
-
-				/****************************************/
-				/* INVOKATIONS                          */
-
-			case ICMD_INVOKEVIRTUAL:
-			case ICMD_INVOKESPECIAL:
-			case ICMD_INVOKESTATIC:
-			case ICMD_INVOKEINTERFACE:
-				TYPECHECK_COUNT(stat_ins_invoke);
-				if (!verify_invocation(state))
-					return false;
-				TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(iptr), stat_ins_invoke_unresolved);
-				maythrow = true;
-				break;
-
-				/****************************************/
-				/* MULTIANEWARRAY                       */
-
-			case ICMD_MULTIANEWARRAY:
-				if (!verify_multianewarray(state))
-					return false;		
-				maythrow = true;
-				break;
-
-				/****************************************/
-				/* BUILTINS                             */
-
-			case ICMD_BUILTIN:
-				TYPECHECK_COUNT(stat_ins_builtin);
-				if (!verify_builtin(state))
-					return false;
-				maythrow = true;
-				break;
-
-				/****************************************/
-				/* SIMPLE EXCEPTION THROWING TESTS      */
-
-			case ICMD_CHECKNULL:
-				/* CHECKNULL just requires that the stack top
-				 * is an address. This is checked in stack.c */
-				maythrow = true;
-				break;
-
-				/****************************************/
-				/* INSTRUCTIONS WHICH SHOULD HAVE BEEN  */
-				/* REPLACED BY OTHER OPCODES            */
-
-#ifdef TYPECHECK_DEBUG
-			case ICMD_NEW:
-			case ICMD_NEWARRAY:
-			case ICMD_ANEWARRAY:
-			case ICMD_MONITORENTER:
-			case ICMD_MONITOREXIT:
-				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));
-				LOG("Should have been converted to builtin function call.");
-				TYPECHECK_ASSERT(false);
-				break;
-#endif
-
-				/****************************************/
-				/* UNCHECKED OPERATIONS                 */
-
-				/*********************************************
-				 * Instructions below...
-				 *     *) don't operate on local variables,
-				 *     *) don't operate on references,
-				 *     *) don't operate on returnAddresses,
-				 *     *) don't affect control flow (except
-				 *        by throwing exceptions).
-				 *
-				 * (These instructions are typechecked in
-				 *  analyse_stack.)
-				 ********************************************/
-
-				/* Instructions which may throw a runtime exception: */
-
-			case ICMD_IDIV:
-			case ICMD_IREM:
-				dv->type = TYPE_INT;
-				maythrow = true;
-				break;
-
-			case ICMD_LDIV:
-			case ICMD_LREM:
-				dv->type = TYPE_LNG;
-				maythrow = true;
-				break;
-
-				/* Instructions which never throw a runtime exception: */
-			case ICMD_NOP:
-			case ICMD_POP:
-			case ICMD_POP2:
-				break;
-
-			case ICMD_ICONST:
-			case ICMD_IADD:
-			case ICMD_ISUB:
-			case ICMD_IMUL:
-			case ICMD_INEG:
-			case ICMD_IAND:
-			case ICMD_IOR:
-			case ICMD_IXOR:
-			case ICMD_ISHL:
-			case ICMD_ISHR:
-			case ICMD_IUSHR:
-			case ICMD_IMULPOW2:
-			case ICMD_IDIVPOW2:
-			case ICMD_IADDCONST:
-			case ICMD_ISUBCONST:
-			case ICMD_IMULCONST:
-			case ICMD_IANDCONST:
-			case ICMD_IORCONST:
-			case ICMD_IXORCONST:
-			case ICMD_ISHLCONST:
-			case ICMD_ISHRCONST:
-			case ICMD_IUSHRCONST:
-			case ICMD_IREMPOW2:
-			case ICMD_INT2BYTE:
-			case ICMD_INT2CHAR:
-			case ICMD_INT2SHORT:
-			case ICMD_L2I:
-			case ICMD_F2I:
-			case ICMD_D2I:
-			case ICMD_LCMP:
-			case ICMD_LCMPCONST:
-			case ICMD_FCMPL:
-			case ICMD_FCMPG:
-			case ICMD_DCMPL:
-			case ICMD_DCMPG:
-				dv->type = TYPE_INT;
-				break;
-
-			case ICMD_LCONST:
-			case ICMD_LADD:
-			case ICMD_LSUB:
-			case ICMD_LMUL:
-			case ICMD_LNEG:
-			case ICMD_LAND:
-			case ICMD_LOR:
-			case ICMD_LXOR:
-			case ICMD_LSHL:
-			case ICMD_LSHR:
-			case ICMD_LUSHR:
-			case ICMD_LMULPOW2:
-			case ICMD_LDIVPOW2:
-			case ICMD_LADDCONST:
-			case ICMD_LSUBCONST:
-			case ICMD_LMULCONST:
-			case ICMD_LANDCONST:
-			case ICMD_LORCONST:
-			case ICMD_LXORCONST:
-			case ICMD_LSHLCONST:
-			case ICMD_LSHRCONST:
-			case ICMD_LUSHRCONST:
-			case ICMD_LREMPOW2:
-			case ICMD_I2L:
-			case ICMD_F2L:
-			case ICMD_D2L:
-				dv->type = TYPE_LNG;
-				break;
-
-			case ICMD_FCONST:
-			case ICMD_I2F:
-			case ICMD_L2F:
-			case ICMD_D2F:
-			case ICMD_FADD:
-			case ICMD_FSUB:
-			case ICMD_FMUL:
-			case ICMD_FDIV:
-			case ICMD_FREM:
-			case ICMD_FNEG:
-				dv->type = TYPE_FLT;
-				break;
-
-			case ICMD_DCONST:
-			case ICMD_I2D:
-			case ICMD_L2D:
-			case ICMD_F2D:
-			case ICMD_DADD:
-			case ICMD_DSUB:
-			case ICMD_DMUL:
-			case ICMD_DDIV:
-			case ICMD_DREM:
-			case ICMD_DNEG:
-				dv->type = TYPE_DBL;
-				break;
-
-			case ICMD_INLINE_START:
-			case ICMD_INLINE_END:
-				break;
-
-				/* XXX What shall we do with the following ?*/
-			case ICMD_AASTORECONST:
-				TYPECHECK_COUNT(stat_ins_unchecked);
-				break;
-
-				/****************************************/
+			/* include generated code for ICMDs verification */
+
+#define TYPECHECK_VARIABLESBASED
+#define STATE  state
+#define METHOD (state->m)
+#define IPTR   iptr
+#define BPTR   (state->bptr)
+#include <typecheck-variablesbased-gen.inc>
+#undef  STATE
+#undef  METHOD
+#undef  IPTR
+#undef  BPTR
+#undef  TYPECHECK_VARIABLESBASED
 
 			default:
-				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));
+				LOG1("ICMD %d\n", opcode);
 				TYPECHECK_VERIFYERROR_bool("Missing ICMD code during typecheck");
 		}
 

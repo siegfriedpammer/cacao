@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: typecheck.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: typecheck.h 5773 2006-10-13 14:34:19Z edwin $
 
 */
 
@@ -42,7 +42,10 @@
 
 /* function prototypes ********************************************************/
 
+#if defined(ENABLE_VERIFIER)
 bool typecheck(jitdata *jd);
+bool typecheck_stackbased(jitdata *jd);
+#endif
 
 #endif /* _TYPECHECK_H */
 

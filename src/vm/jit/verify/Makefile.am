@@ -26,9 +26,9 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
+## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5746 2006-10-12 10:10:06Z edwin $
+## $Id: Makefile.am 5773 2006-10-13 14:34:19Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,6 +46,9 @@ libverify_la_SOURCES = \
 	typecheck-builtins.inc \
 	typecheck-fields.inc \
 	typecheck-invoke.inc \
+	typecheck-stackbased.c \
+	typecheck-stackbased-gen.inc \
+	typecheck-variablesbased-gen.inc \
 	typeinfo.c \
 	typeinfo.h
 
