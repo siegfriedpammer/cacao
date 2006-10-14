@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5698 2006-10-05 17:28:13Z twisti $
+   $Id: jni.c 5779 2006-10-14 19:12:58Z twisti $
 
 */
 
@@ -5595,6 +5595,7 @@ jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 
 jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 {
+#if defined(ENABLE_THREADS)
 	threadobject *thread;
 
 	STATISTICS(jniinvokation());
@@ -5606,6 +5607,7 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 
 	if (!threads_detach_thread(thread))
 		return JNI_ERR;
+#endif
 
 	return JNI_OK;
 }
