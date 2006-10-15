@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: linker.c 5786 2006-10-15 22:44:56Z edwin $
 
 */
 
@@ -445,7 +445,7 @@ static classinfo *link_class_intern(classinfo *c)
 	s4 vftbllength;               /* vftbllength of current class             */
 	s4 interfacetablelength;      /* interface table length                   */
 	vftbl_t *v;                   /* vftbl of current class                   */
-	s4 i,j;                       /* interface/method/field counter           */
+	s4 i;                         /* interface/method/field counter           */
 	arraydescriptor *arraydesc;   /* descriptor for array classes             */
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_resolving, time_compute_vftbl,
