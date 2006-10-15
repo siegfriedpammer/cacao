@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5781 2006-10-15 12:59:04Z edwin $
+   $Id: jit.h 5782 2006-10-15 13:19:41Z edwin $
 
 */
 
@@ -313,11 +313,7 @@ typedef union {
 
         union {
             u1              type;         /* TYPE_* constant for fields       */
-            u1              argcount;     /* XXX does u1 suffice?             */
-                                          /* for MULTIANEWARRAY and           */
-                                          /* INVOKE*                          */
         } f; /* XXX these could be made smaller */
-        /* only MULTIANEWARRAY needs the argcount */
 
         bool                predicated:1;
         int                 condition :3;
@@ -561,12 +557,6 @@ struct icmdtable_entry_t {
 /* the ICMD table ************************************************************/
 
 extern icmdtable_entry_t icmd_table[256];
-
-
-/********** op1 values for ACONST instructions ********************************/
-
-#define ACONST_LOAD     0  /* ACONST_NULL or LDC instruction                  */
-#define ACONST_BUILTIN  1  /* constant argument for a builtin function call   */
 
 
 /********** JavaVM operation codes (sorted) and instruction lengths ***********/
