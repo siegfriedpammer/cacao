@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5780 2006-10-15 12:20:15Z edwin $
+   $Id: jit.h 5781 2006-10-15 12:59:04Z edwin $
 
 */
 
@@ -122,7 +122,6 @@ struct jitdata {
 	s4               basicblockcount; /* number of basic blocks               */
 	s4               stackcount;      /* number of stackelements to allocate  */
                                       /* (passed from parse to stack)         */
-	s4               c_block_nr;      /* counter for basic block number       */
 
 	varinfo *var;                     /* array of variables                   */
 	s4      vartop;                   /* next free index in var array         */
@@ -476,7 +475,6 @@ struct basicblock {
 		bptr->flags  = -1;                             \
 		bptr->type   = BBTYPE_STD;                     \
 		bptr->method = (m);                            \
-		bptr->nr     = (m)->c_block_nr++;              \
 	} while (0)
 			
 

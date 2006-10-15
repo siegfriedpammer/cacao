@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5777 2006-10-13 18:25:21Z edwin $
+   $Id: typecheck.c 5781 2006-10-15 12:59:04Z edwin $
 
 */
 
@@ -414,7 +414,7 @@ typestate_reach(verifier_state *state,
 	if (changed) {
 		LOG("changed!");
 		destblock->flags = BBTYPECHECK_REACHED;
-		if (destblock <= state->bptr) {
+		if (destblock->nr <= state->bptr->nr) {
 			LOG("REPEAT!"); 
 			state->repeat = true;
 		}
@@ -1068,6 +1068,12 @@ bool typecheck(jitdata *jd)
 	state.basicblocks = jd->basicblocks;
 	state.savedindices = NULL;
 	state.savedinvars = NULL;
+
+	/* check that the basicblock numbers are valid */
+
+#if !defined(NDEBUG)
+	jit_check_basicblock_numbers(jd);
+#endif
 
 	/* check if this method is an instance initializer method */
 

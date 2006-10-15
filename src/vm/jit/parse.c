@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5724 2006-10-09 17:08:38Z edwin $
+   $Id: parse.c 5781 2006-10-15 12:59:04Z edwin $
 
 */
 
@@ -1484,7 +1484,6 @@ invoke_method:
 	MZERO(bptr, basicblock, b_count + 1);
 
 	b_count = 0;
-	jd->c_block_nr = 0;
 
 	/* additional block if target 0 is not first intermediate instruction */
 
@@ -1494,8 +1493,8 @@ invoke_method:
 		bptr->iinstr = jd->instructions;
 		/* bptr->icount is set when the next block is allocated */
 
+		bptr->nr = b_count++;
 		bptr++;
-		b_count++;
 		bptr[-1].next = bptr;
 	}
 
@@ -1526,8 +1525,8 @@ invoke_method:
 
 			jd->basicblockindex[p] = b_count;
 
+			bptr->nr = b_count++;
 			bptr++;
-			b_count++;
 			bptr[-1].next = bptr;
 		}
 	}
@@ -1541,6 +1540,7 @@ invoke_method:
 	/* allocate additional block at end */
 
 	BASICBLOCK_INIT(bptr,m);
+	bptr->nr = b_count;
 
 	/* set basicblock pointers in exception table */
 

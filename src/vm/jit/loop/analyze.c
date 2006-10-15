@@ -34,7 +34,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 5657 2006-10-03 21:19:05Z edwin $
+   $Id: analyze.c 5781 2006-10-15 12:59:04Z edwin $
 
 */
 
@@ -2322,7 +2322,7 @@ void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicbl
 	/* copy node                                                              */
 	new = DMNEW(basicblock, 1);    
 	memcpy(new, bptr, sizeof(basicblock));
-	new->nr = m->c_block_nr++;
+	new->nr = -1;
 
 	ld->c_last_block_copied = new;
 
@@ -2610,7 +2610,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	{
 		bptr = DMNEW(basicblock, 1);    
 		memcpy(bptr, le->block, sizeof(basicblock));
-		bptr->nr = m->c_block_nr++;
+		bptr->nr = -1;
 
 		/* determine beginning of copied loop to extend exception handler, that */
 		/* protect this loop                                                    */
@@ -2644,7 +2644,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 
 	/* copy current loop header to new basic block                              */
 	memcpy(bptr, loop_head, sizeof(basicblock));
-    bptr->nr = m->c_block_nr++;
+    bptr->nr = -1;
 
 	/* insert the new basic block and move header before first loop node        */
 	le = lc->nodes;

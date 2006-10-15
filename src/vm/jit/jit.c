@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5780 2006-10-15 12:20:15Z edwin $
+   $Id: jit.c 5781 2006-10-15 12:59:04Z edwin $
 
 */
 
@@ -1343,14 +1343,17 @@ static u1 *jit_compile_intern(jitdata *jd)
 			depthFirst(jd);
 			analyseGraph(jd);
 			optimize_loops(jd);
+			jit_renumber_basicblocks(jd);
 		}
 #endif
 		RT_TIMING_GET_TIME(time_loop);
 
 #if defined(ENABLE_IFCONV)
-		if (JITDATA_HAS_FLAG_IFCONV(jd))
+		if (JITDATA_HAS_FLAG_IFCONV(jd)) {
 			if (!ifconv_static(jd))
 				return NULL;
+			jit_renumber_basicblocks(jd);
+		}
 #endif
 		RT_TIMING_GET_TIME(time_ifconv);
 
@@ -1358,9 +1361,11 @@ static u1 *jit_compile_intern(jitdata *jd)
 		   if-conversion, as we could lose the ability to do the
 		   if-conversion. */
 
-		if (JITDATA_HAS_FLAG_REORDER(jd))
+		if (JITDATA_HAS_FLAG_REORDER(jd)) {
 			if (!reorder(jd))
 				return NULL;
+			jit_renumber_basicblocks(jd);
+		}
 
 		DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
 
@@ -1620,10 +1625,10 @@ void jit_renumber_basicblocks(jitdata *jd)
 
 /* jit_check_basicblock_numbers ************************************************
 
-   Assert that the ->nr of all blocks increases when traversing ->next.
+   Assert that the ->nr of the first block is zero and increases by 1 each
+   time ->next is traversed.
    This function should be called before any analysis that relies on
-   the basicblock numbers to increase strictly monotonically in the ->next 
-   sequence.
+   the basicblock numbers.
 
    IN:
        jitdata..........the current jitdata
@@ -1638,11 +1643,15 @@ void jit_check_basicblock_numbers(jitdata *jd)
 	s4          nr;
 	basicblock *bptr;
 
-	nr = -1;
+	nr = 0;
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-		assert(bptr->nr > nr);
-		nr = bptr->nr;
+		assert(bptr->nr == nr);
+		nr++;
 	}
+
+	/* we have one block more than jd->basicblockcount (the end marker) */
+
+	assert(nr == jd->basicblockcount + 1);
 }
 #endif /* !defined(NDEBUG) */
 

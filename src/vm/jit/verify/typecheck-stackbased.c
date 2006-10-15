@@ -714,6 +714,12 @@ bool typecheck_stackbased(jitdata *jd)
 	state.topjsr = NULL;
 #   define STATE (&state)
 
+	/* check that the basicblock numbers are valid */
+
+#if !defined(NDEBUG)
+	jit_check_basicblock_numbers(jd);
+#endif
+
 	/* check if this method is an instance initializer method */
 
     state.initmethod = (state.m->name == utf_init);

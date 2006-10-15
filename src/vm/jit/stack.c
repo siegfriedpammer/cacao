@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5762 2006-10-13 10:33:20Z edwin $
+   $Id: stack.c 5781 2006-10-15 12:59:04Z edwin $
 
 */
 
@@ -579,7 +579,8 @@ static void stack_append_block(stackdata_t *sd, basicblock *b)
 	b->next = sd->last_real_block->next;
 	sd->last_real_block->next = b;
 	sd->last_real_block = b;
-	sd->jd->basicblockcount++;
+	b->nr = sd->jd->basicblockcount++;
+	b->next->nr = b->nr + 1;
 }
 
 
@@ -614,7 +615,6 @@ static basicblock * stack_clone_block(stackdata_t *sd, basicblock *b)
 	clone->original = (b->original) ? b->original : b;
 	clone->copied_to = clone->original->copied_to;
 	clone->original->copied_to = clone;
-	clone->nr = sd->m->c_block_nr++;
 	clone->next = NULL;
 	clone->flags = BBREACHED;
 
