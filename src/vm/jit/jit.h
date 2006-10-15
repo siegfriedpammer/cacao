@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5770 2006-10-13 13:11:09Z edwin $
+   $Id: jit.h 5780 2006-10-15 12:20:15Z edwin $
 
 */
 
@@ -1250,6 +1250,11 @@ u1 *jit_recompile(methodinfo *m);
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);
 
 s4 jit_complement_condition(s4 opcode);
+
+void jit_renumber_basicblocks(jitdata *jd);
+#if !defined(NDEBUG)
+void jit_check_basicblock_numbers(jitdata *jd);
+#endif
 
 /* machine dependent functions */
 #if defined(ENABLE_JIT)

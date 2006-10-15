@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5773 2006-10-13 14:34:19Z edwin $
+   $Id: jit.c 5780 2006-10-15 12:20:15Z edwin $
 
 */
 
@@ -893,8 +893,6 @@ char *opcode_names[256] = {
 
 void jit_init(void)
 {
-	s4 i;
-
 	/* initialize stack analysis subsystem */
 
 	(void) stack_init();
@@ -1593,6 +1591,60 @@ s4 jit_complement_condition(s4 opcode)
 			return opcode - 1;
 	}
 }
+
+
+/* jit_renumber_basicblocks ****************************************************
+
+   Set the ->nr of all blocks so it increases when traversing ->next.
+
+   IN:
+       jitdata..........the current jitdata
+
+*******************************************************************************/
+
+void jit_renumber_basicblocks(jitdata *jd)
+{
+	s4          nr;
+	basicblock *bptr;
+
+	nr = 0;
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
+		bptr->nr = nr++;
+	}
+
+	/* we have one block more than jd->basicblockcount (the end marker) */
+
+	assert(nr == jd->basicblockcount + 1);
+}
+
+
+/* jit_check_basicblock_numbers ************************************************
+
+   Assert that the ->nr of all blocks increases when traversing ->next.
+   This function should be called before any analysis that relies on
+   the basicblock numbers to increase strictly monotonically in the ->next 
+   sequence.
+
+   IN:
+       jitdata..........the current jitdata
+
+   NOTE: Aborts with an assertion if the condition is not met!
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void jit_check_basicblock_numbers(jitdata *jd)
+{
+	s4          nr;
+	basicblock *bptr;
+
+	nr = -1;
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
+		assert(bptr->nr > nr);
+		nr = bptr->nr;
+	}
+}
+#endif /* !defined(NDEBUG) */
 
 
 /*
