@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5783 2006-10-15 13:37:46Z edwin $
+   $Id: jit.h 5784 2006-10-15 13:52:06Z edwin $
 
 */
 
@@ -253,7 +253,7 @@ typedef union {
 
 typedef union {
 	s4                         varindex;
-	s4                         *args;
+	s4                        *args;
     classref_or_classinfo      c;
     unresolved_class          *uc;
     ptrint                     constval;         /* for PUT*CONST             */
