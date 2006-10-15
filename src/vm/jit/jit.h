@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5782 2006-10-15 13:19:41Z edwin $
+   $Id: jit.h 5783 2006-10-15 13:37:46Z edwin $
 
 */
 
@@ -309,25 +309,6 @@ typedef union {
 
 typedef union {
     u4                  bits;
-    struct {         /* fields: */
-
-        union {
-            u1              type;         /* TYPE_* constant for fields       */
-        } f; /* XXX these could be made smaller */
-
-        bool                predicated:1;
-        int                 condition :3;
-        bool                unresolved:1; /* field/method is unresolved       */
-        bool                nocheck   :1; /* don't check array access         */
-        bool                branch    :1; /* branch to dst.target             */
-
-        int                 tmpreg1   :5;
-        int                 tmpreg2   :5;
-        int                 tmpreg3   :5;
-
-        int                 unused    :2;
-
-    } fields;
 } flags_operand_t;
 
 /*** instruction ***/
