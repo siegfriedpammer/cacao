@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: stack.h 5656 2006-10-03 20:57:15Z edwin $
+   $Id: stack.h 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -125,12 +125,6 @@
 
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
-
-
-/* external macros ************************************************************/
-
-#define BLOCK_OF(index)                                              \
-    (jd->basicblocks + jd->basicblockindex[index])
 
 
 /* function prototypes ********************************************************/

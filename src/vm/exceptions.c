@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5586 2006-09-29 14:21:42Z edwin $
+   $Id: exceptions.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -1497,7 +1497,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	codeinfo              *code;
 	s4                     framesize;
 	s4                     issync;
-	exceptionentry        *ex;
+	dseg_exception_entry  *ex;
 	s4                     exceptiontablelength;
 	s4                     i;
 	classref_or_classinfo  cr;
@@ -1511,7 +1511,8 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	code                 = *((codeinfo **)      (pv + CodeinfoPointer));
 	framesize            = *((s4 *)             (pv + FrameSize));
 	issync               = *((s4 *)             (pv + IsSync));
-	ex                   =   (exceptionentry *) (pv + ExTableStart);
+	ex                   =   (dseg_exception_entry *) 
+												(pv + ExTableStart);
 	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
 
 	/* Get the methodinfo pointer from the codeinfo pointer. For

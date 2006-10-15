@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5774 2006-10-13 16:06:18Z edwin $
+   $Id: codegen-common.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -198,13 +198,6 @@ void codegen_setup(jitdata *jd)
 	cd->linenumbertab = 0;
 	
 	cd->method = m;
-	cd->exceptiontable = 0;
-	cd->exceptiontablelength = 0;
-
-	if (m->exceptiontablelength > 0) {
-		cd->exceptiontablelength = m->exceptiontablelength;
-		cd->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1);
-	}
 
 	cd->maxstack = m->maxstack;
 	cd->maxlocals = m->maxlocals;

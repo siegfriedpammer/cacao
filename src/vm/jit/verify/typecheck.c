@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5781 2006-10-15 12:59:04Z edwin $
+   $Id: typecheck.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -159,6 +159,7 @@ error reporting.
 #include "vm/options.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/show.h"
+#include "vm/jit/parse.h"
 #include "vm/access.h"
 #include "vm/resolve.h"
 #include "vm/exceptions.h"
@@ -804,7 +805,7 @@ verify_basic_block(verifier_state *state)
 	branch_target_t *table;
 	lookup_target_t *lookup;
 	jitdata *jd = state->jd;
-	exceptiontable *ex;
+	exception_entry *ex;
 	varinfo constvalue;                               /* for PUT*CONST */
 	constant_FMIref *fieldref;
 
@@ -822,7 +823,7 @@ verify_basic_block(verifier_state *state)
 	/* XXX could use a faster algorithm with sorted lists or  */
 	/* something?                                             */
 	len = 0;
-	for (ex = state->cd->exceptiontable; ex ; ex = ex->down) {
+	for (ex = state->jd->exceptiontable; ex ; ex = ex->down) {
 		if ((ex->start->nr <= state->bptr->nr) && (ex->end->nr > state->bptr->nr)) {
 			LOG1("active handler L%03d", ex->handler->nr);
 			state->handlers[len++] = ex;
@@ -1111,7 +1112,7 @@ bool typecheck(jitdata *jd)
 
     /* allocate the buffer of active exception handlers */
 	
-    state.handlers = DMNEW(exceptiontable*, state.cd->exceptiontablelength + 1);
+    state.handlers = DMNEW(exception_entry*, state.jd->exceptiontablelength + 1);
 
 	/* save local variables */
 

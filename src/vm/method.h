@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 5781 2006-10-15 12:59:04Z edwin $
+   $Id: method.h 5785 2006-10-15 22:25:54Z edwin $
 */
 
 
@@ -38,7 +38,7 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct exceptiontable exceptiontable;
+typedef struct raw_exception_entry raw_exception_entry;
 typedef struct lineinfo lineinfo; 
 
 #include "config.h"
@@ -70,8 +70,8 @@ struct methodinfo {                 /* method structure                       */
 	s4            jcodelength;      /* length of JavaVM code                  */
 	u1           *jcode;            /* pointer to JavaVM code                 */
 
-	s4            exceptiontablelength; /* exceptiontable length              */
-	exceptiontable *exceptiontable; /* the exceptiontable                     */
+	s4            rawexceptiontablelength;  /* exceptiontable length          */
+	raw_exception_entry *rawexceptiontable; /* the exceptiontable             */
 
 	u2            thrownexceptionscount; /* number of exceptions attribute    */
 	classref_or_classinfo *thrownexceptions; /* except. a method may throw    */
@@ -88,22 +88,15 @@ struct methodinfo {                 /* method structure                       */
 };
 
 
-/* exceptiontable *************************************************************/
+/* raw_exception_entry ********************************************************/
 
-struct exceptiontable {         /* exceptiontable entry in a method           */
-	s4              startpc;    /* start pc of guarded area (inclusive)       */
-	basicblock     *start;
+/* exception table entry read by the loader */
 
-	s4              endpc;      /* end pc of guarded area (exklusive)         */
-	basicblock     *end;
-
-	s4              handlerpc;  /* pc of exception handler                    */
-	basicblock     *handler;
-
-	classref_or_classinfo catchtype; /* catchtype of exc. (NULL == catchall)  */
-	exceptiontable *next;       /* used to build a list of exception when     */
-	                            /* loops are copied */
-	exceptiontable *down;       /* instead of the old array, a list is used   */
+struct raw_exception_entry {    /* exceptiontable entry in a method           */
+	classref_or_classinfo catchtype; /* catchtype of exc. (0 == catchall)     */
+	u2              startpc;    /* start pc of guarded area (inclusive)       */
+	u2              endpc;      /* end pc of guarded area (exklusive)         */
+	u2              handlerpc;  /* pc of exception handler                    */
 };
 
 

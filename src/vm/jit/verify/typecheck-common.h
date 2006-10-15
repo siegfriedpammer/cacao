@@ -250,7 +250,7 @@ typedef struct verifier_state {
 
 	s4 exinvars;
 	
-    exceptiontable **handlers;            /* active exception handlers */
+    exception_entry **handlers;           /* active exception handlers */
 	
     bool repeat;            /* if true, blocks are iterated over again */
     bool initmethod;             /* true if this is an "<init>" method */

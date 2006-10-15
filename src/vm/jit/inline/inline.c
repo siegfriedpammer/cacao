@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5781 2006-10-15 12:59:04Z edwin $
+   $Id: inline.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -1655,8 +1655,8 @@ static bool test_inlining(inline_node *iln,jitdata *jd,
 	n_cd->method = n_method;
 	n_cd->maxstack = n_method->maxstack;
 	n_cd->maxlocals = n_method->maxlocals;
-	n_cd->exceptiontablelength = n_method->exceptiontablelength;
-	n_cd->exceptiontable = n_method->exceptiontable;
+	n_jd->exceptiontablelength = n_method->exceptiontablelength;
+	n_jd->exceptiontable = n_method->exceptiontable;
 
 	n_rd = DNEW(registerdata);
 	n_jd->rd = n_rd;

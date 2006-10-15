@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5781 2006-10-15 12:59:04Z edwin $
+   $Id: stack.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -62,6 +62,7 @@
 #include "vm/jit/abi.h"
 #include "vm/jit/cfg.h"
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/parse.h"
 #include "vm/jit/show.h"
 
 #if defined(ENABLE_DISASSEMBLER)
@@ -130,8 +131,8 @@ struct stackdata_t {
 	jitdata *jd;                  /* current jitdata                          */
 	basicblock *last_real_block;  /* the last block before the empty one      */
 	bool repeat;                  /* if true, iterate the analysis again      */
-	exceptiontable **handlers;    /* exception handlers for the current block */
-	exceptiontable *extableend;   /* points to the last exception entry       */
+	exception_entry **handlers;   /* exception handlers for the current block */
+	exception_entry *extableend;  /* points to the last exception entry       */
 	stackelement exstack;         /* instack for exception handlers           */
 };
 
@@ -1262,7 +1263,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 	bool superblockend;
 	bool maythrow;
 	bool cloneinstructions;
-	exceptiontable *ex;
+	exception_entry *ex;
 
 #if defined(STACK_VERBOSE)
 	stack_verbose_block_enter(sd, true);
@@ -1324,7 +1325,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 		/* clone exception handlers */
 
 		for (i=0; sd->handlers[i]; ++i) {
-			ex = DNEW(exceptiontable);
+			ex = DNEW(exception_entry);
 			ex->handler = sd->handlers[i]->handler;
 			ex->start = b;
 			ex->end = b; /* XXX hack, see end of stack_analyse */
@@ -1334,7 +1335,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			assert(sd->extableend->down == NULL);
 			sd->extableend->down = ex;
 			sd->extableend = ex;
-			sd->jd->cd->exceptiontablelength++;
+			sd->jd->exceptiontablelength++;
 
 			sd->handlers[i] = ex;
 		}
@@ -1351,7 +1352,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 	if (b->original) {
 		/* find exception handlers for the cloned block */
 		len = 0;
-		ex = sd->jd->cd->exceptiontable;
+		ex = sd->jd->exceptiontable;
 		for (; ex != NULL; ex = ex->down) {
 			/* XXX the cloned exception handlers have identical */
 			/* start end end blocks.                            */
@@ -1947,7 +1948,7 @@ bool stack_analyse(jitdata *jd)
 	instruction  *iptr;           /* the current instruction                  */
 	basicblock   *tbptr;
 	basicblock   *original;
-	exceptiontable *ex;
+	exception_entry *ex;
 
 	stackptr     *last_store_boundary;
 	stackptr      coalescing_boundary;
@@ -1989,7 +1990,7 @@ bool stack_analyse(jitdata *jd)
 	sd.vartop =  jd->vartop;
 	sd.localcount = jd->localcount;
 	sd.var = jd->var;
-	sd.handlers = DMNEW(exceptiontable *, cd->exceptiontablelength + 1);
+	sd.handlers = DMNEW(exception_entry *, jd->exceptiontablelength + 1);
 
 	/* prepare the variable for exception handler stacks               */
 	/* (has been reserved by STACK_EXTRA_VARS, or VERIFIER_EXTRA_VARS) */
@@ -2019,8 +2020,8 @@ bool stack_analyse(jitdata *jd)
 
 	/* find the last exception handler */
 
-	if (cd->exceptiontablelength)
-		sd.extableend = cd->exceptiontable + cd->exceptiontablelength - 1;
+	if (jd->exceptiontablelength)
+		sd.extableend = jd->exceptiontable + jd->exceptiontablelength - 1;
 	else
 		sd.extableend = NULL;
 
@@ -2119,7 +2120,7 @@ bool stack_analyse(jitdata *jd)
 				original = (sd.bptr->original) ? sd.bptr->original : sd.bptr;
 
 				len = 0;
-				ex = cd->exceptiontable;
+				ex = jd->exceptiontable;
 				for (; ex != NULL; ex = ex->down) {
 					if ((ex->start <= original) && (ex->end > original)) {
 						sd.handlers[len++] = ex;
@@ -4541,7 +4542,7 @@ icmd_BUILTIN:
 
 	/* XXX hack to fix up the ranges of the cloned single-block handlers */
 
-	ex = cd->exceptiontable;
+	ex = jd->exceptiontable;
 	for (; ex != NULL; ex = ex->down) {
 		if (ex->start == ex->end) {
 			assert(ex->end->next);

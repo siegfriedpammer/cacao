@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5781 2006-10-15 12:59:04Z edwin $
+   $Id: parse.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -148,6 +148,167 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
 }
 
 
+/* parse_mark_exception_boundaries *********************************************
+
+   Mark exception handlers and the boundaries of the handled regions as
+   basic block boundaries.
+
+   IN:
+       jd...............current jitdata
+
+   RETURN VALUE:
+       >= 0.............the number of new basic blocks marked
+	   -1...............an exception has been thrown
+
+*******************************************************************************/
+
+static int parse_mark_exception_boundaries(jitdata *jd)
+{
+	s4                   b_count;
+	s4                   pc;
+	s4                   i;
+	s4                   len;
+	raw_exception_entry *rex;
+	methodinfo          *m;
+
+	m = jd->m;
+	
+	len = m->rawexceptiontablelength;
+
+	if (len == 0)
+		return 0;
+
+	b_count = 0;
+	rex = m->rawexceptiontable;
+
+	for (i = 0; i < len; ++i, ++rex) {
+
+		/* the start of the handled region becomes a basic block start */
+
+   		pc = rex->startpc;
+		CHECK_BYTECODE_INDEX(pc);
+		MARK_BASICBLOCK(pc);
+		
+		pc = rex->endpc; /* see JVM Spec 4.7.3 */
+		CHECK_BYTECODE_INDEX_EXCLUSIVE(pc);
+
+		/* check that the range is valid */
+
+#if defined(ENABLE_VERIFIER)
+		if (pc <= rex->startpc) {
+			exceptions_throw_verifyerror(m,
+				"Invalid exception handler range");
+			return -1;
+		}
+#endif
+		
+		/* end of handled region becomes a basic block boundary  */
+		/* (If it is the bytecode end, we'll use the special     */
+		/* end block that is created anyway.)                    */
+
+		if (pc < m->jcodelength)
+			MARK_BASICBLOCK(pc);
+
+		/* the start of the handler becomes a basic block start  */
+
+		pc = rex->handlerpc;
+		CHECK_BYTECODE_INDEX(pc);
+		MARK_BASICBLOCK(pc);
+	}
+
+	/* everything ok */
+
+	return b_count;
+
+#if defined(ENABLE_VERIFIER)
+throw_invalid_bytecode_index:
+	exceptions_throw_verifyerror(m,
+								 "Illegal bytecode index in exception table");
+	return -1;
+#endif
+}
+
+
+/* parse_resolve_exception_table ***********************************************
+
+   Enter the exception handlers and their ranges, resolved to basicblock *s,
+   in the jitdata.
+
+   IN:
+       jd...............current jitdata
+
+   RETURN VALUE:
+	   true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+static bool parse_resolve_exception_table(jitdata *jd)
+{
+	codegendata         *cd;
+	methodinfo          *m;
+	raw_exception_entry *rex;
+	exception_entry     *ex;
+	s4                   i;
+	s4                   len;
+	classinfo           *exclass;
+
+	m = jd->m;
+	cd = jd->cd;
+
+	len = m->rawexceptiontablelength;
+
+	/* common case: no handler entries */
+
+	if (len == 0)
+		return true;
+
+	/* allocate the exception table */
+
+	jd->exceptiontablelength = len;
+	jd->exceptiontable = DMNEW(exception_entry, len + 1); /* XXX why +1? */
+
+	/* copy and resolve the entries */
+
+	ex = jd->exceptiontable;
+	rex = m->rawexceptiontable;
+
+	for (i = 0; i < len; ++i, ++rex, ++ex) {
+		/* resolve instruction indices to basic blocks */
+
+		ex->start   = BLOCK_OF(rex->startpc);
+		ex->end     = BLOCK_OF(rex->endpc);
+		ex->handler = BLOCK_OF(rex->handlerpc);
+
+		/* lazily resolve the catchtype */
+
+		if (rex->catchtype.any != NULL) {
+			if (!resolve_classref_or_classinfo(m,
+											   rex->catchtype,
+											   resolveLazy, true, false,
+											   &exclass))
+				return false;
+
+			/* if resolved, enter the result of resolution in the table */
+
+			if (exclass != NULL)
+				rex->catchtype.cls = exclass;
+		}
+
+		ex->catchtype = rex->catchtype;
+		ex->next = NULL;   /* set by loop analysis */
+		ex->down = ex + 1; /* link to next exception entry */
+	}
+
+	/* terminate the ->down linked list */
+
+	assert(ex != jd->exceptiontable);
+	ex[-1].down = NULL;
+
+	return true;
+}
+
+
 /*******************************************************************************
 
 	function 'parse' scans the JavaVM code and generates intermediate code
@@ -159,71 +320,6 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
 	number is stored in the block index table.
 
 *******************************************************************************/
-
-static exceptiontable * fillextable(
-									jitdata *jd,
-									methodinfo *m, 
-									exceptiontable *extable, 
-									exceptiontable *raw_extable, 
-        							int exceptiontablelength, 
-									int *block_count)
-{
-	int b_count, p, src;
-	
-	if (exceptiontablelength == 0) 
-		return extable;
-
-	b_count = *block_count;
-
-	for (src = exceptiontablelength-1; src >=0; src--) {
-		/* the start of the handled region becomes a basic block start */
-   		p = raw_extable[src].startpc;
-		CHECK_BYTECODE_INDEX(p);
-		extable->startpc = p;
-		MARK_BASICBLOCK(p);
-		
-		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
-		CHECK_BYTECODE_INDEX_EXCLUSIVE(p);
-
-#if defined(ENABLE_VERIFIER)
-		if (p <= raw_extable[src].startpc) {
-			exceptions_throw_verifyerror(m,
-				"Invalid exception handler range");
-			return NULL;
-		}
-#endif
-		extable->endpc = p;
-		
-		/* end of handled region becomes a basic block boundary  */
-		/* (If it is the bytecode end, we'll use the special     */
-		/* end block that is created anyway.)                    */
-		if (p < m->jcodelength) 
-			MARK_BASICBLOCK(p);
-
-		/* the start of the handler becomes a basic block start  */
-		p = raw_extable[src].handlerpc;
-		CHECK_BYTECODE_INDEX(p);
-		extable->handlerpc = p;
-		MARK_BASICBLOCK(p);
-
-		extable->catchtype = raw_extable[src].catchtype;
-		extable->next = NULL;
-		extable->down = &extable[1];
-		extable--;
-	}
-
-	*block_count = b_count;
-	
-	/* everything ok */
-	return extable;
-
-#if defined(ENABLE_VERIFIER)
-throw_invalid_bytecode_index:
-	exceptions_throw_verifyerror(m,
-								 "Illegal bytecode index in exception table");
-	return NULL;
-#endif
-}
 
 /*** macro for checking the length of the bytecode ***/
 
@@ -250,7 +346,7 @@ bool parse(jitdata *jd)
 	s4           opcode;                /* java opcode                        */
 	s4           i;
 	s4           j;
-	int  b_count = 0;           /* basic block counter                      */
+	int  b_count;               /* basic block counter                      */
 	int  s_count = 0;           /* stack element counter                    */
 	bool blockend = false;      /* true if basic block end has been reached */
 	bool iswide = false;        /* true if last instruction was a wide      */
@@ -295,18 +391,15 @@ bool parse(jitdata *jd)
  	iptr = pd.instructions;
  	ipc  = 0;
   
-	/* compute branch targets of exception table */
+	/* mark basic block boundaries for exception table */
 
-	if (!fillextable(jd, m,
-			&(cd->exceptiontable[cd->exceptiontablelength-1]),
-			m->exceptiontable,
-			m->exceptiontablelength,
-			&b_count))
-	{
+	b_count = parse_mark_exception_boundaries(jd);
+	if (b_count < 0)
 		return false;
-	}
 
-	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
+	/* initialize stack element counter */
+
+	s_count = 1 + m->rawexceptiontablelength;
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
@@ -1541,37 +1634,14 @@ invoke_method:
 
 	BASICBLOCK_INIT(bptr,m);
 	bptr->nr = b_count;
+	jd->basicblockindex[m->jcodelength] = b_count;
 
 	/* set basicblock pointers in exception table */
 
-	if (cd->exceptiontablelength > 0) {
-		cd->exceptiontable[cd->exceptiontablelength - 1].down = NULL;
-	}
+	if (!parse_resolve_exception_table(jd))
+		return false;
 
-	for (i = 0; i < cd->exceptiontablelength; ++i) {
-		p = cd->exceptiontable[i].startpc;
-		cd->exceptiontable[i].start = jd->basicblocks + jd->basicblockindex[p];
-
-		p = cd->exceptiontable[i].endpc;
-		cd->exceptiontable[i].end = (p == m->jcodelength) ? (jd->basicblocks + jd->basicblockcount /*+ 1*/) : (jd->basicblocks + jd->basicblockindex[p]);
-
-		p = cd->exceptiontable[i].handlerpc;
-		cd->exceptiontable[i].handler = jd->basicblocks + jd->basicblockindex[p];
-	}
-
-	/* XXX activate this if you want to try inlining */
-#if 0
-	for (i = 0; i < m->exceptiontablelength; ++i) {
-		p = m->exceptiontable[i].startpc;
-		m->exceptiontable[i].start = jd->basicblocks + jd->basicblockindex[p];
-
-		p = m->exceptiontable[i].endpc;
-		m->exceptiontable[i].end = (p == m->jcodelength) ? (jd->basicblocks + jd->basicblockcount /*+ 1*/) : (jd->basicblocks + jd->basicblockindex[p]);
-
-		p = m->exceptiontable[i].handlerpc;
-		m->exceptiontable[i].handler = jd->basicblocks + jd->basicblockindex[p];
-	}
-#endif
+	/* store the local map */
 
 	jd->local_map = local_map;
 

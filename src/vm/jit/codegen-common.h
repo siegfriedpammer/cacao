@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5435 2006-09-08 18:14:50Z edwin $
+   $Id: codegen-common.h 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -124,8 +124,6 @@ struct codegendata {
 	s4              linenumbertab;
 
 	methodinfo     *method;
-	s4              exceptiontablelength; /* exceptiontable length            */
-	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
 	codegen_critical_section_t *threadcrit; /* List of critical code regions          */
 	codegen_critical_section_t threadcritcurrent;

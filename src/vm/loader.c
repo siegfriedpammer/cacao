@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5250 2006-08-18 12:24:10Z twisti $
+   $Id: loader.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -1182,33 +1182,33 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
-			m->exceptiontablelength = suck_u2(cb);
-			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * m->exceptiontablelength))
+			m->rawexceptiontablelength = suck_u2(cb);
+			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * m->rawexceptiontablelength))
 				return false;
 
-			m->exceptiontable = MNEW(exceptiontable, m->exceptiontablelength);
+			m->rawexceptiontable = MNEW(raw_exception_entry, m->rawexceptiontablelength);
 
 #if defined(ENABLE_STATISTICS)
 			if (opt_stat) {
 				count_vmcode_len += m->jcodelength + 18;
 				count_extable_len +=
-					m->exceptiontablelength * sizeof(exceptiontable);
+					m->rawexceptiontablelength * sizeof(raw_exception_entry);
 			}
 #endif
 
-			for (j = 0; j < m->exceptiontablelength; j++) {
+			for (j = 0; j < m->rawexceptiontablelength; j++) {
 				u4 idx;
-				m->exceptiontable[j].startpc = suck_u2(cb);
-				m->exceptiontable[j].endpc = suck_u2(cb);
-				m->exceptiontable[j].handlerpc = suck_u2(cb);
+				m->rawexceptiontable[j].startpc = suck_u2(cb);
+				m->rawexceptiontable[j].endpc = suck_u2(cb);
+				m->rawexceptiontable[j].handlerpc = suck_u2(cb);
 
 				idx = suck_u2(cb);
 				if (!idx) {
-					m->exceptiontable[j].catchtype.any = NULL;
+					m->rawexceptiontable[j].catchtype.any = NULL;
 
 				} else {
 					/* the classref is created later */
-					if (!(m->exceptiontable[j].catchtype.any =
+					if (!(m->rawexceptiontable[j].catchtype.any =
 						  (utf*)class_getconstant(c, idx, CONSTANT_Class)))
 						return false;
 				}
@@ -2120,12 +2120,12 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		if (!m->parseddesc)
 			goto return_exception;
 
-		for (j = 0; j < m->exceptiontablelength; j++) {
-			if (!m->exceptiontable[j].catchtype.any)
+		for (j = 0; j < m->rawexceptiontablelength; j++) {
+			if (!m->rawexceptiontable[j].catchtype.any)
 				continue;
-			if ((m->exceptiontable[j].catchtype.ref =
+			if ((m->rawexceptiontable[j].catchtype.ref =
 				 descriptor_pool_lookup_classref(descpool,
-						(utf *) m->exceptiontable[j].catchtype.any)) == NULL)
+						(utf *) m->rawexceptiontable[j].catchtype.any)) == NULL)
 				goto return_exception;
 		}
 

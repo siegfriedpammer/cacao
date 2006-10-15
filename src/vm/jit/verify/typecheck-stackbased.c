@@ -40,6 +40,7 @@
 #include <assert.h>
 
 #include <vm/jit/stack.h>
+#include <vm/jit/parse.h>
 #include <vm/jit/show.h>
 #include <typecheck-common.h>
 
@@ -698,7 +699,7 @@ bool typecheck_stackbased(jitdata *jd)
 	verifier_slot_t *dst;
 	verifier_state state;
 	basicblock *tbptr;
-	exceptiontable *ex;
+	exception_entry *ex;
 	typedescriptor exstack;
 	s4 skip = 0;
 
@@ -750,7 +751,7 @@ bool typecheck_stackbased(jitdata *jd)
 
     /* allocate the buffer of active exception handlers */
 
-    state.handlers = DMNEW(exceptiontable*, state.cd->exceptiontablelength + 1);
+    state.handlers = DMNEW(exception_entry*, state.jd->exceptiontablelength + 1);
 
     /* initialize instack of exception handlers */
 
@@ -827,7 +828,7 @@ bool typecheck_stackbased(jitdata *jd)
 			/* something?                                             */
 			/* XXX reuse code from variables based verifer? */
 			len = 0;
-			for (ex = STATE->cd->exceptiontable; ex ; ex = ex->down) {
+			for (ex = STATE->jd->exceptiontable; ex ; ex = ex->down) {
 				if ((ex->start->nr <= STATE->bptr->nr) && (ex->end->nr > STATE->bptr->nr)) {
 					LOG1("\tactive handler L%03d", ex->handler->nr);
 					STATE->handlers[len++] = ex;

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5444 2006-09-09 19:25:24Z edwin $
+   $Id: linker.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -451,7 +451,7 @@ static classinfo *link_class_intern(classinfo *c)
 	struct timespec time_start, time_resolving, time_compute_vftbl,
 					time_abstract, time_compute_iftbl, time_fill_vftbl,
 					time_offsets, time_fill_iftbl, time_finalizer,
-					time_exceptions, time_subclasses;
+					time_subclasses;
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
@@ -899,31 +899,6 @@ static classinfo *link_class_intern(classinfo *c)
 	}
 	RT_TIMING_GET_TIME(time_finalizer);
 
-	/* resolve exception class references */
-
-	for (i = 0; i < c->methodscount; i++) {
-		methodinfo *m = &(c->methods[i]);
-		classinfo *exclass;
-
-		for (j = 0; j < m->exceptiontablelength; j++) {
-			/* skip NULL (catch all) entries */
-			if (!m->exceptiontable[j].catchtype.any)
-				continue;
-
-			/* try to resolve the class reference lazily */
-			if (!resolve_classref_or_classinfo(m,
-											   m->exceptiontable[j].catchtype,
-											   resolveLazy, true, false,
-											   &exclass))
-				return NULL;
-
-			/* if resolved, enter the result of resolution in the table */
-			if (exclass != NULL)
-				m->exceptiontable[j].catchtype.cls = exclass;
-		}
-	}
-	RT_TIMING_GET_TIME(time_exceptions);
-	
 	/* final tasks */
 
 	linker_compute_subclasses(c);
@@ -947,8 +922,7 @@ static classinfo *link_class_intern(classinfo *c)
 	RT_TIMING_TIME_DIFF(time_fill_vftbl   ,time_offsets      ,RT_TIMING_LINK_OFFSETS);
 	RT_TIMING_TIME_DIFF(time_offsets      ,time_fill_iftbl   ,RT_TIMING_LINK_F_IFTBL);
 	RT_TIMING_TIME_DIFF(time_fill_iftbl   ,time_finalizer    ,RT_TIMING_LINK_FINALIZER);
-	RT_TIMING_TIME_DIFF(time_finalizer    ,time_exceptions   ,RT_TIMING_LINK_EXCEPTS);
-	RT_TIMING_TIME_DIFF(time_exceptions   ,time_subclasses   ,RT_TIMING_LINK_SUBCLASS);
+	RT_TIMING_TIME_DIFF(time_finalizer    ,time_subclasses   ,RT_TIMING_LINK_SUBCLASS);
 
 	/* just return c to show that we didn't had a problem */
 

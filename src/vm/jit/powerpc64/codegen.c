@@ -32,7 +32,7 @@
             Edwin Steiner
 	    Roland Lezuo
 
-   $Id: codegen.c 5776 2006-10-13 17:06:39Z tbfg $
+   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -93,7 +93,7 @@ bool codegen(jitdata *jd)
 	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
-	exceptiontable     *ex;
+	exception_entry    *ex;
 	u2                  currentline;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
@@ -172,11 +172,11 @@ bool codegen(jitdata *jd)
 
 	dseg_addlinenumbertablesize(cd);
 
-	(void) dseg_adds4(cd, cd->exceptiontablelength);       /* ExTableSize     */
+	(void) dseg_adds4(cd, jd->exceptiontablelength);       /* ExTableSize     */
 
 	/* create exception table */
 
-	for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
+	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
 		dseg_addtarget(cd, ex->start);
    		dseg_addtarget(cd, ex->end);
 		dseg_addtarget(cd, ex->handler);

@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 5186 2006-07-28 13:24:43Z twisti $
+   $Id: dseg.h 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -46,6 +46,7 @@ typedef struct dataref dataref;
 typedef struct exceptionref exceptionref;
 typedef struct patchref patchref;
 typedef struct linenumberref linenumberref;
+typedef struct dseg_exception_entry dseg_exception_entry;
 
 
 #include "config.h"
@@ -139,6 +140,21 @@ struct linenumberref {
 								/* NOTE: for linenumber <= -3 this is a the   */
 	                            /* (methodinfo *) of the inlined method       */
 	linenumberref *next;        /* next element in linenumberref list         */
+};
+
+
+/* dseg_exception_entry ********************************************************
+
+   Datastructure which represents an exception entry in the exception
+   table residing in the data segment.
+
+*******************************************************************************/
+
+struct dseg_exception_entry {
+	classref_or_classinfo  catchtype;
+	u1                    *handlerpc;
+	u1                    *endpc;
+	u1                    *startpc;
 };
 
 

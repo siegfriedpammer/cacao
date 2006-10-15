@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: schedule.h 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -58,7 +58,7 @@ typedef struct opcycles opcycles;
 #define SCHEDULE_UNIT_BRANCH    0x10
 
 
-#define M_SCHEDULE_SET_EXCEPTION_POINT    /*  if (cd->exceptiontablelength > 0) { schedule_do_schedule(sd); schedule_reset(sd, rd); } */
+#define M_SCHEDULE_SET_EXCEPTION_POINT    /*  if (jd->exceptiontablelength > 0) { schedule_do_schedule(sd); schedule_reset(sd, rd); } */
 
 
 struct opcycles {

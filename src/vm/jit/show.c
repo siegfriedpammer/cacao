@@ -56,6 +56,7 @@
 #include "vm/jit/show.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/stack.h"
+#include "vm/jit/parse.h"
 
 
 /* global variables ***********************************************************/
@@ -139,7 +140,7 @@ void show_method(jitdata *jd, int stage)
 	registerdata   *rd;
 	basicblock     *bptr;
 	basicblock     *lastbptr;
-	exceptiontable *ex;
+	exception_entry *ex;
 	s4              i, j;
 	u1             *u1ptr;
 	int             irstage;
@@ -187,8 +188,8 @@ void show_method(jitdata *jd, int stage)
 	printf("Line number table length: %d\n", m->linenumbercount);
 
 	if (stage >= SHOW_PARSE) {
-		printf("Exceptions (Number: %d):\n", cd->exceptiontablelength);
-		for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
+		printf("Exceptions (Number: %d):\n", jd->exceptiontablelength);
+		for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
 			printf("    L%03d ... ", ex->start->nr );
 			printf("L%03d  = ", ex->end->nr);
 			printf("L%03d", ex->handler->nr);

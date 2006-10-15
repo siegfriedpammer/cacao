@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5656 2006-10-03 20:57:15Z edwin $
+   $Id: parse.h 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -277,6 +277,12 @@
 #define OP_FMIREF_PREPARE(o, fmiref)                                   \
 	OP_PREPARE(o);                                                     \
     iptr->sx.s23.s3.fmiref   = (fmiref);
+
+
+/* external macros ************************************************************/
+
+#define BLOCK_OF(index)                                              \
+    (jd->basicblocks + jd->basicblockindex[index])
 
 
 /* function prototypes ********************************************************/

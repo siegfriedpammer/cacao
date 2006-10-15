@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: lsra.c 5240 2006-08-16 11:31:02Z christian $
+   $Id: lsra.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -509,14 +509,14 @@ void lsra_add_exceptions(jitdata *jd) {
 	m  = jd->m;
 	ls = jd->ls;
 
-	ex = jd->cd->exceptiontable;
+	ex = jd->exceptiontable;
 
 	/* add cfg edges from all bb of a try block to the start of the according */
 	/* exception handler to ensure the right order after depthfirst search    */
 
 #ifdef LSRA_DEBUG_VERBOSE
 	if (compileverbose)
-		printf("ExTable(%i): ", jd->cd->exceptiontablelength);
+		printf("ExTable(%i): ", jd->exceptiontablelength);
 #endif
 
 	for (; ex != NULL; ex = ex->down) {

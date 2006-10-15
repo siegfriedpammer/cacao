@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: loop.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: loop.h 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -177,7 +177,7 @@ struct LoopContainer {
 										/* is head of a loop                  */
 	LoopContainer  *tree_right;         /* used for tree hierarchie of loops  */
 	LoopContainer  *tree_down;
-	exceptiontable *exceptions;         /* list of exception in that loop     */
+	exception_entry *exceptions;        /* list of exception in that loop     */
 };
 
 

@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5781 2006-10-15 12:59:04Z edwin $
+   $Id: jit.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -956,8 +956,10 @@ static jitdata *jit_jitdata_new(methodinfo *m)
 
 	/* initialize variables */
 
-	jd->flags        = 0;
+	jd->flags = 0;
 	jd->isleafmethod = true;
+	jd->exceptiontable = NULL;
+	jd->exceptiontablelength = 0;
 
 	return jd;
 }
@@ -1381,7 +1383,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 # endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
 #if defined(ENABLE_SSA)
 		/* allocate registers */
-		if ((opt_lsra) && (cd->exceptiontablelength == 0)) {
+		if ((opt_lsra) && (jd->exceptiontablelength == 0)) {
 			jd->ls = DNEW(lsradata);
 			lsra(jd);
 

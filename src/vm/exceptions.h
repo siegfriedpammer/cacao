@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 5278 2006-08-25 07:54:27Z twisti $
+   $Id: exceptions.h 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -37,8 +37,6 @@
 #define _EXCEPTIONS_H
 
 /* forward typedefs ***********************************************************/
-
-typedef struct exceptionentry exceptionentry;
 
 #include "config.h"
 #include "vm/types.h"
@@ -60,21 +58,6 @@ typedef struct exceptionentry exceptionentry;
 #if !defined(ENABLE_THREADS)
 extern java_objectheader *_no_threads_exceptionptr;
 #endif
-
-
-/* exceptionentry **************************************************************
-
-   Datastructure which represents an exception entry in the exception
-   table residing in the data segment.
-
-*******************************************************************************/
-
-struct exceptionentry {
-	classref_or_classinfo  catchtype;
-	u1                    *handlerpc;
-	u1                    *endpc;
-	u1                    *startpc;
-};
 
 
 /* function prototypes ********************************************************/

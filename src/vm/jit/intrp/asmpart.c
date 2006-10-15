@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.c 5699 2006-10-05 17:52:03Z edwin $
+   $Id: asmpart.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/intrp/intrp.h"
+#include "vm/jit/dseg.h"
 
 
 static bool intrp_asm_vm_call_method_intern(methodinfo *m, s4 vmargscount,
@@ -179,7 +180,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 	classref_or_classinfo cr;
 	s4                    framesize;
 	s4                    issync;
-	exceptionentry       *ex;
+	dseg_exception_entry *ex;
 	s4                    exceptiontablelength;
 	s4                    i;
 
@@ -195,7 +196,8 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 
 	  framesize            = *((s4 *)             (((u1 *) f) + FrameSize));
 	  issync               = *((s4 *)             (((u1 *) f) + IsSync));
-	  ex                   =   (exceptionentry *) (((u1 *) f) + ExTableStart);
+	  ex                   =   (dseg_exception_entry *) 
+												  (((u1 *) f) + ExTableStart);
 	  exceptiontablelength = *((s4 *)             (((u1 *) f) + ExTableSize));
 
 #if !defined(NDEBUG)

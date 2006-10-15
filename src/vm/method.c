@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 5258 2006-08-22 09:02:25Z tbfg $
+   $Id: method.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -65,8 +65,8 @@ void method_free(methodinfo *m)
 	if (m->jcode)
 		MFREE(m->jcode, u1, m->jcodelength);
 
-	if (m->exceptiontable)
-		MFREE(m->exceptiontable, exceptiontable, m->exceptiontablelength);
+	if (m->rawexceptiontable)
+		MFREE(m->rawexceptiontable, raw_exception_entry, m->rawexceptiontablelength);
 
 	code_free_code_of_method(m);
 

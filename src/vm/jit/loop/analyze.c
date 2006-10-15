@@ -34,7 +34,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 5781 2006-10-15 12:59:04Z edwin $
+   $Id: analyze.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -499,8 +499,8 @@ void analyze_nested(methodinfo *m, codegendata *cd, loopdata *ld)
 	show_tree(ld->root, 0);
 	printf(" --- End ---\n");
 #endif
-	for (len = 0; len < cd->exceptiontablelength; ++len) 
-		insert_exception(m, ld->root, cd->exceptiontable + len);
+	for (len = 0; len < jd->exceptiontablelength; ++len) 
+		insert_exception(m, ld->root, jd->exceptiontable + len);
 
 
 	/* determine sequence of loops for optimization by topological sort       */
@@ -851,9 +851,9 @@ int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head
 		}
 
 	/* check for exceptions */
-	/* printf("done\n*** Analyze for EXCEPTIONS(%d) . ", cd->exceptiontablelength);	*/
+	/* printf("done\n*** Analyze for EXCEPTIONS(%d) . ", jd->exceptiontablelength);	*/
 
-	if (!cd->exceptiontablelength)		/* when there are no exceptions, exit		*/
+	if (!jd->exceptiontablelength)		/* when there are no exceptions, exit		*/
 		return 1;
 
 	if ((ld->c_exceptionGraph = (struct depthElement **) malloc(sizeof(struct depthElement *) * m->basicblockcount)) == NULL)
@@ -869,7 +869,7 @@ int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head
 
 	/* for all nodes that start catch block check whether they are part of loop	*/
 	for (i = 0; i < ld->c_old_xtablelength; i++) {	
-		value = m->basicblockindex[cd->exceptiontable[i].startpc];
+		value = m->basicblockindex[jd->exceptiontable[i].startpc];
    
 		le = lc->nodes;
 		while (le != NULL) {
@@ -882,10 +882,10 @@ int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head
 
 				/* build a graph structure, that contains all nodes that are	*/
 				/* part of the catc block										*/
-				dF_Exception(m, ld, -1, m->basicblockindex[cd->exceptiontable[i].handlerpc]);
+				dF_Exception(m, ld, -1, m->basicblockindex[jd->exceptiontable[i].handlerpc]);
 
 				/* if array index variables are modified there, return 0		*/
-				if (quick_scan(m, ld, m->basicblockindex[cd->exceptiontable[i].handlerpc]) > 0) {
+				if (quick_scan(m, ld, m->basicblockindex[jd->exceptiontable[i].handlerpc]) > 0) {
 #ifdef ENABLE_STATISTICS
 					ld->c_stat_exception++;
 #endif
@@ -2504,7 +2504,7 @@ void update_internal_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, st
 		memcpy(new, ex, sizeof(exceptiontable));
 
 		/* Increase number of exceptions                                        */
-		++cd->exceptiontablelength;
+		++jd->exceptiontablelength;
 
 		ex->next = new;
 		ex->down = new;
@@ -2552,7 +2552,7 @@ void update_external_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, st
 
 
 			/* Increase number of exceptions                                    */
-			++cd->exceptiontablelength;
+			++jd->exceptiontablelength;
 
 			ex->next = new;
 			ex->down = new;
@@ -2733,7 +2733,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	    }
 
 	/* adjust exceptions                                                        */
-	ex = cd->exceptiontable;
+	ex = jd->exceptiontable;
 	while (ex != NULL) {
 
 		/* if an exception covers whole loop and starts at first loop node, it  */
@@ -3653,7 +3653,7 @@ void optimize_loops(jitdata *jd)
 	/* init vars needed by all loops                                            */
 	ld->c_needs_redirection = false;
 	ld->c_newstart = NULL;
-	ld->c_old_xtablelength = cd->exceptiontablelength;
+	ld->c_old_xtablelength = jd->exceptiontablelength;
 
 	/* loops have been topologically sorted                                     */
 	lc = ld->c_allLoops;

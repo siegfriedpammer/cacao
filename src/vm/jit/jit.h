@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5784 2006-10-15 13:52:06Z edwin $
+   $Id: jit.h 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -47,6 +47,7 @@ typedef struct basicblock basicblock;
 typedef struct branchref branchref;
 typedef struct instruction instruction;
 typedef struct insinfo_inline insinfo_inline;
+typedef struct exception_entry exception_entry;
 
 
 #include "config.h"
@@ -99,7 +100,7 @@ struct interface_info {
 /* jitdata ********************************************************************/
 
 struct jitdata {
-	methodinfo      *m;                 /* methodinfo of the method compiled  */
+	methodinfo      *m;               /* methodinfo of the method compiled    */
 	codeinfo        *code;
 	codegendata     *cd;
 	registerdata    *rd;
@@ -107,11 +108,11 @@ struct jitdata {
 	loopdata        *ld;
 #endif
 #if defined(ENABLE_SSA) || defined(ENABLE_LSRA)
-	lsradata     *ls;
+	lsradata        *ls;
 #endif
 
-	u4               flags;             /* contains JIT compiler flags        */
-	bool             isleafmethod;      /* does method call subroutines       */
+	u4               flags;           /* contains JIT compiler flags          */
+	bool             isleafmethod;    /* does method call subroutines         */
 
 	instruction     *instructions;    /* ICMDs, valid between parse and stack */
 	basicblock      *basicblocks;     /* start of basic block list            */
@@ -123,17 +124,22 @@ struct jitdata {
 	s4               stackcount;      /* number of stackelements to allocate  */
                                       /* (passed from parse to stack)         */
 
-	varinfo *var;                     /* array of variables                   */
-	s4      vartop;                   /* next free index in var array         */
+	varinfo         *var;             /* array of variables                   */
+	s4               vartop;          /* next free index in var array         */
     
-	s4      varcount;                 /* number of variables in var array     */
-	s4      localcount;               /* number of locals at start of var ar. */
-    s4      *local_map; /* internal structure to rename(de-coallesc) locals   */
-	                    /* and keep the coalescing info for simplereg.        */
+	s4               varcount;        /* number of variables in var array     */
+	s4               localcount;      /* number of locals at start of var ar. */
+    s4              *local_map;  /* internal structure to rename(de-coallesc) */
+   						/* locals and keep the coalescing info for simplereg. */
 	                    /* local_map[local_index * 5 + local_type] =          */
 	                    /* new_index in rd->var or UNUSED                     */
-	interface_info *interface_map;
+
+	interface_info  *interface_map;
+
+	s4               exceptiontablelength; /* exceptiontable length           */
+	exception_entry *exceptiontable;       /* the exceptiontable              */
 };
+
 
 #define UNUSED                     -1
 
@@ -184,6 +190,19 @@ struct jitdata {
 
 #define VAROP(v) (jd->var + (v).varindex)
 #define VAR(i)   (jd->var + (i))
+
+
+/* exception_entry ************************************************************/
+
+struct exception_entry {
+	basicblock           *start;
+	basicblock           *end;
+	basicblock           *handler;
+	classref_or_classinfo catchtype; /* catchtype of exc. (NULL == catchall)  */
+	exception_entry      *next;      /* next in list of exceptions when       */
+									 /* loops are copied                      */
+	exception_entry      *down;      /* next exception_entry                  */
+};
 
 
 /* stack element structure ****************************************************/

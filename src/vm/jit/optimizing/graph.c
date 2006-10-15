@@ -354,10 +354,10 @@ void graph_add_exceptions(methodinfo *m, codegendata *cd, graphdata *gd) {
 	/* add cfg edges from all bb of a try block to the start of the according */
 	/* exception handler to ensure the right order after depthfirst search    */
 	exceptiontable *ex;
-	ex=cd->exceptiontable;
+	ex=jd->exceptiontable;
 #ifdef GRAPH_DEBUG_VERBOSE
 	if (compileverbose)
-		printf("ExTable(%i): ", cd->exceptiontablelength);
+		printf("ExTable(%i): ", jd->exceptiontablelength);
 #endif
 
 	for (; ex != NULL; ex = ex->down) {

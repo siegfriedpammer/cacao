@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5656 2006-10-03 20:57:15Z edwin $
+   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
 
 */
 
@@ -104,7 +104,7 @@ bool codegen(jitdata *jd)
 	varinfo            *var, *var1;
 	basicblock         *bptr;
 	instruction        *iptr;
-	exceptiontable     *ex;
+	exception_entry    *ex;
 	u2                  currentline;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
@@ -197,11 +197,11 @@ bool codegen(jitdata *jd)
 	   to the information gotten from the class file */
 	(void) dseg_addlinenumbertablesize(cd);
 
-	(void) dseg_adds4(cd, cd->exceptiontablelength);       /* ExTableSize     */
+	(void) dseg_adds4(cd, jd->exceptiontablelength);       /* ExTableSize     */
 	
 	/* create exception table */
 
-	for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
+	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
 		dseg_addtarget(cd, ex->start);
    		dseg_addtarget(cd, ex->end);
 		dseg_addtarget(cd, ex->handler);
