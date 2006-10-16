@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5714 2006-10-07 10:22:00Z edwin $
+   $Id: simplereg.c 5789 2006-10-16 09:02:40Z twisti $
 
 */
 
@@ -1945,7 +1945,7 @@ void simplereg_make_statistics(jitdata *jd)
 		count_interface_size += size_interface; /* accummulate the size of the interface (between bb boundaries) */
 		if (in_register) count_method_in_register++;
 		if (in_register) {
-			printf("INREGISTER: %s%s%s\n",m->class->name->text, m->name->text, m->descriptor->text);
+/* 			printf("INREGISTER: %s%s%s\n",m->class->name->text, m->name->text, m->descriptor->text); */
 		}
 }
 #endif /* defined(ENABLE_STATISTICS) */
