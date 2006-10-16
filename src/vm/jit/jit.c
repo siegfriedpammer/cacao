@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: jit.c 5788 2006-10-16 08:53:13Z twisti $
 
 */
 
@@ -1278,9 +1278,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
-		count_tryblocks    += m->exceptiontablelength;
 		count_javacodesize += m->jcodelength + 18;
-		count_javaexcsize  += m->exceptiontablelength * SIZEOF_VOID_P;
+		count_tryblocks    += jd->exceptiontablelength;
+		count_javaexcsize  += jd->exceptiontablelength * SIZEOF_VOID_P;
 	}
 #endif
 
