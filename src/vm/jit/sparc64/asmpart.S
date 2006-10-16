@@ -142,17 +142,18 @@ calljava_copyloop:
 
 calljava_nocopy:
 
-	mov		%i0,itmp1		/* pass method pointer via itmp1 */
+	mov   %i0,itmp1		/* pass method pointer via itmp1 */
 	
-	setx asm_call_jit_compiler,%l0,mptr_itmp2 /* fake virtual function call (2 instr) */
-	stx mptr_itmp2,[%sp + 17*8] /* store function address               */
-	addx %sp,16*8,mptr_itmp2  /* set method pointer                   */
+	setx  asm_call_jit_compiler,%l0,mptr_itmp2  /* fake virtual function call (2 instr) */
+	stx   mptr_itmp2,[%sp + 2047 + 17*8]        /* store function address               */
+	add   %sp,2047 + 16*8,mptr_itmp2            /* set method pointer                   */
 	
-	ldx  [1*8 + mptr_itmp2], pv_caller     /* method call as in Java               */
+	ldx  [1*8 + mptr_itmp2], pv_caller          /* method call as in Java               */
 	jmpl pv_caller,ra_caller                      /* call JIT compiler          */
 	nop
 calljava_jit2:
-	/* no need to restore pv */
+	/* pretend to restore pv */
+	add  ra_caller,(asm_vm_call_method - calljava_jit2 + 8),pv_callee
 	
 calljava_return:
 	mov %o0, %i0		/* pass on the return value	*/
@@ -196,9 +197,10 @@ asm_call_jit_compiler:
 	mov     itmp1,%o0             /* pass methodinfo pointer                  */
 	mov     mptr_itmp2,%o1        /* pass method pointer                      */
 	mov     %fp,%o2				  /* pass java sp (==fp)             		  */
-	mov     ra_callee,%o3         /* pass Java ra                             */
+	mov     ra_caller,%o3         /* pass Java ra                             */
 	mov     %o3,%o4               /* xpc is equal to ra                       */
 	call    jit_asm_compile       /* call jit compiler                        */
+	nop
 
 	mov     %o0,pv_callee         /* save return value into callee(!) pv      */
 	                              /* the in's we have are also the in's of the*/

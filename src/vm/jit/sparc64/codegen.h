@@ -129,21 +129,25 @@
  *       imm ..... switch to use rs2 as constant 13bit integer 
  *                  (REG means: use b as register number)
  *                  (IMM means: use b as signed immediate value)
- *                                                                       */
-
+ */
 #define M_OP3(op,op3,rd,rs1,rs2,imm) \
-	*((u4 *) cd->mcodeptr++) =  ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | (imm?((rs2)&0x1fff):(rs2)) )
+	do { \
+		*((u4 *) cd->mcodeptr) =  ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | (imm?((rs2)&0x1fff):(rs2)) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
+
 
 /* 3-address-operations: M_OP3C
  *       rcond ... condition opcode
  *       rs2 ..... register number or 10bit signed immediate
  *
  */
- 
 #define M_OP3C(op,op3,rcond,rd,rs1,rs2,imm) \
-	*((u4 *) cd->mcodeptr++) =  ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | \
-		((rcond) << 10) | (imm?((rs2)&0x3ff):(rs2)) )
-	
+	do { \
+		*((u4 *) cd->mcodeptr) = ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | \
+			((rcond) << 10) | (imm?((rs2)&0x3ff):(rs2)) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
 
 
 /* shift Format 3
@@ -156,8 +160,12 @@
  *    x ...... 0 => 32, 1 => 64 bit shift 
  */
 #define M_SHFT(op,op3,rs1,rs2,rd,imm,x) \
-	*((u4 *) cd->mcodeptr++) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((rs1) << 14) | ((rs2) << 0) | \
-		      ((imm) << 13) | ((x) << 12)  )
+	do { \
+		*((u4 *) cd->mcodeptr) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((rs1) << 14) | ((rs2) << 0) | \
+		      ((imm) << 13) | ((x) << 12) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
+
 
 /* Format 4
  *    op ..... opcode
@@ -168,12 +176,12 @@
  *    imm .... switch for constant
  *    cc{0-2}  32-bit 64-bit or fp condition
  */
- 
  #define M_FMT4(op,op3,rd,rs2,cond,cc2,cc1,cc0,imm) \
- 	*((u4 *) cd->mcodeptr++) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((cc2) << 18) |  ((cond) << 14) | \
- 		((imm) << 13) | ((cc1) << 12) | ((cc0) << 11) | ((rs2) << 0) )
-
-
+	do { \
+ 		*((u4 *) cd->mcodeptr) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((cc2) << 18) |  ((cond) << 14) | \
+ 			((imm) << 13) | ((cc1) << 12) | ((cc0) << 11) | ((rs2) << 0) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
 
 
 /* 3-address-floating-point-operation
@@ -185,7 +193,10 @@
      !!! 6-bit to 5-bit conversion done here !!!
 */ 
 #define M_FOP3(op,op3,opf,rd,rs1,rs2) \
-	*((u4 *) cd->mcodeptr++) =  ( (((s4)(op))<<30) | ((rd*2)<<25) | ((op3)<<19) | ((rs1*2) << 14) | ((opf)<<5) | (rs2*2) )
+	do { \
+		*((u4 *) cd->mcodeptr) =  ( (((s4)(op))<<30) | ((rd*2)<<25) | ((op3)<<19) | ((rs1*2) << 14) | ((opf)<<5) | (rs2*2) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
 
 
 /**** format 2 operations ********/
@@ -199,8 +210,12 @@
       anul .... annullment bit
 */
 #define M_BRAREG(op,rcond,rs1,disp16,p,anul) \
-	*((u4 *) cd->mcodeptr++) = ( (((s4)(op))<<30) | ((anul)<<29) | (0<<28) | ((rcond)<<25) | (3<<22) | \
-		( ((disp16)& 0xC000) << 6 ) | (p << 19) | ((rs1) << 14) | ((disp16)&0x3fff) )
+	do { \
+		*((u4 *) cd->mcodeptr) = ( (((s4)(op))<<30) | ((anul)<<29) | (0<<28) | ((rcond)<<25) | (3<<22) | \
+			( ((disp16)& 0xC000) << 6 ) | (p << 19) | ((rs1) << 14) | ((disp16)&0x3fff) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
+
 		
 /* branch on integer reg instruction 
       op,op2 .... opcodes
@@ -211,17 +226,24 @@
       anul .... annullment bit
 */		
 #define M_BRACC(op,op2,cond,disp19,ccx,p,anul) \
-	*((u4 *) cd->mcodeptr++) = ( (((s4)(op))<<30) | ((anul)<<29) | ((cond)<<25) | (op2<<22) | (ccx<<20) | \
-		(p << 19 ) | (disp19)  )    
-        
-/************** end-user instructions (try to follow asm style) ***************/
+	do { \
+		*((u4 *) cd->mcodeptr) = ( (((s4)(op))<<30) | ((anul)<<29) | ((cond)<<25) | (op2<<22) | (ccx<<20) | \
+			(p << 19 ) | (disp19)  ); \
+		cd->mcodeptr += 4; \
+	} while (0)
 
+        
+/************** end-user instructions (see a SPARC asm manual) ***************/
 
 #define M_SETHI(imm22, rd) \
-	*((u4 *) cd->mcodeptr++) = ((((s4)(0x00)) << 30) | ((rd) << 25) | ((0x04)<<22) | ((imm22)&0x3FFFFF) )
+	do { \
+		*((u4 *) cd->mcodeptr) = ((((s4)(0x00)) << 30) | ((rd) << 25) | ((0x04)<<22) | ((imm22)&0x3FFFFF) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
 
 
-#define M_NOP (M_SETHI(0,0))	/* nop	*/
+
+#define M_NOP M_SETHI(0,0)      /* nop */
 
 #define M_AND(rs1,rs2,rd)       M_OP3(0x02,0x01,rd,rs1,rs2,REG)     /* 64b c = a &  b */
 #define M_AND_IMM(rs1,rs2,rd)	M_OP3(0x02,0x01,rd,rs1,rs2,IMM)

@@ -62,7 +62,8 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
    
    Machine code:
 
-   6b5b4000    jsr     (pv)
+   6b5b4000    jmpl    (pv)
+   10000000    nop
    277afffe    ldah    pv,-2(ra)
    237ba61c    lda     pv,-23012(pv)
 
@@ -71,18 +72,22 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
 	u1 *pv;
-	u4  mcode;
-	s4  offset;
+	u8  mcode;
+	u4  mcode_masked;
+	s2  offset;
 
 	pv = ra;
 
-	/* get first instruction word after jump */
-
-	mcode = *((u4 *) ra);
+	/* get the instruction word after jump and nop */
+	mcode = *((u4 *) (ra+8) );
 
 	/* check if we have 2 instructions (ldah, lda) */
 
-	if ((mcode >> 16) == 0x277a) {
+	/* shift instruction word,  mask rd and rs1    */ 
+	mcode_masked = (mcode >> 13) & 0x60fc1;
+
+	if (mcode_masked == 0x40001) {
+#if 0
 		/* get displacement of first instruction (ldah) */
 
 		offset = (s4) (mcode << 16);
@@ -101,8 +106,10 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 		/* get displacement of first instruction (lda) */
 
 		assert((mcode >> 16) == 0x237a);
+#endif
+		/* mask and extend the negative sign for the 13 bit immediate */
+		offset = (s2) ((mcode & 0x00001fff) | 0xffffe000);
 
-		offset = (s2) (mcode & 0x0000ffff);
 		pv += offset;
 	}
 
