@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: parse.c 5790 2006-10-16 09:59:52Z edwin $
 
 */
 
@@ -245,7 +245,6 @@ throw_invalid_bytecode_index:
 
 static bool parse_resolve_exception_table(jitdata *jd)
 {
-	codegendata         *cd;
 	methodinfo          *m;
 	raw_exception_entry *rex;
 	exception_entry     *ex;
@@ -254,7 +253,6 @@ static bool parse_resolve_exception_table(jitdata *jd)
 	classinfo           *exclass;
 
 	m = jd->m;
-	cd = jd->cd;
 
 	len = m->rawexceptiontablelength;
 
@@ -337,7 +335,6 @@ bool parse(jitdata *jd)
 {
 	methodinfo  *m;                     /* method being parsed                */
 	codeinfo    *code;
-	codegendata *cd;
 	parsedata_t  pd;
 	instruction *iptr;                  /* current ptr into instruction array */
 	s4           ipc;                   /* intermediate instruction counter   */
@@ -370,11 +367,10 @@ bool parse(jitdata *jd)
 
 	m    = jd->m;
 	code = jd->code;
-	cd   = jd->cd;
 
 	/* allocate buffers for local variable renaming */
-	local_map = DMNEW(int, cd->maxlocals * 5);
-	for (i = 0; i < cd->maxlocals; i++) {
+	local_map = DMNEW(int, m->maxlocals * 5);
+	for (i = 0; i < m->maxlocals; i++) {
 		local_map[i * 5 + 0] = 0;
 		local_map[i * 5 + 1] = 0;
 		local_map[i * 5 + 2] = 0;
@@ -1658,7 +1654,7 @@ invoke_method:
 		/* iterate over local_map[0..m->maxlocals*5] and set all existing  */
 		/* index,type pairs (local_map[index*5+type]==1) to an unique value */
 		/* -> == new local var index */
-		for(i = 0; i < (cd->maxlocals * 5); i++, mapptr++) {
+		for(i = 0; i < (m->maxlocals * 5); i++, mapptr++) {
 			if (*mapptr)
 				*mapptr = nlocals++;
 			else
@@ -1699,7 +1695,7 @@ invoke_method:
 
 		/* set types of all locals in jd->var */
 
-		for(mapptr = local_map, i = 0; i < (cd->maxlocals * 5); i++, mapptr++)
+		for(mapptr = local_map, i = 0; i < (m->maxlocals * 5); i++, mapptr++)
 			if (*mapptr != UNUSED)
 				VAR(*mapptr)->type = i%5;
 	}

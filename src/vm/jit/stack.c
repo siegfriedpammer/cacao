@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: stack.c 5790 2006-10-16 09:59:52Z edwin $
 
 */
 
@@ -1929,7 +1929,6 @@ bool stack_analyse(jitdata *jd)
 {
 	methodinfo   *m;              /* method being analyzed                    */
 	codeinfo     *code;
-	codegendata  *cd;
 	registerdata *rd;
 	stackdata_t   sd;
 #if defined(ENABLE_SSA)
@@ -1976,7 +1975,6 @@ bool stack_analyse(jitdata *jd)
 
 	m    = jd->m;
 	code = jd->code;
-	cd   = jd->cd;
 	rd   = jd->rd;
 #if defined(ENABLE_SSA)
 	ls   = jd->ls;
@@ -2031,7 +2029,7 @@ bool stack_analyse(jitdata *jd)
 	for (i = 0; i < m->maxstack * 5; i++)
 		jd->interface_map[i].flags = UNUSED;
 
-	last_store_boundary = DMNEW(stackptr, cd->maxlocals);
+	last_store_boundary = DMNEW(stackptr, m->maxlocals);
 
 	/* initialize flags and invars (none) of first block */
 
@@ -2165,7 +2163,7 @@ bool stack_analyse(jitdata *jd)
 				/* reset variables for dependency checking */
 
 				coalescing_boundary = sd.new;
-				for( i = 0; i < cd->maxlocals; i++)
+				for( i = 0; i < m->maxlocals; i++)
 					last_store_boundary[i] = sd.new;
 
  				/* remember the start of this block's variables */
