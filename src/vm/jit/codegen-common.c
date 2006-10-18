@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen-common.c 5801 2006-10-18 16:55:43Z edwin $
 
 */
 
@@ -799,6 +799,7 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 	jd->m     = m;
 	jd->cd    = DNEW(codegendata);
 	jd->rd    = DNEW(registerdata);
+	jd->flags = 0;
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
