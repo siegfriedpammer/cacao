@@ -57,7 +57,7 @@ noinst_LTLIBRARIES = libarch.la
 
 if ENABLE_DISASSEMBLER
 DISASS_SOURCES = \
-    disass.c
+	disass.c
 endif
 
 
@@ -71,8 +71,7 @@ libarch_la_SOURCES = \
 	\
 	md-abi.c \
 	md-abi.h \
-	md.c \
-	md.h
+	md.c
 
 libarch_la_LIBADD = \
 	$(OS_DIR)/libmd.la
