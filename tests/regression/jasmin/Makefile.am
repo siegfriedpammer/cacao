@@ -118,7 +118,7 @@ JASMIN_TESTS = \
 
 
 
-SOURCE_FILES = \
+EXTRA_DIST = \
 	$(srcdir)/runtest \
 	$(srcdir)/show \
 	$(JASMIN_TESTS)
