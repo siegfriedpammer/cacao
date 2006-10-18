@@ -125,7 +125,7 @@ do
 		rm -f "$TESTSIA"
 		touch "$TESTSIA"
 		$JAVA $JAVAFLAGS -sia "$TESTBASENAME" >"$TESTSIA" 2>/dev/null
-		cat "$TESTSIA" | sed -n '/^'"$TESTBASENAME"'\.main/,$p' | sed '/^=====.*flags: -1/,$d' | tee TEST | grep "$EXPECTICMD"
+		cat "$TESTSIA" | sed -n '/^'"$TESTBASENAME"'\.main/,$p' | sed '/^=====.*flags: -1/,$d' | grep "$EXPECTICMD"
 	fi
 
     shift
