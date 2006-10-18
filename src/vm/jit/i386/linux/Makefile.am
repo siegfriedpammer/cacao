@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
+## $Id: Makefile.am 5798 2006-10-18 15:57:10Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,7 +36,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 LIBS =
 
-noinst_HEADERS =
+noinst_HEADERS = \
+	md-asm.h
 
 noinst_LTLIBRARIES = libmd.la
 
