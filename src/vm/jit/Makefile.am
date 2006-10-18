@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5766 2006-10-13 11:28:10Z edwin $
+## $Id: Makefile.am 5796 2006-10-18 15:19:39Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,6 +41,7 @@ DIST_SUBDIRS = \
 	ifconv \
 	inline \
 	loop \
+	optimizing \
 	profile \
 	schedule \
 	tools \
