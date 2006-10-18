@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5790 2006-10-16 09:59:52Z edwin $
+   $Id: stack.c 5791 2006-10-18 14:53:05Z edwin $
 
 */
 
@@ -2589,10 +2589,32 @@ putconst_tail:
 								if (iptr[1].flags.bits & INS_FLAG_UNRESOLVED) {
 									iptr->sx.s23.s3.uf = iptr[1].sx.s23.s3.uf;
 									iptr->flags.bits |= INS_FLAG_UNRESOLVED;
+									fmiref = iptr->sx.s23.s3.uf->fieldref;
 								}
 								else {
-									iptr->sx.s23.s3.fmiref = iptr[1].sx.s23.s3.fmiref;
+									fmiref = iptr[1].sx.s23.s3.fmiref;
+									iptr->sx.s23.s3.fmiref = fmiref;
 								}
+
+#if defined(ENABLE_VERIFIER)
+								expectedtype = fmiref->parseddesc.fd->type;
+								switch (iptr[0].opc) {
+									case ICMD_ICONST:
+										if (expectedtype != TYPE_INT)
+											goto throw_stack_type_error;
+										break;
+									case ICMD_LCONST:
+										if (expectedtype != TYPE_LNG)
+											goto throw_stack_type_error;
+										break;
+									case ICMD_ACONST:
+										if (expectedtype != TYPE_ADR)
+											goto throw_stack_type_error;
+										break;
+									default:
+										assert(0);
+								}
+#endif /* defined(ENABLE_VERIFIER) */
 								
 								switch (iptr[1].opc) {
 									case ICMD_PUTSTATIC:
