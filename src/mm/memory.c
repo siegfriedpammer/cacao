@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 5170 2006-07-25 12:33:52Z twisti $
+   $Id: memory.c 5803 2006-10-19 09:25:41Z twisti $
 
 */
 
@@ -81,7 +81,7 @@
 *******************************************************************************/
 
 #if !defined(ENABLE_THREADS)
-static dumpinfo _no_threads_dumpinfo;
+static dumpinfo_t _no_threads_umpinfo;
 #endif
 
 #if defined(ENABLE_THREADS)
@@ -353,8 +353,8 @@ void *dump_alloc(s4 size)
 
 #else /* !defined(DISABLE_DUMP) */
 
-	void     *m;
-	dumpinfo *di;
+	void       *m;
+	dumpinfo_t *di;
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
@@ -367,12 +367,12 @@ void *dump_alloc(s4 size)
 	size = ALIGN(size, ALIGNSIZE);
 
 	if (di->useddumpsize + size > di->allocateddumpsize) {
-		dumpblock *newdumpblock;
+		dumpblock_t *newdumpblock;
 		s4         newdumpblocksize;
 
 		/* allocate a new dumplist structure */
 
-		newdumpblock = memory_checked_alloc(sizeof(dumpblock));
+		newdumpblock = memory_checked_alloc(sizeof(dumpblock_t));
 
 		/* If requested size is greater than the default, make the new dump   */
 		/* block as big as the size requested. Else use the default size.     */
@@ -480,7 +480,7 @@ void dump_release(s4 size)
 
 #else /* !defined(DISABLE_DUMP) */
 
-	dumpinfo *di;
+	dumpinfo_t *di;
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
@@ -495,7 +495,7 @@ void dump_release(s4 size)
 	di->useddumpsize = size;
 
 	while (di->currentdumpblock && di->allocateddumpsize - di->currentdumpblock->size >= di->useddumpsize) {
-		dumpblock *tmp = di->currentdumpblock;
+		dumpblock_t *tmp = di->currentdumpblock;
 
 		di->allocateddumpsize -= tmp->size;
 		di->currentdumpblock = tmp->prev;
@@ -532,14 +532,14 @@ s4 dump_size(void)
 
 #else /* !defined(DISABLE_DUMP) */
 
-	dumpinfo *di;
+	dumpinfo_t *di;
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
 
 	di = DUMPINFO;
 
-	if (!di)
+	if (di == NULL)
 		return 0;
 
 	return di->useddumpsize;

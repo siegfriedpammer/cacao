@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 5158 2006-07-18 14:05:43Z twisti $
+   $Id: memory.h 5803 2006-10-19 09:25:41Z twisti $
 
 */
 
@@ -38,14 +38,42 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct dumpblock dumpblock;
-typedef struct dumpinfo dumpinfo;
+typedef struct dumpblock_t dumpblock_t;
+typedef struct dumpinfo_t  dumpinfo_t;
 
 #include "config.h"
 
 #include <string.h>
 
 #include "vm/types.h"
+
+
+/* ATTENTION: We need to define dumpblock_t and dumpinfo_t before
+   internal includes, as we need dumpinfo_t as nested structure in
+   threadobject. */
+
+/* dumpblock ******************************************************************/
+
+#define DUMPBLOCKSIZE    2 << 13    /* 2 * 8192 bytes */
+#define ALIGNSIZE        8
+
+struct dumpblock_t {
+	dumpblock_t *prev;
+	u1          *dumpmem;
+	s4           size;
+};
+
+
+/* dumpinfo *******************************************************************/
+
+struct dumpinfo_t {
+	dumpblock_t *currentdumpblock;
+	s4           allocateddumpsize;
+	s4           useddumpsize;
+};
+
+
+/* internal includes **********************************************************/
 
 #include "mm/boehm.h"
 
@@ -100,29 +128,6 @@ Some more macros:
 	
 
 */
-
-
-#define DUMPBLOCKSIZE    2 << 13    /* 2 * 8192 bytes */
-#define ALIGNSIZE        8
-
-
-/* dumpblock ******************************************************************/
-
-struct dumpblock {
-	dumpblock *prev;
-	u1        *dumpmem;
-	s4         size;
-};
-
-
-/* dumpinfo *******************************************************************/
-
-struct dumpinfo {
-	dumpblock *currentdumpblock;
-	s4         allocateddumpsize;
-	s4         useddumpsize;
-};
-
 
 #define ALIGN(pos,size)       ((((pos) + (size) - 1) / (size)) * (size))
 #define PADDING(pos,size)     (ALIGN((pos),(size)) - (pos))
