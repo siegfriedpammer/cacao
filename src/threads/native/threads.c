@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5704 2006-10-05 20:30:12Z edwin $
+   $Id: threads.c 5805 2006-10-19 09:32:29Z twisti $
 
 */
 
@@ -642,6 +642,7 @@ int cacao_suspendhandler(ucontext_t *ctx)
 	return 1;
 }
 #endif
+
 
 /* threads_set_current_threadobject ********************************************
 
@@ -1768,12 +1769,14 @@ void threads_java_lang_Thread_set_priority(java_lang_Thread *t, s4 priority)
 
 void threads_dump(void)
 {
-	threadobject       *tobj;
+	threadobject       *thread;
 	java_lang_VMThread *vmt;
 	java_lang_Thread   *t;
 	utf                *name;
 
-	tobj = mainthreadobj;
+	thread = mainthreadobj;
+
+	/* XXX we should stop the world here */
 
 	printf("Full thread dump CACAO "VERSION":\n");
 
@@ -1782,12 +1785,12 @@ void threads_dump(void)
 	do {
 		/* get thread objects */
 
-		vmt = &tobj->o;
+		vmt = &thread->o;
 		t   = vmt->thread;
 
 		/* the thread may be currently in initalization, don't print it */
 
-		if (t) {
+		if (t != NULL) {
 			/* get thread name */
 
 			name = javastring_toutf(t->name, false);
@@ -1800,22 +1803,23 @@ void threads_dump(void)
 				printf("daemon ");
 
 #if SIZEOF_VOID_P == 8
-			printf("prio=%d tid=0x%016lx\n", t->priority, tobj->tid);
+			printf("prio=%d tid=0x%016lx\n", t->priority, thread->tid);
 #else
-			printf("prio=%d tid=0x%08lx\n", t->priority, tobj->tid);
+			printf("prio=%d tid=0x%08lx\n", t->priority, thread->tid);
 #endif
 
 			/* send SIGUSR1 to thread to print stacktrace */
 
-			pthread_kill(tobj->tid, SIGUSR1);
+/* 			pthread_kill(thread->tid, SIGUSR1); */
+			stacktrace_dump_trace(thread);
 
 			/* sleep this thread a bit, so the signal can reach the thread */
 
 			threads_sleep(10, 0);
 		}
 
-		tobj = tobj->next;
-	} while (tobj && (tobj != mainthreadobj));
+		thread = thread->next;
+	} while ((thread != NULL) && (thread != mainthreadobj));
 }
 
 

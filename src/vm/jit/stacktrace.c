@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5251 2006-08-18 13:01:00Z twisti $
+   $Id: stacktrace.c 5805 2006-10-19 09:32:29Z twisti $
 
 */
 
@@ -1420,7 +1420,7 @@ static void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 
 *******************************************************************************/
 
-void stacktrace_dump_trace(void)
+void stacktrace_dump_trace(threadobject *thread)
 {
 	stacktracebuffer *stb;
 	s4                dumpsize;
@@ -1453,14 +1453,13 @@ void stacktrace_dump_trace(void)
 
 	/* create a stacktrace for the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
+	stb = stacktrace_create(thread);
 
 	/* print stacktrace */
 
-	if (stb) {
+	if (stb)
 		stacktrace_print_trace_from_buffer(stb);
-
-	} else {
+	else {
 		puts("\t<<No stacktrace available>>");
 		fflush(stdout);
 	}

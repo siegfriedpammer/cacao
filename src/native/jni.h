@@ -1,4 +1,4 @@
-/* native/jni.h - JNI types and data structures
+/* src/native/jni.h - JNI types and data structures
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -29,24 +29,42 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 5195 2006-07-31 15:26:10Z twisti $
+   $Id: jni.h 5805 2006-10-19 09:32:29Z twisti $
 
 */
+
+
+/* GNU Classpath jni.h *********************************************************
+
+   ATTENTION: We include this file before we actually define our own
+   jni.h.  We do this because, otherwise we can get into unresolvable
+   circular header dependencies.
+
+   This is OK as GNU Classpath defines:
+
+   #define _CLASSPATH_JNI_H
+
+   CLASSPATH_JNI_H is in config.h defined.
+
+*******************************************************************************/
+
+#include "config.h"
+
+#include CLASSPATH_JNI_H
 
 
 #ifndef _JNI_H
 #define _JNI_H
 
-#include "config.h"
+/* forward typedefs ***********************************************************/
+
+typedef struct localref_table localref_table;
+
+
 #include "vm/types.h"
 
 #include "vm/global.h"
 #include "vm/method.h"
-
-
-/* Include the JNI header from GNU Classpath **********************************/
-
-#include CLASSPATH_JNI_H
 
 
 /* _Jv_JNIEnv *****************************************************************/
@@ -85,8 +103,6 @@ extern struct JNINativeInterface _Jv_JNINativeInterface;
 /* local reference table ******************************************************/
 
 #define LOCALREFTABLE_CAPACITY    16
-
-typedef struct localref_table localref_table;
 
 /* localref_table **************************************************************
 

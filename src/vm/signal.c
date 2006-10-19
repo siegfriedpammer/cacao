@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 5540 2006-09-20 23:22:21Z michi $
+   $Id: signal.c 5805 2006-10-19 09:32:29Z twisti $
 
 */
 
@@ -54,7 +54,6 @@
 
 void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p);
 void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p);
-void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p);
 
 
 /* signal_init *****************************************************************
@@ -116,17 +115,11 @@ void signal_init(void)
 	/* catch SIGQUIT for thread dump */
 
 #if defined(ENABLE_THREADS)
-#if !defined(__FREEBSD__)
+# if !defined(__FREEBSD__)
 	act.sa_sigaction = signal_handler_sigquit;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGQUIT, &act, NULL);
-
-	/* XXX boehm uses SIGUSR1 for suspend on freebsd */
-
-	act.sa_sigaction = signal_handler_sigusr1;
-	act.sa_flags = SA_SIGINFO;
-	sigaction(SIGUSR1, &act, NULL);
-#endif
+# endif
 #endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)
@@ -177,22 +170,6 @@ void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p)
 
 	vm_exit(0);
 }
-
-
-/* signal_handler_sigusr1 ******************************************************
-
-   XXX
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
-{
-	/* call stacktrace function */
-
-	stacktrace_dump_trace();
-}
-#endif
 
 
 /*

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 5088 2006-07-08 20:16:05Z twisti $
+   $Id: stacktrace.h 5805 2006-10-19 09:32:29Z twisti $
 
 */
 
@@ -44,6 +44,12 @@ typedef struct stacktrace_entry stacktrace_entry;
 
 #include "config.h"
 #include "vm/types.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#else
+# include "threads/none/threads.h"
+#endif
 
 #include "vm/method.h"
 
@@ -166,7 +172,7 @@ java_objectarray  *stacktrace_getClassContext(void);
 classinfo         *stacktrace_getCurrentClass(void);
 java_objectarray  *stacktrace_getStack(void);
 
-void stacktrace_dump_trace(void);
+void stacktrace_dump_trace(threadobject *thread);
 void stacktrace_print_trace(java_objectheader *xptr);
 
 

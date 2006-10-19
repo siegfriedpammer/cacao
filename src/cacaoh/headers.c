@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5739 2006-10-11 19:43:12Z edwin $
+   $Id: headers.c 5805 2006-10-19 09:32:29Z twisti $
 
 */
 
@@ -182,6 +182,7 @@ void typeinfo_print(FILE *file,typeinfo *info,int indent) {}
 void typeinfo_print_short(FILE *file,typeinfo *info) {}
 
 void exceptions_print_exception(java_objectheader *xptr) {}
+void stacktrace_dump_trace(threadobject *thread) {}
 void stacktrace_print_trace(java_objectheader *xptr) {}
 java_objectarray *stacktrace_getClassContext() { return NULL; }
 void code_free_code_of_method(methodinfo *m) {}
