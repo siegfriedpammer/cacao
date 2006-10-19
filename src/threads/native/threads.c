@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5805 2006-10-19 09:32:29Z twisti $
+   $Id: threads.c 5806 2006-10-19 10:10:23Z twisti $
 
 */
 
@@ -1631,7 +1631,7 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 }
 
 
-/* threads_interrupt_thread ****************************************************
+/* threads_thread_interrupt ****************************************************
 
    Interrupt the given thread.
 
@@ -1643,17 +1643,26 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 
 *******************************************************************************/
 
-void threads_interrupt_thread(java_lang_VMThread *thread)
+void threads_thread_interrupt(java_lang_VMThread *thread)
 {
-	threadobject *t = (threadobject*) thread;
+	threadobject *t;
 
-	/* signal the thread a "waitcond" and tell it that it has been */
-	/* interrupted                                                 */
+	t = (threadobject *) thread;
+
+	/* Signal the thread a "waitcond" and tell it that it has been
+	   interrupted. */
 
 	pthread_mutex_lock(&t->waitmutex);
+
+	/* Interrupt blocking system call using a signal. */
+
+	pthread_kill(t->tid, SIGHUP);
+
 	if (t->sleeping)
 		pthread_cond_signal(&t->waitcond);
+
 	t->interrupted = true;
+
 	pthread_mutex_unlock(&t->waitmutex);
 }
 
@@ -1728,7 +1737,7 @@ void threads_sleep(s8 millis, s4 nanos)
 }
 
 
-/* threads_yield *****************************************************************
+/* threads_yield ***************************************************************
 
    Yield to the scheduler.
 
@@ -1740,7 +1749,7 @@ void threads_yield(void)
 }
 
 
-/* threads_java_lang_Thread_set_priority ***********************************************************
+/* threads_java_lang_Thread_set_priority ***************************************
 
    Set the priority for the given java.lang.Thread.
 
@@ -1808,14 +1817,9 @@ void threads_dump(void)
 			printf("prio=%d tid=0x%08lx\n", t->priority, thread->tid);
 #endif
 
-			/* send SIGUSR1 to thread to print stacktrace */
+			/* dump trace of thread */
 
-/* 			pthread_kill(thread->tid, SIGUSR1); */
 			stacktrace_dump_trace(thread);
-
-			/* sleep this thread a bit, so the signal can reach the thread */
-
-			threads_sleep(10, 0);
 		}
 
 		thread = thread->next;

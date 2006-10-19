@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 5805 2006-10-19 09:32:29Z twisti $
+   $Id: signal.c 5806 2006-10-19 10:10:23Z twisti $
 
 */
 
@@ -52,8 +52,9 @@
 
 /* function prototypes ********************************************************/
 
-void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p);
+void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p);
 void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p);
+void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p);
 
 
 /* signal_init *****************************************************************
@@ -71,7 +72,6 @@ void signal_init(void)
 
 	sigemptyset(&act.sa_mask);
 
-
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
@@ -80,7 +80,7 @@ void signal_init(void)
 
 		if (!checknull) {
 			act.sa_sigaction = md_signal_handler_sigsegv;
-			act.sa_flags = SA_NODEFER | SA_SIGINFO;
+			act.sa_flags     = SA_NODEFER | SA_SIGINFO;
 
 #if defined(SIGSEGV)
 			sigaction(SIGSEGV, &act, NULL);
@@ -91,12 +91,11 @@ void signal_init(void)
 #endif
 		}
 
-
 		/* catch ArithmeticException */
 
 #if defined(__I386__) || defined(__X86_64__)
 		act.sa_sigaction = md_signal_handler_sigfpe;
-		act.sa_flags = SA_NODEFER | SA_SIGINFO;
+		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
 		sigaction(SIGFPE, &act, NULL);
 #endif
 # if defined(ENABLE_INTRP)
@@ -104,20 +103,26 @@ void signal_init(void)
 # endif
 #endif /* !defined(ENABLE_INTRP) */
 
+#if defined(ENABLE_THREADS)
+	/* catch SIGHUP for threads_thread_interrupt */
+
+	act.sa_sigaction = signal_handler_sighup;
+	act.sa_flags     = 0;
+	sigaction(SIGHUP, &act, NULL);
+#endif
 
 	/* catch SIGINT for exiting properly on <ctrl>-c */
 
 	act.sa_sigaction = signal_handler_sigint;
-	act.sa_flags = SA_NODEFER | SA_SIGINFO;
+	act.sa_flags     = SA_NODEFER | SA_SIGINFO;
 	sigaction(SIGINT, &act, NULL);
 
-
+#if defined(ENABLE_THREADS)
 	/* catch SIGQUIT for thread dump */
 
-#if defined(ENABLE_THREADS)
 # if !defined(__FREEBSD__)
 	act.sa_sigaction = signal_handler_sigquit;
-	act.sa_flags = SA_SIGINFO;
+	act.sa_flags     = SA_SIGINFO;
 	sigaction(SIGQUIT, &act, NULL);
 # endif
 #endif
@@ -126,7 +131,7 @@ void signal_init(void)
 	/* install signal handler for profiling sampling */
 
 	act.sa_sigaction = md_signal_handler_sigusr2;
-	act.sa_flags = SA_SIGINFO;
+	act.sa_flags     = SA_SIGINFO;
 	sigaction(SIGUSR2, &act, NULL);
 #endif
 
@@ -134,9 +139,25 @@ void signal_init(void)
 }
 
 
+/* signal_handler_sighup *******************************************************
+
+   This handler is required by threads_thread_interrupt and does
+   nothing.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p)
+{
+	/* do nothing */
+}
+#endif
+
+
 /* signal_handler_sigquit ******************************************************
 
-   XXX
+   Handle for SIGQUIT (<ctrl>-\) which print a stacktrace for every
+   running thread.
 
 *******************************************************************************/
 

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 5804 2006-10-19 09:27:24Z twisti $
+   $Id: threads.h 5806 2006-10-19 10:10:23Z twisti $
 
 */
 
@@ -215,7 +215,7 @@ void threads_yield(void);
 
 bool threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
-void threads_interrupt_thread(java_lang_VMThread *);
+void threads_thread_interrupt(java_lang_VMThread *);
 bool threads_check_if_interrupted_and_reset(void);
 bool threads_thread_has_been_interrupted(java_lang_VMThread *);
 

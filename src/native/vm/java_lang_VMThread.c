@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_VMThread.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_VMThread.c 5806 2006-10-19 10:10:23Z twisti $
 
 */
 
@@ -92,7 +92,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
 JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(ENABLE_THREADS)
-	threads_interrupt_thread(this);
+	threads_thread_interrupt(this);
 #endif
 }
 

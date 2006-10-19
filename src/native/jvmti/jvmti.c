@@ -31,7 +31,7 @@
             Samuel Vinson
             Christan Thalinger
    
-   $Id: jvmti.c 5147 2006-07-17 15:11:15Z twisti $
+   $Id: jvmti.c 5806 2006-10-19 10:10:23Z twisti $
 
 */
 
@@ -670,7 +670,7 @@ InterruptThread (jvmtiEnv * env, jthread thread)
 
 	CHECK_THREAD_IS_ALIVE(thread);
 
-	threads_interrupt_thread(((java_lang_Thread*)thread)->vmThread);
+	threads_thread_interrupt(((java_lang_Thread *) thread)->vmThread);
 
 
     return JVMTI_ERROR_NONE;
