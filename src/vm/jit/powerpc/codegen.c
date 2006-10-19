@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen.c 5802 2006-10-19 09:23:26Z twisti $
 
 */
 
@@ -116,9 +116,11 @@ bool codegen(jitdata *jd)
 
 	/* prevent compiler warnings */
 
-	d = 0;
-	lm = NULL;
-	bte = NULL;
+	d         = 0;
+	fieldtype = 0;
+	lm        = NULL;
+	um        = NULL;
+	bte       = NULL;
 
 	{
 	s4 i, p, t, l;
