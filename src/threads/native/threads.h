@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 5698 2006-10-05 17:28:13Z twisti $
+   $Id: threads.h 5804 2006-10-19 09:27:24Z twisti $
 
 */
 
@@ -37,14 +37,18 @@
 #ifndef _THREADS_H
 #define _THREADS_H
 
+/* forward typedefs ***********************************************************/
+
+typedef struct threadobject          threadobject;
+typedef union  threads_table_entry_t threads_table_entry_t;
+typedef struct threads_table_t       threads_table_t;
+
+
 #include "config.h"
 
 #include <pthread.h>
 #include <ucontext.h>
 
-#include "vm/types.h"
-
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -71,13 +75,6 @@ typedef struct {
 #else
 # include <semaphore.h>
 #endif
-
-
-/* forward typedefs ***********************************************************/
-
-typedef struct threadobject          threadobject;
-typedef union  threads_table_entry_t threads_table_entry_t;
-typedef struct threads_table_t       threads_table_t;
 
 
 /* thread priorities **********************************************************/
@@ -184,7 +181,7 @@ struct threadobject {
 	u1                   *_global_sp;        /* stack pointer for interpreter */
 #endif
 
-	dumpinfo              dumpinfo;     /* dump memory info structure         */
+	dumpinfo_t            dumpinfo;     /* dump memory info structure         */
 };
 
 
