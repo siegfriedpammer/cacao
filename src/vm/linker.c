@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5786 2006-10-15 22:44:56Z edwin $
+   $Id: linker.c 5812 2006-10-20 14:22:23Z twisti $
 
 */
 
@@ -1218,8 +1218,19 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 			/* If no method was found, insert the AbstractMethodError
 			   stub. */
 
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+			if (opt_intrp)
+				v->interfacetable[-i][j] =
+					(methodptr) (ptrint) &intrp_asm_abstractmethoderror;
+			else
+# endif
+				v->interfacetable[-i][j] =
+					(methodptr) (ptrint) &asm_abstractmethoderror;
+#else
 			v->interfacetable[-i][j] =
-				(methodptr) (ptrint) &asm_abstractmethoderror;
+				(methodptr) (ptrint) &intrp_asm_abstractmethoderror;
+#endif
 
 		foundmethod:
 			;

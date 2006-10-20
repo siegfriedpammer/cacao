@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 5145 2006-07-17 11:48:38Z twisti $
+   $Id: asmpart.h 5812 2006-10-20 14:22:23Z twisti $
 
 */
 
@@ -138,7 +138,13 @@ void asm_handle_nat_exception(void);
 #endif
 
 /* stub for throwing AbstractMethodError's */
+#if defined(ENABLE_JIT)
 void asm_abstractmethoderror(void);
+#endif
+
+#if defined(ENABLE_INTRP)
+void intrp_asm_abstractmethoderror(void);
+#endif
 
 /* wrapper for code patching functions */
 void asm_patcher_wrapper(void);
@@ -147,12 +153,9 @@ void asm_patcher_wrapper(void);
 void asm_replacement_out(void);
 void asm_replacement_in(executionstate *es);
 
-void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
-
 #if defined(ENABLE_THREADS)
 extern critical_section_node_t asm_criticalsections;
 #endif
-
 
 #if defined(ENABLE_JIT)
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);

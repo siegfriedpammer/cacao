@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: asmpart.c 5812 2006-10-20 14:22:23Z twisti $
 
 */
 
@@ -293,6 +293,12 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
   }
 
   return NULL; 
+}
+
+
+void intrp_asm_abstractmethoderror(void)
+{
+	vm_abort("intrp_asm_abstractmethoderror: IMPLEMENT ME!");
 }
 
 
