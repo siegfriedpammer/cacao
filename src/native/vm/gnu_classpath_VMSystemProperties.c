@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gnu_classpath_VMSystemProperties.c 5810 2006-10-20 13:54:54Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 5811 2006-10-20 13:58:30Z twisti $
 
 */
 
@@ -75,10 +75,6 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	char       *country;
 	struct utsname utsnamebuf;
 	s4          len;
-
-#if !defined(WITH_STATIC_CLASSPATH)
-	char *ld_library_path;
-#endif
 
 	if (p == NULL) {
 		exceptions_throw_nullpointerexception();
