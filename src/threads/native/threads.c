@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5806 2006-10-19 10:10:23Z twisti $
+   $Id: threads.c 5809 2006-10-20 13:09:54Z twisti $
 
 */
 
@@ -682,6 +682,9 @@ threadobject *threads_get_current_threadobject(void)
 
    Do some early initialization of stuff required.
 
+   ATTENTION: Do NOT use any Java heap allocation here, as gc_init()
+   is called AFTER this function!
+
 *******************************************************************************/
 
 void threads_preinit(void)
@@ -699,13 +702,9 @@ void threads_preinit(void)
 	pthread_mutex_init(&threadlistlock, NULL);
 	pthread_mutex_init(&stopworldlock, NULL);
 
-	/* Allocate something so the garbage collector's signal handlers
-	   are installed. */
-	heap_allocate(1, false, NULL);
-
 	mainthreadobj = NEW(threadobject);
-	mainthreadobj->tid = pthread_self();
-	mainthreadobj->index = 1;
+	mainthreadobj->tid      = pthread_self();
+	mainthreadobj->index    = 1;
 	mainthreadobj->thinlock = lock_pre_compute_thinlock(mainthreadobj->index);
 	
 #if !defined(HAVE___THREAD)

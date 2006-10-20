@@ -1285,6 +1285,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	vm_initializing = true;
 
+#if defined(ENABLE_THREADS)
+	/* pre-initialize some core thread stuff, like the stopworldlock,
+	   thus this has to happen _before_ gc_init()!!! */
+
+  	threads_preinit();
+#endif
+
 	/* initialize the garbage collector */
 
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
@@ -1296,10 +1303,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		intrp_main_stack = GCMNEW(u1, opt_stacksize);
 		MSET(intrp_main_stack, 0, u1, opt_stacksize);
 	}
-#endif
-
-#if defined(ENABLE_THREADS)
-  	threads_preinit();
 #endif
 
 	/* initialize the string hashtable stuff: lock (must be done

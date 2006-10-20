@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 5577 2006-09-29 10:38:58Z twisti $
+   $Id: cacaoh.c 5809 2006-10-20 13:09:54Z twisti $
 
 */
 
@@ -284,13 +284,16 @@ int main(int argc, char **argv)
 		log_text("Java - header-generator started"); 
 	}
 	
+#if defined(ENABLE_THREADS)
+	/* pre-initialize some core thread stuff, like the stopworldlock,
+	   thus this has to happen _before_ gc_init()!!! */
+
+	threads_preinit();
+#endif
+
 	/* initialize the garbage collector */
 
 	gc_init(heapmaxsize, heapstartsize);
-
-#if defined(ENABLE_THREADS)
-	threads_preinit();
-#endif
 
 	/* initialize the string hashtable stuff: lock (must be done
 	   _after_ threads_preinit) */

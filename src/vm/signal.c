@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 5806 2006-10-19 10:10:23Z twisti $
+   $Id: signal.c 5809 2006-10-20 13:09:54Z twisti $
 
 */
 
@@ -67,6 +67,11 @@ void signal_init(void)
 {
 #if !defined(__CYGWIN__)
 	struct sigaction act;
+
+	/* Allocate something so the garbage collector's signal handlers
+	   are installed. */
+
+	(void) GCNEW(u1);
 
 	/* install signal handlers we need to convert to exceptions */
 
