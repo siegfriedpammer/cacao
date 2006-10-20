@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5812 2006-10-20 14:22:23Z twisti $
+   $Id: linker.c 5813 2006-10-20 14:26:50Z twisti $
 
 */
 
@@ -798,8 +798,18 @@ static classinfo *link_class_intern(classinfo *c)
 	   stub (all after the super class slots, because they are already
 	   initialized). */
 
-	for (; i < vftbllength; i++)
-		v->table[i] = (methodptr) (ptrint) &asm_abstractmethoderror;
+	for (; i < vftbllength; i++) {
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+		if (opt_intrp)
+			v->table[i] = (methodptr) (ptrint) &intrp_asm_abstractmethoderror;
+		else
+# endif
+			v->table[i] = (methodptr) (ptrint) &asm_abstractmethoderror;
+#else
+		v->table[i] = (methodptr) (ptrint) &intrp_asm_abstractmethoderror;
+#endif
+	}
 
 	/* add method stubs into virtual function table */
 
