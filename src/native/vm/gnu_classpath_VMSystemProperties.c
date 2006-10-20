@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gnu_classpath_VMSystemProperties.c 5658 2006-10-04 10:10:01Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 5810 2006-10-20 13:54:54Z twisti $
 
 */
 
@@ -134,7 +134,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	properties_system_add("java.specification.vendor", "Sun Microsystems Inc.");
 	properties_system_add("java.specification.name", "Java Platform API Specification");
 	properties_system_add("java.class.version", CLASS_VERSION);
-	properties_system_add("java.class.path", classpath);
+	properties_system_add("java.class.path", _Jv_classpath);
 
 	properties_system_add("java.runtime.version", VERSION);
 	properties_system_add("java.runtime.name", "CACAO");
@@ -143,8 +143,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	   other for compatibility with Sun (required by most
 	   applications). */
 
-	properties_system_add("java.boot.class.path", bootclasspath);
-	properties_system_add("sun.boot.class.path", bootclasspath);
+	properties_system_add("java.boot.class.path", _Jv_bootclasspath);
+	properties_system_add("sun.boot.class.path", _Jv_bootclasspath);
 
 #if defined(WITH_STATIC_CLASSPATH)
 	properties_system_add("gnu.classpath.boot.library.path", ".");
@@ -154,15 +154,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
        path */
 
 	properties_system_add("gnu.classpath.boot.library.path", classpath_libdir);
-
-	/* now fill java.library.path */
-
-	ld_library_path = getenv("LD_LIBRARY_PATH");
-
-	if (ld_library_path != NULL)
-		properties_system_add("java.library.path", ld_library_path);
-	else
-		properties_system_add("java.library.path", "");
+	properties_system_add("java.library.path", _Jv_java_library_path);
 #endif
 
 	properties_system_add("java.io.tmpdir", "/tmp");

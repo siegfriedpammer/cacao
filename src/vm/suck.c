@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: suck.c 5810 2006-10-20 13:54:54Z twisti $
 
 */
 
@@ -57,13 +57,11 @@
 #include "vm/properties.h"
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
+#include "vm/vm.h"
 #include "vm/zip.h"
 
 
 /* global variables ***********************************************************/
-
-char *bootclasspath;                    /* contains the boot classpath        */
-char *classpath;                        /* contains the classpath             */
 
 list *list_classpath_entries;
 
@@ -306,7 +304,7 @@ void suck_add_from_property(char *key)
 					tmpbootclasspath = MNEW(char,
 											pathlen + strlen("/") + namlen +
 											strlen(":") +
-											strlen(bootclasspath) +
+											strlen(_Jv_bootclasspath) +
 											strlen("0"));
 
 					/* prepend the file found to bootclasspath */
@@ -316,15 +314,15 @@ void suck_add_from_property(char *key)
 					strcat(tmpbootclasspath, namelist[i]->d_name);
 					strcat(tmpbootclasspath, ":");
 
-					strcat(tmpbootclasspath, bootclasspath);
+					strcat(tmpbootclasspath, _Jv_bootclasspath);
 
 					/* free old bootclasspath memory */
 
-					MFREE(bootclasspath, u1, strlen(bootclasspath));
+					MFREE(_Jv_bootclasspath, u1, strlen(_Jv_bootclasspath));
 
 					/* and set the new bootclasspath */
 
-					bootclasspath = tmpbootclasspath;
+					_Jv_bootclasspath = tmpbootclasspath;
 
 					/* free the memory allocated by scandir */
 

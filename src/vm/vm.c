@@ -96,6 +96,10 @@ char      *cacao_prefix = NULL;
 char      *cacao_libjvm = NULL;
 char      *classpath_libdir = NULL;
 
+char      *_Jv_bootclasspath;           /* contains the boot classpath        */
+char      *_Jv_classpath;               /* contains the classpath             */
+char      *_Jv_java_library_path;
+
 char      *mainstring = NULL;
 classinfo *mainclass = NULL;
 
@@ -547,7 +551,7 @@ static void version(bool opt_exit)
 	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
 	printf("  initial heap size              : %d\n", opt_heapstartsize);
 	printf("  stack size                     : %d\n", opt_stacksize);
-	printf("  java.boot.class.path           : %s\n", bootclasspath);
+	printf("  java.boot.class.path           : %s\n", _Jv_bootclasspath);
 	printf("  gnu.classpath.boot.library.path: %s\n", classpath_libdir);
 
 	/* exit normally, if requested */
@@ -683,8 +687,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	cp = getenv("BOOTCLASSPATH");
 
 	if (cp != NULL) {
-		bootclasspath = MNEW(char, strlen(cp) + strlen("0"));
-		strcpy(bootclasspath, cp);
+		_Jv_bootclasspath = MNEW(char, strlen(cp) + strlen("0"));
+		strcpy(_Jv_bootclasspath, cp);
 	}
 	else {
 #if defined(WITH_JRE_LAYOUT)
@@ -696,22 +700,22 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			strlen("/share/classpath/glibj.zip") +
 			strlen("0");
 
-		bootclasspath = MNEW(char, len);
-		strcat(bootclasspath, cacao_prefix);
-		strcat(bootclasspath, "/share/cacao/vm.zip");
-		strcat(bootclasspath, ":");
-		strcat(bootclasspath, cacao_prefix);
-		strcat(bootclasspath, "/share/classpath/glibj.zip");
+		_Jv_bootclasspath = MNEW(char, len);
+		strcat(_Jv_bootclasspath, cacao_prefix);
+		strcat(_Jv_bootclasspath, "/share/cacao/vm.zip");
+		strcat(_Jv_bootclasspath, ":");
+		strcat(_Jv_bootclasspath, cacao_prefix);
+		strcat(_Jv_bootclasspath, "/share/classpath/glibj.zip");
 #else
 		len = strlen(CACAO_VM_ZIP) +
 			strlen(":") +
 			strlen(CLASSPATH_GLIBJ_ZIP) +
 			strlen("0");
 
-		bootclasspath = MNEW(char, len);
-		strcat(bootclasspath, CACAO_VM_ZIP);
-		strcat(bootclasspath, ":");
-		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP);
+		_Jv_bootclasspath = MNEW(char, len);
+		strcat(_Jv_bootclasspath, CACAO_VM_ZIP);
+		strcat(_Jv_bootclasspath, ":");
+		strcat(_Jv_bootclasspath, CLASSPATH_GLIBJ_ZIP);
 #endif
 	}
 
@@ -720,14 +724,20 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	cp = getenv("CLASSPATH");
 
 	if (cp != NULL) {
-		classpath = MNEW(char, strlen(cp) + strlen("0"));
-		strcat(classpath, cp);
+		_Jv_classpath = MNEW(char, strlen(cp) + strlen("0"));
+		strcat(_Jv_classpath, cp);
 	}
 	else {
-		classpath = MNEW(char, strlen(".") + strlen("0"));
-		strcpy(classpath, ".");
+		_Jv_classpath = MNEW(char, strlen(".") + strlen("0"));
+		strcpy(_Jv_classpath, ".");
 	}
 
+	/* get and set java.library.path */
+
+	_Jv_java_library_path = getenv("LD_LIBRARY_PATH");
+
+	if (_Jv_java_library_path == NULL)
+		_Jv_java_library_path = "";
 
 	/* interpret the options **************************************************/
 
@@ -788,10 +798,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 		case OPT_CLASSPATH:
 			/* forget old classpath and set the argument as new classpath */
-			MFREE(classpath, char, strlen(classpath));
+			MFREE(_Jv_classpath, char, strlen(_Jv_classpath));
 
-			classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
-			strcpy(classpath, opt_arg);
+			_Jv_classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
+			strcpy(_Jv_classpath, opt_arg);
 			break;
 
 		case OPT_D:
@@ -814,39 +824,39 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			/* Forget default bootclasspath and set the argument as
 			   new boot classpath. */
 
-			MFREE(bootclasspath, char, strlen(bootclasspath));
+			MFREE(_Jv_bootclasspath, char, strlen(_Jv_bootclasspath));
 
-			bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
-			strcpy(bootclasspath, opt_arg);
+			_Jv_bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
+			strcpy(_Jv_bootclasspath, opt_arg);
 			break;
 
 		case OPT_BOOTCLASSPATH_A:
 			/* append to end of bootclasspath */
 
-			len = strlen(bootclasspath);
+			len = strlen(_Jv_bootclasspath);
 
-			bootclasspath = MREALLOC(bootclasspath,
-									 char,
-									 len,
-									 len + strlen(":") +
-									 strlen(opt_arg) + strlen("0"));
+			_Jv_bootclasspath = MREALLOC(_Jv_bootclasspath,
+										 char,
+										 len,
+										 len + strlen(":") +
+										 strlen(opt_arg) + strlen("0"));
 
-			strcat(bootclasspath, ":");
-			strcat(bootclasspath, opt_arg);
+			strcat(_Jv_bootclasspath, ":");
+			strcat(_Jv_bootclasspath, opt_arg);
 			break;
 
 		case OPT_BOOTCLASSPATH_P:
 			/* prepend in front of bootclasspath */
 
-			cp = bootclasspath;
+			cp = _Jv_bootclasspath;
 			len = strlen(cp);
 
-			bootclasspath = MNEW(char, strlen(opt_arg) + strlen(":") +
-								 len + strlen("0"));
+			_Jv_bootclasspath = MNEW(char, strlen(opt_arg) + strlen(":") +
+									 len + strlen("0"));
 
-			strcpy(bootclasspath, opt_arg);
-			strcat(bootclasspath, ":");
-			strcat(bootclasspath, cp);
+			strcpy(_Jv_bootclasspath, opt_arg);
+			strcat(_Jv_bootclasspath, ":");
+			strcat(_Jv_bootclasspath, cp);
 
 			MFREE(cp, char, len);
 			break;
@@ -854,18 +864,18 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_GLIBJ:
 			/* use as Java core library, but prepend VM interface classes */
 
-			MFREE(bootclasspath, char, strlen(bootclasspath));
+			MFREE(_Jv_bootclasspath, char, strlen(_Jv_bootclasspath));
 
 			len = strlen(CACAO_VM_ZIP) +
 				strlen(":") +
 				strlen(opt_arg) +
 				strlen("0");
 
-			bootclasspath = MNEW(char, len);
+			_Jv_bootclasspath = MNEW(char, len);
 
-			strcpy(bootclasspath, CACAO_VM_ZIP);
-			strcat(bootclasspath, ":");
-			strcat(bootclasspath, opt_arg);
+			strcpy(_Jv_bootclasspath, CACAO_VM_ZIP);
+			strcat(_Jv_bootclasspath, ":");
+			strcat(_Jv_bootclasspath, opt_arg);
 			break;
 
 #if defined(ENABLE_JVMTI)
@@ -1250,13 +1260,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		if (opt_jar == true) {
 			/* free old classpath */
 
-			MFREE(classpath, char, strlen(classpath));
+			MFREE(_Jv_classpath, char, strlen(_Jv_classpath));
 
 			/* put jarfile into classpath */
 
-			classpath = MNEW(char, strlen(mainstring) + strlen("0"));
+			_Jv_classpath = MNEW(char, strlen(mainstring) + strlen("0"));
 
-			strcpy(classpath, mainstring);
+			strcpy(_Jv_classpath, mainstring);
 		}
 		else {
 			/* replace .'s with /'s in classname */
@@ -1330,7 +1340,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		throw_main_exception_exit();
 
 	suck_add_from_property("java.endorsed.dirs");
-	suck_add(bootclasspath);
+	suck_add(_Jv_bootclasspath);
 
 	/* initialize the memory subsystem (must be done _after_
 	   threads_preinit) */
@@ -1434,9 +1444,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 # if defined(ENABLE_PROFILING)
 	/* start the profile sampling thread */
 
-	if (opt_prof)
-		if (!profile_start_thread())
-			throw_main_exception_exit();
+/* 	if (opt_prof) */
+/* 		if (!profile_start_thread()) */
+/* 			throw_main_exception_exit(); */
 # endif
 #endif
 

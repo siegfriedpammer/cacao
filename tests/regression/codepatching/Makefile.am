@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5610 2006-10-01 20:27:54Z edwin $
+## $Id: Makefile.am 5810 2006-10-20 13:54:54Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -132,7 +132,7 @@ CLEANFILES = \
 	*.class
 
 check: build
-	@$(JAVA) $(JAVAFLAGS) test
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVA) $(JAVAFLAGS) test
 
 build:
 	@$(JAVAC) -nowarn -d . $(SOURCE_FILES)

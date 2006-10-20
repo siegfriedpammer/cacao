@@ -55,6 +55,10 @@ extern char      *cacao_prefix;
 extern char      *cacao_libjvm;
 extern char      *classpath_libdir;
 
+extern char      *_Jv_bootclasspath;
+extern char      *_Jv_classpath;
+extern char      *_Jv_java_library_path;
+
 extern char      *mainstring;
 extern classinfo *mainclass;
 

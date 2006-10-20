@@ -28,14 +28,14 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5610 2006-10-01 20:27:54Z edwin $
+## $Id: Makefile.am 5810 2006-10-20 13:54:54Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
 
 JAVA      = $(top_builddir)/src/cacao/cacao
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP) -Djava.library.path=.
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
 JAVAH     = $(top_builddir)/src/cacaoh/cacaoh
 
 SOURCE_FILES = \
@@ -70,7 +70,7 @@ $(TESTNAMES) $(NOTESTNAMES):
 	@$(JAVAC) -nowarn -d . $(srcdir)/$@.java
 	@$(JAVAH) $@
 	@$(CC) -shared $(AM_CPPFLAGS) $(CFLAGS) $(srcdir)/$@.c -o lib$@.so -fPIC
-	@$(SHELL) $(srcdir)/../Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs:. $(SHELL) $(srcdir)/../Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
 
 
 ## Local variables:

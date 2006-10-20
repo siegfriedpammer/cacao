@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5610 2006-10-01 20:27:54Z edwin $
+## $Id: Makefile.am 5810 2006-10-20 13:54:54Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -89,12 +89,12 @@ build:
 	@$(JAVAC) -d . $(SOURCE_FILES)
 
 $(SIMPLE_JAVA_TESTS):
-	@echo -nowarn -n "$@: "
-	@$(JAVA) $(JAVAFLAGS) $@
+	@echo "$@: "
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVA) $(JAVAFLAGS) $@
 
 
 $(OUTPUT_JAVA_TESTS):
-	@$(SHELL) $(srcdir)/Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
 
 
 ## Local variables:

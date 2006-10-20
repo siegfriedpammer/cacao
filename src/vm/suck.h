@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.h 5181 2006-07-26 13:27:54Z twisti $
+   $Id: suck.h 5810 2006-10-20 13:54:54Z twisti $
 
 */
 
@@ -161,9 +161,6 @@ struct list_classpath_entry {
 
 
 /* export variables ***********************************************************/
-
-extern char *bootclasspath;
-extern char *classpath;
 
 extern list *list_classpath_entries;
 

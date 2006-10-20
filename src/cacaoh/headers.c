@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5805 2006-10-19 09:32:29Z twisti $
+   $Id: headers.c 5810 2006-10-20 13:54:54Z twisti $
 
 */
 
@@ -72,7 +72,7 @@
 /* Invocation API variables ***************************************************/
 
 _Jv_JavaVM *_Jv_jvm;                    /* denotes a Java VM                  */
-
+char       *_Jv_bootclasspath;
 
 #if defined(ENABLE_INTRP)
 /* dummy interpreter stack to keep the compiler happy */

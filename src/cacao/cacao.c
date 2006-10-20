@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 5658 2006-10-04 10:10:01Z twisti $
+   $Id: cacao.c 5810 2006-10-20 13:54:54Z twisti $
 
 */
 
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 	
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
-#if defined(ENABLE_LIBJVM)
+#if !defined(WITH_STATIC_CLASSPATH) && defined(ENABLE_LIBJVM)
 # if defined(WITH_JRE_LAYOUT)
 	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
 
@@ -132,9 +132,14 @@ int main(int argc, char **argv)
 		abort();
 	}
 
-	if (!(libjvm_handle = lt_dlopenext(path))) {
-		fprintf(stderr, "lt_dlopenext failed: %s\n", lt_dlerror());
-		abort();
+	/* First try to open where dlopen searches, e.g. LD_LIBRARY_PATH.
+	   If not found, try the absolute path. */
+
+	if (!(libjvm_handle = lt_dlopenext("libjvm"))) {
+		if (!(libjvm_handle = lt_dlopenext(path))) {
+			fprintf(stderr, "lt_dlopenext failed: %s\n", lt_dlerror());
+			abort();
+		}
 	}
 
 	if (!(libjvm_createvm = lt_dlsym(libjvm_handle, "JNI_CreateJavaVM"))) {
@@ -155,7 +160,7 @@ int main(int argc, char **argv)
 	if (jvmti) jvmti_set_phase(JVMTI_PHASE_START);
 #endif
 
-#if defined(ENABLE_LIBJVM)
+#if !defined(WITH_STATIC_CLASSPATH) && defined(ENABLE_LIBJVM)
 	if (!(libjvm_vm_run = lt_dlsym(libjvm_handle, "vm_run"))) {
 		fprintf(stderr, "lt_dlsym failed: %s\n", lt_dlerror());
 		abort();
