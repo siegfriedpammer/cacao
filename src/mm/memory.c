@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 5803 2006-10-19 09:25:41Z twisti $
+   $Id: memory.c 5807 2006-10-20 00:37:37Z ajordan $
 
 */
 
@@ -81,7 +81,7 @@
 *******************************************************************************/
 
 #if !defined(ENABLE_THREADS)
-static dumpinfo_t _no_threads_umpinfo;
+static dumpinfo_t _no_threads_dumpinfo;
 #endif
 
 #if defined(ENABLE_THREADS)
