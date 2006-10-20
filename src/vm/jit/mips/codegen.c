@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen.c 5815 2006-10-20 18:35:32Z twisti $
 
 */
 
@@ -47,7 +47,6 @@
 
 #include "vm/types.h"
 
-#include "md.h"
 #include "md-abi.h"
 
 #include "vm/jit/mips/arch.h"

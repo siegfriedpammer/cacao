@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4786 2006-04-18 20:10:23Z twisti $
+## $Id: Makefile.am 5815 2006-10-20 18:35:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -43,9 +43,11 @@ AM_CCASFLAGS = $(AM_CPPFLAGS)
 
 LIBS =
 
-BUILT_SOURCES = offsets.h
+BUILT_SOURCES = \
+	offsets.h
 
-CLEANFILES = offsets.h
+CLEANFILES = \
+	offsets.h
 
 noinst_HEADERS = \
 	arch.h \
@@ -53,7 +55,8 @@ noinst_HEADERS = \
 	\
 	md-asm.h
 
-noinst_LTLIBRARIES = libarch.la
+noinst_LTLIBRARIES = \
+	libarch.la
 
 if ENABLE_DISASSEMBLER
 DISASS_SOURCES = \
@@ -70,8 +73,7 @@ libarch_la_SOURCES = \
 	\
 	md-abi.c \
 	md-abi.h \
-	md.c \
-	md.h
+	md.c
 
 libarch_la_LIBADD = \
 	$(OS_DIR)/libmd.la
