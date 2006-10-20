@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: exceptions.c 5808 2006-10-20 12:00:18Z twisti $
 
 */
 
@@ -1491,6 +1491,7 @@ java_objectheader *exceptions_get_and_clear_exception(void)
 
 *******************************************************************************/
 
+#if defined(ENABLE_JIT)
 u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp)
 {
 	methodinfo            *m;
@@ -1642,6 +1643,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 	return NULL;
 }
+#endif /* defined(ENABLE_JIT) */
 
 
 /* exceptions_print_exception **************************************************
