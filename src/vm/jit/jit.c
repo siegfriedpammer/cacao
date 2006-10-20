@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5788 2006-10-16 08:53:13Z twisti $
+   $Id: jit.c 5814 2006-10-20 14:53:27Z twisti $
 
 */
 
@@ -893,9 +893,11 @@ char *opcode_names[256] = {
 
 void jit_init(void)
 {
+#if defined(ENABLE_JIT)
 	/* initialize stack analysis subsystem */
 
 	(void) stack_init();
+#endif
 
 	/* initialize show subsystem */
 
@@ -1519,6 +1521,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 *******************************************************************************/
 
+#if defined(ENABLE_JIT)
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 {
 	stackframeinfo  sfi;
@@ -1559,6 +1562,7 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 
 	return entrypoint;
 }
+#endif /* defined(ENABLE_JIT) */
 
 
 /* jit_complement_condition ****************************************************

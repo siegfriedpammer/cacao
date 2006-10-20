@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5810 2006-10-20 13:54:54Z twisti $
+   $Id: headers.c 5814 2006-10-20 14:53:27Z twisti $
 
 */
 
@@ -143,13 +143,14 @@ u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p) { return NULL; }
 
 void asm_handle_builtin_exception(classinfo *c) {}
-void asm_abstractmethoderror(void) {}
 
 #if defined(ENABLE_JIT)
+void asm_abstractmethoderror(void) {}
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
 #endif
 
 #if defined(ENABLE_INTRP)
+void intrp_asm_abstractmethoderror(void) {}
 void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
 #endif
 

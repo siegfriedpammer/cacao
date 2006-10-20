@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5797 2006-10-18 15:27:42Z twisti $
+## $Id: Makefile.am 5814 2006-10-20 14:53:27Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -57,38 +57,72 @@ DIST_SUBDIRS = \
 	x86_64
 
 SUBDIRS = \
-	allocator \
 	tools \
 	verify
 
 if ENABLE_JIT
-SUBDIRS += $(ARCH_DIR)
-ARCH_LIB = $(ARCH_DIR)/libarch.la
+SUBDIRS += \
+	allocator \
+	$(ARCH_DIR)
+
+ARCH_LIB = \
+	$(ARCH_DIR)/libarch.la
 endif
 
 if ENABLE_INTRP
-SUBDIRS += intrp
-INTRP_LIB = intrp/libintrp.la
+SUBDIRS += \
+	intrp
+
+INTRP_LIB = \
+	intrp/libintrp.la
 endif
 
 if ENABLE_IFCONV
-SUBDIRS += ifconv
-IFCONV_LIB = ifconv/libifconv.la
+SUBDIRS += \
+	ifconv
+
+IFCONV_LIB = \
+	ifconv/libifconv.la
 endif
 
 if ENABLE_INLINING
-SUBDIRS += inline
-INLINE_LIB = inline/libinline.la
+SUBDIRS += \
+	inline
+
+INLINE_LIB = \
+	inline/libinline.la
 endif
 
 if ENABLE_LOOP
-SUBDIRS += loop
-LOOP_LIB = loop/libloop.la
+SUBDIRS += \
+	loop
+
+LOOP_LIB = \
+	loop/libloop.la
 endif
 
 if ENABLE_PROFILING
-SUBDIRS += profile
-PROFILE_LIB = profile/libprofile.la
+SUBDIRS += \
+	profile
+
+PROFILE_LIB = \
+	profile/libprofile.la
+endif
+
+if USE_SCHEDULER
+SUBDIRS += \
+	schedule
+
+SCHEDULE_LIB = \
+	schedule/libschedule.la
+endif
+
+if ENABLE_SSA
+SUBDIRS += \
+	optimizing
+
+OPTIMIZING_LIB = \
+	optimizing/liboptimizing.la
 endif
 
 if ENABLE_THREADS
@@ -97,14 +131,18 @@ RECOMPILE_SOURCES = \
 	recompile.h
 endif
 
-if USE_SCHEDULER
-SUBDIRS += schedule
-SCHEDULE_LIB = schedule/libschedule.la
-endif
+if ENABLE_JIT
+REG_SOURCES = \
+	reg.c \
+	reg.h
 
-if ENABLE_SSA
-SUBDIRS += optimizing
-OPTIMIZING_LIB = optimizing/liboptimizing.la
+REPLACE_SOURCES = \
+	replace.c \
+	replace.h
+
+STACK_SOURCES = \
+	stack.c \
+	stack.h
 endif
 
 if WITH_BINUTILS_DISASSEMBLER
@@ -138,15 +176,12 @@ libjit_la_SOURCES = \
 	jit.h \
 	parse.c \
 	parse.h \
-	reg.c \
-	reg.h \
 	$(RECOMPILE_SOURCES) \
-	replace.c \
-	replace.h \
+	$(REG_SOURCES) \
+	$(REPLACE_SOURCES) \
 	show.c \
 	show.h \
-	stack.c \
-	stack.h \
+	$(STACK_SOURCES) \
 	stacktrace.c \
 	stacktrace.h
 
