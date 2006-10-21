@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5790 2006-10-16 09:59:52Z edwin $
+   $Id: parse.c 5816 2006-10-21 15:06:07Z edwin $
 
 */
 
@@ -1683,10 +1683,8 @@ invoke_method:
 		/* extra variables.                                             */
 
 #if defined(ENABLE_VERIFIER)
-		if (JITDATA_HAS_FLAG_VERIFY(jd)) {
-			jd->varcount += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + m->maxstack;
-			jd->vartop   += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + m->maxstack;
-		}
+		jd->varcount += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + m->maxstack;
+		jd->vartop   += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + m->maxstack;
 #endif
 		/* allocate and initialize the variable array */
 
