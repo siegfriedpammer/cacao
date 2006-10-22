@@ -96,10 +96,13 @@
 #define FLT_RES_CNT      3   /* number of reserved float registers            */
                              /* the one "missing" register is the return reg  */
 
-/* #define TRACE_ARGS_NUM   5 */
+#define TRACE_ARGS_NUM   5
 
+/* helpers for stack addressing */
 
-#define WINSAVE_REGS   16    /* number of regs that SPARC saves onto stack    */
+#define WINSAVE_CNT   16    /* number of regs that SPARC saves onto stack    */
+#define BIAS        2047
+#define USESTACK    (WINSAVE_CNT * 8 + BIAS)
 
 #endif /* _MD_ABI_H */
 

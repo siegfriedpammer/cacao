@@ -142,7 +142,7 @@ calljava_copyloop:
 
 calljava_nocopy:
 
-	mov   %i0,itmp1		/* pass method pointer via itmp1 */
+	mov   %i0,itmp1		/* pass method info pointer via itmp1 */
 	
 	setx  asm_call_jit_compiler,%l0,mptr_itmp2  /* fake virtual function call (2 instr) */
 	stx   mptr_itmp2,[%sp + 2047 + 17*8]        /* store function address               */
@@ -191,29 +191,31 @@ asm_vm_call_method_exception_handler:
 
 asm_call_jit_compiler:
 	
-	/* XXX save + reserve stack space          */
-	/* XXX save float arg registers */
+	save    %sp,-160,%sp         /* regsave + 4 slots for float args          */
+
+	SAVE_FLOAT_ARGUMENT_REGISTERS(16)
 
 	mov     itmp1,%o0             /* pass methodinfo pointer                  */
 	mov     mptr_itmp2,%o1        /* pass method pointer                      */
 	mov     %fp,%o2				  /* pass java sp (==fp)             		  */
-	mov     ra_caller,%o3         /* pass Java ra                             */
+	mov     ra_callee,%o3         /* pass Java ra                             */
 	mov     %o3,%o4               /* xpc is equal to ra                       */
 	call    jit_asm_compile       /* call jit compiler                        */
 	nop
+	
+	RESTORE_FLOAT_ARGUMENT_REGISTERS(16)
+	
+	restore %o0,%g0,pv_caller     /* restore the callers window               */
+	                              /* the source o0 references the old window  */
+	                              /* pv_caller references the new window      */
 
-	mov     %o0,pv_callee         /* save return value into callee(!) pv      */
-	                              /* the in's we have are also the in's of the*/
-	                              /* method that will be called               */
 
-	/* XXX do a window restore here ???  */
-	/* XXX restore float argument registers */
 
-	brz     pv_callee,L_asm_call_jit_compiler_exception
+	brz     pv_caller,L_asm_call_jit_compiler_exception
 
 	/* synchronise instruction cache moved somewhere else           */
 
-	jmpl    pv_callee,zero        /* and call method, the method returns      */
+	jmpl    pv_caller,zero        /* and call method, the method returns      */
 	                              /* directly to the caller (ra).             */	
 	
 L_asm_call_jit_compiler_exception:

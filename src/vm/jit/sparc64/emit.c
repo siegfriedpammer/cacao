@@ -37,11 +37,16 @@
 
 #include "md-abi.h"
 
-#include "vm/jit/jit.h"
-#include "vm/jit/dseg.h"
-#include "vm/jit/emit-common.h"
 #include "vm/jit/sparc64/codegen.h"
 
+#include "vm/exceptions.h"
+#include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
+#include "vm/jit/abi-asm.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/dseg.h"
+#include "vm/jit/emit-common.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/replace.h"
 
 
 /* emit_load *******************************************************************
@@ -219,6 +224,150 @@ void emit_patcher_stubs(jitdata *jd)
 void emit_replacement_stubs(jitdata *jd)
 {
 }
+
+/* emit_verbosecall_enter ******************************************************
+
+   Generates the code for the call trace.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void emit_verbosecall_enter(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+	methoddesc   *md;
+	s4            disp;
+	s4            i, t;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	md = m->parseddesc;
+
+	/* mark trace code */
+
+	M_NOP;
+
+	M_LDA(REG_SP, REG_SP, -(1 + WINSAVE_CNT + FLT_ARG_CNT) * 8);
+
+	/* save float argument registers */
+
+	for (i = 0; i < FLT_ARG_CNT; i++)
+		M_DST(rd->argfltregs[i], REG_SP, BIAS + (WINSAVE_CNT + 1 + i) * 8);
+
+	/* save temporary registers for leaf methods */
+/* XXX no leaf optimization yet
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_LST(rd->tmpintregs[i], REG_SP, (2 + ARG_CNT + i) * 8);
+
+		for (i = 0; i < FLT_TMP_CNT; i++)
+			M_DST(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
+	}
+*/
+	/* load float arguments into integer registers */
+
+	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
+		t = md->paramtypes[i].type;
+
+		if (IS_FLT_DBL_TYPE(t)) {
+			if (IS_2_WORD_TYPE(t)) {
+				M_DST(rd->argfltregs[i], REG_SP, USESTACK);
+				M_LDX(rd->argintregs[i], REG_SP, USESTACK);
+			}
+			else {
+				M_DST(rd->argfltregs[i], REG_SP, USESTACK);
+				M_LDX(rd->argintregs[i], REG_SP, USESTACK);
+			}
+		}
+	}
+
+	disp = dseg_add_address(cd, m);
+	M_ALD(REG_ITMP1, REG_PV_CALLEE, disp);
+	M_AST(REG_ITMP1, REG_SP, USESTACK);
+	disp = dseg_add_functionptr(cd, builtin_trace_args);
+	M_ALD(REG_PV_CALLER, REG_PV_CALLEE, disp);
+	M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
+	M_NOP;
+
+	/* restore float argument registers */
+
+	for (i = 0; i < FLT_ARG_CNT; i++)
+		M_DLD(rd->argfltregs[i], REG_SP, BIAS + (WINSAVE_CNT + 1 + i) * 8);
+
+	/* restore temporary registers for leaf methods */
+/* XXX no leaf optimization yet
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_LLD(rd->tmpintregs[i], REG_SP, (2 + ARG_CNT + i) * 8);
+
+		for (i = 0; i < FLT_TMP_CNT; i++)
+			M_DLD(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
+	}
+*/
+	M_LDA(REG_SP, REG_SP, (1 + WINSAVE_CNT + FLT_ARG_CNT) * 8);
+
+	/* mark trace code */
+
+	M_NOP;
+}
+#endif /* !defined(NDEBUG) */
+
+
+/* emit_verbosecall_exit *******************************************************
+
+   Generates the code for the call trace.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void emit_verbosecall_exit(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+	s4            disp;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	/* mark trace code */
+
+	M_NOP;
+
+	M_LDA(REG_SP, REG_SP, -2 * 8);           /* keep stack 16-byte aligned ???*/
+
+	M_DST(REG_FRESULT, REG_SP, USESTACK + (1 * 8));
+
+	disp = dseg_add_address(cd, m);
+	M_ALD(rd->argintregs[0], REG_PV_CALLEE, disp);
+
+	M_MOV(REG_RESULT_CALLEE, rd->argintregs[1]);
+	M_DMOV(REG_FRESULT, rd->argfltregs[2]);
+	M_FMOV(REG_FRESULT, rd->argfltregs[3]);
+
+	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
+	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
+	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+	M_NOP;
+
+	M_DLD(REG_FRESULT, REG_SP, USESTACK + (1 * 8));
+
+	M_LDA(REG_SP, REG_SP, 2 * 8);
+
+	/* mark trace code */
+
+	M_NOP;
+}
+#endif /* !defined(NDEBUG) */
 
 
 /*

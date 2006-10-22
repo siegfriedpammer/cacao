@@ -17,6 +17,25 @@
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 
+/* shift away 13-bit immediate,  mask rd and rs1    */
+#define SHIFT_AND_MASK(instr) \
+	((instr >> 13) & 0x60fc1)
+
+#define IS_SETHI(instr) \
+	((instr & 0xc1c00000)  == 0x00800000)
+
+inline s2 decode_13bit_imm(u4 instr) {
+	s2 imm;
+
+	/* mask everything else in the instruction */
+	imm = instr & 0x00001fff;
+
+	/* sign extend 13-bit to 16-bit */
+	imm <<= 3;
+	imm >>= 3;
+
+	return imm;
+}
 
 /* md_init *********************************************************************
 
@@ -46,7 +65,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 	/* the return address resides in register i7, the last register in the
 	 * 16-extended-word save area
 	 */
-	ra = *((u1 **) (sp + 120));
+	ra = *((u1 **) (sp + 120 + BIAS));
 	
 	/* ra is the address of the call instr, advance to the real return address  */
 	ra += 8;
@@ -83,8 +102,7 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 
 	/* check if we have 2 instructions (ldah, lda) */
 
-	/* shift instruction word,  mask rd and rs1    */ 
-	mcode_masked = (mcode >> 13) & 0x60fc1;
+	mcode_masked = SHIFT_AND_MASK(mcode);
 
 	if (mcode_masked == 0x40001) {
 #if 0
@@ -108,7 +126,7 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 		assert((mcode >> 16) == 0x237a);
 #endif
 		/* mask and extend the negative sign for the 13 bit immediate */
-		offset = (s2) ((mcode & 0x00001fff) | 0xffffe000);
+		offset = decode_13bit_imm(mcode);
 
 		pv += offset;
 	}
@@ -124,44 +142,45 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 
    INVOKESTATIC/SPECIAL:
 
-   dfdeffb8    ld       s8,-72(s8)
-   03c0f809    jalr     s8
+   dfdeffb8    ldx      [i5 - 72],o5
+   03c0f809    jmp      o5
    00000000    nop
 
    INVOKEVIRTUAL:
 
    dc990000    ld       t9,0(a0)
-   df3e0000    ld       s8,0(t9)
-   03c0f809    jalr     s8
+   df3e0000    ld       [g2 + 0],o5
+   03c0f809    jmp      o5
    00000000    nop
 
    INVOKEINTERFACE:
 
    dc990000    ld       t9,0(a0)
-   df39ff90    ld       t9,-112(t9)
-   df3e0018    ld       s8,24(t9)
-   03c0f809    jalr     s8
+   df39ff90    ld       [g2 - 112],g2
+   df3e0018    ld       [g2 + 24],o5
+   03c0f809    jmp      o5
    00000000    nop
 
 *******************************************************************************/
 
 u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 {
-	u4  mcode;
+	u4  mcode, mcode_masked;
 	s4  offset;
 	u1 *pa;
 
-	/* go back to the actual load instruction (3 instructions on MIPS) */
-
-	ra -= 3 * 4;
+	/* go back to the actual load instruction (1 instruction before jump) */
+	/* ra is the address of the jump instruction on SPARC                 */
+	ra -= 1 * 4;
 
 	/* get first instruction word on current PC */
 
 	mcode = *((u4 *) ra);
 
+
 	/* check if we have 2 instructions (lui) */
 
-	if ((mcode >> 16) == 0x3c19) {
+	if (IS_SETHI(mcode)) {
 		/* XXX write a regression for this */
 		assert(0);
 
@@ -178,33 +197,26 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		offset += (s2) (mcode & 0x0000ffff);
 
 	} else {
-		/* get first instruction (ld) */
 
-		mcode = *((u4 *) ra);
+		/* shift and maks rd */
 
+		mcode_masked = (mcode >> 13) & 0x060fff;
+		
 		/* get the offset from the instruction */
 
-		offset = (s2) (mcode & 0x0000ffff);
+		offset = decode_13bit_imm(mcode);
 
-		/* check for call with REG_METHODPTR: ld s8,x(t9) */
+		/* check for call with rs1 == REG_METHODPTR: ldx [g2+x],pv_caller */
 
-#if SIZEOF_VOID_P == 8
-		if ((mcode >> 16) == 0xdf3e) {
-#else
-		if ((mcode >> 16) == 0x8f3e) {
-#endif
+		if (mcode_masked == 0x0602c5) {
 			/* in this case we use the passed method pointer */
 
 			pa = mptr + offset;
 
 		} else {
-			/* in the normal case we check for a `ld s8,x(s8)' instruction */
+			/* in the normal case we check for a `ldx [i5+x],pv_caller' instruction */
 
-#if SIZEOF_VOID_P == 8
-			assert((mcode >> 16) == 0xdfde);
-#else
-			assert((mcode >> 16) == 0x8fde);
-#endif
+			assert(mcode_masked  == 0x0602fb);
 
 			/* and get the final data segment address */
 

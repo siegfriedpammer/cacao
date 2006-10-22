@@ -110,10 +110,12 @@ u1 *disassinstr(u1 *code)
 
 	printf("0x%08x:   ", (s4) code);
 
+	printf("{0x%08x}  ->   ", *((u4*) code));
 	/* disass_len = 0; */
 
 	seqlen = print_insn_sparc((bfd_vma) code, &info);
 
+/*
 	for (i = 0; i < seqlen; i++, code++) {
 		printf("%02x ", *code);
 	}
@@ -121,10 +123,10 @@ u1 *disassinstr(u1 *code)
 	for (; i < 8; i++) {
 		printf("   ");
 	}
+*/
+	printf("\n");
 
-	/* printf("   %s\n", disass_buf); */
-
-	return code;
+	return code+4;
 }
 
 

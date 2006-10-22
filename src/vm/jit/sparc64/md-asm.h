@@ -56,6 +56,48 @@
 #define pv_caller  %o5
 #define pv_callee  %i5
 
+
+#define fv0     %f0
+#define ft0     %f2
+#define ft1     %f4
+#define ft2     %f6
+#define ft3     %f8
+#define ft4     %f10
+#define ft5     %f12
+#define ft6     %f14
+
+#define fa0     %f16
+#define fa1     %f18
+#define fa2     %f20
+#define fa3     %f22
+#define fs0     %f24
+#define fs1     %f26
+#define fs2     %f28
+#define fs3     %f30
+
+
+#define bias    2047
+
+
+/* save and restore macros ****************************************************/
+
+
+#define SAVE_FLOAT_ARGUMENT_REGISTERS(off) \
+	std     fa0,[%sp + bias + ((0+(off))*8)] ; \
+	std     fa1,[%sp + bias + ((1+(off))*8)] ; \
+	std     fa2,[%sp + bias + ((2+(off))*8)] ; \
+	std     fa3,[%sp + bias + ((3+(off))*8)]
+
+
+#define RESTORE_FLOAT_ARGUMENT_REGISTERS(off) \
+	ldd     [%sp + bias + ((0+(off))*8)],fa0 ; \
+	ldd     [%sp + bias + ((1+(off))*8)],fa1 ; \
+	ldd     [%sp + bias + ((2+(off))*8)],fa2 ; \
+	ldd     [%sp + bias + ((3+(off))*8)],fa3 ; \
+	
+	
+	
+
 #endif /* _MD_ASM_H */
 
 

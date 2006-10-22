@@ -187,7 +187,7 @@ bool codegen(jitdata *jd)
 
 	p = cd->stackframesize;
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p--; M_DST(rd->savfltregs[i], REG_SP, (WINSAVE_REGS + p) * 8);
+		p--; M_DST(rd->savfltregs[i], REG_SP, (WINSAVE_CNT + p) * 8);
 	}	
 	
 	/* take arguments out of register or stack frame */
@@ -216,7 +216,7 @@ bool codegen(jitdata *jd)
  					M_INTMOVE(s2, var->vv.regoff);
 
 				} else {                             /* reg arg -> spilled    */
- 					M_STX(s2, REG_SP, (WINSAVE_REGS + var->vv.regoff) * 8);
+ 					M_STX(s2, REG_SP, (WINSAVE_CNT + var->vv.regoff) * 8);
  				}
 
 			} else {                                 /* stack arguments       */
@@ -235,7 +235,7 @@ bool codegen(jitdata *jd)
  					M_FLTMOVE(s2, var->vv.regoff);
 
  				} else {			                 /* reg arg -> spilled    */
- 					M_DST(s2, REG_SP, (WINSAVE_REGS + var->vv.regoff) * 8);
+ 					M_DST(s2, REG_SP, (WINSAVE_CNT + var->vv.regoff) * 8);
  				}
 
 			} else {                                 /* stack arguments       */
@@ -250,7 +250,13 @@ bool codegen(jitdata *jd)
 	} /* end for */
 	
 	
-	/* XXX monitor enter and tracing */
+	/* XXX monitor enter */
+
+
+#if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
+#endif
 	
 	}
 	
@@ -2229,28 +2235,8 @@ nowperformreturn:
 			p = cd->stackframesize;
 
 #if !defined(NDEBUG)
-			if (opt_verbosecall) {
-				M_LDA(REG_SP, REG_SP, -3 * 8);
-				M_AST(REG_RA_CALLEE, REG_SP, 0 * 8); /* XXX: no need to save anything but FRES ? */
-		/*		M_STX(REG_RESULT, REG_SP, 1 * 8); */
-				M_DST(REG_FRESULT, REG_SP, 2 * 8);
-
-				disp = dseg_addaddress(cd, m);
-				M_ALD(rd->argintregs[0], REG_PV, disp);
-				M_MOV(REG_RESULT_CALLEE, rd->argintregs[1]);
-				M_FLTMOVE(REG_FRESULT, rd->argfltregs[2]);
-				M_FLTMOVE(REG_FRESULT, rd->argfltregs[3]);
-
-				disp = dseg_addaddress(cd, (void *) builtin_displaymethodstop);
-				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
-				M_NOP;
-
-				M_DLD(REG_FRESULT, REG_SP, 2 * 8);
-		/*		M_LDX(REG_RESULT, REG_SP, 1 * 8); */
-				M_ALD(REG_RA_CALLEE, REG_SP, 0 * 8);
-				M_LDA(REG_SP, REG_SP, 3 * 8);
-			}
+			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+				emit_verbosecall_exit(jd);
 #endif
 
 #if defined(ENABLE_THREADS)

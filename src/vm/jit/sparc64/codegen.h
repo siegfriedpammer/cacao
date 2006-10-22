@@ -586,7 +586,7 @@
 
 
 #define M_ALD_INTERN(a,b,disp)  M_LDX_INTERN(a,b,disp)
-#define M_ALD(a,b,disp)         M_LDX(a,b,disp)
+#define M_ALD(rd,rs,disp)       M_LDX(rd,rs,disp)
 #define M_AST_INTERN(a,b,disp)  M_STX_INTERN(a,b,disp)
 #define M_AST(a,b,disp)         M_STX(a,b,disp)
 #define M_AADD(a,b,c)           M_ADD(a,b,c)
