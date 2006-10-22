@@ -456,7 +456,7 @@
 
 
 
-#define M_SAVE(rs1,rs2,rd)      M_OP3(0x02,0x36,rd,rs1,rs2,IMM)
+#define M_SAVE(rs1,rs2,rd)      M_OP3(0x02,0x3c,rd,rs1,rs2,IMM)
 #define M_REST(rs1,rs2,rd)      M_OP3(0x02,0x37,rd,rs1,rs2,IMM)
 
 

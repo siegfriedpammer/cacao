@@ -93,9 +93,6 @@ char *regs[] = {
 
 u1 *disassinstr(u1 *code)
 {
-	s4 seqlen;
-	s4 i;
-
 	if (!disass_initialized) {
 		INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
 
@@ -103,30 +100,19 @@ u1 *disassinstr(u1 *code)
 		   INIT_DISASSEMBLE_INFO */
 
 		info.mach             = bfd_mach_sparc_v9;
+		info.endian           = BFD_ENDIAN_BIG;
 		info.read_memory_func = &disass_buffer_read_memory;
 
 		disass_initialized = 1;
 	}
 
-	printf("0x%08x:   ", (s4) code);
+	printf("0x%016lx:   %08x    ", (s8) code, *((u4 *) code));
 
-	printf("{0x%08x}  ->   ", *((u4*) code));
-	/* disass_len = 0; */
+	print_insn_sparc((bfd_vma) code, &info);
 
-	seqlen = print_insn_sparc((bfd_vma) code, &info);
-
-/*
-	for (i = 0; i < seqlen; i++, code++) {
-		printf("%02x ", *code);
-	}
-
-	for (; i < 8; i++) {
-		printf("   ");
-	}
-*/
 	printf("\n");
 
-	return code+4;
+	return code + 4;
 }
 
 
