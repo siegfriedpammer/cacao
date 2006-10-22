@@ -114,10 +114,10 @@ java.lang.Exception
 ---------- native stub exceptions ---------------
 NullPointerException in <clinit>:             OK
 java.lang.ExceptionInInitializerError
-   at extest.main(extest.java:324)
+   at extest.main(extest.java:323)
 Caused by: java.lang.NullPointerException
    at extest_clinit.<clinit>(extest_clinit.java:4)
-   at extest.main(extest.java:324)
+   at extest.main(extest.java:323)
 
 UnsatisfiedLinkError:                         OK
 java.lang.UnsatisfiedLinkError: nsub

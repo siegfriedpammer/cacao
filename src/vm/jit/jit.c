@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5814 2006-10-20 14:53:27Z twisti $
+   $Id: jit.c 5817 2006-10-22 00:38:21Z edwin $
 
 */
 
@@ -1529,9 +1529,10 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 	u1             *pa;
 	ptrint         *p;
 
-	/* create the stackframeinfo (XPC is equal to RA) */
+	/* create the stackframeinfo (subtract 1 from RA as it points to the */
+	/* instruction after the call)                                       */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, ra);
+	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, ra-1);
 
 	/* actually compile the method */
 
