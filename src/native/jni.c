@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5779 2006-10-14 19:12:58Z twisti $
+   $Id: jni.c 5821 2006-10-24 16:41:54Z edwin $
 
 */
 
@@ -4084,7 +4084,7 @@ jstring _Jv_JNI_NewStringUTF(JNIEnv *env, const char *bytes)
 
 	STATISTICS(jniinvokation());
 
-	s = javastring_new(utf_new_char(bytes));
+	s = javastring_safe_new_from_utf8(bytes);
 
     return (jstring) _Jv_JNI_NewLocalRef(env, (jobject) s);
 }

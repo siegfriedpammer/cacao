@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: utf8.h 5697 2006-10-05 17:23:48Z twisti $
+   $Id: utf8.h 5821 2006-10-24 16:41:54Z edwin $
 
 */
 
@@ -192,7 +192,11 @@ u4 utf_bytes(utf *u);
 /* get next unicode character of a utf-string */
 u2 utf_nextu2(char **utf);
 
-/* get number of unicode characters of a utf string */
+/* get (number of) unicode characters of a utf string (safe) */
+s4 utf8_safe_number_of_u2s(const char *text);
+void utf8_safe_convert_to_u2s(const char *text, u2 *buffer);
+
+/* get (number of) unicode characters of a utf string (UNSAFE!) */
 u4 utf_get_number_of_u2s(utf *u);
 u4 utf_get_number_of_u2s_for_buffer(const char *buffer, u4 blength);
 

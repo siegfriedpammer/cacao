@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: string.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: string.c 5821 2006-10-24 16:41:54Z edwin $
 
 */
 
@@ -317,6 +317,57 @@ java_lang_String *javastring_new_from_utf_buffer(const char *buffer, u4 blength)
 	s->value  = a;
 	s->offset = 0;
 	s->count  = utflength;
+
+	return s;
+}
+
+
+/* javastring_safe_new_from_utf8 ***********************************************
+
+   Create a new object of type java/lang/String with the text from
+   the specified UTF-8 string. This function is safe for invalid UTF-8.
+   (Invalid characters will be replaced by U+fffd.)
+
+   IN:
+      text.........the UTF-8 string, zero-terminated.
+
+   RETURN VALUE:
+      the java.lang.String object, or
+      NULL if an exception has been thrown
+
+*******************************************************************************/
+
+java_lang_String *javastring_safe_new_from_utf8(const char *text)
+{
+	java_lang_String *s;            /* result-string                          */
+	java_chararray *a;
+	s4 len;
+
+	assert(text);
+
+	/* calculate number of Java characters */
+
+	len = utf8_safe_number_of_u2s(text);
+
+	/* allocate the String object and the char array */
+
+	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	a = builtin_newarray_char(len);
+
+	/* javastring or character-array could not be created? */
+
+	if (!a || !s)
+		return NULL;
+
+	/* decompress UTF-8 string */
+
+	utf8_safe_convert_to_u2s(text, a->data);
+
+	/* set fields of the String object */
+
+	s->value  = a;
+	s->offset = 0;
+	s->count  = len;
 
 	return s;
 }

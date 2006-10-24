@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stringlocal.h 4876 2006-05-05 15:26:04Z edwin $
+   $Id: stringlocal.h 5821 2006-10-24 16:41:54Z edwin $
 
 */
 
@@ -133,6 +133,9 @@ java_lang_String *javastring_new_from_ascii(const char *text);
 /* creates a new object of type java/lang/String from UTF-8 */
 java_lang_String *javastring_new_from_utf_buffer(const char *buffer, u4 blength);
 java_lang_String *javastring_new_from_utf_string(const char *utfstr);
+
+/* creates a new object of type java/lang/String from (possibly invalid) UTF-8 */
+java_lang_String *javastring_safe_new_from_utf8(const char *text);
 
 /* make c-string from a javastring (debugging) */
 char *javastring_tochar(java_objectheader *s);

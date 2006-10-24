@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 5697 2006-10-05 17:23:48Z twisti $
+   $Id: utf8.c 5821 2006-10-24 16:41:54Z edwin $
 
 */
 
@@ -737,6 +737,9 @@ utf *utf_new_char_classname(const char *text)
    Read the next unicode character from the utf string and increment
    the utf-string pointer accordingly.
 
+   CAUTION: This function is unsafe for input that was not checked 
+            by is_valid_utf!
+
 *******************************************************************************/
 
 u2 utf_nextu2(char **utf_ptr)
@@ -807,6 +810,9 @@ u4 utf_bytes(utf *u)
 
    Determine number of UTF-16 u2s in the given UTF-8 buffer
 
+   CAUTION: This function is unsafe for input that was not checked 
+            by is_valid_utf!
+
    CAUTION: Use this function *only* when you want to convert an UTF-8 buffer
    to an array of u2s (UTF-16) and want to know how many of them you will get.
    All other uses of this function are probably wrong.
@@ -848,6 +854,9 @@ u4 utf_get_number_of_u2s_for_buffer(const char *buffer, u4 blength)
 /* utf_get_number_of_u2s *******************************************************
 
    Determine number of UTF-16 u2s in the utf string.
+
+   CAUTION: This function is unsafe for input that was not checked 
+            by is_valid_utf!
 
    CAUTION: Use this function *only* when you want to convert a utf string
    to an array of u2s and want to know how many of them you will get.
@@ -891,6 +900,262 @@ u4 utf_get_number_of_u2s(utf *u)
 								   "Illegal utf8 string");
 
 	return len;
+}
+
+
+/* utf8_safe_number_of_u2s *****************************************************
+
+   Determine number of UTF-16 u2s needed for decoding the given UTF-8 string.
+   (For invalid UTF-8 the U+fffd replacement character will be counted.)
+
+   This function is safe even for invalid UTF-8 strings.
+
+   IN:
+      text..........zero-terminated UTF-8 string (may be invalid)
+	                must NOT be NULL
+
+   OUT:
+      the number of u2s needed to hold this string in UTF-16 encoding.
+	  There is _no_ terminating zero included in this count.
+
+*******************************************************************************/
+
+s4 utf8_safe_number_of_u2s(const char *text) {
+	register const unsigned char *t;
+	register s4 byte;
+	register s4 len;
+	s4 byte1;
+	s4 byte2;
+	s4 byte3;
+	s4 value;
+	s4 skip;
+
+	assert(text);
+
+	len = 0;
+	t = (const unsigned char *) text;
+
+	/* CAUTION: Keep this code in sync with utf8_safe_convert_to_u2s! */
+
+	while (1) {
+		byte = *t++;
+
+		if (byte & 0x80) {
+			/* highest bit set, non-ASCII character */
+
+			if ((byte & 0xe0) == 0xc0) {
+				/* 2-byte: should be 110..... 10...... ? */
+
+				if ((*t++ & 0xc0) == 0x80)
+					; /* valid 2-byte */
+				else
+					t--; /* invalid */
+			}
+			else if ((byte & 0xf0) == 0xe0) {
+				/* 3-byte: should be 1110.... 10...... 10...... */
+
+				if ((*t++ & 0xc0) == 0x80) {
+					if ((*t++ & 0xc0) == 0x80)
+						; /* valid 3-byte */
+					else
+						t--; /* invalid */
+				}
+				else
+					t--; /* invalid */
+			}
+			else if ((byte & 0xf8) == 0xf0) {
+				/* 4-byte: should be 11110... 10...... 10...... 10...... */
+
+				if (((byte1 = *t++) & 0xc0) == 0x80) {
+					if (((byte2 = *t++) & 0xc0) == 0x80) {
+						if (((byte3 = *t++) & 0xc0) == 0x80) {
+							/* valid 4-byte UTF-8? */
+							value = ((byte  & 0x07) << 18)
+								  | ((byte1 & 0x3f) << 12)
+								  | ((byte2 & 0x3f) <<  6)
+								  | ((byte3 & 0x3f)      );
+
+							if (value > 0x10FFFF)
+								; /* invalid */
+							else if (value > 0xFFFF)
+								len += 1; /* we need surrogates */
+							else
+								; /* 16bit suffice */
+						}
+						else
+							t--; /* invalid */
+					}
+					else
+						t--; /* invalid */
+				}
+				else
+					t--; /* invalid */
+			}
+			else if ((byte & 0xfc) == 0xf8) {
+				/* invalid 5-byte */
+				skip = 4;
+				for (; skip && (*t & 0x80); --skip)
+					t++;
+			}
+			else if ((byte & 0xfe) == 0xfc) {
+				/* invalid 6-byte */
+				skip = 5;
+				for (; skip && (*t & 0x80); --skip)
+					t++;
+			}
+			else
+				; /* invalid */
+		}
+		else {
+			/* NUL */
+
+			if (byte == 0)
+				break;
+
+			/* ASCII character, common case */
+		}
+
+		len++;
+	}
+
+	return len;
+}
+
+
+/* utf8_safe_convert_to_u2s ****************************************************
+
+   Convert the given UTF-8 string to UTF-16 into a pre-allocated buffer.
+   (Invalid UTF-8 will be replaced with the U+fffd replacement character.)
+   Use utf8_safe_number_of_u2s to determine the number of u2s to allocate.
+
+   This function is safe even for invalid UTF-8 strings.
+
+   IN:
+      text..........zero-terminated UTF-8 string (may be invalid)
+	                must NOT be NULL
+
+*******************************************************************************/
+
+#define UNICODE_REPLACEMENT  0xfffd
+
+void utf8_safe_convert_to_u2s(const char *text, u2 *buffer) {
+	register const unsigned char *t;
+	register s4 byte;
+	s4 byte1;
+	s4 byte2;
+	s4 byte3;
+	s4 value;
+	s4 skip;
+
+	assert(text);
+
+	t = (const unsigned char *) text;
+
+	/* CAUTION: Keep this code in sync with utf8_safe_number_of_u2s! */
+
+	while (1) {
+		byte = *t++;
+
+		if (byte & 0x80) {
+			/* highest bit set, non-ASCII character */
+
+			if ((byte & 0xe0) == 0xc0) {
+				/* 2-byte: should be 110..... 10...... */
+
+				if (((byte1 = *t++) & 0xc0) == 0x80) {
+					/* valid 2-byte UTF-8 */
+					*buffer++ = ((byte  & 0x1f) << 6)
+							  | ((byte1 & 0x3f)     );
+				}
+				else {
+					*buffer++ = UNICODE_REPLACEMENT;
+					t--;
+				}
+			}
+			else if ((byte & 0xf0) == 0xe0) {
+				/* 3-byte: should be 1110.... 10...... 10...... */
+
+				if (((byte1 = *t++) & 0xc0) == 0x80) {
+					if (((byte2 = *t++) & 0xc0) == 0x80) {
+						/* valid 3-byte UTF-8 */
+						*buffer++ = ((byte  & 0x0f) << 12)
+								  | ((byte1 & 0x3f) <<  6)
+								  | ((byte2 & 0x3f)      );
+					}
+					else {
+						*buffer++ = UNICODE_REPLACEMENT;
+						t--;
+					}
+				}
+				else {
+					*buffer++ = UNICODE_REPLACEMENT;
+					t--;
+				}
+			}
+			else if ((byte & 0xf8) == 0xf0) {
+				/* 4-byte: should be 11110... 10...... 10...... 10...... */
+
+				if (((byte1 = *t++) & 0xc0) == 0x80) {
+					if (((byte2 = *t++) & 0xc0) == 0x80) {
+						if (((byte3 = *t++) & 0xc0) == 0x80) {
+							/* valid 4-byte UTF-8? */
+							value = ((byte  & 0x07) << 18)
+								  | ((byte1 & 0x3f) << 12)
+								  | ((byte2 & 0x3f) <<  6)
+								  | ((byte3 & 0x3f)      );
+
+							if (value > 0x10FFFF) {
+								*buffer++ = UNICODE_REPLACEMENT;
+							}
+							else if (value > 0xFFFF) {
+								/* we need surrogates */
+								*buffer++ = 0xd800 | ((value >> 10) - 0x40);
+								*buffer++ = 0xdc00 | (value & 0x03ff);
+							}
+							else
+								*buffer++ = value; /* 16bit suffice */
+						}
+						else {
+							*buffer++ = UNICODE_REPLACEMENT;
+							t--;
+						}
+					}
+					else {
+						*buffer++ = UNICODE_REPLACEMENT;
+						t--;
+					}
+				}
+				else {
+					*buffer++ = UNICODE_REPLACEMENT;
+					t--;
+				}
+			}
+			else if ((byte & 0xfc) == 0xf8) {
+				skip = 4;
+				for (; skip && (*t & 0x80); --skip)
+					t++;
+				*buffer++ = UNICODE_REPLACEMENT;
+			}
+			else if ((byte & 0xfe) == 0xfc) {
+				skip = 5;
+				for (; skip && (*t & 0x80); --skip)
+					t++;
+				*buffer++ = UNICODE_REPLACEMENT;
+			}
+			else
+				*buffer++ = UNICODE_REPLACEMENT;
+		}
+		else {
+			/* NUL */
+
+			if (byte == 0)
+				break;
+
+			/* ASCII character, common case */
+
+			*buffer++ = byte;
+		}
+	}
 }
 
 
