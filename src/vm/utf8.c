@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 5821 2006-10-24 16:41:54Z edwin $
+   $Id: utf8.c 5822 2006-10-24 17:51:42Z edwin $
 
 */
 
@@ -994,13 +994,13 @@ s4 utf8_safe_number_of_u2s(const char *text) {
 			else if ((byte & 0xfc) == 0xf8) {
 				/* invalid 5-byte */
 				skip = 4;
-				for (; skip && (*t & 0x80); --skip)
+				for (; skip && ((*t & 0xc0) == 0x80); --skip)
 					t++;
 			}
 			else if ((byte & 0xfe) == 0xfc) {
 				/* invalid 6-byte */
 				skip = 5;
-				for (; skip && (*t & 0x80); --skip)
+				for (; skip && ((*t & 0xc0) == 0x80); --skip)
 					t++;
 			}
 			else
@@ -1132,13 +1132,13 @@ void utf8_safe_convert_to_u2s(const char *text, u2 *buffer) {
 			}
 			else if ((byte & 0xfc) == 0xf8) {
 				skip = 4;
-				for (; skip && (*t & 0x80); --skip)
+				for (; skip && ((*t & 0xc0) == 0x80); --skip)
 					t++;
 				*buffer++ = UNICODE_REPLACEMENT;
 			}
 			else if ((byte & 0xfe) == 0xfc) {
 				skip = 5;
-				for (; skip && (*t & 0x80); --skip)
+				for (; skip && ((*t & 0xc0) == 0x80); --skip)
 					t++;
 				*buffer++ = UNICODE_REPLACEMENT;
 			}
