@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 5822 2006-10-24 17:51:42Z edwin $
+   $Id: utf8.c 5823 2006-10-24 23:24:19Z edwin $
 
 */
 
@@ -911,8 +911,10 @@ u4 utf_get_number_of_u2s(utf *u)
    This function is safe even for invalid UTF-8 strings.
 
    IN:
-      text..........zero-terminated UTF-8 string (may be invalid)
+      text..........zero-terminated(!) UTF-8 string (may be invalid)
 	                must NOT be NULL
+	  nbytes........strlen(text). (This is needed to completely emulate
+	                the RI).
 
    OUT:
       the number of u2s needed to hold this string in UTF-16 encoding.
@@ -920,10 +922,11 @@ u4 utf_get_number_of_u2s(utf *u)
 
 *******************************************************************************/
 
-s4 utf8_safe_number_of_u2s(const char *text) {
+s4 utf8_safe_number_of_u2s(const char *text, s4 nbytes) {
 	register const unsigned char *t;
 	register s4 byte;
 	register s4 len;
+	register const unsigned char *tlimit;
 	s4 byte1;
 	s4 byte2;
 	s4 byte3;
@@ -931,9 +934,11 @@ s4 utf8_safe_number_of_u2s(const char *text) {
 	s4 skip;
 
 	assert(text);
+	assert(nbytes >= 0);
 
 	len = 0;
 	t = (const unsigned char *) text;
+	tlimit = t + nbytes;
 
 	/* CAUTION: Keep this code in sync with utf8_safe_convert_to_u2s! */
 
@@ -953,6 +958,10 @@ s4 utf8_safe_number_of_u2s(const char *text) {
 			}
 			else if ((byte & 0xf0) == 0xe0) {
 				/* 3-byte: should be 1110.... 10...... 10...... */
+				/*                            ^t                */
+
+				if (t + 2 > tlimit)
+					return len + 1; /* invalid, stop here */
 
 				if ((*t++ & 0xc0) == 0x80) {
 					if ((*t++ & 0xc0) == 0x80)
@@ -965,6 +974,10 @@ s4 utf8_safe_number_of_u2s(const char *text) {
 			}
 			else if ((byte & 0xf8) == 0xf0) {
 				/* 4-byte: should be 11110... 10...... 10...... 10...... */
+				/*                            ^t                         */
+
+				if (t + 3 > tlimit)
+					return len + 1; /* invalid, stop here */
 
 				if (((byte1 = *t++) & 0xc0) == 0x80) {
 					if (((byte2 = *t++) & 0xc0) == 0x80) {
@@ -993,12 +1006,18 @@ s4 utf8_safe_number_of_u2s(const char *text) {
 			}
 			else if ((byte & 0xfc) == 0xf8) {
 				/* invalid 5-byte */
+				if (t + 4 > tlimit)
+					return len + 1; /* invalid, stop here */
+
 				skip = 4;
 				for (; skip && ((*t & 0xc0) == 0x80); --skip)
 					t++;
 			}
 			else if ((byte & 0xfe) == 0xfc) {
 				/* invalid 6-byte */
+				if (t + 5 > tlimit)
+					return len + 1; /* invalid, stop here */
+
 				skip = 5;
 				for (; skip && ((*t & 0xc0) == 0x80); --skip)
 					t++;
@@ -1031,16 +1050,22 @@ s4 utf8_safe_number_of_u2s(const char *text) {
    This function is safe even for invalid UTF-8 strings.
 
    IN:
-      text..........zero-terminated UTF-8 string (may be invalid)
+      text..........zero-terminated(!) UTF-8 string (may be invalid)
 	                must NOT be NULL
+	  nbytes........strlen(text). (This is needed to completely emulate
+	  				the RI).
+	  buffer........a preallocated array of u2s to receive the decoded
+	                string. Use utf8_safe_number_of_u2s to get the
+					required number of u2s for allocating this.
 
 *******************************************************************************/
 
 #define UNICODE_REPLACEMENT  0xfffd
 
-void utf8_safe_convert_to_u2s(const char *text, u2 *buffer) {
+void utf8_safe_convert_to_u2s(const char *text, s4 nbytes, u2 *buffer) {
 	register const unsigned char *t;
 	register s4 byte;
+	register const unsigned char *tlimit;
 	s4 byte1;
 	s4 byte2;
 	s4 byte3;
@@ -1048,8 +1073,10 @@ void utf8_safe_convert_to_u2s(const char *text, u2 *buffer) {
 	s4 skip;
 
 	assert(text);
+	assert(nbytes >= 0);
 
 	t = (const unsigned char *) text;
+	tlimit = t + nbytes;
 
 	/* CAUTION: Keep this code in sync with utf8_safe_number_of_u2s! */
 
@@ -1075,6 +1102,11 @@ void utf8_safe_convert_to_u2s(const char *text, u2 *buffer) {
 			else if ((byte & 0xf0) == 0xe0) {
 				/* 3-byte: should be 1110.... 10...... 10...... */
 
+				if (t + 2 > tlimit) {
+					*buffer++ = UNICODE_REPLACEMENT;
+					return;
+				}
+
 				if (((byte1 = *t++) & 0xc0) == 0x80) {
 					if (((byte2 = *t++) & 0xc0) == 0x80) {
 						/* valid 3-byte UTF-8 */
@@ -1094,6 +1126,11 @@ void utf8_safe_convert_to_u2s(const char *text, u2 *buffer) {
 			}
 			else if ((byte & 0xf8) == 0xf0) {
 				/* 4-byte: should be 11110... 10...... 10...... 10...... */
+
+				if (t + 3 > tlimit) {
+					*buffer++ = UNICODE_REPLACEMENT;
+					return;
+				}
 
 				if (((byte1 = *t++) & 0xc0) == 0x80) {
 					if (((byte2 = *t++) & 0xc0) == 0x80) {
@@ -1131,12 +1168,22 @@ void utf8_safe_convert_to_u2s(const char *text, u2 *buffer) {
 				}
 			}
 			else if ((byte & 0xfc) == 0xf8) {
+				if (t + 4 > tlimit) {
+					*buffer++ = UNICODE_REPLACEMENT;
+					return;
+				}
+
 				skip = 4;
 				for (; skip && ((*t & 0xc0) == 0x80); --skip)
 					t++;
 				*buffer++ = UNICODE_REPLACEMENT;
 			}
 			else if ((byte & 0xfe) == 0xfc) {
+				if (t + 5 > tlimit) {
+					*buffer++ = UNICODE_REPLACEMENT;
+					return;
+				}
+
 				skip = 5;
 				for (; skip && ((*t & 0xc0) == 0x80); --skip)
 					t++;

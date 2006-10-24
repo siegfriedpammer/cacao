@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: string.c 5821 2006-10-24 16:41:54Z edwin $
+   $Id: string.c 5823 2006-10-24 23:24:19Z edwin $
 
 */
 
@@ -341,13 +341,19 @@ java_lang_String *javastring_safe_new_from_utf8(const char *text)
 {
 	java_lang_String *s;            /* result-string                          */
 	java_chararray *a;
+	s4 nbytes;
 	s4 len;
 
 	assert(text);
 
+	/* Get number of bytes. We need this to completely emulate the messy */
+	/* behaviour of the RI. :(                                           */
+
+	nbytes = strlen(text);
+
 	/* calculate number of Java characters */
 
-	len = utf8_safe_number_of_u2s(text);
+	len = utf8_safe_number_of_u2s(text, nbytes);
 
 	/* allocate the String object and the char array */
 
@@ -361,7 +367,7 @@ java_lang_String *javastring_safe_new_from_utf8(const char *text)
 
 	/* decompress UTF-8 string */
 
-	utf8_safe_convert_to_u2s(text, a->data);
+	utf8_safe_convert_to_u2s(text, nbytes, a->data);
 
 	/* set fields of the String object */
 
