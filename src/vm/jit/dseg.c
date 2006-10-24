@@ -31,7 +31,7 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 5332 2006-09-05 19:38:28Z twisti $
+   $Id: dseg.c 5820 2006-10-24 11:17:30Z twisti $
 
 */
 
@@ -795,32 +795,85 @@ void dseg_display(jitdata *jd)
 {
 	codeinfo    *code;
 	codegendata *cd;
-	s4          *s4ptr;
-	s4           i;
-	
+	dsegentry   *de;
+	imm_union   val;
+
 	/* get required compiler data */
 
 	code = jd->code;
 	cd   = jd->cd;
 
-	s4ptr = (s4 *) (ptrint) code->mcode;
+	if (opt_debugcolor)
+		printf("\033[34m");	/* blue */
 
-	if (opt_debugcolor) printf("\033[34m");	/* blue */
 	printf("  --- dump of datasegment\n");
 
-	for (i = cd->dseglen; i > 0 ; i -= 4) {
+	/* process all data segment entries */
+
+	for (de = cd->dseg; de != NULL; de = de->next) {
 #if SIZEOF_VOID_P == 8
-		printf("0x%016lx:   -%6x (%6d): %8x\n",
-			   (ptrint) s4ptr, i, i, (s4) *s4ptr);
+		printf("0x%016lx:", (ptrint) (code->entrypoint + de->disp));
 #else
-		printf("0x%08x:   -%6x (%6d): %8x\n",
-			   (ptrint) s4ptr, i, i, (s4) *s4ptr);
+		printf("0x%08x:", (ptrint) (code->entrypoint + de->disp));
 #endif
-		s4ptr++;
+
+		printf("    %6x (%6d): ", de->disp, de->disp);
+
+		/* We read the values from the data segment as some values,
+		   like the line number table, have been written directly to
+		   the data segment. */
+
+		switch (de->type) {
+		case TYPE_INT:
+			val.i = *((s4 *) (code->entrypoint + de->disp));
+			printf("(INT) %d (0x%08x)", val.i, val.i);
+			break;
+
+		case TYPE_LNG:
+			val.l = *((s8 *) (code->entrypoint + de->disp));
+#if SIZEOF_VOID_P == 8
+			printf("(LNG) %ld (0x%016lx)", val.l, val.l);
+#else
+			printf("(LNG) %lld (0x%016llx)", val.l, val.l);
+#endif
+			break;
+
+		case TYPE_FLT:
+			val.f = *((float *) (code->entrypoint + de->disp));
+			printf("(FLT) %g (0x%08x)", val.f, val.i);
+			break;
+
+		case TYPE_DBL:
+			val.d = *((double *) (code->entrypoint + de->disp));
+#if SIZEOF_VOID_P == 8
+			printf("(DBL) %g (0x%016lx)", val.d, val.l);
+#else
+			printf("(DBL) %g (0x%016llx)", val.d, val.l);
+#endif
+			break;
+
+		case TYPE_ADR:
+			val.a = *((void **) (code->entrypoint + de->disp));
+#if SIZEOF_VOID_P == 8
+			printf("(ADR) %016lx", (ptrint) val.a);
+#else
+			printf("(ADR) %08x", (ptrint) val.a);
+#endif
+			break;
+		}
+
+		printf("\n");
 	}
 
-	printf("  --- begin of data segment: %p\n", (void *) s4ptr);
-	if (opt_debugcolor) printf("\033[m");
+	printf("  --- begin of data segment: ");
+#if SIZEOF_VOID_P == 8
+	printf("0x%016lx\n", (ptrint) code->entrypoint);
+#else
+	printf("0x%08x\n", (ptrint) code->entrypoint);
+#endif
+
+	if (opt_debugcolor)
+		printf("\033[m");
 }
 #endif /* !defined(NDEBUG) */
 
