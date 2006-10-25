@@ -177,11 +177,22 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 {
 	s4 disp;
 
-	if ((value >= -32768) && (value <= 32767))
+	if ((value >= -32768) && (value <= 32767)) {
 		M_LDA_INTERN(d, REG_ZERO, value);
-	else {
+	} else {
 		disp = dseg_adds4(cd, value);
 		M_ILD(d, REG_PV, disp);
+	}
+}
+
+void emit_lconst(codegendata *cd, s4 d, s8 value)
+{
+	s4 disp;
+	if ((value >= -32768) && (value <= 32767)) {
+		M_LDA_INTERN(d, REG_ZERO, value);
+	} else {
+		disp = dseg_adds8(cd, value);
+		M_LLD(d, REG_PV, disp);
 	}
 }
 

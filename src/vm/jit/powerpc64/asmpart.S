@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5776 2006-10-13 17:06:39Z tbfg $
+   $Id: asmpart.S 5824 2006-10-25 14:26:08Z tbfg $
 
 */
 
@@ -758,10 +758,10 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 
 L_asm_call_jit_compiler_exception:
 	mflr	r0
-	stw     r0,LA_LR_OFFSET(sp)
-	stwu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
+	std     r0,LA_LR_OFFSET(sp)
+	stdu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
 	bl      exceptions_get_and_clear_exception
-	lwz     xpc,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
+	ld      xpc,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
 	mtlr    xpc	
 	addi    sp,sp,LA_SIZE_ALIGNED
 
@@ -895,7 +895,7 @@ ex_int1:
 #else
 	addi    t3,t3,(ex_int2-ex_int1)@l
 #endif
-	slwi    t2,t2,3                     /* t2 = register count * 8            */
+	slwi    t2,t2,2                     /* t2 = register count * 4            */
 	subf    t3,t2,t3                    /* t3 = IntSave - t2                  */
 	mtctr   t3
 	bctr
@@ -911,7 +911,7 @@ ex_int1:
 	ld      s8,-1*8(t1)
 
 ex_int2:
-	subf    t1,t2,t1                    /* t1 = t1 - register count * 8       */
+	subf    t1,t2,t1                    /* t1 = t1 - register count * 4       */
 	lwz     t2,FltSave(pv)
 	bl      ex_flt1
 ex_flt1:
@@ -921,7 +921,7 @@ ex_flt1:
 #else
 	addi    t3,t3,(ex_flt2-ex_flt1)@l
 #endif
-	slwi    t2,t2,3                     /* t2 = register count * 8            */
+	slwi    t2,t2,2                     /* t2 = register count * 4            */
 	subf    t3,t2,t3                    /* t3 = FltSave - t2                  */
 	mtctr   t3
 	bctr
@@ -1325,26 +1325,25 @@ asm_replacement_out:
 	mtctr   itmp3
 	bctr
 
-/*********************************************************************/
-/*
-asm_cacheflush:
-	.quad .asm_cacheflush,.TOC.@tocbase,0
-	.previous
-	.size asm_cacheflush,24
-	.type .asm_cacheflush,@function
-	.globl .asm_cacheflush
-*/
+/* asm_cacheflush **************************************************************
+	copied from linux/arch/ppc64/kernel/vdso64/cacheflush.S
+	assumes 128 byte cache line size.
+*******************************************************************************/
 .asm_cacheflush:
+	/* construct the AND mask */
+	li	r6,   0xffffffffffff8000
+	ori	r6,r6,0x000000000000ff80
+
 	add     r4,r3,r4
-	rldimi  r3,r3,0,26
-	addi    r4,r4,31
-	rldimi  r4,r4,0,26
+	and.	r3,r3,r6
+	addi    r4,r4,127
+	and.	r4,r4,r6
 	mr      r5,r3
 1:
 	cmpld   r3,r4
 	bge     0f
 	dcbst   0,r3
-	addi    r3,r3,32
+	addi    r3,r3,128
 	b       1b
 0:
 	sync
@@ -1352,13 +1351,12 @@ asm_cacheflush:
 	cmpld   r5,r4
 	bge     0f
 	icbi    0,r5
-	addi    r5,r5,32
+	addi    r5,r5,128
 	b       1b
 0:
 	sync
 	isync
 	blr
-
 
 .asm_getclassvalues_atomic:
 _crit_restart:

@@ -32,7 +32,7 @@
             Edwin Steiner
 	    Roland Lezuo
 
-   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen.c 5824 2006-10-25 14:26:08Z tbfg $
 
 */
 
@@ -89,7 +89,6 @@ bool codegen(jitdata *jd)
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
 	ptrint              a;
-	s4                  stackframesize;
 	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
@@ -126,7 +125,7 @@ bool codegen(jitdata *jd)
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
-	stackframesize = rd->memuse + savedregs_num;
+	cd->stackframesize = rd->memuse + savedregs_num;
 
 #if defined(ENABLE_THREADS)
 	/* space to save argument of monitor_enter and Return Values to survive */
@@ -135,7 +134,7 @@ bool codegen(jitdata *jd)
 	/* reside in R3 */
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* reserve 2 slots for long/double return values for monitorexit */
-		stackframesize += 2;
+		cd->stackframesize += 2;
 	}
 
 #endif
@@ -144,14 +143,15 @@ bool codegen(jitdata *jd)
 
 	/* align stack to 16-bytes */
 
+/* FIXME */
 /* 	if (!m->isleafmethod || opt_verbosecall) */
-		stackframesize = (stackframesize + 3) & ~3;
-
+/*		stackframesize = (stackframesize + 3) & ~3;
+*/
 /* 	else if (m->isleafmethod && (stackframesize == LA_WORD_SIZE)) */
 /* 		stackframesize = 0; */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * 8);             /* FrameSize       */
+	(void) dseg_adds4(cd, cd->stackframesize * 8);             /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -190,12 +190,12 @@ bool codegen(jitdata *jd)
 		M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	}
 
-	if (stackframesize)
-		M_STDU(REG_SP, REG_SP, -stackframesize * 8);
+	if (cd->stackframesize)
+		M_STDU(REG_SP, REG_SP, -cd->stackframesize * 8);
 
 	/* save return address and used callee saved registers */
 
-	p = stackframesize;
+	p = cd->stackframesize;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 		p--; M_LST(rd->savintregs[i], REG_SP, p * 8);
 	}
@@ -241,21 +241,21 @@ bool codegen(jitdata *jd)
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->vv.regoff, REG_SP, (stackframesize + s1) * 4);
+						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 					else
-						M_ILD(var->vv.regoff, REG_SP, (stackframesize + s1) * 4);
+						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 
 				} else {                             /* stack arg -> spilled  */
 #if 1
- 					M_ILD(REG_ITMP1, REG_SP, (stackframesize + s1) * 4);
+ 					M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4);
  					M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4);
 					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, (stackframesize + s1) * 4 +4);
+						M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4 +4);
 						M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4 + 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->vv.regoff = stackframesize + s1;
+					var->vv.regoff = cd->stackframesize + s1;
 #endif
 				}
 			}
@@ -276,25 +276,25 @@ bool codegen(jitdata *jd)
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->vv.regoff, REG_SP, (stackframesize + s1) * 4);
+						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 
 					else
-						M_FLD(var->vv.regoff, REG_SP, (stackframesize + s1) * 4);
+						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 
  				} else {                             /* stack-arg -> spilled  */
 #if 1
 					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, (stackframesize + s1) * 4);
+						M_DLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
 						M_DST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
-						var->vv.regoff = stackframesize + s1;
+						var->vv.regoff = cd->stackframesize + s1;
 
 					} else {
-						M_FLD(REG_FTMP1, REG_SP, (stackframesize + s1) * 4);
+						M_FLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
 						M_FST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->vv.regoff = stackframesize + s1;
+					var->vv.regoff = cd->stackframesize + s1;
 #endif
 				}
 			}
@@ -1872,7 +1872,6 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 			
-		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
@@ -1949,34 +1948,35 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 			
-		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
-
-			/* TODO, remove me */
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			if (iptr->sx.val.l == 0) {
-				/* if high word is greater equal zero, the whole long is too */
-				M_CMPI(s2, 0);
-			} else if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff)) {
-  				M_CMPI(s2, 0);
-				M_BGT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				M_BLT(2);
-  				M_CMPUI(s1, iptr->sx.val.l & 0xffff);
-  			} else {
-  				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
-  				M_CMP(s2, REG_ITMP3);
-				M_BGT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				M_BLT(3);
-  				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
-				M_CMPU(s1, REG_ITMP3);
-			}
+		#endif
+		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			LCONST(REG_ITMP2, iptr->sx.val.l);
+			M_CMP(s1, REG_ITMP2);
+			M_BLT(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			LCONST(REG_ITMP2, iptr->sx.val.l);
+			M_CMP(s1, REG_ITMP2);
+			M_BLE(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+		case ICMD_IF_LGE:       /* ..., value ==> ... */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			LCONST(REG_ITMP2, iptr->sx.val.l);
+			M_CMP(s1, REG_ITMP2);
 			M_BGE(0);
 			codegen_addreference(cd, iptr->dst.block);
 			break;
-		#endif
-
+		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			LCONST(REG_ITMP2, iptr->sx.val.l);
+			M_CMP(s1, REG_ITMP2);
+			M_BGT(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
 		case ICMD_IF_LCMPEQ: 
@@ -2078,7 +2078,7 @@ nowperformreturn:
 			{
 			s4 i, p;
 			
-			p = stackframesize;
+			p = cd->stackframesize;
 
 			/* call trace function */
 
@@ -2155,8 +2155,8 @@ nowperformreturn:
 
 			/* deallocate stack                                               */
 
-			if (stackframesize)
-				M_LDA(REG_SP, REG_SP, stackframesize * 8);
+			if (cd->stackframesize)
+				M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
 
 			M_RET;
 			ALIGNCODENOP;
@@ -2901,7 +2901,7 @@ gen_method:
 
 				if (jd->isleafmethod) {
 					M_MFLR(REG_ZERO);
-					M_AST(REG_ZERO, REG_SP, stackframesize * 8 + LA_LR_OFFSET);
+					M_AST(REG_ZERO, REG_SP, cd->stackframesize * 8 + LA_LR_OFFSET);
 				}
 
 				M_MOV(REG_PV, rd->argintregs[0]);
@@ -2911,7 +2911,7 @@ gen_method:
 					M_MOV(REG_ZERO, rd->argintregs[2]);
 				else
 					M_ALD(rd->argintregs[2],
-						  REG_SP, stackframesize * 8 + LA_LR_OFFSET);
+						  REG_SP, cd->stackframesize * 8 + LA_LR_OFFSET);
 
 				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 				M_MOV(REG_ITMP1, rd->argintregs[4]);
@@ -2928,9 +2928,9 @@ gen_method:
 
 				if (jd->isleafmethod) {
 					/* XXX FIXME: REG_ZERO can cause problems here! */
-					assert(stackframesize * 8 <= 32767);
+					assert(cd->stackframesize * 8 <= 32767);
 
-					M_ALD(REG_ZERO, REG_SP, stackframesize * 8 + LA_LR_OFFSET);
+					M_ALD(REG_ZERO, REG_SP, cd->stackframesize * 8 + LA_LR_OFFSET);
 					M_MTLR(REG_ZERO);
 				}
 
@@ -3152,7 +3152,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
-	s4            stackframesize;       /* size of stackframe if needed       */
 	methoddesc   *md;
 	s4            nativeparams;
 	s4            i, j;                 /* count variables                    */
@@ -3174,19 +3173,19 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* calculate stackframe size */
 
-	stackframesize =
+	cd->stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		4 +                            /* 4 stackframeinfo arguments (darwin)*/
 		nmd->paramcount  + 
 		nmd->memuse;
 
-	stackframesize = (stackframesize + 3) & ~3; /* keep stack 16-byte aligned */
+	cd->stackframesize = (cd->stackframesize + 3) & ~3; /* keep stack 16-byte aligned */
 
 	/* create method header */
 
 	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * 8);             /* FrameSize       */
+	(void) dseg_adds4(cd, cd->stackframesize * 8);             /* FrameSize       */
 	(void) dseg_adds4(cd, 0);                              /* IsSync          */
 	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
 	(void) dseg_adds4(cd, 0);                              /* IntSave         */
@@ -3198,7 +3197,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	M_MFLR(REG_ZERO);
 	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
-	M_STDU(REG_SP, REG_SP, -(stackframesize * 8));
+	M_STDU(REG_SP, REG_SP, -(cd->stackframesize * 8));
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
@@ -3246,10 +3245,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create native stack info */
 
-	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[0]);
+	M_AADD_IMM(REG_SP, cd->stackframesize * 8, rd->argintregs[0]);
 	M_MOV(REG_PV, rd->argintregs[1]);
-	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[2]);
-	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8 + LA_LR_OFFSET);
+	M_AADD_IMM(REG_SP, cd->stackframesize * 8, rd->argintregs[2]);
+	M_ALD(rd->argintregs[3], REG_SP, cd->stackframesize * 8 + LA_LR_OFFSET);
 	disp = dseg_addaddress(cd, codegen_start_native_call);
 
 	M_ALD(REG_ITMP1, REG_PV, disp);
@@ -3301,7 +3300,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				}
 
 			} else {
-				s1 = md->params[i].regoff + stackframesize;
+				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 
 				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
@@ -3313,7 +3312,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			   argument registers keep unchanged. */
 
 			if (md->params[i].inmemory) {
-				s1 = md->params[i].regoff + stackframesize;
+				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 
 				if (IS_2_WORD_TYPE(t)) {
@@ -3351,10 +3350,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_JSR;
 	M_ALD(REG_TOC, REG_SP, 40);	/* restore TOC */
 
-	M_NOP;
-	M_NOP;
-	M_NOP;
-
 	/* save return value */
 
 	if (md->returntype.type != TYPE_VOID) {
@@ -3377,11 +3372,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #endif
 	/* remove native stackframe info */
 
-	M_NOP;
-	M_NOP;
-	M_NOP;
-
-	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[0]);
+	M_AADD_IMM(REG_SP, cd->stackframesize * 8, rd->argintregs[0]);
 	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_ALD(REG_ITMP1, REG_ITMP1, 0);	/* XXX what about TOC? */
@@ -3403,9 +3394,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		}
 	}
 
-	M_ALD(REG_ITMP2_XPC, REG_SP, stackframesize * 8 + LA_LR_OFFSET);
+	M_ALD(REG_ITMP2_XPC, REG_SP, cd->stackframesize * 8 + LA_LR_OFFSET);
 	M_MTLR(REG_ITMP2_XPC);
-	M_LDA(REG_SP, REG_SP, stackframesize * 8); /* remove stackframe           */
+	M_LDA(REG_SP, REG_SP, cd->stackframesize * 8); /* remove stackframe           */
 
 	/* check for exception */
 

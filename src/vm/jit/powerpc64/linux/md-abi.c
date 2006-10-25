@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
+   $Id: md-abi.c 5824 2006-10-25 14:26:08Z tbfg $
 
 */
 
@@ -43,7 +43,7 @@
 #include "vm/jit/abi.h"
 
 
-#define _ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
+#define CACAO_ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
 
 
 /* register descripton array **************************************************/
@@ -156,7 +156,7 @@ void md_param_alloc(methoddesc *md)
 				pd->regoff = farg;
 				farg++;
 			} else {
-				_ALIGN(stacksize);
+				CACAO_ALIGN(stacksize);
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 				stacksize += 2;

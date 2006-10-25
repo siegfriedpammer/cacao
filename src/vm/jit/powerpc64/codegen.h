@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5632 2006-10-02 13:43:15Z edwin $
+   $Id: codegen.h 5824 2006-10-25 14:26:08Z tbfg $
 
 */
 
@@ -106,7 +106,7 @@
 
 
 #define ICONST(d,c)                     emit_iconst(cd, (d), (c))
-#define LCONST(reg,c) 			ICONST(reg,c)
+#define LCONST(reg,c) 			emit_lconst(cd, (reg), (c))
 
 
 #define ALIGNCODENOP \
