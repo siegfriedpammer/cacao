@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5809 2006-10-20 13:09:54Z twisti $
+   $Id: threads.c 5832 2006-10-26 11:18:08Z edwin $
 
 */
 
@@ -201,7 +201,7 @@ static s4 threads_table_add(threadobject *thread);
 static void threads_table_remove(threadobject *thread);
 static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos);
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && 0
 static void threads_table_dump(FILE *file);
 #endif
 
@@ -1835,7 +1835,7 @@ void threads_dump(void)
 
 ******************************************************************************/
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && 0
 static void threads_table_dump(FILE *file)
 {
 	s4 i;
@@ -1854,7 +1854,7 @@ static void threads_table_dump(FILE *file)
 		fprintf(file, "%4d: ", i);
 
 		if (index < size) {
-			fprintf(file, "free, nextfree = %d\n", index);
+			fprintf(file, "free, nextfree = %d\n", (int) index);
 		}
 		else {
 			fprintf(file, "thread %p\n", (void*) threads_table.table[i].thread);
