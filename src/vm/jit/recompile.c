@@ -1,4 +1,4 @@
-/* src/vm/recompile.c - recompilation system
+/* src/vm/jit/recompile.c - recompilation system
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -53,6 +53,7 @@
 #include "toolbox/list.h"
 #include "vm/builtin.h"
 #include "vm/classcache.h"
+#include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/recompile.h"
 
@@ -192,7 +193,9 @@ static void recompile_thread(void)
 				recompile_replace_vftbl(lme->m);
 			}
 			else {
-				throw_exception();
+				/* XXX what is the right-thing(tm) to do here? */
+
+				exceptions_print_exception(*exceptionptr);
 			}
 
 			/* remove the compiled method */

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5808 2006-10-20 12:00:18Z twisti $
+   $Id: exceptions.c 5836 2006-10-26 11:30:02Z twisti $
 
 */
 
@@ -1653,7 +1653,6 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 *******************************************************************************/
 
-#if !defined(NDEBUG)
 void exceptions_print_exception(java_objectheader *xptr)
 {
 	java_lang_Throwable   *t;
@@ -1684,7 +1683,7 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 	/* print the cause if available */
 
-	if (cause && (cause != t)) {
+	if ((cause != NULL) && (cause != t)) {
 		printf("Caused by: ");
 		utf_display_printable_ascii_classname(cause->header.vftbl->class->name);
 
@@ -1698,7 +1697,6 @@ void exceptions_print_exception(java_objectheader *xptr)
 		putc('\n', stdout);
 	}
 }
-#endif /* !defined(NDEBUG) */
 
 
 /*
