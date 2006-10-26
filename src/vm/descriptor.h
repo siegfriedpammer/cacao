@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 5078 2006-07-05 11:48:49Z twisti $
+   $Id: descriptor.h 5828 2006-10-26 10:09:11Z twisti $
 
 */
 
@@ -108,6 +108,9 @@ struct typedesc {
 /*       For non-primitive types decltype is TYPE_ADR.                        */
 
 struct paramdesc {
+#if defined(__MIPS__)
+	u1   type;                  /* TYPE_??? of the register allocated         */
+#endif
 	bool inmemory;              /* argument in register or on stack           */
 	s4   regoff;                /* register index or stack offset             */
 };
