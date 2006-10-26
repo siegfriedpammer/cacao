@@ -142,8 +142,10 @@ void show_method(jitdata *jd, int stage)
 	basicblock     *lastbptr;
 	exception_entry *ex;
 	s4              i, j;
-	u1             *u1ptr;
 	int             irstage;
+#if defined(ENABLE_DISASSEMBLER)
+	u1             *u1ptr;
+#endif
 
 	/* get required compiler data */
 
@@ -400,8 +402,10 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	s4           i;
 	bool         deadcode;
 	instruction *iptr;
-	u1          *u1ptr;
 	int          irstage;
+#if defined(ENABLE_DISASSEMBLER)
+	u1          *u1ptr;
+#endif
 
 	/* get required compiler data */
 
@@ -1208,12 +1212,11 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		SHOW_S1(iptr);
 		table = iptr->dst.table;
 
-		i = iptr->sx.s23.s3.tablehigh
-			- iptr->sx.s23.s2.tablelow + 1;
+		i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
 		printf("high=%d low=%d count=%d\n", iptr->sx.s23.s3.tablehigh, iptr->sx.s23.s2.tablelow, i);
 		while (--i >= 0) {
-			printf("\t\t%d --> ", table - iptr->dst.table);
+			printf("\t\t%d --> ", (int) table - iptr->dst.table);
 			if (stage >= SHOW_STACK) {
 				printf("L%03d\n", table->block->nr);
 			}
