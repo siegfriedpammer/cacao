@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 5388 2006-09-06 22:34:46Z twisti $
+   $Id: md-abi.h 5829 2006-10-26 10:34:17Z twisti $
 
 */
 
@@ -73,6 +73,10 @@
 #define REG_A1           5
 #define REG_A2           6
 #define REG_A3           7
+
+#if SIZEOF_VOID_P == 8
+#define REG_A4           8
+#endif
 
 /* floating point registers */
 
@@ -141,6 +145,30 @@
 #define TRACE_ARGS_NUM  2
 
 #endif /* SIZEOF_VOID_P == 8 */
+
+
+/* ABI defines ****************************************************************/
+
+#if SIZEOF_VOID_P == 8
+# define PA_SIZE    0                   /* we don't have a parameter area     */
+#else
+# define PA_SIZE    4 * 4               /* parameter area is max. 4 * 4 bytes */
+#endif
+
+
+/* packed register defines ****************************************************/
+
+#if SIZEOF_VOID_P == 4
+# if WORDS_BIGENDIAN == 1
+#  define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
+#  define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)
+#  define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
+# else
+#  define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP1, REG_ITMP2)
+#  define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP3)
+#  define REG_RESULT_PACKED    PACK_REGS(REG_RESULT, REG_RESULT2)
+# endif
+#endif
 
 #endif /* _MD_ABI_H */
 
