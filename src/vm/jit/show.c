@@ -1216,7 +1216,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 		printf("high=%d low=%d count=%d\n", iptr->sx.s23.s3.tablehigh, iptr->sx.s23.s2.tablelow, i);
 		while (--i >= 0) {
-			printf("\t\t%d --> ", (int) table - iptr->dst.table);
+			printf("\t\t%d --> ", (int) (table - iptr->dst.table));
 			if (stage >= SHOW_STACK) {
 				printf("L%03d\n", table->block->nr);
 			}
