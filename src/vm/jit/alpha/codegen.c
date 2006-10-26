@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5838 2006-10-26 11:47:43Z edwin $
+   $Id: codegen.c 5841 2006-10-26 16:41:07Z edwin $
 
 */
 
@@ -101,6 +101,8 @@ bool codegen(jitdata *jd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+	fieldinfo          *fi;
+	unresolved_field   *uf;
 	rplpoint           *replacementpoint;
 	s4                  fieldtype;
 	s4                 varindex;
@@ -1854,7 +1856,7 @@ bool codegen(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
@@ -1866,7 +1868,7 @@ bool codegen(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
 				disp = dseg_add_address(cd, &(fi->value));
@@ -1909,7 +1911,7 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
@@ -1921,7 +1923,7 @@ bool codegen(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
 				disp = dseg_add_address(cd, &(fi->value));
@@ -1965,7 +1967,7 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
@@ -1977,7 +1979,7 @@ bool codegen(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
 				disp = dseg_add_address(cd, &(fi->value));
@@ -2018,7 +2020,7 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
@@ -2030,7 +2032,7 @@ bool codegen(jitdata *jd)
 				disp = 0;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
 				disp = fi->offset;
@@ -2116,7 +2118,7 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
@@ -2128,7 +2130,7 @@ bool codegen(jitdata *jd)
 				disp = 0;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
 				disp = fi->offset;
