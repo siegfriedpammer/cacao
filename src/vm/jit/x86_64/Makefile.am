@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5642 2006-10-03 16:42:34Z edwin $
+## $Id: Makefile.am 5830 2006-10-26 11:04:31Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -65,8 +65,7 @@ libarch_la_SOURCES = \
 	\
 	md-abi.c \
 	md-abi.h \
-	md.c \
-	md.h
+	md.c
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 

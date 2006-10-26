@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen.c 5830 2006-10-26 11:04:31Z twisti $
 
 */
 
@@ -42,7 +42,6 @@
 
 #include "vm/types.h"
 
-#include "md.h"
 #include "md-abi.h"
 
 #include "vm/jit/x86_64/arch.h"
@@ -117,8 +116,9 @@ bool codegen(jitdata *jd)
 
 	/* prevent compiler warnings */
 
-	d = 0;
-	lm = NULL;
+	d   = 0;
+	lm  = NULL;
+	um  = NULL;
 	bte = NULL;
 
 	{
