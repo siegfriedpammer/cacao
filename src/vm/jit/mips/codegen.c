@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5827 2006-10-26 09:55:52Z twisti $
+   $Id: codegen.c 5838 2006-10-26 11:47:43Z edwin $
 
 */
 
@@ -112,6 +112,15 @@ bool codegen(jitdata *jd)
 	code = jd->code;
 	cd   = jd->cd;
 	rd   = jd->rd;
+
+	/* prevent compiler warnings */
+
+	d           = 0;
+	fieldtype   = 0;
+	lm          = NULL;
+	um          = NULL;
+	bte         = NULL;
+	currentline = 0;
 
 	{
 	s4 i, p, t, l;

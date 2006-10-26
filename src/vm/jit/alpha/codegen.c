@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen.c 5838 2006-10-26 11:47:43Z edwin $
 
 */
 
@@ -114,10 +114,12 @@ bool codegen(jitdata *jd)
 
 	/* prevent compiler warnings */
 
-	d = 0;
+	d           = 0;
+	fieldtype   = 0;
+	lm          = NULL;
+	um          = NULL;
+	bte         = NULL;
 	currentline = 0;
-	lm = NULL;
-	bte = NULL;
 
 	{
 	s4 i, p, t, l;
@@ -2064,29 +2066,27 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (!IS_FLT_DBL_TYPE(fieldtype)) {
-				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			} else {
-				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp      = fi->offset;
 			}
 
+			if (IS_INT_LNG_TYPE(fieldtype))
+				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			else
+				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
-				fieldtype = uf->fieldref->parseddesc.fd->type;
-
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
-
-				disp = 0;
-			}
-			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
-				fieldtype = fi->type;
-				disp = fi->offset;
 			}
 
 			switch (fieldtype) {
