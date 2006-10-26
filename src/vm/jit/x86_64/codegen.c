@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5830 2006-10-26 11:04:31Z twisti $
+   $Id: codegen.c 5839 2006-10-26 11:57:16Z twisti $
 
 */
 
@@ -95,7 +95,6 @@ bool codegen(jitdata *jd)
 	s4                  len, s1, s2, s3, d, disp;
 	u2                  currentline;
 	ptrint              a;
-	s4                  fieldtype;
 	varinfo            *var, *var1, *var2, *dst;
 	basicblock         *bptr;
 	instruction        *iptr;
@@ -104,6 +103,9 @@ bool codegen(jitdata *jd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+	fieldinfo          *fi;
+	unresolved_field   *uf;
+	s4                  fieldtype;
 	rplpoint           *replacementpoint;
 	s4                 varindex;
 
@@ -1897,11 +1899,10 @@ bool codegen(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_addaddress(cd, NULL);
-				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
+				disp      = dseg_addaddress(cd, NULL);
+				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				/* must be calculated before codegen_addpatchref */
 
@@ -1919,9 +1920,10 @@ bool codegen(jitdata *jd)
 /* 				PROFILE_CYCLE_START; */
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
@@ -1934,9 +1936,6 @@ bool codegen(jitdata *jd)
 
 					PROFILE_CYCLE_START;
 				}
-
-				disp = dseg_addaddress(cd, &(fi->value));
-				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
   			}
 
 			/* This approach is much faster than moving the field
@@ -1969,11 +1968,10 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_addaddress(cd, NULL);
-				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
+				disp      = dseg_addaddress(cd, NULL);
+				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				/* must be calculated before codegen_addpatchref */
 
@@ -1991,9 +1989,10 @@ bool codegen(jitdata *jd)
 /* 				PROFILE_CYCLE_START; */
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
@@ -2007,9 +2006,6 @@ bool codegen(jitdata *jd)
 
 					PROFILE_CYCLE_START;
 				}
-
-				disp = dseg_addaddress(cd, &(fi->value));
-				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
   			}
 
 			/* This approach is much faster than moving the field
@@ -2043,11 +2039,10 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_addaddress(cd, NULL);
-				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
+				disp      = dseg_addaddress(cd, NULL);
+				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				/* must be calculated before codegen_addpatchref */
 
@@ -2066,9 +2061,10 @@ bool codegen(jitdata *jd)
 /* 				PROFILE_CYCLE_START; */
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
@@ -2081,9 +2077,6 @@ bool codegen(jitdata *jd)
 
 					PROFILE_CYCLE_START;
 				}
-
-				disp = dseg_addaddress(cd, &(fi->value));
-				disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
   			}
 
 			/* This approach is much faster than moving the field
@@ -2115,7 +2108,9 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 /* 				PROFILE_CYCLE_STOP; */
 
@@ -2126,15 +2121,11 @@ bool codegen(jitdata *jd)
 				}
 
 /* 				PROFILE_CYCLE_START; */
-
-				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = 0;
-			} 
+			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -2167,7 +2158,9 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_IFTMP);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 /* 				PROFILE_CYCLE_STOP; */
 
@@ -2178,15 +2171,11 @@ bool codegen(jitdata *jd)
 				}
 
 /* 				PROFILE_CYCLE_START; */
-
-				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = 0;
 			} 
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -2214,7 +2203,9 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 /* 				PROFILE_CYCLE_STOP; */
 
@@ -2225,15 +2216,11 @@ bool codegen(jitdata *jd)
 				}
 
 /* 				PROFILE_CYCLE_START; */
-
-				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = 0;
 			} 
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
