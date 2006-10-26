@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-asm.h 5825 2006-10-26 09:29:23Z twisti $
 
 */
 
@@ -70,8 +70,8 @@
 #define s6      $22
 #define s7      $23
 
-#define t8      $24
-#define t9      $25
+#define t4      $24
+#define itmp3   $25
 #define k0      $26
 #define k1      $27
 
@@ -81,7 +81,6 @@
 #define ra      $31
 
 #define pv      s8
-#define itmp3   t9
 
 #define xptr    itmp1
 #define xpc     itmp2
@@ -289,7 +288,7 @@
 	sd      t1,(1+(off))*8(sp)	; \
 	sd      t2,(2+(off))*8(sp)	; \
 	sd      t3,(3+(off))*8(sp)	; \
-	sd      t8,(4+(off))*8(sp)	; \
+	sd      t4,(4+(off))*8(sp)	; \
 	\
 	sdc1    ft3,(5+(off))*8(sp)	; \
 	sdc1    ft4,(6+(off))*8(sp)	; \
@@ -313,7 +312,7 @@
 	ld      t1,(1+(off))*8(sp)	; \
 	ld      t2,(2+(off))*8(sp)	; \
 	ld      t3,(3+(off))*8(sp)	; \
-	ld      t8,(4+(off))*8(sp)	; \
+	ld      t4,(4+(off))*8(sp)	; \
 	\
 	ldc1    ft3,(5+(off))*8(sp)	; \
 	ldc1    ft4,(6+(off))*8(sp)	; \

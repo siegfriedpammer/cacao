@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5624 2006-10-02 11:35:33Z twisti $
+   $Id: asmpart.S 5825 2006-10-26 09:29:23Z twisti $
 
 */
 
@@ -191,13 +191,13 @@ L_asm_vm_call_method_compute_pv:
 	daddi   s7,s7,-1
 		
 calljava_argsloaded:
-	move    t8,sp                      /* save stack pointer                  */
+	move    t4,sp                      /* save stack pointer                  */
 	blez    s7,calljava_nocopy
 	nop
 	subu    t1,zero,s7                 /* create argument stack frame         */
 	sll     t2,t1,3
 	aaddu   sp,sp,t2
-	aaddu   t2,t2,t8
+	aaddu   t2,t2,t4
 
 calljava_copyloop:
     ald     t3,offvmargdata+sizevmarg*8(t0)
@@ -209,11 +209,11 @@ calljava_copyloop:
 	nop
 
 calljava_nocopy:
-	ald     itmp1,4*8(t8)             /* pass method pointer via itmp1        */
+	ald     itmp1,4*8(t4)             /* pass method pointer via itmp1        */
 
 	ala     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
-	ast     mptr,2*8(t8)              /* store function address               */
-	ala     mptr,1*8(t8)              /* set method pointer                   */
+	ast     mptr,2*8(t4)              /* store function address               */
+	ala     mptr,1*8(t4)              /* set method pointer                   */
 
 	ald     pv,1*8(mptr)              /* method call as in Java               */
 	jalr    pv                        /* call JIT compiler                    */
