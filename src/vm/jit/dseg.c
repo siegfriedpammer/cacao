@@ -31,7 +31,7 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 5820 2006-10-24 11:17:30Z twisti $
+   $Id: dseg.c 5834 2006-10-26 11:23:00Z edwin $
 
 */
 
@@ -655,9 +655,7 @@ void dseg_addlinenumber_inline_start(codegendata *cd, instruction *iptr)
 
 	cd->linenumberreferences = lr;
 
-#if 0
-	insinfo = (insinfo_inline *) iptr->target;
-#endif
+	insinfo = iptr->sx.s23.s3.inlineinfo;
 
 	insinfo->startmpc = mpc; /* store for corresponding INLINE_END */
 }
@@ -683,9 +681,7 @@ void dseg_addlinenumber_inline_end(codegendata *cd, instruction *iptr)
 	linenumberref *prev;
 	insinfo_inline *insinfo;
 
-#if 0
-	insinfo = (insinfo_inline *) iptr->target;
-#endif
+	insinfo = iptr->sx.s23.s3.inlineinfo;
 
 	assert(insinfo);
 
