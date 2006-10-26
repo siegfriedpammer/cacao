@@ -1,8 +1,14 @@
 New in release 0.97 (xxx xx, 2006)
 
-  * Fixed AbstractMethodError bug.
-  * Added failed class as message to ClassCastException's.
+  * New instruction format.
+  * Boehm GC updated to version 6.8.
   * Added enable/disable system assertion support (-esa/-dsa).
+  * Initial javax.management support.
+  * Initial sun.misc.Unsafe (JSR166) support.
+  * Added failed class as message to ClassCastException's.
+
+  * Fixed AbstractMethodError bug.
+  * builtin_isanysubclass bugfix (BeanShell bug).
 
 
 New in release 0.96 (May 29, 2006)
