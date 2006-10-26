@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5815 2006-10-20 18:35:32Z twisti $
+   $Id: codegen.c 5826 2006-10-26 09:44:07Z twisti $
 
 */
 
@@ -580,13 +580,13 @@ bool codegen(jitdata *jd)
 
 		case ICMD_IINC:
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767)) {
+			if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767))
 				M_IADD_IMM(s1, iptr->sx.val.i, d);
-			} else {
+			else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_IADD(s1, REG_ITMP2, d);
 			}
@@ -603,13 +603,13 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767)) {
+			if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767))
 				M_LADD_IMM(s1, iptr->sx.val.l, d);
-			} else {
+			else {
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_LADD(s1, REG_ITMP2, d);
 			}
@@ -626,13 +626,13 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_ISUBCONST:  /* ..., value  ==> ..., value + constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.i >= -32767) && (iptr->sx.val.i <= 32768)) {
+			if ((iptr->sx.val.i >= -32767) && (iptr->sx.val.i <= 32768))
 				M_IADD_IMM(s1, -iptr->sx.val.i, d);
-			} else {
+			else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_ISUB(s1, REG_ITMP2, d);
 			}
@@ -649,13 +649,13 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.l >= -32767) && (iptr->sx.val.l <= 32768)) {
+			if ((iptr->sx.val.l >= -32767) && (iptr->sx.val.l <= 32768))
 				M_LADD_IMM(s1, -iptr->sx.val.l, d);
-			} else {
+			else {
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_LSUB(s1, REG_ITMP2, d);
 			}
@@ -675,7 +675,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IMULCONST:  /* ..., value  ==> ..., value * constant        */
-		                      /* sx.val.i = constant                             */
+		                      /* sx.val.i = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -700,7 +700,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant        */
-		                      /* sx.val.l = constant                             */
+		                      /* sx.val.l = constant                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
