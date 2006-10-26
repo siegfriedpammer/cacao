@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: engine.c 5702 2006-10-05 20:18:41Z edwin $
+   $Id: engine.c 5835 2006-10-26 11:29:42Z edwin $
 */
 
 
@@ -250,8 +250,8 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
   Label throw_classcastexception 			 = &&throw_classcastexception1;  
   Label throw_nullpointerexception 		     = &&throw_nullpointerexception1;
   Label throw_arraystoreexception            = &&throw_arraystoreexception1;
-  java_objectheader *classcastexception_object;
-  s4 arrayindexoutofbounds_index; /* pass the index to the throw code */
+  java_objectheader *classcastexception_object = NULL;
+  s4 arrayindexoutofbounds_index = 0; /* pass the index to the throw code */
 
   if (vm_debug)
       fprintf(vm_out,"entering engine(%p,%p,%p)\n",ip0,sp,fp);

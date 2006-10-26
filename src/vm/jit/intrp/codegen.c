@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen.c 5835 2006-10-26 11:29:42Z edwin $
 
 */
 
@@ -1112,6 +1112,7 @@ dont_opt_IF_LCMPxx:
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				uf        = NULL;
 				fieldtype = fi->type;
 			}
 
@@ -1162,6 +1163,7 @@ dont_opt_IF_LCMPxx:
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				uf        = NULL;
 				fieldtype = fi->type;
 			}
 
@@ -1213,6 +1215,7 @@ dont_opt_IF_LCMPxx:
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				uf        = NULL;
 				fieldtype = fi->type;
 			}
 
@@ -1255,6 +1258,7 @@ dont_opt_IF_LCMPxx:
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				uf        = NULL;
 				fieldtype = fi->type;
 			}
 
