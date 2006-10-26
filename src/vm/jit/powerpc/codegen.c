@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5802 2006-10-19 09:23:26Z twisti $
+   $Id: codegen.c 5840 2006-10-26 12:05:33Z twisti $
 
 */
 
@@ -94,7 +94,6 @@ bool codegen(jitdata *jd)
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
 	ptrint              a;
-	s4                  fieldtype;
 	varinfo            *var, *var1, *var2;
 	basicblock         *bptr;
 	instruction        *iptr;
@@ -104,6 +103,9 @@ bool codegen(jitdata *jd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+	fieldinfo          *fi;
+	unresolved_field   *uf;
+	s4                  fieldtype;
 	rplpoint           *replacementpoint;
 	s4                 varindex;
 
@@ -120,6 +122,7 @@ bool codegen(jitdata *jd)
 	fieldtype = 0;
 	lm        = NULL;
 	um        = NULL;
+	uf        = NULL;
 	bte       = NULL;
 
 	{
@@ -1743,10 +1746,9 @@ bool codegen(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_add_unique_address(cd, uf);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
@@ -1754,10 +1756,9 @@ bool codegen(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_initialize_class,
@@ -1798,10 +1799,9 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_add_unique_address(cd, uf);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
@@ -1809,10 +1809,9 @@ bool codegen(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_initialize_class,
@@ -1855,19 +1854,17 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
-
-				disp = 0;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
 			}
@@ -1909,7 +1906,18 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (!IS_FLT_DBL_TYPE(fieldtype)) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp      = fi->offset;
+			}
+
+			if (IS_INT_LNG_TYPE(fieldtype)) {
 				if (IS_2_WORD_TYPE(fieldtype))
 					s2 = emit_load_s2(jd, iptr, REG_ITMP23_PACKED);
 				else
@@ -1919,21 +1927,10 @@ bool codegen(jitdata *jd)
 				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
-				fieldtype = uf->fieldref->parseddesc.fd->type;
-
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
-
-				disp = 0;
-			}
-			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-				fieldtype = fi->type;
-				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
