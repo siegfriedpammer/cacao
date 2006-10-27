@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 5574 2006-09-28 20:47:58Z twisti $
+   $Id: options.h 5842 2006-10-27 10:41:02Z twisti $
 
 */
 
@@ -134,8 +134,10 @@ extern bool opt_verify;
 #endif
 extern bool opt_eager;
 
+#if defined(ENABLE_PROFILING)
 extern bool opt_prof;
 extern bool opt_prof_bb;
+#endif
 
 
 /* optimization options *******************************************************/

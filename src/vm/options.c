@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 5574 2006-09-28 20:47:58Z twisti $
+   $Id: options.c 5842 2006-10-27 10:41:02Z twisti $
 
 */
 
@@ -122,8 +122,10 @@ bool opt_verify  = true;       /* true if classfiles should be verified      */
 #endif
 bool opt_eager   = false;
 
+#if defined(ENABLE_PROFILING)
 bool opt_prof    = false;
 bool opt_prof_bb = false;
+#endif
 
 
 /* optimization options *******************************************************/

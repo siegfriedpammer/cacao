@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5817 2006-10-22 00:38:21Z edwin $
+   $Id: jit.c 5842 2006-10-27 10:41:02Z twisti $
 
 */
 
@@ -1043,8 +1043,10 @@ u1 *jit_compile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERIFY;
 #endif
 
+#if defined(ENABLE_PROFILING)
 	if (opt_prof)
 		jd->flags |= JITDATA_FLAG_INSTRUMENT;
+#endif
 
 #if defined(ENABLE_IFCONV)
 	if (opt_ifconv)
@@ -1162,6 +1164,10 @@ u1 *jit_recompile(methodinfo *m)
 	jd->code->optlevel = optlevel + 1;
 
 	/* get the optimization flags for the current JIT run */
+
+#if defined(ENABLE_VERIFIER)
+	jd->flags |= JITDATA_FLAG_VERIFY;
+#endif
 
 	jd->flags |= JITDATA_FLAG_REORDER;
 	jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
@@ -1327,7 +1333,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			return NULL;
 
 #ifdef ENABLE_VERIFIER
-		if (jd->flags & JITDATA_FLAG_VERIFY) {
+		if (JITDATA_HAS_FLAG_VERIFY(jd)) {
 			DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
 
 			/* call typecheck pass */

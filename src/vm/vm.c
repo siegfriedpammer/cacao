@@ -156,10 +156,12 @@ enum {
 	OPT_BOOTCLASSPATH_A,
 	OPT_BOOTCLASSPATH_P,
 
-	OPT_GLIBJ,
+	OPT_BOOTCLASSPATH_C,
 
+#if defined(ENABLE_PROFILING)
 	OPT_PROF,
 	OPT_PROF_OPTION,
+#endif
 
 	OPT_MS,
 	OPT_MX,
@@ -327,7 +329,7 @@ opt_struct opts[] = {
 	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
 	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
 	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
-	{ "Xglibj:",           true,  OPT_GLIBJ },
+	{ "Xbootclasspath/c:", true,  OPT_BOOTCLASSPATH_C },
 
 #ifdef ENABLE_JVMTI
 	{ "Xdebug",            false, OPT_DEBUG },
@@ -341,8 +343,11 @@ opt_struct opts[] = {
 	{ "mx",                true,  OPT_MX },
 	{ "Xss",               true,  OPT_SS },
 	{ "ss",                true,  OPT_SS },
+
+#if defined(ENABLE_PROFILING)
 	{ "Xprof:",            true,  OPT_PROF_OPTION },
 	{ "Xprof",             false, OPT_PROF },
+#endif
 
 	/* keep these at the end of the list */
 
@@ -484,13 +489,17 @@ static void Xusage(void)
 	puts("                             value is appended to the bootstrap class path");
 	puts("    -Xbootclasspath/p:<zip/jar files and directories separated by :>");
 	puts("                             value is prepended to the bootstrap class path");
-	puts("    -Xglibj:<zip/jar files and directories separated by :>");
+	puts("    -Xbootclasspath/c:<zip/jar files and directories separated by :>");
 	puts("                             value is used as Java core library, but the");
 	puts("                             hardcoded VM interface classes are prepended");
 	printf("    -Xms<size>               set the initial size of the heap (default: %dMB)\n", HEAP_STARTSIZE / 1024 / 1024);
 	printf("    -Xmx<size>               set the maximum size of the heap (default: %dMB)\n", HEAP_MAXSIZE / 1024 / 1024);
 	printf("    -Xss<size>               set the thread stack size (default: %dkB)\n", STACK_SIZE / 1024);
+
+#if defined(ENABLE_PROFILING)
 	puts("    -Xprof[:bb]              collect and print profiling data");
+#endif
+
 #if defined(ENABLE_JVMTI)
     /* -Xdebug option depend on gnu classpath JDWP options. options: 
 	 transport=dt_socket,address=<hostname:port>,server=(y|n),suspend(y|n) */
@@ -598,7 +607,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	char *cp;
 	s4    len;
 	s4    opt;
-	s4    i, j, k;
+	s4    i, j;
 	bool  opt_version;
 	bool  opt_exit;
 
@@ -707,7 +716,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		strcat(_Jv_bootclasspath, cacao_prefix);
 		strcat(_Jv_bootclasspath, "/share/classpath/glibj.zip");
 #else
-		len = strlen(CACAO_VM_ZIP) +
+		len =
+			strlen(CACAO_VM_ZIP) +
 			strlen(":") +
 			strlen(CLASSPATH_GLIBJ_ZIP) +
 			strlen("0");
@@ -805,10 +815,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_D:
-			for (j = 0; j < strlen(opt_arg); j++) {
-				if (opt_arg[j] == '=') {
-					opt_arg[j] = '\0';
-					properties_add(opt_arg, opt_arg + j + 1);
+			for (i = 0; i < strlen(opt_arg); i++) {
+				if (opt_arg[i] == '=') {
+					opt_arg[i] = '\0';
+					properties_add(opt_arg, opt_arg + i + 1);
 					goto opt_d_done;
 				}
 			}
@@ -861,7 +871,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			MFREE(cp, char, len);
 			break;
 
-		case OPT_GLIBJ:
+		case OPT_BOOTCLASSPATH_C:
 			/* use as Java core library, but prepend VM interface classes */
 
 			MFREE(_Jv_bootclasspath, char, strlen(_Jv_bootclasspath));
@@ -1020,8 +1030,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 			
 		case OPT_CHECK:
-			for (j = 0; j < strlen(opt_arg); j++) {
-				switch (opt_arg[j]) {
+			for (i = 0; i < strlen(opt_arg); i++) {
+				switch (opt_arg[i]) {
 				case 'b':
 					checkbounds = false;
 					break;
@@ -1062,8 +1072,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #endif
 
 		case OPT_SHOW:       /* Display options */
-			for (j = 0; j < strlen(opt_arg); j++) {		
-				switch (opt_arg[j]) {
+			for (i = 0; i < strlen(opt_arg); i++) {		
+				switch (opt_arg[i]) {
 				case 'c':
 					showconstantpool = true;
 					break;
@@ -1114,8 +1124,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 #if defined(ENABLE_INLINING)
 		case OPT_INLINING:
-			for (j = 0; j < strlen(opt_arg); j++) {		
-				switch (opt_arg[j]) {
+			for (i = 0; i < strlen(opt_arg); i++) {		
+				switch (opt_arg[i]) {
 				case 'n':
 					/* define in options.h; Used in main.c, jit.c
 					   & inline.c inlining is currently
@@ -1168,25 +1178,26 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			_Jv_jvm->Java_java_lang_VMClassLoader_defaultAssertionStatus = false;
 			break;
 
+#if defined(ENABLE_PROFILING)
 		case OPT_PROF_OPTION:
 			/* use <= to get the last \0 too */
 
-			for (j = 0, k = 0; j <= strlen(opt_arg); j++) {
-				if (opt_arg[j] == ',')
-					opt_arg[j] = '\0';
+			for (i = 0, j = 0; i <= strlen(opt_arg); i++) {
+				if (opt_arg[i] == ',')
+					opt_arg[i] = '\0';
 
-				if (opt_arg[j] == '\0') {
-					if (strcmp("bb", opt_arg + k) == 0)
+				if (opt_arg[i] == '\0') {
+					if (strcmp("bb", opt_arg + j) == 0)
 						opt_prof_bb = true;
 
 					else {
-						printf("Unknown option: -Xprof:%s\n", opt_arg + k);
+						printf("Unknown option: -Xprof:%s\n", opt_arg + j);
 						usage();
 					}
 
 					/* set k to next char */
 
-					k = j + 1;
+					j = i + 1;
 				}
 			}
 			/* fall through */
@@ -1194,6 +1205,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_PROF:
 			opt_prof = true;
 			break;
+#endif
 
 		case OPT_JIT:
 #if defined(ENABLE_JIT)
@@ -1521,16 +1533,10 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	if (!(mainclass = load_class_from_sysloader(mainutf)))
 		throw_main_exception_exit();
 
-	/* error loading class, clear exceptionptr for new exception */
+	/* error loading class */
 
-	if (*exceptionptr || !mainclass) {
-		/*  			*exceptionptr = NULL; */
-
-		/*  			*exceptionptr = */
-		/*  				new_exception_message(string_java_lang_NoClassDefFoundError, */
-		/*  									  mainstring); */
+	if ((*exceptionptr != NULL) || (mainclass == NULL))
 		throw_main_exception_exit();
-	}
 
 	if (!link_class(mainclass))
 		throw_main_exception_exit();
