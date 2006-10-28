@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: loader.c 5845 2006-10-28 12:53:24Z edwin $
 
 */
 
@@ -76,20 +76,6 @@
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
-#endif
-
-/******************************************************************************/
-/* DEBUG HELPERS                                                              */
-/******************************************************************************/
-
-#ifndef NDEBUG
-#define LOADER_DEBUG
-#endif
-
-#ifdef LOADER_DEBUG
-#define LOADER_ASSERT(cond)  assert(cond)
-#else
-#define LOADER_ASSERT(cond)
 #endif
 
 
@@ -1412,9 +1398,9 @@ classinfo *load_class_from_sysloader(utf *name)
 	java_objectheader *cl;
 	classinfo         *c;
 
-	LOADER_ASSERT(class_java_lang_Object);
-	LOADER_ASSERT(class_java_lang_ClassLoader);
-	LOADER_ASSERT(class_java_lang_ClassLoader->state & CLASS_LINKED);
+	assert(class_java_lang_Object);
+	assert(class_java_lang_ClassLoader);
+	assert(class_java_lang_ClassLoader->state & CLASS_LINKED);
 	
 	m = class_resolveclassmethod(class_java_lang_ClassLoader,
 								 utf_getSystemClassLoader,
@@ -1463,7 +1449,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 	RT_TIMING_GET_TIME(time_start);
 
-	LOADER_ASSERT(name);
+	assert(name);
 
 	/* lookup if this class has already been loaded */
 
@@ -1548,7 +1534,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			}
 		}
 		
-		LOADER_ASSERT(class_java_lang_Object);
+		assert(class_java_lang_Object);
 
 		lc = class_resolveclassmethod(cl->vftbl->class,
 									  utf_loadClass,
@@ -1662,7 +1648,7 @@ classinfo *load_class_bootstrap(utf *name)
 
 	/* for debugging */
 
-	LOADER_ASSERT(name);
+	assert(name);
 
 	/* lookup if this class has already been loaded */
 
@@ -1687,7 +1673,7 @@ classinfo *load_class_bootstrap(utf *name)
 		c = load_newly_created_array(c, NULL);
 		if (c == NULL)
 			return NULL;
-		LOADER_ASSERT(c->state & CLASS_LOADED);
+		assert(c->state & CLASS_LOADED);
 
 		RT_TIMING_GET_TIME(time_array);
 		RT_TIMING_TIME_DIFF(time_start,time_array,RT_TIMING_LOAD_BOOT_ARRAY);
@@ -2406,7 +2392,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		if (!(comp = load_class_from_classloader(u, loader)))
 			return NULL;
 
-		LOADER_ASSERT(comp->state & CLASS_LOADED);
+		assert(comp->state & CLASS_LOADED);
 
 		if (opt_eager)
 			if (!link_class(c))
@@ -2431,7 +2417,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		if (!(comp = load_class_from_classloader(u, loader)))
 			return NULL;
 
-		LOADER_ASSERT(comp->state & CLASS_LOADED);
+		assert(comp->state & CLASS_LOADED);
 
 		if (opt_eager)
 			if (!link_class(c))
@@ -2456,9 +2442,9 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		c->classloader = NULL;
 	}
 
-	LOADER_ASSERT(class_java_lang_Object);
-	LOADER_ASSERT(class_java_lang_Cloneable);
-	LOADER_ASSERT(class_java_io_Serializable);
+	assert(class_java_lang_Object);
+	assert(class_java_lang_Cloneable);
+	assert(class_java_io_Serializable);
 
 	/* setup the array class */
 
@@ -2471,12 +2457,12 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		classinfo *tc;
 
 		tc = class_java_lang_Cloneable;
-		LOADER_ASSERT(tc->state & CLASS_LOADED);
+		assert(tc->state & CLASS_LOADED);
 		list_add_first(&unlinkedclasses, tc);
 		c->interfaces[0].cls = tc;
 
 		tc = class_java_io_Serializable;
-		LOADER_ASSERT(tc->state & CLASS_LOADED);
+		assert(tc->state & CLASS_LOADED);
 		list_add_first(&unlinkedclasses, tc);
 		c->interfaces[1].cls = tc;
 
