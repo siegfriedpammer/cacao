@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5791 2006-10-18 14:53:05Z edwin $
+   $Id: stack.c 5847 2006-10-28 15:21:45Z edwin $
 
 */
 
@@ -125,7 +125,8 @@ struct stackdata_t {
     stackptr new;                 /* next free stackelement                   */
     s4 vartop;                    /* next free variable index                 */
     s4 localcount;                /* number of locals (at the start of var)   */
-    s4 varcount;                  /* total number of variables allocated      */
+    s4 varcount;                  /* maximum number of variables expected     */
+	s4 varsallocated;             /* total number of variables allocated      */
     varinfo *var;                 /* variable array (same as jd->var)         */
 	methodinfo *m;                /* the method being analysed                */
 	jitdata *jd;                  /* current jitdata                          */
@@ -534,6 +535,10 @@ bool stack_init(void)
 /* stack_grow_variable_array ***************************************************
 
    Grow the variable array so the given number of additional variables fits in.
+   The number is added to `varcount`, which is the maximum number of variables
+   we expect to need at this point. The actual number of variables
+   (`varsallocated`) may be larger than that, in order to avoid too many
+   reallocations.
 
    IN:
       sd...........stack analysis data
@@ -543,20 +548,22 @@ bool stack_init(void)
 
 static void stack_grow_variable_array(stackdata_t *sd, s4 num)
 {
-	s4 newcount;
+	s4 newsize;
 
 	assert(num >= 0);
 
-	if (num == 0)
-		return;
+	if (sd->varcount + num > sd->varsallocated) {
+		newsize = 2*sd->varsallocated + num;
 
-	/* XXX avoid too many reallocations */
-	newcount = sd->varcount + num;
+		sd->var = DMREALLOC(sd->var, varinfo, sd->varsallocated, newsize);
+		sd->varsallocated = newsize;
+		sd->jd->var = sd->var;
+	}
 
-	sd->var = DMREALLOC(sd->var, varinfo, sd->varcount, newcount);
-	sd->varcount = newcount;
-	sd->jd->var = sd->var;
-	sd->jd->varcount = newcount;
+	sd->varcount += num;
+	sd->jd->varcount += num;
+
+	assert(sd->varcount <= sd->varsallocated);
 }
 
 
@@ -621,7 +628,7 @@ static basicblock * stack_clone_block(stackdata_t *sd, basicblock *b)
 
 	stack_append_block(sd, clone);
 
-	/* allocate space for the invars of the clone */
+	/* reserve space for the invars of the clone */
 
 	stack_grow_variable_array(sd, b->indepth);
 
@@ -1288,7 +1295,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 		b->iinstr = iptr;
 		b->icount = ++len;
 
-		/* allocate space for the clone's block variables */
+		/* reserve space for the clone's block variables */
 
 		stack_grow_variable_array(sd, orig->varcount);
 
@@ -1988,6 +1995,7 @@ bool stack_analyse(jitdata *jd)
 	sd.vartop =  jd->vartop;
 	sd.localcount = jd->localcount;
 	sd.var = jd->var;
+	sd.varsallocated = sd.varcount;
 	sd.handlers = DMNEW(exception_entry *, jd->exceptiontablelength + 1);
 
 	/* prepare the variable for exception handler stacks               */
