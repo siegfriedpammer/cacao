@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: access.c 5223 2006-08-08 16:21:22Z edwin $
+   $Id: access.c 5846 2006-10-28 13:02:19Z edwin $
 
 */
 
@@ -45,20 +45,6 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 
-
-/****************************************************************************/
-/* DEBUG HELPERS                                                            */
-/****************************************************************************/
-
-#ifdef NDEBUG
-#define ACCESS_DEBUG
-#endif
-
-#ifdef ACCESS_DEBUG
-#define ACCESS_ASSERT(cond)  assert(cond)
-#else
-#define ACCESS_ASSERT(cond)
-#endif
 
 /****************************************************************************/
 /* ACCESS CHECKS                                                            */
@@ -85,8 +71,8 @@
 
 bool access_is_accessible_class(classinfo *referer, classinfo *cls)
 {
-	ACCESS_ASSERT(referer);
-	ACCESS_ASSERT(cls);
+	assert(referer);
+	assert(cls);
 
 	/* public classes are always accessible */
 	if (cls->flags & ACC_PUBLIC)
@@ -130,8 +116,8 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls)
 bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 								 s4 memberflags)
 {
-	ACCESS_ASSERT(referer);
-	ACCESS_ASSERT(declarer);
+	assert(referer);
+	assert(declarer);
 	
 	/* public members are accessible */
 	if (memberflags & ACC_PUBLIC)
@@ -156,7 +142,7 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 	/* {the member is protected and declarer is in another package} */
 
 	/* a necessary condition for access is that referer is a subclass of declarer */
-	ACCESS_ASSERT(referer->linked && declarer->linked);
+	assert((referer->state & CLASS_LINKED) && (declarer->state & CLASS_LINKED));
 	if (builtin_isanysubclass(referer,declarer))
 		return true;
 
