@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 5492 2006-09-14 18:20:28Z edwin $
+   $Id: class.c 5843 2006-10-28 12:47:45Z edwin $
 
 */
 
@@ -487,6 +487,10 @@ classinfo *class_array_of(classinfo *component, bool link)
 {
     s4 namelen;
     char *namebuf;
+	s4 dumpsize;
+	classinfo *c;
+
+	dumpsize = dump_size();
 
     /* Assemble the array class name */
     namelen = component->name->blength;
@@ -508,10 +512,14 @@ classinfo *class_array_of(classinfo *component, bool link)
         namelen += 3;
     }
 
-	return get_array_class(utf_new(namebuf, namelen),
-						   component->classloader,
-						   component->classloader,
-						   link);
+	c = get_array_class(utf_new(namebuf, namelen),
+						component->classloader,
+						component->classloader,
+						link);
+
+	dump_release(dumpsize);
+
+	return c;
 }
 
 
@@ -526,6 +534,10 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
 {
     s4 namelen;
     char *namebuf;
+	s4 dumpsize;
+	classinfo *c;
+
+	dumpsize = dump_size();
 
 	if (dim < 1) {
 		log_text("Invalid array dimension requested");
@@ -551,10 +563,14 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     }
 	memset(namebuf, '[', dim);
 
-	return get_array_class(utf_new(namebuf, namelen),
-						   element->classloader,
-						   element->classloader,
-						   link);
+	c = get_array_class(utf_new(namebuf, namelen),
+						element->classloader,
+						element->classloader,
+						link);
+
+	dump_release(dumpsize);
+
+	return c;
 }
 
 
@@ -680,9 +696,13 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
 {
     s4 namelen;
     char *namebuf;
+	s4 dumpsize;
+	constant_classref *cr;
 
 	CLASS_ASSERT(ref);
 	CLASS_ASSERT(dim >= 1 && dim <= 255);
+
+	dumpsize = dump_size();
 
     /* Assemble the array class name */
     namelen = ref->name->blength;
@@ -703,7 +723,11 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     }
 	memset(namebuf, '[', dim);
 
-    return class_get_classref(ref->referer,utf_new(namebuf, namelen));
+    cr = class_get_classref(ref->referer,utf_new(namebuf, namelen));
+
+	dump_release(dumpsize);
+
+	return cr;
 }
 
 
