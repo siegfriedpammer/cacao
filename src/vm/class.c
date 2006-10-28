@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 5843 2006-10-28 12:47:45Z edwin $
+   $Id: class.c 5844 2006-10-28 12:49:29Z edwin $
 
 */
 
@@ -61,21 +61,6 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/utf8.h"
-
-
-/******************************************************************************/
-/* DEBUG HELPERS                                                              */
-/******************************************************************************/
-
-#ifndef NDEBUG
-#define CLASS_DEBUG
-#endif
-
-#ifdef CLASS_DEBUG
-#define CLASS_ASSERT(cond)  assert(cond)
-#else
-#define CLASS_ASSERT(cond)
-#endif
 
 
 /* global variables ***********************************************************/
@@ -462,15 +447,15 @@ static classinfo *get_array_class(utf *name,java_objectheader *initloader,
 			return NULL;
 	}
 
-	CLASS_ASSERT(c);
-	CLASS_ASSERT(c->state & CLASS_LOADED);
-	CLASS_ASSERT(c->classloader == defloader);
+	assert(c);
+	assert(c->state & CLASS_LOADED);
+	assert(c->classloader == defloader);
 
 	if (link && !(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return NULL;
 
-	CLASS_ASSERT(!link || (c->state & CLASS_LINKED));
+	assert(!link || (c->state & CLASS_LINKED));
 
 	return c;
 }
@@ -595,9 +580,9 @@ constant_classref *class_lookup_classref(classinfo *cls, utf *name)
 	extra_classref *xref;
 	int count;
 
-	CLASS_ASSERT(cls);
-	CLASS_ASSERT(name);
-	CLASS_ASSERT(!cls->classrefcount || cls->classrefs);
+	assert(cls);
+	assert(name);
+	assert(!cls->classrefcount || cls->classrefs);
 	
 	/* first search the main classref table */
 	count = cls->classrefcount;
@@ -638,8 +623,8 @@ constant_classref *class_get_classref(classinfo *cls, utf *name)
 	constant_classref *ref;
 	extra_classref *xref;
 
-	CLASS_ASSERT(cls);
-	CLASS_ASSERT(name);
+	assert(cls);
+	assert(name);
 
 	ref = class_lookup_classref(cls,name);
 	if (ref)
@@ -699,8 +684,8 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
 	s4 dumpsize;
 	constant_classref *cr;
 
-	CLASS_ASSERT(ref);
-	CLASS_ASSERT(dim >= 1 && dim <= 255);
+	assert(ref);
+	assert(dim >= 1 && dim <= 255);
 
 	dumpsize = dump_size();
 
@@ -752,7 +737,7 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 	s4 namelen;
 	char *name;
 	
-	CLASS_ASSERT(ref);
+	assert(ref);
 
 	name = ref->name->text;
 	if (*name++ != '[')
