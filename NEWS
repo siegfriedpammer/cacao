@@ -13,6 +13,7 @@ New in release 0.97 (xxx xx, 2006)
   * AttachCurrentThread, DetachCurrentThread, and
     AttachCurrentThreadAsDaemon implemented.
   * libjvm is now opened via dlopen (removed -rpath stuff).
+  * Data segment now reuses values (of possible).
 
   * Fixed AbstractMethodError bug.
   * Fixed builtin_isanysubclass (BeanShell bug).
