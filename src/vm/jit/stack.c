@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5847 2006-10-28 15:21:45Z edwin $
+   $Id: stack.c 5848 2006-10-28 16:51:12Z edwin $
 
 */
 
@@ -4577,6 +4577,10 @@ icmd_BUILTIN:
 			ex->end = ex->end->next;
 		}
 	}
+
+	/* store number of created variables */
+
+	jd->vartop = sd.vartop;
 
 	/* gather statistics *****************************************************/
 

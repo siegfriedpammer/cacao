@@ -53,7 +53,14 @@ JASMIN_TESTS = \
 	$(srcdir)/test_load_store_conflict.j \
 	$(srcdir)/test_load_store_conflict_via_dup.j \
 	$(srcdir)/test_load_store_conflict_via_swap.j \
+	$(srcdir)/test_many_dup.j \
+	$(srcdir)/test_many_dup_x1.j \
+	$(srcdir)/test_many_dup_x2.j \
+	$(srcdir)/test_many_dup2.j \
+	$(srcdir)/test_many_dup2_x1.j \
+	$(srcdir)/test_many_dup2_x2.j \
 	$(srcdir)/test_many_monitors.j \
+	$(srcdir)/test_many_swap.j \
 	$(srcdir)/test_no_store_load_conflict.j \
 	$(srcdir)/test_no_store_store_conflict.j \
 	$(srcdir)/test_nullpointerexception_monitorexit.j \

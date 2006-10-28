@@ -185,6 +185,7 @@ void show_method(jitdata *jd, int stage)
 		printf("Stub length:  %d\n", (s4) (code->mcodelength -
 										   ((ptrint) cd->dseglen + lastbptr->mpc)));
 	}
+	printf("Variables:    %d (%d used)\n", jd->varcount, jd->vartop);
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
