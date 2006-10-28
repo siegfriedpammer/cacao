@@ -31,7 +31,7 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 5834 2006-10-26 11:23:00Z edwin $
+   $Id: dseg.c 5852 2006-10-28 19:26:51Z twisti $
 
 */
 
@@ -134,13 +134,18 @@ static s4 dseg_find_s8(codegendata *cd, s8 value)
 static s4 dseg_find_float(codegendata *cd, float value)
 {
 	dsegentry *de;
+	imm_union  val;
+
+	/* we compare the hex value of the float as 0.0 == -0.0 */
+
+	val.f = value;
 
 	/* search all data segment entries for a matching entry */
 
 	for (de = cd->dseg; de != NULL; de = de->next) {
 		if (IS_FLT_TYPE(de->type))
 			if (de->flags & DSEG_FLAG_READONLY)
-				if (de->val.f == value)
+				if (de->val.i == val.i)
 					return de->disp;
 	}
 
@@ -153,13 +158,18 @@ static s4 dseg_find_float(codegendata *cd, float value)
 static s4 dseg_find_double(codegendata *cd, double value)
 {
 	dsegentry *de;
+	imm_union  val;
+
+	/* we compare the hex value of the double as 0.0 == -0.0 */
+
+	val.d = value;
 
 	/* search all data segment entries for a matching entry */
 
 	for (de = cd->dseg; de != NULL; de = de->next) {
 		if (IS_DBL_TYPE(de->type))
 			if (de->flags & DSEG_FLAG_READONLY)
-				if (de->val.d == value)
+				if (de->val.l == val.l)
 					return de->disp;
 	}
 
