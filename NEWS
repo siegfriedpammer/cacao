@@ -10,6 +10,9 @@ New in release 0.97 (xxx xx, 2006)
   * Initial javax.management support.
   * Initial sun.misc.Unsafe (JSR166) support.
   * Added failed class as message to ClassCastException's.
+  * AttachCurrentThread, DetachCurrentThread, and
+    AttachCurrentThreadAsDaemon implemented.
+  * libjvm is now opened via dlopen (removed -rpath stuff).
 
   * Fixed AbstractMethodError bug.
   * Fixed builtin_isanysubclass (BeanShell bug).
