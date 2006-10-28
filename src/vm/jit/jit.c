@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5842 2006-10-27 10:41:02Z twisti $
+   $Id: jit.c 5849 2006-10-28 16:55:29Z edwin $
 
 */
 
@@ -247,12 +247,12 @@ int stackreq[256] = {
 	0,    /* JAVA_POP                        87 */
 	0,    /* JAVA_POP2                       88 */
 	1,    /* JAVA_DUP                        89 */
-	3,    /* JAVA_DUP_X1                     90 */
-	4,    /* JAVA_DUP_X2                     91 */
+	1+3,  /* JAVA_DUP_X1                     90 */
+	2+4,  /* JAVA_DUP_X2                     91 */
 	2,    /* JAVA_DUP2                       92 */
-	3,    /* JAVA_DUP2_X1                    93 */
-	4,    /* JAVA_DUP2_X2                    94 */
-	2,    /* JAVA_SWAP                       95 */
+	2+5,  /* JAVA_DUP2_X1                    93 */
+	3+6,  /* JAVA_DUP2_X2                    94 */
+	1+2,  /* JAVA_SWAP                       95 */
 	1,    /* JAVA_IADD                       96 */
 	1,    /* JAVA_LADD                       97 */
 	1,    /* JAVA_FADD                       98 */
