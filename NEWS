@@ -1,6 +1,10 @@
 New in release 0.97 (xxx xx, 2006)
 
   * New instruction format.
+  * New intermediate representation with unified variables.
+  * Local subroutine elimination.
+  * Fixed the interpreter - it runs eclipse now.
+  * New stack-based verifier (used for -Xint).
   * Boehm GC updated to version 6.8.
   * Added enable/disable system assertion support (-esa/-dsa).
   * Initial javax.management support.
@@ -8,8 +12,13 @@ New in release 0.97 (xxx xx, 2006)
   * Added failed class as message to ClassCastException's.
 
   * Fixed AbstractMethodError bug.
-  * builtin_isanysubclass bugfix (BeanShell bug).
-
+  * Fixed builtin_isanysubclass (BeanShell bug).
+  * Fixed a memory leak in dump memory.
+  * Fixed a bug with DUP2_X1 and DUP2_X2.
+  * Safe decoding of invalid UTF-8 sequences in NewStringUTF.
+  * Fixed line numbers in exceptions thrown through the JIT.
+  * Proper null-check for MONITOREXIT.
+  * Many low-level jasmin tests added.
 
 New in release 0.96 (May 29, 2006)
 
