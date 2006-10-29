@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5816 2006-10-21 15:06:07Z edwin $
+   $Id: parse.c 5859 2006-10-29 23:33:30Z edwin $
 
 */
 
@@ -1070,7 +1070,7 @@ jsr_tail:
 				/* create the intermediate code table */
 				/* the first entry is the default target */
 
-				table = MNEW(branch_target_t, 1 + num);
+				table = DMNEW(branch_target_t, 1 + num);
 				iptr->dst.table = table;
 				(table++)->insindex = deftarget;
 
