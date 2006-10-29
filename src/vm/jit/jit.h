@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5785 2006-10-15 22:25:54Z edwin $
+   $Id: jit.h 5861 2006-10-29 23:43:26Z edwin $
 
 */
 
@@ -235,13 +235,9 @@ struct stackelement {
 	stackptr prev;              /* pointer to next element towards bottom     */
 	instruction *creator;       /* instruction that created this element      */
 	s4       type;              /* slot type of stack element                 */
-#ifdef ENABLE_VERIFIER
-	typeinfo typeinfo;          /* info on reference types                    */
-#endif
 	s4       flags;             /* flags (SAVED, INMEMORY)                    */
 	s4       varkind;           /* kind of variable or register               */
 	s4       varnum;            /* number of variable                         */
-	s4       regoff;            /* register number or memory offset           */
 };
 
 
