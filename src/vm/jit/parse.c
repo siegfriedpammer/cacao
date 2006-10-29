@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5859 2006-10-29 23:33:30Z edwin $
+   $Id: parse.c 5860 2006-10-29 23:37:20Z edwin $
 
 */
 
@@ -141,6 +141,7 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
 
 	pd->instructions = DMREALLOC(pd->instructions, instruction, ipc,
 								 pd->instructionslength);
+	MZERO(pd->instructions + ipc, instruction, (pd->instructionslength - ipc));
 
 	/* return the iptr */
 

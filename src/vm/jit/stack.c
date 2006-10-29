@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5848 2006-10-28 16:51:12Z edwin $
+   $Id: stack.c 5860 2006-10-29 23:37:20Z edwin $
 
 */
 
@@ -556,6 +556,7 @@ static void stack_grow_variable_array(stackdata_t *sd, s4 num)
 		newsize = 2*sd->varsallocated + num;
 
 		sd->var = DMREALLOC(sd->var, varinfo, sd->varsallocated, newsize);
+		MZERO(sd->var + sd->varsallocated, varinfo, (newsize - sd->varsallocated));
 		sd->varsallocated = newsize;
 		sd->jd->var = sd->var;
 	}
