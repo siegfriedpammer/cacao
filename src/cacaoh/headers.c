@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5814 2006-10-20 14:53:27Z twisti $
+   $Id: headers.c 5854 2006-10-29 11:15:36Z edwin $
 
 */
 
@@ -109,6 +109,16 @@ java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
 
 void vm_abort(const char *text, ...)
 {
+	va_list ap;
+
+	/* print the log message */
+
+	va_start(ap, text);
+	vfprintf(stderr, text, ap);
+	va_end(ap);
+
+	/* now abort the VM */
+
 	abort();
 }
 
