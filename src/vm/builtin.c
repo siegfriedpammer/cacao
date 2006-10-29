@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5761 2006-10-13 00:47:59Z edwin $
+   $Id: builtin.c 5855 2006-10-29 14:49:10Z twisti $
 
 */
 
@@ -1359,20 +1359,24 @@ static char *builtin_print_argument(char *logtext, s4 logtextlen,
 
 	case TYPE_FLT:
 		imu.i = (s4) value;
-		sprintf(logtext + strlen(logtext), "%.8f (0x%08x)", imu.f, imu.i);
+		sprintf(logtext + strlen(logtext), "%g (0x%08x)", imu.f, imu.i);
 		break;
 
 	case TYPE_DBL:
 		imu.l = value;
 #if SIZEOF_VOID_P == 4
-		sprintf(logtext + strlen(logtext), "%.16g (0x%016llx)", imu.d, imu.l);
+		sprintf(logtext + strlen(logtext), "%g (0x%016llx)", imu.d, imu.l);
 #else
-		sprintf(logtext + strlen(logtext), "%.16g (0x%016lx)", imu.d, imu.l);
+		sprintf(logtext + strlen(logtext), "%g (0x%016lx)", imu.d, imu.l);
 #endif
 		break;
 
 	case TYPE_ADR:
-		sprintf(logtext + strlen(logtext), "%p", (void *) (ptrint) value);
+#if SIZEOF_VOID_P == 4
+		sprintf(logtext + strlen(logtext), "0x%08x", (ptrint) value);
+#else
+		sprintf(logtext + strlen(logtext), "0x%016lx", (ptrint) value);
+#endif
 
 		/* cast to java.lang.Object */
 
@@ -1479,11 +1483,29 @@ void builtin_trace_args(s8 a0, s8 a1,
 		strlen(".") +
 		utf_bytes(m->name) +
 		utf_bytes(m->descriptor) +
-		strlen(" SYNCHRONIZED") + strlen("(") + strlen(")");
+		strlen("(") + strlen(")");
+
+	/* Actually it's not possible to have all flags printed, but:
+	   safety first! */
+
+	logtextlen =
+		strlen(" PUBLIC") +
+		strlen(" PRIVATE") +
+		strlen(" PROTECTED") +
+		strlen(" STATIC") +
+		strlen(" FINAL") +
+		strlen(" SYNCHRONIZED") +
+		strlen(" VOLATILE") +
+		strlen(" TRANSIENT") +
+		strlen(" NATIVE") +
+		strlen(" INTERFACE") +
+		strlen(" ABSTRACT");
 
 	/* add maximal argument length */
 
-	logtextlen += strlen("0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, ...(255)");
+	logtextlen +=
+		strlen("-9223372036854775808 (0x123456789abcdef0), ") * TRACE_ARGS_NUM +
+		strlen("...(255)");
 
 	/* allocate memory */
 
@@ -1616,6 +1638,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	s4          dumpsize;
 	s4          i;
 	s4          pos;
+	imm_union   val;
 
 	md = m->parseddesc;
 
@@ -1665,10 +1688,28 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	utf_cat(logtext, m->name);
 	utf_cat(logtext, m->descriptor);
 
-	if (!IS_VOID_TYPE(md->returntype.type))
+	if (!IS_VOID_TYPE(md->returntype.type)) {
 		strcat(logtext, "->");
 
-	logtext = builtin_print_argument(logtext, logtextlen, &md->returntype, l);
+		switch (md->returntype.type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
+			val.l = l;
+			break;
+
+		case TYPE_FLT:
+			val.f = f;
+			break;
+
+		case TYPE_DBL:
+			val.d = d;
+			break;
+		}
+
+		logtext =
+			builtin_print_argument(logtext, logtextlen, &md->returntype, val.l);
+	}
 
 	log_text(logtext);
 
