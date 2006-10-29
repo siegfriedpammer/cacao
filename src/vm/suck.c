@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 5810 2006-10-20 13:54:54Z twisti $
+   $Id: suck.c 5856 2006-10-29 16:14:27Z edwin $
 
 */
 
@@ -325,19 +325,22 @@ void suck_add_from_property(char *key)
 					_Jv_bootclasspath = tmpbootclasspath;
 
 					/* free the memory allocated by scandir */
+					/* (We use `free` as the memory came from the C library.) */
 
-					FREE(namelist[i], struct dirent);
+					free(namelist[i]);
 				}
 			}
 
 			/* On some systems (like Linux) when n == 0, then namelist
 			   returned from scnadir is NULL, thus we don't have to
-			   free it. */
+			   free it.
+			   (Use `free` as the memory came from the C library.) */
 
 			if (namelist != NULL)
-				FREE(namelist, struct dirent);
+				free(namelist);
 
-			MFREE(path, char, pathlen + strlen("0")); }
+			MFREE(path, char, pathlen + strlen("0"));
+		}
 
 		/* goto next entry, skip ':' delimiter */
 
