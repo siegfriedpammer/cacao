@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 5856 2006-10-29 16:14:27Z edwin $
+   $Id: suck.c 5857 2006-10-29 16:21:38Z edwin $
 
 */
 
@@ -37,6 +37,7 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 
 #include "vm/types.h"
 
