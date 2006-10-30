@@ -397,7 +397,6 @@ void show_method(jitdata *jd, int stage)
 #if !defined(NDEBUG)
 void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 {
-	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
 	s4           i;
@@ -410,7 +409,6 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 	/* get required compiler data */
 
-	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
 

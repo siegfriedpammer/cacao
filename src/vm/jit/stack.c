@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5860 2006-10-29 23:37:20Z edwin $
+   $Id: stack.c 5866 2006-10-30 11:00:56Z edwin $
 
 */
 
@@ -1269,7 +1269,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 	branch_target_t *table;
 	lookup_target_t *lookup;
 	bool superblockend;
-	bool maythrow;
 	bool cloneinstructions;
 	exception_entry *ex;
 
@@ -1398,8 +1397,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 		printf("\n");
 #endif
 
-		maythrow = false;
-
 		switch (iptr->opc) {
 			case ICMD_RET:
 				j = iptr->s1.varindex;
@@ -1426,7 +1423,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 			case ICMD_CHECKNULL:
 			case ICMD_PUTSTATICCONST:
-				maythrow = true;
 				break;
 
 			case ICMD_NOP:
@@ -1444,7 +1440,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 				/* pop 0 push 1 const */
 
 			case ICMD_ACONST:
-				maythrow = true;
 			case ICMD_ICONST:
 			case ICMD_LCONST:
 			case ICMD_FCONST:
@@ -1473,7 +1468,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 				RELOCATE(iptr->sx.s23.s2.varindex);
 				RELOCATE(iptr->s1.varindex);
 				RELOCATE(iptr->dst.varindex);
-				maythrow = true;
 				break;
 
 				/* pop 3 push 0 */
@@ -1489,7 +1483,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 				RELOCATE(iptr->sx.s23.s3.varindex);
 				RELOCATE(iptr->sx.s23.s2.varindex);
 				RELOCATE(iptr->s1.varindex);
-				maythrow = true;
 				break;
 
 				/* pop 1 push 0 store */
@@ -1509,7 +1502,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 			case ICMD_ARETURN:
 			case ICMD_ATHROW:
-				maythrow = true;
 			case ICMD_IRETURN:
 			case ICMD_LRETURN:
 			case ICMD_FRETURN:
@@ -1520,7 +1512,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 			case ICMD_PUTSTATIC:
 			case ICMD_PUTFIELDCONST:
-				maythrow = true;
 			case ICMD_POP:
 				RELOCATE(iptr->s1.varindex);
 				break;
@@ -1591,7 +1582,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			case ICMD_MONITORENTER:
 			case ICMD_MONITOREXIT:
 				RELOCATE(iptr->s1.varindex);
-				maythrow = true;
 				break;
 
 				/* pop 2 push 0 branch */
@@ -1652,7 +1642,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			case ICMD_BASTORECONST:
 			case ICMD_CASTORECONST:
 			case ICMD_SASTORECONST:
-				maythrow = true;
 			case ICMD_POP2:
 				RELOCATE(iptr->sx.s23.s2.varindex);
 				RELOCATE(iptr->s1.varindex);
@@ -1673,7 +1662,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			case ICMD_IREM:
 			case ICMD_LDIV:
 			case ICMD_LREM:
-				maythrow = true;
 			case ICMD_IADD:
 			case ICMD_ISUB:
 			case ICMD_IMUL:
@@ -1719,7 +1707,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			case ICMD_INSTANCEOF:
 			case ICMD_NEWARRAY:
 			case ICMD_ANEWARRAY:
-				maythrow = true;
 			case ICMD_GETFIELD:
 			case ICMD_IADDCONST:
 			case ICMD_ISUBCONST:
@@ -1772,7 +1759,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 			case ICMD_GETSTATIC:
 			case ICMD_NEW:
-				maythrow = true;
 				RELOCATE(iptr->dst.varindex);
 				break;
 
@@ -1794,7 +1780,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 					argp = iptr->sx.s23.s2.args;
 				}
 
-				maythrow = true;
 				while (--i >= 0) {
 					RELOCATE(*argp);
 					argp++;
@@ -1936,13 +1921,11 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp,
 bool stack_analyse(jitdata *jd)
 {
 	methodinfo   *m;              /* method being analyzed                    */
-	codeinfo     *code;
 	registerdata *rd;
 	stackdata_t   sd;
 #if defined(ENABLE_SSA)
 	lsradata     *ls;
 #endif
-	int           b_index;        /* basic block index                        */
 	int           stackdepth;
 	stackptr      curstack;       /* current stack top                        */
 	stackptr      copy;
@@ -1982,7 +1965,6 @@ bool stack_analyse(jitdata *jd)
 	/* get required compiler data - initialization */
 
 	m    = jd->m;
-	code = jd->code;
 	rd   = jd->rd;
 #if defined(ENABLE_SSA)
 	ls   = jd->ls;
@@ -2163,7 +2145,6 @@ bool stack_analyse(jitdata *jd)
 				superblockend = false;
 				len = sd.bptr->icount;
 				iptr = sd.bptr->iinstr;
-				b_index = sd.bptr - jd->basicblocks;
 
 				/* mark the block as analysed */
 

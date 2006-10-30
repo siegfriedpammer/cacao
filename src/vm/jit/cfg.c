@@ -114,7 +114,6 @@ static void cfg_insert_predecessors(basicblock *bptr, basicblock *pbptr)
 
 bool cfg_build(jitdata *jd)
 {
-	methodinfo      *m;
 	basicblock      *bptr;
 	basicblock      *tbptr;
 	basicblock      *ntbptr;
@@ -122,10 +121,6 @@ bool cfg_build(jitdata *jd)
 	branch_target_t *table;
 	lookup_target_t *lookup;
 	s4               i;
-
-	/* get required compiler data */
-
-	m = jd->m;
 
 	/* process all basic blocks to find the predecessor/successor counts */
 

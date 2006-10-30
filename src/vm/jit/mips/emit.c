@@ -135,13 +135,11 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 {
 	codegendata  *cd;
-	registerdata *rd;
 	s4            s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
-	rd = jd->rd;
 
 	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {

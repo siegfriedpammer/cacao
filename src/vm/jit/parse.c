@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5860 2006-10-29 23:37:20Z edwin $
+   $Id: parse.c 5866 2006-10-30 11:00:56Z edwin $
 
 */
 
@@ -335,7 +335,6 @@ static bool parse_resolve_exception_table(jitdata *jd)
 bool parse(jitdata *jd)
 {
 	methodinfo  *m;                     /* method being parsed                */
-	codeinfo    *code;
 	parsedata_t  pd;
 	instruction *iptr;                  /* current ptr into instruction array */
 	s4           ipc;                   /* intermediate instruction counter   */
@@ -367,7 +366,6 @@ bool parse(jitdata *jd)
 	/* get required compiler data */
 
 	m    = jd->m;
-	code = jd->code;
 
 	/* allocate buffers for local variable renaming */
 	local_map = DMNEW(int, m->maxlocals * 5);

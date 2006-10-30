@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5836 2006-10-26 11:30:02Z twisti $
+   $Id: exceptions.c 5866 2006-10-30 11:00:56Z edwin $
 
 */
 
@@ -1496,7 +1496,6 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 {
 	methodinfo            *m;
 	codeinfo              *code;
-	s4                     framesize;
 	s4                     issync;
 	dseg_exception_entry  *ex;
 	s4                     exceptiontablelength;
@@ -1510,7 +1509,6 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	/* get info from the method header */
 
 	code                 = *((codeinfo **)      (pv + CodeinfoPointer));
-	framesize            = *((s4 *)             (pv + FrameSize));
 	issync               = *((s4 *)             (pv + IsSync));
 	ex                   =   (dseg_exception_entry *) 
 												(pv + ExTableStart);
