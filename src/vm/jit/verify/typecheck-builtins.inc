@@ -37,7 +37,6 @@
 
 {
 	builtintable_entry *bte;
-    classref_or_classinfo cls;
 
 	bte = state->iptr->sx.s23.s3.bte;
 
@@ -47,7 +46,6 @@
 	if (ISBUILTIN(BUILTIN_new)) {
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
-		cls = state->iptr[-1].sx.val.c;
 		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_NEWOBJECT(dv->typeinfo,state->iptr);
 	}
