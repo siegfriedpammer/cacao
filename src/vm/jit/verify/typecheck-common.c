@@ -174,12 +174,10 @@ void typecheck_print_statistics(FILE *file) {
 
 void typecheck_init_flags(verifier_state *state, s4 minflags)
 {
-	s4 i;
 	basicblock *block;
 
     /* set all BBFINISHED blocks to BBTYPECHECK_UNDEF. */
 	
-    i = state->basicblockcount;
     for (block = state->basicblocks; block; block = block->next) {
 		
 #ifdef TYPECHECK_DEBUG
