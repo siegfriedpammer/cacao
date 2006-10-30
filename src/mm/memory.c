@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 5807 2006-10-20 00:37:37Z ajordan $
+   $Id: memory.c 5868 2006-10-30 11:21:36Z edwin $
 
 */
 
@@ -162,7 +162,7 @@ void *memory_cnew(s4 size)
 
 	LOCK_MONITOR_ENTER(lock_code_memory);
 
-	size = ALIGN(size, ALIGNSIZE);
+	size = MEMORY_ALIGN(size, ALIGNSIZE);
 
 	/* check if enough memory is available */
 
@@ -178,7 +178,7 @@ void *memory_cnew(s4 size)
 
 		/* align the size of the memory to be allocated */
 
-		code_memory_size = ALIGN(code_memory_size, pagesize);
+		code_memory_size = MEMORY_ALIGN(code_memory_size, pagesize);
 
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
@@ -364,7 +364,7 @@ void *dump_alloc(s4 size)
 	if (size == 0)
 		return NULL;
 
-	size = ALIGN(size, ALIGNSIZE);
+	size = MEMORY_ALIGN(size, ALIGNSIZE);
 
 	if (di->useddumpsize + size > di->allocateddumpsize) {
 		dumpblock_t *newdumpblock;

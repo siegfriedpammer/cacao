@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nogc.c 4437 2006-02-05 00:13:21Z twisti $
+   $Id: nogc.c 5868 2006-10-30 11:21:36Z edwin $
 
 */
 
@@ -67,7 +67,7 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 {
 	void *m;
 
-	mmapptr = (void *) ALIGN((ptrint) mmapptr, ALIGNSIZE);
+	mmapptr = (void *) MEMORY_ALIGN((ptrint) mmapptr, ALIGNSIZE);
 	
 	m = mmapptr;
 	mmapptr = (void *) ((ptrint) mmapptr + size);
@@ -108,7 +108,7 @@ void heap_free(void *p)
 
 void nogc_init(u4 heapmaxsize, u4 heapstartsize)
 {
-	heapmaxsize = ALIGN(heapmaxsize, ALIGNSIZE);
+	heapmaxsize = MEMORY_ALIGN(heapmaxsize, ALIGNSIZE);
 
 	mmapptr = mmap((void *) MMAP_HEAPADDRESS,
 				   (size_t) heapmaxsize,

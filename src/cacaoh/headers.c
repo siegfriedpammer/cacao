@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5854 2006-10-29 11:15:36Z edwin $
+   $Id: headers.c 5868 2006-10-30 11:21:36Z edwin $
 
 */
 
@@ -567,7 +567,7 @@ static void addoutputsize (int len)
 	u4 newsize,i;
 	if (!dopadding) return;
 
-	newsize = ALIGN(outputsize, len);
+	newsize = MEMORY_ALIGN(outputsize, len);
 	
 	for (i = outputsize; i < newsize; i++) fprintf(file, "   u1 pad%d\n", (int) i);
 	outputsize = newsize;

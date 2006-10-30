@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5813 2006-10-20 14:26:50Z twisti $
+   $Id: linker.c 5868 2006-10-30 11:21:36Z edwin $
 
 */
 
@@ -862,9 +862,9 @@ static classinfo *link_class_intern(classinfo *c)
 			/* header structs like java_lang_Double must match the offsets */
 			/* of the Java fields (eg. java.lang.Double.value).            */
 #if defined(__I386__)
-			c->instancesize = ALIGN(c->instancesize, 4);
+			c->instancesize = MEMORY_ALIGN(c->instancesize, 4);
 #else
-			c->instancesize = ALIGN(c->instancesize, dsize);
+			c->instancesize = MEMORY_ALIGN(c->instancesize, dsize);
 #endif
 
 			f->offset = c->instancesize;

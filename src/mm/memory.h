@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 5803 2006-10-19 09:25:41Z twisti $
+   $Id: memory.h 5868 2006-10-30 11:21:36Z edwin $
 
 */
 
@@ -118,8 +118,8 @@ These macros do the same except they operate on the dump area:
 
 Some more macros:
 
-	ALIGN (pos, size) ... make pos divisible by size. always returns an
-						  address >= pos.
+	MEMORY_ALIGN (pos, size) ... make pos divisible by size. always returns an
+                                 address >= pos.
 	                      
 	
 	OFFSET (s,el) ....... returns the offset of 'el' in structure 's' in bytes.
@@ -129,8 +129,8 @@ Some more macros:
 
 */
 
-#define ALIGN(pos,size)       ((((pos) + (size) - 1) / (size)) * (size))
-#define PADDING(pos,size)     (ALIGN((pos),(size)) - (pos))
+#define MEMORY_ALIGN(pos,size) ((((pos) + (size) - 1) / (size)) * (size))
+#define PADDING(pos,size)     (MEMORY_ALIGN((pos),(size)) - (pos))
 #define OFFSET(s,el)          ((s4) ((ptrint) &(((s*) 0)->el)))
 
 #if !defined(DISABLE_GC)

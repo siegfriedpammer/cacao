@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5866 2006-10-30 11:00:56Z edwin $
+   $Id: parse.c 5868 2006-10-30 11:21:36Z edwin $
 
 */
 
@@ -962,7 +962,7 @@ jsr_tail:
 				s4 prevvalue = 0;
 #endif
 				blockend = true;
-				nextp = ALIGN((p + 1), 4);
+				nextp = MEMORY_ALIGN((p + 1), 4);
 
 				CHECK_END_OF_BYTECODE(nextp + 8);
 
@@ -1030,7 +1030,7 @@ jsr_tail:
 				branch_target_t *table;
 
 				blockend = true;
-				nextp = ALIGN((p + 1), 4);
+				nextp = MEMORY_ALIGN((p + 1), 4);
 
 				CHECK_END_OF_BYTECODE(nextp + 12);
 

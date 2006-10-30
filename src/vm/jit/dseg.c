@@ -31,7 +31,7 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 5852 2006-10-28 19:26:51Z twisti $
+   $Id: dseg.c 5868 2006-10-30 11:21:36Z edwin $
 
 */
 
@@ -284,7 +284,7 @@ static s4 dseg_add_s8_intern(codegendata *cd, s8 value, u4 flags)
 	/* Increase data segment size, which is also the displacement into
 	   the data segment. */
 
-	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
+	cd->dseglen = MEMORY_ALIGN(cd->dseglen + 8, 8);
 
 	/* allocate new entry */
 
@@ -430,7 +430,7 @@ static s4 dseg_add_double_intern(codegendata *cd, double value, u4 flags)
 	/* Increase data segment size, which is also the displacement into
 	   the data segment. */
 
-	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
+	cd->dseglen = MEMORY_ALIGN(cd->dseglen + 8, 8);
 
 	/* allocate new entry */
 
@@ -504,7 +504,7 @@ static s4 dseg_add_address_intern(codegendata *cd, void *value, u4 flags)
 	   the data segment. */
 
 #if SIZEOF_VOID_P == 8
-	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
+	cd->dseglen = MEMORY_ALIGN(cd->dseglen + 8, 8);
 #else
 	cd->dseglen += 4;
 #endif

@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5842 2006-10-27 10:41:02Z twisti $
+   $Id: codegen-common.c 5868 2006-10-30 11:21:36Z edwin $
 
 */
 
@@ -633,7 +633,7 @@ void codegen_finish(jitdata *jd)
 	}
 #endif
 
-	alignedmcodelen = ALIGN(mcodelen, MAX_ALIGN);
+	alignedmcodelen = MEMORY_ALIGN(mcodelen, MAX_ALIGN);
 
 #if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -643,7 +643,7 @@ void codegen_finish(jitdata *jd)
 	}
 #endif
 
-	cd->dseglen = ALIGN(cd->dseglen, MAX_ALIGN);
+	cd->dseglen = MEMORY_ALIGN(cd->dseglen, MAX_ALIGN);
 	alignedlen = alignedmcodelen + cd->dseglen;
 
 #if defined(ENABLE_INTRP)
