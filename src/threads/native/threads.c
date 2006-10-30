@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5869 2006-10-30 11:52:09Z edwin $
+   $Id: threads.c 5870 2006-10-30 12:27:59Z twisti $
 
 */
 
@@ -228,7 +228,7 @@ pthread_key_t threads_current_threadobject_key;
 static threads_table_t threads_table;
 
 /* global compiler mutex                                                      */
-static pthread_mutex_rec_t compiler_mutex;
+static pthread_mutex_t compiler_mutex;
 
 /* global mutex for changing the thread list                                  */
 static pthread_mutex_t threadlistlock;
@@ -255,56 +255,6 @@ pthread_mutex_t _atomic_add_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _cas_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _mb_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
-
-
-/******************************************************************************/
-/* Recursive Mutex Implementation for Darwin                                  */
-/******************************************************************************/
-
-#if defined(MUTEXSIM)
-
-/* We need this for older MacOSX (10.1.x) */
-
-void pthread_mutex_init_rec(pthread_mutex_rec_t *m)
-{
-	pthread_mutex_init(&m->mutex, NULL);
-	m->count = 0;
-}
-
-void pthread_mutex_destroy_rec(pthread_mutex_rec_t *m)
-{
-	pthread_mutex_destroy(&m->mutex);
-}
-
-void pthread_mutex_lock_rec(pthread_mutex_rec_t *m)
-{
-	for (;;) {
-		if (!m->count)
-		{
-			pthread_mutex_lock(&m->mutex);
-			m->owner = pthread_self();
-			m->count++;
-			break;
-		}
-		else {
-			if (m->owner != pthread_self()) {
-				pthread_mutex_lock(&m->mutex);
-			}
-			else {
-				m->count++;
-				break;
-			}
-		}
-	}
-}
-
-void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m)
-{
-	if (!--m->count)
-		pthread_mutex_unlock(&m->mutex);
-}
-
-#endif /* defined(MUTEXSIM) */
 
 
 /* threads_sem_init ************************************************************
@@ -416,7 +366,7 @@ static void threads_set_thread_priority(pthread_t tid, int priority)
 
 void compiler_lock(void)
 {
-	pthread_mutex_lock_rec(&compiler_mutex);
+	pthread_mutex_lock(&compiler_mutex);
 }
 
 
@@ -428,7 +378,7 @@ void compiler_lock(void)
 
 void compiler_unlock(void)
 {
-	pthread_mutex_unlock_rec(&compiler_mutex);
+	pthread_mutex_unlock(&compiler_mutex);
 }
 
 
@@ -508,27 +458,25 @@ static void threads_cast_darwinstop(void)
 			kern_return_t r;
 
 			r = thread_suspend(thread);
-			if (r != KERN_SUCCESS) {
-				log_text("thread_suspend failed");
-				assert(0);
-			}
 
-			r = thread_get_state(thread, flavor,
-				(natural_t*)&thread_state, &thread_state_count);
-			if (r != KERN_SUCCESS) {
-				log_text("thread_get_state failed");
-				assert(0);
-			}
+			if (r != KERN_SUCCESS)
+				vm_abort("thread_suspend failed");
 
-			thread_restartcriticalsection(&thread_state);
+			r = thread_get_state(thread, flavor, (natural_t *) &thread_state,
+								 &thread_state_count);
 
-			r = thread_set_state(thread, flavor,
-				(natural_t*)&thread_state, thread_state_count);
-			if (r != KERN_SUCCESS) {
-				log_text("thread_set_state failed");
-				assert(0);
-			}
+			if (r != KERN_SUCCESS)
+				vm_abort("thread_get_state failed");
+
+			thread_restartcriticalsection((ucontext_t *) &thread_state);
+
+			r = thread_set_state(thread, flavor, (natural_t *) &thread_state,
+								 thread_state_count);
+
+			if (r != KERN_SUCCESS)
+				vm_abort("thread_set_state failed");
 		}
+
 		tobj = tobj->next;
 	} while (tobj != mainthreadobj);
 }
@@ -545,11 +493,11 @@ static void threads_cast_darwinresume(void)
 			kern_return_t r;
 
 			r = thread_resume(thread);
-			if (r != KERN_SUCCESS) {
-				log_text("thread_resume failed");
-				assert(0);
-			}
+
+			if (r != KERN_SUCCESS)
+				vm_abort("thread_resume failed");
 		}
+
 		tobj = tobj->next;
 	} while (tobj != mainthreadobj);
 }
@@ -567,9 +515,13 @@ static void threads_cast_irixresume(void)
 
 void threads_cast_stopworld(void)
 {
+#if !defined(__DARWIN__) && !defined(__CYGWIN__)
 	int count, i;
+#endif
+
 	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
 	pthread_mutex_lock(&threadlistlock);
+
 #if defined(__DARWIN__)
 	threads_cast_darwinstop();
 #elif defined(__CYGWIN__)
@@ -577,9 +529,10 @@ void threads_cast_stopworld(void)
 	assert(0);
 #else
 	count = threads_cast_sendsignals(GC_signum1(), 0);
-	for (i=0; i<count; i++)
+	for (i = 0; i < count; i++)
 		threads_sem_wait(&suspend_ack);
 #endif
+
 	pthread_mutex_unlock(&threadlistlock);
 }
 
@@ -689,15 +642,11 @@ threadobject *threads_get_current_threadobject(void)
 
 void threads_preinit(void)
 {
-#ifndef MUTEXSIM
 	pthread_mutexattr_t mutexattr;
 	pthread_mutexattr_init(&mutexattr);
 	pthread_mutexattr_settype(&mutexattr, PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(&compiler_mutex, &mutexattr);
 	pthread_mutexattr_destroy(&mutexattr);
-#else
-	pthread_mutex_init_rec(&compiler_mutex);
-#endif
 
 	pthread_mutex_init(&threadlistlock, NULL);
 	pthread_mutex_init(&stopworldlock, NULL);

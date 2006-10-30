@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 5869 2006-10-30 11:52:09Z edwin $
+   $Id: threads.h 5870 2006-10-30 12:27:59Z twisti $
 
 */
 
@@ -66,9 +66,6 @@ typedef struct threads_table_t       threads_table_t;
 
 #if defined(__DARWIN__)
 # include <mach/mach.h>
-
-/* We need to emulate recursive mutexes. */
-# define MUTEXSIM
 
 typedef struct {
 	pthread_mutex_t mutex;
@@ -229,33 +226,6 @@ void threads_cast_stopworld(void);
 void threads_cast_startworld(void);
 
 void threads_dump(void);
-
-/******************************************************************************/
-/* Recursive Mutex Implementation for Darwin                                  */
-/******************************************************************************/
-
-#if defined(MUTEXSIM)
-
-/* We need this for older MacOSX (10.1.x) */
-
-typedef struct {
-	pthread_mutex_t mutex;
-	pthread_t owner;
-	int count;
-} pthread_mutex_rec_t;
-
-void pthread_mutex_init_rec(pthread_mutex_rec_t *m);
-void pthread_mutex_destroy_rec(pthread_mutex_rec_t *m);
-void pthread_mutex_lock_rec(pthread_mutex_rec_t *m);
-void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m);
-
-#else /* !defined(MUTEXSIM) */
-
-#define pthread_mutex_lock_rec pthread_mutex_lock
-#define pthread_mutex_unlock_rec pthread_mutex_unlock
-#define pthread_mutex_rec_t pthread_mutex_t
-
-#endif /* defined(MUTEXSIM) */
 
 #endif /* _THREADS_H */
 
