@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5867 2006-10-30 11:04:47Z edwin $
+   $Id: threads.c 5869 2006-10-30 11:52:09Z edwin $
 
 */
 
@@ -802,7 +802,7 @@ bool threads_init(void)
 
 	if (opt_intrp) {
 		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-		mainthreadobj->_global_sp = intrp_main_stack + opt_stacksize;
+		mainthreadobj->_global_sp = (Cell*) (intrp_main_stack + opt_stacksize);
 	}
 #endif
 
@@ -1106,7 +1106,7 @@ static void *threads_startup_thread(void *t)
 	/* set interpreter stack */
 
 	if (opt_intrp)
-		thread->_global_sp = (void *) (intrp_thread_stack + opt_stacksize);
+		thread->_global_sp = (Cell *) (intrp_thread_stack + opt_stacksize);
 #endif
 
 #if defined(ENABLE_JVMTI)
@@ -1275,7 +1275,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	if (opt_intrp) {
 		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-		thread->_global_sp = intrp_main_stack + opt_stacksize;
+		thread->_global_sp = (Cell *) (intrp_main_stack + opt_stacksize);
 	}
 #endif
 

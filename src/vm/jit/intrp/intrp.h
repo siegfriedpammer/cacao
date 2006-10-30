@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: intrp.h 5702 2006-10-05 20:18:41Z edwin $
+   $Id: intrp.h 5869 2006-10-30 11:52:09Z edwin $
 
 */
 
@@ -46,6 +46,14 @@
 #include "vm/types.h"
 #include "arch.h"
 
+/* we need Cell in some headers below */
+
+#if SIZEOF_VOID_P == 8
+typedef s8 Cell;
+#else
+typedef s4 Cell;
+#endif
+
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/method.h"
@@ -55,12 +63,6 @@
 
 typedef void *Label;
 typedef void *Inst;
-
-#if SIZEOF_VOID_P == 8
-typedef s8 Cell;
-#else
-typedef s4 Cell;
-#endif
 
 #if 1
 #define MAYBE_UNUSED __attribute__((unused))
@@ -110,7 +112,7 @@ typedef union {
 
 #if defined(ENABLE_THREADS)
 
-#define global_sp    (*(Cell **) &(THREADOBJECT->_global_sp))
+#define global_sp    (THREADOBJECT->_global_sp)
 
 #else /* defined(ENABLE_THREADS) */
 

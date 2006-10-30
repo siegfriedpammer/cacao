@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 5806 2006-10-19 10:10:23Z twisti $
+   $Id: threads.h 5869 2006-10-30 11:52:09Z edwin $
 
 */
 
@@ -59,6 +59,10 @@ typedef struct threads_table_t       threads_table_t;
 #include "vm/global.h"
 
 #include "threads/native/lock.h"
+
+#if defined(ENABLE_INTRP)
+#include "vm/jit/intrp/intrp.h"
+#endif
 
 #if defined(__DARWIN__)
 # include <mach/mach.h>
@@ -178,7 +182,7 @@ struct threadobject {
 	localref_table       *_localref_table;   /* JNI local references          */
 
 #if defined(ENABLE_INTRP)
-	u1                   *_global_sp;        /* stack pointer for interpreter */
+	Cell                 *_global_sp;        /* stack pointer for interpreter */
 #endif
 
 	dumpinfo_t            dumpinfo;     /* dump memory info structure         */
