@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(cacao, 0.97rc, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.97, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -478,7 +478,7 @@ fi
 
 
 dnl threads
-AC_ARG_ENABLE([threads], [AS_HELP_STRING(--enable-threads,enable threads support (none,green,native) [[default=native]])])
+AC_ARG_ENABLE([threads], [AS_HELP_STRING(--enable-threads,enable threads support (none,native) [[default=native]])])
 AC_ARG_ENABLE([__thread], [AS_HELP_STRING(--enable-__thread,use TLS features)], [use__thread=$enableval], [use__thread=no])
 
 AC_MSG_CHECKING(whether to include threads support)
