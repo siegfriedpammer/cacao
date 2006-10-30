@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5841 2006-10-26 16:41:07Z edwin $
+   $Id: codegen.c 5863 2006-10-30 10:15:28Z edwin $
 
 */
 
@@ -2074,6 +2074,7 @@ bool codegen(jitdata *jd)
 				disp      = 0;
 			}
 			else {
+				uf        = NULL;
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
