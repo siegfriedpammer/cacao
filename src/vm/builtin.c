@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5855 2006-10-29 14:49:10Z twisti $
+   $Id: builtin.c 5862 2006-10-30 00:45:30Z edwin $
 
 */
 
@@ -1332,7 +1332,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-static char *builtin_print_argument(char *logtext, s4 logtextlen,
+static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 									typedesc *paramtype, s8 value)
 {
 	imm_union          imu;
@@ -1397,7 +1397,8 @@ static char *builtin_print_argument(char *logtext, s4 logtextlen,
 
 				/* realloc memory for string length */
 
-				DMREALLOC(logtext, char, logtextlen, logtextlen + len);
+				logtext = DMREALLOC(logtext, char, *logtextlen, *logtextlen + len);
+				*logtextlen += len;
 
 				/* convert to utf8 string and strcat it to the logtext */
 
@@ -1426,7 +1427,8 @@ static char *builtin_print_argument(char *logtext, s4 logtextlen,
 
 				/* realloc memory for string length */
 
-				DMREALLOC(logtext, char, logtextlen, logtextlen + len);
+				logtext = DMREALLOC(logtext, char, *logtextlen, *logtextlen + len);
+				*logtextlen += len;
 
 				/* strcat to the logtext */
 
@@ -1545,14 +1547,14 @@ void builtin_trace_args(s8 a0, s8 a1,
 	strcat(logtext, "(");
 
 	if (md->paramcount >= 1) {
-		logtext = builtin_print_argument(logtext, logtextlen,
+		logtext = builtin_print_argument(logtext, &logtextlen,
 										 &md->paramtypes[0], a0);
 	}
 
 	if (md->paramcount >= 2) {
 		strcat(logtext, ", ");
 
-		logtext = builtin_print_argument(logtext, logtextlen,
+		logtext = builtin_print_argument(logtext, &logtextlen,
 										 &md->paramtypes[1], a1);
 	}
 
@@ -1560,14 +1562,14 @@ void builtin_trace_args(s8 a0, s8 a1,
 	if (md->paramcount >= 3) {
 		strcat(logtext, ", ");
 
-		logtext = builtin_print_argument(logtext, logtextlen,
+		logtext = builtin_print_argument(logtext, &logtextlen,
 										 &md->paramtypes[2], a2);
 	}
 
 	if (md->paramcount >= 4) {
 		strcat(logtext, ", ");
 
-		logtext = builtin_print_argument(logtext, logtextlen,
+		logtext = builtin_print_argument(logtext, &logtextlen,
 										 &md->paramtypes[3], a3);
 	}
 #endif
@@ -1576,14 +1578,14 @@ void builtin_trace_args(s8 a0, s8 a1,
 	if (md->paramcount >= 5) {
 		strcat(logtext, ", ");
 
-		logtext = builtin_print_argument(logtext, logtextlen,
+		logtext = builtin_print_argument(logtext, &logtextlen,
 										 &md->paramtypes[4], a4);
 	}
 
 	if (md->paramcount >= 6) {
 		strcat(logtext, ", ");
 
-		logtext = builtin_print_argument(logtext, logtextlen,
+		logtext = builtin_print_argument(logtext, &logtextlen,
 										 &md->paramtypes[5], a5);
 	}
 #endif
@@ -1592,14 +1594,14 @@ void builtin_trace_args(s8 a0, s8 a1,
 	if (md->paramcount >= 7) {
 		strcat(logtext, ", ");
 
-		logtext = builtin_print_argument(logtext, logtextlen,
+		logtext = builtin_print_argument(logtext, &logtextlen,
 										 &md->paramtypes[6], a6);
 	}
 
 	if (md->paramcount >= 8) {
 		strcat(logtext, ", ");
 
-		logtext = builtin_print_argument(logtext, logtextlen,
+		logtext = builtin_print_argument(logtext, &logtextlen,
 										 &md->paramtypes[7], a7);
 	}
 #endif
@@ -1708,7 +1710,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		}
 
 		logtext =
-			builtin_print_argument(logtext, logtextlen, &md->returntype, val.l);
+			builtin_print_argument(logtext, &logtextlen, &md->returntype, val.l);
 	}
 
 	log_text(logtext);
