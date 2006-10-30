@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5832 2006-10-26 11:18:08Z edwin $
+   $Id: threads.c 5867 2006-10-30 11:04:47Z edwin $
 
 */
 
@@ -1811,9 +1811,9 @@ void threads_dump(void)
 				printf("daemon ");
 
 #if SIZEOF_VOID_P == 8
-			printf("prio=%d tid=0x%016lx\n", t->priority, thread->tid);
+			printf("prio=%d tid=0x%016lx\n", t->priority, (long) thread->tid);
 #else
-			printf("prio=%d tid=0x%08lx\n", t->priority, thread->tid);
+			printf("prio=%d tid=0x%08lx\n", t->priority, (long) thread->tid);
 #endif
 
 			/* dump trace of thread */
