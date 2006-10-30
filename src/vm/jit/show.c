@@ -175,9 +175,9 @@ void show_method(jitdata *jd, int stage)
 
 	method_println(m);
 
-	printf("\n(NEW INSTRUCTION FORMAT)\n");
 	if (jd->isleafmethod)
 		printf("LEAFMETHOD\n");
+
 	printf("\nBasic blocks: %d\n", jd->basicblockcount);
 	if (stage >= SHOW_CODE) {
 		printf("Code length:  %d\n", (lastbptr->mpc - jd->basicblocks[0].mpc));
@@ -316,13 +316,13 @@ void show_method(jitdata *jd, int stage)
 			max = cd->stackframesize;
 		}
 		printf(")\n");
-		for (i=0; i<max; ++i) {
+		for (i = 0; i < max; ++i) {
 #if defined(HAS_4BYTE_STACKSLOT)
 			printf("    M%02d = 0x%02x(sp): ", i, i * 4);
 #else
 			printf("    M%02d = 0x%02x(sp): ", i, i * 8);
 #endif
-			for (j=0; j<jd->varcount; ++j) {
+			for (j = 0; j < jd->varcount; ++j) {
 				varinfo *v = VAR(j);
 				if ((v->flags & INMEMORY) && (v->vv.regoff == i)) {
 					show_variable(jd, j, irstage);
@@ -541,35 +541,69 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 #define SHOW_INT_CONST(val)                                          \
         if (stage >= SHOW_PARSE) {                                   \
-            printf("%ld ", (long) (val));                            \
+            printf("%d (0x%08x) ", (val), (val));                    \
         }                                                            \
         else {                                                       \
             printf("iconst ");                                       \
         }
 
+#if SIZEOF_VOID_P == 4
 #define SHOW_LNG_CONST(val)                                          \
-        if (stage >= SHOW_PARSE) {                                   \
-            printf("%lld ", (long long)(val));                       \
-        }                                                            \
-        else {                                                       \
-            printf("lconst ");                                       \
-        }
+        if (stage >= SHOW_PARSE)                                     \
+            printf("%lld (0x%016llx) ", (val), (val));               \
+        else                                                         \
+            printf("lconst ");
+#else
+#define SHOW_LNG_CONST(val)                                          \
+        if (stage >= SHOW_PARSE)                                     \
+            printf("%ld (0x%016lx) ", (val), (val));                 \
+        else                                                         \
+            printf("lconst ");
+#endif
+
+#if SIZEOF_VOID_P == 4
+#define SHOW_ADR_CONST(val)                                          \
+        if (stage >= SHOW_PARSE)                                     \
+            printf("0x%08x ", (ptrint) (val));                       \
+        else                                                         \
+            printf("aconst ");
+#else
+#define SHOW_ADR_CONST(val)                                          \
+        if (stage >= SHOW_PARSE)                                     \
+            printf("0x%016lx ", (ptrint) (val));                     \
+        else                                                         \
+            printf("aconst ");
+#endif
 
 #define SHOW_FLT_CONST(val)                                          \
         if (stage >= SHOW_PARSE) {                                   \
-            printf("%g ", (val));                                    \
+            imm_union v;                                             \
+            v.f = (val);                                             \
+            printf("%g (0x%08x) ", (val), v.i);                      \
         }                                                            \
         else {                                                       \
             printf("fconst ");                                       \
         }
 
+#if SIZEOF_VOID_P == 4
 #define SHOW_DBL_CONST(val)                                          \
         if (stage >= SHOW_PARSE) {                                   \
-            printf("%g ", (val));                                    \
+            imm_union v;                                             \
+            v.d = (val);                                             \
+            printf("%g (0x%016llx) ", (val), v.l);                   \
         }                                                            \
-        else {                                                       \
-            printf("dconst ");                                       \
-        }
+        else                                                         \
+            printf("dconst ");
+#else
+#define SHOW_DBL_CONST(val)                                          \
+        if (stage >= SHOW_PARSE) {                                   \
+            imm_union v;                                             \
+            v.d = (val);                                             \
+            printf("%g (0x%016lx) ", (val), v.l);                    \
+        }                                                            \
+        else                                                         \
+            printf("dconst ");
+#endif
 
 #define SHOW_INDEX(index)                                            \
         if (stage >= SHOW_PARSE) {                                   \
@@ -769,7 +803,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	branch_target_t   *table;
 	lookup_target_t   *lookup;
 	constant_FMIref   *fmiref;
-	s4          *argp;
+	s4                *argp;
 	s4                 i;
 
 	/* get the opcode and the condition */
@@ -915,7 +949,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_LORCONST:
 	case ICMD_LXORCONST:
 		SHOW_S1(iptr);
-		SHOW_LNG_CONST(iptr->sx.val.l);	
+		SHOW_LNG_CONST(iptr->sx.val.l);
 		SHOW_DST(iptr);
 		break;
 
@@ -923,7 +957,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_LASTORECONST:
 		SHOW_S1(iptr);
 		SHOW_S2(iptr);
-		SHOW_LNG_CONST(iptr->sx.s23.s3.constval);
+		SHOW_ADR_CONST(iptr->sx.s23.s3.constval);
 		break;
 
 		/* const LNG */
@@ -947,12 +981,14 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		/* const ADR */
 	case ICMD_ACONST:
 		if (iptr->flags.bits & INS_FLAG_CLASS) {
+			SHOW_ADR_CONST(iptr->sx.val.anyptr);
 			SHOW_CLASSREF_OR_CLASSINFO(iptr->sx.val.c);
 		}
 		else if (iptr->sx.val.anyptr == NULL) {
 			printf("NULL ");
 		}
 		else {
+			SHOW_ADR_CONST(iptr->sx.val.anyptr);
 			SHOW_STRING(iptr->sx.val.stringconst);
 		}
 		SHOW_DST(iptr);
