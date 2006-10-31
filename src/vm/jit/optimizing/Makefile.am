@@ -1,4 +1,4 @@
-## src/vm/jit/loop/Makefile.am
+## src/vm/jit/optimizing/Makefile.am
 ##
 ## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -22,7 +22,7 @@
 ## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 ## 02111-1307, USA.
 ##
-## Contact: cacao@complang.tuwien.ac.at
+## Contact: cacao@cacaojvm.org
 ##
 ## Authors: Christian Thalinger
 ##
@@ -32,7 +32,9 @@
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+
+LIBS =
 
 if ENABLE_PROFILING
 PROFILE_SOURCES = \
