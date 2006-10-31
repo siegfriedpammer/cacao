@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5849 2006-10-28 16:55:29Z edwin $
+   $Id: jit.c 5887 2006-10-31 21:35:07Z twisti $
 
 */
 
@@ -69,8 +69,6 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 
-# include "vm/jit/reorder.h"
-
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 
@@ -83,7 +81,6 @@
 # include "vm/jit/optimizing/ssa.h"
 #endif
 
-
 #if defined(ENABLE_IFCONV)
 # include "vm/jit/ifconv/ifconv.h"
 #endif
@@ -91,6 +88,9 @@
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
+
+#include "vm/jit/optimizing/reorder.h"
+
 #include "vm/jit/verify/typecheck.h"
 #include "vm/rt-timing.h"
 

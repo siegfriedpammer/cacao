@@ -48,6 +48,10 @@ RECOMPILE_SOURCES = \
 	recompile.h
 endif
 
+REORDER_SOURCES = \
+	reorder.c \
+	reorder.h
+
 if ENABLE_SSA
 SSA_SOURCES = \
 	lsra.c \
@@ -68,6 +72,7 @@ noinst_LTLIBRARIES = \
 liboptimizing_la_SOURCES = \
 	$(PROFILE_SOURCES) \
 	$(RECOMPILE_SOURCES) \
+	$(REORDER_SOURCES) \
 	$(SSA_SOURCES)
 
 
