@@ -36,6 +36,12 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src
 
 LIBS =
 
+if ENABLE_IFCONV
+IFCONV_SOURCES = \
+	ifconv.c \
+	ifconv.h
+endif
+
 if ENABLE_PROFILING
 PROFILE_SOURCES = \
 	profile.c \
@@ -70,6 +76,7 @@ noinst_LTLIBRARIES = \
 	liboptimizing.la
 
 liboptimizing_la_SOURCES = \
+	$(IFCONV_SOURCES) \
 	$(PROFILE_SOURCES) \
 	$(RECOMPILE_SOURCES) \
 	$(REORDER_SOURCES) \

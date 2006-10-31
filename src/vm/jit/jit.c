@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5887 2006-10-31 21:35:07Z twisti $
+   $Id: jit.c 5889 2006-10-31 22:01:26Z twisti $
 
 */
 
@@ -81,13 +81,13 @@
 # include "vm/jit/optimizing/ssa.h"
 #endif
 
-#if defined(ENABLE_IFCONV)
-# include "vm/jit/ifconv/ifconv.h"
-#endif
-
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
+
+#if defined(ENABLE_IFCONV)
+# include "vm/jit/optimizing/ifconv.h"
+#endif
 
 #include "vm/jit/optimizing/reorder.h"
 
