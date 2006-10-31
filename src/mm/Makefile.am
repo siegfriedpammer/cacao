@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4627 2006-03-16 12:53:32Z twisti $
+## $Id: Makefile.am 5884 2006-10-31 20:11:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,19 +36,34 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
+DIST_SUBDIRS = \
+	boehm-gc
+
 if DISABLE_GC
-GC_FILE = nogc.c
+GC_FILE = \
+	nogc.c
 else
-GC_FILE = boehm.c
+SUBDIRS = \
+	boehm-gc
+
+GC_FILE = \
+	boehm.c
+
+GC_LIB = \
+	$(top_builddir)/src/mm/boehm-gc/libgc.la
 endif
 
-noinst_LTLIBRARIES = libmm.la
+noinst_LTLIBRARIES = \
+	libmm.la
 
 libmm_la_SOURCES = \
 	$(GC_FILE) \
 	boehm.h \
 	memory.c \
 	memory.h
+
+libmm_la_LIBADD = \
+	$(GC_LIB)
 
 
 ## Local variables:

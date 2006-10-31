@@ -1,4 +1,4 @@
-/* src/vm/jit/recompile.c - recompilation system
+/* src/vm/jit/optimizing/recompile.c - recompilation system
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -55,7 +55,7 @@
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
-#include "vm/jit/recompile.h"
+#include "vm/jit/optimizing/recompile.h"
 
 
 /* global variables ***********************************************************/

@@ -28,27 +28,23 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4921 2006-05-15 14:24:36Z twisti $
+## $Id: Makefile.am 5884 2006-10-31 20:11:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
-if DISABLE_GC
-GC_LIB =
-else
-GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
-endif
-
 if ENABLE_THREADS
-THREAD_LIB = $(top_builddir)/src/threads/native/libthreads.la
+THREAD_LIB = \
+	$(top_builddir)/src/threads/native/libthreads.la
 endif
 
 if ENABLE_RT_TIMING
 cacaoh_LDFLAGS = -lrt
 endif
 
-noinst_LTLIBRARIES = libcacaoh.la
+noinst_LTLIBRARIES = \
+	libcacaoh.la
 
 libcacaoh_la_SOURCES = \
 	headers.c \

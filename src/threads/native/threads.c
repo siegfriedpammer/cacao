@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5870 2006-10-30 12:27:59Z twisti $
+   $Id: threads.c 5884 2006-10-31 20:11:28Z twisti $
 
 */
 
@@ -87,7 +87,7 @@
 #  define GC_IRIX_THREADS
 # endif
 # include <semaphore.h>
-# include "boehm-gc/include/gc.h"
+# include "mm/boehm-gc/include/gc.h"
 #endif
 
 #if defined(ENABLE_JVMTI)

@@ -1,4 +1,4 @@
-/* src/vm/jit/profile.c - runtime profiling
+/* src/vm/jit/optimizing/profile.c - runtime profiling
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -57,7 +57,7 @@
 #include "vm/stringlocal.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/recompile.h"
+#include "vm/jit/optimizing/recompile.h"
 
 
 /* global variables ***********************************************************/

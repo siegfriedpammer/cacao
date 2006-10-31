@@ -1,6 +1,6 @@
 ## src/vm/jit/loop/Makefile.am
 ##
-## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
 ## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
 ## Institut f. Computersprachen - TU Wien
@@ -32,11 +32,22 @@
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
-noinst_LTLIBRARIES = liboptimizing.la
+if ENABLE_PROFILING
+PROFILE_SOURCES = \
+	profile.c \
+	profile.h
+endif
 
-liboptimizing_la_SOURCES = \
+if ENABLE_THREADS
+RECOMPILE_SOURCES = \
+	recompile.c \
+	recompile.h
+endif
+
+if ENABLE_SSA
+SSA_SOURCES = \
 	lsra.c \
 	lsra.h \
 	ssa.c \
@@ -47,6 +58,15 @@ liboptimizing_la_SOURCES = \
 	dominators.h \
 	lifetimes.c \
 	lifetimes.h
+endif
+
+noinst_LTLIBRARIES = \
+	liboptimizing.la
+
+liboptimizing_la_SOURCES = \
+	$(PROFILE_SOURCES) \
+	$(RECOMPILE_SOURCES) \
+	$(SSA_SOURCES)
 
 
 ## Local variables:

@@ -136,4 +136,4 @@ export CACAO_AUTOHEADER
 export CACAO_AUTOMAKE
 export CACAO_AUTOCONF
 
-cd src/boehm-gc && ./autogen.sh && cd ../..
+cd src/mm/boehm-gc && ./autogen.sh && cd ../..

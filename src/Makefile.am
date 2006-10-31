@@ -28,12 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 5884 2006-10-31 20:11:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
-	boehm-gc \
 	lib \
 	fdlibm \
 	mm \
@@ -45,16 +44,9 @@ DIST_SUBDIRS = \
 	cacao \
 	scripts
 
-if DISABLE_GC
-BOEHM =
-else
-BOEHM = boehm-gc
-endif
-
 # Keep this order!!!
 
 SUBDIRS = \
-	$(BOEHM) \
 	lib \
 	fdlibm \
 	mm \

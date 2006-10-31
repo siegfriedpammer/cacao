@@ -888,7 +888,6 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/powerpc/netbsd/Makefile]
 		[src/vm/jit/powerpc64/Makefile]
 		[src/vm/jit/powerpc64/linux/Makefile]
-		[src/vm/jit/profile/Makefile]
 		[src/vm/jit/schedule/Makefile]
 		[src/vm/jit/sparc64/Makefile]
 		[src/vm/jit/sparc64/linux/Makefile]
@@ -905,7 +904,7 @@ AC_CONFIG_FILES([Makefile]
 dnl now configure subpackages with OPT_CFLAGS and ARCH_CFLAGS
 export OPT_CFLAGS
 export ARCH_CFLAGS
-AC_CONFIG_SUBDIRS(src/boehm-gc)
+AC_CONFIG_SUBDIRS(src/mm/boehm-gc)
 
 
 AC_OUTPUT

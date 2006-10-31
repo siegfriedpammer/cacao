@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5814 2006-10-20 14:53:27Z twisti $
+## $Id: Makefile.am 5884 2006-10-31 20:11:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -42,7 +42,6 @@ DIST_SUBDIRS = \
 	inline \
 	loop \
 	optimizing \
-	profile \
 	schedule \
 	tools \
 	verify \
@@ -57,6 +56,7 @@ DIST_SUBDIRS = \
 	x86_64
 
 SUBDIRS = \
+	optimizing \
 	tools \
 	verify
 
@@ -67,6 +67,9 @@ SUBDIRS += \
 
 ARCH_LIB = \
 	$(ARCH_DIR)/libarch.la
+
+OPTIMIZING_LIB = \
+	optimizing/liboptimizing.la
 endif
 
 if ENABLE_INTRP
@@ -101,34 +104,12 @@ LOOP_LIB = \
 	loop/libloop.la
 endif
 
-if ENABLE_PROFILING
-SUBDIRS += \
-	profile
-
-PROFILE_LIB = \
-	profile/libprofile.la
-endif
-
 if USE_SCHEDULER
 SUBDIRS += \
 	schedule
 
 SCHEDULE_LIB = \
 	schedule/libschedule.la
-endif
-
-if ENABLE_SSA
-SUBDIRS += \
-	optimizing
-
-OPTIMIZING_LIB = \
-	optimizing/liboptimizing.la
-endif
-
-if ENABLE_THREADS
-RECOMPILE_SOURCES = \
-	recompile.c \
-	recompile.h
 endif
 
 if ENABLE_JIT
