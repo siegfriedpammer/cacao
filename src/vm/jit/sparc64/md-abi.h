@@ -64,10 +64,12 @@
 #define REG_FP          30   /* frame pointer                                 */
 #define REG_ZERO         0   /* always zero                                   */
 
-#define REG_A0           8   /* define some argument registers                */
-#define REG_A1           9
-#define REG_A2          10
-#define REG_A3          11
+#define REG_OUT0         8   /* define some argument registers                */
+#define REG_OUT1         9
+#define REG_OUT2        10
+#define REG_OUT3        11
+#define REG_OUT4        12
+#define REG_OUT5        13
 
 /* floating point registers */
 /* only using the lower half of the floating registers for now */
@@ -85,24 +87,39 @@
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     12   /* number of int callee saved registers          */
 #define INT_ARG_CNT      5   /* number of int argument registers (-1 for PV)  */
-#define INT_TMP_CNT      2   /* int temp registers (%g4-%g5)                  */
-#define INT_RES_CNT     12   /* number of reserved integer registers          */
+#define INT_TMP_CNT      0   /* int temp registers (%g4-%g5)                  */
+#define INT_RES_CNT     14   /* number of reserved integer registers          */
                              /* pv, zero, %g6, %g7, sp, ra                    */
 
 #define FLT_REG_CNT     16   /* number of float registers                     */
-#define FLT_SAV_CNT      4   /* number of flt callee saved registers          */
+#define FLT_SAV_CNT      0   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT      4   /* number of flt argument registers              */
-#define FLT_TMP_CNT      4   /* number of flt temp registers                  */
+#define FLT_TMP_CNT      8   /* number of flt temp registers                  */
 #define FLT_RES_CNT      3   /* number of reserved float registers            */
                              /* the one "missing" register is the return reg  */
+                             
+/* different argument counts when following the ABI for native functions */
+#define INT_NATARG_CNT   6
+#define FLT_NATARG_CNT  16
 
 #define TRACE_ARGS_NUM   5
 
-/* helpers for stack addressing */
+/* helpers for stack addressing and window handling */
 
-#define WINSAVE_CNT   16    /* number of regs that SPARC saves onto stack    */
-#define BIAS        2047
-#define USESTACK    (WINSAVE_CNT * 8 + BIAS)
+/* SPARC ABI always wants argument slots on the stack, even when not used */
+#define ABI_PARAMARRAY_SLOTS    6
+
+#define WINSAVE_CNT     16    /* number of regs that SPARC saves onto stack    */
+#define ABICALL_OFF     22    /* 8-byte slots for save regs and arg slots      */
+#define BIAS          2047
+#define USESTACK      (WINSAVE_CNT * 8 + BIAS)
+#define USESTACK_PARAMS ((WINSAVE_CNT + ABI_PARAMARRAY_SLOTS) * 8 + BIAS)
+
+
+
+/* applies only when caller's window was saved */
+#define REG_WINDOW_TRANSPOSE(reg) \
+	(reg + 16)
 
 #endif /* _MD_ABI_H */
 

@@ -72,6 +72,8 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	functionptr        f;
 	bool               result;
 	java_objectheader *e;
+	
+	assert(0);
 
 	/* define the patcher function */
 

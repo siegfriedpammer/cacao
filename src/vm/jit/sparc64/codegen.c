@@ -212,6 +212,7 @@ bool codegen(jitdata *jd)
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
  			if (!md->params[p].inmemory) {           /* register arguments    */
 				s2 = rd->argintregs[s1];
+				s2 = REG_WINDOW_TRANSPOSE(s2);
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
  					M_INTMOVE(s2, var->vv.regoff);
 
@@ -1793,8 +1794,9 @@ bool codegen(jitdata *jd)
 				codegen_addpatchref(cd, PATCHER_athrow_areturn,
 									iptr->sx.s23.s2.uc, 0);
 
-				if (opt_showdisassemble)
-					M_NOP;
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP;
+				}
 			}
 #endif /* ENABLE_VERIFIER */
 
@@ -2213,8 +2215,9 @@ bool codegen(jitdata *jd)
 				codegen_addpatchref(cd, PATCHER_athrow_areturn,
 									iptr->sx.s23.s2.uc, 0);
 
-				if (opt_showdisassemble)
-					M_NOP;
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP;
+				}
 			}
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
@@ -2266,7 +2269,7 @@ nowperformreturn:
 
 
 
-			M_RETURN(REG_RA_CALLEE); /* implicit window restore */
+			M_RETURN(REG_RA_CALLEE, 8); /* implicit window restore */
 			M_NOP;
 			ALIGNCODENOP;
 			}
@@ -2430,33 +2433,20 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-		/* XXX needs manual attention! */
 				disp = dseg_addaddress(cd, bte->fp);
-				d = md->returntype.type;
 
-				M_ALD(REG_ITMP3, REG_PV, disp);  /* built-in-function pointer */
-				M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
-				M_NOP;
-/* XXX: how do builtins handle the register window? */
-/*				disp = (s4) (cd->mcodeptr - cd->mcodebase);*/
-/*				M_LDA(REG_PV, REG_RA, -disp);*/
+				M_ALD(REG_PV_CALLER, REG_PV, disp);  /* built-in-function pointer */
+				s1 = REG_PV_CALLER;
 
-
-				if (INSTRUCTION_MUST_CHECK(iptr)) {
-					M_BEQZ(REG_RESULT_CALLER, 0);
-					codegen_add_fillinstacktrace_ref(cd);
-					M_NOP;
-				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				M_BEQZ(REG_A0, 0);
+				M_BEQZ(REG_OUT0, 0);
 				codegen_add_nullpointerexception_ref(cd);
 				M_NOP;
 				/* fall through */
 
 			case ICMD_INVOKESTATIC:
-		/* XXX needs manual attention! */
 				if (lm == NULL) {
 					disp = dseg_addaddress(cd, NULL);
 
@@ -2470,14 +2460,12 @@ gen_method:
 				else
 					disp = dseg_addaddress(cd, lm->stubroutine);
 
-				M_ALD(REG_PV_CALLER, REG_PV, disp); /* method pointer in callee pv */
-				M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
-				M_NOP;
-/* XXX no need to restore PV, when its in the regs  */
+				M_ALD(REG_PV_CALLER, REG_PV, disp);          /* method pointer in pv */
+				s1 = REG_PV_CALLER;
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				gen_nullptr_check(REG_A0);
+				gen_nullptr_check(REG_OUT0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
@@ -2492,16 +2480,13 @@ gen_method:
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
 
-				M_ALD(REG_METHODPTR, REG_A0,
+				M_ALD(REG_METHODPTR, REG_OUT0,
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV_CALLER, REG_METHODPTR, s1);
-				M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
-				M_NOP;
-/* XXX no need to restore PV, when its in the regs  */
+				s1 = REG_PV_CALLER;
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-		/* XXX needs manual attention! */
 				gen_nullptr_check(rd->argintregs[0]);
 
 				if (lm == NULL) {
@@ -2521,17 +2506,33 @@ gen_method:
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 				}
 
-				M_ALD(REG_METHODPTR, REG_A0,
+				M_ALD(REG_METHODPTR, REG_OUT0,
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV_CALLER, REG_METHODPTR, s2);
-				M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
-				M_NOP;
-/* XXX no need to restore PV, when its in the regs  */
+				s1 = REG_PV_CALLER;
 				break;
 			}
 
-			/* d contains return type */
+			/* generate the actual call */
+
+			M_JMP(REG_RA_CALLER, s1, REG_ZERO);
+			M_NOP;
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
+			/* REG_RA holds the value of the jmp instruction, therefore +8 */
+			M_LDA(REG_PV, REG_RA_CALLER, -disp + 8); 
+
+			/* actually only used for ICMD_BUILTIN */
+
+			if (INSTRUCTION_MUST_CHECK(iptr)) {
+				M_BEQZ(REG_RESULT_CALLER, 0);
+				codegen_add_fillinstacktrace_ref(cd);
+				M_NOP;
+			}
+
+			/* store return value */
+
+			d = md->returntype.type;
 
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(d)) {
@@ -2856,9 +2857,236 @@ u1 *createcompilerstub(methodinfo *m)
 
 u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 {
-	/* fabort("help me!"); */
-	printf("createnativestub not implemented\n");
-	return NULL;
+	methodinfo   *m;
+	codeinfo     *code;
+	codegendata  *cd;
+	registerdata *rd;
+	methoddesc   *md;
+	s4            nativeparams;
+	s4            i, j;                 /* count variables                    */
+	s4            t;
+	s4            s1, s2, disp;
+	s4            funcdisp;             /* displacement of the function       */
+
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
+
+	/* rewrite registers and params */
+	md_native_reg_setup(jd);
+	md_native_param_alloc(nmd);
+
+	/* initialize variables */
+
+	md = m->parseddesc;
+	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
+
+	/* calculate stack frame size */
+
+	cd->stackframesize =
+		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(localref_table) / SIZEOF_VOID_P +
+		md->paramcount +                /* for saving arguments over calls    */
+		nmd->memuse +  /* nmd knows about the native stackframe layout */
+		WINSAVE_CNT;
+
+	/* create method header */
+
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
+	(void) dseg_addlinenumbertablesize(cd);
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
+
+	/* generate stub code */
+
+	M_SAVE(REG_SP, -cd->stackframesize * 8, REG_SP); /* build up stackframe    */
+
+#if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
+#endif
+
+	/* get function address (this must happen before the stackframeinfo) */
+
+	funcdisp = dseg_addaddress(cd, f);
+
+#if !defined(WITH_STATIC_CLASSPATH)
+	if (f == NULL) {
+		codegen_addpatchref(cd, PATCHER_resolve_native, m, funcdisp);
+
+		if (opt_showdisassemble) {
+			M_NOP; M_NOP;
+		}
+	}
+#endif
+
+	/* save float argument registers */
+
+	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
+		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
+			M_DST(rd->argfltregs[i], REG_SP, j * 8);
+			j++;
+		}
+	}
+
+	/* prepare data structures for native function call */
+
+	M_MOV(REG_FP, REG_OUT0); /* top of the stack frame */
+	M_MOV(REG_PV_CALLEE, REG_OUT1);
+	M_MOV(REG_FP, REG_OUT2); /* java sp */
+	M_MOV(REG_RA_CALLEE, REG_OUT3);
+	disp = dseg_addaddress(cd, codegen_start_native_call);
+	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
+	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+	M_NOP; /* XXX fill me! */
+
+	/* restore float argument registers */
+
+	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
+		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
+			M_DLD(rd->argfltregs[i], REG_SP, j * 8);
+			j++;
+		}
+	}
+
+	/* copy or spill arguments to new locations */
+
+	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+		t = md->paramtypes[i].type;
+
+		if (IS_INT_LNG_TYPE(t)) {
+			if (!md->params[i].inmemory) {
+				s1 = rd->argintregs[md->params[i].regoff];
+				/* s1 refers to the old window, transpose */
+				s1 = REG_WINDOW_TRANSPOSE(s1);
+
+				if (!nmd->params[j].inmemory) {
+					s2 = rd->argintregs[nmd->params[j].regoff];
+					M_INTMOVE(s1, s2);
+				} else {
+					s2 = nmd->params[j].regoff;
+					M_AST(s1, REG_SP, USESTACK_PARAMS + s2 * 8);
+				}
+
+			} else {
+				s1 = md->params[i].regoff + cd->stackframesize;
+				s2 = nmd->params[j].regoff;
+				M_ALD(REG_ITMP1, REG_SP, USESTACK_PARAMS + s1 * 8);
+				M_AST(REG_ITMP1, REG_SP, USESTACK_PARAMS + s2 * 8);
+			}
+
+		} else {
+			if (!md->params[i].inmemory) {
+				s1 = rd->argfltregs[md->params[i].regoff];
+
+				if (!nmd->params[j].inmemory) {
+					s2 = rd->argfltregs[nmd->params[j].regoff];
+					if (IS_2_WORD_TYPE(t))
+						M_DMOV(s1, s2);
+					else
+						M_DMOV(s1, s2);
+
+				} else {
+					s2 = nmd->params[j].regoff;
+					if (IS_2_WORD_TYPE(t))
+						M_DST(s1, REG_SP, USESTACK_PARAMS + s2 * 8);
+					else
+						M_FST(s1, REG_SP, USESTACK_PARAMS + s2 * 8);
+				}
+
+			} else {
+				s1 = md->params[i].regoff + cd->stackframesize;
+				s2 = nmd->params[j].regoff;
+				if (IS_2_WORD_TYPE(t)) {
+					M_DLD(REG_FTMP1, REG_SP, USESTACK_PARAMS + s1 * 8);
+					M_DST(REG_FTMP1, REG_SP, USESTACK_PARAMS + s2 * 8);
+				} else {
+					M_FLD(REG_FTMP1, REG_SP, USESTACK_PARAMS + s1 * 8);
+					M_FST(REG_FTMP1, REG_SP, USESTACK_PARAMS + s2 * 8);
+				}
+			}
+		}
+	}
+
+
+	/* put class into second argument register */
+
+	if (m->flags & ACC_STATIC) {
+		disp = dseg_addaddress(cd, m->class);
+		M_ALD(REG_OUT1, REG_PV_CALLEE, disp);
+	}
+
+	/* put env into first argument register */
+
+	disp = dseg_addaddress(cd, _Jv_env);
+	M_ALD(REG_OUT0, REG_PV_CALLEE, disp);
+
+	/* do the native function call */
+
+	M_ALD(REG_ITMP3, REG_PV_CALLEE, funcdisp); /* load adress of native method       */
+	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO); /* call native method                 */
+	M_NOP;                              /* delay slot                         */
+
+	/* save return value */
+
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_MOV(REG_RESULT_CALLER, REG_RESULT_CALLEE);
+		else
+			M_DST(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+	}
+
+#if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_exit(jd);
+#endif
+
+	/* remove native stackframe info */
+
+	M_MOV(REG_FP, REG_OUT0);
+	disp = dseg_addaddress(cd, codegen_finish_native_call);
+	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
+	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+	M_NOP; /* XXX fill me! */
+	M_MOV(REG_RESULT_CALLER, REG_ITMP2_XPTR);
+
+	/* restore float return value, int return value already in our return reg */
+
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_FLT_DBL_TYPE(md->returntype.type)) {
+			M_DLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+		}
+	}
+
+	/* check for exception */
+
+	M_BNEZ(REG_ITMP2_XPTR, 4);          /* if no exception then return        */
+	M_RESTORE(REG_ZERO, REG_ZERO, REG_ZERO); /* restore callers window (DELAY)*/
+
+	M_RET(REG_RA_CALLER, 8);            /* return to caller                   */
+	M_NOP;                              /* DELAY SLOT                         */
+
+	/* handle exception */
+	
+	disp = dseg_addaddress(cd, asm_handle_nat_exception);
+	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
+	M_JMP(REG_ZERO, REG_ITMP3, REG_ZERO);/* jump to asm exception handler     */
+	M_MOV(REG_RA_CALLER, REG_ITMP3_XPC); /* get exception address (DELAY)    */
+
+	/* generate patcher stubs */
+
+	emit_patcher_stubs(jd);
+
+	codegen_finish(jd);
+
+	return code->entrypoint;
 }
 
 /*

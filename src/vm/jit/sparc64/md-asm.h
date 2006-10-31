@@ -70,10 +70,10 @@
 #define fa1     %f18
 #define fa2     %f20
 #define fa3     %f22
-#define fs0     %f24
-#define fs1     %f26
-#define fs2     %f28
-#define fs3     %f30
+#define ft7     %f24
+#define ft8     %f26
+#define ft9     %f28
+#define ft10    %f30
 
 
 #define bias    2047
@@ -86,18 +86,43 @@
 	std     fa0,[%sp + bias + ((0+(off))*8)] ; \
 	std     fa1,[%sp + bias + ((1+(off))*8)] ; \
 	std     fa2,[%sp + bias + ((2+(off))*8)] ; \
-	std     fa3,[%sp + bias + ((3+(off))*8)]
+	std     fa3,[%sp + bias + ((3+(off))*8)] ;
 
 
 #define RESTORE_FLOAT_ARGUMENT_REGISTERS(off) \
 	ldd     [%sp + bias + ((0+(off))*8)],fa0 ; \
 	ldd     [%sp + bias + ((1+(off))*8)],fa1 ; \
 	ldd     [%sp + bias + ((2+(off))*8)],fa2 ; \
-	ldd     [%sp + bias + ((3+(off))*8)],fa3 ; \
+	ldd     [%sp + bias + ((3+(off))*8)],fa3 ;
 	
-	
-	
+#define SAVE_FLOAT_TEMPORARY_REGISTERS(off) \
+	std     ft0,[%sp + bias + ((0+(off))*8)] ; \
+	std     ft1,[%sp + bias + ((1+(off))*8)] ; \
+	std     ft2,[%sp + bias + ((2+(off))*8)] ; \
+	std     ft3,[%sp + bias + ((3+(off))*8)] ; \
+	std     ft4,[%sp + bias + ((4+(off))*8)] ; \
+	std     ft5,[%sp + bias + ((5+(off))*8)] ; \
+	std     ft6,[%sp + bias + ((6+(off))*8)] ; \
+	std     ft7,[%sp + bias + ((7+(off))*8)] ; \
+	std     ft8,[%sp + bias + ((8+(off))*8)] ; \
+	std     ft9,[%sp + bias + ((9+(off))*8)] ; \
+	std     ft10,[%sp + bias + ((10+(off))*8)] ;
 
+#define RESTORE_FLOAT_TEMPORARY_REGISTERS(off) \
+	ldd     [%sp + bias + ((0+(off))*8)],ft0 ; \
+	ldd     [%sp + bias + ((1+(off))*8)],ft1 ; \
+	ldd     [%sp + bias + ((2+(off))*8)],ft2 ; \
+	ldd     [%sp + bias + ((3+(off))*8)],ft3 ; \
+	ldd     [%sp + bias + ((4+(off))*8)],ft4 ; \
+	ldd     [%sp + bias + ((5+(off))*8)],ft5 ; \
+	ldd     [%sp + bias + ((6+(off))*8)],ft6 ; \
+	ldd     [%sp + bias + ((7+(off))*8)],ft7 ; \
+	ldd     [%sp + bias + ((8+(off))*8)],ft8 ; \
+	ldd     [%sp + bias + ((9+(off))*8)],ft9 ; \
+	ldd     [%sp + bias + ((10+(off))*8)],ft10 ;
+	
+	
+	
 #endif /* _MD_ASM_H */
 
 

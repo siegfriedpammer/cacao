@@ -253,12 +253,13 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	M_LDA(REG_SP, REG_SP, -(1 + WINSAVE_CNT + FLT_ARG_CNT) * 8);
+	/* we're calling a c function allocate paramter array */
+	M_LDA(REG_SP, REG_SP, -(1 + FLT_ARG_CNT + ABI_PARAMARRAY_SLOTS) * 8);
 
 	/* save float argument registers */
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(rd->argfltregs[i], REG_SP, BIAS + (WINSAVE_CNT + 1 + i) * 8);
+		M_DST(rd->argfltregs[i], REG_SP, USESTACK_PARAMS + (1 + i) * 8);
 
 	/* save temporary registers for leaf methods */
 /* XXX no leaf optimization yet
@@ -270,35 +271,39 @@ void emit_verbosecall_enter(jitdata *jd)
 			M_DST(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
 	}
 */
-	/* load float arguments into integer registers */
+	/* load int/float arguments into integer argument registers */
 
 	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
 		t = md->paramtypes[i].type;
 
-		if (IS_FLT_DBL_TYPE(t)) {
+		if (IS_INT_LNG_TYPE(t)) {
+			M_INTMOVE(REG_WINDOW_TRANSPOSE(rd->argintregs[i]), rd->argintregs[i]);
+		}
+		else {
 			if (IS_2_WORD_TYPE(t)) {
-				M_DST(rd->argfltregs[i], REG_SP, USESTACK);
-				M_LDX(rd->argintregs[i], REG_SP, USESTACK);
+				M_DST(rd->argfltregs[i], REG_SP, USESTACK_PARAMS);
+				M_LDX(rd->argintregs[i], REG_SP, USESTACK_PARAMS);
 			}
 			else {
-				M_DST(rd->argfltregs[i], REG_SP, USESTACK);
-				M_LDX(rd->argintregs[i], REG_SP, USESTACK);
+				M_DST(rd->argfltregs[i], REG_SP, USESTACK_PARAMS);
+				M_LDX(rd->argintregs[i], REG_SP, USESTACK_PARAMS);
 			}
 		}
 	}
-
+	
+	
+	/* method info pointer is passed in argument register 5 */
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_ITMP1, REG_PV_CALLEE, disp);
-	M_AST(REG_ITMP1, REG_SP, USESTACK);
+	M_ALD(REG_OUT5, REG_PV_CALLEE, disp);
 	disp = dseg_add_functionptr(cd, builtin_trace_args);
-	M_ALD(REG_PV_CALLER, REG_PV_CALLEE, disp);
-	M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
+	M_ALD(REG_ITMP1, REG_PV_CALLEE, disp);
+	M_JMP(REG_RA_CALLER, REG_ITMP1, REG_ZERO);
 	M_NOP;
 
 	/* restore float argument registers */
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(rd->argfltregs[i], REG_SP, BIAS + (WINSAVE_CNT + 1 + i) * 8);
+		M_DLD(rd->argfltregs[i], REG_SP, USESTACK_PARAMS + (1 + i) * 8);
 
 	/* restore temporary registers for leaf methods */
 /* XXX no leaf optimization yet
@@ -310,7 +315,7 @@ void emit_verbosecall_enter(jitdata *jd)
 			M_DLD(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
 	}
 */
-	M_LDA(REG_SP, REG_SP, (1 + WINSAVE_CNT + FLT_ARG_CNT) * 8);
+	M_LDA(REG_SP, REG_SP, (1 + FLT_ARG_CNT + ABI_PARAMARRAY_SLOTS) * 8);
 
 	/* mark trace code */
 
@@ -342,10 +347,11 @@ void emit_verbosecall_exit(jitdata *jd)
 	/* mark trace code */
 
 	M_NOP;
+	
+	/* we're calling a c function allocate paramter array */
+	M_LDA(REG_SP, REG_SP, -(1 + ABI_PARAMARRAY_SLOTS) * 8);
 
-	M_LDA(REG_SP, REG_SP, -2 * 8);           /* keep stack 16-byte aligned ???*/
-
-	M_DST(REG_FRESULT, REG_SP, USESTACK + (1 * 8));
+	M_DST(REG_FRESULT, REG_SP, USESTACK_PARAMS);
 
 	disp = dseg_add_address(cd, m);
 	M_ALD(rd->argintregs[0], REG_PV_CALLEE, disp);
@@ -359,9 +365,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 	M_NOP;
 
-	M_DLD(REG_FRESULT, REG_SP, USESTACK + (1 * 8));
+	M_DLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
 
-	M_LDA(REG_SP, REG_SP, 2 * 8);
+	M_LDA(REG_SP, REG_SP, (1 + ABI_PARAMARRAY_SLOTS) * 8);
 
 	/* mark trace code */
 

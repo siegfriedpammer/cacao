@@ -130,6 +130,10 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 
 		pv += offset;
 	}
+	else
+	{
+		assert(0);
+	}
 
 	return pv;
 }
@@ -217,6 +221,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			/* in the normal case we check for a `ldx [i5+x],pv_caller' instruction */
 
 			assert(mcode_masked  == 0x0602fb);
+
+			printf("data segment: pv=0x%08x, offset=%d\n", sfi->pv, offset);
 
 			/* and get the final data segment address */
 

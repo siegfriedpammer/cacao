@@ -457,15 +457,15 @@
 
 
 #define M_SAVE(rs1,rs2,rd)      M_OP3(0x02,0x3c,rd,rs1,rs2,IMM)
-#define M_REST(rs1,rs2,rd)      M_OP3(0x02,0x37,rd,rs1,rs2,IMM)
+#define M_RESTORE(rs1,rs2,rd)   M_OP3(0x02,0x37,rd,rs1,rs2,IMM)
 
 
 
 #define M_JMP(rd,rs1,rs2)       M_OP3(0x02,0x38,rd, rs1,rs2,REG)  /* jump to rs1+rs2, adr of instr. saved to rd */
 #define M_JMP_IMM(rd,rs1,rs2)   M_OP3(0x02,0x38,rd, rs1,rs2,IMM)
-#define M_RET(rs)				M_OP3(0x02,0x38,REG_ZERO,rs,REG_ZERO,REG)
+#define M_RET(rs1,imm)          M_OP3(0x02,0x38,REG_ZERO,rs1,imm,IMM) /* a jump which discards the current pc */
 
-#define M_RETURN(rs)            M_OP3(0x02,0x39,0,rs,REG_ZERO,REG) /* like ret, but does window restore */
+#define M_RETURN(rs1,imm)       M_OP3(0x02,0x39,0,rs1,imm,IMM) /* like ret, but does window restore */
  
 /**** floating point operations **/
 

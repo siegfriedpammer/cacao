@@ -36,6 +36,8 @@
 
 
 #include "config.h"
+
+#include "vm/jit/sparc64/md-abi.h"
 #include "offsets.h"
 #include "md-asm.h"
 
@@ -162,8 +164,10 @@ calljava_return:
 
 
 asm_vm_call_method_exception_handler:
+	
 	mov		itmp1,%o0
 	call	builtin_throw_exception
+	nop
 	return 	%i7 + 8         		 /* implicit window restore */
 	nop
 	
@@ -212,6 +216,7 @@ asm_call_jit_compiler:
 
 
 	brz     pv_caller,L_asm_call_jit_compiler_exception
+	nop
 
 	/* synchronise instruction cache moved somewhere else           */
 
@@ -225,12 +230,14 @@ L_asm_call_jit_compiler_exception:
 	mov     ra_caller,xpc_itmp3   /* save return address (xpc)                */
 	
 	call    exceptions_get_and_clear_exception
+	nop
 
 	mov     xpc_itmp3,ra_caller   /* restore return address (xpc)             */
 
 	mov     %o0,xptr_itmp2        /* get exception                            */
 	sub     ra_caller,4,xpc_itmp3 /* exception address is ra - 4              */
 	ba      L_asm_handle_nat_exception
+	nop
 
 
 
@@ -247,11 +254,69 @@ L_asm_call_jit_compiler_exception:
 
 asm_handle_nat_exception:
 L_asm_handle_nat_exception:       /* required for PIC code                    */
-asm_handle_exception:
-	
-	/* nothing here */
+L_asm_handle_exception_stack_loop:
+	/* exception handling assumes that the current java method saved       */
+	/* the caller's window                                                 */
 
-	restore zero,0,zero
+	/* get ra and pv before saving the window */
+	mov     ra_callee,itmp1
+	mov     pv_callee,%g4
+
+	save    %sp,-176,%sp
+	mov     xptr_itmp2,%l0              /* save exception pointer             */
+	mov     xpc_itmp3,%l1               /* save exception pc                  */
+	mov     zero,%l2                    /* save maybe-leaf flag (cleared)     */
+
+	mov     %l0,%o0                     /* pass xptr                          */
+	mov     %l1,%o1                     /* pass xpc                           */
+	mov     %g4,%o2                     /* pass PV                            */
+	mov     %fp,%o3                     /* pass Java SP                       */
+
+asm_handle_exception:
+	mov     pv_callee,%g4
+
+	/* save bigger stack frame for float args and temps */
+	save    %sp,(FLT_ARG_CNT+FLT_TMP_CNT+ABICALL_OFF)*8,%sp
+
+	SAVE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
+	SAVE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+
+	mov     xptr_itmp2,%l0              /* save exception pointer             */
+	add     zero,1,%l2                  /* set maybe-leaf flag                */
+
+	mov     %l0,%o0                     /* pass xptr                          */
+	mov     xpc_itmp3,%o1               /* pass xpc                           */
+	mov     %g4,%o2                     /* pass PV                            */
+	mov     %fp,%o3                     /* pass Java SP                       */
+
+L_asm_handle_exception_continue:
+	call    exceptions_handle_exception
+
+	brz     %o0,L_asm_handle_exception_not_caught
+
+	mov     %o0,xpc_itmp3               /* move handlerpc into xpc            */
+	mov     %l0,xptr_itmp2              /* restore exception pointer          */
+
+	brz     %l2,L_asm_handle_exception_no_leaf
+
+	RESTORE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
+	RESTORE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+	
+L_asm_handle_exception_no_leaf:
+	/* restore java window and stackframe (ra and pv are in there) */
+	restore
+	jmpl    xpc_itmp3, zero             /* jump to the handler                */
+
+L_asm_handle_exception_not_caught:
+	mov     %l0,xptr_itmp2              /* restore xptr                       */
+	restore                             /* free our stackframe and window     */
+	/* maybe leaf flag gets cleared after branch to _loop */
+	
+	restore                             /* unwind stack and window            */
+	ba      L_asm_handle_exception_stack_loop
+	mov     xpc_itmp3,ra_caller         /* the new xpc is ra (delay)          */
+	
+
 
 
 /* asm_abstractmethoderror *****************************************************
