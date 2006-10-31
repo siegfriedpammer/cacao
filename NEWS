@@ -1,4 +1,4 @@
-New in release 0.97 (xxx xx, 2006)
+New in release 0.97 (October 30, 2006)
 
   * New instruction format.
   * New intermediate representation with unified variables.
@@ -23,6 +23,7 @@ New in release 0.97 (xxx xx, 2006)
   * Fixed line numbers in exceptions thrown through the JIT.
   * Proper null-check for MONITOREXIT.
   * Many low-level jasmin tests added.
+
 
 New in release 0.96 (May 29, 2006)
 
