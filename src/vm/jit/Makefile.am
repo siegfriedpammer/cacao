@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5889 2006-10-31 22:01:26Z twisti $
+## $Id: Makefile.am 5890 2006-10-31 22:02:30Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,7 +38,6 @@ LIBS =
 
 DIST_SUBDIRS = \
 	allocator \
-	ifconv \
 	inline \
 	loop \
 	optimizing \
