@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5880 2006-10-31 13:40:55Z tbfg $
+   $Id: exceptions.c 5883 2006-10-31 20:00:10Z twisti $
 
 */
 
@@ -1508,10 +1508,10 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 	/* get info from the method header */
 
-	code                 = *((codeinfo **)      (pv + CodeinfoPointer));
-	issync               = *((s4 *)             (pv + IsSync));
+	code                 = *((codeinfo **)            (pv + CodeinfoPointer));
+	issync               = *((s4 *)                   (pv + IsSync));
 	ex                   =   (dseg_exception_entry *) (pv + ExTableStart);
-	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
+	exceptiontablelength = *((s4 *)                   (pv + ExTableSize));
 
 	/* Get the methodinfo pointer from the codeinfo pointer. For
 	   asm_vm_call_method the codeinfo pointer is NULL. */
