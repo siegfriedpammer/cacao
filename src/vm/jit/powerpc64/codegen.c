@@ -32,7 +32,7 @@
             Edwin Steiner
 	    Roland Lezuo
 
-   $Id: codegen.c 5824 2006-10-25 14:26:08Z tbfg $
+   $Id: codegen.c 5880 2006-10-31 13:40:55Z tbfg $
 
 */
 
@@ -100,6 +100,8 @@ bool codegen(jitdata *jd)
 	rplpoint           *replacementpoint;
 	s4                  fieldtype;
 	s4                  varindex;
+	unresolved_field   *uf;
+	fieldinfo          *fi;
 
 	/* get required compiler data */
 
@@ -218,84 +220,36 @@ bool codegen(jitdata *jd)
 		var = VAR(varindex);
 		s1 = md->params[p].regoff;
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
-			if (IS_2_WORD_TYPE(t))
-				s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-							   rd->argintregs[GET_HIGH_REG(s1)]);
-			else
-				s2 = rd->argintregs[s1];
  			if (!md->params[p].inmemory) {           /* register arguments    */
- 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
-					M_NOP;
-					if (IS_2_WORD_TYPE(t))		/* FIXME, only M_INTMOVE here */
-						M_LNGMOVE(s2, var->vv.regoff);
-					else
-						M_INTMOVE(s2, var->vv.regoff);
-
+				s2 = rd->argintregs[s1];
+				if (!IS_INMEMORY(var->flags))	{
+					M_INTMOVE(s2, var->vv.regoff);
 				} else {                             /* reg arg -> spilled    */
-					if (IS_2_WORD_TYPE(t))
-						M_LST(s2, REG_SP, var->vv.regoff * 4);
-					else
-						M_IST(s2, REG_SP, var->vv.regoff * 4);
-				}
-
+					M_LST(s2, REG_SP, var->vv.regoff * 8);
+				} 
 			} else {                                 /* stack arguments       */
- 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
-					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
-					else
-						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+ 				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
+					M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
 
 				} else {                             /* stack arg -> spilled  */
-#if 1
- 					M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4);
- 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4);
-					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4 +4);
-						M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4 + 4);
-					}
-#else
-					/* Reuse Memory Position on Caller Stack */
 					var->vv.regoff = cd->stackframesize + s1;
-#endif
 				}
 			}
 
 		} else {                                     /* floating args         */
  			if (!md->params[p].inmemory) {           /* register arguments    */
 				s2 = rd->argfltregs[s1];
- 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
+ 				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
  					M_FLTMOVE(s2, var->vv.regoff);
-
  				} else {			                 /* reg arg -> spilled    */
-					if (IS_2_WORD_TYPE(t))
-						M_DST(s2, REG_SP, var->vv.regoff * 4);
-					else
-						M_FST(s2, REG_SP, var->vv.regoff * 4);
+					M_DST(s2, REG_SP, var->vv.regoff * 8);
  				}
 
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
-					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
-
-					else
-						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
-
+					M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
  				} else {                             /* stack-arg -> spilled  */
-#if 1
-					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
-						M_DST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
-						var->vv.regoff = cd->stackframesize + s1;
-
-					} else {
-						M_FLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
-						M_FST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
-					}
-#else
-					/* Reuse Memory Position on Caller Stack */
 					var->vv.regoff = cd->stackframesize + s1;
-#endif
 				}
 			}
 		}
@@ -447,7 +401,6 @@ bool codegen(jitdata *jd)
 
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 
-			/* M_NOP; M_NOP; XXX */
 			switch (iptr->opc) {
 			case ICMD_NOP:    /* ...  ==> ...                                 */
 			case ICMD_INLINE_START:
@@ -621,6 +574,7 @@ bool codegen(jitdata *jd)
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_IADD(s1, REG_ITMP2, d);
 			}
+			M_EXTSW(d,d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -714,16 +668,17 @@ bool codegen(jitdata *jd)
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			M_TST(s2);
 			M_BEQ(0);
 			codegen_add_arithmeticexception_ref(cd);
 
 			/* FIXME s1 == -2^63 && s2 == -1 does not work that way */
-			M_DIV(s1, s2, d);
-			M_MUL( d, s2, d);
-			M_SUB(s1,  d, d);
-			emit_store_dst(jd, iptr, d);
+			M_DIV(s1, s2,  REG_ITMP3);	
+			M_MUL(REG_ITMP3, s2, REG_ITMP2);
+			M_SUB(s1, REG_ITMP2,  REG_ITMP3);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_MOV(REG_ITMP3, d);
+			emit_store_dst(jd, iptr, REG_ITMP1);
 			break;
 
 		case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
@@ -1519,7 +1474,7 @@ bool codegen(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp = dseg_addaddress(cd, NULL);
@@ -1551,9 +1506,8 @@ bool codegen(jitdata *jd)
 				M_ILD_INTERN(d, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-				d = codegen_reg_of_dst(jd, iptr, PACK_REGS(REG_ITMP2, REG_ITMP1));
-				M_ILD_INTERN(GET_LOW_REG(d), REG_ITMP1, 4);/* keep this order */
-				M_ILD_INTERN(GET_HIGH_REG(d), REG_ITMP1, 0);/*keep this order */
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+				M_LLD(d, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1575,7 +1529,7 @@ bool codegen(jitdata *jd)
 
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp = dseg_addaddress(cd, NULL);
@@ -1632,21 +1586,17 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield,
-									iptr->sx.s23.s3.uf, 0);
+				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
 
-				disp = 0;
-
 			} else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp = fi->offset;
 			}
@@ -1681,31 +1631,30 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (!IS_FLT_DBL_TYPE(fieldtype)) {
-				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			} else {
-				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp      = fi->offset;
 			}
 
+			if (IS_INT_LNG_TYPE(fieldtype)) {
+				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			}
+			else
+				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
-				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				codegen_addpatchref(cd, PATCHER_get_putfield,
-									iptr->sx.s23.s3.uf, 0);
+				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
-
-				disp = 0;
-
-			} else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
-				fieldtype = fi->type;
-				disp = fi->offset;
 			}
+
 
 			switch (fieldtype) {
 			case TYPE_INT:
@@ -1920,33 +1869,6 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 			
-		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
-
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-/*  			if (iptr->sx.val.l == 0) { */
-/*  				M_OR(s1, s2, REG_ITMP3); */
-/*  				M_CMPI(REG_ITMP3, 0); */
-
-/*    			} else  */
-			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff)) {
-  				M_CMPI(s2, 0);
-				M_BGT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				M_BLT(2);
-  				M_CMPUI(s1, iptr->sx.val.l & 0xffff);
-  			} else {
-  				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
-  				M_CMP(s2, REG_ITMP3);
-				M_BGT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				M_BLT(3);
-  				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
-				M_CMPU(s1, REG_ITMP3);
-			}
-			M_BGT(0);
-			codegen_addreference(cd, iptr->dst.block);
-			break;
 			
 		#endif
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
@@ -1961,6 +1883,14 @@ bool codegen(jitdata *jd)
 			LCONST(REG_ITMP2, iptr->sx.val.l);
 			M_CMP(s1, REG_ITMP2);
 			M_BLE(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+
+		case ICMD_IF_LNE:       /* ..., value ==> ... */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			LCONST(REG_ITMP2, iptr->sx.val.l);
+			M_CMP(s1, REG_ITMP2);
+			M_BNE(0);
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 		case ICMD_IF_LGE:       /* ..., value ==> ... */
@@ -2205,7 +2135,7 @@ nowperformreturn:
 
 			/* length of dataseg after last dseg_addtarget is used by load */
 
-			M_SLL_IMM(REG_ITMP1, 2, REG_ITMP1);
+			M_SLL_IMM(REG_ITMP1, 3, REG_ITMP1);
 			M_IADD(REG_ITMP1, REG_PV, REG_ITMP2);
 			M_ALD(REG_ITMP2, REG_ITMP2, -(cd->dseglen));
 			M_MTCTR(REG_ITMP2);

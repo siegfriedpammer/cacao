@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5866 2006-10-30 11:00:56Z edwin $
+   $Id: exceptions.c 5880 2006-10-31 13:40:55Z tbfg $
 
 */
 
@@ -1510,8 +1510,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 	code                 = *((codeinfo **)      (pv + CodeinfoPointer));
 	issync               = *((s4 *)             (pv + IsSync));
-	ex                   =   (dseg_exception_entry *) 
-												(pv + ExTableStart);
+	ex                   =   (dseg_exception_entry *) (pv + ExTableStart);
 	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
 
 	/* Get the methodinfo pointer from the codeinfo pointer. For

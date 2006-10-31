@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5824 2006-10-25 14:26:08Z tbfg $
+   $Id: asmpart.S 5880 2006-10-31 13:40:55Z tbfg $
 
 */
 
@@ -96,22 +96,25 @@
 *         void *arg1, void *arg2, void *arg3, void *arg4);                     *
 *                                                                              *
 *******************************************************************************/
+	/* this is the method header see src/vm/jit/methodheader.h */
 
-	.align 2
+	.align	8
 
-	.long   0                         /* catch type all                       */
-	.long   0                         /* exception handler pc                 */
-	.long   0                         /* end pc                               */
-	.long   0                         /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* line number table start              */
-	.long   0                         /* line number table size               */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   0                         /* frame size                           */
-	.long   0                         /* codeinfo pointer                     */
+	.quad   0                           /* catch type all                     */
+	.quad   0                           /* handler pc                         */
+	.quad   0                           /* end pc                             */
+	.quad   0                           /* start pc                           */
+	.long   1                           /* extable size                       */
+	.long   0                           /* ALIGNMENT PADDING                  */
+	.quad   0                           /* line number table  start           */
+	.quad   0                           /* line number table  size            */
+	.long   0                           /* ALIGNMENT PADDING                  */
+	.long   0                           /* fltsave                            */
+	.long   0                           /* intsave                            */
+	.long   0                           /* isleaf                             */
+	.long   0                           /* IsSync                             */
+	.long   0                           /* frame size                         */
+	.quad   0                           /* codeinfo pointer                   */
 
 #ifdef ENABLE_LIBJVM
 	.section ".opd","aw"
