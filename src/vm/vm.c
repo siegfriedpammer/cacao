@@ -62,6 +62,7 @@
 #include "vm/initialize.h"
 #include "vm/options.h"
 #include "vm/properties.h"
+#include "vm/rt-timing.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
@@ -69,10 +70,11 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/asmpart.h"
 
-#include "vm/jit/recompile.h"
+#if defined(ENABLE_PROFILING)
+# include "vm/jit/optimizing/profile.h"
+#endif
 
-#include "vm/jit/profile/profile.h"
-#include "vm/rt-timing.h"
+#include "vm/jit/optimizing/recompile.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
