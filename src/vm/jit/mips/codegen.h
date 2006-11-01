@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 5632 2006-10-02 13:43:15Z edwin $
+   $Id: codegen.h 5891 2006-11-01 20:19:44Z twisti $
 
 */
 
@@ -86,7 +86,11 @@
     }
 
 
-#define M_INTMOVE(a,b) if (a != b) { M_MOV(a, b); }
+#define M_INTMOVE(a,b) \
+    do { \
+        if ((a) != (b)) \
+            M_MOV(a, b); \
+    } while (0)
 
 #define M_FLTMOVE(a,b) \
     do { \

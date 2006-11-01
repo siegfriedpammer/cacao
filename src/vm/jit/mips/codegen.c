@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5838 2006-10-26 11:47:43Z edwin $
+   $Id: codegen.c 5891 2006-11-01 20:19:44Z twisti $
 
 */
 
@@ -149,11 +149,8 @@ bool codegen(jitdata *jd)
 
 	/* create method header */
 
-#if SIZEOF_VOID_P == 4
-	(void) dseg_addaddress(cd, code);                      /* Filler          */
-#endif
-	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, cd->stackframesize * 8);         /* FrameSize       */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -163,24 +160,24 @@ bool codegen(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);       /* IsSync          */
+		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8); /* IsSync        */
 	else
 #endif
-		(void) dseg_adds4(cd, 0);                          /* IsSync          */
+		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, jd->isleafmethod);               /* IsLeaf          */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
+	(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
+	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 	dseg_addlinenumbertablesize(cd);
-	(void) dseg_adds4(cd, jd->exceptiontablelength);       /* ExTableSize     */
+	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength); /* ExTableSize   */
 
 	/* create exception table */
 
 	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_addtarget(cd, ex->start);
-   		dseg_addtarget(cd, ex->end);
-		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype.any);
+		dseg_add_target(cd, ex->start);
+   		dseg_add_target(cd, ex->end);
+		dseg_add_target(cd, ex->handler);
+		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
 	
 	/* create stack frame (if necessary) */
@@ -289,16 +286,16 @@ bool codegen(jitdata *jd)
 		/* get correct lock object */
 
 		if (m->flags & ACC_STATIC) {
-			p = dseg_addaddress(cd, &m->class->object.header);
-			M_ALD(REG_A0, REG_PV, p);
+			disp = dseg_add_address(cd, &m->class->object.header);
+			M_ALD(REG_A0, REG_PV, disp);
 		}
 		else {
 			M_BEQZ(REG_A0, 0);
 			codegen_add_nullpointerexception_ref(cd);
 		}
 
-		p = dseg_addaddress(cd, LOCK_monitor_enter);
-		M_ALD(REG_ITMP3, REG_PV, p);
+		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_JSR(REG_RA, REG_ITMP3);
 		M_AST(REG_A0, REG_SP, s1 * 8);         /* branch delay */
 
@@ -447,7 +444,7 @@ bool codegen(jitdata *jd)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			disp = dseg_addfloat(cd, iptr->sx.val.f);
+			disp = dseg_add_float(cd, iptr->sx.val.f);
 			M_FLD(d, REG_PV, disp);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -455,7 +452,7 @@ bool codegen(jitdata *jd)
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			disp = dseg_adddouble(cd, iptr->sx.val.d);
+			disp = dseg_add_double(cd, iptr->sx.val.d);
 			M_DLD(d, REG_PV, disp);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -465,23 +462,23 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				disp = dseg_addaddress(cd, NULL);
+				constant_classref *cr = iptr->sx.val.c.ref;
 
-				codegen_addpatchref(cd, PATCHER_aconst,
-									iptr->sx.val.c.ref,
-								    disp);
+				disp = dseg_add_unique_address(cd, cr);
+
+				codegen_addpatchref(cd, PATCHER_aconst, cr, disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
 
 				M_ALD(d, REG_PV, disp);
-
-			} else {
-				if (iptr->sx.val.anyptr == NULL) {
+			}
+			else {
+				if (iptr->sx.val.anyptr == NULL)
 					M_INTMOVE(REG_ZERO, d);
-				} else {
-					disp = dseg_addaddress(cd, iptr->sx.val.anyptr);
+				else {
+					disp = dseg_add_address(cd, iptr->sx.val.anyptr);
 					M_ALD(d, REG_PV, disp);
 				}
 			}
@@ -1565,7 +1562,7 @@ bool codegen(jitdata *jd)
 
 			M_MOV(s1, REG_A0);
 			M_MOV(s3, REG_A1);
-			disp = dseg_addaddress(cd, BUILTIN_canstore);
+			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
@@ -1654,7 +1651,7 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp      = dseg_addaddress(cd, NULL);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
@@ -1665,10 +1662,10 @@ bool codegen(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP;
@@ -1708,7 +1705,7 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp      = dseg_addaddress(cd, NULL);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
@@ -1719,10 +1716,10 @@ bool codegen(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP;
@@ -1763,7 +1760,7 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp      = dseg_addaddress(cd, NULL);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 
@@ -1774,10 +1771,10 @@ bool codegen(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP;
@@ -1964,7 +1961,7 @@ bool codegen(jitdata *jd)
 			}
 #endif /* ENABLE_VERIFIER */
 
-			disp = dseg_addaddress(cd, asm_handle_exception);
+			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_ALD(REG_ITMP2, REG_PV, disp);
 			M_JSR(REG_ITMP2_XPC, REG_ITMP2);
 			M_NOP;
@@ -2341,7 +2338,7 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				disp = dseg_addaddress(cd, LOCK_monitor_exit);
+				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
 				M_ALD(REG_ITMP3, REG_PV, disp);
 
 				/* we need to save the proper return value */
@@ -2462,12 +2459,12 @@ nowperformreturn:
 			table += i;
 
 			while (--i >= 0) {
-				dseg_addtarget(cd, table->block); 
+				dseg_add_target(cd, table->block); 
 				--table;
-				}
+			}
 			}
 
-			/* length of dataseg after last dseg_addtarget is used by load */
+			/* length of dataseg after last dseg_add_target is used by load */
 
 			M_AADD(REG_ITMP1, REG_PV, REG_ITMP2);
 			M_ALD(REG_ITMP2, REG_ITMP2, -(cd->dseglen));
@@ -2573,7 +2570,7 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = dseg_addaddress(cd, bte->fp);
+				disp = dseg_add_functionptr(cd, bte->fp);
 
 				M_ALD(REG_ITMP3, REG_PV, disp);  /* built-in-function pointer */
 
@@ -2590,17 +2587,17 @@ gen_method:
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
-					disp = dseg_addaddress(cd, NULL);
+					disp = dseg_add_unique_address(cd, um);
 
-					codegen_addpatchref(cd, PATCHER_invokestatic_special,
-										um, disp);
+					codegen_addpatchref(cd, PATCHER_invokestatic_special, um,
+										disp);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP;
 					}
 				}
 				else
-					disp = dseg_addaddress(cd, lm->stubroutine);
+					disp = dseg_add_address(cd, lm->stubroutine);
 
 				M_ALD(REG_PV, REG_PV, disp);          /* method pointer in pv */
 				s1 = REG_PV;
@@ -2710,18 +2707,15 @@ gen_method:
 
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 				classinfo *super;
-				vftbl_t   *supervftbl;
 				s4         superindex;
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-					super = NULL;
+					super      = NULL;
 					superindex = 0;
-					supervftbl = NULL;
 				}
 				else {
 					super = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
-					supervftbl = super->vftbl;
 				}
 			
 #if defined(ENABLE_THREADS)
@@ -2748,7 +2742,7 @@ gen_method:
 					M_BEQZ(s1, 5 + (opt_showdisassemble ? 2 : 0) + s2 + 2 + s3);
 					M_NOP;
 
-					disp = dseg_adds4(cd, 0);                 /* super->flags */
+					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
 					codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
 										iptr->sx.s23.s3.c.ref,
@@ -2768,11 +2762,7 @@ gen_method:
 				/* interface checkcast code */
 
 				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
-					if (super != NULL) {
-						M_BEQZ(s1, 1 + s2);
-						M_NOP;
-					}
-					else {
+					if (super == NULL) {
 						codegen_addpatchref(cd,
 											PATCHER_checkcast_instanceof_interface,
 											iptr->sx.s23.s3.c.ref,
@@ -2781,6 +2771,10 @@ gen_method:
 						if (opt_showdisassemble) {
 							M_NOP; M_NOP;
 						}
+					}
+					else {
+						M_BEQZ(s1, 1 + s2);
+						M_NOP;
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
@@ -2805,13 +2799,9 @@ gen_method:
 				/* class checkcast code */
 
 				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
-					disp = dseg_addaddress(cd, (void *) supervftbl);
+					if (super == NULL) {
+						disp = dseg_add_unique_address(cd, NULL);
 
-					if (super != NULL) {
-						M_BEQZ(s1, 1 + s3);
-						M_NOP;
-					}
-					else {
 						codegen_addpatchref(cd,
 											PATCHER_checkcast_instanceof_class,
 											iptr->sx.s23.s3.c.ref,
@@ -2820,6 +2810,12 @@ gen_method:
 						if (opt_showdisassemble) {
 							M_NOP; M_NOP;
 						}
+					}
+					else {
+						disp = dseg_add_address(cd, super->vftbl);
+
+						M_BEQZ(s1, 1 + s3);
+						M_NOP;
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
@@ -2856,9 +2852,9 @@ gen_method:
 				s1 = emit_load_s1(jd, iptr, REG_A0);
 				M_INTMOVE(s1, REG_A0);
 
-				disp = dseg_addaddress(cd, iptr->sx.s23.s3.c.cls);
-
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+					disp = dseg_add_unique_address(cd, NULL);
+
 					codegen_addpatchref(cd, PATCHER_builtin_arraycheckcast,
 										iptr->sx.s23.s3.c.ref,
 										disp);
@@ -2867,9 +2863,11 @@ gen_method:
 						M_NOP; M_NOP;
 					}
 				}
+				else
+					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
 				M_ALD(REG_A1, REG_PV, disp);
-				disp = dseg_addaddress(cd, BUILTIN_arraycheckcast);
+				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_ITMP3, REG_PV, disp);
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
@@ -2904,20 +2902,17 @@ gen_method:
 
 			{
 			classinfo *super;
-			vftbl_t   *supervftbl;
 			s4         superindex;
 
 			super = iptr->sx.s23.s3.c.cls;
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				super = NULL;
+				super      = NULL;
 				superindex = 0;
-				supervftbl = NULL;
 			}
 			else {
-				super = iptr->sx.s23.s3.c.cls;
+				super      = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
-				supervftbl = super->vftbl;
 			}
 			
 #if defined(ENABLE_THREADS)
@@ -2951,7 +2946,7 @@ gen_method:
 				M_BEQZ(s1, 5 + (opt_showdisassemble ? 2 : 0) + s2 + 2 + s3);
 				M_NOP;
 
-				disp = dseg_adds4(cd, 0);                     /* super->flags */
+				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
 				codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
 									iptr->sx.s23.s3.c.ref, disp);
@@ -2970,11 +2965,7 @@ gen_method:
 			/* interface instanceof code */
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
-				if (super != NULL) {
-					M_BEQZ(s1, 1 + s2);
-					M_NOP;
-				}
-				else {
+				if (super == NULL) {
 					codegen_addpatchref(cd,
 										PATCHER_checkcast_instanceof_interface,
 										iptr->sx.s23.s3.c.ref, 0);
@@ -2982,6 +2973,10 @@ gen_method:
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP;
 					}
+				}
+				else {
+					M_BEQZ(s1, 1 + s2);
+					M_NOP;
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
@@ -3003,13 +2998,9 @@ gen_method:
 			/* class instanceof code */
 
 			if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
-				disp = dseg_addaddress(cd, supervftbl);
+				if (super == NULL) {
+					disp = dseg_add_unique_address(cd, NULL);
 
-				if (super != NULL) {
-					M_BEQZ(s1, 1 + s3);
-					M_NOP;
-				}
-				else {
 					codegen_addpatchref(cd, PATCHER_checkcast_instanceof_class,
 										iptr->sx.s23.s3.c.ref,
 										disp);
@@ -3017,6 +3008,12 @@ gen_method:
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP;
 					}
+				}
+				else {
+					disp = dseg_add_address(cd, super->vftbl);
+
+					M_BEQZ(s1, 1 + s3);
+					M_NOP;
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
@@ -3063,7 +3060,7 @@ gen_method:
 			/* is patcher function set? */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				disp = dseg_addaddress(cd, NULL);
+				disp = dseg_add_unique_address(cd, NULL);
 
 				codegen_addpatchref(cd, PATCHER_builtin_multianewarray,
 									iptr->sx.s23.s3.c.ref, disp);
@@ -3071,10 +3068,9 @@ gen_method:
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
 				}
-
-			} else {
-				disp = dseg_addaddress(cd, iptr->sx.s23.s3.c.cls);
 			}
+			else
+				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
 			/* a1 = arraydescriptor */
 
@@ -3084,7 +3080,7 @@ gen_method:
 
 			M_INTMOVE(REG_SP, REG_A2);
 
-			disp = dseg_addaddress(cd, BUILTIN_multianewarray);
+			disp = dseg_add_functionptr(cd, BUILTIN_multianewarray);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
@@ -3247,17 +3243,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create method header */
 
-#if SIZEOF_VOID_P == 4
-	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-#endif
-	(void) dseg_addaddress(cd, code);                      /* MethodPointer   */
-	(void) dseg_adds4(cd, cd->stackframesize * 8);         /* FrameSize       */
-	(void) dseg_adds4(cd, 0);                              /* IsSync          */
-	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
-	(void) dseg_adds4(cd, 0);                              /* IntSave         */
-	(void) dseg_adds4(cd, 0);                              /* FltSave         */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
 	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_adds4(cd, 0);                              /* ExTableSize     */
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate stub code */
 
@@ -3271,7 +3264,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* get function address (this must happen before the stackframeinfo) */
 
-	funcdisp = dseg_addaddress(cd, f);
+	funcdisp = dseg_add_functionptr(cd, f);
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
@@ -3305,7 +3298,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_MOV(REG_PV, REG_A1);
 	M_AADD_IMM(REG_SP, cd->stackframesize * 8, REG_A2);
 	M_ALD(REG_A3, REG_SP, (cd->stackframesize - 1) * 8);
-	disp = dseg_addaddress(cd, codegen_start_native_call);
+	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP; /* XXX fill me! */
@@ -3386,13 +3379,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* put class into second argument register */
 
 	if (m->flags & ACC_STATIC) {
-		disp = dseg_addaddress(cd, m->class);
+		disp = dseg_add_address(cd, m->class);
 		M_ALD(REG_A1, REG_PV, disp);
 	}
 
 	/* put env into first argument register */
 
-	disp = dseg_addaddress(cd, _Jv_env);
+	disp = dseg_add_address(cd, _Jv_env);
 	M_ALD(REG_A0, REG_PV, disp);
 
 	/* do the native function call */
@@ -3418,7 +3411,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* remove native stackframe info */
 
 	M_AADD_IMM(REG_SP, (cd->stackframesize - 1) * 8, REG_A0);
-	disp = dseg_addaddress(cd, codegen_finish_native_call);
+	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP; /* XXX fill me! */
@@ -3445,7 +3438,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* handle exception */
 	
-	disp = dseg_addaddress(cd, asm_handle_nat_exception);
+	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
 	M_JMP(REG_ITMP3);                   /* jump to asm exception handler      */
 	M_ASUB_IMM(REG_RA, 4, REG_ITMP2_XPC); /* get exception address (DELAY)    */

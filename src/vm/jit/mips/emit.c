@@ -188,7 +188,7 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	else if ((value >= 0) && (value <= 0xffff))
         M_OR_IMM(REG_ZERO, value, d);
 	else {
-        disp = dseg_adds4(cd, value);
+        disp = dseg_add_s4(cd, value);
         M_ILD(d, REG_PV, disp);
     }
 }
@@ -209,7 +209,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	else if ((value >= 0) && (value <= 0xffff))
 		M_OR_IMM(REG_ZERO, value, d);
 	else {
-		disp = dseg_adds8(cd, value);
+		disp = dseg_add_s8(cd, value);
 		M_LLD(d, REG_PV, disp);
 	}
 }
@@ -257,7 +257,7 @@ void emit_exception_stubs(jitdata *jd)
 
 		/* move function to call into REG_ITMP3 */
 
-		disp = dseg_addaddress(cd, eref->function);
+		disp = dseg_add_functionptr(cd, eref->function);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 
 		if (targetdisp == 0) {
@@ -290,7 +290,7 @@ void emit_exception_stubs(jitdata *jd)
 			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
 			M_AADD_IMM(REG_SP, 2 * 8, REG_SP);
 
-			disp = dseg_addaddress(cd, asm_handle_exception);
+			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_ITMP3);
 			M_NOP;
@@ -381,9 +381,9 @@ void emit_patcher_stubs(jitdata *jd)
 #if defined(ENABLE_THREADS)
 		/* create a virtual java_objectheader */
 
-		(void) dseg_addaddress(cd, NULL);                          /* flcword */
-		(void) dseg_addaddress(cd, lock_get_initial_lock_word());
-		disp = dseg_addaddress(cd, NULL);                          /* vftbl   */
+		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
+		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
+		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
 		M_LDA(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 4 * 8);
@@ -393,36 +393,36 @@ void emit_patcher_stubs(jitdata *jd)
 
 		/* move machine code onto stack */
 
-		disp = dseg_adds4(cd, mcode[0]);
+		disp = dseg_add_s4(cd, mcode[0]);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST(REG_ITMP3, REG_SP, 3 * 8);
 
-		disp = dseg_adds4(cd, mcode[1]);
+		disp = dseg_add_s4(cd, mcode[1]);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST(REG_ITMP3, REG_SP, 3 * 8 + 4);
 
 		/* move class/method/field reference onto stack */
 
-		disp = dseg_addaddress(cd, pref->ref);
+		disp = dseg_add_address(cd, pref->ref);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 2 * 8);
 
 		/* move data segment displacement onto stack */
 
-		disp = dseg_adds4(cd, pref->disp);
+		disp = dseg_add_s4(cd, pref->disp);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST(REG_ITMP3, REG_SP, 1 * 8);
 
 		/* move patcher function pointer onto stack */
 
-		disp = dseg_addaddress(cd, pref->patcher);
+		disp = dseg_add_address(cd, pref->patcher);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 0 * 8);
 
 		if (targetdisp == 0) {
 			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
 
-			disp = dseg_addaddress(cd, asm_patcher_wrapper);
+			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_ITMP3);
 			M_NOP;
@@ -494,13 +494,13 @@ void emit_replacement_stubs(jitdata *jd)
 
 		/* push address of `rplpoint` struct */
 
-		disp = dseg_addaddress(cd, rplp);
+		disp = dseg_add_address(cd, rplp);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 0 * 8);
 
 		/* jump to replacement function */
 
-		disp = dseg_addaddress(cd, asm_replacement_out);
+		disp = dseg_add_functionptr(cd, asm_replacement_out);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_JMP(REG_ITMP3);
 		M_NOP; /* delay slot */
@@ -574,10 +574,10 @@ void emit_verbosecall_enter(jitdata *jd)
 		}
 	}
 
-	disp = dseg_addaddress(cd, m);
+	disp = dseg_add_address(cd, m);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_AST(REG_ITMP1, REG_SP, 0 * 8);
-	disp = dseg_addaddress(cd, builtin_trace_args);
+	disp = dseg_add_functionptr(cd, builtin_trace_args);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP;
@@ -640,14 +640,14 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_LST(REG_RESULT, REG_SP, 1 * 8);
 	M_DST(REG_FRESULT, REG_SP, 2 * 8);
 
-	disp = dseg_addaddress(cd, m);
+	disp = dseg_add_address(cd, m);
 	M_ALD(rd->argintregs[0], REG_PV, disp);
 
 	M_MOV(REG_RESULT, rd->argintregs[1]);
 	M_DMOV(REG_FRESULT, rd->argfltregs[2]);
 	M_FMOV(REG_FRESULT, rd->argfltregs[3]);
 
-	disp = dseg_addaddress(cd, builtin_displaymethodstop);
+	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP;
