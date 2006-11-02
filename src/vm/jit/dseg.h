@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 5785 2006-10-15 22:25:54Z edwin $
+   $Id: dseg.h 5892 2006-11-02 10:21:37Z twisti $
 
 */
 
@@ -117,11 +117,11 @@ struct exceptionref {
 /* patchref *******************************************************************/
 
 struct patchref {
-	s4           branchpos;
-	functionptr  patcher;
-	voidptr      ref;
+	s4           branchpos;     /* relative offset to method entrypoint       */
+	s4           disp;          /* displacement of ref in the data segment    */
+	functionptr  patcher;       /* patcher function to call                   */
+	voidptr      ref;           /* reference passed                           */
 	patchref    *next;
-	s4           disp;
 };
 
 
