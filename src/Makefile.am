@@ -28,14 +28,14 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5884 2006-10-31 20:11:28Z twisti $
+## $Id: Makefile.am 5893 2006-11-02 12:50:25Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
+	mm \
 	lib \
 	fdlibm \
-	mm \
 	toolbox \
 	vm \
 	threads \
@@ -47,9 +47,9 @@ DIST_SUBDIRS = \
 # Keep this order!!!
 
 SUBDIRS = \
+	mm \
 	lib \
 	fdlibm \
-	mm \
 	toolbox \
 	vm \
 	threads \
