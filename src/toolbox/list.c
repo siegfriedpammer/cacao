@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: list.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: list.c 5894 2006-11-02 12:54:15Z twisti $
 
 */
 
@@ -73,6 +73,28 @@ list *list_create(s4 nodeoffset)
 }
 
 
+/* list_create_dump ************************************************************
+
+   Allocates a new list on the dump memory.
+
+   ATTENTION: This list does NOT initialize the locking object!!!
+
+*******************************************************************************/
+
+list *list_create_dump(s4 nodeoffset)
+{
+	list *l;
+
+	l = DNEW(list);
+
+	l->first      = NULL;
+	l->last       = NULL;
+	l->nodeoffset = nodeoffset;
+
+	return l;
+}
+
+
 void list_add_first(list *l, void *element)
 {
 	listnode *ln;
@@ -106,24 +128,9 @@ void list_add_first(list *l, void *element)
 
 void list_add_last(list *l, void *element)
 {
-	listnode *ln;
-
-	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
-
 	LOCK_MONITOR_ENTER(l);
 
-	if (l->last) {
-		ln->prev      = l->last;
-		ln->next      = NULL;
-		l->last->next = ln;
-		l->last       = ln;
-	}
-	else {
-		ln->prev = NULL;
-		ln->next = NULL;
-		l->last  = ln;
-		l->first = ln;
-	}
+	list_add_last_unsynced(l, element);
 
 	LOCK_MONITOR_EXIT(l);
 }
@@ -133,7 +140,7 @@ void list_add_last(list *l, void *element)
 
    Adds the element as last element but does NO locking!
 
-   ATTENTION: This function is used during bootstrap.  DON'T USE IT!!!
+   ATTENTION: Use this function with care!!!
 
 *******************************************************************************/
 
@@ -223,22 +230,52 @@ void list_remove(list *l, void *element)
 }
 
  
+/* list_first ******************************************************************
+
+   Returns the first element of the list.
+
+*******************************************************************************/
+
 void *list_first(list *l)
 {
 	void *el;
 
 	LOCK_MONITOR_ENTER(l);
 
-	if (l->first == NULL)
-		el = NULL;
-	else
-		el = ((u1 *) l->first) - l->nodeoffset;
+	el = list_first_unsynced(l);
 
 	LOCK_MONITOR_EXIT(l);
 
 	return el;
 }
 
+
+/* list_first_unsynced *********************************************************
+
+   Returns the first element of the list, but does NO locking!
+
+   ATTENTION: Use this function with care!!!
+
+*******************************************************************************/
+
+void *list_first_unsynced(list *l)
+{
+	void *el;
+
+	if (l->first == NULL)
+		el = NULL;
+	else
+		el = ((u1 *) l->first) - l->nodeoffset;
+
+	return el;
+}
+
+
+/* list_last *******************************************************************
+
+   Returns the last element of the list.
+
+*******************************************************************************/
 
 void *list_last(list *l)
 {
@@ -246,10 +283,7 @@ void *list_last(list *l)
 
 	LOCK_MONITOR_ENTER(l);
 
-	if (l->last == NULL)
-		el = NULL;
-	else
-		el = ((u1 *) l->last) - l->nodeoffset;
+	el = list_last_unsynced(l);
 
 	LOCK_MONITOR_EXIT(l);
 
@@ -257,41 +291,112 @@ void *list_last(list *l)
 }
 
 
+/* list_last_unsynced **********************************************************
+
+   Returns the last element of the list, but does NO locking!
+
+   ATTENTION: Use this function with care!!!
+
+*******************************************************************************/
+
+void *list_last_unsynced(list *l)
+{
+	void *el;
+
+	if (l->last == NULL)
+		el = NULL;
+	else
+		el = ((u1 *) l->last) - l->nodeoffset;
+
+	return el;
+}
+
+
+/* list_next *******************************************************************
+
+   Returns the next element of element from the list.
+
+*******************************************************************************/
+
 void *list_next(list *l, void *element)
+{
+	void *el;
+
+	LOCK_MONITOR_ENTER(l);
+
+	el = list_next_unsynced(l, element);
+
+	LOCK_MONITOR_EXIT(l);
+
+	return el;
+}
+
+
+/* list_next_unsynced **********************************************************
+
+   Returns the next element of element from the list, but does NO
+   locking!
+
+   ATTENTION: Use this function with care!!!
+
+*******************************************************************************/
+
+void *list_next_unsynced(list *l, void *element)
 {
 	listnode *ln;
 	void     *el;
 
 	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
-
-	LOCK_MONITOR_ENTER(l);
 
 	if (ln->next == NULL)
 		el = NULL;
 	else
 		el = ((u1 *) ln->next) - l->nodeoffset;
 
+	return el;
+}
+
+	
+/* list_prev *******************************************************************
+
+   Returns the previous element of element from the list.
+
+*******************************************************************************/
+
+void *list_prev(list *l, void *element)
+{
+	void *el;
+
+	LOCK_MONITOR_ENTER(l);
+
+	el = list_prev_unsynced(l, element);
+
 	LOCK_MONITOR_EXIT(l);
 
 	return el;
 }
 
-	
-void *list_prev(list *l, void *element)
+
+/* list_prev_unsynced **********************************************************
+
+   Returns the previous element of element from the list, but does NO
+   locking!
+
+   ATTENTION: Use this function with care!!!
+
+*******************************************************************************/
+
+void *list_prev_unsynced(list *l, void *element)
 {
 	listnode *ln;
 	void     *el;
 
 	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 
-	LOCK_MONITOR_ENTER(l);
-
 	if (ln->prev == NULL)
 		el = NULL;
 	else
 		el = ((u1 *) ln->prev) - l->nodeoffset;
-
-	LOCK_MONITOR_EXIT(l);
 
 	return el;
 }

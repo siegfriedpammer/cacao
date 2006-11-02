@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: list.h 5049 2006-06-23 12:07:26Z twisti $
+   $Id: list.h 5894 2006-11-02 12:54:15Z twisti $
 
 */
 
@@ -126,8 +126,10 @@ struct list {
 /* function prototypes ********************************************************/
 
 list *list_create(s4 nodeoffset);
+list *list_create_dump(s4 nodeoffset);
 
 void list_add_first(list *l, void *element);
+
 void list_add_last(list *l, void *element);
 void list_add_last_unsynced(list *l, void *element);
 
@@ -136,10 +138,16 @@ void list_add_before(list *l, void *element, void *newelement);
 void list_remove(list *l, void *element);
  
 void *list_first(list *l);
+void *list_first_unsynced(list *l);
+
 void *list_last(list *l);
+void *list_last_unsynced(list *l);
 
 void *list_next(list *l, void *element);
+void *list_next_unsynced(list *l, void *element);
+
 void *list_prev(list *l, void *element);
+void *list_prev_unsynced(list *l, void *element);
 
 #endif /* _LIST_H */
 
