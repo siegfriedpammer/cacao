@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5845 2006-10-28 12:53:24Z edwin $
+   $Id: loader.c 5898 2006-11-03 22:11:49Z michi $
 
 */
 
@@ -2021,7 +2021,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		goto return_exception;
 
 	c->methodscount = suck_u2(cb);
-/*  	c->methods = GCNEW(methodinfo, c->methodscount); */
 	c->methods = MNEW(methodinfo, c->methodscount);
 
 	MZERO(c->methods, methodinfo, c->methodscount);
