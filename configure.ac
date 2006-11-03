@@ -31,6 +31,11 @@ arm | armv4tl | armv5b | armv5l )
     ARCH_CFLAGS="-D__ARM__"
     ;;
 
+hppa2.0 )
+    ARCH_DIR="parisc"
+    ARCH_CFLAGS="-D__PARISC__"
+    ;;
+
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
     ARCH_CFLAGS="-D__I386__"
@@ -881,6 +886,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/mips/irix/Makefile]
 		[src/vm/jit/mips/linux/Makefile]
                 [src/vm/jit/optimizing/Makefile]
+		[src/vm/jit/parisc/Makefile]
 		[src/vm/jit/powerpc/Makefile]
 		[src/vm/jit/powerpc/darwin/Makefile]
 		[src/vm/jit/powerpc/linux/Makefile]
