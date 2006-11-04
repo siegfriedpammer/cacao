@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5898 2006-11-03 22:11:49Z michi $
+   $Id: loader.c 5904 2006-11-04 23:24:48Z edwin $
 
 */
 
@@ -2472,6 +2472,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 	c->methodscount = 1;
 	c->methods = MNEW(methodinfo, c->methodscount);
+	MZERO(c->methods, methodinfo, c->methodscount);
 
 	classrefs = MNEW(constant_classref, 2);
 	CLASSREF_INIT(classrefs[0], c, c->name);
