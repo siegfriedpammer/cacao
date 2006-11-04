@@ -30,7 +30,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: java_lang_VMRuntime.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -53,7 +53,7 @@
 
 #include "vm/types.h"
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"

@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 5809 2006-10-20 13:09:54Z twisti $
+   $Id: cacaoh.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -44,7 +44,7 @@
 #include "vm/types.h"
 
 #include "cacaoh/headers.h"
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/include/java_lang_Throwable.h"
 

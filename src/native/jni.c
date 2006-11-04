@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 5821 2006-10-24 16:41:54Z edwin $
+   $Id: jni.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -44,7 +44,7 @@
 
 #include "vm/types.h"
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"

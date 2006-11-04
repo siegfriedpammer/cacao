@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5884 2006-10-31 20:11:28Z twisti $
+   $Id: threads.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -60,7 +60,7 @@
 # include "threads/native/generic-primitives.h"
 #endif
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/native.h"
 #include "native/include/java_lang_Object.h"
@@ -87,7 +87,9 @@
 #  define GC_IRIX_THREADS
 # endif
 # include <semaphore.h>
-# include "mm/boehm-gc/include/gc.h"
+# if defined(ENABLE_GC_BOEHM)
+#  include "mm/boehm-gc/include/gc.h"
+# endif
 #endif
 
 #if defined(ENABLE_JVMTI)

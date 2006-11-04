@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 5189 2006-07-31 12:25:09Z twisti $
+   $Id: boehm.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -44,7 +44,7 @@
 #endif
 
 #include "boehm-gc/include/gc.h"
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 
 #if defined(ENABLE_THREADS)

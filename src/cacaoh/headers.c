@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 5868 2006-10-30 11:21:36Z edwin $
+   $Id: headers.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -53,7 +53,7 @@
 # include <ucontext.h>
 #endif
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"

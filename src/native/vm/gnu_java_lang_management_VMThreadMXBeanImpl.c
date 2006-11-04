@@ -36,7 +36,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 
 #include "native/jni.h"
 #include "native/include/java_lang_management_ThreadInfo.h"

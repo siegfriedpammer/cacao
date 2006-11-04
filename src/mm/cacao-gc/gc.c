@@ -1,4 +1,4 @@
-/* src/mm/boehm.h - interface for boehm gc header
+/* src/mm/cacao-gc/gc.c - main garbage collector methods
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -24,47 +24,66 @@
 
    Contact: cacao@cacaojvm.org
 
-   Authors: Christian Thalinger
+   Authors: Michael Starzinger
 
    Changes:
 
-   $Id: boehm.h 5189 2006-07-31 12:25:09Z twisti $
+   $Id$
 
 */
 
 
-#ifndef _BOEHM_H
-#define _BOEHM_H
-
 #include "config.h"
+#include <signal.h>
+#include <stdlib.h>
 #include "vm/types.h"
 
-#include "vm/method.h"
+#include "heap.h"
+#include "toolbox/logging.h"
+#include "vm/options.h"
 
 
-/* function prototypes ********************************************************/
+/* gc_init *********************************************************************
 
-void  gc_init(u4 heapmaxsize, u4 heapstartsize);
+   Initializes the garbage collector.
 
-void *heap_alloc_uncollectable(u4 bytelength);
-void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer);
-void  heap_free(void *p);
+*******************************************************************************/
 
-void  gc_call(void);
-s8    gc_get_heap_size(void);
-s8    gc_get_free_bytes(void);
-s8    gc_get_total_bytes(void);
-s8    gc_get_max_heap_size(void);
-void  gc_invoke_finalizers(void);
-void  gc_finalize_all(void);
-void *gc_out_of_memory(size_t bytes_requested);
+void gc_init(u4 heapmaxsize, u4 heapstartsize)
+{
+	if (opt_verbosegc)
+		dolog("GC: Initialising with heap-size %d (max. %d)",
+			heapstartsize, heapmaxsize);
 
-#if defined(DISABLE_GC)
-void  nogc_init(u4 heapmaxsize, u4 heapstartsize);
-void *nogc_realloc(void *src, s4 len1, s4 len2);
-#endif
+	heap_base = malloc(heapstartsize);
 
-#endif /* _BOEHM_H */
+	if (heap_base == NULL)
+		exceptions_throw_outofmemory_exit();
+
+	heap_current_size = heapstartsize;
+	heap_maximal_size = heapmaxsize;
+
+	dolog("GC: Got base pointer %p", heap_base);
+}
+
+
+void gc_call(void)
+{
+	if (opt_verbosegc)
+		dolog("GC: Forced Collection");
+}
+
+
+int GC_signum1()
+{
+	return SIGUSR1;
+}
+
+
+int GC_signum2()
+{
+	return SIGUSR2;
+}
 
 
 /*

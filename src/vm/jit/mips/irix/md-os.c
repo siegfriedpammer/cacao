@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: md-os.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -44,7 +44,7 @@
 
 #include "vm/jit/mips/md-abi.h"
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
@@ -64,7 +64,9 @@ void md_init(void)
 	/* The Boehm GC initialization blocks the SIGSEGV signal. So we do a      */
 	/* dummy allocation here to ensure that the GC is initialized.            */
 
+#if defined(ENABLE_GC_BOEHM)
 	heap_allocate(1, 0, NULL);
+#endif
 
 
 	/* Turn off flush-to-zero */

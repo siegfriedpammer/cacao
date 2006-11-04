@@ -31,7 +31,7 @@
             Samuel Vinson
             Christan Thalinger
    
-   $Id: jvmti.c 5806 2006-10-19 10:10:23Z twisti $
+   $Id: jvmti.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -59,7 +59,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/class.h"
 #include "vm/classcache.h"
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "toolbox/logging.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"

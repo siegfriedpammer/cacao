@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_VMObject.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_VMObject.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -41,7 +41,7 @@
 
 #include "vm/types.h"
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "native/jni.h"

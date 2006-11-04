@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5805 2006-10-19 09:32:29Z twisti $
+   $Id: stacktrace.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -42,7 +42,7 @@
 
 #include "vm/types.h"
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/native.h"
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 5638 2006-10-02 18:04:37Z twisti $
+   $Id: gennativetable.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -43,7 +43,7 @@
 #include "vm/types.h"
 
 #include "cacaoh/headers.h"
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 
 #if defined(ENABLE_THREADS)

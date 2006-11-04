@@ -46,7 +46,7 @@
 
 #include "vm/types.h"
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"

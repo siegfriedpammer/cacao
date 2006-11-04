@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 5809 2006-10-20 13:09:54Z twisti $
+   $Id: signal.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -71,7 +71,9 @@ void signal_init(void)
 	/* Allocate something so the garbage collector's signal handlers
 	   are installed. */
 
+#if defined(ENABLE_GC_BOEHM)
 	(void) GCNEW(u1);
+#endif
 
 	/* install signal handlers we need to convert to exceptions */
 

@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5862 2006-10-30 00:45:30Z edwin $
+   $Id: builtin.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -61,7 +61,7 @@
 # undef Bias
 #endif
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/native.h"
 #include "native/include/java_lang_Cloneable.h"

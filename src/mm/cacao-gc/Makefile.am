@@ -1,4 +1,4 @@
-## src/mm/Makefile.am
+## src/mm/cacao-gc/Makefile.am
 ##
 ## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,9 +26,9 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
+## Changes: Michael Starzinger
 ##
-## $Id: Makefile.am 5900 2006-11-04 17:30:44Z michi $
+## $Id$
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,45 +36,12 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-DIST_SUBDIRS = \
-	boehm-gc \
-	cacao-gc
+noinst_LTLIBRARIES = libgc.la
 
-if DISABLE_GC
-GC_FILE = \
-	nogc.c
-endif
-
-if ENABLE_GC_BOEHM
-SUBDIRS = \
-	boehm-gc
-
-GC_FILE = \
-	boehm.c
-
-GC_LIB = \
-	$(top_builddir)/src/mm/boehm-gc/libgc.la
-endif
-
-if ENABLE_GC_CACAO
-SUBDIRS = \
-	cacao-gc
-
-GC_LIB = \
-	$(top_builddir)/src/mm/cacao-gc/libgc.la
-endif
-
-noinst_LTLIBRARIES = \
-	libmm.la
-
-libmm_la_SOURCES = \
-	$(GC_FILE) \
-	gc-common.h \
-	memory.c \
-	memory.h
-
-libmm_la_LIBADD = \
-	$(GC_LIB)
+libgc_la_SOURCES = \
+	gc.c \
+	gc.h \
+	heap.c
 
 
 ## Local variables:

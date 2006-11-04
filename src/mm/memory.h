@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 5868 2006-10-30 11:21:36Z edwin $
+   $Id: memory.h 5900 2006-11-04 17:30:44Z michi $
 
 */
 
@@ -75,7 +75,7 @@ struct dumpinfo_t {
 
 /* internal includes **********************************************************/
 
-#include "mm/boehm.h"
+#include "mm/gc-common.h"
 
 
 /* 
