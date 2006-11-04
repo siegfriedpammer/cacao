@@ -369,6 +369,23 @@ fi
 AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xyes")
 
 
+dnl check for memcheck support
+AC_MSG_CHECKING(whether debugging memory checks should be enabled)
+AC_ARG_ENABLE([memcheck],
+              [AS_HELP_STRING(--enable-memcheck,enable debugging memory checks [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_MEMCHECK=yes;;
+                   *) ENABLE_MEMCHECK=no;;
+               esac],
+              [ENABLE_MEMCHECK=no])
+AC_MSG_RESULT(${ENABLE_MEMCHECK})
+AM_CONDITIONAL([ENABLE_MEMCHECK], test x"${ENABLE_MEMCHECK}" = "xyes")
+
+if test x"${ENABLE_MEMCHECK}" = "xyes"; then
+    AC_DEFINE([ENABLE_MEMCHECK], 1, [perform debugging memory checks])
+fi
+
+
 dnl check for disassembler support
 AC_MSG_CHECKING(whether disassembler should be enabled)
 AC_ARG_ENABLE([disassembler],

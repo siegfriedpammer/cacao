@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 5900 2006-11-04 17:30:44Z michi $
+   $Id: memory.h 5901 2006-11-04 22:01:51Z edwin $
 
 */
 
@@ -64,12 +64,33 @@ struct dumpblock_t {
 };
 
 
+/* dump_allocation *************************************************************
+
+   This struct is used to record dump memory allocations for ENABLE_MEMCHECK.
+
+*******************************************************************************/
+
+#if defined(ENABLE_MEMCHECK)
+typedef struct dump_allocation_t dump_allocation_t;
+
+struct dump_allocation_t {
+	dump_allocation_t *next;
+	u1                *mem;
+	s4                 useddumpsize;
+	s4                 size;
+};
+#endif
+
+
 /* dumpinfo *******************************************************************/
 
 struct dumpinfo_t {
-	dumpblock_t *currentdumpblock;
-	s4           allocateddumpsize;
-	s4           useddumpsize;
+	dumpblock_t       *currentdumpblock;        /* the current top-most block */
+	s4                 allocateddumpsize;     /* allocated bytes in this area */
+	s4                 useddumpsize;          /* used bytes in this dump area */
+#if defined(ENABLE_MEMCHECK)
+	dump_allocation_t *allocations;       /* list of allocations in this area */
+#endif
 };
 
 

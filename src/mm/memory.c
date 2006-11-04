@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 5868 2006-10-30 11:21:36Z edwin $
+   $Id: memory.c 5901 2006-11-04 22:01:51Z edwin $
 
 */
 
@@ -71,6 +71,15 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
+
+/* constants for ENABLE_MEMCHECK **********************************************/
+
+#if defined(ENABLE_MEMCHECK)
+#define MEMORY_CANARY_SIZE          16
+#define MEMORY_CANARY_FIRST_BYTE    0xca
+#define MEMORY_CLEAR_BYTE           0xa5
+#endif /* defined(ENABLE_MEMCHECK) */
 
 
 /*******************************************************************************
@@ -254,6 +263,8 @@ void memory_cfree(void *p, s4 size)
 
 void *mem_alloc(s4 size)
 {
+	void *m;
+
 	if (size == 0)
 		return NULL;
 
@@ -266,7 +277,15 @@ void *mem_alloc(s4 size)
 	}
 #endif
 
-	return memory_checked_alloc(size);
+	m = memory_checked_alloc(size);
+
+#if defined(ENABLE_MEMCHECK)
+	/* XXX we would like to poison the memory, but callers rely on */
+	/* the zeroing. This should change sooner or later.            */
+	/* memset(m, MEMORY_CLEAR_BYTE, size); */
+#endif
+
+	return m;
 }
 
 
@@ -286,10 +305,20 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 		memoryusage = (memoryusage - len1) + len2;
 #endif
 
+#if defined(ENABLE_MEMCHECK)
+	if (len2 < len1)
+		memset((u1*)dst + len2, MEMORY_CLEAR_BYTE, len1 - len2);
+#endif
+
 	dst = realloc(src, len2);
 
 	if (dst == NULL)
 		exceptions_throw_outofmemory_exit();
+
+#if defined(ENABLE_MEMCHECK)
+	if (len2 > len1)
+		memset((u1*)dst + len1, MEMORY_CLEAR_BYTE, len2 - len1);
+#endif
 
 	return dst;
 }
@@ -310,8 +339,71 @@ void mem_free(void *m, s4 size)
 		memoryusage -= size;
 #endif
 
+#if defined(ENABLE_MEMCHECK)
+	/* destroy the contents */
+	memset(m, MEMORY_CLEAR_BYTE, size);
+#endif
+
 	free(m);
 }
+
+
+/* dump_check_canaries *********************************************************
+
+   Check canaries in dump memory.
+
+   IN:
+      di...........dumpinfo_t * of the dump area to check
+	  bottomsize...dump size down to which the dump area should be checked
+	               (specify 0 to check the whole dump area)
+
+   ERROR HANDLING:
+      If any canary has been changed, this function aborts the VM with
+	  an error message.
+
+*******************************************************************************/
+
+#if defined(ENABLE_MEMCHECK)
+void dump_check_canaries(dumpinfo_t *di, s4 bottomsize)
+{
+	dump_allocation_t *da;
+	u1 *pm;
+	s4 i, j;
+
+	/* iterate over all dump memory allocations above bottomsize */
+
+	da = di->allocations;
+	while (da && da->useddumpsize >= bottomsize) {
+		/* check canaries */
+
+		pm = da->mem - MEMORY_CANARY_SIZE;
+		for (i=0; i<MEMORY_CANARY_SIZE; ++i)
+			if (pm[i] != i + MEMORY_CANARY_FIRST_BYTE) {
+				fprintf(stderr, "canary bytes:");
+				for (j=0; j<MEMORY_CANARY_SIZE; ++j)
+					fprintf(stderr, " %02x", pm[j]);
+				fprintf(stderr,"\n");
+				vm_abort("error: dump memory bottom canary killed: "
+						 "%p (%d bytes allocated at %p)\n",
+						pm + i, da->size, da->mem);
+			}
+
+		pm = da->mem + da->size;
+		for (i=0; i<MEMORY_CANARY_SIZE; ++i)
+			if (pm[i] != i + MEMORY_CANARY_FIRST_BYTE) {
+				fprintf(stderr, "canary bytes:");
+				for (j=0; j<MEMORY_CANARY_SIZE; ++j)
+					fprintf(stderr, " %02x", pm[j]);
+				fprintf(stderr,"\n");
+				vm_abort("error: dump memory top canary killed: "
+						 "%p (%d bytes allocated at %p)\n",
+						pm + i, da->size, da->mem);
+			}
+
+		da = da->next;
+	}
+}
+#endif /* defined(ENABLE_MEMCHECK) */
 
 
 /* dump_alloc ******************************************************************
@@ -355,6 +447,9 @@ void *dump_alloc(s4 size)
 
 	void       *m;
 	dumpinfo_t *di;
+#if defined(ENABLE_MEMCHECK)
+	s4          origsize = size; /* needed for the canary system */
+#endif
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
@@ -363,6 +458,10 @@ void *dump_alloc(s4 size)
 
 	if (size == 0)
 		return NULL;
+
+#if defined(ENABLE_MEMCHECK)
+	size += 2*MEMORY_CANARY_SIZE;
+#endif
 
 	size = MEMORY_ALIGN(size, ALIGNSIZE);
 
@@ -415,6 +514,40 @@ void *dump_alloc(s4 size)
 	m = di->currentdumpblock->dumpmem + di->currentdumpblock->size -
 		(di->allocateddumpsize - di->useddumpsize);
 
+#if defined(ENABLE_MEMCHECK)
+	{
+		dump_allocation_t *da = NEW(dump_allocation_t);
+		s4 i;
+		u1 *pm;
+
+		/* add the allocation to our linked list of allocations */
+
+		da->next = di->allocations;
+		da->mem = (u1*) m + MEMORY_CANARY_SIZE;
+		da->size = origsize;
+		da->useddumpsize = di->useddumpsize;
+
+		di->allocations = da;
+
+		/* write the canaries */
+
+		pm = (u1*)m;
+		for (i=0; i<MEMORY_CANARY_SIZE; ++i)
+			pm[i] = i + MEMORY_CANARY_FIRST_BYTE;
+		pm = da->mem + da->size;
+		for (i=0; i<MEMORY_CANARY_SIZE; ++i)
+			pm[i] = i + MEMORY_CANARY_FIRST_BYTE;
+
+		/* make m point after the bottom canary */
+
+		m = (u1*)m + MEMORY_CANARY_SIZE;
+
+		/* clear the memory */
+
+		memset(m, MEMORY_CLEAR_BYTE, da->size);
+	}
+#endif /* defined(ENABLE_MEMCHECK) */
+
 	/* increase used dump size by the allocated memory size */
 
 	di->useddumpsize += size;
@@ -447,6 +580,11 @@ void *dump_realloc(void *src, s4 len1, s4 len2)
 	void *dst = dump_alloc(len2);
 
 	memcpy(dst, src, len1);
+
+#if defined(ENABLE_MEMCHECK)
+	/* destroy the source */
+	memset(src, MEMORY_CLEAR_BYTE, len1);
+#endif
 
 	return dst;
 #endif
@@ -489,6 +627,32 @@ void dump_release(s4 size)
 
 	if ((size < 0) || (size > di->useddumpsize))
 		vm_abort("Illegal dump release size: %d", size);
+
+#if defined(ENABLE_MEMCHECK)
+	{
+		dump_allocation_t *da, *next;
+
+		/* check canaries */
+
+		dump_check_canaries(di, size);
+
+		/* iterate over all dump memory allocations about to be released */
+
+		da = di->allocations;
+		while (da && da->useddumpsize >= size) {
+			next = da->next;
+
+			/* invalidate the freed memory */
+
+			memset(da->mem, MEMORY_CLEAR_BYTE, da->size);
+
+			FREE(da, dump_allocation_t);
+
+			da = next;
+		}
+		di->allocations = da;
+	}
+#endif /* defined(ENABLE_MEMCHECK) */
 
 	/* reset the used dump size to the size specified */
 
