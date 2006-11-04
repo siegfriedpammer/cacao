@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5824 2006-10-25 14:26:08Z tbfg $
+   $Id: codegen.h 5899 2006-11-04 15:46:18Z tbfg $
 
 */
 
@@ -62,7 +62,7 @@
 #define gen_bound_check \
     if (checkbounds) { \
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
-        M_CMP(s2, REG_ITMP3);\
+        M_CMPU(s2, REG_ITMP3);\
         M_BGE(0);\
         codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
     }
@@ -168,7 +168,7 @@
 #define M_ADDZE(a,b)                    M_OP3(31, 202, 0, 0, b, a, 0)
 #define M_ADDME(a,b)                    M_OP3(31, 234, 0, 0, b, a, 0)
 
-#define M_SUB(a,b,c)                   M_OP3(31, 40, 0, 0, c, b, a)
+#define M_SUB(a,b,c)                    M_OP3(31, 40, 0, 0, c, b, a)
 #define M_ISUBTST(a,b,c)                M_OP3(31, 40, 0, 1, c, b, a)
 #define M_SUBC(a,b,c)                   M_OP3(31, 8, 0, 0, c, b, a)
 #define M_SUBIC(a,b,c)                  M_OP2_IMM(8, c, b, a)
@@ -187,7 +187,7 @@
 #define M_XOR_IMM(a,b,c)                M_OP2_IMM(26, a, c, b)
 #define M_XORIS(a,b,c)                  M_OP2_IMM(27, a, c, b)
 
-#define M_SLL(a,b,c)                    M_OP3(31, 24, 0, 0, a, c, b)
+#define M_SLL(a,b,c)                    M_OP3(31, 27, 0, 0, a, c, b)
 #define M_SRL(a,b,c)                    M_OP3(31, 536, 0, 0, a, c, b)
 #define M_SRA(a,b,c)                    M_OP3(31, 792, 0, 0, a, c, b)
 #define M_SRA_IMM(a,b,c)                M_OP3(31, 824, 0, 0, a, c, b)
@@ -360,6 +360,8 @@
 #define M_AST_INTERN(a,b,disp)          M_LST_INTERN(a,b,disp)
 #define M_AST(a,b,disp)                 M_LST(a,b,disp)
 #define M_ASTX(a,b,c)			M_OP3(31, 149, 0, 0, a, b, c)
+#define M_LSTX(a,b,c)			M_ASTX(a,b,c)
+
 
 #define M_BSEXT(a,b)                    M_OP3(31, 954, 0, 0, a, b, 0)
 #define M_CZEXT(a,b)                    M_RLWINM(a,0,16,31,b)

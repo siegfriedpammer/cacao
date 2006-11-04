@@ -208,7 +208,7 @@ void emit_verbosecall_enter (jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
-	s4 s1, p, t, d;
+	s4 s1, p, t;
 	int stack_size;
 	methoddesc *md;
 
