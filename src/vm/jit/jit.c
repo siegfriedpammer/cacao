@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5905 2006-11-04 23:29:36Z edwin $
+   $Id: jit.c 5906 2006-11-04 23:37:10Z edwin $
 
 */
 
@@ -959,9 +959,15 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	/* initialize variables */
 
 	jd->flags = 0;
-	jd->isleafmethod = true;
 	jd->exceptiontable = NULL;
 	jd->exceptiontablelength = 0;
+
+#if defined(ENABLE_THREADS)
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+		jd->isleafmethod = false;
+	else
+#endif
+		jd->isleafmethod = true;
 
 	return jd;
 }

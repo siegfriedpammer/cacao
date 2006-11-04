@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5868 2006-10-30 11:21:36Z edwin $
+   $Id: parse.c 5906 2006-11-04 23:37:10Z edwin $
 
 */
 
@@ -395,11 +395,6 @@ bool parse(jitdata *jd)
 	/* initialize stack element counter */
 
 	s_count = 1 + m->rawexceptiontablelength;
-
-#if defined(ENABLE_THREADS)
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		jd->isleafmethod = false;
-#endif
 
 	/* setup line number info */
 
