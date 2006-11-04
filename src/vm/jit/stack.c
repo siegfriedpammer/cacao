@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5866 2006-10-30 11:00:56Z edwin $
+   $Id: stack.c 5902 2006-11-04 22:40:13Z edwin $
 
 */
 
@@ -1414,6 +1414,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 			case ICMD_JSR:
 				iptr->sx.s23.s3.jsrtarget.block = stack_mark_reached_from_outvars(sd, iptr->sx.s23.s3.jsrtarget.block);
+				RELOCATE(iptr->dst.varindex);
 				superblockend = true;
 				break;
 
