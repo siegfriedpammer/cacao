@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5902 2006-11-04 22:40:13Z edwin $
+   $Id: stack.c 5903 2006-11-04 23:13:37Z edwin $
 
 */
 
@@ -1845,7 +1845,8 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp,
 	s4 newindex;
 	s4 oldindex;
 	instruction *iptr;
-	int i;
+	s4 depth;
+	s4 i;
 
 	oldindex = sp->varnum;
 
@@ -1870,9 +1871,20 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp,
 	if (sp->flags & PASSTHROUGH) {
 		iptr = (sp->creator) ? (sp->creator + 1) : sd->bptr->iinstr;
 
-		/* asser that the limit point to an ICMD, or after the last one */
+		/* assert that the limit points to an ICMD, or after the last one */
+
 		assert(ilimit >= sd->bptr->iinstr);
 	   	assert(ilimit <= sd->bptr->iinstr + sd->bptr->icount);
+
+		/* find the stackdepth under sp plus one */
+		/* Note: This number is usually known when this function is called, */
+		/* but calculating it here is less error-prone and should not be    */
+		/* a performance problem.                                           */
+
+		for (depth = 0; sp != NULL; sp = sp->prev)
+			depth++;
+
+		/* iterate over all instructions in the range and replace */
 
 		for (; iptr < ilimit; ++iptr) {
 			switch (iptr->opc) {
@@ -1881,11 +1893,10 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp,
 				case ICMD_INVOKEVIRTUAL:
 				case ICMD_INVOKEINTERFACE:
 				case ICMD_BUILTIN:
-
-					for (i=0; i<iptr->s1.argcount; ++i)
-						if (iptr->sx.s23.s2.args[i] == oldindex) {
-							iptr->sx.s23.s2.args[i] = newindex;
-						}
+					i = iptr->s1.argcount - depth;
+					if (iptr->sx.s23.s2.args[i] == oldindex) {
+						iptr->sx.s23.s2.args[i] = newindex;
+					}
 					break;
 				/* IMPORTANT: If any ICMD sets the PASSTHROUGH flag of a */
 				/* stackslot, it must be added in this switch!           */
