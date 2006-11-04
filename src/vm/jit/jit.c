@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5889 2006-10-31 22:01:26Z twisti $
+   $Id: jit.c 5905 2006-11-04 23:29:36Z edwin $
 
 */
 
@@ -937,7 +937,7 @@ static u1 *do_nothing_function(void)
 
 *******************************************************************************/
 
-static jitdata *jit_jitdata_new(methodinfo *m)
+jitdata *jit_jitdata_new(methodinfo *m)
 {
 	jitdata *jd;
 

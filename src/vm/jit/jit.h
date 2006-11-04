@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5861 2006-10-29 23:43:26Z edwin $
+   $Id: jit.h 5905 2006-11-04 23:29:36Z edwin $
 
 */
 
@@ -1225,6 +1225,9 @@ void jit_init(void);
 
 /* compiler finalisation */
 void jit_close(void);
+
+/* create a new jitdata */
+jitdata *jit_jitdata_new(methodinfo *m);
 
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);
