@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5912 2006-11-05 15:47:33Z edwin $
+   $Id: jit.c 5924 2006-11-05 22:47:23Z edwin $
 
 */
 
@@ -966,6 +966,7 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	jd->branchtoend = false;
 	jd->returncount = 0;
 	jd->returnblock = NULL;
+	jd->maxlocals = m->maxlocals;
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
