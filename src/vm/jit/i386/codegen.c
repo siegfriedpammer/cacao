@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen.c 5908 2006-11-05 09:52:43Z edwin $
 
 */
 
@@ -524,9 +524,8 @@ bool codegen(jitdata *jd)
 
 		switch (iptr->opc) {
 		case ICMD_INLINE_START:
-#if 0
 			{
-				insinfo_inline *insinfo = (insinfo_inline *) iptr->target;
+				insinfo_inline *insinfo = iptr->sx.s23.s3.inlineinfo;
 #if defined(ENABLE_THREADS)
 				if (insinfo->synchronize) {
 					/* add monitor enter code */
@@ -537,7 +536,7 @@ bool codegen(jitdata *jd)
 					else {
 						/* nullpointer check must have been performed before */
 						/* (XXX not done, yet) */
-						var = &(rd->locals[insinfo->synclocal][TYPE_ADR]);
+						var = VAR(insinfo->synclocal);
 						if (var->flags & INMEMORY) {
 							emit_mov_membase_reg(cd, REG_SP, var->vv.regoff * 4, REG_ITMP1);
 							M_AST(REG_ITMP1, REG_SP, 0 * 4);
@@ -553,13 +552,11 @@ bool codegen(jitdata *jd)
 #endif
 				dseg_addlinenumber_inline_start(cd, iptr);
 			}
-#endif
 			break;
 
 		case ICMD_INLINE_END:
-#if 0
 			{
-				insinfo_inline *insinfo = (insinfo_inline *) iptr->target;
+				insinfo_inline *insinfo = iptr->sx.s23.s3.inlineinfo;
 
 				dseg_addlinenumber_inline_end(cd, iptr);
 				dseg_addlinenumber(cd, iptr->line);
@@ -572,7 +569,7 @@ bool codegen(jitdata *jd)
 						M_AST(REG_ITMP1, REG_SP, 0 * 4);
 					} 
 					else {
-						var = &(rd->locals[insinfo->synclocal][TYPE_ADR]);
+						var = VAR(insinfo->synclocal);
 						if (var->flags & INMEMORY) {
 							M_ALD(REG_ITMP1, REG_SP, var->vv.regoff * 4);
 							M_AST(REG_ITMP1, REG_SP, 0 * 4);
@@ -587,7 +584,6 @@ bool codegen(jitdata *jd)
 				}
 #endif
 			}
-#endif
 			break;
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
