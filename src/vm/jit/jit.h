@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5921 2006-11-05 21:27:37Z edwin $
+   $Id: jit.h 5923 2006-11-05 22:46:11Z edwin $
 
 */
 
@@ -133,6 +133,7 @@ struct jitdata {
    						/* locals and keep the coalescing info for simplereg. */
 	                    /* local_map[local_index * 5 + local_type] =          */
 	                    /* new_index in rd->var or UNUSED                     */
+	s4               maxlocals;       /* max. number of javalocals            */
 
 	interface_info  *interface_map;   /* interface variables (for simplereg)  */
 	s4               maxinterfaces;   /* max. number of interface variables   */
