@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: utf8.h 5823 2006-10-24 23:24:19Z edwin $
+   $Id: utf8.h 5920 2006-11-05 21:23:09Z twisti $
 
 */
 
@@ -114,6 +114,7 @@ extern utf *utf_Code;
 extern utf *utf_Exceptions;
 extern utf *utf_LineNumberTable;
 extern utf *utf_SourceFile;
+extern utf *utf_Signature;
 
 extern utf *utf_init;
 extern utf *utf_clinit;

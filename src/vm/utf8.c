@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 5823 2006-10-24 23:24:19Z edwin $
+   $Id: utf8.c 5920 2006-11-05 21:23:09Z twisti $
 
 */
 
@@ -121,6 +121,7 @@ utf *utf_Code;                          /* Code                               */
 utf *utf_Exceptions;                    /* Exceptions                         */
 utf *utf_LineNumberTable;               /* LineNumberTable                    */
 utf *utf_SourceFile;                    /* SourceFile                         */
+utf *utf_Signature;
 
 utf *utf_init;                          /* <init>                             */
 utf *utf_clinit;                        /* <clinit>                           */
@@ -267,6 +268,7 @@ bool utf8_init(void)
 	utf_Exceptions	               = utf_new_char("Exceptions");
 	utf_LineNumberTable            = utf_new_char("LineNumberTable");
 	utf_SourceFile                 = utf_new_char("SourceFile");
+	utf_Signature                  = utf_new_char("Signature");
 
 	utf_init	                   = utf_new_char("<init>");
 	utf_clinit	                   = utf_new_char("<clinit>");
