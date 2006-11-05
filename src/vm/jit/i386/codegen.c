@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 5912 2006-11-05 15:47:33Z edwin $
+   $Id: codegen.c 5926 2006-11-05 23:17:23Z edwin $
 
 */
 
@@ -398,6 +398,11 @@ bool codegen(jitdata *jd)
 #endif
 
 	} 
+
+	/* create replacement points */
+
+	if (!replace_create_replacement_points(jd))
+		return NULL;
 
 #if defined(ENABLE_SSA)
 	/* with SSA Header is Basic Block 0 - insert phi Moves if necessary */

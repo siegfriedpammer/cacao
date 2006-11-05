@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5925 2006-11-05 23:11:27Z edwin $
+   $Id: jit.c 5926 2006-11-05 23:17:23Z edwin $
 
 */
 
@@ -1436,9 +1436,11 @@ static u1 *jit_compile_intern(jitdata *jd)
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 
 	/* create the replacement points */
+#if 0
 	if (!replace_create_replacement_points(jd))
 		return NULL;
 	RT_TIMING_GET_TIME(time_rplpoints);
+#endif
 
 	/* now generate the machine code */
 
