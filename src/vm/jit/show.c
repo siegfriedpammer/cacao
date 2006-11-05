@@ -186,7 +186,8 @@ void show_method(jitdata *jd, int stage)
 										   ((ptrint) cd->dseglen + lastbptr->mpc)));
 	}
 	printf("Variables:       %d (%d used)\n", jd->varcount, jd->vartop);
-	printf("Max interfaces:  %d\n", jd->maxinterfaces);
+	if (stage >= SHOW_STACK)
+		printf("Max interfaces:  %d\n", jd->maxinterfaces);
 	printf("Max locals:      %d\n", m->maxlocals);
 	printf("Max stack:       %d\n", m->maxstack);
 	printf("Linenumbers:     %d\n", m->linenumbercount);
@@ -789,7 +790,7 @@ void show_variable(jitdata *jd, s4 index, int stage)
 	if (v->flags & SAVEDVAR)
 		putchar('!');
 
-	if (stage >= SHOW_REGS) {
+	if (stage >= SHOW_REGS || (v->flags & PREALLOC)) {
 		putchar('(');
 		show_allocation(v->type, v->flags, v->vv.regoff);
 		putchar(')');
