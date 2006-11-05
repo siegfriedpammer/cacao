@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5916 2006-11-05 20:07:21Z edwin $
+   $Id: jit.h 5921 2006-11-05 21:27:37Z edwin $
 
 */
 
@@ -331,6 +331,7 @@ typedef union {
                                        /* for BUILTIN: check exception        */
 #define INS_FLAG_KILL_PREV     0x02    /* for *STORE, invalidate prev local   */
 #define INS_FLAG_KILL_NEXT     0x04    /* for *STORE, invalidate next local   */
+#define INS_FLAG_RETADDR       0x08    /* for ASTORE: op is a returnAddress   */
 
 typedef union {
     u4                  bits;
