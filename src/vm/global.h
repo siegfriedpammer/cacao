@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5721 2006-10-08 11:39:41Z edwin $
+   $Id: global.h 5910 2006-11-05 10:31:32Z edwin $
 
 */
 
@@ -203,6 +203,11 @@ typedef struct java_objectarray java_objectarray;
 
 #define ACC_CLASS_REFLECT_MASK 0x0000ffff     /* flags reported by reflection */
 #define ACC_CLASS_HAS_POINTERS 0x00010000     /* instance contains pointers   */
+
+/* special flags used in methodinfo *******************************************/
+
+#define ACC_METHOD_IMPLEMENTED 0x00010000     /* there is an implementation   */
+#define ACC_METHOD_MONOMORPHIC 0x00020000     /* currently monomorphic method */
 
 
 /* data structures of the runtime system **************************************/
