@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 5842 2006-10-27 10:41:02Z twisti $
+   $Id: options.h 5922 2006-11-05 21:43:09Z twisti $
 
 */
 
@@ -102,7 +102,9 @@ extern char *opt_signature;
 
 extern bool compileverbose;
 extern bool showstack;
+
 extern bool opt_showdisassemble;
+extern bool opt_shownops;
 extern bool opt_showddatasegment;
 extern bool opt_showintermediate;
 extern bool opt_showexceptionstubs;

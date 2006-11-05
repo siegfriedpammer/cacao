@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 5842 2006-10-27 10:41:02Z twisti $
+   $Id: options.c 5922 2006-11-05 21:43:09Z twisti $
 
 */
 
@@ -90,11 +90,13 @@ char *opt_signature = NULL;
 
 bool compileverbose =  false;           /* trace compiler actions             */
 bool showstack = false;
-bool opt_showdisassemble = false;       /* generate disassembler listing      */
-bool opt_showddatasegment = false;      /* generate data segment listing      */
-bool opt_showintermediate = false;      /* generate intermediate code listing */
+
+bool opt_showdisassemble    = false;    /* generate disassembler listing      */
+bool opt_shownops           = false;
+bool opt_showddatasegment   = false;    /* generate data segment listing      */
+bool opt_showintermediate   = false;    /* generate intermediate code listing */
 bool opt_showexceptionstubs = false;
-bool opt_shownativestub = false;
+bool opt_shownativestub     = false;
 
 bool useinlining = false;      /* use method inlining                        */
 bool inlinevirtuals = false;   /* inline unique virtual methods              */

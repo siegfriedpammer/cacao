@@ -25,8 +25,7 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
-
-   Changes: Martin Platter
+            Martin Platter
 
    $Id: vm.c 4357 2006-01-22 23:33:38Z twisti $
 
@@ -77,7 +76,7 @@
 #include "vm/jit/optimizing/recompile.h"
 
 #if defined(ENABLE_JVMTI)
-#include "native/jvmti/cacaodbg.h"
+# include "native/jvmti/cacaodbg.h"
 #endif
 
 
@@ -443,17 +442,18 @@ void usage(void)
 	puts("    -sig                     specify signature for a specific method");
 #endif
 
-	puts("    -s(how)...               show...");
-	puts("           c(onstants)       the constant pool");
-	puts("           m(ethods)         class fields and methods");
-	puts("           u(tf)             the utf - hash");
-	puts("           i(ntermediate)    intermediate representation");
+	puts("    -s...                    show...");
+	puts("      (c)onstants            the constant pool");
+	puts("      (m)ethods              class fields and methods");
+	puts("      (u)tf                  the utf - hash");
+	puts("      (i)ntermediate         intermediate representation");
 #if defined(ENABLE_DISASSEMBLER)
-	puts("           a(ssembler)       disassembled listing");
-	puts("           e(xceptionstubs)  disassembled exception stubs (only with -sa)");
-	puts("           n(ative)          disassembled native stubs");
+	puts("      (a)ssembler            disassembled listing");
+	puts("      n(o)ps                 show NOPs in disassembler output");
+	puts("      (e)xceptionstubs       disassembled exception stubs (only with -sa)");
+	puts("      (n)ative               disassembled native stubs");
 #endif
-	puts("           d(atasegment)     data segment listing");
+	puts("           (d)atasegment     data segment listing");
 #if defined(ENABLE_INLINING)
 	puts("    -i     n(line)           activate inlining");
 	puts("           v(irtual)         inline virtual methods (uses/turns rt option on)");
@@ -1097,6 +1097,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				case 'a':
 					opt_showdisassemble = true;
 					compileverbose = true;
+					break;
+
+				case 'o':
+					opt_shownops = true;
 					break;
 
 				case 'e':
