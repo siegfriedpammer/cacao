@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: class.h 5492 2006-09-14 18:20:28Z edwin $
+   $Id: class.h 5919 2006-11-05 21:18:05Z twisti $
 
 */
 
@@ -120,6 +118,7 @@ struct classinfo {                /* class structure                          */
 
 	utf        *packagename;      /* full name of the package                 */
 	utf        *sourcefile;       /* classfile name containing this class     */
+	utf        *signature;        /* classfile signature                      */
 	java_objectheader *classloader; /* NULL for bootstrap classloader         */
 };
 

@@ -25,14 +25,13 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
-
-   Changes: Andreas Krall
+            Andreas Krall
             Roman Obermaiser
             Mark Probst
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5904 2006-11-04 23:24:48Z edwin $
+   $Id: loader.c 5919 2006-11-05 21:18:05Z twisti $
 
 */
 
@@ -1305,6 +1304,7 @@ static bool load_attributes(classbuffer *cb, u4 num)
 
 	for (i = 0; i < num; i++) {
 		/* retrieve attribute name */
+
 		if (!suck_check_classbuffer_size(cb, 2))
 			return false;
 
@@ -1312,8 +1312,9 @@ static bool load_attributes(classbuffer *cb, u4 num)
 			return false;
 
 		if (aname == utf_InnerClasses) {
-			/* innerclasses attribute */
-			if (c->innerclass) {
+			/* InnerClasses attribute */
+
+			if (c->innerclass != NULL) {
 				exceptions_throw_classformaterror(c, "Multiple InnerClasses attributes");
 				return false;
 			}
@@ -1350,8 +1351,10 @@ static bool load_attributes(classbuffer *cb, u4 num)
 					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
 				info->flags = suck_u2(cb);
 			}
+		}
+		else if (aname == utf_SourceFile) {
+			/* SourceFile attribute */
 
-		} else if (aname == utf_SourceFile) {
 			if (!suck_check_classbuffer_size(cb, 4 + 2))
 				return false;
 
@@ -1360,16 +1363,36 @@ static bool load_attributes(classbuffer *cb, u4 num)
 				return false;
 			}
 
-			if (c->sourcefile) {
+			if (c->sourcefile != NULL) {
 				exceptions_throw_classformaterror(c, "Multiple SourceFile attributes");
 				return false;
 			}
 
 			if (!(c->sourcefile = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 				return false;
+		}
+		else if (aname == utf_Signature) {
+			/* Signature attribute */
 
-		} else {
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
+				return false;
+
+			if (suck_u4(cb) != 2) {
+				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
+				return false;
+			}
+
+			if (c->signature != NULL) {
+				exceptions_throw_classformaterror(c, "Multiple Signature attributes");
+				return false;
+			}
+
+			if (!(c->signature = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+				return false;
+		}
+		else {
 			/* unknown attribute */
+
 			if (!skipattributebody(cb))
 				return false;
 		}

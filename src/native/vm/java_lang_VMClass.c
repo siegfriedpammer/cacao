@@ -25,12 +25,11 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Roman Obermaiser
-
-   Changes: Joseph Wenninger
+            Joseph Wenninger
             Christian Thalinger
             Edwin Steiner
 
-   $Id: java_lang_VMClass.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_VMClass.c 5919 2006-11-05 21:18:05Z twisti $
 
 */
 
@@ -765,6 +764,91 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass
 {
 	*exceptionptr = (java_objectheader *) t;
 }
+
+
+#if 0
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getDeclaredAnnotations
+ * Signature: (Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;
+ */
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNIEnv *env, jclass clazz, java_lang_Class* klass)
+{
+}
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getEnclosingClass
+ * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
+ */
+JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getEnclosingClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getEnclosingConstructor
+ * Signature: (Ljava/lang/Class;)Ljava/lang/reflect/Constructor;
+ */
+JNIEXPORT struct java_lang_reflect_Constructor* JNICALL Java_java_lang_VMClass_getEnclosingConstructor(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getEnclosingMethod
+ * Signature: (Ljava/lang/Class;)Ljava/lang/reflect/Method;
+ */
+JNIEXPORT struct java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getEnclosingMethod(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+#endif
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getClassSignature
+ * Signature: (Ljava/lang/Class;)Ljava/lang/String;
+ */
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getClassSignature(JNIEnv *env, jclass clazz, java_lang_Class* klass)
+{
+	classinfo        *c;
+	java_lang_String *s;
+
+	c = (classinfo *) klass;
+
+	if (c->signature == NULL)
+		return NULL;
+
+	s = javastring_new(c->signature);
+
+	/* in error case, s == NULL */
+
+	return s;
+}
+
+
+#if 0
+/*
+ * Class:     java/lang/VMClass
+ * Method:    isAnonymousClass
+ * Signature: (Ljava/lang/Class;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAnonymousClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    isLocalClass
+ * Signature: (Ljava/lang/Class;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    isMemberClass
+ * Signature: (Ljava/lang/Class;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+#endif
 
 
 /*
