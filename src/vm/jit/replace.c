@@ -82,7 +82,6 @@
 
 bool replace_create_replacement_points(jitdata *jd)
 {
-#if 0
 	codeinfo     *code;
 	registerdata *rd;
 	basicblock *bptr;
@@ -96,8 +95,8 @@ bool replace_create_replacement_points(jitdata *jd)
 	rplalloc *ra;
 	int i;
 	int t;
-	stackptr sp;
 	bool indexused;
+	varinfo *v;
 
 	/* get required compiler data */
 
@@ -146,7 +145,7 @@ bool replace_create_replacement_points(jitdata *jd)
 #if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
 #endif
-				if (rd->locals[i][t].type == t) {
+				if (jd->local_map[5*i + t] != UNUSED) {
 					globalcount++;
 					indexused = true;
 				}
@@ -174,9 +173,10 @@ bool replace_create_replacement_points(jitdata *jd)
 #if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
 #endif
-				if (rd->locals[i][t].type == t) {
-					ra->flags = rd->locals[i][t].flags & (INMEMORY);
-					ra->index = rd->locals[i][t].regoff;
+				if (jd->local_map[5*i + t] != UNUSED) {
+					v = VAR(jd->local_map[5*i + t]);
+					ra->flags = v->flags & (INMEMORY);
+					ra->index = v->vv.regoff;
 					ra->type  = t;
 					ra->next = (indexused) ? 0 : 1;
 					ra++;
@@ -216,10 +216,11 @@ bool replace_create_replacement_points(jitdata *jd)
 
 		/* store local allocation info */
 
-		for (sp = bptr->instack; sp; sp = sp->prev) {
-			ra->flags = sp->flags & (INMEMORY);
-			ra->index = sp->regoff;
-			ra->type  = sp->type;
+		for (i = 0; i<bptr->indepth; ++i) {
+			v = VAR(bptr->invars[i]);
+			ra->flags = v->flags & (INMEMORY);
+			ra->index = v->vv.regoff;
+			ra->type  = v->type;
 			ra->next  = 1;
 			ra++;
 		}
@@ -241,7 +242,6 @@ bool replace_create_replacement_points(jitdata *jd)
 	code->memuse        = rd->memuse;
 
 	/* everything alright */
-#endif
 
 	return true;
 }
@@ -447,7 +447,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 #if defined(__I386__) || defined(__X86_64__)
 	if (rp->type == BBTYPE_SBR) {
 		sp++;
-		topslot = TOP_IS_ON_STACK;
+		topslot = TOP_IS_ON_STACK; /* XXX */
 	}
 #endif
 
@@ -455,7 +455,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 
 	if (  (rp->type == BBTYPE_EXH)
 #if defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)
-	   || (rp->type == BBTYPE_SBR)
+	   || (rp->type == BBTYPE_SBR) /* XXX */
 #endif
 	   )
 	{
@@ -641,7 +641,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 
 #if defined(__I386__) || defined(__X86_64__)
 	if (rp->type == BBTYPE_SBR) {
-		topslot = TOP_IS_ON_STACK;
+		topslot = TOP_IS_ON_STACK; /* XXX */
 	}
 #endif
 	
@@ -649,7 +649,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 
 	if (  (rp->type == BBTYPE_EXH)
 #if defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)
-	   || (rp->type == BBTYPE_SBR) 
+	   || (rp->type == BBTYPE_SBR) /* XXX */ 
 #endif
 	   )
 	{
