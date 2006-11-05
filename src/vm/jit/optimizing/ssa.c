@@ -118,7 +118,7 @@ void ssa_set_interface_(codegendata *cd, lsradata *ls, basicblock *bptr,
 				   stackptr s, int depth) {
 	int var_index;
 
-	var_index = depth + cd->maxlocals;
+	var_index = depth + jd->maxlocals;
 	if (ls->var[var_index][s->type] == -1) {
 		/* New Interface Stackslot encountered -> create a new unique index */
 		ls->var[var_index][s->type] = ls->max_vars;
@@ -216,13 +216,13 @@ void ssa_init(jitdata *jd) {
 #ifdef SSA_DEBUG_VERBOSE
     if (compileverbose) 
 		printf("ssa_init: basicblockcount %3i maxlocals %3i\n",
-			   m->basicblockcount, cd->maxlocals);
+			   m->basicblockcount, jd->maxlocals);
 #endif
-	ls->num_defs = DMNEW(int, cd->maxlocals * 5 + cd->maxstack * 5);
-	ls->var_to_index = DMNEW(int, cd->maxlocals * 5 + cd->maxstack * 5);
-	ls->var = DMNEW(int *, cd->maxlocals + cd->maxstack);
+	ls->num_defs = DMNEW(int, jd->maxlocals * 5 + cd->maxstack * 5);
+	ls->var_to_index = DMNEW(int, jd->maxlocals * 5 + cd->maxstack * 5);
+	ls->var = DMNEW(int *, jd->maxlocals + cd->maxstack);
 	t = 0;
-	for(p = 0; p < cd->maxlocals + cd->maxstack; p++) {
+	for(p = 0; p < jd->maxlocals + cd->maxstack; p++) {
 		ls->var[p] = DMNEW(int, 5);
 		for(i = 0; i < 5; i++) {
 			ls->var[p][i] = -1;
@@ -232,7 +232,7 @@ void ssa_init(jitdata *jd) {
 	/* init Var Definition bitvectors */
 	ls->var_def = DMNEW(int *, m->basicblockcount + 1);
 	for(i = 0; i <= m->basicblockcount; i++) {
-		ls->var_def[i] =  bv_new(cd->maxlocals * 5 + cd->maxstack * 5);
+		ls->var_def[i] =  bv_new(jd->maxlocals * 5 + cd->maxstack * 5);
 	}
 	ls->uses = 0;
 	ls->max_vars = 0;    /* no Vars seen till now */
@@ -366,7 +366,7 @@ void ssa_init(jitdata *jd) {
 		}
 	}
 	ls->maxlifetimes = lifetimes;
-	ls->lifetimecount = lifetimes + cd->maxlocals * (TYPE_ADR+1);
+	ls->lifetimecount = lifetimes + jd->maxlocals * (TYPE_ADR+1);
 
 }
 
@@ -458,7 +458,7 @@ void ssa_place_phi_functions(codegendata *cd, lsradata *ls, graphdata *gd,
 						if (ls->var_to_index[a] < 0)
 							printf("SS CHeck BB %3i ID %3i V2I %3i A %3i ML %3i\n",Y,
 								   ls->basicblocks[Y]->indepth, 
-								   ls->var_to_index[a], a, cd->maxlocals);
+								   ls->var_to_index[a], a, jd->maxlocals);
 #endif
 					/* Add Locals in any case */
 					add_phi = (ls->var_to_index[a] >= 0);
@@ -471,9 +471,9 @@ void ssa_place_phi_functions(codegendata *cd, lsradata *ls, graphdata *gd,
 					if (compileverbose)
 						if (ls->var_to_index[a] < 0)
 							printf(" Depth %3i Var %3i\n",i,
-								   ls->var[i + cd->maxlocals][s->type]);
+								   ls->var[i + jd->maxlocals][s->type]);
 #endif
-							if (ls->var[i + cd->maxlocals][s->type] == a) {
+							if (ls->var[i + jd->maxlocals][s->type] == a) {
 								add_phi=true;
 								break;
 							}
@@ -659,9 +659,9 @@ void ssa_Rename_(codegendata *cd, lsradata *ls, graphdata *gd,
 
 	for (;in != NULL; in = in->prev, in_d--) {
 		/* Possible Use of                             */
-		/* ls->var[in_d - 1 + cd->maxlocals][in->type] */
-		_SSA_CHECK_BOUNDS(in_d - 1 + cd->maxlocals, 0, cd->maxlocals + cd->maxstack);
-		a = ls->var[in_d - 1 + cd->maxlocals][in->type];
+		/* ls->var[in_d - 1 + jd->maxlocals][in->type] */
+		_SSA_CHECK_BOUNDS(in_d - 1 + jd->maxlocals, 0, jd->maxlocals + cd->maxstack);
+		a = ls->var[in_d - 1 + jd->maxlocals][in->type];
 		_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
 		/* i <- top(stack[a]) */
 		_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
@@ -689,7 +689,7 @@ void ssa_Rename_(codegendata *cd, lsradata *ls, graphdata *gd,
 		case ICMD_FLOAD:
 		case ICMD_DLOAD:
 		case ICMD_ALOAD:
-			_SSA_CHECK_BOUNDS(iptr->op1, 0, cd->maxlocals);
+			_SSA_CHECK_BOUNDS(iptr->op1, 0, jd->maxlocals);
 			a = ls->var[iptr->op1][iptr->opc - ICMD_ILOAD];
 			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
 			/* i <- top(stack[a]) */
@@ -714,7 +714,7 @@ void ssa_Rename_(codegendata *cd, lsradata *ls, graphdata *gd,
 		case ICMD_DSTORE:
 		case ICMD_ASTORE:
 			/* replace definition of a with def of ai */
-			_SSA_CHECK_BOUNDS(iptr->op1, 0, cd->maxlocals);
+			_SSA_CHECK_BOUNDS(iptr->op1, 0, jd->maxlocals);
 			a = ls->var[iptr->op1][iptr->opc - ICMD_ISTORE];
 			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
 			def_count[a]++;
@@ -730,7 +730,7 @@ void ssa_Rename_(codegendata *cd, lsradata *ls, graphdata *gd,
 		case ICMD_IINC:
 
 			/* Load from iptr->op1 */
-			_SSA_CHECK_BOUNDS(iptr->op1, 0, cd->maxlocals);
+			_SSA_CHECK_BOUNDS(iptr->op1, 0, jd->maxlocals);
 			a = ls->var[iptr->op1][TYPE_INT];
 			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
 			/* i <- top(stack[a]) */
@@ -744,7 +744,7 @@ void ssa_Rename_(codegendata *cd, lsradata *ls, graphdata *gd,
 			/*  Store new(iinced) value in iptr->val._i.opq_t */
 
 			/* replace definition of a with def of ai */
-			_SSA_CHECK_BOUNDS(iptr->val._i.op1_t, 0, cd->maxlocals);
+			_SSA_CHECK_BOUNDS(iptr->val._i.op1_t, 0, jd->maxlocals);
 			a = ls->var[iptr->val._i.op1_t][TYPE_INT];
 			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
 			def_count[a]++;
@@ -771,9 +771,9 @@ void ssa_Rename_(codegendata *cd, lsradata *ls, graphdata *gd,
 
 	for (;out != NULL; out = out->prev, out_d--) {
 		if ((in_d < out_d) || (out != in)) {
-			/* Def of ls->var[out_d - 1 + cd->maxlocals][out->type] */
-			_SSA_CHECK_BOUNDS(out_d - 1 + cd->maxlocals, 0, cd->maxlocals + cd->maxstack);
-			a = ls->var[out_d - 1 + cd->maxlocals][out->type];
+			/* Def of ls->var[out_d - 1 + jd->maxlocals][out->type] */
+			_SSA_CHECK_BOUNDS(out_d - 1 + jd->maxlocals, 0, jd->maxlocals + cd->maxstack);
+			a = ls->var[out_d - 1 + jd->maxlocals][out->type];
 			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
 			def_count[a]++;
 			i = ssa_Rename_def(ls, n, a); 
@@ -881,8 +881,8 @@ void ssa_Rename(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls,
 		/* !!!!! no additional increment for 2 word types !!!!! */
 		/* this happens later on! here we still need the increment */
 	    /* index of var can be in the range from 0 up to not including */
-	    /* CD->maxlocals */
-		_SSA_CHECK_BOUNDS(i,0,cd->maxlocals);
+	    /* jd->maxlocals */
+		_SSA_CHECK_BOUNDS(i,0,jd->maxlocals);
 		_SSA_CHECK_BOUNDS(ls->var[i][t], 0, ls->local_0[ls->max_locals]);
 		ssa_Rename_def(ls, 0, ls->var[i][t]);
 		i++;
@@ -933,7 +933,7 @@ void ssa_Rename(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls,
 		for(t = 0; t < 5; t++)
 			locals[i][t].type = -1;
 	for(t = 0; t < 5; t++) {
-		for(i = 0; i < cd->maxlocals; i++) {
+		for(i = 0; i < jd->maxlocals; i++) {
 			p = ls->var[i][t];
 			if (p != -1) {
 				_SSA_ASSERT(ls->var_to_index[p] >= 0);
@@ -981,14 +981,14 @@ void ssa_Rename(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls,
 		}
 	}
  	rd->locals = locals;
- 	cd->maxlocals = ls->local_0[ls->max_locals];
+ 	jd->maxlocals = ls->local_0[ls->max_locals];
 }
 
 #ifdef SSA_DEBUG_VERBOSE
 void ssa_print_trees(methodinfo *m, codegendata *cd, lsradata *ls,
 					 graphdata *gd, dominatordata *dd) {
 	int i,j;
-	printf("ssa_printtrees: maxlocals %3i", cd->maxlocals);
+	printf("ssa_printtrees: maxlocals %3i", jd->maxlocals);
 		
 	printf("Dominator Tree: \n");
 	for(i = 0; i < ls->basicblockcount; i++) {

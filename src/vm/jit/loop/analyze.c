@@ -34,7 +34,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: analyze.c 5925 2006-11-05 23:11:27Z edwin $
 
 */
 
@@ -1205,7 +1205,7 @@ void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type,
 	case TEST_CONST_ALENGTH:		/* a const is tested against array length	*/
 
 		/* does a test already exist for this array								*/
-		tc = ld->c_constraints[cd->maxlocals];
+		tc = ld->c_constraints[jd->maxlocals];
 		while (tc != NULL) {
 			if ((tc->type == TEST_CONST_ALENGTH) && (tc->arrayRef == arrayRef)) {
 				if (constant > tc->constant)
@@ -1221,8 +1221,8 @@ void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type,
 		tc->type	 = TEST_CONST_ALENGTH;
 		tc->arrayRef = arrayRef;
 		tc->constant = constant;
-		tc->next     = ld->c_constraints[cd->maxlocals];
-		ld->c_constraints[cd->maxlocals] = tc;
+		tc->next     = ld->c_constraints[jd->maxlocals];
+		ld->c_constraints[jd->maxlocals] = tc;
 		ld->c_needed_instr += 4;
 
 		/* if arrayRef is not already tested against null, insert that test     */
@@ -1295,7 +1295,7 @@ void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type,
 									/* checks									*/
 		/*!! varRef -> maxlocals */
 		/* search if test already exists										*/
-		tc = ld->c_constraints[cd->maxlocals];
+		tc = ld->c_constraints[jd->maxlocals];
 		while (tc != NULL) {
 			if (tc->type == TEST_RS_ZERO) {
 				if (constant < tc->constant)
@@ -1310,8 +1310,8 @@ void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type,
 			c_mem_error();
 		tc->type     = TEST_RS_ZERO;
 		tc->constant = constant;
-		tc->next     = ld->c_constraints[cd->maxlocals];
-		ld->c_constraints[cd->maxlocals] = tc;
+		tc->next     = ld->c_constraints[jd->maxlocals];
+		ld->c_constraints[jd->maxlocals] = tc;
 		ld->c_needed_instr += (2 + ld->c_rs_needed_instr);
 
 		/* if arrayRef on right side is not already tested against null,        */
@@ -1328,7 +1328,7 @@ void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type,
 									/* checks									*/
 		/*!! varRef -> maxlocals */
 		/* search if test already exists										*/
-		tc = ld->c_constraints[cd->maxlocals];
+		tc = ld->c_constraints[jd->maxlocals];
 		while (tc != NULL)
 		{
 			if ((tc->type == TEST_RS_ALENGTH) && (tc->arrayRef == arrayRef))
@@ -1346,8 +1346,8 @@ void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type,
 		tc->type	 = TEST_RS_ALENGTH;
 		tc->arrayRef = arrayRef;
 		tc->constant = constant;
-		tc->next     = ld->c_constraints[cd->maxlocals];
-		ld->c_constraints[cd->maxlocals] = tc;
+		tc->next     = ld->c_constraints[jd->maxlocals];
+		ld->c_constraints[jd->maxlocals] = tc;
 		ld->c_needed_instr += (3 + ld->c_rs_needed_instr);
 
 		/* if arrayRef is not already tested against null, insert that test     */
@@ -2776,7 +2776,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	stackdepth = loop_head->indepth;
 	
 	/* step through all inserted checks and create instructions for them        */
-	for (i=0; i<cd->maxlocals+1; ++i)
+	for (i=0; i<jd->maxlocals+1; ++i)
 	{
 		tc1 = ld->c_constraints[i];
 		while (tc1 != NULL)
@@ -2897,7 +2897,7 @@ struct Changes ** constraints_unrestricted_merge(codegendata *cd, struct Changes
 		printf("C_ERROR: debugging error 0x03\n");
 
 	changed = 0;
-	for (i=0; i<cd->maxlocals; ++i) {
+	for (i=0; i<jd->maxlocals; ++i) {
 		if (c1[i] == NULL) {
 			if (c2[i] != NULL) {		/* a change in c2 is updated in c1		*/
 				changed = 1;
@@ -2946,7 +2946,7 @@ struct Changes ** constraints_merge(codegendata *cd, struct Changes **c1, struct
 
 	changed = 0;
 
-	for (i=0; i<cd->maxlocals; ++i) {
+	for (i=0; i<jd->maxlocals; ++i) {
 		if (c1[i] == NULL) {
 			if (c2[i] != NULL) {		/* update changes in c2 in c1			*/
 				if ((c1[i] = (struct Changes *) malloc (sizeof(struct Changes))) == NULL)
@@ -2989,10 +2989,10 @@ struct Changes** constraints_clone(codegendata *cd, struct Changes **c)
 	int i;
 	struct Changes **t;
        
-	if ((t = (struct Changes **) malloc(cd->maxlocals * sizeof(struct Changes *))) == NULL)
+	if ((t = (struct Changes **) malloc(jd->maxlocals * sizeof(struct Changes *))) == NULL)
 		c_mem_error();
 
-	for (i=0; i<cd->maxlocals; ++i) {		/* for all array elements (vars) do		*/
+	for (i=0; i<jd->maxlocals; ++i) {		/* for all array elements (vars) do		*/
 		if (c[i] == NULL)
 			t[i] = NULL;
 		else {
@@ -3425,14 +3425,14 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 	int i, head, node;
 	struct Changes **changes;
 
-	if ((changes = (struct Changes **) malloc(cd->maxlocals * sizeof(struct Changes *))) == NULL)
+	if ((changes = (struct Changes **) malloc(jd->maxlocals * sizeof(struct Changes *))) == NULL)
 		c_mem_error();
 
     head = ld->c_current_head = lc->loop_head;
 	ld->c_needed_instr = ld->c_rs_needed_instr = 0;
 
 	/* init array for null ptr checks */
-	for (i=0; i<cd->maxlocals; ++i) 
+	for (i=0; i<jd->maxlocals; ++i) 
 		ld->c_null_check[i] = 0;
 
 
@@ -3449,14 +3449,14 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 			d->changes = NULL;
 		}
 
-	for (i=0; i < cd->maxlocals; ++i) {
+	for (i=0; i < jd->maxlocals; ++i) {
 		ld->c_var_modified[i] = 0;
 		if (changes[i] != NULL) {
 			changes[i] = NULL;
 			}
 		}
 
-	for (i=0; i < (cd->maxlocals+1); ++i) {
+	for (i=0; i < (jd->maxlocals+1); ++i) {
 		if (ld->c_constraints[i] != NULL) {
 		    ld->c_constraints[i] = NULL;
 			}
@@ -3633,10 +3633,10 @@ void optimize_loops(jitdata *jd)
 	/* create array with entries for current loop								*/
 	ld->c_current_loop = DMNEW(int, m->basicblockcount);	
 	ld->c_toVisit = DMNEW(int, m->basicblockcount);
-	ld->c_var_modified = DMNEW(int, cd->maxlocals);
-	ld->c_null_check = DMNEW(int, cd->maxlocals);
+	ld->c_var_modified = DMNEW(int, jd->maxlocals);
+	ld->c_null_check = DMNEW(int, jd->maxlocals);
 
-	if ((ld->c_constraints = (struct Constraint **) malloc((cd->maxlocals+1) * sizeof(struct Constraint *))) == NULL)
+	if ((ld->c_constraints = (struct Constraint **) malloc((jd->maxlocals+1) * sizeof(struct Constraint *))) == NULL)
 		c_mem_error();
 
 #ifdef ENABLE_STATISTICS

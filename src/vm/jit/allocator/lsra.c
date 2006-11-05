@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: lsra.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: lsra.c 5925 2006-11-05 23:11:27Z edwin $
 
 */
 
@@ -927,7 +927,7 @@ void lsra_setup(jitdata *jd) {
 
 	liveness_init(jd);
 
-	ls->lifetimecount = ls->maxlifetimes + cd->maxlocals * (TYPE_ADR+1);
+	ls->lifetimecount = ls->maxlifetimes + jd->maxlocals * (TYPE_ADR+1);
 	ls->lifetime = DMNEW(struct lifetime, ls->lifetimecount);
 	ls->lt_used  = DMNEW(int, ls->lifetimecount);
 	ls->lt_int   = DMNEW(int, ls->lifetimecount);

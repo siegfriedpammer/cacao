@@ -58,11 +58,12 @@ typedef struct rplalloc rplalloc;
 
 /* `rplalloc` is a compact struct for register allocation info        */
 
+/* XXX optimize this for space efficiency */
 struct rplalloc {
-	unsigned int index:16;  /* register index / stack slot offset     */
+	s4           index;     /* local index, -1 for stack slot         */
+	s4           regoff;    /* register index / stack slot offset     */
 	unsigned int flags:4;   /* OR of (INMEMORY,...)                   */
 	int          type:4;    /* TYPE_... constant                      */
-	unsigned int next:1;    /* if true, switch to next local          */
 };
 
 #if INMEMORY > 0x08
@@ -102,8 +103,9 @@ struct sourcestate {
 	u8           *javastack;
 	s4            javastackdepth;
 
-	u8           *javalocals;      /* indexed by (i*5 + type) */
+	u8           *javalocals;
 	s4            javalocalcount;
+	u1           *javalocaltype;
 
 	u8            savedintregs[INT_SAV_CNT + 1]; /* XXX */
 	u8            savedfltregs[FLT_SAV_CNT + 1]; /* XXX */

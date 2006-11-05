@@ -321,7 +321,7 @@ void liveness_init(jitdata *jd) {
 		}
 	}
 	ls->maxlifetimes = lifetimes;
-	ls->lifetimecount = lifetimes + jd->cd->maxlocals * (TYPE_ADR+1);
+	ls->lifetimecount = lifetimes + jd->maxlocals * (TYPE_ADR+1);
 }
 
 void liveness_scan_basicblock(jitdata *jd, int b_index,

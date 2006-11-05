@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5785 2006-10-15 22:25:54Z edwin $
+   $Id: codegen-common.h 5925 2006-11-05 23:11:27Z edwin $
 
 */
 
@@ -130,7 +130,6 @@ struct codegendata {
 	s4                 threadcritcount; /* Number of critical regions         */
 
 	s4              maxstack;
-	s4              maxlocals;
 	s4              stackframesize;    /* stackframe size of this method      */
 };
 

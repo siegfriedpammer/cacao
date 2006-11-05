@@ -156,7 +156,7 @@ void scan_lifetimes(methodinfo *m, codegendata *cd, registerdata *rd,
  	for (p = 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
 		i = ls->local_0[p];
-		_LT_ASSERT( i < cd->maxlocals);
+		_LT_ASSERT( i < jd->maxlocals);
 #ifdef LT_DEBUG_VERBOSE
 		if (compileverbose)
 			printf("param %3i -> L %3i/%3i",p,i,t);

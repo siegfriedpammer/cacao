@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: typecheck.c 5925 2006-11-05 23:11:27Z edwin $
 
 */
 
@@ -1041,7 +1041,7 @@ bool typecheck(jitdata *jd)
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
 	TYPECHECK_COUNT(stat_typechecked);
-	TYPECHECK_COUNT_FREQ(stat_locals,cdata->maxlocals,STAT_LOCALS);
+	TYPECHECK_COUNT_FREQ(stat_locals,jd->maxlocals,STAT_LOCALS);
 	TYPECHECK_COUNT_FREQ(stat_blocks,cdata->method->basicblockcount/10,STAT_BLOCKS);
 	TYPECHECK_COUNTIF(cdata->method->exceptiontablelength != 0,stat_methods_with_handlers);
 	state.stat_maythrow = false;
@@ -1097,7 +1097,7 @@ bool typecheck(jitdata *jd)
 		state.numlocals++; /* VERIFIER_EXTRA_LOCALS */
 
 	state.reverselocalmap = DMNEW(s4, state.validlocals);
-	for (i=0; i<jd->m->maxlocals; ++i)
+	for (i=0; i<jd->maxlocals; ++i)
 		for (t=0; t<5; ++t) {
 			s4 mapped = jd->local_map[5*i + t];
 			if (mapped >= 0)

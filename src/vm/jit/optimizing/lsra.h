@@ -185,13 +185,13 @@ struct lsradata {
 	int **num_var_use; /* count of var_use[bb][var_index] */
 	int **var; /* [0..cd->maxlocal+cd->maxstack[[0..4] */
 	/* ssa_set_local_def and ssa_set_interface (called from analyse_stack)    */
-	/* set var[local_index][local_type] and var[cd->maxlocals+stack_depth]    */
+	/* set var[local_index][local_type] and var[jd->maxlocals+stack_depth]    */
 	/* [stack_type] to a unique type independend index [0..ls->max_vars[      */
 	/* unused entries are set to -1                                           */
 	int max_vars;
 	int max_vars_with_indices;
 	int *num_defs;    /* counts definitions of variables     */
-	                  /* [0..cd->maxlocals*5+cd->maxstack*5[ */
+	                  /* [0..jd->maxlocals*5+cd->maxstack*5[ */
 	                  /* valid for [0..ls->max_vars[         */
 	
 
@@ -203,7 +203,7 @@ struct lsradata {
 	int *interface_0; /* same here, just with interfaces */
 
 	int *var_to_index; /* var index to interface (<0) or local (>=0) index */
-	                   /* [0..cd->maxlocals*5+cd->maxstack*5[              */
+	                   /* [0..jd->maxlocals*5+cd->maxstack*5[              */
 	                   /* valid for [0..ls->max_vars[                      */
 	                   /* holds var_index or the negative interface index  */
 	                   /* in ssa_Rename_init the indices are changed to the */

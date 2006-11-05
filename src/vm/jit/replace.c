@@ -97,6 +97,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	int t;
 	bool indexused;
 	varinfo *v;
+	s4 index;
 
 	/* get required compiler data */
 
@@ -128,6 +129,10 @@ bool replace_create_replacement_points(jitdata *jd)
 		
 		count++;
 		alloccount += bptr->indepth;
+
+		for (i=0; i<jd->maxlocals; ++i)
+			if (bptr->javalocals[i] != UNUSED)
+				alloccount++;
 	}
 
 	/* if no points were found, there's nothing to do */
@@ -139,6 +144,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 	globalcount = 0;
 
+#if 0
 	for (i=0; i<m->maxlocals; ++i) {
 		indexused = false;
 		for (t=0; t<5; ++t) {
@@ -156,6 +162,7 @@ bool replace_create_replacement_points(jitdata *jd)
 		if (!indexused)
 			globalcount++; /* dummy rplalloc */
 	}
+#endif
 
 	alloccount += globalcount;
 
@@ -167,6 +174,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 	/* store global register allocations */
 
+#if 0
 	for (i=0; i<m->maxlocals; ++i) {
 		indexused = false;
 		for (t=0; t<5; ++t) {
@@ -176,7 +184,7 @@ bool replace_create_replacement_points(jitdata *jd)
 				if (jd->local_map[5*i + t] != UNUSED) {
 					v = VAR(jd->local_map[5*i + t]);
 					ra->flags = v->flags & (INMEMORY);
-					ra->index = v->vv.regoff;
+					ra->regoff = v->vv.regoff;
 					ra->type  = t;
 					ra->next = (indexused) ? 0 : 1;
 					ra++;
@@ -190,11 +198,12 @@ bool replace_create_replacement_points(jitdata *jd)
 			/* dummy rplalloc */
 			ra->type = -1;
 			ra->flags = 0;
-			ra->index = 0;
+			ra->regoff = 0;
 			ra->next = 1;
 			ra++;
 		}
 	}
+#endif
 
 	/* initialize replacement point structs */
 
@@ -216,12 +225,25 @@ bool replace_create_replacement_points(jitdata *jd)
 
 		/* store local allocation info */
 
+		for (i = 0; i<jd->maxlocals; ++i) {
+			index = bptr->javalocals[i];
+			if (index == UNUSED)
+				continue;
+
+			v = VAR(index);
+			ra->flags = v->flags & (INMEMORY);
+			ra->index = i;
+			ra->regoff = v->vv.regoff;
+			ra->type = v->type;
+			ra++;
+		}
+
 		for (i = 0; i<bptr->indepth; ++i) {
 			v = VAR(bptr->invars[i]);
 			ra->flags = v->flags & (INMEMORY);
-			ra->index = v->vv.regoff;
+			ra->index = -1;
+			ra->regoff = v->vv.regoff;
 			ra->type  = v->type;
-			ra->next  = 1;
 			ra++;
 		}
 
@@ -356,11 +378,11 @@ inline static void replace_read_value(executionstate *es,
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
-			*javaval = *(u8*)(sp + ra->index);
+			*javaval = *(u8*)(sp + ra->regoff);
 		}
 		else {
 #endif
-			*javaval = sp[ra->index];
+			*javaval = sp[ra->regoff];
 #ifdef HAS_4BYTE_STACKSLOT
 		}
 #endif
@@ -368,10 +390,10 @@ inline static void replace_read_value(executionstate *es,
 	else {
 		/* allocated register */
 		if (IS_FLT_DBL_TYPE(ra->type)) {
-			*javaval = es->fltregs[ra->index];
+			*javaval = es->fltregs[ra->regoff];
 		}
 		else {
-			*javaval = es->intregs[ra->index];
+			*javaval = es->intregs[ra->regoff];
 		}
 	}
 }
@@ -389,11 +411,11 @@ inline static void replace_write_value(executionstate *es,
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
-			*(u8*)(sp + ra->index) = *javaval;
+			*(u8*)(sp + ra->regoff) = *javaval;
 		}
 		else {
 #endif
-			sp[ra->index] = *javaval;
+			sp[ra->regoff] = *javaval;
 #ifdef HAS_4BYTE_STACKSLOT
 		}
 #endif
@@ -401,10 +423,10 @@ inline static void replace_write_value(executionstate *es,
 	else {
 		/* allocated register */
 		if (IS_FLT_DBL_TYPE(ra->type)) {
-			es->fltregs[ra->index] = *javaval;
+			es->fltregs[ra->regoff] = *javaval;
 		}
 		else {
-			es->intregs[ra->index] = *javaval;
+			es->intregs[ra->regoff] = *javaval;
 		}
 	}
 }
@@ -470,14 +492,17 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 
 	/* read local variables */
 
-	count = m->maxlocals;
+	count = m->maxlocals; /* XXX inlining */
 	ss->javalocalcount = count;
-	ss->javalocals = DMNEW(u8,count * 5);
+	ss->javalocals = DMNEW(u8, count);
+	ss->javalocaltype = DMNEW(u1, count);
 
 #ifndef NDEBUG
 	/* mark values as undefined */
-	for (i=0; i<count*5; ++i)
+	for (i=0; i<count; ++i) {
 		ss->javalocals[i] = (u8) 0x00dead0000dead00ULL;
+		ss->javalocaltype[i] = TYPE_VOID;
+	}
 
 	/* some entries in the intregs array are not meaningful */
 	/*es->intregs[REG_ITMP3] = (u8) 0x11dead1111dead11ULL;*/
@@ -487,6 +512,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 #endif
 #endif /* NDEBUG */
 	
+#if 0
 	ra = code->regalloc;
 
 	i = -1;
@@ -499,12 +525,24 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 
 		replace_read_value(es,sp,ra,ss->javalocals + (5*i+t));
 	}
+#endif
+
+	/* read javalocals */
+
+	count = rp->regalloccount;
+	ra = rp->regalloc;
+
+	while (ra && (i = ra->index) >= 0) {
+		ss->javalocaltype[i] = ra->type;
+		replace_read_value(es, sp, ra, ss->javalocals + i);
+		ra++;
+		count--;
+	}
 
 	/* read stack slots */
 
-	count = rp->regalloccount;
 	ss->javastackdepth = count;
-	ss->javastack = DMNEW(u8,count);
+	ss->javastack = DMNEW(u8, count);
 
 #ifndef NDEBUG
 	/* mark values as undefined */
@@ -513,7 +551,6 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 #endif
 	
 	i = 0;
-	ra = rp->regalloc;
 
 	/* the first stack slot is special in SBR and EXH blocks */
 
@@ -537,7 +574,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	/* read remaining stack slots */
 	
 	for (; count--; ra++, i++) {
-		assert(ra->next);
+		assert(ra->index == -1);
 
 		replace_read_value(es,sp,ra,ss->javastack + i);
 	}
@@ -664,9 +701,10 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	}
 #endif
 
+#if 0
 	/* write local variables */
 
-	count = m->maxlocals;
+	count = m->maxlocals; /* XXX inlining */
 
 	ra = code->regalloc;
 
@@ -683,13 +721,22 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 
 		replace_write_value(es,sp,ra,ss->javalocals + (5*i+t));
 	}
+#endif
+
+	/* write javalocals */
+
+	ra = rp->regalloc;
+	count = rp->regalloccount;
+
+	while (ra && (i = ra->index) >= 0) {
+		assert(ra->type == ss->javalocaltype[i]);
+		replace_write_value(es, sp, ra, ss->javalocals + i);
+		ra++;
+	}
 
 	/* write stack slots */
 
-	count = rp->regalloccount;
-
 	i = 0;
-	ra = rp->regalloc;
 
 	/* the first stack slot is special in SBR and EXH blocks */
 
@@ -713,7 +760,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	/* write remaining stack slots */
 	
 	for (; count--; ra++, i++) {
-		assert(ra->next);
+		assert(ra->index == -1);
 
 		replace_write_value(es,sp,ra,ss->javastack + i);
 	}
@@ -860,12 +907,15 @@ void replace_replacement_point_println(rplpoint *rp)
 			(void*)rp,rp->pc,rp->outcode,(void*)rp->target,
 			(unsigned long long)rp->mcode,rp->type,rp->flags,rp->regalloccount);
 
-	for (j=0; j<rp->regalloccount; ++j)
-		printf("%c%1c%01x:%02d",
-				(rp->regalloc[j].next) ? '^' : ' ',
-				TYPECHAR(rp->regalloc[j].type),
-				rp->regalloc[j].flags,
-				rp->regalloc[j].index);
+	for (j=0; j<rp->regalloccount; ++j) {
+		if (j)
+			putchar(' ');
+		printf("%d:%1c:",
+				rp->regalloc[j].index,
+				/* (rp->regalloc[j].next) ? '^' : ' ', */
+				TYPECHAR(rp->regalloc[j].type));
+		show_allocation(rp->regalloc[j].type, rp->regalloc[j].flags, rp->regalloc[j].regoff);
+	}
 
 	printf("]\n          method: ");
 	method_print(rp->code->m);
@@ -895,15 +945,17 @@ void replace_show_replacement_points(codeinfo *code)
 	}
 
 	printf("\treplacement points: %d\n",code->rplpointcount);
+#if 0
 	printf("\tglobal allocations: %d = [",code->globalcount);
 
 	for (i=0; i<code->globalcount; ++i)
 		printf("%c%1c%01x:%02d",
 				(code->regalloc[i].next) ? '^' : ' ',
 				TYPECHAR(code->regalloc[i].type),
-				code->regalloc[i].flags,code->regalloc[i].index);
+				code->regalloc[i].flags,code->regalloc[i].regoff);
 
 	printf("]\n");
+#endif
 
 	printf("\ttotal allocations : %d\n",code->regalloccount);
 	printf("\tsaved int regs    : %d\n",code->savedintcount);

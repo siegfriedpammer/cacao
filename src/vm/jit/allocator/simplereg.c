@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5909 2006-11-05 10:22:37Z edwin $
+   $Id: simplereg.c 5925 2006-11-05 23:11:27Z edwin $
 
 */
 
@@ -593,7 +593,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	aargcnt = rd->argadrreguse;
 #endif
-	for (p = 0, s = 0; s < cd->maxlocals; s++, p++) {
+	for (p = 0, s = 0; s < jd->maxlocals; s++, p++) {
 		intalloc = -1; fltalloc = -1;
 		for (tt = 0; tt <= 4; tt++) {
 			t = typeloop[tt];
@@ -797,7 +797,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 		return;
 	}
 
-	for (s = 0; s < cd->maxlocals; s++) {
+	for (s = 0; s < jd->maxlocals; s++) {
 		intalloc = -1; fltalloc = -1;
 		for (tt=0; tt<=4; tt++) {
 			t = typeloop[tt];

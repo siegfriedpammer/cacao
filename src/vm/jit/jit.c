@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5924 2006-11-05 22:47:23Z edwin $
+   $Id: jit.c 5925 2006-11-05 23:11:27Z edwin $
 
 */
 
@@ -1412,7 +1412,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		} else
 # endif /* defined(ENABLE_SSA) */
 		{
-			STATISTICS(count_locals_conflicts += (cd->maxlocals - 1) * (cd->maxlocals));
+			STATISTICS(count_locals_conflicts += (jd->maxlocals - 1) * (jd->maxlocals));
 
 			regalloc(jd);
 		}

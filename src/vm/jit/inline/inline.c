@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5911 2006-11-05 10:40:15Z edwin $
+   $Id: inline.c 5925 2006-11-05 23:11:27Z edwin $
 
 */
 
@@ -264,7 +264,6 @@ static bool inline_jit_compile(inline_node *iln)
 	jd->cd = DNEW(codegendata);
 	MZERO(jd->cd, codegendata, 1);
 	jd->cd->maxstack = m->maxstack;
-	jd->cd->maxlocals = m->maxlocals;
 	jd->cd->method = m;
 	/* XXX uses too much dump memory codegen_setup(jd); */
 
@@ -1760,7 +1759,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 	memcpy(n_cd, jd->cd, sizeof(codegendata));
 
 	n_cd->method = NULL; /* XXX */
-	n_cd->maxlocals = iln->cumul_maxlocals;
+	n_jd->maxlocals = iln->cumul_maxlocals;
 	n_jd->maxinterfaces = iln->ctx->maxinoutdepth;
 
 	inline_post_process(n_jd);

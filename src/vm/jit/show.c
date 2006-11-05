@@ -66,13 +66,6 @@ static java_objectheader *show_global_lock;
 #endif
 
 
-/* forward declarations *******************************************************/
-
-#if !defined(NDEBUG)
-static void show_allocation(s4 type, s4 flags, s4 regoff);
-#endif
-
-
 /* show_init *******************************************************************
 
    Initialized the show subsystem (called by jit_init).
@@ -188,7 +181,7 @@ void show_method(jitdata *jd, int stage)
 	printf("Variables:       %d (%d used)\n", jd->varcount, jd->vartop);
 	if (stage >= SHOW_STACK)
 		printf("Max interfaces:  %d\n", jd->maxinterfaces);
-	printf("Max locals:      %d\n", m->maxlocals);
+	printf("Max locals:      %d\n", jd->maxlocals);
 	printf("Max stack:       %d\n", m->maxstack);
 	printf("Linenumbers:     %d\n", m->linenumbercount);
 	printf("Branch to entry: %s\n", (jd->branchtoentry) ? "yes" : "no");
@@ -239,16 +232,16 @@ void show_method(jitdata *jd, int stage)
 		printf("\n");
 	}
 
-	if (cd->maxlocals > 0 && jd->local_map != NULL) {
+	if (jd->maxlocals > 0 && jd->local_map != NULL) {
 		printf("Local Map:\n");
 		printf("    index ");
-		for (j = 0; j < cd->maxlocals; j++) {
+		for (j = 0; j < jd->maxlocals; j++) {
 			printf(" [%2d]", j);
 		}
 		printf("\n");
 		for (i = 0; i < 5; i++) {
 			printf("    %5s ",show_jit_type_names[i]);
-			for (j = 0; j < cd->maxlocals; j++) {
+			for (j = 0; j < jd->maxlocals; j++) {
 				if (jd->local_map[j*5+i] == UNUSED)
 					printf("  -- ");
 				else
@@ -485,7 +478,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			printf("IN:  ");
 			show_variable_array(jd, bptr->invars, bptr->indepth, irstage);
 			printf(" javalocals: ");
-			show_variable_array(jd, bptr->javalocals, jd->m->maxlocals, irstage);
+			show_variable_array(jd, bptr->javalocals, jd->maxlocals, irstage);
 			printf("\n");
 		}
 
@@ -697,7 +690,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         printf("=> JavaL%d ", iptr->dst.varindex);                   \
     }
 
-static void show_allocation(s4 type, s4 flags, s4 regoff)
+void show_allocation(s4 type, s4 flags, s4 regoff)
 {
 	if (flags & INMEMORY) {
 		printf("M%02d", regoff);
