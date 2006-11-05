@@ -484,6 +484,8 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		if (irstage >= SHOW_STACK) {
 			printf("IN:  ");
 			show_variable_array(jd, bptr->invars, bptr->indepth, irstage);
+			printf(" javalocals: ");
+			show_variable_array(jd, bptr->javalocals, jd->m->maxlocals, irstage);
 			printf("\n");
 		}
 
@@ -803,11 +805,19 @@ void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
 {
 	int i;
 
+	if (vars == NULL) {
+		printf("<null>");
+		return;
+	}
+
 	printf("[");
 	for (i=0; i<n; ++i) {
 		if (i)
 			printf(" ");
-		show_variable(jd, vars[i], stage);
+		if (vars[i] == UNUSED)
+			putchar('-');
+		else
+			show_variable(jd, vars[i], stage);
 	}
 	printf("]");
 }
