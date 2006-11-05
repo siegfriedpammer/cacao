@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5909 2006-11-05 10:22:37Z edwin $
+   $Id: stack.c 5915 2006-11-05 19:49:29Z edwin $
 
 */
 
@@ -324,15 +324,18 @@ struct stackdata_t {
 #if defined(ENABLE_VERIFIER)
 #define COPY_VAL_AND_TYPE_VAR(sv, dv)                                \
     do {                                                             \
-        (dv)->type = (sv)->type;                                     \
-        (dv)->vv  = (sv)->vv;                                        \
-        (dv)->SBRSTART = (sv)->SBRSTART;                             \
+        if (((dv)->type = (sv)->type) == TYPE_RET) {                 \
+            (dv)->vv  = (sv)->vv;                                    \
+            (dv)->SBRSTART = (sv)->SBRSTART;                         \
+        }                                                            \
     } while (0)
 #else
 #define COPY_VAL_AND_TYPE_VAR(sv, dv)                                \
     do {                                                             \
         (dv)->type = (sv)->type;                                     \
-        (dv)->vv  = (sv)->vv;                                        \
+        if (((dv)->type = (sv)->type) == TYPE_RET) {                 \
+            (dv)->vv  = (sv)->vv;                                    \
+        }                                                            \
     } while (0)
 #endif
 
