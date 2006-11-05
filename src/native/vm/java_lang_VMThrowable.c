@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: java_lang_VMThrowable.c 5260 2006-08-22 14:39:36Z twisti $
+   $Id: java_lang_VMThrowable.c 5913 2006-11-05 16:58:27Z michi $
 
 */
 
@@ -63,7 +63,7 @@
 JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackTrace(JNIEnv *env, jclass clazz, java_lang_Throwable *t)
 {
 	java_lang_VMThrowable *o;
-	stacktracebuffer      *stb;
+	stacktracecontainer   *stc;
 
 	o = (java_lang_VMThrowable *)
 		native_new_and_init(class_java_lang_VMThrowable);
@@ -71,12 +71,12 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	if (o == NULL)
 		return NULL;
 
-	stb = stacktrace_fillInStackTrace();
+	stc = stacktrace_fillInStackTrace();
 
-	if (stb == NULL)
+	if (stc == NULL)
 		return NULL;
 
-	o->vmData = (gnu_classpath_Pointer *) stb;
+	o->vmData = (gnu_classpath_Pointer *) stc;
 
 	return o;
 }
@@ -89,6 +89,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
+	stacktracecontainer         *stc;
 	stacktracebuffer            *stb;
 	stacktrace_entry            *ste;
 	stacktrace_entry            *tmpste;
@@ -108,7 +109,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 	/* get the stacktrace buffer from the VMThrowable object */
 
-	stb = (stacktracebuffer *) this->vmData;
+	stc = (stacktracecontainer *) this->vmData;
+	stb = &(stc->stb);
 
 	/* get the class of the Throwable object */
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 5805 2006-10-19 09:32:29Z twisti $
+   $Id: stacktrace.h 5913 2006-11-05 16:58:27Z michi $
 
 */
 
@@ -103,6 +103,20 @@ struct stacktracebuffer {
 };
 
 
+/* stacktracecontainer ********************************************************
+
+   ATTENTION: Use the stacktracecontainer to place a stacktrace onto the heap
+   with stacktrace_fillInStackTrace() so that the GC does not get confused.
+
+*******************************************************************************/
+
+typedef struct stacktracecontainer {
+	java_arrayheader        header;     /* default array header for the GC    */
+	struct stacktracebuffer stb;        /* let entries point to data below    */
+	stacktrace_entry        data[1];    /* the actual array of entries        */
+} stacktracecontainer;
+
+
 /* function prototypes ********************************************************/
 
 #if defined(ENABLE_INTRP)
@@ -167,10 +181,10 @@ java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
 															u1 *ra, u1 *xpc);
 
 
-stacktracebuffer  *stacktrace_fillInStackTrace(void);
-java_objectarray  *stacktrace_getClassContext(void);
-classinfo         *stacktrace_getCurrentClass(void);
-java_objectarray  *stacktrace_getStack(void);
+stacktracecontainer *stacktrace_fillInStackTrace(void);
+java_objectarray    *stacktrace_getClassContext(void);
+classinfo           *stacktrace_getCurrentClass(void);
+java_objectarray    *stacktrace_getStack(void);
 
 void stacktrace_dump_trace(threadobject *thread);
 void stacktrace_print_trace(java_objectheader *xptr);

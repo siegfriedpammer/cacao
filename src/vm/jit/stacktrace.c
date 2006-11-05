@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: stacktrace.c 5913 2006-11-05 16:58:27Z michi $
 
 */
 
@@ -1086,11 +1086,12 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 *******************************************************************************/
 
-stacktracebuffer *stacktrace_fillInStackTrace(void)
+stacktracecontainer *stacktrace_fillInStackTrace(void)
 {
-	stacktracebuffer *stb;
-	stacktracebuffer *gcstb;
-	s4                dumpsize;
+	stacktracebuffer    *stb;
+	stacktracecontainer *gcstc;
+	s4                   gcstc_size;
+	s4                   dumpsize;
 	CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
 
 	/* mark start of dump memory area */
@@ -1104,20 +1105,21 @@ stacktracebuffer *stacktrace_fillInStackTrace(void)
 		goto return_NULL;
 
 	/* allocate memory from the GC heap and copy the stacktrace buffer */
+	/* ATTENTION: use stacktracecontainer for this and make it look like
+       an array */
 
-	gcstb = GCNEW(stacktracebuffer);
+	gcstc_size = sizeof(stacktracebuffer) +
+	             sizeof(stacktrace_entry) * stb->used;
+	gcstc = (stacktracecontainer *) builtin_newarray_byte(gcstc_size);
 
-	if (gcstb == NULL)
+	if (gcstc == NULL)
 		goto return_NULL;
 
-	gcstb->capacity = stb->capacity;
-	gcstb->used     = stb->used;
-	gcstb->entries  = GCMNEW(stacktrace_entry, stb->used);
+	gcstc->stb.capacity = stb->capacity;
+	gcstc->stb.used     = stb->used;
+	gcstc->stb.entries  = gcstc->data;
 
-	if (gcstb->entries == NULL)
-		goto return_NULL;
-
-	MCOPY(gcstb->entries, stb->entries, stacktrace_entry, stb->used);
+	MCOPY(gcstc->data, stb->entries, stacktrace_entry, stb->used);
 
 	/* release dump memory */
 
@@ -1125,7 +1127,7 @@ stacktracebuffer *stacktrace_fillInStackTrace(void)
 
 	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
 								   stacktrace_overhead)
-	return gcstb;
+	return gcstc;
 
 return_NULL:
 	dump_release(dumpsize);
@@ -1479,6 +1481,7 @@ void stacktrace_print_trace(java_objectheader *xptr)
 {
 	java_lang_Throwable   *t;
 	java_lang_VMThrowable *vmt;
+	stacktracecontainer   *stc;
 	stacktracebuffer      *stb;
 
 	t = (java_lang_Throwable *) xptr;
@@ -1489,7 +1492,8 @@ void stacktrace_print_trace(java_objectheader *xptr)
 	/* now print the stacktrace */
 
 	vmt = t->vmState;
-	stb = (stacktracebuffer *) vmt->vmData;
+	stc = (stacktracecontainer *) vmt->vmData;
+	stb = &(stc->stb);
 
 	stacktrace_print_trace_from_buffer(stb);
 }
