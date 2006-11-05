@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5909 2006-11-05 10:22:37Z edwin $
+   $Id: jit.h 5916 2006-11-05 20:07:21Z edwin $
 
 */
 
@@ -296,6 +296,7 @@ typedef union {
     s4                         tablehigh;        /* for TABLESWITCH           */
     branch_target_t            lookupdefault;    /* for LOOKUPSWITCH          */
     branch_target_t            jsrtarget;        /* for JSR                   */
+	s4                         javaindex;        /* for *STORE                */
     struct builtintable_entry *bte;
 } s3_operand_t;
 
@@ -328,6 +329,8 @@ typedef union {
 #define INS_FLAG_ARRAY         0x04    /* for CHECKCAST/INSTANCEOF with array */
 #define INS_FLAG_CHECK         0x08    /* for *ALOAD|*ASTORE: check index     */
                                        /* for BUILTIN: check exception        */
+#define INS_FLAG_KILL_PREV     0x02    /* for *STORE, invalidate prev local   */
+#define INS_FLAG_KILL_NEXT     0x04    /* for *STORE, invalidate next local   */
 
 typedef union {
     u4                  bits;
@@ -440,6 +443,7 @@ struct basicblock {
 	instruction  *iinstr;       /* pointer to intermediate code instructions  */
 
 	varinfo      *inlocals;     /* copy of locals on block entry              */
+	s4           *javalocals;   /* map from java locals to cacao variables    */
 	s4           *invars;       /* array of in-variables at begin of block    */
 	s4           *outvars;      /* array of out-variables at end of block     */
 	s4            indepth;      /* stack depth at begin of basic block        */

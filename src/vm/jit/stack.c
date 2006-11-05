@@ -25,12 +25,11 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Andreas Krall
-
-   Changes: Edwin Steiner
+            Edwin Steiner
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5915 2006-11-05 19:49:29Z edwin $
+   $Id: stack.c 5916 2006-11-05 20:07:21Z edwin $
 
 */
 
@@ -127,7 +126,9 @@ struct stackdata_t {
     s4 localcount;                /* number of locals (at the start of var)   */
     s4 varcount;                  /* maximum number of variables expected     */
 	s4 varsallocated;             /* total number of variables allocated      */
+	s4 maxlocals;                 /* max. number of Java locals               */
     varinfo *var;                 /* variable array (same as jd->var)         */
+	s4 *javalocals;               /* map from Java locals to jd->var indices  */
 	methodinfo *m;                /* the method being analysed                */
 	jitdata *jd;                  /* current jitdata                          */
 	basicblock *last_real_block;  /* the last block before the empty one      */
@@ -520,6 +521,8 @@ static void stack_verbose_show_variable(stackdata_t *sd, s4 index);
 static void stack_verbose_show_block(stackdata_t *sd, basicblock *bptr);
 static void stack_verbose_block_enter(stackdata_t *sd, bool reanalyse);
 static void stack_verbose_block_exit(stackdata_t *sd, bool superblockend);
+static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, 
+									 stackptr curstack);
 #endif
 
 
@@ -622,6 +625,7 @@ static basicblock * stack_clone_block(stackdata_t *sd, basicblock *b)
 
 	clone->iinstr = NULL;
 	clone->inlocals = NULL;
+	clone->javalocals = NULL;
 	clone->invars = NULL;
 
 	clone->original = (b->original) ? b->original : b;
@@ -641,6 +645,86 @@ static basicblock * stack_clone_block(stackdata_t *sd, basicblock *b)
 #endif
 
 	return clone;
+}
+
+
+/* stack_create_locals *********************************************************
+ 
+   Create the local variables for the start of the given basic block.
+
+   IN:
+      sd...........stack analysis data
+	  b............block to create the locals for
+
+*******************************************************************************/
+
+static void stack_create_locals(stackdata_t *sd, basicblock *b)
+{
+	s4       i;
+	s4      *jl;
+	varinfo *dv;
+
+	/* copy the current state of the local variables */
+	/* (one extra local is needed by the verifier)   */
+
+	dv = DMNEW(varinfo, sd->localcount + VERIFIER_EXTRA_LOCALS);
+	b->inlocals = dv;
+	for (i=0; i<sd->localcount; ++i)
+		*dv++ = sd->var[i];
+
+	/* the current map from java locals to cacao variables */
+
+	jl = DMNEW(s4, sd->maxlocals);
+	b->javalocals = jl;
+	MCOPY(jl, sd->javalocals, s4, sd->maxlocals);
+}
+
+
+/* stack_merge_locals **********************************************************
+ 
+   Merge local variables at the beginning of the given basic block.
+
+   IN:
+      sd...........stack analysis data
+	  b............the block that is reached
+
+*******************************************************************************/
+
+static void stack_merge_locals(stackdata_t *sd, basicblock *b)
+{
+	s4 i;
+	varinfo *dv;
+	varinfo *sv;
+
+	/* If a javalocal is mapped to different cacao locals along the */
+	/* incoming control-flow edges, it becomes undefined.           */
+
+	for (i=0; i<sd->maxlocals; ++i) {
+		if (b->javalocals[i] != UNUSED && b->javalocals[i] != sd->javalocals[i]) {
+			b->javalocals[i] = UNUSED;
+			if (b->flags >= BBFINISHED)
+				b->flags = BBTYPECHECK_REACHED;
+			if (b->nr <= sd->bptr->nr)
+				sd->repeat = true;
+		}
+	}
+
+#if defined(ENABLE_VERIFIER)
+	if (b->inlocals) {
+		for (i=0; i<sd->localcount; ++i) {
+			dv = b->inlocals + i;
+			sv = sd->var + i;
+			if ((sv->type == TYPE_RET && dv->type == TYPE_RET)
+					&& (sv->SBRSTART != dv->SBRSTART))
+			{
+				dv->type = TYPE_VOID;
+				if (b->flags >= BBFINISHED)
+					b->flags = BBTYPECHECK_REACHED;
+				sd->repeat = true; /* This is very rare, so just repeat */
+			}
+		}
+	}
+#endif /* defined(ENABLE_VERIFIER) */
 }
 
 
@@ -685,13 +769,7 @@ static void stack_create_invars(stackdata_t *sd, basicblock *b,
 		COPY_VAL_AND_TYPE_VAR(sv, dv);
 	}
 
-	/* copy the current state of the local variables */
-	/* (one extra local is needed by the verifier)   */
-
-	dv = DMNEW(varinfo, sd->localcount + VERIFIER_EXTRA_LOCALS);
-	b->inlocals = dv;
-	for (i=0; i<sd->localcount; ++i)
-		*dv++ = sd->var[i];
+	stack_create_locals(sd, b);
 }
 
 
@@ -731,13 +809,7 @@ static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b)
 		}
 	}
 
-	/* copy the current state of the local variables */
-	/* (one extra local is needed by the verifier)   */
-
-	dv = DMNEW(varinfo, sd->localcount + VERIFIER_EXTRA_LOCALS);
-	b->inlocals = dv;
-	for (i=0; i<sd->localcount; ++i)
-		*dv++ = sd->var[i];
+	stack_create_locals(sd, b);
 }
 
 
@@ -843,24 +915,9 @@ static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
 		}
 
 		if (!separable) {
-			/* XXX mark mixed type variables void */
 			/* XXX cascading collapse? */
-#if defined(ENABLE_VERIFIER)
-			if (b->inlocals) {
-				for (i=0; i<sd->localcount; ++i) {
-					dv = b->inlocals + i;
-					sv = sd->var + i;
-					if ((sv->type == TYPE_RET && dv->type == TYPE_RET)
-						&& (sv->SBRSTART != dv->SBRSTART))
-					{
-						dv->type = TYPE_VOID;
-						if (b->flags >= BBFINISHED)
-							b->flags = BBTYPECHECK_REACHED;
-						sd->repeat = true; /* This is very rare, so just repeat */
-					}
-				}
-			}
-#endif
+
+			stack_merge_locals(sd, b);
 
 #if defined(STACK_VERBOSE)
 			printf("------> using L%03d\n", b->nr);
@@ -979,24 +1036,9 @@ static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock 
 		}
 
 		if (!separable) {
-			/* XXX mark mixed type variables void */
 			/* XXX cascading collapse? */
-#if defined(ENABLE_VERIFIER)
-			if (b->inlocals) {
-				for (i=0; i<sd->localcount; ++i) {
-					dv = b->inlocals + i;
-					sv = sd->var + i;
-					if ((sv->type == TYPE_RET && dv->type == TYPE_RET)
-							&& (sv->SBRSTART != dv->SBRSTART))
-					{
-						dv->type = TYPE_VOID;
-						if (b->flags >= BBFINISHED)
-							b->flags = BBTYPECHECK_REACHED;
-						sd->repeat = true; /* This is very rare, so just repeat */
-					}
-				}
-			}
-#endif
+
+			stack_merge_locals(sd, b);
 
 #if defined(STACK_VERBOSE)
 			printf("------> using L%03d\n", b->nr);
@@ -1387,6 +1429,8 @@ bool stack_reanalyse_block(stackdata_t *sd)
 	if (b->inlocals)
 		MCOPY(sd->var, b->inlocals, varinfo, sd->localcount);
 
+	MCOPY(sd->javalocals, b->javalocals, s4, sd->maxlocals);
+
 	/* reach exception handlers for this block */
 
 	if (!stack_reach_handlers(sd))
@@ -1500,6 +1544,12 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 				j = iptr->dst.varindex;
 				COPY_VAL_AND_TYPE(*sd, iptr->s1.varindex, j);
+				i = iptr->sx.s23.s3.javaindex;
+				sd->javalocals[i] = j;
+				if (iptr->flags.bits & INS_FLAG_KILL_PREV)
+					sd->javalocals[i-1] = UNUSED;
+				if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
+					sd->javalocals[i+1] = UNUSED;
 				break;
 
 				/* pop 1 push 0 */
@@ -1909,6 +1959,42 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp,
 }
 
 
+/* stack_init_javalocals *******************************************************
+ 
+   Initialize the mapping from Java locals to cacao variables at method entry.
+
+   IN:
+      sd...........stack analysis data
+
+*******************************************************************************/
+
+static void stack_init_javalocals(stackdata_t *sd)
+{
+	s4         *jl;
+	s4          t,i,j;
+	methoddesc *md;
+	jitdata    *jd;
+
+	jd = sd->jd;
+
+	jl = DMNEW(s4, sd->maxlocals);
+	jd->basicblocks[0].javalocals = jl;
+
+	for (i=0; i<sd->maxlocals; ++i)
+		jl[i] = UNUSED;
+
+	md = jd->m->parseddesc;
+	j = 0;
+	for (i=0; i<md->paramcount; ++i) {
+		t = md->paramtypes[i].type;
+		jl[j] = jd->local_map[5*j + t];
+		j++;
+		if (IS_2_WORD_TYPE(t))
+			j++;
+	}
+}
+
+
 /* stack_analyse ***************************************************************
 
    Analyse_stack uses the intermediate code created by parse.c to
@@ -1994,6 +2080,8 @@ bool stack_analyse(jitdata *jd)
 	sd.localcount = jd->localcount;
 	sd.var = jd->var;
 	sd.varsallocated = sd.varcount;
+	sd.maxlocals = m->maxlocals;
+	sd.javalocals = DMNEW(s4, sd.maxlocals);
 	sd.handlers = DMNEW(exception_entry *, jd->exceptiontablelength + 1);
 
 	/* prepare the variable for exception handler stacks               */
@@ -2047,6 +2135,10 @@ bool stack_analyse(jitdata *jd)
 		DMNEW(varinfo, jd->localcount + VERIFIER_EXTRA_LOCALS);
 	MCOPY(jd->basicblocks[0].inlocals, jd->var, varinfo, 
 			jd->localcount + VERIFIER_EXTRA_LOCALS);
+
+	/* initialize java local mapping of first block */
+
+	stack_init_javalocals(&sd);
 
 	/* stack analysis loop (until fixpoint reached) **************************/
 
@@ -2155,6 +2247,8 @@ bool stack_analyse(jitdata *jd)
 				if (sd.bptr->inlocals)
 					MCOPY(sd.var, sd.bptr->inlocals, varinfo, sd.localcount);
 
+				MCOPY(sd.javalocals, sd.bptr->javalocals, s4, sd.maxlocals);
+
 				/* set up local variables for analyzing this block */
 
 				deadcode = false;
@@ -2190,16 +2284,7 @@ bool stack_analyse(jitdata *jd)
 				while (--len >= 0)  {
 
 #if defined(STACK_VERBOSE)
-					show_icmd(jd, iptr, false, SHOW_PARSE); printf("\n");
-					for( copy = curstack; copy; copy = copy->prev ) {
-						printf("%2d(%d", copy->varnum, copy->type);
-						if (IS_INOUT(copy))
-							printf("S");
-						if (IS_PREALLOC(copy))
-							printf("A");
-						printf(") ");
-					}
-					printf("\n");
+					stack_verbose_show_state(&sd, iptr, curstack);
 #endif
 
 					/* fetch the current opcode */
@@ -3164,6 +3249,26 @@ normal_ACONST:
 							jd->local_map[javaindex * 5 + i];
 
 						COPY_VAL_AND_TYPE(sd, curstack->varnum, j);
+
+						iptr->sx.s23.s3.javaindex = javaindex;
+
+						sd.javalocals[javaindex] = j;
+
+						/* invalidate the following javalocal for 2-word types */
+
+						if (IS_2_WORD_TYPE(i)) {
+							sd.javalocals[javaindex+1] = UNUSED;
+							iptr->flags.bits |= INS_FLAG_KILL_NEXT;
+						}
+
+						/* invalidate 2-word types if second half was overwritten */
+
+						if (javaindex > 0 && (i = sd.javalocals[javaindex-1]) != UNUSED) {
+							if (IS_2_WORD_TYPE(sd.var[i].type)) {
+								sd.javalocals[javaindex-1] = UNUSED;
+								iptr->flags.bits |= INS_FLAG_KILL_PREV;
+							}
+						}
 
 #if defined(ENABLE_STATISTICS)
 						if (opt_stat) {
@@ -4720,6 +4825,15 @@ static void stack_verbose_show_block(stackdata_t *sd, basicblock *bptr)
 	}
 	else
 		putchar('-');
+	printf("] javalocals [");
+	for (i=0; i<sd->maxlocals; ++i) {
+		if (i)
+			putchar(' ');
+		if (sd->javalocals[i] == UNUSED)
+			putchar('-');
+		else
+			printf("%d", sd->javalocals[i]);
+	}
 	printf("] inlocals [");
 	if (bptr->inlocals) {
 		for (i=0; i<sd->localcount; ++i) {
@@ -4761,7 +4875,7 @@ static void stack_verbose_block_enter(stackdata_t *sd, bool reanalyse)
 	int i;
 
 	printf("======================================== STACK %sANALYSE BLOCK ", 
-			(reanalyse) ? "RE-" : "");
+			(reanalyse) ? ((sd->bptr->iinstr == NULL) ? "CLONE-" : "RE-") : "");
 	stack_verbose_show_block(sd, sd->bptr);
 	printf("\n");
 
@@ -4780,6 +4894,52 @@ static void stack_verbose_block_exit(stackdata_t *sd, bool superblockend)
 {
 	printf("%s ", (superblockend) ? "SUPERBLOCKEND" : "END");
 	stack_verbose_show_block(sd, sd->bptr);
+	printf("\n");
+}
+
+static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, stackptr curstack)
+{
+	stackptr sp;
+	s4       i;
+	s4       depth;
+	varinfo *v;
+	stackptr *stack;
+
+	printf("    javalocals [");
+	for (i=0; i<sd->maxlocals; ++i) {
+		if (i)
+			putchar(' ');
+		if (sd->javalocals[i] == UNUSED)
+			printf("---");
+		else {
+			printf("%d:%c", sd->javalocals[i], 
+					show_jit_type_letters[sd->var[sd->javalocals[i]].type]);
+		}
+	}
+	printf("] stack [");
+
+	for(i = 0, sp = curstack; sp; sp = sp->prev)
+		i++;
+	depth = i;
+
+	stack = MNEW(stackptr, depth);
+	for(sp = curstack; sp; sp = sp->prev)
+		stack[--i] = sp;
+
+	for(i=0; i<depth; ++i) {
+		if (i)
+			putchar(' ');
+		sp = stack[i];
+		v = &(sd->var[sp->varnum]);
+
+		if (v->flags & INOUT)
+			putchar('I');
+		if (v->flags & PREALLOC)
+			putchar('A');
+		printf("%d:%c", sp->varnum, show_jit_type_letters[sp->type]);
+	}
+	printf("] ... ");
+	show_icmd(sd->jd, iptr, false, SHOW_PARSE); 
 	printf("\n");
 }
 #endif
