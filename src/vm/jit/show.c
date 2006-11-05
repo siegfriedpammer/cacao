@@ -1090,6 +1090,8 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_ASTORE:
 		SHOW_S1(iptr);
 		SHOW_DST_LOCAL(iptr);
+		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
+			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
 		break;
 
 	case ICMD_NEW:
