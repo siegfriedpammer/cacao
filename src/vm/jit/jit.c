@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5906 2006-11-04 23:37:10Z edwin $
+   $Id: jit.c 5909 2006-11-05 10:22:37Z edwin $
 
 */
 
@@ -961,6 +961,11 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	jd->flags = 0;
 	jd->exceptiontable = NULL;
 	jd->exceptiontablelength = 0;
+	jd->returncount = 0;
+	jd->branchtoentry = false;
+	jd->branchtoend = false;
+	jd->returncount = 0;
+	jd->returnblock = NULL;
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))

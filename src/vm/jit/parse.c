@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5906 2006-11-04 23:37:10Z edwin $
+   $Id: parse.c 5909 2006-11-05 10:22:37Z edwin $
 
 */
 
@@ -209,6 +209,8 @@ static int parse_mark_exception_boundaries(jitdata *jd)
 
 		if (pc < m->jcodelength)
 			MARK_BASICBLOCK(pc);
+		else
+			jd->branchtoend = true;
 
 		/* the start of the handler becomes a basic block start  */
 
@@ -1546,6 +1548,8 @@ invoke_method:
 
 	if (!jd->basicblockindex[0] || (jd->basicblockindex[0] > 1))
 		b_count++;
+	else
+		jd->branchtoentry = true;
 
 	/* copy local to method variables */
 

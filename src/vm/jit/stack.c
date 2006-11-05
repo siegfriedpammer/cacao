@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5903 2006-11-04 23:13:37Z edwin $
+   $Id: stack.c 5909 2006-11-05 10:22:37Z edwin $
 
 */
 
@@ -2028,6 +2028,7 @@ bool stack_analyse(jitdata *jd)
 
 	/* init jd->interface_map */
 
+	jd->maxinterfaces = m->maxstack;
 	jd->interface_map = DMNEW(interface_info, m->maxstack * 5);
 	for (i = 0; i < m->maxstack * 5; i++)
 		jd->interface_map[i].flags = UNUSED;
@@ -2259,6 +2260,8 @@ icmd_NOP:
 						CLR_SX;
 						OP0_0;
 						superblockend = true;
+						sd.jd->returncount++;
+						sd.jd->returnblock = sd.bptr;
 						break;
 
 
@@ -3343,6 +3346,8 @@ store_tail:
 						COUNT(count_pcmd_return);
 						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
+						sd.jd->returncount++;
+						sd.jd->returnblock = sd.bptr;
 						break;
 
 					case ICMD_ATHROW:

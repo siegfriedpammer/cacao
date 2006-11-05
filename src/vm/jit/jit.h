@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5907 2006-11-04 23:42:40Z edwin $
+   $Id: jit.h 5909 2006-11-05 10:22:37Z edwin $
 
 */
 
@@ -134,10 +134,17 @@ struct jitdata {
 	                    /* local_map[local_index * 5 + local_type] =          */
 	                    /* new_index in rd->var or UNUSED                     */
 
-	interface_info  *interface_map;
+	interface_info  *interface_map;   /* interface variables (for simplereg)  */
+	s4               maxinterfaces;   /* max. number of interface variables   */
 
 	s4               exceptiontablelength; /* exceptiontable length           */
 	exception_entry *exceptiontable;       /* the exceptiontable              */
+
+	basicblock      *returnblock;          /* block containing the *RETURN    */
+	                                       /* (only use if returncount==1)    */
+	s4               returncount;          /* number of return instructions   */
+	bool             branchtoentry;        /* true if first block is a target */
+	bool             branchtoend;          /* true if end dummy is a target   */
 };
 
 

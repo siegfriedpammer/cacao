@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5789 2006-10-16 09:02:40Z twisti $
+   $Id: simplereg.c 5909 2006-11-05 10:22:37Z edwin $
 
 */
 
@@ -359,7 +359,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 #endif
 	}
 
-	for (s = 0; s < cd->maxstack; s++) {
+	for (s = 0; s < jd->maxinterfaces; s++) {
 		intalloc = -1; fltalloc = -1;
 
 		/* check if the interface at this stack depth must be a SAVEDVAR */
@@ -1376,7 +1376,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 
 			/* free interface registers not used in this block */
 
-			for (i=0; i < 5 * m->maxstack; ++i) {
+			for (i=0; i < 5 * jd->maxinterfaces; ++i) {
 				type = i%5;
 				regoff = jd->interface_map[i].regoff;
 				flags = jd->interface_map[i].flags;

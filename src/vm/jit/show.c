@@ -185,10 +185,19 @@ void show_method(jitdata *jd, int stage)
 		printf("Stub length:  %d\n", (s4) (code->mcodelength -
 										   ((ptrint) cd->dseglen + lastbptr->mpc)));
 	}
-	printf("Variables:    %d (%d used)\n", jd->varcount, jd->vartop);
-	printf("Max locals:   %d\n", cd->maxlocals);
-	printf("Max stack:    %d\n", cd->maxstack);
-	printf("Line number table length: %d\n", m->linenumbercount);
+	printf("Variables:       %d (%d used)\n", jd->varcount, jd->vartop);
+	printf("Max interfaces:  %d\n", jd->maxinterfaces);
+	printf("Max locals:      %d\n", m->maxlocals);
+	printf("Max stack:       %d\n", m->maxstack);
+	printf("Linenumbers:     %d\n", m->linenumbercount);
+	printf("Branch to entry: %s\n", (jd->branchtoentry) ? "yes" : "no");
+	printf("Branch to end:   %s\n", (jd->branchtoend) ? "yes" : "no");
+	if (stage >= SHOW_STACK) {
+		printf("Number of RETURNs: %d", jd->returncount);
+		if (jd->returncount == 1)
+			printf(" (block L%03d)", jd->returnblock->nr);
+		printf("\n");
+	}
 
 	if (stage >= SHOW_PARSE) {
 		printf("Exceptions (Number: %d):\n", jd->exceptiontablelength);
@@ -229,7 +238,7 @@ void show_method(jitdata *jd, int stage)
 		printf("\n");
 	}
 
-	if (cd->maxlocals > 0) {
+	if (cd->maxlocals > 0 && jd->local_map != NULL) {
 		printf("Local Map:\n");
 		printf("    index ");
 		for (j = 0; j < cd->maxlocals; j++) {
@@ -249,25 +258,25 @@ void show_method(jitdata *jd, int stage)
 		printf("\n");
 	}
 
-	if (cd->maxstack > 0 && jd->interface_map && irstage >= SHOW_STACK) {
+	if (jd->maxinterfaces > 0 && jd->interface_map && irstage >= SHOW_STACK) {
 		bool exist = false;
 		interface_info *mapptr = jd->interface_map;
 		
 		/* look if there exist any INOUTS */
-		for (i = 0; (i < (5 * cd->maxstack)) && !exist; i++, mapptr++)
+		for (i = 0; (i < (5 * jd->maxinterfaces)) && !exist; i++, mapptr++)
 			exist = (mapptr->flags != UNUSED);
 
 		if (exist) {
 			printf("Interface Table: (In/Outvars)\n");
 			printf("    depth ");
-			for (j = 0; j < cd->maxstack; j++) {
+			for (j = 0; j < jd->maxinterfaces; j++) {
 				printf("      [%2d]", j);
 			}
 			printf("\n");
 
 			for (i = 0; i < 5; i++) {
 				printf("    %5s      ",show_jit_type_names[i]);
-				for (j = 0; j < cd->maxstack; j++) {
+				for (j = 0; j < jd->maxinterfaces; j++) {
 					s4 flags  = jd->interface_map[j*5+i].flags;
 					s4 regoff = jd->interface_map[j*5+i].regoff;
 					if (flags == UNUSED)
@@ -741,6 +750,11 @@ void show_variable(jitdata *jd, s4 index, int stage)
 	char kind;
 	varinfo *v;
 
+	if (index < 0 || index >= jd->varcount) {
+		printf("<INVALID INDEX:%d>", index);
+		return;
+	}
+
 	v = VAR(index);
 
 	switch (v->type) {
@@ -1117,6 +1131,16 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 	case ICMD_INLINE_START:
 	case ICMD_INLINE_END:
+#if defined(ENABLE_INLINING)
+		{
+			insinfo_inline *ii = iptr->sx.s23.s3.inlineinfo;
+			printf("(");
+			method_print(ii->outer);
+			printf(" ==> ");
+			method_print(ii->method);
+			printf(")");
+		}
+#endif
 		break;
 
 	case ICMD_BUILTIN:
