@@ -43,11 +43,15 @@
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
+#include "vm/jit/show.h"
+
+#include "native/include/java_lang_String.h"
 
 
 /*** constants used internally ************************************************/
@@ -55,6 +59,63 @@
 #define TOP_IS_NORMAL    0
 #define TOP_IS_ON_STACK  1
 #define TOP_IS_IN_ITMP1  2
+
+static void replace_create_replacement_point(jitdata *jd,
+											 rplpoint *rp,
+											 rplalloc **pra,
+											 basicblock *bptr,
+											 s4 *javalocals,
+											 s4 *stackvars,
+											 s4 stackdepth)
+{
+	rplalloc *ra;
+	s4        i;
+	varinfo  *v;
+	s4        index;
+
+	ra = *pra;
+
+	/* there will be a replacement point at the start of this block */
+
+	rp->pc = NULL;        /* set by codegen */
+	rp->outcode = NULL;   /* set by codegen */
+	rp->code = jd->code;
+	rp->target = NULL;
+	rp->regalloc = ra;
+	rp->flags = 0;
+	rp->type = (bptr != NULL) ? bptr->type : -1;
+
+	/* store local allocation info */
+
+	if (javalocals) {
+		for (i = 0; i < jd->maxlocals; ++i) {
+			index = javalocals[i];
+			if (index == UNUSED)
+				continue;
+
+			v = VAR(index);
+			ra->flags = v->flags & (INMEMORY);
+			ra->index = i;
+			ra->regoff = v->vv.regoff;
+			ra->type = v->type;
+			ra++;
+		}
+	}
+
+	for (i = 0; i < stackdepth; ++i) {
+		v = VAR(stackvars[i]);
+		ra->flags = v->flags & (INMEMORY);
+		ra->index = -1;
+		ra->regoff = v->vv.regoff;
+		ra->type  = v->type;
+		ra++;
+	}
+
+	rp->regalloccount = ra - rp->regalloc;
+
+	*pra = ra;
+}
+
 
 /* replace_create_replacement_points *******************************************
  
@@ -94,10 +155,11 @@ bool replace_create_replacement_points(jitdata *jd)
 	rplalloc *regalloc;
 	rplalloc *ra;
 	int i;
-	int t;
-	bool indexused;
-	varinfo *v;
-	s4 index;
+	instruction *iptr;
+	instruction *iend;
+	s4 *javalocals;
+	methoddesc *md;
+	s4 j;
 
 	/* get required compiler data */
 
@@ -121,18 +183,75 @@ bool replace_create_replacement_points(jitdata *jd)
 	count = 0;
 	alloccount = 0;
 
+	javalocals = DMNEW(s4, jd->maxlocals);
+
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
-		if (!(bptr->bitflags & BBFLAG_REPLACEMENT))
+
+		if (bptr->flags < BBFINISHED)
 			continue;
 
-		/* there will be a replacement point at the start of this block */
-		
-		count++;
-		alloccount += bptr->indepth;
+		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 
-		for (i=0; i<jd->maxlocals; ++i)
-			if (bptr->javalocals[i] != UNUSED)
-				alloccount++;
+			/* there will be a replacement point at the start of this block */
+			
+			count++;
+			alloccount += bptr->indepth;
+
+			for (i=0; i<jd->maxlocals; ++i)
+				if (bptr->javalocals[i] != UNUSED)
+					alloccount++;
+		}
+
+		MCOPY(javalocals, bptr->javalocals, s4, jd->maxlocals);
+
+		iptr = bptr->iinstr;
+		iend = iptr + bptr->icount;
+
+		for (; iptr != iend; ++iptr) {
+			switch (iptr->opc) {
+				case ICMD_INVOKESTATIC:
+				case ICMD_INVOKESPECIAL:
+				case ICMD_INVOKEVIRTUAL:
+				case ICMD_INVOKEINTERFACE:
+					INSTRUCTION_GET_METHODDESC(iptr, md);
+					count++;
+					for (i=0; i<jd->maxlocals; ++i)
+						if (javalocals[i] != UNUSED)
+							alloccount++;
+					alloccount += iptr->s1.argcount - md->paramcount;
+					break;
+
+				case ICMD_ISTORE:
+				case ICMD_LSTORE:
+				case ICMD_FSTORE:
+				case ICMD_DSTORE:
+				case ICMD_ASTORE:
+					/* XXX share code with stack.c */
+					j = iptr->dst.varindex;
+					i = iptr->sx.s23.s3.javaindex;
+					if (iptr->flags.bits & INS_FLAG_RETADDR)
+						javalocals[i] = UNUSED;
+					else
+						javalocals[i] = j;
+					if (iptr->flags.bits & INS_FLAG_KILL_PREV)
+						javalocals[i-1] = UNUSED;
+					if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
+						javalocals[i+1] = UNUSED;
+					break;
+
+				case ICMD_IRETURN:
+				case ICMD_LRETURN:
+				case ICMD_FRETURN:
+				case ICMD_DRETURN:
+				case ICMD_ARETURN:
+					alloccount += 1;
+					/* FALLTHROUGH */
+
+				case ICMD_RETURN:
+					count++;
+					break;
+			}
+		}
 	}
 
 	/* if no points were found, there's nothing to do */
@@ -210,46 +329,75 @@ bool replace_create_replacement_points(jitdata *jd)
 	rp = rplpoints;
 
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
-		if (!(bptr->bitflags & BBFLAG_REPLACEMENT))
+		if (bptr->flags < BBFINISHED)
 			continue;
 
-		/* there will be a replacement point at the start of this block */
+		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 
-		rp->pc = NULL;        /* set by codegen */
-		rp->outcode = NULL;   /* set by codegen */
-		rp->code = code;
-		rp->target = NULL;
-		rp->regalloc = ra;
-		rp->flags = 0;
-		rp->type = bptr->type;
+			replace_create_replacement_point(jd, rp, &ra,
+					bptr,
+					bptr->javalocals, bptr->invars, bptr->indepth);
 
-		/* store local allocation info */
-
-		for (i = 0; i<jd->maxlocals; ++i) {
-			index = bptr->javalocals[i];
-			if (index == UNUSED)
-				continue;
-
-			v = VAR(index);
-			ra->flags = v->flags & (INMEMORY);
-			ra->index = i;
-			ra->regoff = v->vv.regoff;
-			ra->type = v->type;
-			ra++;
+			rp++;
 		}
 
-		for (i = 0; i<bptr->indepth; ++i) {
-			v = VAR(bptr->invars[i]);
-			ra->flags = v->flags & (INMEMORY);
-			ra->index = -1;
-			ra->regoff = v->vv.regoff;
-			ra->type  = v->type;
-			ra++;
-		}
+		MCOPY(javalocals, bptr->javalocals, s4, jd->maxlocals);
 
-		rp->regalloccount = ra - rp->regalloc;
-		
-		rp++;
+		iptr = bptr->iinstr;
+		iend = iptr + bptr->icount;
+
+		for (; iptr != iend; ++iptr) {
+			switch (iptr->opc) {
+				case ICMD_INVOKESTATIC:
+				case ICMD_INVOKESPECIAL:
+				case ICMD_INVOKEVIRTUAL:
+				case ICMD_INVOKEINTERFACE:
+					INSTRUCTION_GET_METHODDESC(iptr, md);
+
+					replace_create_replacement_point(jd, rp, &ra,
+							NULL,
+							javalocals, iptr->sx.s23.s2.args + md->paramcount,
+							iptr->s1.argcount - md->paramcount);
+					rp++;
+					break;
+
+				case ICMD_ISTORE:
+				case ICMD_LSTORE:
+				case ICMD_FSTORE:
+				case ICMD_DSTORE:
+				case ICMD_ASTORE:
+					/* XXX share code with stack.c */
+					j = iptr->dst.varindex;
+					i = iptr->sx.s23.s3.javaindex;
+					if (iptr->flags.bits & INS_FLAG_RETADDR)
+						javalocals[i] = UNUSED;
+					else
+						javalocals[i] = j;
+					if (iptr->flags.bits & INS_FLAG_KILL_PREV)
+						javalocals[i-1] = UNUSED;
+					if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
+						javalocals[i+1] = UNUSED;
+					break;
+
+				case ICMD_IRETURN:
+				case ICMD_LRETURN:
+				case ICMD_FRETURN:
+				case ICMD_DRETURN:
+				case ICMD_ARETURN:
+					replace_create_replacement_point(jd, rp, &ra,
+							NULL,
+							NULL, &(iptr->s1.varindex), 1);
+					rp++;
+					break;
+
+				case ICMD_RETURN:
+					replace_create_replacement_point(jd, rp, &ra,
+							NULL,
+							NULL, NULL, 0);
+					rp++;
+					break;
+			}
+		}
 	}
 
 	/* store the data in the codeinfo */
@@ -438,8 +586,6 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	codeinfo *code;
 	int count;
 	int i;
-	int t;
-	int allocs;
 	rplalloc *ra;
 	methoddesc *md;
 	int topslot;
@@ -532,7 +678,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	count = rp->regalloccount;
 	ra = rp->regalloc;
 
-	while (ra && (i = ra->index) >= 0) {
+	while (count && (i = ra->index) >= 0) {
 		ss->javalocaltype[i] = ra->type;
 		replace_read_value(es, sp, ra, ss->javalocals + i);
 		ra++;
@@ -646,8 +792,6 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	codeinfo *code;
 	int count;
 	int i;
-	int t;
-	int allocs;
 	rplalloc *ra;
 	methoddesc *md;
 	int topslot;
@@ -728,9 +872,10 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	ra = rp->regalloc;
 	count = rp->regalloccount;
 
-	while (ra && (i = ra->index) >= 0) {
+	while (count && (i = ra->index) >= 0) {
 		assert(ra->type == ss->javalocaltype[i]);
 		replace_write_value(es, sp, ra, ss->javalocals + i);
+		count--;
 		ra++;
 	}
 
@@ -903,7 +1048,7 @@ void replace_replacement_point_println(rplpoint *rp)
 		return;
 	}
 
-	printf("rplpoint %p pc:%p out:%p target:%p mcode:%016llx type:%01d flags:%01x ra:%d = [",
+	printf("rplpoint %p pc:%p out:%p target:%p mcode:%016llx type:%01d flags:%01x\n\t\tra:%d = [",
 			(void*)rp,rp->pc,rp->outcode,(void*)rp->target,
 			(unsigned long long)rp->mcode,rp->type,rp->flags,rp->regalloccount);
 
@@ -917,7 +1062,7 @@ void replace_replacement_point_println(rplpoint *rp)
 		show_allocation(rp->regalloc[j].type, rp->regalloc[j].flags, rp->regalloc[j].regoff);
 	}
 
-	printf("]\n          method: ");
+	printf("]\n\t\tmethod: ");
 	method_print(rp->code->m);
 
 	printf("\n");
@@ -1054,6 +1199,7 @@ void replace_sourcestate_println(sourcestate *ss)
 	int i;
 	int t;
 	int reg;
+	utf *u;
 
  	if (!ss) {
 		printf("(sourcestate *)NULL\n");
@@ -1064,11 +1210,25 @@ void replace_sourcestate_println(sourcestate *ss)
 
 	printf("\tlocals (%d):\n",ss->javalocalcount);
 	for (i=0; i<ss->javalocalcount; ++i) {
-		for (t=0; t<5; ++t) {
-			if (ss->javalocals[i*5+t] != 0x00dead0000dead00ULL) {
-				printf("\tlocal[%c%2d] = ",TYPECHAR(t),i);
-				printf("%016llx\n",(unsigned long long) ss->javalocals[i*5+t]);
+		t = ss->javalocaltype[i];
+		if (t == TYPE_VOID) {
+			printf("\tlocal[ %2d] = void\n",i);
+		}
+		else {
+			printf("\tlocal[%c%2d] = ",TYPECHAR(t),i);
+			printf("%016llx",(unsigned long long) ss->javalocals[i]);
+			if (t == TYPE_ADR && ss->javalocals[i] != 0) {
+				java_objectheader *obj = (java_objectheader *)(ptrint)ss->javalocals[i];
+				putchar(' ');
+				utf_display_printable_ascii_classname(obj->vftbl->class->name);
+				if (obj->vftbl->class == class_java_lang_String) {
+					printf(" \"");
+					u = javastring_toutf((java_lang_String *)obj, false);
+					utf_display_printable_ascii(u);
+					printf("\"");
+				}
 			}
+			printf("\n");
 		}
 	}
 
