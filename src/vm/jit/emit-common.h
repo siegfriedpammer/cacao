@@ -91,6 +91,13 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst);
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);
 
+void emit_arithmetic_check(codegendata *cd, s4 reg);
+void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2);
+void emit_arraystore_check(codegendata *cd, s4 reg);
+void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1);
+void emit_nullpointer_check(codegendata *cd, s4 reg);
+void emit_exception_check(codegendata *cd);
+
 void emit_exception_stubs(jitdata *jd);
 void emit_patcher_stubs(jitdata *jd);
 void emit_replacement_stubs(jitdata *jd);

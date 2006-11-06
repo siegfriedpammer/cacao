@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: patcher.c 5319 2006-09-05 12:54:10Z twisti $
+   $Id: patcher.c 5929 2006-11-06 17:13:40Z twisti $
 
 */
 
@@ -218,7 +216,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 2 * 4;
 
 	/* patch the field's offset */
@@ -240,7 +238,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	if (opt_showdisassemble) {
+	if (opt_shownops) {
 #if SIZEOF_VOID_P == 4
 		if (fi->type == TYPE_LNG)
 			md_icacheflush(ra - 2 * 4, 4 * 4);
@@ -515,7 +513,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 2 * 4;
 
 	/* patch vftbl index */
@@ -525,7 +523,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		md_icacheflush(ra - 2 * 4, 4 * 4);
 	else
 		md_icacheflush(ra, 2 * 4);
@@ -573,7 +571,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 2 * 4;
 
 	/* patch interfacetable index */
@@ -588,7 +586,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		md_icacheflush(ra - 2 * 4, 5 * 4);
 	else
 		md_icacheflush(ra, 3 * 4);
@@ -667,7 +665,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_interface(u1 *sp)
+bool patcher_checkcast_interface(u1 *sp)
 {
 	u1                *ra;
 	u4                 mcode[2];
@@ -693,19 +691,80 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 2 * 4;
 
 	/* patch super class index */
 
 	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+/* 	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) - */
+/* 									 c->index * sizeof(methodptr*)) & 0x0000ffff); */
+	*((s4 *) (ra + 10 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+									  c->index * sizeof(methodptr*)) & 0x0000ffff);
 
+	/* synchronize instruction cache */
+
+	if (opt_shownops)
+		md_icacheflush(ra - 2 * 4, 8 * 4);
+	else
+		md_icacheflush(ra, 6 * 4);
+
+	return true;
+}
+
+
+/* patcher_instanceof_interface ************************************************
+
+   Machine code:
+
+   <patched call position>
+   dd030000    ld       v1,0(a4)
+   8c79001c    lw       t9,28(v1)
+   27390000    addiu    t9,t9,0
+   1b200082    blez     t9,zero,0x000000001051843c
+   00000000    nop
+   dc790000    ld       t9,0(v1)
+
+*******************************************************************************/
+
+bool patcher_instanceof_interface(u1 *sp)
+{
+	u1                *ra;
+	u4                 mcode[2];
+	constant_classref *cr;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch back original code */
+
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (opt_shownops)
+		ra = ra + 2 * 4;
+
+	/* patch super class index */
+
+	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
 	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
 									 c->index * sizeof(methodptr*)) & 0x0000ffff);
 
 	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		md_icacheflush(ra - 2 * 4, 8 * 4);
 	else
 		md_icacheflush(ra, 6 * 4);

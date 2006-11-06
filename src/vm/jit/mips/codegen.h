@@ -25,8 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Andreas Krall
+            Christian Thalinger
 
-   $Id: codegen.h 5891 2006-11-01 20:19:44Z twisti $
+   $Id: codegen.h 5929 2006-11-06 17:13:40Z twisti $
 
 */
 
@@ -46,30 +47,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-#define gen_nullptr_check(objreg) \
-    if (checknull) { \
-        M_BEQZ(objreg, 0); \
-        codegen_add_nullpointerexception_ref(cd); \
-        M_NOP; \
-    }
-
-#define gen_bound_check \
-    if (checkbounds) { \
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
-        M_CMPULT(s2, REG_ITMP3, REG_ITMP3); \
-        M_BEQZ(REG_ITMP3, 0); \
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-        M_NOP; \
-    }
-
-#define gen_div_check(r) \
-    do { \
-        M_BEQZ((r), 0); \
-        codegen_add_arithmeticexception_ref(cd); \
-        M_NOP; \
-    } while (0)
-
 
 /* MCODECHECK(icnt) */
 
@@ -510,42 +487,6 @@
 #define M_ASLL_IMM(a,b,c)       M_ISLL_IMM(a,b,c)
 
 #endif /* SIZEOF_VOID_P == 8 */
-
-
-/* function gen_resolvebranch **************************************************
-
-	backpatches a branch instruction; MIPS branch instructions are very
-	regular, so it is only necessary to overwrite some fixed bits in the
-	instruction.
-
-	parameters: ip ... pointer to instruction after branch (void*)
-	            so ... offset of instruction after branch  (s4)
-	            to ... offset of branch target             (s4)
-
-*******************************************************************************/
-
-#define gen_resolvebranch(ip,so,to) \
-    do { \
-        s4 offset; \
-        \
-        offset = ((s4) (to) - (so)) >> 2; \
-        \
-        /* On the MIPS we can only branch signed 16-bit instruction words */ \
-        /* (signed 18-bit = 32KB = +/- 16KB). Check this!                 */ \
-        \
-        if ((offset < (s4) 0xffff8000) || (offset > (s4) 0x00007fff)) { \
-            throw_cacao_exception_exit(string_java_lang_InternalError, \
-                                       "Jump offset is out of range: %d > +/-%d", \
-                                       offset, 0x00007fff); \
-        } \
-        \
-        ((s4 *) (ip))[-1] |= (offset & 0x0000ffff); \
-    } while (0)
-
-
-/* function prototypes ********************************************************/
-
-void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
 

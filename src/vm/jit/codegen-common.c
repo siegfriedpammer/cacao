@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5925 2006-11-05 23:11:27Z edwin $
+   $Id: codegen-common.c 5929 2006-11-06 17:13:40Z twisti $
 
 */
 
@@ -61,7 +61,7 @@
 #include "vm/types.h"
 
 #if defined(ENABLE_JIT)
-/* this is required for gen_resolvebranch and PATCHER_CALL_SIZE */
+/* this is required PATCHER_CALL_SIZE */
 # include "codegen.h"
 #endif
 
@@ -72,6 +72,7 @@
 
 #include "mm/memory.h"
 #include "toolbox/avl.h"
+#include "toolbox/list.h"
 #include "toolbox/logging.h"
 #include "native/jni.h"
 #include "native/native.h"
@@ -190,6 +191,7 @@ void codegen_setup(jitdata *jd)
 #endif
 
 	cd->exceptionrefs  = NULL;
+/* 	cd->patchrefs      = list_create_dump(OFFSET(patchref, linkage)); */
 	cd->patchrefs      = NULL;
 
 	cd->linenumberreferences = NULL;
@@ -286,35 +288,41 @@ u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr)
 #endif
 
 
-void codegen_addreference(codegendata *cd, basicblock *target)
-{
-	s4 branchpos;
+/* codegen_add_branch_ref ******************************************************
 
-	branchpos = (u1 *) cd->mcodeptr - cd->mcodebase;
+   Prepends an branch to the list.
+
+*******************************************************************************/
+
+void codegen_add_branch_ref(codegendata *cd, basicblock *target)
+{
+	s4 branchmpc;
+
+	/* calculate the mpc of the branch instruction */
+
+	branchmpc = cd->mcodeptr - cd->mcodebase;
 
 #if defined(ENABLE_JIT)
 	/* Check if the target basicblock has already a start pc, so the
 	   jump is backward and we can resolve it immediately. */
 
-	/* The interpreter uses absolute branches, so we do branch
-	   resolving after the code and data segment move. */
-
-	if (target->mpc >= 0
+	if ((target->mpc >= 0)
 # if defined(ENABLE_INTRP)
+		/* The interpreter uses absolute branches, so we do branch
+		   resolving after the code and data segment move. */
+
 		&& !opt_intrp
 # endif
 		)
 	{
-		gen_resolvebranch((u1 *) cd->mcodebase + branchpos,
-						  branchpos,
-						  target->mpc);
-
-	} else
+		md_codegen_patch_branch(cd, branchmpc, target->mpc);
+	}
+	else
 #endif
 	{
 		branchref *br = DNEW(branchref);
 
-		br->branchpos = branchpos;
+		br->branchpos = branchmpc;
 		br->next      = target->branchrefs;
 
 		target->branchrefs = br;
@@ -322,28 +330,53 @@ void codegen_addreference(codegendata *cd, basicblock *target)
 }
 
 
+/* codegen_resolve_branchrefs **************************************************
+
+   Resolves and patches the branch references of a given basic block.
+
+*******************************************************************************/
+
+void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr)
+{
+	branchref *br;
+	s4         branchmpc;
+	s4         targetmpc;
+
+	/* set target */
+
+	targetmpc = bptr->mpc;
+
+	for (br = bptr->branchrefs; br != NULL; br = br->next) {
+		branchmpc = br->branchpos;
+
+		md_codegen_patch_branch(cd, branchmpc, targetmpc);
+	}
+}
+
+
 /* codegen_add_exception_ref ***************************************************
 
-   Adds an exception branch to the list.
+   Prepends an exception branch to the list.
 
 *******************************************************************************/
 
 static void codegen_add_exception_ref(codegendata *cd, s4 reg,
 									  functionptr function)
 {
-	s4            branchpos;
-	exceptionref *eref;
+	s4            branchmpc;
+	exceptionref *er;
 
-	branchpos = (u1 *) cd->mcodeptr - cd->mcodebase;
+	branchmpc = cd->mcodeptr - cd->mcodebase;
 
-	eref = DNEW(exceptionref);
+	er = DNEW(exceptionref);
 
-	eref->branchpos = branchpos;
-	eref->reg       = reg;
-	eref->function  = function;
-	eref->next      = cd->exceptionrefs;
+	er->branchpos = branchmpc;
+	er->reg       = reg;
+	er->function  = function;
 
-	cd->exceptionrefs = eref;
+	er->next      = cd->exceptionrefs;
+
+	cd->exceptionrefs = er;
 }
 
 
@@ -420,27 +453,28 @@ void codegen_add_fillinstacktrace_ref(codegendata *cd)
 }
 
 
-/* codegen_addpatchref *********************************************************
+/* codegen_add_patch_ref *******************************************************
 
-   Adds a new patcher reference to the list of patching positions.
+   Appends a new patcher reference to the list of patching positions.
 
 *******************************************************************************/
 
-void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
-						 s4 disp)
+void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
+						   s4 disp)
 {
 	patchref *pr;
-	s4        branchpos;
+	s4        branchmpc;
 
-	branchpos = cd->mcodeptr - cd->mcodebase;
+	branchmpc = cd->mcodeptr - cd->mcodebase;
 
 	pr = DNEW(patchref);
 
-	pr->branchpos = branchpos;
+	pr->branchpos = branchmpc;
+	pr->disp      = disp;
 	pr->patcher   = patcher;
 	pr->ref       = ref;
-	pr->disp      = disp;
 
+/* 	list_add_first(cd->patchrefs, pr); */
 	pr->next      = cd->patchrefs;
 	cd->patchrefs = pr;
 

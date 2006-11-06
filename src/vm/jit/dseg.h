@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 5892 2006-11-02 10:21:37Z twisti $
+   $Id: dseg.h 5929 2006-11-06 17:13:40Z twisti $
 
 */
 
@@ -53,6 +53,7 @@ typedef struct dseg_exception_entry dseg_exception_entry;
 
 #include "vm/types.h"
 
+#include "toolbox/list.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/codegen-common.h"
 
@@ -121,6 +122,7 @@ struct patchref {
 	s4           disp;          /* displacement of ref in the data segment    */
 	functionptr  patcher;       /* patcher function to call                   */
 	voidptr      ref;           /* reference passed                           */
+/* 	listnode     linkage; */
 	patchref    *next;
 };
 

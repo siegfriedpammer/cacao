@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: md.c 5929 2006-11-06 17:13:40Z twisti $
 
 */
 
@@ -43,12 +43,70 @@
 
 #include "toolbox/logging.h"
 #include "vm/global.h"
+#include "vm/vm.h"
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 #include "vm/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
+
+
+/* md_codegen_patch_branch *****************************************************
+
+   Back-patches a branch instruction.
+
+*******************************************************************************/
+
+void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
+{
+	s4 *mcodeptr;
+	s4  mcode;
+	s4  disp;                           /* branch displacement                */
+	s4  lo;
+	s4  hi;
+
+	/* calculate the patch position */
+
+	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
+
+	/* get the instruction before the exception point */
+
+	mcode = mcodeptr[-1];
+
+	/* check for: ori t9,t9,0 */
+
+	if ((mcode >> 16) == 0x3739) {
+		/* Calculate the branch displacement.  For jumps we need a
+		   displacement relative to PV. */
+
+		disp = targetmpc;
+
+        lo = (short) disp;
+        hi = (short) ((disp - lo) >> 16);
+
+		/* patch the two instructions before the mcodeptr */
+
+		mcodeptr[-2] |= (hi & 0x0000ffff);
+		mcodeptr[-1] |= (lo & 0x0000ffff);
+	}
+	else {
+		/* Calculate the branch displacement.  For branches we need a
+		   displacement relative and shifted to the branch PC. */
+
+		disp = (targetmpc - branchmpc) >> 2;
+
+		/* On the MIPS we can only branch signed 16-bit instruction words
+		   (signed 18-bit = 32KB = +/- 16KB). Check this! */
+
+		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff))
+			vm_abort("jump displacement is out of range: %d > +/-%d", disp, 0x00007fff);
+
+		/* patch the branch instruction before the mcodeptr */
+
+		mcodeptr[-1] |= (disp & 0x0000ffff);
+	}
+}
 
 
 /* md_stacktrace_get_returnaddress *********************************************
@@ -132,8 +190,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		assert((mcode >> 16) != 0x6739);
 
 		offset += (s2) (mcode & 0x0000ffff);
-
-	} else {
+	}
+	else {
 		/* get first instruction (ld) */
 
 		mcode = *((u4 *) ra);
@@ -152,8 +210,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			/* in this case we use the passed method pointer */
 
 			pa = mptr + offset;
-
-		} else {
+		}
+		else {
 			/* in the normal case we check for a `ld s8,x(s8)' instruction */
 
 #if SIZEOF_VOID_P == 8

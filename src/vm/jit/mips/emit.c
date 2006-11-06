@@ -46,6 +46,7 @@
 #endif
 
 #include "vm/exceptions.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
@@ -215,6 +216,185 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 }
 
 
+/* emit_arithmetic_check *******************************************************
+
+   Emit an ArithmeticException check.
+
+*******************************************************************************/
+
+void emit_arithmetic_check(codegendata *cd, s4 reg)
+{
+#if 0
+	M_BEQZ(reg, 0);
+	codegen_add_arithmeticexception_ref(cd);
+	M_NOP;
+#else
+	M_BNEZ(reg, 6);
+	M_NOP;
+
+	M_LUI(REG_ITMP3, 0);
+	M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+	codegen_add_arithmeticexception_ref(cd);
+	M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+	M_JMP(REG_ITMP3);
+	M_NOP;
+#endif
+}
+
+
+/* emit_arrayindexoutofbounds_check ********************************************
+
+   Emit an ArrayIndexOutOfBoundsException check.
+
+*******************************************************************************/
+
+void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+{
+	if (checkbounds) {
+		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_CMPULT(s2, REG_ITMP3, REG_ITMP3);
+
+#if 0
+		M_BEQZ(REG_ITMP3, 0);
+		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+		M_NOP;
+#else
+		M_BNEZ(REG_ITMP3, 6);
+		M_NOP;
+
+		M_LUI(REG_ITMP3, 0);
+		M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+		M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+		M_JMP(REG_ITMP3);
+		M_NOP;
+#endif
+	}
+}
+
+
+/* emit_arraystore_check *******************************************************
+
+   Emit an ArrayStoreException check.
+
+*******************************************************************************/
+
+void emit_arraystore_check(codegendata *cd, s4 reg)
+{
+#if 0
+	M_BEQZ(reg, 0);
+	codegen_add_arraystoreexception_ref(cd);
+	M_NOP;
+#else
+	M_BNEZ(reg, 6);
+	M_NOP;
+
+	M_LUI(REG_ITMP3, 0);
+	M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+	codegen_add_arraystoreexception_ref(cd);
+	M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+	M_JMP(REG_ITMP3);
+	M_NOP;
+#endif
+}
+
+
+/* emit_classcast_check ********************************************************
+
+   Emit a ClassCastException check.
+
+*******************************************************************************/
+
+void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
+{
+#if 0
+	M_BNEZ(reg, 0);
+	codegen_add_classcastexception_ref(cd, s1);
+	M_NOP;
+#else
+	switch (condition) {
+	case ICMD_IFEQ:
+		M_BNEZ(reg, 6);
+		break;
+
+	case ICMD_IFNE:
+		M_BEQZ(reg, 6);
+		break;
+
+	case ICMD_IFLE:
+		M_BGTZ(reg, 6);
+		break;
+
+	default:
+		vm_abort("emit_classcast_check: condition %d not found", condition);
+	}
+
+	M_NOP;
+
+	M_LUI(REG_ITMP3, 0);
+	M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+	codegen_add_classcastexception_ref(cd, s1);
+	M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+	M_JMP(REG_ITMP3);
+	M_NOP;
+#endif
+}
+
+
+/* emit_nullpointer_check ******************************************************
+
+   Emit a NullPointerException check.
+
+*******************************************************************************/
+
+void emit_nullpointer_check(codegendata *cd, s4 reg)
+{
+	if (checknull) {
+#if 0
+		M_BEQZ(reg, 0);
+		codegen_add_nullpointerexception_ref(cd);
+		M_NOP;
+#else
+		M_BNEZ(reg, 6);
+		M_NOP;
+
+		M_LUI(REG_ITMP3, 0);
+		M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+		codegen_add_nullpointerexception_ref(cd);
+		M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+		M_JMP(REG_ITMP3);
+		M_NOP;
+#endif
+	}
+}
+
+
+/* emit_exception_check ********************************************************
+
+   Emit an Exception check.
+
+*******************************************************************************/
+
+void emit_exception_check(codegendata *cd)
+{
+#if 0
+	M_BEQZ(REG_RESULT, 0);
+	codegen_add_fillinstacktrace_ref(cd);
+	M_NOP;
+#else
+	M_BNEZ(REG_RESULT, 6);
+	M_NOP;
+
+	M_LUI(REG_ITMP3, 0);
+	M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+	codegen_add_fillinstacktrace_ref(cd);
+	M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+	M_JMP(REG_ITMP3);
+	M_NOP;
+#endif
+}
+
+
 /* emit_exception_stubs ********************************************************
 
    Generates the code for the exception stubs.
@@ -225,7 +405,9 @@ void emit_exception_stubs(jitdata *jd)
 {
 	codegendata  *cd;
 	registerdata *rd;
-	exceptionref *eref;
+	exceptionref *er;
+	s4            branchmpc;
+	s4            targetmpc;
 	s4            targetdisp;
 	s4            disp;
 
@@ -238,9 +420,13 @@ void emit_exception_stubs(jitdata *jd)
 
 	targetdisp = 0;
 
-	for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-		gen_resolvebranch(cd->mcodebase + eref->branchpos, 
-						  eref->branchpos, cd->mcodeptr - cd->mcodebase);
+	for (er = cd->exceptionrefs; er != NULL; er = er->next) {
+		/* back-patch the branch to this exception code */
+
+		branchmpc = er->branchpos;
+		targetmpc = cd->mcodeptr - cd->mcodebase;
+
+		md_codegen_patch_branch(cd, branchmpc, targetmpc);
 
 		MCODECHECK(100);
 
@@ -248,31 +434,31 @@ void emit_exception_stubs(jitdata *jd)
 		   ArrayIndexOutOfBoundsException.  If so, move index register
 		   into REG_ITMP1. */
 
-		if (eref->reg != -1)
-			M_MOV(eref->reg, REG_ITMP1);
+		if (er->reg != -1)
+			M_MOV(er->reg, REG_ITMP1);
 
 		/* calcuate exception address */
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, eref->branchpos - 4);
+		M_LDA(REG_ITMP2_XPC, REG_PV, er->branchpos - 4);
 
 		/* move function to call into REG_ITMP3 */
 
-		disp = dseg_add_functionptr(cd, eref->function);
+		disp = dseg_add_functionptr(cd, er->function);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 
 		if (targetdisp == 0) {
 			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
 
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
+			M_MOV(REG_PV, REG_A0);
+			M_MOV(REG_SP, REG_A1);
 
 			if (jd->isleafmethod)
-				M_MOV(REG_RA, rd->argintregs[2]);
+				M_MOV(REG_RA, REG_A2);
 			else
-				M_ALD(rd->argintregs[2], REG_SP, (cd->stackframesize - 1) * 8);
+				M_ALD(REG_A2, REG_SP, (cd->stackframesize - 1) * 8);
 
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			M_MOV(REG_ITMP1, rd->argintregs[4]);
+			M_MOV(REG_ITMP2_XPC, REG_A3);
+			M_MOV(REG_ITMP1, REG_A4);
 
 			M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
 			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
@@ -315,7 +501,7 @@ void emit_exception_stubs(jitdata *jd)
 void emit_patcher_stubs(jitdata *jd)
 {
 	codegendata *cd;
-	patchref    *pref;
+	patchref    *pr;
 	u4           mcode[2];
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
@@ -330,7 +516,9 @@ void emit_patcher_stubs(jitdata *jd)
 
 	targetdisp = 0;
 
-	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
+/* 	for (pr = list_first_unsynced(cd->patchrefs); pr != NULL; */
+/* 		 pr = list_next_unsynced(cd->patchrefs, pr)) { */
+	for (pr = cd->patchrefs; pr != NULL; pr = pr->next) {
 		/* check code segment size */
 
 		MCODECHECK(100);
@@ -338,7 +526,7 @@ void emit_patcher_stubs(jitdata *jd)
 		/* Get machine code which is patched back in later. The
 		   call is 2 instruction words long. */
 
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->branchpos);
 
 		/* We use 2 loads here as an unaligned 8-byte read on 64-bit
 		   MIPS causes a SIGSEGV and using the same code for both
@@ -373,7 +561,7 @@ void emit_patcher_stubs(jitdata *jd)
 
 		/* calculate return address and move it onto the stack */
 
-		M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
+		M_LDA(REG_ITMP3, REG_PV, pr->branchpos);
 		M_AST(REG_ITMP3, REG_SP, 5 * 8);
 
 		/* move pointer to java_objectheader onto stack */
@@ -403,19 +591,19 @@ void emit_patcher_stubs(jitdata *jd)
 
 		/* move class/method/field reference onto stack */
 
-		disp = dseg_add_address(cd, pref->ref);
+		disp = dseg_add_address(cd, pr->ref);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 2 * 8);
 
 		/* move data segment displacement onto stack */
 
-		disp = dseg_add_s4(cd, pref->disp);
+		disp = dseg_add_s4(cd, pr->disp);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST(REG_ITMP3, REG_SP, 1 * 8);
 
 		/* move patcher function pointer onto stack */
 
-		disp = dseg_add_address(cd, pref->patcher);
+		disp = dseg_add_address(cd, pr->patcher);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 0 * 8);
 

@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5925 2006-11-05 23:11:27Z edwin $
+   $Id: codegen-common.h 5929 2006-11-06 17:13:40Z twisti $
 
 */
 
@@ -114,6 +114,7 @@ struct codegendata {
 #endif
 
 	exceptionref   *exceptionrefs;  /* list of exception branches             */
+/* 	list           *patchrefs; */
 	patchref       *patchrefs;
 
 	linenumberref  *linenumberreferences; /* list of line numbers and the     */
@@ -157,7 +158,9 @@ void codegen_increase(codegendata *cd);
 u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr);
 #endif
 
-void codegen_addreference(codegendata *cd, basicblock *target);
+void codegen_add_branch_ref(codegendata *cd, basicblock *target);
+/* XXX REMOVE ME: don't-break-trunk macro */
+#define codegen_addreference codegen_add_branch_ref
 
 void codegen_add_arithmeticexception_ref(codegendata *cd);
 void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd, s4 reg);
@@ -167,8 +170,10 @@ void codegen_add_nullpointerexception_ref(codegendata *cd);
 void codegen_add_fillinstacktrace_ref(codegendata *cd);
 
 
-void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
-						 s4 disp);
+void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
+						   s4 disp);
+/* XXX REMOVE ME: don't-break-trunk macro */
+#define codegen_addpatchref codegen_add_patch_ref
 
 void codegen_insertmethod(u1 *startpc, u1 *endpc);
 u1 *codegen_get_pv_from_pc(u1 *pc);
@@ -205,7 +210,8 @@ void codegen_threadcritstop(codegendata *cd, int offset);
 #endif
 
 /* machine dependent functions */
-u1 *md_codegen_get_pv_from_pc(u1 *ra);
+void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc);
+u1  *md_codegen_get_pv_from_pc(u1 *ra);
 
 bool codegen(jitdata *jd);
 

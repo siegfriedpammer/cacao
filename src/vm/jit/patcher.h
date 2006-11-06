@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: patcher.h 5281 2006-08-28 15:18:54Z twisti $
+   $Id: patcher.h 5929 2006-11-06 17:13:40Z twisti $
 
 */
 
@@ -174,6 +174,12 @@ bool patcher_checkcast_instanceof_flags(u1 *sp);
 
 bool patcher_checkcast_instanceof_interface(u1 *sp);
 #define PATCHER_checkcast_instanceof_interface (functionptr) patcher_checkcast_instanceof_interface
+
+bool patcher_checkcast_interface(u1 *sp);
+#define PATCHER_checkcast_interface (functionptr) patcher_checkcast_interface
+
+bool patcher_instanceof_interface(u1 *sp);
+#define PATCHER_instanceof_interface (functionptr) patcher_instanceof_interface
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__) || defined(__POWERPC64__)
 
