@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5899 2006-11-04 15:46:18Z tbfg $
+   $Id: codegen.h 5928 2006-11-06 16:38:31Z tbfg $
 
 */
 
@@ -194,7 +194,7 @@
 
 #define M_MUL(a,b,c)                   M_OP3(31, 233, 0, 0, c, a, b)
 #define M_MUL_IMM(a,b,c)               M_OP2_IMM(7, c, a, b)
-#define M_DIV(a,b,c)                   M_OP3(31, 489, 0, 0, c, a, b)
+#define M_DIV(a,b,c)                   M_OP3(31, 489, 1, 0, c, a, b)
 
 #define M_NEG(a,b)                      M_OP3(31, 104, 0, 0, b, a, 0)
 #define M_NOT(a,b)                      M_OP3(31, 124, 0, 0, a, b, a)
@@ -203,7 +203,7 @@
 #define M_SUBFZE(a,b)                   M_OP3(31, 200, 0, 0, b, a, 0)
 #define M_RLWINM(a,b,c,d,e)             M_OP4(21, d, 0, a, e, b, c)
 #define M_ADDZE(a,b)                    M_OP3(31, 202, 0, 0, b, a, 0)
-#define M_SLL_IMM(a,b,c)                M_OP3(30, 0, 0, 0, a, c, b)	/* RLDICL/ROTLDI FIXME: b is a split field */
+#define M_SLL_IMM(a,b,c)                M_OP3(30, ((b)&0x20 ? 1:0), 0, ((((63-(b))&0x1f)<<6) | (((63-(b))&0x20 ? 1:0)<<5) | 0x04), a, c, (b)&0x1f);	/* RLDICR is said to be turing complete, this seems right */
 #define M_SRL_IMM(a,b,c)                M_RLWINM(a,32-(b),b,31,c)
 #define M_ADDIS(a,b,c)                  M_OP2_IMM(15, c, a, b)
 #define M_STFIWX(a,b,c)                 M_OP3(31, 983, 0, 0, a, b, c)

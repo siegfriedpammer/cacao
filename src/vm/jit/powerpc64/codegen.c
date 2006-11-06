@@ -32,7 +32,7 @@
             Edwin Steiner
 	    Roland Lezuo
 
-   $Id: codegen.c 5899 2006-11-04 15:46:18Z tbfg $
+   $Id: codegen.c 5928 2006-11-06 16:38:31Z tbfg $
 
 */
 
@@ -394,6 +394,7 @@ bool codegen(jitdata *jd)
 		currentline = 0;
 			
 		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
+			bool sign_ext = false;
 			if (iptr->line != currentline) {
 				dseg_addlinenumber(cd, iptr->line);
 				currentline = iptr->line;
@@ -497,20 +498,15 @@ bool codegen(jitdata *jd)
 		/* integer operations *************************************************/
 
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
-
+			sign_ext = true;
+		case ICMD_LNEG:    
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1); 
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_NEG(s1, d);
+			if (sign_ext) M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_NEG(s1, d); /* XXX */
-			emit_store_dst(jd, iptr, d);
-			break;
 
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
@@ -621,8 +617,8 @@ bool codegen(jitdata *jd)
 			} else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_SUB(s1, REG_ITMP2, d);
-				M_EXTSW(d, d);
 			}
+			M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -651,6 +647,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IDIV:
+			sign_ext = true;
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -661,11 +658,20 @@ bool codegen(jitdata *jd)
 			codegen_add_arithmeticexception_ref(cd);
 
 			M_DIV(s1, s2, d);
-
+			/* we need to test if divident was 0x8000000000000, bit OV is set in XER in this case */
+			/* we only need to check this if we did a LDIV, not for IDIV */
+			if (!sign_ext)	{
+				M_MFXER(REG_ITMP2);
+				M_ANDIS(REG_ITMP2, 0x4000, REG_ITMP2);	/* test OV */
+				M_BLE(1);
+				M_MOV(s1, d);				/* java specs says result == dividend */
+			}
+			if (sign_ext) M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_IREM:
+			sign_ext = true;
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -673,22 +679,33 @@ bool codegen(jitdata *jd)
 			M_BEQ(0);
 			codegen_add_arithmeticexception_ref(cd);
 
-			/* FIXME s1 == -2^63 && s2 == -1 does not work that way */
 			M_DIV(s1, s2,  REG_ITMP3);	
+			/* we need to test if divident was 0x8000000000000, bit OV is set in XER in this case */
+			/* we only need to check this if we did a LDIV, not for IDIV */
+			if (!sign_ext)	{
+				M_MFXER(REG_ITMP2);
+				M_ANDIS(REG_ITMP2, 0x4000, REG_ITMP2);	/* test OV */
+				M_BLE(2); 
+				LCONST(REG_ITMP3, 0);			/* result == 0 in this case */
+				M_BR(2);
+			}
 			M_MUL(REG_ITMP3, s2, REG_ITMP2);
 			M_SUB(s1, REG_ITMP2,  REG_ITMP3);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+
 			M_MOV(REG_ITMP3, d);
 			emit_store_dst(jd, iptr, REG_ITMP1);
 			break;
 
 		
 		case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
+			sign_ext = true;
 		case ICMD_LMUL:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_MUL(s1, s2, d);
+			if (sign_ext) M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -703,6 +720,7 @@ bool codegen(jitdata *jd)
 				ICONST(REG_ITMP3, iptr->sx.val.i);
 				M_MUL(s1, REG_ITMP3, d);
 			}
+			M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 		case ICMD_LMULCONST:
@@ -733,6 +751,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_AND_IMM(s2, 0x1f, REG_ITMP3);
 			M_SLL(s1, REG_ITMP3, d);
+			M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -741,8 +760,8 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			ICONST(REG_ITMP3, iptr->sx.val.i);
-			M_SLL(s1, REG_ITMP3, d);
+			M_SLL_IMM(s1, iptr->sx.val.i & 0x1f, d);
+			M_EXTSW(d,d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -839,7 +858,6 @@ bool codegen(jitdata *jd)
 
 		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* sx.val.i = constant                             */
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_MOV(s1, REG_ITMP2);
@@ -859,6 +877,7 @@ bool codegen(jitdata *jd)
 				M_RLWINM(REG_ITMP2, 0, 0, 30-b, REG_ITMP2);
 			}
 			M_SUB(s1, REG_ITMP2, d);
+			M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
