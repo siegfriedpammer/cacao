@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5825 2006-10-26 09:29:23Z twisti $
+   $Id: asmpart.S 5930 2006-11-06 21:12:52Z twisti $
 
 */
 
@@ -481,8 +481,10 @@ asm_abstractmethoderror:
    XXX
 
    Stack layout:
-     40   return address into JIT code (patch position)
-     32   pointer to virtual java_objectheader
+     56   return address into JIT code (patch position)
+     48   pointer to virtual java_objectheader
+     40   machine code (which is patched back later)
+     32   machine code (which is patched back later)
      24   machine code (which is patched back later)
      16   unresolved class/method/field reference
       8   data segment displacement from load instructions
@@ -521,15 +523,15 @@ asm_patcher_wrapper:
 
 	bnez    itmp3,L_asm_patcher_wrapper_exception
 
-	ald     itmp3,(5+2+16+22+4)*8(sp) /* load RA                              */
-	aaddiu  sp,sp,(6+2+16+22+4)*8 /* remove stack frame                       */
+	ald     itmp3,(7+2+16+22+4)*8(sp) /* load RA                              */
+	aaddiu  sp,sp,(8+2+16+22+4)*8 /* remove stack frame                       */
 
 	jr      itmp3                 /* jump to new patched code                 */
 
 L_asm_patcher_wrapper_exception:
 	move    xptr,itmp3            /* get exception                            */
-	ald     xpc,(5+2+16+22+4)*8(sp) /* xpc is RA                              */
-	aaddiu  sp,sp,(6+2+16+22+4)*8 /* remove stack frame                       */
+	ald     xpc,(7+2+16+22+4)*8(sp) /* xpc is RA                              */
+	aaddiu  sp,sp,(8+2+16+22+4)*8 /* remove stack frame                       */
 	b       asm_handle_exception
 
 	.end	asm_patcher_wrapper

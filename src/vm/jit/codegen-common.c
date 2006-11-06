@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5929 2006-11-06 17:13:40Z twisti $
+   $Id: codegen-common.c 5930 2006-11-06 21:12:52Z twisti $
 
 */
 
@@ -477,6 +477,12 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 /* 	list_add_first(cd->patchrefs, pr); */
 	pr->next      = cd->patchrefs;
 	cd->patchrefs = pr;
+
+#if defined(ENABLE_JIT) && defined(__MIPS__)
+	/* Generate NOPs for opt_shownops. */
+
+	PATCHER_NOPS;
+#endif
 
 #if defined(ENABLE_JIT) && (defined(__I386__) || defined(__MIPS__) || defined(__X86_64__))
 	/* On some architectures the patcher stub call instruction might

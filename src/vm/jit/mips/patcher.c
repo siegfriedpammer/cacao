@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: patcher.c 5929 2006-11-06 17:13:40Z twisti $
+   $Id: patcher.c 5930 2006-11-06 21:12:52Z twisti $
 
 */
 
@@ -36,6 +36,8 @@
 #include <assert.h>
 
 #include "vm/types.h"
+
+#include "vm/jit/mips/codegen.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -67,6 +69,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	stackframeinfo     sfi;
 	u1                *xpc;
 	java_objectheader *o;
+	u4                 mcode[5];
 	functionptr        f;
 	bool               result;
 	java_objectheader *e;
@@ -79,8 +82,8 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	/* get stuff from the stack */
 
-	xpc = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	xpc = (u1 *)                *((ptrint *) (sp + 7 * 8));
+	o   = (java_objectheader *) *((ptrint *) (sp + 6 * 8));
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 8));
 
 	/* store PV into the patcher function position */
@@ -97,7 +100,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	/* create the stackframeinfo */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 8, ra, xpc);
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 8 * 8, ra, xpc);
 
 	/* call the proper patcher function */
 
@@ -117,6 +120,26 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 		return e;
 	}
 
+	/* patch back original code */
+
+	mcode[0] = *((u4 *) (sp + 3 * 8 + 0));
+	mcode[1] = *((u4 *) (sp + 3 * 8 + 4));
+
+	mcode[2] = *((u4 *) (sp + 4 * 8 + 0));
+	mcode[3] = *((u4 *) (sp + 4 * 8 + 4));
+	mcode[4] = *((u4 *) (sp + 5 * 8 + 0));
+
+	*((u4 *) (xpc + 0 * 4)) = mcode[0];
+	*((u4 *) (xpc + 1 * 4)) = mcode[1];
+
+	*((u4 *) (xpc + 2 * 4)) = mcode[2];
+	*((u4 *) (xpc + 3 * 4)) = mcode[3];
+	*((u4 *) (xpc + 4 * 4)) = mcode[4];
+
+	/* synchronize instruction cache */
+
+	md_icacheflush(xpc, PATCHER_CALL_SIZE);
+
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return NULL;
@@ -135,8 +158,6 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 bool patcher_get_putstatic(u1 *sp)
 {
-	u1               *ra;
-	u4                mcode[2];
 	unresolved_field *uf;
 	s4                disp;
 	u1               *pv;
@@ -144,12 +165,9 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
-	uf       = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
-	disp     =                      *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)               *((ptrint *) (sp + 0 * 8));
+	uf   = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
+	disp =                      *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)               *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
@@ -161,15 +179,6 @@ bool patcher_get_putstatic(u1 *sp)
 	if (!(fi->class->state & CLASS_INITIALIZED))
 		if (!initialize_class(fi->class))
 			return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	/* patch the field value's address */
 
@@ -195,59 +204,60 @@ bool patcher_get_putstatic(u1 *sp)
 bool patcher_get_putfield(u1 *sp)
 {
 	u1               *ra;
-	u4                mcode[2];
 	unresolved_field *uf;
 	fieldinfo        *fi;
 
-	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
-	uf       = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
+	/* get stuff from the stack */
+
+	ra = (u1 *)               *((ptrint *) (sp + 7 * 8));
+	uf = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_shownops)
-		ra = ra + 2 * 4;
-
-	/* patch the field's offset */
-
-#if SIZEOF_VOID_P == 4
-	if (fi->type == TYPE_LNG) {
-# if WORDS_BIGENDIAN == 1
-		/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
-		*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-		*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-# else
-		/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
-		*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-		*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-# endif
-	} else
-#endif
-		*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
-
-	/* synchronize instruction cache */
-
 	if (opt_shownops) {
+		ra = ra + PATCHER_CALL_SIZE;
+
 #if SIZEOF_VOID_P == 4
-		if (fi->type == TYPE_LNG)
-			md_icacheflush(ra - 2 * 4, 4 * 4);
+		if (IS_LNG_TYPE(fi->type)) {
+# if WORDS_BIGENDIAN == 1
+			/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
+			*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+# else
+			/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
+			*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+# endif
+		}
 		else
 #endif
-			md_icacheflush(ra - 2 * 4, 3 * 4);
+			*((u4 *) (ra + 0 * 4)) |= (s2) (fi->offset & 0x0000ffff);
+
+		/* synchronize instruction cache */
+
+		md_icacheflush(ra, 2 * 4);
 	}
 	else {
-		md_icacheflush(ra, 2 * 4);
+#if SIZEOF_VOID_P == 4
+		if (IS_LNG_TYPE(fi->type)) {
+# if WORDS_BIGENDIAN == 1
+			/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
+			*((u4 *) (sp + 3 * 8 + 0)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+			*((u4 *) (sp + 3 * 8 + 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+# else
+			/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
+			*((u4 *) (sp + 3 * 8 + 0)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+			*((u4 *) (sp + 3 * 8 + 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+# endif
+		}
+		else
+#endif
+			*((u4 *) (sp + 3 * 8 + 0)) |= (s2) (fi->offset & 0x0000ffff);
 	}
 
 	return true;
@@ -265,8 +275,6 @@ bool patcher_get_putfield(u1 *sp)
 
 bool patcher_aconst(u1 *sp)
 {
-	u1                *ra;
-	u4                 mcode[2];
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -274,26 +282,14 @@ bool patcher_aconst(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	/* patch the classinfo pointer */
 
@@ -322,8 +318,6 @@ bool patcher_aconst(u1 *sp)
 
 bool patcher_builtin_multianewarray(u1 *sp)
 {
-	u1                *ra;
-	u4                 mcode[2];
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -331,26 +325,14 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	/* patch the classinfo pointer */
 
@@ -378,8 +360,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 bool patcher_builtin_arraycheckcast(u1 *sp)
 {
-	u1                *ra;
-	u4                 mcode[2];
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -387,26 +367,14 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	/* patch the classinfo pointer */
 
@@ -433,8 +401,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 bool patcher_invokestatic_special(u1 *sp)
 {
-	u1                *ra;
-	u4                 mcode[2];
 	unresolved_method *um;
 	s4                 disp;
 	u1                *pv;
@@ -442,26 +408,14 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	um   = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	/* patch stubroutine */
 
@@ -490,43 +444,41 @@ bool patcher_invokestatic_special(u1 *sp)
 bool patcher_invokevirtual(u1 *sp)
 {
 	u1                *ra;
-	u4                 mcode[2];
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	ra = (u1 *)                *((ptrint *) (sp + 7 * 8));
+	um = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_shownops)
-		ra = ra + 2 * 4;
+	if (opt_shownops) {
+		ra = ra + PATCHER_CALL_SIZE;
 
-	/* patch vftbl index */
+		/* patch vftbl index */
 
-	*((s4 *) (ra + 1 * 4)) |= (s4) ((OFFSET(vftbl_t, table[0]) +
-									 sizeof(methodptr) * m->vftblindex) & 0x0000ffff);
+		*((s4 *) (ra + 1 * 4)) |=
+			(s4) ((OFFSET(vftbl_t, table[0]) +
+				   sizeof(methodptr) * m->vftblindex) & 0x0000ffff);
 
-	/* synchronize instruction cache */
+		/* synchronize instruction cache */
 
-	if (opt_shownops)
-		md_icacheflush(ra - 2 * 4, 4 * 4);
-	else
-		md_icacheflush(ra, 2 * 4);
+		md_icacheflush(ra + 1 * 4, 1 * 4);
+	}
+	else {
+		/* patch vftbl index */
+
+		*((s4 *) (sp + 3 * 8 + 4)) |=
+			(s4) ((OFFSET(vftbl_t, table[0]) +
+				   sizeof(methodptr) * m->vftblindex) & 0x0000ffff);
+	}
 
 	return true;
 }
@@ -548,48 +500,51 @@ bool patcher_invokevirtual(u1 *sp)
 bool patcher_invokeinterface(u1 *sp)
 {
 	u1                *ra;
-	u4                 mcode[2];
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	ra = (u1 *)                *((ptrint *) (sp + 7 * 8));
+	um = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_shownops)
-		ra = ra + 2 * 4;
+	if (opt_shownops) {
+		ra = ra + PATCHER_CALL_SIZE;
 
-	/* patch interfacetable index */
+		/* patch interfacetable index */
 
-	*((s4 *) (ra + 1 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									 sizeof(methodptr*) * m->class->index) & 0x0000ffff);
+		*((s4 *) (ra + 1 * 4)) |=
+			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				   sizeof(methodptr*) * m->class->index) & 0x0000ffff);
 
-	/* patch method offset */
+		/* patch method offset */
 
-	*((s4 *) (ra + 2 * 4)) |=
-		(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x0000ffff);
+		*((s4 *) (ra + 2 * 4)) |=
+			(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x0000ffff);
 
-	/* synchronize instruction cache */
+		/* synchronize instruction cache */
 
-	if (opt_shownops)
-		md_icacheflush(ra - 2 * 4, 5 * 4);
-	else
-		md_icacheflush(ra, 3 * 4);
+		md_icacheflush(ra + 1 * 4, 2 * 4);
+	}
+	else {
+		/* patch interfacetable index */
+
+		*((s4 *) (sp + 3 * 8 + 4)) |=
+			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				   sizeof(methodptr*) * m->class->index) & 0x0000ffff);
+
+		/* patch method offset */
+
+		*((s4 *) (sp + 4 * 8 + 0)) |=
+			(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x0000ffff);
+	}
 
 	return true;
 }
@@ -609,8 +564,6 @@ bool patcher_invokeinterface(u1 *sp)
 
 bool patcher_checkcast_instanceof_flags(u1 *sp)
 {
-	u1                *ra;
-	u4                 mcode[2];
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -618,26 +571,14 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	/* patch class flags */
 
@@ -668,46 +609,51 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 bool patcher_checkcast_interface(u1 *sp)
 {
 	u1                *ra;
-	u4                 mcode[2];
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	ra = (u1 *)                *((ptrint *) (sp + 7 * 8));
+	cr = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_shownops)
-		ra = ra + 2 * 4;
+	if (opt_shownops) {
+		ra = ra + PATCHER_CALL_SIZE;
 
-	/* patch super class index */
+		/* patch super class index */
 
-	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
-/* 	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) - */
-/* 									 c->index * sizeof(methodptr*)) & 0x0000ffff); */
-	*((s4 *) (ra + 10 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									  c->index * sizeof(methodptr*)) & 0x0000ffff);
+		*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+		/* 	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) - */
+		/* 									 c->index * sizeof(methodptr*)) & 0x0000ffff); */
+		*((s4 *) (ra + 10 * 4)) |=
+			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				   c->index * sizeof(methodptr*)) & 0x0000ffff);
 
-	/* synchronize instruction cache */
+		/* synchronize instruction cache */
 
-	if (opt_shownops)
-		md_icacheflush(ra - 2 * 4, 8 * 4);
-	else
-		md_icacheflush(ra, 6 * 4);
+		md_icacheflush(ra + 2 * 4, 7 * 4);
+	}
+	else {
+		/* patch super class index */
+
+		*((s4 *) (sp + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+		/* 	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) - */
+		/* 									 c->index * sizeof(methodptr*)) & 0x0000ffff); */
+		*((s4 *) (ra + 10 * 4)) |=
+			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				   c->index * sizeof(methodptr*)) & 0x0000ffff);
+
+		/* synchronize instruction cache */
+
+		md_icacheflush(ra + 10 * 4, 1 * 4);
+	}
 
 	return true;
 }
@@ -730,44 +676,47 @@ bool patcher_checkcast_interface(u1 *sp)
 bool patcher_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
-	u4                 mcode[2];
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	ra = (u1 *)                *((ptrint *) (sp + 7 * 8));
+	cr = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_shownops)
-		ra = ra + 2 * 4;
+	if (opt_shownops) {
+		ra = ra + PATCHER_CALL_SIZE;
 
-	/* patch super class index */
+		/* patch super class index */
 
-	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
-	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									 c->index * sizeof(methodptr*)) & 0x0000ffff);
+		*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+		*((s4 *) (ra + 5 * 4)) |=
+			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				   c->index * sizeof(methodptr*)) & 0x0000ffff);
 
-	/* synchronize instruction cache */
+		/* synchronize instruction cache */
 
-	if (opt_shownops)
-		md_icacheflush(ra - 2 * 4, 8 * 4);
-	else
-		md_icacheflush(ra, 6 * 4);
+		md_icacheflush(ra + 2 * 4, 4 * 4);
+	}
+	else {
+		/* patch super class index */
+
+		*((s4 *) (sp + 4 * 8 + 0)) |= (s4) (-(c->index) & 0x0000ffff);
+		*((s4 *) (ra + 5 * 4)) |=
+			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				   c->index * sizeof(methodptr*)) & 0x0000ffff);
+
+		/* synchronize instruction cache */
+
+		md_icacheflush(ra + 5 * 4, 1 * 4);
+	}
 
 	return true;
 }
@@ -785,8 +734,6 @@ bool patcher_instanceof_interface(u1 *sp)
 
 bool patcher_checkcast_instanceof_class(u1 *sp)
 {
-	u1                *ra;
-	u4                 mcode[2];
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -794,26 +741,14 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	/* patch super class' vftbl */
 
@@ -835,31 +770,17 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 bool patcher_clinit(u1 *sp)
 {
-	u1        *ra;
-	u4         mcode[2];
 	classinfo *c;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)        *((ptrint *) (sp + 5 * 8));
-	mcode[0] =               *((u4 *)     (sp + 3 * 8));
-	mcode[1] =               *((u4 *)     (sp + 3 * 8 + 4));
-	c        = (classinfo *) *((ptrint *) (sp + 2 * 8));
+	c = (classinfo *) *((ptrint *) (sp + 2 * 8));
 
 	/* check if the class is initialized */
 
 	if (!(c->state & CLASS_INITIALIZED))
 		if (!initialize_class(c))
 			return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	return true;
 }
@@ -876,31 +797,17 @@ bool patcher_clinit(u1 *sp)
 #ifdef ENABLE_VERIFIER
 bool patcher_athrow_areturn(u1 *sp)
 {
-	u1               *ra;
-	u4                mcode[2];
 	unresolved_class *uc;
 	classinfo        *c;
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
-	uc       = (unresolved_class *) *((ptrint *) (sp + 2 * 8));
+	uc = (unresolved_class *) *((ptrint *) (sp + 2 * 8));
 
 	/* resolve the class */
 
 	if (!resolve_class(uc, resolveEager, false, &c))
 		return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	return true;
 }
@@ -916,8 +823,6 @@ bool patcher_athrow_areturn(u1 *sp)
 #if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native(u1 *sp)
 {
-	u1          *ra;
-	u4           mcode[2];
 	methodinfo  *m;
 	s4           disp;
 	u1          *pv;
@@ -925,26 +830,14 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra       = (u1 *)         *((ptrint *) (sp + 5 * 8));
-	mcode[0] =                *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                *((u4 *)     (sp + 3 * 8 + 4));
-	m        = (methodinfo *) *((ptrint *) (sp + 2 * 8));
-	disp     =                *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)         *((ptrint *) (sp + 0 * 8));
+	m    = (methodinfo *) *((ptrint *) (sp + 2 * 8));
+	disp =                *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)         *((ptrint *) (sp + 0 * 8));
 
 	/* resolve native function */
 
 	if (!(f = native_resolve_function(m)))
 		return false;
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 2 * 4);
 
 	/* patch native function pointer */
 

@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 5929 2006-11-06 17:13:40Z twisti $
+   $Id: codegen.h 5930 2006-11-06 21:12:52Z twisti $
 
 */
 
@@ -43,7 +43,8 @@
 
 /* some defines ***************************************************************/
 
-#define PATCHER_CALL_SIZE    2 * 4      /* size in bytes of a patcher call    */
+#define PATCHER_CALL_INSTRUCTIONS    5     /* number of instructions          */
+#define PATCHER_CALL_SIZE            5 * 4 /* size in bytes of a patcher call */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -62,6 +63,16 @@
         M_NOP; \
     }
 
+#define PATCHER_NOPS \
+    do { \
+        if (opt_shownops) { \
+            M_NOP; \
+            M_NOP; \
+            M_NOP; \
+            M_NOP; \
+            M_NOP; \
+        } \
+    } while (0)
 
 #define M_INTMOVE(a,b) \
     do { \

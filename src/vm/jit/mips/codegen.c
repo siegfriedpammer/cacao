@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5929 2006-11-06 17:13:40Z twisti $
+   $Id: codegen.c 5930 2006-11-06 21:12:52Z twisti $
 
 */
 
@@ -456,10 +456,6 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_unique_address(cd, cr);
 
 				codegen_add_patch_ref(cd, PATCHER_aconst, cr, disp);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 
 				M_ALD(d, REG_PV, disp);
 			}
@@ -1644,23 +1640,14 @@ bool codegen(jitdata *jd)
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, &(fi->value));
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
-				}
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1698,23 +1685,14 @@ bool codegen(jitdata *jd)
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, &(fi->value));
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
-				}
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1753,23 +1731,14 @@ bool codegen(jitdata *jd)
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, &(fi->value));
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
-				}
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1805,10 +1774,6 @@ bool codegen(jitdata *jd)
 				disp      = 0;
 
 				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1862,13 +1827,8 @@ bool codegen(jitdata *jd)
 			else
 				s2 = emit_load_s2(jd, iptr, REG_FTMP1);
 
-			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
 				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
-			}
 
 			switch (fieldtype) {
 			case TYPE_INT:
@@ -1898,19 +1858,14 @@ bool codegen(jitdata *jd)
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
-
-				disp = 0;
 			}
 			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -1945,10 +1900,6 @@ bool codegen(jitdata *jd)
 				uc = iptr->sx.s23.s2.uc;
 
 				codegen_add_patch_ref(cd, PATCHER_athrow_areturn, uc, 0);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 			}
 #endif /* ENABLE_VERIFIER */
 
@@ -2295,10 +2246,6 @@ bool codegen(jitdata *jd)
 				uc = iptr->sx.s23.s2.uc;
 
 				codegen_add_patch_ref(cd, PATCHER_athrow_areturn, uc, 0);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 			}
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
@@ -2591,10 +2538,6 @@ gen_method:
 
 					codegen_add_patch_ref(cd, PATCHER_invokestatic_special, um,
 										  disp);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
 				}
 				else
 					disp = dseg_add_address(cd, lm->stubroutine);
@@ -2608,10 +2551,6 @@ gen_method:
 
 				if (lm == NULL) {
 					codegen_add_patch_ref(cd, PATCHER_invokevirtual, um, 0);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
 
 					s1 = 0;
 				}
@@ -2629,10 +2568,6 @@ gen_method:
 
 				if (lm == NULL) {
 					codegen_add_patch_ref(cd, PATCHER_invokeinterface, um, 0);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
 
 					s1 = 0;
 					s2 = 0;
@@ -2725,19 +2660,19 @@ gen_method:
 /* 				s2 = 3 + 2 + 1 + 2; */
 				s2 = 3 + 7 + 1 + 7;
 				if (super == NULL)
-					s2 += (opt_shownops ? 2 : 0);
+					s2 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
 
 				/* calculate class checkcast code size */
 
 /* 				s3 = 2 + 1 + 4 + 1 + 2 /\* 10 + (s1 == REG_ITMP1) *\/; */
 				s3 = 2 + 1 + 4 + 1 + 7;
 				if (super == NULL)
-					s3 += (opt_shownops ? 2 : 0);
+					s3 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
 
 				/* if class is not resolved, check which code to call */
 
 				if (super == NULL) {
-					M_BEQZ(s1, 5 + (opt_shownops ? 2 : 0) + s2 + 2 + s3);
+					M_BEQZ(s1, 5 + (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0) + s2 + 2 + s3);
 					M_NOP;
 
 					cr   = iptr->sx.s23.s3.c.ref;
@@ -2745,10 +2680,6 @@ gen_method:
 
 					codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
 										  cr, disp);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
 
 					/* XXX TWISTI M_ILD can be 2 instructions long (jump offset) */
 					M_ILD(REG_ITMP2, REG_PV, disp);
@@ -2765,10 +2696,6 @@ gen_method:
 
 						codegen_add_patch_ref(cd, PATCHER_checkcast_interface,
 											  cr, 0);
-
-						if (opt_shownops) {
-							M_NOP; M_NOP;
-						}
 					}
 					else {
 						M_BEQZ(s1, 1 + s2);
@@ -2802,10 +2729,6 @@ gen_method:
 						codegen_add_patch_ref(cd,
 											  PATCHER_checkcast_instanceof_class,
 											  cr, disp);
-
-						if (opt_shownops) {
-							M_NOP; M_NOP;
-						}
 					}
 					else {
 						disp = dseg_add_address(cd, super->vftbl);
@@ -2852,10 +2775,6 @@ gen_method:
 
 					codegen_add_patch_ref(cd, PATCHER_builtin_arraycheckcast,
 										  cr, disp);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
 				}
 				else
 					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
@@ -2922,20 +2841,20 @@ gen_method:
 
 			s2 = 7;
 			if (super == NULL)
-				s2 += (opt_shownops ? 2 : 0);
+				s2 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
 
 			/* calculate class instanceof code size */
 
 			s3 = 8;
 			if (super == NULL)
-				s3 += (opt_shownops ? 2 : 0);
+				s3 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
 
 			M_CLR(d);
 
 			/* if class is not resolved, check which code to call */
 
 			if (super == NULL) {
-				M_BEQZ(s1, 5 + (opt_shownops ? 2 : 0) + s2 + 2 + s3);
+				M_BEQZ(s1, 5 + (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0) + s2 + 2 + s3);
 				M_NOP;
 
 				cr   = iptr->sx.s23.s3.c.ref;
@@ -2943,10 +2862,6 @@ gen_method:
 
 				codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
 									  cr, disp);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 
 				/* XXX TWISTI M_ILD can be 2 instructions long (jump offset) */
 				M_ILD(REG_ITMP3, REG_PV, disp);
@@ -2963,10 +2878,6 @@ gen_method:
 
 					codegen_add_patch_ref(cd, PATCHER_instanceof_interface,
 										  cr, 0);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
 				}
 				else {
 					M_BEQZ(s1, 1 + s2);
@@ -2999,10 +2910,6 @@ gen_method:
 
 					codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_class,
 										  cr, disp);
-
-					if (opt_shownops) {
-						M_NOP; M_NOP;
-					}
 				}
 				else {
 					disp = dseg_add_address(cd, super->vftbl);
@@ -3060,10 +2967,6 @@ gen_method:
 
 				codegen_add_patch_ref(cd, PATCHER_builtin_multianewarray,
 									  cr, disp);
-
-				if (opt_shownops) {
-					M_NOP; M_NOP;
-				}
 			}
 			else
 				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
@@ -3261,13 +3164,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	funcdisp = dseg_add_functionptr(cd, f);
 
 #if !defined(WITH_STATIC_CLASSPATH)
-	if (f == NULL) {
+	if (f == NULL)
 		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, funcdisp);
-
-		if (opt_shownops) {
-			M_NOP; M_NOP;
-		}
-	}
 #endif
 
 	/* save integer and float argument registers */

@@ -502,11 +502,13 @@ void emit_patcher_stubs(jitdata *jd)
 {
 	codegendata *cd;
 	patchref    *pr;
-	u4           mcode[2];
+	u4           mcode[5];
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
 	s4           targetdisp;
 	s4           disp;
+	s4           hi;
+	s4           lo;
 
 	/* get required compiler data */
 
@@ -535,34 +537,50 @@ void emit_patcher_stubs(jitdata *jd)
 		mcode[0] = ((u4 *) tmpmcodeptr)[0];
 		mcode[1] = ((u4 *) tmpmcodeptr)[1];
 
+		mcode[2] = ((u4 *) tmpmcodeptr)[2];
+		mcode[3] = ((u4 *) tmpmcodeptr)[3];
+		mcode[4] = ((u4 *) tmpmcodeptr)[4];
+
 		/* Patch in the call to call the following code (done at
 		   compile time). */
 
-		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
-		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
+		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr              */
+		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position     */
 
 		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
 
 		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
-			*exceptionptr =
-				new_internalerror("Jump offset is out of range: %d > +/-%d",
-								  disp, 0x00007fff);
-			return;
-		}
+			/* Recalculate the displacement to be relative to PV. */
 
-		M_BR(disp);
-		M_NOP;
+			disp = savedmcodeptr - cd->mcodebase;
+
+			lo = (short) disp;
+			hi = (short) ((disp - lo) >> 16);
+
+			M_LUI(REG_ITMP3, hi);
+			M_OR_IMM(REG_ITMP3, lo, REG_ITMP3);
+			M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+			M_JMP(REG_ITMP3);
+			M_NOP;
+		}
+		else {
+			M_BR(disp);
+			M_NOP;
+			M_NOP;
+			M_NOP;
+			M_NOP;
+		}
 
 		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
 
 		/* create stack frame */
 
-		M_ASUB_IMM(REG_SP, 6 * 8, REG_SP);
+		M_ASUB_IMM(REG_SP, 8 * 8, REG_SP);
 
 		/* calculate return address and move it onto the stack */
 
 		M_LDA(REG_ITMP3, REG_PV, pr->branchpos);
-		M_AST(REG_ITMP3, REG_SP, 5 * 8);
+		M_AST(REG_ITMP3, REG_SP, 7 * 8);
 
 		/* move pointer to java_objectheader onto stack */
 
@@ -574,7 +592,7 @@ void emit_patcher_stubs(jitdata *jd)
 		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
 		M_LDA(REG_ITMP3, REG_PV, disp);
-		M_AST(REG_ITMP3, REG_SP, 4 * 8);
+		M_AST(REG_ITMP3, REG_SP, 6 * 8);
 #else
 		/* do nothing */
 #endif
@@ -583,11 +601,23 @@ void emit_patcher_stubs(jitdata *jd)
 
 		disp = dseg_add_s4(cd, mcode[0]);
 		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, 3 * 8);
+		M_IST(REG_ITMP3, REG_SP, 3 * 8 + 0);
 
 		disp = dseg_add_s4(cd, mcode[1]);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST(REG_ITMP3, REG_SP, 3 * 8 + 4);
+
+		disp = dseg_add_s4(cd, mcode[2]);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, 4 * 8 + 0);
+
+		disp = dseg_add_s4(cd, mcode[3]);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, 4 * 8 + 4);
+
+		disp = dseg_add_s4(cd, mcode[4]);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, 5 * 8 + 0);
 
 		/* move class/method/field reference onto stack */
 
