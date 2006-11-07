@@ -25,18 +25,18 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
+            Edwin Steiner
 
-   Changes: Edwin Steiner
-
-   $Id: md.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: md.c 5932 2006-11-07 09:06:18Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
 
 #include <assert.h>
+
+#include "vm/types.h"
 
 #include "vm/global.h"
 #include "vm/jit/asmpart.h"
@@ -57,6 +57,34 @@
 void md_init(void)
 {
 	(void) asm_md_init();
+}
+
+
+/* md_codegen_patch_branch *****************************************************
+
+   Back-patches a branch instruction.
+
+*******************************************************************************/
+
+void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
+{
+	s4 *mcodeptr;
+	s4  disp;                           /* branch displacement                */
+
+	/* calculate the patch position */
+
+	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
+
+	/* Calculate the branch displacement. */
+
+	disp = targetmpc - branchmpc;
+
+	/* I don't think we have to check for branch-displacement
+	   overflow, +/-2GB should be enough. */
+
+	/* patch the branch instruction before the mcodeptr */
+
+	mcodeptr[-1] = disp;
 }
 
 

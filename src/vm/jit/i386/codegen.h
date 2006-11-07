@@ -27,9 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   Changes:
-
-   $Id: codegen.h 5632 2006-10-02 13:43:15Z edwin $
+   $Id: codegen.h 5932 2006-11-07 09:06:18Z twisti $
 
 */
 
@@ -324,21 +322,6 @@
 
 #define M_FSTNP(a,b,disp)       emit_fsts_membase(cd, (b), (disp))
 #define M_DSTNP(a,b,disp)       emit_fstl_membase(cd, (b), (disp))
-
-
-/* function gen_resolvebranch **************************************************
-
-    backpatches a branch instruction
-
-    parameters: ip ... pointer to instruction after branch (void*)
-                so ... offset of instruction after branch  (s4)
-                to ... offset of branch target             (s4)
-
-*******************************************************************************/
-
-#define gen_resolvebranch(ip,so,to) \
-    *((void **) ((ip) - 4)) = (void **) ((to) - (so));
-
 
 #endif /* _CODEGEN_H */
 

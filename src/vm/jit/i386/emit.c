@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: emit.c 5562 2006-09-28 20:13:20Z edwin $
+   $Id: emit.c 5932 2006-11-07 09:06:18Z twisti $
 
 */
 
@@ -314,7 +312,9 @@ void emit_exception_stubs(jitdata *jd)
 {
 	codegendata  *cd;
 	registerdata *rd;
-	exceptionref *eref;
+	exceptionref *er;
+	s4            branchmpc;
+	s4            targetmpc;
 	s4            targetdisp;
 
 	/* get required compiler data */
@@ -326,10 +326,13 @@ void emit_exception_stubs(jitdata *jd)
 
 	targetdisp = 0;
 
-	for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-		gen_resolvebranch(cd->mcodebase + eref->branchpos,
-						  eref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
+	for (er = cd->exceptionrefs; er != NULL; er = er->next) {
+		/* back-patch the branch to this exception code */
+
+		branchmpc = er->branchpos;
+		targetmpc = cd->mcodeptr - cd->mcodebase;
+
+		md_codegen_patch_branch(cd, branchmpc, targetmpc);
 
 		MCODECHECK(512);
 
@@ -337,18 +340,18 @@ void emit_exception_stubs(jitdata *jd)
 		   ArrayIndexOutOfBoundsException.  If so, move index register
 		   into REG_ITMP1. */
 
-		if (eref->reg != -1)
-			M_INTMOVE(eref->reg, REG_ITMP1);
+		if (er->reg != -1)
+			M_INTMOVE(er->reg, REG_ITMP1);
 
 		/* calcuate exception address */
 
 		M_MOV_IMM(0, REG_ITMP2_XPC);
 		dseg_adddata(cd);
-		M_AADD_IMM32(eref->branchpos - 6, REG_ITMP2_XPC);
+		M_AADD_IMM32(er->branchpos - 6, REG_ITMP2_XPC);
 
 		/* move function to call into REG_ITMP3 */
 
-		M_MOV_IMM(eref->function, REG_ITMP3);
+		M_MOV_IMM(er->function, REG_ITMP3);
 
 		if (targetdisp == 0) {
 			targetdisp = cd->mcodeptr - cd->mcodebase;

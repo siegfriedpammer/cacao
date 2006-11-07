@@ -26,12 +26,11 @@
 
    Authors: Andreas Krall
             Christian Thalinger
-
-   Changes: Joseph Wenninger
+            Joseph Wenninger
             Christian Ullrich
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: codegen.c 5926 2006-11-05 23:17:23Z edwin $
+   $Id: codegen.c 5932 2006-11-07 09:06:18Z twisti $
 
 */
 
@@ -402,7 +401,7 @@ bool codegen(jitdata *jd)
 	/* create replacement points */
 
 	if (!replace_create_replacement_points(jd))
-		return NULL;
+		return false;
 
 #if defined(ENABLE_SSA)
 	/* with SSA Header is Basic Block 0 - insert phi Moves if necessary */
@@ -415,20 +414,15 @@ bool codegen(jitdata *jd)
 	replacementpoint = jd->code->rplpoints;
 
 	/* walk through all basic blocks */
+
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
-
 		/* branch resolving */
 
-		branchref *brefs;
-		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
-			gen_resolvebranch(cd->mcodebase + brefs->branchpos, 
-			                  brefs->branchpos,
-							  bptr->mpc);
-		}
+		codegen_resolve_branchrefs(cd, bptr);
 
 		/* handle replacement points */
 
