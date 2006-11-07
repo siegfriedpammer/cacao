@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5929 2006-11-06 17:13:40Z twisti $
+   $Id: codegen-common.h 5931 2006-11-07 08:51:05Z twisti $
 
 */
 
@@ -161,6 +161,7 @@ u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr);
 void codegen_add_branch_ref(codegendata *cd, basicblock *target);
 /* XXX REMOVE ME: don't-break-trunk macro */
 #define codegen_addreference codegen_add_branch_ref
+void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr);
 
 void codegen_add_arithmeticexception_ref(codegendata *cd);
 void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd, s4 reg);
