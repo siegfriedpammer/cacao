@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5776 2006-10-13 17:06:39Z tbfg $
+   $Id: md.c 5933 2006-11-08 13:03:42Z tbfg $
 
 */
 
@@ -78,6 +78,47 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 	return ra;
 }
+
+/* md_codegen_patch_branch *****************************************************
+
+   Back-patches a branch instruction.
+   Changes the dispacment of the jump instruction.
+
+*******************************************************************************/
+
+void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
+{
+	s4 *mcodeptr;
+	s4  disp;                           /* branch displacement                */
+	s4  mcode;		
+
+	/* calculate the patch position */
+	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
+
+	/* Calculate the branch displacement. */
+	disp = targetmpc - branchmpc + 4;
+	mcode = mcodeptr[-1];
+
+	if ((mcode & 0xfc000000) == 0x40000000)	{
+		/* conditional jump bcx */
+		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff))
+			vm_abort("jump displacement is out of range: %d > +/-%d", disp, 0x00007fff);
+
+		mcode &= 0xffff0000;
+		mcode |= (((disp)&0xfffc));
+	} else if ((mcode & 0xfc000000) == 0x48000000) {
+		/* unconditional jump bx */
+		if ((disp < (s4) 0xfc000000) || (disp > (s4) 0x03ffffff))
+			vm_abort("jump displacement is out of range: %d > +/-%d", disp, 0x0cffffff);
+		mcode &= 0xfc000000;
+		mcode |= (((disp)&0x03ffffff));
+	} else {
+		vm_abort("md_codegen_patch_branch, patching unsupported branch: %xd", mcode);
+	}
+
+	mcodeptr[-1] = mcode;
+}
+
 
 
 /* md_get_method_patch_address *************************************************
