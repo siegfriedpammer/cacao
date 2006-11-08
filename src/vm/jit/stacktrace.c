@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Joseph Wenninger
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5913 2006-11-05 16:58:27Z michi $
+   $Id: stacktrace.c 5935 2006-11-08 20:27:37Z twisti $
 
 */
 
@@ -476,7 +475,7 @@ java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
 
 	/* create exception */
 
-	o = new_nullpointerexception();
+	o = exceptions_new_nullpointerexception();
 
 	/* remove stackframeinfo */
 
@@ -577,7 +576,7 @@ java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
 
 	/* create exception */
 
-	o = new_nullpointerexception();
+	o = exceptions_new_nullpointerexception();
 
 	/* remove stackframeinfo */
 

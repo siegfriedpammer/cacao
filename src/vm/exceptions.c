@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5883 2006-10-31 20:00:10Z twisti $
+   $Id: exceptions.c 5935 2006-11-08 20:27:37Z twisti $
 
 */
 
@@ -1378,19 +1378,19 @@ void exceptions_throw_negativearraysizeexception(void)
 }
 
 
-/* new_nullpointerexception ****************************************************
+/* exceptions_new_nullpointerexception *****************************************
 
-   generates a java.lang.NullPointerException for the jit compiler
+   Generates a java.lang.NullPointerException for the VM system.
 
 *******************************************************************************/
 
-java_objectheader *new_nullpointerexception(void)
+java_objectheader *exceptions_new_nullpointerexception(void)
 {
 	java_objectheader *e;
 
 	e = native_new_and_init(class_java_lang_NullPointerException);
 
-	if (!e)
+	if (e == NULL)
 		return *exceptionptr;
 
 	return e;
@@ -1406,7 +1406,7 @@ java_objectheader *new_nullpointerexception(void)
 
 void exceptions_throw_nullpointerexception(void)
 {
-	*exceptionptr = new_nullpointerexception();
+	*exceptionptr = exceptions_new_nullpointerexception();
 }
 
 

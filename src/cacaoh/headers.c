@@ -25,13 +25,12 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
-
-   Changes: Mark Probst
+            Mark Probst
             Philipp Tomsich
             Christian Thalinger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: headers.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: headers.c 5935 2006-11-08 20:27:37Z twisti $
 
 */
 
@@ -494,7 +493,7 @@ void exceptions_throw_negativearraysizeexception(void)
 }
 
 
-java_objectheader *new_nullpointerexception(void)
+java_objectheader *exceptions_new_nullpointerexception(void)
 {
 	fprintf(stderr, "%s", string_java_lang_NullPointerException);
 	exit(1);
@@ -507,7 +506,7 @@ java_objectheader *new_nullpointerexception(void)
 
 void exceptions_throw_nullpointerexception(void)
 {
-	(void) new_nullpointerexception();
+	(void) exceptions_new_nullpointerexception();
 }
 
 

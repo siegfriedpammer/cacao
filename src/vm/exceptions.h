@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 5785 2006-10-15 22:25:54Z edwin $
+   $Id: exceptions.h 5935 2006-11-08 20:27:37Z twisti $
 
 */
 
@@ -144,7 +144,7 @@ void               exceptions_throw_illegalmonitorstateexception(void);
 java_objectheader *new_negativearraysizeexception(void);
 void exceptions_throw_negativearraysizeexception(void);
 
-java_objectheader *new_nullpointerexception(void);
+java_objectheader *exceptions_new_nullpointerexception(void);
 void exceptions_throw_nullpointerexception(void);
 
 java_objectheader *exceptions_new_stringindexoutofboundsexception(void);
