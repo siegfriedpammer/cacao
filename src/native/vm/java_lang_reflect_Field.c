@@ -1,4 +1,4 @@
-/* src/native/vm/Field.c - java/lang/reflect/Field
+/* src/native/vm/java_lang_reflect_Field.c - java/lang/reflect/Field
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Roman Obermaiser
-
-   Changes: Joseph Wenninger
+            Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_Field.c 5224 2006-08-08 19:18:49Z edwin $
+   $Id: java_lang_reflect_Field.c 5937 2006-11-08 22:00:57Z twisti $
 
 */
 
@@ -134,6 +133,47 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 	exceptions_throw_illegalargumentexception();
 
 	return NULL;
+}
+
+
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    getModifiersInternal
+ * Signature: ()I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIEnv *env, java_lang_reflect_Field *this)
+{
+	classinfo *c;
+	fieldinfo *f;
+
+	c = (classinfo *) this->declaringClass;
+	f = &(c->fields[this->slot]);
+
+	return f->flags;
+}
+
+
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    getType
+ * Signature: ()Ljava/lang/Class;
+ */
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *env, java_lang_reflect_Field *this)
+{
+	classinfo *c;
+	typedesc  *desc;
+	classinfo *ret;
+
+	c    = (classinfo *) this->declaringClass;
+	desc = c->fields[this->slot].parseddesc;
+
+	if (desc == NULL)
+		return NULL;
+
+	if (!resolve_class_from_typedesc(desc, true, false, &ret))
+		return NULL;
+	
+	return (java_lang_Class *) ret;
 }
 
 
@@ -1158,42 +1198,28 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
 
 /*
  * Class:     java/lang/reflect/Field
- * Method:    getType
- * Signature: ()Ljava/lang/Class;
+ * Method:    getSignature
+ * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *env, java_lang_reflect_Field *this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JNIEnv *env, java_lang_reflect_Field* this)
 {
-	classinfo *c;
-	typedesc  *desc;
-	classinfo *ret;
+	classinfo        *c;
+	fieldinfo        *f;
+	java_lang_String *s;
+
+	/* get the class and the field */
 
 	c = (classinfo *) this->declaringClass;
-	desc = c->fields[this->slot].parseddesc;
+	f = &c->fields[this->slot];
 
-	if (!desc)
+	if (f->signature == NULL)
 		return NULL;
 
-	if (!resolve_class_from_typedesc(desc, true, false, &ret))
-		return NULL;
-	
-	return (java_lang_Class *) ret;
-}
+	s = javastring_new(f->signature);
 
+	/* in error case, s == NULL */
 
-/*
- * Class:     java/lang/reflect/Field
- * Method:    getModifiersInternal
- * Signature: ()I
- */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIEnv *env, java_lang_reflect_Field *this)
-{
-	classinfo *c;
-	fieldinfo *f;
-
-	c = (classinfo *) this->declaringClass;
-	f = &(c->fields[this->slot]);
-
-	return f->flags;
+	return s;
 }
 
 

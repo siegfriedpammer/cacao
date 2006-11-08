@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 5785 2006-10-15 22:25:54Z edwin $
+   $Id: method.h 5937 2006-11-08 22:00:57Z twisti $
 */
 
 
@@ -60,6 +59,7 @@ struct methodinfo {                 /* method structure                       */
 	s4            flags;            /* ACC flags                              */
 	utf          *name;             /* name of method                         */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */
+	utf          *signature;        /* Signature attribute string             */
 	methoddesc   *parseddesc;       /* parsed descriptor                      */
 			     
 	classinfo    *class;            /* class, the method belongs to           */

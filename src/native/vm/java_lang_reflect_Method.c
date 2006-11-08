@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Roman Obermaiser
-
-   Changes: Joseph Wenninger
+            Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_Method.c 5225 2006-08-08 19:23:44Z edwin $
+   $Id: java_lang_reflect_Method.c 5937 2006-11-08 22:00:57Z twisti $
 
 */
 
@@ -151,6 +150,31 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 	/* call the Java method via a helper function */
 
 	return (java_lang_Object *) _Jv_jni_invokeNative(m, (jobject) o, args);
+}
+
+
+/*
+ * Class:     java/lang/reflect/Method
+ * Method:    getSignature
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Method_getSignature(JNIEnv *env, java_lang_reflect_Method* this)
+{
+	classinfo        *c;
+	methodinfo       *m;
+	java_lang_String *s;
+
+	c = (classinfo *) this->declaringClass;
+	m = &(c->methods[this->slot]);
+
+	if (m->signature == NULL)
+		return NULL;
+
+	s = javastring_new(m->signature);
+
+	/* in error case, s == NULL */
+
+	return s;
 }
 
 

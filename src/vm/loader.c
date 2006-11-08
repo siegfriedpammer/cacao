@@ -31,7 +31,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5919 2006-11-05 21:18:05Z twisti $
+   $Id: loader.c 5937 2006-11-08 22:00:57Z twisti $
 
 */
 
@@ -909,18 +909,21 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				return false;
 
 			/* check attribute length */
+
 			if (suck_u4(cb) != 2) {
 				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
 				return false;
 			}
 			
 			/* constant value attribute */
+
 			if (pindex != field_load_NOVALUE) {
 				exceptions_throw_classformaterror(c, "Multiple ConstantValue attributes");
 				return false;
 			}
 			
-			/* index of value in constantpool */		
+			/* index of value in constantpool */
+
 			pindex = suck_u2(cb);
 		
 			/* initialize field with value from constantpool */		
@@ -976,8 +979,27 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			default: 
 				log_text("Invalid Constant - Type");
 			}
+		}
+		else if (u == utf_Signature) {
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
+				return false;
 
-		} else {
+			/* check attribute length */
+
+			if (suck_u4(cb) != 2) {
+				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
+				return false;
+			}
+
+			if (f->signature != NULL) {
+				exceptions_throw_classformaterror(c, "Multiple Signature attributes");
+				return false;
+			}
+
+			if (!(f->signature = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+				return false;
+		}
+		else {
 			/* unknown attribute */
 			if (!skipattributebody(cb))
 				return false;
@@ -1244,8 +1266,8 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 						return false;
 				}
 			}
-
-		} else if (aname == utf_Exceptions) {
+		}
+		else if (aname == utf_Exceptions) {
 			s4 j;
 
 			if (m->thrownexceptions) {
@@ -1270,8 +1292,27 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 					  (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
 					return false;
 			}
-				
-		} else {
+		}
+		else if (aname == utf_Signature) {
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
+				return false;
+
+			/* check attribute length */
+
+			if (suck_u4(cb) != 2) {
+				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
+				return false;
+			}
+
+			if (m->signature != NULL) {
+				exceptions_throw_classformaterror(c, "Multiple Signature attributes");
+				return false;
+			}
+
+			if (!(m->signature = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+				return false;
+		}
+		else {
 			if (!skipattributebody(cb))
 				return false;
 		}

@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: field.h 4758 2006-04-12 17:51:10Z edwin $
+   $Id: field.h 5937 2006-11-08 22:00:57Z twisti $
 */
 
 
@@ -60,6 +59,7 @@ struct fieldinfo {	      /* field of a class                                 */
 	s4         type;      /* basic data type                                  */
 	utf       *name;      /* name of field                                    */
 	utf       *descriptor;/* JavaVM descriptor string of field                */
+	utf       *signature; /* Signature attribute string                       */
 	typedesc  *parseddesc;/* parsed descriptor                                */
 
 	s4         offset;    /* offset from start of object (instance variables) */
