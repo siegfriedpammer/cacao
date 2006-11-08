@@ -50,8 +50,15 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/show.h"
+#include "vm/jit/methodheader.h"
 
 #include "native/include/java_lang_String.h"
+
+#if defined(HAS_4BYTE_STACKSLOT)
+#define SIZE_OF_STACKSLOT  4
+#else
+#define SIZE_OF_STACKSLOT  8
+#endif
 
 
 /*** constants used internally ************************************************/
@@ -410,6 +417,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	code->savedintcount = INT_SAV_CNT - rd->savintreguse;
 	code->savedfltcount = FLT_SAV_CNT - rd->savfltreguse;
 	code->memuse        = rd->memuse;
+	code->stackframesize = jd->cd->stackframesize;
 
 	/* everything alright */
 
@@ -689,6 +697,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 
 	ss->javastackdepth = count;
 	ss->javastack = DMNEW(u8, count);
+	ss->javastacktype = DMNEW(u1, count);
 
 #ifndef NDEBUG
 	/* mark values as undefined */
@@ -704,6 +713,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		assert(count);
 		
 		ss->javastack[i] = sp[-1];
+		ss->javastacktype[i] = TYPE_ADR; /* XXX RET */
 		count--;
 		i++;
 		ra++;
@@ -712,6 +722,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		assert(count);
 
 		ss->javastack[i] = es->intregs[REG_ITMP1];
+		ss->javastacktype[i] = TYPE_ADR; /* XXX RET */
 		count--;
 		i++;
 		ra++;
@@ -723,6 +734,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		assert(ra->index == -1);
 
 		replace_read_value(es,sp,ra,ss->javastack + i);
+		ss->javastacktype[i] = ra->type;
 	}
 
 	/* read unused callee saved int regs */
@@ -888,6 +900,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	if (topslot == TOP_IS_ON_STACK) {
 		assert(count);
 		
+		assert(ss->javastacktype[i] == TYPE_ADR);
 		sp[-1] = ss->javastack[i];
 		count--;
 		i++;
@@ -896,6 +909,8 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	else if (topslot == TOP_IS_IN_ITMP1) {
 		assert(count);
 
+		assert(ss->javastacktype[i] == TYPE_ADR);
+		assert(ss->javastacktype[i] == TYPE_ADR);
 		es->intregs[REG_ITMP1] = ss->javastack[i];
 		count--;
 		i++;
@@ -907,6 +922,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	for (; count--; ra++, i++) {
 		assert(ra->index == -1);
 
+		assert(ra->type == ss->javastacktype[i]);
 		replace_write_value(es,sp,ra,ss->javastack + i);
 	}
 	
@@ -958,6 +974,50 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	es->pc = rp->pc;
 }
 
+
+void replace_pop_activation_record(executionstate *es, sourcestate *ss)
+{
+	u1 *ra;
+	u1 *pv;
+	s4 reg;
+	s4 i;
+
+	assert(es->code);
+
+	/* restore saved registers */
+
+	reg = INT_REG_CNT;
+	for (i=0; i<INT_SAV_CNT; ++i) {
+		while (nregdescint[--reg] != REG_SAV)
+			;
+		es->intregs[reg] = ss->savedintregs[i];
+	}
+
+	/* read the return address */
+
+	ra = md_stacktrace_get_returnaddress(es->sp, 
+			SIZE_OF_STACKSLOT * es->code->stackframesize);
+
+	printf("return address: %p\n", (void*)ra);
+
+	es->pc = ra;
+
+	/* adjust the stackpointer */
+
+	es->sp += SIZE_OF_STACKSLOT * es->code->stackframesize;
+	es->sp += SIZE_OF_STACKSLOT; /* skip return address */
+
+	/* find the new codeinfo */
+
+	pv = md_codegen_get_pv_from_pc(es->pc);
+	es->pv = pv;
+
+	if (pv) {
+		es->code = *(codeinfo **)(pv + CodeinfoPointer);
+	}
+}
+
+
 /* replace_me ******************************************************************
  
    This function is called by asm_replacement_out when a thread reaches
@@ -977,6 +1037,10 @@ void replace_me(rplpoint *rp,executionstate *es)
 	rplpoint *target;
 	sourcestate ss;
 	s4 dumpsize;
+	rplpoint *candidate;
+	s4 i;
+
+	es->code = rp->code;
 	
 	/* mark start of dump memory area */
 
@@ -994,7 +1058,7 @@ void replace_me(rplpoint *rp,executionstate *es)
 	printf("replace_me(%p,%p)\n",(void*)rp,(void*)es);
 	fflush(stdout);
 	replace_replacement_point_println(rp);
-	replace_executionstate_println(es,rp->code);
+	replace_executionstate_println(es);
 #endif
 
 	/* read execution state of old code */
@@ -1005,12 +1069,31 @@ void replace_me(rplpoint *rp,executionstate *es)
 	replace_sourcestate_println(&ss);
 #endif
 
+	/* XXX testing */
+
+	do {
+		replace_pop_activation_record(es, &ss);
+		replace_executionstate_println(es);
+		candidate = NULL;
+		rp = es->code->rplpoints;
+		for (i=0; i<es->code->rplpointcount; ++i, ++rp)
+			if (rp->pc <= es->pc)
+				candidate = rp;
+
+		if (candidate) {
+			replace_read_executionstate(candidate,es,&ss);
+			replace_sourcestate_println(&ss);
+		}
+	} while (candidate);
+
 	/* write execution state of new code */
 
 	replace_write_executionstate(target,es,&ss);
 
+	es->code = target->code;
+
 #ifndef NDEBUG
-	replace_executionstate_println(es,target->code);
+	replace_executionstate_println(es);
 #endif
 	
 	/* release dump area */
@@ -1126,13 +1209,11 @@ void replace_show_replacement_points(codeinfo *code)
   
    IN:
        es...............the execution state to print
-	   code.............the codeinfo for which this execution state is meant
-	                    (may be NULL)
   
 *******************************************************************************/
 
 #ifndef NDEBUG
-void replace_executionstate_println(executionstate *es,codeinfo *code)
+void replace_executionstate_println(executionstate *es)
 {
 	int i;
 	int slots;
@@ -1166,23 +1247,63 @@ void replace_executionstate_println(executionstate *es,codeinfo *code)
 	sp = (u8*) es->sp;
 #endif
 
-	if (code)
-		slots = code_get_stack_frame_size(code);
+	if (es->code)
+		slots = code_get_stack_frame_size(es->code);
 	else
 		slots = 0;
 
-	printf("\tstack slots at sp:\n");
-	for (i=0; i<slots; ++i) {
+	if (slots) {
+		printf("\tstack slots(+1) at sp:\n");
+		for (i=0; i<slots+1; ++i) {
 #ifdef HAS_4BYTE_STACKSLOT
-		printf("\t\t%08lx\n",(unsigned long)*sp++);
+			printf("\t\t%08lx\n",(unsigned long)*sp++);
 #else
-		printf("\t\t%016llx\n",(unsigned long long)*sp++);
+			printf("\t\t%016llx\n",(unsigned long long)*sp++);
 #endif
+		}
 	}
+
+	printf("\tcode: %p", (void*)es->code);
+	if (es->code != NULL) {
+		printf(" stackframesize=%d ", es->code->stackframesize);
+		method_print(es->code->m);
+	}
+	printf("\n");
 
 	printf("\n");
 }
 #endif
+
+#if !defined(NDEBUG)
+void java_value_print(s4 type, u8 value)
+{
+	java_objectheader *obj;
+	utf               *u;
+
+	printf("%016llx",(unsigned long long) value);
+
+	if (type < 0 || type > TYPE_RET)
+		printf(" <INVALID TYPE:%d>", type);
+	else
+		printf(" %s", show_jit_type_names[type]);
+
+	if (type == TYPE_ADR && value != 0) {
+		obj = (java_objectheader *) (ptrint) value;
+		putchar(' ');
+		utf_display_printable_ascii_classname(obj->vftbl->class->name);
+
+		if (obj->vftbl->class == class_java_lang_String) {
+			printf(" \"");
+			u = javastring_toutf((java_lang_String *)obj, false);
+			utf_display_printable_ascii(u);
+			printf("\"");
+		}
+	}
+	else if (type == TYPE_INT || type == TYPE_LNG) {
+		printf(" %lld", (long long) value);
+	}
+}
+#endif /* defined(NDEBUG) */
 
 /* replace_sourcestate_println *************************************************
  
@@ -1199,7 +1320,6 @@ void replace_sourcestate_println(sourcestate *ss)
 	int i;
 	int t;
 	int reg;
-	utf *u;
 
  	if (!ss) {
 		printf("(sourcestate *)NULL\n");
@@ -1216,18 +1336,7 @@ void replace_sourcestate_println(sourcestate *ss)
 		}
 		else {
 			printf("\tlocal[%c%2d] = ",TYPECHAR(t),i);
-			printf("%016llx",(unsigned long long) ss->javalocals[i]);
-			if (t == TYPE_ADR && ss->javalocals[i] != 0) {
-				java_objectheader *obj = (java_objectheader *)(ptrint)ss->javalocals[i];
-				putchar(' ');
-				utf_display_printable_ascii_classname(obj->vftbl->class->name);
-				if (obj->vftbl->class == class_java_lang_String) {
-					printf(" \"");
-					u = javastring_toutf((java_lang_String *)obj, false);
-					utf_display_printable_ascii(u);
-					printf("\"");
-				}
-			}
+			java_value_print(t, ss->javalocals[i]);
 			printf("\n");
 		}
 	}
@@ -1237,7 +1346,8 @@ void replace_sourcestate_println(sourcestate *ss)
 	printf("\tstack (depth %d):\n",ss->javastackdepth);
 	for (i=0; i<ss->javastackdepth; ++i) {
 		printf("\tstack[%2d] = ",i);
-		printf("%016llx\n",(unsigned long long) ss->javastack[i]);
+		java_value_print(ss->javastacktype[i], ss->javastack[i]);
+		printf("\n");
 	}
 
 	printf("\n");

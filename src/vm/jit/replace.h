@@ -95,17 +95,20 @@ struct executionstate {
 
 	u8            intregs[INT_REG_CNT];             /* register values */
 	u8            fltregs[FLT_REG_CNT];             /* register values */
+
+	codeinfo     *code;
 };
 
 /* `sourcestate` will probably only be used for debugging              */
 
 struct sourcestate {
 	u8           *javastack;
+	u1           *javastacktype;
 	s4            javastackdepth;
 
 	u8           *javalocals;
-	s4            javalocalcount;
 	u1           *javalocaltype;
+	s4            javalocalcount;
 
 	u8            savedintregs[INT_SAV_CNT + 1]; /* XXX */
 	u8            savedfltregs[FLT_SAV_CNT + 1]; /* XXX */
@@ -125,12 +128,15 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target);
 void replace_deactivate_replacement_point(rplpoint *rp);
 void replace_activate(codeinfo *code,codeinfo *target);
 
+void replace_pop_activation_record(executionstate *es,
+								   sourcestate *ss);
+
 void replace_me(rplpoint *rp,executionstate *es);
 
 #ifndef NDEBUG
 void replace_show_replacement_points(codeinfo *code);
 void replace_replacement_point_println(rplpoint *rp);
-void replace_executionstate_println(executionstate *es,codeinfo *code);
+void replace_executionstate_println(executionstate *es);
 void replace_sourcestate_println(sourcestate *ss);
 #endif
 

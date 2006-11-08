@@ -193,7 +193,7 @@ int code_get_stack_frame_size(codeinfo *code)
 	return count;
 #endif
 
-	return 0;
+	return code->stackframesize;
 }
 
 
