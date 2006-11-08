@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5933 2006-11-08 13:03:42Z tbfg $
+   $Id: md.c 5934 2006-11-08 13:33:08Z tbfg $
 
 */
 
@@ -111,7 +111,7 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 		if ((disp < (s4) 0xfc000000) || (disp > (s4) 0x03ffffff))
 			vm_abort("jump displacement is out of range: %d > +/-%d", disp, 0x0cffffff);
 		mcode &= 0xfc000000;
-		mcode |= (((disp)&0x03ffffff));
+		mcode |= (((disp)&0x03fffffc));
 	} else {
 		vm_abort("md_codegen_patch_branch, patching unsupported branch: %xd", mcode);
 	}

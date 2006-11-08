@@ -32,7 +32,7 @@
             Edwin Steiner
 	    Roland Lezuo
 
-   $Id: codegen.c 5928 2006-11-06 16:38:31Z tbfg $
+   $Id: codegen.c 5934 2006-11-08 13:33:08Z tbfg $
 
 */
 
@@ -334,9 +334,7 @@ bool codegen(jitdata *jd)
 		{
 		branchref *brefs;
 		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
-			gen_resolvebranch((u1*) cd->mcodebase + brefs->branchpos, 
-			                  brefs->branchpos,
-							  bptr->mpc);
+			md_codegen_patch_branch(cd, brefs->branchpos, bptr->mpc);
 			}
 		}
 
@@ -2741,8 +2739,7 @@ gen_method:
 		/* generate exception stubs */
 
 		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-			gen_resolvebranch(cd->mcodebase + eref->branchpos, 
-							  eref->branchpos, cd->mcodeptr - cd->mcodebase);
+			md_codegen_patch_branch(cd, eref->branchpos, cd->mcodeptr - cd->mcodebase);
 
 			MCODECHECK(100);
 

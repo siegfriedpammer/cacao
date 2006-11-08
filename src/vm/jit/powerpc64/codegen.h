@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5928 2006-11-06 16:38:31Z tbfg $
+   $Id: codegen.h 5934 2006-11-08 13:33:08Z tbfg $
 
 */
 
@@ -466,18 +466,6 @@
 #define M_LDATST(a,b,c)                 M_ADDICTST(b, c, a)
 #define M_CLR(a)                        M_LADD_IMM(0, 0, a)
 #define M_AADD_IMM(a,b,c)               M_LADD_IMM(a, b, c)
-
-
-/* function gen_resolvebranch **************************************************
-
-	parameters: ip ... pointer to instruction after branch (void*)
-	            so ... offset of instruction after branch  (s4)
-	            to ... offset of branch target             (s4)
-
-*******************************************************************************/
-
-#define gen_resolvebranch(ip,so,to) \
-	*((s4*)(ip)-1)=(*((s4*)(ip)-1) & ~M_BRMASK) | (((s4)((to)-(so))+4)&((((*((s4*)(ip)-1)>>26)&63)==18)?M_BRAMASK:M_BRMASK))
 
 #endif /* _CODEGEN_H */
 
