@@ -1,3 +1,8 @@
+New in release 0.98 (xxx xx, 2006)
+
+  * Implemented Class/Method/Field getSignature.
+
+
 New in release 0.97 (October 30, 2006)
 
   * New instruction format.
