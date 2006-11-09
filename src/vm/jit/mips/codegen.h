@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 5930 2006-11-06 21:12:52Z twisti $
+   $Id: codegen.h 5943 2006-11-09 15:27:03Z twisti $
 
 */
 
@@ -65,13 +65,11 @@
 
 #define PATCHER_NOPS \
     do { \
-        if (opt_shownops) { \
-            M_NOP; \
-            M_NOP; \
-            M_NOP; \
-            M_NOP; \
-            M_NOP; \
-        } \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
     } while (0)
 
 #define M_INTMOVE(a,b) \

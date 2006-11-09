@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5942 2006-11-09 10:52:34Z twisti $
+   $Id: codegen.h 5943 2006-11-09 15:27:03Z twisti $
 
 */
 
@@ -107,6 +107,14 @@
     if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
+
+
+/* some patcher defines *******************************************************/
+
+#define PATCHER_NOPS \
+    do { \
+        M_NOP; \
+    } while (0)
 
 
 /* macros to create code ******************************************************/
