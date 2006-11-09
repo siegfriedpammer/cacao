@@ -25,8 +25,7 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
-
-   Changes: Edwin Steiner
+            Edwin Steiner
 
    $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
 
@@ -245,6 +244,24 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 {
 	emit_store(jd, iptr, VAROP(iptr->dst), d);
 }
+
+
+/* emit_array_checks ***********************************************************
+
+   Emit exception checks for array accesses, if they need to be
+   emitted.
+
+*******************************************************************************/
+
+#if defined(__POWERPC__)
+void emit_array_checks(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		emit_nullpointer_check(cd, s1);
+		emit_arrayindexoutofbounds_check(cd, s1, s2);
+	}
+}
+#endif
 
 
 /*

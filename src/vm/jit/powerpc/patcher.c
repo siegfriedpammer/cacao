@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5281 2006-08-28 15:18:54Z twisti $
+   $Id: patcher.c 5942 2006-11-09 10:52:34Z twisti $
 
 */
 
@@ -454,9 +454,9 @@ bool patcher_get_putfield(u1 *sp)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* if we show NOPs, we have to skip them */
 
-	if (opt_showdisassemble) {
+	if (opt_shownops) {
 		/* patch the field's offset */
 
 		if (IS_LNG_TYPE(fi->type)) {
@@ -580,9 +580,9 @@ bool patcher_invokevirtual(u1 *sp)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* if we show NOPs, we have to skip them */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 1 * 4;
 
 	/* patch vftbl index */
@@ -629,9 +629,9 @@ bool patcher_invokeinterface(u1 *sp)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* if we show NOPs, we have to skip them */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 1 * 4;
 
 	/* patch interfacetable index */
@@ -689,9 +689,9 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* if we show NOPs, we have to skip them */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 1 * 4;
 
 	/* patch super class index */

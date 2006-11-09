@@ -27,11 +27,10 @@
 
    Authors: Andreas Krall
             Stefan Ring
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5631 2006-10-02 13:26:39Z edwin $
+   $Id: codegen.h 5942 2006-11-09 10:52:34Z twisti $
 
 */
 
@@ -49,24 +48,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-/* gen_nullptr_check(objreg) */
-
-#define gen_nullptr_check(objreg) \
-    if (checknull) { \
-        M_TST((objreg)); \
-        M_BEQ(0); \
-        codegen_add_nullpointerexception_ref(cd); \
-    }
-
-#define gen_bound_check \
-    if (checkbounds) { \
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
-        M_CMPU(s2, REG_ITMP3);\
-        M_BGE(0);\
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-    }
-
 
 /* MCODECHECK(icnt) */
 
@@ -148,18 +129,18 @@
         cd->mcodeptr += 4; \
     } while (0)
 
-#define M_BRMASK     0x0000fffc                     /* (((1 << 16) - 1) & ~3) */
-#define M_BRAMASK    0x03fffffc                     /* (((1 << 26) - 1) & ~3) */
+#define M_BMASK     0x03fffffc                      /* (((1 << 26) - 1) & ~3) */
+#define M_BCMASK    0x0000fffc                      /* (((1 << 16) - 1) & ~3) */
 
-#define M_BRA(x,i,a,l) \
+#define M_B(LI,AA,LK) \
     do { \
-        *((u4 *) cd->mcodeptr) = (((x) << 26) | ((((i) * 4) + 4) & M_BRAMASK) | ((a) << 1) | (l)); \
+        *((u4 *) cd->mcodeptr) = ((18 << 26) | ((((LI) * 4) + 4) & M_BMASK) | ((AA) << 1) | (LK)); \
         cd->mcodeptr += 4; \
     } while (0)
 
-#define M_BRAC(x,bo,bi,i,a,l) \
+#define M_BC(BO,BI,BD,AA,LK) \
     do { \
-        *((u4 *) cd->mcodeptr) = (((x) << 26) | ((bo) << 21) | ((bi) << 16) | (((i) * 4 + 4) & M_BRMASK) | ((a) << 1) | (l)); \
+        *((u4 *) cd->mcodeptr) = ((16 << 26) | ((BO) << 21) | ((BI) << 16) | ((((BD) * 4) + 4) & M_BCMASK) | ((AA) << 1) | (LK)); \
         cd->mcodeptr += 4; \
     } while (0)
 
@@ -354,8 +335,8 @@
 #define M_SSEXT(a,b)                    M_OP3(31, 922, 0, 0, a, b, 0)
 #define M_CZEXT(a,b)                    M_RLWINM(a,0,16,31,b)
 
-#define M_BR(a)                         M_BRA(18, a, 0, 0)
-#define M_BL(a)                         M_BRA(18, a, 0, 1)
+#define M_BR(a)                         M_B(a, 0, 0)
+#define M_BL(a)                         M_B(a, 0, 1)
 #define M_RET                           M_OP3(19, 16, 0, 0, 20, 0, 0)
 #define M_JSR                           M_OP3(19, 528, 0, 1, 20, 0, 0)
 #define M_RTS                           M_OP3(19, 528, 0, 0, 20, 0, 0)
@@ -365,13 +346,13 @@
 #define M_CMPI(a,b)                     M_OP2_IMM(11, 0, a, b)
 #define M_CMPUI(a,b)                    M_OP2_IMM(10, 0, a, b)
 
-#define M_BLT(a)                        M_BRAC(16, 12, 0, a, 0, 0)
-#define M_BLE(a)                        M_BRAC(16, 4, 1, a, 0, 0)
-#define M_BGT(a)                        M_BRAC(16, 12, 1, a, 0, 0)
-#define M_BGE(a)                        M_BRAC(16, 4, 0, a, 0, 0)
-#define M_BEQ(a)                        M_BRAC(16, 12, 2, a, 0, 0)
-#define M_BNE(a)                        M_BRAC(16, 4, 2, a, 0, 0)
-#define M_BNAN(a)                       M_BRAC(16, 12, 3, a, 0, 0)
+#define M_BLT(a)                        M_BC(12, 0, a, 0, 0)
+#define M_BLE(a)                        M_BC(4,  1, a, 0, 0)
+#define M_BGT(a)                        M_BC(12, 1, a, 0, 0)
+#define M_BGE(a)                        M_BC(4,  0, a, 0, 0)
+#define M_BEQ(a)                        M_BC(12, 2, a, 0, 0)
+#define M_BNE(a)                        M_BC(4,  2, a, 0, 0)
+#define M_BNAN(a)                       M_BC(12, 3, a, 0, 0)
 
 #define M_FLD_INTERN(a,b,disp)          M_OP2_IMM(48,a,b,disp)
 #define M_DLD_INTERN(a,b,disp)          M_OP2_IMM(50,a,b,disp)
@@ -452,18 +433,6 @@
 #define M_LDATST(a,b,c)                 M_ADDICTST(b, c, a)
 #define M_CLR(a)                        M_IADD_IMM(0, 0, a)
 #define M_AADD_IMM(a,b,c)               M_IADD_IMM(a, b, c)
-
-
-/* function gen_resolvebranch **************************************************
-
-	parameters: ip ... pointer to instruction after branch (void*)
-	            so ... offset of instruction after branch  (s4)
-	            to ... offset of branch target             (s4)
-
-*******************************************************************************/
-
-#define gen_resolvebranch(ip,so,to) \
-	*((s4*)(ip)-1)=(*((s4*)(ip)-1) & ~M_BRMASK) | (((s4)((to)-(so))+4)&((((*((s4*)(ip)-1)>>26)&63)==18)?M_BRAMASK:M_BRMASK))
 
 #endif /* _CODEGEN_H */
 

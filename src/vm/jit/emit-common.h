@@ -1,9 +1,9 @@
 /* src/vm/jit/emit-common.h - common code emitter functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -25,8 +25,6 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
-
-   Changes:
 
    $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
 
@@ -97,6 +95,8 @@ void emit_arraystore_check(codegendata *cd, s4 reg);
 void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1);
 void emit_nullpointer_check(codegendata *cd, s4 reg);
 void emit_exception_check(codegendata *cd);
+
+void emit_array_checks(codegendata *cd, instruction *iptr, s4 s1, s4 s2);
 
 void emit_exception_stubs(jitdata *jd);
 void emit_patcher_stubs(jitdata *jd);

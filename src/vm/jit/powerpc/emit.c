@@ -44,6 +44,7 @@
 #include "vm/jit/powerpc/codegen.h"
 
 #include "vm/builtin.h"
+#include "vm/options.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
@@ -271,6 +272,39 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 }
 
 
+/* emit_nullpointer_check ******************************************************
+
+   Emit a NullPointerException check.
+
+*******************************************************************************/
+
+void emit_nullpointer_check(codegendata *cd, s4 reg)
+{
+	if (checknull) {
+		M_TST(reg);
+		M_BEQ(0);
+		codegen_add_nullpointerexception_ref(cd);
+	}
+}
+
+
+/* emit_arrayindexoutofbounds_check ********************************************
+
+   Emit a ArrayIndexOutOfBoundsException check.
+
+*******************************************************************************/
+
+void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+{
+	if (checkbounds) {
+		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_CMPU(s2, REG_ITMP3);
+		M_BGE(0);
+		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+	}
+}
+
+
 /* emit_exception_stubs ********************************************************
 
    Generates the code for the exception stubs.
@@ -281,7 +315,9 @@ void emit_exception_stubs(jitdata *jd)
 {
 	codegendata  *cd;
 	registerdata *rd;
-	exceptionref *eref;
+	exceptionref *er;
+	s4            branchmpc;
+	s4            targetmpc;
 	s4            targetdisp;
 	s4            disp;
 
@@ -294,25 +330,29 @@ void emit_exception_stubs(jitdata *jd)
 
 	targetdisp = 0;
 
-	for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-		gen_resolvebranch(cd->mcodebase + eref->branchpos, 
-						  eref->branchpos, cd->mcodeptr - cd->mcodebase);
+	for (er = cd->exceptionrefs; er != NULL; er = er->next) {
+		/* back-patch the branch to this exception code */
+
+		branchmpc = er->branchpos;
+		targetmpc = cd->mcodeptr - cd->mcodebase;
+
+		md_codegen_patch_branch(cd, branchmpc, targetmpc);
 
 		MCODECHECK(100);
 
 		/* Move the value register to a temporary register, if
 		   there is the need for it. */
 
-		if (eref->reg != -1)
-			M_MOV(eref->reg, REG_ITMP1);
+		if (er->reg != -1)
+			M_MOV(er->reg, REG_ITMP1);
 
 		/* calcuate exception address */
 
-		M_LDA(REG_ITMP2_XPC, REG_PV, eref->branchpos - 4);
+		M_LDA(REG_ITMP2_XPC, REG_PV, er->branchpos - 4);
 
 		/* move function to call into REG_ITMP3 */
 
-		disp = dseg_add_functionptr(cd, eref->function);
+		disp = dseg_add_functionptr(cd, er->function);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 
 		if (targetdisp == 0) {
