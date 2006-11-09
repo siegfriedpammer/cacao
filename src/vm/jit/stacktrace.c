@@ -1,4 +1,4 @@
-/* src/vm/jit/stacktrace.c - machine independet stacktrace system
+/* src/vm/jit/stacktrace.c - machine independent stacktrace system
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5935 2006-11-08 20:27:37Z twisti $
+   $Id: stacktrace.c 5941 2006-11-09 10:23:04Z twisti $
 
 */
 
@@ -748,35 +748,7 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 	/* find the realization of the method the pc is in */
 
-#if 0
 	code = *((codeinfo **) (pv + CodeinfoPointer));
-#endif
-
-#if 1
-	/* XXX Note: This is preliminary. It would be cleaner */
-	/* to get the codeinfo * from the PV                  */
-
-	code = m->code;
-	while (1) {
-		if (!code) {
-#ifndef NDEBUG
-			method_println(m);
-			dolog("Could not find codeinfo for Current PC: %p",(void*)pc);
-#endif
-			abort();
-		}
-
-		if (((ptrint)pc >= (ptrint)code->entrypoint)
-				&&
-			( (pc - (u1*)code->entrypoint) < code->mcodelength ))
-		{
-			/* found */
-			break;
-		}
-
-		code = code->prev;
-	}
-#endif
 
 	/* search the line number table */
 
