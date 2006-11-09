@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5934 2006-11-08 13:33:08Z tbfg $
+   $Id: md.c 5940 2006-11-09 09:59:28Z tbfg $
 
 */
 
@@ -42,6 +42,7 @@
 
 #include "vm/global.h"
 #include "vm/jit/asmpart.h"
+#include "codegen.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 #include "vm/options.h" /* XXX debug */
@@ -105,13 +106,13 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 			vm_abort("jump displacement is out of range: %d > +/-%d", disp, 0x00007fff);
 
 		mcode &= 0xffff0000;
-		mcode |= (((disp)&0xfffc));
+		mcode |= (((disp)& M_BCMASK));
 	} else if ((mcode & 0xfc000000) == 0x48000000) {
 		/* unconditional jump bx */
 		if ((disp < (s4) 0xfc000000) || (disp > (s4) 0x03ffffff))
 			vm_abort("jump displacement is out of range: %d > +/-%d", disp, 0x0cffffff);
 		mcode &= 0xfc000000;
-		mcode |= (((disp)&0x03fffffc));
+		mcode |= (((disp)& M_BMASK));
 	} else {
 		vm_abort("md_codegen_patch_branch, patching unsupported branch: %xd", mcode);
 	}

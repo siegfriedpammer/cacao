@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5230 2006-08-10 19:45:28Z tbfg $
+   $Id: md-asm.h 5940 2006-11-09 09:59:28Z tbfg $
 
 */
 
@@ -99,34 +99,31 @@
 #define fa5   fr6
 #define fa6   fr7
 #define fa7   fr8
-
 #define fa8   fr9
 #define fa9   fr10
 #define fa10  fr11
 #define fa11  fr12
 #define fa12  fr13
 
-#define fs0   fr14
-#define fs1   fr15
+#define ftmp1 fr14
+#define ftmp2 fr15
 
-#define ftmp1 fr16
-#define ftmp2 fr17
-
-#define ft0   fr18
-#define ft1   fr19
-#define ft2   fr20
-#define ft3   fr21
-#define ft4   fr22
-#define ft5   fr23
-
-#define fs2   fr24
-#define fs3   fr25
-#define fs4   fr26
-#define fs5   fr27
-#define fs6   fr28
-#define fs7   fr29
-#define fs8   fr30
-#define fs9   fr31
+#define fs0   fr16
+#define fs1   fr17
+#define fs2   fr18
+#define fs3   fr19
+#define fs4   fr20
+#define fs5   fr21
+#define fs6   fr22
+#define fs7   fr23
+#define fs8   fr24
+#define fs9   fr25
+#define fs10  fr26
+#define fs11  fr27
+#define fs12  fr28
+#define fs13  fr29
+#define fs14  fr30
+#define fs15  fr31
 
 #define fv0   fa0
 
@@ -150,7 +147,12 @@
 	stfd    fa4,(12+(off))*8(sp); \
 	stfd    fa5,(13+(off))*8(sp); \
 	stfd    fa6,(14+(off))*8(sp); \
-	stfd    fa7,(15+(off))*8(sp);
+	stfd    fa7,(15+(off))*8(sp); \
+	stfd    fa8,(16+(off))*8(sp); \
+	stfd    fa9,(17+(off))*8(sp); \
+	stfd    fa10,(18+(off))*8(sp);\
+	stfd    fa11,(19+(off))*8(sp);\
+	stfd    fa12,(20+(off))*8(sp);\
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
 	ld     a0,(0+(off))*8(sp); \
@@ -169,7 +171,12 @@
 	lfd     fa4,(12+(off))*8(sp); \
 	lfd     fa5,(13+(off))*8(sp); \
 	lfd     fa6,(14+(off))*8(sp); \
-	lfd     fa7,(15+(off))*8(sp);
+	lfd     fa7,(15+(off))*8(sp); \
+	lfd     fa8,(16+(off))*8(sp); \
+	lfd     fa9,(17+(off))*8(sp); \
+	lfd     fa10,(18+(off))*8(sp); \
+	lfd     fa11,(19+(off))*8(sp); \
+	lfd     fa12,(20+(off))*8(sp);
 
 
 #define SAVE_TEMPORARY_REGISTERS(off) \
@@ -179,7 +186,9 @@
 	std     t3,(3+(off))*8(sp); \
 	std     t4,(4+(off))*8(sp); \
 	std     t5,(5+(off))*8(sp); \
-	std     t6,(6+(off))*8(sp); \
+	std     t6,(6+(off))*8(sp); 
+#if 0	
+	\
 	\
 	stfd    ft0,(7+(off))*8(sp); \
 	stfd    ft1,(8+(off))*8(sp); \
@@ -187,7 +196,7 @@
 	stfd    ft3,(10+(off))*8(sp); \
 	stfd    ft4,(11+(off))*8(sp); \
 	stfd    ft5,(12+(off))*8(sp);
-
+#endif
 #define RESTORE_TEMPORARY_REGISTERS(off) \
 	ld     t0,(0+(off))*8(sp); \
 	ld     t1,(1+(off))*8(sp); \
@@ -195,7 +204,9 @@
 	ld     t3,(3+(off))*8(sp); \
 	ld     t4,(4+(off))*8(sp); \
 	ld     t5,(5+(off))*8(sp); \
-	ld     t6,(6+(off))*8(sp); \
+	ld     t6,(6+(off))*8(sp); 
+#if 0	
+	\
 	\
 	lfd     ft0,(7+(off))*8(sp); \
 	lfd     ft1,(8+(off))*8(sp); \
@@ -203,7 +214,7 @@
 	lfd     ft3,(10+(off))*8(sp); \
 	lfd     ft4,(11+(off))*8(sp); \
 	lfd     ft5,(12+(off))*8(sp);
-
+#endif
 #endif /* _MD_ASM_H */
 
 

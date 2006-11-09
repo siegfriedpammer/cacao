@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5824 2006-10-25 14:26:08Z tbfg $
+   $Id: md-abi.c 5940 2006-11-09 09:59:28Z tbfg $
 
 */
 
@@ -76,13 +76,13 @@ s4 nregdescfloat[] = {
 	/*ftmp3,  fa0/v0,     fa1,     fa2,     fa3,     fa4,     fa5,     fa6,   */
 	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 
-	/*  fa7,     ft0,     ft1,     ft2,     ft3,     ft4,     fs0,     fs1,   */
-	REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_SAV, REG_SAV,
+	/*  fa7,     fa8,     fa9,    fa10,    fa11,    fa12,   ftmp1,   ftmp2,   */
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES,
 
-	/*ftmp1,   ftmp2,     ft5,     ft6,     ft7,     ft8,     ft9,    ft10,   */
-	REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	/*  fs0,     fs1,     fs2,     fs3,     fs4,     fs5,     fs6,     fs7    */
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 
-	/*  fs2,     fs3,     fs4,     fs5,     fs6,     fs7,     fs8,     fs9    */
+	/*  fs8,     fs9,    fs10,    fs11,    fs12,    fs13,    fs14,    fs15    */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 
 	REG_END

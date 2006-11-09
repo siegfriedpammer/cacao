@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5880 2006-10-31 13:40:55Z tbfg $
+   $Id: asmpart.S 5940 2006-11-09 09:59:28Z tbfg $
 
 */
 
@@ -316,14 +316,14 @@ L_register_copy_done:
 	sub     sp,sp,t4
 
 	mr      t6,sp                     /* use t6 as temporary sp               */
-	addi    t6,t6,LA_SIZE             /* skip linkage area                    */
+	addi    t6,t6,LA_SIZE+PA_SIZE     /* skip linkage area                    */
 #if defined(__DARWIN__)
 	add     t6,t6,t5                  /* skip stack space for arguments       */
 #endif
 
 	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
 	addi    itmp2,itmp2,1             /* initialize argument count            */
-	
+
 L_stack_copy_loop:
 	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
 	addi    itmp2,itmp2,-1            /* argument count - 1                   */
@@ -342,22 +342,15 @@ L_stack_handle_int:
 	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
 	bne     L_stack_handle_long
 
-	lwz     itmp3,offvmargdata+4(itmp1) /* get integer argument               */
-	stw     itmp3,0(t6)               /* and store it on the stack            */
-	addi    t6,t6,4                   /* increase temporary sp by 1 slot      */
+	lwa     itmp3,offvmargdata+4(itmp1) /* get integer argument               */
+	std     itmp3,0(t6)               /* and store it on the stack            */
+	addi    t6,t6,8                   /* increase temporary sp by 1 slot      */
 	b       L_stack_copy_loop
 
 L_stack_handle_long:
-#if !defined(__DARWIN__)
-	addi    t6,t6,4                   /* align stack to 8-bytes               */
-	rlwinm  t6,t6,0,30,28             /* clear lower 4-bits                   */
-#endif
-
-	lwz     itmp3,offvmargdata+0(itmp1) /* get long argument                  */
-	stw     itmp3,0(t6)               /* and store it on the stack            */
-	lwz     itmp3,offvmargdata+4(itmp1)
-	stw     itmp3,4(t6)
-	addi    t6,t6,8                   /* increase temporary sp by 2 slots     */
+	ld      itmp3,offvmargdata+0(itmp1) /* get long argument                  */
+	std     itmp3,0(t6)               /* and store it on the stack            */
+	addi    t6,t6,8                   /* increase temporary sp by 1 slots     */
 	b       L_stack_copy_loop
 		
 L_stack_handle_float:
@@ -369,19 +362,14 @@ L_stack_handle_float:
 	bne     L_stack_handle_double
 
 	lfs     ftmp3,offvmargdata(itmp1) /* get float argument                   */
-	stfs    ftmp3,0(t6)               /* and store it on the stack            */
-	addi    t6,t6,4                   /* increase temporary sp by 1 slot      */
+	stfs    ftmp3,4(t6)               /* and store it on the stack            */
+	addi    t6,t6,8                   /* increase temporary sp by 1 slot      */
 	b       L_stack_copy_loop
 
 L_stack_handle_double:
-#if !defined(__DARWIN__)
-	addi    t6,t6,4                   /* align stack to 8-bytes               */
-	rlwinm  t6,t6,0,30,28             /* clear lower 4-bits                   */
-#endif
-
 	lfd     ftmp3,offvmargdata(itmp1) /* get double argument                  */
 	stfd    ftmp3,0(t6)               /* and store it on the stack            */
-	addi    t6,t6,8                   /* increase temporary sp by 2 slots     */
+	addi    t6,t6,8                   /* increase temporary sp by 1 slots     */
 	b       L_stack_copy_loop
 
 L_stack_copy_done:
@@ -550,14 +538,11 @@ L_jumptable_float:
 	.quad   L_handle_fa5
 	.quad   L_handle_fa6
 	.quad   L_handle_fa7
-
-#if defined(__DARWIN__)
 	.quad   L_handle_fa8
 	.quad   L_handle_fa9
 	.quad   L_handle_fa10
 	.quad   L_handle_fa11
 	.quad   L_handle_fa12
-#endif
 
 	.text
 	.align  4
@@ -586,8 +571,6 @@ L_handle_fa6:
 L_handle_fa7:
 	lfs     fa7,offvmargdata(itmp1)
 	b       L_register_copy
-
-#if defined(__DARWIN__)
 L_handle_fa8:
 	lfs     fa8,offvmargdata(itmp1)
 	b       L_register_copy
@@ -603,8 +586,6 @@ L_handle_fa11:
 L_handle_fa12:
 	lfs     fa12,offvmargdata(itmp1)
 	b       L_register_copy
-#endif
-
 
 	.data
 	.align  8
@@ -618,14 +599,11 @@ L_jumptable_double:
 	.quad   L_handle_fda5
 	.quad   L_handle_fda6
 	.quad   L_handle_fda7
-
-#if defined(__DARWIN__)
 	.quad   L_handle_fda8
 	.quad   L_handle_fda9
 	.quad   L_handle_fda10
 	.quad   L_handle_fda11
 	.quad   L_handle_fda12
-#endif
 
 	.text
 	.align  4
@@ -654,8 +632,6 @@ L_handle_fda6:
 L_handle_fda7:
 	lfd     fa7,offvmargdata(itmp1)
 	b       L_register_copy
-
-#if defined(__DARWIN__)
 L_handle_fda8:
 	lfd     fa8,offvmargdata(itmp1)
 	b       L_register_copy
@@ -671,7 +647,6 @@ L_handle_fda11:
 L_handle_fda12:
 	lfd     fa12,offvmargdata(itmp1)
 	b       L_register_copy
-#endif
 
 
 /* asm_call_jit_compiler *******************************************************
