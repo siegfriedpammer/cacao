@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: md-os.c 5274 2006-08-24 09:29:44Z tbfg $
+   $Id: md-os.c 5939 2006-11-09 09:54:00Z twisti $
 
 */
 
@@ -52,7 +50,7 @@
 #include "vm/jit/asmpart.h"
 
 #if defined(ENABLE_PROFILING)
-# include "vm/jit/profile/profile.h"
+# include "vm/jit/optimizing/profile.h"
 #endif
 
 #include "vm/jit/stacktrace.h"
@@ -84,22 +82,24 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	reg = (instr >> 16) & 0x1f;
 	addr = _mc->gregs[reg];
 
-	if (addr == 0) {
-		pv  = (u1 *) _mc->gregs[REG_PV];
-		sp  = (u1 *) _mc->gregs[REG_SP];
-		ra  = (u1 *) _mc->gregs[PT_LNK];         /* this is correct for leafs */
-		xpc = (u1 *) _mc->gregs[PT_NIP];
+	pv  = (u1 *) _mc->gregs[REG_PV];
+	sp  = (u1 *) _mc->gregs[REG_SP];
+	ra  = (u1 *) _mc->gregs[PT_LNK];         /* this is correct for leafs */
+	xpc = (u1 *) _mc->gregs[PT_NIP];
 
+	if (addr == 0) {
 		_mc->gregs[REG_ITMP1_XPTR] =
 			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
 		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
 		_mc->gregs[PT_NIP] = (ptrint) asm_handle_exception;
+	}
+	else {
+		codegen_get_pv_from_pc(xpc);
 
-	} else {
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Segmentation fault: 0x%08lx at 0x%08lx",
-								   addr, _mc->gregs[PT_NIP]);
+		/* this should not happen */
+
+		assert(0);
 	}		
 }
 
