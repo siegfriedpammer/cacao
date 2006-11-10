@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: md.c 5944 2006-11-10 12:32:01Z twisti $
 
 */
 
@@ -185,6 +185,34 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 		_mc->gregs[REG_RIP] = (ptrint) pc;
 }
 #endif
+
+
+/* md_codegen_patch_branch *****************************************************
+
+   Back-patches a branch instruction.
+
+*******************************************************************************/
+
+void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
+{
+	s4 *mcodeptr;
+	s4  disp;                           /* branch displacement                */
+
+	/* calculate the patch position */
+
+	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
+
+	/* Calculate the branch displacement. */
+
+	disp = targetmpc - branchmpc;
+
+	/* I don't think we have to check for branch-displacement
+	   overflow.  +/-2GB should be enough. */
+
+	/* patch the branch instruction before the mcodeptr */
+
+	mcodeptr[-1] = disp;
+}
 
 
 /* md_stacktrace_get_returnaddress *********************************************
