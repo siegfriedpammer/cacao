@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: patcher.c 5945 2006-11-10 16:41:12Z twisti $
 
 */
 
@@ -169,7 +169,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch the field value's address */
@@ -215,7 +215,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch the field's offset: we check for the field type, because the     */
@@ -279,7 +279,7 @@ bool patcher_putfieldconst(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch the field's offset */
@@ -342,7 +342,7 @@ bool patcher_aconst(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch the classinfo pointer */
@@ -390,7 +390,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch the classinfo pointer */
@@ -436,7 +436,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch the classinfo pointer */
@@ -483,7 +483,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch stubroutine */
@@ -530,7 +530,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch vftbl index */
@@ -578,7 +578,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch interfacetable index */
@@ -630,7 +630,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch class flags */
@@ -678,7 +678,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch super class index */
@@ -730,7 +730,7 @@ bool patcher_checkcast_class(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch super class' vftbl */
@@ -775,7 +775,7 @@ bool patcher_instanceof_class(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch super class' vftbl */
@@ -895,7 +895,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 5;
 
 	/* patch native function pointer */

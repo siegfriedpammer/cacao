@@ -27,9 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   Changes:
-
-   $Id: codegen.h 5632 2006-10-02 13:43:15Z edwin $
+   $Id: codegen.h 5945 2006-11-10 16:41:12Z twisti $
 
 */
 
@@ -44,11 +42,6 @@
 #include "vm/types.h"
 
 #include "vm/jit/jit.h"
-
-
-/* some defines ***************************************************************/
-
-#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -142,6 +135,20 @@
             M_CLR((d)); \
         else \
             M_MOV_IMM((c), (d)); \
+    } while (0)
+
+
+/* some patcher defines *******************************************************/
+
+#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
+
+#define PATCHER_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
     } while (0)
 
 
