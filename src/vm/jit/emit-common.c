@@ -253,7 +253,7 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 
 *******************************************************************************/
 
-#if defined(__POWERPC__)
+#if defined(__ALPHA__) || defined(__POWERPC__)
 void emit_array_checks(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {

@@ -26,8 +26,6 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
    $Id: emit.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
@@ -45,6 +43,7 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/options.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
@@ -187,6 +186,64 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	else {
 		disp = dseg_adds8(cd, value);
 		M_LLD(d, REG_PV, disp);
+	}
+}
+
+
+/* emit_arrayindexoutofbounds_check ********************************************
+
+   Emit an ArrayIndexOutOfBoundsException check.
+
+*******************************************************************************/
+
+void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+{
+	if (checkbounds) {
+		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_CMPULT(s2, REG_ITMP3, REG_ITMP3);
+		M_BEQZ(REG_ITMP3, 0);
+		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+	}
+}
+
+
+/* emit_arraystore_check *******************************************************
+
+   Emit an ArrayStoreException check.
+
+*******************************************************************************/
+
+void emit_arraystore_check(codegendata *cd, s4 reg)
+{
+	M_BEQZ(reg, 0);
+	codegen_add_arraystoreexception_ref(cd);
+}
+
+
+/* emit_classcast_check ********************************************************
+
+   Emit a ClassCastException check.
+
+*******************************************************************************/
+
+void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
+{
+	M_BNEZ(reg, 0);
+	codegen_add_classcastexception_ref(cd, s1);
+}
+
+
+/* emit_nullpointer_check ******************************************************
+
+   Emit a NullPointerException check.
+
+*******************************************************************************/
+
+void emit_nullpointer_check(codegendata *cd, s4 reg)
+{
+	if (checknull) {
+		M_BEQZ(reg, 0);
+		codegen_add_nullpointerexception_ref(cd);
 	}
 }
 

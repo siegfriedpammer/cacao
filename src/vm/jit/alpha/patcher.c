@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 5290 2006-09-04 17:12:48Z christian $
+   $Id: patcher.c 5951 2006-11-11 18:31:10Z twisti $
 
 */
 
@@ -415,7 +415,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble) {
+	if (opt_shownops) {
 		/* patch the field's offset into the instruction */
 
 		*((u4 *) (ra + 4)) |= (s2) (fi->offset & 0x0000ffff);
@@ -495,7 +495,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 4;
 
 	/* patch vftbl index */
@@ -537,7 +537,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 4;
 
 	/* patch interfacetable index */
@@ -585,7 +585,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 4;
 
 	/* patch super class index */

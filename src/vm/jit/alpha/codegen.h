@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 5948 2006-11-11 16:56:48Z twisti $
+   $Id: codegen.h 5951 2006-11-11 18:31:10Z twisti $
 
 */
 
@@ -44,14 +44,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-/* gen_nullptr_check(objreg) */
-
-#define gen_nullptr_check(objreg) \
-    if (checknull) { \
-        M_BEQZ((objreg), 0); \
-        codegen_add_nullpointerexception_ref(cd); \
-    }
 
 #define gen_bound_check \
     if (checkbounds) { \
@@ -103,6 +95,14 @@
 
 #define ICONST(d,c)        emit_iconst(cd, (d), (c))
 #define LCONST(d,c)        emit_lconst(cd, (d), (c))
+
+
+/* some patcher defines *******************************************************/
+
+#define PATCHER_NOPS \
+    do { \
+        M_NOP; \
+    } while (0)
 
 
 /* macros to create code ******************************************************/

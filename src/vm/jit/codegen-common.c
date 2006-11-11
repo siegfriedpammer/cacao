@@ -26,10 +26,9 @@
 
    Authors: Reinhard Grafl
             Andreas  Krall
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Joseph Wenninger
-			Edwin Steiner
+            Edwin Steiner
 
    All functions assume the following code area / data area layout:
 
@@ -48,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5946 2006-11-11 14:28:56Z twisti $
+   $Id: codegen-common.c 5951 2006-11-11 18:31:10Z twisti $
 
 */
 
@@ -478,7 +477,7 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 	pr->next      = cd->patchrefs;
 	cd->patchrefs = pr;
 
-#if defined(ENABLE_JIT) && (defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__))
+#if defined(ENABLE_JIT) && (defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__))
 	/* Generate NOPs for opt_shownops. */
 
 	if (opt_shownops)

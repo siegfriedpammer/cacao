@@ -26,13 +26,12 @@
 
    Authors: Andreas Krall
             Reinhard Grafl
-
-   Changes: Joseph Wenninger
+            Joseph Wenninger
             Christian Thalinger
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5949 2006-11-11 17:05:19Z twisti $
+   $Id: codegen.c 5951 2006-11-11 18:31:10Z twisti $
 
 */
 
@@ -459,9 +458,6 @@ bool codegen(jitdata *jd)
 
 				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_classinfo,
 									  cr, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 
 				M_ALD(d, REG_PV, disp);
 			}
@@ -1435,7 +1431,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, s1);
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1446,7 +1442,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			if (has_ext_instr_set) {
@@ -1469,7 +1465,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			if (has_ext_instr_set) {
@@ -1492,7 +1488,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			if (has_ext_instr_set) {
@@ -1517,7 +1513,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			M_S4ADDQ(s2, s1, REG_ITMP1);
@@ -1531,7 +1527,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			M_S8ADDQ(s2, s1, REG_ITMP1);
@@ -1545,7 +1541,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			M_S4ADDQ(s2, s1, REG_ITMP1);
@@ -1559,7 +1555,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			M_S8ADDQ(s2, s1, REG_ITMP1);
@@ -1573,7 +1569,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			M_SAADDQ(s2, s1, REG_ITMP1);
@@ -1587,7 +1583,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
@@ -1610,7 +1606,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
@@ -1635,7 +1631,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
@@ -1660,7 +1656,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
@@ -1673,7 +1669,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
@@ -1686,7 +1682,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
@@ -1699,7 +1695,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
@@ -1712,7 +1708,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_A0);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			s3 = emit_load_s3(jd, iptr, REG_A1);
@@ -1742,7 +1738,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			M_S4ADDQ(s2, s1, REG_ITMP1);
@@ -1754,7 +1750,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			M_S8ADDQ(s2, s1, REG_ITMP1);
@@ -1766,7 +1762,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			M_SAADDQ(s2, s1, REG_ITMP1);
@@ -1778,7 +1774,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			if (has_ext_instr_set) {
@@ -1801,7 +1797,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			if (has_ext_instr_set) {
@@ -1826,7 +1822,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
+				emit_nullpointer_check(cd, s1);
 				gen_bound_check;
 			}
 			if (has_ext_instr_set) {
@@ -1850,30 +1846,20 @@ bool codegen(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				disp = dseg_add_unique_address(cd, uf);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_initialize_class, fi->class,
 										  0);
-
-					if (opt_showdisassemble)
-						M_NOP;
-				}
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1905,30 +1891,20 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				disp = dseg_add_unique_address(cd, uf);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_initialize_class, fi->class,
 										  0);
-
-					if (opt_showdisassemble)
-						M_NOP;
-				}
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1961,30 +1937,20 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				disp = dseg_add_unique_address(cd, uf);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_initialize_class, fi->class,
 										  0);
-
-					if (opt_showdisassemble)
-						M_NOP;
-				}
   			}
 			
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -2011,25 +1977,19 @@ bool codegen(jitdata *jd)
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
-
-				disp = 0;
 			}
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -2060,7 +2020,7 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -2079,12 +2039,8 @@ bool codegen(jitdata *jd)
 			else
 				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 
-			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
 				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
-			}
 
 			switch (fieldtype) {
 			case TYPE_INT:
@@ -2110,25 +2066,19 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
-
-				disp = 0;
 			}
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -2163,9 +2113,6 @@ bool codegen(jitdata *jd)
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
 				codegen_add_patch_ref(cd, PATCHER_resolve_class, uc, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 #endif /* ENABLE_VERIFIER */
 
@@ -2514,9 +2461,6 @@ bool codegen(jitdata *jd)
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
 				codegen_add_patch_ref(cd, PATCHER_resolve_class, uc, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
@@ -2776,9 +2720,6 @@ gen_method:
 
 					codegen_add_patch_ref(cd, PATCHER_invokestatic_special,
 										  um, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else
 					disp = dseg_add_address(cd, lm->stubroutine);
@@ -2787,13 +2728,10 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				gen_nullptr_check(REG_A0);
+				emit_nullpointer_check(cd, REG_A0);
 
 				if (lm == NULL) {
 					codegen_add_patch_ref(cd, PATCHER_invokevirtual, um, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 
 					s1 = 0;
 				}
@@ -2807,13 +2745,10 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				gen_nullptr_check(REG_A0);
+				emit_nullpointer_check(cd, REG_A0);
 
 				if (lm == NULL) {
 					codegen_add_patch_ref(cd, PATCHER_invokeinterface, um, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 
 					s1 = 0;
 					s2 = 0;
@@ -2907,27 +2842,24 @@ gen_method:
 
 				s2 = 6;
 				if (super == NULL)
-					s2 += opt_showdisassemble ? 1 : 0;
+					s2 += opt_shownops ? 1 : 0;
 
 				/* calculate class checkcast code size */
 
 				s3 = 9 /* 8 + (s1 == REG_ITMP1) */;
 				if (super == NULL)
-					s3 += opt_showdisassemble ? 1 : 0;
+					s3 += opt_shownops ? 1 : 0;
 
 				/* if class is not resolved, check which code to call */
 
 				if (super == NULL) {
-					M_BEQZ(s1, 4 + (opt_showdisassemble ? 1 : 0) + s2 + 1 + s3);
+					M_BEQZ(s1, 4 + (opt_shownops ? 1 : 0) + s2 + 1 + s3);
 
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
 					codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_flags,
 										  iptr->sx.s23.s3.c.ref,
 										  disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 
 					M_ILD(REG_ITMP2, REG_PV, disp);
 					disp = dseg_add_s4(cd, ACC_INTERFACE);
@@ -2944,9 +2876,6 @@ gen_method:
 											  PATCHER_checkcast_instanceof_interface,
 											  iptr->sx.s23.s3.c.ref,
 											  0);
-
-						if (opt_showdisassemble)
-							M_NOP;
 					}
 					else
 						M_BEQZ(s1, s2);
@@ -2977,9 +2906,6 @@ gen_method:
 											  PATCHER_resolve_classref_to_vftbl,
 											  iptr->sx.s23.s3.c.ref,
 											  disp);
-
-						if (opt_showdisassemble)
-							M_NOP;
 					}
 					else {
 						disp = dseg_add_address(cd, supervftbl);
@@ -3030,9 +2956,6 @@ gen_method:
 										  PATCHER_resolve_classref_to_classinfo,
 										  iptr->sx.s23.s3.c.ref,
 										  disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 
 				M_ALD(REG_A1, REG_PV, disp);
@@ -3100,27 +3023,24 @@ gen_method:
 
 			s2 = 6;
 			if (super == NULL)
-				s2 += (d == REG_ITMP2 ? 1 : 0) + (opt_showdisassemble ? 1 : 0);
+				s2 += (d == REG_ITMP2 ? 1 : 0) + (opt_shownops ? 1 : 0);
 
 			/* calculate class instanceof code size */
 
 			s3 = 7;
 			if (super == NULL)
-				s3 += (opt_showdisassemble ? 1 : 0);
+				s3 += (opt_shownops ? 1 : 0);
 
 			/* if class is not resolved, check which code to call */
 
 			if (super == NULL) {
 				M_CLR(d);
-				M_BEQZ(s1, 4 + (opt_showdisassemble ? 1 : 0) + s2 + 1 + s3);
+				M_BEQZ(s1, 4 + (opt_shownops ? 1 : 0) + s2 + 1 + s3);
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
 				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_flags,
 									  iptr->sx.s23.s3.c.ref, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 
 				M_ILD(REG_ITMP3, REG_PV, disp);
 
@@ -3142,9 +3062,6 @@ gen_method:
 					codegen_add_patch_ref(cd,
 										  PATCHER_checkcast_instanceof_interface,
 										  iptr->sx.s23.s3.c.ref, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					M_CLR(d);
@@ -3173,9 +3090,6 @@ gen_method:
 					codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_vftbl,
 										  iptr->sx.s23.s3.c.ref,
 										  disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					disp = dseg_add_address(cd, supervftbl);
@@ -3234,9 +3148,6 @@ gen_method:
 				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_classinfo,
 									  iptr->sx.s23.s3.c.ref,
 									  disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else
 				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
@@ -3425,12 +3336,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	funcdisp = dseg_add_functionptr(cd, f);
 
 #if !defined(WITH_STATIC_CLASSPATH)
-	if (f == NULL) {
+	if (f == NULL)
 		codegen_add_patch_ref(cd, PATCHER_resolve_native_function, m, funcdisp);
-
-		if (opt_showdisassemble)
-			M_NOP;
-	}
 #endif
 
 	/* save integer and float argument registers */
