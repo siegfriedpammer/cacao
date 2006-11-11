@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5932 2006-11-07 09:06:18Z twisti $
+   $Id: codegen.c 5950 2006-11-11 17:08:14Z edwin $
 
 */
 
@@ -523,6 +523,14 @@ bool codegen(jitdata *jd)
 		case ICMD_INLINE_START:
 			{
 				insinfo_inline *insinfo = iptr->sx.s23.s3.inlineinfo;
+
+				/* handle replacement point */
+
+				replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+				replacementpoint++;
+				/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+				cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+
 #if defined(ENABLE_THREADS)
 				if (insinfo->synchronize) {
 					/* add monitor enter code */
@@ -3031,6 +3039,13 @@ nowperformreturn:
 			{
 			s4 i, p;
 			
+			/* handle replacement point */
+
+			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+			replacementpoint++;
+			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+
   			p = cd->stackframesize;
 			
 #if !defined(NDEBUG)
@@ -3197,6 +3212,13 @@ nowperformreturn:
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
 
+			/* handle replacement point */
+
+			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+			replacementpoint++;
+			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				md = iptr->sx.s23.s3.um->methodref->parseddesc.md;
 				lm = NULL;
@@ -3358,6 +3380,12 @@ gen_method:
 				M_CALL(REG_ITMP3);
 				break;
 			}
+
+			/* store size of call code in replacement point */
+
+			if (iptr->opc != ICMD_BUILTIN)
+				replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)
+					- (ptrint) replacementpoint[-1].pc;
 
 			/* d contains return type */
 

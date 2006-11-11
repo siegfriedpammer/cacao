@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5923 2006-11-05 22:46:11Z edwin $
+   $Id: jit.h 5950 2006-11-11 17:08:14Z edwin $
 
 */
 
@@ -62,6 +62,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/replace.h"
 
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.h"
@@ -402,15 +403,30 @@ struct instruction {
 /* for ICMD_INLINE_START and ICMD_INLINE_END */
 
 struct insinfo_inline {
-	methodinfo *method;         /* the inlined method starting/ending here    */
-	methodinfo *outer;          /* the outer method suspended/resumed here    */
-	s4          startmpc;       /* machine code offset of start of inlining   */          
-	s4          synclocal;      /* local index used for synchronization       */
-	bool        synchronize;    /* true if synchronization is needed          */
+	/* fields copied from the inlining tree ----------------------------------*/
+	insinfo_inline *parent;     /* insinfo of the surrounding inlining, if any*/
+	methodinfo     *method;     /* the inlined method starting/ending here    */
+	methodinfo     *outer;      /* the outer method suspended/resumed here    */
+	s4              synclocal;      /* local index used for synchronization   */
+	bool            synchronize;    /* true if synchronization is needed      */
+	s4              throughcount;   /* total # of pass-through variables      */
+	s4              stackvarscount; /* source stackdepth at INLINE_START      */
+	s4             *stackvars;      /* stack vars at INLINE_START             */
+
+	/* fields set by inlining ------------------------------------------------*/
+	s4         *javalocals_start; /* javalocals at start of inlined body      */
+	s4         *javalocals_end;   /* javalocals after inlined body            */
+
+	/* fields set by replacement point creation ------------------------------*/
+	rplpoint   *rp;             /* replacement point at INLINE_START          */
+
+	/* fields set by the codegen ---------------------------------------------*/
+	s4          startmpc;       /* machine code offset of start of inlining   */
 };
 
+
 /* basicblock *****************************************************************/
- 
+
 /* flags */
 
 #define BBDELETED            -2
@@ -466,6 +482,7 @@ struct basicblock {
 	basicblock   *original;     /* block of which this block is a clone       */
 	                            /* NULL for the original block itself         */
 	methodinfo   *method;       /* method this block belongs to               */
+	insinfo_inline *inlineinfo; /* inlineinfo for the start of this block     */
 
 	s4            mpc;          /* machine code pc at start of block          */
 };

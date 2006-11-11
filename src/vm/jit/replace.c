@@ -54,10 +54,19 @@
 
 #include "native/include/java_lang_String.h"
 
+
+/*** configuration of native stack slot size **********************************/
+
+/* XXX this should be in md-abi.h files, probably */
+
 #if defined(HAS_4BYTE_STACKSLOT)
-#define SIZE_OF_STACKSLOT  4
+#define SIZE_OF_STACKSLOT      4
+#define STACK_SLOTS_PER_FLOAT  2
+typedef u4 stackslot_t;
 #else
-#define SIZE_OF_STACKSLOT  8
+#define SIZE_OF_STACKSLOT      8
+#define STACK_SLOTS_PER_FLOAT  1
+typedef u8 stackslot_t;
 #endif
 
 
@@ -67,10 +76,31 @@
 #define TOP_IS_ON_STACK  1
 #define TOP_IS_IN_ITMP1  2
 
+
+/* replace_create_replacement_point ********************************************
+ 
+   Create a replacement point.
+  
+   IN:
+       jd...............current jitdata
+	   iinfo............inlining info for the current position
+	   rp...............pre-allocated (uninitialized) rplpoint
+	   type.............RPLPOINT_TYPE constant
+	   *pra.............current rplalloc pointer
+	   javalocals.......the javalocals at the current point
+	   stackvars........the stack variables at the current point
+	   stackdepth.......the stack depth at the current point
+  
+   OUT:
+       *rpa.............points to the next free rplalloc
+  
+*******************************************************************************/
+
 static void replace_create_replacement_point(jitdata *jd,
+											 insinfo_inline *iinfo,
 											 rplpoint *rp,
+											 s4 type,
 											 rplalloc **pra,
-											 basicblock *bptr,
 											 s4 *javalocals,
 											 s4 *stackvars,
 											 s4 stackdepth)
@@ -80,22 +110,30 @@ static void replace_create_replacement_point(jitdata *jd,
 	varinfo  *v;
 	s4        index;
 
+	static s4 fake_id = 0;
+
 	ra = *pra;
 
 	/* there will be a replacement point at the start of this block */
 
+	rp->method = (iinfo) ? iinfo->method : jd->m;
 	rp->pc = NULL;        /* set by codegen */
 	rp->outcode = NULL;   /* set by codegen */
-	rp->code = jd->code;
+	rp->callsize = 0;     /* set by codegen */
 	rp->target = NULL;
 	rp->regalloc = ra;
 	rp->flags = 0;
-	rp->type = (bptr != NULL) ? bptr->type : -1;
+	rp->type = type;
+	rp->id = ++fake_id; /* XXX need a real invariant id */
 
-	/* store local allocation info */
+	/* XXX unify these two fields */
+	rp->code = jd->code;
+	rp->parent = (iinfo) ? iinfo->rp : NULL;
+
+	/* store local allocation info of javalocals */
 
 	if (javalocals) {
-		for (i = 0; i < jd->maxlocals; ++i) {
+		for (i = 0; i < rp->method->maxlocals; ++i) {
 			index = javalocals[i];
 			if (index == UNUSED)
 				continue;
@@ -109,6 +147,8 @@ static void replace_create_replacement_point(jitdata *jd,
 		}
 	}
 
+	/* store allocation info of java stack vars */
+
 	for (i = 0; i < stackdepth; ++i) {
 		v = VAR(stackvars[i]);
 		ra->flags = v->flags & (INMEMORY);
@@ -117,6 +157,8 @@ static void replace_create_replacement_point(jitdata *jd,
 		ra->type  = v->type;
 		ra++;
 	}
+
+	/* total number of allocations */
 
 	rp->regalloccount = ra - rp->regalloc;
 
@@ -129,10 +171,7 @@ static void replace_create_replacement_point(jitdata *jd,
    Create the replacement points for the given code.
   
    IN:
-       code.............codeinfo where replacement points should be stored
-	                    code->rplpoints must be NULL.
-						code->rplpointcount must be 0.
-	   rd...............registerdata containing allocation info.
+       jd...............current jitdata, must not have any replacement points
   
    OUT:
        code->rplpoints.......set to the list of replacement points
@@ -150,23 +189,24 @@ static void replace_create_replacement_point(jitdata *jd,
 
 bool replace_create_replacement_points(jitdata *jd)
 {
-	codeinfo     *code;
-	registerdata *rd;
-	basicblock *bptr;
-	int count;
-	methodinfo *m;
-	rplpoint *rplpoints;
-	rplpoint *rp;
-	int alloccount;
-	int globalcount;
-	rplalloc *regalloc;
-	rplalloc *ra;
-	int i;
-	instruction *iptr;
-	instruction *iend;
-	s4 *javalocals;
-	methoddesc *md;
-	s4 j;
+	codeinfo        *code;
+	registerdata    *rd;
+	basicblock      *bptr;
+	int              count;
+	methodinfo      *m;
+	rplpoint        *rplpoints;
+	rplpoint        *rp;
+	int              alloccount;
+	rplalloc        *regalloc;
+	rplalloc        *ra;
+	int              i;
+	instruction     *iptr;
+	instruction     *iend;
+	s4              *javalocals;
+	methoddesc      *md;
+	s4               j;
+	insinfo_inline  *iinfo;
+	insinfo_inline  *calleeinfo;
 
 	/* get required compiler data */
 
@@ -174,7 +214,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	rd   = jd->rd;
 
 	/* assert that we wont overwrite already allocated data */
-	
+
 	assert(code);
 	assert(code->m);
 	assert(code->rplpoints == NULL);
@@ -194,22 +234,36 @@ bool replace_create_replacement_points(jitdata *jd)
 
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
 
+		/* skip dead code */
+
 		if (bptr->flags < BBFINISHED)
 			continue;
 
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
+		/* get info about this block */
 
-			/* there will be a replacement point at the start of this block */
-			
+		m = bptr->method;
+		iinfo = bptr->inlineinfo;
+
+		/* initialize javalocals at the start of this block */
+
+		if (bptr->javalocals)
+			MCOPY(javalocals, bptr->javalocals, s4, m->maxlocals);
+		else
+			for (i=0; i<m->maxlocals; ++i)
+				javalocals[i] = UNUSED;
+
+		/* create replacement points at targets of backward branches */
+
+		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 			count++;
 			alloccount += bptr->indepth;
 
-			for (i=0; i<jd->maxlocals; ++i)
+			for (i=0; i<m->maxlocals; ++i)
 				if (bptr->javalocals[i] != UNUSED)
 					alloccount++;
 		}
 
-		MCOPY(javalocals, bptr->javalocals, s4, jd->maxlocals);
+		/* iterate over the instructions */
 
 		iptr = bptr->iinstr;
 		iend = iptr + bptr->icount;
@@ -222,10 +276,12 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_INVOKEINTERFACE:
 					INSTRUCTION_GET_METHODDESC(iptr, md);
 					count++;
-					for (i=0; i<jd->maxlocals; ++i)
+					for (i=0; i<m->maxlocals; ++i)
 						if (javalocals[i] != UNUSED)
 							alloccount++;
 					alloccount += iptr->s1.argcount - md->paramcount;
+					if (iinfo)
+						alloccount -= iinfo->throughcount;
 					break;
 
 				case ICMD_ISTORE:
@@ -252,103 +308,82 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_DRETURN:
 				case ICMD_ARETURN:
 					alloccount += 1;
-					/* FALLTHROUGH */
-
+					/* FALLTHROUGH! */
 				case ICMD_RETURN:
 					count++;
+					break;
+
+				case ICMD_INLINE_START:
+					iinfo = iptr->sx.s23.s3.inlineinfo;
+
+					count++;
+					for (i=0; i<m->maxlocals; ++i)
+						if (javalocals[i] != UNUSED)
+							alloccount++;
+					alloccount += iinfo->stackvarscount;
+
+					m = iinfo->method;
+					if (iinfo->javalocals_start)
+						MCOPY(javalocals, iinfo->javalocals_start, s4, m->maxlocals);
+					break;
+
+				case ICMD_INLINE_END:
+					iinfo = iptr->sx.s23.s3.inlineinfo;
+					m = iinfo->outer;
+					if (iinfo->javalocals_end)
+						MCOPY(javalocals, iinfo->javalocals_end, s4, m->maxlocals);
+					iinfo = iinfo->parent;
 					break;
 			}
 		}
 	}
 
 	/* if no points were found, there's nothing to do */
-	
+
 	if (!count)
 		return true;
 
-	/* count global register allocations */
-
-	globalcount = 0;
-
-#if 0
-	for (i=0; i<m->maxlocals; ++i) {
-		indexused = false;
-		for (t=0; t<5; ++t) {
-#if defined(ENABLE_INTRP)
-			if (!opt_intrp) {
-#endif
-				if (jd->local_map[5*i + t] != UNUSED) {
-					globalcount++;
-					indexused = true;
-				}
-#if defined(ENABLE_INTRP)
-			}
-#endif
-		}
-		if (!indexused)
-			globalcount++; /* dummy rplalloc */
-	}
-#endif
-
-	alloccount += globalcount;
-
 	/* allocate replacement point array and allocation array */
-	
-	rplpoints = MNEW(rplpoint,count);
-	regalloc = MNEW(rplalloc,alloccount);
+
+	rplpoints = MNEW(rplpoint, count);
+	regalloc = MNEW(rplalloc, alloccount);
 	ra = regalloc;
-
-	/* store global register allocations */
-
-#if 0
-	for (i=0; i<m->maxlocals; ++i) {
-		indexused = false;
-		for (t=0; t<5; ++t) {
-#if defined(ENABLE_INTRP)
-			if (!opt_intrp) {
-#endif
-				if (jd->local_map[5*i + t] != UNUSED) {
-					v = VAR(jd->local_map[5*i + t]);
-					ra->flags = v->flags & (INMEMORY);
-					ra->regoff = v->vv.regoff;
-					ra->type  = t;
-					ra->next = (indexused) ? 0 : 1;
-					ra++;
-					indexused = true;
-				}
-#if defined(ENABLE_INTRP)
-			}
-#endif
-		}
-		if (!indexused) {
-			/* dummy rplalloc */
-			ra->type = -1;
-			ra->flags = 0;
-			ra->regoff = 0;
-			ra->next = 1;
-			ra++;
-		}
-	}
-#endif
 
 	/* initialize replacement point structs */
 
 	rp = rplpoints;
 
+	/* XXX try to share code with the counting loop! */
+
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
+		/* skip dead code */
+
 		if (bptr->flags < BBFINISHED)
 			continue;
 
+		/* get info about this block */
+
+		m = bptr->method;
+		iinfo = bptr->inlineinfo;
+
+		/* initialize javalocals at the start of this block */
+
+		if (bptr->javalocals)
+			MCOPY(javalocals, bptr->javalocals, s4, m->maxlocals);
+		else
+			for (i=0; i<m->maxlocals; ++i)
+				javalocals[i] = UNUSED;
+
+		/* create replacement points at targets of backward branches */
+
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 
-			replace_create_replacement_point(jd, rp, &ra,
-					bptr,
+			replace_create_replacement_point(jd, iinfo, rp++,
+					bptr->type, &ra,
 					bptr->javalocals, bptr->invars, bptr->indepth);
-
-			rp++;
 		}
 
-		MCOPY(javalocals, bptr->javalocals, s4, jd->maxlocals);
+		/* iterate over the instructions */
 
 		iptr = bptr->iinstr;
 		iend = iptr + bptr->icount;
@@ -361,11 +396,11 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_INVOKEINTERFACE:
 					INSTRUCTION_GET_METHODDESC(iptr, md);
 
-					replace_create_replacement_point(jd, rp, &ra,
-							NULL,
+					i = (iinfo) ? iinfo->throughcount : 0;
+					replace_create_replacement_point(jd, iinfo, rp++,
+							RPLPOINT_TYPE_CALL, &ra,
 							javalocals, iptr->sx.s23.s2.args + md->paramcount,
-							iptr->s1.argcount - md->paramcount);
-					rp++;
+							iptr->s1.argcount - md->paramcount - i);
 					break;
 
 				case ICMD_ISTORE:
@@ -391,17 +426,38 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
 				case ICMD_ARETURN:
-					replace_create_replacement_point(jd, rp, &ra,
-							NULL,
+					replace_create_replacement_point(jd, iinfo, rp++,
+							RPLPOINT_TYPE_RETURN, &ra,
 							NULL, &(iptr->s1.varindex), 1);
-					rp++;
 					break;
 
 				case ICMD_RETURN:
-					replace_create_replacement_point(jd, rp, &ra,
-							NULL,
+					replace_create_replacement_point(jd, iinfo, rp++,
+							RPLPOINT_TYPE_RETURN, &ra,
 							NULL, NULL, 0);
-					rp++;
+					break;
+
+				case ICMD_INLINE_START:
+					calleeinfo = iptr->sx.s23.s3.inlineinfo;
+
+					calleeinfo->rp = rp;
+					replace_create_replacement_point(jd, iinfo, rp++,
+							RPLPOINT_TYPE_INLINE, &ra,
+							javalocals,
+							calleeinfo->stackvars, calleeinfo->stackvarscount);
+
+					iinfo = calleeinfo;
+					m = iinfo->method;
+					if (iinfo->javalocals_start)
+						MCOPY(javalocals, iinfo->javalocals_start, s4, m->maxlocals);
+					break;
+
+				case ICMD_INLINE_END:
+					iinfo = iptr->sx.s23.s3.inlineinfo;
+					m = iinfo->outer;
+					if (iinfo->javalocals_end)
+						MCOPY(javalocals, iinfo->javalocals_end, s4, m->maxlocals);
+					iinfo = iinfo->parent;
 					break;
 			}
 		}
@@ -413,7 +469,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	code->rplpointcount = count;
 	code->regalloc      = regalloc;
 	code->regalloccount = alloccount;
-	code->globalcount   = globalcount;
+	code->globalcount   = 0;
 	code->savedintcount = INT_SAV_CNT - rd->savintreguse;
 	code->savedfltcount = FLT_SAV_CNT - rd->savfltreguse;
 	code->memuse        = rd->memuse;
@@ -423,6 +479,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 	return true;
 }
+
 
 /* replace_free_replacement_points *********************************************
  
@@ -450,6 +507,7 @@ void replace_free_replacement_points(codeinfo *code)
 	code->globalcount = 0;
 }
 
+
 /* replace_activate_replacement_point ******************************************
  
    Activate a replacement point. When this function returns, the
@@ -465,19 +523,20 @@ void replace_free_replacement_points(codeinfo *code)
 void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 {
 	assert(rp->target == NULL);
-	
-#ifndef NDEBUG
+
+#if !defined(NDEBUG)
 	printf("activate replacement point: ");
-	replace_replacement_point_println(rp);
+	replace_replacement_point_println(rp, 0);
 	fflush(stdout);
 #endif
-	
+
 	rp->target = target;
-	
+
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
+
 
 /* replace_deactivate_replacement_point ****************************************
  
@@ -493,42 +552,40 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 void replace_deactivate_replacement_point(rplpoint *rp)
 {
 	assert(rp->target);
-	
-#ifndef NDEBUG
+
+#if !defined(NDEBUG)
 	printf("deactivate replacement point: ");
-	replace_replacement_point_println(rp);
+	replace_replacement_point_println(rp, 0);
 	fflush(stdout);
 #endif
-	
+
 	rp->target = NULL;
-	
+
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
 
-/* replace_read_executionstate *************************************************
 
-   Read the given executions state and translate it to a source state.
+/* replace_read_value **********************************************************
+
+   Read a value with the given allocation from the execution state.
    
    IN:
-       rp...............replacement point at which `es` was taken
 	   es...............execution state
-	   ss...............where to put the source state
+	   sp...............stack pointer of the execution state (XXX eliminate?)
+	   ra...............allocation
+	   javaval..........where to put the value
 
    OUT:
-       *ss..............the source state derived from the execution state
+       *javaval.........the value
   
 *******************************************************************************/
 
-inline static void replace_read_value(executionstate *es,
-#ifdef HAS_4BYTE_STACKSLOT
-									  u4 *sp,
-#else
-									  u8 *sp,
-#endif
-									  rplalloc *ra,
-									  u8 *javaval)
+static void replace_read_value(executionstate_t *es,
+							   stackslot_t *sp,
+							   rplalloc *ra,
+							   u8 *javaval)
 {
 	if (ra->flags & INMEMORY) {
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
@@ -554,14 +611,23 @@ inline static void replace_read_value(executionstate *es,
 	}
 }
 
-inline static void replace_write_value(executionstate *es,
-#ifdef HAS_4BYTE_STACKSLOT
-									  u4 *sp,
-#else
-									  u8 *sp,
-#endif
-									  rplalloc *ra,
-									  u8 *javaval)
+
+/* replace_write_value *********************************************************
+
+   Write a value to the given allocation in the execution state.
+   
+   IN:
+	   es...............execution state
+	   sp...............stack pointer of the execution state (XXX eliminate?)
+	   ra...............allocation
+	   *javaval.........the value
+
+*******************************************************************************/
+
+static void replace_write_value(executionstate_t *es,
+							    stackslot_t *sp,
+							    rplalloc *ra,
+							    u8 *javaval)
 {
 	if (ra->flags & INMEMORY) {
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
@@ -587,36 +653,41 @@ inline static void replace_write_value(executionstate *es,
 	}
 }
 
-static void replace_read_executionstate(rplpoint *rp,executionstate *es,
-									 sourcestate *ss)
+
+/* replace_read_executionstate *************************************************
+
+   Read the given executions state and translate it to a source state.
+   
+   IN:
+       rp...............replacement point at which `es` was taken
+	   es...............execution state
+	   ss...............where to put the source state
+
+   OUT:
+       *ss..............the source state derived from the execution state
+  
+*******************************************************************************/
+
+static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
+									 sourcestate_t *ss)
 {
-	methodinfo *m;
-	codeinfo *code;
-	int count;
-	int i;
-	rplalloc *ra;
-	methoddesc *md;
-	int topslot;
-#ifdef HAS_4BYTE_STACKSLOT
-	u4 *sp;
-	u4 *basesp;
-#else
-	u8 *sp;
-	u8 *basesp;
-#endif
+	methodinfo    *m;
+	codeinfo      *code;
+	int            count;
+	int            i;
+	rplalloc      *ra;
+	sourceframe_t *frame;
+	int            topslot;
+	stackslot_t   *sp;
+	stackslot_t   *basesp;
 
 	code = rp->code;
-	m = code->m;
-	md = m->parseddesc;
+	m = rp->method;
 	topslot = TOP_IS_NORMAL;
 
-	/* stack pointers */
+	/* stack pointer */
 
-#ifdef HAS_4BYTE_STACKSLOT
-	sp = (u4*) es->sp;
-#else
-	sp = (u8*) es->sp;
-#endif
+	sp = (stackslot_t *) es->sp;
 
 	/* on some architectures the returnAddress is passed on the stack by JSR */
 
@@ -639,23 +710,30 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	}
 
 	/* calculate base stack pointer */
-	
+
 	basesp = sp + code_get_stack_frame_size(code);
 
-	ss->stackbase = (u1*) basesp;
+	/* create the source frame */
+
+	frame = DNEW(sourceframe_t);
+	frame->up = ss->frames;
+	frame->method = rp->method;
+	frame->id = rp->id;
+
+	ss->frames = frame;
 
 	/* read local variables */
 
-	count = m->maxlocals; /* XXX inlining */
-	ss->javalocalcount = count;
-	ss->javalocals = DMNEW(u8, count);
-	ss->javalocaltype = DMNEW(u1, count);
+	count = m->maxlocals;
+	frame->javalocalcount = count;
+	frame->javalocals = DMNEW(u8, count);
+	frame->javalocaltype = DMNEW(u1, count);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 	/* mark values as undefined */
 	for (i=0; i<count; ++i) {
-		ss->javalocals[i] = (u8) 0x00dead0000dead00ULL;
-		ss->javalocaltype[i] = TYPE_VOID;
+		frame->javalocals[i] = (u8) 0x00dead0000dead00ULL;
+		frame->javalocaltype[i] = TYPE_VOID;
 	}
 
 	/* some entries in the intregs array are not meaningful */
@@ -664,22 +742,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 #ifdef REG_PV
 	es->intregs[REG_PV   ] = (u8) 0x11dead1111dead11ULL;
 #endif
-#endif /* NDEBUG */
-	
-#if 0
-	ra = code->regalloc;
-
-	i = -1;
-	for (allocs = code->globalcount; allocs--; ra++) {
-		if (ra->next)
-			i++;
-		t = ra->type;
-		if (t == -1)
-			continue; /* dummy rplalloc */
-
-		replace_read_value(es,sp,ra,ss->javalocals + (5*i+t));
-	}
-#endif
+#endif /* !defined(NDEBUG) */
 
 	/* read javalocals */
 
@@ -687,33 +750,36 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	ra = rp->regalloc;
 
 	while (count && (i = ra->index) >= 0) {
-		ss->javalocaltype[i] = ra->type;
-		replace_read_value(es, sp, ra, ss->javalocals + i);
+		assert(i < m->maxlocals);
+		frame->javalocaltype[i] = ra->type;
+		replace_read_value(es, sp, ra, frame->javalocals + i);
 		ra++;
 		count--;
 	}
 
 	/* read stack slots */
 
-	ss->javastackdepth = count;
-	ss->javastack = DMNEW(u8, count);
-	ss->javastacktype = DMNEW(u1, count);
+	frame->javastackdepth = count;
+	frame->javastack = DMNEW(u8, count);
+	frame->javastacktype = DMNEW(u1, count);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 	/* mark values as undefined */
-	for (i=0; i<count; ++i)
-		ss->javastack[i] = (u8) 0x00dead0000dead00ULL;
-#endif
-	
+	for (i=0; i<count; ++i) {
+		frame->javastack[i] = (u8) 0x00dead0000dead00ULL;
+		frame->javastacktype[i] = TYPE_VOID;
+	}
+#endif /* !defined(NDEBUG) */
+
 	i = 0;
 
 	/* the first stack slot is special in SBR and EXH blocks */
 
 	if (topslot == TOP_IS_ON_STACK) {
 		assert(count);
-		
-		ss->javastack[i] = sp[-1];
-		ss->javastacktype[i] = TYPE_ADR; /* XXX RET */
+
+		frame->javastack[i] = sp[-1];
+		frame->javastacktype[i] = TYPE_ADR; /* XXX RET */
 		count--;
 		i++;
 		ra++;
@@ -721,66 +787,32 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	else if (topslot == TOP_IS_IN_ITMP1) {
 		assert(count);
 
-		ss->javastack[i] = es->intregs[REG_ITMP1];
-		ss->javastacktype[i] = TYPE_ADR; /* XXX RET */
+		frame->javastack[i] = es->intregs[REG_ITMP1];
+		frame->javastacktype[i] = TYPE_ADR; /* XXX RET */
 		count--;
 		i++;
 		ra++;
 	}
-	
+
 	/* read remaining stack slots */
-	
+
 	for (; count--; ra++, i++) {
 		assert(ra->index == -1);
 
-		replace_read_value(es,sp,ra,ss->javastack + i);
-		ss->javastacktype[i] = ra->type;
-	}
-
-	/* read unused callee saved int regs */
-	
-	count = INT_SAV_CNT;
-	for (i=0; count > code->savedintcount; ++i) {
-		assert(i < INT_REG_CNT);
-		if (nregdescint[i] == REG_SAV)
-			ss->savedintregs[--count] = es->intregs[i];
-	}
-
-	/* read saved int regs */
-
-	for (i=0; i<code->savedintcount; ++i) {
-		ss->savedintregs[i] = *--basesp;
-	}
-
-	/* read unused callee saved flt regs */
-	
-	count = FLT_SAV_CNT;
-	for (i=0; count > code->savedfltcount; ++i) {
-		assert(i < FLT_REG_CNT);
-		if (nregdescfloat[i] == REG_SAV)
-			ss->savedfltregs[--count] = es->fltregs[i];
-	}
-
-	/* read saved flt regs */
-
-	for (i=0; i<code->savedfltcount; ++i) {
-#ifdef HAS_4BYTE_STACKSLOT
-		basesp -= 2;
-#else
-		basesp--;
-#endif
-		ss->savedfltregs[i] = *(u8*)basesp;
+		replace_read_value(es,sp,ra,frame->javastack + i);
+		frame->javastacktype[i] = ra->type;
 	}
 
 	/* read slots used for synchronization */
 
 	count = code_get_sync_slot_count(code);
-	ss->syncslotcount = count;
-	ss->syncslots = DMNEW(u8,count);
+	frame->syncslotcount = count;
+	frame->syncslots = DMNEW(u8,count);
 	for (i=0; i<count; ++i) {
-		ss->syncslots[i] = sp[code->memuse + i];
+		frame->syncslots[i] = sp[code->memuse + i];
 	}
 }
+
 
 /* replace_write_executionstate ************************************************
 
@@ -797,38 +829,35 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
   
 *******************************************************************************/
 
-static void replace_write_executionstate(rplpoint *rp,executionstate *es,
-										 sourcestate *ss)
+static void replace_write_executionstate(rplpoint *rp,
+										 executionstate_t *es,
+										 sourcestate_t *ss)
 {
-	methodinfo *m;
-	codeinfo *code;
-	int count;
-	int i;
-	rplalloc *ra;
-	methoddesc *md;
-	int topslot;
-#ifdef HAS_4BYTE_STACKSLOT
-	u4 *sp;
-	u4 *basesp;
-#else
-	u8 *sp;
-	u8 *basesp;
-#endif
+	methodinfo     *m;
+	codeinfo       *code;
+	int             count;
+	int             i;
+	rplalloc       *ra;
+	sourceframe_t  *frame;
+	int             topslot;
+	stackslot_t    *sp;
+	stackslot_t    *basesp;
 
 	code = rp->code;
-	m = code->m;
-	md = m->parseddesc;
+	m = rp->method;
 	topslot = TOP_IS_NORMAL;
-	
+
+	/* pop a source frame */
+
+	frame = ss->frames;
+	assert(frame);
+	ss->frames = frame->up;
+
 	/* calculate stack pointer */
-	
-#ifdef HAS_4BYTE_STACKSLOT
-	basesp = (u4*) ss->stackbase;
-#else
-	basesp = (u8*) ss->stackbase;
-#endif
-	
-	sp = basesp - code_get_stack_frame_size(code);
+
+	sp = (stackslot_t *) es->sp;
+
+	basesp = sp + code_get_stack_frame_size(code);
 
 	/* on some architectures the returnAddress is passed on the stack by JSR */
 
@@ -837,47 +866,17 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 		topslot = TOP_IS_ON_STACK; /* XXX */
 	}
 #endif
-	
+
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
 	if (  (rp->type == BBTYPE_EXH)
 #if defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)
-	   || (rp->type == BBTYPE_SBR) /* XXX */ 
+	   || (rp->type == BBTYPE_SBR) /* XXX */
 #endif
 	   )
 	{
 		topslot = TOP_IS_IN_ITMP1;
 	}
-
-	/* in debug mode, invalidate stack frame first */
-
-#ifndef NDEBUG
-	for (i=0; i<(basesp - sp); ++i) {
-		sp[i] = 0xdeaddeadU;
-	}
-#endif
-
-#if 0
-	/* write local variables */
-
-	count = m->maxlocals; /* XXX inlining */
-
-	ra = code->regalloc;
-
-	i = -1;
-	for (allocs = code->globalcount; allocs--; ra++) {
-		if (ra->next)
-			i++;
-
-		assert(i >= 0 && i < m->maxlocals);
-		
-		t = ra->type;
-		if (t == -1)
-			continue; /* dummy rplalloc */
-
-		replace_write_value(es,sp,ra,ss->javalocals + (5*i+t));
-	}
-#endif
 
 	/* write javalocals */
 
@@ -885,8 +884,9 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	count = rp->regalloccount;
 
 	while (count && (i = ra->index) >= 0) {
-		assert(ra->type == ss->javalocaltype[i]);
-		replace_write_value(es, sp, ra, ss->javalocals + i);
+		assert(i < m->maxlocals);
+		assert(ra->type == frame->javalocaltype[i]);
+		replace_write_value(es, sp, ra, frame->javalocals + i);
 		count--;
 		ra++;
 	}
@@ -899,9 +899,9 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 
 	if (topslot == TOP_IS_ON_STACK) {
 		assert(count);
-		
-		assert(ss->javastacktype[i] == TYPE_ADR);
-		sp[-1] = ss->javastack[i];
+
+		assert(frame->javastacktype[i] == TYPE_ADR);
+		sp[-1] = frame->javastack[i];
 		count--;
 		i++;
 		ra++;
@@ -909,64 +909,29 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	else if (topslot == TOP_IS_IN_ITMP1) {
 		assert(count);
 
-		assert(ss->javastacktype[i] == TYPE_ADR);
-		assert(ss->javastacktype[i] == TYPE_ADR);
-		es->intregs[REG_ITMP1] = ss->javastack[i];
+		assert(frame->javastacktype[i] == TYPE_ADR);
+		assert(frame->javastacktype[i] == TYPE_ADR);
+		es->intregs[REG_ITMP1] = frame->javastack[i];
 		count--;
 		i++;
 		ra++;
 	}
 
 	/* write remaining stack slots */
-	
+
 	for (; count--; ra++, i++) {
 		assert(ra->index == -1);
 
-		assert(ra->type == ss->javastacktype[i]);
-		replace_write_value(es,sp,ra,ss->javastack + i);
-	}
-	
-	/* write unused callee saved int regs */
-	
-	count = INT_SAV_CNT;
-	for (i=0; count > code->savedintcount; ++i) {
-		assert(i < INT_REG_CNT);
-		if (nregdescint[i] == REG_SAV)
-			es->intregs[i] = ss->savedintregs[--count];
-	}
-
-	/* write saved int regs */
-
-	for (i=0; i<code->savedintcount; ++i) {
-		*--basesp = ss->savedintregs[i];
-	}
-
-	/* write unused callee saved flt regs */
-	
-	count = FLT_SAV_CNT;
-	for (i=0; count > code->savedfltcount; ++i) {
-		assert(i < FLT_REG_CNT);
-		if (nregdescfloat[i] == REG_SAV)
-			es->fltregs[i] = ss->savedfltregs[--count];
-	}
-
-	/* write saved flt regs */
-
-	for (i=0; i<code->savedfltcount; ++i) {
-#ifdef HAS_4BYTE_STACKSLOT
-		basesp -= 2;
-#else
-		basesp--;
-#endif
-		*(u8*)basesp = ss->savedfltregs[i];
+		assert(ra->type == frame->javastacktype[i]);
+		replace_write_value(es,sp,ra,frame->javastack + i);
 	}
 
 	/* write slots used for synchronization */
 
 	count = code_get_sync_slot_count(code);
-	assert(count == ss->syncslotcount);
+	assert(count == frame->syncslotcount);
 	for (i=0; i<count; ++i) {
-		sp[code->memuse + i] = ss->syncslots[i];
+		sp[code->memuse + i] = frame->syncslots[i];
 	}
 
 	/* set new pc */
@@ -975,30 +940,80 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 }
 
 
-void replace_pop_activation_record(executionstate *es, sourcestate *ss)
+/* replace_pop_activation_record ***********************************************
+
+   Peel a stack frame from the execution state.
+   
+   *** This function imitates the effects of the method epilog ***
+   *** and returning from the method call.                     ***
+
+   IN:
+	   es...............execution state
+
+   OUT:
+       *es..............the execution state after popping the stack frame
+  
+*******************************************************************************/
+
+bool replace_pop_activation_record(executionstate_t *es)
 {
 	u1 *ra;
 	u1 *pv;
 	s4 reg;
 	s4 i;
+	codeinfo *code;
+	stackslot_t *basesp;
 
 	assert(es->code);
 
-	/* restore saved registers */
-
-	reg = INT_REG_CNT;
-	for (i=0; i<INT_SAV_CNT; ++i) {
-		while (nregdescint[--reg] != REG_SAV)
-			;
-		es->intregs[reg] = ss->savedintregs[i];
-	}
-
 	/* read the return address */
 
-	ra = md_stacktrace_get_returnaddress(es->sp, 
+	ra = md_stacktrace_get_returnaddress(es->sp,
 			SIZE_OF_STACKSLOT * es->code->stackframesize);
 
 	printf("return address: %p\n", (void*)ra);
+
+	/* find the new codeinfo */
+
+	pv = md_codegen_get_pv_from_pc(ra);
+
+	printf("PV = %p\n", (void*) pv);
+
+	if (pv == NULL)
+		return false;
+
+	code = *(codeinfo **)(pv + CodeinfoPointer);
+
+	printf("CODE = %p\n", (void*) code);
+
+	if (code == NULL)
+		return false;
+
+	/* calculate the base of the stack frame */
+
+	basesp = (stackslot_t *)es->sp + es->code->stackframesize;
+
+	/* restore saved int registers */
+
+	reg = INT_REG_CNT;
+	for (i=0; i<es->code->savedintcount; ++i) {
+		while (nregdescint[--reg] != REG_SAV)
+			;
+		es->intregs[reg] = *--basesp;
+	}
+
+	/* restore saved flt registers */
+
+	/* XXX align? */
+	reg = FLT_REG_CNT;
+	for (i=0; i<es->code->savedfltcount; ++i) {
+		while (nregdescfloat[--reg] != REG_SAV)
+			;
+		basesp -= STACK_SLOTS_PER_FLOAT;
+		es->fltregs[reg] = *(u8*)basesp;
+	}
+
+	/* set the new pc */
 
 	es->pc = ra;
 
@@ -1007,14 +1022,159 @@ void replace_pop_activation_record(executionstate *es, sourcestate *ss)
 	es->sp += SIZE_OF_STACKSLOT * es->code->stackframesize;
 	es->sp += SIZE_OF_STACKSLOT; /* skip return address */
 
-	/* find the new codeinfo */
-
-	pv = md_codegen_get_pv_from_pc(es->pc);
 	es->pv = pv;
+	es->code = code;
 
-	if (pv) {
-		es->code = *(codeinfo **)(pv + CodeinfoPointer);
+#if !defined(NDEBUG)
+	/* for debugging */
+	for (i=0; i<INT_REG_CNT; ++i)
+		if (nregdescint[i] != REG_SAV)
+			es->intregs[i] = 0x33dead3333dead33ULL;
+	for (i=0; i<FLT_REG_CNT; ++i)
+		if (nregdescfloat[i] != REG_SAV)
+			es->fltregs[i] = 0x33dead3333dead33ULL;
+#endif /* !defined(NDEBUG) */
+
+	return true;
+}
+
+
+/* replace_push_activation_record **********************************************
+
+   Push a stack frame onto the execution state.
+   
+   *** This function imitates the effects of a call and the ***
+   *** method prolog of the callee.                         ***
+
+   IN:
+	   es...............execution state
+	   rpcall...........the replacement point at the call site
+	   calleecode.......the codeinfo of the callee
+
+   OUT:
+       *es..............the execution state after pushing the stack frame
+  
+*******************************************************************************/
+
+void replace_push_activation_record(executionstate_t *es,
+									rplpoint *rpcall,
+									codeinfo *calleecode)
+{
+	s4 reg;
+	s4 i;
+	stackslot_t *basesp;
+
+	/* write the return address */
+
+	*((stackslot_t *)es->sp) = (stackslot_t) (rpcall->pc + rpcall->callsize);
+
+	es->sp -= SIZE_OF_STACKSLOT;
+
+	/* we move into a new code unit */
+
+	es->code = calleecode;
+
+	/* set the new pc XXX not needed */
+
+	es->pc = es->code->entrypoint;
+
+	/* build the stackframe */
+
+	basesp = (stackslot_t *) es->sp;
+	es->sp -= SIZE_OF_STACKSLOT * es->code->stackframesize;
+
+	/* in debug mode, invalidate stack frame first */
+
+#if !defined(NDEBUG)
+	{
+		stackslot_t *sp = (stackslot_t *) es->sp;
+		for (i=0; i<(basesp - sp); ++i) {
+			sp[i] = 0xdeaddeadU;
+		}
 	}
+#endif
+
+	/* save int registers */
+
+	reg = INT_REG_CNT;
+	for (i=0; i<es->code->savedintcount; ++i) {
+		while (nregdescint[--reg] != REG_SAV)
+			;
+		*--basesp = es->intregs[reg];
+
+#if !defined(NDEBUG)
+		es->intregs[reg] = 0x44dead4444dead44ULL;
+#endif
+	}
+
+	/* save flt registers */
+
+	/* XXX align? */
+	reg = FLT_REG_CNT;
+	for (i=0; i<es->code->savedfltcount; ++i) {
+		while (nregdescfloat[--reg] != REG_SAV)
+			;
+		basesp -= STACK_SLOTS_PER_FLOAT;
+		*(u8*)basesp = es->fltregs[reg];
+
+#if !defined(NDEBUG)
+		es->fltregs[reg] = 0x44dead4444dead44ULL;
+#endif
+	}
+
+	/* set the PV */
+
+	es->pv = es->code->entrypoint;
+}
+
+
+/* replace_find_replacement_point **********************************************
+
+   Find the replacement point in the given code corresponding to the
+   position given in the source frame.
+   
+   IN:
+	   code.............the codeinfo in which to search the rplpoint
+	   ss...............the source state defining the position to look for
+
+   RETURN VALUE:
+       the replacement point
+  
+*******************************************************************************/
+
+rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
+{
+	sourceframe_t *frame;
+	methodinfo *m;
+	rplpoint *rp;
+	s4        i;
+
+	assert(ss);
+
+	frame = ss->frames;
+	assert(frame);
+
+#if !defined(NDEBUG)
+	printf("searching replacement point for:\n");
+	replace_source_frame_println(frame);
+#endif
+
+	m = frame->method;
+
+#if !defined(NDEBUG)
+	printf("code = %p\n", (void*)code);
+#endif
+
+	rp = code->rplpoints;
+	i = code->rplpointcount;
+	while (i--) {
+		if (rp->id == frame->id)
+			return rp;
+		rp++;
+	}
+
+	assert(0);
+	return NULL; /* NOT REACHED */
 }
 
 
@@ -1032,16 +1192,17 @@ void replace_pop_activation_record(executionstate *es, sourcestate *ss)
   
 *******************************************************************************/
 
-void replace_me(rplpoint *rp,executionstate *es)
+void replace_me(rplpoint *rp, executionstate_t *es)
 {
-	rplpoint *target;
-	sourcestate ss;
-	s4 dumpsize;
-	rplpoint *candidate;
-	s4 i;
+	rplpoint     *target;
+	sourcestate_t ss;
+	s4            dumpsize;
+	rplpoint     *candidate;
+	codeinfo     *code;
+	s4            i;
 
 	es->code = rp->code;
-	
+
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
@@ -1053,49 +1214,97 @@ void replace_me(rplpoint *rp,executionstate *es)
 	/* XXX DEBUG turn off self-replacement */
 	if (target == rp)
 		replace_deactivate_replacement_point(rp);
-	
-#ifndef NDEBUG
+
+#if !defined(NDEBUG)
 	printf("replace_me(%p,%p)\n",(void*)rp,(void*)es);
 	fflush(stdout);
-	replace_replacement_point_println(rp);
+	replace_replacement_point_println(rp, 0);
 	replace_executionstate_println(es);
 #endif
 
 	/* read execution state of old code */
 
-	replace_read_executionstate(rp,es,&ss);
-
-#ifndef NDEBUG
-	replace_sourcestate_println(&ss);
-#endif
+	ss.frames = NULL;
 
 	/* XXX testing */
 
+	candidate = rp;
 	do {
-		replace_pop_activation_record(es, &ss);
-		replace_executionstate_println(es);
-		candidate = NULL;
-		rp = es->code->rplpoints;
-		for (i=0; i<es->code->rplpointcount; ++i, ++rp)
-			if (rp->pc <= es->pc)
-				candidate = rp;
+#if !defined(NDEBUG)
+		printf("recovering source state for:\n");
+		replace_replacement_point_println(candidate, 1);
+#endif
 
-		if (candidate) {
-			replace_read_executionstate(candidate,es,&ss);
-			replace_sourcestate_println(&ss);
+		replace_read_executionstate(candidate,es,&ss);
+
+		if (candidate->parent) {
+			printf("INLINED!\n");
+			candidate = candidate->parent;
+			assert(candidate->type == RPLPOINT_TYPE_INLINE);
+		}
+		else {
+			printf("UNWIND\n");
+			if (!replace_pop_activation_record(es)) {
+				printf("BREAKING\n");
+				break;
+			}
+#if !defined(NDEBUG)
+			replace_executionstate_println(es);
+#endif
+			candidate = NULL;
+			rp = es->code->rplpoints;
+			for (i=0; i<es->code->rplpointcount; ++i, ++rp)
+				if (rp->pc <= es->pc)
+					candidate = rp;
+			if (!candidate)
+				printf("NO CANDIDATE!\n");
+			else {
+				printf("found replacement point.\n");
+				assert(candidate->type == RPLPOINT_TYPE_CALL);
+			}
 		}
 	} while (candidate);
 
+#if !defined(NDEBUG)
+	replace_sourcestate_println(&ss);
+#endif
+
 	/* write execution state of new code */
 
-	replace_write_executionstate(target,es,&ss);
-
-	es->code = target->code;
-
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 	replace_executionstate_println(es);
 #endif
-	
+
+	code = es->code;
+
+
+	while (ss.frames) {
+
+		candidate = replace_find_replacement_point(code, &ss);
+
+#if !defined(NDEBUG)
+		printf("creating execution state for:\n");
+		replace_replacement_point_println(candidate, 1);
+#endif
+
+		replace_write_executionstate(candidate, es, &ss);
+		if (ss.frames == NULL)
+			break;
+
+		if (candidate->type == RPLPOINT_TYPE_CALL) {
+			code = ss.frames->method->code;
+			assert(code);
+			replace_push_activation_record(es, candidate, code);
+		}
+#if !defined(NDEBUG)
+		replace_executionstate_println(es);
+#endif
+	}
+
+#if !defined(NDEBUG)
+	replace_executionstate_println(es);
+#endif
+
 	/* release dump area */
 
 	dump_release(dumpsize);
@@ -1105,8 +1314,9 @@ void replace_me(rplpoint *rp,executionstate *es)
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	asm_replacement_in(es);
 #endif
-	abort();
+	abort(); /* NOT REACHED */
 }
+
 
 /* replace_replacement_point_println *******************************************
  
@@ -1117,23 +1327,39 @@ void replace_me(rplpoint *rp,executionstate *es)
   
 *******************************************************************************/
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 static const char *type_char = "IJFDA";
 
 #define TYPECHAR(t)  (((t) >= 0 && (t) <= 4) ? type_char[t] : '?')
 
-void replace_replacement_point_println(rplpoint *rp)
+static char *replace_type_str[] = {
+	"STD",
+	"EXH",
+	"SBR",
+	"CALL",
+	"INLINE",
+	"RETURN"
+};
+
+void replace_replacement_point_println(rplpoint *rp, int depth)
 {
 	int j;
 
- 	if (!rp) {
+	if (!rp) {
 		printf("(rplpoint *)NULL\n");
 		return;
 	}
 
-	printf("rplpoint %p pc:%p out:%p target:%p mcode:%016llx type:%01d flags:%01x\n\t\tra:%d = [",
-			(void*)rp,rp->pc,rp->outcode,(void*)rp->target,
-			(unsigned long long)rp->mcode,rp->type,rp->flags,rp->regalloccount);
+	for (j=0; j<depth; ++j)
+		putchar('\t');
+
+	printf("rplpoint %p pc:%p+%d out:%p target:%p mcode:%016llx type:%s flags:%01x parent:%p\n",
+			(void*)rp,rp->pc,rp->callsize,rp->outcode,(void*)rp->target,
+			(unsigned long long)rp->mcode,replace_type_str[rp->type],rp->flags,
+			(void*)rp->parent);
+	for (j=0; j<depth; ++j)
+		putchar('\t');
+	printf("ra:%d = [",	rp->regalloccount);
 
 	for (j=0; j<rp->regalloccount; ++j) {
 		if (j)
@@ -1145,12 +1371,16 @@ void replace_replacement_point_println(rplpoint *rp)
 		show_allocation(rp->regalloc[j].type, rp->regalloc[j].flags, rp->regalloc[j].regoff);
 	}
 
-	printf("]\n\t\tmethod: ");
-	method_print(rp->code->m);
+	printf("]\n");
+	for (j=0; j<depth; ++j)
+		putchar('\t');
+	printf("method: ");
+	method_print(rp->method);
 
 	printf("\n");
 }
 #endif
+
 
 /* replace_show_replacement_points *********************************************
  
@@ -1161,29 +1391,20 @@ void replace_replacement_point_println(rplpoint *rp)
   
 *******************************************************************************/
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 void replace_show_replacement_points(codeinfo *code)
 {
 	int i;
+	int depth;
 	rplpoint *rp;
-	
+	rplpoint *parent;
+
 	if (!code) {
 		printf("(codeinfo *)NULL\n");
 		return;
 	}
 
 	printf("\treplacement points: %d\n",code->rplpointcount);
-#if 0
-	printf("\tglobal allocations: %d = [",code->globalcount);
-
-	for (i=0; i<code->globalcount; ++i)
-		printf("%c%1c%01x:%02d",
-				(code->regalloc[i].next) ? '^' : ' ',
-				TYPECHAR(code->regalloc[i].type),
-				code->regalloc[i].flags,code->regalloc[i].regoff);
-
-	printf("]\n");
-#endif
 
 	printf("\ttotal allocations : %d\n",code->regalloccount);
 	printf("\tsaved int regs    : %d\n",code->savedintcount);
@@ -1196,12 +1417,18 @@ void replace_show_replacement_points(codeinfo *code)
 		rp = code->rplpoints + i;
 
 		assert(rp->code == code);
-		
-		printf("\t");
-		replace_replacement_point_println(rp);
+
+		depth = 1;
+		parent = rp->parent;
+		while (parent) {
+			depth++;
+			parent = parent->parent;
+		}
+		replace_replacement_point_println(rp, depth);
 	}
 }
 #endif
+
 
 /* replace_executionstate_println **********************************************
  
@@ -1212,40 +1439,44 @@ void replace_show_replacement_points(codeinfo *code)
   
 *******************************************************************************/
 
-#ifndef NDEBUG
-void replace_executionstate_println(executionstate *es)
+#if !defined(NDEBUG)
+void replace_executionstate_println(executionstate_t *es)
 {
 	int i;
 	int slots;
-#ifdef HAS_4BYTE_STACKSLOT
-	u4 *sp;
-#else
-	u8 *sp;
-#endif
+	stackslot_t *sp;
 
- 	if (!es) {
-		printf("(executionstate *)NULL\n");
+	if (!es) {
+		printf("(executionstate_t *)NULL\n");
 		return;
 	}
 
-	printf("executionstate %p:\n",(void*)es);
-	printf("\tpc = %p\n",(void*)es->pc);
-	printf("\tsp = %p\n",(void*)es->sp);
-	printf("\tpv = %p\n",(void*)es->pv);
+	printf("executionstate_t:\n");
+	printf("\tpc = %p",(void*)es->pc);
+	printf("  sp = %p",(void*)es->sp);
+	printf("  pv = %p\n",(void*)es->pv);
 #if defined(ENABLE_DISASSEMBLER)
 	for (i=0; i<INT_REG_CNT; ++i) {
-		printf("\t%-3s = %016llx\n",regs[i],(unsigned long long)es->intregs[i]);
+		if (i%4 == 0)
+			printf("\t");
+		else
+			printf(" ");
+		printf("%-3s = %016llx",regs[i],(unsigned long long)es->intregs[i]);
+		if (i%4 == 3)
+			printf("\n");
 	}
 	for (i=0; i<FLT_REG_CNT; ++i) {
-		printf("\tfltregs[%2d] = %016llx\n",i,(unsigned long long)es->fltregs[i]);
+		if (i%4 == 0)
+			printf("\t");
+		else
+			printf(" ");
+		printf("F%02d = %016llx",i,(unsigned long long)es->fltregs[i]);
+		if (i%4 == 3)
+			printf("\n");
 	}
 #endif
 
-#ifdef HAS_4BYTE_STACKSLOT
-	sp = (u4*) es->sp;
-#else
-	sp = (u8*) es->sp;
-#endif
+	sp = (stackslot_t *) es->sp;
 
 	if (es->code)
 		slots = code_get_stack_frame_size(es->code);
@@ -1253,14 +1484,23 @@ void replace_executionstate_println(executionstate *es)
 		slots = 0;
 
 	if (slots) {
-		printf("\tstack slots(+1) at sp:\n");
+		printf("\tstack slots(+1) at sp:");
 		for (i=0; i<slots+1; ++i) {
+			if (i%4 == 0)
+				printf("\n\t\t");
+			else
+				printf(" ");
+			if (i >= slots)
+				putchar('(');
 #ifdef HAS_4BYTE_STACKSLOT
-			printf("\t\t%08lx\n",(unsigned long)*sp++);
+			printf("%08lx",(unsigned long)*sp++);
 #else
-			printf("\t\t%016llx\n",(unsigned long long)*sp++);
+			printf("%016llx",(unsigned long long)*sp++);
 #endif
+			if (i >= slots)
+				putchar(')');
 		}
+		printf("\n");
 	}
 
 	printf("\tcode: %p", (void*)es->code);
@@ -1303,7 +1543,60 @@ void java_value_print(s4 type, u8 value)
 		printf(" %lld", (long long) value);
 	}
 }
-#endif /* defined(NDEBUG) */
+#endif /* !defined(NDEBUG) */
+
+
+#if !defined(NDEBUG)
+void replace_source_frame_println(sourceframe_t *frame)
+{
+	s4 i;
+	s4 t;
+
+	printf("\t");
+	method_println(frame->method);
+	printf("\n");
+
+	if (frame->javalocalcount) {
+		printf("\tlocals (%d):\n",frame->javalocalcount);
+		for (i=0; i<frame->javalocalcount; ++i) {
+			t = frame->javalocaltype[i];
+			if (t == TYPE_VOID) {
+				printf("\tlocal[ %2d] = void\n",i);
+			}
+			else {
+				printf("\tlocal[%c%2d] = ",TYPECHAR(t),i);
+				java_value_print(t, frame->javalocals[i]);
+				printf("\n");
+			}
+		}
+		printf("\n");
+	}
+
+	if (frame->javastackdepth) {
+		printf("\tstack (depth %d):\n",frame->javastackdepth);
+		for (i=0; i<frame->javastackdepth; ++i) {
+			printf("\tstack[%2d] = ",i);
+			java_value_print(frame->javastacktype[i], frame->javastack[i]);
+			printf("\n");
+		}
+		printf("\n");
+	}
+
+	if (frame->syncslotcount) {
+		printf("\tsynchronization slots (%d):\n",frame->syncslotcount);
+		for (i=0; i<frame->syncslotcount; ++i) {
+			printf("\tslot[%2d] = ",i);
+#ifdef HAS_4BYTE_STACKSLOT
+			printf("%08lx\n",(unsigned long) frame->syncslots[i]);
+#else
+			printf("%016llx\n",(unsigned long long) frame->syncslots[i]);
+#endif
+		}
+		printf("\n");
+	}
+}
+#endif /* !defined(NDEBUG) */
+
 
 /* replace_sourcestate_println *************************************************
  
@@ -1314,80 +1607,23 @@ void java_value_print(s4 type, u8 value)
   
 *******************************************************************************/
 
-#ifndef NDEBUG
-void replace_sourcestate_println(sourcestate *ss)
+#if !defined(NDEBUG)
+void replace_sourcestate_println(sourcestate_t *ss)
 {
 	int i;
-	int t;
-	int reg;
+	sourceframe_t *frame;
 
- 	if (!ss) {
-		printf("(sourcestate *)NULL\n");
+	if (!ss) {
+		printf("(sourcestate_t *)NULL\n");
 		return;
 	}
 
-	printf("sourcestate %p: stackbase=%p\n",(void*)ss,(void*)ss->stackbase);
+	printf("sourcestate_t:\n");
 
-	printf("\tlocals (%d):\n",ss->javalocalcount);
-	for (i=0; i<ss->javalocalcount; ++i) {
-		t = ss->javalocaltype[i];
-		if (t == TYPE_VOID) {
-			printf("\tlocal[ %2d] = void\n",i);
-		}
-		else {
-			printf("\tlocal[%c%2d] = ",TYPECHAR(t),i);
-			java_value_print(t, ss->javalocals[i]);
-			printf("\n");
-		}
+	for (i=0, frame = ss->frames; frame != NULL; frame = frame->up, ++i) {
+		printf("    frame %d:\n", i);
+		replace_source_frame_println(frame);
 	}
-
-	printf("\n");
-
-	printf("\tstack (depth %d):\n",ss->javastackdepth);
-	for (i=0; i<ss->javastackdepth; ++i) {
-		printf("\tstack[%2d] = ",i);
-		java_value_print(ss->javastacktype[i], ss->javastack[i]);
-		printf("\n");
-	}
-
-	printf("\n");
-
-	printf("\tsaved int registers (%d):\n",INT_SAV_CNT);
-	reg = INT_REG_CNT;
-	for (i=0; i<INT_SAV_CNT; ++i) {
-		while (nregdescint[--reg] != REG_SAV)
-			;
-		if (ss->savedintregs[i] != 0x00dead0000dead00ULL) {
-#if defined(ENABLE_DISASSEMBLER)
-			printf("\t%-3s = ",regs[reg]);
-#endif
-			printf("%016llx\n",(unsigned long long) ss->savedintregs[i]);
-		}
-	}
-
-	printf("\n");
-
-	printf("\tsaved float registers (%d):\n",FLT_SAV_CNT);
-	for (i=0; i<FLT_SAV_CNT; ++i) {
-		if (ss->savedfltregs[i] != 0x00dead0000dead00ULL) {
-			printf("\tsavedfltreg[%2d] = ",i);
-			printf("%016llx\n",(unsigned long long) ss->savedfltregs[i]);
-		}
-	}
-	
-	printf("\n");
-
-	printf("\tsynchronization slots (%d):\n",ss->syncslotcount);
-	for (i=0; i<ss->syncslotcount; ++i) {
-		printf("\tslot[%2d] = ",i);
-#ifdef HAS_4BYTE_STACKSLOT
-		printf("%08lx\n",(unsigned long) ss->syncslots[i]);
-#else
-		printf("%016llx\n",(unsigned long long) ss->syncslots[i]);
-#endif
-	}
-	
-	printf("\n");
 }
 #endif
 

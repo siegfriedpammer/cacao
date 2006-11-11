@@ -39,8 +39,9 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct rplpoint rplpoint;
-typedef struct executionstate executionstate;
-typedef struct sourcestate sourcestate;
+typedef struct executionstate_t executionstate_t;
+typedef struct sourcestate_t sourcestate_t;
+typedef struct sourceframe_t sourceframe_t;
 
 #include "config.h"
 #include "vm/types.h"
@@ -70,24 +71,39 @@ struct rplalloc {
 #error value of INMEMORY is too big to fit in rplalloc.flags
 #endif
 
+
+/* XXX what to do about overlapping rplpoints? */
+#define RPLPOINT_TYPE_STD     BBTYPE_STD
+#define RPLPOINT_TYPE_EXH     BBTYPE_EXH
+#define RPLPOINT_TYPE_SBR     BBTYPE_SBR
+#define RPLPOINT_TYPE_CALL    3
+#define RPLPOINT_TYPE_INLINE  4
+#define RPLPOINT_TYPE_RETURN  5
+
+
 /* An `rplpoint` represents a replacement point in a compiled method  */
 
 struct rplpoint {
 	u1          *pc;           /* machine code PC of this point       */
-	u1          *outcode;      /* pointer to replacement-out code     */
-	codeinfo    *code;         /* codeinfo this point belongs to      */
-	rplpoint    *target;       /* target of the replacement           */
-	u8           mcode;        /* saved maching code for patching     */
+	u1          *outcode;      /* pointer to replacement-out code     */ /* XXX only for trappable rps */
+	methodinfo  *method;       /* source method this point is in      */
+	rplpoint    *target;       /* target of the replacement           */ /* XXX remove? */
+	codeinfo    *code;         /* codeinfo this point belongs to      */ /* XXX unify with parent */
+	rplpoint    *parent;       /* rplpoint of the inlined body        */ /* XXX unify with code */
 	rplalloc    *regalloc;     /* pointer to register index table     */
+	u8           mcode;        /* saved maching code for patching     */ /* XXX only for trappable rps */
+	s4           id;           /* id of the rplpoint within method    */
+	s4           callsize;     /* size of call code in bytes          */
 	unsigned int regalloccount:24; /* number of local allocations     */
-	unsigned int type:4;           /* BBTYPE_... constant             */
+	unsigned int type:4;           /* RPLPOINT_TYPE_... constant      */
 	unsigned int flags:8;          /* OR of RPLPOINT_... constants    */
 };
+
 
 /* An `executionsstate` represents the state of a thread as it reached */
 /* an replacement point or is about to enter one.                      */
 
-struct executionstate {
+struct executionstate_t {
 	u1           *pc;                               /* program counter */
 	u1           *sp;                   /* stack pointer within method */
 	u1           *pv;                   /* procedure value. NULL means */
@@ -96,28 +112,33 @@ struct executionstate {
 	u8            intregs[INT_REG_CNT];             /* register values */
 	u8            fltregs[FLT_REG_CNT];             /* register values */
 
-	codeinfo     *code;
+	codeinfo     *code;            /* codeinfo corresponding to the pv */
 };
 
-/* `sourcestate` will probably only be used for debugging              */
 
-struct sourcestate {
-	u8           *javastack;
-	u1           *javastacktype;
-	s4            javastackdepth;
+struct sourceframe_t {
+	sourceframe_t *up;                  /* source frame above this one */
 
-	u8           *javalocals;
-	u1           *javalocaltype;
-	s4            javalocalcount;
+	methodinfo    *method;                  /* method this frame is in */
+	s4             id;
 
-	u8            savedintregs[INT_SAV_CNT + 1]; /* XXX */
-	u8            savedfltregs[FLT_SAV_CNT + 1]; /* XXX */
+	u8            *javastack;                  /* values of stack vars */
+	u1            *javastacktype;              /*  types of stack vars */
+	s4             javastackdepth;             /* number of stack vars */
 
-	u8           *syncslots;
-	s4            syncslotcount;
+	u8            *javalocals;                 /* values of javalocals */
+	u1            *javalocaltype;              /*  types of javalocals */
+	s4             javalocalcount;             /* number of javalocals */
 
-	u1           *stackbase;
+	u8            *syncslots;
+	s4             syncslotcount; /* XXX do we need more than one? */
 };
+
+
+struct sourcestate_t {
+	sourceframe_t *frames;    /* list of source frames, from bottom up */
+};
+
 
 /*** prototypes ********************************************************/
 
@@ -128,16 +149,16 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target);
 void replace_deactivate_replacement_point(rplpoint *rp);
 void replace_activate(codeinfo *code,codeinfo *target);
 
-void replace_pop_activation_record(executionstate *es,
-								   sourcestate *ss);
+bool replace_pop_activation_record(executionstate_t *es);
 
-void replace_me(rplpoint *rp,executionstate *es);
+void replace_me(rplpoint *rp,executionstate_t *es);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 void replace_show_replacement_points(codeinfo *code);
-void replace_replacement_point_println(rplpoint *rp);
-void replace_executionstate_println(executionstate *es);
-void replace_sourcestate_println(sourcestate *ss);
+void replace_replacement_point_println(rplpoint *rp, int depth);
+void replace_executionstate_println(executionstate_t *es);
+void replace_sourcestate_println(sourcestate_t *ss);
+void replace_source_frame_println(sourceframe_t *frame);
 #endif
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */

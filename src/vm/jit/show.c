@@ -66,6 +66,13 @@ static java_objectheader *show_global_lock;
 #endif
 
 
+/* prototypes *****************************************************************/
+
+#if !defined(NDEBUG)
+static void show_variable_intern(jitdata *jd, s4 index, int stage);
+#endif
+
+
 /* show_init *******************************************************************
 
    Initialized the show subsystem (called by jit_init).
@@ -325,7 +332,7 @@ void show_method(jitdata *jd, int stage)
 #else
 			printf("    M%02d = 0x%02x(sp): ", i, i * 8);
 #endif
-			for (j = 0; j < jd->varcount; ++j) {
+			for (j = 0; j < jd->vartop; ++j) {
 				varinfo *v = VAR(j);
 				if ((v->flags & INMEMORY) && (v->vv.regoff == i)) {
 					show_variable(jd, j, irstage);
@@ -387,6 +394,36 @@ void show_method(jitdata *jd, int stage)
 	fflush(stdout);
 }
 #endif /* !defined(NDEBUG) */
+
+
+#if !defined(NDEBUG) && defined(ENABLE_INLINING)
+static void show_inline_info(jitdata *jd, insinfo_inline *ii, s4 opcode, s4 stage)
+{
+	s4 *jl;
+	s4 n;
+
+	printf("(pt %d+%d st ", ii->throughcount - ii->stackvarscount,
+			ii->stackvarscount);
+	show_variable_array(jd, ii->stackvars, ii->stackvarscount, stage);
+
+	if (opcode == ICMD_INLINE_START || opcode == ICMD_INLINE_END) {
+		printf(" jl ");
+		jl = (opcode == ICMD_INLINE_START) ? ii->javalocals_start : ii->javalocals_end;
+		n = (opcode == ICMD_INLINE_START) ? ii->method->maxlocals : ii->outer->maxlocals;
+		show_variable_array(jd, jl, n, stage);
+	}
+
+	printf(") ");
+
+#if 0
+	printf("(");
+	method_print(ii->outer);
+	printf(" ==> ");
+#endif
+
+	method_print(ii->method);
+}
+#endif /* !defined(NDEBUG) && defined(ENABLE_INLINING) */
 
 
 /* show_basicblock *************************************************************
@@ -478,9 +515,17 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			printf("IN:  ");
 			show_variable_array(jd, bptr->invars, bptr->indepth, irstage);
 			printf(" javalocals: ");
-			show_variable_array(jd, bptr->javalocals, jd->maxlocals, irstage);
+			show_variable_array(jd, bptr->javalocals, bptr->method->maxlocals, irstage);
 			printf("\n");
 		}
+
+#if defined(ENABLE_INLINING)
+		if (bptr->inlineinfo) {
+			printf("inlineinfo: ");
+			show_inline_info(jd, bptr->inlineinfo, -1, irstage);
+			printf("\n");
+		}
+#endif /* defined(ENABLE_INLINING) */
 
 		iptr = bptr->iinstr;
 
@@ -742,11 +787,17 @@ void show_allocation(s4 type, s4 flags, s4 regoff)
 
 void show_variable(jitdata *jd, s4 index, int stage)
 {
+	show_variable_intern(jd, index, stage);
+	putchar(' ');
+}
+
+static void show_variable_intern(jitdata *jd, s4 index, int stage)
+{
 	char type;
 	char kind;
 	varinfo *v;
 
-	if (index < 0 || index >= jd->varcount) {
+	if (index < 0 || index >= jd->vartop) {
 		printf("<INVALID INDEX:%d>", index);
 		return;
 	}
@@ -790,8 +841,6 @@ void show_variable(jitdata *jd, s4 index, int stage)
 		show_allocation(v->type, v->flags, v->vv.regoff);
 		putchar(')');
 	}
-	putchar(' ');
-	fflush(stdout);
 }
 
 void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
@@ -806,11 +855,11 @@ void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
 	printf("[");
 	for (i=0; i<n; ++i) {
 		if (i)
-			printf(" ");
+			putchar(' ');
 		if (vars[i] == UNUSED)
 			putchar('-');
 		else
-			show_variable(jd, vars[i], stage);
+			show_variable_intern(jd, vars[i], stage);
 	}
 	printf("]");
 }
@@ -1140,11 +1189,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 #if defined(ENABLE_INLINING)
 		{
 			insinfo_inline *ii = iptr->sx.s23.s3.inlineinfo;
-			printf("(");
-			method_print(ii->outer);
-			printf(" ==> ");
-			method_print(ii->method);
-			printf(")");
+			show_inline_info(jd, ii, opcode, stage);
 		}
 #endif
 		break;
@@ -1318,7 +1363,6 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		}
 		break;
 
-	case ICMD_ARETURN:
 	case ICMD_FRETURN:
 	case ICMD_IRETURN:
 	case ICMD_DRETURN:
@@ -1326,8 +1370,15 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		SHOW_S1(iptr);
 		break;
 
+	case ICMD_ARETURN:
 	case ICMD_ATHROW:
 		SHOW_S1(iptr);
+		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+			/* XXX this needs more work */
+#if 0
+			unresolved_class_debug_dump(iptr->sx.s23.s2.uc, stdout);
+#endif
+		}
 		break;
 
  	case ICMD_COPY:

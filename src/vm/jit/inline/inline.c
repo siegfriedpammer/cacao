@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5925 2006-11-05 23:11:27Z edwin $
+   $Id: inline.c 5950 2006-11-11 17:08:14Z edwin $
 
 */
 
@@ -144,6 +144,7 @@ struct inline_node {
 	/* temporary */
 	inline_target_ref *refs;
 	instruction *inline_start_instruction;
+	s4 *javalocals;
 
 	/* XXX debug */
 	char *indent;
@@ -412,7 +413,6 @@ static s4 *create_variable_map(inline_node *callee)
 	s4 n_idx;
 	s4 avail;
 	varinfo *v;
-	varinfo vinfo;
 
 	/* create the variable mapping */
 
@@ -602,6 +602,11 @@ static basicblock * create_block(inline_node *container,
 	n_bptr->indepth = indepth;
 	n_bptr->flags = BBFINISHED; /* XXX */
 
+	/* set the inlineinfo of the new block */
+
+	if (iln->inline_start_instruction)
+		n_bptr->inlineinfo = iln->inline_start_instruction->sx.s23.s3.inlineinfo;
+
 	if (indepth > container->ctx->maxinoutdepth)
 		container->ctx->maxinoutdepth = indepth;
 
@@ -643,10 +648,10 @@ static basicblock * create_block(inline_node *container,
 		inline_resolve_block_refs(refs, o_bptr, n_bptr);
 	}
 
+	/* XXX for the verifier. should not be here */
+
 	{
 		varinfo *dv;
-
-		/* XXX for the verifier. should not be here */
 
 		dv = DMNEW(varinfo, iln->ctx->resultjd->localcount + VERIFIER_EXTRA_LOCALS);
 		MZERO(dv, varinfo,  iln->ctx->resultjd->localcount + VERIFIER_EXTRA_LOCALS);
@@ -654,6 +659,24 @@ static basicblock * create_block(inline_node *container,
 	}
 
 	return n_bptr;
+}
+
+
+static s4 *translate_javalocals(inline_node *iln, s4 *javalocals)
+{
+	s4 *jl;
+	s4 i, j;
+
+	jl = DMNEW(s4, iln->jd->maxlocals);
+
+	for (i=0; i<iln->jd->maxlocals; ++i) {
+		j = javalocals[i];
+		if (j != UNUSED)
+			j = inline_translate_variable(iln->ctx->resultjd, iln->jd, iln->varmap, j);
+		jl[i] = j;
+	}
+
+	return jl;
 }
 
 
@@ -678,6 +701,10 @@ static basicblock * create_body_block(inline_node *iln,
 				o_bptr->invars[i]);
 	}
 
+	/* translate javalocals info */
+
+	n_bptr->javalocals = translate_javalocals(iln, o_bptr->javalocals);
+
 	return n_bptr;
 }
 
@@ -687,7 +714,6 @@ static basicblock * create_epilog_block(inline_node *caller, inline_node *callee
 	basicblock *n_bptr;
 	s4 retcount;
 	s4 idx;
-	varinfo vinfo;
 
 	/* number of return variables */
 
@@ -707,6 +733,13 @@ static basicblock * create_epilog_block(inline_node *caller, inline_node *callee
 		n_bptr->invars[callee->n_passthroughcount] = idx;
 		varmap[callee->callerins->dst.varindex] = idx;
 	}
+
+	/* set javalocals */
+
+	n_bptr->javalocals = DMNEW(s4, caller->jd->maxlocals);
+	MCOPY(n_bptr->javalocals, caller->javalocals, s4, caller->jd->maxlocals);
+
+	/* set block flags & type */
 
 	n_bptr->flags = /* XXX original block flags */ BBFINISHED;
 	n_bptr->type = BBTYPE_STD;
@@ -916,11 +949,30 @@ static s4 emit_inlining_prolog(inline_node *iln,
 	insinfo->outer = iln->m;
 	insinfo->synclocal = callee->synclocal;
 	insinfo->synchronize = callee->synchronize;
+	insinfo->javalocals_start = NULL;
+	insinfo->javalocals_end = NULL;
+
+	/* info about stack vars live at the INLINE_START */
+
+	insinfo->throughcount = callee->n_passthroughcount;
+	insinfo->stackvarscount = callee->n_selfpassthroughcount;
+	insinfo->stackvars = DMNEW(s4, callee->n_selfpassthroughcount);
+	for (i=0; i<callee->n_selfpassthroughcount; ++i)
+		insinfo->stackvars[i] = iln->varmap[callee->n_passthroughvars[i]];
+
+	/* info about the surrounding inlining */
+
+	if (iln->inline_start_instruction)
+		insinfo->parent = iln->inline_start_instruction->sx.s23.s3.inlineinfo;
+	else
+		insinfo->parent = NULL;
+
+	/* finish the INLINE_START instruction */
 
 	n_ins->opc = ICMD_INLINE_START;
 	n_ins->sx.s23.s3.inlineinfo = insinfo;
 	n_ins->line = o_iptr->line;
-	iln->inline_start_instruction = n_ins;
+	callee->inline_start_instruction = n_ins;
 
 	DOLOG( printf("%sprolog: ", iln->indent);
 		   show_icmd(iln->ctx->resultjd, n_ins, false, SHOW_STACK); printf("\n"); );
@@ -932,9 +984,10 @@ static s4 emit_inlining_prolog(inline_node *iln,
 static void emit_inlining_epilog(inline_node *iln, inline_node *callee, instruction *o_iptr)
 {
 	instruction *n_ins;
+	s4          *jl;
 
 	assert(iln && callee && o_iptr);
-	assert(iln->inline_start_instruction);
+	assert(callee->inline_start_instruction);
 
 	/* INLINE_END instruction */
 
@@ -942,8 +995,14 @@ static void emit_inlining_epilog(inline_node *iln, inline_node *callee, instruct
 	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
 
 	n_ins->opc = ICMD_INLINE_END;
-	n_ins->sx.s23.s3.inlineinfo = iln->inline_start_instruction->sx.s23.s3.inlineinfo;
+	n_ins->sx.s23.s3.inlineinfo = callee->inline_start_instruction->sx.s23.s3.inlineinfo;
 	n_ins->line = o_iptr->line;
+
+	/* set the javalocals */
+
+	jl = DMNEW(s4, iln->jd->maxlocals);
+	MCOPY(jl, iln->javalocals, s4, iln->jd->maxlocals);
+	n_ins->sx.s23.s3.inlineinfo->javalocals_end = jl;
 
 	DOLOG( printf("%sepilog: ", iln->indent);
 		   show_icmd(iln->ctx->resultjd, n_ins, false, SHOW_STACK); printf("\n"); );
@@ -1074,6 +1133,28 @@ clone_call:
 			}
 			break;
 	}
+
+	/* XXX move this to dataflow section? */
+
+	switch (n_iptr->opc) {
+		case ICMD_ISTORE:
+		case ICMD_LSTORE:
+		case ICMD_FSTORE:
+		case ICMD_DSTORE:
+		case ICMD_ASTORE:
+			/* XXX share code with stack.c */
+			j = n_iptr->dst.varindex;
+			i = n_iptr->sx.s23.s3.javaindex;
+			if (n_iptr->flags.bits & INS_FLAG_RETADDR)
+				iln->javalocals[i] = UNUSED;
+			else
+				iln->javalocals[i] = j;
+			if (n_iptr->flags.bits & INS_FLAG_KILL_PREV)
+				iln->javalocals[i-1] = UNUSED;
+			if (n_iptr->flags.bits & INS_FLAG_KILL_NEXT)
+				iln->javalocals[i+1] = UNUSED;
+			break;
+	}
 }
 
 
@@ -1117,6 +1198,10 @@ static void rewrite_method(inline_node *iln)
 
 	iln->inlined_iinstr_cursor = iln->inlined_iinstr;
 	iln->inlined_basicblocks_cursor = iln->inlined_basicblocks;
+
+	/* allocate temporary buffers */
+
+	iln->javalocals = DMNEW(s4, iln->jd->maxlocals);
 
 	/* loop over basic blocks */
 
@@ -1172,13 +1257,28 @@ static void rewrite_method(inline_node *iln)
 			/* enter it in the blockmap */
 
 			inline_block_translation(iln, o_bptr, n_bptr);
+
+			/* initialize the javalocals */
+
+			MCOPY(iln->javalocals, n_bptr->javalocals, s4, iln->jd->maxlocals);
 		}
 		else {
+			s4 *jl;
+
 			/* continue caller block */
 
 			n_bptr = iln->inlined_basicblocks_cursor - 1;
 			icount = n_bptr->icount;
+
+			/* translate the javalocals */
+
+			jl = translate_javalocals(iln, o_bptr->javalocals);
+			iln->inline_start_instruction->sx.s23.s3.inlineinfo->javalocals_start = jl;
+
+			MCOPY(iln->javalocals, jl, s4, iln->jd->maxlocals);
 		}
+
+		/* iterate over the ICMDs of this block */
 
 		retcount = 0;
 		retidx = UNUSED;
@@ -1559,7 +1659,6 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 	builtintable_entry *bte;
 	s4 exvar;
 	s4 syncvar;
-	varinfo vinfo;
 	s4 i;
 
 	child = iln->children;
@@ -1646,8 +1745,8 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 	s4 i;
 
 
-	static int debug_verify_inlined_code = 1; /* XXX */
 #if !defined(NDEBUG)
+	static int debug_verify_inlined_code = 1; /* XXX */
 	static int debug_compile_inlined_code_counter = 0;
 #endif
 
@@ -1658,6 +1757,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 	*resultjd = jd;
 
 	n_ins = DMNEW(instruction, iln->cumul_instructioncount);
+	MZERO(n_ins, instruction, iln->cumul_instructioncount);
 	iln->inlined_iinstr = n_ins;
 
 	n_bb = DMNEW(basicblock, iln->cumul_basicblockcount);
@@ -1690,6 +1790,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 
 	/* extra variables for verification (DEBUG) */
 
+#if !defined(NDEBUG)
 	if (debug_verify_inlined_code) {
 		n_jd->vartop   += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + 100 /* XXX m->maxstack */;
 		if (n_jd->vartop > n_jd->varcount) {
@@ -1698,6 +1799,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 			n_jd->varcount = n_jd->vartop;
 		}
 	}
+#endif
 
 	/* write inlined code */
 
@@ -1766,7 +1868,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 
 	inline_interface_variables(iln);
 
-#if defined(ENABLE_VERIFIER)
+#if defined(ENABLE_VERIFIER) && !defined(NDEBUG)
 	if (debug_verify_inlined_code) {
 		debug_verify_inlined_code = 0;
 		DOLOG( printf("VERIFYING INLINED RESULT...\n"); fflush(stdout); );
@@ -1839,7 +1941,6 @@ static bool inline_analyse_callee(inline_node *caller,
 	bool         isstatic;
 	s4           i, j;
 	basicblock  *bptr;
-	instruction *iptr;
 
 	/* create an inline tree node */
 
@@ -2136,9 +2237,10 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 							if (0
 								&& strncmp(callee->class->name->text, "java/", 5) != 0
 								&& strncmp(callee->class->name->text, "gnu/", 4) != 0
+								&&  strstr(callee->class->name->text, "compress") != NULL
 							   )
 							{
-								printf("SPECULATIVE INLINE: "); method_println(callee);
+								DOLOG( printf("SPECULATIVE INLINE: "); method_println(callee); );
 								speculative = true;
 								goto maybe_inline;
 							}
@@ -2154,8 +2256,9 @@ maybe_inline:
 								goto dont_inline;
 							}
 						}
-
+#if 0
 force_inline:
+#endif
 						if (!inline_analyse_callee(iln, callee,
 									bptr,
 									iptr,

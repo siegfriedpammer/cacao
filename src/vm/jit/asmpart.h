@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 5812 2006-10-20 14:22:23Z twisti $
+   $Id: asmpart.h 5950 2006-11-11 17:08:14Z edwin $
 
 */
 
@@ -151,7 +151,7 @@ void asm_patcher_wrapper(void);
 
 /* functions for on-stack replacement */
 void asm_replacement_out(void);
-void asm_replacement_in(executionstate *es);
+void asm_replacement_in(executionstate_t *es);
 
 #if defined(ENABLE_THREADS)
 extern critical_section_node_t asm_criticalsections;

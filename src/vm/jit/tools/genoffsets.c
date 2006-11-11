@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: genoffsets.c 4643 2006-03-16 18:38:42Z edwin $
+   $Id: genoffsets.c 5950 2006-11-11 17:08:14Z edwin $
 
 */
 
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
 	printf("#define sizevmarg                  %3d\n", (s4) sizeof(vm_arg));
 	printf("#define sizestackframeinfo         %3d\n", (s4) sizeof(stackframeinfo));
-	printf("#define sizeexecutionstate         %3d\n", (s4) sizeof(executionstate));
+	printf("#define sizeexecutionstate         %3d\n", (s4) sizeof(executionstate_t));
 
     printf("\n\n/* define some offsets */\n\n");
 
@@ -82,11 +82,11 @@ int main(int argc, char **argv)
 	printf("#define offcast_super_diffval      %3d\n", (s4) OFFSET(castinfo, super_diffval));
 	printf("#define offcast_sub_baseval        %3d\n", (s4) OFFSET(castinfo, sub_baseval));
 
-	printf("#define offes_pc                   %3d\n", (s4) OFFSET(executionstate, pc));
-	printf("#define offes_sp                   %3d\n", (s4) OFFSET(executionstate, sp));
-	printf("#define offes_pv                   %3d\n", (s4) OFFSET(executionstate, pv));
-	printf("#define offes_intregs              %3d\n", (s4) OFFSET(executionstate, intregs));
-	printf("#define offes_fltregs              %3d\n", (s4) OFFSET(executionstate, fltregs));
+	printf("#define offes_pc                   %3d\n", (s4) OFFSET(executionstate_t, pc));
+	printf("#define offes_sp                   %3d\n", (s4) OFFSET(executionstate_t, sp));
+	printf("#define offes_pv                   %3d\n", (s4) OFFSET(executionstate_t, pv));
+	printf("#define offes_intregs              %3d\n", (s4) OFFSET(executionstate_t, intregs));
+	printf("#define offes_fltregs              %3d\n", (s4) OFFSET(executionstate_t, fltregs));
 
 	/* everything is ok */
 
