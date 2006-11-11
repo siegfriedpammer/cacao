@@ -110,7 +110,8 @@
 #define ABI_PARAMARRAY_SLOTS    6
 
 #define WINSAVE_CNT     16    /* number of regs that SPARC saves onto stack    */
-#define ABICALL_OFF     22    /* 8-byte slots for save regs and arg slots      */
+#define ABICALL_PARAMS   6    /* param slots the ABI always requires           */
+#define ABICALL_OFF     22    /* 8-byte slots for save regs and param slots    */
 #define BIAS          2047
 #define USESTACK      (WINSAVE_CNT * 8 + BIAS)
 #define USESTACK_PARAMS ((WINSAVE_CNT + ABI_PARAMARRAY_SLOTS) * 8 + BIAS)

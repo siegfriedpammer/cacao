@@ -266,55 +266,13 @@ void md_native_reg_setup(jitdata *jd)
 
 /* md_return_alloc *************************************************************
 
-   Precolor the Java Stackelement containing the Return Value. Since
-   alpha has a dedicated return register (not an reused arg or
-   reserved reg), this is striaghtforward possible, as long, as this
-   stackelement does not have to survive a method invokation
-   (SAVEDVAR)
-
-   --- in
-   m:                       Methodinfo of current method
-   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-   							TYPE_VOID is not allowed!
-   stackslot:               Java Stackslot to contain the Return Value
-   
-   --- out
-   if precoloring was possible:
-   stackslot->varkind       =ARGVAR
-   			->varnum        =-1
-   			->flags         =0
-   			->regoff        =[REG_RESULT, REG_FRESULT]
+  XXX
 
 *******************************************************************************/
 
 void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
-	methodinfo *m;
-	methoddesc *md;
-	
-	assert(0);
-
-	/* get required compiler data */
-
-	m = jd->m;
-
-	md = m->parseddesc;
-
-	/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has
-	   not to survive method invokations. */
-
-
-	if (!(stackslot->flags & SAVEDVAR)) {
-		stackslot->varkind = ARGVAR;
-		stackslot->varnum = -1;
-		stackslot->flags = 0;
-
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			stackslot->regoff = REG_RESULT_CALLEE;
-		} else { /* float/double */
-			stackslot->regoff = REG_FRESULT;
-		}
-	}
+	/* XXX */
 }
 
 

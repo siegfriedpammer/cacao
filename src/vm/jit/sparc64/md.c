@@ -49,6 +49,48 @@ void md_init(void)
 }
 
 
+/* md_codegen_patch_branch *****************************************************
+
+   Back-patches a branch instruction.
+
+*******************************************************************************/
+
+void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
+{
+	s4 *mcodeptr;
+	s4  mcode;
+	s4  disp;                           /* branch displacement                */
+
+	assert(0);
+
+	/* calculate the patch position */
+
+	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
+
+	/* get the instruction before the exception point */
+
+	mcode = mcodeptr[-1];
+
+	/* check for BPcc instruction */
+	if (((mcode >> 16) & 0xc1c0) != 0x0040)
+		assert(0);
+
+	/* Calculate the branch displacement.  For branches we need a
+	   displacement relative and shifted to the branch PC. */
+
+	disp = (targetmpc - branchmpc) >> 2;
+
+	/* check branch displacement */
+
+	if ((disp < (s4) 0xfffc0000) || (disp > (s4) 0x003ffff))
+		vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x003ffff);
+
+	/* patch the branch instruction before the mcodeptr */
+
+	mcodeptr[-1] |= (disp & 0x003ffff);
+}
+
+
 /* md_stacktrace_get_returnaddress *********************************************
 
    Returns the return address of the current stackframe, specified by

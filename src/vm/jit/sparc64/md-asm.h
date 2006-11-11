@@ -45,6 +45,10 @@
 #define itmp2	%g2
 #define itmp3	%g3
 
+/* PLT unsafe temp regs */
+#define temp4 %g4
+#define temp5 %g5
+
 #define mptr_itmp2 itmp2
 
 #define xptr_itmp2 itmp2

@@ -48,6 +48,9 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
 
+/* how to leaf optimization in the emitted stubs?? */
+#define REG_PV REG_PV_CALLEE
+
 
 /* emit_load *******************************************************************
 
@@ -213,7 +216,128 @@ void emit_exception_stubs(jitdata *jd)
 
 void emit_patcher_stubs(jitdata *jd)
 {
+	codegendata *cd;
+	patchref    *pref;
+	u4           mcode[2];
+	u1          *savedmcodeptr;
+	u1          *tmpmcodeptr;
+	s4           targetdisp;
+	s4           disp;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	/* generate code patching stub call code */
+
+	targetdisp = 0;
+
+	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
+		/* check code segment size */
+
+		MCODECHECK(100);
+
+		/* Get machine code which is patched back in later. The
+		   call is 2 instruction words long. */
+
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
+
+		/* We use 2 loads here as an unaligned 8-byte read on 64-bit
+		   SPARC causes a SIGSEGV */
+
+		mcode[0] = ((u4 *) tmpmcodeptr)[0];
+		mcode[1] = ((u4 *) tmpmcodeptr)[1];
+
+		/* Patch in the call to call the following code (done at
+		   compile time). */
+
+		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
+		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
+
+		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
+/* XXX TODO imm?? */
+		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
+			*exceptionptr =
+				new_internalerror("Jump offset is out of range: %d > +/-%d",
+								  disp, 0x00007fff);
+			return;
+		}
+
+		M_BR(disp);
+		M_NOP;
+
+	cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
+
+		/* extend stack frame for wrapper data */
+
+		M_ASUB_IMM(REG_SP, 6 * 8, REG_SP);
+
+		/* calculate return address and move it onto the stack */
+
+		M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
+		M_AST(REG_ITMP3, REG_SP, USESTACK + 5 * 8);
+
+		/* move pointer to java_objectheader onto stack */
+
+#if defined(ENABLE_THREADS)
+		/* create a virtual java_objectheader */
+
+		(void) dseg_addaddress(cd, NULL);                          /* flcword */
+		(void) dseg_addaddress(cd, lock_get_initial_lock_word());
+		disp = dseg_addaddress(cd, NULL);                          /* vftbl   */
+
+		M_LDA(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, USESTACK + 4 * 8);
+#else
+		/* do nothing */
+#endif
+
+		/* move machine code onto stack */
+
+		disp = dseg_adds4(cd, mcode[0]);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, USESTACK + 3 * 8);
+
+		disp = dseg_adds4(cd, mcode[1]);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, USESTACK + 3 * 8 + 4);
+
+		/* move class/method/field reference onto stack */
+
+		disp = dseg_addaddress(cd, pref->ref);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, USESTACK + 2 * 8);
+
+	/* move data segment displacement onto stack */
+
+		disp = dseg_adds4(cd, pref->disp);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, USESTACK + 1 * 8);
+
+		/* move patcher function pointer onto stack */
+
+		disp = dseg_addaddress(cd, pref->patcher);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, USESTACK + 0 * 8);
+
+		if (targetdisp == 0) {
+			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
+
+			disp = dseg_addaddress(cd, asm_patcher_wrapper);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JMP(REG_ZERO, REG_ITMP3, REG_ZERO);
+			M_NOP;
 }
+		else {
+			disp = (((u4 *) cd->mcodebase) + targetdisp) -
+				(((u4 *) cd->mcodeptr) + 1);
+
+			M_BR(disp);
+			M_NOP;
+		}
+	}
+}
+
 
 /* emit_replacement_stubs ******************************************************
 

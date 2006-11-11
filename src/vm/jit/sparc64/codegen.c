@@ -2938,7 +2938,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* prepare data structures for native function call */
 
-	M_MOV(REG_FP, REG_OUT0); /* top of the stack frame */
+	M_ADD_IMM(REG_FP, BIAS, REG_OUT0); /* top of the stack frame, absolute*/
 	M_MOV(REG_PV_CALLEE, REG_OUT1);
 	M_MOV(REG_FP, REG_OUT2); /* java sp */
 	M_MOV(REG_RA_CALLEE, REG_OUT3);

@@ -52,6 +52,8 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
 
+#include "vm/jit/sparc64/md-abi.h"
+
 
 /* patcher_wrapper *************************************************************
 
@@ -68,12 +70,12 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
 	stackframeinfo     sfi;
 	u1                *xpc;
+	u1                *javasp;
 	java_objectheader *o;
 	functionptr        f;
 	bool               result;
 	java_objectheader *e;
 	
-	assert(0);
 
 	/* define the patcher function */
 
@@ -98,10 +100,14 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	/* enter a monitor on the patching position */
 
 	PATCHER_MONITORENTER;
+	
+	/* calculate sp of the current java function considering the WINSAVE regs */
+	
+	javasp = sp - 16 * 8 - BIAS;
 
 	/* create the stackframeinfo */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 8, ra, xpc);
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, javasp, ra, xpc);
 
 	/* call the proper patcher function */
 
@@ -1052,10 +1058,7 @@ bool patcher_resolve_native(u1 *sp)
 	disp     =                *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)         *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
+	/* return address on SPARC is address of jump, therefore correct */
 
 	/* resolve native function */
 

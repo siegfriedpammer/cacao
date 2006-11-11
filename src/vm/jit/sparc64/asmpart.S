@@ -59,6 +59,7 @@
 	.global asm_handle_exception
 	.global asm_handle_nat_exception
 
+	.global asm_patcher_wrapper
 
 	.global asm_abstractmethoderror
 	
@@ -338,6 +339,66 @@ asm_abstractmethoderror:
 	ba      L_asm_handle_nat_exception
 
 	/* XXX: leave the register window open for handle_exception ??? */
+
+/* asm_patcher_wrapper *********************************************************
+
+   XXX
+
+   Stack layout, when called from patcher stub
+     40   return address into JIT code (patch position)
+     32   pointer to virtual java_objectheader
+     24   machine code (which is patched back later)
+     16   unresolved class/method/field reference
+      8   data segment displacement from load instructions
+      0   patcher function pointer to call
+   -128   WINSAVE REGS (current SP)
+
+*******************************************************************************/
+		
+
+asm_patcher_wrapper:
+	/* get pv and ra from current window */
+	mov     ra_callee,temp4
+	mov     pv_callee,temp5
+
+	/* create window and stack frame              */
+	save  %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+ABICALL_OFF+4)*8),%sp
+
+	SAVE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
+	SAVE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+
+	mov     itmp1,%l0               /* save itmp1                             */
+	mov     itmp2,%l1               /* save itmp2                             */
+
+	add     %fp,USESTACK,%o0      /* pass pseudo SP                           */
+	mov     temp5,%o1             /* pass PV                                  */
+	mov     temp4,%o2             /* pass RA (correct for leafs)              */
+	call    patcher_wrapper
+	nop
+
+	RESTORE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
+	RESTORE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+
+	mov     %l0,itmp1               /* restore itmp1                          */
+	mov     %l1,itmp2               /* restore itmp2                          */
+
+	brnz    %o0,L_asm_patcher_wrapper_exception
+
+	/* load RA (patch position from patcher data on the stack */
+	ldx     [%fp+USESTACK+5*8],itmp3
+
+	/* remove window and stack frame (and stack space allocated in the stub code */
+	restore  %fp,6*8,%sp /* (source regs refer to old window, rd to new window)  */
+
+	jmpl     itmp3,zero              /* jump to newly patched code               */
+
+L_asm_patcher_wrapper_exception:
+	mov      itmp3,xptr_itmp2      /* get exception                            */
+	ldx      [%fp+USESTACK+5*8],xpc_itmp3 /* xpc is RA                         */
+	restore  %fp,6*8,%sp           /* remove stack frame                       */
+	ba       asm_handle_exception
+	nop
+
 
 asm_getclassvalues_atomic:
 _crit_restart:
