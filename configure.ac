@@ -41,7 +41,7 @@ i386 | i486 | i586 | i686 )
     ARCH_CFLAGS="-D__I386__"
     ;;
 
-mips )
+mips | mipsel )
     ARCH_DIR="mips"
     ARCH_CFLAGS="-D__MIPS__"
     ;;
