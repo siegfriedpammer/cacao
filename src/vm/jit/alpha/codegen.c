@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5948 2006-11-11 16:56:48Z twisti $
+   $Id: codegen.c 5949 2006-11-11 17:05:19Z twisti $
 
 */
 
@@ -457,8 +457,8 @@ bool codegen(jitdata *jd)
 				   resolved the same class, the returned displacement
 				   of dseg_addaddress is ok to use. */
 
-				codegen_addpatchref(cd, PATCHER_resolve_classref_to_classinfo,
-									cr, disp);
+				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_classinfo,
+									  cr, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -1856,7 +1856,7 @@ bool codegen(jitdata *jd)
 
 				disp = dseg_add_unique_address(cd, uf);
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
+				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -1868,8 +1868,8 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
-										0);
+					codegen_add_patch_ref(cd, PATCHER_initialize_class, fi->class,
+										  0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -1911,7 +1911,7 @@ bool codegen(jitdata *jd)
 
 				disp = dseg_add_unique_address(cd, uf);
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
+				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -1923,8 +1923,8 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
-										0);
+					codegen_add_patch_ref(cd, PATCHER_initialize_class, fi->class,
+										  0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -1967,7 +1967,7 @@ bool codegen(jitdata *jd)
 
 				disp = dseg_add_unique_address(cd, uf);
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
+				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -1979,8 +1979,8 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
-										0);
+					codegen_add_patch_ref(cd, PATCHER_initialize_class, fi->class,
+										  0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2018,7 +2018,7 @@ bool codegen(jitdata *jd)
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -2080,7 +2080,7 @@ bool codegen(jitdata *jd)
 				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -2117,7 +2117,7 @@ bool codegen(jitdata *jd)
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -2162,7 +2162,7 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
-				codegen_addpatchref(cd, PATCHER_resolve_class, uc, 0);
+				codegen_add_patch_ref(cd, PATCHER_resolve_class, uc, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -2181,14 +2181,14 @@ bool codegen(jitdata *jd)
 		case ICMD_RET:          /* ... ==> ...                                */
 
 			M_BR(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			ALIGNCODENOP;
 			break;
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 
 			M_BR(0);
-			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
+			codegen_add_branch_ref(cd, iptr->sx.s23.s3.jsrtarget.block);
 			ALIGNCODENOP;
 			break;
 			
@@ -2196,14 +2196,14 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_BEQZ(s1, 0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_BNEZ(s1, 0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
@@ -2222,7 +2222,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BNEZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
@@ -2241,7 +2241,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BNEZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
@@ -2260,7 +2260,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BNEZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
@@ -2279,7 +2279,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BEQZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
@@ -2298,7 +2298,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BEQZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
@@ -2317,7 +2317,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BEQZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -2336,7 +2336,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BNEZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
@@ -2355,7 +2355,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BNEZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
@@ -2374,7 +2374,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BNEZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
@@ -2393,7 +2393,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BEQZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
@@ -2412,7 +2412,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BEQZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
@@ -2431,7 +2431,7 @@ bool codegen(jitdata *jd)
 					}
 				M_BEQZ(REG_ITMP1, 0);
 				}
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
@@ -2442,7 +2442,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPEQ(s1, s2, REG_ITMP1);
 			M_BNEZ(REG_ITMP1, 0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
@@ -2453,7 +2453,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPEQ(s1, s2, REG_ITMP1);
 			M_BEQZ(REG_ITMP1, 0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
@@ -2463,7 +2463,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP1);
 			M_BNEZ(REG_ITMP1, 0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
@@ -2473,7 +2473,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLE(s1, s2, REG_ITMP1);
 			M_BEQZ(REG_ITMP1, 0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
@@ -2483,7 +2483,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLE(s1, s2, REG_ITMP1);
 			M_BNEZ(REG_ITMP1, 0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
@@ -2493,7 +2493,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP1);
 			M_BEQZ(REG_ITMP1, 0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 
@@ -2513,7 +2513,7 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
-				codegen_addpatchref(cd, PATCHER_resolve_class, uc, 0);
+				codegen_add_patch_ref(cd, PATCHER_resolve_class, uc, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -2637,7 +2637,7 @@ nowperformreturn:
 				M_CMPULE(REG_ITMP1, REG_ITMP2, REG_ITMP2);
 			}
 			M_BEQZ(REG_ITMP2, 0);
-			codegen_addreference(cd, table[0].block);
+			codegen_add_branch_ref(cd, table[0].block);
 
 			/* build jump table top down and use address of lowest entry */
 
@@ -2684,13 +2684,13 @@ nowperformreturn:
 					M_CMPEQ(s1, REG_ITMP2, REG_ITMP2);
 				}
 				M_BNEZ(REG_ITMP2, 0);
-				codegen_addreference(cd, lookup->target.block);
+				codegen_add_branch_ref(cd, lookup->target.block);
 				lookup++;
 			}
 
 			M_BR(0);
 			
-			codegen_addreference(cd, iptr->sx.s23.s3.lookupdefault.block);
+			codegen_add_branch_ref(cd, iptr->sx.s23.s3.lookupdefault.block);
 
 			ALIGNCODENOP;
 			break;
@@ -2774,8 +2774,8 @@ gen_method:
 				if (lm == NULL) {
 					disp = dseg_add_unique_address(cd, um);
 
-					codegen_addpatchref(cd, PATCHER_invokestatic_special,
-										um, disp);
+					codegen_add_patch_ref(cd, PATCHER_invokestatic_special,
+										  um, disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2790,7 +2790,7 @@ gen_method:
 				gen_nullptr_check(REG_A0);
 
 				if (lm == NULL) {
-					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
+					codegen_add_patch_ref(cd, PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2810,7 +2810,7 @@ gen_method:
 				gen_nullptr_check(REG_A0);
 
 				if (lm == NULL) {
-					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
+					codegen_add_patch_ref(cd, PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2922,9 +2922,9 @@ gen_method:
 
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
-					codegen_addpatchref(cd, PATCHER_resolve_classref_to_flags,
-										iptr->sx.s23.s3.c.ref,
-										disp);
+					codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_flags,
+										  iptr->sx.s23.s3.c.ref,
+										  disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2940,10 +2940,10 @@ gen_method:
 
 				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
-						codegen_addpatchref(cd,
-											PATCHER_checkcast_instanceof_interface,
-											iptr->sx.s23.s3.c.ref,
-											0);
+						codegen_add_patch_ref(cd,
+											  PATCHER_checkcast_instanceof_interface,
+											  iptr->sx.s23.s3.c.ref,
+											  0);
 
 						if (opt_showdisassemble)
 							M_NOP;
@@ -2973,10 +2973,10 @@ gen_method:
 					if (super == NULL) {
 						disp = dseg_add_unique_address(cd, NULL);
 
-						codegen_addpatchref(cd,
-											PATCHER_resolve_classref_to_vftbl,
-											iptr->sx.s23.s3.c.ref,
-											disp);
+						codegen_add_patch_ref(cd,
+											  PATCHER_resolve_classref_to_vftbl,
+											  iptr->sx.s23.s3.c.ref,
+											  disp);
 
 						if (opt_showdisassemble)
 							M_NOP;
@@ -3026,10 +3026,10 @@ gen_method:
 				disp = dseg_addaddress(cd, iptr->sx.s23.s3.c.cls);
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-					codegen_addpatchref(cd,
-										PATCHER_resolve_classref_to_classinfo,
-										iptr->sx.s23.s3.c.ref,
-										disp);
+					codegen_add_patch_ref(cd,
+										  PATCHER_resolve_classref_to_classinfo,
+										  iptr->sx.s23.s3.c.ref,
+										  disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -3116,8 +3116,8 @@ gen_method:
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
-				codegen_addpatchref(cd, PATCHER_resolve_classref_to_flags,
-									iptr->sx.s23.s3.c.ref, disp);
+				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_flags,
+									  iptr->sx.s23.s3.c.ref, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -3139,9 +3139,9 @@ gen_method:
 					if (d == REG_ITMP2)
 						M_CLR(d);
 
-					codegen_addpatchref(cd,
-										PATCHER_checkcast_instanceof_interface,
-										iptr->sx.s23.s3.c.ref, 0);
+					codegen_add_patch_ref(cd,
+										  PATCHER_checkcast_instanceof_interface,
+										  iptr->sx.s23.s3.c.ref, 0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -3170,9 +3170,9 @@ gen_method:
 				if (super == NULL) {
 					disp = dseg_add_unique_address(cd, NULL);
 
-					codegen_addpatchref(cd, PATCHER_resolve_classref_to_vftbl,
-										iptr->sx.s23.s3.c.ref,
-										disp);
+					codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_vftbl,
+										  iptr->sx.s23.s3.c.ref,
+										  disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -3231,9 +3231,9 @@ gen_method:
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				disp = dseg_add_unique_address(cd, 0);
 
-				codegen_addpatchref(cd, PATCHER_resolve_classref_to_classinfo,
-									iptr->sx.s23.s3.c.ref,
-									disp);
+				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_classinfo,
+									  iptr->sx.s23.s3.c.ref,
+									  disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -3426,7 +3426,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
-		codegen_addpatchref(cd, PATCHER_resolve_native_function, m, funcdisp);
+		codegen_add_patch_ref(cd, PATCHER_resolve_native_function, m, funcdisp);
 
 		if (opt_showdisassemble)
 			M_NOP;
