@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5951 2006-11-11 18:31:10Z twisti $
+   $Id: codegen.c 5952 2006-11-11 18:34:15Z twisti $
 
 */
 
@@ -1443,7 +1443,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			if (has_ext_instr_set) {
 				M_LADD   (s2, s1, REG_ITMP1);
@@ -1466,7 +1466,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
@@ -1489,7 +1489,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
@@ -1514,7 +1514,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_ILD(d, REG_ITMP1, OFFSET(java_intarray, data[0]));
@@ -1528,7 +1528,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			M_S8ADDQ(s2, s1, REG_ITMP1);
 			M_LLD(d, REG_ITMP1, OFFSET(java_longarray, data[0]));
@@ -1542,7 +1542,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_FLD(d, REG_ITMP1, OFFSET(java_floatarray, data[0]));
@@ -1556,7 +1556,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			M_S8ADDQ(s2, s1, REG_ITMP1);
 			M_DLD(d, REG_ITMP1, OFFSET(java_doublearray, data[0]));
@@ -1570,7 +1570,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			M_SAADDQ(s2, s1, REG_ITMP1);
 			M_ALD(d, REG_ITMP1, OFFSET(java_objectarray, data[0]));
@@ -1584,7 +1584,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			if (has_ext_instr_set) {
@@ -1607,7 +1607,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			if (has_ext_instr_set) {
@@ -1632,7 +1632,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			if (has_ext_instr_set) {
@@ -1657,7 +1657,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
@@ -1670,7 +1670,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
@@ -1683,7 +1683,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
@@ -1696,7 +1696,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
@@ -1709,7 +1709,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			s3 = emit_load_s3(jd, iptr, REG_A1);
 
@@ -1739,7 +1739,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			M_S4ADDQ(s2, s1, REG_ITMP1);
 			M_IST(REG_ZERO, REG_ITMP1, OFFSET(java_intarray, data[0]));
@@ -1751,7 +1751,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			M_S8ADDQ(s2, s1, REG_ITMP1);
 			M_LST(REG_ZERO, REG_ITMP1, OFFSET(java_longarray, data[0]));
@@ -1763,7 +1763,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			M_SAADDQ(s2, s1, REG_ITMP1);
 			M_AST(REG_ZERO, REG_ITMP1, OFFSET(java_objectarray, data[0]));
@@ -1775,7 +1775,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
@@ -1798,7 +1798,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
@@ -1823,7 +1823,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
 				emit_nullpointer_check(cd, s1);
-				gen_bound_check;
+				emit_arrayindexoutofbounds_check(cd, s1, s2);
 			}
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
