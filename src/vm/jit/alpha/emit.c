@@ -201,7 +201,9 @@ void emit_exception_stubs(jitdata *jd)
 {
 	codegendata  *cd;
 	registerdata *rd;
-	exceptionref *eref;
+	exceptionref *er;
+	s4            branchmpc;
+	s4            targetmpc;
 	s4            targetdisp;
 	s4            disp;
 
@@ -214,9 +216,13 @@ void emit_exception_stubs(jitdata *jd)
 
 	targetdisp = 0;
 
-	for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-		gen_resolvebranch(cd->mcodebase + eref->branchpos, 
-						  eref->branchpos, cd->mcodeptr - cd->mcodebase);
+	for (er = cd->exceptionrefs; er != NULL; er = er->next) {
+		/* back-patch the branch to this exception code */
+
+		branchmpc = er->branchpos;
+		targetmpc = cd->mcodeptr - cd->mcodebase;
+
+		md_codegen_patch_branch(cd, branchmpc, targetmpc);
 
 		MCODECHECK(100);
 
@@ -226,16 +232,16 @@ void emit_exception_stubs(jitdata *jd)
 		   ArrayIndexOutOfBoundsException.  If so, move index register
 		   into a4. */
 
-		if (eref->reg != -1)
-			M_MOV(eref->reg, rd->argintregs[4]);
+		if (er->reg != -1)
+			M_MOV(er->reg, rd->argintregs[4]);
 
 		/* calcuate exception address */
 
-		M_LDA(rd->argintregs[3], REG_PV, eref->branchpos - 4);
+		M_LDA(rd->argintregs[3], REG_PV, er->branchpos - 4);
 
 		/* move function to call into REG_ITMP3 */
 
-		disp = dseg_add_functionptr(cd, eref->function);
+		disp = dseg_add_functionptr(cd, er->function);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 
 		if (targetdisp == 0) {

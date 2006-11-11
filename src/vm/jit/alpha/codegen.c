@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5863 2006-10-30 10:15:28Z edwin $
+   $Id: codegen.c 5948 2006-11-11 16:56:48Z twisti $
 
 */
 
@@ -335,13 +335,7 @@ bool codegen(jitdata *jd)
 
 		/* branch resolving */
 
-		{
-		branchref *brefs;
-		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
-			gen_resolvebranch((u1*) cd->mcodebase + brefs->branchpos, 
-			                  brefs->branchpos, bptr->mpc);
-			}
-		}
+		codegen_resolve_branchrefs(cd, bptr);
 
 		/* handle replacement points */
 

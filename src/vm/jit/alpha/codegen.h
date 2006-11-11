@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 5632 2006-10-02 13:43:15Z edwin $
+   $Id: codegen.h 5948 2006-11-11 16:56:48Z twisti $
 
 */
 
@@ -523,7 +523,7 @@
 #define M_CMOVLE_IMM(a,b,c)     M_OP3 (0x11,0x64, a,b,c,1)     /* a<=0 ? c=b  */
 #define M_CMOVGT_IMM(a,b,c)     M_OP3 (0x11,0x66, a,b,c,1)     /* a> 0 ? c=b  */
 
-/* macros for unused commands (see an Alpha-manual for description) ***********/ 
+/* macros for unused commands (see an Alpha-manual for description) ***********/
 
 #define M_ANDNOT(a,b,c,const)   M_OP3 (0x11,0x08, a,b,c,const) /* c = a &~ b  */
 #define M_ORNOT(a,b,c,const)    M_OP3 (0x11,0x28, a,b,c,const) /* c = a |~ b  */
@@ -541,22 +541,6 @@
 #define M_FBLEZ(fa,disp)        M_BRA (0x33,fa,disp)
 
 #define M_JMP_CO(a,b)           M_MEM (0x1a,a,b,0xc000)        /* call cosub  */
-
-
-/* gen_resolvebranch ***********************************************************
-
-   backpatches a branch instruction; Alpha branch instructions are very
-   regular, so it is only necessary to overwrite some fixed bits in the
-   instruction.
-
-   parameters: ip ... pointer to instruction after branch (void*)
-               so ... offset of instruction after branch  (s4)
-               to ... offset of branch target             (s4)
-
-*******************************************************************************/
-
-#define gen_resolvebranch(ip,so,to) \
-    ((s4 *) (ip))[-1] |= ((s4) (to) - (so)) >> 2 & 0x1fffff
 
 #endif /* _CODEGEN_H */
 

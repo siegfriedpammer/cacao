@@ -26,12 +26,11 @@
 
    Authors: Andreas Krall
             Reinhard Grafl
-
-   Changes: Joseph Wenninger
+            Joseph Wenninger
             Christian Thalinger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: md.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: md.c 5948 2006-11-11 16:56:48Z twisti $
 
 */
 
@@ -94,6 +93,42 @@ void md_init(void)
 /*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
 						& ~IEEE_TRAP_ENABLE_OVF);
 #endif
+}
+
+
+/* md_codegen_patch_branch *****************************************************
+
+   Back-patches a branch instruction.
+
+*******************************************************************************/
+
+void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
+{
+	s4 *mcodeptr;
+	s4  mcode;
+	s4  disp;                           /* branch displacement                */
+
+	/* calculate the patch position */
+
+	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
+
+	/* get the instruction before the exception point */
+
+	mcode = mcodeptr[-1];
+
+	/* Calculate the branch displacement.  For branches we need a
+	   displacement relative and shifted to the branch PC. */
+
+	disp = (targetmpc - branchmpc) >> 2;
+
+	/* check branch displacement */
+
+	if ((disp < (s4) 0xffe00000) || (disp > (s4) 0x001fffff))
+		vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x001fffff);
+
+	/* patch the branch instruction before the mcodeptr */
+
+	mcodeptr[-1] |= (disp & 0x001fffff);
 }
 
 
