@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 5785 2006-10-15 22:25:54Z edwin $
+   $Id: method.c 5974 2006-11-12 15:14:19Z edwin $
 
 */
 
@@ -52,6 +52,14 @@
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/jit/methodheader.h"
+
+
+#if !defined(NDEBUG)
+extern bool inline_debug_log;
+#define INLINELOG(code)  do { if (inline_debug_log) { code } } while (0)
+#else
+#define INLINELOG(code)
+#endif
 
 
 /* method_free *****************************************************************
@@ -144,6 +152,94 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	resm = code->m;
 
 	return resm;
+}
+
+
+/* method_add_to_worklist ******************************************************
+
+   Add the method to the given worklist. If the method already occurs in
+   the worklist, the worklist remains unchanged.
+
+   Worklist items are allocated in dump memory.
+
+*******************************************************************************/
+
+static void method_add_to_worklist(methodinfo *m, method_worklist **wl)
+{
+	method_worklist *wi;
+
+	for (wi = *wl; wi != NULL; wi = wi->next)
+		if (wi->m == m)
+			return;
+
+	wi = DNEW(method_worklist);
+	wi->next = *wl;
+	wi->m = m;
+
+	*wl = wi;
+}
+
+
+/* method_add_assumption_monomorphic *******************************************
+
+   Record the assumption that the method is monomorphic.
+
+   IN:
+      m.................the method
+	  caller............the caller making the assumption
+
+*******************************************************************************/
+
+void method_add_assumption_monomorphic(methodinfo *m, methodinfo *caller)
+{
+	method_assumption *as;
+
+	/* XXX LOCKING FOR THIS FUNCTION? */
+
+	/* check if we already have registered this assumption */
+
+	for (as = m->assumptions; as != NULL; as = as->next) {
+		if (as->context == caller)
+			return;
+	}
+
+	/* register the assumption */
+
+	as = NEW(method_assumption);
+	as->next = m->assumptions;
+	as->context = caller;
+
+	m->assumptions = as;
+}
+
+
+/* method_break_assumption_monomorphic *****************************************
+
+   Break the assumption that this method is monomorphic. All callers that
+   have registered this assumption are added to the worklist.
+
+   IN:
+      m.................the method
+	  wl................worklist where to add invalidated callers
+
+*******************************************************************************/
+
+void method_break_assumption_monomorphic(methodinfo *m, method_worklist **wl)
+{
+	method_assumption *as;
+
+	/* XXX LOCKING FOR THIS FUNCTION? */
+
+	for (as = m->assumptions; as != NULL; as = as->next) {
+		INLINELOG(
+			printf("ASSUMPTION BROKEN (monomorphism): ");
+			method_print(m);
+			printf(" in ");
+			method_println(as->context);
+		);
+
+		method_add_to_worklist(as->context, wl);
+	}
 }
 
 

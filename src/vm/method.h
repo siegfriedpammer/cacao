@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 5937 2006-11-08 22:00:57Z twisti $
+   $Id: method.h 5974 2006-11-12 15:14:19Z edwin $
 */
 
 
@@ -39,6 +39,8 @@
 
 typedef struct raw_exception_entry raw_exception_entry;
 typedef struct lineinfo lineinfo; 
+typedef struct method_assumption method_assumption;
+typedef struct method_worklist method_worklist;
 
 #include "config.h"
 #include "vm/types.h"
@@ -85,6 +87,33 @@ struct methodinfo {                 /* method structure                       */
 #if defined(ENABLE_LSRA)
 	s4            maxlifetimes;     /* helper for lsra                        */
 #endif
+
+	methodinfo   *overwrites;       /* method that is directly overwritten    */
+	method_assumption *assumptions; /* list of assumptions about this method  */
+};
+
+
+/* method_assumption ***********************************************************
+
+   This struct is used for registering assumptions about methods.
+
+*******************************************************************************/
+
+struct method_assumption {
+	method_assumption *next;
+	methodinfo        *context;
+};
+
+
+/* method_worklist *************************************************************
+
+   List node used for method worklists.
+
+*******************************************************************************/
+
+struct method_worklist {
+	method_worklist *next;
+	methodinfo      *m;
 };
 
 
@@ -114,6 +143,9 @@ void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
 
 methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
+
+void method_add_assumption_monomorphic(methodinfo *m, methodinfo *caller);
+void method_break_assumption_monomorphic(methodinfo *m, method_worklist **wl);
 
 #if !defined(NDEBUG)
 void method_printflags(methodinfo *m);
