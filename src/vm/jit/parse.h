@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5785 2006-10-15 22:25:54Z edwin $
+   $Id: parse.h 5955 2006-11-12 12:54:57Z edwin $
 
 */
 
@@ -79,14 +79,14 @@
 			goto throw_invalid_bytecode_index; \
     } while (0)
 
-#else /* !define(ENABLE_VERIFIER) */
+#else /* !defined(ENABLE_VERIFIER) */
 
 #define INDEX_ONEWORD(num)
 #define INDEX_TWOWORD(num)
 #define CHECK_BYTECODE_INDEX(i)
 #define CHECK_BYTECODE_INDEX_EXCLUSIVE(i)
 
-#endif /* define(ENABLE_VERIFIER) */
+#endif /* defined(ENABLE_VERIFIER) */
 
 
 /* basic block generating macro ***********************************************/
