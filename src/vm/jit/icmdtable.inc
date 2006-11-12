@@ -302,9 +302,9 @@
 /*248*/ {N("UNDEF248       ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
 /*249*/ {N("UNDEF249       ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
 /*250*/ {N("UNDEF250       ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
-/*251*/ {N("INLINE_START   ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
-/*252*/ {N("INLINE_END     ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
-/*253*/ {N("INLINE_GOTO    ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
+/*251*/ {N("INLINE_START   ") DF_0_TO_0 , CF_NORMAL, 0              /* S+ (--)                 */},
+/*252*/ {N("INLINE_END     ") DF_0_TO_0 , CF_NORMAL, 0              /* S+ (--)                 */},
+/*253*/ {N("INLINE_GOTO    ") DF_0_TO_0 , CF_GOTO  , 0              /* -- ()                   */},
 /*254*/ {N("UNDEF254       ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
 /*255*/ {N("BUILTIN        ") DF_BUILTIN, CF_NORMAL, PEI|CALLS      /*    (.--1|.--2|.--)      */}
 
