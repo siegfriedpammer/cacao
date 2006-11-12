@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: headers.c 5961 2006-11-12 13:39:12Z edwin $
+   $Id: headers.c 5973 2006-11-12 15:01:14Z edwin $
 
 */
 
@@ -77,6 +77,12 @@ char       *_Jv_bootclasspath;
 /* dummy interpreter stack to keep the compiler happy */
 
 u1 *intrp_main_stack;
+#endif
+
+
+#if !defined(NDEBUG)
+/* dummy variable */
+bool inline_debug_log = false;
 #endif
 
 
