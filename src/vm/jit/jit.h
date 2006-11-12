@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5958 2006-11-12 13:21:07Z edwin $
+   $Id: jit.h 5964 2006-11-12 13:46:44Z edwin $
 
 */
 
@@ -1265,6 +1265,8 @@ jitdata *jit_jitdata_new(methodinfo *m);
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);
 u1 *jit_recompile(methodinfo *m);
+
+void jit_invalidate_code(methodinfo *m);
 
 /* patch the method entrypoint */
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);

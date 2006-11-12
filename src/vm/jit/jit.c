@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5963 2006-11-12 13:40:39Z edwin $
+   $Id: jit.c 5964 2006-11-12 13:46:44Z edwin $
 
 */
 
@@ -1527,6 +1527,35 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	return code->entrypoint;
 } 
+
+
+/* jit_invalidate_code *********************************************************
+
+   Mark the compiled code of the given method as invalid and take care that
+   it is replaced if necessary.
+
+   XXX Not fully implemented, yet.
+
+*******************************************************************************/
+
+void jit_invalidate_code(methodinfo *m)
+{
+	codeinfo *code;
+	rplpoint *rp;
+	s4        i;
+
+	code = m->code;
+	if (code == NULL)
+		return;
+
+	rp = code->rplpoints;
+	i = code->rplpointcount;
+
+	while (i--) {
+		replace_activate_replacement_point(rp, rp);
+		rp++;
+	}
+}
 
 
 /* jit_asm_compile *************************************************************
