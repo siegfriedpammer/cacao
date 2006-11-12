@@ -31,7 +31,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5937 2006-11-08 22:00:57Z twisti $
+   $Id: loader.c 5972 2006-11-12 15:00:41Z edwin $
 
 */
 
@@ -1128,6 +1128,15 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 		}
 	}
 #endif /* ENABLE_VERIFIER */
+
+	/* mark the method as monomorphic until further notice */
+
+	m->flags |= ACC_METHOD_MONOMORPHIC;
+
+	/* non-abstract methods have an implementation in this class */
+
+	if (!(m->flags & ACC_ABSTRACT))
+		m->flags |= ACC_METHOD_IMPLEMENTED;
 		
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
