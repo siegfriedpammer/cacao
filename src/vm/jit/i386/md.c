@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 5932 2006-11-07 09:06:18Z twisti $
+   $Id: md.c 5962 2006-11-12 13:39:50Z edwin $
 
 */
 
@@ -264,7 +264,7 @@ void md_patch_replacement_point(rplpoint *rp)
 	/* store saved mcode */
 	rp->mcode = mcode;
 	
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
 	{
 		u1* u1ptr = rp->pc;
 		DISASSINSTR(u1ptr);
