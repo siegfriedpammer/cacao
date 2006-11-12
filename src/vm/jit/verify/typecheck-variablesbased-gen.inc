@@ -1,6 +1,8 @@
 #define GENERATED
 
   GENERATED  case ICMD_NOP:
+  GENERATED  case ICMD_INLINE_START:
+  GENERATED  case ICMD_INLINE_END:
   GENERATED  	/* (--) */
   GENERATED  	break;
   GENERATED  
@@ -26,7 +28,7 @@
   GENERATED  		}
   GENERATED  	}
   GENERATED  
-#            	line 30 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 32 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
@@ -165,7 +167,7 @@
   GENERATED  	COPYTYPE(IPTR->s1, IPTR->dst);
   GENERATED  	DST->type = OP1->type;
   GENERATED  
-#            	line 169 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 171 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -188,7 +190,7 @@
   GENERATED  	COPYTYPE(IPTR->s1, IPTR->dst);
   GENERATED  	DST->type = OP1->type;
   GENERATED  
-#            	line 192 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 194 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -244,7 +246,7 @@
   GENERATED  	}
   GENERATED  	TYPEINFO_COPY(OP1->typeinfo,DST->typeinfo);
   GENERATED  
-#            	line 248 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 250 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
@@ -268,7 +270,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 272 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 274 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
   GENERATED  	break;
@@ -292,7 +294,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 296 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 298 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_LNG;
   GENERATED  	break;
@@ -316,7 +318,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 320 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 322 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_FLT;
   GENERATED  	break;
@@ -340,7 +342,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 344 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 346 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_DBL;
   GENERATED  	break;
@@ -367,7 +369,7 @@
   GENERATED  	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 371 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 373 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
@@ -392,7 +394,7 @@
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 396 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 398 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
   GENERATED  	break;
@@ -416,7 +418,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 420 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 422 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
   GENERATED  	break;
@@ -440,7 +442,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 444 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 446 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
   GENERATED  	break;
@@ -487,7 +489,7 @@
 #            	line 70 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
   GENERATED  
-#            	line 491 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 493 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -537,7 +539,7 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 541 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 543 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -556,7 +558,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 560 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 562 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -575,7 +577,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 579 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 581 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -594,7 +596,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 598 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 600 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -613,7 +615,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 617 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 619 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -636,7 +638,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("illegal instruction: AASTORE to non-reference array");
   GENERATED  
-#            	line 640 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 642 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -656,7 +658,7 @@
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 660 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 662 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -675,7 +677,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 679 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 681 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -694,7 +696,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 698 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 700 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -746,7 +748,7 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 750 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 752 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -762,7 +764,7 @@
   GENERATED  	TYPEINFO_INIT_RETURNADDRESS(DST->typeinfo, BPTR->next);
   GENERATED  	REACH(IPTR->sx.s23.s3.jsrtarget);
   GENERATED  
-#            	line 766 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 768 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
@@ -782,7 +784,7 @@
   GENERATED  		VERIFY_ERROR("illegal instruction: RET using non-returnAddress variable");
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 786 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 788 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -809,7 +811,7 @@
   GENERATED  
   GENERATED  	LOG("switch done");
   GENERATED  
-#            	line 813 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 815 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -839,7 +841,7 @@
   GENERATED  
   GENERATED  	LOG("switch done");
   GENERATED  
-#            	line 843 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 845 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -858,7 +860,7 @@
   GENERATED  	if (STATE->returntype.type != TYPE_INT)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
-#            	line 862 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 864 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -877,7 +879,7 @@
   GENERATED  	if (STATE->returntype.type != TYPE_LNG)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
-#            	line 881 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 883 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -896,7 +898,7 @@
   GENERATED  	if (STATE->returntype.type != TYPE_FLT)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
-#            	line 900 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 902 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -915,7 +917,7 @@
   GENERATED  	if (STATE->returntype.type != TYPE_DBL)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
-#            	line 919 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 921 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -952,7 +954,7 @@
   GENERATED  		IPTR->flags.bits |= INS_FLAG_UNRESOLVED;
   GENERATED  	}
   GENERATED  
-#            	line 956 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 958 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -986,7 +988,7 @@
   GENERATED  			VERIFY_ERROR("<init> method does not initialize 'this'");
   GENERATED  	}
   GENERATED  
-#            	line 990 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 992 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1003,7 +1005,7 @@
   GENERATED  		return false;
   GENERATED  	maythrow = true;
   GENERATED  
-#            	line 1007 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1009 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1023,7 +1025,7 @@
   GENERATED  		return false;
   GENERATED  	maythrow = true;
   GENERATED  
-#            	line 1027 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1029 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1045,7 +1047,7 @@
   GENERATED  		return false;
   GENERATED  	maythrow = true;
   GENERATED  
-#            	line 1049 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1051 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1067,7 +1069,7 @@
   GENERATED  		return false;
   GENERATED  	maythrow = true;
   GENERATED  
-#            	line 1071 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1073 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1091,7 +1093,7 @@
   GENERATED  		EXCEPTION;
   GENERATED  	TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(IPTR), stat_ins_invoke_unresolved);
   GENERATED  
-#            	line 1095 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1097 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1113,7 +1115,7 @@
   GENERATED  			&& OP1->typeinfo.typeclass.cls != pseudo_class_Arraystub)
   GENERATED  		VERIFY_ERROR("illegal instruction: ARRAYLENGTH on non-array");
   GENERATED  
-#            	line 1117 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1119 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
   GENERATED  	break;
@@ -1152,7 +1154,7 @@
   GENERATED  		IPTR->flags.bits |= INS_FLAG_UNRESOLVED;
   GENERATED  	}
   GENERATED  
-#            	line 1156 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1158 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1177,7 +1179,7 @@
   GENERATED  	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1181 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1183 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
@@ -1202,7 +1204,7 @@
   GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("Illegal instruction: INSTANCEOF on non-reference");
   GENERATED  
-#            	line 1206 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1208 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
   GENERATED  	break;
@@ -1226,7 +1228,7 @@
   GENERATED  	if (!verify_multianewarray(STATE))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1230 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1232 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
@@ -1248,7 +1250,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 1252 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1254 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1267,7 +1269,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 1271 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1273 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1287,7 +1289,7 @@
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 1291 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1293 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1306,7 +1308,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 1310 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1312 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1325,7 +1327,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo, ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 1329 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1331 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1357,7 +1359,7 @@
   GENERATED  		return false;
   GENERATED  	maythrow = true;
   GENERATED  
-#            	line 1361 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1363 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1388,7 +1390,7 @@
   GENERATED  		return false;
   GENERATED  	maythrow = true;
   GENERATED  
-#            	line 1392 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1394 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1408,7 +1410,7 @@
   GENERATED  	if (!verify_builtin(state))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1412 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
+#            	line 1414 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
