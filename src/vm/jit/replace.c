@@ -292,14 +292,16 @@ bool replace_create_replacement_points(jitdata *jd)
 					/* XXX share code with stack.c */
 					j = iptr->dst.varindex;
 					i = iptr->sx.s23.s3.javaindex;
-					if (iptr->flags.bits & INS_FLAG_RETADDR)
-						javalocals[i] = UNUSED;
-					else
-						javalocals[i] = j;
-					if (iptr->flags.bits & INS_FLAG_KILL_PREV)
-						javalocals[i-1] = UNUSED;
-					if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
-						javalocals[i+1] = UNUSED;
+					if (i != UNUSED) {
+						if (iptr->flags.bits & INS_FLAG_RETADDR)
+							javalocals[i] = UNUSED;
+						else
+							javalocals[i] = j;
+						if (iptr->flags.bits & INS_FLAG_KILL_PREV)
+							javalocals[i-1] = UNUSED;
+						if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
+							javalocals[i+1] = UNUSED;
+					}
 					break;
 
 				case ICMD_IRETURN:
@@ -411,14 +413,16 @@ bool replace_create_replacement_points(jitdata *jd)
 					/* XXX share code with stack.c */
 					j = iptr->dst.varindex;
 					i = iptr->sx.s23.s3.javaindex;
-					if (iptr->flags.bits & INS_FLAG_RETADDR)
-						javalocals[i] = UNUSED;
-					else
-						javalocals[i] = j;
-					if (iptr->flags.bits & INS_FLAG_KILL_PREV)
-						javalocals[i-1] = UNUSED;
-					if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
-						javalocals[i+1] = UNUSED;
+					if (i != UNUSED) {
+						if (iptr->flags.bits & INS_FLAG_RETADDR)
+							javalocals[i] = UNUSED;
+						else
+							javalocals[i] = j;
+						if (iptr->flags.bits & INS_FLAG_KILL_PREV)
+							javalocals[i-1] = UNUSED;
+						if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
+							javalocals[i+1] = UNUSED;
+					}
 					break;
 
 				case ICMD_IRETURN:
