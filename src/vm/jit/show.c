@@ -530,7 +530,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		iptr = bptr->iinstr;
 
 		for (i = 0; i < bptr->icount; i++, iptr++) {
-			printf("%4d:  ", iptr->line);
+			printf("%4d:%4d:  ", iptr->line, iptr->flags.bits >> INS_FLAG_ID_SHIFT);
 
 			show_icmd(jd, iptr, deadcode, irstage);
 			printf("\n");

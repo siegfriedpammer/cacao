@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 5950 2006-11-11 17:08:14Z edwin $
+   $Id: jit.h 5958 2006-11-12 13:21:07Z edwin $
 
 */
 
@@ -334,6 +334,9 @@ typedef union {
 #define INS_FLAG_KILL_PREV     0x02    /* for *STORE, invalidate prev local   */
 #define INS_FLAG_KILL_NEXT     0x04    /* for *STORE, invalidate next local   */
 #define INS_FLAG_RETADDR       0x08    /* for ASTORE: op is a returnAddress   */
+
+#define INS_FLAG_ID_SHIFT      4
+#define INS_FLAG_ID_MASK       (~0 << INS_FLAG_ID_SHIFT)
 
 typedef union {
     u4                  bits;

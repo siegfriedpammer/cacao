@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: parse.h 5955 2006-11-12 12:54:57Z edwin $
+   $Id: parse.h 5958 2006-11-12 13:21:07Z edwin $
 
 */
 
@@ -119,163 +119,160 @@
 
 /* The _PREPARE macros omit the PINC, so you can set additional fields        */
 /* afterwards.                                                                */
-/* CAUTION: Some of the _PREPARE macros don't set iptr->flags!                */
 
-#define PINC                                                           \
+#define PINC                                                         \
     iptr++; ipc++
 
-/* CAUTION: You must set iptr->flags yourself when using this!                */
-#define OP_PREPARE(o)                                                  \
-    iptr->opc                = (o);                                    \
-    iptr->line               = currentline;
+#define OP_PREPARE_FLAGS(o, f)                                       \
+    iptr->opc                = (o);                                  \
+    iptr->line               = currentline;                          \
+    iptr->flags.bits         = (f) | (ipc << INS_FLAG_ID_SHIFT);
 
-#define OP_PREPARE_FLAGS(o, f)                                         \
-    iptr->opc                = (o);                                    \
-    iptr->line               = currentline;                            \
-    iptr->flags.bits         = (f);
+#define OP_PREPARE_ZEROFLAGS(o)                                      \
+    OP_PREPARE_FLAGS(o, 0)
 
-#define OP_PREPARE_ZEROFLAGS(o)                                        \
-	OP_PREPARE_FLAGS(o, 0)
+#define OP_PREPARE(o)                                                \
+    OP_PREPARE_ZEROFLAGS(o)
 
-#define OP(o)                                                          \
-	OP_PREPARE_ZEROFLAGS(o);                                           \
+#define OP(o)                                                        \
+    OP_PREPARE_ZEROFLAGS(o);                                         \
     PINC
 
-#define OP_LOADCONST_I(v)                                              \
-	OP_PREPARE_ZEROFLAGS(ICMD_ICONST);                                 \
-    iptr->sx.val.i           = (v);                                    \
+#define OP_LOADCONST_I(v)                                            \
+    OP_PREPARE_ZEROFLAGS(ICMD_ICONST);                               \
+    iptr->sx.val.i           = (v);                                  \
     PINC
 
-#define OP_LOADCONST_L(v)                                              \
-	OP_PREPARE_ZEROFLAGS(ICMD_LCONST);                                 \
-    iptr->sx.val.l           = (v);                                    \
+#define OP_LOADCONST_L(v)                                            \
+    OP_PREPARE_ZEROFLAGS(ICMD_LCONST);                               \
+    iptr->sx.val.l           = (v);                                  \
     PINC
 
-#define OP_LOADCONST_F(v)                                              \
-	OP_PREPARE_ZEROFLAGS(ICMD_FCONST);                                 \
-    iptr->sx.val.f           = (v);                                    \
+#define OP_LOADCONST_F(v)                                            \
+    OP_PREPARE_ZEROFLAGS(ICMD_FCONST);                               \
+    iptr->sx.val.f           = (v);                                  \
     PINC
 
-#define OP_LOADCONST_D(v)                                              \
-	OP_PREPARE_ZEROFLAGS(ICMD_DCONST);                                 \
-    iptr->sx.val.d           = (v);                                    \
+#define OP_LOADCONST_D(v)                                            \
+    OP_PREPARE_ZEROFLAGS(ICMD_DCONST);                               \
+    iptr->sx.val.d           = (v);                                  \
     PINC
 
-#define OP_LOADCONST_NULL()                                            \
-	OP_PREPARE_FLAGS(ICMD_ACONST, INS_FLAG_CHECK);                     \
-    iptr->sx.val.anyptr      = NULL;                                   \
+#define OP_LOADCONST_NULL()                                          \
+    OP_PREPARE_FLAGS(ICMD_ACONST, INS_FLAG_CHECK);                   \
+    iptr->sx.val.anyptr      = NULL;                                 \
     PINC
 
-#define OP_LOADCONST_STRING(v)                                         \
-	OP_PREPARE_FLAGS(ICMD_ACONST, INS_FLAG_CHECK);                     \
-    iptr->sx.val.stringconst = (v);                                    \
+#define OP_LOADCONST_STRING(v)                                       \
+    OP_PREPARE_FLAGS(ICMD_ACONST, INS_FLAG_CHECK);                   \
+    iptr->sx.val.stringconst = (v);                                  \
     PINC
 
-#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS(cl, cr, extraflags)   \
-	OP_PREPARE(ICMD_ACONST);                                           \
-    if (cl) {                                                          \
-        iptr->sx.val.c.cls   = (cl);                                   \
-        iptr->flags.bits     = INS_FLAG_CLASS | (extraflags);          \
-    }                                                                  \
-    else {                                                             \
-        iptr->sx.val.c.ref   = (cr);                                   \
-        iptr->flags.bits     = INS_FLAG_CLASS | INS_FLAG_UNRESOLVED    \
-                             | (extraflags);                           \
-    }                                                                  \
+#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS(cl, cr, extraflags) \
+    OP_PREPARE(ICMD_ACONST);                                         \
+    if (cl) {                                                        \
+        iptr->sx.val.c.cls   = (cl);                                 \
+        iptr->flags.bits     |= INS_FLAG_CLASS | (extraflags);       \
+    }                                                                \
+    else {                                                           \
+        iptr->sx.val.c.ref   = (cr);                                 \
+        iptr->flags.bits     |= INS_FLAG_CLASS | INS_FLAG_UNRESOLVED \
+                             | (extraflags);                         \
+    }                                                                \
     PINC
 
-#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_CHECK(c, cr)                \
-	OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS((c), (cr), INS_FLAG_CHECK)
+#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_CHECK(c, cr)              \
+    OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS((c), (cr), INS_FLAG_CHECK)
 
-#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr)              \
-	OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS((c), (cr), 0)
+#define OP_LOADCONST_CLASSINFO_OR_CLASSREF_NOCHECK(c, cr)            \
+    OP_LOADCONST_CLASSINFO_OR_CLASSREF_FLAGS((c), (cr), 0)
 
-#define OP_S3_CLASSINFO_OR_CLASSREF(o, c, cr, extraflags)              \
-	OP_PREPARE(o);                                                     \
-    if (c) {                                                           \
-        iptr->sx.s23.s3.c.cls= (c);                                    \
-        iptr->flags.bits     = (extraflags);                           \
-    }                                                                  \
-    else {                                                             \
-        iptr->sx.s23.s3.c.ref= (cr);                                   \
-        iptr->flags.bits     = INS_FLAG_UNRESOLVED | (extraflags);     \
-    }                                                                  \
+#define OP_S3_CLASSINFO_OR_CLASSREF(o, c, cr, extraflags)            \
+    OP_PREPARE(o);                                                   \
+    if (c) {                                                         \
+        iptr->sx.s23.s3.c.cls= (c);                                  \
+        iptr->flags.bits     |= (extraflags);                        \
+    }                                                                \
+    else {                                                           \
+        iptr->sx.s23.s3.c.ref= (cr);                                 \
+        iptr->flags.bits     |= INS_FLAG_UNRESOLVED | (extraflags);  \
+    }                                                                \
     PINC
 
-#define OP_INSINDEX(o, iindex)                                         \
-	OP_PREPARE_ZEROFLAGS(o);                                           \
-    iptr->dst.insindex       = (iindex);                               \
+#define OP_INSINDEX(o, iindex)                                       \
+    OP_PREPARE_ZEROFLAGS(o);                                         \
+    iptr->dst.insindex       = (iindex);                             \
     PINC
 
-# define OP_LOCALINDEX(o,index)                                        \
-	OP_PREPARE_ZEROFLAGS(o);                                           \
+# define OP_LOCALINDEX(o,index)                                      \
+    OP_PREPARE_ZEROFLAGS(o);                                         \
     iptr->s1.varindex      = (index);                                \
     PINC
 
-# define OP_LOCALINDEX_I(o,index,v)                                    \
-	OP_PREPARE_ZEROFLAGS(o);                                           \
-    iptr->s1.varindex      = (index);                                  \
-    iptr->sx.val.i           = (v);                                    \
+# define OP_LOCALINDEX_I(o,index,v)                                  \
+    OP_PREPARE_ZEROFLAGS(o);                                         \
+    iptr->s1.varindex      = (index);                                \
+    iptr->sx.val.i           = (v);                                  \
     PINC
 
-# define LOCALTYPE_USED(index,type)									   \
-	do {															   \
-		local_map[(index) * 5 + (type)] = 1;						   \
-	} while (0)
-
-#define OP_LOAD_ONEWORD(o,index,type)							       \
-    do {                                                               \
-        INDEX_ONEWORD(index);                                          \
-        OP_LOCALINDEX(o,index);                                        \
-		LOCALTYPE_USED(index,type);								       \
+# define LOCALTYPE_USED(index,type)                                  \
+    do {                                                             \
+        local_map[(index) * 5 + (type)] = 1;                         \
     } while (0)
 
-#define OP_LOAD_TWOWORD(o,index,type)							       \
-    do {                                                               \
-        INDEX_TWOWORD(index);                                          \
-        OP_LOCALINDEX(o,index);                                        \
-		LOCALTYPE_USED(index,type);									   \
-	} while (0)
-
-# define OP_STORE_ONEWORD(o,index,type)							       \
-    do {                                                               \
-        INDEX_ONEWORD(index);                                          \
-        OP_PREPARE_ZEROFLAGS(o);                                       \
-        iptr->dst.varindex = (index);                                  \
-		LOCALTYPE_USED(index,type);									   \
-        PINC;                                                          \
+#define OP_LOAD_ONEWORD(o,index,type)                                \
+    do {                                                             \
+        INDEX_ONEWORD(index);                                        \
+        OP_LOCALINDEX(o,index);                                      \
+        LOCALTYPE_USED(index,type);                                  \
     } while (0)
 
-# define OP_STORE_TWOWORD(o,index,type)							       \
-    do {                                                               \
-        INDEX_TWOWORD(index);                                          \
-        OP_PREPARE_ZEROFLAGS(o);                                       \
-        iptr->dst.varindex = (index);                                  \
-		LOCALTYPE_USED(index,type);									   \
-        PINC;                                                          \
+#define OP_LOAD_TWOWORD(o,index,type)                                \
+    do {                                                             \
+        INDEX_TWOWORD(index);                                        \
+        OP_LOCALINDEX(o,index);                                      \
+        LOCALTYPE_USED(index,type);                                  \
     } while (0)
 
-#define OP_BUILTIN_CHECK_EXCEPTION(bte)                                \
-    jd->isleafmethod         = false;                                  \
-	OP_PREPARE_FLAGS(ICMD_BUILTIN, INS_FLAG_CHECK);                    \
-    iptr->sx.s23.s3.bte      = (bte);                                  \
+# define OP_STORE_ONEWORD(o,index,type)                              \
+    do {                                                             \
+        INDEX_ONEWORD(index);                                        \
+        OP_PREPARE_ZEROFLAGS(o);                                     \
+        iptr->dst.varindex = (index);                                \
+        LOCALTYPE_USED(index,type);                                  \
+        PINC;                                                        \
+    } while (0)
+
+# define OP_STORE_TWOWORD(o,index,type)                              \
+    do {                                                             \
+        INDEX_TWOWORD(index);                                        \
+        OP_PREPARE_ZEROFLAGS(o);                                     \
+        iptr->dst.varindex = (index);                                \
+        LOCALTYPE_USED(index,type);                                  \
+        PINC;                                                        \
+    } while (0)
+
+#define OP_BUILTIN_CHECK_EXCEPTION(bte)                              \
+    jd->isleafmethod         = false;                                \
+    OP_PREPARE_FLAGS(ICMD_BUILTIN, INS_FLAG_CHECK);                  \
+    iptr->sx.s23.s3.bte      = (bte);                                \
     PINC
 
-#define OP_BUILTIN_NO_EXCEPTION(bte)                                   \
-    jd->isleafmethod         = false;                                  \
-	OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                                \
-    iptr->sx.s23.s3.bte      = (bte);                                  \
+#define OP_BUILTIN_NO_EXCEPTION(bte)                                 \
+    jd->isleafmethod         = false;                                \
+    OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                              \
+    iptr->sx.s23.s3.bte      = (bte);                                \
     PINC
 
-#define OP_BUILTIN_ARITHMETIC(opcode, bte)                             \
-    jd->isleafmethod         = false;                                  \
-	OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);                          \
-    iptr->sx.s23.s3.bte      = (bte);                                  \
+#define OP_BUILTIN_ARITHMETIC(opcode, bte)                           \
+    jd->isleafmethod         = false;                                \
+    OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);                        \
+    iptr->sx.s23.s3.bte      = (bte);                                \
     PINC
 
 /* CAUTION: You must set iptr->flags yourself when using this!                */
-#define OP_FMIREF_PREPARE(o, fmiref)                                   \
-	OP_PREPARE(o);                                                     \
+#define OP_FMIREF_PREPARE(o, fmiref)                                 \
+    OP_PREPARE(o);                                                   \
     iptr->sx.s23.s3.fmiref   = (fmiref);
 
 

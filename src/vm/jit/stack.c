@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5921 2006-11-05 21:27:37Z edwin $
+   $Id: stack.c 5958 2006-11-12 13:21:07Z edwin $
 
 */
 
@@ -2301,7 +2301,7 @@ bool stack_analyse(jitdata *jd)
 
 					if (bte && bte->opcode == opcode) {
 						iptr->opc           = ICMD_BUILTIN;
-						iptr->flags.bits    = 0;
+						iptr->flags.bits    &= INS_FLAG_ID_MASK;
 						iptr->sx.s23.s3.bte = bte;
 						/* iptr->line is already set */
 						jd->isleafmethod = false;
@@ -3257,7 +3257,7 @@ normal_ACONST:
 
 						if (curstack->type == TYPE_RET) {
 							sd.javalocals[javaindex] = UNUSED;
-							iptr->flags.bits = INS_FLAG_RETADDR;
+							iptr->flags.bits |= INS_FLAG_RETADDR;
 						}
 						else
 							sd.javalocals[javaindex] = j;

@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5909 2006-11-05 10:22:37Z edwin $
+   $Id: parse.c 5958 2006-11-12 13:21:07Z edwin $
 
 */
 
@@ -1128,7 +1128,7 @@ jsr_tail:
 						/* store the unresolved_field pointer */
 
 						iptr->sx.s23.s3.uf = uf;
-						iptr->flags.bits = INS_FLAG_UNRESOLVED;
+						iptr->flags.bits |= INS_FLAG_UNRESOLVED;
 					}
 #if defined(ENABLE_VERIFIER)
 				}
@@ -1217,7 +1217,7 @@ invoke_method:
 					/* store the unresolved_method pointer */
 
 					iptr->sx.s23.s3.um = um;
-					iptr->flags.bits = INS_FLAG_UNRESOLVED;
+					iptr->flags.bits |= INS_FLAG_UNRESOLVED;
 				}
 #if defined(ENABLE_VERIFIER)
 			}
