@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 5974 2006-11-12 15:14:19Z edwin $
+   $Id: method.c 5975 2006-11-12 15:33:16Z edwin $
 
 */
 
@@ -54,7 +54,7 @@
 #include "vm/jit/methodheader.h"
 
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && defined(ENABLE_INLINING)
 extern bool inline_debug_log;
 #define INLINELOG(code)  do { if (inline_debug_log) { code } } while (0)
 #else
@@ -160,8 +160,6 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
    Add the method to the given worklist. If the method already occurs in
    the worklist, the worklist remains unchanged.
 
-   Worklist items are allocated in dump memory.
-
 *******************************************************************************/
 
 static void method_add_to_worklist(methodinfo *m, method_worklist **wl)
@@ -172,7 +170,7 @@ static void method_add_to_worklist(methodinfo *m, method_worklist **wl)
 		if (wi->m == m)
 			return;
 
-	wi = DNEW(method_worklist);
+	wi = NEW(method_worklist);
 	wi->next = *wl;
 	wi->m = m;
 

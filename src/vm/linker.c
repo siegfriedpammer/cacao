@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5868 2006-10-30 11:21:36Z edwin $
+   $Id: linker.c 5975 2006-11-12 15:33:16Z edwin $
 
 */
 
@@ -64,6 +64,14 @@
 #include "vm/rt-timing.h"
 #include "vm/vm.h"
 #include "vm/jit/asmpart.h"
+
+
+#if !defined(NDEBUG) && defined(ENABLE_INLINING)
+extern bool inline_debug_log;
+#define INLINELOG(code)  do { if (inline_debug_log) { code } } while (0)
+#else
+#define INLINELOG(code)
+#endif
 
 
 /* global variables ***********************************************************/
@@ -429,6 +437,90 @@ classinfo *link_class(classinfo *c)
 }
 
 
+/* linker_overwrite_method *****************************************************
+
+   Overwrite a method with another one, update method flags and check
+   assumptions.
+
+   IN:
+      mg................the general method being overwritten
+	  ms................the overwriting (more specialized) method
+	  wl................worklist where to add invalidated methods
+
+   RETURN VALUE:
+      true..............everything ok
+	  false.............an exception has been thrown
+
+*******************************************************************************/
+
+static bool linker_overwrite_method(methodinfo *mg,
+									methodinfo *ms,
+									method_worklist **wl)
+{
+	classinfo *cg;
+	classinfo *cs;
+
+	cg = mg->class;
+	cs = ms->class;
+
+	/* overriding a final method is illegal */
+
+	if (mg->flags & ACC_FINAL) {
+		*exceptionptr =
+			new_exception(string_java_lang_VerifyError);
+		return false;
+	}
+
+	/* method ms overwrites method mg */
+
+#if defined(ENABLE_VERIFIER)
+	/* Add loading constraints (for the more general types of method mg). */
+	/* Not for <init>, as it is not invoked virtually.                    */
+
+	if ((ms->name != utf_init)
+			&& !classcache_add_constraints_for_params(
+				cs->classloader, cg->classloader, mg))
+	{
+		return false;
+	}
+#endif
+
+	/* inherit the vftbl index, and record the overwriting */
+
+	ms->vftblindex = mg->vftblindex;
+	ms->overwrites = mg;
+
+	/* update flags and check assumptions */
+	/* <init> methods are a special case, as they are never dispatched dynamically */
+
+	if ((ms->flags & ACC_METHOD_IMPLEMENTED) && ms->name != utf_init) {
+		do {
+			if (mg->flags & ACC_METHOD_IMPLEMENTED) {
+				/* this adds another implementation */
+
+				mg->flags &= ~ACC_METHOD_MONOMORPHIC;
+
+				INLINELOG( printf("becomes polymorphic: "); method_println(mg); );
+
+				method_break_assumption_monomorphic(mg, wl);
+			}
+			else {
+				/* this is the first implementation */
+
+				mg->flags |= ACC_METHOD_IMPLEMENTED;
+
+				INLINELOG( printf("becomes implemented: "); method_println(mg); );
+			}
+
+			ms = mg;
+			mg = mg->overwrites;
+		} while (mg != NULL);
+	}
+
+	return true;
+}
+
+
 /* link_class_intern ***********************************************************
 
    Tries to link a class. The function calculates the length in bytes
@@ -447,6 +539,7 @@ static classinfo *link_class_intern(classinfo *c)
 	vftbl_t *v;                   /* vftbl of current class                   */
 	s4 i;                         /* interface/method/field counter           */
 	arraydescriptor *arraydesc;   /* descriptor for array classes             */
+	method_worklist *worklist;    /* worklist for recompilation               */
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_resolving, time_compute_vftbl,
 					time_abstract, time_compute_iftbl, time_fill_vftbl,
@@ -486,6 +579,7 @@ static classinfo *link_class_intern(classinfo *c)
 	c->state |= CLASS_LINKING;
 
 	arraydesc = NULL;
+	worklist = NULL;
 
 	/* check interfaces */
 
@@ -622,29 +716,9 @@ static classinfo *link_class_intern(classinfo *c)
 						    goto notfoundvftblindex;
 						}
 
-						if (tc->methods[j].flags & ACC_FINAL) {
-							/* class a overrides final method . */
-							*exceptionptr =
-								new_exception(string_java_lang_VerifyError);
+						if (!linker_overwrite_method(&(tc->methods[j]), m, &worklist))
 							return NULL;
-						}
 
-						/* method m overwrites method j of class tc */
-
-#if defined(ENABLE_VERIFIER)
-						/* Add loading constraints (for the more general    */
-						/* types of method tc->methods[j]). --              */
-						/* Not for <init>,  as it is not invoked virtually. */
-						if ((m->name != utf_init)
-							&& !classcache_add_constraints_for_params(
-									c->classloader, tc->classloader,
-									&(tc->methods[j])))
-						{
-							return NULL;
-						}
-#endif
-
-						m->vftblindex = tc->methods[j].vftblindex;
 						goto foundvftblindex;
 					}
 				}
@@ -918,6 +992,22 @@ static classinfo *link_class_intern(classinfo *c)
 	/* revert the linking state and class is linked */
 
 	c->state = (c->state & ~CLASS_LINKING) | CLASS_LINKED;
+
+	/* check worklist */
+
+	/* XXX must this also be done in case of exception? */
+
+	while (worklist != NULL) {
+		method_worklist *wi = worklist;
+
+		worklist = worklist->next;
+
+		INLINELOG( printf("MUST BE RECOMPILED: "); method_println(wi->m); );
+		jit_invalidate_code(wi->m);
+
+		/* XXX put worklist into dump memory? */
+		FREE(wi, method_worklist);
+	}
 
 #if !defined(NDEBUG)
 	if (linkverbose)
