@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Author:  Christian Thalinger
+            Edwin Steiner
 
-   Changes: Edwin Steiner
-
-   $Id: parse.h 5958 2006-11-12 13:21:07Z edwin $
+   $Id: parse.h 5959 2006-11-12 13:31:14Z edwin $
 
 */
 

@@ -24,14 +24,13 @@
 
    Contact: cacao@cacaojvm.org
 
-   Author: Andreas Krall
-
-   Changes: Carolyn Oates
+   Authors: Andreas Krall
+            Carolyn Oates
             Edwin Steiner
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5958 2006-11-12 13:21:07Z edwin $
+   $Id: parse.c 5959 2006-11-12 13:31:14Z edwin $
 
 */
 
