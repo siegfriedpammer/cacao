@@ -32,7 +32,7 @@
             Edwin Steiner
 	    Roland Lezuo
 
-   $Id: codegen.c 5934 2006-11-08 13:33:08Z tbfg $
+   $Id: codegen.c 5957 2006-11-12 12:57:59Z twisti $
 
 */
 
@@ -1261,7 +1261,7 @@ bool codegen(jitdata *jd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_IADD_IMM(s2, OFFSET(java_chararray, data[0]), REG_ITMP2);
+			M_IADD_IMM(s2, OFFSET(java_bytearray, data[0]), REG_ITMP2);
 			M_LBZX(d, s1, REG_ITMP2);
 			M_BSEXT(d, d);
 			emit_store_dst(jd, iptr, d);
