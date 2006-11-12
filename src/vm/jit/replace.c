@@ -1547,6 +1547,7 @@ void replace_source_frame_println(sourceframe_t *frame)
 
 	printf("\t");
 	method_println(frame->method);
+	printf("\tid: %d\n", frame->id);
 	printf("\n");
 
 	if (frame->javalocalcount) {
