@@ -1288,6 +1288,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 			break;
 
 		if (candidate->type == RPLPOINT_TYPE_CALL) {
+			jit_recompile(ss.frames->method);
 			code = ss.frames->method->code;
 			assert(code);
 			replace_push_activation_record(es, candidate, code);
