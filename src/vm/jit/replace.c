@@ -70,6 +70,17 @@ typedef u8 stackslot_t;
 #endif
 
 
+/*** debugging ****************************************************************/
+
+/*#define REPLACE_VERBOSE*/
+
+#if !defined(NDEBUG) && defined(REPLACE_VERBOSE)
+#define DOLOG(code) do{ if (1) { code; } } while(0)
+#else
+#define DOLOG(code)
+#endif
+
+
 /*** constants used internally ************************************************/
 
 #define TOP_IS_NORMAL    0
@@ -528,11 +539,8 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 {
 	assert(rp->target == NULL);
 
-#if !defined(NDEBUG)
-	printf("activate replacement point: ");
-	replace_replacement_point_println(rp, 0);
-	fflush(stdout);
-#endif
+	DOLOG( printf("activate replacement point:\n");
+		   replace_replacement_point_println(rp, 1); fflush(stdout); );
 
 	rp->target = target;
 
@@ -557,11 +565,8 @@ void replace_deactivate_replacement_point(rplpoint *rp)
 {
 	assert(rp->target);
 
-#if !defined(NDEBUG)
-	printf("deactivate replacement point: ");
-	replace_replacement_point_println(rp, 0);
-	fflush(stdout);
-#endif
+	DOLOG( printf("deactivate replacement point:\n");
+		   replace_replacement_point_println(rp, 1); fflush(stdout); );
 
 	rp->target = NULL;
 
@@ -975,20 +980,20 @@ bool replace_pop_activation_record(executionstate_t *es)
 	ra = md_stacktrace_get_returnaddress(es->sp,
 			SIZE_OF_STACKSLOT * es->code->stackframesize);
 
-	printf("return address: %p\n", (void*)ra);
+	DOLOG( printf("return address: %p\n", (void*)ra); );
 
 	/* find the new codeinfo */
 
 	pv = md_codegen_get_pv_from_pc(ra);
 
-	printf("PV = %p\n", (void*) pv);
+	DOLOG( printf("PV = %p\n", (void*) pv); );
 
 	if (pv == NULL)
 		return false;
 
 	code = *(codeinfo **)(pv + CodeinfoPointer);
 
-	printf("CODE = %p\n", (void*) code);
+	DOLOG( printf("CODE = %p\n", (void*) code); );
 
 	if (code == NULL)
 		return false;
@@ -1158,16 +1163,12 @@ rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
 	frame = ss->frames;
 	assert(frame);
 
-#if !defined(NDEBUG)
-	printf("searching replacement point for:\n");
-	replace_source_frame_println(frame);
-#endif
+	DOLOG( printf("searching replacement point for:\n");
+		   replace_source_frame_println(frame); );
 
 	m = frame->method;
 
-#if !defined(NDEBUG)
-	printf("code = %p\n", (void*)code);
-#endif
+	DOLOG( printf("code = %p\n", (void*)code); );
 
 	rp = code->rplpoints;
 	i = code->rplpointcount;
@@ -1219,12 +1220,9 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	if (target == rp)
 		replace_deactivate_replacement_point(rp);
 
-#if !defined(NDEBUG)
-	printf("replace_me(%p,%p)\n",(void*)rp,(void*)es);
-	fflush(stdout);
-	replace_replacement_point_println(rp, 0);
-	replace_executionstate_println(es);
-#endif
+	DOLOG( printf("replace_me(%p,%p)\n",(void*)rp,(void*)es); fflush(stdout);
+		   replace_replacement_point_println(rp, 1);
+		   replace_executionstate_println(es); );
 
 	/* read execution state of old code */
 
@@ -1234,62 +1232,54 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	candidate = rp;
 	do {
-#if !defined(NDEBUG)
-		printf("recovering source state for:\n");
-		replace_replacement_point_println(candidate, 1);
-#endif
+		DOLOG( printf("recovering source state for:\n");
+			   replace_replacement_point_println(candidate, 1); );
 
 		replace_read_executionstate(candidate,es,&ss);
 
 		if (candidate->parent) {
-			printf("INLINED!\n");
+			DOLOG( printf("INLINED!\n"); );
 			candidate = candidate->parent;
 			assert(candidate->type == RPLPOINT_TYPE_INLINE);
 		}
 		else {
-			printf("UNWIND\n");
+			DOLOG( printf("UNWIND\n"); );
 			if (!replace_pop_activation_record(es)) {
-				printf("BREAKING\n");
+				DOLOG( printf("BREAKING\n"); );
 				break;
 			}
-#if !defined(NDEBUG)
-			replace_executionstate_println(es);
-#endif
+			DOLOG( replace_executionstate_println(es); );
 			candidate = NULL;
 			rp = es->code->rplpoints;
 			for (i=0; i<es->code->rplpointcount; ++i, ++rp)
 				if (rp->pc <= es->pc)
 					candidate = rp;
 			if (!candidate)
-				printf("NO CANDIDATE!\n");
+				DOLOG( printf("NO CANDIDATE!\n"); );
 			else {
-				printf("found replacement point.\n");
+				DOLOG( printf("found replacement point.\n");
+					   replace_replacement_point_println(candidate, 1); );
 				assert(candidate->type == RPLPOINT_TYPE_CALL);
 			}
 		}
 	} while (candidate);
 
-#if !defined(NDEBUG)
-	replace_sourcestate_println(&ss);
-#endif
+	DOLOG( replace_sourcestate_println(&ss); );
 
 	/* write execution state of new code */
 
-#if !defined(NDEBUG)
-	replace_executionstate_println(es);
-#endif
+	DOLOG( replace_executionstate_println(es); );
 
 	code = es->code;
 
+	/* XXX get new code */
 
 	while (ss.frames) {
 
 		candidate = replace_find_replacement_point(code, &ss);
 
-#if !defined(NDEBUG)
-		printf("creating execution state for:\n");
-		replace_replacement_point_println(candidate, 1);
-#endif
+		DOLOG( printf("creating execution state for:\n");
+			   replace_replacement_point_println(candidate, 1); );
 
 		replace_write_executionstate(candidate, es, &ss);
 		if (ss.frames == NULL)
@@ -1300,14 +1290,10 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 			assert(code);
 			replace_push_activation_record(es, candidate, code);
 		}
-#if !defined(NDEBUG)
-		replace_executionstate_println(es);
-#endif
+		DOLOG( replace_executionstate_println(es); );
 	}
 
-#if !defined(NDEBUG)
-	replace_executionstate_println(es);
-#endif
+	DOLOG( replace_executionstate_println(es); );
 
 	/* release dump area */
 
