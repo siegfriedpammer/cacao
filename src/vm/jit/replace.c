@@ -1024,9 +1024,10 @@ bool replace_pop_activation_record(executionstate_t *es)
 		es->fltregs[reg] = *(u8*)basesp;
 	}
 
-	/* set the new pc */
+	/* Set the new pc. Subtract one so we do not hit the replacement point */
+	/* of the instruction following the call, if there is one.             */
 
-	es->pc = ra;
+	es->pc = ra - 1;
 
 	/* adjust the stackpointer */
 
