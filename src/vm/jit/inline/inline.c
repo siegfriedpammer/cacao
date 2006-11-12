@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5950 2006-11-11 17:08:14Z edwin $
+   $Id: inline.c 5960 2006-11-12 13:38:34Z edwin $
 
 */
 
@@ -66,6 +66,9 @@
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #endif
+
+
+/* debugging ******************************************************************/
 
 #if !defined(NDEBUG)
 #define INLINE_VERBOSE
@@ -900,6 +903,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 			}
 			else {
 				n_ins->opc = ICMD_ISTORE + type;
+				n_ins->sx.s23.s3.javaindex = UNUSED;
 			}
 			n_ins->s1.varindex = argvar;
 			n_ins->dst.varindex = iln->ctx->resultjd->local_map[5*localindex + type];
@@ -934,6 +938,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 		n_ins->opc = ICMD_ASTORE;
 		n_ins->s1.varindex = varmap[o_iptr->sx.s23.s2.args[0]];
 		n_ins->dst.varindex = callee->synclocal;
+		n_ins->sx.s23.s3.javaindex = UNUSED;
 		n_ins->line = o_iptr->line;
 
 		assert(n_ins->s1.varindex != UNUSED);
@@ -955,10 +960,10 @@ static s4 emit_inlining_prolog(inline_node *iln,
 	/* info about stack vars live at the INLINE_START */
 
 	insinfo->throughcount = callee->n_passthroughcount;
-	insinfo->stackvarscount = callee->n_selfpassthroughcount;
-	insinfo->stackvars = DMNEW(s4, callee->n_selfpassthroughcount);
-	for (i=0; i<callee->n_selfpassthroughcount; ++i)
-		insinfo->stackvars[i] = iln->varmap[callee->n_passthroughvars[i]];
+	insinfo->stackvarscount = o_iptr->s1.argcount - md->paramcount;
+	insinfo->stackvars = DMNEW(s4, insinfo->stackvarscount);
+	for (i=0; i<insinfo->stackvarscount; ++i)
+		insinfo->stackvars[i] = iln->varmap[o_iptr->sx.s23.s2.args[md->paramcount + i]];
 
 	/* info about the surrounding inlining */
 
@@ -972,6 +977,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 	n_ins->opc = ICMD_INLINE_START;
 	n_ins->sx.s23.s3.inlineinfo = insinfo;
 	n_ins->line = o_iptr->line;
+	n_ins->flags.bits = o_iptr->flags.bits & INS_FLAG_ID_MASK;
 	callee->inline_start_instruction = n_ins;
 
 	DOLOG( printf("%sprolog: ", iln->indent);
@@ -1145,14 +1151,16 @@ clone_call:
 			/* XXX share code with stack.c */
 			j = n_iptr->dst.varindex;
 			i = n_iptr->sx.s23.s3.javaindex;
-			if (n_iptr->flags.bits & INS_FLAG_RETADDR)
-				iln->javalocals[i] = UNUSED;
-			else
-				iln->javalocals[i] = j;
-			if (n_iptr->flags.bits & INS_FLAG_KILL_PREV)
-				iln->javalocals[i-1] = UNUSED;
-			if (n_iptr->flags.bits & INS_FLAG_KILL_NEXT)
-				iln->javalocals[i+1] = UNUSED;
+			if (i != UNUSED) {
+				if (n_iptr->flags.bits & INS_FLAG_RETADDR)
+					iln->javalocals[i] = UNUSED;
+				else
+					iln->javalocals[i] = j;
+				if (n_iptr->flags.bits & INS_FLAG_KILL_PREV)
+					iln->javalocals[i-1] = UNUSED;
+				if (n_iptr->flags.bits & INS_FLAG_KILL_NEXT)
+					iln->javalocals[i+1] = UNUSED;
+			}
 			break;
 	}
 }
@@ -1391,6 +1399,7 @@ static void rewrite_method(inline_node *iln)
 							n_iptr->opc = ICMD_ISTORE + (o_iptr->opc - ICMD_IRETURN);
 							n_iptr->s1.varindex = retidx;
 							n_iptr->dst.varindex = iln->n_resultlocal;
+							n_iptr->sx.s23.s3.javaindex = UNUSED; /* XXX set real javaindex? */
 
 							retcount = 0;
 							retidx = UNUSED;
@@ -2237,7 +2246,6 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 							if (0
 								&& strncmp(callee->class->name->text, "java/", 5) != 0
 								&& strncmp(callee->class->name->text, "gnu/", 4) != 0
-								&&  strstr(callee->class->name->text, "compress") != NULL
 							   )
 							{
 								DOLOG( printf("SPECULATIVE INLINE: "); method_println(callee); );
