@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5943 2006-11-09 15:27:03Z twisti $
+   $Id: codegen.c 5956 2006-11-12 12:55:34Z twisti $
 
 */
 
@@ -1438,7 +1438,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			emit_array_checks(cd, iptr, s1, s2);
-			M_IADD_IMM(s2, OFFSET(java_chararray, data[0]), REG_ITMP2);
+			M_IADD_IMM(s2, OFFSET(java_bytearray, data[0]), REG_ITMP2);
 			M_LBZX(d, s1, REG_ITMP2);
 			M_BSEXT(d, d);
 			emit_store_dst(jd, iptr, d);
