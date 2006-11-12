@@ -894,6 +894,7 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	while (count && (i = ra->index) >= 0) {
 		assert(i < m->maxlocals);
+		assert(i < frame->javalocalcount);
 		assert(ra->type == frame->javalocaltype[i]);
 		replace_write_value(es, sp, ra, frame->javalocals + i);
 		count--;
@@ -909,6 +910,7 @@ static void replace_write_executionstate(rplpoint *rp,
 	if (topslot == TOP_IS_ON_STACK) {
 		assert(count);
 
+		assert(i < frame->javastackdepth);
 		assert(frame->javastacktype[i] == TYPE_ADR);
 		sp[-1] = frame->javastack[i];
 		count--;
@@ -918,7 +920,7 @@ static void replace_write_executionstate(rplpoint *rp,
 	else if (topslot == TOP_IS_IN_ITMP1) {
 		assert(count);
 
-		assert(frame->javastacktype[i] == TYPE_ADR);
+		assert(i < frame->javastackdepth);
 		assert(frame->javastacktype[i] == TYPE_ADR);
 		es->intregs[REG_ITMP1] = frame->javastack[i];
 		count--;
@@ -930,7 +932,7 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	for (; count--; ra++, i++) {
 		assert(ra->index == -1);
-
+		assert(i < frame->javastackdepth);
 		assert(ra->type == frame->javastacktype[i]);
 		replace_write_value(es,sp,ra,frame->javastack + i);
 	}
