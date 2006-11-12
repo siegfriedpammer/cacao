@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5926 2006-11-05 23:17:23Z edwin $
+   $Id: jit.c 5963 2006-11-12 13:40:39Z edwin $
 
 */
 
@@ -1152,7 +1152,7 @@ u1 *jit_recompile(methodinfo *m)
 		return NULL;
 	}
 
-	log_message_method("Recompiling start: ", m);
+	DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
 
 	STATISTICS(count_jit_calls++);
 
@@ -1181,9 +1181,11 @@ u1 *jit_recompile(methodinfo *m)
 	jd->flags |= JITDATA_FLAG_VERIFY;
 #endif
 
-	jd->flags |= JITDATA_FLAG_REORDER;
-	jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
-	jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
+	/* jd->flags |= JITDATA_FLAG_REORDER; */
+	if (opt_showintermediate)
+		jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
+	if (opt_showdisassemble)
+		jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
 /* 	jd->flags |= JITDATA_FLAG_VERBOSECALL; */
 
 #if defined(ENABLE_JIT)
@@ -1222,7 +1224,7 @@ u1 *jit_recompile(methodinfo *m)
 		compilingtime_stop();
 #endif
 
-	log_message_method("Recompiling done: ", m);
+	DEBUG_JIT_COMPILEVERBOSE("Recompiling done: ");
 
 	/* return pointer to the methods entry point */
 
