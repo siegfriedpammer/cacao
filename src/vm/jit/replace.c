@@ -111,6 +111,7 @@ static void replace_create_replacement_point(jitdata *jd,
 											 insinfo_inline *iinfo,
 											 rplpoint *rp,
 											 s4 type,
+											 instruction *iptr,
 											 rplalloc **pra,
 											 s4 *javalocals,
 											 s4 *stackvars,
@@ -120,8 +121,6 @@ static void replace_create_replacement_point(jitdata *jd,
 	s4        i;
 	varinfo  *v;
 	s4        index;
-
-	static s4 fake_id = 0;
 
 	ra = *pra;
 
@@ -135,7 +134,7 @@ static void replace_create_replacement_point(jitdata *jd,
 	rp->regalloc = ra;
 	rp->flags = 0;
 	rp->type = type;
-	rp->id = ++fake_id; /* XXX need a real invariant id */
+	rp->id = iptr->flags.bits >> INS_FLAG_ID_SHIFT;
 
 	/* XXX unify these two fields */
 	rp->code = jd->code;
@@ -392,7 +391,7 @@ bool replace_create_replacement_points(jitdata *jd)
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 
 			replace_create_replacement_point(jd, iinfo, rp++,
-					bptr->type, &ra,
+					bptr->type, bptr->iinstr, &ra,
 					bptr->javalocals, bptr->invars, bptr->indepth);
 		}
 
@@ -411,7 +410,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 					i = (iinfo) ? iinfo->throughcount : 0;
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_CALL, &ra,
+							RPLPOINT_TYPE_CALL, iptr, &ra,
 							javalocals, iptr->sx.s23.s2.args + md->paramcount,
 							iptr->s1.argcount - md->paramcount - i);
 					break;
@@ -442,13 +441,13 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_DRETURN:
 				case ICMD_ARETURN:
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_RETURN, &ra,
+							RPLPOINT_TYPE_RETURN, iptr, &ra,
 							NULL, &(iptr->s1.varindex), 1);
 					break;
 
 				case ICMD_RETURN:
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_RETURN, &ra,
+							RPLPOINT_TYPE_RETURN, iptr, &ra,
 							NULL, NULL, 0);
 					break;
 
@@ -457,7 +456,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 					calleeinfo->rp = rp;
 					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_INLINE, &ra,
+							RPLPOINT_TYPE_INLINE, iptr, &ra,
 							javalocals,
 							calleeinfo->stackvars, calleeinfo->stackvarscount);
 
@@ -1346,8 +1345,8 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 	for (j=0; j<depth; ++j)
 		putchar('\t');
 
-	printf("rplpoint %p pc:%p+%d out:%p target:%p mcode:%016llx type:%s flags:%01x parent:%p\n",
-			(void*)rp,rp->pc,rp->callsize,rp->outcode,(void*)rp->target,
+	printf("rplpoint (id %d) %p pc:%p+%d out:%p target:%p mcode:%016llx type:%s flags:%01x parent:%p\n",
+			rp->id, (void*)rp,rp->pc,rp->callsize,rp->outcode,(void*)rp->target,
 			(unsigned long long)rp->mcode,replace_type_str[rp->type],rp->flags,
 			(void*)rp->parent);
 	for (j=0; j<depth; ++j)
