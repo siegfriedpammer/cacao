@@ -32,7 +32,7 @@
             Edwin Steiner
 	    Roland Lezuo
 
-   $Id: codegen.c 5957 2006-11-12 12:57:59Z twisti $
+   $Id: codegen.c 5978 2006-11-13 21:43:41Z tbfg $
 
 */
 
@@ -242,12 +242,20 @@ bool codegen(jitdata *jd)
  				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
  					M_FLTMOVE(s2, var->vv.regoff);
  				} else {			                 /* reg arg -> spilled    */
-					M_DST(s2, REG_SP, var->vv.regoff * 8);
+					if (IS_2_WORD_TYPE(t)) {
+						M_DST(s2, REG_SP, var->vv.regoff * 8);
+					} else {
+						M_DST(s2, REG_SP, var->vv.regoff * 8);	/*  F XXX */
+					}
  				}
 
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
-					M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+					if (IS_2_WORD_TYPE(t)) {
+						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+					} else {
+						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+					}
  				} else {                             /* stack-arg -> spilled  */
 					var->vv.regoff = cd->stackframesize + s1;
 				}
@@ -2125,7 +2133,6 @@ nowperformreturn:
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
-
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
@@ -2171,7 +2178,7 @@ gen_method:
 						if (IS_2_WORD_TYPE(var->type))
 							M_DST(d, REG_SP, md->params[s3].regoff * 8);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 8);
+							M_DST(d, REG_SP, md->params[s3].regoff * 8);	/* F XXX */
 					}
 				}
 			} /* end of for */
@@ -3048,7 +3055,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		nmd->paramcount  + 
 		nmd->memuse;
 
-	cd->stackframesize = (cd->stackframesize + 3) & ~3; /* keep stack 16-byte aligned */
+/*	cd->stackframesize = (cd->stackframesize + 3) & ~3;*/ /* keep stack 16-byte aligned */
 
 	/* create method header */
 
@@ -3095,7 +3102,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-				M_LST(rd->argintregs[s1], REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + j * 8);
+				M_LST(rd->argintregs[s1], REG_SP, LA_SIZE + PA_SIZE + 4*8 + j * 8);
 				j++;
 			}
 		}
@@ -3105,7 +3112,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-				M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + PA_SIZE + 4 * 8 + j * 8);
+				M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + PA_SIZE + 4*8 + j * 8);
 				j++;
 			}
 		}
@@ -3183,13 +3190,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 
-				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, s1 * 8);
-					M_DST(REG_FTMP1, REG_SP, s2 * 8);
+				M_DLD(REG_FTMP1, REG_SP, s1 * 8);
 
+				if (IS_2_WORD_TYPE(t)) {	
+					M_DST(REG_FTMP1, REG_SP, s2 * 8);
 				} else {
-					M_FLD(REG_FTMP1, REG_SP, s1 * 8);
-					M_FST(REG_FTMP1, REG_SP, s2 * 8);
+					M_FST(REG_FTMP1, REG_SP, s2 * 8 + 4);
 				}
 			}
 		}
@@ -3225,10 +3231,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			M_LST(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 		}
 		else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
+/*			if (IS_2_WORD_TYPE(md->returntype.type)) */
 				M_DST(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
-			else
-				M_FST(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);	/* FIXME, needed ?*/
+/*			else
+				M_FST(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);	*/ /* FIXME, needed F XXX?*/
+			
 		}
 	}
 
@@ -3255,10 +3262,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			M_LLD(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
 		}
 		else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
+/*			if (IS_2_WORD_TYPE(md->returntype.type)) */
 				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
-			else
-				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
+/*			else
+				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8); F XXX
+				*/
 		}
 	}
 

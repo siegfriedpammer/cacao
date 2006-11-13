@@ -75,11 +75,6 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 				M_FLD(tempreg, REG_SP, disp);
 		}
 		else {
-		/*	if (IS_2_WORD_TYPE(src->type))
-				M_LLD(tempreg, REG_SP, disp);
-			else
-				M_ILD(tempreg, REG_SP, disp);
-		*/
 			M_LLD(tempreg, REG_SP, disp);
 		}
 
@@ -110,10 +105,10 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(dst->type)) {
-			if (IS_2_WORD_TYPE(dst->type))
+/*			if (IS_2_WORD_TYPE(dst->type))*/
 				M_DST(d, REG_SP, dst->vv.regoff * 8);
-			else
-				M_FST(d, REG_SP, dst->vv.regoff * 8);
+/*			else
+				M_DST(d, REG_SP, dst->vv.regoff * 8); F XXX */
 		}
 		else {
 			M_LST(d, REG_SP, dst->vv.regoff * 8);

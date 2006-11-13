@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5940 2006-11-09 09:59:28Z tbfg $
+   $Id: asmpart.S 5978 2006-11-13 21:43:41Z tbfg $
 
 */
 
@@ -306,7 +306,7 @@ L_register_copy_done:
 	mr      itmp1,t5                  /* restore argument block pointer       */
 
 	slwi    t4,itmp3,3                /* XXX use 8-bytes slots for now        */
-	addi    t4,t4,LA_SIZE             /* add size of linkage area             */
+	addi    t4,t4,LA_SIZE+PA_SIZE     /* add size of linkage area             */
 
 #if defined(__DARWIN__)
 	slwi    t5,t7,2                   /* add stack space for arguments        */
@@ -362,13 +362,13 @@ L_stack_handle_float:
 	bne     L_stack_handle_double
 
 	lfs     ftmp3,offvmargdata(itmp1) /* get float argument                   */
-	stfs    ftmp3,4(t6)               /* and store it on the stack            */
+	stfd    ftmp3,64(t6)              /* and store it on the stack, 56: first 8 slots reserved for r3-r10 */
 	addi    t6,t6,8                   /* increase temporary sp by 1 slot      */
 	b       L_stack_copy_loop
 
 L_stack_handle_double:
 	lfd     ftmp3,offvmargdata(itmp1) /* get double argument                  */
-	stfd    ftmp3,0(t6)               /* and store it on the stack            */
+	stfd    ftmp3,64(t6)               /* and store it on the stack, 56: first 8 slots reserved for r3-r10 */
 	addi    t6,t6,8                   /* increase temporary sp by 1 slots     */
 	b       L_stack_copy_loop
 
@@ -410,8 +410,8 @@ L_asm_vm_call_method_return:
 	ld      pv,11*8(sp)               /* save PV register                     */
 
 	ld      itmp3,12*8(sp)
-	lfd     ftmp1,14*8(sp)            /* registers f14-f31 are callee saved   */
-	lfd     ftmp2,16*8(sp)
+	lfd     ftmp1,13*8(sp)            /* registers f14-f31 are callee saved   */
+	lfd     ftmp2,14*8(sp)
 
 #if defined(__DARWIN__)
 	lwz     t1,18*4(r1)
@@ -429,7 +429,7 @@ L_asm_vm_call_method_return:
 	lfd     ft4,34*4(r1)
 	lfd     ft5,36*4(r1)
 #else
-	RESTORE_TEMPORARY_REGISTERS(18)   /* the offset has to be even            */
+	RESTORE_TEMPORARY_REGISTERS(15)   /* the offset has to be even            */
 #endif
 
 	ld     r0,40*8+LA_LR_OFFSET(r1)

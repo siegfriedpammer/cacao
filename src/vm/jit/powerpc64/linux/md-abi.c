@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5940 2006-11-09 09:59:28Z tbfg $
+   $Id: md-abi.c 5978 2006-11-13 21:43:41Z tbfg $
 
 */
 
@@ -41,6 +41,7 @@
 #include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/jit/abi.h"
+#include <assert.h>
 
 
 #define CACAO_ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
@@ -49,7 +50,7 @@
 /* register descripton array **************************************************/
 
 s4 nregdescint[] = {
-	/* zero,      sp,     TOC,   a0/v0,   a0/v1,      a2,      a3,      a4,   */
+	/* zero,      sp,     TOC,   a0/v0,   a1/v1,      a2,      a3,      a4,   */
 	REG_RES, REG_RES, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 
 	/*   a5,      a6,      a7,   itmp1,   itmp2, NO(SYS),      pv,      s0,   */
@@ -112,13 +113,17 @@ void md_param_alloc(methoddesc *md)
 	s4         i;
 	s4         iarg;
 	s4         farg;
-	s4         stacksize;
+	s4         arg;
+	s4         stacksize, stackcount;
+
 
 	/* set default values */
 
 	iarg = 0;
 	farg = 0;
+	arg = 0;
 	stacksize = LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS;
+	stackcount = 0;
 
 	/* get params field of methoddesc */
 
@@ -129,43 +134,39 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 		case TYPE_INT:
 		case TYPE_ADR:
-			if (iarg < INT_ARG_CNT) {
+			if (arg < INT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = iarg;
 				iarg++;
 			} else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
-				stacksize++;
+				pd->regoff = stacksize + stackcount;
+				stackcount++;
 			}
 			break;
 		case TYPE_FLT:
-			if (farg < FLT_ARG_CNT) {
-				pd->inmemory = false;
-				pd->regoff = farg;
-				farg++;
-			} else {
-				pd->inmemory = true;
-				pd->regoff = stacksize;
-				stacksize++;
-			}
-			break;
 		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = farg;
 				farg++;
+				if (arg < INT_ARG_CNT) {
+					iarg++;		/* yes, that is true, floating arguments take int register slots away */
+					stackcount++;
+				}
 			} else {
-				CACAO_ALIGN(stacksize);
 				pd->inmemory = true;
-				pd->regoff = stacksize;
-				stacksize += 2;
+				pd->regoff = stacksize + stackcount + 1;
+				stackcount++;
 			}
 			break;
+		default:
+			assert(0);
 		}
+		arg++;
 	}
 
-	/* Since R3/R4, F1 (==A0/A1, A0) are used for passing return values, this */
+	/* Since R3, F1 (==A0, A0) are used for passing return values, this */
 	/* argument register usage has to be regarded, too                        */
 	if (IS_INT_LNG_TYPE(md->returntype.type)) {
 		if (iarg < 1)
@@ -179,7 +180,7 @@ void md_param_alloc(methoddesc *md)
 
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
-	md->memuse = stacksize;
+	md->memuse = stacksize + stackcount;
 }
 
 
