@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: signal.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: signal.c 5979 2006-11-14 21:56:17Z twisti $
 
 */
 
@@ -44,6 +42,7 @@
 # include "threads/native/threads.h"
 #endif
 
+#include "mm/memory.h"
 #include "vm/signallocal.h"
 #include "vm/options.h"
 #include "vm/vm.h"

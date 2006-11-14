@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
+   $Id: emit.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -43,6 +41,7 @@
 
 #include "vm/jit/powerpc/codegen.h"
 
+#include "mm/memory.h"
 #include "vm/builtin.h"
 #include "vm/options.h"
 #include "vm/jit/asmpart.h"

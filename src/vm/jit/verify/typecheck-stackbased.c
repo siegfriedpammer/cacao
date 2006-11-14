@@ -34,15 +34,18 @@
 
 
 #include "config.h"
-#include "vm/types.h"
-#include "vm/global.h"
 
 #include <assert.h>
 
-#include <vm/jit/stack.h>
-#include <vm/jit/parse.h>
-#include <vm/jit/show.h>
-#include <typecheck-common.h>
+#include "vm/types.h"
+
+#include "mm/memory.h"
+#include "vm/global.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/show.h"
+#include "vm/jit/stack.h"
+#include "vm/jit/verify/typecheck-common.h"
+
 
 /* this #if runs over the whole file: */
 #if defined(ENABLE_VERIFIER)
