@@ -136,6 +136,10 @@ struct sourceframe_t {
 
 	u8            *syncslots;
 	s4             syncslotcount; /* XXX do we need more than one? */
+
+#if !defined(NDEBUG)
+	rplpoint      *debug_rp;
+#endif
 };
 
 

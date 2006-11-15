@@ -226,6 +226,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	s4               j;
 	insinfo_inline  *iinfo;
 	insinfo_inline  *calleeinfo;
+	s4               startcount;
 
 	/* get required compiler data */
 
@@ -271,21 +272,11 @@ bool replace_create_replacement_points(jitdata *jd)
 			for (i=0; i<m->maxlocals; ++i)
 				javalocals[i] = UNUSED;
 
-		/* create replacement points at targets of backward branches */
-
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			count++;
-			alloccount += bptr->indepth;
-
-			for (i=0; i<m->maxlocals; ++i)
-				if (bptr->javalocals[i] != UNUSED)
-					alloccount++;
-		}
-
 		/* iterate over the instructions */
 
 		iptr = bptr->iinstr;
 		iend = iptr + bptr->icount;
+		startcount = count;
 
 		for (; iptr != iend; ++iptr) {
 			switch (iptr->opc) {
@@ -358,8 +349,28 @@ bool replace_create_replacement_points(jitdata *jd)
 					iinfo = iinfo->parent;
 					break;
 			}
+		} /* end instruction loop */
+
+		/* create replacement points at targets of backward branches */
+		/* We only need the replacement point there, if there is no  */
+		/* replacement point inside the block.                       */
+
+		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
+			if (count > startcount) {
+				/* we don't need it */
+				bptr->bitflags &= ~BBFLAG_REPLACEMENT;
+			}
+			else {
+				count++;
+				alloccount += bptr->indepth;
+
+				for (i=0; i<m->maxlocals; ++i)
+					if (bptr->javalocals[i] != UNUSED)
+						alloccount++;
+			}
 		}
-	}
+
+	} /* end basicblock loop */
 
 	/* if no points were found, there's nothing to do */
 
@@ -496,8 +507,11 @@ bool replace_create_replacement_points(jitdata *jd)
 					iinfo = iinfo->parent;
 					break;
 			}
-		}
-	}
+		} /* end instruction loop */
+	} /* end basicblock loop */
+
+	assert((rp - rplpoints) == count);
+	assert((ra - regalloc) == alloccount);
 
 	/* store the data in the codeinfo */
 
@@ -753,6 +767,9 @@ static void replace_read_executionstate(rplpoint *rp,
 	frame->id = rp->id;
 	frame->syncslotcount = 0;
 	frame->syncslots = NULL;
+#if !defined(NDEBUG)
+	frame->debug_rp = rp;
+#endif
 
 	ss->frames = frame;
 
@@ -1338,6 +1355,8 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	es->code = rp->code;
 
+	DOLOG( printf("REPLACING: "); method_println(es->code->m); );
+
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
@@ -1362,7 +1381,8 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	candidate = rp;
 	do {
-		DOLOG( printf("recovering source state for:\n");
+		DOLOG( printf("recovering source state for%s:\n",
+					(ss.frames == NULL) ? " TOPFRAME" : "");
 			   replace_replacement_point_println(candidate, 1); );
 
 		replace_read_executionstate(candidate, es, &ss, ss.frames == NULL);
@@ -1408,7 +1428,9 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 		candidate = replace_find_replacement_point(code, &ss);
 
-		DOLOG( printf("creating execution state for:\n");
+		DOLOG( printf("creating execution state for%s:\n",
+				(ss.frames->up == NULL) ? " TOPFRAME" : "");
+			   replace_replacement_point_println(ss.frames->debug_rp, 1);
 			   replace_replacement_point_println(candidate, 1); );
 
 		replace_write_executionstate(candidate, es, &ss, ss.frames->up == NULL);
