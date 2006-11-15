@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5999 2006-11-15 23:17:07Z edwin $
+   $Id: inline.c 6003 2006-11-15 23:24:46Z edwin $
 
 */
 
@@ -2300,11 +2300,7 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 																	 | ACC_ABSTRACT))
 								          == (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED)) {
 							/* XXX */
-							if (0
-								/* && strncmp(callee->class->name->text, "java/", 5) != 0
-								&& strncmp(callee->class->name->text, "gnu/", 4) != 0 */
-							   )
-							{
+							if (0) {
 								DOLOG( printf("SPECULATIVE INLINE: "); method_println(callee); );
 								speculative = true;
 								goto maybe_inline;
