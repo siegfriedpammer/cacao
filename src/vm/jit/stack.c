@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5982 2006-11-15 15:30:36Z twisti $
+   $Id: stack.c 6005 2006-11-15 23:33:48Z edwin $
 
 */
 
@@ -1545,8 +1545,11 @@ bool stack_reanalyse_block(stackdata_t *sd)
 				j = iptr->dst.varindex;
 				COPY_VAL_AND_TYPE(*sd, iptr->s1.varindex, j);
 				i = iptr->sx.s23.s3.javaindex;
-				if (iptr->flags.bits & INS_FLAG_RETADDR)
-					sd->javalocals[i] = UNUSED;
+				if (iptr->flags.bits & INS_FLAG_RETADDR) {
+					iptr->sx.s23.s2.retaddrnr =
+						UNUSED - (1 + sd->var[j].vv.retaddr->nr);
+					sd->javalocals[i] = iptr->sx.s23.s2.retaddrnr;
+				}
 				else
 					sd->javalocals[i] = j;
 				if (iptr->flags.bits & INS_FLAG_KILL_PREV)
@@ -3256,8 +3259,10 @@ normal_ACONST:
 						iptr->sx.s23.s3.javaindex = javaindex;
 
 						if (curstack->type == TYPE_RET) {
-							sd.javalocals[javaindex] = UNUSED;
 							iptr->flags.bits |= INS_FLAG_RETADDR;
+							iptr->sx.s23.s2.retaddrnr = 
+								UNUSED - (1 + sd.var[j].vv.retaddr->nr);
+							sd.javalocals[javaindex] = iptr->sx.s23.s2.retaddrnr;
 						}
 						else
 							sd.javalocals[javaindex] = j;

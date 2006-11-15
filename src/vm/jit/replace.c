@@ -150,11 +150,18 @@ static void replace_create_replacement_point(jitdata *jd,
 			if (index == UNUSED)
 				continue;
 
-			v = VAR(index);
-			ra->flags = v->flags & (INMEMORY);
 			ra->index = i;
-			ra->regoff = v->vv.regoff;
-			ra->type = v->type;
+			if (index < UNUSED) {
+				ra->regoff = (UNUSED - index) - 1;
+				ra->type = TYPE_RET;
+				ra->flags = 0;
+			}
+			else {
+				v = VAR(index);
+				ra->flags = v->flags & (INMEMORY);
+				ra->regoff = v->vv.regoff;
+				ra->type = v->type;
+			}
 			ra++;
 		}
 	}
@@ -306,7 +313,7 @@ bool replace_create_replacement_points(jitdata *jd)
 					i = iptr->sx.s23.s3.javaindex;
 					if (i != UNUSED) {
 						if (iptr->flags.bits & INS_FLAG_RETADDR)
-							javalocals[i] = UNUSED;
+							javalocals[i] = iptr->sx.s23.s2.retaddrnr;
 						else
 							javalocals[i] = j;
 						if (iptr->flags.bits & INS_FLAG_KILL_PREV)
@@ -430,7 +437,7 @@ bool replace_create_replacement_points(jitdata *jd)
 					i = iptr->sx.s23.s3.javaindex;
 					if (i != UNUSED) {
 						if (iptr->flags.bits & INS_FLAG_RETADDR)
-							javalocals[i] = UNUSED;
+							javalocals[i] = iptr->sx.s23.s2.retaddrnr;
 						else
 							javalocals[i] = j;
 						if (iptr->flags.bits & INS_FLAG_KILL_PREV)
@@ -779,7 +786,10 @@ static void replace_read_executionstate(rplpoint *rp,
 	while (count && (i = ra->index) >= 0) {
 		assert(i < m->maxlocals);
 		frame->javalocaltype[i] = ra->type;
-		replace_read_value(es, sp, ra, frame->javalocals + i);
+		if (ra->type == TYPE_RET)
+			frame->javalocals[i] = ra->regoff;
+		else
+			replace_read_value(es, sp, ra, frame->javalocals + i);
 		ra++;
 		count--;
 	}
@@ -936,7 +946,11 @@ static void replace_write_executionstate(rplpoint *rp,
 		assert(i < m->maxlocals);
 		assert(i < frame->javalocalcount);
 		assert(ra->type == frame->javalocaltype[i]);
-		replace_write_value(es, sp, ra, frame->javalocals + i);
+		if (ra->type == TYPE_RET) {
+			/* XXX assert that it matches this rplpoint */
+		}
+		else
+			replace_write_value(es, sp, ra, frame->javalocals + i);
 		count--;
 		ra++;
 	}
@@ -1258,6 +1272,8 @@ rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
 	methodinfo *m;
 	rplpoint *rp;
 	s4        i;
+	s4        j;
+	rplalloc *ra;
 
 	assert(ss);
 
@@ -1274,8 +1290,21 @@ rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
 	rp = code->rplpoints;
 	i = code->rplpointcount;
 	while (i--) {
-		if (rp->id == frame->id && rp->method == frame->method)
+		if (rp->id == frame->id && rp->method == frame->method) {
+			/* check if returnAddresses match */
+			ra = rp->regalloc;
+			for (j = rp->regalloccount; j--; ++ra) {
+				if (ra->type == TYPE_RET) {
+					assert(ra->index >= 0 && ra->index < frame->javalocalcount);
+					if (frame->javalocals[ra->index] != ra->regoff)
+						goto no_match;
+				}
+			}
+
+			/* found */
 			return rp;
+		}
+no_match:
 		rp++;
 	}
 
