@@ -527,6 +527,32 @@ sub write_trailer
 	print $file " */\n";
 }
 
+sub get_dst_slots_and_ctype
+{
+	my ($icmd, $op1) = @_;
+
+	my $inslots;
+	my $type;
+	for my $v (@{$icmd->{VARIANTS}}) {
+		my $intype = $v->{IN}->[0];
+		if (defined($inslots) && $inslots != $slots{$intype}) {
+			die "$0: error: mixed slotsize for STORE is not supported: ".$icmd->{NAME};
+		}
+		else {
+			$inslots = $slots{$intype};
+		}
+
+		if (defined($type) && $type ne $cacaotypes{$intype}) {
+			$type = "$op1->type";
+		}
+		else {
+			$type = $cacaotypes{$intype};
+		}
+	}
+
+	return ($inslots, $type);
+}
+
 sub write_verify_stackbased_code
 {
 	my ($file) = @_;
@@ -602,6 +628,8 @@ sub write_verify_stackbased_code
 
 		###	check local types
 
+		my $prohibit_stackchange = 0;
+
 		if ($icmd->{DATAFLOW} eq 'LOAD') {
 			code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, ".$cacaotypes{$outtype}.");\n";
 			if ($icmd->{VERIFYCODE}) {
@@ -613,12 +641,17 @@ sub write_verify_stackbased_code
 			code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_INT);\n";
 		}
 		elsif ($icmd->{DATAFLOW} eq 'STORE') {
-			my $intype = $icmd->{VARIANTS}->[0]->{IN}->[0];
-			if ($slots{$intype} == 2) {
-				code "\tSTORE_LOCAL_2_WORD(".$cacaotypes{$intype}.", IPTR->dst.varindex);\n";
+			my ($inslots, $type) = get_dst_slots_and_ctype($icmd, 'OP1');
+			if ($type =~ /OP1/) {
+				code "#\tdefine OP1 (&(stack[".(1-$inslots)."]))\n";
+				push @macros, 'OP1';
+				$prohibit_stackchange = 1;
+			}
+			if ($inslots == 2) {
+				code "\tSTORE_LOCAL_2_WORD(".$type.", IPTR->dst.varindex);\n";
 			}
 			else {
-				code "\tSTORE_LOCAL(".$cacaotypes{$intype}.", IPTR->dst.varindex);\n";
+				code "\tSTORE_LOCAL(".$type.", IPTR->dst.varindex);\n";
 			}
 			if ($icmd->{VERIFYCODE}) {
 				code "#\tdefine DST LOCAL_SLOT(IPTR->dst.varindex)\n";
@@ -632,6 +665,9 @@ sub write_verify_stackbased_code
 
 		if ($icmd->{VERIFYCODE}) {
 			if ($icmd->{VERIFYCODEPROPS}->{RESULTNOW}) {
+				if ($prohibit_stackchange) {
+					die "$0: prohibited stack change before custom code: ".$icmd->{NAME};
+				}
 				if (write_verify_stackbased_stackchange($icmd)) {
 					code "\t/* CAUTION: stack types changed before custom code! */\n";
 				}
@@ -766,12 +802,12 @@ sub write_verify_variablesbased_code
 			code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_INT);\n";
 		}
 		elsif ($icmd->{DATAFLOW} eq 'STORE') {
-			my $intype = $icmd->{VARIANTS}->[0]->{IN}->[0];
-			if ($slots{$intype} == 2) {
-				code "\tSTORE_LOCAL_2_WORD(".$cacaotypes{$intype}.", IPTR->dst.varindex);\n";
+			my ($inslots, $type) = get_dst_slots_and_ctype($icmd, 'VAROP(iptr->s1)');
+			if ($inslots == 2) {
+				code "\tSTORE_LOCAL_2_WORD(".$type.", IPTR->dst.varindex);\n";
 			}
 			else {
-				code "\tSTORE_LOCAL(".$cacaotypes{$intype}.", IPTR->dst.varindex);\n";
+				code "\tSTORE_LOCAL(".$type.", IPTR->dst.varindex);\n";
 			}
 			if ($icmd->{VERIFYCODE}) {
 				code "#\tdefine DST  VAROP(IPTR->dst)\n";
