@@ -1237,7 +1237,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		DOLOG( printf("recovering source state for:\n");
 			   replace_replacement_point_println(candidate, 1); );
 
-		replace_read_executionstate(candidate,es,&ss);
+		replace_read_executionstate(candidate, es, &ss);
 
 		if (candidate->parent) {
 			DOLOG( printf("INLINED!\n"); );
