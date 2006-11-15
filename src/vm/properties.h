@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: properties.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: properties.h 5988 2006-11-15 17:58:25Z twisti $
 
 */
 
@@ -46,12 +44,14 @@
 /* function prototypes ********************************************************/
 
 bool  properties_init(void);
-bool  properties_postinit(java_util_Properties *p);
+bool  properties_postinit(void);
 
 void  properties_add(char *key, char *value);
 char *properties_get(char *key);
-void  properties_system_add(char *key, char *value);
-void  properties_system_add_all(void);
+
+#if defined(ENABLE_JAVASE)
+void  properties_system_add_all(java_util_Properties *p);
+#endif
 
 #endif /* _PROPERTIES_H */
 

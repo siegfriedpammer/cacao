@@ -769,15 +769,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	jvmti = false;
 #endif
 
-	/* initialize properties before commandline handling */
+	/* initialize and fill properties before command-line handling */
 
 	if (!properties_init())
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Unable to init properties");
-
-	/* add some default properties */
-
-	properties_add("java.endorsed.dirs", ""CACAO_PREFIX"/jre/lib/endorsed");
+		vm_abort("properties_init failed");
 
 	/* iterate over all passed options */
 
@@ -1260,6 +1255,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		}
 	}
 
+	/* now re-set some of the properties that may have changed */
+
+	if (!properties_postinit())
+		vm_abort("properties_postinit failed");
 
 	/* Now we have all options handled and we can print the version
 	   information. */
@@ -1528,8 +1527,13 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	mainutf = utf_new_char(mainstring);
 
+#if defined(ENABLE_JAVAME_CLDC1_1)
+	if (!(mainclass = load_class_bootstrap(mainutf)))
+		throw_main_exception_exit();
+#else
 	if (!(mainclass = load_class_from_sysloader(mainutf)))
 		throw_main_exception_exit();
+#endif
 
 	/* error loading class */
 
