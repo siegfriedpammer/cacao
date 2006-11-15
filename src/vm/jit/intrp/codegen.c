@@ -26,10 +26,9 @@
 
    Authors: Christian Thalinger
             Anton Ertl
-			
-   Changes: Edwin Steiner
+            Edwin Steiner
 
-   $Id: codegen.c 5835 2006-10-26 11:29:42Z edwin $
+   $Id: codegen.c 5980 2006-11-15 12:25:13Z twisti $
 
 */
 
@@ -415,9 +414,10 @@ switch_again:
 		case ICMD_NOP:        /* ...  ==> ...                                 */
 			break;
 
-		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
+		case ICMD_CHECKNULL_POP: /* ..., objectref  ==> ...                   */
 
 			gen_CHECKNULL(cd);
+			gen_POP(cd);
 			break;
 
 		/* constant operations ************************************************/

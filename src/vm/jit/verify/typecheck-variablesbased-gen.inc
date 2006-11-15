@@ -37,13 +37,6 @@
 #            	undef DST
   GENERATED  
   GENERATED  
-  GENERATED  case ICMD_CHECKNULL:
-  GENERATED  	/* (A--A) */
-  GENERATED  	maythrow = true;
-  GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
-  GENERATED  	break;
-  GENERATED  
-  GENERATED  
   GENERATED  case ICMD_ICONST:
   GENERATED  case ICMD_IDIVPOW2:
   GENERATED  case ICMD_LCMPCONST:

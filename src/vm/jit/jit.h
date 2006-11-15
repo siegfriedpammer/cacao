@@ -26,11 +26,10 @@
 
    Authors: Andreas Krall
             Reinhard Grafl
+            Christian Thalinger
+            Edwin Steiner
 
-   Changes: Christian Thalinger
-   			Edwin Steiner
-
-   $Id: jit.h 5964 2006-11-12 13:46:44Z edwin $
+   $Id: jit.h 5980 2006-11-15 12:25:13Z twisti $
 
 */
 
@@ -601,13 +600,12 @@ extern int stackreq[256];
 #define ICMD_ACONST            1        /* val.a = constant                   */
 
 #define JAVA_ICONST_M1         2
-#define ICMD_CHECKNULL         2
+#define ICMD_CHECKNULL_POP     2
 
 #define JAVA_ICONST_0          3
 #define ICMD_ICONST            3        /* val.i = constant                   */
 
 #define JAVA_ICONST_1          4
-#define ICMD_CHECKNULL_POP     4
 
 #define JAVA_ICONST_2          5
 #define ICMD_IDIVPOW2          5        /* val.i = constant                   */

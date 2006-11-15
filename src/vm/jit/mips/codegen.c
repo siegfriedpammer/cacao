@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5930 2006-11-06 21:12:52Z twisti $
+   $Id: codegen.c 5980 2006-11-15 12:25:13Z twisti $
 
 */
 
@@ -409,9 +409,10 @@ bool codegen(jitdata *jd)
 		case ICMD_NOP:        /* ...  ==> ...                                 */
 			break;
 
-		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
+		case ICMD_CHECKNULL_POP: /* ..., objectref  ==> ...                   */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			/* XXX this one must always be emitted */
 			emit_nullpointer_check(cd, s1);
 			break;
 

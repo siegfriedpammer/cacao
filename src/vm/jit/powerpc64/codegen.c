@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc64/codegen.c - machine code generator for 32-bit PowerPC
+/* src/vm/jit/powerpc64/codegen.c - machine code generator for 64-bit PowerPC
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,13 +26,12 @@
 
    Authors: Andreas Krall
             Stefan Ring
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Christian Ullrich
             Edwin Steiner
-	    Roland Lezuo
+            Roland Lezuo
 
-   $Id: codegen.c 5978 2006-11-13 21:43:41Z tbfg $
+   $Id: codegen.c 5980 2006-11-15 12:25:13Z twisti $
 
 */
 
@@ -408,13 +407,13 @@ bool codegen(jitdata *jd)
 
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 
-			switch (iptr->opc) {
-			case ICMD_NOP:    /* ...  ==> ...                                 */
-			case ICMD_INLINE_START:
-			case ICMD_INLINE_END:
-				break;
+		switch (iptr->opc) {
+		case ICMD_NOP:        /* ...  ==> ...                                 */
+		case ICMD_INLINE_START:
+		case ICMD_INLINE_END:
+			break;
 
-		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
+		case ICMD_CHECKNULL_POP: /* ..., objectref  ==> ...                   */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_TST(s1);

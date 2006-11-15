@@ -25,14 +25,13 @@
    Contact: cacao@complang.tuwien.ac.at
 
    Authors: Andreas Krall
-
-   Changes: Stefan Ring
+            Stefan Ring
             Christian Thalinger
             Christian Ullrich
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5925 2006-11-05 23:11:27Z edwin $
+   $Id: simplereg.c 5980 2006-11-15 12:25:13Z twisti $
 
 */
 
@@ -1414,7 +1413,6 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					VAROP(iptr->dst)->vv.regoff = 0;
 #endif
 				case ICMD_NOP:
-				case ICMD_CHECKNULL:
 				case ICMD_IINC:
 				case ICMD_RET:
 				case ICMD_RETURN:
@@ -1486,6 +1484,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					/* pop 1 push 0 */
 
 				case ICMD_POP:
+				case ICMD_CHECKNULL_POP:
 
 				case ICMD_IRETURN:
 				case ICMD_LRETURN:
