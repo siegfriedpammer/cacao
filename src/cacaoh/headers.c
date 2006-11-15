@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: headers.c 5973 2006-11-12 15:01:14Z edwin $
+   $Id: headers.c 5989 2006-11-15 18:01:17Z twisti $
 
 */
 
@@ -72,6 +72,12 @@
 
 _Jv_JavaVM *_Jv_jvm;                    /* denotes a Java VM                  */
 char       *_Jv_bootclasspath;
+
+char       *cacao_prefix;
+char       *classpath_libdir;
+
+char       *_Jv_classpath;
+char       *_Jv_java_library_path;
 
 #if defined(ENABLE_INTRP)
 /* dummy interpreter stack to keep the compiler happy */
