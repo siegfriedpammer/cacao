@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 5925 2006-11-05 23:11:27Z edwin $
+   $Id: typecheck.c 6008 2006-11-15 23:44:01Z edwin $
 
 */
 
@@ -757,14 +757,16 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 
 #define STORE_LOCAL(t, index)                                        \
     do {                                                             \
+         s4 temp_t = (t);                                            \
          typecheck_invalidate_locals(state, (index), false);         \
-         typevector_store(jd->var, (index), (t), NULL);              \
+         typevector_store(jd->var, (index), (temp_t), NULL);         \
     } while (0)
 
 #define STORE_LOCAL_2_WORD(t, index)                                 \
     do {                                                             \
+         s4 temp_t = (t);                                            \
          typecheck_invalidate_locals(state, (index), true);          \
-         typevector_store(jd->var, (index), (t), NULL);              \
+         typevector_store(jd->var, (index), (temp_t), NULL);         \
     } while (0)
 
 #define REACH_BLOCK(target)                                          \

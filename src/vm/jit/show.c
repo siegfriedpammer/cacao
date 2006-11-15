@@ -738,6 +738,11 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 void show_allocation(s4 type, s4 flags, s4 regoff)
 {
+	if (type == TYPE_RET) {
+		printf("N/A");
+		return;
+	}
+
 	if (flags & INMEMORY) {
 		printf("M%02d", regoff);
 		return;
@@ -823,8 +828,13 @@ static void show_variable_intern(jitdata *jd, s4 index, int stage)
 	else {
 		if (v->flags & PREALLOC) {
 			kind = 'A';
-			if (v->flags & INOUT)
-				printf("<INVALID FLAGS!>");
+			if (v->flags & INOUT) {
+				/* PREALLOC is used to avoid allocation of TYPE_RET */
+				if (v->type == TYPE_RET)
+					kind = 'i';
+				else
+					printf("<INVALID FLAGS!>");
+			}
 		}
 		else if (v->flags & INOUT)
 			kind = 'I';
@@ -841,6 +851,10 @@ static void show_variable_intern(jitdata *jd, s4 index, int stage)
 		putchar('(');
 		show_allocation(v->type, v->flags, v->vv.regoff);
 		putchar(')');
+	}
+
+	if (v->type == TYPE_RET && (v->flags & PREALLOC)) {
+		printf("(L%03d)", v->vv.retaddr->nr);
 	}
 }
 

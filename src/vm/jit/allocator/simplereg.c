@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 5982 2006-11-15 15:30:36Z twisti $
+   $Id: simplereg.c 6008 2006-11-15 23:44:01Z edwin $
 
 */
 
@@ -1350,6 +1350,8 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 			for (i=0; i<bptr->indepth; ++i) 
 			{
 				v = VAR(bptr->invars[i]);
+				if (v->type == TYPE_RET)
+					continue;
 
 				v->vv.regoff = jd->interface_map[5*i + v->type].regoff;
 				v->flags  = jd->interface_map[5*i + v->type].flags;
@@ -1363,6 +1365,8 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 			for (i=0; i<bptr->outdepth; ++i) 
 			{
 				v = VAR(bptr->outvars[i]);
+				if (v->type == TYPE_RET)
+					continue;
 
 				v->vv.regoff = jd->interface_map[5*i + v->type].regoff;
 				v->flags  = jd->interface_map[5*i + v->type].flags;

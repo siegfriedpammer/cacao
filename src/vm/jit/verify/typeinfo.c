@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 5763 2006-10-13 10:36:34Z edwin $
+   $Id: typeinfo.c 6008 2006-11-15 23:44:01Z edwin $
 
 */
 
@@ -2519,6 +2519,7 @@ typeinfo_print_type(FILE *file,int type,typeinfo *info)
       case TYPE_FLT:  fprintf(file,"F"); break;
       case TYPE_DBL:  fprintf(file,"D"); break;
       case TYPE_LNG:  fprintf(file,"J"); break;
+	  case TYPE_RET:  fprintf(file,"R:"); /* FALLTHROUGH! */
       case TYPE_ADR:
 		  typeinfo_print_short(file,info);
           break;
