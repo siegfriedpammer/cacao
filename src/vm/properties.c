@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: properties.c 5990 2006-11-15 18:09:28Z twisti $
+   $Id: properties.c 5991 2006-11-15 18:26:40Z twisti $
 
 */
 
@@ -90,7 +90,7 @@ bool properties_init(void)
 	char           *extdirs;
 	char           *lang;
 	char           *country;
-	struct utsname  utsnamebuf;
+	struct utsname *utsnamebuf;
 	s4              len;
 #endif
 
@@ -107,7 +107,9 @@ bool properties_init(void)
 	env_home      = getenv("HOME");
 	env_lang      = getenv("LANG");
 
-	uname(&utsnamebuf);
+	utsnamebuf = NEW(struct utsname);
+
+	uname(utsnamebuf);
 
 	/* set JAVA_HOME to default prefix if not defined */
 
@@ -219,11 +221,11 @@ bool properties_init(void)
 # else
 	/* default to what uname returns */
 
-	properties_add("os.arch", utsnamebuf.machine);
+	properties_add("os.arch", utsnamebuf->machine);
 # endif
 
- 	properties_add("os.name", utsnamebuf.sysname);
-	properties_add("os.version", utsnamebuf.release);
+ 	properties_add("os.name", utsnamebuf->sysname);
+	properties_add("os.version", utsnamebuf->release);
 #endif
 
 	properties_add("file.separator", "/");
