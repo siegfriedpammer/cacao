@@ -67,6 +67,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage);
 void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage);
 void show_variable(jitdata *jd, s4 index, int stage);
 void show_variable_array(jitdata *jd, s4 *vars, int n, int stage);
+void show_javalocals_array(jitdata *jd, s4 *vars, int n, int stage);
 void show_allocation(s4 type, s4 flags, s4 regoff);
 #endif /* !defined(NDEBUG) */
 

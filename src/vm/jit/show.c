@@ -411,7 +411,7 @@ static void show_inline_info(jitdata *jd, insinfo_inline *ii, s4 opcode, s4 stag
 		printf(" jl ");
 		jl = (opcode == ICMD_INLINE_START) ? ii->javalocals_start : ii->javalocals_end;
 		n = (opcode == ICMD_INLINE_START) ? ii->method->maxlocals : ii->outer->maxlocals;
-		show_variable_array(jd, jl, n, stage);
+		show_javalocals_array(jd, jl, n, stage);
 	}
 
 	printf(") ");
@@ -516,7 +516,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			printf("IN:  ");
 			show_variable_array(jd, bptr->invars, bptr->indepth, irstage);
 			printf(" javalocals: ");
-			show_variable_array(jd, bptr->javalocals, bptr->method->maxlocals, irstage);
+			show_javalocals_array(jd, bptr->javalocals, bptr->method->maxlocals, irstage);
 			printf("\n");
 		}
 
@@ -844,9 +844,11 @@ static void show_variable_intern(jitdata *jd, s4 index, int stage)
 	}
 }
 
-void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
+static void show_variable_array_intern(jitdata *jd, s4 *vars, int n, int stage,
+									   bool javalocals)
 {
 	int i;
+	int nr;
 
 	if (vars == NULL) {
 		printf("<null>");
@@ -857,12 +859,31 @@ void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
 	for (i=0; i<n; ++i) {
 		if (i)
 			putchar(' ');
-		if (vars[i] == UNUSED)
-			putchar('-');
+		if (vars[i] < 0) {
+			if (vars[i] == UNUSED)
+				putchar('-');
+			else if (javalocals) {
+				nr = (UNUSED - vars[i]) - 1;
+				printf("ret(L%03d)", nr);
+			}
+			else {
+				printf("<INVALID INDEX:%d>", vars[i]);
+			}
+		}
 		else
 			show_variable_intern(jd, vars[i], stage);
 	}
 	printf("]");
+}
+
+void show_variable_array(jitdata *jd, s4 *vars, int n, int stage)
+{
+	show_variable_array_intern(jd, vars, n, stage, false);
+}
+
+void show_javalocals_array(jitdata *jd, s4 *vars, int n, int stage)
+{
+	show_variable_array_intern(jd, vars, n, stage, true);
 }
 
 void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
@@ -1144,6 +1165,9 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		SHOW_DST_LOCAL(iptr);
 		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
 			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
+		if (iptr->flags.bits & INS_FLAG_RETADDR) {
+			printf(" (retaddr L%03d)", (UNUSED - iptr->sx.s23.s2.retaddrnr) - 1);
+		}
 		break;
 
 	case ICMD_NEW:

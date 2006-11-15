@@ -68,7 +68,7 @@ struct rplalloc {
 	s4           index;     /* local index, -1 for stack slot         */
 	s4           regoff;    /* register index / stack slot offset     */
 	unsigned int flags:4;   /* OR of (INMEMORY,...)                   */
-	int          type:4;    /* TYPE_... constant                      */
+	unsigned int type:4;    /* TYPE_... constant                      */
 };
 
 #if INMEMORY > 0x08

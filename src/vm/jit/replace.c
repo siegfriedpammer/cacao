@@ -1425,9 +1425,8 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-static const char *type_char = "IJFDA";
 
-#define TYPECHAR(t)  (((t) >= 0 && (t) <= 4) ? type_char[t] : '?')
+#define TYPECHAR(t)  (((t) >= 0 && (t) <= TYPE_RET) ? show_jit_type_letters[t] : '?')
 
 static char *replace_type_str[] = {
 	"STD",
@@ -1470,7 +1469,12 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 			default: printf("%d", index);
 		}
 		printf(":%1c:", TYPECHAR(rp->regalloc[j].type));
-		show_allocation(rp->regalloc[j].type, rp->regalloc[j].flags, rp->regalloc[j].regoff);
+		if (rp->regalloc[j].type == TYPE_RET) {
+			printf("ret(L%03d)", rp->regalloc[j].regoff);
+		}
+		else {
+			show_allocation(rp->regalloc[j].type, rp->regalloc[j].flags, rp->regalloc[j].regoff);
+		}
 	}
 
 	printf("]\n");

@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: jit.h 5998 2006-11-15 23:15:13Z edwin $
+   $Id: jit.h 6004 2006-11-15 23:30:16Z edwin $
 
 */
 
@@ -282,6 +282,7 @@ typedef union {
     ptrint                     constval;         /* for PUT*CONST             */
     s4                         tablelow;         /* for TABLESWITCH           */
     u4                         lookupcount;      /* for LOOKUPSWITCH          */
+	s4                         retaddrnr;        /* for ASTORE                */
 } s2_operand_t;
 
 /*** s3 operand ***/
