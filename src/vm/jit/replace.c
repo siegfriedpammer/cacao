@@ -101,6 +101,7 @@ typedef u8 stackslot_t;
 	   javalocals.......the javalocals at the current point
 	   stackvars........the stack variables at the current point
 	   stackdepth.......the stack depth at the current point
+	   paramcount.......number of parameters at the start of stackvars
   
    OUT:
        *rpa.............points to the next free rplalloc
@@ -115,7 +116,8 @@ static void replace_create_replacement_point(jitdata *jd,
 											 rplalloc **pra,
 											 s4 *javalocals,
 											 s4 *stackvars,
-											 s4 stackdepth)
+											 s4 stackdepth,
+											 s4 paramcount)
 {
 	rplalloc *ra;
 	s4        i;
@@ -162,7 +164,7 @@ static void replace_create_replacement_point(jitdata *jd,
 	for (i = 0; i < stackdepth; ++i) {
 		v = VAR(stackvars[i]);
 		ra->flags = v->flags & (INMEMORY);
-		ra->index = -1;
+		ra->index = (i < paramcount) ? RPLALLOC_PARAM : RPLALLOC_STACK;
 		ra->regoff = v->vv.regoff;
 		ra->type  = v->type;
 		ra++;
@@ -289,7 +291,7 @@ bool replace_create_replacement_points(jitdata *jd)
 					for (i=0; i<m->maxlocals; ++i)
 						if (javalocals[i] != UNUSED)
 							alloccount++;
-					alloccount += iptr->s1.argcount - md->paramcount;
+					alloccount += iptr->s1.argcount;
 					if (iinfo)
 						alloccount -= iinfo->throughcount;
 					break;
@@ -392,7 +394,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 			replace_create_replacement_point(jd, iinfo, rp++,
 					bptr->type, bptr->iinstr, &ra,
-					bptr->javalocals, bptr->invars, bptr->indepth);
+					bptr->javalocals, bptr->invars, bptr->indepth, 0);
 		}
 
 		/* iterate over the instructions */
@@ -411,8 +413,9 @@ bool replace_create_replacement_points(jitdata *jd)
 					i = (iinfo) ? iinfo->throughcount : 0;
 					replace_create_replacement_point(jd, iinfo, rp++,
 							RPLPOINT_TYPE_CALL, iptr, &ra,
-							javalocals, iptr->sx.s23.s2.args + md->paramcount,
-							iptr->s1.argcount - md->paramcount - i);
+							javalocals, iptr->sx.s23.s2.args,
+							iptr->s1.argcount - i,
+							md->paramcount);
 					break;
 
 				case ICMD_ISTORE:
@@ -442,13 +445,13 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_ARETURN:
 					replace_create_replacement_point(jd, iinfo, rp++,
 							RPLPOINT_TYPE_RETURN, iptr, &ra,
-							NULL, &(iptr->s1.varindex), 1);
+							NULL, &(iptr->s1.varindex), 1, 0);
 					break;
 
 				case ICMD_RETURN:
 					replace_create_replacement_point(jd, iinfo, rp++,
 							RPLPOINT_TYPE_RETURN, iptr, &ra,
-							NULL, NULL, 0);
+							NULL, NULL, 0, 0);
 					break;
 
 				case ICMD_INLINE_START:
@@ -458,7 +461,8 @@ bool replace_create_replacement_points(jitdata *jd)
 					replace_create_replacement_point(jd, iinfo, rp++,
 							RPLPOINT_TYPE_INLINE, iptr, &ra,
 							javalocals,
-							calleeinfo->stackvars, calleeinfo->stackvarscount);
+							calleeinfo->stackvars, calleeinfo->stackvarscount,
+							calleeinfo->paramcount);
 
 					iinfo = calleeinfo;
 					m = iinfo->method;
@@ -677,7 +681,8 @@ static void replace_write_value(executionstate_t *es,
 *******************************************************************************/
 
 static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
-									 sourcestate_t *ss)
+									 	sourcestate_t *ss,
+										bool topframe)
 {
 	methodinfo    *m;
 	codeinfo      *code;
@@ -786,6 +791,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
 	if (topslot == TOP_IS_ON_STACK) {
 		assert(count);
 
+		assert(ra->index == RPLALLOC_STACK);
 		frame->javastack[i] = sp[-1];
 		frame->javastacktype[i] = TYPE_ADR; /* XXX RET */
 		count--;
@@ -795,6 +801,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
 	else if (topslot == TOP_IS_IN_ITMP1) {
 		assert(count);
 
+		assert(ra->index == RPLALLOC_STACK);
 		frame->javastack[i] = es->intregs[REG_ITMP1];
 		frame->javastacktype[i] = TYPE_ADR; /* XXX RET */
 		count--;
@@ -804,11 +811,19 @@ static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
 
 	/* read remaining stack slots */
 
-	for (; count--; ra++, i++) {
-		assert(ra->index == -1);
+	for (; count--; ra++) {
+		assert(ra->index == RPLALLOC_STACK || ra->index == RPLALLOC_PARAM);
 
-		replace_read_value(es,sp,ra,frame->javastack + i);
-		frame->javastacktype[i] = ra->type;
+		/* do not read parameters of calls down the call chain */
+
+		if (!topframe && ra->index == RPLALLOC_PARAM) {
+			frame->javastackdepth--;
+		}
+		else {
+			replace_read_value(es,sp,ra,frame->javastack + i);
+			frame->javastacktype[i] = ra->type;
+			i++;
+		}
 	}
 
 	/* read slots used for synchronization */
@@ -839,7 +854,8 @@ static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
 
 static void replace_write_executionstate(rplpoint *rp,
 										 executionstate_t *es,
-										 sourcestate_t *ss)
+										 sourcestate_t *ss,
+										 bool topframe)
 {
 	methodinfo     *m;
 	codeinfo       *code;
@@ -909,6 +925,7 @@ static void replace_write_executionstate(rplpoint *rp,
 	if (topslot == TOP_IS_ON_STACK) {
 		assert(count);
 
+		assert(ra->index == RPLALLOC_STACK);
 		assert(i < frame->javastackdepth);
 		assert(frame->javastacktype[i] == TYPE_ADR);
 		sp[-1] = frame->javastack[i];
@@ -919,6 +936,7 @@ static void replace_write_executionstate(rplpoint *rp,
 	else if (topslot == TOP_IS_IN_ITMP1) {
 		assert(count);
 
+		assert(ra->index == RPLALLOC_STACK);
 		assert(i < frame->javastackdepth);
 		assert(frame->javastacktype[i] == TYPE_ADR);
 		es->intregs[REG_ITMP1] = frame->javastack[i];
@@ -929,11 +947,20 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	/* write remaining stack slots */
 
-	for (; count--; ra++, i++) {
-		assert(ra->index == -1);
-		assert(i < frame->javastackdepth);
-		assert(ra->type == frame->javastacktype[i]);
-		replace_write_value(es,sp,ra,frame->javastack + i);
+	for (; count--; ra++) {
+		assert(ra->index == RPLALLOC_STACK || ra->index == RPLALLOC_PARAM);
+
+		/* do not write parameters of calls down the call chain */
+
+		if (!topframe && ra->index == RPLALLOC_PARAM) {
+			/* skip it */
+		}
+		else {
+			assert(i < frame->javastackdepth);
+			assert(ra->type == frame->javastacktype[i]);
+			replace_write_value(es,sp,ra,frame->javastack + i);
+			i++;
+		}
 	}
 
 	/* write slots used for synchronization */
@@ -1244,7 +1271,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		DOLOG( printf("recovering source state for:\n");
 			   replace_replacement_point_println(candidate, 1); );
 
-		replace_read_executionstate(candidate, es, &ss);
+		replace_read_executionstate(candidate, es, &ss, ss.frames == NULL);
 
 		if (candidate->parent) {
 			DOLOG( printf("INLINED!\n"); );
@@ -1290,14 +1317,17 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		DOLOG( printf("creating execution state for:\n");
 			   replace_replacement_point_println(candidate, 1); );
 
-		replace_write_executionstate(candidate, es, &ss);
+		replace_write_executionstate(candidate, es, &ss, ss.frames->up == NULL);
 		if (ss.frames == NULL)
 			break;
+		DOLOG( replace_executionstate_println(es); );
 
 		if (candidate->type == RPLPOINT_TYPE_CALL) {
 			jit_recompile(ss.frames->method);
 			code = ss.frames->method->code;
 			assert(code);
+			DOLOG( printf("pushing activation record for:\n");
+				   replace_replacement_point_println(candidate, 1); );
 			replace_push_activation_record(es, candidate, code);
 		}
 		DOLOG( replace_executionstate_println(es); );

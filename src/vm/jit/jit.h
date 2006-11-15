@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: jit.h 5983 2006-11-15 15:42:04Z twisti $
+   $Id: jit.h 5998 2006-11-15 23:15:13Z edwin $
 
 */
 
@@ -412,6 +412,7 @@ struct insinfo_inline {
 	s4              synclocal;      /* local index used for synchronization   */
 	bool            synchronize;    /* true if synchronization is needed      */
 	s4              throughcount;   /* total # of pass-through variables      */
+	s4              paramcount;     /* number of parameters of original call  */
 	s4              stackvarscount; /* source stackdepth at INLINE_START      */
 	s4             *stackvars;      /* stack vars at INLINE_START             */
 

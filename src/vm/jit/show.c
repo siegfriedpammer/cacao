@@ -401,8 +401,10 @@ static void show_inline_info(jitdata *jd, insinfo_inline *ii, s4 opcode, s4 stag
 	s4 *jl;
 	s4 n;
 
-	printf("(pt %d+%d st ", ii->throughcount - ii->stackvarscount,
-			ii->stackvarscount);
+	printf("(pt %d+%d+%d st ", 
+			ii->throughcount - (ii->stackvarscount - ii->paramcount),
+			ii->stackvarscount - ii->paramcount,
+			ii->paramcount);
 	show_variable_array(jd, ii->stackvars, ii->stackvarscount, stage);
 
 	if (opcode == ICMD_INLINE_START || opcode == ICMD_INLINE_END) {

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5995 2006-11-15 22:59:31Z edwin $
+   $Id: inline.c 5998 2006-11-15 23:15:13Z edwin $
 
 */
 
@@ -835,6 +835,47 @@ static void close_body_block(inline_node *iln,
 
 /* inlined code generation ****************************************************/
 
+static void inline_generate_sync_builtin(inline_node *iln,
+										 inline_node *callee,
+										 instruction *o_iptr,
+										 s4 instancevar,
+										 functionptr func)
+{
+	int          syncvar;
+	instruction *n_ins;
+
+	if (callee->m->flags & ACC_STATIC) {
+		/* ACONST */
+		n_ins = (iln->inlined_iinstr_cursor++);
+		assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
+
+		syncvar = inline_new_temp_variable(iln->ctx->resultjd, TYPE_ADR);
+
+		n_ins->opc = ICMD_ACONST;
+		n_ins->sx.val.c.cls = callee->m->class;
+		n_ins->flags.bits = INS_FLAG_CLASS;
+		n_ins->line = o_iptr->line;
+		n_ins->dst.varindex = syncvar;
+	}
+	else {
+		syncvar = instancevar;
+	}
+
+	assert(syncvar != UNUSED);
+
+	/* MONITORENTER / MONITOREXIT */
+
+	n_ins = (iln->inlined_iinstr_cursor++);
+	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
+
+	n_ins->opc = ICMD_BUILTIN;
+	n_ins->sx.s23.s3.bte = builtintable_get_internal(func);
+	n_ins->s1.argcount = 1; /* XXX add through-vars */
+	n_ins->sx.s23.s2.args = DMNEW(s4, 1);
+	n_ins->sx.s23.s2.args[0] = syncvar;
+	n_ins->line = o_iptr->line;
+}
+
 static s4 emit_inlining_prolog(inline_node *iln,
 							   inline_node *callee,
 							   instruction *o_iptr,
@@ -855,6 +896,48 @@ static s4 emit_inlining_prolog(inline_node *iln,
 	calleem = callee->m;
 	md = calleem->parseddesc;
 	isstatic = (calleem->flags & ACC_STATIC);
+
+	/* INLINE_START instruction */
+
+	n_ins = (iln->inlined_iinstr_cursor++);
+	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
+
+	insinfo = DNEW(insinfo_inline);
+	insinfo->method = callee->m;
+	insinfo->outer = iln->m;
+	insinfo->synclocal = callee->synclocal;
+	insinfo->synchronize = callee->synchronize;
+	insinfo->javalocals_start = NULL;
+	insinfo->javalocals_end = NULL;
+
+	/* info about stack vars live at the INLINE_START */
+
+	insinfo->throughcount = callee->n_passthroughcount;
+	insinfo->paramcount = md->paramcount;
+	insinfo->stackvarscount = o_iptr->s1.argcount;
+	insinfo->stackvars = DMNEW(s4, insinfo->stackvarscount);
+	for (i=0; i<insinfo->stackvarscount; ++i)
+		insinfo->stackvars[i] = iln->varmap[o_iptr->sx.s23.s2.args[i]];
+
+	/* info about the surrounding inlining */
+
+	if (iln->inline_start_instruction)
+		insinfo->parent = iln->inline_start_instruction->sx.s23.s3.inlineinfo;
+	else
+		insinfo->parent = NULL;
+
+	/* finish the INLINE_START instruction */
+
+	n_ins->opc = ICMD_INLINE_START;
+	n_ins->sx.s23.s3.inlineinfo = insinfo;
+	n_ins->line = o_iptr->line;
+	n_ins->flags.bits = o_iptr->flags.bits & INS_FLAG_ID_MASK;
+	callee->inline_start_instruction = n_ins;
+
+	DOLOG( printf("%sprolog: ", iln->indent);
+		   show_icmd(iln->ctx->resultjd, n_ins, false, SHOW_STACK); printf("\n"); );
+
+	/* handle parameters for the inlined callee */
 
 	localindex = callee->localsoffset + md->paramslots;
 
@@ -930,59 +1013,25 @@ static s4 emit_inlining_prolog(inline_node *iln,
 			   show_icmd(iln->ctx->resultjd, n_ins, false, SHOW_STACK); printf("\n"); );
 	}
 
-	/* ASTORE for synchronized instance methods */
+	/* COPY for synchronized instance methods */
 
 	if (callee->synclocal != UNUSED) {
 		n_ins = (iln->inlined_iinstr_cursor++);
 		assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
 
-		n_ins->opc = ICMD_ASTORE;
+		n_ins->opc = ICMD_COPY;
 		n_ins->s1.varindex = varmap[o_iptr->sx.s23.s2.args[0]];
 		n_ins->dst.varindex = callee->synclocal;
-		n_ins->sx.s23.s3.javaindex = UNUSED;
 		n_ins->line = o_iptr->line;
 
 		assert(n_ins->s1.varindex != UNUSED);
 	}
 
-	/* INLINE_START instruction */
-
-	n_ins = (iln->inlined_iinstr_cursor++);
-	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
-
-	insinfo = DNEW(insinfo_inline);
-	insinfo->method = callee->m;
-	insinfo->outer = iln->m;
-	insinfo->synclocal = callee->synclocal;
-	insinfo->synchronize = callee->synchronize;
-	insinfo->javalocals_start = NULL;
-	insinfo->javalocals_end = NULL;
-
-	/* info about stack vars live at the INLINE_START */
-
-	insinfo->throughcount = callee->n_passthroughcount;
-	insinfo->stackvarscount = o_iptr->s1.argcount - md->paramcount;
-	insinfo->stackvars = DMNEW(s4, insinfo->stackvarscount);
-	for (i=0; i<insinfo->stackvarscount; ++i)
-		insinfo->stackvars[i] = iln->varmap[o_iptr->sx.s23.s2.args[md->paramcount + i]];
-
-	/* info about the surrounding inlining */
-
-	if (iln->inline_start_instruction)
-		insinfo->parent = iln->inline_start_instruction->sx.s23.s3.inlineinfo;
-	else
-		insinfo->parent = NULL;
-
-	/* finish the INLINE_START instruction */
-
-	n_ins->opc = ICMD_INLINE_START;
-	n_ins->sx.s23.s3.inlineinfo = insinfo;
-	n_ins->line = o_iptr->line;
-	n_ins->flags.bits = o_iptr->flags.bits & INS_FLAG_ID_MASK;
-	callee->inline_start_instruction = n_ins;
-
-	DOLOG( printf("%sprolog: ", iln->indent);
-		   show_icmd(iln->ctx->resultjd, n_ins, false, SHOW_STACK); printf("\n"); );
+	if (callee->synchronize) {
+		inline_generate_sync_builtin(iln, callee, o_iptr,
+									 (isstatic) ? UNUSED : varmap[o_iptr->sx.s23.s2.args[0]],
+									 LOCK_monitor_enter);
+	}
 
 	return 0; /* XXX */
 }
@@ -995,6 +1044,12 @@ static void emit_inlining_epilog(inline_node *iln, inline_node *callee, instruct
 
 	assert(iln && callee && o_iptr);
 	assert(callee->inline_start_instruction);
+
+	if (callee->synchronize) {
+		inline_generate_sync_builtin(iln, callee, o_iptr,
+									 callee->synclocal,
+									 LOCK_monitor_exit);
+	}
 
 	/* INLINE_END instruction */
 
@@ -1366,7 +1421,7 @@ static void rewrite_method(inline_node *iln)
 				/* emit inlining epilog */
 
 				emit_inlining_epilog(iln, nextcall, o_iptr);
-				icount++; /* XXX epilog instructions */
+				icount += nextcall->epilog_instructioncount;
 
 				/* proceed to next call */
 
@@ -2020,11 +2075,21 @@ static bool inline_analyse_callee(inline_node *caller,
 		cn->blockbefore = true;
 		cn->blockafter = true;
 
-		/* for synchronized instance methods */
-		/* we need an ASTORE in the prolog   */
+		/* for synchronized static methods                 */
+		/* we need an ACONST, MONITORENTER in the prolog   */
+		/* and ACONST, MONITOREXIT in the epilog           */
 
-		if (!isstatic) {
-			cn->prolog_instructioncount += 1;
+		/* for synchronized instance methods               */
+		/* we need an COPY, MONITORENTER in the prolog     */
+		/* and MONITOREXIT in the epilog                   */
+
+		if (isstatic) {
+			cn->prolog_instructioncount += 2;
+			cn->epilog_instructioncount += 2;
+		}
+		else {
+			cn->prolog_instructioncount += 2;
+			cn->epilog_instructioncount += 1;
 			cn->localsoffset += 1;
 		}
 

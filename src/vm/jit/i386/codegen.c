@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5982 2006-11-15 15:30:36Z twisti $
+   $Id: codegen.c 5998 2006-11-15 23:15:13Z edwin $
 
 */
 
@@ -520,75 +520,23 @@ bool codegen(jitdata *jd)
 			MCODECHECK(1024);                         /* 1kB should be enough */
 
 		switch (iptr->opc) {
+
 		case ICMD_INLINE_START:
-			{
-				insinfo_inline *insinfo = iptr->sx.s23.s3.inlineinfo;
 
-				/* handle replacement point */
+			/* handle replacement point */
 
-				replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-				replacementpoint++;
-				/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
-				cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+			replacementpoint++;
+			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
 
-#if defined(ENABLE_THREADS)
-				if (insinfo->synchronize) {
-					/* add monitor enter code */
-					if (insinfo->method->flags & ACC_STATIC) {
-						M_MOV_IMM(&insinfo->method->class->object.header, REG_ITMP1);
-						M_AST(REG_ITMP1, REG_SP, 0 * 4);
-					} 
-					else {
-						/* nullpointer check must have been performed before */
-						/* (XXX not done, yet) */
-						var = VAR(insinfo->synclocal);
-						if (var->flags & INMEMORY) {
-							emit_mov_membase_reg(cd, REG_SP, var->vv.regoff * 4, REG_ITMP1);
-							M_AST(REG_ITMP1, REG_SP, 0 * 4);
-						} 
-						else {
-							M_AST(var->vv.regoff, REG_SP, 0 * 4);
-						}
-					}
-
-					M_MOV_IMM(LOCK_monitor_enter, REG_ITMP3);
-					M_CALL(REG_ITMP3);
-				}
-#endif
-				dseg_addlinenumber_inline_start(cd, iptr);
-			}
+			dseg_addlinenumber_inline_start(cd, iptr);
 			break;
 
 		case ICMD_INLINE_END:
-			{
-				insinfo_inline *insinfo = iptr->sx.s23.s3.inlineinfo;
 
-				dseg_addlinenumber_inline_end(cd, iptr);
-				dseg_addlinenumber(cd, iptr->line);
-
-#if defined(ENABLE_THREADS)
-				if (insinfo->synchronize) {
-					/* add monitor exit code */
-					if (insinfo->method->flags & ACC_STATIC) {
-						M_MOV_IMM(&insinfo->method->class->object.header, REG_ITMP1);
-						M_AST(REG_ITMP1, REG_SP, 0 * 4);
-					} 
-					else {
-						var = VAR(insinfo->synclocal);
-						if (var->flags & INMEMORY) {
-							M_ALD(REG_ITMP1, REG_SP, var->vv.regoff * 4);
-							M_AST(REG_ITMP1, REG_SP, 0 * 4);
-						} 
-						else {
-							M_AST(var->vv.regoff, REG_SP, 0 * 4);
-						}
-					}
-
-					M_MOV_IMM(LOCK_monitor_exit, REG_ITMP3);
-					M_CALL(REG_ITMP3);
-				}
-#endif
-			}
+			dseg_addlinenumber_inline_end(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line);
 			break;
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
