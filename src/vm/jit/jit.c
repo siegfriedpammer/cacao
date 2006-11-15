@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5996 2006-11-15 23:02:21Z edwin $
+   $Id: jit.c 6007 2006-11-15 23:37:14Z edwin $
 
 */
 
@@ -1188,7 +1188,8 @@ u1 *jit_recompile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE;
 	if (opt_showdisassemble)
 		jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
-/* 	jd->flags |= JITDATA_FLAG_VERBOSECALL; */
+	if (opt_verbosecall)
+		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
