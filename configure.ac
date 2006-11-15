@@ -220,6 +220,32 @@ dnl Features
 
 dnl check arguments
 
+dnl check which Java configuration to use
+AC_MSG_CHECKING(which Java configuration to use)
+AC_ARG_ENABLE([java],
+              [AS_HELP_STRING(--enable-java,enable specific Java configuration (cldc1.1,javase) [[default=javase]])],
+              [case "${enableval}" in
+                   cldc1.1)
+                       ENABLE_JAVAME_CLDC1_1=yes
+                       AC_DEFINE([ENABLE_JAVAME_CLDC1_1], 1, [compile for Java ME CLDC1.1])
+                       AC_MSG_RESULT(cldc1.1)
+                       ;;
+                   javase)
+                       ENABLE_JAVASE=yes
+                       AC_DEFINE([ENABLE_JAVASE], 1, [compile for Java SE])
+                       AC_MSG_RESULT(javase)
+                       ;;
+                   *)
+                       AC_MSG_ERROR(${enableval} is an unknown configuration)
+                       ;;
+               esac],
+               [ENABLE_JAVASE=yes
+                AC_DEFINE([ENABLE_JAVASE], 1, [compile for Java SE])
+                AC_MSG_RESULT(j2se)])
+AM_CONDITIONAL([ENABLE_JAVAME_CLDC1_1], test x"${ENABLE_JAVAME_CLDC1_1}" = "xyes")
+AM_CONDITIONAL([ENABLE_JAVASE], test x"${ENABLE_JAVASE}" = "xyes")
+
+
 dnl check for JIT compiler
 AC_MSG_CHECKING(whether JIT compiler should be compiled)
 AC_ARG_ENABLE([jit],
