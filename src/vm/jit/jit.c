@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 5964 2006-11-12 13:46:44Z edwin $
+   $Id: jit.c 5996 2006-11-15 23:02:21Z edwin $
 
 */
 
@@ -1145,12 +1145,14 @@ u1 *jit_recompile(methodinfo *m)
 
 	/* check for max. optimization level */
 
-	optlevel = m->code->optlevel;
+	optlevel = (m->code) ? m->code->optlevel : 0;
 
+#if 0
 	if (optlevel == 1) {
 /* 		log_message_method("not recompiling: ", m); */
 		return NULL;
 	}
+#endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Recompiling start: ");
 
@@ -1545,8 +1547,10 @@ void jit_invalidate_code(methodinfo *m)
 	s4        i;
 
 	code = m->code;
-	if (code == NULL)
+	if (code == NULL || code->invalid)
 		return;
+
+	code->invalid = true;
 
 	rp = code->rplpoints;
 	i = code->rplpointcount;

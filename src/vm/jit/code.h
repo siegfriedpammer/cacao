@@ -58,6 +58,8 @@ struct codeinfo {
 	methodinfo   *m;                    /* method this is a realization of    */
 	codeinfo     *prev;                 /* previous codeinfo of this method   */
 
+	bool          invalid;
+
 	u1            optlevel;             /* optimization level of this code    */
 	s4            basicblockcount;      /* number of basic blocks             */
 
