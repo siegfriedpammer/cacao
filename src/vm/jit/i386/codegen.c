@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5998 2006-11-15 23:15:13Z edwin $
+   $Id: codegen.c 6002 2006-11-15 23:23:59Z edwin $
 
 */
 
@@ -2948,17 +2948,35 @@ bool codegen(jitdata *jd)
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 
+			/* handle replacement point */
+			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+			replacementpoint++;
+			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 			goto nowperformreturn;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 
+			/* handle replacement point */
+			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+			replacementpoint++;
+			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+
 			s1 = emit_load_s1(jd, iptr, REG_RESULT_PACKED);
 			M_LNGMOVE(s1, REG_RESULT_PACKED);
 			goto nowperformreturn;
 
 		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
+
+			/* handle replacement point */
+			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+			replacementpoint++;
+			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
 
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
@@ -2978,22 +2996,27 @@ bool codegen(jitdata *jd)
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
 
-			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-			goto nowperformreturn;
-
-		case ICMD_RETURN:      /* ...  ==> ...                                */
-
-nowperformreturn:
-			{
-			s4 i, p;
-			
 			/* handle replacement point */
-
 			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
 			replacementpoint++;
 			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
 			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
 
+			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
+			goto nowperformreturn;
+
+		case ICMD_RETURN:      /* ...  ==> ...                                */
+
+			/* handle replacement point */
+			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+			replacementpoint++;
+			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+
+nowperformreturn:
+			{
+			s4 i, p;
+			
   			p = cd->stackframesize;
 			
 #if !defined(NDEBUG)
