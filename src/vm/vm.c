@@ -1427,14 +1427,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		throw_main_exception_exit();
 #endif
 
-	/* That's important, otherwise we get into trouble, if the Runtime
-	   static initializer is called before (circular dependency. This
-	   is with classpath 0.09. Another important thing is, that this
-	   has to happen after initThreads!!! */
-
-	if (!initialize_class(class_java_lang_System))
-		throw_main_exception_exit();
-
 #if defined(ENABLE_PROFILING)
 	/* initialize profiling */
 
