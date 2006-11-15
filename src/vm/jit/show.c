@@ -25,7 +25,8 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Andreas Krall
-            Edwin Steiner
+
+   Changes: Edwin Steiner
             Christian Thalinger
             Christian Ullrich
 
@@ -894,6 +895,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	switch (opcode) {
 
 	case ICMD_POP:
+	case ICMD_CHECKNULL:
 	case ICMD_CHECKNULL_POP:
 		SHOW_S1(iptr);
 		break;

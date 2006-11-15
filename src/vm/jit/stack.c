@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 5980 2006-11-15 12:25:13Z twisti $
+   $Id: stack.c 5982 2006-11-15 15:30:36Z twisti $
 
 */
 
@@ -1469,6 +1469,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 				superblockend = true;
 				break;
 
+			case ICMD_CHECKNULL:
 			case ICMD_PUTSTATICCONST:
 				break;
 
@@ -1569,7 +1570,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			case ICMD_PUTSTATIC:
 			case ICMD_PUTFIELDCONST:
 			case ICMD_POP:
-			case ICMD_CHECKNULL_POP:
 				RELOCATE(iptr->s1.varindex);
 				break;
 
@@ -2319,6 +2319,14 @@ bool stack_analyse(jitdata *jd)
 icmd_NOP:
 						CLR_SX;
 						OP0_0;
+						break;
+
+					case ICMD_CHECKNULL:
+						coalescing_boundary = sd.new;
+						COUNT(count_check_null);
+						USE_S1(TYPE_ADR);
+						CLR_SX;
+						iptr->dst.varindex = iptr->s1.varindex;
 						break;
 
 					case ICMD_RET:
@@ -3438,12 +3446,6 @@ store_tail:
 						}
 #endif
 						OP1_0_ANY;
-						break;
-
-					case ICMD_CHECKNULL_POP:
-						coalescing_boundary = sd.new;
-						COUNT(count_check_null);
-						OP1_0(TYPE_ADR);
 						break;
 
 					case ICMD_IRETURN:

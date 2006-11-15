@@ -27,8 +27,8 @@
    Authors: Andreas Krall
             Reinhard Grafl
             Alexander Jordan
-            Edwin Steiner
-            Christian Thalinger
+
+   Changes: Edwin Steiner
 
    $Id: codegen.c 4644 2006-03-16 18:44:46Z edwin $
 

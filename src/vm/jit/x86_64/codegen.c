@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5980 2006-11-15 12:25:13Z twisti $
+   $Id: codegen.c 5982 2006-11-15 15:30:36Z twisti $
 
 */
 
@@ -430,11 +430,11 @@ bool codegen(jitdata *jd)
 		case ICMD_NOP:        /* ...  ==> ...                                 */
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-		case ICMD_INLINE_START:
+		case ICMD_INLINE_START: /* internal ICMDs                         */
 		case ICMD_INLINE_END:
 			break;
 
-		case ICMD_CHECKNULL_POP: /* ..., objectref  ==> ...                   */
+		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_TEST(s1);
