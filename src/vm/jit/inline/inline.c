@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5993 2006-11-15 22:47:03Z edwin $
+   $Id: inline.c 5995 2006-11-15 22:59:31Z edwin $
 
 */
 
@@ -2242,7 +2242,9 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 							goto maybe_inline;
 						}
 
-						if ((callee->flags & (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED))
+						/* XXX search single implementation for abstract monomorphics */
+						if ((callee->flags & (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED
+																	 | ACC_ABSTRACT))
 								          == (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED)) {
 							/* XXX */
 							if (0
