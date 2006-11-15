@@ -153,8 +153,6 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target);
 void replace_deactivate_replacement_point(rplpoint *rp);
 void replace_activate(codeinfo *code,codeinfo *target);
 
-bool replace_pop_activation_record(executionstate_t *es);
-
 void replace_me(rplpoint *rp,executionstate_t *es);
 
 #if !defined(NDEBUG)

@@ -1209,7 +1209,7 @@ rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
 	rp = code->rplpoints;
 	i = code->rplpointcount;
 	while (i--) {
-		if (rp->id == frame->id)
+		if (rp->id == frame->id && rp->method == frame->method)
 			return rp;
 		rp++;
 	}
@@ -1532,18 +1532,13 @@ void replace_executionstate_println(executionstate_t *es)
 		for (i=0; i<slots+extraslots; ++i) {
 			if (i%4 == 0)
 				printf("\n\t\t");
-			else
-				printf(" ");
-			printf("M%02d ", i);
-			if (i >= slots)
-				putchar('(');
+			printf("M%02d%c", i, (i >= slots) ? '(' : ' ');
 #ifdef HAS_4BYTE_STACKSLOT
 			printf("%08lx",(unsigned long)*sp++);
 #else
 			printf("%016llx",(unsigned long long)*sp++);
 #endif
-			if (i >= slots)
-				putchar(')');
+			printf("%c", (i >= slots) ? ')' : ' ');
 		}
 		printf("\n");
 	}
