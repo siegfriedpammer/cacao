@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5960 2006-11-12 13:38:34Z edwin $
+   $Id: inline.c 5993 2006-11-15 22:47:03Z edwin $
 
 */
 
@@ -704,9 +704,10 @@ static basicblock * create_body_block(inline_node *iln,
 				o_bptr->invars[i]);
 	}
 
-	/* translate javalocals info */
+	/* translate javalocals info (not for dead code) */
 
-	n_bptr->javalocals = translate_javalocals(iln, o_bptr->javalocals);
+	if (n_bptr->flags >= BBREACHED)
+		n_bptr->javalocals = translate_javalocals(iln, o_bptr->javalocals);
 
 	return n_bptr;
 }
@@ -2241,11 +2242,12 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 							goto maybe_inline;
 						}
 
-						if (callee->flags & ACC_METHOD_MONOMORPHIC) {
+						if ((callee->flags & (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED))
+								          == (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED)) {
 							/* XXX */
 							if (0
-								&& strncmp(callee->class->name->text, "java/", 5) != 0
-								&& strncmp(callee->class->name->text, "gnu/", 4) != 0
+								/* && strncmp(callee->class->name->text, "java/", 5) != 0
+								&& strncmp(callee->class->name->text, "gnu/", 4) != 0 */
 							   )
 							{
 								DOLOG( printf("SPECULATIVE INLINE: "); method_println(callee); );
