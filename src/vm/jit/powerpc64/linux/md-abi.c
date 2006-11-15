@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md-abi.c 5978 2006-11-13 21:43:41Z tbfg $
+   $Id: md-abi.c 5981 2006-11-15 13:44:48Z tbfg $
 
 */
 
@@ -122,7 +122,7 @@ void md_param_alloc(methoddesc *md)
 	iarg = 0;
 	farg = 0;
 	arg = 0;
-	stacksize = LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS;
+	stacksize = LA_SIZE_IN_POINTERS;
 	stackcount = 0;
 
 	/* get params field of methoddesc */
@@ -134,14 +134,13 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 		case TYPE_INT:
 		case TYPE_ADR:
-			if (arg < INT_ARG_CNT) {
+			if (iarg < INT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = iarg;
 				iarg++;
 			} else {
 				pd->inmemory = true;
 				pd->regoff = stacksize + stackcount;
-				stackcount++;
 			}
 			break;
 		case TYPE_FLT:
@@ -152,18 +151,17 @@ void md_param_alloc(methoddesc *md)
 				farg++;
 				if (arg < INT_ARG_CNT) {
 					iarg++;		/* yes, that is true, floating arguments take int register slots away */
-					stackcount++;
 				}
 			} else {
 				pd->inmemory = true;
-				pd->regoff = stacksize + stackcount + 1;
-				stackcount++;
+				pd->regoff = stacksize + stackcount ;
 			}
 			break;
 		default:
 			assert(0);
 		}
 		arg++;
+		stackcount++;
 	}
 
 	/* Since R3, F1 (==A0, A0) are used for passing return values, this */
@@ -176,11 +174,11 @@ void md_param_alloc(methoddesc *md)
 			farg = 1;
 	}
 
-	/* fill register and stack usage */
+	/* fill register and stack usage, parameter areas is at least PA_SIZE_IN_POINTERS */
 
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
-	md->memuse = stacksize + stackcount;
+	md->memuse = stacksize + (stackcount<PA_SIZE_IN_POINTERS? PA_SIZE_IN_POINTERS: stackcount);	
 }
 
 

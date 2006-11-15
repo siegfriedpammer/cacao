@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5978 2006-11-13 21:43:41Z tbfg $
+   $Id: asmpart.S 5981 2006-11-15 13:44:48Z tbfg $
 
 */
 
@@ -188,15 +188,7 @@
 	li      t0,0                      /* initialize integer argument counter  */
 	li      t1,0                      /* initialize float argument counter    */
 	li      t6,0                      /* initialize integer register counter  */
-#if defined(__DARWIN__)
-	li      t7,0                      /* initialize stack slot counter        */
-#endif
-
-	mflr    r0                        /* save link register (PIC code)        */
-	bl      L_asm_vm_call_method_get_pc
-L_asm_vm_call_method_get_pc:
-	mflr    t3                        /* t3 contains the current pc           */
-	mtlr    r0
+	li      t3,8                      /* initialize PA counter*/
 
 L_register_copy:
 	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
@@ -204,6 +196,7 @@ L_register_copy:
 	mr.     itmp2,itmp2
 	beq     L_register_copy_done
 
+	addi	t3,t3,-1                  /* uses a PA slot                       */
 	lwz     itmp3,offvmargtype+4(itmp1)
 	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
 	bne     L_register_handle_float
@@ -245,9 +238,6 @@ L_register_do_copy_longint:
 	mtctr   itmp3
 	addi    t0,t0,1                   /* integer argument counter             */
 	addi    t6,t6,1                   /* integer argument register counter    */
-#if defined(__DARWIN__)
-	addi    t7,t7,1                   /* stack slot counter                   */
-#endif
 	bctr
 
 L_register_handle_float:
@@ -288,14 +278,15 @@ L_register_do_copy_floatdouble:
 	ld      itmp3,0(itmp3)            /* load function address                */
 	mtctr   itmp3
 	addi    t1,t1,1                   /* float argument counter               */
-#if defined(__DARWIN__)
-	addi    t7,t7,1                   /* stack slot counter                   */
-	addi    t6,t6,1                   /* skip 1 integer argument register     */
-#endif
+	mr.     t3,t3                     /* are we still in PA ?                 */
+	blt     L_float_not_uses_PA 
+	addi    t6,t6,1                   /* if so it uses an interger arg reg    */
+L_float_not_uses_PA:
 	bctr
 
 
 L_register_copy_done:
+	subi    sp,sp,PA_SIZE             /* PA_SIZE are used by definition       */
 	                                  /* calculate remaining arguments        */
 	sub     itmp3,t4,t0               /* - integer arguments in registers     */
 	sub     itmp3,itmp3,t1            /* - float arguments in registers       */
@@ -306,30 +297,25 @@ L_register_copy_done:
 	mr      itmp1,t5                  /* restore argument block pointer       */
 
 	slwi    t4,itmp3,3                /* XXX use 8-bytes slots for now        */
-	addi    t4,t4,LA_SIZE+PA_SIZE     /* add size of linkage area             */
-
-#if defined(__DARWIN__)
-	slwi    t5,t7,2                   /* add stack space for arguments        */
-	add     t4,t4,t5
-#endif
-
+	addi    t4,t4,LA_SIZE             /* add size of linkage area             */
 	sub     sp,sp,t4
 
 	mr      t6,sp                     /* use t6 as temporary sp               */
-	addi    t6,t6,LA_SIZE+PA_SIZE     /* skip linkage area                    */
-#if defined(__DARWIN__)
-	add     t6,t6,t5                  /* skip stack space for arguments       */
-#endif
+	addi    t6,t6,LA_SIZE             /* skip linkage area                    */
 
 	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
 	addi    itmp2,itmp2,1             /* initialize argument count            */
-
+	li      t3,8                      /* initialize PA counter                */
+	addi	t6,t6,-8                  /* make code simpler                    */
+	
 L_stack_copy_loop:
 	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
 	addi    itmp2,itmp2,-1            /* argument count - 1                   */
 	mr.     itmp2,itmp2
 	beq     L_stack_copy_done
-	
+	addi    t6,t6,8                   /* increase stack */
+L_stack_not_uses_PA:
+
 	lwz     itmp3,offvmargtype+4(itmp1)
 	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
 	bne     L_stack_handle_float
@@ -344,13 +330,11 @@ L_stack_handle_int:
 
 	lwa     itmp3,offvmargdata+4(itmp1) /* get integer argument               */
 	std     itmp3,0(t6)               /* and store it on the stack            */
-	addi    t6,t6,8                   /* increase temporary sp by 1 slot      */
 	b       L_stack_copy_loop
 
 L_stack_handle_long:
 	ld      itmp3,offvmargdata+0(itmp1) /* get long argument                  */
 	std     itmp3,0(t6)               /* and store it on the stack            */
-	addi    t6,t6,8                   /* increase temporary sp by 1 slots     */
 	b       L_stack_copy_loop
 		
 L_stack_handle_float:
@@ -362,14 +346,12 @@ L_stack_handle_float:
 	bne     L_stack_handle_double
 
 	lfs     ftmp3,offvmargdata(itmp1) /* get float argument                   */
-	stfd    ftmp3,64(t6)              /* and store it on the stack, 56: first 8 slots reserved for r3-r10 */
-	addi    t6,t6,8                   /* increase temporary sp by 1 slot      */
+	stfd    ftmp3,0(t6)               /* and store it on the stack            */
 	b       L_stack_copy_loop
 
 L_stack_handle_double:
 	lfd     ftmp3,offvmargdata(itmp1) /* get double argument                  */
-	stfd    ftmp3,64(t6)               /* and store it on the stack, 56: first 8 slots reserved for r3-r10 */
-	addi    t6,t6,8                   /* increase temporary sp by 1 slots     */
+	stfd    ftmp3,0(t6)               /* and store it on the stack            */
 	b       L_stack_copy_loop
 
 L_stack_copy_done:
