@@ -1077,9 +1077,13 @@ void replace_push_activation_record(executionstate_t *es,
 
 	/* write the return address */
 
-	*((stackslot_t *)es->sp) = (stackslot_t) (rpcall->pc + rpcall->callsize);
-
 	es->sp -= SIZE_OF_STACKSLOT;
+
+	DOLOG( printf("writing return address %p to %p\n",
+				(void*) (rpcall->pc + rpcall->callsize),
+				(void*) es->sp); );
+
+	*((stackslot_t *)es->sp) = (stackslot_t) (rpcall->pc + rpcall->callsize);
 
 	/* we move into a new code unit */
 
@@ -1090,6 +1094,9 @@ void replace_push_activation_record(executionstate_t *es,
 	es->pc = es->code->entrypoint;
 
 	/* build the stackframe */
+
+	DOLOG( printf("building stackframe of %d words at %p\n",
+				es->code->stackframesize, (void*)es->sp); );
 
 	basesp = (stackslot_t *) es->sp;
 	es->sp -= SIZE_OF_STACKSLOT * es->code->stackframesize;
@@ -1304,6 +1311,8 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* enter new code */
 
+	DOLOG( printf("JUMPING IN!\n"); fflush(stdout); );
+
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	asm_replacement_in(es);
 #endif
@@ -1337,6 +1346,7 @@ static char *replace_type_str[] = {
 void replace_replacement_point_println(rplpoint *rp, int depth)
 {
 	int j;
+	int index;
 
 	if (!rp) {
 		printf("(rplpoint *)NULL\n");
@@ -1357,10 +1367,14 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 	for (j=0; j<rp->regalloccount; ++j) {
 		if (j)
 			putchar(' ');
-		printf("%d:%1c:",
-				rp->regalloc[j].index,
-				/* (rp->regalloc[j].next) ? '^' : ' ', */
-				TYPECHAR(rp->regalloc[j].type));
+		index = rp->regalloc[j].index;
+		switch (index) {
+			case RPLALLOC_STACK: printf("S"); break;
+			case RPLALLOC_PARAM: printf("P"); break;
+			case RPLALLOC_SYNC : printf("Y"); break;
+			default: printf("%d", index);
+		}
+		printf(":%1c:", TYPECHAR(rp->regalloc[j].type));
 		show_allocation(rp->regalloc[j].type, rp->regalloc[j].flags, rp->regalloc[j].regoff);
 	}
 
@@ -1438,7 +1452,8 @@ void replace_executionstate_println(executionstate_t *es)
 	int i;
 	int slots;
 	stackslot_t *sp;
-
+	int extraslots;
+	
 	if (!es) {
 		printf("(executionstate_t *)NULL\n");
 		return;
@@ -1471,18 +1486,25 @@ void replace_executionstate_println(executionstate_t *es)
 
 	sp = (stackslot_t *) es->sp;
 
-	if (es->code)
+	extraslots = 2;
+
+	if (es->code) {
+		methoddesc *md = es->code->m->parseddesc;
 		slots = code_get_stack_frame_size(es->code);
+		extraslots = 1 + md->memuse;
+	}
 	else
 		slots = 0;
 
+
 	if (slots) {
-		printf("\tstack slots(+1) at sp:");
-		for (i=0; i<slots+1; ++i) {
+		printf("\tstack slots(+%d) at sp:", extraslots);
+		for (i=0; i<slots+extraslots; ++i) {
 			if (i%4 == 0)
 				printf("\n\t\t");
 			else
 				printf(" ");
+			printf("M%02d ", i);
 			if (i >= slots)
 				putchar('(');
 #ifdef HAS_4BYTE_STACKSLOT

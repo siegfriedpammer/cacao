@@ -57,6 +57,10 @@ typedef struct sourceframe_t sourceframe_t;
 
 typedef struct rplalloc rplalloc;
 
+#define RPLALLOC_STACK  -1
+#define RPLALLOC_PARAM  -2
+#define RPLALLOC_SYNC   -3
+
 /* `rplalloc` is a compact struct for register allocation info        */
 
 /* XXX optimize this for space efficiency */
