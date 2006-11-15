@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: properties.c 5988 2006-11-15 17:58:25Z twisti $
+   $Id: properties.c 5990 2006-11-15 18:09:28Z twisti $
 
 */
 
@@ -131,8 +131,6 @@ bool properties_init(void)
 
 	properties_add("java.home", java_home);
 
-	MFREE(java_home, char, len);
-
 	properties_add("java.vm.specification.version", "1.0");
 	properties_add("java.vm.specification.vendor", "Sun Microsystems Inc.");
 	properties_add("java.vm.specification.name", "Java Virtual Machine Specification");
@@ -194,8 +192,6 @@ bool properties_init(void)
 	strcat(extdirs, "/jre/lib/ext");
 
 	properties_add("java.ext.dirs", extdirs);
-
-	MFREE(extdirs, char, len);
 
 	properties_add("java.endorsed.dirs", ""CACAO_PREFIX"/jre/lib/endorsed");
 
@@ -279,10 +275,6 @@ bool properties_init(void)
 		properties_add("user.language", "en");
 		properties_add("user.country", "US");
 	}
-	
-	/* clean up */
-
-	MFREE(cwd, char, 0);
 #elif defined(ENABLE_JAVAME_CLDC1_1)
     properties_add("microedition.configuration", "CLDC-1.1");
     properties_add("microedition.platform", "PowerPC");
