@@ -335,6 +335,8 @@ bool replace_create_replacement_points(jitdata *jd)
 						if (javalocals[i] != UNUSED)
 							alloccount++;
 					alloccount += iinfo->stackvarscount;
+					if (iinfo->synclocal != UNUSED)
+						alloccount++;
 
 					m = iinfo->method;
 					if (iinfo->javalocals_start)
@@ -463,6 +465,15 @@ bool replace_create_replacement_points(jitdata *jd)
 							javalocals,
 							calleeinfo->stackvars, calleeinfo->stackvarscount,
 							calleeinfo->paramcount);
+
+					if (calleeinfo->synclocal != UNUSED) {
+						ra->index = RPLALLOC_SYNC;
+						ra->regoff = jd->var[calleeinfo->synclocal].vv.regoff;
+						ra->flags  = jd->var[calleeinfo->synclocal].flags & INMEMORY;
+						ra->type = TYPE_ADR;
+						ra++;
+						rp[-1].regalloccount++;
+					}
 
 					iinfo = calleeinfo;
 					m = iinfo->method;
@@ -668,7 +679,7 @@ static void replace_write_value(executionstate_t *es,
 
 /* replace_read_executionstate *************************************************
 
-   Read the given executions state and translate it to a source state.
+   Read the given executions state and translate it to a source frame.
    
    IN:
        rp...............replacement point at which `es` was taken
@@ -680,7 +691,8 @@ static void replace_write_value(executionstate_t *es,
   
 *******************************************************************************/
 
-static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
+static void replace_read_executionstate(rplpoint *rp,
+										executionstate_t *es,
 									 	sourcestate_t *ss,
 										bool topframe)
 {
@@ -732,6 +744,8 @@ static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
 	frame->up = ss->frames;
 	frame->method = rp->method;
 	frame->id = rp->id;
+	frame->syncslotcount = 0;
+	frame->syncslots = NULL;
 
 	ss->frames = frame;
 
@@ -812,6 +826,26 @@ static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
 	/* read remaining stack slots */
 
 	for (; count--; ra++) {
+		if (ra->index == RPLALLOC_SYNC) {
+			assert(rp->type == RPLPOINT_TYPE_INLINE);
+
+			/* only read synchronization slots when traversing an inline point */
+
+			if (!topframe) {
+				sourceframe_t *calleeframe = frame->up;
+				assert(calleeframe);
+				assert(calleeframe->syncslotcount == 0);
+				assert(calleeframe->syncslots == NULL);
+
+				calleeframe->syncslotcount = 1;
+				calleeframe->syncslots = DMNEW(u8, 1);
+				replace_read_value(es,sp,ra,calleeframe->syncslots);
+			}
+
+			frame->javastackdepth--;
+			continue;
+		}
+
 		assert(ra->index == RPLALLOC_STACK || ra->index == RPLALLOC_PARAM);
 
 		/* do not read parameters of calls down the call chain */
@@ -824,15 +858,6 @@ static void replace_read_executionstate(rplpoint *rp,executionstate_t *es,
 			frame->javastacktype[i] = ra->type;
 			i++;
 		}
-	}
-
-	/* read slots used for synchronization */
-
-	count = code_get_sync_slot_count(code);
-	frame->syncslotcount = count;
-	frame->syncslots = DMNEW(u8,count);
-	for (i=0; i<count; ++i) {
-		frame->syncslots[i] = sp[code->memuse + i];
 	}
 }
 
@@ -948,6 +973,20 @@ static void replace_write_executionstate(rplpoint *rp,
 	/* write remaining stack slots */
 
 	for (; count--; ra++) {
+		if (ra->index == RPLALLOC_SYNC) {
+			assert(rp->type == RPLPOINT_TYPE_INLINE);
+
+			/* only write synchronization slots when traversing an inline point */
+
+			if (!topframe) {
+				assert(frame->syncslotcount == 1); /* XXX need to understand more cases */
+				assert(frame->syncslots != NULL);
+
+				replace_write_value(es,sp,ra,frame->syncslots);
+			}
+			continue;
+		}
+
 		assert(ra->index == RPLALLOC_STACK || ra->index == RPLALLOC_PARAM);
 
 		/* do not write parameters of calls down the call chain */
@@ -961,14 +1000,6 @@ static void replace_write_executionstate(rplpoint *rp,
 			replace_write_value(es,sp,ra,frame->javastack + i);
 			i++;
 		}
-	}
-
-	/* write slots used for synchronization */
-
-	count = code_get_sync_slot_count(code);
-	assert(count == frame->syncslotcount);
-	for (i=0; i<count; ++i) {
-		sp[code->memuse + i] = frame->syncslots[i];
 	}
 
 	/* set new pc */
@@ -986,22 +1017,27 @@ static void replace_write_executionstate(rplpoint *rp,
 
    IN:
 	   es...............execution state
+	   frame............source frame, receives synchronization slots
 
    OUT:
        *es..............the execution state after popping the stack frame
   
 *******************************************************************************/
 
-bool replace_pop_activation_record(executionstate_t *es)
+bool replace_pop_activation_record(executionstate_t *es,
+								   sourceframe_t *frame)
 {
 	u1 *ra;
 	u1 *pv;
 	s4 reg;
 	s4 i;
+	s4 count;
 	codeinfo *code;
 	stackslot_t *basesp;
+	stackslot_t *sp;
 
 	assert(es->code);
+	assert(frame);
 
 	/* read the return address */
 
@@ -1028,7 +1064,19 @@ bool replace_pop_activation_record(executionstate_t *es)
 
 	/* calculate the base of the stack frame */
 
-	basesp = (stackslot_t *)es->sp + es->code->stackframesize;
+	sp = (stackslot_t *) es->sp;
+	basesp = sp + es->code->stackframesize;
+
+	/* read slots used for synchronization */
+
+	assert(frame->syncslotcount == 0);
+	assert(frame->syncslots == NULL);
+	count = code_get_sync_slot_count(es->code);
+	frame->syncslotcount = count;
+	frame->syncslots = DMNEW(u8, count);
+	for (i=0; i<count; ++i) {
+		frame->syncslots[i] = sp[es->code->memuse + i];
+	}
 
 	/* restore saved int registers */
 
@@ -1088,6 +1136,7 @@ bool replace_pop_activation_record(executionstate_t *es)
 	   es...............execution state
 	   rpcall...........the replacement point at the call site
 	   calleecode.......the codeinfo of the callee
+	   frame............source frame, only the synch. slots are used
 
    OUT:
        *es..............the execution state after pushing the stack frame
@@ -1096,11 +1145,19 @@ bool replace_pop_activation_record(executionstate_t *es)
 
 void replace_push_activation_record(executionstate_t *es,
 									rplpoint *rpcall,
-									codeinfo *calleecode)
+									codeinfo *calleecode,
+									sourceframe_t *frame)
 {
 	s4 reg;
 	s4 i;
+	s4 count;
 	stackslot_t *basesp;
+	stackslot_t *sp;
+
+	assert(es);
+	assert(rpcall && rpcall->type == RPLPOINT_TYPE_CALL);
+	assert(calleecode);
+	assert(frame);
 
 	/* write the return address */
 
@@ -1125,17 +1182,17 @@ void replace_push_activation_record(executionstate_t *es,
 	DOLOG( printf("building stackframe of %d words at %p\n",
 				es->code->stackframesize, (void*)es->sp); );
 
-	basesp = (stackslot_t *) es->sp;
-	es->sp -= SIZE_OF_STACKSLOT * es->code->stackframesize;
+	sp = (stackslot_t *) es->sp;
+	basesp = sp;
+
+	sp -= es->code->stackframesize;
+	es->sp = (u1*) sp;
 
 	/* in debug mode, invalidate stack frame first */
 
 #if !defined(NDEBUG)
-	{
-		stackslot_t *sp = (stackslot_t *) es->sp;
-		for (i=0; i<(basesp - sp); ++i) {
-			sp[i] = 0xdeaddeadU;
-		}
+	for (i=0; i<(basesp - sp); ++i) {
+		sp[i] = 0xdeaddeadU;
 	}
 #endif
 
@@ -1165,6 +1222,14 @@ void replace_push_activation_record(executionstate_t *es,
 #if !defined(NDEBUG)
 		es->fltregs[reg] = 0x44dead4444dead44ULL;
 #endif
+	}
+
+	/* write slots used for synchronization */
+
+	count = code_get_sync_slot_count(es->code);
+	assert(count == frame->syncslotcount);
+	for (i=0; i<count; ++i) {
+		sp[es->code->memuse + i] = frame->syncslots[i];
 	}
 
 	/* set the PV */
@@ -1280,7 +1345,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		}
 		else {
 			DOLOG( printf("UNWIND\n"); );
-			if (!replace_pop_activation_record(es)) {
+			if (!replace_pop_activation_record(es, ss.frames)) {
 				DOLOG( printf("BREAKING\n"); );
 				break;
 			}
@@ -1328,7 +1393,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 			assert(code);
 			DOLOG( printf("pushing activation record for:\n");
 				   replace_replacement_point_println(candidate, 1); );
-			replace_push_activation_record(es, candidate, code);
+			replace_push_activation_record(es, candidate, code, ss.frames);
 		}
 		DOLOG( replace_executionstate_println(es); );
 	}
