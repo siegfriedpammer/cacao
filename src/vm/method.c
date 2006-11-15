@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 5975 2006-11-12 15:33:16Z edwin $
+   $Id: method.c 5992 2006-11-15 22:46:10Z edwin $
 
 */
 
@@ -266,6 +266,8 @@ void method_printflags(methodinfo *m)
    	if (m->flags & ACC_NATIVE)       printf(" NATIVE");
    	if (m->flags & ACC_INTERFACE)    printf(" INTERFACE");
    	if (m->flags & ACC_ABSTRACT)     printf(" ABSTRACT");
+   	if (m->flags & ACC_METHOD_MONOMORPHIC) printf(" (mono)");
+   	if (m->flags & ACC_METHOD_IMPLEMENTED) printf(" (impl)");
 }
 #endif /* !defined(NDEBUG) */
 
