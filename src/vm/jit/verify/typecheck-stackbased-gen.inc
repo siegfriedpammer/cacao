@@ -54,15 +54,6 @@
   GENERATED  	break;
   GENERATED  
   GENERATED  
-  GENERATED  case ICMD_CHECKNULL_POP:
-  GENERATED  	/* (A--) */
-  GENERATED  	maythrow = true;
-  GENERATED  	CHECK_STACK_DEPTH(1);
-  GENERATED  	CHECK_STACK_TYPE(stack[0], TYPE_ADR);
-  GENERATED  	stack += -1;
-  GENERATED  	break;
-  GENERATED  
-  GENERATED  
   GENERATED  case ICMD_LCONST:
   GENERATED  	/* (--L) */
   GENERATED  	CHECK_STACK_SPACE(2);
@@ -147,7 +138,7 @@
   GENERATED  	}
   GENERATED  	TYPEINFO_COPY(OP1->typeinfo,DST->typeinfo);
   GENERATED  
-#            	line 151 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 142 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += 1;
   GENERATED  	stack[0].type = TYPE_ADR;
@@ -178,7 +169,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 182 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 173 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	stack[0].type = TYPE_INT;
@@ -211,7 +202,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 215 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 206 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack[0].type = TYPE_VOID;
   GENERATED  	stack[-1].type = TYPE_LNG;
@@ -244,7 +235,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 248 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 239 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	stack[0].type = TYPE_FLT;
@@ -277,7 +268,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 281 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 272 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack[0].type = TYPE_VOID;
   GENERATED  	stack[-1].type = TYPE_DBL;
@@ -313,7 +304,7 @@
   GENERATED  	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 317 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 308 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	break;
@@ -346,7 +337,7 @@
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 350 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 341 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	stack[0].type = TYPE_INT;
@@ -379,7 +370,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 383 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 374 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	stack[0].type = TYPE_INT;
@@ -412,7 +403,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 416 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 407 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	stack[0].type = TYPE_INT;
@@ -477,7 +468,7 @@
 #            	line 70 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
   GENERATED  
-#            	line 481 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 472 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	break;
@@ -508,7 +499,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 512 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 503 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -3;
   GENERATED  	break;
@@ -541,7 +532,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 545 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 536 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -4;
   GENERATED  	break;
@@ -574,7 +565,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 578 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 569 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -3;
   GENERATED  	break;
@@ -607,7 +598,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 611 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 602 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -4;
   GENERATED  	break;
@@ -644,7 +635,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("illegal instruction: AASTORE to non-reference array");
   GENERATED  
-#            	line 648 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 639 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -3;
   GENERATED  	break;
@@ -678,7 +669,7 @@
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 682 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 673 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -3;
   GENERATED  	break;
@@ -711,7 +702,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 715 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 706 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -3;
   GENERATED  	break;
@@ -744,7 +735,7 @@
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
-#            	line 748 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 739 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -3;
   GENERATED  	break;
@@ -767,7 +758,7 @@
   GENERATED  	/* we pop 1 */
   GENERATED  	CHECK_CAT1(stack[0]);
   GENERATED  
-#            	line 771 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 762 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	break;
@@ -784,7 +775,7 @@
   GENERATED  	if (IS_CAT1(stack[0]))
   GENERATED  		CHECK_CAT1(stack[-1]);
   GENERATED  
-#            	line 788 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 779 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -2;
   GENERATED  	break;
@@ -805,7 +796,7 @@
   GENERATED  
   GENERATED  	COPY_SLOT(stack[ 0], stack[ 1]);
   GENERATED  
-#            	line 809 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 800 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += 1;
   GENERATED  	break;
@@ -833,7 +824,7 @@
   GENERATED  	COPY_SLOT(stack[-1], stack[ 0]);
   GENERATED  	COPY_SLOT(stack[ 1], stack[-1]);
   GENERATED  
-#            	line 837 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 828 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += 1;
   GENERATED  	break;
@@ -861,7 +852,7 @@
   GENERATED  	COPY_SLOT(stack[-2], stack[-1]);
   GENERATED  	COPY_SLOT(stack[ 1], stack[-2]);
   GENERATED  
-#            	line 865 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 856 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += 1;
   GENERATED  	break;
@@ -882,7 +873,7 @@
   GENERATED  	COPY_SLOT(stack[ 0], stack[ 2]);
   GENERATED  	COPY_SLOT(stack[-1], stack[ 1]);
   GENERATED  
-#            	line 886 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 877 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += 2;
   GENERATED  	break;
@@ -908,7 +899,7 @@
   GENERATED  	COPY_SLOT(stack[ 2], stack[-1]);
   GENERATED  	COPY_SLOT(stack[ 1], stack[-2]);
   GENERATED  
-#            	line 912 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 903 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += 2;
   GENERATED  	break;
@@ -936,7 +927,7 @@
   GENERATED  	COPY_SLOT(stack[ 2], stack[-2]);
   GENERATED  	COPY_SLOT(stack[ 1], stack[-3]);
   GENERATED  
-#            	line 940 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 931 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += 2;
   GENERATED  	break;
@@ -958,7 +949,7 @@
   GENERATED  	COPY_SLOT(stack[-1], stack[ 0]);
   GENERATED  	COPY_SLOT(temp     , stack[-1]);
   GENERATED  
-#            	line 962 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 953 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1262,7 +1253,7 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 1266 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1257 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1296,7 +1287,7 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 1300 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1291 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1328,7 +1319,7 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 1332 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1323 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1350,7 +1341,7 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 1354 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1345 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1379,7 +1370,7 @@
   GENERATED  	if (stack == NULL)
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1383 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1374 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1401,7 +1392,7 @@
   GENERATED  	if (!typecheck_stackbased_ret(STATE, stack, stackfloor))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1405 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1396 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1433,7 +1424,7 @@
   GENERATED  
   GENERATED  	LOG("switch done");
   GENERATED  
-#            	line 1437 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1428 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1468,7 +1459,7 @@
   GENERATED  
   GENERATED  	LOG("switch done");
   GENERATED  
-#            	line 1472 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1463 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1490,7 +1481,7 @@
   GENERATED  	if (STATE->returntype.type != TYPE_INT)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
-#            	line 1494 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1485 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -1512,7 +1503,7 @@
   GENERATED  	if (STATE->returntype.type != TYPE_LNG)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
-#            	line 1516 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1507 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -1534,7 +1525,7 @@
   GENERATED  	if (STATE->returntype.type != TYPE_FLT)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
-#            	line 1538 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1529 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -1556,7 +1547,7 @@
   GENERATED  	if (STATE->returntype.type != TYPE_DBL)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
-#            	line 1560 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1551 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -1596,7 +1587,7 @@
   GENERATED  		IPTR->flags.bits |= INS_FLAG_UNRESOLVED;
   GENERATED  	}
   GENERATED  
-#            	line 1600 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1591 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	goto return_tail;
   GENERATED  
@@ -1630,7 +1621,7 @@
   GENERATED  			VERIFY_ERROR("<init> method does not initialize 'this'");
   GENERATED  	}
   GENERATED  
-#            	line 1634 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1625 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1646,7 +1637,7 @@
   GENERATED  	if (stack == NULL)
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1650 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1641 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1667,7 +1658,7 @@
   GENERATED  	if (stack == NULL)
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1671 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1662 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1685,7 +1676,7 @@
   GENERATED  	if (stack == NULL)
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1689 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1680 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1707,7 +1698,7 @@
   GENERATED  	if (stack == NULL)
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1711 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1702 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1748,7 +1739,7 @@
   GENERATED  	}
   GENERATED  	TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(IPTR), stat_ins_invoke_unresolved);
   GENERATED  
-#            	line 1752 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1743 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1770,7 +1761,7 @@
   GENERATED  			&& OP1->typeinfo.typeclass.cls != pseudo_class_Arraystub)
   GENERATED  		VERIFY_ERROR("illegal instruction: ARRAYLENGTH on non-array");
   GENERATED  
-#            	line 1774 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1765 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack[0].type = TYPE_INT;
   GENERATED  	break;
@@ -1812,7 +1803,7 @@
   GENERATED  		IPTR->flags.bits |= INS_FLAG_UNRESOLVED;
   GENERATED  	}
   GENERATED  
-#            	line 1816 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1807 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack += -1;
   GENERATED  	break;
@@ -1841,7 +1832,7 @@
   GENERATED  	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 1845 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1836 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1868,7 +1859,7 @@
   GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("Illegal instruction: INSTANCEOF on non-reference");
   GENERATED  
-#            	line 1872 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1863 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	stack[0].type = TYPE_INT;
   GENERATED  	break;
@@ -1891,7 +1882,7 @@
   GENERATED  	stack -= (IPTR->s1.argcount - 1);
   GENERATED  	stack[0].type = TYPE_ADR;
   GENERATED  
-#            	line 1895 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1886 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1915,7 +1906,7 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 1919 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1910 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -1947,7 +1938,7 @@
   GENERATED  		}
   GENERATED  	}
   GENERATED  
-#            	line 1951 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
+#            	line 1942 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  

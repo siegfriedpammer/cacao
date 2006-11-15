@@ -55,7 +55,7 @@
 /*  1*/ {N("ACONST         ") DF_0_TO_1 , CF_NORMAL, PEI            /*    (--A)                */},
 /*  2*/ {N("CHECKNULL      ") DF_1_TO_1 , CF_NORMAL, PEI            /*    (A--A)               */},
 /*  3*/ {N("ICONST         ") DF_0_TO_1 , CF_NORMAL, 0              /*    (--I)                */},
-/*  4*/ {N("CHECKNULL_POP  ") DF_1_TO_0 , CF_NORMAL, PEI            /*    (A--)                */},
+/*  4*/ {N("UNDEF4         ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
 /*  5*/ {N("IDIVPOW2       ") DF_1_TO_1 , CF_NORMAL, 0              /* S+ (I--I)               */},
 /*  6*/ {N("LDIVPOW2       ") DF_1_TO_1 , CF_NORMAL, 0              /* S+ (L--L)               */},
 /*  7*/ {N("UNDEF7         ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
