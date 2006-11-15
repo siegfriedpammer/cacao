@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 5998 2006-11-15 23:15:13Z edwin $
+   $Id: inline.c 5999 2006-11-15 23:17:07Z edwin $
 
 */
 
@@ -835,6 +835,22 @@ static void close_body_block(inline_node *iln,
 
 /* inlined code generation ****************************************************/
 
+static instruction * inline_instruction(inline_node *iln,
+										s4 opcode,
+										instruction *o_iptr)
+{
+	instruction *n_iptr;
+
+	n_iptr = (iln->inlined_iinstr_cursor++);
+	assert((n_iptr - iln->inlined_iinstr) < iln->cumul_instructioncount);
+
+	n_iptr->opc = opcode;
+	n_iptr->flags.bits = o_iptr->flags.bits & INS_FLAG_ID_MASK;
+	n_iptr->line = o_iptr->line;
+
+	return n_iptr;
+}
+
 static void inline_generate_sync_builtin(inline_node *iln,
 										 inline_node *callee,
 										 instruction *o_iptr,
@@ -846,16 +862,12 @@ static void inline_generate_sync_builtin(inline_node *iln,
 
 	if (callee->m->flags & ACC_STATIC) {
 		/* ACONST */
-		n_ins = (iln->inlined_iinstr_cursor++);
-		assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
-
 		syncvar = inline_new_temp_variable(iln->ctx->resultjd, TYPE_ADR);
 
-		n_ins->opc = ICMD_ACONST;
+		n_ins = inline_instruction(iln, ICMD_ACONST, o_iptr);
 		n_ins->sx.val.c.cls = callee->m->class;
-		n_ins->flags.bits = INS_FLAG_CLASS;
-		n_ins->line = o_iptr->line;
 		n_ins->dst.varindex = syncvar;
+		n_ins->flags.bits |= INS_FLAG_CLASS;
 	}
 	else {
 		syncvar = instancevar;
@@ -865,15 +877,11 @@ static void inline_generate_sync_builtin(inline_node *iln,
 
 	/* MONITORENTER / MONITOREXIT */
 
-	n_ins = (iln->inlined_iinstr_cursor++);
-	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
-
-	n_ins->opc = ICMD_BUILTIN;
+	n_ins = inline_instruction(iln, ICMD_BUILTIN, o_iptr);
 	n_ins->sx.s23.s3.bte = builtintable_get_internal(func);
 	n_ins->s1.argcount = 1; /* XXX add through-vars */
 	n_ins->sx.s23.s2.args = DMNEW(s4, 1);
 	n_ins->sx.s23.s2.args[0] = syncvar;
-	n_ins->line = o_iptr->line;
 }
 
 static s4 emit_inlining_prolog(inline_node *iln,
@@ -899,8 +907,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 	/* INLINE_START instruction */
 
-	n_ins = (iln->inlined_iinstr_cursor++);
-	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
+	n_ins = inline_instruction(iln, ICMD_INLINE_START, o_iptr);
 
 	insinfo = DNEW(insinfo_inline);
 	insinfo->method = callee->m;
@@ -928,10 +935,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 	/* finish the INLINE_START instruction */
 
-	n_ins->opc = ICMD_INLINE_START;
 	n_ins->sx.s23.s3.inlineinfo = insinfo;
-	n_ins->line = o_iptr->line;
-	n_ins->flags.bits = o_iptr->flags.bits & INS_FLAG_ID_MASK;
 	callee->inline_start_instruction = n_ins;
 
 	DOLOG( printf("%sprolog: ", iln->indent);
@@ -943,9 +947,6 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 	for (i=md->paramcount-1; i>=0; --i) {
 		assert(iln);
-
-		n_ins = (iln->inlined_iinstr_cursor++);
-		assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
 
 		type = md->paramtypes[i].type;
 
@@ -965,13 +966,9 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 		if (!isstatic && i == 0) {
 			assert(type == TYPE_ADR);
-			n_ins->opc = ICMD_CHECKNULL;
+			n_ins = inline_instruction(iln, ICMD_CHECKNULL, o_iptr);
 			n_ins->s1.varindex = argvar;
 			n_ins->dst.varindex = n_ins->s1.varindex;
-			n_ins->line = o_iptr->line;
-
-			n_ins = (iln->inlined_iinstr_cursor++);
-			assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
 		}
 
 		/* store argument into local variable of inlined callee */
@@ -983,10 +980,10 @@ static s4 emit_inlining_prolog(inline_node *iln,
 			if (i == 0 && callee->synclocal != UNUSED) {
 				/* we also need it for synchronization, so copy it */
 				assert(type == TYPE_ADR);
-				n_ins->opc = ICMD_COPY;
+				n_ins = inline_instruction(iln, ICMD_COPY, o_iptr);
 			}
 			else {
-				n_ins->opc = ICMD_ISTORE + type;
+				n_ins = inline_instruction(iln, ICMD_ISTORE + type, o_iptr);
 				n_ins->sx.s23.s3.javaindex = UNUSED;
 			}
 			n_ins->s1.varindex = argvar;
@@ -999,15 +996,14 @@ static s4 emit_inlining_prolog(inline_node *iln,
 			/* XXX In this case it actually makes no sense to create a     */
 			/*     separate synchronization variable.                      */
 
-			n_ins->opc = ICMD_NOP;
+			n_ins = inline_instruction(iln, ICMD_NOP, o_iptr);
 		}
 		else {
 			/* this value is not used, pop it */
 
-			n_ins->opc = ICMD_POP;
+			n_ins = inline_instruction(iln, ICMD_POP, o_iptr);
 			n_ins->s1.varindex = argvar;
 		}
-		n_ins->line = o_iptr->line;
 
 		DOLOG( printf("%sprolog: ", iln->indent);
 			   show_icmd(iln->ctx->resultjd, n_ins, false, SHOW_STACK); printf("\n"); );
@@ -1016,13 +1012,9 @@ static s4 emit_inlining_prolog(inline_node *iln,
 	/* COPY for synchronized instance methods */
 
 	if (callee->synclocal != UNUSED) {
-		n_ins = (iln->inlined_iinstr_cursor++);
-		assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
-
-		n_ins->opc = ICMD_COPY;
+		n_ins = inline_instruction(iln, ICMD_COPY, o_iptr);
 		n_ins->s1.varindex = varmap[o_iptr->sx.s23.s2.args[0]];
 		n_ins->dst.varindex = callee->synclocal;
-		n_ins->line = o_iptr->line;
 
 		assert(n_ins->s1.varindex != UNUSED);
 	}
@@ -1053,12 +1045,8 @@ static void emit_inlining_epilog(inline_node *iln, inline_node *callee, instruct
 
 	/* INLINE_END instruction */
 
-	n_ins = (iln->inlined_iinstr_cursor++);
-	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
-
-	n_ins->opc = ICMD_INLINE_END;
+	n_ins = inline_instruction(iln, ICMD_INLINE_END, o_iptr);
 	n_ins->sx.s23.s3.inlineinfo = callee->inline_start_instruction->sx.s23.s3.inlineinfo;
-	n_ins->line = o_iptr->line;
 
 	/* set the javalocals */
 
