@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: builtin.c 6013 2006-11-16 22:14:10Z twisti $
 
 */
 
@@ -63,10 +63,6 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
-#include "native/native.h"
-#include "native/include/java_lang_Cloneable.h"
-#include "native/include/java_lang_Object.h"          /* required by VMObject */
-#include "native/include/java_lang_VMObject.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
@@ -2637,22 +2633,71 @@ s8 builtin_currenttimemillis(void)
 }
 
 
-/* builtin_clone_array *********************************************************
+/* builtin_clone ***************************************************************
 
-   Wrapper function for cloning arrays.
+   Function for cloning objects or arrays.
 
 *******************************************************************************/
 
-java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
+java_objectheader *builtin_clone(void *env, java_objectheader *o)
 {
-	java_arrayheader    *ah;
-	java_lang_Cloneable *c;
+	arraydescriptor   *ad;
+	java_arrayheader  *ah;
+	u4                 size;
+	classinfo         *c;
+	java_objectheader *co;              /* cloned object header               */
 
-	c = (java_lang_Cloneable *) o;
+	/* get the array descriptor */
 
-	ah = (java_arrayheader *) Java_java_lang_VMObject_clone(0, 0, c);
+	ad = o->vftbl->arraydesc;
 
-	return ah;
+	/* we are cloning an array */
+
+	if (ad != NULL) {
+		ah = (java_arrayheader *) o;
+
+		size = ad->dataoffset + ad->componentsize * ah->size;
+        
+		co = heap_allocate(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL);
+
+		if (co == NULL)
+			return NULL;
+
+		MCOPY(co, o, u1, size);
+
+#if defined(ENABLE_THREADS)
+		lock_init_object_lock(co);
+#endif
+        
+		return co;
+	}
+    
+    /* we are cloning a non-array */
+
+    if (!builtin_instanceof(o, class_java_lang_Cloneable)) {
+        *exceptionptr =
+			new_exception(string_java_lang_CloneNotSupportedException);
+        return NULL;
+    }
+
+	/* get the class of the object */
+
+    c = o->vftbl->class;
+
+	/* create new object */
+
+    co = builtin_new(c);
+
+    if (co == NULL)
+        return NULL;
+
+    MCOPY(co, o, u1, c->instancesize);
+
+#if defined(ENABLE_THREADS)
+	lock_init_object_lock(co);
+#endif
+
+    return co;
 }
 
 

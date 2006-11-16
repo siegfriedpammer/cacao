@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_VMObject.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: java_lang_VMObject.c 6013 2006-11-16 22:14:10Z twisti $
 
 */
 
@@ -90,52 +90,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env,
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *this)
 {
-	classinfo         *c;
-	java_lang_Object  *new;
-	arraydescriptor   *desc;
+	java_objectheader *o;
+	java_objectheader *co;
 
-	/* we are cloning an array */
+	o = (java_objectheader *) this;
 
-	if ((desc = this->header.vftbl->arraydesc) != NULL) {
-        
-		u4 size = desc->dataoffset + desc->componentsize * ((java_arrayheader *) this)->size;
-        
-		new = (java_lang_Object *)
-			heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
+	co = builtin_clone(env, o);
 
-		if (new == NULL)
-			return NULL;
-
-		MCOPY(new, this, u1, size);
-
-#if defined(ENABLE_THREADS)
-		lock_init_object_lock((java_objectheader *) new);
-#endif
-        
-		return new;
-	}
-    
-    /* we are cloning a non-array */
-
-    if (!builtin_instanceof((java_objectheader *) this, class_java_lang_Cloneable)) {
-        *exceptionptr =
-			new_exception(string_java_lang_CloneNotSupportedException);
-        return NULL;
-    }
-
-    c = this->header.vftbl->class;
-    new = (java_lang_Object *) builtin_new(c);
-
-    if (new == NULL)
-        return NULL;
-
-    MCOPY(new, this, u1, c->instancesize);
-
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock((java_objectheader *) new);
-#endif
-
-    return new;
+	return (java_lang_Object *) co;
 }
 
 

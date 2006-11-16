@@ -31,7 +31,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 5972 2006-11-12 15:00:41Z edwin $
+   $Id: loader.c 6013 2006-11-16 22:14:10Z twisti $
 
 */
 
@@ -2587,8 +2587,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	if (!descriptor_params_from_paramtypes(clonedesc, clone->flags))
 		return false;
 
-	clone->code =
-		codegen_createnativestub((functionptr) &builtin_clone_array, clone);
+	clone->code = codegen_createnativestub(BUILTIN_clone, clone);
 
 	/* XXX: field: length? */
 

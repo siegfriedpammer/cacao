@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
-
-   Changes: Edwin Steiner
+            Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 5332 2006-09-05 19:38:28Z twisti $
+   $Id: builtin.h 6013 2006-11-16 22:14:10Z twisti $
 
 */
 
@@ -300,8 +299,8 @@ s8       asm_builtin_d2l(double a);
 float    builtin_d2f(double a);
 #define BUILTIN_d2f (functionptr) builtin_d2f
 
-java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
-/* NOT AN OP */
+java_objectheader *builtin_clone(void *env, java_objectheader *o);
+#define BUILTIN_clone (functionptr) builtin_clone
 
 bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 					   java_arrayheader *dest, s4 destStart, s4 len);
