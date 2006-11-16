@@ -27,12 +27,17 @@
    Authors: Reinhard Grafl
             Christian Thalinger
 
-   $Id: field.h 5937 2006-11-08 22:00:57Z twisti $
+   $Id: field.h 6012 2006-11-16 19:45:15Z twisti $
 */
 
 
 #ifndef _FIELD_H
 #define _FIELD_H
+
+/* forward typedefs ***********************************************************/
+
+typedef struct fieldinfo fieldinfo; 
+
 
 #include "config.h"
 #include "vm/types.h"

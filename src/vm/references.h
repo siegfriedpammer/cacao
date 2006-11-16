@@ -1,4 +1,4 @@
-/* vm/references.h - references to classes/fields/methods
+/* src/vm/references.h - references to classes/fields/methods
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -25,17 +25,56 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Edwin Steiner
+            Christian Thalinger
 
-   Changes:
-
-   $Id: references.h 4758 2006-04-12 17:51:10Z edwin $
+   $Id: references.h 6012 2006-11-16 19:45:15Z twisti $
 
 */
 
 #ifndef _REFERENCES_H_
 #define _REFERENCES_H_
 
+/* forward typedefs ***********************************************************/
+
+typedef struct constant_classref constant_classref;
+typedef struct constant_FMIref   constant_FMIref;
+
+
+/* constant_classref **********************************************************/
+
+struct constant_classref {
+	void             *pseudo_vftbl; /* for distinguishing it from classinfo   */
+	struct classinfo *referer;    /* class containing the reference           */
+	struct utf       *name;       /* name of the class refered to             */
+};
+
+
+/* classref_or_classinfo ******************************************************/
+
+typedef union classref_or_classinfo {
+	constant_classref *ref;       /* a symbolic class reference               */
+	struct classinfo  *cls;       /* an already loaded class                  */
+	void              *any;       /* used for general access (x != NULL,...)  */
+} classref_or_classinfo;
+
+
+/* parseddesc *****************************************************************/
+
+typedef union parseddesc {
+	struct typedesc   *fd;        /* parsed field descriptor                  */
+	struct methoddesc *md;        /* parsed method descriptor                 */
+	void              *any;       /* used for simple test against NULL        */
+} parseddesc;
+
+
+#include "config.h"
+#include "vm/types.h"
+
+#include "vm/class.h"
+#include "vm/descriptor.h"
+#include "vm/field.h"
 #include "vm/global.h"
+#include "vm/method.h"
 #include "vm/utf8.h"
 
 
@@ -56,47 +95,11 @@
 /*     parseddesc                 describes a field type or a method type     */
 /*----------------------------------------------------------------------------*/
 
-/* forward declarations *******************************************************/
-
-typedef struct classinfo classinfo; 
-typedef struct methodinfo methodinfo; 
-typedef struct fieldinfo fieldinfo; 
-typedef struct typedesc typedesc;
-typedef struct methoddesc methoddesc;
-
-
 /* structs ********************************************************************/
-
-/* constant_classref **********************************************************/
-
-typedef struct constant_classref {
-	void      *pseudo_vftbl;      /* for distinguishing it from classinfo     */
-	classinfo *referer;           /* class containing the reference           */
-	utf       *name;              /* name of the class refered to             */
-} constant_classref;
-
-
-/* classref_or_classinfo ******************************************************/
-
-typedef union {
-	constant_classref *ref;       /* a symbolic class reference               */
-	classinfo         *cls;       /* an already loaded class                  */
-	void              *any;       /* used for general access (x != NULL,...)  */
-} classref_or_classinfo;
-
-
-/* parseddesc *****************************************************************/
-
-typedef union parseddesc {
-	typedesc          *fd;        /* parsed field descriptor                  */
-	methoddesc        *md;        /* parsed method descriptor                 */
-	void              *any;       /* used for simple test against NULL        */
-} parseddesc;
-
 
 /* constant_FMIref ************************************************************/
 
-typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
+struct constant_FMIref{     /* Fieldref, Methodref and InterfaceMethodref     */
 	union {
 		s4                 index;     /* used only within the loader          */
 		constant_classref *classref;  /* class having this field/meth./intfm. */
@@ -106,7 +109,7 @@ typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 	utf       *name;        /* field/method/interfacemethod name              */
 	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */
 	parseddesc parseddesc;  /* parsed descriptor                              */
-} constant_FMIref;
+};
 
 
 /* macros *********************************************************************/

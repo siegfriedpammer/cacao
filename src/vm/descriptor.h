@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 5828 2006-10-26 10:09:11Z twisti $
+   $Id: descriptor.h 6012 2006-11-16 19:45:15Z twisti $
 
 */
 
@@ -39,7 +39,10 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct descriptor_pool descriptor_pool;
-typedef struct paramdesc paramdesc;
+typedef struct typedesc        typedesc;
+typedef struct paramdesc       paramdesc;
+typedef struct methoddesc      methoddesc;
+
 
 #include "vm/class.h"
 #include "vm/global.h"

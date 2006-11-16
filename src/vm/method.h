@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 5974 2006-11-12 15:14:19Z edwin $
+   $Id: method.h 6012 2006-11-16 19:45:15Z twisti $
 */
 
 
@@ -37,10 +37,11 @@
 
 /* forward typedefs ***********************************************************/
 
+typedef struct methodinfo          methodinfo; 
 typedef struct raw_exception_entry raw_exception_entry;
-typedef struct lineinfo lineinfo; 
-typedef struct method_assumption method_assumption;
-typedef struct method_worklist method_worklist;
+typedef struct lineinfo            lineinfo; 
+typedef struct method_assumption   method_assumption;
+typedef struct method_worklist     method_worklist;
 
 #include "config.h"
 #include "vm/types.h"

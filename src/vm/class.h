@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: class.h 5919 2006-11-05 21:18:05Z twisti $
+   $Id: class.h 6012 2006-11-16 19:45:15Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 
 /* forward typedefs ***********************************************************/
 
+typedef struct classinfo      classinfo; 
 typedef struct innerclassinfo innerclassinfo;
 typedef struct extra_classref extra_classref;
 
