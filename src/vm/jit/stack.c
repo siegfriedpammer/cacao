@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 6005 2006-11-15 23:33:48Z edwin $
+   $Id: stack.c 6010 2006-11-16 00:02:00Z edwin $
 
 */
 
@@ -2173,6 +2173,7 @@ bool stack_analyse(jitdata *jd)
 
 			if (sd.bptr->flags == BBTYPECHECK_REACHED) {
 				/* re-analyse a block because its input changed */
+				deadcode = false;
 				if (!stack_reanalyse_block(&sd))
 					return false;
 				superblockend = true; /* XXX */
@@ -2204,6 +2205,8 @@ bool stack_analyse(jitdata *jd)
 			}
 
 			/* This block has to be analysed now. */
+
+			deadcode = false;
 
 			/* XXX The rest of this block is still indented one level too */
 			/* much in order to avoid a giant diff by changing that.      */
@@ -2257,7 +2260,6 @@ bool stack_analyse(jitdata *jd)
 
 				/* set up local variables for analyzing this block */
 
-				deadcode = false;
 				superblockend = false;
 				len = sd.bptr->icount;
 				iptr = sd.bptr->iinstr;
