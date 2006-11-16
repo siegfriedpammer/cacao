@@ -25,13 +25,12 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
-
-   Changes: Andi Krall
+            Andi Krall
             Mark Probst
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 5810 2006-10-20 13:54:54Z twisti $
+   $Id: cacao.c 6011 2006-11-16 15:56:44Z twisti $
 
 */
 
@@ -83,10 +82,10 @@ int main(int argc, char **argv)
 #if defined(ENABLE_LIBJVM)	
 	/* Variables for JNI_CreateJavaVM dlopen call. */
 	lt_dlhandle     libjvm_handle;
-	lt_ptr          libjvm_createvm;
+	lt_ptr          libjvm_vm_createjvm;
 	lt_ptr          libjvm_vm_run;
 
-	s4 (*JNI_CreateJavaVM)(JavaVM **, void **, void *);
+	bool (*vm_createjvm)(JavaVM **, void **, void *);
 	void (*vm_run)(JavaVM *, JavaVMInitArgs *);
 #endif
 
@@ -142,18 +141,18 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!(libjvm_createvm = lt_dlsym(libjvm_handle, "JNI_CreateJavaVM"))) {
+	if (!(libjvm_vm_createjvm = lt_dlsym(libjvm_handle, "vm_createjvm"))) {
 		fprintf(stderr, "lt_dlsym failed: %s\n", lt_dlerror());
 		abort();
 	}
 
-	JNI_CreateJavaVM =
-		(s4 (*)(JavaVM **, void **, void *)) (ptrint) libjvm_createvm;
+	vm_createjvm =
+		(bool (*)(JavaVM **, void **, void *)) (ptrint) libjvm_vm_createjvm;
 #endif
 
 	/* create the Java VM */
 
-	JNI_CreateJavaVM(&vm, (void *) &env, vm_args);
+	(void) vm_createjvm(&vm, (void *) &env, vm_args);
 
 #if defined(ENABLE_JVMTI)
 	pthread_mutex_init(&dbgcomlock,NULL);

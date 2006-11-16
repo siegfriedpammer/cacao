@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 5805 2006-10-19 09:32:29Z twisti $
+   $Id: jni.h 6011 2006-11-16 15:56:44Z twisti $
 
 */
 
@@ -144,6 +144,7 @@ struct hashtable_global_ref_entry {
 
 /* initialize JNI subsystem */
 bool jni_init(void);
+bool jni_init_localref_table(void);
 
 java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params);

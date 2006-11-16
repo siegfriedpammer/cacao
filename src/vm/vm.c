@@ -598,9 +598,73 @@ static void  vm_compile_method(void);
 #endif
 
 
+/* vm_createjvm ****************************************************************
+
+   Implementation for JNI_CreateJavaVM.
+
+*******************************************************************************/
+
+bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
+{
+	JavaVMInitArgs *_vm_args;
+	_Jv_JNIEnv     *env;
+	_Jv_JavaVM     *vm;
+
+	/* get the arguments for the new JVM */
+
+	_vm_args = (JavaVMInitArgs *) vm_args;
+
+	/* get the VM and Env tables (must be set before vm_create) */
+
+	env = NEW(_Jv_JNIEnv);
+	env->env = &_Jv_JNINativeInterface;
+
+	/* XXX Set the global variable.  Maybe we should do that differently. */
+
+	_Jv_env = env;
+
+	/* create and fill a JavaVM structure */
+
+	vm = NEW(_Jv_JavaVM);
+	vm->functions = &_Jv_JNIInvokeInterface;
+
+	/* XXX Set the global variable.  Maybe we should do that differently. */
+	/* XXX JVMTI Agents needs a JavaVM  */
+
+	_Jv_jvm = vm;
+
+	/* actually create the JVM */
+
+	if (!vm_create(_vm_args))
+		goto error;
+
+#if defined(ENABLE_JAVASE)
+	/* setup the local ref table (must be created after vm_create) */
+
+	if (!jni_init_localref_table())
+		goto error;
+#endif
+
+	/* now return the values */
+
+	*p_vm  = (JavaVM *) vm;
+	*p_env = (void *) env;
+
+	return true;
+
+ error:
+	/* release allocated memory */
+
+	FREE(env, _Jv_JNIEnv);
+	FREE(vm, _Jv_JavaVM);
+
+	return false;
+}
+
+
 /* vm_create *******************************************************************
 
-   Creates a JVM.  Called by JNI_CreateJavaVM.
+   Creates a JVM.  Called by vm_createjvm.
 
 *******************************************************************************/
 

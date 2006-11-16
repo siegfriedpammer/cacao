@@ -91,6 +91,7 @@ struct vm_arg {
 
 void usage(void);
 
+bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args);
 bool vm_create(JavaVMInitArgs *vm_args);
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args);
 s4   vm_destroy(JavaVM *vm);
