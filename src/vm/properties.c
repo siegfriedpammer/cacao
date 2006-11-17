@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: properties.c 5991 2006-11-15 18:26:40Z twisti $
+   $Id: properties.c 6014 2006-11-17 15:47:28Z twisti $
 
 */
 
@@ -315,20 +315,36 @@ bool properties_postinit(void)
 
 /* properties_add **************************************************************
 
-   Adds a property entry to the internal property list.
+   Adds a property entry to the internal property list.  If there's
+   already an entry with the same key, replace it.
 
 *******************************************************************************/
 
 void properties_add(char *key, char *value)
 {
-	list_properties_entry *p;
+	list_properties_entry *pe;
 
-	p = NEW(list_properties_entry);
+	/* search for the entry */
 
-	p->key   = key;
-	p->value = value;
+	for (pe = list_first(list_properties); pe != NULL;
+		 pe = list_next(list_properties, pe)) {
+		if (strcmp(pe->key, key) == 0) {
+			/* entry was found, replace the value */
 
-	list_add_last_unsynced(list_properties, p);
+			pe->value = value;
+
+			return;
+		}
+	}
+
+	/* entry was not found, insert a new one */
+
+	pe = NEW(list_properties_entry);
+
+	pe->key   = key;
+	pe->value = value;
+
+	list_add_last_unsynced(list_properties, pe);
 }
 
 
