@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: properties.c 6014 2006-11-17 15:47:28Z twisti $
+   $Id: properties.c 6015 2006-11-18 22:16:32Z twisti $
 
 */
 
@@ -326,8 +326,8 @@ void properties_add(char *key, char *value)
 
 	/* search for the entry */
 
-	for (pe = list_first(list_properties); pe != NULL;
-		 pe = list_next(list_properties, pe)) {
+	for (pe = list_first_unsynced(list_properties); pe != NULL;
+		 pe = list_next_unsynced(list_properties, pe)) {
 		if (strcmp(pe->key, key) == 0) {
 			/* entry was found, replace the value */
 
@@ -361,8 +361,8 @@ char *properties_get(char *key)
 	/* We search backwards, so we get the newest entry for a key, as
 	   the list may contain more than one entry for a specific key. */
 
-	for (pe = list_last(list_properties); pe != NULL;
-		 pe = list_prev(list_properties, pe)) {
+	for (pe = list_last_unsynced(list_properties); pe != NULL;
+		 pe = list_prev_unsynced(list_properties, pe)) {
 		if (strcmp(pe->key, key) == 0)
 			return pe->value;
 	}
