@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6003 2006-11-15 23:24:46Z edwin $
+   $Id: inline.c 6021 2006-11-19 15:08:45Z edwin $
 
 */
 
@@ -674,7 +674,7 @@ static s4 *translate_javalocals(inline_node *iln, s4 *javalocals)
 
 	for (i=0; i<iln->jd->maxlocals; ++i) {
 		j = javalocals[i];
-		if (j != UNUSED)
+		if (j > UNUSED)
 			j = inline_translate_variable(iln->ctx->resultjd, iln->jd, iln->varmap, j);
 		jl[i] = j;
 	}
@@ -1197,7 +1197,7 @@ clone_call:
 			i = n_iptr->sx.s23.s3.javaindex;
 			if (i != UNUSED) {
 				if (n_iptr->flags.bits & INS_FLAG_RETADDR)
-					iln->javalocals[i] = UNUSED;
+					iln->javalocals[i] = n_iptr->sx.s23.s2.retaddrnr;
 				else
 					iln->javalocals[i] = j;
 				if (n_iptr->flags.bits & INS_FLAG_KILL_PREV)
