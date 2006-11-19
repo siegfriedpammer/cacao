@@ -1013,10 +1013,11 @@ static void replace_write_executionstate(rplpoint *rp,
 			/* only write synchronization slots when traversing an inline point */
 
 			if (!topframe) {
-				assert(frame->syncslotcount == 1); /* XXX need to understand more cases */
-				assert(frame->syncslots != NULL);
+				assert(frame->up);
+				assert(frame->up->syncslotcount == 1); /* XXX need to understand more cases */
+				assert(frame->up->syncslots != NULL);
 
-				replace_write_value(es,sp,ra,frame->syncslots);
+				replace_write_value(es,sp,ra,frame->up->syncslots);
 			}
 			continue;
 		}
