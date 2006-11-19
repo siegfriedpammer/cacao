@@ -1374,6 +1374,9 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	rplpoint     *candidate;
 	codeinfo     *code;
 	s4            i;
+	rplpoint     *origrp;
+
+	origrp = rp;
 
 	es->code = rp->code;
 
@@ -1386,10 +1389,6 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	/* fetch the target of the replacement */
 
 	target = rp->target;
-
-	/* XXX DEBUG turn off self-replacement */
-	if (target == rp)
-		replace_deactivate_replacement_point(rp);
 
 	DOLOG( printf("replace_me(%p,%p)\n",(void*)rp,(void*)es); fflush(stdout);
 		   replace_replacement_point_println(rp, 1);
@@ -1472,6 +1471,12 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	}
 
 	DOLOG( replace_executionstate_println(es); );
+
+	assert(candidate);
+	if (candidate == origrp) {
+		printf("WARNING: identity replacement, turning off rp to avoid infinite loop");
+		replace_deactivate_replacement_point(origrp);
+	}
 
 	/* release dump area */
 
