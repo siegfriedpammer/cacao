@@ -1736,6 +1736,7 @@ void replace_source_frame_println(sourceframe_t *frame)
 	if (frame->javastackdepth) {
 		printf("\tstack (depth %d):\n",frame->javastackdepth);
 		for (i=0; i<frame->javastackdepth; ++i) {
+			t = frame->javastacktype[i];
 			if (t == TYPE_VOID) {
 				printf("\tstack[%2d] = void", i);
 			}
