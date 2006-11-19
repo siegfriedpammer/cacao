@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 6018 2006-11-19 14:56:32Z edwin $
+   $Id: stack.c 6020 2006-11-19 15:04:27Z edwin $
 
 */
 
@@ -1120,7 +1120,7 @@ static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr c
 	printf("stack_mark_reached(L%03d from L%03d)\n", b->nr, sd->bptr->nr);
 #endif
 	/* mark targets of backward branches */
-	if (b <= sd->bptr)
+	if (b->nr <= sd->bptr->nr)
 		b->bitflags |= BBFLAG_REPLACEMENT;
 
 	if (b->flags < BBREACHED) {
@@ -1166,7 +1166,7 @@ static basicblock *stack_mark_reached_from_outvars(stackdata_t *sd, basicblock *
 	printf("stack_mark_reached_from_outvars(L%03d from L%03d)\n", b->nr, sd->bptr->nr);
 #endif
 	/* mark targets of backward branches */
-	if (b <= sd->bptr)
+	if (b->nr <= sd->bptr->nr)
 		b->bitflags |= BBFLAG_REPLACEMENT;
 
 	if (b->flags < BBREACHED) {
