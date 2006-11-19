@@ -138,10 +138,11 @@ case ICMD_PUTFIELDCONST:  /* {VARIABLESBASED} */
 	constvalue.type = fieldref->parseddesc.fd->type;
 	if (IS_ADR_TYPE(constvalue.type)) {
 		if (state->iptr->sx.val.anyptr) {
-			assert(class_java_lang_String);
-			assert(class_java_lang_String->state & CLASS_LINKED);
-			typeinfo_init_classinfo(&(constvalue.typeinfo),
-									class_java_lang_String);
+			classinfo *cc = (state->iptr->flags.bits & INS_FLAG_CLASS)
+				? class_java_lang_Class : class_java_lang_String;
+			assert(cc);
+			assert(cc->state & CLASS_LINKED);
+			typeinfo_init_classinfo(&(constvalue.typeinfo), cc);
 		}
 		else {
 			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
@@ -158,10 +159,11 @@ case ICMD_PUTSTATICCONST: /* {VARIABLESBASED} */
 	constvalue.type = fieldref->parseddesc.fd->type;
 	if (IS_ADR_TYPE(constvalue.type)) {
 		if (state->iptr->sx.val.anyptr) {
-			assert(class_java_lang_String);
-			assert(class_java_lang_String->state & CLASS_LINKED);
-			typeinfo_init_classinfo(&(constvalue.typeinfo),
-									class_java_lang_String);
+			classinfo *cc = (state->iptr->flags.bits & INS_FLAG_CLASS)
+				? class_java_lang_Class : class_java_lang_String;
+			assert(cc);
+			assert(cc->state & CLASS_LINKED);
+			typeinfo_init_classinfo(&(constvalue.typeinfo), cc);
 		}
 		else {
 			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);

@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: jit.h 6004 2006-11-15 23:30:16Z edwin $
+   $Id: jit.h 6019 2006-11-19 15:03:11Z edwin $
 
 */
 
@@ -327,7 +327,7 @@ typedef union {
 /*** flags (32 bits) ***/
 
 #define INS_FLAG_UNRESOLVED    0x01    /* contains unresolved field/meth/class*/
-#define INS_FLAG_CLASS         0x02    /* for ACONST with class               */
+#define INS_FLAG_CLASS         0x02    /* for ACONST, PUT*CONST with class    */
 #define INS_FLAG_ARRAY         0x04    /* for CHECKCAST/INSTANCEOF with array */
 #define INS_FLAG_CHECK         0x08    /* for *ALOAD|*ASTORE: check index     */
                                        /* for BUILTIN: check exception        */
