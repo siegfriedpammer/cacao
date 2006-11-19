@@ -89,6 +89,7 @@ typedef u8 stackslot_t;
 
 static int stat_replacements = 0;
 static int stat_frames = 0;
+static int stat_recompile = 0;
 static int stat_unroll_inline = 0;
 static int stat_unroll_call = 0;
 static int stat_dist_frames[20] = { 0 };
@@ -139,10 +140,11 @@ static void print_freq(FILE *file,int *array,int limit)
 void replace_print_statistics(void)
 {
 	printf("replacement statistics:\n");
-	printf("    # of replacements: %d\n", stat_replacements);
-	printf("    # of frames:       %d\n", stat_frames);
-	printf("    unrolled inlines:  %d\n", stat_unroll_inline);
-	printf("    unrolled calls:    %d\n", stat_unroll_call);
+	printf("    # of replacements:   %d\n", stat_replacements);
+	printf("    # of frames:         %d\n", stat_frames);
+	printf("    # of recompilations: %d\n", stat_recompile);
+	printf("    unrolled inlines:    %d\n", stat_unroll_inline);
+	printf("    unrolled calls:      %d\n", stat_unroll_call);
 	REPLACE_PRINT_DIST("frame depth", stat_dist_frames);
 	REPLACE_PRINT_DIST("locals per frame", stat_dist_locals);
 	REPLACE_PRINT_DIST("ADR locals per frame", stat_dist_locals_adr);
@@ -1596,7 +1598,11 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		DOLOG( replace_executionstate_println(es); );
 
 		if (candidate->type == RPLPOINT_TYPE_CALL) {
-			jit_recompile(ss.frames->method);
+			if (!ss.frames->method->code || ss.frames->method->code->invalid) {
+				REPLACE_COUNT(stat_recompile);
+				if (!jit_recompile(ss.frames->method))
+					/* XXX exception */;
+			}
 			code = ss.frames->method->code;
 			assert(code);
 			DOLOG( printf("pushing activation record for:\n");
