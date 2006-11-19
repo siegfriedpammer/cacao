@@ -81,6 +81,97 @@ typedef u8 stackslot_t;
 #endif
 
 
+/*** debugging ****************************************************************/
+
+#define REPLACE_STATISTICS
+
+#if defined(REPLACE_STATISTICS)
+
+static int stat_replacements = 0;
+static int stat_frames = 0;
+static int stat_unroll_inline = 0;
+static int stat_unroll_call = 0;
+static int stat_dist_frames[20] = { 0 };
+static int stat_dist_locals[20] = { 0 };
+static int stat_dist_locals_adr[10] = { 0 };
+static int stat_dist_locals_prim[10] = { 0 };
+static int stat_dist_locals_ret[10] = { 0 };
+static int stat_dist_locals_void[10] = { 0 };
+static int stat_dist_stack[10] = { 0 };
+static int stat_dist_stack_adr[10] = { 0 };
+static int stat_dist_stack_prim[10] = { 0 };
+static int stat_dist_stack_ret[10] = { 0 };
+static int stat_methods = 0;
+static int stat_rploints = 0;
+static int stat_regallocs = 0;
+static int stat_dist_method_rplpoints[20] = { 0 };
+
+#define REPLACE_COUNT(cnt)  (cnt)++
+#define REPLACE_COUNT_INC(cnt, inc)  ((cnt) += (inc))
+
+#define REPLACE_COUNT_DIST(array, val)                               \
+    do {                                                             \
+        int limit = (sizeof(array) / sizeof(int)) - 1;               \
+        if ((val) < (limit)) (array)[val]++;                         \
+        else (array)[limit]++;                                       \
+    } while (0)
+
+#define REPLACE_PRINT_DIST(name, array) \
+	printf("    " name " distribution:\n"); \
+	print_freq(stdout, (array), sizeof(array)/sizeof(int) - 1);
+
+static void print_freq(FILE *file,int *array,int limit)
+{
+	int i;
+	int sum = 0;
+	int cum = 0;
+	for (i=0; i<limit; ++i)
+		sum += array[i];
+	sum += array[limit];
+	for (i=0; i<limit; ++i) {
+		cum += array[i];
+		fprintf(file,"      %3d: %8d (cum %3d%%)\n",
+				i, array[i], (sum) ? ((100*cum)/sum) : 0);
+	}
+	fprintf(file,"    >=%3d: %8d\n",limit,array[limit]);
+}
+
+void replace_print_statistics(void)
+{
+	printf("replacement statistics:\n");
+	printf("    # of replacements: %d\n", stat_replacements);
+	printf("    # of frames:       %d\n", stat_frames);
+	printf("    unrolled inlines:  %d\n", stat_unroll_inline);
+	printf("    unrolled calls:    %d\n", stat_unroll_call);
+	REPLACE_PRINT_DIST("frame depth", stat_dist_frames);
+	REPLACE_PRINT_DIST("locals per frame", stat_dist_locals);
+	REPLACE_PRINT_DIST("ADR locals per frame", stat_dist_locals_adr);
+	REPLACE_PRINT_DIST("primitive locals per frame", stat_dist_locals_prim);
+	REPLACE_PRINT_DIST("RET locals per frame", stat_dist_locals_ret);
+	REPLACE_PRINT_DIST("void locals per frame", stat_dist_locals_void);
+	REPLACE_PRINT_DIST("stack slots per frame", stat_dist_stack);
+	REPLACE_PRINT_DIST("ADR stack slots per frame", stat_dist_stack_adr);
+	REPLACE_PRINT_DIST("primitive stack slots per frame", stat_dist_stack_prim);
+	REPLACE_PRINT_DIST("RET stack slots per frame", stat_dist_stack_ret);
+	printf("\n");
+	printf("    # of methods:            %d\n", stat_methods);
+	printf("    # of replacement points: %d\n", stat_rploints);
+	printf("    # of regallocs:          %d\n", stat_regallocs);
+	printf("        per rplpoint:        %f\n", (double)stat_regallocs / stat_rploints);
+	printf("        per method:          %f\n", (double)stat_regallocs / stat_methods);
+	REPLACE_PRINT_DIST("replacement points per method", stat_dist_method_rplpoints);
+	printf("\n");
+
+}
+
+#else
+
+#define REPLACE_COUNT(cnt)
+#define REPLACE_COUNT_INC(cnt, inc)
+#define REPLACE_COUNT_DIST(array, val)
+
+#endif /* defined(REPLACE_STATISTICS) */
+
 /*** constants used internally ************************************************/
 
 #define TOP_IS_NORMAL    0
@@ -127,7 +218,7 @@ static void replace_create_replacement_point(jitdata *jd,
 
 	ra = *pra;
 
-	/* there will be a replacement point at the start of this block */
+	REPLACE_COUNT(stat_rploints);
 
 	rp->method = (iinfo) ? iinfo->method : jd->m;
 	rp->pc = NULL;        /* set by codegen */
@@ -234,6 +325,8 @@ bool replace_create_replacement_points(jitdata *jd)
 	insinfo_inline  *iinfo;
 	insinfo_inline  *calleeinfo;
 	s4               startcount;
+
+	REPLACE_COUNT(stat_methods);
 
 	/* get required compiler data */
 
@@ -531,6 +624,9 @@ bool replace_create_replacement_points(jitdata *jd)
 	code->savedfltcount = FLT_SAV_CNT - rd->savfltreguse;
 	code->memuse        = rd->memuse;
 	code->stackframesize = jd->cd->stackframesize;
+
+	REPLACE_COUNT_DIST(stat_dist_method_rplpoints, count);
+	REPLACE_COUNT_INC(stat_regallocs, alloccount);
 
 	/* everything alright */
 
@@ -1374,6 +1470,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	rplpoint     *candidate;
 	codeinfo     *code;
 	s4            i;
+	s4            depth;
 	rplpoint     *origrp;
 
 	origrp = rp;
@@ -1381,6 +1478,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	es->code = rp->code;
 
 	DOLOG( printf("REPLACING: "); method_println(es->code->m); );
+	REPLACE_COUNT(stat_replacements);
 
 	/* mark start of dump memory area */
 
@@ -1400,6 +1498,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* XXX testing */
 
+	depth = 0;
 	candidate = rp;
 	do {
 		DOLOG( printf("recovering source state for%s:\n",
@@ -1407,14 +1506,50 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 			   replace_replacement_point_println(candidate, 1); );
 
 		replace_read_executionstate(candidate, es, &ss, ss.frames == NULL);
+		REPLACE_COUNT(stat_frames);
+		depth++;
+
+#if defined(REPLACE_STATISTICS)
+		int adr = 0; int ret = 0; int prim = 0; int vd = 0; int n = 0;
+		for (i=0; i<ss.frames->javalocalcount; ++i) {
+			switch (ss.frames->javalocaltype[i]) {
+				case TYPE_ADR: adr++; break;
+				case TYPE_RET: ret++; break;
+				case TYPE_INT: case TYPE_LNG: case TYPE_FLT: case TYPE_DBL: prim++; break;
+				case TYPE_VOID: vd++; break;
+				default: assert(0);
+			}
+			n++;
+		}
+		REPLACE_COUNT_DIST(stat_dist_locals, n);
+		REPLACE_COUNT_DIST(stat_dist_locals_adr, adr);
+		REPLACE_COUNT_DIST(stat_dist_locals_void, vd);
+		REPLACE_COUNT_DIST(stat_dist_locals_ret, ret);
+		REPLACE_COUNT_DIST(stat_dist_locals_prim, prim);
+		adr = ret = prim = n = 0;
+		for (i=0; i<ss.frames->javastackdepth; ++i) {
+			switch (ss.frames->javastacktype[i]) {
+				case TYPE_ADR: adr++; break;
+				case TYPE_RET: ret++; break;
+				case TYPE_INT: case TYPE_LNG: case TYPE_FLT: case TYPE_DBL: prim++; break;
+			}
+			n++;
+		}
+		REPLACE_COUNT_DIST(stat_dist_stack, n);
+		REPLACE_COUNT_DIST(stat_dist_stack_adr, adr);
+		REPLACE_COUNT_DIST(stat_dist_stack_ret, ret);
+		REPLACE_COUNT_DIST(stat_dist_stack_prim, prim);
+#endif /* defined(REPLACE_STATISTICS) */
 
 		if (candidate->parent) {
 			DOLOG( printf("INLINED!\n"); );
 			candidate = candidate->parent;
 			assert(candidate->type == RPLPOINT_TYPE_INLINE);
+			REPLACE_COUNT(stat_unroll_inline);
 		}
 		else {
 			DOLOG( printf("UNWIND\n"); );
+			REPLACE_COUNT(stat_unroll_call);
 			if (!replace_pop_activation_record(es, ss.frames)) {
 				DOLOG( printf("BREAKING\n"); );
 				break;
@@ -1435,6 +1570,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		}
 	} while (candidate);
 
+	REPLACE_COUNT_DIST(stat_dist_frames, depth);
 	DOLOG( replace_sourcestate_println(&ss); );
 
 	/* write execution state of new code */
