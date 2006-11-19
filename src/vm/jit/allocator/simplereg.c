@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 6008 2006-11-15 23:44:01Z edwin $
+   $Id: simplereg.c 6016 2006-11-19 14:50:08Z edwin $
 
 */
 
@@ -1413,10 +1413,6 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					/* pop 0 push 0 */
 
 				case ICMD_JSR:
-#if !defined(NDEBUG)
-					/* avoid problems with show_allocation */
-					VAROP(iptr->dst)->vv.regoff = 0;
-#endif
 				case ICMD_NOP:
 				case ICMD_CHECKNULL:
 				case ICMD_IINC:
