@@ -86,6 +86,7 @@ typedef u8 stackslot_t;
 #define TOP_IS_NORMAL    0
 #define TOP_IS_ON_STACK  1
 #define TOP_IS_IN_ITMP1  2
+#define TOP_IS_VOID      3
 
 
 /* replace_create_replacement_point ********************************************
@@ -172,8 +173,14 @@ static void replace_create_replacement_point(jitdata *jd,
 		v = VAR(stackvars[i]);
 		ra->flags = v->flags & (INMEMORY);
 		ra->index = (i < paramcount) ? RPLALLOC_PARAM : RPLALLOC_STACK;
-		ra->regoff = v->vv.regoff;
 		ra->type  = v->type;
+		/* XXX how to handle locals on the stack containing returnAddresses? */
+		if (v->type == TYPE_RET) {
+			assert(stackvars[i] >= jd->localcount);
+			ra->regoff = v->vv.retaddr->nr;
+		}
+		else
+			ra->regoff = v->vv.regoff;
 		ra++;
 	}
 
@@ -735,23 +742,9 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	sp = (stackslot_t *) es->sp;
 
-	/* on some architectures the returnAddress is passed on the stack by JSR */
-
-#if defined(__I386__) || defined(__X86_64__)
-	if (rp->type == BBTYPE_SBR) {
-		sp++;
-		topslot = TOP_IS_ON_STACK; /* XXX */
-	}
-#endif
-
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
-	if (  (rp->type == BBTYPE_EXH)
-#if defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)
-	   || (rp->type == BBTYPE_SBR) /* XXX */
-#endif
-	   )
-	{
+	if (rp->type == BBTYPE_EXH) {
 		topslot = TOP_IS_IN_ITMP1;
 	}
 
@@ -849,6 +842,16 @@ static void replace_read_executionstate(rplpoint *rp,
 		i++;
 		ra++;
 	}
+	else if (topslot == TOP_IS_VOID) {
+		assert(count);
+
+		assert(ra->index == RPLALLOC_STACK);
+		frame->javastack[i] = 0;
+		frame->javastacktype[i] = TYPE_VOID;
+		count--;
+		i++;
+		ra++;
+	}
 
 	/* read remaining stack slots */
 
@@ -881,7 +884,10 @@ static void replace_read_executionstate(rplpoint *rp,
 			frame->javastackdepth--;
 		}
 		else {
-			replace_read_value(es,sp,ra,frame->javastack + i);
+			if (ra->type == TYPE_RET)
+				frame->javastack[i] = ra->regoff;
+			else
+				replace_read_value(es,sp,ra,frame->javastack + i);
 			frame->javastacktype[i] = ra->type;
 			i++;
 		}
@@ -935,22 +941,9 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	basesp = sp + code_get_stack_frame_size(code);
 
-	/* on some architectures the returnAddress is passed on the stack by JSR */
-
-#if defined(__I386__) || defined(__X86_64__)
-	if (rp->type == BBTYPE_SBR) {
-		topslot = TOP_IS_ON_STACK; /* XXX */
-	}
-#endif
-
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
-	if (  (rp->type == BBTYPE_EXH)
-#if defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)
-	   || (rp->type == BBTYPE_SBR) /* XXX */
-#endif
-	   )
-	{
+	if (rp->type == BBTYPE_EXH) {
 		topslot = TOP_IS_IN_ITMP1;
 	}
 
@@ -1000,6 +993,16 @@ static void replace_write_executionstate(rplpoint *rp,
 		i++;
 		ra++;
 	}
+	else if (topslot == TOP_IS_VOID) {
+		assert(count);
+
+		assert(ra->index == RPLALLOC_STACK);
+		assert(i < frame->javastackdepth);
+		assert(frame->javastacktype[i] == TYPE_VOID);
+		count--;
+		i++;
+		ra++;
+	}
 
 	/* write remaining stack slots */
 
@@ -1028,7 +1031,12 @@ static void replace_write_executionstate(rplpoint *rp,
 		else {
 			assert(i < frame->javastackdepth);
 			assert(ra->type == frame->javastacktype[i]);
-			replace_write_value(es,sp,ra,frame->javastack + i);
+			if (ra->type == TYPE_RET) {
+				/* XXX assert that it matches this rplpoint */
+			}
+			else {
+				replace_write_value(es,sp,ra,frame->javastack + i);
+			}
 			i++;
 		}
 	}
@@ -1290,6 +1298,7 @@ rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
 	rplpoint *rp;
 	s4        i;
 	s4        j;
+	s4        stacki;
 	rplalloc *ra;
 
 	assert(ss);
@@ -1309,12 +1318,24 @@ rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
 	while (i--) {
 		if (rp->id == frame->id && rp->method == frame->method) {
 			/* check if returnAddresses match */
+			/* XXX optimize: only do this if JSRs in method */
+			DOLOG( printf("checking match for:");
+				   replace_replacement_point_println(rp, 1); fflush(stdout); );
 			ra = rp->regalloc;
+			stacki = 0;
 			for (j = rp->regalloccount; j--; ++ra) {
 				if (ra->type == TYPE_RET) {
-					assert(ra->index >= 0 && ra->index < frame->javalocalcount);
-					if (frame->javalocals[ra->index] != ra->regoff)
-						goto no_match;
+					if (ra->index == RPLALLOC_STACK) {
+						assert(stacki < frame->javastackdepth);
+						if (frame->javastack[stacki] != ra->regoff)
+							goto no_match;
+						stacki++;
+					}
+					else {
+						assert(ra->index >= 0 && ra->index < frame->javalocalcount);
+						if (frame->javalocals[ra->index] != ra->regoff)
+							goto no_match;
+					}
 				}
 			}
 
