@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 5601 2006-10-01 14:37:17Z edwin $
+   $Id: typeinfo.h 6023 2006-11-19 15:22:53Z edwin $
 
 */
 
@@ -353,7 +353,7 @@ struct typedescriptor {
               && TYPEINFO_IS_ARRAY_OF_REFS_NOCHECK(info) )
 
 #define TYPE_IS_RETURNADDRESS(type,info)                        \
-            ( ((type)==TYPE_ADR)                                \
+            ( ((type)==TYPE_RET)                                \
               && TYPEINFO_IS_PRIMITIVE(info) )
 
 #define TYPE_IS_REFERENCE(type,info)                            \

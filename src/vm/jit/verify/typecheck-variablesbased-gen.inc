@@ -469,8 +469,8 @@
   GENERATED  
   GENERATED  
   GENERATED  case ICMD_ASTORE:
-  GENERATED  	/* (A--) */
-  GENERATED  	STORE_LOCAL(TYPE_ADR, IPTR->dst.varindex);
+  GENERATED  	/* (A--|R--) */
+  GENERATED  	STORE_LOCAL(VAROP(iptr->s1)->type, IPTR->dst.varindex);
   GENERATED  
 #            	define DST  VAROP(IPTR->dst)
   GENERATED  
@@ -745,7 +745,7 @@
   GENERATED  
   GENERATED  
   GENERATED  case ICMD_JSR:
-  GENERATED  	/* (--A) */
+  GENERATED  	/* (--R) */
   GENERATED  	superblockend = true;
   GENERATED  
 #            	define DST  VAROP(iptr->dst)
@@ -757,7 +757,7 @@
   GENERATED  
 #            	line 759 "src/vm/jit/verify/typecheck-variablesbased-gen.inc"
   GENERATED  
-  GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_RET;
   GENERATED  	break;
   GENERATED  
   GENERATED  

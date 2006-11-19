@@ -558,7 +558,7 @@ case ICMD_RET: /* {VARIABLESBASED} */
 
 case ICMD_RET: /* {STACKBASED} */
 	/* {RESULTNOW} */
-	CHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_ADR);
+	CHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_RET);
 	if (!TYPEINFO_IS_PRIMITIVE(STATE->locals[IPTR->s1.varindex].typeinfo))
 		VERIFY_ERROR("illegal instruction: RET using non-returnAddress variable");
 

@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 6020 2006-11-19 15:04:27Z edwin $
+   $Id: stack.c 6023 2006-11-19 15:22:53Z edwin $
 
 */
 
@@ -4633,19 +4633,21 @@ icmd_BUILTIN:
 
 					SET_TEMPVAR(copy);
 					t = copy->type;
-					if (t == TYPE_RET)
-						t = TYPE_ADR;
 
 					v = sd.var + copy->varnum;
 					v->flags |= INOUT;
 
-					if (jd->interface_map[i*5 + t].flags == UNUSED) {
-						/* no interface var until now for this depth and */
-						/* type */
-						jd->interface_map[i*5 + t].flags = v->flags;
-					}
-					else {
-						jd->interface_map[i*5 + t].flags |= v->flags;
+					/* do not allocate variables for returnAddresses */
+
+					if (t != TYPE_RET) {
+						if (jd->interface_map[i*5 + t].flags == UNUSED) {
+							/* no interface var until now for this depth and */
+							/* type */
+							jd->interface_map[i*5 + t].flags = v->flags;
+						}
+						else {
+							jd->interface_map[i*5 + t].flags |= v->flags;
+						}
 					}
 
 					sd.bptr->outvars[i] = copy->varnum;
@@ -4658,16 +4660,16 @@ icmd_BUILTIN:
 					s4 t;
 
 					t = v->type;
-					if (t == TYPE_RET)
-						t = TYPE_ADR;
 
-					if (jd->interface_map[i*5 + t].flags == UNUSED) {
-						/* no interface var until now for this depth and */
-						/* type */
-						jd->interface_map[i*5 + t].flags = v->flags;
-					}
-					else {
-						jd->interface_map[i*5 + t].flags |= v->flags;
+					if (t != TYPE_RET) {
+						if (jd->interface_map[i*5 + t].flags == UNUSED) {
+							/* no interface var until now for this depth and */
+							/* type */
+							jd->interface_map[i*5 + t].flags = v->flags;
+						}
+						else {
+							jd->interface_map[i*5 + t].flags |= v->flags;
+						}
 					}
 				}
 
@@ -4689,11 +4691,18 @@ icmd_BUILTIN:
 
 	} while (sd.repeat && !deadcode);
 
-	/* XXX reset TYPE_RET to TYPE_ADR */
+	/* reset locals of TYPE_RET to TYPE_ADR */
 
-	for (i=0; i<sd.vartop; ++i) {
+	for (i=0; i<sd.localcount; ++i) {
 		if (sd.var[i].type == TYPE_RET)
 			sd.var[i].type = TYPE_ADR;
+	}
+
+	/* mark temporaries of TYPE_RET as PREALLOC to avoid allocation */
+
+	for (i=sd.localcount; i<sd.vartop; ++i) {
+		if (sd.var[i].type == TYPE_RET)
+			sd.var[i].flags |= PREALLOC;
 	}
 
 	/* XXX hack to fix up the ranges of the cloned single-block handlers */
