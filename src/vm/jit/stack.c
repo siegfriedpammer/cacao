@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 6010 2006-11-16 00:02:00Z edwin $
+   $Id: stack.c 6018 2006-11-19 14:56:32Z edwin $
 
 */
 
@@ -4610,6 +4610,12 @@ icmd_BUILTIN:
 					iptr++;
 				} /* while instructions */
 
+				/* show state after last instruction */
+
+#if defined(STACK_VERBOSE)
+				stack_verbose_show_state(&sd, NULL, curstack);
+#endif
+
 				/* stack slots at basic block end become interfaces */
 
 				sd.bptr->outdepth = stackdepth;
@@ -4840,16 +4846,9 @@ static void stack_verbose_show_block(stackdata_t *sd, basicblock *bptr)
 	}
 	else
 		putchar('-');
-	printf("] javalocals [");
-	for (i=0; i<sd->maxlocals; ++i) {
-		if (i)
-			putchar(' ');
-		if (sd->javalocals[i] == UNUSED)
-			putchar('-');
-		else
-			printf("%d", sd->javalocals[i]);
-	}
-	printf("] inlocals [");
+	printf("] javalocals ");
+	show_javalocals_array(sd->jd, sd->javalocals, sd->maxlocals, SHOW_STACK);
+	printf(" inlocals [");
 	if (bptr->inlocals) {
 		for (i=0; i<sd->localcount; ++i) {
 			if (i)
@@ -4920,18 +4919,9 @@ static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, stackpt
 	varinfo *v;
 	stackptr *stack;
 
-	printf("    javalocals [");
-	for (i=0; i<sd->maxlocals; ++i) {
-		if (i)
-			putchar(' ');
-		if (sd->javalocals[i] == UNUSED)
-			printf("---");
-		else {
-			printf("%d:%c", sd->javalocals[i], 
-					show_jit_type_letters[sd->var[sd->javalocals[i]].type]);
-		}
-	}
-	printf("] stack [");
+	printf("    javalocals ");
+	show_javalocals_array(sd->jd, sd->javalocals, sd->maxlocals, SHOW_STACK);
+	printf(" stack [");
 
 	for(i = 0, sp = curstack; sp; sp = sp->prev)
 		i++;
@@ -4952,9 +4942,13 @@ static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, stackpt
 		if (v->flags & PREALLOC)
 			putchar('A');
 		printf("%d:%c", sp->varnum, show_jit_type_letters[sp->type]);
+		if (v->type == TYPE_RET) {
+			printf("(L%03d)", v->vv.retaddr->nr);
+		}
 	}
 	printf("] ... ");
-	show_icmd(sd->jd, iptr, false, SHOW_PARSE); 
+	if (iptr)
+		show_icmd(sd->jd, iptr, false, SHOW_PARSE); 
 	printf("\n");
 }
 #endif
