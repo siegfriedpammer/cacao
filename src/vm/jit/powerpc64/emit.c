@@ -175,7 +175,7 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	if ((value >= -32768) && (value <= 32767)) {
 		M_LDA_INTERN(d, REG_ZERO, value);
 	} else {
-		disp = dseg_adds4(cd, value);
+		disp = dseg_add_s4(cd, value);
 		M_ILD(d, REG_PV, disp);
 	}
 }
@@ -186,7 +186,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	if ((value >= -32768) && (value <= 32767)) {
 		M_LDA_INTERN(d, REG_ZERO, value);
 	} else {
-		disp = dseg_adds8(cd, value);
+		disp = dseg_add_s8(cd, value);
 		M_LLD(d, REG_PV, disp);
 	}
 }
@@ -284,7 +284,7 @@ void emit_verbosecall_enter (jitdata *jd)
 #endif
 
 	/* put methodinfo pointer on Stackframe */
-	p = dseg_addaddress(cd, m);
+	p = dseg_add_address(cd, m);
 	M_ALD(REG_ITMP1, REG_PV, p);
 #if defined(__DARWIN__)
 	M_AST(REG_ITMP1, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8); 
@@ -299,7 +299,7 @@ void emit_verbosecall_enter (jitdata *jd)
 #endif
 	/* call via function descriptor */
 	/* XXX: what about TOC? */
-	p = dseg_addaddress(cd, builtin_trace_args);
+	p = dseg_add_functionptr(cd, builtin_trace_args);
 	M_ALD(REG_ITMP2, REG_PV, p);
 	M_ALD(REG_ITMP1, REG_ITMP2, 0);
 	M_MTCTR(REG_ITMP1);
@@ -363,12 +363,12 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_MOV(REG_RESULT, jd->rd->argintregs[1]);
 #endif
 
-	disp = dseg_addaddress(cd, jd->m);
+	disp = dseg_add_address(cd, jd->m);
 	M_ALD(jd->rd->argintregs[0], REG_PV, disp);
 
 	M_FLTMOVE(REG_FRESULT, jd->rd->argfltregs[0]);
 	M_FLTMOVE(REG_FRESULT, jd->rd->argfltregs[1]);
-	disp = dseg_addaddress(cd, builtin_displaymethodstop);
+	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
 	/* call via function descriptor, XXX: what about TOC ? */
 	M_ALD(REG_ITMP2, REG_PV, disp);
 	M_ALD(REG_ITMP2, REG_ITMP2, 0);
