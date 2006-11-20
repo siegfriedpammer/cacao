@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 5929 2006-11-06 17:13:40Z twisti $
+   $Id: dseg.h 6031 2006-11-20 16:18:19Z twisti $
 
 */
 
@@ -56,16 +56,6 @@ typedef struct dseg_exception_entry dseg_exception_entry;
 #include "toolbox/list.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/codegen-common.h"
-
-
-/* XXX don't-break-trunk macros ***********************************************/
-
-#define dseg_adds4(cd,value)         dseg_add_unique_s4((cd), (value))
-#define dseg_adds8(cd,value)         dseg_add_unique_s8((cd), (value))
-#define dseg_addfloat(cd,value)      dseg_add_unique_float((cd), (value))
-#define dseg_adddouble(cd,value)     dseg_add_unique_double((cd), (value))
-#define dseg_addaddress(cd,value)    dseg_add_unique_address((cd), (void *) (ptrint) (value))
-#define dseg_addtarget(cd,value)     dseg_add_target((cd), (value))
 
 
 /* convenience macros *********************************************************/

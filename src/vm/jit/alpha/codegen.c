@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 5982 2006-11-15 15:30:36Z twisti $
+   $Id: codegen.c 6031 2006-11-20 16:18:19Z twisti $
 
 */
 
@@ -454,7 +454,7 @@ bool codegen(jitdata *jd)
 				/* XXX Only add the patcher, if this position needs to
 				   be patched.  If there was a previous position which
 				   resolved the same class, the returned displacement
-				   of dseg_addaddress is ok to use. */
+				   of dseg_add_address is ok to use. */
 
 				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_classinfo,
 									  cr, disp);
@@ -2888,17 +2888,19 @@ gen_method:
 				s1 = emit_load_s1(jd, iptr, REG_A0);
 				M_INTMOVE(s1, REG_A0);
 
-				disp = dseg_addaddress(cd, iptr->sx.s23.s3.c.cls);
-
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+					disp = dseg_add_unique_address(cd, NULL);
+
 					codegen_add_patch_ref(cd,
 										  PATCHER_resolve_classref_to_classinfo,
 										  iptr->sx.s23.s3.c.ref,
 										  disp);
 				}
+				else
+					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
 				M_ALD(REG_A1, REG_PV, disp);
-				disp = dseg_addaddress(cd, BUILTIN_arraycheckcast);
+				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_PV, REG_PV, disp);
 				M_JSR(REG_RA, REG_PV);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
