@@ -101,9 +101,9 @@
 /* MACROS FOR THE FLAT LOCK CONTENTION BIT                                    */
 /******************************************************************************/
 
-#define LOCK_SET_FLC_BIT(obj)    ((obj)->flcword = 1)
-#define LOCK_CLEAR_FLC_BIT(obj)  ((obj)->flcword = 0)
-#define LOCK_TEST_FLC_BIT(obj)   ((obj)->flcword != 0)
+#define LOCK_SET_FLC_BIT(obj)    ((obj)->hdrflags |= HDRFLAG_FLC)
+#define LOCK_CLEAR_FLC_BIT(obj)  ((obj)->hdrflags &= ~ HDRFLAG_FLC)
+#define LOCK_TEST_FLC_BIT(obj)   ((obj)->hdrflags & HDRFLAG_FLC)
 
 
 /******************************************************************************/
@@ -657,7 +657,7 @@ void lock_init_object_lock(java_objectheader *o)
 	assert(o);
 
 	o->monitorPtr = (lock_record_t *) THIN_UNLOCKED;
-	o->flcword = 0;
+	LOCK_CLEAR_FLC_BIT(o);
 }
 
 

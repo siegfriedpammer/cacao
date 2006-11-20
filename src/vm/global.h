@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 5910 2006-11-05 10:31:32Z edwin $
+   $Id: global.h 6030 2006-11-20 14:18:12Z michi $
 
 */
 
@@ -217,13 +217,19 @@ typedef struct java_objectarray java_objectarray;
    All objects (and arrays) which resides on the heap need the
    following header at the beginning of the data structure.
 
+   TODO: Include detailed description from the Wiki (ObjectHeader) here.
+
 *******************************************************************************/
 
-struct java_objectheader {              /* header for all objects             */
-	struct _vftbl            *vftbl;    /* pointer to virtual function table  */
+#define HDRFLAG_FLC 0x01
+
+struct java_objectheader {             /* header for all objects              */
+	struct _vftbl            *vftbl;   /* pointer to virtual function table   */
 #if defined(ENABLE_THREADS)
 	struct lock_record_t *monitorPtr;
-	ptrint                flcword;      /* word containing the FLC bit        */
+#endif
+#if defined(ENABLE_THREADS) || defined(ENABLE_GC_CACAO)
+	ptrint                hdrflags;    /* word containing the FLC and GC bits */
 #endif
 };
 
