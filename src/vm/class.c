@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 5844 2006-10-28 12:49:29Z edwin $
+   $Id: class.c 6033 2006-11-21 16:56:56Z michi $
 
 */
 
@@ -384,7 +384,9 @@ void class_free(classinfo *c)
 	if (c->fields) {
 		for (i = 0; i < c->fieldscount; i++)
 			field_free(&(c->fields[i]));
-/*  	MFREE(c->fields, fieldinfo, c->fieldscount); */
+#if defined(ENABLE_CACAO_GC)
+		MFREE(c->fields, fieldinfo, c->fieldscount);
+#endif
 	}
 	
 	if (c->methods) {

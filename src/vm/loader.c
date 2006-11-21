@@ -31,7 +31,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 6013 2006-11-16 22:14:10Z twisti $
+   $Id: loader.c 6033 2006-11-21 16:56:56Z michi $
 
 */
 
@@ -2080,8 +2080,13 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		goto return_exception;
 
 	c->fieldscount = suck_u2(cb);
+#if defined(ENABLE_GC_CACAO)
+  	c->fields = MNEW(fieldinfo, c->fieldscount);
+	MZERO(c->fields, fieldinfo, c->fieldscount);
+#else
 	c->fields = GCNEW_UNCOLLECTABLE(fieldinfo, c->fieldscount);
-/*  	c->fields = MNEW(fieldinfo, c->fieldscount); */
+#endif
+
 	for (i = 0; i < c->fieldscount; i++) {
 		if (!load_field(cb, &(c->fields[i]),descpool))
 			goto return_exception;
