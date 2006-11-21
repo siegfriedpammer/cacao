@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 6013 2006-11-16 22:14:10Z twisti $
+   $Id: builtin.c 6034 2006-11-21 21:02:30Z twisti $
 
 */
 
@@ -1744,7 +1744,7 @@ void builtin_print_cycles_stats(FILE *file)
 
 ******************************************************************************/
 
-#if !SUPPORT_DIVISION
+#if !SUPPORT_DIVISION || defined(DISABLE_GC)
 s4 builtin_idiv(s4 a, s4 b)
 {
 	s4 c;
@@ -1762,7 +1762,7 @@ s4 builtin_irem(s4 a, s4 b)
 
 	return c;
 }
-#endif /* !SUPPORT_DIVISION */
+#endif /* !SUPPORT_DIVISION || defined(DISABLE_GC) */
 
 
 /* functions for long arithmetics **********************************************
@@ -2395,7 +2395,7 @@ double builtin_l2d(s8 a)
 #endif /* !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D) */
 
 
-#if !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP)
+#if !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 s4 builtin_f2i(float a) 
 {
 	s4 i;
@@ -2420,7 +2420,7 @@ s4 builtin_f2i(float a)
 		return 2147483647;
 		return (-2147483648); */
 }
-#endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) */
+#endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
 #if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
@@ -2451,7 +2451,7 @@ s8 builtin_f2l(float a)
 #endif /* !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP)
+#if !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 s4 builtin_d2i(double a) 
 { 
 	double d;
@@ -2470,7 +2470,7 @@ s4 builtin_d2i(double a)
 		return 2147483647;
 	return (-2147483647-1);
 }
-#endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) */
+#endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
 #if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)

@@ -713,10 +713,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* get stuff from the environment *****************************************/
 
-#if defined(DISABLE_GC)
-	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
-#endif
-
 #if defined(WITH_JRE_LAYOUT)
 	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
 

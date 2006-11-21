@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nogc.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: nogc.c 6034 2006-11-21 21:02:30Z twisti $
 
 */
 
@@ -87,18 +87,6 @@ void *heap_alloc_uncollectable(u4 size)
 }
 
 
-void *nogc_realloc(void *src, s4 len1, s4 len2)
-{
-	void *p;
-
-	p = heap_allocate(len2, false, NULL);
-
-	MCOPY(p, src, u1, len1);
-
-	return p;
-}
-
-
 void heap_free(void *p)
 {
 	/* nop */
@@ -106,14 +94,21 @@ void heap_free(void *p)
 
 
 
-void nogc_init(u4 heapmaxsize, u4 heapstartsize)
+void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	heapmaxsize = MEMORY_ALIGN(heapmaxsize, ALIGNSIZE);
 
 	mmapptr = mmap((void *) MMAP_HEAPADDRESS,
 				   (size_t) heapmaxsize,
 				   PROT_READ | PROT_WRITE,
-				   MAP_PRIVATE | MAP_ANONYMOUS,
+				   MAP_PRIVATE |
+# if defined(MAP_ANONYMOUS)
+				   MAP_ANONYMOUS,
+# elif defined(MAP_ANON)
+				   MAP_ANON,
+# else
+				   0,
+# endif
 				   -1,
 				   (off_t) 0);
 
@@ -122,12 +117,6 @@ void nogc_init(u4 heapmaxsize, u4 heapstartsize)
 
 	mmapsize = heapmaxsize;
 	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);
-}
-
-
-void gc_init(u4 heapmaxsize, u4 heapstartsize)
-{
-	/* nop */
 }
 
 
@@ -145,6 +134,12 @@ s8 gc_get_heap_size(void)
 
 
 s8 gc_get_free_bytes(void)
+{
+	return 0;
+}
+
+
+s8 gc_get_total_bytes(void)
 {
 	return 0;
 }

@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: cacaoh.c 6034 2006-11-21 21:02:30Z twisti $
 
 */
 
@@ -177,11 +177,6 @@ int main(int argc, char **argv)
 
 	if (argc < 2)
 		usage();
-
-
-#if defined(DISABLE_GC)
-	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
-#endif
 
 	/* set the bootclasspath */
 

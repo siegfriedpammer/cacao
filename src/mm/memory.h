@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 5901 2006-11-04 22:01:51Z edwin $
+   $Id: memory.h 6034 2006-11-21 21:02:30Z twisti $
 
 */
 
@@ -154,7 +154,6 @@ Some more macros:
 #define PADDING(pos,size)     (MEMORY_ALIGN((pos),(size)) - (pos))
 #define OFFSET(s,el)          ((s4) ((ptrint) &(((s*) 0)->el)))
 
-#if !defined(DISABLE_GC)
 
 #define NEW(type)             ((type *) mem_alloc(sizeof(type)))
 #define FREE(ptr,type)        mem_free((ptr), sizeof(type))
@@ -165,18 +164,6 @@ Some more macros:
 #define MREALLOC(ptr,type,num1,num2) mem_realloc((ptr), sizeof(type) * (num1), \
                                                         sizeof(type) * (num2))
 
-#else
-
-#define NEW(type)             GCNEW(type)
-#define FREE(ptr,type)        GCFREE(ptr)
-
-#define MNEW(type,num)        GCMNEW(type,num)
-#define MFREE(ptr,type,num)   GCFREE(ptr)
-
-#define MREALLOC(ptr,type,num1,num2) nogc_realloc((ptr), sizeof(type) * (num1), \
-                                                        sizeof(type) * (num2))
-
-#endif
 
 #define DNEW(type)            ((type *) dump_alloc(sizeof(type)))
 #define DMNEW(type,num)       ((type *) dump_alloc(sizeof(type) * (num)))
