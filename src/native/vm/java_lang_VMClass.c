@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: java_lang_VMClass.c 5919 2006-11-05 21:18:05Z twisti $
+   $Id: java_lang_VMClass.c 6035 2006-11-21 23:21:18Z twisti $
 
 */
 
@@ -164,20 +164,10 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, 
 {
 	classinfo        *c;
 	java_lang_String *s;
-	u4                i;
 
 	c = (classinfo *) klass;
-	s = (java_lang_String *) javastring_new(c->name);
 
-	if (!s)
-		return NULL;
-
-	/* return string where '/' is replaced by '.' */
-
-	for (i = 0; i < s->value->header.size; i++) {
-		if (s->value->data[i] == '/')
-			s->value->data[i] = '.';
-	}
+	s = native_class_getname(c);
 
 	return s;
 }

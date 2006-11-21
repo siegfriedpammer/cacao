@@ -27,10 +27,9 @@
    Authors: Reinhard Grafl
             Roman Obermaisser
             Andreas Krall
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: native.c 5810 2006-10-20 13:54:54Z twisti $
+   $Id: native.c 6035 2006-11-21 23:21:18Z twisti $
 
 */
 
@@ -1028,6 +1027,33 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 	(void) vm_call_method(m, o, t);
 
 	return o;
+}
+
+
+/* native_class_getname ********************************************************
+
+   Implementation for java.lang.Class.getName()Ljava/lang/String;
+
+*******************************************************************************/
+
+java_lang_String *native_class_getname(classinfo *c)
+{
+	java_lang_String *s;
+	u4                i;
+
+	s = (java_lang_String *) javastring_new(c->name);
+
+	if (s == NULL)
+		return NULL;
+
+	/* return string where '/' is replaced by '.' */
+
+	for (i = 0; i < s->value->header.size; i++) {
+		if (s->value->data[i] == '/')
+			s->value->data[i] = '.';
+	}
+
+	return s;
 }
 
 
