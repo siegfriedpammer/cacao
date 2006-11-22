@@ -32,7 +32,7 @@
             Edwin Steiner
 	    Roland Lezuo
 
-   $Id: codegen.c 6032 2006-11-20 18:57:08Z tbfg $
+   $Id: codegen.c 6042 2006-11-22 18:18:09Z edwin $
 
 */
 
@@ -480,7 +480,6 @@ bool codegen(jitdata *jd)
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_ASTORE:     /* dst.localindex = local variable              */
 		case ICMD_LSTORE:
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
@@ -490,6 +489,10 @@ bool codegen(jitdata *jd)
 			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
+		case ICMD_ASTORE:
+			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
+				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+			break;
 
 		/* pop operations *****************************************************/
 
