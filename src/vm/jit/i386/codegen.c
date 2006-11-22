@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6002 2006-11-15 23:23:59Z edwin $
+   $Id: codegen.c 6036 2006-11-22 10:50:07Z twisti $
 
 */
 
@@ -169,8 +169,8 @@ bool codegen(jitdata *jd)
 	if (!jd->isleafmethod)
 		cd->stackframesize |= 0x3;
 
-	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, cd->stackframesize * 4);         /* FrameSize       */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -180,14 +180,14 @@ bool codegen(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 4);       /* IsSync          */
+		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 4); /* IsSync        */
 	else
 #endif
-		(void) dseg_adds4(cd, 0);                          /* IsSync          */
+		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, jd->isleafmethod);               /* IsLeaf          */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
+	(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
+	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 
 	/* adds a reference for the length of the line number counter. We don't
 	   know the size yet, since we evaluate the information during code
@@ -196,15 +196,15 @@ bool codegen(jitdata *jd)
 	   to the information gotten from the class file */
 	(void) dseg_addlinenumbertablesize(cd);
 
-	(void) dseg_adds4(cd, jd->exceptiontablelength);       /* ExTableSize     */
+	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength); /* ExTableSize   */
 	
 	/* create exception table */
 
 	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_addtarget(cd, ex->start);
-   		dseg_addtarget(cd, ex->end);
-		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype.any);
+		dseg_add_target(cd, ex->start);
+   		dseg_add_target(cd, ex->end);
+		dseg_add_target(cd, ex->handler);
+		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
 	
 	/* generate method profiling code */
@@ -586,7 +586,7 @@ bool codegen(jitdata *jd)
 				emit_faddp(cd);
 
 			} else {
-  				disp = dseg_addfloat(cd, iptr->sx.val.f);
+  				disp = dseg_add_float(cd, iptr->sx.val.f);
 				emit_mov_imm_reg(cd, 0, REG_ITMP1);
 				dseg_adddata(cd);
 				emit_flds_membase(cd, REG_ITMP1, disp);
@@ -614,7 +614,7 @@ bool codegen(jitdata *jd)
 				emit_faddp(cd);
 
 			} else {
-				disp = dseg_adddouble(cd, iptr->sx.val.d);
+				disp = dseg_add_double(cd, iptr->sx.val.d);
 				emit_mov_imm_reg(cd, 0, REG_ITMP1);
 				dseg_adddata(cd);
 				emit_fldl_membase(cd, REG_ITMP1, disp);
@@ -1601,7 +1601,8 @@ bool codegen(jitdata *jd)
 			if (var->flags & INMEMORY) {
 				emit_fildl_membase(cd, REG_SP, var->vv.regoff * 4);
 			} else {
-				disp = dseg_adds4(cd, 0);
+				/* XXX not thread safe! */
+				disp = dseg_add_unique_s4(cd, 0);
 				emit_mov_imm_reg(cd, 0, REG_ITMP1);
 				dseg_adddata(cd);
 				emit_mov_reg_membase(cd, var->vv.regoff, REG_ITMP1, disp);
@@ -1635,7 +1636,7 @@ bool codegen(jitdata *jd)
 			dseg_adddata(cd);
 
 			/* Round to zero, 53-bit mode, exception masked */
-			disp = dseg_adds4(cd, 0x0e7f);
+			disp = dseg_add_s4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
 			var = VAROP(iptr->dst);
@@ -1645,7 +1646,7 @@ bool codegen(jitdata *jd)
 				emit_fistpl_membase(cd, REG_SP, var->vv.regoff * 4);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
-				disp = dseg_adds4(cd, 0x027f);
+				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
 				emit_alu_imm_membase(cd, ALU_CMP, 0x80000000, 
@@ -1657,12 +1658,13 @@ bool codegen(jitdata *jd)
 				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
 
 			} else {
-				disp = dseg_adds4(cd, 0);
+				/* XXX not thread safe! */
+				disp = dseg_add_unique_s4(cd, 0);
 				emit_fistpl_membase(cd, REG_ITMP1, disp);
 				emit_mov_membase_reg(cd, REG_ITMP1, disp, var->vv.regoff);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
-				disp = dseg_adds4(cd, 0x027f);
+				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
 				emit_alu_imm_reg(cd, ALU_CMP, 0x80000000, var->vv.regoff);
@@ -1696,7 +1698,7 @@ bool codegen(jitdata *jd)
 			dseg_adddata(cd);
 
 			/* Round to zero, 53-bit mode, exception masked */
-			disp = dseg_adds4(cd, 0x0e7f);
+			disp = dseg_add_s4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
 			var  = VAROP(iptr->dst);
@@ -1706,7 +1708,7 @@ bool codegen(jitdata *jd)
 				emit_fistpl_membase(cd, REG_SP, var->vv.regoff * 4);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
-				disp = dseg_adds4(cd, 0x027f);
+				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
   				emit_alu_imm_membase(cd, ALU_CMP, 0x80000000, 
@@ -1718,12 +1720,13 @@ bool codegen(jitdata *jd)
 				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
 
 			} else {
-				disp = dseg_adds4(cd, 0);
+				/* XXX not thread safe! */
+				disp = dseg_add_unique_s4(cd, 0);
 				emit_fistpl_membase(cd, REG_ITMP1, disp);
 				emit_mov_membase_reg(cd, REG_ITMP1, disp, var->vv.regoff);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
-				disp = dseg_adds4(cd, 0x027f);
+				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
 				emit_alu_imm_reg(cd, ALU_CMP, 0x80000000, var->vv.regoff);
@@ -1756,7 +1759,7 @@ bool codegen(jitdata *jd)
 			dseg_adddata(cd);
 
 			/* Round to zero, 53-bit mode, exception masked */
-			disp = dseg_adds4(cd, 0x0e7f);
+			disp = dseg_add_s4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
 			var  = VAROP(iptr->dst);
@@ -1766,7 +1769,7 @@ bool codegen(jitdata *jd)
 				emit_fistpll_membase(cd, REG_SP, var->vv.regoff * 4);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
-				disp = dseg_adds4(cd, 0x027f);
+				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
   				emit_alu_imm_membase(cd, ALU_CMP, 0x80000000, 
@@ -1817,7 +1820,7 @@ bool codegen(jitdata *jd)
 			dseg_adddata(cd);
 
 			/* Round to zero, 53-bit mode, exception masked */
-			disp = dseg_adds4(cd, 0x0e7f);
+			disp = dseg_add_s4(cd, 0x0e7f);
 			emit_fldcw_membase(cd, REG_ITMP1, disp);
 
 			var  = VAROP(iptr->dst);
@@ -1827,7 +1830,7 @@ bool codegen(jitdata *jd)
 				emit_fistpll_membase(cd, REG_SP, var->vv.regoff * 4);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
-				disp = dseg_adds4(cd, 0x027f);
+				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
   				emit_alu_imm_membase(cd, ALU_CMP, 0x80000000, 
@@ -3131,7 +3134,7 @@ nowperformreturn:
 				table += i;
 
 				while (--i >= 0) {
-					dseg_addtarget(cd, table->block); 
+					dseg_add_target(cd, table->block); 
 					--table;
 				}
 
@@ -4175,14 +4178,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, cd->stackframesize * 4);         /* FrameSize       */
-	(void) dseg_adds4(cd, 0);                              /* IsSync          */
-	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
-	(void) dseg_adds4(cd, 0);                              /* IntSave         */
-	(void) dseg_adds4(cd, 0);                              /* FltSave         */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
 	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_adds4(cd, 0);                              /* ExTableSize     */
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate native method profiling code */
 

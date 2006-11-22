@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 5932 2006-11-07 09:06:18Z twisti $
+   $Id: emit.c 6036 2006-11-22 10:50:07Z twisti $
 
 */
 
@@ -438,9 +438,9 @@ void emit_patcher_stubs(jitdata *jd)
 		/* move pointer to java_objectheader onto stack */
 
 #if defined(ENABLE_THREADS)
-		(void) dseg_addaddress(cd, NULL);                          /* flcword */
-		(void) dseg_addaddress(cd, lock_get_initial_lock_word());
-		disp = dseg_addaddress(cd, NULL);                          /* vftbl   */
+		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
+		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
+		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
 		M_MOV_IMM(0, REG_ITMP3);
 		dseg_adddata(cd);
