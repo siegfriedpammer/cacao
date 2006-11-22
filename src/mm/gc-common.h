@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: gc-common.h 5900 2006-11-04 17:30:44Z michi $
+   $Id: gc-common.h 6045 2006-11-22 19:00:18Z twisti $
 
 */
 
@@ -58,11 +56,6 @@ s8    gc_get_max_heap_size(void);
 void  gc_invoke_finalizers(void);
 void  gc_finalize_all(void);
 void *gc_out_of_memory(size_t bytes_requested);
-
-#if defined(DISABLE_GC)
-void  nogc_init(u4 heapmaxsize, u4 heapstartsize);
-void *nogc_realloc(void *src, s4 len1, s4 len2);
-#endif
 
 #endif /* _GC_COMMON_H */
 
