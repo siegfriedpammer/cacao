@@ -143,7 +143,7 @@ void show_method(jitdata *jd, int stage)
 	s4              i, j;
 	int             irstage;
 #if defined(ENABLE_DISASSEMBLER)
-	u1             *u1ptr;
+	u1             *pc;
 #endif
 
 	/* get required compiler data */
@@ -355,10 +355,10 @@ void show_method(jitdata *jd, int stage)
 	/* show code before first basic block */
 
 	if ((stage >= SHOW_CODE) && JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
-		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen);
+		pc = (u1 *) ((ptrint) code->mcode + cd->dseglen);
 
-		for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + jd->basicblocks[0].mpc);)
-			DISASSINSTR(u1ptr);
+		for (; pc < (u1 *) ((ptrint) code->mcode + cd->dseglen + jd->basicblocks[0].mpc);)
+			DISASSINSTR(pc);
 
 		printf("\n");
 	}
@@ -377,10 +377,10 @@ void show_method(jitdata *jd, int stage)
 		printf("Length: %d\n\n", (s4) (code->mcodelength -
 									   ((ptrint) cd->dseglen + lastbptr->mpc)));
 
-		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + lastbptr->mpc);
+		pc = (u1 *) ((ptrint) code->mcode + cd->dseglen + lastbptr->mpc);
 
-		for (; (ptrint) u1ptr < ((ptrint) code->mcode + code->mcodelength);)
-			DISASSINSTR(u1ptr);
+		for (; (ptrint) pc < ((ptrint) code->mcode + code->mcodelength);)
+			DISASSINSTR(pc);
 
 		printf("\n");
 	}
@@ -445,7 +445,10 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	instruction *iptr;
 	int          irstage;
 #if defined(ENABLE_DISASSEMBLER)
-	u1          *u1ptr;
+	methodinfo  *m;                     /* this is only a dummy               */
+	u1          *pc;
+	s4           linenumber;
+	s4           currentlinenumber;
 #endif
 
 	/* get required compiler data */
@@ -548,16 +551,34 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			(!deadcode)) 
 		{
 			printf("\n");
-			u1ptr = (u1 *) (code->mcode + cd->dseglen + bptr->mpc);
+			pc         = (u1 *) (code->mcode + cd->dseglen + bptr->mpc);
+			linenumber = 0;
 
 			if (bptr->next != NULL) {
-				for (; u1ptr < (u1 *) (code->mcode + cd->dseglen + bptr->next->mpc);)
-					DISASSINSTR(u1ptr);
+				for (; pc < (u1 *) (code->mcode + cd->dseglen + bptr->next->mpc);) {
+					currentlinenumber =
+						dseg_get_linenumber_from_pc(&m, code->entrypoint, pc);
 
-			} 
+					if (currentlinenumber != linenumber) {
+						linenumber = currentlinenumber;
+						printf("%4d:\n", linenumber);
+					}
+
+					DISASSINSTR(pc);
+				}
+			}
 			else {
-				for (; u1ptr < (u1 *) (code->mcode + code->mcodelength);)
-					DISASSINSTR(u1ptr); 
+				for (; pc < (u1 *) (code->mcode + code->mcodelength);) {
+					currentlinenumber =
+						dseg_get_linenumber_from_pc(&m, code->entrypoint, pc);
+
+					if (currentlinenumber != linenumber) {
+						linenumber = currentlinenumber;
+						printf("%4d:\n", linenumber);
+					}
+
+					DISASSINSTR(pc);
+				}
 			}
 			printf("\n");
 		}

@@ -26,12 +26,11 @@
 
    Authors: Reinhard Grafl
             Andreas  Krall
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Joseph Wenninger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: dseg.c 5868 2006-10-30 11:21:36Z edwin $
+   $Id: dseg.c 6046 2006-11-22 20:24:55Z twisti $
 
 */
 
@@ -45,7 +44,7 @@
 
 #include "mm/memory.h"
 #include "vm/jit/codegen-common.h"
-
+#include "vm/jit/methodheader.h"
 
 
 /* dseg_finish *****************************************************************
@@ -740,6 +739,119 @@ void dseg_createlinenumbertable(codegendata *cd)
 		(void) dseg_add_unique_s4(cd, lr->linenumber);
 #endif
 	}
+}
+
+
+/* dseg_get_linenumber_from_pc_intern ******************************************
+
+   This function search the line number table for the line
+   corresponding to a given pc. The function recurses for inlined
+   methods.
+
+*******************************************************************************/
+
+static s4 dseg_get_linenumber_from_pc_intern(methodinfo **pm, linenumbertable_entry *lntentry, s4 lntsize, u1 *pc)
+{
+	linenumbertable_entry *lntinline;     /* special entry for inlined method */
+
+	for (; lntsize > 0; lntsize--, lntentry--) {
+		/* did we reach the current line? */
+
+		/* Note: In case of inlining this may actually compare the pc
+		   against a methodinfo *, yielding a non-sensical
+		   result. This is no problem, however, as we ignore such
+		   entries in the switch below. This way we optimize for the
+		   common case (ie. a real pc in lntentry->pc). */
+
+		if (pc >= lntentry->pc) {
+			/* check for special inline entries (see
+			   doc/inlining_stacktrace.txt for details */
+
+			if ((s4) lntentry->line < 0) {
+				switch (lntentry->line) {
+				case -1: 
+					/* begin of inlined method (ie. INLINE_END
+					   instruction) */
+
+					lntinline = --lntentry;/* get entry with methodinfo * */
+					lntentry--;            /* skip the special entry      */
+					lntsize -= 2;
+
+					/* search inside the inlined method */
+
+					if (dseg_get_linenumber_from_pc_intern(pm, 
+														   lntentry,
+														   lntsize,
+														   pc))
+						{
+							/* the inlined method contained the pc */
+
+							*pm = (methodinfo *) lntinline->pc;
+
+							assert(lntinline->line <= -3);
+
+							return (-3) - lntinline->line;
+						}
+
+					/* pc was not in inlined method, continue
+					   search.  Entries inside the inlined method
+					   will be skipped because their lntentry->pc
+					   is higher than pc.  */
+					break;
+
+				case -2: 
+					/* end of inlined method */
+
+					return 0;
+
+					/* default: is only reached for an -3-line entry
+					   after a skipped -2 entry. We can safely ignore
+					   it and continue searching.  */
+				}
+			}
+			else {
+				/* found a normal entry */
+
+				return (s4) lntentry->line;
+			}
+		}
+	}
+
+	/* not found, return 0 */
+
+	return 0;
+}
+
+
+/* dseg_get_linenumber_from_pc *************************************************
+
+   A wrapper for dseg_get_linenumber_from_pc_intern, so we don't have
+   to evaluate the method header on every call.
+
+*******************************************************************************/
+
+s4 dseg_get_linenumber_from_pc(methodinfo **pm, u1 *pv, u1 *pc)
+{
+	ptrint                 lntsize;     /* size of line number table          */
+	u1                    *lntstart;    /* start of line number table         */
+	linenumbertable_entry *lntentry;    /* points to last entry in the table  */
+	s4                     linenumber;
+
+	/* get size of line number table */
+
+	lntsize  = *((ptrint *) (pv + LineNumberTableSize));
+	lntstart = *((u1 **)    (pv + LineNumberTableStart));
+
+	/* Subtract the size of the line number entry of the structure,
+	   since the line number table start points to the pc. */
+
+	lntentry = (linenumbertable_entry *) (lntstart - SIZEOF_VOID_P);
+
+	/* get the line number */
+
+	linenumber = dseg_get_linenumber_from_pc_intern(pm, lntentry, lntsize, pc);
+
+	return linenumber;
 }
 
 

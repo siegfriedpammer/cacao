@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 5941 2006-11-09 10:23:04Z twisti $
+   $Id: stacktrace.c 6046 2006-11-22 20:24:55Z twisti $
 
 */
 
@@ -69,18 +69,6 @@
 #include "vm/jit/methodheader.h"
 #include "vm/cycles-stats.h"
 
-
-/* linenumbertable_entry ******************************************************/
-
-/* Keep the type of line the same as the pointer type, otherwise we
-   run into alignment troubles (like on MIPS64). */
-
-typedef struct linenumbertable_entry linenumbertable_entry;
-
-struct linenumbertable_entry {
-	ptrint  line;               /* NOTE: see doc/inlining_stacktrace.txt for  */
-	u1     *pc;                 /*       special meanings of line and pc.     */
-};
 
 /* global variables ***********************************************************/
 
@@ -622,94 +610,6 @@ static void stacktrace_add_entry(stacktracebuffer *stb, methodinfo *m, u2 line)
 }
 
 
-/* stacktrace_add_method_intern ************************************************
-
-   This function is used by stacktrace_add_method to search the line number
-   table for the line corresponding to a given pc. The function recurses for
-   inlined methods.
-
-*******************************************************************************/
-
-static bool stacktrace_add_method_intern(stacktracebuffer *stb, 
-										 methodinfo *m, 
-										 linenumbertable_entry *lntentry,
-										 ptrint lntsize,
-										 u1 *pc)
-{
-	linenumbertable_entry *lntinline;   /* special entry for inlined method */
-
-	assert(stb);
-	assert(lntentry);
-
-	/* Find the line number for the specified PC (going backwards
-	   in the linenumber table). The linenumber table size is zero
-	   in native stubs. */
-
-	for (; lntsize > 0; lntsize--, lntentry--) {
-
-		/* did we reach the current line? */
-
-		/* Note: In case of inlining this may actually compare the pc
-		   against a methodinfo *, yielding a non-sensical
-		   result. This is no problem, however, as we ignore such
-		   entries in the switch below. This way we optimize for the
-		   common case (ie. a real pc in lntentry->pc). */
-
-		if (pc >= lntentry->pc) {
-
-			/* check for special inline entries (see
-			   doc/inlining_stacktrace.txt for details */
-
-			if ((s4)lntentry->line < 0) {
-				switch (lntentry->line) {
-					case -1: 
-						/* begin of inlined method (ie. INLINE_END
-						   instruction) */
-
-						lntinline = --lntentry;/* get entry with methodinfo * */
-						lntentry--;            /* skip the special entry      */
-						lntsize -= 2;
-
-						/* search inside the inlined method */
-						if (stacktrace_add_method_intern(
-									stb, 
-									(methodinfo*) lntinline->pc,
-									lntentry,
-									lntsize,
-									pc))
-						{
-							/* the inlined method contained the pc */
-							assert(lntinline->line <= -3);
-							stacktrace_add_entry(stb, m, (-3) - lntinline->line);
-							return true;
-						}
-						/* pc was not in inlined method, continue
-						   search.  Entries inside the inlined method
-						   will be skipped because their lntentry->pc
-						   is higher than pc.  */
-						break;
-
-					case -2: 
-						/* end of inlined method */
-						return false;
-
-					/* default: is only reached for an -3-line entry
-					   after a skipped -2 entry. We can safely ignore
-					   it and continue searching.  */
-				}
-			}
-			else {
-				/* found a normal entry */
-				stacktrace_add_entry(stb, m, lntentry->line);
-				return true;
-			}
-		}
-	}
-
-	/* not found */
-	return false;
-}
-
 /* stacktrace_add_method *******************************************************
 
    Add stacktrace entries[1] for the given method to the stacktrace buffer.
@@ -731,20 +631,8 @@ static bool stacktrace_add_method_intern(stacktracebuffer *stb,
 static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 								  u1 *pc)
 {
-	ptrint                 lntsize;     /* size of line number table          */
-	u1                    *lntstart;    /* start of line number table         */
-	linenumbertable_entry *lntentry;    /* points to last entry in the table  */
-	codeinfo              *code;        /* compiled realization of method     */
-
-	/* get size of line number table */
-
-	lntsize  = *((ptrint *) (pv + LineNumberTableSize));
-	lntstart = *((u1 **)    (pv + LineNumberTableStart));
-
-	/* Subtract the size of the line number entry of the structure,
-	   since the line number table start points to the pc. */
-
-	lntentry = (linenumbertable_entry *) (lntstart - SIZEOF_VOID_P);
+	codeinfo *code;                     /* compiled realization of method     */
+	s4        linenumber;
 
 	/* find the realization of the method the pc is in */
 
@@ -752,12 +640,11 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 	/* search the line number table */
 
-	if (stacktrace_add_method_intern(stb, m, lntentry, lntsize, pc))
-		return true;
+	linenumber = dseg_get_linenumber_from_pc(&m, pv, pc);
 
-	/* If we get here, just add the entry with line number 0. */
+	/* now add a new entry to the staktrace */
 
-	stacktrace_add_entry(stb, m, 0);
+	stacktrace_add_entry(stb, m, linenumber);
 
 	return true;
 }

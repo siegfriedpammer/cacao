@@ -26,11 +26,10 @@
 
    Authors: Reinhard Grafl
             Andreas  Krall
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 6031 2006-11-20 16:18:19Z twisti $
+   $Id: dseg.h 6046 2006-11-22 20:24:55Z twisti $
 
 */
 
@@ -40,13 +39,14 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct dsegentry dsegentry;
-typedef struct jumpref jumpref;
-typedef struct dataref dataref;
-typedef struct exceptionref exceptionref;
-typedef struct patchref patchref;
-typedef struct linenumberref linenumberref;
-typedef struct dseg_exception_entry dseg_exception_entry;
+typedef struct dsegentry             dsegentry;
+typedef struct jumpref               jumpref;
+typedef struct dataref               dataref;
+typedef struct exceptionref          exceptionref;
+typedef struct patchref              patchref;
+typedef struct linenumberref         linenumberref;
+typedef struct linenumbertable_entry linenumbertable_entry;
+typedef struct dseg_exception_entry  dseg_exception_entry;
 
 
 #include "config.h"
@@ -135,6 +135,17 @@ struct linenumberref {
 };
 
 
+/* linenumbertable_entry ******************************************************/
+
+/* Keep the type of line the same as the pointer type, otherwise we
+   run into alignment troubles (like on MIPS64). */
+
+struct linenumbertable_entry {
+	ptrint  line;               /* NOTE: see doc/inlining_stacktrace.txt for  */
+	u1     *pc;                 /*       special meanings of line and pc.     */
+};
+
+
 /* dseg_exception_entry ********************************************************
 
    Datastructure which represents an exception entry in the exception
@@ -175,6 +186,8 @@ void dseg_addlinenumber_inline_start(codegendata *cd, instruction *iptr);
 void dseg_addlinenumber_inline_end(codegendata *cd, instruction *iptr);
 
 void dseg_createlinenumbertable(codegendata *cd);
+
+s4 dseg_get_linenumber_from_pc(methodinfo **pm, u1 *pv, u1 *pc);
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 void dseg_adddata(codegendata *cd);
