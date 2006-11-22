@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 5857 2006-10-29 16:21:38Z edwin $
+   $Id: suck.c 6037 2006-11-22 11:05:06Z twisti $
 
 */
 
@@ -99,7 +99,7 @@ static int scandir_filter(struct dirent *a)
 	s4 namlen;
 
 #if defined(_DIRENT_HAVE_D_NAMLEN)
-	namlen = d_namlen;
+	namlen = a->d_namlen;
 #else
 	namlen = strlen(a->d_name);
 #endif
