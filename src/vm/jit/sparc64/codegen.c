@@ -418,7 +418,6 @@ bool codegen(jitdata *jd)
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_ASTORE:     /* ..., value  ==> ...                          */
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
 		case ICMD_COPY:
@@ -427,6 +426,11 @@ bool codegen(jitdata *jd)
 			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 	
+		case ICMD_ASTORE:
+			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
+				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+			break;
+
 
 		/* pop/dup/swap operations ********************************************/
 
