@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6044 2006-11-22 18:22:14Z edwin $
+   $Id: codegen.c 6047 2006-11-22 21:19:38Z twisti $
 
 */
 
@@ -153,8 +153,8 @@ bool codegen(jitdata *jd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, cd->stackframesize * 8);         /* FrameSize       */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -164,26 +164,26 @@ bool codegen(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);       /* IsSync          */
+		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8); /* IsSync        */
 	else
 #endif
-		(void) dseg_adds4(cd, 0);                          /* IsSync          */
+		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, jd->isleafmethod);               /* IsLeaf          */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
+	(void) dseg_add_unique_s4(cd, jd->isleafmethod);               /* IsLeaf  */
+	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
+	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 
 	(void) dseg_addlinenumbertablesize(cd);
 
-	(void) dseg_adds4(cd, jd->exceptiontablelength);       /* ExTableSize     */
+	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength); /* ExTableSize   */
 
 	/* create exception table */
 
 	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_addtarget(cd, ex->start);
-   		dseg_addtarget(cd, ex->end);
-		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype.any);
+		dseg_add_target(cd, ex->start);
+   		dseg_add_target(cd, ex->end);
+		dseg_add_target(cd, ex->handler);
+		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
 	
 	/* generate method profiling code */
@@ -461,7 +461,7 @@ bool codegen(jitdata *jd)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			disp = dseg_addfloat(cd, iptr->sx.val.f);
+			disp = dseg_add_float(cd, iptr->sx.val.f);
 			emit_movdl_membase_reg(cd, RIP, -((cd->mcodeptr + ((d > 7) ? 9 : 8)) - cd->mcodebase) + disp, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -469,7 +469,7 @@ bool codegen(jitdata *jd)
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			disp = dseg_adddouble(cd, iptr->sx.val.d);
+			disp = dseg_add_double(cd, iptr->sx.val.d);
 			emit_movd_membase_reg(cd, RIP, -((cd->mcodeptr + 9) - cd->mcodebase) + disp, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -902,7 +902,7 @@ bool codegen(jitdata *jd)
 			}
 
 			/* check as described in jvm spec */
-			disp = dseg_adds8(cd, 0x8000000000000000LL);
+			disp = dseg_add_s8(cd, 0x8000000000000000LL);
   			M_LCMP_MEMBASE(RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + disp, RAX);
 			M_BNE(4 + 6);
 			M_LCMP_IMM(-1, REG_ITMP3);                              /* 4 bytes */
@@ -957,7 +957,7 @@ bool codegen(jitdata *jd)
 			M_MOV(RDX, REG_ITMP2); /* save %rdx, cause it's an argument register */
 
 			/* check as described in jvm spec */
-			disp = dseg_adds8(cd, 0x8000000000000000LL);
+			disp = dseg_add_s8(cd, 0x8000000000000000LL);
   			M_LCMP_MEMBASE(RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + disp, REG_ITMP1);
 			M_BNE(3 + 4 + 6);
 
@@ -1275,7 +1275,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_adds4(cd, 0x80000000);
+			disp = dseg_add_s4(cd, 0x80000000);
 			M_FLTMOVE(s1, d);
 			emit_movss_membase_reg(cd, RIP, -((cd->mcodeptr + 9) - cd->mcodebase) + disp, REG_FTMP2);
 			emit_xorps_reg_reg(cd, REG_FTMP2, d);
@@ -1286,7 +1286,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_adds8(cd, 0x8000000000000000);
+			disp = dseg_add_s8(cd, 0x8000000000000000);
 			M_FLTMOVE(s1, d);
 			emit_movd_membase_reg(cd, RIP, -((cd->mcodeptr + 9) - cd->mcodebase) + disp, REG_FTMP2);
 			emit_xorpd_reg_reg(cd, REG_FTMP2, d);
@@ -1887,7 +1887,7 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp      = dseg_addaddress(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				/* must be calculated before codegen_add_patch_ref */
@@ -1904,7 +1904,7 @@ bool codegen(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
@@ -1951,7 +1951,7 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp      = dseg_addaddress(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				/* must be calculated before codegen_add_patch_ref */
@@ -1968,7 +1968,7 @@ bool codegen(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
@@ -2016,7 +2016,7 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp      = dseg_addaddress(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				/* must be calculated before codegen_add_patch_ref */
@@ -2034,7 +2034,7 @@ bool codegen(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_addaddress(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
@@ -2225,13 +2225,13 @@ bool codegen(jitdata *jd)
 		case ICMD_RET:          /* ... ==> ...                                */
 
 			M_JMP_IMM(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 
   			M_JMP_IMM(0);
-			codegen_addreference(cd, iptr->sx.s23.s3.jsrtarget.block);
+			codegen_add_branch_ref(cd, iptr->sx.s23.s3.jsrtarget.block);
 			break;
 			
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
@@ -2239,7 +2239,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_TEST(s1);
 			M_BEQ(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
@@ -2247,7 +2247,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_TEST(s1);
 			M_BNE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
@@ -2255,7 +2255,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_ICMP_IMM(iptr->sx.val.i, s1);
 			M_BEQ(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
@@ -2263,7 +2263,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_ICMP_IMM(iptr->sx.val.i, s1);
 			M_BLT(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
@@ -2271,7 +2271,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_ICMP_IMM(iptr->sx.val.i, s1);
 			M_BLE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
@@ -2279,7 +2279,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_ICMP_IMM(iptr->sx.val.i, s1);
 			M_BNE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
@@ -2287,7 +2287,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_ICMP_IMM(iptr->sx.val.i, s1);
 			M_BGT(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
@@ -2295,7 +2295,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_ICMP_IMM(iptr->sx.val.i, s1);
 			M_BGE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -2308,7 +2308,7 @@ bool codegen(jitdata *jd)
 				M_LCMP(REG_ITMP2, s1);
 			}
 			M_BEQ(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
@@ -2321,7 +2321,7 @@ bool codegen(jitdata *jd)
 				M_LCMP(REG_ITMP2, s1);
 			}
 			M_BLT(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
@@ -2334,7 +2334,7 @@ bool codegen(jitdata *jd)
 				M_LCMP(REG_ITMP2, s1);
 			}
 			M_BLE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
@@ -2347,7 +2347,7 @@ bool codegen(jitdata *jd)
 				M_LCMP(REG_ITMP2, s1);
 			}
 			M_BNE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
@@ -2360,7 +2360,7 @@ bool codegen(jitdata *jd)
 				M_LCMP(REG_ITMP2, s1);
 			}
 			M_BGT(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
@@ -2373,7 +2373,7 @@ bool codegen(jitdata *jd)
 				M_LCMP(REG_ITMP2, s1);
 			}
 			M_BGE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
@@ -2382,7 +2382,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_ICMP(s2, s1);
 			M_BEQ(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
@@ -2392,7 +2392,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_LCMP(s2, s1);
 			M_BEQ(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
@@ -2401,7 +2401,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_ICMP(s2, s1);
 			M_BNE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
@@ -2411,7 +2411,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_LCMP(s2, s1);
 			M_BNE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
@@ -2420,7 +2420,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_ICMP(s2, s1);
 			M_BLT(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
@@ -2429,7 +2429,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_LCMP(s2, s1);
 			M_BLT(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
@@ -2438,7 +2438,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_ICMP(s2, s1);
 			M_BGT(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
@@ -2447,7 +2447,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_LCMP(s2, s1);
 			M_BGT(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
@@ -2456,7 +2456,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_ICMP(s2, s1);
 			M_BLE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
@@ -2465,7 +2465,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_LCMP(s2, s1);
 			M_BLE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
@@ -2474,7 +2474,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_ICMP(s2, s1);
 			M_BGE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
@@ -2483,7 +2483,7 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_LCMP(s2, s1);
 			M_BGE(0);
-			codegen_addreference(cd, iptr->dst.block);
+			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
@@ -2612,18 +2612,18 @@ nowperformreturn:
 				M_ICMP_IMM(i - 1, REG_ITMP1);
 				M_BA(0);
 
-				codegen_addreference(cd, table[0].block); /* default target */
+				codegen_add_branch_ref(cd, table[0].block); /* default target */
 
 				/* build jump table top down and use address of lowest entry */
 
 				table += i;
 
 				while (--i >= 0) {
-					dseg_addtarget(cd, table->block);
+					dseg_add_target(cd, table->block);
 					--table;
 				}
 
-				/* length of dataseg after last dseg_addtarget is used
+				/* length of dataseg after last dseg_add_target is used
 				   by load */
 
 				M_MOV_IMM(0, REG_ITMP2);
@@ -2649,13 +2649,13 @@ nowperformreturn:
 				while (--i >= 0) {
 					M_ICMP_IMM(lookup->value, s1);
 					M_BEQ(0);
-					codegen_addreference(cd, lookup->target.block);
+					codegen_add_branch_ref(cd, lookup->target.block);
 					lookup++;
 				}
 
 				M_JMP_IMM(0);
 			
-				codegen_addreference(cd, iptr->sx.s23.s3.lookupdefault.block);
+				codegen_add_branch_ref(cd, iptr->sx.s23.s3.lookupdefault.block);
 			}
 			break;
 
@@ -2750,7 +2750,7 @@ gen_method:
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
-					disp = dseg_addaddress(cd, NULL);
+					disp = dseg_add_unique_address(cd, NULL);
 					disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 					/* must be calculated before codegen_add_patch_ref */
@@ -2764,7 +2764,7 @@ gen_method:
 /* 					a = 0; */
 				}
 				else {
-					disp = dseg_addaddress(cd, lm->stubroutine);
+					disp = dseg_add_functionptr(cd, lm->stubroutine);
 					disp = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
 /* 					a = (ptrint) lm->stubroutine; */
@@ -3415,14 +3415,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, cd->stackframesize * 8);         /* FrameSize       */
-	(void) dseg_adds4(cd, 0);                              /* IsSync          */
-	(void) dseg_adds4(cd, 0);                              /* IsLeaf          */
-	(void) dseg_adds4(cd, 0);                              /* IntSave         */
-	(void) dseg_adds4(cd, 0);                              /* FltSave         */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
 	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_adds4(cd, 0);                              /* ExTableSize     */
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate native method profiling code */
 

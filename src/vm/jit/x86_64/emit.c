@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 5944 2006-11-10 12:32:01Z twisti $
+   $Id: emit.c 6047 2006-11-22 21:19:38Z twisti $
 
 */
 
@@ -353,9 +353,9 @@ void emit_patcher_stubs(jitdata *jd)
 #if defined(ENABLE_THREADS)
 		/* create a virtual java_objectheader */
 
-		(void) dseg_addaddress(cd, NULL);                          /* flcword */
-		(void) dseg_addaddress(cd, lock_get_initial_lock_word());
-		disp = dseg_addaddress(cd, NULL);                          /* vftbl   */
+		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
+		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
+		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
 		emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + disp, REG_ITMP3);
 		M_PUSH(REG_ITMP3);
