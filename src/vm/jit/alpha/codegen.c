@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6031 2006-11-20 16:18:19Z twisti $
+   $Id: codegen.c 6038 2006-11-22 18:03:12Z edwin $
 
 */
 
@@ -481,7 +481,6 @@ bool codegen(jitdata *jd)
 		case ICMD_FLOAD:  
 		case ICMD_DLOAD:  
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_ASTORE:     /* dst = local variable                         */
 		case ICMD_LSTORE:
 		case ICMD_FSTORE:
 		case ICMD_DSTORE: 
@@ -489,6 +488,12 @@ bool codegen(jitdata *jd)
 		case ICMD_MOVE:
 
 			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+			break;
+	
+		case ICMD_ASTORE:
+
+			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
+				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
 
