@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 5982 2006-11-15 15:30:36Z twisti $
+   $Id: codegen.c 6041 2006-11-22 18:16:15Z edwin $
 
 */
 
@@ -480,13 +480,17 @@ bool codegen(jitdata *jd)
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_ASTORE:     /* ..., value  ==> ...                          */
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
 		case ICMD_COPY:
 		case ICMD_MOVE:
 
 			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+			break;
+
+		case ICMD_ASTORE:
+			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
+				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
 			break;
 
 
