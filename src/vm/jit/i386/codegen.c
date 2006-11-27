@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6057 2006-11-27 14:58:43Z edwin $
+   $Id: codegen.c 6061 2006-11-27 15:11:12Z edwin $
 
 */
 
@@ -533,6 +533,15 @@ bool codegen(jitdata *jd)
 			dseg_addlinenumber_inline_start(cd, iptr);
 			break;
 
+		case ICMD_INLINE_BODY:
+
+			/* non-trappable replacement point */
+
+			assert(replacementpoint->flags & RPLPOINT_FLAG_NOTRAP);
+			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+			replacementpoint++;
+			break;
+
 		case ICMD_INLINE_END:
 
 			dseg_addlinenumber_inline_end(cd, iptr);
@@ -540,7 +549,6 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
-		case ICMD_INLINE_BODY:
 			break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */

@@ -322,6 +322,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	instruction     *iptr;
 	instruction     *iend;
 	s4              *javalocals;
+	s4              *jl;
 	methoddesc      *md;
 	s4               j;
 	insinfo_inline  *iinfo;
@@ -441,6 +442,27 @@ bool replace_create_replacement_points(jitdata *jd)
 					m = iinfo->method;
 					if (iinfo->javalocals_start)
 						MCOPY(javalocals, iinfo->javalocals_start, s4, m->maxlocals);
+#if !defined(NDEBUG)
+					else
+						/* javalocals will be set at next block start */
+						for (i=0; i<m->maxlocals; ++i)
+							javalocals[i] = UNUSED;
+#endif
+					break;
+
+				case ICMD_INLINE_BODY:
+					assert(iptr->sx.s23.s3.inlineinfo == iinfo);
+
+					jl = iinfo->javalocals_start;
+					if (jl == NULL) {
+						/* get the javalocals from the following block start */
+						assert(bptr->next);
+						jl = bptr->next->javalocals;
+					}
+					count++;
+					for (i=0; i<m->maxlocals; ++i)
+						if (jl[i] != UNUSED)
+							alloccount++;
 					break;
 
 				case ICMD_INLINE_END:
@@ -602,6 +624,28 @@ bool replace_create_replacement_points(jitdata *jd)
 					m = iinfo->method;
 					if (iinfo->javalocals_start)
 						MCOPY(javalocals, iinfo->javalocals_start, s4, m->maxlocals);
+#if !defined(NDEBUG)
+					else
+						/* javalocals will be set at next block start */
+						for (i=0; i<m->maxlocals; ++i)
+							javalocals[i] = UNUSED;
+#endif
+					break;
+
+				case ICMD_INLINE_BODY:
+					assert(iptr->sx.s23.s3.inlineinfo == iinfo);
+
+					jl = iinfo->javalocals_start;
+					if (jl == NULL) {
+						/* get the javalocals from the following block start */
+						assert(bptr->next);
+						jl = bptr->next->javalocals;
+					}
+					/* create a non-trappable rplpoint */
+					replace_create_replacement_point(jd, iinfo, rp++,
+							RPLPOINT_TYPE_BODY, iptr, &ra,
+							jl, NULL, 0, 0);
+					rp[-1].flags |= RPLPOINT_FLAG_NOTRAP;
 					break;
 
 				case ICMD_INLINE_END:
