@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 6023 2006-11-19 15:22:53Z edwin $
+   $Id: stack.c 6055 2006-11-27 14:39:58Z edwin $
 
 */
 
@@ -1475,9 +1475,6 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 			case ICMD_NOP:
 			case ICMD_IINC:
-			case ICMD_INLINE_START:
-			case ICMD_INLINE_END:
-			case ICMD_INLINE_GOTO:
 				break;
 
 			case ICMD_GOTO:
@@ -4515,12 +4512,6 @@ icmd_BUILTIN:
 							DST(md->returntype.type, new_index);
 							stackdepth++;
 						}
-						break;
-
-					case ICMD_INLINE_START:
-					case ICMD_INLINE_END:
-						CLR_S1;
-						CLR_DST;
 						break;
 
 					case ICMD_MULTIANEWARRAY:
