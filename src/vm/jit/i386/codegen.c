@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6061 2006-11-27 15:11:12Z edwin $
+   $Id: codegen.c 6065 2006-11-27 15:24:39Z edwin $
 
 */
 
@@ -108,7 +108,6 @@ bool codegen(jitdata *jd)
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
 	methoddesc         *md;
-	rplpoint           *replacementpoint;
 	s4                 fieldtype;
 	s4                 varindex;
 #if defined(ENABLE_SSA)
@@ -411,7 +410,7 @@ bool codegen(jitdata *jd)
 
 	/* end of header generation */
 
-	replacementpoint = jd->code->rplpoints;
+	cd->replacementpoint = jd->code->rplpoints;
 
 	/* walk through all basic blocks */
 
@@ -426,14 +425,8 @@ bool codegen(jitdata *jd)
 
 		/* handle replacement points */
 
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			replacementpoint->pc = (u1*)bptr->mpc; /* will be resolved later */
-			
-			replacementpoint++;
-
-			assert(cd->lastmcodeptr <= cd->mcodeptr);
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
-		}
+		if (bptr->bitflags & BBFLAG_REPLACEMENT)
+			codegen_set_replacement_point(cd RPLPOINT_CHECK_BB(bptr));
 
 		/* copy interface registers to their destination */
 
@@ -523,12 +516,7 @@ bool codegen(jitdata *jd)
 
 		case ICMD_INLINE_START:
 
-			/* handle replacement point */
-
-			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-			replacementpoint++;
-			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+			codegen_set_replacement_point(cd RPLPOINT_CHECK(INLINE));
 
 			dseg_addlinenumber_inline_start(cd, iptr);
 			break;
@@ -536,10 +524,7 @@ bool codegen(jitdata *jd)
 		case ICMD_INLINE_BODY:
 
 			/* non-trappable replacement point */
-
-			assert(replacementpoint->flags & RPLPOINT_FLAG_NOTRAP);
-			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-			replacementpoint++;
+			codegen_set_replacement_point_notrap(cd RPLPOINT_CHECK(BODY));
 			break;
 
 		case ICMD_INLINE_END:
@@ -2957,36 +2942,21 @@ bool codegen(jitdata *jd)
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 
-			/* handle replacement point */
-			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-			replacementpoint++;
-			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
-
+			codegen_set_replacement_point(cd RPLPOINT_CHECK(RETURN));
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 			goto nowperformreturn;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 
-			/* handle replacement point */
-			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-			replacementpoint++;
-			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
-
+			codegen_set_replacement_point(cd RPLPOINT_CHECK(RETURN));
 			s1 = emit_load_s1(jd, iptr, REG_RESULT_PACKED);
 			M_LNGMOVE(s1, REG_RESULT_PACKED);
 			goto nowperformreturn;
 
 		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
 
-			/* handle replacement point */
-			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-			replacementpoint++;
-			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
-
+			codegen_set_replacement_point(cd RPLPOINT_CHECK(RETURN));
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 
@@ -3005,22 +2975,13 @@ bool codegen(jitdata *jd)
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
 
-			/* handle replacement point */
-			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-			replacementpoint++;
-			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
-
+			codegen_set_replacement_point(cd RPLPOINT_CHECK(RETURN));
 			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
 
-			/* handle replacement point */
-			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-			replacementpoint++;
-			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+			codegen_set_replacement_point(cd RPLPOINT_CHECK(RETURN));
 
 nowperformreturn:
 			{
@@ -3192,12 +3153,7 @@ nowperformreturn:
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
 
-			/* handle replacement point */
-
-			replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
-			replacementpoint++;
-			/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
+			codegen_set_replacement_point(cd RPLPOINT_CHECK(CALL));
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				md = iptr->sx.s23.s3.um->methodref->parseddesc.md;
@@ -3364,8 +3320,8 @@ gen_method:
 			/* store size of call code in replacement point */
 
 			if (iptr->opc != ICMD_BUILTIN)
-				replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)
-					- (ptrint) replacementpoint[-1].pc;
+				cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)
+					- (ptrint) cd->replacementpoint[-1].pc;
 
 			/* d contains return type */
 
