@@ -465,8 +465,10 @@ bool replace_create_replacement_points(jitdata *jd)
 			else {
 				count++;
 				alloccount += bptr->indepth;
+				if (bptr->inlineinfo)
+					alloccount -= bptr->inlineinfo->throughcount;
 
-				for (i=0; i<m->maxlocals; ++i)
+				for (i=0; i<bptr->method->maxlocals; ++i)
 					if (bptr->javalocals[i] != UNUSED)
 						alloccount++;
 			}
@@ -514,9 +516,10 @@ bool replace_create_replacement_points(jitdata *jd)
 
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 
+			i = (iinfo) ? iinfo->throughcount : 0;
 			replace_create_replacement_point(jd, iinfo, rp++,
 					bptr->type, bptr->iinstr, &ra,
-					bptr->javalocals, bptr->invars, bptr->indepth, 0);
+					bptr->javalocals, bptr->invars + i, bptr->indepth - i, 0);
 		}
 
 		/* iterate over the instructions */
