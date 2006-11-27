@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: stack.h 5785 2006-10-15 22:25:54Z edwin $
+   $Id: stack.h 6062 2006-11-27 15:15:54Z edwin $
 
 */
 
@@ -132,6 +132,8 @@
 bool stack_init(void);
 
 bool stack_analyse(jitdata *jd);
+
+void stack_javalocals_store(instruction *iptr, s4 *javalocals);
 
 #endif /* _STACK_H */
 

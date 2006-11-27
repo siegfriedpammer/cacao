@@ -306,6 +306,19 @@ static void replace_create_replacement_point(jitdata *jd,
    
 *******************************************************************************/
 
+#define CLEAR_javalocals(array, method)                              \
+    do {                                                             \
+        for (i=0; i<(method)->maxlocals; ++i)                        \
+            (array)[i] = UNUSED;                                     \
+    } while (0)
+
+#define COUNT_javalocals(array, method, counter)                     \
+    do {                                                             \
+        for (i=0; i<(method)->maxlocals; ++i)                        \
+            if ((array)[i] != UNUSED)                                \
+				(counter)++;                                         \
+    } while (0)
+
 bool replace_create_replacement_points(jitdata *jd)
 {
 	codeinfo        *code;
@@ -372,8 +385,7 @@ bool replace_create_replacement_points(jitdata *jd)
 		if (bptr->javalocals)
 			MCOPY(javalocals, bptr->javalocals, s4, m->maxlocals);
 		else
-			for (i=0; i<m->maxlocals; ++i)
-				javalocals[i] = UNUSED;
+			CLEAR_javalocals(javalocals, m);
 
 		/* iterate over the instructions */
 
@@ -389,9 +401,7 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_INVOKEINTERFACE:
 					INSTRUCTION_GET_METHODDESC(iptr, md);
 					count++;
-					for (i=0; i<m->maxlocals; ++i)
-						if (javalocals[i] != UNUSED)
-							alloccount++;
+					COUNT_javalocals(javalocals, m, alloccount);
 					alloccount += iptr->s1.argcount;
 					if (iinfo)
 						alloccount -= iinfo->throughcount;
@@ -402,19 +412,7 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_FSTORE:
 				case ICMD_DSTORE:
 				case ICMD_ASTORE:
-					/* XXX share code with stack.c */
-					j = iptr->dst.varindex;
-					i = iptr->sx.s23.s3.javaindex;
-					if (i != UNUSED) {
-						if (iptr->flags.bits & INS_FLAG_RETADDR)
-							javalocals[i] = iptr->sx.s23.s2.retaddrnr;
-						else
-							javalocals[i] = j;
-						if (iptr->flags.bits & INS_FLAG_KILL_PREV)
-							javalocals[i-1] = UNUSED;
-						if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
-							javalocals[i+1] = UNUSED;
-					}
+					stack_javalocals_store(iptr, javalocals);
 					break;
 
 				case ICMD_IRETURN:
@@ -432,9 +430,7 @@ bool replace_create_replacement_points(jitdata *jd)
 					iinfo = iptr->sx.s23.s3.inlineinfo;
 
 					count++;
-					for (i=0; i<m->maxlocals; ++i)
-						if (javalocals[i] != UNUSED)
-							alloccount++;
+					COUNT_javalocals(javalocals, m, alloccount);
 					alloccount += iinfo->stackvarscount;
 					if (iinfo->synclocal != UNUSED)
 						alloccount++;
@@ -445,8 +441,7 @@ bool replace_create_replacement_points(jitdata *jd)
 #if !defined(NDEBUG)
 					else
 						/* javalocals will be set at next block start */
-						for (i=0; i<m->maxlocals; ++i)
-							javalocals[i] = UNUSED;
+						CLEAR_javalocals(javalocals, m);
 #endif
 					break;
 
@@ -460,9 +455,7 @@ bool replace_create_replacement_points(jitdata *jd)
 						jl = bptr->next->javalocals;
 					}
 					count++;
-					for (i=0; i<m->maxlocals; ++i)
-						if (jl[i] != UNUSED)
-							alloccount++;
+					COUNT_javalocals(jl, m, alloccount);
 					break;
 
 				case ICMD_INLINE_END:
@@ -490,9 +483,7 @@ bool replace_create_replacement_points(jitdata *jd)
 				if (bptr->inlineinfo)
 					alloccount -= bptr->inlineinfo->throughcount;
 
-				for (i=0; i<bptr->method->maxlocals; ++i)
-					if (bptr->javalocals[i] != UNUSED)
-						alloccount++;
+				COUNT_javalocals(bptr->javalocals, bptr->method, alloccount);
 			}
 		}
 
@@ -531,8 +522,7 @@ bool replace_create_replacement_points(jitdata *jd)
 		if (bptr->javalocals)
 			MCOPY(javalocals, bptr->javalocals, s4, m->maxlocals);
 		else
-			for (i=0; i<m->maxlocals; ++i)
-				javalocals[i] = UNUSED;
+			CLEAR_javalocals(javalocals, m);
 
 		/* create replacement points at targets of backward branches */
 
@@ -570,19 +560,7 @@ bool replace_create_replacement_points(jitdata *jd)
 				case ICMD_FSTORE:
 				case ICMD_DSTORE:
 				case ICMD_ASTORE:
-					/* XXX share code with stack.c */
-					j = iptr->dst.varindex;
-					i = iptr->sx.s23.s3.javaindex;
-					if (i != UNUSED) {
-						if (iptr->flags.bits & INS_FLAG_RETADDR)
-							javalocals[i] = iptr->sx.s23.s2.retaddrnr;
-						else
-							javalocals[i] = j;
-						if (iptr->flags.bits & INS_FLAG_KILL_PREV)
-							javalocals[i-1] = UNUSED;
-						if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
-							javalocals[i+1] = UNUSED;
-					}
+					stack_javalocals_store(iptr, javalocals);
 					break;
 
 				case ICMD_IRETURN:
@@ -627,8 +605,7 @@ bool replace_create_replacement_points(jitdata *jd)
 #if !defined(NDEBUG)
 					else
 						/* javalocals will be set at next block start */
-						for (i=0; i<m->maxlocals; ++i)
-							javalocals[i] = UNUSED;
+						CLEAR_javalocals(javalocals, m);
 #endif
 					break;
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6059 2006-11-27 15:03:54Z edwin $
+   $Id: inline.c 6062 2006-11-27 15:15:54Z edwin $
 
 */
 
@@ -1200,19 +1200,7 @@ clone_call:
 		case ICMD_FSTORE:
 		case ICMD_DSTORE:
 		case ICMD_ASTORE:
-			/* XXX share code with stack.c */
-			j = n_iptr->dst.varindex;
-			i = n_iptr->sx.s23.s3.javaindex;
-			if (i != UNUSED) {
-				if (n_iptr->flags.bits & INS_FLAG_RETADDR)
-					iln->javalocals[i] = n_iptr->sx.s23.s2.retaddrnr;
-				else
-					iln->javalocals[i] = j;
-				if (n_iptr->flags.bits & INS_FLAG_KILL_PREV)
-					iln->javalocals[i-1] = UNUSED;
-				if (n_iptr->flags.bits & INS_FLAG_KILL_NEXT)
-					iln->javalocals[i+1] = UNUSED;
-			}
+			stack_javalocals_store(n_iptr, iln->javalocals);
 			break;
 	}
 }

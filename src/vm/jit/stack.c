@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 6055 2006-11-27 14:39:58Z edwin $
+   $Id: stack.c 6062 2006-11-27 15:15:54Z edwin $
 
 */
 
@@ -4811,6 +4811,39 @@ throw_stack_category_error:
 	return false;
 
 #endif
+}
+
+
+/* stack_javalocals_store ******************************************************
+ 
+   Model the effect of a ?STORE instruction upon the given javalocals array.
+  
+   IN:
+       iptr.............the ?STORE instruction
+	   javalocals.......the javalocals array to modify
+  
+*******************************************************************************/
+
+void stack_javalocals_store(instruction *iptr, s4 *javalocals)
+{
+	s4 idx;  /* index into the jd->var array */
+	s4 j;    /* java local index             */
+
+	idx = iptr->dst.varindex;
+	j = iptr->sx.s23.s3.javaindex;
+
+	if (j != UNUSED) {
+		if (iptr->flags.bits & INS_FLAG_RETADDR)
+			javalocals[j] = iptr->sx.s23.s2.retaddrnr;
+		else
+			javalocals[j] = idx;
+
+		if (iptr->flags.bits & INS_FLAG_KILL_PREV)
+			javalocals[j-1] = UNUSED;
+
+		if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
+			javalocals[j+1] = UNUSED;
+	}
 }
 
 
