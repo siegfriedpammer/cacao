@@ -1684,10 +1684,12 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 	for (j=0; j<depth; ++j)
 		putchar('\t');
 
-	printf("rplpoint (id %d) %p pc:%p+%d out:%p target:%p mcode:%016llx type:%s flags:%01x parent:%p\n",
+	printf("rplpoint (id %d) %p pc:%p+%d out:%p target:%p mcode:%016llx type:%s",
 			rp->id, (void*)rp,rp->pc,rp->callsize,rp->outcode,(void*)rp->target,
-			(unsigned long long)rp->mcode,replace_type_str[rp->type],rp->flags,
-			(void*)rp->parent);
+			(unsigned long long)rp->mcode,replace_type_str[rp->type]);
+	if (rp->flags & RPLPOINT_FLAG_NOTRAP)
+		printf(" NOTRAP");
+	printf(" parent:%p\n", (void*)rp->parent);
 	for (j=0; j<depth; ++j)
 		putchar('\t');
 	printf("ra:%d = [",	rp->regalloccount);

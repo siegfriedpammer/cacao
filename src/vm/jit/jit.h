@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: jit.h 6019 2006-11-19 15:03:11Z edwin $
+   $Id: jit.h 6053 2006-11-27 14:35:26Z edwin $
 
 */
 
@@ -1267,6 +1267,8 @@ u1 *jit_compile(methodinfo *m);
 u1 *jit_recompile(methodinfo *m);
 
 void jit_invalidate_code(methodinfo *m);
+codeinfo *jit_get_current_code(methodinfo *m);
+void jit_request_optimization(methodinfo *m);
 
 /* patch the method entrypoint */
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);

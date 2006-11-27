@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 6052 2006-11-27 14:27:55Z edwin $
+   $Id: jit.c 6053 2006-11-27 14:35:26Z edwin $
 
 */
 
@@ -1559,9 +1559,69 @@ void jit_invalidate_code(methodinfo *m)
 
 	while (i--) {
 		rp--;
-		if (rp->type != RPLPOINT_TYPE_RETURN)
+		if ((rp->type != RPLPOINT_TYPE_RETURN)
+			&& !(rp->flags & RPLPOINT_FLAG_NOTRAP))
+		{
 			replace_activate_replacement_point(rp, rp);
+		}
 	}
+}
+
+
+/* jit_request_optimization ****************************************************
+
+   Request optimization of the given method. If the code of the method is
+   unoptimized, it will be invalidated, so the next jit_get_current_code(m)
+   triggers an optimized recompilation.
+   If the method is already optimized, this function does nothing.
+
+   IN:
+       m................the method
+
+*******************************************************************************/
+
+void jit_request_optimization(methodinfo *m)
+{
+	codeinfo *code;
+
+	code = m->code;
+
+	if (code && code->optlevel == 0)
+		jit_invalidate_code(m);
+}
+
+
+/* jit_get_current_code ********************************************************
+
+   Get the currently valid code for the given method. If there is no valid
+   code, (re)compile the method.
+
+   IN:
+       m................the method
+
+   RETURN VALUE:
+       the codeinfo* for the current code, or
+	   NULL if an exception has been thrown during recompilation.
+
+*******************************************************************************/
+
+codeinfo *jit_get_current_code(methodinfo *m)
+{
+	assert(m);
+
+	/* if we have valid code, return it */
+
+	if (m->code && !m->code->invalid)
+		return m->code;
+
+	/* otherwise: recompile */
+
+	if (!jit_recompile(m))
+		return NULL;
+
+	assert(m->code);
+
+	return m->code;
 }
 
 
