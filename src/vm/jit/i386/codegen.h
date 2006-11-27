@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 5932 2006-11-07 09:06:18Z twisti $
+   $Id: codegen.h 6049 2006-11-27 14:20:57Z edwin $
 
 */
 
@@ -224,6 +224,8 @@
 #define M_ISUB_IMM32(a,b)       emit_alu_imm32_reg(cd, ALU_SUB, (a), (b))
 
 #define M_IADD_IMM_MEMBASE(a,b,c) emit_alu_imm_membase(cd, ALU_ADD, (a), (b), (c))
+
+#define M_ISUB_IMM_MEMABS(a,b)  emit_alu_imm_memabs(cd, ALU_SUB, (a), (b))
 
 #define M_IADDC(a,b)            emit_alu_reg_reg(cd, ALU_ADC, (a), (b))
 #define M_ISUBB(a,b)            emit_alu_reg_reg(cd, ALU_SBB, (a), (b))

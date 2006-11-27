@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.h 5562 2006-09-28 20:13:20Z edwin $
+   $Id: emit.h 6049 2006-11-27 14:20:57Z edwin $
 
 */
 
@@ -186,6 +186,7 @@ void emit_alu_membase_reg(codegendata *cd, s4 opc, s4 basereg, s4 disp, s4 reg);
 void emit_alu_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
 void emit_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
 void emit_alu_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp);
+void emit_alu_imm_memabs(codegendata *cd, s4 opc, s4 imm, s4 disp);
 void emit_test_reg_reg(codegendata *cd, s4 reg, s4 dreg);
 void emit_test_imm_reg(codegendata *cd, s4 imm, s4 dreg);
 void emit_dec_mem(codegendata *cd, s4 mem);
