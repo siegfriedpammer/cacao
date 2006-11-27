@@ -83,6 +83,7 @@ struct rplalloc {
 #define RPLPOINT_TYPE_CALL    3
 #define RPLPOINT_TYPE_INLINE  4
 #define RPLPOINT_TYPE_RETURN  5
+#define RPLPOINT_TYPE_BODY    6
 
 #define RPLPOINT_FLAG_NOTRAP  0x01  /* rplpoint cannot be trapped */
 

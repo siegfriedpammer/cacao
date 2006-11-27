@@ -1668,7 +1668,8 @@ static char *replace_type_str[] = {
 	"SBR",
 	"CALL",
 	"INLINE",
-	"RETURN"
+	"RETURN",
+	"BODY"
 };
 
 void replace_replacement_point_println(rplpoint *rp, int depth)
