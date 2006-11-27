@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6021 2006-11-19 15:08:45Z edwin $
+   $Id: inline.c 6058 2006-11-27 15:02:59Z edwin $
 
 */
 
@@ -1024,6 +1024,11 @@ static s4 emit_inlining_prolog(inline_node *iln,
 									 (isstatic) ? UNUSED : varmap[o_iptr->sx.s23.s2.args[0]],
 									 LOCK_monitor_enter);
 	}
+
+	/* INLINE_BODY instruction */
+
+	n_ins = inline_instruction(iln, ICMD_INLINE_BODY, callee->jd->basicblocks[0].iinstr);
+	n_ins->sx.s23.s3.inlineinfo = insinfo;
 
 	return 0; /* XXX */
 }
@@ -2043,7 +2048,7 @@ static bool inline_analyse_callee(inline_node *caller,
 	/* info about the callee */
 
 	cn->localsoffset = caller->localsoffset + caller->m->maxlocals;
-	cn->prolog_instructioncount = callee->parseddesc->paramcount + 1;
+	cn->prolog_instructioncount = callee->parseddesc->paramcount + 2;
 	cn->epilog_instructioncount = 1; /* INLINE_END */
 	cn->extra_instructioncount = 0;
 
