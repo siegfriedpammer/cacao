@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 6022 2006-11-19 15:10:02Z edwin $
+   $Id: jit.c 6052 2006-11-27 14:27:55Z edwin $
 
 */
 
@@ -1559,7 +1559,8 @@ void jit_invalidate_code(methodinfo *m)
 
 	while (i--) {
 		rp--;
-		replace_activate_replacement_point(rp, rp);
+		if (rp->type != RPLPOINT_TYPE_RETURN)
+			replace_activate_replacement_point(rp, rp);
 	}
 }
 
