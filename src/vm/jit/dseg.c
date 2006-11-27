@@ -30,7 +30,7 @@
             Joseph Wenninger
             Edwin Steiner
 
-   $Id: dseg.c 6046 2006-11-22 20:24:55Z twisti $
+   $Id: dseg.c 6066 2006-11-27 15:29:40Z edwin $
 
 */
 
@@ -644,7 +644,7 @@ void dseg_addlinenumber(codegendata *cd, u2 linenumber)
 
    IN:
       cd.............current codegen data
-      iptr...........the ICMD_INLINE_START instruction
+      iptr...........the ICMD_INLINE_BODY instruction
       mcodeptr.......start mcodeptr of inlined body
 
 *******************************************************************************/

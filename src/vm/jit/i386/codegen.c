@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6065 2006-11-27 15:24:39Z edwin $
+   $Id: codegen.c 6066 2006-11-27 15:29:40Z edwin $
 
 */
 
@@ -517,14 +517,14 @@ bool codegen(jitdata *jd)
 		case ICMD_INLINE_START:
 
 			codegen_set_replacement_point(cd RPLPOINT_CHECK(INLINE));
-
-			dseg_addlinenumber_inline_start(cd, iptr);
 			break;
 
 		case ICMD_INLINE_BODY:
 
 			/* non-trappable replacement point */
 			codegen_set_replacement_point_notrap(cd RPLPOINT_CHECK(BODY));
+			dseg_addlinenumber_inline_start(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line);
 			break;
 
 		case ICMD_INLINE_END:
