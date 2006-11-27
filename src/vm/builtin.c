@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 6034 2006-11-21 21:02:30Z twisti $
+   $Id: builtin.c 6054 2006-11-27 14:37:57Z michi $
 
 */
 
@@ -2665,10 +2665,14 @@ java_objectheader *builtin_clone(void *env, java_objectheader *o)
 
 		MCOPY(co, o, u1, size);
 
+#if defined(ENABLE_GC_CACAO)
+		heap_init_objectheader(co, size);
+#endif
+
 #if defined(ENABLE_THREADS)
 		lock_init_object_lock(co);
 #endif
-        
+
 		return co;
 	}
     
@@ -2692,6 +2696,10 @@ java_objectheader *builtin_clone(void *env, java_objectheader *o)
         return NULL;
 
     MCOPY(co, o, u1, c->instancesize);
+
+#if defined(ENABLE_GC_CACAO)
+	heap_init_objectheader(co, c->instancesize);
+#endif
 
 #if defined(ENABLE_THREADS)
 	lock_init_object_lock(co);

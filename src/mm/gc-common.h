@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: gc-common.h 6045 2006-11-22 19:00:18Z twisti $
+   $Id: gc-common.h 6054 2006-11-27 14:37:57Z michi $
 
 */
 
@@ -47,6 +47,10 @@ void  gc_init(u4 heapmaxsize, u4 heapstartsize);
 void *heap_alloc_uncollectable(u4 bytelength);
 void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer);
 void  heap_free(void *p);
+
+#if defined(ENABLE_GC_CACAO)
+void heap_init_objectheader(java_objectheader *o, u4 bytelength);
+#endif
 
 void  gc_call(void);
 s8    gc_get_heap_size(void);
