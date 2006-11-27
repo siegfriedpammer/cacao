@@ -1384,13 +1384,16 @@ void replace_push_activation_record(executionstate_t *es,
    IN:
 	   code.............the codeinfo in which to search the rplpoint
 	   ss...............the source state defining the position to look for
+	   parent...........parent replacement point to match
 
    RETURN VALUE:
        the replacement point
   
 *******************************************************************************/
 
-rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
+rplpoint * replace_find_replacement_point(codeinfo *code,
+										  sourcestate_t *ss,
+										  rplpoint *parent)
 {
 	sourceframe_t *frame;
 	methodinfo *m;
@@ -1415,7 +1418,9 @@ rplpoint * replace_find_replacement_point(codeinfo *code, sourcestate_t *ss)
 	rp = code->rplpoints;
 	i = code->rplpointcount;
 	while (i--) {
-		if (rp->id == frame->id && rp->method == frame->method) {
+		if (rp->id == frame->id && rp->method == frame->method
+				&& rp->parent == parent)
+		{
 			/* check if returnAddresses match */
 			/* XXX optimize: only do this if JSRs in method */
 			DOLOG( printf("checking match for:");
@@ -1474,6 +1479,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	s4            i;
 	s4            depth;
 	rplpoint     *origrp;
+	rplpoint     *parent;
 
 	origrp = rp;
 
@@ -1583,9 +1589,10 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* XXX get new code */
 
+	parent = NULL;
 	while (ss.frames) {
 
-		candidate = replace_find_replacement_point(code, &ss);
+		candidate = replace_find_replacement_point(code, &ss, parent);
 
 		DOLOG( printf("creating execution state for%s:\n",
 				(ss.frames->up == NULL) ? " TOPFRAME" : "");
@@ -1608,6 +1615,10 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 			DOLOG( printf("pushing activation record for:\n");
 				   replace_replacement_point_println(candidate, 1); );
 			replace_push_activation_record(es, candidate, code, ss.frames);
+			parent = NULL;
+		}
+		else {
+			parent = candidate;
 		}
 		DOLOG( replace_executionstate_println(es); );
 	}
