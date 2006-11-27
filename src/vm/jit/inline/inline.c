@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6058 2006-11-27 15:02:59Z edwin $
+   $Id: inline.c 6059 2006-11-27 15:03:54Z edwin $
 
 */
 
@@ -963,8 +963,11 @@ static s4 emit_inlining_prolog(inline_node *iln,
 		iln->ctx->resultjd->var[argvar].flags &= ~(PREALLOC | INMEMORY);
 
 		/* check the instance slot against NULL */
+		/* we don't need that for <init> methods, as the verifier  */
+		/* ensures that they are only called for an uninit. object */
+		/* (which may not be NULL).                                */
 
-		if (!isstatic && i == 0) {
+		if (!isstatic && i == 0 && calleem->name != utf_init) {
 			assert(type == TYPE_ADR);
 			n_ins = inline_instruction(iln, ICMD_CHECKNULL, o_iptr);
 			n_ins->s1.varindex = argvar;
@@ -2052,9 +2055,9 @@ static bool inline_analyse_callee(inline_node *caller,
 	cn->epilog_instructioncount = 1; /* INLINE_END */
 	cn->extra_instructioncount = 0;
 
-	/* we need a CHECKNULL for instance methods */
+	/* we need a CHECKNULL for instance methods, except for <init> */
 
-	if (!isstatic)
+	if (!isstatic && callee->name != utf_init)
 		cn->prolog_instructioncount += 1;
 
 	/* deal with synchronized callees */
