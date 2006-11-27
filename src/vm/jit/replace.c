@@ -47,6 +47,7 @@
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/stack.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/show.h"
@@ -81,7 +82,7 @@ typedef u8 stackslot_t;
 #endif
 
 
-/*** debugging ****************************************************************/
+/*** statistics ***************************************************************/
 
 #define REPLACE_STATISTICS
 
@@ -191,6 +192,7 @@ void replace_print_statistics(void)
 	   iinfo............inlining info for the current position
 	   rp...............pre-allocated (uninitialized) rplpoint
 	   type.............RPLPOINT_TYPE constant
+	   iptr.............current instruction
 	   *pra.............current rplalloc pointer
 	   javalocals.......the javalocals at the current point
 	   stackvars........the stack variables at the current point
@@ -285,6 +287,59 @@ static void replace_create_replacement_point(jitdata *jd,
 }
 
 
+/* replace_create_inline_start_replacement_point *******************************
+
+   Create an INLINE_START replacement point.
+
+   IN:
+       jd...............current jitdata
+	   rp...............pre-allocated (uninitialized) rplpoint
+	   iptr.............current instruction
+	   *pra.............current rplalloc pointer
+	   javalocals.......the javalocals at the current point
+
+   OUT:
+       *rpa.............points to the next free rplalloc
+
+   RETURN VALUE:
+       the insinfo_inline * for the following inlined body
+
+*******************************************************************************/
+
+static insinfo_inline * replace_create_inline_start_replacement_point(
+											 jitdata *jd,
+											 rplpoint *rp,
+											 instruction *iptr,
+											 rplalloc **pra,
+											 s4 *javalocals)
+{
+	insinfo_inline *calleeinfo;
+	rplalloc       *ra;
+
+	calleeinfo = iptr->sx.s23.s3.inlineinfo;
+
+	calleeinfo->rp = rp;
+
+	replace_create_replacement_point(jd, calleeinfo->parent, rp,
+			RPLPOINT_TYPE_INLINE, iptr, pra,
+			javalocals,
+			calleeinfo->stackvars, calleeinfo->stackvarscount,
+			calleeinfo->paramcount);
+
+	if (calleeinfo->synclocal != UNUSED) {
+		ra = (*pra)++;
+		ra->index  = RPLALLOC_SYNC;
+		ra->regoff = jd->var[calleeinfo->synclocal].vv.regoff;
+		ra->flags  = jd->var[calleeinfo->synclocal].flags & INMEMORY;
+		ra->type   = TYPE_ADR;
+
+		rp->regalloccount++;
+	}
+
+	return calleeinfo;
+}
+
+
 /* replace_create_replacement_points *******************************************
  
    Create the replacement points for the given code.
@@ -312,6 +367,14 @@ static void replace_create_replacement_point(jitdata *jd,
             (array)[i] = UNUSED;                                     \
     } while (0)
 
+#define COPY_OR_CLEAR_javalocals(dest, array, method)                \
+    do {                                                             \
+        if ((array) != NULL)                                         \
+            MCOPY((dest), (array), s4, (method)->maxlocals);         \
+        else                                                         \
+            CLEAR_javalocals((dest), (method));                      \
+    } while (0)
+
 #define COUNT_javalocals(array, method, counter)                     \
     do {                                                             \
         for (i=0; i<(method)->maxlocals; ++i)                        \
@@ -337,9 +400,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	s4              *javalocals;
 	s4              *jl;
 	methoddesc      *md;
-	s4               j;
 	insinfo_inline  *iinfo;
-	insinfo_inline  *calleeinfo;
 	s4               startcount;
 
 	REPLACE_COUNT(stat_methods);
@@ -382,10 +443,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 		/* initialize javalocals at the start of this block */
 
-		if (bptr->javalocals)
-			MCOPY(javalocals, bptr->javalocals, s4, m->maxlocals);
-		else
-			CLEAR_javalocals(javalocals, m);
+		COPY_OR_CLEAR_javalocals(javalocals, bptr->javalocals, m);
 
 		/* iterate over the instructions */
 
@@ -436,17 +494,12 @@ bool replace_create_replacement_points(jitdata *jd)
 						alloccount++;
 
 					m = iinfo->method;
-					if (iinfo->javalocals_start)
-						MCOPY(javalocals, iinfo->javalocals_start, s4, m->maxlocals);
-#if !defined(NDEBUG)
-					else
-						/* javalocals will be set at next block start */
-						CLEAR_javalocals(javalocals, m);
-#endif
+					/* javalocals may be set at next block start, or now */
+					COPY_OR_CLEAR_javalocals(javalocals, iinfo->javalocals_start, m);
 					break;
 
 				case ICMD_INLINE_BODY:
-					assert(iptr->sx.s23.s3.inlineinfo == iinfo);
+					assert(iinfo == iptr->sx.s23.s3.inlineinfo);
 
 					jl = iinfo->javalocals_start;
 					if (jl == NULL) {
@@ -459,6 +512,8 @@ bool replace_create_replacement_points(jitdata *jd)
 					break;
 
 				case ICMD_INLINE_END:
+					assert(iinfo == iptr->sx.s23.s3.inlineinfo ||
+						   iinfo == iptr->sx.s23.s3.inlineinfo->parent);
 					iinfo = iptr->sx.s23.s3.inlineinfo;
 					m = iinfo->outer;
 					if (iinfo->javalocals_end)
@@ -519,10 +574,7 @@ bool replace_create_replacement_points(jitdata *jd)
 
 		/* initialize javalocals at the start of this block */
 
-		if (bptr->javalocals)
-			MCOPY(javalocals, bptr->javalocals, s4, m->maxlocals);
-		else
-			CLEAR_javalocals(javalocals, m);
+		COPY_OR_CLEAR_javalocals(javalocals, bptr->javalocals, m);
 
 		/* create replacement points at targets of backward branches */
 
@@ -580,37 +632,15 @@ bool replace_create_replacement_points(jitdata *jd)
 					break;
 
 				case ICMD_INLINE_START:
-					calleeinfo = iptr->sx.s23.s3.inlineinfo;
-
-					calleeinfo->rp = rp;
-					replace_create_replacement_point(jd, iinfo, rp++,
-							RPLPOINT_TYPE_INLINE, iptr, &ra,
-							javalocals,
-							calleeinfo->stackvars, calleeinfo->stackvarscount,
-							calleeinfo->paramcount);
-
-					if (calleeinfo->synclocal != UNUSED) {
-						ra->index = RPLALLOC_SYNC;
-						ra->regoff = jd->var[calleeinfo->synclocal].vv.regoff;
-						ra->flags  = jd->var[calleeinfo->synclocal].flags & INMEMORY;
-						ra->type = TYPE_ADR;
-						ra++;
-						rp[-1].regalloccount++;
-					}
-
-					iinfo = calleeinfo;
+					iinfo = replace_create_inline_start_replacement_point(
+								jd, rp++, iptr, &ra, javalocals);
 					m = iinfo->method;
-					if (iinfo->javalocals_start)
-						MCOPY(javalocals, iinfo->javalocals_start, s4, m->maxlocals);
-#if !defined(NDEBUG)
-					else
-						/* javalocals will be set at next block start */
-						CLEAR_javalocals(javalocals, m);
-#endif
+					/* javalocals may be set at next block start, or now */
+					COPY_OR_CLEAR_javalocals(javalocals, iinfo->javalocals_start, m);
 					break;
 
 				case ICMD_INLINE_BODY:
-					assert(iptr->sx.s23.s3.inlineinfo == iinfo);
+					assert(iinfo == iptr->sx.s23.s3.inlineinfo);
 
 					jl = iinfo->javalocals_start;
 					if (jl == NULL) {
@@ -626,6 +656,8 @@ bool replace_create_replacement_points(jitdata *jd)
 					break;
 
 				case ICMD_INLINE_END:
+					assert(iinfo == iptr->sx.s23.s3.inlineinfo ||
+						   iinfo == iptr->sx.s23.s3.inlineinfo->parent);
 					iinfo = iptr->sx.s23.s3.inlineinfo;
 					m = iinfo->outer;
 					if (iinfo->javalocals_end)
