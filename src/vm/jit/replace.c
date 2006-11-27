@@ -55,6 +55,9 @@
 
 #include "native/include/java_lang_String.h"
 
+#define REPLACE_PATCH_DYNAMIC_CALL
+/*#define REPLACE_PATCH_ALL*/
+
 
 /*** configuration of native stack slot size **********************************/
 
@@ -75,10 +78,26 @@ typedef u8 stackslot_t;
 
 /*#define REPLACE_VERBOSE*/
 
+#if !defined(NDEBUG)
+void java_value_print(s4 type, u8 value);
+
+static char *replace_type_str[] = {
+	"STD",
+	"EXH",
+	"SBR",
+	"CALL",
+	"INLINE",
+	"RETURN",
+	"BODY"
+};
+#endif /* !defined(NDEBUG) */
+
 #if !defined(NDEBUG) && defined(REPLACE_VERBOSE)
 #define DOLOG(code) do{ if (1) { code; } } while(0)
+#define DOLOG_SHORT(code) do{ if (1) { code; } } while(0)
 #else
 #define DOLOG(code)
+#define DOLOG_SHORT(code)
 #endif
 
 
@@ -91,6 +110,7 @@ typedef u8 stackslot_t;
 static int stat_replacements = 0;
 static int stat_frames = 0;
 static int stat_recompile = 0;
+static int stat_staticpatch = 0;
 static int stat_unroll_inline = 0;
 static int stat_unroll_call = 0;
 static int stat_dist_frames[20] = { 0 };
@@ -109,6 +129,7 @@ static int stat_regallocs = 0;
 static int stat_dist_method_rplpoints[20] = { 0 };
 
 #define REPLACE_COUNT(cnt)  (cnt)++
+#define REPLACE_COUNT_IF(cnt, cond)  do{ if(cond) (cnt)++; } while(0)
 #define REPLACE_COUNT_INC(cnt, inc)  ((cnt) += (inc))
 
 #define REPLACE_COUNT_DIST(array, val)                               \
@@ -144,6 +165,7 @@ void replace_print_statistics(void)
 	printf("    # of replacements:   %d\n", stat_replacements);
 	printf("    # of frames:         %d\n", stat_frames);
 	printf("    # of recompilations: %d\n", stat_recompile);
+	printf("    patched static calls:%d\n", stat_staticpatch);
 	printf("    unrolled inlines:    %d\n", stat_unroll_inline);
 	printf("    unrolled calls:      %d\n", stat_unroll_call);
 	REPLACE_PRINT_DIST("frame depth", stat_dist_frames);
@@ -170,6 +192,7 @@ void replace_print_statistics(void)
 #else
 
 #define REPLACE_COUNT(cnt)
+#define REPLACE_COUNT_IF(cnt, cond)
 #define REPLACE_COUNT_INC(cnt, inc)
 #define REPLACE_COUNT_DIST(array, val)
 
@@ -402,6 +425,10 @@ bool replace_create_replacement_points(jitdata *jd)
 	methoddesc      *md;
 	insinfo_inline  *iinfo;
 	s4               startcount;
+	s4               firstcount;
+#if defined(REPLACE_PATCH_DYNAMIC_CALL)
+	bool             needentry;
+#endif
 
 	REPLACE_COUNT(stat_methods);
 
@@ -420,9 +447,21 @@ bool replace_create_replacement_points(jitdata *jd)
 	assert(code->regalloccount == 0);
 	assert(code->globalcount == 0);
 
-	/* iterate over the basic block list to find replacement points */
-
 	m = code->m;
+
+	/* in instance methods, we may need a rplpoint at the method entry */
+
+#if defined(REPLACE_PATCH_DYNAMIC_CALL)
+	if (!(m->flags & ACC_STATIC)) {
+		jd->basicblocks[0].bitflags |= BBFLAG_REPLACEMENT;
+		needentry = true;
+	}
+	else {
+		needentry = false;
+	}
+#endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
+
+	/* iterate over the basic block list to find replacement points */
 
 	count = 0;
 	alloccount = 0;
@@ -450,6 +489,7 @@ bool replace_create_replacement_points(jitdata *jd)
 		iptr = bptr->iinstr;
 		iend = iptr + bptr->icount;
 		startcount = count;
+		firstcount = count;
 
 		for (; iptr != iend; ++iptr) {
 			switch (iptr->opc) {
@@ -521,6 +561,9 @@ bool replace_create_replacement_points(jitdata *jd)
 					iinfo = iinfo->parent;
 					break;
 			}
+
+			if (iptr == bptr->iinstr)
+				firstcount = count;
 		} /* end instruction loop */
 
 		/* create replacement points at targets of backward branches */
@@ -528,8 +571,13 @@ bool replace_create_replacement_points(jitdata *jd)
 		/* replacement point inside the block.                       */
 
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			if (count > startcount) {
-				/* we don't need it */
+#if defined(REPLACE_PATCH_DYNAMIC_CALL)
+			int test = (needentry && bptr == jd->basicblocks) ? firstcount : count;
+#else
+			int test = count;
+#endif
+			if (test > startcount) {
+				/* we don't need an extra rplpoint */
 				bptr->bitflags &= ~BBFLAG_REPLACEMENT;
 			}
 			else {
@@ -919,16 +967,15 @@ static void replace_read_executionstate(rplpoint *rp,
 	/* create the source frame */
 
 	frame = DNEW(sourceframe_t);
-	frame->up = ss->frames;
+	frame->down = ss->frames;
 	frame->method = rp->method;
 	frame->id = rp->id;
 	assert(rp->type >= 0 && rp->type < sizeof(replace_normalize_type_map)/sizeof(s4));
 	frame->type = replace_normalize_type_map[rp->type];
+	frame->instance = 0;
 	frame->syncslotcount = 0;
 	frame->syncslots = NULL;
-#if !defined(NDEBUG)
-	frame->debug_rp = rp;
-#endif
+	frame->readrp = rp;
 
 	ss->frames = frame;
 
@@ -969,6 +1016,29 @@ static void replace_read_executionstate(rplpoint *rp,
 		ra++;
 		count--;
 	}
+
+	/* read instance, if this is the first rplpoint */
+
+#if defined(REPLACE_PATCH_DYNAMIC_CALL)
+	if (topframe && !(rp->method->flags & ACC_STATIC) && rp == code->rplpoints) {
+		rplalloc instra;
+		methoddesc *md;
+
+		md = rp->method->parseddesc;
+		assert(md->params);
+		assert(md->paramcount >= 1);
+		instra.type = TYPE_ADR;
+		instra.regoff = md->params[0].regoff;
+		if (md->params[0].inmemory) {
+			instra.flags = INMEMORY;
+			instra.regoff += (1 + code->stackframesize);
+		}
+		else {
+			instra.flags = 0;
+		}
+		replace_read_value(es, sp, &instra, &(frame->instance));
+	}
+#endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
 
 	/* read stack slots */
 
@@ -1028,7 +1098,7 @@ static void replace_read_executionstate(rplpoint *rp,
 			/* only read synchronization slots when traversing an inline point */
 
 			if (!topframe) {
-				sourceframe_t *calleeframe = frame->up;
+				sourceframe_t *calleeframe = frame->down;
 				assert(calleeframe);
 				assert(calleeframe->syncslotcount == 0);
 				assert(calleeframe->syncslots == NULL);
@@ -1099,7 +1169,7 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	frame = ss->frames;
 	assert(frame);
-	ss->frames = frame->up;
+	ss->frames = frame->down;
 
 	/* calculate stack pointer */
 
@@ -1179,11 +1249,11 @@ static void replace_write_executionstate(rplpoint *rp,
 			/* only write synchronization slots when traversing an inline point */
 
 			if (!topframe) {
-				assert(frame->up);
-				assert(frame->up->syncslotcount == 1); /* XXX need to understand more cases */
-				assert(frame->up->syncslots != NULL);
+				assert(frame->down);
+				assert(frame->down->syncslotcount == 1); /* XXX need to understand more cases */
+				assert(frame->down->syncslots != NULL);
 
-				replace_write_value(es,sp,ra,frame->up->syncslots);
+				replace_write_value(es,sp,ra,frame->down->syncslots);
 			}
 			continue;
 		}
@@ -1230,8 +1300,8 @@ static void replace_write_executionstate(rplpoint *rp,
   
 *******************************************************************************/
 
-bool replace_pop_activation_record(executionstate_t *es,
-								   sourceframe_t *frame)
+u1* replace_pop_activation_record(executionstate_t *es,
+								  sourceframe_t *frame)
 {
 	u1 *ra;
 	u1 *pv;
@@ -1259,14 +1329,14 @@ bool replace_pop_activation_record(executionstate_t *es,
 	DOLOG( printf("PV = %p\n", (void*) pv); );
 
 	if (pv == NULL)
-		return false;
+		return NULL;
 
 	code = *(codeinfo **)(pv + CodeinfoPointer);
 
 	DOLOG( printf("CODE = %p\n", (void*) code); );
 
 	if (code == NULL)
-		return false;
+		return NULL;
 
 	/* calculate the base of the stack frame */
 
@@ -1327,7 +1397,123 @@ bool replace_pop_activation_record(executionstate_t *es,
 			es->fltregs[i] = 0x33dead3333dead33ULL;
 #endif /* !defined(NDEBUG) */
 
-	return true;
+	return ra;
+}
+
+
+/* replace_patch_future_calls **************************************************
+
+   Analyse a call site and depending on the kind of call patch the call, the
+   virtual function table, or the interface table.
+
+   IN:
+	   ra...............return address pointing after the call site
+	   calleeframe......source frame of the callee
+	   calleecode.......the codeinfo of the callee
+
+*******************************************************************************/
+
+void replace_patch_future_calls(u1 *ra, sourceframe_t *calleeframe, codeinfo *calleecode)
+{
+	methodptr *mpp;
+	bool       atentry;
+#if !defined(NDEBUG)
+	codeinfo  *oldcode;
+	codeinfo  *newcode;
+#endif
+#if defined(REPLACE_VERBOSE)
+	s4         i;
+	char      *logkind;
+	int        disas = 0;
+#endif
+
+	assert(ra);
+	assert(calleecode);
+
+	mpp = NULL;
+
+	atentry = (calleeframe->down == NULL)
+			&& !(calleecode->m->flags & ACC_STATIC)
+			&& (calleeframe->readrp->id == 0); /* XXX */
+
+	DOLOG( printf("bytes at patch position:");
+		   for (i=0; i<16; ++i)
+			   printf(" %02x", ra[-16+i]);
+		   printf("\n"); );
+
+	if (ra[-2] == 0xff && ra[-1] == 0xd1
+			&& ra[-7] == 0xb9)
+	{
+		DOLOG_SHORT( logkind = "static   "; );
+		DOLOG( printf("PATCHING static call to "); method_println(calleecode->m); disas = 7; );
+		REPLACE_COUNT(stat_staticpatch);
+		mpp = (methodptr*)(ra - 6);
+	}
+#if defined(REPLACE_PATCH_DYNAMIC_CALL)
+	else if (ra[-2] == 0xff && ra[-1] == 0xd2
+				&& ra[-8] == 0x8b && ra[-7] == 0x91
+				&& atentry)
+	{
+		java_objectheader *obj;
+		u1 *table;
+		u4 offset;
+
+		DOLOG_SHORT( printf("\tinstance: "); java_value_print(TYPE_ADR, calleeframe->instance);
+					 printf("\n"); );
+
+		assert(calleeframe->instance != 0);
+
+		obj = (java_objectheader *) (ptrint) calleeframe->instance;
+		table = (u1*) obj->vftbl;
+		offset = *(u4*)(ra - 6);
+
+		if (ra[-10] == 0x8b && ra[-9] == 0x08) {
+			mpp = (methodptr *) (table + offset);
+			DOLOG_SHORT( logkind = "virtual  "; );
+			DOLOG( printf("updating virtual call at %p\n", (void*) ra); disas = 8);
+		}
+		else {
+			u4 ioffset = *(u4*)(ra - 12);
+			u1 *itable = *(u1**)(table + ioffset);
+
+			assert(ra[-14] == 0x8b && ra[-13] == 0x89);
+			mpp = (methodptr *) (itable + offset);
+			DOLOG_SHORT( logkind = "interface"; );
+			DOLOG( printf("updating interface call at %p\n", (void*) ra); disas = 14);
+		}
+	}
+#endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
+
+	if (mpp == NULL)
+		return;
+
+	DOLOG(
+		u1* u1ptr = ra - disas;
+		DISASSINSTR(u1ptr);
+		DISASSINSTR(u1ptr);
+		if (disas > 8)
+			DISASSINSTR(u1ptr);
+		fflush(stdout);
+	);
+
+	DOLOG( printf("patch method pointer from: %p to %p\n",
+				  (void*) *mpp, (void*)calleecode->entrypoint); );
+
+#if !defined(NDEBUG)
+	oldcode = *(codeinfo **)((u1*)(*mpp) + CodeinfoPointer);
+	newcode = *(codeinfo **)((u1*)(calleecode->entrypoint) + CodeinfoPointer);
+
+	DOLOG_SHORT( printf("\tpatch %s %p ", logkind, (void*) oldcode->entrypoint);
+				 method_println(oldcode->m);
+				 printf("\t      with      %p ", (void*) newcode->entrypoint);
+				 method_println(newcode->m); );
+
+	assert(oldcode->m == newcode->m);
+#endif
+
+	/* write the new entrypoint */
+
+	*mpp = (methodptr) calleecode->entrypoint;
 }
 
 
@@ -1341,8 +1527,9 @@ bool replace_pop_activation_record(executionstate_t *es,
    IN:
 	   es...............execution state
 	   rpcall...........the replacement point at the call site
+	   callerframe......source frame of the caller
 	   calleecode.......the codeinfo of the callee
-	   frame............source frame, only the synch. slots are used
+	   calleeframe......source frame of the callee
 
    OUT:
        *es..............the execution state after pushing the stack frame
@@ -1351,29 +1538,34 @@ bool replace_pop_activation_record(executionstate_t *es,
 
 void replace_push_activation_record(executionstate_t *es,
 									rplpoint *rpcall,
+									sourceframe_t *callerframe,
 									codeinfo *calleecode,
-									sourceframe_t *frame)
+									sourceframe_t *calleeframe)
 {
-	s4 reg;
-	s4 i;
-	s4 count;
+	s4           reg;
+	s4           i;
+	s4           count;
 	stackslot_t *basesp;
 	stackslot_t *sp;
+	u1          *ra;
 
 	assert(es);
 	assert(rpcall && rpcall->type == RPLPOINT_TYPE_CALL);
 	assert(calleecode);
-	assert(frame);
+	assert(callerframe);
+	assert(calleeframe);
+	assert(calleeframe == callerframe->down);
 
 	/* write the return address */
 
 	es->sp -= SIZE_OF_STACKSLOT;
 
-	DOLOG( printf("writing return address %p to %p\n",
-				(void*) (rpcall->pc + rpcall->callsize),
-				(void*) es->sp); );
+	ra = rpcall->pc + rpcall->callsize;
 
-	*((stackslot_t *)es->sp) = (stackslot_t) (rpcall->pc + rpcall->callsize);
+	DOLOG( printf("writing return address %p to %p\n",
+				(void*) ra, (void*) es->sp); );
+
+	*((stackslot_t *)es->sp) = (stackslot_t) ra;
 
 	/* we move into a new code unit */
 
@@ -1433,14 +1625,23 @@ void replace_push_activation_record(executionstate_t *es,
 	/* write slots used for synchronization */
 
 	count = code_get_sync_slot_count(es->code);
-	assert(count == frame->syncslotcount);
+	assert(count == calleeframe->syncslotcount);
 	for (i=0; i<count; ++i) {
-		sp[es->code->memuse + i] = frame->syncslots[i];
+		sp[es->code->memuse + i] = calleeframe->syncslots[i];
 	}
 
 	/* set the PV */
 
 	es->pv = es->code->entrypoint;
+
+	/* redirect future invocations */
+
+#if defined(REPLACE_PATCH_ALL)
+	if (rpcall->type == callerframe->readrp->type)
+#else
+	if (rpcall == callerframe->readrp)
+#endif
+		replace_patch_future_calls(ra, calleeframe, calleecode);
 }
 
 
@@ -1519,7 +1720,16 @@ no_match:
 		rp++;
 	}
 
-	assert(0);
+#if !defined(NDEBUG)
+	printf("candidate replacement points were:\n");
+	rp = code->rplpoints;
+	i = code->rplpointcount;
+	for (; i--; ++rp) {
+		replace_replacement_point_println(rp, 1);
+	}
+#endif
+
+	vm_abort("no matching replacement point found");
 	return NULL; /* NOT REACHED */
 }
 
@@ -1540,34 +1750,37 @@ no_match:
 
 void replace_me(rplpoint *rp, executionstate_t *es)
 {
-	rplpoint     *target;
-	sourcestate_t ss;
-	s4            dumpsize;
-	rplpoint     *candidate;
-	codeinfo     *code;
-	s4            i;
-	s4            depth;
-	rplpoint     *origrp;
-	rplpoint     *parent;
+	sourcestate_t  ss;
+	s4             dumpsize;
+	rplpoint      *candidate;
+	codeinfo      *code;
+	s4             i;
+	s4             depth;
+	rplpoint      *origrp;
+	rplpoint      *parent;
+	u1            *ra;
+	sourceframe_t *prevframe;
+#if defined(REPLACE_STATISTICS)
+	codeinfo      *oldcode;
+#endif
 
 	origrp = rp;
-
 	es->code = rp->code;
 
-	DOLOG( printf("REPLACING: "); method_println(es->code->m); );
+	DOLOG_SHORT( printf("REPLACING(%d %p): (id %d %p) ",
+				 stat_replacements, (void*)THREADOBJECT,
+				 rp->id, (void*)rp);
+				 method_println(es->code->m); );
+
+	DOLOG( printf("replace_me(%p,%p)\n",(void*)rp,(void*)es); fflush(stdout);
+		   replace_replacement_point_println(rp, 1);
+		   replace_executionstate_println(es); );
+
 	REPLACE_COUNT(stat_replacements);
 
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
-
-	/* fetch the target of the replacement */
-
-	target = rp->target;
-
-	DOLOG( printf("replace_me(%p,%p)\n",(void*)rp,(void*)es); fflush(stdout);
-		   replace_replacement_point_println(rp, 1);
-		   replace_executionstate_println(es); );
 
 	/* read execution state of old code */
 
@@ -1587,6 +1800,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		depth++;
 
 #if defined(REPLACE_STATISTICS)
+		{
 		int adr = 0; int ret = 0; int prim = 0; int vd = 0; int n = 0;
 		for (i=0; i<ss.frames->javalocalcount; ++i) {
 			switch (ss.frames->javalocaltype[i]) {
@@ -1616,6 +1830,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		REPLACE_COUNT_DIST(stat_dist_stack_adr, adr);
 		REPLACE_COUNT_DIST(stat_dist_stack_ret, ret);
 		REPLACE_COUNT_DIST(stat_dist_stack_prim, prim);
+		}
 #endif /* defined(REPLACE_STATISTICS) */
 
 		if (candidate->parent) {
@@ -1627,7 +1842,9 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		else {
 			DOLOG( printf("UNWIND\n"); );
 			REPLACE_COUNT(stat_unroll_call);
-			if (!replace_pop_activation_record(es, ss.frames)) {
+			code = es->code;
+			ra = replace_pop_activation_record(es, ss.frames);
+			if (ra == NULL) {
 				DOLOG( printf("BREAKING\n"); );
 				break;
 			}
@@ -1659,31 +1876,39 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	/* XXX get new code */
 
 	parent = NULL;
+
 	while (ss.frames) {
 
 		candidate = replace_find_replacement_point(code, &ss, parent);
 
 		DOLOG( printf("creating execution state for%s:\n",
-				(ss.frames->up == NULL) ? " TOPFRAME" : "");
-			   replace_replacement_point_println(ss.frames->debug_rp, 1);
+				(ss.frames->down == NULL) ? " TOPFRAME" : "");
+			   replace_replacement_point_println(ss.frames->readrp, 1);
 			   replace_replacement_point_println(candidate, 1); );
 
-		replace_write_executionstate(candidate, es, &ss, ss.frames->up == NULL);
+		DOLOG_SHORT( printf("\t%c%s ",
+					 (candidate == ss.frames->readrp) ? '=' : '+',
+					 replace_type_str[candidate->type]); 
+				     method_println(ss.frames->method); );
+
+		prevframe = ss.frames;
+		replace_write_executionstate(candidate, es, &ss, ss.frames->down == NULL);
 		if (ss.frames == NULL)
 			break;
 		DOLOG( replace_executionstate_println(es); );
 
 		if (candidate->type == RPLPOINT_TYPE_CALL) {
-			if (!ss.frames->method->code || ss.frames->method->code->invalid) {
-				REPLACE_COUNT(stat_recompile);
-				if (!jit_recompile(ss.frames->method))
-					/* XXX exception */;
-			}
-			code = ss.frames->method->code;
-			assert(code);
+#if defined(REPLACE_STATISTICS)
+			oldcode = ss.frames->method->code;
+#endif
+			code = jit_get_current_code(ss.frames->method);
+
+			REPLACE_COUNT_IF(stat_recompile, code != oldcode);
+
 			DOLOG( printf("pushing activation record for:\n");
 				   replace_replacement_point_println(candidate, 1); );
-			replace_push_activation_record(es, candidate, code, ss.frames);
+
+			replace_push_activation_record(es, candidate, prevframe, code, ss.frames);
 			parent = NULL;
 		}
 		else {
@@ -1696,7 +1921,9 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	assert(candidate);
 	if (candidate == origrp) {
-		printf("WARNING: identity replacement, turning off rp to avoid infinite loop");
+		DOLOG_SHORT(
+			printf("WARNING: identity replacement, turning off rp to avoid infinite loop\n");
+		);
 		replace_deactivate_replacement_point(origrp);
 	}
 
@@ -1727,16 +1954,6 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 #if !defined(NDEBUG)
 
 #define TYPECHAR(t)  (((t) >= 0 && (t) <= TYPE_RET) ? show_jit_type_letters[t] : '?')
-
-static char *replace_type_str[] = {
-	"STD",
-	"EXH",
-	"SBR",
-	"CALL",
-	"INLINE",
-	"RETURN",
-	"BODY"
-};
 
 void replace_replacement_point_println(rplpoint *rp, int depth)
 {
@@ -1970,6 +2187,12 @@ void replace_source_frame_println(sourceframe_t *frame)
 	printf("\ttype: %s\n", replace_type_str[frame->type]);
 	printf("\n");
 
+	if (frame->instance) {
+		printf("\tinstance: ");
+		java_value_print(TYPE_ADR, frame->instance);
+		printf("\n");
+	}
+
 	if (frame->javalocalcount) {
 		printf("\tlocals (%d):\n",frame->javalocalcount);
 		for (i=0; i<frame->javalocalcount; ++i) {
@@ -2014,6 +2237,12 @@ void replace_source_frame_println(sourceframe_t *frame)
 		}
 		printf("\n");
 	}
+
+	if (frame->readrp) {
+		printf("\tread replacement point:\n");
+		replace_replacement_point_println(frame->readrp, 2);
+		printf("\n");
+	}
 }
 #endif /* !defined(NDEBUG) */
 
@@ -2040,7 +2269,7 @@ void replace_sourcestate_println(sourcestate_t *ss)
 
 	printf("sourcestate_t:\n");
 
-	for (i=0, frame = ss->frames; frame != NULL; frame = frame->up, ++i) {
+	for (i=0, frame = ss->frames; frame != NULL; frame = frame->down, ++i) {
 		printf("    frame %d:\n", i);
 		replace_source_frame_println(frame);
 	}

@@ -135,11 +135,13 @@ struct executionstate_t {
 
 
 struct sourceframe_t {
-	sourceframe_t *up;                  /* source frame above this one */
+	sourceframe_t *down;           /* source frame down the call chain */
 
 	methodinfo    *method;                  /* method this frame is in */
 	s4             id;
 	s4             type;
+
+	u8             instance;
 
 	u8            *javastack;                  /* values of stack vars */
 	u1            *javastacktype;              /*  types of stack vars */
@@ -152,9 +154,7 @@ struct sourceframe_t {
 	u8            *syncslots;
 	s4             syncslotcount; /* XXX do we need more than one? */
 
-#if !defined(NDEBUG)
-	rplpoint      *debug_rp;
-#endif
+	rplpoint      *readrp;         /* rplpoint used to read this frame */
 };
 
 
