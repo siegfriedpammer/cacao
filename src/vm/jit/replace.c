@@ -873,6 +873,16 @@ static void replace_write_value(executionstate_t *es,
   
 *******************************************************************************/
 
+static s4 replace_normalize_type_map[] = {
+/* RPLPOINT_TYPE_STD    |--> */ RPLPOINT_TYPE_STD,
+/* RPLPOINT_TYPE_EXH    |--> */ RPLPOINT_TYPE_STD,
+/* RPLPOINT_TYPE_SBR    |--> */ RPLPOINT_TYPE_STD,
+/* RPLPOINT_TYPE_CALL   |--> */ RPLPOINT_TYPE_CALL,
+/* RPLPOINT_TYPE_INLINE |--> */ RPLPOINT_TYPE_CALL,
+/* RPLPOINT_TYPE_RETURN |--> */ RPLPOINT_TYPE_RETURN,
+/* RPLPOINT_TYPE_BODY   |--> */ RPLPOINT_TYPE_STD
+};
+
 static void replace_read_executionstate(rplpoint *rp,
 										executionstate_t *es,
 									 	sourcestate_t *ss,
@@ -912,6 +922,8 @@ static void replace_read_executionstate(rplpoint *rp,
 	frame->up = ss->frames;
 	frame->method = rp->method;
 	frame->id = rp->id;
+	assert(rp->type >= 0 && rp->type < sizeof(replace_normalize_type_map)/sizeof(s4));
+	frame->type = replace_normalize_type_map[rp->type];
 	frame->syncslotcount = 0;
 	frame->syncslots = NULL;
 #if !defined(NDEBUG)
@@ -1475,7 +1487,8 @@ rplpoint * replace_find_replacement_point(codeinfo *code,
 	i = code->rplpointcount;
 	while (i--) {
 		if (rp->id == frame->id && rp->method == frame->method
-				&& rp->parent == parent)
+				&& rp->parent == parent
+				&& replace_normalize_type_map[rp->type] == frame->type)
 		{
 			/* check if returnAddresses match */
 			/* XXX optimize: only do this if JSRs in method */
@@ -1954,6 +1967,7 @@ void replace_source_frame_println(sourceframe_t *frame)
 	printf("\t");
 	method_println(frame->method);
 	printf("\tid: %d\n", frame->id);
+	printf("\ttype: %s\n", replace_type_str[frame->type]);
 	printf("\n");
 
 	if (frame->javalocalcount) {

@@ -77,6 +77,8 @@ struct rplalloc {
 
 
 /* XXX what to do about overlapping rplpoints? */
+/* CAUTION: Do not change the numerical values. These are used as     */
+/*          indices into replace_normalize_type_map.                  */
 #define RPLPOINT_TYPE_STD     BBTYPE_STD
 #define RPLPOINT_TYPE_EXH     BBTYPE_EXH
 #define RPLPOINT_TYPE_SBR     BBTYPE_SBR
@@ -137,6 +139,7 @@ struct sourceframe_t {
 
 	methodinfo    *method;                  /* method this frame is in */
 	s4             id;
+	s4             type;
 
 	u8            *javastack;                  /* values of stack vars */
 	u1            *javastacktype;              /*  types of stack vars */
