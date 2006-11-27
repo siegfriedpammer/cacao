@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: jit.h 6053 2006-11-27 14:35:26Z edwin $
+   $Id: jit.h 6057 2006-11-27 14:58:43Z edwin $
 
 */
 
@@ -1231,7 +1231,7 @@ extern int stackreq[256];
 
 #define ICMD_INLINE_START     251       /* instruction before inlined method  */
 #define ICMD_INLINE_END       252       /* instruction after inlined method   */
-#define ICMD_INLINE_GOTO      253       /* jump to caller of inlined method   */
+#define ICMD_INLINE_BODY      253       /* start of inlined body              */
 
 #define ICMD_BUILTIN          255       /* internal opcode                    */
 

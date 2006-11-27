@@ -1245,6 +1245,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 
 	case ICMD_INLINE_START:
 	case ICMD_INLINE_END:
+	case ICMD_INLINE_BODY:
 #if defined(ENABLE_INLINING)
 		{
 			insinfo_inline *ii = iptr->sx.s23.s3.inlineinfo;
@@ -1315,7 +1316,6 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		break;
 
 	case ICMD_GOTO:
-	case ICMD_INLINE_GOTO:
 		SHOW_TARGET(iptr->dst);
 		break;
 

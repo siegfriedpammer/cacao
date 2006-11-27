@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6040 2006-11-22 18:12:29Z edwin $
+   $Id: codegen.c 6057 2006-11-27 14:58:43Z edwin $
 
 */
 
@@ -540,6 +540,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
+		case ICMD_INLINE_BODY:
 			break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
@@ -2612,12 +2613,6 @@ bool codegen(jitdata *jd)
 			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 			break;
-
-		case ICMD_INLINE_GOTO:
-#if 0
-			M_COPY(src, iptr->dst.var);
-#endif
-			/* FALLTHROUGH! */
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		case ICMD_RET:          /* ... ==> ...                                */
