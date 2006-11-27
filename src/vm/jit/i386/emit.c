@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6049 2006-11-27 14:20:57Z edwin $
+   $Id: emit.c 6056 2006-11-27 14:48:33Z edwin $
 
 */
 
@@ -706,13 +706,6 @@ static void emit_membase32(codegendata *cd, s4 basereg, s4 disp, s4 dreg)
 }
 
 
-static void emit_memabs(codegendata *cd, s4 disp, s4 dreg)
-{
-	emit_address_byte(0, dreg, 5);
-	emit_imm32(disp);
-}
-
-
 static void emit_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
 	if (basereg == -1) {
@@ -1011,11 +1004,11 @@ void emit_alu_imm_memabs(codegendata *cd, s4 opc, s4 imm, s4 disp)
 {
 	if (IS_IMM8(imm)) { 
 		*(cd->mcodeptr++) = 0x83;
-		emit_memabs(cd, (disp), (opc));
+		emit_mem(opc, disp);
 		emit_imm8((imm));
 	} else { 
 		*(cd->mcodeptr++) = 0x81;
-		emit_memabs(cd, (disp), (opc));
+		emit_mem(opc, disp);
 		emit_imm32((imm));
 	}
 }
