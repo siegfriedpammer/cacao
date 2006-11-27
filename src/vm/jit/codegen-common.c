@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 5951 2006-11-11 18:31:10Z twisti $
+   $Id: codegen-common.c 6064 2006-11-27 15:23:55Z edwin $
 
 */
 
@@ -619,6 +619,54 @@ u1 *codegen_get_pv_from_pc_nocheck(u1 *pc)
 		return NULL;
 	else
 		return mte->startpc;
+}
+
+
+/* codegen_set_replacement_point_notrap ****************************************
+
+   Record the position of a non-trappable replacement point.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void codegen_set_replacement_point_notrap(codegendata *cd, s4 type)
+#else
+void codegen_set_replacement_point_notrap(codegendata *cd)
+#endif
+{
+	assert(cd->replacementpoint);
+	assert(cd->replacementpoint->type == type);
+	assert(cd->replacementpoint->flags & RPLPOINT_FLAG_NOTRAP);
+
+	cd->replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+
+	cd->replacementpoint++;
+}
+
+
+/* codegen_set_replacement_point ***********************************************
+
+   Record the position of a trappable replacement point.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void codegen_set_replacement_point(codegendata *cd, s4 type)
+#else
+void codegen_set_replacement_point(codegendata *cd)
+#endif
+{
+	assert(cd->replacementpoint);
+	assert(cd->replacementpoint->type == type);
+	assert(!(cd->replacementpoint->flags & RPLPOINT_FLAG_NOTRAP));
+
+	cd->replacementpoint->pc = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
+
+	cd->replacementpoint++;
+
+	/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
+
+	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
 }
 
 

@@ -88,6 +88,15 @@ struct rplalloc {
 #define RPLPOINT_FLAG_NOTRAP  0x01  /* rplpoint cannot be trapped */
 
 
+#if !defined(NDEBUG)
+#define RPLPOINT_CHECK(type)     , RPLPOINT_TYPE_##type
+#define RPLPOINT_CHECK_BB(bptr)  , (bptr)->type
+#else
+#define RPLPOINT_CHECK(type)
+#define RPLPOINT_CHECK_BB(bptr)
+#endif
+
+
 /* An `rplpoint` represents a replacement point in a compiled method  */
 
 struct rplpoint {

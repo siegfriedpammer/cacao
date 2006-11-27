@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 5931 2006-11-07 08:51:05Z twisti $
+   $Id: codegen-common.h 6064 2006-11-27 15:23:55Z edwin $
 
 */
 
@@ -53,6 +53,7 @@ typedef struct codegen_critical_section_t codegen_critical_section_t;
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/code.h"
+#include "vm/jit/replace.h"
 
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
@@ -132,6 +133,8 @@ struct codegendata {
 
 	s4              maxstack;
 	s4              stackframesize;    /* stackframe size of this method      */
+
+	rplpoint       *replacementpoint;  /* current replacement point           */
 };
 
 
@@ -179,6 +182,14 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 void codegen_insertmethod(u1 *startpc, u1 *endpc);
 u1 *codegen_get_pv_from_pc(u1 *pc);
 u1 *codegen_get_pv_from_pc_nocheck(u1 *pc);
+
+#if !defined(NDEBUG)
+void codegen_set_replacement_point_notrap(codegendata *cd, s4 type);
+void codegen_set_replacement_point(codegendata *cd, s4 type);
+#else
+void codegen_set_replacement_point_notrap(codegendata *cd);
+void codegen_set_replacement_point(codegendata *cd);
+#endif
 
 void codegen_finish(jitdata *jd);
 
