@@ -82,6 +82,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_getfield_basic_type_lookup.j \
 	$(srcdir)/test_verify_fail_getfield_basic_type_value.j \
 	$(srcdir)/test_verify_fail_handler_bad_local.j \
+	$(srcdir)/test_verify_fail_init_nullpointer.j \
 	$(srcdir)/test_verify_fail_invoke_basic_type.j \
 	$(srcdir)/test_verify_fail_invoke_return_basic_type.j \
 	$(srcdir)/test_verify_fail_ireturn_wrong_type.j \
@@ -97,6 +98,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_long_local_index.j \
 	$(srcdir)/test_verify_fail_long_local.j \
 	$(srcdir)/test_verify_fail_long_overwritten.j \
+	$(srcdir)/test_verify_fail_merge_different_new_objects.j \
 	$(srcdir)/test_verify_fail_putfield_basic_type_instance.j \
 	$(srcdir)/test_verify_fail_putfield_basic_type_lookup.j \
 	$(srcdir)/test_verify_fail_putfield_basic_type_value.j \
