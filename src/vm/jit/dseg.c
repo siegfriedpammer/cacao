@@ -30,7 +30,7 @@
             Joseph Wenninger
             Edwin Steiner
 
-   $Id: dseg.c 6066 2006-11-27 15:29:40Z edwin $
+   $Id: dseg.c 6077 2006-11-28 22:04:29Z twisti $
 
 */
 
@@ -755,8 +755,6 @@ static s4 dseg_get_linenumber_from_pc_intern(methodinfo **pm, linenumbertable_en
 	linenumbertable_entry *lntinline;     /* special entry for inlined method */
 
 	for (; lntsize > 0; lntsize--, lntentry--) {
-		/* did we reach the current line? */
-
 		/* Note: In case of inlining this may actually compare the pc
 		   against a methodinfo *, yielding a non-sensical
 		   result. This is no problem, however, as we ignore such
@@ -764,55 +762,50 @@ static s4 dseg_get_linenumber_from_pc_intern(methodinfo **pm, linenumbertable_en
 		   common case (ie. a real pc in lntentry->pc). */
 
 		if (pc >= lntentry->pc) {
-			/* check for special inline entries (see
+			/* did we reach the current line? */
+
+			if ((s4) lntentry->line >= 0)
+				return (s4) lntentry->line;
+
+			/* we found a special inline entry (see
 			   doc/inlining_stacktrace.txt for details */
 
-			if ((s4) lntentry->line < 0) {
-				switch (lntentry->line) {
-				case -1: 
-					/* begin of inlined method (ie. INLINE_END
-					   instruction) */
+			switch (lntentry->line) {
+			case -1: 
+				/* begin of inlined method (ie. INLINE_END
+				   instruction) */
 
-					lntinline = --lntentry;/* get entry with methodinfo * */
-					lntentry--;            /* skip the special entry      */
-					lntsize -= 2;
+				lntinline = --lntentry;/* get entry with methodinfo * */
+				lntentry--;            /* skip the special entry      */
+				lntsize -= 2;
 
-					/* search inside the inlined method */
+				/* search inside the inlined method */
 
-					if (dseg_get_linenumber_from_pc_intern(pm, 
-														   lntentry,
-														   lntsize,
-														   pc))
-						{
-							/* the inlined method contained the pc */
+				if (dseg_get_linenumber_from_pc_intern(pm, lntentry, lntsize,
+													   pc))
+				{
+					/* the inlined method contained the pc */
 
-							*pm = (methodinfo *) lntinline->pc;
+					*pm = (methodinfo *) lntinline->pc;
 
-							assert(lntinline->line <= -3);
+					assert(lntinline->line <= -3);
 
-							return (-3) - lntinline->line;
-						}
-
-					/* pc was not in inlined method, continue
-					   search.  Entries inside the inlined method
-					   will be skipped because their lntentry->pc
-					   is higher than pc.  */
-					break;
-
-				case -2: 
-					/* end of inlined method */
-
-					return 0;
-
-					/* default: is only reached for an -3-line entry
-					   after a skipped -2 entry. We can safely ignore
-					   it and continue searching.  */
+					return (-3) - lntinline->line;
 				}
-			}
-			else {
-				/* found a normal entry */
 
-				return (s4) lntentry->line;
+				/* pc was not in inlined method, continue search.
+				   Entries inside the inlined method will be skipped
+				   because their lntentry->pc is higher than pc.  */
+				break;
+
+			case -2: 
+				/* end of inlined method */
+
+				return 0;
+
+				/* default: is only reached for an -3-line entry after
+				   a skipped -2 entry. We can safely ignore it and
+				   continue searching.  */
 			}
 		}
 	}
