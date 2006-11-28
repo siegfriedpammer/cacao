@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 5943 2006-11-09 15:27:03Z twisti $
+   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
 
 */
 
@@ -39,12 +39,6 @@
 #include "vm/types.h"
 
 #include "vm/jit/jit.h"
-
-
-/* some defines ***************************************************************/
-
-#define PATCHER_CALL_INSTRUCTIONS    5     /* number of instructions          */
-#define PATCHER_CALL_SIZE            5 * 4 /* size in bytes of a patcher call */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -62,15 +56,6 @@
     if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
-
-#define PATCHER_NOPS \
-    do { \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
-    } while (0)
 
 #define M_INTMOVE(a,b) \
     do { \
@@ -92,6 +77,33 @@
 
 #define ICONST(r,c)                     emit_iconst(cd, (r), (c))
 #define LCONST(r,c)                     emit_lconst(cd, (r), (c))
+
+
+/* branch defines *************************************************************/
+
+#define BRANCH_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+    } while (0)
+
+
+/* patcher defines ************************************************************/
+
+#define PATCHER_CALL_INSTRUCTIONS    5     /* number of instructions          */
+#define PATCHER_CALL_SIZE            5 * 4 /* size in bytes of a patcher call */
+
+#define PATCHER_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+    } while (0)
 
 
 /* macros to create code ******************************************************/

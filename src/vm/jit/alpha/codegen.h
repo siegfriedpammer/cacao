@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: codegen.h 6072 2006-11-28 19:14:14Z twisti $
+   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
 
 */
 
@@ -96,7 +96,15 @@
 #define LCONST(d,c)        emit_lconst(cd, (d), (c))
 
 
-/* some patcher defines *******************************************************/
+/* branch defines *************************************************************/
+
+#define BRANCH_NOPS \
+    do { \
+        M_NOP; \
+    } while (0)
+
+
+/* patcher defines ************************************************************/
 
 #define PATCHER_CALL_SIZE    1 * 4     /* an instruction is 4-bytes long      */
 

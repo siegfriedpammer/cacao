@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 6069 2006-11-27 20:05:59Z twisti $
+   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
 
 */
 
@@ -109,7 +109,15 @@
     }
 
 
-/* some patcher defines *******************************************************/
+/* branch defines *************************************************************/
+
+#define BRANCH_NOPS \
+    do { \
+        M_NOP; \
+    } while (0)
+
+
+/* patcher defines ************************************************************/
 
 #define PATCHER_CALL_SIZE    1 * 4      /* an instruction is 4-bytes long     */
 

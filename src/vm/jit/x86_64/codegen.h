@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 5945 2006-11-10 16:41:12Z twisti $
+   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
 
 */
 
@@ -138,7 +138,19 @@
     } while (0)
 
 
-/* some patcher defines *******************************************************/
+/* branch defines *************************************************************/
+
+#define BRANCH_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+    } while (0)
+
+
+/* patcher defines ************************************************************/
 
 #define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
 

@@ -1,5 +1,5 @@
 /* src/vm/jit/powerpc64/codegen.h - code generation macros and definitions for
-                                  32-bit PowerPC
+                                 64-bit PowerPC
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -27,11 +27,10 @@
 
    Authors: Andreas Krall
             Stefan Ring
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 5940 2006-11-09 09:59:28Z tbfg $
+   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
 
 */
 
@@ -113,6 +112,24 @@
     if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
+
+
+/* branch defines *************************************************************/
+
+#define BRANCH_NOPS \
+    do { \
+        M_NOP; \
+    } while (0)
+
+
+/* patcher defines ************************************************************/
+
+#define PATCHER_CALL_SIZE    1 * 4      /* an instruction is 4-bytes long     */
+
+#define PATCHER_NOPS \
+    do { \
+        M_NOP; \
+    } while (0)
 
 
 /* macros to create code ******************************************************/

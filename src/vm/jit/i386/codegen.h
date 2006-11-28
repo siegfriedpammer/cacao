@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 6049 2006-11-27 14:20:57Z edwin $
+   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
 
 */
 
@@ -45,10 +45,6 @@
 /* let LSRA allocate reserved registers (REG_ITMP[1|2|3]) */
 # define LSRA_USES_REG_RES
 #endif
-
-/* some defines ***************************************************************/
-
-#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -154,6 +150,32 @@
             M_MOV_IMM((c), GET_LOW_REG(d)); \
             M_MOV_IMM((c) >> 32, GET_HIGH_REG(d)); \
         } \
+    } while (0)
+
+
+/* branch defines *************************************************************/
+
+#define BRANCH_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+    } while (0)
+
+
+/* patcher defines ************************************************************/
+
+#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
+
+#define PATCHER_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
     } while (0)
 
 
