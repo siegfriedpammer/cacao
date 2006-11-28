@@ -38,6 +38,14 @@
 
 #include "vm/types.h"
 
+#include "codegen.h"
+
+#include "vm/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vm/statistics.h"
+#endif
+
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 
@@ -251,6 +259,44 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
    Wrappers for conditional branch instructions.
 
 *******************************************************************************/
+
+void emit_bc(codegendata *cd, basicblock *target, s4 condition)
+{
+	s4 branchmpc;
+	s4 disp;
+
+	/* Target basic block already has an PC, so we can generate the
+	   branch immediately. */
+
+	if ((target->mpc >= 0)) {
+		STATISTICS(count_branches_resolved++);
+
+		/* calculate the mpc of the branch instruction */
+
+		branchmpc = cd->mcodeptr - cd->mcodebase;
+		disp      = target->mpc - branchmpc;
+
+		emit_branch(cd, disp, condition);
+	}
+	else {
+		/* current mcodeptr is the correct position,
+		   afterwards emit the NOPs */
+
+		codegen_add_branch_ref(cd, target, condition);
+
+		/* generate NOPs as placeholder for branch code */
+		/* XXX if recompile-with-long-branches */
+
+		BRANCH_NOPS;
+	}
+}
+
+
+void emit_br(codegendata *cd, basicblock *target)
+{
+	emit_bc(cd, target, BRANCH_UNCONDITIONAL);
+}
+
 
 void emit_beq(codegendata *cd, basicblock *target)
 {

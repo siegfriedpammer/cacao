@@ -101,6 +101,8 @@ void emit_ble(codegendata *cd, basicblock *target);
 
 void emit_bnan(codegendata *cd, basicblock *target);
 
+void emit_branch(codegendata *cd, s4 disp, s4 condition);
+
 void emit_arithmetic_check(codegendata *cd, s4 reg);
 void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2);
 void emit_arraystore_check(codegendata *cd, s4 reg);
