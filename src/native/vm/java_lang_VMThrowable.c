@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Joseph Wenninger
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: java_lang_VMThrowable.c 5913 2006-11-05 16:58:27Z michi $
+   $Id: java_lang_VMThrowable.c 6071 2006-11-28 15:11:20Z twisti $
 
 */
 
@@ -45,7 +44,6 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
-#include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMThrowable.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
@@ -226,8 +224,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 		/* get declaring class name */
 
-		declaringclass = Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) ste->method->class);
-
+		declaringclass = native_class_getname(ste->method->class);
 
 		/* fill the java.lang.StackTraceElement element */
 
