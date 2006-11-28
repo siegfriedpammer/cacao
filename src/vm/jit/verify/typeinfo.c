@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 6008 2006-11-15 23:44:01Z edwin $
+   $Id: typeinfo.c 6073 2006-11-28 19:24:06Z edwin $
 
 */
 
@@ -1452,9 +1452,9 @@ typeinfo_merge_error(methodinfo *m,char *str,typeinfo *x,typeinfo *y) {
     typeinfo_print(stderr,x,1);
     fprintf(stderr,"Typeinfo y:\n");
     typeinfo_print(stderr,y,1);
+    log_text(str);
 #endif
 
-    log_text(str);
 	exceptions_throw_verifyerror(m, str);
 }
 
