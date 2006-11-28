@@ -89,6 +89,18 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst);
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);
 
+void emit_br(codegendata *cd, basicblock *target);
+void emit_bc(codegendata *cd, basicblock *target, s4 condition);
+
+void emit_beq(codegendata *cd, basicblock *target);
+void emit_bne(codegendata *cd, basicblock *target);
+void emit_blt(codegendata *cd, basicblock *target);
+void emit_bge(codegendata *cd, basicblock *target);
+void emit_bgt(codegendata *cd, basicblock *target);
+void emit_ble(codegendata *cd, basicblock *target);
+
+void emit_bnan(codegendata *cd, basicblock *target);
+
 void emit_arithmetic_check(codegendata *cd, s4 reg);
 void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2);
 void emit_arraystore_check(codegendata *cd, s4 reg);

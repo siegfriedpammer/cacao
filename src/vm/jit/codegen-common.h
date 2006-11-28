@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 6064 2006-11-27 15:23:55Z edwin $
+   $Id: codegen-common.h 6075 2006-11-28 19:58:02Z twisti $
 
 */
 
@@ -72,6 +72,20 @@ typedef struct codegen_critical_section_t codegen_critical_section_t;
 
 #define GET_LOW_REG(a)      ((a) & 0x0000ffff)
 #define GET_HIGH_REG(a)    (((a) & 0xffff0000) >> 16)
+
+
+/* branch conditions **********************************************************/
+
+#define BRANCH_UNCONDITIONAL    -1
+
+#define BRANCH_EQ               (ICMD_IFEQ - ICMD_IFEQ)
+#define BRANCH_NE               (ICMD_IFNE - ICMD_IFEQ)
+#define BRANCH_LT               (ICMD_IFLT - ICMD_IFEQ)
+#define BRANCH_GE               (ICMD_IFGE - ICMD_IFEQ)
+#define BRANCH_GT               (ICMD_IFGT - ICMD_IFEQ)
+#define BRANCH_LE               (ICMD_IFLE - ICMD_IFEQ)
+
+#define BRANCH_NAN              256
 
 
 /************************* critical sections  *********************************/

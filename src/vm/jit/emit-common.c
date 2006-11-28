@@ -246,6 +246,54 @@ void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 }
 
 
+/* emit_bxx ********************************************************************
+
+   Wrappers for conditional branch instructions.
+
+*******************************************************************************/
+
+void emit_beq(codegendata *cd, basicblock *target)
+{
+	emit_bc(cd, target, BRANCH_EQ);
+}
+
+
+void emit_bne(codegendata *cd, basicblock *target)
+{
+	emit_bc(cd, target, BRANCH_NE);
+}
+
+
+void emit_blt(codegendata *cd, basicblock *target)
+{
+	emit_bc(cd, target, BRANCH_LT);
+}
+
+
+void emit_bge(codegendata *cd, basicblock *target)
+{
+	emit_bc(cd, target, BRANCH_GE);
+}
+
+
+void emit_bgt(codegendata *cd, basicblock *target)
+{
+	emit_bc(cd, target, BRANCH_GT);
+}
+
+
+void emit_ble(codegendata *cd, basicblock *target)
+{
+	emit_bc(cd, target, BRANCH_LE);
+}
+
+
+void emit_bnan(codegendata *cd, basicblock *target)
+{
+	emit_bc(cd, target, BRANCH_NAN);
+}
+
+
 /* emit_array_checks ***********************************************************
 
    Emit exception checks for array accesses, if they need to be
