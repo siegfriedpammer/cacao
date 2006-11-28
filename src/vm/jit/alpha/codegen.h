@@ -26,10 +26,9 @@
 
    Authors: Andreas Krall
             Reinhard Grafl
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: codegen.h 5951 2006-11-11 18:31:10Z twisti $
+   $Id: codegen.h 6072 2006-11-28 19:14:14Z twisti $
 
 */
 
@@ -98,6 +97,8 @@
 
 
 /* some patcher defines *******************************************************/
+
+#define PATCHER_CALL_SIZE    1 * 4     /* an instruction is 4-bytes long      */
 
 #define PATCHER_NOPS \
     do { \
