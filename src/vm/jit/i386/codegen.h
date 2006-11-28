@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
+   $Id: codegen.h 6081 2006-11-28 22:32:22Z twisti $
 
 */
 
@@ -37,6 +37,8 @@
 
 #include "config.h"
 #include "vm/types.h"
+
+#include "vm/jit/i386/emit.h"
 
 #include "vm/jit/jit.h"
 
