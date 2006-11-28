@@ -254,12 +254,12 @@ void emit_patcher_stubs(jitdata *jd)
 		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
 		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
-/* XXX TODO imm?? */
-		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
+		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) );
+
+		if ((disp < (s4) 0xfffc0000) || (disp > (s4) 0x003ffff)) {
 			*exceptionptr =
 				new_internalerror("Jump offset is out of range: %d > +/-%d",
-								  disp, 0x00007fff);
+								  disp, 0x003ffff);
 			return;
 		}
 
@@ -323,14 +323,14 @@ void emit_patcher_stubs(jitdata *jd)
 		if (targetdisp == 0) {
 			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
 
-			disp = dseg_addaddress(cd, asm_patcher_wrapper);
+			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_ZERO, REG_ITMP3, REG_ZERO);
 			M_NOP;
-}
+		}
 		else {
 			disp = (((u4 *) cd->mcodebase) + targetdisp) -
-				(((u4 *) cd->mcodeptr) + 1);
+				(((u4 *) cd->mcodeptr));
 
 			M_BR(disp);
 			M_NOP;

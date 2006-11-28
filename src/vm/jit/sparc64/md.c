@@ -61,8 +61,6 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 	s4  mcode;
 	s4  disp;                           /* branch displacement                */
 
-	assert(0);
-
 	/* calculate the patch position */
 
 	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
@@ -71,23 +69,43 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 
 	mcode = mcodeptr[-1];
 
-	/* check for BPcc instruction */
-	if (((mcode >> 16) & 0xc1c0) != 0x0040)
+	/* check for BPcc or FBPfcc instruction */
+	if (((mcode >> 16) & 0xc1c0) == 0x0040) {
+			
+	
+		/* Calculate the branch displacement.  For branches we need a
+		   displacement relative and shifted to the branch PC. */
+	
+		disp = (targetmpc - branchmpc) >> 2;
+	
+		/* check branch displacement (19-bit)*/
+	
+		if ((disp < (s4) 0xfffc0000) || (disp > (s4) 0x003ffff))
+			vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x003ffff);
+	
+		/* patch the branch instruction before the mcodeptr */
+	
+		mcodeptr[-1] |= (disp & 0x003ffff);
+	}
+	/* check for BPr instruction */
+	else if (((mcode >> 16) & 0xd1c0) == 0x00c0) {
+
+		/* check branch displacement (16-bit)*/
+		
+		disp = (targetmpc - branchmpc) >> 2;
+	
+		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x0007fff))
+			vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x0007fff);
+			
+		/* patch the upper 2-bit of the branch displacement */
+		mcodeptr[-1] |= ((disp & 0xc000) << 6);
+			
+		/* patch the lower 14-bit of the branch displacement */
+		mcodeptr[-1] |= (disp & 0x003fff);
+		
+	}
+	else
 		assert(0);
-
-	/* Calculate the branch displacement.  For branches we need a
-	   displacement relative and shifted to the branch PC. */
-
-	disp = (targetmpc - branchmpc) >> 2;
-
-	/* check branch displacement */
-
-	if ((disp < (s4) 0xfffc0000) || (disp > (s4) 0x003ffff))
-		vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x003ffff);
-
-	/* patch the branch instruction before the mcodeptr */
-
-	mcodeptr[-1] |= (disp & 0x003ffff);
 }
 
 
@@ -297,7 +315,18 @@ void md_cacheflush(u1 *addr, s4 nbytes)
 
 void md_icacheflush(u1 *addr, s4 nbytes)
 {
-	/* don't know yet */	
+	/* XXX don't know yet */	
+}
+
+/* md_dcacheflush **************************************************************
+
+   Calls the system's function to flush the data cache.
+
+*******************************************************************************/
+
+void md_dcacheflush(u1 *addr, s4 nbytes)
+{
+	/* XXX don't know yet */	
 }
 
 

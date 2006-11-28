@@ -99,6 +99,7 @@ bool codegen(jitdata *jd)
 	instruction        *iptr;
 	exception_entry    *ex;
 	u2                  currentline;
+	constant_classref  *cr;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	unresolved_method  *um;
 	builtintable_entry *bte;
@@ -183,16 +184,34 @@ bool codegen(jitdata *jd)
 	if (cd->stackframesize)
 		M_SAVE(REG_SP, -cd->stackframesize * 8, REG_SP);
 
-	/* save return address and used callee saved registers */
+	/* save callee saved float registers */
 
 	p = cd->stackframesize;
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p--; M_DST(rd->savfltregs[i], REG_SP, (WINSAVE_CNT + p) * 8);
+		p--; M_DST(rd->savfltregs[i], REG_SP, USESTACK + (p * 8));
 	}	
 	
+	
 	/* take arguments out of register or stack frame */
-
+	
 	md = m->parseddesc;
+
+	/* when storing locals, use this as base */
+	int localbase = USESTACK;
+	
+	/* since the register allocator does not know about the shifting window
+	 * arg regs need to be copied via the stack
+	 */
+	if (md->argintreguse > 0) {
+		/* allocate scratch space for copying in to save(i&l) regs */
+		M_SUB_IMM(REG_SP, INT_ARG_CNT * 8, REG_SP);
+		
+		localbase += INT_ARG_CNT * 8;
+		
+		for (p = 0; p < INT_ARG_CNT; p++)
+			M_STX(REG_WINDOW_TRANSPOSE(rd->argintregs[p]), REG_SP, USESTACK + (p * 8));
+	}
+	
 
  	for (p = 0, l = 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
@@ -211,18 +230,22 @@ bool codegen(jitdata *jd)
 		s1 = md->params[p].regoff;
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
  			if (!md->params[p].inmemory) {           /* register arguments    */
-				s2 = rd->argintregs[s1];
-				s2 = REG_WINDOW_TRANSPOSE(s2);
+				/*s2 = rd->argintregs[s1];*/
+				/*s2 = REG_WINDOW_TRANSPOSE(s2);*/
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_INTMOVE(s2, var->vv.regoff);
+ 					/*M_INTMOVE(s2, var->vv.regoff);*/
+ 					M_LDX(var->vv.regoff, REG_SP, USESTACK + (s1 * 8));
 
 				} else {                             /* reg arg -> spilled    */
- 					M_STX(s2, REG_SP, (WINSAVE_CNT + var->vv.regoff) * 8);
+					/*M_STX(s2, REG_SP, (WINSAVE_CNT + var->vv.regoff) * 8);*/
+					
+					M_LDX(REG_ITMP1, REG_SP, USESTACK + (s1 * 8));
+					M_STX(REG_ITMP1, REG_SP, localbase + (var->vv.regoff * 8));
  				}
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
- 					M_LDX(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+ 					M_LDX(var->vv.regoff, REG_FP, (WINSAVE_CNT + s1) * 8);
 
  				} else {                             /* stack arg -> spilled  */
 					var->vv.regoff = cd->stackframesize + s1;
@@ -236,12 +259,12 @@ bool codegen(jitdata *jd)
  					M_FLTMOVE(s2, var->vv.regoff);
 
  				} else {			                 /* reg arg -> spilled    */
- 					M_DST(s2, REG_SP, (WINSAVE_CNT + var->vv.regoff) * 8);
+ 					M_DST(s2, REG_SP, localbase + (var->vv.regoff) * 8);
  				}
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
- 					M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+ 					M_DLD(var->vv.regoff, REG_FP, (WINSAVE_CNT + s1) * 8);
 
  				} else {                             /* stack-arg -> spilled  */
 					var->vv.regoff = cd->stackframesize + s1;
@@ -249,6 +272,11 @@ bool codegen(jitdata *jd)
 			}
 		}
 	} /* end for */
+	
+	if (md->argintreguse > 0) {
+		/* release scratch space */
+		M_ADD_IMM(REG_SP, INT_ARG_CNT * 8, REG_SP);
+	}
 	
 	
 	/* XXX monitor enter */
@@ -275,21 +303,17 @@ bool codegen(jitdata *jd)
 
 		/* branch resolving */
 
-		{
-		branchref *brefs;
-		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
-			gen_resolvebranch((u1*) cd->mcodebase + brefs->branchpos, 
-			                  brefs->branchpos, bptr->mpc);
-			}
-		}
+		codegen_resolve_branchrefs(cd, bptr);
 		
 		/* handle replacement points */
 
+#if 0
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
 		}
+#endif
 
 		/* copy interface registers to their destination */
 
@@ -385,23 +409,20 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				disp = dseg_addaddress(cd, NULL);
+				cr   = iptr->sx.val.c.ref;
+				disp = dseg_add_unique_address(cd, cr);
 
-				codegen_addpatchref(cd, PATCHER_aconst,
-									iptr->sx.val.c.ref,
-								    disp);
-
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP;
-				}
+				codegen_add_patch_ref(cd, PATCHER_aconst, cr, disp);
 
 				M_ALD(d, REG_PV, disp);
 
-			} else {
+			} 
+			else {
 				if (iptr->sx.val.anyptr == NULL) {
 					M_INTMOVE(REG_ZERO, d);
-				} else {
-					disp = dseg_addaddress(cd, iptr->sx.val.anyptr);
+				} 
+				else {
+					disp = dseg_add_address(cd, iptr->sx.val.anyptr);
 					M_ALD(d, REG_PV, disp);
 				}
 			}
@@ -1469,59 +1490,45 @@ bool codegen(jitdata *jd)
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = dseg_add_unique_address(cd, uf);
 
-				disp = dseg_addaddress(cd, NULL);
-
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP;
-				}
-
-			} else {
+				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
+			} 
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp = dseg_add_address(cd, &(fi->value));
 
-				disp = dseg_addaddress(cd, &(fi->value));
-
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
-
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP;
-					}
-				}
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
+
 			switch (fieldtype) {
 			case TYPE_INT:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_ILD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_LNG:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_LDX_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_ALD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_FLT:
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_FLD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_DBL:				
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD_INTERN(d, REG_ITMP1, 0);
-				emit_store_dst(jd, iptr, d);
 				break;
 			}
+			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
@@ -1530,51 +1537,41 @@ bool codegen(jitdata *jd)
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = dseg_add_unique_address(cd, uf);
 
-				disp = dseg_addaddress(cd, NULL);
-
-				codegen_addpatchref(cd, PATCHER_get_putstatic,
-									iptr->sx.s23.s3.uf, disp);
-
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP;
-				}
-
-			} else {
+				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
+			} 
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp = dseg_add_address(cd, &(fi->value));
 
-				disp = dseg_addaddress(cd, &(fi->value));
-
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
-
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP;
-					}
-				}
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
+
 			switch (fieldtype) {
 			case TYPE_INT:
-				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-				M_IST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+				M_IST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-				M_STX_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+				M_STX_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
-				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-				M_AST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+				M_AST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_FLT:
-				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-				M_FST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, REG_FTMP2);
+				M_FST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_DBL:
-				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-				M_DST_INTERN(s2, REG_ITMP1, 0);
+				s1 = emit_load_s1(jd, iptr, REG_FTMP2);
+				M_DST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			}
 			break;
@@ -1585,36 +1582,22 @@ bool codegen(jitdata *jd)
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp = dseg_add_unique_address(cd, uf);
 
-				disp = dseg_addaddress(cd, NULL);
-
-				codegen_addpatchref(cd, PATCHER_get_putstatic,
-									uf, disp);
-
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP;
-				}
-
-			} else {
+				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
+			} 
+			else {
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
 				fieldtype = fi->type;
+				disp      = dseg_add_address(cd, &(fi->value));
 
-
-				disp = dseg_addaddress(cd, &(fi->value));
-
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
-
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP;
-					}
-				}
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
+
 			switch (fieldtype) {
 			case TYPE_INT:
 				M_IST_INTERN(REG_ZERO, REG_ITMP1, 0);

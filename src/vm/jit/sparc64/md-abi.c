@@ -54,7 +54,7 @@ s4 nregdescint[] = {
 	/* zero  itmp1/g1 itmp2/g2 itmp3/g3 temp/g4  temp/g5  sys/g6   sys/g7 */  
 	REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
 	
-	/* o0    o1       o2       o3       o4       pv/o5    sp/o6    o7/ra  */
+	/* o0    o1       o2       o3       o4       pv/o5    sp/o6    ra/o7  */
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES,
 	
 	/* l0    l1       l2       l3       l4       l5       l6       l7     */

@@ -357,9 +357,9 @@ asm_abstractmethoderror:
 		
 
 asm_patcher_wrapper:
-	/* get pv and ra from current window */
-	mov     ra_callee,temp4
-	mov     pv_callee,temp5
+	/* get pv and ra, since the emit code is not passing it on */
+	mov     ra_callee,ra_caller
+	mov     pv_callee,pv_caller
 
 	/* create window and stack frame              */
 	save  %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+ABICALL_OFF+4)*8),%sp
@@ -371,8 +371,8 @@ asm_patcher_wrapper:
 	mov     itmp2,%l1               /* save itmp2                             */
 
 	add     %fp,USESTACK,%o0      /* pass pseudo SP                           */
-	mov     temp5,%o1             /* pass PV                                  */
-	mov     temp4,%o2             /* pass RA (correct for leafs)              */
+	mov     pv_callee,%o1         /* pass PV                                  */
+	mov     ra_callee,%o2         /* pass RA (correct for leafs)              */
 	call    patcher_wrapper
 	nop
 
