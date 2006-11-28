@@ -282,7 +282,9 @@ void emit_bc(codegendata *cd, basicblock *target, s4 condition)
 		/* current mcodeptr is the correct position,
 		   afterwards emit the NOPs */
 
+#if 0
 		codegen_add_branch_ref(cd, target, condition);
+#endif
 
 		/* generate NOPs as placeholder for branch code */
 		/* XXX if recompile-with-long-branches */
