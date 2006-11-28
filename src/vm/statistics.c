@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: statistics.c 5093 2006-07-10 13:36:47Z twisti $
+   $Id: statistics.c 6080 2006-11-28 22:28:52Z twisti $
 
 */
 
@@ -149,6 +147,9 @@ int count_cstub_len = 0;
 int count_nstub_len = 0;
 int count_max_new_stack = 0;
 int count_upper_bound_new_stack = 0;
+
+s4 count_branches_resolved   = 0;
+s4 count_branches_unresolved = 0;
 
 u8 count_native_function_calls=0;
 u8 count_jni_callXmethod_calls=0;
@@ -400,6 +401,8 @@ void print_stats(void)
 	dolog("Number of Method   Pseudocommands: %6d", count_pcmd_met);
 	dolog("Number of Branch   Pseudocommands: %6d (rets:%5d, Xrets: %5d)",
 		  count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
+	log_println("                resolved branches: %6d", count_branches_resolved);
+	log_println("              unresolved branches: %6d", count_branches_unresolved);
 	dolog("Number of Table    Pseudocommands: %6d", count_pcmd_table);
 	dolog("Number of Useful   Pseudocommands: %6d", count_pcmd_table +
 		  count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);

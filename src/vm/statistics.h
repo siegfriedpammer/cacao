@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: statistics.h 5093 2006-07-10 13:36:47Z twisti $
+   $Id: statistics.h 6080 2006-11-28 22:28:52Z twisti $
 
 */
 
@@ -170,6 +168,10 @@ extern int count_cstub_len;
 extern int count_nstub_len;
 extern int count_max_new_stack;
 extern int count_upper_bound_new_stack;
+
+extern s4 count_branches_resolved;
+extern s4 count_branches_unresolved;
+
 extern int *count_block_stack;
 extern int *count_analyse_iterations;
 extern int *count_method_bb_distribution;
