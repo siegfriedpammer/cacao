@@ -26,9 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
-##
-## $Id: Makefile.am 4921 2006-05-15 14:24:36Z twisti $
+## $Id: Makefile.am 6076 2006-11-28 21:50:26Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,20 +34,13 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-if DISABLE_GC
-GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
-else
-GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
-endif
-
 noinst_PROGRAMS = gennativetable
 
 gennativetable_SOURCES = gennativetable.c
 
 gennativetable_LDADD = \
 	$(top_builddir)/src/cacaoh/libcacaoh.la \
-	$(top_builddir)/src/fdlibm/libfdlibm.la \
-	$(GC_LIB)
+	$(top_builddir)/src/fdlibm/libfdlibm.la
 
 gennativetable_DEPENDENCIES = \
 	$(gennativetable_LDADD)
