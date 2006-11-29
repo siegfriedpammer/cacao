@@ -1,4 +1,4 @@
-.class public test_verify_fail_init_nullpointer
+.class public test_verify_fail_merge_init_nullpointer
 .super java/lang/Object
 
 ; ======================================================================
@@ -18,9 +18,18 @@
 	ldc 1
 	istore 1
 
+	aload 0
+	ifnull branch1
+
+	new test_verify_fail_merge_init_nullpointer
+	goto branch2
+
+branch1:
 	aconst_null
+
+branch2:
 	dup
-	invokespecial test_verify_fail_init_nullpointer/<init>()V
+	invokespecial test_verify_fail_merge_init_nullpointer/<init>()V
 	; ERROR: VerifyError
 
 	getstatic java/lang/System/out Ljava/io/PrintStream;

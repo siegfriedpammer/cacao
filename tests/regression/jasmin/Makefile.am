@@ -99,6 +99,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_fail_long_local.j \
 	$(srcdir)/test_verify_fail_long_overwritten.j \
 	$(srcdir)/test_verify_fail_merge_different_new_objects.j \
+	$(srcdir)/test_verify_fail_merge_init_nullpointer.j \
 	$(srcdir)/test_verify_fail_putfield_basic_type_instance.j \
 	$(srcdir)/test_verify_fail_putfield_basic_type_lookup.j \
 	$(srcdir)/test_verify_fail_putfield_basic_type_value.j \
