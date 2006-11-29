@@ -26,9 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
-##
-## $Id: Makefile.am 4809 2006-04-21 21:36:54Z edwin $
+## $Id: Makefile.am 6084 2006-11-29 17:04:14Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -37,6 +35,12 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 SUBDIRS = jit
+
+if ENABLE_JAVASE
+ANNOTATION_OBJ = \
+	annotation.c \
+	annotation.h
+endif
 
 if ENABLE_STATISTICS
 STATISTICS_OBJ = \
@@ -72,6 +76,7 @@ noinst_LTLIBRARIES = \
 libvmcore_la_SOURCES = \
 	access.c \
 	access.h \
+	$(ANNOTATION_OBJ) \
 	builtin.c \
 	builtin.h \
 	builtintable.inc \
