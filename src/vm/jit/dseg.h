@@ -29,7 +29,7 @@
             Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 6046 2006-11-22 20:24:55Z twisti $
+   $Id: dseg.h 6091 2006-11-29 20:44:10Z twisti $
 
 */
 
@@ -40,11 +40,6 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct dsegentry             dsegentry;
-typedef struct jumpref               jumpref;
-typedef struct dataref               dataref;
-typedef struct exceptionref          exceptionref;
-typedef struct patchref              patchref;
-typedef struct linenumberref         linenumberref;
 typedef struct linenumbertable_entry linenumbertable_entry;
 typedef struct dseg_exception_entry  dseg_exception_entry;
 
@@ -75,63 +70,6 @@ struct dsegentry {
 	s4         disp;
 	imm_union  val;
 	dsegentry *next;
-};
-
-
-/* jumpref ********************************************************************/
-
-struct jumpref {
-	s4          tablepos;       /* patching position in data segment          */
-	basicblock *target;         /* target basic block                         */
-	jumpref    *next;           /* next element in jumpref list               */
-};
-
-
-/* dataref ********************************************************************/
-
-struct dataref {
-	s4       datapos;           /* patching position in generated code        */
-	dataref *next;              /* next element in dataref list               */
-};
-
-
-/* exceptionref ***************************************************************/
-
-struct exceptionref {
-	s4            branchpos;    /* patching position in code segment          */
-	s4            reg;          /* used for ArrayIndexOutOfBounds index reg   */
-	functionptr   function;     /* function pointer to generate exception     */
-	exceptionref *next;         /* next element in exceptionref list          */
-};
-
-
-/* patchref *******************************************************************/
-
-struct patchref {
-	s4           branchpos;     /* relative offset to method entrypoint       */
-	s4           disp;          /* displacement of ref in the data segment    */
-	functionptr  patcher;       /* patcher function to call                   */
-	voidptr      ref;           /* reference passed                           */
-/* 	listnode     linkage; */
-	patchref    *next;
-};
-
-
-/* linenumberref **************************************************************/
-
-struct linenumberref {
-	s4             tablepos;    /* patching position in data segment          */
-	s4             linenumber;  /* line number, used for inserting into the   */
-	                            /* table and for validity checking            */
-	                            /* -1......start of inlined body              */
-	                            /* -2......end of inlined body                */
-	                            /* <= -3...special entry with methodinfo *    */
-								/* (see doc/inlining_stacktrace.txt)          */
-	ptrint         targetmpc;   /* machine code program counter of first      */
-	                            /* instruction for given line                 */
-								/* NOTE: for linenumber <= -3 this is a the   */
-	                            /* (methodinfo *) of the inlined method       */
-	linenumberref *next;        /* next element in linenumberref list         */
 };
 
 
