@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: class.h 6012 2006-11-16 19:45:15Z twisti $
+   $Id: class.h 6085 2006-11-29 17:08:27Z twisti $
 
 */
 
@@ -48,6 +48,11 @@ typedef struct extra_classref extra_classref;
 #include "native/include/java_lang_Class.h"
 
 #include "toolbox/list.h"
+
+#if defined(ENABLE_JAVASE)
+# include "vm/annotation.h"
+#endif
+
 #include "vm/field.h"
 #include "vm/linker.h"
 #include "vm/method.h"
@@ -118,8 +123,12 @@ struct classinfo {                /* class structure                          */
 	innerclassinfo *innerclass;
 
 	utf        *packagename;      /* full name of the package                 */
-	utf        *sourcefile;       /* classfile name containing this class     */
-	utf        *signature;        /* classfile signature                      */
+	utf        *sourcefile;       /* SourceFile attribute                     */
+#if defined(ENABLE_JAVASE)
+	utf        *signature;        /* Signature attribute                      */
+	s4            runtimevisibleannotationscount;
+	annotation_t *runtimevisibleannotations;
+#endif
 	java_objectheader *classloader; /* NULL for bootstrap classloader         */
 };
 
