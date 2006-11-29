@@ -276,7 +276,9 @@ void emit_bc(codegendata *cd, basicblock *target, s4 condition)
 		branchmpc = cd->mcodeptr - cd->mcodebase;
 		disp      = target->mpc - branchmpc;
 
+#if 0
 		emit_branch(cd, disp, condition);
+#endif
 	}
 	else {
 		/* current mcodeptr is the correct position,
