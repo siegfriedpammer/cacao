@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.h 5560 2006-09-28 19:46:28Z edwin $
+   $Id: emit.h 6087 2006-11-29 20:15:47Z twisti $
 
 */
 
@@ -36,7 +36,11 @@
 #ifndef _MD_EMIT_H
 #define _MD_EMIT_H
 
+#include "config.h"
 #include "vm/types.h"
+
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/jit.h"
 
 
 /* macros to create code ******************************************************/
