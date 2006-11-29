@@ -1,4 +1,4 @@
-/* vm/resolve.h - resolving classes/interfaces/fields/methods
+/* src/vm/resolve.h - resolving classes/interfaces/fields/methods
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 5737 2006-10-11 19:40:22Z edwin $
+   $Id: resolve.h 6083 2006-11-29 17:00:02Z twisti $
 
 */
 
@@ -46,6 +46,8 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 
 #include "config.h"
 #include "vm/types.h"
+
+#include "vm/field.h"
 #include "vm/global.h"
 #include "vm/references.h"
 #include "vm/jit/jit.h"
