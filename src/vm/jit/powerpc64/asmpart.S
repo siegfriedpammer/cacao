@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5981 2006-11-15 13:44:48Z tbfg $
+   $Id: asmpart.S 6100 2006-12-01 11:38:47Z tbfg $
 
 */
 
@@ -442,28 +442,28 @@ L_jumptable_int:
 	.align  4
 
 L_handle_a0:
-	lwz     a0,offvmargdata+4(itmp1)
+	lwa     a0,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a1:
-	lwz     a1,offvmargdata+4(itmp1)
+	lwa     a1,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a2:
-	lwz     a2,offvmargdata+4(itmp1)
+	lwa     a2,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a3:
-	lwz     a3,offvmargdata+4(itmp1)
+	lwa     a3,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a4:
-	lwz     a4,offvmargdata+4(itmp1)
+	lwa     a4,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a5:
-	lwz     a5,offvmargdata+4(itmp1)
+	lwa     a5,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a6:
-	lwz     a6,offvmargdata+4(itmp1)
+	lwa     a6,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a7:
-	lwz     a7,offvmargdata+4(itmp1)
+	lwa     a7,offvmargdata+4(itmp1)
 	b       L_register_copy
 
 
