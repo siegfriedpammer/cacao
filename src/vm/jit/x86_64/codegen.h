@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
+   $Id: codegen.h 6101 2006-12-01 16:51:25Z twisti $
 
 */
 
@@ -40,6 +40,8 @@
 #include <ucontext.h>
 
 #include "vm/types.h"
+
+#include "vm/jit/x86_64/emit.h"
 
 #include "vm/jit/jit.h"
 
