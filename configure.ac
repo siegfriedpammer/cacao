@@ -41,6 +41,11 @@ i386 | i486 | i586 | i686 )
     ARCH_CFLAGS="-D__I386__"
     ;;
 
+m68k )
+    ARCH_DIR="m68k"
+    ARCH_CFLAGS="-D__M68K__"
+    ;;
+
 mips | mipsel )
     ARCH_DIR="mips"
     ARCH_CFLAGS="-D__MIPS__"
@@ -108,6 +113,13 @@ case "$host_os" in
     OS_DIR="freebsd"
     INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ;;
+
+dnl must be before *linux*
+*uclinux | *elf )
+    OS_DIR="uclinux"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
 *linux* | *Linux* )
