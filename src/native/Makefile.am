@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 5187 2006-07-31 12:15:27Z twisti $
+## $Id: Makefile.am 6104 2006-12-02 14:54:27Z tbfg $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -51,12 +51,15 @@ endif
 if WITH_STATIC_CLASSPATH
 SUBDIRS += tools
 
+GENNATIVETABLE=$(top_builddir)/src/native/tools/gennativetable
+
 CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
 
 $(srcdir)/native.c: nativetable.inc
 
 nativetable.inc: $(CACAO_VM_ZIP) $(CLASSPATH_GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
-	$(top_builddir)/src/native/tools/gennativetable -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc
+	echo	$(GENNATIVETABLE) -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc
+	if `$(GENNATIVETABLE) -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc` ; then true; else rm -f $(top_builddir)/src/native/nativetable.inc; exit 1; fi
 endif
 
 noinst_LTLIBRARIES = libnative.la

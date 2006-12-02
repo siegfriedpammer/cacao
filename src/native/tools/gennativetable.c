@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: gennativetable.c 6104 2006-12-02 14:54:27Z tbfg $
 
 */
 
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 	bool nativelyoverloaded;
 
 #if defined(DISABLE_GC)
-	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
+	gc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
 #endif
 
 	vm_args = gennativetable_options_prepare(argc, argv);

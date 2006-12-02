@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: threads.c 6104 2006-12-02 14:54:27Z tbfg $
 
 */
 
@@ -515,6 +515,8 @@ static void threads_cast_irixresume(void)
 }
 #endif
 
+#if !defined(DISABLE_GC)
+
 void threads_cast_stopworld(void)
 {
 #if !defined(__DARWIN__) && !defined(__CYGWIN__)
@@ -554,6 +556,7 @@ void threads_cast_startworld(void)
 	pthread_mutex_unlock(&threadlistlock);
 	unlock_stopworld();
 }
+
 
 #if !defined(__DARWIN__)
 static void threads_sigsuspend_handler(ucontext_t *ctx)
@@ -598,6 +601,7 @@ int cacao_suspendhandler(ucontext_t *ctx)
 }
 #endif
 
+#endif /* DISABLE_GC */
 
 /* threads_set_current_threadobject ********************************************
 
