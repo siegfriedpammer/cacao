@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 6054 2006-11-27 14:37:57Z michi $
+   $Id: builtin.c 6102 2006-12-02 12:22:06Z twisti $
 
 */
 
@@ -1480,13 +1480,12 @@ void builtin_trace_args(s8 a0, s8 a1,
 		utf_bytes(m->class->name) +
 		strlen(".") +
 		utf_bytes(m->name) +
-		utf_bytes(m->descriptor) +
-		strlen("(") + strlen(")");
+		utf_bytes(m->descriptor);
 
 	/* Actually it's not possible to have all flags printed, but:
 	   safety first! */
 
-	logtextlen =
+	logtextlen +=
 		strlen(" PUBLIC") +
 		strlen(" PRIVATE") +
 		strlen(" PROTECTED") +
@@ -1502,8 +1501,10 @@ void builtin_trace_args(s8 a0, s8 a1,
 	/* add maximal argument length */
 
 	logtextlen +=
+		strlen("(") +
 		strlen("-9223372036854775808 (0x123456789abcdef0), ") * TRACE_ARGS_NUM +
-		strlen("...(255)");
+		strlen("...(255)") +
+		strlen(")");
 
 	/* allocate memory */
 
