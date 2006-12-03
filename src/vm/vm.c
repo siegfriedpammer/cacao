@@ -564,6 +564,7 @@ static void version(bool opt_exit)
 	printf("  stack size                     : %d\n", opt_stacksize);
 	printf("  java.boot.class.path           : %s\n", _Jv_bootclasspath);
 	printf("  gnu.classpath.boot.library.path: %s\n", classpath_libdir);
+	printf("  java.class.path                : %s\n", _Jv_classpath);
 
 	/* exit normally, if requested */
 
