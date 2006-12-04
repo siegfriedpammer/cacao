@@ -36,11 +36,12 @@
 
 
 #include "mark.h"
+#include "region.h"
 
 
 /* Prototypes *****************************************************************/
 
-void compact_me(rootset_t *rs, void *start, void *end);
+void compact_me(rootset_t *rs, regioninfo_t *region);
 
 
 #endif /* _COMPACT_H */

@@ -74,7 +74,7 @@ void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 	java_objectheader **refptr;
 	int i;
 
-	GC_LOG( printf("threading in rootset\n"); );
+	GC_LOG2( printf("threading in rootset\n"); );
 
 	/* walk through the references of this rootset */
 	for (i = 0; i < rs->refcount; i++) {
@@ -83,12 +83,75 @@ void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 		refptr = rs->refs[i];
 		ref = *( refptr );
 
-		GC_LOG( printf("\troot pointer to %p\n", (void *) ref); );
+		GC_LOG2( printf("\troot pointer to %p\n", (void *) ref); );
 
 		/* thread the references */
 		GC_THREAD(ref, refptr, start, end);
 
 	}
+}
+
+
+/* compact_thread_classes ******************************************************
+
+   Threads all the references from classinfo structures (static fields)
+
+   IN:
+      start.....Region to be compacted start here
+      end.......Region to be compacted ends here 
+
+*******************************************************************************/
+
+void compact_thread_classes(void *start, void *end)
+{
+	java_objectheader  *ref;
+	java_objectheader **refptr;
+	classinfo          *c;
+	fieldinfo          *f;
+	void *sys_start, *sys_end;
+	int i;
+
+	GC_LOG2( printf("threading in classes\n"); );
+
+	/* TODO: cleanup!!! */
+	sys_start = heap_region_sys->base;
+	sys_end = heap_region_sys->ptr;
+
+	/* walk through all classinfo blocks */
+	for (c = sys_start; c < (classinfo *) sys_end; c++) {
+
+		/* walk through all fields */
+		f = c->fields;
+		for (i = 0; i < c->fieldscount; i++, f++) {
+
+			/* check if this is a static reference */
+			if (!IS_ADR_TYPE(f->type) || !(f->flags & ACC_STATIC))
+				continue;
+
+			/* load the reference */
+			refptr = (java_objectheader **) &(f->value);
+			ref = *( refptr );
+
+			GC_LOG2( printf("\tclass-field points to %p\n", (void *) ref); );
+			/*GC_LOG2(
+				printf("\tfield: "); field_print(f); printf("\n");
+				printf("\tclass-field points to ");
+				if (ref == NULL) {
+					printf("(NULL)\n");
+				} else if (GC_IS_THREADED(ref->vftbl)) {
+					printf("(threaded)\n");
+				} else {
+						heap_print_object(ref); printf("\n");
+				}
+			);*/
+
+			/* thread the reference */
+			GC_THREAD(ref, refptr, start, end);
+
+		}
+
+	}
+
 }
 
 
@@ -108,7 +171,7 @@ void compact_thread_references(java_objectheader *o, void *start, void *end)
 	java_objectheader  *ref;
 	java_objectheader **refptr;
 
-	GC_LOG( printf("threading in ");
+	GC_LOG2( printf("threading in ");
 			heap_print_object(o); printf("\n"); );
 
 	if (IS_ARRAY(o)) {
@@ -116,7 +179,7 @@ void compact_thread_references(java_objectheader *o, void *start, void *end)
 		/* walk through the references of an Array */
 		FOREACH_ARRAY_REF(o,ref,refptr,
 
-			GC_LOG( printf("\tarray-entry points to %p\n", (void *) ref); );
+			GC_LOG2( printf("\tarray-entry points to %p\n", (void *) ref); );
 
 			GC_THREAD(ref, refptr, start, end);
 
@@ -127,7 +190,7 @@ void compact_thread_references(java_objectheader *o, void *start, void *end)
 		/* walk through the references of an Object */
 		FOREACH_OBJECT_REF(o,ref,refptr,
 
-			GC_LOG( printf("\tobject-field points to %p\n", (void *) ref); );
+			GC_LOG2( printf("\tobject-field points to %p\n", (void *) ref); );
 
 			GC_THREAD(ref, refptr, start, end);
 
@@ -155,7 +218,7 @@ void compact_unthread_references(java_objectheader *o, void *new)
 	java_objectheader **refptr;
 	ptrint tmp;
 
-	GC_LOG( printf("unthreading in ...\n"); );
+	GC_LOG2( printf("unthreading in ...\n"); );
 
 	/* some quick sanity checks */
 	GC_ASSERT(o);
@@ -168,7 +231,7 @@ void compact_unthread_references(java_objectheader *o, void *new)
 		/* remove the threading bit */
 		refptr = (java_objectheader **) GC_REMOVE_THREAD_BIT(refptr);
 
-		GC_LOG( printf("\treference at %p\n", (void *) refptr); );
+		GC_LOG2( printf("\treference at %p\n", (void *) refptr); );
 
 		/* update the reference in the chain */
 		tmp = (ptrint) *refptr;
@@ -183,8 +246,8 @@ void compact_unthread_references(java_objectheader *o, void *new)
 	o->vftbl = (struct _vftbl *) refptr;
 	GC_ASSERT(o->vftbl);
 
-	GC_LOG( printf("\t... pointed to "); heap_print_object(o); printf("\n"); );
-	GC_LOG( printf("\t... now points to %p\n", (void *) new); );
+	GC_LOG2( printf("\t... pointed to "); heap_print_object(o); printf("\n"); );
+	GC_LOG2( printf("\t... now points to %p\n", (void *) new); );
 
 }
 
@@ -202,15 +265,30 @@ void compact_unthread_references(java_objectheader *o, void *new)
 
 *******************************************************************************/
 
-void compact_move(void *old, void *new, u4 size)
+void compact_move(u1 *old, u1 *new, u4 size)
 {
-	/* copy old object content to new location */
-	/* TODO: maybe we can use memcpy here!!! */
-	MMOVE(new, old, u1, size);
 
-	/* invalidate old object */
-	/* TODO: this only works for non-overlaping */
-	MSET(old, 0x44, u1, size);
+	GC_ASSERT(new < old);
+
+	/* check if locations overlap */
+	if (old + size >= new) {
+		/* overlapping: NO */
+
+		/* copy old object content to new location */
+		MCOPY(new, old, u1, size);
+
+		/* invalidate old object */
+		MSET(old, 0x44, u1, size);
+
+	} else {
+		/* overlapping: YES */
+
+		GC_LOG( dolog("GC: OVERLAPPING!!!") );
+
+		/* copy old object content to new location */
+		MMOVE(new, old, u1, size);
+
+	}
 }
 
 
@@ -220,31 +298,33 @@ void compact_move(void *old, void *new, u4 size)
    for further details about the passes.
 
    IN:
-      rs........Rootset, needed to update the root references
-      start.....Region to be compacted start here
-      end.......Region to be compacted ends here 
+      rs.........Rootset, needed to update the root references
+      region.....Region to be compacted
 
 *******************************************************************************/
 
-void compact_me(rootset_t *rs, void *start, void *end)
+void compact_me(rootset_t *rs, regioninfo_t *region)
 {
 	u1 *ptr;
 	u1 *ptr_new;
 	java_objectheader *o;
 	u4 o_size;
+	u4 used;
 
 	GC_LOG( dolog("GC: Compaction Phase 1 started ..."); );
 
 	/* Phase 0:
+	 *  - thread all references in classes
 	 *  - thread all references in the rootset */
-	compact_thread_rootset(rs, start, end);
+	compact_thread_classes(region->base, region->ptr);
+	compact_thread_rootset(rs, region->base, region->ptr);
 
 	/* Phase 1:
 	 *  - scan the heap
 	 *  - thread all references
 	 *  - update forward references */
-	ptr = start; ptr_new = end;
-	while (ptr < (u1 *) end) {
+	ptr = region->base; ptr_new = region->base;
+	while (ptr < (u1 *) region->ptr) {
 		o = (java_objectheader *) ptr;
 
 		/* TODO: uncollectable items should never be compacted, but for now we do it */
@@ -268,7 +348,7 @@ void compact_me(rootset_t *rs, void *start, void *end)
 		if (GC_IS_MARKED(o)) {
 
 			/* thread all the references in this object */
-			compact_thread_references(o, start, end);
+			compact_thread_references(o, region->base, region->ptr);
 
 			/* object survives, place next object behind it */
 			ptr_new += o_size;
@@ -284,8 +364,9 @@ void compact_me(rootset_t *rs, void *start, void *end)
 	 *  - scan the heap again
 	 *  - update backward references
 	 *  - move the objects */
-	ptr = start; ptr_new = end;
-	while (ptr < (u1 *) end) {
+	used = 0;
+	ptr = region->base; ptr_new = region->base;
+	while (ptr < (u1 *) region->ptr) {
 		o = (java_objectheader *) ptr;
 
 		/* if this object is still part of a threaded chain ... */
@@ -302,7 +383,7 @@ void compact_me(rootset_t *rs, void *start, void *end)
 		/* move the surviving objects */
 		if (GC_IS_MARKED(o)) {
 
-			GC_LOG( printf("moving: %08x -> %08x (%d bytes)\n",
+			GC_LOG2( printf("moving: %08x -> %08x (%d bytes)\n",
 					(ptrint) ptr, (ptrint) ptr_new, o_size); );
 
 			/* unmark the object */
@@ -313,6 +394,7 @@ void compact_me(rootset_t *rs, void *start, void *end)
 
 			/* object survives, place next object behind it */
 			ptr_new += o_size;
+			used += o_size;
 		}
 
 		/* skip to next object */
@@ -321,10 +403,11 @@ void compact_me(rootset_t *rs, void *start, void *end)
 
 	GC_LOG( dolog("GC: Compaction finished."); );
 
-	/* TODO: this is only for debugging */
-	/* TODO: also modify the two initialisations of ptr_new above!!! */
-	heap_ptr = ptr_new;
-	GC_LOG( heap_dump_region(end, ptr_new, false); );
+	GC_LOG( printf("Region-Used: %d -> %d\n", region->size - region->free, used); )
+
+	/* update the region information */
+	region->ptr = ptr_new;
+	region->free = region->size - used;
 
 }
 
