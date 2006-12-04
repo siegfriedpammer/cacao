@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 6053 2006-11-27 14:35:26Z edwin $
+   $Id: jit.c 6114 2006-12-04 22:21:49Z twisti $
 
 */
 
@@ -908,6 +908,10 @@ void jit_init(void)
 	/* initialize codegen subsystem */
 
 	codegen_init();
+
+	/* initialize code subsystem */
+
+	(void) code_init();
 }
 
 

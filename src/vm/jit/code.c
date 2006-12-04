@@ -25,8 +25,7 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Edwin Steiner
-
-   Changes: Christian Thalinger
+            Christian Thalinger
 
    $Id$
 
@@ -34,14 +33,34 @@
 
 
 #include "config.h"
-#include "vm/types.h"
 
 #include <assert.h>
 
-#include "vm/jit/code.h"
+#include "vm/types.h"
+
+#include "arch.h"
+
 #include "mm/memory.h"
 #include "vm/options.h"
-#include "arch.h"
+#include "vm/jit/code.h"
+
+
+/* code_init *******************************************************************
+
+   Initialize the code-subsystem.
+
+*******************************************************************************/
+
+bool code_init(void)
+{
+	/* check for offset of code->m == 0 (see comment in code.h) */
+
+	assert(OFFSET(codeinfo, m) == 0);
+
+	/* everything's ok */
+
+	return true;
+}
 
 
 /* code_codeinfo_new ***********************************************************

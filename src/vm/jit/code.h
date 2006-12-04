@@ -25,8 +25,7 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Edwin Steiner
-
-   Changes: Christian Thalinger
+            Christian Thalinger
 
    $Id$
 
@@ -52,6 +51,10 @@ typedef struct codeinfo codeinfo;
 
    A codeinfo represents a particular realization of a method in
    machine code.
+
+   ATTENTION: The methodinfo entry in the code-structure MUST have the
+   offset 0, otherwise we have a problem in our compiler stub. This is
+   checked with an assert in code_init().
 
 *******************************************************************************/
 
@@ -87,6 +90,8 @@ struct codeinfo {
 
 
 /* function prototypes ********************************************************/
+
+bool code_init(void);
 
 codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);
