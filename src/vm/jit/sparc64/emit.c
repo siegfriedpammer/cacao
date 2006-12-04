@@ -173,7 +173,7 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	if ((value >= -4096) && (value <= 4095)) {
 		M_XOR(REG_ZERO, value, d);
 	} else {
-		disp = dseg_adds4(cd, value);
+		disp = dseg_add_s4(cd, value);
 		M_ILD(d, REG_PV_CALLEE, disp);
 	}
 }
@@ -192,7 +192,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	if ((value >= -4096) && (value <= 4095)) {
 		M_XOR(REG_ZERO, value, d);	
 	} else {
-		disp = dseg_adds8(cd, value);
+		disp = dseg_add_s8(cd, value);
 		M_LDX(d, REG_PV_CALLEE, disp);
 	}
 }
@@ -282,9 +282,9 @@ void emit_patcher_stubs(jitdata *jd)
 #if defined(ENABLE_THREADS)
 		/* create a virtual java_objectheader */
 
-		(void) dseg_addaddress(cd, NULL);                          /* flcword */
-		(void) dseg_addaddress(cd, lock_get_initial_lock_word());
-		disp = dseg_addaddress(cd, NULL);                          /* vftbl   */
+		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
+		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
+		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
 		M_LDA(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, USESTACK + 4 * 8);
@@ -294,29 +294,29 @@ void emit_patcher_stubs(jitdata *jd)
 
 		/* move machine code onto stack */
 
-		disp = dseg_adds4(cd, mcode[0]);
+		disp = dseg_add_s4(cd, mcode[0]);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST(REG_ITMP3, REG_SP, USESTACK + 3 * 8);
 
-		disp = dseg_adds4(cd, mcode[1]);
+		disp = dseg_add_s4(cd, mcode[1]);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST(REG_ITMP3, REG_SP, USESTACK + 3 * 8 + 4);
 
 		/* move class/method/field reference onto stack */
 
-		disp = dseg_addaddress(cd, pref->ref);
+		disp = dseg_add_address(cd, pref->ref);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, USESTACK + 2 * 8);
 
 	/* move data segment displacement onto stack */
 
-		disp = dseg_adds4(cd, pref->disp);
+		disp = dseg_add_s4(cd, pref->disp);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST(REG_ITMP3, REG_SP, USESTACK + 1 * 8);
 
 		/* move patcher function pointer onto stack */
 
-		disp = dseg_addaddress(cd, pref->patcher);
+		disp = dseg_add_address(cd, pref->patcher);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, USESTACK + 0 * 8);
 

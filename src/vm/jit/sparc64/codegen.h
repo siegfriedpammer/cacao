@@ -42,10 +42,25 @@
 
 #include "vm/jit/jit.h"
 
-/* some defines ***************************************************************/
+/* branch defines *************************************************************/
+
+#define BRANCH_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+    } while (0)
+
+
+/* patcher defines ************************************************************/
 
 #define PATCHER_CALL_INSTRUCTIONS    2     /* number of instructions          */
 #define PATCHER_CALL_SIZE            2 * 4 /* size in bytes of a patcher call */
+
+#define PATCHER_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+    } while (0)
 
 
 /* additional functions and macros to generate code ***************************/
@@ -86,12 +101,6 @@
     if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
-    
-#define PATCHER_NOPS \
-    do { \
-        M_NOP; \
-        M_NOP; \
-    } while (0)
 
 
 /* M_INTMOVE:

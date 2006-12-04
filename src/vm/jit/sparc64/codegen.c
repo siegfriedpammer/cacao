@@ -145,9 +145,9 @@ bool codegen(jitdata *jd)
 #endif
 
 	/* create method header */
-	
-	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, cd->stackframesize * 8);              /* FrameSize      */
+
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -157,26 +157,24 @@ bool codegen(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);        /* IsSync         */
+		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8); /* IsSync        */
 	else
 #endif
-		(void) dseg_adds4(cd, 0);                           /* IsSync         */
+		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
 	                                       
-	(void) dseg_adds4(cd, jd->isleafmethod);                 /* IsLeaf         */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);  /* IntSave        */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);  /* FltSave        */
-	
+	(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
+	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 	dseg_addlinenumbertablesize(cd);
+	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength); /* ExTableSize   */
 
-	(void) dseg_adds4(cd, jd->exceptiontablelength);        /* ExTableSize    */
-	
 	/* create exception table */
 
 	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_addtarget(cd, ex->start);
-   		dseg_addtarget(cd, ex->end);
-		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype.any);
+		dseg_add_target(cd, ex->start);
+   		dseg_add_target(cd, ex->end);
+		dseg_add_target(cd, ex->handler);
+		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
 
 	/* save register window and create stack frame (if necessary) */
@@ -391,7 +389,7 @@ bool codegen(jitdata *jd)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			disp = dseg_addfloat(cd, iptr->sx.val.f);
+			disp = dseg_add_float(cd, iptr->sx.val.f);
 			M_FLD(d, REG_PV, disp);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -399,7 +397,7 @@ bool codegen(jitdata *jd)
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			disp = dseg_adddouble(cd, iptr->sx.val.d);
+			disp = dseg_add_double(cd, iptr->sx.val.d);
 			M_DLD(d, REG_PV, disp);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1050,7 +1048,7 @@ bool codegen(jitdata *jd)
 		case ICMD_I2F:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_addfloat(cd, 0.0);
+			disp = dseg_add_float(cd, 0.0);
 			M_IST (s1, REG_PV_CALLEE, disp);
 			M_FLD (d, REG_PV_CALLEE, disp);
 			M_CVTIF (d, d); /* rd gets translated to double target register */
@@ -1060,7 +1058,7 @@ bool codegen(jitdata *jd)
 		case ICMD_I2D:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_adddouble(cd, 0.0);
+			disp = dseg_add_double(cd, 0.0);
 			M_STX (s1, REG_PV_CALLEE, disp);
 			M_DLD (REG_FTMP2, REG_PV_CALLEE, disp); /* REG_FTMP2 needs to be a double temp */
 			M_CVTLF (REG_FTMP2, d); /* rd gets translated to double target register */
@@ -1070,7 +1068,7 @@ bool codegen(jitdata *jd)
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_addfloat(cd, 0.0);
+			disp = dseg_add_float(cd, 0.0);
 			M_CVTFI(s1, REG_FTMP2);
 			M_FST(REG_FTMP2, REG_PV_CALLEE, disp);
 			M_ILD(d, REG_PV, disp);
@@ -1081,7 +1079,7 @@ bool codegen(jitdata *jd)
 		case ICMD_D2I:       /* ..., value  ==> ..., (int) value             */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_addfloat(cd, 0.0);
+			disp = dseg_add_float(cd, 0.0);
 			M_CVTDI(s1, REG_FTMP2);
 			M_FST(REG_FTMP2, REG_PV, disp);
 			M_ILD(d, REG_PV, disp);
@@ -1091,7 +1089,7 @@ bool codegen(jitdata *jd)
 		case ICMD_F2L:       /* ..., value  ==> ..., (long) value             */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_adddouble(cd, 0.0);
+			disp = dseg_add_double(cd, 0.0);
 			M_CVTFL(s1, REG_FTMP2); /* FTMP2 needs to be double reg */
 			M_DST(REG_FTMP2, REG_PV, disp);
 			M_LDX(d, REG_PV, disp);
@@ -1101,7 +1099,7 @@ bool codegen(jitdata *jd)
 		case ICMD_D2L:       /* ..., value  ==> ..., (long) value             */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_adddouble(cd, 0.0);
+			disp = dseg_add_double(cd, 0.0);
 			M_CVTDL(s1, REG_FTMP2); /* FTMP2 needs to be double reg */
 			M_DST(REG_FTMP2, REG_PV, disp);
 			M_LDX(d, REG_PV, disp);
@@ -1402,7 +1400,7 @@ bool codegen(jitdata *jd)
 
 			M_MOV(s1, rd->argintregs[0]);
 			M_MOV(s3, rd->argintregs[1]);
-			disp = dseg_addaddress(cd, BUILTIN_canstore);
+			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 			M_NOP;
@@ -1787,7 +1785,7 @@ bool codegen(jitdata *jd)
 			}
 #endif /* ENABLE_VERIFIER */
 
-			disp = dseg_addaddress(cd, asm_handle_exception);
+			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_ALD(REG_ITMP2, REG_PV, disp);
 			M_JMP(REG_ITMP3_XPC, REG_ITMP2, REG_ZERO);
 			M_NOP;
@@ -2241,7 +2239,7 @@ nowperformreturn:
 					break;
 				}
 
-				disp = dseg_addaddress(cd, BUILTIN_monitorexit);
+				disp = dseg_add_functionptr(cd, BUILTIN_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, disp);
 				M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO); /*REG_RA_CALLER */
 
@@ -2420,7 +2418,7 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = dseg_addaddress(cd, bte->fp);
+				disp = dseg_add_functionptr(cd, bte->fp);
 
 				M_ALD(REG_PV_CALLER, REG_PV, disp);  /* built-in-function pointer */
 				s1 = REG_PV_CALLER;
@@ -2435,7 +2433,7 @@ gen_method:
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
-					disp = dseg_addaddress(cd, NULL);
+					disp = dseg_add_unique_address(cd, NULL);
 
 					codegen_addpatchref(cd, PATCHER_invokestatic_special,
 										um, disp);
@@ -2445,7 +2443,7 @@ gen_method:
 					}
 				}
 				else
-					disp = dseg_addaddress(cd, lm->stubroutine);
+					disp = dseg_add_address(cd, lm->stubroutine);
 
 				M_ALD(REG_PV_CALLER, REG_PV, disp);          /* method pointer in pv */
 				s1 = REG_PV_CALLER;
@@ -2507,7 +2505,7 @@ gen_method:
 			M_NOP;
 			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			/* REG_RA holds the value of the jmp instruction, therefore +8 */
-			M_LDA(REG_PV, REG_RA_CALLER, -disp + 8); 
+			M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
 
 			/* actually only used for ICMD_BUILTIN */
 
@@ -2708,7 +2706,7 @@ gen_method:
 				s1 = emit_load_s1(jd, iptr, rd->argintregs[0]);
 				M_INTMOVE(s1, rd->argintregs[0]);
 
-				disp = dseg_addaddress(cd, iptr->sx.s23.s3.c.cls);
+				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					codegen_addpatchref(cd, PATCHER_builtin_arraycheckcast,
@@ -2721,7 +2719,7 @@ gen_method:
 				}
 
 				M_ALD(rd->argintregs[1], REG_PV, disp);
-				disp = dseg_addaddress(cd, BUILTIN_arraycheckcast);
+				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_ITMP3, REG_PV, disp);
 				M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 				M_NOP;
@@ -2902,7 +2900,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* get function address (this must happen before the stackframeinfo) */
 
-	funcdisp = dseg_addaddress(cd, f);
+	funcdisp = dseg_add_functionptr(cd, f);
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
@@ -2929,7 +2927,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_MOV(REG_PV_CALLEE, REG_OUT1);
 	M_MOV(REG_FP, REG_OUT2); /* java sp */
 	M_MOV(REG_RA_CALLEE, REG_OUT3);
-	disp = dseg_addaddress(cd, codegen_start_native_call);
+	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 	M_NOP; /* XXX fill me! */
@@ -3006,13 +3004,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* put class into second argument register */
 
 	if (m->flags & ACC_STATIC) {
-		disp = dseg_addaddress(cd, m->class);
+		disp = dseg_add_address(cd, m->class);
 		M_ALD(REG_OUT1, REG_PV_CALLEE, disp);
 	}
 
 	/* put env into first argument register */
 
-	disp = dseg_addaddress(cd, _Jv_env);
+	disp = dseg_add_address(cd, _Jv_env);
 	M_ALD(REG_OUT0, REG_PV_CALLEE, disp);
 
 	/* do the native function call */
@@ -3038,7 +3036,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* remove native stackframe info */
 
 	M_MOV(REG_FP, REG_OUT0);
-	disp = dseg_addaddress(cd, codegen_finish_native_call);
+	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 	M_NOP; /* XXX fill me! */
@@ -3062,7 +3060,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* handle exception */
 	
-	disp = dseg_addaddress(cd, asm_handle_nat_exception);
+	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
 	M_JMP(REG_ZERO, REG_ITMP3, REG_ZERO);/* jump to asm exception handler     */
 	M_MOV(REG_RA_CALLER, REG_ITMP3_XPC); /* get exception address (DELAY)    */
