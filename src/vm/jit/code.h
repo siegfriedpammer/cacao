@@ -43,6 +43,7 @@ typedef struct codeinfo codeinfo;
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/global.h"
 #include "vm/method.h"
 #include "vm/jit/replace.h"
 
