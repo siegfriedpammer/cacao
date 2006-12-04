@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 5279 2006-08-25 11:55:21Z tbfg $
+   $Id: md-os.c 6118 2006-12-04 23:36:11Z twisti $
 
 */
 
@@ -52,7 +52,7 @@
 #include "vm/jit/asmpart.h"
 
 #if defined(ENABLE_PROFILING)
-# include "vm/jit/profile/profile.h"
+# include "vm/jit/optimizing/profile.h"
 #endif
 
 #include "vm/jit/stacktrace.h"
