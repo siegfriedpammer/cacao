@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6039 2006-11-22 18:09:14Z edwin $
+   $Id: codegen.c 6115 2006-12-04 22:51:20Z twisti $
 
 */
 
@@ -3046,7 +3046,6 @@ u1 *createcompilerstub(methodinfo *m)
 {
 	u1          *s;                     /* memory to hold the stub            */
 	ptrint      *d;
-	codeinfo    *code;
 	codegendata *cd;
 	s4           dumpsize;
 
@@ -3064,14 +3063,12 @@ u1 *createcompilerstub(methodinfo *m)
 	cd = DNEW(codegendata);
 	cd->mcodeptr = s;
 
-	/* Store the codeinfo pointer in the same place as in the
-	   methodheader for compiled methods. */
-
-	code = code_codeinfo_new(m);
+	/* The codeinfo pointer is actually a pointer to the
+	   methodinfo. This fakes a codeinfo structure. */
 
 	d[0] = (ptrint) asm_call_jit_compiler;
 	d[1] = (ptrint) m;
-	d[2] = (ptrint) code;
+	d[2] = (ptrint) &d[1];                                    /* fake code->m */
 
 	M_ALD_INTERN(REG_ITMP1, REG_PV, -2 * SIZEOF_VOID_P);
 	M_ALD_INTERN(REG_PV, REG_PV, -3 * SIZEOF_VOID_P);
