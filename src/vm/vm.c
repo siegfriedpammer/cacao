@@ -1316,18 +1316,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		}
 	}
 
-	/* now re-set some of the properties that may have changed */
-
-	if (!properties_postinit())
-		vm_abort("properties_postinit failed");
-
-	/* Now we have all options handled and we can print the version
-	   information. */
-
-	if (opt_version)
-		version(opt_exit);
-
-
 	/* get the main class *****************************************************/
 
 	if (opt_index < vm_args->nOptions) {
@@ -1365,9 +1353,20 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 		jvmti_set_phase(JVMTI_PHASE_PRIMORDIAL);
 	}
-
 #endif
 
+	/* Now re-set some of the properties that may have changed. This
+	   must be done after _all_ environment variables have been
+	   processes (e.g. -jar handling). */
+
+	if (!properties_postinit())
+		vm_abort("properties_postinit failed");
+
+	/* Now we have all options handled and we can print the version
+	   information. */
+
+	if (opt_version)
+		version(opt_exit);
 
 	/* initialize this JVM ****************************************************/
 
