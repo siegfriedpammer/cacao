@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: signal.c 5979 2006-11-14 21:56:17Z twisti $
+   $Id: signal.c 6123 2006-12-05 21:10:54Z twisti $
 
 */
 
@@ -84,18 +84,16 @@ void signal_init(void)
 # endif
 		/* catch NullPointerException/StackOverFlowException */
 
-		if (!checknull) {
-			act.sa_sigaction = md_signal_handler_sigsegv;
-			act.sa_flags     = SA_NODEFER | SA_SIGINFO;
+		act.sa_sigaction = md_signal_handler_sigsegv;
+		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
 
 #if defined(SIGSEGV)
-			sigaction(SIGSEGV, &act, NULL);
+		sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-			sigaction(SIGBUS, &act, NULL);
+		sigaction(SIGBUS, &act, NULL);
 #endif
-		}
 
 		/* catch ArithmeticException */
 

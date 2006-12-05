@@ -43,6 +43,7 @@
 
 #include "mm/memory.h"
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/options.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
@@ -295,12 +296,19 @@ void emit_nullpointer_check(codegendata *cd, s4 reg)
 
 void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
 {
+#if 0
 	if (checkbounds) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
 		M_CMPU(s2, REG_ITMP3);
 		M_BGE(0);
 		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
 	}
+#else
+	M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+	M_CMPU(s2, REG_ITMP3);
+	M_BLT(1);
+	M_ALD_INTERN(s2, REG_ZERO, EXCEPTION_LOAD_DISP_ARRAYINDEXOUTOFBOUNDS);
+#endif
 }
 
 

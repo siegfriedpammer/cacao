@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 5074 2006-07-04 16:05:35Z twisti $
+   $Id: md-os.c 6123 2006-12-05 21:10:54Z twisti $
 
 */
 
@@ -66,11 +66,14 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ptrint             *gregs;
 	u4                  instr;
 	s4                  reg;
+	s4                  disp;
 	ptrint              addr;
 	u1                 *pv;
 	u1                 *sp;
 	u1                 *ra;
 	u1                 *xpc;
+	stackframeinfo      sfi;
+	java_objectheader  *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
@@ -81,26 +84,53 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	gregs = &_ss->r0;
 
 	instr = *((u4 *) _ss->srr0);
-	reg = (instr >> 16) & 31;
-	addr = gregs[reg];
+	reg   = (instr >> 16) & 31;
+	disp  = (instr & 0xffff);
+	addr  = gregs[reg];
 
-	if (addr == 0) {
-		pv  = (u1 *) _ss->r13;
-		sp  = (u1 *) _ss->r1;
-		ra  = (u1 *) _ss->lr;              /* this is correct for leafs */
-		xpc = (u1 *) _ss->srr0;
+	pv  = (u1 *) _ss->r13;
+	sp  = (u1 *) _ss->r1;
+	ra  = (u1 *) _ss->lr;                    /* this is correct for leafs */
+	xpc = (u1 *) _ss->srr0;
 
-		_ss->r11 =
-			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
+	/* create stackframeinfo */
 
-		_ss->r12 = (ptrint) xpc;
-		_ss->srr0 = (ptrint) asm_handle_exception;
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	} else {
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-					   "Segmentation fault: 0x%08lx at 0x%08lx",
-					   addr, _ss->srr0);
+	if (reg == REG_ZERO) {
+		switch (disp) {
+		case EXCEPTION_LOAD_DISP_ARITHMETIC:
+			vm_abort("ArithmeticException");
+			break;
+		case EXCEPTION_LOAD_DISP_ARRAYINDEXOUTOFBOUNDS:
+			log_println("ArrayIndexOutOfBoundsException");
+			o = new_arrayindexoutofboundsexception(0);
+			break;
+		case EXCEPTION_LOAD_DISP_CLASSCAST:
+			vm_abort("ClassCastException");
+			break;
+		default:
+			vm_abort("unknown exception %d", disp);
+		}
 	}
+	else if (addr == 0) {
+		o = exceptions_new_nullpointerexception();
+	}
+	else {
+		codegen_get_pv_from_pc(xpc);
+
+		/* this should not happen */
+
+		assert(0);
+	}
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	_ss->r11  = (ptrint) o;
+	_ss->r12  = (ptrint) xpc;
+	_ss->srr0 = (ptrint) asm_handle_exception;
 }
 
 

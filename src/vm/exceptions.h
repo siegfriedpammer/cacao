@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 5935 2006-11-08 20:27:37Z twisti $
+   $Id: exceptions.h 6123 2006-12-05 21:10:54Z twisti $
 
 */
 
@@ -48,6 +48,27 @@
 #include "vm/references.h"
 #include "vm/method.h"
 
+
+/* hardware-exception defines **************************************************
+
+   These defines define the load-offset which indicates the given
+   exception.
+
+   ATTENTION: These offsets need NOT to be aligned to 4 or 8-byte
+   boundaries, since normal loads could have such offsets with a base
+   of NULL which should result in a NullPointerException.
+
+*******************************************************************************/
+
+#define EXCEPTION_LOAD_DISP_NULLPOINTER              0
+#define EXCEPTION_LOAD_DISP_ARITHMETIC               1
+#define EXCEPTION_LOAD_DISP_ARRAYINDEXOUTOFBOUNDS    2
+#define EXCEPTION_LOAD_DISP_CLASSCAST                3
+
+#define EXCEPTION_LOAD_DISP_PATCHER                  5
+
+
+/* exception pointer **********************************************************/
 
 #if defined(ENABLE_THREADS)
 #define exceptionptr    &(THREADOBJECT->_exceptionptr)
