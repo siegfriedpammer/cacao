@@ -2923,7 +2923,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* prepare data structures for native function call */
 
-	M_ADD_IMM(REG_FP, BIAS, REG_OUT0); /* top of the stack frame, absolute*/
+	M_ADD_IMM(REG_FP, BIAS, REG_OUT0); /* datasp == top of the stack frame (absolute == +BIAS) */
 	M_MOV(REG_PV_CALLEE, REG_OUT1);
 	M_MOV(REG_FP, REG_OUT2); /* java sp */
 	M_MOV(REG_RA_CALLEE, REG_OUT3);
@@ -3035,7 +3035,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	M_MOV(REG_FP, REG_OUT0);
+	M_ADD_IMM(REG_FP, BIAS, REG_OUT0); /* datasp, like above */
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
@@ -3053,7 +3053,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* check for exception */
 
 	M_BNEZ(REG_ITMP2_XPTR, 4);          /* if no exception then return        */
-	M_RESTORE(REG_ZERO, REG_ZERO, REG_ZERO); /* restore callers window (DELAY)*/
+	M_RESTORE(REG_ZERO, 0, REG_ZERO);   /* restore callers window (DELAY)     */
 
 	M_RET(REG_RA_CALLER, 8);            /* return to caller                   */
 	M_NOP;                              /* DELAY SLOT                         */

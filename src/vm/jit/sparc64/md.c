@@ -127,8 +127,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 	 */
 	ra = *((u1 **) (sp + 120 + BIAS));
 	
-	/* ra is the address of the call instr, advance to the real return address  */
-	ra += 8;
+	/* NOTE: on SPARC ra is the address of the call instruction */
 
 	return ra;
 }

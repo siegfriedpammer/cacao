@@ -71,7 +71,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 8;
+		disp = USESTACK + src->vv.regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(src->type))
 			M_DLD(tempreg, REG_SP, disp);
@@ -105,7 +105,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (dst->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = dst->vv.regoff * 8;
+		disp = USESTACK + dst->vv.regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(dst->type))
 			M_DST(d, REG_SP, disp);
