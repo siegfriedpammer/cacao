@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6127 2006-12-06 09:53:37Z twisti $
+   $Id: codegen.c 6129 2006-12-06 10:49:47Z twisti $
 
 */
 
@@ -930,12 +930,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, EAX);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, EAX);
-
-			if (checknull) {
-				M_TEST(s2);
-				M_BEQ(0);
-				codegen_add_arithmeticexception_ref(cd);
-			}
+			emit_arithmetic_check(cd, s2);
 
 			M_INTMOVE(s1, EAX);           /* we need the first operand in EAX */
 
@@ -957,12 +952,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, EAX);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, EDX);
-
-			if (checknull) {
-				M_TEST(s2);
-				M_BEQ(0);
-				codegen_add_arithmeticexception_ref(cd);
-			}
+			emit_arithmetic_check(cd, s2);
 
 			M_INTMOVE(s1, EAX);           /* we need the first operand in EAX */
 
@@ -1022,8 +1012,8 @@ bool codegen(jitdata *jd)
 
 			M_INTMOVE(GET_LOW_REG(s2), REG_ITMP3);
 			M_OR(GET_HIGH_REG(s2), REG_ITMP3);
-			M_BEQ(0);
-			codegen_add_arithmeticexception_ref(cd);
+			/* XXX could be optimized */
+			emit_arithmetic_check(cd, REG_ITMP3);
 
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
@@ -1936,7 +1926,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, s1);
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1946,10 +1936,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
    			emit_movsbl_memindex_reg(cd, OFFSET(java_bytearray, data[0]), 
 									 s1, s2, 0, d);
 			emit_store_dst(jd, iptr, d);
@@ -1960,10 +1947,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_movzwl_memindex_reg(cd, OFFSET(java_chararray, data[0]), 
 									 s1, s2, 1, d);
 			emit_store_dst(jd, iptr, d);
@@ -1974,10 +1958,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_movswl_memindex_reg(cd, OFFSET(java_shortarray, data[0]), 
 									 s1, s2, 1, d);
 			emit_store_dst(jd, iptr, d);
@@ -1988,10 +1969,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_mov_memindex_reg(cd, OFFSET(java_intarray, data[0]), 
 								  s1, s2, 2, d);
 			emit_store_dst(jd, iptr, d);
@@ -2002,12 +1980,9 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 
-			var  = VAROP(iptr->dst);
+			var = VAROP(iptr->dst);
 
 			assert(var->flags & INMEMORY);
 			emit_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]), 
@@ -2023,10 +1998,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_flds_memindex(cd, OFFSET(java_floatarray, data[0]), s1, s2, 2);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -2036,10 +2008,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_fldl_memindex(cd, OFFSET(java_doublearray, data[0]), s1, s2,3);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -2049,10 +2018,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_mov_memindex_reg(cd, OFFSET(java_objectarray, data[0]),
 								  s1, s2, 2, d);
 			emit_store_dst(jd, iptr, d);
@@ -2063,10 +2029,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			if (s3 >= EBP) { 
 				/* because EBP, ESI, EDI have no xH and xL nibbles */
@@ -2081,10 +2044,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			emit_movw_reg_memindex(cd, s3, OFFSET(java_chararray, data[0]),
 								   s1, s2, 1);
@@ -2094,10 +2054,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			emit_movw_reg_memindex(cd, s3, OFFSET(java_shortarray, data[0]),
 								   s1, s2, 1);
@@ -2107,10 +2064,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			emit_mov_reg_memindex(cd, s3, OFFSET(java_intarray, data[0]),
 								  s1, s2, 2);
@@ -2120,12 +2074,9 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 
-			var  = VAROP(iptr->sx.s23.s3);
+			var = VAROP(iptr->sx.s23.s3);
 
 			assert(var->flags & INMEMORY);
 			emit_mov_membase_reg(cd, REG_SP, var->vv.regoff * 4, REG_ITMP3);
@@ -2140,10 +2091,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP1);
 			emit_fstps_memindex(cd, OFFSET(java_floatarray, data[0]), s1, s2,2);
 			break;
@@ -2152,10 +2100,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP1);
 			emit_fstpl_memindex(cd, OFFSET(java_doublearray, data[0]),
 								s1, s2, 3);
@@ -2165,10 +2110,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 
 			M_AST(s1, REG_SP, 0 * 4);
@@ -2190,10 +2132,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_movb_imm_memindex(cd, iptr->sx.s23.s3.constval,
 								   OFFSET(java_bytearray, data[0]), s1, s2, 0);
 			break;
@@ -2202,10 +2141,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_movw_imm_memindex(cd, iptr->sx.s23.s3.constval,
 								   OFFSET(java_chararray, data[0]), s1, s2, 1);
 			break;
@@ -2214,10 +2150,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_movw_imm_memindex(cd, iptr->sx.s23.s3.constval,
 								   OFFSET(java_shortarray, data[0]), s1, s2, 1);
 			break;
@@ -2226,10 +2159,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_mov_imm_memindex(cd, iptr->sx.s23.s3.constval,
 								  OFFSET(java_intarray, data[0]), s1, s2, 2);
 			break;
@@ -2238,10 +2168,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_mov_imm_memindex(cd, 
 						   (u4) (iptr->sx.s23.s3.constval & 0x00000000ffffffff),
 						   OFFSET(java_longarray, data[0]), s1, s2, 3);
@@ -2254,10 +2181,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
+			emit_array_checks(cd, iptr, s1, s2);
 			emit_mov_imm_memindex(cd, 0, 
 								  OFFSET(java_objectarray, data[0]), s1, s2, 2);
 			break;
@@ -2427,7 +2351,7 @@ bool codegen(jitdata *jd)
 		case ICMD_GETFIELD:   /* .., objectref.  ==> ..., value               */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
@@ -2476,7 +2400,7 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, s1);
 
 			/* must be done here because of code patching */
 
@@ -2540,7 +2464,7 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
@@ -3255,7 +3179,7 @@ gen_method:
 
 			case ICMD_INVOKEVIRTUAL:
 				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
-				gen_nullptr_check(REG_ITMP1);
+				emit_nullpointer_check(cd, s1);
 
 				if (lm == NULL) {
 					unresolved_method *um = iptr->sx.s23.s3.um;
@@ -3283,7 +3207,7 @@ gen_method:
 
 			case ICMD_INVOKEINTERFACE:
 				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
-				gen_nullptr_check(REG_ITMP1);
+				emit_nullpointer_check(cd, s1);
 
 				if (lm == NULL) {
 					unresolved_method *um = iptr->sx.s23.s3.um;

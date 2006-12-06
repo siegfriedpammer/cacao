@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6127 2006-12-06 09:53:37Z twisti $
+   $Id: emit.c 6129 2006-12-06 10:49:47Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
@@ -298,6 +299,67 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		}
 
 		emit_store(jd, iptr, dst, d);
+	}
+}
+
+
+/* emit_arithmetic_check *******************************************************
+
+   Emit an ArithmeticException check.
+
+*******************************************************************************/
+
+void emit_arithmetic_check(codegendata *cd, s4 reg)
+{
+	if (checknull) {
+		M_TEST(reg);
+		M_BEQ(0);
+		codegen_add_arithmeticexception_ref(cd);
+	}
+}
+
+
+/* emit_arrayindexoutofbounds_check ********************************************
+
+   Emit a ArrayIndexOutOfBoundsException check.
+
+*******************************************************************************/
+
+void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+{
+	if (checkbounds) {
+        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+        M_CMP(REG_ITMP3, s2);
+        M_BAE(0);
+        codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+	}
+}
+
+
+/* emit_classcast_check ********************************************************
+
+   Emit a ClassCastException check.
+
+*******************************************************************************/
+
+void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
+{
+	vm_abort("IMPLEMENT ME!");
+}
+
+
+/* emit_nullpointer_check ******************************************************
+
+   Emit a NullPointerException check.
+
+*******************************************************************************/
+
+void emit_nullpointer_check(codegendata *cd, s4 reg)
+{
+	if (checknull) {
+		M_TEST(reg);
+		M_BEQ(0);
+		codegen_add_nullpointerexception_ref(cd);
 	}
 }
 

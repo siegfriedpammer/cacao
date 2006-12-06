@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 6081 2006-11-28 22:32:22Z twisti $
+   $Id: codegen.h 6129 2006-12-06 10:49:47Z twisti $
 
 */
 
@@ -67,24 +67,6 @@
         for (s1 = 0; s1 < (s4) (((ptrint) cd->mcodeptr) & 7); s1++) \
             M_NOP; \
     } while (0)
-
-
-/* gen_nullptr_check(objreg) */
-
-#define gen_nullptr_check(objreg) \
-    if (checknull) { \
-        M_TEST(objreg); \
-        M_BEQ(0); \
- 	    codegen_add_nullpointerexception_ref(cd); \
-    }
-
-#define gen_bound_check \
-    if (checkbounds) { \
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
-        M_CMP(REG_ITMP3, s2); \
-        M_BAE(0); \
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-    }
 
 
 /* MCODECHECK(icnt) */
