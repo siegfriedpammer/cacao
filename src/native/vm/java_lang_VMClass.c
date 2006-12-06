@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: java_lang_VMClass.c 6035 2006-11-21 23:21:18Z twisti $
+   $Id: java_lang_VMClass.c 6131 2006-12-06 22:15:57Z twisti $
 
 */
 
@@ -674,8 +674,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 
 	/* illegal argument */
 
-	if (!name)
+	if (name == NULL) {
+		exceptions_throw_nullpointerexception();
 		return NULL;
+	}
 
 	/* name must not contain '/' (mauve test) */
 
