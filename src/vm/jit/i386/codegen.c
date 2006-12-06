@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6116 2006-12-04 23:16:43Z twisti $
+   $Id: codegen.c 6127 2006-12-06 09:53:37Z twisti $
 
 */
 
@@ -391,8 +391,7 @@ bool codegen(jitdata *jd)
 #endif
 
 #if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
+	emit_verbosecall_enter(jd);
 #endif
 
 	} 
@@ -2990,8 +2989,7 @@ nowperformreturn:
   			p = cd->stackframesize;
 			
 #if !defined(NDEBUG)
-			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-				emit_verbosecall_exit(jd);
+			emit_verbosecall_exit(jd);
 #endif
 
 #if defined(ENABLE_THREADS)
@@ -4160,8 +4158,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_ASUB_IMM(cd->stackframesize * 4, REG_SP);
 
 #if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
+	emit_verbosecall_enter(jd);
 #endif
 
 	/* get function address (this must happen before the stackframeinfo) */
@@ -4260,8 +4257,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 #if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_exit(jd);
+	emit_verbosecall_exit(jd);
 #endif
 
 	/* remove native stackframe info */

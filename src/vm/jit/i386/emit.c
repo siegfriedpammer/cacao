@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6056 2006-11-27 14:48:33Z edwin $
+   $Id: emit.c 6127 2006-12-06 09:53:37Z twisti $
 
 */
 
@@ -535,6 +535,9 @@ void emit_verbosecall_enter(jitdata *jd)
 	s4            disp;
 	s4            i, t;
 
+	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		return;
+
 	/* get required compiler data */
 
 	m  = jd->m;
@@ -624,6 +627,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
+
+	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		return;
 
 	/* get required compiler data */
 
