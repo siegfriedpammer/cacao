@@ -537,10 +537,11 @@ void emit_replacement_stubs(jitdata *jd)
 	codegendata *cd;
 	codeinfo    *code;
 	rplpoint    *rplp;
-	u1          *savedmcodeptr;
 	s4           disp;
 	s4           i;
-	u1          *outcode;
+#if !defined(NDEBUG)
+	u1          *savedmcodeptr;
+#endif
 
 	/* get required compiler data */
 
@@ -549,24 +550,23 @@ void emit_replacement_stubs(jitdata *jd)
 
 	rplp = code->rplpoints;
 
+	/* store beginning of replacement stubs */
+
+	code->replacementstubs = (u1*) (cd->mcodeptr - cd->mcodebase);
+
 	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
+		/* do not generate stubs for non-trappable points */
+
+		if (rplp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
 		/* check code segment size */
 
 		MCODECHECK(100);
 
-		/* note start of stub code */
-
-		outcode = (u1 *) (cd->mcodeptr - cd->mcodebase);
-
-		/* make machine code for patching */
-
+#if !defined(NDEBUG)
 		savedmcodeptr = cd->mcodeptr;
-		cd->mcodeptr  = (u1 *) &(rplp->mcode) + 1;              /* big-endian */
-
-		disp = (ptrint) ((s4 *) outcode - (s4 *) rplp->pc) - 1;
-		M_BR(disp);
-
-		cd->mcodeptr = savedmcodeptr;
+#endif
 
 		/* create stack frame - keep 16-byte aligned */
 
@@ -584,6 +584,8 @@ void emit_replacement_stubs(jitdata *jd)
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_MTCTR(REG_ITMP3);
 		M_RTS;
+
+		assert((cd->mcodeptr - savedmcodeptr) == 4*REPLACEMENT_STUB_SIZE);
 	}
 }
 

@@ -667,10 +667,11 @@ void emit_replacement_stubs(jitdata *jd)
 	codegendata *cd;
 	codeinfo    *code;
 	rplpoint    *rplp;
-	u1          *savedmcodeptr;
 	s4           disp;
 	s4           i;
-	u1          *outcode;
+#if !defined(NDEBUG)
+	u1          *savedmcodeptr;
+#endif
 
 	/* get required compiler data */
 
@@ -679,33 +680,23 @@ void emit_replacement_stubs(jitdata *jd)
 
 	rplp = code->rplpoints;
 
+	/* store beginning of replacement stubs */
+
+	code->replacementstubs = (u1*) (cd->mcodeptr - cd->mcodebase);
+
 	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
+		/* do not generate stubs for non-trappable points */
+
+		if (rplp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
 		/* check code segment size */
 
 		MCODECHECK(100);
 
-		/* note start of stub code */
-
-		outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
-
-		/* make machine code for patching */
-
+#if !defined(NDEBUG)
 		savedmcodeptr = cd->mcodeptr;
-		cd->mcodeptr  = (u1 *) &(rplp->mcode);
-
-		disp = (ptrint) ((s4 *) outcode - (s4 *) rplp->pc) - 1;
-
-		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
-			*exceptionptr =
-				new_internalerror("Jump offset is out of range: %d > +/-%d",
-								  disp, 0x00007fff);
-			return;
-		}
-
-		M_BR(disp);
-		M_NOP; /* delay slot */
-
-		cd->mcodeptr = savedmcodeptr;
+#endif
 
 		/* create stack frame - 16-byte aligned */
 
@@ -723,6 +714,8 @@ void emit_replacement_stubs(jitdata *jd)
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_JMP(REG_ITMP3);
 		M_NOP; /* delay slot */
+
+		assert((cd->mcodeptr - savedmcodeptr) == 4*REPLACEMENT_STUB_SIZE);
 	}
 }
 

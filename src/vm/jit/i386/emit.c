@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6136 2006-12-07 22:19:12Z edwin $
+   $Id: emit.c 6137 2006-12-07 22:25:42Z edwin $
 
 */
 
@@ -546,7 +546,9 @@ void emit_replacement_stubs(jitdata *jd)
 	rplpoint    *rplp;
 	s4           disp;
 	s4           i;
-	u1          *outcode;
+#if !defined(NDEBUG)
+	u1          *savedmcodeptr;
+#endif
 
 	/* get required compiler data */
 
@@ -555,20 +557,25 @@ void emit_replacement_stubs(jitdata *jd)
 
 	rplp = code->rplpoints;
 
+	/* store beginning of replacement stubs */
+
+	code->replacementstubs = (u1*) (cd->mcodeptr - cd->mcodebase);
+
 	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
+		/* do not generate stubs for non-trappable points */
+
+		if (rplp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
 		/* check code segment size */
 
 		MCODECHECK(512);
 
 		/* note start of stub code */
 
-		outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
-
-		/* make machine code for patching */
-
-		disp = (ptrint) (outcode - rplp->pc) - 5;
-
-		rplp->mcode = 0xe9 | ((u8) disp << 8);
+#if !defined(NDEBUG)
+		savedmcodeptr = cd->mcodeptr;
+#endif
 
 		/* push address of `rplpoint` struct */
 			
@@ -578,6 +585,8 @@ void emit_replacement_stubs(jitdata *jd)
 
 		M_PUSH_IMM(asm_replacement_out);
 		M_RET;
+
+		assert((cd->mcodeptr - savedmcodeptr) == REPLACEMENT_STUB_SIZE);
 	}
 }
 	
