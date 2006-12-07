@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 5948 2006-11-11 16:56:48Z twisti $
+   $Id: md.c 6140 2006-12-07 22:45:09Z edwin $
 
 */
 
@@ -222,6 +222,11 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		if ((mcode >> 16) == 0xa77c) {
 			/* in this case we use the passed method pointer */
+
+			/* return NULL if no mptr was specified (used for replacement) */
+
+			if (mptr == NULL)
+				return NULL;
 
 			pa = mptr + offset;
 

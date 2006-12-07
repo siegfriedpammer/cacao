@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 5962 2006-11-12 13:39:50Z edwin $
+   $Id: md.c 6140 2006-12-07 22:45:09Z edwin $
 
 */
 
@@ -158,6 +158,11 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 	}
 	else if (mcode == 0xd2) {
 		/* INVOKEVIRTUAL/INTERFACE */
+
+		/* return NULL if no mptr was specified (used for replacement) */
+
+		if (mptr == NULL)
+			return NULL;
 
 		/* Get the offset from the instruction (the offset address is
 		   4-bytes before the call instruction). */

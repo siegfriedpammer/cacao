@@ -274,6 +274,11 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		if (mcode_masked == 0x0602c5) {
 			/* in this case we use the passed method pointer */
 
+			/* return NULL if no mptr was specified (used for replacement) */
+
+			if (mptr == NULL)
+				return NULL;
+
 			pa = mptr + offset;
 
 		} else {
