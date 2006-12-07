@@ -26,13 +26,14 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6137 2006-12-07 22:25:42Z edwin $
+   $Id: emit.c 6138 2006-12-07 22:29:22Z edwin $
 
 */
 
 #include "config.h"
-
 #include "vm/types.h"
+
+#include <assert.h>
 
 #include "md-abi.h"
 
@@ -499,11 +500,13 @@ void emit_replacement_stubs(jitdata *jd)
 
 		/* push address of `rplpoint` struct */
 			
-		M_PUSH_IMM(rplp);
+		M_MOV_IMM(rplp, REG_ITMP3);
+		M_PUSH(REG_ITMP3);
 
 		/* jump to replacement function */
 
-		M_PUSH_IMM(asm_replacement_out);
+		M_MOV_IMM(asm_replacement_out, REG_ITMP3);
+		M_PUSH(REG_ITMP3);
 		M_RET;
 
 		assert((cd->mcodeptr - savedmcodeptr) == REPLACEMENT_STUB_SIZE);
