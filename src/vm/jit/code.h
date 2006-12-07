@@ -47,6 +47,12 @@ typedef struct codeinfo codeinfo;
 #include "vm/jit/replace.h"
 
 
+/* constants ******************************************************************/
+
+#define CODE_FLAG_INVALID     0x0001
+#define CODE_FLAG_LEAFMETHOD  0x0002
+
+
 /* codeinfo *******************************************************************
 
    A codeinfo represents a particular realization of a method in
@@ -62,7 +68,7 @@ struct codeinfo {
 	methodinfo   *m;                    /* method this is a realization of    */
 	codeinfo     *prev;                 /* previous codeinfo of this method   */
 
-	bool          invalid;
+	u4            codeflags;            /* or of CODE_FLAG_ constants         */
 
 	u1            optlevel;             /* optimization level of this code    */
 	s4            basicblockcount;      /* number of basic blocks             */
@@ -75,6 +81,7 @@ struct codeinfo {
 	/* replacement */				    
 	rplpoint     *rplpoints;            /* replacement points                 */
 	rplalloc     *regalloc;             /* register allocation info           */
+	u1           *replacementstubs;     /* beginning of replacement stubs     */
 	s4            rplpointcount;        /* number of replacement points       */
 	s4            globalcount;          /* number of global allocations       */
 	s4            regalloccount;        /* number of total allocations        */
@@ -82,11 +89,24 @@ struct codeinfo {
 	s4            stackframesize;       /* size of the stackframe in slots    */
 	u1            savedintcount;        /* number of callee saved int regs    */
 	u1            savedfltcount;        /* number of callee saved flt regs    */
+	u1           *savedmcode;           /* saved code under patches           */
 
 	u4            frequency;            /* number of method invocations       */
 	u4           *bbfrequency;		    
 	s8            cycles;               /* number of cpu cycles               */
 };
+
+
+/* macros *********************************************************************/
+
+#define CODE_IS_VALID(code)       (!((code)->codeflags & CODE_FLAG_INVALID))
+#define CODE_IS_INVALID(code)     ((code)->codeflags & CODE_FLAG_INVALID)
+#define CODE_IS_LEAFMETHOD(code)  ((code)->codeflags & CODE_FLAG_LEAFMETHOD)
+
+#define CODE_SETFLAG_INVALID(code)                                   \
+            ((code)->codeflags |= CODE_FLAG_INVALID)
+#define CODE_SETFLAG_LEAFMETHOD(code)                                \
+            ((code)->codeflags |= CODE_FLAG_LEAFMETHOD)
 
 
 /* function prototypes ********************************************************/
@@ -95,6 +115,8 @@ bool code_init(void);
 
 codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);
+
+codeinfo *code_find_codeinfo_for_pc(u1 *pc);
 
 int code_get_sync_slot_count(codeinfo *code);
 int code_get_stack_frame_size(codeinfo *code);

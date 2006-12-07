@@ -40,6 +40,9 @@
 
 #include "arch.h"
 
+#include "vm/jit/code.h"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/methodheader.h"
 #include "mm/memory.h"
 #include "vm/options.h"
 #include "vm/jit/code.h"
@@ -95,6 +98,30 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 #endif
 
 	return code;
+}
+
+
+/* code_find_codeinfo_for_pc ***************************************************
+
+   Return the codeinfo for the compilation unit that contains the
+   given PC.
+
+   IN:
+       pc...............machine code position
+
+   RETURN VALUE:
+       the codeinfo * for the given PC
+
+*******************************************************************************/
+
+codeinfo *code_find_codeinfo_for_pc(u1 *pc)
+{
+	u1 *pv;
+
+	pv = codegen_get_pv_from_pc(pc);
+	assert(pv);
+
+	return *(codeinfo **)(pv + CodeinfoPointer);
 }
 
 

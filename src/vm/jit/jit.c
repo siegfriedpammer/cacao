@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 6114 2006-12-04 22:21:49Z twisti $
+   $Id: jit.c 6135 2006-12-07 20:39:57Z edwin $
 
 */
 
@@ -1552,10 +1552,10 @@ void jit_invalidate_code(methodinfo *m)
 	s4        i;
 
 	code = m->code;
-	if (code == NULL || code->invalid)
+	if (code == NULL || CODE_IS_INVALID(code))
 		return;
 
-	code->invalid = true;
+	CODE_SETFLAG_INVALID(code);
 
 	rp = code->rplpoints;
 	i = code->rplpointcount;
@@ -1615,7 +1615,7 @@ codeinfo *jit_get_current_code(methodinfo *m)
 
 	/* if we have valid code, return it */
 
-	if (m->code && !m->code->invalid)
+	if (m->code && CODE_IS_VALID(m->code))
 		return m->code;
 
 	/* otherwise: recompile */
