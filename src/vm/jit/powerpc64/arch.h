@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5329 2006-09-05 18:26:32Z tbfg $
+   $Id: arch.h 6134 2006-12-07 20:14:40Z edwin $
 
 */
 
@@ -73,6 +73,11 @@
 #define SPECIALMEMUSE
 /* #define HAS_4BYTE_STACKSLOT */
 /* #define SUPPORT_COMBINE_INTEGER_REGISTERS */
+
+/* replacement ****************************************************************/
+
+#define REPLACEMENT_PATCH_SIZE           4 /* bytes */
+#define REPLACEMENT_STUB_SIZE            6 /* words */
 
 #endif /* _ARCH_H */
 

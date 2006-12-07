@@ -72,6 +72,11 @@
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
 
+/* replacement ****************************************************************/
+
+#define REPLACEMENT_PATCH_SIZE           4 /* bytes */
+#define REPLACEMENT_STUB_SIZE            5 /* words */ /* XXX adapt for sparc64 */
+
 #endif /* _ARCH_H */
 
 

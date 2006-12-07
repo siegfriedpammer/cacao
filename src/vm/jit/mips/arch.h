@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5173 2006-07-25 15:57:11Z twisti $
+   $Id: arch.h 6134 2006-12-07 20:14:40Z edwin $
 
 */
 
@@ -123,6 +123,11 @@
 #endif
 
 #endif /* SIZEOF_VOID_P == 8 */
+
+/* replacement ****************************************************************/
+
+#define REPLACEMENT_PATCH_SIZE           (2*4) /* bytes */
+#define REPLACEMENT_STUB_SIZE            6     /* words */
 
 #endif /* _ARCH_H */
 

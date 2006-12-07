@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5173 2006-07-25 15:57:11Z twisti $
+   $Id: arch.h 6134 2006-12-07 20:14:40Z edwin $
 
 */
 
@@ -96,6 +96,11 @@
 /* are not properly aligned in case HAS_4_BYTE_STACKSLOT is not defined!     */
 /* For HAS_4_BYTE_STACKSLOT archs no distinction is made between long and dbl*/
 /* define SUPPORT_COMBINE_INTEGER_REGISTERS */
+
+/* replacement ****************************************************************/
+
+#define REPLACEMENT_PATCH_SIZE           5       /* bytes */
+#define REPLACEMENT_STUB_SIZE            (5+5+1) /* bytes */
 
 #endif /* _ARCH_H */
 

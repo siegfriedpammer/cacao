@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5173 2006-07-25 15:57:11Z twisti $
+   $Id: arch.h 6134 2006-12-07 20:14:40Z edwin $
 
 */
 
@@ -74,6 +74,11 @@
 #define SUPPORT_CONST_STORE              1  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
+
+/* replacement ****************************************************************/
+
+#define REPLACEMENT_PATCH_SIZE           4 /* bytes */
+#define REPLACEMENT_STUB_SIZE            5 /* words */
 
 #endif /* _ARCH_H */
 

@@ -77,6 +77,10 @@
 
 #define USE_FAKE_ATOMIC_INSTRUCTIONS     1
 
+/* replacement ****************************************************************/
+
+#define REPLACEMENT_PATCH_SIZE           4  /* bytes */
+
 #endif /* _ARCH_H */
 
 

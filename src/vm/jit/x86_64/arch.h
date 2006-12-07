@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 5173 2006-07-25 15:57:11Z twisti $
+   $Id: arch.h 6134 2006-12-07 20:14:40Z edwin $
 
 */
 
@@ -79,6 +79,11 @@
 
 #define CONSECUTIVE_INTEGER_ARGS
 #define CONSECUTIVE_FLOAT_ARGS
+
+/* replacement ****************************************************************/
+
+#define REPLACEMENT_PATCH_SIZE           5             /* bytes */
+#define REPLACEMENT_STUB_SIZE            (10+2+10+2+1) /* bytes */
 
 #endif /* _ARCH_H */
 
