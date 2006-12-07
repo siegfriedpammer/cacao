@@ -540,6 +540,7 @@ void emit_replacement_stubs(jitdata *jd)
 	u1          *savedmcodeptr;
 	s4           disp;
 	s4           i;
+	u1          *outcode;
 
 	/* get required compiler data */
 
@@ -555,14 +556,14 @@ void emit_replacement_stubs(jitdata *jd)
 
 		/* note start of stub code */
 
-		rplp->outcode = (u1 *) (cd->mcodeptr - cd->mcodebase);
+		outcode = (u1 *) (cd->mcodeptr - cd->mcodebase);
 
 		/* make machine code for patching */
 
 		savedmcodeptr = cd->mcodeptr;
 		cd->mcodeptr  = (u1 *) &(rplp->mcode) + 1;              /* big-endian */
 
-		disp = (ptrint) ((s4 *) rplp->outcode - (s4 *) rplp->pc) - 1;
+		disp = (ptrint) ((s4 *) outcode - (s4 *) rplp->pc) - 1;
 		M_BR(disp);
 
 		cd->mcodeptr = savedmcodeptr;

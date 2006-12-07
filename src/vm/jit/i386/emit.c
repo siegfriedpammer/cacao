@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6129 2006-12-06 10:49:47Z twisti $
+   $Id: emit.c 6136 2006-12-07 22:19:12Z edwin $
 
 */
 
@@ -546,6 +546,7 @@ void emit_replacement_stubs(jitdata *jd)
 	rplpoint    *rplp;
 	s4           disp;
 	s4           i;
+	u1          *outcode;
 
 	/* get required compiler data */
 
@@ -561,11 +562,11 @@ void emit_replacement_stubs(jitdata *jd)
 
 		/* note start of stub code */
 
-		rplp->outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
+		outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
 
 		/* make machine code for patching */
 
-		disp = (ptrint) (rplp->outcode - rplp->pc) - 5;
+		disp = (ptrint) (outcode - rplp->pc) - 5;
 
 		rplp->mcode = 0xe9 | ((u8) disp << 8);
 
