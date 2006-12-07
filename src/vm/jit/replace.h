@@ -54,9 +54,14 @@ typedef struct replace_safestack_t replace_safestack_t;
 #include "vm/jit/reg.h"
 
 
-/* the size of the safe stack we use during replacement */
+/* alignment for the safe stack used during replacement */
 
-#define REPLACE_SAFESTACK_SIZE  4096  /* bytes */
+#define REPLACE_STACK_ALIGNMENT  16
+
+/* the size of the safe stack we use during replacement */
+/* Must be a multiple of REPLACE_STACK_ALIGNMENT.       */
+
+#define REPLACE_SAFESTACK_SIZE  16384  /* bytes */
 
 
 /*** structs *********************************************************/
@@ -187,9 +192,41 @@ struct replace_safestack_t {
 	u1                stack[REPLACE_SAFESTACK_SIZE];
 	executionstate_t  es;
 	sourcestate_t    *ss;
+	u1               *mem;             /* start of the allocated memory chunk */
 	s4                dumpsize;
 };
 
+
+/*** macros for the codegens *******************************************/
+
+#define REPLACEMENT_POINTS_INIT(cd, jd)                              \
+    if (!replace_create_replacement_points(jd))                      \
+        return false;                                                \
+    (cd)->replacementpoint = (jd)->code->rplpoints;
+
+#define REPLACEMENT_POINT_BLOCK_START(cd, bptr)                      \
+    if ((bptr)->bitflags & BBFLAG_REPLACEMENT)                       \
+        codegen_set_replacement_point((cd) RPLPOINT_CHECK_BB(bptr));
+
+#define REPLACEMENT_POINT_INLINE_START(cd, iptr)                     \
+    codegen_set_replacement_point(cd RPLPOINT_CHECK(INLINE));
+
+#define REPLACEMENT_POINT_INLINE_BODY(cd, iptr)                      \
+    codegen_set_replacement_point_notrap(cd RPLPOINT_CHECK(BODY));
+
+#define REPLACEMENT_POINT_RETURN(cd, iptr)                           \
+    codegen_set_replacement_point(cd RPLPOINT_CHECK(RETURN));
+
+#define REPLACEMENT_POINT_INVOKE(cd, iptr)                           \
+    codegen_set_replacement_point(cd RPLPOINT_CHECK(CALL));
+
+#define REPLACEMENT_POINT_INVOKE_RETURN(cd,  iptr)                   \
+    if (iptr->opc != ICMD_BUILTIN)                                   \
+        cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
+                    - (ptrint) cd->replacementpoint[-1].pc;
+
+#define REPLACEMENT_EMIT_STUBS(jd)                                   \
+    emit_replacement_stubs(jd);
 
 /*** prototypes ********************************************************/
 

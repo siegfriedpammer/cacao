@@ -392,6 +392,11 @@ bool replace_create_replacement_points(jitdata *jd)
 
 	m = code->m;
 
+	/* set codeinfo flags */
+
+	if (jd->isleafmethod)
+		CODE_SETFLAG_LEAFMETHOD(code);
+
 	/* in instance methods, we may need a rplpoint at the method entry */
 
 #if defined(REPLACE_PATCH_DYNAMIC_CALL)
@@ -1056,6 +1061,12 @@ static void replace_read_executionstate(rplpoint *rp,
 
 #if defined(REPLACE_PATCH_DYNAMIC_CALL)
 	if (topframe && !(rp->method->flags & ACC_STATIC) && rp == code->rplpoints) {
+#if 1
+		/* we are at the start of the method body, so if local 0 is set, */
+		/* it is the instance.                                           */
+		if (frame->javalocaltype[0] == TYPE_ADR)
+			frame->instance = frame->javalocals[0];
+#else
 		rplalloc instra;
 		methoddesc *md;
 
@@ -1072,6 +1083,7 @@ static void replace_read_executionstate(rplpoint *rp,
 			instra.flags = 0;
 		}
 		replace_read_value(es, sp, &instra, &(frame->instance));
+#endif
 	}
 #endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
 
@@ -1436,111 +1448,37 @@ u1* replace_pop_activation_record(executionstate_t *es,
 }
 
 
-/* replace_patch_future_calls **************************************************
+/* replace_patch_method_pointer ************************************************
 
-   Analyse a call site and depending on the kind of call patch the call, the
-   virtual function table, or the interface table.
+   Patch a method pointer (may be in code, data segment, vftbl, or interface
+   table).
 
    IN:
-	   ra...............return address pointing after the call site
-	   calleeframe......source frame of the callee
-	   calleecode.......the codeinfo of the callee
+	   mpp..............address of the method pointer to patch
+	   entrypoint.......the new entrypoint of the method
+	   kind.............kind of call to patch, used only for debugging
 
 *******************************************************************************/
 
-void replace_patch_future_calls(u1 *ra, sourceframe_t *calleeframe, codeinfo *calleecode)
+static void replace_patch_method_pointer(methodptr *mpp,
+										 methodptr entrypoint,
+										 const char *kind)
 {
-	methodptr *mpp;
-	bool       atentry;
 #if !defined(NDEBUG)
-	codeinfo  *oldcode;
-	codeinfo  *newcode;
+	codeinfo       *oldcode;
+	codeinfo       *newcode;
 #endif
-#if defined(REPLACE_VERBOSE)
-	s4         i;
-	char      *logkind;
-	int        disas = 0;
-#endif
-
-	assert(ra);
-	assert(calleecode);
-
-	mpp = NULL;
-
-	atentry = (calleeframe->down == NULL)
-			&& !(calleecode->m->flags & ACC_STATIC)
-			&& (calleeframe->fromrp->id == 0); /* XXX */
-
-	DOLOG( printf("bytes at patch position:");
-		   for (i=0; i<16; ++i)
-			   printf(" %02x", ra[-16+i]);
-		   printf("\n"); );
-
-	if (ra[-2] == 0xff && ra[-1] == 0xd1
-			&& ra[-7] == 0xb9)
-	{
-		DOLOG_SHORT( logkind = "static   "; );
-		DOLOG( printf("PATCHING static call to "); method_println(calleecode->m); disas = 7; );
-		REPLACE_COUNT(stat_staticpatch);
-		mpp = (methodptr*)(ra - 6);
-	}
-#if defined(REPLACE_PATCH_DYNAMIC_CALL)
-	else if (ra[-2] == 0xff && ra[-1] == 0xd2
-				&& ra[-8] == 0x8b && ra[-7] == 0x91
-				&& atentry)
-	{
-		java_objectheader *obj;
-		u1 *table;
-		u4 offset;
-
-		DOLOG_SHORT( printf("\tinstance: "); java_value_print(TYPE_ADR, calleeframe->instance);
-					 printf("\n"); );
-
-		assert(calleeframe->instance != 0);
-
-		obj = (java_objectheader *) (ptrint) calleeframe->instance;
-		table = (u1*) obj->vftbl;
-		offset = *(u4*)(ra - 6);
-
-		if (ra[-10] == 0x8b && ra[-9] == 0x08) {
-			mpp = (methodptr *) (table + offset);
-			DOLOG_SHORT( logkind = "virtual  "; );
-			DOLOG( printf("updating virtual call at %p\n", (void*) ra); disas = 8);
-		}
-		else {
-			u4 ioffset = *(u4*)(ra - 12);
-			u1 *itable = *(u1**)(table + ioffset);
-
-			assert(ra[-14] == 0x8b && ra[-13] == 0x89);
-			mpp = (methodptr *) (itable + offset);
-			DOLOG_SHORT( logkind = "interface"; );
-			DOLOG( printf("updating interface call at %p\n", (void*) ra); disas = 14);
-		}
-	}
-#endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
-
-	if (mpp == NULL)
-		return;
-
-	DOLOG(
-		u1* u1ptr = ra - disas;
-		DISASSINSTR(u1ptr);
-		DISASSINSTR(u1ptr);
-		if (disas > 8)
-			DISASSINSTR(u1ptr);
-		fflush(stdout);
-	);
 
 	DOLOG( printf("patch method pointer from: %p to %p\n",
-				  (void*) *mpp, (void*)calleecode->entrypoint); );
+				  (void*) *mpp, (void*)entrypoint); );
 
 #if !defined(NDEBUG)
 	oldcode = *(codeinfo **)((u1*)(*mpp) + CodeinfoPointer);
-	newcode = *(codeinfo **)((u1*)(calleecode->entrypoint) + CodeinfoPointer);
+	newcode = *(codeinfo **)((u1*)(entrypoint) + CodeinfoPointer);
 
-	DOLOG_SHORT( printf("\tpatch %s %p ", logkind, (void*) oldcode->entrypoint);
+	DOLOG_SHORT( printf("\tpatch %s %p ", kind, (void*) oldcode);
 				 method_println(oldcode->m);
-				 printf("\t      with      %p ", (void*) newcode->entrypoint);
+				 printf("\t      with      %p ", (void*) newcode);
 				 method_println(newcode->m); );
 
 	assert(oldcode->m == newcode->m);
@@ -1548,7 +1486,114 @@ void replace_patch_future_calls(u1 *ra, sourceframe_t *calleeframe, codeinfo *ca
 
 	/* write the new entrypoint */
 
-	*mpp = (methodptr) calleecode->entrypoint;
+	*mpp = (methodptr) entrypoint;
+}
+
+
+/* replace_patch_future_calls **************************************************
+
+   Analyse a call site and depending on the kind of call patch the call, the
+   virtual function table, or the interface table.
+
+   IN:
+	   ra...............return address pointing after the call site
+	   callerframe......source frame of the caller
+	   calleeframe......source frame of the callee, must have been mapped
+
+*******************************************************************************/
+
+void replace_patch_future_calls(u1 *ra,
+								sourceframe_t *callerframe,
+								sourceframe_t *calleeframe)
+{
+	u1                *patchpos;
+	methodptr          entrypoint;
+	methodptr          oldentrypoint;
+	methodptr         *mpp;
+	methodptr         *mppend;
+	bool               atentry;
+	stackframeinfo     sfi;
+	codeinfo          *calleecode;
+	methodinfo        *calleem;
+	java_objectheader *obj;
+	struct _vftbl     *vftbl;
+	s4                 i;
+
+	assert(ra);
+	assert(callerframe->down == calleeframe);
+
+	/* get the new codeinfo and the method that shall be entered */
+
+	calleecode = calleeframe->tocode;
+	assert(calleecode);
+
+	calleem = calleeframe->method;
+	assert(calleem == calleecode->m);
+
+	entrypoint = (methodptr) calleecode->entrypoint;
+
+	/* check if we are at an method entry rplpoint at the innermost frame */
+
+	atentry = (calleeframe->down == NULL)
+			&& !(calleem->flags & ACC_STATIC)
+			&& (calleeframe->fromrp->id == 0); /* XXX */
+
+	/* get the position to patch, in case it was a statically bound call   */
+
+	sfi.pv = callerframe->fromcode->entrypoint;
+	patchpos = md_get_method_patch_address(ra, &sfi, NULL);
+
+	if (patchpos == NULL) {
+		/* the call was dispatched dynamically */
+
+		/* we can only patch such calls if we are at the entry point */
+
+		if (!atentry)
+			return;
+
+		assert((calleem->flags & ACC_STATIC) == 0);
+
+		/* we need to know the instance */
+
+		if (!calleeframe->instance) {
+			DOLOG_SHORT( printf("WARNING: object instance unknown!\n"); );
+			return;
+		}
+
+		/* get the vftbl */
+
+		obj = (java_objectheader *) (ptrint) calleeframe->instance;
+		vftbl = obj->vftbl;
+
+		assert(vftbl->class->vftbl == vftbl);
+
+		DOLOG_SHORT( printf("\tclass: "); class_println(vftbl->class); );
+
+		/* patch the vftbl of the class */
+
+		replace_patch_method_pointer(vftbl->table + calleem->vftblindex,
+									 entrypoint,
+									 "virtual");
+
+		/* patch the interface tables */
+
+		oldentrypoint = calleeframe->fromcode->entrypoint;
+		assert(oldentrypoint);
+
+		for (i=0; i < vftbl->interfacetablelength; ++i) {
+			mpp = vftbl->interfacetable[-i];
+			mppend = mpp + vftbl->interfacevftbllength[i];
+			for (; mpp != mppend; ++mpp)
+				if (*mpp == oldentrypoint) {
+					replace_patch_method_pointer(mpp, entrypoint, "interface");
+				}
+		}
+	}
+	else {
+		/* the call was statically bound */
+
+		replace_patch_method_pointer((methodptr *) patchpos, entrypoint, "static");
+	}
 }
 
 
@@ -1563,8 +1608,7 @@ void replace_patch_future_calls(u1 *ra, sourceframe_t *calleeframe, codeinfo *ca
 	   es...............execution state
 	   rpcall...........the replacement point at the call site
 	   callerframe......source frame of the caller
-	   calleecode.......the codeinfo of the callee
-	   calleeframe......source frame of the callee
+	   calleeframe......source frame of the callee, must have been mapped
 
    OUT:
        *es..............the execution state after pushing the stack frame
@@ -1574,7 +1618,6 @@ void replace_patch_future_calls(u1 *ra, sourceframe_t *calleeframe, codeinfo *ca
 void replace_push_activation_record(executionstate_t *es,
 									rplpoint *rpcall,
 									sourceframe_t *callerframe,
-									codeinfo *calleecode,
 									sourceframe_t *calleeframe)
 {
 	s4           reg;
@@ -1583,13 +1626,18 @@ void replace_push_activation_record(executionstate_t *es,
 	stackslot_t *basesp;
 	stackslot_t *sp;
 	u1          *ra;
+	codeinfo    *calleecode;
 
 	assert(es);
 	assert(rpcall && rpcall->type == RPLPOINT_TYPE_CALL);
-	assert(calleecode);
 	assert(callerframe);
 	assert(calleeframe);
 	assert(calleeframe == callerframe->down);
+
+	/* the compilation unit we are entering */
+
+	calleecode = calleeframe->tocode;
+	assert(calleecode);
 
 	/* write the return address */
 
@@ -1608,17 +1656,17 @@ void replace_push_activation_record(executionstate_t *es,
 
 	/* set the new pc XXX not needed */
 
-	es->pc = es->code->entrypoint;
+	es->pc = calleecode->entrypoint;
 
 	/* build the stackframe */
 
 	DOLOG( printf("building stackframe of %d words at %p\n",
-				es->code->stackframesize, (void*)es->sp); );
+				  calleecode->stackframesize, (void*)es->sp); );
 
 	sp = (stackslot_t *) es->sp;
 	basesp = sp;
 
-	sp -= es->code->stackframesize;
+	sp -= calleecode->stackframesize;
 	es->sp = (u1*) sp;
 
 	/* in debug mode, invalidate stack frame first */
@@ -1632,7 +1680,7 @@ void replace_push_activation_record(executionstate_t *es,
 	/* save int registers */
 
 	reg = INT_REG_CNT;
-	for (i=0; i<es->code->savedintcount; ++i) {
+	for (i=0; i<calleecode->savedintcount; ++i) {
 		while (nregdescint[--reg] != REG_SAV)
 			;
 		*--basesp = es->intregs[reg];
@@ -1646,7 +1694,7 @@ void replace_push_activation_record(executionstate_t *es,
 
 	/* XXX align? */
 	reg = FLT_REG_CNT;
-	for (i=0; i<es->code->savedfltcount; ++i) {
+	for (i=0; i<calleecode->savedfltcount; ++i) {
 		while (nregdescfloat[--reg] != REG_SAV)
 			;
 		basesp -= STACK_SLOTS_PER_FLOAT;
@@ -1659,15 +1707,15 @@ void replace_push_activation_record(executionstate_t *es,
 
 	/* write slots used for synchronization */
 
-	count = code_get_sync_slot_count(es->code);
+	count = code_get_sync_slot_count(calleecode);
 	assert(count == calleeframe->syncslotcount);
 	for (i=0; i<count; ++i) {
-		sp[es->code->memuse + i] = calleeframe->syncslots[i];
+		sp[calleecode->memuse + i] = calleeframe->syncslots[i];
 	}
 
 	/* set the PV */
 
-	es->pv = es->code->entrypoint;
+	es->pv = calleecode->entrypoint;
 
 	/* redirect future invocations */
 
@@ -1676,7 +1724,7 @@ void replace_push_activation_record(executionstate_t *es,
 #else
 	if (rpcall == callerframe->fromrp)
 #endif
-		replace_patch_future_calls(ra, calleeframe, calleecode);
+		replace_patch_future_calls(ra, callerframe, calleeframe);
 }
 
 
@@ -1960,11 +2008,13 @@ static bool replace_map_source_state(codeinfo *firstcode, sourcestate_t *ss)
 }
 
 
-/* replace_build_execution_state ***********************************************
+/* replace_build_execution_state_intern ****************************************
 
    Build an execution state for the given (mapped) source state.
 
    !!! CAUTION: This function rewrites the machine stack !!!
+
+   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
 
    IN:
        ss...............the source state. Must have been mapped by
@@ -1976,21 +2026,18 @@ static bool replace_map_source_state(codeinfo *firstcode, sourcestate_t *ss)
 
 *******************************************************************************/
 
-static void replace_build_execution_state(sourcestate_t *ss,
-										  executionstate_t *es)
+static void replace_build_execution_state_intern(sourcestate_t *ss,
+												 executionstate_t *es)
 {
 	rplpoint      *rp;
 	sourceframe_t *prevframe;
-	codeinfo      *code;
 
 	while (true) {
 
-		code = ss->frames->tocode;
 		rp = ss->frames->torp;
 
-		assert(code);
 		assert(rp);
-		assert(es->code == code);
+		assert(es->code == ss->frames->tocode);
 
 		DOLOG( printf("creating execution state for%s:\n",
 				(ss->frames->down == NULL) ? " TOPFRAME" : "");
@@ -2011,12 +2058,117 @@ static void replace_build_execution_state(sourcestate_t *ss,
 			DOLOG( printf("pushing activation record for:\n");
 				   replace_replacement_point_println(rp, 1); );
 
-			code = ss->frames->tocode;
-			replace_push_activation_record(es, rp, prevframe, code, ss->frames);
+			replace_push_activation_record(es, rp, prevframe, ss->frames);
 		}
 
 		DOLOG( replace_executionstate_println(es); );
 	}
+}
+
+
+/* replace_build_execution_state ***********************************************
+
+   This function contains the final phase of replacement. It builds the new
+   execution state, releases dump memory, and returns to the calling
+   assembler function which finishes replacement.
+
+   NOTE: This function is called from asm_replacement_in, with the stack
+         pointer at the start of the safe stack area.
+
+   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
+
+   CAUTION: This function and its children must not use a lot of stack!
+            There are only REPLACE_SAFESTACK_SIZE bytes of C stack
+			available.
+
+   IN:
+       st...............the safestack contained the necessary data
+
+*******************************************************************************/
+
+void replace_build_execution_state(replace_safestack_t *st)
+{
+	replace_build_execution_state_intern(st->ss, &(st->es));
+
+	DOLOG( replace_executionstate_println(&(st->es)); );
+
+	/* release dump area */
+
+	dump_release(st->dumpsize);
+
+	/* new code is entered after returning */
+
+	DOLOG( printf("JUMPING IN!\n"); fflush(stdout); );
+}
+
+
+/* replace_alloc_safestack *****************************************************
+
+   Allocate a safe stack area to use during the final phase of replacement.
+   The returned area is not initialized. This must be done by the caller.
+
+   RETURN VALUE:
+       a newly allocated replace_safestack_t *
+
+*******************************************************************************/
+
+static replace_safestack_t *replace_alloc_safestack()
+{
+	u1 *mem;
+	replace_safestack_t *st;
+
+	mem = MNEW(u1, sizeof(replace_safestack_t) + REPLACE_STACK_ALIGNMENT - 1);
+
+	st = (replace_safestack_t *) ((ptrint)(mem + REPLACE_STACK_ALIGNMENT - 1)
+										& ~(REPLACE_STACK_ALIGNMENT - 1));
+
+#if !defined(NDEBUG)
+	memset(st, 0xa5, sizeof(replace_safestack_t));
+#endif
+
+	st->mem = mem;
+
+	return st;
+}
+
+
+/* replace_free_safestack ******************************************************
+
+   Free the given safestack structure, making a copy of the contained
+   execution state before freeing it.
+
+   NOTE: This function is called from asm_replacement_in.
+
+   IN:
+       st...............the safestack to free
+	   tmpes............where to copy the execution state to
+
+   OUT:
+	   *tmpes...........receives a copy of st->es
+
+*******************************************************************************/
+
+void replace_free_safestack(replace_safestack_t *st, executionstate_t *tmpes)
+{
+	u1 *mem;
+
+	/* copy the executionstate_t to the temporary location */
+
+	*tmpes = st->es;
+
+	/* get the memory address to free */
+
+	mem = st->mem;
+
+	/* destroy memory (in debug mode) */
+
+#if !defined(NDEBUG)
+	memset(st, 0xa5, sizeof(replace_safestack_t));
+#endif
+
+	/* free the safe stack struct */
+
+	MFREE(mem, u1, sizeof(replace_safestack_t) + REPLACE_STACK_ALIGNMENT - 1);
 }
 
 
@@ -2036,10 +2188,11 @@ static void replace_build_execution_state(sourcestate_t *ss,
 
 void replace_me(rplpoint *rp, executionstate_t *es)
 {
-	sourcestate_t *ss;
-	sourceframe_t *frame;
-	s4             dumpsize;
-	rplpoint      *origrp;
+	sourcestate_t       *ss;
+	sourceframe_t       *frame;
+	s4                   dumpsize;
+	rplpoint            *origrp;
+	replace_safestack_t *safestack;
 
 	origrp = rp;
 	es->code = code_find_codeinfo_for_pc(rp->pc);
@@ -2088,21 +2241,20 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	DOLOG( replace_executionstate_println(es); );
 
-	replace_build_execution_state(ss, es);
+	/* allocate a safe stack area and copy all needed data there */
 
-	DOLOG( replace_executionstate_println(es); );
+	safestack = replace_alloc_safestack();
 
-	/* release dump area */
+	safestack->es = *es;
+	safestack->ss = ss;
+	safestack->dumpsize = dumpsize;
 
-	dump_release(dumpsize);
-
-	/* enter new code */
-
-	DOLOG( printf("JUMPING IN!\n"); fflush(stdout); );
+	/* call the assembler code for the last phase of replacement */
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
-	asm_replacement_in(es);
+	asm_replacement_in(&(safestack->es), safestack);
 #endif
+
 	abort(); /* NOT REACHED */
 }
 
@@ -2371,7 +2523,11 @@ void replace_executionstate_println(executionstate_t *es)
 			printf("\t");
 		else
 			printf(" ");
+#if SIZEOF_VOID_P == 8
 		printf("%-3s = %016llx",regs[i],(unsigned long long)es->intregs[i]);
+#else
+		printf("%-3s = %08lx",regs[i],(unsigned long)es->intregs[i]);
+#endif
 		if (i%4 == 3)
 			printf("\n");
 	}

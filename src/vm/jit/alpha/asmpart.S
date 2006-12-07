@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 5272 2006-08-23 15:55:38Z twisti $
+   $Id: asmpart.S 6147 2006-12-07 23:54:40Z edwin $
 
 */
 
@@ -626,7 +626,7 @@ L_asm_replacement_out_load_gp:
    NOTE: itmp3 is not restored!
 
    C prototype:
-      void asm_replacement_in(executionstate *es);
+      void asm_replacement_in(executionstate *es, replace_safestack_t *st);
 
 *******************************************************************************/
 
@@ -635,85 +635,106 @@ L_asm_replacement_out_load_gp:
 asm_replacement_in:
 	/* a0 == executionstate *es */
 
-	/* set new sp and pv */
-	ldq     sp,(offes_sp)(a0)
-	ldq     pv,(offes_pv)(a0)
+	/* get arguments */
+	mov     a1,s1                       /* replace_safestack_t *st            */
+	mov     a0,s2                       /* executionstate *es == safe stack   */
+
+	/* switch to the safe stack */
+	mov     s2,sp
+
+	/* call replace_build_execution_state(st) */
+	mov		s1,a0
+	jsr		ra,replace_build_execution_state
+
+	/* set new sp */
+	ldq		sp,(offes_sp)(s2)
+
+	/* build stack frame */
+	lda     sp,(-sizeexecutionstate)(sp)
+
+	/* call replace_free_safestack(st,& of allocated executionstate_t) */
+	mov		sp,a1 /* tmpes */
+	mov		s1,a0 /* st    */
+	jsr		ra,replace_free_safestack
+
+	/* set new pv */
+	ldq     pv,(offes_pv)(sp)
 	
 	/* copy registers from execution state */
-	ldq     $0 ,( 0*8+offes_intregs)(a0)
-	ldq     $1 ,( 1*8+offes_intregs)(a0)
-	ldq     $2 ,( 2*8+offes_intregs)(a0)
-	ldq     $3 ,( 3*8+offes_intregs)(a0)
-	ldq     $4 ,( 4*8+offes_intregs)(a0)
-	ldq     $5 ,( 5*8+offes_intregs)(a0)
-	ldq     $6 ,( 6*8+offes_intregs)(a0)
-	ldq     $7 ,( 7*8+offes_intregs)(a0)
-	ldq     $8 ,( 8*8+offes_intregs)(a0)
-	ldq     $9 ,( 9*8+offes_intregs)(a0)
-	ldq     $10,(10*8+offes_intregs)(a0)
-	ldq     $11,(11*8+offes_intregs)(a0)
-	ldq     $12,(12*8+offes_intregs)(a0)
-	ldq     $13,(13*8+offes_intregs)(a0)
-	ldq     $14,(14*8+offes_intregs)(a0)
-	ldq     $15,(15*8+offes_intregs)(a0)
-	/* a0 is loaded below             */
-	ldq     $17,(17*8+offes_intregs)(a0)
-	ldq     $18,(18*8+offes_intregs)(a0)
-	ldq     $19,(19*8+offes_intregs)(a0)
-	ldq     $20,(20*8+offes_intregs)(a0)
-	ldq     $21,(21*8+offes_intregs)(a0)
-	ldq     $22,(22*8+offes_intregs)(a0)
-	ldq     $23,(23*8+offes_intregs)(a0)
-	ldq     $24,(24*8+offes_intregs)(a0)
-	ldq     $25,(25*8+offes_intregs)(a0)
-	ldq     $26,(26*8+offes_intregs)(a0)
-	/* $27 is pv                      */
-	ldq     $28,(28*8+offes_intregs)(a0)
-	ldq     $29,(29*8+offes_intregs)(a0)
+	ldq     $0 ,( 0*8+offes_intregs)(sp)
+	ldq     $1 ,( 1*8+offes_intregs)(sp)
+	ldq     $2 ,( 2*8+offes_intregs)(sp)
+	ldq     $3 ,( 3*8+offes_intregs)(sp)
+	ldq     $4 ,( 4*8+offes_intregs)(sp)
+	ldq     $5 ,( 5*8+offes_intregs)(sp)
+	ldq     $6 ,( 6*8+offes_intregs)(sp)
+	ldq     $7 ,( 7*8+offes_intregs)(sp)
+	ldq     $8 ,( 8*8+offes_intregs)(sp)
+	ldq     $9 ,( 9*8+offes_intregs)(sp)
+	ldq     $10,(10*8+offes_intregs)(sp)
+	ldq     $11,(11*8+offes_intregs)(sp)
+	ldq     $12,(12*8+offes_intregs)(sp)
+	ldq     $13,(13*8+offes_intregs)(sp)
+	ldq     $14,(14*8+offes_intregs)(sp)
+	ldq     $15,(15*8+offes_intregs)(sp)
+	ldq     a0, (16*8+offes_intregs)(sp)
+	ldq     $17,(17*8+offes_intregs)(sp)
+	ldq     $18,(18*8+offes_intregs)(sp)
+	ldq     $19,(19*8+offes_intregs)(sp)
+	ldq     $20,(20*8+offes_intregs)(sp)
+	ldq     $21,(21*8+offes_intregs)(sp)
+	ldq     $22,(22*8+offes_intregs)(sp)
+	ldq     $23,(23*8+offes_intregs)(sp)
+	ldq     $24,(24*8+offes_intregs)(sp)
+	ldq     $25,(25*8+offes_intregs)(sp)
+	ldq     $26,(26*8+offes_intregs)(sp)
+	/* $27 is pv                    */
+	ldq     $28,(28*8+offes_intregs)(sp)
+	ldq     $29,(29*8+offes_intregs)(sp)
 	/* $30 is sp                      */
 	/* $31 is zero                    */
 	
-	ldt     $f0 ,( 0*8+offes_fltregs)(a0)
-	ldt     $f1 ,( 1*8+offes_fltregs)(a0)
-	ldt     $f2 ,( 2*8+offes_fltregs)(a0)
-	ldt     $f3 ,( 3*8+offes_fltregs)(a0)
-	ldt     $f4 ,( 4*8+offes_fltregs)(a0)
-	ldt     $f5 ,( 5*8+offes_fltregs)(a0)
-	ldt     $f6 ,( 6*8+offes_fltregs)(a0)
-	ldt     $f7 ,( 7*8+offes_fltregs)(a0)
-	ldt     $f8 ,( 8*8+offes_fltregs)(a0)
-	ldt     $f9 ,( 9*8+offes_fltregs)(a0)
-	ldt     $f10,(10*8+offes_fltregs)(a0)
-	ldt     $f11,(11*8+offes_fltregs)(a0)
-	ldt     $f12,(12*8+offes_fltregs)(a0)
-	ldt     $f13,(13*8+offes_fltregs)(a0)
-	ldt     $f14,(14*8+offes_fltregs)(a0)
-	ldt     $f15,(15*8+offes_fltregs)(a0)
-	ldt     $f16,(16*8+offes_fltregs)(a0)
-	ldt     $f17,(17*8+offes_fltregs)(a0)
-	ldt     $f18,(18*8+offes_fltregs)(a0)
-	ldt     $f19,(19*8+offes_fltregs)(a0)
-	ldt     $f20,(20*8+offes_fltregs)(a0)
-	ldt     $f21,(21*8+offes_fltregs)(a0)
-	ldt     $f22,(22*8+offes_fltregs)(a0)
-	ldt     $f23,(23*8+offes_fltregs)(a0)
-	ldt     $f24,(24*8+offes_fltregs)(a0)
-	ldt     $f25,(25*8+offes_fltregs)(a0)
-	ldt     $f26,(26*8+offes_fltregs)(a0)
-	ldt     $f27,(27*8+offes_fltregs)(a0)
-	ldt     $f28,(28*8+offes_fltregs)(a0)
-	ldt     $f29,(29*8+offes_fltregs)(a0)
-	ldt     $f30,(30*8+offes_fltregs)(a0)
-	ldt     $f31,(31*8+offes_fltregs)(a0)
+	ldt     $f0 ,( 0*8+offes_fltregs)(sp)
+	ldt     $f1 ,( 1*8+offes_fltregs)(sp)
+	ldt     $f2 ,( 2*8+offes_fltregs)(sp)
+	ldt     $f3 ,( 3*8+offes_fltregs)(sp)
+	ldt     $f4 ,( 4*8+offes_fltregs)(sp)
+	ldt     $f5 ,( 5*8+offes_fltregs)(sp)
+	ldt     $f6 ,( 6*8+offes_fltregs)(sp)
+	ldt     $f7 ,( 7*8+offes_fltregs)(sp)
+	ldt     $f8 ,( 8*8+offes_fltregs)(sp)
+	ldt     $f9 ,( 9*8+offes_fltregs)(sp)
+	ldt     $f10,(10*8+offes_fltregs)(sp)
+	ldt     $f11,(11*8+offes_fltregs)(sp)
+	ldt     $f12,(12*8+offes_fltregs)(sp)
+	ldt     $f13,(13*8+offes_fltregs)(sp)
+	ldt     $f14,(14*8+offes_fltregs)(sp)
+	ldt     $f15,(15*8+offes_fltregs)(sp)
+	ldt     $f16,(16*8+offes_fltregs)(sp)
+	ldt     $f17,(17*8+offes_fltregs)(sp)
+	ldt     $f18,(18*8+offes_fltregs)(sp)
+	ldt     $f19,(19*8+offes_fltregs)(sp)
+	ldt     $f20,(20*8+offes_fltregs)(sp)
+	ldt     $f21,(21*8+offes_fltregs)(sp)
+	ldt     $f22,(22*8+offes_fltregs)(sp)
+	ldt     $f23,(23*8+offes_fltregs)(sp)
+	ldt     $f24,(24*8+offes_fltregs)(sp)
+	ldt     $f25,(25*8+offes_fltregs)(sp)
+	ldt     $f26,(26*8+offes_fltregs)(sp)
+	ldt     $f27,(27*8+offes_fltregs)(sp)
+	ldt     $f28,(28*8+offes_fltregs)(sp)
+	ldt     $f29,(29*8+offes_fltregs)(sp)
+	ldt     $f30,(30*8+offes_fltregs)(sp)
+	ldt     $f31,(31*8+offes_fltregs)(sp)
 
 	/* load new pc */
 
-	ldq     itmp3,offes_pc(a0)
+	ldq     itmp3,offes_pc(sp)
 
-	/* load a0 */
-	
-	ldq     a0,(16*8+offes_intregs)(a0)
-	
+	/* remove stack frame */
+
+	lda		sp,(sizeexecutionstate)(sp)
+
 	/* jump to new code */
 
 	jmp     zero,(itmp3)

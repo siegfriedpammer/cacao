@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 5233 2006-08-14 10:59:39Z twisti $
+   $Id: asmpart.S 6147 2006-12-07 23:54:40Z edwin $
 
 */
 
@@ -647,53 +647,72 @@ asm_replacement_out:
    This function never returns!
 
    C prototype:
-      void asm_replacement_in(executionstate *es);
+      void asm_replacement_in(executionstate *es, replace_safestack_t *st);
 
 *******************************************************************************/
 
 asm_replacement_in:
-	mov     a0,%rbp                     /* executionstate *es                 */
+	/* get arguments */
+	mov     a1,s1                       /* replace_safestack_t *st            */
+	mov     a0,%rbp                     /* executionstate *es == safe stack   */
+
+	/* switch to the safe stack */
+	mov     %rbp,sp
+
+	/* call replace_build_execution_state(st) */
+	mov		s1,a0
+	call    replace_build_execution_state@PLT
 
 	/* set new sp */
-	mov     (offes_sp)(%rbp),%rsp
-	
-	/* store address of new code */
-	push    (offes_pc)(%rbp)
-	
+	mov     (offes_sp)(%rbp),sp
+
+	/* push address of new code */
+	pushq   (offes_pc)(%rbp)
+
+	/* allocate an executionstate_t on the stack */
+	sub		$(sizeexecutionstate),sp
+
+	/* call replace_free_safestack(st,& of allocated executionstate_t) */
+	mov		sp,a1
+	mov		s1,a0
+	call    replace_free_safestack@PLT
+
 	/* copy registers from execution state */
-	movq    (XMM0 *8+offes_fltregs)(%rbp),%xmm0
-	movq    (XMM1 *8+offes_fltregs)(%rbp),%xmm1
-	movq    (XMM2 *8+offes_fltregs)(%rbp),%xmm2
-	movq    (XMM3 *8+offes_fltregs)(%rbp),%xmm3
-	movq    (XMM4 *8+offes_fltregs)(%rbp),%xmm4
-	movq    (XMM5 *8+offes_fltregs)(%rbp),%xmm5
-	movq    (XMM6 *8+offes_fltregs)(%rbp),%xmm6
-	movq    (XMM7 *8+offes_fltregs)(%rbp),%xmm7
-	movq    (XMM8 *8+offes_fltregs)(%rbp),%xmm8
-	movq    (XMM9 *8+offes_fltregs)(%rbp),%xmm9
-	movq    (XMM10*8+offes_fltregs)(%rbp),%xmm10
-	movq    (XMM11*8+offes_fltregs)(%rbp),%xmm11
-	movq    (XMM12*8+offes_fltregs)(%rbp),%xmm12
-	movq    (XMM13*8+offes_fltregs)(%rbp),%xmm13
-	movq    (XMM14*8+offes_fltregs)(%rbp),%xmm14
-	movq    (XMM15*8+offes_fltregs)(%rbp),%xmm15
+	movq    (XMM0 *8+offes_fltregs)(sp),%xmm0
+	movq    (XMM1 *8+offes_fltregs)(sp),%xmm1
+	movq    (XMM2 *8+offes_fltregs)(sp),%xmm2
+	movq    (XMM3 *8+offes_fltregs)(sp),%xmm3
+	movq    (XMM4 *8+offes_fltregs)(sp),%xmm4
+	movq    (XMM5 *8+offes_fltregs)(sp),%xmm5
+	movq    (XMM6 *8+offes_fltregs)(sp),%xmm6
+	movq    (XMM7 *8+offes_fltregs)(sp),%xmm7
+	movq    (XMM8 *8+offes_fltregs)(sp),%xmm8
+	movq    (XMM9 *8+offes_fltregs)(sp),%xmm9
+	movq    (XMM10*8+offes_fltregs)(sp),%xmm10
+	movq    (XMM11*8+offes_fltregs)(sp),%xmm11
+	movq    (XMM12*8+offes_fltregs)(sp),%xmm12
+	movq    (XMM13*8+offes_fltregs)(sp),%xmm13
+	movq    (XMM14*8+offes_fltregs)(sp),%xmm14
+	movq    (XMM15*8+offes_fltregs)(sp),%xmm15
 
-	mov     (RAX*8+offes_intregs)(%rbp),%rax
-	mov     (RBX*8+offes_intregs)(%rbp),%rbx
-	mov     (RCX*8+offes_intregs)(%rbp),%rcx
-	mov     (RDX*8+offes_intregs)(%rbp),%rdx
-	mov     (RSI*8+offes_intregs)(%rbp),%rsi
-	mov     (RDI*8+offes_intregs)(%rbp),%rdi
-	mov     (R8 *8+offes_intregs)(%rbp),%r8
-	mov     (R9 *8+offes_intregs)(%rbp),%r9
-	mov     (R10*8+offes_intregs)(%rbp),%r10
-	mov     (R11*8+offes_intregs)(%rbp),%r11
-	mov     (R12*8+offes_intregs)(%rbp),%r12
-	mov     (R13*8+offes_intregs)(%rbp),%r13
-	mov     (R14*8+offes_intregs)(%rbp),%r14
-	mov     (R15*8+offes_intregs)(%rbp),%r15
+	mov     (RAX*8+offes_intregs)(sp),%rax
+	mov     (RBX*8+offes_intregs)(sp),%rbx
+	mov     (RCX*8+offes_intregs)(sp),%rcx
+	mov     (RDX*8+offes_intregs)(sp),%rdx
+	mov     (RSI*8+offes_intregs)(sp),%rsi
+	mov     (RDI*8+offes_intregs)(sp),%rdi
+	mov     (RBP*8+offes_intregs)(sp),%rbp
+	mov     (R8 *8+offes_intregs)(sp),%r8
+	mov     (R9 *8+offes_intregs)(sp),%r9
+	mov     (R10*8+offes_intregs)(sp),%r10
+	mov     (R11*8+offes_intregs)(sp),%r11
+	mov     (R12*8+offes_intregs)(sp),%r12
+	mov     (R13*8+offes_intregs)(sp),%r13
+	mov     (R14*8+offes_intregs)(sp),%r14
+	mov     (R15*8+offes_intregs)(sp),%r15
 
-	mov     (RBP*8+offes_intregs)(%rbp),%rbp
+	/* pop the execution state off the stack */
+	add		$(sizeexecutionstate),sp
 
 	/* jump to new code */
 	ret

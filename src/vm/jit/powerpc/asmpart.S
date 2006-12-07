@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 5578 2006-09-29 11:35:04Z twisti $
+   $Id: asmpart.S 6147 2006-12-07 23:54:40Z edwin $
 
 */
 
@@ -1146,46 +1146,48 @@ L_asm_patcher_wrapper_exception:
 	/* XXX we should find a cleaner solution here */
 #define REPLACEMENT_ROOM  512
 
+#define sizeexecutionstate_ALIGNED  ((sizeexecutionstate + 15) & ~15)
+
 asm_replacement_out:
     /* create stack frame */
-	addi    sp,sp,-(sizeexecutionstate + REPLACEMENT_ROOM) /* XXX align */
+	addi    sp,sp,-(sizeexecutionstate_ALIGNED + REPLACEMENT_ROOM)
 
 	/* save link register */
 	mflr    itmp3
 
 	/* save registers in execution state */
-	stw     r0 ,( 0*8+offes_intregs)(sp)
-	stw     r1 ,( 1*8+offes_intregs)(sp)
-	stw     r2 ,( 2*8+offes_intregs)(sp)
-	stw     r3 ,( 3*8+offes_intregs)(sp)
-	stw     r4 ,( 4*8+offes_intregs)(sp)
-	stw     r5 ,( 5*8+offes_intregs)(sp)
-	stw     r6 ,( 6*8+offes_intregs)(sp)
-	stw     r7 ,( 7*8+offes_intregs)(sp)
-	stw     r8 ,( 8*8+offes_intregs)(sp)
-	stw     r9 ,( 9*8+offes_intregs)(sp)
-	stw     r10,(10*8+offes_intregs)(sp)
-	stw     r11,(11*8+offes_intregs)(sp)
-	stw     r12,(12*8+offes_intregs)(sp)
-	stw     r13,(13*8+offes_intregs)(sp)
-	stw     r14,(14*8+offes_intregs)(sp)
-	stw     r15,(15*8+offes_intregs)(sp)
-	stw     r16,(16*8+offes_intregs)(sp) /* link register */
-	stw     r17,(17*8+offes_intregs)(sp)
-	stw     r18,(18*8+offes_intregs)(sp)
-	stw     r19,(19*8+offes_intregs)(sp)
-	stw     r20,(20*8+offes_intregs)(sp)
-	stw     r21,(21*8+offes_intregs)(sp)
-	stw     r22,(22*8+offes_intregs)(sp)
-	stw     r23,(23*8+offes_intregs)(sp)
-	stw     r24,(24*8+offes_intregs)(sp)
-	stw     r25,(25*8+offes_intregs)(sp)
-	stw     r26,(26*8+offes_intregs)(sp)
-	stw     r27,(27*8+offes_intregs)(sp)
-	stw     r28,(28*8+offes_intregs)(sp)
-	stw     r29,(29*8+offes_intregs)(sp)
-	stw     r30,(30*8+offes_intregs)(sp)
-	stw     r31,(31*8+offes_intregs)(sp)
+	stw     r0 ,( 0*8+4+offes_intregs)(sp)
+	stw     r1 ,( 1*8+4+offes_intregs)(sp)
+	stw     r2 ,( 2*8+4+offes_intregs)(sp)
+	stw     r3 ,( 3*8+4+offes_intregs)(sp)
+	stw     r4 ,( 4*8+4+offes_intregs)(sp)
+	stw     r5 ,( 5*8+4+offes_intregs)(sp)
+	stw     r6 ,( 6*8+4+offes_intregs)(sp)
+	stw     r7 ,( 7*8+4+offes_intregs)(sp)
+	stw     r8 ,( 8*8+4+offes_intregs)(sp)
+	stw     r9 ,( 9*8+4+offes_intregs)(sp)
+	stw     r10,(10*8+4+offes_intregs)(sp)
+	stw     r11,(11*8+4+offes_intregs)(sp)
+	stw     r12,(12*8+4+offes_intregs)(sp)
+	stw     r13,(13*8+4+offes_intregs)(sp)
+	stw     r14,(14*8+4+offes_intregs)(sp)
+	stw     r15,(15*8+4+offes_intregs)(sp)
+	stw     r16,(16*8+4+offes_intregs)(sp) /* link register stored as itmp3 */
+	stw     r17,(17*8+4+offes_intregs)(sp)
+	stw     r18,(18*8+4+offes_intregs)(sp)
+	stw     r19,(19*8+4+offes_intregs)(sp)
+	stw     r20,(20*8+4+offes_intregs)(sp)
+	stw     r21,(21*8+4+offes_intregs)(sp)
+	stw     r22,(22*8+4+offes_intregs)(sp)
+	stw     r23,(23*8+4+offes_intregs)(sp)
+	stw     r24,(24*8+4+offes_intregs)(sp)
+	stw     r25,(25*8+4+offes_intregs)(sp)
+	stw     r26,(26*8+4+offes_intregs)(sp)
+	stw     r27,(27*8+4+offes_intregs)(sp)
+	stw     r28,(28*8+4+offes_intregs)(sp)
+	stw     r29,(29*8+4+offes_intregs)(sp)
+	stw     r30,(30*8+4+offes_intregs)(sp)
+	stw     r31,(31*8+4+offes_intregs)(sp)
 	
 	stfd    fr0 ,( 0*8+offes_fltregs)(sp)
 	stfd    fr1 ,( 1*8+offes_fltregs)(sp)
@@ -1221,7 +1223,7 @@ asm_replacement_out:
 	stfd    fr31,(31*8+offes_fltregs)(sp)
 	
 	/* calculate sp of method */
-	addi    itmp1,sp,(sizeexecutionstate + REPLACEMENT_ROOM + 4*4)
+	addi    itmp1,sp,(sizeexecutionstate_ALIGNED + REPLACEMENT_ROOM + 4*4)
 	stw     itmp1,(offes_sp)(sp)
 
 	/* store pv */
@@ -1243,83 +1245,110 @@ asm_replacement_out:
    NOTE: itmp3 is not restored!
 
    C prototype:
-      void asm_replacement_in(executionstate *es);
+      void asm_replacement_in(executionstate *es, replace_safestack_t *st);
 
 *******************************************************************************/
 
 asm_replacement_in:
-	/* a0 == executionstate *es */
+	/* a0 == executionstate *es      */
+	/* a1 == replace_safestack_t *st */
 
-	/* set new sp and pv */
-	lwz     sp,(offes_sp)(a0)
-	lwz     pv,(offes_pv)(a0)
+	/* get arguments */
+	mr		s1,a1                       /* replace_safestack_t *st            */
+	mr		s2,a0                       /* executionstate *es == safe stack   */
+
+	/* switch to the safe stack */
+	mr		sp,s2
+
+	/* reserve linkage area */
+	addi	sp,sp,-(LA_SIZE_ALIGNED)
+
+	/* call replace_build_execution_state(st) */
+	mr		a0,s1
+	bl		replace_build_execution_state
+
+	/* set new sp */
+	lwz		sp,(offes_sp)(s2)
+
+	/* build stack frame */
+	addi	sp,sp,-(sizeexecutionstate_ALIGNED)
+
+	/* call replace_free_safestack(st,& of allocated executionstate_t) */
+	mr		a1,sp /* tmpes */
+	mr		a0,s1 /* st    */
+	addi    sp,sp,-(LA_SIZE_ALIGNED)  /* reserve linkage area */
+	bl		replace_free_safestack
+	addi    sp,sp,+(LA_SIZE_ALIGNED)  /* tear down linkage area */
+
+	/* set new pv */
+	lwz     pv,(offes_pv)(sp)
 	
 	/* copy registers from execution state */
-	lwz     r0 ,( 0*8+offes_intregs)(a0)
-	/* r1 is sp                       */
-	/* r2 is reserved                 */
-	/* a0 is loaded below             */
-	lwz     r4 ,( 4*8+offes_intregs)(a0)
-	lwz     r5 ,( 5*8+offes_intregs)(a0)
-	lwz     r6 ,( 6*8+offes_intregs)(a0)
-	lwz     r7 ,( 7*8+offes_intregs)(a0)
-	lwz     r8 ,( 8*8+offes_intregs)(a0)
-	lwz     r9 ,( 9*8+offes_intregs)(a0)
-	lwz     r10,(10*8+offes_intregs)(a0)
-	lwz     r11,(11*8+offes_intregs)(a0)
-	lwz     r12,(12*8+offes_intregs)(a0)
-	/* r13 is pv                      */
-	lwz     r14,(14*8+offes_intregs)(a0)
-	lwz     r15,(15*8+offes_intregs)(a0)
-	lwz     r16,(16*8+offes_intregs)(a0) /* link register */
-	lwz     r17,(17*8+offes_intregs)(a0)
-	lwz     r18,(18*8+offes_intregs)(a0)
-	lwz     r19,(19*8+offes_intregs)(a0)
-	lwz     r20,(20*8+offes_intregs)(a0)
-	lwz     r21,(21*8+offes_intregs)(a0)
-	lwz     r22,(22*8+offes_intregs)(a0)
-	lwz     r23,(23*8+offes_intregs)(a0)
-	lwz     r24,(24*8+offes_intregs)(a0)
-	lwz     r25,(25*8+offes_intregs)(a0)
-	lwz     r26,(26*8+offes_intregs)(a0)
-	lwz     r27,(27*8+offes_intregs)(a0)
-	lwz     r28,(28*8+offes_intregs)(a0)
-	lwz     r29,(29*8+offes_intregs)(a0)
-	lwz     r30,(30*8+offes_intregs)(a0)
-	lwz     r31,(31*8+offes_intregs)(a0)
+	lwz     r0 ,( 0*8+4+offes_intregs)(sp)
+	/* r1 is sp                         */
+	/* r2 is reserved                   */
+	lwz     a0 ,( 3*8+4+offes_intregs)(sp)
+	lwz     r4 ,( 4*8+4+offes_intregs)(sp)
+	lwz     r5 ,( 5*8+4+offes_intregs)(sp)
+	lwz     r6 ,( 6*8+4+offes_intregs)(sp)
+	lwz     r7 ,( 7*8+4+offes_intregs)(sp)
+	lwz     r8 ,( 8*8+4+offes_intregs)(sp)
+	lwz     r9 ,( 9*8+4+offes_intregs)(sp)
+	lwz     r10,(10*8+4+offes_intregs)(sp)
+	lwz     r11,(11*8+4+offes_intregs)(sp)
+	lwz     r12,(12*8+4+offes_intregs)(sp)
+	/* r13 is pv                        */
+	lwz     r14,(14*8+4+offes_intregs)(sp)
+	lwz     r15,(15*8+4+offes_intregs)(sp)
+	lwz     r16,(16*8+4+offes_intregs)(sp) /* itmp3, later to link register */
+	lwz     r17,(17*8+4+offes_intregs)(sp)
+	lwz     r18,(18*8+4+offes_intregs)(sp)
+	lwz     r19,(19*8+4+offes_intregs)(sp)
+	lwz     r20,(20*8+4+offes_intregs)(sp)
+	lwz     r21,(21*8+4+offes_intregs)(sp)
+	lwz     r22,(22*8+4+offes_intregs)(sp)
+	lwz     r23,(23*8+4+offes_intregs)(sp)
+	lwz     r24,(24*8+4+offes_intregs)(sp)
+	lwz     r25,(25*8+4+offes_intregs)(sp)
+	lwz     r26,(26*8+4+offes_intregs)(sp)
+	lwz     r27,(27*8+4+offes_intregs)(sp)
+	lwz     r28,(28*8+4+offes_intregs)(sp)
+	lwz     r29,(29*8+4+offes_intregs)(sp)
+	lwz     r30,(30*8+4+offes_intregs)(sp)
+	lwz     r31,(31*8+4+offes_intregs)(sp)
 	
-	lfd     fr0 ,( 0*8+offes_fltregs)(a0)
-	lfd     fr1 ,( 1*8+offes_fltregs)(a0)
-	lfd     fr2 ,( 2*8+offes_fltregs)(a0)
-	lfd     fr3 ,( 3*8+offes_fltregs)(a0)
-	lfd     fr4 ,( 4*8+offes_fltregs)(a0)
-	lfd     fr5 ,( 5*8+offes_fltregs)(a0)
-	lfd     fr6 ,( 6*8+offes_fltregs)(a0)
-	lfd     fr7 ,( 7*8+offes_fltregs)(a0)
-	lfd     fr8 ,( 8*8+offes_fltregs)(a0)
-	lfd     fr9 ,( 9*8+offes_fltregs)(a0)
-	lfd     fr10,(10*8+offes_fltregs)(a0)
-	lfd     fr11,(11*8+offes_fltregs)(a0)
-	lfd     fr12,(12*8+offes_fltregs)(a0)
-	lfd     fr13,(13*8+offes_fltregs)(a0)
-	lfd     fr14,(14*8+offes_fltregs)(a0)
-	lfd     fr15,(15*8+offes_fltregs)(a0)
-	lfd     fr16,(16*8+offes_fltregs)(a0)
-	lfd     fr17,(17*8+offes_fltregs)(a0)
-	lfd     fr18,(18*8+offes_fltregs)(a0)
-	lfd     fr19,(19*8+offes_fltregs)(a0)
-	lfd     fr20,(20*8+offes_fltregs)(a0)
-	lfd     fr21,(21*8+offes_fltregs)(a0)
-	lfd     fr22,(22*8+offes_fltregs)(a0)
-	lfd     fr23,(23*8+offes_fltregs)(a0)
-	lfd     fr24,(24*8+offes_fltregs)(a0)
-	lfd     fr25,(25*8+offes_fltregs)(a0)
-	lfd     fr26,(26*8+offes_fltregs)(a0)
-	lfd     fr27,(27*8+offes_fltregs)(a0)
-	lfd     fr28,(28*8+offes_fltregs)(a0)
-	lfd     fr29,(29*8+offes_fltregs)(a0)
-	lfd     fr30,(30*8+offes_fltregs)(a0)
-	lfd     fr31,(31*8+offes_fltregs)(a0)
+	lfd     fr0 ,( 0*8+offes_fltregs)(sp)
+	lfd     fr1 ,( 1*8+offes_fltregs)(sp)
+	lfd     fr2 ,( 2*8+offes_fltregs)(sp)
+	lfd     fr3 ,( 3*8+offes_fltregs)(sp)
+	lfd     fr4 ,( 4*8+offes_fltregs)(sp)
+	lfd     fr5 ,( 5*8+offes_fltregs)(sp)
+	lfd     fr6 ,( 6*8+offes_fltregs)(sp)
+	lfd     fr7 ,( 7*8+offes_fltregs)(sp)
+	lfd     fr8 ,( 8*8+offes_fltregs)(sp)
+	lfd     fr9 ,( 9*8+offes_fltregs)(sp)
+	lfd     fr10,(10*8+offes_fltregs)(sp)
+	lfd     fr11,(11*8+offes_fltregs)(sp)
+	lfd     fr12,(12*8+offes_fltregs)(sp)
+	lfd     fr13,(13*8+offes_fltregs)(sp)
+	lfd     fr14,(14*8+offes_fltregs)(sp)
+	lfd     fr15,(15*8+offes_fltregs)(sp)
+	lfd     fr16,(16*8+offes_fltregs)(sp)
+	lfd     fr17,(17*8+offes_fltregs)(sp)
+	lfd     fr18,(18*8+offes_fltregs)(sp)
+	lfd     fr19,(19*8+offes_fltregs)(sp)
+	lfd     fr20,(20*8+offes_fltregs)(sp)
+	lfd     fr21,(21*8+offes_fltregs)(sp)
+	lfd     fr22,(22*8+offes_fltregs)(sp)
+	lfd     fr23,(23*8+offes_fltregs)(sp)
+	lfd     fr24,(24*8+offes_fltregs)(sp)
+	lfd     fr25,(25*8+offes_fltregs)(sp)
+	lfd     fr26,(26*8+offes_fltregs)(sp)
+	lfd     fr27,(27*8+offes_fltregs)(sp)
+	lfd     fr28,(28*8+offes_fltregs)(sp)
+	lfd     fr29,(29*8+offes_fltregs)(sp)
+	lfd     fr30,(30*8+offes_fltregs)(sp)
+	lfd     fr31,(31*8+offes_fltregs)(sp)
 
 	/* restore link register */
 
@@ -1327,11 +1356,11 @@ asm_replacement_in:
 	
 	/* load new pc */
 
-	lwz     itmp3,offes_pc(a0)
+	lwz     itmp3,offes_pc(sp)
 
-	/* load a0 */
-	
-	lwz     a0,(3*8+offes_intregs)(a0)
+	/* remove stack frame */
+
+	addi	sp,sp,+(sizeexecutionstate_ALIGNED)
 
 	/* jump to new code */
 

@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 5256 2006-08-21 15:25:59Z twisti $
+   $Id: asmpart.S 6147 2006-12-07 23:54:40Z edwin $
 
 */
 
@@ -569,30 +569,51 @@ asm_replacement_out:
    This function never returns!
 
    C prototype:
-      void asm_replacement_in(executionstate *es);
+      void asm_replacement_in(executionstate *es, replace_safestack_t *st);
 
 *******************************************************************************/
 
 asm_replacement_in:
-	mov     4(sp),%ebp                  /* executionstate *es                 */
+	/* get arguments */
+	mov     8(sp),%esi                  /* replace_safestack_t *st            */
+	mov     4(sp),%ebp                  /* executionstate *es == safe stack   */
+
+	/* switch to the safe stack and build a stack frame */
+	mov     %ebp,sp
+	sub		$(1*4),sp
+
+	/* call replace_build_execution_state(st) */
+	mov		%esi,(0*4)(sp)
+	call    replace_build_execution_state
 
 	/* set new sp */
-	mov     (offes_sp)(%ebp),%esp
-	
-	/* store address of new code */
+	mov     (offes_sp)(%ebp),sp
+
+	/* push address of new code */
 	push    (offes_pc)(%ebp)
-	
+
+	/* allocate an executionstate_t on the stack */
+	sub		$(sizeexecutionstate),sp
+
+	/* call replace_free_safestack(st,& of allocated executionstate_t) */
+	push    sp   /* tmpes */
+	push    %esi /* st    */
+	call    replace_free_safestack
+	add     $(2*4),sp
+
 	/* copy registers from execution state */
-	mov     (EAX*8+offes_intregs)(%ebp),%eax
-	mov     (EBX*8+offes_intregs)(%ebp),%ebx
-	mov     (ECX*8+offes_intregs)(%ebp),%ecx
-	mov     (EDX*8+offes_intregs)(%ebp),%edx
-	mov     (ESI*8+offes_intregs)(%ebp),%esi
-	mov     (EDI*8+offes_intregs)(%ebp),%edi
+	mov     (EAX*8+offes_intregs)(sp),%eax
+	mov     (EBX*8+offes_intregs)(sp),%ebx
+	mov     (ECX*8+offes_intregs)(sp),%ecx
+	mov     (EDX*8+offes_intregs)(sp),%edx
+	mov     (ESI*8+offes_intregs)(sp),%esi
+	mov     (EDI*8+offes_intregs)(sp),%edi
+	mov     (EBP*8+offes_intregs)(sp),%ebp
 
-	mov     (EBP*8+offes_intregs)(%ebp),%ebp
+	/* pop the execution state off the stack */
+	add		$(sizeexecutionstate),sp
 
-	/* jump to new code */
+	/* jump to new code, hold your thumbs! ;) */
 	ret
 
 
