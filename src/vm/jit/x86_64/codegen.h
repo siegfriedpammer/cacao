@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 6101 2006-12-01 16:51:25Z twisti $
+   $Id: codegen.h 6132 2006-12-07 10:59:01Z twisti $
 
 */
 
@@ -57,25 +57,6 @@
 #define CALCIMMEDIATEBYTES(var, val) \
     if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
     else (var) += 1;
-
-
-/* gen_nullptr_check(objreg) */
-
-#define gen_nullptr_check(objreg) \
-	if (checknull) { \
-        M_TEST(objreg); \
-        M_BEQ(0); \
- 	    codegen_add_nullpointerexception_ref(cd); \
-	}
-
-
-#define gen_bound_check \
-    if (checkbounds) { \
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
-        M_ICMP(REG_ITMP3, s2); \
-        M_BAE(0); \
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-    }
 
 
 /* MCODECHECK(icnt) */
@@ -396,20 +377,6 @@
             M_POP(RAX); \
         } \
     } while (0)
-
-
-/* function gen_resolvebranch **************************************************
-
-    backpatches a branch instruction
-
-    parameters: ip ... pointer to instruction after branch (void*)
-                so ... offset of instruction after branch  (s8)
-                to ... offset of branch target             (s8)
-
-*******************************************************************************/
-
-#define gen_resolvebranch(ip,so,to) \
-    *((s4*) ((ip) - 4)) = (s4) ((to) - (so));
 
 #endif /* _CODEGEN_H */
 
