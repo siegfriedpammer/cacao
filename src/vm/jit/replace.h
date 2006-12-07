@@ -42,6 +42,7 @@ typedef struct rplpoint rplpoint;
 typedef struct executionstate_t executionstate_t;
 typedef struct sourcestate_t sourcestate_t;
 typedef struct sourceframe_t sourceframe_t;
+typedef struct replace_safestack_t replace_safestack_t;
 
 #include "config.h"
 #include "vm/types.h"
@@ -51,6 +52,11 @@ typedef struct sourceframe_t sourceframe_t;
 
 #include "vm/method.h"
 #include "vm/jit/reg.h"
+
+
+/* the size of the safe stack we use during replacement */
+
+#define REPLACE_SAFESTACK_SIZE  4096  /* bytes */
 
 
 /*** structs *********************************************************/
@@ -151,12 +157,37 @@ struct sourceframe_t {
 	u8            *syncslots;
 	s4             syncslotcount; /* XXX do we need more than one? */
 
-	rplpoint      *readrp;         /* rplpoint used to read this frame */
+	rplpoint      *fromrp;         /* rplpoint used to read this frame */
+	codeinfo      *fromcode;              /* code this frame was using */
+
+	rplpoint      *torp;          /* rplpoint this frame was mapped to */
+	codeinfo      *tocode;            /* code this frame was mapped to */
 };
 
 
 struct sourcestate_t {
 	sourceframe_t *frames;    /* list of source frames, from bottom up */
+};
+
+
+/* replace_safestack_t *********************************************************
+
+   This struct is used to allocate a safe stack area to be used during the
+   last phase of replacement. It also contains copies of all data needed
+   during this phase. (The data cannot be kept in normal variables, as
+   the C stack may be destroyed during replacement.)
+
+   CAUTION: Do not change the layout of this struct! The assembler code
+            depends on the order of fields. (`stack` must be first,
+			directly followed by `es`.)
+
+*******************************************************************************/
+
+struct replace_safestack_t {
+	u1                stack[REPLACE_SAFESTACK_SIZE];
+	executionstate_t  es;
+	sourcestate_t    *ss;
+	s4                dumpsize;
 };
 
 
@@ -175,6 +206,7 @@ void replace_show_replacement_points(codeinfo *code);
 void replace_replacement_point_println(rplpoint *rp, int depth);
 void replace_executionstate_println(executionstate_t *es);
 void replace_sourcestate_println(sourcestate_t *ss);
+void replace_sourcestate_println_short(sourcestate_t *ss);
 void replace_source_frame_println(sourceframe_t *frame);
 #endif
 

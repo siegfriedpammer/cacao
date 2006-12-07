@@ -26,8 +26,6 @@
 
    Authors: Edwin Steiner
 
-   Changes:
-
    $Id$
 
 */
@@ -79,17 +77,7 @@ typedef u8 stackslot_t;
 /*#define REPLACE_VERBOSE*/
 
 #if !defined(NDEBUG)
-void java_value_print(s4 type, u8 value);
-
-static char *replace_type_str[] = {
-	"STD",
-	"EXH",
-	"SBR",
-	"CALL",
-	"INLINE",
-	"RETURN",
-	"BODY"
-};
+static void java_value_print(s4 type, u8 value);
 #endif /* !defined(NDEBUG) */
 
 #if !defined(NDEBUG) && defined(REPLACE_VERBOSE)
@@ -139,55 +127,7 @@ static int stat_dist_method_rplpoints[20] = { 0 };
         else (array)[limit]++;                                       \
     } while (0)
 
-#define REPLACE_PRINT_DIST(name, array) \
-	printf("    " name " distribution:\n"); \
-	print_freq(stdout, (array), sizeof(array)/sizeof(int) - 1);
-
-static void print_freq(FILE *file,int *array,int limit)
-{
-	int i;
-	int sum = 0;
-	int cum = 0;
-	for (i=0; i<limit; ++i)
-		sum += array[i];
-	sum += array[limit];
-	for (i=0; i<limit; ++i) {
-		cum += array[i];
-		fprintf(file,"      %3d: %8d (cum %3d%%)\n",
-				i, array[i], (sum) ? ((100*cum)/sum) : 0);
-	}
-	fprintf(file,"    >=%3d: %8d\n",limit,array[limit]);
-}
-
-void replace_print_statistics(void)
-{
-	printf("replacement statistics:\n");
-	printf("    # of replacements:   %d\n", stat_replacements);
-	printf("    # of frames:         %d\n", stat_frames);
-	printf("    # of recompilations: %d\n", stat_recompile);
-	printf("    patched static calls:%d\n", stat_staticpatch);
-	printf("    unrolled inlines:    %d\n", stat_unroll_inline);
-	printf("    unrolled calls:      %d\n", stat_unroll_call);
-	REPLACE_PRINT_DIST("frame depth", stat_dist_frames);
-	REPLACE_PRINT_DIST("locals per frame", stat_dist_locals);
-	REPLACE_PRINT_DIST("ADR locals per frame", stat_dist_locals_adr);
-	REPLACE_PRINT_DIST("primitive locals per frame", stat_dist_locals_prim);
-	REPLACE_PRINT_DIST("RET locals per frame", stat_dist_locals_ret);
-	REPLACE_PRINT_DIST("void locals per frame", stat_dist_locals_void);
-	REPLACE_PRINT_DIST("stack slots per frame", stat_dist_stack);
-	REPLACE_PRINT_DIST("ADR stack slots per frame", stat_dist_stack_adr);
-	REPLACE_PRINT_DIST("primitive stack slots per frame", stat_dist_stack_prim);
-	REPLACE_PRINT_DIST("RET stack slots per frame", stat_dist_stack_ret);
-	printf("\n");
-	printf("    # of methods:            %d\n", stat_methods);
-	printf("    # of replacement points: %d\n", stat_rploints);
-	printf("    # of regallocs:          %d\n", stat_regallocs);
-	printf("        per rplpoint:        %f\n", (double)stat_regallocs / stat_rploints);
-	printf("        per method:          %f\n", (double)stat_regallocs / stat_methods);
-	REPLACE_PRINT_DIST("replacement points per method", stat_dist_method_rplpoints);
-	printf("\n");
-
-}
+static void replace_statistics_source_frame(sourceframe_t *frame);
 
 #else
 
@@ -198,12 +138,18 @@ void replace_print_statistics(void)
 
 #endif /* defined(REPLACE_STATISTICS) */
 
+
 /*** constants used internally ************************************************/
 
 #define TOP_IS_NORMAL    0
 #define TOP_IS_ON_STACK  1
 #define TOP_IS_IN_ITMP1  2
 #define TOP_IS_VOID      3
+
+
+/******************************************************************************/
+/* PART I: Creating / freeing replacement points                              */
+/******************************************************************************/
 
 
 /* replace_create_replacement_point ********************************************
@@ -764,6 +710,11 @@ void replace_free_replacement_points(codeinfo *code)
 }
 
 
+/******************************************************************************/
+/* PART II: Activating / deactivating replacement points                      */
+/******************************************************************************/
+
+
 /* replace_activate_replacement_points *****************************************
  
    Activate the replacement points of the given compilation unit. When this
@@ -870,11 +821,10 @@ void replace_deactivate_replacement_points(codeinfo *code)
 	rp = code->rplpoints;
 	count = 0;
 	for (; i--; rp++) {
-		if (rp->flags & RPLPOINT_FLAG_NOTRAP)
+		if (!(rp->flags & RPLPOINT_FLAG_ACTIVE))
 			continue;
 
 		count++;
-		assert(rp->flags & RPLPOINT_FLAG_ACTIVE);
 
 		DOLOG( printf("deactivate replacement point:\n");
 			   replace_replacement_point_println(rp, 1); fflush(stdout); );
@@ -895,6 +845,11 @@ void replace_deactivate_replacement_points(codeinfo *code)
 	MFREE(code->savedmcode, u1, count * REPLACEMENT_PATCH_SIZE);
 	code->savedmcode = NULL;
 }
+
+
+/******************************************************************************/
+/* PART III: The replacement mechanism                                        */
+/******************************************************************************/
 
 
 /* replace_read_value **********************************************************
@@ -1010,7 +965,7 @@ static s4 replace_normalize_type_map[] = {
 
 static void replace_read_executionstate(rplpoint *rp,
 										executionstate_t *es,
-									 	sourcestate_t *ss,
+										sourcestate_t *ss,
 										bool topframe)
 {
 	methodinfo    *m;
@@ -1052,7 +1007,10 @@ static void replace_read_executionstate(rplpoint *rp,
 	frame->instance = 0;
 	frame->syncslotcount = 0;
 	frame->syncslots = NULL;
-	frame->readrp = rp;
+	frame->fromrp = rp;
+	frame->fromcode = code;
+	frame->torp = NULL;
+	frame->tocode = NULL;
 
 	ss->frames = frame;
 
@@ -1511,7 +1469,7 @@ void replace_patch_future_calls(u1 *ra, sourceframe_t *calleeframe, codeinfo *ca
 
 	atentry = (calleeframe->down == NULL)
 			&& !(calleecode->m->flags & ACC_STATIC)
-			&& (calleeframe->readrp->id == 0); /* XXX */
+			&& (calleeframe->fromrp->id == 0); /* XXX */
 
 	DOLOG( printf("bytes at patch position:");
 		   for (i=0; i<16; ++i)
@@ -1714,9 +1672,9 @@ void replace_push_activation_record(executionstate_t *es,
 	/* redirect future invocations */
 
 #if defined(REPLACE_PATCH_ALL)
-	if (rpcall->type == callerframe->readrp->type)
+	if (rpcall->type == callerframe->fromrp->type)
 #else
-	if (rpcall == callerframe->readrp)
+	if (rpcall == callerframe->fromrp)
 #endif
 		replace_patch_future_calls(ra, calleeframe, calleecode);
 }
@@ -1729,7 +1687,7 @@ void replace_push_activation_record(executionstate_t *es,
    
    IN:
 	   code.............the codeinfo in which to search the rplpoint
-	   ss...............the source state defining the position to look for
+	   frame............the source frame defining the position to look for
 	   parent...........parent replacement point to match
 
    RETURN VALUE:
@@ -1738,10 +1696,9 @@ void replace_push_activation_record(executionstate_t *es,
 *******************************************************************************/
 
 rplpoint * replace_find_replacement_point(codeinfo *code,
-										  sourcestate_t *ss,
+										  sourceframe_t *frame,
 										  rplpoint *parent)
 {
-	sourceframe_t *frame;
 	methodinfo *m;
 	rplpoint *rp;
 	s4        i;
@@ -1749,9 +1706,6 @@ rplpoint * replace_find_replacement_point(codeinfo *code,
 	s4        stacki;
 	rplalloc *ra;
 
-	assert(ss);
-
-	frame = ss->frames;
 	assert(frame);
 
 	DOLOG( printf("searching replacement point for:\n");
@@ -1811,6 +1765,261 @@ no_match:
 }
 
 
+/* replace_find_replacement_point_for_pc ***************************************
+
+   Find the nearest replacement point at or before the given PC.
+
+   IN:
+       code.............compilation unit the PC is in
+	   pc...............the machine code PC
+
+   RETURN VALUE:
+       the replacement point found, or
+	   NULL if no replacement point was found
+
+*******************************************************************************/
+
+rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
+{
+	rplpoint *found;
+	rplpoint *rp;
+	s4        i;
+
+	found = NULL;
+
+	rp = code->rplpoints;
+	for (i=0; i<code->rplpointcount; ++i, ++rp)
+		if (rp->pc <= pc)
+			found = rp;
+
+	return found;
+}
+
+
+/* replace_recover_source_state ************************************************
+
+   Recover the source state from the given replacement point and execution
+   state.
+
+   IN:
+       rp...............replacement point that has been reached
+	   es...............execution state at the replacement point rp
+
+   RETURN VALUE:
+       the source state
+
+*******************************************************************************/
+
+sourcestate_t *replace_recover_source_state(rplpoint *rp,
+										    executionstate_t *es)
+{
+	sourcestate_t *ss;
+	u1            *ra;
+#if defined(REPLACE_STATISTICS)
+	s4             depth;
+#endif
+
+	/* create the source frame structure in dump memory */
+
+	ss = DNEW(sourcestate_t);
+	ss->frames = NULL;
+
+	/* each iteration of the loop recovers one source frame */
+
+	depth = 0;
+
+	while (true) {
+
+		/* read the values for this source frame from the execution state */
+
+		DOLOG( printf("recovering source state for%s:\n",
+					(ss->frames == NULL) ? " TOPFRAME" : "");
+			   replace_replacement_point_println(rp, 1); );
+
+		replace_read_executionstate(rp, es, ss, ss->frames == NULL);
+
+#if defined(REPLACE_STATISTICS)
+		REPLACE_COUNT(stat_frames);
+		depth++;
+		replace_statistics_source_frame(ss->frames);
+#endif
+
+		/* unroll to the next (outer) frame */
+
+		if (rp->parent) {
+			/* this frame is in inlined code */
+
+			DOLOG( printf("INLINED!\n"); );
+
+			rp = rp->parent;
+
+			assert(rp->type == RPLPOINT_TYPE_INLINE);
+			REPLACE_COUNT(stat_unroll_inline);
+		}
+		else {
+			/* this frame had been called at machine-level */
+
+			DOLOG( printf("UNWIND\n"); );
+
+			ra = replace_pop_activation_record(es, ss->frames);
+			if (ra == NULL) {
+				DOLOG( printf("BREAKING\n"); );
+				break;
+			}
+
+			rp = replace_find_replacement_point_for_pc(es->code, es->pc);
+
+			if (rp == NULL)
+				vm_abort("could not find replacement point while unrolling call");
+
+			DOLOG( printf("found replacement point.\n");
+					replace_replacement_point_println(rp, 1); );
+
+			assert(rp->type == RPLPOINT_TYPE_CALL);
+			REPLACE_COUNT(stat_unroll_call);
+		}
+	} /* end loop over source frames */
+
+	REPLACE_COUNT_DIST(stat_dist_frames, depth);
+
+	return ss;
+}
+
+
+/* replace_map_source_state ****************************************************
+
+   Map each source frame in the given source state to a target replacement
+   point and compilation unit. If no valid code is available for a source
+   frame, it is (re)compiled.
+
+   IN:
+       firstcode........XXX temporary hack, will be removed
+       ss...............the source state
+
+   OUT:
+       ss...............the source state, modified: The `torp` and `tocode`
+	                    fields of each source frame are set.
+
+   RETURN VALUE:
+       true.............everything went ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+static bool replace_map_source_state(codeinfo *firstcode, sourcestate_t *ss)
+{
+	sourceframe_t *frame;
+	codeinfo      *code;
+	rplpoint      *rp;
+	rplpoint      *parent; /* parent of inlined rplpoint */
+#if defined(REPLACE_STATISTICS)
+	codeinfo      *oldcode;
+#endif
+
+	parent = NULL;
+
+	/* iterate over the source frames from outermost to innermost */
+
+	code = firstcode; /* XXX should get code for first frame */
+
+	frame = ss->frames;
+	while (true) {
+
+		/* map this frame */
+
+		rp = replace_find_replacement_point(code, frame, parent);
+
+		frame->tocode = code;
+		frame->torp = rp;
+
+		/* go down one frame */
+
+		frame = frame->down;
+		if (frame == NULL)
+			break;
+
+		if (rp->type == RPLPOINT_TYPE_CALL) {
+#if defined(REPLACE_STATISTICS)
+			oldcode = frame->method->code;
+#endif
+			code = jit_get_current_code(frame->method);
+
+			if (code == NULL)
+				return false; /* exception */
+
+			REPLACE_COUNT_IF(stat_recompile, code != oldcode);
+
+			parent = NULL;
+		}
+		else {
+			parent = rp;
+		}
+	}
+
+	return true;
+}
+
+
+/* replace_build_execution_state ***********************************************
+
+   Build an execution state for the given (mapped) source state.
+
+   !!! CAUTION: This function rewrites the machine stack !!!
+
+   IN:
+       ss...............the source state. Must have been mapped by
+						replace_map_source_state before.
+	   es...............the base execution state on which to build
+
+   OUT:
+       *es..............the new execution state
+
+*******************************************************************************/
+
+static void replace_build_execution_state(sourcestate_t *ss,
+										  executionstate_t *es)
+{
+	rplpoint      *rp;
+	sourceframe_t *prevframe;
+	codeinfo      *code;
+
+	while (true) {
+
+		code = ss->frames->tocode;
+		rp = ss->frames->torp;
+
+		assert(code);
+		assert(rp);
+		assert(es->code == code);
+
+		DOLOG( printf("creating execution state for%s:\n",
+				(ss->frames->down == NULL) ? " TOPFRAME" : "");
+			   replace_replacement_point_println(ss->frames->fromrp, 1);
+			   replace_replacement_point_println(rp, 1); );
+
+		prevframe = ss->frames;
+
+		replace_write_executionstate(rp, es, ss, ss->frames->down == NULL);
+
+		if (ss->frames == NULL)
+			break;
+
+		DOLOG( replace_executionstate_println(es); );
+
+		if (rp->type == RPLPOINT_TYPE_CALL) {
+
+			DOLOG( printf("pushing activation record for:\n");
+				   replace_replacement_point_println(rp, 1); );
+
+			code = ss->frames->tocode;
+			replace_push_activation_record(es, rp, prevframe, code, ss->frames);
+		}
+
+		DOLOG( replace_executionstate_println(es); );
+	}
+}
+
+
 /* replace_me ******************************************************************
  
    This function is called by asm_replacement_out when a thread reaches
@@ -1827,19 +2036,10 @@ no_match:
 
 void replace_me(rplpoint *rp, executionstate_t *es)
 {
-	sourcestate_t  ss;
+	sourcestate_t *ss;
+	sourceframe_t *frame;
 	s4             dumpsize;
-	rplpoint      *candidate;
-	codeinfo      *code;
-	s4             i;
-	s4             depth;
 	rplpoint      *origrp;
-	rplpoint      *parent;
-	u1            *ra;
-	sourceframe_t *prevframe;
-#if defined(REPLACE_STATISTICS)
-	codeinfo      *oldcode;
-#endif
 
 	origrp = rp;
 	es->code = code_find_codeinfo_for_pc(rp->pc);
@@ -1849,8 +2049,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 				 rp->id, (void*)rp);
 				 method_println(es->code->m); );
 
-	DOLOG( printf("replace_me(%p,%p)\n",(void*)rp,(void*)es); fflush(stdout);
-		   replace_replacement_point_println(rp, 1);
+	DOLOG( replace_replacement_point_println(rp, 1);
 		   replace_executionstate_println(es); );
 
 	REPLACE_COUNT(stat_replacements);
@@ -1859,150 +2058,39 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	dumpsize = dump_size();
 
-	/* read execution state of old code */
+	/* recover source state */
 
-	ss.frames = NULL;
+	ss = replace_recover_source_state(rp, es);
 
-	/* XXX testing */
+	/* map the source state */
 
-	depth = 0;
-	candidate = rp;
-	do {
-		DOLOG( printf("recovering source state for%s:\n",
-					(ss.frames == NULL) ? " TOPFRAME" : "");
-			   replace_replacement_point_println(candidate, 1); );
+	if (!replace_map_source_state(es->code, ss))
+		vm_abort("exception during method replacement");
 
-		replace_read_executionstate(candidate, es, &ss, ss.frames == NULL);
-		REPLACE_COUNT(stat_frames);
-		depth++;
+	DOLOG( replace_sourcestate_println(ss); );
 
-#if defined(REPLACE_STATISTICS)
-		{
-		int adr = 0; int ret = 0; int prim = 0; int vd = 0; int n = 0;
-		for (i=0; i<ss.frames->javalocalcount; ++i) {
-			switch (ss.frames->javalocaltype[i]) {
-				case TYPE_ADR: adr++; break;
-				case TYPE_RET: ret++; break;
-				case TYPE_INT: case TYPE_LNG: case TYPE_FLT: case TYPE_DBL: prim++; break;
-				case TYPE_VOID: vd++; break;
-				default: assert(0);
-			}
-			n++;
-		}
-		REPLACE_COUNT_DIST(stat_dist_locals, n);
-		REPLACE_COUNT_DIST(stat_dist_locals_adr, adr);
-		REPLACE_COUNT_DIST(stat_dist_locals_void, vd);
-		REPLACE_COUNT_DIST(stat_dist_locals_ret, ret);
-		REPLACE_COUNT_DIST(stat_dist_locals_prim, prim);
-		adr = ret = prim = n = 0;
-		for (i=0; i<ss.frames->javastackdepth; ++i) {
-			switch (ss.frames->javastacktype[i]) {
-				case TYPE_ADR: adr++; break;
-				case TYPE_RET: ret++; break;
-				case TYPE_INT: case TYPE_LNG: case TYPE_FLT: case TYPE_DBL: prim++; break;
-			}
-			n++;
-		}
-		REPLACE_COUNT_DIST(stat_dist_stack, n);
-		REPLACE_COUNT_DIST(stat_dist_stack_adr, adr);
-		REPLACE_COUNT_DIST(stat_dist_stack_ret, ret);
-		REPLACE_COUNT_DIST(stat_dist_stack_prim, prim);
-		}
-#endif /* defined(REPLACE_STATISTICS) */
+	DOLOG_SHORT( replace_sourcestate_println_short(ss); );
 
-		if (candidate->parent) {
-			DOLOG( printf("INLINED!\n"); );
-			candidate = candidate->parent;
-			assert(candidate->type == RPLPOINT_TYPE_INLINE);
-			REPLACE_COUNT(stat_unroll_inline);
-		}
-		else {
-			DOLOG( printf("UNWIND\n"); );
-			REPLACE_COUNT(stat_unroll_call);
-			code = es->code;
-			ra = replace_pop_activation_record(es, ss.frames);
-			if (ra == NULL) {
-				DOLOG( printf("BREAKING\n"); );
-				break;
-			}
-			DOLOG( replace_executionstate_println(es); );
-			candidate = NULL;
-			rp = es->code->rplpoints;
-			for (i=0; i<es->code->rplpointcount; ++i, ++rp)
-				if (rp->pc <= es->pc)
-					candidate = rp;
-			if (!candidate)
-				DOLOG( printf("NO CANDIDATE!\n"); );
-			else {
-				DOLOG( printf("found replacement point.\n");
-					   replace_replacement_point_println(candidate, 1); );
-				assert(candidate->type == RPLPOINT_TYPE_CALL);
-			}
-		}
-	} while (candidate);
+	/* avoid infinite loops by self-replacement */
 
-	REPLACE_COUNT_DIST(stat_dist_frames, depth);
-	DOLOG( replace_sourcestate_println(&ss); );
+	frame = ss->frames;
+	while (frame->down)
+		frame = frame->down;
+
+	if (frame->torp == origrp) {
+		DOLOG_SHORT(
+			printf("WARNING: identity replacement, turning off rps to avoid infinite loop\n");
+		);
+		replace_deactivate_replacement_points(frame->tocode);
+	}
 
 	/* write execution state of new code */
 
 	DOLOG( replace_executionstate_println(es); );
 
-	code = es->code;
-
-	/* XXX get new code */
-
-	parent = NULL;
-
-	while (ss.frames) {
-
-		candidate = replace_find_replacement_point(code, &ss, parent);
-
-		DOLOG( printf("creating execution state for%s:\n",
-				(ss.frames->down == NULL) ? " TOPFRAME" : "");
-			   replace_replacement_point_println(ss.frames->readrp, 1);
-			   replace_replacement_point_println(candidate, 1); );
-
-		DOLOG_SHORT( printf("\t%c%s ",
-					 (candidate == ss.frames->readrp) ? '=' : '+',
-					 replace_type_str[candidate->type]); 
-				     method_println(ss.frames->method); );
-
-		prevframe = ss.frames;
-		replace_write_executionstate(candidate, es, &ss, ss.frames->down == NULL);
-		if (ss.frames == NULL)
-			break;
-		DOLOG( replace_executionstate_println(es); );
-
-		if (candidate->type == RPLPOINT_TYPE_CALL) {
-#if defined(REPLACE_STATISTICS)
-			oldcode = ss.frames->method->code;
-#endif
-			code = jit_get_current_code(ss.frames->method);
-
-			REPLACE_COUNT_IF(stat_recompile, code != oldcode);
-
-			DOLOG( printf("pushing activation record for:\n");
-				   replace_replacement_point_println(candidate, 1); );
-
-			replace_push_activation_record(es, candidate, prevframe, code, ss.frames);
-			parent = NULL;
-		}
-		else {
-			parent = candidate;
-		}
-		DOLOG( replace_executionstate_println(es); );
-	}
+	replace_build_execution_state(ss, es);
 
 	DOLOG( replace_executionstate_println(es); );
-
-	assert(candidate);
-	if (candidate == origrp) {
-		DOLOG_SHORT(
-			printf("WARNING: identity replacement, turning off rps to avoid infinite loop\n");
-		);
-		replace_deactivate_replacement_points(code);
-	}
 
 	/* release dump area */
 
@@ -2019,6 +2107,114 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 }
 
 
+/******************************************************************************/
+/* NOTE: No important code below.                                             */
+/******************************************************************************/
+
+
+/* statistics *****************************************************************/
+
+#if defined(REPLACE_STATISTICS)
+static void print_freq(FILE *file,int *array,int limit)
+{
+	int i;
+	int sum = 0;
+	int cum = 0;
+	for (i=0; i<limit; ++i)
+		sum += array[i];
+	sum += array[limit];
+	for (i=0; i<limit; ++i) {
+		cum += array[i];
+		fprintf(file,"      %3d: %8d (cum %3d%%)\n",
+				i, array[i], (sum) ? ((100*cum)/sum) : 0);
+	}
+	fprintf(file,"    >=%3d: %8d\n",limit,array[limit]);
+}
+#endif /* defined(REPLACE_STATISTICS) */
+
+
+#if defined(REPLACE_STATISTICS)
+
+#define REPLACE_PRINT_DIST(name, array)                              \
+    printf("    " name " distribution:\n");                          \
+    print_freq(stdout, (array), sizeof(array)/sizeof(int) - 1);
+
+void replace_print_statistics(void)
+{
+	printf("replacement statistics:\n");
+	printf("    # of replacements:   %d\n", stat_replacements);
+	printf("    # of frames:         %d\n", stat_frames);
+	printf("    # of recompilations: %d\n", stat_recompile);
+	printf("    patched static calls:%d\n", stat_staticpatch);
+	printf("    unrolled inlines:    %d\n", stat_unroll_inline);
+	printf("    unrolled calls:      %d\n", stat_unroll_call);
+	REPLACE_PRINT_DIST("frame depth", stat_dist_frames);
+	REPLACE_PRINT_DIST("locals per frame", stat_dist_locals);
+	REPLACE_PRINT_DIST("ADR locals per frame", stat_dist_locals_adr);
+	REPLACE_PRINT_DIST("primitive locals per frame", stat_dist_locals_prim);
+	REPLACE_PRINT_DIST("RET locals per frame", stat_dist_locals_ret);
+	REPLACE_PRINT_DIST("void locals per frame", stat_dist_locals_void);
+	REPLACE_PRINT_DIST("stack slots per frame", stat_dist_stack);
+	REPLACE_PRINT_DIST("ADR stack slots per frame", stat_dist_stack_adr);
+	REPLACE_PRINT_DIST("primitive stack slots per frame", stat_dist_stack_prim);
+	REPLACE_PRINT_DIST("RET stack slots per frame", stat_dist_stack_ret);
+	printf("\n");
+	printf("    # of methods:            %d\n", stat_methods);
+	printf("    # of replacement points: %d\n", stat_rploints);
+	printf("    # of regallocs:          %d\n", stat_regallocs);
+	printf("        per rplpoint:        %f\n", (double)stat_regallocs / stat_rploints);
+	printf("        per method:          %f\n", (double)stat_regallocs / stat_methods);
+	REPLACE_PRINT_DIST("replacement points per method", stat_dist_method_rplpoints);
+	printf("\n");
+
+}
+#endif /* defined(REPLACE_STATISTICS) */
+
+
+#if defined(REPLACE_STATISTICS)
+static void replace_statistics_source_frame(sourceframe_t *frame)
+{
+	int adr = 0;
+	int ret = 0;
+	int prim = 0;
+	int vd = 0;
+	int n = 0;
+	int i;
+
+	for (i=0; i<frame->javalocalcount; ++i) {
+		switch (frame->javalocaltype[i]) {
+			case TYPE_ADR: adr++; break;
+			case TYPE_RET: ret++; break;
+			case TYPE_INT: case TYPE_LNG: case TYPE_FLT: case TYPE_DBL: prim++; break;
+			case TYPE_VOID: vd++; break;
+			default: assert(0);
+		}
+		n++;
+	}
+	REPLACE_COUNT_DIST(stat_dist_locals, n);
+	REPLACE_COUNT_DIST(stat_dist_locals_adr, adr);
+	REPLACE_COUNT_DIST(stat_dist_locals_void, vd);
+	REPLACE_COUNT_DIST(stat_dist_locals_ret, ret);
+	REPLACE_COUNT_DIST(stat_dist_locals_prim, prim);
+	adr = ret = prim = n = 0;
+	for (i=0; i<frame->javastackdepth; ++i) {
+		switch (frame->javastacktype[i]) {
+			case TYPE_ADR: adr++; break;
+			case TYPE_RET: ret++; break;
+			case TYPE_INT: case TYPE_LNG: case TYPE_FLT: case TYPE_DBL: prim++; break;
+		}
+		n++;
+	}
+	REPLACE_COUNT_DIST(stat_dist_stack, n);
+	REPLACE_COUNT_DIST(stat_dist_stack_adr, adr);
+	REPLACE_COUNT_DIST(stat_dist_stack_ret, ret);
+	REPLACE_COUNT_DIST(stat_dist_stack_prim, prim);
+}
+#endif /* defined(REPLACE_STATISTICS) */
+
+
+/* debugging helpers **********************************************************/
+
 /* replace_replacement_point_println *******************************************
  
    Print replacement point info.
@@ -2031,6 +2227,16 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 #if !defined(NDEBUG)
 
 #define TYPECHAR(t)  (((t) >= 0 && (t) <= TYPE_RET) ? show_jit_type_letters[t] : '?')
+
+static char *replace_type_str[] = {
+	"STD",
+	"EXH",
+	"SBR",
+	"CALL",
+	"INLINE",
+	"RETURN",
+	"BODY"
+};
 
 void replace_replacement_point_println(rplpoint *rp, int depth)
 {
@@ -2084,7 +2290,7 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 
 	printf("\n");
 }
-#endif
+#endif /* !defined(NDEBUG) */
 
 
 /* replace_show_replacement_points *********************************************
@@ -2149,7 +2355,7 @@ void replace_executionstate_println(executionstate_t *es)
 	int slots;
 	stackslot_t *sp;
 	int extraslots;
-	
+
 	if (!es) {
 		printf("(executionstate_t *)NULL\n");
 		return;
@@ -2221,7 +2427,7 @@ void replace_executionstate_println(executionstate_t *es)
 #endif
 
 #if !defined(NDEBUG)
-void java_value_print(s4 type, u8 value)
+static void java_value_print(s4 type, u8 value)
 {
 	java_objectheader *obj;
 	utf               *u;
@@ -2315,11 +2521,25 @@ void replace_source_frame_println(sourceframe_t *frame)
 		printf("\n");
 	}
 
-	if (frame->readrp) {
-		printf("\tread replacement point:\n");
-		replace_replacement_point_println(frame->readrp, 2);
-		printf("\n");
+	if (frame->fromcode) {
+		printf("\tfrom %p ", (void*)frame->fromcode);
+		method_println(frame->fromcode->m);
 	}
+	if (frame->tocode) {
+		printf("\tto %p ", (void*)frame->tocode);
+		method_println(frame->tocode->m);
+	}
+
+	if (frame->fromrp) {
+		printf("\tfrom replacement point:\n");
+		replace_replacement_point_println(frame->fromrp, 2);
+	}
+	if (frame->torp) {
+		printf("\tto replacement point:\n");
+		replace_replacement_point_println(frame->torp, 2);
+	}
+
+	printf("\n");
 }
 #endif /* !defined(NDEBUG) */
 
@@ -2349,6 +2569,45 @@ void replace_sourcestate_println(sourcestate_t *ss)
 	for (i=0, frame = ss->frames; frame != NULL; frame = frame->down, ++i) {
 		printf("    frame %d:\n", i);
 		replace_source_frame_println(frame);
+	}
+}
+#endif
+
+
+/* replace_sourcestate_println_short *******************************************
+
+   Print a compact representation of the given source state.
+
+   IN:
+       ss...............the source state to print
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void replace_sourcestate_println_short(sourcestate_t *ss)
+{
+	sourceframe_t *frame;
+
+	for (frame = ss->frames; frame != NULL; frame = frame->down) {
+		printf("\t");
+
+		if (frame->torp) {
+			printf("%c", (frame->torp == frame->fromrp) ? '=' : '+');
+		}
+
+		printf("%s", replace_type_str[frame->fromrp->type]);
+
+		if (frame->torp && frame->torp->type != frame->fromrp->type)
+			printf("->%s", replace_type_str[frame->torp->type]);
+
+		if (frame->tocode != frame->fromcode)
+			printf(" (%p->%p/%d) ",
+				   (void*) frame->fromcode, (void*) frame->tocode,
+				   frame->fromrp->id);
+		else
+			printf(" (%p/%d) ", (void*) frame->fromcode, frame->fromrp->id);
+
+		method_println(frame->method);
 	}
 }
 #endif
