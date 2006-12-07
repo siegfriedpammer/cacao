@@ -171,7 +171,7 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	s4 disp;
 
 	if ((value >= -4096) && (value <= 4095)) {
-		M_XOR(REG_ZERO, value, d);
+		M_XOR_IMM(REG_ZERO, value, d);
 	} else {
 		disp = dseg_add_s4(cd, value);
 		M_ILD(d, REG_PV_CALLEE, disp);
@@ -190,7 +190,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	s4 disp;
 
 	if ((value >= -4096) && (value <= 4095)) {
-		M_XOR(REG_ZERO, value, d);	
+		M_XOR_IMM(REG_ZERO, value, d);	
 	} else {
 		disp = dseg_add_s8(cd, value);
 		M_LDX(d, REG_PV_CALLEE, disp);
@@ -409,8 +409,8 @@ void emit_verbosecall_enter(jitdata *jd)
 				M_LDX(rd->argintregs[i], REG_SP, USESTACK_PARAMS);
 			}
 			else {
-				M_DST(rd->argfltregs[i], REG_SP, USESTACK_PARAMS);
-				M_LDX(rd->argintregs[i], REG_SP, USESTACK_PARAMS);
+				M_FST(rd->argfltregs[i], REG_SP, USESTACK_PARAMS);
+				M_ILD(rd->argintregs[i], REG_SP, USESTACK_PARAMS);
 			}
 		}
 	}

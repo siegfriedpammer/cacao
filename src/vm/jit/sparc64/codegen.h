@@ -272,8 +272,8 @@
 
 #define M_OR(rs1,rs2,rd)        M_OP3(0x02,0x02,rd,rs1,rs2,REG)     /* rd = rs1 | rs2     */
 #define M_OR_IMM(rs1,rs2,rd)    M_OP3(0x02,0x02,rd,rs1,rs2,IMM)
-#define M_XOR(rs1,rs2,rd)       M_OP3(0x02,0x03,rs1,rs2,rd,REG)     /* rd = rs1 ^  rs2    */
-#define M_XOR_IMM(rs1,rs2,rd)   M_OP3(0x02,0x03,rs1,rs2,rd,IMM)
+#define M_XOR(rs1,rs2,rd)       M_OP3(0x02,0x03,rd,rs1,rs2,REG)     /* rd = rs1 ^  rs2    */
+#define M_XOR_IMM(rs1,rs2,rd)   M_OP3(0x02,0x03,rd,rs1,rs2,IMM)
 
 #define M_MOV(rs,rd)            M_OR(REG_ZERO, rs, rd)              /* rd = rs            */
 

@@ -2354,6 +2354,7 @@ nowperformreturn:
 
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
+			assert(md->paramcount <= 5);
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
@@ -2423,6 +2424,9 @@ gen_method:
 				M_ALD(REG_PV_CALLER, REG_PV, disp);  /* built-in-function pointer */
 				s1 = REG_PV_CALLER;
 
+				/* c call, allocate parameter array */
+				M_LDA(REG_SP, REG_SP, -(ABI_PARAMARRAY_SLOTS) * 8);
+
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2435,12 +2439,8 @@ gen_method:
 				if (lm == NULL) {
 					disp = dseg_add_unique_address(cd, NULL);
 
-					codegen_addpatchref(cd, PATCHER_invokestatic_special,
+					codegen_add_patch_ref(cd, PATCHER_invokestatic_special,
 										um, disp);
-
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP;
-					}
 				}
 				else
 					disp = dseg_add_address(cd, lm->stubroutine);
@@ -2506,6 +2506,12 @@ gen_method:
 			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			/* REG_RA holds the value of the jmp instruction, therefore +8 */
 			M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
+
+			if (iptr->opc == ICMD_BUILTIN) {
+				/* remove param slots */
+				M_LDA(REG_SP, REG_SP, (ABI_PARAMARRAY_SLOTS) * 8);
+			}
+
 
 			/* actually only used for ICMD_BUILTIN */
 
