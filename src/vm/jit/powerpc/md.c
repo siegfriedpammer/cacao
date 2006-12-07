@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 6141 2006-12-07 22:48:41Z edwin $
+   $Id: md.c 6142 2006-12-07 23:02:52Z edwin $
 
 */
 
@@ -332,18 +332,29 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 
-void md_patch_replacement_point(rplpoint *rp)
+void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
-    u8 mcode;
+	s4 disp;
+	u4 mcode;
 
-	/* save the current machine code */
-	mcode = *(u4*)rp->pc;
+	if (index < 0) {
+		/* restore the patched-over instruction */
+		*(u4*)(rp->pc) = *(u4*)(savedmcode);
+	}
+	else {
+		/* save the current machine code */
+		*(u4*)(savedmcode) = *(u4*)(rp->pc);
 
-	/* write the new machine code */
-    *(u4*)(rp->pc) = (u4) rp->mcode;
+		/* build the machine code for the patch */
+		disp = ((u4*)code->replacementstubs - (u4*)rp->pc)
+			   + index * REPLACEMENT_STUB_SIZE
+			   - 1;
 
-	/* store saved mcode */
-	rp->mcode = mcode;
+        mcode = (18 << 26) | ((((disp) * 4) + 4) & M_BMASK);
+
+		/* write the new machine code */
+		*(u4*)(rp->pc) = (u4) mcode;
+	}
 	
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
 	{

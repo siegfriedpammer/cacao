@@ -185,7 +185,8 @@ void replace_source_frame_println(sourceframe_t *frame);
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 
 #if defined(ENABLE_JIT)
-void md_patch_replacement_point(rplpoint *rp);
+void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
+								u1 *savedmcode);
 #endif
 
 #endif

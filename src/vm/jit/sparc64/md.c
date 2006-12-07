@@ -340,18 +340,30 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 
-void md_patch_replacement_point(rplpoint *rp)
+void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
-    u8 mcode;
+	s4 disp;
+	u4 mcode;
 
-	/* save the current machine code */
-	mcode = *(u4*)rp->pc;
+	if (index < 0) {
+		/* restore the patched-over instruction */
+		*(u4*)(rp->pc) = *(u4*)(savedmcode);
+	}
+	else {
+		/* save the current machine code */
+		*(u4*)(savedmcode) = *(u4*)(rp->pc);
 
-	/* write the new machine code */
-    *(u4*)(rp->pc) = (u4) rp->mcode;
+		/* build the machine code for the patch */
+		disp = ((u4*)code->replacementstubs - (u4*)rp->pc)
+			   + index * REPLACEMENT_STUB_SIZE
+			   - 1;
 
-	/* store saved mcode */
-	rp->mcode = mcode;
+		mcode = (((s4)(0x00))<<30) | ((0)<<29) | ((0x8)<<25) | (0x1<<22) | (0<<20)
+			  | (1 << 19 ) | ((disp) & 0x007ffff);
+
+		/* write the new machine code */
+		*(u4*)(rp->pc) = (u4) mcode;
+	}
 	
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	{

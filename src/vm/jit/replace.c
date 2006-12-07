@@ -789,7 +789,7 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 	rp->target = target;
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
-	md_patch_replacement_point(rp);
+	md_patch_replacement_point(NULL, -1, rp, NULL); /* XXX dummy arguments */
 #endif
 }
 
@@ -815,7 +815,7 @@ void replace_deactivate_replacement_point(rplpoint *rp)
 	rp->target = NULL;
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
-	md_patch_replacement_point(rp);
+	md_patch_replacement_point(NULL, -1, rp, NULL); /* XXX dummy arguments */
 #endif
 }
 

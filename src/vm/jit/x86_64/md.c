@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 6140 2006-12-07 22:45:09Z edwin $
+   $Id: md.c 6142 2006-12-07 23:02:52Z edwin $
 
 */
 
@@ -378,28 +378,46 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 
-void md_patch_replacement_point(rplpoint *rp)
+void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
-    u8 mcode;
+	s4 disp;
+	u8 mcode;
 
 	/* XXX this is probably unsafe! */
 
-	/* save the current machine code */
-	mcode = *(u8*)rp->pc;
+	if (index < 0) {
+		/* write spinning instruction */
+		*(u2*)(rp->pc) = 0xebfe;
 
-	/* write spinning instruction */
-	*(u2*)(rp->pc) = 0xebfe;
+		/* write 5th byte */
+		rp->pc[4] = savedmcode[4];
 
-	/* write 5th byte */
-	rp->pc[4] = (rp->mcode >> 32);
+		/* write first word */
+		*(u4*)(rp->pc) = *(u4*)(savedmcode);
+	}
+	else {
+		/* save the current machine code */
+		*(u4*)(savedmcode) = *(u4*)(rp->pc);
+		savedmcode[4] = rp->pc[4];
 
-	/* write first word */
-    *(u4*)(rp->pc) = (u4) rp->mcode;
+		/* build the machine code for the patch */
+		disp = (code->replacementstubs - rp->pc)
+			   + index * REPLACEMENT_STUB_SIZE
+			   - 5;
 
-	/* store saved mcode */
-	rp->mcode = mcode;
-	
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
+		mcode = 0xe9 | ((u8) disp << 8);
+
+		/* write spinning instruction */
+		*(u2*)(rp->pc) = 0xebfe;
+
+		/* write 5th byte */
+		rp->pc[4] = (mcode >> 32);
+
+		/* write first word */
+		*(u4*)(rp->pc) = (u4) mcode;
+	}
+
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
 	{
 		u1* u1ptr = rp->pc;
 		DISASSINSTR(u1ptr);

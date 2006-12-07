@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 6140 2006-12-07 22:45:09Z edwin $
+   $Id: md.c 6142 2006-12-07 23:02:52Z edwin $
 
 */
 
@@ -341,18 +341,43 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 
-void md_patch_replacement_point(rplpoint *rp)
+void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
+								u1 *savedmcode)
 {
-    u8 mcode;
+	s4 disp;
+	union {
+		u8 both;
+		u4 words[2];
+	} mcode;
 
-	/* save the current machine code */
-	mcode = *(u8*)rp->pc;
+	if (index < 0) {
+		/* restore the patched-over instruction */
+		*(u8*)(rp->pc) = *(u8*)(savedmcode);
+	}
+	else {
+		/* save the current machine code */
+		*(u8*)(savedmcode) = *(u8*)(rp->pc);
 
-	/* write the new machine code */
-    *(u8*)(rp->pc) = rp->mcode;
+		/* make machine code for patching */
 
-	/* store saved mcode */
-	rp->mcode = mcode;
+		disp = ((u4*)code->replacementstubs - (u4*)rp->pc)
+			   + index * REPLACEMENT_STUB_SIZE
+			   - 1;
+
+		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
+			*exceptionptr =
+				new_internalerror("Jump offset is out of range: %d > +/-%d",
+								  disp, 0x00007fff);
+			return;
+		}
+
+		/* BR */
+        mcode.words[0] = (((0x04) << 26) | ((0) << 21) | ((0) << 16) | ((disp) & 0xffff));
+		mcode.words[1] = 0; /* NOP in delay slot */ 
+
+		/* write the new machine code */
+		*(u8*)(rp->pc) = mcode.both;
+	}
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	{
