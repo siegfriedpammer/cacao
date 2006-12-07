@@ -249,7 +249,6 @@ static void replace_create_replacement_point(jitdata *jd,
 
 	rp->method = (iinfo) ? iinfo->method : jd->m;
 	rp->pc = NULL;        /* set by codegen */
-	rp->outcode = NULL;   /* set by codegen */
 	rp->callsize = 0;     /* set by codegen */
 	rp->regalloc = ra;
 	rp->flags = 0;
@@ -257,7 +256,6 @@ static void replace_create_replacement_point(jitdata *jd,
 	rp->id = iptr->flags.bits >> INS_FLAG_ID_SHIFT;
 
 	/* XXX unify these two fields */
-	rp->code = jd->code;
 	rp->parent = (iinfo) ? iinfo->rp : NULL;
 
 	/* store local allocation info of javalocals */
@@ -766,55 +764,136 @@ void replace_free_replacement_points(codeinfo *code)
 }
 
 
-/* replace_activate_replacement_point ******************************************
+/* replace_activate_replacement_points *****************************************
  
-   Activate a replacement point. When this function returns, the
-   replacement point is "armed", that is each thread reaching this point
-   will enter the replacement mechanism.
+   Activate the replacement points of the given compilation unit. When this
+   function returns, the replacement points are "armed", so each thread
+   reaching one of the points will enter the replacement mechanism.
    
    IN:
-       rp...............replacement point to activate
+       code.............codeinfo of which replacement points should be
+						activated
+	   mappable.........if true, only mappable replacement points are
+						activated
   
 *******************************************************************************/
 
-void replace_activate_replacement_point(rplpoint *rp)
+void replace_activate_replacement_points(codeinfo *code, bool mappable)
 {
-	assert(!(rp->flags & RPLPOINT_FLAG_ACTIVE));
+	rplpoint *rp;
+	s4        i;
+	s4        count;
+	s4        index;
+	u1       *savedmcode;
 
-	DOLOG( printf("activate replacement point:\n");
-		   replace_replacement_point_println(rp, 1); fflush(stdout); );
+	assert(code->savedmcode == NULL);
 
-	rp->flags |= RPLPOINT_FLAG_ACTIVE;
+	/* count trappable replacement points */
+
+	count = 0;
+	index = 0;
+	i = code->rplpointcount;
+	rp = code->rplpoints;
+	for (; i--; rp++) {
+		if (rp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
+		index++;
+
+		if (mappable && (rp->type == RPLPOINT_TYPE_RETURN))
+			continue;
+
+		count++;
+	}
+
+	/* allocate buffer for saved machine code */
+
+	savedmcode = MNEW(u1, count * REPLACEMENT_PATCH_SIZE);
+	code->savedmcode = savedmcode;
+	savedmcode += count * REPLACEMENT_PATCH_SIZE;
+
+	/* activate trappable replacement points */
+	/* (in reverse order to handle overlapping points within basic blocks) */
+
+	i = code->rplpointcount;
+	rp = code->rplpoints + i;
+	while (rp--, i--) {
+		assert(!(rp->flags & RPLPOINT_FLAG_ACTIVE));
+
+		if (rp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
+		index--;
+
+		if (mappable && (rp->type == RPLPOINT_TYPE_RETURN))
+			continue;
+
+		DOLOG( printf("activate replacement point:\n");
+			   replace_replacement_point_println(rp, 1); fflush(stdout); );
+
+		savedmcode -= REPLACEMENT_PATCH_SIZE;
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
-	md_patch_replacement_point(NULL, -1, rp, NULL); /* XXX dummy arguments */
+		md_patch_replacement_point(code, index, rp, savedmcode);
 #endif
+		rp->flags |= RPLPOINT_FLAG_ACTIVE;
+	}
+
+	assert(savedmcode == code->savedmcode);
 }
 
 
-/* replace_deactivate_replacement_point ****************************************
+/* replace_deactivate_replacement_points ***************************************
  
-   Deactivate a replacement point. When this function returns, the
-   replacement point is "un-armed", that is a each thread reaching this point
-   will just continue normally.
+   Deactivate a replacement points in the given compilation unit.
+   When this function returns, the replacement points will be "un-armed",
+   that is a each thread reaching a point will just continue normally.
    
    IN:
-       rp...............replacement point to deactivate
+       code.............the compilation unit
   
 *******************************************************************************/
 
-void replace_deactivate_replacement_point(rplpoint *rp)
+void replace_deactivate_replacement_points(codeinfo *code)
 {
-	assert(rp->flags & RPLPOINT_FLAG_ACTIVE);
+	rplpoint *rp;
+	s4        i;
+	s4        count;
+	u1       *savedmcode;
 
-	DOLOG( printf("deactivate replacement point:\n");
-		   replace_replacement_point_println(rp, 1); fflush(stdout); );
+	assert(code->savedmcode != NULL);
+	savedmcode = code->savedmcode;
 
-	rp->flags &= ~RPLPOINT_FLAG_ACTIVE;
+	/* de-activate each trappable replacement point */
+
+	i = code->rplpointcount;
+	rp = code->rplpoints;
+	count = 0;
+	for (; i--; rp++) {
+		if (rp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
+		count++;
+		assert(rp->flags & RPLPOINT_FLAG_ACTIVE);
+
+		DOLOG( printf("deactivate replacement point:\n");
+			   replace_replacement_point_println(rp, 1); fflush(stdout); );
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
-	md_patch_replacement_point(NULL, -1, rp, NULL); /* XXX dummy arguments */
+		md_patch_replacement_point(code, -1, rp, savedmcode);
 #endif
+
+		rp->flags &= ~RPLPOINT_FLAG_ACTIVE;
+
+		savedmcode += REPLACEMENT_PATCH_SIZE;
+	}
+
+	assert(savedmcode == code->savedmcode + count * REPLACEMENT_PATCH_SIZE);
+
+	/* free saved machine code */
+
+	MFREE(code->savedmcode, u1, count * REPLACEMENT_PATCH_SIZE);
+	code->savedmcode = NULL;
 }
 
 
@@ -944,7 +1023,7 @@ static void replace_read_executionstate(rplpoint *rp,
 	stackslot_t   *sp;
 	stackslot_t   *basesp;
 
-	code = rp->code;
+	code = code_find_codeinfo_for_pc(rp->pc);
 	m = rp->method;
 	topslot = TOP_IS_NORMAL;
 
@@ -1159,7 +1238,7 @@ static void replace_write_executionstate(rplpoint *rp,
 	stackslot_t    *sp;
 	stackslot_t    *basesp;
 
-	code = rp->code;
+	code = code_find_codeinfo_for_pc(rp->pc);
 	m = rp->method;
 	topslot = TOP_IS_NORMAL;
 
@@ -1763,7 +1842,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 #endif
 
 	origrp = rp;
-	es->code = rp->code;
+	es->code = code_find_codeinfo_for_pc(rp->pc);
 
 	DOLOG_SHORT( printf("REPLACING(%d %p): (id %d %p) ",
 				 stat_replacements, (void*)THREADOBJECT,
@@ -1920,9 +1999,9 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	assert(candidate);
 	if (candidate == origrp) {
 		DOLOG_SHORT(
-			printf("WARNING: identity replacement, turning off rp to avoid infinite loop\n");
+			printf("WARNING: identity replacement, turning off rps to avoid infinite loop\n");
 		);
-		replace_deactivate_replacement_point(origrp);
+		replace_deactivate_replacement_points(code);
 	}
 
 	/* release dump area */
@@ -1966,9 +2045,9 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 	for (j=0; j<depth; ++j)
 		putchar('\t');
 
-	printf("rplpoint (id %d) %p pc:%p+%d out:%p mcode:%016llx type:%s",
-			rp->id, (void*)rp,rp->pc,rp->callsize,rp->outcode,
-			(unsigned long long)rp->mcode,replace_type_str[rp->type]);
+	printf("rplpoint (id %d) %p pc:%p+%d type:%s",
+			rp->id, (void*)rp,rp->pc,rp->callsize,
+			replace_type_str[rp->type]);
 	if (rp->flags & RPLPOINT_FLAG_NOTRAP)
 		printf(" NOTRAP");
 	if (rp->flags & RPLPOINT_FLAG_ACTIVE)
@@ -2041,8 +2120,6 @@ void replace_show_replacement_points(codeinfo *code)
 
 	for (i=0; i<code->rplpointcount; ++i) {
 		rp = code->rplpoints + i;
-
-		assert(rp->code == code);
 
 		depth = 1;
 		parent = rp->parent;

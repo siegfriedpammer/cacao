@@ -104,15 +104,12 @@ struct rplalloc {
 
 struct rplpoint {
 	u1          *pc;           /* machine code PC of this point       */
-	u1          *outcode;      /* pointer to replacement-out code     */ /* XXX only for trappable rps */
 	methodinfo  *method;       /* source method this point is in      */
-	codeinfo    *code;         /* codeinfo this point belongs to      */ /* XXX unify with parent */
 	rplpoint    *parent;       /* rplpoint of the inlined body        */ /* XXX unify with code */
 	rplalloc    *regalloc;     /* pointer to register index table     */
-	u8           mcode;        /* saved maching code for patching     */ /* XXX only for trappable rps */
 	s4           id;           /* id of the rplpoint within method    */
 	s4           callsize;     /* size of call code in bytes          */
-	unsigned int regalloccount:24; /* number of local allocations     */
+	unsigned int regalloccount:20; /* number of local allocations     */
 	unsigned int type:4;           /* RPLPOINT_TYPE_... constant      */
 	unsigned int flags:8;          /* OR of RPLPOINT_... constants    */
 };
@@ -168,9 +165,8 @@ struct sourcestate_t {
 bool replace_create_replacement_points(jitdata *jd);
 void replace_free_replacement_points(codeinfo *code);
 
-void replace_activate_replacement_point(rplpoint *rp);
-void replace_deactivate_replacement_point(rplpoint *rp);
-void replace_activate(codeinfo *code,codeinfo *target);
+void replace_activate_replacement_points(codeinfo *code, bool mappable);
+void replace_deactivate_replacement_points(codeinfo *code);
 
 void replace_me(rplpoint *rp,executionstate_t *es);
 

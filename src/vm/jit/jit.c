@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 6144 2006-12-07 23:17:24Z edwin $
+   $Id: jit.c 6145 2006-12-07 23:32:43Z edwin $
 
 */
 
@@ -1548,8 +1548,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 void jit_invalidate_code(methodinfo *m)
 {
 	codeinfo *code;
-	rplpoint *rp;
-	s4        i;
 
 	code = m->code;
 	if (code == NULL || CODE_IS_INVALID(code))
@@ -1557,18 +1555,9 @@ void jit_invalidate_code(methodinfo *m)
 
 	CODE_SETFLAG_INVALID(code);
 
-	rp = code->rplpoints;
-	i = code->rplpointcount;
-	rp += i;
+	/* activate mappable replacement points */
 
-	while (i--) {
-		rp--;
-		if ((rp->type != RPLPOINT_TYPE_RETURN)
-			&& !(rp->flags & RPLPOINT_FLAG_NOTRAP))
-		{
-			replace_activate_replacement_point(rp);
-		}
-	}
+	replace_activate_replacement_points(code, true);
 }
 
 
