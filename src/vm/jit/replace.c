@@ -251,7 +251,6 @@ static void replace_create_replacement_point(jitdata *jd,
 	rp->pc = NULL;        /* set by codegen */
 	rp->outcode = NULL;   /* set by codegen */
 	rp->callsize = 0;     /* set by codegen */
-	rp->target = NULL;
 	rp->regalloc = ra;
 	rp->flags = 0;
 	rp->type = type;
@@ -771,22 +770,21 @@ void replace_free_replacement_points(codeinfo *code)
  
    Activate a replacement point. When this function returns, the
    replacement point is "armed", that is each thread reaching this point
-   will be replace to `target`.
+   will enter the replacement mechanism.
    
    IN:
        rp...............replacement point to activate
-	   target...........target of replacement
   
 *******************************************************************************/
 
-void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
+void replace_activate_replacement_point(rplpoint *rp)
 {
-	assert(rp->target == NULL);
+	assert(!(rp->flags & RPLPOINT_FLAG_ACTIVE));
 
 	DOLOG( printf("activate replacement point:\n");
 		   replace_replacement_point_println(rp, 1); fflush(stdout); );
 
-	rp->target = target;
+	rp->flags |= RPLPOINT_FLAG_ACTIVE;
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(NULL, -1, rp, NULL); /* XXX dummy arguments */
@@ -807,12 +805,12 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 
 void replace_deactivate_replacement_point(rplpoint *rp)
 {
-	assert(rp->target);
+	assert(rp->flags & RPLPOINT_FLAG_ACTIVE);
 
 	DOLOG( printf("deactivate replacement point:\n");
 		   replace_replacement_point_println(rp, 1); fflush(stdout); );
 
-	rp->target = NULL;
+	rp->flags &= ~RPLPOINT_FLAG_ACTIVE;
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(NULL, -1, rp, NULL); /* XXX dummy arguments */
@@ -1968,11 +1966,13 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 	for (j=0; j<depth; ++j)
 		putchar('\t');
 
-	printf("rplpoint (id %d) %p pc:%p+%d out:%p target:%p mcode:%016llx type:%s",
-			rp->id, (void*)rp,rp->pc,rp->callsize,rp->outcode,(void*)rp->target,
+	printf("rplpoint (id %d) %p pc:%p+%d out:%p mcode:%016llx type:%s",
+			rp->id, (void*)rp,rp->pc,rp->callsize,rp->outcode,
 			(unsigned long long)rp->mcode,replace_type_str[rp->type]);
 	if (rp->flags & RPLPOINT_FLAG_NOTRAP)
 		printf(" NOTRAP");
+	if (rp->flags & RPLPOINT_FLAG_ACTIVE)
+		printf(" ACTIVE");
 	printf(" parent:%p\n", (void*)rp->parent);
 	for (j=0; j<depth; ++j)
 		putchar('\t');

@@ -88,6 +88,7 @@ struct rplalloc {
 #define RPLPOINT_TYPE_BODY    6
 
 #define RPLPOINT_FLAG_NOTRAP  0x01  /* rplpoint cannot be trapped */
+#define RPLPOINT_FLAG_ACTIVE  0x08  /* trap is active             */
 
 
 #if !defined(NDEBUG)
@@ -105,7 +106,6 @@ struct rplpoint {
 	u1          *pc;           /* machine code PC of this point       */
 	u1          *outcode;      /* pointer to replacement-out code     */ /* XXX only for trappable rps */
 	methodinfo  *method;       /* source method this point is in      */
-	rplpoint    *target;       /* target of the replacement           */ /* XXX remove? */
 	codeinfo    *code;         /* codeinfo this point belongs to      */ /* XXX unify with parent */
 	rplpoint    *parent;       /* rplpoint of the inlined body        */ /* XXX unify with code */
 	rplalloc    *regalloc;     /* pointer to register index table     */
@@ -168,7 +168,7 @@ struct sourcestate_t {
 bool replace_create_replacement_points(jitdata *jd);
 void replace_free_replacement_points(codeinfo *code);
 
-void replace_activate_replacement_point(rplpoint *rp,rplpoint *target);
+void replace_activate_replacement_point(rplpoint *rp);
 void replace_deactivate_replacement_point(rplpoint *rp);
 void replace_activate(codeinfo *code,codeinfo *target);
 
