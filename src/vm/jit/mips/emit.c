@@ -34,8 +34,9 @@
 
 
 #include "config.h"
-
 #include "vm/types.h"
+
+#include <assert.h>
 
 #include "md-abi.h"
 
