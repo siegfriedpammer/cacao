@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 6140 2006-12-07 22:45:09Z edwin $
+   $Id: md.c 6141 2006-12-07 22:48:41Z edwin $
 
 */
 
@@ -341,7 +341,7 @@ void md_patch_replacement_point(rplpoint *rp)
 	/* store saved mcode */
 	rp->mcode = mcode;
 	
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
 	{
 		u1* u1ptr = rp->pc;
 		DISASSINSTR(u1ptr);
