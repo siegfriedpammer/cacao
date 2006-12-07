@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6149 2006-12-07 23:58:32Z edwin $
+   $Id: codegen.c 6150 2006-12-07 23:59:32Z edwin $
 
 */
 
@@ -2730,6 +2730,7 @@ gen_method:
 			/* generate the actual call */
 
 			M_JSR(REG_RA, REG_PV);
+			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			M_LDA(REG_PV, REG_RA, -disp);
 
@@ -2739,10 +2740,6 @@ gen_method:
 				M_BEQZ(REG_RESULT, 0);
 				codegen_add_fillinstacktrace_ref(cd);
 			}
-
-			/* store size of call code in replacement point */
-
-			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 
 			/* store the return value */
 
