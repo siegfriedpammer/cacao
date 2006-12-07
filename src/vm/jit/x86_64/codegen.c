@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6132 2006-12-07 10:59:01Z twisti $
+   $Id: codegen.c 6148 2006-12-07 23:57:45Z edwin $
 
 */
 
@@ -107,7 +107,6 @@ bool codegen(jitdata *jd)
 	fieldinfo          *fi;
 	unresolved_field   *uf;
 	s4                  fieldtype;
-	rplpoint           *replacementpoint;
 	s4                 varindex;
 
 	/* get required compiler data */
@@ -329,7 +328,9 @@ bool codegen(jitdata *jd)
 
 	/* end of header generation */
 
-	replacementpoint = jd->code->rplpoints;
+	/* create replacement points */
+
+	REPLACEMENT_POINTS_INIT(cd, jd);
 
 	/* walk through all basic blocks */
 
@@ -345,16 +346,7 @@ bool codegen(jitdata *jd)
 
 		/* handle replacement points */
 
-#if 0
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
-			
-			replacementpoint++;
-
-			assert(cd->lastmcodeptr <= cd->mcodeptr);
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
-		}
-#endif
+		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
 
 		/* copy interface registers to their destination */
 
@@ -430,8 +422,24 @@ bool codegen(jitdata *jd)
 		case ICMD_NOP:        /* ...  ==> ...                                 */
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-		case ICMD_INLINE_START: /* internal ICMDs                         */
+			break;
+
+		case ICMD_INLINE_START:
+
+			REPLACEMENT_POINT_INLINE_START(cd, iptr);
+			break;
+
+		case ICMD_INLINE_BODY:
+
+			REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
+			dseg_addlinenumber_inline_start(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line);
+			break;
+
 		case ICMD_INLINE_END:
+
+			dseg_addlinenumber_inline_end(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line);
 			break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
@@ -2335,12 +2343,14 @@ bool codegen(jitdata *jd)
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_LRETURN:
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 			goto nowperformreturn;
 
 		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 
@@ -2360,11 +2370,14 @@ bool codegen(jitdata *jd)
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
 			M_FLTMOVE(s1, REG_FRESULT);
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
+
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 
 nowperformreturn:
 			{
@@ -2518,6 +2531,8 @@ nowperformreturn:
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
 
+			REPLACEMENT_POINT_INVOKE(cd, iptr);
+
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				lm = NULL;
 				um = iptr->sx.s23.s3.um;
@@ -2666,6 +2681,10 @@ gen_method:
 			/* generate method profiling code */
 
 			PROFILE_CYCLE_START;
+
+			/* store size of call code in replacement point */
+
+			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 
 			/* store return value */
 
@@ -3144,9 +3163,7 @@ gen_method:
 
 	emit_exception_stubs(jd);
 	emit_patcher_stubs(jd);
-#if 0
-	emit_replacement_stubs(jd);
-#endif
+	REPLACEMENT_EMIT_STUBS(jd);
 
 	codegen_finish(jd);
 
