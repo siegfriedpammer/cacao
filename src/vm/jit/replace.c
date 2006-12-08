@@ -102,7 +102,7 @@ typedef u8 stackslot_t;
 /*#define REPLACE_VERBOSE*/
 
 #if !defined(NDEBUG)
-static void java_value_print(s4 type, u8 value);
+static void java_value_print(s4 type, replace_val_t value);
 #endif /* !defined(NDEBUG) */
 
 #if !defined(NDEBUG) && defined(REPLACE_VERBOSE)
@@ -900,17 +900,17 @@ void replace_deactivate_replacement_points(codeinfo *code)
 static void replace_read_value(executionstate_t *es,
 							   stackslot_t *sp,
 							   rplalloc *ra,
-							   u8 *javaval)
+							   replace_val_t *javaval)
 {
 	if (ra->flags & INMEMORY) {
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
-			*javaval = *(u8*)(sp + ra->regoff);
+			javaval->l = *(u8*)(sp + ra->regoff);
 		}
 		else {
 #endif
-			*javaval = sp[ra->regoff];
+			javaval->p = sp[ra->regoff];
 #ifdef HAS_4BYTE_STACKSLOT
 		}
 #endif
@@ -918,10 +918,20 @@ static void replace_read_value(executionstate_t *es,
 	else {
 		/* allocated register */
 		if (IS_FLT_DBL_TYPE(ra->type)) {
-			*javaval = es->fltregs[ra->regoff];
+			javaval->d = es->fltregs[ra->regoff];
+
+			if (ra->type == TYPE_FLT)
+				javaval->f = javaval->d;
 		}
 		else {
-			*javaval = es->intregs[ra->regoff];
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+			if (ra->type == TYPE_LNG) {
+				javaval->words.lo = es->intregs[GET_LOW_REG(ra->regoff)];
+				javaval->words.hi = es->intregs[GET_HIGH_REG(ra->regoff)];
+			}
+			else
+#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
+				javaval->p = es->intregs[ra->regoff];
 		}
 	}
 }
@@ -942,28 +952,38 @@ static void replace_read_value(executionstate_t *es,
 static void replace_write_value(executionstate_t *es,
 							    stackslot_t *sp,
 							    rplalloc *ra,
-							    u8 *javaval)
+							    replace_val_t *javaval)
 {
 	if (ra->flags & INMEMORY) {
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
-			*(u8*)(sp + ra->regoff) = *javaval;
+			*(u8*)(sp + ra->regoff) = javaval->l;
 		}
 		else {
 #endif
-			sp[ra->regoff] = *javaval;
+			sp[ra->regoff] = javaval->p;
 #ifdef HAS_4BYTE_STACKSLOT
 		}
 #endif
 	}
 	else {
 		/* allocated register */
-		if (IS_FLT_DBL_TYPE(ra->type)) {
-			es->fltregs[ra->regoff] = *javaval;
-		}
-		else {
-			es->intregs[ra->regoff] = *javaval;
+		switch (ra->type) {
+			case TYPE_FLT:
+				es->fltregs[ra->regoff] = (double) javaval->f;
+				break;
+			case TYPE_DBL:
+				es->fltregs[ra->regoff] = javaval->d;
+				break;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+			case TYPE_LNG:
+				es->intregs[GET_LOW_REG(ra->regoff)] = javaval->words.lo;
+				es->intregs[GET_HIGH_REG(ra->regoff)] = javaval->words.hi;
+				break;
+#endif
+			default:
+				es->intregs[ra->regoff] = javaval->p;
 		}
 	}
 }
@@ -1034,7 +1054,7 @@ static void replace_read_executionstate(rplpoint *rp,
 	frame->id = rp->id;
 	assert(rp->type >= 0 && rp->type < sizeof(replace_normalize_type_map)/sizeof(s4));
 	frame->type = replace_normalize_type_map[rp->type];
-	frame->instance = 0;
+	frame->instance.a = NULL;
 	frame->syncslotcount = 0;
 	frame->syncslots = NULL;
 	frame->fromrp = rp;
@@ -1048,21 +1068,21 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	count = m->maxlocals;
 	frame->javalocalcount = count;
-	frame->javalocals = DMNEW(u8, count);
+	frame->javalocals = DMNEW(replace_val_t, count);
 	frame->javalocaltype = DMNEW(u1, count);
 
 #if !defined(NDEBUG)
 	/* mark values as undefined */
 	for (i=0; i<count; ++i) {
-		frame->javalocals[i] = (u8) 0x00dead0000dead00ULL;
+		frame->javalocals[i].l = (u8) 0x00dead0000dead00ULL;
 		frame->javalocaltype[i] = TYPE_VOID;
 	}
 
 	/* some entries in the intregs array are not meaningful */
 	/*es->intregs[REG_ITMP3] = (u8) 0x11dead1111dead11ULL;*/
-	es->intregs[REG_SP   ] = (u8) 0x11dead1111dead11ULL;
+	es->intregs[REG_SP   ] = (ptrint) 0x11dead1111dead11ULL;
 #ifdef REG_PV
-	es->intregs[REG_PV   ] = (u8) 0x11dead1111dead11ULL;
+	es->intregs[REG_PV   ] = (ptrint) 0x11dead1111dead11ULL;
 #endif
 #endif /* !defined(NDEBUG) */
 
@@ -1075,7 +1095,7 @@ static void replace_read_executionstate(rplpoint *rp,
 		assert(i < m->maxlocals);
 		frame->javalocaltype[i] = ra->type;
 		if (ra->type == TYPE_RET)
-			frame->javalocals[i] = ra->regoff;
+			frame->javalocals[i].i = ra->regoff;
 		else
 			replace_read_value(es, sp, ra, frame->javalocals + i);
 		ra++;
@@ -1115,13 +1135,13 @@ static void replace_read_executionstate(rplpoint *rp,
 	/* read stack slots */
 
 	frame->javastackdepth = count;
-	frame->javastack = DMNEW(u8, count);
+	frame->javastack = DMNEW(replace_val_t, count);
 	frame->javastacktype = DMNEW(u1, count);
 
 #if !defined(NDEBUG)
 	/* mark values as undefined */
 	for (i=0; i<count; ++i) {
-		frame->javastack[i] = (u8) 0x00dead0000dead00ULL;
+		frame->javastack[i].l = (u8) 0x00dead0000dead00ULL;
 		frame->javastacktype[i] = TYPE_VOID;
 	}
 #endif /* !defined(NDEBUG) */
@@ -1134,7 +1154,8 @@ static void replace_read_executionstate(rplpoint *rp,
 		assert(count);
 
 		assert(ra->index == RPLALLOC_STACK);
-		frame->javastack[i] = sp[-1];
+		assert(ra->type == TYPE_ADR);
+		frame->javastack[i].p = sp[-1];
 		frame->javastacktype[i] = TYPE_ADR; /* XXX RET */
 		count--;
 		i++;
@@ -1144,7 +1165,8 @@ static void replace_read_executionstate(rplpoint *rp,
 		assert(count);
 
 		assert(ra->index == RPLALLOC_STACK);
-		frame->javastack[i] = es->intregs[REG_ITMP1];
+		assert(ra->type == TYPE_ADR);
+		frame->javastack[i].p = es->intregs[REG_ITMP1];
 		frame->javastacktype[i] = TYPE_ADR; /* XXX RET */
 		count--;
 		i++;
@@ -1154,7 +1176,7 @@ static void replace_read_executionstate(rplpoint *rp,
 		assert(count);
 
 		assert(ra->index == RPLALLOC_STACK);
-		frame->javastack[i] = 0;
+		frame->javastack[i].l = 0;
 		frame->javastacktype[i] = TYPE_VOID;
 		count--;
 		i++;
@@ -1176,7 +1198,7 @@ static void replace_read_executionstate(rplpoint *rp,
 				assert(calleeframe->syncslots == NULL);
 
 				calleeframe->syncslotcount = 1;
-				calleeframe->syncslots = DMNEW(u8, 1);
+				calleeframe->syncslots = DMNEW(replace_val_t, 1);
 				replace_read_value(es,sp,ra,calleeframe->syncslots);
 			}
 
@@ -1193,7 +1215,7 @@ static void replace_read_executionstate(rplpoint *rp,
 		}
 		else {
 			if (ra->type == TYPE_RET)
-				frame->javastack[i] = ra->regoff;
+				frame->javastack[i].i = ra->regoff;
 			else
 				replace_read_value(es,sp,ra,frame->javastack + i);
 			frame->javastacktype[i] = ra->type;
@@ -1285,7 +1307,7 @@ static void replace_write_executionstate(rplpoint *rp,
 		assert(ra->index == RPLALLOC_STACK);
 		assert(i < frame->javastackdepth);
 		assert(frame->javastacktype[i] == TYPE_ADR);
-		sp[-1] = frame->javastack[i];
+		sp[-1] = frame->javastack[i].p;
 		count--;
 		i++;
 		ra++;
@@ -1296,7 +1318,7 @@ static void replace_write_executionstate(rplpoint *rp,
 		assert(ra->index == RPLALLOC_STACK);
 		assert(i < frame->javastackdepth);
 		assert(frame->javastacktype[i] == TYPE_ADR);
-		es->intregs[REG_ITMP1] = frame->javastack[i];
+		es->intregs[REG_ITMP1] = frame->javastack[i].p;
 		count--;
 		i++;
 		ra++;
@@ -1426,9 +1448,9 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	assert(frame->syncslots == NULL);
 	count = code_get_sync_slot_count(es->code);
 	frame->syncslotcount = count;
-	frame->syncslots = DMNEW(u8, count);
+	frame->syncslots = DMNEW(replace_val_t, count);
 	for (i=0; i<count; ++i) {
-		frame->syncslots[i] = sp[es->code->memuse + i];
+		frame->syncslots[i].p = sp[es->code->memuse + i]; /* XXX */
 	}
 
 	/* restore return address, if part of frame */
@@ -1464,7 +1486,7 @@ u1* replace_pop_activation_record(executionstate_t *es,
 		while (nregdescfloat[--reg] != REG_SAV)
 			;
 		basesp -= STACK_SLOTS_PER_FLOAT;
-		es->fltregs[reg] = *(u8*)basesp;
+		es->fltregs[reg] = *(double*)basesp;
 	}
 
 	/* Set the new pc. Subtract one so we do not hit the replacement point */
@@ -1491,10 +1513,10 @@ u1* replace_pop_activation_record(executionstate_t *es,
 				&& (i != REPLACE_REG_RA)
 #endif
 			)
-			es->intregs[i] = 0x33dead3333dead33ULL;
+			es->intregs[i] = (ptrint) 0x33dead3333dead33ULL;
 	for (i=0; i<FLT_REG_CNT; ++i)
 		if (nregdescfloat[i] != REG_SAV)
-			es->fltregs[i] = 0x33dead3333dead33ULL;
+			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
 #endif /* !defined(NDEBUG) */
 
 	return ra;
@@ -1608,14 +1630,14 @@ void replace_patch_future_calls(u1 *ra,
 
 		/* we need to know the instance */
 
-		if (!calleeframe->instance) {
+		if (!calleeframe->instance.a) {
 			DOLOG_SHORT( printf("WARNING: object instance unknown!\n"); );
 			return;
 		}
 
 		/* get the vftbl */
 
-		obj = (java_objectheader *) (ptrint) calleeframe->instance;
+		obj = calleeframe->instance.a;
 		vftbl = obj->vftbl;
 
 		assert(vftbl->class->vftbl == vftbl);
@@ -1705,7 +1727,7 @@ void replace_push_activation_record(executionstate_t *es,
 #endif /* REPLACE_RA_BETWEEN_FRAMES */
 
 #if defined(REPLACE_REG_RA)
-	es->intregs[REPLACE_REG_RA] = (u8) (ptrint) ra;
+	es->intregs[REPLACE_REG_RA] = (ptrint) ra;
 #endif
 
 	/* we move into a new code unit */
@@ -1760,7 +1782,7 @@ void replace_push_activation_record(executionstate_t *es,
 		*--basesp = es->intregs[reg];
 
 #if !defined(NDEBUG)
-		es->intregs[reg] = 0x44dead4444dead44ULL;
+		es->intregs[reg] = (ptrint) 0x44dead4444dead44ULL;
 #endif
 	}
 
@@ -1772,10 +1794,10 @@ void replace_push_activation_record(executionstate_t *es,
 		while (nregdescfloat[--reg] != REG_SAV)
 			;
 		basesp -= STACK_SLOTS_PER_FLOAT;
-		*(u8*)basesp = es->fltregs[reg];
+		*(double*)basesp = es->fltregs[reg];
 
 #if !defined(NDEBUG)
-		es->fltregs[reg] = 0x44dead4444dead44ULL;
+		*(u8*)&(es->fltregs[reg]) = 0x44dead4444dead44ULL;
 #endif
 	}
 
@@ -1784,7 +1806,7 @@ void replace_push_activation_record(executionstate_t *es,
 	count = code_get_sync_slot_count(calleecode);
 	assert(count == calleeframe->syncslotcount);
 	for (i=0; i<count; ++i) {
-		sp[calleecode->memuse + i] = calleeframe->syncslots[i];
+		sp[calleecode->memuse + i] = calleeframe->syncslots[i].p;
 	}
 
 	/* set the PV */
@@ -1854,13 +1876,13 @@ rplpoint * replace_find_replacement_point(codeinfo *code,
 				if (ra->type == TYPE_RET) {
 					if (ra->index == RPLALLOC_STACK) {
 						assert(stacki < frame->javastackdepth);
-						if (frame->javastack[stacki] != ra->regoff)
+						if (frame->javastack[stacki].i != ra->regoff)
 							goto no_match;
 						stacki++;
 					}
 					else {
 						assert(ra->index >= 0 && ra->index < frame->javalocalcount);
-						if (frame->javalocals[ra->index] != ra->regoff)
+						if (frame->javalocals[ra->index].i != ra->regoff)
 							goto no_match;
 					}
 				}
@@ -2657,20 +2679,20 @@ void replace_executionstate_println(executionstate_t *es)
 #endif
 
 #if !defined(NDEBUG)
-static void java_value_print(s4 type, u8 value)
+static void java_value_print(s4 type, replace_val_t value)
 {
 	java_objectheader *obj;
 	utf               *u;
 
-	printf("%016llx",(unsigned long long) value);
+	printf("%016llx",(unsigned long long) value.l);
 
 	if (type < 0 || type > TYPE_RET)
 		printf(" <INVALID TYPE:%d>", type);
 	else
 		printf(" %s", show_jit_type_names[type]);
 
-	if (type == TYPE_ADR && value != 0) {
-		obj = (java_objectheader *) (ptrint) value;
+	if (type == TYPE_ADR && value.a != NULL) {
+		obj = value.a;
 		putchar(' ');
 		utf_display_printable_ascii_classname(obj->vftbl->class->name);
 
@@ -2681,8 +2703,17 @@ static void java_value_print(s4 type, u8 value)
 			printf("\"");
 		}
 	}
-	else if (type == TYPE_INT || type == TYPE_LNG) {
-		printf(" %lld", (long long) value);
+	else if (type == TYPE_INT) {
+		printf(" %ld", (long) value.i);
+	}
+	else if (type == TYPE_LNG) {
+		printf(" %lld", (long long) value.l);
+	}
+	else if (type == TYPE_FLT) {
+		printf(" %f", value.f);
+	}
+	else if (type == TYPE_DBL) {
+		printf(" %f", value.d);
 	}
 }
 #endif /* !defined(NDEBUG) */
@@ -2700,7 +2731,7 @@ void replace_source_frame_println(sourceframe_t *frame)
 	printf("\ttype: %s\n", replace_type_str[frame->type]);
 	printf("\n");
 
-	if (frame->instance) {
+	if (frame->instance.a) {
 		printf("\tinstance: ");
 		java_value_print(TYPE_ADR, frame->instance);
 		printf("\n");
@@ -2743,9 +2774,9 @@ void replace_source_frame_println(sourceframe_t *frame)
 		for (i=0; i<frame->syncslotcount; ++i) {
 			printf("\tslot[%2d] = ",i);
 #ifdef HAS_4BYTE_STACKSLOT
-			printf("%08lx\n",(unsigned long) frame->syncslots[i]);
+			printf("%08lx\n",(unsigned long) frame->syncslots[i].p);
 #else
-			printf("%016llx\n",(unsigned long long) frame->syncslots[i]);
+			printf("%016llx\n",(unsigned long long) frame->syncslots[i].p);
 #endif
 		}
 		printf("\n");

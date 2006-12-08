@@ -43,6 +43,7 @@ typedef struct executionstate_t executionstate_t;
 typedef struct sourcestate_t sourcestate_t;
 typedef struct sourceframe_t sourceframe_t;
 typedef struct replace_safestack_t replace_safestack_t;
+typedef union  replace_val_t replace_val_t;
 
 #include "config.h"
 #include "vm/types.h"
@@ -126,6 +127,20 @@ struct rplpoint {
 };
 
 
+union replace_val_t {
+	s4                 i;
+	s8                 l;
+	ptrint             p;
+	struct {
+		u4 lo;
+		u4 hi;
+	}                  words;
+	float              f;
+	double             d;
+	java_objectheader *a;
+};
+
+
 /* An `executionsstate` represents the state of a thread as it reached */
 /* an replacement point or is about to enter one.                      */
 
@@ -135,8 +150,8 @@ struct executionstate_t {
 	u1           *pv;                   /* procedure value. NULL means */
 	                                    /* search the AVL tree         */
 
-	u8            intregs[INT_REG_CNT];             /* register values */
-	u8            fltregs[FLT_REG_CNT];             /* register values */
+	ptrint        intregs[INT_REG_CNT];             /* register values */
+	double        fltregs[FLT_REG_CNT];             /* register values */
 
 	codeinfo     *code;            /* codeinfo corresponding to the pv */
 };
@@ -149,17 +164,17 @@ struct sourceframe_t {
 	s4             id;
 	s4             type;
 
-	u8             instance;
+	replace_val_t  instance;
 
-	u8            *javastack;                  /* values of stack vars */
+	replace_val_t *javastack;                  /* values of stack vars */
 	u1            *javastacktype;              /*  types of stack vars */
 	s4             javastackdepth;             /* number of stack vars */
 
-	u8            *javalocals;                 /* values of javalocals */
+	replace_val_t *javalocals;                 /* values of javalocals */
 	u1            *javalocaltype;              /*  types of javalocals */
 	s4             javalocalcount;             /* number of javalocals */
 
-	u8            *syncslots;
+	replace_val_t *syncslots;
 	s4             syncslotcount; /* XXX do we need more than one? */
 
 	rplpoint      *fromrp;         /* rplpoint used to read this frame */
