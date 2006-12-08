@@ -57,6 +57,23 @@
 /*#define REPLACE_PATCH_ALL*/
 
 
+/*** architecture-dependent configuration *************************************/
+
+/* first unset the macros (default) */
+#undef REPLACE_RA_BETWEEN_FRAMES
+#undef REPLACE_RA_TOP_OF_FRAME
+#undef REPLACE_LEAFMETHODS_RA_REGISTER
+
+/* i386 and x86_64 */
+#if defined(__I386__) || defined(__X86_64__)
+#define REPLACE_RA_BETWEEN_FRAMES
+/* alpha */
+#elif defined(__ALPHA__)
+#define REPLACE_RA_TOP_OF_FRAME
+#define REPLACE_LEAFMETHODS_RA_REGISTER
+#endif
+
+
 /*** configuration of native stack slot size **********************************/
 
 /* XXX this should be in md-abi.h files, probably */
@@ -1364,8 +1381,13 @@ u1* replace_pop_activation_record(executionstate_t *es,
 
 	/* read the return address */
 
-	ra = md_stacktrace_get_returnaddress(es->sp,
-			SIZE_OF_STACKSLOT * es->code->stackframesize);
+#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+	if (CODE_IS_LEAFMETHOD(es->code))
+		ra = (u1*) es->intregs[REG_RA];
+	else
+#endif
+		ra = md_stacktrace_get_returnaddress(es->sp,
+				SIZE_OF_STACKSLOT * es->code->stackframesize);
 
 	DOLOG( printf("return address: %p\n", (void*)ra); );
 
@@ -1401,6 +1423,15 @@ u1* replace_pop_activation_record(executionstate_t *es,
 		frame->syncslots[i] = sp[es->code->memuse + i];
 	}
 
+	/* restore return address, if part of frame */
+
+#if defined(REPLACE_RA_TOP_OF_FRAME)
+#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+	if (!CODE_IS_LEAFMETHOD(es->code))
+#endif
+		es->intregs[REG_RA] = *--basesp;
+#endif /* REPLACE_RA_TOP_OF_FRAME */
+
 	/* restore saved int registers */
 
 	reg = INT_REG_CNT;
@@ -1429,7 +1460,10 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	/* adjust the stackpointer */
 
 	es->sp += SIZE_OF_STACKSLOT * es->code->stackframesize;
+
+#if defined(REPLACE_RA_BETWEEN_FRAMES)
 	es->sp += SIZE_OF_STACKSLOT; /* skip return address */
+#endif
 
 	es->pv = pv;
 	es->code = code;
@@ -1437,7 +1471,11 @@ u1* replace_pop_activation_record(executionstate_t *es,
 #if !defined(NDEBUG)
 	/* for debugging */
 	for (i=0; i<INT_REG_CNT; ++i)
-		if (nregdescint[i] != REG_SAV)
+		if ((nregdescint[i] != REG_SAV)
+#if defined(REG_RA)
+				&& (i != REG_RA)
+#endif
+			)
 			es->intregs[i] = 0x33dead3333dead33ULL;
 	for (i=0; i<FLT_REG_CNT; ++i)
 		if (nregdescfloat[i] != REG_SAV)
@@ -1639,16 +1677,21 @@ void replace_push_activation_record(executionstate_t *es,
 	calleecode = calleeframe->tocode;
 	assert(calleecode);
 
-	/* write the return address */
-
-	es->sp -= SIZE_OF_STACKSLOT;
+	/* calculate the return address */
 
 	ra = rpcall->pc + rpcall->callsize;
 
-	DOLOG( printf("writing return address %p to %p\n",
-				(void*) ra, (void*) es->sp); );
+	/* write the return address */
+
+#if defined(REPLACE_RA_BETWEEN_FRAMES)
+	es->sp -= SIZE_OF_STACKSLOT;
 
 	*((stackslot_t *)es->sp) = (stackslot_t) ra;
+#endif /* REPLACE_RA_BETWEEN_FRAMES */
+
+#if defined(REPLACE_RA_TOP_OF_FRAME)
+	es->intregs[REG_RA] = (u8) ra;
+#endif
 
 	/* we move into a new code unit */
 
@@ -1676,6 +1719,13 @@ void replace_push_activation_record(executionstate_t *es,
 		sp[i] = 0xdeaddeadU;
 	}
 #endif
+
+#if defined(REPLACE_RA_TOP_OF_FRAME)
+#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+	if (!CODE_IS_LEAFMETHOD(calleecode))
+#endif
+		*--basesp = ra;
+#endif /* REPLACE_RA_TOP_OF_FRAME */
 
 	/* save int registers */
 
