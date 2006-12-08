@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: jit.h 6057 2006-11-27 14:58:43Z edwin $
+   $Id: jit.h 6157 2006-12-08 00:39:25Z edwin $
 
 */
 
@@ -158,6 +158,7 @@ struct jitdata {
 
 #define JITDATA_FLAG_IFCONV              0x00000008
 #define JITDATA_FLAG_REORDER             0x00000010
+#define JITDATA_FLAG_INLINE              0x00000020
 
 #define JITDATA_FLAG_SHOWINTERMEDIATE    0x20000000
 #define JITDATA_FLAG_SHOWDISASSEMBLE     0x40000000
@@ -178,6 +179,9 @@ struct jitdata {
 
 #define JITDATA_HAS_FLAG_REORDER(jd) \
     ((jd)->flags & JITDATA_FLAG_REORDER)
+
+#define JITDATA_HAS_FLAG_INLINE(jd) \
+    ((jd)->flags & JITDATA_FLAG_INLINE)
 
 #define JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd) \
     ((jd)->flags & JITDATA_FLAG_SHOWINTERMEDIATE)
