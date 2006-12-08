@@ -1626,7 +1626,7 @@ void replace_patch_future_calls(u1 *ra,
 
 		replace_patch_method_pointer(vftbl->table + calleem->vftblindex,
 									 entrypoint,
-									 "virtual");
+									 "virtual  ");
 
 		/* patch the interface tables */
 
@@ -1645,7 +1645,7 @@ void replace_patch_future_calls(u1 *ra,
 	else {
 		/* the call was statically bound */
 
-		replace_patch_method_pointer((methodptr *) patchpos, entrypoint, "static");
+		replace_patch_method_pointer((methodptr *) patchpos, entrypoint, "static   ");
 	}
 }
 
@@ -1741,7 +1741,7 @@ void replace_push_activation_record(executionstate_t *es,
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
 	if (!CODE_IS_LEAFMETHOD(calleecode))
 #endif
-		*--basesp = ra;
+		*--basesp = (ptrint) ra;
 #endif /* REPLACE_RA_TOP_OF_FRAME */
 
 #if defined(REPLACE_RA_LINKAGE_AREA)
