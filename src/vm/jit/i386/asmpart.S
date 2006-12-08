@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 6147 2006-12-07 23:54:40Z edwin $
+   $Id: asmpart.S 6155 2006-12-08 00:17:11Z edwin $
 
 */
 
@@ -525,26 +525,14 @@ asm_replacement_out:
 	sub     $(sizeexecutionstate + REPLACEMENT_ROOM),sp
 
 	/* save registers in execution state */
-	mov     %eax,(EAX*8+offes_intregs)(sp)
-	mov     %ebx,(EBX*8+offes_intregs)(sp)
-	mov     %ecx,(ECX*8+offes_intregs)(sp)
-	mov     %edx,(EDX*8+offes_intregs)(sp)
-	mov     %esi,(ESI*8+offes_intregs)(sp)
-	mov     %edi,(EDI*8+offes_intregs)(sp)
-	mov     %ebp,(EBP*8+offes_intregs)(sp)
-	movl    $0  ,(ESP*8+offes_intregs)(sp) /* not used */
-
-#ifndef NDEBUG
-	/* clear high 32bit */
-	movl    $0,(4+0*8+offes_intregs)(sp)
-	movl    $0,(4+1*8+offes_intregs)(sp)
-	movl    $0,(4+2*8+offes_intregs)(sp)
-	movl    $0,(4+3*8+offes_intregs)(sp)
-	movl    $0,(4+4*8+offes_intregs)(sp)
-	movl    $0,(4+5*8+offes_intregs)(sp)
-	movl    $0,(4+6*8+offes_intregs)(sp)
-	movl    $0,(4+7*8+offes_intregs)(sp)
-#endif
+	mov     %eax,(EAX*4+offes_intregs)(sp)
+	mov     %ebx,(EBX*4+offes_intregs)(sp)
+	mov     %ecx,(ECX*4+offes_intregs)(sp)
+	mov     %edx,(EDX*4+offes_intregs)(sp)
+	mov     %esi,(ESI*4+offes_intregs)(sp)
+	mov     %edi,(EDI*4+offes_intregs)(sp)
+	mov     %ebp,(EBP*4+offes_intregs)(sp)
+	movl    $0  ,(ESP*4+offes_intregs)(sp) /* not used */
 
 	/* calculate sp of method */
 	mov     sp,itmp1
@@ -602,13 +590,13 @@ asm_replacement_in:
 	add     $(2*4),sp
 
 	/* copy registers from execution state */
-	mov     (EAX*8+offes_intregs)(sp),%eax
-	mov     (EBX*8+offes_intregs)(sp),%ebx
-	mov     (ECX*8+offes_intregs)(sp),%ecx
-	mov     (EDX*8+offes_intregs)(sp),%edx
-	mov     (ESI*8+offes_intregs)(sp),%esi
-	mov     (EDI*8+offes_intregs)(sp),%edi
-	mov     (EBP*8+offes_intregs)(sp),%ebp
+	mov     (EAX*4+offes_intregs)(sp),%eax
+	mov     (EBX*4+offes_intregs)(sp),%ebx
+	mov     (ECX*4+offes_intregs)(sp),%ecx
+	mov     (EDX*4+offes_intregs)(sp),%edx
+	mov     (ESI*4+offes_intregs)(sp),%esi
+	mov     (EDI*4+offes_intregs)(sp),%edi
+	mov     (EBP*4+offes_intregs)(sp),%ebp
 
 	/* pop the execution state off the stack */
 	add		$(sizeexecutionstate),sp
