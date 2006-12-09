@@ -72,14 +72,6 @@
  */
 #define REG_PV REG_PV_CALLEE
 
-static int fabort(char *x)
-{
-    fprintf(stderr, "sparc64 abort because: %s\n", x);
-    exit(1);
-    abort();
-    return 0;
-			    
-}
 
 /* codegen *********************************************************************
 
@@ -104,6 +96,8 @@ bool codegen(jitdata *jd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+	fieldinfo          *fi;
+	unresolved_field   *uf;
 	rplpoint           *replacementpoint;
 	s4                  fieldtype;
 	s4                  varindex;
@@ -124,7 +118,7 @@ bool codegen(jitdata *jd)
 
 	{
 	s4 i, p, t, l;
-	s4 savedregs_num;
+	s4 savedregs_num, localbase;
 
 #if 0 /* no leaf optimization yet */
 	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the RA */
@@ -182,12 +176,20 @@ bool codegen(jitdata *jd)
 	if (cd->stackframesize)
 		M_SAVE(REG_SP, -cd->stackframesize * 8, REG_SP);
 
-	/* save callee saved float registers */
 
+	/* save callee saved float registers (none right now) */
+#if 0
 	p = cd->stackframesize;
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p--; M_DST(rd->savfltregs[i], REG_SP, USESTACK + (p * 8));
-	}	
+	}
+#endif
+
+#if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		emit_verbosecall_enter(jd);
+#endif
+	
 	
 	
 	/* take arguments out of register or stack frame */
@@ -195,7 +197,7 @@ bool codegen(jitdata *jd)
 	md = m->parseddesc;
 
 	/* when storing locals, use this as base */
-	int localbase = USESTACK;
+	localbase = USESTACK;
 	
 	/* since the register allocator does not know about the shifting window
 	 * arg regs need to be copied via the stack
@@ -246,6 +248,7 @@ bool codegen(jitdata *jd)
  					M_LDX(var->vv.regoff, REG_FP, (WINSAVE_CNT + s1) * 8);
 
  				} else {                             /* stack arg -> spilled  */
+					assert(0); /* XXX winsave area in between */
 					var->vv.regoff = cd->stackframesize + s1;
 				}
 			}
@@ -265,6 +268,7 @@ bool codegen(jitdata *jd)
  					M_DLD(var->vv.regoff, REG_FP, (WINSAVE_CNT + s1) * 8);
 
  				} else {                             /* stack-arg -> spilled  */
+ 					assert(0); /* XXX winsave area in between */
 					var->vv.regoff = cd->stackframesize + s1;
 				}
 			}
@@ -280,10 +284,7 @@ bool codegen(jitdata *jd)
 	/* XXX monitor enter */
 
 
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
-#endif
+
 	
 	}
 	
@@ -1058,10 +1059,10 @@ bool codegen(jitdata *jd)
 		case ICMD_I2D:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_double(cd, 0.0);
-			M_STX (s1, REG_PV_CALLEE, disp);
-			M_DLD (REG_FTMP2, REG_PV_CALLEE, disp); /* REG_FTMP2 needs to be a double temp */
-			M_CVTLF (REG_FTMP2, d); /* rd gets translated to double target register */
+			disp = dseg_add_float(cd, 0.0);
+			M_IST (s1, REG_PV_CALLEE, disp);
+			M_FLD (REG_FTMP2, REG_PV_CALLEE, disp); /* REG_FTMP2 needs to be a double temp */
+			M_CVTID (REG_FTMP2, d); /* rd gets translated to double target register */
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1487,14 +1488,14 @@ bool codegen(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 			} 
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp = dseg_add_address(cd, &(fi->value));
 
@@ -1532,15 +1533,14 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 			} 
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp = dseg_add_address(cd, &(fi->value));
 
@@ -1622,80 +1622,71 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				uf = iptr->sx.s23.s3.uf;
 
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield,
-									iptr->sx.s23.s3.uf, 0);
-
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP;
-				}
-
-				disp = 0;
-
-			} else {
-				disp = iptr->sx.s23.s3.fmiref->p.field->offset;
+				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
+			} 
+			else {
+				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
 			case TYPE_INT:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_ILD(d, s1, disp);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_LNG:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_LDX(d, s1, disp);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_ALD(d, s1, disp);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_FLT:
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_FLD(d, s1, disp);
-				emit_store_dst(jd, iptr, d);
 				break;
 			case TYPE_DBL:				
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD(d, s1, disp);
-				emit_store_dst(jd, iptr, d);
+				break;
+			default:
+				assert(0);
 				break;
 			}
+			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			/*if (!IS_FLT_DBL_TYPE(fieldtype)) {
-				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			} else {*/
-				s2 = emit_load_s2(jd, iptr, REG_IFTMP);
-			/*}*/
-
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				codegen_addpatchref(cd, PATCHER_get_putfield,
-									iptr->sx.s23.s3.uf, 0);
-
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP;
+				disp      = 0;
+			}
+			else {
+				uf        = NULL;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp      = fi->offset;
 				}
 
-				disp = 0;
+			if (IS_INT_LNG_TYPE(fieldtype))
+				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			else
+				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 
-			} else {
-				disp = iptr->sx.s23.s3.fmiref->p.field->offset;
-			}
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
 
 			switch (fieldtype) {
 			case TYPE_INT:
@@ -1712,6 +1703,9 @@ bool codegen(jitdata *jd)
 				break;
 			case TYPE_DBL:
 				M_DST(s2, s1, disp);
+				break;
+			default:
+				assert(0);
 				break;
 			}
 			break;
@@ -2354,7 +2348,10 @@ nowperformreturn:
 
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
-			assert(md->paramcount <= 5);
+			
+			/* XXX: proper builtin calling and float args are so not implemented */
+			assert(md->paramcount <= 5 && md->argfltreguse < 1);
+			
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
@@ -2948,7 +2945,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 	/* copy or spill arguments to new locations */
-
+	int num_fltregargs = 0;
+	int fltregarg_inswap[16];
 	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
 
@@ -2959,7 +2957,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				s1 = REG_WINDOW_TRANSPOSE(s1);
 
 				if (!nmd->params[j].inmemory) {
-					s2 = rd->argintregs[nmd->params[j].regoff];
+					s2 = nat_argintregs[nmd->params[j].regoff];
 					M_INTMOVE(s1, s2);
 				} else {
 					s2 = nmd->params[j].regoff;
@@ -2978,11 +2976,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				s1 = rd->argfltregs[md->params[i].regoff];
 
 				if (!nmd->params[j].inmemory) {
-					s2 = rd->argfltregs[nmd->params[j].regoff];
-					if (IS_2_WORD_TYPE(t))
-						M_DMOV(s1, s2);
-					else
-						M_DMOV(s1, s2);
+					/* no mapping to regs needed, native flt args use regoff */
+					s2 = nmd->params[j].regoff;
+					
+					/* we cannot move flt regs to their native arg locations directly */
+					M_DMOV(s1, s2 + 16);
+					fltregarg_inswap[num_fltregargs] = s2;
+					num_fltregargs++;
+					printf("flt arg swap to %d\n", s2 + 16);
 
 				} else {
 					s2 = nmd->params[j].regoff;
@@ -3004,6 +3005,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				}
 			}
 		}
+	}
+	
+	/* move swapped float args to target regs */
+	for (i = 0; i < num_fltregargs; i++) {
+		s1 = fltregarg_inswap[i];
+		M_DMOV(s1 + 16, s1);
+		printf("float arg to target reg: %d ==> %d\n", s1+16, s1);
 	}
 
 
@@ -3033,10 +3041,17 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		else
 			M_DST(REG_FRESULT, REG_SP, USESTACK_PARAMS);
 	}
+	
+	/* Note: native functions return float values in %f0 (see ABI) */
+	/* we handle this by doing M_FLD below. (which will load the lower word into %f1) */
 
 #if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+	/* But for the trace function we need to put a flt result into %f1 */
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		if (!IS_2_WORD_TYPE(md->returntype.type))
+			M_FLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
 		emit_verbosecall_exit(jd);
+	}
 #endif
 
 	/* remove native stackframe info */
@@ -3052,7 +3067,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	if (md->returntype.type != TYPE_VOID) {
 		if (IS_FLT_DBL_TYPE(md->returntype.type)) {
-			M_DLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_DLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+			else
+				M_FLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
 		}
 	}
 

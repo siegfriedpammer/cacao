@@ -42,6 +42,9 @@
 
 #include "vm/jit/jit.h"
 
+/* from md-abi.c */
+s4 nat_argintregs[INT_NATARG_CNT];
+
 /* branch defines *************************************************************/
 
 #define BRANCH_NOPS \
@@ -204,20 +207,38 @@
 	} while (0)
 
 
+#define FR_X(r) (((r)<<2) + 1)
+#define DR_X(r) (((r)<<2)|((r)>>5))
+
 /* 3-address-floating-point-operation
-     op .... opcode
-     op3,opf .... function-number
-     rd .... dest reg
-     rs2 ... source reg
-     
-     !!! 6-bit to 5-bit conversion done here !!!
-*/ 
+ *   op .... opcode
+ *   op3,opf .... function-number
+ *   rd .... dest reg
+ *   rs1 ... source reg (-1 signals unused)
+ *   rs2 ... source reg
+ *   
+ *
+ */ 
 #define M_FOP3(op,op3,opf,rd,rs1,rs2) \
 	do { \
-		*((u4 *) cd->mcodeptr) =  ( (((s4)(op))<<30) | ((rd*2)<<25) | ((op3)<<19) | ((rs1*2) << 14) | ((opf)<<5) | (rs2*2) ); \
+		*((u4 *) cd->mcodeptr) =  ( (((s4)(op))<<30) | ((rd)<<25) | ((op3)<<19) | ((((rs1)==-1)?0:(rs1)) << 14) | \
+		((opf)<<5) | (rs2) ); \
 		cd->mcodeptr += 4; \
 	} while (0)
-
+/* float addressing */
+#define M_FOP3_FX(op,op3,opf,rd,rs1,rs2) \
+	do { \
+		*((u4 *) cd->mcodeptr) =  ( (((s4)(op))<<30) | (FR_X(rd)<<25) | ((op3)<<19) | ((((rs1)==-1)?0:FR_X(rs1)) << 14) | \
+		((opf)<<5) | FR_X(rs2) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
+/* double addressing */
+#define M_FOP3_DX(op,op3,opf,rd,rs1,rs2) \
+	do { \
+		*((u4 *) cd->mcodeptr) =  ( (((s4)(op))<<30) | (DR_X(rd)<<25) | ((op3)<<19) | ((((rs1)==-1)?0:DR_X(rs1)) << 14) | \
+		((opf)<<5) | DR_X(rs2) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
 
 /**** format 2 operations ********/
 
@@ -490,54 +511,46 @@
 /**** floating point operations **/
 
 
-#define M_DMOV(rs,rd)           M_FOP3(0x02,0x34,0x02,rd,0,rs)      /* rd = rs */
-#define M_FMOV(rs,rd)           M_FOP3(0x02,0x34,0x01,rd,0,rs)  /* rd = rs */
+#define M_DMOV(rs,rd)           M_FOP3_DX(0x02,0x34,0x02,rd,-1,rs)      /* rd = rs */
+#define M_FMOV(rs,rd)           M_FOP3_FX(0x02,0x34,0x01,rd,-1,rs)  /* rd = rs */
 
-#define M_FNEG(rs,rd)          	M_FOP3(0x02,0x34,0x05,rd,0,rs)	 	/* rd = -rs     */
-#define M_DNEG(rs,rd)          	M_FOP3(0x02,0x34,0x06,rd,0,rs)  	/* rd = -rs     */
+#define M_FNEG(rs,rd)          	M_FOP3_FX(0x02,0x34,0x05,rd,-1,rs)	 	/* rd = -rs     */
+#define M_DNEG(rs,rd)          	M_FOP3_DX(0x02,0x34,0x06,rd,-1,rs)  	/* rd = -rs     */
 
-#define M_FADD(rs1,rs2,rd)      M_FOP3(0x02,0x34,0x41,rd,rs1,rs2)  /* float add    */
-#define M_DADD(rs1,rs2,rd)      M_FOP3(0x02,0x34,0x42,rd,rs1,rs2)  /* double add   */
-#define M_FSUB(rs1,rs2,rd)      M_FOP3(0x02,0x34,0x045,rd,rs1,rs2)	/* float sub    */
-#define M_DSUB(rs1,rs2,rd)      M_FOP3(0x02,0x34,0x046,rd,rs1,rs2) /* double sub   */
-#define M_FMUL(rs1,rs2,rd)      M_FOP3(0x02,0x34,0x049,rd,rs1,rs2) /* float mul    */
-#define M_DMUL(rs1,rs2,rd)      M_FOP3(0x02,0x34,0x04a,rd,rs1,rs2) /* double mul   */
-#define M_FDIV(rs1,rs2,rd)      M_FOP3(0x02,0x34,0x04d,rd,rs1,rs2) /* float div    */
-#define M_DDIV(rs1,rs2,rd)      M_FOP3(0x02,0x34,0x04e,rd,rs1,rs2) /* double div   */
+#define M_FADD(rs1,rs2,rd)      M_FOP3_FX(0x02,0x34,0x41,rd,rs1,rs2)  /* float add    */
+#define M_DADD(rs1,rs2,rd)      M_FOP3_DX(0x02,0x34,0x42,rd,rs1,rs2)  /* double add   */
+#define M_FSUB(rs1,rs2,rd)      M_FOP3_FX(0x02,0x34,0x045,rd,rs1,rs2)	/* float sub    */
+#define M_DSUB(rs1,rs2,rd)      M_FOP3_DX(0x02,0x34,0x046,rd,rs1,rs2) /* double sub   */
+#define M_FMUL(rs1,rs2,rd)      M_FOP3_FX(0x02,0x34,0x049,rd,rs1,rs2) /* float mul    */
+#define M_DMUL(rs1,rs2,rd)      M_FOP3_DX(0x02,0x34,0x04a,rd,rs1,rs2) /* double mul   */
+#define M_FDIV(rs1,rs2,rd)      M_FOP3_FX(0x02,0x34,0x04d,rd,rs1,rs2) /* float div    */
+#define M_DDIV(rs1,rs2,rd)      M_FOP3_DX(0x02,0x34,0x04e,rd,rs1,rs2) /* double div   */
 
 
 /**** compare and conditional FPU operations ***********/
 
 /* rd field 0 ==> fcc target unit is fcc0 */
-#define M_FCMP(rs1,rs2)		    M_FOP3(0x02,0x35,0x051,0,rs1,rs2) /* set fcc flt  */
-#define M_DCMP(rs1,rs2)		    M_FOP3(0x02,0x35,0x052,0,rs1,rs2)     /* set fcc dbl  */
+#define M_FCMP(rs1,rs2)		    M_FOP3_FX(0x02,0x35,0x051,0,rs1,rs2) /* set fcc flt  */
+#define M_DCMP(rs1,rs2)		    M_FOP3_DX(0x02,0x35,0x052,0,rs1,rs2)     /* set fcc dbl  */
 
 /* conversion functions */
 
-#define M_CVTIF(rs,rd)          M_FOP3(0x02,0x34,0x0c4,rd,0,rs)/* int2flt      */
-#define M_CVTID(rs,rd)          M_FOP3(0x02,0x34,0x0c8,rd,0,rs)  /* int2dbl      */
-#define M_CVTLF(rs,rd)          M_FOP3(0x02,0x34,0x084,rd,0,rs)  /* long2flt     */
-#define M_CVTLD(rs,rd)          M_FOP3(0x02,0x34,0x088,rd,0,rs)    /* long2dbl     */
+#define M_CVTIF(rs,rd)          M_FOP3_FX(0x02,0x34,0x0c4,rd,-1,rs)/* int2flt      */
+#define M_CVTID(rs,rd)          M_FOP3(0x02,0x34,0x0c8,DR_X(rd),-1,FR_X(rs))  /* int2dbl      */
+#define M_CVTLF(rs,rd)          M_FOP3(0x02,0x34,0x084,FR_X(rd),-1,DR_X(rs))  /* long2flt     */
+#define M_CVTLD(rs,rd)          M_FOP3_DX(0x02,0x34,0x088,rd,-1,rs)    /* long2dbl     */
 
-#define M_CVTFI(rs,rd)          M_FOP3(0x02,0x34,0x0d1,rd,0,rs)   /* flt2int   */
-#define M_CVTDI(rs,rd)          M_FOP3(0x02,0x34,0x0d2,rd,0,rs)     /* dbl2int   */
-#define M_CVTFL(rs,rd)          M_FOP3(0x02,0x34,0x081,rd,0,rs)     /* flt2long  */
-#define M_CVTDL(rs,rd)          M_FOP3(0x02,0x34,0x082,rd,0,rs)       /* dbl2long  */
+#define M_CVTFI(rs,rd)          M_FOP3_FX(0x02,0x34,0x0d1,rd,-1,rs)   /* flt2int   */
+#define M_CVTDI(rs,rd)          M_FOP3(0x02,0x34,0x0d2,FR_X(rd),-1,DR_X(rs))     /* dbl2int   */
+#define M_CVTFL(rs,rd)          M_FOP3(0x02,0x34,0x081,DR_X(rd),-1,FR_X(rs))     /* flt2long  */
+#define M_CVTDL(rs,rd)          M_FOP3_DX(0x02,0x34,0x082,rd,-1,rs)       /* dbl2long  */
 
-#define M_CVTFD(rs,rd)          M_FOP3(0x02,0x34,0x0c9,rd,0,rs)     /* flt2dbl   */
-#define M_CVTDF(rs,rd)          M_FOP3(0x02,0x34,0x0c6,rd,0,rs)     /* dbl2float */
+#define M_CVTFD(rs,rd)          M_FOP3(0x02,0x34,0x0c9,DR_X(rs),-1,FR_X(rs))     /* flt2dbl   */
+#define M_CVTDF(rs,rd)          M_FOP3(0x02,0x34,0x0c6,FR_X(rs),-1,DR_X(rs))     /* dbl2float */
 
 
-/* a 6-bit double register index has to be converted into the 5-bit representation 
- * (%d1 -> %f2, %d2 -> %f4, ie. shift left once )
- * don't have to pack the MSB, since we are not using the upper 16 doubles
- * 
- * since single precision floats reside in the lower register of a double pair their
- * register numbers need to be handled in the same way
- */
 
-/* M_OP3 will not do the floar register number conversion */
-#define M_DLD_INTERN(rd,rs1,disp) M_OP3(0x03,0x23,rd*2,rs1,disp,IMM)    /* double (64-bit) load */
+#define M_DLD_INTERN(rd,rs1,disp) M_OP3(0x03,0x23,DR_X(rd),rs1,disp,IMM)    /* double (64-bit) load */
 #define M_DLD(rd,rs,disp) \
 	do { \
         s4 lo = (short) (disp); \
@@ -552,7 +565,7 @@
     } while (0)
 /* Note for SETHI: sethi has a 22bit imm, only set upper 19 bits */ 
 
-#define M_FLD_INTERN(rd,rs1,disp) M_OP3(0x03,0x20,rd*2,rs1,disp,IMM)    /* float (32-bit) load */
+#define M_FLD_INTERN(rd,rs1,disp) M_OP3(0x03,0x20,FR_X(rd),rs1,disp,IMM)    /* float (32-bit) load */
 #define M_FLD(rd,rs,disp) \
 	do { \
         s4 lo = (short) (disp); \
@@ -567,7 +580,7 @@
     } while (0)
 
 
-#define M_FST_INTERN(rd,rs,disp) M_OP3(0x03,0x24,rd*2,rs,disp,IMM)    /* float (32-bit) store  */
+#define M_FST_INTERN(rd,rs,disp) M_OP3(0x03,0x24,FR_X(rd),rs,disp,IMM)    /* float (32-bit) store  */
 #define M_FST(rd,rs,disp) \
     do { \
         s4 lo = (short) (disp); \
@@ -582,7 +595,7 @@
     } while (0)
     
 
-#define M_DST_INTERN(rd,rs1,disp) M_OP3(0x03,0x27,rd*2,rs1,disp,IMM)    /* double (64-bit) store */
+#define M_DST_INTERN(rd,rs1,disp) M_OP3(0x03,0x27,DR_X(rd),rs1,disp,IMM)    /* double (64-bit) store */
 #define M_DST(rd,rs,disp) \
     do { \
         s4 lo = (short) (disp); \

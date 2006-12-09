@@ -74,6 +74,11 @@ s4 nregdescfloat[] = {
 };
 
 
+s4 nat_argintregs[] = {
+	REG_OUT0, REG_OUT1, REG_OUT2, REG_OUT3, REG_OUT4, REG_OUT5
+};
+
+
 /* md_param_alloc **************************************************************
 
    Allocate Arguments to Stackslots according the Calling Conventions

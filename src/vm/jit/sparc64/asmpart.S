@@ -196,9 +196,9 @@ asm_vm_call_method_exception_handler:
 
 asm_call_jit_compiler:
 	
-	save    %sp,-160,%sp         /* regsave + 4 slots for float args          */
+	save    %sp,-208,%sp         /* regsave(16) + argslots(6) + 4 float args  */
 
-	SAVE_FLOAT_ARGUMENT_REGISTERS(16)
+	SAVE_FLOAT_ARGUMENT_REGISTERS(22)
 
 	mov     itmp1,%o0             /* pass methodinfo pointer                  */
 	mov     mptr_itmp2,%o1        /* pass method pointer                      */
@@ -208,7 +208,7 @@ asm_call_jit_compiler:
 	call    jit_asm_compile       /* call jit compiler                        */
 	nop
 	
-	RESTORE_FLOAT_ARGUMENT_REGISTERS(16)
+	RESTORE_FLOAT_ARGUMENT_REGISTERS(22)
 	
 	restore %o0,%g0,pv_caller     /* restore the callers window               */
 	                              /* the source o0 references the old window  */

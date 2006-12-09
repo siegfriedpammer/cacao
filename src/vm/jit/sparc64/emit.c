@@ -481,8 +481,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_ALD(rd->argintregs[0], REG_PV_CALLEE, disp);
 
 	M_MOV(REG_RESULT_CALLEE, rd->argintregs[1]);
-	M_DMOV(REG_FRESULT, rd->argfltregs[2]);
-	M_FMOV(REG_FRESULT, rd->argfltregs[3]);
+	M_DMOV(REG_FRESULT, 2);
+	M_FMOV(REG_FRESULT, 2);
 
 	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
 	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
