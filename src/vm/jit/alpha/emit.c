@@ -198,9 +198,9 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 
 *******************************************************************************/
 
-void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
-	if (checkbounds) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
 		M_CMPULT(s2, REG_ITMP3, REG_ITMP3);
 		M_BEQZ(REG_ITMP3, 0);
@@ -215,7 +215,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
 
 *******************************************************************************/
 
-void emit_arraystore_check(codegendata *cd, s4 reg)
+void emit_arraystore_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	M_BEQZ(reg, 0);
 	codegen_add_arraystoreexception_ref(cd);
@@ -228,10 +228,12 @@ void emit_arraystore_check(codegendata *cd, s4 reg)
 
 *******************************************************************************/
 
-void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
+void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
-	M_BNEZ(reg, 0);
-	codegen_add_classcastexception_ref(cd, s1);
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_BNEZ(reg, 0);
+		codegen_add_classcastexception_ref(cd, s1);
+	}
 }
 
 
@@ -241,9 +243,9 @@ void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
 
 *******************************************************************************/
 
-void emit_nullpointer_check(codegendata *cd, s4 reg)
+void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
-	if (checknull) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BEQZ(reg, 0);
 		codegen_add_nullpointerexception_ref(cd);
 	}

@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6150 2006-12-07 23:59:32Z edwin $
+   $Id: codegen.c 6165 2006-12-10 22:07:02Z twisti $
 
 */
 
@@ -391,6 +391,11 @@ bool codegen(jitdata *jd)
 		MCODECHECK(64);       /* an instruction usually needs < 64 words      */
 		switch (iptr->opc) {
 
+		case ICMD_NOP:        /* ...  ==> ...                                 */
+		case ICMD_POP:        /* ..., value  ==> ...                          */
+		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
+			break;
+
 		case ICMD_INLINE_START:
 
 			REPLACEMENT_POINT_INLINE_START(cd, iptr);
@@ -409,14 +414,10 @@ bool codegen(jitdata *jd)
 			dseg_addlinenumber(cd, iptr->line);
 			break;
 
-		case ICMD_NOP:        /* ...  ==> ...                                 */
-			break;
-
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_BEQZ(s1, 0);
-			codegen_add_nullpointerexception_ref(cd);
+			emit_nullpointer_check(cd, iptr, s1);
 			break;
 
 		/* constant operations ************************************************/
@@ -503,16 +504,6 @@ bool codegen(jitdata *jd)
 
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
 				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
-			break;
-
-
-		/* pop operations *****************************************************/
-
-		/* attention: double and longs are only one entry in CACAO ICMDs      */
-
-		case ICMD_POP:        /* ..., value  ==> ...                          */
-		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-
 			break;
 
 
@@ -1445,7 +1436,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1930,7 +1921,7 @@ bool codegen(jitdata *jd)
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -1973,7 +1964,7 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -2019,7 +2010,7 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -2688,7 +2679,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				emit_nullpointer_check(cd, REG_A0);
+				emit_nullpointer_check(cd, iptr, REG_A0);
 
 				if (lm == NULL) {
 					codegen_add_patch_ref(cd, PATCHER_invokevirtual, um, 0);
@@ -2705,7 +2696,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				emit_nullpointer_check(cd, REG_A0);
+				emit_nullpointer_check(cd, iptr, REG_A0);
 
 				if (lm == NULL) {
 					codegen_add_patch_ref(cd, PATCHER_invokeinterface, um, 0);
