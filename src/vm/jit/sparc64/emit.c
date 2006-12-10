@@ -150,7 +150,7 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 
 		if (s1 != d) {
 			if (IS_FLT_DBL_TYPE(src->type))
-				M_FMOV(s1, d);
+				M_DMOV(s1, d);
 		else
 				M_MOV(s1, d);
 		}
@@ -197,6 +197,25 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	}
 }
 
+/* emit_arrayindexoutofbounds_check ********************************************
+
+   Emit an ArrayIndexOutOfBoundsException check.
+
+*******************************************************************************/
+
+void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+{
+}
+
+/* emit_nullpointer_check ******************************************************
+
+   Emit a NullPointerException check.
+
+*******************************************************************************/
+
+void emit_nullpointer_check(codegendata *cd, s4 reg)
+{
+}
 
 /* emit_exception_stubs ********************************************************
 
@@ -481,8 +500,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_ALD(rd->argintregs[0], REG_PV_CALLEE, disp);
 
 	M_MOV(REG_RESULT_CALLEE, rd->argintregs[1]);
-	M_DMOV(REG_FRESULT, 2);
-	M_FMOV(REG_FRESULT, 2);
+	M_DMOV(REG_FRESULT, 2); /* applies for flt and dbl values */
 
 	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
 	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);

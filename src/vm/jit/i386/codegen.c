@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6129 2006-12-06 10:49:47Z twisti $
+   $Id: codegen.c 6154 2006-12-08 00:16:21Z edwin $
 
 */
 

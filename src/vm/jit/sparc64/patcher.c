@@ -1,4 +1,4 @@
-/* src/vm/jit/mips/patcher.c - MIPS code patching functions
+/* src/vm/jit/mips/patcher.c - SPARC code patching functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -25,9 +25,7 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
-
-   Changes:
-
+            Alexander Jordan
    $Id: patcher.c 5164 2006-07-19 15:54:01Z twisti $
 
 */
@@ -134,7 +132,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 		return e;
 	}
 
-	/* patch back original code */
+	/* patch back original (maybe patched) code */
 
 #if SIZEOF_VOID_P == 8
 	mcode    =                      *((u8 *)     (sp + 3 * 8));
@@ -462,10 +460,10 @@ bool patcher_invokestatic_special(u1 *sp)
    Machine code:
 
    <patched call position>
-   xxx         ldx      t9,0(a0)
-   xxx         ldx      s8,64(t9)
-   xxx         jmpl     s8
-   00000000    nop
+   xxx         ldx      g2,0(o0)
+   xxx         ldx      o5,64(g2)
+   xxx         jmpl     o5
+   xxx         nop
 
 *******************************************************************************/
 
@@ -474,8 +472,6 @@ bool patcher_invokevirtual(u1 *sp)
 	u1                *ra;
 	unresolved_method *um;
 	methodinfo        *m;
-
-	assert(0);
 
 	/* get stuff from the stack */
 
@@ -492,13 +488,13 @@ bool patcher_invokevirtual(u1 *sp)
 	if (opt_shownops) {
 		ra = ra + PATCHER_CALL_SIZE;
 
-	/* patch vftbl index */
+		/* patch vftbl index */
 
 		*((s4 *) (ra + 1 * 4)) |=
 			(s4) ((OFFSET(vftbl_t, table[0]) +
 				   sizeof(methodptr) * m->vftblindex) & 0x00001fff);
 
-	/* synchronize instruction cache */
+		/* synchronize instruction cache */
 
 		md_icacheflush(ra + 1 * 4, 1 * 4);
 	}

@@ -68,15 +68,15 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 	/* get the instruction before the exception point */
 
 	mcode = mcodeptr[-1];
+	
+	/* Calculate the branch displacement.  SPARC displacements regard current
+	   PC as base => (branchmpc - 4 */
+	
+	disp = (targetmpc - (branchmpc - 4)) >> 2;
+	
 
 	/* check for BPcc or FBPfcc instruction */
 	if (((mcode >> 16) & 0xc1c0) == 0x0040) {
-			
-	
-		/* Calculate the branch displacement.  For branches we need a
-		   displacement relative and shifted to the branch PC. */
-	
-		disp = (targetmpc - branchmpc) >> 2;
 	
 		/* check branch displacement (19-bit)*/
 	
@@ -91,8 +91,6 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 	else if (((mcode >> 16) & 0xd1c0) == 0x00c0) {
 
 		/* check branch displacement (16-bit)*/
-		
-		disp = (targetmpc - branchmpc) >> 2;
 	
 		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x0007fff))
 			vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x0007fff);
@@ -344,6 +342,8 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *save
 {
 	s4 disp;
 	u4 mcode;
+	
+	assert(0);
 
 	if (index < 0) {
 		/* restore the patched-over instruction */

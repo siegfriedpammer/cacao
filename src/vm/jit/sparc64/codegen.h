@@ -207,8 +207,8 @@ s4 nat_argintregs[INT_NATARG_CNT];
 	} while (0)
 
 
-#define FR_X(r) (((r)<<2) + 1)
-#define DR_X(r) (((r)<<2)|((r)>>5))
+#define FR_X(r) (((r)<<1) + 1)
+#define DR_X(r) (((r)<<1)|((r)>>5))
 
 /* 3-address-floating-point-operation
  *   op .... opcode
@@ -322,12 +322,16 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_MULX_IMM(rs1,rs2,rd)  M_OP3(0x02,0x09,rd,rs1,rs2,IMM)
 #define M_DIVX(rs1,rs2,rd)      M_OP3(0x02,0x2d,rd,rs1,rs2,REG)  	/* 64b rd = rs1 / rs2 */
 
+#define M_SUBcc(rs1,rs2,rd)     M_OP3(0x02,0x14,rd,rs1,rs2,REG)     /* sets xcc and icc   */
+#define M_SUBcc_IMM(rs1,rs2,rd) M_OP3(0x02,0x14,rd,rs1,rs2,IMM)     /* sets xcc and icc   */
+
 
 
 /**** compare and conditional ALU operations ***********/
 
-#define M_CMP(rs1,rs2)          M_SUB(rs1,rs2,REG_ZERO)             /* sets xcc and icc   */
-#define M_CMP_IMM(rs1,rs2)      M_SUB_IMM(rs1,rs2,REG_ZERO)
+#define M_CMP(rs1,rs2)          M_SUBcc(rs1,rs2,REG_ZERO)             
+#define M_CMP_IMM(rs1,rs2)      M_SUBcc_IMM(rs1,rs2,REG_ZERO)
+
 
 /* move integer register on (64-bit) condition */
 
@@ -657,24 +661,6 @@ s4 nat_argintregs[INT_NATARG_CNT];
         } \
     } while (0)
 																  
-
-/* gen_resolvebranch ***********************************************************
- *
- *    backpatches a branch instruction
- *    On Sparc all there is to do, is replace the 22bit disp at the end of the 
- *    instruction.
- *    THIS APPLIES TO THE (V8) BICC INSTRUCTION ONLY.
- *
- *    parameters: ip ... pointer to instruction after branch (void*)
- *                so ... offset of instruction after branch  (s4)
- *                to ... offset of branch target  (s4)
- *
- *******************************************************************************/
-
-#define gen_resolvebranch(ip,so,to) \
-	((s4 *) (ip))[-1] |= ((s4) (to) - (so)) >> 2 & 0x1fffff
-
-
 
 																  
 	
