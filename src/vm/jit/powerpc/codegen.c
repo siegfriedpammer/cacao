@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6156 2006-12-08 00:20:16Z edwin $
+   $Id: codegen.c 6166 2006-12-10 22:17:03Z twisti $
 
 */
 
@@ -510,9 +510,7 @@ bool codegen(jitdata *jd)
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_TST(s1);
-			M_BEQ(0);
-			codegen_add_nullpointerexception_ref(cd);
+			emit_nullpointer_check(cd, iptr, s1);
 			break;
 
 		/* constant operations ************************************************/
@@ -1444,7 +1442,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1747,7 +1745,7 @@ bool codegen(jitdata *jd)
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -1797,7 +1795,7 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTFIELD:   /* ..., value  ==> ...                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -2552,7 +2550,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				emit_nullpointer_check(cd, REG_A0);
+				emit_nullpointer_check(cd, iptr, REG_A0);
 				M_ILD(REG_ITMP1, REG_A0, 0); /* hardware nullptr   */
 				/* fall through */
 
@@ -2570,7 +2568,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				emit_nullpointer_check(cd, REG_A0);
+				emit_nullpointer_check(cd, iptr, REG_A0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
@@ -2587,7 +2585,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				emit_nullpointer_check(cd, REG_A0);
+				emit_nullpointer_check(cd, iptr, REG_A0);
 
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);

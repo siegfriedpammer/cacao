@@ -278,9 +278,9 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 
 *******************************************************************************/
 
-void emit_nullpointer_check(codegendata *cd, s4 reg)
+void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
-	if (checknull) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(reg);
 		M_BEQ(0);
 		codegen_add_nullpointerexception_ref(cd);
@@ -294,9 +294,9 @@ void emit_nullpointer_check(codegendata *cd, s4 reg)
 
 *******************************************************************************/
 
-void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
-	if (checkbounds) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
 		M_CMPU(s2, REG_ITMP3);
 		M_BGE(0);
