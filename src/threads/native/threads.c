@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Stefan Ring
+            Christian Thalinger
+            Edwin Steiner
 
-   Changes: Christian Thalinger
-   			Edwin Steiner
-
-   $Id: threads.c 6104 2006-12-02 14:54:27Z tbfg $
+   $Id: threads.c 6167 2006-12-10 23:20:31Z twisti $
 
 */
 
@@ -1087,9 +1086,15 @@ static void *threads_startup_thread(void *t)
 		if (method == NULL)
 			throw_exception();
 
-		/* increase total started thread count */
+		/* set ThreadMXBean variables */
 
-		_Jv_jvm->total_started_thread_count++;
+		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
+		_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++;
+
+		if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount >
+			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount)
+			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
+				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
 
 		(void) vm_call_method(method, (java_objectheader *) thread);
 	}
@@ -1098,9 +1103,15 @@ static void *threads_startup_thread(void *t)
 
 		thread->flags |= THREAD_FLAG_INTERNAL;
 
-		/* increase total started thread count */
+		/* set ThreadMXBean variables */
 
-		_Jv_jvm->total_started_thread_count++;
+		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
+		_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++;
+
+		if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount >
+			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount)
+			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
+				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
 
 		/* call passed function, e.g. finalizer_thread */
 
@@ -1115,6 +1126,10 @@ static void *threads_startup_thread(void *t)
 #endif
 
 	threads_detach_thread(thread);
+
+	/* set ThreadMXBean variables */
+
+	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount--;
 
 	return NULL;
 }

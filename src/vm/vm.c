@@ -1648,9 +1648,15 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	jvmti_set_phase(JVMTI_PHASE_LIVE);
 #endif
 
-	/* increase total started thread count */
+	/* set ThreadMXBean variables */
 
-	_Jv_jvm->total_started_thread_count++;
+	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
+	_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++;
+
+	if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount >
+		_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount)
+		_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
+			_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
 
 	/* start the main thread */
 

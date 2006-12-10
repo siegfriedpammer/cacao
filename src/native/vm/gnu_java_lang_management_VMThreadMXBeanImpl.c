@@ -92,9 +92,7 @@ JNIEXPORT s8 JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrent
  */
 JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount(JNIEnv *env, jclass clazz)
 {
-	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount: IMPLEMENT ME!");
-
-	return 0;
+	return _Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount;
 }
 
 
@@ -144,7 +142,7 @@ JNIEXPORT s8 JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadU
  */
 JNIEXPORT s8 JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount(JNIEnv *env, jclass clazz)
 {
-	return _Jv_jvm->total_started_thread_count;
+	return _Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount;
 }
 
 
@@ -155,7 +153,8 @@ JNIEXPORT s8 JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalSt
  */
 JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount(JNIEnv *env, jclass clazz)
 {
-	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount: IMPLEMENT ME!");
+	_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
+		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
 }
 
 

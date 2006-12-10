@@ -26,10 +26,9 @@
 
    Authors: Reinhard Grafl
             Roman Obermaisser
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: jni.h 6011 2006-11-16 15:56:44Z twisti $
+   $Id: jni.h 6167 2006-12-10 23:20:31Z twisti $
 
 */
 
@@ -86,10 +85,12 @@ struct _Jv_JavaVM {
 	/* JVM instance-specific variables */
 
 	s8 starttime;                       /* VM startup time                    */
-	s8 total_started_thread_count;
 
 	s4 Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose;
 	s4 Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose;
+	s4 java_lang_management_ThreadMXBean_PeakThreadCount;
+	s4 java_lang_management_ThreadMXBean_ThreadCount;
+	s8 java_lang_management_ThreadMXBean_TotalStartedThreadCount;
 	s4 Java_java_lang_VMClassLoader_defaultAssertionStatus;
 };
 
