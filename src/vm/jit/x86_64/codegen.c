@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6148 2006-12-07 23:57:45Z edwin $
+   $Id: codegen.c 6164 2006-12-10 21:50:22Z twisti $
 
 */
 
@@ -445,9 +445,7 @@ bool codegen(jitdata *jd)
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_TEST(s1);
-			M_BEQ(0);
-			codegen_add_nullpointerexception_ref(cd);
+			emit_nullpointer_check(cd, iptr, s1);
 			break;
 
 		/* constant operations ************************************************/
@@ -769,7 +767,7 @@ bool codegen(jitdata *jd)
 
 			M_INTMOVE(s1, RAX);
 			M_INTMOVE(s2, REG_ITMP3);
-			emit_arithmetic_check(cd, REG_ITMP3);
+			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
 			M_MOV(RDX, REG_ITMP2);    /* save RDX (it's an argument register) */
 
@@ -796,7 +794,7 @@ bool codegen(jitdata *jd)
 
 			M_INTMOVE(s1, RAX);
 			M_INTMOVE(s2, REG_ITMP3);
-			emit_arithmetic_check(cd, REG_ITMP3);
+			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
 			M_MOV(RDX, REG_ITMP2);    /* save RDX (it's an argument register) */
 
@@ -854,7 +852,7 @@ bool codegen(jitdata *jd)
 
 			M_INTMOVE(s1, RAX);
 			M_INTMOVE(s2, REG_ITMP3);
-			emit_arithmetic_check(cd, REG_ITMP3);
+			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
 			M_MOV(RDX, REG_ITMP2);    /* save RDX (it's an argument register) */
 
@@ -883,7 +881,7 @@ bool codegen(jitdata *jd)
 
 			M_INTMOVE(s1, RAX);
 			M_INTMOVE(s2, REG_ITMP3);
-			emit_arithmetic_check(cd, REG_ITMP3);
+			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
 			M_MOV(RDX, REG_ITMP2);    /* save RDX (it's an argument register) */
 
@@ -1511,7 +1509,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1930,7 +1928,7 @@ bool codegen(jitdata *jd)
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -1975,7 +1973,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_IFTMP); /* REG_IFTMP == REG_ITMP2 */
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -2016,7 +2014,7 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -2637,7 +2635,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				emit_nullpointer_check(cd, REG_A0);
+				emit_nullpointer_check(cd, iptr, REG_A0);
 
 				if (lm == NULL) {
 					codegen_add_patch_ref(cd, PATCHER_invokevirtual, um, 0);
@@ -2655,7 +2653,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				emit_nullpointer_check(cd, REG_A0);
+				emit_nullpointer_check(cd, iptr, REG_A0);
 
 				if (lm == NULL) {
 					codegen_add_patch_ref(cd, PATCHER_invokeinterface, um, 0);
