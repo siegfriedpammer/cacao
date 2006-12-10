@@ -27,7 +27,7 @@
    Author:  Christian Thalinger
             Edwin Steiner
 
-   $Id: parse.h 5959 2006-11-12 13:31:14Z edwin $
+   $Id: parse.h 6162 2006-12-10 21:27:07Z twisti $
 
 */
 
@@ -135,6 +135,10 @@
 
 #define OP(o)                                                        \
     OP_PREPARE_ZEROFLAGS(o);                                         \
+    PINC
+
+#define OP_CHECK_EXCEPTION(o)                                        \
+    OP_PREPARE_FLAGS(o, INS_FLAG_CHECK);                             \
     PINC
 
 #define OP_LOADCONST_I(v)                                            \

@@ -30,7 +30,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 5985 2006-11-15 15:52:29Z twisti $
+   $Id: parse.c 6162 2006-12-10 21:27:07Z twisti $
 
 */
 
@@ -1297,7 +1297,7 @@ invoke_method:
 			else
 #endif
 			{
-				OP(ICMD_CHECKNULL);
+				OP_CHECK_EXCEPTION(ICMD_CHECKNULL);
 				OP(ICMD_POP);
 			}
 			break;
@@ -1311,7 +1311,7 @@ invoke_method:
 			else
 #endif
 			{
-				OP(ICMD_CHECKNULL);
+				OP_CHECK_EXCEPTION(ICMD_CHECKNULL);
 				OP(ICMD_POP);
 			}
 			break;
