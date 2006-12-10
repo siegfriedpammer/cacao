@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6154 2006-12-08 00:16:21Z edwin $
+   $Id: codegen.c 6163 2006-12-10 21:35:52Z twisti $
 
 */
 
@@ -512,6 +512,10 @@ bool codegen(jitdata *jd)
 			MCODECHECK(1024);                         /* 1kB should be enough */
 
 		switch (iptr->opc) {
+		case ICMD_NOP:        /* ...  ==> ...                                 */
+		case ICMD_POP:        /* ..., value  ==> ...                          */
+		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
+			break;
 
 		case ICMD_INLINE_START:
 
@@ -532,15 +536,10 @@ bool codegen(jitdata *jd)
 			dseg_addlinenumber(cd, iptr->line);
 			break;
 
-		case ICMD_NOP:        /* ...  ==> ...                                 */
-			break;
-
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_TEST(s1);
-			M_BEQ(0);
-			codegen_add_nullpointerexception_ref(cd);
+			emit_nullpointer_check(cd, iptr, s1);
 			break;
 
 		/* constant operations ************************************************/
@@ -659,15 +658,6 @@ bool codegen(jitdata *jd)
 		case ICMD_ASTORE:
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
 				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
-			break;
-
-		/* pop operations *****************************************************/
-
-		/* attention: double and longs are only one entry in CACAO ICMDs      */
-
-		case ICMD_POP:        /* ..., value  ==> ...                          */
-		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-
 			break;
 
 
@@ -930,7 +920,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, EAX);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, EAX);
-			emit_arithmetic_check(cd, s2);
+			emit_arithmetic_check(cd, iptr, s2);
 
 			M_INTMOVE(s1, EAX);           /* we need the first operand in EAX */
 
@@ -952,7 +942,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, EAX);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, EDX);
-			emit_arithmetic_check(cd, s2);
+			emit_arithmetic_check(cd, iptr, s2);
 
 			M_INTMOVE(s1, EAX);           /* we need the first operand in EAX */
 
@@ -1013,7 +1003,7 @@ bool codegen(jitdata *jd)
 			M_INTMOVE(GET_LOW_REG(s2), REG_ITMP3);
 			M_OR(GET_HIGH_REG(s2), REG_ITMP3);
 			/* XXX could be optimized */
-			emit_arithmetic_check(cd, REG_ITMP3);
+			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
@@ -1926,7 +1916,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -2351,7 +2341,7 @@ bool codegen(jitdata *jd)
 		case ICMD_GETFIELD:   /* .., objectref.  ==> ..., value               */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
@@ -2400,7 +2390,7 @@ bool codegen(jitdata *jd)
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			/* must be done here because of code patching */
 
@@ -2464,7 +2454,7 @@ bool codegen(jitdata *jd)
 		                          /* following NOP)                           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
@@ -3179,7 +3169,7 @@ gen_method:
 
 			case ICMD_INVOKEVIRTUAL:
 				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
-				emit_nullpointer_check(cd, s1);
+				emit_nullpointer_check(cd, iptr, s1);
 
 				if (lm == NULL) {
 					unresolved_method *um = iptr->sx.s23.s3.um;
@@ -3207,7 +3197,7 @@ gen_method:
 
 			case ICMD_INVOKEINTERFACE:
 				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
-				emit_nullpointer_check(cd, s1);
+				emit_nullpointer_check(cd, iptr, s1);
 
 				if (lm == NULL) {
 					unresolved_method *um = iptr->sx.s23.s3.um;

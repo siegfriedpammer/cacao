@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6137 2006-12-07 22:25:42Z edwin $
+   $Id: emit.c 6163 2006-12-10 21:35:52Z twisti $
 
 */
 
@@ -309,9 +309,9 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 
 *******************************************************************************/
 
-void emit_arithmetic_check(codegendata *cd, s4 reg)
+void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
-	if (checknull) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
 		M_BEQ(0);
 		codegen_add_arithmeticexception_ref(cd);
@@ -325,9 +325,9 @@ void emit_arithmetic_check(codegendata *cd, s4 reg)
 
 *******************************************************************************/
 
-void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
-	if (checkbounds) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
         M_CMP(REG_ITMP3, s2);
         M_BAE(0);
@@ -342,7 +342,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
 
 *******************************************************************************/
 
-void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
+void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
 	vm_abort("IMPLEMENT ME!");
 }
@@ -354,9 +354,9 @@ void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
 
 *******************************************************************************/
 
-void emit_nullpointer_check(codegendata *cd, s4 reg)
+void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
-	if (checknull) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
 		M_BEQ(0);
 		codegen_add_nullpointerexception_ref(cd);

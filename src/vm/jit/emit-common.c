@@ -354,8 +354,8 @@ void emit_bnan(codegendata *cd, basicblock *target)
 void emit_array_checks(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		emit_nullpointer_check(cd, s1);
-		emit_arrayindexoutofbounds_check(cd, s1, s2);
+		emit_nullpointer_check(cd, iptr, s1);
+		emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 	}
 }
 
