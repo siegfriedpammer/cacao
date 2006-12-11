@@ -25,8 +25,7 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
-
-   Changes: Alexander Jordan
+            Alexander Jordan
 
    $Id: arch.h 5081 2006-07-06 13:59:01Z tbfg $
 
@@ -71,6 +70,12 @@
 #define SUPPORT_CONST_STORE              1  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
+
+
+/* exceptions *****************************************************************/
+
+#define SUPPORT_HARDWARE_DIVIDE_BY_ZERO  0
+
 
 /* replacement ****************************************************************/
 

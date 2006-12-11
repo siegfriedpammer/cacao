@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: signallocal.h 5038 2006-06-19 22:22:34Z twisti $
+   $Id: signallocal.h 6172 2006-12-11 19:43:41Z twisti $
 
 */
 
@@ -49,7 +47,7 @@ void signal_init(void);
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p);
 
-#if defined(__I386__) || defined(__X86_64__)
+#if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p);
 #endif
 

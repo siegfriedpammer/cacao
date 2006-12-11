@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: threads.c 6167 2006-12-10 23:20:31Z twisti $
+   $Id: threads.c 6171 2006-12-11 11:47:42Z twisti $
 
 */
 

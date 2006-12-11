@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: signal.c 6123 2006-12-05 21:10:54Z twisti $
+   $Id: signal.c 6172 2006-12-11 19:43:41Z twisti $
 
 */
 
@@ -97,7 +97,7 @@ void signal_init(void)
 
 		/* catch ArithmeticException */
 
-#if defined(__I386__) || defined(__X86_64__)
+#if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 		act.sa_sigaction = md_signal_handler_sigfpe;
 		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
 		sigaction(SIGFPE, &act, NULL);

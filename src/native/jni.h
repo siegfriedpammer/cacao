@@ -28,7 +28,7 @@
             Roman Obermaisser
             Christian Thalinger
 
-   $Id: jni.h 6167 2006-12-10 23:20:31Z twisti $
+   $Id: jni.h 6171 2006-12-11 11:47:42Z twisti $
 
 */
 

@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: arch.h 6134 2006-12-07 20:14:40Z edwin $
+   $Id: arch.h 6172 2006-12-11 19:43:41Z twisti $
 
 */
 
@@ -123,6 +121,12 @@
 #endif
 
 #endif /* SIZEOF_VOID_P == 8 */
+
+
+/* exceptions *****************************************************************/
+
+#define SUPPORT_HARDWARE_DIVIDE_BY_ZERO  0
+
 
 /* replacement ****************************************************************/
 

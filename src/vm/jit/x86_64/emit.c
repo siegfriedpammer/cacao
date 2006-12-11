@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6164 2006-12-10 21:50:22Z twisti $
+   $Id: emit.c 6171 2006-12-11 11:47:42Z twisti $
 
 */
 

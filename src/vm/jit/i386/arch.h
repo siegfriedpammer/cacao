@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: arch.h 6134 2006-12-07 20:14:40Z edwin $
+   $Id: arch.h 6172 2006-12-11 19:43:41Z twisti $
 
 */
 
@@ -96,6 +94,12 @@
 /* are not properly aligned in case HAS_4_BYTE_STACKSLOT is not defined!     */
 /* For HAS_4_BYTE_STACKSLOT archs no distinction is made between long and dbl*/
 /* define SUPPORT_COMBINE_INTEGER_REGISTERS */
+
+
+/* exceptions *****************************************************************/
+
+#define SUPPORT_HARDWARE_DIVIDE_BY_ZERO  1
+
 
 /* replacement ****************************************************************/
 

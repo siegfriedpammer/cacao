@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: arch.h 6134 2006-12-07 20:14:40Z edwin $
+   $Id: arch.h 6172 2006-12-11 19:43:41Z twisti $
 
 */
 
@@ -74,6 +72,11 @@
 #define SUPPORT_CONST_STORE              1  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
+
+/* exceptions *****************************************************************/
+
+#define SUPPORT_HARDWARE_DIVIDE_BY_ZERO  0
+
 
 /* replacement ****************************************************************/
 
