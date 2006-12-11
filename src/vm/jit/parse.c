@@ -30,7 +30,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 6173 2006-12-11 19:55:31Z twisti $
+   $Id: parse.c 6175 2006-12-11 20:16:10Z twisti $
 
 */
 
@@ -864,7 +864,7 @@ fetch_opcode:
  			/* if unresolved, c == NULL */
   
  			iptr->s1.argcount = j;
- 			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, 0 /* flags */);
+ 			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, INS_FLAG_CHECK);
 			break;
 
 		/* control flow instructions ******************************************/
