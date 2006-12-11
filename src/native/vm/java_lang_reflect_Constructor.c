@@ -1,4 +1,4 @@
-/* src/native/vm/Constructor.c - java/lang/reflect/Constructor
+/* src/native/vm/java_lang_reflect_Constructor.c
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Roman Obermaiser
-
-   Changes: Joseph Wenninger
+            Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_Constructor.c 5225 2006-08-08 19:23:44Z edwin $
+   $Id: java_lang_reflect_Constructor.c 6168 2006-12-11 00:28:17Z twisti $
 
 */
 
@@ -45,6 +44,7 @@
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_String.h"
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "toolbox/logging.h"
 #include "vm/class.h"
@@ -56,7 +56,58 @@
 
 /*
  * Class:     java/lang/reflect/Constructor
- * Method:    newInstance
+ * Method:    getModifiersInternal
+ * Signature: ()I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiersInternal(JNIEnv *env, java_lang_reflect_Constructor *this)
+{
+	classinfo  *c;
+	methodinfo *m;
+
+	c = (classinfo *) (this->clazz);
+	m = &(c->methods[this->slot]);
+
+	return m->flags;
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    getParameterTypes
+ * Signature: ()[Ljava/lang/Class;
+ */
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
+{
+	classinfo  *c;
+	methodinfo *m;
+
+	c = (classinfo *) this->clazz;
+	m = &(c->methods[this->slot]);
+
+	return native_get_parametertypes(m);
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    getExceptionTypes
+ * Signature: ()[Ljava/lang/Class;
+ */
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
+{
+	classinfo  *c;
+	methodinfo *m;
+
+	c = (classinfo *) this->clazz;
+	m = &(c->methods[this->slot]);
+
+	return native_get_exceptiontypes(m);
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    constructNative
  * Signature: ([Ljava/lang/Object;)Ljava/lang/Object;
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
@@ -126,64 +177,26 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 
 /*
  * Class:     java/lang/reflect/Constructor
- * Method:    getModifiersInternal
- * Signature: ()I
+ * Method:    getSignature
+ * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiersInternal(JNIEnv *env, java_lang_reflect_Constructor *this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Constructor_getSignature(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	classinfo  *c;
-	methodinfo *m;
-
-	c = (classinfo *) (this->clazz);
-	m = &(c->methods[this->slot]);
-
-	return m->flags;
-}
-
-
-/*
- * Class:     java/lang/reflect/Constructor
- * Method:    getParameterTypes
- * Signature: ()[Ljava/lang/Class;
- */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo  *c;
-	methodinfo *m;
+	classinfo        *c;
+	methodinfo       *m;
+	java_lang_String *s;
 
 	c = (classinfo *) this->clazz;
-
-	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for constructor in class");
-		assert(0);
-	}
-
 	m = &(c->methods[this->slot]);
 
-	return native_get_parametertypes(m);
-}
+	if (m->signature == NULL)
+		return NULL;
 
+	s = javastring_new(m->signature);
 
-/*
- * Class:     java/lang/reflect/Constructor
- * Method:    getExceptionTypes
- * Signature: ()[Ljava/lang/Class;
- */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo  *c;
-	methodinfo *m;
+	/* in error case, s == NULL */
 
-	c = (classinfo *) this->clazz;
-
-	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for constructor in class");
-		assert(0);
-	}
-
-	m = &(c->methods[this->slot]);
-
-	return native_get_exceptiontypes(m);
+	return s;
 }
 
 
