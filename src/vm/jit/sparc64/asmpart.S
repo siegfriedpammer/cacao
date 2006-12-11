@@ -209,35 +209,39 @@ asm_call_jit_compiler:
 	nop
 	
 	RESTORE_FLOAT_ARGUMENT_REGISTERS(22)
+
+	brz     %o0,L_asm_call_jit_compiler_exception
+	nop
 	
 	restore %o0,%g0,pv_caller     /* restore the callers window               */
 	                              /* the source o0 references the old window  */
 	                              /* pv_caller references the new window      */
 
 
-
-	brz     pv_caller,L_asm_call_jit_compiler_exception
-	nop
-
 	/* synchronise instruction cache moved somewhere else           */
 
 	jmpl    pv_caller,zero        /* and call method, the method returns      */
-	                              /* directly to the caller (ra).             */	
+	                              /* directly to the caller (ra).             */
+	nop	
 	
 L_asm_call_jit_compiler_exception:
-	/* no need to do a save, only ra needs to be preserved */
+	/* window still open, ra_callee valid, pv_callee undefined      */
 
-	/* we save ra in one of the application globals */
-	mov     ra_caller,xpc_itmp3   /* save return address (xpc)                */
-	
+	/* get pv for further exception handling */
+	mov     ra_callee,%o0	
+	call    md_codegen_get_pv_from_pc   /* get PV from RA                     */
+	nop
+	mov     %o0,pv_callee
+
 	call    exceptions_get_and_clear_exception
 	nop
 
-	mov     xpc_itmp3,ra_caller   /* restore return address (xpc)             */
-
 	mov     %o0,xptr_itmp2        /* get exception                            */
-	sub     ra_caller,4,xpc_itmp3 /* exception address is ra - 4              */
-	ba      L_asm_handle_nat_exception
+	mov     ra_callee,xpc_itmp3 /* exception address is ra               */
+
+	/* don't restore callers window, behave like java non-leaf */
+
+	b      L_asm_handle_nat_exception
 	nop
 
 
@@ -257,7 +261,7 @@ asm_handle_nat_exception:
 L_asm_handle_nat_exception:       /* required for PIC code                    */
 L_asm_handle_exception_stack_loop:
 	/* exception handling assumes that the current java method saved       */
-	/* the caller's window                                                 */
+	/* the caller's window, and has a valid pv                             */
 
 	/* get ra and pv before saving the window */
 	mov     ra_callee,itmp1
@@ -272,6 +276,9 @@ L_asm_handle_exception_stack_loop:
 	mov     %l1,%o1                     /* pass xpc                           */
 	mov     %g4,%o2                     /* pass PV                            */
 	mov     %fp,%o3                     /* pass Java SP                       */
+
+	b       L_asm_handle_exception_continue
+	nop
 
 asm_handle_exception:
 	mov     pv_callee,%g4
@@ -292,13 +299,16 @@ asm_handle_exception:
 
 L_asm_handle_exception_continue:
 	call    exceptions_handle_exception
+	nop
 
 	brz     %o0,L_asm_handle_exception_not_caught
+	nop
 
 	mov     %o0,xpc_itmp3               /* move handlerpc into xpc            */
 	mov     %l0,xptr_itmp2              /* restore exception pointer          */
 
 	brz     %l2,L_asm_handle_exception_no_leaf
+	nop
 
 	RESTORE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
 	RESTORE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
@@ -307,6 +317,7 @@ L_asm_handle_exception_no_leaf:
 	/* restore java window and stackframe (ra and pv are in there) */
 	restore
 	jmpl    xpc_itmp3, zero             /* jump to the handler                */
+	nop
 
 L_asm_handle_exception_not_caught:
 	mov     %l0,xptr_itmp2              /* restore xptr                       */
@@ -333,10 +344,12 @@ asm_abstractmethoderror:
 	mov     %fp,%o0                     /* pass java sp(==fp)                 */
 	mov     ra_callee,%o1               /* pass exception address             */
 	call    exceptions_asm_new_abstractmethoderror
+	nop
 
 	mov     %o0,xptr_itmp2              /* get exception pointer              */
 	sub     ra_callee,4,xpc_itmp3       /* exception address is ra - 4        */
 	ba      L_asm_handle_nat_exception
+	nop
 
 	/* XXX: leave the register window open for handle_exception ??? */
 
@@ -377,7 +390,7 @@ asm_patcher_wrapper:
 	nop
 
 	RESTORE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
-	RESTORE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+	RESTORE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
 
 	mov     %l0,itmp1               /* restore itmp1                          */
 	mov     %l1,itmp2               /* restore itmp2                          */

@@ -362,6 +362,7 @@ bool codegen(jitdata *jd)
 			}
 
 		MCODECHECK(64);       /* an instruction usually needs < 64 words      */
+
 		switch (iptr->opc) {
 
 		case ICMD_INLINE_START:
@@ -369,6 +370,12 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
+			break;
+
+		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			emit_nullpointer_check(cd, s1);
 			break;
 	
 		/* constant operations ************************************************/

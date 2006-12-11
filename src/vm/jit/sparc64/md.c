@@ -85,7 +85,7 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 	
 		/* patch the branch instruction before the mcodeptr */
 	
-		mcodeptr[-1] |= (disp & 0x003ffff);
+		mcodeptr[-1] |= (disp & 0x007ffff);
 	}
 	/* check for BPr instruction */
 	else if (((mcode >> 16) & 0xd1c0) == 0x00c0) {

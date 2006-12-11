@@ -137,8 +137,8 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 #if SIZEOF_VOID_P == 8
 	mcode    =                      *((u8 *)     (sp + 3 * 8));
 
-	*((u4 *) (xpc + 0 * 4)) = mcode;
-	*((u4 *) (xpc + 1 * 4)) = mcode >> 32;
+	*((u4 *) (xpc + 0 * 4)) = mcode >> 32;
+	*((u4 *) (xpc + 1 * 4)) = mcode;
 #else
 	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
 	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
