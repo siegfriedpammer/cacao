@@ -30,7 +30,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 6171 2006-12-11 11:47:42Z twisti $
+   $Id: parse.c 6173 2006-12-11 19:55:31Z twisti $
 
 */
 
@@ -1253,12 +1253,12 @@ invoke_method:
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
-				flags = INS_FLAG_ARRAY;
+				flags = INS_FLAG_CHECK | INS_FLAG_ARRAY;
 				jd->isleafmethod = false;
 			}
 			else {
 				/* object type cast-check */
-				flags = 0;
+				flags = INS_FLAG_CHECK;
 			}
 			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, flags);
 			break;
@@ -1323,7 +1323,11 @@ invoke_method:
 			bte = builtintable_get_internal(BUILTIN_idiv);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
+# if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 			OP(opcode);
+# else
+			OP_CHECK_EXCEPTION(opcode);
+# endif
 #endif
 			break;
 
@@ -1332,7 +1336,11 @@ invoke_method:
 			bte = builtintable_get_internal(BUILTIN_irem);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
+# if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 			OP(opcode);
+# else
+			OP_CHECK_EXCEPTION(opcode);
+# endif
 #endif
 			break;
 
@@ -1341,7 +1349,11 @@ invoke_method:
 			bte = builtintable_get_internal(BUILTIN_ldiv);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
+# if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 			OP(opcode);
+# else
+			OP_CHECK_EXCEPTION(opcode);
+# endif
 #endif
 			break;
 
@@ -1350,7 +1362,11 @@ invoke_method:
 			bte = builtintable_get_internal(BUILTIN_lrem);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
 #else
+# if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 			OP(opcode);
+# else
+			OP_CHECK_EXCEPTION(opcode);
+# endif
 #endif
 			break;
 
