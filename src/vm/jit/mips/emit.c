@@ -223,23 +223,25 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 
 *******************************************************************************/
 
-void emit_arithmetic_check(codegendata *cd, s4 reg)
+void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 #if 0
-	M_BEQZ(reg, 0);
-	codegen_add_arithmeticexception_ref(cd);
-	M_NOP;
+		M_BEQZ(reg, 0);
+		codegen_add_arithmeticexception_ref(cd);
+		M_NOP;
 #else
-	M_BNEZ(reg, 6);
-	M_NOP;
+		M_BNEZ(reg, 6);
+		M_NOP;
 
-	M_LUI(REG_ITMP3, 0);
-	M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
-	codegen_add_arithmeticexception_ref(cd);
-	M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
-	M_JMP(REG_ITMP3);
-	M_NOP;
+		M_LUI(REG_ITMP3, 0);
+		M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+		codegen_add_arithmeticexception_ref(cd);
+		M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+		M_JMP(REG_ITMP3);
+		M_NOP;
 #endif
+	}
 }
 
 
@@ -249,9 +251,9 @@ void emit_arithmetic_check(codegendata *cd, s4 reg)
 
 *******************************************************************************/
 
-void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
-	if (checkbounds) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
 		M_CMPULT(s2, REG_ITMP3, REG_ITMP3);
 
@@ -280,23 +282,25 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
 
 *******************************************************************************/
 
-void emit_arraystore_check(codegendata *cd, s4 reg)
+void emit_arraystore_check(codegendata *cd, instruction *iptr, s4 reg)
 {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 #if 0
-	M_BEQZ(reg, 0);
-	codegen_add_arraystoreexception_ref(cd);
-	M_NOP;
+		M_BEQZ(reg, 0);
+		codegen_add_arraystoreexception_ref(cd);
+		M_NOP;
 #else
-	M_BNEZ(reg, 6);
-	M_NOP;
+		M_BNEZ(reg, 6);
+		M_NOP;
 
-	M_LUI(REG_ITMP3, 0);
-	M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
-	codegen_add_arraystoreexception_ref(cd);
-	M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
-	M_JMP(REG_ITMP3);
-	M_NOP;
+		M_LUI(REG_ITMP3, 0);
+		M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+		codegen_add_arraystoreexception_ref(cd);
+		M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+		M_JMP(REG_ITMP3);
+		M_NOP;
 #endif
+	}
 }
 
 
@@ -306,39 +310,41 @@ void emit_arraystore_check(codegendata *cd, s4 reg)
 
 *******************************************************************************/
 
-void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
+void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 #if 0
-	M_BNEZ(reg, 0);
-	codegen_add_classcastexception_ref(cd, s1);
-	M_NOP;
+		M_BNEZ(reg, 0);
+		codegen_add_classcastexception_ref(cd, s1);
+		M_NOP;
 #else
-	switch (condition) {
-	case ICMD_IFEQ:
-		M_BNEZ(reg, 6);
-		break;
+		switch (condition) {
+		case ICMD_IFEQ:
+			M_BNEZ(reg, 6);
+			break;
 
-	case ICMD_IFNE:
-		M_BEQZ(reg, 6);
-		break;
+		case ICMD_IFNE:
+			M_BEQZ(reg, 6);
+			break;
 
-	case ICMD_IFLE:
-		M_BGTZ(reg, 6);
-		break;
+		case ICMD_IFLE:
+			M_BGTZ(reg, 6);
+			break;
 
-	default:
-		vm_abort("emit_classcast_check: condition %d not found", condition);
-	}
+		default:
+			vm_abort("emit_classcast_check: condition %d not found", condition);
+		}
 
-	M_NOP;
+		M_NOP;
 
-	M_LUI(REG_ITMP3, 0);
-	M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
-	codegen_add_classcastexception_ref(cd, s1);
-	M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
-	M_JMP(REG_ITMP3);
-	M_NOP;
+		M_LUI(REG_ITMP3, 0);
+		M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+		codegen_add_classcastexception_ref(cd, s1);
+		M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+		M_JMP(REG_ITMP3);
+		M_NOP;
 #endif
+	}
 }
 
 
@@ -348,9 +354,9 @@ void emit_classcast_check(codegendata *cd, s4 condition, s4 reg, s4 s1)
 
 *******************************************************************************/
 
-void emit_nullpointer_check(codegendata *cd, s4 reg)
+void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
-	if (checknull) {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 #if 0
 		M_BEQZ(reg, 0);
 		codegen_add_nullpointerexception_ref(cd);
@@ -376,23 +382,25 @@ void emit_nullpointer_check(codegendata *cd, s4 reg)
 
 *******************************************************************************/
 
-void emit_exception_check(codegendata *cd)
+void emit_exception_check(codegendata *cd, instruction *iptr)
 {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
 #if 0
-	M_BEQZ(REG_RESULT, 0);
-	codegen_add_fillinstacktrace_ref(cd);
-	M_NOP;
+		M_BEQZ(REG_RESULT, 0);
+		codegen_add_fillinstacktrace_ref(cd);
+		M_NOP;
 #else
-	M_BNEZ(REG_RESULT, 6);
-	M_NOP;
+		M_BNEZ(REG_RESULT, 6);
+		M_NOP;
 
-	M_LUI(REG_ITMP3, 0);
-	M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
-	codegen_add_fillinstacktrace_ref(cd);
-	M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
-	M_JMP(REG_ITMP3);
-	M_NOP;
+		M_LUI(REG_ITMP3, 0);
+		M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
+		codegen_add_fillinstacktrace_ref(cd);
+		M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+		M_JMP(REG_ITMP3);
+		M_NOP;
 #endif
+	}
 }
 
 
@@ -508,8 +516,6 @@ void emit_patcher_stubs(jitdata *jd)
 	u1          *tmpmcodeptr;
 	s4           targetdisp;
 	s4           disp;
-	s4           hi;
-	s4           lo;
 
 	/* get required compiler data */
 
@@ -550,27 +556,24 @@ void emit_patcher_stubs(jitdata *jd)
 
 		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
 
-		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
+/* 		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) { */
 			/* Recalculate the displacement to be relative to PV. */
 
 			disp = savedmcodeptr - cd->mcodebase;
 
-			lo = (short) disp;
-			hi = (short) ((disp - lo) >> 16);
-
-			M_LUI(REG_ITMP3, hi);
-			M_OR_IMM(REG_ITMP3, lo, REG_ITMP3);
+			M_LUI(REG_ITMP3, disp >> 16);
+			M_OR_IMM(REG_ITMP3, disp, REG_ITMP3);
 			M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 			M_NOP;
-		}
-		else {
-			M_BR(disp);
-			M_NOP;
-			M_NOP;
-			M_NOP;
-			M_NOP;
-		}
+/* 		} */
+/* 		else { */
+/* 			M_BR(disp); */
+/* 			M_NOP; */
+/* 			M_NOP; */
+/* 			M_NOP; */
+/* 			M_NOP; */
+/* 		} */
 
 		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
 

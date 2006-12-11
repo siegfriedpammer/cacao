@@ -26,10 +26,9 @@
 
    Authors: Andreas Krall
             Reinhard Grafl
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: md-os.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: md-os.c 6180 2006-12-11 23:29:26Z twisti $
 
 */
 
@@ -50,6 +49,7 @@
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/stacktrace.h"
 
 
@@ -101,27 +101,27 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_uc = (struct ucontext *) _p;
 	_mc = &_uc->uc_mcontext;
 
+	pv  = (u1 *) _mc->gregs[REG_PV];
+	sp  = (u1 *) _mc->gregs[REG_SP];
+	ra  = (u1 *) _mc->gregs[REG_RA];             /* this is correct for leafs */
+	xpc = (u1 *) _mc->gregs[CTX_EPC];
+
 	instr = *((u4 *) (_mc->gregs[CTX_EPC]));
 	addr = _mc->gregs[(instr >> 21) & 0x1f];
 
 	if (addr == 0) {
-		pv  = (u1 *) _mc->gregs[REG_PV];
-		sp  = (u1 *) _mc->gregs[REG_SP];
-		ra  = (u1 *) _mc->gregs[REG_RA];         /* this is correct for leafs */
-		xpc = (u1 *) _mc->gregs[CTX_EPC];
-
 		_mc->gregs[REG_ITMP1_XPTR] =
 			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
 		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
 		_mc->gregs[CTX_EPC] = (ptrint) asm_handle_exception;
+	}
+	else {
+		codegen_get_pv_from_pc(xpc);
 
-	} else {
-        addr += (long) ((instr << 16) >> 16);
+		/* this should not happen */
 
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "faulting address: 0x%lx at 0x%lx\n",
-								   addr, _mc->gregs[CTX_EPC]);
+		assert(0);
 	}
 }
 

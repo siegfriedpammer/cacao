@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
+            Edwin Steiner
 
-   Changes: Edwin Steiner
-
-   $Id: md.c 6142 2006-12-07 23:02:52Z edwin $
+   $Id: md.c 6180 2006-12-11 23:29:26Z twisti $
 
 */
 
@@ -42,6 +41,7 @@
 #include "vm/types.h"
 
 #include "toolbox/logging.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/vm.h"
 #include "vm/jit/stacktrace.h"
