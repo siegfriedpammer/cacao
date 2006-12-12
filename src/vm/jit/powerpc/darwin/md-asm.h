@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5578 2006-09-29 11:35:04Z twisti $
+   $Id: md-asm.h 6182 2006-12-12 21:12:23Z twisti $
 
 */
 
@@ -267,6 +267,8 @@
 #define patcher_wrapper                       L_patcher_wrapper$stub
 
 #define replace_me                            L_replace_me$stub
+#define replace_build_execution_state         L_replace_build_execution_state$stub
+#define replace_free_safestack                L_replace_free_safestack$stub
 
 #define stacktrace_create_extern_stackframeinfo \
     L_stacktrace_create_extern_stackframeinfo$stub

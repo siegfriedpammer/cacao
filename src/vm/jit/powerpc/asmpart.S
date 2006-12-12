@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 6154 2006-12-08 00:16:21Z edwin $
+   $Id: asmpart.S 6182 2006-12-12 21:12:23Z twisti $
 
 */
 
@@ -1617,6 +1617,46 @@ L00$_replace_me:
 .lazy_symbol_pointer
 L_replace_me$lazy_ptr:
 	.indirect_symbol _replace_me
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_replace_build_execution_state$stub:
+	.indirect_symbol _replace_build_execution_state
+	mflr r0
+	bcl 20,31,L00$_replace_build_execution_state
+L00$_replace_build_execution_state:
+	mflr r11
+	addis r11,r11,ha16(L_replace_build_execution_state$lazy_ptr - L00$_replace_build_execution_state)
+	mtlr r0
+	lwzu r12,lo16(L_replace_build_execution_state$lazy_ptr - L00$_replace_build_execution_state)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_replace_build_execution_state$lazy_ptr:
+	.indirect_symbol _replace_build_execution_state
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_replace_free_safestack$stub:
+	.indirect_symbol _replace_free_safestack
+	mflr r0
+	bcl 20,31,L00$_replace_free_safestack
+L00$_replace_free_safestack:
+	mflr r11
+	addis r11,r11,ha16(L_replace_free_safestack$lazy_ptr - L00$_replace_free_safestack)
+	mtlr r0
+	lwzu r12,lo16(L_replace_free_safestack$lazy_ptr - L00$_replace_free_safestack)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_replace_free_safestack$lazy_ptr:
+	.indirect_symbol _replace_free_safestack
 	.long dyld_stub_binding_helper
 
 #endif /* defined(__DARWIN__) */
