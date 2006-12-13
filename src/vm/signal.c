@@ -26,15 +26,24 @@
 
    Authors: Christian Thalinger
 
-   $Id: signal.c 6172 2006-12-11 19:43:41Z twisti $
+   $Id: signal.c 6189 2006-12-13 23:04:47Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
+#if defined(__DARWIN__)
+/* If we compile with -ansi on darwin, <sys/types.h> is not
+ included. So let's do it here. */
+# include <sys/types.h>
+#endif
 
 #include "vm/types.h"
 
@@ -65,12 +74,37 @@ void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p);
 void signal_init(void)
 {
 #if !defined(__CYGWIN__)
+	void            *p;
+	int              pagesize;
 	struct sigaction act;
 
+	/* mmap a memory page at address 0x0, so our
+	hardware-exceptions work. */
+
+	pagesize = getpagesize();
+
+	p = mmap(NULL, pagesize, PROT_NONE,
+			 MAP_PRIVATE |
+# if defined(MAP_ANON)
+			 MAP_ANON |
+# elif defined(MAP_ANONYMOUS)
+			 MAP_ANONYMOUS |
+# else
+			 0 |
+# endif
+			 MAP_FIXED, -1, 0);
+
+# if defined(MAP_FAILED)
+	if (p == MAP_FAILED)
+# else
+	if (p == (void *) -1)
+# endif
+		vm_abort("signal_init: mmap failed: %s", strerror(errno));
+
+#if defined(ENABLE_GC_BOEHM)
 	/* Allocate something so the garbage collector's signal handlers
 	   are installed. */
 
-#if defined(ENABLE_GC_BOEHM)
 	(void) GCNEW(u1);
 #endif
 
