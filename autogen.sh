@@ -33,7 +33,7 @@ for CACAO_ACLOCAL in aclocal aclocal-1.9 aclocal19; do
         CACAO_ACLOCAL_VERSION=`${CACAO_ACLOCAL} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${CACAO_ACLOCAL_VERSION}
         case ${CACAO_ACLOCAL_VERSION} in
-            1.9* )
+            1.9* | 1.1[0-9]* )
                 CACAO_HAVE_ACLOCAL=true
                 break;
                 ;;
@@ -43,7 +43,7 @@ done
 
 if test ${CACAO_HAVE_ACLOCAL} = false; then
     echo "No proper aclocal was found."
-    echo "You must have automake 1.9 installed."
+    echo "You must have automake 1.9 or later installed."
     exit 1
 fi
 
@@ -57,7 +57,7 @@ for CACAO_AUTOHEADER in autoheader autoheader259; do
         CACAO_AUTOHEADER_VERSION=`${CACAO_AUTOHEADER} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${CACAO_AUTOHEADER_VERSION}
         case ${CACAO_AUTOHEADER_VERSION} in
-            2.59* | 2.6* )
+            2.59* | 2.6[0-9]* )
                 CACAO_HAVE_AUTOHEADER=true
                 break;
                 ;;
