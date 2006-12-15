@@ -81,7 +81,7 @@ for CACAO_AUTOMAKE in automake automake-1.9 automake19; do
         CACAO_AUTOMAKE_VERSION=`${CACAO_AUTOMAKE} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${CACAO_AUTOMAKE_VERSION}
         case ${CACAO_AUTOMAKE_VERSION} in
-            1.9* )
+            1.9* | 1.1[0-9]* )
                 CACAO_HAVE_AUTOMAKE=true
                 break;
                 ;;
@@ -91,7 +91,7 @@ done
 
 if test ${CACAO_HAVE_AUTOMAKE} = false; then
     echo "No proper automake was found."
-    echo "You must have automake 1.9 installed."
+    echo "You must have automake 1.9 or later installed."
     exit 1
 fi
 
@@ -105,7 +105,7 @@ for CACAO_AUTOCONF in autoconf autoconf259; do
         CACAO_AUTOCONF_VERSION=`${CACAO_AUTOCONF} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${CACAO_AUTOCONF_VERSION}
         case ${CACAO_AUTOCONF_VERSION} in
-            2.59* | 2.6* )
+            2.59* | 2.6[0-9]* )
                 CACAO_HAVE_AUTOCONF=true
                 break;
                 ;;
