@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6062 2006-11-27 15:15:54Z edwin $
+   $Id: inline.c 6203 2006-12-16 20:50:32Z edwin $
 
 */
 
@@ -694,6 +694,7 @@ static basicblock * create_body_block(inline_node *iln,
 
 	n_bptr->type = o_bptr->type;
 	n_bptr->flags = o_bptr->flags;
+	n_bptr->bitflags = o_bptr->bitflags;
 
 	/* translate the invars of the original block */
 
@@ -1817,6 +1818,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 
 	n_jd = jit_jitdata_new(iln->m);
 	n_jd->flags = jd->flags;
+	n_jd->code->optlevel = jd->code->optlevel;
 	iln->ctx->resultjd = n_jd;
 
 	reg_setup(n_jd);
@@ -2295,10 +2297,21 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 						if ((callee->flags & (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED
 																	 | ACC_ABSTRACT))
 								          == (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED)) {
-							/* XXX */
-							if (0) {
+#if 0
+							static int debug_spec_inline = 94;
+							if (debug_spec_inline-- > 0) {
+#endif
+							if (1) {
 								DOLOG( printf("SPECULATIVE INLINE: "); method_println(callee); );
 								speculative = true;
+
+#if 0
+								if (debug_spec_inline == 0) {
+									printf("LAST INLINE: "); method_println(callee);
+									printf("         in: "); method_println(m);
+									printf("     master: "); method_println(iln->ctx->master->m);
+								}
+#endif
 								goto maybe_inline;
 							}
 						}
