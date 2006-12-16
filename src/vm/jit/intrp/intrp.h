@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: intrp.h 5869 2006-10-30 11:52:09Z edwin $
+   $Id: intrp.h 6204 2006-12-16 20:51:32Z edwin $
 
 */
 
@@ -59,6 +59,7 @@ typedef s4 Cell;
 #include "vm/method.h"
 #include "vm/references.h"
 #include "vm/resolve.h"
+#include "vm/jit/codegen-common.h"
 
 
 typedef void *Label;
