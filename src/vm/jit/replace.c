@@ -103,11 +103,13 @@ typedef u8 stackslot_t;
 
 #if !defined(NDEBUG)
 static void java_value_print(s4 type, replace_val_t value);
-#endif /* !defined(NDEBUG) */
+static void replace_stackframeinfo_println(stackframeinfo *sfi);
+#endif
 
 #if !defined(NDEBUG) && defined(REPLACE_VERBOSE)
-#define DOLOG(code) do{ if (1) { code; } } while(0)
-#define DOLOG_SHORT(code) do{ if (1) { code; } } while(0)
+int replace_verbose = 0;
+#define DOLOG(code)        do{ if (replace_verbose > 1) { code; } } while(0)
+#define DOLOG_SHORT(code)  do{ if (replace_verbose > 0) { code; } } while(0)
 #else
 #define DOLOG(code)
 #define DOLOG_SHORT(code)
@@ -994,6 +996,35 @@ static void replace_write_value(executionstate_t *es,
    Read the given executions state and translate it to a source frame.
    
    IN:
+	   ss...............the source state
+
+   OUT:
+	   ss->frames.......set to new frame
+
+   RETURN VALUE:
+       returns the new frame
+
+*******************************************************************************/
+
+static sourceframe_t *replace_new_sourceframe(sourcestate_t *ss)
+{
+	sourceframe_t *frame;
+
+	frame = DNEW(sourceframe_t);
+	MZERO(frame, sourceframe_t, 1);
+
+	frame->down = ss->frames;
+	ss->frames = frame;
+
+	return frame;
+}
+
+
+/* replace_read_executionstate *************************************************
+
+   Read the given executions state and translate it to a source frame.
+
+   IN:
        rp...............replacement point at which `es` was taken
 	   es...............execution state
 	   ss...............where to put the source state
@@ -1012,6 +1043,7 @@ static s4 replace_normalize_type_map[] = {
 /* RPLPOINT_TYPE_RETURN |--> */ RPLPOINT_TYPE_RETURN,
 /* RPLPOINT_TYPE_BODY   |--> */ RPLPOINT_TYPE_STD
 };
+
 
 static void replace_read_executionstate(rplpoint *rp,
 										executionstate_t *es,
@@ -1048,21 +1080,13 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	/* create the source frame */
 
-	frame = DNEW(sourceframe_t);
-	frame->down = ss->frames;
+	frame = replace_new_sourceframe(ss);
 	frame->method = rp->method;
 	frame->id = rp->id;
 	assert(rp->type >= 0 && rp->type < sizeof(replace_normalize_type_map)/sizeof(s4));
 	frame->type = replace_normalize_type_map[rp->type];
-	frame->instance.a = NULL;
-	frame->syncslotcount = 0;
-	frame->syncslots = NULL;
 	frame->fromrp = rp;
 	frame->fromcode = code;
-	frame->torp = NULL;
-	frame->tocode = NULL;
-
-	ss->frames = frame;
 
 	/* read local variables */
 
@@ -1421,21 +1445,7 @@ u1* replace_pop_activation_record(executionstate_t *es,
 
 	DOLOG( printf("return address: %p\n", (void*)ra); );
 
-	/* find the new codeinfo */
-
-	pv = md_codegen_get_pv_from_pc(ra);
-
-	DOLOG( printf("PV = %p\n", (void*) pv); );
-
-	if (pv == NULL)
-		return NULL;
-
-	code = *(codeinfo **)(pv + CodeinfoPointer);
-
-	DOLOG( printf("CODE = %p\n", (void*) code); );
-
-	if (code == NULL)
-		return NULL;
+	assert(ra);
 
 	/* calculate the base of the stack frame */
 
@@ -1489,11 +1499,6 @@ u1* replace_pop_activation_record(executionstate_t *es,
 		es->fltregs[reg] = *(double*)basesp;
 	}
 
-	/* Set the new pc. Subtract one so we do not hit the replacement point */
-	/* of the instruction following the call, if there is one.             */
-
-	es->pc = ra - 1;
-
 	/* adjust the stackpointer */
 
 	es->sp += SIZE_OF_STACKSLOT * es->code->stackframesize;
@@ -1502,8 +1507,30 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	es->sp += SIZE_OF_STACKSLOT; /* skip return address */
 #endif
 
+	/* Set the new pc. Subtract one so we do not hit the replacement point */
+	/* of the instruction following the call, if there is one.             */
+
+	es->pc = ra - 1;
+
+	/* find the new codeinfo */
+
+	pv = md_codegen_get_pv_from_pc(ra);
+
+	DOLOG( printf("PV = %p\n", (void*) pv); );
+
+	if (pv == NULL) /* XXX can this really happen? */
+		return NULL;
+
+	code = *(codeinfo **)(pv + CodeinfoPointer);
+
+	DOLOG( printf("CODE = %p\n", (void*) code); );
+
+	/* return NULL if we reached native code */
+
 	es->pv = pv;
 	es->code = code;
+
+	/* in debugging mode clobber non-saved registers */
 
 #if !defined(NDEBUG)
 	/* for debugging */
@@ -1519,7 +1546,7 @@ u1* replace_pop_activation_record(executionstate_t *es,
 			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
 #endif /* !defined(NDEBUG) */
 
-	return ra;
+	return (code) ? ra : NULL;
 }
 
 
@@ -1682,7 +1709,8 @@ void replace_patch_future_calls(u1 *ra,
    IN:
 	   es...............execution state
 	   rpcall...........the replacement point at the call site
-	   callerframe......source frame of the caller
+	   callerframe......source frame of the caller, or NULL for creating the
+	                    first frame
 	   calleeframe......source frame of the callee, must have been mapped
 
    OUT:
@@ -1704,10 +1732,11 @@ void replace_push_activation_record(executionstate_t *es,
 	codeinfo    *calleecode;
 
 	assert(es);
-	assert(rpcall && rpcall->type == RPLPOINT_TYPE_CALL);
-	assert(callerframe);
+	assert(!rpcall || callerframe);
+    assert(!rpcall || rpcall->type == RPLPOINT_TYPE_CALL);
+	assert(!rpcall || rpcall == callerframe->torp);
 	assert(calleeframe);
-	assert(calleeframe == callerframe->down);
+	assert(!callerframe || calleeframe == callerframe->down);
 
 	/* the compilation unit we are entering */
 
@@ -1716,7 +1745,10 @@ void replace_push_activation_record(executionstate_t *es,
 
 	/* calculate the return address */
 
-	ra = rpcall->pc + rpcall->callsize;
+	if (rpcall)
+		ra = rpcall->pc + rpcall->callsize;
+	else
+		ra = es->pc + 1 /* XXX this is ugly */;
 
 	/* write the return address */
 
@@ -1734,7 +1766,7 @@ void replace_push_activation_record(executionstate_t *es,
 
 	es->code = calleecode;
 
-	/* set the new pc XXX not needed */
+	/* set the new pc XXX not needed? */
 
 	es->pc = calleecode->entrypoint;
 
@@ -1751,7 +1783,8 @@ void replace_push_activation_record(executionstate_t *es,
 
 	/* in debug mode, invalidate stack frame first */
 
-#if !defined(NDEBUG)
+	/* XXX may not invalidate linkage area used by native code! */
+#if !defined(NDEBUG) && 0
 	for (i=0; i<(basesp - sp); ++i) {
 		sp[i] = 0xdeaddeadU;
 	}
@@ -1781,7 +1814,8 @@ void replace_push_activation_record(executionstate_t *es,
 			;
 		*--basesp = es->intregs[reg];
 
-#if !defined(NDEBUG)
+		/* XXX may not clobber saved regs used by native code! */
+#if !defined(NDEBUG) && 0
 		es->intregs[reg] = (ptrint) 0x44dead4444dead44ULL;
 #endif
 	}
@@ -1796,7 +1830,8 @@ void replace_push_activation_record(executionstate_t *es,
 		basesp -= STACK_SLOTS_PER_FLOAT;
 		*(double*)basesp = es->fltregs[reg];
 
-#if !defined(NDEBUG)
+		/* XXX may not clobber saved regs used by native code! */
+#if !defined(NDEBUG) && 0
 		*(u8*)&(es->fltregs[reg]) = 0x44dead4444dead44ULL;
 #endif
 	}
@@ -1815,12 +1850,14 @@ void replace_push_activation_record(executionstate_t *es,
 
 	/* redirect future invocations */
 
+	if (callerframe && rpcall) {
 #if defined(REPLACE_PATCH_ALL)
-	if (rpcall->type == callerframe->fromrp->type)
+		if (rpcall->type == callerframe->fromrp->type)
 #else
-	if (rpcall == callerframe->fromrp)
+		if (rpcall == callerframe->fromrp)
 #endif
-		replace_patch_future_calls(ra, callerframe, calleeframe);
+			replace_patch_future_calls(ra, callerframe, calleeframe);
+	}
 }
 
 
@@ -1850,6 +1887,7 @@ rplpoint * replace_find_replacement_point(codeinfo *code,
 	s4        stacki;
 	rplalloc *ra;
 
+	assert(code);
 	assert(frame);
 
 	DOLOG( printf("searching replacement point for:\n");
@@ -1929,14 +1967,176 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 	rplpoint *rp;
 	s4        i;
 
+	DOLOG( printf("searching for rp in %p ", (void*)code);
+		   method_println(code->m); );
+
 	found = NULL;
 
 	rp = code->rplpoints;
-	for (i=0; i<code->rplpointcount; ++i, ++rp)
+	for (i=0; i<code->rplpointcount; ++i, ++rp) {
+		DOLOG( replace_replacement_point_println(rp, 2); );
 		if (rp->pc <= pc)
 			found = rp;
+	}
 
 	return found;
+}
+
+
+/* replace_pop_native_frame ****************************************************
+
+   Unroll a native frame in the execution state and create a source frame
+   for it.
+
+   IN:
+	   es...............current execution state
+	   ss...............the current source state
+	   sfi..............stackframeinfo for the native frame
+
+   OUT:
+       es...............execution state after unrolling the native frame
+	   ss...............gets the added native source frame
+
+*******************************************************************************/
+
+static void replace_pop_native_frame(executionstate_t *es,
+									 sourcestate_t *ss,
+									 stackframeinfo *sfi)
+{
+	sourceframe_t *frame;
+	codeinfo      *code;
+	s4             i,j;
+
+	assert(sfi);
+
+	frame = replace_new_sourceframe(ss);
+
+	frame->sfi = sfi;
+
+	/* remember pc and size of native frame */
+
+	frame->nativepc = es->pc;
+	frame->nativeframesize = sfi->sp - es->sp;
+	assert(frame->nativeframesize >= 0);
+
+	/* remember values of saved registers */
+
+	j = 0;
+	for (i=0; i<INT_REG_CNT; ++i) {
+		if (nregdescint[i] == REG_SAV)
+			frame->nativesavint[j++] = es->intregs[i];
+	}
+
+	j = 0;
+	for (i=0; i<FLT_REG_CNT; ++i) {
+		if (nregdescfloat[i] == REG_SAV)
+			frame->nativesavflt[j++] = es->fltregs[i];
+	}
+
+	/* restore saved registers */
+
+#if 0
+	/* XXX we don't have them, yet, in the sfi, so clear them */
+
+	for (i=0; i<INT_REG_CNT; ++i) {
+		if (nregdescint[i] == REG_SAV)
+			es->intregs[i] = 0;
+	}
+
+	for (i=0; i<FLT_REG_CNT; ++i) {
+		if (nregdescfloat[i] == REG_SAV)
+			es->fltregs[i] = 0.0;
+	}
+#endif
+
+	/* restore pv, pc, and sp */
+
+	if (sfi->pv == NULL) {
+		/* frame of a native function call */
+		es->pv = md_codegen_get_pv_from_pc(sfi->ra);
+	}
+	else {
+		es->pv = sfi->pv;
+	}
+	es->pc = ((sfi->xpc) ? sfi->xpc : sfi->ra) - 1;
+	es->sp = sfi->sp;
+
+	/* find the new codeinfo */
+
+	DOLOG( printf("PV = %p\n", (void*) es->pv); );
+
+	assert(es->pv != NULL);
+
+	code = *(codeinfo **)(es->pv + CodeinfoPointer);
+
+	DOLOG( printf("CODE = %p\n", (void*) code); );
+
+	es->code = code;
+}
+
+
+/* replace_push_native_frame ***************************************************
+
+   Rebuild a native frame onto the execution state and remove its source frame.
+
+   Note: The native frame is "rebuild" by setting fields like PC and stack
+         pointer in the execution state accordingly. Values in the
+		 stackframeinfo may be modified, but the actual stack frame of the
+		 native code is not touched.
+
+   IN:
+	   es...............current execution state
+	   ss...............the current source state
+
+   OUT:
+       es...............execution state after re-rolling the native frame
+	   ss...............the native source frame is removed
+
+*******************************************************************************/
+
+static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
+{
+	sourceframe_t *frame;
+	s4             i,j;
+
+	assert(es);
+	assert(ss);
+
+	DOLOG( printf("pushing native frame\n"); );
+
+	/* remove the frame from the source state */
+
+	frame = ss->frames;
+	assert(frame);
+	assert(REPLACE_IS_NATIVE_FRAME(frame));
+
+	ss->frames = frame->down;
+
+	/* assert that the native frame has not moved */
+
+	assert(es->sp == frame->sfi->sp);
+
+	/* restore saved registers */
+
+	j = 0;
+	for (i=0; i<INT_REG_CNT; ++i) {
+		if (nregdescint[i] == REG_SAV)
+			es->intregs[i] = frame->nativesavint[j++];
+	}
+
+	j = 0;
+	for (i=0; i<FLT_REG_CNT; ++i) {
+		if (nregdescfloat[i] == REG_SAV)
+			es->fltregs[i] = frame->nativesavflt[j++];
+	}
+
+	/* skip the native frame on the machine stack */
+
+	es->sp -= frame->nativeframesize;
+
+	/* set the pc the next frame must return to */
+
+	es->pc = frame->nativepc;
 }
 
 
@@ -1946,7 +2146,8 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
    state.
 
    IN:
-       rp...............replacement point that has been reached
+       rp...............replacement point that has been reached, if any
+	   sfi..............stackframeinfo, if called from native code
 	   es...............execution state at the replacement point rp
 
    RETURN VALUE:
@@ -1955,10 +2156,12 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 *******************************************************************************/
 
 sourcestate_t *replace_recover_source_state(rplpoint *rp,
+											stackframeinfo *sfi,
 										    executionstate_t *es)
 {
 	sourcestate_t *ss;
 	u1            *ra;
+	bool           locked;
 #if defined(REPLACE_STATISTICS)
 	s4             depth;
 #endif
@@ -1968,11 +2171,34 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 	ss = DNEW(sourcestate_t);
 	ss->frames = NULL;
 
+	/* get the stackframeinfo if none is given */
+
+	if (sfi == NULL)
+		sfi = *(STACKFRAMEINFO);
+
 	/* each iteration of the loop recovers one source frame */
 
 	depth = 0;
+	locked = false;
 
-	while (true) {
+	while (rp || sfi) {
+
+		DOLOG( replace_executionstate_println(es); );
+
+		/* if we are not at a replacement point, it is a native frame */
+
+		if (rp == NULL) {
+			DOLOG( printf("native frame: sfi: "); replace_stackframeinfo_println(sfi); );
+
+			locked = true;
+			replace_pop_native_frame(es, ss, sfi);
+			sfi = sfi->prev;
+
+			if (es->code == NULL)
+				continue;
+
+			goto after_machine_frame;
+		}
 
 		/* read the values for this source frame from the execution state */
 
@@ -1988,6 +2214,13 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 		replace_statistics_source_frame(ss->frames);
 #endif
 
+		/* in locked areas (below native frames), identity map the frame */
+
+		if (locked) {
+			ss->frames->torp = ss->frames->fromrp;
+			ss->frames->tocode = ss->frames->fromcode;
+		}
+
 		/* unroll to the next (outer) frame */
 
 		if (rp->parent) {
@@ -2001,16 +2234,23 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 			REPLACE_COUNT(stat_unroll_inline);
 		}
 		else {
-			/* this frame had been called at machine-level */
+			/* this frame had been called at machine-level. pop it. */
 
 			DOLOG( printf("UNWIND\n"); );
 
 			ra = replace_pop_activation_record(es, ss->frames);
 			if (ra == NULL) {
-				DOLOG( printf("BREAKING\n"); );
-				break;
+				DOLOG( printf("REACHED NATIVE CODE\n"); );
+
+				rp = NULL;
+
+				break; /* XXX remove to activate native frames */
+				continue;
 			}
 
+			/* find the replacement point at the call site */
+
+after_machine_frame:
 			rp = replace_find_replacement_point_for_pc(es->code, es->pc);
 
 			if (rp == NULL)
@@ -2037,7 +2277,6 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
    frame, it is (re)compiled.
 
    IN:
-       firstcode........XXX temporary hack, will be removed
        ss...............the source state
 
    OUT:
@@ -2050,7 +2289,7 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 
 *******************************************************************************/
 
-static bool replace_map_source_state(codeinfo *firstcode, sourcestate_t *ss)
+static bool replace_map_source_state(sourcestate_t *ss)
 {
 	sourceframe_t *frame;
 	codeinfo      *code;
@@ -2061,41 +2300,58 @@ static bool replace_map_source_state(codeinfo *firstcode, sourcestate_t *ss)
 #endif
 
 	parent = NULL;
+	code = NULL;
 
 	/* iterate over the source frames from outermost to innermost */
 
-	code = firstcode; /* XXX should get code for first frame */
+	for (frame = ss->frames; frame != NULL; frame = frame->down) {
 
-	frame = ss->frames;
-	while (true) {
+		/* XXX skip native frames */
 
-		/* map this frame */
+		if (REPLACE_IS_NATIVE_FRAME(frame)) {
+			parent = NULL;
+			continue;
+		}
 
-		rp = replace_find_replacement_point(code, frame, parent);
+		/* map frames which are not already mapped */
 
-		frame->tocode = code;
-		frame->torp = rp;
+		if (frame->tocode) {
+			code = frame->tocode;
+			rp = frame->torp;
+			assert(rp);
+		}
+		else {
+			assert(frame->torp == NULL);
 
-		/* go down one frame */
+			if (parent == NULL) {
+				/* find code for this frame */
 
-		frame = frame->down;
-		if (frame == NULL)
-			break;
+#if defined(REPLACE_STATISTICS)
+				oldcode = frame->method->code;
+#endif
+				code = jit_get_current_code(frame->method);
+
+				if (code == NULL)
+					return false; /* exception */
+
+				REPLACE_COUNT_IF(stat_recompile, code != oldcode);
+			}
+
+			assert(code);
+
+			/* map this frame */
+
+			rp = replace_find_replacement_point(code, frame, parent);
+
+			frame->tocode = code;
+			frame->torp = rp;
+		}
 
 		if (rp->type == RPLPOINT_TYPE_CALL) {
-#if defined(REPLACE_STATISTICS)
-			oldcode = frame->method->code;
-#endif
-			code = jit_get_current_code(frame->method);
-
-			if (code == NULL)
-				return false; /* exception */
-
-			REPLACE_COUNT_IF(stat_recompile, code != oldcode);
-
 			parent = NULL;
 		}
 		else {
+			/* inlining */
 			parent = rp;
 		}
 	}
@@ -2127,37 +2383,55 @@ static void replace_build_execution_state_intern(sourcestate_t *ss,
 {
 	rplpoint      *rp;
 	sourceframe_t *prevframe;
+	rplpoint      *parent;
 
-	while (true) {
+	parent = NULL;
+	prevframe = NULL;
+	rp = NULL;
+
+	while (ss->frames) {
+
+		if (REPLACE_IS_NATIVE_FRAME(ss->frames)) {
+			prevframe = ss->frames;
+			replace_push_native_frame(es, ss);
+			parent = NULL;
+			rp = NULL;
+			continue;
+		}
+
+		if (parent == NULL) {
+			/* create a machine-level stack frame */
+
+			DOLOG( printf("pushing activation record for:\n");
+				   if (rp) replace_replacement_point_println(rp, 1);
+				   else printf("\tfirst frame\n"); );
+
+			replace_push_activation_record(es, rp, prevframe, ss->frames);
+
+			DOLOG( replace_executionstate_println(es); );
+		}
 
 		rp = ss->frames->torp;
-
 		assert(rp);
-		assert(es->code == ss->frames->tocode);
 
 		DOLOG( printf("creating execution state for%s:\n",
 				(ss->frames->down == NULL) ? " TOPFRAME" : "");
 			   replace_replacement_point_println(ss->frames->fromrp, 1);
 			   replace_replacement_point_println(rp, 1); );
 
+		es->code = ss->frames->tocode;
 		prevframe = ss->frames;
-
 		replace_write_executionstate(rp, es, ss, ss->frames->down == NULL);
-
-		if (ss->frames == NULL)
-			break;
 
 		DOLOG( replace_executionstate_println(es); );
 
 		if (rp->type == RPLPOINT_TYPE_CALL) {
-
-			DOLOG( printf("pushing activation record for:\n");
-				   replace_replacement_point_println(rp, 1); );
-
-			replace_push_activation_record(es, rp, prevframe, ss->frames);
+			parent = NULL;
 		}
-
-		DOLOG( replace_executionstate_println(es); );
+		else {
+			/* inlining */
+			parent = rp;
+		}
 	}
 }
 
@@ -2309,11 +2583,11 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* recover source state */
 
-	ss = replace_recover_source_state(rp, es);
+	ss = replace_recover_source_state(rp, NULL, es);
 
 	/* map the source state */
 
-	if (!replace_map_source_state(es->code, ss))
+	if (!replace_map_source_state(ss))
 		vm_abort("exception during method replacement");
 
 	DOLOG( replace_sourcestate_println(ss); );
@@ -2722,8 +2996,30 @@ static void java_value_print(s4 type, replace_val_t value)
 #if !defined(NDEBUG)
 void replace_source_frame_println(sourceframe_t *frame)
 {
-	s4 i;
+	s4 i,j;
 	s4 t;
+
+	if (REPLACE_IS_NATIVE_FRAME(frame)) {
+		printf("\tNATIVE\n");
+		printf("\tsfi: "); replace_stackframeinfo_println(frame->sfi);
+		printf("\tnativepc: %p\n", frame->nativepc);
+		printf("\tframesize: %d\n", frame->nativeframesize);
+
+		j = 0;
+		for (i=0; i<INT_REG_CNT; ++i) {
+			if (nregdescint[i] == REG_SAV)
+				printf("\t%s = %p\n", regs[i], (void*)frame->nativesavint[j++]);
+		}
+
+		j = 0;
+		for (i=0; i<FLT_REG_CNT; ++i) {
+			if (nregdescfloat[i] == REG_SAV)
+				printf("\tF%02d = %f\n", i, frame->nativesavflt[j++]);
+		}
+
+		printf("\n");
+		return;
+	}
 
 	printf("\t");
 	method_println(frame->method);
@@ -2852,6 +3148,13 @@ void replace_sourcestate_println_short(sourcestate_t *ss)
 	for (frame = ss->frames; frame != NULL; frame = frame->down) {
 		printf("\t");
 
+		if (REPLACE_IS_NATIVE_FRAME(frame)) {
+			printf("NATIVE (pc %p size %d) ",
+					(void*)frame->nativepc, frame->nativeframesize);
+			replace_stackframeinfo_println(frame->sfi);
+			continue;
+		}
+
 		if (frame->torp) {
 			printf("%c", (frame->torp == frame->fromrp) ? '=' : '+');
 		}
@@ -2870,6 +3173,20 @@ void replace_sourcestate_println_short(sourcestate_t *ss)
 
 		method_println(frame->method);
 	}
+}
+#endif
+
+#if !defined(NDEBUG)
+static void replace_stackframeinfo_println(stackframeinfo *sfi)
+{
+	printf("prev=%p pv=%p sp=%p ra=%p xpc=%p method=",
+			(void*)sfi->prev, (void*)sfi->pv, (void*)sfi->sp,
+			(void*)sfi->ra, (void*)sfi->xpc);
+
+	if (sfi->method)
+		method_println(sfi->method);
+	else
+		printf("(nil)\n");
 }
 #endif
 

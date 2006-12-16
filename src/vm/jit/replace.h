@@ -53,6 +53,7 @@ typedef union  replace_val_t replace_val_t;
 
 #include "vm/method.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/stacktrace.h"
 
 
 /* alignment for the safe stack used during replacement */
@@ -164,6 +165,7 @@ struct sourceframe_t {
 	s4             id;
 	s4             type;
 
+	/* values */
 	replace_val_t  instance;
 
 	replace_val_t *javastack;                  /* values of stack vars */
@@ -177,12 +179,22 @@ struct sourceframe_t {
 	replace_val_t *syncslots;
 	s4             syncslotcount; /* XXX do we need more than one? */
 
+	/* mapping info */
 	rplpoint      *fromrp;         /* rplpoint used to read this frame */
 	codeinfo      *fromcode;              /* code this frame was using */
-
 	rplpoint      *torp;          /* rplpoint this frame was mapped to */
 	codeinfo      *tocode;            /* code this frame was mapped to */
+
+	/* info for native frames */
+	stackframeinfo *sfi;      /* sfi for native frames, otherwise NULL */
+	s4             nativeframesize;    /* size (bytes) of native frame */
+	u1            *nativepc;
+	ptrint         nativesavint[INT_SAV_CNT]; /* XXX temporary */
+	double         nativesavflt[FLT_REG_CNT]; /* XXX temporary */
 };
+
+#define REPLACE_IS_NATIVE_FRAME(frame)  ((frame)->sfi != NULL)
+#define REPLACE_IS_JAVA_FRAME(frame)    ((frame)->sfi == NULL)
 
 
 struct sourcestate_t {
@@ -217,6 +229,9 @@ struct replace_safestack_t {
 #define REPLACEMENT_POINTS_INIT(cd, jd)                              \
     if (!replace_create_replacement_points(jd))                      \
         return false;                                                \
+    (cd)->replacementpoint = (jd)->code->rplpoints;
+
+#define REPLACEMENT_POINTS_RESET(cd, jd)                             \
     (cd)->replacementpoint = (jd)->code->rplpoints;
 
 #define REPLACEMENT_POINT_BLOCK_START(cd, bptr)                      \
