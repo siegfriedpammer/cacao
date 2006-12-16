@@ -42,6 +42,7 @@
 #include "toolbox/logging.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/classcache.h"
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
@@ -1594,6 +1595,93 @@ static void replace_patch_method_pointer(methodptr *mpp,
 }
 
 
+/* replace_patch_class *********************************************************
+
+   Patch a method in the given class.
+
+   IN:
+	   vftbl............vftbl of the class
+	   m................the method to patch
+	   oldentrypoint....the old entrypoint to replace
+	   entrypoint.......the new entrypoint
+
+*******************************************************************************/
+
+void replace_patch_class(vftbl_t *vftbl,
+						 methodinfo *m,
+						 u1 *oldentrypoint,
+						 u1 *entrypoint)
+{
+	s4                 i;
+	methodptr         *mpp;
+	methodptr         *mppend;
+
+	/* patch the vftbl of the class */
+
+	replace_patch_method_pointer(vftbl->table + m->vftblindex,
+								 entrypoint,
+								 "virtual  ");
+
+	/* patch the interface tables */
+
+	assert(oldentrypoint);
+
+	for (i=0; i < vftbl->interfacetablelength; ++i) {
+		mpp = vftbl->interfacetable[-i];
+		mppend = mpp + vftbl->interfacevftbllength[i];
+		for (; mpp != mppend; ++mpp)
+			if (*mpp == oldentrypoint) {
+				replace_patch_method_pointer(mpp, entrypoint, "interface");
+			}
+	}
+}
+
+
+/* replace_patch_class_hierarchy ***********************************************
+
+   Patch a method in all loaded classes.
+
+   IN:
+	   m................the method to patch
+	   oldentrypoint....the old entrypoint to replace
+	   entrypoint.......the new entrypoint
+
+*******************************************************************************/
+
+struct replace_patch_data_t {
+	methodinfo *m;
+	u1         *oldentrypoint;
+	u1         *entrypoint;
+};
+
+void replace_patch_callback(classinfo *c, struct replace_patch_data_t *pd)
+{
+	vftbl_t *vftbl = c->vftbl;
+
+	if (vftbl != NULL
+		&& vftbl->vftbllength > pd->m->vftblindex
+		&& vftbl->table[pd->m->vftblindex] == (methodptr) pd->oldentrypoint)
+	{
+		replace_patch_class(c->vftbl, pd->m, pd->oldentrypoint, pd->entrypoint);
+	}
+}
+
+void replace_patch_class_hierarchy(methodinfo *m,
+								   u1 *oldentrypoint,
+								   u1 *entrypoint)
+{
+	struct replace_patch_data_t pd;
+
+	pd.m = m;
+	pd.oldentrypoint = oldentrypoint;
+	pd.entrypoint = entrypoint;
+
+	classcache_foreach_loaded_class(
+			(classcache_foreach_functionptr_t) &replace_patch_callback,
+			(void*) &pd);
+}
+
+
 /* replace_patch_future_calls **************************************************
 
    Analyse a call site and depending on the kind of call patch the call, the
@@ -1613,15 +1701,12 @@ void replace_patch_future_calls(u1 *ra,
 	u1                *patchpos;
 	methodptr          entrypoint;
 	methodptr          oldentrypoint;
-	methodptr         *mpp;
-	methodptr         *mppend;
 	bool               atentry;
 	stackframeinfo     sfi;
 	codeinfo          *calleecode;
 	methodinfo        *calleem;
 	java_objectheader *obj;
-	struct _vftbl     *vftbl;
-	s4                 i;
+	vftbl_t           *vftbl;
 
 	assert(ra);
 	assert(callerframe->down == calleeframe);
@@ -1657,10 +1742,13 @@ void replace_patch_future_calls(u1 *ra,
 
 		assert((calleem->flags & ACC_STATIC) == 0);
 
+		oldentrypoint = calleeframe->fromcode->entrypoint;
+
 		/* we need to know the instance */
 
 		if (!calleeframe->instance.a) {
 			DOLOG_SHORT( printf("WARNING: object instance unknown!\n"); );
+			replace_patch_class_hierarchy(calleem, oldentrypoint, entrypoint);
 			return;
 		}
 
@@ -1673,25 +1761,7 @@ void replace_patch_future_calls(u1 *ra,
 
 		DOLOG_SHORT( printf("\tclass: "); class_println(vftbl->class); );
 
-		/* patch the vftbl of the class */
-
-		replace_patch_method_pointer(vftbl->table + calleem->vftblindex,
-									 entrypoint,
-									 "virtual  ");
-
-		/* patch the interface tables */
-
-		oldentrypoint = calleeframe->fromcode->entrypoint;
-		assert(oldentrypoint);
-
-		for (i=0; i < vftbl->interfacetablelength; ++i) {
-			mpp = vftbl->interfacetable[-i];
-			mppend = mpp + vftbl->interfacevftbllength[i];
-			for (; mpp != mppend; ++mpp)
-				if (*mpp == oldentrypoint) {
-					replace_patch_method_pointer(mpp, entrypoint, "interface");
-				}
-		}
+		replace_patch_class(vftbl, calleem, oldentrypoint, entrypoint);
 	}
 	else {
 		/* the call was statically bound */
