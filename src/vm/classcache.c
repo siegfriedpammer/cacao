@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 5192 2006-07-31 14:21:15Z twisti $
+   $Id: classcache.c 6209 2006-12-16 21:14:23Z edwin $
 
 */
 
@@ -1453,6 +1453,48 @@ void classcache_get_loaded_classes(s4 *class_count_ptr,
 	CLASSCACHE_UNLOCK();
 }
 #endif /* defined(ENABLE_JVMTI) */
+
+
+/* classcache_foreach_loaded_class *********************************************
+
+   Calls the given function for each loaded class.
+
+*******************************************************************************/
+
+void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
+									 void *data)
+{
+	classcache_name_entry   *en;
+	classcache_class_entry  *clsen;
+	s4                       i;
+
+	CLASSCACHE_LOCK();
+
+	/* look in every slot of the hashtable */
+
+	for (i = 0; i < hashtable_classcache.size; i++) {
+		/* iterate over hashlink */
+
+		for (en = hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
+			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
+
+			if (en->name->text[0] == '$')
+				continue;
+
+			/* iterate over classes with same name */
+
+			for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+				/* get only loaded classes */
+
+				if (clsen->classobj != NULL) {
+					(*func)(clsen->classobj, data);
+				}
+			}
+		}
+	}
+
+	CLASSCACHE_UNLOCK();
+}
 
 
 /*============================================================================*/

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.h 5192 2006-07-31 14:21:15Z twisti $
+   $Id: classcache.h 6209 2006-12-16 21:14:23Z edwin $
 
 */
 
@@ -123,6 +123,11 @@ struct classcache_loader_entry
 };
 
 
+/* callback function type for  classcache_foreach_loaded_class */
+
+typedef void (*classcache_foreach_functionptr_t)(classinfo *, void *);
+
+
 /* function prototypes ********************************************************/
 
 /* initialize the loaded class cache */
@@ -144,6 +149,9 @@ bool classcache_add_constraints_for_params(classloader *a,classloader *b,
 #endif
 
 s4 classcache_get_loaded_class_count(void);
+
+void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
+									 void *data);
 
 #if defined(ENABLE_JVMTI)
 void classcache_get_loaded_classes(s4 *class_count_ptr,
