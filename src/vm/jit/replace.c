@@ -1095,15 +1095,17 @@ static void replace_read_executionstate(rplpoint *rp,
 	frame->javalocals = DMNEW(replace_val_t, count);
 	frame->javalocaltype = DMNEW(u1, count);
 
-#if !defined(NDEBUG)
 	/* mark values as undefined */
 	for (i=0; i<count; ++i) {
+#if !defined(NDEBUG)
 		frame->javalocals[i].l = (u8) 0x00dead0000dead00ULL;
+#endif
 		frame->javalocaltype[i] = TYPE_VOID;
 	}
 
 	/* some entries in the intregs array are not meaningful */
 	/*es->intregs[REG_ITMP3] = (u8) 0x11dead1111dead11ULL;*/
+#if !defined(NDEBUG)
 	es->intregs[REG_SP   ] = (ptrint) 0x11dead1111dead11ULL;
 #ifdef REG_PV
 	es->intregs[REG_PV   ] = (ptrint) 0x11dead1111dead11ULL;
