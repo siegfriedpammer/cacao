@@ -29,7 +29,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 6062 2006-11-27 15:15:54Z edwin $
+   $Id: stack.c 6206 2006-12-16 20:59:26Z edwin $
 
 */
 
@@ -1337,6 +1337,8 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 		MCOPY(iptr, orig->iinstr, instruction, len);
 		iptr[len].opc = ICMD_NOP;
+		iptr[len].line = 0;
+		iptr[len].flags.bits = 0;
 		b->iinstr = iptr;
 		b->icount = ++len;
 
