@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 6145 2006-12-07 23:32:43Z edwin $
+   $Id: jit.c 6211 2006-12-16 22:53:24Z edwin $
 
 */
 
@@ -1387,6 +1387,15 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 #endif
 		RT_TIMING_GET_TIME(time_ifconv);
+
+		/* inlining */
+
+#if defined(ENABLE_INLINING)
+		if (JITDATA_HAS_FLAG_INLINE(jd)) {
+			if (!inline_inline(jd))
+				return NULL;
+		}
+#endif
 
 		/* Basic block reordering.  I think this should be done after
 		   if-conversion, as we could lose the ability to do the

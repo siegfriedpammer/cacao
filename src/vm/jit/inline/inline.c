@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6207 2006-12-16 21:11:04Z edwin $
+   $Id: inline.c 6211 2006-12-16 22:53:24Z edwin $
 
 */
 
@@ -689,10 +689,12 @@ static s4 *translate_javalocals(inline_node *iln, s4 *javalocals)
 			j = inline_translate_variable(iln->ctx->resultjd, iln->jd, iln->varmap, j);
 		jl[i] = j;
 
+#if 0
 		if (j < UNUSED) {
 			/* an encoded returnAddress value - must be relocated */
 			inline_add_blocknr_reference(iln, &(jl[i]));
 		}
+#endif
 	}
 
 	return jl;
@@ -1224,8 +1226,10 @@ clone_call:
 
 	switch (n_iptr->opc) {
 		case ICMD_ASTORE:
+#if 0
 			if (n_iptr->flags.bits & INS_FLAG_RETADDR)
 				inline_add_blocknr_reference(iln, &(n_iptr->sx.s23.s2.retaddrnr));
+#endif
 			/* FALLTHROUGH! */
 		case ICMD_ISTORE:
 		case ICMD_LSTORE:
@@ -1818,8 +1822,7 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 
 /* second pass driver *********************************************************/
 
-static bool test_inlining(inline_node *iln, jitdata *jd,
-		jitdata **resultjd)
+static bool test_inlining(inline_node *iln, jitdata *jd)
 {
 	instruction *n_ins;
 	basicblock *n_bb;
@@ -1838,9 +1841,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 
 	DOLOG( dump_inline_tree(iln, 0); );
 
-	assert(iln && jd && resultjd);
-
-	*resultjd = jd;
+	assert(iln && jd);
 
 	n_ins = DMNEW(instruction, iln->cumul_instructioncount);
 	MZERO(n_ins, instruction, iln->cumul_instructioncount);
@@ -1986,7 +1987,11 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 			   && debug_compile_inlined_code_counter <= inline_debug_end_counter)
 #endif /* NDEBUG */
 	   {
-			*resultjd = n_jd;
+			/* install the inlined result */
+
+			*jd->code = *n_jd->code;
+			n_jd->code = jd->code;
+			*jd = *n_jd;
 
 #if !defined(NDEBUG)
 			inline_count_methods++;
@@ -2534,14 +2539,12 @@ static void inline_post_process(jitdata *jd)
 
 /* main driver function *******************************************************/
 
-bool inline_inline(jitdata *jd, jitdata **resultjd)
+bool inline_inline(jitdata *jd)
 {
 	inline_node *iln;
 	methodinfo *m;
 
 	m = jd->m;
-
-	*resultjd = jd;
 
 	DOLOG( printf("==== INLINE ==================================================================\n");
 		   show_method(jd, SHOW_STACK); );
@@ -2572,7 +2575,7 @@ bool inline_inline(jitdata *jd, jitdata **resultjd)
 		DOLOG( printf("==== TEST INLINE =============================================================\n"); );
 
 		if (iln->children)
-			test_inlining(iln, jd, resultjd);
+			test_inlining(iln, jd);
 	}
 
 	DOLOG( printf("-------- DONE -----------------------------------------------------------\n");

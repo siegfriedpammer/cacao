@@ -100,8 +100,9 @@ struct rplalloc {
 #define RPLPOINT_TYPE_RETURN  5
 #define RPLPOINT_TYPE_BODY    6
 
-#define RPLPOINT_FLAG_NOTRAP  0x01  /* rplpoint cannot be trapped */
-#define RPLPOINT_FLAG_ACTIVE  0x08  /* trap is active             */
+#define RPLPOINT_FLAG_NOTRAP     0x01  /* rplpoint cannot be trapped */
+#define RPLPOINT_FLAG_COUNTDOWN  0x02  /* count down hits            */
+#define RPLPOINT_FLAG_ACTIVE     0x08  /* trap is active             */
 
 
 #if !defined(NDEBUG)

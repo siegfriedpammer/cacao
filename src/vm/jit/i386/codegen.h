@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 6129 2006-12-06 10:49:47Z twisti $
+   $Id: codegen.h 6211 2006-12-16 22:53:24Z edwin $
 
 */
 
@@ -312,6 +312,7 @@
 #define M_BAE(a)                emit_jcc(cd, CC_AE, (a))
 #define M_BA(a)                 emit_jcc(cd, CC_A, (a))
 #define M_BNS(a)                emit_jcc(cd, CC_NS, (a))
+#define M_BS(a)                 emit_jcc(cd, CC_S, (a))
 
 #define M_JMP(a)                emit_jmp_reg(cd, (a))
 #define M_JMP_IMM(a)            emit_jmp_imm(cd, (a))
