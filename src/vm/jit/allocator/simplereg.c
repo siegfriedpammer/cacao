@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 6057 2006-11-27 14:58:43Z edwin $
+   $Id: simplereg.c 6207 2006-12-16 21:11:04Z edwin $
 
 */
 
@@ -1017,6 +1017,10 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 	rd = jd->rd;
 	v = VAR(index);
 
+	/* assert that constants are not allocated */
+
+	assert(v->type != TYPE_RET);
+
 	/* Try to allocate a saved register if there is no temporary one          */
 	/* available. This is what happens during the second run.                 */
 	tryagain = (v->flags & SAVEDVAR) ? 1 : 2;
@@ -1165,6 +1169,10 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 
 static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 {
+	/* assert that constants are not freed */
+
+	assert(type != TYPE_RET);
+
 	/* if this is a copy of another variable, just decrement the copy counter */
 
 	/* XXX split reg/mem variables on arm may need special handling here */

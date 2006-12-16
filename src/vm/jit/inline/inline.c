@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6203 2006-12-16 20:50:32Z edwin $
+   $Id: inline.c 6207 2006-12-16 21:11:04Z edwin $
 
 */
 
@@ -156,8 +156,12 @@ struct inline_node {
 
 struct inline_target_ref {
 	inline_target_ref *next;
-	basicblock **ref;
+	union {
+		basicblock **block;
+		s4 *nr;
+	} ref;
 	basicblock *target;
+	bool isnumber;
 };
 
 struct inline_block_map {
@@ -476,13 +480,28 @@ static s4 *create_variable_map(inline_node *callee)
 #define INLINE_RETURN_REFERENCE(callee)  \
 	( (basicblock *) (ptrint) (0x333 + (callee)->depth) )
 
+#define RETADDRNR_FROM_BLOCK(bptr)  (UNUSED - 1 - (bptr)->nr)
+
 
 static void inline_add_block_reference(inline_node *iln, basicblock **blockp)
 {
 	inline_target_ref *ref;
 
 	ref = DNEW(inline_target_ref);
-	ref->ref = blockp;
+	ref->ref.block = blockp;
+	ref->isnumber = false;
+	ref->next = iln->refs;
+	iln->refs = ref;
+}
+
+
+static void inline_add_blocknr_reference(inline_node *iln, s4 *nrp)
+{
+	inline_target_ref *ref;
+
+	ref = DNEW(inline_target_ref);
+	ref->ref.nr = nrp;
+	ref->isnumber = true;
 	ref->next = iln->refs;
 	iln->refs = ref;
 }
@@ -533,41 +552,41 @@ static basicblock * inline_map_block(inline_node *iln,
 
 static void inline_resolve_block_refs(inline_target_ref **refs,
 									  basicblock *o_bptr,
-									  basicblock *n_bptr)
+									  basicblock *n_bptr,
+									  bool returnref)
 {
 	inline_target_ref *ref;
 	inline_target_ref *prev;
 
-	ref = *refs;
 	prev = NULL;
-	while (ref) {
-		if (*(ref->ref) == o_bptr) {
-
-#if defined(INLINE_VERBOSE)
-			if (inline_debug_log) {
-				if ((ptrint) o_bptr < (0x333+100)) { /* XXX */
-					printf("resolving RETURN block reference %p -> new L%03d (%p)\n",
-							(void*)o_bptr, n_bptr->nr, (void*)n_bptr);
-				}
-				else {
-					printf("resolving block reference old L%03d (%p) -> new L%03d (%p)\n",
-							o_bptr->nr, (void*)o_bptr, n_bptr->nr, (void*)n_bptr);
-				}
-			}
-#endif
-
-			*(ref->ref) = n_bptr;
-			if (prev) {
-				prev->next = ref->next;
-			}
-			else {
-				*refs = ref->next;
+	for (ref = *refs; ref != NULL; ref = ref->next) {
+		if (ref->isnumber && !returnref) {
+			if (*(ref->ref.nr) == RETADDRNR_FROM_BLOCK(o_bptr)) {
+				*(ref->ref.nr) = RETADDRNR_FROM_BLOCK(n_bptr);
+				goto remove_ref;
 			}
 		}
 		else {
-			prev = ref;
+			if (*(ref->ref.block) == o_bptr) {
+				*(ref->ref.block) = n_bptr;
+				goto remove_ref;
+			}
 		}
-		ref = ref->next;
+
+		/* skip this ref */
+
+		prev = ref;
+		continue;
+
+remove_ref:
+		/* remove this ref */
+
+		if (prev) {
+			prev->next = ref->next;
+		}
+		else {
+			*refs = ref->next;
+		}
 	}
 }
 
@@ -577,8 +596,6 @@ static void inline_resolve_block_refs(inline_target_ref **refs,
 static basicblock * create_block(inline_node *container,
 								 inline_node *iln,
 								 inline_node *inner,
-								 basicblock *o_bptr,
-								 inline_target_ref **refs,
 								 int indepth)
 {
 	basicblock  *n_bptr;
@@ -645,12 +662,6 @@ static basicblock * create_block(inline_node *container,
 		n_bptr->invars = NULL;
 	}
 
-	/* XXX move this to callers with o_bptr != NULL? */
-	if (o_bptr) {
-		assert(refs);
-		inline_resolve_block_refs(refs, o_bptr, n_bptr);
-	}
-
 	/* XXX for the verifier. should not be here */
 
 	{
@@ -677,6 +688,11 @@ static s4 *translate_javalocals(inline_node *iln, s4 *javalocals)
 		if (j > UNUSED)
 			j = inline_translate_variable(iln->ctx->resultjd, iln->jd, iln->varmap, j);
 		jl[i] = j;
+
+		if (j < UNUSED) {
+			/* an encoded returnAddress value - must be relocated */
+			inline_add_blocknr_reference(iln, &(jl[i]));
+		}
 	}
 
 	return jl;
@@ -689,12 +705,16 @@ static basicblock * create_body_block(inline_node *iln,
 	basicblock *n_bptr;
 	s4 i;
 
-	n_bptr = create_block(iln, iln, iln, o_bptr, &(iln->refs),
+	n_bptr = create_block(iln, iln, iln,
 						  o_bptr->indepth + iln->n_passthroughcount);
 
 	n_bptr->type = o_bptr->type;
 	n_bptr->flags = o_bptr->flags;
 	n_bptr->bitflags = o_bptr->bitflags;
+
+	/* resolve references to this block */
+
+	inline_resolve_block_refs(&(iln->refs), o_bptr, n_bptr, false);
 
 	/* translate the invars of the original block */
 
@@ -727,8 +747,15 @@ static basicblock * create_epilog_block(inline_node *caller, inline_node *callee
 
 	/* start the epilog block */
 
-	n_bptr = create_block(caller, caller, callee, INLINE_RETURN_REFERENCE(callee),
-			&(callee->refs), callee->n_passthroughcount + retcount);
+	n_bptr = create_block(caller, caller, callee,
+						  callee->n_passthroughcount + retcount);
+
+	/* resolve references to the return block */
+
+	inline_resolve_block_refs(&(callee->refs),
+							  INLINE_RETURN_REFERENCE(callee),
+							  n_bptr,
+							  true);
 
 	/* return variable */
 
@@ -1196,11 +1223,14 @@ clone_call:
 	/* XXX move this to dataflow section? */
 
 	switch (n_iptr->opc) {
+		case ICMD_ASTORE:
+			if (n_iptr->flags.bits & INS_FLAG_RETADDR)
+				inline_add_blocknr_reference(iln, &(n_iptr->sx.s23.s2.retaddrnr));
+			/* FALLTHROUGH! */
 		case ICMD_ISTORE:
 		case ICMD_LSTORE:
 		case ICMD_FSTORE:
 		case ICMD_DSTORE:
-		case ICMD_ASTORE:
 			stack_javalocals_store(n_iptr, iln->javalocals);
 			break;
 	}
@@ -1518,7 +1548,7 @@ default_clone:
 	for (i=0; i<iln->ctx->blockmap_index; ++i, ++bm) {
 		assert(bm->iln && bm->o_block && bm->n_block);
 		if (bm->iln == iln)
-			inline_resolve_block_refs(&(iln->refs), bm->o_block, bm->n_block);
+			inline_resolve_block_refs(&(iln->refs), bm->o_block, bm->n_block, false);
 	}
 
 #if !defined(NDEBUG)
@@ -1526,9 +1556,9 @@ default_clone:
 		inline_target_ref *ref;
 		ref = iln->refs;
 		while (ref) {
-			if (!iln->depth || *(ref->ref) != INLINE_RETURN_REFERENCE(iln)) {
+			if (!iln->depth || ref->isnumber || *(ref->ref.block) != INLINE_RETURN_REFERENCE(iln)) {
 				DOLOG( printf("XXX REMAINING REF at depth %d: %p\n", iln->depth,
-					   (void*)*(ref->ref)) );
+					   (void*)*(ref->ref.block)) );
 				assert(false);
 			}
 			ref = ref->next;
@@ -1671,7 +1701,10 @@ static void inline_interface_variables(inline_node *iln)
 		for (i=0; i<bptr->indepth; ++i) {
 			v = &(resultjd->var[bptr->invars[i]]);
 			v->flags |= INOUT;
-			v->flags &= ~PREALLOC;
+			if (v->type == TYPE_RET)
+				v->flags |= PREALLOC;
+			else
+				v->flags &= ~PREALLOC;
 			v->flags &= ~INMEMORY;
 			assert(bptr->invars[i] >= resultjd->localcount);
 
@@ -1686,7 +1719,10 @@ static void inline_interface_variables(inline_node *iln)
 		for (i=0; i<bptr->outdepth; ++i) {
 			v = &(resultjd->var[bptr->outvars[i]]);
 			v->flags |= INOUT;
-			v->flags &= ~PREALLOC;
+			if (v->type == TYPE_RET)
+				v->flags |= PREALLOC;
+			else
+				v->flags &= ~PREALLOC;
 			v->flags &= ~INMEMORY;
 			assert(bptr->outvars[i] >= resultjd->localcount);
 
@@ -1721,7 +1757,7 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 
 	if (iln->synchronize) {
 		/* create the monitorexit handler */
-		n_bptr = create_block(master, iln, iln, NULL, NULL,
+		n_bptr = create_block(master, iln, iln,
 							  iln->n_passthroughcount + 1);
 		n_bptr->type = BBTYPE_EXH;
 		n_bptr->flags = BBFINISHED;
@@ -1862,7 +1898,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd,
 
 	/* write the dummy end block */
 
-	n_bptr = create_block(iln, iln, iln, NULL, NULL, 0);
+	n_bptr = create_block(iln, iln, iln, 0);
 	n_bptr->flags = BBUNDEF;
 	n_bptr->type = BBTYPE_STD;
 
