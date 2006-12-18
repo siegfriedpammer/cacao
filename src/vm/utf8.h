@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
+            Edwin Steiner
 
-   Changes: Edwin Steiner
-
-   $Id: utf8.h 5920 2006-11-05 21:23:09Z twisti $
+   $Id: utf8.h 6216 2006-12-18 18:21:37Z twisti $
 
 */
 
@@ -114,7 +113,13 @@ extern utf *utf_Code;
 extern utf *utf_Exceptions;
 extern utf *utf_LineNumberTable;
 extern utf *utf_SourceFile;
+
+#if defined(ENABLE_JAVASE)
+extern utf *utf_EnclosingMethod;
 extern utf *utf_Signature;
+extern utf *utf_RuntimeVisibleAnnotations;
+extern utf *utf_StackMapTable;
+#endif
 
 extern utf *utf_init;
 extern utf *utf_clinit;

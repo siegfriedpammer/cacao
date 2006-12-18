@@ -25,13 +25,12 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
-
-   Changes: Mark Probst
+            Mark Probst
             Andreas Krall
             Christian Thalinger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: utf8.c 5920 2006-11-05 21:23:09Z twisti $
+   $Id: utf8.c 6216 2006-12-18 18:21:37Z twisti $
 
 */
 
@@ -121,7 +120,13 @@ utf *utf_Code;                          /* Code                               */
 utf *utf_Exceptions;                    /* Exceptions                         */
 utf *utf_LineNumberTable;               /* LineNumberTable                    */
 utf *utf_SourceFile;                    /* SourceFile                         */
+
+#if defined(ENABLE_JAVASE)
+utf *utf_EnclosingMethod;
 utf *utf_Signature;
+utf *utf_RuntimeVisibleAnnotations;
+utf *utf_StackMapTable;
+#endif
 
 utf *utf_init;                          /* <init>                             */
 utf *utf_clinit;                        /* <clinit>                           */
@@ -268,7 +273,13 @@ bool utf8_init(void)
 	utf_Exceptions	               = utf_new_char("Exceptions");
 	utf_LineNumberTable            = utf_new_char("LineNumberTable");
 	utf_SourceFile                 = utf_new_char("SourceFile");
+
+#if defined(ENABLE_JAVASE)
+	utf_EnclosingMethod            = utf_new_char("EnclosingMethod");
 	utf_Signature                  = utf_new_char("Signature");
+	utf_RuntimeVisibleAnnotations  = utf_new_char("RuntimeVisibleAnnotations");
+	utf_StackMapTable              = utf_new_char("StackMapTable");
+#endif
 
 	utf_init	                   = utf_new_char("<init>");
 	utf_clinit	                   = utf_new_char("<clinit>");

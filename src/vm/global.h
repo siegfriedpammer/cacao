@@ -26,14 +26,13 @@
 
    Authors: Reinhard Grafl
             Andreas Krall
-
-   Changes: Mark Probst
+            Mark Probst
             Philipp Tomsich
             Edwin Steiner
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 6030 2006-11-20 14:18:12Z michi $
+   $Id: global.h 6216 2006-12-18 18:21:37Z twisti $
 
 */
 
@@ -146,14 +145,14 @@ typedef struct java_objectarray java_objectarray;
 
 /* some Java related defines **************************************************/
 
-#define JAVA_VERSION    "1.4.2"         /* this version is supported by CACAO */
-#define CLASS_VERSION   "49.0"
+#define JAVA_VERSION    "1.5.0"         /* this version is supported by CACAO */
+#define CLASS_VERSION   "50.0"
 
 
 /* Java class file constants **************************************************/
 
 #define MAGIC             0xCAFEBABE
-#define MAJOR_VERSION     49
+#define MAJOR_VERSION     50
 #define MINOR_VERSION     0
 
 

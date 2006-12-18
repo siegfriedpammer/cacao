@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 6080 2006-11-28 22:28:52Z twisti $
+   $Id: statistics.h 6216 2006-12-18 18:21:37Z twisti $
 
 */
 
@@ -97,6 +97,8 @@ extern s4 size_classinfo;
 extern s4 size_fieldinfo;
 extern s4 size_methodinfo;
 extern s4 size_codeinfo;
+
+extern s4 size_stack_map;
 
 extern int count_const_pool_len;
 extern int count_classref_len;

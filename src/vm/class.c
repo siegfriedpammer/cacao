@@ -25,13 +25,12 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
-
-   Changes: Mark Probst
+            Mark Probst
             Andreas Krall
             Christian Thalinger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: class.c 6033 2006-11-21 16:56:56Z michi $
+   $Id: class.c 6216 2006-12-18 18:21:37Z twisti $
 
 */
 
@@ -60,6 +59,7 @@
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/suck.h"
 #include "vm/utf8.h"
 
 
@@ -263,6 +263,254 @@ void class_postset_header_vftbl(void)
 }
 
 
+/* class_load_attribute_sourcefile *********************************************
+
+   SourceFile_attribute {
+       u2 attribute_name_index;
+       u4 attribute_length;
+	   u2 sourcefile_index;
+   }
+
+*******************************************************************************/
+
+static bool class_load_attribute_sourcefile(classbuffer *cb)
+{
+	classinfo *c;
+	u4         attribute_length;
+	u2         sourcefile_index;
+	utf       *sourcefile;
+
+	/* get classinfo */
+
+	c = cb->class;
+
+	/* check buffer size */
+
+	if (!suck_check_classbuffer_size(cb, 4 + 2))
+		return false;
+
+	/* check attribute length */
+
+	attribute_length = suck_u4(cb);
+
+	if (attribute_length != 2) {
+		exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
+		return false;
+	}
+
+	/* there can be no more than one SourceFile attribute */
+
+	if (c->sourcefile != NULL) {
+		exceptions_throw_classformaterror(c, "Multiple SourceFile attributes");
+		return false;
+	}
+
+	/* get sourcefile */
+
+	sourcefile_index = suck_u2(cb);
+	sourcefile = class_getconstant(c, sourcefile_index, CONSTANT_Utf8);
+
+	if (sourcefile == NULL)
+		return false;
+
+	/* store sourcefile */
+
+	c->sourcefile = sourcefile;
+
+	return true;
+}
+
+
+/* class_load_attribute_enclosingmethod ****************************************
+
+   EnclosingMethod_attribute {
+       u2 attribute_name_index;
+       u4 attribute_length;
+	   u2 class_index;
+	   u2 method_index;
+   }
+
+*******************************************************************************/
+
+static bool class_load_attribute_enclosingmethod(classbuffer *cb)
+{
+	classinfo             *c;
+	u4                     attribute_length;
+	u2                     class_index;
+	u2                     method_index;
+	classref_or_classinfo  cr;
+	constant_nameandtype  *cn;
+
+	/* get classinfo */
+
+	c = cb->class;
+
+	/* check buffer size */
+
+	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
+		return false;
+
+	/* check attribute length */
+
+	attribute_length = suck_u4(cb);
+
+	if (attribute_length != 4) {
+		exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
+		return false;
+	}
+
+	/* there can be no more than one EnclosingMethod attribute */
+
+	if (c->enclosingmethod != NULL) {
+		exceptions_throw_classformaterror(c, "Multiple EnclosingMethod attributes");
+		return false;
+	}
+
+	/* get class index */
+
+	class_index = suck_u2(cb);
+	cr.ref = innerclass_getconstant(c, class_index, CONSTANT_Class);
+
+	/* get method index */
+
+	method_index = suck_u2(cb);
+	cn = innerclass_getconstant(c, method_index, CONSTANT_NameAndType);
+
+	/* store info in classinfo */
+
+	c->enclosingclass.any = cr.any;
+	c->enclosingmethod    = cn;
+
+	return true;
+}
+
+
+/* class_load_attributes *******************************************************
+
+   Read attributes from ClassFile.
+
+   attribute_info {
+       u2 attribute_name_index;
+       u4 attribute_length;
+       u1 info[attribute_length];
+   }
+
+   InnerClasses_attribute {
+       u2 attribute_name_index;
+       u4 attribute_length;
+   }
+
+*******************************************************************************/
+
+bool class_load_attributes(classbuffer *cb)
+{
+	classinfo *c;
+	u4         i, j;
+	u2         attributes_count;
+	u2         attribute_name_index;
+	utf       *attribute_name;
+
+	c = cb->class;
+
+	/* get attributes count */
+
+	if (!suck_check_classbuffer_size(cb, 2))
+		return false;
+
+	attributes_count = suck_u2(cb);
+
+	for (i = 0; i < attributes_count; i++) {
+		/* get attribute name */
+
+		if (!suck_check_classbuffer_size(cb, 2))
+			return false;
+
+		attribute_name_index = suck_u2(cb);
+		attribute_name =
+			class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
+
+		if (attribute_name == NULL)
+			return false;
+
+		if (attribute_name == utf_InnerClasses) {
+			/* InnerClasses */
+
+			if (c->innerclass != NULL) {
+				exceptions_throw_classformaterror(c, "Multiple InnerClasses attributes");
+				return false;
+			}
+				
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
+				return false;
+
+			/* skip attribute length */
+			suck_u4(cb);
+
+			/* number of records */
+			c->innerclasscount = suck_u2(cb);
+
+			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * c->innerclasscount))
+				return false;
+
+			/* allocate memory for innerclass structure */
+			c->innerclass = MNEW(innerclassinfo, c->innerclasscount);
+
+			for (j = 0; j < c->innerclasscount; j++) {
+				/* The innerclass structure contains a class with an encoded
+				   name, its defining scope, its simple name and a bitmask of
+				   the access flags. If an inner class is not a member, its
+				   outer_class is NULL, if a class is anonymous, its name is
+				   NULL. */
+   								
+				innerclassinfo *info = c->innerclass + j;
+
+				info->inner_class.ref =
+					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
+				info->outer_class.ref =
+					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
+				info->name =
+					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+				info->flags = suck_u2(cb);
+			}
+		}
+		else if (attribute_name == utf_SourceFile) {
+			/* SourceFile */
+
+			if (!class_load_attribute_sourcefile(cb))
+				return false;
+		}
+#if defined(ENABLE_JAVASE)
+		else if (attribute_name == utf_EnclosingMethod) {
+			/* EnclosingMethod */
+
+			if (!class_load_attribute_enclosingmethod(cb))
+				return false;
+		}
+		else if (attribute_name == utf_Signature) {
+			/* Signature */
+
+			if (!loader_load_attribute_signature(cb, &(c->signature)))
+				return false;
+		}
+		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
+			/* RuntimeVisibleAnnotations */
+
+			if (!annotation_load_attribute_runtimevisibleannotations(cb))
+				return false;
+		}
+#endif
+		else {
+			/* unknown attribute */
+
+			if (!loader_skip_attribute_body(cb))
+				return false;
+		}
+	}
+
+	return true;
+}
+
+
 /* class_freepool **************************************************************
 
 	Frees all resources used by this classes Constant Pool.
@@ -328,8 +576,8 @@ voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
 	/* check index and type of constantpool entry */
 	/* (pos == 0 is caught by type comparison) */
 
-	if (pos >= c->cpcount || c->cptags[pos] != ctype) {
-		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+	if ((pos >= c->cpcount) || (c->cptags[pos] != ctype)) {
+		exceptions_throw_classformaterror(c, "Illegal constant pool index");
 		return NULL;
 	}
 
@@ -346,16 +594,19 @@ voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
 voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
 {
 	/* invalid position in constantpool */
+
 	if (pos >= c->cpcount) {
-		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+		exceptions_throw_classformaterror(c, "Illegal constant pool index");
 		return NULL;
 	}
 
 	/* constantpool entry of type 0 */	
-	if (!c->cptags[pos])
+
+	if (c->cptags[pos] == 0)
 		return NULL;
 
 	/* check type of constantpool entry */
+
 	if (c->cptags[pos] != ctype) {
 		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
 		return NULL;

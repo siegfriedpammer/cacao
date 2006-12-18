@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6084 2006-11-29 17:04:14Z twisti $
+## $Id: Makefile.am 6216 2006-12-18 18:21:37Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -37,13 +37,17 @@ LIBS =
 SUBDIRS = jit
 
 if ENABLE_JAVASE
-ANNOTATION_OBJ = \
+ANNOTATION_SOURCES = \
 	annotation.c \
 	annotation.h
+
+STACKMAP_SOURCES = \
+	stackmap.c \
+	stackmap.h
 endif
 
 if ENABLE_STATISTICS
-STATISTICS_OBJ = \
+STATISTICS_SOURCES = \
 	statistics.c \
 	statistics.h
 endif
@@ -76,7 +80,7 @@ noinst_LTLIBRARIES = \
 libvmcore_la_SOURCES = \
 	access.c \
 	access.h \
-	$(ANNOTATION_OBJ) \
+	$(ANNOTATION_SOURCES) \
 	builtin.c \
 	builtin.h \
 	builtintable.inc \
@@ -110,9 +114,10 @@ libvmcore_la_SOURCES = \
 	resolve.h \
 	$(RT_TIMING_OBJ) \
 	rt-timing.h \
-	$(STATISTICS_OBJ) \
+	$(STATISTICS_SOURCES) \
 	signal.c \
 	signallocal.h \
+	$(STACKMAP_SOURCES) \
 	string.c \
 	stringlocal.h \
 	suck.c \

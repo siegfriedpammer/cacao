@@ -31,7 +31,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 6033 2006-11-21 16:56:56Z michi $
+   $Id: loader.c 6216 2006-12-18 18:21:37Z twisti $
 
 */
 
@@ -53,6 +53,12 @@
 #endif
 
 #include "toolbox/logging.h"
+
+#if defined(ENABLE_JAVASE)
+# include "vm/annotation.h"
+# include "vm/stackmap.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
@@ -277,54 +283,31 @@ void loader_load_all_classes(void)
 }
 
 
-/* skipattributebody ***********************************************************
+/* loader_skip_attribute_body **************************************************
 
-   Skips an attribute after the 16 bit reference to attribute_name has
-   already been read.
+   Skips an attribute the attribute_name_index has already been read.
 	
+   attribute_info {
+       u2 attribute_name_index;
+       u4 attribute_length;
+       u1 info[attribute_length];
+   }
+
 *******************************************************************************/
 
-static bool skipattributebody(classbuffer *cb)
+bool loader_skip_attribute_body(classbuffer *cb)
 {
-	u4 len;
+	u4 attribute_length;
 
 	if (!suck_check_classbuffer_size(cb, 4))
 		return false;
 
-	len = suck_u4(cb);
+	attribute_length = suck_u4(cb);
 
-	if (!suck_check_classbuffer_size(cb, len))
+	if (!suck_check_classbuffer_size(cb, attribute_length))
 		return false;
 
-	suck_skip_nbytes(cb, len);
-
-	return true;
-}
-
-
-/************************* Function: skipattributes ****************************
-
-	skips num attribute structures
-	
-*******************************************************************************/
-
-static bool skipattributes(classbuffer *cb, u4 num)
-{
-	u4 i;
-	u4 len;
-
-	for (i = 0; i < num; i++) {
-		if (!suck_check_classbuffer_size(cb, 2 + 4))
-			return false;
-
-		suck_u2(cb);
-		len = suck_u4(cb);
-
-		if (!suck_check_classbuffer_size(cb, len))
-			return false;
-
-		suck_skip_nbytes(cb, len);
-	}
+	suck_skip_nbytes(cb, attribute_length);
 
 	return true;
 }
@@ -779,6 +762,58 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 }
 
 
+/* loader_load_attribute_signature *********************************************
+
+   Signature_attribute {
+       u2 attribute_name_index;
+	   u4 atrribute_length;
+	   u2 signature_index;
+   }
+
+*******************************************************************************/
+
+#if defined(ENABLE_JAVASE)
+bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
+{
+	classinfo *c;
+	u4         attribute_length;
+	u2         signature_index;
+
+	/* get classinfo */
+
+	c = cb->class;
+
+	/* check remaining bytecode */
+
+	if (!suck_check_classbuffer_size(cb, 4 + 2))
+		return false;
+
+	/* check attribute length */
+
+	attribute_length = suck_u4(cb);
+
+	if (attribute_length != 2) {
+		exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
+		return false;
+	}
+
+	if (*signature != NULL) {
+		exceptions_throw_classformaterror(c, "Multiple Signature attributes");
+		return false;
+	}
+
+	/* get signature */
+
+	signature_index = suck_u2(cb);
+
+	if (!(*signature = class_getconstant(c, signature_index, CONSTANT_Utf8)))
+		return false;
+
+	return true;
+}
+#endif /* defined(ENABLE_JAVASE) */
+
+
 /* load_field ******************************************************************
 
    Load everything about a class field from the class file and fill a
@@ -980,28 +1015,18 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				log_text("Invalid Constant - Type");
 			}
 		}
+#if defined(ENABLE_JAVASE)
 		else if (u == utf_Signature) {
-			if (!suck_check_classbuffer_size(cb, 4 + 2))
-				return false;
+			/* Signature */
 
-			/* check attribute length */
-
-			if (suck_u4(cb) != 2) {
-				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
-				return false;
-			}
-
-			if (f->signature != NULL) {
-				exceptions_throw_classformaterror(c, "Multiple Signature attributes");
-				return false;
-			}
-
-			if (!(f->signature = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+			if (!loader_load_attribute_signature(cb, &(f->signature)))
 				return false;
 		}
+#endif
 		else {
 			/* unknown attribute */
-			if (!skipattributebody(cb))
+
+			if (!loader_skip_attribute_body(cb))
 				return false;
 		}
 	}
@@ -1012,23 +1037,56 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 }
 
 
-/* load_method *****************************************************************
+/* loader_load_method **********************************************************
 
    Loads a method from the class file and fills an existing
    'methodinfo' structure. For native methods, the function pointer
    field is set to the real function pointer, for JavaVM methods a
    pointer to the compiler is used preliminarily.
-	
+
+   method_info {
+       u2 access_flags;
+	   u2 name_index;
+	   u2 descriptor_index;
+	   u2 attributes_count;
+	   attribute_info attributes[attribute_count];
+   }
+
+   attribute_info {
+       u2 attribute_name_index;
+	   u4 attribute_length;
+	   u1 info[attribute_length];
+   }
+
+   LineNumberTable_attribute {
+       u2 attribute_name_index;
+	   u4 attribute_length;
+	   u2 line_number_table_length;
+	   {
+	       u2 start_pc;
+		   u2 line_number;
+	   } line_number_table[line_number_table_length];
+   }
+
 *******************************************************************************/
 
-static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
+static bool loader_load_method(classbuffer *cb, methodinfo *m,
+							   descriptor_pool *descpool)
 {
 	classinfo *c;
 	int argcount;
-	s4 i, j;
-	u4 attrnum;
-	u4 codeattrnum;
-	utf *u;
+	s4         i, j, k, l;
+	utf       *u;
+	u2         name_index;
+	u2         descriptor_index;
+	u2         attributes_count;
+	u2         attribute_name_index;
+	utf       *attribute_name;
+	u2         code_attributes_count;
+	u2         code_attribute_name_index;
+	utf       *code_attribute_name;
+
+	/* get classinfo */
 
 	c = cb->class;
 
@@ -1043,19 +1101,29 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 
 	/* all fields of m have been zeroed in load_class_from_classbuffer */
 
-	m->class                 = c;
+	m->class = c;
 	
 	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
 		return false;
 
+	/* access flags */
+
 	m->flags = suck_u2(cb);
 
-	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+	/* name */
+
+	name_index = suck_u2(cb);
+
+	if (!(u = class_getconstant(c, name_index, CONSTANT_Utf8)))
 		return false;
 
 	m->name = u;
 
-	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+	/* descriptor */
+
+	descriptor_index = suck_u2(cb);
+
+	if (!(u = class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
 		return false;
 
 	m->descriptor = u;
@@ -1140,18 +1208,24 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 		
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
-	
-	attrnum = suck_u2(cb);
-	for (i = 0; i < attrnum; i++) {
-		utf *aname;
 
+	/* attributes count */
+
+	attributes_count = suck_u2(cb);
+
+	for (i = 0; i < attributes_count; i++) {
 		if (!suck_check_classbuffer_size(cb, 2))
 			return false;
 
-		if (!(aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+		/* attribute name index */
+
+		attribute_name_index = suck_u2(cb);
+
+		if (!(attribute_name = class_getconstant(c, attribute_name_index, CONSTANT_Utf8)))
 			return false;
 
-		if (aname == utf_Code) {
+		if (attribute_name == utf_Code) {
+			/* Code */
 			if (m->flags & (ACC_ABSTRACT | ACC_NATIVE)) {
 				exceptions_throw_classformaterror(c, "Code attribute in native or abstract methods");
 				return false;
@@ -1233,24 +1307,34 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
-			codeattrnum = suck_u2(cb);
+			/* code attributes count */
 
-			for (; codeattrnum > 0; codeattrnum--) {
-				utf *caname;
+			code_attributes_count = suck_u2(cb);
 
+			for (k = 0; k < code_attributes_count; k++) {
 				if (!suck_check_classbuffer_size(cb, 2))
 					return false;
 
-				if (!(caname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+				/* code attribute name index */
+
+				code_attribute_name_index = suck_u2(cb);
+
+				if (!(code_attribute_name = class_getconstant(c, code_attribute_name_index, CONSTANT_Utf8)))
 					return false;
 
-				if (caname == utf_LineNumberTable) {
-					u2 lncid;
+				/* check which code attribute */
 
+				if (code_attribute_name == utf_LineNumberTable) {
+					/* LineNumberTable */
 					if (!suck_check_classbuffer_size(cb, 4 + 2))
 						return false;
 
-					suck_u4(cb);
+					/* attribute length */
+
+					(void) suck_u4(cb);
+
+					/* line number table length */
+
 					m->linenumbercount = suck_u2(cb);
 
 					if (!suck_check_classbuffer_size(cb,
@@ -1259,27 +1343,29 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 
 					m->linenumbers = MNEW(lineinfo, m->linenumbercount);
 					
-					for (lncid = 0; lncid < m->linenumbercount; lncid++) {
-						m->linenumbers[lncid].start_pc = suck_u2(cb);
-						m->linenumbers[lncid].line_number = suck_u2(cb);
+					for (l = 0; l < m->linenumbercount; l++) {
+						m->linenumbers[l].start_pc    = suck_u2(cb);
+						m->linenumbers[l].line_number = suck_u2(cb);
 					}
-					codeattrnum--;
+				}
+				else if (code_attribute_name == utf_StackMapTable) {
+					/* StackTableMap */
 
-					if (!skipattributes(cb, codeattrnum))
+					if (!stackmap_load_attribute_stackmaptable(cb, m))
 						return false;
-					
-					break;
+				}
+				else {
+					/* unknown code attribute */
 
-				} else {
-					if (!skipattributebody(cb))
+					if (!loader_skip_attribute_body(cb))
 						return false;
 				}
 			}
 		}
-		else if (aname == utf_Exceptions) {
-			s4 j;
+		else if (attribute_name == utf_Exceptions) {
+			/* Exceptions */
 
-			if (m->thrownexceptions) {
+			if (m->thrownexceptions != NULL) {
 				exceptions_throw_classformaterror(c, "Multiple Exceptions attributes");
 				return false;
 			}
@@ -1287,7 +1373,10 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			if (!suck_check_classbuffer_size(cb, 4 + 2))
 				return false;
 
-			suck_u4(cb); /* length */
+			/* attribute length */
+
+			(void) suck_u4(cb);
+
 			m->thrownexceptionscount = suck_u2(cb);
 
 			if (!suck_check_classbuffer_size(cb, 2 * m->thrownexceptionscount))
@@ -1302,151 +1391,28 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 					return false;
 			}
 		}
-		else if (aname == utf_Signature) {
-			if (!suck_check_classbuffer_size(cb, 4 + 2))
-				return false;
+#if defined(ENABLE_JAVASE)
+		else if (attribute_name == utf_Signature) {
+			/* Signature */
 
-			/* check attribute length */
-
-			if (suck_u4(cb) != 2) {
-				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
-				return false;
-			}
-
-			if (m->signature != NULL) {
-				exceptions_throw_classformaterror(c, "Multiple Signature attributes");
-				return false;
-			}
-
-			if (!(m->signature = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+			if (!loader_load_attribute_signature(cb, &(m->signature)))
 				return false;
 		}
+#endif
 		else {
-			if (!skipattributebody(cb))
+			/* unknown attribute */
+
+			if (!loader_skip_attribute_body(cb))
 				return false;
 		}
 	}
 
-	if (!m->jcode && !(m->flags & (ACC_ABSTRACT | ACC_NATIVE))) {
+	if ((m->jcode == NULL) && !(m->flags & (ACC_ABSTRACT | ACC_NATIVE))) {
 		exceptions_throw_classformaterror(c, "Missing Code attribute");
 		return false;
 	}
 
 	/* everything was ok */
-
-	return true;
-}
-
-
-/* load_attribute **************************************************************
-
-   Read attributes from classfile.
-	
-*******************************************************************************/
-
-static bool load_attributes(classbuffer *cb, u4 num)
-{
-	classinfo *c;
-	utf       *aname;
-	u4 i, j;
-
-	c = cb->class;
-
-	for (i = 0; i < num; i++) {
-		/* retrieve attribute name */
-
-		if (!suck_check_classbuffer_size(cb, 2))
-			return false;
-
-		if (!(aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
-			return false;
-
-		if (aname == utf_InnerClasses) {
-			/* InnerClasses attribute */
-
-			if (c->innerclass != NULL) {
-				exceptions_throw_classformaterror(c, "Multiple InnerClasses attributes");
-				return false;
-			}
-				
-			if (!suck_check_classbuffer_size(cb, 4 + 2))
-				return false;
-
-			/* skip attribute length */
-			suck_u4(cb);
-
-			/* number of records */
-			c->innerclasscount = suck_u2(cb);
-
-			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * c->innerclasscount))
-				return false;
-
-			/* allocate memory for innerclass structure */
-			c->innerclass = MNEW(innerclassinfo, c->innerclasscount);
-
-			for (j = 0; j < c->innerclasscount; j++) {
-				/* The innerclass structure contains a class with an encoded
-				   name, its defining scope, its simple name and a bitmask of
-				   the access flags. If an inner class is not a member, its
-				   outer_class is NULL, if a class is anonymous, its name is
-				   NULL. */
-   								
-				innerclassinfo *info = c->innerclass + j;
-
-				info->inner_class.ref =
-					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				info->outer_class.ref =
-					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				info->name =
-					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
-				info->flags = suck_u2(cb);
-			}
-		}
-		else if (aname == utf_SourceFile) {
-			/* SourceFile attribute */
-
-			if (!suck_check_classbuffer_size(cb, 4 + 2))
-				return false;
-
-			if (suck_u4(cb) != 2) {
-				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
-				return false;
-			}
-
-			if (c->sourcefile != NULL) {
-				exceptions_throw_classformaterror(c, "Multiple SourceFile attributes");
-				return false;
-			}
-
-			if (!(c->sourcefile = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
-				return false;
-		}
-		else if (aname == utf_Signature) {
-			/* Signature attribute */
-
-			if (!suck_check_classbuffer_size(cb, 4 + 2))
-				return false;
-
-			if (suck_u4(cb) != 2) {
-				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
-				return false;
-			}
-
-			if (c->signature != NULL) {
-				exceptions_throw_classformaterror(c, "Multiple Signature attributes");
-				return false;
-			}
-
-			if (!(c->signature = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
-				return false;
-		}
-		else {
-			/* unknown attribute */
-
-			if (!skipattributebody(cb))
-				return false;
-		}
-	}
 
 	return true;
 }
@@ -2104,7 +2070,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	MZERO(c->methods, methodinfo, c->methodscount);
 	
 	for (i = 0; i < c->methodscount; i++) {
-		if (!load_method(cb, &(c->methods[i]),descpool))
+		if (!loader_load_method(cb, &(c->methods[i]), descpool))
 			goto return_exception;
 	}
 
@@ -2349,10 +2315,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* load attribute structures */
 
-	if (!suck_check_classbuffer_size(cb, 2))
-		goto return_exception;
-
-	if (!load_attributes(cb, suck_u2(cb)))
+	if (!class_load_attributes(cb))
 		goto return_exception;
 
 	/* Pre Java 1.5 version don't check this. This implementation is like

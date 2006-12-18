@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: loader.h 4959 2006-05-26 12:09:29Z edwin $
+   $Id: loader.h 6216 2006-12-18 18:21:37Z twisti $
 */
 
 
@@ -121,6 +121,12 @@ struct classbuffer {
 bool loader_init(void);
 
 void loader_load_all_classes(void);
+
+bool loader_skip_attribute_body(classbuffer *cb);
+
+#if defined(ENABLE_JAVASE)
+bool loader_load_attribute_signature(classbuffer *cb, utf **signature);
+#endif
 
 /* free resources */
 void loader_close(void);

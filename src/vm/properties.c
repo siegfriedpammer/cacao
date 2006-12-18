@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: properties.c 6015 2006-11-18 22:16:32Z twisti $
+   $Id: properties.c 6216 2006-12-18 18:21:37Z twisti $
 
 */
 
@@ -139,7 +139,7 @@ bool properties_init(void)
 	properties_add("java.vm.version", VERSION);
 	properties_add("java.vm.vendor", "CACAO Team");
 	properties_add("java.vm.name", "CACAO");
-	properties_add("java.specification.version", "1.4");
+	properties_add("java.specification.version", "1.5");
 	properties_add("java.specification.vendor", "Sun Microsystems Inc.");
 	properties_add("java.specification.name", "Java Platform API Specification");
 	properties_add("java.class.version", CLASS_VERSION);

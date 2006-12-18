@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 6080 2006-11-28 22:28:52Z twisti $
+   $Id: statistics.c 6216 2006-12-18 18:21:37Z twisti $
 
 */
 
@@ -75,6 +75,8 @@ s4 size_classinfo  = 0;
 s4 size_fieldinfo  = 0;
 s4 size_methodinfo = 0;
 s4 size_codeinfo   = 0;
+
+s4 size_stack_map  = 0;
 
 int count_const_pool_len = 0;
 int count_classref_len = 0;
@@ -524,7 +526,8 @@ void print_stats(void)
 	log_println("Size of native stubs:       %10.3f kB", (float) count_nstub_len / 1024);
 	log_println("Size of utf:                %10.3f kB", (float) count_utf_len / 1024);
 	log_println("Size of VMCode:             %10.3f kB", (float) count_vmcode_len / 1024);
-	log_println("Size of exception tables:   %10.3f kB\n", (float) count_extable_len / 1024);
+	log_println("Size of exception tables:   %10.3f kB", (float) count_extable_len / 1024);
+        log_println("size of stack map:          %10.3f kb\n", (float) size_stack_map / 1024);
 
 	dolog("Number of class loads:    %6d", count_class_loads);
 	dolog("Number of class inits:    %6d", count_class_inits);

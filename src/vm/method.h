@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 6012 2006-11-16 19:45:15Z twisti $
+   $Id: method.h 6216 2006-12-18 18:21:37Z twisti $
 */
 
 
@@ -50,6 +50,11 @@ typedef struct method_worklist     method_worklist;
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/references.h"
+
+#if defined(ENABLE_JAVASE)
+# include "vm/stackmap.h"
+#endif
+
 #include "vm/utf8.h"
 #include "vm/jit/code.h"
 #include "vm/jit/jit.h"
@@ -62,7 +67,11 @@ struct methodinfo {                 /* method structure                       */
 	s4            flags;            /* ACC flags                              */
 	utf          *name;             /* name of method                         */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */
-	utf          *signature;        /* Signature attribute string             */
+#if defined(ENABLE_JAVASE)
+	utf          *signature;        /* Signature attribute                    */
+	stack_map_t  *stack_map;        /* StackMapTable attribute                */
+#endif
+
 	methoddesc   *parseddesc;       /* parsed descriptor                      */
 			     
 	classinfo    *class;            /* class, the method belongs to           */
