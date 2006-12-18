@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 6123 2006-12-05 21:10:54Z twisti $
+   $Id: exceptions.h 6212 2006-12-18 16:27:09Z twisti $
 
 */
 
@@ -137,6 +137,7 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc);
 
 java_objectheader *new_internalerror(const char *message, ...);
+void exceptions_throw_internalerror(const char *message, ...);
 
 java_objectheader *exceptions_new_verifyerror(methodinfo *m,
 											  const char *message, ...);

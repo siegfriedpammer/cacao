@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 5935 2006-11-08 20:27:37Z twisti $
+   $Id: exceptions.c 6212 2006-12-18 16:27:09Z twisti $
 
 */
 
@@ -801,6 +801,25 @@ java_objectheader *new_internalerror(const char *message, ...)
 	MFREE(msg, char, msglen);
 
 	return o;
+}
+
+
+/* exceptions_throw_internalerror **********************************************
+
+   Generates a java.lang.InternalError for the VM.
+
+   IN:
+      message......UTF-8 message format string
+
+*******************************************************************************/
+
+void exceptions_throw_internalerror(const char *message, ...)
+{
+	va_list ap;
+
+	va_start(ap, message);
+	*exceptionptr = new_internalerror(message, ap);
+	va_end(ap);
 }
 
 
