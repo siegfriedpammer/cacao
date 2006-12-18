@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: class.h 6085 2006-11-29 17:08:27Z twisti $
+   $Id: class.h 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
@@ -55,6 +55,7 @@ typedef struct extra_classref extra_classref;
 
 #include "vm/field.h"
 #include "vm/linker.h"
+#include "vm/loader.h"
 #include "vm/method.h"
 #include "vm/references.h"
 #include "vm/utf8.h"
@@ -121,6 +122,11 @@ struct classinfo {                /* class structure                          */
 
 	u2          innerclasscount;  /* number of inner classes                  */
 	innerclassinfo *innerclass;
+
+#if defined(ENABLE_JAVASE)
+	classref_or_classinfo  enclosingclass;  /* enclosing class                */
+	constant_nameandtype  *enclosingmethod; /* enclosing method               */
+#endif
 
 	utf        *packagename;      /* full name of the package                 */
 	utf        *sourcefile;       /* SourceFile attribute                     */
@@ -262,6 +268,8 @@ void class_postset_header_vftbl(void);
 
 /* set the package name after the name has been set */
 void class_set_packagename(classinfo *c);
+
+bool class_load_attributes(classbuffer *cb);
 
 /* retrieve constantpool element */
 voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);

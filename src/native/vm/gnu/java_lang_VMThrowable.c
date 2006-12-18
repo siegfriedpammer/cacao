@@ -27,7 +27,7 @@
    Authors: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_VMThrowable.c 6071 2006-11-28 15:11:20Z twisti $
+   $Id: java_lang_VMThrowable.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
@@ -45,6 +45,7 @@
 #include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_VMThrowable.h"
+#include "native/vm/java_lang_Class.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/exceptions.h"
@@ -224,7 +225,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 		/* get declaring class name */
 
-		declaringclass = native_class_getname(ste->method->class);
+		declaringclass = _Jv_java_lang_Class_getName(ste->method->class);
 
 		/* fill the java.lang.StackTraceElement element */
 

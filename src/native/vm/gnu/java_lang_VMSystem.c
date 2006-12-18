@@ -1,4 +1,4 @@
-/* src/native/vm/VMSystemProperties.c - gnu/classpath/VMSystemProperties
+/* src/native/vm/VMSystem.c - java/lang/VMSystem
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -24,41 +24,48 @@
 
    Contact: cacao@cacaojvm.org
 
-   Authors: Christian Thalinger
+   Authors: Roman Obermaiser
 
-   $Id: gnu_classpath_VMSystemProperties.c 5988 2006-11-15 17:58:25Z twisti $
+   Changes: Joseph Wenninger
+            Christian Thalinger
+
+   $Id: java_lang_VMSystem.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
 
 #include "config.h"
 
-#include <stdlib.h>
+#include <string.h>
 
 #include "vm/types.h"
 
 #include "native/jni.h"
-#include "native/native.h"
-#include "native/include/java_util_Properties.h"
-#include "vm/exceptions.h"
-#include "vm/properties.h"
+#include "native/include/java_lang_Object.h"
+
+#include "vm/builtin.h"
 
 
 /*
- * Class:     gnu/classpath/VMSystemProperties
- * Method:    preInit
- * Signature: (Ljava/util/Properties;)V
+ * Class:     java/lang/VMSystem
+ * Method:    arraycopy
+ * Signature: (Ljava/lang/Object;ILjava/lang/Object;II)V
  */
-JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *p)
+JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, s4 srcStart, java_lang_Object *dest, s4 destStart, s4 len)
 {
-	if (p == NULL) {
-		exceptions_throw_nullpointerexception();
-		return;
-	}
+	(void) builtin_arraycopy((java_arrayheader *) src, srcStart,
+							 (java_arrayheader *) dest, destStart, len);
+}
 
-	/* add all properties */
 
-	properties_system_add_all(p);
+/*
+ * Class:     java/lang/VMSystem
+ * Method:    identityHashCode
+ * Signature: (Ljava/lang/Object;)I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
+{
+	return (s4) ((ptrint) o);
 }
 
 

@@ -1,4 +1,4 @@
-/* src/native/vm/VMClass.c - java/lang/VMClass
+/* src/native/vm/java_lang_Class.c - java/lang/Class
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -52,8 +52,10 @@
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Method.h"
 #include "native/include/java_security_ProtectionDomain.h"
+#include "native/vm/java_lang_Class.h"
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
@@ -67,7 +69,7 @@
  * Method:    isInstance
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Object *o)
+s4 _Jv_java_lang_Class_isInstance(java_lang_Class *klass, java_lang_Object *o)
 {
 	classinfo         *c;
 	java_objectheader *ob;
@@ -88,7 +90,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz
  * Method:    isAssignableFrom
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Class *c)
+s4 _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class *c)
 {
 	classinfo *kc;
 	classinfo *cc;
@@ -120,7 +122,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
  * Method:    isInterface
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+s4 _Jv_java_lang_Class_isInterface(java_lang_Class *klass)
 {
 	classinfo *c;
 
@@ -138,7 +140,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass claz
  * Method:    isPrimitive
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 {
 	classinfo *c;
 	s4         i;
@@ -156,18 +158,31 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass claz
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getName
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 {
 	classinfo        *c;
 	java_lang_String *s;
+	u4                i;
 
 	c = (classinfo *) klass;
 
-	s = native_class_getname(c);
+	/* create a java string */
+
+	s = (java_lang_String *) javastring_new(c->name);
+
+	if (s == NULL)
+		return NULL;
+
+	/* return string where '/' is replaced by '.' */
+
+	for (i = 0; i < s->value->header.size; i++) {
+		if (s->value->data[i] == '/')
+			s->value->data[i] = '.';
+	}
 
 	return s;
 }
@@ -178,7 +193,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, 
  * Method:    getSuperclass
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
 {
 	classinfo *c;
 	classinfo *sc;
@@ -186,14 +201,17 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
 	c = (classinfo *) klass;
 
 	/* for java.lang.Object, primitive and Void classes we return NULL */
+
 	if (!c->super.any)
 		return NULL;
 
 	/* for interfaces we also return NULL */
+
 	if (c->flags & ACC_INTERFACE)
 		return NULL;
 
 	/* we may have to resolve the super class reference */
+
 	if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, 
 									   true, /* check access */
 									   false,  /* don't link */
@@ -203,6 +221,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
 	}
 
 	/* store the resolution */
+
 	c->super.cls = sc;
 
 	return (java_lang_Class *) sc;
@@ -210,11 +229,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getInterfaces
  * Signature: ()[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+java_objectarray *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass)
 {
 	classinfo        *c;
 	classinfo        *ic;
@@ -229,7 +248,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
 
 	oa = builtin_anewarray(c->interfacescount, class_java_lang_Class);
 
-	if (!oa)
+	if (oa == NULL)
 		return NULL;
 
 	for (i = 0; i < c->interfacescount; i++) {
@@ -243,11 +262,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getComponentType
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+java_lang_Class *_Jv_java_lang_Class_getComponentType(java_lang_Class *klass)
 {
 	classinfo       *c;
 	classinfo       *comp;
@@ -277,11 +296,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEn
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getModifiers
  * Signature: (Z)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
+s4 _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
 {
 	classinfo             *c;
 	classref_or_classinfo  inner;
@@ -324,11 +343,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass cla
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getDeclaringClass
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
 {
 	classinfo             *c;
 	classref_or_classinfo  inner;
@@ -338,9 +357,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
 
 	c = (classinfo *) klass;
 
-	if (!Java_java_lang_VMClass_isPrimitive(env, clazz, klass) &&
-		(c->name->text[0] != '[')) {
-
+	if (!_Jv_java_lang_Class_isPrimitive(klass) && (c->name->text[0] != '[')) {
 		if (c->innerclasscount == 0)  /* no innerclasses exist */
 			return NULL;
     
@@ -379,11 +396,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getDeclaredClasses
  * Signature: (Z)[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly)
 {
 	classinfo             *c;
 	classref_or_classinfo  outer;
@@ -396,8 +413,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 	c = (classinfo *) klass;
 	declaredclasscount = 0;
 
-	if (!Java_java_lang_VMClass_isPrimitive(env, clazz, klass) &&
-		(c->name->text[0] != '[')) {
+	if (!_Jv_java_lang_Class_isPrimitive(klass) && (c->name->text[0] != '[')) {
 		/* determine number of declared classes */
 
 		for (i = 0; i < c->innerclasscount; i++) {
@@ -420,7 +436,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 
 	oa = builtin_anewarray(declaredclasscount, class_java_lang_Class);
 
-	if (!oa)
+	if (oa == NULL)
 		return NULL;
 
 	for (i = 0, pos = 0; i < c->innerclasscount; i++) {
@@ -456,11 +472,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getDeclaredFields
  * Signature: (Z)[Ljava/lang/reflect/Field;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, s4 publicOnly)
 {
 	classinfo               *c;
 	java_objectarray        *oa;            /* result: array of field-objects */
@@ -483,7 +499,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
 
 	oa = builtin_anewarray(public_fields, class_java_lang_reflect_Field);
 
-	if (!oa)
+	if (oa == NULL)
 		return NULL;
 
 	/* get the fields and store in the array */
@@ -494,7 +510,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
 		if ((f->flags & ACC_PUBLIC) || (publicOnly == 0)) {
 			/* create Field object */
 
-			if (!(o = native_new_and_init(class_java_lang_reflect_Field)))
+			o = native_new_and_init(class_java_lang_reflect_Field);
+
+			if (o == NULL)
 				return NULL;
 
 			/* initialize instance fields */
@@ -516,11 +534,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getDeclaredMethods
  * Signature: (Z)[Ljava/lang/reflect/Method;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly)
 {
 	classinfo                *c;
 	java_objectheader        *o;
@@ -539,7 +557,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 	   clone method overriding instead of declaring it as a member
 	   function. */
 
-	if (Java_java_lang_VMClass_isArray(env, clazz, klass))
+	if (_Jv_java_lang_Class_isArray(klass))
 		return builtin_anewarray(0, class_java_lang_reflect_Method);
 
 	/* determine number of methods */
@@ -555,7 +573,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 
 	oa = builtin_anewarray(public_methods, class_java_lang_reflect_Method);
 
-	if (!oa) 
+	if (oa == NULL)
 		return NULL;
 
 	for (i = 0, pos = 0; i < c->methodscount; i++) {
@@ -565,7 +583,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 			((m->name != utf_init) && (m->name != utf_clinit)) &&
 			!(m->flags & ACC_MIRANDA)) {
 
-			if (!(o = native_new_and_init(class_java_lang_reflect_Method)))
+			o = native_new_and_init(class_java_lang_reflect_Method);
+
+			if (o == NULL)
 				return NULL;
 
 			/* initialize instance fields */
@@ -587,11 +607,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getDeclaredConstructors
  * Signature: (Z)[Ljava/lang/reflect/Constructor;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+java_objectarray *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly)
 {
 	classinfo                     *c;
 	methodinfo                    *m; /* the current method to be represented */
@@ -616,7 +636,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 
 	oa = builtin_anewarray(public_methods, class_java_lang_reflect_Constructor);
 
-	if (!oa) 
+	if (oa == NULL)
 		return NULL;
 
 	for (i = 0, pos = 0; i < c->methodscount; i++) {
@@ -625,7 +645,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
 			(m->name == utf_init)) {
 
-			if (!(o = native_new_and_init(class_java_lang_reflect_Constructor)))
+			o = native_new_and_init(class_java_lang_reflect_Constructor);
+
+			if (o == NULL)
 				return NULL;
 
 			/* initialize instance fields */
@@ -646,11 +668,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getClassLoader
  * Signature: ()Ljava/lang/ClassLoader;
  */
-JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass)
 {
 	classinfo *c;
 
@@ -665,7 +687,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(J
  * Method:    forName
  * Signature: (Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
+java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
 {
 	classinfo *c;
 	utf       *u;
@@ -735,9 +757,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
  * Method:    isArray
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+s4 _Jv_java_lang_Class_isArray(java_lang_Class *klass)
 {
-	classinfo *c = (classinfo *) klass;
+	classinfo *c;
+
+	c = (classinfo *) klass;
 
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
@@ -748,11 +772,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, j
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    throwException
  * Signature: (Ljava/lang/Throwable;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass clazz, java_lang_Throwable *t)
+void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
 {
 	*exceptionptr = (java_objectheader *) t;
 }
@@ -760,46 +784,197 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass
 
 #if 0
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    getDeclaredAnnotations
  * Signature: (Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNIEnv *env, jclass clazz, java_lang_Class* klass)
+java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
 }
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    getEnclosingClass
- * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
- */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getEnclosingClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    getEnclosingConstructor
- * Signature: (Ljava/lang/Class;)Ljava/lang/reflect/Constructor;
- */
-JNIEXPORT struct java_lang_reflect_Constructor* JNICALL Java_java_lang_VMClass_getEnclosingConstructor(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    getEnclosingMethod
- * Signature: (Ljava/lang/Class;)Ljava/lang/reflect/Method;
- */
-JNIEXPORT struct java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getEnclosingMethod(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 #endif
 
 
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
+ * Method:    getEnclosingClass
+ * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
+ */
+java_lang_Class *_Jv_java_lang_Class_getEnclosingClass(java_lang_Class *klass)
+{
+	classinfo             *c;
+	classref_or_classinfo  cr;
+	classinfo             *ec;
+
+	c = (classinfo *) klass;
+
+	/* get enclosing class */
+
+	cr = c->enclosingclass;
+
+	if (cr.any == NULL)
+		return NULL;
+
+	/* resolve the class if necessary */
+
+	if (IS_CLASSREF(cr)) {
+		ec = resolve_classref_eager(cr.ref);
+
+		if (ec == NULL)
+			return NULL;
+	}
+	else
+		ec = cr.cls;
+
+	return (java_lang_Class *) ec;
+}
+
+
+/* _Jv_java_lang_Class_getEnclosingMethod_intern *******************************
+
+   Helper function for _Jv_java_lang_Class_getEnclosingConstructor and
+   _Jv_java_lang_Class_getEnclosingMethod.
+
+*******************************************************************************/
+
+static methodinfo *_Jv_java_lang_Class_getEnclosingMethod_intern(classinfo *c)
+{
+	classref_or_classinfo     cr;
+	constant_nameandtype     *cn;
+	classinfo                *ec;
+	methodinfo               *m;
+
+	/* get enclosing class and method */
+
+	cr = c->enclosingclass;
+	cn = c->enclosingmethod;
+
+	/* check for enclosing class and method */
+
+	if (cr.any == NULL)
+		return NULL;
+
+	if (cn == NULL)
+		return NULL;
+
+	/* resolve the class if necessary */
+
+	if (IS_CLASSREF(cr)) {
+		ec = resolve_classref_eager(cr.ref);
+
+		if (ec == NULL)
+			return NULL;
+	}
+	else
+		ec = cr.cls;
+
+	/* find method in enclosing class */
+
+	m = class_findmethod(ec, cn->name, cn->descriptor);
+
+	if (m == NULL) {
+		exceptions_throw_internalerror("Enclosing method doesn't exist");
+		return NULL;
+	}
+
+	return m;
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    getEnclosingConstructor
+ * Signature: (Ljava/lang/Class;)Ljava/lang/reflect/Constructor;
+ */
+java_lang_reflect_Constructor *_Jv_java_lang_Class_getEnclosingConstructor(java_lang_Class *klass)
+{
+	classinfo                     *c;
+	methodinfo                    *m;
+	java_objectheader             *o;
+	java_lang_reflect_Constructor *rc;
+
+	c = (classinfo *) klass;
+
+	/* get enclosing method */
+
+	m = _Jv_java_lang_Class_getEnclosingMethod_intern(c);
+
+	if (m == NULL)
+		return NULL;
+
+	/* check for <init> */
+
+	if (m->name != utf_init)
+		return NULL;
+
+	/* create java.lang.reflect.Constructor object */
+
+	o = native_new_and_init(class_java_lang_reflect_Constructor);
+
+	if (o == NULL)
+		return NULL;
+
+	/* initialize instance fields */
+
+	rc = (java_lang_reflect_Constructor *) o;
+
+	rc->clazz = (java_lang_Class *) m->class;
+	rc->slot  = m - m->class->methods;               /* calculate method slot */
+
+	return rc;
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    getEnclosingMethod
+ * Signature: (Ljava/lang/Class;)Ljava/lang/reflect/Method;
+ */
+java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class *klass)
+{
+	classinfo                *c;
+	methodinfo               *m;
+	java_objectheader        *o;
+	java_lang_reflect_Method *rm;
+
+	c = (classinfo *) klass;
+
+	/* get enclosing method */
+
+	m = _Jv_java_lang_Class_getEnclosingMethod_intern(c);
+
+	if (m == NULL)
+		return NULL;
+
+	/* check for <init> */
+
+	if (m->name == utf_init)
+		return NULL;
+
+	/* create java.lang.reflect.Method object */
+
+	o = native_new_and_init(class_java_lang_reflect_Method);
+
+	if (o == NULL)
+		return NULL;
+
+	/* initialize instance fields */
+
+	rm = (java_lang_reflect_Method *) o;
+
+	rm->declaringClass = (java_lang_Class *) m->class;
+	rm->name           = javastring_new(m->name);
+	rm->slot           = m - m->class->methods;      /* calculate method slot */
+
+	return rm;
+}
+
+
+/*
+ * Class:     java/lang/Class
  * Method:    getClassSignature
  * Signature: (Ljava/lang/Class;)Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getClassSignature(JNIEnv *env, jclass clazz, java_lang_Class* klass)
+java_lang_String *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass)
 {
 	classinfo        *c;
 	java_lang_String *s;
@@ -819,11 +994,11 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getClassSignature(JNI
 
 #if 0
 /*
- * Class:     java/lang/VMClass
+ * Class:     java/lang/Class
  * Method:    isAnonymousClass
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAnonymousClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+s4 _Jv_java_lang_Class_isAnonymousClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 
 
 /*

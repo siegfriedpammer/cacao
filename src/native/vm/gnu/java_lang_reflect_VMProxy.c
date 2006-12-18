@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_VMProxy.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_reflect_VMProxy.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 6035 2006-11-21 23:21:18Z twisti $
+   $Id: native.h 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
@@ -139,8 +139,6 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i);
 /* create new object on the heap and call the initializer 
    mainly used for exceptions with cause */
 java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t);
-
-java_lang_String *native_class_getname(classinfo *c);
 
 java_objectarray *native_get_parametertypes(methodinfo *m);
 java_objectarray *native_get_exceptiontypes(methodinfo *m);

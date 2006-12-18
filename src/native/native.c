@@ -29,7 +29,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: native.c 6035 2006-11-21 23:21:18Z twisti $
+   $Id: native.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
@@ -1030,30 +1030,41 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 }
 
 
-/* native_class_getname ********************************************************
+/* native_class_getdeclaredannotations *****************************************
 
-   Implementation for java.lang.Class.getName()Ljava/lang/String;
+   Implementation for
+   java.lang.Class.getDeclaredAnnotations(Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;
 
 *******************************************************************************/
 
-java_lang_String *native_class_getname(classinfo *c)
+java_objectarray *native_class_getdeclaredannotations(classinfo *c)
 {
-	java_lang_String *s;
-	u4                i;
+	java_objectarray *oa;
+	s4                count;
+	s4                i;
 
-	s = (java_lang_String *) javastring_new(c->name);
+	classinfo *class_java_lang_annotation_Annotation;
 
-	if (s == NULL)
+	/* create Annotation-array */
+
+	/* XXX should we cache that class? */
+	if (!(class_java_lang_annotation_Annotation =
+		  load_class_bootstrap(utf_new_char("java/lang/annotation/Annotation"))))
 		return NULL;
 
-	/* return string where '/' is replaced by '.' */
+	count = c->runtimevisibleannotationscount;
 
-	for (i = 0; i < s->value->header.size; i++) {
-		if (s->value->data[i] == '/')
-			s->value->data[i] = '.';
+	oa = builtin_anewarray(count, class_java_lang_annotation_Annotation);
+
+	if (oa == NULL)
+		return NULL;
+
+	/* fill the annotations */
+
+	for (i = 0; i < count; i++) {
 	}
 
-	return s;
+	return oa;
 }
 
 

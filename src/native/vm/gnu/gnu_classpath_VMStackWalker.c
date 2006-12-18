@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: gnu_classpath_VMStackWalker.c 5257 2006-08-21 17:37:01Z twisti $
+   $Id: gnu_classpath_VMStackWalker.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 

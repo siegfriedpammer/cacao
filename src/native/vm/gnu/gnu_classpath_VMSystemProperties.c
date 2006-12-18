@@ -1,4 +1,4 @@
-/* native/vm/VMString.c - java/lang/VMString
+/* src/native/vm/VMSystemProperties.c - gnu/classpath/VMSystemProperties
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -24,40 +24,41 @@
 
    Contact: cacao@cacaojvm.org
 
-   Authors: Roman Obermaiser
+   Authors: Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: java_lang_VMString.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdlib.h>
+
+#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
-#include "native/include/java_lang_String.h"
-#include "vm/stringlocal.h"
+#include "native/include/java_util_Properties.h"
+#include "vm/exceptions.h"
+#include "vm/properties.h"
 
 
 /*
- * Class:     java/lang/VMString
- * Method:    intern
- * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ * Class:     gnu/classpath/VMSystemProperties
+ * Method:    preInit
+ * Signature: (Ljava/util/Properties;)V
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, java_lang_String *str)
+JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *p)
 {
-	java_objectheader *o;
+	if (p == NULL) {
+		exceptions_throw_nullpointerexception();
+		return;
+	}
 
-	if (!str)
-		return NULL;
+	/* add all properties */
 
-	/* search table so identical strings will get identical pointers */
-
-	o = literalstring_u2(str->value, str->count, str->offset, true);
-
-	return (java_lang_String *) o;
+	properties_system_add_all(p);
 }
 
 

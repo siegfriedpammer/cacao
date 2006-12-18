@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: java_lang_VMClassLoader.c 5153 2006-07-18 08:19:24Z twisti $
+   $Id: java_lang_VMClassLoader.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 

@@ -1,4 +1,4 @@
-/* src/native/vm/Method.c - java/lang/reflect/Method
+/* src/native/vm/java_lang_reflect_Constructor.c
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_reflect_Method.c 5937 2006-11-08 22:00:57Z twisti $
+   $Id: java_lang_reflect_Constructor.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
@@ -36,33 +36,35 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
 #include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
-#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_reflect_Method.h"
-#include "vm/access.h"
-#include "vm/global.h"
-#include "vm/builtin.h"
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_reflect_Constructor.h"
+#include "toolbox/logging.h"
+#include "vm/class.h"
 #include "vm/exceptions.h"
-#include "vm/initialize.h"
+#include "vm/method.h"
+#include "vm/access.h"
 #include "vm/stringlocal.h"
 
 
 /*
- * Class:     java/lang/reflect/Method
+ * Class:     java/lang/reflect/Constructor
  * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiersInternal(JNIEnv *env, java_lang_reflect_Method *this)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiersInternal(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
 	classinfo  *c;
 	methodinfo *m;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) (this->clazz);
 	m = &(c->methods[this->slot]);
 
 	return m->flags;
@@ -70,33 +72,16 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiersInternal(JNIEnv *
 
 
 /*
- * Class:     java/lang/reflect/Method
- * Method:    getReturnType
- * Signature: ()Ljava/lang/Class;
- */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(JNIEnv *env, java_lang_reflect_Method *this)
-{
-	classinfo  *c;
-	methodinfo *m;
-
-	c = (classinfo *) this->declaringClass;
-	m = &(c->methods[this->slot]);
-
-	return (java_lang_Class *) native_get_returntype(m);
-}
-
-
-/*
- * Class:     java/lang/reflect/Method
+ * Class:     java/lang/reflect/Constructor
  * Method:    getParameterTypes
  * Signature: ()[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTypes(JNIEnv *env, java_lang_reflect_Method *this)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
 	classinfo  *c;
 	methodinfo *m;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	return native_get_parametertypes(m);
@@ -104,16 +89,16 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTy
 
 
 /*
- * Class:     java/lang/reflect/Method
+ * Class:     java/lang/reflect/Constructor
  * Method:    getExceptionTypes
  * Signature: ()[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTypes(JNIEnv *env, java_lang_reflect_Method *this)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
 	classinfo  *c;
 	methodinfo *m;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	return native_get_exceptiontypes(m);
@@ -121,17 +106,51 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
 
 
 /*
- * Class:     java/lang/reflect/Method
- * Method:    invokeNative
- * Signature: (Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
+ * Class:     java/lang/reflect/Constructor
+ * Method:    constructNative
+ * Signature: ([Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {
-	classinfo        *c;
-	methodinfo       *m;
+	classinfo         *c;
+	methodinfo        *m;
+	java_objectheader *o;
 
 	c = (classinfo *) declaringClass;
-	m = &(c->methods[slot]);
+
+#if 0
+	/* find initializer */
+
+	if (!args) {
+		if (this->parameterTypes->header.size != 0) {
+			*exceptionptr =
+				new_exception_message(string_java_lang_IllegalArgumentException,
+									  "wrong number of arguments");
+			return NULL;
+		}
+
+	} else {
+		if (this->parameterTypes->header.size != args->header.size) {
+			*exceptionptr =
+				new_exception_message(string_java_lang_IllegalArgumentException,
+									  "wrong number of arguments");
+			return NULL;
+		}
+	}
+#endif
+
+	if (this->slot >= c->methodscount) {
+		log_text("illegal index in methods table");
+		return NULL;
+	}
+
+	m = &(c->methods[this->slot]);
+
+	if (m->name != utf_init) {
+		/* XXX throw an exception here, although this should never happen */
+
+		assert(0);
+	}
 
 	/* check method access */
 	/* check if we should bypass security checks (AccessibleObject) */
@@ -141,30 +160,33 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 			return NULL;
 	}
 
-	/* check if method class is initialized */
+	/* create object */
 
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return NULL;
+	o = builtin_new(c);
 
-	/* call the Java method via a helper function */
+	if (!o)
+		return NULL;
+        
+	/* call initializer */
 
-	return (java_lang_Object *) _Jv_jni_invokeNative(m, (jobject) o, args);
+	(void) _Jv_jni_invokeNative(m, o, args);
+
+	return (java_lang_Object *) o;
 }
 
 
 /*
- * Class:     java/lang/reflect/Method
+ * Class:     java/lang/reflect/Constructor
  * Method:    getSignature
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Method_getSignature(JNIEnv *env, java_lang_reflect_Method* this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Constructor_getSignature(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
 	classinfo        *c;
 	methodinfo       *m;
 	java_lang_String *s;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	if (m->signature == NULL)

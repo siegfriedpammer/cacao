@@ -1,4 +1,4 @@
-/* src/native/vm/VMSystem.c - java/lang/VMSystem
+/* native/vm/VMString.c - java/lang/VMString
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,46 +26,38 @@
 
    Authors: Roman Obermaiser
 
-   Changes: Joseph Wenninger
-            Christian Thalinger
+   Changes: Christian Thalinger
 
-   $Id: java_lang_VMSystem.c 5251 2006-08-18 13:01:00Z twisti $
+   $Id: java_lang_VMString.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
 
-#include "config.h"
-
-#include <string.h>
-
-#include "vm/types.h"
+#include <stdlib.h>
 
 #include "native/jni.h"
-#include "native/include/java_lang_Object.h"
-
-#include "vm/builtin.h"
-
-
-/*
- * Class:     java/lang/VMSystem
- * Method:    arraycopy
- * Signature: (Ljava/lang/Object;ILjava/lang/Object;II)V
- */
-JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, s4 srcStart, java_lang_Object *dest, s4 destStart, s4 len)
-{
-	(void) builtin_arraycopy((java_arrayheader *) src, srcStart,
-							 (java_arrayheader *) dest, destStart, len);
-}
+#include "native/native.h"
+#include "native/include/java_lang_String.h"
+#include "vm/stringlocal.h"
 
 
 /*
- * Class:     java/lang/VMSystem
- * Method:    identityHashCode
- * Signature: (Ljava/lang/Object;)I
+ * Class:     java/lang/VMString
+ * Method:    intern
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, java_lang_String *str)
 {
-	return (s4) ((ptrint) o);
+	java_objectheader *o;
+
+	if (!str)
+		return NULL;
+
+	/* search table so identical strings will get identical pointers */
+
+	o = literalstring_u2(str->value, str->count, str->offset, true);
+
+	return (java_lang_String *) o;
 }
 
 
