@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: signal.c 6189 2006-12-13 23:04:47Z twisti $
+   $Id: signal.c 6219 2006-12-19 19:20:37Z twisti $
 
 */
 
@@ -78,28 +78,12 @@ void signal_init(void)
 	int              pagesize;
 	struct sigaction act;
 
-	/* mmap a memory page at address 0x0, so our
-	hardware-exceptions work. */
+	/* mmap a memory page at address 0x0, so our hardware-exceptions
+	   work. */
 
 	pagesize = getpagesize();
 
-	p = mmap(NULL, pagesize, PROT_NONE,
-			 MAP_PRIVATE |
-# if defined(MAP_ANON)
-			 MAP_ANON |
-# elif defined(MAP_ANONYMOUS)
-			 MAP_ANONYMOUS |
-# else
-			 0 |
-# endif
-			 MAP_FIXED, -1, 0);
-
-# if defined(MAP_FAILED)
-	if (p == MAP_FAILED)
-# else
-	if (p == (void *) -1)
-# endif
-		vm_abort("signal_init: mmap failed: %s", strerror(errno));
+	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
 
 #if defined(ENABLE_GC_BOEHM)
 	/* Allocate something so the garbage collector's signal handlers

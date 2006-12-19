@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
+            Christian Thalinger
+            Edwin Steiner
 
-   Changes: Christian Thalinger
-   			Edwin Steiner
-
-   $Id: memory.c 5901 2006-11-04 22:01:51Z edwin $
+   $Id: memory.c 6219 2006-12-19 19:20:37Z twisti $
 
 */
 
@@ -45,8 +44,8 @@
 #include <sys/mman.h>
 
 #if defined(__DARWIN__)
-/* If we compile with -ansi on darwin, <sys/types.h> is not included. So      */
-/* let's do it here.                                                          */
+/* If we compile with -ansi on darwin, <sys/types.h> is not
+   included. So let's do it here. */
 # include <sys/types.h>
 #endif
 
@@ -136,6 +135,40 @@ bool memory_init(void)
 }
 
 
+void *memory_mmap_anon(void *addr, size_t len, int prot, int flags)
+{
+	void *p;
+
+#if defined(MAP_ANON) || defined(MAP_ANONYMOUS)
+		p = mmap(addr, len, prot,
+# if defined(MAP_ANON)
+				 MAP_ANON | flags,
+# else
+				 MAP_ANONYMOUS | flags,
+# endif
+				 -1, 0);
+#else
+		int fd;
+
+		fd = open("/dev/zero", O_RDONLY, 0);
+
+		if (fd == -1)
+			vm_abort("memory_mmap_anon: mmap failed: %s", strerror(errno));
+
+		p = mmap(addr, len, prot, flags, fd, 0);
+#endif
+
+#if defined(MAP_FAILED)
+		if (p == MAP_FAILED)
+#else
+		if (p == (void *) -1)
+#endif
+			vm_abort("memory_mmap_anon: mmap failed: %s", strerror(errno));
+
+		return p;
+}
+
+
 /* memory_checked_alloc ********************************************************
 
    Allocated zeroed-out memory and does an OOM check.
@@ -200,33 +233,9 @@ void *memory_cnew(s4 size)
 
 		/* allocate the memory */
 
-#if defined(MAP_ANONYMOUS) || defined(MAP_ANON)
-		p = mmap(NULL,
-				 (size_t) code_memory_size,
-				 PROT_READ | PROT_WRITE | PROT_EXEC,
-				 MAP_PRIVATE |
-# if defined(MAP_ANONYMOUS)
-				 MAP_ANONYMOUS,
-# elif defined(MAP_ANON)
-				 MAP_ANON,
-# else
-				 0,
-# endif
-				 -1, 	 
-				 (off_t) 0);
-
-# if defined(MAP_FAILED)
-		if (p == MAP_FAILED)
-# else
-		if (p == (void *) -1)
-# endif
-			vm_abort("mmap failed: %s", strerror(errno));
-
-#else
-		/* This works a least on IRIX. */
-
-		p = memory_checked_alloc(code_memory_size);
-#endif
+		p = memory_mmap_anon(NULL, code_memory_size,
+							 PROT_READ | PROT_WRITE | PROT_EXEC,
+							 MAP_PRIVATE);
 
 		/* set global code memory pointer */
 

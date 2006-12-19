@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 6034 2006-11-21 21:02:30Z twisti $
+   $Id: memory.h 6219 2006-12-19 19:20:37Z twisti $
 
 */
 
@@ -195,6 +195,8 @@ Some more macros:
 
 /* initializes the memory subsystem */
 bool memory_init(void);
+
+void *memory_mmap_anon(void *addr, size_t len, int prot, int flags);
 
 void *memory_cnew(s4 size);
 void  memory_cfree(void *p, s4 size);
