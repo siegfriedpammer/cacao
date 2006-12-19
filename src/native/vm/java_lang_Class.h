@@ -73,11 +73,7 @@ java_objectarray              *_Jv_java_lang_Class_getDeclaredAnnotations(java_l
 #endif
 
 java_lang_Class               *_Jv_java_lang_Class_getEnclosingClass(java_lang_Class *klass);
-
-#if 0
 java_lang_reflect_Constructor *_Jv_java_lang_Class_getEnclosingConstructor(java_lang_Class *klass);
-#endif
-
 java_lang_reflect_Method      *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class *klass);
 
 java_lang_String              *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass);
