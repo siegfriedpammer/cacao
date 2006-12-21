@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_VMObject.c - java/lang/VMObject
+/* src/native/vm/java_lang_Object.c - java/lang/Object functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,73 +28,119 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_VMObject.c 6221 2006-12-21 15:56:38Z twisti $
+   $Id: java_lang_VMObject.c 6213 2006-12-18 17:36:06Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <stdlib.h>
+
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Cloneable.h"
 #include "native/include/java_lang_Object.h"
-#include "native/vm/java_lang_Object.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
+#include "vm/builtin.h"
+#include "vm/options.h"
+
+#if defined(ENABLE_JVMTI)
+#include "native/jvmti/cacaodbg.h"
+#endif
 
 
 /*
- * Class:     java/lang/VMObject
+ * Class:     java/lang/Object
  * Method:    getClass
  * Signature: (Ljava/lang/Object;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env, jclass clazz, java_lang_Object *obj)
+java_lang_Class *_Jv_java_lang_Object_getClass(java_lang_Object *obj)
 {
-	return _Jv_java_lang_Object_getClass(obj);
+	classinfo *c;
+
+	if (obj == NULL)
+		return NULL;
+
+	c = ((java_objectheader *) obj)->vftbl->class;
+
+	return (java_lang_Class *) c;
 }
 
 
 /*
- * Class:     java/lang/VMObject
+ * Class:     java/lang/Object
  * Method:    clone
  * Signature: (Ljava/lang/Cloneable;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *this)
+java_lang_Object *_Jv_java_lang_Object_clone(java_lang_Cloneable *this)
 {
-	return _Jv_java_lang_Object_clone(this);
+	java_objectheader *o;
+	java_objectheader *co;
+
+	o = (java_objectheader *) this;
+
+	co = builtin_clone(NULL, o);
+
+	return (java_lang_Object *) co;
 }
 
 
 /*
- * Class:     java/lang/VMObject
+ * Class:     java/lang/Object
  * Method:    notify
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
+void _Jv_java_lang_Object_notify(java_lang_Object *this)
 {
-	_Jv_java_lang_Object_notify(this);
+#if defined(ENABLE_THREADS)
+	lock_notify_object(&this->header);
+#endif
 }
 
 
 /*
- * Class:     java/lang/VMObject
+ * Class:     java/lang/Object
  * Method:    notifyAll
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
+void _Jv_java_lang_Object_notifyAll(java_lang_Object *this)
 {
-	_Jv_java_lang_Object_notifyAll(this);
+#if defined(ENABLE_THREADS)
+	lock_notify_all_object(&this->header);
+#endif
 }
 
 
 /*
- * Class:     java/lang/VMObject
+ * Class:     java/lang/Object
  * Method:    wait
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, s8 ms, s4 ns)
+void _Jv_java_lang_Object_wait(java_lang_Object *o, s8 ms, s4 ns)
 {
-	_Jv_java_lang_Object_wait(o, ms, ns);
+#if defined(ENABLE_JVMTI)
+	/* Monitor Wait */
+	if (jvmti) jvmti_MonitorWaiting(true, o, ms);
+#endif
+
+#if defined(ENABLE_THREADS)
+	printf("_Jv_java_lang_Object_wait: ms=%lld ns=%d\n", ms, ns);
+	lock_wait_for_object(&o->header, ms, ns);
+#endif
+
+#if defined(ENABLE_JVMTI)
+	/* Monitor Waited */
+	/* XXX: How do you know if wait timed out ?*/
+	if (jvmti) jvmti_MonitorWaiting(false, o, 0);
+#endif
 }
 
 

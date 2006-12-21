@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id$
+## $Id: Makefile.am 5558 2006-09-28 19:33:24Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -47,7 +47,10 @@ noinst_LTLIBRARIES = \
 	libnativevm.la
 
 libnativevm_la_SOURCES = \
-	java_lang_Class.c
+	java_lang_Class.c \
+	java_lang_Class.h \
+	java_lang_Object.c \
+	java_lang_Object.h
 
 libnativevm_la_LIBADD = \
 	$(NATIVEVM_LIB)
