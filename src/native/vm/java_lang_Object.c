@@ -132,7 +132,6 @@ void _Jv_java_lang_Object_wait(java_lang_Object *o, s8 ms, s4 ns)
 #endif
 
 #if defined(ENABLE_THREADS)
-	printf("_Jv_java_lang_Object_wait: ms=%lld ns=%d\n", ms, ns);
 	lock_wait_for_object(&o->header, ms, ns);
 #endif
 
