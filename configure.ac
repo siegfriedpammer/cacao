@@ -824,6 +824,24 @@ AC_DEFINE_UNQUOTED([CACAO_VM_ZIP], "${CACAO_VM_ZIP}", [CACAO's vm.zip])
 AC_SUBST(CACAO_VM_ZIP)
 
 
+dnl which classpath are we using?
+AC_MSG_CHECKING(which classpath to use)
+AC_ARG_WITH([classpath],
+            [AS_HELP_STRING(--with-classpath,specifies which type of classpath to use as Java core library (gnu) [[default=gnu]])],
+            [case "${withval}" in
+                gnu) WITH_CLASSPATH=gnu
+                     AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
+                     AC_SUBST(WITH_CLASSPATH_GNU)
+                     ;;
+                *) AC_MSG_ERROR(unknown classpath ${withval})
+                   ;;
+             esac],
+            [WITH_CLASSPATH=gnu
+             AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
+             AC_SUBST(WITH_CLASSPATH_GNU)])
+AC_MSG_RESULT(${WITH_CLASSPATH})
+
+
 dnl is GNU classpath installed somewhere different
 AC_MSG_CHECKING(where GNU Classpath is installed)
 AC_ARG_WITH([classpath-prefix],
