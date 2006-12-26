@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
+            Edwin Steiner
 
-   Changes: Edwin Steiner
-
-   $Id: exceptions.h 6212 2006-12-18 16:27:09Z twisti $
+   $Id: exceptions.h 6240 2006-12-26 23:41:34Z twisti $
 
 */
 
@@ -42,6 +41,7 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
+#include "native/jni.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 #include "vm/builtin.h"

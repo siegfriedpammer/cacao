@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
+            Edwin Steiner
 
-   Changes: Edwin Steiner
-
-   $Id: exceptions.c 6212 2006-12-18 16:27:09Z twisti $
+   $Id: exceptions.c 6240 2006-12-26 23:41:34Z twisti $
 
 */
 
@@ -43,6 +42,7 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+#include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
@@ -82,21 +82,13 @@ bool exceptions_init(void)
 		!link_class(class_java_lang_Throwable))
 		return false;
 
-
-	/* java/lang/VMThrowable */
-
-	if (!(class_java_lang_VMThrowable =
-		  load_class_bootstrap(utf_java_lang_VMThrowable)) ||
-		!link_class(class_java_lang_VMThrowable))
-		return false;
-
-
 	/* java/lang/Error */
 
 	if (!(class_java_lang_Error = load_class_bootstrap(utf_java_lang_Error)) ||
 		!link_class(class_java_lang_Error))
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	/* java/lang/AbstractMethodError */
 
 	if (!(class_java_lang_AbstractMethodError =
@@ -110,6 +102,7 @@ bool exceptions_init(void)
 		  load_class_bootstrap(utf_java_lang_LinkageError)) ||
 		!link_class(class_java_lang_LinkageError))
 		return false;
+#endif
 
 	/* java/lang/NoClassDefFoundError */
 
@@ -118,12 +111,14 @@ bool exceptions_init(void)
 		!link_class(class_java_lang_NoClassDefFoundError))
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	/* java/lang/NoSuchMethodError */
 
 	if (!(class_java_lang_NoSuchMethodError =
 		  load_class_bootstrap(utf_java_lang_NoSuchMethodError)) ||
 		!link_class(class_java_lang_NoSuchMethodError))
 		return false;
+#endif
 
 	/* java/lang/OutOfMemoryError */
 
@@ -175,6 +170,15 @@ bool exceptions_init(void)
 		!link_class(class_java_lang_NullPointerException))
 		return false;
 
+
+#if defined(WITH_CLASSPATH_GNU)
+	/* java/lang/VMThrowable */
+
+	if (!(class_java_lang_VMThrowable =
+		  load_class_bootstrap(utf_java_lang_VMThrowable)) ||
+		!link_class(class_java_lang_VMThrowable))
+		return false;
+#endif
 
 	return true;
 }
@@ -1672,7 +1676,9 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 void exceptions_print_exception(java_objectheader *xptr)
 {
 	java_lang_Throwable   *t;
+#if defined(ENABLE_JAVASE)
 	java_lang_Throwable   *cause;
+#endif
 	utf                   *u;
 
 	t = (java_lang_Throwable *) xptr;
@@ -1682,13 +1688,15 @@ void exceptions_print_exception(java_objectheader *xptr)
 		return;
 	}
 
+#if defined(ENABLE_JAVASE)
 	cause = t->cause;
+#endif
 
 	/* print the root exception */
 
 	utf_display_printable_ascii_classname(t->header.vftbl->class->name);
 
-	if (t->detailMessage) {
+	if (t->detailMessage != NULL) {
 		u = javastring_toutf(t->detailMessage, false);
 
 		printf(": ");
@@ -1697,6 +1705,7 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 	putc('\n', stdout);
 
+#if defined(ENABLE_JAVASE)
 	/* print the cause if available */
 
 	if ((cause != NULL) && (cause != t)) {
@@ -1712,6 +1721,7 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 		putc('\n', stdout);
 	}
+#endif
 }
 
 
