@@ -65,3 +65,8 @@ gnu_classpath_jdwp_VMVirtualMachine.h
 gnu_classpath_jdwp_event_EventRequest.h
 gnu_classpath_jdwp_util_VariableTable.h
 java_nio_ByteBuffer.h
+
+com_sun_cldchi_io_ConsoleOutputStream.h
+java_lang_Math.h
+java_lang_Runtime.h
+java_lang_System.h

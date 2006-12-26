@@ -26,34 +26,30 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
-##
-## $Id: Makefile.am 5558 2006-09-28 19:33:24Z edwin $
+## $Id: Makefile.am 6237 2006-12-26 23:26:33Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 NO_GEN_HEADER_FILES = \
 	java_lang_Class.h \
-	java_lang_ClassLoader.h \
-	java_lang_Cloneable.h \
 	java_lang_Object.h \
 	java_lang_String.h \
 	java_lang_Thread.h \
+	java_lang_Throwable.h
+
+NO_GEN_JAVASE_HEADER_FILES = \
+	java_lang_ClassLoader.h \
+	java_lang_Cloneable.h \
 	java_lang_ThreadGroup.h \
-	java_lang_Throwable.h \
 	java_lang_VMObject.h \
 	java_lang_VMThread.h \
 	java_lang_VMThrowable.h \
 	java_util_Properties.h
 
-GEN_HEADER_FILES = \
+COMMON_HEADER_FILES = \
 	java_io_InputStream.h \
 	java_io_PrintStream.h \
 	\
-	gnu_classpath_Pointer.h \
-	gnu_classpath_Pointer32.h \
-	gnu_classpath_Pointer64.h \
-	java_io_File.h \
 	java_lang_Boolean.h \
 	java_lang_Byte.h \
 	java_lang_Character.h \
@@ -61,8 +57,15 @@ GEN_HEADER_FILES = \
 	java_lang_Float.h \
 	java_lang_Integer.h \
 	java_lang_Long.h \
-	java_lang_Process.h \
 	java_lang_Short.h \
+	java_util_Vector.h
+
+JAVASE_HEADER_FILES = \
+	gnu_classpath_Pointer.h \
+	gnu_classpath_Pointer32.h \
+	gnu_classpath_Pointer64.h \
+	java_io_File.h \
+	java_lang_Process.h \
 	java_lang_StackTraceElement.h \
 	java_lang_reflect_Constructor.h \
 	java_lang_reflect_Field.h \
@@ -70,17 +73,21 @@ GEN_HEADER_FILES = \
 	java_nio_Buffer.h \
 	java_nio_DirectByteBufferImpl.h \
 	java_security_ProtectionDomain.h \
-	java_util_Vector.h \
 	sun_misc_Unsafe.h
 
-GEN_JVMTI_HEADER_FILES = \
+JAVAME_CLDC1_1_HEADER_FILES = \
+	com_sun_cldchi_io_ConsoleOutputStream.h \
+	java_lang_Math.h \
+	java_lang_Runtime.h \
+	java_lang_System.h
+
+JVMTI_HEADER_FILES = \
 	gnu_classpath_jdwp_VMFrame.h \
 	gnu_classpath_jdwp_VMMethod.h \
 	gnu_classpath_jdwp_VMVirtualMachine.h \
 	gnu_classpath_jdwp_event_EventRequest.h \
 	gnu_classpath_jdwp_util_VariableTable.h \
 	java_nio_ByteBuffer.h
-
 
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
@@ -116,8 +123,8 @@ ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES = \
 	java_nio_channels_spi_SelectorProvider.h
 
 CLEANFILES = \
-	$(GEN_HEADER_FILES) \
-	$(GEN_JVMTI_HEADER_FILES) \
+	$(COMMON_HEADER_FILES) \
+	$(JVMTI_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 
@@ -125,8 +132,21 @@ noinst_HEADERS = \
 	$(NO_GEN_HEADER_FILES)
 
 DO_HEADER_FILES = \
-	$(GEN_HEADER_FILES) \
+	$(COMMON_HEADER_FILES)
+
+if ENABLE_JAVASE
+noinst_HEADERS += \
+	$(NO_GEN_JAVASE_HEADER_FILES)
+
+DO_HEADER_FILES += \
+	$(JAVASE_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
+endif
+
+if ENABLE_JAVAME_CLDC1_1
+DO_HEADER_FILES += \
+	$(JAVAME_CLDC1_1_HEADER_FILES)
+endif
 
 if ENABLE_JVMTI
 DO_HEADER_FILES += \
@@ -140,7 +160,8 @@ endif
 
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
-CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
+#CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
+CLASSPATH = $(BOOTCLASSPATH)
 
 noinst_DATA = $(DO_HEADER_FILES)
 
