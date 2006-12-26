@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: properties.c 6216 2006-12-18 18:21:37Z twisti $
+   $Id: properties.c 6239 2006-12-26 23:39:25Z twisti $
 
 */
 
@@ -44,7 +44,11 @@
 
 #include "vm/global.h"
 #include "native/include/java_lang_String.h"
-#include "native/include/java_util_Properties.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_util_Properties.h"
+#endif
+
 #include "toolbox/list.h"
 #include "toolbox/util.h"
 #include "vm/method.h"
