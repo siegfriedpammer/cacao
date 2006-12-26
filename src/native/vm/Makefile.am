@@ -35,13 +35,24 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 DIST_SUBDIRS =
+	cldc1.1 \
 	gnu
 
+if WITH_CLASSPATH_CLDC1_1
+SUBDIRS = \
+	cldc1.1
+
+NATIVEVM_LIB = \
+	cldc1.1/libnativevmcore.la
+endif
+
+if WITH_CLASSPATH_GNU
 SUBDIRS = \
 	gnu
 
 NATIVEVM_LIB = \
-	gnu/libnativevmgnu.la
+	gnu/libnativevmcore.la
+endif
 
 noinst_LTLIBRARIES = \
 	libnativevm.la

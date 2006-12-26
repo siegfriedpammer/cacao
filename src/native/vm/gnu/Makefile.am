@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6213 2006-12-18 17:36:06Z twisti $
+## $Id: Makefile.am 6233 2006-12-26 23:13:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -35,14 +35,14 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 noinst_LTLIBRARIES = \
-	libnativevmgnu.la
+	libnativevmcore.la
 
 if ENABLE_JVMTI
 lib_LTLIBRARIES = \
 	libjdwp.la
 endif
 
-libnativevmgnu_la_SOURCES = \
+libnativevmcore_la_SOURCES = \
 	gnu_classpath_VMStackWalker.c \
 	gnu_classpath_VMSystemProperties.c \
 	gnu_java_lang_management_VMClassLoadingMXBeanImpl.c \
