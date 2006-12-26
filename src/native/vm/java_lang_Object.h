@@ -46,10 +46,15 @@
 /* function prototypes ********************************************************/
 
 java_lang_Class  *_Jv_java_lang_Object_getClass(java_lang_Object *obj);
-java_lang_Object *_Jv_java_lang_Object_clone(java_lang_Cloneable *this);
 void              _Jv_java_lang_Object_notify(java_lang_Object *this);
 void              _Jv_java_lang_Object_notifyAll(java_lang_Object *this);
 void              _Jv_java_lang_Object_wait(java_lang_Object *o, s8 ms, s4 ns);
+
+#if defined(ENABLE_JAVASE)
+
+java_lang_Object *_Jv_java_lang_Object_clone(java_lang_Cloneable *this);
+
+#endif
 
 #endif /* _JV_JAVA_LANG_OBJECT_H */
 

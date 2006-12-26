@@ -39,21 +39,27 @@
 
 #include "native/jni.h"
 #include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Throwable.h"
-#include "native/include/java_lang_reflect_Constructor.h"
-#include "native/include/java_lang_reflect_Method.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ClassLoader.h"
+# include "native/include/java_lang_String.h"
+# include "native/include/java_lang_Throwable.h"
+# include "native/include/java_lang_reflect_Constructor.h"
+# include "native/include/java_lang_reflect_Method.h"
+#endif
 
 
 /* function prototypes ********************************************************/
 
+java_lang_String              *_Jv_java_lang_Class_getName(java_lang_Class *klass);
+
+#if defined(ENABLE_JAVASE)
+java_lang_Class               *_Jv_java_lang_Class_forName(java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader);
 s4                             _Jv_java_lang_Class_isInstance(java_lang_Class *klass, java_lang_Object *o);
 s4                             _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class *c);
 s4                             _Jv_java_lang_Class_isInterface(java_lang_Class *klass);
 s4                             _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass);
-java_lang_String              *_Jv_java_lang_Class_getName(java_lang_Class *klass);
 java_lang_Class               *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass);
 java_objectarray              *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass);
 java_lang_Class               *_Jv_java_lang_Class_getComponentType(java_lang_Class *klass);
@@ -64,7 +70,6 @@ java_objectarray              *_Jv_java_lang_Class_getDeclaredFields(java_lang_C
 java_objectarray              *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly);
 java_objectarray              *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly);
 java_lang_ClassLoader         *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass);
-java_lang_Class               *_Jv_java_lang_Class_forName(java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader);
 s4                             _Jv_java_lang_Class_isArray(java_lang_Class *klass);
 void                           _Jv_java_lang_Class_throwException(java_lang_Throwable *t);
 
@@ -82,6 +87,11 @@ java_lang_String              *_Jv_java_lang_Class_getClassSignature(java_lang_C
 s4                             _Jv_java_lang_Class_isAnonymousClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+#endif
+#endif /* ENABLE_JAVASE */
+
+#if defined(ENABLE_JAVAME_CLDC1_1)
+java_lang_Class               *_Jv_java_lang_Class_forName(java_lang_String *name);
 #endif
 
 #endif /* _JV_JAVA_LANG_CLASS_H */

@@ -38,7 +38,11 @@
 
 #include "native/jni.h"
 #include "native/native.h"
-#include "native/include/java_lang_ThreadGroup.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ThreadGroup.h"
+#endif
+
 #include "native/include/java_lang_Object.h"            /* java_lang_Thread.h */
 #include "native/include/java_lang_Throwable.h"         /* java_lang_Thread.h */
 #include "native/include/java_lang_Thread.h"
@@ -48,6 +52,8 @@
 #endif
 
 #include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/options.h"
 
 
@@ -61,6 +67,19 @@ s4 _Jv_java_lang_Thread_countStackFrames(java_lang_Thread *this)
     log_text("java_lang_Thread_countStackFrames called");
 
     return 0;
+}
+
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    sleep
+ * Signature: (J)V
+ */
+void _Jv_java_lang_Thread_sleep(s8 millis)
+{
+#if defined(ENABLE_THREADS)
+	threads_sleep(millis, 0);
+#endif
 }
 
 
@@ -113,6 +132,8 @@ s4 _Jv_java_lang_Thread_isInterrupted(java_lang_Thread *this)
 	thread = (threadobject *) this;
 
 	return threads_thread_has_been_interrupted(thread);
+#else
+	return 0;
 #endif
 }
 
@@ -177,7 +198,9 @@ void _Jv_java_lang_Thread_stop(java_lang_Thread *this, java_lang_Throwable *t)
  */
 java_lang_Thread *_Jv_java_lang_Thread_currentThread(void)
 {
+#if defined(ENABLE_THREADS)
 	threadobject     *thread;
+#endif
 	java_lang_Thread *t;
 
 #if defined(ENABLE_THREADS)
@@ -188,6 +211,7 @@ java_lang_Thread *_Jv_java_lang_Thread_currentThread(void)
 	if (t == NULL)
 		log_text("t ptr is NULL\n");
   
+# if defined(ENABLE_JAVASE)
 	if (t->group == NULL) {
 		/* ThreadGroup of currentThread is not initialized */
 
@@ -197,6 +221,7 @@ java_lang_Thread *_Jv_java_lang_Thread_currentThread(void)
 		if (t->group == NULL)
 			log_text("unable to create ThreadGroup");
   	}
+# endif
 #else
 	/* we just return a fake java.lang.Thread object, otherwise we get
        NullPointerException's in GNU classpath */
@@ -230,6 +255,8 @@ s4 _Jv_java_lang_Thread_interrupted(void)
 {
 #if defined(ENABLE_THREADS)
 	return threads_check_if_interrupted_and_reset();
+#else
+	return 0;
 #endif
 }
 
@@ -248,10 +275,12 @@ s4 _Jv_java_lang_Thread_holdsLock(java_lang_Object* obj)
 
 	if (o == NULL) {
 		exceptions_throw_nullpointerexception();
-		return;
+		return 0;
 	}
 
 	return lock_is_held_by_current_thread(o);
+#else
+	return 0;
 #endif
 }
 

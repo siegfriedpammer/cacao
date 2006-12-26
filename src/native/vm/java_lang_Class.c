@@ -45,13 +45,15 @@
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_VMClass.h"
-#include "native/include/java_lang_reflect_Constructor.h"
-#include "native/include/java_lang_reflect_Field.h"
-#include "native/include/java_lang_reflect_Method.h"
-#include "native/include/java_security_ProtectionDomain.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ClassLoader.h"
+# include "native/include/java_lang_reflect_Constructor.h"
+# include "native/include/java_lang_reflect_Field.h"
+# include "native/include/java_lang_reflect_Method.h"
+#endif
+
 #include "native/vm/java_lang_Class.h"
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
@@ -63,6 +65,119 @@
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
+
+/*
+ * Class:     java/lang/Class
+ * Method:    getName
+ * Signature: ()Ljava/lang/String;
+ */
+java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
+{
+	classinfo        *c;
+	java_lang_String *s;
+	u4                i;
+
+	c = (classinfo *) klass;
+
+	/* create a java string */
+
+	s = (java_lang_String *) javastring_new(c->name);
+
+	if (s == NULL)
+		return NULL;
+
+	/* return string where '/' is replaced by '.' */
+
+	for (i = 0; i < s->value->header.size; i++) {
+		if (s->value->data[i] == '/')
+			s->value->data[i] = '.';
+	}
+
+	return s;
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    forName
+ * Signature: (Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+ */
+#if defined(ENABLE_JAVASE)
+java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
+#endif
+{
+	classinfo *c;
+	utf       *u;
+	u2        *pos;
+	s4         i;
+
+	/* illegal argument */
+
+	if (name == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* name must not contain '/' (mauve test) */
+
+	for (i = 0, pos = name->value->data + name->offset; i < name->count; i++, pos++) {
+		if (*pos == '/') {
+			*exceptionptr =
+				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+			return NULL;
+		}
+	}
+
+	/* create utf string in which '.' is replaced by '/' */
+
+	u = javastring_toutf(name, true);
+
+	/* try to load, ... */
+
+#if defined(ENABLE_JAVASE)
+	if (!(c = load_class_from_classloader(u, (java_objectheader *) loader))) {
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+	if (!(c = load_class_bootstrap(u))) {
+#endif
+		classinfo *xclass;
+
+		xclass = (*exceptionptr)->vftbl->class;
+
+		/* if the exception is a NoClassDefFoundError, we replace it with a
+		   ClassNotFoundException, otherwise return the exception */
+
+		if (xclass == class_java_lang_NoClassDefFoundError) {
+			/* clear exceptionptr, because builtin_new checks for 
+			   ExceptionInInitializerError */
+			*exceptionptr = NULL;
+
+			*exceptionptr =
+				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+		}
+
+	    return NULL;
+	}
+
+	/* link, ... */
+
+	if (!link_class(c))
+		return NULL;
+	
+	/* ...and initialize it, if required */
+
+#if defined(ENABLE_JAVASE)
+	if (initialize)
+#endif
+		if (!initialize_class(c))
+			return NULL;
+
+	return (java_lang_Class *) c;
+}
+
+
+#if defined(ENABLE_JAVASE)
 
 /*
  * Class:     java/lang/Class
@@ -154,37 +269,6 @@ s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 			return true;
 
 	return false;
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    getName
- * Signature: ()Ljava/lang/String;
- */
-java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
-{
-	classinfo        *c;
-	java_lang_String *s;
-	u4                i;
-
-	c = (classinfo *) klass;
-
-	/* create a java string */
-
-	s = (java_lang_String *) javastring_new(c->name);
-
-	if (s == NULL)
-		return NULL;
-
-	/* return string where '/' is replaced by '.' */
-
-	for (i = 0; i < s->value->header.size; i++) {
-		if (s->value->data[i] == '/')
-			s->value->data[i] = '.';
-	}
-
-	return s;
 }
 
 
@@ -683,76 +767,6 @@ java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass
 
 
 /*
- * Class:     java/lang/VMClass
- * Method:    forName
- * Signature: (Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
- */
-java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
-{
-	classinfo *c;
-	utf       *u;
-	u2        *pos;
-	s4         i;
-
-	/* illegal argument */
-
-	if (name == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
-
-	/* name must not contain '/' (mauve test) */
-
-	for (i = 0, pos = name->value->data + name->offset; i < name->count; i++, pos++) {
-		if (*pos == '/') {
-			*exceptionptr =
-				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
-			return NULL;
-		}
-	}
-
-	/* create utf string in which '.' is replaced by '/' */
-
-	u = javastring_toutf(name, true);
-
-	/* try to load, ... */
-
-	if (!(c = load_class_from_classloader(u, (java_objectheader *) loader))) {
-		classinfo *xclass;
-
-		xclass = (*exceptionptr)->vftbl->class;
-
-		/* if the exception is a NoClassDefFoundError, we replace it with a
-		   ClassNotFoundException, otherwise return the exception */
-
-		if (xclass == class_java_lang_NoClassDefFoundError) {
-			/* clear exceptionptr, because builtin_new checks for 
-			   ExceptionInInitializerError */
-			*exceptionptr = NULL;
-
-			*exceptionptr =
-				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
-		}
-
-	    return NULL;
-	}
-
-	/* link, ... */
-
-	if (!link_class(c))
-		return NULL;
-	
-	/* ...and initialize it, if required */
-
-	if (initialize)
-		if (!initialize_class(c))
-			return NULL;
-
-	return (java_lang_Class *) c;
-}
-
-
-/*
  * Class:     java/lang/Class
  * Method:    isArray
  * Signature: ()Z
@@ -1016,6 +1030,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass cla
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 #endif
+
+#endif /* ENABLE_JAVASE */
 
 
 /*

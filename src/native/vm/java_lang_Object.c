@@ -42,7 +42,11 @@
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_Cloneable.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_Cloneable.h"
+#endif
+
 #include "native/include/java_lang_Object.h"
 
 #if defined(ENABLE_THREADS)
@@ -72,24 +76,6 @@ java_lang_Class *_Jv_java_lang_Object_getClass(java_lang_Object *obj)
 	c = ((java_objectheader *) obj)->vftbl->class;
 
 	return (java_lang_Class *) c;
-}
-
-
-/*
- * Class:     java/lang/Object
- * Method:    clone
- * Signature: (Ljava/lang/Cloneable;)Ljava/lang/Object;
- */
-java_lang_Object *_Jv_java_lang_Object_clone(java_lang_Cloneable *this)
-{
-	java_objectheader *o;
-	java_objectheader *co;
-
-	o = (java_objectheader *) this;
-
-	co = builtin_clone(NULL, o);
-
-	return (java_lang_Object *) co;
 }
 
 
@@ -141,6 +127,28 @@ void _Jv_java_lang_Object_wait(java_lang_Object *o, s8 ms, s4 ns)
 	if (jvmti) jvmti_MonitorWaiting(false, o, 0);
 #endif
 }
+
+
+#if defined(ENABLE_JAVASE)
+
+/*
+ * Class:     java/lang/Object
+ * Method:    clone
+ * Signature: (Ljava/lang/Cloneable;)Ljava/lang/Object;
+ */
+java_lang_Object *_Jv_java_lang_Object_clone(java_lang_Cloneable *this)
+{
+	java_objectheader *o;
+	java_objectheader *co;
+
+	o = (java_objectheader *) this;
+
+	co = builtin_clone(NULL, o);
+
+	return (java_lang_Object *) co;
+}
+
+#endif /* ENABLE_JAVASE */
 
 
 /*

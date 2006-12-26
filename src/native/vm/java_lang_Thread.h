@@ -39,11 +39,17 @@
 
 #include "native/jni.h"
 #include "native/include/java_lang_String.h"
-#include "native/include/java_lang_ThreadGroup.h"
 #include "native/include/java_lang_Object.h"            /* java_lang_Thread.h */
 #include "native/include/java_lang_Throwable.h"         /* java_lang_Thread.h */
-#include "native/include/java_lang_VMThread.h"
 #include "native/include/java_lang_Thread.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ThreadGroup.h"
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_VMThread.h"
+#endif
 
 #include "threads/native/threads.h"
 
@@ -51,6 +57,7 @@
 /* function prototypes ********************************************************/
 
 s4                _Jv_java_lang_Thread_countStackFrames(java_lang_Thread *this);
+void              _Jv_java_lang_Thread_sleep(s8 millis);
 void              _Jv_java_lang_Thread_start(java_lang_Thread *this, s8 stacksize);
 void              _Jv_java_lang_Thread_interrupt(java_lang_Thread *this);
 s4                _Jv_java_lang_Thread_isInterrupted(java_lang_Thread *this);
