@@ -829,17 +829,26 @@ AC_MSG_CHECKING(which classpath to use)
 AC_ARG_WITH([classpath],
             [AS_HELP_STRING(--with-classpath,specifies which type of classpath to use as Java core library (gnu) [[default=gnu]])],
             [case "${withval}" in
-                gnu) WITH_CLASSPATH=gnu
-                     AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
-                     AC_SUBST(WITH_CLASSPATH_GNU)
-                     ;;
-                *) AC_MSG_ERROR(unknown classpath ${withval})
-                   ;;
+                cldc1.1)
+                    WITH_CLASSPATH=cldc1.1
+                    AC_DEFINE([WITH_CLASSPATH_CLDC1_1], 1, [use Sun's CLDC1.1 classes])
+                    AC_SUBST(WITH_CLASSPATH_CLDC1_1)
+                    ;;
+                gnu)
+                    WITH_CLASSPATH=gnu
+                    AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
+                    AC_SUBST(WITH_CLASSPATH_GNU)
+                    ;;
+                *)
+                    AC_MSG_ERROR(unknown classpath ${withval})
+                    ;;
              esac],
             [WITH_CLASSPATH=gnu
              AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
              AC_SUBST(WITH_CLASSPATH_GNU)])
 AC_MSG_RESULT(${WITH_CLASSPATH})
+AM_CONDITIONAL([WITH_CLASSPATH_CLDC1_1], test x"${WITH_CLASSPATH}" = "xcldc1.1")
+AM_CONDITIONAL([WITH_CLASSPATH_GNU], test x"${WITH_CLASSPATH}" = "xgnu")
 
 
 dnl is GNU classpath installed somewhere different
@@ -959,6 +968,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/native/jvmti/Makefile]
 		[src/native/tools/Makefile]
 		[src/native/vm/Makefile]
+		[src/native/vm/cldc1.1/Makefile]
 		[src/native/vm/gnu/Makefile]
 		[src/scripts/Makefile]
 		[src/scripts/java]
