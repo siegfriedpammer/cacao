@@ -83,7 +83,7 @@ bool annotation_load_attribute_runtimevisibleannotations(classbuffer *cb)
 	u4               attribute_length;
 	u2               num_annotations;
 	annotation_t    *aa;
-	element_value_t *aev;
+	element_value_t *element_value;
 	u2               type_index;
 	u2               num_element_value_pairs;
 	u2               element_name_index;
@@ -133,7 +133,7 @@ bool annotation_load_attribute_runtimevisibleannotations(classbuffer *cb)
 
 		printf("num_element_value_pairs: %d\n", num_element_value_pairs);
 
-		aev = MNEW(element_value_t, num_element_value_pairs);
+		element_value = MNEW(element_value_t, num_element_value_pairs);
 
 		/* parse all element values */
 
@@ -142,19 +142,19 @@ bool annotation_load_attribute_runtimevisibleannotations(classbuffer *cb)
 
 			element_name_index = suck_u2(cb);
 
-			if (!(aev[j].name =
+			if (!(element_value[j].name =
 				  class_getconstant(c, element_name_index, CONSTANT_Utf8)))
 				return false;
 
 			/* get element tag */
 
-			aev[i].tag = suck_u1(cb);
+			element_value[i].tag = suck_u1(cb);
 		}
 
 		/* store element value data */
 
 		aa[i].element_valuescount = num_element_value_pairs;
-		aa[i].element_values      = aev;
+		aa[i].element_values      = element_value;
 	}
 
 	/* store annotation variables */
