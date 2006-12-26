@@ -30,13 +30,11 @@
 #define __CLASSPATH_MPREC_H__
 
 #include <config.h>
-#include "ieeefp.h"
-
-#if defined HAVE_STDINT_H
+/* #include "config-int.h" */
 #include <stdint.h>
-#elif defined HAVE_INTTYPES_H
-#include <inttypes.h>
-#endif
+#include "ieeefp.h"
+/* CLASSPATH LOCAL */
+/* #include "namespace.h" */
 
 #if defined HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -48,24 +46,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-/* ISO C99 int type declarations */
-
-#if !defined HAVE_INT32_DEFINED && defined HAVE_BSD_INT32_DEFINED
-typedef u_int32_t uint32_t;
-#endif
-
-#if !defined HAVE_BSD_INT32_DEFINED && !defined HAVE_INT32_DEFINED
-/* FIXME this could have problems with systems that don't define SI to be 4 */
-typedef int int32_t __attribute__((mode(SI)));
-
-/* This is a blatant hack: on Solaris 2.5, pthread.h defines uint32_t
-   in pthread.h, which we sometimes include.  We protect our
-   definition the same way Solaris 2.5 does, to avoid redefining it.  */
-#  ifndef _UINT32_T
-typedef unsigned int uint32_t __attribute__((mode(SI)));
-#  endif
 #endif
 
   /* These typedefs are true for the targets running Java. */
@@ -84,6 +64,7 @@ typedef unsigned int uint32_t __attribute__((mode(SI)));
 
 #ifdef DEBUG
 #include "stdio.h"
+#include <stdlib.h>
 #define Bug(x) {fprintf(stderr, "%s\n", x); exit(1);}
 #endif
 
@@ -120,7 +101,7 @@ union double_union
  * An alternative that might be better on some machines is
  * #define Storeinc(a,b,c) (*a++ = b << 16 | c & 0xffff)
  */
-#if defined(IEEE_8087) + defined(VAX)
+#if defined(__IEEE_BYTES_LITTLE_ENDIAN) + defined(IEEE_8087) + defined(VAX)
 #define Storeinc(a,b,c) (((unsigned short *)a)[1] = (unsigned short)b, \
 ((unsigned short *)a)[0] = (unsigned short)c, a++)
 #else
@@ -275,9 +256,6 @@ extern double rnd_prod(double, double), rnd_quot(double, double);
 #define Big0 (Frac_mask1 | Exp_msk1*(DBL_MAX_EXP+Bias-1))
 #define Big1 ((uint32_t)0xffffffffL)
 
-/* TWISTI to avoid bugs, we should use Just_16 on every platform */
-#define Just_16
-
 #ifndef Just_16
 /* When Pack_32 is not defined, we store 16 bits per 32-bit long.
  * This makes some inner loops simpler and sometimes saves work
@@ -294,15 +272,18 @@ extern double rnd_prod(double, double), rnd_quot(double, double);
 
 
 #define MAX_BIGNUMS 16
-/* TWISTI this does not work at least on alpha */
-/* #define MAX_BIGNUM_WDS 32 */
-#define MAX_BIGNUM_WDS 64
+#ifdef Pack_32
+#define MAX_BIGNUM_WDS 32
+#else
+  /* Note that this is a workaround for */
+#define MAX_BIGNUM_WDS 128
+#endif
 
 struct _Jv_Bigint
 {
   struct _Jv_Bigint *_next;
   int _k, _maxwds, _sign, _wds;
-  unsigned long _x[MAX_BIGNUM_WDS];
+  unsigned long _x[1];
 };
 
 
@@ -330,10 +311,8 @@ struct _Jv_reent
   int _result_k;
   struct _Jv_Bigint *_p5s;
 
-  struct _Jv_Bigint _freelist[MAX_BIGNUMS];
-  int _allocation_map;
-
-  int num;
+  struct _Jv_Bigint **_freelist;
+  int _max_k;
 };
 
 
