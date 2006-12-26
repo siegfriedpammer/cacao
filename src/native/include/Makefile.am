@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6237 2006-12-26 23:26:33Z twisti $
+## $Id: Makefile.am 6238 2006-12-26 23:34:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -124,6 +124,8 @@ ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES = \
 
 CLEANFILES = \
 	$(COMMON_HEADER_FILES) \
+	$(JAVASE_HEADER_FILES) \
+	$(JAVAME_CLDC1_1_HEADER_FILES) \
 	$(JVMTI_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
@@ -176,6 +178,10 @@ $(DO_HEADER_FILES): $(CACAOH) $(CLASSPATH_GLIBJ_ZIP)
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
+
+cleanall: clean
+	-rm -rf $(NO_GEN_HEADER_FILES)
+	-rm -rf $(NO_GEN_JAVASE_HEADER_FILES)
 
 
 ## Local variables:
