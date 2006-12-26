@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 6104 2006-12-02 14:54:27Z tbfg $
+## $Id: Makefile.am 6236 2006-12-26 23:21:41Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -64,9 +64,14 @@ endif
 
 noinst_LTLIBRARIES = libnative.la
 
-libnative_la_SOURCES = \
+if ENABLE_JAVASE
+JNI_SOURCES = \
 	jni.c \
-	jni.h \
+	jni.h
+endif
+
+libnative_la_SOURCES = \
+	$(JNI_SOURCES) \
 	native.c \
 	native.h
 
