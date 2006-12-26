@@ -1363,8 +1363,11 @@ bool lock_is_held_by_current_thread(java_objectheader *o)
 
 void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos)
 {
-	threadobject *t = (threadobject*) THREADOBJECT;
-	lock_monitor_wait(t, o, millis, nanos);
+	threadobject *thread;
+
+	thread = THREADOBJECT;
+
+	lock_monitor_wait(thread, o, millis, nanos);
 }
 
 
@@ -1379,8 +1382,11 @@ void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos)
 
 void lock_notify_object(java_objectheader *o)
 {
-	threadobject *t = (threadobject*) THREADOBJECT;
-	lock_monitor_notify(t, o, true);
+	threadobject *thread;
+
+	thread = THREADOBJECT;
+
+	lock_monitor_notify(thread, o, true);
 }
 
 
@@ -1395,9 +1401,13 @@ void lock_notify_object(java_objectheader *o)
 
 void lock_notify_all_object(java_objectheader *o)
 {
-	threadobject *t = (threadobject*) THREADOBJECT;
-	lock_monitor_notify(t, o, false);
+	threadobject *thread;
+
+	thread = THREADOBJECT;
+
+	lock_monitor_notify(thread, o, false);
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
