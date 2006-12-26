@@ -108,5 +108,13 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass cla
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, struct java_lang_Object* par1);
 
+
+/*
+ * Class:     java/lang/VMThread
+ * Method:    getState
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, struct java_lang_VMThread* this);
+
 #endif
 
