@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: finalizer.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: finalizer.c 6228 2006-12-26 19:56:58Z twisti $
 
 */
 
@@ -60,8 +58,8 @@
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
-static java_lang_VMThread *finalizer_vmthread;
-static java_objectheader *lock_finalizer_thread;
+static threadobject      *thread_finalizer;
+static java_objectheader *lock_thread_finalizer;
 #endif
 
 
@@ -74,9 +72,9 @@ static java_objectheader *lock_finalizer_thread;
 bool finalizer_init(void)
 {
 #if defined(ENABLE_THREADS)
-	lock_finalizer_thread = NEW(java_objectheader);
+	lock_thread_finalizer = NEW(java_objectheader);
 
-	lock_init_object_lock(lock_finalizer_thread);
+	lock_init_object_lock(lock_thread_finalizer);
 #endif
 
 	/* everything's ok */
@@ -99,15 +97,15 @@ static void finalizer_thread(void)
 	while (true) {
 		/* get the lock on the finalizer lock object, so we can call wait */
 
-		lock_monitor_enter(lock_finalizer_thread);
+		lock_monitor_enter(lock_thread_finalizer);
 
 		/* wait forever (0, 0) on that object till we are signaled */
 	
-		lock_wait_for_object(lock_finalizer_thread, 0, 0);
+		lock_wait_for_object(lock_thread_finalizer, 0, 0);
 
 		/* leave the lock */
 
-		lock_monitor_exit(lock_finalizer_thread);
+		lock_monitor_exit(lock_thread_finalizer);
 
 		/* and call the finalizers */
 
@@ -126,28 +124,32 @@ static void finalizer_thread(void)
 #if defined(ENABLE_THREADS)
 bool finalizer_start_thread(void)
 {
-	java_lang_Thread *t;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmt;
+#endif
 
 	/* create the finalizer object */
 
-	finalizer_vmthread =
-		(java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+	thread_finalizer = (threadobject *) builtin_new(class_java_lang_Thread);
 
-	if (!finalizer_vmthread)
+	if (thread_finalizer == NULL)
 		return false;
 
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+#if defined(WITH_CLASSPATH_GNU)
+	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
-	t->vmThread = finalizer_vmthread;
-	t->name     = javastring_new_from_ascii("Finalizer");
-	t->daemon   = true;
-	t->priority = 5;
+	vmt->thread = (java_lang_Thread *) thread_finalizer;
 
-	finalizer_vmthread->thread = t;
+	thread_finalizer->o.vmThread = vmt;
+#endif
+
+	thread_finalizer->o.name     = javastring_new_from_ascii("Finalizer");
+	thread_finalizer->o.daemon   = true;
+	thread_finalizer->o.priority = 5;
 
 	/* actually start the finalizer thread */
 
-	threads_start_thread(t, finalizer_thread);
+	threads_start_thread(thread_finalizer, finalizer_thread);
 
 	/* everything's ok */
 
@@ -168,15 +170,15 @@ void finalizer_notify(void)
 #if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
 
-	lock_monitor_enter(lock_finalizer_thread);
+	lock_monitor_enter(lock_thread_finalizer);
 
 	/* signal the finalizer thread */
 	
-	lock_notify_object(lock_finalizer_thread);
+	lock_notify_object(lock_thread_finalizer);
 
 	/* leave the lock */
 
-	lock_monitor_exit(lock_finalizer_thread);
+	lock_monitor_exit(lock_thread_finalizer);
 #else
 	/* if we don't have threads, just run the finalizers */
 

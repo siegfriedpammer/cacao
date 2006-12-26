@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: utf8.h 6216 2006-12-18 18:21:37Z twisti $
+   $Id: utf8.h 6228 2006-12-26 19:56:58Z twisti $
 
 */
 
@@ -129,6 +129,7 @@ extern utf *utf_run;
 
 extern utf *utf_add;
 extern utf *utf_remove;
+extern utf *utf_addThread;
 extern utf *utf_removeThread;
 extern utf *utf_put;
 extern utf *utf_get;

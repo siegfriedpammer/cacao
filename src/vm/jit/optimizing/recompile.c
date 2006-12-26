@@ -26,8 +26,6 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
    $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
@@ -60,9 +58,9 @@
 
 /* global variables ***********************************************************/
 
-static java_lang_VMThread *recompile_vmthread;
-static java_objectheader *lock_recompile_thread;
-static list *list_recompile_methods;
+static threadobject      *thread_recompile;
+static java_objectheader *lock_thread_recompile;
+static list              *list_recompile_methods;
 
 
 /* recompile_init **************************************************************
@@ -75,9 +73,9 @@ bool recompile_init(void)
 {
 	/* initialize the recompile lock object */
 
-	lock_recompile_thread = NEW(java_objectheader);
+	lock_thread_recompile = NEW(java_objectheader);
 
-	lock_init_object_lock(lock_recompile_thread);
+	lock_init_object_lock(lock_thread_recompile);
 
 	/* create method list */
 
@@ -172,15 +170,15 @@ static void recompile_thread(void)
 	while (true) {
 		/* get the lock on the recompile lock object, so we can call wait */
 
-		lock_monitor_enter(lock_recompile_thread);
+		lock_monitor_enter(lock_thread_recompile);
 
 		/* wait forever (0, 0) on that object till we are signaled */
 	
-		lock_wait_for_object(lock_recompile_thread, 0, 0);
+		lock_wait_for_object(lock_thread_recompile, 0, 0);
 
 		/* leave the lock */
 
-		lock_monitor_exit(lock_recompile_thread);
+		lock_monitor_exit(lock_thread_recompile);
 
 		/* get the next method and recompile it */
 
@@ -218,28 +216,32 @@ static void recompile_thread(void)
 
 bool recompile_start_thread(void)
 {
-	java_lang_Thread *t;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmt;
+#endif
 
 	/* create the profile object */
 
-	recompile_vmthread =
-		(java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+	thread_recompile = (threadobject *) builtin_new(class_java_lang_Thread);
 
-	if (recompile_vmthread == NULL)
+	if (thread_recompile == NULL)
 		return false;
 
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+#if defined(WITH_CLASSPATH_GNU)
+	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
-	t->vmThread = recompile_vmthread;
-	t->name     = javastring_new_from_ascii("Recompiler");
-	t->daemon   = true;
-	t->priority = 5;
+	vmt->thread = (java_lang_Thread *) thread_recompile;
 
-	recompile_vmthread->thread = t;
+	thread_recompile->o.vmThread = vmt;
+#endif
+
+	thread_recompile->o.name     = javastring_new_from_ascii("Recompiler");
+	thread_recompile->o.daemon   = true;
+	thread_recompile->o.priority = 5;
 
 	/* actually start the recompilation thread */
 
-	threads_start_thread(t, recompile_thread);
+	threads_start_thread(thread_recompile, recompile_thread);
 
 	/* everything's ok */
 
@@ -269,15 +271,15 @@ void recompile_queue_method(methodinfo *m)
 
 	/* get the lock on the recompile lock object, so we can call notify */
 
-	lock_monitor_enter(lock_recompile_thread);
+	lock_monitor_enter(lock_thread_recompile);
 
 	/* signal the recompiler thread */
 	
-	lock_notify_object(lock_recompile_thread);
+	lock_notify_object(lock_thread_recompile);
 
 	/* leave the lock */
 
-	lock_monitor_exit(lock_recompile_thread);
+	lock_monitor_exit(lock_thread_recompile);
 }
 
 

@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: threads.c 6171 2006-12-11 11:47:42Z twisti $
+   $Id: threads.c 6228 2006-12-26 19:56:58Z twisti $
 
 */
 
@@ -214,7 +214,6 @@ static void threads_table_dump(FILE *file);
 threadobject *mainthreadobj;
 
 static methodinfo *method_thread_init;
-static methodinfo *method_threadgroup_add;
 
 /* the thread object of the current thread                                    */
 /* This is either a thread-local variable defined with __thread, or           */
@@ -335,27 +334,6 @@ void threads_sem_post(sem_t *sem)
 		return;
 
 	vm_abort("sem_post failed: %s", strerror(errno));
-}
-
-
-/* threads_set_thread_priority *************************************************
-
-   Set the priority of the given thread.
-
-   IN:
-      tid..........thread id
-	  priority.....priority to set
-
-******************************************************************************/
-
-static void threads_set_thread_priority(pthread_t tid, int priority)
-{
-	struct sched_param schedp;
-	int policy;
-
-	pthread_getschedparam(tid, &policy, &schedp);
-	schedp.sched_priority = priority;
-	pthread_setschedparam(tid, policy, &schedp);
 }
 
 
@@ -621,12 +599,40 @@ static void threads_set_current_threadobject(threadobject *thread)
 }
 
 
+/* threads_init_threadobject **************************************************
+
+   Initialize implementation fields of a threadobject.
+
+   IN:
+      thread............the threadobject
+
+******************************************************************************/
+
+static void threads_init_threadobject(threadobject *thread)
+{
+	thread->tid = pthread_self();
+
+	thread->index = 0;
+
+	/* TODO destroy all those things */
+	pthread_mutex_init(&(thread->joinmutex), NULL);
+	pthread_cond_init(&(thread->joincond), NULL);
+
+	pthread_mutex_init(&(thread->waitmutex), NULL);
+	pthread_cond_init(&(thread->waitcond), NULL);
+
+	thread->interrupted = false;
+	thread->signaled = false;
+	thread->sleeping = false;
+}
+
+
 /* threads_get_current_threadobject ********************************************
 
    Return the threadobject of the current thread.
    
    RETURN VALUE:
-       the current threadobject * (an instance of java.lang.VMThread)
+       the current threadobject * (an instance of java.lang.Thread)
 
 *******************************************************************************/
 
@@ -689,9 +695,12 @@ void threads_preinit(void)
 bool threads_init(void)
 {
 	java_lang_String      *threadname;
-	java_lang_Thread      *mainthread;
+	java_lang_VMThread    *vmt;
 	java_lang_ThreadGroup *threadgroup;
 	threadobject          *tempthread;
+	methodinfo            *m;
+	java_objectheader     *o;
+	java_lang_Thread      *t;
 
 	tempthread = mainthreadobj;
 
@@ -703,7 +712,7 @@ bool threads_init(void)
 	   can keep the execution environment there. No Thread object must
 	   have been created at an earlier time. */
 
-	class_java_lang_VMThread->instancesize = sizeof(threadobject);
+	class_java_lang_Thread->instancesize = sizeof(threadobject);
 
 	/* get methods we need in this file */
 
@@ -717,26 +726,16 @@ bool threads_init(void)
 	if (method_thread_init == NULL)
 		return false;
 
-	method_threadgroup_add =
-		class_resolveclassmethod(class_java_lang_ThreadGroup,
-								 utf_new_char("addThread"),
-								 utf_new_char("(Ljava/lang/Thread;)V"),
-								 class_java_lang_ThreadGroup,
-								 true);
+	/* create a java.lang.Thread for the main thread */
 
-	if (method_threadgroup_add == NULL)
-		return false;
-
-	/* create a VMThread */
-
-	mainthreadobj = (threadobject *) builtin_new(class_java_lang_VMThread);
+	mainthreadobj = (threadobject *) builtin_new(class_java_lang_Thread);
 
 	if (mainthreadobj == NULL)
 		return false;
 
 	FREE(tempthread, threadobject);
 
-	threads_init_threadobject(&mainthreadobj->o);
+	threads_init_threadobject(mainthreadobj);
 
 	threads_set_current_threadobject(mainthreadobj);
 
@@ -767,33 +766,48 @@ bool threads_init(void)
 	threadgroup = (java_lang_ThreadGroup *)
 		native_new_and_init(class_java_lang_ThreadGroup);
 
-	if (!threadgroup)
+	if (threadgroup == NULL)
 		throw_exception_exit();
 
-	/* create a Thread */
+#if defined(WITH_CLASSPATH_GNU)
+	/* create a java.lang.VMThread for the main thread */
 
-	mainthread = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
-	if (mainthread == NULL)
+	if (vmt == NULL)
 		throw_exception_exit();
 
-	mainthreadobj->o.thread = mainthread;
+	/* set the thread */
 
-	/* call Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
+	t           = (java_lang_Thread *) mainthreadobj;
+	vmt->thread = t;
 
-	(void) vm_call_method(method_thread_init, (java_objectheader *) mainthread,
-						  mainthreadobj, threadname, NORM_PRIORITY, false);
+	/* call java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
+	o = (java_objectheader *) mainthreadobj;
+
+	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
+						  false);
+#else
+#error IMPLEMENT ME!
+#endif
 
 	if (*exceptionptr)
 		return false;
 
-	mainthread->group = threadgroup;
+	mainthreadobj->o.group = threadgroup;
 
-	/* add mainthread to ThreadGroup */
+	/* add main thread to java.lang.ThreadGroup */
 
-	(void) vm_call_method(method_threadgroup_add, 
-						  (java_objectheader *) threadgroup,
-						  mainthread);
+	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
+								 utf_addThread,
+								 utf_java_lang_Thread__V,
+								 class_java_lang_ThreadGroup,
+								 true);
+
+	o = (java_objectheader *) threadgroup;
+	t = (java_lang_Thread *) mainthreadobj;
+
+	(void) vm_call_method(m, o, t);
 
 	if (*exceptionptr)
 		return false;
@@ -937,35 +951,6 @@ static void threads_table_remove(threadobject *thread)
 #endif
 }
 
-/* threads_init_threadobject **************************************************
-
-   Initialize implementation fields of a java.lang.VMThread.
-
-   IN:
-      t............the java.lang.VMThread
-
-******************************************************************************/
-
-void threads_init_threadobject(java_lang_VMThread *t)
-{
-	threadobject *thread = (threadobject*) t;
-
-	thread->tid = pthread_self();
-
-	thread->index = 0;
-
-	/* TODO destroy all those things */
-	pthread_mutex_init(&(thread->joinmutex), NULL);
-	pthread_cond_init(&(thread->joincond), NULL);
-
-	pthread_mutex_init(&(thread->waitmutex), NULL);
-	pthread_cond_init(&(thread->waitcond), NULL);
-
-	thread->interrupted = false;
-	thread->signaled = false;
-	thread->sleeping = false;
-}
-
 
 /* threads_startup_thread ******************************************************
 
@@ -988,12 +973,17 @@ void threads_init_threadobject(java_lang_VMThread *t)
 
 static void *threads_startup_thread(void *t)
 {
-	startupinfo  *startup;
-	threadobject *thread;
-	sem_t        *psem;
-	threadobject *tnext;
-	methodinfo   *method;
-	functionptr   function;
+	startupinfo        *startup;
+	threadobject       *thread;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmt;
+#endif
+	sem_t              *psem;
+	threadobject       *tnext;
+	classinfo          *c;
+	methodinfo         *m;
+	java_objectheader  *o;
+	functionptr         function;
 
 #if defined(ENABLE_INTRP)
 	u1 *intrp_thread_stack;
@@ -1054,7 +1044,7 @@ static void *threads_startup_thread(void *t)
 
 	/* set our priority */
 
-	threads_set_thread_priority(thread->tid, thread->o.thread->priority);
+	threads_set_thread_priority(thread->tid, thread->o.priority);
 
 #if defined(ENABLE_INTRP)
 	/* set interpreter stack */
@@ -1077,13 +1067,19 @@ static void *threads_startup_thread(void *t)
 
 		thread->flags |= THREAD_FLAG_JAVA;
 
-		method = class_resolveclassmethod(thread->o.header.vftbl->class,
-										  utf_run,
-										  utf_void__void,
-										  thread->o.header.vftbl->class,
-										  true);
+#if defined(WITH_CLASSPATH_GNU)
+		/* We need to start the run method of
+		   java.lang.VMThread. Since this is a final class, we can use
+		   the class object directly. */
 
-		if (method == NULL)
+		c   = class_java_lang_VMThread;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+		c   = thread->o.header.vftbl->class;
+#endif
+
+		m = class_resolveclassmethod(c, utf_run, utf_void__void, c, true);
+
+		if (m == NULL)
 			throw_exception();
 
 		/* set ThreadMXBean variables */
@@ -1096,7 +1092,17 @@ static void *threads_startup_thread(void *t)
 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
 				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
 
-		(void) vm_call_method(method, (java_objectheader *) thread);
+#if defined(WITH_CLASSPATH_GNU)
+		/* we need to start the run method of java.lang.VMThread */
+
+		vmt = (java_lang_VMThread *) thread->o.vmThread;
+		o   = (java_objectheader *) vmt;
+
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+		o   = (java_objectheader *) thread;
+#endif
+
+		(void) vm_call_method(m, o);
 	}
 	else {
 		/* this is an internal thread */
@@ -1140,21 +1146,18 @@ static void *threads_startup_thread(void *t)
    Start a thread in the JVM.
 
    IN:
-      t............the java.lang.Thread object
+      thread.......the thread object
 	  function.....function to run in the new thread. NULL means that the
 	               "run" method of the object `t` should be called
 
 ******************************************************************************/
 
-void threads_start_thread(java_lang_Thread *t, functionptr function)
+void threads_start_thread(threadobject *thread, functionptr function)
 {
 	sem_t          sem;
 	sem_t          sem_first;
 	pthread_attr_t attr;
 	startupinfo    startup;
-	threadobject  *thread;
-
-	thread = (threadobject *) t->vmThread;
 
 	/* fill startupinfo structure passed by pthread_create to
 	 * threads_startup_thread */
@@ -1179,7 +1182,7 @@ void threads_start_thread(java_lang_Thread *t, functionptr function)
 
 	/* create the thread */
 
-	if (pthread_create(&thread->tid, &attr, threads_startup_thread, &startup))
+	if (pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup))
 		vm_abort("pthread_create failed: %s", strerror(errno));
 
 	/* signal that pthread_create has returned, so thread->tid is valid */
@@ -1197,6 +1200,27 @@ void threads_start_thread(java_lang_Thread *t, functionptr function)
 }
 
 
+/* threads_set_thread_priority *************************************************
+
+   Set the priority of the given thread.
+
+   IN:
+      tid..........thread id
+	  priority.....priority to set
+
+******************************************************************************/
+
+void threads_set_thread_priority(pthread_t tid, int priority)
+{
+	struct sched_param schedp;
+	int policy;
+
+	pthread_getschedparam(tid, &policy, &schedp);
+	schedp.sched_priority = priority;
+	pthread_setschedparam(tid, policy, &schedp);
+}
+
+
 /* threads_attach_current_thread ***********************************************
 
    Attaches the current thread to the VM.  Used in JNI.
@@ -1206,20 +1230,26 @@ void threads_start_thread(java_lang_Thread *t, functionptr function)
 bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
 	threadobject          *thread;
-	java_lang_Thread      *t;
+	java_lang_VMThread    *vmt;
 	utf                   *u;
 	java_lang_String      *s;
 	java_lang_ThreadGroup *group;
+	methodinfo            *m;
 	java_objectheader     *o;
+	java_lang_Thread      *t;
 
-	/* create a java.lang.VMThread object */
+	/* create a java.lang.Thread object */
 
-	thread = (threadobject *) builtin_new(class_java_lang_VMThread);
+	thread = (threadobject *) builtin_new(class_java_lang_Thread);
 
 	if (thread == NULL)
 		return false;
 
-	threads_init_threadobject(&thread->o);
+	/* cast for convenience */
+
+	t = (java_lang_Thread *) thread;
+
+	threads_init_threadobject(thread);
 	threads_set_current_threadobject(thread);
 	lock_init_execution_env(thread);
 
@@ -1249,14 +1279,18 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	}
 #endif
 
-	/* create a java.lang.Thread object */
+#if defined(WITH_CLASSPATH_GNU)
+	/* create a java.lang.VMThread object */
 
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
-	if (t == NULL)
+	if (vmt == NULL)
 		return false;
 
-	thread->o.thread = t;
+	/* set the thread */
+
+	vmt->thread = t;
+#endif
 
 	if (vm_aargs != NULL) {
 		u     = utf_new_char(vm_aargs->name);
@@ -1264,26 +1298,37 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	}
 	else {
 		u     = utf_null;
-		group = mainthreadobj->o.thread->group;
+		group = mainthreadobj->o.group;
 	}
 
 	s = javastring_new(u);
 
-	o = (java_objectheader *) t;
+	o = (java_objectheader *) thread;
 
-	(void) vm_call_method(method_thread_init, o, thread, s, NORM_PRIORITY,
+#if defined(WITH_CLASSPATH_GNU)
+	(void) vm_call_method(method_thread_init, o, vmt, s, NORM_PRIORITY,
 						  isdaemon);
+#else
+#endif
 
 	if (*exceptionptr)
 		return false;
 
 	/* store the thread group in the object */
 
-	t->group = group;
+	thread->o.group = group;
+
+	/* add thread to given thread-group */
+
+	m = class_resolveclassmethod(group->header.vftbl->class,
+								 utf_addThread,
+								 utf_java_lang_Thread__V,
+								 class_java_lang_ThreadGroup,
+								 true);
 
 	o = (java_objectheader *) group;
 
-	(void) vm_call_method(method_threadgroup_add, o, t);
+	(void) vm_call_method(m, o, t);
 
 	if (*exceptionptr)
 		return false;
@@ -1300,10 +1345,10 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 bool threads_detach_thread(threadobject *thread)
 {
-	java_lang_Thread      *t;
 	java_lang_ThreadGroup *group;
 	methodinfo            *m;
 	java_objectheader     *o;
+	java_lang_Thread      *t;
 
 	/* Allow lock record pools to be used by other threads. They
 	   cannot be deleted so we'd better not waste them. */
@@ -1316,8 +1361,7 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* remove thread from the thread group */
 
-	t     = thread->o.thread;
-	group = t->group;
+	group = thread->o.group;
 
 	/* XXX TWISTI: should all threads be in a ThreadGroup? */
 
@@ -1332,6 +1376,7 @@ bool threads_detach_thread(threadobject *thread)
 			return false;
 
 		o = (java_objectheader *) group;
+		t = (java_lang_Thread *) thread;
 
 		(void) vm_call_method(m, o, t);
 
@@ -1353,13 +1398,13 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* reset thread id (lock on joinmutex? TWISTI) */
 
-	pthread_mutex_lock(&thread->joinmutex);
+	pthread_mutex_lock(&(thread->joinmutex));
 	thread->tid = 0;
-	pthread_mutex_unlock(&thread->joinmutex);
+	pthread_mutex_unlock(&(thread->joinmutex));
 
 	/* tell everyone that a thread has finished */
 
-	pthread_cond_broadcast(&thread->joincond);
+	pthread_cond_broadcast(&(thread->joincond));
 
 	return true;
 }
@@ -1378,8 +1423,9 @@ bool threads_detach_thread(threadobject *thread)
 static threadobject *threads_find_non_daemon_thread(threadobject *thread)
 {
 	while (thread != mainthreadobj) {
-		if (!thread->o.thread->daemon)
+		if (!thread->o.daemon)
 			return thread;
+
 		thread = thread->prev;
 	}
 
@@ -1400,15 +1446,14 @@ void threads_join_all_threads(void)
 	pthread_mutex_lock(&threadlistlock);
 
 	while ((thread = threads_find_non_daemon_thread(mainthreadobj->prev)) != NULL) {
-
-		pthread_mutex_lock(&thread->joinmutex);
+		pthread_mutex_lock(&(thread->joinmutex));
 
 		pthread_mutex_unlock(&threadlistlock);
 
 		while (thread->tid)
-			pthread_cond_wait(&thread->joincond, &thread->joinmutex);
+			pthread_cond_wait(&(thread->joincond), &(thread->joinmutex));
 
-		pthread_mutex_unlock(&thread->joinmutex);
+		pthread_mutex_unlock(&(thread->joinmutex));
 
 		pthread_mutex_lock(&threadlistlock);
 	}
@@ -1489,48 +1534,49 @@ static bool threads_current_time_is_earlier_than(const struct timespec *tv)
 
 *******************************************************************************/
 
-static bool threads_wait_with_timeout(threadobject *t,
+static bool threads_wait_with_timeout(threadobject *thread,
 									  struct timespec *wakeupTime)
 {
 	bool wasinterrupted;
 
 	/* acquire the waitmutex */
 
-	pthread_mutex_lock(&t->waitmutex);
+	pthread_mutex_lock(&thread->waitmutex);
 
 	/* mark us as sleeping */
 
-	t->sleeping = true;
+	thread->sleeping = true;
 
 	/* wait on waitcond */
 
 	if (wakeupTime->tv_sec || wakeupTime->tv_nsec) {
 		/* with timeout */
-		while (!t->interrupted && !t->signaled
+		while (!thread->interrupted && !thread->signaled
 			   && threads_current_time_is_earlier_than(wakeupTime))
 		{
-			pthread_cond_timedwait(&t->waitcond, &t->waitmutex, wakeupTime);
+			pthread_cond_timedwait(&thread->waitcond, &thread->waitmutex,
+								   wakeupTime);
 		}
 	}
 	else {
 		/* no timeout */
-		while (!t->interrupted && !t->signaled)
-			pthread_cond_wait(&t->waitcond, &t->waitmutex);
+		while (!thread->interrupted && !thread->signaled)
+			pthread_cond_wait(&thread->waitcond, &thread->waitmutex);
 	}
 
 	/* check if we were interrupted */
 
-	wasinterrupted = t->interrupted;
+	wasinterrupted = thread->interrupted;
 
 	/* reset all flags */
 
-	t->interrupted = false;
-	t->signaled = false;
-	t->sleeping = false;
+	thread->interrupted = false;
+	thread->signaled    = false;
+	thread->sleeping    = false;
 
 	/* release the waitmutex */
 
-	pthread_mutex_unlock(&t->waitmutex);
+	pthread_mutex_unlock(&thread->waitmutex);
 
 	return wasinterrupted;
 }
@@ -1552,8 +1598,7 @@ static bool threads_wait_with_timeout(threadobject *t,
 
 *******************************************************************************/
 
-bool threads_wait_with_timeout_relative(threadobject *t,
-										s8 millis,
+bool threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
 										s4 nanos)
 {
 	struct timespec wakeupTime;
@@ -1564,7 +1609,7 @@ bool threads_wait_with_timeout_relative(threadobject *t,
 
 	/* wait */
 
-	return threads_wait_with_timeout(t, &wakeupTime);
+	return threads_wait_with_timeout(thread, &wakeupTime);
 }
 
 
@@ -1612,27 +1657,23 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 
 *******************************************************************************/
 
-void threads_thread_interrupt(java_lang_VMThread *thread)
+void threads_thread_interrupt(threadobject *thread)
 {
-	threadobject *t;
-
-	t = (threadobject *) thread;
-
 	/* Signal the thread a "waitcond" and tell it that it has been
 	   interrupted. */
 
-	pthread_mutex_lock(&t->waitmutex);
+	pthread_mutex_lock(&thread->waitmutex);
 
 	/* Interrupt blocking system call using a signal. */
 
-	pthread_kill(t->tid, SIGHUP);
+	pthread_kill(thread->tid, SIGHUP);
 
-	if (t->sleeping)
-		pthread_cond_signal(&t->waitcond);
+	if (thread->sleeping)
+		pthread_cond_signal(&thread->waitcond);
 
-	t->interrupted = true;
+	thread->interrupted = true;
 
-	pthread_mutex_unlock(&t->waitmutex);
+	pthread_mutex_unlock(&thread->waitmutex);
 }
 
 
@@ -1648,20 +1689,24 @@ void threads_thread_interrupt(java_lang_VMThread *thread)
 
 bool threads_check_if_interrupted_and_reset(void)
 {
-	threadobject *t;
+	threadobject *thread;
 	bool intr;
 
-	t = (threadobject*) THREADOBJECT;
+	thread = THREADOBJECT;
 
-	intr = t->interrupted;
+	/* get interrupted flag */
 
-	t->interrupted = false;
+	intr = thread->interrupted;
+
+	/* reset interrupted flag */
+
+	thread->interrupted = false;
 
 	return intr;
 }
 
 
-/* threads_thread_has_been_interrupted *********************************************************
+/* threads_thread_has_been_interrupted *****************************************
 
    Check if the given thread has been interrupted
 
@@ -1673,13 +1718,9 @@ bool threads_check_if_interrupted_and_reset(void)
 
 *******************************************************************************/
 
-bool threads_thread_has_been_interrupted(java_lang_VMThread *thread)
+bool threads_thread_has_been_interrupted(threadobject *thread)
 {
-	threadobject *t;
-
-	t = (threadobject*) thread;
-
-	return t->interrupted;
+	return thread->interrupted;
 }
 
 
@@ -1691,15 +1732,15 @@ bool threads_thread_has_been_interrupted(java_lang_VMThread *thread)
 
 void threads_sleep(s8 millis, s4 nanos)
 {
-	threadobject       *t;
-	struct timespec    wakeupTime;
-	bool               wasinterrupted;
+	threadobject    *thread;
+	struct timespec  wakeupTime;
+	bool             wasinterrupted;
 
-	t = (threadobject *) THREADOBJECT;
+	thread = THREADOBJECT;
 
 	threads_calc_absolute_time(&wakeupTime, millis, nanos);
 
-	wasinterrupted = threads_wait_with_timeout(t, &wakeupTime);
+	wasinterrupted = threads_wait_with_timeout(thread, &wakeupTime);
 
 	if (wasinterrupted)
 		*exceptionptr = new_exception(string_java_lang_InterruptedException);
@@ -1718,26 +1759,6 @@ void threads_yield(void)
 }
 
 
-/* threads_java_lang_Thread_set_priority ***************************************
-
-   Set the priority for the given java.lang.Thread.
-
-   IN:
-      t............the java.lang.Thread
-	  priority.....the priority
-
-*******************************************************************************/
-
-void threads_java_lang_Thread_set_priority(java_lang_Thread *t, s4 priority)
-{
-	threadobject *thread;
-
-	thread = (threadobject*) t->vmThread;
-
-	threads_set_thread_priority(thread->tid, priority);
-}
-
-
 /* threads_dump ****************************************************************
 
    Dumps info for all threads running in the JVM. This function is
@@ -1747,10 +1768,9 @@ void threads_java_lang_Thread_set_priority(java_lang_Thread *t, s4 priority)
 
 void threads_dump(void)
 {
-	threadobject       *thread;
-	java_lang_VMThread *vmt;
-	java_lang_Thread   *t;
-	utf                *name;
+	threadobject     *thread;
+	java_lang_Thread *t;
+	utf              *name;
 
 	thread = mainthreadobj;
 
@@ -1761,10 +1781,9 @@ void threads_dump(void)
 	/* iterate over all started threads */
 
 	do {
-		/* get thread objects */
+		/* get thread object */
 
-		vmt = &thread->o;
-		t   = vmt->thread;
+		t = (java_lang_Thread *) thread;
 
 		/* the thread may be currently in initalization, don't print it */
 

@@ -159,8 +159,8 @@ final class VMThread
     static void create(Thread thread, long stacksize)
     {
 	VMThread vmThread = new VMThread(thread);
-	vmThread.start(stacksize);
 	thread.vmThread = vmThread;
+	vmThread.start(stacksize);
     }
 
     /**

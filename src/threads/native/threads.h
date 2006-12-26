@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Stefan Ring
-   			Edwin Steiner
+            Edwin Steiner
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: threads.h 5870 2006-10-30 12:27:59Z twisti $
+   $Id: threads.h 6228 2006-12-26 19:56:58Z twisti $
 
 */
 
@@ -53,9 +52,7 @@ typedef struct threads_table_t       threads_table_t;
 
 #include "mm/memory.h"
 #include "native/jni.h"
-#include "native/include/java_lang_Object.h" /* required by java/lang/VMThread*/
 #include "native/include/java_lang_Thread.h"
-#include "native/include/java_lang_VMThread.h"
 #include "vm/global.h"
 
 #include "threads/native/lock.h"
@@ -98,7 +95,7 @@ extern __thread threadobject *threads_current_threadobject;
 
 #define THREADSPECIFIC
 #define THREADOBJECT \
-	((threadobject *)pthread_getspecific(threads_current_threadobject_key))
+	((threadobject *) pthread_getspecific(threads_current_threadobject_key))
 
 extern pthread_key_t threads_current_threadobject_key;
 
@@ -133,7 +130,7 @@ struct threads_table_t {
 
 /* threadobject ****************************************************************
 
-   Every java.lang.VMThread object is actually an instance of this
+   Every java.lang.Thread object is actually an instance of this
    structure.
 
 *******************************************************************************/
@@ -143,7 +140,7 @@ struct threads_table_t {
 
 
 struct threadobject {
-	java_lang_VMThread    o;            /* the java.lang.VMThread object      */
+	java_lang_Thread      o;            /* the java.lang.Thread object        */
 
 	lock_execution_env_t  ee;           /* data for the lock implementation   */
 
@@ -202,9 +199,9 @@ threadobject *threads_get_current_threadobject(void);
 void threads_preinit(void);
 bool threads_init(void);
 
-void threads_init_threadobject(java_lang_VMThread *);
+void threads_start_thread(threadobject *thread, functionptr function);
 
-void threads_start_thread(java_lang_Thread *t, functionptr function);
+void threads_set_thread_priority(pthread_t tid, int priority);
 
 bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
 bool threads_detach_thread(threadobject *thread);
@@ -216,11 +213,9 @@ void threads_yield(void);
 
 bool threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
-void threads_thread_interrupt(java_lang_VMThread *);
+void threads_thread_interrupt(threadobject *thread);
 bool threads_check_if_interrupted_and_reset(void);
-bool threads_thread_has_been_interrupted(java_lang_VMThread *);
-
-void threads_java_lang_Thread_set_priority(java_lang_Thread *t, s4 priority);
+bool threads_thread_has_been_interrupted(threadobject *thread);
 
 void threads_cast_stopworld(void);
 void threads_cast_startworld(void);

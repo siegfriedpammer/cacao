@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: utf8.c 6216 2006-12-18 18:21:37Z twisti $
+   $Id: utf8.c 6228 2006-12-26 19:56:58Z twisti $
 
 */
 
@@ -136,6 +136,7 @@ utf *utf_run;                           /* run                                */
 
 utf *utf_add;
 utf *utf_remove;
+utf *utf_addThread;
 utf *utf_removeThread;
 utf *utf_put;
 utf *utf_get;
@@ -289,6 +290,7 @@ bool utf8_init(void)
 
 	utf_add                        = utf_new_char("add");
 	utf_remove                     = utf_new_char("remove");
+	utf_addThread                  = utf_new_char("addThread");
 	utf_removeThread               = utf_new_char("removeThread");
 	utf_put                        = utf_new_char("put");
 	utf_get                        = utf_new_char("get");
