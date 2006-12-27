@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: properties.c 6239 2006-12-26 23:39:25Z twisti $
+   $Id: properties.c 6249 2006-12-27 23:00:59Z twisti $
 
 */
 
@@ -283,8 +283,8 @@ bool properties_init(void)
 	}
 #elif defined(ENABLE_JAVAME_CLDC1_1)
     properties_add("microedition.configuration", "CLDC-1.1");
-    properties_add("microedition.platform", "PowerPC");
-    properties_add("microedition.encoding", "ISO-8859-1");
+    properties_add("microedition.platform", "generic");
+    properties_add("microedition.encoding", "ISO8859_1");
     properties_add("microedition.profiles", "");
 #else
 #error unknown Java configuration
