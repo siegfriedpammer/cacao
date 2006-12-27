@@ -31,7 +31,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 6216 2006-12-18 18:21:37Z twisti $
+   $Id: loader.c 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -112,6 +112,7 @@ bool loader_init(void)
 	if (!(class_java_lang_String = load_class_bootstrap(utf_java_lang_String)))
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	if (!(class_java_lang_Cloneable =
 		  load_class_bootstrap(utf_java_lang_Cloneable)))
 		return false;
@@ -119,12 +120,14 @@ bool loader_init(void)
 	if (!(class_java_io_Serializable =
 		  load_class_bootstrap(utf_java_io_Serializable)))
 		return false;
-
+#endif
 
 	/* load classes for wrapping primitive types */
 
+#if defined(ENABLE_JAVASE)
 	if (!(class_java_lang_Void = load_class_bootstrap(utf_java_lang_Void)))
 		return false;
+#endif
 
 	if (!(class_java_lang_Boolean =
 		  load_class_bootstrap(utf_java_lang_Boolean)))
@@ -159,6 +162,7 @@ bool loader_init(void)
 	if (!(class_java_lang_Class = load_class_bootstrap(utf_java_lang_Class)))
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	if (!(class_java_lang_ClassLoader =
 		  load_class_bootstrap(utf_java_lang_ClassLoader)))
 		return false;
@@ -166,6 +170,7 @@ bool loader_init(void)
 	if (!(class_java_lang_SecurityManager =
 		  load_class_bootstrap(utf_java_lang_SecurityManager)))
 		return false;
+#endif
 
 	if (!(class_java_lang_System = load_class_bootstrap(utf_java_lang_System)))
 		return false;
@@ -174,21 +179,27 @@ bool loader_init(void)
 		  load_class_bootstrap(utf_new_char("java/lang/Thread"))))
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	if (!(class_java_lang_ThreadGroup =
 		  load_class_bootstrap(utf_java_lang_ThreadGroup)))
 		return false;
+#endif
 
+#if defined(WITH_CLASSPATH_GNU)
 	if (!(class_java_lang_VMSystem =
 		  load_class_bootstrap(utf_new_char("java/lang/VMSystem"))))
+
 		return false;
 
 	if (!(class_java_lang_VMThread =
 		  load_class_bootstrap(utf_new_char("java/lang/VMThread"))))
 		return false;
+#endif
 
 
 	/* some classes which may be used more often */
 
+#if defined(ENABLE_JAVASE)
 	if (!(class_java_lang_StackTraceElement =
 		  load_class_bootstrap(utf_java_lang_StackTraceElement)))
 		return false;
@@ -215,6 +226,7 @@ bool loader_init(void)
 	if (!(arrayclass_java_lang_Object =
 		  load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"))))
 		return false;
+#endif
 
 	return true;
 }
@@ -1348,12 +1360,14 @@ static bool loader_load_method(classbuffer *cb, methodinfo *m,
 						m->linenumbers[l].line_number = suck_u2(cb);
 					}
 				}
+#if defined(ENABLE_JAVASE)
 				else if (code_attribute_name == utf_StackMapTable) {
 					/* StackTableMap */
 
 					if (!stackmap_load_attribute_stackmaptable(cb, m))
 						return false;
 				}
+#endif
 				else {
 					/* unknown code attribute */
 
@@ -2483,14 +2497,19 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	}
 
 	assert(class_java_lang_Object);
+#if defined(ENABLE_JAVASE)
 	assert(class_java_lang_Cloneable);
 	assert(class_java_io_Serializable);
+#endif
 
 	/* setup the array class */
 
 	c->super.cls = class_java_lang_Object;
 
-    c->interfacescount = 2;
+    c->interfacescount = 0;
+	c->interfaces = NULL;
+
+#if defined(ENABLE_JAVASE)
     c->interfaces = MNEW(classref_or_classinfo, 2);
 
 	if (opt_eager) {
@@ -2505,11 +2524,12 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		assert(tc->state & CLASS_LOADED);
 		list_add_first(&unlinkedclasses, tc);
 		c->interfaces[1].cls = tc;
-
-	} else {
+	}
+	else {
 		c->interfaces[0].cls = class_java_lang_Cloneable;
 		c->interfaces[1].cls = class_java_io_Serializable;
 	}
+#endif
 
 	c->methodscount = 1;
 	c->methods = MNEW(methodinfo, c->methodscount);

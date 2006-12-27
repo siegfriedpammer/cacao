@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: class.h 6244 2006-12-27 15:15:31Z twisti $
+   $Id: class.h 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -244,9 +244,9 @@ extern classinfo *class_java_lang_reflect_Field;
 extern classinfo *class_java_lang_reflect_Method;
 extern classinfo *class_java_security_PrivilegedAction;
 extern classinfo *class_java_util_Vector;
-#endif
 
 extern classinfo *arrayclass_java_lang_Object;
+#endif
 
 
 /* pseudo classes for the type checker ****************************************/

@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 6248 2006-12-27 22:39:39Z twisti $
+   $Id: stacktrace.c 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -1164,6 +1164,7 @@ return_NULL:
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 java_objectarray *stacktrace_getStack(void)
 {
 	stacktracebuffer *stb;
@@ -1184,7 +1185,8 @@ java_objectarray *stacktrace_getStack(void)
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
-	if (!stb)
+
+	if (stb == NULL)
 		goto return_NULL;
 
 	/* get the first stacktrace entry */
@@ -1195,17 +1197,17 @@ java_objectarray *stacktrace_getStack(void)
 
 	oa = builtin_anewarray(2, arrayclass_java_lang_Object);
 
-	if (!oa)
+	if (oa == NULL)
 		goto return_NULL;
 
 	classes = builtin_anewarray(stb->used, class_java_lang_Class);
 
-	if (!classes)
+	if (classes == NULL)
 		goto return_NULL;
 
 	methodnames = builtin_anewarray(stb->used, class_java_lang_String);
 
-	if (!methodnames)
+	if (methodnames == NULL)
 		goto return_NULL;
 
 	/* set up the 2-dimensional array */
@@ -1221,7 +1223,7 @@ java_objectarray *stacktrace_getStack(void)
 		classes->data[i] = (java_objectheader *) c;
 		str = javastring_new(ste->method->name);
 
-		if (!str)
+		if (str == NULL)
 			goto return_NULL;
 
 		methodnames->data[i] = (java_objectheader *) str;
@@ -1242,6 +1244,7 @@ return_NULL:
 
 	return NULL;
 }
+#endif /* ENABLE_JAVASE */
 
 
 /* stacktrace_print_trace_from_buffer ******************************************

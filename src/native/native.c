@@ -29,7 +29,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: native.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: native.c 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -76,18 +76,21 @@
 
 /* include table of native functions ******************************************/
 
-#include "native/include/java_lang_Cloneable.h"
-#include "native/include/java_util_Properties.h"
+#if defined(ENABLE_JAVASE)
+
 #include "native/include/java_io_InputStream.h"
 #include "native/include/java_io_PrintStream.h"
+
+#include "native/include/java_lang_Cloneable.h"
+#include "native/include/java_util_Properties.h"
+
+#include "native/include/java_lang_Object.h"
 
 #include "native/include/gnu_classpath_VMStackWalker.h"
 #include "native/include/gnu_classpath_VMSystemProperties.h"
 #include "native/include/gnu_java_lang_management_VMClassLoadingMXBeanImpl.h"
 #include "native/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
 #include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
-#include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMClassLoader.h"
 #include "native/include/java_lang_VMObject.h"
@@ -109,6 +112,19 @@
 #include "native/include/gnu_classpath_jdwp_VMVirtualMachine.h"
 #include "native/include/gnu_classpath_jdwp_VMFrame.h"
 #include "native/include/gnu_classpath_jdwp_VMMethod.h"
+#endif
+
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+
+#include "native/include/com_sun_cldchi_io_ConsoleOutputStream.h"
+#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_Double.h"
+#include "native/include/java_lang_Float.h"
+#include "native/include/java_lang_Math.h"
+#include "native/include/java_lang_Runtime.h"
+#include "native/include/java_lang_System.h"
+#include "native/include/java_lang_Thread.h"
+
 #endif
 
 #if defined(WITH_STATIC_CLASSPATH)
@@ -146,6 +162,7 @@
 *******************************************************************************/
 
 functionptr dummynativetable[] = {
+#if defined(ENABLE_JAVASE)
 	(functionptr) Java_gnu_classpath_VMStackWalker_getClassContext,
 	(functionptr) Java_gnu_classpath_VMStackWalker_getCallingClass,
 	(functionptr) Java_gnu_classpath_VMStackWalker_getCallingClassLoader,
@@ -301,6 +318,36 @@ functionptr dummynativetable[] = {
 	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getVariableTable
 #endif
 
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+	(functionptr) Java_com_sun_cldchi_io_ConsoleOutputStream_write,
+
+	(functionptr) Java_java_lang_Class_forName,
+	(functionptr) Java_java_lang_Class_newInstance,
+	(functionptr) Java_java_lang_Class_getName,
+
+	(functionptr) Java_java_lang_Double_doubleToLongBits,
+
+	(functionptr) Java_java_lang_Float_floatToIntBits,
+
+	(functionptr) Java_java_lang_Math_ceil,
+	(functionptr) Java_java_lang_Math_cos,
+	(functionptr) Java_java_lang_Math_floor,
+	(functionptr) Java_java_lang_Math_sin,
+	(functionptr) Java_java_lang_Math_sqrt,
+	(functionptr) Java_java_lang_Math_tan,
+
+	(functionptr) Java_java_lang_Runtime_exitInternal,
+
+	(functionptr) Java_java_lang_System_getProperty0,
+
+	(functionptr) Java_java_lang_Thread_currentThread,
+	(functionptr) Java_java_lang_Thread_setPriority0,
+	(functionptr) Java_java_lang_Thread_start0,
+	(functionptr) Java_java_lang_Thread_yield,
+
+	(functionptr) Java_java_lang_Throwable_printStackTrace,
+	(functionptr) Java_java_lang_Throwable_fillInStackTrace
+#endif
 };
 
 #endif /* defined(ENABLE_LIBJVM) */
@@ -552,7 +599,6 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 			return n->func;
 	}
 
-		
 	/* no function was found, throw exception */
 
 	*exceptionptr =
@@ -876,9 +922,17 @@ functionptr native_resolve_function(methodinfo *m)
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
+#if defined(ENABLE_JAVASE)
 		*exceptionptr =
 			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
 									 m->name);
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+		*exceptionptr =
+			new_exception_utfmessage(string_java_lang_VirtualMachineError,
+									 m->name);
+#else
+#error IMPLEMENT ME!
+#endif
 	}
 
 	/* release memory */
@@ -1037,6 +1091,7 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 java_objectarray *native_class_getdeclaredannotations(classinfo *c)
 {
 	java_objectarray *oa;
@@ -1066,6 +1121,7 @@ java_objectarray *native_class_getdeclaredannotations(classinfo *c)
 
 	return oa;
 }
+#endif
 
 
 /* native_get_parametertypes ***************************************************

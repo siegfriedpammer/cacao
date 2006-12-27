@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: exceptions.h 6244 2006-12-27 15:15:31Z twisti $
+   $Id: exceptions.h 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -124,9 +124,10 @@ java_objectheader *new_exception_int(const char *classname, s4 i);
 
 #if defined(ENABLE_JAVASE)
 java_objectheader *exceptions_new_abstractmethoderror(void);
-java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
-void exceptions_throw_abstractmethoderror(void);
+void               exceptions_throw_abstractmethoderror(void);
 #endif
+
+java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);

@@ -28,7 +28,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: threads.h 6228 2006-12-26 19:56:58Z twisti $
+   $Id: threads.h 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -137,6 +137,7 @@ struct threads_table_t {
 
 #define THREAD_FLAG_JAVA        0x01    /* a normal Java thread               */
 #define THREAD_FLAG_INTERNAL    0x02    /* CACAO internal thread              */
+#define THREAD_FLAG_DAEMON      0x04    /* daemon thread                      */
 
 
 struct threadobject {
@@ -150,7 +151,7 @@ struct threadobject {
 	ptrint                thinlock;     /* pre-computed thin lock value       */
 
 	s4                    index;        /* thread index, starting with 1      */
-	u1                    flags;        /* flag field                         */
+	u4                    flags;        /* flag field                         */
 
 	pthread_t             tid;          /* pthread id                         */
 

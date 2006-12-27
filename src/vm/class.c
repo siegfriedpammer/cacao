@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: class.c 6244 2006-12-27 15:15:31Z twisti $
+   $Id: class.c 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -139,9 +139,9 @@ classinfo *class_java_lang_reflect_Field;
 classinfo *class_java_lang_reflect_Method;
 classinfo *class_java_security_PrivilegedAction;
 classinfo *class_java_util_Vector;
-#endif
 
 classinfo *arrayclass_java_lang_Object;
+#endif
 
 
 /* pseudo classes for the typechecker */

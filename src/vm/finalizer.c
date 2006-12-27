@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: finalizer.c 6228 2006-12-26 19:56:58Z twisti $
+   $Id: finalizer.c 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -40,7 +40,10 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/include/java_lang_Thread.h"
-#include "native/include/java_lang_VMThread.h"
+
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_VMThread.h"
+#endif
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
@@ -143,8 +146,12 @@ bool finalizer_start_thread(void)
 	thread_finalizer->o.vmThread = vmt;
 #endif
 
+	thread_finalizer->flags      = THREAD_FLAG_DAEMON;
+
 	thread_finalizer->o.name     = javastring_new_from_ascii("Finalizer");
+#if defined(ENABLE_JAVASE)
 	thread_finalizer->o.daemon   = true;
+#endif
 	thread_finalizer->o.priority = 5;
 
 	/* actually start the finalizer thread */

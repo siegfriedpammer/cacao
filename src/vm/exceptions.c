@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: exceptions.c 6244 2006-12-27 15:15:31Z twisti $
+   $Id: exceptions.c 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -539,36 +539,6 @@ java_objectheader *exceptions_new_abstractmethoderror(void)
 #endif
 
 
-/* exceptions_asm_new_abstractmethoderror **************************************
-
-   Generates a java.lang.AbstractMethodError for
-   asm_abstractmethoderror.
-
-*******************************************************************************/
-
-#if defined(ENABLE_JAVASE)
-java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
-{
-	stackframeinfo     sfi;
-	java_objectheader *e;
-
-	/* create the stackframeinfo (XPC is equal to RA) */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, ra);
-
-	/* create the exception */
-
-	e = exceptions_new_abstractmethoderror();
-
-	/* remove the stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return e;
-}
-#endif
-
-
 /* exceptions_throw_abstractmethoderror ****************************************
 
    Generates a java.lang.AbstractMethodError for the VM and throws it.
@@ -581,6 +551,40 @@ void exceptions_throw_abstractmethoderror(void)
 	*exceptionptr = exceptions_new_abstractmethoderror();
 }
 #endif
+
+
+/* exceptions_asm_new_abstractmethoderror **************************************
+
+   Generates a java.lang.AbstractMethodError for
+   asm_abstractmethoderror.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
+{
+	stackframeinfo     sfi;
+	java_objectheader *e;
+
+	/* create the stackframeinfo (XPC is equal to RA) */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, ra);
+
+	/* create the exception */
+
+#if defined(ENABLE_JAVASE)
+	e = exceptions_new_abstractmethoderror();
+#else
+	/* in the meantime we do this */
+
+	e = exceptions_new_virtualmachineerror();
+#endif
+
+	/* remove the stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return e;
+}
 
 
 /* new_classformaterror ********************************************************

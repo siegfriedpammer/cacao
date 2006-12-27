@@ -41,7 +41,10 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/include/java_lang_Thread.h"
-#include "native/include/java_lang_VMThread.h"
+
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_VMThread.h"
+#endif
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
@@ -235,8 +238,12 @@ bool recompile_start_thread(void)
 	thread_recompile->o.vmThread = vmt;
 #endif
 
+	thread_recompile->flags      = THREAD_FLAG_DAEMON;
+
 	thread_recompile->o.name     = javastring_new_from_ascii("Recompiler");
+#if defined(ENABLE_JAVASE)
 	thread_recompile->o.daemon   = true;
+#endif
 	thread_recompile->o.priority = 5;
 
 	/* actually start the recompilation thread */

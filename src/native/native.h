@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: native.h 6213 2006-12-18 17:36:06Z twisti $
+   $Id: native.h 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -42,14 +41,13 @@
 # include <ltdl.h>
 #endif
 
+#include "native/jni.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Throwable.h"
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/utf8.h"
-#include "native/jni.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_ClassLoader.h"
-#include "native/include/java_lang_Throwable.h"
 
 
 /* table for locating native methods */

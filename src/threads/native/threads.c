@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: threads.c 6228 2006-12-26 19:56:58Z twisti $
+   $Id: threads.c 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -65,8 +65,15 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_Thread.h"
-#include "native/include/java_lang_ThreadGroup.h"
-#include "native/include/java_lang_VMThread.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ThreadGroup.h"
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_VMThread.h"
+#endif
+
 #include "threads/native/threads.h"
 #include "toolbox/avl.h"
 #include "toolbox/logging.h"
@@ -695,12 +702,18 @@ void threads_preinit(void)
 bool threads_init(void)
 {
 	java_lang_String      *threadname;
-	java_lang_VMThread    *vmt;
-	java_lang_ThreadGroup *threadgroup;
 	threadobject          *tempthread;
-	methodinfo            *m;
 	java_objectheader     *o;
+
+#if defined(ENABLE_JAVSE)
+	java_lang_ThreadGroup *threadgroup;
+	methodinfo            *m;
 	java_lang_Thread      *t;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread    *vmt;
+#endif
 
 	tempthread = mainthreadobj;
 
@@ -716,12 +729,21 @@ bool threads_init(void)
 
 	/* get methods we need in this file */
 
+#if defined(WITH_CLASSPATH_GNU)
 	method_thread_init =
 		class_resolveclassmethod(class_java_lang_Thread,
 								 utf_init,
 								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
 								 class_java_lang_Thread,
 								 true);
+#else
+	method_thread_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_new_char("(Ljava/lang/String;)V"),
+								 class_java_lang_Thread,
+								 true);
+#endif
 
 	if (method_thread_init == NULL)
 		return false;
@@ -761,6 +783,7 @@ bool threads_init(void)
 
 	threadname = javastring_new(utf_new_char("main"));
 
+#if defined(ENABLE_JAVSE)
 	/* allocate and init ThreadGroup */
 
 	threadgroup = (java_lang_ThreadGroup *)
@@ -768,6 +791,7 @@ bool threads_init(void)
 
 	if (threadgroup == NULL)
 		throw_exception_exit();
+#endif
 
 #if defined(WITH_CLASSPATH_GNU)
 	/* create a java.lang.VMThread for the main thread */
@@ -787,13 +811,18 @@ bool threads_init(void)
 
 	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
 						  false);
-#else
-#error IMPLEMENT ME!
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	/* call public Thread(String name) */
+
+	o = (java_objectheader *) mainthreadobj;
+
+	(void) vm_call_method(method_thread_init, o, threadname);
 #endif
 
 	if (*exceptionptr)
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	mainthreadobj->o.group = threadgroup;
 
 	/* add main thread to java.lang.ThreadGroup */
@@ -811,6 +840,8 @@ bool threads_init(void)
 
 	if (*exceptionptr)
 		return false;
+
+#endif
 
 	threads_set_thread_priority(pthread_self(), NORM_PRIORITY);
 
@@ -1215,6 +1246,14 @@ void threads_set_thread_priority(pthread_t tid, int priority)
 	struct sched_param schedp;
 	int policy;
 
+#if defined(ENABLE_JAVAME_CLDC1_1)
+	/* The thread id is zero when a thread is created in Java.  The
+	   priority is set later during startup. */
+
+	if (tid == NULL)
+		return;
+#endif
+
 	pthread_getschedparam(tid, &policy, &schedp);
 	schedp.sched_priority = priority;
 	pthread_setschedparam(tid, policy, &schedp);
@@ -1230,13 +1269,19 @@ void threads_set_thread_priority(pthread_t tid, int priority)
 bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
 	threadobject          *thread;
-	java_lang_VMThread    *vmt;
 	utf                   *u;
 	java_lang_String      *s;
-	java_lang_ThreadGroup *group;
 	methodinfo            *m;
 	java_objectheader     *o;
 	java_lang_Thread      *t;
+
+#if defined(ENABLE_JAVASE)
+	java_lang_ThreadGroup *group;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread    *vmt;
+#endif
 
 	/* create a java.lang.Thread object */
 
@@ -1266,9 +1311,12 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	pthread_mutex_unlock(&threadlistlock);
 
-	/* mark main thread as Java thread */
+	/* mark thread as Java thread */
 
 	thread->flags = THREAD_FLAG_JAVA;
+
+	if (isdaemon)
+		thread->flags |= THREAD_FLAG_DAEMON;
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -1294,11 +1342,15 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	if (vm_aargs != NULL) {
 		u     = utf_new_char(vm_aargs->name);
+#if defined(ENABLE_JAVASE)
 		group = (java_lang_ThreadGroup *) vm_aargs->group;
+#endif
 	}
 	else {
 		u     = utf_null;
+#if defined(ENABLE_JAVASE)
 		group = mainthreadobj->o.group;
+#endif
 	}
 
 	s = javastring_new(u);
@@ -1308,12 +1360,14 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(WITH_CLASSPATH_GNU)
 	(void) vm_call_method(method_thread_init, o, vmt, s, NORM_PRIORITY,
 						  isdaemon);
-#else
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	(void) vm_call_method(method_thread_init, o, s);
 #endif
 
 	if (*exceptionptr)
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	/* store the thread group in the object */
 
 	thread->o.group = group;
@@ -1332,6 +1386,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	if (*exceptionptr)
 		return false;
+#endif
 
 	return true;
 }
@@ -1345,10 +1400,13 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 bool threads_detach_thread(threadobject *thread)
 {
-	java_lang_ThreadGroup *group;
 	methodinfo            *m;
 	java_objectheader     *o;
 	java_lang_Thread      *t;
+
+#if defined(ENABLE_JAVASE)
+	java_lang_ThreadGroup *group;
+#endif
 
 	/* Allow lock record pools to be used by other threads. They
 	   cannot be deleted so we'd better not waste them. */
@@ -1359,6 +1417,7 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* XXX implement uncaught exception stuff (like JamVM does) */
 
+#if defined(ENABLE_JAVASE)
 	/* remove thread from the thread group */
 
 	group = thread->o.group;
@@ -1383,6 +1442,7 @@ bool threads_detach_thread(threadobject *thread)
 		if (*exceptionptr)
 			return false;
 	}
+#endif
 
 	/* remove thread from thread list and threads table, do this
 	   inside a lock */
@@ -1423,7 +1483,7 @@ bool threads_detach_thread(threadobject *thread)
 static threadobject *threads_find_non_daemon_thread(threadobject *thread)
 {
 	while (thread != mainthreadobj) {
-		if (!thread->o.daemon)
+		if (thread->flags & THREAD_FLAG_DAEMON)
 			return thread;
 
 		thread = thread->prev;
@@ -1790,13 +1850,17 @@ void threads_dump(void)
 		if (t != NULL) {
 			/* get thread name */
 
+#if defined(ENABLE_JAVASE)
 			name = javastring_toutf(t->name, false);
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+			name = t->name;
+#endif
 
 			printf("\n\"");
 			utf_display_printable_ascii(name);
 			printf("\" ");
 
-			if (t->daemon)
+			if (thread->flags & THREAD_FLAG_DAEMON)
 				printf("daemon ");
 
 #if SIZEOF_VOID_P == 8

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 5975 2006-11-12 15:33:16Z edwin $
+   $Id: linker.c 6251 2006-12-27 23:15:56Z twisti $
 
 */
 
@@ -103,7 +103,11 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
 	{ NULL, NULL, "java/lang/Short",     'S', "short"   , "[S", NULL, NULL },
 	{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" , "[Z", NULL, NULL },
 	{ NULL, NULL, NULL,                   0 , NULL      , NULL, NULL, NULL },
-	{ NULL, NULL, "java/lang/Void",	     'V', "void"    , NULL, NULL, NULL }
+#if defined(ENABLE_JAVASE)
+   	{ NULL, NULL, "java/lang/Void",	     'V', "void"    , NULL, NULL, NULL }
+#else
+	{ NULL, NULL, NULL,                   0 , NULL      , NULL, NULL, NULL },
+#endif
 };
 
 
@@ -151,17 +155,21 @@ bool linker_init(void)
 	if (!link_class(class_java_lang_String))
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_Cloneable))
 		return false;
 
 	if (!link_class(class_java_io_Serializable))
 		return false;
+#endif
 
 
 	/* link classes for wrapping primitive types */
 
+#if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_Void))
 		return false;
+#endif
 
 	if (!link_class(class_java_lang_Boolean))
 		return false;
@@ -190,11 +198,13 @@ bool linker_init(void)
 
 	/* load some other important classes */
 
+#if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_ClassLoader))
 		return false;
 
 	if (!link_class(class_java_lang_SecurityManager))
 		return false;
+#endif
 
 	if (!link_class(class_java_lang_System))
 		return false;
@@ -202,18 +212,23 @@ bool linker_init(void)
 	if (!link_class(class_java_lang_Thread))
 		return false;
 
+#if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_ThreadGroup))
 		return false;
+#endif
 
+#if defined(WITH_CLASSPATH_GNU)
 	if (!link_class(class_java_lang_VMSystem))
 		return false;
 
 	if (!link_class(class_java_lang_VMThread))
 		return false;
+#endif
 
 
 	/* some classes which may be used more often */
 
+#if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_StackTraceElement))
 		return false;
 
@@ -234,20 +249,27 @@ bool linker_init(void)
 
 	if (!link_class(arrayclass_java_lang_Object))
 		return false;
+#endif
 
 
 	/* create pseudo classes used by the typechecker */
 
     /* pseudo class for Arraystubs (extends java.lang.Object) */
-    
+
 	pseudo_class_Arraystub =
 		class_create_classinfo(utf_new_char("$ARRAYSTUB$"));
-	pseudo_class_Arraystub->state |= CLASS_LOADED;
-	pseudo_class_Arraystub->super.cls = class_java_lang_Object;
-	pseudo_class_Arraystub->interfacescount = 2;
-	pseudo_class_Arraystub->interfaces = MNEW(classref_or_classinfo, 2);
+	pseudo_class_Arraystub->state            |= CLASS_LOADED;
+	pseudo_class_Arraystub->super.cls         = class_java_lang_Object;
+
+#if defined(ENABLE_JAVASE)
+	pseudo_class_Arraystub->interfacescount   = 2;
+	pseudo_class_Arraystub->interfaces        = MNEW(classref_or_classinfo, 2);
 	pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
 	pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+	pseudo_class_Arraystub->interfacescount   = 0;
+	pseudo_class_Arraystub->interfaces        = NULL;
+#endif
 
 	if (!classcache_store_unique(pseudo_class_Arraystub)) {
 		log_text("could not cache pseudo_class_Arraystub");
