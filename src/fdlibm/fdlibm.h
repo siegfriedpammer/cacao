@@ -70,7 +70,9 @@
 
 extern int signgam;
 
+#ifndef MAXFLOAT
 #define	MAXFLOAT	((float)3.40282346638528860e+38)
+#endif
 
 enum fdversion {fdlibm_ieee = -1, fdlibm_svid, fdlibm_xopen, fdlibm_posix};
 
