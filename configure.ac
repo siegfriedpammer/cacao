@@ -816,7 +816,7 @@ AC_SUBST(ENABLE_STATICVM)
 dnl where is CACAO's vm.zip
 AC_MSG_CHECKING(where CACAO's vm.zip is installed)
 AC_ARG_WITH([vm-zip],
-            [AS_HELP_STRING(--with-vm-zip,path to CACAO's vm.zip (includes the name of the file and may be flat) [[default=/usr/local/cacao/share/cacao/vm.zip]])],
+            [AS_HELP_STRING(--with-vm-zip=<path>,path to CACAO's vm.zip (includes the name of the file and may be flat) [[default=/usr/local/cacao/share/cacao/vm.zip]])],
             [CACAO_VM_ZIP=${withval}],
             [CACAO_VM_ZIP=${CACAO_PREFIX}/share/cacao/vm.zip])
 AC_MSG_RESULT(${CACAO_VM_ZIP})
@@ -824,10 +824,10 @@ AC_DEFINE_UNQUOTED([CACAO_VM_ZIP], "${CACAO_VM_ZIP}", [CACAO's vm.zip])
 AC_SUBST(CACAO_VM_ZIP)
 
 
-dnl which classpath are we using?
-AC_MSG_CHECKING(which classpath to use)
+dnl which Java core library are we using?
+AC_MSG_CHECKING(which Java core library to use)
 AC_ARG_WITH([classpath],
-            [AS_HELP_STRING(--with-classpath,specifies which type of classpath to use as Java core library (gnu) [[default=gnu]])],
+            [AS_HELP_STRING(--with-classpath=<type>,specifies which type of classpath to use as Java core library (gnu) [[default=gnu]])],
             [case "${withval}" in
                 cldc1.1)
                     WITH_CLASSPATH=cldc1.1
@@ -851,52 +851,52 @@ AM_CONDITIONAL([WITH_CLASSPATH_CLDC1_1], test x"${WITH_CLASSPATH}" = "xcldc1.1")
 AM_CONDITIONAL([WITH_CLASSPATH_GNU], test x"${WITH_CLASSPATH}" = "xgnu")
 
 
-dnl is GNU classpath installed somewhere different
-AC_MSG_CHECKING(where GNU Classpath is installed)
+dnl where is Java core library installed?
+AC_MSG_CHECKING(where Java core library is installed)
 AC_ARG_WITH([classpath-prefix],
-            [AS_HELP_STRING(--with-classpath-prefix=<dir>,installation directory of GNU Classpath [[default=/usr/local/classpath]])],
+            [AS_HELP_STRING(--with-classpath-prefix=<dir>,installation directory of Java core library [[default=/usr/local/classpath]])],
             [CLASSPATH_PREFIX=${withval}],
             [CLASSPATH_PREFIX=/usr/local/classpath])
 AC_MSG_RESULT(${CLASSPATH_PREFIX})
-AC_DEFINE_UNQUOTED([CLASSPATH_PREFIX], "${CLASSPATH_PREFIX}", [GNU Classpath installation directory])
+AC_DEFINE_UNQUOTED([CLASSPATH_PREFIX], "${CLASSPATH_PREFIX}", [Java core library installation directory])
 AC_SUBST(CLASSPATH_PREFIX)
 
 
-dnl where is GNU Classpath's glibj.zip
-AC_MSG_CHECKING(where GNU Classpath's glibj.zip is installed)
-AC_ARG_WITH([classpath-glibj-zip],
-            [AS_HELP_STRING(--with-classpath-glibj-zip,path to GNU Classpath's glibj.zip (includes the name of the file and may be flat) [[default=/usr/local/classpath/share/classpath/glibj.zip]])],
-            [CLASSPATH_GLIBJ_ZIP=${withval}],
-            [CLASSPATH_GLIBJ_ZIP=${CLASSPATH_PREFIX}/share/classpath/glibj.zip])
-AC_MSG_RESULT(${CLASSPATH_GLIBJ_ZIP})
-AC_DEFINE_UNQUOTED([CLASSPATH_GLIBJ_ZIP], "${CLASSPATH_GLIBJ_ZIP}", [GNU Classpath's glibj.zip])
-AC_SUBST(CLASSPATH_GLIBJ_ZIP)
+dnl where are Java core library classes installed?
+AC_MSG_CHECKING(where Java core library classes are installed)
+AC_ARG_WITH([classpath-classes],
+            [AS_HELP_STRING(--with-classpath-classes=<path>,path to Java core library classes (includes the name of the file and may be flat) [[default=/usr/local/classpath/share/classpath/glibj.zip]])],
+            [CLASSPATH_CLASSES=${withval}],
+            [CLASSPATH_CLASSES=${CLASSPATH_PREFIX}/share/classpath/glibj.zip])
+AC_MSG_RESULT(${CLASSPATH_CLASSES})
+AC_DEFINE_UNQUOTED([CLASSPATH_CLASSES], "${CLASSPATH_CLASSES}", [Java core library classes])
+AC_SUBST(CLASSPATH_CLASSES)
 
 
-dnl where are the GNU Classpath libraries installed
-AC_MSG_CHECKING(where GNU Classpath libraries are installed)
+dnl where are Java core library native libraries installed?
+AC_MSG_CHECKING(where Java core library native libraries are installed)
 AC_ARG_WITH([classpath-libdir],
-            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of GNU Classpath libraries [[default=/usr/local/classpath/lib]])],
+            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of Java core library native libraries [[default=/usr/local/classpath/lib]])],
             [CLASSPATH_LIBDIR=${withval}],
             [CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib])
 AC_MSG_RESULT(${CLASSPATH_LIBDIR})
 
 dnl expand CLASSPATH_LIBDIR to something that is usable in C code
 AS_AC_EXPAND([CLASSPATH_LIBDIR], ${CLASSPATH_LIBDIR})
-AC_DEFINE_UNQUOTED([CLASSPATH_LIBDIR], "${CLASSPATH_LIBDIR}", [GNU Classpath libraries installation directory])
+AC_DEFINE_UNQUOTED([CLASSPATH_LIBDIR], "${CLASSPATH_LIBDIR}", [Java core library native libraries installation directory])
 AC_SUBST(CLASSPATH_LIBDIR)
 
 
-dnl where are the GNU Classpath headers installed
-AC_MSG_CHECKING(where GNU Classpath headers are installed)
+dnl where are Java core library headers installed?
+AC_MSG_CHECKING(where Java core library headers are installed)
 AC_ARG_WITH([classpath-includedir],
-            [AS_HELP_STRING(--with-classpath-includedir=<dir>,installation directory of GNU Classpath headers [[default=/usr/local/classpath/include]])],
+            [AS_HELP_STRING(--with-classpath-includedir=<dir>,installation directory of Java core library headers [[default=/usr/local/classpath/include]])],
             [CLASSPATH_INCLUDEDIR=${withval}],
             [CLASSPATH_INCLUDEDIR=${CLASSPATH_PREFIX}/include])
 AC_MSG_RESULT(${CLASSPATH_INCLUDEDIR})
 
 AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni.h],
-                [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_H], "${CLASSPATH_INCLUDEDIR}/jni.h", [GNU Classpath jni.h header])],
+                [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_H], "${CLASSPATH_INCLUDEDIR}/jni.h", [Java core library jni.h header])],
                 [AC_MSG_ERROR(cannot find jni.h)])
 
 

@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6238 2006-12-26 23:34:53Z twisti $
+## $Id: Makefile.am 6243 2006-12-27 13:56:31Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -162,8 +162,11 @@ endif
 
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
-#CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
-CLASSPATH = $(BOOTCLASSPATH)
+if WITH_CLASSPATH_GNU
+CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
+else
+CLASSPATH = $(CLASSPATH_CLASSES)
+endif
 
 noinst_DATA = $(DO_HEADER_FILES)
 

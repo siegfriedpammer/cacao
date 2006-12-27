@@ -26,9 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
-##
-## $Id: Makefile.am 5893 2006-11-02 12:50:25Z twisti $
+## $Id: Makefile.am 6243 2006-12-27 13:56:31Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,11 +42,16 @@ DIST_SUBDIRS = \
 	cacao \
 	scripts
 
+if WITH_CLASSPATH_GNU
+VM_DIR = \
+	lib
+endif
+
 # Keep this order!!!
 
 SUBDIRS = \
 	mm \
-	lib \
+	$(VM_DIR) \
 	fdlibm \
 	toolbox \
 	vm \

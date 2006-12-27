@@ -25,12 +25,11 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
-
-   Changes: Mark Probst
+            Mark Probst
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 6034 2006-11-21 21:02:30Z twisti $
+   $Id: cacaoh.c 6243 2006-12-27 13:56:31Z twisti $
 
 */
 
@@ -187,15 +186,20 @@ int main(int argc, char **argv)
 		strcpy(bootclasspath, cp);
 	}
 	else {
-		cplen = strlen(CACAO_VM_ZIP) +
+		cplen =
+#if defined(WITH_CLASSPATH_GNU)
+			strlen(CACAO_VM_ZIP) +
 			strlen(":") +
-			strlen(CLASSPATH_GLIBJ_ZIP) +
+#endif
+			strlen(CLASSPATH_CLASSES) +
 			strlen("0");
 
 		bootclasspath = MNEW(char, cplen);
+#if defined(WITH_CLASSPATH_GNU)
 		strcat(bootclasspath, CACAO_VM_ZIP);
 		strcat(bootclasspath, ":");
-		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP);
+#endif
+		strcat(bootclasspath, CLASSPATH_CLASSES);
 	}
 
 
@@ -203,7 +207,7 @@ int main(int argc, char **argv)
 
 	cp = getenv("CLASSPATH");
 
-	if (cp) {
+	if (cp != NULL) {
 		classpath = MNEW(char, strlen(cp) + strlen("0"));
 		strcat(classpath, cp);
 	}

@@ -555,7 +555,11 @@ static void version(bool opt_exit)
 	printf("  maximum heap size              : %d\n", HEAP_MAXSIZE);
 	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
 	printf("  stack size                     : %d\n", STACK_SIZE);
-	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"CLASSPATH_GLIBJ_ZIP"");
+#if defined(WITH_CLASSPATH_GNU)
+	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"CLASSPATH_CLASSES"");
+#else
+	puts("  java.boot.class.path           : "CLASSPATH_CLASSES"");
+#endif
 	puts("  gnu.classpath.boot.library.path: "CLASSPATH_LIBDIR"/classpath\n");
 
 	puts("Runtime variables:\n");
@@ -618,7 +622,10 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 	/* get the VM and Env tables (must be set before vm_create) */
 
 	env = NEW(_Jv_JNIEnv);
+
+#if defined(ENABLE_JAVASE)
 	env->env = &_Jv_JNINativeInterface;
+#endif
 
 	/* XXX Set the global variable.  Maybe we should do that differently. */
 
@@ -627,7 +634,10 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 	/* create and fill a JavaVM structure */
 
 	vm = NEW(_Jv_JavaVM);
+
+#if defined(ENABLE_JAVASE)
 	vm->functions = &_Jv_JNIInvokeInterface;
+#endif
 
 	/* XXX Set the global variable.  Maybe we should do that differently. */
 	/* XXX JVMTI Agents needs a JavaVM  */
@@ -765,30 +775,38 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	else {
 #if defined(WITH_JRE_LAYOUT)
 		len =
+# if defined(WITH_CLASSPATH_GNU)
 			strlen(cacao_prefix) +
 			strlen("/share/cacao/vm.zip") +
 			strlen(":") +
+# endif
 			strlen(cacao_prefix) +
 			strlen("/share/classpath/glibj.zip") +
 			strlen("0");
 
 		_Jv_bootclasspath = MNEW(char, len);
+# if defined(WITH_CLASSPATH_GNU)
 		strcat(_Jv_bootclasspath, cacao_prefix);
 		strcat(_Jv_bootclasspath, "/share/cacao/vm.zip");
 		strcat(_Jv_bootclasspath, ":");
+# endif
 		strcat(_Jv_bootclasspath, cacao_prefix);
 		strcat(_Jv_bootclasspath, "/share/classpath/glibj.zip");
 #else
 		len =
+# if defined(WITH_CLASSPATH_GNU)
 			strlen(CACAO_VM_ZIP) +
 			strlen(":") +
-			strlen(CLASSPATH_GLIBJ_ZIP) +
+# endif
+			strlen(CLASSPATH_CLASSES) +
 			strlen("0");
 
 		_Jv_bootclasspath = MNEW(char, len);
+# if defined(WITH_CLASSPATH_GNU)
 		strcat(_Jv_bootclasspath, CACAO_VM_ZIP);
 		strcat(_Jv_bootclasspath, ":");
-		strcat(_Jv_bootclasspath, CLASSPATH_GLIBJ_ZIP);
+# endif
+		strcat(_Jv_bootclasspath, CLASSPATH_CLASSES);
 #endif
 	}
 
@@ -1474,12 +1492,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!builtin_init())
 		throw_main_exception_exit();
 
+#if defined(ENABLE_JAVASE)
 	/* Initialize the JNI subsystem (must be done _before_
 	   threads_init, as threads_init can call JNI methods
 	   (e.g. NewGlobalRef). */
 
 	if (!jni_init())
 		throw_main_exception_exit();
+#endif
 
 #if defined(ENABLE_THREADS)
   	if (!threads_init())
