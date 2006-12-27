@@ -26,9 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
-##
-## $Id: Makefile.am 5810 2006-10-20 13:54:54Z twisti $
+## $Id: Makefile.am 6247 2006-12-27 22:31:52Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,7 +36,7 @@ SUBDIRS = \
 	native
 
 JAVA      = $(top_builddir)/src/cacao/cacao
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
 
 SOURCE_FILES = \
 	$(srcdir)/HelloWorld.java \

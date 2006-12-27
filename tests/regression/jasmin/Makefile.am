@@ -25,15 +25,14 @@
 ## Contact: cacao@cacaojvm.org
 ##
 ## Authors: Christian Thalinger
-##
-## Changes: Edwin Steiner
+##          Edwin Steiner
 ##
 ## $Id$
 
 ## Process this file with automake to produce Makefile.in
 
 JAVA      = $(top_builddir)/src/cacao/cacao
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
 
 JASMIN_TESTS = \
 	$(srcdir)/test_coalesce_simple_store.j \
