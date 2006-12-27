@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: threads.c 6252 2006-12-27 23:42:37Z twisti $
+   $Id: threads.c 6253 2006-12-27 23:54:44Z twisti $
 
 */
 
@@ -783,7 +783,7 @@ bool threads_init(void)
 
 	threadname = javastring_new(utf_new_char("main"));
 
-#if defined(ENABLE_JAVSE)
+#if defined(ENABLE_JAVASE)
 	/* allocate and init ThreadGroup */
 
 	threadgroup = (java_lang_ThreadGroup *)
