@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 6046 2006-11-22 20:24:55Z twisti $
+   $Id: stacktrace.c 6248 2006-12-27 22:39:39Z twisti $
 
 */
 
@@ -46,9 +46,11 @@
 #include "native/native.h"
 
 #include "vm/global.h"                   /* required here for native includes */
-#include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_Throwable.h"
-#include "native/include/java_lang_VMThrowable.h"
+
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_VMThrowable.h"
+#endif
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
@@ -502,9 +504,17 @@ java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
 
 	/* resolve methodinfo pointer from exception object */
 
+#if defined(ENABLE_JAVASE)
 	m = class_resolvemethod(o->vftbl->class,
 							utf_fillInStackTrace,
 							utf_void__java_lang_Throwable);
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+	m = class_resolvemethod(o->vftbl->class,
+							utf_fillInStackTrace,
+							utf_void__void);
+#else
+#error IMPLEMENT ME!
+#endif
 
 	/* call function */
 
@@ -1091,6 +1101,7 @@ return_NULL:
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 classinfo *stacktrace_getCurrentClass(void)
 {
 	stacktracebuffer  *stb;
@@ -1140,6 +1151,7 @@ return_NULL:
 
 	return NULL;
 }
+#endif /* ENABLE_JAVASE */
 
 
 /* stacktrace_getStack *********************************************************
@@ -1240,7 +1252,7 @@ return_NULL:
 
 *******************************************************************************/
 
-static void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
+void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 {
 	stacktrace_entry *ste;
 	methodinfo       *m;
@@ -1338,7 +1350,9 @@ void stacktrace_dump_trace(threadobject *thread)
 void stacktrace_print_trace(java_objectheader *xptr)
 {
 	java_lang_Throwable   *t;
+#if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThrowable *vmt;
+#endif
 	stacktracecontainer   *stc;
 	stacktracebuffer      *stb;
 
@@ -1349,9 +1363,14 @@ void stacktrace_print_trace(java_objectheader *xptr)
 
 	/* now print the stacktrace */
 
+#if defined(WITH_CLASSPATH_GNU)
 	vmt = t->vmState;
 	stc = (stacktracecontainer *) vmt->vmData;
 	stb = &(stc->stb);
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	stc = (stacktracecontainer *) t->backtrace;
+	stb = &(stc->stb);
+#endif
 
 	stacktrace_print_trace_from_buffer(stb);
 }

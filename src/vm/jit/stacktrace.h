@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 5913 2006-11-05 16:58:27Z michi $
+   $Id: stacktrace.h 6248 2006-12-27 22:39:39Z twisti $
 
 */
 
@@ -182,9 +182,12 @@ java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
 
 
 stacktracecontainer *stacktrace_fillInStackTrace(void);
+
+#if defined(ENABLE_JAVASE)
 java_objectarray    *stacktrace_getClassContext(void);
 classinfo           *stacktrace_getCurrentClass(void);
 java_objectarray    *stacktrace_getStack(void);
+#endif
 
 void stacktrace_dump_trace(threadobject *thread);
 void stacktrace_print_trace(java_objectheader *xptr);
