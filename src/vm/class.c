@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: class.c 6216 2006-12-18 18:21:37Z twisti $
+   $Id: class.c 6244 2006-12-27 15:15:31Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "vm/types.h"
@@ -90,13 +91,20 @@ classinfo *class_java_io_Serializable;
 /* system exception classes required in cacao */
 
 classinfo *class_java_lang_Throwable;
-classinfo *class_java_lang_VMThrowable;
 classinfo *class_java_lang_Error;
-classinfo *class_java_lang_AbstractMethodError;
 classinfo *class_java_lang_LinkageError;
 classinfo *class_java_lang_NoClassDefFoundError;
-classinfo *class_java_lang_NoSuchMethodError;
 classinfo *class_java_lang_OutOfMemoryError;
+classinfo *class_java_lang_VirtualMachineError;
+
+#if defined(ENABLE_JAVASE)
+classinfo *class_java_lang_AbstractMethodError;
+classinfo *class_java_lang_NoSuchMethodError;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+classinfo *class_java_lang_VMThrowable;
+#endif
 
 classinfo *class_java_lang_Exception;
 classinfo *class_java_lang_ClassCastException;
@@ -104,7 +112,9 @@ classinfo *class_java_lang_ClassNotFoundException;
 classinfo *class_java_lang_IllegalArgumentException;
 classinfo *class_java_lang_IllegalMonitorStateException;
 
+#if defined(ENABLE_JAVASE)
 classinfo *class_java_lang_Void;
+#endif
 classinfo *class_java_lang_Boolean;
 classinfo *class_java_lang_Byte;
 classinfo *class_java_lang_Character;
@@ -122,12 +132,14 @@ classinfo *class_java_lang_NullPointerException;
 
 /* some classes which may be used more often */
 
+#if defined(ENABLE_JAVASE)
 classinfo *class_java_lang_StackTraceElement;
 classinfo *class_java_lang_reflect_Constructor;
 classinfo *class_java_lang_reflect_Field;
 classinfo *class_java_lang_reflect_Method;
 classinfo *class_java_security_PrivilegedAction;
 classinfo *class_java_util_Vector;
+#endif
 
 classinfo *arrayclass_java_lang_Object;
 
@@ -332,6 +344,7 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 static bool class_load_attribute_enclosingmethod(classbuffer *cb)
 {
 	classinfo             *c;
@@ -383,6 +396,7 @@ static bool class_load_attribute_enclosingmethod(classbuffer *cb)
 
 	return true;
 }
+#endif /* defined(ENABLE_JAVASE) */
 
 
 /* class_load_attributes *******************************************************
@@ -1145,15 +1159,25 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 			goto found;
 	}
 	
-	if (throwexception)
+	if (throwexception) {
+#if defined(ENABLE_JAVASE)
 		exceptions_throw_nosuchmethoderror(c, name, desc);
+#else
+		exceptions_throw_virtualmachineerror();
+#endif
+	}
 
 	return NULL;
 
  found:
 	if ((m->flags & ACC_ABSTRACT) && !(c->flags & ACC_ABSTRACT)) {
-		if (throwexception)
+		if (throwexception) {
+#if defined(ENABLE_JAVASE)
 			exceptions_throw_abstractmethoderror();
+#else
+			exceptions_throw_virtualmachineerror();
+#endif
+		}
 
 		return NULL;
 	}
@@ -1189,19 +1213,23 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 
 	mi = class_resolveinterfacemethod_intern(c, name, desc);
 
-	if (mi)
+	if (mi != NULL)
 		return mi;
 
 	/* try class java.lang.Object */
 
 	mi = class_findmethod(class_java_lang_Object, name, desc);
 
-	if (mi)
+	if (mi != NULL)
 		return mi;
 
-	if (throwexception)
-		*exceptionptr =
-			exceptions_new_nosuchmethoderror(c, name, desc);
+	if (throwexception) {
+#if defined(ENABLE_JAVASE)
+		exceptions_throw_nosuchmethoderror(c, name, desc);
+#else
+		exceptions_throw_virtualmachineerror();
+#endif
+	}
 
 	return NULL;
 }

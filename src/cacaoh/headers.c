@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: headers.c 5989 2006-11-15 18:01:17Z twisti $
+   $Id: headers.c 6244 2006-12-27 15:15:31Z twisti $
 
 */
 
@@ -452,6 +452,13 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 	/* keep compiler happy */
 
 	return NULL;
+}
+
+
+void exceptions_throw_virtualmachineerror(void)
+{
+	fprintf(stderr, "%s", string_java_lang_VirtualMachineError);
+	exit(1);
 }
 
 

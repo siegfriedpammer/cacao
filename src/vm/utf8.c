@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: utf8.c 6228 2006-12-26 19:56:58Z twisti $
+   $Id: utf8.c 6244 2006-12-27 15:15:31Z twisti $
 
 */
 
@@ -82,13 +82,20 @@ utf *utf_java_lang_ThreadGroup;
 utf *utf_java_io_Serializable;
 
 utf *utf_java_lang_Throwable;
-utf *utf_java_lang_VMThrowable;
 utf *utf_java_lang_Error;
-utf *utf_java_lang_AbstractMethodError;
 utf *utf_java_lang_LinkageError;
 utf *utf_java_lang_NoClassDefFoundError;
-utf *utf_java_lang_NoSuchMethodError;
 utf *utf_java_lang_OutOfMemoryError;
+utf *utf_java_lang_VirtualMachineError;
+
+#if defined(ENABLE_JAVASE)
+utf *utf_java_lang_AbstractMethodError;
+utf *utf_java_lang_NoSuchMethodError;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+utf *utf_java_lang_VMThrowable;
+#endif
 
 utf *utf_java_lang_Exception;
 utf *utf_java_lang_ClassCastException;
@@ -98,7 +105,10 @@ utf *utf_java_lang_IllegalMonitorStateException;
 
 utf *utf_java_lang_NullPointerException;
 
+#if defined(ENABLE_JAVASE)
 utf* utf_java_lang_Void;
+#endif
+
 utf* utf_java_lang_Boolean;
 utf* utf_java_lang_Byte;
 utf* utf_java_lang_Character;
@@ -108,11 +118,13 @@ utf* utf_java_lang_Long;
 utf* utf_java_lang_Float;
 utf* utf_java_lang_Double;
 
+#if defined(ENABLE_JAVASE)
 utf *utf_java_lang_StackTraceElement;
 utf *utf_java_lang_reflect_Constructor;
 utf *utf_java_lang_reflect_Field;
 utf *utf_java_lang_reflect_Method;
 utf *utf_java_util_Vector;
+#endif
 
 utf *utf_InnerClasses;                  /* InnerClasses                       */
 utf *utf_ConstantValue;                 /* ConstantValue                      */
@@ -213,11 +225,7 @@ bool utf8_init(void)
 	utf_java_io_Serializable       = utf_new_char("java/io/Serializable");
 
 	utf_java_lang_Throwable        = utf_new_char(string_java_lang_Throwable);
-	utf_java_lang_VMThrowable      = utf_new_char(string_java_lang_VMThrowable);
 	utf_java_lang_Error            = utf_new_char(string_java_lang_Error);
-
-	utf_java_lang_AbstractMethodError =
-		utf_new_char(string_java_lang_AbstractMethodError);
 
 	utf_java_lang_LinkageError =
 		utf_new_char(string_java_lang_LinkageError);
@@ -225,11 +233,23 @@ bool utf8_init(void)
 	utf_java_lang_NoClassDefFoundError =
 		utf_new_char(string_java_lang_NoClassDefFoundError);
 
-	utf_java_lang_NoSuchMethodError =
-		utf_new_char(string_java_lang_NoSuchMethodError);
-
 	utf_java_lang_OutOfMemoryError =
 		utf_new_char(string_java_lang_OutOfMemoryError);
+
+	utf_java_lang_VirtualMachineError =
+		utf_new_char(string_java_lang_VirtualMachineError);
+
+#if defined(ENABLE_JAVASE)
+	utf_java_lang_AbstractMethodError =
+		utf_new_char(string_java_lang_AbstractMethodError);
+
+	utf_java_lang_NoSuchMethodError =
+		utf_new_char(string_java_lang_NoSuchMethodError);
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+	utf_java_lang_VMThrowable      = utf_new_char(string_java_lang_VMThrowable);
+#endif
 
 	utf_java_lang_Exception        = utf_new_char(string_java_lang_Exception);
 
@@ -248,7 +268,10 @@ bool utf8_init(void)
 	utf_java_lang_NullPointerException =
 		utf_new_char(string_java_lang_NullPointerException);
 
+#if defined(ENABLE_JAVASE)
 	utf_java_lang_Void             = utf_new_char("java/lang/Void");
+#endif
+
 	utf_java_lang_Boolean          = utf_new_char("java/lang/Boolean");
 	utf_java_lang_Byte             = utf_new_char("java/lang/Byte");
 	utf_java_lang_Character        = utf_new_char("java/lang/Character");
@@ -258,6 +281,7 @@ bool utf8_init(void)
 	utf_java_lang_Float            = utf_new_char("java/lang/Float");
 	utf_java_lang_Double           = utf_new_char("java/lang/Double");
 
+#if defined(ENABLE_JAVASE)
 	utf_java_lang_StackTraceElement =
 		utf_new_char("java/lang/StackTraceElement");
 
@@ -267,6 +291,7 @@ bool utf8_init(void)
 	utf_java_lang_reflect_Field    = utf_new_char("java/lang/reflect/Field");
 	utf_java_lang_reflect_Method   = utf_new_char("java/lang/reflect/Method");
 	utf_java_util_Vector           = utf_new_char("java/util/Vector");
+#endif
 
 	utf_InnerClasses               = utf_new_char("InnerClasses");
 	utf_ConstantValue              = utf_new_char("ConstantValue");

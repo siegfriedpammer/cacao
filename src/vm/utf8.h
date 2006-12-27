@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: utf8.h 6228 2006-12-26 19:56:58Z twisti $
+   $Id: utf8.h 6244 2006-12-27 15:15:31Z twisti $
 
 */
 
@@ -74,13 +74,20 @@ extern utf *utf_java_lang_ThreadGroup;
 extern utf *utf_java_io_Serializable;
 
 extern utf *utf_java_lang_Throwable;
-extern utf *utf_java_lang_VMThrowable;
 extern utf *utf_java_lang_Error;
-extern utf *utf_java_lang_AbstractMethodError;
 extern utf *utf_java_lang_LinkageError;
 extern utf *utf_java_lang_NoClassDefFoundError;
-extern utf *utf_java_lang_NoSuchMethodError;
 extern utf *utf_java_lang_OutOfMemoryError;
+extern utf *utf_java_lang_VirtualMachineError;
+
+#if defined(ENABLE_JAVASE)
+extern utf *utf_java_lang_AbstractMethodError;
+extern utf *utf_java_lang_NoSuchMethodError;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+extern utf *utf_java_lang_VMThrowable;
+#endif
 
 extern utf *utf_java_lang_Exception;
 extern utf *utf_java_lang_ClassCastException;
@@ -90,7 +97,10 @@ extern utf *utf_java_lang_IllegalMonitorStateException;
 
 extern utf *utf_java_lang_NullPointerException;
 
+#if defined(ENABLE_JAVASE)
 extern utf* utf_java_lang_Void;
+#endif
+
 extern utf* utf_java_lang_Boolean;
 extern utf* utf_java_lang_Byte;
 extern utf* utf_java_lang_Character;
@@ -100,12 +110,13 @@ extern utf* utf_java_lang_Long;
 extern utf* utf_java_lang_Float;
 extern utf* utf_java_lang_Double;
 
+#if defined(ENABLE_JAVASE)
 extern utf *utf_java_lang_StackTraceElement;
 extern utf *utf_java_lang_reflect_Constructor;
 extern utf *utf_java_lang_reflect_Field;
 extern utf *utf_java_lang_reflect_Method;
 extern utf *utf_java_util_Vector;
-
+#endif
 
 extern utf *utf_InnerClasses;
 extern utf *utf_ConstantValue;

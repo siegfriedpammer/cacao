@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 5768 2006-10-13 12:47:03Z edwin $
+   $Id: resolve.c 6244 2006-12-27 15:15:31Z twisti $
 
 */
 
@@ -1440,8 +1440,12 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 									 mi->descriptor);
 
 			if (mi == NULL) {
+#if defined(ENABLE_JAVASE)
 				/* the spec calls for an AbstractMethodError in this case */
 				exceptions_throw_abstractmethoderror();
+#else
+				exceptions_throw_virtualmachineerror();
+#endif
 				return NULL;
 			}
 		}

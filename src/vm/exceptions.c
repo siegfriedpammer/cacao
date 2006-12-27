@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: exceptions.c 6240 2006-12-26 23:41:34Z twisti $
+   $Id: exceptions.c 6244 2006-12-27 15:15:31Z twisti $
 
 */
 
@@ -125,6 +125,13 @@ bool exceptions_init(void)
 	if (!(class_java_lang_OutOfMemoryError =
 		  load_class_bootstrap(utf_java_lang_OutOfMemoryError)) ||
 		!link_class(class_java_lang_OutOfMemoryError))
+		return false;
+
+	/* java/lang/VirtualMachineError */
+
+	if (!(class_java_lang_VirtualMachineError =
+		  load_class_bootstrap(utf_java_lang_VirtualMachineError)) ||
+		!link_class(class_java_lang_VirtualMachineError))
 		return false;
 
 
@@ -517,6 +524,7 @@ java_objectheader *new_exception_int(const char *classname, s4 i)
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 java_objectheader *exceptions_new_abstractmethoderror(void)
 {
 	java_objectheader *e;
@@ -528,6 +536,7 @@ java_objectheader *exceptions_new_abstractmethoderror(void)
 
 	return e;
 }
+#endif
 
 
 /* exceptions_asm_new_abstractmethoderror **************************************
@@ -537,6 +546,7 @@ java_objectheader *exceptions_new_abstractmethoderror(void)
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 {
 	stackframeinfo     sfi;
@@ -556,6 +566,7 @@ java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 
 	return e;
 }
+#endif
 
 
 /* exceptions_throw_abstractmethoderror ****************************************
@@ -564,10 +575,12 @@ java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 void exceptions_throw_abstractmethoderror(void)
 {
 	*exceptionptr = exceptions_new_abstractmethoderror();
 }
+#endif
 
 
 /* new_classformaterror ********************************************************
@@ -896,6 +909,7 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 													utf *name, utf *desc)
 {
@@ -926,11 +940,12 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 
 	MFREE(msg, char, msglen);
 
-	if (!o)
+	if (o == NULL)
 		return *exceptionptr;
 
 	return o;
 }
+#endif
 
 
 /* exceptions_throw_nosuchmethoderror ******************************************
@@ -944,10 +959,12 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 {
 	*exceptionptr = exceptions_new_nosuchmethoderror(c, name, desc);
 }
+#endif
 
 
 /* new_unsupportedclassversionerror ********************************************
@@ -1162,6 +1179,37 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 	MFREE(msg, char, msglen);
 
 	*exceptionptr = o;
+}
+
+
+/* exceptions_new_virtualmachineerror ******************************************
+
+   Generates a java.lang.VirtualMachineError for the VM system.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_new_virtualmachineerror(void)
+{
+	java_objectheader *e;
+
+	e = native_new_and_init(class_java_lang_VirtualMachineError);
+
+	if (e == NULL)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* exceptions_throw_virtualmachineerror ****************************************
+
+   Throws a java.lang.VirtualMachineError for the VM system.
+
+*******************************************************************************/
+
+void exceptions_throw_virtualmachineerror(void)
+{
+	*exceptionptr = exceptions_new_virtualmachineerror();
 }
 
 

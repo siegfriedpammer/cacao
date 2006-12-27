@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: class.h 6213 2006-12-18 17:36:06Z twisti $
+   $Id: class.h 6244 2006-12-27 15:15:31Z twisti $
 
 */
 
@@ -45,6 +45,13 @@ typedef struct extra_classref extra_classref;
 #include "vm/types.h"
 
 #include "vm/global.h"                  /* define java_objectheader for j.l.C */
+
+#include "native/jni.h"
+
+#if defined(ENABLE_JAVAME_CLDC1_1)
+# include "native/include/java_lang_String.h"
+#endif
+
 #include "native/include/java_lang_Class.h"
 
 #include "toolbox/list.h"
@@ -187,13 +194,20 @@ extern classinfo *class_java_io_Serializable;
 /* system exception classes required in cacao */
 
 extern classinfo *class_java_lang_Throwable;
-extern classinfo *class_java_lang_VMThrowable;
 extern classinfo *class_java_lang_Error;
-extern classinfo *class_java_lang_AbstractMethodError;
 extern classinfo *class_java_lang_LinkageError;
 extern classinfo *class_java_lang_NoClassDefFoundError;
-extern classinfo *class_java_lang_NoSuchMethodError;
 extern classinfo *class_java_lang_OutOfMemoryError;
+extern classinfo *class_java_lang_VirtualMachineError;
+
+#if defined(ENABLE_JAVASE)
+extern classinfo *class_java_lang_AbstractMethodError;
+extern classinfo *class_java_lang_NoSuchMethodError;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+extern classinfo *class_java_lang_VMThrowable;
+#endif
 
 extern classinfo *class_java_lang_Exception;
 extern classinfo *class_java_lang_ClassCastException;
@@ -202,7 +216,10 @@ extern classinfo *class_java_lang_IllegalArgumentException;
 extern classinfo *class_java_lang_IllegalMonitorStateException;
 
 
+#if defined(ENABLE_JAVASE)
 extern classinfo *class_java_lang_Void;
+#endif
+
 extern classinfo *class_java_lang_Boolean;
 extern classinfo *class_java_lang_Byte;
 extern classinfo *class_java_lang_Character;
@@ -220,12 +237,14 @@ extern classinfo *class_java_lang_NullPointerException;
 
 /* some classes which may be used more often */
 
+#if defined(ENABLE_JAVASE)
 extern classinfo *class_java_lang_StackTraceElement;
 extern classinfo *class_java_lang_reflect_Constructor;
 extern classinfo *class_java_lang_reflect_Field;
 extern classinfo *class_java_lang_reflect_Method;
 extern classinfo *class_java_security_PrivilegedAction;
 extern classinfo *class_java_util_Vector;
+#endif
 
 extern classinfo *arrayclass_java_lang_Object;
 

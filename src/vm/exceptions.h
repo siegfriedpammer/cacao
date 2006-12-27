@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: exceptions.h 6240 2006-12-26 23:41:34Z twisti $
+   $Id: exceptions.h 6244 2006-12-27 15:15:31Z twisti $
 
 */
 
@@ -122,9 +122,11 @@ java_objectheader *new_exception_int(const char *classname, s4 i);
 
 /* functions to generate compiler exceptions */
 
+#if defined(ENABLE_JAVASE)
 java_objectheader *exceptions_new_abstractmethoderror(void);
 java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
 void exceptions_throw_abstractmethoderror(void);
+#endif
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
@@ -132,9 +134,12 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
 java_objectheader *new_classnotfoundexception(utf *name);
 java_objectheader *new_noclassdeffounderror(utf *name);
 java_objectheader *exceptions_new_linkageerror(const char *message,classinfo *c);
+
+#if defined(ENABLE_JAVASE)
 java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 													utf *name, utf *desc);
 void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc);
+#endif
 
 java_objectheader *new_internalerror(const char *message, ...);
 void exceptions_throw_internalerror(const char *message, ...);
@@ -143,6 +148,9 @@ java_objectheader *exceptions_new_verifyerror(methodinfo *m,
 											  const char *message, ...);
 void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
 void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
+
+java_objectheader *exceptions_new_virtualmachineerror(void);
+void               exceptions_throw_virtualmachineerror(void);
 
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,
 													const char *message, ...);
