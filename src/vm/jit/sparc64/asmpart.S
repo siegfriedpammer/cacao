@@ -144,7 +144,10 @@ calljava_copyloop:
 	bnz %xcc, calljava_copyloop
 
 calljava_nocopy:
-
+	/* set pv, like a java method does */
+	/*	add  ra_caller,(asm_vm_call_method - calljava_nocopy + 8),pv_callee */
+	setx  asm_vm_call_method,%l0,pv_callee
+	
 	mov   %i0,itmp1		/* pass method info pointer via itmp1 */
 	
 	setx  asm_call_jit_compiler,%l0,mptr_itmp2  /* fake virtual function call (2 instr) */
@@ -156,7 +159,7 @@ calljava_nocopy:
 	nop
 calljava_jit2:
 	/* pretend to restore pv */
-	add  ra_caller,(asm_vm_call_method - calljava_jit2 + 8),pv_callee
+	add  ra_caller,(asm_vm_call_method - calljava_jit2 + 8),zero
 	
 calljava_return:
 	mov %o0, %i0		/* pass on the return value	*/
@@ -166,7 +169,11 @@ calljava_return:
 
 asm_vm_call_method_exception_handler:
 	
-	mov		itmp1,%o0
+	/* so far this function did not call any c functions */
+	/* but now we need ABI compliant argslots on the stack */
+	sub   %sp,6*8,%sp
+	
+	mov		xptr_itmp2,%o0
 	call	builtin_throw_exception
 	nop
 	return 	%i7 + 8         		 /* implicit window restore */
@@ -326,7 +333,7 @@ L_asm_handle_exception_not_caught:
 	
 	restore                             /* unwind stack and window            */
 	ba      L_asm_handle_exception_stack_loop
-	mov     xpc_itmp3,ra_caller         /* the new xpc is ra (delay)          */
+	mov     ra_caller,xpc_itmp3         /* the new xpc is ra (delay)          */
 	
 
 
@@ -396,6 +403,7 @@ asm_patcher_wrapper:
 	mov     %l1,itmp2               /* restore itmp2                          */
 
 	brnz    %o0,L_asm_patcher_wrapper_exception
+	nop
 
 	/* load RA (patch position from patcher data on the stack */
 	ldx     [%fp+USESTACK+5*8],itmp3
@@ -404,9 +412,10 @@ asm_patcher_wrapper:
 	restore  %fp,6*8,%sp /* (source regs refer to old window, rd to new window)  */
 
 	jmpl     itmp3,zero              /* jump to newly patched code               */
+	nop
 
 L_asm_patcher_wrapper_exception:
-	mov      itmp3,xptr_itmp2      /* get exception                            */
+	mov      %o0,xptr_itmp2        /* get exception                            */
 	ldx      [%fp+USESTACK+5*8],xpc_itmp3 /* xpc is RA                         */
 	restore  %fp,6*8,%sp           /* remove stack frame                       */
 	ba       asm_handle_exception
@@ -424,7 +433,8 @@ _crit_end:
 	stw     itmp1,[offcast_super_baseval+%o2]
 	stw     itmp2,[offcast_super_diffval+%o2]
 	stw     itmp3,[offcast_sub_baseval+%o2]
-	jmpl    ra_caller,zero  /* caller's ra, b/c no window save */
+	jmpl    ra_caller+8,zero  /* caller's ra, b/c no window save */
+	nop
 
 	.end    asm_getclassvalues_atomic
 

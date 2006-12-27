@@ -337,17 +337,17 @@ bool codegen(jitdata *jd)
 		} else {
 #endif
 		while (len) {
-				len--;
+			len--;
 			var = VAR(bptr->invars[len]);
 			if ((len == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
 				d = codegen_reg_of_var(0, var, REG_ITMP1);
-					M_INTMOVE(REG_ITMP1, d);
+				M_INTMOVE(REG_ITMP1, d);
 				emit_store(jd, NULL, var, d);
-							}
+			}
 			else {
 				assert((var->flags & INOUT));
-						}
-					}
+			}
+		}
 #if defined(ENABLE_LSRA)
 		}
 #endif
@@ -1777,18 +1777,15 @@ bool codegen(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_athrow_areturn,
-									iptr->sx.s23.s2.uc, 0);
+				uc = iptr->sx.s23.s2.uc;
 
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP;
-				}
+				codegen_add_patch_ref(cd, PATCHER_athrow_areturn, uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
 
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_ALD(REG_ITMP2, REG_PV, disp);
-			M_JMP(REG_ITMP3_XPC, REG_ITMP2, REG_ZERO);
+			M_ALD(REG_ITMP1, REG_PV, disp);
+			M_JMP(REG_ITMP3_XPC, REG_ITMP1, REG_ZERO);
 			M_NOP;
 			M_NOP;              /* nop ensures that XPC is less than the end */
 			                    /* of basic block                            */
@@ -3083,17 +3080,23 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* check for exception */
 
 	M_BNEZ(REG_ITMP2_XPTR, 4);          /* if no exception then return        */
+	M_NOP;
+
+	M_RETURN(REG_RA_CALLEE, 8); /* implicit window restore */
+	M_NOP;
+#if 0	
 	M_RESTORE(REG_ZERO, 0, REG_ZERO);   /* restore callers window (DELAY)     */
 
 	M_RET(REG_RA_CALLER, 8);            /* return to caller                   */
 	M_NOP;                              /* DELAY SLOT                         */
+#endif
 
 	/* handle exception */
 	
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
 	M_JMP(REG_ZERO, REG_ITMP3, REG_ZERO);/* jump to asm exception handler     */
-	M_MOV(REG_RA_CALLER, REG_ITMP3_XPC); /* get exception address (DELAY)    */
+	M_MOV(REG_RA_CALLEE, REG_ITMP3_XPC); /* get exception address (DELAY)    */
 
 	/* generate patcher stubs */
 
