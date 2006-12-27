@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: threads.c 6251 2006-12-27 23:15:56Z twisti $
+   $Id: threads.c 6252 2006-12-27 23:42:37Z twisti $
 
 */
 
@@ -705,7 +705,7 @@ bool threads_init(void)
 	threadobject          *tempthread;
 	java_objectheader     *o;
 
-#if defined(ENABLE_JAVSE)
+#if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *threadgroup;
 	methodinfo            *m;
 	java_lang_Thread      *t;

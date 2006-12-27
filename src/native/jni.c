@@ -26,13 +26,12 @@
 
    Authors: Rainhard Grafl
             Roman Obermaisser
-
-   Changes: Joseph Wenninger
+            Joseph Wenninger
             Martin Platter
             Christian Thalinger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: jni.c 6011 2006-11-16 15:56:44Z twisti $
+   $Id: jni.c 6252 2006-12-27 23:42:37Z twisti $
 
 */
 
@@ -71,6 +70,7 @@
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Field.h"
 
+#include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_Class.h" /* for java_lang_VMClass.h */
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMClassLoader.h"

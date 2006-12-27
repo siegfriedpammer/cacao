@@ -30,7 +30,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: java_lang_VMRuntime.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: java_lang_VMRuntime.c 6252 2006-12-27 23:42:37Z twisti $
 
 */
 
@@ -58,6 +58,7 @@
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_io_File.h"
+#include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Process.h"
 #include "toolbox/logging.h"
