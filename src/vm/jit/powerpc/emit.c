@@ -589,9 +589,9 @@ void emit_replacement_stubs(jitdata *jd)
 
 *******************************************************************************/
 
-#if !defined(NDEBUG)
 void emit_verbosecall_enter(jitdata *jd)
 {
+#if !defined(NDEBUG)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
@@ -599,6 +599,9 @@ void emit_verbosecall_enter(jitdata *jd)
 	int stack_off;
 	int stack_size;
 	methoddesc *md;
+
+	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		return;
 
 	/* get required compiler data */
 
@@ -794,8 +797,8 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* mark trace code */
 
 	M_NOP;
-}
 #endif /* !defined(NDEBUG) */
+}
 
 
 /* emit_verbosecall_exit *******************************************************
@@ -804,14 +807,17 @@ void emit_verbosecall_enter(jitdata *jd)
 
 *******************************************************************************/
 
-#if !defined(NDEBUG)
 void emit_verbosecall_exit(jitdata *jd)
 {
+#if !defined(NDEBUG)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
 	s4            disp;
+
+	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		return;
 
 	/* get required compiler data */
 
@@ -881,8 +887,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	/* mark trace code */
 
 	M_NOP;
-}
 #endif /* !defined(NDEBUG) */
+}
 
 
 /*

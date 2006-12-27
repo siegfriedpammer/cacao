@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6166 2006-12-10 22:17:03Z twisti $
+   $Id: codegen.c 6250 2006-12-27 23:05:05Z twisti $
 
 */
 
@@ -390,8 +390,7 @@ bool codegen(jitdata *jd)
 
 	/* call trace function */
 
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
+	emit_verbosecall_enter(jd);
 	}
 
 	/* end of header generation */
@@ -2298,8 +2297,7 @@ nowperformreturn:
 
 			/* call trace function */
 
-			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-				emit_verbosecall_exit(jd);
+			emit_verbosecall_exit(jd);
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
@@ -3170,9 +3168,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STWU(REG_SP, REG_SP, -(cd->stackframesize * 4));
 
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
-
 	/* get function address (this must happen before the stackframeinfo) */
 
 	funcdisp = dseg_add_functionptr(cd, f);
@@ -3181,6 +3176,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	if (f == NULL)
 		codegen_addpatchref(cd, PATCHER_resolve_native_function, m, funcdisp);
 #endif
+
+	/* emit trace code */
+
+	emit_verbosecall_enter(jd);
 
 	/* save integer and float argument registers */
 
@@ -3344,8 +3343,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* print call trace */
 
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_exit(jd);
+	emit_verbosecall_exit(jd);
 
 	/* save return value */
 
