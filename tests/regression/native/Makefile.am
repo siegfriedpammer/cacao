@@ -26,14 +26,20 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6247 2006-12-27 22:31:52Z twisti $
+## $Id: Makefile.am 6257 2006-12-28 13:43:06Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
 
 JAVA      = $(top_builddir)/src/cacao/cacao
+
+if WITH_CLASSPATH_GNU
 JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
+else
+JAVAFLAGS = -Xbootclasspath:$(CLASSPATH_CLASSES)
+endif
+
 JAVAH     = $(top_builddir)/src/cacaoh/cacaoh
 
 SOURCE_FILES = \

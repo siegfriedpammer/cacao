@@ -32,7 +32,12 @@
 ## Process this file with automake to produce Makefile.in
 
 JAVA      = $(top_builddir)/src/cacao/cacao
+
+if WITH_CLASSPATH_GNU
 JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
+else
+JAVAFLAGS = -Xbootclasspath:$(CLASSPATH_CLASSES)
+endif
 
 JASMIN_TESTS = \
 	$(srcdir)/test_coalesce_simple_store.j \
