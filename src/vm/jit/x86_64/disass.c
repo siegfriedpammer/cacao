@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: disass.c 6259 2006-12-28 20:50:14Z twisti $
 
 */
 
@@ -43,30 +43,6 @@
 
 #include "vm/global.h"
 #include "vm/jit/disass.h"
-
-
-/* global variables ***********************************************************/
-
-/* name table for 16 integer registers */
-
-char *regs[] = {
-	"rax",
-	"rcx",
-	"rdx",
-	"rbx",
-	"rsp",
-	"rbp",
-	"rsi",
-	"rdi",
-    "r8",
-    "r9",
-    "r10",
-    "r11",
-    "r12",
-    "r13",
-    "r14",
-    "r15"
-};
 
 
 /* disassinstr *****************************************************************

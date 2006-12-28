@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
+   $Id: md-abi.c 6259 2006-12-28 20:50:14Z twisti $
 
 */
 
@@ -48,6 +46,11 @@ s4 nregdescint[] = {
     REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
     REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
     REG_END
+};
+
+char *regs[] = {
+	"rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
+	"r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15"
 };
 
 
