@@ -93,13 +93,13 @@ extern  _LIB_VERSION_TYPE  _LIB_VERSION;
 #define _XOPEN_ fdlibm_xopen
 #define _POSIX_ fdlibm_posix
 
-struct exception {
-	int type;
-	char *name;
-	double arg1;
-	double arg2;
-	double retval;
-};
+/* struct exception { */
+/* 	int type; */
+/* 	char *name; */
+/* 	double arg1; */
+/* 	double arg2; */
+/* 	double retval; */
+/* }; */
 
 #define	HUGE		MAXFLOAT
 
@@ -186,7 +186,7 @@ extern double scalb __P((double, int));
 extern double scalb __P((double, double));
 #endif
 
-extern int matherr __P((struct exception *));
+/* extern int matherr __P((struct exception *)); */
 
 /*
  * IEEE Test Vector
