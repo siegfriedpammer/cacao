@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6243 2006-12-27 13:56:31Z twisti $
+## $Id: Makefile.am 6258 2006-12-28 15:38:58Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,7 +41,6 @@ NO_GEN_JAVASE_HEADER_FILES = \
 	java_lang_ClassLoader.h \
 	java_lang_Cloneable.h \
 	java_lang_ThreadGroup.h \
-	java_lang_VMObject.h \
 	java_lang_VMThread.h \
 	java_lang_VMThrowable.h \
 	java_util_Properties.h
@@ -67,6 +66,7 @@ JAVASE_HEADER_FILES = \
 	java_io_File.h \
 	java_lang_Process.h \
 	java_lang_StackTraceElement.h \
+	java_lang_VMObject.h \
 	java_lang_reflect_Constructor.h \
 	java_lang_reflect_Field.h \
 	java_lang_reflect_Method.h \

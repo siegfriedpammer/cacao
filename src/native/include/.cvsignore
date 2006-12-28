@@ -27,6 +27,7 @@ java_lang_Short.h
 java_lang_StackTraceElement.h
 java_lang_VMClass.h
 java_lang_VMClassLoader.h
+java_lang_VMObject.h
 java_lang_VMRuntime.h
 java_lang_VMString.h
 java_lang_VMSystem.h
