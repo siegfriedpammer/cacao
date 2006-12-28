@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: threads.c 6253 2006-12-27 23:54:44Z twisti $
+   $Id: threads.c 6254 2006-12-28 00:19:16Z twisti $
 
 */
 
@@ -1271,12 +1271,12 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	threadobject          *thread;
 	utf                   *u;
 	java_lang_String      *s;
-	methodinfo            *m;
 	java_objectheader     *o;
 	java_lang_Thread      *t;
 
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *group;
+	methodinfo            *m;
 #endif
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -1400,12 +1400,11 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 bool threads_detach_thread(threadobject *thread)
 {
+#if defined(ENABLE_JAVASE)
+	java_lang_ThreadGroup *group;
 	methodinfo            *m;
 	java_objectheader     *o;
 	java_lang_Thread      *t;
-
-#if defined(ENABLE_JAVASE)
-	java_lang_ThreadGroup *group;
 #endif
 
 	/* Allow lock record pools to be used by other threads. They
@@ -1483,7 +1482,7 @@ bool threads_detach_thread(threadobject *thread)
 static threadobject *threads_find_non_daemon_thread(threadobject *thread)
 {
 	while (thread != mainthreadobj) {
-		if (thread->flags & THREAD_FLAG_DAEMON)
+		if (!(thread->flags & THREAD_FLAG_DAEMON))
 			return thread;
 
 		thread = thread->prev;
