@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: memory.c 6219 2006-12-19 19:20:37Z twisti $
+   $Id: memory.c 6256 2006-12-28 12:30:09Z twisti $
 
 */
 
@@ -135,37 +135,44 @@ bool memory_init(void)
 }
 
 
+/* memory_mmap_anon ************************************************************
+
+   Maps anonymous memory, even on systems not defining
+   MAP_ANON(YMOUS).
+
+*******************************************************************************/
+
 void *memory_mmap_anon(void *addr, size_t len, int prot, int flags)
 {
 	void *p;
 
 #if defined(MAP_ANON) || defined(MAP_ANONYMOUS)
-		p = mmap(addr, len, prot,
+	p = mmap(addr, len, prot,
 # if defined(MAP_ANON)
-				 MAP_ANON | flags,
+			 MAP_ANON | flags,
 # else
-				 MAP_ANONYMOUS | flags,
+			 MAP_ANONYMOUS | flags,
 # endif
-				 -1, 0);
+			 -1, 0);
 #else
-		int fd;
+	int fd;
 
-		fd = open("/dev/zero", O_RDONLY, 0);
+	fd = open("/dev/zero", O_RDONLY, 0);
 
-		if (fd == -1)
-			vm_abort("memory_mmap_anon: mmap failed: %s", strerror(errno));
+	if (fd == -1)
+		vm_abort("memory_mmap_anon: open failed: %s", strerror(errno));
 
-		p = mmap(addr, len, prot, flags, fd, 0);
+	p = mmap(addr, len, prot, flags, fd, 0);
 #endif
 
 #if defined(MAP_FAILED)
-		if (p == MAP_FAILED)
+	if (p == MAP_FAILED)
 #else
-		if (p == (void *) -1)
+	if (p == (void *) -1)
 #endif
-			vm_abort("memory_mmap_anon: mmap failed: %s", strerror(errno));
+		vm_abort("memory_mmap_anon: mmap failed: %s", strerror(errno));
 
-		return p;
+	return p;
 }
 
 

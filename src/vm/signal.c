@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: signal.c 6219 2006-12-19 19:20:37Z twisti $
+   $Id: signal.c 6256 2006-12-28 12:30:09Z twisti $
 
 */
 
@@ -74,7 +74,6 @@ void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p);
 void signal_init(void)
 {
 #if !defined(__CYGWIN__)
-	void            *p;
 	int              pagesize;
 	struct sigaction act;
 
