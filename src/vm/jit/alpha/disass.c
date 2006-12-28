@@ -26,17 +26,21 @@
 
    Authors: Andreas Krall
             Reinhard Grafl
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: disass.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: disass.c 6261 2006-12-28 21:21:08Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
 #include "vm/types.h"
+
+#include "vm/global.h"
+#include "vm/jit/disass.h"
 
 
 /*  The disassembler uses two tables for decoding the instructions. The first
@@ -240,47 +244,6 @@ static struct { u2 op, fun; char *name; }  op3s[] = {
 	{ 0x1c, 0x1,   "wsext  " },
 	
 	{ 0x00, 0x00,  NULL }
-};
-
-
-/* name table for 32 integer registers                                        */
-
-char *regs[] = {
-	/* 0x00 */  "v0",   /*  "$0", */
-	/* 0x01 */  "t0",   /*  "$1", */
-	/* 0x02 */  "t1",   /*  "$2", */
-	/* 0x03 */  "t2",   /*  "$3", */
-	/* 0x04 */  "t3",   /*  "$4", */
-	/* 0x05 */  "t4",   /*  "$5", */
-	/* 0x06 */  "t5",   /*  "$6", */
-	/* 0x07 */  "t6",   /*  "$7", */
-
-	/* 0x08 */  "t7",   /*  "$8", */
-	/* 0x09 */  "s0",   /*  "$9", */
-	/* 0x0a */  "s1",   /* "$10", */
-	/* 0x0b */  "s2",   /* "$11", */
-	/* 0x0c */  "s3",   /* "$12", */
-	/* 0x0d */  "s4",   /* "$13", */
-	/* 0x0e */  "s5",   /* "$14", */
-	/* 0x0f */  "s6",   /* "$15", */
-
-	/* 0x10 */  "a0",   /* "$16", */
-	/* 0x11 */  "a1",   /* "$17", */
-	/* 0x12 */  "a2",   /* "$18", */
-	/* 0x13 */  "a3",   /* "$19", */
-	/* 0x14 */  "a4",   /* "$20", */
-	/* 0x15 */  "a5",   /* "$21", */
-	/* 0x16 */  "t8",   /* "$22", */
-	/* 0x17 */  "t9",   /* "$23", */
-
-	/* 0x18 */  "t10",  /* "$24", */
-	/* 0x19 */  "t11",  /* "$25", */
-	/* 0x1a */  "ra",   /* "$26", */
-	/* 0x1b */  "pv",   /* "$27", */
-	/* 0x1c */  "at",   /* "$28", */
-	/* 0x1d */  "gp",   /* "$29", */
-	/* 0x1e */  "sp",   /* "$30", */
-	/* 0x1f */  "zero"  /* "$31"  */
 };
 
 

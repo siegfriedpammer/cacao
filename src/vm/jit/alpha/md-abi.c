@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Thalinger
+            Christian Ullrich
 
-   Changes: Christian Ullrich
-
-   $Id: md-abi.c 5635 2006-10-02 16:36:54Z christian $
+   $Id: md-abi.c 6261 2006-12-28 21:21:08Z twisti $
 
 */
 
@@ -60,6 +59,14 @@ s4 nregdescint[] = {
 
 	REG_END
 };
+
+char *regs[] = {
+	"v0",  "t0",  "t1",  "t2",  "t3",  "t4",  "t5",  "t6",
+	"t7",  "s0",  "s1",  "s2",  "s3",  "s4",  "s5",  "s6",
+	"a0",  "a1",  "a2",  "a3",  "a4",  "a5",  "t8",  "t9",
+	"t10", "t11", "ra",  "pv",  "at",  "gp",  "sp",  "zero"
+};
+
 
 s4 nregdescfloat[] = {
 	REG_RET, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
