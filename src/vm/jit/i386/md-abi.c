@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-abi.c 5115 2006-07-12 14:55:04Z twisti $
+   $Id: md-abi.c 6260 2006-12-28 20:56:09Z twisti $
 
 */
 
@@ -49,6 +49,11 @@ s4 nregdescint[] = {
     REG_RET, REG_RES, REG_RES, REG_TMP, REG_RES, REG_SAV, REG_SAV, REG_SAV,
     REG_END
 };
+
+char *regs[] = {
+	"eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"
+};
+
 
 
 s4 nregdescfloat[] = {

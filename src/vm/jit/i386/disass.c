@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4843 2006-04-25 17:57:56Z edwin $
+   $Id: disass.c 6260 2006-12-28 20:56:09Z twisti $
 
 */
 
@@ -44,18 +44,6 @@
 
 #include "vm/global.h"
 #include "vm/jit/disass.h"
-
-
-char *regs[] = {
-	"eax",
-	"ecx",
-	"edx",
-	"ebx",
-	"esp",
-	"ebp",
-	"esi",
-	"edi"
-};
 
 
 /* disassinstr *****************************************************************
