@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6211 2006-12-16 22:53:24Z edwin $
+   $Id: inline.c 6262 2006-12-31 17:57:22Z edwin $
 
 */
 
@@ -1956,7 +1956,7 @@ static bool test_inlining(inline_node *iln, jitdata *jd)
 
 	inline_interface_variables(iln);
 
-#if defined(ENABLE_VERIFIER) && !defined(NDEBUG)
+#if defined(ENABLE_VERIFIER) && !defined(NDEBUG) && 0
 	if (debug_verify_inlined_code) {
 		debug_verify_inlined_code = 0;
 		DOLOG( printf("VERIFYING INLINED RESULT...\n"); fflush(stdout); );
