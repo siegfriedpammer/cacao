@@ -1,6 +1,6 @@
-## src/vm/jit/parisc/Makefile.am
+## src/vm/jit/parisc/linux/Makefile.am
 ##
-## Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -26,62 +26,19 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 4826 2006-04-24 16:06:16Z twisti $
+## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-DIST_SUBDIRS = \
-	linux
-
-SUBDIRS = $(OS_DIR)
-
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
-AM_CCASFLAGS = $(AM_CPPFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 LIBS =
 
-#BUILT_SOURCES = offsets.h
+noinst_HEADERS =
 
-#CLEANFILES = offsets.h
+noinst_LTLIBRARIES =
 
-noinst_HEADERS = \
-	arch.h
-
-#foo = \
-	machine-instr.h \
-	\
-	md-asm.h
-
-noinst_LTLIBRARIES = libarch.la
-
-#if ENABLE_DISASSEMBLER
-#DISASS_SOURCES = \
-	disass.c
-#endif
-
-libarch_la_SOURCES = \
-	md.c
-
-#foo = \
-	asmpart.S \
-	codegen.c \
-	codegen.h \
-	$(DISASS_SOURCES) \
-	emit.c \
-	patcher.c \
-	\
-	md-abi.c \
-	md-abi.h \
-	md.c \
-	md.h
-
-#libarch_la_LIBADD = \
-	$(OS_DIR)/libmd.la
-
-#$(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
-
-#offsets.h: $(top_builddir)/src/vm/jit/tools/genoffsets $(top_builddir)/config.h
-	$(top_builddir)/src/vm/jit/tools/genoffsets > offsets.h
+libmd_la_SOURCES =
 
 
 ## Local variables:
