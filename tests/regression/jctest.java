@@ -1,6 +1,6 @@
 /* tests/jctest.java - checks most of the JVM instructions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    TU Wien
@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: jctest.java 5683 2006-10-04 23:08:33Z edwin $
+   $Id: jctest.java 6263 2007-01-02 16:20:45Z twisti $
 
 */
 
@@ -1494,29 +1493,76 @@ public class jctest implements jcinterface {
     }
 
     public static void p(String a) { System.out.print(a); pnl(); }
-    public static void p(boolean a) {System.out.print(a); 
-    pnl();  }
-    public static void p(int a) { System.out.print ("int: ");
-    System.out.print(a); 
-    pnl();  }
-    public static void p(long a) { System.out.print ("long: ");
-    System.out.print(a); 
-    pnl(); }
-    public static void p(short a) { System.out.print ("short: ");
-    System.out.print(a); 
-    pnl(); }
-    public static void p(byte a) { System.out.print ("byte: ");
-    System.out.print(a); 
-    pnl(); }
-    public static void p(char a) { System.out.print ("char: ");
-    System.out.print((int) a); 
-    pnl(); }
-    public static void p(float a) { System.out.print ("float: ");
-    System.out.print ( java.lang.Float.floatToIntBits(a) ); 
-    pnl(); }
-    public static void p(double a) { System.out.print ("double: ");
-    System.out.print( java.lang.Double.doubleToLongBits(a) ); 
-    pnl(); }
+
+    public static void p(boolean a) {
+        System.out.print(a);
+        pnl();
+    }
+
+    public static void p(byte a) {
+        System.out.print("byte: ");
+        System.out.print(a);
+        System.out.print(" (0x");
+        System.out.print(Integer.toHexString(a));
+        System.out.print(")");
+        pnl();
+    }
+
+    public static void p(char a) {
+        System.out.print("char: ");
+        System.out.print((int) a);
+        System.out.print(" (0x");
+        System.out.print(Integer.toHexString((int) a));
+        System.out.print(")");
+        pnl();
+    }
+
+    public static void p(short a) {
+        System.out.print("short: ");
+        System.out.print(a);
+        System.out.print(" (0x");
+        System.out.print(Integer.toHexString(a));
+        System.out.print(")");
+        pnl();
+    }
+
+    public static void p(int a) {
+        System.out.print ("int: ");
+        System.out.print(a);
+        System.out.print(" (0x");
+        System.out.print(Integer.toHexString(a));
+        System.out.print(")");
+        pnl();
+    }
+
+    public static void p(long a) {
+        System.out.print ("long: ");
+        System.out.print(a);
+        System.out.print(" (0x");
+        System.out.print(Long.toHexString(a));
+        System.out.print(")");
+        pnl();
+    }
+
+    public static void p(float a) {
+        int i = Float.floatToIntBits(a);
+        System.out.print("float: ");
+        System.out.print(i);
+        System.out.print(" (0x");
+        System.out.print(Integer.toHexString(i));
+        System.out.print(")");
+        pnl();
+    }
+
+    public static void p(double a) {
+        long l = Double.doubleToLongBits(a);
+        System.out.print("double: ");
+        System.out.print(l);
+        System.out.print(" (0x");
+        System.out.print(Long.toHexString(l));
+        System.out.print(")");
+        pnl();
+    }
 
     public static void p(String s,boolean i) { 
         System.out.print(s); p(i);
