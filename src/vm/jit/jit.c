@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 6211 2006-12-16 22:53:24Z edwin $
+   $Id: jit.c 6267 2007-01-02 20:50:18Z edwin $
 
 */
 
@@ -1566,7 +1566,11 @@ void jit_invalidate_code(methodinfo *m)
 
 	/* activate mappable replacement points */
 
+#if defined(ENABLE_REPLACEMENT)
 	replace_activate_replacement_points(code, true);
+#else
+	vm_abort("invalidating code only works with ENABLE_REPLACEMENT");
+#endif
 }
 
 
