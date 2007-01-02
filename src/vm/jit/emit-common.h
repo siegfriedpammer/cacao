@@ -114,7 +114,9 @@ void emit_array_checks(codegendata *cd, instruction *iptr, s4 s1, s4 s2);
 
 void emit_exception_stubs(jitdata *jd);
 void emit_patcher_stubs(jitdata *jd);
+#if defined(ENABLE_REPLACEMENT)
 void emit_replacement_stubs(jitdata *jd);
+#endif
 
 void emit_verbosecall_enter(jitdata *jd);
 void emit_verbosecall_exit(jitdata *jd);
