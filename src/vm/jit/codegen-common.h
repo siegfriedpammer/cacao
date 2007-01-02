@@ -28,7 +28,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 6091 2006-11-29 20:44:10Z twisti $
+   $Id: codegen-common.h 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -152,7 +152,9 @@ struct codegendata {
 	s4              maxstack;
 	s4              stackframesize;    /* stackframe size of this method      */
 
+#if defined(ENABLE_REPLACEMENT)
 	rplpoint       *replacementpoint;  /* current replacement point           */
+#endif
 };
 
 
@@ -258,6 +260,7 @@ void codegen_insertmethod(u1 *startpc, u1 *endpc);
 u1 *codegen_get_pv_from_pc(u1 *pc);
 u1 *codegen_get_pv_from_pc_nocheck(u1 *pc);
 
+#if defined(ENABLE_REPLACEMENT)
 #if !defined(NDEBUG)
 void codegen_set_replacement_point_notrap(codegendata *cd, s4 type);
 void codegen_set_replacement_point(codegendata *cd, s4 type);
@@ -265,6 +268,7 @@ void codegen_set_replacement_point(codegendata *cd, s4 type);
 void codegen_set_replacement_point_notrap(codegendata *cd);
 void codegen_set_replacement_point(codegendata *cd);
 #endif
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 void codegen_finish(jitdata *jd);
 

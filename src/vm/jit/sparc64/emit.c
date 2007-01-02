@@ -364,9 +364,11 @@ void emit_patcher_stubs(jitdata *jd)
 
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 void emit_replacement_stubs(jitdata *jd)
 {
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 /* emit_verbosecall_enter ******************************************************
 

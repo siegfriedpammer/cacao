@@ -36,6 +36,11 @@
 #ifndef _REPLACE_H
 #define _REPLACE_H
 
+#include "config.h"
+#include "vm/types.h"
+
+#if defined(ENABLE_REPLACEMENT)
+
 /* forward typedefs ***********************************************************/
 
 typedef struct rplpoint rplpoint;
@@ -44,9 +49,6 @@ typedef struct sourcestate_t sourcestate_t;
 typedef struct sourceframe_t sourceframe_t;
 typedef struct replace_safestack_t replace_safestack_t;
 typedef union  replace_val_t replace_val_t;
-
-#include "config.h"
-#include "vm/types.h"
 
 #include "arch.h"
 #include "md-abi.h"
@@ -284,6 +286,22 @@ void replace_source_frame_println(sourceframe_t *frame);
 void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
 								u1 *savedmcode);
 #endif
+
+#else /* !defined(ENABLE_REPLACEMENT) */
+
+/*** macros for the codegens (disabled version) ************************/
+
+#define REPLACEMENT_POINTS_INIT(cd, jd)
+#define REPLACEMENT_POINTS_RESET(cd, jd)
+#define REPLACEMENT_POINT_BLOCK_START(cd, bptr)
+#define REPLACEMENT_POINT_INLINE_START(cd, iptr)
+#define REPLACEMENT_POINT_INLINE_BODY(cd, iptr)
+#define REPLACEMENT_POINT_RETURN(cd, iptr)
+#define REPLACEMENT_POINT_INVOKE(cd, iptr)
+#define REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr)
+#define REPLACEMENT_EMIT_STUBS(jd)
+
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 #endif
 

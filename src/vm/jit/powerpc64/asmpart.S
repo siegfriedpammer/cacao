@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 6100 2006-12-01 11:38:47Z tbfg $
+   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -75,8 +75,10 @@
 
 	.globl asm_patcher_wrapper
 
+#if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
 	.globl .asm_replacement_in
+#endif
 
 	.globl .asm_cacheflush		/* no function descriptor needed, only called direct */
 	.globl asm_criticalsections
@@ -1071,6 +1073,7 @@ L_asm_patcher_wrapper_exception:
 	addi    sp,sp,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+8*8
 	b       L_asm_handle_exception
 
+#if defined(ENABLE_REPLACEMENT)
 
 /* asm_replacement_out *********************************************************
 
@@ -1284,6 +1287,8 @@ asm_replacement_out:
 
 	mtctr   itmp3
 	bctr
+
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 /* asm_cacheflush **************************************************************
 	copied from linux/arch/ppc64/kernel/vdso64/cacheflush.S

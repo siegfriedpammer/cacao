@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 6180 2006-12-11 23:29:26Z twisti $
+   $Id: md.c 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -341,6 +341,7 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
 								u1 *savedmcode)
 {
@@ -391,6 +392,7 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
 	/* flush instruction cache */
     md_icacheflush(rp->pc,2*4);
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 /*
  * These are local overrides for various environment variables in Emacs.

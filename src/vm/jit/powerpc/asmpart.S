@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 6182 2006-12-12 21:12:23Z twisti $
+   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -70,8 +70,10 @@
 
 	.globl asm_patcher_wrapper
 
+#if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
 	.globl asm_replacement_in
+#endif
 
 	.globl asm_cacheflush
 	.globl asm_criticalsections
@@ -1124,6 +1126,7 @@ L_asm_patcher_wrapper_exception:
 	addi    sp,sp,8*4+LA_SIZE+(5+58)*4
 	b       L_asm_handle_exception
 
+#if defined(ENABLE_REPLACEMENT)
 
 /* asm_replacement_out *********************************************************
 
@@ -1366,6 +1369,8 @@ asm_replacement_in:
 
 	mtctr   itmp3
 	bctr
+
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 /*********************************************************************/
 

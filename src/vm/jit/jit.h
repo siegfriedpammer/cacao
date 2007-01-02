@@ -29,7 +29,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: jit.h 6211 2006-12-16 22:53:24Z edwin $
+   $Id: jit.h 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -431,7 +431,9 @@ struct insinfo_inline {
 	s4         *javalocals_end;   /* javalocals after inlined body            */
 
 	/* fields set by replacement point creation ------------------------------*/
+#if defined(ENABLE_REPLACEMENT)
 	rplpoint   *rp;             /* replacement point at INLINE_START          */
+#endif
 
 	/* fields set by the codegen ---------------------------------------------*/
 	s4          startmpc;       /* machine code offset of start of inlining   */

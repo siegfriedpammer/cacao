@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 6155 2006-12-08 00:17:11Z edwin $
+   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -70,8 +70,10 @@
 
 	.globl asm_patcher_wrapper
 
+#if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
 	.globl asm_replacement_in
+#endif
 
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
@@ -500,6 +502,7 @@ L_asm_patcher_wrapper_exception:
 	pop     xpc                         /* get and remove return address      */
 	jmp     L_asm_handle_exception
 
+#if defined(ENABLE_REPLACEMENT)
 
 /* asm_replacement_out *********************************************************
 
@@ -603,6 +606,8 @@ asm_replacement_in:
 
 	/* jump to new code, hold your thumbs! ;) */
 	ret
+
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /************************ function asm_builtin_x2x *****************************

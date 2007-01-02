@@ -139,6 +139,7 @@ codeinfo *code_find_codeinfo_for_pc(u1 *pc)
   
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 int code_get_sync_slot_count(codeinfo *code)
 {
 #ifdef ENABLE_THREADS
@@ -173,6 +174,7 @@ int code_get_sync_slot_count(codeinfo *code)
 
 #endif /* ENABLE_THREADS */
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /* code_get_stack_frame_size ***************************************************
@@ -196,6 +198,7 @@ int code_get_sync_slot_count(codeinfo *code)
   
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 int code_get_stack_frame_size(codeinfo *code)
 {
 #if 0
@@ -241,6 +244,7 @@ int code_get_stack_frame_size(codeinfo *code)
 
 	return code->stackframesize;
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /* code_codeinfo_free **********************************************************
@@ -260,7 +264,9 @@ void code_codeinfo_free(codeinfo *code)
 	if (code->mcode != NULL)
 		CFREE((void *) (ptrint) code->mcode, code->mcodelength);
 
+#if defined(ENABLE_REPLACEMENT)
 	replace_free_replacement_points(code);
+#endif
 
 	FREE(code, codeinfo);
 

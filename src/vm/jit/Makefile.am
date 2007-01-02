@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5895 2006-11-03 14:03:40Z twisti $
+## $Id: Makefile.am 6265 2007-01-02 20:40:57Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -104,18 +104,24 @@ SCHEDULE_LIB = \
 	schedule/libschedule.la
 endif
 
+REPLACE_SOURCES =
+
 if ENABLE_JIT
 REG_SOURCES = \
 	reg.c \
 	reg.h
 
-REPLACE_SOURCES = \
-	replace.c \
+REPLACE_SOURCES += \
 	replace.h
 
 STACK_SOURCES = \
 	stack.c \
 	stack.h
+endif
+
+if ENABLE_REPLACEMENT
+REPLACE_SOURCES += \
+	replace.c
 endif
 
 if WITH_BINUTILS_DISASSEMBLER

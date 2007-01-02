@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 6171 2006-12-11 11:47:42Z twisti $
+   $Id: emit.c 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -460,6 +460,7 @@ void emit_patcher_stubs(jitdata *jd)
 
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 void emit_replacement_stubs(jitdata *jd)
 {
 	codegendata *cd;
@@ -512,6 +513,7 @@ void emit_replacement_stubs(jitdata *jd)
 		assert((cd->mcodeptr - savedmcodeptr) == REPLACEMENT_STUB_SIZE);
 	}
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /* emit_verbosecall_enter ******************************************************

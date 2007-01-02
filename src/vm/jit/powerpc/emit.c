@@ -525,6 +525,7 @@ void emit_patcher_stubs(jitdata *jd)
 
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 void emit_replacement_stubs(jitdata *jd)
 {
 	codegendata *cd;
@@ -581,6 +582,7 @@ void emit_replacement_stubs(jitdata *jd)
 		assert((cd->mcodeptr - savedmcodeptr) == 4*REPLACEMENT_STUB_SIZE);
 	}
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /* emit_verbosecall_enter ******************************************************

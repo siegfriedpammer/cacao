@@ -345,11 +345,13 @@ void show_method(jitdata *jd, int stage)
 		printf("\n");
 	}
 
+#if defined(ENABLE_REPLACEMENT)
 	if (code->rplpoints) {
 		printf("Replacement Points:\n");
 		replace_show_replacement_points(code);
 		printf("\n");
 	}
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 #if defined(ENABLE_DISASSEMBLER)
 	/* show code before first basic block */
@@ -470,7 +472,10 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		}
 
 		printf("======== %sL%03d ======== %s(flags: %d, bitflags: %01x, next: %d, type: ",
-				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
+#if defined(ENABLE_REPLACEMENT)
+				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : 
+#endif
+														"",
 			   bptr->nr, 
 			   (deadcode && stage >= SHOW_STACK) ? "DEADCODE! " : "",
 			   bptr->flags, bptr->bitflags, 

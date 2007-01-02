@@ -79,6 +79,7 @@ struct codeinfo {
 	s4            mcodelength;          /* length of generated machine code   */
 
 	/* replacement */				    
+#if defined(ENABLE_REPLACEMENT)
 	rplpoint     *rplpoints;            /* replacement points                 */
 	rplalloc     *regalloc;             /* register allocation info           */
 	u1           *replacementstubs;     /* beginning of replacement stubs     */
@@ -90,6 +91,7 @@ struct codeinfo {
 	u1            savedintcount;        /* number of callee saved int regs    */
 	u1            savedfltcount;        /* number of callee saved flt regs    */
 	u1           *savedmcode;           /* saved code under patches           */
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 	u4            frequency;            /* number of method invocations       */
 	u4           *bbfrequency;		    
@@ -118,8 +120,10 @@ void code_codeinfo_free(codeinfo *code);
 
 codeinfo *code_find_codeinfo_for_pc(u1 *pc);
 
+#if defined(ENABLE_REPLACEMENT)
 int code_get_sync_slot_count(codeinfo *code);
 int code_get_stack_frame_size(codeinfo *code);
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 void code_free_code_of_method(methodinfo *m);
 

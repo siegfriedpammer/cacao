@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 6142 2006-12-07 23:02:52Z edwin $
+   $Id: md.c 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -378,6 +378,7 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
 	s4 disp;
@@ -427,6 +428,7 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *save
 			
     /* XXX if required asm_cacheflush(rp->pc,8); */
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 /*
  * These are local overrides for various environment variables in Emacs.

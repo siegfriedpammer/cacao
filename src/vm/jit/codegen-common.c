@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 6251 2006-12-27 23:15:56Z twisti $
+   $Id: codegen-common.c 6265 2007-01-02 20:40:57Z edwin $
 
 */
 
@@ -628,6 +628,7 @@ u1 *codegen_get_pv_from_pc_nocheck(u1 *pc)
 
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 #if !defined(NDEBUG)
 void codegen_set_replacement_point_notrap(codegendata *cd, s4 type)
 #else
@@ -642,6 +643,7 @@ void codegen_set_replacement_point_notrap(codegendata *cd)
 
 	cd->replacementpoint++;
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /* codegen_set_replacement_point ***********************************************
@@ -650,6 +652,7 @@ void codegen_set_replacement_point_notrap(codegendata *cd)
 
 *******************************************************************************/
 
+#if defined(ENABLE_REPLACEMENT)
 #if !defined(NDEBUG)
 void codegen_set_replacement_point(codegendata *cd, s4 type)
 #else
@@ -668,6 +671,7 @@ void codegen_set_replacement_point(codegendata *cd)
 
 	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
 }
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /* codegen_finish **************************************************************
@@ -814,6 +818,7 @@ void codegen_finish(jitdata *jd)
 		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
 	}
 
+#if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
 	{
 		int i;
@@ -826,6 +831,7 @@ void codegen_finish(jitdata *jd)
 			rp->pc = (u1*) ((ptrint) epoint + (ptrint) rp->pc);
 		}
 	}
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 	/* add method into methodtree to find the entrypoint */
 
