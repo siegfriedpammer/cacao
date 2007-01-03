@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 6216 2006-12-18 18:21:37Z twisti $
+   $Id: method.h 6273 2007-01-03 22:20:25Z edwin $
 */
 
 
@@ -156,6 +156,8 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
 
 void method_add_assumption_monomorphic(methodinfo *m, methodinfo *caller);
 void method_break_assumption_monomorphic(methodinfo *m, method_worklist **wl);
+
+s4   method_count_implementations(methodinfo *m, classinfo *c, methodinfo **found);
 
 #if !defined(NDEBUG)
 void method_printflags(methodinfo *m);

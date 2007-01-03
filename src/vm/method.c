@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 5992 2006-11-15 22:46:10Z edwin $
+   $Id: method.c 6273 2007-01-03 22:20:25Z edwin $
 
 */
 
@@ -152,6 +152,55 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	resm = code->m;
 
 	return resm;
+}
+
+
+/* method_count_implementations ************************************************
+
+   Count the implementations of a method in a class cone (a class and all its
+   subclasses.)
+
+   IN:
+       m................the method to count
+	   c................class at which to start the counting (this class and
+	                    all its subclasses will be searched)
+
+   OUT:
+       *found...........if found != NULL, *found receives the method
+	                    implementation that was found. This value is only
+						meaningful if the return value is 1.
+
+   RETURN VALUE:
+       the number of implementations found
+
+*******************************************************************************/
+
+s4 method_count_implementations(methodinfo *m, classinfo *c, methodinfo **found)
+{
+	s4          count;
+	methodinfo *mp;
+	methodinfo *mend;
+	classinfo  *child;
+
+	count = 0;
+
+	mp = c->methods;
+	mend = mp + c->methodscount;
+
+	for (; mp < mend; ++mp) {
+		if (method_canoverwrite(mp, m)) {
+			if (found)
+				*found = mp;
+			count++;
+			break;
+		}
+	}
+
+	for (child = c->sub; child != NULL; child = child->nextsub) {
+		count += method_count_implementations(m, child, found);
+	}
+
+	return count;
 }
 
 
