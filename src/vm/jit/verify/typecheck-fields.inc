@@ -36,9 +36,11 @@
 {
 	unresolved_field *uf;
 	constant_FMIref *fieldref;
-	resolve_result_t result;
 	typeinfo *instanceti;
 	typeinfo *valueti;
+#if !defined(TYPECHECK_TYPEINFERER)
+	resolve_result_t result;
+#endif
 
 	TYPECHECK_COUNT(stat_ins_field);
 
@@ -56,6 +58,7 @@
 		fieldref = state->iptr->sx.s23.s3.fmiref;
 	}
 
+#if !defined(TYPECHECK_TYPEINFERER)
 	/* check the basic value type for PUT instructions */
 
 	if (value && value->type != fieldref->parseddesc.fd->type)
@@ -107,6 +110,7 @@
 				!state->iptr->sx.s23.s3.fmiref->p.field->class->initialized,
 				stat_ins_field_uninitialized);
 	}
+#endif /* !defined(TYPECHECK_TYPEINFERER) */
 		
 	/* write the result type */
 

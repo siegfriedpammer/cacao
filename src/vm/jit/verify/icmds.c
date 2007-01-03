@@ -37,9 +37,10 @@
 /* This file contains ICMD-specific code for type checking and type
  * inference. It is an input file for the verifier generator
  * (src/vm/jit/verify/generate.pl). The verifier generator creates
- * code for two compiler passes:
+ * code for three compiler passes:
  *     - stack-based type-infering verification
  *     - vasiables-based type-infering verification
+ *     - type inference pass (no verification - used for optimizing compiler)
  *
  * The rest of this file must consist of "case" clauses starting in
  * the first column. Each clause can be marked with tags like this:
@@ -49,6 +50,8 @@
  * This must be on one line. The following tags are defined:
  *     STACKBASED..........use this clause for the stack-based verifier
  *     VARIABLESBASED......use this clause for the variables-based verifier
+ *     TYPEINFERER.........use this clause for the type inference pass
+ *     ALL.................use for all passes
  *
  * If no tag is specified, {STACKBASED,VARIABLESBASED} is assumed.
  *
@@ -65,6 +68,7 @@
  *
  *     TYPECHECK_STACKBASED.......iff compiling the stack-based verifier
  *     TYPECHECK_VARIABLESBASED...iff compiling the variables-based verifier
+ *     TYPECHECK_TYPEINFERER......iff compiling the type inference pass
  *
 /******************************************************************************/
 #endif /* (end #if 0) */
@@ -81,8 +85,8 @@
 
 	/* (These are only used by the variables based verifier.) */
 
-case ICMD_MOVE: /* {VARIABLESBASED} */
-case ICMD_COPY: /* {VARIABLESBASED} */
+case ICMD_MOVE: /* {VARIABLESBASED,TYPEINFERER} */
+case ICMD_COPY: /* {VARIABLESBASED,TYPEINFERER} */
 	TYPECHECK_COUNT(stat_ins_stack);
 	COPYTYPE(IPTR->s1, IPTR->dst);
 	DST->type = OP1->type;
@@ -91,29 +95,33 @@ case ICMD_COPY: /* {VARIABLESBASED} */
 	/****************************************/
 	/* LOADING ADDRESS FROM VARIABLE        */
 
-case ICMD_ALOAD:
+case ICMD_ALOAD: /* {ALL} */
 	TYPECHECK_COUNT(stat_ins_aload);
 
+#if !defined(TYPECHECK_TYPEINFERER)
 	/* loading a returnAddress is not allowed */
 	if (!TYPEDESC_IS_REFERENCE(*OP1)) {
 		VERIFY_ERROR("illegal instruction: ALOAD loading non-reference");
 	}
+#endif
 	TYPEINFO_COPY(OP1->typeinfo,DST->typeinfo);
 	break;
 
 	/****************************************/
 	/* STORING ADDRESS TO VARIABLE          */
 
-case ICMD_ASTORE:
+case ICMD_ASTORE: /* {ALL} */
 	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
 	break;
 
 	/****************************************/
 	/* LOADING ADDRESS FROM ARRAY           */
 
-case ICMD_AALOAD:
+case ICMD_AALOAD: /* {ALL} */
+#if !defined(TYPECHECK_TYPEINFERER)
 	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
 		VERIFY_ERROR("illegal instruction: AALOAD on non-reference array");
+#endif
 
 	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
 		EXCEPTION;
@@ -159,13 +167,13 @@ case ICMD_GETSTATIC:      /* {STACKBASED} */
 	break;
 
 case ICMD_PUTFIELD:       /* {VARIABLESBASED} */
-	if (!verify_fieldaccess(state, VAROP(iptr->s1), VAROP(iptr->sx.s23.s2)))
+	if (!handle_fieldaccess(state, VAROP(iptr->s1), VAROP(iptr->sx.s23.s2)))
 		return false;
 	maythrow = true;
 	break;
 
 case ICMD_PUTSTATIC:      /* {VARIABLESBASED} */
-	if (!verify_fieldaccess(state, NULL, VAROP(iptr->s1)))
+	if (!handle_fieldaccess(state, NULL, VAROP(iptr->s1)))
 		return false;
 	maythrow = true;
 	break;
@@ -186,7 +194,7 @@ case ICMD_PUTFIELDCONST:  /* {VARIABLESBASED} */
 			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
 		}
 	}
-	if (!verify_fieldaccess(state, VAROP(iptr->s1), &constvalue))
+	if (!handle_fieldaccess(state, VAROP(iptr->s1), &constvalue))
 		return false;
 	maythrow = true;
 	break;
@@ -207,19 +215,19 @@ case ICMD_PUTSTATICCONST: /* {VARIABLESBASED} */
 			TYPEINFO_INIT_NULLTYPE(constvalue.typeinfo);
 		}
 	}
-	if (!verify_fieldaccess(state, NULL, &constvalue))
+	if (!handle_fieldaccess(state, NULL, &constvalue))
 		return false;
 	maythrow = true;
 	break;
 
-case ICMD_GETFIELD:       /* {VARIABLESBASED} */
-	if (!verify_fieldaccess(state, VAROP(iptr->s1), NULL))
+case ICMD_GETFIELD:       /* {VARIABLESBASED,TYPEINFERER} */
+	if (!handle_fieldaccess(state, VAROP(iptr->s1), NULL))
 		return false;
 	maythrow = true;
 	break;
 
-case ICMD_GETSTATIC:      /* {VARIABLESBASED} */
-	if (!verify_fieldaccess(state, NULL, NULL))
+case ICMD_GETSTATIC:      /* {VARIABLESBASED,TYPEINFERER} */
+	if (!handle_fieldaccess(state, NULL, NULL))
 		return false;
 	maythrow = true;
 	break;
@@ -343,7 +351,7 @@ case ICMD_SASTORECONST:
 	/****************************************/
 	/* ADDRESS CONSTANTS                    */
 
-case ICMD_ACONST:
+case ICMD_ACONST: /* {ALL} */
 	if (IPTR->flags.bits & INS_FLAG_CLASS) {
 		/* a java.lang.Class reference */
 		TYPEINFO_INIT_JAVA_LANG_CLASS(DST->typeinfo,IPTR->sx.val.c);
@@ -361,11 +369,14 @@ case ICMD_ACONST:
 	/****************************************/
 	/* CHECKCAST AND INSTANCEOF             */
 
-case ICMD_CHECKCAST:
+case ICMD_CHECKCAST: /* {ALL} */
+#if !defined(TYPECHECK_TYPEINFERER)
 	/* returnAddress is not allowed */
 	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
 		VERIFY_ERROR("Illegal instruction: CHECKCAST on non-reference");
+#endif
 
+    /* XXX only if narrower */
 	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
 		EXCEPTION;
 	break;
@@ -374,68 +385,70 @@ case ICMD_INSTANCEOF:
 	/* returnAddress is not allowed */
 	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
 		VERIFY_ERROR("Illegal instruction: INSTANCEOF on non-reference");
+
+	/* XXX should propagate type information to the following if-branches */
 	break;
 
 	/****************************************/
 	/* BRANCH INSTRUCTIONS                  */
 
-case ICMD_GOTO:
-case ICMD_IFNULL:
-case ICMD_IFNONNULL:
-case ICMD_IFEQ:
-case ICMD_IFNE:
-case ICMD_IFLT:
-case ICMD_IFGE:
-case ICMD_IFGT:
-case ICMD_IFLE:
-case ICMD_IF_ICMPEQ:
-case ICMD_IF_ICMPNE:
-case ICMD_IF_ICMPLT:
-case ICMD_IF_ICMPGE:
-case ICMD_IF_ICMPGT:
-case ICMD_IF_ICMPLE:
-case ICMD_IF_ACMPEQ:
-case ICMD_IF_ACMPNE:
+case ICMD_GOTO:            /* {ALL} */
+case ICMD_IFNULL:          /* {ALL} */
+case ICMD_IFNONNULL:       /* {ALL} */
+case ICMD_IFEQ:            /* {ALL} */
+case ICMD_IFNE:            /* {ALL} */
+case ICMD_IFLT:            /* {ALL} */
+case ICMD_IFGE:            /* {ALL} */
+case ICMD_IFGT:            /* {ALL} */
+case ICMD_IFLE:            /* {ALL} */
+case ICMD_IF_ICMPEQ:       /* {ALL} */
+case ICMD_IF_ICMPNE:       /* {ALL} */
+case ICMD_IF_ICMPLT:       /* {ALL} */
+case ICMD_IF_ICMPGE:       /* {ALL} */
+case ICMD_IF_ICMPGT:       /* {ALL} */
+case ICMD_IF_ICMPLE:       /* {ALL} */
+case ICMD_IF_ACMPEQ:       /* {ALL} */
+case ICMD_IF_ACMPNE:       /* {ALL} */
 
-case ICMD_IF_LEQ:
-case ICMD_IF_LNE:
-case ICMD_IF_LLT:
-case ICMD_IF_LGE:
-case ICMD_IF_LGT:
-case ICMD_IF_LLE:
+case ICMD_IF_LEQ:          /* {ALL} */
+case ICMD_IF_LNE:          /* {ALL} */
+case ICMD_IF_LLT:          /* {ALL} */
+case ICMD_IF_LGE:          /* {ALL} */
+case ICMD_IF_LGT:          /* {ALL} */
+case ICMD_IF_LLE:          /* {ALL} */
 
-case ICMD_IF_LCMPEQ:
-case ICMD_IF_LCMPNE:
-case ICMD_IF_LCMPLT:
-case ICMD_IF_LCMPGE:
-case ICMD_IF_LCMPGT:
-case ICMD_IF_LCMPLE:
+case ICMD_IF_LCMPEQ:       /* {ALL} */
+case ICMD_IF_LCMPNE:       /* {ALL} */
+case ICMD_IF_LCMPLT:       /* {ALL} */
+case ICMD_IF_LCMPGE:       /* {ALL} */
+case ICMD_IF_LCMPGT:       /* {ALL} */
+case ICMD_IF_LCMPLE:       /* {ALL} */
 
-case ICMD_IF_FCMPEQ:
-case ICMD_IF_FCMPNE:
+case ICMD_IF_FCMPEQ:       /* {ALL} */
+case ICMD_IF_FCMPNE:       /* {ALL} */
 
-case ICMD_IF_FCMPL_LT:
-case ICMD_IF_FCMPL_GE:
-case ICMD_IF_FCMPL_GT:
-case ICMD_IF_FCMPL_LE:
+case ICMD_IF_FCMPL_LT:     /* {ALL} */
+case ICMD_IF_FCMPL_GE:     /* {ALL} */
+case ICMD_IF_FCMPL_GT:     /* {ALL} */
+case ICMD_IF_FCMPL_LE:     /* {ALL} */
 
-case ICMD_IF_FCMPG_LT:
-case ICMD_IF_FCMPG_GE:
-case ICMD_IF_FCMPG_GT:
-case ICMD_IF_FCMPG_LE:
+case ICMD_IF_FCMPG_LT:     /* {ALL} */
+case ICMD_IF_FCMPG_GE:     /* {ALL} */
+case ICMD_IF_FCMPG_GT:     /* {ALL} */
+case ICMD_IF_FCMPG_LE:     /* {ALL} */
 
-case ICMD_IF_DCMPEQ:
-case ICMD_IF_DCMPNE:
+case ICMD_IF_DCMPEQ:       /* {ALL} */
+case ICMD_IF_DCMPNE:       /* {ALL} */
 
-case ICMD_IF_DCMPL_LT:
-case ICMD_IF_DCMPL_GE:
-case ICMD_IF_DCMPL_GT:
-case ICMD_IF_DCMPL_LE:
+case ICMD_IF_DCMPL_LT:     /* {ALL} */
+case ICMD_IF_DCMPL_GE:     /* {ALL} */
+case ICMD_IF_DCMPL_GT:     /* {ALL} */
+case ICMD_IF_DCMPL_LE:     /* {ALL} */
 
-case ICMD_IF_DCMPG_LT:
-case ICMD_IF_DCMPG_GE:
-case ICMD_IF_DCMPG_GT:
-case ICMD_IF_DCMPG_LE:
+case ICMD_IF_DCMPG_LT:     /* {ALL} */
+case ICMD_IF_DCMPG_GE:     /* {ALL} */
+case ICMD_IF_DCMPG_GT:     /* {ALL} */
+case ICMD_IF_DCMPG_LE:     /* {ALL} */
 	/* {RESULTNOW} */
 	TYPECHECK_COUNT(stat_ins_branch);
 
@@ -446,7 +459,7 @@ case ICMD_IF_DCMPG_LE:
 	/****************************************/
 	/* SWITCHES                             */
 
-case ICMD_TABLESWITCH:
+case ICMD_TABLESWITCH:     /* {ALL} */
 	/* {RESULTNOW} */
 	TYPECHECK_COUNT(stat_ins_switch);
 
@@ -462,7 +475,7 @@ case ICMD_TABLESWITCH:
 	LOG("switch done");
 	break;
 
-case ICMD_LOOKUPSWITCH:
+case ICMD_LOOKUPSWITCH:    /* {ALL} */
 	/* {RESULTNOW} */
 	TYPECHECK_COUNT(stat_ins_switch);
 
@@ -570,7 +583,7 @@ return_tail:
 	/****************************************/
 	/* SUBROUTINE INSTRUCTIONS              */
 
-case ICMD_JSR: /* {VARIABLESBASED} */
+case ICMD_JSR: /* {VARIABLESBASED,TYPEINFERER} */
 	TYPEINFO_INIT_RETURNADDRESS(DST->typeinfo, BPTR->next);
 	REACH(IPTR->sx.s23.s3.jsrtarget);
 	break;
@@ -587,10 +600,12 @@ case ICMD_JSR: /* {STACKBASED} */
 		EXCEPTION;
 	break;
 
-case ICMD_RET: /* {VARIABLESBASED} */
+case ICMD_RET: /* {VARIABLESBASED,TYPEINFERER} */
+#if !defined(TYPECHECK_TYPEINFERER)
 	/* check returnAddress variable */
 	if (!typevector_checkretaddr(jd->var,IPTR->s1.varindex))
 		VERIFY_ERROR("illegal instruction: RET using non-returnAddress variable");
+#endif
 	REACH(IPTR->dst);
 	break;
 
@@ -607,12 +622,12 @@ case ICMD_RET: /* {STACKBASED} */
 	/****************************************/
 	/* INVOKATIONS                          */
 
-case ICMD_INVOKEVIRTUAL:   /* {VARIABLESBASED} */
-case ICMD_INVOKESPECIAL:   /* {VARIABLESBASED} */
-case ICMD_INVOKESTATIC:    /* {VARIABLESBASED} */
-case ICMD_INVOKEINTERFACE: /* {VARIABLESBASED} */
+case ICMD_INVOKEVIRTUAL:   /* {VARIABLESBASED,TYPEINFERER} */
+case ICMD_INVOKESPECIAL:   /* {VARIABLESBASED,TYPEINFERER} */
+case ICMD_INVOKESTATIC:    /* {VARIABLESBASED,TYPEINFERER} */
+case ICMD_INVOKEINTERFACE: /* {VARIABLESBASED,TYPEINFERER} */
 	TYPECHECK_COUNT(stat_ins_invoke);
-	if (!verify_invocation(state))
+	if (!handle_invocation(state))
 		EXCEPTION;
 	TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(IPTR), stat_ins_invoke_unresolved);
 	break;
@@ -650,8 +665,8 @@ case ICMD_INVOKEINTERFACE: /* {STACKBASED} */
 	/****************************************/
 	/* MULTIANEWARRAY                       */
 
-case ICMD_MULTIANEWARRAY: /* {VARIABLESBASED} */
-	if (!verify_multianewarray(STATE))
+case ICMD_MULTIANEWARRAY: /* {VARIABLESBASED,TYPEINFERER} */
+	if (!handle_multianewarray(STATE))
 		EXCEPTION;
 	break;
 
@@ -665,9 +680,9 @@ case ICMD_MULTIANEWARRAY: /* {STACKBASED} */
 	/****************************************/
 	/* BUILTINS                             */
 
-case ICMD_BUILTIN: /* {VARIABLESBASED} */
+case ICMD_BUILTIN: /* {VARIABLESBASED,TYPEINFERER} */
 	TYPECHECK_COUNT(stat_ins_builtin);
-	if (!verify_builtin(state))
+	if (!handle_builtin(state))
 		EXCEPTION;
 	break;
 

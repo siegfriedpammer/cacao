@@ -44,10 +44,15 @@
 	/* pointer in builtintable_entry for this, so here you go.. ;)     */
 
 	if (ISBUILTIN(BUILTIN_new)) {
+		dv->type = TYPE_ADR;
+#if defined(TYPECHECK_TYPEINFERER)
+		assert(state->iptr[-1].opc == ICMD_ACONST);
+		typeinfo_init_class(&(dv->typeinfo), state->iptr[-1].sx.val.c);
+#else
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
-		dv->type = TYPE_ADR;
 		TYPEINFO_INIT_NEWOBJECT(dv->typeinfo,state->iptr);
+#endif
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
 		TYPECHECK_INT(OP1);
@@ -108,8 +113,10 @@
 	}
 	else {
 		methoddesc *md;
-		s4 i;
 		u1 rtype;
+#if !defined(TYPECHECK_TYPEINFERER)
+		s4 i;
+#endif
 #if defined(TYPECHECK_STACKBASED)
 		typedescriptor *av;
 #endif
@@ -119,6 +126,7 @@
 		TYPECHECK_COUNT(stat_ins_builtin_gen);
 
 		md = bte->md;
+#if !defined(TYPECHECK_TYPEINFERER)
 		i = md->paramcount;
 
 		/* check the types of the arguments on the stack */
@@ -148,6 +156,7 @@
 			av += (IS_2_WORD_TYPE(av->type)) ? 2 : 1;
 #endif
 		}
+#endif /* !defined(TYPECHECK_TYPEINFERER) */
 
 		/* set the return type */
 

@@ -119,7 +119,7 @@ void typecheck_print_vararray(FILE *file, jitdata *jd, s4 *vars, int len);
 /* STATISTICS                                                               */
 /****************************************************************************/
 
-#ifdef TYPECHECK_DEBUG
+#if defined(TYPECHECK_DEBUG) && !defined(TYPECHECK_NO_STATISTICS)
 /*#define TYPECHECK_STATISTICS*/
 #endif
 
@@ -194,6 +194,15 @@ void typecheck_print_statistics(FILE *file);
 
 #define TYPECHECK_VERIFYERROR_main(msg)  TYPECHECK_VERIFYERROR_ret(state.m,(msg),NULL)
 #define TYPECHECK_VERIFYERROR_bool(msg)  TYPECHECK_VERIFYERROR_ret(state->m,(msg),false)
+
+
+/****************************************************************************/
+/* MISC MACROS                                                              */
+/****************************************************************************/
+
+#define COPYTYPE(source,dest)                                        \
+    {if (VAROP(source)->type == TYPE_ADR)                            \
+            TYPEINFO_COPY(VAROP(source)->typeinfo,VAROP(dest)->typeinfo);}
 
 
 /****************************************************************************/
@@ -273,6 +282,25 @@ typedef struct verifier_state {
 
 void typecheck_init_flags(verifier_state *state, s4 minflags);
 void typecheck_reset_flags(verifier_state *state);
+
+bool typecheck_copy_types(verifier_state *state,
+						  s4 *srcvars, s4 *dstvars, s4 n);
+
+typecheck_result typecheck_merge_types(verifier_state *state,
+									   s4 *srcvars,
+									   s4 *dstvars,
+									   s4 n);
+
+typecheck_result typestate_merge(verifier_state *state,
+				                 s4 *srcvars, varinfo *srclocals,
+				                 s4 *dstvars, varinfo *dstlocals,
+				                 s4 n);
+
+bool typestate_reach(verifier_state *state,
+					 basicblock *destblock,
+					 s4 *srcvars, varinfo *srclocals, s4 n);
+
+bool typecheck_init_locals(verifier_state *state, bool newthis);
 
 #endif /* _TYPECHECK_COMMON_H */
 

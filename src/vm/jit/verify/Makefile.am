@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 5773 2006-10-13 14:34:19Z edwin $
+## $Id: Makefile.am 6275 2007-01-03 22:39:14Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,9 +46,13 @@ libverify_la_SOURCES = \
 	typecheck-builtins.inc \
 	typecheck-fields.inc \
 	typecheck-invoke.inc \
+	typecheck-multianewarray.inc \
 	typecheck-stackbased.c \
+	typecheck-typeinferer.c \
+	typecheck-typeinferer.h \
 	typecheck-stackbased-gen.inc \
 	typecheck-variablesbased-gen.inc \
+	typecheck-typeinferer-gen.inc \
 	typeinfo.c \
 	typeinfo.h
 

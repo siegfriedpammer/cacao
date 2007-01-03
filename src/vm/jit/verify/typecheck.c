@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 6008 2006-11-15 23:44:01Z edwin $
+   $Id: typecheck.c 6275 2007-01-03 22:39:14Z edwin $
 
 */
 
@@ -197,233 +197,6 @@ error reporting.
 #define TYPECHECK_ADR_OP(o)  TYPECHECK_ADR((o).varindex)
 
 
-/****************************************************************************/
-/* TYPESTACK MACROS AND FUNCTIONS                                           */
-/*                                                                          */
-/* These macros and functions act on the 'type stack', which is a shorthand */
-/* for the types of the stackslots of the current stack. The type of a      */
-/* stack slot is usually described by a TYPE_* constant and -- for TYPE_ADR */
-/* -- by the typeinfo of the slot. The only thing that makes the type stack */
-/* more complicated are returnAddresses of local subroutines, because a     */
-/* single stack slot may contain a set of more than one possible return     */
-/* address. This is handled by 'return address sets'. A return address set  */
-/* is kept as a linked list dangling off the typeinfo of the stack slot.    */
-/****************************************************************************/
-
-/* typecheck_copy_types ********************************************************
- 
-   Copy the types of the source variables to the destination variables.
-
-   IN:
-	   state............current verifier state
-	   srcvars..........array of variable indices to copy
-	   dstvars..........array of the destination variables
-	   n................number of variables to copy
-
-   RETURN VALUE:
-       true.............success
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
-static bool
-typecheck_copy_types(verifier_state *state, s4 *srcvars, s4 *dstvars, s4 n)
-{
-	s4 i;
-	varinfo *sv;
-	varinfo *dv;
-	jitdata *jd = state->jd;
-
-	for (i=0; i < n; ++i, ++srcvars, ++dstvars) {
-		sv = VAR(*srcvars);
-		dv = VAR(*dstvars);
-
-		dv->type = sv->type;
-		if (dv->type == TYPE_ADR) {
-			TYPEINFO_CLONE(sv->typeinfo,dv->typeinfo);
-		}
-	}
-	return true;
-}
-
-
-/* typecheck_merge_types *******************************************************
- 
-   Merge the types of the source variables into the destination variables.
-
-   IN:
-       state............current state of the verifier
-	   srcvars..........source variable indices
-	   dstvars..........destination variable indices
-	   n................number of variables
-
-   RETURN VALUE:
-       typecheck_TRUE...the destination variables have been modified
-	   typecheck_FALSE..the destination variables are unchanged
-	   typecheck_FAIL...an exception has been thrown
-
-*******************************************************************************/
-
-static typecheck_result
-typecheck_merge_types(verifier_state *state,s4 *srcvars, s4 *dstvars, s4 n)
-{
-	s4 i;
-	varinfo *sv;
-	varinfo *dv;
-	jitdata *jd = state->jd;
-	typecheck_result r;
-	bool changed = false;
-	
-	for (i=0; i < n; ++i, ++srcvars, ++dstvars) {
-		sv = VAR(*srcvars);
-		dv = VAR(*dstvars);
-
-		if (dv->type != sv->type) {
-			exceptions_throw_verifyerror(state->m,"Stack type mismatch");
-			return typecheck_FAIL;
-		}
-		if (dv->type == TYPE_ADR) {
-			if (TYPEINFO_IS_PRIMITIVE(dv->typeinfo)) {
-				/* dv has returnAddress type */
-				if (!TYPEINFO_IS_PRIMITIVE(sv->typeinfo)) {
-					exceptions_throw_verifyerror(state->m,"Merging returnAddress with reference");
-					return typecheck_FAIL;
-				}
-			}
-			else {
-				/* dv has reference type */
-				if (TYPEINFO_IS_PRIMITIVE(sv->typeinfo)) {
-					exceptions_throw_verifyerror(state->m,"Merging reference with returnAddress");
-					return typecheck_FAIL;
-				}
-				r = typeinfo_merge(state->m,&(dv->typeinfo),&(sv->typeinfo));
-				if (r == typecheck_FAIL)
-					return r;
-				changed |= r;
-			}
-		}
-	}
-	return changed;
-}
-
-
-/* typestate_merge *************************************************************
- 
-   Merge the types of one state into the destination state.
-
-   IN:
-       state............current state of the verifier
-	   dstvars..........indices of the destinations invars
-	   dstlocals........the destinations inlocals
-	   srcvars..........indices of the source's outvars
-	   srclocals........the source locals
-	   n................number of invars (== number of outvars)
-
-   RETURN VALUE:
-       typecheck_TRUE...destination state has been modified
-	   typecheck_FALSE..destination state has not been modified
-	   typecheck_FAIL...an exception has been thrown
-
-*******************************************************************************/
-
-static typecheck_result
-typestate_merge(verifier_state *state,
-				s4 *srcvars, varinfo *srclocals,
-				s4 *dstvars, varinfo *dstlocals,
-				s4 n)
-{
-	bool changed = false;
-	typecheck_result r;
-	
-	/* The stack is always merged. If there are returnAddresses on
-	 * the stack they are ignored in this step. */
-
-	r = typecheck_merge_types(state, srcvars, dstvars, n);
-	if (r == typecheck_FAIL)
-		return r;
-	changed |= r;
-
-	/* merge the locals */
-
-	r = typevector_merge(state->m, dstlocals, srclocals, state->numlocals);
-	if (r == typecheck_FAIL)
-		return r;
-	return changed | r;
-}
-
-
-/* typestate_reach *************************************************************
- 
-   Reach a destination block and propagate stack and local variable types
-
-   IN:
-       state............current state of the verifier
-	   destblock........destination basic block
-	   srcvars..........variable indices of the outvars to propagate
-	   srclocals........local variables to propagate
-	   n................number of srcvars
-
-   OUT:
-       state->repeat....set to true if the verifier must iterate again
-	                    over the basic blocks
-	   
-   RETURN VALUE:
-       true.............success
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
-static bool
-typestate_reach(verifier_state *state,
-				basicblock *destblock,
-				s4 *srcvars, varinfo *srclocals, s4 n)
-{
-	varinfo *destloc;
-	bool changed = false;
-	typecheck_result r;
-
-	LOG1("reaching block L%03d",destblock->nr);
-	TYPECHECK_COUNT(stat_reached);
-	
-	destloc = destblock->inlocals;
-
-	if (destblock->flags == BBTYPECHECK_UNDEF) {
-		/* The destblock has never been reached before */
-
-		TYPECHECK_COUNT(stat_copied);
-		LOG1("block L%03d reached first time",destblock->nr);
-		
-		if (!typecheck_copy_types(state, srcvars, destblock->invars, n))
-			return false;
-		typevector_copy_inplace(srclocals, destloc, state->numlocals);
-		changed = true;
-	}
-	else {
-		/* The destblock has already been reached before */
-		
-		TYPECHECK_COUNT(stat_merged);
-		LOG1("block L%03d reached before", destblock->nr);
-		
-		r = typestate_merge(state, srcvars, srclocals, 
-				destblock->invars, destblock->inlocals, n);
-		if (r == typecheck_FAIL)
-			return false;
-		changed = r;
-		TYPECHECK_COUNTIF(changed,stat_merging_changed);
-	}
-
-	if (changed) {
-		LOG("changed!");
-		destblock->flags = BBTYPECHECK_REACHED;
-		if (destblock->nr <= state->bptr->nr) {
-			LOG("REPEAT!"); 
-			state->repeat = true;
-		}
-	}
-	return true;
-}
-
-
 /* typestate_save_invars *******************************************************
  
    Save the invars of the current basic block in the space reserved by
@@ -501,16 +274,7 @@ typestate_restore_invars(verifier_state *state)
 }
 
 
-/****************************************************************************/
-/* MISC MACROS                                                              */
-/****************************************************************************/
-
-#define COPYTYPE(source,dest)                                        \
-    {if (VAROP(source)->type == TYPE_ADR)                            \
-            TYPEINFO_COPY(VAROP(source)->typeinfo,VAROP(dest)->typeinfo);}
-
-
-/* verify_fieldaccess **********************************************************
+/* handle_fieldaccess **********************************************************
  
    Verify an ICMD_{GET,PUT}{STATIC,FIELD}(CONST)?
   
@@ -524,7 +288,7 @@ typestate_restore_invars(verifier_state *state)
 *******************************************************************************/
 
 static bool
-verify_fieldaccess(verifier_state *state, 
+handle_fieldaccess(verifier_state *state,
 				   varinfo *instance,
 				   varinfo *value)
 {
@@ -544,7 +308,7 @@ verify_fieldaccess(verifier_state *state,
 }
 
 
-/* verify_invocation ***********************************************************
+/* handle_invocation ***********************************************************
  
    Verify an ICMD_INVOKE* instruction.
   
@@ -558,7 +322,7 @@ verify_fieldaccess(verifier_state *state,
 *******************************************************************************/
 
 static bool
-verify_invocation(verifier_state *state)
+handle_invocation(verifier_state *state)
 {
 	jitdata *jd;
     varinfo *dv;               /* output variable of current instruction */
@@ -576,7 +340,7 @@ verify_invocation(verifier_state *state)
 }
 
 
-/* verify_builtin **************************************************************
+/* handle_builtin **************************************************************
  
    Verify the call of a builtin method.
   
@@ -590,7 +354,7 @@ verify_invocation(verifier_state *state)
 *******************************************************************************/
 
 static bool
-verify_builtin(verifier_state *state)
+handle_builtin(verifier_state *state)
 {
 	jitdata *jd;
     varinfo *dv;               /* output variable of current instruction */
@@ -607,7 +371,7 @@ verify_builtin(verifier_state *state)
 	return true;
 }
 
-/* verify_multianewarray *******************************************************
+/* handle_multianewarray *******************************************************
  
    Verify a MULTIANEWARRAY instruction.
   
@@ -621,66 +385,22 @@ verify_builtin(verifier_state *state)
 *******************************************************************************/
 
 static bool
-verify_multianewarray(verifier_state *state)
+handle_multianewarray(verifier_state *state)
 {
-	classinfo *arrayclass;
-	arraydescriptor *desc;
-	s4 i;
-	jitdata *jd = state->jd;
+	jitdata *jd;
+    varinfo *dv;               /* output variable of current instruction */
 
-	/* check the array lengths on the stack */
-	i = state->iptr->s1.argcount;
-	if (i < 1)
-		TYPECHECK_VERIFYERROR_bool("Illegal dimension argument");
+	jd = state->jd;
+	dv = VAROP(state->iptr->dst);
 
-	while (i--) {
-		TYPECHECK_INT(state->iptr->sx.s23.s2.args[i]);
-	}
+#define TYPECHECK_VARIABLESBASED
+#define VERIFY_ERROR(msg)  TYPECHECK_VERIFYERROR_bool(msg)
+#include <typecheck-multianewarray.inc>
+#undef VERIFY_ERROR
+#undef  TYPECHECK_VARIABLESBASED
 
-	/* check array descriptor */
-	if (INSTRUCTION_IS_RESOLVED(state->iptr)) {
-		/* the array class reference has already been resolved */
-		arrayclass = state->iptr->sx.s23.s3.c.cls;
-		if (!arrayclass)
-			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with unlinked class");
-		if ((desc = arrayclass->vftbl->arraydesc) == NULL)
-			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with non-array class");
-		if (desc->dimension < state->iptr->s1.argcount)
-			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
-
-		/* set the array type of the result */
-		typeinfo_init_classinfo(&(VAROP(state->iptr->dst)->typeinfo), arrayclass);
-	}
-	else {
-		const char *p;
-		constant_classref *cr;
-		
-		/* the array class reference is still unresolved */
-		/* check that the reference indicates an array class of correct dimension */
-		cr = state->iptr->sx.s23.s3.c.ref;
-		i = 0;
-		p = cr->name->text;
-		while (p[i] == '[')
-			i++;
-		/* { the dimension of the array class == i } */
-		if (i < 1)
-			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with non-array class");
-		if (i < state->iptr->s1.argcount)
-			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
-
-		/* set the array type of the result */
-		if (!typeinfo_init_class(&(VAROP(state->iptr->dst)->typeinfo),CLASSREF_OR_CLASSINFO(cr)))
-			return false;
-	}
-
-	/* set return type */
-
-	VAROP(state->iptr->dst)->type = TYPE_ADR;
-
-	/* everything ok */
 	return true;
 }
-
 
 /* typecheck_invalidate_locals *************************************************
  
@@ -780,7 +500,7 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 #define REACH(target)   REACH_BLOCK((target).block)
 
 
-/* verify_basic_block **********************************************************
+/* handle_basic_block **********************************************************
  
    Perform bytecode verification of a basic block.
   
@@ -794,7 +514,7 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 *******************************************************************************/
 
 static bool
-verify_basic_block(verifier_state *state)
+handle_basic_block(verifier_state *state)
 {
     int opcode;                                      /* current opcode */
     int len;                        /* for counting instructions, etc. */
@@ -937,80 +657,6 @@ verify_basic_block(verifier_state *state)
 }
 
 
-/* verify_init_locals **********************************************************
- 
-   Initialize the local variables in the verifier state.
-  
-   IN:
-       state............the current state of the verifier
-
-   RETURN VALUE:
-       true.............success,
-	   false............an exception has been thrown.
-
-*******************************************************************************/
-
-static bool
-verify_init_locals(verifier_state *state)
-{
-	int i;
-	int index;
-	varinfo *locals;
-	varinfo *v;
-	jitdata *jd = state->jd;
-	int skip = 0;
-
-	locals = state->basicblocks[0].inlocals;
-
-	/* allocate parameter descriptors if necessary */
-	
-	if (!state->m->parseddesc->params)
-		if (!descriptor_params_from_paramtypes(state->m->parseddesc,state->m->flags))
-			return false;
-
-	/* pre-initialize variables as TYPE_VOID */
-	
-	i = state->numlocals;
-	v = locals;
-	while (i--) {
-		v->type = TYPE_VOID;
-		v++;
-	}
-
-    /* if this is an instance method initialize the "this" ref type */
-	
-    if (!(state->m->flags & ACC_STATIC)) {
-		index = jd->local_map[5*0 + TYPE_ADR];
-		if (index != UNUSED) {
-			if (state->validlocals < 1)
-				TYPECHECK_VERIFYERROR_bool("Not enough local variables for method arguments");
-			v = locals + index;
-			v->type = TYPE_ADR;
-			if (state->initmethod)
-				TYPEINFO_INIT_NEWOBJECT(v->typeinfo, NULL);
-			else
-				typeinfo_init_classinfo(&(v->typeinfo), state->m->class);
-		}
-
-		skip = 1;
-    }
-
-    LOG("'this' argument set.\n");
-
-    /* the rest of the arguments and the return type */
-	
-    if (!typeinfo_init_varinfos_from_methoddesc(locals, state->m->parseddesc,
-											  state->validlocals,
-											  skip, /* skip 'this' pointer */
-											  jd->local_map,
-											  &state->returntype))
-		return false;
-
-    LOG("Arguments set.\n");
-	return true;
-}
-
-
 /****************************************************************************/
 /* typecheck()                                                              */
 /* This is the main function of the bytecode verifier. It is called         */
@@ -1123,7 +769,7 @@ bool typecheck(jitdata *jd)
 
 	/* initialized local variables of first block */
 
-	if (!verify_init_locals(&state))
+	if (!typecheck_init_locals(&state, true))
 		return false;
 
     /* initialize invars of exception handlers */
@@ -1150,7 +796,7 @@ bool typecheck(jitdata *jd)
             
 		    /* verify reached block */	
             if (state.bptr->flags == BBTYPECHECK_REACHED) {
-                if (!verify_basic_block(&state))
+                if (!handle_basic_block(&state))
 					return false;
             }
         } /* for blocks */

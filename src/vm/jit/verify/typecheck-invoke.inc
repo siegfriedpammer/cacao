@@ -36,9 +36,11 @@
 {
 	unresolved_method *um;      /* struct describing the called method */
 	constant_FMIref *mref;           /* reference to the called method */
-	methodinfo *mi;                        /* resolved method (if any) */
 	methoddesc *md;                 /* descriptor of the called method */
 	utf *mname;                                         /* method name */
+    u1 rtype;                          /* return type of called method */
+#if !defined(TYPECHECK_TYPEINFERER)
+	methodinfo *mi;                        /* resolved method (if any) */
 	utf *mclassname;                     /* name of the method's class */
 	bool specialmethod;            /* true if a <...> method is called */
 	int opcode;                                   /* invocation opcode */
@@ -53,10 +55,10 @@
 	typedescriptor *av;                         /* argument stack slot */
 #endif
 	int i;                                                  /* counter */
-    u1 rtype;                          /* return type of called method */
 	resolve_result_t result;
 	bool invokestatic;
 	bool invokespecial;
+#endif /* !defined(TYPECHECK_TYPEINFERER) */
 
 	/* get the FMIref and the unresolved_method struct (if any) */
 	/* from the instruction                                     */
@@ -77,6 +79,7 @@
 	md = mref->parseddesc.md;
 	mname = mref->name;
 
+#if !defined(TYPECHECK_TYPEINFERER)
 	/* get method info (if resolved) and classname */
 
 	if (IS_FMIREF_RESOLVED(mref)) {
@@ -348,6 +351,7 @@
 		state->iptr->sx.s23.s3.um = um;
 		state->iptr->flags.bits |= INS_FLAG_UNRESOLVED;
 	}
+#endif /* !defined(TYPECHECK_TYPEINFERER) */
 
 	/* set the return type */
 
