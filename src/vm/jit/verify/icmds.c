@@ -32,6 +32,44 @@
 
 */
 
+#if 0 /* (needed for code examples in the following comment) */
+/******************************************************************************/
+/* This file contains ICMD-specific code for type checking and type
+ * inference. It is an input file for the verifier generator
+ * (src/vm/jit/verify/generate.pl). The verifier generator creates
+ * code for two compiler passes:
+ *     - stack-based type-infering verification
+ *     - vasiables-based type-infering verification
+ *
+ * The rest of this file must consist of "case" clauses starting in
+ * the first column. Each clause can be marked with tags like this:
+ *
+ */          case ICMD_CONSTANT: /* {TAG, TAG, ...} */
+/*
+ * This must be on one line. The following tags are defined:
+ *     STACKBASED..........use this clause for the stack-based verifier
+ *     VARIABLESBASED......use this clause for the variables-based verifier
+ *
+ * If no tag is specified, {STACKBASED,VARIABLESBASED} is assumed.
+ *
+ * There are also tags that can be used inside a clause like this:
+ *
+ */          /* {TAG} */
+/*
+ * The following tags are defined within clauses:
+ *     RESULTNOW...........generate code for modelling the stack action
+ *                         _before_ the user-defined code in the clause
+ *                         (Default is to model the stack action afterwards.)
+ *
+ * The following macros are pre-defined:
+ *
+ *     TYPECHECK_STACKBASED.......iff compiling the stack-based verifier
+ *     TYPECHECK_VARIABLESBASED...iff compiling the variables-based verifier
+ *
+/******************************************************************************/
+#endif /* (end #if 0) */
+
+
 /* this marker is needed by generate.pl: */
 /* {START_OF_CODE} */
 
@@ -664,7 +702,7 @@ case ICMD_POP2: /* {STACKBASED} */
 		CHECK_CAT1(stack[-1]);
 	break;
 
-case ICMD_SWAP:
+case ICMD_SWAP: /* {STACKBASED} */
 	CHECK_CAT1(stack[0]);
 	CHECK_CAT1(stack[-1]);
 
@@ -673,14 +711,14 @@ case ICMD_SWAP:
 	COPY_SLOT(temp     , stack[-1]);
 	break;
 
-case ICMD_DUP:
+case ICMD_DUP: /* {STACKBASED} */
 	/* we dup 1 */
 	CHECK_CAT1(stack[0]);
 
 	COPY_SLOT(stack[ 0], stack[ 1]);
 	break;
 
-case ICMD_DUP_X1:
+case ICMD_DUP_X1: /* {STACKBASED} */
 	/* we dup 1 */
 	CHECK_CAT1(stack[0]);
 	/* we skip 1 */
@@ -691,7 +729,7 @@ case ICMD_DUP_X1:
 	COPY_SLOT(stack[ 1], stack[-1]);
 	break;
 
-case ICMD_DUP_X2:
+case ICMD_DUP_X2: /* {STACKBASED} */
 	/* we dup 1 */
 	CHECK_CAT1(stack[0]);
 	/* we skip either 11 or 2 */
@@ -704,7 +742,7 @@ case ICMD_DUP_X2:
 	COPY_SLOT(stack[ 1], stack[-2]);
 	break;
 
-case ICMD_DUP2:
+case ICMD_DUP2: /* {STACKBASED} */
 	/* we dup either 11 or 2 */
 	if (IS_CAT1(stack[0]))
 		CHECK_CAT1(stack[-1]);
@@ -713,7 +751,7 @@ case ICMD_DUP2:
 	COPY_SLOT(stack[-1], stack[ 1]);
 	break;
 
-case ICMD_DUP2_X1:
+case ICMD_DUP2_X1: /* {STACKBASED} */
 	/* we dup either 11 or 2 */
 	if (IS_CAT1(stack[0]))
 		CHECK_CAT1(stack[-1]);
@@ -727,7 +765,7 @@ case ICMD_DUP2_X1:
 	COPY_SLOT(stack[ 1], stack[-2]);
 	break;
 
-case ICMD_DUP2_X2:
+case ICMD_DUP2_X2: /* {STACKBASED} */
 	/* we dup either 11 or 2 */
 	if (IS_CAT1(stack[0]))
 		CHECK_CAT1(stack[-1]);
