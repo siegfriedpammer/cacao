@@ -43,19 +43,23 @@ my $opt_icmdtable;
 my $opt_table = 0;
 my $opt_stack = 0;
 my $opt_variables = 0;
+my $opt_typeinferer = 0;
+my $opt_debug = 0;
 my $opt_help = 0;
 
 my $usage = <<"END_USAGE";
 Usage:
-    $0 --icmdtable FILE  { --table | --stack | --variables }
+    $0 --icmdtable FILE  { --table | --stack | --variables | --typeinferer } [--debug]
 
 Options:
     --icmdtable FILE         read ICMD table from FILE
     --table                  print ICMD table
     --stack                  generate stackbased verifier
     --variables              generate variablesbased verifier
+	--typeinferer            generate the type inference pass
+	--debug                  generate additional debugging code
 
-    Please specify exactly one of --table, --stack, or --variables.
+    Please specify exactly one of --table, --stack, --variables, or --typeinferer.
 
 END_USAGE
 
@@ -63,6 +67,8 @@ my $result = GetOptions("icmdtable=s" => \$opt_icmdtable,
 						"table"       => \$opt_table,
 						"stack"       => \$opt_stack,
 						"variables"   => \$opt_variables,
+						"typeinferer" => \$opt_typeinferer,
+						"debug"       => \$opt_debug,
 						"help|h|?"    => \$opt_help,
 		);
 
@@ -74,7 +80,7 @@ if ($opt_help) {
 }
 
 if (!defined($opt_icmdtable)
-	|| ($opt_table + $opt_stack + $opt_variables != 1))
+	|| ($opt_table + $opt_stack + $opt_variables + $opt_typeinferer != 1))
 {
 	print STDERR $usage;
 	exit 1;
@@ -85,6 +91,7 @@ if (!defined($opt_icmdtable)
 my $VERIFY_C = 'src/vm/jit/verify/icmds.c';
 my $TYPECHECK_STACKBASED_INC = 'src/vm/jit/verify/typecheck-stackbased-gen.inc';
 my $TYPECHECK_VARIABLESBASED_INC = 'src/vm/jit/verify/typecheck-variablesbased-gen.inc';
+my $TYPECHECK_TYPEINFERER_INC = 'src/vm/jit/verify/typecheck-typeinferer-gen.inc';
 
 my $TRACE = 1;
 
@@ -117,6 +124,11 @@ my %superblockend = map { $_ => 1 } @superblockend;
 my @validstages = qw( -- -S S+ );
 my %validstages = map { $_ => 1 } @validstages;
 
+my @valid_tags   = qw(STACKBASED VARIABLESBASED TYPEINFERER);
+my @default_tags = qw(STACKBASED VARIABLESBASED);
+
+my %valid_tag    = map { $_ => 1 } @valid_tags;
+
 #################### global variables
 
 my @icmds;
@@ -146,21 +158,31 @@ sub parse_verify_code
 
 		if (/^case/) {
 			unless (/^case \s+ (\w+) \s* :
-					 \s* ( \/\* \s* {(STACK|VARIABLES)BASED} \s* \*\/ )?
+					 \s* ( \/\* \s* {\s* (\w+ (\s*,\s* \w+)*) \s*} \s* \*\/ )?
 					 \s* $/x)
 			{
 				die "$0: invalid case line: $filename:$.: $_";
 			}
-			my ($n, $unused, $tag) = ($1, $2, $3);
+			my ($n, $unused, $tags) = ($1, $2, $3 || '');
+
+			my @tags = split /\s*,\s*/, $tags;
+
+			if (@tags == 1 && $tags[0] eq 'ALL') {
+				@tags = @valid_tags;
+			}
+			@tags = @default_tags unless @tags;
 
 			defined($icmds{$n}) or die "$0: unknown ICMD: $filename:$.: $_";
 
-			if (defined($tag) && $tag ne $select) {
-				$ignore = 1;
-			}
-			else {
-				$ignore = 0;
+			$ignore = 1;
 
+			for my $tag (@tags) {
+				$valid_tag{$tag} or die "$0: invalid tag: $filename:$.: $tag";
+
+				$ignore = 0 if $tag eq $select;
+			}
+
+			unless ($ignore) {
 				my $code = [];
 				$codeprops = {};
 
@@ -227,6 +249,26 @@ sub add_flag
 	else {
 		$$flags .= '|'.$name;
 	}
+}
+
+sub trait
+{
+	my ($icmd,$key,$default) = @_;
+
+	$default = "\0" unless defined($default);
+
+	return (defined($icmd->{$key})) ? ":$key:".($icmd->{$key})
+									: ":$key:$default";
+}
+
+sub set_icmd_traits
+{
+	my ($icmd,$key,$traits) = @_;
+
+	$traits = $key . ':' . $traits;
+
+	$icmd->{$key} = $traits;
+	push @{$icmdtraits{$traits}}, $icmd;
 }
 
 sub post_process_icmds
@@ -386,33 +428,44 @@ sub post_process_icmds
 
 		### calculate traits for building equivalence classes of ICMDs
 
-		my $traits = 'TRAITS:';
-		$traits .= ':DATAFLOW:'.$icmd->{DATAFLOW};
-		$traits .= ':CONTROLFLOW:'.$icmd->{CONTROLFLOW};
-		$traits .= ':ACTION:'.$icmd->{ACTION};
-		$traits .= ':MAYTHROW:'.($icmd->{MAYTHROW} || '0');
-		if ($icmd->{VERIFYCODE}) {
-			$traits .= ':VERIFYCODE:'.join('',$icmd->{VERIFYCODE});
-		}
-		$icmd->{TRAITS} = $traits;
-		push @{$icmdtraits{$traits}}, $icmd;
+		# traits used in all cases
+		my $commontraits = trait($icmd, 'CONTROLFLOW')
+						 . trait($icmd, 'MAYTHROW', 0)
+						 . trait($icmd, 'VERIFYCODE');
 
-		my $vartraits = 'VARTRAITS:';
-		$vartraits .= ':CONTROLFLOW:'.$icmd->{CONTROLFLOW};
-		$vartraits .= ':MAYTHROW:'.($icmd->{MAYTHROW} || '0');
-		if ($icmd->{VERIFYCODE}) {
-			$vartraits .= ':VERIFYCODE:'.join('',$icmd->{VERIFYCODE});
-		}
+		# traits that completely define the kind of dataflow
+		my $datatraits = trait($icmd, 'DATAFLOW')
+					   . trait($icmd, 'ACTION');
+
+		# traits defining the output type
+		my $outputtraits;
 		if ($icmd->{DATAFLOW} =~ /^\d_TO_\d$/) {
-			$vartraits .= ':OUTVARS:' . ($icmd->{OUTVARS} || '~');
-			$vartraits .= ':BASICOUTTYPE:' . ($icmd->{BASICOUTTYPE} || '~');
+			$outputtraits = trait($icmd, 'OUTVARS')
+						  . trait($icmd, 'BASICOUTTYPE');
 		}
 		else {
-			$vartraits .= ':DATAFLOW:' . $icmd->{DATAFLOW};
-			$vartraits .= ':ACTION:' . $icmd->{ACTION};
+			$outputtraits = $datatraits;
 		}
-		$icmd->{VARTRAITS} = $vartraits;
-		push @{$icmdtraits{$vartraits}}, $icmd;
+
+		# traits used by the stack-based verifier
+		my $traits = $commontraits
+				   . $datatraits;
+		set_icmd_traits($icmd, 'STACKBASED', $traits);
+
+		# traits used by the variables-based verifier
+		$traits = $commontraits
+			    . ($opt_debug ? $datatraits : $outputtraits);
+		set_icmd_traits($icmd, 'VARIABLESBASED', $traits);
+
+		# traits used by the type inference pass
+		$traits = $commontraits;
+		if ($icmd->{VERIFYCODE} && $icmd->{DATAFLOW} !~ /^\d_TO_\d$/) {
+			$traits .= trait($icmd, 'DATAFLOW');
+		}
+		if ($opt_debug) {
+			$traits .= $datatraits;
+		}
+		set_icmd_traits($icmd, 'TYPEINFERER', $traits);
 	}
 
 	my $maxmax = 18;
@@ -586,7 +639,7 @@ sub write_verify_stackbased_code
 		### start instruction case, group instructions with same code
 
 		code "\n";
-		write_icmd_cases($icmd, 'TRAITS', $condition, \%done);
+		write_icmd_cases($icmd, 'STACKBASED', $condition, \%done);
 
 		### instruction properties
 
@@ -626,7 +679,7 @@ sub write_verify_stackbased_code
 			}
 		}
 
-		###	check local types
+		###	check/store local types
 
 		my $prohibit_stackchange = 0;
 
@@ -752,18 +805,19 @@ sub write_verify_stackbased_code
 
 sub write_verify_variablesbased_code
 {
-	my ($file) = @_;
+	my ($file,$select,$codefilename) = @_;
 
 	my %done;
 
 	$codefile = $file;
 	$codeline = 1;
-	my $codefilename = $TYPECHECK_VARIABLESBASED_INC;
 
 	print $file "#define GENERATED\n";
 	$codeline++;
 
 	my $condition = sub { $_[0]->{STAGE} ne '--' and $_[0]->{STAGE} ne '-S' };
+
+	my $model_basic_types = ($select ne 'TYPEINFERER') || $opt_debug;
 
 	for my $icmdname (@icmds) {
 		my $icmd = $icmds{$icmdname};
@@ -783,35 +837,49 @@ sub write_verify_variablesbased_code
 
 		code "\n";
 
-		write_icmd_cases($icmd, 'VARTRAITS', $condition, \%done);
+		write_icmd_cases($icmd, $select, $condition, \%done);
 
 		### instruction properties
 
 		write_icmd_set_props($icmd);
 
-		###	check local types
+		### check basic types (only in --debug mode)
 
-		if ($icmd->{DATAFLOW} eq 'LOAD') {
-			code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, ".$cacaotypes{$outtype}.");\n";
-			if ($icmd->{VERIFYCODE}) {
-				code "#\tdefine OP1  VAROP(IPTR->s1)\n";
-				push @macros, 'OP1';
+		if ($opt_debug) {
+			if (scalar(@{$icmd->{VARIANTS}}) == 1 && defined($invars)) {
+			   my $intypes = $icmd->{VARIANTS}->[0]->{IN};
+			   if ($invars >= 1 && defined($cacaotypes{$intypes->[0]})) {
+				   code "\tif (VAROP(IPTR->s1)->type != ".$cacaotypes{$intypes->[0]}.")\n";
+				   code "\t\tVERIFY_ERROR(\"basic type mismatch\");\n";
+			   }
+			   if ($invars >= 2 && defined($cacaotypes{$intypes->[1]})) {
+				   code "\tif (VAROP(IPTR->sx.s23.s2)->type != ".$cacaotypes{$intypes->[1]}.")\n";
+				   code "\t\tVERIFY_ERROR(\"basic type mismatch\");\n";
+			   }
+			   if ($invars >= 3 && defined($cacaotypes{$intypes->[2]})) {
+				   code "\tif (VAROP(IPTR->sx.s23.s3)->type != ".$cacaotypes{$intypes->[2]}.")\n";
+				   code "\t\tVERIFY_ERROR(\"basic type mismatch\");\n";
+			   }
 			}
 		}
-		elsif ($icmd->{DATAFLOW} eq 'IINC') {
-			code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_INT);\n";
-		}
-		elsif ($icmd->{DATAFLOW} eq 'STORE') {
-			my ($inslots, $type) = get_dst_slots_and_ctype($icmd, 'VAROP(iptr->s1)');
-			if ($inslots == 2) {
-				code "\tSTORE_LOCAL_2_WORD(".$type.", IPTR->dst.varindex);\n";
+
+		###	check/store local types
+
+		if ($model_basic_types) {
+			if ($icmd->{DATAFLOW} eq 'LOAD') {
+				code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, ".$cacaotypes{$outtype}.");\n";
 			}
-			else {
-				code "\tSTORE_LOCAL(".$type.", IPTR->dst.varindex);\n";
+			elsif ($icmd->{DATAFLOW} eq 'IINC') {
+				code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_INT);\n";
 			}
-			if ($icmd->{VERIFYCODE}) {
-				code "#\tdefine DST  VAROP(IPTR->dst)\n";
-				push @macros, 'DST';
+			elsif ($icmd->{DATAFLOW} eq 'STORE') {
+				my ($inslots, $type) = get_dst_slots_and_ctype($icmd, 'VAROP(iptr->s1)');
+				if ($inslots == 2) {
+					code "\tSTORE_LOCAL_2_WORD(".$type.", IPTR->dst.varindex);\n";
+				}
+				else {
+					code "\tSTORE_LOCAL(".$type.", IPTR->dst.varindex);\n";
+				}
 			}
 		}
 
@@ -820,12 +888,29 @@ sub write_verify_variablesbased_code
 		my $resultdone = 0;
 
 		if ($icmd->{VERIFYCODE}) {
+			# set OP1/DST for local variables
+
+			if ($icmd->{DATAFLOW} eq 'LOAD') {
+				code "#\tdefine OP1  VAROP(IPTR->s1)\n";
+				push @macros, 'OP1';
+			}
+			elsif ($icmd->{DATAFLOW} eq 'STORE') {
+				code "#\tdefine DST  VAROP(IPTR->dst)\n";
+				push @macros, 'DST';
+			}
+
+			# model stack-action, if RESULTNOW tag was used
+
 			if ($icmd->{VERIFYCODEPROPS}->{RESULTNOW}) {
-				if (defined($outtype) && defined($outvars) && $outvars == 1) {
+				if ($model_basic_types
+					&& defined($outtype) && defined($outvars) && $outvars == 1)
+				{
 					code "\tVAROP(iptr->dst)->type = ", $cacaotypes{$outtype}, ";\n";
 				}
 				$resultdone = 1;
 			}
+
+			# define OP1/DST for stack variables
 
 			if (defined($invars) && $invars >= 1) {
 				code "#\tdefine OP1  VAROP(iptr->s1)\n";
@@ -836,6 +921,8 @@ sub write_verify_variablesbased_code
 				code "#\tdefine DST  VAROP(iptr->dst)\n";
 				push @macros, 'DST';
 			}
+
+			# insert the custom code
 
 			code "\n";
 			code "#\tline ".$icmd->{VERIFYCODELINE}." \"".$icmd->{VERIFYCODEFILE}."\"\n";
@@ -849,7 +936,9 @@ sub write_verify_variablesbased_code
 		if (!defined($icmd->{GOTOLABEL})) {
 
 			unless ($resultdone) {
-				if (defined($outtype) && defined($outvars) && $outvars == 1) {
+				if ($model_basic_types
+					&& defined($outtype) && defined($outvars) && $outvars == 1)
+				{
 					code "\tVAROP(iptr->dst)->type = ", $cacaotypes{$outtype}, ";\n";
 				}
 			}
@@ -979,7 +1068,7 @@ sub parse_icmd_table
 parse_icmd_table($opt_icmdtable);
 
 if ($opt_stack) {
-	parse_verify_code($VERIFY_C, 'STACK');
+	parse_verify_code($VERIFY_C, 'STACKBASED');
 	post_process_icmds();
 
 	my $outfile = IO::File->new(">$TYPECHECK_STACKBASED_INC")
@@ -988,12 +1077,23 @@ if ($opt_stack) {
 	close $outfile;
 }
 elsif ($opt_variables) {
-	parse_verify_code($VERIFY_C, 'VARIABLES');
+	parse_verify_code($VERIFY_C, 'VARIABLESBASED');
 	post_process_icmds();
 
 	my $outfile = IO::File->new(">$TYPECHECK_VARIABLESBASED_INC")
 			or die "$0: could not create: $TYPECHECK_VARIABLESBASED_INC";
-	write_verify_variablesbased_code($outfile);
+	write_verify_variablesbased_code($outfile, 'VARIABLESBASED',
+									 $TYPECHECK_VARIABLESBASED_INC);
+	close $outfile;
+}
+elsif ($opt_typeinferer) {
+	parse_verify_code($VERIFY_C, 'TYPEINFERER');
+	post_process_icmds();
+
+	my $outfile = IO::File->new(">$TYPECHECK_TYPEINFERER_INC")
+			or die "$0: could not create: $TYPECHECK_TYPEINFERER_INC";
+	write_verify_variablesbased_code($outfile, 'TYPEINFERER',
+									 $TYPECHECK_TYPEINFERER_INC);
 	close $outfile;
 }
 elsif ($opt_table) {
