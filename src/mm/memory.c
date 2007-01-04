@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: memory.c 6256 2006-12-28 12:30:09Z twisti $
+   $Id: memory.c 6276 2007-01-04 21:48:51Z twisti $
 
 */
 
@@ -309,12 +309,9 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 {
 	void *dst;
 
-	if (!src) {
-		if (len1 != 0) {
-			log_text("reallocating memoryblock with address NULL, length != 0");
-			assert(0);
-		}
-	}
+	if (src == NULL)
+		if (len1 != 0)
+			vm_abort("mem_realloc: reallocating memoryblock with address NULL, length != 0");
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -329,7 +326,7 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 	dst = realloc(src, len2);
 
 	if (dst == NULL)
-		exceptions_throw_outofmemory_exit();
+		vm_abort("realloc failed: out of memory");
 
 #if defined(ENABLE_MEMCHECK)
 	if (len2 > len1)
