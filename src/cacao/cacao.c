@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 6011 2006-11-16 15:56:44Z twisti $
+   $Id: cacao.c 6278 2007-01-06 14:27:59Z twisti $
 
 */
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 	path = malloc(sizeof(char) * 4096);
 
 	if (readlink("/proc/self/exe", path, 4095) == -1) {
-		fprintf(stderr, "readlink failed: %s\n", strerror(errno));
+		fprintf(stderr, "main: readlink failed: %s\n", strerror(errno));
 		abort();
 	}
 
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 	path = dirname(path);
 
 	if ((strlen(path) + strlen("/../lib/libjvm") + strlen("0")) > 4096) {
-		fprintf(stderr, "libjvm name to long for buffer\n");
+		fprintf(stderr, "main: libjvm name to long for buffer\n");
 		abort();
 	}
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 # endif
 
 	if (lt_dlinit()) {
-		fprintf(stderr, "lt_dlinit failed: %s\n", lt_dlerror());
+		fprintf(stderr, "main: lt_dlinit failed: %s\n", lt_dlerror());
 		abort();
 	}
 
@@ -136,13 +136,13 @@ int main(int argc, char **argv)
 
 	if (!(libjvm_handle = lt_dlopenext("libjvm"))) {
 		if (!(libjvm_handle = lt_dlopenext(path))) {
-			fprintf(stderr, "lt_dlopenext failed: %s\n", lt_dlerror());
+			fprintf(stderr, "main: lt_dlopenext failed: %s\n", lt_dlerror());
 			abort();
 		}
 	}
 
 	if (!(libjvm_vm_createjvm = lt_dlsym(libjvm_handle, "vm_createjvm"))) {
-		fprintf(stderr, "lt_dlsym failed: %s\n", lt_dlerror());
+		fprintf(stderr, "main: lt_dlsym failed: %s\n", lt_dlerror());
 		abort();
 	}
 
