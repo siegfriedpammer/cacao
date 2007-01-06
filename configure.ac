@@ -948,6 +948,9 @@ if test x"${WITH_STATIC_CLASSPATH}" = "xyes"; then
     dnl check for some classpath related stuff when we link statically
     AM_ICONV_LINK
 else
+    dnl we need this check for --enable-staticvm, otherwise ltdl can't find dlopen
+    AC_CHECK_LIB(dl, dlopen,, [AC_MSG_ERROR(cannot find libdl)])
+
     AC_CHECK_HEADERS([ltdl.h],, [AC_MSG_ERROR(cannot find ltdl.h)])
     AC_CHECK_LIB(ltdl, lt_dlopen,, [AC_MSG_ERROR(cannot find libltdl)])
 fi
