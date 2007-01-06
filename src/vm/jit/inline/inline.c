@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6262 2006-12-31 17:57:22Z edwin $
+   $Id: inline.c 6277 2007-01-06 01:27:11Z edwin $
 
 */
 
@@ -91,6 +91,7 @@ typedef struct inline_node inline_node;
 typedef struct inline_target_ref inline_target_ref;
 typedef struct inline_context inline_context;
 typedef struct inline_block_map inline_block_map;
+typedef struct inline_site inline_site;
 
 struct inline_node {
 	inline_context *ctx;
@@ -114,6 +115,7 @@ struct inline_node {
 	int n_handlercount;                 /* # of handlers protecting this call */
 	int n_resultlocal;
 	int synclocal;                    /* variable used for synchr., or UNUSED */
+	bool isstatic;                                   /* this is a static call */
 
 	bool blockbefore;                  /* block boundary before inlined body? */
 	bool blockafter;                   /* block boundary after inlined body?  */
@@ -123,7 +125,7 @@ struct inline_node {
 	int prolog_instructioncount;         /* # of ICMDs in the inlining prolog */
 	int epilog_instructioncount;         /* # of ICMDs in the inlining epilog */
 	int extra_instructioncount;
-	int instructioncount;
+	int extra_exceptiontablelength;   /* # of extra handlers to put in caller */
 	bool synchronize;                /* do we have to synchronize enter/exit? */
 	basicblock *handler_monitorexit;     /* handler for synchronized inlinees */
 	s4 *varmap;
@@ -131,6 +133,8 @@ struct inline_node {
 	/* cumulative values */
 	int cumul_instructioncount;  /* ICMDs in this node and its children       */
 	int cumul_basicblockcount;   /* BBs started by this node and its children */
+	int cumul_basicblockcount_root;  /* BBs that have to be added to the root */
+	                                 /* node if this node is inlined          */
 	int cumul_blockmapcount;
 	int cumul_maxlocals;
 	int cumul_exceptiontablelength;
@@ -181,15 +185,18 @@ struct inline_context {
 
 	int maxinoutdepth;
 
-	bool calls_others;
-
 	int next_debugnr; /* XXX debug */
+};
+
+struct inline_site {
+	bool speculative;
+	bool inlined;
 };
 
 
 /* prototypes *****************************************************************/
 
-static bool inline_inline_intern(methodinfo *m, inline_node *iln);
+static bool inline_make_inlining_plan(inline_node *iln);
 static void inline_post_process(jitdata *jd);
 
 
@@ -924,7 +931,6 @@ static s4 emit_inlining_prolog(inline_node *iln,
 	int i;
 	int localindex;
 	int type;
-	bool isstatic;
 	instruction *n_ins;
 	insinfo_inline *insinfo;
 	s4 argvar;
@@ -933,7 +939,6 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 	calleem = callee->m;
 	md = calleem->parseddesc;
-	isstatic = (calleem->flags & ACC_STATIC);
 
 	/* INLINE_START instruction */
 
@@ -997,7 +1002,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 		/* ensures that they are only called for an uninit. object */
 		/* (which may not be NULL).                                */
 
-		if (!isstatic && i == 0 && calleem->name != utf_init) {
+		if (!callee->isstatic && i == 0 && calleem->name != utf_init) {
 			assert(type == TYPE_ADR);
 			n_ins = inline_instruction(iln, ICMD_CHECKNULL, o_iptr);
 			n_ins->s1.varindex = argvar;
@@ -1054,7 +1059,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 	if (callee->synchronize) {
 		inline_generate_sync_builtin(iln, callee, o_iptr,
-									 (isstatic) ? UNUSED : varmap[o_iptr->sx.s23.s2.args[0]],
+									 (callee->isstatic) ? UNUSED : varmap[o_iptr->sx.s23.s2.args[0]],
 									 LOCK_monitor_enter);
 	}
 
@@ -1822,7 +1827,7 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 
 /* second pass driver *********************************************************/
 
-static bool test_inlining(inline_node *iln, jitdata *jd)
+static bool inline_transform(inline_node *iln, jitdata *jd)
 {
 	instruction *n_ins;
 	basicblock *n_bb;
@@ -2018,45 +2023,244 @@ static bool test_inlining(inline_node *iln, jitdata *jd)
 }
 
 
-/* first pass: build inlining tree ********************************************/
+/******************************************************************************/
+/* FIRST PASS: build inlining tree                                            */
+/******************************************************************************/
 
-static bool inline_analyse_callee(inline_node *caller,
-								  methodinfo *callee,
-								  basicblock *callerblock,
-								  instruction *calleriptr,
-								  s4 callerpc,
-								  exception_entry **handlers,
-								  s4 nhandlers)
+
+/* inline_pre_parse_heuristics *************************************************
+
+   Perform heuristic checks whether a call site should be inlined.
+   These checks are evaluated before the callee has been parsed and analysed.
+
+   IN:
+       caller...........inlining node of the caller
+	   callee...........the called method
+	   site.............information on the call site
+
+   RETURN VALUE:
+       true........inlining should be done
+	   false.......don't inline
+
+*******************************************************************************/
+
+static bool inline_pre_parse_heuristics(const inline_node *caller,
+										const methodinfo *callee,
+										inline_site *site)
+{
+	if (caller->depth >= 3)
+		return false;
+
+	return true;
+}
+
+
+/* inline_post_parse_heuristics ************************************************
+
+   Perform heuristic checks whether a call site should be inlined.
+   These checks are evaluated after the callee has been parsed and analysed.
+
+   IN:
+       caller...........inlining node of the caller (const)
+	   callee...........the called method (const)
+
+   RETURN VALUE:
+       true........inlining should be done
+	   false.......don't inline
+
+*******************************************************************************/
+
+static bool inline_post_parse_heuristics(const inline_node *caller,
+										 const inline_node *callee)
+{
+	return true;
+}
+
+
+/* inline_afterwards_heuristics ************************************************
+
+   Perform heuristic checks whether a call site should be inlined.
+   These checks are evaluated after the inlining plan for the callee has
+   been made.
+
+   IN:
+       caller...........inlining node of the caller (const)
+	   callee...........the called method (const)
+
+   RETURN VALUE:
+       true........inlining should be done
+	   false.......don't inline
+
+*******************************************************************************/
+
+static bool inline_afterwards_heuristics(const inline_node *caller,
+										 const inline_node *callee)
+{
+	if (caller->cumul_basicblockcount + callee->cumul_basicblockcount
+			> 10*caller->ctx->master->jd->basicblockcount)
+	{
+#if 0
+		printf("STOPPING to avoid code explosion (%d blocks)\n",
+				caller->cumul_basicblockcount);
+#endif
+		return false;
+	}
+
+	return true;
+}
+
+
+/* inline_is_monomorphic *******************************************************
+
+   Check if the given call site can be proven to be monomorphic.
+
+   IN:
+	   callee...........the called method
+	   call.............the invocation instruction
+
+   OUT:
+       site->speculative.....flags whether the inlining is speculative
+	                         (only defined if return value is true)
+
+   RETURN VALUE:
+       true if the call site is (currently) monomorphic,
+	   false if not or unknown
+
+*******************************************************************************/
+
+static bool inline_is_monomorphic(const methodinfo *callee,
+								  const instruction *call,
+								  inline_site *site)
+{
+	if ((callee->flags & (ACC_STATIC | ACC_FINAL | ACC_PRIVATE)
+				|| call->opc == ICMD_INVOKESPECIAL))
+	{
+		site->speculative = false;
+		return true;
+	}
+
+	/* XXX search single implementation for abstract monomorphics */
+
+	if ((callee->flags & (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED
+					| ACC_ABSTRACT))
+			== (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED))
+	{
+		if (1) {
+			DOLOG( printf("SPECULATIVE INLINE: "); method_println(callee); );
+			site->speculative = true;
+
+			return true;
+		}
+	}
+
+	/* possibly polymorphic call site */
+
+	return false;
+}
+
+
+/* inline_can_inline ***********************************************************
+
+   Check if inlining of the given call site is possible.
+
+   IN:
+       caller...........inlining node of the caller
+	   callee...........the called method
+	   call.............the invocation instruction
+
+   OUT:
+       site->speculative.....flags whether the inlining is speculative
+	                         (only defined if return value is true)
+
+   RETURN VALUE:
+       true if inlining is possible, false if not
+
+*******************************************************************************/
+
+static bool inline_can_inline(const inline_node *caller,
+							  const methodinfo *callee,
+							  const instruction *call,
+							  inline_site *site)
+{
+	const inline_node *active;
+
+	/* cannot inline native methods */
+
+	if (callee->flags & ACC_NATIVE)
+		return false;
+
+	/* cannot inline possibly polymorphic calls */
+
+	if (!inline_is_monomorphic(callee, call, site))
+		return false;
+
+	/* cannot inline recursive calls */
+
+	for (active = caller; active; active = active->parent) {
+		if (callee == active->m) {
+			DOLOG( printf("RECURSIVE!\n") );
+			return false;
+		}
+	}
+
+	/* inlining is possible */
+
+	return true;
+}
+
+
+/* inline_create_callee_node ***************************************************
+
+   Create an inlining node for the given callee.
+
+   IN:
+	   caller...........inlining node of the caller (const)
+	   callee...........the called method
+
+   RETURN VALUE:
+       the new inlining node
+
+*******************************************************************************/
+
+static inline_node * inline_create_callee_node(const inline_node *caller,
+											   methodinfo *callee)
 {
 	inline_node *cn;              /* the callee inline_node */
-	s4           argi;
-	bool         isstatic;
-	s4           i, j;
-	basicblock  *bptr;
-
-	/* create an inline tree node */
 
 	cn = DNEW(inline_node);
 	MZERO(cn, inline_node, 1);
 
+	cn->depth = caller->depth + 1;
 	cn->ctx = caller->ctx;
 	cn->m = callee;
 	cn->synchronize = (callee->flags & ACC_SYNCHRONIZED);
-	isstatic = (callee->flags & ACC_STATIC);
+	cn->isstatic = (callee->flags & ACC_STATIC);
 
-	/* get the intermediate representation of the callee */
+	return cn;
+}
 
-	if (!inline_jit_compile(cn))
-		return false;
 
-	/* info about the call site */
+/* inline_set_callee_properties ************************************************
 
-	cn->depth = caller->depth + 1;
-	cn->callerblock = callerblock;
-	cn->callerins = calleriptr;
-	cn->callerpc = callerpc;
-	cn->o_handlers = handlers;
-	cn->n_handlercount = caller->n_handlercount + nhandlers;
+   Set properties of the inlined call site.
+
+   IN:
+       caller...........inlining node of the caller (const)
+	   cn...............the called method
+	   call.............the invocation instruction (const)
+
+   OUT:
+       *cn..............has the properties set
+
+*******************************************************************************/
+
+static void inline_set_callee_properties(const inline_node *caller,
+										 inline_node *cn,
+										 const instruction *call)
+{
+	s4           argi;
+	s4           i, j;
+	basicblock  *bptr;
 
 	/* determine if we need basic block boundaries before/after */
 
@@ -2082,13 +2286,13 @@ static bool inline_analyse_callee(inline_node *caller,
 	/* info about the callee */
 
 	cn->localsoffset = caller->localsoffset + caller->m->maxlocals;
-	cn->prolog_instructioncount = callee->parseddesc->paramcount + 2;
+	cn->prolog_instructioncount = cn->m->parseddesc->paramcount + 2;
 	cn->epilog_instructioncount = 1; /* INLINE_END */
 	cn->extra_instructioncount = 0;
 
 	/* we need a CHECKNULL for instance methods, except for <init> */
 
-	if (!isstatic && callee->name != utf_init)
+	if (!cn->isstatic && cn->m->name != utf_init)
 		cn->prolog_instructioncount += 1;
 
 	/* deal with synchronized callees */
@@ -2110,7 +2314,7 @@ static bool inline_analyse_callee(inline_node *caller,
 		/* we need an COPY, MONITORENTER in the prolog     */
 		/* and MONITOREXIT in the epilog                   */
 
-		if (isstatic) {
+		if (cn->isstatic) {
 			cn->prolog_instructioncount += 2;
 			cn->epilog_instructioncount += 2;
 		}
@@ -2127,7 +2331,11 @@ static bool inline_analyse_callee(inline_node *caller,
 
 		/* exception table entries */
 
-		caller->cumul_exceptiontablelength += 1 + cn->n_handlercount;
+		cn->extra_exceptiontablelength = 1 + cn->n_handlercount;
+
+		/* add exception handler block */
+
+		cn->cumul_basicblockcount_root++;
 
 		/* we must call the builtins */
 
@@ -2144,18 +2352,16 @@ static bool inline_analyse_callee(inline_node *caller,
 			cn->regdata->memuse = md->memuse;
 		if (md->argintreguse > cn->regdata->argintreguse)
 			cn->regdata->argintreguse = md->argintreguse;
-
-		caller->ctx->calls_others = true;
 	}
 
 	/* determine pass-through variables */
 
-	i = calleriptr->s1.argcount - callee->parseddesc->paramcount; /* max # of pass-though vars */
+	i = call->s1.argcount - cn->m->parseddesc->paramcount; /* max # of pass-though vars */
 
 	cn->n_passthroughvars = DMNEW(s4, i);
 	j = 0;
-	for (argi = calleriptr->s1.argcount - 1; argi >= callee->parseddesc->paramcount; --argi) {
-		s4 idx = calleriptr->sx.s23.s2.args[argi];
+	for (argi = call->s1.argcount - 1; argi >= cn->m->parseddesc->paramcount; --argi) {
+		s4 idx = call->sx.s23.s2.args[argi];
 		if (idx >= caller->jd->localcount) {
 			cn->n_passthroughvars[j] = idx;
 			j++;
@@ -2167,6 +2373,105 @@ static bool inline_analyse_callee(inline_node *caller,
 	assert(j <= i);
 	cn->n_selfpassthroughcount = j;
 	cn->n_passthroughcount = caller->n_passthroughcount + cn->n_selfpassthroughcount;
+}
+
+
+/* inline_cumulate_counters ****************************************************
+
+   Cumulate counters after a node has been decided to become inlined.
+
+   IN:
+       caller...........inlining node of the caller
+	   callee...........inlining node of the callee (const)
+
+   OUT:
+       *caller..........gets cumulated values added
+
+*******************************************************************************/
+
+static void inline_cumulate_counters(inline_node *caller,
+									 const inline_node *cn)
+{
+	caller->cumul_instructioncount += cn->prolog_instructioncount;
+	caller->cumul_instructioncount += cn->epilog_instructioncount;
+	caller->cumul_instructioncount += cn->extra_instructioncount;
+	caller->cumul_instructioncount += cn->cumul_instructioncount - 1 /*invoke*/;
+
+	caller->cumul_basicblockcount += cn->cumul_basicblockcount;
+	caller->cumul_basicblockcount_root += cn->cumul_basicblockcount_root;
+	caller->cumul_blockmapcount += cn->cumul_blockmapcount;
+	caller->cumul_exceptiontablelength += cn->cumul_exceptiontablelength;
+	caller->cumul_exceptiontablelength += cn->extra_exceptiontablelength;
+
+	if (cn->cumul_maxlocals > caller->cumul_maxlocals)
+		caller->cumul_maxlocals = cn->cumul_maxlocals;
+
+	/* XXX extra block after inlined call */
+	if (cn->blockafter) {
+		caller->cumul_basicblockcount += 1;
+		caller->cumul_blockmapcount += 1;
+	}
+}
+
+
+/* inline_analyse_callee *******************************************************
+
+   Analyse an inlining candidate callee.
+
+   IN:
+       caller...........inlining node of the caller
+	   callee...........the called method
+	   callerblock......basic block containing the call
+	   calleriptr.......the invocation instruction
+	   callerpc.........PC (icmd index) of the call
+	   handlers.........handlers covering this call
+	   nhandlers........number of handlers covering this call
+	   site.............info about the call site
+
+   RETURN VALUE:
+       true........everything ok
+	   false.......an error has occurred, don't use the inlining plan
+
+*******************************************************************************/
+
+static bool inline_analyse_callee(inline_node *caller,
+								  methodinfo *callee,
+								  basicblock *callerblock,
+								  instruction *calleriptr,
+								  s4 callerpc,
+								  exception_entry **handlers,
+								  s4 nhandlers,
+								  inline_site *site)
+{
+	inline_node *cn;              /* the callee inline_node */
+
+	/* create an inline tree node */
+
+	cn = inline_create_callee_node(caller, callee);
+
+	/* get the intermediate representation of the callee */
+
+	if (!inline_jit_compile(cn))
+		return false;
+
+	/* evaluate heuristics after parsing the callee */
+
+	if (!inline_post_parse_heuristics(caller, cn))
+		return true;
+
+	/* the call site will be inlined */
+
+	site->inlined = true;
+
+	/* set info about the call site */
+
+	cn->callerblock = callerblock;
+	cn->callerins = calleriptr;
+	cn->callerpc = callerpc;
+	cn->o_handlers = handlers;
+	cn->n_handlercount = caller->n_handlercount + nhandlers;
+
+	inline_set_callee_properties(caller, cn, calleriptr);
 
 	/* insert the node into the inline tree */
 
@@ -2174,68 +2479,53 @@ static bool inline_analyse_callee(inline_node *caller,
 
 	/* analyse recursively */
 
-	if (!inline_inline_intern(callee, cn))
+	if (!inline_make_inlining_plan(cn))
 		return false;
 
-	/* subtract one block if we continue the caller block */
-
-	if (!cn->blockbefore)
-		cn->cumul_basicblockcount -= 1;
-
-	/* add exception handler block for synchronized callees */
-
-	if (cn->synchronize) {
-		caller->ctx->master->cumul_basicblockcount++;
-		caller->ctx->master->cumul_blockmapcount++;
-	}
+	if (!inline_afterwards_heuristics(caller, cn))
+		return false;
 
 	/* cumulate counters */
 
-	caller->cumul_instructioncount += cn->prolog_instructioncount;
-	caller->cumul_instructioncount += cn->epilog_instructioncount;
-	caller->cumul_instructioncount += cn->extra_instructioncount;
-	caller->cumul_instructioncount += cn->cumul_instructioncount - 1 /*invoke*/;
-
-	caller->cumul_basicblockcount += cn->cumul_basicblockcount;
-	caller->cumul_blockmapcount += cn->cumul_blockmapcount;
-	caller->cumul_exceptiontablelength += cn->cumul_exceptiontablelength;
-	if (cn->cumul_maxlocals > caller->cumul_maxlocals)
-		caller->cumul_maxlocals = cn->cumul_maxlocals;
-
-	if (caller->cumul_basicblockcount > 10*caller->ctx->master->jd->basicblockcount) {
-#if 0
-		printf("STOPPING to avoid code explosion (%d blocks)\n",
-				caller->cumul_basicblockcount);
-#endif
-		return false;
-	}
-
-	/* XXX extra block after inlined call */
-	if (cn->blockafter) {
-		caller->cumul_basicblockcount += 1;
-		caller->cumul_blockmapcount += 1;
-	}
+	inline_cumulate_counters(caller, cn);
 
 	return true;
 }
 
 
-static bool inline_inline_intern(methodinfo *m, inline_node *iln)
+/* inline_make_inlining_plan ***************************************************
+
+   Create the inlining plan for the given node.
+
+   IN:
+       iln..............the inlining node
+
+   OUT:
+       *iln.............the inlining plan
+
+   RETURN VALUE:
+       true........everything ok
+	   false.......an error has occurred, don't use the plan
+
+*******************************************************************************/
+
+static bool inline_make_inlining_plan(inline_node *iln)
 {
+	methodinfo *m;
 	basicblock *bptr;
 	s4 len;
 	instruction *iptr;
-	int opcode;                                   /* invocation opcode */
 	methodinfo *callee;
-	inline_node *active;
 	exception_entry **handlers;
 	exception_entry *ex;
 	s4 nhandlers;
+	s4 blockendpc;
 	jitdata *mjd;
-	bool speculative;
+	inline_site site;
 
 	assert(iln);
 
+	m = iln->m;
 	mjd = iln->jd;
 
 	/* initialize cumulative counters */
@@ -2245,12 +2535,17 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 
 	/* iterate over basic blocks */
 
+	blockendpc = 0;
+
 	for (bptr = mjd->basicblocks; bptr; bptr = bptr->next) {
 
+		/* count the block */
 		/* ignore dummy end blocks (but count them for the blockmap) */
 
 		iln->cumul_blockmapcount++;
-		if (bptr->icount > 0 || bptr->next != NULL)
+		if ((bptr != mjd->basicblocks || iln->blockbefore)
+				&&
+			(bptr->icount > 0 || bptr->next != NULL))
 			iln->cumul_basicblockcount++;
 
 		/* skip dead code */
@@ -2277,17 +2572,14 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 		len = bptr->icount;
 		iptr = bptr->iinstr;
 
-		iln->instructioncount += len;
+		blockendpc += len;
 		iln->cumul_instructioncount += len;
+
+		/* iterate over the instructions of the block */
 
 		for (; --len >= 0; ++iptr) {
 
-			opcode = iptr->opc;
-
-			switch (opcode) {
-				/****************************************/
-				/* INVOKATIONS                          */
-
+			switch (iptr->opc) {
 				case ICMD_INVOKEVIRTUAL:
 				case ICMD_INVOKESPECIAL:
 				case ICMD_INVOKESTATIC:
@@ -2296,92 +2588,24 @@ static bool inline_inline_intern(methodinfo *m, inline_node *iln)
 					if (!INSTRUCTION_IS_UNRESOLVED(iptr)) {
 						callee = iptr->sx.s23.s3.fmiref->p.method;
 
-#if 0
-						if (
-							(strcmp(callee->class->name->text, "spec/benchmarks/_201_compress/Code_Table") == 0
-								&& (strcmp(callee->name->text, "of") == 0
-								 || strcmp(callee->name->text, "set") == 0))
-							||
-							(strcmp(callee->class->name->text, "spec/benchmarks/_201_compress/Compressor") == 0
-								&& (strcmp(callee->name->text, "output") == 0))
-							||
-							(strcmp(callee->class->name->text, "spec/benchmarks/_201_compress/Decompressor") == 0
-								&& (strcmp(callee->name->text, "getcode") == 0))
-							||
-							(strcmp(callee->class->name->text, "spec/benchmarks/_201_compress/Output_Buffer") == 0
-								&& (strcmp(callee->name->text, "putbyte") == 0))
-							||
-							(strcmp(callee->class->name->text, "spec/benchmarks/_201_compress/Input_Buffer") == 0
-								&& (strcmp(callee->name->text, "getbyte") == 0
-								 || strcmp(callee->name->text, "readbytes") == 0
-								 ))
-							)
-							goto force_inline;
+						if (inline_can_inline(iln, callee, iptr, &site)
+							&& inline_pre_parse_heuristics(iln, callee, &site))
+						{
+							site.inlined = false;
 
-						if (callee->jcodelength > 0)
-							goto dont_inline;
-#endif
+							if (!inline_analyse_callee(iln, callee,
+										bptr,
+										iptr,
+										blockendpc - len - 1 /* XXX ugly */,
+										handlers,
+										nhandlers,
+										&site))
+								return false;
 
-						if (callee->flags & ACC_NATIVE)
-							goto dont_inline;
-
-						if (iln->depth >= 3)
-							goto dont_inline;
-
-						if ((callee->flags & (ACC_STATIC | ACC_FINAL | ACC_PRIVATE)
-									|| opcode == ICMD_INVOKESPECIAL)) {
-							speculative = false;
-							goto maybe_inline;
+							if (site.inlined && site.speculative)
+								method_add_assumption_monomorphic(callee, iln->ctx->master->m);
 						}
-
-						/* XXX search single implementation for abstract monomorphics */
-						if ((callee->flags & (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED
-																	 | ACC_ABSTRACT))
-								          == (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED)) {
-#if 0
-							static int debug_spec_inline = 94;
-							if (debug_spec_inline-- > 0) {
-#endif
-							if (1) {
-								DOLOG( printf("SPECULATIVE INLINE: "); method_println(callee); );
-								speculative = true;
-
-#if 0
-								if (debug_spec_inline == 0) {
-									printf("LAST INLINE: "); method_println(callee);
-									printf("         in: "); method_println(m);
-									printf("     master: "); method_println(iln->ctx->master->m);
-								}
-#endif
-								goto maybe_inline;
-							}
-						}
-
-						/* polymorphic call site */
-						goto dont_inline;
-
-maybe_inline:
-						for (active = iln; active; active = active->parent) {
-							if (callee == active->m) {
-								DOLOG( printf("RECURSIVE!\n") );
-								goto dont_inline;
-							}
-						}
-#if 0
-force_inline:
-#endif
-						if (!inline_analyse_callee(iln, callee,
-									bptr,
-									iptr,
-									iln->instructioncount - len - 1 /* XXX ugly */,
-									handlers,
-									nhandlers))
-							return false;
-
-						if (speculative)
-							method_add_assumption_monomorphic(callee, iln->ctx->master->m);
 					}
-dont_inline:
 					break;
 
 				case ICMD_RETURN:
@@ -2537,49 +2761,72 @@ static void inline_post_process(jitdata *jd)
 }
 
 
+/* inline_create_root_node *****************************************************
+
+   Create the root node of the inlining tree.
+
+   IN:
+	   jd...............the current jitdata of the root method
+
+   RETURN VALUE:
+       the root node of the inlining tree
+
+*******************************************************************************/
+
+static inline_node * inline_create_root_node(jitdata *jd)
+{
+	inline_node *iln;
+
+	iln = DNEW(inline_node);
+	MZERO(iln, inline_node, 1);
+
+	iln->m = jd->m;
+	iln->jd = jd;
+	iln->regdata = jd->rd;
+
+	iln->blockbefore = true;
+	iln->blockafter = true;
+
+	iln->cumul_instructioncount = 0;
+	iln->cumul_basicblockcount = 1 /* dummy end block */;
+
+	/* create inlining context */
+
+	iln->ctx = DNEW(inline_context);
+	MZERO(iln->ctx, inline_context, 1);
+	iln->ctx->master = iln;
+	iln->ctx->next_debugnr = 1; /* XXX debug */
+
+	return iln;
+}
+
+
 /* main driver function *******************************************************/
 
 bool inline_inline(jitdata *jd)
 {
 	inline_node *iln;
-	methodinfo *m;
-
-	m = jd->m;
 
 	DOLOG( printf("==== INLINE ==================================================================\n");
 		   show_method(jd, SHOW_STACK); );
 
-	iln = DNEW(inline_node);
-	MZERO(iln, inline_node, 1);
+	iln = inline_create_root_node(jd);
 
-	iln->ctx = DNEW(inline_context);
-	MZERO(iln->ctx, inline_context, 1);
-	iln->ctx->master = iln;
-	iln->ctx->calls_others = false;
-	iln->m = m;
-	iln->jd = jd;
-	iln->regdata = jd->rd;
-	iln->ctx->next_debugnr = 1; /* XXX debug */
+	if (inline_make_inlining_plan(iln)) {
 
-	iln->blockbefore = true;
-	iln->blockafter = true;
+		/* add blocks to the root node */
 
-	/* we cannot use m->instructioncount because it may be greater than
-	 * the actual number of instructions in the basic blocks. */
-	iln->instructioncount = 0;
-	iln->cumul_instructioncount = 0;
-	iln->cumul_basicblockcount = 1 /* dummy end block */;
+		iln->cumul_basicblockcount += iln->cumul_basicblockcount_root;
+		iln->cumul_blockmapcount   += iln->cumul_basicblockcount_root;
 
-	if (inline_inline_intern(m, iln)) {
-
-		DOLOG( printf("==== TEST INLINE =============================================================\n"); );
+		DOLOG( printf("==== INLINE TRANSFORM ========================================================\n"); );
 
 		if (iln->children)
-			test_inlining(iln, jd);
+			inline_transform(iln, jd);
 	}
 
 	DOLOG( printf("-------- DONE -----------------------------------------------------------\n");
-	fflush(stdout); );
+		   fflush(stdout); );
 
 	return true;
 }
