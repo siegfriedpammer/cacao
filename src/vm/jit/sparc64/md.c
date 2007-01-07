@@ -309,17 +309,6 @@ void md_cacheflush(u1 *addr, s4 nbytes)
 }
 
 
-/* md_icacheflush **************************************************************
-
-   Calls the system's function to flush the instruction cache.
-
-*******************************************************************************/
-
-void md_icacheflush(u1 *addr, s4 nbytes)
-{
-	/* XXX don't know yet */	
-}
-
 /* md_dcacheflush **************************************************************
 
    Calls the system's function to flush the data cache.

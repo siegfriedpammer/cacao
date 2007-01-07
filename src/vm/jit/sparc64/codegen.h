@@ -297,6 +297,7 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_XOR_IMM(rs1,rs2,rd)   M_OP3(0x02,0x03,rd,rs1,rs2,IMM)
 
 #define M_MOV(rs,rd)            M_OR(REG_ZERO, rs, rd)              /* rd = rs            */
+#define M_CLR(rd)               M_OR(REG_ZERO,REG_ZERO,rd)          /* rd = 0             */
 
 
 
@@ -341,6 +342,7 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_XCMOVGE(rs,rd)        M_FMT4(0x2,0x2c,rd,rs,0xb,1,1,0,REG)   /* a>=b ? rd=rs    */
 #define M_XCMOVLE(rs,rd)        M_FMT4(0x2,0x2c,rd,rs,0x2,1,1,0,REG)   /* a<=b ? rd=rs    */
 #define M_XCMOVGT(rs,rd)        M_FMT4(0x2,0x2c,rd,rs,0xa,1,1,0,REG)   /* a>b  ? rd=rs    */
+#define M_XCMOVULE(rs,rd)       M_FMT4(0x2,0x2c,rd,rs,0x4,1,1,0,REG)   /* a<=b ? rd=rs (u)*/
 
 #define M_XCMOVEQ_IMM(rs,rd)    M_FMT4(0x2,0x2c,rd,rs,0x1,1,1,0,IMM)   /* a==b ? rd=rs    */
 #define M_XCMOVNE_IMM(rs,rd)    M_FMT4(0x2,0x2c,rd,rs,0x9,1,1,0,IMM)   /* a!=b ? rd=rs    */
@@ -348,6 +350,7 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_XCMOVGE_IMM(rs,rd)    M_FMT4(0x2,0x2c,rd,rs,0xb,1,1,0,IMM)   /* a>=b ? rd=rs    */
 #define M_XCMOVLE_IMM(rs,rd)    M_FMT4(0x2,0x2c,rd,rs,0x2,1,1,0,IMM)   /* a<=b ? rd=rs    */
 #define M_XCMOVGT_IMM(rs,rd)    M_FMT4(0x2,0x2c,rd,rs,0xa,1,1,0,IMM)   /* a>b  ? rd=rs    */
+#define M_XCMOVULE_IMM(rs,rd)   M_FMT4(0x2,0x2c,rd,rs,0x4,1,1,0,IMM)   /* a<=b ? rd=rs (u)*/
 
 /* move integer register on (fcc0) floating point condition */
 

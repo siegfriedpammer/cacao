@@ -111,6 +111,31 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 #endif
 
 
+/* md_icacheflush **************************************************************
+
+   Calls the system's function to flush the instruction cache.
+
+*******************************************************************************/
+
+void md_icacheflush(u1 *addr, s4 nbytes)
+{
+	u1* end;
+	
+	end = addr + nbytes;
+	/*addr = addrd & -8l;*/
+	while (addr < end) {
+		__asm__ (
+			"flush %0"
+			:
+			: "r"(addr)
+			);
+		addr += 8;
+	}
+}
+
+
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

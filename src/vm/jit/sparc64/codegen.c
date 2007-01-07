@@ -2475,11 +2475,7 @@ gen_method:
 				gen_nullptr_check(rd->argintregs[0]);
 
 				if (lm == NULL) {
-					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
-
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP;
-					}
+					codegen_add_patch_ref(cd, PATCHER_invokeinterface, um, 0);
 
 					s1 = 0;
 					s2 = 0;
@@ -2544,7 +2540,6 @@ gen_method:
 
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
-		/* XXX needs manual attention! */
 		                      /* val.a: (classinfo*) superclass               */
 
 			/*  superclass is an interface:
@@ -2562,18 +2557,15 @@ gen_method:
 
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 				classinfo *super;
-				vftbl_t   *supervftbl;
 				s4         superindex;
 
-				super = iptr->sx.s23.s3.c.cls;
-
-				if (super == NULL) {
+				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+					super      = NULL;
 					superindex = 0;
-					supervftbl = NULL;
 				}
 				else {
+					super = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
-					supervftbl = super->vftbl;
 				}
 
 #if defined(ENABLE_THREADS)
@@ -2586,33 +2578,29 @@ gen_method:
 
 				s2 = 8;
 				if (super == NULL)
-					s2 += (opt_showdisassemble ? 2 : 0);
+					s2 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
 
 				/* calculate class checkcast code size */
 
-				s3 = 10 /* 10 + (s1 == REG_ITMP1) */;
+				s3 = 10;
 				if (super == NULL)
-					s3 += (opt_showdisassemble ? 2 : 0);
+					s3 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
 
 				/* if class is not resolved, check which code to call */
 
 				if (super == NULL) {
-					M_BEQZ(s1, 5 + (opt_showdisassemble ? 2 : 0) + s2 + 2 + s3);
+					M_BEQZ(s1, 5 + (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0) + s2 + 2 + s3 + 1);
 					M_NOP;
 
+					cr   = iptr->sx.s23.s3.c.ref;
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
-					codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
-										iptr->sx.s23.s3.c.ref,
-										disp);
-
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP;
-					}
+					codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
+										  cr, disp);
 
 					M_ILD(REG_ITMP2, REG_PV, disp);
 					M_AND_IMM(REG_ITMP2, ACC_INTERFACE, REG_ITMP2);
-					M_BEQZ(REG_ITMP2, 1 + s2 + 2);
+					M_BEQZ(REG_ITMP2, s2 + 2 + 2);
 					M_NOP;
 				}
 
@@ -2620,35 +2608,35 @@ gen_method:
 
 				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
-						codegen_addpatchref(cd,
-											PATCHER_checkcast_instanceof_interface,
-											iptr->sx.s23.s3.c.ref,
-											0);
+						cr = iptr->sx.s23.s3.c.ref;
 
-						if (opt_showdisassemble) {
-							M_NOP; M_NOP;
-						}
+						codegen_add_patch_ref(cd, PATCHER_checkcast_interface,
+											  cr, 0);
 					}
 					else {
-						M_BEQZ(s1, 1 + s2);
+						M_BEQZ(s1, s2 + 2);
 						M_NOP;
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
-					M_LDA(REG_ITMP3, REG_ITMP3, -superindex);
+					M_ILD(REG_ITMP3, REG_ITMP2,
+ 							OFFSET(vftbl_t, interfacetablelength));
+					M_ADD_IMM(REG_ITMP3, -superindex, REG_ITMP3);
 					M_BLEZ(REG_ITMP3, 0);
 					codegen_add_classcastexception_ref(cd, s1);
 					M_NOP;
 					M_ALD(REG_ITMP3, REG_ITMP2,
-						  (s4) (OFFSET(vftbl_t, interfacetable[0]) -
-								superindex * sizeof(methodptr*)));
+						  OFFSET(vftbl_t, interfacetable[0]) -
+						  superindex * sizeof(methodptr*));
 					M_BEQZ(REG_ITMP3, 0);
 					codegen_add_classcastexception_ref(cd, s1);
 					M_NOP;
 
 					if (super == NULL) {
-						M_BR(1 + s3);
+			            /* on sparc we always add 2 to the size of the code we want  */
+			            /* branch over. (1 for branch delay nop, 1 since the base is */
+			            /* the address of the branch instruction */
+						M_BR(s3 + 2);
 						M_NOP;
 					}
 				}
@@ -2657,21 +2645,17 @@ gen_method:
 
 				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
+						cr   = iptr->sx.s23.s3.c.ref;
 						disp = dseg_add_unique_address(cd, NULL);
 
-						codegen_addpatchref(cd,
+						codegen_add_patch_ref(cd,
 											PATCHER_checkcast_instanceof_class,
-											iptr->sx.s23.s3.c.ref,
-											disp);
-
-						if (opt_showdisassemble) {
-							M_NOP; M_NOP;
-						}
+											  cr, disp);
 					}
 					else {
-						disp = dseg_add_address(cd, supervftbl);
+						disp = dseg_add_address(cd, super->vftbl);
 
-						M_BEQZ(s1, 1 + s3);
+						M_BEQZ(s1, s3 + 2);
 						M_NOP;
 					}
 
@@ -2681,15 +2665,6 @@ gen_method:
 					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-					/*  				if (s1 != REG_ITMP1) { */
-					/*  					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval)); */
-					/*  					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval)); */
-					/*  #if defined(ENABLE_THREADS) */
-					/*  					codegen_threadcritstop(cd, (u1 *) mcodeptr - cd->mcodebase); */
-					/*  #endif */
-					/*  					M_ISUB(REG_ITMP2, REG_ITMP1, REG_ITMP2); */
-
-					/*  				} else { */
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 					M_SUB(REG_ITMP2, REG_ITMP3, REG_ITMP2);
 					M_ALD(REG_ITMP3, REG_PV, disp);
@@ -2715,20 +2690,22 @@ gen_method:
 				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-					codegen_addpatchref(cd, PATCHER_builtin_arraycheckcast,
-										iptr->sx.s23.s3.c.ref,
-										disp);
+					cr   = iptr->sx.s23.s3.c.ref;
+					disp = dseg_add_unique_address(cd, NULL);
 
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP;
-					}
+					codegen_add_patch_ref(cd, PATCHER_builtin_arraycheckcast,
+										  cr, disp);
 				}
+				else
+					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
 				M_ALD(rd->argintregs[1], REG_PV, disp);
 				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_LDA(REG_SP, -6*8, REG_SP); /* PARAMARRAY SLOTS */
 				M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 				M_NOP;
+				M_LDA(REG_SP, 6*8, REG_SP);
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				M_BEQZ(REG_RESULT_CALLER, 0);
@@ -2742,6 +2719,146 @@ gen_method:
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
+
+		                      /* val.a: (classinfo*) superclass               */
+
+			/*  superclass is an interface:
+			 *	
+			 *  return (sub != NULL) &&
+			 *         (sub->vftbl->interfacetablelength > super->index) &&
+			 *         (sub->vftbl->interfacetable[-super->index] != NULL);
+			 *	
+			 *  superclass is a class:
+			 *	
+			 *  return ((sub != NULL) && (0
+			 *          <= (sub->vftbl->baseval - super->vftbl->baseval) <=
+			 *          super->vftbl->diffvall));
+			 */
+
+			{
+			classinfo *super;
+			vftbl_t   *supervftbl;
+			s4         superindex;
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				super = NULL;
+				superindex = 0;
+				supervftbl = NULL;
+
+			} else {
+				super = iptr->sx.s23.s3.c.cls;
+				superindex = super->index;
+				supervftbl = super->vftbl;
+			}
+
+#if defined(ENABLE_THREADS)
+			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
+#endif
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			if (s1 == d) {
+				M_MOV(s1, REG_ITMP1);
+				s1 = REG_ITMP1;
+			}
+
+			/* calculate interface instanceof code size */
+
+			s2 = 7;
+			if (super == NULL)
+				s2 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
+
+			/* calculate class instanceof code size */
+
+			s3 = 8;
+			if (super == NULL)
+				s3 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
+
+			M_CLR(d);
+
+			/* if class is not resolved, check which code to call */
+
+			if (super == NULL) {
+				M_BEQZ(s1, 5 + (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0) + s2 + 2 + s3);
+				M_NOP;
+
+				cr   = iptr->sx.s23.s3.c.ref;
+				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
+
+				codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
+									  cr, disp);
+
+				M_ILD(REG_ITMP3, REG_PV, disp);
+				M_AND_IMM(REG_ITMP3, ACC_INTERFACE, REG_ITMP3);
+				M_BEQZ(REG_ITMP3, s2 + 2 + 2);
+				M_NOP;
+			}
+
+			/* interface instanceof code */
+
+			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+				if (super == NULL) {
+					cr = iptr->sx.s23.s3.c.ref;
+
+					codegen_add_patch_ref(cd, PATCHER_instanceof_interface,
+										  cr, 0);
+				}
+				else {
+					M_BEQZ(s1, s2 + 2);
+					M_NOP;
+				}
+
+				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
+				M_CMP_IMM(REG_ITMP3, superindex);
+				M_BLE(4);
+				M_NOP;
+				M_ALD(REG_ITMP1, REG_ITMP1,
+					  (s4) (OFFSET(vftbl_t, interfacetable[0]) -
+							superindex * sizeof(methodptr*)));
+				M_CMOVRNE_IMM(REG_ITMP1, 1, d);      /* REG_ITMP1 != 0  */
+
+				if (super == NULL) {
+					M_BR(s3 + 2);
+					M_NOP;
+				}
+			}
+
+			/* class instanceof code */
+
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
+				if (super == NULL) {
+					cr   = iptr->sx.s23.s3.c.ref;
+					disp = dseg_add_unique_address(cd, NULL);
+
+					codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_class,
+										  cr, disp);
+				}
+				else {
+					disp = dseg_add_address(cd, supervftbl);
+
+					M_BEQZ(s1, s3 + 2);
+					M_NOP;
+				}
+
+				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP2, REG_PV, disp);
+#if defined(ENABLE_THREADS)
+				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
+#endif
+				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
+				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
+				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+#if defined(ENABLE_THREADS)
+				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
+#endif
+				M_SUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
+				M_CMP(REG_ITMP1, REG_ITMP2);
+				M_XCMOVULE_IMM(1, d);
+			}
+			emit_store_dst(jd, iptr, d);
+			}
+			break;
 
 
 		default:
@@ -2763,7 +2880,9 @@ gen_method:
 
 	emit_exception_stubs(jd);
 	emit_patcher_stubs(jd);
+#if defined(ENABLE_REPLACEMENT)
 	emit_replacement_stubs(jd);
+#endif /* defined(ENABLE_REPLACEMENT) */
 
 	codegen_finish(jd);
 	

@@ -81,7 +81,6 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	bool               result;
 	java_objectheader *e;
 	
-
 	/* define the patcher function */
 
 	bool (*patcher_function)(u1 *);
@@ -132,7 +131,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 		return e;
 	}
 
-	/* patch back original (maybe patched) code */
+	/* patch back original (potentially patched) code */
 
 #if SIZEOF_VOID_P == 8
 	mcode    =                      *((u8 *)     (sp + 3 * 8));
@@ -176,7 +175,6 @@ bool patcher_get_putstatic(u1 *sp)
 	fieldinfo        *fi;
 
 	/* get stuff from the stack */
-
 
 	uf       = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
 	disp     =                      *((s4 *)     (sp + 1 * 8));
@@ -526,25 +524,12 @@ bool patcher_invokevirtual(u1 *sp)
 bool patcher_invokeinterface(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
-	u4                 mcode[2];
-#endif
 	unresolved_method *um;
 	methodinfo        *m;
-
-	assert(0);
 
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
@@ -552,37 +537,42 @@ bool patcher_invokeinterface(u1 *sp)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
-
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
+	if (opt_shownops) {
+		ra = ra + PATCHER_CALL_SIZE;
 
-	/* patch interfacetable index */
+		/* patch interfacetable index */
 
-	*((s4 *) (ra + 1 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									 sizeof(methodptr*) * m->class->index) & 0x0000ffff);
+		*((s4 *) (ra + 1 * 4)) |= 
+			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				sizeof(methodptr*) * m->class->index) & 0x00001fff);
 
-	/* patch method offset */
+		/* patch method offset */
 
-	*((s4 *) (ra + 2 * 4)) |=
-		(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x0000ffff);
+		*((s4 *) (ra + 2 * 4)) |=
+			(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x00001fff);
 
-	/* synchronize instruction cache */
+		/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		md_icacheflush(ra - 2 * 4, 5 * 4);
-	else
-		md_icacheflush(ra, 3 * 4);
+		md_icacheflush(ra + 1 * 4, 2 * 4);
+	}
+else {
+		/* patch interfacetable index */
+
+		*((s4 *) (sp + 3 * 8 + 4)) |=
+			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				sizeof(methodptr*) * m->class->index) & 0x00001fff);
+
+		/* patch method offset */
+
+		*((s4 *) (ra + 2 * 4)) |=
+			(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x00001fff);
+
+		/* synchronize instruction cache */
+
+		md_icacheflush(ra + 2 * 4, 1 * 4);
+	}
 
 	return true;
 }
@@ -630,7 +620,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 }
 
 
-/* patcher_checkcast_instanceof_interface **************************************
+/* patcher_checkcast_interface **************************************
 
    Machine code:
 
@@ -644,28 +634,15 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_interface(u1 *sp)
+bool patcher_checkcast_interface(u1 *sp)
 {
 	u1                *ra;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
-	u4                 mcode[2];
-#endif
 	constant_classref *cr;
 	classinfo         *c;
-
-	assert(0);
 
 	/* get stuff from the stack */
 
 	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
@@ -673,32 +650,82 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
+	/* if we show disassembly, we have to skip the nop's */
 
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
+	if (opt_shownops)
+		ra = ra + PATCHER_CALL_SIZE;
+
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
+	if (opt_shownops)
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch super class index */
 
-	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x00001fff);
 
 	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									 c->index * sizeof(methodptr*)) & 0x0000ffff);
+									 c->index * sizeof(methodptr*)) & 0x00001fff);
 
 	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		md_icacheflush(ra - 2 * 4, 8 * 4);
+	else
+		md_icacheflush(ra, 6 * 4);
+
+	return true;
+}
+
+/* patcher_instanceof_interface ************************************************
+
+   Machine code:
+
+   <patched call position>
+   dd030000    ld       v1,0(a4)
+   8c79001c    lw       t9,28(v1)
+   27390000    addiu    t9,t9,0
+   1b200082    blez     t9,zero,0x000000001051843c
+   00000000    nop
+   dc790000    ld       t9,0(v1)
+
+*******************************************************************************/
+
+bool patcher_instanceof_interface(u1 *sp)
+{
+	u1                *ra;
+	constant_classref *cr;
+	classinfo         *c;
+
+	assert(0); /* test this one !!! */
+
+	/* get stuff from the stack */
+
+	ra = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	cr = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (opt_shownops)
+		ra = ra + PATCHER_CALL_SIZE;
+
+	/* patch super class index */
+
+	*((s4 *) (ra + 2 * 4)) |= (s4) ((c->index) & 0x00001fff);
+	*((s4 *) (ra + 5 * 4)) |=
+		(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+				 c->index * sizeof(methodptr*)) & 0x00001fff);
+
+	/* synchronize instruction cache */
+
+	if (opt_shownops)
+		md_icacheflush(ra - PATCHER_CALL_SIZE * 4, 8 * 4);
 	else
 		md_icacheflush(ra, 6 * 4);
 
