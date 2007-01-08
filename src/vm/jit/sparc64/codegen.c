@@ -245,11 +245,11 @@ bool codegen(jitdata *jd)
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
- 					M_LDX(var->vv.regoff, REG_FP, (WINSAVE_CNT + s1) * 8);
+ 					M_LDX(var->vv.regoff, REG_FP, USESTACK + (s1 * 8));
 
  				} else {                             /* stack arg -> spilled  */
-					assert(0); /* XXX winsave area in between */
-					var->vv.regoff = cd->stackframesize + s1;
+					/* add the callers window save registers */
+					var->vv.regoff = cd->stackframesize + WINSAVE_CNT + s1;
 				}
 			}
 		
@@ -265,11 +265,10 @@ bool codegen(jitdata *jd)
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
- 					M_DLD(var->vv.regoff, REG_FP, (WINSAVE_CNT + s1) * 8);
+ 					M_DLD(var->vv.regoff, REG_FP, USESTACK + (s1 * 8));
 
  				} else {                             /* stack-arg -> spilled  */
- 					assert(0); /* XXX winsave area in between */
-					var->vv.regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize + WINSAVE_CNT + s1;
 				}
 			}
 		}
@@ -2399,7 +2398,7 @@ gen_method:
 					} 
 					else {
 						d = emit_load(jd, iptr, var, REG_ITMP1);
-						M_STX(d, REG_SP, md->params[s3].regoff * 8);
+						M_STX(d, REG_SP, USESTACK + md->params[s3].regoff * 8);
 					}
 				}
 				else {
@@ -2414,9 +2413,9 @@ gen_method:
 					else {
 						d = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 8);
+							M_DST(d, REG_SP, USESTACK + md->params[s3].regoff * 8);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 8);
+							M_FST(d, REG_SP, USESTACK + md->params[s3].regoff * 8);
 					}
 				}
 			}
