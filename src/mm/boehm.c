@@ -1,6 +1,6 @@
 /* src/mm/boehm.c - interface for boehm gc
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Stefan Ring
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: boehm.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: boehm.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -59,6 +58,7 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 
 /* global variables ***********************************************************/
@@ -234,7 +234,7 @@ void *gc_out_of_memory(size_t bytes_requested)
 
 	if (in_gc_out_of_memory) {
 		/* this is all we can do... */
-		exceptions_throw_outofmemory_exit();
+		vm_abort("gc_out_of_memory: out of memory");
 	}
 
 	in_gc_out_of_memory = true;
@@ -245,7 +245,7 @@ void *gc_out_of_memory(size_t bytes_requested)
 
 	/* now instantiate the exception */
 
-	*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
+	exceptions_throw_outofmemoryerror();
 
 	in_gc_out_of_memory = false;
 

@@ -31,7 +31,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 6251 2006-12-27 23:15:56Z twisti $
+   $Id: loader.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -1750,8 +1750,7 @@ classinfo *load_class_bootstrap(utf *name)
 		/* this normally means, the classpath was not set properly */
 
 		if (name == utf_java_lang_Object)
-			throw_cacao_exception_exit(string_java_lang_NoClassDefFoundError,
-									   "java/lang/Object");
+			vm_abort("%s: java/lang/Object", string_java_lang_NoClassDefFoundError);
 
 		*exceptionptr =	new_noclassdeffounderror(name);
 

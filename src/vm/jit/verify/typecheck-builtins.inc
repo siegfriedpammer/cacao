@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-builtins.inc - type checking for ICMD_BUILTIN
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -25,8 +25,6 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Edwin Steiner
-
-   Changes: 
 
    $Id$
 
@@ -147,7 +145,7 @@
 #ifdef TYPECHECK_DEBUG
 			/* generic builtins may only take primitive types and java.lang.Object references */
 			if (av->type == TYPE_ADR && md->paramtypes[i].classref->name != utf_java_lang_Object) {
-				*exceptionptr = new_internalerror("generic builtin method with non-generic reference parameter");
+				exceptions_throw_internalerror("generic builtin method with non-generic reference parameter");
 				return false;
 			}
 #endif

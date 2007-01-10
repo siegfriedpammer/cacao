@@ -1,6 +1,6 @@
 /* src/vm/descriptor.c - checking and parsing of field / method descriptors
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Edwin Steiner
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 5171 2006-07-25 13:52:38Z twisti $
+   $Id: descriptor.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -716,7 +715,7 @@ descriptor_pool_lookup_classref(descriptor_pool *pool, utf *classname)
 		c = c->hashlink;
 	}
 
-	*exceptionptr = new_internalerror("Class reference not found in descriptor pool");
+	exceptions_throw_internalerror("Class reference not found in descriptor pool");
 	return NULL;
 }
 

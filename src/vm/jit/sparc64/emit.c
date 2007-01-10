@@ -1,6 +1,6 @@
 /* src/vm/jit/sparc64/emit.c - Sparc code emitter functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -27,19 +27,18 @@
    Authors: Christian Thalinger
             Alexander Jordan
 
-   Changes: 
-
    $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
+
+#include "config.h"
 #include "vm/types.h"
 
 #include "md-abi.h"
 
 #include "vm/jit/sparc64/codegen.h"
 
-#include "vm/exceptions.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
@@ -276,16 +275,15 @@ void emit_patcher_stubs(jitdata *jd)
 		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) );
 
 		if ((disp < (s4) 0xfffc0000) || (disp > (s4) 0x003ffff)) {
-			*exceptionptr =
-				new_internalerror("Jump offset is out of range: %d > +/-%d",
-								  disp, 0x003ffff);
+			vm_abort("Jump offset is out of range: %d > +/-%d",
+					 disp, 0x003ffff);
 			return;
 		}
 
 		M_BR(disp);
 		M_NOP;
 
-	cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
+		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
 
 		/* extend stack frame for wrapper data */
 

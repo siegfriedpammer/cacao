@@ -1,6 +1,6 @@
 /* src/vm/jit/allocator/lsra.c - linear scan register allocator
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -25,11 +25,10 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Christian Ullrich
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Edwin Steiner
 
-   $Id: lsra.c 5925 2006-11-05 23:11:27Z edwin $
+   $Id: lsra.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -2747,9 +2746,8 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 			break;
 
 		default:
-			*exceptionptr =
-				new_internalerror("Unknown ICMD %d during register allocation",
-								  iptr->opc);
+			exceptions_throw_internalerror("Unknown ICMD %d during register allocation",
+										   iptr->opc);
 			return;
 		} /* switch */
 	}

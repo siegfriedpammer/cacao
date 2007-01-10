@@ -29,7 +29,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 6243 2006-12-27 13:56:31Z twisti $
+   $Id: cacaoh.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -45,7 +45,6 @@
 #include "cacaoh/headers.h"
 #include "mm/gc-common.h"
 #include "mm/memory.h"
-#include "native/include/java_lang_Throwable.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
@@ -149,6 +148,7 @@ static void version(void)
 /* forward declarations *******************************************************/
 
 static JavaVMInitArgs *cacaoh_options_prepare(int argc, char **argv);
+static void cacaoh_abort(const char *text, ...);
 
 
 /* main ************************************************************************
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 
 	if (opt_verbose) {
 		log_init(NULL);
-		log_text("Java - header-generator started"); 
+		log_println("Java - header-generator started"); 
 	}
 	
 #if defined(ENABLE_THREADS)
@@ -298,25 +298,25 @@ int main(int argc, char **argv)
 	   _after_ threads_preinit) */
 
 	if (!string_init())
-		throw_main_exception_exit();
+		cacaoh_abort("string_init failed\n");
 
 	/* initialize the utf8 hashtable stuff: lock, often used utf8 strings
 	   (must be done _after_ threads_preinit) */
 
 	if (!utf8_init())
-		throw_main_exception_exit();
+		cacaoh_abort("utf8_init failed\n");
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */
 
 	if (!classcache_init())
-		throw_main_exception_exit();
+		cacaoh_abort("classcache_init failed\n");
 
 	/* initialize the loader with bootclasspath (must be done _after_
 	   thread_preinit) */
 
 	if (!suck_init())
-		throw_main_exception_exit();
+		cacaoh_abort("suck_init failed\n");
 
 	suck_add(bootclasspath);
 
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
        classcache_init) */
 
 	if (!loader_init())
-		throw_main_exception_exit();
+		cacaoh_abort("loader_init failed\n");
 
 
 	/* load Java classes ******************************************************/
@@ -353,12 +353,10 @@ int main(int argc, char **argv)
 		/* exceptions are catched with new_exception call */
 
 		if (!(c = load_class_bootstrap(utf_new_char(cp))))
-			throw_cacao_exception_exit(string_java_lang_NoClassDefFoundError,
-									   cp);
+			cacaoh_abort("java.lang.NoClassDefFoundError: %s\n", cp);
 
 		if (!link_class(c))
-			throw_cacao_exception_exit(string_java_lang_LinkageError,
-									   cp);
+			cacaoh_abort("java.lang.LinkageError: %s\n", cp);
 
 		headerfile_generate(c, opt_directory);
 	}
@@ -368,7 +366,7 @@ int main(int argc, char **argv)
 	loader_close();
 
 	if (opt_verbose) {
-		log_text("Java - header-generator stopped");
+		log_println("Java - header-generator stopped");
 #if defined(ENABLE_STATISTICS)
 		mem_usagelog(true);
 #endif
@@ -398,6 +396,32 @@ static JavaVMInitArgs *cacaoh_options_prepare(int argc, char **argv)
 		vm_args->options[i - 1].optionString = argv[i];
 
 	return vm_args;
+}
+
+
+/* cacaoh_abort ****************************************************************
+
+   Prints an error message and aborts the VM.
+
+*******************************************************************************/
+
+static void cacaoh_abort(const char *text, ...)
+{
+	va_list ap;
+
+	/* print the log message */
+
+	log_start();
+
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	log_finish();
+
+	/* now abort the VM */
+
+	abort();
 }
 
 

@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 6126 2006-12-06 09:47:12Z twisti $
+   $Id: builtin.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -889,14 +889,17 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 
 	actualsize = dataoffset + size * componentsize;
 
-	if (((u4) actualsize) < ((u4) size)) { /* overflow */
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
+	/* check for overflow */
+
+	if (((u4) actualsize) < ((u4) size)) {
+		exceptions_throw_outofmemoryerror();
 		return NULL;
 	}
 
+	fprintf(stderr, "builtin_newarray: size=%d\n", actualsize);
 	a = heap_allocate(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
 
-	if (!a)
+	if (a == NULL)
 		return NULL;
 
 	a->objheader.vftbl = arrayclass->vftbl;

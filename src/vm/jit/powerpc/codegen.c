@@ -30,7 +30,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6250 2006-12-27 23:05:05Z twisti $
+   $Id: codegen.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -3020,9 +3020,8 @@ gen_method:
 			break;
 
 		default:
-			*exceptionptr =
-				new_internalerror("Unknown ICMD %d during code generation",
-								  iptr->opc);
+			exceptions_throw_internalerror("Unknown ICMD %d during code generation",
+										   iptr->opc);
 			return false;
 	} /* switch */
 		

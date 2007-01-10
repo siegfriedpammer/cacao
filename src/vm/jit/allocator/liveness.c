@@ -1,6 +1,6 @@
 /* src/vm/jit/allocator/liveness.c - liveness analysis for lsra
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -26,14 +26,17 @@
 
    Authors: Christian Ullrich
 
-   Changes: 
-
    $Id: liveness.c $
 
 */
 
+
+#include "config.h"
+
 #include <limits.h>
 #include <stdlib.h>
+
+#include "vm/types.h"
 
 #include "mm/memory.h"
 
@@ -49,6 +52,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/allocator/lsra.h"
 #include "vm/jit/allocator/liveness.h"
+
 
 /* function prototypes */
 void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex, 
@@ -1132,9 +1136,8 @@ void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
 		break;
 
 	default:
-		*exceptionptr =
-			new_internalerror("Unknown ICMD %d during register allocation",
-							  iptr->opc);
+		exceptions_throw_internalerror("Unknown ICMD %d during register allocation",
+									   iptr->opc);
 		return;
 	} /* switch */
 }

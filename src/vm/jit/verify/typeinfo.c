@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typeinfo.c - type system used by the type checker
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 6073 2006-11-28 19:24:06Z edwin $
+   $Id: typeinfo.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -1053,7 +1053,7 @@ typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
     /* check arguments */
     for (i=0; i<desc->paramcount; ++i) {
 		if (++args > buflen) {
-			*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+			exceptions_throw_internalerror("Buffer too small for method arguments.");
 			return false;
 		}
 
@@ -1062,7 +1062,7 @@ typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 		
 		if (twoword && (typebuf[-1] == TYPE_LNG || typebuf[-1] == TYPE_DBL)) {
 			if (++args > buflen) {
-				*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+				exceptions_throw_internalerror("Buffer too small for method arguments.");
 				return false;
 			}
 
@@ -1215,7 +1215,7 @@ typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
 			continue;
 
 		if (index >= buflen) {
-			*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+			exceptions_throw_internalerror("Buffer too small for method arguments.");
 			return false;
 		}
 
@@ -1275,7 +1275,7 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
     /* check arguments */
     for (i=startindex; i<desc->paramcount; ++i) {
 		if (++args > buflen) {
-			*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+			exceptions_throw_internalerror("Buffer too small for method arguments.");
 			return -1;
 		}
 
@@ -1285,7 +1285,7 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 
 		if (twoword && (td[-1].type == TYPE_LNG || td[-1].type == TYPE_DBL)) {
 			if (++args > buflen) {
-				*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+				exceptions_throw_internalerror("Buffer too small for method arguments.");
 				return -1;
 			}
 
@@ -1335,7 +1335,7 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
     
     if (!TYPEINFO_IS_ARRAY(*srcarray)) {
 		/* XXX should we make that a verify error? */
-		*exceptionptr = new_internalerror("Trying to access component of non-array");
+		exceptions_throw_internalerror("Trying to access component of non-array");
 		return false;
 	}
 
@@ -2051,7 +2051,7 @@ return_simple:
             else {
                 common.cls = class_multiarray_of(dimension,pseudo_class_Arraystub,true);
 				if (!common.cls) {
-					*exceptionptr = new_internalerror("XXX Coult not create array class");
+					exceptions_throw_internalerror("XXX Coult not create array class");
 					return typecheck_FAIL;
 				}
 
@@ -2082,7 +2082,7 @@ return_simple:
 				else {
 					common.cls = class_multiarray_of(dimension,elementclass.cls,true);
 					if (!common.cls) {
-						*exceptionptr = new_internalerror("XXX Coult not create array class");
+						exceptions_throw_internalerror("XXX Coult not create array class");
 						return typecheck_FAIL;
 					}
 				}

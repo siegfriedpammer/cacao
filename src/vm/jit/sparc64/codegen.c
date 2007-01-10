@@ -1,6 +1,6 @@
 /* src/vm/jit/sparc64/codegen.c - machine code generator for Sparc
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -27,8 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
             Alexander Jordan
-
-   Changes: Edwin Steiner
+            Edwin Steiner
 
    $Id: codegen.c 4644 2006-03-16 18:44:46Z edwin $
 
@@ -2720,8 +2719,6 @@ gen_method:
 
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
 
-		                      /* val.a: (classinfo*) superclass               */
-
 			/*  superclass is an interface:
 			 *	
 			 *  return (sub != NULL) &&
@@ -2861,7 +2858,8 @@ gen_method:
 
 
 		default:
-			*exceptionptr = new_internalerror("Unknown ICMD %d", iptr->opc);
+			exceptions_throw_internalerror("Unknown ICMD %d during code generation",
+										   iptr->opc);
 			return false;
 			
 	} /* switch */

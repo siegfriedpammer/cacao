@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: headers.c 6244 2006-12-27 15:15:31Z twisti $
+   $Id: headers.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -235,29 +235,6 @@ java_objectheader *new_exception_throwable(const char *classname, java_lang_Thro
 }
 
 
-void throw_cacao_exception_exit(const char *exception, const char *message, ...)
-{
-	va_list ap;
-
-	fprintf(stderr, "%s: ", exception);
-
-	va_start(ap, message);
-	vfprintf(stderr, message, ap);
-	va_end(ap);
-
-	fputc('\n', stderr);
-
-	exit(1);
-}
-
-
-void exceptions_throw_outofmemory_exit(void)
-{
-	fprintf(stderr, "java.lang.InternalError: Out of memory\n");
-	exit(1);
-}
-
-
 java_objectheader *new_exception(const char *classname)
 {
 	fprintf(stderr, "%s\n", classname);
@@ -416,7 +393,7 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 }
 
 
-java_objectheader *new_internalerror(const char *message, ...)
+void exceptions_throw_internalerror(const char *message, ...)
 {
 	va_list ap;
 
@@ -427,10 +404,13 @@ java_objectheader *new_internalerror(const char *message, ...)
 	va_end(ap);
 
 	exit(1);
+}
 
-	/* keep compiler happy */
 
-	return NULL;
+void exceptions_throw_outofmemoryerror(void)
+{
+	fprintf(stderr, "%s", string_java_lang_OutOfMemoryError);
+	exit(1);
 }
 
 

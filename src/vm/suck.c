@@ -1,6 +1,6 @@
 /* src/vm/suck.c - functions to read LE ordered types from a buffer
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: suck.c 6037 2006-11-22 11:05:06Z twisti $
+   $Id: suck.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -184,7 +182,7 @@ void suck_add(char *classpath)
 #if defined(ENABLE_ZLIB)
 				ht = zip_open(filename);
 
-				if (ht) {
+				if (ht != NULL) {
 					lce = NEW(list_classpath_entry);
 
 					lce->type      = CLASSPATH_ARCHIVE;
@@ -199,11 +197,10 @@ void suck_add(char *classpath)
 				}
 
 #else
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "zip/jar files not supported");
+				vm_abort("suck_add: zip/jar files not supported");
 #endif
-				
-			} else {
+			}
+			else {
 				if (filename[filenamelen - 1] != '/') {/* XXX fixme for win32 */
 					filename[filenamelen] = '/';
 					filename[filenamelen + 1] = '\0';
@@ -219,7 +216,7 @@ void suck_add(char *classpath)
 
 			/* add current classpath entry, if no error */
 
-			if (lce)
+			if (lce != NULL)
 				list_add_last(list_classpath_entries, lce);
 		}
 
@@ -445,7 +442,7 @@ float suck_float(classbuffer *cb)
 #endif
 
 	if (sizeof(float) != 4) {
-		*exceptionptr = new_internalerror("Incompatible float-format");
+		exceptions_throw_internalerror("Incompatible float-format");
 
 		/* XXX should we exit in such a case? */
 		throw_exception_exit();
@@ -485,7 +482,7 @@ double suck_double(classbuffer *cb)
 #endif
 
 	if (sizeof(double) != 8) {
-		*exceptionptr = new_internalerror("Incompatible double-format");
+		exceptions_throw_internalerror("Incompatible double-format");
 
 		/* XXX should we exit in such a case? */
 		throw_exception_exit();

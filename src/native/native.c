@@ -29,7 +29,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: native.c 6251 2006-12-27 23:15:56Z twisti $
+   $Id: native.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -386,7 +386,7 @@ bool native_init(void)
 	/* initialize libltdl */
 
 	if (lt_dlinit())
-		vm_abort("lt_dlinit failed: %s\n", lt_dlerror());
+		vm_abort("native_init: lt_dlinit failed: %s\n", lt_dlerror());
 
 	/* Get the handle for the main program or for the libjvm.so,
 	   depends on the configuration. */
@@ -397,10 +397,10 @@ bool native_init(void)
 
 	if (!(mainhandle = lt_dlopenext("libjvm")))
 		if (!(mainhandle = lt_dlopenext(cacao_libjvm)))
-			vm_abort("lt_dlopenext failed: %s\n", lt_dlerror());
+			vm_abort("native_init: lt_dlopenext failed: %s\n", lt_dlerror());
 # else
 	if (!(mainhandle = lt_dlopen(NULL)))
-		vm_abort("lt_dlopen failed: %s\n", lt_dlerror());
+		vm_abort("native_init: lt_dlopen failed: %s\n", lt_dlerror());
 # endif
 
 	/* initialize library hashtable, 10 entries should be enough */

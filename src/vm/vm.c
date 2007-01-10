@@ -1478,10 +1478,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
        classcache_init) */
 
 	if (!loader_init())
-		throw_main_exception_exit();
+		vm_abort("loader_init failed");
 
 	if (!linker_init())
-		throw_main_exception_exit();
+		vm_abort("linker_init failed");
 
 	if (!native_init())
 		throw_main_exception_exit();

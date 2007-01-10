@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: genoffsets.c 6265 2007-01-02 20:40:57Z edwin $
+   $Id: genoffsets.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -57,7 +57,6 @@ int main(int argc, char **argv)
     printf("/* define some sizeof()'s */\n\n");
 
 	printf("#define sizevmarg                  %3d\n", (s4) sizeof(vm_arg));
-	printf("#define sizestackframeinfo         %3d\n", (s4) sizeof(stackframeinfo));
 
 #if defined(ENABLE_REPLACEMENT)
 	printf("#define sizeexecutionstate         %3d\n", (s4) sizeof(executionstate_t));

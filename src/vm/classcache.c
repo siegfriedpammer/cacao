@@ -1,6 +1,6 @@
 /* src/vm/classcache.c - loaded class cache and loading constraints
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Edwin Steiner
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: classcache.c 6209 2006-12-16 21:14:23Z edwin $
+   $Id: classcache.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -907,7 +906,7 @@ bool classcache_store_unique(classinfo *cls)
 		return false;
 
 	if (result != cls) {
-		*exceptionptr = new_internalerror("class already stored in the class cache");
+		exceptions_throw_internalerror("class already stored in the class cache");
 		return false;
 	}
 

@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: memory.c 6276 2007-01-04 21:48:51Z twisti $
+   $Id: memory.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -192,7 +192,7 @@ static void *memory_checked_alloc(s4 size)
 	void *p = calloc(size, 1);
 
 	if (p == NULL)
-		exceptions_throw_outofmemory_exit();
+		vm_abort("memory_checked_alloc: calloc failed: out of memory");
 
 	return p;
 }
@@ -326,7 +326,7 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 	dst = realloc(src, len2);
 
 	if (dst == NULL)
-		vm_abort("realloc failed: out of memory");
+		vm_abort("mem_realloc: realloc failed: out of memory");
 
 #if defined(ENABLE_MEMCHECK)
 	if (len2 > len1)

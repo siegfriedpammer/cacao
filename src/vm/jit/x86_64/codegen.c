@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/codegen.c - machine code generator for x86_64
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 6171 2006-12-11 11:47:42Z twisti $
+   $Id: codegen.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -3133,7 +3133,8 @@ gen_method:
 			break;
 
 		default:
-			*exceptionptr = new_internalerror("Unknown ICMD %d", iptr->opc);
+			exceptions_throw_internalerror("Unknown ICMD %d during code generation",
+										   iptr->opc);
 			return false;
 	} /* switch */
 

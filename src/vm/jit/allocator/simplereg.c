@@ -1,6 +1,6 @@
 /* src/vm/jit/allocator/simplereg.c - register allocator
 
-   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 1996-2005, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -25,14 +25,13 @@
    Contact: cacao@complang.tuwien.ac.at
 
    Authors: Andreas Krall
-
-   Changes: Stefan Ring
+            Stefan Ring
             Christian Thalinger
             Christian Ullrich
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 6207 2006-12-16 21:11:04Z edwin $
+   $Id: simplereg.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -1799,9 +1798,8 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 					break;
 
 				default:
-					*exceptionptr =
-						new_internalerror("Unknown ICMD %d during register allocation",
-										  iptr->opc);
+					exceptions_throw_internalerror("Unknown ICMD %d during register allocation",
+												   iptr->opc);
 					return;
 				} /* switch */
 				iptr++;

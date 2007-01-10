@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: exceptions.h 6251 2006-12-27 23:15:56Z twisti $
+   $Id: exceptions.h 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -98,8 +98,6 @@ void throw_main_exception_exit(void);
 void throw_cacao_exception_exit(const char *exception,
 								const char *message, ...);
 
-void exceptions_throw_outofmemory_exit(void);
-
 
 /* initialize new exceptions */
 
@@ -142,8 +140,9 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc);
 #endif
 
-java_objectheader *new_internalerror(const char *message, ...);
 void exceptions_throw_internalerror(const char *message, ...);
+
+void exceptions_throw_outofmemoryerror(void);
 
 java_objectheader *exceptions_new_verifyerror(methodinfo *m,
 											  const char *message, ...);

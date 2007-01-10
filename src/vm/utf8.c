@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: utf8.c 6244 2006-12-27 15:15:31Z twisti $
+   $Id: utf8.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -920,7 +920,7 @@ u4 utf_get_number_of_u2s(utf *u)
 
 	/* XXX this is probably not checked by most callers! Review this after */
 	/* the invalid uses of this function have been eliminated */
-	if (!u) {
+	if (u == NULL) {
 		exceptions_throw_nullpointerexception();
 		return 0;
 	}
@@ -934,10 +934,11 @@ u4 utf_get_number_of_u2s(utf *u)
 		utf_nextu2(&utf_ptr);
 	}
 
-	if (utf_ptr != endpos)
+	if (utf_ptr != endpos) {
 		/* string ended abruptly */
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Illegal utf8 string");
+		exceptions_throw_internalerror("Illegal utf8 string");
+		return NULL;
+	}
 
 	return len;
 }

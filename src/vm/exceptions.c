@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: exceptions.c 6251 2006-12-27 23:15:56Z twisti $
+   $Id: exceptions.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -319,19 +319,6 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 	/* good bye! */
 
 	exit(1);
-}
-
-
-/* exceptions_throw_outofmemory_exit *******************************************
-
-   Just print an: java.lang.InternalError: Out of memory
-
-*******************************************************************************/
-
-void exceptions_throw_outofmemory_exit(void)
-{
-	throw_cacao_exception_exit(string_java_lang_InternalError,
-							   "Out of memory");
 }
 
 
@@ -777,20 +764,16 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 }
 
 
-/* new_internalerror ***********************************************************
+/* exceptions_throw_internalerror **********************************************
 
-   Generates a java.lang.InternalError for the VM.
+   Generates and throws a java.lang.InternalError for the VM.
 
    IN:
       message......UTF-8 message format string
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-java_objectheader *new_internalerror(const char *message, ...)
+void exceptions_throw_internalerror(const char *message, ...)
 {
 	java_objectheader *o;
 	va_list            ap;
@@ -821,26 +804,10 @@ java_objectheader *new_internalerror(const char *message, ...)
 
 	MFREE(msg, char, msglen);
 
-	return o;
-}
+	if (o == NULL)
+		return *exceptionptr;
 
-
-/* exceptions_throw_internalerror **********************************************
-
-   Generates a java.lang.InternalError for the VM.
-
-   IN:
-      message......UTF-8 message format string
-
-*******************************************************************************/
-
-void exceptions_throw_internalerror(const char *message, ...)
-{
-	va_list ap;
-
-	va_start(ap, message);
-	*exceptionptr = new_internalerror(message, ap);
-	va_end(ap);
+	*exceptionptr = o;
 }
 
 
@@ -969,6 +936,25 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 	*exceptionptr = exceptions_new_nosuchmethoderror(c, name, desc);
 }
 #endif
+
+
+/* exceptions_throw_outofmemoryerror *******************************************
+
+   Generates and throws an java.lang.OutOfMemoryError for the VM.
+
+*******************************************************************************/
+
+void exceptions_throw_outofmemoryerror(void)
+{
+	java_objectheader *e;
+
+	e = native_new_and_init(class_java_lang_OutOfMemoryError);
+
+	if (e == NULL)
+		return *exceptionptr;
+
+	*exceptionptr = e;
+}
 
 
 /* new_unsupportedclassversionerror ********************************************

@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/md.c - machine dependent MIPS functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 6265 2007-01-02 20:40:57Z edwin $
+   $Id: md.c 6286 2007-01-10 10:03:38Z twisti $
 
 */
 
@@ -41,7 +41,6 @@
 #include "vm/types.h"
 
 #include "toolbox/logging.h"
-#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/vm.h"
 #include "vm/jit/stacktrace.h"
@@ -365,12 +364,9 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
 			   + index * REPLACEMENT_STUB_SIZE
 			   - 1;
 
-		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
-			*exceptionptr =
-				new_internalerror("Jump offset is out of range: %d > +/-%d",
-								  disp, 0x00007fff);
-			return;
-		}
+		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff))
+			vm_abort("Jump offset is out of range: %d > +/-%d",
+					 disp, 0x00007fff);
 
 		/* BR */
         mcode.words[0] = (((0x04) << 26) | ((0) << 21) | ((0) << 16) | ((disp) & 0xffff));
