@@ -38,7 +38,7 @@ noinst_HEADERS =
 
 noinst_LTLIBRARIES =
 
-libmd_la_SOURCES =
+#libmd_la_SOURCES =
 
 
 ## Local variables:
