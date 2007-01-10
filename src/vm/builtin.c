@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: builtin.c 6287 2007-01-10 10:08:17Z twisti $
 
 */
 
@@ -896,7 +896,6 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 		return NULL;
 	}
 
-	fprintf(stderr, "builtin_newarray: size=%d\n", actualsize);
 	a = heap_allocate(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
 
 	if (a == NULL)
