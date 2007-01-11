@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/linux/md-os.c - machine dependent MIPS Linux functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -26,10 +26,9 @@
 
    Authors: Andreas Krall
             Reinhard Grafl
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: md-os.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: md-os.c 7206 2007-01-11 22:39:52Z twisti $
 
 */
 
@@ -37,6 +36,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <sgidefs.h> /* required for _MIPS_SIM_ABI* defines (before signal.h) */
 #include <signal.h>
 #include <ucontext.h>
 
@@ -147,6 +147,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
+/* md_signal_handler_sigusr2 ***************************************************
+
+   DOCUMENT ME
+
+*******************************************************************************/
+
+void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
+{
+}
+
+
 #if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *_uc)
 {
@@ -186,4 +197,5 @@ void thread_restartcriticalsection(ucontext_t *_uc)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
+   $Id: md-abi.c 7206 2007-01-11 22:39:52Z twisti $
 
 */
 
@@ -134,17 +134,26 @@ void md_param_alloc(methoddesc *md)
 	s4         i;
 	s4         reguse;
 	s4         stacksize;
+#if SIZEOF_VOID_P == 4 && !defined(ENABLE_SOFT_FLOAT)
+	s4         t;
+	bool       a0_is_float;
+#endif
 
 	/* set default values */
 
 	reguse = 0;
 	stacksize = 0;
+#if SIZEOF_VOID_P == 4 && !defined(ENABLE_SOFT_FLOAT)
+	a0_is_float = false;
+#endif
 
 	/* get params field of methoddesc */
 
 	pd = md->params;
 
 	for (i = 0; i < md->paramcount; i++, pd++) {
+#if SIZEOF_VOID_P == 8
+
 		switch (md->paramtypes[i].type) {
 		case TYPE_INT:
 		case TYPE_ADR:
@@ -174,6 +183,120 @@ void md_param_alloc(methoddesc *md)
 			}
 			break;
 		}
+
+		/* register type is the same as java type */
+
+		pd->type = md->paramtypes[i].type;
+
+#else /* SIZEOF_VOID_P == 8 */
+
+#if !defined(ENABLE_SOFT_FLOAT)
+
+#define ALIGN_2_WORD(s)    ((s) & 1) ? ++(s) : (s)
+
+		t = md->paramtypes[i].type;
+
+		if (IS_FLT_DBL_TYPE(t) &&
+			((i == 0) ||
+			 ((i == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type)))) {
+			if (IS_2_WORD_TYPE(t)) {
+				pd->type = TYPE_DBL;
+				pd->regoff = reguse;
+				reguse++;
+				stacksize += 2;
+			}
+			else {
+				pd->type = TYPE_FLT;
+				pd->regoff = reguse;
+				reguse++;
+				stacksize++;
+			}
+			md->argfltreguse = reguse;
+			a0_is_float = true;
+		}
+		else {
+			if (IS_2_WORD_TYPE(t)) {
+				ALIGN_2_WORD(reguse);
+				pd->type = TYPE_LNG;
+
+				if (reguse < INT_ARG_CNT) {
+					pd->inmemory = false;
+# if WORDS_BIGENDIAN == 1
+					pd->regoff = PACK_REGS(reguse + 1, reguse);
+# else
+					pd->regoff = PACK_REGS(reguse, reguse + 1);
+# endif
+					reguse += 2;
+					md->argintreguse = reguse;
+				}
+				else {
+					pd->inmemory = true;
+					pd->regoff = ALIGN_2_WORD(stacksize);
+				}
+				stacksize += 2;
+			}
+			else {
+				pd->type = TYPE_INT;
+
+				if (reguse < INT_ARG_CNT) {
+					pd->inmemory = false;
+					pd->regoff = reguse;
+					reguse++;
+					md->argintreguse = reguse;
+				}
+				else {
+					pd->inmemory = true;
+					pd->regoff = stacksize;
+				}
+				stacksize++;
+			}
+		}
+
+#else /* !defined(ENABLE_SOFT_FLOAT) */
+#error never actually tested!
+
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+		case TYPE_FLT:
+			pd->type = TYPE_INT;
+
+			if (i < INT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->regoff = reguse;
+				reguse++;
+				md->argintreguse = reguse;
+			} else {
+				pd->inmemory = true;
+				pd->regoff = stacksize;
+			}
+			stacksize++;
+			break;
+		case TYPE_LNG:
+		case TYPE_DBL:
+			pd->type = TYPE_LNG;
+
+			if (i < INT_ARG_CNT) {
+				pd->inmemory = false;
+#if WORDS_BIGENDIAN == 1
+				pd->regoff = PACK_REGS(reguse + 1, reguse);
+#else
+				pd->regoff = PACK_REGS(reguse, reguse + 1);
+#endif
+				reguse += 2;
+				md->argintreguse = reguse;
+			} else {
+				pd->inmemory = true;
+				pd->regoff = stacksize;
+			}
+			stacksize += 2;
+			break;
+		}
+
+
+#endif /* !defined(ENABLE_SOFT_FLOAT) */
+
+#endif /* SIZEOF_VOID_P == 8 */
 	}
 
 	/* fill register and stack usage */
@@ -216,11 +339,16 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 	   not to survive method invokations. */
 
 	if (!(stackslot->flags & SAVEDVAR)) {
-
 		VAR(stackslot->varnum)->flags = PREALLOC;
 
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+#if SIZEOF_VOID_P == 4
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				VAR(stackslot->varnum)->vv.regoff = REG_RESULT_PACKED;
+			else
+#endif
+				VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
+		}
 		else
 			VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
 	}

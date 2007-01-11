@@ -28,19 +28,19 @@
 
    Changes:
 
-   $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
+   $Id: emit.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
 
 #include <assert.h>
 
-#include "md-abi.h"
+#include "vm/types.h"
 
 #include "vm/jit/mips/codegen.h"
+#include "vm/jit/mips/md-abi.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
@@ -84,8 +84,16 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 			else
 				M_FLD(tempreg, REG_SP, disp);
 		}
-		else
+		else {
+#if SIZEOF_VOID_P == 8
 			M_LLD(tempreg, REG_SP, disp);
+#else
+			if (IS_2_WORD_TYPE(src->type))
+				M_LLD(tempreg, REG_SP, disp);
+			else
+				M_ILD(tempreg, REG_SP, disp);
+#endif
+		}
 
 		reg = tempreg;
 	}
@@ -94,6 +102,86 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 	return reg;
 }
+
+
+/* emit_load_low ***************************************************************
+
+   Emits a possible load of the low 32-bits of an operand.
+
+*******************************************************************************/
+
+#if SIZEOF_VOID_P == 4
+s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->vv.regoff * 8;
+
+#if WORDS_BIGENDIAN == 1
+		M_ILD(tempreg, REG_SP, disp + 4);
+#else
+		M_ILD(tempreg, REG_SP, disp);
+#endif
+
+		reg = tempreg;
+	}
+	else
+		reg = GET_LOW_REG(src->vv.regoff);
+
+	return reg;
+}
+#endif /* SIZEOF_VOID_P == 4 */
+
+
+/* emit_load_high **************************************************************
+
+   Emits a possible load of the high 32-bits of an operand.
+
+*******************************************************************************/
+
+#if SIZEOF_VOID_P == 4
+s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->vv.regoff * 8;
+
+#if WORDS_BIGENDIAN == 1
+		M_ILD(tempreg, REG_SP, disp);
+#else
+		M_ILD(tempreg, REG_SP, disp + 4);
+#endif
+
+		reg = tempreg;
+	}
+	else
+		reg = GET_HIGH_REG(src->vv.regoff);
+
+	return reg;
+}
+#endif /* SIZEOF_VOID_P == 4 */
 
 
 /* emit_store ******************************************************************
@@ -122,8 +210,16 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 			else
 				M_FST(d, REG_SP, disp);
 		}
-		else
+		else {
+#if SIZEOF_VOID_P == 8
 			M_LST(d, REG_SP, disp);
+#else
+			if (IS_2_WORD_TYPE(dst->type))
+				M_LST(d, REG_SP, disp);
+			else
+				M_IST(d, REG_SP, disp);
+#endif
+		}
 	}
 }
 
@@ -145,18 +241,27 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 
 	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
-
 		/* If one of the variables resides in memory, we can eliminate
 		   the register move from/to the temporary register with the
 		   order of getting the destination register and the load. */
 
 		if (IS_INMEMORY(src->flags)) {
-			d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
+#if SIZEOF_VOID_P == 4
+			if (IS_2_WORD_TYPE(src->type))
+				d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP12_PACKED);
+			else
+#endif
+				d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
 			s1 = emit_load(jd, iptr, src, d);
 		}
 		else {
 			s1 = emit_load(jd, iptr, src, REG_IFTMP);
-			d = codegen_reg_of_var(iptr->opc, dst, s1);
+#if SIZEOF_VOID_P == 4
+			if (IS_2_WORD_TYPE(src->type))
+				d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP12_PACKED);
+			else
+#endif
+				d = codegen_reg_of_var(iptr->opc, dst, s1);
 		}
 
 		if (s1 != d) {
@@ -166,8 +271,16 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 				else
 					M_FMOV(s1, d);
 			}
-			else
+			else {
+#if SIZEOF_VOID_P == 8
 				M_MOV(s1, d);
+#else
+				if (IS_2_WORD_TYPE(src->type))
+					M_LNGMOVE(s1, d);
+				else
+					M_MOV(s1, d);
+#endif
+			}
 		}
 
 		emit_store(jd, iptr, dst, d);
@@ -206,6 +319,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 {
 	s4 disp;
 
+#if SIZEOF_VOID_P == 8
 	if ((value >= -32768) && (value <= 32767))
 		M_LADD_IMM(REG_ZERO, value, d);
 	else if ((value >= 0) && (value <= 0xffff))
@@ -214,6 +328,10 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 		disp = dseg_add_s8(cd, value);
 		M_LLD(d, REG_PV, disp);
 	}
+#else
+	disp = dseg_add_s8(cd, value);
+	M_LLD(d, REG_PV, disp);
+#endif
 }
 
 
@@ -467,6 +585,9 @@ void emit_exception_stubs(jitdata *jd)
 				M_ALD(REG_A2, REG_SP, (cd->stackframesize - 1) * 8);
 
 			M_MOV(REG_ITMP2_XPC, REG_A3);
+
+#if SIZEOF_VOID_P == 8
+			/* XXX */
 			M_MOV(REG_ITMP1, REG_A4);
 
 			M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
@@ -474,16 +595,33 @@ void emit_exception_stubs(jitdata *jd)
 
 			if (jd->isleafmethod)
 				M_AST(REG_RA, REG_SP, 1 * 8);
+#else
+			M_ASUB_IMM(REG_SP, 5*4 + 2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 5*4 + 0 * 8);
+
+			if (jd->isleafmethod)
+				M_AST(REG_RA, REG_SP, 5*4 + 1 * 8);
+
+			M_AST(REG_ITMP1, REG_SP, 4 * 4);
+#endif
 
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
+#if SIZEOF_VOID_P == 8
 			if (jd->isleafmethod)
 				M_ALD(REG_RA, REG_SP, 1 * 8);
 
 			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
 			M_AADD_IMM(REG_SP, 2 * 8, REG_SP);
+#else
+			if (jd->isleafmethod)
+				M_ALD(REG_RA, REG_SP, 5*4 + 1 * 8);
+
+			M_ALD(REG_ITMP2_XPC, REG_SP, 5*4 + 0 * 8);
+			M_AADD_IMM(REG_SP, 5*4 + 2 * 8, REG_SP);
+#endif
 
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, disp);
@@ -740,7 +878,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	registerdata *rd;
 	methoddesc   *md;
 	s4            disp;
-	s4            i, t;
+	s4            i, j, t;
 
 	/* get required compiler data */
 
@@ -754,30 +892,33 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	M_LDA(REG_SP, REG_SP, -(2 + ARG_CNT + TMP_CNT) * 8);
-	M_AST(REG_RA, REG_SP, 1 * 8);
+	M_LDA(REG_SP, REG_SP, -(PA_SIZE + (2 + ARG_CNT + TMP_CNT) * 8));
+	M_AST(REG_RA, REG_SP, PA_SIZE + 1 * 8);
 
-	/* save argument registers */
+	/* save argument registers (we store the registers as address
+	   types, so it's correct for MIPS32 too) */
 
 	for (i = 0; i < INT_ARG_CNT; i++)
-		M_LST(rd->argintregs[i], REG_SP, (2 + i) * 8);
+		M_AST(rd->argintregs[i], REG_SP, PA_SIZE + (2 + i) * 8);
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(rd->argfltregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
+		M_DST(rd->argfltregs[i], REG_SP, PA_SIZE + (2 + INT_ARG_CNT + i) * 8);
 
 	/* save temporary registers for leaf methods */
 
 	if (jd->isleafmethod) {
 		for (i = 0; i < INT_TMP_CNT; i++)
-			M_LST(rd->tmpintregs[i], REG_SP, (2 + ARG_CNT + i) * 8);
+			M_AST(rd->tmpintregs[i], REG_SP, PA_SIZE + (2 + ARG_CNT + i) * 8);
 
 		for (i = 0; i < FLT_TMP_CNT; i++)
-			M_DST(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
+			M_DST(rd->tmpfltregs[i], REG_SP, PA_SIZE + (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
 	}
 
-	/* load float arguments into integer registers */
+	/* Load float arguments into integer registers.  MIPS32 has less
+	   float argument registers than integer ones, we need to check
+	   that. */
 
-	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
+	for (i = 0; i < md->paramcount && i < INT_ARG_CNT && i < FLT_ARG_CNT; i++) {
 		t = md->paramtypes[i].type;
 
 		if (IS_FLT_DBL_TYPE(t)) {
@@ -792,9 +933,32 @@ void emit_verbosecall_enter(jitdata *jd)
 		}
 	}
 
+#if SIZEOF_VOID_P == 4
+		for (i = 0, j = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
+			t = md->paramtypes[i].type;
+
+			if (IS_INT_LNG_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t)) {
+					M_ILD(rd->argintregs[j], REG_SP, PA_SIZE + (2 + i) * 8);
+					M_ILD(rd->argintregs[j + 1], REG_SP, PA_SIZE + (2 + i) * 8 + 4);
+				}
+				else {
+# if WORDS_BIGENDIAN == 1
+					M_MOV(REG_ZERO, rd->argintregs[j]);
+					M_ILD(rd->argintregs[j + 1], REG_SP, PA_SIZE + (2 + i) * 8);
+# else
+					M_ILD(rd->argintregs[j], REG_SP, PA_SIZE + (2 + i) * 8);
+					M_MOV(REG_ZERO, rd->argintregs[j + 1]);
+# endif
+				}
+				j += 2;
+			}
+		}
+#endif
+
 	disp = dseg_add_address(cd, m);
 	M_ALD(REG_ITMP1, REG_PV, disp);
-	M_AST(REG_ITMP1, REG_SP, 0 * 8);
+	M_AST(REG_ITMP1, REG_SP, PA_SIZE + 0 * 8);
 	disp = dseg_add_functionptr(cd, builtin_trace_args);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
@@ -803,23 +967,23 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore argument registers */
 
 	for (i = 0; i < INT_ARG_CNT; i++)
-		M_LLD(rd->argintregs[i], REG_SP, (2 + i) * 8);
+		M_ALD(rd->argintregs[i], REG_SP, PA_SIZE + (2 + i) * 8);
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(rd->argfltregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
+		M_DLD(rd->argfltregs[i], REG_SP, PA_SIZE + (2 + INT_ARG_CNT + i) * 8);
 
 	/* restore temporary registers for leaf methods */
 
 	if (jd->isleafmethod) {
 		for (i = 0; i < INT_TMP_CNT; i++)
-			M_LLD(rd->tmpintregs[i], REG_SP, (2 + ARG_CNT + i) * 8);
+			M_ALD(rd->tmpintregs[i], REG_SP, PA_SIZE + (2 + ARG_CNT + i) * 8);
 
 		for (i = 0; i < FLT_TMP_CNT; i++)
-			M_DLD(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
+			M_DLD(rd->tmpfltregs[i], REG_SP, PA_SIZE + (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
 	}
 
-	M_ALD(REG_RA, REG_SP, 1 * 8);
-	M_LDA(REG_SP, REG_SP, (2 + ARG_CNT + TMP_CNT) * 8);
+	M_ALD(REG_RA, REG_SP, PA_SIZE + 1 * 8);
+	M_LDA(REG_SP, REG_SP, PA_SIZE + (2 + ARG_CNT + TMP_CNT) * 8);
 
 	/* mark trace code */
 
@@ -840,6 +1004,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
+	methoddesc   *md;
 	s4            disp;
 
 	/* get required compiler data */
@@ -848,33 +1013,76 @@ void emit_verbosecall_exit(jitdata *jd)
 	cd = jd->cd;
 	rd = jd->rd;
 
+	md = m->parseddesc;
+
 	/* mark trace code */
 
 	M_NOP;
 
+#if SIZEOF_VOID_P == 8
 	M_LDA(REG_SP, REG_SP, -4 * 8);              /* keep stack 16-byte aligned */
-	M_LST(REG_RA, REG_SP, 0 * 8);
+	M_AST(REG_RA, REG_SP, 0 * 8);
 
 	M_LST(REG_RESULT, REG_SP, 1 * 8);
 	M_DST(REG_FRESULT, REG_SP, 2 * 8);
+#else
+	M_LDA(REG_SP, REG_SP, -(8*4 + 4 * 8));
+	M_AST(REG_RA, REG_SP, 8*4 + 0 * 8);
+
+	M_LST(REG_RESULT_PACKED, REG_SP, 8*4 + 1 * 8);
+	M_DST(REG_FRESULT, REG_SP, 8*4 + 2 * 8);
+#endif
 
 	disp = dseg_add_address(cd, m);
 	M_ALD(rd->argintregs[0], REG_PV, disp);
 
+#if SIZEOF_VOID_P == 8
 	M_MOV(REG_RESULT, rd->argintregs[1]);
 	M_DMOV(REG_FRESULT, rd->argfltregs[2]);
 	M_FMOV(REG_FRESULT, rd->argfltregs[3]);
+#else
+	switch (md->returntype.type) {
+	case TYPE_LNG:
+# if WORDS_BIGENDIAN == 1
+		M_MOV(REG_RESULT, rd->argintregs[2]);
+		M_MOV(REG_RESULT2, rd->argintregs[3]);
+# else
+		M_MOV(REG_RESULT2, rd->argintregs[2]);
+		M_MOV(REG_RESULT, rd->argintregs[3]);
+# endif
+		break;
+	default:
+# if WORDS_BIGENDIAN == 1
+		M_MOV(REG_ZERO, rd->argintregs[2]);
+		M_MOV(REG_RESULT, rd->argintregs[3]);
+# else
+		M_MOV(REG_RESULT, rd->argintregs[2]);
+		M_MOV(REG_ZERO, rd->argintregs[3]);
+# endif
+	}
+
+	M_DST(REG_FRESULT, REG_SP, 4*4);
+	M_FST(REG_FRESULT, REG_SP, 4*4 + 2 * 4);
+#endif
 
 	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP;
 
+#if SIZEOF_VOID_P == 8
 	M_DLD(REG_FRESULT, REG_SP, 2 * 8);
 	M_LLD(REG_RESULT, REG_SP, 1 * 8);
 
-	M_LLD(REG_RA, REG_SP, 0 * 8);
+	M_ALD(REG_RA, REG_SP, 0 * 8);
 	M_LDA(REG_SP, REG_SP, 4 * 8);
+#else
+	M_DLD(REG_FRESULT, REG_SP, 8*4 + 2 * 8);
+	M_LLD(REG_RESULT_PACKED, REG_SP, 8*4 + 1 * 8);
+
+	M_ALD(REG_RA, REG_SP, 8*4 + 0 * 8);
+	M_LDA(REG_SP, REG_SP, 8*4 + 4 * 8);
+#endif
 
 	/* mark trace code */
 

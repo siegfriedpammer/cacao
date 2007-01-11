@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
+   $Id: asmpart.S 7206 2007-01-11 22:39:52Z twisti $
 
 */
 
@@ -77,7 +77,7 @@
 	.globl compare_and_swap
 
 
-/********************* function asm_calljavafunction ***************************
+/* asm_vm_call_method **********************************************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
 *   with up to 4 address parameters.                                           *
@@ -100,6 +100,8 @@
 
 	.align  3
 
+#if SIZEOF_VOID_P == 8
+
 	.dword  0                           /* catch type all                     */
 	.dword  0                           /* handler pc                         */
 	.dword  0                           /* end pc                             */
@@ -116,6 +118,24 @@
 	.word   0                           /* frame size                         */
 	.dword  0                           /* codeinfo pointer                   */
 
+#else /* SIZEOF_VOID_P == 8 */
+
+	.word   0                           /* catch type all                     */
+	.word   0                           /* handler pc                         */
+	.word   0                           /* end pc                             */
+	.word   0                           /* start pc                           */
+	.word   1                           /* extable size                       */
+	.word   0                           /* line number table start            */
+	.word   0                           /* line number table size             */
+	.word   0                           /* fltsave                            */
+	.word   0                           /* intsave                            */
+	.word   0                           /* isleaf                             */
+	.word   0                           /* IsSync                             */
+	.word   0                           /* frame size                         */
+	.word   0                           /* method pointer (pointer to name)   */
+
+#endif /* SIZEOF_VOID_P == 8 */
+
 asm_vm_call_method:
 asm_vm_call_method_int:
 asm_vm_call_method_long:
@@ -130,84 +150,147 @@ asm_vm_call_method_double:
 	ast     pv,1*8(sp)                /* procedure vector                     */
 L_asm_vm_call_method_compute_pv:
 	aaddiu  pv,ra,-4*4
+
 	ast     s7,3*8(sp)
 
+#if SIZEOF_VOID_P == 8
 	sdc1    fss0,5*8(sp)              /* save non JavaABI saved flt registers */
 	sdc1    fss1,6*8(sp)
 	sdc1    fss2,7*8(sp)
 	sdc1    fss3,8*8(sp)
 	sdc1    fss4,9*8(sp)
 	sdc1    fss5,10*8(sp)
+#endif
 
 	ast     a0,4*8(sp)                /* save method pointer for compiler     */
 
-	move    t0,a2
-	move    s7,a1
+	move    t0,a2                     /* address of first block               */
+	move    s7,a1                     /* argument count                       */
 	blez    s7,calljava_argsloaded
 	nop
 
+#if SIZEOF_VOID_P == 8
+
 	ald     a0,offvmargdata(t0)
 	ldc1    fa0,offvmargdata(t0)
-	daddi   s7,s7,-1
+	aaddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
 	ald     a1,offvmargdata+sizevmarg*1(t0)
 	ldc1    fa1,offvmargdata+sizevmarg*1(t0)
-	daddi   s7,s7,-1
+	aaddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
 	ald     a2,offvmargdata+sizevmarg*2(t0)
 	ldc1    fa2,offvmargdata+sizevmarg*2(t0)
-	daddi   s7,s7,-1
+	aaddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
 	ald     a3,offvmargdata+sizevmarg*3(t0)
 	ldc1    fa3,offvmargdata+sizevmarg*3(t0)
-	daddi   s7,s7,-1
+	aaddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
 	ald     a4,offvmargdata+sizevmarg*4(t0)
 	ldc1    fa4,offvmargdata+sizevmarg*4(t0)
-	daddi   s7,s7,-1
+	aaddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
 	ald     a5,offvmargdata+sizevmarg*5(t0)
 	ldc1    fa5,offvmargdata+sizevmarg*5(t0)
-	daddi   s7,s7,-1
+	aaddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
 	ald     a6,offvmargdata+sizevmarg*6(t0)
 	ldc1    fa6,offvmargdata+sizevmarg*6(t0)
-	daddi   s7,s7,-1
+	aaddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
 	ald     a7,offvmargdata+sizevmarg*7(t0)
 	ldc1    fa7,offvmargdata+sizevmarg*7(t0)
-	daddi   s7,s7,-1
-		
+	aaddi   s7,s7,-1
+
+#else /* SIZEOF_VOID_P == 8 */
+
+#if WORDS_BIGENDIAN == 1
+	ald     a0,offvmargdata+4(t0)
+#else
+	ald     a0,offvmargdata(t0)
+#endif
+#if !defined(ENABLE_SOFT_FLOAT)
+	ldc1    fa0,offvmargdata(t0)
+#endif
+	aaddi   s7,s7,-1
+	blez    s7,calljava_argsloaded
+
+#if WORDS_BIGENDIAN == 1
+	ald     a1,offvmargdata+4+sizevmarg*1(t0)
+#else
+	ald     a1,offvmargdata+sizevmarg*1(t0)
+#endif
+#if !defined(ENABLE_SOFT_FLOAT)
+	ldc1    fa1,offvmargdata+sizevmarg*1(t0)
+#endif
+	aaddi   s7,s7,-1
+	blez    s7,calljava_argsloaded
+
+#if WORDS_BIGENDIAN == 1
+	ald     a2,offvmargdata+4+sizevmarg*2(t0)
+#else
+	ald     a2,offvmargdata+sizevmarg*2(t0)
+#endif
+	aaddi   s7,s7,-1
+	blez    s7,calljava_argsloaded
+
+#if WORDS_BIGENDIAN == 1
+	ald     a3,offvmargdata+4+sizevmarg*3(t0)
+#else
+	ald     a3,offvmargdata+sizevmarg*3(t0)
+#endif
+	aaddi   s7,s7,-1
+	blez    s7,calljava_argsloaded
+
+#endif /* SIZEOF_VOID_P == 8 */
+
 calljava_argsloaded:
-	move    t4,sp                      /* save stack pointer                  */
+	move    t4,sp                     /* save stack pointer                   */
 	blez    s7,calljava_nocopy
 	nop
-	subu    t1,zero,s7                 /* create argument stack frame         */
-	sll     t2,t1,3
-	aaddu   sp,sp,t2
-	aaddu   t2,t2,t4
+
+#if SIZEOF_VOID_P == 4
+	aaddiu  s7,s7,4                   /* add stack space for 4 arguments      */
+#endif
+	subu    t1,zero,s7                /* remaining argument count (negative)  */
+	sll     t2,t1,3                   /* calculate stackframe size            */
+	aaddu   sp,sp,t2                  /* create stackframe                    */
+	aaddu   t2,t2,t4                  /* also set temp sp                     */
+#if SIZEOF_VOID_P == 4
+	aaddiu  t2,t2,4*8                 /* skip stack space for 4 arguments     */
+	addiu   t1,t1,4
+#endif
 
 calljava_copyloop:
-    ald     t3,offvmargdata+sizevmarg*8(t0)
-	ast     t3,0(t2)
-	aaddi   t1,t1,1
-	aaddi   t0,t0,sizevmarg
-	aaddi   t2,t2,8
-	bnez    t1,calljava_copyloop
+#if SIZEOF_VOID_P == 8
+	ald     t3,offvmargdata+sizevmarg*8(t0)
+#else
+# if WORDS_BIGENDIAN == 1
+	ald     t3,offvmargdata+4+sizevmarg*4(t0)
+# else
+	ald     t3,offvmargdata+sizevmarg*4(t0)
+# endif
+#endif
+	ast     t3,0(t2)                  /* store argument on stack              */
+	addi    t1,t1,1                   /* count 1 argument                     */
+	aaddi   t0,t0,sizevmarg           /* load address of next block           */
+	aaddi   t2,t2,8                   /* increase stack position              */
+	bnez    t1,calljava_copyloop      /* all arguments copied?                */
 	nop
 
 calljava_nocopy:
@@ -221,35 +304,46 @@ calljava_nocopy:
 	jalr    pv                        /* call JIT compiler                    */
 	nop
 L_asm_vm_call_method_recompute_pv:
-/*	aaddiu  pv,ra,(asm_vm_call_method - L_asm_vm_call_method_recompute_pv)*/
+#if SIZEOF_VOID_P == 8
 	aaddiu  pv,ra,-76*4               /* recompute procedure vector           */
+#else
+	aaddiu  pv,ra,(asm_vm_call_method - L_asm_vm_call_method_recompute_pv)
+#endif
 
 	.set    reorder                   /* XXX we need to recompute pv          */
 
-	asll    s7,s7,3                   /* remove argument stack frame          */
-	aaddu   sp,sp,s7
+	sll     t1,s7,3                   /* remove argument stackframe           */
+	aaddu   sp,sp,t1
 
 calljava_return2:
-	ald     ra,0(sp)                  /* restore return address               */
-	ald     pv,8(sp)                  /* restore procedure vector             */
+	ald     ra,0*8(sp)                /* restore return address               */
+	ald     pv,1*8(sp)                /* restore procedure vector             */
 	ald     s7,3*8(sp)
 
+#if SIZEOF_VOID_P == 8
 	ldc1    fss0,5*8(sp)              /* restore non JavaABI saved flt regs   */
 	ldc1    fss1,6*8(sp)
 	ldc1    fss2,7*8(sp)
 	ldc1    fss3,8*8(sp)
 	ldc1    fss4,9*8(sp)
 	ldc1    fss5,10*8(sp)
+#endif
 
 	aaddiu  sp,sp,12*8                /* free stack space                     */
 	j       ra                        /* return                               */
 
 asm_vm_call_method_exception_handler:
-	asll    s7,s7,3                   /* remove argument stack frame          */
-	aaddu   sp,sp,s7
+	sll     t1,s7,3                   /* remove stackframe                    */
+	aaddu   sp,sp,t1
+#if SIZEOF_VOID_P == 4
+	aaddiu  sp,sp,-4*4                /* reserve space for 1 argument         */
+#endif
 
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
+#if SIZEOF_VOID_P == 4
+	aaddiu  sp,sp,4*4
+#endif
 	b       calljava_return2
 
 	.end    asm_vm_call_method
@@ -278,11 +372,12 @@ asm_vm_call_method_exception_handler:
 *                                                                              *
 *******************************************************************************/
 
-
 	.ent    asm_call_jit_compiler
 
 asm_call_jit_compiler:
-	aaddiu  sp,sp,-(ARG_CNT+2)*8  /* allocate stack space                     */
+#if SIZEOF_VOID_P == 8
+
+	aaddiu  sp,sp,-(ARG_CNT+2)*8  /* +2: keep stack 16-bytes aligned          */
 
 	ast     ra,0*8(sp)            /* save return address                      */
 
@@ -300,6 +395,29 @@ asm_call_jit_compiler:
 	RESTORE_ARGUMENT_REGISTERS(1)
 
 	aaddiu  sp,sp,(ARG_CNT+2)*8   /* remove stack frame                       */
+
+#else /* SIZEOF_VOID_P == 8 */
+
+	aaddiu  sp,sp,-(ARG_CNT+2)*8  /* +4: keep stack 16-bytes aligned          */
+
+	ast     ra,4*4+0*4(sp)        /* save return address                      */
+
+	SAVE_ARGUMENT_REGISTERS(6)
+
+	move    a0,itmp1              /* pass methodinfo pointer                  */
+	move    a1,mptr               /* pass method pointer                      */
+	aaddiu  a2,sp,(ARG_CNT+2)*8   /* pass java sp                             */
+	move    a3,ra
+	jal     jit_asm_compile       /* call jit compiler                        */
+	move    pv,v0
+
+	ald     ra,4*4+0*4(sp)        /* restore return address                   */
+
+	RESTORE_ARGUMENT_REGISTERS(6)
+
+	aaddiu  sp,sp,(ARG_CNT+2)*8   /* remove stack frame                       */
+
+#endif /* SIZEOF_VOID_P == 8 */
 
 	beqz    pv,L_asm_call_jit_compiler_exception
 
@@ -334,20 +452,38 @@ L_asm_call_jit_compiler_exception:
 
 asm_handle_nat_exception:
 L_asm_handle_exception_stack_loop:
+#if SIZEOF_VOID_P == 8
 	aaddiu  sp,sp,-6*8                  /* keep stack 16-byte aligned         */
 	ast     xptr,0*8(sp)                /* save exception pointer             */
 	ast     xpc,1*8(sp)                 /* save exception pc                  */
 	ast     ra,3*8(sp)                  /* save RA                            */
 	ast     zero,4*8(sp)                /* save maybe-leaf flag (cleared)     */
+#else
+	aaddiu  sp,sp,-(4*4+6*8)            /* allocate stack                     */
+	ast     xptr,4*4+0*8(sp)            /* save exception pointer             */
+	ast     xpc,4*4+1*8(sp)             /* save exception pc                  */
+	ast     ra,4*4+3*8(sp)              /* save return address                */
+	ast     zero,4*4+4*8(sp)            /* save maybe-leaf flag (cleared)     */
+#endif
 
 	move    a0,ra                       /* pass RA                            */
 	jal     md_codegen_get_pv_from_pc   /* get PV from RA                     */
+
+#if SIZEOF_VOID_P == 8
 	ast     v0,2*8(sp)                  /* save PV                            */
 
 	ald     a0,0*8(sp)                  /* pass xptr                          */
 	ald     a1,1*8(sp)                  /* pass xpc                           */
 	move    a2,v0                       /* pass PV                            */
 	aaddiu  a3,sp,6*8                   /* pass Java SP                       */
+#else
+	ast     v0,4*4+2*8(sp)              /* save data segment pointer          */
+
+	ald     a0,4*4+0*8(sp)              /* pass exception pointer             */
+	ald     a1,4*4+1*8(sp)              /* pass exception pc                  */
+	move    a2,v0                       /* pass data segment pointer          */
+	aaddiu  a3,sp,(4*4+6*8)             /* pass Java stack pointer            */
+#endif
 
 	b       L_asm_handle_exception_continue
 
@@ -359,17 +495,32 @@ asm_handle_exception:
 	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
 	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
 
+#if SIZEOF_VOID_P == 8
 	aaddiu  sp,sp,-6*8                  /* allocate stack                     */
 	ast     xptr,0*8(sp)                /* save exception pointer             */
 	ast     pv,2*8(sp)                  /* save PV                            */
 	ast     ra,3*8(sp)                  /* save RA                            */
 	addu    t0,zero,1                   /* set maybe-leaf flag                */
 	ast     t0,4*8(sp)                  /* save maybe-leaf flag               */
+#else
+	aaddiu  sp,sp,-(4*4+6*8)            /* allocate stack                     */
+	ast     xptr,4*4+0*8(sp)            /* save exception pointer             */
+	ast     xpc,4*4+1*8(sp)             /* save exception pc                  */
+	ast     pv,4*4+2*8(sp)              /* save data segment pointer          */
+	ast     ra,4*4+3*8(sp)              /* save return address                */
+	addu    t0,zero,1                   /* set maybe-leaf flag                */
+	ast     t0,4*4+4*8(sp)              /* save maybe-leaf flag               */
+#endif
 
 	move    a0,xptr                     /* pass xptr                          */
 	move    a1,xpc                      /* pass xpc                           */
 	move    a2,pv                       /* pass PV                            */
+
+#if SIZEOF_VOID_P == 8
 	aaddiu  a3,sp,(ARG_CNT+TMP_CNT+6)*8 /* pass Java SP                       */
+#else
+	aaddiu  a3,sp,4*4+(ARG_CNT+TMP_CNT+6)*8 /* pass Java stack pointer        */
+#endif
 
 L_asm_handle_exception_continue:
 	jal     exceptions_handle_exception
@@ -377,11 +528,20 @@ L_asm_handle_exception_continue:
 	beqz    v0,L_asm_handle_exception_not_catched
 
 	move    xpc,v0                      /* move handlerpc into xpc            */
+
+#if SIZEOF_VOID_P == 8
 	ald     xptr,0*8(sp)                /* restore exception pointer          */
 	ald     pv,2*8(sp)                  /* restore PV                         */
 	ald     ra,3*8(sp)                  /* restore RA                         */
 	ald     t0,4*8(sp)                  /* get maybe-leaf flag                */
 	aaddiu  sp,sp,6*8                   /* free stackframe                    */
+#else
+	ald     xptr,4*4+0*8(sp)            /* restore exception pointer          */
+	ald     pv,4*4+2*8(sp)              /* restore data segment pointer       */
+	ald     ra,4*4+3*8(sp)              /* restore return address             */
+	ald     t0,4*4+4*8(sp)              /* get maybe-leaf flag                */
+	aaddiu  sp,sp,4*4+6*8               /* free stackframe                    */
+#endif
 	
 	beqz    t0,L_asm_handle_exception_no_leaf
 
@@ -394,11 +554,19 @@ L_asm_handle_exception_no_leaf:
 	jr      xpc                         /* jump to the handler                */
 
 L_asm_handle_exception_not_catched:
+#if SIZEOF_VOID_P == 8
 	ald     xptr,0*8(sp)                /* restore xptr                       */
 	ald     pv,2*8(sp)                  /* restore PV                         */
 	ald     ra,3*8(sp)                  /* restore RA                         */
 	ald     t0,4*8(sp)                  /* get maybe-leaf flag                */
 	aaddiu  sp,sp,6*8                   /* free stackframe                    */
+#else
+	ald     xptr,4*4+0*8(sp)            /* restore xptr                       */
+	ald     pv,4*4+2*8(sp)              /* restore PV                         */
+	ald     ra,4*4+3*8(sp)              /* restore RA                         */
+	ald     t0,4*4+4*8(sp)              /* get maybe-leaf flag                */
+	aaddiu  sp,sp,4*4+6*8               /* free stackframe                    */
+#endif
 	
 	beqz    t0,L_asm_handle_exception_no_leaf_stack
 
@@ -431,6 +599,7 @@ L_asm_handle_exception_no_ra_restore:
 	ald     s5,-3*8(t1)
 	ald     s6,-2*8(t1)
 	ald     s7,-1*8(t1)
+
 ex_int2:
 	sll     t2,t2,1               /* t2 = register count * 4 * 2              */
 	asubu   t1,t1,t2              /* t1 = t0 - 8 * register count             */
@@ -441,10 +610,21 @@ ex_int2:
 	asubu   t3,t3,t2              /* t3 = ex_int_sav - 4 * register count     */
 	jr      t3                          /* jump to save position              */
 
+#if SIZEOF_VOID_P == 8
 	ldc1    fs0,-4*8(t1)
 	ldc1    fs1,-3*8(t1)
 	ldc1    fs2,-2*8(t1)
 	ldc1    fs3,-1*8(t1)
+#else /* SIZEOF_VOID_P == 8 */
+# if !defined(ENABLE_SOFT_FLOAT)
+	ldc1    fs0,-4*8(t1)
+	ldc1    fs1,-3*8(t1)
+	ldc1    fs2,-2*8(t1)
+	ldc1    fs3,-1*8(t1)
+	ldc1    fs4,-1*8(t1)
+	ldc1    fs5,-1*8(t1)
+# endif /* !defined(ENABLE_SOFT_FLOAT) */
+#endif /* SIZEOF_VOID_P == 8 */
 
 ex_flt2:
 	lw      t1,FrameSize(pv)            /* get frame size                     */
@@ -497,6 +677,8 @@ asm_abstractmethoderror:
     .ent    asm_patcher_wrapper
 
 asm_patcher_wrapper:
+#if SIZEOF_VOID_P == 8
+
 	aaddiu  sp,sp,-((2+16+22+4)*8)/* create stack frame                       */
 
 	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
@@ -534,6 +716,50 @@ L_asm_patcher_wrapper_exception:
 	move    xptr,itmp3            /* get exception                            */
 	ald     xpc,(7+2+16+22+4)*8(sp) /* xpc is RA                              */
 	aaddiu  sp,sp,(8+2+16+22+4)*8 /* remove stack frame                       */
+
+#else /* SIZEOF_VOID_P == 8 */
+
+	aaddiu  sp,sp,-((5+4+4+8+7)*4) /* create stack frame                      */
+	                              /* +7 keeps the SP 16-bytes aligned         */
+
+	SAVE_RETURN_REGISTERS(5)      /* save 2 int / 2 float return registers    */
+	SAVE_ARGUMENT_REGISTERS(9)    /* save 4 int argument registers            */
+	SAVE_TEMPORARY_REGISTERS(13)  /* save 8 int temporary registers           */
+
+	ast     itmp1,(5+4+4+8+0)*4(sp) /* save itmp1                             */
+	ast     itmp2,(5+4+4+8+1)*4(sp) /* save itmp2                             */
+	ast     ra,(5+4+4+8+2)*4(sp)  /* save method return address (for leafs)   */
+	ast     pv,(5+4+4+8+3)*4(sp)  /* save pv of calling java function         */
+
+	aaddiu  a0,sp,(5+4+4+8+7)*4   /* pass SP of patcher stub                  */
+	move    a1,pv                 /* pass PV                                  */
+	move    a2,ra                 /* pass RA (correct for leafs)              */
+	jal     patcher_wrapper
+	move    itmp3,v0
+
+	RESTORE_RETURN_REGISTERS(5)   /* restore 2 int / 2 float return registers */
+	RESTORE_ARGUMENT_REGISTERS(9) /* restore 4 int argument registers         */
+	RESTORE_TEMPORARY_REGISTERS(13) /* restore 9 int temporary registers      */
+
+	ald     itmp1,(5+4+4+8+0)*4(sp) /* restore itmp1                          */
+	ald     itmp2,(5+4+4+8+1)*4(sp) /* restore itmp2                          */
+	ald     ra,(5+4+4+8+2)*4(sp)  /* restore method return address (for leafs)*/
+	ald     pv,(5+4+4+8+3)*4(sp)  /* restore pv of calling java function      */
+
+	bnez    itmp3,L_asm_wrapper_patcher_exception
+
+	ald     itmp3,7*8+(5+4+4+8+7)*4(sp) /* load RA                            */
+	aaddiu  sp,sp,8*8+(5+4+4+8+7)*4 /* remove stack frame                     */
+
+	jr      itmp3                 /* jump to new patched code                 */
+
+L_asm_wrapper_patcher_exception:
+	move    xptr,itmp3            /* get exception                            */
+	ald     xpc,7*8+(5+4+4+8+7)*4(sp) /* xpc is RA                            */
+	aaddiu  sp,sp,8*8+(5+4+4+8+7)*4 /* remove stack frame                     */
+
+#endif /* SIZEOF_VOID_P == 8 */
+
 	b       asm_handle_exception
 
 	.end	asm_patcher_wrapper
@@ -567,42 +793,44 @@ L_asm_patcher_wrapper_exception:
 
 asm_replacement_out:
     /* create stack frame */
-	daddiu  sp,sp,-REPLACEMENT_STACK_OFFSET
+	aaddiu  sp,sp,-REPLACEMENT_STACK_OFFSET
 
 	/* save registers in execution state */
-	sd      $0 ,( 0*8+offes_intregs)(sp)
-	sd      $1 ,( 1*8+offes_intregs)(sp)
-	sd      $2 ,( 2*8+offes_intregs)(sp)
-	sd      $3 ,( 3*8+offes_intregs)(sp)
-	sd      $4 ,( 4*8+offes_intregs)(sp)
-	sd      $5 ,( 5*8+offes_intregs)(sp)
-	sd      $6 ,( 6*8+offes_intregs)(sp)
-	sd      $7 ,( 7*8+offes_intregs)(sp)
-	sd      $8 ,( 8*8+offes_intregs)(sp)
-	sd      $9 ,( 9*8+offes_intregs)(sp)
-	sd      $10,(10*8+offes_intregs)(sp)
-	sd      $11,(11*8+offes_intregs)(sp)
-	sd      $12,(12*8+offes_intregs)(sp)
-	sd      $13,(13*8+offes_intregs)(sp)
-	sd      $14,(14*8+offes_intregs)(sp)
-	sd      $15,(15*8+offes_intregs)(sp)
-	sd      $16,(16*8+offes_intregs)(sp)
-	sd      $17,(17*8+offes_intregs)(sp)
-	sd      $18,(18*8+offes_intregs)(sp)
-	sd      $19,(19*8+offes_intregs)(sp)
-	sd      $20,(20*8+offes_intregs)(sp)
-	sd      $21,(21*8+offes_intregs)(sp)
-	sd      $22,(22*8+offes_intregs)(sp)
-	sd      $23,(23*8+offes_intregs)(sp)
-	sd      $24,(24*8+offes_intregs)(sp)
-	sd      $25,(25*8+offes_intregs)(sp)
-	sd      $26,(26*8+offes_intregs)(sp)
-	sd      $27,(27*8+offes_intregs)(sp)
-	sd      $28,(28*8+offes_intregs)(sp)
-	sd      $29,(29*8+offes_intregs)(sp)
-	sd      $30,(30*8+offes_intregs)(sp)
-	sd      $31,(31*8+offes_intregs)(sp)
-	
+	ast     $0 ,( 0*8+offes_intregs)(sp)
+	ast     $1 ,( 1*8+offes_intregs)(sp)
+	ast     $2 ,( 2*8+offes_intregs)(sp)
+	ast     $3 ,( 3*8+offes_intregs)(sp)
+	ast     $4 ,( 4*8+offes_intregs)(sp)
+	ast     $5 ,( 5*8+offes_intregs)(sp)
+	ast     $6 ,( 6*8+offes_intregs)(sp)
+	ast     $7 ,( 7*8+offes_intregs)(sp)
+	ast     $8 ,( 8*8+offes_intregs)(sp)
+	ast     $9 ,( 9*8+offes_intregs)(sp)
+	ast     $10,(10*8+offes_intregs)(sp)
+	ast     $11,(11*8+offes_intregs)(sp)
+	ast     $12,(12*8+offes_intregs)(sp)
+	ast     $13,(13*8+offes_intregs)(sp)
+	ast     $14,(14*8+offes_intregs)(sp)
+	ast     $15,(15*8+offes_intregs)(sp)
+	ast     $16,(16*8+offes_intregs)(sp)
+	ast     $17,(17*8+offes_intregs)(sp)
+	ast     $18,(18*8+offes_intregs)(sp)
+	ast     $19,(19*8+offes_intregs)(sp)
+	ast     $20,(20*8+offes_intregs)(sp)
+	ast     $21,(21*8+offes_intregs)(sp)
+	ast     $22,(22*8+offes_intregs)(sp)
+	ast     $23,(23*8+offes_intregs)(sp)
+	ast     $24,(24*8+offes_intregs)(sp)
+	ast     $25,(25*8+offes_intregs)(sp)
+	ast     $26,(26*8+offes_intregs)(sp)
+	ast     $27,(27*8+offes_intregs)(sp)
+	ast     $28,(28*8+offes_intregs)(sp)
+	ast     $29,(29*8+offes_intregs)(sp)
+	ast     $30,(30*8+offes_intregs)(sp)
+	ast     $31,(31*8+offes_intregs)(sp)
+
+#if SIZEOF_VOID_P == 8
+
 	sdc1    $f0 ,( 0*8+offes_fltregs)(sp)
 	sdc1    $f1 ,( 1*8+offes_fltregs)(sp)
 	sdc1    $f2 ,( 2*8+offes_fltregs)(sp)
@@ -635,16 +863,37 @@ asm_replacement_out:
 	sdc1    $f29,(29*8+offes_fltregs)(sp)
 	sdc1    $f30,(30*8+offes_fltregs)(sp)
 	sdc1    $f31,(31*8+offes_fltregs)(sp)
+
+#else /* SIZEOF_VOID_P == 8 */
+
+	sdc1    $f0 ,( 0*8+offes_fltregs)(sp)
+	sdc1    $f2 ,( 2*8+offes_fltregs)(sp)
+	sdc1    $f4 ,( 4*8+offes_fltregs)(sp)
+	sdc1    $f6 ,( 6*8+offes_fltregs)(sp)
+	sdc1    $f8 ,( 8*8+offes_fltregs)(sp)
+	sdc1    $f10,(10*8+offes_fltregs)(sp)
+	sdc1    $f12,(12*8+offes_fltregs)(sp)
+	sdc1    $f14,(14*8+offes_fltregs)(sp)
+	sdc1    $f16,(16*8+offes_fltregs)(sp)
+	sdc1    $f18,(18*8+offes_fltregs)(sp)
+	sdc1    $f20,(20*8+offes_fltregs)(sp)
+	sdc1    $f22,(22*8+offes_fltregs)(sp)
+	sdc1    $f24,(24*8+offes_fltregs)(sp)
+	sdc1    $f26,(26*8+offes_fltregs)(sp)
+	sdc1    $f28,(28*8+offes_fltregs)(sp)
+	sdc1    $f30,(30*8+offes_fltregs)(sp)
+
+#endif /* SIZEOF_VOID_P == 8 */
 	
 	/* calculate sp of method */
-	daddiu  itmp1,sp,(REPLACEMENT_STACK_OFFSET + 2*8)
-	sd      itmp1,(offes_sp)(sp)
+	aaddiu  itmp1,sp,(REPLACEMENT_STACK_OFFSET + 2*8)
+	ast     itmp1,(offes_sp)(sp)
 
 	/* store pv */
-	sd      pv,(offes_pv)(sp)
+	ast     pv,(offes_pv)(sp)
 
 	/* call replace_me */
-	ld      a0,-(2*8)(itmp1)            /* arg0: rplpoint *                   */
+	ald     a0,-(2*8)(itmp1)            /* arg0: rplpoint *                   */
     move    a1,sp                       /* arg1: execution state              */
     jal     replace_me                  /* call C function replace_me         */
 	jal     abort                       /* NEVER REACHED                      */
@@ -671,43 +920,45 @@ asm_replacement_in:
 	/* a0 == executionstate *es */
 
 	/* set new sp and pv */
-	ld      sp,(offes_sp)(a0)
-	ld      pv,(offes_pv)(a0)
+	ald     sp,(offes_sp)(a0)
+	ald     pv,(offes_pv)(a0)
 	
 	/* copy registers from execution state */
 	/* $0 is zero                     */
-	ld      $1 ,( 1*8+offes_intregs)(a0)
-	ld      $2 ,( 2*8+offes_intregs)(a0)
-	ld      $3 ,( 2*8+offes_intregs)(a0)
+	ald     $1 ,( 1*8+offes_intregs)(a0)
+	ald     $2 ,( 2*8+offes_intregs)(a0)
+	ald     $3 ,( 2*8+offes_intregs)(a0)
 	/* a0 is loaded below             */
-	ld      $5 ,( 5*8+offes_intregs)(a0)
-	ld      $6 ,( 6*8+offes_intregs)(a0)
-	ld      $7 ,( 7*8+offes_intregs)(a0)
-	ld      $8 ,( 8*8+offes_intregs)(a0)
-	ld      $9 ,( 9*8+offes_intregs)(a0)
-	ld      $10,(10*8+offes_intregs)(a0)
-	ld      $11,(11*8+offes_intregs)(a0)
-	ld      $12,(12*8+offes_intregs)(a0)
-	ld      $13,(13*8+offes_intregs)(a0)
-	ld      $14,(14*8+offes_intregs)(a0)
-	ld      $15,(15*8+offes_intregs)(a0)
-	ld      $16,(16*8+offes_intregs)(a0)
-	ld      $17,(17*8+offes_intregs)(a0)
-	ld      $18,(18*8+offes_intregs)(a0)
-	ld      $19,(19*8+offes_intregs)(a0)
-	ld      $20,(20*8+offes_intregs)(a0)
-	ld      $21,(21*8+offes_intregs)(a0)
-	ld      $22,(22*8+offes_intregs)(a0)
-	ld      $23,(23*8+offes_intregs)(a0)
-	ld      $24,(24*8+offes_intregs)(a0)
-	ld      $25,(25*8+offes_intregs)(a0)
-	ld      $26,(26*8+offes_intregs)(a0)
-	ld      $27,(27*8+offes_intregs)(a0)
-	ld      $28,(28*8+offes_intregs)(a0)
+	ald     $5 ,( 5*8+offes_intregs)(a0)
+	ald     $6 ,( 6*8+offes_intregs)(a0)
+	ald     $7 ,( 7*8+offes_intregs)(a0)
+	ald     $8 ,( 8*8+offes_intregs)(a0)
+	ald     $9 ,( 9*8+offes_intregs)(a0)
+	ald     $10,(10*8+offes_intregs)(a0)
+	ald     $11,(11*8+offes_intregs)(a0)
+	ald     $12,(12*8+offes_intregs)(a0)
+	ald     $13,(13*8+offes_intregs)(a0)
+	ald     $14,(14*8+offes_intregs)(a0)
+	ald     $15,(15*8+offes_intregs)(a0)
+	ald     $16,(16*8+offes_intregs)(a0)
+	ald     $17,(17*8+offes_intregs)(a0)
+	ald     $18,(18*8+offes_intregs)(a0)
+	ald     $19,(19*8+offes_intregs)(a0)
+	ald     $20,(20*8+offes_intregs)(a0)
+	ald     $21,(21*8+offes_intregs)(a0)
+	ald     $22,(22*8+offes_intregs)(a0)
+	ald     $23,(23*8+offes_intregs)(a0)
+	ald     $24,(24*8+offes_intregs)(a0)
+	ald     $25,(25*8+offes_intregs)(a0)
+	ald     $26,(26*8+offes_intregs)(a0)
+	ald     $27,(27*8+offes_intregs)(a0)
+	ald     $28,(28*8+offes_intregs)(a0)
 	/* $29 is sp                      */
 	/* $30 is pv                      */
-	ld      $31,(31*8+offes_intregs)(a0)
+	ald     $31,(31*8+offes_intregs)(a0)
 	
+#if SIZEOF_VOID_P == 8
+
 	ldc1    $f0 ,( 0*8+offes_fltregs)(a0)
 	ldc1    $f1 ,( 1*8+offes_fltregs)(a0)
 	ldc1    $f2 ,( 2*8+offes_fltregs)(a0)
@@ -741,13 +992,34 @@ asm_replacement_in:
 	ldc1    $f30,(30*8+offes_fltregs)(a0)
 	ldc1    $f31,(31*8+offes_fltregs)(a0)
 
+#else /* SIZEOF_VOID_P == 8 */
+
+	ldc1    $f0 ,( 0*8+offes_fltregs)(a0)
+	ldc1    $f2 ,( 2*8+offes_fltregs)(a0)
+	ldc1    $f4 ,( 4*8+offes_fltregs)(a0)
+	ldc1    $f6 ,( 6*8+offes_fltregs)(a0)
+	ldc1    $f8 ,( 8*8+offes_fltregs)(a0)
+	ldc1    $f10,(10*8+offes_fltregs)(a0)
+	ldc1    $f12,(12*8+offes_fltregs)(a0)
+	ldc1    $f14,(14*8+offes_fltregs)(a0)
+	ldc1    $f16,(16*8+offes_fltregs)(a0)
+	ldc1    $f18,(18*8+offes_fltregs)(a0)
+	ldc1    $f20,(20*8+offes_fltregs)(a0)
+	ldc1    $f22,(22*8+offes_fltregs)(a0)
+	ldc1    $f24,(24*8+offes_fltregs)(a0)
+	ldc1    $f26,(26*8+offes_fltregs)(a0)
+	ldc1    $f28,(28*8+offes_fltregs)(a0)
+	ldc1    $f30,(30*8+offes_fltregs)(a0)
+
+#endif /* SIZEOF_VOID_P == 8 */
+
 	/* load new pc */
 
-	ld      itmp3,offes_pc(a0)
+	ald     itmp3,offes_pc(a0)
 
 	/* load a0 */
 	
-	ld      a0,(4*8+offes_intregs)(a0)
+	ald     a0,(4*8+offes_intregs)(a0)
 
 	/* jump to new code */
 

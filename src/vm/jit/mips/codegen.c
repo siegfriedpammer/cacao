@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: codegen.c 7206 2007-01-11 22:39:52Z twisti $
 
 */
 
@@ -138,8 +138,14 @@ bool codegen(jitdata *jd)
 #if defined(ENABLE_THREADS)
 	/* space to save argument of monitor_enter */
 
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+# if SIZEOF_VOID_P == 8
 		cd->stackframesize++;
+# else
+		rd->memuse++;
+		cd->stackframesize += 2;
+# endif
+	}
 #endif
 
 	/* keep stack 16-byte aligned */
@@ -219,16 +225,40 @@ bool codegen(jitdata *jd)
 		s1 = md->params[p].regoff;
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
  			if (!md->params[p].inmemory) {           /* register arguments    */
+#if SIZEOF_VOID_P == 8
 				s2 = rd->argintregs[s1];
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
  					M_INTMOVE(s2, var->vv.regoff);
  				} else {                             /* reg arg -> spilled    */
  					M_LST(s2, REG_SP, var->vv.regoff * 8);
  				}
-
+#else
+				if (IS_2_WORD_TYPE(t)) {
+					s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
+								   rd->argintregs[GET_HIGH_REG(s1)]);
+					if (!(var->flags & INMEMORY))    /* reg arg -> register   */
+						M_LNGMOVE(s2, var->vv.regoff);
+					else                             /* reg arg -> spilled    */
+						M_LST(s2, REG_SP, var->vv.regoff * 8);
+				}
+				else {
+					s2 = rd->argintregs[s1];
+					if (!(var->flags & INMEMORY))    /* reg arg -> register   */
+						M_INTMOVE(s2, var->vv.regoff);
+					else                             /* reg arg -> spilled    */
+						M_IST(s2, REG_SP, var->vv.regoff * 8);
+				}
+#endif
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
+#if SIZEOF_VOID_P == 8
  					M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+#else
+					if (IS_2_WORD_TYPE(t))
+						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+					else
+						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+#endif
  				} else {                             /* stack arg -> spilled  */
 					var->vv.regoff = cd->stackframesize + s1;
 				}
@@ -236,6 +266,7 @@ bool codegen(jitdata *jd)
 
  		} else {                                     /* floating args         */
  			if (!md->params[p].inmemory) {           /* register arguments    */
+#if SIZEOF_VOID_P == 8
 				s2 = rd->argfltregs[s1];
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
 					if (IS_2_WORD_TYPE(t))
@@ -248,6 +279,46 @@ bool codegen(jitdata *jd)
 					else
 						M_FST(s2, REG_SP, var->vv.regoff * 8);
  				}
+#else
+				if ((p == 0) ||
+					((p == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type))) {
+					s2 = rd->argfltregs[s1];
+					if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
+						if (IS_2_WORD_TYPE(t))
+							M_DBLMOVE(s2, var->vv.regoff);
+						else
+							M_FLTMOVE(s2, var->vv.regoff);
+					}
+					else {			                 /* reg arg -> spilled    */
+						if (IS_2_WORD_TYPE(t))
+							M_DST(s2, REG_SP, var->vv.regoff * 8);
+						else
+							M_FST(s2, REG_SP, var->vv.regoff * 8);
+					}
+				}
+				else {
+					if (IS_2_WORD_TYPE(t)) {
+						s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
+									   rd->argintregs[GET_HIGH_REG(s1)]);
+						if (!(var->flags & INMEMORY)) {
+							M_MTC1(GET_LOW_REG(s2), var->vv.regoff);
+							M_MTC1(GET_HIGH_REG(s2), var->vv.regoff + 1);
+							M_NOP;
+						}
+						else
+							M_LST(s2, REG_SP, var->vv.regoff * 8);
+					}
+					else {
+						s2 = rd->argintregs[s1];
+						if (!(var->flags & INMEMORY)) {
+							M_MTC1(s2, var->vv.regoff);
+							M_NOP;
+						}
+						else
+							M_IST(s2, REG_SP, var->vv.regoff * 8);
+					}
+				}
+#endif
 
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
@@ -274,7 +345,7 @@ bool codegen(jitdata *jd)
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 			for (p = 0; p < INT_ARG_CNT; p++)
-				M_LST(rd->argintregs[p], REG_SP, p * 8);
+				M_AST(rd->argintregs[p], REG_SP, p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
 				M_DST(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
@@ -310,7 +381,7 @@ bool codegen(jitdata *jd)
 # if !defined(NDEBUG)
 		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
-				M_LLD(rd->argintregs[p], REG_SP, p * 8);
+				M_ALD(rd->argintregs[p], REG_SP, p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
 				M_DLD(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
@@ -321,13 +392,12 @@ bool codegen(jitdata *jd)
 # endif
 	}
 #endif
+	}
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		emit_verbosecall_enter(jd);
 #endif
-
-	}
 
 	/* end of header generation */
 
@@ -391,7 +461,7 @@ bool codegen(jitdata *jd)
 		/* walk through all instructions */
 		
 		len = bptr->icount;
-		currentline = 0;
+/* 		currentline = 0; */
 
 		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
 			if (iptr->line != currentline) {
@@ -443,7 +513,11 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 
+#if SIZEOF_VOID_P == 8
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+#endif
 			LCONST(d, iptr->sx.val.l);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -523,25 +597,46 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_LSUB(REG_ZERO, s1, d);
+#else
+			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_ISUB(REG_ZERO, GET_LOW_REG(s1), GET_LOW_REG(d));
+			M_ISUB(REG_ZERO, GET_HIGH_REG(s1), GET_HIGH_REG(d));
+			M_CMPULT(REG_ZERO, GET_LOW_REG(d), REG_ITMP3);
+			M_ISUB(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+#if SIZEOF_VOID_P == 8
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_INTMOVE(s1, d);
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_INTMOVE(s1, GET_LOW_REG(d));
+			M_ISRA_IMM(GET_LOW_REG(d), 31, GET_HIGH_REG(d));
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_ISLL_IMM(s1, 0, d );
+			M_ISLL_IMM(s1, 0, d);
+#else
+			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_INTMOVE(GET_LOW_REG(s1), d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -549,8 +644,13 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+#if SIZEOF_VOID_P == 8
 			M_LSLL_IMM(s1, 56, d);
 			M_LSRA_IMM( d, 56, d);
+#else
+			M_ISLL_IMM(s1, 24, d);
+			M_ISRA_IMM( d, 24, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -558,7 +658,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-            M_CZEXT(s1, d);
+			M_AND_IMM(s1, 0xffff, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -566,8 +666,13 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+#if SIZEOF_VOID_P == 8
 			M_LSLL_IMM(s1, 48, d);
 			M_LSRA_IMM( d, 48, d);
+#else
+			M_ISLL_IMM(s1, 16, d);
+			M_ISRA_IMM( d, 16, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -598,16 +703,33 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_LADD(s1, s2, d);
+#else
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_IADD(s1, s2, GET_HIGH_REG(d));
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+			s2 = emit_load_s2_low(jd, iptr, GET_LOW_REG(REG_ITMP12_PACKED));
+			if (s1 == GET_LOW_REG(d)) {
+				M_MOV(s1, REG_ITMP3);
+				s1 = REG_ITMP3;
+			}
+			M_IADD(s1, s2, GET_LOW_REG(d));
+			M_CMPULT(GET_LOW_REG(d), s1, REG_ITMP3);
+			M_IADD(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* sx.val.l = constant                          */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767))
@@ -616,6 +738,33 @@ bool codegen(jitdata *jd)
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_LADD(s1, REG_ITMP2, d);
 			}
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 32767)) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_IADD_IMM(GET_LOW_REG(s1), iptr->sx.val.l, GET_LOW_REG(d));
+				M_CMPULT_IMM(GET_LOW_REG(d), iptr->sx.val.l, REG_ITMP3);
+				M_IADD(GET_HIGH_REG(s1), REG_ITMP3, GET_HIGH_REG(d));
+			}
+			else if ((iptr->sx.val.l >= (-32768 + 1)) && (iptr->sx.val.l < 0)) {
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+				M_ISUB_IMM(s1, -(iptr->sx.val.l), GET_LOW_REG(d));
+				M_CMPULT_IMM(GET_LOW_REG(d), iptr->sx.val.l, REG_ITMP3);
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+				M_ISUB_IMM(s1, 1, GET_HIGH_REG(d));
+				M_IADD(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
+			}
+			else {
+				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_IADD(s1, REG_ITMP2, GET_LOW_REG(d));
+				M_CMPULT(GET_LOW_REG(d), s1, REG_ITMP3);
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+				M_IADD(s1, REG_ITMP3, GET_HIGH_REG(d));
+				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_IADD(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
+			}
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -644,16 +793,34 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_LSUB(s1, s2, d);
+#else
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_ISUB(s1, s2, GET_HIGH_REG(d));
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP1);
+			M_CMPULT(s1, s2, REG_ITMP3);
+			M_ISUB(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
+			/* if s1 is equal to REG_ITMP3 we have to reload it, since
+			   the CMPULT instruction destroyed it */
+			if (s1 == REG_ITMP3)
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+			M_ISUB(s1, s2, GET_LOW_REG(d));
+
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
 		                      /* sx.val.l = constant                          */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.l >= -32767) && (iptr->sx.val.l <= 32768))
@@ -662,6 +829,33 @@ bool codegen(jitdata *jd)
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_LSUB(s1, REG_ITMP2, d);
 			}
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 32768)) {
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+				M_ISUB_IMM(s1, iptr->sx.val.l, GET_LOW_REG(d));
+				M_CMPULT_IMM(GET_LOW_REG(d), -(iptr->sx.val.l), REG_ITMP3);
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+				M_ISUB_IMM(s1, 1, GET_HIGH_REG(d));
+				M_IADD(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
+			}
+			else if ((iptr->sx.val.l >= -32767) && (iptr->sx.val.l < 0)) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_IADD_IMM(GET_LOW_REG(s1), -(iptr->sx.val.l), GET_LOW_REG(d));
+				M_CMPULT_IMM(GET_LOW_REG(d), -(iptr->sx.val.l), REG_ITMP3);
+				M_IADD(GET_HIGH_REG(s1), REG_ITMP3, GET_HIGH_REG(d));
+			}
+			else {
+				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_ISUB(s1, REG_ITMP2, GET_LOW_REG(d));
+				M_CMPULT(s1, REG_ITMP2, REG_ITMP3);
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+				M_ISUB(s1, REG_ITMP3, GET_HIGH_REG(d));
+				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_ISUB(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
+			}
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -692,6 +886,7 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -699,6 +894,28 @@ bool codegen(jitdata *jd)
 			M_MFLO(d);
 			M_NOP;
 			M_NOP;
+#else
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_IMUL(s2, s1);
+			M_MFLO(REG_ITMP3);
+			M_NOP;
+			M_NOP;
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_IMULU(s2, s1);
+			M_MFHI(GET_HIGH_REG(d));
+			M_MFLO(GET_LOW_REG(d));
+			M_NOP;
+			M_NOP;
+			M_IADD(GET_HIGH_REG(d), REG_ITMP3, REG_ITMP3);
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_IMUL(s1, s2);
+			M_MFLO(s2);
+			/* XXX do we need nops here? */
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -728,19 +945,6 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_arithmetic_check(cd, iptr, s2);
-			M_LDIV(s1, s2);
-			M_MFLO(d);
-			M_NOP;
-			M_NOP;
-			emit_store_dst(jd, iptr, d);
-			break;
-
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -749,6 +953,21 @@ bool codegen(jitdata *jd)
 			emit_arithmetic_check(cd, iptr, s2);
 			M_IDIV(s1, s2);
 			M_MFHI(d);
+			M_NOP;
+			M_NOP;
+			emit_store_dst(jd, iptr, d);
+			break;
+
+#if SIZEOF_VOID_P == 8
+
+		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			emit_arithmetic_check(cd, iptr, s2);
+			M_LDIV(s1, s2);
+			M_MFLO(d);
 			M_NOP;
 			M_NOP;
 			emit_store_dst(jd, iptr, d);
@@ -767,20 +986,60 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+#else /* SIZEOF_VOID_P == 8 */
+
+		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
+		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
+
+			bte = iptr->sx.s23.s3.bte;
+			md  = bte->md;
+
+			s2 = emit_load_s2(jd, iptr, REG_ITMP12_PACKED);
+			M_OR(GET_HIGH_REG(s2), GET_LOW_REG(s2), REG_ITMP3);
+			emit_arithmetic_check(cd, iptr, REG_ITMP3);
+
+			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[1].regoff)],
+						   rd->argintregs[GET_HIGH_REG(md->params[1].regoff)]);
+			M_LNGMOVE(s2, s3);
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[0].regoff)],
+						   rd->argintregs[GET_HIGH_REG(md->params[0].regoff)]);
+			M_LNGMOVE(s1, s3);
+
+			disp = dseg_add_functionptr(cd, bte->fp);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JSR(REG_RA, REG_ITMP3);
+			M_NOP;
+
+			d = codegen_reg_of_dst(jd, iptr, REG_RESULT_PACKED);
+			M_LNGMOVE(REG_RESULT_PACKED, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+#endif /* SIZEOF_VOID_P == 8 */
+
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value << constant       */
-		case ICMD_LDIVPOW2:   /* val.i = constant                             */
+		                      /* val.i = constant                             */
 		                      
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+#if SIZEOF_VOID_P == 8
 			M_LSRA_IMM(s1, 63, REG_ITMP2);
 			M_LSRL_IMM(REG_ITMP2, 64 - iptr->sx.val.i, REG_ITMP2);
 			M_LADD(s1, REG_ITMP2, REG_ITMP2);
 			M_LSRA_IMM(REG_ITMP2, iptr->sx.val.i, d);
+#else
+			M_ISRA_IMM(s1, 31, REG_ITMP2);
+			M_ISRL_IMM(REG_ITMP2, 32 - iptr->sx.val.i, REG_ITMP2);
+			M_IADD(s1, REG_ITMP2, REG_ITMP2);
+			M_ISRA_IMM(REG_ITMP2, iptr->sx.val.i, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
-		                      /* sx.val.i = constant                          */
+		                      /* val.i = constant                             */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -807,8 +1066,22 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+#if SIZEOF_VOID_P == 8
+
+		case ICMD_LDIVPOW2:   /* ..., value  ==> ..., value << constant       */
+		                      /* val.i = constant                             */
+		                      
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_LSRA_IMM(s1, 63, REG_ITMP2);
+			M_LSRL_IMM(REG_ITMP2, 64 - iptr->sx.val.i, REG_ITMP2);
+			M_LADD(s1, REG_ITMP2, REG_ITMP2);
+			M_LSRA_IMM(REG_ITMP2, iptr->sx.val.i, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
-		                      /* sx.val.l = constant                          */
+		                      /* val.l = constant                             */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -834,6 +1107,8 @@ bool codegen(jitdata *jd)
 			M_LSUB(REG_ZERO, d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
+
+#endif /* SIZEOF_VOID_P == 8 */
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
@@ -891,12 +1166,42 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_LSLL(s1, s2, d);
+#else
+			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP3);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+
+			M_ISLL(s2, 26, REG_ITMP1);
+			M_BGEZ(REG_ITMP1, 3);
+			M_NOP;
+
+			M_ISLL(GET_LOW_REG(s1), s2, GET_HIGH_REG(d));
+			M_BR(7);
+			M_MOV(REG_ZERO, GET_LOW_REG(d));                    /* delay slot */
+
+#if 1
+			M_ISLL(GET_LOW_REG(s1), s2, GET_LOW_REG(d));
+#endif
+			M_BEQZ(REG_ITMP1, 4);
+			M_ISLL(GET_HIGH_REG(s1), s2, GET_HIGH_REG(d));      /* delay slot */
+
+			M_ISUB(s2, REG_ZERO, REG_ITMP3);
+			M_ISRL(GET_LOW_REG(s1), REG_ITMP3, REG_ITMP3);
+			M_OR(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
+
+#if 0
+			M_ISLL(GET_LOW_REG(s1), s2, GET_LOW_REG(d));
+#endif
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
+
+#if SIZEOF_VOID_P == 8
 
 		case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
 		                      /* sx.val.i = constant                             */
@@ -943,8 +1248,9 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+#endif /* SIZEOF_VOID_P == 8 */
+
 		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
-		case ICMD_LAND:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -958,18 +1264,38 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 0xffff)) {
+			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 0xffff))
 				M_AND_IMM(s1, iptr->sx.val.i, d);
-			} else {
+			else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_AND(s1, REG_ITMP2, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
+
+#if SIZEOF_VOID_P == 8
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
+			M_AND(s1, s2, d);
+#else
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP3);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_AND(s1, s2, GET_LOW_REG(d));
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
+			M_AND(s1, s2, GET_HIGH_REG(d));
+#endif
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* sx.val.l = constant                          */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff))
@@ -978,16 +1304,30 @@ bool codegen(jitdata *jd)
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_AND(s1, REG_ITMP2, d);
 			}
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff)) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_AND_IMM(GET_LOW_REG(s1), iptr->sx.val.l, GET_LOW_REG(d));
+				M_AND_IMM(GET_HIGH_REG(s1), 0, GET_HIGH_REG(d));
+			}
+			else {
+				LCONST(REG_ITMP12_PACKED, iptr->sx.val.l);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_AND(s1, GET_LOW_REG(REG_ITMP12_PACKED), GET_LOW_REG(d));
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP3);
+				M_AND(s1, GET_HIGH_REG(REG_ITMP12_PACKED), GET_HIGH_REG(d));
+			}
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
-		case ICMD_LOR:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_OR(s1,s2, d);
+			M_OR(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1005,9 +1345,29 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_LOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
+
+#if SIZEOF_VOID_P == 8
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_OR(s1, s2, d);
+#else
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP3);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_OR(s1, s2, GET_LOW_REG(d));
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
+			M_OR(s1, s2, GET_HIGH_REG(d));
+#endif
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* sx.val.l = constant                          */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff))
@@ -1016,11 +1376,25 @@ bool codegen(jitdata *jd)
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_OR(s1, REG_ITMP2, d);
 			}
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff)) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_OR_IMM(GET_LOW_REG(s1), iptr->sx.val.l, GET_LOW_REG(d));
+				M_OR_IMM(GET_HIGH_REG(s1), 0, GET_HIGH_REG(d));
+			}
+			else {
+				LCONST(REG_ITMP12_PACKED, iptr->sx.val.l);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_OR(s1, GET_LOW_REG(REG_ITMP12_PACKED), GET_LOW_REG(d));
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP3);
+				M_OR(s1, GET_HIGH_REG(REG_ITMP12_PACKED), GET_HIGH_REG(d));
+			}
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
-		case ICMD_LXOR:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -1043,9 +1417,29 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
+
+#if SIZEOF_VOID_P == 8
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_XOR(s1, s2, d);
+#else
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP3);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_XOR(s1, s2, GET_LOW_REG(d));
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
+			M_XOR(s1, s2, GET_HIGH_REG(d));
+#endif
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* sx.val.l = constant                          */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff))
@@ -1054,18 +1448,49 @@ bool codegen(jitdata *jd)
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_XOR(s1, REG_ITMP2, d);
 			}
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff)) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_XOR_IMM(GET_LOW_REG(s1), iptr->sx.val.l, GET_LOW_REG(d));
+				M_XOR_IMM(GET_HIGH_REG(s1), 0, GET_HIGH_REG(d));
+			}
+			else {
+				LCONST(REG_ITMP12_PACKED, iptr->sx.val.l);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_XOR(s1, GET_LOW_REG(REG_ITMP12_PACKED), GET_LOW_REG(d));
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP3);
+				M_XOR(s1, GET_HIGH_REG(REG_ITMP12_PACKED), GET_HIGH_REG(d));
+			}
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 
 		case ICMD_LCMP:       /* ..., val1, val2  ==> ..., val1 cmp val2      */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP3);
 			M_CMPLT(s2, s1, REG_ITMP1);
 			M_LSUB(REG_ITMP1, REG_ITMP3, d);
+#else
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_CMPLT(s1, s2, REG_ITMP3);
+			M_CMPLT(s2, s1, REG_ITMP1);
+			M_ISUB(REG_ITMP1, REG_ITMP3, d);
+			M_BNEZ(d, 4);
+			M_NOP;
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_CMPULT(s1, s2, REG_ITMP3);
+			M_CMPULT(s2, s1, REG_ITMP1);
+			M_ISUB(REG_ITMP1, REG_ITMP3, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1273,11 +1698,11 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_FCMPULEF(s1, s2);
 			M_FBT(3);
-			M_LADD_IMM(REG_ZERO, 1, d);
+			M_AADD_IMM(REG_ZERO, 1, d);
 			M_BR(4);
 			M_NOP;
 			M_FCMPEQF(s1, s2);
-			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_ASUB_IMM(REG_ZERO, 1, d);
 			M_CMOVT(REG_ZERO, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1289,11 +1714,11 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_FCMPULED(s1, s2);
 			M_FBT(3);
-			M_LADD_IMM(REG_ZERO, 1, d);
+			M_AADD_IMM(REG_ZERO, 1, d);
 			M_BR(4);
 			M_NOP;
 			M_FCMPEQD(s1, s2);
-			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_ASUB_IMM(REG_ZERO, 1, d);
 			M_CMOVT(REG_ZERO, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1305,11 +1730,11 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_FCMPOLTF(s1, s2);
 			M_FBF(3);
-			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_ASUB_IMM(REG_ZERO, 1, d);
 			M_BR(4);
 			M_NOP;
 			M_FCMPEQF(s1, s2);
-			M_LADD_IMM(REG_ZERO, 1, d);
+			M_AADD_IMM(REG_ZERO, 1, d);
 			M_CMOVT(REG_ZERO, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1321,11 +1746,11 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_FCMPOLTD(s1, s2);
 			M_FBF(3);
-			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_ASUB_IMM(REG_ZERO, 1, d);
 			M_BR(4);
 			M_NOP;
 			M_FCMPEQD(s1, s2);
-			M_LADD_IMM(REG_ZERO, 1, d);
+			M_AADD_IMM(REG_ZERO, 1, d);
 			M_CMOVT(REG_ZERO, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1393,7 +1818,11 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+#if SIZEOF_VOID_P == 8
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+#endif
 			emit_array_checks(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 3, REG_ITMP3);
 			M_AADD(REG_ITMP3, s1, REG_ITMP3);
@@ -1478,7 +1907,11 @@ bool codegen(jitdata *jd)
 			emit_array_checks(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+#if SIZEOF_VOID_P == 8
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+#else
+			s3 = emit_load_s3(jd, iptr, REG_ITMP23_PACKED);
+#endif
 			M_LST_INTERN(s3, REG_ITMP1, OFFSET(java_longarray, data[0]));
 			break;
 
@@ -1570,7 +2003,11 @@ bool codegen(jitdata *jd)
 			emit_array_checks(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+#if SIZEOF_VOID_P == 8
 			M_LST_INTERN(REG_ZERO, REG_ITMP1, OFFSET(java_longarray, data[0]));
+#else
+			M_LST_INTERN(PACK_REGS(REG_ZERO, REG_ZERO), REG_ITMP1, OFFSET(java_longarray, data[0]));
+#endif
 			break;
 
 		case ICMD_AASTORECONST:   /* ..., arrayref, index  ==> ...            */
@@ -1610,7 +2047,11 @@ bool codegen(jitdata *jd)
 				M_ILD_INTERN(d, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
+#if SIZEOF_VOID_P == 8
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+#else
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP23_PACKED);
+#endif
 				M_LLD_INTERN(d, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
@@ -1655,7 +2096,11 @@ bool codegen(jitdata *jd)
 				M_IST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
+#if SIZEOF_VOID_P == 8
 				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+#else
+				s1 = emit_load_s1(jd, iptr, REG_ITMP23_PACKED);
+#endif
 				M_LST_INTERN(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
@@ -1739,8 +2184,13 @@ bool codegen(jitdata *jd)
 				M_ILD(d, s1, disp);
 				break;
 			case TYPE_LNG:
+#if SIZEOF_VOID_P == 8
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 				M_LLD(d, s1, disp);
+#else
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP23_PACKED);
+				M_LLD_GETFIELD(d, s1, disp);
+#endif
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1774,10 +2224,21 @@ bool codegen(jitdata *jd)
 				disp      = fi->offset;
 			}
 
+#if SIZEOF_VOID_P == 8
 			if (IS_INT_LNG_TYPE(fieldtype))
 				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			else
 				s2 = emit_load_s2(jd, iptr, REG_FTMP1);
+#else
+			if (IS_INT_LNG_TYPE(fieldtype)) {
+				if (IS_2_WORD_TYPE(fieldtype))
+					s2 = emit_load_s2(jd, iptr, REG_ITMP23_PACKED);
+				else
+					s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			}
+			else
+				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+#endif
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr))
 				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
@@ -1933,18 +2394,16 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.i == 0) {
 				M_BLEZ(s1, 0);
-				}
-			else {
+			} else {
 				if ((iptr->sx.val.i >= -32769) && (iptr->sx.val.i <= 32766)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.i + 1, REG_ITMP1);
 					M_BNEZ(REG_ITMP1, 0);
-					}
-				else {
+				} else {
 					ICONST(REG_ITMP2, iptr->sx.val.i);
 					M_CMPGT(s1, REG_ITMP2, REG_ITMP1);
 					M_BEQZ(REG_ITMP1, 0);
-					}
 				}
+			}
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
@@ -1954,11 +2413,10 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.i == 0) {
 				M_BNEZ(s1, 0);
-				}
-			else {
+			} else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_BNE(s1, REG_ITMP2, 0);
-				}
+			}
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
@@ -1968,18 +2426,16 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.i == 0) {
 				M_BGTZ(s1, 0);
-				}
-			else {
+			} else {
 				if ((iptr->sx.val.i >= -32769) && (iptr->sx.val.i <= 32766)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.i + 1, REG_ITMP1);
 					M_BEQZ(REG_ITMP1, 0);
-					}
-				else {
+				} else {
 					ICONST(REG_ITMP2, iptr->sx.val.i);
 					M_CMPGT(s1, REG_ITMP2, REG_ITMP1);
 					M_BNEZ(REG_ITMP1, 0);
-					}
 				}
+			}
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
@@ -1989,134 +2445,256 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.i == 0) {
 				M_BGEZ(s1, 0);
-				}
-			else {
+			} else {
 				if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.i, REG_ITMP1);
-					}
-				else {
+				} else {
 					ICONST(REG_ITMP2, iptr->sx.val.i);
 					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
-					}
-				M_BEQZ(REG_ITMP1, 0);
 				}
+				M_BEQZ(REG_ITMP1, 0);
+			}
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0) {
 				M_BEQZ(s1, 0);
-				}
-			else {
+			} else {
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_BEQ(s1, REG_ITMP2, 0);
-				}
+			}
+#else
+			if (iptr->sx.val.l == 0) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_OR(GET_LOW_REG(s1), GET_HIGH_REG(s1), REG_ITMP3);
+				M_BEQZ(REG_ITMP3, 0);
+			}
+			else {
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
+				M_XOR(s1, REG_ITMP2, REG_ITMP2);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_XOR(s1, REG_ITMP3, REG_ITMP3);
+				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP3);
+				M_BEQZ(REG_ITMP3, 0);
+			}
+#endif
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0) {
 				M_BLTZ(s1, 0);
-				}
-			else {
+			} else {
 				if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.l, REG_ITMP1);
-					}
-				else {
+				} else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
-					}
-				M_BNEZ(REG_ITMP1, 0);
 				}
+				M_BNEZ(REG_ITMP1, 0);
+			}
+#else
+			if (iptr->sx.val.l == 0) {
+				/* if high word is less than zero, the whole long is too */
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				M_BLTZ(s1, 0);
+			}
+			else {
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
+				M_CMPLT(s1, REG_ITMP2, REG_ITMP3);
+				M_BNEZ(REG_ITMP3, 0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+				M_NOP;
+				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_BNE(s1, REG_ITMP2, 5);
+				M_NOP;
+				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
+				M_CMPULT(s2, REG_ITMP2, REG_ITMP3);
+				M_BNEZ(REG_ITMP3, 0);
+			}
+#endif
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0) {
 				M_BLEZ(s1, 0);
-				}
-			else {
+			} else {
 				if ((iptr->sx.val.l >= -32769) && (iptr->sx.val.l <= 32766)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.l + 1, REG_ITMP1);
 					M_BNEZ(REG_ITMP1, 0);
-					}
-				else {
+				} else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPGT(s1, REG_ITMP2, REG_ITMP1);
 					M_BEQZ(REG_ITMP1, 0);
-					}
 				}
+			}
+#else
+			if (iptr->sx.val.l == 0) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_BGTZ(GET_HIGH_REG(s1), 5);
+				M_NOP;
+				M_BLTZ(GET_HIGH_REG(s1), 0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+				M_NOP;
+				M_BEQZ(GET_LOW_REG(s1), 0);
+			}
+			else {
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
+				M_CMPLT(s1, REG_ITMP2, REG_ITMP3);
+				M_BNEZ(REG_ITMP3, 0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+				M_NOP;
+				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_BNE(s1, REG_ITMP2, 5);
+				M_NOP;
+				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
+				M_CMPUGT(s2, REG_ITMP2, REG_ITMP3);
+				M_BEQZ(REG_ITMP3, 0);
+			}
+#endif
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0) {
 				M_BNEZ(s1, 0);
-				}
-			else {
+			} else {
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_BNE(s1, REG_ITMP2, 0);
-				}
+			}
+#else
+			if (iptr->sx.val.l == 0) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_OR(GET_LOW_REG(s1), GET_HIGH_REG(s1), REG_ITMP3);
+				M_BNEZ(REG_ITMP3, 0);
+			}
+			else {
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
+				M_XOR(s1, REG_ITMP2, REG_ITMP2);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_XOR(s1, REG_ITMP3, REG_ITMP3);
+				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP3);
+				M_BNEZ(REG_ITMP3, 0);
+			}
+#endif
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0) {
 				M_BGTZ(s1, 0);
-				}
-			else {
+			} else {
 				if ((iptr->sx.val.l >= -32769) && (iptr->sx.val.l <= 32766)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.l + 1, REG_ITMP1);
 					M_BEQZ(REG_ITMP1, 0);
-					}
-				else {
+				} else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPGT(s1, REG_ITMP2, REG_ITMP1);
 					M_BNEZ(REG_ITMP1, 0);
-					}
 				}
+			}
+#else
+			if (iptr->sx.val.l == 0) {
+				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+				M_BGTZ(GET_HIGH_REG(s1), 0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+				M_NOP;
+				M_BLTZ(GET_HIGH_REG(s1), 3);
+				M_NOP;
+				M_BNEZ(GET_LOW_REG(s1), 0);
+			}
+			else {
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
+				M_CMPGT(s1, REG_ITMP2, REG_ITMP3);
+				M_BNEZ(REG_ITMP3, 0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+				M_NOP;
+				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_BNE(s1, REG_ITMP2, 5);
+				M_NOP;
+				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
+				M_CMPUGT(s2, REG_ITMP2, REG_ITMP3);
+				M_BNEZ(REG_ITMP3, 0);
+			}
+#endif
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 
+#if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0) {
 				M_BGEZ(s1, 0);
-				}
-			else {
+			} else {
 				if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.l, REG_ITMP1);
-					}
-				else {
+				} else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
-					}
-				M_BEQZ(REG_ITMP1, 0);
 				}
+				M_BEQZ(REG_ITMP1, 0);
+			}
+#else
+			if (iptr->sx.val.l == 0) {
+				/* if high word is greater equal zero, the whole long is too */
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				M_BGEZ(s1, 0);
+			}
+			else {
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
+				M_CMPGT(s1, REG_ITMP2, REG_ITMP3);
+				M_BNEZ(REG_ITMP3, 0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+				M_NOP;
+				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+				M_BNE(s1, REG_ITMP2, 5);
+				M_NOP;
+				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
+				M_CMPULT(s2, REG_ITMP2, REG_ITMP3);
+				M_BEQZ(REG_ITMP3, 0);
+			}
+#endif
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPEQ:    /* op1 = target JavaVM pc                     */
-		case ICMD_IF_ACMPEQ:
+		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
+#if SIZEOF_VOID_P == 8
+		case ICMD_IF_LCMPEQ:
+#endif
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -2125,9 +2703,27 @@ bool codegen(jitdata *jd)
 			M_NOP;
 			break;
 
+#if SIZEOF_VOID_P == 4
+		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_BNE(s1, s2, 3);
+			M_NOP;
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_BEQ(s1, s2, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			break;
+#endif
+
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPNE:    /* op1 = target JavaVM pc                     */
-		case ICMD_IF_ACMPNE:
+		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
+#if SIZEOF_VOID_P == 8
+		case ICMD_IF_LCMPNE:
+#endif
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -2136,53 +2732,166 @@ bool codegen(jitdata *jd)
 			M_NOP;
 			break;
 
-		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPLT:    /* op1 = target JavaVM pc                     */
+#if SIZEOF_VOID_P == 4
+		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_CMPLT(s1, s2, REG_ITMP1);
-			M_BNEZ(REG_ITMP1, 0);
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_BNE(s1, s2, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_BNE(s1, s2, 0);
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
+#endif
+
+		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
+#if SIZEOF_VOID_P == 8
+		case ICMD_IF_LCMPLT:    /* op1 = target JavaVM pc                     */
+#endif
+
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			M_CMPLT(s1, s2, REG_ITMP3);
+			M_BNEZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			break;
+
+#if SIZEOF_VOID_P == 4
+		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMPLT(s1, s2, REG_ITMP3);
+			M_BNEZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			M_CMPGT(s1, s2, REG_ITMP3);
+			/* load low-bits before the branch, so we know the distance */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_BNEZ(REG_ITMP3, 4);
+			M_NOP;
+			M_CMPULT(s1, s2, REG_ITMP3);
+			M_BNEZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			break;
+#endif
 
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
+#if SIZEOF_VOID_P == 8
 		case ICMD_IF_LCMPGT:    /* op1 = target JavaVM pc                     */
+#endif
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_CMPGT(s1, s2, REG_ITMP1);
-			M_BNEZ(REG_ITMP1, 0);
+			M_CMPGT(s1, s2, REG_ITMP3);
+			M_BNEZ(REG_ITMP3, 0);
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
+
+#if SIZEOF_VOID_P == 4
+		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMPGT(s1, s2, REG_ITMP3);
+			M_BNEZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			M_CMPLT(s1, s2, REG_ITMP3);
+			/* load low-bits before the branch, so we know the distance */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_BNEZ(REG_ITMP3, 4);
+			M_NOP;
+			M_CMPUGT(s1, s2, REG_ITMP3);
+			M_BNEZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			break;
+#endif
 
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
+#if SIZEOF_VOID_P == 8
 		case ICMD_IF_LCMPLE:    /* op1 = target JavaVM pc                     */
+#endif
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_CMPGT(s1, s2, REG_ITMP1);
-			M_BEQZ(REG_ITMP1, 0);
+			M_CMPGT(s1, s2, REG_ITMP3);
+			M_BEQZ(REG_ITMP3, 0);
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
+
+#if SIZEOF_VOID_P == 4
+		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMPLT(s1, s2, REG_ITMP3);
+			M_BNEZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			M_CMPGT(s1, s2, REG_ITMP3);
+			/* load low-bits before the branch, so we know the distance */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_BNEZ(REG_ITMP3, 4);
+			M_NOP;
+			M_CMPUGT(s1, s2, REG_ITMP3);
+			M_BEQZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			break;
+#endif
 
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
+#if SIZEOF_VOID_P == 8
 		case ICMD_IF_LCMPGE:    /* op1 = target JavaVM pc                     */
+#endif
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_CMPLT(s1, s2, REG_ITMP1);
-			M_BEQZ(REG_ITMP1, 0);
+			M_CMPLT(s1, s2, REG_ITMP3);
+			M_BEQZ(REG_ITMP3, 0);
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			M_NOP;
 			break;
 
+#if SIZEOF_VOID_P == 4
+		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMPGT(s1, s2, REG_ITMP3);
+			M_BNEZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			M_CMPLT(s1, s2, REG_ITMP3);
+			/* load low-bits before the branch, so we know the distance */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_BNEZ(REG_ITMP3, 4);
+			M_NOP;
+			M_CMPULT(s1, s2, REG_ITMP3);
+			M_BEQZ(REG_ITMP3, 0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			M_NOP;
+			break;
+#endif
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
+#if SIZEOF_VOID_P == 8
 		case ICMD_LRETURN:
+#endif
 
 			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
@@ -2204,8 +2913,15 @@ bool codegen(jitdata *jd)
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
 
-	    case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
+#if SIZEOF_VOID_P == 4
+		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 
+			s1 = emit_load_s1(jd, iptr, REG_RESULT_PACKED);
+			M_LNGMOVE(s1, REG_RESULT_PACKED);
+			goto nowperformreturn;
+#endif
+
+	    case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
 			M_FLTMOVE(s1, REG_FRESULT);
@@ -2243,11 +2959,21 @@ nowperformreturn:
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
+#if SIZEOF_VOID_P == 8
 				case ICMD_LRETURN:
+#endif
 					M_ALD(REG_A0, REG_SP, rd->memuse * 8);
 					M_JSR(REG_RA, REG_ITMP3);
-					M_LST(REG_RESULT, REG_SP, rd->memuse * 8);  /* delay slot */
+					M_AST(REG_RESULT, REG_SP, rd->memuse * 8);  /* delay slot */
 					break;
+#if SIZEOF_VOID_P == 4
+				case ICMD_LRETURN:
+					M_ALD(REG_A0, REG_SP, rd->memuse * 8);
+					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 8);
+					M_JSR(REG_RA, REG_ITMP3);
+					M_NOP;
+					break;
+#endif
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
 					M_ALD(REG_A0, REG_SP, rd->memuse * 8);
@@ -2265,9 +2991,16 @@ nowperformreturn:
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
+#if SIZEOF_VOID_P == 8
 				case ICMD_LRETURN:
-					M_LLD(REG_RESULT, REG_SP, rd->memuse * 8);
+#endif
+					M_ALD(REG_RESULT, REG_SP, rd->memuse * 8);
 					break;
+#if SIZEOF_VOID_P == 4
+				case ICMD_LRETURN:
+					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 8);
+					break;
+#endif
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
 					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8);
@@ -2285,7 +3018,7 @@ nowperformreturn:
 			/* restore saved registers                                        */
 
 			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--; M_LLD(rd->savintregs[i], REG_SP, p * 8);
+				p--; M_ALD(rd->savintregs[i], REG_SP, p * 8);
 			}
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 				p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
@@ -2302,12 +3035,12 @@ nowperformreturn:
 
 				if (hi == 0) {
 					M_RET(REG_RA);
-					M_LADD_IMM(REG_SP, lo, REG_SP);             /* delay slot */
+					M_AADD_IMM(REG_SP, lo, REG_SP);             /* delay slot */
 				} else {
 					M_LUI(REG_ITMP3,hi);
-					M_LADD_IMM(REG_ITMP3,lo,REG_ITMP3);
+					M_AADD_IMM(REG_ITMP3,lo,REG_ITMP3);
 					M_RET(REG_RA);
-					M_LADD(REG_ITMP3,REG_SP,REG_SP);            /* delay slot */
+					M_AADD(REG_ITMP3,REG_SP,REG_SP);            /* delay slot */
 				}
 
 			} else {
@@ -2349,7 +3082,7 @@ nowperformreturn:
 			M_CMPULT_IMM(REG_ITMP1, i, REG_ITMP2);
 			M_BEQZ(REG_ITMP2, 0);
 			codegen_add_branch_ref(cd, table[0].block); /* default target */
-			M_ASLL_IMM(REG_ITMP1, POINTERSHIFT, REG_ITMP1);      /* delay slot*/
+			M_ASLL_IMM(REG_ITMP1, POINTERSHIFT, REG_ITMP1);     /* delay slot */
 
 			/* build jump table top down and use address of lowest entry */
 
@@ -2438,6 +3171,7 @@ gen_method:
 					continue;
 
 				if (IS_INT_LNG_TYPE(var->type)) {
+#if SIZEOF_VOID_P == 8
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argintregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, var, s1);
@@ -2447,15 +3181,70 @@ gen_method:
 						d = emit_load(jd, iptr, var, REG_ITMP1);
 						M_LST(d, REG_SP, md->params[s3].regoff * 8);
 					}
+#else
+					if (!md->params[s3].inmemory) {
+						if (IS_2_WORD_TYPE(var->type)) {
+							s1 = md->params[s3].regoff;
+							s1 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
+										   rd->argintregs[GET_HIGH_REG(s1)]);
+							d = emit_load(jd, iptr, var, s1);
+							M_LNGMOVE(d, s1);
+						}
+						else {
+							s1 = rd->argintregs[md->params[s3].regoff];
+							d = emit_load(jd, iptr, var, s1);
+							M_INTMOVE(d, s1);
+						}
+					}
+					else {
+						if (IS_2_WORD_TYPE(var->type)) {
+							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
+							M_LST(d, REG_SP, md->params[s3].regoff * 8);
+						}
+						else {
+							d = emit_load(jd, iptr, var, REG_ITMP1);
+							M_IST(d, REG_SP, md->params[s3].regoff * 8);
+						}
+					}
+#endif
 				}
 				else {
 					if (!md->params[s3].inmemory) {
+#if SIZEOF_VOID_P == 8
 						s1 = rd->argfltregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, var, s1);
 						if (IS_2_WORD_TYPE(var->type))
 							M_DMOV(d, s1);
 						else
 							M_FMOV(d, s1);
+#else
+						if ((s3 == 0) ||
+							((s3 == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type))) {
+							s1 = rd->argfltregs[md->params[s3].regoff];
+							d = emit_load(jd, iptr, var, s1);
+							if (IS_2_WORD_TYPE(var->type))
+								M_DBLMOVE(d, s1);
+							else
+								M_FLTMOVE(d, s1);
+						}
+						else {
+							if (IS_2_WORD_TYPE(var->type)) {
+								s1 = md->params[s3].regoff;
+								s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
+											   rd->argintregs[GET_HIGH_REG(s1)]);
+								d = emit_load(jd, iptr, var, REG_FTMP1);
+								M_MFC1(GET_LOW_REG(s2), d);
+								M_MFC1(GET_HIGH_REG(s2), d + 1);
+								M_NOP;
+							}
+							else {
+								s1 = rd->argintregs[md->params[s3].regoff];
+								d = emit_load(jd, iptr, var, s1);
+								M_MFC1(s1, d);
+								M_NOP;
+							}
+						}	
+#endif
 					}
 					else {
 						d = emit_load(jd, iptr, var, REG_FTMP1);
@@ -2564,8 +3353,19 @@ gen_method:
 
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(d)) {
+#if SIZEOF_VOID_P == 8
 					s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
 					M_INTMOVE(REG_RESULT, s1);
+#else
+					if (IS_2_WORD_TYPE(d)) {
+						s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT_PACKED);
+						M_LNGMOVE(REG_RESULT_PACKED, s1);
+					}
+					else {
+						s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+						M_INTMOVE(REG_RESULT, s1);
+					}
+#endif
 				}
 				else {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
@@ -2910,7 +3710,11 @@ gen_method:
 
 				if (!(var->flags & PREALLOC)) {
 					s2 = emit_load(jd, iptr, var, REG_ITMP1);
+#if SIZEOF_VOID_P == 8
 					M_LST(s2, REG_SP, s1 * 8);
+#else
+					M_IST(s2, REG_SP, (s1 + 2) * 8);
+#endif
 				}
 			}
 
@@ -2936,7 +3740,11 @@ gen_method:
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-			M_INTMOVE(REG_SP, REG_A2);
+#if SIZEOF_VOID_P == 8
+			M_MOV(REG_SP, REG_A2);
+#else
+			M_AADD_IMM(REG_SP, 4*4, REG_A2);
+#endif
 
 			disp = dseg_add_functionptr(cd, BUILTIN_multianewarray);
 			M_ALD(REG_ITMP3, REG_PV, disp);
@@ -3092,8 +3900,16 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		md->paramcount +                /* for saving arguments over calls    */
+#if SIZEOF_VOID_P == 4
+		5 +                             /* additional save space (MIPS32)     */
+#endif
 		1 +                             /* for saving return address          */
 		nmd->memuse;
+
+	/* adjust stackframe size for 16-byte alignment */
+
+	if (cd->stackframesize & 1)
+		cd->stackframesize++;
 
 	/* create method header */
 
@@ -3127,16 +3943,38 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* save integer and float argument registers */
 
+#if SIZEOF_VOID_P == 8
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
-		if (IS_INT_LNG_TYPE(md->paramtypes[i].type)) {
-			M_LST(rd->argintregs[i], REG_SP, j * 8);
+		if (IS_INT_LNG_TYPE(md->params[i].type)) {
+			M_AST(rd->argintregs[i], REG_SP, j * 8);
 			j++;
 		}
 	}
+#else
+	for (i = 0, j = 5; i < md->paramcount && i < INT_ARG_CNT; i++) {
+		if (IS_INT_LNG_TYPE(md->params[i].type)) {
+			if (!md->params[i].inmemory) {
+ 				s1 = md->params[i].regoff;
+				if (IS_2_WORD_TYPE(md->params[i].type)) {
+					s1 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
+								   rd->argintregs[GET_HIGH_REG(s1)]);
+					M_LST(s1, REG_SP, j * 8);
+				}
+				else {
+					M_IST(rd->argintregs[s1], REG_SP, j * 8);
+				}
+				j++;
+			}
+		}
+	}
+#endif
 
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
-		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DST(rd->argfltregs[i], REG_SP, j * 8);
+		if (IS_FLT_DBL_TYPE(md->params[i].type)) {
+			if (IS_2_WORD_TYPE(md->params[i].type))
+				M_DST(rd->argfltregs[i], REG_SP, j * 8);
+			else
+				M_FST(rd->argfltregs[i], REG_SP, j * 8);
 			j++;
 		}
 	}
@@ -3154,16 +3992,38 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* restore integer and float argument registers */
 
+#if SIZEOF_VOID_P == 8
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
-		if (IS_INT_LNG_TYPE(md->paramtypes[i].type)) {
+		if (IS_INT_LNG_TYPE(md->params[i].type)) {
 			M_LLD(rd->argintregs[i], REG_SP, j * 8);
 			j++;
 		}
 	}
+#else
+	for (i = 0, j = 5; i < md->paramcount && i < INT_ARG_CNT; i++) {
+		if (IS_INT_LNG_TYPE(md->params[i].type)) {
+			if (!md->params[i].inmemory) {
+				s1 = md->params[i].regoff;
+				if (IS_2_WORD_TYPE(md->params[i].type)) {
+					s1 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
+								   rd->argintregs[GET_HIGH_REG(s1)]);
+					M_LLD(s1, REG_SP, j * 8);
+				}
+				else {
+					M_ILD(rd->argintregs[s1], REG_SP, j * 8);
+				}
+				j++;
+			}
+		}
+	}
+#endif
 
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
-		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DLD(rd->argfltregs[i], REG_SP, j * 8);
+		if (IS_FLT_DBL_TYPE(md->params[i].type)) {
+			if (IS_2_WORD_TYPE(md->params[i].type))
+				M_DLD(rd->argfltregs[i], REG_SP, j * 8);
+			else
+				M_FLD(rd->argfltregs[i], REG_SP, j * 8);
 			j++;
 		}
 	}
@@ -3171,53 +4031,139 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* copy or spill arguments to new locations */
 
 	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
-		t = md->paramtypes[i].type;
+		t = md->params[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
-				s1 = rd->argintregs[md->params[i].regoff];
+				s1 = md->params[i].regoff;
+#if SIZEOF_VOID_P == 8
+				s1 = rd->argintregs[s1];
+#else
+				if (IS_2_WORD_TYPE(t))
+					s1 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
+								   rd->argintregs[GET_HIGH_REG(s1)]);
+				else
+					s1 = rd->argintregs[s1];
+#endif
 
 				if (!nmd->params[j].inmemory) {
-					s2 = rd->argintregs[nmd->params[j].regoff];
-					M_INTMOVE(s1, s2);
-				} else {
 					s2 = nmd->params[j].regoff;
-					M_AST(s1, REG_SP, s2 * 8);
+#if SIZEOF_VOID_P == 8
+					s2 = rd->argintregs[s2];
+					M_INTMOVE(s1, s2);
+#else
+					if (IS_2_WORD_TYPE(t)) {
+						s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s2)],
+									   rd->argintregs[GET_HIGH_REG(s2)]);
+						M_LNGMOVE(s1, s2);
+					}
+					else {
+						s2 = rd->argintregs[s2];
+						M_INTMOVE(s1, s2);
+					}
+#endif
 				}
+				else {
+					s2 = nmd->params[j].regoff;
 
-			} else {
+#if SIZEOF_VOID_P == 8
+					M_LST(s1, REG_SP, s2 * 8);
+#else
+					if (IS_2_WORD_TYPE(t))
+						M_LST(s1, REG_SP, s2 * 4);
+					else
+						M_IST(s1, REG_SP, s2 * 4);
+#endif
+				}
+			}
+			else {
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
-				M_ALD(REG_ITMP1, REG_SP, s1 * 8);
-				M_AST(REG_ITMP1, REG_SP, s2 * 8);
-			}
 
-		} else {
+#if SIZEOF_VOID_P == 8
+				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
+				M_LST(REG_ITMP1, REG_SP, s2 * 8);
+#else
+				if (IS_2_WORD_TYPE(t)) {
+					M_LLD(PACK_REGS(REG_ITMP1, REG_ITMP2), REG_SP, s1 * 8);
+					M_LST(PACK_REGS(REG_ITMP1, REG_ITMP2), REG_SP, s2 * 4);
+				}
+				else {
+					M_ILD(REG_ITMP1, REG_SP, s1 * 8);
+					M_IST(REG_ITMP1, REG_SP, s2 * 4);
+				}
+#endif
+			}
+		}
+		else {
 			if (!md->params[i].inmemory) {
-				s1 = rd->argfltregs[md->params[i].regoff];
+				s1 = md->params[i].regoff;
+				s2 = nmd->params[j].regoff;
 
 				if (!nmd->params[j].inmemory) {
-					s2 = rd->argfltregs[nmd->params[j].regoff];
+#if SIZEOF_VOID_P == 8
+					s1 = rd->argfltregs[s1];
+					s2 = rd->argfltregs[s2];
 					if (IS_2_WORD_TYPE(t))
 						M_DMOV(s1, s2);
 					else
 						M_FMOV(s1, s2);
+#else
+					/* On MIPS32 float arguments for native functions
+					   can never be in float argument registers, since
+					   the first argument is _always_ an integer
+					   argument (JNIenv) */
 
-				} else {
-					s2 = nmd->params[j].regoff;
+					if (IS_2_WORD_TYPE(t)) {
+						s1 = rd->argfltregs[s1];
+						s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s2)],
+									   rd->argintregs[GET_HIGH_REG(s2)]);
+
+						/* double high/low order is endian
+						   independent: even numbered holds low
+						   32-bits, odd numbered high 32-bits */
+
+						M_MFC1(GET_LOW_REG(s2), s1);           /* low 32-bits */
+						M_MFC1(GET_HIGH_REG(s2), s1 + 1);     /* high 32-bits */
+					}
+					else {
+						s1 = rd->argfltregs[s1];
+						s2 = rd->argintregs[s2];
+						M_MFC1(s2, s1);
+					}
+#endif
+				}
+				else {
+#if SIZEOF_VOID_P == 8
+					s1 = rd->argfltregs[s1];
+
 					if (IS_2_WORD_TYPE(t))
 						M_DST(s1, REG_SP, s2 * 8);
 					else
 						M_FST(s1, REG_SP, s2 * 8);
-				}
+#else
+					/* s1 may have been originally in 2 int registers,
+					   but was moved out by the native function
+					   argument(s), just get low register */
 
-			} else {
+					s1 = rd->argfltregs[GET_LOW_REG(s1)];
+
+					if (IS_2_WORD_TYPE(t))
+						M_DST(s1, REG_SP, s2 * 4);
+					else
+						M_FST(s1, REG_SP, s2 * 4);
+#endif
+				}
+			}
+			else {
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
+
 				if (IS_2_WORD_TYPE(t)) {
 					M_DLD(REG_FTMP1, REG_SP, s1 * 8);
 					M_DST(REG_FTMP1, REG_SP, s2 * 8);
-				} else {
+				}
+				else {
 					M_FLD(REG_FTMP1, REG_SP, s1 * 8);
 					M_FST(REG_FTMP1, REG_SP, s2 * 8);
 				}
@@ -3246,10 +4192,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* save return value */
 
 	if (md->returntype.type != TYPE_VOID) {
+#if SIZEOF_VOID_P == 8
 		if (IS_INT_LNG_TYPE(md->returntype.type))
 			M_LST(REG_RESULT, REG_SP, 0 * 8);
 		else
 			M_DST(REG_FRESULT, REG_SP, 0 * 8);
+#else
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			M_IST(REG_RESULT, REG_SP, 1*4 + 0 * 8);
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_IST(REG_RESULT2, REG_SP, 1*4 + 0 * 8 + 4);
+		}
+		else
+			M_DST(REG_FRESULT, REG_SP, 1*4 + 0 * 8);
+#endif
 	}
 
 #if !defined(NDEBUG)
@@ -3269,10 +4225,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* restore return value */
 
 	if (md->returntype.type != TYPE_VOID) {
+#if SIZEOF_VOID_P == 8
 		if (IS_INT_LNG_TYPE(md->returntype.type))
 			M_LLD(REG_RESULT, REG_SP, 0 * 8);
 		else
 			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+#else
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			M_ILD(REG_RESULT, REG_SP, 1*4 + 0 * 8);
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_ILD(REG_RESULT2, REG_SP, 1*4 + 0 * 8 + 4);
+		}
+		else
+			M_DLD(REG_FRESULT, REG_SP, 1*4 + 0 * 8);
+#endif
 	}
 
 	M_ALD(REG_RA, REG_SP, (cd->stackframesize - 1) * 8); /* load RA           */
