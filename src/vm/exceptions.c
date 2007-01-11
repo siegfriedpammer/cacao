@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: exceptions.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: exceptions.c 6598 2007-01-11 14:28:47Z twisti $
 
 */
 
@@ -805,7 +805,7 @@ void exceptions_throw_internalerror(const char *message, ...)
 	MFREE(msg, char, msglen);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return;
 
 	*exceptionptr = o;
 }
@@ -951,7 +951,7 @@ void exceptions_throw_outofmemoryerror(void)
 	e = native_new_and_init(class_java_lang_OutOfMemoryError);
 
 	if (e == NULL)
-		return *exceptionptr;
+		return;
 
 	*exceptionptr = e;
 }
