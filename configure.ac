@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 6283 2007-01-08 23:49:11Z twisti $
+dnl $Id: configure.ac 6595 2007-01-11 14:19:48Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -976,7 +976,9 @@ if test x"${WITH_STATIC_CLASSPATH}" = "xyes"; then
     AM_ICONV_LINK
 else
     dnl we need this check for --enable-staticvm, otherwise ltdl can't find dlopen
-    AC_CHECK_LIB(dl, dlopen,, [AC_MSG_ERROR(cannot find libdl)])
+    if test x"${ENABLE_STATICVM}" = "xyes"; then
+        AC_CHECK_LIB(dl, dlopen,, [AC_MSG_ERROR(cannot find libdl)])
+    fi
 
     AC_CHECK_HEADERS([ltdl.h],, [AC_MSG_ERROR(cannot find ltdl.h)])
     AC_CHECK_LIB(ltdl, lt_dlopen,, [AC_MSG_ERROR(cannot find libltdl)])
@@ -1029,6 +1031,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/alpha/Makefile]
 		[src/vm/jit/alpha/freebsd/Makefile]
 		[src/vm/jit/alpha/linux/Makefile]
+		[src/vm/jit/arm/Makefile]
+		[src/vm/jit/arm/linux/Makefile]
 		[src/vm/jit/i386/Makefile]
 		[src/vm/jit/i386/cygwin/Makefile]
 		[src/vm/jit/i386/darwin/Makefile]

@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 6265 2007-01-02 20:40:57Z edwin $
+## $Id: Makefile.am 6595 2007-01-11 14:19:48Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -47,6 +47,7 @@ DIST_SUBDIRS = \
 	\
 	intrp \
 	alpha \
+	arm \
 	i386 \
 	mips \
 	parisc \
