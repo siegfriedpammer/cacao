@@ -28,7 +28,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: memory.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: memory.c 7205 2007-01-11 22:36:29Z twisti $
 
 */
 
@@ -308,6 +308,10 @@ void *mem_alloc(s4 size)
 void *mem_realloc(void *src, s4 len1, s4 len2)
 {
 	void *dst;
+
+	/* prevent compiler warnings */
+
+ 	dst = NULL;
 
 	if (src == NULL)
 		if (len1 != 0)

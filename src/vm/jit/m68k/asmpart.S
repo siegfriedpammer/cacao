@@ -1,0 +1,28 @@
+.globl asm_vm_call_method
+.globl asm_vm_call_method_int
+.globl asm_vm_call_method_long
+.globl asm_vm_call_method_float
+.globl asm_vm_call_method_double
+.globl asm_vm_call_method_exception_handler
+
+.globl asm_call_jit_compiler
+.globl asm_getclassvalues_atomic
+.globl asm_abstractmethoderror
+.globl asm_criticalsections
+
+
+asm_vm_call_method:
+asm_vm_call_method_int:
+asm_vm_call_method_long:
+asm_vm_call_method_float:
+asm_vm_call_method_double:
+
+asm_vm_call_method_exception_handler:
+
+asm_call_jit_compiler:
+
+asm_getclassvalues_atomic:
+
+asm_abstractmethoderror:
+
+asm_criticalsections:
