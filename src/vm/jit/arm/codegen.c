@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: codegen.c 6591 2007-01-02 19:14:25Z twisti $
+   $Id: codegen.c 6596 2007-01-11 14:22:55Z twisti $
 
 */
 
@@ -274,8 +274,12 @@ bool codegen(jitdata *jd)
 			}
 			else {                                   /* stack arguments       */
 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
-					M_STACK_LOAD_FLT_TYPED(t, var->vv.regoff, cd->stackframesize + s1);
-				} else {                             /* stack arg -> spilled  */
+					if (IS_2_WORD_TYPE(t))
+						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+					else
+						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+				}
+				else {                               /* stack arg -> spilled  */
 					/* Reuse Memory Position on Caller Stack */
 					var->vv.regoff = cd->stackframesize + s1;
 				}
@@ -335,24 +339,22 @@ bool codegen(jitdata *jd)
 
 	/* SECTION: ICMD Code Generation */
 	/* for all basic blocks */
-	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next)
-	{
+
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
+
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		/* is this basic block reached? */
+
 		if (bptr->flags < BBREACHED)
 			continue;
 
 		/* branch resolving */
-		{
-		branchref *brefs;
-		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
-			gen_resolvebranch(cd->mcodebase + brefs->branchpos, 
-			                  brefs->branchpos, bptr->mpc);
-		}
-		}
+
+		codegen_resolve_branchrefs(cd, bptr);
 
 		/* copy interface registers to their destination */
+
 		len = bptr->indepth;
 
 		MCODECHECK(64+len);
@@ -2189,7 +2191,10 @@ bool codegen(jitdata *jd)
 					}
 					else {
 						d = emit_load(jd, iptr, var, REG_FTMP1);
-						M_STACK_STORE_FLT_TYPED(var->type, d, md->params[s3].regoff);
+						if (IS_2_WORD_TYPE(var->type))
+							M_DST(d, REG_SP, md->params[s3].regoff * 4);
+						else
+							M_FST(d, REG_SP, md->params[s3].regoff * 4);
 					}
 				}
 #endif /* !defined(ENABLE_SOFTFLOAT) */
@@ -2335,6 +2340,7 @@ bool codegen(jitdata *jd)
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
 		                      /* val.a: (classinfo*) superclass               */
+
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 				/* object type cast-check */
 
@@ -2424,7 +2430,6 @@ bool codegen(jitdata *jd)
 			}
 
 			/* class checkcast code */
-
 
 			if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 				if (super == NULL) {
@@ -2746,7 +2751,8 @@ bool codegen(jitdata *jd)
 			break;
 
 		default:
-			*exceptionptr = new_internalerror("Unknown ICMD %d", iptr->opc);
+			exceptions_throw_internalerror("Unknown ICMD %d during code generation",
+										   iptr->opc);
 			return false;
 		} /* the big switch */
 

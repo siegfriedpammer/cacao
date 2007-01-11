@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: codegen.h 6591 2007-01-02 19:14:25Z twisti $
+   $Id: codegen.h 6596 2007-01-11 14:22:55Z twisti $
 
 */
 
@@ -1141,30 +1141,12 @@ do { \
 
 #if !defined(ENABLE_SOFTFLOAT)
 
-#define M_STACK_LOAD_FLT_TYPED(t, reg, offset) { \
-	CHECK_FLT_REG(reg); \
-	if (IS_2_WORD_TYPE(t)) { \
-		M_LDFD(reg, REG_SP, (offset) * 4); \
-	} else { \
-		M_LDFS(reg, REG_SP, (offset) * 4); \
-	} \
-}
-
 #define M_FLD(a,b,c)                    M_LDFS(a,b,c)
 #define M_DLD(a,b,c)                    M_LDFD(a,b,c)
 
 #define M_FLD_INTERN(a,b,c)             M_LDFS_INTERN(a,b,c)
 #define M_DLD_INTERN(a,b,c)             M_LDFD_INTERN(a,b,c)
 
-
-#define M_STACK_STORE_FLT_TYPED(t, reg, offset) { \
-	CHECK_FLT_REG(reg); \
-	if (IS_2_WORD_TYPE(t)) { \
-		M_STFD(reg, REG_SP, (offset) * 4); \
-	} else { \
-		M_STFS(reg, REG_SP, (offset) * 4); \
-	} \
-}
 
 #define M_FST(a,b,c)                    M_STFS(a,b,c)
 #define M_DST(a,b,c)                    M_STFD(a,b,c)
