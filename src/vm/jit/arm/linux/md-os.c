@@ -25,8 +25,7 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Michael Starzinger
-
-   Changes: Christian Thalinger
+            Christian Thalinger
 
    $Id: md.c 166 2006-01-22 23:38:44Z twisti $
 
@@ -34,6 +33,8 @@
 
 
 #include "config.h"
+
+#include <assert.h>
 
 #include "vm/types.h"
 
@@ -104,10 +105,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		_sc->arm_r10 = (ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 		_sc->arm_fp = (ptrint) xpc;
 		_sc->arm_pc = (ptrint) asm_handle_exception;
-	} else {
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-		   "Segmentation fault: %p (pc=%p, instr=%x, base=%p)\n",
-		   addr, xpc, instr, base);
+	}
+	else {
+		codegen_get_pv_from_pc(xpc);
+
+		/* this should not happen */
+
+		assert(0);
 	}
 }
 
