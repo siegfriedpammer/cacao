@@ -458,13 +458,8 @@ sub post_process_icmds
 		set_icmd_traits($icmd, 'VARIABLESBASED', $traits);
 
 		# traits used by the type inference pass
-		$traits = $commontraits;
-		if ($icmd->{VERIFYCODE} && $icmd->{DATAFLOW} !~ /^\d_TO_\d$/) {
-			$traits .= trait($icmd, 'DATAFLOW');
-		}
-		if ($opt_debug) {
-			$traits .= $datatraits;
-		}
+		$traits = $commontraits
+			    . ($opt_debug ? $datatraits : $outputtraits);
 		set_icmd_traits($icmd, 'TYPEINFERER', $traits);
 	}
 
@@ -817,7 +812,10 @@ sub write_verify_variablesbased_code
 
 	my $condition = sub { $_[0]->{STAGE} ne '--' and $_[0]->{STAGE} ne '-S' };
 
-	my $model_basic_types = ($select ne 'TYPEINFERER') || $opt_debug;
+	my $model_basic_types = 1;
+	my $check_basic_types = $opt_debug;
+	my $model_basic_local_types = $model_basic_types;
+	my $check_basic_local_types = ($select ne 'TYPEINFERER') || $opt_debug;
 
 	for my $icmdname (@icmds) {
 		my $icmd = $icmds{$icmdname};
@@ -845,7 +843,7 @@ sub write_verify_variablesbased_code
 
 		### check basic types (only in --debug mode)
 
-		if ($opt_debug) {
+		if ($check_basic_types) {
 			if (scalar(@{$icmd->{VARIANTS}}) == 1 && defined($invars)) {
 			   my $intypes = $icmd->{VARIANTS}->[0]->{IN};
 			   if ($invars >= 1 && defined($cacaotypes{$intypes->[0]})) {
@@ -863,16 +861,21 @@ sub write_verify_variablesbased_code
 			}
 		}
 
-		###	check/store local types
+		###	check local types
 
-		if ($model_basic_types) {
+		if ($check_basic_local_types) {
 			if ($icmd->{DATAFLOW} eq 'LOAD') {
 				code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, ".$cacaotypes{$outtype}.");\n";
 			}
 			elsif ($icmd->{DATAFLOW} eq 'IINC') {
 				code "\tCHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_INT);\n";
 			}
-			elsif ($icmd->{DATAFLOW} eq 'STORE') {
+		}
+
+		### store local types
+
+		if ($model_basic_local_types) {
+			if ($icmd->{DATAFLOW} eq 'STORE') {
 				my ($inslots, $type) = get_dst_slots_and_ctype($icmd, 'VAROP(iptr->s1)');
 				if ($inslots == 2) {
 					code "\tSTORE_LOCAL_2_WORD(".$type.", IPTR->dst.varindex);\n";

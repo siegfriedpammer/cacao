@@ -1,102 +1,10 @@
 #define GENERATED
 
   GENERATED  case ICMD_NOP:
-  GENERATED  case ICMD_ICONST:
-  GENERATED  case ICMD_IDIVPOW2:
-  GENERATED  case ICMD_LDIVPOW2:
-  GENERATED  case ICMD_LCONST:
-  GENERATED  case ICMD_LCMPCONST:
-  GENERATED  case ICMD_FCONST:
-  GENERATED  case ICMD_DCONST:
-  GENERATED  case ICMD_ILOAD:
-  GENERATED  case ICMD_LLOAD:
-  GENERATED  case ICMD_FLOAD:
-  GENERATED  case ICMD_DLOAD:
-  GENERATED  case ICMD_IADDCONST:
-  GENERATED  case ICMD_ISUBCONST:
-  GENERATED  case ICMD_IMULCONST:
-  GENERATED  case ICMD_IANDCONST:
-  GENERATED  case ICMD_IORCONST:
-  GENERATED  case ICMD_IXORCONST:
-  GENERATED  case ICMD_ISHLCONST:
-  GENERATED  case ICMD_ISHRCONST:
-  GENERATED  case ICMD_IUSHRCONST:
-  GENERATED  case ICMD_IREMPOW2:
-  GENERATED  case ICMD_LADDCONST:
-  GENERATED  case ICMD_LSUBCONST:
-  GENERATED  case ICMD_LMULCONST:
-  GENERATED  case ICMD_LANDCONST:
-  GENERATED  case ICMD_LORCONST:
-  GENERATED  case ICMD_LXORCONST:
-  GENERATED  case ICMD_LSHLCONST:
-  GENERATED  case ICMD_LSHRCONST:
-  GENERATED  case ICMD_LUSHRCONST:
-  GENERATED  case ICMD_LREMPOW2:
-  GENERATED  case ICMD_ISTORE:
-  GENERATED  case ICMD_LSTORE:
-  GENERATED  case ICMD_FSTORE:
-  GENERATED  case ICMD_DSTORE:
-  GENERATED  case ICMD_POP:
-  GENERATED  case ICMD_POP2:
-  GENERATED  case ICMD_IADD:
-  GENERATED  case ICMD_LADD:
-  GENERATED  case ICMD_FADD:
-  GENERATED  case ICMD_DADD:
-  GENERATED  case ICMD_ISUB:
-  GENERATED  case ICMD_LSUB:
-  GENERATED  case ICMD_FSUB:
-  GENERATED  case ICMD_DSUB:
-  GENERATED  case ICMD_IMUL:
-  GENERATED  case ICMD_LMUL:
-  GENERATED  case ICMD_FMUL:
-  GENERATED  case ICMD_DMUL:
-  GENERATED  case ICMD_FDIV:
-  GENERATED  case ICMD_DDIV:
-  GENERATED  case ICMD_FREM:
-  GENERATED  case ICMD_DREM:
-  GENERATED  case ICMD_INEG:
-  GENERATED  case ICMD_LNEG:
-  GENERATED  case ICMD_FNEG:
-  GENERATED  case ICMD_DNEG:
-  GENERATED  case ICMD_ISHL:
-  GENERATED  case ICMD_LSHL:
-  GENERATED  case ICMD_ISHR:
-  GENERATED  case ICMD_LSHR:
-  GENERATED  case ICMD_IUSHR:
-  GENERATED  case ICMD_LUSHR:
-  GENERATED  case ICMD_IAND:
-  GENERATED  case ICMD_LAND:
-  GENERATED  case ICMD_IOR:
-  GENERATED  case ICMD_LOR:
-  GENERATED  case ICMD_IXOR:
-  GENERATED  case ICMD_LXOR:
-  GENERATED  case ICMD_IINC:
-  GENERATED  case ICMD_I2L:
-  GENERATED  case ICMD_I2F:
-  GENERATED  case ICMD_I2D:
-  GENERATED  case ICMD_L2I:
-  GENERATED  case ICMD_L2F:
-  GENERATED  case ICMD_L2D:
-  GENERATED  case ICMD_F2I:
-  GENERATED  case ICMD_F2L:
-  GENERATED  case ICMD_F2D:
-  GENERATED  case ICMD_D2I:
-  GENERATED  case ICMD_D2L:
-  GENERATED  case ICMD_D2F:
-  GENERATED  case ICMD_INT2BYTE:
-  GENERATED  case ICMD_INT2CHAR:
-  GENERATED  case ICMD_INT2SHORT:
-  GENERATED  case ICMD_LCMP:
-  GENERATED  case ICMD_FCMPL:
-  GENERATED  case ICMD_FCMPG:
-  GENERATED  case ICMD_DCMPL:
-  GENERATED  case ICMD_DCMPG:
-  GENERATED  case ICMD_IMULPOW2:
-  GENERATED  case ICMD_LMULPOW2:
   GENERATED  case ICMD_INLINE_START:
   GENERATED  case ICMD_INLINE_END:
   GENERATED  case ICMD_INLINE_BODY:
-  GENERATED  	/* (--), (--I), (I--I), (L--L), (--L), (L--I), (--F), (--D), (I--), (L--), (F--), (D--), (1--), (11--|2--), (II--I), (LL--L), (FF--F), (DD--D), (F--F), (D--D), (LI--L), (I--L), (I--F), (I--D), (L--F), (L--D), (F--I), (F--L), (F--D), (D--I), (D--L), (D--F), (LL--I), (FF--I), (DD--I) */
+  GENERATED  	/* (--) */
   GENERATED  	break;
   GENERATED  
   GENERATED  
@@ -121,8 +29,9 @@
   GENERATED  		}
   GENERATED  	}
   GENERATED  
-#            	line 125 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 33 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
   GENERATED  
   GENERATED  
@@ -130,41 +39,110 @@
   GENERATED  
   GENERATED  
   GENERATED  case ICMD_CHECKNULL:
-  GENERATED  case ICMD_IALOAD:
-  GENERATED  case ICMD_LALOAD:
-  GENERATED  case ICMD_FALOAD:
-  GENERATED  case ICMD_DALOAD:
-  GENERATED  case ICMD_BALOAD:
-  GENERATED  case ICMD_CALOAD:
-  GENERATED  case ICMD_SALOAD:
-  GENERATED  case ICMD_IASTORE:
-  GENERATED  case ICMD_LASTORE:
-  GENERATED  case ICMD_FASTORE:
-  GENERATED  case ICMD_DASTORE:
-  GENERATED  case ICMD_AASTORE:
-  GENERATED  case ICMD_BASTORE:
-  GENERATED  case ICMD_CASTORE:
-  GENERATED  case ICMD_SASTORE:
-  GENERATED  case ICMD_IDIV:
-  GENERATED  case ICMD_LDIV:
-  GENERATED  case ICMD_IREM:
-  GENERATED  case ICMD_LREM:
-  GENERATED  case ICMD_PUTSTATIC:
-  GENERATED  case ICMD_PUTFIELD:
-  GENERATED  case ICMD_ARRAYLENGTH:
-  GENERATED  case ICMD_INSTANCEOF:
-  GENERATED  case ICMD_IASTORECONST:
-  GENERATED  case ICMD_LASTORECONST:
-  GENERATED  case ICMD_FASTORECONST:
-  GENERATED  case ICMD_DASTORECONST:
-  GENERATED  case ICMD_AASTORECONST:
-  GENERATED  case ICMD_BASTORECONST:
-  GENERATED  case ICMD_CASTORECONST:
-  GENERATED  case ICMD_SASTORECONST:
-  GENERATED  case ICMD_PUTSTATICCONST:
-  GENERATED  case ICMD_PUTFIELDCONST:
-  GENERATED  	/* (A--A), (AI--I), (AI--L), (AI--F), (AI--D), (AII--), (AIL--), (AIF--), (AID--), (AIA--), (II--I), (LL--L), (1--|2--), (A1--|A2--), (A--I), (AI--), (--), (A--) */
+  GENERATED  	/* (A--A) */
   GENERATED  	maythrow = true;
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_ICONST:
+  GENERATED  case ICMD_IDIVPOW2:
+  GENERATED  case ICMD_LCMPCONST:
+  GENERATED  case ICMD_IADDCONST:
+  GENERATED  case ICMD_ISUBCONST:
+  GENERATED  case ICMD_IMULCONST:
+  GENERATED  case ICMD_IANDCONST:
+  GENERATED  case ICMD_IORCONST:
+  GENERATED  case ICMD_IXORCONST:
+  GENERATED  case ICMD_ISHLCONST:
+  GENERATED  case ICMD_ISHRCONST:
+  GENERATED  case ICMD_IUSHRCONST:
+  GENERATED  case ICMD_IREMPOW2:
+  GENERATED  case ICMD_IADD:
+  GENERATED  case ICMD_ISUB:
+  GENERATED  case ICMD_IMUL:
+  GENERATED  case ICMD_INEG:
+  GENERATED  case ICMD_ISHL:
+  GENERATED  case ICMD_ISHR:
+  GENERATED  case ICMD_IUSHR:
+  GENERATED  case ICMD_IAND:
+  GENERATED  case ICMD_IOR:
+  GENERATED  case ICMD_IXOR:
+  GENERATED  case ICMD_L2I:
+  GENERATED  case ICMD_F2I:
+  GENERATED  case ICMD_D2I:
+  GENERATED  case ICMD_INT2BYTE:
+  GENERATED  case ICMD_INT2CHAR:
+  GENERATED  case ICMD_INT2SHORT:
+  GENERATED  case ICMD_LCMP:
+  GENERATED  case ICMD_FCMPL:
+  GENERATED  case ICMD_FCMPG:
+  GENERATED  case ICMD_DCMPL:
+  GENERATED  case ICMD_DCMPG:
+  GENERATED  case ICMD_IMULPOW2:
+  GENERATED  	/* (--I), (I--I), (L--I), (II--I), (F--I), (D--I), (LL--I), (FF--I), (DD--I) */
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_LDIVPOW2:
+  GENERATED  case ICMD_LCONST:
+  GENERATED  case ICMD_LADDCONST:
+  GENERATED  case ICMD_LSUBCONST:
+  GENERATED  case ICMD_LMULCONST:
+  GENERATED  case ICMD_LANDCONST:
+  GENERATED  case ICMD_LORCONST:
+  GENERATED  case ICMD_LXORCONST:
+  GENERATED  case ICMD_LSHLCONST:
+  GENERATED  case ICMD_LSHRCONST:
+  GENERATED  case ICMD_LUSHRCONST:
+  GENERATED  case ICMD_LREMPOW2:
+  GENERATED  case ICMD_LADD:
+  GENERATED  case ICMD_LSUB:
+  GENERATED  case ICMD_LMUL:
+  GENERATED  case ICMD_LNEG:
+  GENERATED  case ICMD_LSHL:
+  GENERATED  case ICMD_LSHR:
+  GENERATED  case ICMD_LUSHR:
+  GENERATED  case ICMD_LAND:
+  GENERATED  case ICMD_LOR:
+  GENERATED  case ICMD_LXOR:
+  GENERATED  case ICMD_I2L:
+  GENERATED  case ICMD_F2L:
+  GENERATED  case ICMD_D2L:
+  GENERATED  case ICMD_LMULPOW2:
+  GENERATED  	/* (L--L), (--L), (LL--L), (LI--L), (I--L), (F--L), (D--L) */
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_LNG;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_FCONST:
+  GENERATED  case ICMD_FADD:
+  GENERATED  case ICMD_FSUB:
+  GENERATED  case ICMD_FMUL:
+  GENERATED  case ICMD_FDIV:
+  GENERATED  case ICMD_FREM:
+  GENERATED  case ICMD_FNEG:
+  GENERATED  case ICMD_I2F:
+  GENERATED  case ICMD_L2F:
+  GENERATED  case ICMD_D2F:
+  GENERATED  	/* (--F), (FF--F), (F--F), (I--F), (L--F), (D--F) */
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_FLT;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_DCONST:
+  GENERATED  case ICMD_DADD:
+  GENERATED  case ICMD_DSUB:
+  GENERATED  case ICMD_DMUL:
+  GENERATED  case ICMD_DDIV:
+  GENERATED  case ICMD_DREM:
+  GENERATED  case ICMD_DNEG:
+  GENERATED  case ICMD_I2D:
+  GENERATED  case ICMD_L2D:
+  GENERATED  case ICMD_F2D:
+  GENERATED  	/* (--D), (DD--D), (D--D), (I--D), (L--D), (F--D) */
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_DBL;
   GENERATED  	break;
   GENERATED  
   GENERATED  
@@ -181,7 +159,7 @@
   GENERATED  	COPYTYPE(IPTR->s1, IPTR->dst);
   GENERATED  	DST->type = OP1->type;
   GENERATED  
-#            	line 185 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 163 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -204,7 +182,7 @@
   GENERATED  	COPYTYPE(IPTR->s1, IPTR->dst);
   GENERATED  	DST->type = OP1->type;
   GENERATED  
-#            	line 208 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 186 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -212,6 +190,30 @@
 #            	undef OP1
   GENERATED  
 #            	undef DST
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_ILOAD:
+  GENERATED  	/* (--I) */
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_LLOAD:
+  GENERATED  	/* (--L) */
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_LNG;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_FLOAD:
+  GENERATED  	/* (--F) */
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_FLT;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_DLOAD:
+  GENERATED  	/* (--D) */
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_DBL;
+  GENERATED  	break;
   GENERATED  
   GENERATED  
   GENERATED  case ICMD_ALOAD:
@@ -235,14 +237,52 @@
 #            endif
   GENERATED  	TYPEINFO_COPY(OP1->typeinfo,DST->typeinfo);
   GENERATED  
-#            	line 239 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 241 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
   GENERATED  
   GENERATED  
 #            	undef OP1
   GENERATED  
 #            	undef DST
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_IALOAD:
+  GENERATED  case ICMD_BALOAD:
+  GENERATED  case ICMD_CALOAD:
+  GENERATED  case ICMD_SALOAD:
+  GENERATED  case ICMD_IDIV:
+  GENERATED  case ICMD_IREM:
+  GENERATED  case ICMD_ARRAYLENGTH:
+  GENERATED  case ICMD_INSTANCEOF:
+  GENERATED  	/* (AI--I), (II--I), (A--I) */
+  GENERATED  	maythrow = true;
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_INT;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_LALOAD:
+  GENERATED  case ICMD_LDIV:
+  GENERATED  case ICMD_LREM:
+  GENERATED  	/* (AI--L), (LL--L) */
+  GENERATED  	maythrow = true;
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_LNG;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_FALOAD:
+  GENERATED  	/* (AI--F) */
+  GENERATED  	maythrow = true;
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_FLT;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_DALOAD:
+  GENERATED  	/* (AI--D) */
+  GENERATED  	maythrow = true;
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_DBL;
+  GENERATED  	break;
   GENERATED  
   GENERATED  
   GENERATED  case ICMD_AALOAD:
@@ -265,8 +305,9 @@
   GENERATED  	if (!typeinfo_init_component(&OP1->typeinfo,&DST->typeinfo))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 269 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 309 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
   GENERATED  
   GENERATED  
@@ -275,8 +316,33 @@
 #            	undef DST
   GENERATED  
   GENERATED  
+  GENERATED  case ICMD_ISTORE:
+  GENERATED  	/* (I--) */
+  GENERATED  	STORE_LOCAL(TYPE_INT, IPTR->dst.varindex);
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_LSTORE:
+  GENERATED  	/* (L--) */
+  GENERATED  	STORE_LOCAL_2_WORD(TYPE_LNG, IPTR->dst.varindex);
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_FSTORE:
+  GENERATED  	/* (F--) */
+  GENERATED  	STORE_LOCAL(TYPE_FLT, IPTR->dst.varindex);
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_DSTORE:
+  GENERATED  	/* (D--) */
+  GENERATED  	STORE_LOCAL_2_WORD(TYPE_DBL, IPTR->dst.varindex);
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
   GENERATED  case ICMD_ASTORE:
   GENERATED  	/* (A--|R--) */
+  GENERATED  	STORE_LOCAL(VAROP(iptr->s1)->type, IPTR->dst.varindex);
   GENERATED  
 #            	define DST  VAROP(IPTR->dst)
   GENERATED  
@@ -286,7 +352,7 @@
 #            	line 114 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
   GENERATED  
-#            	line 290 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 356 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -336,12 +402,52 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 340 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 406 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
   GENERATED  
 #            	undef OP1
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_IASTORE:
+  GENERATED  case ICMD_LASTORE:
+  GENERATED  case ICMD_FASTORE:
+  GENERATED  case ICMD_DASTORE:
+  GENERATED  case ICMD_AASTORE:
+  GENERATED  case ICMD_BASTORE:
+  GENERATED  case ICMD_CASTORE:
+  GENERATED  case ICMD_SASTORE:
+  GENERATED  case ICMD_PUTSTATIC:
+  GENERATED  case ICMD_PUTFIELD:
+  GENERATED  case ICMD_IASTORECONST:
+  GENERATED  case ICMD_LASTORECONST:
+  GENERATED  case ICMD_FASTORECONST:
+  GENERATED  case ICMD_DASTORECONST:
+  GENERATED  case ICMD_AASTORECONST:
+  GENERATED  case ICMD_BASTORECONST:
+  GENERATED  case ICMD_CASTORECONST:
+  GENERATED  case ICMD_SASTORECONST:
+  GENERATED  case ICMD_PUTSTATICCONST:
+  GENERATED  case ICMD_PUTFIELDCONST:
+  GENERATED  	/* (AII--), (AIL--), (AIF--), (AID--), (AIA--), (1--|2--), (A1--|A2--), (AI--), (--), (A--) */
+  GENERATED  	maythrow = true;
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_POP:
+  GENERATED  	/* (1--) */
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_POP2:
+  GENERATED  	/* (11--|2--) */
+  GENERATED  	break;
+  GENERATED  
+  GENERATED  
+  GENERATED  case ICMD_IINC:
+  GENERATED  	/* (--) */
+  GENERATED  	break;
   GENERATED  
   GENERATED  
   GENERATED  case ICMD_GOTO:
@@ -356,7 +462,7 @@
   GENERATED  	/* propagate stack and variables to the target block */
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 360 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 466 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -372,8 +478,9 @@
   GENERATED  	TYPEINFO_INIT_RETURNADDRESS(DST->typeinfo, BPTR->next);
   GENERATED  	REACH(IPTR->sx.s23.s3.jsrtarget);
   GENERATED  
-#            	line 376 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 482 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_RET;
   GENERATED  	break;
   GENERATED  
   GENERATED  
@@ -395,7 +502,7 @@
 #            endif
   GENERATED  	REACH(IPTR->dst);
   GENERATED  
-#            	line 399 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 506 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -422,7 +529,7 @@
   GENERATED  
   GENERATED  	LOG("switch done");
   GENERATED  
-#            	line 426 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 533 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -452,7 +559,7 @@
   GENERATED  
   GENERATED  	LOG("switch done");
   GENERATED  
-#            	line 456 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 563 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -490,7 +597,7 @@
   GENERATED  		return false;
   GENERATED  	maythrow = true;
   GENERATED  
-#            	line 494 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 601 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -512,7 +619,7 @@
   GENERATED  		return false;
   GENERATED  	maythrow = true;
   GENERATED  
-#            	line 516 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 623 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -538,7 +645,7 @@
   GENERATED  		EXCEPTION;
   GENERATED  	TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(IPTR), stat_ins_invoke_unresolved);
   GENERATED  
-#            	line 542 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 649 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
@@ -568,8 +675,9 @@
   GENERATED  	if (!typeinfo_init_class(&(DST->typeinfo),IPTR->sx.s23.s3.c))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 572 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 679 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
   GENERATED  
   GENERATED  
@@ -591,8 +699,9 @@
   GENERATED  	if (!handle_multianewarray(STATE))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 595 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 703 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
+  GENERATED  	VAROP(iptr->dst)->type = TYPE_ADR;
   GENERATED  	break;
   GENERATED  
   GENERATED  
@@ -613,7 +722,7 @@
   GENERATED  	if (!handle_builtin(state))
   GENERATED  		EXCEPTION;
   GENERATED  
-#            	line 617 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
+#            	line 726 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
   GENERATED  
   GENERATED  	break;
   GENERATED  
