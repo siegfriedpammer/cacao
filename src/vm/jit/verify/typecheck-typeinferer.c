@@ -62,7 +62,8 @@
 #define EXCEPTION          do { return false; } while (0)
 #define VERIFY_ERROR(msg)  assert(false)
 
-#define CHECK_LOCAL_TYPE(index, t)
+#define CHECK_LOCAL_TYPE(index, t)                                   \
+	assert(jd->var[(index)].type == (t));
 
 #define STORE_LOCAL(t, index)                                        \
     do {                                                             \
