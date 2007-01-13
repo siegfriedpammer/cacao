@@ -35,9 +35,10 @@
 #ifndef _RT_TIMING_H
 #define _RT_TIMING_H
 
+#include "config.h"
+
 #if defined(ENABLE_RT_TIMING)
 
-#include "config.h"
 #include "vm/types.h"
 
 #include <time.h>
@@ -110,6 +111,8 @@
 void rt_timing_gettime(struct timespec *ts);
 
 void rt_timing_time_diff(struct timespec *a,struct timespec *b,int index);
+
+long rt_timing_diff_usec(struct timespec *a,struct timespec *b);
 
 void rt_timing_print_time_stats(FILE *file);
 

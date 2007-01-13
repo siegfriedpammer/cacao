@@ -125,7 +125,7 @@ void rt_timing_gettime(struct timespec *ts)
 	}
 }
 
-static long rt_timing_diff_usec(struct timespec *a,struct timespec *b)
+long rt_timing_diff_usec(struct timespec *a,struct timespec *b)
 {
 	long diff;
 	time_t atime;
