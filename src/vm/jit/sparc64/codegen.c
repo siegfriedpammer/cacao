@@ -97,7 +97,6 @@ bool codegen(jitdata *jd)
 	methoddesc         *md;
 	fieldinfo          *fi;
 	unresolved_field   *uf;
-	rplpoint           *replacementpoint;
 	s4                  fieldtype;
 	s4                  varindex;
 
@@ -122,7 +121,7 @@ bool codegen(jitdata *jd)
 #if 0 /* no leaf optimization yet */
 	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the RA */
 #endif
-	savedregs_num = 16;                          /* register-window save area */ 
+	savedregs_num = WINSAVE_CNT + ABIPARAMS_CNT; /* register-window save area */ 
 
 
 	/* space to save used callee saved registers */
@@ -136,6 +135,11 @@ bool codegen(jitdata *jd)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		cd->stackframesize++;
 #endif
+
+	/* keep stack 16-byte aligned (ABI requirement) */
+
+	if (cd->stackframesize & 1)
+		cd->stackframesize++;
 
 	/* create method header */
 
@@ -196,7 +200,7 @@ bool codegen(jitdata *jd)
 	md = m->parseddesc;
 
 	/* when storing locals, use this as base */
-	localbase = USESTACK;
+	localbase = JITSTACK;
 	
 	/* since the register allocator does not know about the shifting window
 	 * arg regs need to be copied via the stack
@@ -207,8 +211,9 @@ bool codegen(jitdata *jd)
 		
 		localbase += INT_ARG_CNT * 8;
 		
+		/* XXX could use the param slots on the stack for this! */
 		for (p = 0; p < INT_ARG_CNT; p++)
-			M_STX(REG_WINDOW_TRANSPOSE(rd->argintregs[p]), REG_SP, USESTACK + (p * 8));
+			M_STX(REG_WINDOW_TRANSPOSE(rd->argintregs[p]), REG_SP, JITSTACK + (p * 8));
 	}
 	
 
@@ -233,22 +238,22 @@ bool codegen(jitdata *jd)
 				/*s2 = REG_WINDOW_TRANSPOSE(s2);*/
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
  					/*M_INTMOVE(s2, var->vv.regoff);*/
- 					M_LDX(var->vv.regoff, REG_SP, USESTACK + (s1 * 8));
+ 					M_LDX(var->vv.regoff, REG_SP, JITSTACK + (s1 * 8));
 
 				} else {                             /* reg arg -> spilled    */
 					/*M_STX(s2, REG_SP, (WINSAVE_CNT + var->vv.regoff) * 8);*/
 					
-					M_LDX(REG_ITMP1, REG_SP, USESTACK + (s1 * 8));
+					M_LDX(REG_ITMP1, REG_SP, JITSTACK + (s1 * 8));
 					M_STX(REG_ITMP1, REG_SP, localbase + (var->vv.regoff * 8));
  				}
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
- 					M_LDX(var->vv.regoff, REG_FP, USESTACK + (s1 * 8));
+ 					M_LDX(var->vv.regoff, REG_FP, JITSTACK + (s1 * 8));
 
  				} else {                             /* stack arg -> spilled  */
 					/* add the callers window save registers */
-					var->vv.regoff = cd->stackframesize + WINSAVE_CNT + s1;
+					var->vv.regoff = cd->stackframesize + JITSTACK_CNT + s1;
 				}
 			}
 		
@@ -264,10 +269,10 @@ bool codegen(jitdata *jd)
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
- 					M_DLD(var->vv.regoff, REG_FP, USESTACK + (s1 * 8));
+ 					M_DLD(var->vv.regoff, REG_FP, JITSTACK + (s1 * 8));
 
  				} else {                             /* stack-arg -> spilled  */
-					var->vv.regoff = cd->stackframesize + WINSAVE_CNT + s1;
+					var->vv.regoff = cd->stackframesize + JITSTACK_CNT + s1;
 				}
 			}
 		}
@@ -288,7 +293,9 @@ bool codegen(jitdata *jd)
 	
 	/* end of header generation */ 
 	
-	replacementpoint = jd->code->rplpoints;
+	/* create replacement points */
+
+	REPLACEMENT_POINTS_INIT(cd, jd);
 
 	/* walk through all basic blocks */
 
@@ -373,7 +380,7 @@ bool codegen(jitdata *jd)
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, s1);
+			emit_nullpointer_check(cd, iptr, s1);
 			break;
 	
 		/* constant operations ************************************************/
@@ -2397,7 +2404,7 @@ gen_method:
 					} 
 					else {
 						d = emit_load(jd, iptr, var, REG_ITMP1);
-						M_STX(d, REG_SP, USESTACK + md->params[s3].regoff * 8);
+						M_STX(d, REG_SP, JITSTACK + md->params[s3].regoff * 8);
 					}
 				}
 				else {
@@ -2412,9 +2419,9 @@ gen_method:
 					else {
 						d = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, USESTACK + md->params[s3].regoff * 8);
+							M_DST(d, REG_SP, JITSTACK + md->params[s3].regoff * 8);
 						else
-							M_FST(d, REG_SP, USESTACK + md->params[s3].regoff * 8);
+							M_FST(d, REG_SP, JITSTACK + md->params[s3].regoff * 8);
 					}
 				}
 			}
@@ -2426,8 +2433,7 @@ gen_method:
 				M_ALD(REG_PV_CALLER, REG_PV, disp);  /* built-in-function pointer */
 				s1 = REG_PV_CALLER;
 
-				/* c call, allocate parameter array */
-				M_LDA(REG_SP, REG_SP, -(ABI_PARAMARRAY_SLOTS) * 8);
+				/* XXX jit-c-call */
 
 				break;
 
@@ -2500,11 +2506,6 @@ gen_method:
 			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			/* REG_RA holds the value of the jmp instruction, therefore +8 */
 			M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
-
-			if (iptr->opc == ICMD_BUILTIN) {
-				/* remove param slots */
-				M_LDA(REG_SP, REG_SP, (ABI_PARAMARRAY_SLOTS) * 8);
-			}
 
 
 			/* actually only used for ICMD_BUILTIN */
@@ -3080,14 +3081,14 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 					M_INTMOVE(s1, s2);
 				} else {
 					s2 = nmd->params[j].regoff;
-					M_AST(s1, REG_SP, USESTACK_PARAMS + s2 * 8);
+					M_AST(s1, REG_SP, CSTACK + s2 * 8);
 				}
 
 			} else {
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
-				M_ALD(REG_ITMP1, REG_SP, USESTACK_PARAMS + s1 * 8);
-				M_AST(REG_ITMP1, REG_SP, USESTACK_PARAMS + s2 * 8);
+				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1 * 8);
+				M_AST(REG_ITMP1, REG_SP, CSTACK + s2 * 8);
 			}
 
 		} else {
@@ -3107,20 +3108,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				} else {
 					s2 = nmd->params[j].regoff;
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s1, REG_SP, USESTACK_PARAMS + s2 * 8);
+						M_DST(s1, REG_SP, CSTACK + s2 * 8);
 					else
-						M_FST(s1, REG_SP, USESTACK_PARAMS + s2 * 8);
+						M_FST(s1, REG_SP, CSTACK + s2 * 8);
 				}
 
 			} else {
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, USESTACK_PARAMS + s1 * 8);
-					M_DST(REG_FTMP1, REG_SP, USESTACK_PARAMS + s2 * 8);
+					M_DLD(REG_FTMP1, REG_SP, CSTACK + s1 * 8);
+					M_DST(REG_FTMP1, REG_SP, CSTACK + s2 * 8);
 				} else {
-					M_FLD(REG_FTMP1, REG_SP, USESTACK_PARAMS + s1 * 8);
-					M_FST(REG_FTMP1, REG_SP, USESTACK_PARAMS + s2 * 8);
+					M_FLD(REG_FTMP1, REG_SP, CSTACK + s1 * 8);
+					M_FST(REG_FTMP1, REG_SP, CSTACK + s2 * 8);
 				}
 			}
 		}
@@ -3158,7 +3159,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		if (IS_INT_LNG_TYPE(md->returntype.type))
 			M_MOV(REG_RESULT_CALLER, REG_RESULT_CALLEE);
 		else
-			M_DST(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+			M_DST(REG_FRESULT, REG_SP, CSTACK);
 	}
 	
 	/* Note: native functions return float values in %f0 (see ABI) */
@@ -3168,7 +3169,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* But for the trace function we need to put a flt result into %f1 */
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		if (!IS_2_WORD_TYPE(md->returntype.type))
-			M_FLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+			M_FLD(REG_FRESULT, REG_SP, CSTACK);
 		emit_verbosecall_exit(jd);
 	}
 #endif
@@ -3187,9 +3188,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	if (md->returntype.type != TYPE_VOID) {
 		if (IS_FLT_DBL_TYPE(md->returntype.type)) {
 			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_DLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+				M_DLD(REG_FRESULT, REG_SP, CSTACK);
 			else
-				M_FLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+				M_FLD(REG_FRESULT, REG_SP, CSTACK);
 		}
 	}
 

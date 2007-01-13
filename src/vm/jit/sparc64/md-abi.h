@@ -106,19 +106,22 @@
 
 /* helpers for stack addressing and window handling */
 
+#define BIAS          2047    /* SPARC V9: stack @ address SP + BIAS           */
+
 /* SPARC ABI always wants argument slots on the stack, even when not used */
-#define ABI_PARAMARRAY_SLOTS    6
 
 #define WINSAVE_CNT     16    /* number of regs that SPARC saves onto stack    */
-#define ABICALL_PARAMS   6    /* param slots the ABI always requires           */
-#define ABICALL_OFF     22    /* 8-byte slots for save regs and param slots    */
-#define BIAS          2047
-#define USESTACK      (WINSAVE_CNT * 8 + BIAS)
-#define USESTACK_PARAMS ((WINSAVE_CNT + ABI_PARAMARRAY_SLOTS) * 8 + BIAS)
+#define ABIPARAMS_CNT    6    /* param slots the ABI always requires on stack  */
+
+#define JITSTACK_CNT    (WINSAVE_CNT + ABIPARAMS_CNT)
+#define CSTACK_CNT      (WINSAVE_CNT + ABIPARAMS_CNT)
+
+#define JITSTACK        ((JITSTACK_CNT) * 8 + BIAS)
+#define CSTACK          ((CSTACK_CNT) * 8 + BIAS)
 
 
 
-/* applies only when caller's window was saved */
+/* applies when the caller's window was saved */
 #define REG_WINDOW_TRANSPOSE(reg) \
 	(reg + 16)
 

@@ -105,9 +105,10 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	PATCHER_MONITORENTER;
 	
-	/* calculate sp of the current java function considering the WINSAVE regs */
+	/* the (data) sp points directly to the patcher fields */
+	/* calculate the real sp of the current java function considering the WINSAVE regs */
 	
-	javasp = sp - 16 * 8 - BIAS;
+	javasp = sp - JITSTACK_CNT * 8 - BIAS;
 
 	/* create the stackframeinfo */
 

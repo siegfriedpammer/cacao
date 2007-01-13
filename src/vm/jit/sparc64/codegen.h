@@ -42,6 +42,8 @@
 
 #include "vm/jit/jit.h"
 
+#include "md-abi.h" /* for INT_NATARG_CNT */
+
 /* from md-abi.c */
 s4 nat_argintregs[INT_NATARG_CNT];
 

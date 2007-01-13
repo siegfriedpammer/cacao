@@ -130,6 +130,16 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 	return ra;
 }
 
+u1 *md_get_framepointer(u1 *sp)
+{
+	u1 *ra;
+	/* flush register windows to the stack */
+	__asm__ ("flushw");
+
+	ra = *((u1 **) (sp + 112 + BIAS));
+
+	return ra;
+}
 
 /* md_codegen_get_pv_from_pc ***************************************************
 

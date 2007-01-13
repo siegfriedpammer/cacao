@@ -291,10 +291,10 @@ asm_handle_exception:
 	mov     pv_callee,%g4
 
 	/* save bigger stack frame for float args and temps */
-	save    %sp,(FLT_ARG_CNT+FLT_TMP_CNT+ABICALL_OFF)*8,%sp
+	save    %sp,(FLT_ARG_CNT+FLT_TMP_CNT+CSTACK_CNT)*8,%sp
 
-	SAVE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
-	SAVE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+	SAVE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT)
+	SAVE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+FLT_ARG_CNT)
 
 	mov     xptr_itmp2,%l0              /* save exception pointer             */
 	add     zero,1,%l2                  /* set maybe-leaf flag                */
@@ -317,8 +317,8 @@ L_asm_handle_exception_continue:
 	brz     %l2,L_asm_handle_exception_no_leaf
 	nop
 
-	RESTORE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
-	RESTORE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+	RESTORE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT)
+	RESTORE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+FLT_ARG_CNT)
 	
 L_asm_handle_exception_no_leaf:
 	/* restore java window and stackframe (ra and pv are in there) */
@@ -382,22 +382,22 @@ asm_patcher_wrapper:
 	mov     pv_callee,pv_caller
 
 	/* create window and stack frame              */
-	save  %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+ABICALL_OFF+4)*8),%sp
+	save  %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+CSTACK_CNT+4)*8),%sp
 
-	SAVE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
-	SAVE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+	SAVE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT)
+	SAVE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+FLT_ARG_CNT)
 
 	mov     itmp1,%l0               /* save itmp1                             */
 	mov     itmp2,%l1               /* save itmp2                             */
 
-	add     %fp,USESTACK,%o0      /* pass pseudo SP                           */
+	add     %fp,JITSTACK,%o0      /* pass pseudo SP                           */
 	mov     pv_callee,%o1         /* pass PV                                  */
 	mov     ra_callee,%o2         /* pass RA (correct for leafs)              */
 	call    patcher_wrapper
 	nop
 
-	RESTORE_FLOAT_ARGUMENT_REGISTERS(ABICALL_OFF)
-	RESTORE_FLOAT_TEMPORARY_REGISTERS(ABICALL_OFF+FLT_ARG_CNT)
+	RESTORE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT)
+	RESTORE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+FLT_ARG_CNT)
 
 	mov     %l0,itmp1               /* restore itmp1                          */
 	mov     %l1,itmp2               /* restore itmp2                          */
@@ -406,7 +406,7 @@ asm_patcher_wrapper:
 	nop
 
 	/* load RA (patch position from patcher data on the stack */
-	ldx     [%fp+USESTACK+5*8],itmp3
+	ldx     [%fp+JITSTACK+5*8],itmp3
 
 	/* remove window and stack frame (and stack space allocated in the stub code */
 	restore  %fp,6*8,%sp /* (source regs refer to old window, rd to new window)  */
@@ -416,7 +416,7 @@ asm_patcher_wrapper:
 
 L_asm_patcher_wrapper_exception:
 	mov      %o0,xptr_itmp2        /* get exception                            */
-	ldx      [%fp+USESTACK+5*8],xpc_itmp3 /* xpc is RA                         */
+	ldx      [%fp+JITSTACK+5*8],xpc_itmp3 /* xpc is RA                         */
 	restore  %fp,6*8,%sp           /* remove stack frame                       */
 	ba       asm_handle_exception
 	nop

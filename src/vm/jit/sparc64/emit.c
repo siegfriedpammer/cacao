@@ -42,6 +42,7 @@
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
+#include "vm/builtin.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
@@ -70,7 +71,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = USESTACK + src->vv.regoff * 8;
+		disp = JITSTACK + src->vv.regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(src->type))
 			M_DLD(tempreg, REG_SP, disp);
@@ -104,7 +105,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (dst->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = USESTACK + dst->vv.regoff * 8;
+		disp = JITSTACK + dst->vv.regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(dst->type))
 			M_DST(d, REG_SP, disp);
@@ -202,7 +203,7 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 
 *******************************************************************************/
 
-void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
+void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 }
 
@@ -212,7 +213,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, s4 s1, s4 s2)
 
 *******************************************************************************/
 
-void emit_nullpointer_check(codegendata *cd, s4 reg)
+void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 }
 
@@ -292,7 +293,7 @@ void emit_patcher_stubs(jitdata *jd)
 		/* calculate return address and move it onto the stack */
 
 		M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
-		M_AST(REG_ITMP3, REG_SP, USESTACK + 5 * 8);
+		M_AST(REG_ITMP3, REG_SP, JITSTACK + 5 * 8);
 
 		/* move pointer to java_objectheader onto stack */
 
@@ -304,7 +305,7 @@ void emit_patcher_stubs(jitdata *jd)
 		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
 		M_LDA(REG_ITMP3, REG_PV, disp);
-		M_AST(REG_ITMP3, REG_SP, USESTACK + 4 * 8);
+		M_AST(REG_ITMP3, REG_SP, JITSTACK + 4 * 8);
 #else
 		/* do nothing */
 #endif
@@ -313,29 +314,29 @@ void emit_patcher_stubs(jitdata *jd)
 
 		disp = dseg_add_s4(cd, mcode[0]);
 		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, USESTACK + 3 * 8);
+		M_IST(REG_ITMP3, REG_SP, JITSTACK + 3 * 8);
 
 		disp = dseg_add_s4(cd, mcode[1]);
 		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, USESTACK + 3 * 8 + 4);
+		M_IST(REG_ITMP3, REG_SP, JITSTACK + 3 * 8 + 4);
 
 		/* move class/method/field reference onto stack */
 
 		disp = dseg_add_address(cd, pref->ref);
 		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_AST(REG_ITMP3, REG_SP, USESTACK + 2 * 8);
+		M_AST(REG_ITMP3, REG_SP, JITSTACK + 2 * 8);
 
 	/* move data segment displacement onto stack */
 
 		disp = dseg_add_s4(cd, pref->disp);
 		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, USESTACK + 1 * 8);
+		M_IST(REG_ITMP3, REG_SP, JITSTACK + 1 * 8);
 
 		/* move patcher function pointer onto stack */
 
 		disp = dseg_add_address(cd, pref->patcher);
 		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_AST(REG_ITMP3, REG_SP, USESTACK + 0 * 8);
+		M_AST(REG_ITMP3, REG_SP, JITSTACK + 0 * 8);
 
 		if (targetdisp == 0) {
 			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
@@ -396,13 +397,13 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	/* we're calling a c function allocate paramter array */
-	M_LDA(REG_SP, REG_SP, -(1 + FLT_ARG_CNT + ABI_PARAMARRAY_SLOTS) * 8);
+	/* XXX jit-c-call */
+	M_LDA(REG_SP, REG_SP, -(1 + FLT_ARG_CNT) * 8);
 
 	/* save float argument registers */
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(rd->argfltregs[i], REG_SP, USESTACK_PARAMS + (1 + i) * 8);
+		M_DST(rd->argfltregs[i], REG_SP, JITSTACK + (1 + i) * 8);
 
 	/* save temporary registers for leaf methods */
 /* XXX no leaf optimization yet
@@ -424,12 +425,12 @@ void emit_verbosecall_enter(jitdata *jd)
 		}
 		else {
 			if (IS_2_WORD_TYPE(t)) {
-				M_DST(rd->argfltregs[i], REG_SP, USESTACK_PARAMS);
-				M_LDX(rd->argintregs[i], REG_SP, USESTACK_PARAMS);
+				M_DST(rd->argfltregs[i], REG_SP, JITSTACK);
+				M_LDX(rd->argintregs[i], REG_SP, JITSTACK);
 			}
 			else {
-				M_FST(rd->argfltregs[i], REG_SP, USESTACK_PARAMS);
-				M_ILD(rd->argintregs[i], REG_SP, USESTACK_PARAMS);
+				M_FST(rd->argfltregs[i], REG_SP, JITSTACK);
+				M_ILD(rd->argintregs[i], REG_SP, JITSTACK);
 			}
 		}
 	}
@@ -446,7 +447,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore float argument registers */
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(rd->argfltregs[i], REG_SP, USESTACK_PARAMS + (1 + i) * 8);
+		M_DLD(rd->argfltregs[i], REG_SP, JITSTACK + (1 + i) * 8);
 
 	/* restore temporary registers for leaf methods */
 /* XXX no leaf optimization yet
@@ -458,7 +459,7 @@ void emit_verbosecall_enter(jitdata *jd)
 			M_DLD(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
 	}
 */
-	M_LDA(REG_SP, REG_SP, (1 + FLT_ARG_CNT + ABI_PARAMARRAY_SLOTS) * 8);
+	M_LDA(REG_SP, REG_SP, (1 + FLT_ARG_CNT) * 8);
 
 	/* mark trace code */
 
@@ -491,10 +492,10 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 	
-	/* we're calling a c function allocate paramter array */
-	M_LDA(REG_SP, REG_SP, -(1 + ABI_PARAMARRAY_SLOTS) * 8);
+	/* XXX jit-c-call */
+	M_LDA(REG_SP, REG_SP, -(1 * 8));
 
-	M_DST(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+	M_DST(REG_FRESULT, REG_SP, JITSTACK);
 
 	disp = dseg_add_address(cd, m);
 	M_ALD(rd->argintregs[0], REG_PV_CALLEE, disp);
@@ -507,9 +508,9 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 	M_NOP;
 
-	M_DLD(REG_FRESULT, REG_SP, USESTACK_PARAMS);
+	M_DLD(REG_FRESULT, REG_SP, JITSTACK);
 
-	M_LDA(REG_SP, REG_SP, (1 + ABI_PARAMARRAY_SLOTS) * 8);
+	M_LDA(REG_SP, REG_SP, 1 * 8);
 
 	/* mark trace code */
 
