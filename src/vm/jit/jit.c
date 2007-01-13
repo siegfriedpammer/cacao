@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 6267 2007-01-02 20:50:18Z edwin $
+   $Id: jit.c 7210 2007-01-13 22:37:26Z edwin $
 
 */
 
@@ -1254,7 +1254,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start,time_checks,time_parse,time_stack,
 					time_typecheck,time_loop,time_ifconv,time_alloc,
-					time_rplpoints,time_codegen;
+					time_codegen;
 #endif
 	
 	RT_TIMING_GET_TIME(time_start);
@@ -1453,13 +1453,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 
-	/* create the replacement points */
-#if 0
-	if (!replace_create_replacement_points(jd))
-		return NULL;
-	RT_TIMING_GET_TIME(time_rplpoints);
-#endif
-
 	/* now generate the machine code */
 
 #if defined(ENABLE_JIT)
@@ -1535,8 +1528,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	RT_TIMING_TIME_DIFF(time_stack,time_typecheck,RT_TIMING_JIT_TYPECHECK);
 	RT_TIMING_TIME_DIFF(time_typecheck,time_loop,RT_TIMING_JIT_LOOP);
 	RT_TIMING_TIME_DIFF(time_loop,time_alloc,RT_TIMING_JIT_ALLOC);
-	RT_TIMING_TIME_DIFF(time_alloc,time_rplpoints,RT_TIMING_JIT_RPLPOINTS);
-	RT_TIMING_TIME_DIFF(time_rplpoints,time_codegen,RT_TIMING_JIT_CODEGEN);
+	RT_TIMING_TIME_DIFF(time_alloc,time_codegen,RT_TIMING_JIT_CODEGEN);
 	RT_TIMING_TIME_DIFF(time_start,time_codegen,RT_TIMING_JIT_TOTAL);
 
 	/* return pointer to the methods entry point */
