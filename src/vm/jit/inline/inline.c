@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 6277 2007-01-06 01:27:11Z edwin $
+   $Id: inline.c 7209 2007-01-13 22:30:25Z edwin $
 
 */
 
@@ -68,6 +68,30 @@
 #endif
 
 
+/* algorithm tuning constants *************************************************/
+
+#define INLINE_KNAPSACK
+
+#if defined(INLINE_KNAPSACK)
+
+#define INLINE_COUNTDOWN_INIT       1000
+#define INLINE_COST_OFFSET          -16
+#define INLINE_COST_BUDGET          100
+/*#define INLINE_WEIGHT_BUDGET        5.0*/
+/*#define INLINE_ADD_NEGATIVE_TO_BUDGET*/
+/*#define INLINE_MAX_DEPTH            3*/
+/*#define INLINE_DIVIDE_COST_BY_FREQ */
+
+#else
+
+#define INLINE_MAX_DEPTH            3
+#define INLINE_MAX_BLOCK_EXPANSION  10
+/*#define INLINE_MAX_ICMD_EXPANSION  10*/
+/*#define INLINE_CANCEL_ON_THRESHOLD*/
+
+#endif
+
+
 /* debugging ******************************************************************/
 
 #if !defined(NDEBUG)
@@ -78,7 +102,6 @@ int inline_debug_start_counter = 0;
 int inline_debug_max_size = INT_MAX;
 int inline_debug_min_size = 0;
 int inline_debug_end_counter = INT_MAX;
-int inline_count_methods = 0;
 #define DOLOG(code) do{ if (inline_debug_log) { code; } }while(0)
 #else
 #define DOLOG(code)
@@ -92,6 +115,7 @@ typedef struct inline_target_ref inline_target_ref;
 typedef struct inline_context inline_context;
 typedef struct inline_block_map inline_block_map;
 typedef struct inline_site inline_site;
+typedef struct inline_candidate inline_candidate;
 
 struct inline_node {
 	inline_context *ctx;
@@ -179,24 +203,44 @@ struct inline_context {
 
 	jitdata *resultjd;
 
+	inline_candidate *candidates;
+
 	int next_block_number;
 	inline_block_map *blockmap;
 	int blockmap_index;
 
 	int maxinoutdepth;
 
+	bool stopped;
+
 	int next_debugnr; /* XXX debug */
 };
 
 struct inline_site {
-	bool speculative;
-	bool inlined;
+	bool              speculative;  /* true, if inlining would be speculative */
+	bool              inlined;      /* true, if this site has been inlined    */
+
+	basicblock       *bptr;         /* basic block containing the call site   */
+	instruction      *iptr;         /* the invocation instruction             */
+	exception_entry **handlers;     /* active handlers at the call site       */
+	s4                nhandlers;    /* number of active handlers              */
+	s4                pc;           /* PC of the invocation instruction       */
+};
+
+struct inline_candidate {
+	inline_candidate *next;
+	int freq;
+	int cost;
+	double weight;
+	inline_node *caller;
+	methodinfo *callee;
+	inline_site site;
 };
 
 
 /* prototypes *****************************************************************/
 
-static bool inline_make_inlining_plan(inline_node *iln);
+static bool inline_analyse_code(inline_node *iln);
 static void inline_post_process(jitdata *jd);
 
 
@@ -204,10 +248,30 @@ static void inline_post_process(jitdata *jd);
 
 #if !defined(NDEBUG)
 #include "inline_debug.inc"
+#endif
+
+
+/* statistics *****************************************************************/
+
+/*#define INLINE_STATISTICS*/
+
+#if !defined(NDEBUG)
+#define INLINE_STATISTICS
+#endif
+
+#if defined(INLINE_STATISTICS)
+int inline_stat_roots = 0;
+int inline_stat_roots_transformed = 0;
+int inline_stat_inlined_nodes = 0;
+int inline_stat_max_depth = 0;
 
 void inline_print_stats()
 {
-	printf("inlined callers: %d\n", inline_count_methods);
+	printf("inlining statistics:\n");
+	printf("    roots analysed   : %d\n", inline_stat_roots);
+	printf("    roots transformed: %d\n", inline_stat_roots_transformed);
+	printf("    inlined nodes    : %d\n", inline_stat_inlined_nodes);
+	printf("    max depth        : %d\n", inline_stat_max_depth);
 }
 #endif
 
@@ -313,7 +377,7 @@ static bool inline_jit_compile(inline_node *iln)
 
 /* inlining tree handling *****************************************************/
 
-static void insert_inline_node(inline_node *parent, inline_node *child)
+static void inline_insert_inline_node(inline_node *parent, inline_node *child)
 {
 	inline_node *first;
 	inline_node *succ;
@@ -358,7 +422,101 @@ static void insert_inline_node(inline_node *parent, inline_node *child)
 	child->next = succ;
 	child->prev->next = child;
 	child->next->prev = child;
+
+	if (parent->children == succ)
+		parent->children = child;
 }
+
+
+static void inline_remove_inline_node(inline_node *parent, inline_node *child)
+{
+	assert(parent);
+	assert(child);
+	assert(child->parent == parent);
+
+	if (child->prev == child) {
+		/* remove the only child node */
+		parent->children = NULL;
+	}
+	else {
+		child->prev->next = child->next;
+		child->next->prev = child->prev;
+
+		if (parent->children == child)
+			parent->children = child->next;
+	}
+}
+
+
+/* inlining candidate handling ************************************************/
+
+#if defined(INLINE_KNAPSACK)
+static void inline_add_candidate(inline_context *ctx,
+								 inline_node *caller,
+								 methodinfo *callee,
+								 inline_site *site)
+{
+	inline_candidate **link;
+	inline_candidate *cand;
+
+	cand = DNEW(inline_candidate);
+#if defined(INLINE_DIVIDE_COST_BY_FREQ)
+	cand->freq = INLINE_COUNTDOWN_INIT - callee->hitcountdown;
+	if (cand->freq < 1)
+#endif
+		cand->freq = 1;
+	cand->cost = callee->jcodelength + INLINE_COST_OFFSET;
+	cand->caller = caller;
+	cand->callee = callee;
+	cand->site = *site;
+
+	cand->weight = (double)cand->cost / cand->freq;
+
+	for (link = &(ctx->candidates); ; link = &((*link)->next)) {
+		if (!*link || (*link)->weight > cand->weight) {
+			cand->next = *link;
+			*link = cand;
+			break;
+		}
+	}
+}
+#endif /* defined(INLINE_KNAPSACK) */
+
+#if defined(INLINE_KNAPSACK)
+static inline_candidate * inline_pick_best_candidate(inline_context *ctx)
+{
+	inline_candidate *cand;
+
+	cand = ctx->candidates;
+
+	if (cand)
+		ctx->candidates = cand->next;
+
+	return cand;
+}
+#endif /* defined(INLINE_KNAPSACK) */
+
+#if !defined(NDEBUG) && defined(INLINE_KNAPSACK)
+static void inline_candidate_println(inline_candidate *cand)
+{
+	printf("%10g (%5d / %5d) depth %2d ",
+			cand->weight, cand->cost, cand->freq, cand->caller->depth + 1);
+	method_println(cand->callee);
+}
+#endif /* !defined(NDEBUG) && defined(INLINE_KNAPSACK) */
+
+
+#if !defined(NDEBUG) && defined(INLINE_KNAPSACK)
+static void inline_candidates_println(inline_context *ctx)
+{
+	inline_candidate *cand;
+
+	for (cand = ctx->candidates; cand != NULL; cand = cand->next) {
+		printf("    ");
+		inline_candidate_println(cand);
+	}
+}
+#endif /* !defined(NDEBUG) && defined(INLINE_KNAPSACK) */
 
 
 /* variable handling **********************************************************/
@@ -1246,7 +1404,7 @@ clone_call:
 }
 
 
-static void rewrite_method(inline_node *iln)
+static void inline_rewrite_method(inline_node *iln)
 {
 	basicblock *o_bptr;
 	s4 len;
@@ -1416,7 +1574,7 @@ static void rewrite_method(inline_node *iln)
 				DOLOG( printf("%sentering inline ", indent);
 					   show_icmd(origjd, o_iptr, false, SHOW_STACK); printf("\n") );
 
-				rewrite_method(nextcall);
+				inline_rewrite_method(nextcall);
 
 				DOLOG( printf("%sleaving inline ", indent);
 					   show_icmd(origjd, o_iptr, false, SHOW_STACK); printf("\n") );
@@ -1896,7 +2054,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 
 	/* write inlined code */
 
-	rewrite_method(iln);
+	inline_rewrite_method(iln);
 
 	/* create exception handlers */
 
@@ -1999,7 +2157,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 			*jd = *n_jd;
 
 #if !defined(NDEBUG)
-			inline_count_methods++;
+			inline_stat_roots++;
 
 			/* inline_debug_log++; */
 			DOLOG(
@@ -2039,7 +2197,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	   site.............information on the call site
 
    RETURN VALUE:
-       true........inlining should be done
+       true........consider for inlining
 	   false.......don't inline
 
 *******************************************************************************/
@@ -2048,8 +2206,10 @@ static bool inline_pre_parse_heuristics(const inline_node *caller,
 										const methodinfo *callee,
 										inline_site *site)
 {
-	if (caller->depth >= 3)
+#if defined(INLINE_MAX_DEPTH)
+	if (caller->depth >= INLINE_MAX_DEPTH)
 		return false;
+#endif
 
 	return true;
 }
@@ -2065,7 +2225,7 @@ static bool inline_pre_parse_heuristics(const inline_node *caller,
 	   callee...........the called method (const)
 
    RETURN VALUE:
-       true........inlining should be done
+	   true........consider for inlining
 	   false.......don't inline
 
 *******************************************************************************/
@@ -2088,7 +2248,7 @@ static bool inline_post_parse_heuristics(const inline_node *caller,
 	   callee...........the called method (const)
 
    RETURN VALUE:
-       true........inlining should be done
+	   true........consider for inlining
 	   false.......don't inline
 
 *******************************************************************************/
@@ -2096,13 +2256,17 @@ static bool inline_post_parse_heuristics(const inline_node *caller,
 static bool inline_afterwards_heuristics(const inline_node *caller,
 										 const inline_node *callee)
 {
-	if (caller->cumul_basicblockcount + callee->cumul_basicblockcount
-			> 10*caller->ctx->master->jd->basicblockcount)
-	{
-#if 0
-		printf("STOPPING to avoid code explosion (%d blocks)\n",
-				caller->cumul_basicblockcount);
+	if (0
+#if defined(INLINE_MAX_BLOCK_EXPANSION)
+		|| (caller->cumul_basicblockcount + callee->cumul_basicblockcount
+			> INLINE_MAX_BLOCK_EXPANSION*caller->ctx->master->jd->basicblockcount)
 #endif
+#if defined(INLINE_MAX_ICMD_EXPANSION)
+		|| (caller->cumul_instructioncount + callee->cumul_instructioncount
+			> INLINE_MAX_ICMD_EXPANSION*caller->ctx->master->jd->instructioncount)
+#endif
+	   )
+	{
 		return false;
 	}
 
@@ -2146,7 +2310,7 @@ static bool inline_is_monomorphic(const methodinfo *callee,
 			== (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED))
 	{
 		if (1) {
-			DOLOG( printf("SPECULATIVE INLINE: "); method_println(callee); );
+			DOLOG( printf("SPECULATIVE INLINE: "); method_println((methodinfo*)callee); );
 			site->speculative = true;
 
 			return true;
@@ -2247,7 +2411,7 @@ static inline_node * inline_create_callee_node(const inline_node *caller,
    IN:
        caller...........inlining node of the caller (const)
 	   cn...............the called method
-	   call.............the invocation instruction (const)
+	   site.............info about the call site (const)
 
    OUT:
        *cn..............has the properties set
@@ -2256,11 +2420,19 @@ static inline_node * inline_create_callee_node(const inline_node *caller,
 
 static void inline_set_callee_properties(const inline_node *caller,
 										 inline_node *cn,
-										 const instruction *call)
+										 const inline_site *site)
 {
 	s4           argi;
 	s4           i, j;
 	basicblock  *bptr;
+
+	/* set info about the call site */
+
+	cn->callerblock = site->bptr;
+	cn->callerins = site->iptr;
+	cn->callerpc = site->pc;
+	cn->o_handlers = site->handlers;
+	cn->n_handlercount = caller->n_handlercount + site->nhandlers;
 
 	/* determine if we need basic block boundaries before/after */
 
@@ -2356,12 +2528,12 @@ static void inline_set_callee_properties(const inline_node *caller,
 
 	/* determine pass-through variables */
 
-	i = call->s1.argcount - cn->m->parseddesc->paramcount; /* max # of pass-though vars */
+	i = site->iptr->s1.argcount - cn->m->parseddesc->paramcount; /* max # of pass-though vars */
 
 	cn->n_passthroughvars = DMNEW(s4, i);
 	j = 0;
-	for (argi = call->s1.argcount - 1; argi >= cn->m->parseddesc->paramcount; --argi) {
-		s4 idx = call->sx.s23.s2.args[argi];
+	for (argi = site->iptr->s1.argcount - 1; argi >= cn->m->parseddesc->paramcount; --argi) {
+		s4 idx = site->iptr->sx.s23.s2.args[argi];
 		if (idx >= caller->jd->localcount) {
 			cn->n_passthroughvars[j] = idx;
 			j++;
@@ -2421,27 +2593,20 @@ static void inline_cumulate_counters(inline_node *caller,
    IN:
        caller...........inlining node of the caller
 	   callee...........the called method
-	   callerblock......basic block containing the call
-	   calleriptr.......the invocation instruction
-	   callerpc.........PC (icmd index) of the call
-	   handlers.........handlers covering this call
-	   nhandlers........number of handlers covering this call
 	   site.............info about the call site
 
+   OUT:
+       site->inlined....true if the callee has been selected for inlining
+
    RETURN VALUE:
-       true........everything ok
-	   false.......an error has occurred, don't use the inlining plan
+       the inline node of the callee, or
+       NULL if an error has occurred (don't use the inlining plan in this case)
 
 *******************************************************************************/
 
-static bool inline_analyse_callee(inline_node *caller,
-								  methodinfo *callee,
-								  basicblock *callerblock,
-								  instruction *calleriptr,
-								  s4 callerpc,
-								  exception_entry **handlers,
-								  s4 nhandlers,
-								  inline_site *site)
+static inline_node * inline_analyse_callee(inline_node *caller,
+										   methodinfo *callee,
+										   inline_site *site)
 {
 	inline_node *cn;              /* the callee inline_node */
 
@@ -2452,12 +2617,12 @@ static bool inline_analyse_callee(inline_node *caller,
 	/* get the intermediate representation of the callee */
 
 	if (!inline_jit_compile(cn))
-		return false;
+		return NULL;
 
 	/* evaluate heuristics after parsing the callee */
 
 	if (!inline_post_parse_heuristics(caller, cn))
-		return true;
+		return cn;
 
 	/* the call site will be inlined */
 
@@ -2465,37 +2630,77 @@ static bool inline_analyse_callee(inline_node *caller,
 
 	/* set info about the call site */
 
-	cn->callerblock = callerblock;
-	cn->callerins = calleriptr;
-	cn->callerpc = callerpc;
-	cn->o_handlers = handlers;
-	cn->n_handlercount = caller->n_handlercount + nhandlers;
-
-	inline_set_callee_properties(caller, cn, calleriptr);
+	inline_set_callee_properties(caller, cn, site);
 
 	/* insert the node into the inline tree */
 
-	insert_inline_node(caller, cn);
+	inline_insert_inline_node(caller, cn);
 
 	/* analyse recursively */
 
-	if (!inline_make_inlining_plan(cn))
-		return false;
+	if (!inline_analyse_code(cn))
+		return NULL;
 
-	if (!inline_afterwards_heuristics(caller, cn))
-		return false;
+	if (!inline_afterwards_heuristics(caller, cn)) {
+#if defined(INLINE_CANCEL_ON_THRESHOLD)
+		return NULL;
+#else
+		inline_remove_inline_node(caller, cn);
+		caller->ctx->stopped = true;
+		site->inlined = false;
+		return cn;
+#endif
+	}
 
 	/* cumulate counters */
 
+#if !defined(INLINE_KNAPSACK)
 	inline_cumulate_counters(caller, cn);
+#endif
+
+	return cn;
+}
+
+
+/* inline_process_candidate ****************************************************
+
+   Process a selected inlining candidate.
+
+   IN:
+       cand.............the candidate
+
+   RETURN VALUE:
+       true........everything ok
+	   false.......an error has occurred, don't use the plan
+
+*******************************************************************************/
+
+static bool inline_process_candidate(inline_candidate *cand)
+{
+	inline_node *cn;
+
+	cn = inline_analyse_callee(cand->caller,
+							   cand->callee,
+							   &(cand->site));
+
+	if (!cn)
+		return false;
+
+	if (!cand->site.inlined)
+		return true;
+
+	/* store assumptions */
+
+	if (cand->site.speculative)
+		method_add_assumption_monomorphic(cand->callee, cand->caller->ctx->master->m);
 
 	return true;
 }
 
 
-/* inline_make_inlining_plan ***************************************************
+/* inline_analyse_code *********************************************************
 
-   Create the inlining plan for the given node.
+   Analyse the intermediate code of the given inlining node.
 
    IN:
        iln..............the inlining node
@@ -2509,7 +2714,7 @@ static bool inline_analyse_callee(inline_node *caller,
 
 *******************************************************************************/
 
-static bool inline_make_inlining_plan(inline_node *iln)
+static bool inline_analyse_code(inline_node *iln)
 {
 	methodinfo *m;
 	basicblock *bptr;
@@ -2585,25 +2790,30 @@ static bool inline_make_inlining_plan(inline_node *iln)
 				case ICMD_INVOKESTATIC:
 				case ICMD_INVOKEINTERFACE:
 
-					if (!INSTRUCTION_IS_UNRESOLVED(iptr)) {
+					if (!INSTRUCTION_IS_UNRESOLVED(iptr) && !iln->ctx->stopped) {
 						callee = iptr->sx.s23.s3.fmiref->p.method;
 
-						if (inline_can_inline(iln, callee, iptr, &site)
-							&& inline_pre_parse_heuristics(iln, callee, &site))
-						{
+						if (inline_can_inline(iln, callee, iptr, &site)) {
 							site.inlined = false;
+							site.bptr = bptr;
+							site.iptr = iptr;
+							site.pc = blockendpc - len - 1;
+							site.handlers = handlers;
+							site.nhandlers = nhandlers;
 
-							if (!inline_analyse_callee(iln, callee,
-										bptr,
-										iptr,
-										blockendpc - len - 1 /* XXX ugly */,
-										handlers,
-										nhandlers,
-										&site))
-								return false;
+							if (inline_pre_parse_heuristics(iln, callee, &site)) {
+#if defined(INLINE_KNAPSACK)
+								inline_add_candidate(iln->ctx, iln, callee, &site);
+#else
+								inline_candidate cand;
+								cand.caller = iln;
+								cand.callee = callee;
+								cand.site   = site;
 
-							if (site.inlined && site.speculative)
-								method_add_assumption_monomorphic(callee, iln->ctx->master->m);
+								if (!inline_process_candidate(&cand))
+									return false;
+#endif
+							}
 						}
 					}
 					break;
@@ -2625,6 +2835,112 @@ static bool inline_make_inlining_plan(inline_node *iln)
 
 	return true;
 }
+
+
+static void inline_cumulate_counters_recursive(inline_node *iln)
+{
+	inline_node *child;
+
+	child = iln->children;
+	if (child) {
+		do {
+			inline_cumulate_counters_recursive(child);
+			inline_cumulate_counters(iln, child);
+			child = child->next;
+		} while (child != iln->children);
+	}
+}
+
+
+/* inline_make_inlining_plan ***************************************************
+
+   Make an inlining plan for the given root node
+
+   IN:
+       iln..............the root node
+
+   OUT:
+       *iln.............the inlining plan
+
+   RETURN VALUE:
+       true........everything ok
+	   false.......an error has occurred, don't use the plan
+
+*******************************************************************************/
+
+static bool inline_make_inlining_plan(inline_node *iln)
+{
+#if defined(INLINE_KNAPSACK)
+	inline_candidate *cand;
+#if defined(INLINE_COST_BUDGET)
+	s4 budget = INLINE_COST_BUDGET;
+#   define BUDGETMEMBER cost
+#endif
+#if defined(INLINE_WEIGHT_BUDGET)
+	double budget = INLINE_WEIGHT_BUDGET;
+#   define BUDGETMEMBER weight
+#endif
+
+	inline_analyse_code(iln);
+
+	DOLOG( printf("candidates in "); method_println(iln->m);
+		   inline_candidates_println(iln->ctx); );
+
+	while ((cand = inline_pick_best_candidate(iln->ctx)) != NULL)
+	{
+		if (cand->BUDGETMEMBER <= budget) {
+			DOLOG( printf("    picking: "); inline_candidate_println(cand); );
+
+			if (!inline_process_candidate(cand))
+				return false;
+
+#if !defined(INLINE_ADD_NEGATIVE_TO_BUDGET)
+			if (cand->BUDGETMEMBER > 0)
+#endif
+				budget -= cand->BUDGETMEMBER;
+		}
+	}
+
+	inline_cumulate_counters_recursive(iln);
+
+	return true;
+#else
+	return inline_analyse_code(iln);
+#endif
+}
+
+
+/* statistics *****************************************************************/
+
+#if defined(INLINE_STATISTICS)
+static void inline_gather_statistics_recursive(inline_node *iln)
+{
+	inline_node *child;
+
+	inline_stat_inlined_nodes++;
+
+	if (iln->depth > inline_stat_max_depth)
+		inline_stat_max_depth++;
+
+	child = iln->children;
+	if (child) {
+		do {
+			inline_gather_statistics_recursive(child);
+			child = child->next;
+		} while (child != iln->children);
+	}
+}
+#endif /* defined(INLINE_STATISTICS) */
+
+
+#if defined(INLINE_STATISTICS)
+static void inline_gather_statistics(inline_node *iln)
+{
+	inline_stat_roots_transformed++;
+
+	inline_gather_statistics_recursive(iln);
+}
+#endif /* defined(INLINE_STATISTICS) */
 
 
 /* post processing ************************************************************/
@@ -2801,7 +3117,9 @@ static inline_node * inline_create_root_node(jitdata *jd)
 }
 
 
-/* main driver function *******************************************************/
+/******************************************************************************/
+/* MAIN DRIVER FUNCTION                                                       */
+/******************************************************************************/
 
 bool inline_inline(jitdata *jd)
 {
@@ -2809,6 +3127,10 @@ bool inline_inline(jitdata *jd)
 
 	DOLOG( printf("==== INLINE ==================================================================\n");
 		   show_method(jd, SHOW_STACK); );
+
+#if defined(INLINE_STATISTICS)
+	inline_stat_roots++;
+#endif
 
 	iln = inline_create_root_node(jd);
 
@@ -2823,6 +3145,10 @@ bool inline_inline(jitdata *jd)
 
 		if (iln->children)
 			inline_transform(iln, jd);
+
+#if defined(INLINE_STATISTICS)
+		inline_gather_statistics(iln);
+#endif
 	}
 
 	DOLOG( printf("-------- DONE -----------------------------------------------------------\n");
