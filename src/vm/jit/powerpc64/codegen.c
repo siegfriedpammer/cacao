@@ -31,7 +31,7 @@
             Edwin Steiner
             Roland Lezuo
 
-   $Id: codegen.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: codegen.c 7215 2007-01-15 10:28:26Z twisti $
 
 */
 
@@ -96,7 +96,6 @@ bool codegen(jitdata *jd)
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
 	methoddesc         *md;
-	rplpoint           *replacementpoint;
 	s4                  fieldtype;
 	s4                  varindex;
 	unresolved_field   *uf;
@@ -327,9 +326,12 @@ bool codegen(jitdata *jd)
 
 	/* end of header generation */
 
-	replacementpoint = jd->code->rplpoints;
+	/* create replacement points */
+  	 
+	REPLACEMENT_POINTS_INIT(cd, jd);
 
 	/* walk through all basic blocks */
+
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
 
 		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
@@ -347,13 +349,7 @@ bool codegen(jitdata *jd)
 
 		/* handle replacement points */
 
-#if 0
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
-			
-			replacementpoint++;
-		}
-#endif
+		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
 
 		/* copy interface registers to their destination */
 
@@ -407,11 +403,29 @@ bool codegen(jitdata *jd)
 
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 
-			switch (iptr->opc) {
-			case ICMD_NOP:    /* ...  ==> ...                                 */
-			case ICMD_INLINE_START:
-			case ICMD_INLINE_END:
-				break;
+		switch (iptr->opc) {
+		case ICMD_NOP:        /* ...  ==> ...                                 */
+		case ICMD_POP:        /* ..., value  ==> ...                          */
+		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
+			break;
+
+		case ICMD_INLINE_START:
+
+			REPLACEMENT_POINT_INLINE_START(cd, iptr);
+			break;
+
+		case ICMD_INLINE_BODY:
+  	 
+			REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
+			dseg_addlinenumber_inline_start(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line);
+			break;
+
+		case ICMD_INLINE_END:
+
+			dseg_addlinenumber_inline_end(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line);
+			break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
@@ -454,6 +468,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
+
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			disp = dseg_add_address(cd, iptr->sx.val.anyptr);
 
@@ -491,15 +506,6 @@ bool codegen(jitdata *jd)
 		case ICMD_ASTORE:
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
 				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
-			break;
-
-		/* pop operations *****************************************************/
-
-		/* attention: double and longs are only one entry in CACAO ICMDs      */
-
-		case ICMD_POP:        /* ..., value  ==> ...                          */
-		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-
 			break;
 
 
@@ -1912,12 +1918,14 @@ bool codegen(jitdata *jd)
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_LNGMOVE(s1, REG_RESULT);
 			goto nowperformreturn;
 
 		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_LNGMOVE(s1, REG_RESULT);
 
@@ -1936,11 +1944,14 @@ bool codegen(jitdata *jd)
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
 			M_FLTMOVE(s1, REG_FRESULT);
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
+
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 
 nowperformreturn:
 			{
@@ -2126,6 +2137,8 @@ nowperformreturn:
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
 
+			REPLACEMENT_POINT_INVOKE(cd, iptr);
+
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				md = iptr->sx.s23.s3.um->methodref->parseddesc.md;
 				lm = NULL;
@@ -2181,11 +2194,10 @@ gen_method:
 				M_ALD(REG_ITMP1, REG_PV, 0);	/* function entry point address, what about TOC */
 				M_MTCTR(REG_ITMP1);
 				M_JSR;
-
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
-
 
 				if (INSTRUCTION_MUST_CHECK(iptr)) {
 					M_CMPI(REG_RESULT, 0);
@@ -2222,6 +2234,7 @@ gen_method:
 				M_ALD(REG_PV, REG_PV, disp);
 				M_MTCTR(REG_PV);
 				M_JSR;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
@@ -2252,6 +2265,7 @@ gen_method:
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 				M_MTCTR(REG_PV);
 				M_JSR;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
@@ -2287,6 +2301,7 @@ gen_method:
 				M_ALD(REG_PV, REG_METHODPTR, s2);
 				M_MTCTR(REG_PV);
 				M_JSR;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
@@ -2299,7 +2314,8 @@ gen_method:
 				if (IS_INT_LNG_TYPE(d)) {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
 					M_MOV(REG_RESULT, s1);
-				} else {
+				}
+				else {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
 					M_FLTMOVE(REG_FRESULT, s1);
 				}
