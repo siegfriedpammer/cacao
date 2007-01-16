@@ -1,6 +1,6 @@
 /* src/cacaoh/headers.c - functions for header generation
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Mark Probst
-            Philipp Tomsich
-            Christian Thalinger
-            Edwin Steiner
-
-   $Id: headers.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: headers.c 7218 2007-01-16 12:59:51Z twisti $
 
 */
 
@@ -136,16 +128,34 @@ void vm_abort(const char *text, ...)
 /* code patching functions */
 void patcher_builtin_arraycheckcast(u1 *sp) {}
 
-#if defined(__MIPS__)
-long compare_and_swap(long *p, long oldval, long newval)
+
+long compare_and_swap(volatile long *p, long oldval, long newval)
 {
 	if (*p == oldval) {
-		*p = newval;
-		return oldval;
-	} else
-		return *p;
+        *p = newval;
+        return oldval;
+	}
+	else
+        return *p;
+
+	return oldval;
 }
-#endif
+
+long asm_compare_and_swap(volatile long *p, long oldval, long newval)
+{
+	if (*p == oldval) {
+        *p = newval;
+        return oldval;
+	}
+	else
+        return *p;
+
+	return oldval;
+}
+
+void asm_memory_barrier(void)
+{
+}
 
 
 u1 *createcompilerstub(methodinfo *m) { return NULL; }
