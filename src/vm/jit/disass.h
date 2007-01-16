@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 4709 2006-03-30 10:14:22Z twisti $
+   $Id: disass.h 7219 2007-01-16 22:18:57Z pm $
 
 */
 
@@ -96,7 +96,7 @@ extern bool disass_initialized;
 
 extern char *regs[];
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
 extern char disass_buf[512];
 extern s4   disass_len;
 #endif

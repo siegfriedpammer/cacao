@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 6595 2007-01-11 14:19:48Z twisti $
+dnl $Id: configure.ac 7219 2007-01-16 22:18:57Z pm $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -104,6 +104,12 @@ xdspcore )
     ARCH_CFLAGS="-D__XDSPCORE__"
     USE_SCHEDULER="1"
     ;;
+
+s390 )
+    ARCH_DIR="s390"
+    ARCH_CFLAGS="-D__S390__"
+    ;;
+
 
 * )
     AC_MSG_ERROR($host_cpu systems are not supported at this time)
@@ -475,7 +481,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
     dnl check for binutils headers and libraries on some architectures for the
     dnl disassembler
     case "${ARCH_DIR}" in
-        arm | i386 | powerpc | x86_64 | sparc64 | powerpc64)
+        arm | i386 | powerpc | x86_64 | sparc64 | powerpc64 | s390)
             AC_CHECK_HEADER([ansidecl.h],, [AC_MSG_ERROR(cannot find ansidecl.h)])
             AC_CHECK_HEADER([symcat.h],, [AC_MSG_ERROR(cannot find symcat.h)])
             AC_CHECK_HEADER([bfd.h],, [AC_MSG_ERROR(cannot find bfd.h)])
@@ -1059,6 +1065,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/tools/Makefile]
 		[src/vm/jit/verify/Makefile]
 		[src/vm/jit/x86_64/Makefile]
+		[src/vm/jit/s390/Makefile]
 		[tests/Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/codepatching/Makefile]

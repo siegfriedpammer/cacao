@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 6595 2007-01-11 14:19:48Z twisti $
+## $Id: Makefile.am 7219 2007-01-16 22:18:57Z pm $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -54,7 +54,8 @@ DIST_SUBDIRS = \
 	powerpc \
 	powerpc64 \
 	sparc64 \
-	x86_64
+	x86_64 \
+	s390
 
 SUBDIRS = \
 	optimizing \

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass-common.c 4844 2006-04-25 18:02:15Z edwin $
+   $Id: disass-common.c 7219 2007-01-16 22:18:57Z pm $
 
 */
 
@@ -59,7 +59,7 @@ bool disass_initialized = false;
 /* We need this on i386 and x86_64 since we don't know the byte length
    of currently printed instructions.  512 bytes should be enough. */
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
 char disass_buf[512];
 s4   disass_len;
 #endif
@@ -99,7 +99,7 @@ void disass_printf(PTR p, const char *fmt, ...)
 
 	va_start(ap, fmt);
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
 	disass_len += vsprintf(disass_buf + disass_len, fmt, ap);
 #else
 	vprintf(fmt, ap);

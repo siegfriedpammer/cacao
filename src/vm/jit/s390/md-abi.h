@@ -1,0 +1,200 @@
+/* src/vm/jit/x86_64/md-abi.h - defines for x86_64 Linux ABI
+
+   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
+   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
+   J. Wenninger, Institut f. Computersprachen - TU Wien
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+   Contact: cacao@cacaojvm.org
+
+   Authors: Christian Thalinger
+
+   Changes:
+
+   $Id: md-abi.h 7219 2007-01-16 22:18:57Z pm $
+
+*/
+
+
+#ifndef _MD_ABI_H
+#define _MD_ABI_H
+
+/* keep old code happy */
+
+#define RIP    -1
+#define RAX    0
+#define RCX    1
+#define RDX    2
+#define RBX    3
+#define RSP    4
+#define RBP    5
+#define RSI    6
+#define RDI    7
+#define R8     8
+#define R9     9
+#define R10    10
+#define R11    11
+#define R12    12
+#define R13    13
+#define R14    14
+#define R15    15
+
+
+#define XMM0   0
+#define XMM1   1
+#define XMM2   2
+#define XMM3   3
+#define XMM4   4
+#define XMM5   5
+#define XMM6   6
+#define XMM7   7
+#define XMM8   8
+#define XMM9   9
+#define XMM10  10
+#define XMM11  11
+#define XMM12  12
+#define XMM13  13
+#define XMM14  14
+#define XMM15  15
+
+
+#define REG_IFTMP       10   /* temporary integer and floating point register */
+
+
+/* define registers ***********************************************************/
+
+#define R0     0
+#define R1     1
+#define R2     2
+#define R3     3
+#define R4     4
+#define R5     5
+#define R6     6 
+#define R7     7
+#define R8     8
+#define R9     9
+#define R10    10
+#define R11    11
+#define R12    12
+#define R13    13
+#define R14    14
+#define R15    15
+
+#define F0     0
+#define F1     1
+#define F2     2
+#define F3     3
+#define F4     4
+#define F5     5
+#define F6     6
+#define F7     7
+#define F8     8
+#define F9     9
+#define F10    10
+#define F11    11
+#define F12    12
+#define F13    13
+#define F14    14
+#define F15    15
+
+/* preallocated registers *****************************************************/
+
+/* integer registers */
+  
+#define REG_RESULT      R2       /* to deliver method results                 */
+#define REG_RESULT2     R3
+
+#define REG_ITMP1       R0       /* temporary register                        */
+#define REG_ITMP2       R1       /* temporary register and method pointer     */
+#define REG_ITMP3       R14      /* temporary register                        */
+
+#define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
+#define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)
+#define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
+
+#define REG_METHODPTR   REG_ITMP2/* pointer to the place from where the       */
+                                 /* procedure vector has been fetched         */
+
+#define REG_NULL        -1       /* used for reg_of_var where d is not needed */
+
+#define REG_ITMP1_XPTR  REG_ITMP1/* exception pointer = temporary register 1  */
+#define REG_ITMP2_XPC   REG_ITMP2/* exception pc = temporary register 2       */
+
+#define REG_SP          R15      /* stack pointer                             */
+
+#define REG_PV  R13
+
+#define REG_A0          R2      /* define some argument registers            */
+#define REG_A1          R3
+#define REG_A2          R4 
+#define REG_A3          R5
+#define REG_A4          R6
+
+/* floating point registers */
+
+#define REG_FRESULT     F0       /* to deliver floating point method results  */
+
+#define REG_FTMP1       F1       /* temporary floating point register         */
+#define REG_FTMP2       F3       /* temporary floating point register         */
+#define REG_FTMP3       F5       /* temporary floating point register         */
+
+#define __REG_IFTMP       10       /* temporary integer and floating point register */
+
+
+#define INT_REG_CNT     16       /* number of integer registers               */
+#define INT_SAV_CNT     6        /* number of integer callee saved registers  */
+#define INT_ARG_CNT     5        /* number of integer argument registers      */
+#define INT_TMP_CNT     3        /* number of integer temporary registers     */
+#define INT_RES_CNT     2        /* number of integer reserved registers      */
+
+#define FLT_REG_CNT     16       /* number of float registers                 */
+#define FLT_SAV_CNT     2        /* number of float callee saved registers    */
+#define FLT_ARG_CNT     2        /* number of float argument registers        */
+#define FLT_TMP_CNT     12        /* number of float temporary registers       */
+#define FLT_RES_CNT     0        /* number of float reserved registers        */
+
+#define TRACE_ARGS_NUM  6
+
+
+
+
+
+
+
+
+
+
+
+
+#endif /* _MD_ABI_H */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
