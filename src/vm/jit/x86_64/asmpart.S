@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-
-   Changes: Edwin Steiner
-
-   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
+   $Id: asmpart.S 7217 2007-01-16 12:52:48Z twisti $
 
 */
 
@@ -531,7 +523,7 @@ asm_abstractmethoderror:
 asm_patcher_wrapper:
 	push    bp                          /* save base pointer                  */
 	mov     sp,bp                       /* move actual sp to bp               */
-	sub     $((3+ARG_CNT+TMP_CNT)*8+sizestackframeinfo),sp
+	sub     $(3+ARG_CNT+TMP_CNT)*8,sp
 	and     $0xfffffffffffffff0,sp      /* align sp to 16-byte (this is for   */
 	                                    /* leaf functions)                    */
 
