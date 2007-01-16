@@ -1,6 +1,6 @@
 /* src/vm/jit/asmpart.h - prototypes for machine specfic functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Andreas Krall
-
-   Changes: Christian Thalinger
-            Edwin Steiner
-
-   $Id: asmpart.h 6265 2007-01-02 20:40:57Z edwin $
+   $Id: asmpart.h 7216 2007-01-16 09:54:47Z twisti $
 
 */
 
@@ -154,6 +146,9 @@ void asm_patcher_wrapper(void);
 void asm_replacement_out(void);
 void asm_replacement_in(executionstate_t *es, replace_safestack_t *st);
 #endif
+
+long asm_compare_and_swap(volatile long *p, long oldval, long newval);
+void asm_memory_barrier(void);
 
 #if defined(ENABLE_THREADS)
 extern critical_section_node_t asm_criticalsections;

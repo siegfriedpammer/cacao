@@ -1,6 +1,6 @@
 /* src/vm/jit/alpha/asmpart.S - Java-C interface functions for alpha
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,16 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-
-   Changes: Joseph Wenninger
-            Christian Thalinger
-	    	Edwin Steiner
-
-   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
+   $Id: asmpart.S 7216 2007-01-16 09:54:47Z twisti $
 
 */
 
@@ -73,6 +64,9 @@
 	.globl asm_replacement_out
 	.globl asm_replacement_in
 #endif
+
+	.globl asm_compare_and_swap
+	.globl asm_memory_barrier
 
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
@@ -746,6 +740,44 @@ asm_replacement_in:
 	.end asm_replacement_in
 
 #endif /* defined(ENABLE_REPLACEMENT) */
+
+
+/* asm_compare_and_swap ********************************************************
+
+   Does an atomic compare and swap.  Required for the lock
+   implementation.
+
+*******************************************************************************/
+
+	.ent    asm_compare_and_swap
+
+asm_compare_and_swap:
+1:
+	ldq_l   v0,0(a0)
+	cmpeq   v0,a1,t0
+	beq     t0,2f
+	mov     a2,t0
+	stq_c   t0,0(a0)
+	beq     t0,1b
+2:
+	jmp     zero,(ra)
+
+	.end    asm_compare_and_swap
+
+
+/* asm_memory_barrier **********************************************************
+
+   A memory barrier for the Java Memory Model.
+
+*******************************************************************************/
+
+	.ent    asm_memory_barrier
+
+asm_memory_barrier:
+	mb
+	jmp     zero,(ra)
+
+	.end    asm_memory_barrier
 
 
 	.ent    asm_getclassvalues_atomic
