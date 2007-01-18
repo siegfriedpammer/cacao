@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 5825 2006-10-26 09:29:23Z twisti $
+   $Id: md-asm.h 7224 2007-01-18 11:43:03Z twisti $
 
 */
 
@@ -348,13 +348,17 @@
 	sw      a0,(0+(off))*4(sp)	; \
 	sw      a1,(1+(off))*4(sp)	; \
 	sw      a2,(2+(off))*4(sp)	; \
-	sw      a3,(3+(off))*4(sp)	;
+	sw      a3,(3+(off))*4(sp)	; \
+    sdc1    fa0,(4+(off))*4(sp) ; \
+    sdc1    fa1,(6+(off))*4(sp) ;
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
 	lw      a0,(0+(off))*4(sp)	; \
 	lw      a1,(1+(off))*4(sp)	; \
 	lw      a2,(2+(off))*4(sp)	; \
-	lw      a3,(3+(off))*4(sp)	;
+	lw      a3,(3+(off))*4(sp)	; \
+    ldc1    fa0,(4+(off))*4(sp) ; \
+    ldc1    fa1,(6+(off))*4(sp) ;
 
 
 #define SAVE_TEMPORARY_REGISTERS(off) \
@@ -365,7 +369,11 @@
 	sw      t4,(4+(off))*4(sp)	; \
 	sw      t5,(5+(off))*4(sp)	; \
 	sw      t6,(6+(off))*4(sp)	; \
-	sw      t7,(7+(off))*4(sp)	;
+	sw      t7,(7+(off))*4(sp)	; \
+    sdc1    ft0,(8+(off))*4(sp) ; \
+    sdc1    ft1,(10+(off))*4(sp) ; \
+    sdc1    ft2,(12+(off))*4(sp) ; \
+    sdc1    ft3,(14+(off))*4(sp) ;
 
 #define RESTORE_TEMPORARY_REGISTERS(off) \
 	lw      t0,(0+(off))*4(sp)	; \
@@ -375,7 +383,11 @@
 	lw      t4,(4+(off))*4(sp)	; \
 	lw      t5,(5+(off))*4(sp)	; \
 	lw      t6,(6+(off))*4(sp)	; \
-	lw      t7,(7+(off))*4(sp)	;
+	lw      t7,(7+(off))*4(sp)	; \
+    ldc1    ft0,(8+(off))*4(sp) ; \
+    ldc1    ft1,(10+(off))*4(sp) ; \
+    ldc1    ft2,(12+(off))*4(sp) ; \
+    ldc1    ft3,(14+(off))*4(sp) ;
 
 #endif /* SIZEOF_VOID_P == 8 */
 

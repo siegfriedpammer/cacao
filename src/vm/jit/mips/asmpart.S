@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 7206 2007-01-11 22:39:52Z twisti $
+   $Id: asmpart.S 7224 2007-01-18 11:43:03Z twisti $
 
 */
 
@@ -719,44 +719,44 @@ L_asm_patcher_wrapper_exception:
 
 #else /* SIZEOF_VOID_P == 8 */
 
-	aaddiu  sp,sp,-((5+4+4+8+7)*4) /* create stack frame                      */
+	aaddiu  sp,sp,-((6+4+8+16+7)*4) /* create stack frame                     */
 	                              /* +7 keeps the SP 16-bytes aligned         */
 
-	SAVE_RETURN_REGISTERS(5)      /* save 2 int / 2 float return registers    */
-	SAVE_ARGUMENT_REGISTERS(9)    /* save 4 int argument registers            */
-	SAVE_TEMPORARY_REGISTERS(13)  /* save 8 int temporary registers           */
+	SAVE_RETURN_REGISTERS(6)      /* save 2 int / 1 float return registers    */
+	SAVE_ARGUMENT_REGISTERS(10)   /* save 4 int / 2 float argument registers  */
+	SAVE_TEMPORARY_REGISTERS(18)  /* save 8 int / 4 float temporary registers */
 
-	ast     itmp1,(5+4+4+8+0)*4(sp) /* save itmp1                             */
-	ast     itmp2,(5+4+4+8+1)*4(sp) /* save itmp2                             */
-	ast     ra,(5+4+4+8+2)*4(sp)  /* save method return address (for leafs)   */
-	ast     pv,(5+4+4+8+3)*4(sp)  /* save pv of calling java function         */
+	ast     itmp1,(6+4+8+16+0)*4(sp) /* save itmp1                            */
+	ast     itmp2,(6+4+8+16+1)*4(sp) /* save itmp2                            */
+	ast     ra,(6+4+8+16+2)*4(sp) /* save method return address (for leafs)   */
+	ast     pv,(6+4+8+16+3)*4(sp) /* save pv of calling java function         */
 
-	aaddiu  a0,sp,(5+4+4+8+7)*4   /* pass SP of patcher stub                  */
+	aaddiu  a0,sp,(6+4+8+16+7)*4  /* pass SP of patcher stub                  */
 	move    a1,pv                 /* pass PV                                  */
 	move    a2,ra                 /* pass RA (correct for leafs)              */
 	jal     patcher_wrapper
 	move    itmp3,v0
 
-	RESTORE_RETURN_REGISTERS(5)   /* restore 2 int / 2 float return registers */
-	RESTORE_ARGUMENT_REGISTERS(9) /* restore 4 int argument registers         */
-	RESTORE_TEMPORARY_REGISTERS(13) /* restore 9 int temporary registers      */
+	RESTORE_RETURN_REGISTERS(6)   /* restore 2 int / 2 float return registers */
+	RESTORE_ARGUMENT_REGISTERS(10) /* restore 4 int / 2 float argument regs   */
+	RESTORE_TEMPORARY_REGISTERS(18) /* restore 8 int / 4 float temporary regs */
 
-	ald     itmp1,(5+4+4+8+0)*4(sp) /* restore itmp1                          */
-	ald     itmp2,(5+4+4+8+1)*4(sp) /* restore itmp2                          */
-	ald     ra,(5+4+4+8+2)*4(sp)  /* restore method return address (for leafs)*/
-	ald     pv,(5+4+4+8+3)*4(sp)  /* restore pv of calling java function      */
+	ald     itmp1,(6+4+8+16+0)*4(sp) /* restore itmp1                         */
+	ald     itmp2,(6+4+8+16+1)*4(sp) /* restore itmp2                         */
+	ald     ra,(6+4+8+16+2)*4(sp) /* restore method return address (for leafs)*/
+	ald     pv,(6+4+8+16+3)*4(sp) /* restore pv of calling java function      */
 
 	bnez    itmp3,L_asm_wrapper_patcher_exception
 
-	ald     itmp3,7*8+(5+4+4+8+7)*4(sp) /* load RA                            */
-	aaddiu  sp,sp,8*8+(5+4+4+8+7)*4 /* remove stack frame                     */
+	ald     itmp3,7*8+(6+4+8+16+7)*4(sp) /* load RA                           */
+	aaddiu  sp,sp,8*8+(6+4+8+16+7)*4 /* remove stack frame                    */
 
 	jr      itmp3                 /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
 	move    xptr,itmp3            /* get exception                            */
-	ald     xpc,7*8+(5+4+4+8+7)*4(sp) /* xpc is RA                            */
-	aaddiu  sp,sp,8*8+(5+4+4+8+7)*4 /* remove stack frame                     */
+	ald     xpc,7*8+(6+4+8+16+7)*4(sp) /* xpc is RA                           */
+	aaddiu  sp,sp,8*8+(6+4+8+16+7)*4 /* remove stack frame                    */
 
 #endif /* SIZEOF_VOID_P == 8 */
 
