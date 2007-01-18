@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Martin Platter
-
    $Id: vm.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
@@ -144,6 +139,7 @@ enum {
 
 	OPT_HELP,
 	OPT_X,
+	OPT_XX,
 
 	OPT_ESA,
 	OPT_DSA,
@@ -263,6 +259,7 @@ opt_struct opts[] = {
 	{ "help",              false, OPT_HELP },
 	{ "?",                 false, OPT_HELP },
 	{ "X",                 false, OPT_X },
+	{ "XX",                false, OPT_XX },
 
 	{ "esa",                     false, OPT_ESA },
 	{ "enablesystemassertions",  false, OPT_ESA },
@@ -380,7 +377,7 @@ void usage(void)
 	puts("   or  cacao [-options] -jar jarfile [arguments]");
 	puts("               (to run a standalone jar file)\n");
 
-	puts("Java options:");
+	puts("where options include:");
 	puts("    -d32                     use 32-bit data model if available");
 	puts("    -d64                     use 64-bit data model if available");
 	puts("    -client                  compatibility (currently ignored)");
@@ -397,11 +394,11 @@ void usage(void)
 	puts("    -showversion             print product version and continue");
 	puts("    -help, -?                print this help message");
 	puts("    -X                       print help on non-standard Java options");
+	puts("    -XX                      print help on CACAO options");
 	puts("    -esa | -enablesystemassertions");
 	puts("                             enable system assertions");
 	puts("    -dsa | -disablesystemassertions");
 	puts("                             disable system assertions");
-	puts("");
 
 #ifdef ENABLE_JVMTI
 	puts("    -agentlib:<agent-lib-name>=<options>  library to load containg JVMTI agent");
@@ -409,7 +406,53 @@ void usage(void)
 	puts("    -agentpath:<path-to-agent>=<options>  path to library containg JVMTI agent");
 #endif
 
-	puts("CACAO options:");
+	/* exit with error code */
+
+	exit(1);
+}   
+
+
+static void Xusage(void)
+{
+#if defined(ENABLE_JIT)
+	puts("    -Xjit                    JIT mode execution (default)");
+#endif
+#if defined(ENABLE_INTRP)
+	puts("    -Xint                    interpreter mode execution");
+#endif
+	puts("    -Xbootclasspath:<zip/jar files and directories separated by :>");
+    puts("                             value is set as bootstrap class path");
+	puts("    -Xbootclasspath/a:<zip/jar files and directories separated by :>");
+	puts("                             value is appended to the bootstrap class path");
+	puts("    -Xbootclasspath/p:<zip/jar files and directories separated by :>");
+	puts("                             value is prepended to the bootstrap class path");
+	puts("    -Xbootclasspath/c:<zip/jar files and directories separated by :>");
+	puts("                             value is used as Java core library, but the");
+	puts("                             hardcoded VM interface classes are prepended");
+	printf("    -Xms<size>               set the initial size of the heap (default: %dMB)\n", HEAP_STARTSIZE / 1024 / 1024);
+	printf("    -Xmx<size>               set the maximum size of the heap (default: %dMB)\n", HEAP_MAXSIZE / 1024 / 1024);
+	printf("    -Xss<size>               set the thread stack size (default: %dkB)\n", STACK_SIZE / 1024);
+
+#if defined(ENABLE_PROFILING)
+	puts("    -Xprof[:bb]              collect and print profiling data");
+#endif
+
+#if defined(ENABLE_JVMTI)
+    /* -Xdebug option depend on gnu classpath JDWP options. options: 
+	 transport=dt_socket,address=<hostname:port>,server=(y|n),suspend(y|n) */
+	puts("    -Xdebug                  enable remote debugging\n");
+	puts("    -Xrunjdwp transport=[dt_socket|...],address=<hostname:port>,server=[y|n],suspend=[y|n]\n");
+	puts("                             enable remote debugging\n");
+#endif 
+
+	/* exit with error code */
+
+	exit(1);
+}   
+
+
+static void XXusage(void)
+{
 	puts("    -v                       write state-information");
 	puts("    -verbose[:call|exception|jit]");
 	puts("                             enable specific verbose output");
@@ -474,46 +517,7 @@ void usage(void)
 	/* exit with error code */
 
 	exit(1);
-}   
-
-
-static void Xusage(void)
-{
-#if defined(ENABLE_JIT)
-	puts("    -Xjit                    JIT mode execution (default)");
-#endif
-#if defined(ENABLE_INTRP)
-	puts("    -Xint                    interpreter mode execution");
-#endif
-	puts("    -Xbootclasspath:<zip/jar files and directories separated by :>");
-    puts("                             value is set as bootstrap class path");
-	puts("    -Xbootclasspath/a:<zip/jar files and directories separated by :>");
-	puts("                             value is appended to the bootstrap class path");
-	puts("    -Xbootclasspath/p:<zip/jar files and directories separated by :>");
-	puts("                             value is prepended to the bootstrap class path");
-	puts("    -Xbootclasspath/c:<zip/jar files and directories separated by :>");
-	puts("                             value is used as Java core library, but the");
-	puts("                             hardcoded VM interface classes are prepended");
-	printf("    -Xms<size>               set the initial size of the heap (default: %dMB)\n", HEAP_STARTSIZE / 1024 / 1024);
-	printf("    -Xmx<size>               set the maximum size of the heap (default: %dMB)\n", HEAP_MAXSIZE / 1024 / 1024);
-	printf("    -Xss<size>               set the thread stack size (default: %dkB)\n", STACK_SIZE / 1024);
-
-#if defined(ENABLE_PROFILING)
-	puts("    -Xprof[:bb]              collect and print profiling data");
-#endif
-
-#if defined(ENABLE_JVMTI)
-    /* -Xdebug option depend on gnu classpath JDWP options. options: 
-	 transport=dt_socket,address=<hostname:port>,server=(y|n),suspend(y|n) */
-	puts("    -Xdebug                  enable remote debugging\n");
-	puts("    -Xrunjdwp transport=[dt_socket|...],address=<hostname:port>,server=[y|n],suspend=[y|n]\n");
-	puts("                             enable remote debugging\n");
-#endif 
-
-	/* exit with error code */
-
-	exit(1);
-}   
+}
 
 
 /* version *********************************************************************
@@ -1248,6 +1252,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 		case OPT_X:
 			Xusage();
+			break;
+
+		case OPT_XX:
+			XXusage();
 			break;
 
 		case OPT_ESA:
