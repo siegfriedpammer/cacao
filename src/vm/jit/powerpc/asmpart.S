@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/asmpart.S - Java-C interface functions for PowerPC
 		
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,16 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Stefan Ring
-
-   Changes: Christian Thalinger
-            Edwin Steiner
-
-   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
+   $Id: asmpart.S 7225 2007-01-18 12:55:53Z twisti $
 
 */
 
@@ -76,6 +67,10 @@
 #endif
 
 	.globl asm_cacheflush
+
+	.globl asm_compare_and_swap
+	.globl asm_memory_barrier
+
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 
@@ -1397,6 +1392,35 @@ asm_cacheflush:
 0:
 	sync
 	isync
+	blr
+
+
+/* asm_compare_and_swap ********************************************************
+
+   XXX
+
+*******************************************************************************/
+
+asm_compare_and_swap:
+1:  lwarx   a6,r0,a0 
+	subf.   r0,a6,a1 
+	bne-    2f 
+	or      r0,a2,a2 
+	stwcx.  r0,r0,a0 
+	bne-    1b 
+2: 
+	mr      a0,a6
+	blr
+
+
+/* asm_memory_barrier **********************************************************
+
+   XXX
+
+*******************************************************************************/
+
+asm_memory_barrier:
+	sync
 	blr
 
 
