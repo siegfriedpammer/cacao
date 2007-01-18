@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/md-asm.h - assembler defines for arm ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -25,10 +25,9 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Michael Starzinger
+            Christian Thalinger
 
-   Changes: Christian Thalinger
-
-   $Id: md-asm.h 6514 2006-02-17 20:05:00Z michi $
+   $Id: md-asm.h 7227 2007-01-18 13:21:36Z twisti $
 
 */
 
@@ -44,10 +43,10 @@
 #define res1    r0  /* result registers         */
 #define res2    r1
 
-#define a1      r0  /* argument registers       */
-#define a2      r1
-#define a3      r2
-#define a4      r3
+#define a0      r0  /* argument registers       */
+#define a1      r1
+#define a2      r2
+#define a3      r3
 
 #define v1      r4  /* variable registers       */
 #define v2      r5
@@ -77,10 +76,10 @@
 /* save and restore macros ****************************************************/
 
 #define SAVE_ARGUMENT_REGISTERS \
-	stmfd   sp!, {a1,a2,a3,a4,lr}
+	stmfd   sp!, {a0,a1,a2,a3,lr}
 
 #define SAVE_ARGUMENT_REGISTERS_IP \
-	stmfd   sp!, {a1,a2,a3,a4,ip,lr}
+	stmfd   sp!, {a0,a1,a2,a3,ip,lr}
 
 #if defined(ENABLE_SOFTFLOAT)
 # define SAVE_FLOAT_REGISTERS
@@ -95,10 +94,10 @@
 
 
 #define RESTORE_ARGUMENT_REGISTERS \
-	ldmfd   sp!, {a1,a2,a3,a4,lr}
+	ldmfd   sp!, {a0,a1,a2,a3,lr}
 
 #define RESTORE_ARGUMENT_REGISTERS_IP \
-	ldmfd   sp!, {a1,a2,a3,a4,ip,lr}
+	ldmfd   sp!, {a0,a1,a2,a3,ip,lr}
 
 #if defined(ENABLE_SOFTFLOAT)
 # define RESTORE_FLOAT_REGISTERS
