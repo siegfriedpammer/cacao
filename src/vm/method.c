@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 6273 2007-01-03 22:20:25Z edwin $
+   $Id: method.c 7228 2007-01-19 01:13:48Z edwin $
 
 */
 
@@ -55,8 +55,7 @@
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
-extern bool inline_debug_log;
-#define INLINELOG(code)  do { if (inline_debug_log) { code } } while (0)
+#define INLINELOG(code)  do { if (opt_inline_debug_log) { code } } while (0)
 #else
 #define INLINELOG(code)
 #endif

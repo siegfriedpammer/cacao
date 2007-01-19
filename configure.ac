@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7219 2007-01-16 22:18:57Z pm $
+dnl $Id: configure.ac 7228 2007-01-19 01:13:48Z edwin $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -681,6 +681,23 @@ AM_CONDITIONAL([ENABLE_INLINING], test x"${ENABLE_INLINING}" = "xyes")
 
 if test x"${ENABLE_INLINING}" = "xyes"; then
     AC_DEFINE([ENABLE_INLINING], 1, [use method inlining])
+fi
+
+
+dnl check for inlining debug options
+AC_MSG_CHECKING(whether method inlining debug options should be enabled)
+AC_ARG_ENABLE([inlining-debug],
+              [AS_HELP_STRING(--enable-inlining-debug,enable method inlining debug options [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_INLINING_DEBUG=yes;;
+                   *) ENABLE_INLINING_DEBUG=no;;
+               esac],
+              [ENABLE_INLINING_DEBUG=no])
+AC_MSG_RESULT(${ENABLE_INLINING_DEBUG})
+AM_CONDITIONAL([ENABLE_INLINING_DEBUG], test x"${ENABLE_INLINING_DEBUG}" = "xyes")
+
+if test x"${ENABLE_INLINING_DEBUG}" = "xyes"; then
+    AC_DEFINE([ENABLE_INLINING_DEBUG], 1, [enable method inlining debug options])
 fi
 
 

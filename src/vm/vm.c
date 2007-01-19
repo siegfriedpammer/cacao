@@ -210,7 +210,18 @@ enum {
 
 #if defined(ENABLE_INLINING)
 	OPT_INLINING,
+#if !defined(NDEBUG)
+	OPT_INLINE_LOG,
 #endif
+#if defined(ENABLE_INLINING_DEBUG)
+	OPT_INLINE_DEBUG_ALL,
+	OPT_INLINE_DEBUG_END,
+	OPT_INLINE_DEBUG_MIN,
+	OPT_INLINE_DEBUG_MAX,
+	OPT_INLINE_REPLACE_VERBOSE,
+	OPT_INLINE_REPLACE_VERBOSE2,
+#endif /* defined(ENABLE_INLINING_DEBUG) */
+#endif /* defined(ENABLE_INLINING) */
 
 #if defined(ENABLE_INTRP)
 	/* interpreter options */
@@ -347,11 +358,24 @@ opt_struct opts[] = {
 	{ "Xprof",             false, OPT_PROF },
 #endif
 
-	/* keep these at the end of the list */
+	/* inlining options */
 
 #if defined(ENABLE_INLINING)
-	{ "i",                 true,  OPT_INLINING },
+#if defined(ENABLE_INLINING_DEBUG)
+	{ "ia",                false, OPT_INLINE_DEBUG_ALL },
+	{ "ii",                true,  OPT_INLINE_DEBUG_MIN },
+	{ "im",                true,  OPT_INLINE_DEBUG_MAX },
+	{ "ie",                true,  OPT_INLINE_DEBUG_END },
+	{ "ir",                false, OPT_INLINE_REPLACE_VERBOSE },
+	{ "iR",                false, OPT_INLINE_REPLACE_VERBOSE2 },
+#endif /* defined(ENABLE_INLINING_DEBUG) */
+#if !defined(NDEBUG)
+	{ "il",                false, OPT_INLINE_LOG },
 #endif
+	{ "i",                 false, OPT_INLINING },
+#endif /* defined(ENABLE_INLINING) */
+
+	/* keep these at the end of the list */
 
 #if !defined(NDEBUG)
 	{ "m",                 true,  OPT_METHOD },
@@ -497,13 +521,22 @@ static void XXusage(void)
 	puts("      (n)ative               disassembled native stubs");
 #endif
 	puts("           (d)atasegment     data segment listing");
+
 #if defined(ENABLE_INLINING)
-	puts("    -i     n(line)           activate inlining");
-	puts("           v(irtual)         inline virtual methods (uses/turns rt option on)");
-	puts("           e(exception)      inline methods with exceptions");
-	puts("           p(aramopt)        optimize argument renaming");
-	puts("           o(utsiders)       inline methods of foreign classes");
+	puts("    -i                       activate inlining");
+#if !defined(NDEBUG)
+	puts("    -il                      log inlining");
+#endif
+#if defined(ENABLE_INLINING_DEBUG)
+	puts("    -ia                      use inlining for all methods");
+	puts("    -ii <size>               set minimum size for inlined result");
+	puts("    -im <size>               set maximum size for inlined result");
+	puts("    -ie <number>             stop inlining after the given number of roots");
+	puts("    -ir                      log on-stack replacement");
+	puts("    -iR                      log on-stack replacement, more verbose");
+#endif /* defined(ENABLE_INLINING_DEBUG) */
 #endif /* defined(ENABLE_INLINING) */
+
 #if defined(ENABLE_IFCONV)
 	puts("    -ifconv                  use if-conversion");
 #endif
@@ -1207,30 +1240,34 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #endif
 
 #if defined(ENABLE_INLINING)
+#if defined(ENABLE_INLINING_DEBUG)
+		case OPT_INLINE_DEBUG_ALL:
+			opt_inline_debug_all = true;
+			break;
+		case OPT_INLINE_DEBUG_END:
+			opt_inline_debug_end_counter = atoi(opt_arg);
+			break;
+		case OPT_INLINE_DEBUG_MIN:
+			opt_inline_debug_min_size = atoi(opt_arg);
+			break;
+		case OPT_INLINE_DEBUG_MAX:
+			opt_inline_debug_max_size = atoi(opt_arg);
+			break;
+		case OPT_INLINE_REPLACE_VERBOSE:
+			opt_replace_verbose = 1;
+			break;
+		case OPT_INLINE_REPLACE_VERBOSE2:
+			opt_replace_verbose = 2;
+			break;
+#endif /* defined(ENABLE_INLINING_DEBUG) */
+#if !defined(NDEBUG)
+		case OPT_INLINE_LOG:
+			opt_inline_debug_log = true;
+			break;
+#endif /* !defined(NDEBUG) */
+
 		case OPT_INLINING:
-			for (i = 0; i < strlen(opt_arg); i++) {		
-				switch (opt_arg[i]) {
-				case 'n':
-					/* define in options.h; Used in main.c, jit.c
-					   & inline.c inlining is currently
-					   deactivated */
-					break;
-				case 'v':
-					inlinevirtuals = true;
-					break;
-				case 'e':
-					inlineexceptions = true;
-					break;
-				case 'p':
-					inlineparamopt = true;
-					break;
-				case 'o':
-					inlineoutsiders = true;
-					break;
-				default:
-					usage();
-				}
-			}
+			opt_inlining = true;
 			break;
 #endif /* defined(ENABLE_INLINING) */
 

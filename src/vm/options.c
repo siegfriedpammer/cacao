@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 5922 2006-11-05 21:43:09Z twisti $
+   $Id: options.c 7228 2007-01-19 01:13:48Z edwin $
 
 */
 
@@ -36,6 +36,7 @@
 #include "config.h"
 
 #include <string.h>
+#include <limits.h>
 
 #include "vm/types.h"
 
@@ -98,12 +99,6 @@ bool opt_showintermediate   = false;    /* generate intermediate code listing */
 bool opt_showexceptionstubs = false;
 bool opt_shownativestub     = false;
 
-bool useinlining = false;      /* use method inlining                        */
-bool inlinevirtuals = false;   /* inline unique virtual methods              */
-bool inlineexceptions = false; /* inline methods, that contain excptions     */
-bool inlineparamopt = false;   /* optimize parameter passing to inlined methods */
-bool inlineoutsiders = false;  /* inline methods, that are not member of the invoker's class */
-
 bool checkbounds = true;       /* check array bounds                         */
 bool checknull = true;         /* check null pointers                        */
 bool opt_noieee = false;       /* don't implement ieee compliant floats      */
@@ -128,6 +123,23 @@ bool opt_eager   = false;
 bool opt_prof    = false;
 bool opt_prof_bb = false;
 #endif
+
+
+/* inlining options ***********************************************************/
+
+#if defined(ENABLE_INLINING)
+bool opt_inlining = false;
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+s4 opt_replace_verbose = 0;
+s4 opt_inline_debug_min_size = 0;
+s4 opt_inline_debug_max_size = INT_MAX;
+s4 opt_inline_debug_end_counter = INT_MAX;
+bool opt_inline_debug_all = false;
+#endif /* defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG) */
+#if !defined(NDEBUG)
+bool opt_inline_debug_log = false;
+#endif /* !defined(NDEBUG) */
+#endif /* defined(ENABLE_INLINING) */
 
 
 /* optimization options *******************************************************/

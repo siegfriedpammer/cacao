@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: exceptions.c 6598 2007-01-11 14:28:47Z twisti $
+   $Id: exceptions.c 7228 2007-01-19 01:13:48Z edwin $
 
 */
 
@@ -1035,8 +1035,6 @@ java_objectheader *exceptions_new_verifyerror(methodinfo *m,
 	va_list            ap;
 	char              *msg;
 	s4                 msglen;
-
-	useinlining = false; /* at least until sure inlining works with exceptions*/
 
 	/* calculate exception message length */
 

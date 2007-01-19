@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 7210 2007-01-13 22:37:26Z edwin $
+   $Id: jit.c 7228 2007-01-19 01:13:48Z edwin $
 
 */
 
@@ -1067,6 +1067,11 @@ u1 *jit_compile(methodinfo *m)
 #if defined(ENABLE_IFCONV)
 	if (opt_ifconv)
 		jd->flags |= JITDATA_FLAG_IFCONV;
+#endif
+
+#if defined(ENABLE_INLINING) && defined(ENABLE_INLINING_DEBUG)
+	if (opt_inlining && opt_inline_debug_all)
+		jd->flags |= JITDATA_FLAG_INLINE;
 #endif
 
 	if (opt_showintermediate)

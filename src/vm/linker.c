@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 6251 2006-12-27 23:15:56Z twisti $
+   $Id: linker.c 7228 2007-01-19 01:13:48Z edwin $
 
 */
 
@@ -67,8 +67,7 @@
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
-extern bool inline_debug_log;
-#define INLINELOG(code)  do { if (inline_debug_log) { code } } while (0)
+#define INLINELOG(code)  do { if (opt_inline_debug_log) { code } } while (0)
 #else
 #define INLINELOG(code)
 #endif

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 7209 2007-01-13 22:30:25Z edwin $
+   $Id: inline.c 7228 2007-01-19 01:13:48Z edwin $
 
 */
 
@@ -96,15 +96,16 @@
 
 #if !defined(NDEBUG)
 #define INLINE_VERBOSE
-bool inline_debug_log = 0;
-bool inline_debug_log_names = 0;
-int inline_debug_start_counter = 0;
-int inline_debug_max_size = INT_MAX;
-int inline_debug_min_size = 0;
-int inline_debug_end_counter = INT_MAX;
-#define DOLOG(code) do{ if (inline_debug_log) { code; } }while(0)
+#define DOLOG(code) do{ if (opt_inline_debug_log) { code; } }while(0)
 #else
 #define DOLOG(code)
+#endif
+
+#if defined(ENABLE_VERIFIER) && !defined(NDEBUG)
+/* Define this to verify the resulting code after inlining.                 */
+/* Note: This is only useful for development and may require patches to the */
+/*       verifier code.                                                     */
+/* #define INLINE_VERIFY_RESULT */
 #endif
 
 
@@ -1995,11 +1996,11 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	codegendata *n_cd;
 	jitdata *n_jd;
 	s4 i;
-
-
-#if !defined(NDEBUG)
-	static int debug_verify_inlined_code = 1; /* XXX */
-	static int debug_compile_inlined_code_counter = 0;
+#if defined(INLINE_VERIFY_RESULT)
+	static int debug_verify_inlined_code = 1;
+#endif
+#if defined(ENABLE_INLINING_DEBUG)
+	static int debug_counter = 0;
 #endif
 
 	DOLOG( dump_inline_tree(iln, 0); );
@@ -2039,9 +2040,9 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 
 	n_jd->localcount = n_jd->vartop;
 
-	/* extra variables for verification (DEBUG) */
+	/* extra variables for verification (debugging) */
 
-#if !defined(NDEBUG)
+#if defined(INLINE_VERIFY_RESULT)
 	if (debug_verify_inlined_code) {
 		n_jd->vartop   += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + 100 /* XXX m->maxstack */;
 		if (n_jd->vartop > n_jd->varcount) {
@@ -2050,7 +2051,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 			n_jd->varcount = n_jd->vartop;
 		}
 	}
-#endif
+#endif /* defined(INLINE_VERIFY_RESULT) */
 
 	/* write inlined code */
 
@@ -2119,7 +2120,9 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 
 	inline_interface_variables(iln);
 
-#if defined(ENABLE_VERIFIER) && !defined(NDEBUG) && 0
+	/* for debugging, verify the inlined result */
+
+#if defined(INLINE_VERIFY_RESULT)
 	if (debug_verify_inlined_code) {
 		debug_verify_inlined_code = 0;
 		DOLOG( printf("VERIFYING INLINED RESULT...\n"); fflush(stdout); );
@@ -2133,7 +2136,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 		}
 		debug_verify_inlined_code = 1;
 	}
-#endif /* defined(ENABLE_VERIFIER) */
+#endif /* defined(INLINE_VERIFY_RESULT) */
 
 	/* we need bigger free memory stacks (XXX these should not be allocated in reg_setup) */
 
@@ -2142,13 +2145,12 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	n_jd->rd->freemem_2 = DMNEW(s4, iln->ctx->maxinoutdepth + 1000) /* XXX max vars/block */;
 #endif
 
-#if !defined(NDEBUG)
-	if (n_jd->instructioncount >= inline_debug_min_size
-			&& n_jd->instructioncount <= inline_debug_max_size)
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+	if (   (n_jd->instructioncount >= opt_inline_debug_min_size)
+		&& (n_jd->instructioncount <= opt_inline_debug_max_size))
 	{
-	   if (debug_compile_inlined_code_counter >= inline_debug_start_counter
-			   && debug_compile_inlined_code_counter <= inline_debug_end_counter)
-#endif /* NDEBUG */
+	   if (debug_counter <= opt_inline_debug_end_counter)
+#endif /* defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG) */
 	   {
 			/* install the inlined result */
 
@@ -2156,12 +2158,14 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 			n_jd->code = jd->code;
 			*jd = *n_jd;
 
+			/* statistics and logging */
+
 #if !defined(NDEBUG)
 			inline_stat_roots++;
 
-			/* inline_debug_log++; */
 			DOLOG(
-			printf("==== %d.INLINE ==================================================================\n", debug_compile_inlined_code_counter);
+			printf("==== %d.INLINE ==================================================================\n",
+				debug_counter);
 			printf("\ninline tree:\n");
 			dump_inline_tree(iln, 0);
 			n_jd->flags |= JITDATA_FLAG_SHOWINTERMEDIATE | JITDATA_FLAG_SHOWDISASSEMBLE;
@@ -2169,12 +2173,11 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 			printf("-------- DONE -----------------------------------------------------------\n");
 			fflush(stdout);
 			);
-			/* inline_debug_log--; */
 #endif
 	   }
 
-#if !defined(NDEBUG)
-		debug_compile_inlined_code_counter++;
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+		debug_counter++;
 	}
 #endif
 	return true;

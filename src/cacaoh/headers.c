@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: headers.c 7218 2007-01-16 12:59:51Z twisti $
+   $Id: headers.c 7228 2007-01-19 01:13:48Z edwin $
 
 */
 
@@ -75,12 +75,6 @@ char       *_Jv_java_library_path;
 /* dummy interpreter stack to keep the compiler happy */
 
 u1 *intrp_main_stack;
-#endif
-
-
-#if !defined(NDEBUG)
-/* dummy variable */
-bool inline_debug_log = false;
 #endif
 
 
