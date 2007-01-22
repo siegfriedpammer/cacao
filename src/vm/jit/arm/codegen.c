@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/codegen.c - machine code generator for Arm
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-
-   Changes: Christian Thalinger
-   			Edwin Steiner
-
-   $Id: codegen.c 6596 2007-01-11 14:22:55Z twisti $
+   $Id: codegen.c 7231 2007-01-22 11:45:34Z twisti $
 
 */
 
@@ -47,6 +40,7 @@
 #include "vm/jit/arm/codegen.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
 
 #if defined(ENABLE_THREADS)
@@ -60,11 +54,13 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
