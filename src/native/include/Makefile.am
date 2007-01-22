@@ -1,6 +1,6 @@
 ## src/native/include/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## $Id: Makefile.am 6258 2006-12-28 15:38:58Z twisti $
+## $Id: Makefile.am 7235 2007-01-22 17:22:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -164,6 +160,7 @@ CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
 if WITH_CLASSPATH_GNU
 CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
+VM_ZIP = $(top_builddir)/src/lib/vm.zip
 else
 CLASSPATH = $(CLASSPATH_CLASSES)
 endif
@@ -177,7 +174,7 @@ $(NO_GEN_HEADER_FILES):
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
 
-$(DO_HEADER_FILES): $(CACAOH) $(CLASSPATH_GLIBJ_ZIP)
+$(DO_HEADER_FILES): $(CACAOH) $(VM_ZIP) $(CLASSPATH_CLASSES)
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class

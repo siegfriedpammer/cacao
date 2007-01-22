@@ -1,6 +1,6 @@
 ## src/lib/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes:
-##
-## $Id: Makefile.am 5540 2006-09-20 23:22:21Z michi $
+## $Id: Makefile.am 7235 2007-01-22 17:22:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,6 +33,7 @@ CLEANFILES = vm.zip
 
 VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMStackWalker.java \
+	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMSystemProperties.java \
 	$(top_srcdir)/src/lib/vm/reference/gnu/java/lang/management/VMMemoryMXBeanImpl.java \
 	$(top_srcdir)/src/lib/vm/reference/gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMClassLoader.java \
@@ -49,6 +44,7 @@ VM_JAVA_FILES = \
 
 VM_CLASS_FILES = \
 	classes/gnu/classpath/VMStackWalker.class \
+	classes/gnu/classpath/VMSystemProperties.class \
 	classes/gnu/java/lang/management/VMMemoryMXBeanImpl.class \
 	classes/gnu/java/lang/management/VMRuntimeMXBeanImpl.class \
 	classes/java/lang/VMClassLoader.class \
