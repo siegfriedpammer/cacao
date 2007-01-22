@@ -1,6 +1,6 @@
 /* src/vm/properties.c - handling commandline properties
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: properties.c 6249 2006-12-27 23:00:59Z twisti $
+   $Id: properties.c 7234 2007-01-22 17:03:04Z twisti $
 
 */
 
@@ -362,16 +358,45 @@ char *properties_get(char *key)
 {
 	list_properties_entry *pe;
 
-	/* We search backwards, so we get the newest entry for a key, as
-	   the list may contain more than one entry for a specific key. */
-
-	for (pe = list_last_unsynced(list_properties); pe != NULL;
-		 pe = list_prev_unsynced(list_properties, pe)) {
+	for (pe = list_first_unsynced(list_properties); pe != NULL;
+		 pe = list_next_unsynced(list_properties, pe)) {
 		if (strcmp(pe->key, key) == 0)
 			return pe->value;
 	}
 
 	return NULL;
+}
+
+
+/* properties_system_add *******************************************************
+
+   Adds a given property to the Java system properties.
+
+*******************************************************************************/
+
+void properties_system_add(java_objectheader *p, char *key, char *value)
+{
+	methodinfo       *m;
+	java_lang_String *k;
+	java_lang_String *v;
+
+	/* search for method to add properties */
+
+	m = class_resolveclassmethod(p->vftbl->class,
+								 utf_put,
+								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+								 NULL,
+								 true);
+
+	if (m == NULL)
+		return;
+
+	/* add to the Java system properties */
+
+	k = javastring_new_from_utf_string(key);
+	v = javastring_new_from_utf_string(value);
+
+	(void) vm_call_method(m, p, k, v);
 }
 
 
@@ -393,7 +418,7 @@ void properties_system_add_all(java_util_Properties *p)
 	/* search for method to add properties */
 
 	m = class_resolveclassmethod(p->header.vftbl->class,
-								 utf_new_char("put"),
+								 utf_put,
 								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
 								 NULL,
 								 true);

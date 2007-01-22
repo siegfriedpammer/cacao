@@ -1,6 +1,6 @@
 /* src/vm/properties.h - handling commandline properties
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: properties.h 6239 2006-12-26 23:39:25Z twisti $
+   $Id: properties.h 7234 2007-01-22 17:03:04Z twisti $
 
 */
 
@@ -52,6 +52,8 @@ bool  properties_postinit(void);
 
 void  properties_add(char *key, char *value);
 char *properties_get(char *key);
+
+void  properties_system_add(java_objectheader *p, char *key, char *value);
 
 #if defined(ENABLE_JAVASE)
 void  properties_system_add_all(java_util_Properties *p);

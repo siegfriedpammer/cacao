@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: gnu_classpath_VMSystemProperties.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 7234 2007-01-22 17:03:04Z twisti $
 
 */
 
@@ -38,10 +38,11 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
-#include "native/native.h"
 #include "native/include/java_util_Properties.h"
+
 #include "vm/exceptions.h"
 #include "vm/properties.h"
+#include "vm/vm.h"
 
 
 /*
@@ -49,16 +50,58 @@
  * Method:    preInit
  * Signature: (Ljava/util/Properties;)V
  */
-JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *p)
+JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *properties)
 {
+	if (properties == NULL) {
+		exceptions_throw_nullpointerexception();
+		return;
+	}
+
+	/* fill the java.util.Properties object */
+
+	properties_system_add_all(properties);
+}
+
+
+/*
+ * Class:     gnu/classpath/VMSystemProperties
+ * Method:    postInit
+ * Signature: (Ljava/util/Properties;)V
+ */
+JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *env, jclass clazz, java_util_Properties *properties)
+{
+	java_objectheader *p;
+#if defined(WITH_JRE_LAYOUT)
+	char *path;
+	s4    len;
+#endif
+
+	p = (java_objectheader *) properties;
+
 	if (p == NULL) {
 		exceptions_throw_nullpointerexception();
 		return;
 	}
 
-	/* add all properties */
+	/* post-set some properties */
 
-	properties_system_add_all(p);
+#if defined(WITH_JRE_LAYOUT)
+	/* XXX when we do it that way, we can't set these properties on
+	   commandline */
+
+	properties_system_add(p, "gnu.classpath.home", cacao_prefix);
+
+	len = strlen(cacao_prefix) + strlen("/lib") + strlen("0");
+
+	path = MNEW(char, len);
+
+	strcpy(path, cacao_prefix);
+	strcat(path, "/lib");
+
+	properties_system_add(p, "gnu.classpath.home.url", path);
+
+	MFREE(path, char, len);
+#endif
 }
 
 
