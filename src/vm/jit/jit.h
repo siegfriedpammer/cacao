@@ -1,6 +1,6 @@
 /* src/vm/jit/jit.h - code generation header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-            Edwin Steiner
-
-   $Id: jit.h 6265 2007-01-02 20:40:57Z edwin $
+   $Id: jit.h 7229 2007-01-22 00:58:36Z twisti $
 
 */
 
@@ -1289,21 +1282,6 @@ s4 jit_complement_condition(s4 opcode);
 void jit_renumber_basicblocks(jitdata *jd);
 #if !defined(NDEBUG)
 void jit_check_basicblock_numbers(jitdata *jd);
-#endif
-
-/* machine dependent functions */
-#if defined(ENABLE_JIT)
-void md_init(void);
-
-u1  *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr);
-
-void md_cacheflush(u1 *addr, s4 nbytes);
-void md_icacheflush(u1 *addr, s4 nbytes);
-void md_dcacheflush(u1 *addr, s4 nbytes);
-#endif
-
-#if defined(ENABLE_INTRP)
-void intrp_md_init(void);
 #endif
 
 #endif /* _JIT_H */

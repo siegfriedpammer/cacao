@@ -1,6 +1,6 @@
 /* src/vm/jit/codegen-common.c - architecture independent code generator stuff
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Andreas  Krall
-            Christian Thalinger
-            Joseph Wenninger
-            Edwin Steiner
-
    All functions assume the following code area / data area layout:
 
    +-----------+
@@ -47,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 6265 2007-01-02 20:40:57Z edwin $
+   $Id: codegen-common.c 7229 2007-01-22 00:58:36Z twisti $
 
 */
 
@@ -94,6 +86,7 @@
 
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 #include "vm/jit/stacktrace.h"
 #include "vm/jit/replace.h"
 

@@ -1,6 +1,6 @@
 ## src/vm/jit/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes: Edwin Steiner
-##
-## $Id: Makefile.am 7219 2007-01-16 22:18:57Z pm $
+## $Id: Makefile.am 7229 2007-01-22 00:58:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -60,15 +54,15 @@ DIST_SUBDIRS = \
 SUBDIRS = \
 	optimizing \
 	tools \
-	verify
-
-if ENABLE_JIT
-SUBDIRS += \
-	allocator \
+	verify \
 	$(ARCH_DIR)
 
 ARCH_LIB = \
 	$(ARCH_DIR)/libarch.la
+
+if ENABLE_JIT
+SUBDIRS += \
+	allocator
 
 OPTIMIZING_LIB = \
 	optimizing/liboptimizing.la
@@ -136,6 +130,7 @@ noinst_HEADERS = \
 	abi.h \
 	abi-asm.h \
 	asmpart.h \
+	md.h \
 	methodheader.h \
 	patcher.h 
 

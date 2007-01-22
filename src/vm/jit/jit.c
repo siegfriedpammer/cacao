@@ -1,6 +1,6 @@
 /* src/vm/jit/jit.c - calls the code generation functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,16 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-
-   Changes: Edwin Steiner
-            Christian Thalinger
-            Christian Ullrich
-
-   $Id: jit.c 7228 2007-01-19 01:13:48Z edwin $
+   $Id: jit.c 7229 2007-01-22 00:58:36Z twisti $
 
 */
 
@@ -66,6 +57,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 

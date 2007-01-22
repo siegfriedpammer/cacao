@@ -62,6 +62,7 @@
 #include "vm/suck.h"
 #include "vm/vm.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 #include "vm/jit/asmpart.h"
 
 #if defined(ENABLE_PROFILING)
