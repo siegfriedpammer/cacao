@@ -1,6 +1,6 @@
 /* src/cacao/cacao.c - contains main() of cacao
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Andi Krall
-            Mark Probst
-            Philipp Tomsich
-            Christian Thalinger
-
-   $Id: cacao.c 6278 2007-01-06 14:27:59Z twisti $
+   $Id: cacao.c 7232 2007-01-22 14:02:27Z twisti $
 
 */
 
@@ -77,7 +69,9 @@ static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
+#if !defined(ENABLE_LIBJVM) && defined(WITH_STATIC_CLASSPATH)
 	char           *path;
+#endif
 
 #if defined(ENABLE_LIBJVM)	
 	/* Variables for JNI_CreateJavaVM dlopen call. */
@@ -99,7 +93,7 @@ int main(int argc, char **argv)
 	
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
-#if !defined(WITH_STATIC_CLASSPATH) && defined(ENABLE_LIBJVM)
+#if defined(ENABLE_LIBJVM) && !defined(WITH_STATIC_CLASSPATH)
 # if defined(WITH_JRE_LAYOUT)
 	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
 
