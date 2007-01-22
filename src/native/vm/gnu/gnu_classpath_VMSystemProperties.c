@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: gnu_classpath_VMSystemProperties.c 7234 2007-01-22 17:03:04Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 7237 2007-01-22 20:16:22Z twisti $
 
 */
 
@@ -91,11 +91,16 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 
 	properties_system_add(p, "gnu.classpath.home", cacao_prefix);
 
-	len = strlen(cacao_prefix) + strlen("/lib") + strlen("0");
+	len =
+		strlen("file://") +
+		strlen(cacao_prefix) +
+		strlen("/lib") +
+		strlen("0");
 
 	path = MNEW(char, len);
 
-	strcpy(path, cacao_prefix);
+	strcpy(path, "file://");
+	strcat(path, cacao_prefix);
 	strcat(path, "/lib");
 
 	properties_system_add(p, "gnu.classpath.home.url", path);
