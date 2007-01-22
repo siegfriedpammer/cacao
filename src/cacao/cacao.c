@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: cacao.c 7232 2007-01-22 14:02:27Z twisti $
+   $Id: cacao.c 7236 2007-01-22 17:25:03Z twisti $
 
 */
 
@@ -69,7 +69,7 @@ static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
-#if !defined(ENABLE_LIBJVM) && defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LIBJVM) && !defined(WITH_STATIC_CLASSPATH)
 	char           *path;
 #endif
 
