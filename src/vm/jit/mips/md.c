@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: md.c 7233 2007-01-22 15:59:42Z twisti $
 
 */
 
@@ -189,6 +189,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		assert((mcode >> 16) != 0x6739);
 
 		offset += (s2) (mcode & 0x0000ffff);
+
+		pa = NULL;
 	}
 	else {
 		/* get first instruction (ld) */
