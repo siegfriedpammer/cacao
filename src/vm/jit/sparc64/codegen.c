@@ -71,6 +71,12 @@
  */
 #define REG_PV REG_PV_CALLEE
 
+bool fits_13(s4 disp)
+{
+	/*  printf("fits disp %d?\n", disp); */
+
+	return (disp >= -4096) && (disp <= 4095);
+}
 
 /* codegen *********************************************************************
 
@@ -2505,7 +2511,7 @@ gen_method:
 			M_NOP;
 			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			/* REG_RA holds the value of the jmp instruction, therefore +8 */
-			M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
+			M_LDA(4, REG_RA_CALLER, -disp + 8); 
 
 
 			/* actually only used for ICMD_BUILTIN */
@@ -2701,10 +2707,9 @@ gen_method:
 				M_ALD(rd->argintregs[1], REG_PV, disp);
 				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_LDA(REG_SP, -6*8, REG_SP); /* PARAMARRAY SLOTS */
+				/* XXX jit-c-call */
 				M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 				M_NOP;
-				M_LDA(REG_SP, 6*8, REG_SP);
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				M_BEQZ(REG_RESULT_CALLER, 0);

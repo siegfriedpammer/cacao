@@ -44,6 +44,8 @@
 
 #include "md-abi.h" /* for INT_NATARG_CNT */
 
+#include <assert.h>
+
 /* from md-abi.c */
 s4 nat_argintregs[INT_NATARG_CNT];
 
@@ -204,13 +206,13 @@ s4 nat_argintregs[INT_NATARG_CNT];
  #define M_FMT4(op,op3,rd,rs2,cond,cc2,cc1,cc0,imm) \
 	do { \
  		*((u4 *) cd->mcodeptr) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((cc2) << 18) |  ((cond) << 14) | \
- 			((imm) << 13) | ((cc1) << 12) | ((cc0) << 11) | ((rs2) << 0) ); \
+ 			((imm) << 13) | ((cc1) << 12) | ((cc0) << 11) | ((rs2) & 0x7ff) ); \
 		cd->mcodeptr += 4; \
 	} while (0)
 
 
-#define FR_X(r) (((r)<<1) + 1)
-#define DR_X(r) (((r)<<1)|((r)>>5))
+#define FR_X(r) (((r)<<1) + 1) /* transpose macro for floats which reside in upper half of double word */
+#define DR_X(r) (((r)<<1)|((r)>>5)) /* double float packing, see SPARC spec. */
 
 /* 3-address-floating-point-operation
  *   op .... opcode
@@ -283,8 +285,6 @@ s4 nat_argintregs[INT_NATARG_CNT];
 		*((u4 *) cd->mcodeptr) = ((((s4)(0x00)) << 30) | ((rd) << 25) | ((0x04)<<22) | ((imm22)&0x3FFFFF) ); \
 		cd->mcodeptr += 4; \
 	} while (0)
-
-
 
 #define M_NOP M_SETHI(0,0)      /* nop */
 
@@ -381,20 +381,53 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_CMOVRGE_IMM(rs1,rs2,rd) M_OP3C(0x2,0x2f,0x7,rd,rs1,rs2,IMM)  /* rs1>=0 ? rd=rs2 */
 
 
-/**** load/store operations ********/
+/**** big constant helpers *********/
+
+/* #define FITS_13BIT_IMM(x)       ((x >= -4096) && (x <= 4095)) */
+
+bool fits13(s4 disp);
+
+#define sethi_part(x) ((x)>>10)
+#define setlo_part(x) ((x) & 0x3ff)
+
+#define DO_SETHI_REG(c,rd) \
+	do { \
+		if (c > 0) { \
+			M_SETHI(sethi_part(c), rd); \
+			if (setlo_part(c)) { \
+				M_OR_IMM(rd, setlo_part(c), rd); \
+			} \
+		} \
+		else { \
+			M_SETHI(sethi_part(~c), rd); \
+			M_XOR_IMM(rd, setlo_part(c) | 0xffffffffffff1c00, rd); \
+		} \
+	} while (0)
+	
+#define DO_SETHI_PART(c,rs,rd) \
+	do { \
+		M_SETHI(sethi_part(c), rd); \
+		if (c > 0) { \
+			M_ADD(rs,rd,rd); \
+		} \
+		else { \
+			M_SUB(rs,rd,rd); \
+		} \
+	} while (0)
+		
 
 #define M_LDA(rd,rs,disp) \
     do { \
-        s4 lo = (short) (disp); \
-        s4 hi = (short) (((disp) - lo) >> 13); \
-        if (hi == 0) { \
-            M_AADD_IMM(rs,lo,rd); \
-        } else { \
-            M_SETHI(hi&0x3ffff8,rd); \
-            M_AADD_IMM(rd,lo,rd); \
+        if (fits_13(disp)) { \
+            M_AADD_IMM(rs,disp,rd); \
+        } \
+        else { \
+            DO_SETHI_REG(disp,rd); \
             M_AADD(rd,rs,rd); \
         } \
     } while (0)
+
+/**** load/store operations ********/
 
 #define M_SLDU(rd,rs,disp)      M_OP3(0x03,0x02,rd,rs,disp,IMM)        /* 16-bit load, uns*/
 #define M_SLDS(rd,rs,disp)      M_OP3(0x03,0x0a,rd,rs,disp,IMM)        /* 16-bit load, sig*/
@@ -404,28 +437,27 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_LDX_INTERN(rd,rs,disp) M_OP3(0x03,0x0b,rd,rs,disp,IMM)       /* 64-bit load, sig*/
 #define M_LDX(rd,rs,disp) \
 	do { \
-        s4 lo = (short) (disp); \
-        s4 hi = (short) (((disp) - lo) >> 13); \
-        if (hi == 0) { \
-            M_LDX_INTERN(rd,rs,lo); \
-        } else { \
-            M_SETHI(hi&0x3ffff8,rd); \
-            M_AADD(rs,rd,rd); \
-            M_LDX_INTERN(rd,rd,lo); \
+        if (fits_13(disp)) { \
+            M_LDX_INTERN(rd,rs,disp); \
+        } \
+        else { \
+			printf("ldx imm = %d\n", disp); \
+            DO_SETHI_PART(disp,rs,rd); \
+            M_LDX_INTERN(rd,rd,setlo_part(disp)); \
+			assert(0); \
         } \
     } while (0)
 
 #define M_ILD_INTERN(rd,rs,disp) M_OP3(0x03,0x08,rd,rs,disp,IMM)       /* 32-bit load, sig */
 #define M_ILD(rd,rs,disp) \
 	do { \
-        s4 lo = (short) (disp); \
-        s4 hi = (short) (((disp) - lo) >> 13); \
-        if (hi == 0) { \
-            M_ILD_INTERN(rd,rs,lo); \
-        } else { \
-            M_SETHI(hi&0x3ffff8,rd); \
-            M_AADD(rs,rd,rd); \
-            M_ILD_INTERN(rd,rd,lo); \
+        if (fits_13(disp)) { \
+            M_ILD_INTERN(rd,rs,disp); \
+       } \
+        else { \
+            DO_SETHI_PART(disp,rs,rd); \
+            M_ILD_INTERN(rd,rd,setlo_part(disp)); \
+			assert(0); \
         } \
     } while (0)
 
@@ -441,14 +473,13 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_STX_INTERN(rd,rs,disp) M_OP3(0x03,0x0e,rd,rs,disp,IMM)       /* 64-bit store    */
 #define M_STX(rd,rs,disp) \
 	do { \
-        s4 lo = (short) (disp); \
-        s4 hi = (short) (((disp) - lo) >> 13); \
-        if (hi == 0) { \
-            M_STX_INTERN(rd,rs,lo); \
-        } else { \
-            M_SETHI(hi&0x3ffff8,REG_ITMP3); /* sethi has a 22bit imm, only set upper 19 bits */ \
-            M_AADD(rs,REG_ITMP3,REG_ITMP3); \
-            M_STX_INTERN(rd,REG_ITMP3,lo); \
+        if (fits_13(disp)) { \
+            M_STX_INTERN(rd,rs,disp); \
+        } \
+        else { \
+            DO_SETHI_PART(disp,rs,REG_ITMP3); \
+            M_STX_INTERN(rd,REG_ITMP3,setlo_part(disp)); \
+			assert(0); \
         } \
     } while (0)
 
@@ -456,14 +487,13 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_IST_INTERN(rd,rs,disp) M_OP3(0x03,0x04,rd,rs,disp,IMM)       /* 32-bit store    */
 #define M_IST(rd,rs,disp) \
     do { \
-        s4 lo = (short) (disp); \
-        s4 hi = (short) (((disp) - lo) >> 13); \
-        if (hi == 0) { \
-            M_IST_INTERN(rd,rs,lo); \
-        } else { \
-            M_SETHI(hi&0x3ffff8,REG_ITMP3); /* sethi has a 22bit imm, only set upper 19 bits */ \
-            M_AADD(rs,REG_ITMP3,REG_ITMP3); \
-            M_IST_INTERN(rd,REG_ITMP3,lo); \
+        if (fits_13(disp)) { \
+            M_IST_INTERN(rd,rs,disp); \
+       } \
+        else { \
+            DO_SETHI_PART(disp,rs,REG_ITMP3); \
+            M_IST_INTERN(rd,REG_ITMP3,setlo_part(disp)); \
+			assert(0); \
         } \
     } while (0)
 
