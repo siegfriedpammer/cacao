@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/emit.c - MIPS code emitter functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -21,12 +21,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
 
    $Id: emit.c 4398 2006-01-31 23:43:08Z twisti $
 
@@ -775,7 +769,7 @@ void emit_patcher_stubs(jitdata *jd)
 
 		/* move patcher function pointer onto stack */
 
-		disp = dseg_add_address(cd, pr->patcher);
+		disp = dseg_add_functionptr(cd, pr->patcher);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, 0 * 8);
 
