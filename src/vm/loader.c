@@ -31,7 +31,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: loader.c 7240 2007-01-27 13:01:35Z twisti $
 
 */
 
@@ -2505,10 +2505,8 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 	c->super.cls = class_java_lang_Object;
 
-    c->interfacescount = 0;
-	c->interfaces = NULL;
-
 #if defined(ENABLE_JAVASE)
+	c->interfacescount = 2;
     c->interfaces = MNEW(classref_or_classinfo, 2);
 
 	if (opt_eager) {
@@ -2528,6 +2526,11 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		c->interfaces[0].cls = class_java_lang_Cloneable;
 		c->interfaces[1].cls = class_java_io_Serializable;
 	}
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+	c->interfacescount = 0;
+	c->interfaces = NULL;
+#else
+#error unknow java configuration
 #endif
 
 	c->methodscount = 1;
