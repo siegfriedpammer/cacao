@@ -72,28 +72,6 @@ s4 nat_argintregs[INT_NATARG_CNT];
 
 /* additional functions and macros to generate code ***************************/
 
-#define gen_nullptr_check(objreg) \
-    if (checknull) { \
-        M_BEQZ(objreg, 0); \
-        codegen_add_nullpointerexception_ref(cd); \
-        M_NOP; \
-    }
-
-#define gen_bound_check \
-    if (checkbounds) { \
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
-        M_CMP(s2, REG_ITMP3); \
-        M_XBUGE(0); \
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-        M_NOP; \
-    }
-
-#define gen_div_check(r) \
-    do { \
-        M_BEQZ((r), 0); \
-        codegen_add_arithmeticexception_ref(cd); \
-        M_NOP; \
-    } while (0)
 
 /* MCODECHECK(icnt) */
 
@@ -144,8 +122,8 @@ s4 nat_argintregs[INT_NATARG_CNT];
 
 /********************** instruction formats ***********************************/
 
-#define REG   	0
-#define IMM 	1
+#define REG     0
+#define IMM     1
 
 /* 3-address-operations: M_OP3
  *       op  ..... opcode
@@ -180,8 +158,8 @@ s4 nat_argintregs[INT_NATARG_CNT];
 /* shift Format 3
  *    op ..... opcode
  *    op3..... op3 code
- *    rs1 .... source 1
- *    rs2 .... source 2 or constant
+ *    rs1 .... source reg 1
+ *    rs2 .... source reg 2 or immediate shift count (5 or 6 bits long depending whether 32 or 64 bit shift)
  *    rd ..... dest reg
  *    imm .... switch for constant
  *    x ...... 0 => 32, 1 => 64 bit shift 

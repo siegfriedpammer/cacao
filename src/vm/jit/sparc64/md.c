@@ -132,13 +132,24 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 u1 *md_get_framepointer(u1 *sp)
 {
-	u1 *ra;
+	u1 *fp;
 	/* flush register windows to the stack */
 	__asm__ ("flushw");
 
-	ra = *((u1 **) (sp + 112 + BIAS));
+	fp = *((u1 **) (sp + 112 + BIAS));
 
-	return ra;
+	return fp;
+}
+
+u1 *md_get_pv_from_stackframe(u1 *sp)
+{
+	u1 *pv;
+	/* flush register windows to the stack */
+	__asm__ ("flushw");
+
+	pv = *((u1 **) (sp + 104 + BIAS));
+
+	return pv;
 }
 
 /* md_codegen_get_pv_from_pc ***************************************************

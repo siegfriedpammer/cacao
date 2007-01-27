@@ -35,10 +35,13 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "md-abi.h"
-
 #include "vm/jit/sparc64/codegen.h"
+#include "vm/jit/sparc64/md-abi.h"
 
+#include "mm/memory.h"
+
+#include "vm/exceptions.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
@@ -197,6 +200,23 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	}
 }
 
+
+/* emit_arithmetic_check *******************************************************
+
+   Emit an ArithmeticException check.
+
+*******************************************************************************/
+
+void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_BEQZ(reg, 0);
+		codegen_add_arithmeticexception_ref(cd);
+		M_NOP;
+	}
+}
+
+
 /* emit_arrayindexoutofbounds_check ********************************************
 
    Emit an ArrayIndexOutOfBoundsException check.
@@ -205,6 +225,13 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_CMP(s2, REG_ITMP3);
+		M_XBUGE(0);
+		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+		M_NOP;
+	}
 }
 
 /* emit_nullpointer_check ******************************************************
@@ -215,6 +242,11 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_BEQZ(reg, 0);
+		codegen_add_nullpointerexception_ref(cd);
+		M_NOP;
+	}
 }
 
 /* emit_exception_stubs ********************************************************

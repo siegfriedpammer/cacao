@@ -122,7 +122,10 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 	u1* end;
 	
 	end = addr + nbytes;
-	/*addr = addrd & -8l;*/
+	
+	/* zero the least significant 3 bits to align on a 64-bit boundary */
+	addr = (u1 *) (((ptrint) addr) & -8l);
+	
 	while (addr < end) {
 		__asm__ (
 			"flush %0"
