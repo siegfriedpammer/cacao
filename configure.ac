@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7228 2007-01-19 01:13:48Z edwin $
+dnl $Id: configure.ac 7241 2007-01-27 15:52:01Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -314,20 +314,10 @@ if test x"${ENABLE_JIT}" = "xyes"; then
 fi
 
 
-dnl check if softfloat should be used
-AC_MSG_CHECKING(whether softfloat should be used)
-AC_ARG_ENABLE([softfloat],
-              [AS_HELP_STRING(--enable-softfloat,use softfloat [[default=no]])],
-              [case "${enableval}" in
-                  yes) ENABLE_SOFTFLOAT=yes;;
-                  *) ENABLE_SOFTFLOAT=no;;
-               esac],
-              [ENABLE_SOFTFLOAT=no])
-AC_MSG_RESULT(${ENABLE_SOFTFLOAT})
-
-if test x"${ENABLE_SOFTFLOAT}" = "xyes"; then
-    AC_DEFINE([ENABLE_SOFTFLOAT], 1, [enable softfloat])
-fi
+dnl check for stuff that should be done in software
+AC_CHECK_SOFTFLOAT
+AC_CHECK_SOFT_FLOAT_CMP
+AC_CHECK_SOFT_DOUBLE_CMP
 
 
 dnl check for interpreter

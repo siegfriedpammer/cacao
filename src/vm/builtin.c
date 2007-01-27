@@ -1,6 +1,6 @@
 /* src/vm/builtin.c - functions for unsupported operations
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -27,8 +27,7 @@
    Authors: Reinhard Grafl
             Andreas Krall
             Mark Probst
-
-   Changes: Christian Thalinger
+            Christian Thalinger
             Edwin Steiner
 
    Contains C functions for JavaVM Instructions that cannot be
@@ -37,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 6287 2007-01-10 10:08:17Z twisti $
+   $Id: builtin.c 7241 2007-01-27 15:52:01Z twisti $
 
 */
 
@@ -2115,17 +2114,26 @@ float builtin_fneg(float a)
 #endif /* !SUPPORT_FLOAT */
 
 
-#if !SUPPORT_FLOAT || defined(ENABLE_INTRP)
+#if !SUPPORT_FLOAT || !SUPPORT_FLOAT_CMP || defined(ENABLE_INTRP)
 s4 builtin_fcmpl(float a, float b)
 {
-	if (isnanf(a)) return -1;
-	if (isnanf(b)) return -1;
+	if (isnanf(a))
+		return -1;
+
+	if (isnanf(b))
+		return -1;
+
 	if (!finitef(a) || !finitef(b)) {
 		a = finitef(a) ? 0 : copysignf(1.0,	a);
 		b = finitef(b) ? 0 : copysignf(1.0, b);
 	}
-	if (a > b) return 1;
-	if (a == b) return 0;
+
+	if (a > b)
+		return 1;
+
+	if (a == b)
+		return 0;
+
 	return -1;
 }
 
@@ -2142,7 +2150,7 @@ s4 builtin_fcmpg(float a, float b)
 	if (a == b) return 0;
 	return -1;
 }
-#endif /* !SUPPORT_FLOAT || defined(ENABLE_INTRP) */
+#endif /* !SUPPORT_FLOAT || !SUPPORT_FLOAT_CMP || defined(ENABLE_INTRP) */
 
 
 float builtin_frem(float a, float b)
@@ -2294,34 +2302,52 @@ double builtin_dneg(double a)
 #endif /* !SUPPORT_DOUBLE */
 
 
-#if !SUPPORT_DOUBLE || defined(ENABLE_INTRP)
+#if !SUPPORT_DOUBLE || !SUPPORT_DOUBLE_CMP || defined(ENABLE_INTRP)
 s4 builtin_dcmpl(double a, double b)
 {
-	if (isnan(a)) return -1;
-	if (isnan(b)) return -1;
+	if (isnan(a))
+		return -1;
+
+	if (isnan(b))
+		return -1;
+
 	if (!finite(a) || !finite(b)) {
 		a = finite(a) ? 0 : copysign(1.0, a);
 		b = finite(b) ? 0 : copysign(1.0, b);
 	}
-	if (a > b) return 1;
-	if (a == b) return 0;
+
+	if (a > b)
+		return 1;
+
+	if (a == b)
+		return 0;
+
 	return -1;
 }
 
 
 s4 builtin_dcmpg(double a, double b)
 {
-	if (isnan(a)) return 1;
-	if (isnan(b)) return 1;
+	if (isnan(a))
+		return 1;
+
+	if (isnan(b))
+		return 1;
+
 	if (!finite(a) || !finite(b)) {
 		a = finite(a) ? 0 : copysign(1.0, a);
 		b = finite(b) ? 0 : copysign(1.0, b);
 	}
-	if (a > b) return 1;
-	if (a == b) return 0;
+
+	if (a > b)
+		return 1;
+
+	if (a == b)
+		return 0;
+
 	return -1;
 }
-#endif /* !SUPPORT_DOUBLE || defined(ENABLE_INTRP) */
+#endif /* !SUPPORT_DOUBLE || !SUPPORT_DOUBLE_CMP || defined(ENABLE_INTRP) */
 
 
 double builtin_drem(double a, double b)

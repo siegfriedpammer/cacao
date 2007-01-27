@@ -1,6 +1,6 @@
 /* src/vm/jit/m68k/arch.h - architecture defines for m68k
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roland Lezuo
-
-   Changes:
-
    $Id: arch.h 5330 2006-09-05 18:43:12Z edwin $
 
 */
@@ -35,6 +29,9 @@
 
 #ifndef _ARCH_H
 #define _ARCH_H
+
+#include "config.h"
+
 
 /*#define USE_FAKE_ATOMIC_INSTRUCTIONS 	0 */
 
@@ -46,8 +43,6 @@
 
 #define SUPPORT_DIVISION                 0
 #define SUPPORT_LONG                     0
-#define SUPPORT_FLOAT                    0
-#define SUPPORT_DOUBLE                   0
 
 #define SUPPORT_FMOD                     0
 #define SUPPORT_FICVT                    0
@@ -69,6 +64,29 @@
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
+
+
+/* float **********************************************************************/
+
+#define SUPPORT_FLOAT                    0
+
+#if defined(ENABLE_SOFT_FLOAT_CMP)
+# define SUPPORT_FLOAT_CMP               0
+#else
+# define SUPPORT_FLOAT_CMP               0
+#endif
+
+
+/* double *********************************************************************/
+
+#define SUPPORT_DOUBLE                   0
+
+#if defined(ENABLE_SOFT_FLOAT_CMP)
+# define SUPPORT_DOUBLE_CMP              0
+#else
+# define SUPPORT_DOUBLE_CMP              0
+#endif
+
 
 #define SPECIALMEMUSE
 /* #define HAS_4BYTE_STACKSLOT */

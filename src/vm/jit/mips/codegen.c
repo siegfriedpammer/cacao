@@ -22,19 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-            Christian Ullrich
-            Edwin Steiner
-
-   Contains the codegenerator for an MIPS (R4000 or higher) processor.
-   This module generates MIPS machine code for a sequence of
-   intermediate code commands (ICMDs).
-
-   $Id: codegen.c 7206 2007-01-11 22:39:52Z twisti $
+   $Id: codegen.c 7241 2007-01-27 15:52:01Z twisti $
 
 */
 
@@ -63,11 +51,13 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
@@ -115,12 +105,14 @@ bool codegen(jitdata *jd)
 
 	/* prevent compiler warnings */
 
+	s1          = 0;
 	d           = 0;
 	fieldtype   = 0;
 	lm          = NULL;
 	um          = NULL;
 	bte         = NULL;
 	currentline = 0;
+	uf          = NULL;
 
 	{
 	s4 i, p, t, l;
@@ -1690,7 +1682,8 @@ bool codegen(jitdata *jd)
 			M_CVTDF(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
-		
+
+#if SUPPORT_FLOAT_CMP
 		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
@@ -1707,6 +1700,24 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_FCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
+
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_FCMPOLTF(s1, s2);
+			M_FBF(3);
+			M_ASUB_IMM(REG_ZERO, 1, d);
+			M_BR(4);
+			M_NOP;
+			M_FCMPEQF(s1, s2);
+			M_AADD_IMM(REG_ZERO, 1, d);
+			M_CMOVT(REG_ZERO, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+#endif
+
+#if SUPPORT_DOUBLE_CMP
 		case ICMD_DCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
@@ -1723,22 +1734,6 @@ bool codegen(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 			
-		case ICMD_FCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_FCMPOLTF(s1, s2);
-			M_FBF(3);
-			M_ASUB_IMM(REG_ZERO, 1, d);
-			M_BR(4);
-			M_NOP;
-			M_FCMPEQF(s1, s2);
-			M_AADD_IMM(REG_ZERO, 1, d);
-			M_CMOVT(REG_ZERO, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
 		case ICMD_DCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
@@ -1754,6 +1749,7 @@ bool codegen(jitdata *jd)
 			M_CMOVT(REG_ZERO, d);
 			emit_store_dst(jd, iptr, d);
 			break;
+#endif
 
 
 		/* memory operations **************************************************/

@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/arch.h - architecture defines for arm
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: arch.h 6591 2007-01-02 19:14:25Z twisti $
+   $Id: arch.h 7241 2007-01-27 15:52:01Z twisti $
 
 */
 
@@ -43,13 +43,6 @@
 
 #define SUPPORT_DIVISION                 0
 #define SUPPORT_LONG                     1
-#if defined(ENABLE_SOFTFLOAT)
-# define SUPPORT_FLOAT                   0
-# define SUPPORT_DOUBLE                  0
-#else
-# define SUPPORT_FLOAT                   1
-# define SUPPORT_DOUBLE                  1
-#endif /* defined(ENABLE_SOFTFLOAT) */
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
@@ -77,6 +70,37 @@
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
+
+
+/* float **********************************************************************/
+
+#if defined(ENABLE_SOFTFLOAT)
+# define SUPPORT_FLOAT                   0
+#else
+# define SUPPORT_FLOAT                   1
+#endif
+
+#if defined(ENABLE_SOFT_FLOAT_CMP)
+# define SUPPORT_FLOAT_CMP               0
+#else
+# define SUPPORT_FLOAT_CMP               1
+#endif
+
+
+/* double *********************************************************************/
+
+#if defined(ENABLE_SOFTFLOAT)
+# define SUPPORT_DOUBLE                  0
+#else
+# define SUPPORT_DOUBLE                  1
+#endif
+
+#if defined(ENABLE_BUILTIN_FLOAT_CMP)
+# define SUPPORT_DOUBLE_CMP              0
+#else
+# define SUPPORT_DOUBLE_CMP              1
+#endif
+
 
 #define HAS_4BYTE_STACKSLOT
 #define SUPPORT_COMBINE_INTEGER_REGISTERS

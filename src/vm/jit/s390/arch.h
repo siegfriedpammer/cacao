@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/arch.h - architecture defines for x86_64
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,19 +22,16 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: arch.h 7219 2007-01-16 22:18:57Z pm $
+   $Id: arch.h 7241 2007-01-27 15:52:01Z twisti $
 
 */
 
 
 #ifndef _ARCH_H
 #define _ARCH_H
+
+#include "config.h"
+
 
 /* define architecture features ***********************************************/
 
@@ -44,8 +41,6 @@
 
 #define SUPPORT_DIVISION                 1
 #define SUPPORT_LONG                     1
-#define SUPPORT_FLOAT                    1
-#define SUPPORT_DOUBLE                   1
 
 #define SUPPORT_I2F                      1
 #define SUPPORT_I2D                      1
@@ -76,6 +71,29 @@
 #define SUPPORT_CONST_STORE              1  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
+
+
+/* float **********************************************************************/
+
+#define SUPPORT_FLOAT                    1
+
+#if defined(ENABLE_SOFT_FLOAT_CMP)
+# define SUPPORT_FLOAT_CMP               0
+#else
+# define SUPPORT_FLOAT_CMP               1
+#endif
+
+
+/* double *********************************************************************/
+
+#define SUPPORT_DOUBLE                   1
+
+#if defined(ENABLE_SOFT_FLOAT_CMP)
+# define SUPPORT_DOUBLE_CMP              0
+#else
+# define SUPPORT_DOUBLE_CMP              1
+#endif
+
 
 #define CONSECUTIVE_INTEGER_ARGS
 #define CONSECUTIVE_FLOAT_ARGS

@@ -1,6 +1,6 @@
 /* src/vm/builtintable.inc - tables of builtin functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: builtintable.inc 5251 2006-08-18 13:01:00Z twisti $
+   $Id: builtintable.inc 7241 2007-01-27 15:52:01Z twisti $
 
 */
 
@@ -719,6 +713,9 @@ static builtintable_entry builtintable_automatic[] = {
 		false,
 		NULL
 	},
+#endif /* !SUPPORT_FLOAT */
+
+#if !SUPPORT_FLOAT || !SUPPORT_FLOAT_CMP
 	{
 		ICMD_FCMPL,
 		BUILTIN_fcmpl,
@@ -743,7 +740,7 @@ static builtintable_entry builtintable_automatic[] = {
 		false,
 		NULL
 	},
-#endif /* !SUPPORT_FLOAT */
+#endif /* !SUPPORT_FLOAT || !SUPPORT_FLOAT_CMP */
 
 
 	/* double functions *******************************************************/
@@ -809,6 +806,9 @@ static builtintable_entry builtintable_automatic[] = {
 		false,
 		NULL
 	},
+#endif /* !SUPPORT_DOUBLE */
+
+#if !SUPPORT_DOUBLE || !SUPPORT_DOUBLE_CMP
 	{
 		ICMD_DCMPL,
 		BUILTIN_dcmpl,
@@ -833,7 +833,7 @@ static builtintable_entry builtintable_automatic[] = {
 		false,
 		NULL
 	},
-#endif /* !SUPPORT_DOUBLE */
+#endif /* !SUPPORT_DOUBLE || !SUPPORT_DOUBLE_CMP */
 
 
 	/* float/double functions *************************************************/
@@ -889,6 +889,12 @@ static builtintable_entry builtintable_function[] = {
 
 	/* java.lang.VMSystem.arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V STATIC NATIVE */
 
+#if defined(__MIPS__) && (SIZEOF_VOID_P != 4)
+	/* We can't use this optimization on MIPS32, since it has only 4
+	   argument registers and we use 8-byte stack slots.  The code
+	   generated does not access the correct 5th argument (hint: *8
+	   instead of *4). */
+
 	{
 		ICMD_BUILTIN,
 		BUILTIN_arraycopy,
@@ -901,6 +907,7 @@ static builtintable_entry builtintable_function[] = {
 		true,
 		NULL
 	},
+#endif
 
 	/* java.lang.System.arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V PUBLIC STATIC */
 
