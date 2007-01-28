@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7241 2007-01-27 15:52:01Z twisti $
+   $Id: codegen.c 7243 2007-01-28 23:35:29Z twisti $
 
 */
 
@@ -3811,7 +3811,6 @@ u1 *createcompilerstub(methodinfo *m)
 {
 	u1          *s;                     /* memory to hold the stub            */
 	ptrint      *d;
-	codeinfo    *code;
 	codegendata *cd;
 	s4           dumpsize;
 
@@ -3829,14 +3828,12 @@ u1 *createcompilerstub(methodinfo *m)
 	cd = DNEW(codegendata);
 	cd->mcodeptr = s;
 
-	/* Store the codeinfo pointer in the same place as in the
-	   methodheader for compiled methods. */
-
-	code = code_codeinfo_new(m);
+	/* The codeinfo pointer is actually a pointer to the
+	   methodinfo. This fakes a codeinfo structure. */
 
 	d[0] = (ptrint) asm_call_jit_compiler;
 	d[1] = (ptrint) m;
-	d[2] = (ptrint) code;
+	d[2] = (ptrint) &d[1];                                    /* fake code->m */
 
 	M_ALD_INTERN(REG_ITMP1, REG_PV, -2 * SIZEOF_VOID_P);  /* codeinfo pointer */
 	M_ALD_INTERN(REG_PV, REG_PV, -3 * SIZEOF_VOID_P);  /* pointer to compiler */
