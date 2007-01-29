@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/md.c - machine dependent x86_64 Linux functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Edwin Steiner
-
-   $Id: md.c 6265 2007-01-02 20:40:57Z edwin $
+   $Id: md.c 7249 2007-01-29 19:32:52Z twisti $
 
 */
 
@@ -49,11 +43,12 @@
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.h" /* XXX debug */
+#include "vmcore/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 
