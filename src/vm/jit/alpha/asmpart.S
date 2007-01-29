@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7216 2007-01-16 09:54:47Z twisti $
+   $Id: asmpart.S 7253 2007-01-29 21:37:00Z twisti $
 
 */
 
@@ -746,6 +746,14 @@ asm_replacement_in:
 
    Does an atomic compare and swap.  Required for the lock
    implementation.
+
+   Atomically do the following: Check if the location still contains
+   `oldval`. If so, replace it by `newval` and return `oldval`.
+
+   RETURN VALUE:
+       the old value at *p
+
+   long compare_and_swap(volatile long *p, long oldval, long newval);
 
 *******************************************************************************/
 
