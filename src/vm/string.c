@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: string.c 7257 2007-01-29 23:07:40Z twisti $
 
 */
 
@@ -36,6 +36,9 @@
 #include "vm/global.h"
 
 #include "mm/memory.h"
+
+#include "native/jni.h"
+
 #include "native/include/java_lang_String.h"
 
 #if defined(ENABLE_THREADS)

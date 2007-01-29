@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: class.c 7257 2007-01-29 23:07:40Z twisti $
 
 */
 
@@ -1149,25 +1149,15 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 			goto found;
 	}
 	
-	if (throwexception) {
-#if defined(ENABLE_JAVASE)
+	if (throwexception)
 		exceptions_throw_nosuchmethoderror(c, name, desc);
-#else
-		exceptions_throw_virtualmachineerror();
-#endif
-	}
 
 	return NULL;
 
  found:
 	if ((m->flags & ACC_ABSTRACT) && !(c->flags & ACC_ABSTRACT)) {
-		if (throwexception) {
-#if defined(ENABLE_JAVASE)
+		if (throwexception)
 			exceptions_throw_abstractmethoderror();
-#else
-			exceptions_throw_virtualmachineerror();
-#endif
-		}
 
 		return NULL;
 	}
@@ -1212,13 +1202,8 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 	if (mi != NULL)
 		return mi;
 
-	if (throwexception) {
-#if defined(ENABLE_JAVASE)
+	if (throwexception)
 		exceptions_throw_nosuchmethoderror(c, name, desc);
-#else
-		exceptions_throw_virtualmachineerror();
-#endif
-	}
 
 	return NULL;
 }

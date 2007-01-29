@@ -38,6 +38,11 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
+#if defined(ENABLE_JAVAME_CLDC1_1)
+# include "native/include/java_lang_String.h"/* required by java_lang_Class.h */
+#endif
+
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
 
@@ -105,7 +110,9 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name, s4 initiali
 java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 #endif
 {
+#if defined(ENABLE_JAVASE)
 	java_objectheader *cl;
+#endif
 	utf               *ufile;
 	utf               *uname;
 	classinfo         *c;
@@ -114,7 +121,9 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 	u2                *pos;
 	s4                 i;
 
+#if defined(ENABLE_JAVASE)
 	cl = (java_objectheader *) loader;
+#endif
 
 	/* illegal argument */
 

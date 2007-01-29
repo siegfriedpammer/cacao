@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: properties.c 7257 2007-01-29 23:07:40Z twisti $
 
 */
 
@@ -38,7 +38,9 @@
 
 #include "mm/memory.h"
 
-#include "vm/global.h"
+#include "native/jni.h"
+
+#include "vm/global.h"                      /* required by java_lang_String.h */
 #include "native/include/java_lang_String.h"
 
 #include "toolbox/list.h"

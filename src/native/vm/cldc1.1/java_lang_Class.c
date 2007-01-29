@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_Class.c
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Phil Tomsich
-            Christian Thalinger
-
    $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
 */
@@ -37,9 +32,11 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
+#include "native/include/java_lang_String.h" /* required by java_lang_Class.h */
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_String.h"
+
 #include "native/vm/java_lang_Class.h"
 
 

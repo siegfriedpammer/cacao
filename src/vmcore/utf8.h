@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: utf8.h 7257 2007-01-29 23:07:40Z twisti $
 
 */
 
@@ -71,6 +71,8 @@ extern utf *utf_java_io_Serializable;
 
 extern utf *utf_java_lang_Throwable;
 extern utf *utf_java_lang_Error;
+
+extern utf *utf_java_lang_AbstractMethodError;
 extern utf *utf_java_lang_ClassCircularityError;
 extern utf *utf_java_lang_ClassFormatError;
 extern utf *utf_java_lang_ExceptionInInitializerError;
@@ -79,17 +81,13 @@ extern utf *utf_java_lang_InstantiationError;
 extern utf *utf_java_lang_InternalError;
 extern utf *utf_java_lang_LinkageError;
 extern utf *utf_java_lang_NoClassDefFoundError;
+extern utf *utf_java_lang_NoSuchFieldError;
+extern utf *utf_java_lang_NoSuchMethodError;
 extern utf *utf_java_lang_OutOfMemoryError;
 extern utf *utf_java_lang_UnsatisfiedLinkError;
 extern utf *utf_java_lang_UnsupportedClassVersionError;
 extern utf *utf_java_lang_VerifyError;
 extern utf *utf_java_lang_VirtualMachineError;
-
-#if defined(ENABLE_JAVASE)
-extern utf *utf_java_lang_AbstractMethodError;
-extern utf *utf_java_lang_NoSuchFieldError;
-extern utf *utf_java_lang_NoSuchMethodError;
-#endif
 
 #if defined(WITH_CLASSPATH_GNU)
 extern utf *utf_java_lang_VMThrowable;

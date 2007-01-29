@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: resolve.c 7257 2007-01-29 23:07:40Z twisti $
 
 */
 
@@ -1460,12 +1460,10 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 									 mi->descriptor);
 
 			if (mi == NULL) {
-#if defined(ENABLE_JAVASE)
 				/* the spec calls for an AbstractMethodError in this case */
+
 				exceptions_throw_abstractmethoderror();
-#else
-				exceptions_throw_virtualmachineerror();
-#endif
+
 				return NULL;
 			}
 		}

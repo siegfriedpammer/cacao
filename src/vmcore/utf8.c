@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: utf8.c 7257 2007-01-29 23:07:40Z twisti $
 
 */
 
@@ -79,6 +79,8 @@ utf *utf_java_io_Serializable;
 
 utf *utf_java_lang_Throwable;
 utf *utf_java_lang_Error;
+
+utf *utf_java_lang_AbstractMethodError;
 utf *utf_java_lang_ClassCircularityError;
 utf *utf_java_lang_ClassFormatError;
 utf *utf_java_lang_ExceptionInInitializerError;
@@ -87,17 +89,13 @@ utf *utf_java_lang_InstantiationError;
 utf *utf_java_lang_InternalError;
 utf *utf_java_lang_LinkageError;
 utf *utf_java_lang_NoClassDefFoundError;
+utf *utf_java_lang_NoSuchFieldError;
+utf *utf_java_lang_NoSuchMethodError;
 utf *utf_java_lang_OutOfMemoryError;
 utf *utf_java_lang_UnsatisfiedLinkError;
 utf *utf_java_lang_UnsupportedClassVersionError;
 utf *utf_java_lang_VerifyError;
 utf *utf_java_lang_VirtualMachineError;
-
-#if defined(ENABLE_JAVASE)
-utf *utf_java_lang_AbstractMethodError;
-utf *utf_java_lang_NoSuchFieldError;
-utf *utf_java_lang_NoSuchMethodError;
-#endif
 
 #if defined(WITH_CLASSPATH_GNU)
 utf *utf_java_lang_VMThrowable;
