@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/md-abi.c - functions for MIPS ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Christian Ullrich
-
-   $Id: md-abi.c 7206 2007-01-11 22:39:52Z twisti $
+   $Id: md-abi.c 7252 2007-01-29 21:09:01Z twisti $
 
 */
 
@@ -38,9 +32,11 @@
 
 #include "vm/jit/mips/md-abi.h"
 
-#include "vm/descriptor.h"
 #include "vm/global.h"
+
 #include "vm/jit/abi.h"
+
+#include "vmcore/descriptor.h"
 
 
 /* register descripton array **************************************************/
@@ -56,6 +52,14 @@ s4 nregdescint[] = {
 	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
 	REG_END
 };
+
+char *regs[] = {
+	"zero",  "at",    "v0",    "v1",    "a0",    "a1",    "a2",    "a3",
+	"a4",    "a5",    "a6",    "a7",    "t0",    "t1",    "t2",    "t3",
+	"s0",    "s1",    "s2",    "s3",    "s4",    "s5",    "s6",    "s7",
+	"t8",    "t9",    "k0",    "k1",    "gp",    "sp",    "s8",    "ra"
+};
+
 
 s4 nregdescfloat[] = {
 	/*  fv0,   ftmp1,   ftmp2,   ftmp3,     ft0,     ft1,     ft2,     ft3,   */
@@ -92,6 +96,14 @@ s4 nregdescint[] = {
 
 	REG_END
 };
+
+char *regs[] = {
+	"zero",  "at",    "v0",    "v1",    "a0",    "a1",    "a2",    "a3",
+	"a4",    "a5",    "a6",    "a7",    "t0",    "t1",    "t2",    "t3",
+	"s0",    "s1",    "s2",    "s3",    "s4",    "s5",    "s6",    "s7",
+	"t8",    "t9",    "k0",    "k1",    "gp",    "sp",    "s8",    "ra"
+};
+
 
 #if !defined(ENABLE_SOFT_FLOAT)
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7243 2007-01-28 23:35:29Z twisti $
+   $Id: codegen.c 7252 2007-01-29 21:09:01Z twisti $
 
 */
 
@@ -39,6 +39,8 @@
 #include "vm/jit/mips/arch.h"
 #include "vm/jit/mips/codegen.h"
 
+#include "mm/memory.h"
+
 #include "native/native.h"
 
 #if defined(ENABLE_THREADS)
@@ -46,10 +48,7 @@
 #endif
 
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/exceptions.h"
-#include "vm/options.h"
-#include "vm/stringlocal.h"
 #include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
@@ -65,6 +64,9 @@
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
+
+#include "vmcore/class.h"
+#include "vmcore/options.h"
 
 
 /* codegen *********************************************************************

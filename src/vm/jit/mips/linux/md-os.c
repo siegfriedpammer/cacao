@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-
-   $Id: md-os.c 7206 2007-01-11 22:39:52Z twisti $
+   $Id: md-os.c 7252 2007-01-29 21:09:01Z twisti $
 
 */
 
@@ -45,9 +39,10 @@
 #include "vm/jit/mips/md-abi.h"
 
 #include "mm/gc-common.h"
+
 #include "vm/exceptions.h"
-#include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
@@ -138,11 +133,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 #endif
 	}
 	else {
-		addr += (long) ((instr << 16) >> 16);
+		codegen_get_pv_from_pc(xpc);
 
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "faulting address: 0x%lx at 0x%lx\n",
-								   addr, xpc);
+		/* this should not happen */
+
+		assert(0);
 	}
 }
 

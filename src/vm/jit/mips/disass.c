@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/disass.c - primitive disassembler for MIPS machine code
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,21 +22,18 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-
-   Changes: Christian Thalinger
-
-   $Id: disass.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: disass.c 7252 2007-01-29 21:09:01Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
 #include "vm/types.h"
+
+#include "vm/jit/abi.h"
 
 
 /*  The disassembler uses four tables for decoding the instructions. The first
@@ -362,47 +359,6 @@ static char *fbra[] = {
 	/* 0x01 */  "bc1t    ",
 	/* 0x02 */  "bc1fl   ",
 	/* 0x03 */  "bc1tl   "
-};
-
-
-/* instruction decode table for 32 integer registers                          */
-
-char *regs[] = {
-	/* 0x00 */  "zero", /*  "$0", */
-	/* 0x01 */  "at",   /*  "$1", */
-	/* 0x02 */  "v0",   /*  "$2", */
-	/* 0x03 */  "v1",   /*  "$3", */
-	/* 0x04 */  "a0",   /*  "$4", */
-	/* 0x05 */  "a1",   /*  "$5", */
-	/* 0x06 */  "a2",   /*  "$6", */
-	/* 0x07 */  "a3",   /*  "$7", */
-
-	/* 0x08 */  "a4",   /*  "$8", */
-	/* 0x09 */  "a5",   /*  "$9", */
-	/* 0x0a */  "a6",   /* "$10", */
-	/* 0x0b */  "a7",   /* "$11", */
-	/* 0x0c */  "t0",   /* "$12", */
-	/* 0x0d */  "t1",   /* "$13", */
-	/* 0x0e */  "t2",   /* "$14", */
-	/* 0x0f */  "t3",   /* "$15", */
-
-	/* 0x10 */  "s0",   /* "$16", */
-	/* 0x11 */  "s1",   /* "$17", */
-	/* 0x12 */  "s2",   /* "$18", */
-	/* 0x13 */  "s3",   /* "$19", */
-	/* 0x14 */  "s4",   /* "$20", */
-	/* 0x15 */  "s5",   /* "$21", */
-	/* 0x16 */  "s6",   /* "$22", */
-	/* 0x17 */  "s7",   /* "$23", */
-
-	/* 0x18 */  "t8",   /* "$24", */
-	/* 0x19 */  "t9",   /* "$25", */
-	/* 0x1a */  "k0",   /* "$26", */
-	/* 0x1b */  "k1",   /* "$27", */
-	/* 0x1c */  "gp",   /* "$28", */
-	/* 0x1d */  "sp",   /* "$29", */
-	/* 0x1e */  "s8",   /* "$30", */
-	/* 0x1f */  "ra"    /* "$31"  */
 };
 
 

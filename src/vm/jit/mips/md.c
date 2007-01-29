@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Edwin Steiner
-
-   $Id: md.c 7233 2007-01-22 15:59:42Z twisti $
+   $Id: md.c 7252 2007-01-29 21:09:01Z twisti $
 
 */
 
@@ -41,12 +36,14 @@
 #include "vm/types.h"
 
 #include "toolbox/logging.h"
+
 #include "vm/global.h"
 #include "vm/vm.h"
+
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.h" /* XXX debug */
+#include "vmcore/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 

@@ -36,19 +36,24 @@
 #include "vm/jit/mips/codegen.h"
 #include "vm/jit/mips/md-abi.h"
 
+#include "mm/memory.h"
+
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
 #endif
 
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
+
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+
+#include "vmcore/options.h"
 
 
 /* emit_load *******************************************************************

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7241 2007-01-27 15:52:01Z twisti $
+   $Id: patcher.c 7252 2007-01-29 21:09:01Z twisti $
 
 */
 
@@ -40,17 +40,18 @@
 #include "native/native.h"
 
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/exceptions.h"
-#include "vm/field.h"
 #include "vm/initialize.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
-#include "vm/references.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/md.h"
 #include "vm/jit/patcher.h"
+
+#include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
+#include "vmcore/references.h"
 
 
 /* patcher_wrapper *************************************************************
