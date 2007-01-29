@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7242 2007-01-28 22:57:27Z twisti $
+   $Id: codegen.c 7244 2007-01-29 10:19:35Z twisti $
 
 */
 
@@ -1405,7 +1405,7 @@ bool codegen(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, REG_FTMP1);
 			M_DST_INTERN(s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
 #else
-			s3 = emit_load_s3(jd, iptr, VAROP(iptr->sx.s23.s3), REG_ITMP23_PACKED);
+			s3 = emit_load_s3(jd, iptr, REG_ITMP23_PACKED);
 			M_LST_INTERN(s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
 #endif
 			break;
