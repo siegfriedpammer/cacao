@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/md-abi.c - functions for x86_64 Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: md-abi.c 6259 2006-12-28 20:50:14Z twisti $
+   $Id: md-abi.c 7248 2007-01-29 19:28:12Z twisti $
 
 */
 
@@ -36,8 +32,9 @@
 
 #include "vm/jit/x86_64/md-abi.h"
 
-#include "vm/descriptor.h"
 #include "vm/global.h"
+
+#include "vmcore/descriptor.h"
 
 
 /* register descripton array **************************************************/

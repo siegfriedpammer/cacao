@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/patcher.c - x86_64 code patching functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: patcher.c 5945 2006-11-10 16:41:12Z twisti $
+   $Id: patcher.c 7248 2007-01-29 19:28:12Z twisti $
 
 */
 
@@ -39,16 +33,21 @@
 #include "vm/jit/x86_64/codegen.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/exceptions.h"
-#include "vm/field.h"
 #include "vm/initialize.h"
-#include "vm/options.h"
-#include "vm/references.h"
-#include "vm/resolve.h"
+
 #include "vm/jit/patcher.h"
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/options.h"
+#include "vmcore/references.h"
+#include "vmcore/resolve.h"
 
 
 /* patcher_wrapper *************************************************************

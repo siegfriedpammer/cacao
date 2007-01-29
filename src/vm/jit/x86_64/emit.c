@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/emit.c - x86_64 code emitter functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,36 +22,37 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: emit.c 6265 2007-01-02 20:40:57Z edwin $
+   $Id: emit.c 7248 2007-01-29 19:28:12Z twisti $
 
 */
 
 #include "config.h"
-#include "vm/types.h"
 
 #include <assert.h>
+
+#include "vm/types.h"
 
 #include "md-abi.h"
 
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emit.h"
 
+#include "mm/memory.h"
+
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
 #endif
 
 #include "vm/builtin.h"
-#include "vm/options.h"
+
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+
+#include "vmcore/options.h"
 
 
 /* emit_load *******************************************************************
