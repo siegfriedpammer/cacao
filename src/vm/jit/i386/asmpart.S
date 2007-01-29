@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/asmpart.S - Java-C interface functions for i386
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,16 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-
-   Changes: Joseph Wenninger
-            Edwin Steiner
-
-   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
+   $Id: asmpart.S 7254 2007-01-29 21:38:54Z twisti $
 
 */
 
@@ -79,6 +70,9 @@
 	.globl asm_builtin_f2l
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
+
+	.globl asm_compare_and_swap
+	.globl asm_memory_barrier
 
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
@@ -645,6 +639,40 @@ asm_builtin_d2l:
 	ret
 
 
+/* asm_compare_and_swap ********************************************************
+
+   Does an atomic compare and swap.  Required for the lock
+   implementation.
+
+   Atomically do the following: Check if the location still contains
+   `oldval`. If so, replace it by `newval` and return `oldval`.
+
+   RETURN VALUE:
+       the old value at *p
+
+   long compare_and_swap(volatile long *p, long oldval, long newval);
+
+*******************************************************************************/
+
+asm_compare_and_swap:
+	mov     1*4(sp),%ecx            /* load p into a register                 */
+	mov     2*4(sp),%eax            /* load oldval into return register       */
+	mov     3*4(sp),%edx            /* load newval into a register            */
+	lock cmpxchgl %edx,0(%ecx)
+	ret
+
+
+/* asm_memory_barrier **********************************************************
+
+   A memory barrier for the Java Memory Model.
+
+*******************************************************************************/
+
+asm_memory_barrier:
+	lock add $0,0(sp)
+	ret
+
+		
 asm_getclassvalues_atomic:
 _crit_restart2:
 	mov     4(%esp),%ecx        /* super */
