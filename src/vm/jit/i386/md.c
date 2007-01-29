@@ -27,7 +27,7 @@
    Authors: Christian Thalinger
             Edwin Steiner
 
-   $Id: md.c 6265 2007-01-02 20:40:57Z edwin $
+   $Id: md.c 7255 2007-01-29 21:39:38Z twisti $
 
 */
 
@@ -39,11 +39,13 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/md.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.h" /* XXX debug */
+#include "vmcore/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 

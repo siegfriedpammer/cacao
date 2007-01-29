@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/emit.c - i386 code emitter functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: emit.c 6265 2007-01-02 20:40:57Z edwin $
+   $Id: emit.c 7255 2007-01-29 21:39:38Z twisti $
 
 */
 
@@ -41,18 +37,22 @@
 #include "vm/jit/i386/emit.h"
 #include "vm/jit/i386/md-abi.h"
 
+#include "mm/memory.h"
+
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
 #endif
 
 #include "vm/builtin.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+
+#include "vmcore/options.h"
+#include "vmcore/statistics.h"
 
 
 /* emit_load ******************************************************************

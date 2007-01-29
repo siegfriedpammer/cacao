@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/patcher.c - i386 code patching functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: patcher.c 5233 2006-08-14 10:59:39Z twisti $
+   $Id: patcher.c 7255 2007-01-29 21:39:38Z twisti $
 
 */
 
@@ -36,18 +30,24 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "mm/memory.h"
-#include "native/native.h"
-#include "vm/builtin.h"
-#include "vm/class.h"
-#include "vm/exceptions.h"
-#include "vm/field.h"
-#include "vm/initialize.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
-#include "vm/references.h"
-#include "vm/jit/patcher.h"
 #include "vm/jit/i386/codegen.h"
+
+#include "mm/memory.h"
+
+#include "native/native.h"
+
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/initialize.h"
+
+#include "vm/jit/patcher.h"
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
+#include "vmcore/references.h"
 
 
 /* patcher_wrapper *************************************************************
