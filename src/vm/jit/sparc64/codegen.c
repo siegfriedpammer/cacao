@@ -517,7 +517,15 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
-		case ICMD_INT2SHORT:
+		
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_SLLX_IMM(s1, 48, d);
+			M_SRLX_IMM( d, 48, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+			
+		case ICMD_INT2SHORT:   /* ..., value  ==> ..., value                   */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1149,9 +1157,9 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			M_FCMP(s1,s2);
-			M_OR_IMM(REG_ZERO, -1, REG_ITMP3); /* less by default (less or unordered) */
-			M_CMOVFEQ_IMM(0, REG_ITMP3); /* 0 if equal */
-			M_CMOVFGT_IMM(1, REG_ITMP3); /* 1 if greater */
+			M_OR_IMM(REG_ZERO, -1, d); /* less by default (less or unordered) */
+			M_CMOVFEQ_IMM(0, d); /* 0 if equal */
+			M_CMOVFGT_IMM(1, d); /* 1 if greater */
 			emit_store_dst(jd, iptr, d);
 			break;
 			
@@ -1161,9 +1169,9 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			M_DCMP(s1,s2);
-			M_OR_IMM(REG_ZERO, -1, REG_ITMP3); /* less by default (less or unordered) */
-			M_CMOVFEQ_IMM(0, REG_ITMP3); /* 0 if equal */
-			M_CMOVFGT_IMM(1, REG_ITMP3); /* 1 if greater */
+			M_OR_IMM(REG_ZERO, -1, d); /* less by default (less or unordered) */
+			M_CMOVFEQ_IMM(0, d); /* 0 if equal */
+			M_CMOVFGT_IMM(1, d); /* 1 if greater */
 			emit_store_dst(jd, iptr, d);
 			break;
 			
@@ -1173,9 +1181,9 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);	
 			M_FCMP(s1,s2);
-			M_OR_IMM(REG_ZERO, 1, REG_ITMP3); /* greater by default (greater or unordered) */
-			M_CMOVFEQ_IMM(0, REG_ITMP3); /* 0 if equal */
-			M_CMOVFLT_IMM(-1, REG_ITMP3); /* -1 if less */
+			M_OR_IMM(REG_ZERO, 1, d); /* greater by default (greater or unordered) */
+			M_CMOVFEQ_IMM(0, d); /* 0 if equal */
+			M_CMOVFLT_IMM(-1, d); /* -1 if less */
 			emit_store_dst(jd, iptr, d);
 			break;
 			
@@ -1185,9 +1193,9 @@ bool codegen(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);	
 			M_DCMP(s1,s2);
-			M_OR_IMM(REG_ZERO, 1, REG_ITMP3); /* greater by default (greater or unordered) */
-			M_CMOVFEQ_IMM(0, REG_ITMP3); /* 0 if equal */
-			M_CMOVFLT_IMM(-1, REG_ITMP3); /* -1 if less */
+			M_OR_IMM(REG_ZERO, 1, d); /* greater by default (greater or unordered) */
+			M_CMOVFEQ_IMM(0, d); /* 0 if equal */
+			M_CMOVFLT_IMM(-1, d); /* -1 if less */
 			emit_store_dst(jd, iptr, d);
 			break;
 			
@@ -1977,7 +1985,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0) {
-				M_BLTZ(s1, 0);
+				M_BGTZ(s1, 0);
 			} else {
 				if ((iptr->sx.val.l >= -4096) && (iptr->sx.val.l <= 4095)) {
 					M_CMP_IMM(s1, iptr->sx.val.l);
@@ -1995,12 +2003,12 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0) {
-				M_BLEZ(s1, 0);
-				}
+				M_BGEZ(s1, 0);
+			}
 			else {
 				if ((iptr->sx.val.l >= -4096) && (iptr->sx.val.l <= 4095)) {
 					M_CMP_IMM(s1, iptr->sx.val.l);
-					}
+				}
 				else {
 					ICONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMP(s1, REG_ITMP2);
@@ -2241,13 +2249,13 @@ nowperformreturn:
 			/* range check */
 					
 			if (i <= 4095) {
-				M_CMP_IMM(REG_ITMP1, i);
+				M_CMP_IMM(REG_ITMP1, i - 1);
 			}
 			else {
-				ICONST(REG_ITMP2, i);
+				ICONST(REG_ITMP2, i - 1);
 				M_CMP(REG_ITMP1, REG_ITMP2);
 			}		
-			M_XBULT(0);
+			M_XBUGT(0);
 			codegen_add_branch_ref(cd, table[0].block); /* default target */
 			M_ASLL_IMM(REG_ITMP1, POINTERSHIFT, REG_ITMP1);      /* delay slot*/
 
@@ -2973,11 +2981,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
-		codegen_addpatchref(cd, PATCHER_resolve_native, m, funcdisp);
-
-		if (opt_showdisassemble) {
-			M_NOP; M_NOP;
-		}
+		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, funcdisp);
 	}
 #endif
 
@@ -2985,7 +2989,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DST(rd->argfltregs[i], REG_SP, j * 8);
+			M_DST(rd->argfltregs[i], REG_SP, CSTACK + (j * 8));
 			j++;
 		}
 	}
@@ -3005,7 +3009,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DLD(rd->argfltregs[i], REG_SP, j * 8);
+			M_DLD(rd->argfltregs[i], REG_SP, CSTACK + (j * 8));
 			j++;
 		}
 	}
@@ -3054,9 +3058,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				} else {
 					s2 = nmd->params[j].regoff;
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s1, REG_SP, CSTACK + s2 * 8);
+						M_DST(s1, REG_SP, CSTACK + (s2 * 8));
 					else
-						M_FST(s1, REG_SP, CSTACK + s2 * 8);
+						M_FST(s1, REG_SP, CSTACK + (s2 * 8));
 				}
 
 			} else {

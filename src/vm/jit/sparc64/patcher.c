@@ -216,23 +216,11 @@ bool patcher_get_putstatic(u1 *sp)
 bool patcher_get_putfield(u1 *sp)
 {
 	u1               *ra;
-#if SIZEOF_VOID_P == 8
-	u8                mcode;
-#else
-	u4                mcode[2];
-#endif
 	unresolved_field *uf;
 	fieldinfo        *fi;
 
-	assert(0);
 
 	ra       = (u1 *)               *((ptrint *) (sp + 5 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                      *((u8 *)     (sp + 3 * 8));
-#else
-	mcode[0] =                      *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                      *((u4 *)     (sp + 3 * 8 + 4));
-#endif
 	uf       = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
 
 	/* get the fieldinfo */
@@ -240,50 +228,22 @@ bool patcher_get_putfield(u1 *sp)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch back original code */
-
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 0 * 4)) = mcode;
-	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
-#else
-	*((u4 *) (ra + 0 * 4)) = mcode[0];
-	*((u4 *) (ra + 1 * 4)) = mcode[1];
-#endif
-
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops) {
-		ra = ra + PATCHER_CALL_SIZE;
+		/* patch the field's offset into the instruction */
 
-#if SIZEOF_VOID_P == 4
-	if (fi->type == TYPE_LNG) {
-# if WORDS_BIGENDIAN == 1
-		/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
-		*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-		*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-# else
-		/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
-		*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-		*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-# endif
-	} else
-#endif
-		*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
+		*((u4 *) (ra + 2 * 4)) |= (s2) (fi->offset & 0x00001fff);
 
-	/* synchronize instruction cache */
+		/* synchronize instruction cache */
 
-	if (opt_showdisassemble) {
-#if SIZEOF_VOID_P == 4
-		if (fi->type == TYPE_LNG)
-			md_icacheflush(ra - 2 * 4, 4 * 4);
-		else
-#endif
-			md_icacheflush(ra - 2 * 4, 3 * 4);
+		md_icacheflush(ra + 2 * 4, 1 * 4);
 	}
 	else {
-		md_icacheflush(ra, 2 * 4);
+		/* otherwise store the patched instruction on the stack */
+
+		*((u4 *) (sp + 3 * 8)) |= (s2) (fi->offset & 0x00001fff);
 	}
-}
 
 	return true;
 }

@@ -190,7 +190,7 @@ s4 nat_argintregs[INT_NATARG_CNT];
 
 
 #define FR_X(r) (((r)<<1) + 1) /* transpose macro for floats which reside in upper half of double word */
-#define DR_X(r) (((r)<<1)|((r)>>5)) /* double float packing, see SPARC spec. */
+#define DR_X(r) ((((r)*2)|(((r)*2)>>5)) & 0x1f) /* transpose & pack double, see SPARC spec.            */
 
 /* 3-address-floating-point-operation
  *   op .... opcode
@@ -219,6 +219,29 @@ s4 nat_argintregs[INT_NATARG_CNT];
 	do { \
 		*((u4 *) cd->mcodeptr) =  ( (((s4)(op))<<30) | (DR_X(rd)<<25) | ((op3)<<19) | ((((rs1)==-1)?0:DR_X(rs1)) << 14) | \
 		((opf)<<5) | DR_X(rs2) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
+
+/* 3-address-floating-point-compare-operation
+ *   op .... opcode
+ *   op3,opf .... function-number
+ *   fcc ... floating point condition code (fcc0 - fcc3)
+ *   rs1 ... source reg
+ *   rs2 ... source reg
+ *   
+ *
+ */ 
+#define M_FCMP_DX(op,op3,opf,fcc,rs1,rs2) \
+	do { \
+		*((u4 *) cd->mcodeptr) =  ( (((s4)(op))<<30) | ((fcc)<<25) | ((op3)<<19) | (DR_X(rs1) << 14) | \
+		((opf)<<5) | DR_X(rs2) ); \
+		cd->mcodeptr += 4; \
+	} while (0)
+	
+#define M_FCMP_FX(op,op3,opf,fcc,rs1,rs2) \
+	do { \
+		*((u4 *) cd->mcodeptr) =  ( (((s4)(op))<<30) | ((fcc)<<25) | ((op3)<<19) | (FR_X(rs1) << 14) | \
+		((opf)<<5) | FR_X(rs2) ); \
 		cd->mcodeptr += 4; \
 	} while (0)
 
@@ -289,10 +312,10 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define M_SRL_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x26,rs1,rs2,rd,IMM,0)
 #define M_SRAX(rs1,rs2,rd)		M_SHFT(0x02,0x27,rs1,rs2,rd,REG,1)	/* 64b rd = rs >> rs2 */
 #define M_SRAX_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x27,rs1,rs2,rd,IMM,1)
-#define M_SRA(rs1,rs2,rd)		M_SHFT(0x02,0x27,rs1,rs2,rd,REG,0)	/* 32b rd = rs >> rs2 */
+#define M_SRA(rs1,rs2,rd)     M_SHFT(0x02,0x27,rs1,rs2,rd,REG,0)  /* 32b rd = rs >> rs2 */
 #define M_SRA_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x27,rs1,rs2,rd,IMM,0)
 
-#define M_ISEXT(rs,rd) 			M_SRA_IMM(rs,0,rd)                  /* sign extend 32 bits*/
+#define M_ISEXT(rs,rd) 			M_SRA(rs,REG_ZERO,rd)                 /* sign extend 32 bits*/
 
 
 #define M_ADD(rs1,rs2,rd)   	M_OP3(0x02,0x00,rd,rs1,rs2,REG)  	/* 64b rd = rs1 + rs2 */
@@ -498,6 +521,7 @@ bool fits13(s4 disp);
 #define M_XBGE(disp)            M_BRACC(0x00,0x1,0xb,disp,2,1,0)      /* branch a>=b */
 #define M_XBLE(disp)            M_BRACC(0x00,0x1,0x2,disp,2,1,0)      /* branch a<=b */
 #define M_XBUGE(disp)           M_BRACC(0x00,0x1,0xd,disp,2,1,0)      /* br uns a>=b */
+#define M_XBUGT(disp)           M_BRACC(0x00,0x1,0xc,disp,2,1,0)      /* br uns a>b  */
 #define M_XBULT(disp)           M_BRACC(0x00,0x1,0x5,disp,2,1,0)      /* br uns a<b  */
 
 /* branch on (32-bit) integer condition codes */
@@ -510,6 +534,7 @@ bool fits13(s4 disp);
 #define M_BGE(disp)             M_BRACC(0x00,0x1,0xb,disp,0,1,0)      /* branch a>=b */
 #define M_BLE(disp)             M_BRACC(0x00,0x1,0x2,disp,0,1,0)      /* branch a<=b */
 #define M_BULE(disp)            M_BRACC(0x00,0x1,0x4,disp,0,1,0)      /* br uns a<=b */
+#define M_BUGT(disp)            M_BRACC(0x00,0x1,0xc,disp,0,1,0)      /* br uns a>b  */
 #define M_BULT(disp)            M_BRACC(0x00,0x1,0x5,disp,0,1,0)      /* br uns a<b  */
 
 
@@ -547,8 +572,8 @@ bool fits13(s4 disp);
 /**** compare and conditional FPU operations ***********/
 
 /* rd field 0 ==> fcc target unit is fcc0 */
-#define M_FCMP(rs1,rs2)		    M_FOP3_FX(0x02,0x35,0x051,0,rs1,rs2) /* set fcc flt  */
-#define M_DCMP(rs1,rs2)		    M_FOP3_DX(0x02,0x35,0x052,0,rs1,rs2)     /* set fcc dbl  */
+#define M_FCMP(rs1,rs2)		    M_FCMP_FX(0x02,0x35,0x051,0,rs1,rs2)     /* compare flt  */
+#define M_DCMP(rs1,rs2)		    M_FCMP_DX(0x02,0x35,0x052,0,rs1,rs2)     /* compare dbl  */
 
 /* conversion functions */
 

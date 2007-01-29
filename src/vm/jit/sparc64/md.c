@@ -305,8 +305,6 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 			assert(mcode_masked  == 0x0602fb);
 
-			printf("data segment: pv=0x%08x, offset=%d\n", sfi->pv, offset);
-
 			/* and get the final data segment address */
 
 			pa = sfi->pv + offset;
