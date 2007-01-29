@@ -37,11 +37,9 @@
 
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
-#include "vmcore/options.h"
 
-#if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
-#endif
+#include "vmcore/options.h"
+#include "vmcore/statistics.h"
 
 
 /* emit_load_s1 ****************************************************************

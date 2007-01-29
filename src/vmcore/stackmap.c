@@ -38,11 +38,7 @@
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 #include "vmcore/stackmap.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
-#endif
-
+#include "vmcore/statistics.h"
 #include "vmcore/suck.h"
 
 

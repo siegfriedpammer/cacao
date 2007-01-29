@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: jit.c 7247 2007-01-29 19:15:20Z twisti $
 
 */
 
@@ -91,10 +91,7 @@
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 #include "vmcore/rt-timing.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
-#endif
+#include "vmcore/statistics.h"
 
 
 /* debug macros ***************************************************************/
