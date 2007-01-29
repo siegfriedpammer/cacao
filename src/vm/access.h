@@ -1,6 +1,6 @@
-/* src/vm/access.h - checking access rights
+/* src/vmcore/access.h - checking access rights
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,23 +22,20 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes:
-
-   $Id: access.h 5223 2006-08-08 16:21:22Z edwin $
+   $Id: access.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
 #ifndef _ACCESS_H
 #define _ACCESS_H
 
+#include "config.h"
 #include "vm/types.h"
 
-#include "vm/references.h"
-#include "vm/class.h"
+#include "vm/global.h"
+
+#include "vmcore/class.h"
+
 
 /* macros *********************************************************************/
 

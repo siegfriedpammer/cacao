@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-stackbased.c - stack-based verifier
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes: 
-
    $Id$
 
 */
@@ -39,8 +33,11 @@
 
 #include "vm/types.h"
 
+#include "vm/builtin.h"
 #include "mm/memory.h"
+
 #include "vm/global.h"
+
 #include "vm/jit/parse.h"
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"

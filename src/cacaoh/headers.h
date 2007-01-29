@@ -1,6 +1,6 @@
 /* src/cacaoh/headers.h - export functions for header generation
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: headers.h 5123 2006-07-12 21:45:34Z twisti $
+   $Id: headers.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -35,22 +31,18 @@
 
 #include "config.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
-
 #include "toolbox/chain.h"
-#include "vm/class.h"
+
 #include "vm/global.h"
-#include "vm/method.h"
-#include "vm/utf8.h"
+
+#include "vmcore/class.h"
+#include "vmcore/method.h"
+#include "vmcore/utf8.h"
 
 
 /* export variables ***********************************************************/
 
-extern THREADSPECIFIC java_objectheader *_exceptionptr;
+extern java_objectheader *_exceptionptr;
 extern chain *nativemethod_chain;
 extern chain *nativeclass_chain;
 extern chain *ident_chain;

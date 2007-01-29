@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/codegen.c - machine code generator for 32-bit PowerPC
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Stefan Ring
-            Christian Thalinger
-            Christian Ullrich
-            Edwin Steiner
-
-   $Id: codegen.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: codegen.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -58,25 +50,29 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/stacktrace.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
+
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 
 /* codegen *********************************************************************

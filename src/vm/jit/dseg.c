@@ -1,6 +1,6 @@
 /* src/vm/jit/dseg.c - data segment handling stuff
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -30,7 +30,7 @@
             Joseph Wenninger
             Edwin Steiner
 
-   $Id: dseg.c 6077 2006-11-28 22:04:29Z twisti $
+   $Id: dseg.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -39,12 +39,12 @@
 
 #include <assert.h>
 
-#include "vm/options.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/methodheader.h"
+#include "vmcore/options.h"
 
 
 /* dseg_finish *****************************************************************

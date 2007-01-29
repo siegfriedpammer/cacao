@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck.c - typechecking (part of bytecode verification)
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes: Christian Thalinger
-
-   $Id: typecheck.c 6275 2007-01-03 22:39:14Z edwin $
+   $Id: typecheck.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -141,28 +135,34 @@ error reporting.
     citeseer.ist.psu.edu/article/coglio03improving.html
 */
 
+
 #include "config.h"
-#include "vm/types.h"
-#include "vm/global.h"
 
 #include <assert.h>
 #include <string.h>
 
+#include "vm/types.h"
+
 #ifdef ENABLE_VERIFIER
 
 #include "mm/memory.h"
-#include "toolbox/logging.h"
 #include "native/native.h"
+
+#include "toolbox/logging.h"
+
 #include "vm/builtin.h"
-#include "vm/jit/patcher.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/show.h"
-#include "vm/jit/parse.h"
-#include "vm/access.h"
-#include "vm/resolve.h"
 #include "vm/exceptions.h"
+#include "vm/global.h"
+
+#include "vm/access.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/patcher.h"
+#include "vm/jit/show.h"
+
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
 
 #include <typecheck-common.h>
 

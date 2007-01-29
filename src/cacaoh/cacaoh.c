@@ -1,6 +1,6 @@
 /* src/cacaoh/cacaoh.c - main for header generation (cacaoh)
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Mark Probst
-            Philipp Tomsich
-            Christian Thalinger
-
-   $Id: cacaoh.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: cacaoh.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -43,23 +36,23 @@
 #include "vm/types.h"
 
 #include "cacaoh/headers.h"
+
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
-
+#include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
-#include "vm/classcache.h"
+
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/hashtable.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/suck.h"
+#include "vm/vm.h"
+
+#include "vmcore/classcache.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+#include "vmcore/statistics.h"
+#include "vmcore/suck.h"
 
 
 /* define heap sizes **********************************************************/
@@ -99,7 +92,7 @@ opt_struct opts[] = {
 
 *******************************************************************************/
 
-static void usage(void)
+void usage(void)
 {
 	printf("Usage: cacaoh [options] <classes>\n"
 		   "\n"
@@ -126,7 +119,7 @@ static void usage(void)
 static void version(void)
 {
 	printf("cacaoh version "VERSION"\n");
-	printf("Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,\n");
+	printf("Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,\n");
 	printf("C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,\n");
 	printf("E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,\n");
 	printf("J. Wenninger, Institut f. Computersprachen - TU Wien\n\n");
@@ -148,7 +141,6 @@ static void version(void)
 /* forward declarations *******************************************************/
 
 static JavaVMInitArgs *cacaoh_options_prepare(int argc, char **argv);
-static void cacaoh_abort(const char *text, ...);
 
 
 /* main ************************************************************************
@@ -282,41 +274,24 @@ int main(int argc, char **argv)
 		log_init(NULL);
 		log_println("Java - header-generator started"); 
 	}
-	
-#if defined(ENABLE_THREADS)
-	/* pre-initialize some core thread stuff, like the stopworldlock,
-	   thus this has to happen _before_ gc_init()!!! */
-
-	threads_preinit();
-#endif
-
-	/* initialize the garbage collector */
-
-	gc_init(heapmaxsize, heapstartsize);
-
-	/* initialize the string hashtable stuff: lock (must be done
-	   _after_ threads_preinit) */
-
-	if (!string_init())
-		cacaoh_abort("string_init failed\n");
 
 	/* initialize the utf8 hashtable stuff: lock, often used utf8 strings
 	   (must be done _after_ threads_preinit) */
 
 	if (!utf8_init())
-		cacaoh_abort("utf8_init failed\n");
+		vm_abort("utf8_init failed\n");
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */
 
 	if (!classcache_init())
-		cacaoh_abort("classcache_init failed\n");
+		vm_abort("classcache_init failed\n");
 
 	/* initialize the loader with bootclasspath (must be done _after_
 	   thread_preinit) */
 
 	if (!suck_init())
-		cacaoh_abort("suck_init failed\n");
+		vm_abort("suck_init failed\n");
 
 	suck_add(bootclasspath);
 
@@ -329,7 +304,7 @@ int main(int argc, char **argv)
        classcache_init) */
 
 	if (!loader_init())
-		cacaoh_abort("loader_init failed\n");
+		vm_abort("loader_init failed\n");
 
 
 	/* load Java classes ******************************************************/
@@ -353,10 +328,10 @@ int main(int argc, char **argv)
 		/* exceptions are catched with new_exception call */
 
 		if (!(c = load_class_bootstrap(utf_new_char(cp))))
-			cacaoh_abort("java.lang.NoClassDefFoundError: %s\n", cp);
+			vm_abort("java.lang.NoClassDefFoundError: %s\n", cp);
 
 		if (!link_class(c))
-			cacaoh_abort("java.lang.LinkageError: %s\n", cp);
+			vm_abort("java.lang.LinkageError: %s\n", cp);
 
 		headerfile_generate(c, opt_directory);
 	}
@@ -368,7 +343,7 @@ int main(int argc, char **argv)
 	if (opt_verbose) {
 		log_println("Java - header-generator stopped");
 #if defined(ENABLE_STATISTICS)
-		mem_usagelog(true);
+		statistics_print_memory_usage();
 #endif
 	}
 	
@@ -396,32 +371,6 @@ static JavaVMInitArgs *cacaoh_options_prepare(int argc, char **argv)
 		vm_args->options[i - 1].optionString = argv[i];
 
 	return vm_args;
-}
-
-
-/* cacaoh_abort ****************************************************************
-
-   Prints an error message and aborts the VM.
-
-*******************************************************************************/
-
-static void cacaoh_abort(const char *text, ...)
-{
-	va_list ap;
-
-	/* print the log message */
-
-	log_start();
-
-	va_start(ap, text);
-	log_vprint(text, ap);
-	va_end(ap);
-
-	log_finish();
-
-	/* now abort the VM */
-
-	abort();
 }
 
 

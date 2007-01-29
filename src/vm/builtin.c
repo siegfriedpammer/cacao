@@ -22,21 +22,13 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Andreas Krall
-            Mark Probst
-            Christian Thalinger
-            Edwin Steiner
-
    Contains C functions for JavaVM Instructions that cannot be
    translated to machine language directly. Consequently, the
    generated machine code for these instructions contains function
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7241 2007-01-27 15:52:01Z twisti $
+   $Id: builtin.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -63,24 +55,31 @@
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 
+#include "native/jni.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Throwable.h"
+
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #endif
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
+#include "vm/cycles-stats.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
-#include "vm/rt-timing.h"
-#include "vm/cycles-stats.h"
+
+#include "vmcore/class.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+#include "vmcore/rt-timing.h"
 
 
 /* include builtin tables *****************************************************/
@@ -811,9 +810,7 @@ java_objectheader *builtin_new(classinfo *c)
 	/* check if we can instantiate this class */
 
 	if (c->flags & ACC_ABSTRACT) {
-		*exceptionptr =
-			new_exception_utfmessage(string_java_lang_InstantiationError,
-									 c->name);
+		exceptions_throw_instantiationerror(c);
 		return NULL;
 	}
 
@@ -2710,8 +2707,7 @@ java_objectheader *builtin_clone(void *env, java_objectheader *o)
     /* we are cloning a non-array */
 
     if (!builtin_instanceof(o, class_java_lang_Cloneable)) {
-        *exceptionptr =
-			new_exception(string_java_lang_CloneNotSupportedException);
+        exceptions_throw_clonenotsupportedexception();
         return NULL;
     }
 

@@ -1,6 +1,6 @@
-/* src/native/vm/java_lang_VMClass.c - java/lang/VMClass
+/* src/native/vm/gnu/java_lang_VMClass.c
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: java_lang_VMClass.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: java_lang_VMClass.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -38,9 +34,11 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Method.h"
+
 #include "native/vm/java_lang_Class.h"
 
 

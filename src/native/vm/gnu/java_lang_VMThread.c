@@ -1,6 +1,6 @@
-/* src/native/vm/gnu/java_lang_VMThread.c - java/lang/VMThread
+/* src/native/vm/gnu/java_lang_VMThread.c
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roman Obermaiser
-            Joseph Wenninger
-            Christian Thalinger
-
-   $Id: java_lang_VMThread.c 6228 2006-12-26 19:56:58Z twisti $
+   $Id: java_lang_VMThread.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 

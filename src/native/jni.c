@@ -1,6 +1,6 @@
 /* src/native/jni.c - implementation of the Java Native Interface functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,16 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Rainhard Grafl
-            Roman Obermaisser
-            Joseph Wenninger
-            Martin Platter
-            Christian Thalinger
-            Edwin Steiner
-
-   $Id: jni.c 6252 2006-12-27 23:42:37Z twisti $
+   $Id: jni.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -65,6 +56,7 @@
 #include "native/include/java_lang_Long.h"
 #include "native/include/java_lang_Float.h"
 #include "native/include/java_lang_Double.h"
+#include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_reflect_Method.h"
 #include "native/include/java_lang_reflect_Constructor.h"
@@ -89,19 +81,21 @@
 #endif
 
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
-#include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#include "vm/statistics.h"
-#include "vm/vm.h"
+
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
+#include "vmcore/statistics.h"
 
 
 /* global variables ***********************************************************/
@@ -843,9 +837,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 	   parameter is ignored. */
 
 	if (!(m->flags & ACC_STATIC) && o && (!builtin_instanceof(o, m->class))) {
-		*exceptionptr =
-			new_exception_message(string_java_lang_IllegalArgumentException,
-								  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -854,17 +846,15 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 	if (((params == NULL) && (paramcount != 0)) ||
 		(params && (params->header.size != paramcount))) 
 	{
-		*exceptionptr =
-			new_exception(string_java_lang_IllegalArgumentException);
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
 	/* for instance methods we need an object */
 
 	if (!(m->flags & ACC_STATIC) && (o == NULL)) {
-		*exceptionptr =
-			new_exception_message(string_java_lang_NullPointerException,
-								  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
+		/* XXX not sure if that is the correct exception */
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
@@ -875,8 +865,8 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 	if (o != NULL) {
 		/* for instance methods we must do a vftbl lookup */
 		resm = method_vftbl_lookup(o->vftbl, m);
-
-	} else {
+	}
+	else {
 		/* for static methods, just for convenience */
 		resm = m;
 	}
@@ -1031,15 +1021,11 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 	if (*exceptionptr) {
 		java_objectheader *cause;
 
-		cause = *exceptionptr;
-
 		/* clear exception pointer, we are calling JIT code again */
 
-		*exceptionptr = NULL;
+		cause = exceptions_get_and_clear_exception();
 
-		*exceptionptr =
-			new_exception_throwable(string_java_lang_reflect_InvocationTargetException,
-									(java_lang_Throwable *) cause);
+		exceptions_throw_invocationtargetexception(cause);
 	}
 
 	return ro;
@@ -1225,7 +1211,7 @@ jint _Jv_JNI_ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 	if (o == NULL)
 		return -1;
 
-	*exceptionptr = (java_objectheader *) o;
+	exceptions_set_exception(o);
 
 	return 0;
 }
@@ -1318,7 +1304,9 @@ void _Jv_JNI_FatalError(JNIEnv *env, const char *msg)
 {
 	STATISTICS(jniinvokation());
 
-	throw_cacao_exception_exit(string_java_lang_InternalError, msg);
+	/* this seems to be the best way */
+
+	vm_abort(msg);
 }
 
 
@@ -1590,9 +1578,7 @@ jobject _Jv_JNI_AllocObject(JNIEnv *env, jclass clazz)
 	c = (classinfo *) clazz;
 
 	if ((c->flags & ACC_INTERFACE) || (c->flags & ACC_ABSTRACT)) {
-		*exceptionptr =
-			new_exception_utfmessage(string_java_lang_InstantiationException,
-									 c->name);
+		exceptions_throw_instantiationexception(c);
 		return NULL;
 	}
 		
@@ -2876,19 +2862,22 @@ void _Jv_JNI_CallNonvirtualVoidMethodA(JNIEnv *env, jobject obj, jclass clazz,
 jfieldID _Jv_JNI_GetFieldID(JNIEnv *env, jclass clazz, const char *name,
 							const char *sig) 
 {
+	classinfo *c;
 	fieldinfo *f;
 	utf       *uname;
 	utf       *udesc;
 
 	STATISTICS(jniinvokation());
 
+	c = (classinfo *) clazz;
+
 	uname = utf_new_char((char *) name);
 	udesc = utf_new_char((char *) sig);
 
 	f = class_findfield(clazz, uname, udesc); 
 	
-	if (!f)
-		*exceptionptr =	new_exception(string_java_lang_NoSuchFieldError);  
+	if (f == NULL)
+		exceptions_throw_nosuchfielderror(c, uname);  
 
 	return (jfieldID) f;
 }
@@ -3567,11 +3556,14 @@ void _Jv_JNI_CallStaticVoidMethodA(JNIEnv *env, jclass clazz,
 jfieldID _Jv_JNI_GetStaticFieldID(JNIEnv *env, jclass clazz, const char *name,
 								  const char *sig)
 {
+	classinfo *c;
 	fieldinfo *f;
 	utf       *uname;
 	utf       *usig;
 
 	STATISTICS(jniinvokation());
+
+	c = (classinfo *) clazz;
 
 	uname = utf_new_char((char *) name);
 	usig  = utf_new_char((char *) sig);
@@ -3579,7 +3571,7 @@ jfieldID _Jv_JNI_GetStaticFieldID(JNIEnv *env, jclass clazz, const char *name,
 	f = class_findfield(clazz, uname, usig);
 	
 	if (f == NULL)
-		*exceptionptr =	new_exception(string_java_lang_NoSuchFieldError);
+		exceptions_throw_nosuchfielderror(c, uname);
 
 	return (jfieldID) f;
 }
@@ -4245,8 +4237,7 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	   of the array */
 
 	if (!builtin_canstore(oa, o)) {
-		*exceptionptr = new_exception(string_java_lang_ArrayStoreException);
-
+		exceptions_throw_arraystoreexception();
 		return;
 	}
 

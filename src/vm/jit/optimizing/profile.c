@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/profile.c - runtime profiling
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
    $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
@@ -41,6 +35,7 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_VMThread.h"
@@ -50,14 +45,16 @@
 #endif
 
 #include "vm/builtin.h"
-#include "vm/class.h"
-#include "vm/classcache.h"
-#include "vm/method.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/optimizing/recompile.h"
+
+#include "vmcore/class.h"
+#include "vmcore/classcache.h"
+#include "vmcore/method.h"
+#include "vmcore/options.h"
 
 
 /* global variables ***********************************************************/

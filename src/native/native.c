@@ -1,6 +1,6 @@
 /* src/native/native.c - table of native functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Roman Obermaisser
-            Andreas Krall
-            Christian Thalinger
-
-   $Id: native.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: native.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -48,6 +41,7 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
+#include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
 #if defined(ENABLE_THREADS)
@@ -56,18 +50,21 @@
 # include "threads/none/lock.h"
 #endif
 
+#include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/hashtable.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
@@ -92,6 +89,7 @@
 #include "native/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
 #include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
 #include "native/include/java_lang_VMClass.h"
+#include "native/include/java_security_ProtectionDomain.h"  /* required by... */
 #include "native/include/java_lang_VMClassLoader.h"
 #include "native/include/java_lang_VMObject.h"
 #include "native/include/java_lang_VMRuntime.h"
@@ -922,17 +920,7 @@ functionptr native_resolve_function(methodinfo *m)
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
-#if defined(ENABLE_JAVASE)
-		*exceptionptr =
-			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
-									 m->name);
-#elif defined(ENABLE_JAVAME_CLDC1_1)
-		*exceptionptr =
-			new_exception_utfmessage(string_java_lang_VirtualMachineError,
-									 m->name);
-#else
-#error IMPLEMENT ME!
-#endif
+		exceptions_throw_unsatisfiedlinkerror(m->name);
 	}
 
 	/* release memory */
@@ -956,14 +944,14 @@ java_objectheader *native_new_and_init(classinfo *c)
 	methodinfo *m;
 	java_objectheader *o;
 
-	if (!c)
-		return *exceptionptr;
+	if (c == NULL)
+		vm_abort("native_new_and_init: c == NULL");
 
 	/* create object */
 
 	o = builtin_new(c);
 	
-	if (!o)
+	if (o == NULL)
 		return NULL;
 
 	/* try to find the initializer */
@@ -973,7 +961,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 	/* ATTENTION: returning the object here is ok, since the class may
        not have an initializer */
 
-	if (!m)
+	if (m == NULL)
 		return o;
 
 	/* call initializer */
@@ -984,19 +972,19 @@ java_objectheader *native_new_and_init(classinfo *c)
 }
 
 
-java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
+java_objectheader *native_new_and_init_string(classinfo *c, java_objectheader *s)
 {
-	methodinfo *m;
+	methodinfo        *m;
 	java_objectheader *o;
 
-	if (!c)
-		return *exceptionptr;
+	if (c == NULL)
+		vm_abort("native_new_and_init_string: c == NULL");
 
 	/* create object */
 
 	o = builtin_new(c);
 
-	if (!o)
+	if (o == NULL)
 		return NULL;
 
 	/* find initializer */
@@ -1009,7 +997,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 
 	/* initializer not found */
 
-	if (!m)
+	if (m == NULL)
 		return NULL;
 
 	/* call initializer */
@@ -1025,14 +1013,14 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 	methodinfo *m;
 	java_objectheader *o;
 
-	if (!c)
-		return *exceptionptr;
+	if (c == NULL)
+		vm_abort("native_new_and_init_int: c == NULL");
 
 	/* create object */
 
 	o = builtin_new(c);
 	
-	if (!o)
+	if (o == NULL)
 		return NULL;
 
 	/* find initializer */
@@ -1041,7 +1029,7 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 
 	/* initializer not found  */
 
-	if (!m)
+	if (m == NULL)
 		return NULL;
 
 	/* call initializer */
@@ -1052,19 +1040,19 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 }
 
 
-java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t)
+java_objectheader *native_new_and_init_throwable(classinfo *c, java_objectheader *t)
 {
-	methodinfo *m;
 	java_objectheader *o;
+	methodinfo        *m;
 
-	if (!c)
-		return *exceptionptr;
+	if (c == NULL)
+		vm_abort("native_new_and_init_throwable: c == NULL");
 
 	/* create object */
 
 	o = builtin_new(c);
 	
-	if (!o)
+	if (o == NULL)
 		return NULL;
 
 	/* find initializer */
@@ -1073,7 +1061,7 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 	                      	                      
 	/* initializer not found */
 
-	if (!m)
+	if (m == NULL)
 		return NULL;
 
 	/* call initializer */

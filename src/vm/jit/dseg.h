@@ -1,6 +1,6 @@
 /* src/vm/jit/dseg.c - data segment handling stuff
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Andreas  Krall
-            Christian Thalinger
-            Joseph Wenninger
-
-   $Id: dseg.h 6091 2006-11-29 20:44:10Z twisti $
+   $Id: dseg.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -45,12 +38,14 @@ typedef struct dseg_exception_entry  dseg_exception_entry;
 
 
 #include "config.h"
-
 #include "vm/types.h"
 
 #include "toolbox/list.h"
+
 #include "vm/jit/jit.h"
 #include "vm/jit/codegen-common.h"
+
+#include "vmcore/references.h"
 
 
 /* convenience macros *********************************************************/

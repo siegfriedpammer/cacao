@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Edwin Steiner
-            Christian Thalinger
-            Christian Ullrich
-
-   $Id: stack.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: stack.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -52,9 +45,6 @@
 
 #include "vm/global.h"
 #include "vm/builtin.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
-#include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/types.h"
 
@@ -76,6 +66,13 @@
 # include "vm/jit/optimizing/ssa.h"
 #elif defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
+#endif
+
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
 #endif
 
 /*#define STACK_VERBOSE*/

@@ -1,6 +1,6 @@
 /* src/threads/none/threads.h - fake threads header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
    $Id: threads.h 4405 2006-02-03 12:46:22Z twisti $
 
 */
@@ -46,6 +40,20 @@
 #define THREADINFO        NULL
 
 #define threadobject      void
+
+
+/* exception pointer **********************************************************/
+
+extern java_objectheader    *_no_threads_exceptionptr;
+
+#define exceptionptr        (&_no_threads_exceptionptr)
+
+
+/* stackframeinfo *************************************************************/
+
+extern stackframeinfo       *_no_threads_stackframeinfo;
+
+#define STACKFRAMEINFO      (&_no_threads_stackframeinfo)
 
 #endif /* _THREADS_H */
 

@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/recompile.c - recompilation system
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,10 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
    $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
@@ -39,6 +35,7 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/include/java_lang_Thread.h"
 
@@ -52,11 +49,14 @@
 #endif
 
 #include "toolbox/list.h"
+
 #include "vm/builtin.h"
-#include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/optimizing/recompile.h"
+
+#include "vmcore/classcache.h"
 
 
 /* global variables ***********************************************************/
@@ -196,7 +196,7 @@ static void recompile_thread(void)
 			else {
 				/* XXX what is the right-thing(tm) to do here? */
 
-				exceptions_print_exception(*exceptionptr);
+				exceptions_print_current_exception();
 			}
 
 			/* remove the compiled method */

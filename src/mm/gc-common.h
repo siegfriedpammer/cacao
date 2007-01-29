@@ -1,6 +1,6 @@
 /* src/mm/gc-common.h - gc independant interface for heap managment
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: gc-common.h 6054 2006-11-27 14:37:57Z michi $
+   $Id: gc-common.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -37,7 +33,9 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/method.h"
+#include "vm/global.h"
+
+#include "vmcore/method.h"
 
 
 /* function prototypes ********************************************************/

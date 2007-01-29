@@ -1,6 +1,6 @@
 /* src/native/vm/java_lang_Object.c - java/lang/Object functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -21,12 +21,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roman Obermaiser
-            Joseph Wenninger
-            Christian Thalinger
 
    $Id: java_lang_VMObject.c 6213 2006-12-18 17:36:06Z twisti $
 
@@ -54,7 +48,8 @@
 #endif
 
 #include "vm/builtin.h"
-#include "vm/options.h"
+
+#include "vmcore/options.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"

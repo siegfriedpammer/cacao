@@ -22,26 +22,17 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7235 2007-01-22 17:22:28Z twisti $
+## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-NO_GEN_HEADER_FILES = \
+COMMON_HEADER_FILES = \
 	java_lang_Class.h \
 	java_lang_Object.h \
 	java_lang_String.h \
 	java_lang_Thread.h \
-	java_lang_Throwable.h
-
-NO_GEN_JAVASE_HEADER_FILES = \
-	java_lang_ClassLoader.h \
-	java_lang_Cloneable.h \
-	java_lang_ThreadGroup.h \
-	java_lang_VMThread.h \
-	java_lang_VMThrowable.h \
-	java_util_Properties.h
-
-COMMON_HEADER_FILES = \
+	java_lang_Throwable.h \
+	\
 	java_io_InputStream.h \
 	java_io_PrintStream.h \
 	\
@@ -56,6 +47,13 @@ COMMON_HEADER_FILES = \
 	java_util_Vector.h
 
 JAVASE_HEADER_FILES = \
+	java_lang_ClassLoader.h \
+	java_lang_Cloneable.h \
+	java_lang_ThreadGroup.h \
+	java_lang_VMThread.h \
+	java_lang_VMThrowable.h \
+	java_util_Properties.h \
+	\
 	gnu_classpath_Pointer.h \
 	gnu_classpath_Pointer32.h \
 	gnu_classpath_Pointer64.h \
@@ -126,16 +124,10 @@ CLEANFILES = \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 
-noinst_HEADERS = \
-	$(NO_GEN_HEADER_FILES)
-
 DO_HEADER_FILES = \
 	$(COMMON_HEADER_FILES)
 
 if ENABLE_JAVASE
-noinst_HEADERS += \
-	$(NO_GEN_JAVASE_HEADER_FILES)
-
 DO_HEADER_FILES += \
 	$(JAVASE_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
@@ -167,21 +159,10 @@ endif
 
 noinst_DATA = $(DO_HEADER_FILES)
 
-genall: $(NO_GEN_HEADER_FILES)
-
-$(NO_GEN_HEADER_FILES):
-	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
-	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
-	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
-
 $(DO_HEADER_FILES): $(CACAOH) $(VM_ZIP) $(CLASSPATH_CLASSES)
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
-
-cleanall: clean
-	-rm -rf $(NO_GEN_HEADER_FILES)
-	-rm -rf $(NO_GEN_JAVASE_HEADER_FILES)
 
 
 ## Local variables:

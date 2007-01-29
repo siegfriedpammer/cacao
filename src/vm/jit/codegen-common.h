@@ -1,6 +1,6 @@
 /* src/vm/jit/codegen-common.h - architecture independent code generator stuff
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Christian Ullrich
-            Edwin Steiner
-
-   $Id: codegen-common.h 6265 2007-01-02 20:40:57Z edwin $
+   $Id: codegen-common.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -51,13 +45,16 @@ typedef struct linenumberref              linenumberref;
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/references.h"
-#include "vm/method.h"
+
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/code.h"
 #include "vm/jit/replace.h"
+
+#include "vmcore/descriptor.h"
+#include "vmcore/method.h"
+#include "vmcore/references.h"
 
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */

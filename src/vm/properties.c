@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 7234 2007-01-22 17:03:04Z twisti $
+   $Id: properties.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -41,18 +41,17 @@
 #include "vm/global.h"
 #include "native/include/java_lang_String.h"
 
-#if defined(ENABLE_JAVASE)
-# include "native/include/java_util_Properties.h"
-#endif
-
 #include "toolbox/list.h"
 #include "toolbox/util.h"
-#include "vm/method.h"
-#include "vm/options.h"
+
 #include "vm/properties.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
+
+#include "vmcore/method.h"
+#include "vmcore/options.h"
 
 
 /* internal property structure ************************************************/
@@ -376,9 +375,9 @@ char *properties_get(char *key)
 
 void properties_system_add(java_objectheader *p, char *key, char *value)
 {
-	methodinfo       *m;
-	java_lang_String *k;
-	java_lang_String *v;
+	methodinfo        *m;
+	java_objectheader *k;
+	java_objectheader *v;
 
 	/* search for method to add properties */
 
@@ -405,19 +404,22 @@ void properties_system_add(java_objectheader *p, char *key, char *value)
    Adds all properties from the properties list to the Java system
    properties.
 
+   ARGUMENTS:
+       p.... is actually a java_util_Properties structure
+
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-void properties_system_add_all(java_util_Properties *p)
+void properties_system_add_all(java_objectheader *p)
 {
 	list_properties_entry *pe;
 	methodinfo            *m;
-	java_lang_String      *key;
-	java_lang_String      *value;
+	java_objectheader     *key;
+	java_objectheader     *value;
 
 	/* search for method to add properties */
 
-	m = class_resolveclassmethod(p->header.vftbl->class,
+	m = class_resolveclassmethod(p->vftbl->class,
 								 utf_put,
 								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
 								 NULL,

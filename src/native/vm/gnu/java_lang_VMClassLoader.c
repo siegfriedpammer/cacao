@@ -1,6 +1,6 @@
-/* src/native/vm/VMClassLoader.c - java/lang/VMClassLoader
+/* src/native/vm/gnu/VMClassLoader.c
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roman Obermaiser
-
-   Changes: Joseph Wenninger
-            Christian Thalinger
-            Edwin Steiner
-
-   $Id: java_lang_VMClassLoader.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: java_lang_VMClassLoader.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -42,28 +34,33 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
+#include "native/include/java_security_ProtectionDomain.h"  /* required by... */
 #include "native/include/java_lang_ClassLoader.h"
-#include "native/include/java_security_ProtectionDomain.h"
 #include "native/include/java_util_Vector.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
-#include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
-#include "vm/linker.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/suck.h"
 #include "vm/vm.h"
-#include "vm/zip.h"
+
 #include "vm/jit/asmpart.h"
+
+#include "vmcore/class.h"
+#include "vmcore/classcache.h"
+#include "vmcore/linker.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+#include "vmcore/statistics.h"
+#include "vmcore/suck.h"
+#include "vmcore/zip.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
@@ -77,10 +74,11 @@
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
-	classinfo   *c;
-	classinfo   *r;
-	classbuffer *cb;
-	utf         *utfname;
+	classinfo       *c;
+	classinfo       *r;
+	classbuffer     *cb;
+	utf             *utfname;
+	java_lang_Class *co;
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;
 	unsigned char* new_class_data = NULL;
@@ -100,7 +98,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		return NULL;
 	}
 
-	if (name) {
+	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
 		utfname = javastring_toutf(name, true);
@@ -108,9 +106,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		/* check if this class has already been defined */
 
 		c = classcache_lookup_defined_or_initiated((java_objectheader *) cl, utfname);
-		if (c) {
-			*exceptionptr =
-				exceptions_new_linkageerror("duplicate class definition: ",c);
+		if (c != NULL) {
+			exceptions_throw_linkageerror("duplicate class definition: ", c);
 			return NULL;
 		}
 	} 
@@ -175,10 +172,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		loadingtime_stop();
 #endif
 
-	if (!r) {
-		/* If return value is NULL, we had a problem and the class is not   */
-		/* loaded. */
-		/* now free the allocated memory, otherwise we could run into a DOS */
+	if (r == NULL) {
+		/* If return value is NULL, we had a problem and the class is
+		   not loaded.  Now free the allocated memory, otherwise we
+		   could run into a DOS. */
 
 		class_free(c);
 
@@ -187,7 +184,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	/* set ProtectionDomain */
 
-	c->object.pd = pd;
+	co = (java_lang_Class *) c;
+
+	co->pd = pd;
 
 	/* Store the newly defined class in the class cache. This call also       */
 	/* checks whether a class of the same name has already been defined by    */
@@ -198,7 +197,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	/*            pointer after the lookup at to top of this function         */
 	/*            directly after the class cache lock has been released.      */
 
-	c = classcache_store((java_objectheader *)cl,c,true);
+	c = classcache_store((java_objectheader *) cl, c, true);
 
 	return (java_lang_Class *) c;
 }
@@ -212,41 +211,44 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, s4 type)
 {
 	classinfo *c;
+	s4         index;
 
 	/* get primitive class */
 
 	switch (type) {
 	case 'I':
-		c = primitivetype_table[PRIMITIVETYPE_INT].class_primitive;
+		index = PRIMITIVETYPE_INT;
 		break;
 	case 'J':
-		c = primitivetype_table[PRIMITIVETYPE_LONG].class_primitive;
+		index = PRIMITIVETYPE_LONG;
 		break;
 	case 'F':
-		c = primitivetype_table[PRIMITIVETYPE_FLOAT].class_primitive;
+		index = PRIMITIVETYPE_FLOAT;
 		break;
 	case 'D':
-		c = primitivetype_table[PRIMITIVETYPE_DOUBLE].class_primitive;
+		index = PRIMITIVETYPE_DOUBLE;
 		break;
 	case 'B':
-		c = primitivetype_table[PRIMITIVETYPE_BYTE].class_primitive;
+		index = PRIMITIVETYPE_BYTE;
 		break;
 	case 'C':
-		c = primitivetype_table[PRIMITIVETYPE_CHAR].class_primitive;
+		index = PRIMITIVETYPE_CHAR;
 		break;
 	case 'S':
-		c = primitivetype_table[PRIMITIVETYPE_SHORT].class_primitive;
+		index = PRIMITIVETYPE_SHORT;
 		break;
 	case 'Z':
-		c = primitivetype_table[PRIMITIVETYPE_BOOLEAN].class_primitive;
+		index = PRIMITIVETYPE_BOOLEAN;
 		break;
 	case 'V':
-		c = primitivetype_table[PRIMITIVETYPE_VOID].class_primitive;
+		index = PRIMITIVETYPE_VOID;
 		break;
 	default:
-		*exceptionptr = new_exception(string_java_lang_ClassNotFoundException);
+		exceptions_throw_noclassdeffounderror(utf_null);
 		c = NULL;
 	}
+
+	c = primitivetype_table[index].class_primitive;
 
 	return (java_lang_Class *) c;
 }
@@ -284,8 +286,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, java_lang_String *name, jboolean resolve)
 {
-	classinfo *c;
-	utf *u;
+	classinfo         *c;
+	utf               *u;
+	java_objectheader *xptr;
 
 	if (name == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -298,7 +301,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 
 	/* load class */
 
-	if (!(c = load_class_bootstrap(u)))
+	c = load_class_bootstrap(u);
+
+	if (c == NULL)
 		goto exception;
 
 	/* resolve class -- if requested */
@@ -310,7 +315,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	return (java_lang_Class *) c;
 
  exception:
-	c = (*exceptionptr)->vftbl->class;
+	xptr = exceptions_get_exception();
+
+	c = xptr->vftbl->class;
 	
 	/* if the exception is a NoClassDefFoundError, we replace it with a
 	   ClassNotFoundException, otherwise return the exception */
@@ -318,10 +325,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	if (c == class_java_lang_NoClassDefFoundError) {
 		/* clear exceptionptr, because builtin_new checks for 
 		   ExceptionInInitializerError */
-		*exceptionptr = NULL;
+		exceptions_clear_exception();
 
-		*exceptionptr =
-			new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+		exceptions_throw_classnotfoundexception(u);
 	}
 
 	return NULL;
@@ -452,7 +458,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 		if (path) {
 			ret = vm_call_method_int(m, o, path);
 
-			if (*exceptionptr)
+			if (exceptions_get_exception() != NULL)
 				goto return_NULL;
 
 			if (ret == 0) 

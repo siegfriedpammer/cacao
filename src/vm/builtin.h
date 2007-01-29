@@ -1,6 +1,6 @@
 /* src/vm/builtin.h - prototypes of builtin functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Edwin Steiner
-            Christian Thalinger
-
-   $Id: builtin.h 6013 2006-11-16 22:14:10Z twisti $
+   $Id: builtin.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -37,15 +31,13 @@
 #define _BUILTIN_H
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "arch.h"
+
 #include "toolbox/logging.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
-
-#include "vm/jit/stacktrace.h"
+#include "vmcore/utf8.h"
 
 
 /* define infinity for floating point numbers */

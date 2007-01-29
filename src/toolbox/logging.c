@@ -1,6 +1,6 @@
 /* src/toolbox/logging.c - contains logging functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-
-   Changes: Christian Thalinger
-   			Edwin Steiner
-
-   $Id: logging.c 4967 2006-05-26 16:24:58Z edwin $
+   $Id: logging.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -46,10 +39,15 @@
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
 #include "vm/global.h"
-#include "vm/statistics.h"
 
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
+
+#if 0
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
+#endif
 #endif
 
 
@@ -81,12 +79,14 @@ void log_start(void)
 {
 	if (logfile) {
 #if defined(ENABLE_THREADS)
-		fprintf(logfile, "[%p] ", (void *) THREADOBJECT);
+#warning FIX ME!
+/* 		fprintf(logfile, "[%p] ", (void *) threads_get_current_threadobject()); */
 #endif
 
 	} else {
 #if defined(ENABLE_THREADS)
-		fprintf(stdout, "LOG: [%p] ", (void *) THREADOBJECT);
+#warning FIX ME!
+/* 		fprintf(stdout, "LOG: [%p] ", (void *) threads_get_current_threadobject()); */
 #else
 		fputs("LOG: ", stdout);
 #endif

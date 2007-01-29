@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: gnu_classpath_VMSystemProperties.c 7237 2007-01-22 20:16:22Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -52,14 +52,18 @@
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *properties)
 {
-	if (properties == NULL) {
+	java_objectheader *p;
+
+	p = (java_objectheader *) properties;
+
+	if (p == NULL) {
 		exceptions_throw_nullpointerexception();
 		return;
 	}
 
 	/* fill the java.util.Properties object */
 
-	properties_system_add_all(properties);
+	properties_system_add_all(p);
 }
 
 

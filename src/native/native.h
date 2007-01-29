@@ -1,6 +1,6 @@
 /* src/native/native.h - table of native functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Christian Thalinger
-
-   $Id: native.h 6251 2006-12-27 23:15:56Z twisti $
+   $Id: native.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -41,13 +36,11 @@
 # include <ltdl.h>
 #endif
 
-#include "native/jni.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Throwable.h"
-#include "vm/class.h"
 #include "vm/global.h"
-#include "vm/method.h"
-#include "vm/utf8.h"
+
+#include "vmcore/class.h"
+#include "vmcore/method.h"
+#include "vmcore/utf8.h"
 
 
 /* table for locating native methods */
@@ -128,7 +121,8 @@ java_objectheader *native_new_and_init(classinfo *c);
 
 /* create new object on the heap and call the initializer 
    mainly used for exceptions with a message */
-java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s);
+java_objectheader *native_new_and_init_string(classinfo *c,
+											  java_objectheader *s);
 
 /* create new object on the heap and call the initializer 
    mainly used for exceptions with an index */
@@ -136,7 +130,8 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i);
 
 /* create new object on the heap and call the initializer 
    mainly used for exceptions with cause */
-java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t);
+java_objectheader *native_new_and_init_throwable(classinfo *c,
+												 java_objectheader *t);
 
 java_objectarray *native_get_parametertypes(methodinfo *m);
 java_objectarray *native_get_exceptiontypes(methodinfo *m);

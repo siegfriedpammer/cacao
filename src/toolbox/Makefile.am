@@ -1,6 +1,6 @@
 ## src/toolbox/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -26,9 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
-##
-## $Id: Makefile.am 5234 2006-08-14 17:50:12Z christian $
+## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,13 +34,18 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-noinst_LTLIBRARIES = libtoolbox.la
+noinst_LTLIBRARIES = \
+	libtoolbox.la
 
 libtoolbox_la_SOURCES = \
 	avl.c \
 	avl.h \
+	bitvector.c \
+	bitvector.h \
 	chain.c \
 	chain.h \
+	hashtable.c \
+	hashtable.h \
 	list.c \
 	list.h \
 	logging.c \
@@ -51,8 +54,6 @@ libtoolbox_la_SOURCES = \
 	tree.h \
 	util.c \
 	util.h \
-	bitvector.c \
-	bitvector.h \
 	worklist.c \
 	worklist.h
 

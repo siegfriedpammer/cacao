@@ -1,6 +1,6 @@
 /* src/vm/jit/emit-common.c - common code emitter functions
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Edwin Steiner
-
    $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
@@ -40,14 +35,13 @@
 
 #include "codegen.h"
 
-#include "vm/options.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vm/statistics.h"
-#endif
-
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vmcore/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
 
 
 /* emit_load_s1 ****************************************************************

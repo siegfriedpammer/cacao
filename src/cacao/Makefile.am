@@ -1,6 +1,6 @@
 ## src/cacao/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -24,11 +24,7 @@
 ##
 ## Contact: cacao@cacaojvm.org
 ##
-## Authors: Christian Thalinger
-##
-## Changes:
-##
-## $Id: Makefile.am 5884 2006-10-31 20:11:28Z twisti $
+## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -109,6 +105,7 @@ libjvm_la_LIBADD = \
 	$(top_builddir)/src/native/libnative.la \
 	$(top_builddir)/src/toolbox/libtoolbox.la \
 	$(top_builddir)/src/vm/libvm.la \
+	$(top_builddir)/src/vmcore/libvmcore.la \
 	$(GC_LIB) \
 	$(THREAD_LIB)
 

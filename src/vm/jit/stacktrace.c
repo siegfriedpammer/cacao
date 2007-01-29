@@ -1,6 +1,6 @@
 /* src/vm/jit/stacktrace.c - machine independent stacktrace system
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Joseph Wenninger
-            Christian Thalinger
-            Edwin Steiner
-
-   $Id: stacktrace.c 6251 2006-12-27 23:15:56Z twisti $
+   $Id: stacktrace.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -43,9 +37,9 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
-#include "native/native.h"
 
 #include "vm/global.h"                   /* required here for native includes */
+#include "native/jni.h"
 #include "native/include/java_lang_Throwable.h"
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -59,17 +53,20 @@
 #endif
 
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
+#include "vm/cycles-stats.h"
 #include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/methodheader.h"
-#include "vm/cycles-stats.h"
+
+#include "vmcore/class.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 
 /* global variables ***********************************************************/
@@ -349,7 +346,7 @@ java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp,
 
 	/* create exception */
 
-	o = new_arithmeticexception();
+	o = exceptions_new_arithmeticexception();
 
 	/* remove stackframeinfo */
 
@@ -380,7 +377,7 @@ java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
 
 	/* create exception */
 
-	o = new_arrayindexoutofboundsexception(index);
+	o = exceptions_new_arrayindexoutofboundsexception(index);
 
 	/* remove stackframeinfo */
 
@@ -546,7 +543,7 @@ java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
 
 	/* create exception */
 
-	o = new_arithmeticexception();
+	o = exceptions_new_arithmeticexception();
 
 	/* remove stackframeinfo */
 
@@ -1167,15 +1164,15 @@ return_NULL:
 #if defined(ENABLE_JAVASE)
 java_objectarray *stacktrace_getStack(void)
 {
-	stacktracebuffer *stb;
-	stacktrace_entry *ste;
-	java_objectarray *oa;
-	java_objectarray *classes;
-	java_objectarray *methodnames;
-	classinfo        *c;
-	java_lang_String *str;
-	s4                i;
-	s4                dumpsize;
+	stacktracebuffer  *stb;
+	stacktrace_entry  *ste;
+	java_objectarray  *oa;
+	java_objectarray  *classes;
+	java_objectarray  *methodnames;
+	classinfo         *c;
+	java_objectheader *string;
+	s4                 i;
+	s4                 dumpsize;
 	CYCLES_STATS_DECLARE_AND_START
 
 	/* mark start of dump memory area */
@@ -1221,12 +1218,13 @@ java_objectarray *stacktrace_getStack(void)
 		c = ste->method->class;
 
 		classes->data[i] = (java_objectheader *) c;
-		str = javastring_new(ste->method->name);
 
-		if (str == NULL)
+		string = javastring_new(ste->method->name);
+
+		if (string == NULL)
 			goto return_NULL;
 
-		methodnames->data[i] = (java_objectheader *) str;
+		methodnames->data[i] = string;
 	}
 
 	/* return the 2-dimensional array */
@@ -1300,28 +1298,6 @@ void stacktrace_dump_trace(threadobject *thread)
 	stacktracebuffer *stb;
 	s4                dumpsize;
 
-#if 0
-	/* get methodinfo pointer from data segment */
-
-	m = *((methodinfo **) (pv + MethodPointer));
-
-	/* get current stackframe info pointer */
-
-	psfi = STACKFRAMEINFO;
-
-	/* fill new stackframe info structure */
-
-	sfi->prev   = *psfi;
-	sfi->method = NULL;
-	sfi->pv     = NULL;
-	sfi->sp     = sp;
-	sfi->ra     = ra;
-
-	/* store new stackframe info pointer */
-
-	*psfi = sfi;
-#endif
-
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
@@ -1332,7 +1308,7 @@ void stacktrace_dump_trace(threadobject *thread)
 
 	/* print stacktrace */
 
-	if (stb)
+	if (stb != NULL)
 		stacktrace_print_trace_from_buffer(stb);
 	else {
 		puts("\t<<No stacktrace available>>");

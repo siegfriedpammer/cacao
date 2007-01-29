@@ -1,6 +1,6 @@
 /* src/threads/native/threads.h - native threads header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Stefan Ring
-            Edwin Steiner
-            Christian Thalinger
-
-   $Id: threads.h 6251 2006-12-27 23:15:56Z twisti $
+   $Id: threads.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -53,9 +47,12 @@ typedef struct threads_table_t       threads_table_t;
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/include/java_lang_Thread.h"
-#include "vm/global.h"
 
 #include "threads/native/lock.h"
+
+#include "vm/global.h"
+
+#include "vm/jit/stacktrace.h"
 
 #if defined(ENABLE_INTRP)
 #include "vm/jit/intrp/intrp.h"
@@ -182,6 +179,16 @@ struct threadobject {
 
 	dumpinfo_t            dumpinfo;     /* dump memory info structure         */
 };
+
+
+/* exception pointer **********************************************************/
+
+#define exceptionptr      (&(THREADOBJECT->_exceptionptr))
+
+
+/* stackframeinfo *************************************************************/
+
+#define STACKFRAMEINFO    (&(THREADOBJECT->_stackframeinfo))
 
 
 /* variables ******************************************************************/

@@ -1,6 +1,6 @@
-/* vm/access.c - checking access rights
+/* src/vmcore/access.c - checking access rights
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes:
-
-   $Id: access.c 5846 2006-10-28 13:02:19Z edwin $
+   $Id: access.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -41,9 +35,11 @@
 
 #include "vm/access.h"
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/exceptions.h"
-#include "vm/stringlocal.h"
+
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/class.h"
 
 
 /****************************************************************************/
@@ -186,7 +182,8 @@ bool access_check_caller(classinfo *declarer, s4 memberflags, s4 calldepth)
 	/* get the caller's class */
 
 	oa = stacktrace_getClassContext();
-	if (!oa)
+
+	if (oa == NULL)
 		return false;
 
 	assert(calldepth >= 0 && calldepth < oa->header.size);
@@ -198,8 +195,7 @@ bool access_check_caller(classinfo *declarer, s4 memberflags, s4 calldepth)
 	if (!access_is_accessible_class(callerclass, declarer)
 		|| !access_is_accessible_member(callerclass, declarer, memberflags))
 	{
-		*exceptionptr =
-			new_exception(string_java_lang_IllegalAccessException);
+		exceptions_throw_illegalaccessexception(callerclass);
 		return false;
 	}
 
@@ -207,6 +203,7 @@ bool access_check_caller(classinfo *declarer, s4 memberflags, s4 calldepth)
 
 	return true;
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

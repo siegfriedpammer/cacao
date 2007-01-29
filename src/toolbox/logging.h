@@ -1,6 +1,6 @@
 /* src/toolbox/logging.h - contains logging functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-
-   Changes: Christan Thalinger
-
-   $Id: logging.h 5464 2006-09-11 14:45:13Z edwin $
+   $Id: logging.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -41,9 +35,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "vm/class.h"
-#include "vm/method.h"
-#include "vm/utf8.h"
+#include "vmcore/class.h"
+#include "vmcore/method.h"
+#include "vmcore/utf8.h"
 
 
 /*500 is to small for eclipse traces, (builtin_trace_args, perhaps the

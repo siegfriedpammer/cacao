@@ -1,6 +1,6 @@
-/* vm/jit/loop/loop.h - array bound removal header
+/* src/vm/jit/loop/loop.h - array bound removal header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christopher Kruegel
-
-   Changes: Christian Thalinger
-
-   $Id: loop.h 5785 2006-10-15 22:25:54Z edwin $
+   $Id: loop.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -40,8 +34,10 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/method.h"
+
 #include "vm/jit/jit.h"
+
+#include "vmcore/method.h"
 
 
 /*	Different types for struct Trace										*/

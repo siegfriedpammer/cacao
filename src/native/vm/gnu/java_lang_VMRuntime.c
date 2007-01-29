@@ -1,6 +1,6 @@
-/* src/native/vm/VMRuntime.c - java/lang/VMRuntime
+/* src/native/vm/gnu/java_lang_VMRuntime.c
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roman Obermaiser
-
-   Changes: Joseph Wenninger
-            Christian Thalinger
-			Edwin Steiner
-
-   $Id: java_lang_VMRuntime.c 6252 2006-12-27 23:42:37Z twisti $
+   $Id: java_lang_VMRuntime.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -55,19 +47,22 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_io_File.h"
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Process.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
+#include "vmcore/options.h"
 
 
 /* this should work on BSD */

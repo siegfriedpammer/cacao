@@ -1,4 +1,4 @@
-/* src/native/vm/gnu_java_lang_management_VMThreadMXBeanImpl.c
+/* src/native/vm/gnu/gnu_java_lang_management_VMThreadMXBeanImpl.c
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
    $Id: VMFrame.c 4996 2006-05-31 13:53:16Z motse $
 
 */
@@ -39,11 +33,14 @@
 #include "mm/gc-common.h"
 
 #include "native/jni.h"
+#include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_management_ThreadInfo.h"
 
 #include "toolbox/logging.h"
-#include "vm/classcache.h"
+
 #include "vm/vm.h"
+
+#include "vmcore/classcache.h"
 
 
 /*

@@ -1,6 +1,6 @@
 /* src/vm/jit/loop/graph.h - control flow graph header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: graph.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: graph.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -39,8 +33,9 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/method.h"
 #include "vm/jit/loop/loop.h"
+
+#include "vmcore/method.h"
 
 
 /* function prototypes ********************************************************/

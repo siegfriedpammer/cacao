@@ -42,25 +42,27 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
+#include "native/include/java_lang_String.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #endif
 
-#include "vm/classcache.h"
+#include "toolbox/logging.h"
+
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/options.h"
 #include "vm/properties.h"
-#include "vm/rt-timing.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
-#include "vm/suck.h"
 #include "vm/vm.h"
+
 #include "vm/jit/jit.h"
 #include "vm/jit/md.h"
 #include "vm/jit/asmpart.h"
@@ -70,6 +72,10 @@
 #endif
 
 #include "vm/jit/optimizing/recompile.h"
+
+#include "vmcore/classcache.h"
+#include "vmcore/options.h"
+#include "vmcore/suck.h"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
@@ -565,7 +571,7 @@ static void version(bool opt_exit)
 	puts("java version \""JAVA_VERSION"\"");
 	puts("CACAO version "VERSION"");
 
-	puts("Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,");
+	puts("Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,");
 	puts("C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,");
 	puts("E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,");
 	puts("J. Wenninger, Institut f. Computersprachen - TU Wien\n");
@@ -1495,7 +1501,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!finalizer_init())
 		throw_main_exception_exit();
 
-	/* install architecture dependent signal handler used for exceptions */
+	/* install architecture dependent signal handlers */
 
 	signal_init();
 
@@ -1564,7 +1570,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	if (!recompile_init())
 		throw_main_exception_exit();
-		
+
+	/* start the signal handler thread */
+
+	if (!signal_start_thread())
+		throw_main_exception_exit();
+
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())
@@ -1614,15 +1625,15 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 {
-	utf              *mainutf;
-	classinfo        *mainclass;
-	methodinfo       *m;
-	java_objectarray *oa; 
-	s4                oalength;
-	utf              *u;
-	java_lang_String *s;
-	s4                status;
-	s4                i;
+	utf               *mainutf;
+	classinfo         *mainclass;
+	methodinfo        *m;
+	java_objectarray  *oa; 
+	s4                 oalength;
+	utf               *u;
+	java_objectheader *s;
+	s4                 status;
+	s4                 i;
 
 #if !defined(NDEBUG)
 	if (compileall) {
@@ -1654,16 +1665,14 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	mainutf = utf_new_char(mainstring);
 
 #if defined(ENABLE_JAVAME_CLDC1_1)
-	if (!(mainclass = load_class_bootstrap(mainutf)))
-		throw_main_exception_exit();
+	mainclass = load_class_bootstrap(mainutf);
 #else
-	if (!(mainclass = load_class_from_sysloader(mainutf)))
-		throw_main_exception_exit();
+	mainclass = load_class_from_sysloader(mainutf);
 #endif
 
 	/* error loading class */
 
-	if ((*exceptionptr != NULL) || (mainclass == NULL))
+	if ((exceptions_get_exception() != NULL) || (mainclass == NULL))
 		throw_main_exception_exit();
 
 	if (!link_class(mainclass))
@@ -1684,10 +1693,11 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	/* there is no main method or it isn't static */
 
 	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
-		*exceptionptr = NULL;
+		exceptions_clear_exception();
+		exceptions_throw_nosuchmethoderror(mainclass,
+										   utf_new_char("main"), 
+										   utf_new_char("([Ljava/lang/String;)V"));
 
-		*exceptionptr =
-			new_exception_message(string_java_lang_NoSuchMethodError, "main");
 		throw_main_exception_exit();
 	}
 
@@ -1701,7 +1711,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		u = utf_new_char(vm_args->options[opt_index + i].optionString);
 		s = javastring_new(u);
 
-		oa->data[i] = (java_objectheader *) s;
+		oa->data[i] = s;
 	}
 
 #ifdef TYPEINFO_DEBUG_TEST
@@ -1899,8 +1909,6 @@ void vm_exit_handler(void)
 #endif
 		}
 
-		mem_usagelog(1);
-
 		if (opt_getcompilingtime)
 			print_times();
 #endif /* defined(ENABLE_STATISTICS) */
@@ -2080,7 +2088,7 @@ static void vm_compile_all(void)
 
 						/* print out exception and cause */
 
-						exceptions_print_exception(*exceptionptr);
+						exceptions_print_current_exception();
 
 						/* goto next class */
 
@@ -2104,7 +2112,7 @@ static void vm_compile_all(void)
 
 							/* print out exception and cause */
 
-							exceptions_print_exception(*exceptionptr);
+							exceptions_print_current_exception();
 						}
 					}
 				}
@@ -2149,17 +2157,9 @@ static void vm_compile_method(void)
 									 false);
 	}
 
-	if (m == NULL) {
-		char message[MAXLOGTEXT];
-		sprintf(message, "%s%s", opt_method,
-				opt_signature ? opt_signature : "");
-
-		*exceptionptr =
-			new_exception_message(string_java_lang_NoSuchMethodException,
-								  message);
-										 
-		throw_main_exception_exit();
-	}
+	if (m == NULL)
+		vm_abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
+				 opt_method, opt_signature ? opt_signature : "");
 		
 	jit_compile(m);
 }

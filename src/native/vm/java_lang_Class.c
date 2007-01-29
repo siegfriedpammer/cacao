@@ -1,6 +1,6 @@
 /* src/native/vm/java_lang_Class.c - java/lang/Class
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roman Obermaiser
-            Joseph Wenninger
-            Christian Thalinger
-            Edwin Steiner
-
    $Id: java_lang_VMClass.c 6131 2006-12-06 22:15:57Z twisti $
 
 */
@@ -42,6 +35,7 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
@@ -55,15 +49,18 @@
 #endif
 
 #include "native/vm/java_lang_Class.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/loader.h"
-#include "vm/resolve.h"
 #include "vm/stringlocal.h"
+
+#include "vmcore/class.h"
+#include "vmcore/loader.h"
+#include "vmcore/resolve.h"
 
 
 /*
@@ -108,10 +105,16 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name, s4 initiali
 java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 #endif
 {
-	classinfo *c;
-	utf       *u;
-	u2        *pos;
-	s4         i;
+	java_objectheader *cl;
+	utf               *ufile;
+	utf               *uname;
+	classinfo         *c;
+	java_objectheader *xptr;
+	classinfo         *xclass;
+	u2                *pos;
+	s4                 i;
+
+	cl = (java_objectheader *) loader;
 
 	/* illegal argument */
 
@@ -120,30 +123,32 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 		return NULL;
 	}
 
+	/* create utf string in which '.' is replaced by '/' */
+
+	ufile = javastring_toutf(name, true);
+	uname = javastring_toutf(name, false);
+
 	/* name must not contain '/' (mauve test) */
 
 	for (i = 0, pos = name->value->data + name->offset; i < name->count; i++, pos++) {
 		if (*pos == '/') {
-			*exceptionptr =
-				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+			exceptions_throw_classnotfoundexception(uname);
 			return NULL;
 		}
 	}
 
-	/* create utf string in which '.' is replaced by '/' */
-
-	u = javastring_toutf(name, true);
-
 	/* try to load, ... */
 
 #if defined(ENABLE_JAVASE)
-	if (!(c = load_class_from_classloader(u, (java_objectheader *) loader))) {
+	c = load_class_from_classloader(ufile, cl);
 #elif defined(ENABLE_JAVAME_CLDC1_1)
-	if (!(c = load_class_bootstrap(u))) {
+	c = load_class_bootstrap(ufile);
 #endif
-		classinfo *xclass;
 
-		xclass = (*exceptionptr)->vftbl->class;
+	if (c == NULL) {
+		xptr = exceptions_get_exception();
+
+		xclass = xptr->vftbl->class;
 
 		/* if the exception is a NoClassDefFoundError, we replace it with a
 		   ClassNotFoundException, otherwise return the exception */
@@ -151,10 +156,9 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 		if (xclass == class_java_lang_NoClassDefFoundError) {
 			/* clear exceptionptr, because builtin_new checks for 
 			   ExceptionInInitializerError */
-			*exceptionptr = NULL;
+			exceptions_clear_exception();
 
-			*exceptionptr =
-				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+			exceptions_throw_classnotfoundexception(uname);
 		}
 
 	    return NULL;
@@ -792,7 +796,11 @@ s4 _Jv_java_lang_Class_isArray(java_lang_Class *klass)
  */
 void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
 {
-	*exceptionptr = (java_objectheader *) t;
+	java_objectheader *o;
+
+	o = (java_objectheader *) t;
+
+	exceptions_set_exception(o);
 }
 
 

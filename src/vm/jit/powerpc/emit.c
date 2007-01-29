@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/emit.c - PowerPC code emitter functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,10 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
    $Id: emit.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
@@ -42,14 +38,21 @@
 #include "vm/jit/powerpc/codegen.h"
 
 #include "mm/memory.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/options.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+
+#include "vmcore/options.h"
 
 
 /* emit_load *******************************************************************

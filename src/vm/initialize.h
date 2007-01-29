@@ -1,6 +1,6 @@
 /* src/vm/initialize.h - static class initializer functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-
-   Changes: Mark Probst
-            Andreas Krall
-            Christian Thalinger
-
-   $Id: initialize.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: initialize.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -38,8 +30,11 @@
 #ifndef _INITIALIZE_H
 #define _INITIALIZE_H
 
+#include "config.h"
+
 #include "vm/global.h"
-#include "vm/references.h"
+
+#include "vmcore/references.h"
 
 
 /* function prototypes ********************************************************/

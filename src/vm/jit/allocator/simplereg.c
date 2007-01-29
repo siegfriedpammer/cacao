@@ -22,38 +22,33 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Andreas Krall
-            Stefan Ring
-            Christian Thalinger
-            Christian Ullrich
-            Michael Starzinger
-            Edwin Steiner
-
-   $Id: simplereg.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: simplereg.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
 
 #include <assert.h>
+
+#include "vm/types.h"
 
 #include "arch.h"
 #include "md-abi.h"
 
+#include "mm/memory.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "mm/memory.h"
-#include "vm/method.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/reg.h"
 #include "vm/jit/allocator/simplereg.h"
 #include "vm/jit/show.h"
+
+#include "vmcore/method.h"
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
 
 
 #if 0

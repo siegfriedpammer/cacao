@@ -1,6 +1,6 @@
 /* src/vm/jit/parse.c - parser for JavaVM to intermediate code translation
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Carolyn Oates
-            Edwin Steiner
-            Joseph Wenninger
-            Christian Thalinger
-
-   $Id: parse.c 6175 2006-12-11 20:16:10Z twisti $
+   $Id: parse.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -50,21 +42,28 @@
 #endif
 
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/linker.h"
-#include "vm/loader.h"
-#include "vm/resolve.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/suck.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/loop/loop.h"
+
+#include "vmcore/linker.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
+
+#include "vmcore/suck.h"
 
 #define INSTRUCTIONS_INCREMENT  5  /* number of additional instructions to    */
                                    /* allocate if space runs out              */

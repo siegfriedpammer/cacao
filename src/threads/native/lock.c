@@ -1,6 +1,6 @@
 /* src/threads/native/lock.c - lock implementation
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Stefan Ring
-   			Edwin Steiner
-
-   Changes: Christian Thalinger
-
    $Id: threads.c 4903 2006-05-11 12:48:43Z edwin $
 
 */
@@ -42,8 +35,13 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-#include "mm/memory.h"
 #include "vm/types.h"
+
+#include "mm/memory.h"
+
+#include "threads/native/lock.h"
+#include "threads/native/threads.h"
+
 #include "vm/global.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
@@ -1141,7 +1139,7 @@ static void lock_record_wait(threadobject *t, lock_record_t *lr, s8 millis, s4 n
 	/* if we have been interrupted, throw the appropriate exception */
 
 	if (wasinterrupted)
-		*exceptionptr = new_exception(string_java_lang_InterruptedException);
+		exceptions_throw_interruptedexception();
 }
 
 

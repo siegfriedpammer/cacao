@@ -1,6 +1,6 @@
 /* src/vm/jit/abi.h - common ABI defines
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: abi.h 5079 2006-07-06 11:36:01Z twisti $
+   $Id: abi.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -40,6 +34,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/abi-asm.h"
+#include "vm/jit/jit.h"
 
 
 /* ABI externs ****************************************************************/

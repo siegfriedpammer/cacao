@@ -1,6 +1,6 @@
-/* src/native/vm/VMAccessController.c - java/security/VMAccessController
+/* src/native/vm/gnu/java_security_VMAccessController.c
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Joseph Wenninger
-
-   Changes: Christian Thalinger
-
-   $Id: java_security_VMAccessController.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: java_security_VMAccessController.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -37,10 +31,13 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
-#include "vm/options.h"
+
 #include "vm/jit/stacktrace.h"
+
+#include "vmcore/class.h"
+#include "vmcore/options.h"
 
 
 /*

@@ -1,6 +1,6 @@
 ## src/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,42 +22,41 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## $Id: Makefile.am 6243 2006-12-27 13:56:31Z twisti $
+## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
-	mm \
-	lib \
+	cacao \
+	cacaoh \
 	fdlibm \
+	lib \
+	mm \
+	native \
+	scripts \
+	threads \
 	toolbox \
 	vm \
-	threads \
-	cacaoh \
-	native \
-	cacao \
-	scripts
+	vmcore
 
 if WITH_CLASSPATH_GNU
 VM_DIR = \
 	lib
 endif
 
-# Keep this order!!!
+# DON'T CHANGE THIS ORDER!!!
 
 SUBDIRS = \
-	mm \
-	$(VM_DIR) \
-	fdlibm \
 	toolbox \
-	vm \
-	threads \
+	vmcore \
 	cacaoh \
+	\
+	$(VM_DIR) \
 	native \
+	fdlibm \
+	mm \
+	threads \
+	vm \
 	cacao \
 	scripts
 

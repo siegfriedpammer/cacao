@@ -1,6 +1,6 @@
 /* src/threads/native/threads.c - native threads support
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Stefan Ring
-            Christian Thalinger
-            Edwin Steiner
-
-   $Id: threads.c 6254 2006-12-28 00:19:16Z twisti $
+   $Id: threads.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -61,8 +55,11 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
+
+#include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_Thread.h"
 
@@ -75,16 +72,19 @@
 #endif
 
 #include "threads/native/threads.h"
+
 #include "toolbox/avl.h"
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
+
+#include "vmcore/options.h"
 
 #if !defined(__DARWIN__)
 # if defined(__LINUX__)
@@ -1802,7 +1802,7 @@ void threads_sleep(s8 millis, s4 nanos)
 	wasinterrupted = threads_wait_with_timeout(thread, &wakeupTime);
 
 	if (wasinterrupted)
-		*exceptionptr = new_exception(string_java_lang_InterruptedException);
+		exceptions_throw_interruptedexception();
 }
 
 

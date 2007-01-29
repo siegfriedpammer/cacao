@@ -1,6 +1,6 @@
-/* src/mm/memory.c - 
+/* src/mm/memory.c - memory management
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Christian Thalinger
-            Edwin Steiner
-
-   $Id: memory.c 7205 2007-01-11 22:36:29Z twisti $
+   $Id: memory.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -66,10 +60,13 @@
 #include "toolbox/logging.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+#include "vmcore/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
 
 
 /* constants for ENABLE_MEMCHECK **********************************************/

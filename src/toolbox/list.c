@@ -1,6 +1,6 @@
 /* src/toolbox/list.c - double linked list
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-
-   $Id: list.c 5894 2006-11-02 12:54:15Z twisti $
+   $Id: list.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -41,7 +37,6 @@
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
-# include "threads/native/threads.h"
 #else
 # include "threads/none/lock.h"
 #endif

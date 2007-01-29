@@ -1,6 +1,6 @@
 /* src/vm/exceptions.c - exception related functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Edwin Steiner
-
-   $Id: exceptions.c 7228 2007-01-19 01:13:48Z edwin $
+   $Id: exceptions.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -42,22 +37,34 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#else
+# include "threads/none/threads.h"
+#endif
+
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
-#include "vm/class.h"
+
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
+
+#include "vmcore/class.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 
 /* for raising exceptions from native methods *********************************/
@@ -89,13 +96,6 @@ bool exceptions_init(void)
 		return false;
 
 #if defined(ENABLE_JAVASE)
-	/* java/lang/AbstractMethodError */
-
-	if (!(class_java_lang_AbstractMethodError =
-		  load_class_bootstrap(utf_java_lang_AbstractMethodError)) ||
-		!link_class(class_java_lang_AbstractMethodError))
-		return false;
-
 	/* java/lang/LinkageError */
 
 	if (!(class_java_lang_LinkageError =
@@ -110,15 +110,6 @@ bool exceptions_init(void)
 		  load_class_bootstrap(utf_java_lang_NoClassDefFoundError)) ||
 		!link_class(class_java_lang_NoClassDefFoundError))
 		return false;
-
-#if defined(ENABLE_JAVASE)
-	/* java/lang/NoSuchMethodError */
-
-	if (!(class_java_lang_NoSuchMethodError =
-		  load_class_bootstrap(utf_java_lang_NoSuchMethodError)) ||
-		!link_class(class_java_lang_NoSuchMethodError))
-		return false;
-#endif
 
 	/* java/lang/OutOfMemoryError */
 
@@ -154,20 +145,6 @@ bool exceptions_init(void)
 	if (!(class_java_lang_ClassNotFoundException =
 		  load_class_bootstrap(utf_java_lang_ClassNotFoundException)) ||
 		!link_class(class_java_lang_ClassNotFoundException))
-		return false;
-
-	/* java/lang/IllegalArgumentException */
-
-	if (!(class_java_lang_IllegalArgumentException =
-		  load_class_bootstrap(utf_java_lang_IllegalArgumentException)) ||
-		!link_class(class_java_lang_IllegalArgumentException))
-		return false;
-
-	/* java/lang/IllegalMonitorStateException */
-
-	if (!(class_java_lang_IllegalMonitorStateException =
-		  load_class_bootstrap(utf_java_lang_IllegalMonitorStateException)) ||
-		!link_class(class_java_lang_IllegalMonitorStateException))
 		return false;
 
 	/* java/lang/NullPointerException */
@@ -322,12 +299,138 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 }
 
 
-/* new_exception ***************************************************************
+/* exceptions_new_class ********************************************************
+
+   Creates an exception object from the given class and initalizes it.
+
+   IN:
+      class....class pointer
+
+*******************************************************************************/
+
+static java_objectheader *exceptions_new_class(classinfo *c)
+{
+	java_objectheader *o;
+
+	o = native_new_and_init(c);
+
+	if (o == NULL)
+		return *exceptionptr;
+
+	return o;
+}
+
+
+/* exceptions_new_utf **********************************************************
 
    Creates an exception object with the given name and initalizes it.
 
    IN:
       classname....class name in UTF-8
+
+*******************************************************************************/
+
+static java_objectheader *exceptions_new_utf(utf *classname)
+{
+	classinfo         *c;
+	java_objectheader *o;
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return *exceptionptr;
+
+	o = exceptions_new_class(c);
+
+	return o;
+}
+
+
+/* exceptions_throw_class ******************************************************
+
+   Creates an exception object from the given class, initalizes and
+   throws it.
+
+   IN:
+      class....class pointer
+
+*******************************************************************************/
+
+static void exceptions_throw_class(classinfo *c)
+{
+	java_objectheader *o;
+
+	o = exceptions_new_class(c);
+
+	if (o == NULL)
+		return;
+
+	*exceptionptr = o;
+}
+
+
+/* exceptions_throw_utf ********************************************************
+
+   Creates an exception object with the given name, initalizes and
+   throws it.
+
+   IN:
+      classname....class name in UTF-8
+
+*******************************************************************************/
+
+static void exceptions_throw_utf(utf *classname)
+{
+	classinfo *c;
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return;
+
+	exceptions_throw_class(c);
+}
+
+
+/* exceptions_throw_utf_throwable **********************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/Throwable exception.
+
+   IN:
+      classname....class name in UTF-8
+	  cause........the given Throwable
+
+*******************************************************************************/
+
+static void exceptions_throw_utf_throwable(utf *classname,
+										   java_objectheader *cause)
+{
+	java_objectheader *o;
+	classinfo         *c;
+   
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return;
+
+	o = native_new_and_init_throwable(c, cause);
+
+	if (o == NULL)
+		return;
+
+	*exceptionptr = o;
+}
+
+
+/* exceptions_new_utf_javastring ***********************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/String message.
+
+   IN:
+      classname....class name in UTF-8
+	  message......the message as a java.lang.String
 
    RETURN VALUE:
       an exception pointer (in any case -- either it is the newly created
@@ -335,18 +438,81 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 
 *******************************************************************************/
 
-java_objectheader *new_exception(const char *classname)
+static java_objectheader *exceptions_new_utf_javastring(utf *classname,
+														java_objectheader *message)
 {
 	java_objectheader *o;
 	classinfo         *c;
+   
+	c = load_class_bootstrap(classname);
 
-	if (!(c = load_class_bootstrap(utf_new_char(classname))))
+	if (c == NULL)
 		return *exceptionptr;
 
-	o = native_new_and_init(c);
+	o = native_new_and_init_string(c, message);
 
-	if (!o)
+	if (o == NULL)
 		return *exceptionptr;
+
+	return o;
+}
+
+
+/* exceptions_new_class_utf ****************************************************
+
+   Creates an exception object of the given class and initalizes it.
+
+   IN:
+      c..........class pointer
+      message....the message as UTF-8 string
+
+*******************************************************************************/
+
+static java_objectheader *exceptions_new_class_utf(classinfo *c, utf *message)
+{
+	java_objectheader *o;
+	java_objectheader *s;
+
+	s = javastring_new(message);
+
+	if (s == NULL)
+		return *exceptionptr;
+
+	o = native_new_and_init_string(c, s);
+
+	if (o == NULL)
+		return *exceptionptr;
+
+	return o;
+}
+
+
+/* exceptions_new_utf_utf ******************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given utf message.
+
+   IN:
+      classname....class name in UTF-8
+	  message......the message as an utf *
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
+*******************************************************************************/
+
+static java_objectheader *exceptions_new_utf_utf(utf *classname, utf *message)
+{
+	classinfo         *c;
+	java_objectheader *o;
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return *exceptionptr;
+
+	o = exceptions_new_class_utf(c, message);
 
 	return o;
 }
@@ -367,109 +533,54 @@ java_objectheader *new_exception(const char *classname)
 
 *******************************************************************************/
 
-java_objectheader *new_exception_message(const char *classname,
-										 const char *message)
-{
-	java_lang_String *s;
-
-	s = javastring_new_from_utf_string(message);
-	if (!s)
-		return *exceptionptr;
-
-	return new_exception_javastring(classname, s);
-}
-
-
-/* new_exception_throwable *****************************************************
-
-   Creates an exception object with the given name and initalizes it
-   with the given java/lang/Throwable exception.
-
-   IN:
-      classname....class name in UTF-8
-	  throwable....the given Throwable
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-java_objectheader *new_exception_throwable(const char *classname,
-										   java_lang_Throwable *throwable)
+static java_objectheader *new_exception_message(const char *classname,
+												const char *message)
 {
 	java_objectheader *o;
-	classinfo         *c;
-   
-	if (!(c = load_class_bootstrap(utf_new_char(classname))))
+	java_objectheader *s;
+
+	s = javastring_new_from_utf_string(message);
+
+	if (s == NULL)
 		return *exceptionptr;
 
-	o = native_new_and_init_throwable(c, throwable);
-
-	if (!o)
-		return *exceptionptr;
+	o = exceptions_new_utf_javastring(classname, s);
 
 	return o;
 }
 
 
-/* new_exception_utfmessage ****************************************************
+/* exceptions_throw_class_utf **************************************************
 
-   Creates an exception object with the given name and initalizes it
-   with the given utf message.
+   Creates an exception object of the given class, initalizes and
+   throws it with the given utf message.
+
+   IN:
+      c..........class pointer
+	  message....the message as an UTF-8
+
+*******************************************************************************/
+
+static void exceptions_throw_class_utf(classinfo *c, utf *message)
+{
+	*exceptionptr = exceptions_new_class_utf(c, message);
+}
+
+
+/* exceptions_throw_utf_utf ****************************************************
+
+   Creates an exception object with the given name, initalizes and
+   throws it with the given utf message.
 
    IN:
       classname....class name in UTF-8
 	  message......the message as an utf *
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
+static void exceptions_throw_utf_utf(utf *classname, utf *message)
 {
-	java_lang_String *s;
-
-	s = javastring_new(message);
-	if (!s)
-		return *exceptionptr;
-
-	return new_exception_javastring(classname, s);
-}
-
-
-/* new_exception_javastring ****************************************************
-
-   Creates an exception object with the given name and initalizes it
-   with the given java/lang/String message.
-
-   IN:
-      classname....class name in UTF-8
-	  message......the message as a java.lang.String
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-java_objectheader *new_exception_javastring(const char *classname,
-											java_lang_String *message)
-{
-	java_objectheader *o;
-	classinfo         *c;
-   
-	if (!(c = load_class_bootstrap(utf_new_char(classname))))
-		return *exceptionptr;
-
-	o = native_new_and_init_string(c, message);
-
-	if (!o)
-		return *exceptionptr;
-
-	return o;
+	*exceptionptr = exceptions_new_utf_utf(classname, message);
 }
 
 
@@ -505,39 +616,20 @@ java_objectheader *new_exception_int(const char *classname, s4 i)
 }
 
 
-/* exceptions_new_abstractmethoderror ******************************************
+/* exceptions_new_abstractmethoderror ****************************************
 
    Generates a java.lang.AbstractMethodError for the VM.
 
 *******************************************************************************/
 
-#if defined(ENABLE_JAVASE)
 java_objectheader *exceptions_new_abstractmethoderror(void)
 {
-	java_objectheader *e;
+	java_objectheader *o;
 
-	e = native_new_and_init(class_java_lang_AbstractMethodError);
+	o = exceptions_new_utf(utf_java_lang_AbstractMethodError);
 
-	if (e == NULL)
-		return *exceptionptr;
-
-	return e;
+	return o;
 }
-#endif
-
-
-/* exceptions_throw_abstractmethoderror ****************************************
-
-   Generates a java.lang.AbstractMethodError for the VM and throws it.
-
-*******************************************************************************/
-
-#if defined(ENABLE_JAVASE)
-void exceptions_throw_abstractmethoderror(void)
-{
-	*exceptionptr = exceptions_new_abstractmethoderror();
-}
-#endif
 
 
 /* exceptions_asm_new_abstractmethoderror **************************************
@@ -574,21 +666,84 @@ java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 }
 
 
-/* new_classformaterror ********************************************************
+/* exceptions_new_arraystoreexception ******************************************
 
-   generates a java.lang.ClassFormatError for the classloader
+   Generates a java.lang.ArrayStoreException for the VM.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_new_arraystoreexception(void)
+{
+	java_objectheader *o;
+
+	o = exceptions_new_utf(utf_java_lang_ArrayStoreException);
+
+	return o;
+}
+
+
+/* exceptions_throw_abstractmethoderror ****************************************
+
+   Generates and throws a java.lang.AbstractMethodError for the VM.
+
+*******************************************************************************/
+
+void exceptions_throw_abstractmethoderror(void)
+{
+	exceptions_throw_utf(utf_java_lang_AbstractMethodError);
+}
+
+
+/* exceptions_throw_classcircularityerror **************************************
+
+   Generates and throws a java.lang.ClassCircularityError for the
+   classloader.
+
+   IN:
+      c............the class in which the error was found
+
+*******************************************************************************/
+
+void exceptions_throw_classcircularityerror(classinfo *c)
+{
+	java_objectheader *o;
+	char              *msg;
+	s4                 msglen;
+
+	/* calculate message length */
+
+	msglen = utf_bytes(c->name) + strlen("0");
+
+	/* allocate a buffer */
+
+	msg = MNEW(char, msglen);
+
+	/* print message into allocated buffer */
+
+	utf_copy_classname(msg, c->name);
+
+	o = new_exception_message(utf_java_lang_ClassCircularityError, msg);
+
+	MFREE(msg, char, msglen);
+
+	if (o == NULL)
+		return;
+
+	*exceptionptr = o;
+}
+
+
+/* exceptions_throw_classformaterror *******************************************
+
+   Generates and throws a java.lang.ClassFormatError for the VM.
 
    IN:
       c............the class in which the error was found
 	  message......UTF-8 format string
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
+void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 {
 	java_objectheader *o;
 	char              *msg;
@@ -599,14 +754,14 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 
 	msglen = 0;
 
-	if (c)
+	if (c != NULL)
 		msglen += utf_bytes(c->name) + strlen(" (");
 
 	va_start(ap, message);
 	msglen += get_variable_message_length(message, ap);
 	va_end(ap);
 
-	if (c)
+	if (c != NULL)
 		msglen += strlen(")");
 
 	msglen += strlen("0");
@@ -617,7 +772,7 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 
 	/* print message into allocated buffer */
 
-	if (c) {
+	if (c != NULL) {
 		utf_copy_classname(msg, c->name);
 		strcat(msg, " (");
 	}
@@ -626,100 +781,47 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 	vsprintf(msg + strlen(msg), message, ap);
 	va_end(ap);
 
-	if (c)
+	if (c != NULL)
 		strcat(msg, ")");
 
-	o = new_exception_message(string_java_lang_ClassFormatError, msg);
+	o = new_exception_message(utf_java_lang_ClassFormatError, msg);
 
 	MFREE(msg, char, msglen);
 
-	return o;
+	*exceptionptr = o;
 }
 
 
-/* exceptions_throw_classformaterror *******************************************
+/* exceptions_throw_classnotfoundexception *************************************
 
-   Generate a java.lang.ClassFormatError for the VM system and throw it.
-
-   IN:
-      c............the class in which the error was found
-	  message......UTF-8 format string
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
-{
-	va_list ap;
-
-	va_start(ap, message);
-	*exceptionptr = new_classformaterror(c, message, ap);
-	va_end(ap);
-}
-
-
-/* new_classnotfoundexception **************************************************
-
-   Generates a java.lang.ClassNotFoundException for the classloader.
+   Generates and throws a java.lang.ClassNotFoundException for the
+   VM.
 
    IN:
       name.........name of the class not found as a utf *
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-java_objectheader *new_classnotfoundexception(utf *name)
+void exceptions_throw_classnotfoundexception(utf *name)
 {
-	java_objectheader *o;
-	java_lang_String  *s;
+	/* we use class here, as this one is rather frequent */
 
-	s = javastring_new(name);
-	if (!s)
-		return *exceptionptr;
-
-	o = native_new_and_init_string(class_java_lang_ClassNotFoundException, s);
-
-	if (!o)
-		return *exceptionptr;
-
-	return o;
+	exceptions_throw_class_utf(class_java_lang_ClassNotFoundException, name);
 }
 
 
-/* new_noclassdeffounderror ****************************************************
+/* exceptions_throw_noclassdeffounderror ***************************************
 
-   Generates a java.lang.NoClassDefFoundError
+   Generates and throws a java.lang.NoClassDefFoundError.
 
    IN:
       name.........name of the class not found as a utf *
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-java_objectheader *new_noclassdeffounderror(utf *name)
+void exceptions_throw_noclassdeffounderror(utf *name)
 {
-	java_objectheader *o;
-	java_lang_String  *s;
-
-	s = javastring_new(name);
-	if (!s)
-		return *exceptionptr;
-
-	o = native_new_and_init_string(class_java_lang_NoClassDefFoundError, s);
-
-	if (!o)
-		return *exceptionptr;
-
-	return o;
+	exceptions_throw_class_utf(class_java_lang_NoClassDefFoundError, name);
 }
 
 
@@ -732,8 +834,10 @@ java_objectheader *new_noclassdeffounderror(utf *name)
 
 void classnotfoundexception_to_noclassdeffounderror(void)
 {
-	java_objectheader *xptr;
-	java_objectheader *cause;
+	java_objectheader   *xptr;
+	java_objectheader   *cause;
+	java_lang_Throwable *t;
+	java_lang_String    *s;
 
 	/* get the cause */
 
@@ -748,9 +852,10 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 
 		/* create new error */
 
-		xptr =
-			new_exception_javastring(string_java_lang_NoClassDefFoundError,
-					((java_lang_Throwable *) cause)->detailMessage);
+		t = (java_lang_Throwable *) cause;
+		s = t->detailMessage;
+
+		xptr = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError, s);
 
 		/* we had an exception while creating the error */
 
@@ -761,6 +866,76 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 
 		*exceptionptr = xptr;
 	}
+}
+
+
+/* exceptions_throw_exceptionininitializererror ********************************
+
+   Generates and throws a java.lang.ExceptionInInitializerError for
+   the VM.
+
+   IN:
+      cause......cause exception object
+
+*******************************************************************************/
+
+void exceptions_throw_exceptionininitializererror(java_objectheader *cause)
+{
+	exceptions_throw_utf_throwable(utf_java_lang_ExceptionInInitializerError,
+								   cause);
+}
+
+
+/* exceptions_throw_incompatibleclasschangeerror *******************************
+
+   Generates and throws a java.lang.IncompatibleClassChangeError for
+   the VM.
+
+   IN:
+      message......UTF-8 message format string
+
+*******************************************************************************/
+
+void exceptions_throw_incompatibleclasschangeerror(classinfo *c, const char *message)
+{
+	java_objectheader *o;
+	char              *msg;
+	s4                 msglen;
+
+	/* calculate exception message length */
+
+	msglen = utf_bytes(c->name) + strlen(message) + strlen("0");
+
+	/* allocate memory */
+
+	msg = MNEW(char, msglen);
+
+	utf_copy_classname(msg, c->name);
+	strcat(msg, message);
+
+	o = native_new_and_init_string(utf_java_lang_IncompatibleClassChangeError,
+								   javastring_new_from_utf_string(msg));
+
+	/* free memory */
+
+	MFREE(msg, char, msglen);
+
+	if (o == NULL)
+		return;
+
+	*exceptionptr = o;
+}
+
+
+/* exceptions_throw_instantiationerror *****************************************
+
+   Generates and throws a java.lang.InstantiationError for the VM.
+
+*******************************************************************************/
+
+void exceptions_throw_instantiationerror(classinfo *c)
+{
+	exceptions_throw_utf_utf(utf_java_lang_InstantiationError, c->name);
 }
 
 
@@ -798,7 +973,7 @@ void exceptions_throw_internalerror(const char *message, ...)
 
 	/* create exception object */
 
-	o = new_exception_message(string_java_lang_InternalError, msg);
+	o = new_exception_message(utf_java_lang_InternalError, msg);
 
 	/* free memory */
 
@@ -811,23 +986,18 @@ void exceptions_throw_internalerror(const char *message, ...)
 }
 
 
-/* exceptions_new_linkageerror *************************************************
+/* exceptions_throw_linkageerror ***********************************************
 
-   Generates a java.lang.LinkageError with an error message.
+   Generates and throws java.lang.LinkageError with an error message.
 
    IN:
       message......UTF-8 message
 	  c............class related to the error. If this is != NULL
 	               the name of c is appended to the error message.
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-java_objectheader *exceptions_new_linkageerror(const char *message,
-											   classinfo *c)
+void exceptions_throw_linkageerror(const char *message, classinfo *c)
 {
 	java_objectheader *o;
 	char              *msg;
@@ -836,9 +1006,9 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 	/* calculate exception message length */
 
 	msglen = strlen(message) + 1;
-	if (c) {
+
+	if (c != NULL)
 		msglen += utf_bytes(c->name);
-	}
 		
 	/* allocate memory */
 
@@ -847,9 +1017,9 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 	/* generate message */
 
 	strcpy(msg,message);
-	if (c) {
+
+	if (c != NULL)
 		utf_cat_classname(msg, c->name);
-	}
 
 	o = native_new_and_init_string(class_java_lang_LinkageError,
 								   javastring_new_from_utf_string(msg));
@@ -858,35 +1028,71 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 
 	MFREE(msg, char, msglen);
 
-	if (!o)
-		return *exceptionptr;
+	if (o == NULL)
+		return;
 
-	return o;
+	*exceptionptr = o;
 }
 
 
-/* exceptions_new_nosuchmethoderror ********************************************
+/* exceptions_throw_nosuchfielderror *******************************************
 
-   Generates a java.lang.NoSuchMethodError with an error message.
+   Generates and throws a java.lang.NoSuchFieldError with an error
+   message.
+
+   IN:
+      c............class in which the field was not found
+	  name.........name of the field
+
+*******************************************************************************/
+
+void exceptions_throw_nosuchfielderror(classinfo *c, utf *name)
+{
+	char *msg;
+	s4    msglen;
+	utf  *u;
+
+	/* calculate exception message length */
+
+	msglen = utf_bytes(c->name) + strlen(".") + utf_bytes(name) + strlen("0");
+
+	/* allocate memory */
+
+	msg = MNEW(char, msglen);
+
+	/* generate message */
+
+	utf_copy_classname(msg, c->name);
+	strcat(msg, ".");
+	utf_cat(msg, name);
+
+	u = utf_new_char(msg);
+
+	/* free memory */
+
+	MFREE(msg, char, msglen);
+
+	exceptions_throw_utf_utf(utf_java_lang_NoSuchFieldError, u);
+}
+
+
+/* exceptions_throw_nosuchmethoderror ******************************************
+
+   Generates and throws a java.lang.NoSuchMethodError with an error
+   message.
 
    IN:
       c............class in which the method was not found
 	  name.........name of the method
 	  desc.........descriptor of the method
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-#if defined(ENABLE_JAVASE)
-java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
-													utf *name, utf *desc)
+void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 {
-	java_objectheader *o;
-	char              *msg;
-	s4                 msglen;
+	char *msg;
+	s4    msglen;
+	utf  *u;
 
 	/* calculate exception message length */
 
@@ -904,38 +1110,14 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 	utf_cat(msg, name);
 	utf_cat(msg, desc);
 
-	o = native_new_and_init_string(class_java_lang_NoSuchMethodError,
-								   javastring_new_from_utf_string(msg));
+	u = utf_new_char(msg);
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	if (o == NULL)
-		return *exceptionptr;
-
-	return o;
+	exceptions_throw_utf_utf(utf_java_lang_NoSuchMethodError, u);
 }
-#endif
-
-
-/* exceptions_throw_nosuchmethoderror ******************************************
-
-   Generates a java.lang.NoSuchMethodError with an error message.
-
-   IN:
-      c............class in which the method was not found
-	  name.........name of the method
-	  desc.........descriptor of the method
-
-*******************************************************************************/
-
-#if defined(ENABLE_JAVASE)
-void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
-{
-	*exceptionptr = exceptions_new_nosuchmethoderror(c, name, desc);
-}
-#endif
 
 
 /* exceptions_throw_outofmemoryerror *******************************************
@@ -946,45 +1128,49 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 
 void exceptions_throw_outofmemoryerror(void)
 {
-	java_objectheader *e;
-
-	e = native_new_and_init(class_java_lang_OutOfMemoryError);
-
-	if (e == NULL)
-		return;
-
-	*exceptionptr = e;
+	exceptions_throw_class(class_java_lang_OutOfMemoryError);
 }
 
 
-/* new_unsupportedclassversionerror ********************************************
+/* exceptions_throw_unsatisfiedlinkerror ***************************************
 
-   Generate a java.lang.UnsupportedClassVersionError for the classloader
+   Generates and throws a java.lang.UnsatisfiedLinkError for the
+   classloader.
+
+   IN:
+	  name......UTF-8 name string
+
+*******************************************************************************/
+
+void exceptions_throw_unsatisfiedlinkerror(utf *name)
+{
+	exceptions_throw_utf_utf(utf_java_lang_UnsatisfiedLinkError, name);
+}
+
+
+/* exceptions_throw_unsupportedclassversionerror *******************************
+
+   Generates and throws a java.lang.UnsupportedClassVersionError for
+   the classloader.
 
    IN:
       c............class in which the method was not found
 	  message......UTF-8 format string
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *message, ...)
+void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 {
 	java_objectheader *o;
-	va_list            ap;
 	char              *msg;
     s4                 msglen;
 
 	/* calculate exception message length */
 
-	msglen = utf_bytes(c->name) + strlen(" (") + strlen(")") + strlen("0");
-
-	va_start(ap, message);
-	msglen += get_variable_message_length(message, ap);
-	va_end(ap);
+	msglen =
+		utf_bytes(c->name) +
+		strlen(" (Unsupported major.minor version 00.0)") +
+		strlen("0");
 
 	/* allocate memory */
 
@@ -993,43 +1179,35 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 	/* generate message */
 
 	utf_copy_classname(msg, c->name);
-	strcat(msg, " (");
-
-	va_start(ap, message);
-	vsprintf(msg + strlen(msg), message, ap);
-	va_end(ap);
-
-	strcat(msg, ")");
+	sprintf(msg + strlen(msg), " (Unsupported major.minor version %d.%d)",
+			ma, mi);
 
 	/* create exception object */
 
-	o = new_exception_message(string_java_lang_UnsupportedClassVersionError,
-							  msg);
+	o = new_exception_message(utf_java_lang_UnsupportedClassVersionError, msg);
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	return o;
+	if (o == NULL)
+		return;
+
+	*exceptionptr = o;
 }
 
 
-/* exceptions_new_verifyerror **************************************************
+/* exceptions_throw_verifyerror ************************************************
 
-   Generates a java.lang.VerifyError for the JIT compiler.
+   Generates and throws a java.lang.VerifyError for the JIT compiler.
 
    IN:
       m............method in which the error was found
 	  message......UTF-8 format string
 
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
 *******************************************************************************/
 
-java_objectheader *exceptions_new_verifyerror(methodinfo *m,
-											  const char *message, ...)
+void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 {
 	java_objectheader *o;
 	va_list            ap;
@@ -1040,8 +1218,9 @@ java_objectheader *exceptions_new_verifyerror(methodinfo *m,
 
 	msglen = 0;
 
-	if (m)
-		msglen = strlen("(class: ") + utf_bytes(m->class->name) +
+	if (m != NULL)
+		msglen =
+			strlen("(class: ") + utf_bytes(m->class->name) +
 			strlen(", method: ") + utf_bytes(m->name) +
 			strlen(" signature: ") + utf_bytes(m->descriptor) +
 			strlen(") ") + strlen("0");
@@ -1056,7 +1235,7 @@ java_objectheader *exceptions_new_verifyerror(methodinfo *m,
 
 	/* generate message */
 
-	if (m) {
+	if (m != NULL) {
 		strcpy(msg, "(class: ");
 		utf_cat_classname(msg, m->class->name);
 		strcat(msg, ", method: ");
@@ -1072,25 +1251,13 @@ java_objectheader *exceptions_new_verifyerror(methodinfo *m,
 
 	/* create exception object */
 
-	o = new_exception_message(string_java_lang_VerifyError, msg);
+	o = new_exception_message(utf_java_lang_VerifyError, msg);
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	return o;
-}
-
-
-/* exceptions_throw_verifyerror ************************************************
-
-   Throws a java.lang.VerifyError for the VM system.
-
-*******************************************************************************/
-
-void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
-{
-	*exceptionptr = exceptions_new_verifyerror(m, message);
+	*exceptionptr = o;
 }
 
 
@@ -1160,7 +1327,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 
 	/* create exception object */
 
-	o = new_exception_message(string_java_lang_VerifyError, msg);
+	o = new_exception_message(utf_java_lang_VerifyError, msg);
 
 	/* free memory */
 
@@ -1170,54 +1337,34 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 }
 
 
-/* exceptions_new_virtualmachineerror ******************************************
-
-   Generates a java.lang.VirtualMachineError for the VM system.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_new_virtualmachineerror(void)
-{
-	java_objectheader *e;
-
-	e = native_new_and_init(class_java_lang_VirtualMachineError);
-
-	if (e == NULL)
-		return *exceptionptr;
-
-	return e;
-}
-
-
 /* exceptions_throw_virtualmachineerror ****************************************
 
-   Throws a java.lang.VirtualMachineError for the VM system.
+   Generates and throws a java.lang.VirtualMachineError for the VM.
 
 *******************************************************************************/
 
 void exceptions_throw_virtualmachineerror(void)
 {
-	*exceptionptr = exceptions_new_virtualmachineerror();
+	exceptions_throw_class(class_java_lang_VirtualMachineError);
 }
 
 
-/* new_arithmeticexception *****************************************************
+/* exceptions_new_arithmeticexception ******************************************
 
-   Generates a java.lang.ArithmeticException for the jit compiler.
+   Generates a java.lang.ArithmeticException for the JIT compiler.
 
 *******************************************************************************/
 
-java_objectheader *new_arithmeticexception(void)
+java_objectheader *exceptions_new_arithmeticexception(void)
 {
-	java_objectheader *e;
+	java_objectheader *o;
 
-	e = new_exception_message(string_java_lang_ArithmeticException,
-							  string_java_lang_ArithmeticException_message);
+	o = new_exception_message(utf_java_lang_ArithmeticException, "/ by zero");
 
-	if (!e)
+	if (o == NULL)
 		return *exceptionptr;
 
-	return e;
+	return o;
 }
 
 
@@ -1228,12 +1375,11 @@ java_objectheader *new_arithmeticexception(void)
 
 *******************************************************************************/
 
-java_objectheader *new_arrayindexoutofboundsexception(s4 index)
+java_objectheader *exceptions_new_arrayindexoutofboundsexception(s4 index)
 {
-	java_objectheader *e;
-	methodinfo        *m;
 	java_objectheader *o;
-	java_lang_String  *s;
+	methodinfo        *m;
+	java_objectheader *s;
 
 	/* convert the index into a String, like Sun does */
 
@@ -1246,73 +1392,44 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 	if (m == NULL)
 		return *exceptionptr;
 
-	o = vm_call_method(m, NULL, index);
-
-	s = (java_lang_String *) o;
+	s = vm_call_method(m, NULL, index);
 
 	if (s == NULL)
 		return *exceptionptr;
 
-	e = new_exception_javastring(string_java_lang_ArrayIndexOutOfBoundsException,
-								 s);
+	o = exceptions_new_utf_javastring(utf_java_lang_ArrayIndexOutOfBoundsException,
+									  s);
 
-	if (e == NULL)
+	if (o == NULL)
 		return *exceptionptr;
 
-	return e;
+	return o;
 }
 
 
 /* exceptions_throw_arrayindexoutofboundsexception *****************************
 
-   Generates a java.lang.ArrayIndexOutOfBoundsException for the VM
-   system.
+   Generates and throws a java.lang.ArrayIndexOutOfBoundsException for
+   the VM.
 
 *******************************************************************************/
 
 void exceptions_throw_arrayindexoutofboundsexception(void)
 {
-	java_objectheader *e;
-
-	e = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
-	if (!e)
-		return;
-
-	*exceptionptr = e;
-}
-
-
-/* exceptions_new_arraystoreexception ******************************************
-
-   Generates a java.lang.ArrayStoreException for the VM compiler.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_new_arraystoreexception(void)
-{
-	java_objectheader *e;
-
-	e = new_exception(string_java_lang_ArrayStoreException);
-/*  	e = native_new_and_init(class_java_lang_ArrayStoreException); */
-
-	if (!e)
-		return *exceptionptr;
-
-	return e;
+	exceptions_throw_utf(utf_java_lang_ArrayIndexOutOfBoundsException);
 }
 
 
 /* exceptions_throw_arraystoreexception ****************************************
 
-   Generates a java.lang.ArrayStoreException for the VM system and
-   throw it in the VM system.
+   Generates and throws a java.lang.ArrayStoreException for the VM.
 
 *******************************************************************************/
 
 void exceptions_throw_arraystoreexception(void)
 {
-	*exceptionptr = exceptions_new_arraystoreexception();
+	exceptions_throw_utf(utf_java_lang_ArrayStoreException);
+/*  	e = native_new_and_init(class_java_lang_ArrayStoreException); */
 }
 
 
@@ -1341,99 +1458,110 @@ java_objectheader *exceptions_new_classcastexception(java_objectheader *o)
 }
 
 
-/* exceptions_new_illegalargumentexception *************************************
+/* exceptions_throw_clonenotsupportedexception *********************************
 
-   Generates a java.lang.IllegalArgumentException for the VM system.
+   Generates and throws a java.lang.CloneNotSupportedException for the
+   VM.
 
 *******************************************************************************/
 
-java_objectheader *new_illegalargumentexception(void)
+void exceptions_throw_clonenotsupportedexception(void)
 {
-	java_objectheader *e;
+	exceptions_throw_utf(utf_java_lang_CloneNotSupportedException);
+}
 
-	e = native_new_and_init(class_java_lang_IllegalArgumentException);
 
-	if (!e)
-		return *exceptionptr;
+/* exceptions_throw_illegalaccessexception *************************************
 
-	return e;
+   Generates and throws a java.lang.IllegalAccessException for the VM.
+
+*******************************************************************************/
+
+void exceptions_throw_illegalaccessexception(classinfo *c)
+{
+	/* XXX handle argument */
+
+	exceptions_throw_utf(utf_java_lang_IllegalAccessException);
 }
 
 
 /* exceptions_throw_illegalargumentexception ***********************************
 
-   Generates a java.lang.IllegalArgumentException for the VM system
-   and throw it in the VM system.
+   Generates and throws a java.lang.IllegalArgumentException for the
+   VM.
 
 *******************************************************************************/
 
 void exceptions_throw_illegalargumentexception(void)
 {
-	*exceptionptr = new_illegalargumentexception();
-}
-
-
-/* exceptions_new_illegalmonitorstateexception *********************************
-
-   Generates a java.lang.IllegalMonitorStateException for the VM
-   thread system.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_new_illegalmonitorstateexception(void)
-{
-	java_objectheader *e;
-
-	e = native_new_and_init(class_java_lang_IllegalMonitorStateException);
-
-	if (e == NULL)
-		return *exceptionptr;
-
-	return e;
+	exceptions_throw_utf(utf_java_lang_IllegalArgumentException);
 }
 
 
 /* exceptions_throw_illegalmonitorstateexception *******************************
 
-   Generates a java.lang.IllegalMonitorStateException for the VM
-   system and throw it in the VM system.
+   Generates and throws a java.lang.IllegalMonitorStateException for
+   the VM.
 
 *******************************************************************************/
 
 void exceptions_throw_illegalmonitorstateexception(void)
 {
-	*exceptionptr = exceptions_new_illegalmonitorstateexception();
+	exceptions_throw_utf(utf_java_lang_IllegalMonitorStateException);
 }
 
 
-/* exceptions_new_negativearraysizeexception ***********************************
+/* exceptions_throw_instantiationexception *************************************
 
-   Generates a java.lang.NegativeArraySizeException for the VM system.
+   Generates and throws a java.lang.InstantiationException for the VM.
 
 *******************************************************************************/
 
-java_objectheader *new_negativearraysizeexception(void)
+void exceptions_throw_instantiationexception(classinfo *c)
 {
-	java_objectheader *e;
+	exceptions_throw_utf_utf(utf_java_lang_InstantiationException, c->name);
+}
 
-	e = new_exception(string_java_lang_NegativeArraySizeException);
 
-	if (!e)
-		return *exceptionptr;
+/* exceptions_throw_interruptedexception ***************************************
 
-	return e;
+   Generates and throws a java.lang.InterruptedException for the VM.
+
+*******************************************************************************/
+
+void exceptions_throw_interruptedexception(void)
+{
+	exceptions_throw_utf(utf_java_lang_InterruptedException);
+}
+
+
+/* exceptions_throw_invocationtargetexception **********************************
+
+   Generates and throws a java.lang.InvocationTargetException for the
+   VM.
+
+   IN:
+      cause......cause exception object
+
+*******************************************************************************/
+
+void exceptions_throw_invocationtargetexception(java_objectheader *cause)
+{
+	exceptions_throw_utf_throwable(utf_java_lang_InvocationTargetException,
+								   cause);
 }
 
 
 /* exceptions_throw_negativearraysizeexception *********************************
 
-   Generates a java.lang.NegativeArraySizeException for the VM system.
+   Generates and throws a java.lang.NegativeArraySizeException for the
+   VM.
 
 *******************************************************************************/
 
 void exceptions_throw_negativearraysizeexception(void)
 {
-	*exceptionptr = new_negativearraysizeexception();
+	exceptions_throw_utf(utf_java_lang_NegativeArraySizeException);
 }
 
 
@@ -1445,14 +1573,11 @@ void exceptions_throw_negativearraysizeexception(void)
 
 java_objectheader *exceptions_new_nullpointerexception(void)
 {
-	java_objectheader *e;
+	java_objectheader *o;
 
-	e = native_new_and_init(class_java_lang_NullPointerException);
+	o = exceptions_new_class(class_java_lang_NullPointerException);
 
-	if (e == NULL)
-		return *exceptionptr;
-
-	return e;
+	return o;
 }
 
 
@@ -1465,40 +1590,62 @@ java_objectheader *exceptions_new_nullpointerexception(void)
 
 void exceptions_throw_nullpointerexception(void)
 {
-	*exceptionptr = exceptions_new_nullpointerexception();
-}
-
-
-/* exceptions_new_stringindexoutofboundsexception ******************************
-
-   Generates a java.lang.StringIndexOutOfBoundsException for the VM
-   system.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_new_stringindexoutofboundsexception(void)
-{
-	java_objectheader *e;
-
-	e = new_exception(string_java_lang_StringIndexOutOfBoundsException);
-
-	if (e == NULL)
-		return *exceptionptr;
-
-	return e;
+	exceptions_throw_class(class_java_lang_NullPointerException);
 }
 
 
 /* exceptions_throw_stringindexoutofboundsexception ****************************
 
-   Throws a java.lang.StringIndexOutOfBoundsException for the VM
-   system.
+   Generates and throws a java.lang.StringIndexOutOfBoundsException
+   for the VM.
 
 *******************************************************************************/
 
 void exceptions_throw_stringindexoutofboundsexception(void)
 {
-	*exceptionptr = exceptions_new_stringindexoutofboundsexception();
+	exceptions_throw_utf(utf_java_lang_StringIndexOutOfBoundsException);
+}
+
+
+/* exceptions_get_exception ****************************************************
+
+   Returns the current exception pointer of the current thread.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_get_exception(void)
+{
+	/* return the exception */
+
+	return *exceptionptr;
+}
+
+
+/* exceptions_set_exception ****************************************************
+
+   Sets the exception pointer of the current thread.
+
+*******************************************************************************/
+
+void exceptions_set_exception(java_objectheader *o)
+{
+	/* set the exception */
+
+	*exceptionptr = o;
+}
+
+
+/* exceptions_clear_exception **************************************************
+
+   Clears the current exception pointer of the current thread.
+
+*******************************************************************************/
+
+void exceptions_clear_exception(void)
+{
+	/* and clear the exception */
+
+	*exceptionptr = NULL;
 }
 
 
@@ -1758,6 +1905,23 @@ void exceptions_print_exception(java_objectheader *xptr)
 		putc('\n', stdout);
 	}
 #endif
+}
+
+
+/* exceptions_print_current_exception ******************************************
+
+   Prints the current pending exception, the detail message and the
+   cause, if available, with CACAO internal functions to stdout.
+
+*******************************************************************************/
+
+void exceptions_print_current_exception(void)
+{
+	java_objectheader *xptr;
+
+	xptr = *exceptionptr;
+
+	exceptions_print_exception(xptr);
 }
 
 

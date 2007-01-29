@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Stefan Ring
-            Christian Thalinger
-
-   $Id: boehm.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: boehm.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -51,14 +46,16 @@
 #endif
 
 #include "toolbox/logging.h"
-#include "vm/options.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
 #include "vm/global.h"
-#include "vm/loader.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 
 /* global variables ***********************************************************/

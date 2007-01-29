@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 7216 2007-01-16 09:54:47Z twisti $
+   $Id: asmpart.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -33,18 +33,16 @@
 #include "config.h"
 #include "vm/types.h"
 
-
 #if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
 # include "threads/native/critical.h"
 #endif
 
 #include "vm/global.h"
-#include "vm/linker.h"
-#include "vm/resolve.h"
 #include "vm/vm.h"
+
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
+
+#include "vmcore/linker.h"
 
 
 /* some macros ****************************************************************/

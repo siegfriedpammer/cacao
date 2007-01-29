@@ -1,6 +1,6 @@
 /* src/vm/initialize.c - static class initializer functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-
-   Changes: Mark Probst
-            Andreas Krall
-            Christian Thalinger
-
-   $Id: initialize.c 5123 2006-07-12 21:45:34Z twisti $
+   $Id: initialize.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -50,14 +42,19 @@
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/builtin.h"
-#include "vm/class.h"
-#include "vm/loader.h"
 #include "vm/exceptions.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
+
+#include "vmcore/class.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
 
 
 /* private functions **********************************************************/
@@ -95,7 +92,7 @@ bool initialize_class(classinfo *c)
        error and we have to throw a NoClassDefFoundError */
 
 	if (c->state & CLASS_ERROR) {
-		*exceptionptr = new_noclassdeffounderror(c->name);
+		exceptions_throw_noclassdeffounderror(c->name);
 
 		LOCK_MONITOR_EXIT(c);
 
@@ -196,9 +193,9 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* we have an exception or error */
 
-	xptr = *exceptionptr;
+	xptr = exceptions_get_exception();
 
-	if (xptr) {
+	if (xptr != NULL) {
 		/* class is NOT initialized and is marked with error */
 
 		c->state |= CLASS_ERROR;
@@ -208,13 +205,11 @@ static bool initialize_class_intern(classinfo *c)
 		if (builtin_instanceof(xptr, class_java_lang_Exception)) {
 			/* clear exception, because we are calling jit code again */
 
-			*exceptionptr = NULL;
+			exceptions_clear_exception();
 
 			/* wrap the exception */
 
-			*exceptionptr =
-				new_exception_throwable(string_java_lang_ExceptionInInitializerError,
-										(java_lang_Throwable *) xptr);
+			exceptions_throw_exceptionininitializererror(xptr);
 		}
 
 		return false;

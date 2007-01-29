@@ -1,6 +1,6 @@
 /* src/vm/stringlocal.h - string header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Edwin Steiner
-
-   $Id: stringlocal.h 5821 2006-10-24 16:41:54Z edwin $
+   $Id: stringlocal.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -42,11 +36,11 @@ typedef struct literalstring literalstring;
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/global.h"                  /* required before java_lang_String.h */
-#include "native/include/java_lang_String.h"
+#include "toolbox/hashtable.h"
 
-#include "vm/hashtable.h"
-#include "vm/utf8.h"
+#include "vm/global.h"
+
+#include "vmcore/utf8.h"
 
 
 /* data structure of internal javastrings stored in global hashtable **********/
@@ -61,59 +55,6 @@ struct literalstring {
 extern hashtable hashtable_string;
 
 
-/* global string definitions **************************************************/
-
-/* exception/error super class */
-
-extern const char *string_java_lang_Throwable;
-extern const char *string_java_lang_VMThrowable;
-
-
-/* specify some exception strings for code generation */
-
-extern const char *string_java_lang_ArithmeticException;
-extern const char *string_java_lang_ArithmeticException_message;
-extern const char *string_java_lang_ArrayIndexOutOfBoundsException;
-extern const char *string_java_lang_ArrayStoreException;
-extern const char *string_java_lang_ClassCastException;
-extern const char *string_java_lang_ClassNotFoundException;
-extern const char *string_java_lang_CloneNotSupportedException;
-extern const char *string_java_lang_Exception;
-extern const char *string_java_lang_IllegalAccessException;
-extern const char *string_java_lang_IllegalArgumentException;
-extern const char *string_java_lang_IllegalMonitorStateException;
-extern const char *string_java_lang_IndexOutOfBoundsException;
-extern const char *string_java_lang_InstantiationException;
-extern const char *string_java_lang_InterruptedException;
-extern const char *string_java_lang_NegativeArraySizeException;
-extern const char *string_java_lang_NoSuchFieldException;
-extern const char *string_java_lang_NoSuchMethodException;
-extern const char *string_java_lang_NullPointerException;
-extern const char *string_java_lang_StringIndexOutOfBoundsException;
-extern const char *string_java_lang_reflect_InvocationTargetException;
-
-
-/* specify some error strings for code generation */
-
-extern const char *string_java_lang_AbstractMethodError;
-extern const char *string_java_lang_ClassCircularityError;
-extern const char *string_java_lang_ClassFormatError;
-extern const char *string_java_lang_Error;
-extern const char *string_java_lang_ExceptionInInitializerError;
-extern const char *string_java_lang_IncompatibleClassChangeError;
-extern const char *string_java_lang_InternalError;
-extern const char *string_java_lang_InstantiationError;
-extern const char *string_java_lang_LinkageError;
-extern const char *string_java_lang_NoClassDefFoundError;
-extern const char *string_java_lang_NoSuchFieldError;
-extern const char *string_java_lang_NoSuchMethodError;
-extern const char *string_java_lang_OutOfMemoryError;
-extern const char *string_java_lang_UnsatisfiedLinkError;
-extern const char *string_java_lang_UnsupportedClassVersionError;
-extern const char *string_java_lang_VerifyError;
-extern const char *string_java_lang_VirtualMachineError;
-
-
 /* function prototypes ********************************************************/
 
 /* initialize string subsystem */
@@ -122,29 +63,26 @@ bool string_init(void);
 void stringtable_update(void);
 
 /* creates a new object of type java/lang/String from a utf-text */
-java_lang_String *javastring_new(utf *text);
+java_objectheader *javastring_new(utf *text);
 
 /* creates a new object of type java/lang/String from a utf-text, changes slashes to dots */
-java_lang_String *javastring_new_slash_to_dot(utf *text);
+java_objectheader *javastring_new_slash_to_dot(utf *text);
 
 /* creates a new object of type java/lang/String from an ASCII c-string */
-java_lang_String *javastring_new_from_ascii(const char *text);
+java_objectheader *javastring_new_from_ascii(const char *text);
 
 /* creates a new object of type java/lang/String from UTF-8 */
-java_lang_String *javastring_new_from_utf_buffer(const char *buffer, u4 blength);
-java_lang_String *javastring_new_from_utf_string(const char *utfstr);
+java_objectheader *javastring_new_from_utf_buffer(const char *buffer, u4 blength);
+java_objectheader *javastring_new_from_utf_string(const char *utfstr);
 
 /* creates a new object of type java/lang/String from (possibly invalid) UTF-8 */
-java_lang_String *javastring_safe_new_from_utf8(const char *text);
+java_objectheader *javastring_safe_new_from_utf8(const char *text);
 
 /* make c-string from a javastring (debugging) */
-char *javastring_tochar(java_objectheader *s);
+char *javastring_tochar(java_objectheader *string);
 
 /* make utf symbol from javastring */
-utf *javastring_toutf(java_lang_String *string, bool isclassname);
-
-/* returns length of javastring */
-s4 javastring_strlen(java_lang_String *s);
+utf *javastring_toutf(java_objectheader *string, bool isclassname);
 
 /* creates a new javastring with the text of the u2-array */
 java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,

@@ -1,6 +1,6 @@
-/* typeinfo.h - type system used by the type checker
+/* src/vm/jit/verify/typeinfo.h - type system used by the type checker
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   $Id: typeinfo.h 6023 2006-11-19 15:22:53Z edwin $
+   $Id: typeinfo.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -43,7 +39,8 @@ typedef struct typedescriptor typedescriptor;
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/references.h"
+
+#include "vmcore/references.h"
 
 
 /* configuration **************************************************************/

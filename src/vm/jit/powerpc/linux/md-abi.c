@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/linux/md-abi.c - functions for PowerPC Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Christian Ullrich
-
-   $Id: md-abi.c 5634 2006-10-02 14:18:04Z edwin $
+   $Id: md-abi.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -38,9 +32,11 @@
 
 #include "vm/jit/powerpc/linux/md-abi.h"
 
-#include "vm/descriptor.h"
 #include "vm/global.h"
+
 #include "vm/jit/abi.h"
+
+#include "vmcore/descriptor.h"
 
 
 #define _ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)

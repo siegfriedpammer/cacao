@@ -1,6 +1,6 @@
 /* src/vm/jit/stacktrace.h - header file for stacktrace generation
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: stacktrace.h 6248 2006-12-27 22:39:39Z twisti $
+   $Id: stacktrace.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -51,7 +45,8 @@ typedef struct stacktrace_entry stacktrace_entry;
 # include "threads/none/threads.h"
 #endif
 
-#include "vm/method.h"
+#include "vmcore/class.h"
+#include "vmcore/method.h"
 
 
 /* stackframeinfo **************************************************************
@@ -69,14 +64,6 @@ struct stackframeinfo {
 	u1             *ra;                 /* RA to parent Java function         */
 	u1             *xpc;                /* XPC (for inline stubs)             */
 };
-
-#if defined(ENABLE_THREADS)
-#define STACKFRAMEINFO    (&(THREADOBJECT->_stackframeinfo))
-#else
-extern stackframeinfo *_no_threads_stackframeinfo;
-
-#define STACKFRAMEINFO    (&_no_threads_stackframeinfo)
-#endif
 
 
 /* stacktrace_entry ***********************************************************/

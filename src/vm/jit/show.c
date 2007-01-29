@@ -1,6 +1,6 @@
 /* src/vm/jit/show.c - showing the intermediate representation
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,22 +22,16 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Edwin Steiner
-            Christian Thalinger
-            Christian Ullrich
-
    $Id$
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
 
 #include <assert.h>
+
+#include "vm/types.h"
 
 #include "mm/memory.h"
 
@@ -48,7 +42,6 @@
 #endif
 
 #include "vm/global.h"
-#include "vm/options.h"
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/jit.h"
@@ -56,6 +49,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/parse.h"
+#include "vmcore/options.h"
 
 
 /* global variables ***********************************************************/
@@ -694,7 +688,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         if (stage >= SHOW_PARSE) {                                   \
             putchar('"');                                            \
             utf_display_printable_ascii(                             \
-                javastring_toutf((java_lang_String *)(val), false)); \
+               javastring_toutf((java_objectheader *)(val), false)); \
             printf("\" ");                                           \
         }                                                            \
         else {                                                       \

@@ -1,6 +1,6 @@
 /* src/vm/signal.c - machine independent signal functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: signal.c 6256 2006-12-28 12:30:09Z twisti $
+   $Id: signal.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -47,22 +43,38 @@
 
 #include "vm/types.h"
 
+#include "mm/memory.h"
+
+#include "native/jni.h"
+#include "native/include/java_lang_Thread.h"
+
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_VMThread.h"
+#endif
+
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #endif
 
-#include "mm/memory.h"
+#include "vm/builtin.h"
 #include "vm/signallocal.h"
-#include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/vm.h"
 #include "vm/jit/stacktrace.h"
+
+#include "vmcore/options.h"
+
+
+/* global variables ***********************************************************/
+
+#if defined(ENABLE_THREADS)
+static threadobject *thread_signal;
+#endif
 
 
 /* function prototypes ********************************************************/
 
 void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p);
-void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p);
-void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p);
 
 
 /* signal_init *****************************************************************
@@ -76,6 +88,7 @@ void signal_init(void)
 #if !defined(__CYGWIN__)
 	int              pagesize;
 	struct sigaction act;
+	sigset_t         mask;
 
 	/* mmap a memory page at address 0x0, so our hardware-exceptions
 	   work. */
@@ -91,7 +104,8 @@ void signal_init(void)
 	(void) GCNEW(u1);
 #endif
 
-	/* install signal handlers we need to convert to exceptions */
+	/* Install signal handlers for signals we want to catch in all
+	   threads. */
 
 	sigemptyset(&act.sa_mask);
 
@@ -99,7 +113,7 @@ void signal_init(void)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
 # endif
-		/* catch NullPointerException/StackOverFlowException */
+		/* SIGSEGV handler */
 
 		act.sa_sigaction = md_signal_handler_sigsegv;
 		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
@@ -112,9 +126,9 @@ void signal_init(void)
 		sigaction(SIGBUS, &act, NULL);
 #endif
 
-		/* catch ArithmeticException */
-
 #if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
+		/* SIGFPE handler */
+
 		act.sa_sigaction = md_signal_handler_sigfpe;
 		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
 		sigaction(SIGFPE, &act, NULL);
@@ -125,38 +139,133 @@ void signal_init(void)
 #endif /* !defined(ENABLE_INTRP) */
 
 #if defined(ENABLE_THREADS)
-	/* catch SIGHUP for threads_thread_interrupt */
+	/* SIGHUP handler for threads_thread_interrupt */
 
 	act.sa_sigaction = signal_handler_sighup;
 	act.sa_flags     = 0;
 	sigaction(SIGHUP, &act, NULL);
 #endif
 
-	/* catch SIGINT for exiting properly on <ctrl>-c */
-
-	act.sa_sigaction = signal_handler_sigint;
-	act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-	sigaction(SIGINT, &act, NULL);
-
-#if defined(ENABLE_THREADS)
-	/* catch SIGQUIT for thread dump */
-
-# if !defined(__FREEBSD__)
-	act.sa_sigaction = signal_handler_sigquit;
-	act.sa_flags     = SA_SIGINFO;
-	sigaction(SIGQUIT, &act, NULL);
-# endif
-#endif
-
 #if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)
-	/* install signal handler for profiling sampling */
+	/* SIGUSR2 handler for profiling sampling */
 
 	act.sa_sigaction = md_signal_handler_sigusr2;
 	act.sa_flags     = SA_SIGINFO;
 	sigaction(SIGUSR2, &act, NULL);
 #endif
 
+	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
+	   <ctrl>-\).  We enable them later in signal_thread, but only for
+	   this thread. */
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGINT);
+#if !defined(__FREEBSD__)
+	sigaddset(&mask, SIGQUIT);
+#endif
+	sigprocmask(SIG_BLOCK, &mask, NULL);
+
 #endif /* !defined(__CYGWIN__) */
+}
+
+
+/* signal_thread ************************************************************
+
+   This thread sets the signal mask to catch the user input signals
+   (SIGINT, SIGQUIT).  We use such a thread, so we don't get the
+   signals on every single thread running.  Especially, this makes
+   problems on slow machines.
+
+*******************************************************************************/
+
+static void signal_thread(void)
+{
+	sigset_t mask;
+	int      sig;
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGINT);
+#if !defined(__FREEBSD__)
+	sigaddset(&mask, SIGQUIT);
+#endif
+
+	while (true) {
+		/* just wait for a signal */
+
+		sigwait(&mask, &sig);
+
+		switch (sig) {
+		case SIGINT:
+			/* exit the vm properly */
+
+			vm_exit(0);
+			break;
+
+		case SIGQUIT:
+			/* print a thread dump */
+
+			threads_dump();
+
+#if defined(ENABLE_STATISTICS)
+			if (opt_stat)
+				statistics_print_memory_usage();
+#endif
+			break;
+		}
+	}
+
+	/* this should not happen */
+
+	vm_abort("signal_thread: this thread should not exit!");
+}
+
+
+/* signal_start_thread *********************************************************
+
+   Starts the signal handler thread.
+
+*******************************************************************************/
+
+bool signal_start_thread(void)
+{
+#if defined(ENABLE_THREADS)
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmt;
+#endif
+
+	/* create the finalizer object */
+
+	thread_signal = (threadobject *) builtin_new(class_java_lang_Thread);
+
+	if (thread_signal == NULL)
+		return false;
+
+#if defined(WITH_CLASSPATH_GNU)
+	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+
+	vmt->thread = (java_lang_Thread *) thread_signal;
+
+	thread_signal->o.vmThread = vmt;
+#endif
+
+	thread_signal->flags      = THREAD_FLAG_DAEMON;
+
+	thread_signal->o.name     = javastring_new_from_ascii("Signal Handler");
+#if defined(ENABLE_JAVASE)
+	thread_signal->o.daemon   = true;
+#endif
+	thread_signal->o.priority = 5;
+
+	/* actually start the finalizer thread */
+
+	threads_start_thread(thread_signal, signal_thread);
+
+	/* everything's ok */
+
+	return true;
+#else
+#error FIX ME!
+#endif
 }
 
 
@@ -173,45 +282,6 @@ void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p)
 	/* do nothing */
 }
 #endif
-
-
-/* signal_handler_sigquit ******************************************************
-
-   Handle for SIGQUIT (<ctrl>-\) which print a stacktrace for every
-   running thread.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p)
-{
-	/* do thread dump */
-
-	threads_dump();
-}
-#endif
-
-
-/* signal_handler_sigint *******************************************************
-
-   Handler for SIGINT (<ctrl>-c) which shuts down CACAO properly with
-   Runtime.exit(I)V.
-
-*******************************************************************************/
-
-void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p)
-{
-	/* if we are already in Runtime.exit(), just do it hardcore */
-
-	if (vm_exiting) {
-		fprintf(stderr, "Caught SIGINT while already shutting down. Shutdown aborted...\n");
-		exit(0);
-	}
-
-	/* exit the vm properly */
-
-	vm_exit(0);
-}
 
 
 /*

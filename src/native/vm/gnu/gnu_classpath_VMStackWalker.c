@@ -1,6 +1,6 @@
-/* src/native/vm/gnu_classpath_VMStackWalker.c - gnu/classpath/VMStackWalker
+/* src/native/vm/gnu/gnu_classpath_VMStackWalker.c
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Edwin Steiner
-
-   $Id: gnu_classpath_VMStackWalker.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: gnu_classpath_VMStackWalker.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -39,10 +33,14 @@
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_ClassLoader.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/global.h"
-#include "vm/options.h"
+
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/class.h"
+#include "vmcore/options.h"
 
 
 /*

@@ -1,6 +1,6 @@
 /* src/vm/string.c - java.lang.String related functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,16 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Roman Obermaisser
-            Andreas Krall
-
-   Changes: Christian Thalinger
-   			Edwin Steiner
-
-   $Id: string.c 5823 2006-10-24 23:24:19Z edwin $
+   $Id: string.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -55,10 +46,10 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
-#include "vm/utf8.h"
+
+#include "vmcore/options.h"
+#include "vmcore/utf8.h"
 
 
 /* global variables ***********************************************************/
@@ -72,134 +63,6 @@ hashtable hashtable_string;             /* hashtable for javastrings          */
 #if defined(ENABLE_THREADS)
 static java_objectheader *lock_hashtable_string;
 #endif
-
-
-/* global string definitions **************************************************/
-
-/* exception/error super class */
-
-const char *string_java_lang_Throwable =
-    "java/lang/Throwable";
-
-const char *string_java_lang_VMThrowable =
-    "java/lang/VMThrowable";
-
-
-/* specify some exception strings for code generation */
-
-const char *string_java_lang_ArithmeticException =
-    "java/lang/ArithmeticException";
-
-const char *string_java_lang_ArithmeticException_message =
-    "/ by zero";
-
-const char *string_java_lang_ArrayIndexOutOfBoundsException =
-    "java/lang/ArrayIndexOutOfBoundsException";
-
-const char *string_java_lang_ArrayStoreException =
-    "java/lang/ArrayStoreException";
-
-const char *string_java_lang_ClassCastException =
-    "java/lang/ClassCastException";
-
-const char *string_java_lang_ClassNotFoundException =
-	"java/lang/ClassNotFoundException";
-
-const char *string_java_lang_CloneNotSupportedException =
-    "java/lang/CloneNotSupportedException";
-
-const char *string_java_lang_Exception =
-    "java/lang/Exception";
-
-const char *string_java_lang_IllegalAccessException =
-    "java/lang/IllegalAccessException";
-
-const char *string_java_lang_IllegalArgumentException =
-    "java/lang/IllegalArgumentException";
-
-const char *string_java_lang_IllegalMonitorStateException =
-    "java/lang/IllegalMonitorStateException";
-
-const char *string_java_lang_IndexOutOfBoundsException =
-    "java/lang/IndexOutOfBoundsException";
-
-const char *string_java_lang_InstantiationException =
-    "java/lang/InstantiationException";
-
-const char *string_java_lang_InterruptedException =
-    "java/lang/InterruptedException";
-
-const char *string_java_lang_NegativeArraySizeException =
-    "java/lang/NegativeArraySizeException";
-
-const char *string_java_lang_NoSuchFieldException =
-	"java/lang/NoSuchFieldException";
-
-const char *string_java_lang_NoSuchMethodException =
-	"java/lang/NoSuchMethodException";
-
-const char *string_java_lang_NullPointerException =
-    "java/lang/NullPointerException";
-
-const char *string_java_lang_StringIndexOutOfBoundsException =
-    "java/lang/StringIndexOutOfBoundsException";
-
-const char *string_java_lang_reflect_InvocationTargetException =
-    "java/lang/reflect/InvocationTargetException";
-
-
-/* specify some error strings for code generation */
-
-const char *string_java_lang_AbstractMethodError =
-    "java/lang/AbstractMethodError";
-
-const char *string_java_lang_ClassCircularityError =
-    "java/lang/ClassCircularityError";
-
-const char *string_java_lang_ClassFormatError =
-    "java/lang/ClassFormatError";
-
-const char *string_java_lang_Error =
-    "java/lang/Error";
-
-const char *string_java_lang_ExceptionInInitializerError =
-    "java/lang/ExceptionInInitializerError";
-
-const char *string_java_lang_IncompatibleClassChangeError =
-    "java/lang/IncompatibleClassChangeError";
-
-const char *string_java_lang_InstantiationError =
-    "java/lang/InstantiationError";
-
-const char *string_java_lang_InternalError =
-    "java/lang/InternalError";
-
-const char *string_java_lang_LinkageError =
-    "java/lang/LinkageError";
-
-const char *string_java_lang_NoClassDefFoundError =
-    "java/lang/NoClassDefFoundError";
-
-const char *string_java_lang_NoSuchFieldError =
-	"java/lang/NoSuchFieldError";
-
-const char *string_java_lang_NoSuchMethodError =
-	"java/lang/NoSuchMethodError";
-
-const char *string_java_lang_OutOfMemoryError =
-    "java/lang/OutOfMemoryError";
-
-const char *string_java_lang_UnsatisfiedLinkError =
-    "java/lang/UnsatisfiedLinkError";
-
-const char *string_java_lang_UnsupportedClassVersionError =
-    "java/lang/UnsupportedClassVersionError";
-
-const char *string_java_lang_VerifyError =
-    "java/lang/VerifyError";
-
-const char *string_java_lang_VirtualMachineError =
-    "java/lang/VirtualMachineError";
 
 
 /* string_init *****************************************************************
@@ -289,36 +152,43 @@ void stringtable_update(void)
 
 *******************************************************************************/
 
-java_lang_String *javastring_new_from_utf_buffer(const char *buffer, u4 blength)
+java_objectheader *javastring_new_from_utf_buffer(const char *buffer, u4 blength)
 {
 	const char *utf_ptr;            /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_lang_String *s;            /* result-string                          */
-	java_chararray *a;
+	java_objectheader *o;
+	java_lang_String  *s;           /* result-string                          */
+	java_chararray    *a;
 	u4 i;
 
 	assert(buffer);
 
 	utflength = utf_get_number_of_u2s_for_buffer(buffer,blength);
 
-	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	o = builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(utflength);
 
 	/* javastring or character-array could not be created */
-	if (!a || !s)
+
+	if ((o == NULL) || (a == NULL))
 		return NULL;
 
 	/* decompress utf-string */
+
 	utf_ptr = buffer;
+
 	for (i = 0; i < utflength; i++)
-		a->data[i] = utf_nextu2((char **)&utf_ptr);
+		a->data[i] = utf_nextu2((char **) &utf_ptr);
 	
 	/* set fields of the javastring-object */
+
+	s = (java_lang_String *) o;
+
 	s->value  = a;
 	s->offset = 0;
 	s->count  = utflength;
 
-	return s;
+	return o;
 }
 
 
@@ -337,10 +207,11 @@ java_lang_String *javastring_new_from_utf_buffer(const char *buffer, u4 blength)
 
 *******************************************************************************/
 
-java_lang_String *javastring_safe_new_from_utf8(const char *text)
+java_objectheader *javastring_safe_new_from_utf8(const char *text)
 {
-	java_lang_String *s;            /* result-string                          */
-	java_chararray *a;
+	java_objectheader *o;
+	java_chararray    *a;
+	java_lang_String  *s;
 	s4 nbytes;
 	s4 len;
 
@@ -357,12 +228,12 @@ java_lang_String *javastring_safe_new_from_utf8(const char *text)
 
 	/* allocate the String object and the char array */
 
-	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	o = builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(len);
 
 	/* javastring or character-array could not be created? */
 
-	if (!a || !s)
+	if ((o == NULL) || (a == NULL))
 		return NULL;
 
 	/* decompress UTF-8 string */
@@ -371,11 +242,13 @@ java_lang_String *javastring_safe_new_from_utf8(const char *text)
 
 	/* set fields of the String object */
 
+	s = (java_lang_String *) o;
+
 	s->value  = a;
 	s->offset = 0;
 	s->count  = len;
 
-	return s;
+	return o;
 }
 
 
@@ -394,7 +267,7 @@ java_lang_String *javastring_safe_new_from_utf8(const char *text)
 
 *******************************************************************************/
 
-java_lang_String *javastring_new_from_utf_string(const char *utfstr)
+java_objectheader *javastring_new_from_utf_string(const char *utfstr)
 {
 	assert(utfstr);
 
@@ -411,15 +284,16 @@ java_lang_String *javastring_new_from_utf_string(const char *utfstr)
 
 *******************************************************************************/
 
-java_lang_String *javastring_new(utf *u)
+java_objectheader *javastring_new(utf *u)
 {
 	char *utf_ptr;                  /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_lang_String *s;            /* result-string                          */
-	java_chararray *a;
+	java_objectheader *o;
+	java_chararray    *a;
+	java_lang_String  *s;
 	s4 i;
 
-	if (!u) {
+	if (u == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
@@ -427,24 +301,30 @@ java_lang_String *javastring_new(utf *u)
 	utf_ptr = u->text;
 	utflength = utf_get_number_of_u2s(u);
 
-	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	o = builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(utflength);
 
 	/* javastring or character-array could not be created */
-	if (!a || !s)
+
+	if ((o == NULL) || (a == NULL))
 		return NULL;
 
 	/* decompress utf-string */
+
 	for (i = 0; i < utflength; i++)
 		a->data[i] = utf_nextu2(&utf_ptr);
 	
 	/* set fields of the javastring-object */
+
+	s = (java_lang_String *) o;
+
 	s->value  = a;
 	s->offset = 0;
 	s->count  = utflength;
 
-	return s;
+	return o;
 }
+
 
 /* javastring_new_slash_to_dot *************************************************
 
@@ -455,16 +335,17 @@ java_lang_String *javastring_new(utf *u)
 
 *******************************************************************************/
 
-java_lang_String *javastring_new_slash_to_dot(utf *u)
+java_objectheader *javastring_new_slash_to_dot(utf *u)
 {
 	char *utf_ptr;                  /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_lang_String *s;            /* result-string                          */
-	java_chararray *a;
+	java_objectheader *o;
+	java_chararray    *a;
+	java_lang_String  *s;
 	s4 i;
 	u2 ch;
 
-	if (!u) {
+	if (u == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
@@ -472,14 +353,15 @@ java_lang_String *javastring_new_slash_to_dot(utf *u)
 	utf_ptr = u->text;
 	utflength = utf_get_number_of_u2s(u);
 
-	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	o = builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(utflength);
 
 	/* javastring or character-array could not be created */
-	if (!a || !s)
+	if ((o == NULL) || (a == NULL))
 		return NULL;
 
 	/* decompress utf-string */
+
 	for (i = 0; i < utflength; i++) {
 		ch = utf_nextu2(&utf_ptr);
 		if (ch == '/')
@@ -488,11 +370,14 @@ java_lang_String *javastring_new_slash_to_dot(utf *u)
 	}
 	
 	/* set fields of the javastring-object */
+
+	s = (java_lang_String *) o;
+
 	s->value  = a;
 	s->offset = 0;
 	s->count  = utflength;
 
-	return s;
+	return o;
 }
 
 
@@ -510,37 +395,43 @@ java_lang_String *javastring_new_slash_to_dot(utf *u)
 
 *******************************************************************************/
 
-java_lang_String *javastring_new_from_ascii(const char *text)
+java_objectheader *javastring_new_from_ascii(const char *text)
 {
 	s4 i;
 	s4 len;                             /* length of the string               */
-	java_lang_String *s;                /* result-string                      */
-	java_chararray *a;
+	java_objectheader *o;
+	java_lang_String  *s;
+	java_chararray    *a;
 
-	if (!text) {
+	if (text == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
 	len = strlen(text);
 
-	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	o = builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(len);
 
 	/* javastring or character-array could not be created */
-	if (!a || !s)
+
+	if ((o == NULL) || (a == NULL))
 		return NULL;
 
 	/* copy text */
+
 	for (i = 0; i < len; i++)
 		a->data[i] = text[i];
 	
 	/* set fields of the javastring-object */
+
+	s = (java_lang_String *) o;
+
 	s->value  = a;
 	s->offset = 0;
 	s->count  = len;
 
-	return s;
+	return o;
 }
 
 
@@ -586,27 +477,16 @@ char *javastring_tochar(java_objectheader *so)
 
 *******************************************************************************/
 
-utf *javastring_toutf(java_lang_String *s, bool isclassname)
+utf *javastring_toutf(java_objectheader *string, bool isclassname)
 {
+	java_lang_String *s;
+
+	s = (java_lang_String *) string;
+
 	if (s == NULL)
 		return utf_null;
 
 	return utf_new_u2(s->value->data + s->offset, s->count, isclassname);
-}
-
-
-/* javastring_strlen ***********************************************************
-
-   Returns the length of the Java string.
-	
-*******************************************************************************/
-
-s4 javastring_strlen(java_lang_String *s)
-{
-	if (s == NULL)
-		return 0;
-
-	return s->count;
 }
 
 
@@ -794,12 +674,12 @@ java_objectheader *literalstring_new(utf *u)
 
 *******************************************************************************/
 
-void literalstring_free(java_objectheader* sobj)
+void literalstring_free(java_objectheader* string)
 {
 	java_lang_String *s;
 	java_chararray *a;
 
-	s = (java_lang_String *) sobj;
+	s = (java_lang_String *) string;
 	a = s->value;
 
 	/* dispose memory of java.lang.String object */

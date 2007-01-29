@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: properties.h 7234 2007-01-22 17:03:04Z twisti $
+   $Id: properties.h 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -36,11 +32,6 @@
 
 #include "config.h"
 #include "vm/types.h"
-
-#if defined(ENABLE_JAVASE)
-# include "native/jni.h"
-# include "native/include/java_util_Properties.h"
-#endif
 
 #include "vm/global.h"
 
@@ -56,7 +47,7 @@ char *properties_get(char *key);
 void  properties_system_add(java_objectheader *p, char *key, char *value);
 
 #if defined(ENABLE_JAVASE)
-void  properties_system_add_all(java_util_Properties *p);
+void  properties_system_add_all(java_objectheader *p);
 #endif
 
 #endif /* _PROPERTIES_H */

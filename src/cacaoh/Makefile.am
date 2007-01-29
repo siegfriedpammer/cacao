@@ -1,6 +1,6 @@
 ## src/cacaoh/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,22 +22,11 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes:
-##
-## $Id: Makefile.am 5884 2006-10-31 20:11:28Z twisti $
+## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
-
-if ENABLE_THREADS
-THREAD_LIB = \
-	$(top_builddir)/src/threads/native/libthreads.la
-endif
 
 if ENABLE_RT_TIMING
 cacaoh_LDFLAGS = -lrt
@@ -47,24 +36,22 @@ noinst_LTLIBRARIES = \
 	libcacaoh.la
 
 libcacaoh_la_SOURCES = \
+	dummy.c \
 	headers.c \
 	headers.h
 
 libcacaoh_la_LIBADD = \
-	$(top_builddir)/src/mm/libmm.la \
-	$(THREAD_LIB) \
 	$(top_builddir)/src/toolbox/libtoolbox.la \
-	$(top_builddir)/src/vm/libvmcore.la
+	$(top_builddir)/src/vmcore/libvmcore.la
 
-noinst_PROGRAMS = cacaoh
+noinst_PROGRAMS = \
+	cacaoh
 
 cacaoh_SOURCES = \
 	cacaoh.c
 
 cacaoh_LDADD = \
-	libcacaoh.la \
-	$(top_builddir)/src/fdlibm/libfdlibm.la \
-	$(GC_LIB)
+	libcacaoh.la
 
 cacaoh_DEPENDENCIES = \
 	$(cacaoh_LDADD)

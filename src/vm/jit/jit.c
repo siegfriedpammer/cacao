@@ -22,15 +22,16 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7229 2007-01-22 00:58:36Z twisti $
+   $Id: jit.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
 
 #include <assert.h>
+
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -42,13 +43,9 @@
 # include "threads/none/lock.h"
 #endif
 
-#include "vm/class.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/loader.h"
-#include "vm/method.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
+
 #include "vm/jit/asmpart.h"
 
 # include "vm/jit/cfg.h"
@@ -84,10 +81,19 @@
 #include "vm/jit/optimizing/reorder.h"
 
 #include "vm/jit/verify/typecheck.h"
-#include "vm/rt-timing.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
+#endif
+
+#include "vmcore/class.h"
+#include "vmcore/loader.h"
+#include "vmcore/method.h"
+#include "vmcore/options.h"
+#include "vmcore/rt-timing.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
 #endif
 
 

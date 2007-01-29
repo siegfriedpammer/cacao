@@ -1,6 +1,6 @@
 ## src/vm/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## $Id: Makefile.am 6216 2006-12-18 18:21:37Z twisti $
+## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,37 +32,10 @@ LIBS =
 
 SUBDIRS = jit
 
-if ENABLE_JAVASE
-ANNOTATION_SOURCES = \
-	annotation.c \
-	annotation.h
-
-STACKMAP_SOURCES = \
-	stackmap.c \
-	stackmap.h
-endif
-
-if ENABLE_STATISTICS
-STATISTICS_SOURCES = \
-	statistics.c \
-	statistics.h
-endif
-
-if ENABLE_RT_TIMING
-RT_TIMING_OBJ = \
-	rt-timing.c
-endif
-
 if ENABLE_CYCLES_STATS
-CYCLES_STATS_SOURCE = \
+CYCLES_STATS_SOURCES = \
 	cycles-stats.c \
 	cycles-stats.h
-endif
-
-if ENABLE_ZLIB
-ZLIB_OBJ = \
-	zip.c \
-	zip.h
 endif
 
 noinst_HEADERS = \
@@ -74,66 +43,31 @@ noinst_HEADERS = \
 	types.h
 
 noinst_LTLIBRARIES = \
-	libvmcore.la \
 	libvm.la
 
-libvmcore_la_SOURCES = \
+libvm_la_SOURCES = \
 	access.c \
 	access.h \
-	$(ANNOTATION_SOURCES) \
 	builtin.c \
 	builtin.h \
 	builtintable.inc \
-	class.c \
-	class.h \
-	classcache.c \
-	classcache.h \
-	$(CYCLES_STATS_SOURCE) \
-	descriptor.c \
-	descriptor.h \
-	field.c \
-	field.h \
-	finalizer.c \
-	finalizer.h \
-	hashtable.c \
-	hashtable.h \
-	initialize.c \
-	initialize.h \
-	linker.c \
-	linker.h \
-	loader.c \
-	loader.h \
-	method.c \
-	method.h \
-	options.c \
-	options.h \
-	properties.c \
-	properties.h \
-	references.h \
-	resolve.c \
-	resolve.h \
-	$(RT_TIMING_OBJ) \
-	rt-timing.h \
-	$(STATISTICS_SOURCES) \
-	signal.c \
-	signallocal.h \
-	$(STACKMAP_SOURCES) \
-	string.c \
-	stringlocal.h \
-	suck.c \
-	suck.h \
-	utf8.c \
-	utf8.h \
-	$(ZLIB_OBJ)
-
-libvm_la_SOURCES = \
+	$(CYCLES_STATS_SOURCES) \
 	exceptions.c \
 	exceptions.h \
+	finalizer.c \
+	finalizer.h \
+	initialize.c \
+	initialize.h \
+	properties.c \
+	properties.h \
+	signal.c \
+	signallocal.h \
+	string.c \
+	stringlocal.h \
 	vm.c \
 	vm.h
 
 libvm_la_LIBADD = \
-	libvmcore.la \
 	jit/libjit.la
 
 
