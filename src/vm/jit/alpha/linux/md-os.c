@@ -1,6 +1,6 @@
 /* src/vm/jit/alpha/linux/md.c - machine dependent Alpha Linux functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: md-os.c 5069 2006-07-03 13:45:15Z twisti $
+   $Id: md-os.c 7251 2007-01-29 20:24:53Z twisti $
 
 */
 
@@ -44,7 +38,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
@@ -70,27 +64,27 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
+	pv  = (u1 *) _mc->sc_regs[REG_PV];
+	sp  = (u1 *) _mc->sc_regs[REG_SP];
+	ra  = (u1 *) _mc->sc_regs[REG_RA];           /* this is correct for leafs */
+	xpc = (u1 *) _mc->sc_pc;
+
 	instr = *((s4 *) (_mc->sc_pc));
 	addr = _mc->sc_regs[(instr >> 16) & 0x1f];
 
 	if (addr == 0) {
-		pv  = (u1 *) _mc->sc_regs[REG_PV];
-		sp  = (u1 *) _mc->sc_regs[REG_SP];
-		ra  = (u1 *) _mc->sc_regs[REG_RA];       /* this is correct for leafs */
-		xpc = (u1 *) _mc->sc_pc;
-
 		_mc->sc_regs[REG_ITMP1_XPTR] =
 			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
 		_mc->sc_regs[REG_ITMP2_XPC] = (ptrint) xpc;
 		_mc->sc_pc = (ptrint) asm_handle_exception;
+	}
+	else {
+		codegen_get_pv_from_pc(xpc);
 
-	} else {
-		addr += (long) ((instr << 16) >> 16);
+		/* this should not happen */
 
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Segmentation fault: 0x%016lx at 0x%016lx\n",
-								   addr, _mc->sc_pc);
+		assert(0);
 	}
 }
 

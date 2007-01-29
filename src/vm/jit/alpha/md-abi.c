@@ -1,6 +1,6 @@
 /* src/vm/jit/alpha/md-abi.c - functions for Alpha ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Christian Ullrich
-
-   $Id: md-abi.c 6261 2006-12-28 21:21:08Z twisti $
+   $Id: md-abi.c 7251 2007-01-29 20:24:53Z twisti $
 
 */
 
@@ -37,9 +32,11 @@
 
 #include "vm/jit/alpha/md-abi.h"
 
-#include "vm/descriptor.h"
 #include "vm/global.h"
+
 #include "vm/jit/abi.h"
+
+#include "vmcore/descriptor.h"
 
 
 /* register descripton array **************************************************/
