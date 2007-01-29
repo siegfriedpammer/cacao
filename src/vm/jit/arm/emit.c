@@ -22,10 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
    $Id: emit.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
@@ -76,13 +72,16 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 		disp = src->vv.regoff * 4;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
-#if !defined(ENABLE_SOFTFLOAT)
+#if defined(ENABLE_SOFTFLOAT)
+			if (IS_2_WORD_TYPE(src->type))
+				M_LLD(tempreg, REG_SP, disp);
+			else
+				M_ILD(tempreg, REG_SP, disp);
+#else
 			if (IS_2_WORD_TYPE(src->type))
 				M_DLD(tempreg, REG_SP, disp);
 			else
 				M_FLD(tempreg, REG_SP, disp);
-#else
-			assert(0);
 #endif
 		}
 		else {
@@ -197,12 +196,18 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 		disp = dst->vv.regoff * 4;
 
-#if !defined(ENABLE_SOFTFLOAT)
 		if (IS_FLT_DBL_TYPE(dst->type)) {
+#if defined(ENABLE_SOFTFLOAT)
+			if (IS_2_WORD_TYPE(dst->type))
+				M_LST(d, REG_SP, disp);
+			else
+				M_IST(d, REG_SP, disp);
+#else
 			if (IS_2_WORD_TYPE(dst->type))
 				M_DST(d, REG_SP, disp);
 			else
 				M_FST(d, REG_SP, disp);
+#endif
 		}
 		else {
 			if (IS_2_WORD_TYPE(dst->type))
@@ -210,12 +215,6 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 			else
 				M_IST(d, REG_SP, disp);
 		}
-#else
-		if (IS_2_WORD_TYPE(dst->type))
-			M_LST(d, REG_SP, disp);
-		else
-			M_IST(d, REG_SP, disp);
-#endif
 	}
 	else if (IS_LNG_TYPE(dst->type)) {
 #if defined(__ARMEL__)
@@ -288,12 +287,19 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		}
 
 		if (s1 != d) {
-#if !defined(ENABLE_SOFTFLOAT)
 			if (IS_FLT_DBL_TYPE(src->type)) {
+#if defined(ENABLE_SOFTFLOAT)
+				if (IS_2_WORD_TYPE(src->type))
+					M_LNGMOVE(s1, d);
+				else
+					/* XXX grrrr, wrong direction! */
+					M_MOV(d, s1);
+#else
 				if (IS_2_WORD_TYPE(src->type))
 					M_DMOV(s1, d);
 				else
 					M_FMOV(s1, d);
+#endif
 			}
 			else {
 				if (IS_2_WORD_TYPE(src->type))
@@ -302,13 +308,6 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 					/* XXX grrrr, wrong direction! */
 					M_MOV(d, s1);
 			}
-#else
-			if (IS_2_WORD_TYPE(src->type))
-				M_LNGMOVE(s1, d);
-			else
-				/* XXX grrrr, wrong direction! */
-				M_MOV(d, s1);
-#endif
 		}
 
 		emit_store(jd, iptr, dst, d);
