@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/md-abi.c - functions for arm ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-
-   Changes: Christian Thalinger
-
-   $Id: md-abi.c 6548 2006-10-01 22:18:38Z edwin $
+   $Id: md-abi.c 7259 2007-01-30 13:58:35Z twisti $
 
 */
 
@@ -38,9 +32,11 @@
 
 #include "vm/jit/arm/md-abi.h"
 
-#include "vm/descriptor.h"
 #include "vm/global.h"
+
 #include "vm/jit/abi.h"
+
+#include "vmcore/descriptor.h"
 
 
 /* register descripton array **************************************************/

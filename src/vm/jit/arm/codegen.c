@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7244 2007-01-29 10:19:35Z twisti $
+   $Id: codegen.c 7259 2007-01-30 13:58:35Z twisti $
 
 */
 
@@ -50,9 +50,6 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/stringlocal.h"
 #include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
@@ -69,6 +66,9 @@
 #if defined(ENABLE_LSRA)
 #include "vm/jit/allocator/lsra.h"
 #endif
+
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 
 /* codegen *********************************************************************
@@ -119,9 +119,11 @@ bool codegen(jitdata *jd)
 	fieldtype = -1;
 	
 	/* space to save used callee saved registers */
+
 	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the LR */
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
+
 	spilledregs_num = rd->memuse;
 
 #if defined(ENABLE_THREADS)        /* space to save argument of monitor_enter */
@@ -130,6 +132,12 @@ bool codegen(jitdata *jd)
 #endif
 
 	cd->stackframesize = spilledregs_num + savedregs_num;
+
+	/* XXX QUICK FIX: We shouldn't align the stack in Java code, but
+	   only in native stubs. */
+	/* align stack to 8-byte */
+
+	cd->stackframesize = (cd->stackframesize + 1) & ~1;
 
 	/* SECTION: Method Header */
 	/* create method header */
@@ -166,27 +174,32 @@ bool codegen(jitdata *jd)
 	}
 
 	/* save return address and used callee saved registers */
+
 	savedregs_bitmask = 0;
+
 	if (!jd->isleafmethod)
 		savedregs_bitmask = (1<<REG_LR);
+
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--)
 		savedregs_bitmask |= (1<<(rd->savintregs[i]));
+
 #if !defined(NDEBUG)
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		log_text("!!! CODEGEN: floating-point callee saved registers are not saved to stack (SEVERE! STACK IS MESSED UP!)");
 		/* TODO: floating-point */
 	}
 #endif
-	if (savedregs_bitmask) {
+
+	if (savedregs_bitmask)
 		M_STMFD(savedregs_bitmask, REG_SP);
-	}
 
 	/* create additional stack frame for spilled variables (if necessary) */
-	if (spilledregs_num) {
-		M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, spilledregs_num);
-	}
+
+	if ((cd->stackframesize - savedregs_num) > 0)
+		M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - savedregs_num);
 
 	/* take arguments out of register or stack frame */
+
 	md = m->parseddesc;
 	for (i = 0, len = 0; i < md->paramcount; i++) {
 		s1 = md->params[i].regoff;
@@ -2096,11 +2109,12 @@ bool codegen(jitdata *jd)
 #endif
 
 			/* deallocate stackframe for spilled variables */
-			if (spilledregs_num) {
-				M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, spilledregs_num);
-			}
+
+			if ((cd->stackframesize - savedregs_num) > 0)
+				M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - savedregs_num);
 
 			/* restore callee saved registers + do return */
+
 			if (savedregs_bitmask) {
 				if (!jd->isleafmethod) {
 					savedregs_bitmask &= ~(1<<REG_LR);
@@ -2110,6 +2124,7 @@ bool codegen(jitdata *jd)
 			}
 
 			/* if LR was not on stack, we need to return manually */
+
 			if (jd->isleafmethod)
 				M_MOV(REG_PC, REG_LR);
 			break;
@@ -2872,6 +2887,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		sizeof(localref_table) / SIZEOF_VOID_P +           /* localref_table  */
 		nmd->memuse;                                       /* stack arguments */
 
+	/* align stack to 8-byte */
+
+	cd->stackframesize = (cd->stackframesize + 1) & ~1;
+
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
@@ -2884,11 +2903,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate stub code */
-	/* TODO: don't forget ... there is a M_ADD_IMM at the end of this stub!!! */
+
 	M_STMFD(1<<REG_LR, REG_SP);
-	if (cd->stackframesize - 1) {
-		M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - 1);
-	}
+	M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - 1);
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
@@ -2908,25 +2925,31 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 #endif
 
-	/* save integer and float argument registers */
-	M_STMFD(BITMASK_ARGS | (1<<REG_IP), REG_SP);
+	/* Save integer and float argument registers (these are 4
+	   registers, stack is 8-byte aligned). */
+
+	M_STMFD(BITMASK_ARGS, REG_SP);
 	/* TODO: floating point */
 
 	/* create native stackframe info */
-	assert(IS_IMM(20 + cd->stackframesize * 4));
-	M_ADD_IMM(REG_A0, REG_SP, 20 + cd->stackframesize * 4 - SIZEOF_VOID_P);
+
+	assert(IS_IMM(4*4 + cd->stackframesize * 4));
+	M_ADD_IMM(REG_A0, REG_SP, 4*4 + cd->stackframesize * 4 - SIZEOF_VOID_P);
 	M_MOV(REG_A1, REG_IP);
-	M_ADD_IMM(REG_A2, REG_SP, 20 + cd->stackframesize * 4);
-	M_LDR_INTERN(REG_A3, REG_SP, 20 + cd->stackframesize * 4 - SIZEOF_VOID_P);
+	M_ADD_IMM(REG_A2, REG_SP, 4*4 + cd->stackframesize * 4);
+	M_LDR_INTERN(REG_A3, REG_SP, 4*4 + cd->stackframesize * 4 - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_DSEG_BRANCH(disp);
 
 	/* recompute ip */
-	/*s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_RECOMPUTE_IP(s1);*/
 
-	/* restore integer and float argument registers */
-	M_LDMFD(BITMASK_ARGS | (1<<REG_IP), REG_SP);
+	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
+	M_RECOMPUTE_IP(s1);
+
+	/* Restore integer and float argument registers (these are 4
+	   registers, stack is 8-byte aligned). */
+
+	M_LDMFD(BITMASK_ARGS, REG_SP);
 	/* TODO: floating point */
 
 	/* copy or spill arguments to new locations */
@@ -2979,21 +3002,25 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 	/* put class into second argument register */
+
 	if (m->flags & ACC_STATIC) {
 		disp = dseg_add_address(cd, m->class);
 		M_DSEG_LOAD(REG_A1, disp);
 	}
 
 	/* put env into first argument register */
+
 	disp = dseg_add_address(cd, _Jv_env);
 	M_DSEG_LOAD(REG_A0, disp);
 
 	/* do the native function call */
-	M_DSEG_BRANCH(funcdisp);            /* call native method                 */
+
+	M_DSEG_BRANCH(funcdisp);
 
 	/* recompute ip from pc */
 	/* TODO: this is only needed because of the tracer ... do we
 	   really need it? */
+
 	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
 	M_RECOMPUTE_IP(s1);
 
@@ -3024,18 +3051,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* remove native stackframe info */
 	/* TODO: improve this store/load */
 
-	M_STMFD(BITMASK_RESULT | (1<<REG_IP), REG_SP);
-	M_ADD_IMM(REG_A0, REG_SP, 12 + cd->stackframesize * 4 - SIZEOF_VOID_P);
+	M_STMFD(BITMASK_RESULT, REG_SP);
+
+	M_ADD_IMM(REG_A0, REG_SP, 2*4 + cd->stackframesize * 4 - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_DSEG_BRANCH(disp);
+	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
+	M_RECOMPUTE_IP(s1);
+
 	M_MOV(REG_ITMP1_XPTR, REG_RESULT);
-	M_LDMFD(BITMASK_RESULT | (1<<REG_IP), REG_SP);
+	M_LDMFD(BITMASK_RESULT, REG_SP);
 
 	/* finish stub code, but do not yet return to caller */
 
-	if (cd->stackframesize - 1)
-		M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - 1);
-
+	M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - 1);
 	M_LDMFD(1<<REG_LR, REG_SP);
 
 	/* check for exception */
@@ -3071,7 +3100,7 @@ void asm_debug(int a1, int a2, int a3, int a4)
 {
 	printf("===> i am going to exit after this debugging message!\n");
 	printf("got asm_debug(%p, %p, %p, %p)\n",(void*)a1,(void*)a2,(void*)a3,(void*)a4);
-	throw_cacao_exception_exit(string_java_lang_InternalError, "leave you now");
+	vm_abort("leave you now");
 }
 
 

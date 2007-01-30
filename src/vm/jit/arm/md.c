@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-            Christian Thalinger
-
-   $Id: md.c 6591 2007-01-02 19:14:25Z twisti $
+   $Id: md.c 7259 2007-01-30 13:58:35Z twisti $
 
 */
 
@@ -36,14 +31,15 @@
 
 #include <assert.h>
 
-#include "vm/global.h"
 #include "vm/types.h"
 
 #include "vm/jit/arm/md-abi.h"
 
 #include "vm/exceptions.h"
-#include "vm/stringlocal.h"
+#include "vm/global.h"
+
 #include "vm/jit/asmpart.h"
+#include "vm/jit/md.h"
 
 
 /* md_init *********************************************************************
@@ -209,9 +205,7 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 		pv -= (s4) (mcode1 & 0x000000ff);
 	else {
 		/* if this happens, we got an unexpected instruction at (*ra) */
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-		   "Unable to find method: %p (instr=%x)\n",
-		   ra, mcode1);
+		vm_abort("Unable to find method: %p (instr=%x)", ra, mcode1);
 	}
 
 	/* if we have a RECOMPUTE_IP there can be more than one instruction */

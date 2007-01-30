@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7231 2007-01-22 11:45:34Z twisti $
+   $Id: patcher.c 7259 2007-01-30 13:58:35Z twisti $
 
 */
 
@@ -39,15 +39,16 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/field.h"
 #include "vm/initialize.h"
-#include "vm/options.h"
-#include "vm/references.h"
-#include "vm/resolve.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/md.h"
 #include "vm/jit/patcher.h"
+
+#include "vmcore/field.h"
+#include "vmcore/options.h"
+#include "vmcore/references.h"
+#include "vmcore/resolve.h"
 
 
 #define gen_resolveload(inst,offset) \
@@ -115,7 +116,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	/* create the stackframeinfo */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 7 * 4, ra, xpc);
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 8 * 4, ra, xpc);
 
 	/* call the proper patcher function */
 

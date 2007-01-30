@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: codegen.h 6596 2007-01-11 14:22:55Z twisti $
+   $Id: codegen.h 7259 2007-01-30 13:58:35Z twisti $
 
 */
 
@@ -910,18 +910,24 @@ do { \
    extended immediate operations, to handle immediates lager than 8bit.
    ATTENTION: the immediate is rotatet left by 2 (multiplied by 4)!!!
 */
+
 #define M_ADD_IMM_EXT_MUL4(d,n,imm) \
-	assert(d!=REG_PC); \
-	assert((imm) >= 0 && (imm) <= 0x00ffffff); \
-	M_ADD_IMM(d, n, IMM_ROTL(imm, 1)); \
-	if ((imm) > 0x000000ff) M_ADD_IMM(d, d, IMM_ROTL((imm) >>  8, 5)); \
-	if ((imm) > 0x0000ffff) M_ADD_IMM(d, d, IMM_ROTL((imm) >> 16, 9));
+    do { \
+        assert(d != REG_PC); \
+        assert((imm) >= 0 && (imm) <= 0x00ffffff); \
+        M_ADD_IMM(d, n, IMM_ROTL(imm, 1)); \
+        if ((imm) > 0x000000ff) M_ADD_IMM(d, d, IMM_ROTL((imm) >>  8, 5)); \
+        if ((imm) > 0x0000ffff) M_ADD_IMM(d, d, IMM_ROTL((imm) >> 16, 9)); \
+    } while (0)
+
 #define M_SUB_IMM_EXT_MUL4(d,n,imm) \
-	assert(d!=REG_PC); \
-	assert((imm) >= 0 && (imm) <= 0x00ffffff); \
-	M_SUB_IMM(d, n, IMM_ROTL(imm, 1)); \
-	if ((imm) > 0x000000ff) M_SUB_IMM(d, d, IMM_ROTL((imm) >>  8, 5)); \
-	if ((imm) > 0x0000ffff) M_SUB_IMM(d, d, IMM_ROTL((imm) >> 16, 9));
+    do { \
+        assert(d != REG_PC); \
+        assert((imm) >= 0 && (imm) <= 0x00ffffff); \
+        M_SUB_IMM(d, n, IMM_ROTL(imm, 1)); \
+        if ((imm) > 0x000000ff) M_SUB_IMM(d, d, IMM_ROTL((imm) >>  8, 5)); \
+        if ((imm) > 0x0000ffff) M_SUB_IMM(d, d, IMM_ROTL((imm) >> 16, 9)); \
+    } while (0)
 
 
 /* ICONST/LCONST:

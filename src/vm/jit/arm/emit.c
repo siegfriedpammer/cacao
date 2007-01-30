@@ -37,11 +37,15 @@
 
 #include "vm/jit/arm/codegen.h"
 
+#include "mm/memory.h"
+
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
 #endif
 
 #include "vm/builtin.h"
+#include "vm/global.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
@@ -518,9 +522,9 @@ void emit_patcher_stubs(jitdata *jd)
 
 		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr       */
 
-		/* create stack frame */
+		/* create stack frame (align stack to 8-byte) */
 
-		M_SUB_IMM(REG_SP, REG_SP, 7 * 4);
+		M_SUB_IMM(REG_SP, REG_SP, 8 * 4);
 
 		/* save itmp3 onto stack */
 
@@ -745,7 +749,6 @@ void emit_verbosecall_exit(jitdata *jd)
 	registerdata *rd;
 	methoddesc   *md;
 	s4            disp;
-	s4            s1;
 
 	/* get required compiler data */
 
@@ -762,21 +765,15 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_STMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_IP), REG_SP);
 	M_SUB_IMM(REG_SP, REG_SP, (1 + 1) * 4);    /* space for d[high reg] and f */
 
-#if defined(__ARMEL__)
-	s1 = PACK_REGS(rd->argintregs[1], rd->argintregs[2]);
-#else /* defined(__ARMEB__) */
-	s1 = PACK_REGS(rd->argintregs[2], rd->argintregs[1]);
-#endif
-
 	switch (md->returntype.type) {
 	case TYPE_ADR:
 	case TYPE_INT:
-		M_INTMOVE(REG_RESULT, GET_LOW_REG(s1));
-		M_MOV_IMM(GET_HIGH_REG(s1), 0);
+		M_INTMOVE(REG_RESULT, GET_LOW_REG(REG_A1_A2_PACKED));
+		M_MOV_IMM(GET_HIGH_REG(REG_A1_A2_PACKED), 0);
 		break;
 
 	case TYPE_LNG:
-		M_LNGMOVE(REG_RESULT_PACKED, s1);
+		M_LNGMOVE(REG_RESULT_PACKED, REG_A1_A2_PACKED);
 		break;
 
 	case TYPE_FLT:
@@ -784,14 +781,13 @@ void emit_verbosecall_exit(jitdata *jd)
 		break;
 
 	case TYPE_DBL:
-		s1 = rd->argintregs[3];
-		M_INTMOVE(REG_RESULT, s1);
+		M_INTMOVE(REG_RESULT, REG_A3);
 		M_IST(REG_RESULT2, REG_SP, 0 * 4);
 		break;
 	}
 
 	disp = dseg_add_address(cd, m);
-	M_DSEG_LOAD(rd->argintregs[0], disp);
+	M_DSEG_LOAD(REG_A0, disp);
 	M_LONGBRANCH(builtin_displaymethodstop);
 
 	M_ADD_IMM(REG_SP, REG_SP, (1 + 1) * 4);            /* free argument stack */

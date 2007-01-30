@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7227 2007-01-18 13:21:36Z twisti $
+   $Id: asmpart.S 7259 2007-01-30 13:58:35Z twisti $
 
 */
 
@@ -343,7 +343,7 @@ asm_handle_exception_not_catched:
 *                                                                              *
 *******************************************************************************/
 
-#define PATCHSTACKSIZE 7*4
+#define PATCHSTACKSIZE 8*4
 
 asm_patcher_wrapper:
 	mov   itmp3, sp                     /* preserve original SP in ITMP3      */
@@ -365,8 +365,8 @@ asm_patcher_wrapper:
 
 	add   sp, sp, #PATCHSTACKSIZE       /* remove patcher stack frame         */
 
-	ldr   itmp3, [sp, #-4]              /* restore ITMP3 for calling method   */
-	ldr   pc, [sp, #-12]                /* jump to new patched code           */
+	ldr   itmp3, [sp, #-8]              /* restore ITMP3 for calling method   */
+	ldr   pc, [sp, #-16]                /* jump to new patched code           */
 
 L_asm_patcher_wrapper_exception:
 	mov   xptr, itmp3                   /* get exception                      */

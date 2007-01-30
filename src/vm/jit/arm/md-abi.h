@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/md-abi.h - defines for arm ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,17 +22,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-
-   $Id: md-abi.h 6545 2006-09-06 21:42:42Z twisti $
+   $Id: md-abi.h 7259 2007-01-30 13:58:35Z twisti $
 
 */
 
 
 #ifndef _MD_ABI_H
 #define _MD_ABI_H
+
+#include "config.h"
 
 
 /* preallocated registers *****************************************************/
@@ -110,6 +108,7 @@
 # define REG_RESULT_PACKED    PACK_REGS(REG_RESULT, REG_RESULT2)
 
 # define REG_A0_A1_PACKED     PACK_REGS(REG_A0, REG_A1)
+# define REG_A1_A2_PACKED     PACK_REGS(REG_A1, REG_A2)
 # define REG_A2_A3_PACKED     PACK_REGS(REG_A2, REG_A3)
 
 #else /* defined(__ARMEB__) */
@@ -119,6 +118,7 @@
 # define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 
 # define REG_A0_A1_PACKED     PACK_REGS(REG_A1, REG_A0)
+# define REG_A1_A2_PACKED     PACK_REGS(REG_A2, REG_A1)
 # define REG_A2_A3_PACKED     PACK_REGS(REG_A3, REG_A2)
 
 #endif
