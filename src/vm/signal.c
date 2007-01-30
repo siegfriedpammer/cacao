@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: signal.c 7258 2007-01-30 13:53:35Z twisti $
 
 */
 
@@ -87,8 +87,8 @@ void signal_init(void)
 {
 #if !defined(__CYGWIN__)
 	int              pagesize;
-	struct sigaction act;
 	sigset_t         mask;
+	struct sigaction act;
 
 	/* mmap a memory page at address 0x0, so our hardware-exceptions
 	   work. */
@@ -96,6 +96,26 @@ void signal_init(void)
 	pagesize = getpagesize();
 
 	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+
+#if 0
+	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
+	   <ctrl>-\).  We enable them later in signal_thread, but only for
+	   this thread. */
+
+	if (sigemptyset(&mask) != 0)
+		vm_abort("signal_init: sigemptyset failed: %s", strerror(errno));
+
+	if (sigaddset(&mask, SIGINT) != 0)
+		vm_abort("signal_init: sigaddset failed: %s", strerror(errno));
+
+#if !defined(__FREEBSD__)
+	if (sigaddset(&mask, SIGQUIT) != 0)
+		vm_abort("signal_init: sigaddset failed: %s", strerror(errno));
+#endif
+
+	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
+		vm_abort("signal_init: sigprocmask failed: %s", strerror(errno));
+#endif
 
 #if defined(ENABLE_GC_BOEHM)
 	/* Allocate something so the garbage collector's signal handlers
@@ -154,17 +174,6 @@ void signal_init(void)
 	sigaction(SIGUSR2, &act, NULL);
 #endif
 
-	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
-	   <ctrl>-\).  We enable them later in signal_thread, but only for
-	   this thread. */
-
-	sigemptyset(&mask);
-	sigaddset(&mask, SIGINT);
-#if !defined(__FREEBSD__)
-	sigaddset(&mask, SIGQUIT);
-#endif
-	sigprocmask(SIG_BLOCK, &mask, NULL);
-
 #endif /* !defined(__CYGWIN__) */
 }
 
@@ -193,6 +202,7 @@ static void signal_thread(void)
 		/* just wait for a signal */
 
 		sigwait(&mask, &sig);
+		log_println("signal caught: %d", sig);
 
 		switch (sig) {
 		case SIGINT:

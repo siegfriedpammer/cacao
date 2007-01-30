@@ -1573,8 +1573,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* start the signal handler thread */
 
-	if (!signal_start_thread())
-		throw_main_exception_exit();
+/* 	if (!signal_start_thread()) */
+/* 		throw_main_exception_exit(); */
 
 	/* finally, start the finalizer thread */
 
