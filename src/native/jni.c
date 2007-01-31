@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: jni.c 7265 2007-01-31 17:00:51Z twisti $
 
 */
 
@@ -1195,18 +1195,18 @@ jint _Jv_JNI_Throw(JNIEnv *env, jthrowable obj)
 
 jint _Jv_JNI_ThrowNew(JNIEnv* env, jclass clazz, const char *msg) 
 {
-	classinfo           *c;
-	java_lang_Throwable *o;
-	java_lang_String    *s;
+	classinfo         *c;
+	java_objectheader *o;
+	java_objectheader *s;
 
 	STATISTICS(jniinvokation());
 
 	c = (classinfo *) clazz;
-	s = (java_lang_String *) javastring_new_from_utf_string(msg);
+	s = javastring_new_from_utf_string(msg);
 
   	/* instantiate exception object */
 
-	o = (java_lang_Throwable *) native_new_and_init_string(c, s);
+	o = native_new_and_init_string(c, s);
 
 	if (o == NULL)
 		return -1;
