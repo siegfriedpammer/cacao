@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: logging.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: logging.c 7266 2007-01-31 17:02:47Z twisti $
 
 */
 
@@ -42,12 +42,6 @@
 
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"
-#endif
-
-#if 0
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
 #endif
 
 
@@ -75,18 +69,41 @@ void log_init(const char *fname)
 
 *******************************************************************************/
 
+/* ATTENTION: Don't include threads.h, because we can't bootstrap this
+   file in that case (missing java_lang_Thread.h).  Instead we declare
+   threads_get_current_threadobject differently: */
+
+/* #if defined(ENABLE_THREADS) */
+/* # include "threads/native/threads.h" */
+/* #endif */
+
+extern void *threads_get_current_threadobject(void);
+
+
 void log_start(void)
 {
-	if (logfile) {
 #if defined(ENABLE_THREADS)
-#warning FIX ME!
-/* 		fprintf(logfile, "[%p] ", (void *) threads_get_current_threadobject()); */
+	ptrint thread;
+
+	thread = (ptrint) threads_get_current_threadobject();
 #endif
 
-	} else {
+	if (logfile) {
 #if defined(ENABLE_THREADS)
-#warning FIX ME!
-/* 		fprintf(stdout, "LOG: [%p] ", (void *) threads_get_current_threadobject()); */
+# if SIZEOF_VOID_P == 8
+		fprintf(logfile, "[0x%016lx] ", thread );
+# else
+		fprintf(logfile, "[0x%08x] ", thread);
+# endif
+#endif
+	}
+	else {
+#if defined(ENABLE_THREADS)
+# if SIZEOF_VOID_P == 8
+		fprintf(stdout, "LOG: [0x%016lx] ", thread);
+# else
+		fprintf(stdout, "LOG: [0x%08x] ", thread);
+# endif
 #else
 		fputs("LOG: ", stdout);
 #endif

@@ -426,6 +426,11 @@ java_objectarray *stacktrace_getClassContext()
 
 pthread_key_t threads_current_threadobject_key;
 
+void *threads_get_current_threadobject(void)
+{
+	return NULL;
+}
+
 
 /* typeinfo *******************************************************************/
 
