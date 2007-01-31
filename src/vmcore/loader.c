@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: loader.c 7262 2007-01-31 10:59:49Z twisti $
 
 */
 
@@ -2499,11 +2499,9 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 	c->super.cls = class_java_lang_Object;
 
-    c->interfacescount = 0;
-	c->interfaces = NULL;
-
 #if defined(ENABLE_JAVASE)
-    c->interfaces = MNEW(classref_or_classinfo, 2);
+	c->interfacescount = 2;
+    c->interfaces      = MNEW(classref_or_classinfo, 2);
 
 	if (opt_eager) {
 		classinfo *tc;
@@ -2522,6 +2520,11 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		c->interfaces[0].cls = class_java_lang_Cloneable;
 		c->interfaces[1].cls = class_java_io_Serializable;
 	}
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+	c->interfacescount = 0;
+	c->interfaces      = NULL;
+#else
+#error unknow Java configuration
 #endif
 
 	c->methodscount = 1;
