@@ -1,4 +1,4 @@
-/* src/native/vm/VMSystemProperties.c - gnu/classpath/VMSystemProperties
+/* src/native/vm/gnu/gnu_classpath_VMSystemProperties.c
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: gnu_classpath_VMSystemProperties.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 7263 2007-01-31 14:04:58Z twisti $
 
 */
 
@@ -34,8 +30,11 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "vm/types.h"
+
+#include "mm/memory.h"
 
 #include "native/jni.h"
 #include "native/include/java_util_Properties.h"
