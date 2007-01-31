@@ -33,6 +33,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(ENABLE_THREADS)
+# include <pthread.h>
+#endif
+
 #include "toolbox/logging.h"
 
 #include "vm/types.h"
