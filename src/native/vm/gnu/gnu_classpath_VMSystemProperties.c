@@ -1,6 +1,6 @@
 /* src/native/vm/gnu/gnu_classpath_VMSystemProperties.c
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gnu_classpath_VMSystemProperties.c 7263 2007-01-31 14:04:58Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 7264 2007-01-31 14:05:57Z twisti $
 
 */
 
