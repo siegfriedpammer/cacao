@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7229 2007-01-22 00:58:36Z twisti $
+## $Id: Makefile.am 7260 2007-01-31 09:51:21Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -54,7 +54,6 @@ DIST_SUBDIRS = \
 SUBDIRS = \
 	optimizing \
 	tools \
-	verify \
 	$(ARCH_DIR)
 
 ARCH_LIB = \
@@ -120,6 +119,14 @@ REPLACE_SOURCES += \
 	replace.c
 endif
 
+if ENABLE_VERIFIER
+SUBDIRS += \
+	verify
+
+VERIFIER_LIB = \
+	verify/libverify.la
+endif
+
 if WITH_BINUTILS_DISASSEMBLER
 DISASS_SOURCES = disass-common.c
 else
@@ -134,7 +141,8 @@ noinst_HEADERS = \
 	methodheader.h \
 	patcher.h 
 
-noinst_LTLIBRARIES = libjit.la
+noinst_LTLIBRARIES = \
+	libjit.la
 
 libjit_la_SOURCES = \
 	code.c \
@@ -167,13 +175,13 @@ libjit_la_SOURCES += \
 
 libjit_la_LIBADD = \
 	allocator/liballocator.la \
-	verify/libverify.la \
 	$(ALLOCATOR_LIB) \
 	$(INLINE_LIB) \
 	$(LOOP_LIB) \
 	$(OPTIMIZING_LIB) \
 	$(PROFILE_LIB) \
 	$(SCHEDULE_LIB) \
+	$(VERIFIER_LIB) \
 	$(INTRP_LIB) \
 	$(ARCH_LIB)
 
