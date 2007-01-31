@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: exceptions.c 7261 2007-01-31 10:00:12Z twisti $
 
 */
 
@@ -632,6 +632,24 @@ java_objectheader *exceptions_new_abstractmethoderror(void)
 }
 
 
+/* exceptions_new_error ********************************************************
+
+   Generates a java.lang.Error for the VM.
+
+*******************************************************************************/
+
+#if defined(ENABLE_JAVAME_CLDC1_1)
+static java_objectheader *exceptions_new_error(utf *message)
+{
+	java_objectheader *o;
+
+	o = exceptions_new_class_utf(class_java_lang_Error, message);
+
+	return o;
+}
+#endif
+
+
 /* exceptions_asm_new_abstractmethoderror **************************************
 
    Generates a java.lang.AbstractMethodError for
@@ -653,9 +671,7 @@ java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 #if defined(ENABLE_JAVASE)
 	e = exceptions_new_abstractmethoderror();
 #else
-	/* in the meantime we do this */
-
-	e = exceptions_new_virtualmachineerror();
+	e = exceptions_new_error(utf_java_lang_AbstractMethodError);
 #endif
 
 	/* remove the stackframeinfo */
@@ -1334,18 +1350,6 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 	MFREE(msg, char, msglen);
 
 	*exceptionptr = o;
-}
-
-
-/* exceptions_throw_virtualmachineerror ****************************************
-
-   Generates and throws a java.lang.VirtualMachineError for the VM.
-
-*******************************************************************************/
-
-void exceptions_throw_virtualmachineerror(void)
-{
-	exceptions_throw_class(class_java_lang_VirtualMachineError);
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: exceptions.h 7261 2007-01-31 10:00:12Z twisti $
 
 */
 
@@ -108,7 +108,6 @@ void exceptions_throw_internalerror(const char *message, ...);
 void exceptions_throw_outofmemoryerror(void);
 void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...);
 void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
-void exceptions_throw_virtualmachineerror(void);
 void exceptions_throw_unsatisfiedlinkerror(utf *name);
 void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi);
 
