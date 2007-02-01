@@ -22,13 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: suck.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: suck.c 7272 2007-02-01 15:35:09Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <stdlib.h>
@@ -438,12 +439,7 @@ float suck_float(classbuffer *cb)
 	suck_nbytes((u1*) (&f), cb, 4);
 #endif
 
-	if (sizeof(float) != 4) {
-		exceptions_throw_internalerror("Incompatible float-format");
-
-		/* XXX should we exit in such a case? */
-		throw_exception_exit();
-	}
+	assert(sizeof(float) == 4);
 	
 	return f;
 }
@@ -457,7 +453,7 @@ double suck_double(classbuffer *cb)
 	u1 buffer[8];
 	u2 i;	
 
-#if defined(__ARM__) && defined(__ARMEL__) && !defined(__VFP_FP__)
+# if defined(__ARM__) && defined(__ARMEL__) && !defined(__VFP_FP__)
 	/*
 	 * On little endian ARM processors when using FPA, word order
 	 * of doubles is still big endian. So take that into account
@@ -468,22 +464,17 @@ double suck_double(classbuffer *cb)
 		buffer[3 - i] = suck_u1(cb);
 	for (i = 0; i < 4; i++)
 		buffer[7 - i] = suck_u1(cb);
-#else
+# else
 	for (i = 0; i < 8; i++)
 		buffer[7 - i] = suck_u1(cb);
-#endif /* defined(__ARM__) && ... */
+# endif /* defined(__ARM__) && ... */
 
 	MCOPY((u1 *) (&d), buffer, u1, 8);
 #else 
 	suck_nbytes((u1*) (&d), cb, 8);
 #endif
 
-	if (sizeof(double) != 8) {
-		exceptions_throw_internalerror("Incompatible double-format");
-
-		/* XXX should we exit in such a case? */
-		throw_exception_exit();
-	}
+	assert(sizeof(double) == 8);
 	
 	return d;
 }
