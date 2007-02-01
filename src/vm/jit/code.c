@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-            Christian Thalinger
-
    $Id$
 
 */
@@ -41,9 +36,11 @@
 #include "arch.h"
 
 #include "mm/memory.h"
+
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/methodheader.h"
+
 #include "vmcore/options.h"
 
 
@@ -90,6 +87,10 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 	code = NEW(codeinfo);
 
 	code->m = m;
+
+#if defined(ENABLE_THREADS)
+	lock_init_object_lock(&code->header);
+#endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)

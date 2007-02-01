@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: jit.h 7268 2007-02-01 12:02:56Z twisti $
 
 */
 
@@ -1270,7 +1270,7 @@ void jit_init(void);
 void jit_close(void);
 
 /* create a new jitdata */
-jitdata *jit_jitdata_new(methodinfo *m);
+jitdata *jit_jitdata_new(codeinfo *code);
 
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);

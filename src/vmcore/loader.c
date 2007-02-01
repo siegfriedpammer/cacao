@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7262 2007-01-31 10:59:49Z twisti $
+   $Id: loader.c 7268 2007-02-01 12:02:56Z twisti $
 
 */
 
@@ -1095,10 +1095,6 @@ static bool loader_load_method(classbuffer *cb, methodinfo *m,
 	/* get classinfo */
 
 	c = cb->class;
-
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock(&m->header);
-#endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -2552,10 +2548,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 	clone = c->methods;
 	MSET(clone, 0, methodinfo, 1);
-
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock(&clone->header);
-#endif
 
 	/* ATTENTION: if you delete the ACC_NATIVE below, set
 	   clone->maxlocals=1 (interpreter related) */

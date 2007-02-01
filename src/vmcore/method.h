@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: method.h 7268 2007-02-01 12:02:56Z twisti $
 */
 
 
@@ -59,7 +59,6 @@ typedef struct method_worklist     method_worklist;
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */
-	java_objectheader header;       /* we need this in jit's monitorenter     */
 	s4            flags;            /* ACC flags                              */
 	utf          *name;             /* name of method                         */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */
