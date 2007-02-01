@@ -37,6 +37,10 @@
 
 #include "mm/memory.h"
 
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#endif
+
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/methodheader.h"
