@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.h 7257 2007-01-29 23:07:40Z twisti $
+   $Id: utf8.h 7270 2007-02-01 12:58:51Z twisti $
 
 */
 
@@ -94,6 +94,7 @@ extern utf *utf_java_lang_VMThrowable;
 #endif
 
 extern utf *utf_java_lang_Exception;
+
 extern utf *utf_java_lang_ArithmeticException;
 extern utf *utf_java_lang_ArrayIndexOutOfBoundsException;
 extern utf *utf_java_lang_ArrayStoreException;
@@ -105,10 +106,11 @@ extern utf *utf_java_lang_IllegalArgumentException;
 extern utf *utf_java_lang_IllegalMonitorStateException;
 extern utf *utf_java_lang_InstantiationException;
 extern utf *utf_java_lang_InterruptedException;
-extern utf *utf_java_lang_InvocationTargetException;
 extern utf *utf_java_lang_NegativeArraySizeException;
 extern utf *utf_java_lang_NullPointerException;
 extern utf *utf_java_lang_StringIndexOutOfBoundsException;
+
+extern utf *utf_java_lang_reflect_InvocationTargetException;
 
 #if defined(ENABLE_JAVASE)
 extern utf* utf_java_lang_Void;

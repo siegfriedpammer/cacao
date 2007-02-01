@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7261 2007-01-31 10:00:12Z twisti $
+   $Id: exceptions.c 7270 2007-02-01 12:58:51Z twisti $
 
 */
 
@@ -1541,8 +1541,8 @@ void exceptions_throw_interruptedexception(void)
 
 /* exceptions_throw_invocationtargetexception **********************************
 
-   Generates and throws a java.lang.InvocationTargetException for the
-   VM.
+   Generates and throws a java.lang.reflect.InvocationTargetException
+   for the VM.
 
    IN:
       cause......cause exception object
@@ -1551,7 +1551,7 @@ void exceptions_throw_interruptedexception(void)
 
 void exceptions_throw_invocationtargetexception(java_objectheader *cause)
 {
-	exceptions_throw_utf_throwable(utf_java_lang_InvocationTargetException,
+	exceptions_throw_utf_throwable(utf_java_lang_reflect_InvocationTargetException,
 								   cause);
 }
 

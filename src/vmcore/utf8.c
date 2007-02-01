@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 7257 2007-01-29 23:07:40Z twisti $
+   $Id: utf8.c 7270 2007-02-01 12:58:51Z twisti $
 
 */
 
@@ -102,6 +102,7 @@ utf *utf_java_lang_VMThrowable;
 #endif
 
 utf *utf_java_lang_Exception;
+
 utf *utf_java_lang_ArithmeticException;
 utf *utf_java_lang_ArrayIndexOutOfBoundsException;
 utf *utf_java_lang_ArrayStoreException;
@@ -113,10 +114,11 @@ utf *utf_java_lang_IllegalArgumentException;
 utf *utf_java_lang_IllegalMonitorStateException;
 utf *utf_java_lang_InstantiationException;
 utf *utf_java_lang_InterruptedException;
-utf *utf_java_lang_InvocationTargetException;
 utf *utf_java_lang_NegativeArraySizeException;
 utf *utf_java_lang_NullPointerException;
 utf *utf_java_lang_StringIndexOutOfBoundsException;
+
+utf *utf_java_lang_reflect_InvocationTargetException;
 
 #if defined(ENABLE_JAVASE)
 utf* utf_java_lang_Void;
@@ -323,9 +325,6 @@ bool utf8_init(void)
 	utf_java_lang_InterruptedException =
 		utf_new_char("java/lang/InterruptedException");
 
-	utf_java_lang_InvocationTargetException =
-		utf_new_char("java/lang/InvocationTargetException");
- 
 	utf_java_lang_NegativeArraySizeException =
 		utf_new_char("java/lang/NegativeArraySizeException");
 
@@ -335,6 +334,9 @@ bool utf8_init(void)
 	utf_java_lang_StringIndexOutOfBoundsException =
 		utf_new_char("java/lang/StringIndexOutOfBoundsException");
 
+	utf_java_lang_reflect_InvocationTargetException =
+		utf_new_char("java/lang/reflect/InvocationTargetException");
+ 
 #if defined(ENABLE_JAVASE)
 	utf_java_lang_Void             = utf_new_char("java/lang/Void");
 #endif
