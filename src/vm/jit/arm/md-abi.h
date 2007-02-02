@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.h 7259 2007-01-30 13:58:35Z twisti $
+   $Id: md-abi.h 7276 2007-02-02 11:58:18Z michi $
 
 */
 
@@ -40,7 +40,7 @@
 #define REG_RESULT      0    /* to deliver method results                     */
 #define REG_RESULT2     1    /* to deliver long method results                */
 
-#define REG_IP          12   /* intra-procedure-call scratch register         */
+#define REG_PV          12   /* intra-procedure-call scratch register         */
 #define REG_SP          13   /* stack pointer                                 */
 #define REG_LR          14   /* link register                                 */
 #define REG_PC          15   /* program counter                               */

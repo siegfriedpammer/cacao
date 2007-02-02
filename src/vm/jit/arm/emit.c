@@ -416,7 +416,7 @@ void emit_exception_stubs(jitdata *jd)
 		/* calcuate exception address */
 
 		assert((er->branchpos - 4) % 4 == 0);
-		M_ADD_IMM_EXT_MUL4(REG_ITMP2_XPC, REG_IP, (er->branchpos - 4) / 4);
+		M_ADD_IMM_EXT_MUL4(REG_ITMP2_XPC, REG_PV, (er->branchpos - 4) / 4);
 
 		/* move function to call into REG_ITMP3 */
 
@@ -426,7 +426,7 @@ void emit_exception_stubs(jitdata *jd)
 		if (targetdisp == 0) {
 			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
 
-			M_MOV(rd->argintregs[0], REG_IP);
+			M_MOV(rd->argintregs[0], REG_PV);
 			M_MOV(rd->argintregs[1], REG_SP);
 
 			if (jd->isleafmethod)
@@ -440,7 +440,7 @@ void emit_exception_stubs(jitdata *jd)
 			/* save registers */
 			/* TODO: we only need to save LR in leaf methods */
 
-			M_STMFD(BITMASK_ARGS | 1<<REG_IP | 1<<REG_LR, REG_SP);
+			M_STMFD(BITMASK_ARGS | 1<<REG_PV | 1<<REG_LR, REG_SP);
 
 			/* move a3 to stack */
 
@@ -459,7 +459,7 @@ void emit_exception_stubs(jitdata *jd)
 
 			/* restore registers */
 
-			M_LDMFD(BITMASK_ARGS | 1<<REG_IP | 1<<REG_LR, REG_SP);
+			M_LDMFD(BITMASK_ARGS | 1<<REG_PV | 1<<REG_LR, REG_SP);
 
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_DSEG_LOAD(REG_ITMP3, disp);
@@ -548,7 +548,7 @@ void emit_patcher_stubs(jitdata *jd)
 		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
 		disp = dseg_add_unique_address(cd, NULL);           /* vftbl      */
 
-		M_SUB_IMM_EXT_MUL4(REG_ITMP3, REG_IP, -disp / 4);
+		M_SUB_IMM_EXT_MUL4(REG_ITMP3, REG_PV, -disp / 4);
 		M_STR_INTERN(REG_ITMP3, REG_SP, 3 * 4);
 #else
 		M_EOR(REG_ITMP3, REG_ITMP3, REG_ITMP3);
@@ -580,13 +580,13 @@ void emit_patcher_stubs(jitdata *jd)
 		M_STR_INTERN(REG_ITMP3, REG_SP, 0 * 4);
 
 		/* finally call the patcher via asm_patcher_wrapper */
-		/* ATTENTION: don't use REG_IP here, because some patchers need it */
+		/* ATTENTION: don't use REG_PV here, because some patchers need it */
 
 		if (targetdisp == 0) {
 			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
 
 			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-			/*M_DSEG_BRANCH_NOLINK(REG_PC, REG_IP, a);*/
+			/*M_DSEG_BRANCH_NOLINK(REG_PC, REG_PV, a);*/
 			/* TODO: this is only a hack */
 			M_DSEG_LOAD(REG_ITMP3, disp);
 			M_MOV(REG_PC, REG_ITMP3);
@@ -658,8 +658,8 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	/* save argument registers to stack (including LR and IP) */
-	M_STMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_IP), REG_SP);
+	/* save argument registers to stack (including LR and PV) */
+	M_STMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
 	M_SUB_IMM(REG_SP, REG_SP, (2 + 2 + 1) * 4);     /* space for a3, a4 and m */
 
 	stackframesize += 6 + 2 + 2 + 1;
@@ -726,7 +726,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore argument registers from stack */
 
 	M_ADD_IMM(REG_SP, REG_SP, (2 + 2 + 1) * 4);        /* free argument stack */
-	M_LDMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_IP), REG_SP);
+	M_LDMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
 
 	/* mark trace code */
 
@@ -762,7 +762,7 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 
-	M_STMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_IP), REG_SP);
+	M_STMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_PV), REG_SP);
 	M_SUB_IMM(REG_SP, REG_SP, (1 + 1) * 4);    /* space for d[high reg] and f */
 
 	switch (md->returntype.type) {
@@ -791,7 +791,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_LONGBRANCH(builtin_displaymethodstop);
 
 	M_ADD_IMM(REG_SP, REG_SP, (1 + 1) * 4);            /* free argument stack */
-	M_LDMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_IP), REG_SP);
+	M_LDMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_PV), REG_SP);
 
 	/* mark trace code */
 

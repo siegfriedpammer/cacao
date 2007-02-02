@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7259 2007-01-30 13:58:35Z twisti $
+   $Id: codegen.c 7276 2007-02-02 11:58:18Z michi $
 
 */
 
@@ -328,7 +328,7 @@ bool codegen(jitdata *jd)
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
 		M_DSEG_BRANCH(disp);
 		s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-		M_RECOMPUTE_IP(s1);
+		M_RECOMPUTE_PV(s1);
 
 # if !defined(NDEBUG)
 		if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
@@ -723,9 +723,9 @@ bool codegen(jitdata *jd)
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_DSEG_BRANCH(disp);
 
-			/* recompute ip */
+			/* recompute pv */
 			s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_RECOMPUTE_IP(s1);
+			M_RECOMPUTE_PV(s1);
 
 			/* move result into destination register */
 			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
@@ -751,9 +751,9 @@ bool codegen(jitdata *jd)
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_DSEG_BRANCH(disp);
 
-			/* recompute ip */
+			/* recompute pv */
 			s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_RECOMPUTE_IP(s1);
+			M_RECOMPUTE_PV(s1);
 
 			/* move result into destination register */
 			d = codegen_reg_of_dst(jd, iptr, REG_RESULT_PACKED);
@@ -1305,9 +1305,9 @@ bool codegen(jitdata *jd)
 			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
 			M_DSEG_BRANCH(disp);
 
-			/* recompute ip */
+			/* recompute pv */
 			s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_RECOMPUTE_IP(s1);
+			M_RECOMPUTE_PV(s1);
 
 			/* check resturn value of builtin */
 			M_TST(REG_RESULT, REG_RESULT);
@@ -1988,7 +1988,7 @@ bool codegen(jitdata *jd)
 
 			/* length of dataseg after last dseg_add_target is used by load */
 			/* TODO: this loads from data-segment */
-			M_ADD(REG_ITMP2, REG_IP, REG_LSL(REG_ITMP1, 2));
+			M_ADD(REG_ITMP2, REG_PV, REG_LSL(REG_ITMP1, 2));
 			M_LDR(REG_PC, REG_ITMP2, -(cd->dseglen));
 			break;
 
@@ -2092,9 +2092,9 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
 				M_DSEG_BRANCH(disp);
 
-				/* we no longer need IP here, no more loading */
+				/* we no longer need PV here, no more loading */
 				/*s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_RECOMPUTE_IP(s1);*/
+				M_RECOMPUTE_PV(s1);*/
 
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
@@ -2215,7 +2215,7 @@ bool codegen(jitdata *jd)
 			case ICMD_BUILTIN:
 				disp = dseg_add_functionptr(cd, bte->fp);
 
-				M_DSEG_LOAD(REG_IP, disp); /* Pointer to built-in-function */
+				M_DSEG_LOAD(REG_PV, disp); /* Pointer to built-in-function */
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2237,7 +2237,7 @@ bool codegen(jitdata *jd)
 				else
 					disp = dseg_add_address(cd, lm->stubroutine);
 
-				M_DSEG_LOAD(REG_IP, disp);            /* Pointer to method */
+				M_DSEG_LOAD(REG_PV, disp);            /* Pointer to method */
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -2257,7 +2257,7 @@ bool codegen(jitdata *jd)
 
 				M_LDR_INTERN(REG_METHODPTR, REG_A0,
 							 OFFSET(java_objectheader, vftbl));
-				M_LDR_INTERN(REG_IP, REG_METHODPTR, s1);
+				M_LDR_INTERN(REG_PV, REG_METHODPTR, s1);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
@@ -2281,16 +2281,16 @@ bool codegen(jitdata *jd)
 				M_LDR_INTERN(REG_METHODPTR, REG_A0,
 							 OFFSET(java_objectheader, vftbl));
 				M_LDR_INTERN(REG_METHODPTR, REG_METHODPTR, s1);
-				M_LDR_INTERN(REG_IP, REG_METHODPTR, s2);
+				M_LDR_INTERN(REG_PV, REG_METHODPTR, s2);
 				break;
 			}
 
 			/* generate the actual call */
 
 			M_MOV(REG_LR, REG_PC);               /* save return address in LR */
-			M_MOV(REG_PC, REG_IP);               /* branch to method          */
+			M_MOV(REG_PC, REG_PV);               /* branch to method          */
 			s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_RECOMPUTE_IP(s1);
+			M_RECOMPUTE_PV(s1);
 
 			/* actually only used for ICMD_BUILTIN */
 
@@ -2514,9 +2514,9 @@ bool codegen(jitdata *jd)
 				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
 				M_DSEG_BRANCH(disp);
 
-				/* recompute ip */
+				/* recompute pv */
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
-				M_RECOMPUTE_IP(disp);
+				M_RECOMPUTE_PV(disp);
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				M_TST(REG_RESULT, REG_RESULT);
@@ -2735,10 +2735,10 @@ bool codegen(jitdata *jd)
 			disp = dseg_add_functionptr(cd, BUILTIN_multianewarray);
 			M_DSEG_BRANCH(disp);
 
-			/* recompute ip (pv) */
+			/* recompute pv */
 
 			s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_RECOMPUTE_IP(s1);
+			M_RECOMPUTE_PV(s1);
 
 			/* check for exception before result assignment */
 
@@ -2935,16 +2935,16 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	assert(IS_IMM(4*4 + cd->stackframesize * 4));
 	M_ADD_IMM(REG_A0, REG_SP, 4*4 + cd->stackframesize * 4 - SIZEOF_VOID_P);
-	M_MOV(REG_A1, REG_IP);
+	M_MOV(REG_A1, REG_PV);
 	M_ADD_IMM(REG_A2, REG_SP, 4*4 + cd->stackframesize * 4);
 	M_LDR_INTERN(REG_A3, REG_SP, 4*4 + cd->stackframesize * 4 - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_DSEG_BRANCH(disp);
 
-	/* recompute ip */
+	/* recompute pv */
 
 	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_RECOMPUTE_IP(s1);
+	M_RECOMPUTE_PV(s1);
 
 	/* Restore integer and float argument registers (these are 4
 	   registers, stack is 8-byte aligned). */
@@ -3017,12 +3017,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	M_DSEG_BRANCH(funcdisp);
 
-	/* recompute ip from pc */
+	/* recompute pv */
 	/* TODO: this is only needed because of the tracer ... do we
 	   really need it? */
 
 	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_RECOMPUTE_IP(s1);
+	M_RECOMPUTE_PV(s1);
 
 #if !defined(__SOFTFP__)
 	/* TODO: this is only a hack, since we use R0/R1 for float return! */
@@ -3057,7 +3057,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_DSEG_BRANCH(disp);
 	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_RECOMPUTE_IP(s1);
+	M_RECOMPUTE_PV(s1);
 
 	M_MOV(REG_ITMP1_XPTR, REG_RESULT);
 	M_LDMFD(BITMASK_RESULT, REG_SP);

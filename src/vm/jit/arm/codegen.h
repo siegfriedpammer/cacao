@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: codegen.h 7259 2007-01-30 13:58:35Z twisti $
+   $Id: codegen.h 7276 2007-02-02 11:58:18Z michi $
 
 */
 
@@ -942,7 +942,7 @@ do { \
 	} else { \
 		disp = dseg_adds4(cd, const); \
 		/* TODO: implement this using M_DSEG_LOAD!!! */ \
-		/* M_LDR_INTERN */ CHECK_OFFSET(disp,0x0fff); M_MEM(cond,1,0,d,REG_IP,(disp<0)?-disp:disp,0,1,(disp<0)?0:1,0); \
+		/* M_LDR_INTERN */ CHECK_OFFSET(disp,0x0fff); M_MEM(cond,1,0,d,REG_PV,(disp<0)?-disp:disp,0,1,(disp<0)?0:1,0); \
 	}
 
 #define LCONST(d,c) \
@@ -954,7 +954,7 @@ do { \
 		ICONST(GET_HIGH_REG(d), (s4) ((s8) (c) >> 32)); \
 	} else { \
 		disp = dseg_add_s8(cd, (c)); \
-		M_LDRD(d, REG_IP, disp); \
+		M_LDRD(d, REG_PV, disp); \
 	}
 
 
@@ -963,30 +963,30 @@ do { \
 #define FCONST(d,c) \
     do { \
         disp = dseg_add_float(cd, (c)); \
-        M_LDFS(d, REG_IP, disp); \
+        M_LDFS(d, REG_PV, disp); \
     } while (0)
 
 #define DCONST(d,c) \
     do { \
         disp = dseg_add_double(cd, (c)); \
-        M_LDFD(d, REG_IP, disp); \
+        M_LDFD(d, REG_PV, disp); \
     } while (0)
 
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 
 
-/* M_RECOMPUTE_IP:
-   used to recompute our IP (something like PV) out of the current PC
+/* M_RECOMPUTE_PV:
+   used to recompute our PV (we use the IP for this) out of the current PC
    ATTENTION: if you change this, you have to look at other functions as well!
    Following things depend on it: asm_call_jit_compiler(); codegen_findmethod();
 */
-#define M_RECOMPUTE_IP(disp) \
+#define M_RECOMPUTE_PV(disp) \
 	disp += 8; /* we use PC relative addr.  */ \
 	assert((disp & 0x03) == 0); \
 	assert(disp >= 0 && disp <= 0x03ffffff); \
-	M_SUB_IMM(REG_IP, REG_PC, IMM_ROTL(disp >> 2, 1)); \
-	if (disp > 0x000003ff) M_SUB_IMM(REG_IP, REG_IP, IMM_ROTL(disp >> 10, 5)); \
-	if (disp > 0x0003ffff) M_SUB_IMM(REG_IP, REG_IP, IMM_ROTL(disp >> 18, 9)); \
+	M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 2, 1)); \
+	if (disp > 0x000003ff) M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 10, 5)); \
+	if (disp > 0x0003ffff) M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 18, 9)); \
 
 /* M_INTMOVE:
    generates an integer-move from register a to b.
@@ -1099,16 +1099,16 @@ do { \
    ATTENTION: we use M_LDR, so the same restrictions apply to us!
 */
 #define M_DSEG_LOAD(reg, offset) \
-	M_LDR_NEGATIVE(reg, REG_IP, offset)
+	M_LDR_NEGATIVE(reg, REG_PV, offset)
 
 #define M_DSEG_BRANCH(offset) \
 	if (IS_OFFSET(offset, 0x0fff)) { \
 		M_MOV(REG_LR, REG_PC); \
-		M_LDR_INTERN(REG_PC, REG_IP, offset); \
+		M_LDR_INTERN(REG_PC, REG_PV, offset); \
 	} else { \
 		/*assert((offset) <= 0);*/ \
 		CHECK_OFFSET(offset,0x0fffff); \
-		M_SUB_IMM(REG_ITMP3, REG_IP, ((-(offset) >>  12) & 0xff) | (((10) & 0x0f) << 8)); /*TODO: more to go*/ \
+		M_SUB_IMM(REG_ITMP3, REG_PV, ((-(offset) >>  12) & 0xff) | (((10) & 0x0f) << 8)); /*TODO: more to go*/ \
 		M_MOV(REG_LR, REG_PC); \
 		M_LDR_INTERN(REG_PC, REG_ITMP3, -(-(offset) & 0x0fff)); /*TODO: this looks ugly*/ \
 	}
