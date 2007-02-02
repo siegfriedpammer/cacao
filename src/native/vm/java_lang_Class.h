@@ -38,12 +38,13 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+
+#include "native/include/java_lang_String.h" /* required by java_lang_Class.h */
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
 
 #if defined(ENABLE_JAVASE)
 # include "native/include/java_lang_ClassLoader.h"
-# include "native/include/java_lang_String.h"
 # include "native/include/java_lang_Throwable.h"
 # include "native/include/java_lang_reflect_Constructor.h"
 # include "native/include/java_lang_reflect_Method.h"
