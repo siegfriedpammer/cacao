@@ -1,6 +1,6 @@
 ## src/vm/jit/optimizing/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
 ## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
 ## Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
 ## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 ## 02111-1307, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes:
-##
 ## $Id: Makefile.am,v 1.8 2004/12/07 14:33:21 twisti Exp $
 
 ## Process this file with automake to produce Makefile.in
@@ -46,6 +40,10 @@ if ENABLE_PROFILING
 PROFILE_SOURCES = \
 	profile.c \
 	profile.h
+
+REORDER_SOURCES = \
+	reorder.c \
+	reorder.h
 endif
 
 if ENABLE_THREADS
@@ -53,10 +51,6 @@ RECOMPILE_SOURCES = \
 	recompile.c \
 	recompile.h
 endif
-
-REORDER_SOURCES = \
-	reorder.c \
-	reorder.h
 
 if ENABLE_SSA
 SSA_SOURCES = \
