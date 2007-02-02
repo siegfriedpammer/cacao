@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7255 2007-01-29 21:39:38Z twisti $
+   $Id: codegen.c 7279 2007-02-02 12:53:19Z twisti $
 
 */
 
@@ -200,7 +200,8 @@ bool codegen(jitdata *jd)
 		dseg_add_target(cd, ex->handler);
 		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
-	
+
+#if defined(ENABLE_PROFILING)
 	/* generate method profiling code */
 
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
@@ -209,6 +210,7 @@ bool codegen(jitdata *jd)
 		M_MOV_IMM(code, REG_ITMP3);
 		M_IADD_IMM_MEMBASE(1, REG_ITMP3, OFFSET(codeinfo, frequency));
 	}
+#endif
 
 	/* create stack frame (if necessary) */
 
@@ -423,7 +425,7 @@ bool codegen(jitdata *jd)
 		len = bptr->indepth;
 		MCODECHECK(512);
 
-#if 0
+#if defined(ENABLE_PROFILING)
 		/* generate basic block profiling code */
 
 		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
@@ -4046,6 +4048,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	(void) dseg_addlinenumbertablesize(cd);
 	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
+#if defined(ENABLE_PROFILING)
 	/* generate native method profiling code */
 
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
@@ -4054,6 +4057,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		M_MOV_IMM(code, REG_ITMP1);
 		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(codeinfo, frequency));
 	}
+#endif
 
 	/* calculate stackframe size for native function */
 
