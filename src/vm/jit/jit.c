@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7274 2007-02-02 00:10:37Z twisti $
+   $Id: jit.c 7275 2007-02-02 00:20:56Z twisti $
 
 */
 
@@ -1420,6 +1420,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 #endif
 
+#if defined(ENABLE_PROFILING)
 		/* Basic block reordering.  I think this should be done after
 		   if-conversion, as we could lose the ability to do the
 		   if-conversion. */
@@ -1429,6 +1430,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 				return NULL;
 			jit_renumber_basicblocks(jd);
 		}
+#endif
 
 		DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
 
