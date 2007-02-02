@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7268 2007-02-01 12:02:56Z twisti $
+   $Id: jit.c 7274 2007-02-02 00:10:37Z twisti $
 
 */
 
@@ -1114,11 +1114,13 @@ u1 *jit_compile(methodinfo *m)
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
 
+#if defined(ENABLE_PROFILING)
 		/* Release memory for basic block profiling information. */
 
 		if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
 			if (jd->code->bbfrequency != NULL)
 				MFREE(jd->code->bbfrequency, u4, jd->code->basicblockcount);
+#endif
 	}
 	else {
 		DEBUG_JIT_COMPILEVERBOSE("Running: ");
@@ -1465,12 +1467,14 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif /* defined(ENABLE_JIT) */
 	RT_TIMING_GET_TIME(time_alloc);
 
+#if defined(ENABLE_PROFLING)
 	/* Allocate memory for basic block profiling information. This
 	   _must_ be done after loop optimization and register allocation,
 	   since they can change the basic block count. */
 
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
 		code->bbfrequency = MNEW(u4, jd->basicblockcount);
+#endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 
