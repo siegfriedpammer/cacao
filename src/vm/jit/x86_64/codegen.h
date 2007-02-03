@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/codegen.h - code generation macros for x86_64
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Christian Thalinger
-
-   $Id: codegen.h 6132 2006-12-07 10:59:01Z twisti $
+   $Id: codegen.h 7281 2007-02-03 19:51:36Z twisti $
 
 */
 
@@ -346,6 +341,8 @@
 #define M_ISBB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SBB, (a), (b), (c))
 
 
+#if defined(ENABLE_PROFILING)
+
 #define PROFILE_CYCLE_START \
     do { \
         if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
@@ -377,6 +374,13 @@
             M_POP(RAX); \
         } \
     } while (0)
+
+#else
+
+#define PROFILE_CYCLE_START
+#define PROFILE_CYCLE_STOP
+
+#endif
 
 #endif /* _CODEGEN_H */
 
