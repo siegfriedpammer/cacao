@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7265 2007-01-31 17:00:51Z twisti $
+   $Id: jni.c 7280 2007-02-03 19:34:10Z twisti $
 
 */
 
@@ -818,8 +818,9 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 	java_objectheader *ro;
 	s4                 argcount;
 	s4                 paramcount;
+	java_objectheader *xptr;
 
-	if (!m) {
+	if (m == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
@@ -1018,14 +1019,14 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	MFREE(vmargs, vm_arg, argcount);
 
-	if (*exceptionptr) {
-		java_objectheader *cause;
+	xptr = exceptions_get_exception();
 
+	if (xptr != NULL) {
 		/* clear exception pointer, we are calling JIT code again */
 
-		cause = exceptions_get_and_clear_exception();
+		exceptions_clear_exception();
 
-		exceptions_throw_invocationtargetexception(cause);
+		exceptions_throw_invocationtargetexception(xptr);
 	}
 
 	return ro;
@@ -1177,9 +1178,13 @@ jboolean _Jv_JNI_IsAssignableFrom(JNIEnv *env, jclass sub, jclass sup)
 
 jint _Jv_JNI_Throw(JNIEnv *env, jthrowable obj)
 {
+	java_objectheader *o;
+
 	STATISTICS(jniinvokation());
 
-	*exceptionptr = (java_objectheader *) obj;
+	o = (java_objectheader *) obj;
+
+	exceptions_set_exception(o);
 
 	return JNI_OK;
 }
@@ -1227,13 +1232,13 @@ jint _Jv_JNI_ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 
 jthrowable _Jv_JNI_ExceptionOccurred(JNIEnv *env)
 {
-	java_objectheader *e;
+	java_objectheader *o;
 
 	STATISTICS(jniinvokation());
 
-	e = *exceptionptr;
+	o = exceptions_get_exception();
 
-	return _Jv_JNI_NewLocalRef(env, (jthrowable) e);
+	return _Jv_JNI_NewLocalRef(env, (jthrowable) o);
 }
 
 
@@ -1247,33 +1252,33 @@ jthrowable _Jv_JNI_ExceptionOccurred(JNIEnv *env)
 
 void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 {
-	java_objectheader *e;
+	java_objectheader *o;
 	methodinfo        *m;
 
 	STATISTICS(jniinvokation());
 
-	e = *exceptionptr;
+	o = excetpions_get_exception();
 
-	if (e) {
+	if (o == NULL) {
 		/* clear exception, because we are calling jit code again */
 
-		*exceptionptr = NULL;
+		exceptions_clear_exception();
 
 		/* get printStackTrace method from exception class */
 
-		m = class_resolveclassmethod(e->vftbl->class,
+		m = class_resolveclassmethod(o->vftbl->class,
 									 utf_printStackTrace,
 									 utf_void__void,
 									 NULL,
 									 true);
 
-		if (!m)
+		if (m == NULL)
 			/* XXX what should we do? */
 			return;
 
 		/* print the stacktrace */
 
-		(void) vm_call_method(m, e);
+		(void) vm_call_method(m, o);
 	}
 }
 
@@ -1289,7 +1294,7 @@ void _Jv_JNI_ExceptionClear(JNIEnv *env)
 {
 	STATISTICS(jniinvokation());
 
-	*exceptionptr = NULL;
+	exceptions_clear_exception();
 }
 
 
@@ -5385,9 +5390,13 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 jboolean _Jv_JNI_ExceptionCheck(JNIEnv *env)
 {
+	java_objectheader *o;
+
 	STATISTICS(jniinvokation());
 
-	return *exceptionptr ? JNI_TRUE : JNI_FALSE;
+	o = exceptions_get_exception();
+
+	return (o != NULL) ? JNI_TRUE : JNI_FALSE;
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: finalizer.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: finalizer.c 7280 2007-02-03 19:34:10Z twisti $
 
 */
 
@@ -211,7 +211,7 @@ void finalizer_run(void *o, void *p)
 
 	/* if we had an exception in the finalizer, ignore it */
 
-	*exceptionptr = NULL;
+	exceptions_clear_exception();
 }
 
 

@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: builtin.c 7280 2007-02-03 19:34:10Z twisti $
 
 */
 
@@ -60,7 +60,7 @@
 #include "native/include/java_lang_Throwable.h"
 
 #if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
+# include "threads/native/lock.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -624,7 +624,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
 
 	/* actually set the exception */
 
-	*exceptionptr = xptr;
+	exceptions_set_exception(xptr);
 
 	/* Return a NULL pointer.  This is required for vm_call_method to
 	   check for an exception.  This is for convenience. */
