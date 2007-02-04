@@ -30,7 +30,7 @@
             Joseph Wenninger
             Edwin Steiner
 
-   $Id: dseg.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: dseg.c 7283 2007-02-04 19:41:14Z pm $
 
 */
 
@@ -854,7 +854,7 @@ s4 dseg_get_linenumber_from_pc(methodinfo **pm, u1 *pv, u1 *pc)
 
 *******************************************************************************/
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 void dseg_adddata(codegendata *cd)
 {
 	dataref *dr;

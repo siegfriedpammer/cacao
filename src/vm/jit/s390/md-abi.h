@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 7219 2007-01-16 22:18:57Z pm $
+   $Id: md-abi.h 7283 2007-02-04 19:41:14Z pm $
 
 */
 
@@ -121,9 +121,9 @@
 #define REG_RESULT      R2       /* to deliver method results                 */
 #define REG_RESULT2     R3
 
-#define REG_ITMP1       R0       /* temporary register                        */
-#define REG_ITMP2       R1       /* temporary register and method pointer     */
-#define REG_ITMP3       R14      /* temporary register                        */
+#define REG_ITMP1       R1      /* temporary register                        */
+#define REG_ITMP2       R12     /* temporary register and method pointer     */
+#define REG_ITMP3       R14     /* temporary register                        */
 
 #define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
 #define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)
@@ -138,6 +138,7 @@
 #define REG_ITMP2_XPC   REG_ITMP2/* exception pc = temporary register 2       */
 
 #define REG_SP          R15      /* stack pointer                             */
+#define REG_RA          R14      /* same as itmp3 */
 
 #define REG_PV  R13
 
@@ -159,10 +160,10 @@
 
 
 #define INT_REG_CNT     16       /* number of integer registers               */
-#define INT_SAV_CNT     6        /* number of integer callee saved registers  */
+#define INT_SAV_CNT     5        /* number of integer callee saved registers  */
 #define INT_ARG_CNT     5        /* number of integer argument registers      */
-#define INT_TMP_CNT     3        /* number of integer temporary registers     */
-#define INT_RES_CNT     2        /* number of integer reserved registers      */
+#define INT_TMP_CNT     1        /* number of integer temporary registers     */
+#define INT_RES_CNT     5        /* number of integer reserved registers      */
 
 #define FLT_REG_CNT     16       /* number of float registers                 */
 #define FLT_SAV_CNT     2        /* number of float callee saved registers    */

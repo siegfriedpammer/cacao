@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7219 2007-01-16 22:18:57Z pm $
+   $Id: codegen.h 7283 2007-02-04 19:41:14Z pm $
 
 */
 
@@ -91,31 +91,6 @@
     }
 
 
-/* M_INTMOVE:
-    generates an integer-move from register a to b.
-    if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(reg,dreg) \
-    do { \
-        if ((reg) != (dreg)) { \
-            M_MOV(reg, dreg); \
-        } \
-    } while (0)
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(reg,dreg) \
-    do { \
-        if ((reg) != (dreg)) { \
-            M_FMOV(reg, dreg); \
-        } \
-    } while (0)
-
 
 #define ICONST(r,c) \
     do { \
@@ -135,6 +110,17 @@
             M_CLR((d)); \
         else \
             M_MOV_IMM((c), (d)); \
+    } while (0)
+
+/* branch defines *************************************************************/
+
+#define BRANCH_NOPS \
+    do { \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
+        M_NOP; \
     } while (0)
 
 
@@ -166,13 +152,108 @@
 
 /* S390 specific code */
 
+/* Argument checks for debug mode */
+
+/* Some instructions with register arguments treat %r0 as "value not given".
+ * To prevent bugs, in debug mode we use a special value RN (reg none) with 
+ * the meaning "value not given".
+ * In debug mode, the instructions assert that %r0 was not given as argument.
+ */
+
+#if 1
+#	include <stdlib.h>
+	/* register none */
+#	define RN 16
+	/* Optional register.
+	 * Check that value given is %r1 - %r15 or RN
+	 */
+#	define _WITH_LINE(f, ...) f(__FILE__, __LINE__, __VA_ARGS__)
+	static inline int _OR_IMPL(const char *file, int line, int r) {
+		if(!(
+			((0 < r) && (r < 16)) ||
+			(r == RN)
+		)) {
+			fprintf(stdout, "%d is not a valid register at %s:%d.\n", r, file, line);
+			abort();
+		}
+		return ((r == RN) ? 0 : r);
+	}
+#	define _OR(r) _WITH_LINE(_OR_IMPL, r)
+
+#	define _SMIN(b) (-(1 << (bits - 1)))
+#	define _SMAX(b) ((1 << (b - 1)) - 1)
+#	define _UMIN(b) 0
+#	define _UMAX(b) ((1 << b) - 1)
+
+	static inline int _UBITS_IMPL(const char *file, int line, int i, int bits) {
+		if (!((_UMIN(bits) <= i) && (i <= _UMAX(bits)))) {
+			fprintf(stdout, "%d (0x%X) is not an unsigned %d bit integer at %s:%d.\n", i, i, bits, file, line);
+			abort();
+		}
+		return i;
+	}
+#	define _UBITS(i, bits) _WITH_LINE(_UBITS_IMPL, i, bits)
+	static inline int _SBITS_IMPL(const char *file, int line, int i, int bits) {
+		if(!((_SMIN(bits) <= i) && (i <= _SMAX(bits)))) {
+			fprintf(stdout, "%d (0x%X) is not an signed %d bit integer at %s:%d.\n", i, i, bits, file, line);
+			abort();
+		}
+		return i;
+	}
+#	define _SBITS(i, bits) _WITH_LINE(_SBITS_IMPL, i, bits)
+	static inline int _BITS_IMPL(const char *file, int line, int i, int bits) {
+		if (!(
+			((_UMIN(bits) <= i) && (i <= _UMAX(bits))) ||
+			((_SMIN(bits) <= i) && (i <= _SMAX(bits)))
+		)) {
+			fprintf(stdout, "%d (0x%X) is not an %d bit integer at %s:%d.\n", i, i, bits, file, line);
+			abort();
+		}
+		return i;
+	}
+#	define _BITS(i, bits) _WITH_LINE(_BITS_IMPL, i, bits)
+#else
+#	define RN 0
+#	define _OR(x) (x)
+#	define _BITS(x, b) (x)
+#	define _UBITS(x, b) (x)
+#	define _SBITS(x, b) (x)
+#endif
+
+/* Register */
+#define _R(x) _UBITS((x), 4)
+/* Displacement */
+#define _D(x) _UBITS((x), 12)
+/* 4 bit Immediate */
+#define _I4(x) _BITS((x), 4)
+#define _UI4(x) _UBITS((x), 4)
+#define _SI4(x) _SBITS((x), 4)
+/* 8 bit Immediate */
+#define _I8(x) _BITS((x), 8)
+#define _UI8(x) _UBITS((x), 8)
+#define _SI8(x) _SBITS((x), 8)
+/* 12 bit Immediate */
+#define _I12(x) _BITS((x), 12)
+#define _UI12(x) _UBITS((x), 12)
+#define _SI12(x) _SBITS((x), 12)
+/* 16 bit Immediate */
+#define _I16(x) _BITS((x), 16)
+#define _UI16(x) _UBITS((x), 16)
+#define _SI16(x) _SBITS((x), 16)
+/* Opcode */
+#define _OP(x) _UBITS((x), 8)
+/* Second part of opcode */
+#define _OP4(x) _UBITS((x), 4)
+/* Extended opcode */
+#define _OP16(x) _UBITS((x), 16)
+
 /* Instruction formats */
 
 #define _CODE(t, code) \
 	do { \
 		*((t *) cd->mcodeptr) = (code); \
 		cd->mcodeptr += sizeof(t); \
-	} while (0);
+	} while (0)
 
 #define _CODE2(code) _CODE(u2, code)
 #define _CODE4(code) _CODE(u4, code)
@@ -181,59 +262,61 @@
 	do { if ((val) < 0) { neg ; } else { pos ; } } while (0)
 
 #define N_RR(op, r1, r2) \
-	_CODE2( (op << 8) | (r1 << 4) | (r2) )
+	_CODE2( (_OP(op) << 8) | (_R(r1) << 4) | _R(r2) )
 
 #define SZ_RR 2
 
 #define N_RR2(op, i) \
-	_CODE2( (op << 8) | (i) )
+	_CODE2( (_OP(op) << 8) | _I8(i) )
 
 #define N_RX(op, r1, d2, x2, b2) \
-	_CODE4( ((op) << 24) | ((r1) << 20) | ((x2) << 16) | ((b2) << 12) | ((d2) << 0) )
+	_CODE4( (_OP(op) << 24) | (_R(r1) << 20) | (_OR(x2) << 16) | (_OR(b2) << 12) | (_D(d2) << 0) )
 
 #define SZ_RX 4
 
 #define N_RI(op1, op2, r1, i2) \
-	_CODE4( ((op1) << 24) | ((r1) << 20) | ((op2) << 16) | ((u2) i2) )
+	_CODE4( (_OP(op1) << 24) | (_R(r1) << 20) | (_OP4(op2) << 16) | (u2)_I16(i2) )
 
 #define SZ_RI 4
 
 #define N_SI(op, d1, b1, i2) \
-	_CODE4( ((op) << 24) | ((i2) << 16) | ((b1) << 12) | (d1) )
+	_CODE4( (_OP(op) << 24) | (_OR(i2) << 16) | (_OR(b1) << 12) | _D(d1) )
 
 #define SZ_SI 4
 
 #define N_SS(op, d1, l, b1, d2, b2) \
-	_CODE4( ((op) << 24) | ((l) << 16) | ((b1) << 12) | (d1) ) \
-	_CODE2( ((b2) << 12) | (d2) )
+	do { \
+		_CODE4( (_OP(op) << 24) | (_I8(l) << 16) | (_OR(b1) << 12) | _D(d1) ); \
+		_CODE2( (_OR(b2) << 12) | _D(d2) ); \
+	} while (0)
 
 #define SZ_SS 6
 
 #define N_SS2(op, d1, l1, b1, d2, l2, b2) \
-	N_SS(op, d1, ((l1) << 4) | (l2), b1, d2, l2)
+	N_SS(op, d1, (_I4(l1) << 4) | _I4(l2), b1, d2, l2)
 
 #define N_RS(op, r1, r3, d2, b2) \
-	_CODE4( ((op) << 24) | ((r1) << 20) | ((r3) << 16) | ((b2) << 12) | (d2) )
+	_CODE4( (_OP(op) << 24) | (_R(r1) << 20) | (_R(r3) << 16) | (_OR(b2) << 12) | _D(d2) )
 
 #define SZ_RS 4
 
 #define N_RSI(op, r1, r2, i2) \
-	_CODE4( ((op) << 24) | ((r1) << 20) | ((r3) << 16) | ((u2)i2) )
+	_CODE4( ((op) << 24) | (_R(r1) << 20) | (_R(r3) << 16) | (u2)_16(i2) )
 
 #define SZ_RSI 4
 
 #define N_RRE(op, r1, r2) \
-	_CODE4( ((op) << 16) | ((r1) << 4) | (r2) )
+	_CODE4( (_OP16(op) << 16) | (_R(r1) << 4) | _R(r2) )
 
 #define SZ_RRE 4
 
 #define N_S2(d2, b2) \
-	_CODE4( ((op) << 16) | ((b2) << 12) | (d2)  )
+	_CODE4( (_OP16(op) << 16) | (_OR(b2) << 12) | _D(d2)  )
 
 #define SZ_S2 4
 
 #define N_E(op) \
-	_CODE2( (op) )
+	_CODE2( _OP16(op) )
 
 #define SZ_E 2
 
@@ -272,19 +355,19 @@
 #define N_N(r1, d2, x2, b2) N_RX(0x54, r1, d2, x2, b2)
 #define N_NI(d1, b1, i2) N_SI(0x94, d1, b1, i2)
 #define N_NC(d1, l, b1, d2, b2) N_NC(0xD4, l, b1, d1, b2, d2)
-#define N_BALR(r1, r2) N_RR(0x05, r1, r2)
+#define N_BALR(r1, r2) N_RR(0x05, r1, _OR(r2))
 #define N_BAL(r1, d2, x2, b2) N_RX(0x45, r1, d2, x2, b2)
-#define N_BASR(r1, r2) N_RR(0x0D, r1, r2)
+#define N_BASR(r1, r2) N_RR(0x0D, r1, _OR(r2))
 #define N_BAS(r1, d2, x2, b2) N_RX(0x4D, r1, d2, x2, b2)
-#define N_BASSM(r1, r2) N_RR(0x0C, r1, r2)
-#define N_BSM(r1, r2) N_RR(0x0B, r1, r2)
-#define N_BCR(m1, r2) N_RR(0x07, m1, r2)
+#define N_BASSM(r1, r2) N_RR(0x0C, r1, _OR(r2))
+#define N_BSM(r1, r2) N_RR(0x0B, r1, _OR(r2))
+#define N_BCR(m1, r2) N_RR(0x07, m1, _OR(r2))
 #	define SZ_BCR SZ_RR
 #	define N_BR(r2) N_BCR(DD_ANY, r2)
 #	define SZ_BR SZ_BCR
 #define N_BC(m1, d2, x2, b2) N_RS(0x47, m1, d2, x2, b2)
 #	define SZ_BC SZ_RS
-#define N_BCTR(r1, r2) N_RR(0x06, r1, r2)
+#define N_BCTR(r1, r2) N_RR(0x06, r1, _OR(r2))
 #define N_BCT(r1, d2, x2, b2) N_RX(0x46, r1, d2, x2, b2)
 #define N_BHX(r1, r2, d2, b2) N_RS(0xB6, r1, r3, d2, b2)
 #define N_BXLE(r1, r3, d2, b2) N_RS(0xB7, r1, r3, d2, b2)
@@ -298,7 +381,8 @@
 #define N_BRXH(r1, r3, i2) N_RSI(0x84, r1, r3, (i2) / 2)
 #define N_BRXLE(r1, r3, i2) N_RSI(0x85, r1, r2, (i2) / 2)
 #define N_CKSM(r1, r2) N_RRE(0xB241, r1, r2)
-#define N_CR(r1, r2), N_RR(0x19, r1, r2)
+#define N_CR(r1, r2) N_RR(0x19, r1, r2)
+#	define SZ_CR SZ_RR
 #define N_C(r1, d2, x2, b2) N_RX(0x59, r1, d2, x2, b2)
 #define N_CFC(d2, b2) N_S2(0xB21A, d2, b2)
 #define N_CS(r1, r3, d2, b2) N_RS(0xBA, r1, r3, d2, b2)
@@ -333,12 +417,8 @@
 #define N_LR(r1, r2) N_RR(0x18, r1, r2)
 #define N_L(r1, d2, x2, b2) N_RX(0x58, r1, d2, x2, b2)
 #	define SZ_L SZ_RX
-#	define N_L2(r1, d2, b2) \
-		do { N_LHI(r1, d2); N_L(r1, 0, r1, b2); } while (0)
 #define N_LAM(r1, r3, d2, b2) N_RS(0x9A, r1, r3, d2, b2)
 #define N_LA(r1, d2, x2, b2) N_RX(0x41, r1, d2, x2, b2)
-#	define N_LA2(r1, d2, b2) \
-		do { N_LHI(r1, d2); N_LA(r1, 0, r1, b2); } while (0)
 #define N_LAE(r1, d2, x2, b2) N_RX(0x51, r1, d2, x2, b2)
 #define N_LTR(r1, r2) N_RR(0x12, r1, r2)
 #define N_LCR(r1, r2) N_RR(0x13, r1, r2)
@@ -424,245 +504,282 @@
 
 #define M_CALL(r2) N_BASR(R14, r2)
 
-#define M_ALD(r, b, d) _IFNEG(d, N_L2(r, d, b), N_L(r, d, 0, b))
-#define M_ILD(r, b, d) _IFNEG(d, N_LA2(r, d, b), N_LA(r, d, 0, b))
-#define M_FLD(r, b, d) _IFNEG(d, assert(0), N_LE(r, d, 0, b))
-#define M_DLD(r, b, d) _IFNEG(d, assert(0), N_LD(r, d, 0, b))
-/* TODO 3 instead of 4 instrs for d < 0 ! */
-#define M_LLD(r, b, d) \
-	do { M_ILD(GET_HIGH_REG(r), b, d); M_ILD(GET_LOW_REG(r), b, d + 4); } while(0)
+#define M_ILD(r, b, d) _IFNEG( \
+	d, \
+	N_LHI(r, d); N_L(r, 0, r, b), \
+	N_L(r, d, RN, b) \
+)
+
+#define M_ALD(r, b, d) M_ILD(r, b, d)
+
+#define M_LDA(r, b, d) _IFNEG( \
+	d, \
+	N_LHI(r, d); N_LA(r, 0, r, b), \
+	N_LA(r, d, RN, b) \
+)
+
+#define M_FLD(r, b, d) _IFNEG(d, assert(0), N_LE(r, d, RN, b))
+#define M_DLD(r, b, d) _IFNEG(d, assert(0), N_LD(r, d, RN, b))
+
+#define M_LLD(r, b, d) _IFNEG( \
+	d, \
+	N_LHI(GET_LOW_REG(r), d); \
+		N_L(GET_HIGH_REG(r), 0, GET_LOW_REG(r), b); \
+		N_L(GET_LOW_REG(r), 4, GET_LOW_REG(r), b), \
+	N_L(GET_HIGH_REG(r), 0, RN, b); N_L(GET_LOW_REG(r), 4, RN, b) \
+)
+
+#define M_MOV(a, b) N_LR(a, b)
+#define M_FMOV(a, b) N_LDR(a, b)
+#define M_DST(r, b, d) _IFNEG(d, assert(0), N_STD(r, d, RN, b))
+#define M_FST(r, b, d) _IFNEG(d, assert(0), N_STE(r, d, RN, b))
+#define M_IST(r, b, d) _IFNEG( \
+	d, \
+	N_LHI(r, d); N_S(r, 0, r, b), \
+	N_S(r, d, RN, b) \
+)
+#define M_AST(r, b, d) M_IST(r, b, d)
+#define M_LST(r, b, d) _IFNEG( \
+	d, \
+	N_LHI(GET_LOW_REG(r), d); \
+		N_S(GET_HIGH_REG(r), 0, GET_LOW_REG(r), b); \
+		N_S(GET_LOW_REG(r), 4, GET_LOW_REG(r), b), \
+	N_S(GET_HIGH_REG(r), 0, RN, b); N_S(GET_LOW_REG(r), 4, RN, b) \
+)
+#define M_TEST(r) N_LTR(r, r)
+#define M_BEQ(off) N_BRC(DD_E, off)
+#define M_BNE(off) N_BRC(DD_NE, off)
+#define M_BLE(off) N_BRC(DD_LE, off)
+#define M_BGT(off) N_BRC(DD_H, off)
+#define M_BLT(off) N_BRC(DD_L, off)
+
+#define M_CMP(r1, r2) N_CR(r1, r2)
+#define M_CLR(r) N_LHI(r, 0)
+#define M_AADD_IMM(val, reg) N_LA(reg, val, RN, reg)
+#define M_IADD_IMM(val, reg) N_AHI(reg, val)
+#define M_ASUB_IMM(val, reg) N_AHI(reg, -(val))
+#define M_RET N_BCR(DD_ANY, R14)
+
+/* M_INTMOVE:
+    generates an integer-move from register a to b.
+    if a and b are the same int-register, no code will be generated.
+*/ 
+
+#define M_INTMOVE(reg,dreg) \
+    do { \
+        if ((reg) != (dreg)) { \
+            M_MOV(reg, dreg); \
+        } \
+    } while (0)
+
+#define M_LNGMOVE(a, b) \
+    do { \
+        if (GET_HIGH_REG(a) == GET_LOW_REG(b)) { \
+            assert((GET_LOW_REG(a) != GET_HIGH_REG(b))); \
+            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
+            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
+        } else { \
+            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
+            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
+        } \
+    } while (0)
+
+/* M_FLTMOVE:
+    generates a floating-point-move from register a to b.
+    if a and b are the same float-register, no code will be generated
+*/ 
+
+#define M_FLTMOVE(reg,dreg) \
+    do { \
+        if ((reg) != (dreg)) { \
+            M_FMOV(reg, dreg); \
+        } \
+    } while (0)
+
+
 
 /* ----------------------------------------------- */
 
-#define M_MOV(a,b)              emit_mov_reg_reg(cd, (a), (b))
-#define M_MOV_IMM(a,b)          emit_mov_imm_reg(cd, (u8) (a), (b))
+#define _DEPR(x) \
+	do { \
+		fprintf(stdout, \
+			"Using old x86_64 instruction %s at %s (%s:%d), fix this.\n", \
+			#x, __FUNCTION__, __FILE__, __LINE__); \
+	} while (0)
 
-#define M_IMOV(a,b)             emit_movl_reg_reg(cd, (a), (b))
-#define M_IMOV_IMM(a,b)         emit_movl_imm_reg(cd, (u4) (a), (b))
+#define M_MOV_IMM(a,b) _DEPR( M_MOV_IMM(a,b) )
 
-#define M_FMOV(a,b)             emit_movq_reg_reg(cd, (a), (b))
-
-#define M__ILD(a,b,disp)         emit_movl_membase_reg(cd, (b), (disp), (a))
-#define M__LLD(a,b,disp)         emit_mov_membase_reg(cd, (b), (disp), (a))
-
-#define M_ILD32(a,b,disp)       emit_movl_membase32_reg(cd, (b), (disp), (a))
-#define M_LLD32(a,b,disp)       emit_mov_membase32_reg(cd, (b), (disp), (a))
-
-#define M_IST(a,b,disp)         emit_movl_reg_membase(cd, (a), (b), (disp))
-#define M_LST(a,b,disp)         emit_mov_reg_membase(cd, (a), (b), (disp))
-
-#define M_IST_IMM(a,b,disp)     emit_movl_imm_membase(cd, (a), (b), (disp))
-#define M_LST_IMM32(a,b,disp)   emit_mov_imm_membase(cd, (a), (b), (disp))
-
-#define M_IST32(a,b,disp)       emit_movl_reg_membase32(cd, (a), (b), (disp))
-#define M_LST32(a,b,disp)       emit_mov_reg_membase32(cd, (a), (b), (disp))
-
-#define M_IST32_IMM(a,b,disp)   emit_movl_imm_membase32(cd, (a), (b), (disp))
-#define M_LST32_IMM32(a,b,disp) emit_mov_imm_membase32(cd, (a), (b), (disp))
-
-#define M_IADD(a,b)             emit_alul_reg_reg(cd, ALU_ADD, (a), (b))
-#define M_ISUB(a,b)             emit_alul_reg_reg(cd, ALU_SUB, (a), (b))
-#define M_IMUL(a,b)             emit_imull_reg_reg(cd, (a), (b))
-
-#define M_IADD_IMM(a,b)         emit_alul_imm_reg(cd, ALU_ADD, (a), (b))
-#define M_ISUB_IMM(a,b)         emit_alul_imm_reg(cd, ALU_SUB, (a), (b))
-#define M_IMUL_IMM(a,b,c)       emit_imull_imm_reg_reg(cd, (b), (a), (c))
-
-#define M_LADD(a,b)             emit_alu_reg_reg(cd, ALU_ADD, (a), (b))
-#define M_LSUB(a,b)             emit_alu_reg_reg(cd, ALU_SUB, (a), (b))
-#define M_LMUL(a,b)             emit_imul_reg_reg(cd, (a), (b))
-
-#define M_LADD_IMM(a,b)         emit_alu_imm_reg(cd, ALU_ADD, (a), (b))
-#define M_LSUB_IMM(a,b)         emit_alu_imm_reg(cd, ALU_SUB, (a), (b))
-#define M_LMUL_IMM(a,b,c)       emit_imul_imm_reg_reg(cd, (b), (a), (c))
-
-#define M_IINC(a)               emit_incl_reg(cd, (a))
-#define M_IDEC(a)               emit_decl_reg(cd, (a))
-
-#define M__ALD(a,b,disp)         M_LLD(a,b,disp)
-#define M_ALD32(a,b,disp)       M_LLD32(a,b,disp)
-
-#define M_AST(a,b,c)            M_LST(a,b,c)
-#define M_AST_IMM32(a,b,c)      M_LST_IMM32(a,b,c)
-
-#define M_AADD(a,b)             M_LADD(a,b)
-#define M_AADD_IMM(a,b)         M_LADD_IMM(a,b)
-#define M_ASUB_IMM(a,b)         M_LSUB_IMM(a,b)
-
-#define M_LADD_IMM32(a,b)       emit_alu_imm32_reg(cd, ALU_ADD, (a), (b))
-#define M_AADD_IMM32(a,b)       M_LADD_IMM32(a,b)
-#define M_LSUB_IMM32(a,b)       emit_alu_imm32_reg(cd, ALU_SUB, (a), (b))
-
-#define M_ILEA(a,b,c)           emit_leal_membase_reg(cd, (a), (b), (c))
-#define M_LLEA(a,b,c)           emit_lea_membase_reg(cd, (a), (b), (c))
-#define M_ALEA(a,b,c)           M_LLEA(a,b,c)
-
-#define M_INEG(a)               emit_negl_reg(cd, (a))
-#define M_LNEG(a)               emit_neg_reg(cd, (a))
-
-#define M_IAND(a,b)             emit_alul_reg_reg(cd, ALU_AND, (a), (b))
-#define M_IOR(a,b)              emit_alul_reg_reg(cd, ALU_OR, (a), (b))
-#define M_IXOR(a,b)             emit_alul_reg_reg(cd, ALU_XOR, (a), (b))
-
-#define M_IAND_IMM(a,b)         emit_alul_imm_reg(cd, ALU_AND, (a), (b))
-#define M_IOR_IMM(a,b)          emit_alul_imm_reg(cd, ALU_OR, (a), (b))
-#define M_IXOR_IMM(a,b)         emit_alul_imm_reg(cd, ALU_XOR, (a), (b))
-
-#define M_LAND(a,b)             emit_alu_reg_reg(cd, ALU_AND, (a), (b))
-#define M_LOR(a,b)              emit_alu_reg_reg(cd, ALU_OR, (a), (b))
-#define M_LXOR(a,b)             emit_alu_reg_reg(cd, ALU_XOR, (a), (b))
-
-#define M_LAND_IMM(a,b)         emit_alu_imm_reg(cd, ALU_AND, (a), (b))
-#define M_LOR_IMM(a,b)          emit_alu_imm_reg(cd, ALU_OR, (a), (b))
-#define M_LXOR_IMM(a,b)         emit_alu_imm_reg(cd, ALU_XOR, (a), (b))
-
-#define M_BSEXT(a,b)            emit_movsbq_reg_reg(cd, (a), (b))
-#define M_SSEXT(a,b)            emit_movswq_reg_reg(cd, (a), (b))
-#define M_ISEXT(a,b)            emit_movslq_reg_reg(cd, (a), (b))
-
-#define M_CZEXT(a,b)            emit_movzwq_reg_reg(cd, (a), (b))
-
-#define M_ISLL_IMM(a,b)         emit_shiftl_imm_reg(cd, SHIFT_SHL, (a), (b))
-#define M_ISRA_IMM(a,b)         emit_shiftl_imm_reg(cd, SHIFT_SAR, (a), (b))
-#define M_ISRL_IMM(a,b)         emit_shiftl_imm_reg(cd, SHIFT_SHR, (a), (b))
-
-#define M_LSLL_IMM(a,b)         emit_shift_imm_reg(cd, SHIFT_SHL, (a), (b))
-#define M_LSRA_IMM(a,b)         emit_shift_imm_reg(cd, SHIFT_SAR, (a), (b))
-#define M_LSRL_IMM(a,b)         emit_shift_imm_reg(cd, SHIFT_SHR, (a), (b))
-
-#define M_TEST(a)               emit_test_reg_reg(cd, (a), (a))
-#define M_ITEST(a)              emit_testl_reg_reg(cd, (a), (a))
-
-#define M_LCMP(a,b)             emit_alu_reg_reg(cd, ALU_CMP, (a), (b))
-#define M_LCMP_IMM(a,b)         emit_alu_imm_reg(cd, ALU_CMP, (a), (b))
-#define M_LCMP_IMM_MEMBASE(a,b,c) emit_alu_imm_membase(cd, ALU_CMP, (a), (b), (c))
-#define M_LCMP_MEMBASE(a,b,c)   emit_alu_membase_reg(cd, ALU_CMP, (a), (b), (c))
-
-#define M_ICMP(a,b)             emit_alul_reg_reg(cd, ALU_CMP, (a), (b))
-#define M_ICMP_IMM(a,b)         emit_alul_imm_reg(cd, ALU_CMP, (a), (b))
-#define M_ICMP_IMM_MEMBASE(a,b,c) emit_alul_imm_membase(cd, ALU_CMP, (a), (b), (c))
-#define M_ICMP_MEMBASE(a,b,c)   emit_alul_membase_reg(cd, ALU_CMP, (a), (b), (c))
-
-#define M_BEQ(disp)             emit_jcc(cd, CC_E, (disp))
-#define M_BNE(disp)             emit_jcc(cd, CC_NE, (disp))
-#define M_BLT(disp)             emit_jcc(cd, CC_L, (disp))
-#define M_BLE(disp)             emit_jcc(cd, CC_LE, (disp))
-#define M_BGE(disp)             emit_jcc(cd, CC_GE, (disp))
-#define M_BGT(disp)             emit_jcc(cd, CC_G, (disp))
-#define M_BAE(disp)             emit_jcc(cd, CC_AE, (disp))
-#define M_BA(disp)              emit_jcc(cd, CC_A, (disp))
-
-#define M_CMOVEQ(a,b)           emit_cmovcc_reg_reg(cd, CC_E, (a), (b))
-#define M_CMOVNE(a,b)           emit_cmovcc_reg_reg(cd, CC_NE, (a), (b))
-#define M_CMOVLT(a,b)           emit_cmovcc_reg_reg(cd, CC_L, (a), (b))
-#define M_CMOVLE(a,b)           emit_cmovcc_reg_reg(cd, CC_LE, (a), (b))
-#define M_CMOVGE(a,b)           emit_cmovcc_reg_reg(cd, CC_GE, (a), (b))
-#define M_CMOVGT(a,b)           emit_cmovcc_reg_reg(cd, CC_G, (a), (b))
-
-#define M_CMOVEQ_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_E, (a), (b))
-#define M_CMOVNE_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_NE, (a), (b))
-#define M_CMOVLT_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_L, (a), (b))
-#define M_CMOVLE_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_LE, (a), (b))
-#define M_CMOVGE_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_GE, (a), (b))
-#define M_CMOVGT_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_G, (a), (b))
-
-#define M_CMOVB(a,b)            emit_cmovcc_reg_reg(cd, CC_B, (a), (b))
-#define M_CMOVA(a,b)            emit_cmovcc_reg_reg(cd, CC_A, (a), (b))
-#define M_CMOVP(a,b)            emit_cmovcc_reg_reg(cd, CC_P, (a), (b))
-
-#define M_PUSH(a)               emit_push_reg(cd, (a))
-#define M_PUSH_IMM(a)           emit_push_imm(cd, (a))
-#define M_POP(a)                emit_pop_reg(cd, (a))
-
-#define M_JMP(a)                emit_jmp_reg(cd, (a))
-#define M_JMP_IMM(a)            emit_jmp_imm(cd, (a))
-#define M__CALL(a)               emit_call_reg(cd, (a))
-#define M_CALL_IMM(a)           emit_call_imm(cd, (a))
-#define M_RET                   emit_ret(cd)
-
-#define M_NOP                   emit_nop(cd)
-
-#define M_CLR(a)                M_LXOR(a,a)
+#define M_IMOV(a,b) _DEPR( M_IMOV(a,b) )
+#define M_IMOV_IMM(a,b) _DEPR( M_IMOV_IMM(a,b) )
 
 
-#define M__FLD(a,b,disp)         emit_movss_membase_reg(cd, (b), (disp), (a))
-#define M__DLD(a,b,disp)         emit_movsd_membase_reg(cd, (b), (disp), (a))
+#define M_ILD32(a,b,disp) _DEPR( M_ILD32(a,b,disp) )
+#define M_LLD32(a,b,disp) _DEPR( M_LLD32(a,b,disp) )
 
-#define M_FLD32(a,b,disp)       emit_movss_membase32_reg(cd, (b), (disp), (a))
-#define M_DLD32(a,b,disp)       emit_movsd_membase32_reg(cd, (b), (disp), (a))
 
-#define M_FST(a,b,disp)         emit_movss_reg_membase(cd, (a), (b), (disp))
-#define M_DST(a,b,disp)         emit_movsd_reg_membase(cd, (a), (b), (disp))
+#define M_IST_IMM(a,b,disp) _DEPR( M_IST_IMM(a,b,disp) )
+#define M_LST_IMM32(a,b,disp) _DEPR( M_LST_IMM32(a,b,disp) )
 
-#define M_FST32(a,b,disp)       emit_movss_reg_membase32(cd, (a), (b), (disp))
-#define M_DST32(a,b,disp)       emit_movsd_reg_membase32(cd, (a), (b), (disp))
+#define M_IST32(a,b,disp) _DEPR( M_IST32(a,b,disp) )
+#define M_LST32(a,b,disp) _DEPR( M_LST32(a,b,disp) )
 
-#define M_FADD(a,b)             emit_addss_reg_reg(cd, (a), (b))
-#define M_DADD(a,b)             emit_addsd_reg_reg(cd, (a), (b))
-#define M_FSUB(a,b)             emit_subss_reg_reg(cd, (a), (b))
-#define M_DSUB(a,b)             emit_subsd_reg_reg(cd, (a), (b))
-#define M_FMUL(a,b)             emit_mulss_reg_reg(cd, (a), (b))
-#define M_DMUL(a,b)             emit_mulsd_reg_reg(cd, (a), (b))
-#define M_FDIV(a,b)             emit_divss_reg_reg(cd, (a), (b))
-#define M_DDIV(a,b)             emit_divsd_reg_reg(cd, (a), (b))
+#define M_IST32_IMM(a,b,disp) _DEPR( M_IST32_IMM(a,b,disp) )
+#define M_LST32_IMM32(a,b,disp) _DEPR( M_LST32_IMM32(a,b,disp) )
 
-#define M_CVTIF(a,b)            emit_cvtsi2ss_reg_reg(cd, (a), (b))
-#define M_CVTID(a,b)            emit_cvtsi2sd_reg_reg(cd, (a), (b))
-#define M_CVTLF(a,b)            emit_cvtsi2ssq_reg_reg(cd, (a), (b))
-#define M_CVTLD(a,b)            emit_cvtsi2sdq_reg_reg(cd, (a), (b))
-#define M_CVTFI(a,b)            emit_cvttss2si_reg_reg(cd, (a), (b))
-#define M_CVTDI(a,b)            emit_cvttsd2si_reg_reg(cd, (a), (b))
-#define M_CVTFL(a,b)            emit_cvttss2siq_reg_reg(cd, (a), (b))
-#define M_CVTDL(a,b)            emit_cvttsd2siq_reg_reg(cd, (a), (b))
+#define M_IADD(a,b) _DEPR( M_IADD(a,b) )
+#define M_ISUB(a,b) _DEPR( M_ISUB(a,b) )
+#define M_IMUL(a,b) _DEPR( M_IMUL(a,b) )
 
-#define M_CVTFD(a,b)            emit_cvtss2sd_reg_reg(cd, (a), (b))
-#define M_CVTDF(a,b)            emit_cvtsd2ss_reg_reg(cd, (a), (b))
+#define M_ISUB_IMM(a,b) _DEPR( M_ISUB_IMM(a,b) )
+#define M_IMUL_IMM(a,b,c) _DEPR( M_IMUL_IMM(a,b,c) )
+
+#define M_LADD(a,b) _DEPR( M_LADD(a,b) )
+#define M_LSUB(a,b) _DEPR( M_LSUB(a,b) )
+#define M_LMUL(a,b) _DEPR( M_LMUL(a,b) )
+
+#define M_LADD_IMM(a,b) _DEPR( M_LADD_IMM(a,b) )
+#define M_LSUB_IMM(a,b) _DEPR( M_LSUB_IMM(a,b) )
+#define M_LMUL_IMM(a,b,c) _DEPR( M_LMUL_IMM(a,b,c) )
+
+#define M_IINC(a) _DEPR( M_IINC(a) )
+#define M_IDEC(a) _DEPR( M_IDEC(a) )
+
+#define M_ALD32(a,b,disp) _DEPR( M_ALD32(a,b,disp) )
+
+#define M_AST_IMM32(a,b,c) _DEPR( M_AST_IMM32(a,b,c) )
+
+#define M_AADD(a,b) _DEPR( M_AADD(a,b) )
+
+#define M_LADD_IMM32(a,b) _DEPR( M_LADD_IMM32(a,b) )
+#define M_AADD_IMM32(a,b) _DEPR( M_AADD_IMM32(a,b) )
+#define M_LSUB_IMM32(a,b) _DEPR( M_LSUB_IMM32(a,b) )
+
+#define M_ILEA(a,b,c) _DEPR( M_ILEA(a,b,c) )
+#define M_LLEA(a,b,c) _DEPR( M_LLEA(a,b,c) )
+#define M_ALEA(a,b,c) _DEPR( M_ALEA(a,b,c) )
+
+#define M_INEG(a) _DEPR( M_INEG(a) )
+#define M_LNEG(a) _DEPR( M_LNEG(a) )
+
+#define M_IAND(a,b) _DEPR( M_IAND(a,b) )
+#define M_IOR(a,b) _DEPR( M_IOR(a,b) )
+#define M_IXOR(a,b) _DEPR( M_IXOR(a,b) )
+
+#define M_IAND_IMM(a,b) _DEPR( M_IAND_IMM(a,b) )
+#define M_IOR_IMM(a,b) _DEPR( M_IOR_IMM(a,b) )
+#define M_IXOR_IMM(a,b) _DEPR( M_IXOR_IMM(a,b) )
+
+#define M_LAND(a,b) _DEPR( M_LAND(a,b) )
+#define M_LOR(a,b) _DEPR( M_LOR(a,b) )
+#define M_LXOR(a,b) _DEPR( M_LXOR(a,b) )
+
+#define M_LAND_IMM(a,b) _DEPR( M_LAND_IMM(a,b) )
+#define M_LOR_IMM(a,b) _DEPR( M_LOR_IMM(a,b) )
+#define M_LXOR_IMM(a,b) _DEPR( M_LXOR_IMM(a,b) )
+
+#define M_SSEXT(a,b) _DEPR( M_SSEXT(a,b) )
+#define M_ISEXT(a,b) _DEPR( M_ISEXT(a,b) )
+
+#define M_CZEXT(a,b) _DEPR( M_CZEXT(a,b) )
+
+#define M_ISLL_IMM(a,b) _DEPR( M_ISLL_IMM(a,b) )
+#define M_ISRA_IMM(a,b) _DEPR( M_ISRA_IMM(a,b) )
+#define M_ISRL_IMM(a,b) _DEPR( M_ISRL_IMM(a,b) )
+
+#define M_LSLL_IMM(a,b) _DEPR( M_LSLL_IMM(a,b) )
+#define M_LSRA_IMM(a,b) _DEPR( M_LSRA_IMM(a,b) )
+#define M_LSRL_IMM(a,b) _DEPR( M_LSRL_IMM(a,b) )
+
+#define M_LCMP(a,b) _DEPR( M_LCMP(a,b) )
+#define M_LCMP_IMM(a,b) _DEPR( M_LCMP_IMM(a,b) )
+#define M_LCMP_IMM_MEMBASE(a,b,c) _DEPR( M_LCMP_IMM_MEMBASE(a,b,c) )
+#define M_LCMP_MEMBASE(a,b,c) _DEPR( M_LCMP_MEMBASE(a,b,c) )
+
+#define M_ICMP(a,b) _DEPR( M_ICMP(a,b) )
+#define M_ICMP_IMM(a,b) _DEPR( M_ICMP_IMM(a,b) )
+#define M_ICMP_IMM_MEMBASE(a,b,c) _DEPR( M_ICMP_IMM_MEMBASE(a,b,c) )
+#define M_ICMP_MEMBASE(a,b,c) _DEPR( M_ICMP_MEMBASE(a,b,c) )
+
+#define M_BGE(disp) _DEPR( M_BGE(disp) )
+#define M_BAE(disp) _DEPR( M_BAE(disp) )
+#define M_BA(disp) _DEPR( M_BA(disp) )
+
+#define M_CMOVEQ(a,b) _DEPR( M_CMOVEQ(a,b) )
+#define M_CMOVNE(a,b) _DEPR( M_CMOVNE(a,b) )
+#define M_CMOVLT(a,b) _DEPR( M_CMOVLT(a,b) )
+#define M_CMOVLE(a,b) _DEPR( M_CMOVLE(a,b) )
+#define M_CMOVGE(a,b) _DEPR( M_CMOVGE(a,b) )
+#define M_CMOVGT(a,b) _DEPR( M_CMOVGT(a,b) )
+
+#define M_CMOVEQ_MEMBASE(a,b,c) _DEPR( M_CMOVEQ_MEMBASE(a,b,c) )
+#define M_CMOVNE_MEMBASE(a,b,c) _DEPR( M_CMOVNE_MEMBASE(a,b,c) )
+#define M_CMOVLT_MEMBASE(a,b,c) _DEPR( M_CMOVLT_MEMBASE(a,b,c) )
+#define M_CMOVLE_MEMBASE(a,b,c) _DEPR( M_CMOVLE_MEMBASE(a,b,c) )
+#define M_CMOVGE_MEMBASE(a,b,c) _DEPR( M_CMOVGE_MEMBASE(a,b,c) )
+#define M_CMOVGT_MEMBASE(a,b,c) _DEPR( M_CMOVGT_MEMBASE(a,b,c) )
+
+#define M_CMOVB(a,b) _DEPR( M_CMOVB(a,b) )
+#define M_CMOVA(a,b) _DEPR( M_CMOVA(a,b) )
+#define M_CMOVP(a,b) _DEPR( M_CMOVP(a,b) )
+
+#define M_PUSH(a) _DEPR( M_PUSH(a) )
+#define M_PUSH_IMM(a) _DEPR( M_PUSH_IMM(a) )
+#define M_POP(a) _DEPR( M_POP(a) )
+
+#define M_JMP(a) _DEPR( M_JMP(a) )
+#define M_JMP_IMM(a) _DEPR( M_JMP_IMM(a) )
+#define M_CALL_IMM(a) _DEPR( M_CALL_IMM(a) )
+
+#define M_NOP _DEPR( M_NOP )
+
+
+
+
+#define M_FLD32(a,b,disp) _DEPR( M_FLD32(a,b,disp) )
+#define M_DLD32(a,b,disp) _DEPR( M_DLD32(a,b,disp) )
+
+
+#define M_FST32(a,b,disp) _DEPR( M_FST32(a,b,disp) )
+#define M_DST32(a,b,disp) _DEPR( M_DST32(a,b,disp) )
+
+#define M_FADD(a,b) _DEPR( M_FADD(a,b) )
+#define M_DADD(a,b) _DEPR( M_DADD(a,b) )
+#define M_FSUB(a,b) _DEPR( M_FSUB(a,b) )
+#define M_DSUB(a,b) _DEPR( M_DSUB(a,b) )
+#define M_FMUL(a,b) _DEPR( M_FMUL(a,b) )
+#define M_DMUL(a,b) _DEPR( M_DMUL(a,b) )
+#define M_FDIV(a,b) _DEPR( M_FDIV(a,b) )
+#define M_DDIV(a,b) _DEPR( M_DDIV(a,b) )
+
+#define M_CVTIF(a,b) _DEPR( M_CVTIF(a,b) )
+#define M_CVTID(a,b) _DEPR( M_CVTID(a,b) )
+#define M_CVTLF(a,b) _DEPR( M_CVTLF(a,b) )
+#define M_CVTLD(a,b) _DEPR( M_CVTLD(a,b) )
+#define M_CVTFI(a,b) _DEPR( M_CVTFI(a,b) )
+#define M_CVTDI(a,b) _DEPR( M_CVTDI(a,b) )
+#define M_CVTFL(a,b) _DEPR( M_CVTFL(a,b) )
+#define M_CVTDL(a,b) _DEPR( M_CVTDL(a,b) )
+
+#define M_CVTFD(a,b) _DEPR( M_CVTFD(a,b) )
+#define M_CVTDF(a,b) _DEPR( M_CVTDF(a,b) )
 
 
 /* system instructions ********************************************************/
 
-#define M_RDTSC                 emit_rdtsc(cd)
+#define M_RDTSC _DEPR( M_RDTSC )
 
-#define M_IINC_MEMBASE(a,b)     emit_incl_membase(cd, (a), (b))
+#define M_IINC_MEMBASE(a,b) _DEPR( M_IINC_MEMBASE(a,b) )
 
-#define M_IADD_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADD, (a), (b), (c))
-#define M_IADC_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADC, (a), (b), (c))
-#define M_ISUB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SUB, (a), (b), (c))
-#define M_ISBB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SBB, (a), (b), (c))
+#define M_IADD_MEMBASE(a,b,c) _DEPR( M_IADD_MEMBASE(a,b,c) )
+#define M_IADC_MEMBASE(a,b,c) _DEPR( M_IADC_MEMBASE(a,b,c) )
+#define M_ISUB_MEMBASE(a,b,c) _DEPR( M_ISUB_MEMBASE(a,b,c) )
+#define M_ISBB_MEMBASE(a,b,c) _DEPR( M_ISBB_MEMBASE(a,b,c) )
 
-#define PROFILE_CYCLE_START
-#define __PROFILE_CYCLE_START \
-    do { \
-        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
-            M_PUSH(RAX); \
-            M_PUSH(RDX); \
-            \
-            M_MOV_IMM(code, REG_ITMP3); \
-            M_RDTSC; \
-            M_ISUB_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
-            M_ISBB_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
-            \
-            M_POP(RDX); \
-            M_POP(RAX); \
-        } \
-    } while (0)
+#define PROFILE_CYCLE_START _DEPR( PROFILE_CYCLE_START )
+#define __PROFILE_CYCLE_START _DEPR( __PROFILE_CYCLE_START )
 
-#define PROFILE_CYCLE_STOP 
-#define __PROFILE_CYCLE_STOP \
-    do { \
-        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
-            M_PUSH(RAX); \
-            M_PUSH(RDX); \
-            \
-            M_MOV_IMM(code, REG_ITMP3); \
-            M_RDTSC; \
-            M_IADD_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
-            M_IADC_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
-            \
-            M_POP(RDX); \
-            M_POP(RAX); \
-        } \
-    } while (0)
+#define PROFILE_CYCLE_STOP _DEPR( PROFILE_CYCLE_STOP )
+#define __PROFILE_CYCLE_STOP _DEPR( __PROFILE_CYCLE_STOP )
 
 
 /* function gen_resolvebranch **************************************************

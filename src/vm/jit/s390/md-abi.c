@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 7219 2007-01-16 22:18:57Z pm $
+   $Id: md-abi.c 7283 2007-02-04 19:41:14Z pm $
 
 */
 
@@ -45,21 +45,15 @@
 /* register descripton array **************************************************/
 
 s4 nregdescint[] = {
-#if 0
-    REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
-    REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-#endif
-	REG_TMP, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_SAV,
-  	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_TMP, REG_RES,
+	/*   r0,   itmp1,      a0,      a1,      a2,      a3,      a4,      s0, */
+	REG_TMP, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_SAV,
+	/*   s1,      s2,      s3,      s4,   itmp2,    pv,  ra/itmp3,      sp */
+  	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES, REG_RES,
     REG_END
 };
 
 
 s4 nregdescfloat[] = {
-#if 0
-    REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
-    REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-#endif
 	REG_ARG, REG_TMP, REG_ARG, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END

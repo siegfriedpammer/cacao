@@ -26,9 +26,11 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7219 2007-01-16 22:18:57Z pm $
+   $Id: emit.c 7283 2007-02-04 19:41:14Z pm $
 
 */
+
+#include <assert.h>
 
 #include "config.h"
 
@@ -105,55 +107,29 @@ __PORTED__ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg
     
 *******************************************************************************/
 
-inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
+__PORTED__ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
-	codegendata  *cd;
-	s4            disp;
-#if 0
-	s4            s;
-	u2            opcode;
-#endif
+	codegendata *cd;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
 
-#if 0
-	/* do we have to generate a conditional move? */
-
-	if ((iptr != NULL) && (iptr->opc & ICMD_CONDITION_MASK)) {
-		/* the passed register d is actually the source register */
-
-		s = d;
-
-		/* Only pass the opcode to codegen_reg_of_var to get the real
-		   destination register. */
-
-		opcode = iptr->opc & ICMD_OPCODE_MASK;
-
-		/* get the real destination register */
-
-		d = codegen_reg_of_var(rd, opcode, dst, REG_ITMP1);
-
-		/* and emit the conditional move */
-
-		emit_cmovxx(cd, iptr, s, d);
-	}
-#endif
-
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		disp = dst->vv.regoff * 8;
-
 		if (IS_FLT_DBL_TYPE(dst->type)) {
 			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, disp);
+				M_DST(d, REG_SP, dst->vv.regoff * 4);
 			else
-				M_FST(d, REG_SP, disp);
+				M_FST(d, REG_SP, dst->vv.regoff * 4);
 		}
-		else
-			M_LST(d, REG_SP, disp);
+		else {
+			if (IS_2_WORD_TYPE(dst->type))
+				M_LST(d, REG_SP, dst->vv.regoff * 4);
+			else
+				M_IST(d, REG_SP, dst->vv.regoff * 4);
+		}
 	}
 }
 
@@ -164,7 +140,7 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
+__PORTED__ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 {
 	codegendata  *cd;
 	s4            s1, d;
@@ -400,6 +376,7 @@ void emit_patcher_stubs(jitdata *jd)
 
 void emit_replacement_stubs(jitdata *jd)
 {
+#if 0
 	codegendata *cd;
 	codeinfo    *code;
 	rplpoint    *rplp;
@@ -438,6 +415,7 @@ void emit_replacement_stubs(jitdata *jd)
 		M_MOV_IMM(asm_replacement_out, REG_ITMP3);
 		M_JMP(REG_ITMP3);
 	}
+#endif
 }
 	
 
@@ -2220,6 +2198,105 @@ void emit_rdtsc(codegendata *cd)
 {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x31;
+}
+
+/* emit_load_high **************************************************************
+
+   Emits a possible load of the high 32-bits of an operand.
+
+*******************************************************************************/
+
+s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (IS_INMEMORY(src->flags)) {
+		COUNT_SPILLS;
+
+		disp = src->vv.regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp);
+
+		reg = tempreg;
+	}
+	else
+		reg = GET_HIGH_REG(src->vv.regoff);
+
+	return reg;
+}
+
+/* emit_load_low ***************************************************************
+
+   Emits a possible load of the low 32-bits of an operand.
+
+*******************************************************************************/
+
+s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (IS_INMEMORY(src->flags)) {
+		COUNT_SPILLS;
+
+		disp = src->vv.regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp + 4);
+
+		reg = tempreg;
+	}
+	else
+		reg = GET_LOW_REG(src->vv.regoff);
+
+	return reg;
+}
+
+/* emit_nullpointer_check ******************************************************
+
+   Emit a NullPointerException check.
+
+*******************************************************************************/
+
+__PORTED__ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_TEST(reg);
+		M_BEQ(0);
+		codegen_add_nullpointerexception_ref(cd);
+	}
+}
+
+/* emit_arrayindexoutofbounds_check ********************************************
+
+   Emit a ArrayIndexOutOfBoundsException check.
+
+*******************************************************************************/
+
+void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
+{
+#if 0
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+        M_ICMP(REG_ITMP3, s2);
+        M_BAE(0);
+        codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+	}
+#endif
 }
 
 

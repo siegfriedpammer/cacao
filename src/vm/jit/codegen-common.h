@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: codegen-common.h 7283 2007-02-04 19:41:14Z pm $
 
 */
 
@@ -125,7 +125,7 @@ struct codegendata {
 
 	jumpref        *jumpreferences; /* list of jumptable target addresses     */
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP) || defined(__S390__)
 	dataref        *datareferences; /* list of data segment references        */
 #endif
 

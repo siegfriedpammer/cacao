@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7219 2007-01-16 22:18:57Z pm $
+   $Id: asmpart.S 7283 2007-02-04 19:41:14Z pm $
 
 */
 
@@ -392,7 +392,7 @@ L_basr:
 
 	/* call L_asm_call_jit_compiler like JIT code would do */
 
-	l     itmp3, 12(s3)                   /* load address of target from memory */
+	l     itmp3, 0(mptr)                  /* load address of target from memory */
 	basr  %r14, itmp3                     /* jump to target */
 
 	/* todo will s4 survive the call? */
@@ -454,269 +454,6 @@ L_handle_d1:
 	j     L_register_copy
 
 
-/* .... */
-
-#if 0
-
-	.align	8
-
-	.quad   0                           /* catch type all                     */
-	.quad   0                           /* handler pc                         */
-	.quad   0                           /* end pc                             */
-	.quad   0                           /* start pc                           */
-	.long   1                           /* extable size                       */
-	.long   0                           /* ALIGNMENT PADDING                  */
-	.quad   0                           /* line number table  start           */
-	.quad   0                           /* line number table  size            */
-	.long   0                           /* ALIGNMENT PADDING                  */
-	.long   0                           /* fltsave                            */
-	.long   0                           /* intsave                            */
-	.long   0                           /* isleaf                             */
-	.long   0                           /* IsSync                             */
-	.long   0                           /* frame size                         */
-	.quad   0                           /* codeinfo pointer                   */
-
-asm_vm_call_method:
-asm_vm_call_method_int:
-asm_vm_call_method_long:
-asm_vm_call_method_float:
-asm_vm_call_method_double:
-
-	stm %r6,%r15,24(sp)                /* save callers regiters */
-
-	ahi sp, -12  /* allocate space on stack for local variables */
-
-	st a0, 0(sp) /* store method info */
-	st a1, 4(sp) /* store arg count */
-	st a2, 8(sp) /* store args */
-
-
-#	define r_methodinfo  itmp1
-#	define r_vmargscount itmp2
-#	define r_vmargs      s0
-
-#	define r_arg_ctr     s1
-#	define r_arg_ptr     s2
-
-#	define r_int_ctr     s3
-#	define r_float_ctr   s4
-#   define r_int_extra_ctr    itmp3
-
-	/* save arguments */
-
-	lr      r_methodinfo,a0                    /* move method pointer for compiler   */
-	lr      r_vmargscount,a1
-	lr      r_vmargs,a2                    
-
-	ltr     a1,a1                       /* maybe we have no args...           */
-	je      L_copy_done
-
-	lr      r_arg_ctr,r_vmargscount         /* arg count                          */
-	lr      r_arg_ptr,r_vmargs              /* pointer to arg block               */
-
-	ahi     r_arg_ptr,-sizevmarg            /* initialize pointer (smaller code)  */
-	ahi     r_arg_ctr,1                     /* initialize argument count          */
-
-	lhi     r_int_ctr,0                      /* initialize integer argument counter*/
-	lhi     r_float_ctr,0                      /* initialize float argument counter  */
-	lhi     r_int_extra_ctr,0
-
-L_register_copy:
-	ahi     r_arg_ptr,sizevmarg             /* goto next argument block           */
-	ahi     r_arg_ctr,-1                    /* argument count - 1                 */
-	je      L_register_copy_done
-
-	tm      offvmargtype(r_arg_ptr),0x02    /* is this a float/double type?       */
-	jne     L_register_handle_float     /* yes, handle it                     */
-
-	cli     offvmargtype(r_arg_ptr),0x01
-	je      L_register_handle_long
-
-L_register_handle_int:
-
-	chi     r_int_ctr,INT_ARG_CNT            /* are we out of integer argument     */
-	je      L_register_copy             /* register? yes, next loop           */
-
-	ahi     r_int_ctr,1
-
-	chi     r_int_ctr,1
-	je      L_handle_a0
-	chi     r_int_ctr,2
-	je      L_handle_a1
-	chi     r_int_ctr,3
-	je      L_handle_a2
-	chi     r_int_ctr,4
-	je      L_handle_a3
-	chi     r_int_ctr,5
-	je      L_handle_a4
-
-L_register_handle_long:
-
-	chi     r_int_ctr,INT_ARG_CNT-1 /* only one integer register left ? */
-	je      L_register_handle_long_last_reg
-
-	chi     r_int_ctr,INT_ARG_CNT /* no registers left */
-	je     L_register_copy
-
-	ahi     r_int_ctr,2
-	ahi     r_int_extra_ctr,1
-
-	chi     r_int_ctr,2
-	je      L_handle_al0
-	chi     r_int_ctr,3
-	je      L_handle_al1
-	chi     r_int_ctr,4
-	je      L_handle_al2
-	chi     r_int_ctr,5
-	je      L_handle_al3
-
-L_register_handle_long_last_reg:
-	ahi     r_int_ctr,1 /* skip the integer register */
-	ahi     r_int_extra_ctr,1
-	j       L_register_copy
-
-L_register_handle_float:
-	chi     r_float_ctr,FLT_ARG_CNT         /* are we out of float argument         */
-	je      L_register_copy           /* register? yes, next loop             */
-
-	ahi     r_float_ctr,1
-
-	chi     r_int_ctr,1
-	je      L_handle_af0
-	chi     r_int_ctr,2
-	je      L_handle_af1
-
-L_register_copy_done:
-
-	lr      r_arg_ctr, r_vmargscount
-	sr      r_arg_ctr, r_int_ctr
-	ar      r_arg_ctr, r_int_extra_ctr
-	sr      r_arg_ctr, r_float_ctr
-	jle     L_copy_done 
-
-	/* now allocate the parameter area on the stack
-	 * the register save area will be allocated later
-	 */
-
-#	define r_arg_stack_ptr r_arg_ptr
-
- 	sll     r_arg_ctr, 3 /* 8 bytes per parameter on stack */
-	sr      sp,r_arg_ctr /* allocate stack space for parameters */
-	lr      r_arg_stack_ptr,sp /* points now to arguments on stack */
-
-	ahi     r_vmargs,-sizevmarg            /* initialize pointer (smaller code)  */
-	ahi     r_vmargscount,1                     /* initialize argument count          */
-		
-L_stack_copy_loop:
-	ahi     r_vmargs,sizevmarg             /* goto next argument block           */
-	ahi     r_vmargscount,-1                    /* argument count - 1                 */
-	jz      L_copy_done               /* no test needed after dec             */
-
-	tm      offvmargtype(r_vmargs),0x02    /* is this a float/double type?       */
-	jne     L_stack_handle_float     /* yes, handle it                     */
-
-	cli     offvmargtype(r_vmargs),0x01
-	je      L_stack_handle_long
-
-L_stack_handle_int:
-
-	ahi     r_int_ctr,-1                        /* arguments assigned to registers    */
-	jhe     L_stack_copy_loop
-	j       L_stack_copy
-
-L_stack_handle_long:
-
-	ahi     r_int_ctr,-2
-	jhe     L_stack_copy_loop
-	j       L_stack_copy
-
-L_stack_handle_float:
-	ahi     r_float_ctr,-1                        /* arguments assigned to registers    */
-	jhe     L_stack_copy_loop
-
-L_stack_copy:
-	mvc     0(8,r_arg_stack_ptr),offvmargdata(r_vmargs) /* copy s8 argument onto stack        */
-
-	ahi     r_arg_stack_ptr,8                     /* increase sp to next argument       */
-	j       L_stack_copy_loop
-
-L_copy_done:
-#if 0
-	                                    /* itmp1 still contains method pointer*/
-	lea     L_asm_call_jit_compiler(%rip),mptr
-	mov     sp,itmp3                    /* calculate the old stack pointer    */
-	add     bp,itmp3
-	mov     mptr,6*8(itmp3) /* store mptr on stack */
-	lea     (6*8-256)(itmp3),mptr       /* We subtract 256 to force the next  */
-	                                    /* move instruction to have a 32-bit  */
-	                                    /* offset.                            */
-
-	mov     (0*8+256)(mptr),itmp3       /* method call as in Java             */
-	call    *itmp3                      /* call JIT compiler                  */
-
-	add     bp,sp                       /* remove argument stack frame if any */
-#endif
-
-	                                    /* itmp1 still contains method pointer*/
-	
-	bras %r14, L_asm_call_jit_compiler
-	ar      sp,r_arg_ctr                /* r_arg_ctr in callee saved regiter */
-
-L_asm_vm_call_method_return:
-
-	ahi sp, 12                        /* free stack space */
-	lm %r6,%r15,24(sp)                /* restore registers */
-	br %r14                           /* branch to return address */
-		
-#if 0
-asm_vm_call_method_exception_handler:
-	mov     xptr,a0                     /* pass exception pointer             */
-	call    builtin_throw_exception@PLT
-	jmp     L_asm_vm_call_method_return
-#endif
-
-L_handle_a0:
-	l       a0,offvmargdata(r_arg_ptr)
-	j       L_register_copy
-L_handle_a1:
-	l       a1,offvmargdata(r_arg_ptr)
-	j       L_register_copy
-L_handle_a2:
-	l       a2,offvmargdata(r_arg_ptr)
-	j       L_register_copy
-L_handle_a3:
-	l       a3,offvmargdata(r_arg_ptr)
-	j       L_register_copy
-L_handle_a4:
-	l       a4,offvmargdata(r_arg_ptr)
-	j       L_register_copy
-
-L_handle_al0:
-	l       a0,offvmargdata(r_arg_ptr)
-	l       a1,offvmargdata+4(r_arg_ptr)
-	j       L_register_copy
-L_handle_al1:
-	l       a1,offvmargdata(r_arg_ptr)
-	l       a2,offvmargdata+4(r_arg_ptr)
-	j       L_register_copy
-L_handle_al2:
-	l       a2,offvmargdata(r_arg_ptr)
-	l       a3,offvmargdata+4(r_arg_ptr)
-	j       L_register_copy
-L_handle_al3:
-	l       a3,offvmargdata(r_arg_ptr)
-	l       a4,offvmargdata+4(r_arg_ptr)
-	j       L_register_copy
-
-L_handle_af0:
-	ld    fa0,offvmargdata(r_arg_ptr)
-	j     L_register_copy
-L_handle_af1:
-	ld    fa1,offvmargdata(r_arg_ptr)
-	j     L_register_copy
-
-#endif
-
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
 *   invokes the compiler for untranslated JavaVM methods.                      *
@@ -771,17 +508,19 @@ L_bras_jac:
 	l       itmp3, 0(itmp3)
 	basr    %r14, itmp3
 
-	lm     %r2,%r5,96(sp)             /* restore volatile int arg regs */
-	ld     %f0,96+16(sp)              /* store volatile float arg regs */
-	ld     %f2,96+24(sp)              /* store volatile float arg regs */
-	ld     %r14,96+32(sp)             /* restore return address */
+	lr      pv, v0                     /* save return value */
+
+	lm      %r2,%r5,96(sp)             /* restore volatile int arg regs */
+	ld      %f0,96+16(sp)              /* restore volatile float arg regs */
+	ld      %f2,96+24(sp)              /* restore volatile float arg regs */
+	ld      %r14,96+32(sp)             /* restore return address */
 
 #if 0
 	ltr     v0,v0
 	je      L_asm_call_jit_compiler_exception
 #endif
 
-	b       0(v0)                      /* call the method, it will return to the caller */
+	br      pv                         /* call the method, it will return to the caller */
 
 
 L_asm_call_jit_compiler_exception:

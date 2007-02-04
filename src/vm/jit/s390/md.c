@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7219 2007-01-16 22:18:57Z pm $
+   $Id: md.c 7283 2007-02-04 19:41:14Z pm $
 
 */
 
@@ -71,6 +71,8 @@
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 
+#include <assert.h>
+#define OOPS() assert(0);
 
 /* md_init *********************************************************************
 
@@ -209,6 +211,7 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 
 void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 {
+
 	s4 *mcodeptr;
 	s4  disp;                           /* branch displacement                */
 
@@ -219,13 +222,14 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 	/* Calculate the branch displacement. */
 
 	disp = targetmpc - branchmpc;
+	disp += 4; /* size of branch */
+	disp /= 2; /* specified in halfwords */
 
-	/* I don't think we have to check for branch-displacement
-	   overflow.  +/-2GB should be enough. */
+	/* TODO check for overflow */
 
 	/* patch the branch instruction before the mcodeptr */
 
-	mcodeptr[-1] = disp;
+	mcodeptr[-1] |= (disp & 0xFFFF);
 }
 
 
@@ -240,9 +244,10 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
 	u1 *ra;
 
-	/* on x86_64 the return address is above the current stack frame */
+	/* on S390 the return address is located on the top of the stackframe */
+	/* TODO is this true? hope so, copyed from alpha */
 
-	ra = *((u1 **) (sp + framesize));
+	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
 
 	return ra;
 }
@@ -256,68 +261,68 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
    INVOKESTATIC/SPECIAL:
 
-   4d 8b 15 e2 fe ff ff             mov    -286(%rip),%r10
-   49 ff d2                         rex64Z callq  *%r10
+0x7748d7b2:   a7 18 ff d4                      lhi      %r1,-44  
+(load dseg offset)
+0x7748d7b6:   58 d1 d0 00                      l        %r13,0(%r1,%r13)
+(load pv)
+0x7748d7ba:   0d ed                            basr     %r14,%r13
+(jump to pv)
 
    INVOKEVIRTUAL:
 
-   4c 8b 17                         mov    (%rdi),%r10
-   49 8b 82 00 00 00 00             mov    0x0(%r10),%rax
-   48 ff d3                         rex64 callq  *%rax
+0x7748d82a:   58 c0 20 00                      l        %r12,0(%r2)
+(load mptr)
+0x7748d82e:   58 d0 c0 00                      l        %r13,0(%r12)
+(load pv from mptr)
+0x7748d832:   0d ed                            basr     %r14,%r13
+(jump to pv)
+
 
    INVOKEINTERFACE:
 
-   4c 8b 17                         mov    (%rdi),%r10
-   4d 8b 92 00 00 00 00             mov    0x0(%r10),%r10
-   49 8b 82 00 00 00 00             mov    0x0(%r10),%rax
-   48 ff d3                         rex64 callq  *%r11
+last 2 instructions the same as in invokevirtual
 
 *******************************************************************************/
 
 u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 {
-	u1  mcode;
+	u1  base;
 	s4  offset;
 	u1 *pa;                             /* patch address                      */
 
-	/* go back to the actual call instruction (3-bytes) */
+	/* go back to the load before the call instruction */
 
-	ra = ra - 3;
+	ra = ra - 2 /* sizeof bcr */ - 4 /* sizeof l */;
 
-	/* get the last byte of the call */
+	/* get the base register of the load */
 
-	mcode = ra[2];
+	base = ra[2] >> 4;
 
 	/* check for the different calls */
 
-	if (mcode == 0xd2) {
+	if (base == 0xd) { /* pv relative */
 		/* INVOKESTATIC/SPECIAL */
 
-		/* Get the offset from the instruction (the offset address is
-		   4-bytes before the call instruction). */
+		/* the offset is in the load before the load */
 
-		offset = *((s4 *) (ra - 4));
+		offset = *((s2 *) (ra - 2));
 
-		/* add the offset to the return address (IP-relative addressing) */
+		/* add the offset to the procedure vector */
 
-		pa = ra + offset;
+		pa = sfi->pv + offset;
 	}
-	else if (mcode == 0xd3) {
+	else if (base == 0xc) { /* mptr relative */
 		/* INVOKEVIRTUAL/INTERFACE */
 
-		/* Get the offset from the instruction (the offset address is
-		   4-bytes before the call instruction). */
+		offset = *((u2 *)(ra + 2)) & 0xFFF;
 
-		offset = *((s4 *) (ra - 4));
-
-		/* add the offset to the method pointer */
-
+		/* add offset to method pointer */
+		
 		pa = mptr + offset;
 	}
 	else {
 		/* catch any problems */
-
-		assert(0);
+		assert(0); 
 	}
 
 	return pa;
@@ -386,7 +391,7 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
    Patch the given replacement point.
 
 *******************************************************************************/
-
+#if 0
 void md_patch_replacement_point(rplpoint *rp)
 {
     u8 mcode;
@@ -418,7 +423,7 @@ void md_patch_replacement_point(rplpoint *rp)
 			
     /* XXX if required asm_cacheflush(rp->pc,8); */
 }
-
+#endif
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
