@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7280 2007-02-03 19:34:10Z twisti $
+   $Id: jni.c 7282 2007-02-04 16:08:27Z twisti $
 
 */
 
@@ -1257,7 +1257,7 @@ void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 
 	STATISTICS(jniinvokation());
 
-	o = excetpions_get_exception();
+	o = exceptions_get_exception();
 
 	if (o == NULL) {
 		/* clear exception, because we are calling jit code again */
