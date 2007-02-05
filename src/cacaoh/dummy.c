@@ -101,16 +101,22 @@ void asm_abstractmethoderror(void)
 java_objectheader *builtin_clone(void *env, java_objectheader *o)
 {
 	abort();
+
+	return NULL;
 }
 
 s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
 	abort();
+
+	return 0;
 }
 
 java_objectheader *builtin_new(classinfo *c)
 {
 	abort();
+
+	return NULL;
 }
 
 
