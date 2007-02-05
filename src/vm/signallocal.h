@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signallocal.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: signallocal.h 7286 2007-02-05 01:07:45Z twisti $
 
 */
 
@@ -33,6 +33,10 @@
 #include "config.h"
 
 #include <signal.h>
+
+#include "vm/types.h"
+
+#include "vm/global.h"
 
 
 /* function prototypes ********************************************************/
