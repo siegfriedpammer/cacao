@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7246 2007-01-29 18:49:05Z twisti $
+dnl $Id: configure.ac 7284 2007-02-05 00:52:42Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -1073,6 +1073,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/tools/Makefile]
 		[src/vm/jit/verify/Makefile]
 		[src/vm/jit/x86_64/Makefile]
+		[src/vm/jit/x86_64/linux/Makefile]
 		[src/vmcore/Makefile]
 		[tests/Makefile]
 		[tests/regression/Makefile]

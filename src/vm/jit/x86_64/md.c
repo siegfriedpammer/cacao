@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/md.c - machine dependent x86_64 Linux functions
+/* src/vm/jit/x86_64/md.c - machine dependent x86_64 functions
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,27 +22,21 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7249 2007-01-29 19:32:52Z twisti $
+   $Id: md.c 7284 2007-02-05 00:52:42Z twisti $
 
 */
 
-
-#define _GNU_SOURCE
 
 #include "config.h"
 
 #include <assert.h>
 #include <stdlib.h>
-#include <ucontext.h>
 
 #include "vm/jit/x86_64/md-abi.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #endif
-
-#include "vm/exceptions.h"
-#include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
@@ -63,123 +57,6 @@ void md_init(void)
 {
 	/* nothing to do */
 }
-
-
-/* md_signal_handler_sigsegv ***************************************************
-
-   NullPointerException signal handler for hardware null pointer
-   check.
-
-*******************************************************************************/
-
-void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
-{
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	u1         *sp;
-	u1         *ra;
-	u1         *xpc;
-
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
-
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
-
-	sp  = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (u1 *) _mc->gregs[REG_RIP];
-	ra  = xpc;                          /* return address is equal to xpc     */
-
-#if 0
-	/* check for StackOverflowException */
-
-	threads_check_stackoverflow(sp);
-#endif
-
-	_mc->gregs[REG_RAX] =
-		(ptrint) stacktrace_hardware_nullpointerexception(NULL, sp, ra, xpc);
-
-	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
-	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
-}
-
-
-/* md_signal_handler_sigfpe ****************************************************
-
-   ArithmeticException signal handler for hardware divide by zero
-   check.
-
-*******************************************************************************/
-
-void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
-{
-	ucontext_t  *_uc;
-	mcontext_t  *_mc;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
-
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
-
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
-
-	sp  = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (u1 *) _mc->gregs[REG_RIP];
-	ra  = xpc;                          /* return address is equal to xpc     */
-
-	_mc->gregs[REG_RAX] =
-		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
-
-	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
-	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
-}
-
-
-/* md_signal_handler_sigusr2 ***************************************************
-
-   Signal handler for profiling sampling.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
-{
-	threadobject *t;
-	ucontext_t   *_uc;
-	mcontext_t   *_mc;
-	u1           *pc;
-
-	t = THREADOBJECT;
-
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
-
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
-
-	pc = (u1 *) _mc->gregs[REG_RIP];
-
-	t->pc = pc;
-}
-#endif
-
-
-#if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	void       *pc;
-
-	_mc = &_uc->uc_mcontext;
-
-	pc = critical_find_restart_point((void *) _mc->gregs[REG_RIP]);
-
-	if (pc != NULL)
-		_mc->gregs[REG_RIP] = (ptrint) pc;
-}
-#endif
 
 
 /* md_codegen_patch_branch *****************************************************
