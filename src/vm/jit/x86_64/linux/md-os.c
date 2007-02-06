@@ -155,9 +155,9 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 
 	_mc = &_uc->uc_mcontext;
 
-	pc = _mc->gregs[REG_RIP];
+	pc = (u1 *) _mc->gregs[REG_RIP];
 
-	critical = critical_find_restart_point();
+	critical = critical_find_restart_point(pc);
 
 	if (critical != NULL)
 		_mc->gregs[REG_RIP] = (ptrint) critical;
