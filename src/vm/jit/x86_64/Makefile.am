@@ -22,11 +22,11 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7285 2007-02-05 01:06:24Z twisti $
+## $Id: Makefile.am 7294 2007-02-06 09:11:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src -I$(top_builddir)/src
 AM_CCASFLAGS = $(AM_CPPFLAGS) $(AM_LDFLAGS)
 
 LIBS =

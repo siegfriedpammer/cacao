@@ -1,4 +1,4 @@
-## src/vm/jit/x86_64/linux/Makefile.am
+## src/vm/jit/x86_64/freebsd/Makefile.am
 ##
 ## Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,7 +26,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
 
 LIBS =
 
