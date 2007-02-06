@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: codegen.c 7293 2007-02-06 08:58:32Z twisti $
 
 */
 
@@ -191,7 +191,8 @@ bool codegen(jitdata *jd)
 		dseg_add_target(cd, ex->handler);
 		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
-	
+
+#if defined(ENABLE_PROFILING)
 	/* generate method profiling code */
 
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
@@ -204,6 +205,7 @@ bool codegen(jitdata *jd)
 
 /* 		PROFILE_CYCLE_START; */
 	}
+#endif
 
 	/* create stack frame (if necessary) */
 
@@ -410,6 +412,7 @@ bool codegen(jitdata *jd)
 
 		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
 
+#if defined(ENABLE_PROFILING)
 		/* generate basicblock profiling code */
 
 		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
@@ -426,6 +429,7 @@ bool codegen(jitdata *jd)
 /* 			if (bptr->type == BBTYPE_EXH) */
 /* 				PROFILE_CYCLE_START; */
 		}
+#endif
 
 		/* copy interface registers to their destination */
 
