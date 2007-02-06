@@ -26,7 +26,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
 
 LIBS =
 
