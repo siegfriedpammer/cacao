@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_String.c
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Phil Tomsich
-            Christian Thalinger
-
    $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
 */
@@ -44,6 +39,102 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Object.h"
 #include "vm/stringlocal.h"
+
+
+/*
+ * Class:     java/lang/String
+ * Method:    hashCode
+ * Signature: ()I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_String_hashCode(JNIEnv *env, java_lang_String *this)
+{
+	java_chararray *value;
+	s4              offset;
+	s4              count;
+	s4              hash;
+	s4              i;
+
+	/* get values from Java object */
+
+	offset = this->offset;
+	count  = this->count;
+	value  = this->value;
+
+	hash = 0;
+
+	for (i = offset; i < (offset + count); i++) {
+		hash = (31 * hash) + value->data[i];
+	}
+
+	return hash;
+}
+
+
+/*
+ * Class:     java/lang/String
+ * Method:    indexOf
+ * Signature: (II)I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_String *this, s4 ch, s4 fromIndex)
+{
+	java_chararray *value;
+	s4              offset;
+	s4              count;
+	s4              i;
+
+	/* get values from Java object */
+
+	offset = this->offset;
+	count  = this->count;
+	value  = this->value;
+
+	if (fromIndex < 0) {
+		fromIndex = 0;
+	}
+	else if (fromIndex >= count) {
+		/* Note: fromIndex might be near -1>>>1. */
+		return -1;
+	}
+
+	for (i = offset + fromIndex ; i < (offset + count) ; i++) {
+		if (value->data[i] == ch) {
+			return i - offset;
+		}
+	}
+
+	return -1;
+}
+
+
+/*
+ * Class:     java/lang/String
+ * Method:    lastIndexOf
+ * Signature: (II)I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lang_String *this, s4 ch, s4 fromIndex)
+{
+	java_chararray *value;
+	s4              offset;
+	s4              count;
+	s4              start;
+	s4              i;
+
+	/* get values from Java object */
+
+	offset = this->offset;
+	count  = this->count;
+	value  = this->value;
+
+	start = ((fromIndex >= count) ? count - 1 : fromIndex);
+
+	for (i = offset + start; i >= offset; i--) {
+		if (value->data[i] == ch) {
+			return i - offset;
+		}
+	}
+
+	return -1;
+}
 
 
 #if 0
