@@ -1,6 +1,6 @@
 ## src/native/vm/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,10 +22,6 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
 ## $Id: Makefile.am 5558 2006-09-28 19:33:24Z edwin $
 
 ## Process this file with automake to produce Makefile.in
@@ -34,7 +30,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-DIST_SUBDIRS =
+DIST_SUBDIRS = \
 	cldc1.1 \
 	gnu
 
