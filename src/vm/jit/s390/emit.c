@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7283 2007-02-04 19:41:14Z pm $
+   $Id: emit.c 7300 2007-02-07 22:06:53Z pm $
 
 */
 
@@ -212,6 +212,7 @@ void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
 
 void emit_exception_stubs(jitdata *jd)
 {
+#if 0
 	codegendata  *cd;
 	registerdata *rd;
 	exceptionref *er;
@@ -278,6 +279,7 @@ void emit_exception_stubs(jitdata *jd)
 					  (cd->mcodeptr + PATCHER_CALL_SIZE));
 		}
 	}
+#endif
 }
 
 
@@ -287,11 +289,12 @@ void emit_exception_stubs(jitdata *jd)
 
 *******************************************************************************/
 
-void emit_patcher_stubs(jitdata *jd)
+__PORTED__ void emit_patcher_stubs(jitdata *jd)
 {
+	
 	codegendata *cd;
 	patchref    *pref;
-	u8           mcode;
+	u4           mcode;
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
 	s4           targetdisp;
@@ -306,24 +309,35 @@ void emit_patcher_stubs(jitdata *jd)
 	targetdisp = 0;
 
 	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-		/* check size of code segment */
+		/* check code segment size */
 
-		MCODECHECK(512);
+		MCODECHECK(100);
 
-		/* Get machine code which is patched back in later. A
-		   `call rel32' is 5 bytes long (but read 8 bytes). */
+		/* Get machine code which is patched back in later. The
+		   call is 1 instruction word long. */
 
-		savedmcodeptr = cd->mcodebase + pref->branchpos;
-		mcode = *((u8 *) savedmcodeptr);
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
 
-		/* patch in `call rel32' to call the following code */
+		mcode = *((u4 *) tmpmcodeptr);
 
-		tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr              */
-		cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position     */
+		/* Patch in the call to call the following code (done at
+		   compile time). */
 
-		M_CALL_IMM(tmpmcodeptr - (savedmcodeptr + PATCHER_CALL_SIZE));
+		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr              */
+		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position     */
 
-		cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr       */
+		disp = (savedmcodeptr) - (tmpmcodeptr);
+		M_BSR(REG_ITMP3, disp);
+
+		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr       */
+
+		/* create stack frame */
+
+		M_ASUB_IMM(6 * 4, REG_SP);
+
+		/* move return address onto stack */
+
+		M_AST(REG_ITMP3, REG_SP, 5 * 4);
 
 		/* move pointer to java_objectheader onto stack */
 
@@ -334,35 +348,48 @@ void emit_patcher_stubs(jitdata *jd)
 		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
 		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
-		emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase) + disp, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
+		M_LDA(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, 4 * 4);
 #else
-		M_PUSH_IMM(0);
+		/* nothing to do */
 #endif
 
-		/* move machine code bytes and classinfo pointer into registers */
+		/* move machine code onto stack */
 
-		M_MOV_IMM(mcode, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
+		disp = dseg_add_s4(cd, mcode);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, 3 * 4);
 
-		M_MOV_IMM(pref->ref, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
+		/* move class/method/field reference onto stack */
 
-		M_MOV_IMM(pref->disp, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
+		disp = dseg_add_address(cd, pref->ref);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, 2 * 4);
 
-		M_MOV_IMM(pref->patcher, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
+		/* move data segment displacement onto stack */
+
+		disp = dseg_add_s4(cd, pref->disp);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_IST(REG_ITMP3, REG_SP, 1 * 4);
+
+		/* move patcher function pointer onto stack */
+
+		disp = dseg_add_functionptr(cd, pref->patcher);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_AST(REG_ITMP3, REG_SP, 0 * 4);
 
 		if (targetdisp == 0) {
-			targetdisp = cd->mcodeptr - cd->mcodebase;
+			targetdisp = (cd->mcodeptr) - (cd->mcodebase);
 
-			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
-			M_JMP(REG_ITMP3);
+			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JMP(RN, REG_ITMP3);
 		}
 		else {
-			M_JMP_IMM((cd->mcodebase + targetdisp) -
-					  (cd->mcodeptr + PATCHER_CALL_SIZE));
+			disp = ((cd->mcodebase) + targetdisp) -
+				(( cd->mcodeptr) );
+
+			M_BR(disp);
 		}
 	}
 }

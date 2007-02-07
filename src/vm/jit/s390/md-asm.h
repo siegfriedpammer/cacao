@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 7283 2007-02-04 19:41:14Z pm $
+   $Id: md-asm.h 7300 2007-02-07 22:06:53Z pm $
 
 */
 
@@ -177,6 +177,36 @@
 	movq    (2+(off))*8(sp),ft1  ; \
 	movq    (3+(off))*8(sp),ft2  ; \
 	movq    (4+(off))*8(sp),ft3  ;
+
+#define LOAD_STORE_VOLATILE_FLOAT_REGISTERS(inst, off) \
+	inst    %f0, ((0 * 8) + (off))(sp); \
+	inst    %f2, ((1 * 8) + (off))(sp); \
+	inst    %f1, ((2 * 8) + (off))(sp); \
+	inst    %f3, ((3 * 8) + (off))(sp); \
+	inst    %f5, ((4 * 8) + (off))(sp); \
+	inst    %f7, ((5 * 8) + (off))(sp); \
+	inst    %f8, ((6 * 8) + (off))(sp); \
+	inst    %f9, ((7 * 8) + (off))(sp); \
+	inst    %f10, ((8 * 8) + (off))(sp); \
+	inst    %f11, ((9 * 8) + (off))(sp); \
+	inst    %f12, ((10 * 8) + (off))(sp); \
+	inst    %f13, ((11 * 8) + (off))(sp); \
+	inst    %f14, ((12 * 8) + (off))(sp); \
+	inst    %f15, ((13 * 8) + (off))(sp); 
+
+#define VOLATILE_FLOAT_REGISTERS_SIZE (14 * 8)
+
+#define LOAD_VOLATILE_FLOAT_REGISTERS(off) LOAD_STORE_VOLATILE_FLOAT_REGISTERS(ld, off)
+#define STORE_VOLATILE_FLOAT_REGISTERS(off) LOAD_STORE_VOLATILE_FLOAT_REGISTERS(std, off)
+
+#define LOAD_STORE_VOLATILE_INTEGER_REGISTERS(instm, inst, off) \
+	instm   %r0, %r5, ((0 * 4) + (off))(sp); \
+	inst    %r14, ((6 * 4) + (off))(sp);
+#define VOLATILE_INTEGER_REGISTERS_SIZE (7 * 4)
+
+#define LOAD_VOLATILE_INTEGER_REGISTERS(off) LOAD_STORE_VOLATILE_INTEGER_REGISTERS(lm, l, off)
+#define STORE_VOLATILE_INTEGER_REGISTERS(off) LOAD_STORE_VOLATILE_INTEGER_REGISTERS(stm, st, off)
+
 
 #endif /* _MD_ASM_H */
 

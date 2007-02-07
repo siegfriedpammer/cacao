@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7283 2007-02-04 19:41:14Z pm $
+   $Id: codegen.c 7300 2007-02-07 22:06:53Z pm $
 
 */
 
@@ -238,7 +238,7 @@ bool codegen(jitdata *jd)
   	p = cd->stackframesize;
 	p--; M_AST(REG_RA, REG_SP, p * 4);
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
- 		p--; M_LST(rd->savintregs[i], REG_SP, p * 4);
+ 		p--; M_IST(rd->savintregs[i], REG_SP, p * 4);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p -= 2; M_DST(rd->savfltregs[i], REG_SP, p * 4);
@@ -510,12 +510,9 @@ bool codegen(jitdata *jd)
 		/* constant operations ************************************************/
 
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
-			OOPS();
-#if 0
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			ICONST(d, iptr->sx.val.i);
 			emit_store_dst(jd, iptr, d);
-#endif
 			break;
 
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
@@ -2152,11 +2149,6 @@ bool codegen(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, NULL);
 
-				/* must be calculated before codegen_add_patch_ref */
-
-				if (opt_shownops)
-					disp -= PATCHER_CALL_SIZE;
-
 /* 				PROFILE_CYCLE_STOP; */
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
@@ -2172,9 +2164,6 @@ bool codegen(jitdata *jd)
 					PROFILE_CYCLE_STOP;
 
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, 0);
-
-					if (opt_shownops)
-						disp -= PATCHER_CALL_SIZE;
 
 					PROFILE_CYCLE_START;
 				}
@@ -2210,68 +2199,47 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
-			OOPS();
-#if 0
+
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp      = dseg_add_unique_address(cd, NULL);
-				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
+				disp      = dseg_add_unique_address(cd, uf);
 
-				/* must be calculated before codegen_add_patch_ref */
-
-				if (opt_shownops)
-					disp -= PATCHER_CALL_SIZE;
-
-/* 				PROFILE_CYCLE_STOP; */
-
-				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
-
-/* 				PROFILE_CYCLE_START; */
+				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, &(fi->value));
-				disp      = -((cd->mcodeptr + 7) - cd->mcodebase) + disp;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					PROFILE_CYCLE_STOP;
-
-					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, 0);
-
-					if (opt_shownops)
-						disp -= PATCHER_CALL_SIZE;
-
-					PROFILE_CYCLE_START;
-				}
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+					codegen_addpatchref(cd, PATCHER_clinit,
+										fi->class, disp);
   			}
 
-			/* This approach is much faster than moving the field
-			   address inline into a register. */
-
-  			M_ALD(REG_ITMP1, RIP, disp);
-
+			M_ALD(REG_ITMP1, REG_PV, disp);
 			switch (fieldtype) {
 			case TYPE_INT:
 				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
 				M_IST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-			case TYPE_ADR:
-				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+				s1 = emit_load_s1(jd, iptr, REG_ITMP23_PACKED);
 				M_LST(s1, REG_ITMP1, 0);
 				break;
+			case TYPE_ADR:
+				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+				M_AST(s1, REG_ITMP1, 0);
+				break;
 			case TYPE_FLT:
-				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+				s1 = emit_load_s1(jd, iptr, REG_FTMP2);
 				M_FST(s1, REG_ITMP1, 0);
 				break;
 			case TYPE_DBL:
-				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+				s1 = emit_load_s1(jd, iptr, REG_FTMP2);
 				M_DST(s1, REG_ITMP1, 0);
 				break;
 			}
-#endif
 			break;
 
 		case ICMD_PUTSTATICCONST: /* ...  ==> ...                             */
@@ -2498,11 +2466,10 @@ bool codegen(jitdata *jd)
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		case ICMD_RET:          /* ... ==> ...                                */
-			OOPS();
-#if 0
-			M_JMP_IMM(0);
+
+			M_BR(0);
 			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
+
 			break;
 
 		case ICMD_JSR:          /* ... ==> ...                                */
@@ -2521,7 +2488,6 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
-			OOPS();
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_TEST(s1);
 			M_BNE(0);
@@ -2529,63 +2495,44 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_ICMP_IMM(iptr->sx.val.i, s1);
-			M_BEQ(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_ICMP_IMM(iptr->sx.val.i, s1);
-			M_BLT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_ICMP_IMM(iptr->sx.val.i, s1);
-			M_BLE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_ICMP_IMM(iptr->sx.val.i, s1);
-			M_BNE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_ICMP_IMM(iptr->sx.val.i, s1);
-			M_BGT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
-			OOPS();
-#if 0
+			
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_ICMP_IMM(iptr->sx.val.i, s1);
-			M_BGE(0);
+
+			if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767))
+				N_CHI(s1, iptr->sx.val.i);
+			else {
+				disp = dseg_add_s4(cd, iptr->sx.val.i);
+				N_LHI(REG_ITMP2, disp);
+				N_CL(s1, 0, REG_ITMP2, REG_PV);
+			}
+
+			switch (iptr->opc) {
+			case ICMD_IFLT:
+				M_BLT(0);
+				break;
+			case ICMD_IFLE:
+				M_BLE(0);
+				break;
+			case ICMD_IFNE:
+				M_BNE(0);
+				break;
+			case ICMD_IFGT:
+				M_BGT(0);
+				break;
+			case ICMD_IFGE:
+				M_BGE(0);
+				break;
+			case ICMD_IFEQ:
+				M_BEQ(0);
+				break;
+			}
 			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
+
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -3439,8 +3386,7 @@ gen_method:
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
 			OOPS();
 #if 0
-
-		                      /* val.a: (classinfo *) superclass              */
+		                      /* val.a: (classinfo*) superclass               */
 
 			/*  superclass is an interface:
 			 *	
@@ -3472,137 +3418,109 @@ gen_method:
 			}
 
 #if defined(ENABLE_THREADS)
-            codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
+			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (s1 == d) {
-				M_INTMOVE(s1, REG_ITMP1);
+				M_MOV(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
 			}
 
 			/* calculate interface instanceof code size */
 
-			s2 = 3; /* mov_membase_reg */
-			CALCOFFSETBYTES(s2, s1, OFFSET(java_objectheader, vftbl));
-			s2 += 3 + 4 /* movl_membase32_reg */ + 3 + 4 /* sub_imm32 */ +
-				3 /* test */ + 6 /* jcc */ + 3 + 4 /* mov_membase32_reg */ +
-				3 /* test */ + 4 /* setcc */;
-
-			if (!super)
-				s2 += (opt_shownops ? 5 : 0);
+			s2 = 6;
+			if (super == NULL)
+				s2 += (d == REG_ITMP2 ? 1 : 0) + (opt_shownops ? 1 : 0);
 
 			/* calculate class instanceof code size */
-			
-			s3 = 3; /* mov_membase_reg */
-			CALCOFFSETBYTES(s3, s1, OFFSET(java_objectheader, vftbl));
-			s3 += 10; /* mov_imm_reg */
-			s3 += 2; /* movl_membase_reg - only if REG_ITMP1 == RAX */
-			CALCOFFSETBYTES(s3, REG_ITMP1, OFFSET(vftbl_t, baseval));
-			s3 += 3; /* movl_membase_reg - only if REG_ITMP2 == R10 */
-			CALCOFFSETBYTES(s3, REG_ITMP2, OFFSET(vftbl_t, baseval));
-			s3 += 3; /* movl_membase_reg - only if REG_ITMP2 == R10 */
-			CALCOFFSETBYTES(s3, REG_ITMP2, OFFSET(vftbl_t, diffval));
-			s3 += 3 /* sub */ + 3 /* xor */ + 3 /* cmp */ + 4 /* setcc */;
 
+			s3 = 7;
 			if (super == NULL)
-				s3 += (opt_shownops ? 5 : 0);
-
-			emit_alu_reg_reg(cd, ALU_XOR, d, d);
+				s3 += (opt_shownops ? 1 : 0);
 
 			/* if class is not resolved, check which code to call */
 
 			if (super == NULL) {
-				emit_test_reg_reg(cd, s1, s1);
-				emit_jcc(cd, CC_Z, (6 + (opt_shownops ? 5 : 0) +
-											 7 + 6 + s2 + 5 + s3));
+				M_CLR(d);
+				M_BEQZ(s1, 4 + (opt_shownops ? 1 : 0) + s2 + 1 + s3);
 
-				codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
-									  iptr->sx.s23.s3.c.ref, 0);
+				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
-				emit_movl_imm_reg(cd, 0, REG_ITMP3); /* super->flags */
-				emit_alul_imm_reg(cd, ALU_AND, ACC_INTERFACE, REG_ITMP3);
-				emit_jcc(cd, CC_Z, s2 + 5);
+				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_flags,
+									  iptr->sx.s23.s3.c.ref, disp);
+
+				M_ILD(REG_ITMP3, REG_PV, disp);
+
+				disp = dseg_add_s4(cd, ACC_INTERFACE);
+				M_ILD(REG_ITMP2, REG_PV, disp);
+				M_AND(REG_ITMP3, REG_ITMP2, REG_ITMP3);
+				M_BEQZ(REG_ITMP3, s2 + 1);
 			}
 
 			/* interface instanceof code */
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
-				if (super != NULL) {
-					emit_test_reg_reg(cd, s1, s1);
-					emit_jcc(cd, CC_Z, s2);
-				}
-
-				emit_mov_membase_reg(cd, s1,
-									 OFFSET(java_objectheader, vftbl),
-									 REG_ITMP1);
-
 				if (super == NULL) {
+					/* If d == REG_ITMP2, then it's destroyed in check
+					   code above. */
+					if (d == REG_ITMP2)
+						M_CLR(d);
+
 					codegen_add_patch_ref(cd,
 										  PATCHER_checkcast_instanceof_interface,
 										  iptr->sx.s23.s3.c.ref, 0);
 				}
+				else {
+					M_CLR(d);
+					M_BEQZ(s1, s2);
+				}
 
-				emit_movl_membase32_reg(cd, REG_ITMP1,
-										  OFFSET(vftbl_t, interfacetablelength),
-										  REG_ITMP3);
-				emit_alu_imm32_reg(cd, ALU_SUB, superindex, REG_ITMP3);
-				emit_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
+				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
+				M_LDA(REG_ITMP3, REG_ITMP3, -superindex);
+				M_BLEZ(REG_ITMP3, 2);
+				M_ALD(REG_ITMP1, REG_ITMP1,
+					  (s4) (OFFSET(vftbl_t, interfacetable[0]) -
+							superindex * sizeof(methodptr*)));
+				M_CMPULT(REG_ZERO, REG_ITMP1, d);      /* REG_ITMP1 != 0  */
 
-				a = 3 + 4 /* mov_membase32_reg */ + 3 /* test */ + 4 /* setcc */;
-
-				emit_jcc(cd, CC_LE, a);
-				emit_mov_membase32_reg(cd, REG_ITMP1,
-										 OFFSET(vftbl_t, interfacetable[0]) -
-										 superindex * sizeof(methodptr*),
-										 REG_ITMP1);
-				emit_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
-				emit_setcc_reg(cd, CC_NE, d);
-
-				if (!super)
-					emit_jmp_imm(cd, s3);
+				if (super == NULL)
+					M_BR(s3);
 			}
 
 			/* class instanceof code */
 
 			if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
-				if (super != NULL) {
-					emit_test_reg_reg(cd, s1, s1);
-					emit_jcc(cd, CC_E, s3);
-				}
-
-				emit_mov_membase_reg(cd, s1,
-									   OFFSET(java_objectheader, vftbl),
-									   REG_ITMP1);
-
 				if (super == NULL) {
-					codegen_add_patch_ref(cd, PATCHER_instanceof_class,
-										  iptr->sx.s23.s3.c.ref, 0);
+					disp = dseg_add_unique_address(cd, NULL);
+
+					codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_vftbl,
+										  iptr->sx.s23.s3.c.ref,
+										  disp);
+				}
+				else {
+					disp = dseg_add_address(cd, supervftbl);
+
+					M_CLR(d);
+					M_BEQZ(s1, s3);
 				}
 
-				emit_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP2);
+				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP2, REG_PV, disp);
 #if defined(ENABLE_THREADS)
 				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-				emit_movl_membase_reg(cd, REG_ITMP1,
-										OFFSET(vftbl_t, baseval),
-										REG_ITMP1);
-				emit_movl_membase_reg(cd, REG_ITMP2,
-										OFFSET(vftbl_t, diffval),
-										REG_ITMP3);
-				emit_movl_membase_reg(cd, REG_ITMP2,
-										OFFSET(vftbl_t, baseval),
-										REG_ITMP2);
+				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
+				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
+				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(ENABLE_THREADS)
 				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-				emit_alu_reg_reg(cd, ALU_SUB, REG_ITMP2, REG_ITMP1);
-				emit_alu_reg_reg(cd, ALU_XOR, d, d); /* may be REG_ITMP2 */
-				emit_alu_reg_reg(cd, ALU_CMP, REG_ITMP3, REG_ITMP1);
-				emit_setcc_reg(cd, CC_BE, d);
+				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
+				M_CMPULE(REG_ITMP1, REG_ITMP2, d);
 			}
-  			emit_store_dst(jd, iptr, d);
+			emit_store_dst(jd, iptr, d);
 			}
 #endif
 			break;

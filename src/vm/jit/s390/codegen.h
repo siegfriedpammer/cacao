@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7283 2007-02-04 19:41:14Z pm $
+   $Id: codegen.h 7300 2007-02-07 22:06:53Z pm $
 
 */
 
@@ -92,18 +92,6 @@
 
 
 
-#define ICONST(r,c) \
-    do { \
-        if ((c) == 0) \
-            M_CLR((d)); \
-        else \
-            M_IMOV_IMM((c), (d)); \
-    } while (0)
-/*     do { \ */
-/*        M_IMOV_IMM((c), (d)); \ */
-/*     } while (0) */
-
-
 #define LCONST(r,c) \
     do { \
         if ((c) == 0) \
@@ -117,26 +105,21 @@
 #define BRANCH_NOPS \
     do { \
         M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
     } while (0)
 
 
 /* some patcher defines *******************************************************/
 
-#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
+#define PATCHER_CALL_SIZE    4          /* size in bytes of a patcher call    */
 
 #define PATCHER_NOPS \
     do { \
         M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
     } while (0)
 
+/* *** BIG TODO ***
+ * Make all this inline functions !!!!!!!!!!
+ */
 
 /* macros to create code ******************************************************/
 
@@ -365,7 +348,7 @@
 #	define SZ_BCR SZ_RR
 #	define N_BR(r2) N_BCR(DD_ANY, r2)
 #	define SZ_BR SZ_BCR
-#define N_BC(m1, d2, x2, b2) N_RS(0x47, m1, d2, x2, b2)
+#define N_BC(m1, d2, x2, b2) N_RX(0x47, m1, d2, x2, b2)
 #	define SZ_BC SZ_RS
 #define N_BCTR(r1, r2) N_RR(0x06, r1, _OR(r2))
 #define N_BCT(r1, d2, x2, b2) N_RX(0x46, r1, d2, x2, b2)
@@ -535,16 +518,16 @@
 #define M_FST(r, b, d) _IFNEG(d, assert(0), N_STE(r, d, RN, b))
 #define M_IST(r, b, d) _IFNEG( \
 	d, \
-	N_LHI(r, d); N_S(r, 0, r, b), \
-	N_S(r, d, RN, b) \
+	N_LHI(r, d); N_ST(r, 0, r, b), \
+	N_ST(r, d, RN, b) \
 )
 #define M_AST(r, b, d) M_IST(r, b, d)
 #define M_LST(r, b, d) _IFNEG( \
 	d, \
 	N_LHI(GET_LOW_REG(r), d); \
-		N_S(GET_HIGH_REG(r), 0, GET_LOW_REG(r), b); \
-		N_S(GET_LOW_REG(r), 4, GET_LOW_REG(r), b), \
-	N_S(GET_HIGH_REG(r), 0, RN, b); N_S(GET_LOW_REG(r), 4, RN, b) \
+		N_ST(GET_HIGH_REG(r), 0, GET_LOW_REG(r), b); \
+		N_ST(GET_LOW_REG(r), 4, GET_LOW_REG(r), b), \
+	N_ST(GET_HIGH_REG(r), 0, RN, b); N_ST(GET_LOW_REG(r), 4, RN, b) \
 )
 #define M_TEST(r) N_LTR(r, r)
 #define M_BEQ(off) N_BRC(DD_E, off)
@@ -552,6 +535,7 @@
 #define M_BLE(off) N_BRC(DD_LE, off)
 #define M_BGT(off) N_BRC(DD_H, off)
 #define M_BLT(off) N_BRC(DD_L, off)
+#define M_BGE(off) N_BRC(DD_HE, off)
 
 #define M_CMP(r1, r2) N_CR(r1, r2)
 #define M_CLR(r) N_LHI(r, 0)
@@ -559,6 +543,20 @@
 #define M_IADD_IMM(val, reg) N_AHI(reg, val)
 #define M_ASUB_IMM(val, reg) N_AHI(reg, -(val))
 #define M_RET N_BCR(DD_ANY, R14)
+#define M_BSR(ret_reg, disp) N_BRAS(ret_reg, disp)
+#define M_BR(disp) N_BRC(DD_ANY, disp)
+#define M_JMP(rd, rs) N_BCR(DD_ANY, rs)
+#define M_NOP N_BC(0, 0, RN, RN)
+
+#define ICONST(reg, i) \
+	do { \
+		if ((i) >= -32768 && (i) <= 32767) { \
+			N_LHI(reg, i); \
+		} else { \
+			disp = dseg_add_s4(cd, (i)); \
+			N_ILD(reg, REG_PV, disp); \
+		} \
+	} while (0) 
 
 /* M_INTMOVE:
     generates an integer-move from register a to b.
@@ -700,7 +698,6 @@
 #define M_ICMP_IMM_MEMBASE(a,b,c) _DEPR( M_ICMP_IMM_MEMBASE(a,b,c) )
 #define M_ICMP_MEMBASE(a,b,c) _DEPR( M_ICMP_MEMBASE(a,b,c) )
 
-#define M_BGE(disp) _DEPR( M_BGE(disp) )
 #define M_BAE(disp) _DEPR( M_BAE(disp) )
 #define M_BA(disp) _DEPR( M_BA(disp) )
 
@@ -726,11 +723,8 @@
 #define M_PUSH_IMM(a) _DEPR( M_PUSH_IMM(a) )
 #define M_POP(a) _DEPR( M_POP(a) )
 
-#define M_JMP(a) _DEPR( M_JMP(a) )
 #define M_JMP_IMM(a) _DEPR( M_JMP_IMM(a) )
 #define M_CALL_IMM(a) _DEPR( M_CALL_IMM(a) )
-
-#define M_NOP _DEPR( M_NOP )
 
 
 

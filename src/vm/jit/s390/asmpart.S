@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7283 2007-02-04 19:41:14Z pm $
+   $Id: asmpart.S 7300 2007-02-07 22:06:53Z pm $
 
 */
 
@@ -109,7 +109,6 @@ asm_call_jit_compiler:
 asm_handle_exception:
 asm_handle_nat_exception:
 asm_abstractmethoderror:
-asm_patcher_wrapper:
 asm_replacement_out:
 asm_replacement_in:
 asm_builtin_f2i:
@@ -502,11 +501,11 @@ L_asm_call_jit_compiler:
 
 	/* call jit_asm_compile in a PIC way */
 
-	bras    itmp3, L_bras_jac
+	bras    itmp2, L_bras_jac
 	.long   jit_asm_compile
 L_bras_jac:
-	l       itmp3, 0(itmp3)
-	basr    %r14, itmp3
+	l       itmp2, 0(itmp2)
+	basr    %r14, itmp2
 
 	lr      pv, v0                     /* save return value */
 
@@ -693,62 +692,73 @@ asm_abstractmethoderror:
 	sub     $3,xpc                      /* exception address is ra - 3        */
 	jmp     L_asm_handle_exception
 
+#endif
 
 /* asm_patcher_wrapper *********************************************************
 
    XXX
 
    Stack layout:
-     40   return address
-     32   pointer to virtual java_objectheader
-     24   machine code (which is patched back later)
-     16   unresolved class/method/field reference
-      8   data segment displacement from load instructions
-      0   pointer to patcher function
-     -8   bp
+     20   return address into JIT code (patch position)
+     16   pointer to virtual java_objectheader
+     12   machine code (which is patched back later)
+      8   unresolved class/method/field reference
+      4   data segment displacement from load instructions
+      0   patcher function pointer to call (pv afterwards)
 
 *******************************************************************************/
 
 asm_patcher_wrapper:
-	push    bp                          /* save base pointer                  */
-	mov     sp,bp                       /* move actual sp to bp               */
-	sub     $((3+ARG_CNT+TMP_CNT)*8+sizestackframeinfo),sp
-	and     $0xfffffffffffffff0,sp      /* align sp to 16-byte (this is for   */
-	                                    /* leaf functions)                    */
+#	define  apw_sfs (96 + 4 + VOLATILE_INTEGER_REGISTERS_SIZE + VOLATILE_FLOAT_REGISTERS_SIZE)
 
-	SAVE_ARGUMENT_REGISTERS(3)
-	SAVE_TEMPORARY_REGISTERS(3+ARG_CNT)
+	ahi     sp, -apw_sfs                /* create stack frame */
 
-	mov     itmp1,0*8(sp)               /* save itmp1 and itmp2               */
-	mov     itmp2,1*8(sp)               /* can be used by some instructions   */
+	/* store all volatile registers and a2, because we will touch it */
 
-	mov     bp,a0                       /* pass SP of patcher stub            */
-	add     $(1*8),a0
-	mov     $0,a1                       /* pass PV (if NULL, use findmethod)  */
-	mov     $0,a2                       /* pass RA (it's on the stack)        */
-	call    patcher_wrapper@PLT
-	mov     v0,2*8(sp)                  /* save return value                  */
+	st      a2, 96(sp)
+	STORE_VOLATILE_INTEGER_REGISTERS(96 + 4)
+	STORE_VOLATILE_FLOAT_REGISTERS(96 + 4 + VOLATILE_INTEGER_REGISTERS_SIZE)
 
-	RESTORE_ARGUMENT_REGISTERS(3)
-	RESTORE_TEMPORARY_REGISTERS(3+ARG_CNT)
+	/* pass arguments */
 
-	mov     0*8(sp),itmp1               /* restore itmp1 and itmp2            */
-	mov     1*8(sp),itmp2               /* can be used by some instructions   */
-	mov     2*8(sp),itmp3               /* restore return value               */
+	la      a0, apw_sfs(sp)             /* pass SP of patcher stub */
+	lr      a1, pv                      /* pass PV (if NULL, use findmethod)  */
+	lhi     a2, 0                       /* pass RA (it's on the stack)        */
 
-	mov     bp,sp                       /* restore original sp                */
-	pop     bp                          /* restore bp                         */
-	add     $(5*8),sp                   /* remove patcher stackframe, keep RA */
+	/* call patcher_wrapper */
 
-	test    itmp3,itmp3                 /* exception thrown?                  */
-	jne     L_asm_patcher_wrapper_exception
-	ret                                 /* call new patched code              */
+	bras    itmp1, L_apw_bras           /* call patcher_wrapper */
+	.long   patcher_wrapper
+L_apw_bras:
+	l       itmp1, 0(itmp1)
+	basr    %r14, itmp1
+
+	/* store return value */
+
+	st      v0,0(sp)                    /* save return value */
+
+	/* restore volatile registers */
+
+	l       a2, 96(sp)
+	LOAD_VOLATILE_INTEGER_REGISTERS(96 + 4)
+	LOAD_VOLATILE_FLOAT_REGISTERS(96 + 4 + VOLATILE_INTEGER_REGISTERS_SIZE)
+
+	l       itmp3, 0(sp)                /* restore return value */
+	ltr     itmp3, itmp3                /* exception thrown ? */
+	jne     L_asm_patcher_wrapper_exception /* handle exception */
+	ahi     sp, apw_sfs                 /* remove stack frame */
+	l       itmp3, 20(sp)               /* load return address to JIT from stack */
+	br      itmp3                       /* return */
 
 L_asm_patcher_wrapper_exception:
+	.long 0
+#if 0
 	mov     itmp3,xptr                  /* get exception                      */
 	pop     xpc                         /* get and remove return address      */
 	jmp     L_asm_handle_exception
+#endif
 
+#if 0
 
 /* asm_replacement_out *********************************************************
 

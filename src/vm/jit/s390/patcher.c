@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7219 2007-01-16 22:18:57Z pm $
+   $Id: patcher.c 7300 2007-02-07 22:06:53Z pm $
 
 */
 
@@ -50,6 +50,9 @@
 #include "vm/resolve.h"
 #include "vm/jit/patcher.h"
 
+#include <assert.h>
+#define OOPS() assert(0);
+#define __PORTED__
 
 /* patcher_wrapper *************************************************************
 
@@ -77,15 +80,18 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	/* get stuff from the stack */
 
-	xpc = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	f   = (functionptr)         *((ptrint *) (sp + 0 * 8));
+	xpc = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
+	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
+	
+	/* TODO here was PATCHER_CALL_SIZE previously ! */
+  	xpc = xpc - 4; /* the patch position is 4 bytes before the RA */
 
-	/* calculate and set the new return address */
+	*((ptrint *) (sp + 5 * 4)) = (ptrint) xpc;
 
-	xpc = xpc - PATCHER_CALL_SIZE;
+	/* store PV into the patcher function position */
 
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) xpc;
+	*((ptrint *) (sp + 0 * 4)) = (ptrint) pv;
 
 	/* cast the passed function to a patcher function */
 
@@ -101,7 +107,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	   stacktrace_create_extern_stackframeinfo for
 	   md_codegen_get_pv_from_pc. */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 8, xpc, xpc);
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 4, xpc, xpc);
 
 	/* call the proper patcher function */
 
@@ -131,26 +137,24 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
    Machine code:
 
-   <patched call position>
-   4d 8b 15 86 fe ff ff             mov    -378(%rip),%r10
-   49 8b 32                         mov    (%r10),%rsi
-
 *******************************************************************************/
 
 bool patcher_get_putstatic(u1 *sp)
 {
 	u1               *ra;
-	u8                mcode;
+	u4                mcode;
 	unresolved_field *uf;
 	s4                disp;
 	fieldinfo        *fi;
+	u1               *pv;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 5 * 8));
-	mcode =                      *((u8 *)     (sp + 3 * 8));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
-	disp  =                      *((s4 *)     (sp + 1 * 8));
+	ra    = (u1 *)               *((ptrint *) (sp + 5 * 4));
+	mcode =                      *((u4 *)     (sp + 3 * 4));
+	uf    = (unresolved_field *) *((ptrint *) (sp + 2 * 4));
+	disp  =                      *((s4 *)     (sp + 1 * 4));
+	pv    = (u1 *)               *((ptrint *) (sp + 0 * 4));
 
 	/* get the fieldinfo */
 
@@ -163,18 +167,11 @@ bool patcher_get_putstatic(u1 *sp)
 		if (!initialize_class(fi->class))
 			return false;
 
+	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
+
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + 5;
-
-	/* patch the field value's address */
-
-	*((ptrint *) (ra + 7 + disp)) = (ptrint) &(fi->value);
+	*((u4 *) ra) = mcode;
 
 	return true;
 }
@@ -191,6 +188,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 bool patcher_get_putfield(u1 *sp)
 {
+	OOPS();
 	u1               *ra;
 	u8                mcode;
 	unresolved_field *uf;
@@ -257,6 +255,7 @@ bool patcher_get_putfield(u1 *sp)
 
 bool patcher_putfieldconst(u1 *sp)
 {
+	OOPS();
 	u1               *ra;
 	u8                mcode;
 	unresolved_field *uf;
@@ -320,6 +319,7 @@ bool patcher_putfieldconst(u1 *sp)
 
 bool patcher_aconst(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	constant_classref *cr;
@@ -368,6 +368,7 @@ bool patcher_aconst(u1 *sp)
 
 bool patcher_builtin_multianewarray(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	constant_classref *cr;
@@ -414,6 +415,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 bool patcher_builtin_arraycheckcast(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	constant_classref *cr;
@@ -451,45 +453,37 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
    Machine code:
 
-   <patched call position>
-   49 ba 00 00 00 00 00 00 00 00    mov    $0x0,%r10
-   49 ff d2                         callq  *%r10
-
 *******************************************************************************/
 
-bool patcher_invokestatic_special(u1 *sp)
+__PORTED__ bool patcher_invokestatic_special(u1 *sp)
 {
 	u1                *ra;
-	u8                 mcode;
+	u4                 mcode;
 	unresolved_method *um;
 	s4                 disp;
+	u1                *pv;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	mcode =                       *((u4 *)     (sp + 3 * 4));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
+	disp  =                       *((s4 *)     (sp + 1 * 4));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
 
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
+	*((ptrint *) (pv + disp)) = (ptrint) m->stubroutine;
+
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + 5;
+	*((u4 *) ra) = mcode;
 
 	/* patch stubroutine */
-
-/* 	*((ptrint *) (ra + 2)) = (ptrint) m->stubroutine; */
-	*((ptrint *) (ra + 7 + disp)) = (ptrint) m->stubroutine;
 
 	return true;
 }
@@ -508,6 +502,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 bool patcher_invokevirtual(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	unresolved_method *um;
@@ -556,6 +551,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 bool patcher_invokeinterface(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	unresolved_method *um;
@@ -608,6 +604,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 bool patcher_checkcast_instanceof_flags(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	constant_classref *cr;
@@ -656,6 +653,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	constant_classref *cr;
@@ -708,6 +706,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 bool patcher_checkcast_class(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	constant_classref *cr;
@@ -753,6 +752,7 @@ bool patcher_checkcast_class(u1 *sp)
 
 bool patcher_instanceof_class(u1 *sp)
 {
+	OOPS();
 	u1                *ra;
 	u8                 mcode;
 	constant_classref *cr;
@@ -792,23 +792,19 @@ bool patcher_instanceof_class(u1 *sp)
 
    Machine code:
 
-   <patched call position>
-   4d 8b 15 92 ff ff ff             mov    -110(%rip),%r10
-   49 89 1a                         mov    %rbx,(%r10)
-
 *******************************************************************************/
 
-bool patcher_clinit(u1 *sp)
+__PORTED__ bool patcher_clinit(u1 *sp)
 {
 	u1        *ra;
-	u8         mcode;
+	u4         mcode;
 	classinfo *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)        *((ptrint *) (sp + 5 * 8));
-	mcode =               *((u8 *)     (sp + 3 * 8));
-	c     = (classinfo *) *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)        *((ptrint *) (sp + 5 * 4));
+	mcode =               *((u4 *)     (sp + 3 * 4));
+	c     = (classinfo *) *((ptrint *) (sp + 2 * 4));
 
 	/* check if the class is initialized */
 
@@ -818,7 +814,7 @@ bool patcher_clinit(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) ra) = mcode;
 
 	return true;
 }
@@ -835,6 +831,7 @@ bool patcher_clinit(u1 *sp)
 #ifdef ENABLE_VERIFIER
 bool patcher_athrow_areturn(u1 *sp)
 {
+	OOPS();
 	u1               *ra;
 	u8                mcode;
 	unresolved_class *uc;
@@ -873,6 +870,7 @@ bool patcher_athrow_areturn(u1 *sp)
 #if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native(u1 *sp)
 {
+	OOPS();
 	u1          *ra;
 	u8           mcode;
 	methodinfo  *m;
