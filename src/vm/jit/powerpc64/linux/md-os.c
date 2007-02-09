@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc64/linux/md-os.c - machine dependent PowerPC64 Linux functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: md-os.c 6118 2006-12-04 23:36:11Z twisti $
+   $Id: md-os.c 7311 2007-02-09 13:20:27Z twisti $
 
 */
 
@@ -48,7 +42,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 
 #if defined(ENABLE_PROFILING)
@@ -80,27 +74,28 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
  	_uc = (ucontext_t *) _p;
  	_mc = &(_uc->uc_mcontext);
 	
+	pv  = (u1 *) _mc->gp_regs[REG_PV];
+	sp  = (u1 *) _mc->gp_regs[REG_SP];
+	ra  = (u1 *) _mc->gp_regs[PT_LNK];           /* this is correct for leafs */
+	xpc = (u1 *) _mc->gp_regs[PT_NIP];
 
-	instr = *((u4 *) _mc->gp_regs[PT_NIP]);
-	reg = (instr >> 16) & 0x1f;
-	addr = _mc->gp_regs[reg];
+	instr = *((u4 *) xpc);
+	reg   = (instr >> 16) & 0x1f;
+	addr  = _mc->gp_regs[reg];
 
 	if (addr == 0) {
-		pv  = (u1 *) _mc->gp_regs[REG_PV];
-		sp  = (u1 *) _mc->gp_regs[REG_SP];
-		ra  = (u1 *) _mc->gp_regs[PT_LNK];         /* this is correct for leafs */
-		xpc = (u1 *) _mc->gp_regs[PT_NIP];
-
 		_mc->gp_regs[REG_ITMP1_XPTR] =
 			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
 		_mc->gp_regs[REG_ITMP2_XPC] = (ptrint) xpc;
 		_mc->gp_regs[PT_NIP] = (ptrint) asm_handle_exception;
+	}
+	else {
+		codegen_get_pv_from_pc(xpc);
 
-	} else {
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Segmentation fault: 0x%08lx at 0x%08lx",
-								   addr, _mc->gp_regs[PT_NIP]);
+		/* this should not happen */
+
+		assert(0);
 	}		
 }
 
@@ -142,7 +137,7 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 
 	critical = critical_find_restart_point(pc);
 
-	if (critical)
+	if (critical != NULL)
 		_mc->gp_regs[PT_NIP] = (ptrint) critical;
 }
 #endif

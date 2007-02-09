@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc64/linux/md-abi.c - functions for PowerPC64 Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,27 +22,24 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roland Lezuo
-
-   Changes: 
-
-   $Id: md-abi.c 5981 2006-11-15 13:44:48Z tbfg $
+   $Id: md-abi.c 7311 2007-02-09 13:20:27Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <assert.h>
+
 #include "vm/types.h"
 
 #include "vm/jit/powerpc64/linux/md-abi.h"
 
-#include "vm/descriptor.h"
 #include "vm/global.h"
-#include "vm/jit/abi.h"
-#include <assert.h>
 
+#include "vm/jit/abi.h"
+
+#include "vmcore/descriptor.h"
 
 #define CACAO_ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
 

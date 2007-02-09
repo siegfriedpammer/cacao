@@ -22,16 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Stefan Ring
-            Christian Thalinger
-            Christian Ullrich
-            Edwin Steiner
-            Roland Lezuo
-
-   $Id: codegen.c 7215 2007-01-15 10:28:26Z twisti $
+   $Id: codegen.c 7311 2007-02-09 13:20:27Z twisti $
 
 */
 
@@ -51,19 +42,21 @@
 #include "vm/jit/powerpc64/codegen.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
@@ -72,6 +65,9 @@
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
+
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 
 /* codegen *********************************************************************

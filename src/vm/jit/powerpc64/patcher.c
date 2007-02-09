@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc64/patcher.c - PowerPC64 code patching functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: patcher.c 5880 2006-10-31 13:40:55Z tbfg $
+   $Id: patcher.c 7311 2007-02-09 13:20:27Z twisti $
 
 */
 
@@ -41,17 +35,22 @@
 
 #include "mm/memory.h"
 #include "native/native.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/exceptions.h"
-#include "vm/field.h"
 #include "vm/initialize.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
-#include "vm/references.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
+#include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/options.h"
+#include "vmcore/references.h"
+#include "vmcore/resolve.h"
 
 
 /* patcher_wrapper *************************************************************
