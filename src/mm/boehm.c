@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: boehm.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: boehm.c 7309 2007-02-09 12:51:00Z twisti $
 
 */
 
@@ -40,10 +40,6 @@
 #include "boehm-gc/include/gc.h"
 #include "mm/gc-common.h"
 #include "mm/memory.h"
-
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
 
 #include "toolbox/logging.h"
 
