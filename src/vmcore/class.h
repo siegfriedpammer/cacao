@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: class.h 7307 2007-02-09 12:47:10Z twisti $
 
 */
 
@@ -75,11 +75,17 @@ typedef struct extra_classref extra_classref;
 
 /* classinfo ******************************************************************/
 
+/* We define this dummy structure of java_lang_Class so we can
+   bootstrap cacaoh without needing a java_lang_Class.h file.  If the
+   size is big enough, is checked during runtime in vm_create. */
+
+typedef struct {
+	java_objectheader header;
+	ptrint            padding[4];
+} dummy_java_lang_Class;
+
 struct classinfo {                /* class structure                          */
-	struct {
-		java_objectheader header;
-		ptrint            padding[4];
-	} object;
+	dummy_java_lang_Class object;
 
 	s4          flags;            /* ACC flags                                */
 	utf        *name;             /* class name                               */

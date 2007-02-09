@@ -45,6 +45,7 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+#include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
 
 #if defined(ENABLE_THREADS)
@@ -761,6 +762,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	if (opt_verbose)
 		log_text("CACAO started -------------------------------------------------------");
+
+	/* We need to check if the actual size of a java.lang.Class object
+	   is smaller or equal than the assumption made in
+	   src/vmcore/class.h. */
+
+	if (sizeof(java_lang_Class) > sizeof(dummy_java_lang_Class))
+		vm_abort("vm_create: java_lang_Class structure is bigger than classinfo.object (%d > %d)", sizeof(java_lang_Class), sizeof(dummy_java_lang_Class));
 
 	/* set the VM starttime */
 
@@ -1954,7 +1962,7 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 	classinfo         *c;
 	java_objectheader *o;
 	methodinfo        *m;
-	java_lang_String  *s;
+	java_objectheader *s;
 
 	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
 
