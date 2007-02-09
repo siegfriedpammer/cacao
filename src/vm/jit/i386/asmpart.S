@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7254 2007-01-29 21:38:54Z twisti $
+   $Id: asmpart.S 7310 2007-02-09 13:00:04Z twisti $
 
 */
 
@@ -658,7 +658,7 @@ asm_compare_and_swap:
 	mov     1*4(sp),%ecx            /* load p into a register                 */
 	mov     2*4(sp),%eax            /* load oldval into return register       */
 	mov     3*4(sp),%edx            /* load newval into a register            */
-	lock cmpxchgl %edx,0(%ecx)
+	lock; cmpxchgl %edx,0(%ecx)
 	ret
 
 
@@ -669,7 +669,7 @@ asm_compare_and_swap:
 *******************************************************************************/
 
 asm_memory_barrier:
-	lock add $0,0(sp)
+	lock; add $0,0(sp)
 	ret
 
 		
