@@ -1,6 +1,6 @@
 /* src/vm/jit/alpha/md.c - machine dependent Alpha functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Joseph Wenninger
-            Christian Thalinger
-            Edwin Steiner
-
-   $Id: md.c 6265 2007-01-02 20:40:57Z edwin $
+   $Id: md.c 7304 2007-02-09 10:35:26Z twisti $
 
 */
 
@@ -53,11 +45,12 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.h" /* XXX debug */
+#include "vmcore/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 
