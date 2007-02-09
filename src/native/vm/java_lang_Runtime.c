@@ -1,9 +1,9 @@
-/* src/native/vm/cldc1.1/java_lang_Runtime.c
+/* src/native/vm/java_lang_VMRuntime.c
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
+   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
+   J. Wenninger, Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
+   $Id: java_lang_VMRuntime.c 7246 2007-01-29 18:49:05Z twisti $
 
 */
 
@@ -30,43 +30,48 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "native/jni.h"
+#include "mm/gc-common.h"
 
-#include "native/include/java_lang_Runtime.h"
+#include "vm/vm.h"
 
-#include "native/vm/java_lang_Runtime.h"
+
+/* should we run all finalizers on exit? */
+static bool finalizeOnExit = false;
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    exitInternal
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lang_Runtime *this, s4 status)
+void _Jv_java_lang_Runtime_exit(s4 status)
 {
-	_Jv_java_lang_Runtime_exit(status);
+	if (finalizeOnExit)
+		gc_finalize_all();
+
+	vm_shutdown(status);
 }
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    freeMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Runtime *this)
+s8 _Jv_java_lang_Runtime_freeMemory(void)
 {
-	return _Jv_java_lang_Runtime_freeMemory();
+	return gc_get_free_bytes();
 }
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    totalMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_Runtime *this)
+s8 _Jv_java_lang_Runtime_totalMemory(void)
 {
-	return _Jv_java_lang_Runtime_totalMemory();
+	return gc_get_heap_size();
 }
 
 
@@ -75,9 +80,9 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_R
  * Method:    gc
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime *this)
+void _Jv_java_lang_Runtime_gc(void)
 {
-	_Jv_java_lang_Runtime_gc();
+	gc_call();
 }
 
 

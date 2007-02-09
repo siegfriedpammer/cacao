@@ -1,6 +1,6 @@
-/* src/native/vm/cldc1.1/java_lang_Runtime.c
+/* src/native/vm/cldc1.1/com_sun_cldc_io_ResourceInputStream.c
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -32,52 +32,20 @@
 
 #include "native/jni.h"
 
-#include "native/include/java_lang_Runtime.h"
-
-#include "native/vm/java_lang_Runtime.h"
-
-
-/*
- * Class:     java/lang/Runtime
- * Method:    exitInternal
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lang_Runtime *this, s4 status)
-{
-	_Jv_java_lang_Runtime_exit(status);
-}
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_String.h"
 
 
 /*
- * Class:     java/lang/Runtime
- * Method:    freeMemory
- * Signature: ()J
+ * Class:     com/sun/cldc/io/ResourceInputStream
+ * Method:    open
+ * Signature: (Ljava/lang/String;)Ljava/lang/Object;
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT java_lang_Object* JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
-	return _Jv_java_lang_Runtime_freeMemory();
-}
+	exceptions_throw_outofmemoryerror();
 
-
-/*
- * Class:     java/lang/Runtime
- * Method:    totalMemory
- * Signature: ()J
- */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_Runtime *this)
-{
-	return _Jv_java_lang_Runtime_totalMemory();
-}
-
-
-/*
- * Class:     java/lang/Runtime
- * Method:    gc
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime *this)
-{
-	_Jv_java_lang_Runtime_gc();
+	return NULL;
 }
 
 

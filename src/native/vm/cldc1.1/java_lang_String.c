@@ -62,11 +62,39 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_hashCode(JNIEnv *env, java_lang_Strin
 
 	hash = 0;
 
-	for (i = offset; i < (offset + count); i++) {
-		hash = (31 * hash) + value->data[i];
+	for (i = 0; i < count; i++) {
+		hash = (31 * hash) + value->data[offset + i];
 	}
 
 	return hash;
+}
+
+
+/*
+ * Class:     java/lang/String
+ * Method:    indexOf
+ * Signature: (I)I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__I(JNIEnv *env, java_lang_String *this, s4 ch)
+{
+	java_chararray *value;
+	s4              offset;
+	s4              count;
+	s4              i;
+
+	/* get values from Java object */
+
+	offset = this->offset;
+	count  = this->count;
+	value  = this->value;
+
+	for (i = 0; i < count; i++) {
+		if (value->data[offset + i] == ch) {
+			return i;
+		}
+	}
+
+	return -1;
 }
 
 
@@ -96,9 +124,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_St
 		return -1;
 	}
 
-	for (i = offset + fromIndex ; i < (offset + count) ; i++) {
-		if (value->data[i] == ch) {
-			return i - offset;
+	for (i = fromIndex ; i < count ; i++) {
+		if (value->data[offset + i] == ch) {
+			return i;
 		}
 	}
 
@@ -127,9 +155,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lan
 
 	start = ((fromIndex >= count) ? count - 1 : fromIndex);
 
-	for (i = offset + start; i >= offset; i--) {
-		if (value->data[i] == ch) {
-			return i - offset;
+	for (i = start; i >= 0; i--) {
+		if (value->data[offset + i] == ch) {
+			return i;
 		}
 	}
 

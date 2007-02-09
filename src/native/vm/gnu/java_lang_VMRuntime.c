@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: java_lang_VMRuntime.c 7305 2007-02-09 11:08:14Z twisti $
 
 */
 
@@ -50,10 +50,13 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/java_io_File.h"
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Process.h"
+
+#include "native/vm/java_lang_Runtime.h"
 
 #include "toolbox/logging.h"
 
@@ -73,10 +76,6 @@
 */
 
 
-/* should we run all finalizers on exit? */
-static bool finalizeOnExit = false;
-
-
 /*
  * Class:     java/lang/VMRuntime
  * Method:    exitInternal
@@ -84,10 +83,7 @@ static bool finalizeOnExit = false;
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, s4 par1)
 {
-	if (finalizeOnExit)
-		gc_finalize_all();
-
-	vm_shutdown(par1);
+	_Jv_java_lang_Runtime_exit(status);
 }
 
 
@@ -98,7 +94,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, 
  */
 JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass clazz)
 {
-	return gc_get_free_bytes();
+	return _Jv_java_lang_Runtime_freeMemory();
 }
 
 
@@ -109,7 +105,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass cla
  */
 JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
 {
-	return gc_get_heap_size();
+	return _Jv_java_lang_Runtime_totalMemory();
 }
 
 
@@ -131,7 +127,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass claz
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_gc(JNIEnv *env, jclass clazz)
 {
-	gc_call();
+	_Jv_java_lang_Runtime_gc();
 }
 
 

@@ -1,6 +1,6 @@
-/* src/native/vm/java_lang_Object.c
+/* src/native/vm/cldc1.1/java_lang_Object.c
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Phil Tomsich
-            Christian Thalinger
-
    $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
 */
@@ -39,9 +34,12 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
-#include "native/native.h"
+
+#include "native/include/java_lang_String.h" /* required by java_lang_Class.h */
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
+
+#include "native/vm/java_lang_Object.h"
 
 
 /*
@@ -65,13 +63,15 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Object_getClass(JNIEnv *env, j
 }
 
 
-#if 0
 /*
  * Class:     java/lang/Object
  * Method:    hashCode
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, struct java_lang_Object* this);
+JNIEXPORT s4 JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_Object *this)
+{
+	return (s4) ((ptrint) this);
+}
 
 
 /*
@@ -79,15 +79,20 @@ JNIEXPORT s4 JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, struct java_lan
  * Method:    notify
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, struct java_lang_Object* this);
+JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Object *this)
+{
+	_Jv_java_lang_Object_notify(this);
+}
 
 
+#if 0
 /*
  * Class:     java/lang/Object
  * Method:    notifyAll
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, struct java_lang_Object* this);
+#endif
 
 
 /*
@@ -95,8 +100,10 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, struct java_
  * Method:    wait
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Object_wait(JNIEnv *env, struct java_lang_Object* this, s8 par1);
-#endif
+JNIEXPORT void JNICALL Java_java_lang_Object_wait(JNIEnv *env, java_lang_Object *this, s8 timeout)
+{
+	_Jv_java_lang_Object_wait(this, timeout, 0);
+}
 
 
 /*

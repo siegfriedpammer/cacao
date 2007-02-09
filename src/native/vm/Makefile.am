@@ -58,6 +58,8 @@ libnativevm_la_SOURCES = \
 	java_lang_Class.h \
 	java_lang_Object.c \
 	java_lang_Object.h \
+	java_lang_Runtime.c \
+	java_lang_Runtime.h \
 	java_lang_Thread.c \
 	java_lang_Thread.h
 

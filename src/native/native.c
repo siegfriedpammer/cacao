@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: native.c 7305 2007-02-09 11:08:14Z twisti $
 
 */
 
@@ -317,10 +317,20 @@ functionptr dummynativetable[] = {
 #endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
+	(functionptr) Java_com_sun_cldc_io_ResourceInputStream_open,
+
+	(functionptr) Java_com_sun_cldc_io_j2me_socket_Protocol_open0,
+	(functionptr) Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf,
+	(functionptr) Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte,
+
 	(functionptr) Java_com_sun_cldchi_io_ConsoleOutputStream_write,
 
 	(functionptr) Java_java_lang_Class_forName,
 	(functionptr) Java_java_lang_Class_newInstance,
+	(functionptr) Java_java_lang_Class_isInstance,
+	(functionptr) Java_java_lang_Class_isAssignableFrom,
+	(functionptr) Java_java_lang_Class_isInterface,
+	(functionptr) Java_java_lang_Class_isArray,
 	(functionptr) Java_java_lang_Class_getName,
 
 	(functionptr) Java_java_lang_Double_doubleToLongBits,
@@ -334,7 +344,20 @@ functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_Math_sqrt,
 	(functionptr) Java_java_lang_Math_tan,
 
+	(functionptr) Java_java_lang_Object_hashCode,
+	(functionptr) Java_java_lang_Object_notify,
+	(functionptr) Java_java_lang_Object_wait,
+
 	(functionptr) Java_java_lang_Runtime_exitInternal,
+	(functionptr) Java_java_lang_Runtime_freeMemory,
+	(functionptr) Java_java_lang_Runtime_totalMemory,
+	(functionptr) Java_java_lang_Runtime_gc,
+
+	(functionptr) Java_java_lang_String_hashCode,
+	(functionptr) Java_java_lang_String_indexOf__I,
+	(functionptr) Java_java_lang_String_indexOf__II,
+	(functionptr) Java_java_lang_String_lastIndexOf__II,
+	(functionptr) Java_java_lang_String_intern,
 
 	(functionptr) Java_java_lang_System_getProperty0,
 

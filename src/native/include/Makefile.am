@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
+## $Id: Makefile.am 7305 2007-02-09 11:08:14Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -70,6 +70,8 @@ JAVASE_HEADER_FILES = \
 	sun_misc_Unsafe.h
 
 JAVAME_CLDC1_1_HEADER_FILES = \
+	com_sun_cldc_io_ResourceInputStream.h \
+	com_sun_cldc_io_j2me_socket_Protocol.h \
 	com_sun_cldchi_io_ConsoleOutputStream.h \
 	java_lang_Math.h \
 	java_lang_Runtime.h \

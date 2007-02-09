@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7270 2007-02-01 12:58:51Z twisti $
+   $Id: exceptions.c 7305 2007-02-09 11:08:14Z twisti $
 
 */
 
@@ -1160,7 +1160,11 @@ void exceptions_throw_outofmemoryerror(void)
 
 void exceptions_throw_unsatisfiedlinkerror(utf *name)
 {
+#if defined(ENABLE_JAVASE)
 	exceptions_throw_utf_utf(utf_java_lang_UnsatisfiedLinkError, name);
+#else
+	exceptions_throw_class_utf(class_java_lang_Error, name);
+#endif
 }
 
 

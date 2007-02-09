@@ -1,6 +1,6 @@
 /* src/native/vm/java_lang_Class.h - java/lang/Class functions
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -21,10 +21,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
 
    $Id: java_lang_VMClass.c 6131 2006-12-06 22:15:57Z twisti $
 
@@ -57,9 +53,15 @@ java_lang_String              *_Jv_java_lang_Class_getName(java_lang_Class *klas
 
 #if defined(ENABLE_JAVASE)
 java_lang_Class               *_Jv_java_lang_Class_forName(java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader);
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+java_lang_Class               *_Jv_java_lang_Class_forName(java_lang_String *name);
+#endif
+
 s4                             _Jv_java_lang_Class_isInstance(java_lang_Class *klass, java_lang_Object *o);
 s4                             _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class *c);
 s4                             _Jv_java_lang_Class_isInterface(java_lang_Class *klass);
+
+#if defined(ENABLE_JAVASE)
 s4                             _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass);
 java_lang_Class               *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass);
 java_objectarray              *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass);
@@ -71,7 +73,11 @@ java_objectarray              *_Jv_java_lang_Class_getDeclaredFields(java_lang_C
 java_objectarray              *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly);
 java_objectarray              *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly);
 java_lang_ClassLoader         *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass);
+#endif
+
 s4                             _Jv_java_lang_Class_isArray(java_lang_Class *klass);
+
+#if defined(ENABLE_JAVASE)
 void                           _Jv_java_lang_Class_throwException(java_lang_Throwable *t);
 
 #if 0
@@ -83,16 +89,12 @@ java_lang_reflect_Constructor *_Jv_java_lang_Class_getEnclosingConstructor(java_
 java_lang_reflect_Method      *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class *klass);
 
 java_lang_String              *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass);
+#endif
 
 #if 0
 s4                             _Jv_java_lang_Class_isAnonymousClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-#endif
-#endif /* ENABLE_JAVASE */
-
-#if defined(ENABLE_JAVAME_CLDC1_1)
-java_lang_Class               *_Jv_java_lang_Class_forName(java_lang_String *name);
 #endif
 
 #endif /* _JV_JAVA_LANG_CLASS_H */

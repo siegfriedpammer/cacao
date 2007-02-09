@@ -190,8 +190,6 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 }
 
 
-#if defined(ENABLE_JAVASE)
-
 /*
  * Class:     java/lang/Class
  * Method:    isInstance
@@ -262,6 +260,8 @@ s4 _Jv_java_lang_Class_isInterface(java_lang_Class *klass)
 	return false;
 }
 
+
+#if defined(ENABLE_JAVASE)
 
 /*
  * Class:     java/lang/Class
@@ -778,6 +778,8 @@ java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass
 	return (java_lang_ClassLoader *) c->classloader;
 }
 
+#endif /* defined(ENABLE_JAVASE) */
+
 
 /*
  * Class:     java/lang/Class
@@ -797,6 +799,8 @@ s4 _Jv_java_lang_Class_isArray(java_lang_Class *klass)
 	return (c->vftbl->arraydesc != NULL);
 }
 
+
+#if defined(ENABLE_JAVASE)
 
 /*
  * Class:     java/lang/Class

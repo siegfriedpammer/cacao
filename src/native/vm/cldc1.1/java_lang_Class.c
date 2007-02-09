@@ -71,6 +71,50 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_Class_newInstance(JNIEnv *env
 
 /*
  * Class:     java/lang/Class
+ * Method:    isInstance
+ * Signature: (Ljava/lang/Object;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_Class_isInstance(JNIEnv *env, java_lang_Class *this, java_lang_Object *obj)
+{
+	return _Jv_java_lang_Class_isInstance(this, obj);
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    isAssignableFrom
+ * Signature: (Ljava/lang/Class;)Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_Class_isAssignableFrom(JNIEnv *env, java_lang_Class *this, java_lang_Class *cls)
+{
+	return _Jv_java_lang_Class_isAssignableFrom(this, cls);
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    isInterface
+ * Signature: ()Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *this)
+{
+	return _Jv_java_lang_Class_isInterface(this);
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    isArray
+ * Signature: ()Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_Class_isArray(JNIEnv *env, java_lang_Class *this)
+{
+	return _Jv_java_lang_Class_isArray(this);
+}
+
+
+/*
+ * Class:     java/lang/Class
  * Method:    getName
  * Signature: ()Ljava/lang/String;
  */
