@@ -40,7 +40,7 @@ static bool finalizeOnExit = false;
 
 
 /*
- * Class:     java/lang/VMRuntime
+ * Class:     java/lang/Runtime
  * Method:    exitInternal
  * Signature: (I)V
  */
@@ -54,7 +54,7 @@ void _Jv_java_lang_Runtime_exit(s4 status)
 
 
 /*
- * Class:     java/lang/VMRuntime
+ * Class:     java/lang/Runtime
  * Method:    freeMemory
  * Signature: ()J
  */
@@ -65,7 +65,7 @@ s8 _Jv_java_lang_Runtime_freeMemory(void)
 
 
 /*
- * Class:     java/lang/VMRuntime
+ * Class:     java/lang/Runtime
  * Method:    totalMemory
  * Signature: ()J
  */
@@ -84,6 +84,23 @@ void _Jv_java_lang_Runtime_gc(void)
 {
 	gc_call();
 }
+
+
+#if defined(ENABLE_JAVASE)
+
+/*
+ * Class:     java/lang/Runtime
+ * Method:    runFinalizersOnExit
+ * Signature: (Z)V
+ */
+void _Jv_java_lang_Runtime_runFinalizersOnExit(s4 value)
+{
+	/* XXX threading */
+
+	finalizeOnExit = value;
+}
+
+#endif
 
 
 /*

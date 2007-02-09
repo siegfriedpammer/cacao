@@ -41,6 +41,10 @@ s8   _Jv_java_lang_Runtime_freeMemory(void);
 s8   _Jv_java_lang_Runtime_totalMemory(void);
 void _Jv_java_lang_Runtime_gc(void);
 
+#if defined(ENABLE_JAVASE)
+void _Jv_java_lang_Runtime_runFinalizersOnExit(s4 value);
+#endif
+
 #endif /* _JV_JAVA_LANG_RUNTIME_H */
 
 

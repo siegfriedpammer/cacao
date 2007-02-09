@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 7305 2007-02-09 11:08:14Z twisti $
+   $Id: java_lang_VMRuntime.c 7306 2007-02-09 11:25:08Z twisti $
 
 */
 
@@ -78,10 +78,10 @@
 
 /*
  * Class:     java/lang/VMRuntime
- * Method:    exitInternal
+ * Method:    exit
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, s4 status)
 {
 	_Jv_java_lang_Runtime_exit(status);
 }
@@ -149,9 +149,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalization(JNIEnv *env, jcl
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, s4 value)
 {
-	/* XXX threading */
-
-	finalizeOnExit = value;
+	_Jv_java_lang_Runtime_runFinalizersOnExit(value);
 }
 
 
