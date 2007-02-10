@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7300 2007-02-07 22:06:53Z pm $
+   $Id: asmpart.S 7312 2007-02-10 00:49:37Z pm $
 
 */
 
@@ -512,7 +512,7 @@ L_bras_jac:
 	lm      %r2,%r5,96(sp)             /* restore volatile int arg regs */
 	ld      %f0,96+16(sp)              /* restore volatile float arg regs */
 	ld      %f2,96+24(sp)              /* restore volatile float arg regs */
-	ld      %r14,96+32(sp)             /* restore return address */
+	l       %r14,96+32(sp)             /* restore return address */
 
 #if 0
 	ltr     v0,v0

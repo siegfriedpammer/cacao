@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7300 2007-02-07 22:06:53Z pm $
+   $Id: codegen.h 7312 2007-02-10 00:49:37Z pm $
 
 */
 
@@ -303,6 +303,20 @@
 
 #define SZ_E 2
 
+#define N_RXE(op, r1, d2, x2, b2) \
+	do { \
+		_CODE4( ((_OP16(op) >> 8) << 24) | (_R(r1) << 20) | \
+			(_R(x2) << 16) | (_R(b2) << 12) | _UI12(d2) ); \
+		_CODE2( _OP16(op) & 0xFF ); \
+	} while (0) 
+
+#define S_RXE 6
+
+#define N_RRF(op, r1, m3, r2) \
+	_CODE4( (_OP16(op) << 16) | (_R(m3) << 12) | (_R(r1) << 4) | _R(r2) )
+
+#define S_RRF 4
+
 /* Condition codes */
 
 #define DD_O 1
@@ -407,6 +421,7 @@
 #define N_LCR(r1, r2) N_RR(0x13, r1, r2)
 #define N_LH(r1, d2, x2, b2) N_RX(0x48, r1, d2, x2, b2)
 #define N_LHI(r1, i2) N_RI(0xA7, 0x8, r1, i2)
+#	define SZ_LHI SZ_RI
 #define N_LM(r1, r3, d2, b2) N_RS(0x98, r1, r3, d2, b2)
 #define N_LNR(r1, r2) N_RR(0x11, r1, r2)
 #define N_LPR(r1, r2) N_RR(0x10, r1, r2)
@@ -483,6 +498,26 @@
 
 /* chapter 19. Binary floating point instructions */
 
+#define N_CEBR(r1, r2) N_RRE(0xB309, r1, r2)
+#define N_CDBR(r1, r2) N_RRE(0xB319, r1, r2)
+#define N_CXBR(r1, r2) N_RRE(0xB349, r1, r2)
+#define N_CEB(r1, d2, x2, b2) N_RXE(0xED09, r1, d2, x2, b2)
+#define N_CDB(r1, d2, x2, b2) N_RXE(0xED19, r1, d2, x2, b2)
+
+#define N_CEFBR(r1, r2) N_RRE(0xB394, r1, r2)
+#define N_CDFBR(r1, r2) N_RRE(0xB395, r1, r2)
+#define N_CXFBR(r1, r2) N_RRE(0xB396, r1, r2)
+
+#define N_CFEBR(r1, m3, r2) N_RRF(0xB398, r1, m3, r2)
+#define N_CFDBR(r1, m3, r2) N_RRF(0xB399, r1, m3, r2)
+#define N_CFXBR(r1, m3, r2) N_RRF(0xB39A, r1, m3, r2)
+
+#define N_MEEBR(r1, r2) N_RRE(0xB317, r1, r2)
+#define N_MDBR(r1, r2) N_RRE(0xB31C, r1, r2)
+#define N_MXBR(r1, r2) N_RRE(0xB34C, r1, r2)
+#define N_MDEBR(r1, r2) N_RRE(0xB30C, r1, r2)
+#define N_MXDBR(r1, r2) N_RRE(0xB307, r1, r2)
+
 /* Alpha like instructions */
 
 #define M_CALL(r2) N_BASR(R14, r2)
@@ -501,8 +536,20 @@
 	N_LA(r, d, RN, b) \
 )
 
-#define M_FLD(r, b, d) _IFNEG(d, assert(0), N_LE(r, d, RN, b))
-#define M_DLD(r, b, d) _IFNEG(d, assert(0), N_LD(r, d, RN, b))
+#define M_FLD(r, b, d) N_LE(r, d, RN, b)
+
+#define M_FLDN(r, b, d, t) _IFNEG( \
+	d, \
+	N_LHI(t, d); N_LE(r, 0, t, b), \
+	N_LE(r, d, RN, b) \
+)
+		
+#define M_DLD(r, b, d) N_LD(r, d, RN, b)
+#define M_DLDN(r, b, d, t) _IFNEG( \
+	d, \
+	N_LHI(t, d); N_LD(r, 0, t, b), \
+	N_LD(r, d, RN, b) \
+)
 
 #define M_LLD(r, b, d) _IFNEG( \
 	d, \
@@ -541,12 +588,20 @@
 #define M_CLR(r) N_LHI(r, 0)
 #define M_AADD_IMM(val, reg) N_LA(reg, val, RN, reg)
 #define M_IADD_IMM(val, reg) N_AHI(reg, val)
+#define M_ISUB_IMM(val, reg) N_AHI(reg, -(val))
 #define M_ASUB_IMM(val, reg) N_AHI(reg, -(val))
 #define M_RET N_BCR(DD_ANY, R14)
 #define M_BSR(ret_reg, disp) N_BRAS(ret_reg, disp)
 #define M_BR(disp) N_BRC(DD_ANY, disp)
 #define M_JMP(rd, rs) N_BCR(DD_ANY, rs)
 #define M_NOP N_BC(0, 0, RN, RN)
+#define M_JSR(reg_ret, reg_addr) N_BASR(reg_ret, reg_addr)
+#define M_ISUB(a, b) N_SR(a, b)
+#define M_ICMP(a, b) N_CR(a, b)
+#define M_CVTIF(src, dst) N_CEFBR(dst, src)
+#define M_CVTID(src, dst) N_CEDBR(dst, src)
+#define M_FMUL(a, dest) N_MEEBR(dest, a)
+#define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
 
 #define ICONST(reg, i) \
 	do { \
@@ -625,10 +680,8 @@
 #define M_LST32_IMM32(a,b,disp) _DEPR( M_LST32_IMM32(a,b,disp) )
 
 #define M_IADD(a,b) _DEPR( M_IADD(a,b) )
-#define M_ISUB(a,b) _DEPR( M_ISUB(a,b) )
 #define M_IMUL(a,b) _DEPR( M_IMUL(a,b) )
 
-#define M_ISUB_IMM(a,b) _DEPR( M_ISUB_IMM(a,b) )
 #define M_IMUL_IMM(a,b,c) _DEPR( M_IMUL_IMM(a,b,c) )
 
 #define M_LADD(a,b) _DEPR( M_LADD(a,b) )
@@ -693,7 +746,6 @@
 #define M_LCMP_IMM_MEMBASE(a,b,c) _DEPR( M_LCMP_IMM_MEMBASE(a,b,c) )
 #define M_LCMP_MEMBASE(a,b,c) _DEPR( M_LCMP_MEMBASE(a,b,c) )
 
-#define M_ICMP(a,b) _DEPR( M_ICMP(a,b) )
 #define M_ICMP_IMM(a,b) _DEPR( M_ICMP_IMM(a,b) )
 #define M_ICMP_IMM_MEMBASE(a,b,c) _DEPR( M_ICMP_IMM_MEMBASE(a,b,c) )
 #define M_ICMP_MEMBASE(a,b,c) _DEPR( M_ICMP_MEMBASE(a,b,c) )
@@ -740,16 +792,12 @@
 #define M_DADD(a,b) _DEPR( M_DADD(a,b) )
 #define M_FSUB(a,b) _DEPR( M_FSUB(a,b) )
 #define M_DSUB(a,b) _DEPR( M_DSUB(a,b) )
-#define M_FMUL(a,b) _DEPR( M_FMUL(a,b) )
 #define M_DMUL(a,b) _DEPR( M_DMUL(a,b) )
 #define M_FDIV(a,b) _DEPR( M_FDIV(a,b) )
 #define M_DDIV(a,b) _DEPR( M_DDIV(a,b) )
 
-#define M_CVTIF(a,b) _DEPR( M_CVTIF(a,b) )
-#define M_CVTID(a,b) _DEPR( M_CVTID(a,b) )
 #define M_CVTLF(a,b) _DEPR( M_CVTLF(a,b) )
 #define M_CVTLD(a,b) _DEPR( M_CVTLD(a,b) )
-#define M_CVTFI(a,b) _DEPR( M_CVTFI(a,b) )
 #define M_CVTDI(a,b) _DEPR( M_CVTDI(a,b) )
 #define M_CVTFL(a,b) _DEPR( M_CVTFL(a,b) )
 #define M_CVTDL(a,b) _DEPR( M_CVTDL(a,b) )

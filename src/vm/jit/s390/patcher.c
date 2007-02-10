@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7300 2007-02-07 22:06:53Z pm $
+   $Id: patcher.c 7312 2007-02-10 00:49:37Z pm $
 
 */
 
@@ -591,52 +591,127 @@ bool patcher_invokeinterface(u1 *sp)
 }
 
 
-/* patcher_checkcast_instanceof_flags ******************************************
+/* patcher_resolve_classref_to_flags *******************************************
 
-   Machine code:
+   CHECKCAST/INSTANCEOF:
 
    <patched call position>
-   41 ba 00 00 00 00                mov    $0x0,%r10d
-   41 81 e2 00 02 00 00             and    $0x200,%r10d
-   0f 84 35 00 00 00                je     0x00002aaaaab01479
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_flags(u1 *sp)
+__PORTED__ bool patcher_resolve_classref_to_flags(u1 *sp)
 {
-	OOPS();
-	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
 	classinfo         *c;
+	u4                 mcode;
+	u1                *ra;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	mcode =                       *((u4 *)     (sp + 3 * 4));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
+	disp  =                       *((s4 *)     (sp + 1 * 4));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u8 *) ra) = mcode;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + 5;
-
 	/* patch class flags */
 
-	*((s4 *) (ra + 2)) = (s4) c->flags;
+	*((s4 *) (pv + disp)) = (s4) c->flags;
+
+	/* patch back original code */
+
+	*((u4 *) ra) = mcode;
 
 	return true;
 }
 
+/* patcher_resolve_classref_to_classinfo ***************************************
+
+   ACONST:
+   MULTIANEWARRAY:
+   ARRAYCHECKCAST:
+
+*******************************************************************************/
+
+__PORTED__ bool patcher_resolve_classref_to_classinfo(u1 *sp)
+{
+	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
+	classinfo         *c;
+	u4                 mcode;
+	u1                *ra;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	mcode =                       *((u4 *)     (sp + 3 * 4));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
+	disp  =                       *((s4 *)     (sp + 1 * 4));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+
+	/* get the classinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch the classinfo pointer */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c;
+
+	/* patch back original code */
+
+	*((u4 *) ra) = mcode;
+
+	return true;
+}
+
+/* patcher_resolve_classref_to_vftbl *******************************************
+
+   CHECKCAST (class):
+   INSTANCEOF (class):
+
+*******************************************************************************/
+
+bool patcher_resolve_classref_to_vftbl(u1 *sp)
+{
+	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
+	classinfo         *c;
+	u4                 mcode;
+	u1                *ra;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	mcode =                       *((u4 *)     (sp + 3 * 4));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
+	disp  =                       *((s4 *)     (sp + 1 * 4));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch super class' vftbl */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+
+	/* patch back original code */
+
+	*((u4 *) ra) = mcode;
+
+	return true;
+}
 
 /* patcher_checkcast_instanceof_interface **************************************
 
@@ -829,19 +904,18 @@ __PORTED__ bool patcher_clinit(u1 *sp)
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-bool patcher_athrow_areturn(u1 *sp)
+__PORTED__ bool patcher_athrow_areturn(u1 *sp)
 {
-	OOPS();
 	u1               *ra;
-	u8                mcode;
+	u4                mcode;
 	unresolved_class *uc;
 	classinfo        *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 5 * 8));
-	mcode =                      *((u8 *)     (sp + 3 * 8));
-	uc    = (unresolved_class *) *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)               *((ptrint *) (sp + 5 * 4));
+	mcode =                      *((u4 *)     (sp + 3 * 4));
+	uc    = (unresolved_class *) *((ptrint *) (sp + 2 * 4));
 
 	/* resolve the class */
 
@@ -850,7 +924,7 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) ra) = mcode;
 
 	return true;
 }
