@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7312 2007-02-10 00:49:37Z pm $
+   $Id: asmpart.S 7313 2007-02-10 14:31:03Z pm $
 
 */
 
@@ -513,12 +513,14 @@ L_bras_jac:
 	ld      %f0,96+16(sp)              /* restore volatile float arg regs */
 	ld      %f2,96+24(sp)              /* restore volatile float arg regs */
 	l       %r14,96+32(sp)             /* restore return address */
+	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
 
 #if 0
 	ltr     v0,v0
 	je      L_asm_call_jit_compiler_exception
 #endif
 
+jit_code_entry:                        /* label to set breakpoint on */
 	br      pv                         /* call the method, it will return to the caller */
 
 

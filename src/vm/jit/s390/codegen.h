@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7312 2007-02-10 00:49:37Z pm $
+   $Id: codegen.h 7313 2007-02-10 14:31:03Z pm $
 
 */
 
@@ -361,7 +361,6 @@
 #define N_BCR(m1, r2) N_RR(0x07, m1, _OR(r2))
 #	define SZ_BCR SZ_RR
 #	define N_BR(r2) N_BCR(DD_ANY, r2)
-#	define SZ_BR SZ_BCR
 #define N_BC(m1, d2, x2, b2) N_RX(0x47, m1, d2, x2, b2)
 #	define SZ_BC SZ_RS
 #define N_BCTR(r1, r2) N_RR(0x06, r1, _OR(r2))

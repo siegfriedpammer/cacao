@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7312 2007-02-10 00:49:37Z pm $
+   $Id: codegen.c 7313 2007-02-10 14:31:03Z pm $
 
 */
 
@@ -1719,14 +1719,14 @@ bool codegen(jitdata *jd)
 
 			N_CEBR(s1, s2);
 
-			M_BGT(SZ_BR + SZ_BR + SZ_BR);
-			M_BLT(SZ_BR + SZ_BR + SZ_LHI + SZ_BR);
-			M_BEQ(SZ_BR + SZ_LHI + SZ_BR + SZ_LHI + SZ_BR);
+			M_BGT(SZ_BRC + SZ_BRC + SZ_BRC);
+			M_BLT(SZ_BRC + SZ_BRC + SZ_LHI + SZ_BRC);
+			M_BEQ(SZ_BRC + SZ_LHI + SZ_BRC + SZ_LHI + SZ_BRC);
 
 			N_LHI(d, iptr->opc == ICMD_FCMPL ? -1 : 1); /* s1 > s2 */
-			M_BR(SZ_BR + SZ_LHI + SZ_BR + SZ_LHI);
+			M_BR(SZ_BRC + SZ_LHI + SZ_BRC + SZ_LHI);
 			N_LHI(d, iptr->opc == ICMD_FCMPL ? 1 : -1); /* s1 < s2 */
-			M_BR(SZ_BR + SZ_LHI);
+			M_BR(SZ_BRC + SZ_LHI);
 			N_LHI(d, 0); /* s1 == s2 */
 
 			emit_store_dst(jd, iptr, d);
@@ -3555,7 +3555,7 @@ gen_method:
 *******************************************************************************/
 
 #define COMPILERSTUB_DATASIZE    (3 * SIZEOF_VOID_P)
-#define COMPILERSTUB_CODESIZE    (SZ_AHI + SZ_L + SZ_L + SZ_BR)
+#define COMPILERSTUB_CODESIZE    (SZ_AHI + SZ_L + SZ_L + SZ_BCR)
 
 #define COMPILERSTUB_SIZE        (COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE)
 
