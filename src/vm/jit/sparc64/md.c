@@ -1,7 +1,36 @@
+/* src/vm/jit/alpha/md.c - machine dependent SPARC functions
+
+   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
+   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
+   J. Wenninger, Institut f. Computersprachen - TU Wien
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+   $Id: md.c 6265 2007-01-02 20:40:57Z edwin $
+
+*/
+
+
+#include "config.h"
 
 #include <assert.h>
 
-#include "config.h"
 
 #include "vm/types.h"
 
@@ -12,10 +41,6 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.h" /* XXX debug */
-#include "vm/jit/disass.h" /* XXX debug */
-#endif
 
 /* shift away 13-bit immediate,  mask rd and rs1    */
 #define SHIFT_AND_MASK(instr) \

@@ -22,10 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Alexander Jordan
    $Id: patcher.c 5164 2006-07-19 15:54:01Z twisti $
 
 */
@@ -37,22 +33,27 @@
 
 #include "vm/types.h"
 
-#include "vm/jit/sparc64/codegen.h"
-
 #include "mm/memory.h"
-#include "native/native.h"
-#include "vm/builtin.h"
-#include "vm/class.h"
-#include "vm/exceptions.h"
-#include "vm/field.h"
-#include "vm/initialize.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
-#include "vm/references.h"
-#include "vm/jit/asmpart.h"
-#include "vm/jit/patcher.h"
 
 #include "vm/jit/sparc64/md-abi.h"
+#include "vm/jit/sparc64/codegen.h"
+
+#include "native/native.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/initialize.h"
+
+#include "vm/jit/asmpart.h"
+#include "vm/jit/patcher.h"
+#include "vm/jit/md.h"
+#include "vm/jit/methodheader.h"
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/options.h"
+#include "vmcore/references.h"
+#include "vmcore/resolve.h"
 
 
 /* patcher_wrapper *************************************************************

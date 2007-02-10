@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Alexander Jordan
-
-   Changes:
-
    $Id: md-abi.h 4357 2006-01-22 23:33:38Z twisti $
 
 */
@@ -38,9 +32,11 @@
 
 #include "vm/jit/sparc64/md-abi.h"
 
-#include "vm/descriptor.h"
 #include "vm/global.h"
+
 #include "vm/jit/abi.h"
+
+#include "vmcore/descriptor.h"
 
 /* temp */
 #include "mm/memory.h"

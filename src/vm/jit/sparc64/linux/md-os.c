@@ -88,9 +88,12 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	} else {
 		addr += (long) ((instr << 16) >> 16);
 
+		/*
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Segmentation fault: 0x%016lx at 0x%016lx\n",
 								   addr, _mc->mc_gregs[MC_PC]);
+								   */
+		assert(0);
 	}
 }
 

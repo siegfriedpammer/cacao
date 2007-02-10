@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Alexander Jordan
-
-   $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
+   $Id: emit.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -40,8 +35,6 @@
 
 #include "mm/memory.h"
 
-#include "vm/exceptions.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
@@ -50,6 +43,8 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+
+#include "vmcore/options.h"
 
 /* how to leaf optimization in the emitted stubs?? */
 #define REG_PV REG_PV_CALLEE

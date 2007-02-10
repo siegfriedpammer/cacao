@@ -22,13 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Alexander Jordan
-            Edwin Steiner
-
    $Id: codegen.c 4644 2006-03-16 18:44:46Z edwin $
 
 */
@@ -54,9 +47,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -65,6 +56,10 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/replace.h"
+#include "vm/jit/stacktrace.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 /* XXX use something like this for window control ? 
  * #define REG_PV (own_window?REG_PV_CALLEE:REG_PV_CALLER)
@@ -1737,7 +1732,7 @@ bool codegen(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uc = iptr->sx.s23.s2.uc;
+				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
 				codegen_add_patch_ref(cd, PATCHER_athrow_areturn, uc, 0);
 			}
@@ -2158,12 +2153,9 @@ bool codegen(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_athrow_areturn,
-									iptr->sx.s23.s2.uc, 0);
+				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP;
-				}
+				codegen_add_patch_ref(cd, PATCHER_athrow_areturn, uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
@@ -3030,13 +3022,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 					s2 = nat_argintregs[nmd->params[j].regoff];
 					M_INTMOVE(s1, s2);
 				} else {
-					s2 = nmd->params[j].regoff;
+					s2 = nmd->params[j].regoff - 6;
 					M_AST(s1, REG_SP, CSTACK + s2 * 8);
 				}
 
 			} else {
 				s1 = md->params[i].regoff + cd->stackframesize;
-				s2 = nmd->params[j].regoff;
+				s2 = nmd->params[j].regoff - 6;
 				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1 * 8);
 				M_AST(REG_ITMP1, REG_SP, CSTACK + s2 * 8);
 			}
@@ -3047,7 +3039,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 				if (!nmd->params[j].inmemory) {
 					/* no mapping to regs needed, native flt args use regoff */
-					s2 = nmd->params[j].regoff;
+					s2 = nmd->params[j].regoff - 6;
 					
 					/* we cannot move flt regs to their native arg locations directly */
 					M_DMOV(s1, s2 + 16);
@@ -3065,7 +3057,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 			} else {
 				s1 = md->params[i].regoff + cd->stackframesize;
-				s2 = nmd->params[j].regoff;
+				s2 = nmd->params[j].regoff - 6;
 				if (IS_2_WORD_TYPE(t)) {
 					M_DLD(REG_FTMP1, REG_SP, CSTACK + s1 * 8);
 					M_DST(REG_FTMP1, REG_SP, CSTACK + s2 * 8);
