@@ -595,7 +595,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	disp = dseg_add_address(cd, m);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_AST(REG_ITMP1, REG_SP, 0 * 8);
-	disp = dseg_add_functionptr(cd, builtin_trace_args);
+	disp = dseg_add_functionptr(cd, builtin_verbosecall_enter);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
 	disp = (s4) (cd->mcodeptr - cd->mcodebase);
@@ -633,6 +633,8 @@ void emit_verbosecall_enter(jitdata *jd)
 
    Generates the code for the call trace.
 
+   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
+
 *******************************************************************************/
 
 #if !defined(NDEBUG)
@@ -653,20 +655,20 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 
-	M_LDA(REG_SP, REG_SP, -4 * 8);
+	M_ASUB_IMM(REG_SP, 4 * 8, REG_SP);
 	M_AST(REG_RA, REG_SP, 0 * 8);
 
 	M_LST(REG_RESULT, REG_SP, 1 * 8);
 	M_DST(REG_FRESULT, REG_SP, 2 * 8);
 
+	M_MOV(REG_RESULT, REG_A0);
+	M_FMOV(REG_FRESULT, REG_FA1);
+	M_FMOV(REG_FRESULT, REG_FA2);
+
 	disp = dseg_add_address(cd, m);
-	M_ALD(rd->argintregs[0], REG_PV, disp);
+	M_ALD(REG_A3, REG_PV, disp);
 
-	M_MOV(REG_RESULT, rd->argintregs[1]);
-	M_FLTMOVE(REG_FRESULT, rd->argfltregs[2]);
-	M_FLTMOVE(REG_FRESULT, rd->argfltregs[3]);
-
-	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
+	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
 	disp = (cd->mcodeptr - cd->mcodebase);
@@ -676,7 +678,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_LLD(REG_RESULT, REG_SP, 1 * 8);
 
 	M_ALD(REG_RA, REG_SP, 0 * 8);
-	M_LDA(REG_SP, REG_SP, 4 * 8);
+	M_AADD_IMM(REG_SP, 4 * 8, REG_SP);
 
 	/* mark trace code */
 

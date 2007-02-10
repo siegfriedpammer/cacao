@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: builtin.h 7316 2007-02-10 19:06:54Z twisti $
 
 */
 
@@ -169,21 +169,21 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o);
 #define BUILTIN_canstore (functionptr) builtin_canstore
 
 #if defined(TRACE_ARGS_NUM)
-void builtin_trace_args(s8 a0, s8 a1,
-#if TRACE_ARGS_NUM >= 4
-						s8 a2, s8 a3,
-#endif /* TRACE_ARGS_NUM >= 4 */
-#if TRACE_ARGS_NUM >= 6
-						s8 a4, s8 a5,
-#endif /* TRACE_ARGS_NUM >= 6 */
-#if TRACE_ARGS_NUM == 8
-						s8 a6, s8 a7,
-#endif /* TRACE_ARGS_NUM == 8 */
-						methodinfo *m);
+void builtin_verbosecall_enter(s8 a0, s8 a1,
+# if TRACE_ARGS_NUM >= 4
+							   s8 a2, s8 a3,
+# endif
+# if TRACE_ARGS_NUM >= 6
+							   s8 a4, s8 a5,
+# endif
+# if TRACE_ARGS_NUM == 8
+							   s8 a6, s8 a7,
+# endif
+							   methodinfo *m);
 /* NOT AN OP */
 #endif /* defined(TRACE_ARGS_NUM) */
 
-void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f);
+void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
 /* NOT AN OP */
 
 s4 builtin_idiv(s4 a, s4 b);

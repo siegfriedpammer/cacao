@@ -958,7 +958,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	disp = dseg_add_address(cd, m);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_AST(REG_ITMP1, REG_SP, PA_SIZE + 0 * 8);
-	disp = dseg_add_functionptr(cd, builtin_trace_args);
+	disp = dseg_add_functionptr(cd, builtin_verbosecall_enter);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP;
@@ -995,6 +995,8 @@ void emit_verbosecall_enter(jitdata *jd)
 
    Generates the code for the call trace.
 
+   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
+
 *******************************************************************************/
 
 #if !defined(NDEBUG)
@@ -1019,52 +1021,48 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_NOP;
 
 #if SIZEOF_VOID_P == 8
-	M_LDA(REG_SP, REG_SP, -4 * 8);              /* keep stack 16-byte aligned */
+	M_ASUB_IMM(REG_SP, 4 * 8, REG_SP);          /* keep stack 16-byte aligned */
 	M_AST(REG_RA, REG_SP, 0 * 8);
 
 	M_LST(REG_RESULT, REG_SP, 1 * 8);
 	M_DST(REG_FRESULT, REG_SP, 2 * 8);
+
+	M_MOV(REG_RESULT, REG_A0);
+	M_DMOV(REG_FRESULT, REG_FA1);
+	M_FMOV(REG_FRESULT, REG_FA2);
+
+	disp = dseg_add_address(cd, m);
+	M_ALD(REG_A4, REG_PV, disp);
 #else
-	M_LDA(REG_SP, REG_SP, -(8*4 + 4 * 8));
+	M_ASUB_IMM(REG_SP, (8*4 + 4 * 8), REG_SP);
 	M_AST(REG_RA, REG_SP, 8*4 + 0 * 8);
 
 	M_LST(REG_RESULT_PACKED, REG_SP, 8*4 + 1 * 8);
 	M_DST(REG_FRESULT, REG_SP, 8*4 + 2 * 8);
-#endif
 
-	disp = dseg_add_address(cd, m);
-	M_ALD(rd->argintregs[0], REG_PV, disp);
-
-#if SIZEOF_VOID_P == 8
-	M_MOV(REG_RESULT, rd->argintregs[1]);
-	M_DMOV(REG_FRESULT, rd->argfltregs[2]);
-	M_FMOV(REG_FRESULT, rd->argfltregs[3]);
-#else
 	switch (md->returntype.type) {
 	case TYPE_LNG:
-# if WORDS_BIGENDIAN == 1
-		M_MOV(REG_RESULT, rd->argintregs[2]);
-		M_MOV(REG_RESULT2, rd->argintregs[3]);
-# else
-		M_MOV(REG_RESULT2, rd->argintregs[2]);
-		M_MOV(REG_RESULT, rd->argintregs[3]);
-# endif
+		M_LNGMOVE(REG_RESULT_PACKED, REG_A0_A1_PACKED);
 		break;
+
 	default:
 # if WORDS_BIGENDIAN == 1
-		M_MOV(REG_ZERO, rd->argintregs[2]);
-		M_MOV(REG_RESULT, rd->argintregs[3]);
+		M_MOV(REG_ZERO, REG_A0);
+		M_MOV(REG_RESULT, REG_A1);
 # else
-		M_MOV(REG_RESULT, rd->argintregs[2]);
-		M_MOV(REG_ZERO, rd->argintregs[3]);
+		M_MOV(REG_RESULT, REG_A0);
+		M_MOV(REG_ZERO, REG_A1);
 # endif
 	}
 
 	M_DST(REG_FRESULT, REG_SP, 4*4);
 	M_FST(REG_FRESULT, REG_SP, 4*4 + 2 * 4);
+
+	disp = dseg_add_address(cd, m);
+	M_ALD(REG_ITMP1, REG_PV, disp);
 #endif
 
-	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
+	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP;
@@ -1074,13 +1072,13 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_LLD(REG_RESULT, REG_SP, 1 * 8);
 
 	M_ALD(REG_RA, REG_SP, 0 * 8);
-	M_LDA(REG_SP, REG_SP, 4 * 8);
+	M_AADD_IMM(REG_SP, 4 * 8, REG_SP);
 #else
 	M_DLD(REG_FRESULT, REG_SP, 8*4 + 2 * 8);
 	M_LLD(REG_RESULT_PACKED, REG_SP, 8*4 + 1 * 8);
 
 	M_ALD(REG_RA, REG_SP, 8*4 + 0 * 8);
-	M_LDA(REG_SP, REG_SP, 8*4 + 4 * 8);
+	M_AADD_IMM(REG_SP, 8*4 + 4 * 8, REG_SP);
 #endif
 
 	/* mark trace code */

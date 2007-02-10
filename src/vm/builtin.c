@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7280 2007-02-03 19:34:10Z twisti $
+   $Id: builtin.c 7316 2007-02-10 19:06:54Z twisti $
 
 */
 
@@ -1440,7 +1440,7 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 #endif /* !defined(NDEBUG) */
 
 
-/* builtin_trace_args **********************************************************
+/* builtin_verbosecall_enter ***************************************************
 
    Print method call with arguments for -verbose:call.
 
@@ -1449,17 +1449,17 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 #if !defined(NDEBUG)
 
 #ifdef TRACE_ARGS_NUM
-void builtin_trace_args(s8 a0, s8 a1,
-#if TRACE_ARGS_NUM >= 4
-						s8 a2, s8 a3,
-#endif /* TRACE_ARGS_NUM >= 4 */
-#if TRACE_ARGS_NUM >= 6
-						s8 a4, s8 a5,
-#endif /* TRACE_ARGS_NUM >= 6 */
-#if TRACE_ARGS_NUM == 8
-						s8 a6, s8 a7,
-#endif /* TRACE_ARGS_NUM == 8 */
-						methodinfo *m)
+void builtin_verbosecall_enter(s8 a0, s8 a1,
+# if TRACE_ARGS_NUM >= 4
+							   s8 a2, s8 a3,
+# endif
+# if TRACE_ARGS_NUM >= 6
+							   s8 a4, s8 a5,
+# endif
+# if TRACE_ARGS_NUM == 8
+							   s8 a6, s8 a7,
+# endif
+							   methodinfo *m)
 {
 	methoddesc *md;
 	char       *logtext;
@@ -1622,14 +1622,14 @@ void builtin_trace_args(s8 a0, s8 a1,
 #endif /* !defined(NDEBUG) */
 
 
-/* builtin_displaymethodstop ***************************************************
+/* builtin_verbosecall_exit ****************************************************
 
    Print method exit for -verbose:call.
 
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
+void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
 {
 	methoddesc *md;
 	char       *logtext;

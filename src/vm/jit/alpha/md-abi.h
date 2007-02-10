@@ -1,6 +1,6 @@
 /* src/vm/jit/alpha/md-abi.h - defines for Alpha ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Christian Ullrich
-
-   $Id: md-abi.h 5387 2006-09-06 22:16:48Z twisti $
+   $Id: md-abi.h 7316 2007-02-10 19:06:54Z twisti $
 
 */
 
@@ -41,6 +35,11 @@
 /* integer registers */
   
 #define REG_RESULT      0    /* to deliver method results                     */
+
+#define REG_A0          16   /* define some argument registers                */
+#define REG_A1          17
+#define REG_A2          18
+#define REG_A3          19
 
 #define REG_RA          26   /* return address                                */
 #define REG_PV          27   /* procedure vector, must be provided by caller  */
@@ -56,14 +55,14 @@
 #define REG_SP          30   /* stack pointer                                 */
 #define REG_ZERO        31   /* always zero                                   */
 
-#define REG_A0          16   /* define some argument registers                */
-#define REG_A1          17
-#define REG_A2          18
-#define REG_A3          19
 
 /* floating point registers */
 
 #define REG_FRESULT     0    /* to deliver floating point method results      */
+
+#define REG_FA0         16   /* define some argument registers                */
+#define REG_FA1         17
+#define REG_FA2         18
 
 #define REG_FTMP1       28   /* temporary floating point register             */
 #define REG_FTMP2       29   /* temporary floating point register             */

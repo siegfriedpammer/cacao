@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/md-abi.h - defines for MIPS ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Christian Ullrich
-
-   $Id: md-abi.h 7206 2007-01-11 22:39:52Z twisti $
+   $Id: md-abi.h 7316 2007-02-10 19:06:54Z twisti $
 
 */
 
@@ -160,37 +154,19 @@
 
 #if SIZEOF_VOID_P == 4
 # if WORDS_BIGENDIAN == 1
+#  define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
+
+#  define REG_A0_A1_PACKED     PACK_REGS(REG_A1, REG_A0)
+
 #  define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
 #  define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)
-#  define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 # else
+#  define REG_RESULT_PACKED    PACK_REGS(REG_RESULT, REG_RESULT2)
+
+#  define REG_A0_A1_PACKED     PACK_REGS(REG_A0, REG_A1)
+
 #  define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP1, REG_ITMP2)
 #  define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP3)
-#  define REG_RESULT_PACKED    PACK_REGS(REG_RESULT, REG_RESULT2)
-# endif
-#endif
-
-
-/* ABI defines ****************************************************************/
-
-#if SIZEOF_VOID_P == 8
-# define PA_SIZE    0                   /* we don't have a parameter area     */
-#else
-# define PA_SIZE    4 * 4               /* parameter area is max. 4 * 4 bytes */
-#endif
-
-
-/* packed register defines ****************************************************/
-
-#if SIZEOF_VOID_P == 4
-# if WORDS_BIGENDIAN == 1
-#  define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
-#  define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)
-#  define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
-# else
-#  define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP1, REG_ITMP2)
-#  define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP3)
-#  define REG_RESULT_PACKED    PACK_REGS(REG_RESULT, REG_RESULT2)
 # endif
 #endif
 

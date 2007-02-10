@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7255 2007-01-29 21:39:38Z twisti $
+   $Id: emit.c 7316 2007-02-10 19:06:54Z twisti $
 
 */
 
@@ -672,7 +672,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	
 	M_AST_IMM(m, REG_SP, TRACE_ARGS_NUM * 8);
 
-	M_MOV_IMM(builtin_trace_args, REG_ITMP1);
+	M_MOV_IMM(builtin_verbosecall_enter, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
 	/* restore temporary registers for leaf methods */
@@ -692,6 +692,8 @@ void emit_verbosecall_enter(jitdata *jd)
 /* emit_verbosecall_exit *******************************************************
 
    Generates the code for the call trace.
+
+   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
 
 *******************************************************************************/
 
@@ -715,21 +717,21 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 
-	M_ASUB_IMM(4 + 8 + 8 + 4 + 8, REG_SP);  /* +8: keep stack 16-byte aligned */
+	M_ASUB_IMM(8 + 8 + 4 + 4 + 8, REG_SP);  /* +8: keep stack 16-byte aligned */
 
-	M_AST_IMM(m, REG_SP, 0 * 4);
+	M_LST(REG_RESULT_PACKED, REG_SP, 0 * 8);
 
-	M_LST(REG_RESULT_PACKED, REG_SP, 1 * 4);
+	M_DSTNP(REG_NULL, REG_SP, 1 * 8);
+	M_FSTNP(REG_NULL, REG_SP, 2 * 8);
 
-	M_DSTNP(REG_NULL, REG_SP, 1 * 4 + 1 * 8);
-	M_FSTNP(REG_NULL, REG_SP, 1 * 4 + 2 * 8);
+	M_AST_IMM(m, REG_SP, 2 * 8 + 1 * 4);
 
-	M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
+	M_MOV_IMM(builtin_verbosecall_exit, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
-	M_LLD(REG_RESULT_PACKED, REG_SP, 1 * 4);
+	M_LLD(REG_RESULT_PACKED, REG_SP, 0 * 4);
 
-	M_AADD_IMM(4 + 8 + 8 + 4 + 8, REG_SP);
+	M_AADD_IMM(8 + 8 + 4 + 4 + 8, REG_SP);
 
 	/* mark trace code */
 

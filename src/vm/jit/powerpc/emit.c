@@ -759,7 +759,7 @@ void emit_verbosecall_enter(jitdata *jd)
 #else
 	M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
 #endif
-	p = dseg_add_functionptr(cd, builtin_trace_args);
+	p = dseg_add_functionptr(cd, builtin_verbosecall_enter);
 	M_ALD(REG_ITMP2, REG_PV, p);
 	M_MTCTR(REG_ITMP2);
 	M_JSR;
@@ -810,6 +810,8 @@ void emit_verbosecall_enter(jitdata *jd)
 
    Generates the code for the call trace.
 
+   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
+
 *******************************************************************************/
 
 void emit_verbosecall_exit(jitdata *jd)
@@ -849,33 +851,22 @@ void emit_verbosecall_exit(jitdata *jd)
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_ADR:
-#if defined(__DARWIN__)
-		M_MOV(REG_RESULT, rd->argintregs[2]);
-		M_CLR(rd->argintregs[1]);
-#else
-		M_MOV(REG_RESULT, rd->argintregs[3]);
-		M_CLR(rd->argintregs[2]);
-#endif
+		M_INTMOVE(REG_RESULT, REG_A1);
+		M_CLR(REG_A0);
 		break;
 
 	case TYPE_LNG:
-#if defined(__DARWIN__)
-		M_MOV(REG_RESULT2, rd->argintregs[2]);
-		M_MOV(REG_RESULT, rd->argintregs[1]);
-#else
-		M_MOV(REG_RESULT2, rd->argintregs[3]);
-		M_MOV(REG_RESULT, rd->argintregs[2]);
-#endif
+		M_LNGMOVE(REG_RESULT_PACKED, REG_A0_A1_PACKED);
 		break;
 	}
 
-	M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
-	M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
+	M_FLTMOVE(REG_FRESULT, REG_FA0);
+	M_FLTMOVE(REG_FRESULT, REG_FA1);
 
 	disp = dseg_add_address(cd, m);
-	M_ALD(rd->argintregs[0], REG_PV, disp);
+	M_ALD(REG_A2, REG_PV, disp);
 
-	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
+	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
 	M_ALD(REG_ITMP2, REG_PV, disp);
 	M_MTCTR(REG_ITMP2);
 	M_JSR;

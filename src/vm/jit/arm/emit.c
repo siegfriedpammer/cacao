@@ -721,7 +721,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* call tracer here (we use a long branch) */
 
-	M_LONGBRANCH(builtin_trace_args);
+	M_LONGBRANCH(builtin_verbosecall_enter);
 
 	/* restore argument registers from stack */
 
@@ -738,6 +738,8 @@ void emit_verbosecall_enter(jitdata *jd)
 /* emit_verbosecall_exit *******************************************************
 
    Generates the code for the call trace.
+
+   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
 
 *******************************************************************************/
 
@@ -763,32 +765,32 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_NOP;
 
 	M_STMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_PV), REG_SP);
-	M_SUB_IMM(REG_SP, REG_SP, (1 + 1) * 4);    /* space for d[high reg] and f */
+	M_SUB_IMM(REG_SP, REG_SP, (1 + 1) * 4);              /* space for f and m */
 
 	switch (md->returntype.type) {
 	case TYPE_ADR:
 	case TYPE_INT:
-		M_INTMOVE(REG_RESULT, GET_LOW_REG(REG_A1_A2_PACKED));
-		M_MOV_IMM(GET_HIGH_REG(REG_A1_A2_PACKED), 0);
+		M_INTMOVE(REG_RESULT, GET_LOW_REG(REG_A0_A1_PACKED));
+		M_MOV_IMM(GET_HIGH_REG(REG_A0_A1_PACKED), 0);
 		break;
 
 	case TYPE_LNG:
-		M_LNGMOVE(REG_RESULT_PACKED, REG_A1_A2_PACKED);
+		M_LNGMOVE(REG_RESULT_PACKED, REG_A0_A1_PACKED);
 		break;
 
 	case TYPE_FLT:
-		M_IST(REG_RESULT, REG_SP, 1 * 4);
+		M_IST(REG_RESULT, REG_SP, 0 * 4);
 		break;
 
 	case TYPE_DBL:
-		M_INTMOVE(REG_RESULT, REG_A3);
-		M_IST(REG_RESULT2, REG_SP, 0 * 4);
+		M_LNGMOVE(REG_RESULT_PACKED, REG_A2_A3_PACKED);
 		break;
 	}
 
 	disp = dseg_add_address(cd, m);
-	M_DSEG_LOAD(REG_A0, disp);
-	M_LONGBRANCH(builtin_displaymethodstop);
+	M_DSEG_LOAD(REG_ITMP1, disp);
+	M_AST(REG_ITMP1, REG_SP, 1 * 4);
+	M_LONGBRANCH(builtin_verbosecall_exit);
 
 	M_ADD_IMM(REG_SP, REG_SP, (1 + 1) * 4);            /* free argument stack */
 	M_LDMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_PV), REG_SP);
