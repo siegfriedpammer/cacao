@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7330 2007-02-11 21:39:54Z twisti $
+   $Id: codegen-common.c 7332 2007-02-11 21:44:35Z twisti $
 
 */
 
@@ -77,6 +77,7 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 
