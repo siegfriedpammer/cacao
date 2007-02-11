@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7327 2007-02-11 20:16:00Z twisti $
+   $Id: codegen-common.c 7330 2007-02-11 21:39:54Z twisti $
 
 */
 
@@ -958,7 +958,9 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
 # endif
-		md_param_alloc(nmd);
+		/* pre-allocate the arguments for the native ABI */
+
+		md_param_alloc_native(nmd);
 #endif
 
 	/* generate the code */
