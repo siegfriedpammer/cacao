@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7259 2007-01-30 13:58:35Z twisti $
+   $Id: md-abi.c 7333 2007-02-11 22:17:27Z twisti $
 
 */
 
@@ -46,6 +46,12 @@ s4 nregdescint[] = {
 	REG_SAV, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
 	REG_END
 };
+
+const char *abi_registers_integer_name[] = {
+	"a1", "a2", "a3", "a4", "v1", "v2", "v3", "v4",
+	"v5", "t3", "t1", "t2", "ip", "sp", "lr", "pc",
+};
+
 
 #if defined(ENABLE_SOFTFLOAT)
 s4 nregdescfloat[] = {
@@ -136,6 +142,105 @@ void md_param_alloc(methoddesc *md)
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 				stacksize += 2;
+			}
+			break;
+		}
+	}
+
+	/* Since R0/R1 (==A0/A1) are used for passing return values, this
+	   argument register usage has to be regarded, too. */
+
+	if (md->returntype.type != TYPE_VOID) {
+		if (!IS_2_WORD_TYPE(md->returntype.type)) {
+			if (reguse < 1)
+				reguse = 1;
+		}
+		else {
+			if (reguse < 2)
+				reguse = 2;
+		}
+	}
+
+	/* fill register and stack usage */
+
+	md->argintreguse = reguse;
+	md->argfltreguse = 0;
+	md->memuse       = stacksize;
+}
+
+
+/* md_param_alloc_native *******************************************************
+
+   Pre-allocate arguments according the native ABI.
+
+*******************************************************************************/
+
+#define ALIGN_2(a)    do { if ((a) & 0x1) (a)++; } while (0)
+
+void md_param_alloc_native(methoddesc *md)
+{
+	paramdesc *pd;
+	s4         i;
+	s4         reguse;
+	s4         stacksize;
+
+	/* set default values */
+
+	reguse    = 0;
+	stacksize = 0;
+
+	/* get params field of methoddesc */
+
+	pd = md->params;
+
+	for (i = 0; i < md->paramcount; i++, pd++) {
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+		case TYPE_FLT:
+			if (reguse < INT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->regoff   = reguse;
+				reguse++;
+			}
+			else {
+				pd->inmemory = true;
+				pd->regoff   = stacksize;
+				stacksize++;
+			}
+			break;
+
+		case TYPE_LNG:
+		case TYPE_DBL:
+			if (reguse < (INT_ARG_CNT - 1)) {
+#if defined(__ARM_EABI__)
+				ALIGN_2(reguse);
+#endif
+				pd->inmemory = false;
+#if defined(__ARMEL__)
+				pd->regoff   = PACK_REGS(reguse, reguse + 1);
+#else
+				pd->regoff   = PACK_REGS(reguse + 1, reguse);
+#endif
+				reguse += 2;
+			}
+			else if (reguse < INT_ARG_CNT) {
+				pd->inmemory = false;
+#if defined(__ARMEL__)
+				pd->regoff   = PACK_REGS(reguse, INT_ARG_CNT);
+#else
+				pd->regoff   = PACK_REGS(INT_ARG_CNT, reguse);
+#endif
+				reguse++;
+				stacksize++;
+			}
+			else {
+#if defined(__ARM_EABI__)
+				ALIGN_2(stacksize);
+#endif
+				pd->inmemory  = true;
+				pd->regoff    = stacksize;
+				stacksize    += 2;
 			}
 			break;
 		}

@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/disass.c - wrapper functions for GNU binutils disassembler
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-
-   $Id: disass.c 6454 2006-01-23 12:19:37Z michi $
+   $Id: disass.c 7333 2007-02-11 22:17:27Z twisti $
 
 */
 
@@ -34,31 +30,13 @@
 #include "config.h"
 
 #include <dis-asm.h>
+#include <stdio.h>
 
 #include "vm/types.h"
+
 #include "vm/global.h"
+
 #include "vm/jit/disass.h"
-
-
-char *regs[] = {
-	"a1",
-	"a2",
-	"a3",
-	"a4",
-	"v1",
-	"v2",
-	"v3",
-	"v4",
-	"v5",
-	"t3",
-	"t1",
-	"t2",
-	"IP",
-	"SP",
-	"LR",
-	"PC",
-	"***"
-};
 
 
 /* disassinstr *****************************************************************
