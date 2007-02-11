@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/md-abi.h - defines for x86_64 Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: md-abi.h 5386 2006-09-06 21:56:21Z twisti $
+   $Id: md-abi.h 7317 2007-02-11 00:02:54Z twisti $
 
 */
 
@@ -81,6 +75,11 @@
   
 #define REG_RESULT      RAX      /* to deliver method results                 */
 
+#define REG_A0          RDI      /* define some argument registers            */
+#define REG_A1          RSI
+#define REG_A2          RDX
+#define REG_A3          RCX
+
 #define REG_ITMP1       RAX      /* temporary register                        */
 #define REG_ITMP2       R10      /* temporary register and method pointer     */
 #define REG_ITMP3       R11      /* temporary register                        */
@@ -95,14 +94,13 @@
 
 #define REG_SP          RSP      /* stack pointer                             */
 
-#define REG_A0          RDI      /* define some argument registers            */
-#define REG_A1          RSI
-#define REG_A2          RDX
-#define REG_A3          RCX
 
 /* floating point registers */
 
 #define REG_FRESULT     XMM0     /* to deliver floating point method results  */
+
+#define REG_FA0         XMM0     /* define some argument registers            */
+#define REG_FA1         XMM1
 
 #define REG_FTMP1       XMM8     /* temporary floating point register         */
 #define REG_FTMP2       XMM9     /* temporary floating point register         */

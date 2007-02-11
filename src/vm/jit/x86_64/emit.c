@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7248 2007-01-29 19:28:12Z twisti $
+   $Id: emit.c 7317 2007-02-11 00:02:54Z twisti $
 
 */
 
@@ -583,7 +583,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_MOV_IMM(m, REG_ITMP2);
 	M_AST(REG_ITMP2, REG_SP, 0 * 8);
-	M_MOV_IMM(builtin_trace_args, REG_ITMP1);
+	M_MOV_IMM(builtin_verbosecall_enter, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
 	/* restore argument registers */
@@ -641,12 +641,12 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_LST(REG_RESULT, REG_SP, 0 * 8);
 	M_DST(REG_FRESULT, REG_SP, 1 * 8);
 
-	M_MOV_IMM(m, rd->argintregs[0]);
-	M_MOV(REG_RESULT, rd->argintregs[1]);
-	M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
-	M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
+	M_INTMOVE(REG_RESULT, REG_A0);
+	M_FLTMOVE(REG_FRESULT, REG_FA0);
+	M_FLTMOVE(REG_FRESULT, REG_FA1);
+	M_MOV_IMM(m, REG_A1);
 
-	M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
+	M_MOV_IMM(builtin_verbosecall_exit, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
 	M_LLD(REG_RESULT, REG_SP, 0 * 8);
