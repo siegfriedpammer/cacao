@@ -44,11 +44,14 @@
 #include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
+
+#include "vm/jit/abi.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/show.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/parse.h"
+
 #include "vmcore/options.h"
 
 
@@ -789,11 +792,11 @@ void show_allocation(s4 type, s4 flags, s4 regoff)
 					GET_HIGH_REG(regoff));
 		else
 #  endif
-			printf("%3s/%3s", regs[GET_LOW_REG(regoff)],
-					regs[GET_HIGH_REG(regoff)]);
+			printf("%3s/%3s", abi_registers_integer_name[GET_LOW_REG(regoff)],
+				   abi_registers_integer_name[GET_HIGH_REG(regoff)]);
 # else
 		printf("%3d/%3d", GET_LOW_REG(regoff),
-				GET_HIGH_REG(regoff));
+			   GET_HIGH_REG(regoff));
 # endif
 		return;
 	} 
@@ -805,7 +808,7 @@ void show_allocation(s4 type, s4 flags, s4 regoff)
 		printf("%3d", regoff);
 	else
 # endif
-		printf("%3s", regs[regoff]);
+		printf("%3s", abi_registers_integer_name[regoff]);
 #else
 	printf("%3d", regoff);
 #endif

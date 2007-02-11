@@ -1,6 +1,6 @@
 /* src/vm/jit/disass.h - disassembler header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: disass.h 7219 2007-01-16 22:18:57Z pm $
+   $Id: disass.h 7331 2007-02-11 21:41:19Z twisti $
 
 */
 
@@ -93,8 +87,6 @@
 extern disassemble_info info;
 extern bool disass_initialized;
 #endif
-
-extern char *regs[];
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
 extern char disass_buf[512];
