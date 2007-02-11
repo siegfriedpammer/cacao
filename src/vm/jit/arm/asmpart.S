@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7259 2007-01-30 13:58:35Z twisti $
+   $Id: asmpart.S 7325 2007-02-11 20:10:35Z twisti $
 
 */
 
@@ -216,10 +216,11 @@ asm_vm_call_method_double:
 *                                                                              *
 *******************************************************************************/
 
-#define MYSTACKSIZE (5*4)
+#define MYSTACKSIZE (6*4)
 
 asm_call_jit_compiler:
 	SAVE_ARGUMENT_REGISTERS             /* save our argument registers & LR   */
+	sub   sp, sp, #4                    /* keep stack 8-byte aligned          */
 
 	mov   a0, itmp1                     /* pass methodinfo pointer            */
 	mov   a1, mptr                      /* pass method pointer                */
@@ -231,6 +232,7 @@ asm_call_jit_compiler:
 	tst   itmp1,itmp1                   /* check for exeption                 */
 	beq   L_asm_call_jit_compiler_exception
 
+	add   sp, sp, #4                    /* keep stack 8-byte aligned          */
 	RESTORE_ARGUMENT_REGISTERS          /* load our argument registers & LR   */
 
 	mov   ip, itmp1
@@ -240,6 +242,7 @@ L_asm_call_jit_compiler_exception:
 	bl    exceptions_get_and_clear_exception
 	mov   xptr, res1                    /* get exception                      */
 
+	add   sp, sp, #4                    /* keep stack 8-byte aligned          */
 	RESTORE_ARGUMENT_REGISTERS          /* load LR                            */
 
 	sub   xpc, lr, #4                   /* xpc = instruction that called us   */

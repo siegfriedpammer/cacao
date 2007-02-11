@@ -658,11 +658,13 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	/* save argument registers to stack (including LR and PV) */
-	M_STMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
-	M_SUB_IMM(REG_SP, REG_SP, (2 + 2 + 1) * 4);     /* space for a3, a4 and m */
+	/* Save argument registers to stack (including LR and PV).  Keep
+	   stack 8-byte aligned. */
 
-	stackframesize += 6 + 2 + 2 + 1;
+	M_STMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
+	M_SUB_IMM(REG_SP, REG_SP, (2 + 2 + 1 + 1) * 4); /* space for a3, a4 and m */
+
+	stackframesize += 6 + 2 + 2 + 1 + 1;
 
 	/* prepare args for tracer */
 
@@ -723,9 +725,10 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_LONGBRANCH(builtin_verbosecall_enter);
 
-	/* restore argument registers from stack */
+	/* Restore argument registers from stack.  Keep stack 8-byte
+	   aligned. */
 
-	M_ADD_IMM(REG_SP, REG_SP, (2 + 2 + 1) * 4);        /* free argument stack */
+	M_ADD_IMM(REG_SP, REG_SP, (2 + 2 + 1 + 1) * 4);    /* free argument stack */
 	M_LDMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
 
 	/* mark trace code */
@@ -764,6 +767,8 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 
+	/* Keep stack 8-byte aligned. */
+
 	M_STMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_PV), REG_SP);
 	M_SUB_IMM(REG_SP, REG_SP, (1 + 1) * 4);              /* space for f and m */
 
@@ -791,6 +796,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_DSEG_LOAD(REG_ITMP1, disp);
 	M_AST(REG_ITMP1, REG_SP, 1 * 4);
 	M_LONGBRANCH(builtin_verbosecall_exit);
+
+	/* Keep stack 8-byte aligned. */
 
 	M_ADD_IMM(REG_SP, REG_SP, (1 + 1) * 4);            /* free argument stack */
 	M_LDMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_PV), REG_SP);
