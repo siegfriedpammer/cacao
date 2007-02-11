@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7305 2007-02-09 11:08:14Z twisti $
+   $Id: native.c 7328 2007-02-11 21:22:07Z twisti $
 
 */
 
@@ -1154,7 +1154,7 @@ java_objectarray *native_get_parametertypes(methodinfo *m)
 
 	/* is the descriptor fully parsed? */
 
-	if (!m->parseddesc->params)
+	if (m->parseddesc->params == NULL)
 		if (!descriptor_params_from_paramtypes(md, m->flags))
 			return NULL;
 
@@ -1172,7 +1172,7 @@ java_objectarray *native_get_parametertypes(methodinfo *m)
 
 	oa = builtin_anewarray(paramcount, class_java_lang_Class);
 
-	if (!oa)
+	if (oa == NULL)
 		return NULL;
 
     /* get classes */
@@ -1202,7 +1202,7 @@ java_objectarray *native_get_exceptiontypes(methodinfo *m)
 
 	oa = builtin_anewarray(m->thrownexceptionscount, class_java_lang_Class);
 
-	if (!oa)
+	if (oa == NULL)
 		return NULL;
 
 	for (i = 0; i < m->thrownexceptionscount; i++) {
@@ -1214,24 +1214,6 @@ java_objectarray *native_get_exceptiontypes(methodinfo *m)
 	}
 
 	return oa;
-}
-
-
-/* native_get_returntype *******************************************************
-
-   Get the returntype class of a method.
-
-*******************************************************************************/
-
-classinfo *native_get_returntype(methodinfo *m)
-{
-	classinfo *c;
-
-	if (!resolve_class_from_typedesc(&(m->parseddesc->returntype), true, false,
-									 &c))
-		return NULL;
-
-	return c;
 }
 
 
