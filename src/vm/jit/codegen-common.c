@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7323 2007-02-11 17:52:12Z pm $
+   $Id: codegen-common.c 7327 2007-02-11 20:16:00Z twisti $
 
 */
 
@@ -86,8 +86,9 @@
 
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/md.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/stacktrace.h"
 
 #if defined(ENABLE_INTRP)
 #include "vm/jit/intrp/intrp.h"
