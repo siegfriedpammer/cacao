@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7313 2007-02-10 14:31:03Z pm $
+   $Id: codegen.h 7323 2007-02-11 17:52:12Z pm $
 
 */
 
@@ -558,21 +558,21 @@
 	N_L(GET_HIGH_REG(r), 0, RN, b); N_L(GET_LOW_REG(r), 4, RN, b) \
 )
 
-#define M_MOV(a, b) N_LR(a, b)
-#define M_FMOV(a, b) N_LDR(a, b)
+/* MOV(a, b) -> mov from A to B */
+
+#define M_MOV(a, b) N_LR(b, a)
+#define M_FMOV(a, b) N_LDR(b, a)
 #define M_DST(r, b, d) _IFNEG(d, assert(0), N_STD(r, d, RN, b))
 #define M_FST(r, b, d) _IFNEG(d, assert(0), N_STE(r, d, RN, b))
 #define M_IST(r, b, d) _IFNEG( \
 	d, \
-	N_LHI(r, d); N_ST(r, 0, r, b), \
+	assert(0), \
 	N_ST(r, d, RN, b) \
 )
 #define M_AST(r, b, d) M_IST(r, b, d)
 #define M_LST(r, b, d) _IFNEG( \
 	d, \
-	N_LHI(GET_LOW_REG(r), d); \
-		N_ST(GET_HIGH_REG(r), 0, GET_LOW_REG(r), b); \
-		N_ST(GET_LOW_REG(r), 4, GET_LOW_REG(r), b), \
+	assert(0), \
 	N_ST(GET_HIGH_REG(r), 0, RN, b); N_ST(GET_LOW_REG(r), 4, RN, b) \
 )
 #define M_TEST(r) N_LTR(r, r)
@@ -595,12 +595,13 @@
 #define M_JMP(rd, rs) N_BCR(DD_ANY, rs)
 #define M_NOP N_BC(0, 0, RN, RN)
 #define M_JSR(reg_ret, reg_addr) N_BASR(reg_ret, reg_addr)
-#define M_ISUB(a, b) N_SR(a, b)
 #define M_ICMP(a, b) N_CR(a, b)
 #define M_CVTIF(src, dst) N_CEFBR(dst, src)
 #define M_CVTID(src, dst) N_CEDBR(dst, src)
 #define M_FMUL(a, dest) N_MEEBR(dest, a)
 #define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
+#define M_IADD(a, dest) N_AR(dest, a)
+#define M_ISUB(a, dest) N_SR(dest, a)
 
 #define ICONST(reg, i) \
 	do { \
@@ -678,7 +679,6 @@
 #define M_IST32_IMM(a,b,disp) _DEPR( M_IST32_IMM(a,b,disp) )
 #define M_LST32_IMM32(a,b,disp) _DEPR( M_LST32_IMM32(a,b,disp) )
 
-#define M_IADD(a,b) _DEPR( M_IADD(a,b) )
 #define M_IMUL(a,b) _DEPR( M_IMUL(a,b) )
 
 #define M_IMUL_IMM(a,b,c) _DEPR( M_IMUL_IMM(a,b,c) )

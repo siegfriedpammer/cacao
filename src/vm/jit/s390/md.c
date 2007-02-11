@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7283 2007-02-04 19:41:14Z pm $
+   $Id: md.c 7323 2007-02-11 17:52:12Z pm $
 
 */
 
@@ -245,7 +245,6 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 	u1 *ra;
 
 	/* on S390 the return address is located on the top of the stackframe */
-	/* TODO is this true? hope so, copyed from alpha */
 
 	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
 

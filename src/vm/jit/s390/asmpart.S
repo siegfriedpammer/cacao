@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7313 2007-02-10 14:31:03Z pm $
+   $Id: asmpart.S 7323 2007-02-11 17:52:12Z pm $
 
 */
 
@@ -132,23 +132,22 @@ asm_getclassvalues_atomic:
 *         void *arg1, void *arg2, void *arg3, void *arg4);                     *
 *                                                                              *
 *******************************************************************************/
-	.align	8
 
-	.quad   0                           /* catch type all                     */
-	.quad   0                           /* handler pc                         */
-	.quad   0                           /* end pc                             */
-	.quad   0                           /* start pc                           */
+	.long   0                           /* catch type all                     */
+	.long   0                           /* handler pc                         */
+	.long   0                           /* end pc                             */
+	.long   0                           /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0                           /* ALIGNMENT PADDING                  */
-	.quad   0                           /* line number table  start           */
-	.quad   0                           /* line number table  size            */
+	.long   0                           /* line number table  start           */
+	.long   0                           /* line number table  size            */
 	.long   0                           /* ALIGNMENT PADDING                  */
 	.long   0                           /* fltsave                            */
 	.long   0                           /* intsave                            */
 	.long   0                           /* isleaf                             */
 	.long   0                           /* IsSync                             */
 	.long   0                           /* frame size                         */
-	.quad   0                           /* codeinfo pointer                   */
+	.long   0                           /* codeinfo pointer                   */
 
 
 asm_vm_call_method:
@@ -186,8 +185,8 @@ r14:  return address
 */
 
 	stm   %r6, %r15, 24(sp)               /* save callers regiters */
-	ahi   sp, -16                         /* allocate stack space for local variables */
-	stm   a0, a2, 0(sp)                   /* save arguments */
+	stm   a0, a2, 8(sp)                   /* save arguments */
+	ahi   sp, -4                          /* allocate stack space for local variables */
 
 	ltr   a1, a1                          /* maybe we have no args... */
 	je    L_no_args
@@ -308,10 +307,11 @@ L_register_copy_done:
 	sr    s4, s0                        /* - integer arguments in registers */
 	sr    s4, s1                        /* - float arguments in registers */
 
+	lr    s3, sp                        /* backup stack pointer (does not alter CC) */
+
 	je    L_copy_done                   /* no arguments left for stack */
 
 	sll   s4, 3                         /* allocate 8 bytes per parameter on stack */	
-	lr    s3, sp                        /* backup stack pointer */
 	sr    sp, s4                        /* allocate stack space for arguments */ 
 
 	lr    s2, sp                        /* points now to current argument on stack */
@@ -336,7 +336,7 @@ L_stack_handle_int:
 	tm    offvmargtype(itmp1), 0x01      /* is this a 2 word type ? */
 	jne   L_stack_handle_long
 
-	mvc   0(4, s2), offvmargdata(itmp1)  /* copy integer value */
+	mvc   0(4, s2), offvmargdata+4(itmp1) /* copy integer value */
 	ahi   s2, 4
 	j     L_stack_copy_loop
 
@@ -384,10 +384,10 @@ L_copy_done:
 	basr  mptr, 0                         /* store PC */
 L_basr:
 	la    mptr, L_asm_call_jit_compiler-L_basr(mptr) /* add offset to PC */
-	st    mptr, 12(s3)                    /* store on stack */
+	st    mptr, 0(s3)                     /* store on stack */
 
-	l     itmp1, 0(s3)                    /* load methodinfo for compiler */
-	la    mptr, 12(s3)                    /* store **function in mptr for compiler */
+	l     itmp1, 4+8(s3)                  /* load methodinfo for compiler */
+	la    mptr, 0(s3)                     /* store **function in mptr for compiler */
 
 	/* call L_asm_call_jit_compiler like JIT code would do */
 
@@ -399,7 +399,7 @@ L_basr:
 
 L_asm_vm_call_method_return:
 
-	ahi   sp, 16                          /* remove stack space for local variables */
+	ahi   sp, 4                           /* remove stack space for local variables */
 	lm    %r6, %r15, 24(sp)               /* restore callers registers */
 	br    %r14                            /* return */
 
@@ -410,19 +410,19 @@ L_no_args:
 	j     L_copy_done
 
 L_handle_i0:
-	l     a0, offvmargdata(itmp1)
+	l     a0, offvmargdata+4(itmp1)
 	j     L_register_copy
 L_handle_i1:
-	l     a1, offvmargdata(itmp1)
+	l     a1, offvmargdata+4(itmp1)
 	j     L_register_copy
 L_handle_i2:
-	l     a2, offvmargdata(itmp1)
+	l     a2, offvmargdata+4(itmp1)
 	j     L_register_copy
 L_handle_i3:
-	l     a3, offvmargdata(itmp1)
+	l     a3, offvmargdata+4(itmp1)
 	j     L_register_copy
 L_handle_i4:
-	l     a4, offvmargdata(itmp1)
+	l     a4, offvmargdata+4(itmp1)
 	j     L_register_copy
 
 L_handle_l0:

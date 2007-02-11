@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: stacktrace.c 7323 2007-02-11 17:52:12Z pm $
 
 */
 
@@ -194,7 +194,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, u1 *ra, u1 *xpc)
 {
 	stackframeinfo **psfi;
-#if !defined(__I386__) && !defined(__X86_64__)
+#if !defined(__I386__) && !defined(__X86_64__) && !defined(__S390__)
 	bool             isleafmethod;
 #endif
 #if defined(ENABLE_JIT)
@@ -227,9 +227,11 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	if (!opt_intrp) {
 # endif
-# if defined(__I386__) || defined(__X86_64__)
+# if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
 		/* On i386 and x86_64 we always have to get the return address
 		   from the stack. */
+		/* On S390 we use REG_RA as REG_ITMP3, so we have always to get
+		   the RA from stack. */
 
 		framesize = *((u4 *) (pv + FrameSize));
 

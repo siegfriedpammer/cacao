@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7300 2007-02-07 22:06:53Z pm $
+   $Id: codegen-common.c 7323 2007-02-11 17:52:12Z pm $
 
 */
 
@@ -86,7 +86,6 @@
 
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/md.h"
 #include "vm/jit/stacktrace.h"
 #include "vm/jit/replace.h"
 
@@ -514,18 +513,27 @@ static s4 methodtree_comparator(const void *pc, const void *element)
 	   otherwise the avl_probe sometimes thinks the element is already in the
 	   tree */
 
-	if ((long) mte->startpc <= (long) mtepc->startpc &&
-		(long) mtepc->startpc <= (long) mte->endpc &&
-		(long) mte->startpc <= (long) mtepc->endpc &&
-		(long) mtepc->endpc <= (long) mte->endpc) {
+#ifdef __S390__
+	/* On S390 addresses are 31 bit, and therefore are ambigue. */
+#	define ADDR_MASK(a) ((a) & 0x7FFFFFFF)
+#else
+#	define ADDR_MASK(a) (a)
+#endif
+
+	if (ADDR_MASK((long) mte->startpc) <= ADDR_MASK((long) mtepc->startpc) &&
+		ADDR_MASK((long) mtepc->startpc) <= ADDR_MASK((long) mte->endpc) &&
+		ADDR_MASK((long) mte->startpc) <= ADDR_MASK((long) mtepc->endpc) &&
+		ADDR_MASK((long) mtepc->endpc) <= ADDR_MASK((long) mte->endpc)) {
 		return 0;
 
-	} else if ((long) mtepc->startpc < (long) mte->startpc) {
+	} else if (ADDR_MASK((long) mtepc->startpc) < ADDR_MASK((long) mte->startpc)) {
 		return -1;
 
 	} else {
 		return 1;
 	}
+
+#	undef ADDR_MASK
 }
 
 

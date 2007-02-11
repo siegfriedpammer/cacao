@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7313 2007-02-10 14:31:03Z pm $
+   $Id: codegen.c 7323 2007-02-11 17:52:12Z pm $
 
 */
 
@@ -150,14 +150,14 @@ bool codegen(jitdata *jd)
 	s4 i, p, t, l;
 	s4 savedregs_num;
 
-  	savedregs_num = 1; /* space to save RA */
+  	savedregs_num = 0; 
 
 	/* space to save used callee saved registers */
 
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
 
-	cd->stackframesize = rd->memuse + savedregs_num;
+	cd->stackframesize = rd->memuse + savedregs_num + 1 /* space to save RA */;
 
 	/* CAUTION:
 	 * As REG_ITMP3 == REG_RA, do not touch REG_ITMP3, until it has been saved.
@@ -196,8 +196,11 @@ bool codegen(jitdata *jd)
 		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 4); /* IsSync        */
 	else
 #endif
-		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
-	                                       
+/*
+		(void) dseg_add_unique_s4(cd, 0);*/                  /* IsSync          */
+
+	disp = dseg_add_unique_address(cd, 0);
+
 	(void) dseg_add_unique_s4(cd, jd->isleafmethod);               /* IsLeaf  */
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
@@ -232,6 +235,9 @@ bool codegen(jitdata *jd)
 
 	if (cd->stackframesize)
 		M_ASUB_IMM(cd->stackframesize * 4, REG_SP);
+
+	N_LHI(REG_ITMP2, disp);
+	N_ST(REG_SP, 0, REG_ITMP2, REG_PV);
 
 	/* save used callee saved registers and return address */
 
@@ -665,8 +671,7 @@ bool codegen(jitdata *jd)
 
 
 		case ICMD_IADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
-			OOPS();
-#if 0
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -677,7 +682,7 @@ bool codegen(jitdata *jd)
 				M_IADD(s2, d);
 			}
 			emit_store_dst(jd, iptr, d);
-#endif
+
 			break;
 
 		case ICMD_IINC:
@@ -725,8 +730,7 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_ISUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
-			OOPS();
-#if 0
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -739,7 +743,7 @@ bool codegen(jitdata *jd)
 				M_ISUB(s2, d);
 			}
 			emit_store_dst(jd, iptr, d);
-#endif
+
 			break;
 
 		case ICMD_ISUBCONST:  /* ..., value  ==> ..., value + constant        */
@@ -2254,21 +2258,16 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
-			OOPS();
-#if 0
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			gen_nullptr_check(s1);
+			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-/* 				PROFILE_CYCLE_STOP; */
-
-				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
-
-/* 				PROFILE_CYCLE_START; */
+				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -2278,25 +2277,34 @@ bool codegen(jitdata *jd)
 
 			switch (fieldtype) {
 			case TYPE_INT:
-				d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-				M_ILD32(d, s1, disp);
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+				M_ILD(d, s1, disp);
 				break;
 			case TYPE_LNG:
+   				d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+				if (GET_HIGH_REG(d) == s1) {
+					M_ILD(GET_LOW_REG(d), s1, disp + 4);
+					M_ILD(GET_HIGH_REG(d), s1, disp);
+				}
+				else {
+					M_ILD(GET_HIGH_REG(d), s1, disp);
+					M_ILD(GET_LOW_REG(d), s1, disp + 4);
+				}
+				break;
 			case TYPE_ADR:
-				d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-				M_LLD32(d, s1, disp);
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+				M_ALD(d, s1, disp);
 				break;
 			case TYPE_FLT:
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-				M_FLD32(d, s1, disp);
+				M_FLD(d, s1, disp);
 				break;
 			case TYPE_DBL:				
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-				M_DLD32(d, s1, disp);
+				M_DLD(d, s1, disp);
 				break;
 			}
 			emit_store_dst(jd, iptr, d);
-#endif
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
@@ -3691,7 +3699,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
@@ -3726,12 +3734,13 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* get function address (this must happen before the stackframeinfo) */
 
+	disp = dseg_add_functionptr(cd, f);
+
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL)
-		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, 0);
+		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, disp);
 #endif
 
-	disp = dseg_add_functionptr(cd, f);
 	M_ILD(REG_ITMP1, REG_PV, disp);
 
 	j = 96 + (nmd->memuse * 4);
@@ -3955,11 +3964,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_MOV_IMM(asm_handle_nat_exception, REG_ITMP3);
 	M_JMP(REG_ITMP3);
 
+#endif
 	/* generate patcher stubs */
 
 	emit_patcher_stubs(jd);
 
-#endif
 	codegen_finish(jd);
 
 	return code->entrypoint;

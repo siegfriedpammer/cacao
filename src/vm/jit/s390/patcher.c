@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7312 2007-02-10 00:49:37Z pm $
+   $Id: patcher.c 7323 2007-02-11 17:52:12Z pm $
 
 */
 
@@ -933,46 +933,38 @@ __PORTED__ bool patcher_athrow_areturn(u1 *sp)
 
 /* patcher_resolve_native ******************************************************
 
-   Machine code:
-
-   <patched call position>
-   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
-   48 ff d0                         callq  *%rax
-
 *******************************************************************************/
 
 #if !defined(WITH_STATIC_CLASSPATH)
-bool patcher_resolve_native(u1 *sp)
+__PORTED__ bool patcher_resolve_native(u1 *sp)
 {
-	OOPS();
 	u1          *ra;
-	u8           mcode;
+	u4           mcode;
 	methodinfo  *m;
 	functionptr  f;
+	s4           disp;
+	u1          *pv;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)         *((ptrint *) (sp + 5 * 8));
-	mcode =                *((u8 *)     (sp + 3 * 8));
-	m     = (methodinfo *) *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)         *((ptrint *) (sp + 5 * 4));
+	mcode =                *((u4 *)     (sp + 3 * 4));
+	disp  =                *((s4 *)     (sp + 1 * 4));
+	m     = (methodinfo *) *((ptrint *) (sp + 2 * 4));
+	pv    = (u1 *)         *((ptrint *) (sp + 0 * 4));
 
 	/* resolve native function */
 
 	if (!(f = native_resolve_function(m)))
 		return false;
 
-	/* patch back original code */
-
-	*((u8 *) ra) = mcode;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + 5;
-
 	/* patch native function pointer */
 
-	*((ptrint *) (ra + 2)) = (ptrint) f;
+	*((ptrint *) (pv + disp)) = (ptrint) f;
+
+	/* patch back original code */
+
+	*((u4 *) ra) = mcode;
 
 	return true;
 }
