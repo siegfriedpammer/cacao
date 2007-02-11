@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: abi.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: abi.h 7329 2007-02-11 21:24:14Z twisti $
 
 */
 
@@ -43,8 +43,22 @@ extern s4 nregdescint[];
 extern char *regs[];
 extern s4 nregdescfloat[];
 
+extern const char *abi_registers_integer_name[];
+extern const s4    abi_registers_integer_argument[];
+extern const s4    abi_registers_integer_saved[];
+extern const s4    abi_registers_integer_temporary[];
+
+extern const char *abi_registers_float_name[];
+extern const s4    abi_registers_float_argument[];
+extern const s4    abi_registers_float_saved[];
+extern const s4    abi_registers_float_temporary[];
+
 
 /* function prototypes ********************************************************/
+
+/* machine dependent descriptor function */
+void md_param_alloc(methoddesc *md);
+void md_param_alloc_native(methoddesc *md);
 
 /* machine dependent return value handling function */
 void md_return_alloc(jitdata *jd, stackptr stackslot);

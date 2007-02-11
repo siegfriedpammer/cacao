@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: descriptor.h 7329 2007-02-11 21:24:14Z twisti $
 
 */
 
@@ -177,9 +177,6 @@ void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
 void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
 void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
 #endif /* !defined(NDEBUG) */
-
-/* machine dependent descriptor function */
-void md_param_alloc(methoddesc *md);
 
 #endif /* _DESCRIPTOR_H */
 
