@@ -43,6 +43,7 @@
 
 /* forward typedefs ***********************************************************/
 
+typedef struct rplalloc rplalloc;
 typedef struct rplpoint rplpoint;
 typedef struct executionstate_t executionstate_t;
 typedef struct sourcestate_t sourcestate_t;
@@ -70,8 +71,6 @@ typedef union  replace_val_t replace_val_t;
 
 
 /*** structs *********************************************************/
-
-typedef struct rplalloc rplalloc;
 
 #define RPLALLOC_STACK  -1
 #define RPLALLOC_PARAM  -2

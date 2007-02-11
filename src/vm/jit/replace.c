@@ -40,9 +40,7 @@
 
 #include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
-#include "vm/classcache.h"
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
@@ -51,6 +49,8 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/show.h"
 #include "vm/jit/methodheader.h"
+#include "vmcore/options.h"
+#include "vmcore/classcache.h"
 
 #include "native/include/java_lang_String.h"
 
