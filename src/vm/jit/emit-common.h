@@ -1,6 +1,6 @@
 /* src/vm/jit/emit-common.h - common code emitter functions
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,20 +22,18 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
    $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
 
-#ifndef _EMIT_H
-#define _EMIT_H
+#ifndef _EMIT_COMMON_H
+#define _EMIT_COMMON_H
 
+#include "config.h"
 #include "vm/types.h"
 
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
 
 
@@ -53,6 +51,9 @@
 
 # define IS_IMM8(c) \
     (((s4) (c) >= -128) && ((s4) (c) <= 127))
+
+# define IS_IMM16(c) \
+    (((s4) (c) >= -32768) && ((s4) (c) <= 32767))
 
 #endif
 
@@ -121,7 +122,7 @@ void emit_replacement_stubs(jitdata *jd);
 void emit_verbosecall_enter(jitdata *jd);
 void emit_verbosecall_exit(jitdata *jd);
 
-#endif /* _EMIT_H */
+#endif /* _EMIT_COMMON_H */
 
 
 /*
