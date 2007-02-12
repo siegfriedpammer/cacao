@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7255 2007-01-29 21:39:38Z twisti $
+   $Id: md-abi.c 7334 2007-02-12 00:34:51Z twisti $
 
 */
 
@@ -46,10 +46,9 @@ s4 nregdescint[] = {
     REG_END
 };
 
-char *regs[] = {
+const char *abi_registers_integer_name[] = {
 	"eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"
 };
-
 
 
 s4 nregdescfloat[] = {
@@ -96,6 +95,21 @@ void md_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 	md->argintreguse = 0;
 	md->argfltreguse = 0;
+}
+
+
+/* md_param_alloc_native *******************************************************
+
+   Pre-allocate arguments according the native ABI.
+
+*******************************************************************************/
+
+void md_param_alloc_native(methoddesc *md)
+{
+	/* On i386 we use the same ABI for JIT method calls as for native
+	   method calls. */
+
+	md_param_alloc(md);
 }
 
 
