@@ -1,6 +1,6 @@
 /* src/vm/jit/alpha/disass.c - primitive disassembler for Alpha machine code
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-
-   $Id: disass.c 6261 2006-12-28 21:21:08Z twisti $
+   $Id: disass.c 7335 2007-02-12 10:43:33Z twisti $
 
 */
 
@@ -40,6 +34,8 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
+
+#include "vm/jit/abi.h"
 #include "vm/jit/disass.h"
 
 
@@ -281,14 +277,14 @@ u1 *disassinstr(u1 *code)
 		switch ((c >> 14) & 3) {  /* branch hint */
 		case 0:
 			if (ra == 31) {
-				printf("jmp     (%s)\n", regs[rb]); 
+				printf("jmp     (%s)\n", abi_registers_integer_name[rb]); 
 				goto _return;
 			}
 			printf("jmp     "); 
 			break;
 		case 1:
 			if (ra == 26) {
-				printf("jsr     (%s)\n", regs[rb]); 
+				printf("jsr     (%s)\n", abi_registers_integer_name[rb]); 
 				goto _return;
 			}
 			printf("jsr     "); 
@@ -299,7 +295,7 @@ u1 *disassinstr(u1 *code)
 				goto _return;
 			}
 			if (ra == 31) {
-				printf("ret     (%s)\n", regs[rb]); 
+				printf("ret     (%s)\n", abi_registers_integer_name[rb]); 
 				goto _return;
 			}
 			printf("ret     ");
@@ -308,7 +304,8 @@ u1 *disassinstr(u1 *code)
 			printf("jsr_co  "); 
 			break;
 		}
-		printf("%s,(%s)\n", regs[ra], regs[rb]); 
+		printf("%s,(%s)\n", abi_registers_integer_name[ra],
+			   abi_registers_integer_name[rb]); 
 		break;
 
 	case ITYPE_MEM: {
@@ -317,12 +314,15 @@ u1 *disassinstr(u1 *code)
 		if (op == 0x18 && ra == 0 && ra == 0 && disp == 0)
 			printf("trapb\n"); 
 		else
-			printf("%s %s,%d(%s)\n", ops[op].name, regs[ra], disp, regs[rb]); 
+			printf("%s %s,%d(%s)\n", ops[op].name,
+				   abi_registers_integer_name[ra], disp,
+				   abi_registers_integer_name[rb]); 
 		break;
 	}
 
 	case ITYPE_FMEM:
-		printf("%s $f%d,%d(%s)\n", ops[op].name, ra, (c << 16) >> 16, regs[rb]); 
+		printf("%s $f%d,%d(%s)\n", ops[op].name, ra, (c << 16) >> 16,
+			   abi_registers_integer_name[rb]); 
 		break;
 
 	case ITYPE_BRA:                            /* 21 bit signed branch offset */
@@ -331,8 +331,9 @@ u1 *disassinstr(u1 *code)
 		else if (op == 0x34 && ra == 26)
 			printf("brs     0x%016lx\n", (u8) code + 4 + ((c << 11) >> 9));
 		else
-			printf("%s %s,0x%016lx\n",
-				   ops[op].name, regs[ra], (u8) code + 4 + ((c << 11) >> 9));
+			printf("%s %s,0x%016lx\n", ops[op].name,
+				   abi_registers_integer_name[ra],
+				   (u8) code + 4 + ((c << 11) >> 9));
 		break;
 			
 	case ITYPE_FOP: {
@@ -359,19 +360,23 @@ u1 *disassinstr(u1 *code)
 			if (ra == 31 && rc == 31)
 				printf("nop\n");
 			else if (ra == 31)
-				printf("clr     %s\n", regs[rc]);
+				printf("clr     %s\n", abi_registers_integer_name[rc]);
 			else
-				printf("mov     %s,%s\n", regs[ra], regs[rc]);
+				printf("mov     %s,%s\n", abi_registers_integer_name[ra],
+					   abi_registers_integer_name[rc]);
 			goto _return;
 		}
 		for (i = 0; op3s[i].name; i++) {
 			if (op3s[i].op == op && op3s[i].fun == opfun) {
 				if (c & 0x1000)                      /* immediate instruction */
-					printf("%s %s,%d,%s\n",
-						   op3s[i].name, regs[ra], lit, regs[rc]);
+					printf("%s %s,%d,%s\n", op3s[i].name,
+						   abi_registers_integer_name[ra], lit,
+						   abi_registers_integer_name[rc]);
 				else
-					printf("%s %s,%s,%s\n",
-						   op3s[i].name, regs[ra], regs[rb], regs[rc]);
+					printf("%s %s,%s,%s\n", op3s[i].name,
+						   abi_registers_integer_name[ra],
+						   abi_registers_integer_name[rb],
+						   abi_registers_integer_name[rc]);
 				goto _return;
 			}
 		}

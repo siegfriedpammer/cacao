@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7251 2007-01-29 20:24:53Z twisti $
+   $Id: md-abi.c 7335 2007-02-12 10:43:33Z twisti $
 
 */
 
@@ -57,7 +57,7 @@ s4 nregdescint[] = {
 	REG_END
 };
 
-char *regs[] = {
+const char *abi_registers_integer_name[] = {
 	"v0",  "t0",  "t1",  "t2",  "t3",  "t4",  "t5",  "t6",
 	"t7",  "s0",  "s1",  "s2",  "s3",  "s4",  "s5",  "s6",
 	"a0",  "a1",  "a2",  "a3",  "a4",  "a5",  "t8",  "t9",
@@ -104,13 +104,13 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff   = reguse;
 				reguse++;
 				md->argintreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 				stacksize++;
 			}
 			break;
@@ -119,13 +119,13 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (i < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff   = reguse;
 				reguse++;
 				md->argfltreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 				stacksize++;
 			}
 			break;
@@ -135,6 +135,21 @@ void md_param_alloc(methoddesc *md)
 	/* fill register and stack usage */
 
 	md->memuse = stacksize;
+}
+
+
+/* md_param_alloc_native *******************************************************
+
+   Pre-allocate arguments according to the native ABI.
+
+*******************************************************************************/
+
+void md_param_alloc_native(methoddesc *md)
+{
+	/* On Alpha we use the same ABI for JIT method calls as for native
+	   method calls. */
+
+	md_param_alloc(md);
 }
 
 
