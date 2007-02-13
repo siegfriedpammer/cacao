@@ -30,6 +30,7 @@
 #include "config.h"
 #include "vm/types.h"
 
+
 #include "native/jni.h"
 #include "native/include/java_lang_Thread.h"
 
@@ -96,6 +97,26 @@ threadobject *threads_create_thread(utf *name)
 	return thread;
 }
 #endif
+
+
+/* threads_get_current_tid *****************************************************
+
+   Return the tid of the current thread.
+   
+   RETURN VALUE:
+       the current tid
+
+*******************************************************************************/
+
+ptrint threads_get_current_tid(void)
+{
+	threadobject *thread;
+
+	thread = THREADOBJECT;
+
+	return (ptrint) thread->tid;
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

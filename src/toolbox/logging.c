@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: logging.c 7266 2007-01-31 17:02:47Z twisti $
+   $Id: logging.c 7345 2007-02-13 13:04:21Z twisti $
 
 */
 
@@ -69,40 +69,40 @@ void log_init(const char *fname)
 
 *******************************************************************************/
 
-/* ATTENTION: Don't include threads.h, because we can't bootstrap this
-   file in that case (missing java_lang_Thread.h).  Instead we declare
-   threads_get_current_threadobject differently: */
+/* ATTENTION: Don't include threads-common.h, because we can't
+   bootstrap this file in that case (missing java_lang_Thread.h).
+   Instead we declare threads_get_current_threadobject differently: */
 
 /* #if defined(ENABLE_THREADS) */
-/* # include "threads/native/threads.h" */
+/* # include "threads/threads-common.h" */
 /* #endif */
 
-extern void *threads_get_current_threadobject(void);
+extern ptrint threads_get_current_tid(void);
 
 
 void log_start(void)
 {
 #if defined(ENABLE_THREADS)
-	ptrint thread;
+	ptrint tid;
 
-	thread = (ptrint) threads_get_current_threadobject();
+	tid = threads_get_current_tid();
 #endif
 
 	if (logfile) {
 #if defined(ENABLE_THREADS)
 # if SIZEOF_VOID_P == 8
-		fprintf(logfile, "[0x%016lx] ", thread );
+		fprintf(logfile, "[0x%016lx] ", tid );
 # else
-		fprintf(logfile, "[0x%08x] ", thread);
+		fprintf(logfile, "[0x%08x] ", tid);
 # endif
 #endif
 	}
 	else {
 #if defined(ENABLE_THREADS)
 # if SIZEOF_VOID_P == 8
-		fprintf(stdout, "LOG: [0x%016lx] ", thread);
+		fprintf(stdout, "LOG: [0x%016lx] ", tid);
 # else
-		fprintf(stdout, "LOG: [0x%08x] ", thread);
+		fprintf(stdout, "LOG: [0x%08x] ", tid);
 # endif
 #else
 		fputs("LOG: ", stdout);

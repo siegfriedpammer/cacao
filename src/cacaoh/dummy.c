@@ -436,9 +436,9 @@ java_objectarray *stacktrace_getClassContext()
 
 pthread_key_t threads_current_threadobject_key;
 
-void *threads_get_current_threadobject(void)
+ptrint threads_get_current_tid(void)
 {
-	return NULL;
+	return 0;
 }
 
 

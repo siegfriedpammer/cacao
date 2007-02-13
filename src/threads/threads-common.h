@@ -52,6 +52,7 @@
 /* function prototypes ********************************************************/
 
 threadobject *threads_create_thread(utf *name);
+ptrint        threads_get_current_tid(void);
 
 #endif /* _THREADS_COMMON_H */
 
