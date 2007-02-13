@@ -114,6 +114,11 @@ ptrint threads_get_current_tid(void)
 
 	thread = THREADOBJECT;
 
+	/* this may happen during bootstrap */
+
+	if (thread == NULL)
+		return 0;
+
 	return (ptrint) thread->tid;
 }
 
