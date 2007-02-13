@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7276 2007-02-02 11:58:18Z michi $
+   $Id: codegen.c 7353 2007-02-13 23:14:35Z twisti $
 
 */
 
@@ -2963,21 +2963,29 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 			if (!nmd->params[j].inmemory) {
 				s2 = ARGUMENT_REGS(t, nmd->params[j].regoff);
+
+#if !defined(__ARM_EABI__)
 				SPLIT_OPEN(t, s1, REG_ITMP1);
 				SPLIT_LOAD(t, s1, cd->stackframesize);
 				SPLIT_OPEN(t, s2, REG_ITMP1);
+#endif
 
 				if (IS_2_WORD_TYPE(t))
 					M_LNGMOVE(s1, s2);
 				else
 					M_INTMOVE(s1, s2);
 
+#if !defined(__ARM_EABI__)
 				SPLIT_STORE_AND_CLOSE(t, s2, 0);
+#endif
 			}
 			else {
 				s2 = nmd->params[j].regoff;
+
+#if !defined(__ARM_EABI__)
 				SPLIT_OPEN(t, s1, REG_ITMP1);
 				SPLIT_LOAD(t, s1, cd->stackframesize);
+#endif
 
 				if (IS_2_WORD_TYPE(t))
 					M_LST(s1, REG_SP, s2 * 4);
