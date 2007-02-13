@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: disass.c 7252 2007-01-29 21:09:01Z twisti $
+   $Id: disass.c 7351 2007-02-13 21:32:36Z twisti $
 
 */
 
@@ -445,17 +445,18 @@ u1 *disassinstr(u1 *code)
 		break;
 
 	case ITYPE_IMM:                      /* 16 bit signed immediate value */
-		printf("%s %s,%s,%d\n", ops[op].name, regs[rt],
-			   regs[rs], (c << 16) >> 16); 
+		printf("%s %s,%s,%d\n", ops[op].name, abi_registers_integer_name[rt],
+			   abi_registers_integer_name[rs], (c << 16) >> 16); 
 		break;
 
 	case ITYPE_MEM:                      /* 16 bit signed memory offset   */
-		printf("%s %s,%d(%s)\n", ops[op].name, regs[rt],
-			   (c << 16) >> 16, regs[rs]); 
+		printf("%s %s,%d(%s)\n", ops[op].name, abi_registers_integer_name[rt],
+			   (c << 16) >> 16, abi_registers_integer_name[rs]); 
 		break;
 
 	case ITYPE_FMEM:                     /* 16 bit signed memory offset   */
-		printf("%s $f%d,%d(%s)\n", ops[op].name, rt, (c << 16) >> 16, regs[rs]);
+		printf("%s $f%d,%d(%s)\n", ops[op].name, rt, (c << 16) >> 16,
+			   abi_registers_integer_name[rs]);
 		break;
 
 	case ITYPE_BRA:                      /* 16 bit signed branch offset   */
@@ -468,23 +469,30 @@ u1 *disassinstr(u1 *code)
 			break;
 		}	
 #if SIZEOF_VOID_P == 8
-		printf("%s %s,%s,0x%016lx\n", ops[op].name, regs[rs], regs[rt], 
+		printf("%s %s,%s,0x%016lx\n", ops[op].name,
+			   abi_registers_integer_name[rs],
+			   abi_registers_integer_name[rt], 
 			   (u8) code + 4 + ((c << 16) >> 14));
 #else
-		printf("%s %s,%s,0x%08x\n", ops[op].name, regs[rs], regs[rt], 
+		printf("%s %s,%s,0x%08x\n", ops[op].name,
+			   abi_registers_integer_name[rs],
+			   abi_registers_integer_name[rt], 
 			   (u4) code + 4 + ((c << 16) >> 14));
 #endif
 		break;
 			
 	case ITYPE_RIMM:
 		if (regimms[rt].ftype == ITYPE_IMM)
-			printf("%s %s,%d\n", regimms[rt].name, regs[rs], (c << 16) >> 16);
+			printf("%s %s,%d\n", regimms[rt].name,
+				   abi_registers_integer_name[rs], (c << 16) >> 16);
 		else if (regimms[rt].ftype == ITYPE_BRA)
 #if SIZEOF_VOID_P == 8
-			printf("%s %s,0x%016lx\n", regimms[rt].name, regs[rs],
+			printf("%s %s,0x%016lx\n", regimms[rt].name,
+				   abi_registers_integer_name[rs],
 				   (u8) code + 4 + ((c << 16) >> 14));
 #else
-			printf("%s %s,0x%08x\n", regimms[rt].name, regs[rs],
+			printf("%s %s,0x%08x\n", regimms[rt].name,
+				   abi_registers_integer_name[rs],
 				   (u4) code + 4 + ((c << 16) >> 14));
 #endif
 		else
@@ -498,43 +506,55 @@ u1 *disassinstr(u1 *code)
 		}
 		if (opfun == 0x25 && rt == 0) {
 			if (rs == 0)
-				printf("clr      %s\n", regs[rd]);
+				printf("clr      %s\n", abi_registers_integer_name[rd]);
 			else
-				printf("move     %s,%s\n", regs[rd], regs[rs]);
+				printf("move     %s,%s\n", abi_registers_integer_name[rd],
+					   abi_registers_integer_name[rs]);
 			break;
 		}
 		switch (regops[opfun].ftype) {
 		case ITYPE_OP:
-			printf("%s %s,%s,%s\n", regops[opfun].name, regs[rd],
-				   regs[rs], regs[rt]);
+			printf("%s %s,%s,%s\n", regops[opfun].name,
+				   abi_registers_integer_name[rd],
+				   abi_registers_integer_name[rs],
+				   abi_registers_integer_name[rt]);
 			break;
 		case ITYPE_IMM:  /* immediate instruction */
 			printf("%s %s,%s,%d\n",
-				   regops[opfun].name, regs[rd], regs[rt], shift);
+				   regops[opfun].name, abi_registers_integer_name[rd],
+				   abi_registers_integer_name[rt], shift);
 			break;
 		case ITYPE_TRAP:
 			printf("%s %s,%s,%d\n", regops[opfun].name,
-				   regs[rs], regs[rt], (c << 16) >> 22);
+				   abi_registers_integer_name[rs],
+				   abi_registers_integer_name[rt], (c << 16) >> 22);
 			break;
 		case ITYPE_DIVMUL: /* div/mul instruction */
-			printf("%s %s,%s\n", regops[opfun].name, regs[rs], regs[rt]);
+			printf("%s %s,%s\n", regops[opfun].name,
+				   abi_registers_integer_name[rs],
+				   abi_registers_integer_name[rt]);
 			break;
 		case ITYPE_JMP:
 			if (rd == 31) {
-				printf("%s %s\n", regops[opfun].name, regs[rs]);
+				printf("%s %s\n", regops[opfun].name,
+					   abi_registers_integer_name[rs]);
 				break;
 			}
-			printf("%s %s,%s\n", regops[opfun].name, regs[rd], regs[rs]);
+			printf("%s %s,%s\n", regops[opfun].name,
+				   abi_registers_integer_name[rd],
+				   abi_registers_integer_name[rs]);
 			break;
 		case ITYPE_MTOJR:
 			if (opfun == 8 && rs == 31) {
 				printf("ret\n");
 				break;
 			}
-			printf("%s %s\n", regops[opfun].name, regs[rs]);
+			printf("%s %s\n", regops[opfun].name,
+				   abi_registers_integer_name[rs]);
 			break;
 		case ITYPE_MFROM:
-			printf("%s %s\n", regops[opfun].name, regs[rd]);
+			printf("%s %s\n", regops[opfun].name,
+				   abi_registers_integer_name[rd]);
 			break;
 		case ITYPE_SYS:
 			printf("%s\n", regops[opfun].name);
@@ -560,22 +580,22 @@ u1 *disassinstr(u1 *code)
 		}
 
 		if (rs == 0) {              /* move from                          */
-			printf("mfc1     %s,$f%d\n", regs[rt], fs);		
+			printf("mfc1     %s,$f%d\n", abi_registers_integer_name[rt], fs);
 			break;
 		}
 
 		if (rs == 1) {              /* double move from                   */
-			printf("dmfc1    %s,$f%d\n", regs[rt], fs);		
+			printf("dmfc1    %s,$f%d\n", abi_registers_integer_name[rt], fs);
 			break;
 		}
 
 		if (rs == 4) {              /* move to                            */
-			printf("mtc1     %s,$f%d\n", regs[rt], fs);		
+			printf("mtc1     %s,$f%d\n", abi_registers_integer_name[rt], fs);
 			break;
 		}
 
 		if (rs == 5) {              /* double move to                     */
-			printf("dmtc1    %s,$f%d\n", regs[rt], fs);		
+			printf("dmtc1    %s,$f%d\n", abi_registers_integer_name[rt], fs);
 			break;
 		}
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7252 2007-01-29 21:09:01Z twisti $
+   $Id: md-abi.c 7351 2007-02-13 21:32:36Z twisti $
 
 */
 
@@ -53,7 +53,7 @@ s4 nregdescint[] = {
 	REG_END
 };
 
-char *regs[] = {
+const char *abi_registers_integer_name[] = {
 	"zero",  "at",    "v0",    "v1",    "a0",    "a1",    "a2",    "a3",
 	"a4",    "a5",    "a6",    "a7",    "t0",    "t1",    "t2",    "t3",
 	"s0",    "s1",    "s2",    "s3",    "s4",    "s5",    "s6",    "s7",
@@ -97,7 +97,7 @@ s4 nregdescint[] = {
 	REG_END
 };
 
-char *regs[] = {
+const char *abi_registers_integer_name[] = {
 	"zero",  "at",    "v0",    "v1",    "a0",    "a1",    "a2",    "a3",
 	"a4",    "a5",    "a6",    "a7",    "t0",    "t1",    "t2",    "t3",
 	"s0",    "s1",    "s2",    "s3",    "s4",    "s5",    "s6",    "s7",
@@ -136,7 +136,7 @@ s4 nregdescfloat[] = {
 
 /* md_param_alloc **************************************************************
 
-   XXX
+   Pre-allocate arguments according to the internal JIT ABI.
 
 *******************************************************************************/
 
@@ -314,6 +314,21 @@ void md_param_alloc(methoddesc *md)
 	/* fill register and stack usage */
 
 	md->memuse = stacksize;
+}
+
+
+/* md_param_alloc_native *******************************************************
+
+   Pre-allocate arguments according the native ABI.
+
+*******************************************************************************/
+
+void md_param_alloc_native(methoddesc *md)
+{
+	/* On MIPS we use the same ABI for JIT method calls as for native
+	   method calls. */
+
+	md_param_alloc(md);
 }
 
 
