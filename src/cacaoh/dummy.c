@@ -390,7 +390,7 @@ void *mem_alloc(s4 size)
 {
 	/* real implementation in src/mm/memory.c clears memory */
 
-	return calloc(size);
+	return calloc(size, 1);
 }
 
 void *mem_realloc(void *src, s4 len1, s4 len2)
