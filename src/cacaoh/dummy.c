@@ -388,7 +388,9 @@ void md_param_alloc(methoddesc *md)
 
 void *mem_alloc(s4 size)
 {
-	return malloc(size);
+	/* real implementation in src/mm/memory.c clears memory */
+
+	return calloc(size);
 }
 
 void *mem_realloc(void *src, s4 len1, s4 len2)
