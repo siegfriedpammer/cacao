@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7338 2007-02-13 00:17:22Z twisti $
+   $Id: signal.c 7343 2007-02-13 02:36:29Z ajordan $
 
 */
 
@@ -51,6 +51,7 @@
 
 #include "vm/signallocal.h"
 #include "vm/vm.h"
+#include "mm/memory.h"
 
 #include "vmcore/options.h"
 
@@ -204,8 +205,9 @@ static void signal_thread(void)
 
 		case SIGQUIT:
 			/* print a thread dump */
-
+#if defined(ENABLE_THREADS)
 			threads_dump();
+#endif
 
 #if defined(ENABLE_STATISTICS)
 			if (opt_stat)

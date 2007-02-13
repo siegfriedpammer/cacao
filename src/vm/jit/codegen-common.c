@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7332 2007-02-11 21:44:35Z twisti $
+   $Id: codegen-common.c 7343 2007-02-13 02:36:29Z ajordan $
 
 */
 
@@ -478,7 +478,7 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 	pr->next      = cd->patchrefs;
 	cd->patchrefs = pr;
 
-#if defined(ENABLE_JIT) && (defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__) || defined(__S390__))
+#if defined(ENABLE_JIT) && (defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__SPARC_64__) || defined(__X86_64__) ||  defined(__S390__))
 	/* Generate NOPs for opt_shownops. */
 
 	if (opt_shownops)

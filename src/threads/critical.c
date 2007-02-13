@@ -188,7 +188,7 @@ u1 *critical_find_restart_point(u1 *mcodeptr)
 static void critical_register_asm_critical_sections(void)
 {
 	/* XXX TWISTI: this is just a quick hack */
-#if defined(ENABLE_JIT)
+#if defined(ENABLE_JIT) && defined(ENABLE_THREADS)
 	critical_section_node_t *n = &asm_criticalsections;
 
 	while (n->mcodebegin)

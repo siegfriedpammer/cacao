@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7323 2007-02-11 17:52:12Z pm $
+   $Id: stacktrace.c 7343 2007-02-13 02:36:29Z ajordan $
 
 */
 
@@ -37,6 +37,8 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
+
+#include "vm/jit/stacktrace.h"
 
 #include "vm/global.h"                   /* required here for native includes */
 #include "native/jni.h"
@@ -70,7 +72,6 @@
 
 
 /* global variables ***********************************************************/
-
 #if !defined(ENABLE_THREADS)
 stackframeinfo *_no_threads_stackframeinfo = NULL;
 #endif
@@ -216,7 +217,11 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 #endif
 			{
 #if defined(ENABLE_JIT)
+# if defined(__SPARC_64__)
+				pv = md_get_pv_from_stackframe(sp);
+# else
 				pv = md_codegen_get_pv_from_pc(ra);
+# endif
 #endif
 			}
 	}
@@ -833,6 +838,8 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 #if defined(__I386__) || defined (__X86_64__)
 					sp += framesize + SIZEOF_VOID_P;
+#elif defined(__SPARC_64__)
+					sp = md_get_framepointer(sp);
 #else
 					sp += framesize;
 #endif
@@ -913,7 +920,12 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 #endif
 				{
 #if defined(ENABLE_JIT)
+# if defined(__SPARC_64__)
+					sp = md_get_framepointer(sp);
+					pv = md_get_pv_from_stackframe(sp);
+# else
 					pv = md_codegen_get_pv_from_pc(ra);
+# endif
 #endif
 				}
 
@@ -933,6 +945,8 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 				{
 #if defined(__I386__) || defined (__X86_64__)
 					sp += framesize + SIZEOF_VOID_P;
+#elif defined(__SPARC_64__)
+					/* already has the new sp */
 #else
 					sp += framesize;
 #endif

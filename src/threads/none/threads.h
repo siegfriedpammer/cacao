@@ -32,6 +32,8 @@
 
 #include "config.h"
 #include "vm/types.h"
+#include "vm/global.h"
+
 
 /* define some stuff we need to no-ops ****************************************/
 
@@ -50,8 +52,9 @@ extern java_objectheader    *_no_threads_exceptionptr;
 
 
 /* stackframeinfo *************************************************************/
+struct stackframeinfo;
 
-extern stackframeinfo       *_no_threads_stackframeinfo;
+extern struct stackframeinfo       *_no_threads_stackframeinfo;
 
 #define STACKFRAMEINFO      (&_no_threads_stackframeinfo)
 

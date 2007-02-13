@@ -55,7 +55,7 @@
    Creates a thread object with the given name.
 
 *******************************************************************************/
-
+#if defined(ENABLE_THREADS)
 threadobject *threads_create_thread(utf *name)
 {
 	threadobject *thread;
@@ -95,7 +95,7 @@ threadobject *threads_create_thread(utf *name)
 
 	return thread;
 }
-
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

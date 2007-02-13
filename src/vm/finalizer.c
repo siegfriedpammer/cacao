@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: finalizer.c 7338 2007-02-13 00:17:22Z twisti $
+   $Id: finalizer.c 7343 2007-02-13 02:36:29Z ajordan $
 
 */
 
@@ -40,6 +40,9 @@
 
 # include "threads/native/threads.h"
 # include "threads/native/lock.h"
+#else
+# include "threads/none/threads.h"
+# include "threads/none/lock.h"
 #endif
 
 #include "vm/builtin.h"

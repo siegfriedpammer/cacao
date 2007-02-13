@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7305 2007-02-09 11:08:14Z twisti $
+   $Id: exceptions.c 7343 2007-02-13 02:36:29Z ajordan $
 
 */
 
@@ -61,6 +61,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"

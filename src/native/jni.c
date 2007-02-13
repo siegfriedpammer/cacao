@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7282 2007-02-04 16:08:27Z twisti $
+   $Id: jni.c 7343 2007-02-13 02:36:29Z ajordan $
 
 */
 
@@ -78,6 +78,7 @@
 # include "threads/native/threads.h"
 #else
 # include "threads/none/lock.h"
+# include "threads/none/threads.h"
 #endif
 
 #include "toolbox/logging.h"
