@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: memory.c 7338 2007-02-13 00:17:22Z twisti $
 
 */
 
@@ -108,6 +108,13 @@ static int                code_memory_size = 0;
 static int                pagesize         = 0;
 
 
+/* global variables ***********************************************************/
+
+#if defined(ENABLE_THREADS)
+static threadobject *thread_memory;
+#endif
+
+
 /* memory_init *****************************************************************
 
    Initialize the memory subsystem.
@@ -117,6 +124,8 @@ static int                pagesize         = 0;
 bool memory_init(void)
 {
 #if defined(ENABLE_THREADS)
+	/* create lock for code memory */
+
 	lock_code_memory = NEW(java_objectheader);
 
 	lock_init_object_lock(lock_code_memory);
@@ -360,6 +369,55 @@ void mem_free(void *m, s4 size)
 
 	free(m);
 }
+
+
+/* memory_thread ***************************************************************
+
+   Prints regularly memory statistics.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+static void memory_thread(void)
+{
+	while (true) {
+		/* sleep thread for 2 seconds */
+
+		threads_sleep(2 * 1000, 0);
+
+		log_println("memory_thread:");
+	}
+}
+#endif
+
+
+/* memory_start_thread *********************************************************
+
+   Starts the memory profiling thread.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+bool memory_start_thread(void)
+{
+	utf *name;
+
+	name = utf_new_char("Memory Profiler");
+
+	thread_memory = threads_create_thread(name);
+
+	if (thread_memory == NULL)
+		return false;
+
+	/* actually start the memory profiling thread */
+
+	threads_start_thread(thread_memory, memory_thread);
+
+	/* everything's ok */
+
+	return true;
+}
+#endif
 
 
 /* dump_check_canaries *********************************************************

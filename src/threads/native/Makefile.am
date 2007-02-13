@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7294 2007-02-06 09:11:36Z twisti $
+## $Id: Makefile.am 7338 2007-02-13 00:17:22Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -31,11 +31,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 noinst_LTLIBRARIES = \
-	libthreads.la
+	libthreadsposix.la
 
-libthreads_la_SOURCES = \
-	critical.c \
-	critical.h \
+libthreadsposix_la_SOURCES = \
 	lock.c \
 	lock.h \
 	threads.c \

@@ -1,6 +1,6 @@
-/* src/threads/native/critical.c - restartable critical sections
+/* src/threads/critical.c - restartable critical sections
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,25 +22,22 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Stefan Ring
-   			Edwin Steiner
-
-   Changes: Christian Thalinger
-
    $Id: threads.c 4903 2006-05-11 12:48:43Z edwin $
 
 */
 
+
 #include "config.h"
-#include "vm/types.h"
 
 #include <stddef.h>
 
-#include "threads/native/critical.h"
-#include "vm/jit/asmpart.h"
+#include "vm/types.h"
+
+#include "threads/critical.h"
+
 #include "toolbox/avl.h"
+
+#include "vm/jit/asmpart.h"
 
 
 /* the AVL tree containing the critical sections */
@@ -66,6 +63,7 @@ void critical_init(void)
 
 	critical_register_asm_critical_sections();
 }
+
 
 /* critical_compare ************************************************************
 
@@ -155,7 +153,7 @@ static const critical_section_node_t *critical_find(u1 *mcodeptr)
 
 void critical_register_critical_section(critical_section_node_t *n)
 {
-	avl_insert(criticaltree, n);
+	(void) avl_insert(criticaltree, n);
 }
 
 

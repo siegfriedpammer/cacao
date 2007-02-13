@@ -486,9 +486,11 @@ static void Xusage(void)
 static void XXusage(void)
 {
 	puts("    -v                       write state-information");
-	puts("    -verbose[:call|exception|jit]");
+#if !defined(NDEBUG)
+	puts("    -verbose[:call|exception|jit|memory]");
 	puts("                             enable specific verbose output");
 	puts("    -debug-color             colored output for ANSI terms");
+#endif
 #ifdef TYPECHECK_VERBOSE
 	puts("    -verbosetc               write debug messages while typechecking");
 #endif
@@ -528,7 +530,7 @@ static void XXusage(void)
 	puts("      (e)xceptionstubs       disassembled exception stubs (only with -sa)");
 	puts("      (n)ative               disassembled native stubs");
 #endif
-	puts("           (d)atasegment     data segment listing");
+	puts("      (d)atasegment          data segment listing");
 
 #if defined(ENABLE_INLINING)
 	puts("    -i                       activate inlining");
@@ -1083,18 +1085,22 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_VERBOSE:
-			if (strcmp("class", opt_arg) == 0)
+			if (strcmp("class", opt_arg) == 0) {
 				opt_verboseclass = true;
-
-			else if (strcmp("gc", opt_arg) == 0)
+			}
+			else if (strcmp("gc", opt_arg) == 0) {
 				opt_verbosegc = true;
-
-			else if (strcmp("jni", opt_arg) == 0)
+			}
+			else if (strcmp("jni", opt_arg) == 0) {
 				opt_verbosejni = true;
-
-			else if (strcmp("call", opt_arg) == 0)
+			}
+#if !defined(NDEBUG)
+			else if (strcmp("call", opt_arg) == 0) {
 				opt_verbosecall = true;
-
+			}
+			else if (strcmp("exception", opt_arg) == 0) {
+				opt_verboseexception = true;
+			}
 			else if (strcmp("jit", opt_arg) == 0) {
 				opt_verbose = true;
 				loadverbose = true;
@@ -1102,8 +1108,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				initverbose = true;
 				compileverbose = true;
 			}
-			else if (strcmp("exception", opt_arg) == 0)
-				opt_verboseexception = true;
+			else if (strcmp("memory", opt_arg) == 0) {
+				opt_verbosememory = true;
+			}
+#endif
 			break;
 		case OPT_DEBUGCOLOR:
 			opt_debugcolor = true;
@@ -1588,6 +1596,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	if (!finalizer_start_thread())
 		throw_main_exception_exit();
+
+# if !defined(NDEBUG)
+	/* start the memory profiling thread */
+
+	if (opt_verbosememory)
+		if (!memory_start_thread())
+			throw_main_exception_exit();
+# endif
 
 	/* start the recompilation thread (must be done before the
 	   profiling thread) */

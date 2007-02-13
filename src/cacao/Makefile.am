@@ -24,7 +24,7 @@
 ##
 ## Contact: cacao@cacaojvm.org
 ##
-## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
+## $Id: Makefile.am 7338 2007-02-13 00:17:22Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -32,7 +32,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 if ENABLE_THREADS
 THREAD_LIB = \
-	$(top_builddir)/src/threads/native/libthreads.la
+	$(top_builddir)/src/threads/libthreads.la
 endif
 
 if ENABLE_STATICVM

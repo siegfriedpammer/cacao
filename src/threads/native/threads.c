@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: threads.c 7338 2007-02-13 00:17:22Z twisti $
 
 */
 
@@ -70,6 +70,8 @@
 #if defined(WITH_CLASSPATH_GNU)
 # include "native/include/java_lang_VMThread.h"
 #endif
+
+#include "threads/threads-common.h"
 
 #include "threads/native/threads.h"
 
@@ -1863,9 +1865,9 @@ void threads_dump(void)
 				printf("daemon ");
 
 #if SIZEOF_VOID_P == 8
-			printf("prio=%d tid=0x%016lx\n", t->priority, (long) thread->tid);
+			printf("prio=%d tid=0x%016lx\n", t->priority, (ptrint) thread->tid);
 #else
-			printf("prio=%d tid=0x%08lx\n", t->priority, (long) thread->tid);
+			printf("prio=%d tid=0x%08lx\n", t->priority, (ptrint) thread->tid);
 #endif
 
 			/* dump trace of thread */

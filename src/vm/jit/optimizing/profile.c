@@ -36,13 +36,9 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
-#include "native/include/java_lang_Thread.h"
-#include "native/include/java_lang_VMThread.h"
+#include "threads/threads-common.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/native/threads.h"
 
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
@@ -60,7 +56,7 @@
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
-static java_lang_VMThread *profile_vmthread;
+static threadobject *thread_profile;
 #endif
 
 
@@ -181,28 +177,18 @@ static void profile_thread(void)
 #if defined(ENABLE_THREADS)
 bool profile_start_thread(void)
 {
-	java_lang_Thread *t;
+	utf *name;
 
-	/* create the profile object */
+	name = utf_new_char("Profiling Sampler");
 
-	profile_vmthread =
-		(java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+	thread_profile = threads_create_thread(name);
 
-	if (profile_vmthread == NULL)
+	if (thread_profile == NULL)
 		return false;
-
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
-
-	t->vmThread = profile_vmthread;
-	t->name     = javastring_new_from_ascii("Profiling Sampler");
-	t->daemon   = true;
-	t->priority = 5;
-
-	profile_vmthread->thread = t;
 
 	/* actually start the profile sampling thread */
 
-	threads_start_thread(t, profile_thread);
+	threads_start_thread(thread_profile, profile_thread);
 
 	/* everything's ok */
 

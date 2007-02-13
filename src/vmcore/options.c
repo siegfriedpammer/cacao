@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: options.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: options.c 7338 2007-02-13 00:17:22Z twisti $
 
 */
 
@@ -78,6 +74,7 @@ bool opt_verbosegc        = false;
 bool opt_verbosejni       = false;
 bool opt_verbosecall      = false;      /* trace all method invocation        */
 bool opt_verboseexception = false;
+bool opt_verbosememory    = false;
 
 bool showmethods = false;
 bool showconstantpool = false;

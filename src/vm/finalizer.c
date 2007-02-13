@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: finalizer.c 7280 2007-02-03 19:34:10Z twisti $
+   $Id: finalizer.c 7338 2007-02-13 00:17:22Z twisti $
 
 */
 
@@ -34,14 +34,10 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
-#include "native/jni.h"
-#include "native/include/java_lang_Thread.h"
-
-#if defined(WITH_CLASSPATH_GNU)
-# include "native/include/java_lang_VMThread.h"
-#endif
 
 #if defined(ENABLE_THREADS)
+# include "threads/threads-common.h"
+
 # include "threads/native/threads.h"
 # include "threads/native/lock.h"
 #endif
@@ -126,32 +122,14 @@ static void finalizer_thread(void)
 #if defined(ENABLE_THREADS)
 bool finalizer_start_thread(void)
 {
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmt;
-#endif
+	utf *name;
 
-	/* create the finalizer object */
+	name = utf_new_char("Finalizer");
 
-	thread_finalizer = (threadobject *) builtin_new(class_java_lang_Thread);
+	thread_finalizer = threads_create_thread(name);
 
 	if (thread_finalizer == NULL)
 		return false;
-
-#if defined(WITH_CLASSPATH_GNU)
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	vmt->thread = (java_lang_Thread *) thread_finalizer;
-
-	thread_finalizer->o.vmThread = vmt;
-#endif
-
-	thread_finalizer->flags      = THREAD_FLAG_DAEMON;
-
-	thread_finalizer->o.name     = javastring_new_from_ascii("Finalizer");
-#if defined(ENABLE_JAVASE)
-	thread_finalizer->o.daemon   = true;
-#endif
-	thread_finalizer->o.priority = 5;
 
 	/* actually start the finalizer thread */
 

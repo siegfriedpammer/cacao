@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: threads.h 7338 2007-02-13 00:17:22Z twisti $
 
 */
 
@@ -70,13 +70,6 @@ typedef struct {
 #else
 # include <semaphore.h>
 #endif
-
-
-/* thread priorities **********************************************************/
-
-#define MIN_PRIORITY     1
-#define NORM_PRIORITY    5
-#define MAX_PRIORITY     10
 
 
 /* current threadobject *******************************************************/

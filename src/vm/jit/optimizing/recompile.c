@@ -36,14 +36,9 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
-#include "native/include/java_lang_Thread.h"
-
-#if defined(WITH_CLASSPATH_GNU)
-# include "native/include/java_lang_VMThread.h"
-#endif
-
 #if defined(ENABLE_THREADS)
+# include "threads/threads-common.h"
+
 # include "threads/native/lock.h"
 # include "threads/native/threads.h"
 #endif
@@ -219,32 +214,14 @@ static void recompile_thread(void)
 
 bool recompile_start_thread(void)
 {
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmt;
-#endif
+	utf *name;
 
-	/* create the profile object */
+	name = utf_new_char("Recompiler");
 
-	thread_recompile = (threadobject *) builtin_new(class_java_lang_Thread);
+	thread_recompile = threads_create_thread(name);
 
 	if (thread_recompile == NULL)
 		return false;
-
-#if defined(WITH_CLASSPATH_GNU)
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	vmt->thread = (java_lang_Thread *) thread_recompile;
-
-	thread_recompile->o.vmThread = vmt;
-#endif
-
-	thread_recompile->flags      = THREAD_FLAG_DAEMON;
-
-	thread_recompile->o.name     = javastring_new_from_ascii("Recompiler");
-#if defined(ENABLE_JAVASE)
-	thread_recompile->o.daemon   = true;
-#endif
-	thread_recompile->o.priority = 5;
 
 	/* actually start the recompilation thread */
 

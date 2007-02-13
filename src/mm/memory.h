@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 6219 2006-12-19 19:20:37Z twisti $
+   $Id: memory.h 7338 2007-02-13 00:17:22Z twisti $
 
 */
 
@@ -204,6 +204,10 @@ void  memory_cfree(void *p, s4 size);
 void *mem_alloc(s4 size);
 void  mem_free(void *m, s4 size);
 void *mem_realloc(void *src, s4 len1, s4 len2);
+
+#if defined(ENABLE_THREADS)
+bool  memory_start_thread(void);
+#endif
 
 void *dump_alloc(s4 size);
 void *dump_realloc(void *src, s4 len1, s4 len2);

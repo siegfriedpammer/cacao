@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7280 2007-02-03 19:34:10Z twisti $
+   $Id: signal.c 7338 2007-02-13 00:17:22Z twisti $
 
 */
 
@@ -45,22 +45,12 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
-#include "native/include/java_lang_Thread.h"
-
-#if defined(WITH_CLASSPATH_GNU)
-# include "native/include/java_lang_VMThread.h"
-#endif
-
 #if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
+# include "threads/threads-common.h"
 #endif
 
-#include "vm/builtin.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
 #include "vm/vm.h"
-#include "vm/jit/stacktrace.h"
 
 #include "vmcore/options.h"
 
@@ -192,7 +182,9 @@ static void signal_thread(void)
 	sigset_t mask;
 	int      sig;
 
-	sigemptyset(&mask);
+	if (sigemptyset(&mask) != 0)
+		vm_abort("signal_thread: sigemptyset failed: %s", strerror(errno));
+
 	sigaddset(&mask, SIGINT);
 #if !defined(__FREEBSD__)
 	sigaddset(&mask, SIGQUIT);
@@ -201,8 +193,7 @@ static void signal_thread(void)
 	while (true) {
 		/* just wait for a signal */
 
-		sigwait(&mask, &sig);
-		log_println("signal caught: %d", sig);
+		(void) sigwait(&mask, &sig);
 
 		switch (sig) {
 		case SIGINT:
@@ -239,34 +230,16 @@ static void signal_thread(void)
 bool signal_start_thread(void)
 {
 #if defined(ENABLE_THREADS)
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmt;
-#endif
+	utf *name;
 
-	/* create the finalizer object */
+	name = utf_new_char("Signal Handler");
 
-	thread_signal = (threadobject *) builtin_new(class_java_lang_Thread);
+	thread_signal = threads_create_thread(name);
 
 	if (thread_signal == NULL)
 		return false;
 
-#if defined(WITH_CLASSPATH_GNU)
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	vmt->thread = (java_lang_Thread *) thread_signal;
-
-	thread_signal->o.vmThread = vmt;
-#endif
-
-	thread_signal->flags      = THREAD_FLAG_DAEMON;
-
-	thread_signal->o.name     = javastring_new_from_ascii("Signal Handler");
-#if defined(ENABLE_JAVASE)
-	thread_signal->o.daemon   = true;
-#endif
-	thread_signal->o.priority = 5;
-
-	/* actually start the finalizer thread */
+	/* actually start the signal handler thread */
 
 	threads_start_thread(thread_signal, signal_thread);
 
