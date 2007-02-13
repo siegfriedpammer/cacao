@@ -1111,9 +1111,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			else if (strcmp("memory", opt_arg) == 0) {
 				opt_verbosememory = true;
 
+# if defined(ENABLE_STATISTICS)
 				/* we also need statistics */
 
 				opt_stat = true;
+# endif
 			}
 #endif
 			break;
