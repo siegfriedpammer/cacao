@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7338 2007-02-13 00:17:22Z twisti $
+   $Id: memory.c 7339 2007-02-13 00:37:41Z twisti $
 
 */
 
@@ -51,6 +51,8 @@
 #include "native/native.h"
 
 #if defined(ENABLE_THREADS)
+# include "threads/threads-common.h"
+
 # include "threads/native/lock.h"
 # include "threads/native/threads.h"
 #else
@@ -377,7 +379,7 @@ void mem_free(void *m, s4 size)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
+#if defined(ENABLE_THREADS) && !defined(NDEBUG)
 static void memory_thread(void)
 {
 	while (true) {
@@ -385,7 +387,9 @@ static void memory_thread(void)
 
 		threads_sleep(2 * 1000, 0);
 
-		log_println("memory_thread:");
+		/* print memory usage */
+
+		statistics_print_memory_usage();
 	}
 }
 #endif
@@ -397,7 +401,7 @@ static void memory_thread(void)
 
 *******************************************************************************/
 
-#if defined(ENABLE_THREADS)
+#if defined(ENABLE_THREADS) && !defined(NDEBUG)
 bool memory_start_thread(void)
 {
 	utf *name;
