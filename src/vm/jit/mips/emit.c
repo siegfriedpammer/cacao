@@ -1055,11 +1055,12 @@ void emit_verbosecall_exit(jitdata *jd)
 # endif
 	}
 
-	M_DST(REG_FRESULT, REG_SP, 4*4);
-	M_FST(REG_FRESULT, REG_SP, 4*4 + 2 * 4);
+	M_LLD(REG_A2_A3_PACKED, REG_SP, 8*4 + 2 * 8);
+	M_FST(REG_FRESULT, REG_SP, 4*4 + 0 * 4);
 
 	disp = dseg_add_address(cd, m);
 	M_ALD(REG_ITMP1, REG_PV, disp);
+	M_AST(REG_ITMP1, REG_SP, 4*4 + 1 * 4);
 #endif
 
 	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
