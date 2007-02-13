@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7343 2007-02-13 02:36:29Z ajordan $
+   $Id: signal.c 7344 2007-02-13 12:23:54Z ajordan $
 
 */
 
@@ -51,7 +51,6 @@
 
 #include "vm/signallocal.h"
 #include "vm/vm.h"
-#include "mm/memory.h"
 
 #include "vmcore/options.h"
 

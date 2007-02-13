@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7343 2007-02-13 02:36:29Z ajordan $
+## $Id: Makefile.am 7344 2007-02-13 12:23:54Z ajordan $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -37,6 +37,7 @@ DIST_SUBDIRS = \
 	optimizing \
 	schedule \
 	tools \
+	verify \
 	\
 	intrp \
 	alpha \
@@ -50,18 +51,10 @@ DIST_SUBDIRS = \
 	x86_64 \
 	s390
 
-if ENABLE_VERIFIER
-DIST_SUBDIRS += verify
-endif
-
 SUBDIRS = \
 	optimizing \
 	tools \
 	$(ARCH_DIR)
-
-if ENABLE_VERIFIER
-SUBDIRS += verify
-endif
 
 ARCH_LIB = \
 	$(ARCH_DIR)/libarch.la
@@ -192,9 +185,6 @@ libjit_la_LIBADD = \
 	$(INTRP_LIB) \
 	$(ARCH_LIB)
 
-if ENABLE_VERIFIER
-libjit_la_LIBADD +=	verify/libverify.la
-endif
 
 ## Local variables:
 ## mode: Makefile
