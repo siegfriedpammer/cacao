@@ -45,6 +45,7 @@
 #include "vm/global.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 /* arch.h must be here because it defines USE_FAKE_ATOMIC_INSTRUCTIONS */
 
@@ -1045,6 +1046,31 @@ bool lock_monitor_exit(java_objectheader *o)
 }
 
 
+/* lock_record_add_waiter ******************************************************
+
+   Add a thread to the list of waiting threads of a lock record.
+
+   IN:
+      lr...........the lock record
+      thread.......the thread to add
+
+*******************************************************************************/
+
+static void lock_record_add_waiter(lock_record_t *lr, threadobject *thread)
+{
+	lock_waiter_t *waiter;
+
+	/* allocate a waiter data structure */
+
+	waiter = NEW(lock_waiter_t);
+
+	waiter->waiter = thread;
+	waiter->next   = lr->waiters;
+
+	lr->waiters = waiter;
+}
+
+
 /* lock_record_remove_waiter ***************************************************
 
    Remove a thread from the list of waiting threads of a lock record.
@@ -1058,15 +1084,21 @@ bool lock_monitor_exit(java_objectheader *o)
    
 *******************************************************************************/
 
-static void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
+static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
 {
 	lock_waiter_t **link;
-	lock_waiter_t *w;
+	lock_waiter_t  *w;
 
 	link = &(lr->waiters);
+
 	while ((w = *link)) {
-		if (w->waiter == t) {
+		if (w->waiter == thread) {
 			*link = w->next;
+
+			/* free the waiter data structure */
+
+			FREE(w, lock_waiter_t);
+
 			return;
 		}
 
@@ -1074,9 +1106,8 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
 	}
 
 	/* this should never happen */
-	fprintf(stderr,"error: waiting thread not found in list of waiters\n");
-	fflush(stderr);
-	abort();
+
+	vm_abort("lock_record_remove_waiter: waiting thread not found in list of waiters\n");
 }
 
 
@@ -1096,20 +1127,16 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
    
 *******************************************************************************/
 
-static void lock_record_wait(threadobject *t, lock_record_t *lr, s8 millis, s4 nanos)
+static void lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis, s4 nanos)
 {
-	lock_waiter_t *waiter;
-	s4             lockcount;
-	bool           wasinterrupted;
+	s4   lockcount;
+	bool wasinterrupted;
 
 	/* { the thread t owns the fat lock record lr on the object o } */
 
 	/* register us as waiter for this object */
 
-	waiter = NEW(lock_waiter_t);
-	waiter->waiter = t;
-	waiter->next = lr->waiters;
-	lr->waiters = waiter;
+	lock_record_add_waiter(lr, thread);
 
 	/* remember the old lock count */
 
@@ -1118,19 +1145,19 @@ static void lock_record_wait(threadobject *t, lock_record_t *lr, s8 millis, s4 n
 	/* unlock this record */
 
 	lr->count = 0;
-	lock_record_exit(t, lr);
+	lock_record_exit(thread, lr);
 
 	/* wait until notified/interrupted/timed out */
 
-	wasinterrupted = threads_wait_with_timeout_relative(t, millis, nanos);
+	wasinterrupted = threads_wait_with_timeout_relative(thread, millis, nanos);
 
 	/* re-enter the monitor */
 
-	lock_record_enter(t, lr);
+	lock_record_enter(thread, lr);
 
 	/* remove us from the list of waiting threads */
 
-	lock_record_remove_waiter(lr, t);
+	lock_record_remove_waiter(lr, thread);
 
 	/* restore the old lock count */
 
