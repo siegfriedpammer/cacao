@@ -102,7 +102,7 @@
 #define INT_NATARG_CNT   6
 #define FLT_NATARG_CNT  16
 
-#define TRACE_ARGS_NUM   5
+#define TRACE_ARGS_NUM   6
 
 /* helpers for stack addressing and window handling */
 

@@ -444,13 +444,22 @@ void emit_verbosecall_enter(jitdata *jd)
 */
 	/* load int/float arguments into integer argument registers */
 
-	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
+	for (i = 0; i < md->paramcount && i < INT_NATARG_CNT; i++) {
 		t = md->paramtypes[i].type;
 
+		/* using all available argument registers, this adds complexity */
+		
 		if (IS_INT_LNG_TYPE(t)) {
-			M_INTMOVE(REG_WINDOW_TRANSPOSE(rd->argintregs[i]), rd->argintregs[i]);
+			if (i < INT_ARG_CNT) {
+				M_INTMOVE(REG_WINDOW_TRANSPOSE(rd->argintregs[i]), rd->argintregs[i]);
+			}
+			else {
+				assert(i == 5);
+				M_LDX(REG_OUT5, REG_FP, JITSTACK);
+			}
 		}
 		else {
+			assert(i < 4); /* XXX only 4 float reg args right now! */
 			if (IS_2_WORD_TYPE(t)) {
 				M_DST(rd->argfltregs[i], REG_SP, JITSTACK);
 				M_LDX(rd->argintregs[i], REG_SP, JITSTACK);
@@ -465,8 +474,9 @@ void emit_verbosecall_enter(jitdata *jd)
 	
 	/* method info pointer is passed in argument register 5 */
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_OUT5, REG_PV_CALLEE, disp);
-	disp = dseg_add_functionptr(cd, builtin_trace_args);
+	M_ALD(REG_ITMP1, REG_PV_CALLEE, disp);
+	M_AST(REG_ITMP1, REG_SP, CSTACK);
+	disp = dseg_add_functionptr(cd, builtin_verbosecall_enter);
 	M_ALD(REG_ITMP1, REG_PV_CALLEE, disp);
 	M_JMP(REG_RA_CALLER, REG_ITMP1, REG_ZERO);
 	M_NOP;
@@ -530,7 +540,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_MOV(REG_RESULT_CALLEE, rd->argintregs[1]);
 	M_DMOV(REG_FRESULT, 2); /* applies for flt and dbl values */
 
-	disp = dseg_add_functionptr(cd, builtin_displaymethodstop);
+	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
 	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 	M_NOP;

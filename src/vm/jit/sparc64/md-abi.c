@@ -63,6 +63,13 @@ s4 nregdescint[] = {
 
 };
 
+const char *abi_registers_integer_name[] = {
+		"zero",  "g1",  "g2",  "g3",  "g4",  "g5",  "g6",  "g7",
+		"o0",    "o1",  "o2",  "o3",  "o4",  "o5",  "sp",  "o7",
+		"l0",    "l1",  "l2",  "l3",  "l4",  "l5",  "l6",  "l7",
+		"i0",    "i1",  "i2",  "i3",  "i4",  "i5",  "fp",  "i7"
+};
+
 s4 nregdescfloat[] = {
 	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
@@ -220,6 +227,18 @@ void md_native_param_alloc(methoddesc *md)
 	/* fill register and stack usage */
 
 	md->memuse = stacksize;
+}
+
+/* md_param_alloc_native *******************************************************
+ *
+ *    Pre-allocate arguments according to the native ABI.
+ *
+ *    *******************************************************************************/
+
+void md_param_alloc_native(methoddesc *md)
+{
+	/* XXX need to merge this with my hacked solution to the same problem */
+	md_param_alloc(md);
 }
 
 /* reg_setup *******************************************************************
