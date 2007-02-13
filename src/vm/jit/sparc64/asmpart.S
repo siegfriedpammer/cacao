@@ -436,8 +436,6 @@ _crit_end:
 	jmpl    ra_caller+8,zero  /* caller's ra, b/c no window save */
 	nop
 
-	.end    asm_getclassvalues_atomic
-
 
     .data
 

@@ -1,4 +1,4 @@
-## src/vm/jit/sparc64/Makefile.am
+## src/vm/jit/sparc64/solaris/Makefile.am
 ##
 ## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -25,7 +25,6 @@
 ## Contact: cacao@cacaojvm.org
 ##
 ## Authors: Christian Thalinger
-##          Alexander Jordan
 ##
 ## Changes:
 ##
@@ -33,54 +32,16 @@
 
 ## Process this file with automake to produce Makefile.in
 
-DIST_SUBDIRS = \
-	linux \
-	solaris
-
-SUBDIRS = $(OS_DIR)
-
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
-AM_CCASFLAGS = $(AM_CPPFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 LIBS =
 
-BUILT_SOURCES = offsets.h
+noinst_HEADERS =
 
-CLEANFILES = offsets.h
+noinst_LTLIBRARIES = libmd.la
 
-noinst_HEADERS = \
-	arch.h \
-	machine-instr.h 
-	\
-	md-asm.h
-
-noinst_LTLIBRARIES = libarch.la
-
-if ENABLE_DISASSEMBLER
-DISASS_SOURCES = \
-	disass.c
-endif
-
-
-libarch_la_SOURCES = \
-	asmpart.S \
-	codegen.c \
-	codegen.h \
-	$(DISASS_SOURCES) \
-	emit.c \
-	patcher.c \
-	\
-	md-abi.c \
-	md-abi.h \
-	md.c
-
-libarch_la_LIBADD = \
-	$(OS_DIR)/libmd.la
-
-$(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
-
-offsets.h: $(top_builddir)/src/vm/jit/tools/genoffsets $(top_builddir)/config.h
-	$(top_builddir)/src/vm/jit/tools/genoffsets > offsets.h
+libmd_la_SOURCES = \
+	md-os.c
 
 
 ## Local variables:

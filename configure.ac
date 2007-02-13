@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7285 2007-02-05 01:06:24Z twisti $
+dnl $Id: configure.ac 7352 2007-02-13 22:11:37Z ajordan $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -88,7 +88,7 @@ powerpc64 )
     ARCH_CFLAGS="-D__POWERPC64__"
     ;;
 
-sparc64 )
+sparc | sparc64 )
     ARCH_DIR="sparc64"
     ARCH_CFLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
     ;;
@@ -165,6 +165,12 @@ dnl must be before *linux*
     OS_DIR="netbsd"
     INTRP_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ARCH_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ;;
+
+*solaris* )
+    OS_DIR="solaris"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE"
     ;;
 
 * )
