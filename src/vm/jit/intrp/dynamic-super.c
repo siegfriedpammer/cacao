@@ -3,7 +3,7 @@
    Copyright (C) 1995,1996,1997,1998,2000,2003,2004 Free Software Foundation, Inc.
    Taken from Gforth.
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -25,14 +25,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Anton Ertl
-
-   Changes:
-
-   $Id: dynamic-super.c 5700 2006-10-05 19:36:21Z edwin $
+   $Id: dynamic-super.c 7357 2007-02-14 11:35:59Z twisti $
 */
 
 
@@ -44,18 +37,21 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "vm/types.h"
+
 #include "mm/memory.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
 #endif
 
+#include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
-#include "vm/hashtable.h"
-#include "vm/options.h"
-#include "vm/types.h"
+
 #include "vm/jit/disass.h"
 #include "vm/jit/intrp/intrp.h"
+
+#include "vmcore/options.h"
 
 
 s4 no_super=0;   /* option: just use replication, but no dynamic superinsts */

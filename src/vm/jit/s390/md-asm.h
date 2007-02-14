@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 7300 2007-02-07 22:06:53Z pm $
+   $Id: md-asm.h 7355 2007-02-14 10:57:32Z twisti $
 
 */
 

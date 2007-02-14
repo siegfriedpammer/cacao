@@ -1,6 +1,6 @@
 /* src/vm/jit/intrp/engine.c - #included by engine1.c and engine2.c
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,34 +22,40 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Anton Ertl
-
-   Changes: Edwin Steiner
-
-   $Id: engine.c 5835 2006-10-26 11:29:42Z edwin $
+   $Id: engine.c 7357 2007-02-14 11:35:59Z twisti $
 */
 
 
-#define VM_DEBUG
+/* #define VM_DEBUG */
 
 #include "config.h"
 
 #include <assert.h>
 
+#include "vm/types.h"
+
 #include "arch.h"
+
 #include "vm/jit/intrp/intrp.h"
 
 #include "md-abi.h"                           /* required for TRACE_ARGS_NUM */
 
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#else
+# include "threads/none/threads.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/options.h"
+
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+
 
 #if defined(ENABLE_THREADS)
 # ifndef USE_FAKE_ATOMIC_INSTRUCTIONS

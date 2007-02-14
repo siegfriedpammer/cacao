@@ -1832,7 +1832,7 @@ Cell v = sp[0];
 float f;
 vm_Cell2f(v,f);
 #if !defined(NDEBUG)
-builtin_displaymethodstop(am, (s8) v, f, f);
+builtin_verbosecall_exit((s8) v, f, f, am);
 #endif
 }
 if (*exceptionptr)
@@ -1875,17 +1875,17 @@ TRACECALL ( #am -- )
             ofs -= SIZEOF_VOID_P;
         }
     }
-    builtin_trace_args(args[0], args[1], args[2], args[3],  
+    builtin_verbosecall_enter(args[0], args[1], args[2], args[3],  
 #if TRACE_ARGS_NUM > 4
-            args[4], args[5],
+                              args[4], args[5],
 #endif
 #if TRACE_ARGS_NUM == 8
-            args[6], args[7],
+                              args[6], args[7],
 #endif
-            am);
+                              am);
 }
 #else /* SIZEOF_VOID_P */
-    builtin_trace_args(
+    builtin_verbosecall_enter(
         access_local_cell(0 * -SIZEOF_VOID_P),
         access_local_cell(1 * -SIZEOF_VOID_P),
         access_local_cell(2 * -SIZEOF_VOID_P),
@@ -1906,14 +1906,14 @@ TRACERETURN ( #am v -- v )
 float f;
 vm_Cell2f(v,f);
 #if !defined(NDEBUG)
-builtin_displaymethodstop(am, (s8) v, f, f);
+builtin_verbosecall_exit((s8) v, f, f, am);
 #endif
 
 TRACELRETURN ( #am l -- l )
 Double_Store ds;
 ds.l = l;
 #if !defined(NDEBUG)
-builtin_displaymethodstop(am, l, ds.d, ds.d);
+builtin_verbosecall_exit(l, ds.d, ds.d, am);
 #endif
 
 END ( ... -- )

@@ -20,12 +20,14 @@
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdlib.h>
 
 #include "vm/jit/intrp/intrp.h"
 
-#include "vm/options.h"
+#include "vmcore/options.h"
 
 
 /* the numbers in this struct are primitive indices */

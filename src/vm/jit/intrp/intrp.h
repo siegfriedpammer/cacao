@@ -1,6 +1,6 @@
 /* src/vm/jit/intrp/intrp.h - definitions for Interpreter
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Anton Ertl
-
-   Changes: Edwin Steiner
-
-   $Id: intrp.h 6204 2006-12-16 20:51:32Z edwin $
+   $Id: intrp.h 7357 2007-02-14 11:35:59Z twisti $
 
 */
 
@@ -44,6 +37,7 @@
 #include <stdio.h>
 
 #include "vm/types.h"
+
 #include "arch.h"
 
 /* we need Cell in some headers below */
@@ -54,12 +48,14 @@ typedef s8 Cell;
 typedef s4 Cell;
 #endif
 
-#include "vm/class.h"
 #include "vm/global.h"
-#include "vm/method.h"
-#include "vm/references.h"
-#include "vm/resolve.h"
+
 #include "vm/jit/codegen-common.h"
+
+#include "vmcore/class.h"
+#include "vmcore/method.h"
+#include "vmcore/references.h"
+#include "vmcore/resolve.h"
 
 
 typedef void *Label;

@@ -1,6 +1,6 @@
 /* src/vm/jit/intrp/patcher.c - Interpreter code patching functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Edwin Steiner
-
-   $Id: patcher.c 5666 2006-10-04 15:04:52Z twisti $
+   $Id: patcher.c 7357 2007-02-14 11:35:59Z twisti $
 
 */
 
@@ -37,16 +31,20 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
-#include "vm/field.h"
 #include "vm/initialize.h"
-#include "vm/options.h"
-#include "vm/resolve.h"
-#include "vm/references.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
+
+#include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/options.h"
+#include "vmcore/resolve.h"
+#include "vmcore/references.h"
 
 
 /* patcher_get_putstatic *******************************************************

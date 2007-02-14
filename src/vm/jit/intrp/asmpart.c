@@ -1,6 +1,6 @@
 /* src/vm/jit/intrp/asmpart.c - Java-C interface functions for Interpreter
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Anton Ertl
-
-   Changes: Edwin Steiner
-
-   $Id: asmpart.c 5812 2006-10-20 14:22:23Z twisti $
+   $Id: asmpart.c 7357 2007-02-14 11:35:59Z twisti $
 
 */
 
@@ -42,15 +35,23 @@
 
 #include "arch.h"
 
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#else
+# include "threads/none/threads.h"
+#endif
+
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/options.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/intrp/intrp.h"
 #include "vm/jit/dseg.h"
+
+#include "vmcore/class.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 
 static bool intrp_asm_vm_call_method_intern(methodinfo *m, s4 vmargscount,

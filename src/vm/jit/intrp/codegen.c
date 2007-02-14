@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Anton Ertl
-            Edwin Steiner
-
-   $Id: codegen.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: codegen.c 7357 2007-02-14 11:35:59Z twisti $
 
 */
 
@@ -53,14 +47,16 @@
 #include "vm/jit/intrp/codegen.h"
 #include "vm/jit/intrp/intrp.h"
 
+#include "mm/memory.h"
+
 #include "native/native.h"
+
 #include "vm/builtin.h"
-#include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -68,6 +64,10 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/stack.h"
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/class.h"
+#include "vmcore/options.h"
 
 
 #define gen_branch(_inst) { \
@@ -326,31 +326,31 @@ bool intrp_codegen(jitdata *jd)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, jd->code);                  /* CodeinfoPointer */
-	(void) dseg_adds4(cd, cd->stackframesize * SIZEOF_VOID_P); /* FrameSize   */
+	(void) dseg_add_unique_address(cd, jd->code);
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * SIZEOF_VOID_P);
 
 #if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, 1);                           /* IsSync         */
+		(void) dseg_add_unique_s4(cd, 1);
 	else
 #endif
-		(void) dseg_adds4(cd, 0);                           /* IsSync         */
+		(void) dseg_add_unique_s4(cd, 0);
 	                                       
-	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
-	(void) dseg_adds4(cd, 0);                               /* IntSave        */
-	(void) dseg_adds4(cd, 0);                               /* FltSave        */
+	(void) dseg_add_unique_s4(cd, 0);
+	(void) dseg_add_unique_s4(cd, 0);
+	(void) dseg_add_unique_s4(cd, 0);
 
 	dseg_addlinenumbertablesize(cd);
 
-	(void) dseg_adds4(cd, jd->exceptiontablelength);        /* ExTableSize    */
+	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength);
 
 	/* create exception table */
 
 	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_addtarget(cd, ex->start);
-   		dseg_addtarget(cd, ex->end);
-		dseg_addtarget(cd, ex->handler);
-		(void) dseg_addaddress(cd, ex->catchtype.any);
+		dseg_add_target(cd, ex->start);
+   		dseg_add_target(cd, ex->end);
+		dseg_add_target(cd, ex->handler);
+		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
 
 #if 0	
@@ -1611,12 +1611,12 @@ dont_opt_IF_LCMPxx:
 			table += i;
 
 			while (--i >= 0) {
-				dseg_addtarget(cd, BLOCK_OF(table->insindex)); 
+				dseg_add_target(cd, BLOCK_OF(table->insindex)); 
 				--table;
 			}
 			}
 
-			/* length of dataseg after last dseg_addtarget is used by load */
+			/* length of dataseg after last dseg_add_target is used by load */
 			((ptrint *)(cd->mcodeptr))[-2] = (ptrint) -(cd->dseglen);
 			break;
 
@@ -1643,15 +1643,15 @@ dont_opt_IF_LCMPxx:
 			/* build jump table top down and use address of lowest entry */
 
 			while (--i >= 0) {
-				dseg_addtarget(cd, BLOCK_OF(lookup->target.insindex)); 
-				dseg_addaddress(cd, lookup->value);
+				dseg_add_target(cd, BLOCK_OF(lookup->target.insindex)); 
+				dseg_add_unique_address(cd, lookup->value);
 				lookup++;
 			}
 
 			codegen_addreference(cd, BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex));
 			}
 
-			/* length of dataseg after last dseg_addtarget is used by load */
+			/* length of dataseg after last dseg_add_target is used by load */
 			((ptrint *)(cd->mcodeptr))[-2] = (ptrint) -(cd->dseglen);
 			break;
 
@@ -1840,7 +1840,7 @@ dont_opt_IF_LCMPxx:
 
 *******************************************************************************/
 
-#define COMPILERSTUB_DATASIZE    1
+#define COMPILERSTUB_DATASIZE    2
 #define COMPILERSTUB_CODESIZE    4
 
 #define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
@@ -1851,7 +1851,6 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	Inst        *s;
 	Inst        *d;
 	codegendata *cd;
-	codeinfo    *code;
 	s4           dumpsize;
 	s4           stackframesize;
 
@@ -1862,11 +1861,11 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	d = s;
 	s = s + COMPILERSTUB_DATASIZE;
 
-	/* Store the codeinfo pointer in the same place as in the
-	   methodheader for compiled methods. */
+	/* The codeinfo pointer is actually a pointer to the
+	   methodinfo. This fakes a codeinfo structure. */
 
-	code = code_codeinfo_new(m);
-	d[0] = (Inst *) code;
+	d[0] = (Inst *) m;
+	d[1] = (Inst *) &d[0];                                    /* fake code->m */
 
 	/* mark start of dump memory area */
 
@@ -2001,9 +2000,10 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	/* determine stackframe size (in units of ptrint) */
 
@@ -2011,19 +2011,14 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* create method header */
 
-	/* Store the codeinfo pointer in the same place as in the
-	   methodheader for compiled methods. */
-
-	code = code_codeinfo_new(m);
-
-	(void) dseg_addaddress(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, stackframesize * SIZEOF_VOID_P);  /* FrameSize      */
-	(void) dseg_adds4(cd, 0);                               /* IsSync         */
-	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
-	(void) dseg_adds4(cd, 0);                               /* IntSave        */
-	(void) dseg_adds4(cd, 0);                               /* FltSave        */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, stackframesize * SIZEOF_VOID_P); /*FrameSize*/
+	(void) dseg_add_unique_s4(cd, 0);                       /* IsSync         */
+	(void) dseg_add_unique_s4(cd, 0);                       /* IsLeaf         */
+	(void) dseg_add_unique_s4(cd, 0);                       /* IntSave        */
+	(void) dseg_add_unique_s4(cd, 0);                       /* FltSave        */
 	dseg_addlinenumbertablesize(cd);
-	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
+	(void) dseg_add_unique_s4(cd, 0);                       /* ExTableSize    */
 
 #if defined(WITH_FFI)
 	/* prepare ffi cif structure */
@@ -2255,14 +2250,14 @@ u1 *createcalljavafunction(methodinfo *m)
 
 	/* create method header */
 
-	(void) dseg_addaddress(cd, NULL);                      /* CodeinfoPointer */
-	(void) dseg_adds4(cd, md->paramslots * SIZEOF_VOID_P);  /* FrameSize      */
-	(void) dseg_adds4(cd, 0);                               /* IsSync         */
-	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
-	(void) dseg_adds4(cd, 0);                               /* IntSave        */
-	(void) dseg_adds4(cd, 0);                               /* FltSave        */
+	(void) dseg_add_unique_address(cd, NULL);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, md->paramslots * SIZEOF_VOID_P);/* FrameSize*/
+	(void) dseg_add_unique_s4(cd, 0);                       /* IsSync         */
+	(void) dseg_add_unique_s4(cd, 0);                       /* IsLeaf         */
+	(void) dseg_add_unique_s4(cd, 0);                       /* IntSave        */
+	(void) dseg_add_unique_s4(cd, 0);                       /* FltSave        */
 	dseg_addlinenumbertablesize(cd);
-	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
+	(void) dseg_add_unique_s4(cd, 0);                       /* ExTableSize    */
 
 
 	/* generate code */
