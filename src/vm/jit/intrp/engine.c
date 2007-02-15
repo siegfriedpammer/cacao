@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: engine.c 7357 2007-02-14 11:35:59Z twisti $
+   $Id: engine.c 7366 2007-02-15 19:48:11Z twisti $
 */
 
 
@@ -39,6 +39,8 @@
 #include "vm/jit/intrp/intrp.h"
 
 #include "md-abi.h"                           /* required for TRACE_ARGS_NUM */
+
+#include "mm/memory.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"

@@ -95,6 +95,11 @@ void asm_abstractmethoderror(void)
 	abort();
 }
 
+void intrp_asm_abstractmethoderror(void)
+{
+	abort();
+}
+
 
 /* builtin ********************************************************************/
 
@@ -496,6 +501,11 @@ java_objectheader *literalstring_new(utf *u)
 	log_println("literalstring_new: REMOVE ME!");
 
 	return NULL;
+}
+
+
+void print_dynamic_super_statistics(void)
+{
 }
 
 
