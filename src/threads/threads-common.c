@@ -42,6 +42,8 @@
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
+#else
+# include "threads/none/threads.h"
 #endif
 
 #include "vm/builtin.h"
@@ -119,7 +121,11 @@ ptrint threads_get_current_tid(void)
 	if (thread == NULL)
 		return 0;
 
+#if defined(ENABLE_THREADS)
 	return (ptrint) thread->tid;
+#else
+	return 0;
+#endif
 }
 
 
