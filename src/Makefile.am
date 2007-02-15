@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7246 2007-01-29 18:49:05Z twisti $
+## $Id: Makefile.am 7365 2007-02-15 19:42:13Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,6 +44,11 @@ VM_DIR = \
 	lib
 endif
 
+if ENABLE_THREADS
+THREADS_DIR = \
+	threads
+endif
+
 # DON'T CHANGE THIS ORDER!!!
 
 SUBDIRS = \
@@ -55,7 +60,7 @@ SUBDIRS = \
 	native \
 	fdlibm \
 	mm \
-	threads \
+	$(THREADS_DIR) \
 	vm \
 	cacao \
 	scripts

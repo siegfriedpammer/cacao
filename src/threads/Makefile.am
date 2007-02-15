@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7356 2007-02-14 11:00:28Z twisti $
+## $Id: Makefile.am 7365 2007-02-15 19:42:13Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -34,14 +34,11 @@ DIST_SUBDIRS = \
 	native \
 	none
 
-if ENABLE_THREADS
-SUBDIRS = native
+SUBDIRS = \
+	native
 
 THREAD_LIB = \
 	native/libthreadsposix.la
-else
-SUBDIRS = none
-endif
 
 noinst_LTLIBRARIES = \
 	libthreads.la

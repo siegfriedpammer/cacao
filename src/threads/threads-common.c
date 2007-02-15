@@ -40,11 +40,7 @@
 
 #include "threads/threads-common.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/native/threads.h"
 
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
@@ -58,7 +54,7 @@
    Creates a thread object with the given name.
 
 *******************************************************************************/
-#if defined(ENABLE_THREADS)
+
 threadobject *threads_create_thread(utf *name)
 {
 	threadobject *thread;
@@ -98,7 +94,6 @@ threadobject *threads_create_thread(utf *name)
 
 	return thread;
 }
-#endif
 
 
 /* threads_get_current_tid *****************************************************
@@ -121,11 +116,7 @@ ptrint threads_get_current_tid(void)
 	if (thread == NULL)
 		return 0;
 
-#if defined(ENABLE_THREADS)
 	return (ptrint) thread->tid;
-#else
-	return 0;
-#endif
 }
 
 
