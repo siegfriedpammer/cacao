@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 7283 2007-02-04 19:41:14Z pm $
+   $Id: md-abi.c 7367 2007-02-16 07:17:01Z pm $
 
 */
 
@@ -38,7 +38,7 @@
 
 #include "vm/jit/s390/md-abi.h"
 
-#include "vm/descriptor.h"
+#include "vmcore/descriptor.h"
 #include "vm/global.h"
 
 
@@ -52,6 +52,32 @@ s4 nregdescint[] = {
     REG_END
 };
 
+const char *abi_registers_integer_name[] = {
+	"r0", "r1", "r2", "r3",
+	"r4", "r5", "r6", "r7",
+	"r8", "r9", "r10", "r11",
+	"r12", "r13", "r14", "r15"
+};
+
+const s4 abi_registers_integer_argument[] = {
+	2, /* r2/a0 */
+	3, /* r3/a1 */
+	4, /* r4/a2 */
+	5, /* r5/a3 */
+	6  /* r6/a4 */
+};
+
+const s4 abi_registers_integer_saved[] = {
+	7,  /* r7/s0 */
+	8,  /* r8/s1 */
+	9,  /* r9/s2 */
+	10, /* r10/s3 */
+	11  /* r11/s4 */
+};
+
+const s4 abi_registers_integer_temporary[] = {
+	-1 /* NONE */
+};
 
 s4 nregdescfloat[] = {
 	REG_ARG, REG_TMP, REG_ARG, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
@@ -59,6 +85,30 @@ s4 nregdescfloat[] = {
     REG_END
 };
 
+const s4 abi_registers_float_argument[] = {
+	0, /* f0/fa0 */
+	1  /* f2/fa2 */
+};
+
+const s4 abi_registers_float_saved[] = {
+	4, /* f4/fs0 */
+	6  /* f6/fs0 */
+};
+
+const s4 abi_registers_float_temporary[] = {
+	1,  /* f1/ft0 */
+	3,  /* f3/ft1 */
+	5,  /* f5/ft2 */
+	7,  /* f7/ft3 */
+	8,  /* f8/ft4 */
+	9,  /* f9/ft5 */
+	10, /* f10/ft6 */
+	11, /* f11/ft7 */
+	12, /* f12/ft8 */
+	13, /* f13/ft9 */
+	14, /* f14/ft10 */
+	15  /* f15/ft11 */
+};
 
 /* md_param_alloc **************************************************************
 
@@ -133,6 +183,14 @@ void md_param_alloc(methoddesc *md)
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
 	md->memuse       = stacksize;
+}
+
+void md_param_alloc_native(methoddesc *md)
+{
+	/* On PowerPC we use the same ABI for JIT method calls as for
+	 *        native method calls. */
+
+	md_param_alloc(md);
 }
 
 

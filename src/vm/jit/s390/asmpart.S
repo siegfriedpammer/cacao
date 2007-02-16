@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7356 2007-02-14 11:00:28Z twisti $
+   $Id: asmpart.S 7367 2007-02-16 07:17:01Z pm $
 
 */
 
@@ -166,6 +166,9 @@ r14:  return address
 96 ...     on stack parameters (none)
 0 - 96     register save area
 -------------------------------------------------- <- SP on asm_vm_... entry
+           local variables
+		   saved return address (important to be at 0(sp) because of md_stacktrace_get_returnaddress)
+----------------------------------------- <- SP after stack frame allocation
            arguments on stack
 ---------------------------------------------------- <- SP on JIT code entry
            saved return address (callee saved)
@@ -186,7 +189,8 @@ r14:  return address
 
 	stm   %r6, %r15, 24(sp)               /* save callers regiters */
 	stm   a0, a2, 8(sp)                   /* save arguments */
-	ahi   sp, -4                          /* allocate stack space for local variables */
+	ahi   sp, -8                          /* allocate stack space for local variables */
+	st    %r14, 0(sp)                     /* store RA once more at bottom of stack frame */
 
 	ltr   a1, a1                          /* maybe we have no args... */
 	je    L_no_args
@@ -384,10 +388,10 @@ L_copy_done:
 	basr  mptr, 0                         /* store PC */
 L_basr:
 	la    mptr, L_asm_call_jit_compiler-L_basr(mptr) /* add offset to PC */
-	st    mptr, 0(s3)                     /* store on stack */
+	st    mptr, 4(s3)                     /* store on stack */
 
-	l     itmp1, 4+8(s3)                  /* load methodinfo for compiler */
-	la    mptr, 0(s3)                     /* store **function in mptr for compiler */
+	l     itmp1, 8+8(s3)                  /* load methodinfo for compiler */
+	la    mptr, 4(s3)                     /* store **function in mptr for compiler */
 
 	/* call L_asm_call_jit_compiler like JIT code would do */
 
@@ -399,7 +403,7 @@ L_basr:
 
 L_asm_vm_call_method_return:
 
-	ahi   sp, 4                           /* remove stack space for local variables */
+	ahi   sp, 8                           /* remove stack space for local variables */
 	lm    %r6, %r15, 24(sp)               /* restore callers registers */
 	br    %r14                            /* return */
 

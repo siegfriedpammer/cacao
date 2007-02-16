@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7356 2007-02-14 11:00:28Z twisti $
+   $Id: codegen.c 7367 2007-02-16 07:17:01Z pm $
 
 */
 
@@ -58,9 +58,9 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
+#include "vmcore/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 #include "vm/jit/asmpart.h"
@@ -73,6 +73,7 @@
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/stacktrace.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -157,7 +158,7 @@ bool codegen(jitdata *jd)
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
 
-	cd->stackframesize = rd->memuse + savedregs_num + 1 /* space to save RA */;
+	cd->stackframesize = rd->memuse + savedregs_num + 1  /* space to save RA */;
 
 	/* CAUTION:
 	 * As REG_ITMP3 == REG_RA, do not touch REG_ITMP3, until it has been saved.
@@ -220,6 +221,7 @@ bool codegen(jitdata *jd)
 	
 	/* generate method profiling code */
 
+#if defined(ENABLE_PROFILING)
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 		/* count frequency */
 
@@ -230,6 +232,7 @@ bool codegen(jitdata *jd)
 
 /* 		PROFILE_CYCLE_START; */
 	}
+#endif
 
 	/* create stack frame (if necessary) */
 
@@ -243,6 +246,7 @@ bool codegen(jitdata *jd)
 
   	p = cd->stackframesize;
 	p--; M_AST(REG_RA, REG_SP, p * 4);
+
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
  		p--; M_IST(rd->savintregs[i], REG_SP, p * 4);
 	}

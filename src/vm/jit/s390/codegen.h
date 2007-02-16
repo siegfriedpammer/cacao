@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7356 2007-02-14 11:00:28Z twisti $
+   $Id: codegen.h 7367 2007-02-16 07:17:01Z pm $
 
 */
 
@@ -597,7 +597,7 @@
 #define M_JSR(reg_ret, reg_addr) N_BASR(reg_ret, reg_addr)
 #define M_ICMP(a, b) N_CR(a, b)
 #define M_CVTIF(src, dst) N_CEFBR(dst, src)
-#define M_CVTID(src, dst) N_CEDBR(dst, src)
+#define M_CVTID(src, dst) N_CDFBR(dst, src)
 #define M_FMUL(a, dest) N_MEEBR(dest, a)
 #define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
 #define M_IADD(a, dest) N_AR(dest, a)
@@ -609,7 +609,7 @@
 			N_LHI(reg, i); \
 		} else { \
 			disp = dseg_add_s4(cd, (i)); \
-			N_ILD(reg, REG_PV, disp); \
+			M_ILD(reg, REG_PV, disp); \
 		} \
 	} while (0) 
 

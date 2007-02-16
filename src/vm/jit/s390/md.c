@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7356 2007-02-14 11:00:28Z twisti $
+   $Id: md.c 7367 2007-02-16 07:17:01Z pm $
 
 */
 
@@ -67,7 +67,7 @@
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vm/options.h" /* XXX debug */
+#include "vmcore/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7356 2007-02-14 11:00:28Z twisti $
+   $Id: patcher.c 7367 2007-02-16 07:17:01Z pm $
 
 */
 
@@ -41,14 +41,15 @@
 #include "mm/memory.h"
 #include "native/native.h"
 #include "vm/builtin.h"
-#include "vm/class.h"
+#include "vmcore/class.h"
 #include "vm/exceptions.h"
-#include "vm/field.h"
+#include "vmcore/field.h"
 #include "vm/initialize.h"
-#include "vm/options.h"
-#include "vm/references.h"
-#include "vm/resolve.h"
+#include "vmcore/options.h"
+#include "vmcore/references.h"
+#include "vmcore/resolve.h"
 #include "vm/jit/patcher.h"
+#include "vm/jit/stacktrace.h"
 
 #include <assert.h>
 #define OOPS() assert(0);
@@ -67,6 +68,7 @@
 
 java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
+#if 1
 	stackframeinfo     sfi;
 	u1                *xpc;
 	java_objectheader *o;
@@ -107,7 +109,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	   stacktrace_create_extern_stackframeinfo for
 	   md_codegen_get_pv_from_pc. */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 4, xpc, xpc);
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 4, ra, xpc);
 
 	/* call the proper patcher function */
 
@@ -130,6 +132,69 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return NULL;
+#else
+
+	stackframeinfo     sfi;
+	u1                *xpc;
+	java_objectheader *o;
+	u4                 mcode;
+	functionptr        f;
+	bool               result;
+	java_objectheader *e;
+
+	/* define the patcher function */
+
+	bool (*patcher_function)(u1 *);
+
+	assert(pv != NULL);
+
+	/* get stuff from the stack */
+
+	xpc = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
+	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
+
+	/* Correct RA is calculated in codegen.c and stored in the patcher
+	   stub stack.  There's no need to adjust xpc. */
+
+	/* store PV into the patcher function position */
+
+	*((ptrint *) (sp + 0 * 4)) = (ptrint) pv;
+
+	/* cast the passed function to a patcher function */
+
+	patcher_function = (bool (*)(u1 *)) (ptrint) f;
+
+	/* enter a monitor on the patching position */
+
+	PATCHER_MONITORENTER;
+
+	/* create the stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 8 * 4, ra, xpc);
+
+	/* call the proper patcher function */
+
+	result = (patcher_function)(sp);
+
+	/* remove the stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	/* check for return value and exit accordingly */
+
+	if (result == false) {
+		e = exceptions_get_and_clear_exception();
+
+		PATCHER_MONITOREXIT;
+
+		return e;
+	}
+
+	PATCHER_MARK_PATCHED_MONITOREXIT;
+
+	return NULL;
+#endif
 }
 
 
