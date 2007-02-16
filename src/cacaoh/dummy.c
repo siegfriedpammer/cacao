@@ -349,6 +349,29 @@ void finalizer_run(void *o, void *p)
 }
 
 
+/* gc *************************************************************************/
+
+s8 gc_get_heap_size(void)
+{
+	return 0;
+}
+
+s8 gc_get_free_bytes(void)
+{
+	return 0;
+}
+
+s8 gc_get_total_bytes(void)
+{
+	return 0;
+}
+
+s8 gc_get_max_heap_size(void)
+{
+	return 0;
+}
+
+
 /* heap ***********************************************************************/
 
 void *heap_alloc_uncollectable(u4 bytelength)

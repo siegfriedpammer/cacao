@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7356 2007-02-14 11:00:28Z twisti $
+   $Id: memory.c 7369 2007-02-16 17:56:40Z twisti $
 
 */
 
@@ -391,6 +391,10 @@ static void memory_thread(void)
 		/* print memory usage */
 
 		statistics_print_memory_usage();
+
+		/* print GC memory usage */
+
+		statistics_print_gc_memory_usage();
 # endif
 	}
 }

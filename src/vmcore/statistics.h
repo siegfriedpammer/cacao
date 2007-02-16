@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: statistics.h 7369 2007-02-16 17:56:40Z twisti $
 
 */
 
@@ -213,6 +213,8 @@ void print_times(void);
 void print_stats(void);
 
 void statistics_print_memory_usage(void);
+void statistics_print_gc_memory_usage(void);
+
 void mem_usagelog(bool givewarnings);
 
 void nativeinvokation(void);

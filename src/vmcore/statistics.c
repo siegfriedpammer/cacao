@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: statistics.c 7369 2007-02-16 17:56:40Z twisti $
 
 */
 
@@ -35,8 +35,12 @@
 
 #include "vm/types.h"
 
+#include "mm/gc-common.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/global.h"
+
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
 
@@ -647,6 +651,24 @@ void statistics_print_memory_usage(void)
 	printf("heap memory not freed:  %10d\n", (s4) memoryusage);
 	printf("dump memory not freed:  %10d\n", (s4) globalallocateddumpsize);
 	printf("\n");
+}
+
+
+/* statistics_print_gc_memory_usage ********************************************
+
+   Print current GC memory usage.
+
+*******************************************************************************/
+
+void statistics_print_gc_memory_usage(void)
+{
+	log_println("GC memory usage -------------------");
+	log_println("");
+	log_println("max. heap size: %10lld", gc_get_max_heap_size());
+	log_println("");
+	log_println("heap size:      %10lld", gc_get_heap_size());
+	log_println("free:           %10lld", gc_get_free_bytes());
+	log_println("used:           %10lld", gc_get_total_bytes());
 }
 
 
