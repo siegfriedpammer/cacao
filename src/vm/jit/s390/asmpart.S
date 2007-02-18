@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7367 2007-02-16 07:17:01Z pm $
+   $Id: asmpart.S 7373 2007-02-18 20:16:14Z pm $
 
 */
 
@@ -729,7 +729,7 @@ asm_patcher_wrapper:
 
 	la      a0, apw_sfs(sp)             /* pass SP of patcher stub */
 	lr      a1, pv                      /* pass PV (if NULL, use findmethod)  */
-	lhi     a2, 0                       /* pass RA (it's on the stack)        */
+	lhi     a2, 0                       /* pass RA                            */
 
 	/* call patcher_wrapper */
 
@@ -752,8 +752,8 @@ L_apw_bras:
 	l       itmp3, 0(sp)                /* restore return value */
 	ltr     itmp3, itmp3                /* exception thrown ? */
 	jne     L_asm_patcher_wrapper_exception /* handle exception */
-	ahi     sp, apw_sfs                 /* remove stack frame */
-	l       itmp3, 20(sp)               /* load return address to JIT from stack */
+	l       itmp3, apw_sfs + (5 * 4)(sp) /* load return address to JIT from stack */
+	ahi     sp, apw_sfs + (6 * 4)       /* remove stack frame, and stack frame by patcher stub */
 	br      itmp3                       /* return */
 
 L_asm_patcher_wrapper_exception:

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7367 2007-02-16 07:17:01Z pm $
+   $Id: patcher.c 7373 2007-02-18 20:16:14Z pm $
 
 */
 
@@ -109,7 +109,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	   stacktrace_create_extern_stackframeinfo for
 	   md_codegen_get_pv_from_pc. */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 6 * 4, ra, xpc);
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + (6 * 4), ra, xpc);
 
 	/* call the proper patcher function */
 
