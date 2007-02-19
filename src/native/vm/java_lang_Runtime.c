@@ -28,11 +28,27 @@
 
 
 #include "config.h"
+
+#if !defined(WITH_STATIC_CLASSPATH)
+# include <ltdl.h>
+#endif
+
 #include "vm/types.h"
 
 #include "mm/gc-common.h"
 
+#include "native/jni.h"
+#include "native/native.h"
+
+#include "native/include/java_lang_String.h"
+
+#include "toolbox/logging.h"
+
+#include "vm/exceptions.h"
+#include "vm/stringlocal.h"
 #include "vm/vm.h"
+
+#include "vmcore/options.h"
 
 
 /* should we run all finalizers on exit? */
@@ -83,6 +99,78 @@ s8 _Jv_java_lang_Runtime_totalMemory(void)
 void _Jv_java_lang_Runtime_gc(void)
 {
 	gc_call();
+}
+
+
+/*
+ * Class:     java/lang/Runtime
+ * Method:    loadLibrary
+ * Signature: (Ljava/lang/String;)I
+ */
+s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheader *cl)
+{
+#if !defined(WITH_STATIC_CLASSPATH)
+	utf               *name;
+	lt_dlhandle        handle;
+	lt_ptr             onload;
+	s4                 version;
+#endif
+
+	if (libname == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+#if defined(WITH_STATIC_CLASSPATH)
+	return 1;
+#else /* defined(WITH_STATIC_CLASSPATH) */
+	name = javastring_toutf(libname, 0);
+
+	/* is the library already loaded? */
+
+	if (native_hashtable_library_find(name, cl))
+		return 1;
+
+	/* try to open the library */
+
+	if (!(handle = lt_dlopen(name->text))) {
+		if (opt_verbose) {
+			log_start();
+			log_print("_Jv_java_lang_Runtime_loadLibrary: ");
+			log_print(lt_dlerror());
+			log_finish();
+		}
+
+		return 0;
+	}
+
+	/* resolve JNI_OnLoad function */
+
+	if ((onload = lt_dlsym(handle, "JNI_OnLoad"))) {
+		JNIEXPORT s4 (JNICALL *JNI_OnLoad) (JavaVM *, void *);
+		JavaVM *vm;
+
+		JNI_OnLoad = (JNIEXPORT s4 (JNICALL *)(JavaVM *, void *)) (ptrint) onload;
+
+		(*env)->GetJavaVM(env, &vm);
+
+		version = JNI_OnLoad(vm, NULL);
+
+		/* if the version is not 1.2 and not 1.4 the library cannot be loaded */
+
+		if ((version != JNI_VERSION_1_2) && (version != JNI_VERSION_1_4)) {
+			lt_dlclose(handle);
+
+			return 0;
+		}
+	}
+
+	/* insert the library name into the library hash */
+
+	native_hashtable_library_add(name, cl, handle);
+
+	return 1;
+#endif /* defined(WITH_STATIC_CLASSPATH) */
 }
 
 

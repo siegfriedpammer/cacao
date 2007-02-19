@@ -37,6 +37,7 @@ libnativevmcore_la_SOURCES = \
 	com_sun_cldc_io_ResourceInputStream.c \
 	com_sun_cldc_io_j2me_socket_Protocol.c \
 	com_sun_cldchi_io_ConsoleOutputStream.c \
+	com_sun_cldchi_jvm_JVM.c \
 	java_lang_Class.c \
 	java_lang_Double.c \
 	java_lang_Float.c \

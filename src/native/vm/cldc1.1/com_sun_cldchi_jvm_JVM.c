@@ -1,9 +1,9 @@
-/* src/native/vm/java_lang_Runtime.h
+/* src/native/vm/cldc1.1/com_sun_cldchi_jvm_JVM.c
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -22,34 +22,30 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
 */
 
-
-#ifndef _JV_JAVA_LANG_RUNTIME_H
-#define _JV_JAVA_LANG_RUNTIME_H
 
 #include "config.h"
 #include "vm/types.h"
 
 #include "native/jni.h"
+
 #include "native/include/java_lang_String.h"
 
+#include "native/vm/java_lang_Runtime.h"
 
-/* function prototypes *******************************************************/
 
-void _Jv_java_lang_Runtime_exit(s4 status);
-s8   _Jv_java_lang_Runtime_freeMemory(void);
-s8   _Jv_java_lang_Runtime_totalMemory(void);
-void _Jv_java_lang_Runtime_gc(void);
-s4   _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheader *cl);
-
-#if defined(ENABLE_JAVASE)
-void _Jv_java_lang_Runtime_runFinalizersOnExit(s4 value);
-#endif
-
-#endif /* _JV_JAVA_LANG_RUNTIME_H */
+/*
+ * Class:     com/sun/cldchi/jvm/JVM
+ * Method:    loadLibrary
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jclass clazz, java_lang_String *libName)
+{
+	(void) _Jv_java_lang_Runtime_loadLibrary(libName, NULL);
+}
 
 
 /*

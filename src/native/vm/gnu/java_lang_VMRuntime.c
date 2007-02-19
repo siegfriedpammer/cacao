@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 7355 2007-02-14 10:57:32Z twisti $
+   $Id: java_lang_VMRuntime.c 7374 2007-02-19 23:47:58Z twisti $
 
 */
 
@@ -33,10 +33,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/utsname.h>
-
-#if !defined(WITH_STATIC_CLASSPATH)
-# include <ltdl.h>
-#endif
 
 #if defined(__DARWIN__)
 # define OS_INLINE    /* required for <libkern/ppc/OSByteOrder.h> */
@@ -49,7 +45,6 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
-#include "native/native.h"
 
 #include "native/include/java_io_File.h"
 #include "native/include/java_lang_ClassLoader.h"
@@ -58,14 +53,10 @@
 
 #include "native/vm/java_lang_Runtime.h"
 
-#include "toolbox/logging.h"
-
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
-
-#include "vmcore/options.h"
 
 
 /* this should work on BSD */
@@ -244,70 +235,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
  * Method:    nativeLoad
  * Signature: (Ljava/lang/String;Ljava/lang/ClassLoader;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *filename, java_lang_ClassLoader *loader)
+JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *libname, java_lang_ClassLoader *loader)
 {
-#if !defined(WITH_STATIC_CLASSPATH)
-	utf         *name;
-	lt_dlhandle  handle;
-	lt_ptr       onload;
-	s4           version;
-#endif
-
-	if (filename == NULL) {
-		exceptions_throw_nullpointerexception();
-		return 0;
-	}
-
-#if defined(WITH_STATIC_CLASSPATH)
-	return 1;
-#else /* defined(WITH_STATIC_CLASSPATH) */
-	name = javastring_toutf(filename, 0);
-
-	/* is the library already loaded? */
-
-	if (native_hashtable_library_find(name, (java_objectheader *) loader))
-		return 1;
-
-	/* try to open the library */
-
-	if (!(handle = lt_dlopen(name->text))) {
-		if (opt_verbose) {
-			log_start();
-			log_print("Java_java_lang_VMRuntime_nativeLoad: ");
-			log_print(lt_dlerror());
-			log_finish();
-		}
-
-		return 0;
-	}
-
-	/* resolve JNI_OnLoad function */
-
-	if ((onload = lt_dlsym(handle, "JNI_OnLoad"))) {
-		JNIEXPORT s4 (JNICALL *JNI_OnLoad) (JavaVM *, void *);
-		JavaVM *vm;
-
-		JNI_OnLoad = (JNIEXPORT s4 (JNICALL *)(JavaVM *, void *)) (ptrint) onload;
-
-		(*env)->GetJavaVM(env, &vm);
-
-		version = JNI_OnLoad(vm, NULL);
-
-		/* if the version is not 1.2 and not 1.4 the library cannot be loaded */
-
-		if ((version != JNI_VERSION_1_2) && (version != JNI_VERSION_1_4)) {
-			lt_dlclose(handle);
-
-			return 0;
-		}
-	}
-
-	/* insert the library name into the library hash */
-
-	native_hashtable_library_add(name, (java_objectheader *) loader, handle);
-
-	return 1;
-#endif /* defined(WITH_STATIC_CLASSPATH) */
+	_Jv_java_lang_Runtime_loadLibrary(libname, (java_objectheader *) loader);
 }
 
 
