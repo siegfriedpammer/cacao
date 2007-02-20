@@ -44,7 +44,11 @@
  */
 JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jclass clazz, java_lang_String *libName)
 {
+#if defined(ENABLE_JNI)
+	(void) _Jv_java_lang_Runtime_loadLibrary(env, libName, NULL);
+#else
 	(void) _Jv_java_lang_Runtime_loadLibrary(libName, NULL);
+#endif
 }
 
 

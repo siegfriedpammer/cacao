@@ -43,7 +43,12 @@ void _Jv_java_lang_Runtime_exit(s4 status);
 s8   _Jv_java_lang_Runtime_freeMemory(void);
 s8   _Jv_java_lang_Runtime_totalMemory(void);
 void _Jv_java_lang_Runtime_gc(void);
+
+#if defined(ENABLE_JNI)
+s4   _Jv_java_lang_Runtime_loadLibrary(JNIEnv *env, java_lang_String *libname, java_objectheader *cl);
+#else
 s4   _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheader *cl);
+#endif
 
 #if defined(ENABLE_JAVASE)
 void _Jv_java_lang_Runtime_runFinalizersOnExit(s4 value);

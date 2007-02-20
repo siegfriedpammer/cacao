@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 7374 2007-02-19 23:47:58Z twisti $
+   $Id: java_lang_VMRuntime.c 7376 2007-02-20 00:42:27Z twisti $
 
 */
 
@@ -237,7 +237,15 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *libname, java_lang_ClassLoader *loader)
 {
-	_Jv_java_lang_Runtime_loadLibrary(libname, (java_objectheader *) loader);
+	java_objectheader *cl;
+
+	cl = (java_objectheader *) loader;
+
+#if defined(ENABLE_JNI)
+	return _Jv_java_lang_Runtime_loadLibrary(env, libname, cl);
+#else
+	return _Jv_java_lang_Runtime_loadLibrary(libname, cl);
+#endif
 }
 
 

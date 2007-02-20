@@ -105,15 +105,21 @@ void _Jv_java_lang_Runtime_gc(void)
 /*
  * Class:     java/lang/Runtime
  * Method:    loadLibrary
- * Signature: (Ljava/lang/String;)I
+ * Signature: (Ljava/lang/String;Ljava/lang/ClassLoader;)I
  */
+#if defined(ENABLE_JNI)
+s4 _Jv_java_lang_Runtime_loadLibrary(JNIEnv *env, java_lang_String *libname, java_objectheader *cl)
+#else
 s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheader *cl)
+#endif
 {
 #if !defined(WITH_STATIC_CLASSPATH)
 	utf               *name;
 	lt_dlhandle        handle;
+# if defined(ENABLE_JNI)
 	lt_ptr             onload;
 	s4                 version;
+# endif
 #endif
 
 	if (libname == NULL) {
@@ -144,6 +150,7 @@ s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheade
 		return 0;
 	}
 
+# if defined(ENABLE_JNI)
 	/* resolve JNI_OnLoad function */
 
 	if ((onload = lt_dlsym(handle, "JNI_OnLoad"))) {
@@ -164,6 +171,7 @@ s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheade
 			return 0;
 		}
 	}
+# endif
 
 	/* insert the library name into the library hash */
 
