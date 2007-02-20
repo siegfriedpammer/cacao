@@ -36,6 +36,9 @@
 
 #include "native/vm/java_lang_Runtime.h"
 
+#include "vm/exceptions.h"
+#include "vm/stringlocal.h"
+
 
 /*
  * Class:     com/sun/cldchi/jvm/JVM
@@ -44,11 +47,21 @@
  */
 JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jclass clazz, java_lang_String *libName)
 {
+	s4   result;
+	utf *name;
+
 #if defined(ENABLE_JNI)
-	(void) _Jv_java_lang_Runtime_loadLibrary(env, libName, NULL);
+	result = _Jv_java_lang_Runtime_loadLibrary(env, libName, NULL);
 #else
-	(void) _Jv_java_lang_Runtime_loadLibrary(libName, NULL);
+	result = _Jv_java_lang_Runtime_loadLibrary(libName, NULL);
 #endif
+
+	/* check for error and throw one in case */
+
+	if (result == 0) {
+		name = javastring_toutf(libName, 0);
+		exceptions_throw_unsatisfiedlinkerror(name);
+	}
 }
 
 
