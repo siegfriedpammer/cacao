@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7367 2007-02-16 07:17:01Z pm $
+   $Id: codegen.c 7385 2007-02-21 23:12:30Z pm $
 
 */
 
@@ -3020,6 +3020,7 @@ gen_method:
 			case ICMD_BUILTIN:
 				disp = dseg_add_functionptr(cd, bte->fp);
 
+				N_AHI(REG_SP, -96); /* register save are required by C abi */	
 				N_LHI(REG_ITMP1, disp);
 				N_L(REG_PV, 0, REG_ITMP1, REG_PV);
 				break;
@@ -3089,7 +3090,13 @@ gen_method:
 			N_BASR(REG_ITMP1, RN);
 			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			M_LDA(REG_PV, REG_ITMP1, -disp);
-			
+	
+			/* post call finalization */
+
+			if (iptr->opc == ICMD_BUILTIN) {
+				N_AHI(REG_SP, 96); /* remove C abi register save area */
+			}
+
 			/* actually only used for ICMD_BUILTIN */
 
 			if (INSTRUCTION_MUST_CHECK(iptr)) {
@@ -3699,6 +3706,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		nmd->memuse + /* parameter passing */
 		96 / SIZEOF_VOID_P /* required by ABI */;
 
+	cd->stackframesize |= 0x1;                  /* keep stack 8-byte aligned */
+
 
 	/* create method header */
 
@@ -3922,7 +3931,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* remove native stackframe info */
 
-	N_LAE(REG_A0, cd->stackframesize * 4, RN, REG_SP);
+	N_LAE(REG_A0, (cd->stackframesize - 1) * 4, RN, REG_SP); /* datasp */
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ILD(REG_ITMP1, REG_PV, disp);
 	M_CALL(REG_ITMP1);
@@ -3946,6 +3955,10 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		}
 	}
 
+	/* load return address */
+	
+	N_L(REG_ITMP2, (cd->stackframesize - 1) * 4, RN, REG_SP);
+
 	/* remove stackframe */
 
 	N_AHI(REG_SP, cd->stackframesize * 4);
@@ -3953,8 +3966,11 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* test for exception */
 
 	N_LTR(REG_ITMP3, REG_ITMP3);
-	N_BRC(DD_NE, SZ_BRC + SZ_BC);
-	N_BC(DD_ANY, 0, RN, REG_SP); /* return */
+	N_BRC(DD_NE, SZ_BRC + SZ_BCR);
+
+	/* return */
+
+	N_BCR(DD_ANY, REG_ITMP2); 
 
 	/* handle exception */
 
