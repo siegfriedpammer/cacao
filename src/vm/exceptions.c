@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7343 2007-02-13 02:36:29Z ajordan $
+   $Id: exceptions.c 7386 2007-02-21 23:23:25Z twisti $
 
 */
 
@@ -838,6 +838,9 @@ void exceptions_throw_classnotfoundexception(utf *name)
 
 void exceptions_throw_noclassdeffounderror(utf *name)
 {
+	if (vm_initializing)
+		vm_abort("java.lang.NoClassDefFoundError: %s", name->text);
+
 	exceptions_throw_class_utf(class_java_lang_NoClassDefFoundError, name);
 }
 
