@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7248 2007-01-29 19:28:12Z twisti $
+   $Id: md-abi.c 7381 2007-02-21 18:20:01Z twisti $
 
 */
 
@@ -45,7 +45,7 @@ s4 nregdescint[] = {
     REG_END
 };
 
-char *regs[] = {
+const char *abi_registers_integer_name[] = {
 	"rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
 	"r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15"
 };
@@ -90,15 +90,13 @@ void md_param_alloc(methoddesc *md)
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff   = iarg;
+				iarg++;
 			}
 			else {
 				pd->inmemory = true;
 				pd->regoff   = stacksize;
-			}
-			if (iarg < INT_ARG_CNT)
-				iarg++;
-			else
 				stacksize++;
+			}
 			break;
 
 		case TYPE_FLT:
@@ -106,15 +104,13 @@ void md_param_alloc(methoddesc *md)
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff   = farg;
+				farg++;
 			}
 			else {
 				pd->inmemory = true;
 				pd->regoff   = stacksize;
-			}
-			if (farg < FLT_ARG_CNT)
-				farg++;
-			else
 				stacksize++;
+			}
 			break;
 		}
 	}
@@ -131,6 +127,21 @@ void md_param_alloc(methoddesc *md)
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
 	md->memuse       = stacksize;
+}
+
+
+/* md_param_alloc_native *******************************************************
+
+   Pre-allocate arguments according the native ABI.
+
+*******************************************************************************/
+
+void md_param_alloc_native(methoddesc *md)
+{
+	/* On x86_64 we use the same ABI for JIT method calls as for
+	   native method calls. */
+
+	md_param_alloc(md);
 }
 
 
