@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7268 2007-02-01 12:02:56Z twisti $
+   $Id: loader.c 7387 2007-02-21 23:26:24Z twisti $
 
 */
 
@@ -1923,7 +1923,10 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
-	c->flags = suck_u2(cb);
+	/* We OR the flags here, as we set already some flags in
+	   class_create_classinfo. */
+
+	c->flags |= suck_u2(cb);
 
 	/* check ACC flags consistency */
 

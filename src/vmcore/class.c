@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7257 2007-01-29 23:07:40Z twisti $
+   $Id: class.c 7387 2007-02-21 23:26:24Z twisti $
 
 */
 
@@ -197,7 +197,8 @@ classinfo *class_create_classinfo(utf *classname)
 #endif
 
 	/* we use a safe name for temporarily unnamed classes */
-	if (!classname)
+
+	if (classname == NULL)
 		classname = utf_not_named_yet;
 
 #if !defined(NDEBUG)
@@ -214,10 +215,24 @@ classinfo *class_create_classinfo(utf *classname)
 	/* Set the header.vftbl of all loaded classes to the one of
        java.lang.Class, so Java code can use a class as object. */
 
-	if (class_java_lang_Class)
-		if (class_java_lang_Class->vftbl)
+	if (class_java_lang_Class != NULL)
+		if (class_java_lang_Class->vftbl != NULL)
 			c->object.header.vftbl = class_java_lang_Class->vftbl;
-	
+
+#if defined(ENABLE_JAVASE)
+	/* check if the class is a reference class and flag it */
+
+	if (classname == utf_java_lang_ref_SoftReference) {
+		c->flags |= ACC_CLASS_SOFT_REFERENCE;
+	}
+	else if (classname == utf_java_lang_ref_WeakReference) {
+		c->flags |= ACC_CLASS_WEAK_REFERENCE;
+	}
+	else if (classname == utf_java_lang_ref_PhantomReference) {
+		c->flags |= ACC_CLASS_PHANTOM_REFERENCE;
+	}
+#endif
+
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 

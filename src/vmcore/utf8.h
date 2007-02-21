@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.h 7270 2007-02-01 12:58:51Z twisti $
+   $Id: utf8.h 7387 2007-02-21 23:26:24Z twisti $
 
 */
 
@@ -67,6 +67,9 @@ extern utf *utf_java_lang_SecurityManager;
 extern utf *utf_java_lang_String;
 extern utf *utf_java_lang_System;
 extern utf *utf_java_lang_ThreadGroup;
+extern utf *utf_java_lang_ref_SoftReference;
+extern utf *utf_java_lang_ref_WeakReference;
+extern utf *utf_java_lang_ref_PhantomReference;
 extern utf *utf_java_io_Serializable;
 
 extern utf *utf_java_lang_Throwable;

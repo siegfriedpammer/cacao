@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 7270 2007-02-01 12:58:51Z twisti $
+   $Id: utf8.c 7387 2007-02-21 23:26:24Z twisti $
 
 */
 
@@ -75,6 +75,9 @@ utf *utf_java_lang_SecurityManager;
 utf *utf_java_lang_String;
 utf *utf_java_lang_System;
 utf *utf_java_lang_ThreadGroup;
+utf *utf_java_lang_ref_SoftReference;
+utf *utf_java_lang_ref_WeakReference;
+utf *utf_java_lang_ref_PhantomReference;
 utf *utf_java_io_Serializable;
 
 utf *utf_java_lang_Throwable;
@@ -237,6 +240,16 @@ bool utf8_init(void)
 	utf_java_lang_String           = utf_new_char("java/lang/String");
 	utf_java_lang_System           = utf_new_char("java/lang/System");
 	utf_java_lang_ThreadGroup      = utf_new_char("java/lang/ThreadGroup");
+
+	utf_java_lang_ref_SoftReference =
+		utf_new_char("java/lang/ref/SoftReference");
+
+	utf_java_lang_ref_WeakReference =
+		utf_new_char("java/lang/ref/WeakReference");
+
+	utf_java_lang_ref_PhantomReference =
+		utf_new_char("java/lang/ref/PhantomReference");
+
 	utf_java_io_Serializable       = utf_new_char("java/io/Serializable");
 
 	utf_java_lang_Throwable        = utf_new_char("java/lang/Throwable");
