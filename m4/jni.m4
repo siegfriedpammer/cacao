@@ -44,6 +44,7 @@ AC_ARG_ENABLE([jni],
                esac],
               [AC_CHECK_ENABLE_JNI_DEFAULT])
 AC_MSG_RESULT(${ENABLE_JNI})
+AM_CONDITIONAL([ENABLE_JNI], test x"${ENABLE_JNI}" = "xyes")
 
 if test x"${ENABLE_JNI}" = "xyes"; then
     AC_DEFINE([ENABLE_JNI], 1, [enable JNI])

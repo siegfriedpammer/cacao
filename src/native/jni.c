@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7343 2007-02-13 02:36:29Z ajordan $
+   $Id: jni.c 7384 2007-02-21 22:17:16Z twisti $
 
 */
 
@@ -39,12 +39,16 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/gnu_classpath_Pointer.h"
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_GNU)
+#  include "native/include/gnu_classpath_Pointer.h"
 
-#if SIZEOF_VOID_P == 8
-# include "native/include/gnu_classpath_Pointer64.h"
-#else
-# include "native/include/gnu_classpath_Pointer32.h"
+#  if SIZEOF_VOID_P == 8
+#   include "native/include/gnu_classpath_Pointer64.h"
+#  else
+#   include "native/include/gnu_classpath_Pointer32.h"
+#  endif
+# endif
 #endif
 
 #include "native/include/java_lang_Object.h"
@@ -58,20 +62,23 @@
 #include "native/include/java_lang_Double.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
-#include "native/include/java_lang_reflect_Method.h"
-#include "native/include/java_lang_reflect_Constructor.h"
-#include "native/include/java_lang_reflect_Field.h"
 
-#include "native/include/java_lang_ClassLoader.h"
-#include "native/include/java_lang_Class.h" /* for java_lang_VMClass.h */
-#include "native/include/java_lang_VMClass.h"
-#include "native/include/java_lang_VMClassLoader.h"
-#include "native/include/java_nio_Buffer.h"
-#include "native/include/java_nio_DirectByteBufferImpl.h"
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ClassLoader.h"
+
+# include "native/include/java_lang_reflect_Constructor.h"
+# include "native/include/java_lang_reflect_Field.h"
+# include "native/include/java_lang_reflect_Method.h"
+
+# include "native/include/java_nio_Buffer.h"
+# include "native/include/java_nio_DirectByteBufferImpl.h"
+#endif
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
 #endif
+
+#include "native/vm/java_lang_Class.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
@@ -92,6 +99,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/stacktrace.h"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
@@ -112,16 +120,21 @@ static hashtable *hashtable_global_ref; /* hashtable for globalrefs           */
 
 /* direct buffer stuff ********************************************************/
 
+#if defined(ENABLE_JAVASE)
 static classinfo *class_java_nio_Buffer;
 static classinfo *class_java_nio_DirectByteBufferImpl;
 static classinfo *class_java_nio_DirectByteBufferImpl_ReadWrite;
-#if SIZEOF_VOID_P == 8
+
+# if defined(WITH_CLASSPATH_GNU)
+#  if SIZEOF_VOID_P == 8
 static classinfo *class_gnu_classpath_Pointer64;
-#else
+#  else
 static classinfo *class_gnu_classpath_Pointer32;
-#endif
+#  endif
+# endif
 
 static methodinfo *dbbirw_init;
+#endif
 
 
 /* local reference table ******************************************************/
@@ -161,6 +174,7 @@ bool jni_init(void)
 	hashtable_create(hashtable_global_ref, HASHTABLE_GLOBAL_REF_SIZE);
 
 
+#if defined(ENABLE_JAVASE)
 	/* direct buffer stuff */
 
 	if (!(class_java_nio_Buffer =
@@ -184,17 +198,20 @@ bool jni_init(void)
 							utf_new_char("(Ljava/lang/Object;Lgnu/classpath/Pointer;III)V"))))
 		return false;
 
-#if SIZEOF_VOID_P == 8
+# if defined(WITH_CLASSPATH_GNU)
+#  if SIZEOF_VOID_P == 8
 	if (!(class_gnu_classpath_Pointer64 =
 		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer64"))) ||
 		!link_class(class_gnu_classpath_Pointer64))
 		return false;
-#else
+#  else
 	if (!(class_gnu_classpath_Pointer32 =
 		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer32"))) ||
 		!link_class(class_gnu_classpath_Pointer32))
 		return false;
-#endif
+#  endif
+# endif
+#endif /* defined(ENABLE_JAVASE) */
 
 	return true;
 }
@@ -1064,6 +1081,7 @@ jint _Jv_JNI_GetVersion(JNIEnv *env)
 jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 						   const jbyte *buf, jsize bufLen)
 {
+#if defined(ENABLE_JAVASE)
 	java_lang_ClassLoader *cl;
 	java_lang_String      *s;
 	java_bytearray        *ba;
@@ -1075,10 +1093,17 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 	s  = javastring_new_from_utf_string(name);
 	ba = (java_bytearray *) buf;
 
-	c = (jclass) Java_java_lang_VMClassLoader_defineClass(env, NULL, cl, s, ba,
-														  0, bufLen, NULL);
+	c = (jclass) _Jv_java_lang_ClassLoader_defineClass(env, NULL, cl, s, ba,
+													   0, bufLen, NULL);
 
 	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+#else
+	vm_abort("_Jv_JNI_DefineClass: not implemented in this configuration");
+
+	/* keep compiler happy */
+
+	return 0;
+#endif
 }
 
 
@@ -1092,6 +1117,7 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 
 jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 {
+#if defined(ENABLE_JAVASE)
 	utf       *u;
 	classinfo *cc;
 	classinfo *c;
@@ -1128,6 +1154,13 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 		return NULL;
 
   	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+#else
+	vm_abort("_Jv_JNI_FindClass: not implemented in this configuration");
+
+	/* keep compiler happy */
+
+	return NULL;
+#endif
 }
   
 
@@ -1162,12 +1195,15 @@ jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 
 jboolean _Jv_JNI_IsAssignableFrom(JNIEnv *env, jclass sub, jclass sup)
 {
+	java_lang_Class *csup;
+	java_lang_Class *csub;
+
+	csup = (java_lang_Class *) sup;
+	csub = (java_lang_Class *) sub;
+
 	STATISTICS(jniinvokation());
 
-	return Java_java_lang_VMClass_isAssignableFrom(env,
-												   NULL,
-												   (java_lang_Class *) sup,
-												   (java_lang_Class *) sub);
+	return _Jv_java_lang_Class_isAssignableFrom(csup, csub);
 }
 
 
@@ -1550,8 +1586,6 @@ jint _Jv_JNI_EnsureLocalCapacity(JNIEnv* env, jint capacity)
 {
 	localref_table *lrt;
 
-	log_text("JNI-Call: EnsureLocalCapacity");
-
 	STATISTICS(jniinvokation());
 
 	/* get local reference table (thread specific) */
@@ -1732,12 +1766,15 @@ jclass _Jv_JNI_GetObjectClass(JNIEnv *env, jobject obj)
 
 jboolean _Jv_JNI_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
 {
+	java_lang_Class  *c;
+	java_lang_Object *o;
+
 	STATISTICS(jniinvokation());
 
-	return Java_java_lang_VMClass_isInstance(env,
-											 NULL,
-											 (java_lang_Class *) clazz,
-											 (java_lang_Object *) obj);
+	c = (java_lang_Class *) clazz;
+	o = (java_lang_Object *) obj;
+
+	return _Jv_java_lang_Class_isInstance(c, o);
 }
 
 
@@ -1752,6 +1789,7 @@ jboolean _Jv_JNI_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
   
 jmethodID _Jv_JNI_FromReflectedMethod(JNIEnv *env, jobject method)
 {
+#if defined(ENABLE_JAVASE)
 	methodinfo *mi;
 	classinfo  *c;
 	s4          slot;
@@ -1781,6 +1819,13 @@ jmethodID _Jv_JNI_FromReflectedMethod(JNIEnv *env, jobject method)
 	mi = &(c->methods[slot]);
 
 	return (jmethodID) mi;
+#else
+	vm_abort("_Jv_JNI_FromReflectedMethod: not implemented in this configuration");
+
+	/* keep compiler happy */
+
+	return NULL;
+#endif
 }
 
 
@@ -1792,6 +1837,7 @@ jmethodID _Jv_JNI_FromReflectedMethod(JNIEnv *env, jobject method)
  
 jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 {
+#if defined(ENABLE_JAVASE)
 	java_lang_reflect_Field *rf;
 	classinfo               *c;
 	fieldinfo               *f;
@@ -1808,6 +1854,13 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 	f = &(c->fields[rf->slot]);
 
 	return (jfieldID) f;
+#else
+	vm_abort("_Jv_JNI_FromReflectedField: not implemented in this configuration");
+
+	/* keep compiler happy */
+
+	return NULL;
+#endif
 }
 
 
@@ -5413,24 +5466,25 @@ jboolean _Jv_JNI_ExceptionCheck(JNIEnv *env)
 
 jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
+#if defined(ENABLE_JAVASE)
 	java_objectheader       *nbuf;
-#if SIZEOF_VOID_P == 8
+# if SIZEOF_VOID_P == 8
 	gnu_classpath_Pointer64 *paddress;
-#else
+# else
 	gnu_classpath_Pointer32 *paddress;
-#endif
+# endif
 
 	STATISTICS(jniinvokation());
 
 	/* alocate a gnu.classpath.Pointer{32,64} object */
 
-#if SIZEOF_VOID_P == 8
+# if SIZEOF_VOID_P == 8
 	if (!(paddress = (gnu_classpath_Pointer64 *)
 		  builtin_new(class_gnu_classpath_Pointer64)))
-#else
+# else
 	if (!(paddress = (gnu_classpath_Pointer32 *)
 		  builtin_new(class_gnu_classpath_Pointer32)))
-#endif
+# endif
 		return NULL;
 
 	/* fill gnu.classpath.Pointer{32,64} with address */
@@ -5446,6 +5500,13 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 	/* add local reference and return the value */
 
 	return _Jv_JNI_NewLocalRef(env, nbuf);
+#else
+	vm_abort("_Jv_JNI_NewDirectByteBuffer: not implemented in this configuration");
+
+	/* keep compiler happy */
+
+	return NULL;
+#endif
 }
 
 
@@ -5458,12 +5519,13 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 {
+#if defined(ENABLE_JAVASE)
 	java_nio_DirectByteBufferImpl *nbuf;
-#if SIZEOF_VOID_P == 8
+# if SIZEOF_VOID_P == 8
 	gnu_classpath_Pointer64       *address;
-#else
+# else
 	gnu_classpath_Pointer32       *address;
-#endif
+# endif
 
 	STATISTICS(jniinvokation());
 
@@ -5472,16 +5534,23 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 	nbuf = (java_nio_DirectByteBufferImpl *) buf;
 
-#if SIZEOF_VOID_P == 8
+# if SIZEOF_VOID_P == 8
 	address = (gnu_classpath_Pointer64 *) nbuf->address;
-#else
+# else
 	address = (gnu_classpath_Pointer32 *) nbuf->address;
-#endif
+# endif
 
 	if (address == NULL)
 		return NULL;
 
 	return (void *) address->data;
+#else
+	vm_abort("_Jv_JNI_GetDirectBufferAddress: not implemented in this configuration");
+
+	/* keep compiler happy */
+
+	return NULL;
+#endif
 }
 
 
@@ -5494,6 +5563,7 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 {
+#if defined(ENABLE_JAVASE)
 	java_nio_Buffer *nbuf;
 
 	STATISTICS(jniinvokation());
@@ -5504,6 +5574,13 @@ jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 	nbuf = (java_nio_Buffer *) buf;
 
 	return (jlong) nbuf->cap;
+#else
+	vm_abort("_Jv_JNI_GetDirectBufferCapacity: not implemented in this configuration");
+
+	/* keep compiler happy */
+
+	return 0;
+#endif
 }
 
 

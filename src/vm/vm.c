@@ -670,7 +670,7 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	env = NEW(_Jv_JNIEnv);
 
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JNI)
 	env->env = &_Jv_JNINativeInterface;
 #endif
 
@@ -682,7 +682,7 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	vm = NEW(_Jv_JavaVM);
 
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JNI)
 	vm->functions = &_Jv_JNIInvokeInterface;
 #endif
 
@@ -696,7 +696,7 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 	if (!vm_create(_vm_args))
 		goto error;
 
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JNI)
 	/* setup the local ref table (must be created after vm_create) */
 
 	if (!jni_init_localref_table())
@@ -1566,7 +1566,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!builtin_init())
 		throw_main_exception_exit();
 
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JNI)
 	/* Initialize the JNI subsystem (must be done _before_
 	   threads_init, as threads_init can call JNI methods
 	   (e.g. NewGlobalRef). */
