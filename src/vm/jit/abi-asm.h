@@ -36,7 +36,8 @@
 #ifndef _ABI_ASM_H
 #define _ABI_ASM_H
 
-/* ATTENTION: Don't add C stuff in here, as this file is included in asmpart.S */
+/* ATTENTION: Don't add C stuff in here, as this file is included in
+   asmpart.S */
 
 /* some count defines for asmpart.S *******************************************/
 
