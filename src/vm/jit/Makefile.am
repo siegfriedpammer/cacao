@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7344 2007-02-13 12:23:54Z ajordan $
+## $Id: Makefile.am 7382 2007-02-21 20:24:01Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -129,8 +129,6 @@ endif
 
 if WITH_BINUTILS_DISASSEMBLER
 DISASS_SOURCES = disass-common.c
-else
-DISASS_SOURCES =
 endif
 
 noinst_HEADERS = \

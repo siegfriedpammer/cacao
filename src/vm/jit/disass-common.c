@@ -1,6 +1,6 @@
 /* src/vm/jit/disass-common.c - common functions for GNU binutils disassembler
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,29 +22,21 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: disass-common.c 7219 2007-01-16 22:18:57Z pm $
+   $Id: disass-common.c 7382 2007-02-21 20:24:01Z twisti $
 
 */
 
 
 #include "config.h"
 
-#if defined(WITH_BINUTILS_DISASSEMBLER)
-# include <dis-asm.h>
-#endif
-
+#include <dis-asm.h>
 #include <stdarg.h>
 #include <stdio.h>
 
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "vm/jit/disass.h"
 
 
@@ -92,7 +84,6 @@ void disassemble(u1 *start, u1 *end)
 
 *******************************************************************************/
 
-#if defined(WITH_BINUTILS_DISASSEMBLER)
 void disass_printf(PTR p, const char *fmt, ...)
 {
 	va_list ap;
@@ -122,7 +113,6 @@ int disass_buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int le
 
 	return 0;
 }
-#endif /* defined(WITH_BINUTILS_DISASSEMBLER) */
 
 
 /*
