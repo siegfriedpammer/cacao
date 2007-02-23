@@ -1,6 +1,6 @@
 /* src/mm/cacao-gc/gc.c - main garbage collector methods
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -33,37 +33,23 @@
 
 #include "config.h"
 #include <signal.h>
-#include <stdlib.h>
 #include "vm/types.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #else
-# include "threads/none/threads.h"
+/*# include "threads/none/threads.h"*/
 #endif
 
+#include "compact.h"
 #include "gc.h"
 #include "heap.h"
 #include "mark.h"
+#include "region.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/exceptions.h"
-#include "vm/options.h"
-
-
-/* Development Break **********************************************************/
-
-#if defined(ENABLE_THREADS)
-# error "GC does not work with threads enabled!"
-#endif
-
-#if defined(ENABLE_INTRP)
-# error "GC does not work with interpreter enabled!"
-#endif
-
-#if defined(ENABLE_JVMTI)
-# error "GC does not work with JVMTI enabled!"
-#endif
+/*#include "vm/options.h"*/
 
 
 /* gc_init *********************************************************************
@@ -72,24 +58,103 @@
 
 *******************************************************************************/
 
+#define GC_SYS_SIZE (20*1024*1024)
+
 void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	if (opt_verbosegc)
 		dolog("GC: Initialising with heap-size %d (max. %d)",
 			heapstartsize, heapmaxsize);
 
-	heap_base = malloc(heapstartsize);
-
-	if (heap_base == NULL)
+	/* region for uncollectable objects */
+	heap_region_sys = NEW(regioninfo_t);
+	if (!region_create(heap_region_sys, GC_SYS_SIZE))
 		exceptions_throw_outofmemory_exit();
 
-	/* this is needed for linear allocation */
-	heap_ptr = heap_base;
+	/* region for java objects */
+	heap_region_main = NEW(regioninfo_t);
+	if (!region_create(heap_region_main, heapstartsize))
+		exceptions_throw_outofmemory_exit();
 
 	heap_current_size = heapstartsize;
 	heap_maximal_size = heapmaxsize;
+
+	/* TODO: remove these */
 	heap_free_size = heap_current_size;
 	heap_used_size = 0;
+}
+
+
+/* gc_collect ******************************************************************
+
+   This is the main machinery which manages a collection. It should be run by
+   the thread which triggered the collection.
+
+   IN:
+     XXX
+
+   STEPS OF A COLLECTION:
+     XXX
+
+*******************************************************************************/
+
+void gc_collect(s4 level)
+{
+	rootset_t    *rs;
+	regioninfo_t *src, *dst;
+	s4            dumpsize;
+
+	/* remember start of dump memory area */
+	dumpsize = dump_size();
+
+	GC_LOG( heap_println_usage(); );
+	/*GC_LOG( heap_dump_region(heap_base, heap_ptr, false); );*/
+
+	/* find the global rootset and the rootset for the current thread */
+	rs = DNEW(rootset_t);
+	/*TODO: mark_rootset_create(rs);*/
+	/*TODO: mark_rootset_from_globals(rs);*/
+	mark_rootset_from_thread(THREADOBJECT, rs);
+	GC_LOG( mark_rootset_print(rs); );
+
+#if 1
+
+	/* mark the objects considering the given rootset */
+	mark_me(rs);
+	/*GC_LOG( heap_dump_region(heap_region_main, true); );*/
+
+	/* compact the heap */
+	compact_me(rs, heap_region_main);
+	/*GC_LOG( heap_dump_region(heap_region_main, false); );
+	GC_LOG( mark_rootset_print(rs); );*/
+
+#if defined(ENABLE_MEMCHECK)
+	/* invalidate the rest of the main region */
+	region_invalidate(heap_region_main);
+#endif
+
+#else
+
+	/* copy the heap to new region */
+	dst = DNEW(regioninfo_t);
+	region_init(dst, heap_current_size);
+	gc_copy(heap_region_main, dst, rs);
+
+	/* invalidate old heap */
+	/*memset(heap_base, 0x5a, heap_current_size);*/
+
+#endif
+
+	/* TODO: check my return value! */
+	/*heap_increase_size();*/
+
+	/* write back the rootset to update root references */
+	GC_LOG( mark_rootset_print(rs); );
+	mark_rootset_writeback(rs);
+
+    /* free dump memory area */
+    dump_release(dumpsize);
+
 }
 
 
@@ -102,36 +167,10 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 void gc_call(void)
 {
-	rootset_t *rs;
-	s4         dumpsize;
-
 	if (opt_verbosegc)
 		dolog("GC: Forced Collection ...");
 
-	/* TODO: move the following to gc_collect() */
-
-	/* remember start of dump memory area */
-	dumpsize = dump_size();
-
-	GC_LOG( heap_println_usage(); );
-	/*GC_LOG( heap_dump_region(heap_base, heap_ptr, false); );*/
-
-	/* find the rootset for the current thread */
-	rs = DNEW(rootset_t);
-	mark_rootset_from_thread(THREADOBJECT, rs);
-
-	/* mark the objects considering the given rootset */
-	mark_me(rs);
-	GC_LOG( heap_dump_region(heap_base, heap_ptr, true); );
-
-	/* compact the heap */
-	/*compact_me(rs, heap_base, heap_ptr);*/
-
-	/* TODO: check my return value! */
-	/*heap_increase_size();*/
-
-    /* free dump memory area */
-    dump_release(dumpsize);
+	gc_collect(0);
 
 	if (opt_verbosegc)
 		dolog("GC: Forced Collection finished.");

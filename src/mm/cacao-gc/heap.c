@@ -1,0 +1,537 @@
+/* mm/cacao-gc/heap.c - GC module for heap management
+
+   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
+   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
+   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
+   J. Wenninger, Institut f. Computersprachen - TU Wien
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+   Contact: cacao@cacaojvm.org
+
+   Authors: Michael Starzinger
+
+   $Id$
+
+*/
+
+
+#include "config.h"
+#include "vm/types.h"
+
+#include "gc.h"
+#include "heap.h"
+#include "mark.h"
+#include "region.h"
+#include "mm/memory.h"
+#include "native/jni.h"
+#include "src/native/include/java_lang_String.h" /* TODO: fix me! */
+#include "toolbox/logging.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+/*#include "vm/options.h"*/
+#include "vm/jit/stacktrace.h"
+
+
+/* Global Variables ***********************************************************/
+
+/*void *heap_base;*/       /* pointer to the base of the heap */
+/*void *heap_ptr;*/        /* current allocation ptr for linear alloc */
+s4 heap_current_size;  /* current size of the heap */
+s4 heap_maximal_size;  /* maximal size of the heap */
+s4 heap_free_size;     /* free bytes on the heap */
+s4 heap_used_size;     /* used bytes on the heap */
+regioninfo_t *heap_region_sys;
+regioninfo_t *heap_region_main;
+
+
+/* Helper Macros **************************************************************/
+
+#define GC_ALIGN_SIZE SIZEOF_VOID_P
+#define GC_ALIGN(length,size) ((((length) + (size) - 1) / (size)) * (size))
+
+
+void heap_init_objectheader(java_objectheader *o, u4 bytelength)
+{
+	u4 wordcount;
+
+	/* initialize the header flags */
+	o->hdrflags = 0;
+
+	/* align the size */
+	/* TODO */
+
+	/* set the hash bits in the header */
+	/* TODO: improve this!!! */
+	GC_SET_HASH(o, (s4) o);
+
+	/* calculate the wordcount as stored in the header */
+    /* TODO: improve this to save wordcount and without header bytes */
+    if ((bytelength & 0x03) == 0) {
+        GC_ASSERT((bytelength & 0x03) == 0);
+        wordcount = (bytelength >> 2);
+        GC_ASSERT(wordcount != 0);
+    } else {
+        wordcount = GC_SIZE_DUMMY;
+    }
+
+	/* set the wordcount in the header */
+    if (wordcount >= GC_SIZE_DUMMY) {
+        GC_SET_SIZE(o, GC_SIZE_DUMMY);
+    } else {
+        GC_SET_SIZE(o, wordcount);
+    }
+
+}
+
+
+s4 heap_increase_size() {
+	void *p;
+	s4    increasesize;
+	s4    newsize;
+
+	/* TODO: locking for threads!!! */
+
+	/* only a quick sanity check */
+	GC_ASSERT(heap_current_size <= heap_maximal_size);
+
+	/* check if we are allowed to enlarge the heap */
+	if (heap_current_size == heap_maximal_size)
+		exceptions_throw_outofmemory_exit();
+
+	/* TODO: find out how much to increase the heap??? */
+	increasesize = heap_maximal_size - heap_current_size;
+	GC_LOG( dolog("GC: Increasing Heap Size by %d", increasesize); );
+
+	/* allocate new heap from the system */
+	newsize = heap_current_size + increasesize;
+	p = malloc(newsize);
+
+	/* check if the newly allocated heap exists */
+	if (p == NULL)
+		exceptions_throw_outofmemory_exit(); 
+
+	/* TODO: copy the old content to the new heap */
+	/* TODO: find a complete rootset and update it to the new position */
+	/* TODO: free the old heap */
+
+	/* set the new values */
+	/*heap_ptr = p + (heap_ptr - heap_base);
+	heap_base = p;*/
+	heap_current_size = newsize;
+	heap_free_size += increasesize;
+
+	GC_LOG( dolog("GC: Increasing Heap Size was successful");
+			heap_println_usage(); );
+
+	/* only a quick sanity check */
+	GC_ASSERT(heap_current_size <= heap_maximal_size);
+
+	return increasesize;
+}
+
+
+s4 heap_get_hashcode(java_objectheader *o)
+{
+	s4 hashcode;
+
+	if (!o)
+		return 0;
+
+	/* TODO: improve this heavily! */
+	hashcode = GC_GET_HASH(o);
+
+	/*GC_LOG( printf("Hash taken: %d (0x%08x)\n", hashcode, hashcode); );*/
+
+	return hashcode;
+}
+
+
+java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
+{
+	java_objectheader *p;
+
+	/* only a quick sanity check */
+	GC_ASSERT(region);
+	GC_ASSERT(bytelength >= sizeof(java_objectheader));
+
+	/* align objects in memory */
+	bytelength = GC_ALIGN(bytelength, GC_ALIGN_SIZE);
+
+	/* check for sufficient free space */
+	if (bytelength > region->free) {
+		dolog("GC: Region out of memory!");
+		/* TODO: change this to gc_collect() !!! */
+		/*gc_call();*/
+		return NULL;
+	}
+
+	/* allocate the object in this region */
+	p = region->ptr;
+	region->ptr += bytelength;
+	region->free -= bytelength;
+
+	/*heap_free_size -= bytelength;
+	heap_used_size += bytelength;*/
+
+	/* clear allocated memory region */
+	GC_ASSERT(p);
+	MSET(p, 0, u1, bytelength);
+
+	/* set the header information */
+	heap_init_objectheader(p, bytelength);
+
+	return p;
+}
+
+
+/* heap_allocate ***************************************************************
+
+   Allocates memory on the Java heap.
+
+*******************************************************************************/
+
+void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
+{
+	java_objectheader *p;
+
+	/* We can't use a bool here for references, as it's passed as a
+	   bitmask in builtin_new.  Thus we check for != 0. */
+
+	p = heap_alloc_intern(bytelength, heap_region_main);
+
+	if (p == NULL)
+		return NULL;
+
+	/* TODO: can this be overwritten by cloning??? */
+	if (finalizer != NULL) {
+		GC_LOG( log_text("GC: Finalizer not yet implemented!"); );
+		GC_SET_FLAGS(p, GC_FLAG_FINALIZER);
+	}
+
+	return p;
+}
+
+
+void *heap_alloc_uncollectable(u4 bytelength)
+{
+	java_objectheader *p;
+
+	/* loader.c does this a lot for classes with fieldscount equal zero */
+	if (bytelength == 0)
+		return NULL;
+
+	p = heap_alloc_intern(bytelength, heap_region_sys);
+
+	if (p == NULL)
+		return NULL;
+
+	/* TODO: can this be overwritten by cloning??? */
+	/* remember this object as uncollectable */
+	GC_SET_FLAGS(p, GC_FLAG_UNCOLLECTABLE);
+
+	return p;
+}
+
+
+void heap_free(void *p)
+{
+	GC_LOG( dolog("GC: Free %p", p); );
+	GC_ASSERT(0);
+}
+
+
+/* Debugging ******************************************************************/
+
+#if !defined(NDEBUG)
+void heap_println_usage()
+{
+	printf("Current Heap Usage: Size=%d Free=%d Used=%d\n",
+			heap_current_size, heap_free_size, heap_used_size);
+
+	GC_ASSERT(heap_current_size == heap_free_size + heap_used_size);
+}
+#endif
+
+
+#if !defined(NDEBUG)
+void heap_print_object_flags(java_objectheader *o)
+{
+	printf("0x%02x 0x%08x [%s%s%s]",
+		GC_GET_SIZE(o), GC_GET_HASH(o),
+		GC_TEST_FLAGS(o, GC_FLAG_FINALIZER)     ? "F" : " ",
+		GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE) ? "U" : " ",
+		GC_TEST_FLAGS(o, GC_FLAG_MARKED)        ? "M" : " ");
+}
+#endif
+
+
+#if !defined(NDEBUG)
+void heap_print_object(java_objectheader *o)
+{
+	java_arrayheader  *a;
+	classinfo         *c;
+
+	/* check for null pointers */
+	if (o == NULL) {
+		printf("(NULL)");
+		return;
+	}
+
+	/* print general information */
+	printf("%p: ", (void *) o);
+	heap_print_object_flags(o);
+	printf(" ");
+
+	/* TODO */
+	/* maybe this is not really an object */
+ 	if (/*IS_REFTABLE*/ o->vftbl == 0x10) {
+		/* printf information */
+		printf("LRT");
+
+	} else if (/*IS_CLASS*/ o->vftbl->class == class_java_lang_Class) {
+
+		/* get the class information */
+		c = (classinfo *) o;
+
+		/* print the class information */
+		printf("CLS ");
+		class_print(c);
+
+	} else if (/*IS_ARRAY*/ o->vftbl->arraydesc != NULL) {
+
+		/* get the array information */
+		a = (java_arrayheader *) o;
+		c = o->vftbl->class;
+
+		/* print the array information */
+		printf("ARR ");
+		/*class_print(c);*/
+		utf_display_printable_ascii_classname(c->name);
+		printf(" (size=%d)", a->size);
+
+	} else /*IS_OBJECT*/ {
+
+		/* get the object class */
+		c = o->vftbl->class;
+
+		/* print the object information */
+		printf("OBJ ");
+		/*class_print(c);*/
+		utf_display_printable_ascii_classname(c->name);
+		if (c == class_java_lang_String) {
+			printf(" (string=\"");
+			utf_display_printable_ascii(
+					javastring_toutf((java_lang_String *) o, false));
+			printf("\")");
+		}
+
+	}
+}
+#endif
+
+#if !defined(NDEBUG)
+void heap_dump_region(regioninfo_t *region, bool marked_only)
+{
+	java_objectheader *o;
+	u4                 o_size;
+
+	/* some basic sanity checks */
+	GC_ASSERT(region->base < region->ptr);
+
+	printf("Heap-Dump:\n");
+
+	/* walk the region in a linear style */
+	o = region->base;
+	while ((void *) o < region->ptr) {
+
+		if (!marked_only || GC_IS_MARKED(o)) {
+			printf("\t");
+			heap_print_object(o);
+			printf("\n");
+		}
+
+		/* get size of object */
+		o_size = get_object_size(o);
+
+		/* walk to next object */
+		GC_ASSERT(o_size != 0);
+		o = ((u1 *) o) + o_size;
+	}
+
+	printf("Heap-Dump finished.\n");
+}
+#endif
+
+
+s4 get_object_size(java_objectheader *o)
+{
+	java_arrayheader *a;
+	classinfo        *c;
+	s4                o_size;
+
+	/* we can assume someone initialized the header */
+	GC_ASSERT(o->hdrflags != 0);
+
+	/* get the wordcount from the header */
+	o_size = GC_GET_SIZE(o);
+
+	/* maybe we need to calculate the size by hand */
+	if (o_size != GC_SIZE_DUMMY) {
+		GC_ASSERT(o_size != 0);
+		o_size = o_size << 2;
+	} else {
+
+		/* TODO */
+		/* maybe this is not really an object */
+		if (/*IS_REFTABLE*/ o->vftbl == 0x10) {
+			/* TODO: this will not work for long */
+			o_size = sizeof(localref_table);
+
+		} else if (/*IS_CLASS*/ o->vftbl->class == class_java_lang_Class) {
+			/* we know the size of a classinfo */
+			o_size = sizeof(classinfo);
+
+		} else if (/*IS_ARRAY*/ o->vftbl->arraydesc != NULL) {
+			/* compute size of this array */
+			a = (java_arrayheader *) o;
+			c = o->vftbl->class;
+			o_size = c->vftbl->arraydesc->dataoffset +
+					a->size * c->vftbl->arraydesc->componentsize;
+
+		} else /*IS_OBJECT*/ {
+			/* get the object size */
+			c = o->vftbl->class;
+			o_size = c->instancesize;
+			GC_LOG( dolog("Got size (from Class): %d bytes", o_size); );
+		}
+	
+	}
+
+	/* align the size */
+	o_size = GC_ALIGN(o_size, GC_ALIGN_SIZE);
+
+	return o_size;
+}
+
+
+java_objectheader *next;
+
+void *gc_copy_forward(java_objectheader *o, void *src_start, void *src_end)
+{
+	s4 o_size;
+
+	if (POINTS_INTO(o, src_start, src_end)) {
+
+		/* update all references which point into the source region */
+
+		/* NOTE: we use the marking bit here to mark object which have already
+		 * been copied; in such a case the *vftbl contains the location of
+		 * the copy */ 
+		if (GC_IS_MARKED(o)) {
+
+			/* return the location of an already existing copy */
+			return o->vftbl;
+
+		} else {
+
+			/* calculate the size of the object to be copied */
+			o_size = get_object_size(o);
+
+			/* copy the object pointed to by O to location NEXT */
+			memcpy(next, o, o_size);
+
+			/* remember where the copy is located */
+			o->vftbl = (void *) next;
+
+			/* increment NEXT to point past the copy of the object */
+			next = ((u1 *) next) + o_size;
+
+			/* return the location of the copy */
+			return o->vftbl;
+
+		}
+
+	} else {
+
+		/* do not change references not pointing into the source region */
+		return o;
+
+	}
+}
+
+
+void gc_copy(regioninfo_t *src, regioninfo_t *dst, rootset_t *rs)
+{
+	java_objectheader *scan;
+	/*java_objectheader *next;*/
+	/*classinfo         *c;*/
+	java_objectheader *ref_old;
+	java_objectheader *ref_new;
+	int i;
+
+	/* initialize the scan and next pointer */
+	scan = (java_objectheader *) dst->base;
+	next = (java_objectheader *) dst->base;
+
+	/* for each root pointer R: replace R with forward(R) */
+	for (i = 0; i < rs->refcount; i++) {
+
+		ref_old = *( rs->refs[i] );
+		GC_LOG( printf("Will forward: ");
+				heap_print_object(ref_old);
+				printf("\n"); );
+
+		ref_new = gc_copy_forward(ref_old, src->base, src->end);
+
+		*( rs->refs[i] ) = ref_new;
+		GC_LOG( printf("New location: ");
+				heap_print_object(ref_new);
+				printf("\n"); );
+	}
+
+	/* update all references for objects in the destination region.
+	 * when scan catches up with next, the algorithm is finished */
+	while (scan < next)
+	{
+		/* TODO: implement me! */
+		GC_LOG( printf("Will also forward pointers in ");
+		 		heap_print_object(scan); printf("\n"); );
+
+		scan = ((u1 *) scan) + get_object_size(scan); 
+	}
+
+	/* some basic assumptions */
+	GC_ASSERT(scan == next);
+	GC_ASSERT(scan < dst->end);
+}
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

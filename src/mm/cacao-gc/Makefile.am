@@ -39,10 +39,16 @@ LIBS =
 noinst_LTLIBRARIES = libgc.la
 
 libgc_la_SOURCES = \
+	compact.c \
+	compact.h \
 	gc.c \
 	gc.h \
 	heap.c \
-	mark.c
+	heap.h \
+	mark.c \
+	mark.h \
+	region.c \
+	region.h
 
 
 ## Local variables:

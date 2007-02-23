@@ -94,7 +94,8 @@ void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 
 /* compact_thread_classes ******************************************************
 
-   Threads all the references from classinfo structures (static fields)
+   Threads all the references from classinfo structures (static fields and
+   classloaders)
 
    IN:
       start.....Region to be compacted start here
@@ -108,6 +109,7 @@ void compact_thread_classes(void *start, void *end)
 	java_objectheader **refptr;
 	classinfo          *c;
 	fieldinfo          *f;
+	hashtable_classloader_entry *cle;
 	void *sys_start, *sys_end;
 	int i;
 
@@ -117,8 +119,30 @@ void compact_thread_classes(void *start, void *end)
 	sys_start = heap_region_sys->base;
 	sys_end = heap_region_sys->ptr;
 
+	/* walk through all classloaders */
+	for (i = 0; i < hashtable_classloader->size; i++) {
+		cle = hashtable_classloader->ptr[i];
+
+		while (cle) {
+
+			/* thread the classloader */
+			refptr = &( cle->object );
+			ref = *( refptr );
+			GC_LOG2( printf("\tclassloader from hashtable at %p\n", (void *) ref); );
+			GC_THREAD(ref, refptr, start, end);
+
+			cle = cle->hashlink;
+		}
+	}
+
 	/* walk through all classinfo blocks */
 	for (c = sys_start; c < (classinfo *) sys_end; c++) {
+
+		/* thread the classloader */
+		/*refptr = &( c->classloader );
+		ref = *( refptr );
+		GC_LOG2( printf("\tclassloader from classinfo at %p\n", (void *) ref); );
+		GC_THREAD(ref, refptr, start, end);*/
 
 		/* walk through all fields */
 		f = c->fields;
@@ -141,7 +165,7 @@ void compact_thread_classes(void *start, void *end)
 				} else if (GC_IS_THREADED(ref->vftbl)) {
 					printf("(threaded)\n");
 				} else {
-						heap_print_object(ref); printf("\n");
+					heap_print_object(ref); printf("\n");
 				}
 			);*/
 
@@ -271,19 +295,21 @@ void compact_move(u1 *old, u1 *new, u4 size)
 	GC_ASSERT(new < old);
 
 	/* check if locations overlap */
-	if (old + size >= new) {
+	if (new + size < old) {
 		/* overlapping: NO */
 
 		/* copy old object content to new location */
 		MCOPY(new, old, u1, size);
 
+#if !defined(NDEBUG)
 		/* invalidate old object */
-		MSET(old, 0x44, u1, size);
+		MSET(old, MEMORY_CLEAR_BYTE, u1, size);
+#endif
 
 	} else {
 		/* overlapping: YES */
 
-		GC_LOG( dolog("GC: OVERLAPPING!!!") );
+		GC_LOG2( printf("\tcompact_move(old=%p, new=%p, size=0x%x) overlapps!", old, new, size) );
 
 		/* copy old object content to new location */
 		MMOVE(new, old, u1, size);
@@ -324,14 +350,11 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	 *  - thread all references
 	 *  - update forward references */
 	ptr = region->base; ptr_new = region->base;
-	while (ptr < (u1 *) region->ptr) {
+	while (ptr < region->ptr) {
 		o = (java_objectheader *) ptr;
 
-		/* TODO: uncollectable items should never be compacted, but for now we do it */
-		/*GC_ASSERT(!GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE));*/
-		/*if (GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE)) {
-			GC_SET_MARKED(o);
-		}*/
+		/* uncollectable items should never be compacted */
+		GC_ASSERT(!GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE));
 
 		/* if this object is already part of a threaded chain ... */
 		if (GC_IS_THREADED(o->vftbl)) {
@@ -366,7 +389,7 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	 *  - move the objects */
 	used = 0;
 	ptr = region->base; ptr_new = region->base;
-	while (ptr < (u1 *) region->ptr) {
+	while (ptr < region->ptr) {
 		o = (java_objectheader *) ptr;
 
 		/* if this object is still part of a threaded chain ... */
@@ -404,6 +427,7 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	GC_LOG( dolog("GC: Compaction finished."); );
 
 	GC_LOG( printf("Region-Used: %d -> %d\n", region->size - region->free, used); )
+	GC_LOG( printf("Region-Free: %d -> %d\n", region->free, region->size - used); )
 
 	/* update the region information */
 	region->ptr = ptr_new;

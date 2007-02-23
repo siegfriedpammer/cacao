@@ -1,6 +1,6 @@
 /* src/mm/cacao-gc/gc.h - main garbage collector header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -43,15 +43,51 @@
 /* Debugging ******************************************************************/
 
 #define GC_DEBUGGING
+#define GC_DEBUGGING2
 
 #if !defined(NDEBUG) && defined(GC_DEBUGGING)
 # include <assert.h>
+# include "vmcore/options.h"
 # define GC_LOG(code) if (opt_verbosegc) { code; }
 # define GC_ASSERT(assertion) assert(assertion)
 #else
 # define GC_LOG(code)
 # define GC_ASSERT(assertion)
 #endif
+
+#if !defined(NDEBUG) && defined(GC_DEBUGGING2)
+# define GC_LOG2(code) GC_LOG(code)
+#else
+# define GC_LOG2(code)
+#endif
+
+
+/* Development Break **********************************************************/
+
+#if 1 && defined(ENABLE_THREADS)
+# error "GC does not work with threads enabled!"
+#endif
+
+#if 1 && defined(ENABLE_INTRP)
+# error "GC does not work with interpreter enabled!"
+#endif
+
+#if 1 && defined(ENABLE_JVMTI)
+# error "GC does not work with JVMTI enabled!"
+#endif
+
+#if 1 && !defined(ENABLE_REPLACEMENT)
+# error "GC does only work with replacement enabled!"
+#endif
+
+#if 1 && !defined(__I386__)
+# error "GC was only ported to i386 so far!"
+#endif
+
+
+/* Global Variables ***********************************************************/
+
+static bool gc_pending;
 
 
 /* Helper Macros **************************************************************/
