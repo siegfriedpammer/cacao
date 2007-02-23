@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7279 2007-02-02 12:53:19Z twisti $
+   $Id: codegen.c 7396 2007-02-23 23:06:11Z michi $
 
 */
 
@@ -53,6 +53,7 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -4093,6 +4094,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	emit_ffree_reg(cd, 6);
 	emit_ffree_reg(cd, 7);
 
+#if defined(ENABLE_GC_CACAO)
+	/* remember callee saved int registers in stackframeinfo (GC may need to  */
+	/* recover them during a collection).                                     */
+
+	j = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+			OFFSET(stackframeinfo, intregs);
+	for (i=0; i<INT_REG_CNT; ++i) {
+		if (nregdescint[i] == REG_SAV) {
+			M_AST(i, REG_SP, j);
+			j += SIZEOF_VOID_P;
+		}
+	}
+#endif
+
 	/* prepare data structures for native function call */
 
 	M_MOV(REG_SP, REG_ITMP1);
@@ -4191,6 +4206,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				emit_flds_membase(cd, REG_SP, 1 * 4);
 		}
 	}
+
+#if defined(ENABLE_GC_CACAO)
+	/* restore callee saved int registers from stackframeinfo (GC might have  */
+	/* modified them during a collection).                                    */
+
+	j = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+	for (i=0; i<INT_REG_CNT; ++i) {
+		if (nregdescint[i] == REG_SAV) {
+			M_ALD(i, REG_SP, j);
+			j += SIZEOF_VOID_P;
+		}
+	}
+#endif
 
 	M_AADD_IMM(cd->stackframesize * 4, REG_SP);
 

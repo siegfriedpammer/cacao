@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: stacktrace.h 7396 2007-02-23 23:06:11Z michi $
 
 */
 
@@ -63,6 +63,13 @@ struct stackframeinfo {
 	u1             *sp;                 /* SP of parent Java function         */
 	u1             *ra;                 /* RA to parent Java function         */
 	u1             *xpc;                /* XPC (for inline stubs)             */
+#if defined(ENABLE_GC_CACAO)
+	/* 
+	 * The exact GC needs to be able to recover saved registers, so the
+	 * native-stub saves these registers here
+	 */
+	ptrint          intregs[INT_SAV_CNT];
+#endif
 };
 
 
@@ -208,4 +215,5 @@ void stacktrace_print_cycles_stats(FILE *file);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

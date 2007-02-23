@@ -1046,7 +1046,7 @@ static s4 replace_normalize_type_map[] = {
 };
 
 
-static void replace_read_executionstate(rplpoint *rp,
+void replace_read_executionstate(rplpoint *rp,
 										executionstate_t *es,
 										sourcestate_t *ss,
 										bool topframe)
@@ -1267,7 +1267,7 @@ static void replace_read_executionstate(rplpoint *rp,
   
 *******************************************************************************/
 
-static void replace_write_executionstate(rplpoint *rp,
+void replace_write_executionstate(rplpoint *rp,
 										 executionstate_t *es,
 										 sourcestate_t *ss,
 										 bool topframe)
@@ -2088,7 +2088,7 @@ static void replace_pop_native_frame(executionstate_t *es,
 	/* remember pc and size of native frame */
 
 	frame->nativepc = es->pc;
-	frame->nativeframesize = sfi->sp - es->sp;
+	frame->nativeframesize = (es->sp != 0) ? (sfi->sp - es->sp) : 0;
 	assert(frame->nativeframesize >= 0);
 
 	/* remember values of saved registers */
@@ -2107,19 +2107,27 @@ static void replace_pop_native_frame(executionstate_t *es,
 
 	/* restore saved registers */
 
-#if 0
+#if defined(ENABLE_GC_CACAO)
+	j = 0;
+	for (i=0; i<INT_REG_CNT; ++i) {
+		if (nregdescint[i] == REG_SAV)
+			es->intregs[i] = sfi->intregs[j++];
+	}
+#else
 	/* XXX we don't have them, yet, in the sfi, so clear them */
 
 	for (i=0; i<INT_REG_CNT; ++i) {
 		if (nregdescint[i] == REG_SAV)
 			es->intregs[i] = 0;
 	}
+#endif
+
+	/* XXX we don't have float registers in the sfi, so clear them */
 
 	for (i=0; i<FLT_REG_CNT; ++i) {
 		if (nregdescfloat[i] == REG_SAV)
 			es->fltregs[i] = 0.0;
 	}
-#endif
 
 	/* restore pv, pc, and sp */
 
@@ -2187,6 +2195,18 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 	/* assert that the native frame has not moved */
 
 	assert(es->sp == frame->sfi->sp);
+
+	/* update saved registers in the stackframeinfo */
+
+#if defined(ENABLE_GC_CACAO)
+	j = 0;
+	for (i=0; i<INT_REG_CNT; ++i) {
+		if (nregdescint[i] == REG_SAV)
+			frame->sfi->intregs[j++] = es->intregs[i];
+	}
+
+	/* XXX leave float registers untouched here */
+#endif
 
 	/* restore saved registers */
 
@@ -2450,7 +2470,7 @@ static bool replace_map_source_state(sourcestate_t *ss)
 
 *******************************************************************************/
 
-static void replace_build_execution_state_intern(sourcestate_t *ss,
+void replace_build_execution_state_intern(sourcestate_t *ss,
 												 executionstate_t *es)
 {
 	rplpoint      *rp;
@@ -2966,9 +2986,9 @@ void replace_executionstate_println(executionstate_t *es)
 		else
 			printf(" ");
 #if SIZEOF_VOID_P == 8
-		printf("%-3s = %016llx",regs[i],(unsigned long long)es->intregs[i]);
+		printf("%-3s = %016llx",abi_registers_integer_name[i],(unsigned long long)es->intregs[i]);
 #else
-		printf("%-3s = %08lx",regs[i],(unsigned long)es->intregs[i]);
+		printf("%-3s = %08lx",abi_registers_integer_name[i],(unsigned long)es->intregs[i]);
 #endif
 		if (i%4 == 3)
 			printf("\n");
@@ -3080,7 +3100,7 @@ void replace_source_frame_println(sourceframe_t *frame)
 		j = 0;
 		for (i=0; i<INT_REG_CNT; ++i) {
 			if (nregdescint[i] == REG_SAV)
-				printf("\t%s = %p\n", regs[i], (void*)frame->nativesavint[j++]);
+				printf("\t%s = %p\n", abi_registers_integer_name[i], (void*)frame->nativesavint[j++]);
 		}
 
 		j = 0;
