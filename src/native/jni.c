@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7384 2007-02-21 22:17:16Z twisti $
+   $Id: jni.c 7392 2007-02-23 20:15:31Z michi $
 
 */
 
@@ -227,7 +227,13 @@ bool jni_init_localref_table(void)
 {
 	localref_table *lrt;
 
+#if defined(ENABLE_GC_CACAO)
+	/* XXX this one will never get freed for the main thread;
+	   call jni_free_localref_table() if you want to do it! */
+	lrt = NEW(localref_table);
+#else
 	lrt = GCNEW(localref_table);
+#endif
 
 	if (lrt == NULL)
 		return false;
@@ -242,6 +248,31 @@ bool jni_init_localref_table(void)
 	MSET(lrt->refs, 0, java_objectheader*, LOCALREFTABLE_CAPACITY);
 
 	LOCALREFTABLE = lrt;
+
+	return true;
+}
+
+
+/* jni_init_localref_table *****************************************************
+
+   Frees the local references table of the current thread.
+
+*******************************************************************************/
+
+bool jni_free_localref_table(void)
+{
+	localref_table *lrt;
+
+#if defined(ENABLE_GC_CACAO)
+	lrt = LOCALREFTABLE;
+
+	assert(lrt);
+	assert(lrt->prev == NULL);
+
+	FREE(lrt, localref_table);
+
+	LOCALREFTABLE = NULL;
+#endif
 
 	return true;
 }
@@ -1378,7 +1409,11 @@ jint _Jv_JNI_PushLocalFrame(JNIEnv* env, jint capacity)
 	else
 		additionalrefs = 0;
 
+#if defined(ENABLE_GC_CACAO)
+	nlrt = MNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+#else
 	nlrt = GCMNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+#endif
 
 	if (nlrt == NULL)
 		return -1;
@@ -1416,6 +1451,7 @@ jobject _Jv_JNI_PopLocalFrame(JNIEnv* env, jobject result)
 	localref_table *lrt;
 	localref_table *plrt;
 	s4              localframes;
+	s4              additionalrefs;
 
 	STATISTICS(jniinvokation());
 
@@ -1444,6 +1480,18 @@ jobject _Jv_JNI_PopLocalFrame(JNIEnv* env, jobject result)
 		MSET(&lrt->refs[0], 0, java_objectheader*, lrt->capacity);
 
 		lrt->prev = NULL;
+
+#if defined(ENABLE_GC_CACAO)
+		/* for the exact GC local reference tables are not on the heap,
+		   so we need to free them explicitly here. */
+
+		if (lrt->capacity > LOCALREFTABLE_CAPACITY)
+			additionalrefs = lrt->capacity - LOCALREFTABLE_CAPACITY;
+		else
+			additionalrefs = 0;
+
+		MFREE(lrt, u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+#endif
 
 		/* set new local references table */
 
@@ -5681,6 +5729,9 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 	thread = threads_get_current_threadobject();
 
 	if (thread == NULL)
+		return JNI_ERR;
+
+	if (!jni_free_localref_table())
 		return JNI_ERR;
 
 	if (!threads_detach_thread(thread))
