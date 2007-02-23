@@ -70,7 +70,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Object_getClass(JNIEnv *env, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_Object *this)
 {
+#if defined(ENABLE_GC_CACAO)
+	assert(0);
+#else
 	return (s4) ((ptrint) this);
+#endif
 }
 
 

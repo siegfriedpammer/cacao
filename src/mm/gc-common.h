@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gc-common.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: gc-common.h 7391 2007-02-23 20:08:10Z michi $
 
 */
 
@@ -48,6 +48,7 @@ void  heap_free(void *p);
 
 #if defined(ENABLE_GC_CACAO)
 void heap_init_objectheader(java_objectheader *o, u4 bytelength);
+s4 heap_get_hashcode(java_objectheader *o);
 #endif
 
 void  gc_call(void);
