@@ -1627,6 +1627,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #endif
 
 #if defined(ENABLE_JVMTI)
+# if defined(ENABLE_GC_CACAO)
+	/* XXX this will not work with the new indirection cells for classloaders!!! */
+	assert(0);
+# endif
 	if (jvmti) {
 		/* add agent library to native library hashtable */
 		native_hashtable_library_add(utf_new_char(libname), class_java_lang_Object->classloader, handle);

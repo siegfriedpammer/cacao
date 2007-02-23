@@ -111,7 +111,7 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 #endif
 {
 #if defined(ENABLE_JAVASE)
-	java_objectheader *cl;
+	classloader *cl;
 #endif
 	utf               *ufile;
 	utf               *uname;
@@ -122,7 +122,7 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 	s4                 i;
 
 #if defined(ENABLE_JAVASE)
-	cl = (java_objectheader *) loader;
+	cl = loader_hashtable_classloader_add((java_objectheader *) loader);
 #endif
 
 	/* illegal argument */
@@ -775,7 +775,7 @@ java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass
 
 	c = (classinfo *) klass;
 
-	return (java_lang_ClassLoader *) c->classloader;
+	return (java_lang_ClassLoader *) c->classloader->object;
 }
 
 #endif /* defined(ENABLE_JAVASE) */

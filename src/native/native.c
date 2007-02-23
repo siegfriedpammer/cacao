@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7393 2007-02-23 20:28:35Z michi $
+   $Id: native.c 7399 2007-02-23 23:29:13Z michi $
 
 */
 
@@ -902,12 +902,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-#if 0
 	key  = ((u4) (ptrint) m->class->classloader) >> 4;    /* align to 16-byte */
-#else
-	/* XXX this is only a hack until classinfo->classloade is of type cle!!! */
-	key  = ((u4) (ptrint) loader_hashtable_classloader_find(m->class->classloader)) >> 4;
-#endif
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 

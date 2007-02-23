@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: java_lang_VMSystem.c 7391 2007-02-23 20:08:10Z michi $
+   $Id: java_lang_VMSystem.c 7399 2007-02-23 23:29:13Z michi $
 
 */
 
@@ -39,6 +39,8 @@
 #include <string.h>
 
 #include "vm/types.h"
+
+#include "mm/gc-common.h"
 
 #include "native/jni.h"
 #include "native/include/java_lang_Object.h"
@@ -66,7 +68,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
 {
 #if defined(ENABLE_GC_CACAO)
-	return heap_get_hashcode(o);
+	return heap_get_hashcode((java_objectheader *) o);
 #else
 	return (s4) ((ptrint) o);
 #endif

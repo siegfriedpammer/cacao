@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 7355 2007-02-14 10:57:32Z twisti $
+   $Id: class.h 7399 2007-02-23 23:29:13Z michi $
 
 */
 
@@ -139,7 +139,7 @@ struct classinfo {                /* class structure                          */
 	s4            runtimevisibleannotationscount;
 	annotation_t *runtimevisibleannotations;
 #endif
-	java_objectheader *classloader; /* NULL for bootstrap classloader         */
+	classloader *classloader;     /* NULL for bootstrap classloader           */
 };
 
 

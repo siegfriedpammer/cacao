@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7393 2007-02-23 20:28:35Z michi $
+   $Id: loader.c 7399 2007-02-23 23:29:13Z michi $
 
 */
 
@@ -247,11 +247,14 @@ bool loader_init(void)
 
 *******************************************************************************/
 
-hashtable_classloader_entry *loader_hashtable_classloader_add(java_objectheader *cl)
+classloader *loader_hashtable_classloader_add(java_objectheader *cl)
 {
 	hashtable_classloader_entry *cle;
 	u4   key;
 	u4   slot;
+
+	if (cl == NULL)
+		return NULL;
 
 	LOCK_MONITOR_ENTER(hashtable_classloader->header);
 
@@ -271,7 +274,7 @@ hashtable_classloader_entry *loader_hashtable_classloader_add(java_objectheader 
 	/* XXX no GC collection is allowed here, make this a critical section */
 
 	while (cle) {
-		if (cle->classloader == cl)
+		if (cle->object == cl)
 			break;
 
 		cle = cle->hashlink;
@@ -282,7 +285,7 @@ hashtable_classloader_entry *loader_hashtable_classloader_add(java_objectheader 
 	if (cle == NULL) {
 		cle = NEW(hashtable_classloader_entry);
 
-		cle->classloader = cl;
+		cle->object = cl;
 
 		/* insert entry into hashtable */
 
@@ -307,11 +310,14 @@ hashtable_classloader_entry *loader_hashtable_classloader_add(java_objectheader 
 
 *******************************************************************************/
 
-hashtable_classloader_entry *loader_hashtable_classloader_find(java_objectheader *cl)
+classloader *loader_hashtable_classloader_find(java_objectheader *cl)
 {
 	hashtable_classloader_entry *cle;
 	u4   key;
 	u4   slot;
+
+	if (cl == NULL)
+		return NULL;
 
 	/* key for entry is the hashcode of the classloader;
 	   aligned to 16-byte boundaries */
@@ -329,7 +335,7 @@ hashtable_classloader_entry *loader_hashtable_classloader_find(java_objectheader
 	/* XXX no GC collection is allowed here, make this a critical section */
 
 	while (cle) {
-		if (cle->classloader == cl)
+		if (cle->object == cl)
 			break;
 
 		cle = cle->hashlink;
@@ -1556,7 +1562,8 @@ static bool loader_load_method(classbuffer *cb, methodinfo *m,
 classinfo *load_class_from_sysloader(utf *name)
 {
 	methodinfo        *m;
-	java_objectheader *cl;
+	java_objectheader *clo;
+	classloader       *cl;
 	classinfo         *c;
 
 	assert(class_java_lang_Object);
@@ -1572,10 +1579,12 @@ classinfo *load_class_from_sysloader(utf *name)
 	if (!m)
 		return false;
 
-	cl = vm_call_method(m, NULL);
+	clo = vm_call_method(m, NULL);
 
-	if (!cl)
+	if (!clo)
 		return false;
+
+	cl = loader_hashtable_classloader_add(clo);
 
 	c = load_class_from_classloader(name, cl);
 
@@ -1597,7 +1606,7 @@ classinfo *load_class_from_sysloader(utf *name)
 
 *******************************************************************************/
 
-classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
+classinfo *load_class_from_classloader(utf *name, classloader *cl)
 {
 	java_objectheader *o;
 	classinfo         *c;
@@ -1697,7 +1706,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 		
 		assert(class_java_lang_Object);
 
-		lc = class_resolveclassmethod(cl->vftbl->class,
+		lc = class_resolveclassmethod(cl->object->vftbl->class,
 									  utf_loadClass,
 									  utf_java_lang_String__java_lang_Class,
 									  class_java_lang_Object,
@@ -1712,7 +1721,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 		RT_TIMING_GET_TIME(time_prepare);
 
-		o = vm_call_method(lc, cl, string);
+		o = vm_call_method(lc, cl->object, string);
 
 		RT_TIMING_GET_TIME(time_java);
 
@@ -2521,7 +2530,7 @@ return_exception:
 
 *******************************************************************************/
 
-classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
+classinfo *load_newly_created_array(classinfo *c, classloader *loader)
 {
 	classinfo         *comp = NULL;
 	methodinfo        *clone;

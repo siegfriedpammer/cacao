@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gnu_classpath_VMStackWalker.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: gnu_classpath_VMStackWalker.c 7399 2007-02-23 23:29:13Z michi $
 
 */
 
@@ -40,6 +40,7 @@
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
+#include "vmcore/loader.h"
 #include "vmcore/options.h"
 
 
@@ -88,7 +89,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 {
 	java_objectarray  *oa;
 	classinfo         *c;
-	java_objectheader *cl;
+	classloader       *cl;
 
 	oa = stacktrace_getClassContext();
 
@@ -98,10 +99,13 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 	if (oa->header.size < 2)
 		return NULL;
   	 
-	c  = (classinfo *) oa->data[1];
-	cl = c->classloader;
+	c   = (classinfo *) oa->data[1];
+	cl  = c->classloader;
 
-	return (java_lang_ClassLoader *) cl;
+	if (cl == NULL)
+		return NULL;
+
+	return (java_lang_ClassLoader *) cl->object;
 }
 
 
@@ -114,7 +118,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstN
 {
 	java_objectarray  *oa;
 	classinfo         *c;
-	java_objectheader *cl;
+	classloader       *cl;
 	s4                 i;
 
 	oa = stacktrace_getClassContext();
@@ -127,7 +131,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstN
 		cl = c->classloader;
 
 		if (cl != NULL)
-			return (java_lang_ClassLoader *) cl;
+			return (java_lang_ClassLoader *) cl->object;
 	}
 
 	return NULL;

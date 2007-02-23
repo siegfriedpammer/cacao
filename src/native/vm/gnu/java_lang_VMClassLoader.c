@@ -22,13 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: java_lang_VMClassLoader.c 7399 2007-02-23 23:29:13Z michi $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <sys/stat.h>
 
 #include "vm/types.h"
@@ -72,11 +73,12 @@
  * Method:    defineClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *clo, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
 	classinfo       *c;
 	classinfo       *r;
 	classbuffer     *cb;
+	classloader     *cl;
 	utf             *utfname;
 	java_lang_Class *co;
 #if defined(ENABLE_JVMTI)
@@ -98,6 +100,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		return NULL;
 	}
 
+	/* add classloader to classloader hashtable */
+
+	assert(clo);
+	cl = loader_hashtable_classloader_add((java_objectheader *) clo);
+
+
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
@@ -105,7 +113,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		
 		/* check if this class has already been defined */
 
-		c = classcache_lookup_defined_or_initiated((java_objectheader *) cl, utfname);
+		c = classcache_lookup_defined_or_initiated(cl, utfname);
 		if (c != NULL) {
 			exceptions_throw_linkageerror("duplicate class definition: ", c);
 			return NULL;
@@ -117,6 +125,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 
 #if defined(ENABLE_JVMTI)
+	/* XXX again this will not work because of the indirection cell for classloaders */
+	assert(0);
 	/* fire Class File Load Hook JVMTI event */
 	if (jvmti) jvmti_ClassFileLoadHook(utfname, len, (unsigned char*)data->data, 
 							(java_objectheader *)cl, (java_objectheader *)pd, 
@@ -155,7 +165,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	/* preset the defining classloader */
 
-	c->classloader = (java_objectheader *) cl;
+	c->classloader = cl;
 
 	/* load the class from this buffer */
 
@@ -197,7 +207,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	/*            pointer after the lookup at to top of this function         */
 	/*            directly after the class cache lock has been released.      */
 
-	c = classcache_store((java_objectheader *) cl, c, true);
+	c = classcache_store(cl, c, true);
 
 	return (java_lang_Class *) c;
 }

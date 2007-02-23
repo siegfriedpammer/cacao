@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.h 7393 2007-02-23 20:28:35Z michi $
+   $Id: loader.h 7399 2007-02-23 23:29:13Z michi $
 */
 
 
@@ -114,9 +114,14 @@ struct classbuffer {
 typedef struct hashtable_classloader_entry hashtable_classloader_entry;
 
 struct hashtable_classloader_entry {
-	java_objectheader           *classloader;
+	java_objectheader           *object;
 	hashtable_classloader_entry *hashlink;
 };
+
+
+/* classloader ****************************************************************/
+
+typedef hashtable_classloader_entry classloader;
 
 
 /* global variables ***********************************************************/
@@ -128,6 +133,10 @@ hashtable *hashtable_classloader;
 
 /* initialize loader, load important systemclasses */
 bool loader_init(void);
+
+/* classloader management functions */
+classloader *loader_hashtable_classloader_add(java_objectheader *cl);
+classloader *loader_hashtable_classloader_find(java_objectheader *cl);
 
 void loader_load_all_classes(void);
 
@@ -142,12 +151,12 @@ void loader_close(void);
 
 /* class loading functions */
 classinfo *load_class_from_sysloader(utf *name);
-classinfo *load_class_from_classloader(utf *name, java_objectheader *cl);
+classinfo *load_class_from_classloader(utf *name, classloader *cl);
 classinfo *load_class_bootstrap(utf *name);
 
 /* (don't use the following directly) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
-classinfo *load_newly_created_array(classinfo *c,java_objectheader *loader);
+classinfo *load_newly_created_array(classinfo *c, classloader *loader);
 
 #endif /* _LOADER_H */
 

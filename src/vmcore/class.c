@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7387 2007-02-21 23:26:24Z twisti $
+   $Id: class.c 7399 2007-02-23 23:29:13Z michi $
 
 */
 
@@ -701,8 +701,8 @@ void class_free(classinfo *c)
 
 *******************************************************************************/
 
-static classinfo *get_array_class(utf *name,java_objectheader *initloader,
-											java_objectheader *defloader,bool link)
+static classinfo *get_array_class(utf *name,classloader *initloader,
+											classloader *defloader,bool link)
 {
 	classinfo *c;
 	
