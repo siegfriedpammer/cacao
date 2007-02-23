@@ -2966,9 +2966,9 @@ void replace_executionstate_println(executionstate_t *es)
 		else
 			printf(" ");
 #if SIZEOF_VOID_P == 8
-		printf("%-3s = %016llx",regs[i],(unsigned long long)es->intregs[i]);
+		printf("%-3s = %016llx",abi_registers_integer_name[i],(unsigned long long)es->intregs[i]);
 #else
-		printf("%-3s = %08lx",regs[i],(unsigned long)es->intregs[i]);
+		printf("%-3s = %08lx",abi_registers_integer_name[i],(unsigned long)es->intregs[i]);
 #endif
 		if (i%4 == 3)
 			printf("\n");
@@ -3080,7 +3080,7 @@ void replace_source_frame_println(sourceframe_t *frame)
 		j = 0;
 		for (i=0; i<INT_REG_CNT; ++i) {
 			if (nregdescint[i] == REG_SAV)
-				printf("\t%s = %p\n", regs[i], (void*)frame->nativesavint[j++]);
+				printf("\t%s = %p\n", abi_registers_integer_name[i], (void*)frame->nativesavint[j++]);
 		}
 
 		j = 0;
