@@ -379,6 +379,11 @@ void *heap_alloc_uncollectable(u4 bytelength)
 	return calloc(bytelength, 1);
 }
 
+s4 heap_get_hashcode(java_objectheader *o)
+{
+	return 0;
+}
+
 
 /* jit ************************************************************************/
 

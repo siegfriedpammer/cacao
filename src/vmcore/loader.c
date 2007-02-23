@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7387 2007-02-21 23:26:24Z twisti $
+   $Id: loader.c 7393 2007-02-23 20:28:35Z michi $
 
 */
 
@@ -39,8 +39,11 @@
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
 #endif
 
+#include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
@@ -78,6 +81,11 @@
 #endif
 
 
+/* global variables ***********************************************************/
+
+hashtable *hashtable_classloader;
+
+
 /* loader_init *****************************************************************
 
    Initializes all lists and loads all classes required for the system
@@ -97,6 +105,11 @@ bool loader_init(void)
 		if (lce->type == CLASSPATH_ARCHIVE)
 			lock_init_object_lock((java_objectheader *) lce);
 #endif
+
+	/* initialize classloader hashtable, 10 entries should be enough */
+
+	hashtable_classloader = NEW(hashtable);
+	hashtable_create(hashtable_classloader, 10);
 
 	/* load some important classes */
 
@@ -223,6 +236,106 @@ bool loader_init(void)
 #endif
 
 	return true;
+}
+
+
+/* loader_hashtable_classloader_add ********************************************
+
+   Adds an entry to the classloader hashtable.
+
+   REMEMBER: Also use this to register native loaders!
+
+*******************************************************************************/
+
+hashtable_classloader_entry *loader_hashtable_classloader_add(java_objectheader *cl)
+{
+	hashtable_classloader_entry *cle;
+	u4   key;
+	u4   slot;
+
+	LOCK_MONITOR_ENTER(hashtable_classloader->header);
+
+	/* key for entry is the hashcode of the classloader;
+	   aligned to 16-byte boundaries */
+
+#if defined(ENABLE_GC_CACAO)
+	key  = heap_get_hashcode(cl) >> 4;
+#else
+	key  = ((u4) (ptrint) cl) >> 4;
+#endif
+
+	slot = key & (hashtable_classloader->size - 1);
+	cle  = hashtable_classloader->ptr[slot];
+
+	/* search hashchain for existing entry */
+	/* XXX no GC collection is allowed here, make this a critical section */
+
+	while (cle) {
+		if (cle->classloader == cl)
+			break;
+
+		cle = cle->hashlink;
+	}
+
+	/* if no classloader was found, we create a new entry here */
+
+	if (cle == NULL) {
+		cle = NEW(hashtable_classloader_entry);
+
+		cle->classloader = cl;
+
+		/* insert entry into hashtable */
+
+		cle->hashlink = hashtable_classloader->ptr[slot];
+		hashtable_classloader->ptr[slot] = cle;
+
+		/* update number of entries */
+
+		hashtable_classloader->entries++;
+	}
+
+
+	LOCK_MONITOR_EXIT(hashtable_classloader->header);
+
+	return cle;
+}
+
+
+/* loader_hashtable_classloader_find *******************************************
+
+   Find an entry in the classloader hashtable.
+
+*******************************************************************************/
+
+hashtable_classloader_entry *loader_hashtable_classloader_find(java_objectheader *cl)
+{
+	hashtable_classloader_entry *cle;
+	u4   key;
+	u4   slot;
+
+	/* key for entry is the hashcode of the classloader;
+	   aligned to 16-byte boundaries */
+
+#if defined(ENABLE_GC_CACAO)
+	key  = heap_get_hashcode(cl) >> 4;
+#else
+	key  = ((u4) (ptrint) cl) >> 4;
+#endif
+
+	slot = key & (hashtable_classloader->size - 1);
+	cle  = hashtable_classloader->ptr[slot];
+
+	/* search hashchain for existing entry */
+	/* XXX no GC collection is allowed here, make this a critical section */
+
+	while (cle) {
+		if (cle->classloader == cl)
+			break;
+
+		cle = cle->hashlink;
+	}
+
+	return cle;
 }
 
 

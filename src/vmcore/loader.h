@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: loader.h 7393 2007-02-23 20:28:35Z michi $
 */
 
 
@@ -107,6 +107,21 @@ struct classbuffer {
 	u1        *pos;                     /* current read position              */
 	char      *path;                    /* path to file (for debugging)       */
 };
+
+
+/* hashtable_classloader_entry ************************************************/
+
+typedef struct hashtable_classloader_entry hashtable_classloader_entry;
+
+struct hashtable_classloader_entry {
+	java_objectheader           *classloader;
+	hashtable_classloader_entry *hashlink;
+};
+
+
+/* global variables ***********************************************************/
+
+hashtable *hashtable_classloader;
 
 
 /* function prototypes ********************************************************/

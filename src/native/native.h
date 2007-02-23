@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 7328 2007-02-11 21:22:07Z twisti $
+   $Id: native.h 7393 2007-02-23 20:28:35Z michi $
 
 */
 
@@ -39,6 +39,7 @@
 #include "vm/global.h"
 
 #include "vmcore/class.h"
+#include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/utf8.h"
 
@@ -57,7 +58,7 @@ typedef struct hashtable_library_name_entry hashtable_library_name_entry;
 /* hashtable_library_loader_entry *********************************************/
 
 struct hashtable_library_loader_entry {
-	java_objectheader              *loader;  /* class loader                  */
+	hashtable_classloader_entry    *cle;     /* class loader                  */
 	hashtable_library_name_entry   *namelink;/* libs loaded by this loader    */
 	hashtable_library_loader_entry *hashlink;/* link for external chaining    */
 };

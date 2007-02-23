@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7328 2007-02-11 21:22:07Z twisti $
+   $Id: native.c 7393 2007-02-23 20:28:35Z michi $
 
 */
 
@@ -447,6 +447,7 @@ bool native_init(void)
 void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 								  lt_dlhandle handle)
 {
+	hashtable_classloader_entry    *cle;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
 	u4   key;                           /* hashkey                            */
@@ -454,16 +455,20 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 
 	LOCK_MONITOR_ENTER(hashtable_library->header);
 
+	/* insert loader into the classloader hashtable */
+
+	cle = loader_hashtable_classloader_add(loader);
+
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
+	key  = ((u4) (ptrint) cle) >> 4;        /* align to 16-byte boundaries    */
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 
 	/* search external hash chain for the entry */
 
 	while (le) {
-		if (le->loader == loader)
+		if (le->cle == cle)
 			break;
 
 		le = le->hashlink;                  /* next element in external chain */
@@ -474,7 +479,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 	if (le == NULL) {
 		le = NEW(hashtable_library_loader_entry);
 
-		le->loader   = loader;
+		le->cle   = cle;
 		le->namelink = NULL;
 
 		/* insert entry into hashtable */
@@ -530,21 +535,29 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
 															java_objectheader *loader)
 {
+	hashtable_classloader_entry    *cle;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
 
+	/* search loader in the classloader hashtable */
+
+	cle = loader_hashtable_classloader_find(loader);
+
+	if (!cle)
+		return NULL;
+
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
+	key  = ((u4) (ptrint) cle) >> 4;        /* align to 16-byte boundaries    */
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 
 	/* search external hash chain for the entry */
 
 	while (le) {
-		if (le->loader == loader)
+		if (le->cle == cle)
 			break;
 
 		le = le->hashlink;                  /* next element in external chain */
@@ -889,7 +902,12 @@ functionptr native_resolve_function(methodinfo *m)
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
+#if 0
 	key  = ((u4) (ptrint) m->class->classloader) >> 4;    /* align to 16-byte */
+#else
+	/* XXX this is only a hack until classinfo->classloade is of type cle!!! */
+	key  = ((u4) (ptrint) loader_hashtable_classloader_find(m->class->classloader)) >> 4;
+#endif
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 
