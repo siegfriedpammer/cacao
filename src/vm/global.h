@@ -32,7 +32,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 7387 2007-02-21 23:26:24Z twisti $
+   $Id: global.h 7397 2007-02-23 23:11:41Z michi $
 
 */
 
@@ -225,7 +225,10 @@ typedef struct java_objectarray java_objectarray;
 
 *******************************************************************************/
 
-#define HDRFLAG_FLC 0x01
+#define HDRFLAG_FLC           0x01
+#define HDRFLAG_MARK1         0x02
+#define HDRFLAG_MARK2         0x04
+#define HDRFLAG_UNCOLLECTABLE 0x08
 
 struct java_objectheader {             /* header for all objects              */
 	struct _vftbl            *vftbl;   /* pointer to virtual function table   */
