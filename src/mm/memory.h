@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 7338 2007-02-13 00:17:22Z twisti $
+   $Id: memory.h 7394 2007-02-23 22:47:06Z michi $
 
 */
 
@@ -92,6 +92,15 @@ struct dumpinfo_t {
 	dump_allocation_t *allocations;       /* list of allocations in this area */
 #endif
 };
+
+
+/* constants for ENABLE_MEMCHECK **********************************************/
+
+#if defined(ENABLE_MEMCHECK)
+#define MEMORY_CANARY_SIZE          16
+#define MEMORY_CANARY_FIRST_BYTE    0xca
+#define MEMORY_CLEAR_BYTE           0xa5
+#endif /* defined(ENABLE_MEMCHECK) */
 
 
 /* internal includes **********************************************************/
@@ -228,4 +237,5 @@ void  dump_release(s4 size);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

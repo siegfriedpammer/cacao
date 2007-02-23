@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7369 2007-02-16 17:56:40Z twisti $
+   $Id: memory.c 7394 2007-02-23 22:47:06Z michi $
 
 */
 
@@ -69,15 +69,6 @@
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"
 #endif
-
-
-/* constants for ENABLE_MEMCHECK **********************************************/
-
-#if defined(ENABLE_MEMCHECK)
-#define MEMORY_CANARY_SIZE          16
-#define MEMORY_CANARY_FIRST_BYTE    0xca
-#define MEMORY_CLEAR_BYTE           0xa5
-#endif /* defined(ENABLE_MEMCHECK) */
 
 
 /*******************************************************************************
