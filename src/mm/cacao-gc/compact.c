@@ -281,16 +281,22 @@ void compact_unthread_references(java_objectheader *o, void *new)
    Moves the content (including header) of an object around in memory
 
    NOTE: Memory locations may overlap!
+   NOTE: The size of the object can change by moving it around (hashcode)!
 
    IN:
       old......Old Location of the object before compaction
       new......New Location of the object after compaction
       size.....Size of the object in bytes
 
+   OUT:
+      New size of the object after moving it
+
 *******************************************************************************/
 
-void compact_move(u1 *old, u1 *new, u4 size)
+u4 compact_move(u1 *old, u1 *new, u4 size)
 {
+	s4 hashcode;
+	u4 new_size;
 
 	GC_ASSERT(new < old);
 
@@ -315,6 +321,27 @@ void compact_move(u1 *old, u1 *new, u4 size)
 		MMOVE(new, old, u1, size);
 
 	}
+
+	new_size = size;
+
+	/* check if we need to attach the hashcode to the object */
+	if (GC_TEST_FLAGS((java_objectheader *) new, HDRFLAG_HASH_TAKEN)) {
+
+		/* change the flags accordingly */
+		GC_CLEAR_FLAGS((java_objectheader *) new, HDRFLAG_HASH_TAKEN);
+		GC_SET_FLAGS((java_objectheader *) new, HDRFLAG_HASH_ATTACHED);
+
+		/* attach the hashcode at the end of the object */
+		new_size += SIZEOF_VOID_P;
+		hashcode = (s4) (ptrint) old;
+		*( (s4 *) (new + new_size - SIZEOF_VOID_P) ) = hashcode; /* TODO: clean this up */
+
+		GC_ASSERT(new + SIZEOF_VOID_P < old);
+		GC_LOG( printf("Hash attached: %d (0x%08x) to new object at %p\n", hashcode, hashcode, new); );
+
+	}
+
+	return new_size;
 }
 
 
@@ -335,6 +362,7 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	u1 *ptr_new;
 	java_objectheader *o;
 	u4 o_size;
+	u4 o_size_new;
 	u4 used;
 
 	GC_LOG( dolog("GC: Compaction Phase 1 started ..."); );
@@ -375,6 +403,10 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 
 			/* object survives, place next object behind it */
 			ptr_new += o_size;
+
+			/* size might change because of attached hashcode */
+			if (GC_TEST_FLAGS(o, HDRFLAG_HASH_TAKEN))
+				ptr_new += SIZEOF_VOID_P;
 		}
 
 		/* skip to next object */
@@ -412,12 +444,12 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 			/* unmark the object */
 			GC_CLEAR_MARKED(o);
 
-			/* move the object */
-			compact_move(ptr, ptr_new, o_size);
+			/* move the object (size can change) */
+			o_size_new = compact_move(ptr, ptr_new, o_size);
 
 			/* object survives, place next object behind it */
-			ptr_new += o_size;
-			used += o_size;
+			ptr_new += o_size_new;
+			used += o_size_new;
 		}
 
 		/* skip to next object */

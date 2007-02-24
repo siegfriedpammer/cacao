@@ -42,7 +42,7 @@
 
 
 /* TODO: maybe move this to global.h */
-#define GC_FLAG_FINALIZER     0x10
+#define GC_FLAG_FINALIZER     0x40
 #define GC_FLAG_UNCOLLECTABLE HDRFLAG_UNCOLLECTABLE
 #define GC_FLAG_MARKED        (HDRFLAG_MARK1 | HDRFLAG_MARK2)
 
@@ -57,12 +57,9 @@
 #if SIZEOF_VOID_P == 8
 # define GC_GET_SIZE(obj)       ((u4) (((obj)->hdrflags >> 56) & 0xff))
 # define GC_SET_SIZE(obj, size) ((obj)->hdrflags |= ((u8) ((size) & 0xff)) << 56)
-# define GC_GET_HASH(obj)       ((obj)->hdrflags)
 #else
 # define GC_GET_SIZE(obj)       ((u4) (((obj)->hdrflags >> 24) & 0xff))
 # define GC_SET_SIZE(obj, size) ((obj)->hdrflags |= ((u4) ((size) & 0xff)) << 24)
-# define GC_GET_HASH(obj)       ((obj)->hdrflags)
-# define GC_SET_HASH(obj, hash) ((obj)->hdrflags |= ((hash) << 8) & 0x00ffff00)
 #endif
 
 

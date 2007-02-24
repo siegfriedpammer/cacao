@@ -76,10 +76,6 @@ void heap_init_objectheader(java_objectheader *o, u4 bytelength)
 	/* align the size */
 	/* TODO */
 
-	/* set the hash bits in the header */
-	/* TODO: improve this!!! */
-	GC_SET_HASH(o, (s4) o);
-
 	/* calculate the wordcount as stored in the header */
     /* TODO: improve this to save wordcount and without header bytes */
     if ((bytelength & 0x03) == 0) {
@@ -153,10 +149,22 @@ s4 heap_get_hashcode(java_objectheader *o)
 	if (!o)
 		return 0;
 
-	/* TODO: improve this heavily! */
-	hashcode = GC_GET_HASH(o);
+	/* TODO: we need to lock the object here i think!!! */
 
-	/*GC_LOG( printf("Hash taken: %d (0x%08x)\n", hashcode, hashcode); );*/
+	/* check if there is a hash attached to this object */
+	if (GC_TEST_FLAGS(o, HDRFLAG_HASH_ATTACHED)) {
+
+		hashcode = *( (s4 *) ( ((u1 *) o) + get_object_size(o) - SIZEOF_VOID_P ) ); /* TODO: clean this up!!! */
+		GC_LOG( printf("Hash re-taken: %d (0x%08x)\n", hashcode, hashcode); );
+
+	} else {
+
+		GC_SET_FLAGS(o, HDRFLAG_HASH_TAKEN);
+
+		hashcode = (s4) (ptrint) o;
+		GC_LOG( printf("Hash taken: %d (0x%08x)\n", hashcode, hashcode); );
+
+	}
 
 	return hashcode;
 }
@@ -272,9 +280,11 @@ void heap_println_usage()
 #if !defined(NDEBUG)
 void heap_print_object_flags(java_objectheader *o)
 {
-	printf("0x%02x 0x%08x [%s%s%s]",
-		GC_GET_SIZE(o), GC_GET_HASH(o),
+	printf("0x%02x [%s%s%s%s%s]",
+		GC_GET_SIZE(o),
 		GC_TEST_FLAGS(o, GC_FLAG_FINALIZER)     ? "F" : " ",
+		GC_TEST_FLAGS(o, HDRFLAG_HASH_ATTACHED) ? "A" : " ",
+		GC_TEST_FLAGS(o, HDRFLAG_HASH_TAKEN)    ? "T" : " ",
 		GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE) ? "U" : " ",
 		GC_TEST_FLAGS(o, GC_FLAG_MARKED)        ? "M" : " ");
 }
@@ -425,6 +435,10 @@ s4 get_object_size(java_objectheader *o)
 
 	/* align the size */
 	o_size = GC_ALIGN(o_size, GC_ALIGN_SIZE);
+
+	/* the hashcode attached to this object might increase the size */
+	if (GC_TEST_FLAGS(o, HDRFLAG_HASH_ATTACHED))
+		o_size += SIZEOF_VOID_P;
 
 	return o_size;
 }
