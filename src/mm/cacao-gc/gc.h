@@ -43,7 +43,7 @@
 /* Debugging ******************************************************************/
 
 #define GC_DEBUGGING
-#define GC_DEBUGGING2
+/*#define GC_DEBUGGING2*/
 
 #if !defined(NDEBUG) && defined(GC_DEBUGGING)
 # include <assert.h>
@@ -98,6 +98,24 @@ static bool gc_pending;
 
 #define POINTS_INTO(ptr, ptr_start, ptr_end) \
 	((void *) (ptr) > (ptr_start) && (void *) (ptr) < (ptr_end))
+
+
+/* Statistics *****************************************************************/
+
+#if defined(ENABLE_STATISTICS)
+
+#define GCSTAT_INIT(cnt)  { (cnt) = 0; }
+#define GCSTAT_COUNT(cnt) { (cnt)++; }
+#define GCSTAT_DEC(cnt)   { (cnt)--; GC_ASSERT((cnt) >= 0); }
+#define GCSTAT_COUNT_MAX(cnt,max) { (cnt)++; if ((cnt) > (max)) (max) = (cnt); }
+
+extern int gcstat_mark_depth;
+extern int gcstat_mark_depth_max;
+extern int gcstat_mark_count;
+
+void gcstat_println();
+
+#endif /* defined(ENABLE_STATISTICS) */
 
 
 #endif /* _GC_H */

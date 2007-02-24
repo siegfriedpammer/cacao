@@ -152,6 +152,11 @@ void gc_collect(s4 level)
 	GC_LOG( mark_rootset_print(rs); );
 	mark_rootset_writeback(rs);
 
+#if defined(ENABLE_STATISTICS)
+	if (opt_verbosegc)
+		gcstat_println();
+#endif
+
     /* free dump memory area */
     dump_release(dumpsize);
 
@@ -198,6 +203,26 @@ int GC_signum2()
 	return SIGUSR2;
 }
 #endif
+
+
+/* Statistics *****************************************************************/
+
+#if defined(ENABLE_STATISTICS)
+int gcstat_mark_depth;
+int gcstat_mark_depth_max;
+int gcstat_mark_count;
+
+void gcstat_println()
+{
+    printf("\nGCSTAT - Marking Statistics:\n");
+    printf("\t# of objects marked: %d\n", gcstat_mark_count);
+    printf("\tMaximal marking depth: %d\n", gcstat_mark_depth_max);
+
+	printf("\nGCSTAT - Compaction Statistics:\n");
+
+	printf("\n");
+}
+#endif /* defined(ENABLE_STATISTICS) */
 
 
 /*

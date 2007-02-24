@@ -34,9 +34,13 @@
 #ifndef _REGION_H
 #define _REGION_H
 
+#include "vm/types.h"
+
+
+/* Forward Typedefs ***********************************************************/
+
 typedef struct regioninfo_t regioninfo_t;
 
-#include "vm/types.h"
 
 #include "gc.h"
 
@@ -50,6 +54,15 @@ struct regioninfo_t {
 	s4  size;     /* total size of the region (end - ptr) */
 	s4  free;     /* free space in this region */
 };
+
+
+/* Prototypes *****************************************************************/
+
+void *region_create(regioninfo_t *region, u4 size);
+
+#if defined(ENABLE_MEMCHECK)
+void region_invalidate(regioninfo_t *region);
+#endif
 
 
 #endif /* _REGION_H */

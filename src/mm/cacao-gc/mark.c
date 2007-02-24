@@ -45,29 +45,9 @@
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
-/*#include "vm/options.h"*/
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
 #include "vmcore/linker.h"
-
-
-/* Debugging ******************************************************************/
-
-/* TODO: move this whole thing to gc.c */
-int mark_depth;
-int mark_depth_max;
-int mark_count;
-#define MARK_COUNT_INIT { mark_count = 0; }
-#define MARK_COUNT { mark_count++; }
-#define MARK_DEPTH_INIT { mark_depth = 0; mark_depth_max = 0; }
-#define MARK_DEPTH_INC { mark_depth++; if (mark_depth>mark_depth_max) mark_depth_max=mark_depth; }
-#define MARK_DEPTH_DEC { mark_depth--; GC_ASSERT(mark_depth >= 0); }
-void mark_println_stats()
-{
-	printf("Marking Statistics:\n");
-	printf("\t# of objects marked: %d\n", mark_count);
-	printf("\tMaximal marking depth: %d\n", mark_depth_max);
-}
 
 
 /* mark_rootset_from_globals ***************************************************
@@ -130,63 +110,6 @@ void mark_rootset_from_thread(threadobject *thread, rootset_t *rs)
 	GC_LOG( printf("Walking down stack of current thread:\n");
 			stacktrace_dump_trace(thread); );
 
-#if 0
-	/* get the stacktrace with replacement points */
-	/* NOTE: stacktrace_create uses dump memory! */
-	stb = stacktrace_create(thread, true);
-	GC_ASSERT(stb);
-
-	/* this is where our source state will be placed */
-	ss = DNEW(sourcestate_t);
-	ss->frames = NULL;
-
-	/* walk through the stacktracebuffer to find source state for all methods */
-	ste = &(stb->entries[0]);
-	for (i = 0; i < stb->used; i++, ste++) {
-
-		/* try to get an execution state for this entry */
-		es = ste->es;
-		if (!es)
-			continue;
-
-		/* get the replacement points for this code */
-		GC_ASSERT(es->code);
-		rp = es->code->rplpoints;
-		GC_ASSERT(rp);
-
-		/* search for the replacement point right in front of the return
-		   address. this should be the one associated with the taken call. */
-		rp_search = rp;
-		rp = NULL;
-		for (rpcount = 0; rpcount < es->code->rplpointcount; rpcount++) {
-
-			GC_LOG2( printf("(%d) Checking %p > %p\n",
-					rpcount, es->pc, rp_search->pc); );
-
-			if (rp_search->pc < es->pc)
-				rp = rp_search;
-
-			rp_search++;
-		}
-
-		/* this is the replacement point of our call */
-		GC_ASSERT(rp);
-		GC_ASSERT(rp->type == RPLPOINT_TYPE_CALL);
-		GC_ASSERT(rp->pc < es->pc);
-		GC_ASSERT(rp->pc + rp->callsize >= es->pc);
-
-		/* add this execution state to the sourcestate */
-		replace_read_executionstate(rp, es, ss, false);
-
-		/* print our results */
-		GC_LOG(
-				printf("Found RPL point:\n");
-				replace_replacement_point_println(rp, 1);
-				replace_executionstate_println(es);
-		);
-
-	}
-#else
 	/* create empty execution state */
 	es = DNEW(executionstate_t);
 	es->pc = 0;
@@ -196,7 +119,6 @@ void mark_rootset_from_thread(threadobject *thread, rootset_t *rs)
 
 	/* TODO: we assume we are in a native and in current thread! */
 	ss = replace_recover_source_state(NULL, NULL, es);
-#endif
 
 	/* print our full source state */
 	GC_LOG( replace_sourcestate_println(ss); );
@@ -253,33 +175,10 @@ void mark_rootset_writeback(rootset_t *rs)
 	stacktrace_entry *ste;
 	int i;
 
-#if 0
-	ss = rs->ss;
-	stb = rs->stb;
-
-	/* walk through the stacktracebuffer to find execution state
-	 * for all methods */
-	i = stb->used;
-	while (i > 0) {
-		i--;
-		ste = &(stb->entries[i]);
-
-		/* try to get an execution state for this entry */
-		es = ste->es;
-		if (!es)
-			continue;
-
-		/* write back the execution state at this replacement point */
-		rp = ss->frames->fromrp;
-		replace_write_executionstate(rp, es, ss, false);
-
-	}
-#else
 	ss = rs->ss;
 	es = rs->es;
 
 	replace_build_execution_state_intern(ss, es);
-#endif
 
 }
 
@@ -316,7 +215,7 @@ void mark_recursive(java_objectheader *o)
 
 	/* mark this object */
 	GC_SET_MARKED(o);
-	MARK_COUNT;
+	GCSTAT_COUNT(gcstat_mark_count);
 
 	/* get the class of this object */
 	/* TODO: maybe we do not need this yet, look to move down! */
@@ -356,9 +255,9 @@ void mark_recursive(java_objectheader *o)
 
 			/* do the recursive marking */
 			if (!GC_IS_MARKED(ref)) {
-				MARK_DEPTH_INC;
+				GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max);
 				mark_recursive(ref);
-				MARK_DEPTH_DEC;
+				GCSTAT_DEC(gcstat_mark_depth);
 			}
 
 		}
@@ -387,9 +286,9 @@ void mark_recursive(java_objectheader *o)
 
 			/* do the recursive marking */
 			if (!GC_IS_MARKED(ref)) {
-				MARK_DEPTH_INC;
+				GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max);
 				mark_recursive(ref);
-				MARK_DEPTH_DEC;
+				GCSTAT_DEC(gcstat_mark_depth);
 			}
 
 		}
@@ -456,8 +355,9 @@ void mark_me(rootset_t *rs)
 	java_objectheader *ref;
 	int i;
 
-	MARK_COUNT_INIT;
-	MARK_DEPTH_INIT;	
+	GCSTAT_INIT(gcstat_mark_count);
+	GCSTAT_INIT(gcstat_mark_depth);
+	GCSTAT_INIT(gcstat_mark_depth_max);
 
 	/* recursively mark all references from classes */
 	mark_classes(heap_region_main->base, heap_region_main->ptr);
@@ -465,19 +365,17 @@ void mark_me(rootset_t *rs)
 	GC_LOG( printf("Marking from rootset (%d entries)\n", rs->refcount); );
 
 	/* recursively mark all references of the rootset */
-	MARK_DEPTH_INC;
+	GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max);
 	for (i = 0; i < rs->refcount; i++) {
 
 		ref = *( rs->refs[i] );
 		mark_recursive(ref);
 
 	}
-	MARK_DEPTH_DEC;
+	GCSTAT_DEC(gcstat_mark_depth);
 
-	GC_ASSERT(mark_depth == 0);
-	GC_ASSERT(mark_depth_max > 0);
-
-	GC_LOG( mark_println_stats(); );
+	GC_ASSERT(gcstat_mark_depth == 0);
+	GC_ASSERT(gcstat_mark_depth_max > 0);
 }
 
 

@@ -337,7 +337,7 @@ u4 compact_move(u1 *old, u1 *new, u4 size)
 		*( (s4 *) (new + new_size - SIZEOF_VOID_P) ) = hashcode; /* TODO: clean this up */
 
 		GC_ASSERT(new + SIZEOF_VOID_P < old);
-		GC_LOG( printf("Hash attached: %d (0x%08x) to new object at %p\n", hashcode, hashcode, new); );
+		GC_LOG( dolog("GC: Hash attached: %d (0x%08x) to new object at %p", hashcode, hashcode, new); );
 
 	}
 

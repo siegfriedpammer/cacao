@@ -155,14 +155,14 @@ s4 heap_get_hashcode(java_objectheader *o)
 	if (GC_TEST_FLAGS(o, HDRFLAG_HASH_ATTACHED)) {
 
 		hashcode = *( (s4 *) ( ((u1 *) o) + get_object_size(o) - SIZEOF_VOID_P ) ); /* TODO: clean this up!!! */
-		GC_LOG( printf("Hash re-taken: %d (0x%08x)\n", hashcode, hashcode); );
+		GC_LOG( dolog("GC: Hash re-taken: %d (0x%08x)", hashcode, hashcode); );
 
 	} else {
 
 		GC_SET_FLAGS(o, HDRFLAG_HASH_TAKEN);
 
 		hashcode = (s4) (ptrint) o;
-		GC_LOG( printf("Hash taken: %d (0x%08x)\n", hashcode, hashcode); );
+		GC_LOG( dolog("GC: Hash taken: %d (0x%08x)", hashcode, hashcode); );
 
 	}
 
@@ -310,11 +310,7 @@ void heap_print_object(java_objectheader *o)
 
 	/* TODO */
 	/* maybe this is not really an object */
- 	if (/*IS_REFTABLE*/ o->vftbl == 0x10) {
-		/* printf information */
-		printf("LRT");
-
-	} else if (/*IS_CLASS*/ o->vftbl->class == class_java_lang_Class) {
+	if (/*IS_CLASS*/ o->vftbl->class == class_java_lang_Class) {
 
 		/* get the class information */
 		c = (classinfo *) o;
@@ -409,11 +405,7 @@ s4 get_object_size(java_objectheader *o)
 
 		/* TODO */
 		/* maybe this is not really an object */
-		if (/*IS_REFTABLE*/ o->vftbl == 0x10) {
-			/* TODO: this will not work for long */
-			o_size = sizeof(localref_table);
-
-		} else if (/*IS_CLASS*/ o->vftbl->class == class_java_lang_Class) {
+		if (/*IS_CLASS*/ o->vftbl->class == class_java_lang_Class) {
 			/* we know the size of a classinfo */
 			o_size = sizeof(classinfo);
 
