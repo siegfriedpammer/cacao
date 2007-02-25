@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 7355 2007-02-14 10:57:32Z twisti $
+   $Id: md-asm.h 7403 2007-02-25 21:31:58Z pm $
 
 */
 
@@ -115,6 +115,8 @@
 #define pv       %r13
 
 #define mptr     itmp2
+#define xptr     itmp1
+#define xpc      itmp2
 
 #define s0 %r7
 #define s1 %r8
@@ -178,6 +180,8 @@
 	movq    (3+(off))*8(sp),ft2  ; \
 	movq    (4+(off))*8(sp),ft3  ;
 
+/* Volatile float registers (all volatile in terms of C abi) */
+
 #define LOAD_STORE_VOLATILE_FLOAT_REGISTERS(inst, off) \
 	inst    %f0, ((0 * 8) + (off))(sp); \
 	inst    %f2, ((1 * 8) + (off))(sp); \
@@ -199,14 +203,50 @@
 #define LOAD_VOLATILE_FLOAT_REGISTERS(off) LOAD_STORE_VOLATILE_FLOAT_REGISTERS(ld, off)
 #define STORE_VOLATILE_FLOAT_REGISTERS(off) LOAD_STORE_VOLATILE_FLOAT_REGISTERS(std, off)
 
+/* Volatile integer registers (all volatile in terms of C abi) */
+
 #define LOAD_STORE_VOLATILE_INTEGER_REGISTERS(instm, inst, off) \
 	instm   %r0, %r5, ((0 * 4) + (off))(sp); \
 	inst    %r14, ((6 * 4) + (off))(sp);
+
 #define VOLATILE_INTEGER_REGISTERS_SIZE (7 * 4)
 
 #define LOAD_VOLATILE_INTEGER_REGISTERS(off) LOAD_STORE_VOLATILE_INTEGER_REGISTERS(lm, l, off)
 #define STORE_VOLATILE_INTEGER_REGISTERS(off) LOAD_STORE_VOLATILE_INTEGER_REGISTERS(stm, st, off)
 
+/* Argument registers (in terms of JAVA an C abi) */
+
+#define ARGUMENT_REGISTERS_SIZE ((5 * 4) + (2 * 8))
+
+#define LOAD_STORE_ARGUMENT_REGISTERS(iinst, finst, off) \
+	iinst %r2, %r6, (off)(sp) ; \
+	finst %f0, (off +  (5 * 4))(sp) ; \
+	finst %f2, (off + (5 * 4) + 8)(sp)
+
+#define STORE_ARGUMENT_REGISTERS(off) LOAD_STORE_ARGUMENT_REGISTERS(stm, std, off)
+#define LOAD_ARGUMENT_REGISTERS(off) LOAD_STORE_ARGUMENT_REGISTERS(lm, ld, off)
+
+/* Temporary registers (in terms of JAVA abi) */
+
+#define TEMPORARY_REGISTERS_SIZE ((1 * 4) + (12 * 8))
+
+#define LOAD_STORE_TEMPORARY_REGISTERS(iinst, finst, off) \
+	finst    %f1, ((0 * 8) + (off))(sp); \
+	finst    %f3, ((1 * 8) + (off))(sp); \
+	finst    %f5, ((2 * 8) + (off))(sp); \
+	finst    %f7, ((3 * 8) + (off))(sp); \
+	finst    %f8, ((4 * 8) + (off))(sp); \
+	finst    %f9, ((5 * 8) + (off))(sp); \
+	finst    %f10, ((6 * 8) + (off))(sp); \
+	finst    %f11, ((7 * 8) + (off))(sp); \
+	finst    %f12, ((8 * 8) + (off))(sp); \
+	finst    %f13, ((9 * 8) + (off))(sp); \
+	finst    %f14, ((10 * 8) + (off))(sp); \
+	finst    %f15, ((11 * 8) + (off))(sp); \
+	iinst    %r0, ((12 * 8) + (off))(sp);
+
+#define LOAD_TEMPORARY_REGISTERS(off) LOAD_STORE_TEMPORARY_REGISTERS(l, ld, off)
+#define STORE_TEMPORARY_REGISTERS(off) LOAD_STORE_TEMPORARY_REGISTERS(st, sd, off)
 
 #endif /* _MD_ASM_H */
 

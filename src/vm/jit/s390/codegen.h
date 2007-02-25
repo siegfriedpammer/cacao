@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7367 2007-02-16 07:17:01Z pm $
+   $Id: codegen.h 7403 2007-02-25 21:31:58Z pm $
 
 */
 
@@ -241,8 +241,10 @@
 #define _CODE2(code) _CODE(u2, code)
 #define _CODE4(code) _CODE(u4, code)
 
-#define _IFNEG(val, neg, pos) \
-	do { if ((val) < 0) { neg ; } else { pos ; } } while (0)
+#define _IF(cond, t, f) \
+	do { if (cond) { t ; } else { f ; } } while (0)
+
+#define _IFNEG(val, neg, pos) _IF((val) < 0, neg, pos)
 
 #define N_RR(op, r1, r2) \
 	_CODE2( (_OP(op) << 8) | (_R(r1) << 4) | _R(r2) )
@@ -592,7 +594,7 @@
 #define M_RET N_BCR(DD_ANY, R14)
 #define M_BSR(ret_reg, disp) N_BRAS(ret_reg, disp)
 #define M_BR(disp) N_BRC(DD_ANY, disp)
-#define M_JMP(rd, rs) N_BCR(DD_ANY, rs)
+#define M_JMP(rs, rd) _IF(rs == RN, N_BCR(DD_ANY, rd), N_BASR(rs, rd))
 #define M_NOP N_BC(0, 0, RN, RN)
 #define M_JSR(reg_ret, reg_addr) N_BASR(reg_ret, reg_addr)
 #define M_ICMP(a, b) N_CR(a, b)

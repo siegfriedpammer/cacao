@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7373 2007-02-18 20:16:14Z pm $
+   $Id: asmpart.S 7403 2007-02-25 21:31:58Z pm $
 
 */
 
@@ -95,27 +95,24 @@ L_##magic##_lp_end:                                         ; \
 	.globl asm_getclassvalues_atomic
 
 
-#if 0
-asm_vm_call_method:
-asm_vm_call_method_int:
-asm_vm_call_method_long:
-asm_vm_call_method_float:
-asm_vm_call_method_double:
-#endif
-asm_vm_call_method_exception_handler:
-#if 0
-asm_call_jit_compiler:
-#endif
-asm_handle_exception:
 asm_handle_nat_exception:
+	.long 0
 asm_abstractmethoderror:
+	.long 0
 asm_replacement_out:
+	.long 0
 asm_replacement_in:
+	.long 0
 asm_builtin_f2i:
+	.long 0
 asm_builtin_f2l:
+	.long 0
 asm_builtin_d2i:
+	.long 0
 asm_builtin_d2l:
+	.long 0
 asm_criticalsections:
+	.long 0
 asm_getclassvalues_atomic:
 	.long 0
 
@@ -133,22 +130,19 @@ asm_getclassvalues_atomic:
 *                                                                              *
 *******************************************************************************/
 
-	.long   0                           /* catch type all                     */
-	.long   0                           /* handler pc                         */
-	.long   0                           /* end pc                             */
-	.long   0                           /* start pc                           */
-	.long   1                           /* extable size                       */
-	.long   0                           /* ALIGNMENT PADDING                  */
-	.long   0                           /* line number table  start           */
-	.long   0                           /* line number table  size            */
-	.long   0                           /* ALIGNMENT PADDING                  */
-	.long   0                           /* fltsave                            */
-	.long   0                           /* intsave                            */
-	.long   0                           /* isleaf                             */
-	.long   0                           /* IsSync                             */
-	.long   0                           /* frame size                         */
-	.long   0                           /* codeinfo pointer                   */
-
+	.long   0                         /* catch type all                       */
+	.long   0                         /* exception handler pc                 */
+	.long   0                         /* end pc                               */
+	.long   0                         /* start pc                             */
+	.long   1                         /* extable size                         */
+	.long   0                         /* line number table start              */
+	.long   0                         /* line number table size               */
+	.long   0                         /* fltsave                              */
+	.long   0                         /* intsave                              */
+	.long   0                         /* IsLeaf                               */
+	.long   0                         /* IsSync                               */
+	.long   0                         /* frame size                           */
+	.long   0                         /* codeinfo pointer                     */
 
 asm_vm_call_method:
 asm_vm_call_method_int:
@@ -407,6 +401,19 @@ L_asm_vm_call_method_return:
 	lm    %r6, %r15, 24(sp)               /* restore callers registers */
 	br    %r14                            /* return */
 
+asm_vm_call_method_exception_handler:
+	lr    a0, xptr
+
+	bras  %r14, L_avcmeh_bras
+	.long builtin_throw_exception
+L_avcmeh_bras:
+	l     %r14, 0(%r14)
+	ahi   sp, -96
+	basr  %r14, %r14
+	ahi   sp, 96
+
+	j     L_asm_vm_call_method_return
+
 /* .... */
 
 L_no_args:
@@ -551,135 +558,161 @@ L_asm_call_jit_compiler_exception:
 
 asm_handle_nat_exception:
 	add     $8,sp                       /* clear return address of native stub*/
-		
+#endif
+	
 asm_handle_exception:
 L_asm_handle_exception:                 /* required for PIC code              */
-	sub     $((ARG_CNT+TMP_CNT)*8),sp   /* create maybe-leaf stackframe       */
 
-	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
-	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
+	ahi     sp, -(ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* create maybe-leaf stackframe */
+	STORE_ARGUMENT_REGISTERS(0)
+	STORE_TEMPORARY_REGISTERS(ARGUMENT_REGISTERS_SIZE)	
+	lhi     a3, (ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* prepare a3 for handle_exception */
 
-	mov     $((ARG_CNT+TMP_CNT)*8),a3   /* prepare a3 for handle_exception    */
-	mov     $1,t0                       /* set maybe-leaf flag                */
+	lhi     %r0, 1                      /* set maybe-leaf flag */
 
 L_asm_handle_exception_stack_loop:
-	sub     $(6*8),sp
-	mov     xptr,0*8(sp)                /* save exception pointer             */
-	mov     xpc,1*8(sp)                 /* save exception pc                  */
-	add     sp,a3                       /* calculate Java sp into a3...       */
-	add     $(6*8),a3
-	mov     a3,3*8(sp)                  /* ...and save it                     */
-	mov     t0,4*8(sp)                  /* save maybe-leaf flag               */
+	ahi     sp,-(6*4)
+	st      xptr,0*4(sp)                /* save exception pointer             */
+	st      xpc,1*4(sp)                 /* save exception pc                  */
+	la      a3,(6*4)(a3,sp)             /* calculate Java sp into a3...       */
+	st      a3,3*4(sp)                  /* ...and save it                     */
+	st      %r0,4*4(sp)                 /* save maybe-leaf flag               */
 
-	mov     xpc,a0                      /* exception pc                       */
-	call    codegen_get_pv_from_pc@PLT
-	mov     v0,2*8(sp)                  /* save data segment pointer          */
-        
-	mov     0*8(sp),a0                  /* pass exception pointer             */
-	mov     1*8(sp),a1                  /* pass exception pc                  */
-	mov     v0,a2                       /* pass data segment pointer          */
-	mov     3*8(sp),a3                  /* pass Java stack pointer            */
-	call    exceptions_handle_exception@PLT
+	lr      a0,xpc                      /* exception pc                       */
 
-	test    v0,v0
+	ahi     sp,-96                      /* add register save area for C code */
+
+	bras    %r14,L_ahe_bras             /* call codegen_get_pv_from_pc */
+	.long   codegen_get_pv_from_pc
+L_ahe_bras:
+	l       %r14,0(%r14)
+	basr    %r14,%r14
+	st      v0,2*4+96(sp)               /* save data segment pointer          */
+    
+	lr      a2,v0                       /* pass data segment pointer          */
+	l       a0,0*4+96(sp)               /* pass exception pointer             */
+	l       a1,1*4+96(sp)               /* pass exception pc                  */
+	l       a3,3*4+96(sp)               /* pass Java stack pointer            */
+
+	bras    %r14,L_ahe_bras2            /* call exceptions_handle_exception */
+	.long   exceptions_handle_exception
+L_ahe_bras2:
+	l       %r14,0(%r14)
+	basr    %r14,%r14
+
+	ahi     sp,96                       /* remove regiser save area for C code */
+
+	ltr     v0,v0
 	jz      L_asm_handle_exception_not_catched
 
-	mov     v0,xpc                      /* move handlerpc into xpc            */
-	mov     0*8(sp),xptr                /* restore exception pointer          */
-	mov     4*8(sp),t0                  /* get maybe-leaf flag                */
-	add     $(6*8),sp                   /* free stack frame                   */
+	lr      xpc,v0                      /* move handlerpc into xpc            */
+	l       xptr,0*4(sp)                /* restore exception pointer          */
+	l       %r0,4*4(sp)                 /* get maybe-leaf flag                */
+	ahi     sp,(6*4)                    /* free stack frame                   */
 
-	test    t0,t0                       /* test for maybe-leaf flag           */
+	ltr     %r0, %r0
 	jz      L_asm_handle_exception_no_leaf
 
-	RESTORE_ARGUMENT_REGISTERS(0)       /* if this is a leaf method, we have  */
-	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)/* to restore arg and temp registers  */
+	LOAD_ARGUMENT_REGISTERS(0)
+	LOAD_TEMPORARY_REGISTERS(ARGUMENT_REGISTERS_SIZE)	
 
-	add     $((ARG_CNT+TMP_CNT)*8),sp   /* remove maybe-leaf stackframe       */
+	ahi     sp, (ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* Remove maybe-leaf stackframe */
 
 L_asm_handle_exception_no_leaf:
-	jmp     *xpc                        /* jump to the handler                */
+	br      xpc                         /* jump to the handler */
 
 L_asm_handle_exception_not_catched:
-	mov     0*8(sp),xptr                /* restore exception pointer          */
-	mov     2*8(sp),itmp3               /* restore data segment pointer       */
-	mov     4*8(sp),t0                  /* get maybe-leaf flag                */
-	add     $(6*8),sp
+	l       xptr,0*4(sp)                /* restore exception pointer          */
+	l       itmp3,2*4(sp)               /* restore data segment pointer       */
+	ahi     itmp3,-0xfff                /* for negative displacements */
+	l       %r0,4*4(sp)                 /* get maybe-leaf flag                */
+	ahi     sp,(6*4)
 
-	test    t0,t0
+	ltr     %r0,%r0
 	jz      L_asm_handle_exception_no_leaf_stack
 
-	add     $((ARG_CNT+TMP_CNT)*8),sp   /* remove maybe-leaf stackframe       */
-	xor     t0,t0                       /* clear the isleaf flags             */
+	ahi     sp, (ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* Remove maybe-leaf stackframe */
+	lhi     %r0,0                       /* clear the isleaf flags             */
+
+	/*
+	+-----------------+-----------+---------+----+
+	| Memuse          | Float Sav | Int Sav | RA |
+	|                 | 0 ... n   | 0 ... n |    |
+	+-----------------+-----------+---------+----+
+	^                 ^           ^
+	SP                F           I
+	*/
 
 L_asm_handle_exception_no_leaf_stack:
-	mov     FrameSize(itmp3),itmp2l     /* get frame size                     */
-	add     sp,itmp2                    /* pointer to save area               */
-	
-	mov     IntSave(itmp3),a0l          /* a0l = saved int register count     */
-	test    a0l,a0l
+
+	l       itmp2,0xfff+FrameSize(itmp3)/* get frame size                     */
+	la      itmp2,0(itmp2,sp)           /* pointer to save area */
+	ahi     itmp2,-4                    /* skip RA */
+
+	l       a0,0xfff+IntSave(itmp3)     /* a0 = saved int register count  */
+
+	ltr     a0,a0
 	je      noint
-	
-	cmp     $1,a0l
+
+	sll     a0,2                        /* a0 = saved int register count * 4 */
+	sr      itmp2, a0                   /* skip Int Sav */
+
+	chi     a0,1*4
 	je      int1
-	cmp     $2,a0l
+	chi     a0,2*4
 	je      int2
-	cmp     $3,a0l
+	chi     a0,3*4
 	je      int3
-	cmp     $4,a0l
+	chi     a0,4*4
 	je      int4
 	
-	mov     -5*8(itmp2),s0
+	l       s0,0*4(itmp2)
 int4:   
-	mov     -4*8(itmp2),s1
+	l       s1,1*4(itmp2)
 int3:   
-	mov     -3*8(itmp2),s2
+	l       s2,2*4(itmp2)
 int2:   
-	mov     -2*8(itmp2),s3
+	l       s3,3*4(itmp2)
 int1:   
-	mov     -1*8(itmp2),s4
+	l       s4,4*4(itmp2)
 
-	shl     $3,a0l                      /* multiply by 8 bytes                */
-	sub     a0,itmp2
-		
 noint:
-#if 0
-	mov     FltSave(itmp3),a0l          /* a0l = saved flt register count     */
-	test	a0l,a0l
-	je      noflt
-	
-	cmpl    $1,a0l
-	je      flt1
-	cmpl    $2,a0l
-	je      flt2
-	cmpl    $3,a0l
-	je      flt3
-	cmpl    $4,a0l
-	je      flt4
 
-	movq    -5*8(itmp2),%xmm11
-flt4:   
-	movq    -4*8(itmp2),%xmm12
-flt3:   
-	movq    -3*8(itmp2),%xmm13
+	l       a0,0xfff+FltSave(itmp3)
+	ltr	    a0,a0                       /* Number of saved floating point registers */
+	je      noflt
+
+	sll     a0,3                        /* Number of saved floating point registers * 8 */
+	sr      itmp2,a0
+	
+	chi     a0,1*8
+	je      flt1
+	chi    a0,2*8
+	je      flt2
+
 flt2:   
-	movq    -2*8(itmp2),%xmm14
+	ld    %f6,1*8(itmp2)
 flt1:   
-	movq    -1*8(itmp2),%xmm15
+	ld    %f4,0*8(itmp2)
                 
 noflt:
-#endif
-	mov     FrameSize(itmp3),itmp2l     /* get frame size                     */
-	add     itmp2,sp                    /* unwind stack                       */
+
+	l       itmp3,0xfff+FrameSize(itmp3)/* get frame size (at least 4 - RA)   */
+	ahi     itmp3,-4                    /* substract 4 */
+	l       xpc,0(itmp3,sp)             /* load the new xpc -  return address */
+	la      sp, 4(itmp3,sp)             /* unwind stack                       */
 
 	                                    /* exception pointer is still set     */
-	pop     xpc                         /* the new xpc is return address      */
+#if 0
 	sub     $3,xpc                      /* subtract 3 bytes for call          */
+#endif
 
-	xor     a3,a3                       /* prepare a3 for handle_exception    */
+	lhi     a3,0                        /* prepare a3 for handle_exception    */
 	
-	jmp		L_asm_handle_exception_stack_loop
+	j		L_asm_handle_exception_stack_loop
 
+
+#if 0
 
 /* asm_abstractmethoderror *****************************************************
 
