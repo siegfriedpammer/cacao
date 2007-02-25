@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7404 2007-02-25 22:02:16Z pm $
+   $Id: asmpart.S 7405 2007-02-25 22:34:27Z pm $
 
 */
 
@@ -522,10 +522,8 @@ L_bras_jac:
 	l       %r14,96+32(sp)             /* restore return address */
 	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
 
-#if 0
-	ltr     v0,v0
+	ltr     pv,pv
 	je      L_asm_call_jit_compiler_exception
-#endif
 
 jit_code_entry:                        /* label to set breakpoint on */
 	br      pv                         /* call the method, it will return to the caller */

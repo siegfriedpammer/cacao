@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7385 2007-02-21 23:12:30Z pm $
+   $Id: codegen.c 7405 2007-02-25 22:34:27Z pm $
 
 */
 
@@ -2621,6 +2621,7 @@ bool codegen(jitdata *jd)
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
+		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -2643,7 +2644,6 @@ bool codegen(jitdata *jd)
 #endif
 			break;
 
-		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
