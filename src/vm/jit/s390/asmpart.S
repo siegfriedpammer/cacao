@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7403 2007-02-25 21:31:58Z pm $
+   $Id: asmpart.S 7404 2007-02-25 22:02:16Z pm $
 
 */
 
@@ -110,10 +110,6 @@ asm_builtin_f2l:
 asm_builtin_d2i:
 	.long 0
 asm_builtin_d2l:
-	.long 0
-asm_criticalsections:
-	.long 0
-asm_getclassvalues_atomic:
 	.long 0
 
 /********************* function asm_calljavafunction ***************************
@@ -992,31 +988,36 @@ asm_builtin_d2l:
 	add     $(ARG_CNT*8),sp
 	ret
 
+#endif /* if 0 */
+
+/* TODO use move here ? */
 
 asm_getclassvalues_atomic:
 _crit_restart:
 _crit_begin:
-	movl    offbaseval(a0),itmp1l
-	movl    offdiffval(a0),itmp2l
-	movl    offbaseval(a1),itmp3l
+	l       %r0,offbaseval(a0)
+	l       %r1,offdiffval(a0)
+	l       a3,offbaseval(a1)
 _crit_end:
-	movl    itmp1l,offcast_super_baseval(a2)
-	movl    itmp2l,offcast_super_diffval(a2)
-	movl    itmp3l,offcast_sub_baseval(a2)
-	ret
+	st      %r0,offcast_super_baseval(a2)
+	st      %r1,offcast_super_diffval(a2)
+	st      a3,offcast_sub_baseval(a2)
+	br      %r14
 
 	.data
 		
 asm_criticalsections:
 #if defined(ENABLE_THREADS)
-	.quad   _crit_begin
-	.quad   _crit_end
-	.quad   _crit_restart
+	.long   _crit_begin
+	.long   _crit_end
+	.long   _crit_restart
 #endif
 	.quad 0
 
 
 /* Disable exec-stacks, required for Gentoo ***********************************/
+
+#if 0
 
 #if defined(__GCC__) && defined(__ELF__)
 	.section .note.GNU-stack,"",@progbits
