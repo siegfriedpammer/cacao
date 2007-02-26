@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7343 2007-02-13 02:36:29Z ajordan $
+   $Id: codegen-common.c 7407 2007-02-26 19:12:03Z michi $
 
 */
 
@@ -516,7 +516,8 @@ static s4 methodtree_comparator(const void *pc, const void *element)
 	   tree */
 
 #ifdef __S390__
-	/* On S390 addresses are 31 bit, and therefore are ambigue. */
+	/* On S390 addresses are 31 bit. Compare only 31 bits of value.
+	 */
 #	define ADDR_MASK(a) ((a) & 0x7FFFFFFF)
 #else
 #	define ADDR_MASK(a) (a)

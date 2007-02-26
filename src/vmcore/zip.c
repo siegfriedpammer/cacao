@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Edwin Steiner
-
-   $Id: zip.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: zip.c 7407 2007-02-26 19:12:03Z michi $
 
 */
 
@@ -35,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <zlib.h>
@@ -43,8 +39,12 @@
 #include "vm/types.h"
 
 #include "toolbox/hashtable.h"
+
 #include "mm/memory.h"
+
 #include "vm/global.h"
+#include "vm/vm.h"
+
 #include "vmcore/suck.h"
 #include "vmcore/utf8.h"
 #include "vmcore/zip.h"
@@ -443,19 +443,19 @@ classbuffer *zip_get(list_classpath_entry *lce, classinfo *c)
 		/* initialize this inflate run */
 
 		if (inflateInit2(&zs, -MAX_WBITS) != Z_OK)
-			assert(0);
+			vm_abort("zip_get: inflateInit2 failed: %s", strerror(errno));
 
 		/* decompress the file into buffer */
 
 		err = inflate(&zs, Z_SYNC_FLUSH);
 
 		if ((err != Z_STREAM_END) && (err != Z_OK))
-			assert(0);
+			vm_abort("zip_get: inflate failed: %s", strerror(errno));
 
 		/* finish this inflate run */
 
 		if (inflateEnd(&zs) != Z_OK)
-			assert(0);
+			vm_abort("zip_get: inflateEnd failed: %s", strerror(errno));
 		break;
 
 	case 0:
@@ -464,7 +464,8 @@ classbuffer *zip_get(list_classpath_entry *lce, classinfo *c)
 		break;
 
 	default:
-		assert(0);
+		vm_abort("zip_get: unknown compression method %d",
+				 htzfe->compressionmethod);
 	}
 	
 	/* allocate classbuffer */

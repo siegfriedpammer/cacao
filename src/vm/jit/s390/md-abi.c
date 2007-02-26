@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 7367 2007-02-16 07:17:01Z pm $
+   $Id: md-abi.c 7407 2007-02-26 19:12:03Z michi $
 
 */
 
@@ -76,7 +76,7 @@ const s4 abi_registers_integer_saved[] = {
 };
 
 const s4 abi_registers_integer_temporary[] = {
-	-1 /* NONE */
+	0, /* r0 */
 };
 
 s4 nregdescfloat[] = {
