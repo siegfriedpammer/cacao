@@ -1,4 +1,4 @@
-/* mm/cacao-gc/mark.h - GC header for marking heap objects
+/* mm/cacao-gc/rootset.h - GC header for root set management
 
    Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -31,31 +31,59 @@
 */
 
 
-#ifndef _MARK_H
-#define _MARK_H
+#ifndef _ROOTSET_H
+#define _ROOTSET_H
 
+typedef struct rootset_t rootset_t;
 
 #include "config.h"
 #include "vm/types.h"
 
-#include "rootset.h"
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#else
+/*# include "threads/none/threads.h"*/
+#endif
+
+#include "vm/jit/replace.h"
+#include "vm/jit/stacktrace.h"
+
+#include "vmcore/method.h"
 
 
-/* Helper Macros **************************************************************/
+/* Structures *****************************************************************/
 
-#define GC_FLAG_MARKED        (HDRFLAG_MARK1 | HDRFLAG_MARK2)
+#define ROOTSET_DUMMY_THREAD ((threadobject *) (ptrint) -1)
+#define RS_REFS 32
 
-#define GC_IS_MARKED(obj)    GC_TEST_FLAGS(obj, GC_FLAG_MARKED)
-#define GC_SET_MARKED(obj)   GC_SET_FLAGS(obj, GC_FLAG_MARKED)
-#define GC_CLEAR_MARKED(obj) GC_CLEAR_FLAGS(obj, GC_FLAG_MARKED)
+/* rootset is passed as array of pointers, which point to the location of
+   the reference */
+
+struct rootset_t {
+	rootset_t          *next;           /* link to the next chain element */
+	threadobject       *thread;         /* thread this rootset belongs to */
+	sourcestate_t      *ss;             /* sourcestate of the thread */
+	executionstate_t   *es;             /* executionstate of the thread */
+	stacktracebuffer   *stb;            /* stacktrace of the thread */
+	s4                  refcount;       /* number of references */
+	java_objectheader **refs[RS_REFS];  /* list of references */
+	bool                ref_marks[RS_REFS]; /* indicates if a reference marks */
+};
 
 
 /* Prototypes *****************************************************************/
 
-void mark_me(rootset_t *rs);
+rootset_t *rootset_create(void);
+void rootset_from_globals(rootset_t *rs);
+void rootset_from_thread(threadobject *thread, rootset_t *rs);
+void rootset_writeback(rootset_t *rs);
+
+#if !defined(NDEBUG)
+void rootset_print(rootset_t *rs);
+#endif
 
 
-#endif /* _MARK_H */
+#endif /* _ROOTSET_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

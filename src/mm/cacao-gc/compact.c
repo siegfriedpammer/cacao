@@ -74,19 +74,27 @@ void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 	java_objectheader **refptr;
 	int i;
 
-	GC_LOG2( printf("threading in rootset\n"); );
+	GC_LOG2( printf("threading in rootsets\n"); );
 
-	/* walk through the references of this rootset */
-	for (i = 0; i < rs->refcount; i++) {
+	/* walk through all rootsets */
+	while (rs) {
 
-		/* load the reference */
-		refptr = rs->refs[i];
-		ref = *( refptr );
+		/* walk through the references of this rootset */
+		for (i = 0; i < rs->refcount; i++) {
 
-		GC_LOG2( printf("\troot pointer to %p\n", (void *) ref); );
+			/* load the reference */
+			refptr = rs->refs[i];
+			ref = *( refptr );
 
-		/* thread the references */
-		GC_THREAD(ref, refptr, start, end);
+			GC_LOG2( printf("\troot pointer to %p\n", (void *) ref); );
+
+			/* thread the references */
+			GC_THREAD(ref, refptr, start, end);
+
+		}
+
+		/* skip to next rootset in chain */
+		rs = rs->next;
 
 	}
 }
@@ -94,8 +102,7 @@ void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 
 /* compact_thread_classes ******************************************************
 
-   Threads all the references from classinfo structures (static fields and
-   classloaders)
+   Threads all the references from classinfo structures (static fields)
 
    IN:
       start.....Region to be compacted start here
@@ -109,7 +116,7 @@ void compact_thread_classes(void *start, void *end)
 	java_objectheader **refptr;
 	classinfo          *c;
 	fieldinfo          *f;
-	hashtable_classloader_entry *cle;
+	/*hashtable_classloader_entry *cle;*/
 	void *sys_start, *sys_end;
 	int i;
 
@@ -119,6 +126,7 @@ void compact_thread_classes(void *start, void *end)
 	sys_start = heap_region_sys->base;
 	sys_end = heap_region_sys->ptr;
 
+#if 0
 	/* walk through all classloaders */
 	for (i = 0; i < hashtable_classloader->size; i++) {
 		cle = hashtable_classloader->ptr[i];
@@ -134,6 +142,7 @@ void compact_thread_classes(void *start, void *end)
 			cle = cle->hashlink;
 		}
 	}
+#endif
 
 	/* walk through all classinfo blocks */
 	for (c = sys_start; c < (classinfo *) sys_end; c++) {
@@ -327,6 +336,8 @@ u4 compact_move(u1 *old, u1 *new, u4 size)
 	/* check if we need to attach the hashcode to the object */
 	if (GC_TEST_FLAGS((java_objectheader *) new, HDRFLAG_HASH_TAKEN)) {
 
+		/* TODO: move this whole bunch to heap_attach_hashcode() */
+
 		/* change the flags accordingly */
 		GC_CLEAR_FLAGS((java_objectheader *) new, HDRFLAG_HASH_TAKEN);
 		GC_SET_FLAGS((java_objectheader *) new, HDRFLAG_HASH_ATTACHED);
@@ -337,7 +348,7 @@ u4 compact_move(u1 *old, u1 *new, u4 size)
 		*( (s4 *) (new + new_size - SIZEOF_VOID_P) ) = hashcode; /* TODO: clean this up */
 
 		GC_ASSERT(new + SIZEOF_VOID_P < old);
-		GC_LOG( dolog("GC: Hash attached: %d (0x%08x) to new object at %p", hashcode, hashcode, new); );
+		GC_LOG2( dolog("GC: Hash attached: %d (0x%08x) to new object at %p", hashcode, hashcode, new); );
 
 	}
 
@@ -365,13 +376,15 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	u4 o_size_new;
 	u4 used;
 
-	GC_LOG( dolog("GC: Compaction Phase 1 started ..."); );
+	GC_LOG( dolog("GC: Compaction Phase 0 started ..."); );
 
 	/* Phase 0:
 	 *  - thread all references in classes
 	 *  - thread all references in the rootset */
 	compact_thread_classes(region->base, region->ptr);
 	compact_thread_rootset(rs, region->base, region->ptr);
+
+	GC_LOG( dolog("GC: Compaction Phase 1 started ..."); );
 
 	/* Phase 1:
 	 *  - scan the heap
@@ -382,7 +395,7 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 		o = (java_objectheader *) ptr;
 
 		/* uncollectable items should never be compacted */
-		GC_ASSERT(!GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE));
+		GC_ASSERT(!GC_TEST_FLAGS(o, HDRFLAG_UNCOLLECTABLE));
 
 		/* if this object is already part of a threaded chain ... */
 		if (GC_IS_THREADED(o->vftbl)) {

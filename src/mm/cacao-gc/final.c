@@ -1,4 +1,4 @@
-/* mm/cacao-gc/mark.h - GC header for marking heap objects
+/* mm/cacao-gc/final.c - GC module for finalization and weak references
 
    Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -31,31 +31,72 @@
 */
 
 
-#ifndef _MARK_H
-#define _MARK_H
-
-
 #include "config.h"
 #include "vm/types.h"
 
-#include "rootset.h"
+#include "gc.h"
+#include "final.h"
+#include "heap.h"
+#include "mm/memory.h"
+#include "vm/finalizer.h"
 
 
-/* Helper Macros **************************************************************/
+/* Global Variables ***********************************************************/
 
-#define GC_FLAG_MARKED        (HDRFLAG_MARK1 | HDRFLAG_MARK2)
-
-#define GC_IS_MARKED(obj)    GC_TEST_FLAGS(obj, GC_FLAG_MARKED)
-#define GC_SET_MARKED(obj)   GC_SET_FLAGS(obj, GC_FLAG_MARKED)
-#define GC_CLEAR_MARKED(obj) GC_CLEAR_FLAGS(obj, GC_FLAG_MARKED)
+list *final_list;
 
 
-/* Prototypes *****************************************************************/
 
-void mark_me(rootset_t *rs);
+void final_init()
+{
+	final_list = list_create(OFFSET(final_entry, linkage));
+}
 
+void final_register(java_objectheader *o, methodinfo *finalizer)
+{
+	final_entry *fe;
 
-#endif /* _MARK_H */
+	fe = NEW(final_entry);
+	fe->type      = FINAL_REACHABLE;
+	fe->o         = o;
+	fe->finalizer = finalizer;
+
+	list_add_last(final_list, fe);
+
+	GC_LOG( printf("Finalizer registered for: %p\n", (void *) o); );
+}
+
+void final_invoke()
+{
+	final_entry *fe;
+	final_entry *fe_next;
+
+	fe = list_first(final_list);
+	fe_next = NULL;
+	while (fe) {
+		fe_next = list_next(final_list, fe);
+
+		if (fe->type == FINAL_RECLAIMABLE) {
+
+			GC_LOG( printf("Finalizer starting for: ");
+					heap_print_object(fe->o); printf("\n"); );
+
+			GC_ASSERT(fe->finalizer == fe->o->vftbl->class->finalizer);
+
+			fe->type = FINAL_FINALIZING;
+
+			finalizer_run(fe->o, NULL);
+
+			fe->type = FINAL_FINALIZED;
+
+			list_remove(final_list, fe);
+			FREE(fe, final_entry);
+		}
+
+		fe = fe_next;
+	}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

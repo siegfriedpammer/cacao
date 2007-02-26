@@ -39,13 +39,9 @@
 #include "mark.h"
 #include "region.h"
 #include "mm/memory.h"
-#include "native/jni.h"
 #include "src/native/include/java_lang_String.h" /* TODO: fix me! */
 #include "toolbox/logging.h"
-#include "vm/exceptions.h"
 #include "vm/global.h"
-/*#include "vm/options.h"*/
-#include "vm/jit/stacktrace.h"
 
 
 /* Global Variables ***********************************************************/
@@ -64,6 +60,7 @@ regioninfo_t *heap_region_main;
 
 #define GC_ALIGN_SIZE SIZEOF_VOID_P
 #define GC_ALIGN(length,size) ((((length) + (size) - 1) / (size)) * (size))
+
 
 
 void heap_init_objectheader(java_objectheader *o, u4 bytelength)
@@ -155,14 +152,14 @@ s4 heap_get_hashcode(java_objectheader *o)
 	if (GC_TEST_FLAGS(o, HDRFLAG_HASH_ATTACHED)) {
 
 		hashcode = *( (s4 *) ( ((u1 *) o) + get_object_size(o) - SIZEOF_VOID_P ) ); /* TODO: clean this up!!! */
-		GC_LOG( dolog("GC: Hash re-taken: %d (0x%08x)", hashcode, hashcode); );
+		GC_LOG2( dolog("GC: Hash re-taken: %d (0x%08x)", hashcode, hashcode); );
 
 	} else {
 
 		GC_SET_FLAGS(o, HDRFLAG_HASH_TAKEN);
 
 		hashcode = (s4) (ptrint) o;
-		GC_LOG( dolog("GC: Hash taken: %d (0x%08x)", hashcode, hashcode); );
+		GC_LOG2( dolog("GC: Hash taken: %d (0x%08x)", hashcode, hashcode); );
 
 	}
 
@@ -190,7 +187,7 @@ java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
 	}
 
 	/* allocate the object in this region */
-	p = region->ptr;
+	p = (java_objectheader *) region->ptr;
 	region->ptr += bytelength;
 	region->free -= bytelength;
 
@@ -226,10 +223,16 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 	if (p == NULL)
 		return NULL;
 
-	/* TODO: can this be overwritten by cloning??? */
+	/* take care of finalization stuff */
 	if (finalizer != NULL) {
-		GC_LOG( log_text("GC: Finalizer not yet implemented!"); );
+
+		/* set the header bit */
+		/* TODO: do we really need this??? */
+		/* TODO: can this be overwritten by cloning??? */
 		GC_SET_FLAGS(p, GC_FLAG_FINALIZER);
+
+		/* register the finalizer for this object */
+		final_register(p, finalizer);
 	}
 
 	return p;
@@ -251,7 +254,7 @@ void *heap_alloc_uncollectable(u4 bytelength)
 
 	/* TODO: can this be overwritten by cloning??? */
 	/* remember this object as uncollectable */
-	GC_SET_FLAGS(p, GC_FLAG_UNCOLLECTABLE);
+	GC_SET_FLAGS(p, HDRFLAG_UNCOLLECTABLE);
 
 	return p;
 }
@@ -285,7 +288,7 @@ void heap_print_object_flags(java_objectheader *o)
 		GC_TEST_FLAGS(o, GC_FLAG_FINALIZER)     ? "F" : " ",
 		GC_TEST_FLAGS(o, HDRFLAG_HASH_ATTACHED) ? "A" : " ",
 		GC_TEST_FLAGS(o, HDRFLAG_HASH_TAKEN)    ? "T" : " ",
-		GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE) ? "U" : " ",
+		GC_TEST_FLAGS(o, HDRFLAG_UNCOLLECTABLE) ? "U" : " ",
 		GC_TEST_FLAGS(o, GC_FLAG_MARKED)        ? "M" : " ");
 }
 #endif
@@ -363,8 +366,8 @@ void heap_dump_region(regioninfo_t *region, bool marked_only)
 	printf("Heap-Dump:\n");
 
 	/* walk the region in a linear style */
-	o = region->base;
-	while ((void *) o < region->ptr) {
+	o = (java_objectheader *) region->base;
+	while (o < region->ptr) {
 
 		if (!marked_only || GC_IS_MARKED(o)) {
 			printf("\t");

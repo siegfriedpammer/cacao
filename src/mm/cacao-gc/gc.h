@@ -64,7 +64,7 @@
 
 /* Development Break **********************************************************/
 
-#if 1 && defined(ENABLE_THREADS)
+#if 0 && defined(ENABLE_THREADS)
 # error "GC does not work with threads enabled!"
 #endif
 
@@ -85,11 +85,6 @@
 #endif
 
 
-/* Global Variables ***********************************************************/
-
-static bool gc_pending;
-
-
 /* Helper Macros **************************************************************/
 
 #define GC_SET_FLAGS(obj, flags)   ((obj)->hdrflags |=  (flags))
@@ -98,6 +93,11 @@ static bool gc_pending;
 
 #define POINTS_INTO(ptr, ptr_start, ptr_end) \
 	((void *) (ptr) > (ptr_start) && (void *) (ptr) < (ptr_end))
+
+
+/* Global Variables ***********************************************************/
+
+extern bool gc_notify_finalizer;
 
 
 /* Statistics *****************************************************************/

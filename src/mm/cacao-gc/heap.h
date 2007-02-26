@@ -43,16 +43,9 @@
 
 /* TODO: maybe move this to global.h */
 #define GC_FLAG_FINALIZER     0x40
-#define GC_FLAG_UNCOLLECTABLE HDRFLAG_UNCOLLECTABLE
-#define GC_FLAG_MARKED        (HDRFLAG_MARK1 | HDRFLAG_MARK2)
-
-#define GC_IS_MARKED(obj)    GC_TEST_FLAGS(obj, GC_FLAG_MARKED)
-#define GC_SET_MARKED(obj)   GC_SET_FLAGS(obj, GC_FLAG_MARKED)
-#define GC_CLEAR_MARKED(obj) GC_CLEAR_FLAGS(obj, GC_FLAG_MARKED)
 
 
 #define GC_SIZE_DUMMY 0xff
-
 
 #if SIZEOF_VOID_P == 8
 # define GC_GET_SIZE(obj)       ((u4) (((obj)->hdrflags >> 56) & 0xff))
@@ -75,8 +68,8 @@ extern regioninfo_t *heap_region_main;
 
 s4 get_object_size(java_objectheader *o);
 
-
 #if !defined(NDEBUG)
+void heap_println_usage();
 void heap_print_object(java_objectheader *o);
 void heap_dump_region(regioninfo_t *region, bool marked_only);
 #endif

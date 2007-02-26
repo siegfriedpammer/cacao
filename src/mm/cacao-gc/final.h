@@ -1,4 +1,4 @@
-/* mm/cacao-gc/mark.h - GC header for marking heap objects
+/* mm/cacao-gc/final.h - GC header for finalization and weak references
 
    Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -31,31 +31,45 @@
 */
 
 
-#ifndef _MARK_H
-#define _MARK_H
+#ifndef _FINAL_H
+#define _FINAL_H
 
-
-#include "config.h"
 #include "vm/types.h"
 
-#include "rootset.h"
+#include "toolbox/list.h"
+#include "vmcore/method.h"
 
 
-/* Helper Macros **************************************************************/
+/* Global Variables ***********************************************************/
 
-#define GC_FLAG_MARKED        (HDRFLAG_MARK1 | HDRFLAG_MARK2)
+extern list *final_list;
 
-#define GC_IS_MARKED(obj)    GC_TEST_FLAGS(obj, GC_FLAG_MARKED)
-#define GC_SET_MARKED(obj)   GC_SET_FLAGS(obj, GC_FLAG_MARKED)
-#define GC_CLEAR_MARKED(obj) GC_CLEAR_FLAGS(obj, GC_FLAG_MARKED)
+
+/* Structures *****************************************************************/
+
+typedef struct final_entry final_entry;
+
+#define FINAL_REACHABLE   1
+#define FINAL_RECLAIMABLE 2
+#define FINAL_FINALIZING  3
+#define FINAL_FINALIZED   4
+
+struct final_entry {
+	listnode           linkage;
+	u4                 type;
+	java_objectheader *o;
+	methodinfo        *finalizer;
+};
 
 
 /* Prototypes *****************************************************************/
 
-void mark_me(rootset_t *rs);
+void final_init();
+void final_register(java_objectheader *o, methodinfo *finalizer);
+void final_invoke();
 
 
-#endif /* _MARK_H */
+#endif /* _FINAL_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

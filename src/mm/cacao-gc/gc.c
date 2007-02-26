@@ -42,14 +42,22 @@
 #endif
 
 #include "compact.h"
+#include "final.h"
 #include "gc.h"
 #include "heap.h"
 #include "mark.h"
 #include "region.h"
+#include "rootset.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "vm/exceptions.h"
-/*#include "vm/options.h"*/
+#include "vm/finalizer.h"
+#include "vm/vm.h"
+
+
+/* Global Variables ***********************************************************/
+
+bool gc_running;
+bool gc_notify_finalizer;
 
 
 /* gc_init *********************************************************************
@@ -66,15 +74,21 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 		dolog("GC: Initialising with heap-size %d (max. %d)",
 			heapstartsize, heapmaxsize);
 
+	/* finalizer stuff */
+	final_init();
+
+	/* set global variables */
+	gc_running = false;
+
 	/* region for uncollectable objects */
 	heap_region_sys = NEW(regioninfo_t);
 	if (!region_create(heap_region_sys, GC_SYS_SIZE))
-		exceptions_throw_outofmemory_exit();
+		vm_abort("gc_init: region_create failed: out of memory");
 
 	/* region for java objects */
 	heap_region_main = NEW(regioninfo_t);
 	if (!region_create(heap_region_main, heapstartsize))
-		exceptions_throw_outofmemory_exit();
+		vm_abort("gc_init: region_create failed: out of memory");
 
 	heap_current_size = heapstartsize;
 	heap_maximal_size = heapmaxsize;
@@ -101,21 +115,32 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 void gc_collect(s4 level)
 {
 	rootset_t    *rs;
-	regioninfo_t *src, *dst;
 	s4            dumpsize;
 
 	/* remember start of dump memory area */
 	dumpsize = dump_size();
 
+	/* finalizer is not notified, unless marking tells us to do so */
+	gc_notify_finalizer = false;
+
 	GC_LOG( heap_println_usage(); );
 	/*GC_LOG( heap_dump_region(heap_base, heap_ptr, false); );*/
 
 	/* find the global rootset and the rootset for the current thread */
-	rs = DNEW(rootset_t);
-	/*TODO: mark_rootset_create(rs);*/
-	/*TODO: mark_rootset_from_globals(rs);*/
-	mark_rootset_from_thread(THREADOBJECT, rs);
-	GC_LOG( mark_rootset_print(rs); );
+	rs = rootset_create();
+	rootset_from_globals(rs);
+	rs->next = rootset_create();
+	rootset_from_thread(THREADOBJECT, rs->next);
+	GC_LOG( rootset_print(rs); );
+
+	/* check for reentrancy here */
+	if (gc_running) {
+		dolog("GC: REENTRANCY DETECTED, aborting ...");
+		goto gc_collect_abort;
+	}
+
+	/* once the rootset is complete, we consider ourselves running */
+	gc_running = true;
 
 #if 1
 
@@ -126,7 +151,7 @@ void gc_collect(s4 level)
 	/* compact the heap */
 	compact_me(rs, heap_region_main);
 	/*GC_LOG( heap_dump_region(heap_region_main, false); );
-	GC_LOG( mark_rootset_print(rs); );*/
+	GC_LOG( rootset_print(rs); );*/
 
 #if defined(ENABLE_MEMCHECK)
 	/* invalidate the rest of the main region */
@@ -136,9 +161,13 @@ void gc_collect(s4 level)
 #else
 
 	/* copy the heap to new region */
-	dst = DNEW(regioninfo_t);
-	region_init(dst, heap_current_size);
-	gc_copy(heap_region_main, dst, rs);
+	{
+		regioninfo_t *src, *dst;
+
+		dst = DNEW(regioninfo_t);
+		region_init(dst, heap_current_size);
+		gc_copy(heap_region_main, dst, rs);
+	}
 
 	/* invalidate old heap */
 	/*memset(heap_base, 0x5a, heap_current_size);*/
@@ -149,14 +178,23 @@ void gc_collect(s4 level)
 	/*heap_increase_size();*/
 
 	/* write back the rootset to update root references */
-	GC_LOG( mark_rootset_print(rs); );
-	mark_rootset_writeback(rs);
+	GC_LOG( rootset_print(rs); );
+	rootset_writeback(rs);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_verbosegc)
 		gcstat_println();
 #endif
 
+	/* does the finalizer need to be notified */
+	if (gc_notify_finalizer)
+		finalizer_notify();
+
+	/* we are no longer running */
+	/* REMEBER: keep this below the finalizer notification */
+	gc_running = false;
+
+gc_collect_abort:
     /* free dump memory area */
     dump_release(dumpsize);
 
@@ -179,6 +217,25 @@ void gc_call(void)
 
 	if (opt_verbosegc)
 		dolog("GC: Forced Collection finished.");
+}
+
+
+/* gc_invoke_finalizers ********************************************************
+
+   Forces invocation of all the finalizers for objects which are reclaimable.
+   This is the function which is called by the finalizer thread.
+
+*******************************************************************************/
+
+void gc_invoke_finalizers(void)
+{
+	if (opt_verbosegc)
+		dolog("GC: Invoking finalizers ...");
+
+	final_invoke();
+
+	if (opt_verbosegc)
+		dolog("GC: Invoking finalizers finished.");
 }
 
 

@@ -40,152 +40,21 @@
 #endif
 
 #include "gc.h"
+#include "final.h"
 #include "heap.h"
 #include "mark.h"
+#include "rootset.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
-#include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
 #include "vmcore/linker.h"
 
 
-/* mark_rootset_from_globals ***************************************************
-
-   Searches global variables to compile the global root set out of references
-   contained in them.
-
-   SEARCHES IN:
-     - global reference table (jni.c)
-
-*******************************************************************************/
-
-void mark_rootset_from_globals(rootset_t *rs)
-{
-	GC_ASSERT(0);
-}
-
-
-/* mark_rootset_from_thread ****************************************************
-
-   Searches the stack of the current thread for references and compiles a
-   root set out of them.
-
-   NOTE: uses dump memory!
-
-   IN:
-	  TODO!!!
-
-   OUT:
-	  TODO!!!
-
-*******************************************************************************/
-
-stacktracebuffer *stacktrace_create(threadobject* thread, bool rplpoints);
-void replace_read_executionstate(rplpoint *rp,
-                                        executionstate_t *es,
-                                        sourcestate_t *ss,
-                                        bool topframe);
-void replace_write_executionstate(rplpoint *rp,
-										 executionstate_t *es,
-										 sourcestate_t *ss,
-										 bool topframe);
-
-void mark_rootset_from_thread(threadobject *thread, rootset_t *rs)
-{
-	stacktrace_entry *ste;
-	stacktracebuffer *stb;
-	executionstate_t *es;
-	sourcestate_t    *ss;
-	sourceframe_t    *sf;
-	rplpoint         *rp;
-	rplpoint         *rp_search;
-	s4                rpcount;
-	int               i;
-
-	/* TODO: remove these */
-    java_objectheader *o;
-    int refcount;
-
-	GC_LOG( printf("Walking down stack of current thread:\n");
-			stacktrace_dump_trace(thread); );
-
-	/* create empty execution state */
-	es = DNEW(executionstate_t);
-	es->pc = 0;
-	es->sp = 0;
-	es->pv = 0;
-	es->code = NULL;
-
-	/* TODO: we assume we are in a native and in current thread! */
-	ss = replace_recover_source_state(NULL, NULL, es);
-
-	/* print our full source state */
-	GC_LOG( replace_sourcestate_println(ss); );
-
-	/* initialize the rootset struct */
-	GC_ASSERT(rs);
-	rs->thread = thread;
-	rs->ss = ss;
-	rs->es = es;
-	rs->stb = stb;
-	rs->refcount = 0;
-
-	/* now inspect the source state to compile the root set */
-	refcount = rs->refcount;
-	for (sf = ss->frames; sf != NULL; sf = sf->down) {
-
-		GC_ASSERT(sf->javastackdepth == 0);
-
-		for (i = 0; i < sf->javalocalcount; i++) {
-
-			if (sf->javalocaltype[i] != TYPE_ADR)
-				continue;
-
-			o = sf->javalocals[i].a;
-
-			/* check for outside or null pointer */
-			if (!POINTS_INTO(o, heap_region_main->base, heap_region_main->ptr))
-				continue;
-
-			/* add this reference to the root set */
-			GC_LOG2( printf("Found Reference: %p\n", (void *) o); );
-			GC_ASSERT(refcount < RS_REFS); /* TODO: UGLY!!! */
-			rs->refs[refcount] = (java_objectheader **) &( sf->javalocals[i] );
-
-			refcount++;
-
-		}
-
-	}
-
-	/* remeber how many references there are inside this root set */
-	rs->refcount = refcount;
-
-	GC_LOG( printf("Walking done.\n"); );
-}
-
-
-void mark_rootset_writeback(rootset_t *rs)
-{
-	sourcestate_t    *ss;
-	executionstate_t *es;
-	rplpoint         *rp;
-	stacktracebuffer *stb;
-	stacktrace_entry *ste;
-	int i;
-
-	ss = rs->ss;
-	es = rs->es;
-
-	replace_build_execution_state_intern(ss, es);
-
-}
-
-
-/* mark_recursice **************************************************************
+/* mark_recursive **************************************************************
 
    Recursively mark all objects (including this) which are referenced.
+
+   TODO, XXX: We need to implement a non-recursive version of this!!!
 
    IN:
 	  o.....heap-object to be marked (either OBJECT or ARRAY)
@@ -210,7 +79,7 @@ void mark_recursive(java_objectheader *o)
 	/* uncollectable objects should never get marked this way */
 	/* the reference should point into the heap */
 	GC_ASSERT(o);
-	GC_ASSERT(!GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE));
+	GC_ASSERT(!GC_TEST_FLAGS(o, HDRFLAG_UNCOLLECTABLE));
 	GC_ASSERT(POINTS_INTO(o, start, end));
 
 	/* mark this object */
@@ -223,9 +92,6 @@ void mark_recursive(java_objectheader *o)
 	GC_ASSERT(t);
 	c = t->class;
 	GC_ASSERT(c);
-
-	/* TODO: should we mark the class of the object as well? */
-	/*GC_ASSERT(GC_IS_MARKED((java_objectheader *) c));*/
 
 	/* does this object has pointers? */
 	/* TODO: check how often this happens, maybe remove this check! */
@@ -299,6 +165,16 @@ void mark_recursive(java_objectheader *o)
 }
 
 
+/* mark_classes ****************************************************************
+
+   Marks all the references from classinfo structures (static fields)
+
+   IN:
+      start.....Region to be marked starts here
+      end.......Region to be marked ends here 
+
+*******************************************************************************/
+
 void mark_classes(void *start, void *end)
 {
 	java_objectheader *ref;
@@ -307,7 +183,7 @@ void mark_classes(void *start, void *end)
 	void *sys_start, *sys_end;
 	int i;
 
-	GC_LOG( printf("Marking from classes\n"); );
+	GC_LOG( dolog("GC: Marking from classes ..."); );
 
 	/* TODO: cleanup!!! */
 	sys_start = heap_region_sys->base;
@@ -345,6 +221,8 @@ void mark_classes(void *start, void *end)
 
    Marks all Heap Objects which are reachable from a given root-set.
 
+   REMEMBER: Assumes all threads are stopped!
+
    IN:
 	  rs.....root set containing the references
 
@@ -353,6 +231,8 @@ void mark_classes(void *start, void *end)
 void mark_me(rootset_t *rs)
 {
 	java_objectheader *ref;
+	final_entry       *fe;
+	u4                 f_type;
 	int i;
 
 	GCSTAT_INIT(gcstat_mark_count);
@@ -362,47 +242,102 @@ void mark_me(rootset_t *rs)
 	/* recursively mark all references from classes */
 	mark_classes(heap_region_main->base, heap_region_main->ptr);
 
-	GC_LOG( printf("Marking from rootset (%d entries)\n", rs->refcount); );
+	while (rs) {
+		GC_LOG( dolog("GC: Marking from rootset (%d entries) ...", rs->refcount); );
 
-	/* recursively mark all references of the rootset */
-	GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max);
-	for (i = 0; i < rs->refcount; i++) {
+		/* recursively mark all references of the rootset */
+		GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max);
+		for (i = 0; i < rs->refcount; i++) {
 
-		ref = *( rs->refs[i] );
-		mark_recursive(ref);
+			/* is this a marking reference? */
+			if (!rs->ref_marks[i])
+				continue;
 
+			/* do the marking here */
+			ref = *( rs->refs[i] );
+			mark_recursive(ref);
+
+		}
+		GCSTAT_DEC(gcstat_mark_depth);
+
+		rs = rs->next;
 	}
-	GCSTAT_DEC(gcstat_mark_depth);
+
+	/* objects with finalizers will also be marked here. if they have not been
+	 * marked before the finalization is triggered */
+	/* REMEMBER: all threads are stopped, so we can use unsynced access here */
+	fe = list_first_unsynced(final_list);
+	while (fe) {
+		f_type = fe->type;
+		ref    = fe->o;
+
+		/* object not marked, but was reachable before */
+		if (f_type == FINAL_REACHABLE && !GC_IS_MARKED(ref)) {
+			GC_LOG2( printf("Finalizer triggered for: ");
+					heap_print_object(ref); printf("\n"); );
+
+			/* object is now reclaimable */
+			fe->type = FINAL_RECLAIMABLE;
+
+			/* keep the object alive until finalizer finishes */
+			mark_recursive(ref);
+
+			/* notify the finalizer after collection finished */
+			gc_notify_finalizer = true;
+		} else
+
+#if 0
+		/* object not marked, but was not finalized yet */
+		if (f_type == FINAL_RECLAIMABLE && !GC_IS_MARKED(ref)) {
+			GC_LOG2( printf("Finalizer not yet started for: ");
+					heap_print_object(ref); printf("\n"); );
+
+			/* keep the object alive until finalizer finishes */
+			mark_recursive(ref);
+		} else
+
+		/* object not marked, but was not finalized yet */
+		if (f_type == FINAL_RECLAIMABLE && !GC_IS_MARKED(ref)) {
+			GC_LOG2( printf("Finalizer not yet finished for: ");
+					heap_print_object(ref); printf("\n"); );
+
+			/* keep the object alive until finalizer finishes */
+			mark_recursive(ref);
+		} else
+
+		/* object marked, but finalizer already ran */
+		/* TODO: nothing has to be done here, remove me! */
+		if (f_type == FINAL_FINALIZED && GC_IS_MARKED(ref)) {
+			GC_LOG2( printf("Finalizer resurrected object: ");
+					heap_print_object(ref); printf("\n"); );
+
+			/* do nothing */
+		} else
+
+		/* object not marked, finalizer already ran */
+		if (f_type == FINAL_FINALIZED && !GC_IS_MARKED(ref)) {
+			GC_LOG2( printf("Finalizer already finished!\n"); );
+
+			/* do nothing */
+		} else
+#endif
+
+		/* object marked, finalizer not yet run */
+		if (f_type == FINAL_REACHABLE && GC_IS_MARKED(ref)) {
+			/* do nothing */
+		} else
+
+		/* case not yet covered */
+		{ assert(0); }
+
+		fe = list_next_unsynced(final_list, fe);
+	}
+
+	GC_LOG( dolog("GC: Marking finished."); );
 
 	GC_ASSERT(gcstat_mark_depth == 0);
 	GC_ASSERT(gcstat_mark_depth_max > 0);
 }
-
-
-#if !defined(NDEBUG)
-void mark_rootset_print(rootset_t *rs)
-{
-	java_objectheader *o;
-	int i;
-
-	printf("Root Set:\n");
-
-	printf("\tThread: %p\n", rs->thread);
-	printf("\tReferences (%d):\n", rs->refcount);
-
-	for (i = 0; i < rs->refcount; i++) {
-
-		o = *( rs->refs[i] );
-
-		/*printf("\t\tReference at %p points to ...\n", (void *) rs->refs[i]);*/
-		printf("\t\t");
-		heap_print_object(o);
-		printf("\n");
-
-	}
-
-}
-#endif
 
 
 /*
