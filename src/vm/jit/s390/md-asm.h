@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 7403 2007-02-25 21:31:58Z pm $
+   $Id: md-asm.h 7407 2007-02-26 19:12:03Z michi $
 
 */
 

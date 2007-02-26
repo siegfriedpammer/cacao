@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7403 2007-02-25 21:31:58Z pm $
+   $Id: codegen.h 7407 2007-02-26 19:12:03Z michi $
 
 */
 

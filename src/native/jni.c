@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7384 2007-02-21 22:17:16Z twisti $
+   $Id: jni.c 7408 2007-02-26 22:11:38Z twisti $
 
 */
 
@@ -79,6 +79,10 @@
 #endif
 
 #include "native/vm/java_lang_Class.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/vm/java_lang_ClassLoader.h"
+#endif
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
@@ -1093,8 +1097,8 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 	s  = javastring_new_from_utf_string(name);
 	ba = (java_bytearray *) buf;
 
-	c = (jclass) _Jv_java_lang_ClassLoader_defineClass(env, NULL, cl, s, ba,
-													   0, bufLen, NULL);
+	c = (jclass) _Jv_java_lang_ClassLoader_defineClass(cl, s, ba, 0, bufLen,
+													   NULL);
 
 	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
 #else
