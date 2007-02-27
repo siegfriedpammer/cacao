@@ -307,7 +307,7 @@ u4 compact_move(u1 *old, u1 *new, u4 size)
 	s4 hashcode;
 	u4 new_size;
 
-	GC_ASSERT(new < old);
+	GC_ASSERT(new <= old);
 
 	/* check if locations overlap */
 	if (new + size < old) {

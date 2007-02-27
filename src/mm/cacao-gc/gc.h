@@ -97,7 +97,7 @@
 #define GC_TEST_FLAGS(obj, flags)  ((obj)->hdrflags  &  (flags))
 
 #define POINTS_INTO(ptr, ptr_start, ptr_end) \
-	((void *) (ptr) > (ptr_start) && (void *) (ptr) < (ptr_end))
+	((void *) (ptr) >= (ptr_start) && (void *) (ptr) < (ptr_end))
 
 
 /* Global Variables ***********************************************************/
