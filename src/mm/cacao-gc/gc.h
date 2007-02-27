@@ -40,6 +40,11 @@
 #define _GC_H
 
 
+/* Configuration Switches *****************************************************/
+
+/*#define GCCONF_FINALIZER*/
+
+
 /* Debugging ******************************************************************/
 
 #define GC_DEBUGGING

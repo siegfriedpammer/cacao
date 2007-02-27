@@ -186,9 +186,11 @@ void gc_collect(s4 level)
 		gcstat_println();
 #endif
 
+#if defined(GCCONF_FINALIZER)
 	/* does the finalizer need to be notified */
 	if (gc_notify_finalizer)
 		finalizer_notify();
+#endif
 
 	/* we are no longer running */
 	/* REMEBER: keep this below the finalizer notification */
