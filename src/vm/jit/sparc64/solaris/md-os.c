@@ -37,6 +37,8 @@
 #include <assert.h>
 #include <ucontext.h>
 
+#undef REG_SP
+
 #include "vm/types.h"
 
 #include "vm/jit/sparc64/md-abi.h"
@@ -69,12 +71,14 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	instr = *((s4 *) (_mc->mc_gregs[MC_PC]));
+	instr = *((s4 *) (_mc->gregs[REG_PC]));
 	/*addr = _mc->sc_regs[(instr >> 16) & 0x1f];*/
 	addr = 0;
 
 	if (addr == 0) {
-		pv  = (u1 *) _mc->mc_gregs[MC_G2];
+
+#if 0
+		pv  = (u1 *) _mc->gregs[REG_G3];
 		sp  = (u1 *) _mc->mc_fp;
 		ra  = (u1 *) _mc->mc_i7;       /* this is correct for leafs */
 		xpc = (u1 *) _mc->mc_gregs[MC_PC];
@@ -84,6 +88,8 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		_mc->mc_gregs[MC_G5] = (ptrint) xpc;
 		_mc->mc_gregs[MC_PC] = (ptrint) asm_handle_exception;
+#endif
+		assert(0);
 
 	} else {
 		addr += (long) ((instr << 16) >> 16);

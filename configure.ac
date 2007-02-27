@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7375 2007-02-20 00:38:06Z twisti $
+dnl $Id: configure.ac 7409 2007-02-27 02:07:00Z ajordan $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -169,8 +169,10 @@ dnl must be before *linux*
 
 *solaris* )
     OS_DIR="solaris"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE"
+	dnl on solaris the architecture defines 'sparc','sun','unix' are not set when cpp is called with -ansi
+	dnl therefore we add them here
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
     ;;
 
 * )
@@ -442,7 +444,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
             AC_CHECK_HEADER([dis-asm.h],, [AC_MSG_ERROR(cannot find dis-asm.h)])
 
             case "${OS_DIR}" in
-                cygwin | darwin | netbsd )
+                cygwin | darwin | netbsd | solaris)
                      AC_CHECK_LIB(intl, dcgettext,, [AC_MSG_ERROR(cannot find libintl (from binutils))])
                      ;;
             esac
@@ -1038,6 +1040,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/schedule/Makefile]
 		[src/vm/jit/sparc64/Makefile]
 		[src/vm/jit/sparc64/linux/Makefile]
+		[src/vm/jit/sparc64/solaris/Makefile]
 		[src/vm/jit/tools/Makefile]
 		[src/vm/jit/verify/Makefile]
 		[src/vm/jit/x86_64/Makefile]

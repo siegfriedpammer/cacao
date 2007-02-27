@@ -361,7 +361,7 @@ void emit_patcher_stubs(jitdata *jd)
 
 		/* move patcher function pointer onto stack */
 
-		disp = dseg_add_address(cd, pref->patcher);
+		disp = dseg_add_functionptr(cd, pref->patcher);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST(REG_ITMP3, REG_SP, JITSTACK + 0 * 8);
 
@@ -534,11 +534,12 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_DST(REG_FRESULT, REG_SP, JITSTACK);
 
-	disp = dseg_add_address(cd, m);
-	M_ALD(rd->argintregs[0], REG_PV_CALLEE, disp);
+	M_MOV(REG_RESULT_CALLEE, rd->argintregs[0]);
+	M_DMOV(REG_FRESULT, 1); /* logical dreg 1 => f2 */
+	M_FMOV(REG_FRESULT, 2); /* logical freg 2 => f5 */
 
-	M_MOV(REG_RESULT_CALLEE, rd->argintregs[1]);
-	M_DMOV(REG_FRESULT, 2); /* applies for flt and dbl values */
+	disp = dseg_add_functionptr(cd, m);
+	M_ALD(rd->argintregs[3], REG_PV_CALLEE, disp);
 
 	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
 	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
