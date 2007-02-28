@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7407 2007-02-26 19:12:03Z michi $
+   $Id: codegen-common.c 7403 2007-02-25 21:31:58Z pm $
 
 */
 

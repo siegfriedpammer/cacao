@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7407 2007-02-26 19:12:03Z michi $
+   $Id: asmpart.S 7414 2007-02-28 07:22:04Z pm $
 
 */
 
@@ -95,8 +95,6 @@ L_##magic##_lp_end:                                         ; \
 	.globl asm_getclassvalues_atomic
 
 
-asm_handle_nat_exception:
-	.long 0
 asm_abstractmethoderror:
 	.long 0
 asm_replacement_out:
@@ -519,24 +517,27 @@ L_bras_jac:
 	lm      %r2,%r5,96(sp)             /* restore volatile int arg regs */
 	ld      %f0,96+16(sp)              /* restore volatile float arg regs */
 	ld      %f2,96+24(sp)              /* restore volatile float arg regs */
-	l       %r14,96+32(sp)             /* restore return address */
-	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
 
 	ltr     pv,pv
 	je      L_asm_call_jit_compiler_exception
+
+	l       %r14,96+32(sp)             /* restore return address */
+	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
 
 jit_code_entry:                        /* label to set breakpoint on */
 	br      pv                         /* call the method, it will return to the caller */
 
 
 L_asm_call_jit_compiler_exception:
-#if 0
-	call    exceptions_get_and_clear_exception@PLT
-	pop     xpc                         /* delete return address              */
-	sub     $3,xpc                      /* faulting address is ra - 3         */
-	jmp     L_asm_handle_exception
-#endif
-	.long 0
+	bras    itmp2, L_bras_acjce
+	.long exceptions_get_and_clear_exception
+L_bras_acjce:
+	l       itmp2, 0(itmp2)
+	basr    %r14, itmp2
+	lr      xptr, %r2
+	l       xpc,96+32(sp)              /* restore return address */
+	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
+	j       L_asm_handle_nat_exception
 
 
 #if 0
@@ -550,10 +551,11 @@ L_asm_call_jit_compiler_exception:
 *                                                                              *
 *******************************************************************************/
 
-asm_handle_nat_exception:
-	add     $8,sp                       /* clear return address of native stub*/
 #endif
-	
+
+asm_handle_nat_exception:
+L_asm_handle_nat_exception:
+	/* TODO really nothing here ? */
 asm_handle_exception:
 L_asm_handle_exception:                 /* required for PIC code              */
 
@@ -784,12 +786,10 @@ L_apw_bras:
 	br      itmp3                       /* return */
 
 L_asm_patcher_wrapper_exception:
-	.long 0
-#if 0
-	mov     itmp3,xptr                  /* get exception                      */
-	pop     xpc                         /* get and remove return address      */
-	jmp     L_asm_handle_exception
-#endif
+	lr      xptr,itmp3                  /* get exception                      */
+	l       xpc, apw_sfs + (5 * 4)(sp)  /* load return address to JIT from stack */
+	ahi     sp, apw_sfs + (6 * 4)       /* remove stack frame, and stack frame by patcher stub */
+	j       L_asm_handle_exception
 
 #if 0
 

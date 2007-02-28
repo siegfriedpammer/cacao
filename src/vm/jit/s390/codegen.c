@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7407 2007-02-26 19:12:03Z michi $
+   $Id: codegen.c 7414 2007-02-28 07:22:04Z pm $
 
 */
 
@@ -2006,20 +2006,25 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			if (INSTRUCTION_MUST_CHECK(iptr)) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 
-			M_MOV(s1, REG_A0);
-			M_MOV(s3, REG_A1);
-			M_MOV_IMM(BUILTIN_canstore, REG_ITMP1);
-			M_CALL(REG_ITMP1);
+			s1 = emit_load_s1(jd, iptr, REG_A0);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			emit_array_checks(cd, iptr, s1, s2);
+			s3 = emit_load_s3(jd, iptr, REG_A1);
+
+			M_INTMOVE(s1, REG_A0);
+			M_INTMOVE(s3, REG_A1);
+
+			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
+			ICONST(REG_ITMP3, disp);
+			N_L(REG_PV, 0, REG_ITMP3, REG_PV);
+			M_ISUB_IMM(96, REG_SP);
+			M_JSR(REG_RA, REG_PV);
+			M_IADD_IMM(96, REG_SP);
+			N_BASR(REG_ITMP1, RN);
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
+			M_LDA(REG_PV, REG_ITMP1, -disp);
+
 			M_TEST(REG_RESULT);
 			M_BEQ(0);
 			codegen_add_arraystoreexception_ref(cd);
@@ -2027,8 +2032,15 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			emit_mov_reg_memindex(cd, s3, OFFSET(java_objectarray, data[0]), s1, s2, 3);
-#endif
+
+			M_INTMOVE(s2, REG_ITMP2);
+			N_SLL(REG_ITMP2, 2, RN);
+			N_ST(s3, OFFSET(java_objectarray, data[0]), REG_ITMP2, s1);
+
+			/*
+			M_SAADDQ(s2, s1, REG_ITMP1); itmp1 := 4 * s2 + s1
+			M_AST(s3, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			*/
 			break;
 
 
