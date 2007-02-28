@@ -33,12 +33,6 @@
 
 #include "config.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-/*# include "threads/none/threads.h"*/
-#endif
-
 #include "gc.h"
 #include "final.h"
 #include "heap.h"
@@ -48,6 +42,14 @@
 #include "toolbox/logging.h"
 #include "vm/global.h"
 #include "vmcore/linker.h"
+
+
+/* Helper Macros **************************************************************/
+
+#define MARK(o) \
+	GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max); \
+	mark_recursive(o); \
+	GCSTAT_DEC(gcstat_mark_depth);
 
 
 /* mark_recursive **************************************************************
@@ -208,7 +210,7 @@ void mark_classes(void *start, void *end)
 				continue;
 
 			/* mark the reference */
-			mark_recursive(ref);
+			MARK(ref);
 
 		}
 
@@ -245,8 +247,7 @@ void mark_me(rootset_t *rs)
 	while (rs) {
 		GC_LOG( dolog("GC: Marking from rootset (%d entries) ...", rs->refcount); );
 
-		/* recursively mark all references of the rootset */
-		GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max);
+		/* mark all references of the rootset */
 		for (i = 0; i < rs->refcount; i++) {
 
 			/* is this a marking reference? */
@@ -255,10 +256,9 @@ void mark_me(rootset_t *rs)
 
 			/* do the marking here */
 			ref = *( rs->refs[i] );
-			mark_recursive(ref);
+			MARK(ref);
 
 		}
-		GCSTAT_DEC(gcstat_mark_depth);
 
 		rs = rs->next;
 	}
@@ -280,7 +280,7 @@ void mark_me(rootset_t *rs)
 			fe->type = FINAL_RECLAIMABLE;
 
 			/* keep the object alive until finalizer finishes */
-			mark_recursive(ref);
+			MARK(ref);
 
 			/* notify the finalizer after collection finished */
 			gc_notify_finalizer = true;
@@ -293,7 +293,7 @@ void mark_me(rootset_t *rs)
 					heap_print_object(ref); printf("\n"); );
 
 			/* keep the object alive until finalizer finishes */
-			mark_recursive(ref);
+			MARK(ref);
 		} else
 
 		/* object not marked, but was not finalized yet */
@@ -302,7 +302,7 @@ void mark_me(rootset_t *rs)
 					heap_print_object(ref); printf("\n"); );
 
 			/* keep the object alive until finalizer finishes */
-			mark_recursive(ref);
+			MARK(ref);
 		} else
 
 		/* object marked, but finalizer already ran */
