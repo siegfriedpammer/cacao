@@ -48,6 +48,7 @@
 #endif
 
 #include "vm/exceptions.h"
+#include "vm/stringlocal.h"
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
