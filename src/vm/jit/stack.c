@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7420 2007-02-28 22:30:31Z edwin $
+   $Id: stack.c 7423 2007-02-28 23:20:58Z edwin $
 
 */
 
@@ -714,6 +714,9 @@ static void stack_merge_locals(stackdata_t *sd, basicblock *b)
 			if ((sv->type == TYPE_RET && dv->type == TYPE_RET)
 					&& (sv->SBRSTART != dv->SBRSTART))
 			{
+#if defined(STACK_VERBOSE)
+				printf("JSR MISMATCH: setting variable %d to VOID\n", i);
+#endif
 				dv->type = TYPE_VOID;
 				if (b->flags >= BBFINISHED)
 					b->flags = BBTYPECHECK_REACHED;
@@ -4863,8 +4866,12 @@ void stack_javalocals_store(instruction *iptr, s4 *javalocals)
 static void stack_verbose_show_varinfo(stackdata_t *sd, varinfo *v)
 {
 	printf("%c", show_jit_type_letters[v->type]);
-	if (v->type == TYPE_RET)
+	if (v->type == TYPE_RET) {
 		printf("{L%03d}", v->vv.retaddr->nr);
+#if defined(ENABLE_VERIFIER)
+		printf("{start=L%03d}", ((basicblock *)v->SBRSTART)->nr);
+#endif
+	}
 }
 
 
