@@ -1,4 +1,4 @@
-/* src/vmcore/access.c - checking access rights
+/* src/vm/access.c - checking access rights
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: access.c 7418 2007-02-28 20:07:06Z twisti $
 
 */
 
@@ -71,18 +71,19 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls)
 	assert(cls);
 
 	/* public classes are always accessible */
+
 	if (cls->flags & ACC_PUBLIC)
 		return true;
 
 	/* a class in the same package is always accessible */
+
 	if (SAME_PACKAGE(referer, cls))
 		return true;
 
 	/* a non-public class in another package is not accessible */
+
 	return false;
 }
-
-
 
 
 /* access_is_accessible_member *************************************************
@@ -116,37 +117,45 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 	assert(declarer);
 	
 	/* public members are accessible */
+
 	if (memberflags & ACC_PUBLIC)
 		return true;
 
 	/* {declarer is not an interface} */
 
 	/* private members are only accessible by the class itself */
+
 	if (memberflags & ACC_PRIVATE)
 		return (referer == declarer);
 
 	/* {the member is protected or package private} */
 
-	/* protected and package private members are accessible in the same package */
-	if (SAME_PACKAGE(referer,declarer))
+	/* protected and package private members are accessible in the
+	   same package */
+
+	if (SAME_PACKAGE(referer, declarer))
 		return true;
 
 	/* package private members are not accessible outside the package */
+
 	if (!(memberflags & ACC_PROTECTED))
 		return false;
 
 	/* {the member is protected and declarer is in another package} */
 
-	/* a necessary condition for access is that referer is a subclass of declarer */
+	/* a necessary condition for access is that referer is a subclass
+	   of declarer */
+
 	assert((referer->state & CLASS_LINKED) && (declarer->state & CLASS_LINKED));
-	if (builtin_isanysubclass(referer,declarer))
+
+	if (builtin_isanysubclass(referer, declarer))
 		return true;
 
 	return false;
 }
 
 
-/* access_check_caller *********************************************************
+/* access_check_member *********************************************************
  
    Check if the (indirect) caller has access rights to a member.
   
@@ -169,7 +178,7 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
    
 *******************************************************************************/
 
-bool access_check_caller(classinfo *declarer, s4 memberflags, s4 calldepth)
+bool access_check_member(classinfo *declarer, s4 memberflags, s4 calldepth)
 {
 	java_objectarray *oa;
 	classinfo        *callerclass;
@@ -192,9 +201,7 @@ bool access_check_caller(classinfo *declarer, s4 memberflags, s4 calldepth)
 
 	/* check access rights */
 
-	if (!access_is_accessible_class(callerclass, declarer)
-		|| !access_is_accessible_member(callerclass, declarer, memberflags))
-	{
+	if (!access_is_accessible_member(callerclass, declarer, memberflags)) {
 		exceptions_throw_illegalaccessexception(callerclass);
 		return false;
 	}
