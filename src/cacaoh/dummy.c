@@ -488,6 +488,10 @@ typecheck_result typeinfo_is_assignable_to_class(typeinfo *value, classref_or_cl
 	return typecheck_TRUE;
 }
 
+void typeinfo_print(FILE *file, typeinfo *info, int indent)
+{
+}
+
 
 /* vm *************************************************************************/
 
