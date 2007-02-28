@@ -61,15 +61,18 @@
  */
 java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
-	classinfo       *c;
-	classinfo       *r;
-	classbuffer     *cb;
-	utf             *utfname;
-	java_lang_Class *co;
+	java_objectheader *loader;
+	utf               *utfname;
+	classinfo         *c;
+	classinfo         *r;
+	classbuffer       *cb;
+	java_lang_Class   *co;
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;
 	unsigned char* new_class_data = NULL;
 #endif
+
+	loader = (java_objectheader *) cl;
 
 	/* check if data was passed */
 
@@ -92,7 +95,8 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 		
 		/* check if this class has already been defined */
 
-		c = classcache_lookup_defined_or_initiated((java_objectheader *) cl, utfname);
+		c = classcache_lookup_defined_or_initiated(loader, utfname);
+
 		if (c != NULL) {
 			exceptions_throw_linkageerror("duplicate class definition: ", c);
 			return NULL;
@@ -102,14 +106,14 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 		utfname = NULL;
 	}
 
-
 #if defined(ENABLE_JVMTI)
 	/* fire Class File Load Hook JVMTI event */
-	if (jvmti) jvmti_ClassFileLoadHook(utfname, len, (unsigned char*)data->data, 
-							(java_objectheader *)cl, (java_objectheader *)pd, 
-							&new_class_data_len, &new_class_data);
-#endif
 
+	if (jvmti)
+		jvmti_ClassFileLoadHook(utfname, len, (unsigned char *) data->data, 
+								loader, (java_objectheader *) pd, 
+								&new_class_data_len, &new_class_data);
+#endif
 
 	/* create a new classinfo struct */
 
@@ -142,7 +146,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 
 	/* preset the defining classloader */
 
-	c->classloader = (java_objectheader *) cl;
+	c->classloader = loader;
 
 	/* load the class from this buffer */
 
@@ -184,7 +188,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	/*            pointer after the lookup at to top of this function         */
 	/*            directly after the class cache lock has been released.      */
 
-	c = classcache_store((java_objectheader *) cl, c, true);
+	c = classcache_store(loader, c, true);
 
 	return (java_lang_Class *) c;
 }
