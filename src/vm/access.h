@@ -1,4 +1,4 @@
-/* src/vmcore/access.h - checking access rights
+/* src/vm/access.h - checking access rights
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,9 +22,10 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: access.h 7419 2007-02-28 22:00:50Z twisti $
 
 */
+
 
 #ifndef _ACCESS_H
 #define _ACCESS_H
@@ -51,9 +52,10 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls);
 bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 								 s4 memberflags);
 
-bool access_check_caller(classinfo *declarer, s4 memberflags, s4 calldepth);
+bool access_check_member(classinfo *declarer, s4 memberflags, s4 calldepth);
 
 #endif /* _ACCESS_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
