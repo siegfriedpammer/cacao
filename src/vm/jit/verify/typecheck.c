@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typecheck.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: typecheck.c 7424 2007-02-28 23:27:15Z edwin $
 
 */
 
@@ -533,7 +533,6 @@ handle_basic_block(verifier_state *state)
 
 	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->nr);
 	LOGFLUSH;
-	DOLOG(show_basicblock(jd, state->bptr, SHOW_STACK));
 
 	superblockend = false;
 	state->bptr->flags = BBFINISHED;
@@ -556,6 +555,7 @@ handle_basic_block(verifier_state *state)
 	/* init variable types at the start of this block */
 	typevector_copy_inplace(state->bptr->inlocals, jd->var, state->numlocals);
 
+	DOLOG(show_basicblock(jd, state->bptr, SHOW_STACK));
 	DOLOG(typecheck_print_vararray(stdout, jd, state->bptr->invars, 
 				state->bptr->indepth));
 	DOLOG(typevector_print(stdout, jd->var, state->numlocals));
