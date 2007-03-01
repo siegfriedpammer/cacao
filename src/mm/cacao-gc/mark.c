@@ -235,7 +235,12 @@ void mark_me(rootset_t *rs)
 	java_objectheader *ref;
 	final_entry       *fe;
 	u4                 f_type;
+	void *start, *end;
 	int i;
+
+	/* TODO: this needs cleanup!!! */
+	start = heap_region_main->base;
+	end = heap_region_main->ptr;
 
 	GCSTAT_INIT(gcstat_mark_count);
 	GCSTAT_INIT(gcstat_mark_depth);
@@ -254,8 +259,14 @@ void mark_me(rootset_t *rs)
 			if (!rs->ref_marks[i])
 				continue;
 
-			/* do the marking here */
+			/* load the reference */
 			ref = *( rs->refs[i] );
+
+			/* check for outside or null pointers */
+			if (!POINTS_INTO(ref, start, end))
+				continue;
+
+			/* do the marking here */
 			MARK(ref);
 
 		}
