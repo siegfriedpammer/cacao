@@ -38,6 +38,8 @@
 
 #include "vm/global.h"                          /* required by native headers */
 
+#include "native/jni.h"
+
 #include "native/include/java_lang_Object.h"
 
 #if defined(ENABLE_JAVASE)
