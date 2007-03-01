@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 7427 2007-03-01 12:32:10Z edwin $
+   $Id: resolve.c 7431 2007-03-01 13:49:14Z edwin $
 
 */
 
@@ -945,6 +945,32 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 	classinfo *c;
 
 	if (!resolve_class(ref,resolveEager,true,&c))
+		return NULL;
+
+	return c;
+}
+#endif /* ENABLE_VERIFIER */
+
+/* resolve_class_eager_no_access_check *****************************************
+ 
+   Resolve an unresolved class reference eagerly. The class is also linked.
+   Access rights are _not_ checked.
+  
+   IN:
+       ref..............struct containing the reference
+   
+   RETURN VALUE:
+       classinfo * to the class, or
+	   NULL if an exception has been thrown
+   
+*******************************************************************************/
+
+#ifdef ENABLE_VERIFIER
+classinfo * resolve_class_eager_no_access_check(unresolved_class *ref)
+{
+	classinfo *c;
+
+	if (!resolve_class(ref, resolveEager, false, &c))
 		return NULL;
 
 	return c;

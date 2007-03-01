@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7259 2007-01-30 13:58:35Z twisti $
+   $Id: patcher.c 7431 2007-03-01 13:49:14Z edwin $
 
 */
 
@@ -700,15 +700,14 @@ bool patcher_clinit(u1 *sp)
 bool patcher_athrow_areturn(u1 *sp)
 {
 	unresolved_class *uc;
-	classinfo        *c;
 
 	/* get stuff from the stack */
 
 	uc = (unresolved_class *) *((ptrint *) (sp + 1 * 4));
 
-	/* check if the class is initialized */
+	/* resolve the class and check subtype constraints */
 
-	if (!resolve_class(uc, resolveEager, false, &c))
+	if (!resolve_class_eager_no_access_check(uc))
 		return false;
 
 	return true;

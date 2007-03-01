@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: resolve.h 7431 2007-03-01 13:49:14Z edwin $
 
 */
 
@@ -148,6 +148,7 @@ bool resolve_class(unresolved_class *ref,
 			  classinfo **result);
 
 classinfo * resolve_class_eager(unresolved_class *ref);
+classinfo * resolve_class_eager_no_access_check(unresolved_class *ref);
 #endif /* ENABLE_VERIFIER */
 
 bool resolve_field(unresolved_field *ref,
