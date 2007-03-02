@@ -71,16 +71,26 @@ rootset_t *rootset_create(void)
    contained in them.
 
    SEARCHES IN:
+     - thread objects (threads.c)
      - classloader objects (loader.c)
      - global reference table (jni.c)
      - finalizer entries (final.c)
 
 *******************************************************************************/
 
+#define ROOTSET_ADD(adr,marks,type) \
+	GC_ASSERT(refcount < RS_REFS); /* TODO: UGLY!!! */ \
+	rs->refs[refcount]      = (adr); \
+	rs->ref_marks[refcount] = (marks); \
+	rs->ref_type[refcount]  = (type); \
+	refcount++;
+
 void rootset_from_globals(rootset_t *rs)
 {
+	threadobject                *thread;
 	hashtable_classloader_entry *cle;
-	final_entry *fe;
+	hashtable_global_ref_entry  *gre;
+	final_entry                 *fe;
 	int refcount;
 	int i;
 
@@ -92,10 +102,22 @@ void rootset_from_globals(rootset_t *rs)
 	rs->thread = ROOTSET_DUMMY_THREAD;
 	rs->ss     = NULL;
 	rs->es     = NULL;
-	rs->stb    = NULL;
+
+	refcount = rs->refcount;
+
+	/* walk through all threadobjects */
+	thread = mainthreadobj;
+	do {
+
+		GC_LOG2( printf("Found Java Thread Objects: %p\n", (void *) thread->jthread); );
+
+		/* add this javathreadobject to the root set */
+		ROOTSET_ADD(&( thread->jthread ), true, REFTYPE_THREADOBJECT);
+
+		thread = thread->next;
+	} while ((thread != NULL) && (thread != mainthreadobj));
 
     /* walk through all classloaders */
-	refcount = rs->refcount;
 	for (i = 0; i < hashtable_classloader->size; i++) {
 		cle = hashtable_classloader->ptr[i];
 
@@ -104,12 +126,24 @@ void rootset_from_globals(rootset_t *rs)
 			GC_LOG2( printf("Found Classloader: %p\n", (void *) cle->object); );
 
 			/* add this classloader to the root set */
-			GC_ASSERT(refcount < RS_REFS); /* TODO: UGLY!!! */
- 			rs->refs[refcount] = &( cle->object );
-			rs->ref_marks[refcount] = true;
-			refcount++;
+			ROOTSET_ADD(&( cle->object ), true, REFTYPE_CLASSLOADER);
 
 			cle = cle->hashlink;
+		}
+	}
+
+	/* walk through all global references */
+	for (i = 0; i < hashtable_global_ref->size; i++) {
+		gre = hashtable_global_ref->ptr[i];
+
+		while (gre) {
+
+			GC_LOG2( printf("Found Global Reference: %p\n", (void *) gre->o); );
+
+			/* add this global reference to the root set */
+			ROOTSET_ADD(&( gre->o ), true, REFTYPE_GLOBALREF);
+
+			gre = gre->hashlink;
 		}
 	}
 
@@ -121,10 +155,7 @@ void rootset_from_globals(rootset_t *rs)
 		GC_LOG2( printf("Found Finalizer Entry: %p\n", (void *) fe->o); );
 
 		/* add this object with finalizer to the root set */
-		GC_ASSERT(refcount < RS_REFS); /* TODO: UGLY!!! */
-		rs->refs[refcount] = &( fe->o );
-		rs->ref_marks[refcount] = false;
-		refcount++;
+		ROOTSET_ADD(&( fe->o ), false, REFTYPE_FINALIZER)
 
 		fe = list_next_unsynced(final_list, fe);
 	}
@@ -153,32 +184,46 @@ void rootset_from_globals(rootset_t *rs)
 
 void rootset_from_thread(threadobject *thread, rootset_t *rs)
 {
-	stacktracebuffer *stb;
+	stackframeinfo   *sfi;
 	executionstate_t *es;
 	sourcestate_t    *ss;
 	sourceframe_t    *sf;
-	rplpoint         *rp;
-	s4                rpcount;
-	int               i;
+	int refcount;
+	int i;
 
-	/* TODO: remove these */
-    java_objectheader *o;
-    int refcount;
-
-	GC_LOG( dolog("GC: Acquiring Root-Set from thread (%p) ...", (void *) thread); );
+#if defined(ENABLE_THREADS)
+	GC_ASSERT(thread != NULL);
+	GC_LOG( dolog("GC: Acquiring Root-Set from thread (tid=%p) ...", (void *) thread->tid); );
+#else
+	GC_ASSERT(thread == NULL);
+	GC_LOG( dolog("GC: Acquiring Root-Set from single-thread ..."); );
+#endif
 
 	GC_LOG2( printf("Stacktrace of current thread:\n");
 			stacktrace_dump_trace(thread); );
 
+	/* get the stackframeinfo of the thread */
+#if defined(ENABLE_THREADS)
+	sfi = thread->_stackframeinfo;
+
+	if (sfi == NULL) {
+		/* TODO: what do we do here??? */
+		GC_LOG( dolog("GC: NO SFI AVAILABLE!!!"); );
+	}
+#else
+	sfi = NULL;
+#endif
+
 	/* create empty execution state */
+	/* TODO: this is all wrong! */
 	es = DNEW(executionstate_t);
 	es->pc = 0;
 	es->sp = 0;
 	es->pv = 0;
 	es->code = NULL;
 
-	/* TODO: we assume we are in a native and in current thread! */
-	ss = replace_recover_source_state(NULL, NULL, es);
+	/* TODO: we assume we are in a native! */
+	ss = replace_recover_source_state(NULL, sfi, es);
 
 	/* print our full source state */
 	GC_LOG2( replace_sourcestate_println(ss); );
@@ -189,7 +234,6 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	rs->thread = thread;
 	rs->ss = ss;
 	rs->es = es;
-	rs->stb = stb;
 
 	/* now inspect the source state to compile the root set */
 	refcount = rs->refcount;
@@ -199,25 +243,20 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 
 		for (i = 0; i < sf->javalocalcount; i++) {
 
+			/* we only need to consider references */
 			if (sf->javalocaltype[i] != TYPE_ADR)
 				continue;
 
-			o = sf->javalocals[i].a;
-
-			/* check for outside or null pointer */
-			if (!POINTS_INTO(o, heap_region_main->base, heap_region_main->ptr))
+			/* check for null pointer */
+			if (sf->javalocals[i].a == NULL)
 				continue;
 
-			/* add this reference to the root set */
-			GC_LOG2( printf("Found Reference: %p\n", (void *) o); );
-			GC_ASSERT(refcount < RS_REFS); /* TODO: UGLY!!! */
-			rs->refs[refcount] = (java_objectheader **) &( sf->javalocals[i] );
-			rs->ref_marks[refcount] = true;
+			GC_LOG2( printf("Found Reference: %p\n", (void *) sf->javalocals[i].a); );
 
-			refcount++;
+			/* add this reference to the root set */
+			ROOTSET_ADD((java_objectheader **) &( sf->javalocals[i] ), true, REFTYPE_STACK);
 
 		}
-
 	}
 
 	/* remeber how many references there are inside this root set */
@@ -226,19 +265,65 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 }
 
 
+rootset_t *rootset_readout()
+{
+	rootset_t    *rs_top;
+	rootset_t    *rs;
+	threadobject *thread;
+
+	/* find the global rootset ... */
+	rs_top = rootset_create();
+	rootset_from_globals(rs_top);
+
+	/* ... and the rootsets for the threads */
+	rs = rs_top;
+	thread  = mainthreadobj; /*THREADOBJECT*/
+	do {
+		rs->next = rootset_create();
+		rs = rs->next;
+
+		rootset_from_thread(thread, rs);
+
+		thread = thread->next;
+	} while ((thread != NULL) && (thread != mainthreadobj));
+
+	return rs_top;
+}
+
+
 void rootset_writeback(rootset_t *rs)
 {
+	threadobject     *thread;
 	sourcestate_t    *ss;
 	executionstate_t *es;
-	rplpoint         *rp;
-	stacktracebuffer *stb;
 
 	/* TODO: only a dirty hack! */
-	GC_ASSERT(rs->next->thread == THREADOBJECT);
+	/*GC_ASSERT(rs->next->thread == THREADOBJECT);
 	ss = rs->next->ss;
-	es = rs->next->es;
+	es = rs->next->es;*/
 
-	replace_build_execution_state_intern(ss, es);
+	/* walk through all rootsets */
+	while (rs) {
+		thread = rs->thread;
+
+		/* does this rootset belong to a thread? */
+		if (thread != ROOTSET_DUMMY_THREAD) {
+#if defined(ENABLE_THREADS)
+			GC_ASSERT(thread != NULL);
+			GC_LOG( dolog("GC: Writing back Root-Set to thread (tid=%p) ...", (void *) thread->tid); );
+#else
+			GC_ASSERT(thread == NULL);
+			GC_LOG( dolog("GC: Writing back Root-Set to single-thread ..."); );
+#endif
+
+			/* now write back the modified sourcestate */
+			ss = rs->ss;
+			es = rs->es;
+			replace_build_execution_state_intern(ss, es);
+		}
+
+		rs = rs->next;
+	}
 
 }
 
@@ -246,6 +331,10 @@ void rootset_writeback(rootset_t *rs)
 /* Debugging ******************************************************************/
 
 #if !defined(NDEBUG)
+const char* ref_type_names[] = {
+		"XXXXXX", "THREAD", "CLASSL", "GLOBAL", "FINAL ", "LOCAL ", "STACK "
+};
+
 void rootset_print(rootset_t *rs)
 {
 	java_objectheader *o;
@@ -274,10 +363,11 @@ void rootset_print(rootset_t *rs)
 
 			/*printf("\t\tReference at %p points to ...\n", (void *) rs->refs[i]);*/
 			printf("\t\t");
+			printf("%s ", ref_type_names[rs->ref_type[i]]);
 			if (rs->ref_marks[i])
-				printf("MRK");
+				printf("MARK+UPDATE");
 			else
-				printf("UPD");
+				printf("     UPDATE");
 			printf(" ");
 			heap_print_object(o);
 			printf("\n");

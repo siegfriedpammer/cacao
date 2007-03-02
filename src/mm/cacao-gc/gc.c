@@ -126,11 +126,14 @@ void gc_collect(s4 level)
 	GC_LOG( heap_println_usage(); );
 	/*GC_LOG( heap_dump_region(heap_base, heap_ptr, false); );*/
 
-	/* find the global rootset and the rootset for the current thread */
-	rs = rootset_create();
-	rootset_from_globals(rs);
-	rs->next = rootset_create();
-	rootset_from_thread(THREADOBJECT, rs->next);
+#if defined(ENABLE_THREADS)
+	GC_LOG( threads_dump(); );
+#endif
+
+	/* TODO: stop-the-world here!!! */
+
+	/* find the global and local rootsets */
+	rs = rootset_readout();
 	GC_LOG( rootset_print(rs); );
 
 	/* check for reentrancy here */

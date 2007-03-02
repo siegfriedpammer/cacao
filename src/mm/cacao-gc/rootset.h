@@ -46,8 +46,6 @@ typedef struct rootset_t rootset_t;
 #endif
 
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
-
 #include "vmcore/method.h"
 
 
@@ -55,6 +53,13 @@ typedef struct rootset_t rootset_t;
 
 #define ROOTSET_DUMMY_THREAD ((threadobject *) (ptrint) -1)
 #define RS_REFS 32
+
+#define REFTYPE_THREADOBJECT 1
+#define REFTYPE_CLASSLOADER  2
+#define REFTYPE_GLOBALREF    3
+#define REFTYPE_FINALIZER    4
+#define REFTYPE_LOCALREF     5
+#define REFTYPE_STACK        6
 
 /* rootset is passed as array of pointers, which point to the location of
    the reference */
@@ -64,18 +69,23 @@ struct rootset_t {
 	threadobject       *thread;         /* thread this rootset belongs to */
 	sourcestate_t      *ss;             /* sourcestate of the thread */
 	executionstate_t   *es;             /* executionstate of the thread */
-	stacktracebuffer   *stb;            /* stacktrace of the thread */
 	s4                  refcount;       /* number of references */
 	java_objectheader **refs[RS_REFS];  /* list of references */
 	bool                ref_marks[RS_REFS]; /* indicates if a reference marks */
+#if !defined(NDEBUG)
+	s4                  ref_type[RS_REFS];
+#endif
 };
 
 
 /* Prototypes *****************************************************************/
 
+/*
 rootset_t *rootset_create(void);
 void rootset_from_globals(rootset_t *rs);
 void rootset_from_thread(threadobject *thread, rootset_t *rs);
+*/
+rootset_t *rootset_readout();
 void rootset_writeback(rootset_t *rs);
 
 #if !defined(NDEBUG)
