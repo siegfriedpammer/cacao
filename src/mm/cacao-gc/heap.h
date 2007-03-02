@@ -56,12 +56,8 @@
 #endif
 
 
-/*extern void *heap_base;
-extern void *heap_ptr;*/
 extern s4 heap_current_size;
 extern s4 heap_maximal_size;
-extern s4 heap_free_size;
-extern s4 heap_used_size;
 extern regioninfo_t *heap_region_sys;
 extern regioninfo_t *heap_region_main;
 

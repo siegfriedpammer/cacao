@@ -103,7 +103,14 @@
 #define RT_TIMING_NEW_OBJECT       46
 #define RT_TIMING_NEW_ARRAY        47
 
-#define RT_TIMING_N                48
+#define RT_TIMING_GC_SUSPEND       48
+#define RT_TIMING_GC_ROOTSET1      49
+#define RT_TIMING_GC_MARK          50
+#define RT_TIMING_GC_COMPACT       51
+#define RT_TIMING_GC_ROOTSET2      52
+#define RT_TIMING_GC_TOTAL         53
+
+#define RT_TIMING_N                54
 
 void rt_timing_gettime(struct timespec *ts);
 

@@ -52,6 +52,7 @@
 #include "toolbox/logging.h"
 #include "vm/finalizer.h"
 #include "vm/vm.h"
+#include "vmcore/rt-timing.h"
 
 
 /* Global Variables ***********************************************************/
@@ -92,10 +93,6 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 	heap_current_size = heapstartsize;
 	heap_maximal_size = heapmaxsize;
-
-	/* TODO: remove these */
-	heap_free_size = heap_current_size;
-	heap_used_size = 0;
 }
 
 
@@ -116,9 +113,14 @@ void gc_collect(s4 level)
 {
 	rootset_t    *rs;
 	s4            dumpsize;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_suspend, time_rootset, time_mark, time_compact, time_end;
+#endif
 
 	/* remember start of dump memory area */
 	dumpsize = dump_size();
+
+	RT_TIMING_GET_TIME(time_start);
 
 	/* finalizer is not notified, unless marking tells us to do so */
 	gc_notify_finalizer = false;
@@ -132,9 +134,13 @@ void gc_collect(s4 level)
 
 	/* TODO: stop-the-world here!!! */
 
+	RT_TIMING_GET_TIME(time_suspend);
+
 	/* find the global and local rootsets */
 	rs = rootset_readout();
 	GC_LOG( rootset_print(rs); );
+
+	RT_TIMING_GET_TIME(time_rootset);
 
 	/* check for reentrancy here */
 	if (gc_running) {
@@ -151,6 +157,8 @@ void gc_collect(s4 level)
 	mark_me(rs);
 	/*GC_LOG( heap_dump_region(heap_region_main, true); );*/
 
+	RT_TIMING_GET_TIME(time_mark);
+
 	/* compact the heap */
 	compact_me(rs, heap_region_main);
 	/*GC_LOG( heap_dump_region(heap_region_main, false); );
@@ -160,6 +168,8 @@ void gc_collect(s4 level)
 	/* invalidate the rest of the main region */
 	region_invalidate(heap_region_main);
 #endif
+
+	RT_TIMING_GET_TIME(time_compact);
 
 #else
 
@@ -198,6 +208,15 @@ void gc_collect(s4 level)
 	/* we are no longer running */
 	/* REMEBER: keep this below the finalizer notification */
 	gc_running = false;
+
+	RT_TIMING_GET_TIME(time_end);
+
+	RT_TIMING_TIME_DIFF(time_start  , time_suspend, RT_TIMING_GC_SUSPEND);
+	RT_TIMING_TIME_DIFF(time_suspend, time_rootset, RT_TIMING_GC_ROOTSET1)
+	RT_TIMING_TIME_DIFF(time_rootset, time_mark   , RT_TIMING_GC_MARK);
+	RT_TIMING_TIME_DIFF(time_mark   , time_compact, RT_TIMING_GC_COMPACT);
+	RT_TIMING_TIME_DIFF(time_compact, time_end    , RT_TIMING_GC_ROOTSET2);
+	RT_TIMING_TIME_DIFF(time_start  , time_end    , RT_TIMING_GC_TOTAL);
 
 gc_collect_abort:
     /* free dump memory area */
@@ -247,8 +266,8 @@ void gc_invoke_finalizers(void)
 /* Informational getter functions *********************************************/
 
 s8 gc_get_heap_size(void)     { return heap_current_size; }
-s8 gc_get_free_bytes(void)    { return heap_free_size; }
-s8 gc_get_total_bytes(void)   { return heap_used_size; }
+s8 gc_get_free_bytes(void)    { return heap_region_main->free; }
+s8 gc_get_total_bytes(void)   { return heap_region_main->size - heap_region_main->free; }
 s8 gc_get_max_heap_size(void) { return heap_maximal_size; }
 
 
