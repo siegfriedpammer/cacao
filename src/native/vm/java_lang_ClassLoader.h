@@ -1,9 +1,9 @@
-/* src/vm/access.h - checking access rights
+/* src/native/vm/java_lang_ClassLoader.h - java/lang/ClassLoader functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -22,39 +22,38 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.h 7441 2007-03-02 23:13:10Z michi $
+   $Id: java_lang_VMClass.c 6131 2006-12-06 22:15:57Z twisti $
 
 */
 
 
-#ifndef _ACCESS_H
-#define _ACCESS_H
+#ifndef _JV_JAVA_LANG_CLASSLOADER_H
+#define _JV_JAVA_LANG_CLASSLOADER_H
 
 #include "config.h"
 #include "vm/types.h"
 
+#include "native/jni.h"
+
+#include "native/include/java_lang_Object.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_String.h"/* required by java_lang_Class.h */
+# include "native/include/java_lang_Class.h"
+# include "native/include/java_lang_ClassLoader.h"
+# include "native/include/java_security_ProtectionDomain.h"
+#endif
+
 #include "vm/global.h"
-
-#include "vmcore/class.h"
-
-
-/* macros *********************************************************************/
-
-#define SAME_PACKAGE(a,b)                                  \
-			((a)->classloader == (b)->classloader &&       \
-			 (a)->packagename == (b)->packagename)
 
 
 /* function prototypes ********************************************************/
 
-bool access_is_accessible_class(classinfo *referer, classinfo *cls);
+#if defined(ENABLE_JAVASE)
+java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd);
+#endif
 
-bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
-								 s4 memberflags);
-
-bool access_check_member(classinfo *declarer, s4 memberflags, s4 calldepth);
-
-#endif /* _ACCESS_H */
+#endif /* _JV_JAVA_LANG_CLASSLOADER_H */
 
 
 /*
@@ -70,4 +69,3 @@ bool access_check_member(classinfo *declarer, s4 memberflags, s4 calldepth);
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-

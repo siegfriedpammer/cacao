@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: stack.c 7441 2007-03-02 23:13:10Z michi $
 
 */
 
@@ -714,6 +714,9 @@ static void stack_merge_locals(stackdata_t *sd, basicblock *b)
 			if ((sv->type == TYPE_RET && dv->type == TYPE_RET)
 					&& (sv->SBRSTART != dv->SBRSTART))
 			{
+#if defined(STACK_VERBOSE)
+				printf("JSR MISMATCH: setting variable %d to VOID\n", i);
+#endif
 				dv->type = TYPE_VOID;
 				if (b->flags >= BBFINISHED)
 					b->flags = BBTYPECHECK_REACHED;
@@ -4680,10 +4683,22 @@ icmd_BUILTIN:
 
 	} while (sd.repeat && !deadcode);
 
-	/* reset locals of TYPE_RET to TYPE_ADR */
+    /* reset locals of TYPE_RET|VOID to TYPE_ADR */
+
+    /* A local variable may be used as both a returnAddress and a reference */
+    /* type variable, as we do not split variables between these types when */
+    /* renaming locals. While returnAddresses have been eliminated now, we  */
+    /* must assume that the variable is still used as TYPE_ADR.             */
+    /* The only way that a local can be TYPE_VOID at this point, is that it */
+    /* was a TYPE_RET variable for which incompatible returnAddresses were  */
+    /* merged. Thus we must treat TYPE_VOID in the same way as TYPE_RET     */
+    /* here.                                                                */
+    /* XXX: It would be nice to remove otherwise unused returnAddress       */
+    /*      variables from the local variable array, so they are not        */
+    /*      allocated by simplereg. (For LSRA this is not needed).          */
 
 	for (i=0; i<sd.localcount; ++i) {
-		if (sd.var[i].type == TYPE_RET)
+		if (sd.var[i].type == TYPE_RET || sd.var[i].type == TYPE_VOID)
 			sd.var[i].type = TYPE_ADR;
 	}
 
@@ -4851,8 +4866,12 @@ void stack_javalocals_store(instruction *iptr, s4 *javalocals)
 static void stack_verbose_show_varinfo(stackdata_t *sd, varinfo *v)
 {
 	printf("%c", show_jit_type_letters[v->type]);
-	if (v->type == TYPE_RET)
+	if (v->type == TYPE_RET) {
 		printf("{L%03d}", v->vv.retaddr->nr);
+#if defined(ENABLE_VERIFIER)
+		printf("{start=L%03d}", ((basicblock *)v->SBRSTART)->nr);
+#endif
+	}
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: java_lang_reflect_Constructor.c 7441 2007-03-02 23:13:10Z michi $
 
 */
 
@@ -115,46 +115,14 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 	java_objectheader *o;
 
 	c = (classinfo *) declaringClass;
-
-#if 0
-	/* find initializer */
-
-	if (!args) {
-		if (this->parameterTypes->header.size != 0) {
-			*exceptionptr =
-				new_exception_message(string_java_lang_IllegalArgumentException,
-									  "wrong number of arguments");
-			return NULL;
-		}
-
-	} else {
-		if (this->parameterTypes->header.size != args->header.size) {
-			*exceptionptr =
-				new_exception_message(string_java_lang_IllegalArgumentException,
-									  "wrong number of arguments");
-			return NULL;
-		}
-	}
-#endif
-
-	if (this->slot >= c->methodscount) {
-		log_text("illegal index in methods table");
-		return NULL;
-	}
-
 	m = &(c->methods[this->slot]);
 
-	if (m->name != utf_init) {
-		/* XXX throw an exception here, although this should never happen */
-
-		assert(0);
-	}
-
 	/* check method access */
+
 	/* check if we should bypass security checks (AccessibleObject) */
 
 	if (this->flag == false) {
-		if (!access_check_caller(c, m->flags, 1))
+		if (!access_check_member(c, m->flags, 1))
 			return NULL;
 	}
 
@@ -162,7 +130,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 
 	o = builtin_new(c);
 
-	if (!o)
+	if (o == NULL)
 		return NULL;
         
 	/* call initializer */

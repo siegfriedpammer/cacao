@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 7257 2007-01-29 23:07:40Z twisti $
+   $Id: resolve.c 7441 2007-03-02 23:13:10Z michi $
 
 */
 
@@ -265,7 +265,10 @@ bool resolve_classref(methodinfo *refmethod,
 /* resolve_classref_or_classinfo ***********************************************
  
    Resolve a symbolic class reference if necessary
-  
+
+   NOTE: If given, refmethod->class is used as the referring class.
+         Otherwise, cls.ref->referer is used.
+
    IN:
        refmethod........the method from which resolution was triggered
                         (may be NULL if not applicable)
@@ -299,6 +302,7 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 								   classinfo **result)
 {
 	classinfo         *c;
+	classinfo         *referer;
 	
 	assert(cls.any);
 	assert(mode == resolveEager || mode == resolveLazy);
@@ -315,7 +319,18 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 	if (IS_CLASSREF(cls)) {
 		/* we must resolve this reference */
 
-		if (!resolve_class_from_name(cls.ref->referer, refmethod, cls.ref->name,
+		/* determine which class to use as the referer */
+
+		/* Common cases are refmethod == NULL or both referring classes */
+		/* being the same, so the referer usually is cls.ref->referer.    */
+		/* There is one important case where it is not: When we do a      */
+		/* deferred assignability check to a formal argument of a method, */
+		/* we must use refmethod->class (the caller's class) to resolve   */
+		/* the type of the formal argument.                               */
+
+		referer = (refmethod) ? refmethod->class : cls.ref->referer;
+
+		if (!resolve_class_from_name(referer, refmethod, cls.ref->name,
 									 mode, checkaccess, link, &c))
 			goto return_exception;
 
@@ -930,6 +945,32 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 	classinfo *c;
 
 	if (!resolve_class(ref,resolveEager,true,&c))
+		return NULL;
+
+	return c;
+}
+#endif /* ENABLE_VERIFIER */
+
+/* resolve_class_eager_no_access_check *****************************************
+ 
+   Resolve an unresolved class reference eagerly. The class is also linked.
+   Access rights are _not_ checked.
+  
+   IN:
+       ref..............struct containing the reference
+   
+   RETURN VALUE:
+       classinfo * to the class, or
+	   NULL if an exception has been thrown
+   
+*******************************************************************************/
+
+#ifdef ENABLE_VERIFIER
+classinfo * resolve_class_eager_no_access_check(unresolved_class *ref)
+{
+	classinfo *c;
+
+	if (!resolve_class(ref, resolveEager, false, &c))
 		return NULL;
 
 	return c;

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7383 2007-02-21 20:26:52Z twisti $
+   $Id: patcher.c 7441 2007-03-02 23:13:10Z michi $
 
 */
 
@@ -974,7 +974,6 @@ __PORTED__ bool patcher_athrow_areturn(u1 *sp)
 	u1               *ra;
 	u4                mcode;
 	unresolved_class *uc;
-	classinfo        *c;
 
 	/* get stuff from the stack */
 
@@ -982,9 +981,9 @@ __PORTED__ bool patcher_athrow_areturn(u1 *sp)
 	mcode =                      *((u4 *)     (sp + 3 * 4));
 	uc    = (unresolved_class *) *((ptrint *) (sp + 2 * 4));
 
-	/* resolve the class */
+	/* resolve the class and check subtype constraints */
 
-	if (!resolve_class(uc, resolveEager, false, &c))
+	if (!resolve_class_eager_no_access_check(uc))
 		return false;
 
 	/* patch back original code */

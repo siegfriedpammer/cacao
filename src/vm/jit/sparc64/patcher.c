@@ -771,15 +771,14 @@ bool patcher_clinit(u1 *sp)
 bool patcher_athrow_areturn(u1 *sp)
 {
 	unresolved_class *uc;
-	classinfo        *c;
 
 	/* get stuff from the stack */
 
 	uc       = (unresolved_class *) *((ptrint *) (sp + 2 * 8));
 
-	/* resolve the class */
+	/* resolve the class and check subtype constraints */
 
-	if (!resolve_class(uc, resolveEager, false, &c))
+	if (!resolve_class_eager_no_access_check(uc))
 		return false;
 
 	return true;

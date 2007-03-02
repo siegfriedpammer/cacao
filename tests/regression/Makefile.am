@@ -26,14 +26,15 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6266 2007-01-02 20:49:34Z twisti $
+## $Id: Makefile.am 7441 2007-03-02 23:13:10Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
 	codepatching \
 	jasmin \
-	native
+	native \
+	resolving
 
 JAVA      = $(top_builddir)/src/cacao/cacao
 

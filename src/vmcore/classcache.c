@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: classcache.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: classcache.c 7441 2007-03-02 23:13:10Z michi $
 
 */
 
@@ -40,6 +40,7 @@
 #endif
 
 #include "toolbox/hashtable.h"
+#include "toolbox/logging.h"
 
 #include "vm/exceptions.h"
 
@@ -140,7 +141,7 @@
 /* DEBUG HELPERS                                                              */
 /*============================================================================*/
 
-/*#define CLASSCACHE_VERBOSE*/
+/* #define CLASSCACHE_VERBOSE */
 
 /*============================================================================*/
 /* STATISTICS                                                                 */
@@ -397,7 +398,7 @@ static void classcache_merge_class_entries(classcache_name_entry *en,
 		utf_cat_classname(logbuffer, clsenA->classobj->name);
 	if (clsenB->classobj)
 		utf_cat_classname(logbuffer, clsenB->classobj->name);
-	log_text(logbuffer);
+	log_println(logbuffer);
 #endif
 
 	CLASSCACHE_COUNT(stat_merge_class_entries);
@@ -760,7 +761,7 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 	sprintf(logbuffer,"classcache_store (%p,%d,%p=", (void*)initloader,mayfree,(void*)cls);
 	utf_cat_classname(logbuffer, cls->name);
 	strcat(logbuffer,")");
-	log_text(logbuffer);
+	log_println(logbuffer);
 #endif
 
 	en = classcache_new_name(cls->name);
@@ -777,7 +778,7 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 					/* A class with the same (initloader,name) pair has been stored already. */
 					/* We free the given class and return the earlier one.                   */
 #ifdef CLASSCACHE_VERBOSE
-					dolog("replacing %p with earlier loaded class %p",cls,clsen->classobj);
+					log_println("replacing %p with earlier loaded class %p",cls,clsen->classobj);
 #endif
 					assert(clsen->classobj);
 					if (mayfree)
@@ -863,7 +864,7 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 
   return_success:
 #ifdef CLASSCACHE_VERBOSE
-	classcache_debug_dump(stderr,cls->name);
+	classcache_debug_dump(stdout,cls->name);
 #endif
 	CLASSCACHE_UNLOCK();
 	return cls;
@@ -944,7 +945,7 @@ classinfo *classcache_store_defined(classinfo *cls)
 	sprintf(logbuffer,"classcache_store_defined (%p,", (void*)cls->classloader);
 	utf_cat_classname(logbuffer, cls->name);
 	strcat(logbuffer,")");
-	log_text(logbuffer);
+	log_println(logbuffer);
 #endif
 
 	en = classcache_new_name(cls->name);
@@ -960,7 +961,7 @@ classinfo *classcache_store_defined(classinfo *cls)
 			/* (if it is a different classinfo)                     */
 			if (clsen->classobj != cls) {
 #ifdef CLASSCACHE_VERBOSE
-				dolog("replacing %p with earlier defined class %p",cls,clsen->classobj);
+				log_println("replacing %p with earlier defined class %p",cls,clsen->classobj);
 #endif
 				class_free(cls);
 				cls = clsen->classobj;
@@ -983,7 +984,7 @@ classinfo *classcache_store_defined(classinfo *cls)
 
 return_success:
 #ifdef CLASSCACHE_VERBOSE
-	classcache_debug_dump(stderr,cls->name);
+	classcache_debug_dump(stdout,cls->name);
 #endif
 	CLASSCACHE_UNLOCK();
 	return cls;
@@ -1176,9 +1177,9 @@ bool classcache_add_constraint(classloader * a,
 	assert(classname);
 
 #ifdef CLASSCACHE_VERBOSE
-	fprintf(stderr, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
-	utf_fprint_printable_ascii_classname(stderr, classname);
-	fprintf(stderr, ")\n");
+	fprintf(stdout, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
+	utf_fprint_printable_ascii_classname(stdout, classname);
+	fprintf(stdout, ")\n");
 #endif
 
 	/* a constraint with a == b is trivially satisfied */

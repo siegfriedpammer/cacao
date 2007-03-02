@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 7396 2007-02-23 23:06:11Z michi $
+   $Id: stacktrace.h 7441 2007-03-02 23:13:10Z michi $
 
 */
 
@@ -191,6 +191,10 @@ void stacktrace_print_trace(java_objectheader *xptr);
 
 #if defined(ENABLE_JIT)
 u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
+# if defined(__SPARC_64__)
+u1 *md_get_framepointer(u1 *sp);
+u1 *md_get_pv_from_stackframe(u1 *sp);
+# endif
 #endif
 
 #if defined(ENABLE_INTRP)

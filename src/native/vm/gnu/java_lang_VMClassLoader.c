@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 7399 2007-02-23 23:29:13Z michi $
+   $Id: java_lang_VMClassLoader.c 7441 2007-03-02 23:13:10Z michi $
 
 */
 
@@ -43,6 +43,8 @@
 #include "native/include/java_security_ProtectionDomain.h"  /* required by... */
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_util_Vector.h"
+
+#include "native/vm/java_lang_ClassLoader.h"
 
 #include "toolbox/logging.h"
 
@@ -73,143 +75,9 @@
  * Method:    defineClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *clo, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
-	classinfo       *c;
-	classinfo       *r;
-	classbuffer     *cb;
-	classloader     *cl;
-	utf             *utfname;
-	java_lang_Class *co;
-#if defined(ENABLE_JVMTI)
-	jint new_class_data_len = 0;
-	unsigned char* new_class_data = NULL;
-#endif
-
-	/* check if data was passed */
-
-	if (data == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
-
-	/* check the indexes passed */
-
-	if ((offset < 0) || (len < 0) || ((offset + len) > data->header.size)) {
-		exceptions_throw_arrayindexoutofboundsexception();
-		return NULL;
-	}
-
-	/* add classloader to classloader hashtable */
-
-	assert(clo);
-	cl = loader_hashtable_classloader_add((java_objectheader *) clo);
-
-
-	if (name != NULL) {
-		/* convert '.' to '/' in java string */
-
-		utfname = javastring_toutf(name, true);
-		
-		/* check if this class has already been defined */
-
-		c = classcache_lookup_defined_or_initiated(cl, utfname);
-		if (c != NULL) {
-			exceptions_throw_linkageerror("duplicate class definition: ", c);
-			return NULL;
-		}
-	} 
-	else {
-		utfname = NULL;
-	}
-
-
-#if defined(ENABLE_JVMTI)
-	/* XXX again this will not work because of the indirection cell for classloaders */
-	assert(0);
-	/* fire Class File Load Hook JVMTI event */
-	if (jvmti) jvmti_ClassFileLoadHook(utfname, len, (unsigned char*)data->data, 
-							(java_objectheader *)cl, (java_objectheader *)pd, 
-							&new_class_data_len, &new_class_data);
-#endif
-
-
-	/* create a new classinfo struct */
-
-	c = class_create_classinfo(utfname);
-
-#if defined(ENABLE_STATISTICS)
-	/* measure time */
-
-	if (opt_getloadingtime)
-		loadingtime_start();
-#endif
-
-	/* build a classbuffer with the given data */
-
-	cb = NEW(classbuffer);
-	cb->class = c;
-#if defined(ENABLE_JVMTI)
-	/* check if the JVMTI wants to modify the class */
-	if (new_class_data == NULL) {
-#endif
-	cb->size  = len;
-	cb->data  = (u1 *) &data->data[offset];
-#if defined(ENABLE_JVMTI)
-	} else {
-		cb->size  = new_class_data_len;
-		cb->data  = (u1 *) new_class_data;
-	}
-#endif
-	cb->pos   = cb->data;
-
-	/* preset the defining classloader */
-
-	c->classloader = cl;
-
-	/* load the class from this buffer */
-
-	r = load_class_from_classbuffer(cb);
-
-	/* free memory */
-
-	FREE(cb, classbuffer);
-
-#if defined(ENABLE_STATISTICS)
-	/* measure time */
-
-	if (opt_getloadingtime)
-		loadingtime_stop();
-#endif
-
-	if (r == NULL) {
-		/* If return value is NULL, we had a problem and the class is
-		   not loaded.  Now free the allocated memory, otherwise we
-		   could run into a DOS. */
-
-		class_free(c);
-
-		return NULL;
-	}
-
-	/* set ProtectionDomain */
-
-	co = (java_lang_Class *) c;
-
-	co->pd = pd;
-
-	/* Store the newly defined class in the class cache. This call also       */
-	/* checks whether a class of the same name has already been defined by    */
-	/* the same defining loader, and if so, replaces the newly created class  */
-	/* by the one defined earlier.                                            */
-	/* Important: The classinfo given to classcache_store must be             */
-	/*            fully prepared because another thread may return this       */
-	/*            pointer after the lookup at to top of this function         */
-	/*            directly after the class cache lock has been released.      */
-
-	c = classcache_store(cl, c, true);
-
-	return (java_lang_Class *) c;
+	return _Jv_java_lang_ClassLoader_defineClass(cl, name, data, offset, len, pd);
 }
 
 

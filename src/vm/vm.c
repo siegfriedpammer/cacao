@@ -1447,19 +1447,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	}
 #endif
 
-	/* Now re-set some of the properties that may have changed. This
-	   must be done after _all_ environment variables have been
-	   processes (e.g. -jar handling). */
-
-	if (!properties_postinit())
-		vm_abort("properties_postinit failed");
-
-	/* Now we have all options handled and we can print the version
-	   information. */
-
-	if (opt_version)
-		version(opt_exit);
-
 	/* initialize this JVM ****************************************************/
 
 	vm_initializing = true;
@@ -1484,32 +1471,50 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	}
 #endif
 
-	/* initialize the string hashtable stuff: lock (must be done
-	   _after_ threads_preinit) */
+	/* AFTER: threads_preinit */
 
 	if (!string_init())
 		throw_main_exception_exit();
 
-	/* initialize the utf8 hashtable stuff: lock, often used utf8
-	   strings (must be done _after_ threads_preinit) */
+	/* AFTER: threads_preinit */
 
 	if (!utf8_init())
 		throw_main_exception_exit();
+
+	/* AFTER: thread_preinit */
+
+	if (!suck_init())
+		throw_main_exception_exit();
+
+	suck_add_from_property("java.endorsed.dirs");
+
+	/* Now we have all options handled and we can print the version
+	   information.
+
+	   AFTER: suck_add_from_property("java.endorsed.dirs"); */
+
+	if (opt_version)
+		version(opt_exit);
+
+	/* AFTER: utf8_init */
+
+	suck_add(_Jv_bootclasspath);
+
+	/* Now re-set some of the properties that may have changed. This
+	   must be done after _all_ environment variables have been
+	   processes (e.g. -jar handling).
+
+	   AFTER: suck_add_from_property, since it may change the
+	   _Jv_bootclasspath pointer. */
+
+	if (!properties_postinit())
+		vm_abort("properties_postinit failed");
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */
 
 	if (!classcache_init())
 		throw_main_exception_exit();
-
-	/* initialize the loader with bootclasspath (must be done _after_
-	   thread_preinit) */
-
-	if (!suck_init())
-		throw_main_exception_exit();
-
-	suck_add_from_property("java.endorsed.dirs");
-	suck_add(_Jv_bootclasspath);
 
 	/* initialize the memory subsystem (must be done _after_
 	   threads_preinit) */

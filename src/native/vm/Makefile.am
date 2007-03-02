@@ -50,12 +50,19 @@ NATIVEVM_LIB = \
 	gnu/libnativevmcore.la
 endif
 
+if ENABLE_JAVASE
+CLASSLOADER_SOURCES = \
+	java_lang_ClassLoader.c \
+	java_lang_ClassLoader.h
+endif
+
 noinst_LTLIBRARIES = \
 	libnativevm.la
 
 libnativevm_la_SOURCES = \
 	java_lang_Class.c \
 	java_lang_Class.h \
+	$(CLASSLOADER_SOURCES) \
 	java_lang_Object.c \
 	java_lang_Object.h \
 	java_lang_Runtime.c \

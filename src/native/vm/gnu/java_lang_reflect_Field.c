@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: java_lang_reflect_Field.c 7441 2007-03-02 23:13:10Z michi $
 
 */
 
@@ -62,9 +62,6 @@
 #include "vmcore/utf8.h"
 
 
-#define CHECKFIELDACCESS(this,fi,c,doret)
-
-
 /* cacao_get_field_address *****************************************************
 
    Return the address of a field of an object.
@@ -97,7 +94,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 			   java.lang.reflect.Field.xxx (Native Method)
 		   [0] <caller>
 		*/
-		if (!access_check_caller(c, f->flags, 0))
+		if (!access_check_member(c, f->flags, 0))
 			return NULL;
 	}
 
