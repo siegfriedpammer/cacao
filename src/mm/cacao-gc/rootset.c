@@ -105,6 +105,7 @@ void rootset_from_globals(rootset_t *rs)
 
 	refcount = rs->refcount;
 
+#if defined (ENABLE_THREADS)
 	/* walk through all threadobjects */
 	thread = mainthreadobj;
 	do {
@@ -116,6 +117,7 @@ void rootset_from_globals(rootset_t *rs)
 
 		thread = thread->next;
 	} while ((thread != NULL) && (thread != mainthreadobj));
+#endif
 
     /* walk through all classloaders */
 	for (i = 0; i < hashtable_classloader->size; i++) {
@@ -277,6 +279,7 @@ rootset_t *rootset_readout()
 
 	/* ... and the rootsets for the threads */
 	rs = rs_top;
+#if defined(ENABLE_THREADS)
 	thread  = mainthreadobj; /*THREADOBJECT*/
 	do {
 		rs->next = rootset_create();
@@ -286,6 +289,14 @@ rootset_t *rootset_readout()
 
 		thread = thread->next;
 	} while ((thread != NULL) && (thread != mainthreadobj));
+#else
+	thread = THREADOBJECT;
+
+	rs->next = rootset_create();
+	rs = rs->next;
+
+	rootset_from_thread(thread, rs);
+#endif
 
 	return rs_top;
 }
