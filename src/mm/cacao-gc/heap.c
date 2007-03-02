@@ -46,12 +46,8 @@
 
 /* Global Variables ***********************************************************/
 
-/*void *heap_base;*/       /* pointer to the base of the heap */
-/*void *heap_ptr;*/        /* current allocation ptr for linear alloc */
 s4 heap_current_size;  /* current size of the heap */
 s4 heap_maximal_size;  /* maximal size of the heap */
-s4 heap_free_size;     /* free bytes on the heap */
-s4 heap_used_size;     /* used bytes on the heap */
 regioninfo_t *heap_region_sys;
 regioninfo_t *heap_region_main;
 
@@ -127,7 +123,6 @@ s4 heap_increase_size() {
 	/*heap_ptr = p + (heap_ptr - heap_base);
 	heap_base = p;*/
 	heap_current_size = newsize;
-	heap_free_size += increasesize;
 
 	GC_LOG( dolog("GC: Increasing Heap Size was successful");
 			heap_println_usage(); );
@@ -167,7 +162,7 @@ s4 heap_get_hashcode(java_objectheader *o)
 }
 
 
-java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
+static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
 {
 	java_objectheader *p;
 
@@ -191,9 +186,6 @@ java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
 	region->ptr += bytelength;
 	region->free -= bytelength;
 
-	/*heap_free_size -= bytelength;
-	heap_used_size += bytelength;*/
-
 	/* clear allocated memory region */
 	GC_ASSERT(p);
 	MSET(p, 0, u1, bytelength);
@@ -215,13 +207,18 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 {
 	java_objectheader *p;
 
-	/* We can't use a bool here for references, as it's passed as a
-	   bitmask in builtin_new.  Thus we check for != 0. */
-
 	p = heap_alloc_intern(bytelength, heap_region_main);
 
 	if (p == NULL)
 		return NULL;
+
+#if defined(GCCONF_HDRFLAG_REFERENCING)
+	/* We can't use a bool here for references, as it's passed as a
+	   bitmask in builtin_new.  Thus we check for != 0. */
+	if (references != 0) {
+		GC_SET_FLAGS(p, HDRFLAG_REFERENCING);
+	}
+#endif
 
 	/* take care of finalization stuff */
 	if (finalizer != NULL) {
@@ -272,10 +269,10 @@ void heap_free(void *p)
 #if !defined(NDEBUG)
 void heap_println_usage()
 {
-	printf("Current Heap Usage: Size=%d Free=%d Used=%d\n",
-			heap_current_size, heap_free_size, heap_used_size);
+	printf("Current Heap Usage: Size=%d Free=%d\n",
+			heap_current_size, heap_region_main->free);
 
-	GC_ASSERT(heap_current_size == heap_free_size + heap_used_size);
+	GC_ASSERT(heap_current_size == heap_region_main->size);
 }
 #endif
 

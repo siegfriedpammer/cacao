@@ -43,6 +43,7 @@
 /* Configuration Switches *****************************************************/
 
 /*#define GCCONF_FINALIZER*/
+/*#define GCCONF_HDRFLAG_REFERENCING*/
 
 
 /* Debugging ******************************************************************/

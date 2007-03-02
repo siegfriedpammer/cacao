@@ -95,10 +95,12 @@ void mark_recursive(java_objectheader *o)
 	c = t->class;
 	GC_ASSERT(c);
 
+#if defined(GCCONF_HDRFLAG_REFERENCING)
 	/* does this object has pointers? */
 	/* TODO: check how often this happens, maybe remove this check! */
-	/*if (!GC_IS_REFERENCING(o))
-		return;*/
+	if (!GC_TEST_FLAGS(o, HDRFLAG_REFERENCING))
+		return;
+#endif
 
 	/* check if we are marking an array */
 	if ((desc = t->arraydesc) != NULL) {

@@ -411,6 +411,11 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 		/* only marked objects survive */
 		if (GC_IS_MARKED(o)) {
 
+#if defined(GCCONF_HDRFLAG_REFERENCING)
+			/* check if this objects contains references */
+			if (GC_TEST_FLAGS(o, HDRFLAG_REFERENCING))
+#endif
+
 			/* thread all the references in this object */
 			compact_thread_references(o, region->base, region->ptr);
 
