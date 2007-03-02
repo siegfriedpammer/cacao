@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7409 2007-02-27 02:07:00Z ajordan $
+dnl $Id: configure.ac 7434 2007-03-02 19:44:53Z edwin $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -1051,7 +1051,12 @@ AC_CONFIG_FILES([Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/codepatching/Makefile]
 		[tests/regression/jasmin/Makefile]
-		[tests/regression/native/Makefile])
+		[tests/regression/native/Makefile]
+		[tests/regression/resolving/Makefile]
+		[tests/regression/resolving/classes1/Makefile]
+		[tests/regression/resolving/classes2/Makefile]
+		[tests/regression/resolving/classes3/Makefile]
+		)
 
 
 dnl now configure subpackages with OPT_CFLAGS and ARCH_CFLAGS
