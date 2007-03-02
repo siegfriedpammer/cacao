@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: classcache.c 7426 2007-02-28 23:57:39Z twisti $
+   $Id: classcache.c 7435 2007-03-02 19:45:42Z edwin $
 
 */
 
@@ -864,7 +864,7 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 
   return_success:
 #ifdef CLASSCACHE_VERBOSE
-	classcache_debug_dump(stderr,cls->name);
+	classcache_debug_dump(stdout,cls->name);
 #endif
 	CLASSCACHE_UNLOCK();
 	return cls;
@@ -984,7 +984,7 @@ classinfo *classcache_store_defined(classinfo *cls)
 
 return_success:
 #ifdef CLASSCACHE_VERBOSE
-	classcache_debug_dump(stderr,cls->name);
+	classcache_debug_dump(stdout,cls->name);
 #endif
 	CLASSCACHE_UNLOCK();
 	return cls;
@@ -1177,9 +1177,9 @@ bool classcache_add_constraint(classloader * a,
 	assert(classname);
 
 #ifdef CLASSCACHE_VERBOSE
-	fprintf(stderr, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
-	utf_fprint_printable_ascii_classname(stderr, classname);
-	fprintf(stderr, ")\n");
+	fprintf(stdout, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
+	utf_fprint_printable_ascii_classname(stdout, classname);
+	fprintf(stdout, ")\n");
 #endif
 
 	/* a constraint with a == b is trivially satisfied */
