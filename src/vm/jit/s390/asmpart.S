@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7414 2007-02-28 07:22:04Z pm $
+   $Id: asmpart.S 7442 2007-03-02 23:28:37Z pm $
 
 */
 
@@ -412,6 +412,7 @@ L_avcmeh_bras:
 
 L_no_args:
 	lr    s3, sp
+	lhi   s4, 0
 	j     L_copy_done
 
 L_handle_i0:
@@ -1010,7 +1011,7 @@ asm_criticalsections:
 	.long   _crit_end
 	.long   _crit_restart
 #endif
-	.quad 0
+	.long 0
 
 
 /* Disable exec-stacks, required for Gentoo ***********************************/

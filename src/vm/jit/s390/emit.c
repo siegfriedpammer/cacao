@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7355 2007-02-14 10:57:32Z twisti $
+   $Id: emit.c 7442 2007-03-02 23:28:37Z pm $
 
 */
 
@@ -52,6 +52,8 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+#include "vm/global.h"
+#include "mm/memory.h"
 
 #define __PORTED__
 
@@ -2314,16 +2316,13 @@ __PORTED__ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 re
 
 *******************************************************************************/
 
-void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
+__PORTED__ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
-#if 0
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
-        M_ICMP(REG_ITMP3, s2);
-        M_BAE(0);
+		N_C(s2, OFFSET(java_arrayheader, size), RN, s1);
+        M_BGE(0);
         codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
 	}
-#endif
 }
 
 

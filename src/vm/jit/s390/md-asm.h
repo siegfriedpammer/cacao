@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 7407 2007-02-26 19:12:03Z michi $
+   $Id: md-asm.h 7442 2007-03-02 23:28:37Z pm $
 
 */
 
@@ -246,7 +246,7 @@
 	iinst    %r0, ((12 * 8) + (off))(sp);
 
 #define LOAD_TEMPORARY_REGISTERS(off) LOAD_STORE_TEMPORARY_REGISTERS(l, ld, off)
-#define STORE_TEMPORARY_REGISTERS(off) LOAD_STORE_TEMPORARY_REGISTERS(st, sd, off)
+#define STORE_TEMPORARY_REGISTERS(off) LOAD_STORE_TEMPORARY_REGISTERS(st, std, off)
 
 #endif /* _MD_ASM_H */
 

@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7407 2007-02-26 19:12:03Z michi $
+   $Id: codegen.h 7442 2007-03-02 23:28:37Z pm $
 
 */
 
@@ -513,6 +513,10 @@
 #define N_CFDBR(r1, m3, r2) N_RRF(0xB399, r1, m3, r2)
 #define N_CFXBR(r1, m3, r2) N_RRF(0xB39A, r1, m3, r2)
 
+#define N_LDEBR(r1, r2) N_RRE(0xB304, r1, r2)
+#define N_LXDBR(r1, r2) N_RRE(0xB305, r1, r2)
+#define N_LXEBR(r1, r2) N_RRE(0xB306, r1, r2)
+
 #define N_MEEBR(r1, r2) N_RRE(0xB317, r1, r2)
 #define N_MDBR(r1, r2) N_RRE(0xB31C, r1, r2)
 #define N_MXBR(r1, r2) N_RRE(0xB34C, r1, r2)
@@ -604,6 +608,7 @@
 #define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
 #define M_IADD(a, dest) N_AR(dest, a)
 #define M_ISUB(a, dest) N_SR(dest, a)
+#define M_CVTFD(src,dst) N_LDEBR(dst, src)
 
 #define ICONST(reg, i) \
 	do { \
@@ -803,7 +808,6 @@
 #define M_CVTFL(a,b) _DEPR( M_CVTFL(a,b) )
 #define M_CVTDL(a,b) _DEPR( M_CVTDL(a,b) )
 
-#define M_CVTFD(a,b) _DEPR( M_CVTFD(a,b) )
 #define M_CVTDF(a,b) _DEPR( M_CVTDF(a,b) )
 
 
