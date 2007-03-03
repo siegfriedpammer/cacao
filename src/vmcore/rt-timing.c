@@ -110,6 +110,7 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
 	{ RT_TIMING_NEW_ARRAY       ,-1                       , "builtin_newarray time" },
     { -1                        ,-1                       , "" },
 
+	{ RT_TIMING_GC_ALLOC        ,-1                       , "heap allocation time" },
 #if defined(ENABLE_GC_CACAO)
 	{ RT_TIMING_GC_SUSPEND      ,RT_TIMING_GC_TOTAL       , "gc: suspending threads" },
 	{ RT_TIMING_GC_ROOTSET1     ,RT_TIMING_GC_TOTAL       , "gc: rootset finding" },

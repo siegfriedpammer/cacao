@@ -42,6 +42,7 @@
 #include "src/native/include/java_lang_String.h" /* TODO: fix me! */
 #include "toolbox/logging.h"
 #include "vm/global.h"
+#include "vmcore/rt-timing.h"
 
 
 /* Global Variables ***********************************************************/
@@ -206,6 +207,11 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
 void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 {
 	java_objectheader *p;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
 
 	p = heap_alloc_intern(bytelength, heap_region_main);
 
@@ -231,6 +237,9 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 		/* register the finalizer for this object */
 		final_register(p, finalizer);
 	}
+
+	RT_TIMING_GET_TIME(time_end);
+	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_GC_ALLOC);
 
 	return p;
 }

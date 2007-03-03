@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: boehm.c 7355 2007-02-14 10:57:32Z twisti $
+   $Id: boehm.c 7443 2007-03-03 00:20:18Z michi $
 
 */
 
@@ -52,6 +52,7 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
+#include "vmcore/rt-timing.h"
 
 
 /* global variables ***********************************************************/
@@ -135,6 +136,11 @@ void *heap_alloc_uncollectable(u4 bytelength)
 void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 {
 	void *p;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
 
 	/* We can't use a bool here for references, as it's passed as a
 	   bitmask in builtin_new.  Thus we check for != 0. */
@@ -153,6 +159,9 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 	/* clear allocated memory region */
 
 	MSET(p, 0, u1, bytelength);
+
+	RT_TIMING_GET_TIME(time_end);
+	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_GC_ALLOC);
 
 	return p;
 }
