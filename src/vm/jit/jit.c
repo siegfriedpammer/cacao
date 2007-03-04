@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7275 2007-02-02 00:20:56Z twisti $
+   $Id: jit.c 7451 2007-03-04 20:10:18Z edwin $
 
 */
 
@@ -1093,6 +1093,11 @@ u1 *jit_compile(methodinfo *m)
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
+#if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING)
+	if (opt_inlining)
+		jd->flags |= JITDATA_FLAG_COUNTDOWN;
+#endif
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
@@ -1217,6 +1222,11 @@ u1 *jit_recompile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_SHOWDISASSEMBLE;
 	if (opt_verbosecall)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
+
+#if defined(ENABLE_INLINING)
+	if (opt_inlining)
+		jd->flags |= JITDATA_FLAG_INLINE;
+#endif
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
