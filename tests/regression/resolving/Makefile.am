@@ -17,6 +17,7 @@ TEST_SOURCE_FILES = \
 	test_param_loading_constraint_violated.java \
 	test_param_subtype_violated.java \
 	test_retval_loading_constraint_violated.java \
+	test_return_subtype_violated.java \
 	test_simple_lazy_load.java
 
 TEST_NAMES = \
@@ -25,6 +26,7 @@ TEST_NAMES = \
 	test_param_loading_constraint_violated \
 	test_param_subtype_violated \
 	test_retval_loading_constraint_violated \
+	test_return_subtype_violated \
 	test_simple_lazy_load
 
 EXTRA_DIST = $(HARNESS_SOURCE_FILES) $(TEST_SOURCE_FILES)
