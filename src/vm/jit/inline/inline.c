@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 7228 2007-01-19 01:13:48Z edwin $
+   $Id: inline.c 7446 2007-03-04 14:02:49Z edwin $
 
 */
 
@@ -70,7 +70,15 @@
 
 /* algorithm tuning constants *************************************************/
 
+/* Algorithm Selection                                                        */
+/* Define exactly one of the following three to select the inlining           */
+/* heuristics.                                                                */
+
+/*#define INLINE_DEPTH_FIRST*/
+/*#define INLINE_BREADTH_FIRST*/
 #define INLINE_KNAPSACK
+
+/* Parameters for knapsack heuristics:                                        */
 
 #if defined(INLINE_KNAPSACK)
 
@@ -82,12 +90,25 @@
 /*#define INLINE_MAX_DEPTH            3*/
 /*#define INLINE_DIVIDE_COST_BY_FREQ */
 
-#else
+#endif
+
+/* Parameters for depth-first heuristics:                                     */
+
+#if defined(INLINE_DEPTH_FIRST)
 
 #define INLINE_MAX_DEPTH            3
 #define INLINE_MAX_BLOCK_EXPANSION  10
 /*#define INLINE_MAX_ICMD_EXPANSION  10*/
 /*#define INLINE_CANCEL_ON_THRESHOLD*/
+
+#endif
+
+/* Parameters for breadth-first heuristics:                                   */
+
+#if defined(INLINE_BREADTH_FIRST)
+
+/*#define INLINE_MAX_BLOCK_EXPANSION  10*/
+#define INLINE_MAX_ICMD_EXPANSION  5
 
 #endif
 
@@ -451,7 +472,7 @@ static void inline_remove_inline_node(inline_node *parent, inline_node *child)
 
 /* inlining candidate handling ************************************************/
 
-#if defined(INLINE_KNAPSACK)
+#if defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST)
 static void inline_add_candidate(inline_context *ctx,
 								 inline_node *caller,
 								 methodinfo *callee,
@@ -466,7 +487,12 @@ static void inline_add_candidate(inline_context *ctx,
 	if (cand->freq < 1)
 #endif
 		cand->freq = 1;
+#if defined(INLINE_KNAPSACK)
 	cand->cost = callee->jcodelength + INLINE_COST_OFFSET;
+#endif
+#if defined(INLINE_BREADTH_FIRST)
+	cand->cost = caller->depth;
+#endif
 	cand->caller = caller;
 	cand->callee = callee;
 	cand->site = *site;
@@ -481,9 +507,9 @@ static void inline_add_candidate(inline_context *ctx,
 		}
 	}
 }
-#endif /* defined(INLINE_KNAPSACK) */
+#endif /* defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST) */
 
-#if defined(INLINE_KNAPSACK)
+#if defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST)
 static inline_candidate * inline_pick_best_candidate(inline_context *ctx)
 {
 	inline_candidate *cand;
@@ -495,19 +521,19 @@ static inline_candidate * inline_pick_best_candidate(inline_context *ctx)
 
 	return cand;
 }
-#endif /* defined(INLINE_KNAPSACK) */
+#endif /* defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST) */
 
-#if !defined(NDEBUG) && defined(INLINE_KNAPSACK)
+#if !defined(NDEBUG) && (defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST))
 static void inline_candidate_println(inline_candidate *cand)
 {
 	printf("%10g (%5d / %5d) depth %2d ",
 			cand->weight, cand->cost, cand->freq, cand->caller->depth + 1);
 	method_println(cand->callee);
 }
-#endif /* !defined(NDEBUG) && defined(INLINE_KNAPSACK) */
+#endif /* !defined(NDEBUG) && (defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST)) */
 
 
-#if !defined(NDEBUG) && defined(INLINE_KNAPSACK)
+#if !defined(NDEBUG) && (defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST))
 static void inline_candidates_println(inline_context *ctx)
 {
 	inline_candidate *cand;
@@ -517,7 +543,7 @@ static void inline_candidates_println(inline_context *ctx)
 		inline_candidate_println(cand);
 	}
 }
-#endif /* !defined(NDEBUG) && defined(INLINE_KNAPSACK) */
+#endif /* !defined(NDEBUG) && (defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST)) */
 
 
 /* variable handling **********************************************************/
@@ -2259,13 +2285,21 @@ static bool inline_post_parse_heuristics(const inline_node *caller,
 static bool inline_afterwards_heuristics(const inline_node *caller,
 										 const inline_node *callee)
 {
+	inline_node *cumulator;
+
+#if defined(INLINE_DEPTH_FIRST)
+	cumulator = caller;
+#else
+	cumulator = caller->ctx->master;
+#endif
+
 	if (0
 #if defined(INLINE_MAX_BLOCK_EXPANSION)
-		|| (caller->cumul_basicblockcount + callee->cumul_basicblockcount
+		|| (cumulator->cumul_basicblockcount + callee->cumul_basicblockcount
 			> INLINE_MAX_BLOCK_EXPANSION*caller->ctx->master->jd->basicblockcount)
 #endif
 #if defined(INLINE_MAX_ICMD_EXPANSION)
-		|| (caller->cumul_instructioncount + callee->cumul_instructioncount
+		|| (cumulator->cumul_instructioncount + callee->cumul_instructioncount
 			> INLINE_MAX_ICMD_EXPANSION*caller->ctx->master->jd->instructioncount)
 #endif
 	   )
@@ -2657,8 +2691,15 @@ static inline_node * inline_analyse_callee(inline_node *caller,
 
 	/* cumulate counters */
 
-#if !defined(INLINE_KNAPSACK)
+#if defined(INLINE_DEPTH_FIRST)
 	inline_cumulate_counters(caller, cn);
+#endif
+
+#if defined(INLINE_BREADTH_FIRST)
+	while (caller) {
+		inline_cumulate_counters(caller, cn);
+		caller = caller->parent;
+	}
 #endif
 
 	return cn;
@@ -2805,7 +2846,7 @@ static bool inline_analyse_code(inline_node *iln)
 							site.nhandlers = nhandlers;
 
 							if (inline_pre_parse_heuristics(iln, callee, &site)) {
-#if defined(INLINE_KNAPSACK)
+#if defined(INLINE_KNAPSACK) || defined(INLINE_BREADTH_FIRST)
 								inline_add_candidate(iln->ctx, iln, callee, &site);
 #else
 								inline_candidate cand;
@@ -2871,9 +2912,9 @@ static void inline_cumulate_counters_recursive(inline_node *iln)
 
 *******************************************************************************/
 
+#if defined(INLINE_KNAPSACK)
 static bool inline_make_inlining_plan(inline_node *iln)
 {
-#if defined(INLINE_KNAPSACK)
 	inline_candidate *cand;
 #if defined(INLINE_COST_BUDGET)
 	s4 budget = INLINE_COST_BUDGET;
@@ -2907,10 +2948,40 @@ static bool inline_make_inlining_plan(inline_node *iln)
 	inline_cumulate_counters_recursive(iln);
 
 	return true;
-#else
-	return inline_analyse_code(iln);
-#endif
 }
+#endif /* defined(INLINE_KNAPSACK) */
+
+
+#if defined(INLINE_DEPTH_FIRST)
+static bool inline_make_inlining_plan(inline_node *iln)
+{
+	return inline_analyse_code(iln);
+}
+#endif /* defined(INLINE_DEPTH_FIRST) */
+
+
+#if defined(INLINE_BREADTH_FIRST)
+static bool inline_make_inlining_plan(inline_node *iln)
+{
+	inline_candidate *cand;
+
+	inline_analyse_code(iln);
+
+	DOLOG( printf("candidates in "); method_println(iln->m);
+		   inline_candidates_println(iln->ctx); );
+
+	while (!iln->ctx->stopped
+		   && (cand = inline_pick_best_candidate(iln->ctx)) != NULL)
+	{
+		DOLOG( printf("    picking: "); inline_candidate_println(cand); );
+
+		if (!inline_process_candidate(cand))
+			return false;
+	}
+
+	return true;
+}
+#endif /* defined(INLINE_BREADTH_FIRST) */
 
 
 /* statistics *****************************************************************/
