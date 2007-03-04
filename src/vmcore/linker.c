@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7271 2007-02-01 15:27:28Z twisti $
+   $Id: linker.c 7450 2007-03-04 19:13:29Z edwin $
 
 */
 
@@ -63,8 +63,7 @@
 #endif
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
-extern bool inline_debug_log;
-#define INLINELOG(code)  do { if (inline_debug_log) { code } } while (0)
+#define INLINELOG(code)  do { if (opt_inline_debug_log) { code } } while (0)
 #else
 #define INLINELOG(code)
 #endif

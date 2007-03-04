@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 7446 2007-03-04 14:02:49Z edwin $
+   $Id: inline.c 7450 2007-03-04 19:13:29Z edwin $
 
 */
 
@@ -45,16 +45,16 @@
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
+#include "vmcore/options.h"
+#include "vmcore/statistics.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/inline/inline.h"
 #include "vm/jit/loop/loop.h"
 
-#include "vm/class.h"
+#include "vmcore/class.h"
 #include "vm/initialize.h"
-#include "vm/method.h"
+#include "vmcore/method.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/show.h"
 
