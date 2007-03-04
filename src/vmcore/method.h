@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 7268 2007-02-01 12:02:56Z twisti $
+   $Id: method.h 7447 2007-03-04 14:22:42Z edwin $
 */
 
 
@@ -54,6 +54,12 @@ typedef struct method_worklist     method_worklist;
 #endif
 
 #include "vmcore/utf8.h"
+
+
+#if defined(ENABLE_REPLACEMENT)
+/* Initial value for the hit countdown field of each method. */
+#define METHOD_INITIAL_HIT_COUNTDOWN  1000
+#endif
 
 
 /* methodinfo *****************************************************************/
@@ -95,6 +101,10 @@ struct methodinfo {                 /* method structure                       */
 
 	methodinfo   *overwrites;       /* method that is directly overwritten    */
 	method_assumption *assumptions; /* list of assumptions about this method  */
+
+#if defined(ENABLE_REPLACEMENT)
+	s4            hitcountdown;     /* decreased for each hit                 */
+#endif
 };
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7387 2007-02-21 23:26:24Z twisti $
+   $Id: loader.c 7447 2007-03-04 14:22:42Z edwin $
 
 */
 
@@ -1420,6 +1420,12 @@ static bool loader_load_method(classbuffer *cb, methodinfo *m,
 		exceptions_throw_classformaterror(c, "Missing Code attribute");
 		return false;
 	}
+
+	/* initialize the hit countdown field */
+
+#if defined(ENABLE_REPLACEMENT)
+	m->hitcountdown = METHOD_INITIAL_HIT_COUNTDOWN;
+#endif
 
 	/* everything was ok */
 
