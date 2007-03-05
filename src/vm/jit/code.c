@@ -129,6 +129,28 @@ codeinfo *code_find_codeinfo_for_pc(u1 *pc)
 }
 
 
+/* code_get_methodinfo_for_pv **************************************************
+
+   Return the methodinfo for the given PV.
+
+   IN:
+       pv...............PV
+
+   RETURN VALUE:
+       the methodinfo *
+
+*******************************************************************************/
+
+methodinfo *code_get_methodinfo_for_pv(u1 *pv)
+{
+	codeinfo *code;
+
+	code = *((codeinfo **) (pv + CodeinfoPointer));
+
+	return code->m;
+}
+
+
 /* code_get_sync_slot_count ****************************************************
 
    Return the number of stack slots used for storing the synchronized object
