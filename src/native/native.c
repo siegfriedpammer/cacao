@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7328 2007-02-11 21:22:07Z twisti $
+   $Id: native.c 7461 2007-03-05 23:50:33Z edwin $
 
 */
 
@@ -1206,8 +1206,7 @@ java_objectarray *native_get_exceptiontypes(methodinfo *m)
 		return NULL;
 
 	for (i = 0; i < m->thrownexceptionscount; i++) {
-		if (!resolve_classref_or_classinfo(NULL, m->thrownexceptions[i],
-										   resolveEager, true, false, &c))
+		if ((c = resolve_classref_or_classinfo_eager(m->thrownexceptions[i], true)) == NULL)
 			return NULL;
 
 		oa->data[i] = (java_objectheader *) c;
