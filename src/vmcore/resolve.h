@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.h 7431 2007-03-01 13:49:14Z edwin $
+   $Id: resolve.h 7457 2007-03-05 16:53:45Z edwin $
 
 */
 
@@ -138,6 +138,8 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 							  bool checkaccess,
 							  bool link,
 							  classinfo **result);
+
+classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool checkaccess);
 
 bool resolve_class_from_typedesc(typedesc *d,bool checkaccess,bool link,classinfo **result);
 

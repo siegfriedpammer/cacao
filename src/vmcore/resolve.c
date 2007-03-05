@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 7431 2007-03-01 13:49:14Z edwin $
+   $Id: resolve.c 7457 2007-03-05 16:53:45Z edwin $
 
 */
 
@@ -362,6 +362,33 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
  return_exception:
 	*result = NULL;
 	return false;
+}
+
+
+/* resolve_classref_or_classinfo_eager *****************************************
+ 
+   Resolve a symbolic class reference eagerly if necessary.
+   No attempt is made to link the class.
+
+   IN:
+       cls..............class reference or classinfo
+       checkaccess......if true, access rights to the class are checked
+  
+   RETURN VALUE:
+       classinfo *......the resolved class
+       NULL.............an exception has been thrown
+   
+*******************************************************************************/
+
+classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls,
+											   bool checkaccess)
+{
+	classinfo *c;
+
+	if (!resolve_classref_or_classinfo(NULL, cls, resolveEager, checkaccess, false, &c))
+		return NULL;
+
+	return c;
 }
 
 
