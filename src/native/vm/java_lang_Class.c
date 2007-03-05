@@ -309,13 +309,8 @@ java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
 
 	/* we may have to resolve the super class reference */
 
-	if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, 
-									   true, /* check access */
-									   false,  /* don't link */
-									   &sc))
-	{
+	if ((sc = resolve_classref_or_classinfo_eager(c->super, true)) == NULL)
 		return NULL;
-	}
 
 	/* store the resolution */
 
@@ -471,10 +466,9 @@ java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
 			if (innername == c->name) {
 				/* maybe the outer class is not loaded yet */
 
-				if (!resolve_classref_or_classinfo(NULL,
-												   c->innerclass[i].outer_class,
-												   resolveEager, false, false,
-												   &outer))
+				if ((outer = resolve_classref_or_classinfo_eager(
+								c->innerclass[i].outer_class,
+								false)) == NULL)
 					return NULL;
 
 				if (!(outer->state & CLASS_LINKED))
@@ -550,10 +544,9 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
 			((publicOnly == 0) || (c->innerclass[i].flags & ACC_PUBLIC))) {
 			classinfo *inner;
 
-			if (!resolve_classref_or_classinfo(NULL,
+			if ((inner = resolve_classref_or_classinfo_eager(
 											   c->innerclass[i].inner_class,
-											   resolveEager, false, false,
-											   &inner))
+											   false)) == NULL)
 				return NULL;
 
 			if (!(inner->state & CLASS_LINKED))
