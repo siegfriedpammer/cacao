@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7442 2007-03-02 23:28:37Z pm $
+   $Id: codegen.h 7453 2007-03-05 08:38:29Z pm $
 
 */
 
@@ -319,6 +319,16 @@
 
 #define S_RRF 4
 
+#define N_IMM_MIN -32768
+#define N_IMM_MAX 32767
+#define N_VALID_IMM(x) ((N_IMM_MIN <= (x)) && ((x) <= N_IMM_MAX))
+#define ASSERT_VALID_IMM(x) assert(N_VALID_IMM(x))
+
+#define N_DISP_MIN 0
+#define N_DISP_MAX 0xFFF
+#define N_VALID_DISP(x) ((N_DISP_MIN <= (x)) && ((x) <= N_DISP_MAX))
+#define ASSERT_VALID_DISP(x) assert(N_VALID_DISP(x))
+
 /* Condition codes */
 
 #define DD_O 1
@@ -591,7 +601,7 @@
 
 #define M_CMP(r1, r2) N_CR(r1, r2)
 #define M_CLR(r) N_LHI(r, 0)
-#define M_AADD_IMM(val, reg) N_LA(reg, val, RN, reg)
+#define M_AADD_IMM(val, reg) N_AHI(reg, val)
 #define M_IADD_IMM(val, reg) N_AHI(reg, val)
 #define M_ISUB_IMM(val, reg) N_AHI(reg, -(val))
 #define M_ASUB_IMM(val, reg) N_AHI(reg, -(val))
@@ -608,7 +618,14 @@
 #define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
 #define M_IADD(a, dest) N_AR(dest, a)
 #define M_ISUB(a, dest) N_SR(dest, a)
+#define M_IAND(a, dest) N_NR(dest, a)
 #define M_CVTFD(src,dst) N_LDEBR(dst, src)
+
+#define M_ISLL_IMM(imm,reg) N_SLL(reg, imm, RN) 
+#define M_ISRL_IMM(imm,reg) N_SRL(reg, imm, RN)
+
+#define M_IMUL_IMM(val, reg) N_MHI(reg, val)
+#define M_IMUL(a, dest) N_MR(dest, a)
 
 #define ICONST(reg, i) \
 	do { \
@@ -686,9 +703,6 @@
 #define M_IST32_IMM(a,b,disp) _DEPR( M_IST32_IMM(a,b,disp) )
 #define M_LST32_IMM32(a,b,disp) _DEPR( M_LST32_IMM32(a,b,disp) )
 
-#define M_IMUL(a,b) _DEPR( M_IMUL(a,b) )
-
-#define M_IMUL_IMM(a,b,c) _DEPR( M_IMUL_IMM(a,b,c) )
 
 #define M_LADD(a,b) _DEPR( M_LADD(a,b) )
 #define M_LSUB(a,b) _DEPR( M_LSUB(a,b) )
@@ -718,7 +732,6 @@
 #define M_INEG(a) _DEPR( M_INEG(a) )
 #define M_LNEG(a) _DEPR( M_LNEG(a) )
 
-#define M_IAND(a,b) _DEPR( M_IAND(a,b) )
 #define M_IOR(a,b) _DEPR( M_IOR(a,b) )
 #define M_IXOR(a,b) _DEPR( M_IXOR(a,b) )
 
@@ -739,9 +752,7 @@
 
 #define M_CZEXT(a,b) _DEPR( M_CZEXT(a,b) )
 
-#define M_ISLL_IMM(a,b) _DEPR( M_ISLL_IMM(a,b) )
 #define M_ISRA_IMM(a,b) _DEPR( M_ISRA_IMM(a,b) )
-#define M_ISRL_IMM(a,b) _DEPR( M_ISRL_IMM(a,b) )
 
 #define M_LSLL_IMM(a,b) _DEPR( M_LSLL_IMM(a,b) )
 #define M_LSRA_IMM(a,b) _DEPR( M_LSRA_IMM(a,b) )
@@ -822,10 +833,10 @@
 #define M_ISUB_MEMBASE(a,b,c) _DEPR( M_ISUB_MEMBASE(a,b,c) )
 #define M_ISBB_MEMBASE(a,b,c) _DEPR( M_ISBB_MEMBASE(a,b,c) )
 
-#define PROFILE_CYCLE_START _DEPR( PROFILE_CYCLE_START )
+#define PROFILE_CYCLE_START 
 #define __PROFILE_CYCLE_START _DEPR( __PROFILE_CYCLE_START )
 
-#define PROFILE_CYCLE_STOP _DEPR( PROFILE_CYCLE_STOP )
+#define PROFILE_CYCLE_STOP 
 #define __PROFILE_CYCLE_STOP _DEPR( __PROFILE_CYCLE_STOP )
 
 
@@ -844,6 +855,8 @@
 
 #endif /* _CODEGEN_H */
 
+
+s4 codegen_reg_of_dst_notzero(jitdata *jd, instruction *iptr, s4 tempregnum);
 
 /*
  * These are local overrides for various environment variables in Emacs.

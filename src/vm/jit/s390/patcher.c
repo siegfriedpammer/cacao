@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7442 2007-03-02 23:28:37Z pm $
+   $Id: patcher.c 7453 2007-03-05 08:38:29Z pm $
 
 */
 
@@ -589,7 +589,7 @@ bool patcher_invokevirtual(u1 *sp)
 	off = (s4) (OFFSET(vftbl_t, table[0]) +
 								   sizeof(methodptr) * m->vftblindex);
 
-	assert((off >= 0) && (off <= 0xFFF));
+	assert(N_VALID_DISP(off));
 
 	*((s4 *)(ra + 4 + 4)) |= off;
 
@@ -630,14 +630,15 @@ bool patcher_invokeinterface(u1 *sp)
 
 	idx = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
 		sizeof(methodptr) * m->class->index) + 
-		0xFFF;
-	assert((idx >= 0) && (idx <= 0xFFF));
+		N_DISP_MAX;
+
+	ASSERT_VALID_DISP(idx);
 
 	/* get method offset */
 
 	off =
 		(s4) (sizeof(methodptr) * (m - m->class->methods));
-	assert((off >= 0) && (off <= 0xFFF));
+	ASSERT_VALID_DISP(off);
 
 	/* patch them */
 
