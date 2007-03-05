@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7316 2007-02-10 19:06:54Z twisti $
+   $Id: builtin.c 7459 2007-03-05 17:34:43Z edwin $
 
 */
 
@@ -315,10 +315,13 @@ builtintable_entry *builtintable_get_automatic(s4 opcode)
 *******************************************************************************/
 
 #if defined(ENABLE_JIT)
-bool builtintable_replace_function(instruction *iptr)
+bool builtintable_replace_function(void *iptr_)
 {
 	constant_FMIref    *mr;
 	builtintable_entry *bte;
+	instruction        *iptr;
+
+	iptr = (instruction *) iptr_; /* twisti will kill me ;) */
 
 	/* get name and descriptor of the function */
 
