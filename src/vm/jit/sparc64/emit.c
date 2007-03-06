@@ -71,10 +71,21 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 		disp = JITSTACK + src->vv.regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(src->type))
-			M_DLD(tempreg, REG_SP, disp);
-		else
+		switch(src->type)
+		{
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
 			M_LDX(tempreg, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+		case TYPE_DBL:
+			M_DLD(tempreg, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_load: unknown type %d", src->type);
+			break;
+		}
 
 		reg = tempreg;
 	}
@@ -103,12 +114,23 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (dst->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = JITSTACK + dst->vv.regoff * 8;
-
-		if (IS_FLT_DBL_TYPE(dst->type))
-			M_DST(d, REG_SP, disp);
-		else
+		disp = JITSTACK + dst->vv.regoff * 8;			
+			
+		switch(dst->type)
+		{
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
 			M_STX(d, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+		case TYPE_DBL:
+			M_DST(d, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_store: unknown type %d", dst->type);
+			break;
+		}
 	}
 }
 
@@ -146,11 +168,22 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 			d = codegen_reg_of_var(iptr->opc, dst, s1);
 		}
 
-		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type))
-				M_DMOV(s1, d);
-		else
+		if (s1 != d) {		
+			switch(src->type)
+			{
+			case TYPE_INT:
+			case TYPE_LNG:
+			case TYPE_ADR:
 				M_MOV(s1, d);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DMOV(s1, d);
+				break;
+			default:
+				vm_abort("emit_copy: unknown type %d", src->type);
+				break;
+			}
 		}
 
 		emit_store(jd, iptr, dst, d);
