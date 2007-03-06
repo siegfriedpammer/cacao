@@ -49,6 +49,9 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 
+#include "vm/jit/code.h"
+#include "vm/jit/jit.h"
+
 #include "vm/jit/optimizing/recompile.h"
 
 #include "vmcore/classcache.h"
