@@ -42,6 +42,7 @@
 #endif
 
 #include "compact.h"
+#include "copy.h"
 #include "final.h"
 #include "gc.h"
 #include "heap.h"
@@ -126,8 +127,7 @@ void gc_collect(s4 level)
 	gc_notify_finalizer = false;
 
 	GC_LOG( heap_println_usage(); );
-	/*GC_LOG( heap_dump_region(heap_base, heap_ptr, false); );*/
-
+	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
 #if defined(ENABLE_THREADS)
 	GC_LOG( threads_dump(); );
 #endif
@@ -151,7 +151,7 @@ void gc_collect(s4 level)
 	/* once the rootset is complete, we consider ourselves running */
 	gc_running = true;
 
-#if 1
+#if 0
 
 	/* mark the objects considering the given rootset */
 	mark_me(rs);
@@ -177,14 +177,15 @@ void gc_collect(s4 level)
 	{
 		regioninfo_t *src, *dst;
 
-		dst = DNEW(regioninfo_t);
-		region_init(dst, heap_current_size);
-		gc_copy(heap_region_main, dst, rs);
+		src = heap_region_main;
+		dst = NEW(regioninfo_t);
+		region_create(dst, heap_current_size);
+		copy_me(heap_region_main, dst, rs);
+		heap_region_main = dst;
+
+		/* invalidate old heap */
+		memset(src->base, 0x66, src->size);
 	}
-
-	/* invalidate old heap */
-	/*memset(heap_base, 0x5a, heap_current_size);*/
-
 #endif
 
 	/* TODO: check my return value! */

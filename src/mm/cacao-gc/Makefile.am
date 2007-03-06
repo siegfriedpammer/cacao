@@ -41,6 +41,8 @@ noinst_LTLIBRARIES = libgc.la
 libgc_la_SOURCES = \
 	compact.c \
 	compact.h \
+	copy.c \
+	copy.h \
 	final.c \
 	final.h \
 	gc.c \

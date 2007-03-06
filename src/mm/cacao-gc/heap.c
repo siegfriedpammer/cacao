@@ -313,7 +313,11 @@ void heap_print_object(java_objectheader *o)
 	}
 
 	/* print general information */
-	printf("%p: ", (void *) o);
+#if SIZEOF_VOID_P == 8
+	assert(0);
+#else
+	printf("0x%08x: ", (void *) o);
+#endif
 	heap_print_object_flags(o);
 	printf(" ");
 
@@ -442,98 +446,6 @@ s4 get_object_size(java_objectheader *o)
 		o_size += SIZEOF_VOID_P;
 
 	return o_size;
-}
-
-
-java_objectheader *next;
-
-void *gc_copy_forward(java_objectheader *o, void *src_start, void *src_end)
-{
-	s4 o_size;
-
-	if (POINTS_INTO(o, src_start, src_end)) {
-
-		/* update all references which point into the source region */
-
-		/* NOTE: we use the marking bit here to mark object which have already
-		 * been copied; in such a case the *vftbl contains the location of
-		 * the copy */ 
-		if (GC_IS_MARKED(o)) {
-
-			/* return the location of an already existing copy */
-			return o->vftbl;
-
-		} else {
-
-			/* calculate the size of the object to be copied */
-			o_size = get_object_size(o);
-
-			/* copy the object pointed to by O to location NEXT */
-			memcpy(next, o, o_size);
-
-			/* remember where the copy is located */
-			o->vftbl = (void *) next;
-
-			/* increment NEXT to point past the copy of the object */
-			next = ((u1 *) next) + o_size;
-
-			/* return the location of the copy */
-			return o->vftbl;
-
-		}
-
-	} else {
-
-		/* do not change references not pointing into the source region */
-		return o;
-
-	}
-}
-
-
-void gc_copy(regioninfo_t *src, regioninfo_t *dst, rootset_t *rs)
-{
-	java_objectheader *scan;
-	/*java_objectheader *next;*/
-	/*classinfo         *c;*/
-	java_objectheader *ref_old;
-	java_objectheader *ref_new;
-	int i;
-
-	/* initialize the scan and next pointer */
-	scan = (java_objectheader *) dst->base;
-	next = (java_objectheader *) dst->base;
-
-	/* for each root pointer R: replace R with forward(R) */
-	for (i = 0; i < rs->refcount; i++) {
-
-		ref_old = *( rs->refs[i] );
-		GC_LOG( printf("Will forward: ");
-				heap_print_object(ref_old);
-				printf("\n"); );
-
-		ref_new = gc_copy_forward(ref_old, src->base, src->end);
-
-		*( rs->refs[i] ) = ref_new;
-		GC_LOG( printf("New location: ");
-				heap_print_object(ref_new);
-				printf("\n"); );
-	}
-
-	/* update all references for objects in the destination region.
-	 * when scan catches up with next, the algorithm is finished */
-	while (scan < next)
-	{
-		/* TODO: implement me! */
-		GC_LOG( printf("Will also forward pointers in ");
-		 		heap_print_object(scan); printf("\n"); );
-
-		scan = ((u1 *) scan) + get_object_size(scan); 
-	}
-
-	/* some basic assumptions */
-	GC_ASSERT(scan == next);
-	GC_ASSERT(scan < dst->end);
 }
 
 
