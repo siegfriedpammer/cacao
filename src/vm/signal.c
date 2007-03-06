@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7470 2007-03-06 17:01:19Z twisti $
+   $Id: signal.c 7471 2007-03-06 17:01:49Z twisti $
 
 */
 
@@ -42,6 +42,8 @@
 #endif
 
 #include "vm/types.h"
+
+#include "arch.h"
 
 #include "mm/memory.h"
 
