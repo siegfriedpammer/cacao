@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7344 2007-02-13 12:23:54Z ajordan $
+   $Id: signal.c 7470 2007-03-06 17:01:19Z twisti $
 
 */
 
@@ -87,7 +87,6 @@ void signal_init(void)
 
 	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
 
-#if 0
 	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
 	   <ctrl>-\).  We enable them later in signal_thread, but only for
 	   this thread. */
@@ -105,7 +104,6 @@ void signal_init(void)
 
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
 		vm_abort("signal_init: sigprocmask failed: %s", strerror(errno));
-#endif
 
 #if defined(ENABLE_GC_BOEHM)
 	/* Allocate something so the garbage collector's signal handlers
