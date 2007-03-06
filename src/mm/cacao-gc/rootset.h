@@ -52,7 +52,7 @@ typedef struct rootset_t rootset_t;
 /* Structures *****************************************************************/
 
 #define ROOTSET_DUMMY_THREAD ((threadobject *) (ptrint) -1)
-#define RS_REFS 32
+#define RS_REFS 512 /* TODO: you see why we need to rethink this!!! */
 
 #define REFTYPE_THREADOBJECT 1
 #define REFTYPE_CLASSLOADER  2
@@ -60,6 +60,7 @@ typedef struct rootset_t rootset_t;
 #define REFTYPE_FINALIZER    4
 #define REFTYPE_LOCALREF     5
 #define REFTYPE_STACK        6
+#define REFTYPE_CLASSREF     7
 
 /* rootset is passed as array of pointers, which point to the location of
    the reference */

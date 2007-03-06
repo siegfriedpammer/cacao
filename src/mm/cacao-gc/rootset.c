@@ -168,6 +168,56 @@ void rootset_from_globals(rootset_t *rs)
 }
 
 
+void rootset_from_classes(rootset_t *rs)
+{
+	classinfo         *c;
+	fieldinfo         *f;
+	void *sys_start, *sys_end;
+	int refcount;
+	int i;
+
+	GC_LOG( dolog("GC: Acquiring Root-Set from classes ..."); );
+
+	/* TODO: cleanup!!! */
+	sys_start = heap_region_sys->base;
+	sys_end = heap_region_sys->ptr;
+
+	refcount = rs->refcount;
+
+	/* walk through all classinfo blocks */
+	for (c = sys_start; c < (classinfo *) sys_end; c++) {
+
+		GC_LOG2( printf("Searching in class "); class_print(c); printf("\n"); );
+
+		/* walk through all fields */
+		f = c->fields;
+		for (i = 0; i < c->fieldscount; i++, f++) {
+
+			/* check if this is a static reference */
+			if (!IS_ADR_TYPE(f->type) || !(f->flags & ACC_STATIC))
+				continue;
+
+			/* check for outside or null pointers */
+			if (f->value.a == NULL)
+				continue;
+
+			GC_LOG2( printf("Found Static Field Reference: %p\n", (void *) f->value.a);
+					printf("\tfrom field: "); field_print(f); printf("\n");
+					printf("\tto object : "); heap_print_object(f->value.a); printf("\n"); );
+
+			/* add this static field reference to the root set */
+			ROOTSET_ADD(&( f->value ), true, REFTYPE_CLASSREF);
+
+		}
+
+	}
+
+	/* remeber how many references there are inside this root set */
+	rs->refcount = refcount;
+
+}
+
+
 /* rootset_from_thread *********************************************************
 
    Searches the stack of the passed thread for references and compiles a
@@ -276,6 +326,7 @@ rootset_t *rootset_readout()
 	/* find the global rootset ... */
 	rs_top = rootset_create();
 	rootset_from_globals(rs_top);
+	rootset_from_classes(rs_top);
 
 	/* ... and the rootsets for the threads */
 	rs = rs_top;
@@ -343,7 +394,9 @@ void rootset_writeback(rootset_t *rs)
 
 #if !defined(NDEBUG)
 const char* ref_type_names[] = {
-		"XXXXXX", "THREAD", "CLASSL", "GLOBAL", "FINAL ", "LOCAL ", "STACK "
+		"XXXXXX", "THREAD", "CLASSL",
+		"GLOBAL", "FINAL ", "LOCAL ",
+		"STACK ", "STATIC"
 };
 
 void rootset_print(rootset_t *rs)
