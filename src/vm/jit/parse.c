@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: parse.c 7464 2007-03-06 00:26:31Z edwin $
 
 */
 
@@ -57,7 +57,7 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typeinfo.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: typeinfo.c 7464 2007-03-06 00:26:31Z edwin $
 
 */
 
@@ -43,7 +43,7 @@
 #include "vmcore/class.h"
 #include "vmcore/descriptor.h"
 #include "vmcore/loader.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 
 /* check if a linked class is an array class. Only use for linked classes! */

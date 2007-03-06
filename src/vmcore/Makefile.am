@@ -80,8 +80,6 @@ libvmcore_la_SOURCES = \
 	options.c \
 	options.h \
 	references.h \
-	resolve.c \
-	resolve.h \
 	$(RT_TIMING_SOURCES) \
 	$(STACKMAP_SOURCES) \
 	$(STATISTICS_SOURCES) \

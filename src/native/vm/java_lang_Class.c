@@ -65,7 +65,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 
 /*

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 7447 2007-03-04 14:22:42Z edwin $
+   $Id: method.h 7464 2007-03-06 00:26:31Z edwin $
 */
 
 
@@ -36,14 +36,12 @@ typedef struct raw_exception_entry raw_exception_entry;
 typedef struct lineinfo            lineinfo; 
 typedef struct method_assumption   method_assumption;
 typedef struct method_worklist     method_worklist;
+typedef struct codeinfo            codeinfo;
 
 #include "config.h"
 #include "vm/types.h"
 
 #include "vm/global.h"
-
-#include "vm/jit/code.h"
-#include "vm/jit/codegen-common.h"
 
 #include "vmcore/descriptor.h"
 #include "vmcore/references.h"

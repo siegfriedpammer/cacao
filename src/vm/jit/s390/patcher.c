@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7453 2007-03-05 08:38:29Z pm $
+   $Id: patcher.c 7464 2007-03-06 00:26:31Z edwin $
 
 */
 
@@ -47,7 +47,7 @@
 #include "vm/initialize.h"
 #include "vmcore/options.h"
 #include "vmcore/references.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/stacktrace.h"
 

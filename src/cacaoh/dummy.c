@@ -32,6 +32,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #if defined(ENABLE_THREADS)
 # include <pthread.h>
@@ -44,11 +45,11 @@
 #include "vm/global.h"
 #include "vm/vm.h"
 
-#include "vm/jit/code.h"
-
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/utf8.h"
+#include "vmcore/classcache.h"
+#include "vmcore/loader.h"
 
 
 /* global variables ***********************************************************/
@@ -129,6 +130,12 @@ java_objectheader *builtin_new(classinfo *c)
 
 void code_free_code_of_method(methodinfo *m)
 {
+}
+
+
+methodinfo *code_get_methodinfo_for_pv(u1 *pv)
+{
+	return NULL;
 }
 
 
@@ -454,6 +461,98 @@ char *properties_get(char *key)
 }
 
 
+/* resolve ********************************************************************/
+
+/* stupid resolving implementation used by resolve_classref_or_classinfo_eager */
+/* This function does eager resolving without any access checks.               */
+
+static classinfo * dummy_resolve_class_from_name(classinfo *referer,
+                                                 utf *classname,
+                                                 bool checkaccess)
+{
+	classinfo *cls = NULL;
+	char *utf_ptr;
+	int len;
+	
+	assert(referer);
+	assert(classname);
+	
+	/* lookup if this class has already been loaded */
+
+	cls = classcache_lookup(referer->classloader, classname);
+
+	if (!cls) {
+		/* resolve array types */
+
+		if (classname->text[0] == '[') {
+			utf_ptr = classname->text + 1;
+			len = classname->blength - 1;
+
+			/* classname is an array type name */
+
+			switch (*utf_ptr) {
+				case 'L':
+					utf_ptr++;
+					len -= 2;
+					/* FALLTHROUGH */
+				case '[':
+					/* the component type is a reference type */
+					/* resolve the component type */
+					if ((cls = dummy_resolve_class_from_name(referer,
+									   utf_new(utf_ptr,len),
+									   checkaccess)) == NULL)
+						return NULL; /* exception */
+
+					/* create the array class */
+					cls = class_array_of(cls,false);
+					if (!cls)
+						return NULL; /* exception */
+			}
+		}
+
+		/* load the class */
+		if (!cls) {
+			if (!(cls = load_class_from_classloader(classname,
+													referer->classloader)))
+				return false; /* exception */
+		}
+	}
+
+	/* the class is now loaded */
+	assert(cls);
+	assert(cls->state & CLASS_LOADED);
+
+	return cls;
+}
+
+
+classinfo * resolve_classref_or_classinfo_eager(classref_or_classinfo cls,
+												bool checkaccess)
+{
+	classinfo         *c;
+	
+	assert(cls.any);
+
+	if (IS_CLASSREF(cls)) {
+		/* we must resolve this reference */
+
+		if ((c = dummy_resolve_class_from_name(cls.ref->referer, cls.ref->name,
+									           checkaccess)) == NULL)
+			return NULL;
+	}
+	else {
+		/* cls has already been resolved */
+		c = cls.cls;
+	}
+
+	assert(c);
+	assert(c->state & CLASS_LOADED);
+
+	/* succeeded */
+	return c;
+}
+
+
 /* stacktrace *****************************************************************/
 
 java_objectarray *stacktrace_getClassContext()
@@ -469,27 +568,6 @@ pthread_key_t threads_current_threadobject_key;
 ptrint threads_get_current_tid(void)
 {
 	return 0;
-}
-
-
-/* typeinfo *******************************************************************/
-
-bool typeinfo_init_class(typeinfo *info, classref_or_classinfo c)
-{
-	return true;
-}
-
-void typeinfo_init_classinfo(typeinfo *info, classinfo *c)
-{
-}
-
-typecheck_result typeinfo_is_assignable_to_class(typeinfo *value, classref_or_classinfo dest)
-{
-	return typecheck_TRUE;
-}
-
-void typeinfo_print(FILE *file, typeinfo *info, int indent)
-{
 }
 
 

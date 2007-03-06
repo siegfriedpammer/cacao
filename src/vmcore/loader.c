@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7447 2007-03-04 14:22:42Z edwin $
+   $Id: loader.c 7464 2007-03-06 00:26:31Z edwin $
 
 */
 
@@ -49,8 +49,7 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
-#include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit_interface.h"
 
 #if defined(ENABLE_JAVASE)
 # include "vmcore/annotation.h"

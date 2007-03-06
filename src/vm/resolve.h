@@ -1,4 +1,4 @@
-/* src/vmcore/resolve.h - resolving classes/interfaces/fields/methods
+/* src/vm/resolve.h - resolving classes/interfaces/fields/methods
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.h 7457 2007-03-05 16:53:45Z edwin $
+   $Id: resolve.h 7464 2007-03-06 00:26:31Z edwin $
 
 */
 

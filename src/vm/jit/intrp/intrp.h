@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: intrp.h 7450 2007-03-04 19:13:29Z edwin $
+   $Id: intrp.h 7464 2007-03-06 00:26:31Z edwin $
 
 */
 
@@ -55,7 +55,7 @@ typedef s4 Cell;
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/references.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 #include "vmcore/linker.h"
 
 

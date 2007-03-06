@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 7441 2007-03-02 23:13:10Z michi $
+   $Id: java_lang_reflect_Field.c 7464 2007-03-06 00:26:31Z edwin $
 
 */
 
@@ -58,7 +58,7 @@
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/loader.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 #include "vmcore/utf8.h"
 
 

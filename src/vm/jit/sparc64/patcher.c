@@ -53,7 +53,7 @@
 #include "vmcore/field.h"
 #include "vmcore/options.h"
 #include "vmcore/references.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 
 /* patcher_wrapper *************************************************************

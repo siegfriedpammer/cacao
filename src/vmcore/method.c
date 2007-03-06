@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 7450 2007-03-04 19:13:29Z edwin $
+   $Id: method.c 7464 2007-03-06 00:26:31Z edwin $
 
 */
 
@@ -39,6 +39,8 @@
 #include "vm/global.h"
 
 #include "vm/jit/methodheader.h"
+
+#include "vm/jit_interface.h"
 
 #include "vmcore/class.h"
 #include "vmcore/linker.h"
@@ -117,7 +119,6 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	methodptr   mptr;
 	methodptr  *pmptr;
 	methodinfo *resm;                   /* pointer to new resolved method     */
-	codeinfo   *code;
 
 	/* If the method is not an instance method, just return it. */
 
@@ -139,9 +140,7 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 
 	/* and now get the codeinfo pointer from the first data segment slot */
 
-	code = *((codeinfo **) (mptr + CodeinfoPointer));
-
-	resm = code->m;
+	resm = code_get_methodinfo_for_pv(mptr);
 
 	return resm;
 }

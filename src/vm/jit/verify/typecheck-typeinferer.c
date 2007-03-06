@@ -51,7 +51,7 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 #define TYPECHECK_NO_STATISTICS
 #include <typecheck-common.h>

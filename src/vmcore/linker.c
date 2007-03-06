@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7463 2007-03-06 00:02:04Z edwin $
+   $Id: linker.c 7464 2007-03-06 00:26:31Z edwin $
 
 */
 
@@ -49,14 +49,17 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit_interface.h"
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
 #include "vmcore/rt-timing.h"
+
+/* #include "vm/resolve.h" */
+/* copied prototype to avoid bootstrapping problem: */
+classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool checkaccess);
 
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"
