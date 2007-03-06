@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id$
+   $Id: jit_interface.h 7465 2007-03-06 00:27:12Z edwin $
 
 */
 
