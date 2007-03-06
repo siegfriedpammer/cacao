@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7450 2007-03-04 19:13:29Z edwin $
+   $Id: linker.c 7463 2007-03-06 00:02:04Z edwin $
 
 */
 
@@ -598,8 +598,7 @@ static classinfo *link_class_intern(classinfo *c)
 	for (i = 0; i < c->interfacescount; i++) {
 		/* resolve this super interface */
 
-		if (!resolve_classref_or_classinfo(NULL, c->interfaces[i], resolveEager,
-										   true, false, &tc))
+		if ((tc = resolve_classref_or_classinfo_eager(c->interfaces[i], true)) == NULL)
 			return NULL;
 
 		c->interfaces[i].cls = tc;
@@ -639,9 +638,9 @@ static classinfo *link_class_intern(classinfo *c)
 	} else {
 		/* resolve super class */
 
-		if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, true, false,
-										   &super))
+		if ((super = resolve_classref_or_classinfo_eager(c->super, true)) == NULL)
 			return NULL;
+
 		c->super.cls = super;
 		
 		/* detect circularity */
