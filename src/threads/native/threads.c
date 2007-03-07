@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7338 2007-02-13 00:17:22Z twisti $
+   $Id: threads.c 7474 2007-03-07 11:47:45Z michi $
 
 */
 
@@ -723,11 +723,13 @@ bool threads_init(void)
 	/*     with the new locking algorithm.                */
 	/* lock_record_free_pools(mainthreadobj->ee.lockrecordpools); */
 
+#if 0
 	/* This is kinda tricky, we grow the java.lang.Thread object so we
 	   can keep the execution environment there. No Thread object must
 	   have been created at an earlier time. */
 
 	class_java_lang_Thread->instancesize = sizeof(threadobject);
+#endif
 
 	/* get methods we need in this file */
 
@@ -750,11 +752,20 @@ bool threads_init(void)
 	if (method_thread_init == NULL)
 		return false;
 
-	/* create a java.lang.Thread for the main thread */
+	/* create a vm internal thread object for the main thread */
+	/* XXX Michi: we do not need to do this here, we could use the one
+	       created by threads_preinit() */
 
-	mainthreadobj = (threadobject *) builtin_new(class_java_lang_Thread);
+	mainthreadobj = NEW(threadobject);
 
 	if (mainthreadobj == NULL)
+		return false;
+
+	/* create a java.lang.Thread for the main thread */
+
+	mainthreadobj->object = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	if (mainthreadobj->object == NULL)
 		return false;
 
 	FREE(tempthread, threadobject);
@@ -805,18 +816,22 @@ bool threads_init(void)
 
 	/* set the thread */
 
-	t           = (java_lang_Thread *) mainthreadobj;
-	vmt->thread = t;
+	vmt->thread = mainthreadobj->object;
+	vmt->vmdata = (java_lang_Object *) mainthreadobj;
 
 	/* call java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
-	o = (java_objectheader *) mainthreadobj;
+	o = (java_objectheader *) mainthreadobj->object;
 
 	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
 						  false);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
+	/* set the thread */
+
+	mainthreadobj->object->vm_thread = (java_lang_Object *) mainthreadobj;
+
 	/* call public Thread(String name) */
 
-	o = (java_objectheader *) mainthreadobj;
+	o = (java_objectheader *) mainthreadobj->object;
 
 	(void) vm_call_method(method_thread_init, o, threadname);
 #endif
@@ -825,7 +840,7 @@ bool threads_init(void)
 		return false;
 
 #if defined(ENABLE_JAVASE)
-	mainthreadobj->o.group = threadgroup;
+	mainthreadobj->object->group = threadgroup;
 
 	/* add main thread to java.lang.ThreadGroup */
 
@@ -836,7 +851,7 @@ bool threads_init(void)
 								 true);
 
 	o = (java_objectheader *) threadgroup;
-	t = (java_lang_Thread *) mainthreadobj;
+	t = mainthreadobj->object;
 
 	(void) vm_call_method(m, o, t);
 
@@ -1077,7 +1092,7 @@ static void *threads_startup_thread(void *t)
 
 	/* set our priority */
 
-	threads_set_thread_priority(thread->tid, thread->o.priority);
+	threads_set_thread_priority(thread->tid, thread->object->priority);
 
 #if defined(ENABLE_INTRP)
 	/* set interpreter stack */
@@ -1107,7 +1122,7 @@ static void *threads_startup_thread(void *t)
 
 		c   = class_java_lang_VMThread;
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-		c   = thread->o.header.vftbl->class;
+		c   = thread->object->header.vftbl->class;
 #endif
 
 		m = class_resolveclassmethod(c, utf_run, utf_void__void, c, true);
@@ -1128,11 +1143,11 @@ static void *threads_startup_thread(void *t)
 #if defined(WITH_CLASSPATH_GNU)
 		/* we need to start the run method of java.lang.VMThread */
 
-		vmt = (java_lang_VMThread *) thread->o.vmThread;
+		vmt = (java_lang_VMThread *) thread->object->vmThread;
 		o   = (java_objectheader *) vmt;
 
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-		o   = (java_objectheader *) thread;
+		o   = (java_objectheader *) thread->object;
 #endif
 
 		(void) vm_call_method(m, o);
@@ -1174,9 +1189,45 @@ static void *threads_startup_thread(void *t)
 }
 
 
+/* threads_start_javathread ***************************************************
+
+   Start a thread in the JVM. Only the java thread object exists so far.
+
+   IN:
+      object.....the java thread object java.lang.Thread
+
+******************************************************************************/
+
+void threads_start_javathread(java_lang_Thread *object)
+{
+	threadobject *thread;
+
+	/* create the vm internal threadobject */
+
+	thread = NEW(threadobject);
+	assert(thread);
+
+	/* link the two objects together */
+
+	thread->object = object;
+
+#if defined(WITH_CLASSPATH_GNU)
+	assert(object->vmThread);
+	object->vmThread->vmdata = (java_lang_Object *) thread;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	object->vm_thread = (java_lang_Object *) thread;
+#endif
+
+	/* actually start the thread */
+	/* don't pass a function pointer (NULL) since we want Thread.run()V here */
+
+	threads_start_thread(thread, NULL);
+}
+
+
 /* threads_start_thread ********************************************************
 
-   Start a thread in the JVM.
+   Start a thread in the JVM. Both (vm internal and java) thread objects exist.
 
    IN:
       thread.......the thread object
@@ -1248,14 +1299,6 @@ void threads_set_thread_priority(pthread_t tid, int priority)
 	struct sched_param schedp;
 	int policy;
 
-#if defined(ENABLE_JAVAME_CLDC1_1)
-	/* The thread id is zero when a thread is created in Java.  The
-	   priority is set later during startup. */
-
-	if (tid == NULL)
-		return;
-#endif
-
 	pthread_getschedparam(tid, &policy, &schedp);
 	schedp.sched_priority = priority;
 	pthread_setschedparam(tid, policy, &schedp);
@@ -1285,16 +1328,21 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	java_lang_VMThread    *vmt;
 #endif
 
-	/* create a java.lang.Thread object */
+	/* create a vm internal thread object */
 
-	thread = (threadobject *) builtin_new(class_java_lang_Thread);
+	thread = NEW(threadobject);
 
 	if (thread == NULL)
 		return false;
 
-	/* cast for convenience */
+	/* create a java.lang.Thread object */
 
-	t = (java_lang_Thread *) thread;
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	if (t == NULL)
+		return false;
+
+	thread->object = t;
 
 	threads_init_threadobject(thread);
 	threads_set_current_threadobject(thread);
@@ -1340,6 +1388,9 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	/* set the thread */
 
 	vmt->thread = t;
+	vmt->vmdata = (java_lang_Object *) thread;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	t->vm_thread = (java_lang_Object *) thread;
 #endif
 
 	if (vm_aargs != NULL) {
@@ -1351,13 +1402,13 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	else {
 		u     = utf_null;
 #if defined(ENABLE_JAVASE)
-		group = mainthreadobj->o.group;
+		group = mainthreadobj->object->group;
 #endif
 	}
 
 	s = javastring_new(u);
 
-	o = (java_objectheader *) thread;
+	o = (java_objectheader *) thread->object;
 
 #if defined(WITH_CLASSPATH_GNU)
 	(void) vm_call_method(method_thread_init, o, vmt, s, NORM_PRIORITY,
@@ -1372,7 +1423,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(ENABLE_JAVASE)
 	/* store the thread group in the object */
 
-	thread->o.group = group;
+	thread->object->group = group;
 
 	/* add thread to given thread-group */
 
@@ -1421,7 +1472,7 @@ bool threads_detach_thread(threadobject *thread)
 #if defined(ENABLE_JAVASE)
 	/* remove thread from the thread group */
 
-	group = thread->o.group;
+	group = thread->object->group;
 
 	/* XXX TWISTI: should all threads be in a ThreadGroup? */
 
@@ -1436,7 +1487,7 @@ bool threads_detach_thread(threadobject *thread)
 			return false;
 
 		o = (java_objectheader *) group;
-		t = (java_lang_Thread *) thread;
+		t = thread->object;
 
 		(void) vm_call_method(m, o, t);
 
@@ -1466,6 +1517,10 @@ bool threads_detach_thread(threadobject *thread)
 	/* tell everyone that a thread has finished */
 
 	pthread_cond_broadcast(&(thread->joincond));
+
+	/* free the vm internal thread object */
+
+	FREE(thread, threadobject);
 
 	return true;
 }
@@ -1844,7 +1899,7 @@ void threads_dump(void)
 	do {
 		/* get thread object */
 
-		t = (java_lang_Thread *) thread;
+		t = thread->object;
 
 		/* the thread may be currently in initalization, don't print it */
 

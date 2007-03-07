@@ -32,6 +32,7 @@
 
 
 #include "native/jni.h"
+#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Thread.h"
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -57,16 +58,24 @@
 
 threadobject *threads_create_thread(utf *name)
 {
-	threadobject *thread;
+	threadobject       *thread;
+	java_lang_Thread   *t;
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThread *vmt;
 #endif
 
-	/* create the finalizer object */
+	/* create the vm internal thread object */
 
-	thread = (threadobject *) builtin_new(class_java_lang_Thread);
+	thread = NEW(threadobject);
 
 	if (thread == NULL)
+		return NULL;
+
+	/* create the java thread object */
+
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	if (t == NULL)
 		return NULL;
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -75,20 +84,24 @@ threadobject *threads_create_thread(utf *name)
 	if (vmt == NULL)
 		return NULL;
 
-	vmt->thread = (java_lang_Thread *) thread;
+	vmt->thread = t;
+	vmt->vmdata = (java_lang_Object *) thread;
 
-	thread->o.vmThread = vmt;
+	t->vmThread = vmt;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	t->vm_thread = (java_lang_Object *) thread;
 #endif
 
+	thread->object     = t;
 	thread->flags      = THREAD_FLAG_DAEMON;
 
 	/* set java.lang.Thread fields */
 
-	thread->o.name     = javastring_new(name);
+	t->name     = javastring_new(name);
 #if defined(ENABLE_JAVASE)
-	thread->o.daemon   = true;
+	t->daemon   = true;
 #endif
-	thread->o.priority = NORM_PRIORITY;
+	t->priority = NORM_PRIORITY;
 
 	/* return the thread object */
 
