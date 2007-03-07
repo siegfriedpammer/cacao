@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7449 2007-03-04 18:07:55Z twisti $
+   $Id: emit.c 7476 2007-03-07 13:12:01Z twisti $
 
 */
 
@@ -1812,14 +1812,16 @@ void emit_nop(codegendata *cd) {
 /*
  * call instructions
  */
-void emit_call_reg(codegendata *cd, s8 reg) {
-	emit_rex(1,0,0,(reg));
+void emit_call_reg(codegendata *cd, s8 reg)
+{
+	emit_rex(0,0,0,(reg));
 	*(cd->mcodeptr++) = 0xff;
 	emit_reg(2,(reg));
 }
 
 
-void emit_call_imm(codegendata *cd, s8 imm) {
+void emit_call_imm(codegendata *cd, s8 imm)
+{
 	*(cd->mcodeptr++) = 0xe8;
 	emit_imm32((imm));
 }
