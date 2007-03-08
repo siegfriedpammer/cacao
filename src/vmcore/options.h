@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 7356 2007-02-14 11:00:28Z twisti $
+   $Id: options.h 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -106,12 +106,6 @@ extern bool opt_showintermediate;
 extern bool opt_showexceptionstubs;
 extern bool opt_shownativestub;
 
-extern bool useinlining;
-extern bool inlinevirtuals;
-extern bool inlineexceptions;
-extern bool inlineparamopt;
-extern bool inlineoutsiders;
-
 extern bool checkbounds;
 extern bool checknull;
 extern bool opt_noieee;
@@ -136,6 +130,22 @@ extern bool opt_eager;
 extern bool opt_prof;
 extern bool opt_prof_bb;
 #endif
+
+/* inlining options ***********************************************************/
+
+#if defined(ENABLE_INLINING)
+extern bool opt_inlining;
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+extern s4 opt_replace_verbose;
+extern s4 opt_inline_debug_min_size;
+extern s4 opt_inline_debug_max_size;
+extern s4 opt_inline_debug_end_counter;
+extern bool opt_inline_debug_all;
+#endif /* defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG) */
+#if !defined(NDEBUG)
+extern bool opt_inline_debug_log;
+#endif /* !defined(NDEBUG) */
+#endif /* defined(ENABLE_INLINING) */
 
 
 /* optimization options *******************************************************/

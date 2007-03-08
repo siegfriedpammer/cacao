@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7396 2007-02-23 23:06:11Z michi $
+   $Id: codegen.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -420,6 +420,17 @@ bool codegen(jitdata *jd)
 		/* handle replacement points */
 
 		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
+
+#if defined(ENABLE_REPLACEMENT)
+		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
+			if (cd->replacementpoint[-1].flags & RPLPOINT_FLAG_COUNTDOWN) {
+				MCODECHECK(32);
+				disp = (s4) &(m->hitcountdown);
+				M_ISUB_IMM_MEMABS(1, disp);
+				M_BS(0);
+			}
+		}
+#endif
 
 		/* copy interface registers to their destination */
 

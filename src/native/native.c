@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7399 2007-02-23 23:29:13Z michi $
+   $Id: native.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -64,7 +64,7 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
@@ -1219,8 +1219,7 @@ java_objectarray *native_get_exceptiontypes(methodinfo *m)
 		return NULL;
 
 	for (i = 0; i < m->thrownexceptionscount; i++) {
-		if (!resolve_classref_or_classinfo(NULL, m->thrownexceptions[i],
-										   resolveEager, true, false, &c))
+		if ((c = resolve_classref_or_classinfo_eager(m->thrownexceptions[i], true)) == NULL)
 			return NULL;
 
 		oa->data[i] = (java_objectheader *) c;

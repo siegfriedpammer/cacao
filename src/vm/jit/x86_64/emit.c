@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7356 2007-02-14 11:00:28Z twisti $
+   $Id: emit.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -76,17 +76,22 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 		disp = src->vv.regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-		}
-		else {
-			if (IS_INT_TYPE(src->type))
-				M_ILD(tempreg, REG_SP, disp);
-			else
-				M_LLD(tempreg, REG_SP, disp);
+		switch (src->type) {
+		case TYPE_INT:
+			M_ILD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+		case TYPE_ADR:
+			M_LLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+			M_FLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_DBL:
+			M_DLD(tempreg, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_load: unknown type %d", src->type);
 		}
 
 		reg = tempreg;
@@ -148,14 +153,21 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 		disp = dst->vv.regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(dst->type)) {
-			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, disp);
-			else
-				M_FST(d, REG_SP, disp);
-		}
-		else
+		switch (dst->type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
 			M_LST(d, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+			M_FST(d, REG_SP, disp);
+			break;
+		case TYPE_DBL:
+			M_DST(d, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_store: unknown type %d", dst->type);
+		}
 	}
 }
 
@@ -192,10 +204,19 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		}
 
 		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type))
-				M_FMOV(s1, d);
-			else
+			switch (src->type) {
+			case TYPE_INT:
+			case TYPE_LNG:
+			case TYPE_ADR:
 				M_MOV(s1, d);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_FMOV(s1, d);
+				break;
+			default:
+				vm_abort("emit_copy: unknown type %d", src->type);
+			}
 		}
 
 		emit_store(jd, iptr, dst, d);
@@ -1791,14 +1812,16 @@ void emit_nop(codegendata *cd) {
 /*
  * call instructions
  */
-void emit_call_reg(codegendata *cd, s8 reg) {
-	emit_rex(1,0,0,(reg));
+void emit_call_reg(codegendata *cd, s8 reg)
+{
+	emit_rex(0,0,0,(reg));
 	*(cd->mcodeptr++) = 0xff;
 	emit_reg(2,(reg));
 }
 
 
-void emit_call_imm(codegendata *cd, s8 imm) {
+void emit_call_imm(codegendata *cd, s8 imm)
+{
 	*(cd->mcodeptr++) = 0xe8;
 	emit_imm32((imm));
 }

@@ -1,4 +1,4 @@
-/* src/vmcore/resolve.h - resolving classes/interfaces/fields/methods
+/* src/vm/resolve.h - resolving classes/interfaces/fields/methods
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.h 7441 2007-03-02 23:13:10Z michi $
+   $Id: resolve.h 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -138,6 +138,8 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 							  bool checkaccess,
 							  bool link,
 							  classinfo **result);
+
+classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool checkaccess);
 
 bool resolve_class_from_typedesc(typedesc *d,bool checkaccess,bool link,classinfo **result);
 

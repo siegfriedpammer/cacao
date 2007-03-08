@@ -100,48 +100,52 @@ asm_vm_call_method_long:
 asm_vm_call_method_float: 
 asm_vm_call_method_double:
 	
-	save %sp, -144, %sp		/* 16 reg-save + 2 */
+	save %sp,-144,%sp                                /* 16 reg-save + 2 */
 
 
-	/* todo: copy fp registers */
+	/* %i2 not needed after _nocopy -> calculate in branch delay */
 
-	brlez %i1, calljava_argsloaded
-	dec %i1
-	ldx [%i2 + offvmargdata], %o0
-	brlez %i1, calljava_argsloaded
-
-	dec %i1
-	ldx [%i2 + (offvmargdata+sizevmarg*1)], %o1
-	brlez %i1, calljava_argsloaded
-
-	dec %i1
-	ldx [%i2 + (offvmargdata+sizevmarg*2)], %o2
-	brlez %i1, calljava_argsloaded
-
-	dec %i1
-	ldx [%i2 + (offvmargdata+sizevmarg*3)], %o3
-	brlez %i1, calljava_argsloaded
-
-	dec %i1
-	ldx [%i2 + (offvmargdata+sizevmarg*4)], %o4
-
-	/* todo: use more out registers ? */
-
-calljava_argsloaded:
-	/* todo: stack frame layout!! */
-	
 	brlez %i1, calljava_nocopy
-	sllx %i1, 3, %l0	/* remaining args * 8           */
-	mov %sp, %l1		/* right above window save area */
-	sub %sp, %l0, %sp	/* allocate more stack space    */
+	
+	dec %i1   /* branch delay */
+	ldx [%i2 + offvmargdata],%o0
+	ldd [%i2 + offvmargdata],fa0
+	brlez %i1,calljava_nocopy
+
+	dec %i1   /* branch delay */
+	ldx [%i2 + (offvmargdata+sizevmarg*1)],%o1
+	ldd [%i2 + (offvmargdata+sizevmarg*1)],fa1
+	brlez %i1,calljava_nocopy
+
+	dec %i1
+	ldx [%i2 + (offvmargdata+sizevmarg*2)],%o2
+	ldd [%i2 + (offvmargdata+sizevmarg*2)],fa2
+	brlez %i1,calljava_nocopy
+
+	dec %i1
+	ldx [%i2 + (offvmargdata+sizevmarg*3)],%o3
+	ldd [%i2 + (offvmargdata+sizevmarg*3)],fa3
+	brlez %i1,calljava_nocopy
+
+	dec %i1
+	ldx [%i2 + (offvmargdata+sizevmarg*4)],%o4
+	ldd [%i2 + (offvmargdata+sizevmarg*4)],fa4
+
+calljava_argsloaded:	
+	brlez %i1, calljava_nocopy
+	nop
+	sllx %i1,3,%l0                     /* remaining args * 8           */
+	add %sp,16*8+bias,%l1              /* right above window save area */
+	sub %sp,%l0,%sp                    /* allocate more stack space    */
 	
 calljava_copyloop:
-	ldx [%i2 + (offvmargdata+sizevmarg*5)], %l0
-	stx %l0, [%l1]
-	inc sizevmarg, %i2 	/* src++                        */
-	inc 8, %l1		/* dst++                        */
-	dec %i1			/* arg_count--			*/
-	bnz %xcc, calljava_copyloop
+	ldx [%i2 + (offvmargdata+sizevmarg*5)],%l0
+	stx %l0,[%l1]
+	inc sizevmarg,%i2                  /* src++                        */
+	subcc %i1,1,%i1                    /* arg_count--                  */
+	bnz %xcc, calljava_copyloop        /* use cc from previous instr   */
+	inc 8,%l1                          /* dst++ (delay)                */
+	
 
 calljava_nocopy:
 	/* set pv, like a java method does */
@@ -203,7 +207,8 @@ asm_vm_call_method_exception_handler:
 
 asm_call_jit_compiler:
 	
-	save    %sp,-208,%sp         /* regsave(16) + argslots(6) + 4 float args  */
+	/* stacksave for regsave(16) + argslots(6) + float args  */
+	save    %sp,-((16+6+FLT_ARG_CNT)*8),%sp
 
 	SAVE_FLOAT_ARGUMENT_REGISTERS(22)
 
@@ -291,7 +296,7 @@ asm_handle_exception:
 	mov     pv_callee,%g4
 
 	/* save bigger stack frame for float args and temps */
-	save    %sp,(FLT_ARG_CNT+FLT_TMP_CNT+CSTACK_CNT)*8,%sp
+	save    %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+CSTACK_CNT)*8),%sp
 
 	SAVE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT)
 	SAVE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+FLT_ARG_CNT)

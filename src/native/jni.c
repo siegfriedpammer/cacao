@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7441 2007-03-02 23:13:10Z michi $
+   $Id: jni.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -107,7 +107,7 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 #include "vmcore/statistics.h"
 
 

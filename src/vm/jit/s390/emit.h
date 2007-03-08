@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.h 7219 2007-01-16 22:18:57Z pm $
+   $Id: emit.h 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -356,6 +356,9 @@ void emit_xorpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 /* system instructions ********************************************************/
 
 void emit_rdtsc(codegendata *cd);
+
+s4 emit_load_s1_notzero(jitdata *jd, instruction *iptr, s4 tempreg);
+s4 emit_load_s2_notzero(jitdata *jd, instruction *iptr, s4 tempreg);
 
 #endif /* _MD_EMIT_H */
 

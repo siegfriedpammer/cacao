@@ -587,8 +587,8 @@ bool fits13(s4 disp);
 #define M_CVTFL(rs,rd)          M_FOP3(0x02,0x34,0x081,DR_X(rd),-1,FR_X(rs))     /* flt2long  */
 #define M_CVTDL(rs,rd)          M_FOP3_DX(0x02,0x34,0x082,rd,-1,rs)       /* dbl2long  */
 
-#define M_CVTFD(rs,rd)          M_FOP3(0x02,0x34,0x0c9,DR_X(rs),-1,FR_X(rs))     /* flt2dbl   */
-#define M_CVTDF(rs,rd)          M_FOP3(0x02,0x34,0x0c6,FR_X(rs),-1,DR_X(rs))     /* dbl2float */
+#define M_CVTFD(rs,rd)          M_FOP3(0x02,0x34,0x0c9,DR_X(rd),-1,FR_X(rs))     /* flt2dbl   */
+#define M_CVTDF(rs,rd)          M_FOP3(0x02,0x34,0x0c6,FR_X(rd),-1,DR_X(rs))     /* dbl2float */
 
 
 

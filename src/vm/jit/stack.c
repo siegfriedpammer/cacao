@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7429 2007-03-01 12:42:16Z twisti $
+   $Id: stack.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -69,7 +69,7 @@
 #endif
 
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"

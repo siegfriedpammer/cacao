@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7356 2007-02-14 11:00:28Z twisti $
+   $Id: threads.h 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -120,8 +120,7 @@ struct threads_table_t {
 
 /* threadobject ****************************************************************
 
-   Every java.lang.Thread object is actually an instance of this
-   structure.
+   Struct holding thread local variables.
 
 *******************************************************************************/
 
@@ -131,7 +130,7 @@ struct threads_table_t {
 
 
 struct threadobject {
-	java_lang_Thread      o;            /* the java.lang.Thread object        */
+	java_lang_Thread     *object;       /* link to java.lang.Thread object    */
 
 	lock_execution_env_t  ee;           /* data for the lock implementation   */
 
@@ -200,6 +199,7 @@ threadobject *threads_get_current_threadobject(void);
 void threads_preinit(void);
 bool threads_init(void);
 
+void threads_start_javathread(java_lang_Thread *object);
 void threads_start_thread(threadobject *thread, functionptr function);
 
 void threads_set_thread_priority(pthread_t tid, int priority);

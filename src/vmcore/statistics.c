@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7370 2007-02-16 18:00:03Z twisti $
+   $Id: statistics.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -41,6 +41,11 @@
 
 #include "vm/global.h"
 
+#include "vm/jit/code.h"
+
+#include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/method.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
 

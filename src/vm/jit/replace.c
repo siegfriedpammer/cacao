@@ -608,6 +608,9 @@ bool replace_create_replacement_points(jitdata *jd)
 			replace_create_replacement_point(jd, iinfo, rp++,
 					bptr->type, bptr->iinstr, &ra,
 					bptr->javalocals, bptr->invars + i, bptr->indepth - i, 0);
+
+			if (JITDATA_HAS_FLAG_COUNTDOWN(jd))
+				rp[-1].flags |= RPLPOINT_FLAG_COUNTDOWN;
 		}
 
 		/* iterate over the instructions */
@@ -844,6 +847,23 @@ void replace_deactivate_replacement_points(codeinfo *code)
 	s4        i;
 	s4        count;
 	u1       *savedmcode;
+
+	if (code->savedmcode == NULL) {
+		/* disarm countdown points by patching the branches */
+
+		i = code->rplpointcount;
+		rp = code->rplpoints;
+		for (; i--; rp++) {
+			if ((rp->flags & (RPLPOINT_FLAG_ACTIVE | RPLPOINT_FLAG_COUNTDOWN))
+					== RPLPOINT_FLAG_COUNTDOWN)
+			{
+#if 0
+				*(s4*) (rp->pc + 9) = 0; /* XXX machine dependent! */
+#endif
+			}
+		}
+		return;
+	}
 
 	assert(code->savedmcode != NULL);
 	savedmcode = code->savedmcode;
@@ -1654,13 +1674,20 @@ struct replace_patch_data_t {
 	u1         *entrypoint;
 };
 
+#define CODEINFO_OF_CODE(entrypoint) \
+	(*(codeinfo **)((u1*)(entrypoint) + CodeinfoPointer))
+
+#define METHOD_OF_CODE(entrypoint) \
+	(CODEINFO_OF_CODE(entrypoint)->m)
+
 void replace_patch_callback(classinfo *c, struct replace_patch_data_t *pd)
 {
 	vftbl_t *vftbl = c->vftbl;
 
 	if (vftbl != NULL
 		&& vftbl->vftbllength > pd->m->vftblindex
-		&& vftbl->table[pd->m->vftblindex] == (methodptr) pd->oldentrypoint)
+		&& vftbl->table[pd->m->vftblindex] != &asm_abstractmethoderror
+		&& METHOD_OF_CODE(vftbl->table[pd->m->vftblindex]) == pd->m)
 	{
 		replace_patch_class(c->vftbl, pd->m, pd->oldentrypoint, pd->entrypoint);
 	}
@@ -1675,6 +1702,9 @@ void replace_patch_class_hierarchy(methodinfo *m,
 	pd.m = m;
 	pd.oldentrypoint = oldentrypoint;
 	pd.entrypoint = entrypoint;
+
+	DOLOG_SHORT( printf("patching class hierarchy: ");
+			     method_println(m); );
 
 	classcache_foreach_loaded_class(
 			(classcache_foreach_functionptr_t) &replace_patch_callback,
@@ -2421,6 +2451,12 @@ static bool replace_map_source_state(sourcestate_t *ss)
 #if defined(REPLACE_STATISTICS)
 				oldcode = frame->method->code;
 #endif
+				/* request optimization of hot methods and their callers */
+
+				if (frame->method->hitcountdown < 0
+					|| (frame->down && frame->down->method->hitcountdown < 0))
+					jit_request_optimization(frame->method);
+
 				code = jit_get_current_code(frame->method);
 
 				if (code == NULL)
@@ -2870,6 +2906,8 @@ void replace_replacement_point_println(rplpoint *rp, int depth)
 			replace_type_str[rp->type]);
 	if (rp->flags & RPLPOINT_FLAG_NOTRAP)
 		printf(" NOTRAP");
+	if (rp->flags & RPLPOINT_FLAG_COUNTDOWN)
+		printf(" COUNTDOWN");
 	if (rp->flags & RPLPOINT_FLAG_ACTIVE)
 		printf(" ACTIVE");
 	printf(" parent:%p\n", (void*)rp->parent);

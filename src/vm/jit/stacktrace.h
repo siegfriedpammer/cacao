@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 7441 2007-03-02 23:13:10Z michi $
+   $Id: stacktrace.h 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -38,6 +38,8 @@ typedef struct stacktrace_entry stacktrace_entry;
 
 #include "config.h"
 #include "vm/types.h"
+
+#include "md-abi.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"

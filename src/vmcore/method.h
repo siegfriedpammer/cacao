@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 7268 2007-02-01 12:02:56Z twisti $
+   $Id: method.h 7483 2007-03-08 13:17:40Z michi $
 */
 
 
@@ -36,14 +36,12 @@ typedef struct raw_exception_entry raw_exception_entry;
 typedef struct lineinfo            lineinfo; 
 typedef struct method_assumption   method_assumption;
 typedef struct method_worklist     method_worklist;
+typedef struct codeinfo            codeinfo;
 
 #include "config.h"
 #include "vm/types.h"
 
 #include "vm/global.h"
-
-#include "vm/jit/code.h"
-#include "vm/jit/codegen-common.h"
 
 #include "vmcore/descriptor.h"
 #include "vmcore/references.h"
@@ -54,6 +52,12 @@ typedef struct method_worklist     method_worklist;
 #endif
 
 #include "vmcore/utf8.h"
+
+
+#if defined(ENABLE_REPLACEMENT)
+/* Initial value for the hit countdown field of each method. */
+#define METHOD_INITIAL_HIT_COUNTDOWN  1000
+#endif
 
 
 /* methodinfo *****************************************************************/
@@ -95,6 +99,10 @@ struct methodinfo {                 /* method structure                       */
 
 	methodinfo   *overwrites;       /* method that is directly overwritten    */
 	method_assumption *assumptions; /* list of assumptions about this method  */
+
+#if defined(ENABLE_REPLACEMENT)
+	s4            hitcountdown;     /* decreased for each hit                 */
+#endif
 };
 
 

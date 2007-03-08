@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: intrp.h 7368 2007-02-16 11:16:10Z twisti $
+   $Id: intrp.h 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -55,7 +55,8 @@ typedef s4 Cell;
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/references.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
+#include "vmcore/linker.h"
 
 
 typedef void *Label;

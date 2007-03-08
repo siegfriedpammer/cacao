@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: headers.c 7297 2007-02-07 14:59:56Z twisti $
+   $Id: headers.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -53,8 +53,6 @@
 #include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
-
-#include "vm/jit/asmpart.h"
 
 #include "vmcore/class.h"
 #include "vmcore/method.h"

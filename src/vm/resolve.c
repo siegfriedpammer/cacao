@@ -1,4 +1,4 @@
-/* src/vmcore/resolve.c - resolving classes/interfaces/fields/methods
+/* src/vm/resolve.c - resolving classes/interfaces/fields/methods
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 7441 2007-03-02 23:13:10Z michi $
+   $Id: resolve.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -47,7 +47,7 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 
 /******************************************************************************/
@@ -362,6 +362,33 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
  return_exception:
 	*result = NULL;
 	return false;
+}
+
+
+/* resolve_classref_or_classinfo_eager *****************************************
+ 
+   Resolve a symbolic class reference eagerly if necessary.
+   No attempt is made to link the class.
+
+   IN:
+       cls..............class reference or classinfo
+       checkaccess......if true, access rights to the class are checked
+  
+   RETURN VALUE:
+       classinfo *......the resolved class
+       NULL.............an exception has been thrown
+   
+*******************************************************************************/
+
+classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls,
+											   bool checkaccess)
+{
+	classinfo *c;
+
+	if (!resolve_classref_or_classinfo(NULL, cls, resolveEager, checkaccess, false, &c))
+		return NULL;
+
+	return c;
 }
 
 

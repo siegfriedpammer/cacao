@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7356 2007-02-14 11:00:28Z twisti $
+   $Id: emit.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -547,9 +547,8 @@ void emit_replacement_stubs(jitdata *jd)
 	rplpoint    *rplp;
 	s4           disp;
 	s4           i;
-#if !defined(NDEBUG)
-	u1          *savedmcodeptr;
-#endif
+	s4           branchmpc;
+	s4           outcode;
 
 	/* get required compiler data */
 
@@ -574,9 +573,7 @@ void emit_replacement_stubs(jitdata *jd)
 
 		/* note start of stub code */
 
-#if !defined(NDEBUG)
-		savedmcodeptr = cd->mcodeptr;
-#endif
+		outcode = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		/* push address of `rplpoint` struct */
 			
@@ -587,7 +584,16 @@ void emit_replacement_stubs(jitdata *jd)
 		M_PUSH_IMM(asm_replacement_out);
 		M_RET;
 
-		assert((cd->mcodeptr - savedmcodeptr) == REPLACEMENT_STUB_SIZE);
+		/* add jump reference for COUNTDOWN points */
+
+		if (rplp->flags & RPLPOINT_FLAG_COUNTDOWN) {
+
+			branchmpc = (s4)rplp->pc + (7 + 6);
+
+			md_codegen_patch_branch(cd, branchmpc, (s4) outcode);
+		}
+
+		assert(((cd->mcodeptr - cd->mcodebase) - outcode) == REPLACEMENT_STUB_SIZE);
 	}
 }
 #endif /* defined(ENABLE_REPLACEMENT) */

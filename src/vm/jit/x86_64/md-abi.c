@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7383 2007-02-21 20:26:52Z twisti $
+   $Id: md-abi.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -33,6 +33,8 @@
 #include "vm/jit/x86_64/md-abi.h"
 
 #include "vm/global.h"
+
+#include "vm/jit/jit.h" /* for REG_* (maybe can be removed) */
 
 #include "vmcore/descriptor.h"
 

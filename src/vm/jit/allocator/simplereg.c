@@ -22,7 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   $Id: simplereg.c 7297 2007-02-07 14:59:56Z twisti $
+   $Id: simplereg.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -48,7 +48,7 @@
 
 #include "vmcore/method.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 
 #if 0

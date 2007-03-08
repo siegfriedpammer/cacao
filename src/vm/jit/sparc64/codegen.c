@@ -2164,7 +2164,7 @@ bool codegen(jitdata *jd)
 		case ICMD_DRETURN:
 
 			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-			M_FLTMOVE(s1, REG_FRESULT);
+			M_DBLMOVE(s1, REG_FRESULT);
 			goto nowperformreturn;
 
 		case ICMD_RETURN:       /* ...  ==> ...                               */
@@ -2803,6 +2803,66 @@ gen_method:
 			}
 			break;
 
+		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
+
+			/* check for negative sizes and copy sizes to stack if necessary  */
+
+			MCODECHECK((iptr->s1.argcount << 1) + 64);
+
+			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
+
+				var = VAR(iptr->sx.s23.s2.args[s1]);
+	
+				/* copy SAVEDVAR sizes to stack */
+
+				/* Already Preallocated? */
+
+				if (!(var->flags & PREALLOC)) {
+					s2 = emit_load(jd, iptr, var, REG_ITMP1);
+					M_STX(s2, REG_SP, CSTACK + (s1 * 8));
+				}
+			}
+
+			/* arg 0 = dimension count */
+
+			ICONST(REG_OUT0, iptr->s1.argcount);
+
+			/* is patcher function set? */
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				disp = dseg_add_unique_address(cd, 0);
+
+				codegen_add_patch_ref(cd, PATCHER_builtin_multianewarray,
+									  iptr->sx.s23.s3.c.ref,
+									  disp);
+			}
+			else
+				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
+
+			/* arg 1 = arraydescriptor */
+
+			M_ALD(REG_OUT1, REG_PV, disp);
+
+			/* arg 2 = pointer to dimensions = stack pointer (absolute) */
+
+			M_ADD_IMM(REG_SP, CSTACK, REG_OUT2);
+
+			/* XXX c abi call */
+			disp = dseg_add_functionptr(cd, BUILTIN_multianewarray);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+			M_NOP;
+
+			/* check for exception before result assignment */
+
+			M_BEQZ(REG_RESULT_CALLER, 0);
+			codegen_add_fillinstacktrace_ref(cd);
+			M_NOP;
+
+			d = codegen_reg_of_dst(jd, iptr, REG_RESULT_CALLER);
+			M_INTMOVE(REG_RESULT_CALLER, d);
+			emit_store_dst(jd, iptr, d);
+			break;
 
 		default:
 			exceptions_throw_internalerror("Unknown ICMD %d during code generation",
@@ -2929,8 +2989,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	cd   = jd->cd;
 	rd   = jd->rd;
 
-	/* rewrite registers and params */
-	md_native_reg_setup(jd);
+	/* redo param allocation */
 	md_native_param_alloc(nmd);
 
 	/* initialize variables */
@@ -3039,7 +3098,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 				if (!nmd->params[j].inmemory) {
 					/* no mapping to regs needed, native flt args use regoff */
-					s2 = nmd->params[j].regoff - 6;
+					s2 = nmd->params[j].regoff;
 					
 					/* we cannot move flt regs to their native arg locations directly */
 					M_DMOV(s1, s2 + 16);

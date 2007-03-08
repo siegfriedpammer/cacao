@@ -69,7 +69,7 @@
 #define REG_OUT2        10
 #define REG_OUT3        11
 #define REG_OUT4        12
-#define REG_OUT5        13
+#define REG_OUT5        13   /* available only when doing a C-call            */
 
 /* floating point registers */
 /* only using the lower half of the floating registers for now */
@@ -93,8 +93,8 @@
 
 #define FLT_REG_CNT     16   /* number of float registers                     */
 #define FLT_SAV_CNT      0   /* number of flt callee saved registers          */
-#define FLT_ARG_CNT      4   /* number of flt argument registers              */
-#define FLT_TMP_CNT      8   /* number of flt temp registers                  */
+#define FLT_ARG_CNT      5   /* number of flt argument registers              */
+#define FLT_TMP_CNT      7   /* number of flt temp registers                  */
 #define FLT_RES_CNT      3   /* number of reserved float registers            */
                              /* the one "missing" register is the return reg  */
                              

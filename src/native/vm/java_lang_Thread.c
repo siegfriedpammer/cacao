@@ -33,14 +33,15 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(ENABLE_JAVASE)
-# include "native/include/java_lang_ThreadGroup.h"
-#endif
-
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Object.h"            /* java_lang_Thread.h */
 #include "native/include/java_lang_Throwable.h"         /* java_lang_Thread.h */
 #include "native/include/java_lang_Thread.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ThreadGroup.h"
+# include "native/include/java_lang_VMThread.h"
+#endif
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
@@ -91,13 +92,7 @@ void _Jv_java_lang_Thread_sleep(s8 millis)
 void _Jv_java_lang_Thread_start(java_lang_Thread *this, s8 stacksize)
 {
 #if defined(ENABLE_THREADS)
-	threadobject *thread;
-
-	thread = (threadobject *) this;
-
-	/* don't pass a function pointer (NULL) since we want Thread.run()V here */
-
-	threads_start_thread(thread, NULL);
+	threads_start_javathread(this);
 #endif
 }
 
@@ -112,7 +107,11 @@ void _Jv_java_lang_Thread_interrupt(java_lang_Thread *this)
 #if defined(ENABLE_THREADS)
 	threadobject *thread;
 
-	thread = (threadobject *) this;
+#if defined(WITH_CLASSPATH_GNU)
+	thread = (threadobject *) this->vmThread->vmdata;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	thread = (threadobject *) this->vm_thread;
+#endif
 
 	threads_thread_interrupt(thread);
 #endif
@@ -129,7 +128,11 @@ s4 _Jv_java_lang_Thread_isInterrupted(java_lang_Thread *this)
 #if defined(ENABLE_THREADS)
 	threadobject *thread;
 
-	thread = (threadobject *) this;
+#if defined(WITH_CLASSPATH_GNU)
+	thread = (threadobject *) this->vmThread->vmdata;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	thread = (threadobject *) this->vm_thread;
+#endif
 
 	return threads_thread_has_been_interrupted(thread);
 #else
@@ -172,7 +175,17 @@ void _Jv_java_lang_Thread_setPriority(java_lang_Thread *this, s4 priority)
 #if defined(ENABLE_THREADS)
 	threadobject *thread;
 
-	thread = (threadobject *) this;
+#if defined(WITH_CLASSPATH_GNU)
+	thread = (threadobject *) this->vmThread->vmdata;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	thread = (threadobject *) this->vm_thread;
+
+	/* The threadobject is null when a thread is created in Java. The
+	   priority is set later during startup. */
+
+	if (thread == NULL)
+		return;
+#endif
 
 	threads_set_thread_priority(thread->tid, priority);
 #endif
@@ -206,11 +219,11 @@ java_lang_Thread *_Jv_java_lang_Thread_currentThread(void)
 #if defined(ENABLE_THREADS)
 	thread = THREADOBJECT;
 
-	t = (java_lang_Thread *) thread;
+	t = thread->object;
 
 	if (t == NULL)
 		log_text("t ptr is NULL\n");
-  
+
 # if defined(ENABLE_JAVASE)
 	if (t->group == NULL) {
 		/* ThreadGroup of currentThread is not initialized */

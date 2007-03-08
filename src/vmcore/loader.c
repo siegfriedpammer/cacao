@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7399 2007-02-23 23:29:13Z michi $
+   $Id: loader.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -52,8 +52,7 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
-#include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit_interface.h"
 
 #if defined(ENABLE_JAVASE)
 # include "vmcore/annotation.h"
@@ -1539,6 +1538,12 @@ static bool loader_load_method(classbuffer *cb, methodinfo *m,
 		exceptions_throw_classformaterror(c, "Missing Code attribute");
 		return false;
 	}
+
+	/* initialize the hit countdown field */
+
+#if defined(ENABLE_REPLACEMENT)
+	m->hitcountdown = METHOD_INITIAL_HIT_COUNTDOWN;
+#endif
 
 	/* everything was ok */
 

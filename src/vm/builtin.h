@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 7356 2007-02-14 11:00:28Z twisti $
+   $Id: builtin.h 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -86,7 +86,7 @@ bool builtin_init(void);
 builtintable_entry *builtintable_get_internal(functionptr fp);
 builtintable_entry *builtintable_get_automatic(s4 opcode);
 
-bool builtintable_replace_function(instruction *iptr);
+bool builtintable_replace_function(void *iptr);
 
 
 /**********************************************************************/

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7399 2007-02-23 23:29:13Z michi $
+   $Id: class.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -35,6 +35,8 @@
 #include <string.h>
 
 #include "vm/types.h"
+
+#include "arch.h"
 
 #include "mm/memory.h"
 
@@ -51,7 +53,6 @@
 #include "vmcore/classcache.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
 
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"

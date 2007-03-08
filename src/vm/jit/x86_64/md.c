@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7297 2007-02-07 14:59:56Z twisti $
+   $Id: md.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -39,6 +39,7 @@
 #endif
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)

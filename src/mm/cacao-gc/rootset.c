@@ -110,10 +110,10 @@ void rootset_from_globals(rootset_t *rs)
 	thread = mainthreadobj;
 	do {
 
-		GC_LOG2( printf("Found Java Thread Objects: %p\n", (void *) thread->jthread); );
+		GC_LOG2( printf("Found Java Thread Objects: %p\n", (void *) thread->object); );
 
 		/* add this javathreadobject to the root set */
-		ROOTSET_ADD(&( thread->jthread ), true, REFTYPE_THREADOBJECT);
+		ROOTSET_ADD(&( thread->object ), true, REFTYPE_THREADOBJECT);
 
 		thread = thread->next;
 	} while ((thread != NULL) && (thread != mainthreadobj));

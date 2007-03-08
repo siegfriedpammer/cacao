@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7441 2007-03-02 23:13:10Z michi $
+   $Id: patcher.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -47,7 +47,7 @@
 #include "vm/initialize.h"
 #include "vmcore/options.h"
 #include "vmcore/references.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/stacktrace.h"
 
@@ -558,26 +558,21 @@ __PORTED__ bool patcher_invokestatic_special(u1 *sp)
 
    Machine code:
 
-   <patched call position>
-   4c 8b 17                         mov    (%rdi),%r10
-   49 8b 82 00 00 00 00             mov    0x0(%r10),%rax
-   48 ff d0                         callq  *%rax
-
 *******************************************************************************/
 
 bool patcher_invokevirtual(u1 *sp)
 {
-	OOPS();
 	u1                *ra;
-	u8                 mcode;
+	u4                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
+	s4                off;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	mcode =                       *((u4 *)     (sp + 3 * 4));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
 
 	/* get the fieldinfo */
 
@@ -586,17 +581,17 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + 5;
+	*((u4 *) ra) = mcode;
 
 	/* patch vftbl index */
 
-	*((s4 *) (ra + 3 + 3)) = (s4) (OFFSET(vftbl_t, table[0]) +
+
+	off = (s4) (OFFSET(vftbl_t, table[0]) +
 								   sizeof(methodptr) * m->vftblindex);
+
+	assert(N_VALID_DISP(off));
+
+	*((s4 *)(ra + 4 + 4)) |= off;
 
 	return true;
 }
@@ -606,27 +601,21 @@ bool patcher_invokevirtual(u1 *sp)
 
    Machine code:
 
-   <patched call position>
-   4c 8b 17                         mov    (%rdi),%r10
-   4d 8b 92 00 00 00 00             mov    0x0(%r10),%r10
-   49 8b 82 00 00 00 00             mov    0x0(%r10),%rax
-   48 ff d0                         callq  *%rax
-
 *******************************************************************************/
 
 bool patcher_invokeinterface(u1 *sp)
 {
-	OOPS();
 	u1                *ra;
-	u8                 mcode;
+	u4                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
+	s4                 idx, off;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	mcode =                       *((u4 *)     (sp + 3 * 4));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
 
 	/* get the fieldinfo */
 
@@ -635,22 +624,26 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop's */
+	/* get interfacetable index */
 
-	if (opt_shownops)
-		ra = ra + 5;
+	idx = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
+		sizeof(methodptr) * m->class->index) + 
+		N_DISP_MAX;
 
-	/* patch interfacetable index */
+	ASSERT_VALID_DISP(idx);
 
-	*((s4 *) (ra + 3 + 3)) = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
-								   sizeof(methodptr) * m->class->index);
+	/* get method offset */
 
-	/* patch method offset */
-
-	*((s4 *) (ra + 3 + 7 + 3)) =
+	off =
 		(s4) (sizeof(methodptr) * (m - m->class->methods));
+	ASSERT_VALID_DISP(off);
+
+	/* patch them */
+
+	*((s4 *)(ra + 4 + 4)) |= idx;
+	*((s4 *)(ra + 4 + 4 + 4)) |= off;
 
 	return true;
 }

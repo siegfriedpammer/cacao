@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 7297 2007-02-07 14:59:56Z twisti $
+   $Id: md-abi.h 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -148,6 +148,9 @@
 #define REG_A3          R5
 #define REG_A4          R6
 
+#define REG_FA0         F0
+#define REG_FA1         F2
+
 /* floating point registers */
 
 #define REG_FRESULT     F0       /* to deliver floating point method results  */
@@ -171,7 +174,7 @@
 #define FLT_TMP_CNT     12        /* number of float temporary registers       */
 #define FLT_RES_CNT     0        /* number of float reserved registers        */
 
-#define TRACE_ARGS_NUM  6
+#define TRACE_ARGS_NUM  8
 
 
 

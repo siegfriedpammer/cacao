@@ -26,6 +26,28 @@ public class BarPassFoo {
     public Foo createFoo() {
         return new Foo();
     }
+
+    public DerivedFoo createDerivedFoo() {
+        return new DerivedFoo();
+    }
+
+    public Foo createDerivedFooReturnFoo() {
+        return new DerivedFoo();
+    }
+
+    public static String getDerivedFoo() {
+        BarPassFoo bar = new BarPassFoo();
+
+        bar.createDerivedFoo();
+        return "no exception";
+    }
+
+    public static String getDerivedFooAsFoo() {
+        BarPassFoo bar = new BarPassFoo();
+
+        bar.createDerivedFooReturnFoo();
+        return "no exception";
+    }
 }
 
 // vim: et sw=4

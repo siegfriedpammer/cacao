@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7355 2007-02-14 10:57:32Z twisti $
+   $Id: emit.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -52,6 +52,8 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+#include "vm/global.h"
+#include "mm/memory.h"
 
 #define __PORTED__
 
@@ -455,11 +457,13 @@ void emit_replacement_stubs(jitdata *jd)
 #if !defined(NDEBUG)
 void emit_verbosecall_enter(jitdata *jd)
 {
+	
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
 	s4            i, j, k;
+	s4            stackframesize, off, foff, aoff, doff, t, iargctr, fargctr, disp;
 
 	/* get required compiler data */
 
@@ -473,67 +477,156 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	/* additional +1 is for 16-byte stack alignment */
+	stackframesize = 
+		(6 * 8) + /* s8 on stack parameters x 6 */
+		(1 * 4) + /* methodinfo on stack parameter */
+		(ARG_CNT * 8) +
+		(TMP_CNT * 8) 
+		;
 
-	M_LSUB_IMM((ARG_CNT + TMP_CNT + 1 + 1) * 8, REG_SP);
+	M_ASUB_IMM(stackframesize, REG_SP); /* allocate stackframe */
 
 	/* save argument registers */
 
-	for (i = 0; i < INT_ARG_CNT; i++)
-		M_LST(rd->argintregs[i], REG_SP, (1 + i) * 8);
+	off = (6 * 8) + (1 * 4);
 
-	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
+	for (i = 0; i < INT_ARG_CNT; i++, off += 8)
+		M_IST(rd->argintregs[i], REG_SP, off);
+
+	for (i = 0; i < FLT_ARG_CNT; i++, off += 8)
+		M_DST(rd->argfltregs[i], REG_SP, off);
 
 	/* save temporary registers for leaf methods */
 
 	if (jd->isleafmethod) {
-		for (i = 0; i < INT_TMP_CNT; i++)
-			M_LST(rd->tmpintregs[i], REG_SP, (1 + ARG_CNT + i) * 8);
+		for (i = 0; i < INT_TMP_CNT; i++, off += 8)
+			M_LST(rd->tmpintregs[i], REG_SP, off);
 
-		for (i = 0; i < FLT_TMP_CNT; i++)
-			M_DST(rd->tmpfltregs[i], REG_SP, (1 + ARG_CNT + INT_TMP_CNT + i) * 8);
+		for (i = 0; i < FLT_TMP_CNT; i++, off += 8)
+			M_DST(rd->tmpfltregs[i], REG_SP, off);
 	}
 
-	/* show integer hex code for float arguments */
+	/* Load arguments to new locations */
 
-	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
-		/* If the paramtype is a float, we have to right shift all
-		   following integer registers. */
+	/* First move all arguments to stack
+	 *
+	 * (s8) a7
+	 * (s8) a2
+	 *   ...
+	 * (s8) a1 \ Auxilliary stack frame
+	 * (s8) a0 /
+	 * ------- <---- SP
+	 */
+
+	M_ASUB_IMM(2 * 8, REG_SP);
 	
-		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			for (k = INT_ARG_CNT - 2; k >= i; k--)
-				M_MOV(rd->argintregs[k], rd->argintregs[k + 1]);
+	/* offset to where first integer arg is saved on stack */
+	off = (2 * 8) + (6 * 8) + (1 * 4); 
+	/* offset to where first float arg is saved on stack */
+	foff = off + (INT_ARG_CNT * 8); 
+	/* offset to where first argument is passed on stack */
+	aoff = (2 * 8) + stackframesize + (cd->stackframesize * 4);
+	/* offset to destination on stack */
+	doff = 0; 
 
-			emit_movd_freg_reg(cd, rd->argfltregs[j], rd->argintregs[i]);
-			j++;
+	iargctr = fargctr = 0;
+
+	ICONST(REG_ITMP1, 0);
+
+	for (i = 0; i < md->paramcount && i < 8; i++) {
+		t = md->paramtypes[i].type;
+
+		M_IST(REG_ITMP1, REG_SP, doff);
+		M_IST(REG_ITMP1, REG_SP, doff + 4);
+
+		if (IS_FLT_DBL_TYPE(t)) {
+			if (fargctr < 2) { /* passed in register */
+				N_STD(REG_FA0 + fargctr, doff, RN, REG_SP);
+				fargctr += 1;
+			} else { /* passed on stack */
+				if (IS_2_WORD_TYPE(t)) {
+					N_MVC(doff, 8, REG_SP, aoff, REG_SP);
+					aoff += 8;
+				} else {
+					N_MVC(doff + 4, 4, REG_SP, aoff, REG_SP);
+					aoff += 4;
+				}
+			}
+		} else {
+			if (IS_2_WORD_TYPE(t)) {
+				if (iargctr < 4) { /* passed in 2 registers */
+					N_STM(REG_A0 + iargctr, REG_A0 + iargctr + 1, doff, REG_SP);
+					iargctr += 2;
+				} else { /* passed on stack */
+					N_MVC(doff, 8, REG_SP, aoff, REG_SP);
+					aoff += 8;
+				}
+			} else {
+				if (iargctr < 5) { /* passed in register */
+					N_ST(REG_A0 + iargctr, doff + 4, RN, REG_SP);
+					iargctr += 1;
+				} else { /* passed on stack */
+					N_MVC(doff + 4, 4, REG_SP, aoff, REG_SP);
+					aoff += 4;
+				}
+			}
 		}
+
+		doff += 8;
 	}
 
-	M_MOV_IMM(m, REG_ITMP2);
-	M_AST(REG_ITMP2, REG_SP, 0 * 8);
-	M_MOV_IMM(builtin_trace_args, REG_ITMP1);
-	M_CALL(REG_ITMP1);
+	/* Now move a0 and a1 to registers
+	 *
+	 * (s8) a7
+	 *   ...
+	 * (s8) a2
+	 * ------- <- SP
+	 * (s8) a0 ==> a0, a1
+	 * (s8) a1 ==> a2, a3
+	 */
+
+	N_LM(REG_A0, REG_A1, 0, REG_SP);
+	N_LM(REG_A2, REG_A3, 8, REG_SP);
+
+	M_AADD_IMM(2 * 8, REG_SP);
+
+	/* Finally load methodinfo argument */
+
+	disp = dseg_add_address(cd, m);
+	M_ALD(REG_ITMP2, REG_PV, disp);	
+	M_AST(REG_ITMP2, REG_SP, 6 * 8);
+
+	/* Call builtin_verbosecall_enter */
+
+	disp = dseg_add_address(cd, builtin_verbosecall_enter);
+	M_ALD(REG_ITMP2, REG_PV, disp);
+	M_ASUB_IMM(96, REG_SP);
+	M_CALL(REG_ITMP2);
+	M_AADD_IMM(96, REG_SP);
 
 	/* restore argument registers */
 
-	for (i = 0; i < INT_ARG_CNT; i++)
-		M_LLD(rd->argintregs[i], REG_SP, (1 + i) * 8);
+	off = (6 * 8) + (1 * 4);
 
-	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
+	for (i = 0; i < INT_ARG_CNT; i++, off += 8)
+		M_ILD(rd->argintregs[i], REG_SP, off);
+
+	for (i = 0; i < FLT_ARG_CNT; i++, off += 8)
+		M_DLD(rd->argfltregs[i], REG_SP, off);
 
 	/* restore temporary registers for leaf methods */
 
 	if (jd->isleafmethod) {
-		for (i = 0; i < INT_TMP_CNT; i++)
-			M_LLD(rd->tmpintregs[i], REG_SP, (1 + ARG_CNT + i) * 8);
+		for (i = 0; i < INT_TMP_CNT; i++, off += 8)
+			M_ILD(rd->tmpintregs[i], REG_SP, off);
 
-		for (i = 0; i < FLT_TMP_CNT; i++)
-			M_DLD(rd->tmpfltregs[i], REG_SP, (1 + ARG_CNT + INT_TMP_CNT + i) * 8);
+		for (i = 0; i < FLT_TMP_CNT; i++, off += 8)
+			M_DLD(rd->tmpfltregs[i], REG_SP, off);
 	}
 
-	M_LADD_IMM((ARG_CNT + TMP_CNT + 1 + 1) * 8, REG_SP);
+	/* remove stackframe */
+
+	M_AADD_IMM(stackframesize, REG_SP);
 
 	/* mark trace code */
 
@@ -554,6 +647,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
+	s4            disp;
 
 	/* get required compiler data */
 
@@ -567,18 +661,29 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_ASUB_IMM(2 * 8, REG_SP);
 
-	M_LST(REG_RESULT, REG_SP, 0 * 8);
+	N_STM(REG_RESULT, REG_RESULT2, 0 * 8, REG_SP);
 	M_DST(REG_FRESULT, REG_SP, 1 * 8);
 
-	M_MOV_IMM(m, rd->argintregs[0]);
-	M_MOV(REG_RESULT, rd->argintregs[1]);
-	M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
-	M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
+	if (IS_2_WORD_TYPE(m->parseddesc->returntype.type)) {
+		/* (REG_A0, REG_A1) == (REG_RESULT, REG_RESULT2), se no need to move */
+	} else {
+		M_INTMOVE(REG_RESULT, REG_A1);
+		ICONST(REG_A0, 0);
+	}
 
-	M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
+	disp = dseg_add_address(cd, m);
+	M_ALD(REG_A2, REG_PV, disp);
+
+	/* REG_FRESULT is REG_FA0, so no need to move */
+	M_FLTMOVE(REG_FRESULT, REG_FA1);
+
+	disp = dseg_add_address(cd, builtin_verbosecall_exit);
+	M_ALD(REG_ITMP1, REG_PV, disp);
+	M_ASUB_IMM(96, REG_SP);
 	M_CALL(REG_ITMP1);
+	M_AADD_IMM(96, REG_SP);
 
-	M_LLD(REG_RESULT, REG_SP, 0 * 8);
+	N_LM(REG_RESULT, REG_RESULT2, 0 * 8, REG_SP);
 	M_DLD(REG_FRESULT, REG_SP, 1 * 8);
 
 	M_AADD_IMM(2 * 8, REG_SP);
@@ -2314,18 +2419,36 @@ __PORTED__ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 re
 
 *******************************************************************************/
 
-void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
+__PORTED__ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
-#if 0
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
-        M_ICMP(REG_ITMP3, s2);
-        M_BAE(0);
+		N_C(s2, OFFSET(java_arrayheader, size), RN, s1);
+        M_BGE(0);
         codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
 	}
-#endif
 }
 
+s4 emit_load_s1_notzero(jitdata *jd, instruction *iptr, s4 tempreg) {
+	codegendata *cd = jd->cd;
+	s4 reg = emit_load_s1(jd, iptr, tempreg);
+	if (reg == 0) {
+		M_MOV(reg, tempreg);
+		return tempreg;
+	} else {
+		return reg;
+	}
+}
+
+s4 emit_load_s2_notzero(jitdata *jd, instruction *iptr, s4 tempreg) {
+	codegendata *cd = jd->cd;
+	s4 reg = emit_load_s2(jd, iptr, tempreg);
+	if (reg == 0) {
+		M_MOV(reg, tempreg);
+		return tempreg;
+	} else {
+		return reg;
+	}
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

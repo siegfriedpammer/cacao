@@ -72,7 +72,7 @@ const char *abi_registers_integer_name[] = {
 
 s4 nregdescfloat[] = {
 	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP,
 	REG_END
 };
 
@@ -246,7 +246,7 @@ void md_param_alloc_native(methoddesc *md)
    TODO
 
 *******************************************************************************/
-
+#if 0
 void md_native_reg_setup(jitdata *jd)
 {
 	methodinfo   *m;
@@ -283,7 +283,7 @@ void md_native_reg_setup(jitdata *jd)
 	assert(rd->argfltreguse == FLT_NATARG_CNT);
 
 }
-
+#endif
 /* md_return_alloc *************************************************************
 
   XXX

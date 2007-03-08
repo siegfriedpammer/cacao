@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typecheck.c 7429 2007-03-01 12:42:16Z twisti $
+   $Id: typecheck.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -162,7 +162,7 @@ error reporting.
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/resolve.h"
+#include "vm/resolve.h"
 
 #include <typecheck-common.h>
 

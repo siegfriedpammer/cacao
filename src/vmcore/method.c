@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: method.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -40,6 +40,8 @@
 
 #include "vm/jit/methodheader.h"
 
+#include "vm/jit_interface.h"
+
 #include "vmcore/class.h"
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
@@ -48,8 +50,7 @@
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
-extern bool inline_debug_log;
-#define INLINELOG(code)  do { if (inline_debug_log) { code } } while (0)
+#define INLINELOG(code)  do { if (opt_inline_debug_log) { code } } while (0)
 #else
 #define INLINELOG(code)
 #endif
@@ -118,7 +119,6 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	methodptr   mptr;
 	methodptr  *pmptr;
 	methodinfo *resm;                   /* pointer to new resolved method     */
-	codeinfo   *code;
 
 	/* If the method is not an instance method, just return it. */
 
@@ -140,9 +140,7 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 
 	/* and now get the codeinfo pointer from the first data segment slot */
 
-	code = *((codeinfo **) (mptr + CodeinfoPointer));
-
-	resm = code->m;
+	resm = code_get_methodinfo_for_pv(mptr);
 
 	return resm;
 }

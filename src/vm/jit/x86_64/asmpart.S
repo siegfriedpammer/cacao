@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7217 2007-01-16 12:52:48Z twisti $
+   $Id: asmpart.S 7483 2007-03-08 13:17:40Z michi $
 
 */
 
@@ -68,6 +68,9 @@
 	.globl asm_builtin_f2l
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
+
+	.globl asm_compare_and_swap
+	.globl asm_memory_barrier
 
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
@@ -774,6 +777,30 @@ asm_builtin_d2l:
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
 	add     $(ARG_CNT*8),sp
+	ret
+
+
+/* asm_compare_and_swap ********************************************************
+
+   Does an atomic compare and swap.  Required for the lock
+   implementation.
+
+*******************************************************************************/
+
+asm_compare_and_swap:
+	mov     a1,v0                       /* v0 is %rax                         */
+	lock cmpxchg a2,(a0)
+	ret
+
+
+/* asm_memory_barrier **********************************************************
+
+   A memory barrier for the Java Memory Model.
+
+*******************************************************************************/
+
+asm_memory_barrier:
+	mfence
 	ret
 
 
