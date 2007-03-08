@@ -58,6 +58,7 @@
 
 /* Global Variables ***********************************************************/
 
+bool gc_pending;
 bool gc_running;
 bool gc_notify_finalizer;
 

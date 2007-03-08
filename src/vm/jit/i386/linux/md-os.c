@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 7480 2007-03-08 12:46:19Z michi $
+   $Id: md-os.c 7482 2007-03-08 13:16:34Z michi $
 
 */
 
@@ -122,13 +122,10 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 {
 	threadobject     *t;
-	executionstate_t *es;
 	ucontext_t       *_uc;
 	mcontext_t       *_mc;
 
 	t = THREADOBJECT;
-	t->es = NEW(executionstate_t); /* TODO: this must be done before!!! */
-	es = t->es;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -136,12 +133,8 @@ void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 	/* assume there is a GC pending */
 	assert(gc_pending);
 
-	/* fill in the execution state of this thread */
-	es->pc = (u1 *) _mc->gregs[REG_EIP];
-	es->sp = (u1 *) _mc->gregs[REG_ESP];
-	es->pv = (u1 *) NULL;
-
-	/* TODO: int registers are missing */
+	/* fill in the PC for this thread */
+	t->pc = (u1 *) _mc->gregs[REG_EIP];
 
 	/* now suspend the current thread for GC */
 	gc_suspend(t, _uc);

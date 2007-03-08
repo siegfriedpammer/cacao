@@ -40,6 +40,14 @@
 #define _GC_H
 
 
+#include "config.h"
+#include "vm/types.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#endif
+
+
 /* Configuration Switches *****************************************************/
 
 /*#define GCCONF_FINALIZER*/
