@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7489 2007-03-08 17:12:56Z michi $
+   $Id: threads.h 7491 2007-03-08 19:49:42Z michi $
 
 */
 
@@ -129,6 +129,9 @@ struct threads_table_t {
 #define THREAD_FLAG_DAEMON      0x04    /* daemon thread                      */
 #define THREAD_FLAG_IN_NATIVE   0x08    /* currently executing native code    */
 
+#define SUSPEND_REASON_JNI       1      /* suspended from JNI                 */
+#define SUSPEND_REASON_STOPWORLD 2      /* suspended from stop-thw-world      */
+
 
 struct threadobject {
 	java_lang_Thread     *object;       /* link to java.lang.Thread object    */
@@ -156,9 +159,15 @@ struct threadobject {
 	pthread_mutex_t       waitmutex;
 	pthread_cond_t        waitcond;
 
+	pthread_mutex_t       suspendmutex; /* lock before suspending this thread */
+	pthread_cond_t        suspendcond;  /* notify to resume this thread       */
+
 	bool                  interrupted;
 	bool                  signaled;
 	bool                  sleeping;
+
+	bool                  suspended;    /* is this thread suspended?          */
+	s4                    suspend_reason; /* reason for suspending            */
 
 	u1                   *pc;           /* current PC (used for profiling)    */
 
@@ -212,6 +221,9 @@ void threads_set_thread_priority(pthread_t tid, int priority);
 bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
 bool threads_detach_thread(threadobject *thread);
 
+bool threads_suspend_thread(threadobject *thread, s4 reason);
+bool threads_resume_thread(threadobject *thread);
+
 void threads_join_all_threads(void);
 
 void threads_sleep(s8 millis, s4 nanos);
@@ -223,8 +235,10 @@ void threads_thread_interrupt(threadobject *thread);
 bool threads_check_if_interrupted_and_reset(void);
 bool threads_thread_has_been_interrupted(threadobject *thread);
 
-void threads_cast_stopworld(void);
-void threads_cast_startworld(void);
+#if !defined(DISABLE_GC)
+void threads_stopworld(void);
+void threads_startworld(void);
+#endif
 
 void threads_dump(void);
 

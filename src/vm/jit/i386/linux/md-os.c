@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 7482 2007-03-08 13:16:34Z michi $
+   $Id: md-os.c 7491 2007-03-08 19:49:42Z michi $
 
 */
 
@@ -114,18 +114,16 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 /* md_signal_handler_sigusr1 ***************************************************
 
-   Signale handler the exact GC to suspend threads.
+   Signal handler for suspending threads.
 
 *******************************************************************************/
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 {
-	threadobject     *t;
-	ucontext_t       *_uc;
-	mcontext_t       *_mc;
-
-	t = THREADOBJECT;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u1         *pc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -133,11 +131,11 @@ void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 	/* assume there is a GC pending */
 	assert(gc_pending);
 
-	/* fill in the PC for this thread */
-	t->pc = (u1 *) _mc->gregs[REG_EIP];
+	/* get the PC for this thread */
+	pc = (u1 *) _mc->gregs[REG_EIP];
 
-	/* now suspend the current thread for GC */
-	gc_suspend(t, _uc);
+	/* now suspend the current thread */
+	threads_suspend_ack(pc);
 }
 #endif
 
