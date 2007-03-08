@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7474 2007-03-07 11:47:45Z michi $
+   $Id: threads.c 7478 2007-03-08 02:59:31Z michi $
 
 */
 
@@ -672,6 +672,7 @@ void threads_preinit(void)
 	pthread_mutex_init(&stopworldlock, NULL);
 
 	mainthreadobj = NEW(threadobject);
+	mainthreadobj->object   = NULL;
 	mainthreadobj->tid      = pthread_self();
 	mainthreadobj->index    = 1;
 	mainthreadobj->thinlock = lock_pre_compute_thinlock(mainthreadobj->index);
@@ -756,7 +757,11 @@ bool threads_init(void)
 	/* XXX Michi: we do not need to do this here, we could use the one
 	       created by threads_preinit() */
 
+#if defined(ENABLE_GC_CACAO)
 	mainthreadobj = NEW(threadobject);
+#else
+	mainthreadobj = GCNEW(threadobject);
+#endif
 
 	if (mainthreadobj == NULL)
 		return false;
@@ -1213,6 +1218,7 @@ void threads_start_javathread(java_lang_Thread *object)
 
 #if defined(WITH_CLASSPATH_GNU)
 	assert(object->vmThread);
+	assert(object->vmThread->vmdata == NULL);
 	object->vmThread->vmdata = (java_lang_Object *) thread;
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 	object->vm_thread = (java_lang_Object *) thread;

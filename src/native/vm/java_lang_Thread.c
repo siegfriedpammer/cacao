@@ -33,15 +33,15 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(ENABLE_JAVASE)
-# include "native/include/java_lang_ThreadGroup.h"
-# include "native/include/java_lang_VMThread.h"
-#endif
-
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Object.h"            /* java_lang_Thread.h */
 #include "native/include/java_lang_Throwable.h"         /* java_lang_Thread.h */
 #include "native/include/java_lang_Thread.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ThreadGroup.h"
+# include "native/include/java_lang_VMThread.h"
+#endif
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
@@ -219,11 +219,11 @@ java_lang_Thread *_Jv_java_lang_Thread_currentThread(void)
 #if defined(ENABLE_THREADS)
 	thread = THREADOBJECT;
 
-	t = (java_lang_Thread *) thread->object;
+	t = thread->object;
 
 	if (t == NULL)
 		log_text("t ptr is NULL\n");
-  
+
 # if defined(ENABLE_JAVASE)
 	if (t->group == NULL) {
 		/* ThreadGroup of currentThread is not initialized */
