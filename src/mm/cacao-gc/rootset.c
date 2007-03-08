@@ -251,19 +251,14 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	GC_LOG( dolog("GC: Acquiring Root-Set from single-thread ..."); );
 #endif
 
-	GC_LOG2( printf("Stacktrace of current thread:\n");
+	GC_LOG2( printf("Stacktrace of thread:\n");
 			stacktrace_dump_trace(thread); );
 
 	/* get the stackframeinfo of the thread */
 #if defined(ENABLE_THREADS)
 	sfi = thread->_stackframeinfo;
-
-	if (sfi == NULL) {
-		/* TODO: what do we do here??? */
-		GC_LOG( dolog("GC: NO SFI AVAILABLE!!!"); );
-	}
 #else
-	sfi = NULL;
+	sfi = STACKFRAMEINFO;
 #endif
 
 	/* create empty execution state */

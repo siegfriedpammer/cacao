@@ -2293,11 +2293,6 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 	ss = DNEW(sourcestate_t);
 	ss->frames = NULL;
 
-	/* get the stackframeinfo if none is given */
-
-	if (sfi == NULL)
-		sfi = *(STACKFRAMEINFO);
-
 	/* each iteration of the loop recovers one source frame */
 
 	depth = 0;
@@ -2686,6 +2681,7 @@ void replace_free_safestack(replace_safestack_t *st, executionstate_t *tmpes)
 
 void replace_me(rplpoint *rp, executionstate_t *es)
 {
+	stackframeinfo      *sfi;
 	sourcestate_t       *ss;
 	sourceframe_t       *frame;
 	s4                   dumpsize;
@@ -2709,9 +2705,13 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	dumpsize = dump_size();
 
+	/* get the stackframeinfo for the current thread */
+
+	sfi = *(STACKFRAMEINFO);
+
 	/* recover source state */
 
-	ss = replace_recover_source_state(rp, NULL, es);
+	ss = replace_recover_source_state(rp, sfi, es);
 
 	/* map the source state */
 
