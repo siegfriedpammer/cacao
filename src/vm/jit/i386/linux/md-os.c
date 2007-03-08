@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 5172 2006-07-25 15:33:58Z twisti $
+   $Id: md-os.c 7480 2007-03-08 12:46:19Z michi $
 
 */
 
@@ -40,6 +40,10 @@
 #include <ucontext.h>
 
 #include "vm/types.h"
+
+#if defined(ENABLE_GC_CACAO)
+# include "mm/cacao-gc/gc.h"
+#endif
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
@@ -106,6 +110,43 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
+
+
+/* md_signal_handler_sigusr1 ***************************************************
+
+   Signale handler the exact GC to suspend threads.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
+{
+	threadobject     *t;
+	executionstate_t *es;
+	ucontext_t       *_uc;
+	mcontext_t       *_mc;
+
+	t = THREADOBJECT;
+	t->es = NEW(executionstate_t); /* TODO: this must be done before!!! */
+	es = t->es;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	/* assume there is a GC pending */
+	assert(gc_pending);
+
+	/* fill in the execution state of this thread */
+	es->pc = (u1 *) _mc->gregs[REG_EIP];
+	es->sp = (u1 *) _mc->gregs[REG_ESP];
+	es->pv = (u1 *) NULL;
+
+	/* TODO: int registers are missing */
+
+	/* now suspend the current thread for GC */
+	gc_suspend(t, _uc);
+}
+#endif
 
 
 /* md_signal_handler_sigusr2 ***************************************************

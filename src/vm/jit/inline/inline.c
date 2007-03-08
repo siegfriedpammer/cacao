@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 7228 2007-01-19 01:13:48Z edwin $
+   $Id: inline.c 7297 2007-02-07 14:59:56Z twisti $
 
 */
 

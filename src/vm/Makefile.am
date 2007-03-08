@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7289 2007-02-06 08:47:05Z twisti $
+## $Id: Makefile.am 7297 2007-02-07 14:59:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 

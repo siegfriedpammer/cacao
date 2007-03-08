@@ -103,7 +103,15 @@
 
 /* Global Variables ***********************************************************/
 
+extern bool gc_pending;
 extern bool gc_notify_finalizer;
+
+
+/* Prototypes *****************************************************************/
+
+#if defined(ENABLE_THREADS)
+void gc_suspend(threadobject *thread, ucontext_t *context);
+#endif
 
 
 /* Statistics *****************************************************************/
