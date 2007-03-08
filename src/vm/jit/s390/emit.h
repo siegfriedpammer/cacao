@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.h 7483 2007-03-08 13:17:40Z michi $
+   $Id: emit.h 7486 2007-03-08 13:50:07Z twisti $
 
 */
 

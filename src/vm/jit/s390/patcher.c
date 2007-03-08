@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: patcher.c 7486 2007-03-08 13:50:07Z twisti $
 
 */
 

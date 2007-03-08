@@ -2462,6 +2462,10 @@ java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
 {
 	java_objectheader *o;
 
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
+#endif
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -2471,6 +2475,10 @@ java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
 		o = asm_vm_call_method(m, vmargscount, vmargs);
 #else
 	o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
+#endif
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
 #endif
 
 	return o;
@@ -2592,6 +2600,10 @@ s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s4 i;
 
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
+#endif
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -2601,6 +2613,10 @@ s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 		i = asm_vm_call_method_int(m, vmargscount, vmargs);
 #else
 	i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
+#endif
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
 #endif
 
 	return i;
@@ -2722,6 +2738,10 @@ s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s8 l;
 
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
+#endif
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -2731,6 +2751,10 @@ s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 		l = asm_vm_call_method_long(m, vmargscount, vmargs);
 #else
 	l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
+#endif
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
 #endif
 
 	return l;
@@ -2854,6 +2878,10 @@ float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	float f;
 
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
+#endif
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -2863,6 +2891,10 @@ float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 		f = asm_vm_call_method_float(m, vmargscount, vmargs);
 #else
 	f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
+#endif
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
 #endif
 
 	return f;
@@ -2987,6 +3019,10 @@ double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
 {
 	double d;
 
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
+#endif
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -2996,6 +3032,10 @@ double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
 		d = asm_vm_call_method_double(m, vmargscount, vmargs);
 #else
 	d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
+#endif
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
 #endif
 
 	return d;

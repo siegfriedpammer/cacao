@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 7483 2007-03-08 13:17:40Z michi $
+   $Id: md-abi.h 7486 2007-03-08 13:50:07Z twisti $
 
 */
 

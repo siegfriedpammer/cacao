@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7483 2007-03-08 13:17:40Z michi $
+   $Id: threads.h 7489 2007-03-08 17:12:56Z michi $
 
 */
 
@@ -127,6 +127,7 @@ struct threads_table_t {
 #define THREAD_FLAG_JAVA        0x01    /* a normal Java thread               */
 #define THREAD_FLAG_INTERNAL    0x02    /* CACAO internal thread              */
 #define THREAD_FLAG_DAEMON      0x04    /* daemon thread                      */
+#define THREAD_FLAG_IN_NATIVE   0x08    /* currently executing native code    */
 
 
 struct threadobject {
@@ -167,6 +168,10 @@ struct threadobject {
 
 #if defined(ENABLE_INTRP)
 	Cell                 *_global_sp;        /* stack pointer for interpreter */
+#endif
+
+#if defined(ENABLE_GC_CACAO)
+	bool                  gc_critical;
 #endif
 
 	dumpinfo_t            dumpinfo;     /* dump memory info structure         */

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: threads.c 7489 2007-03-08 17:12:56Z michi $
 
 */
 
@@ -623,6 +623,11 @@ static void threads_init_threadobject(threadobject *thread)
 
 	thread->index = 0;
 
+#if defined(ENABLE_GC_CACAO)
+	thread->flags       |= THREAD_FLAG_IN_NATIVE;
+	thread->gc_critical  = false;
+#endif
+
 	/* TODO destroy all those things */
 	pthread_mutex_init(&(thread->joinmutex), NULL);
 	pthread_cond_init(&(thread->joincond), NULL);
@@ -776,9 +781,7 @@ bool threads_init(void)
 	FREE(tempthread, threadobject);
 
 	threads_init_threadobject(mainthreadobj);
-
 	threads_set_current_threadobject(mainthreadobj);
-
 	lock_init_execution_env(mainthreadobj);
 
 	mainthreadobj->next = mainthreadobj;
@@ -1070,6 +1073,8 @@ static void *threads_startup_thread(void *t)
 #if defined(__DARWIN__)
 	thread->mach_thread = mach_thread_self();
 #endif
+
+	threads_init_threadobject(thread);
 	threads_set_current_threadobject(thread);
 
 	/* insert the thread into the threadlist and the threads table */
@@ -1922,8 +1927,22 @@ void threads_dump(void)
 			utf_display_printable_ascii(name);
 			printf("\" ");
 
+			if (thread->flags & THREAD_FLAG_JAVA)
+				printf("java ");
+
+			if (thread->flags & THREAD_FLAG_INTERNAL)
+				printf("internal ");
+
 			if (thread->flags & THREAD_FLAG_DAEMON)
 				printf("daemon ");
+
+#if defined(ENABLE_GC_CACAO)
+			if (thread->flags & THREAD_FLAG_IN_NATIVE)
+				printf("in-native ");
+
+			if (thread->gc_critical)
+				printf("GC-CRITICAL");
+#endif
 
 #if SIZEOF_VOID_P == 8
 			printf("prio=%d tid=0x%016lx\n", t->priority, (ptrint) thread->tid);

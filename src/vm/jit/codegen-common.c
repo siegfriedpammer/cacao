@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7407 2007-02-26 19:12:03Z michi $
+   $Id: codegen-common.c 7489 2007-03-08 17:12:56Z michi $
 
 */
 
@@ -1087,6 +1087,12 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 	LOCALREFTABLE = lrt;
 #endif
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	/* set the native world flag */
+
+	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
+#endif
 }
 
 
@@ -1112,6 +1118,12 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
 	lrt = (localref_table *) (datasp - sizeof(stackframeinfo) - 
 							  sizeof(localref_table));
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	/* clear the native world flag */
+
+	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
+#endif
 
 	/* remove current stackframeinfo from chain */
 
