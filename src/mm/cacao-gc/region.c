@@ -66,6 +66,11 @@ void *region_create(regioninfo_t *region, u4 size)
 	region->size = size;
 	region->free = size;
 
+#if defined(ENABLE_THREADS)
+	/* initiate the header for locking */
+	lock_init_object_lock((java_objectheader *) region);
+#endif
+
 #if defined(ENABLE_MEMCHECK)
 	/* poison this region */
 	/* TODO: this should really be done MNEW above! */

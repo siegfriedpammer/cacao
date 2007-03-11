@@ -174,11 +174,13 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
 	/* align objects in memory */
 	bytelength = GC_ALIGN(bytelength, GC_ALIGN_SIZE);
 
+	/* lock the region */
+	LOCK_MONITOR_ENTER(region);
+
 	/* check for sufficient free space */
 	if (bytelength > region->free) {
 		dolog("GC: Region out of memory!");
-		/* TODO: change this to gc_collect() !!! */
-		/*gc_call();*/
+		gc_collect();
 		return NULL;
 	}
 
@@ -186,6 +188,10 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
 	p = (java_objectheader *) region->ptr;
 	region->ptr += bytelength;
 	region->free -= bytelength;
+
+	/* unlock the region */
+	LOCK_MONITOR_EXIT(region);
+	GC_LOG( region = NULL; );
 
 	/* clear allocated memory region */
 	GC_ASSERT(p);
