@@ -117,6 +117,7 @@ codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);
 
 codeinfo *code_find_codeinfo_for_pc(u1 *pc);
+codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc);
 
 methodinfo *code_get_methodinfo_for_pv(u1 *pv);
 
