@@ -38,6 +38,10 @@
 
 #include "arch.h"
 
+#if defined(ENABLE_GC_CACAO)
+# include "mm/cacao-gc/gc.h"
+#endif
+
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/stringlocal.h"
@@ -1066,7 +1070,7 @@ static s4 replace_normalize_type_map[] = {
 };
 
 
-void replace_read_executionstate(rplpoint *rp,
+static void replace_read_executionstate(rplpoint *rp,
 										executionstate_t *es,
 										sourcestate_t *ss,
 										bool topframe)
@@ -1287,7 +1291,7 @@ void replace_read_executionstate(rplpoint *rp,
   
 *******************************************************************************/
 
-void replace_write_executionstate(rplpoint *rp,
+static void replace_write_executionstate(rplpoint *rp,
 										 executionstate_t *es,
 										 sourcestate_t *ss,
 										 bool topframe)
@@ -2483,6 +2487,52 @@ static bool replace_map_source_state(sourcestate_t *ss)
 }
 
 
+/* replace_map_source_state_identity *******************************************
+
+   Map each source frame in the given source state to the same replacement
+   point and compilation unit it was derived from. This is mainly used for
+   garbage collection.
+
+   IN:
+       ss...............the source state
+
+   OUT:
+       ss...............the source state, modified: The `torp` and `tocode`
+	                    fields of each source frame are set.
+
+*******************************************************************************/
+
+#if defined(ENABLE_GC_CACAO)
+static void replace_map_source_state_identity(sourcestate_t *ss)
+{
+	sourceframe_t *frame;
+
+	/* iterate over the source frames from outermost to innermost */
+
+	for (frame = ss->frames; frame != NULL; frame = frame->down) {
+
+		/* skip native frames */
+
+		if (REPLACE_IS_NATIVE_FRAME(frame)) {
+			continue;
+		}
+
+		/* map frames using the identity mapping */
+
+		if (frame->tocode) {
+			assert(frame->tocode == frame->fromcode);
+			assert(frame->torp   == frame->fromrp);
+		} else {
+			assert(frame->tocode == NULL);
+			assert(frame->torp   == NULL);
+			frame->tocode = frame->fromcode;
+			frame->torp   = frame->fromrp;
+		}
+	}
+}
+#endif
+
+
 /* replace_build_execution_state_intern ****************************************
 
    Build an execution state for the given (mapped) source state.
@@ -2687,6 +2737,9 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	s4                   dumpsize;
 	rplpoint            *origrp;
 	replace_safestack_t *safestack;
+#if defined(ENABLE_GC_CACAO)
+	threadobject        *thread;
+#endif
 
 	origrp = rp;
 	es->code = code_find_codeinfo_for_pc(rp->pc);
@@ -2713,6 +2766,39 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	ss = replace_recover_source_state(rp, sfi, es);
 
+#if defined(ENABLE_GC_CACAO)
+	/* if there is a collection pending, we assume the replacement point should
+	   suspend this thread */
+
+	if (gc_pending) {
+
+		thread = THREADOBJECT;
+
+		DOLOG_SHORT( printf("REPLACEMENT: Suspending thread for GC now!\n"); );
+
+		/* map the sourcestate using the identity mapping */
+		replace_map_source_state_identity(ss);
+
+		/* since we enter the same method again, we turn off rps now */
+		/* XXX michi: can we really do this? what if the rp was active before
+		   we activated it for the gc? */
+		frame = ss->frames;
+		while (frame->down)
+			frame = frame->down;
+		replace_deactivate_replacement_points(frame->tocode);
+
+		/* remember executionstate and sourcestate for this thread */
+		thread->es = es;
+		thread->ss = ss;
+
+		/* really suspend this thread now (PC = 0) */
+		threads_suspend_ack(NULL, NULL);
+
+		DOLOG_SHORT( printf("REPLACEMENT: Resuming thread after GC now!\n"); );
+
+	} else {
+#endif /*defined(ENABLE_GC_CACAO)*/
+
 	/* map the source state */
 
 	if (!replace_map_source_state(ss))
@@ -2735,6 +2821,10 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		replace_deactivate_replacement_points(frame->tocode);
 	}
 
+#if defined(ENABLE_GC_CACAO)
+	}
+#endif
+
 	/* write execution state of new code */
 
 	DOLOG( replace_executionstate_println(es); );
@@ -2755,6 +2845,41 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	abort(); /* NOT REACHED */
 }
+
+
+/******************************************************************************/
+/* NOTE: Stuff specific to the exact GC is below.                             */
+/******************************************************************************/
+
+#if defined(ENABLE_GC_CACAO)
+void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
+{
+	stackframeinfo   *sfi;
+	executionstate_t *es;
+	sourcestate_t    *ss;
+
+	/* get the stackframeinfo of this thread */
+	assert(thread == THREADOBJECT);
+	sfi = *( STACKFRAMEINFO );
+
+	/* create the execution state */
+	es = DNEW(executionstate_t);
+	es->pc = pc;
+	es->sp = sp;
+	es->pv = 0;      /* since we are in a native, PV is invalid! */
+	es->code = NULL; /* since we are in a native, we do not have a codeinfo */
+
+	/* we assume we are in a native (no replacement point)! */
+	ss = replace_recover_source_state(NULL, sfi, es);
+
+	/* map the sourcestate using the identity mapping */
+	replace_map_source_state_identity(ss);
+
+	/* remember executionstate and sourcestate for this thread */
+	thread->es = es;
+	thread->ss = ss;
+}
+#endif
 
 
 /******************************************************************************/
