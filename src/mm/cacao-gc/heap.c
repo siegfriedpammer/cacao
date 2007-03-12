@@ -34,6 +34,12 @@
 #include "config.h"
 #include "vm/types.h"
 
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
+
 #include "gc.h"
 #include "heap.h"
 #include "mark.h"
