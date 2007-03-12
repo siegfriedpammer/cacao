@@ -241,6 +241,7 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	executionstate_t *es;
 	sourcestate_t    *ss;
 	sourceframe_t    *sf;
+	localref_table   *lrt;
 	int refcount;
 	int i;
 
@@ -299,6 +300,25 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 			ROOTSET_ADD((java_objectheader **) &( sf->javalocals[i] ), true, REFTYPE_STACK);
 
 		}
+	}
+
+	/* now walk through all local references of this thread */
+	lrt = thread->_localref_table;
+	while (lrt) {
+
+		for (i = 0; i < lrt->used; i++) {
+
+			/* there should be no null pointers in here */
+			GC_ASSERT(lrt->refs[i] != NULL);
+
+			GC_LOG( printf("Found LocalRef: %p\n", (void *) lrt->refs[i]); );
+
+			/* add this reference to the root set */
+			ROOTSET_ADD(&( lrt->refs[i] ), true, REFTYPE_LOCALREF);
+
+		}
+
+		lrt = lrt->prev;
 	}
 
 	/* remeber how many references there are inside this root set */
