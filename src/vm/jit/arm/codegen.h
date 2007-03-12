@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: codegen.h 7276 2007-02-02 11:58:18Z michi $
+   $Id: codegen.h 7505 2007-03-12 13:34:37Z twisti $
 
 */
 
@@ -453,15 +453,16 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_ADC(d,a,b)       M_DAT(UNCOND,0x05,d,a,0,0,b)         /* d = a +  b (with Carry) */
 #define M_SUB(d,a,b)       M_DAT(UNCOND,0x02,d,a,0,0,b)         /* d = a -  b */
 #define M_SBC(d,a,b)       M_DAT(UNCOND,0x06,d,a,0,0,b)         /* d = a -  b (with Carry) */
-#define M_AND(d,a,b)       M_DAT(UNCOND,0x00,d,a,0,0,b)         /* d = a &  b */
-#define M_ORR(d,a,b)       M_DAT(UNCOND,0x0c,d,a,0,0,b)         /* d = a |  b */
-#define M_EOR(d,a,b)       M_DAT(UNCOND,0x01,d,a,0,0,b)         /* d = a ^  b */
+#define M_AND(a,b,d)       M_DAT(UNCOND,0x00,d,a,0,0,b)         /* d = a &  b */
+#define M_ORR(a,b,d)       M_DAT(UNCOND,0x0c,d,a,0,0,b)         /* d = a |  b */
+#define M_EOR(a,b,d)       M_DAT(UNCOND,0x01,d,a,0,0,b)         /* d = a ^  b */
 #define M_TST(a,b)         M_DAT(UNCOND,0x08,0,a,1,0,b)         /* TST a &  b */
 #define M_TEQ(a,b)         M_DAT(UNCOND,0x09,0,a,1,0,b)         /* TST a ^  b */
 #define M_CMP(a,b)         M_DAT(UNCOND,0x0a,0,a,1,0,b)         /* TST a -  b */
 #define M_MOV(d,b)         M_DAT(UNCOND,0x0d,d,0,0,0,b)         /* d =      b */
 #define M_ADD_S(d,a,b)     M_DAT(UNCOND,0x04,d,a,1,0,b)         /* d = a +  b (update Flags) */
 #define M_SUB_S(d,a,b)     M_DAT(UNCOND,0x02,d,a,1,0,b)         /* d = a -  b (update Flags) */
+#define M_ORR_S(a,b,d)     M_DAT(UNCOND,0x0c,d,a,1,0,b)         /* d = a |  b (update flags) */
 #define M_MOV_S(d,b)       M_DAT(UNCOND,0x0d,d,0,1,0,b)         /* d =      b (update Flags) */
 
 #define M_ADD_IMM(d,a,i)   M_DAT(UNCOND,0x04,d,a,0,1,i)         /* d = a +  i */
@@ -470,7 +471,7 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_SBC_IMM(d,a,i)   M_DAT(UNCOND,0x06,d,a,0,1,i)         /* d = a -  i (with Carry) */
 #define M_RSB_IMM(d,a,i)   M_DAT(UNCOND,0x03,d,a,0,1,i)         /* d = -a + i */
 #define M_RSC_IMM(d,a,i)   M_DAT(UNCOND,0x07,d,a,0,1,i)         /* d = -a + i (with Carry) */
-#define M_AND_IMM(d,a,i)   M_DAT(UNCOND,0x00,d,a,0,1,i)         /* d = a &  i */
+#define M_AND_IMM(a,i,d)   M_DAT(UNCOND,0x00,d,a,0,1,i)         /* d = a &  i */
 #define M_TST_IMM(a,i)     M_DAT(UNCOND,0x08,0,a,1,1,i)         /* TST a &  i */
 #define M_TEQ_IMM(a,i)     M_DAT(UNCOND,0x09,0,a,1,1,i)         /* TST a ^  i */
 #define M_CMP_IMM(a,i)     M_DAT(UNCOND,0x0a,0,a,1,1,i)         /* TST a -  i */
@@ -481,16 +482,22 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_RSB_IMMS(d,a,i)  M_DAT(UNCOND,0x03,d,a,1,1,i)         /* d = -a + i (update Flags) */
 
 #define M_ADDSUB_IMM(d,a,i) if((i)>=0) M_ADD_IMM(d,a,i); else M_SUB_IMM(d,a,-(i))
-#define M_MOVEQ(d,b)       M_DAT(COND_EQ,0x0d,d,0,0,0,b)
-#define M_MOVVS_IMM(d,i)   M_DAT(COND_VS,0x0d,d,0,0,1,i)
-#define M_MOVNE_IMM(d,i)   M_DAT(COND_NE,0x0d,d,0,0,1,i)
-#define M_MOVLS_IMM(d,i)   M_DAT(COND_LS,0x0d,d,0,0,1,i)
+#define M_MOVEQ(a,d)       M_DAT(COND_EQ,0x0d,d,0,0,0,a)
+
+#define M_MOVVS_IMM(i,d)   M_DAT(COND_VS,0x0d,d,0,0,1,i)
+#define M_MOVNE_IMM(i,d)   M_DAT(COND_NE,0x0d,d,0,0,1,i)
+#define M_MOVLT_IMM(i,d)   M_DAT(COND_LT,0x0d,d,0,0,1,i)
+#define M_MOVLS_IMM(i,d)   M_DAT(COND_LS,0x0d,d,0,0,1,i)
+
 #define M_ADDLT_IMM(d,a,i) M_DAT(COND_LT,0x04,d,a,0,1,i)
 #define M_ADDGT_IMM(d,a,i) M_DAT(COND_GT,0x04,d,a,0,1,i)
 #define M_SUBLT_IMM(d,a,i) M_DAT(COND_LT,0x02,d,a,0,1,i)
 #define M_SUBGT_IMM(d,a,i) M_DAT(COND_GT,0x02,d,a,0,1,i)
 #define M_RSBMI_IMM(d,a,i) M_DAT(COND_MI,0x03,d,a,0,1,i)
 #define M_ADCMI_IMM(d,a,i) M_DAT(COND_MI,0x05,d,a,0,1,i)
+
+#define M_CMPEQ(a,b)       M_DAT(COND_EQ,0x0a,0,a,1,0,b)        /* TST a -  b */
+#define M_CMPLE(a,b)       M_DAT(COND_LE,0x0a,0,a,1,0,b)        /* TST a -  b */
 
 #define M_MUL(d,a,b)       M_MULT(UNCOND,d,a,b,0,0,0x0)         /* d = a *  b */
 

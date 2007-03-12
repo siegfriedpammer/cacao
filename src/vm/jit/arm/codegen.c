@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7353 2007-02-13 23:14:35Z twisti $
+   $Id: codegen.c 7505 2007-03-12 13:34:37Z twisti $
 
 */
 
@@ -793,10 +793,10 @@ bool codegen(jitdata *jd)
 			M_MOV_S(REG_ITMP1, s1);
 			M_RSBMI_IMM(REG_ITMP1, REG_ITMP1, 0);
 			if (IS_IMM(iptr->sx.val.i))
-				M_AND_IMM(d, REG_ITMP1, iptr->sx.val.i);
+				M_AND_IMM(REG_ITMP1, iptr->sx.val.i, d);
 			else {
 				ICONST(REG_ITMP3, iptr->sx.val.i);
-				M_AND(d, REG_ITMP1, REG_ITMP3);
+				M_AND(REG_ITMP1, REG_ITMP3, d);
 			}
 			M_RSBMI_IMM(d, d, 0);
 			emit_store_dst(jd, iptr, d);
@@ -807,7 +807,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_AND_IMM(REG_ITMP2, s2, 0x1f);
+			M_AND_IMM(s2, 0x1f, REG_ITMP2);
 			M_MOV(d, REG_LSL_REG(s1, REG_ITMP2));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -817,7 +817,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_AND_IMM(REG_ITMP2, s2, 0x1f);
+			M_AND_IMM(s2, 0x1f, REG_ITMP2);
 			M_MOV(d, REG_ASR_REG(s1, REG_ITMP2));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -827,7 +827,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_AND_IMM(REG_ITMP2, s2, 0x1f);
+			M_AND_IMM(s2, 0x1f, REG_ITMP2);
 			M_MOV(d, REG_LSR_REG(s1, REG_ITMP2));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -873,7 +873,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_AND(d, s1, s2);
+			M_AND(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -882,10 +882,10 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			M_AND(GET_LOW_REG(d), s1, s2);
+			M_AND(s1, s2, GET_LOW_REG(d));
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP3);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_AND(GET_HIGH_REG(d), s1, s2);
+			M_AND(s1, s2, GET_HIGH_REG(d));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -894,7 +894,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_ORR(d, s1, s2);
+			M_ORR(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -903,10 +903,10 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			M_ORR(GET_LOW_REG(d), s1, s2);
+			M_ORR(s1, s2, GET_LOW_REG(d));
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP3);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_ORR(GET_HIGH_REG(d), s1, s2);
+			M_ORR(s1, s2, GET_HIGH_REG(d));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -915,7 +915,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_EOR(d, s1, s2);
+			M_EOR(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -924,10 +924,10 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			M_EOR(GET_LOW_REG(d), s1, s2);
+			M_EOR(s1, s2, GET_LOW_REG(d));
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP3);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_EOR(GET_HIGH_REG(d), s1, s2);
+			M_EOR(s1, s2, GET_HIGH_REG(d));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1071,7 +1071,7 @@ bool codegen(jitdata *jd)
 			M_FIX(d, s1);
 			/* this checks for NaN; to return zero as Java likes it */
 			M_CMF(s1, 0x8);
-			M_MOVVS_IMM(d, 0);
+			M_MOVVS_IMM(0, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1083,7 +1083,7 @@ bool codegen(jitdata *jd)
 			M_FIX(d, s1);
 			/* this checks for NaN; to return zero as Java likes it */
 			M_CMF(s1, 0x8);
-			M_MOVVS_IMM(d, 0);
+			M_MOVVS_IMM(0, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1779,12 +1779,70 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 
+		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+			if (iptr->sx.val.l == 0) {
+				M_ORR_S(s1, s2, REG_ITMP3);
+			}
+			else {
+				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_CMP(s1, REG_ITMP3);
+				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_CMPEQ(s2, REG_ITMP3);
+			}
+			M_BEQ(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+
+#if 0
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
-		case ICMD_IF_LLE:       /* op1 = target JavaVM pc, val.l = constant   */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+			if (iptr->sx.val.l == 0) {
+				/* if high word is less than zero, the whole long is too */
+				M_CMP_IMM(s1, 0);
+				M_BLT(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+			}
+			else {
+  				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+  				M_CMP(s1, REG_ITMP3);
+				M_BLT(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+
+/* 				M_BGT(3); */
+  				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_CMPLE(s2, REG_ITMP3);
+				M_BLO(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+			}
+			break;
+#endif
+
+		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+			if (iptr->sx.val.l == 0) {
+				M_ORR_S(s1, s2, REG_ITMP3);
+			}
+			else {
+				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_CMP(s1, REG_ITMP3);
+				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_CMPEQ(s2, REG_ITMP3);
+			}
+			M_BNE(0);
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			break;
+			
+		case ICMD_IF_LLT:
+		case ICMD_IF_LLE:
 		case ICMD_IF_LGT:
 		case ICMD_IF_LGE:
-		case ICMD_IF_LEQ:
-		case ICMD_IF_LNE:
 
 			/* ATTENTION: compare high words signed and low words unsigned */
 
@@ -2616,7 +2674,7 @@ bool codegen(jitdata *jd)
 
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP1, s2);
 				M_TST(REG_ITMP3, REG_ITMP3);
-				M_MOVNE_IMM(d, 1);
+				M_MOVNE_IMM(1, d);
 
 				if (super == NULL) {
 					M_B(0);
@@ -2667,7 +2725,7 @@ bool codegen(jitdata *jd)
 				/* If d == REG_ITMP2, then it's destroyed */
 				if (d == REG_ITMP2)
 					M_EOR(d, d, d);
-				M_MOVLS_IMM(d, 1);
+				M_MOVLS_IMM(1, d);
 			}
 
 			if (branch1) {
@@ -3078,7 +3136,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* check for exception */
 
 	M_TST(REG_ITMP1_XPTR, REG_ITMP1_XPTR);
-	M_MOVEQ(REG_PC, REG_LR);            /* if no exception, return to caller  */
+	M_MOVEQ(REG_LR, REG_PC);            /* if no exception, return to caller  */
 
 	/* handle exception here */
 
