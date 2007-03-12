@@ -81,6 +81,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 	final_init();
 
 	/* set global variables */
+	gc_pending = false;
 	gc_running = false;
 
 	/* region for uncollectable objects */
@@ -119,23 +120,47 @@ void gc_collect(s4 level)
 	struct timespec time_start, time_suspend, time_rootset, time_mark, time_compact, time_end;
 #endif
 
+	/* this is only quick'n'dirty check, but is NOT thread safe */
+	if (gc_pending || gc_running) {
+		GC_LOG("GC: Preventing reentrance!");
+		return;
+	}
+
+	/* TODO: some global GC lock!!! */
+
 	/* remember start of dump memory area */
 	dumpsize = dump_size();
 
 	RT_TIMING_GET_TIME(time_start);
 
+	/* let everyone know we want to do a collection */
+	GC_ASSERT(!gc_pending);
+	gc_pending = true;
+
 	/* finalizer is not notified, unless marking tells us to do so */
 	gc_notify_finalizer = false;
 
-	GC_LOG( heap_println_usage(); );
-	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
 #if defined(ENABLE_THREADS)
+	/* stop the world here */
+	GC_LOG( dolog("GC: Suspending threads ..."); );
 	GC_LOG( threads_dump(); );
+	threads_stopworld();
+	GC_LOG( threads_dump(); );
+	GC_LOG( dolog("GC: Suspension finished."); );
 #endif
 
-	/* TODO: stop-the-world here!!! */
+	/* sourcestate of the current thread */
+	replace_gc_from_native(THREADOBJECT, NULL, NULL);
+
+	/* everyone is halted now, we consider ourselves running */
+	GC_ASSERT(!gc_running);
+	gc_pending = false;
+	gc_running = true;
 
 	RT_TIMING_GET_TIME(time_suspend);
+
+	GC_LOG( heap_println_usage(); );
+	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
 
 	/* find the global and local rootsets */
 	rs = rootset_readout();
@@ -143,16 +168,7 @@ void gc_collect(s4 level)
 
 	RT_TIMING_GET_TIME(time_rootset);
 
-	/* check for reentrancy here */
-	if (gc_running) {
-		dolog("GC: REENTRANCY DETECTED, aborting ...");
-		goto gc_collect_abort;
-	}
-
-	/* once the rootset is complete, we consider ourselves running */
-	gc_running = true;
-
-#if 0
+#if 1
 
 	/* mark the objects considering the given rootset */
 	mark_me(rs);
@@ -211,6 +227,13 @@ void gc_collect(s4 level)
 	/* REMEBER: keep this below the finalizer notification */
 	gc_running = false;
 
+#if defined(ENABLE_THREADS)
+	/* start the world again */
+	GC_LOG( dolog("GC: Reanimating world ..."); );
+	threads_startworld();
+	/*GC_LOG( threads_dump(); );*/
+#endif
+
 	RT_TIMING_GET_TIME(time_end);
 
 	RT_TIMING_TIME_DIFF(time_start  , time_suspend, RT_TIMING_GC_SUSPEND);
@@ -220,11 +243,82 @@ void gc_collect(s4 level)
 	RT_TIMING_TIME_DIFF(time_compact, time_end    , RT_TIMING_GC_ROOTSET2);
 	RT_TIMING_TIME_DIFF(time_start  , time_end    , RT_TIMING_GC_TOTAL);
 
-gc_collect_abort:
     /* free dump memory area */
     dump_release(dumpsize);
 
 }
+
+
+#if defined(ENABLE_THREADS)
+bool gc_suspend(threadobject *thread, u1 *pc, u1 *sp)
+{
+	codeinfo         *code;
+	stackframeinfo   *sfi;
+	executionstate_t *es;
+	sourcestate_t    *ss;
+
+	/* check if the thread suspended itself */
+	if (pc == NULL) {
+		GC_LOG( dolog("GC: Suspended myself!"); );
+		return true;
+	}
+
+	/* thread was forcefully suspended */
+	GC_LOG( dolog("GC: Suspending thread (tid=%p)", thread->tid); );
+
+	/* check where this thread came to a halt */
+	if (thread->flags & THREAD_FLAG_IN_NATIVE) {
+
+		if (thread->gc_critical) {
+			GC_LOG( dolog("\tNATIVE &  CRITICAL -> retry"); );
+
+			GC_ASSERT(0);
+
+			/* wait till this thread suspends itself */
+			return false;
+
+		} else {
+			GC_LOG( dolog("\tNATIVE & SAFE -> suspend"); );
+
+			/* we assume we are in a native! */
+			replace_gc_from_native(thread, pc, sp);
+
+			/* suspend me now */
+			return true;
+
+		}
+
+	} else {
+		code = code_find_codeinfo_for_pc_nocheck(pc);
+
+		if (code != NULL) {
+			GC_LOG( dolog("\tJIT (pc=%p) & KNOWN(codeinfo=%p) -> replacement",
+					pc, code); );
+
+			/* arm the replacement points of the code this thread is in */
+			replace_activate_replacement_points(code, false);
+
+			/* wait till this thread suspends itself */
+			return false;
+
+		} else {
+			GC_LOG( dolog("\tJIT (pc=%p) & UN-KNOWN -> retry", pc); );
+
+			/* re-suspend me later */
+			/* TODO: implement me! */
+			/* TODO: (this is a rare race condition which was not yet triggered) */
+			GC_ASSERT(0);
+			return false;
+
+		}
+
+	}
+
+	/* this point should never be reached */
+	GC_ASSERT(0);
+
+}
+#endif
 
 
 /* gc_call *********************************************************************
@@ -271,21 +365,6 @@ s8 gc_get_heap_size(void)     { return heap_current_size; }
 s8 gc_get_free_bytes(void)    { return heap_region_main->free; }
 s8 gc_get_total_bytes(void)   { return heap_region_main->size - heap_region_main->free; }
 s8 gc_get_max_heap_size(void) { return heap_maximal_size; }
-
-
-/* Thread specific stuff ******************************************************/
-
-#if defined(ENABLE_THREADS)
-int GC_signum1()
-{
-	return SIGUSR1;
-}
-
-int GC_signum2()
-{
-	return SIGUSR2;
-}
-#endif
 
 
 /* Statistics *****************************************************************/
