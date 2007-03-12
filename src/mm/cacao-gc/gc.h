@@ -50,7 +50,7 @@
 
 /* Configuration Switches *****************************************************/
 
-/*#define GCCONF_FINALIZER*/
+#define GCCONF_FINALIZER
 /*#define GCCONF_HDRFLAG_REFERENCING*/
 
 
@@ -118,7 +118,7 @@ extern bool gc_notify_finalizer;
 /* Prototypes *****************************************************************/
 
 #if defined(ENABLE_THREADS)
-void gc_suspend(threadobject *thread, ucontext_t *context);
+bool gc_suspend(threadobject *thread, u1 *pc, u1 *sp);
 #endif
 
 

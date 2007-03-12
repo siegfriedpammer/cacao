@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7491 2007-03-08 19:49:42Z michi $
+   $Id: threads.c 7496 2007-03-12 00:19:05Z michi $
 
 */
 
@@ -1583,20 +1583,40 @@ bool threads_suspend_thread(threadobject *thread, s4 reason)
 }
 
 
-/* threads_suspend_thread ******************************************************
+/* threads_suspend_ack *********************************************************
 
    Acknowledges the suspension of the current thread.
 
    IN:
      pc.....The PC where the thread suspended its execution.
+     sp.....The SP before the thread suspended its execution.
 
 *******************************************************************************/
 
-void threads_suspend_ack(u1* pc)
+void threads_suspend_ack(u1* pc, u1* sp)
 {
 	threadobject *thread;
 
 	thread = THREADOBJECT;
+
+	assert(thread->suspend_reason != 0);
+
+	/* TODO: remember dump memory size */
+
+#if defined(ENABLE_GC_CACAO)
+	/* inform the GC about the suspension */
+	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD) {
+
+		/* check if the GC wants to leave the thread running */
+		if (!gc_suspend(thread, pc, sp)) {
+
+			/* REMEMBER: we do not unlock the suspendmutex because the thread
+			   will suspend itself again at a later time */
+			return;
+
+		}
+	}
+#endif
 
 	/* mark this thread as suspended and remember the PC */
 	thread->pc        = pc;
@@ -1610,12 +1630,14 @@ void threads_suspend_ack(u1* pc)
 	/* release the suspension mutex and wait till we are resumed */
 	pthread_cond_wait(&(thread->suspendcond), &(thread->suspendmutex));
 
+	/* TODO: free dump memory */
+
 	/* release the suspendmutex */
 	pthread_mutex_unlock(&(thread->suspendmutex));
 }
 
 
-/* threads_resumes_thread ******************************************************
+/* threads_resume_thread *******************************************************
 
    Resumes the execution of the passed thread.
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7491 2007-03-08 19:49:42Z michi $
+   $Id: threads.h 7496 2007-03-12 00:19:05Z michi $
 
 */
 
@@ -51,6 +51,10 @@ typedef struct threads_table_t       threads_table_t;
 #include "threads/native/lock.h"
 
 #include "vm/global.h"
+
+#if defined(ENABLE_GC_CACAO)
+# include "vm/jit/replace.h"
+#endif
 
 #include "vm/jit/stacktrace.h"
 
@@ -180,7 +184,10 @@ struct threadobject {
 #endif
 
 #if defined(ENABLE_GC_CACAO)
-	bool                  gc_critical;
+	bool                  gc_critical;  /* indicates a critical section       */
+
+	sourcestate_t        *ss;
+	executionstate_t     *es;
 #endif
 
 	dumpinfo_t            dumpinfo;     /* dump memory info structure         */
@@ -222,6 +229,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
 bool threads_detach_thread(threadobject *thread);
 
 bool threads_suspend_thread(threadobject *thread, s4 reason);
+void threads_suspend_ack(u1* pc, u1* sp);
 bool threads_resume_thread(threadobject *thread);
 
 void threads_join_all_threads(void);

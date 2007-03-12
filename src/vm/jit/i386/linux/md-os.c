@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 7491 2007-03-08 19:49:42Z michi $
+   $Id: md-os.c 7496 2007-03-12 00:19:05Z michi $
 
 */
 
@@ -124,6 +124,7 @@ void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 	ucontext_t *_uc;
 	mcontext_t *_mc;
 	u1         *pc;
+	u1         *sp;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -131,11 +132,12 @@ void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 	/* assume there is a GC pending */
 	assert(gc_pending);
 
-	/* get the PC for this thread */
+	/* get the PC and SP for this thread */
 	pc = (u1 *) _mc->gregs[REG_EIP];
+	sp = (u1 *) _mc->gregs[REG_ESP];
 
 	/* now suspend the current thread */
-	threads_suspend_ack(pc);
+	threads_suspend_ack(pc, sp);
 }
 #endif
 

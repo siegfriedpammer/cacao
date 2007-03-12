@@ -87,7 +87,9 @@ rootset_t *rootset_create(void)
 
 void rootset_from_globals(rootset_t *rs)
 {
+#if defined(ENABLE_THREADS)
 	threadobject                *thread;
+#endif
 	hashtable_classloader_entry *cle;
 	hashtable_global_ref_entry  *gre;
 	final_entry                 *fe;
@@ -105,7 +107,7 @@ void rootset_from_globals(rootset_t *rs)
 
 	refcount = rs->refcount;
 
-#if defined (ENABLE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* walk through all threadobjects */
 	thread = mainthreadobj;
 	do {
@@ -206,7 +208,7 @@ void rootset_from_classes(rootset_t *rs)
 					printf("\tto object : "); heap_print_object(f->value.a); printf("\n"); );
 
 			/* add this static field reference to the root set */
-			ROOTSET_ADD(&( f->value ), true, REFTYPE_CLASSREF);
+			ROOTSET_ADD(&( f->value.a ), true, REFTYPE_CLASSREF);
 
 		}
 
@@ -236,7 +238,6 @@ void rootset_from_classes(rootset_t *rs)
 
 void rootset_from_thread(threadobject *thread, rootset_t *rs)
 {
-	stackframeinfo   *sfi;
 	executionstate_t *es;
 	sourcestate_t    *ss;
 	sourceframe_t    *sf;
@@ -254,23 +255,16 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	GC_LOG2( printf("Stacktrace of thread:\n");
 			stacktrace_dump_trace(thread); );
 
-	/* get the stackframeinfo of the thread */
+	/* get the sourcestate of the threads */
 #if defined(ENABLE_THREADS)
-	sfi = thread->_stackframeinfo;
+	es = thread->es;
+	ss = thread->ss;
 #else
-	sfi = STACKFRAMEINFO;
+	GC_ASSERT(0);
 #endif
 
-	/* create empty execution state */
-	/* TODO: this is all wrong! */
-	es = DNEW(executionstate_t);
-	es->pc = 0;
-	es->sp = 0;
-	es->pv = 0;
-	es->code = NULL;
-
-	/* TODO: we assume we are in a native! */
-	ss = replace_recover_source_state(NULL, sfi, es);
+	GC_ASSERT(es);
+	GC_ASSERT(ss);
 
 	/* print our full source state */
 	GC_LOG2( replace_sourcestate_println(ss); );
@@ -282,8 +276,9 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	rs->ss = ss;
 	rs->es = es;
 
-	/* now inspect the source state to compile the root set */
 	refcount = rs->refcount;
+
+	/* now inspect the source state to compile the root set */
 	for (sf = ss->frames; sf != NULL; sf = sf->down) {
 
 		GC_ASSERT(sf->javastackdepth == 0);
@@ -353,11 +348,6 @@ void rootset_writeback(rootset_t *rs)
 	threadobject     *thread;
 	sourcestate_t    *ss;
 	executionstate_t *es;
-
-	/* TODO: only a dirty hack! */
-	/*GC_ASSERT(rs->next->thread == THREADOBJECT);
-	ss = rs->next->ss;
-	es = rs->next->es;*/
 
 	/* walk through all rootsets */
 	while (rs) {
