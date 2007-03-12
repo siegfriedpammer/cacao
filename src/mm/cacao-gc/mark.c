@@ -249,7 +249,7 @@ void mark_me(rootset_t *rs)
 	GCSTAT_INIT(gcstat_mark_depth_max);
 
 	/* recursively mark all references from classes */
-	mark_classes(heap_region_main->base, heap_region_main->ptr);
+	/*mark_classes(heap_region_main->base, heap_region_main->ptr);*/
 
 	while (rs) {
 		GC_LOG( dolog("GC: Marking from rootset (%d entries) ...", rs->refcount); );

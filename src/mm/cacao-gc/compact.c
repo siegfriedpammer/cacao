@@ -381,7 +381,7 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	/* Phase 0:
 	 *  - thread all references in classes
 	 *  - thread all references in the rootset */
-	compact_thread_classes(region->base, region->ptr);
+	/*compact_thread_classes(region->base, region->ptr);*/
 	compact_thread_rootset(rs, region->base, region->ptr);
 
 	GC_LOG( dolog("GC: Compaction Phase 1 started ..."); );
