@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7448 2007-03-04 14:46:21Z edwin $
+   $Id: codegen.c 7513 2007-03-13 20:31:23Z twisti $
 
 */
 
@@ -122,11 +122,12 @@ bool codegen(jitdata *jd)
 
 	/* prevent compiler warnings */
 
-	d = 0;
+	s1          = 0;
+	s2          = 0;
+	d           = 0;
 	currentline = 0;
-	lm = NULL;
-	bte = NULL;
-	s2 = 0;
+	lm          = NULL;
+	bte         = NULL;
 
 	{
 	s4 i, p, t, l;
