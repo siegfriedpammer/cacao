@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: emit.c 7514 2007-03-13 20:31:51Z twisti $
 
 */
 
@@ -76,17 +76,22 @@ inline s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 		disp = src->vv.regoff * 4;
 
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-		}
-		else {
-			if (IS_2_WORD_TYPE(src->type))
-				M_LLD(tempreg, REG_SP, disp);
-			else
-				M_ILD(tempreg, REG_SP, disp);
+		switch (src->type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_ILD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+			M_LLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+			M_FLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_DBL:
+			M_DLD(tempreg, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_load: unknown type %d", src->type);
 		}
 
 		reg = tempreg;
@@ -176,6 +181,7 @@ inline s4 emit_load_high(jitdata *jd, instruction *iptr,varinfo *src,s4 tempreg)
 inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
+	s4            disp;
 
 	/* get required compiler data */
 
@@ -184,17 +190,24 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		if (IS_FLT_DBL_TYPE(dst->type)) {
-			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, dst->vv.regoff * 4);
-			else
-				M_FST(d, REG_SP, dst->vv.regoff * 4);
-		}
-		else {
-			if (IS_2_WORD_TYPE(dst->type))
-				M_LST(d, REG_SP, dst->vv.regoff * 4);
-			else
-				M_IST(d, REG_SP, dst->vv.regoff * 4);
+		disp = dst->vv.regoff * 4;
+
+		switch (dst->type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_IST(d, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+			M_LST(d, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+			M_FST(d, REG_SP, disp);
+			break;
+		case TYPE_DBL:
+			M_DST(d, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_store: unknown type %d", dst->type);
 		}
 	}
 }
@@ -288,13 +301,20 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		}
 
 		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type)) {
+			switch (src->type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_MOV(s1, d);
+				break;
+			case TYPE_LNG:
+				M_LNGMOVE(s1, d);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
 /* 				M_FMOV(s1, d); */
-			} else {
-				if (IS_2_WORD_TYPE(src->type))
-					M_LNGMOVE(s1, d);
-				else
-                    M_MOV(s1, d);
+				break;
+			default:
+				vm_abort("emit_copy: unknown type %d", src->type);
 			}
 		}
 
