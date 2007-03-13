@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: codegen.h 7505 2007-03-12 13:34:37Z twisti $
+   $Id: codegen.h 7511 2007-03-13 16:32:56Z michi $
 
 */
 
@@ -485,12 +485,16 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_MOVEQ(a,d)       M_DAT(COND_EQ,0x0d,d,0,0,0,a)
 
 #define M_MOVVS_IMM(i,d)   M_DAT(COND_VS,0x0d,d,0,0,1,i)
+#define M_MOVEQ_IMM(i,d)   M_DAT(COND_EQ,0x0d,d,0,0,1,i)
 #define M_MOVNE_IMM(i,d)   M_DAT(COND_NE,0x0d,d,0,0,1,i)
 #define M_MOVLT_IMM(i,d)   M_DAT(COND_LT,0x0d,d,0,0,1,i)
+#define M_MOVGT_IMM(i,d)   M_DAT(COND_GT,0x0d,d,0,0,1,i)
 #define M_MOVLS_IMM(i,d)   M_DAT(COND_LS,0x0d,d,0,0,1,i)
 
+#define M_ADDHI_IMM(d,a,i) M_DAT(COND_HI,0x04,d,a,0,1,i)
 #define M_ADDLT_IMM(d,a,i) M_DAT(COND_LT,0x04,d,a,0,1,i)
 #define M_ADDGT_IMM(d,a,i) M_DAT(COND_GT,0x04,d,a,0,1,i)
+#define M_SUBLO_IMM(d,a,i) M_DAT(COND_CC,0x02,d,a,0,1,i)
 #define M_SUBLT_IMM(d,a,i) M_DAT(COND_LT,0x02,d,a,0,1,i)
 #define M_SUBGT_IMM(d,a,i) M_DAT(COND_GT,0x02,d,a,0,1,i)
 #define M_RSBMI_IMM(d,a,i) M_DAT(COND_MI,0x03,d,a,0,1,i)
@@ -498,6 +502,8 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 
 #define M_CMPEQ(a,b)       M_DAT(COND_EQ,0x0a,0,a,1,0,b)        /* TST a -  b */
 #define M_CMPLE(a,b)       M_DAT(COND_LE,0x0a,0,a,1,0,b)        /* TST a -  b */
+
+#define M_CMPEQ_IMM(a,i)   M_DAT(COND_EQ,0x0a,0,a,1,1,i)
 
 #define M_MUL(d,a,b)       M_MULT(UNCOND,d,a,b,0,0,0x0)         /* d = a *  b */
 
@@ -1077,18 +1083,14 @@ do { \
    uses M_CMP or M_CMP_IMM to do the compare
    ATTENTION: uses REG_ITMP3 as intermediate register
 */
-/* TODO: improve this and add some comments! */
-#define M_COMPARE(reg, val, cond, overjump) \
+#define M_COMPARE(reg, val) \
 	if (IS_IMM(val)) { \
-		if (overjump) M_BNE(1); \
-		/* M_CMP_IMM */ M_DAT(cond,0x0a,0,(reg),1,1,(val)); \
+		M_CMP_IMM(reg, (val)); \
 	} else if(IS_IMM(-(val))) { \
-		if (overjump) M_BNE(1); \
-		/* M_CMN_IMM */ M_DAT(cond,0x0b,0,(reg),1,1,-(val)); \
+		M_CMN_IMM(reg, -(val)); \
 	} else { \
 		ICONST(REG_ITMP3, (val)); \
-		if (overjump) M_BNE(1); \
-		/* M_CMP */ M_DAT(cond,0x0a,0,(reg),1,0,REG_ITMP3); \
+		M_CMP(reg, REG_ITMP3); \
 	}
 
 /* M_LONGBRANCH:

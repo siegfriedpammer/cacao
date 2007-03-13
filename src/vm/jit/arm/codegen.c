@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7505 2007-03-12 13:34:37Z twisti $
+   $Id: codegen.c 7511 2007-03-13 16:32:56Z michi $
 
 */
 
@@ -1752,7 +1752,7 @@ bool codegen(jitdata *jd)
 		case ICMD_IFNE:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_COMPARE(s1, iptr->sx.val.i, UNCOND, 0);
+			M_COMPARE(s1, iptr->sx.val.i);
 
 			switch(iptr->opc) {
 			case ICMD_IFLT:
@@ -1787,8 +1787,9 @@ bool codegen(jitdata *jd)
 				M_ORR_S(s1, s2, REG_ITMP3);
 			}
 			else {
-				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
-				M_CMP(s1, REG_ITMP3);
+				M_COMPARE(s1, (iptr->sx.val.l >> 32));
+				/*ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_CMP(s1, REG_ITMP3);*/
 				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
 				M_CMPEQ(s2, REG_ITMP3);
 			}
@@ -1796,7 +1797,6 @@ bool codegen(jitdata *jd)
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 
-#if 0
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
@@ -1808,19 +1808,138 @@ bool codegen(jitdata *jd)
 				codegen_add_branch_ref(cd, iptr->dst.block);
 			}
 			else {
-  				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
-  				M_CMP(s1, REG_ITMP3);
-				M_BLT(0);
-				codegen_add_branch_ref(cd, iptr->dst.block);
+				/* high compare: x=0(ifLT) ; x=1(ifEQ) ; x=2(ifGT) */
+				M_COMPARE(s1, (iptr->sx.val.l >> 32));
+				/*ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_CMP(s1, REG_ITMP3);*/
+				M_EOR(REG_ITMP1, REG_ITMP1, REG_ITMP1);
+				M_MOVGT_IMM(2, REG_ITMP1);
+				M_MOVEQ_IMM(1, REG_ITMP1);
 
-/* 				M_BGT(3); */
-  				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
-				M_CMPLE(s2, REG_ITMP3);
-				M_BLO(0);
+				/* low compare: x=x-1(ifLO) */
+				M_COMPARE(s2, (iptr->sx.val.l & 0xffffffff));
+  				/*ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_CMP(s2, REG_ITMP3);*/
+				M_SUBLO_IMM(REG_ITMP1, REG_ITMP1, 1);
+
+				/* branch if (x LT 1) */
+				M_CMP_IMM(REG_ITMP1, 1);
+				M_BLT(0);
 				codegen_add_branch_ref(cd, iptr->dst.block);
 			}
 			break;
+
+		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+			if (iptr->sx.val.l == 0) {
+				/* if high word is less than zero, the whole long is too  */
+				M_CMP_IMM(s1, 0);
+				M_BLT(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+
+				/* ... otherwise the low word has to be zero (tricky!) */
+				M_CMPEQ_IMM(s2, 0);
+				M_BEQ(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+			}
+			else {
+				/* high compare: x=0(ifLT) ; x=1(ifEQ) ; x=2(ifGT) */
+				M_COMPARE(s1, (iptr->sx.val.l >> 32));
+				/*ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_CMP(s1, REG_ITMP3);*/
+				M_EOR(REG_ITMP1, REG_ITMP1, REG_ITMP1);
+				M_MOVGT_IMM(2, REG_ITMP1);
+				M_MOVEQ_IMM(1, REG_ITMP1);
+
+				/* low compare: x=x+1(ifHI) */
+				M_COMPARE(s2, (iptr->sx.val.l & 0xffffffff));
+  				/*ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_CMP(s2, REG_ITMP3);*/
+				M_ADDHI_IMM(REG_ITMP1, REG_ITMP1, 1);
+
+				/* branch if (x LE 1) */
+				M_CMP_IMM(REG_ITMP1, 1);
+				M_BLE(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+			}
+			break;
+
+		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+			if (iptr->sx.val.l == 0) {
+				/* if high word is greater or equal zero, the whole long is too */
+				M_CMP_IMM(s1, 0);
+				M_BGE(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+			}
+			else {
+				/* high compare: x=0(ifLT) ; x=1(ifEQ) ; x=2(ifGT) */
+				M_COMPARE(s1, (iptr->sx.val.l >> 32));
+				/*ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_CMP(s1, REG_ITMP3);*/
+				M_EOR(REG_ITMP1, REG_ITMP1, REG_ITMP1);
+				M_MOVGT_IMM(2, REG_ITMP1);
+				M_MOVEQ_IMM(1, REG_ITMP1);
+
+				/* low compare: x=x-1(ifLO) */
+				M_COMPARE(s2, (iptr->sx.val.l & 0xffffffff));
+  				/*ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_CMP(s2, REG_ITMP3);*/
+				M_SUBLO_IMM(REG_ITMP1, REG_ITMP1, 1);
+
+				/* branch if (x GE 1) */
+				M_CMP_IMM(REG_ITMP1, 1);
+				M_BGE(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+			}
+			break;
+
+		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+#if 0
+			if (iptr->sx.val.l == 0) {
+				/* if high word is greater than zero, the whole long is too */
+				M_CMP_IMM(s1, 0);
+				M_BGT(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+
+				/* ... or high was zero and low is non zero (tricky!) */
+				M_EOR(REG_ITMP3, REG_ITMP3, REG_ITMP3);
+				M_MOVLT_IMM(1, REG_ITMP3);
+				M_ORR_S(REG_ITMP3, s2, REG_ITMP3);
+				M_BNE(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+			}
+			else {
 #endif
+				/* high compare: x=0(ifLT) ; x=1(ifEQ) ; x=2(ifGT) */
+				M_COMPARE(s1, (iptr->sx.val.l >> 32));
+				/*ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_CMP(s1, REG_ITMP3);*/
+				M_EOR(REG_ITMP1, REG_ITMP1, REG_ITMP1);
+				M_MOVGT_IMM(2, REG_ITMP1);
+				M_MOVEQ_IMM(1, REG_ITMP1);
+
+				/* low compare: x=x+1(ifHI) */
+				M_COMPARE(s2, (iptr->sx.val.l & 0xffffffff));
+  				/*ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
+				M_CMP(s2, REG_ITMP3);*/
+				M_ADDHI_IMM(REG_ITMP1, REG_ITMP1, 1);
+
+				/* branch if (x GT 1) */
+				M_CMP_IMM(REG_ITMP1, 1);
+				M_BGT(0);
+				codegen_add_branch_ref(cd, iptr->dst.block);
+#if 0
+			}
+#endif
+			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 
@@ -1830,8 +1949,9 @@ bool codegen(jitdata *jd)
 				M_ORR_S(s1, s2, REG_ITMP3);
 			}
 			else {
-				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
-				M_CMP(s1, REG_ITMP3);
+				M_COMPARE(s1, (iptr->sx.val.l >> 32));
+				/*ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
+				M_CMP(s1, REG_ITMP3);*/
 				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
 				M_CMPEQ(s2, REG_ITMP3);
 			}
@@ -1839,67 +1959,6 @@ bool codegen(jitdata *jd)
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 			
-		case ICMD_IF_LLT:
-		case ICMD_IF_LLE:
-		case ICMD_IF_LGT:
-		case ICMD_IF_LGE:
-
-			/* ATTENTION: compare high words signed and low words unsigned */
-
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			M_COMPARE(s1, (iptr->sx.val.l >> 32), UNCOND, 0);
-
-			switch(iptr->opc) {
-			case ICMD_IF_LLT:
-			case ICMD_IF_LLE:
-				M_BLT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				break;
-			case ICMD_IF_LGT:
-			case ICMD_IF_LGE:
-				M_BGT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				break;
-			case ICMD_IF_LEQ: /* EQ and NE are the same for unsigned */
-			case ICMD_IF_LNE:
-				break;
-			default:
-				assert(0);
-			}
-
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-
-			switch(iptr->opc) {
-			case ICMD_IF_LLT:
-				M_COMPARE(s1, (iptr->sx.val.l & 0xffffffff), COND_EQ, 1);
-				M_BLO(0);
-				break;
-			case ICMD_IF_LLE:
-				M_COMPARE(s1, (iptr->sx.val.l & 0xffffffff), COND_EQ, 1);
-				M_BLS(0);
-				break;
-			case ICMD_IF_LGT:
-				M_COMPARE(s1, (iptr->sx.val.l & 0xffffffff), COND_EQ, 1);
-				M_BHI(0);
-				break;
-			case ICMD_IF_LGE:
-				M_COMPARE(s1, (iptr->sx.val.l & 0xffffffff), COND_EQ, 1);
-				M_BHS(0);
-				break;
-			case ICMD_IF_LEQ:
-				M_COMPARE(s1, (iptr->sx.val.l & 0xffffffff), COND_EQ, 0);
-				M_BEQ(0);
-				break;
-			case ICMD_IF_LNE:
-				M_COMPARE(s1, (iptr->sx.val.l & 0xffffffff), COND_EQ, 0);
-				M_BNE(0);
-				break;
-			default:
-				assert(0);
-			}
-			codegen_addreference(cd, iptr->dst.block);
-			break;
-
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
 		case ICMD_IF_ICMPNE:
@@ -2030,7 +2089,7 @@ bool codegen(jitdata *jd)
 
 			/* range check (index <= high-low) */
 			i = i - l + 1;
-			M_COMPARE(REG_ITMP1, i-1, UNCOND, 0);
+			M_COMPARE(REG_ITMP1, i-1);
 			M_BHI(0); /* unsigned greater than */
 			codegen_addreference(cd, table[0].block);
 
@@ -2064,7 +2123,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 			while (--i >= 0) {
-				M_COMPARE(s1, lookup->value, UNCOND, 0);
+				M_COMPARE(s1, lookup->value);
 				M_BEQ(0);
 				codegen_addreference(cd, lookup->target.block);
 				lookup++;
