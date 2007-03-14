@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7511 2007-03-13 16:32:56Z michi $
+   $Id: codegen.c 7519 2007-03-14 17:31:05Z michi $
 
 */
 
@@ -1999,70 +1999,124 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPNE:    /* op1 = target JavaVM pc                     */
-		case ICMD_IF_LCMPLT:
-		case ICMD_IF_LCMPLE:
-		case ICMD_IF_LCMPGT:
-		case ICMD_IF_LCMPGE:
+		                        /* op1 = target JavaVM pc                     */
 
-			/* ATTENTION: compare high words signed and low words unsigned */
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
 			M_CMP(s1, s2);
 
-			switch(iptr->opc) {
-			case ICMD_IF_LCMPEQ: /* EQ and NE are the same for unsigned */
-			case ICMD_IF_LCMPNE:
-				break;
-			case ICMD_IF_LCMPLT:
-			case ICMD_IF_LCMPLE:
-				M_BLT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				break;
-			case ICMD_IF_LCMPGT:
-			case ICMD_IF_LCMPGE:
-				M_BGT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				break;
-			default:
-				assert(0);
-			}
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_CMPEQ(s1, s2);
+
+			M_BEQ(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+
+		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
 
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_CMPEQ(s1, s2);
 
-			switch(iptr->opc) {
-			case ICMD_IF_LCMPEQ:
-				M_DAT(COND_EQ,0x0a,0,s1,1,0,s2);
-				M_BEQ(0);
-				break;
-			case ICMD_IF_LCMPNE:
-				M_DAT(COND_EQ,0x0a,0,s1,1,0,s2);
-				M_BNE(0);
-				break;
-			case ICMD_IF_LCMPLT:
-				M_BNE(1);
-				M_CMP(s1, s2);
-				M_BLO(0);
-				break;
-			case ICMD_IF_LCMPLE:
-				M_BNE(1);
-				M_CMP(s1, s2);
-				M_BLS(0);
-				break;
-			case ICMD_IF_LCMPGT:
-				M_BNE(1);
-				M_CMP(s1, s2);
-				M_BHI(0);
-				break;
-			case ICMD_IF_LCMPGE:
-				M_BNE(1);
-				M_CMP(s1, s2);
-				M_BHS(0);
-				break;
-			default:
-				assert(0);
-			}
+			M_BNE(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+
+		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			/* high compare: x=0(ifLT) ; x=1(ifEQ) ; x=2(ifGT) */
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_EOR(REG_ITMP3, REG_ITMP3, REG_ITMP3);
+			M_MOVGT_IMM(2, REG_ITMP3);
+			M_MOVEQ_IMM(1, REG_ITMP3);
+
+			/* low compare: x=x-1(ifLO) */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_SUBLO_IMM(REG_ITMP3, REG_ITMP3, 1);
+
+			/* branch if (x LT 1) */
+			M_CMP_IMM(REG_ITMP3, 1);
+			M_BLT(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+
+		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			/* high compare: x=0(ifLT) ; x=1(ifEQ) ; x=2(ifGT) */
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_EOR(REG_ITMP3, REG_ITMP3, REG_ITMP3);
+			M_MOVGT_IMM(2, REG_ITMP3);
+			M_MOVEQ_IMM(1, REG_ITMP3);
+
+			/* low compare: x=x-1(ifLO) */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_ADDHI_IMM(REG_ITMP3, REG_ITMP3, 1);
+
+			/* branch if (x LE 1) */
+			M_CMP_IMM(REG_ITMP3, 1);
+			M_BLE(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+
+		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			/* high compare: x=0(ifLT) ; x=1(ifEQ) ; x=2(ifGT) */
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_EOR(REG_ITMP3, REG_ITMP3, REG_ITMP3);
+			M_MOVGT_IMM(2, REG_ITMP3);
+			M_MOVEQ_IMM(1, REG_ITMP3);
+
+			/* low compare: x=x-1(ifLO) */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_ADDHI_IMM(REG_ITMP3, REG_ITMP3, 1);
+
+			/* branch if (x GT 1) */
+			M_CMP_IMM(REG_ITMP3, 1);
+			M_BGT(0);
+			codegen_addreference(cd, iptr->dst.block);
+			break;
+
+		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			/* high compare: x=0(ifLT) ; x=1(ifEQ) ; x=2(ifGT) */
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_EOR(REG_ITMP3, REG_ITMP3, REG_ITMP3);
+			M_MOVGT_IMM(2, REG_ITMP3);
+			M_MOVEQ_IMM(1, REG_ITMP3);
+
+			/* low compare: x=x-1(ifLO) */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_SUBLO_IMM(REG_ITMP3, REG_ITMP3, 1);
+
+			/* branch if (x GE 1) */
+			M_CMP_IMM(REG_ITMP3, 1);
+			M_BGE(0);
 			codegen_addreference(cd, iptr->dst.block);
 			break;
 
