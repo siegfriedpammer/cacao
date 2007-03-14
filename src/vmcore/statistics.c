@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: statistics.c 7522 2007-03-14 21:54:49Z twisti $
 
 */
 
@@ -83,6 +83,7 @@ s4 size_lineinfo   = 0;
 s4 size_codeinfo   = 0;
 
 s4 size_stack_map  = 0;
+s4 size_string     = 0;
 
 int count_const_pool_len = 0;
 int count_classref_len = 0;
@@ -630,7 +631,8 @@ void statistics_print_memory_usage(void)
 	printf("utf:                    %10d\n", count_utf_len);
 	printf("vmcode:                 %10d\n", count_vmcode_len);
 	printf("exception tables:       %10d\n", count_extable_len);
-    printf("stack map:              %10d\n", size_stack_map);
+	printf("stack map:              %10d\n", size_stack_map);
+	printf("string:                 %10d\n", size_string);
 	printf("                         ----------\n");
 
 	sum =
