@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nogc.c 6034 2006-11-21 21:02:30Z twisti $
+   $Id: nogc.c 7516 2007-03-14 12:00:07Z michi $
 
 */
 
@@ -45,12 +45,12 @@
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "vm/options.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
 #include "vm/stringlocal.h"
+#include "vmcore/loader.h"
+#include "vmcore/options.h"
 
 
 /* global stuff ***************************************************************/
@@ -73,7 +73,7 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 	mmapptr = (void *) ((ptrint) mmapptr + size);
 
 	if (mmapptr > mmaptop)
-		exceptions_throw_outofmemory_exit();
+		vm_abort("heap_allocate: out of memory");
 
 	MSET(m, 0, u1, size);
 
@@ -113,7 +113,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 				   (off_t) 0);
 
 	if (mmapptr == MAP_FAILED)
-		exceptions_throw_outofmemory_exit();
+		vm_abort("gc_init: out of memory");
 
 	mmapsize = heapmaxsize;
 	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);
