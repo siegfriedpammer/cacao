@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7355 2007-02-14 10:57:32Z twisti $
+   $Id: md.c 7520 2007-03-14 21:16:04Z twisti $
 
 */
 
@@ -47,6 +47,7 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/codegen-common.h" /* REMOVE ME: for codegendata */
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
