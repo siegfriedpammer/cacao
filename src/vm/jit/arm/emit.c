@@ -691,12 +691,15 @@ void emit_verbosecall_enter(jitdata *jd)
 			}
 		}
 		else {
-			s1 = md->params[i].regoff + stackframesize;
+			s1 = REG_ITMP12_PACKED;
+			s2 = md->params[i].regoff + stackframesize;
 
 			if (IS_2_WORD_TYPE(t))
-				M_LLD(REG_ITMP12_PACKED, REG_SP, s1 * 4);
-			else
-				M_ILD(REG_ITMP1, REG_SP, s1 * 4);
+				M_LLD(s1, REG_SP, s2 * 4);
+			else {
+				M_ILD(GET_LOW_REG(s1), REG_SP, s2 * 4);
+				M_MOV_IMM(GET_HIGH_REG(s1), 0);
+			}
 		}
 
 		/* place argument for tracer */
