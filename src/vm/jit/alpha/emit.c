@@ -63,6 +63,7 @@
 s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
+	s4            disp;
 	s4            reg;
 
 	/* get required compiler data */
@@ -72,10 +73,21 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		if (IS_FLT_DBL_TYPE(src->type))
-			M_DLD(tempreg, REG_SP, src->vv.regoff * 8);
-		else
-			M_LLD(tempreg, REG_SP, src->vv.regoff * 8);
+		disp = src->vv.regoff * 8;
+
+		switch (src->type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
+			M_LLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+		case TYPE_DBL:
+			M_DLD(tempreg, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_load: unknown type %d", src->type);
+		}
 
 		reg = tempreg;
 	}
@@ -95,6 +107,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
+	s4            disp;
 
 	/* get required compiler data */
 
@@ -103,10 +116,21 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		if (IS_FLT_DBL_TYPE(dst->type))
-			M_DST(d, REG_SP, dst->vv.regoff * 8);
-		else
-			M_LST(d, REG_SP, dst->vv.regoff * 8);
+		disp = dst->vv.regoff * 8;
+
+		switch (dst->type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
+			M_LST(d, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+		case TYPE_DBL:
+			M_DST(d, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_store: unknown type %d", dst->type);
+		}
 	}
 }
 
@@ -143,10 +167,19 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		}
 
 		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type))
-				M_FMOV(s1, d);
-			else
+			switch (dst->type) {
+			case TYPE_INT:
+			case TYPE_LNG:
+			case TYPE_ADR:
 				M_MOV(s1, d);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_FMOV(s1, d);
+				break;
+			default:
+				vm_abort("emit_copy: unknown type %d", dst->type);
+			}
 		}
 
 		emit_store(jd, iptr, dst, d);
