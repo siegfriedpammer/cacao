@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7464 2007-03-06 00:26:31Z edwin $
+   $Id: jni.c 7526 2007-03-15 09:28:56Z twisti $
 
 */
 
@@ -896,8 +896,10 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	vmargs = MNEW(vm_arg, argcount);
 
-	if (!_Jv_jni_vmargs_from_objectarray(o, resm->parseddesc, vmargs, params))
+	if (!_Jv_jni_vmargs_from_objectarray(o, resm->parseddesc, vmargs, params)) {
+		MFREE(vmargs, vm_arg, argcount);
 		return NULL;
+	}
 
 	switch (resm->parseddesc->returntype.decltype) {
 	case TYPE_VOID:
@@ -4082,7 +4084,7 @@ u2 *javastring_tou2(jstring so)
 /* GetStringChars **************************************************************
 
    Returns a pointer to the array of Unicode characters of the
-   string. This pointer is valid until ReleaseStringchars() is called.
+   string. This pointer is valid until ReleaseStringChars() is called.
 
 *******************************************************************************/
 
