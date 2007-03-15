@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: codegen.c 7524 2007-03-15 07:07:51Z pm $
 
 */
 
@@ -525,12 +525,10 @@ bool codegen(jitdata *jd)
 			break;
 
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
-			OOPS();
-#if 0
+
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			LCONST(d, iptr->sx.val.l);
 			emit_store_dst(jd, iptr, d);
-#endif
 			break;
 
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
@@ -541,13 +539,10 @@ bool codegen(jitdata *jd)
 			break;
 		
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
-			OOPS();
-#if 0
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			disp = dseg_add_double(cd, iptr->sx.val.d);
-			emit_movd_membase_reg(cd, RIP, -((cd->mcodeptr + 9) - cd->mcodebase) + disp, d);
+			M_DLDN(d, REG_PV, disp, REG_ITMP1);
 			emit_store_dst(jd, iptr, d);
-#endif
 			break;
 
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
@@ -759,7 +754,13 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_INTMOVE(s1, d);
 			/* TODO range */
-			M_ISUB_IMM(iptr->sx.val.i, d);
+			if (N_VALID_IMM(iptr->sx.val.i)) {
+				M_ISUB_IMM(iptr->sx.val.i, d);
+			} else {
+				disp = dseg_add_s4(cd, iptr->sx.val.i);
+				M_ILD(REG_ITMP2, REG_PV, disp);
+				M_ISUB(REG_ITMP2, d);
+			}
 			emit_store_dst(jd, iptr, d);
 
 			break;
@@ -874,12 +875,12 @@ bool codegen(jitdata *jd)
 
 			M_INTMOVE(R0, REG_ITMP3);
 
+			s2 = emit_load_s2_notzero(jd, iptr, REG_ITMP2);
+
 			s1 = emit_load_s1(jd, iptr, R0);
 			M_INTMOVE(s1, R0);
 			N_LHI(REG_ITMP1, 0);
 			N_SRDA(R0, 32, RN);
-
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 
 			N_DR(R0, s2);
 
@@ -1650,65 +1651,51 @@ bool codegen(jitdata *jd)
 
 		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
  			                  /* == => 0, < => 1, > => -1 */
+		case ICMD_DCMPL:
 
 
 		case ICMD_FCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
  			                  /* == => 0, < => 1, > => -1 */
+		case ICMD_DCMPG:
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 
-			N_CEBR(s1, s2);
+			switch (iptr->opc) {
+				case ICMD_FCMPG:
+				case ICMD_FCMPL:
+					N_CEBR(s1, s2);
+					break;
+				case ICMD_DCMPG:
+				case ICMD_DCMPL:
+					N_CDBR(s1, s2);
+					break;	
+			}
 
-			M_BGT(SZ_BRC + SZ_BRC + SZ_BRC);
-			M_BLT(SZ_BRC + SZ_BRC + SZ_LHI + SZ_BRC);
-			M_BEQ(SZ_BRC + SZ_LHI + SZ_BRC + SZ_LHI + SZ_BRC);
+			N_BRC( /* load 1 */
+				DD_H | (iptr->opc == ICMD_FCMPG || iptr->opc == ICMD_DCMPG ? DD_O : 0),
+				SZ_BRC + SZ_BRC + SZ_BRC
+			);
 
-			N_LHI(d, iptr->opc == ICMD_FCMPL ? 1 : -1); /* GT */
+			N_BRC( /* load -1 */
+				DD_L | (iptr->opc == ICMD_FCMPL || iptr->opc == ICMD_DCMPL ? DD_O : 0),
+				SZ_BRC + SZ_BRC + SZ_LHI + SZ_BRC
+			);
+
+			N_BRC( /* load 0 */
+				DD_E,
+				SZ_BRC + SZ_LHI + SZ_BRC + SZ_LHI + SZ_BRC
+			);
+
+			N_LHI(d, 1); /* GT */
 			M_BR(SZ_BRC + SZ_LHI + SZ_BRC + SZ_LHI);
-			N_LHI(d, iptr->opc == ICMD_FCMPL ? -1 : 1); /* LT */
+			N_LHI(d, -1); /* LT */
 			M_BR(SZ_BRC + SZ_LHI);
 			N_LHI(d, 0); /* EQ */
 
 			emit_store_dst(jd, iptr, d);
 
-			break;
-
-		case ICMD_DCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
- 			                  /* == => 0, < => 1, > => -1 */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			M_CLR(d);
-			M_MOV_IMM(1, REG_ITMP1);
-			M_MOV_IMM(-1, REG_ITMP2);
-			emit_ucomisd_reg_reg(cd, s1, s2);
-			M_CMOVB(REG_ITMP1, d);
-			M_CMOVA(REG_ITMP2, d);
-			M_CMOVP(REG_ITMP2, d);                   /* treat unordered as GT */
-			emit_store_dst(jd, iptr, d);
-#endif
-			break;
-
-		case ICMD_DCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
- 			                  /* == => 0, < => 1, > => -1 */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			M_CLR(d);
-			M_MOV_IMM(1, REG_ITMP1);
-			M_MOV_IMM(-1, REG_ITMP2);
-			emit_ucomisd_reg_reg(cd, s1, s2);
-			M_CMOVB(REG_ITMP1, d);
-			M_CMOVA(REG_ITMP2, d);
-			M_CMOVP(REG_ITMP1, d);                   /* treat unordered as LT */
-			emit_store_dst(jd, iptr, d);
-#endif
 			break;
 
 
@@ -2418,7 +2405,7 @@ bool codegen(jitdata *jd)
 			else {
 				disp = dseg_add_s4(cd, iptr->sx.val.i);
 				N_LHI(REG_ITMP2, disp);
-				N_CL(s1, 0, REG_ITMP2, REG_PV);
+				N_C(s1, 0, REG_ITMP2, REG_PV);
 			}
 
 			switch (iptr->opc) {
@@ -2445,99 +2432,72 @@ bool codegen(jitdata *jd)
 
 			break;
 
-		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (IS_IMM32(iptr->sx.val.l))
-				M_LCMP_IMM(iptr->sx.val.l, s1);
-			else {
-				M_MOV_IMM(iptr->sx.val.l, REG_ITMP2);
-				M_LCMP(REG_ITMP2, s1);
-			}
-			M_BEQ(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
-			OOPS();
-#if 0
+		case ICMD_IF_LLE:       /* op1 = target JavaVM pc, val.l = constant   */
+		case ICMD_IF_LGT:
+		case ICMD_IF_LGE:
+		case ICMD_IF_LEQ:
+		case ICMD_IF_LNE:
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (IS_IMM32(iptr->sx.val.l))
-				M_LCMP_IMM(iptr->sx.val.l, s1);
+			/* ATTENTION: compare high words signed and low words unsigned */
+
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+
+			if (N_VALID_IMM(iptr->sx.val.l >> 32))
+				N_CHI(s1, iptr->sx.val.l >> 32);
 			else {
-				M_MOV_IMM(iptr->sx.val.l, REG_ITMP2);
-				M_LCMP(REG_ITMP2, s1);
+				disp = dseg_add_s4(cd, iptr->sx.val.l >> 32);
+				N_LHI(REG_ITMP2, disp);
+				N_C(s1, 0, REG_ITMP2, REG_PV);
 			}
-			M_BLT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
 
-		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (IS_IMM32(iptr->sx.val.l))
-				M_LCMP_IMM(iptr->sx.val.l, s1);
-			else {
-				M_MOV_IMM(iptr->sx.val.l, REG_ITMP2);
-				M_LCMP(REG_ITMP2, s1);
+			switch(iptr->opc) {
+			case ICMD_IF_LLT:
+			case ICMD_IF_LLE:
+				M_BLT(0);
+				codegen_addreference(cd, iptr->dst.block);
+				break;
+			case ICMD_IF_LGT:
+			case ICMD_IF_LGE:
+				M_BGT(0);
+				codegen_addreference(cd, iptr->dst.block);
+				break;
+			case ICMD_IF_LEQ: /* EQ and NE are the same for unsigned */
+			case ICMD_IF_LNE:
+				break;
+			default:
+				assert(0);
 			}
-			M_BLE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
 
-		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
-			OOPS();
-#if 0
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (IS_IMM32(iptr->sx.val.l))
-				M_LCMP_IMM(iptr->sx.val.l, s1);
-			else {
-				M_MOV_IMM(iptr->sx.val.l, REG_ITMP2);
-				M_LCMP(REG_ITMP2, s1);
+			disp = dseg_add_s4(cd, (s4)(iptr->sx.val.l & 0xffffffff));
+			N_LHI(REG_ITMP2, disp);
+			N_CL(s1, 0, REG_ITMP2, REG_PV);
+
+			switch(iptr->opc) {
+			case ICMD_IF_LLT:
+				M_BLT(0);
+				break;
+			case ICMD_IF_LLE:
+				M_BLE(0);
+				break;
+			case ICMD_IF_LGT:
+				M_BGT(0);
+				break;
+			case ICMD_IF_LGE:
+				M_BGE(0);
+				break;
+			case ICMD_IF_LEQ:
+				M_BEQ(0);
+				break;
+			case ICMD_IF_LNE:
+				M_BNE(0);
+				break;
+			default:
+				assert(0);
 			}
-			M_BNE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
-		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (IS_IMM32(iptr->sx.val.l))
-				M_LCMP_IMM(iptr->sx.val.l, s1);
-			else {
-				M_MOV_IMM(iptr->sx.val.l, REG_ITMP2);
-				M_LCMP(REG_ITMP2, s1);
-			}
-			M_BGT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
-		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
-			OOPS();
-#if 0
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (IS_IMM32(iptr->sx.val.l))
-				M_LCMP_IMM(iptr->sx.val.l, s1);
-			else {
-				M_MOV_IMM(iptr->sx.val.l, REG_ITMP2);
-				M_LCMP(REG_ITMP2, s1);
-			}
-			M_BGE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
+			codegen_addreference(cd, iptr->dst.block);
 			break;
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */

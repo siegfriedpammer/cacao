@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7486 2007-03-08 13:50:07Z twisti $
+   $Id: codegen.h 7524 2007-03-15 07:07:51Z pm $
 
 */
 
@@ -598,6 +598,7 @@
 #define M_BGT(off) N_BRC(DD_H, off)
 #define M_BLT(off) N_BRC(DD_L, off)
 #define M_BGE(off) N_BRC(DD_HE, off)
+#define M_BO(off) N_BRC(DD_O, off)
 
 #define M_CMP(r1, r2) N_CR(r1, r2)
 #define M_CLR(r) N_LHI(r, 0)
@@ -625,7 +626,7 @@
 #define M_ISRL_IMM(imm,reg) N_SRL(reg, imm, RN)
 
 #define M_IMUL_IMM(val, reg) N_MHI(reg, val)
-#define M_IMUL(a, dest) N_MR(dest, a)
+#define M_IMUL(a, dest) N_MSR(dest, a)
 
 #define ICONST(reg, i) \
 	do { \
@@ -636,6 +637,12 @@
 			M_ILD(reg, REG_PV, disp); \
 		} \
 	} while (0) 
+
+#define LCONST(reg,c) \
+	do { \
+	    ICONST(GET_HIGH_REG((reg)), (s4) ((s8) (c) >> 32));	\
+	    ICONST(GET_LOW_REG((reg)), (s4) ((s8) (c))); \
+	} while (0)
 
 /* M_INTMOVE:
     generates an integer-move from register a to b.
