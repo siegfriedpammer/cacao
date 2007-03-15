@@ -86,9 +86,17 @@ class tests {
 	}
 
 	static void test_INT2CHAR() {
+		// Normal test
 		s_i = 97;
 		s_c = (char)s_i;
 		TEST(s_c == 'a');
+		// Negative values
+		s_i = -1;
+		s_c = (char)s_i;
+		TEST(s_c == (char)-1);
+		s_i = -3;
+		s_c = (char)s_i;
+		TEST(s_c == (char)-3);
 	}
 
 	static void test_IADD() {
