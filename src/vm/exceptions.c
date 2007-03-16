@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7386 2007-02-21 23:23:25Z twisti $
+   $Id: exceptions.c 7534 2007-03-16 23:00:18Z pm $
 
 */
 
@@ -1724,6 +1724,15 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	java_objectheader     *o;
 #endif
 
+#ifdef __S390__
+	/* Addresses are 31 bit integers */
+#	define ADDR_MASK(x) (u1 *)((u4)(x) & 0x7FFFFFFF)
+#else
+#	define ADDR_MASK(x) (x)
+#endif
+
+	xpc = ADDR_MASK(xpc);
+
 	/* get info from the method header */
 
 	code                 = *((codeinfo **)            (pv + CodeinfoPointer));
@@ -1758,7 +1767,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 		/* is the xpc is the current catch range */
 
-		if ((ex->startpc <= xpc) && (xpc < ex->endpc)) {
+		if ((ADDR_MASK(ex->startpc) <= xpc) && (xpc < ADDR_MASK(ex->endpc))) {
 			cr = ex->catchtype;
 
 			/* NULL catches everything */

@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7524 2007-03-15 07:07:51Z pm $
+   $Id: codegen.h 7534 2007-03-16 23:00:18Z pm $
 
 */
 
@@ -92,14 +92,6 @@
 
 
 
-#define LCONST(r,c) \
-    do { \
-        if ((c) == 0) \
-            M_CLR((d)); \
-        else \
-            M_MOV_IMM((c), (d)); \
-    } while (0)
-
 /* branch defines *************************************************************/
 
 #define BRANCH_NOPS \
@@ -115,7 +107,11 @@
 #define PATCHER_NOPS \
     do { \
         M_NOP; \
+		M_NOP; \ 
+		M_NOP; \
     } while (0)
+
+#define PATCHER_NOPS_SKIP   12 
 
 /* *** BIG TODO ***
  * Make all this inline functions !!!!!!!!!!

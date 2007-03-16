@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: emit.c 7534 2007-03-16 23:00:18Z pm $
 
 */
 
@@ -2338,40 +2338,7 @@ void emit_rdtsc(codegendata *cd)
 
 *******************************************************************************/
 
-s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
-{
-	codegendata  *cd;
-	s4            disp;
-	s4            reg;
-
-	assert(src->type == TYPE_LNG);
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-
-	if (IS_INMEMORY(src->flags)) {
-		COUNT_SPILLS;
-
-		disp = src->vv.regoff * 4;
-
-		M_ILD(tempreg, REG_SP, disp);
-
-		reg = tempreg;
-	}
-	else
-		reg = GET_HIGH_REG(src->vv.regoff);
-
-	return reg;
-}
-
-/* emit_load_low ***************************************************************
-
-   Emits a possible load of the low 32-bits of an operand.
-
-*******************************************************************************/
-
-s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+__PORTED__ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -2389,6 +2356,39 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 		disp = src->vv.regoff * 4;
 
 		M_ILD(tempreg, REG_SP, disp + 4);
+
+		reg = tempreg;
+	}
+	else
+		reg = GET_HIGH_REG(src->vv.regoff);
+
+	return reg;
+}
+
+/* emit_load_low ***************************************************************
+
+   Emits a possible load of the low 32-bits of an operand.
+
+*******************************************************************************/
+
+__PORTED__ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (IS_INMEMORY(src->flags)) {
+		COUNT_SPILLS;
+
+		disp = src->vv.regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
 	}

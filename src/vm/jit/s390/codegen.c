@@ -29,7 +29,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 7524 2007-03-15 07:07:51Z pm $
+   $Id: codegen.c 7534 2007-03-16 23:00:18Z pm $
 
 */
 
@@ -179,7 +179,7 @@ bool codegen(jitdata *jd)
 	   native code e.g. libc or jni (alignment problems with
 	   movaps). */
 
-	if (!jd->isleafmethod || opt_verbosecall)
+	if (!jd->isleafmethod || opt_verbosecall )
 		/* TODO really 16 bytes ? */
 		cd->stackframesize = (cd->stackframesize + 3) & ~3;
 
@@ -526,7 +526,7 @@ bool codegen(jitdata *jd)
 
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			LCONST(d, iptr->sx.val.l);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -2224,8 +2224,8 @@ bool codegen(jitdata *jd)
 					M_ILD(GET_HIGH_REG(d), s1, disp);
 				}
 				else {
-					M_ILD(GET_HIGH_REG(d), s1, disp);
 					M_ILD(GET_LOW_REG(d), s1, disp + 4);
+					M_ILD(GET_HIGH_REG(d), s1, disp);
 				}
 				break;
 			case TYPE_ADR:
@@ -2378,16 +2378,17 @@ bool codegen(jitdata *jd)
 			break;
 			
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_TEST(s1);
-			M_BEQ(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			break;
-
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_TEST(s1);
-			M_BNE(0);
+			switch (iptr->opc) {	
+				case ICMD_IFNULL:
+					M_BEQ(0);
+					break;
+				case ICMD_IFNONNULL:
+					M_BNE(0);
+					break;
+			}
 			codegen_add_branch_ref(cd, iptr->dst.block);
 			break;
 
@@ -2438,209 +2439,233 @@ bool codegen(jitdata *jd)
 		case ICMD_IF_LGE:
 		case ICMD_IF_LEQ:
 		case ICMD_IF_LNE:
+			{
 
-			/* ATTENTION: compare high words signed and low words unsigned */
+				u1 *out_ref = NULL;
 
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				/* ATTENTION: compare high words signed and low words unsigned */
+	
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 
-			if (N_VALID_IMM(iptr->sx.val.l >> 32))
-				N_CHI(s1, iptr->sx.val.l >> 32);
-			else {
-				disp = dseg_add_s4(cd, iptr->sx.val.l >> 32);
+				if (N_VALID_IMM(iptr->sx.val.l >> 32))
+					N_CHI(s1, iptr->sx.val.l >> 32);
+				else {
+					disp = dseg_add_s4(cd, iptr->sx.val.l >> 32);
+					N_LHI(REG_ITMP2, disp);
+					N_C(s1, 0, REG_ITMP2, REG_PV);
+				}
+
+				switch(iptr->opc) {
+				case ICMD_IF_LLT:
+				case ICMD_IF_LLE:
+					M_BLT(0);
+					codegen_addreference(cd, iptr->dst.block);
+					/* EQ ... fall through */
+					out_ref = cd->mcodeptr;
+					M_BGT(0);
+					break;
+				case ICMD_IF_LGT:
+				case ICMD_IF_LGE:
+					M_BGT(0);
+					codegen_addreference(cd, iptr->dst.block);
+					/* EQ ... fall through */
+					out_ref = cd->mcodeptr;
+					M_BLT(0);
+					break;
+				case ICMD_IF_LEQ: 
+					/* EQ ... fall through */
+					out_ref = cd->mcodeptr;
+					M_BNE(0);
+					break;
+				case ICMD_IF_LNE:
+					/* EQ ... fall through */
+					M_BNE(0);
+					codegen_addreference(cd, iptr->dst.block);
+					break;
+				default:
+					assert(0);
+				}
+
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+
+				disp = dseg_add_s4(cd, (s4)(iptr->sx.val.l & 0xffffffff));
 				N_LHI(REG_ITMP2, disp);
-				N_C(s1, 0, REG_ITMP2, REG_PV);
-			}
+				N_CL(s1, 0, REG_ITMP2, REG_PV);
 
-			switch(iptr->opc) {
-			case ICMD_IF_LLT:
-			case ICMD_IF_LLE:
-				M_BLT(0);
+				switch(iptr->opc) {
+				case ICMD_IF_LLT:
+					M_BLT(0);
+					break;
+				case ICMD_IF_LLE:
+					M_BLE(0);
+					break;
+				case ICMD_IF_LGT:
+					M_BGT(0);
+					break;
+				case ICMD_IF_LGE:
+					M_BGE(0);
+					break;
+				case ICMD_IF_LEQ:
+					M_BEQ(0);
+					break;
+				case ICMD_IF_LNE:
+					M_BNE(0);
+					break;
+				default:
+					assert(0);
+				}
 				codegen_addreference(cd, iptr->dst.block);
-				break;
-			case ICMD_IF_LGT:
-			case ICMD_IF_LGE:
-				M_BGT(0);
-				codegen_addreference(cd, iptr->dst.block);
-				break;
-			case ICMD_IF_LEQ: /* EQ and NE are the same for unsigned */
-			case ICMD_IF_LNE:
-				break;
-			default:
-				assert(0);
+
+				if (out_ref != NULL) {
+					*(u4 *)out_ref |= (u4)(cd->mcodeptr - out_ref) / 2;
+				}
+
 			}
-
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-
-			disp = dseg_add_s4(cd, (s4)(iptr->sx.val.l & 0xffffffff));
-			N_LHI(REG_ITMP2, disp);
-			N_CL(s1, 0, REG_ITMP2, REG_PV);
-
-			switch(iptr->opc) {
-			case ICMD_IF_LLT:
-				M_BLT(0);
-				break;
-			case ICMD_IF_LLE:
-				M_BLE(0);
-				break;
-			case ICMD_IF_LGT:
-				M_BGT(0);
-				break;
-			case ICMD_IF_LGE:
-				M_BGE(0);
-				break;
-			case ICMD_IF_LEQ:
-				M_BEQ(0);
-				break;
-			case ICMD_IF_LNE:
-				M_BNE(0);
-				break;
-			default:
-				assert(0);
-			}
-			codegen_addreference(cd, iptr->dst.block);
 			break;
+
+		case ICMD_IF_ACMPEQ:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
+
+			/* Compare addresses as 31 bit unsigned integers */
+
+			s1 = emit_load_s1_notzero(jd, iptr, REG_ITMP1);
+			N_LA(REG_ITMP1, 0, RN, s1);
+
+			s2 = emit_load_s2_notzero(jd, iptr, REG_ITMP2);
+			N_LA(REG_ITMP2, 0, RN, s2);
+
+			M_CMP(REG_ITMP1, REG_ITMP2);
+
+			switch (iptr->opc) {
+				case ICMD_IF_ACMPEQ:
+					M_BEQ(0);
+					break;
+				case ICMD_IF_ACMPNE:
+					M_BNE(0);
+					break;
+			}
+
+			codegen_add_branch_ref(cd, iptr->dst.block);
+			break;
+
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BEQ(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_CMP(s1, s2);
-			/* load low-bits before the branch, so we know the distance */
-			/* TODO do the loads modify the condition code?
-			 * lr, l, la, lhi dont
-			 */
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNE(SZ_BRC + SZ_CR + SZ_BRC);
-			M_CMP(s1, s2);
-			M_BEQ(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_ICMP(s1, s2);
-			M_BNE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-
-			break;
-
-		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
-			OOPS();
-#if 0
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_LCMP(s2, s1);
-			M_BNE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_ICMP(s1, s2);
-			M_BLT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-
-			break;
-
-		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
-			OOPS();
-#if 0
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_LCMP(s2, s1);
-			M_BLT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_ICMP(s1, s2);
-			M_BGT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-
-			break;
-
-		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
-
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_LCMP(s2, s1);
-			M_BGT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
-			break;
-
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_ICMP(s1, s2);
-			M_BLE(0);
+			M_CMP(s1, s2);
+			switch (iptr->opc) {
+				case ICMD_IF_ICMPEQ:
+					M_BEQ(0);
+					break;
+				case ICMD_IF_ICMPNE:
+					M_BNE(0);
+					break;
+				case ICMD_IF_ICMPLT:
+					M_BLT(0);
+					break;
+				case ICMD_IF_ICMPGT:
+					M_BGT(0);
+					break;
+				case ICMD_IF_ICMPLE:
+					M_BLE(0);
+					break;
+				case ICMD_IF_ICMPGE:
+					M_BGE(0);
+					break;
+			}
 			codegen_add_branch_ref(cd, iptr->dst.block);
 
 			break;
 
 		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_CMP(s1, s2);
-			M_BLT(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			/* load low-bits before the branch, so we know the distance */
-			/* TODO: the loads should not touch the condition code. */
-			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BGT(SZ_BRC + SZ_CR + SZ_BRC);
-			M_CMP(s1, s2);
-			M_BLE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_ICMP(s1, s2);
-			M_BGE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-
-			break;
-
+		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
+		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
+			{
 
-			OOPS();
-#if 0
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_LCMP(s2, s1);
-			M_BGE(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-#endif
+				u1 *out_ref = NULL;
+
+				/* ATTENTION: compare high words signed and low words unsigned */
+	
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+				s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+
+				N_CR(s1, s2);
+
+				switch(iptr->opc) {
+				case ICMD_IF_LCMPLT:
+				case ICMD_IF_LCMPLE:
+					M_BLT(0);
+					codegen_addreference(cd, iptr->dst.block);
+					/* EQ ... fall through */
+					out_ref = cd->mcodeptr;
+					M_BGT(0);
+					break;
+				case ICMD_IF_LCMPGT:
+				case ICMD_IF_LCMPGE:
+					M_BGT(0);
+					codegen_addreference(cd, iptr->dst.block);
+					/* EQ ... fall through */
+					out_ref = cd->mcodeptr;
+					M_BLT(0);
+					break;
+				case ICMD_IF_LCMPEQ: 
+					/* EQ ... fall through */
+					out_ref = cd->mcodeptr;
+					M_BNE(0);
+					break;
+				case ICMD_IF_LCMPNE:
+					/* EQ ... fall through */
+					M_BNE(0);
+					codegen_addreference(cd, iptr->dst.block);
+					break;
+				default:
+					assert(0);
+				}
+
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+				s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
+	
+				N_CLR(s1, s2);
+
+				switch(iptr->opc) {
+				case ICMD_IF_LCMPLT:
+					M_BLT(0);
+					break;
+				case ICMD_IF_LCMPLE:
+					M_BLE(0);
+					break;
+				case ICMD_IF_LCMPGT:
+					M_BGT(0);
+					break;
+				case ICMD_IF_LCMPGE:
+					M_BGE(0);
+					break;
+				case ICMD_IF_LCMPEQ:
+					M_BEQ(0);
+					break;
+				case ICMD_IF_LCMPNE:
+					M_BNE(0);
+					break;
+				default:
+					assert(0);
+				}
+
+				codegen_addreference(cd, iptr->dst.block);
+
+				if (out_ref != NULL) {
+					*(u4 *)out_ref |= (u4)(cd->mcodeptr - out_ref) / 2;
+				}
+
+			}
 			break;
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */

@@ -1,3 +1,5 @@
+package tests;
+
 #define TEST(cond) test(#cond, (cond), __LINE__)
 #define TODO() test("TODO: Implement", false, __LINE__)
 
@@ -7,15 +9,41 @@ class tests {
 	static float s_f, s_f1, s_f2;
 	static char s_c, s_c1;
 	static short s_s, s_s1;
-	static long s_l, s_l1;
+	static long s_l, s_l1, s_l2;
 	static double s_d, s_d1;
 	static boolean s_b;
 	static Object s_a;
 	static final char[] s_ca = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 	static char[] s_ca2 = { '0', '1', '2' };
-	static String s_a0 = "s0", s_a1 = "s1", s_a2 = "s2";
+	static String s_as0 = "s0", s_as1 = "s1", s_as2 = "s2";
+	static Object s_a0 = s_as0, s_a1 = s_as1, s_a2 = s_as2;
 	static Object[] s_aa = { s_a0, s_a1, s_a2 };
 	static Object[] s_aa2 = { null, null, null };
+
+	static class members {
+		char c;
+		short s;
+		int i;
+		Object a;
+		long l;
+		float f;
+		double d;
+	};
+
+	static class exception extends Exception {
+		int line;
+		exception(int line) {
+			this.line = line;
+		}
+	};
+
+	static char s_cm() { return s_c; }
+	static short s_sm() { return s_s; }
+	static int s_im() { return s_i; }
+	static long s_lm() { return s_l; }
+	static Object s_am() { return s_a; }
+	static float s_fm() { return s_f; }
+	static double s_dm() { return s_d; }
 
 	static int s_testsOk = 0, s_testsFailure = 0;
 
@@ -381,9 +409,9 @@ class tests {
 		s_a = s_a1;
 		TEST(s_a == s_a1);
 
-		s_l1 = 987l;
+		s_l1 = 0x987AABBCCDDl;
 		s_l = s_l1;
-		TEST(s_l == 987l);
+		TEST(s_l == 0x987AABBCCDDl);
 
 		s_f1 = 98.12f;
 		s_f = s_f1;
@@ -394,59 +422,255 @@ class tests {
 		TEST(s_d == 98.12);
 	}
 
-	static void test_IF_LXX() {
+	static void test_IF_LXX_LCMPXX() {
 		// the tests generated are the negated tests
 		// (witj ecj)
 
-		// short long (one long long)
+#		define YES 10
+#		define NO 20
+#		define LTEST(val1, op, val2, expect) \
+			s_l = val1; \
+			s_i = (s_l op val2 ? YES : NO); \
+			TEST(s_i == expect); \
+			s_l1 = val1; \
+			s_l2 = val2; \
+			s_i = (s_l1 op s_l2 ? YES : NO); \
+			TEST(s_i == expect); 
 
-		s_l = 0xffffl;
+		// HIGH words equal
 
-		s_i = (s_l < 0xfffffl ? 10 : 20);
+		LTEST(0xffABCDl, <,  0xffABCDl, NO);
+		LTEST(0xffABCDl, <=, 0xffABCDl, YES);
+		LTEST(0xffABCDl, >,  0xffABCDl, NO);
+		LTEST(0xffABCDl, >=, 0xffABCDl, YES);
+		LTEST(0xffABCDl, ==, 0xffABCDl, YES);
+		LTEST(0xffABCDl, !=, 0xffABCDl, NO);
+
+		LTEST(0xffABCDl, <,  0xfffABCDl, YES);
+		LTEST(0xffABCDl, <=, 0xfffABCDl, YES);
+		LTEST(0xffABCDl, >,  0xfffABCDl, NO);
+		LTEST(0xffABCDl, >=, 0xfffABCDl, NO);
+		LTEST(0xffABCDl, ==, 0xfffABCDl, NO);
+		LTEST(0xffABCDl, !=, 0xfffABCDl, YES);
+
+		LTEST(0xffABCDl, <,  0xfABCDl, NO);
+		LTEST(0xffABCDl, <=, 0xfABCDl, NO);
+		LTEST(0xffABCDl, >,  0xfABCDl, YES);
+		LTEST(0xffABCDl, >=, 0xfABCDl, YES);
+		LTEST(0xffABCDl, ==, 0xfABCDl, NO);
+		LTEST(0xffABCDl, !=, 0xfABCDl, YES);
+
+		// LOW words equal
+
+		LTEST(0xffAABBCCDDl, <,  0xffAABBCCDDl, NO);
+		LTEST(0xffAABBCCDDl, <=, 0xffAABBCCDDl, YES);
+		LTEST(0xffAABBCCDDl, >,  0xffAABBCCDDl, NO);
+		LTEST(0xffAABBCCDDl, >=, 0xffAABBCCDDl, YES);
+		LTEST(0xffAABBCCDDl, ==, 0xffAABBCCDDl, YES);
+		LTEST(0xffAABBCCDDl, !=, 0xffAABBCCDDl, NO);
+
+		LTEST(0xffAABBCCDDl, <,  0xfffAABBCCDDl, YES);
+		LTEST(0xffAABBCCDDl, <=, 0xfffAABBCCDDl, YES);
+		LTEST(0xffAABBCCDDl, >,  0xfffAABBCCDDl, NO);
+		LTEST(0xffAABBCCDDl, >=, 0xfffAABBCCDDl, NO);
+		LTEST(0xffAABBCCDDl, ==, 0xfffAABBCCDDl, NO);
+		LTEST(0xffAABBCCDDl, !=, 0xfffAABBCCDDl, YES);
+
+		LTEST(0xffAABBCCDDl, <,  0xfAABBCCDDl, NO);
+		LTEST(0xffAABBCCDDl, <=, 0xfAABBCCDDl, NO);
+		LTEST(0xffAABBCCDDl, >,  0xfAABBCCDDl, YES);
+		LTEST(0xffAABBCCDDl, >=, 0xfAABBCCDDl, YES);
+		LTEST(0xffAABBCCDDl, ==, 0xfAABBCCDDl, NO);
+		LTEST(0xffAABBCCDDl, !=, 0xfAABBCCDDl, YES);
+
+		// Greater in absolute value is negative
+
+		LTEST(0xffABCDl, <,  -0xfffABCDl, NO);
+		LTEST(0xffABCDl, <=, -0xfffABCDl, NO);
+		LTEST(0xffABCDl, >,  -0xfffABCDl, YES);
+		LTEST(0xffABCDl, >=, -0xfffABCDl, YES);
+		LTEST(0xffABCDl, ==, -0xfffABCDl, NO);
+		LTEST(0xffABCDl, !=, -0xfffABCDl, YES);
+
+		LTEST(-0xffABCDl, <,  0xfABCDl, YES);
+		LTEST(-0xffABCDl, <=, 0xfABCDl, YES);
+		LTEST(-0xffABCDl, >,  0xfABCDl, NO);
+		LTEST(-0xffABCDl, >=, 0xfABCDl, NO);
+		LTEST(-0xffABCDl, ==, 0xfABCDl, NO);
+		LTEST(-0xffABCDl, !=, 0xfABCDl, YES);
+
+#		undef LTEST
+#		undef YES
+#		undef NO
+	}
+
+	static void test_GETPUTFIELD() {
+		members m = new members();
+
+		s_c1 = 'X';
+		m.c = s_c1;
+		TEST(m.c == 'X');
+
+		s_s1 = -34;
+		m.s = s_s1;
+		TEST(m.s == -34);
+
+		s_i1 = 987;
+		m.i = s_i1;
+		TEST(m.i == 987);
+
+		m.a = s_a1;
+		TEST(m.a == s_a1);
+
+		s_l1 = 0x987AABBCCDDl;
+		m.l = s_l1;
+		TEST(m.l == 0x987AABBCCDDl);
+
+		s_f1 = 98.12f;
+		m.f = s_f1;
+		TEST(m.f == 98.12f);
+
+		s_d1 = 98.12;
+		m.d = s_d1;
+		TEST(m.d == 98.12);
+	}
+
+	static void doThrow(int line) throws exception {
+		throw new exception(line);
+	}
+
+	static void test_ATHROW() {
+		s_b = false;
+		try {
+			/* Propagate line in java source with exception.
+			 * Then compare with line provided by exception stack trace.
+			 */
+			s_i =
+			__JAVA_LINE__
+			;
+			throw new exception(s_i + 2);
+		} catch (exception e) {
+			s_b = true;
+			TODO();
+			//TEST(e.line == e.getStackTrace()[0].getLineNumber());
+		}
+		TEST(s_b); /* exception catched ? */
+	}
+
+	static void test_IFNULL() {
+		TODO();
+	}
+
+	static void test_IFNONNULL() {
+		TODO();
+	}
+
+	static void test_IFXX_ICMPXX() {
+#		define YES 10
+#		define NO 20
+#		define ITEST(val1, op, val2, expect) \
+			s_i1 = val1; \
+			s_i = (s_i1 op val2 ? YES: NO); \
+			TEST(s_i == expect); \
+			s_i1 = val1; \
+			s_i2 = val2; \
+			s_i = (s_i1 op s_i2 ? YES: NO); \
+			TEST(s_i == expect); 
+
+		ITEST(0xffABCD, <,  0xffABCD, NO);
+		ITEST(0xffABCD, <=, 0xffABCD, YES);
+		ITEST(0xffABCD, >,  0xffABCD, NO);
+		ITEST(0xffABCD, >=, 0xffABCD, YES);
+		ITEST(0xffABCD, ==, 0xffABCD, YES);
+		ITEST(0xffABCD, !=, 0xffABCD, NO);
+
+		ITEST(0xffABCD, <,  0xfffABCD, YES);
+		ITEST(0xffABCD, <=, 0xfffABCD, YES);
+		ITEST(0xffABCD, >,  0xfffABCD, NO);
+		ITEST(0xffABCD, >=, 0xfffABCD, NO);
+		ITEST(0xffABCD, ==, 0xfffABCD, NO);
+		ITEST(0xffABCD, !=, 0xfffABCD, YES);
+
+		ITEST(0xffABCD, <,  0xfABCD, NO);
+		ITEST(0xffABCD, <=, 0xfABCD, NO);
+		ITEST(0xffABCD, >,  0xfABCD, YES);
+		ITEST(0xffABCD, >=, 0xfABCD, YES);
+		ITEST(0xffABCD, ==, 0xfABCD, NO);
+		ITEST(0xffABCD, !=, 0xfABCD, YES);
+
+		// Greater in absolute value is negative
+
+		ITEST(0xffABCD, <,  -0xfffABCD, NO);
+		ITEST(0xffABCD, <=, -0xfffABCD, NO);
+		ITEST(0xffABCD, >,  -0xfffABCD, YES);
+		ITEST(0xffABCD, >=, -0xfffABCD, YES);
+		ITEST(0xffABCD, ==, -0xfffABCD, NO);
+		ITEST(0xffABCD, !=, -0xfffABCD, YES);
+
+		ITEST(-0xffABCD, <,  0xfABCD, YES);
+		ITEST(-0xffABCD, <=, 0xfABCD, YES);
+		ITEST(-0xffABCD, >,  0xfABCD, NO);
+		ITEST(-0xffABCD, >=, 0xfABCD, NO);
+		ITEST(-0xffABCD, ==, 0xfABCD, NO);
+		ITEST(-0xffABCD, !=, 0xfABCD, YES);
+
+#		undef YES
+#		undef NO
+#		undef ITEST
+	}
+
+	static void test_IF_ACMPXX() {
+		s_i = (s_a1 == s_a1 ? 10 : 20);
 		TEST(s_i == 10);
-
-		s_i = (s_l <= 0xfffffl ? 10 : 20);
-		TEST(s_i == 10);
-
-		s_i = (s_l > 0xfffl ? 10 : 20);
-		TEST(s_i == 10);
-
-		s_i = (s_l >= 0xfffl ? 10 : 20);
-		TEST(s_i == 10);
-
-		s_i = (s_l == 0xffffl ? 10 : 20);
-		TEST(s_i == 10);
-
-		s_i = (s_l != 0xffffl ? 10 : 20);
+		s_i = (s_a1 != s_a1 ? 10 : 20);
 		TEST(s_i == 20);
-
-		s_i = (s_l != 0xfffl ? 10 : 20);
-		TEST(s_i == 10);
-
-		// long long (two words long)
-
-		s_l = 0xffFFFFFFFFl;
-
-		s_i = (s_l < 0xfffFFFFFFFFl ? 10 : 20);
-		TEST(s_i == 10); //
-
-		s_i = (s_l <= 0xfffFFFFFFFFl ? 10 : 20);
-		TEST(s_i == 10);
-
-		s_i = (s_l > 0xfffFFFFFFFFl ? 10 : 20);
-		TEST(s_i == 10); //
-
-		s_i = (s_l >= 0xfffFFFFFFFFl ? 10 : 20);
-		TEST(s_i == 10); //
-
-		s_i = (s_l == 0xffFFFFFFFFl ? 10 : 20);
-		TEST(s_i == 10);
-
-		s_i = (s_l != 0xffFFFFFFFFl ? 10 : 20);
+		s_i = (s_a1 == s_a2 ? 10 : 20);
 		TEST(s_i == 20);
+		s_i = (s_a1 != s_a2 ? 10 : 20);
+		TEST(s_i == 10);
+	}
 
-		s_i = (s_l != 0xfffFFFFFFFFl ? 10 : 20);
-		TEST(s_i == 10); //
+	static void test_XRETURN() {
+#		define RTEST(type, value) \
+			s_##type = value; \
+			s_##type##1 = s_##type##m(); \
+			TEST(s_##type##1 == value);
+
+		RTEST(c, 'a');
+		RTEST(s, 99);
+		RTEST(i, 0xFFEEDDCC);
+		RTEST(l, 0xAABBCCDD11223344l);
+		RTEST(a, s_a2);
+		RTEST(f, 1337.1f);
+		RTEST(d, 1983.1975);
+
+#		under RTEST
+	}
+
+	static interface i1 { };
+	static interface i2 { };
+	static interface i3 extends i2 { };
+	static interface i4 extends i3 { };
+	static interface i5 { };
+	static class c1 { };
+	static class c2 extends c1 implements i1 { };
+	static class c3 extends c2 implements i4 { };
+	static class c4 { };
+
+	static void test_INSTANCEOF() {
+		Object x = new c3();
+		TEST(x instanceof i1);
+		TEST(x instanceof i2);
+		TEST(x instanceof i3);
+		TEST(x instanceof i4);
+		TEST(! (x instanceof i5));
+		TEST(! (x instanceof java.lang.Runnable));
+		TEST(x instanceof c1);
+		TEST(x instanceof c2);
+		TEST(x instanceof c3);
+		TEST(! (x instanceof c4));
+		TEST(! (x instanceof java.lang.String));
+		TEST(x instanceof java.lang.Object);
 	}
 	
 	static void main(String[] args) {
@@ -472,7 +696,15 @@ class tests {
 		test_CASTORE();
 		test_AASTORE();
 		test_GETPUTSTATIC();
-		test_IF_LXX();
+		test_IF_LXX_LCMPXX();
+		test_GETPUTFIELD();
+		test_ATHROW();
+		test_IFNULL();
+		test_IFNONNULL();
+		test_IFXX_ICMPXX();
+		test_IF_ACMPXX();
+		test_XRETURN();
+		test_INSTANCEOF();
 
 		summary();
 	}

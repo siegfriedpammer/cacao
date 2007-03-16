@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7367 2007-02-16 07:17:01Z pm $
+   $Id: md.c 7534 2007-03-16 23:00:18Z pm $
 
 */
 
@@ -36,15 +36,12 @@
 #define REG_RIP 0
 #define REG_RAX 0
 #define REG_R10 0
-#define REG_ITMP2 0
 #define REG_RIP 0
 #define REG_RSP 0
 #define REG_RIP 0
 #define REG_RAX 0
 #define REG_R10 0
-#define REG_ITMP2 0
 #define REG_RIP 0
-#define REG_METHODPTR 0
 
 
 #define _GNU_SOURCE
@@ -70,6 +67,8 @@
 #include "vmcore/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
+
+#include "vm/jit/codegen-common.h"
 
 #include <assert.h>
 #define OOPS() assert(0);

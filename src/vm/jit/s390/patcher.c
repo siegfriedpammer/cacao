@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: patcher.c 7534 2007-03-16 23:00:18Z pm $
 
 */
 
@@ -37,6 +37,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/md-abi.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -86,7 +87,6 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
 	
-	/* TODO here was PATCHER_CALL_SIZE previously ! */
   	xpc = xpc - 4; /* the patch position is 4 bytes before the RA */
 
 	*((ptrint *) (sp + 5 * 4)) = (ptrint) xpc;
@@ -246,63 +246,48 @@ bool patcher_get_putstatic(u1 *sp)
 
    Machine code:
 
-   <patched call position>
-   45 8b 8f 00 00 00 00             mov    0x0(%r15),%r9d
-
 *******************************************************************************/
 
 bool patcher_get_putfield(u1 *sp)
 {
-	OOPS();
 	u1               *ra;
-	u8                mcode;
+	u4                mcode;
 	unresolved_field *uf;
 	fieldinfo        *fi;
 	u1                byte;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 5 * 8));
-	mcode =                      *((u8 *)     (sp + 3 * 8));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)               *((ptrint *) (sp + 5 * 4));
+	mcode =                      *((u4 *)     (sp + 3 * 4));
+	uf    = (unresolved_field *) *((ptrint *) (sp + 2 * 4));
 
 	/* get the fieldinfo */
 
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch back original code (instruction code is smaller than 8 bytes) */
+	/* patch back original code */
 
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop's */
+	/* If NOPs are generated, skip them */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra += PATCHER_NOPS_SKIP;
 
-	/* patch the field's offset: we check for the field type, because the     */
-	/* instructions have different lengths                                    */
+	/* patch correct offset */
 
-	if (IS_INT_LNG_TYPE(fi->type)) {
-		/* check for special case: %rsp or %r12 as base register */
-
-		byte = *(ra + 3);
-
-		if (byte == 0x24)
-			*((u4 *) (ra + 4)) = (u4) (fi->offset);
-		else
-			*((u4 *) (ra + 3)) = (u4) (fi->offset);
-	}
-	else {
-		/* check for special case: %rsp or %r12 as base register */
-
-		byte = *(ra + 5);
-
-		if (byte == 0x24)
-			*((u4 *) (ra + 6)) = (u4) (fi->offset);
-		else
-			*((u4 *) (ra + 5)) = (u4) (fi->offset);
+	if (fi->type == TYPE_LNG) {
+		assert(N_VALID_DISP(fi->offset + 4));
+		/* 2 RX operations, for 2 words; each already contains a 0 or 4 offset. */
+		*((u4 *) ra ) |= (fi->offset + (*((u4 *) ra) & 0xF));
+		ra += 4;
+		*((u4 *) ra ) |= (fi->offset + (*((u4 *) ra) & 0xF));
+	} else {
+		assert(N_VALID_DISP(fi->offset));
+		/* 1 RX operation */
+		*((u4 *) ra) |= fi->offset;
 	}
 
 	return true;
@@ -583,6 +568,11 @@ bool patcher_invokevirtual(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
+	/* If NOPs are generated, skip them */
+
+	if (opt_shownops)
+		ra += PATCHER_NOPS_SKIP;
+
 	/* patch vftbl index */
 
 
@@ -591,7 +581,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	assert(N_VALID_DISP(off));
 
-	*((s4 *)(ra + 4 + 4)) |= off;
+	*((s4 *)(ra + 4)) |= off;
 
 	return true;
 }
@@ -626,6 +616,11 @@ bool patcher_invokeinterface(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
+	/* If NOPs are generated, skip them */
+
+	if (opt_shownops)
+		ra += PATCHER_NOPS_SKIP;
+
 	/* get interfacetable index */
 
 	idx = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
@@ -642,8 +637,8 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch them */
 
-	*((s4 *)(ra + 4 + 4)) |= idx;
-	*((s4 *)(ra + 4 + 4 + 4)) |= off;
+	*((s4 *)(ra + 4)) |= idx;
+	*((s4 *)(ra + 4 + 4)) |= off;
 
 	return true;
 }
@@ -775,28 +770,20 @@ bool patcher_resolve_classref_to_vftbl(u1 *sp)
 
    Machine code:
 
-   <patched call position>
-   45 8b 9a 1c 00 00 00             mov    0x1c(%r10),%r11d
-   49 81 eb 00 00 00 00             sub    $0x0,%r11
-   4d 85 db                         test   %r11,%r11
-   0f 8e 94 04 00 00                jle    0x00002aaaaab018f8
-   4d 8b 9a 00 00 00 00             mov    0x0(%r10),%r11
-
 *******************************************************************************/
 
 bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
-	OOPS();
 	u1                *ra;
-	u8                 mcode;
+	u4                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	mcode =                       *((u4 *)     (sp + 3 * 4));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
 
 	/* get the fieldinfo */
 
@@ -805,20 +792,26 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop's */
+	/* If NOPs are generated, skip them */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra += PATCHER_NOPS_SKIP;
 
 	/* patch super class index */
 
-	*((s4 *) (ra + 7 + 3)) = (s4) c->index;
+	/* From here, split your editor and open codegen.c */
 
-	*((s4 *) (ra + 7 + 7 + 3 + 6 + 3)) =
-		(s4) (OFFSET(vftbl_t, interfacetable[0]) -
-			  c->index * sizeof(methodptr*));
+	if ((*(ra + 1) >> 4) == REG_ITMP1) { /* First M_ALD is into ITMP1 */
+		/* INSTANCEOF code */
+		*(u4 *)(ra + SZ_L + SZ_L) |= (u2)(s2)(- c->index);
+		*(u4 *)(ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC) |=
+			(u2)(s2)(OFFSET(vftbl_t, interfacetable[0]) -
+				c->index * sizeof(methodptr*));
+	} else {
+		OOPS();
+	}
 
 	return true;
 }
