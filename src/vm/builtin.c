@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7535 2007-03-17 12:57:32Z twisti $
+   $Id: builtin.c 7537 2007-03-17 13:11:11Z twisti $
 
 */
 
@@ -384,8 +384,9 @@ bool builtintable_replace_function(void *iptr_)
 
 s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
-	s4 res;
 	castinfo classvalues;
+	u4       diffval;
+	s4       result;
 
 	/* This is the trivial case. */
 
@@ -395,7 +396,7 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 	/* Check for interfaces. */
 
 	if (super->flags & ACC_INTERFACE) {
-		res = (sub->vftbl->interfacetablelength > super->index) &&
+		result = (sub->vftbl->interfacetablelength > super->index) &&
 			(sub->vftbl->interfacetable[-super->index] != NULL);
 	}
 	else {
@@ -406,30 +407,45 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 
 		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues);
 
-		res = (u4) (classvalues.sub_baseval - classvalues.super_baseval) <=
-			(u4) classvalues.super_diffval;
+		diffval = classvalues.sub_baseval - classvalues.super_baseval;
+		result  = diffval <= (u4) classvalues.super_diffval;
 	}
 
-	return res;
+	return result;
 }
 
 
-s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
+/* builtin_isanysubclass_vftbl **************************************************
+
+   Same function as builtin_isanysubclass, but takes vftbl's as
+   arguments.
+
+   Return value: 1 ... sub is subclass of super
+                 0 ... otherwise
+
+********************************************************************************/
+
+static s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 {
-	s4 res;
-	s4 base;
 	castinfo classvalues;
+	s4       baseval;
+	u4       diffval;
+	s4       result;
+
+	/* This is the trivial case. */
 
 	if (sub == super)
 		return 1;
 
 	ASM_GETCLASSVALUES_ATOMIC(super, sub, &classvalues);
 
-	if ((base = classvalues.super_baseval) <= 0) {
+	baseval = classvalues.super_baseval;
+
+	if (baseval <= 0) {
 		/* super is an interface */
 
-		res = (sub->interfacetablelength > -base) &&
-			(sub->interfacetable[base] != NULL);
+		result = (sub->interfacetablelength > -baseval) &&
+			(sub->interfacetable[baseval] != NULL);
 	} 
 	else {
 		/* java.lang.Object is the only super_class_ of any interface */
@@ -437,11 +453,11 @@ s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 		if (classvalues.sub_baseval <= 0)
 			return classvalues.super_baseval == 1;
 
-	    res = (u4) (classvalues.sub_baseval - classvalues.super_baseval)
-			<= (u4) classvalues.super_diffval;
+	    diffval = classvalues.sub_baseval - classvalues.super_baseval;
+		result  = diffval <= (u4) classvalues.super_diffval;
 	}
 
-	return res;
+	return result;
 }
 
 
