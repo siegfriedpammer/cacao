@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7459 2007-03-05 17:34:43Z edwin $
+   $Id: builtin.c 7535 2007-03-17 12:57:32Z twisti $
 
 */
 
@@ -372,29 +372,35 @@ bool builtintable_replace_function(void *iptr_)
 
 
 
-/*************** internal function: builtin_isanysubclass *********************
+/* builtin_isanysubclass ********************************************************
 
-	Checks a subclass relation between two classes. Implemented interfaces
-	are interpreted as super classes.
-	Return value:  1 ... sub is subclass of super
-				   0 ... otherwise
+   Checks a subclass relation between two classes. Implemented
+   interfaces are interpreted as super classes.
 
-******************************************************************************/
+   Return value: 1 ... sub is subclass of super
+                 0 ... otherwise
+
+********************************************************************************/
 
 s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
 	s4 res;
 	castinfo classvalues;
 
+	/* This is the trivial case. */
+
 	if (sub == super)
 		return 1;
+
+	/* Check for interfaces. */
 
 	if (super->flags & ACC_INTERFACE) {
 		res = (sub->vftbl->interfacetablelength > super->index) &&
 			(sub->vftbl->interfacetable[-super->index] != NULL);
-
-	} else {
+	}
+	else {
 		/* java.lang.Object is the only super_class_ of any interface */
+
 		if (sub->flags & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
 
@@ -421,11 +427,13 @@ s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 
 	if ((base = classvalues.super_baseval) <= 0) {
 		/* super is an interface */
+
 		res = (sub->interfacetablelength > -base) &&
 			(sub->interfacetable[base] != NULL);
 	} 
 	else {
 		/* java.lang.Object is the only super_class_ of any interface */
+
 		if (classvalues.sub_baseval <= 0)
 			return classvalues.super_baseval == 1;
 
