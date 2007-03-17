@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 7441 2007-03-02 23:13:10Z michi $
+   $Id: java_lang_reflect_Method.c 7536 2007-03-17 13:10:04Z twisti $
 
 */
 
@@ -45,6 +45,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
 
