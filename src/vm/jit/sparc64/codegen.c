@@ -2989,9 +2989,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	cd   = jd->cd;
 	rd   = jd->rd;
 
-	/* redo param allocation */
-	md_native_param_alloc(nmd);
-
 	/* initialize variables */
 
 	md = m->parseddesc;

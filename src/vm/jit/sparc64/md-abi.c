@@ -160,13 +160,14 @@ void md_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 }
 
-/* md_native_param_alloc **************************************************************
 
-   XXX
+/* md_param_alloc_native *******************************************************
+ *
+ *    Pre-allocate arguments according to the native ABI.
+ *
+ *    *******************************************************************************/
 
-*******************************************************************************/
-
-void md_native_param_alloc(methoddesc *md)
+void md_param_alloc_native(methoddesc *md)
 {
 	paramdesc *pd;
 	s4         i;
@@ -229,61 +230,6 @@ void md_native_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 }
 
-/* md_param_alloc_native *******************************************************
- *
- *    Pre-allocate arguments according to the native ABI.
- *
- *    *******************************************************************************/
-
-void md_param_alloc_native(methoddesc *md)
-{
-	/* XXX need to merge this with my hacked solution to the same problem */
-	md_param_alloc(md);
-}
-
-/* reg_setup *******************************************************************
-
-   TODO
-
-*******************************************************************************/
-#if 0
-void md_native_reg_setup(jitdata *jd)
-{
-	methodinfo   *m;
-	registerdata *rd;
-	s4            i;
-
-	/* get required compiler data */
-
-	m  = jd->m;
-	rd = jd->rd;
-
-	/* setup the integer register table */
-
-
-	rd->argintregs = DMNEW(s4, INT_NATARG_CNT);
-	rd->argintreguse = 0;
-
-	for (rd->argintreguse = 0, i = 8; rd->argintreguse < INT_NATARG_CNT; i++) {
-		rd->argintregs[rd->argintreguse++] = i;
-	}
-	
-	assert(rd->argintreguse == INT_NATARG_CNT);
-		
-	/* setup the float register table */
-
-	rd->argfltregs = DMNEW(s4, FLT_NATARG_CNT);
-
-	rd->argfltreguse = 0;
-
-
-	for (rd->argfltreguse = 0, i = 0; rd->argfltreguse < FLT_NATARG_CNT; i++) {
-		rd->argfltregs[rd->argfltreguse++] = i;
-	}
-	assert(rd->argfltreguse == FLT_NATARG_CNT);
-
-}
-#endif
 /* md_return_alloc *************************************************************
 
   XXX
