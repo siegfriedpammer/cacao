@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7478 2007-03-08 02:59:31Z michi $
+   $Id: threads.c 7549 2007-03-21 13:27:14Z twisti $
 
 */
 
@@ -87,6 +87,10 @@
 #include "vm/jit/asmpart.h"
 
 #include "vmcore/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
 
 #if !defined(__DARWIN__)
 # if defined(__LINUX__)
@@ -672,6 +676,12 @@ void threads_preinit(void)
 	pthread_mutex_init(&stopworldlock, NULL);
 
 	mainthreadobj = NEW(threadobject);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
+
 	mainthreadobj->object   = NULL;
 	mainthreadobj->tid      = pthread_self();
 	mainthreadobj->index    = 1;
@@ -759,6 +769,11 @@ bool threads_init(void)
 
 #if defined(ENABLE_GC_CACAO)
 	mainthreadobj = NEW(threadobject);
+
+# if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+# endif
 #else
 	mainthreadobj = GCNEW(threadobject);
 #endif
@@ -1210,7 +1225,11 @@ void threads_start_javathread(java_lang_Thread *object)
 	/* create the vm internal threadobject */
 
 	thread = NEW(threadobject);
-	assert(thread);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
 
 	/* link the two objects together */
 
@@ -1337,6 +1356,11 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	/* create a vm internal thread object */
 
 	thread = NEW(threadobject);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
 
 	if (thread == NULL)
 		return false;
@@ -1527,6 +1551,11 @@ bool threads_detach_thread(threadobject *thread)
 	/* free the vm internal thread object */
 
 	FREE(thread, threadobject);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject -= sizeof(threadobject);
+#endif
 
 	return true;
 }

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.h 7522 2007-03-14 21:54:49Z twisti $
+   $Id: statistics.h 7549 2007-03-21 13:27:14Z twisti $
 
 */
 
@@ -97,6 +97,10 @@ extern s4 size_codeinfo;
 
 extern s4 size_stack_map;
 extern s4 size_string;
+
+extern s4 size_threadobject;
+extern s4 size_lock_hashtable;
+extern s4 size_lock_waiter;
 
 extern int count_const_pool_len;
 extern int count_classref_len;

@@ -47,6 +47,12 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
+#include "vmcore/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
+
 /* arch.h must be here because it defines USE_FAKE_ATOMIC_INSTRUCTIONS */
 
 #include "arch.h"
@@ -503,9 +509,15 @@ static void lock_hashtable_init(void)
 {
 	pthread_mutex_init(&(lock_hashtable.mutex), NULL);
 
-	lock_hashtable.size = LOCK_INITIAL_HASHTABLE_SIZE;
+	lock_hashtable.size    = LOCK_INITIAL_HASHTABLE_SIZE;
 	lock_hashtable.entries = 0;
-	lock_hashtable.ptr = MNEW(lock_record_t *, lock_hashtable.size);
+	lock_hashtable.ptr     = MNEW(lock_record_t *, lock_hashtable.size);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_lock_hashtable += sizeof(lock_record_t *) * lock_hashtable.size;
+#endif
+
 	MZERO(lock_hashtable.ptr, lock_record_t *, lock_hashtable.size);
 }
 
@@ -539,11 +551,17 @@ static void lock_hashtable_grow(void)
 
 	oldtable = lock_hashtable.ptr;
 	newtable = MNEW(lock_record_t *, newsize);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_lock_hashtable += sizeof(lock_record_t *) * newsize;
+#endif
+
 	MZERO(newtable, lock_record_t *, newsize);
 
 	/* rehash the entries */
 
-	for (i=0; i<oldsize; ++i) {
+	for (i = 0; i < oldsize; i++) {
 		lr = oldtable[i];
 		while (lr) {
 			next = lr->hashlink;
@@ -560,10 +578,15 @@ static void lock_hashtable_grow(void)
 
 	/* replace the old table */
 
-	lock_hashtable.ptr = newtable;
+	lock_hashtable.ptr  = newtable;
 	lock_hashtable.size = newsize;
 
 	MFREE(oldtable, lock_record_t *, oldsize);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_lock_hashtable -= sizeof(lock_record_t *) * oldsize;
+#endif
 }
 
 
@@ -1064,6 +1087,11 @@ static void lock_record_add_waiter(lock_record_t *lr, threadobject *thread)
 
 	waiter = NEW(lock_waiter_t);
 
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_lock_waiter += sizeof(lock_waiter_t);
+#endif
+
 	waiter->waiter = thread;
 	waiter->next   = lr->waiters;
 
@@ -1098,6 +1126,11 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
 			/* free the waiter data structure */
 
 			FREE(w, lock_waiter_t);
+
+#if defined(ENABLE_STATISTICS)
+			if (opt_stat)
+				size_lock_waiter -= sizeof(lock_waiter_t);
+#endif
 
 			return;
 		}
