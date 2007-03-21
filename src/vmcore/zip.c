@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: zip.c 7407 2007-02-26 19:12:03Z michi $
+   $Id: zip.c 7548 2007-03-21 13:19:44Z twisti $
 
 */
 
@@ -408,7 +408,9 @@ classbuffer *zip_get(list_classpath_entry *lce, classinfo *c)
 
 	/* try to find the class in the current archive */
 
-	if ((htzfe = zip_find(lce, c->name)) == NULL)
+	htzfe = zip_find(lce, c->name);
+
+	if (htzfe == NULL)
 		return NULL;
 
 	/* read stuff from local file header */
