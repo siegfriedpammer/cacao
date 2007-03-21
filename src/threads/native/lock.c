@@ -306,13 +306,19 @@ ptrint lock_pre_compute_thinlock(s4 index)
 
 static lock_record_pool_t *lock_record_alloc_new_pool(threadobject *thread, int size)
 {
-	int i;
 	lock_record_pool_t *pool;
+	s4                  i;
 
 	/* get the pool from the memory allocator */
 
 	pool = mem_alloc(sizeof(lock_record_pool_header_t)
 				   + sizeof(lock_record_t) * size);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_lock_record_pool += sizeof(lock_record_pool_header_t) +
+			sizeof(lock_record_t) * size;
+#endif
 
 	/* initialize the pool header */
 
@@ -320,15 +326,15 @@ static lock_record_pool_t *lock_record_alloc_new_pool(threadobject *thread, int 
 
 	/* initialize the individual lock records */
 
-	for (i=0; i<size; i++) {
+	for (i = 0; i < size; i++) {
 		lock_record_init(&pool->lr[i], thread);
 
-		pool->lr[i].nextfree = &pool->lr[i+1];
+		pool->lr[i].nextfree = &pool->lr[i + 1];
 	}
 
 	/* terminate free list */
 
-	pool->lr[i-1].nextfree = NULL;
+	pool->lr[i - 1].nextfree = NULL;
 
 	return pool;
 }
@@ -352,24 +358,24 @@ static lock_record_pool_t *lock_record_alloc_pool(threadobject *t, int size)
 {
 	pthread_mutex_lock(&lock_global_pool_lock);
 
-	if (lock_global_pool) {
+	if (lock_global_pool != NULL) {
 		int i;
 		lock_record_pool_t *pool;
 
 		/* pop a pool from the global freelist */
 
-		pool = lock_global_pool;
+		pool             = lock_global_pool;
 		lock_global_pool = pool->header.next;
 
 		pthread_mutex_unlock(&lock_global_pool_lock);
 
 		/* re-initialize owner and freelist chaining */
 
-		for (i=0; i < pool->header.size; i++) {
-			pool->lr[i].owner = NULL;
-			pool->lr[i].nextfree = &pool->lr[i+1];
+		for (i = 0; i < pool->header.size; i++) {
+			pool->lr[i].owner    = NULL;
+			pool->lr[i].nextfree = &pool->lr[i + 1];
 		}
-		pool->lr[i-1].nextfree = NULL;
+		pool->lr[i - 1].nextfree = NULL;
 
 		return pool;
 	}
@@ -400,7 +406,7 @@ void lock_record_free_pools(lock_record_pool_t *pool)
 	               /*     algorithm. We must find another way to free  */
 	               /*     unused lock records.                         */
 
-	if (!pool)
+	if (pool == NULL)
 		return;
 
 	pthread_mutex_lock(&lock_global_pool_lock);
@@ -408,6 +414,7 @@ void lock_record_free_pools(lock_record_pool_t *pool)
 	/* find the last pool in the list */
 
 	last = &pool->header;
+
 	while (last->next)
 		last = &last->next->header;
 

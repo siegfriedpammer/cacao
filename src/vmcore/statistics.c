@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7549 2007-03-21 13:27:14Z twisti $
+   $Id: statistics.c 7551 2007-03-21 14:26:09Z twisti $
 
 */
 
@@ -76,18 +76,20 @@ s4 globaluseddumpsize = 0;
 
 /* variables for measurements *************************************************/
 
-s4 size_classinfo      = 0;
-s4 size_fieldinfo      = 0;
-s4 size_methodinfo     = 0;
-s4 size_lineinfo       = 0;
-s4 size_codeinfo       = 0;
+s4 size_classinfo        = 0;
+s4 size_fieldinfo        = 0;
+s4 size_methodinfo       = 0;
+s4 size_lineinfo         = 0;
+s4 size_codeinfo         = 0;
 
-s4 size_stack_map      = 0;
-s4 size_string         = 0;
+s4 size_stack_map        = 0;
+s4 size_string           = 0;
 
-s4 size_threadobject   = 0;
-s4 size_lock_hashtable = 0;
-s4 size_lock_waiter    = 0;
+s4 size_threadobject     = 0;
+
+s4 size_lock_record_pool = 0;
+s4 size_lock_hashtable   = 0;
+s4 size_lock_waiter      = 0;
 
 int count_const_pool_len = 0;
 int count_classref_len = 0;
@@ -638,6 +640,7 @@ void statistics_print_memory_usage(void)
 	printf("stack map:              %10d\n", size_stack_map);
 	printf("string:                 %10d\n", size_string);
 	printf("threadobject:           %10d\n", size_threadobject);
+	printf("lock record pool:       %10d\n", size_lock_record_pool);
 	printf("lock hashtable:         %10d\n", size_lock_hashtable);
 	printf("lock waiter:            %10d\n", size_lock_waiter);
 	printf("                         ----------\n");
@@ -655,6 +658,7 @@ void statistics_print_memory_usage(void)
 		size_stack_map +
 		size_string +
 		size_threadobject +
+		size_lock_record_pool +
 		size_lock_hashtable +
 		size_lock_waiter;
 
