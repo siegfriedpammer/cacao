@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: linker.c 7547 2007-03-21 13:18:20Z twisti $
 
 */
 
@@ -90,7 +90,7 @@ static s4 classvalue;
 
 *******************************************************************************/
 
-primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = { 
+primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
 	{ NULL, NULL, "java/lang/Integer",   'I', "int"     , "[I", NULL, NULL },
 	{ NULL, NULL, "java/lang/Long",      'J', "long"    , "[J", NULL, NULL },
 	{ NULL, NULL, "java/lang/Float",     'F', "float"   , "[F", NULL, NULL },
@@ -336,6 +336,10 @@ static bool link_primitivetype_table(void)
 
 		c = class_create_classinfo(utf_new_char(primitivetype_table[i].name));
 
+		/* primitive classes don't have a super class */
+
+		c->super.any = NULL;
+
 		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 		
 		/* prevent loader from loading primitive class */
@@ -364,6 +368,7 @@ static bool link_primitivetype_table(void)
 			u = utf_new_char(primitivetype_table[i].arrayname);
 			c = class_create_classinfo(u);
 			c = load_newly_created_array(c, NULL);
+
 			if (c == NULL)
 				return false;
 
@@ -1202,12 +1207,12 @@ static void linker_compute_subclasses(classinfo *c)
 #endif
 
 	if (!(c->flags & ACC_INTERFACE)) {
-		c->nextsub = 0;
-		c->sub = 0;
+		c->nextsub = NULL;
+		c->sub     = NULL;
 	}
 
 	if (!(c->flags & ACC_INTERFACE) && (c->super.any != NULL)) {
-		c->nextsub = c->super.cls->sub;
+		c->nextsub        = c->super.cls->sub;
 		c->super.cls->sub = c;
 	}
 
