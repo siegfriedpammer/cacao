@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7519 2007-03-14 17:31:05Z michi $
+   $Id: codegen.c 7554 2007-03-22 13:55:44Z michi $
 
 */
 
@@ -1550,6 +1550,19 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP3);
 			gen_nullptr_check(s1);
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				unresolved_field *uf = iptr->sx.s23.s3.uf;
+
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+			}
+			else {
+				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+
+				fieldtype = fi->type;
+				disp      = fi->offset;
+			}
+
 #if !defined(ENABLE_SOFTFLOAT)
 			/* HACK: softnull checks on floats */
 			if (!checknull && IS_FLT_DBL_TYPE(fieldtype))
@@ -1559,21 +1572,12 @@ bool codegen(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
 
-				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				codegen_addpatchref(cd, PATCHER_get_putfield,
-									iptr->sx.s23.s3.uf, 0);
+				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
 
 				disp = 0;
-			}
-			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
-				fieldtype = fi->type;
-				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -1613,12 +1617,6 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP3);
 			gen_nullptr_check(s1);
 
-#if !defined(ENABLE_SOFTFLOAT)
-			/* HACK: softnull checks on floats */
-			if (!checknull && IS_FLT_DBL_TYPE(fieldtype))
-				gen_nullptr_check_intern(s1);
-#endif
-
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_field *uf = iptr->sx.s23.s3.uf;
 
@@ -1630,6 +1628,12 @@ bool codegen(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = fi->offset;
 			}
+
+#if !defined(ENABLE_SOFTFLOAT)
+			/* HACK: softnull checks on floats */
+			if (!checknull && IS_FLT_DBL_TYPE(fieldtype))
+				gen_nullptr_check_intern(s1);
+#endif
 
 			switch (fieldtype) {
 			case TYPE_INT:
