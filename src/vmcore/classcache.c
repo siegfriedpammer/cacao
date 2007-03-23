@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: classcache.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: classcache.c 7560 2007-03-23 18:51:41Z twisti $
 
 */
 
@@ -1177,9 +1177,11 @@ bool classcache_add_constraint(classloader * a,
 	assert(classname);
 
 #ifdef CLASSCACHE_VERBOSE
-	fprintf(stdout, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
+	log_start();
+	log_print("classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
 	utf_fprint_printable_ascii_classname(stdout, classname);
-	fprintf(stdout, ")\n");
+	log_print(")\n");
+	log_finish();
 #endif
 
 	/* a constraint with a == b is trivially satisfied */
@@ -1521,10 +1523,10 @@ void classcache_debug_dump(FILE * file,utf *only)
 
 	CLASSCACHE_LOCK();
 
-	fprintf(file, "\n=== [loaded class cache] =====================================\n\n");
-	fprintf(file, "hash size   : %d\n", (int) hashtable_classcache.size);
-	fprintf(file, "hash entries: %d\n", (int) hashtable_classcache.entries);
-	fprintf(file, "\n");
+	log_println("=== [loaded class cache] =====================================");
+	log_println("hash size   : %d", (int) hashtable_classcache.size);
+	log_println("hash entries: %d", (int) hashtable_classcache.entries);
+	log_println("");
 
 	if (only) {
 		c = classcache_lookup_name(only);
@@ -1543,20 +1545,25 @@ dump_it:
 			/* iterate over all class entries */
 			for (clsen = c->classes; clsen; clsen = clsen->next) {
 				if (clsen->classobj) {
-					fprintf(file, "    loaded %p\n", (void *) clsen->classobj);
+					log_println("    loaded %p", (void *) clsen->classobj);
 				}
 				else {
-					fprintf(file, "    unresolved\n");
+					log_println("    unresolved");
 				}
-				fprintf(file, "        loaders:");
+
+				log_start();
+				log_print("        loaders: ");
 				for (lden = clsen->loaders; lden; lden = lden->next) {
-					fprintf(file, "<%p> %p", (void *) lden, (void *) lden->loader);
+					log_print("<%p> %p ", (void *) lden, (void *) lden->loader);
 				}
-				fprintf(file, "\n        constraints:");
+				log_finish();
+
+				log_start();
+				log_print("        constraints: ");
 				for (lden = clsen->constraints; lden; lden = lden->next) {
-					fprintf(file, "<%p> %p", (void *) lden, (void *) lden->loader);
+					log_print("<%p> %p ", (void *) lden, (void *) lden->loader);
 				}
-				fprintf(file, "\n");
+				log_finish();
 			}
 		}
 
