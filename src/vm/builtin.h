@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 7538 2007-03-17 13:12:00Z twisti $
+   $Id: builtin.h 7563 2007-03-23 21:33:53Z twisti $
 
 */
 
@@ -116,8 +116,6 @@ bool builtintable_replace_function(void *iptr);
 
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class);
 #define BUILTIN_instanceof (functionptr) builtin_instanceof
-s4 builtin_isanysubclass (classinfo *sub, classinfo *super);
-/* NOT AN OP */
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 /* NOT AN OP */
 s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass);

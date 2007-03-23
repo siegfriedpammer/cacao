@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 7338 2007-02-13 00:17:22Z twisti $
+   $Id: asmpart.h 7563 2007-03-23 21:33:53Z twisti $
 
 */
 
@@ -71,15 +71,6 @@
     intrp_asm_getclassvalues_atomic((super), (sub), (out))
 
 #endif /* defined(ENABLE_JIT) */
-
-
-typedef struct castinfo castinfo;
-
-struct castinfo {
-	s4 super_baseval;
-	s4 super_diffval;
-	s4 sub_baseval;
-};
 
 
 /* function prototypes ********************************************************/

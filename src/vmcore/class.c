@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7464 2007-03-06 00:26:31Z edwin $
+   $Id: class.c 7563 2007-03-23 21:33:53Z twisti $
 
 */
 
@@ -48,6 +48,8 @@
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
+
+#include "vm/jit/asmpart.h"
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
@@ -1379,6 +1381,56 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 
 		sub = sub->super.cls;
 	}
+}
+
+
+/* class_isanysubclass *********************************************************
+
+   Checks a subclass relation between two classes. Implemented
+   interfaces are interpreted as super classes.
+
+   Return value: 1 ... sub is subclass of super
+                 0 ... otherwise
+
+*******************************************************************************/
+
+bool class_isanysubclass(classinfo *sub, classinfo *super)
+{
+	castinfo classvalues;
+	u4       diffval;
+	bool     result;
+
+	/* This is the trivial case. */
+
+	if (sub == super)
+		return true;
+
+	/* Primitive classes are only subclasses of themselves. */
+
+	if ((sub->flags & ACC_CLASS_PRIMITIVE) ||
+		(super->flags & ACC_CLASS_PRIMITIVE))
+		return false;
+
+	/* Check for interfaces. */
+
+	if (super->flags & ACC_INTERFACE) {
+		result = (sub->vftbl->interfacetablelength > super->index) &&
+			(sub->vftbl->interfacetable[-super->index] != NULL);
+	}
+	else {
+		/* java.lang.Object is the only super class of any
+		   interface. */
+
+		if (sub->flags & ACC_INTERFACE)
+			return (super == class_java_lang_Object);
+
+		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues);
+
+		diffval = classvalues.sub_baseval - classvalues.super_baseval;
+		result  = diffval <= (u4) classvalues.super_diffval;
+	}
+
+	return result;
 }
 
 

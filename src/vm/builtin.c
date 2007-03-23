@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7562 2007-03-23 20:38:14Z twisti $
+   $Id: builtin.c 7563 2007-03-23 21:33:53Z twisti $
 
 */
 
@@ -370,58 +370,6 @@ bool builtintable_replace_function(void *iptr_)
 								TYPE CHECKS
 *****************************************************************************/
 
-
-
-/* builtin_isanysubclass *******************************************************
-
-   Checks a subclass relation between two classes. Implemented
-   interfaces are interpreted as super classes.
-
-   Return value: 1 ... sub is subclass of super
-                 0 ... otherwise
-
-*******************************************************************************/
-
-s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
-{
-	castinfo classvalues;
-	u4       diffval;
-	s4       result;
-
-	/* This is the trivial case. */
-
-	if (sub == super)
-		return 1;
-
-	/* Primitive classes are only subclasses of themselves. */
-
-	if ((sub->flags & ACC_CLASS_PRIMITIVE) ||
-		(super->flags & ACC_CLASS_PRIMITIVE))
-		return 0;
-
-	/* Check for interfaces. */
-
-	if (super->flags & ACC_INTERFACE) {
-		result = (sub->vftbl->interfacetablelength > super->index) &&
-			(sub->vftbl->interfacetable[-super->index] != NULL);
-	}
-	else {
-		/* java.lang.Object is the only super class of any
-		   interface. */
-
-		if (sub->flags & ACC_INTERFACE)
-			return (super == class_java_lang_Object);
-
-		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues);
-
-		diffval = classvalues.sub_baseval - classvalues.super_baseval;
-		result  = diffval <= (u4) classvalues.super_diffval;
-	}
-
-	return result;
-}
-
-
 /* builtin_instanceof **********************************************************
 
    Checks if an object is an instance of some given class (or subclass
@@ -438,7 +386,7 @@ s4 builtin_instanceof(java_objectheader *o, classinfo *class)
 	if (o == NULL)
 		return 0;
 
-	return builtin_isanysubclass(o->vftbl->class, class);
+	return class_isanysubclass(o->vftbl->class, class);
 }
 
 
@@ -455,7 +403,7 @@ s4 builtin_checkcast(java_objectheader *o, classinfo *class)
 	if (o == NULL)
 		return 1;
 
-	if (builtin_isanysubclass(o->vftbl->class, class))
+	if (class_isanysubclass(o->vftbl->class, class))
 		return 1;
 
 	return 0;
@@ -493,8 +441,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 			(target->elementvftbl->baseval == 1))
 			return 1;
 
-		return builtin_isanysubclass(desc->elementvftbl->class,
-									 target->elementvftbl->class);
+		return class_isanysubclass(desc->elementvftbl->class,
+								   target->elementvftbl->class);
 	}
 
 	if (desc->dimension < target->dimension)
@@ -502,8 +450,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 
 	/* {desc has higher dimension than target} */
 
-	return builtin_isanysubclass(pseudo_class_Arraystub,
-								 target->elementvftbl->class);
+	return class_isanysubclass(pseudo_class_Arraystub,
+							   target->elementvftbl->class);
 }
 
 

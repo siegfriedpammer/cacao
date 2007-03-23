@@ -101,6 +101,16 @@ void intrp_asm_abstractmethoderror(void)
 	abort();
 }
 
+void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out)
+{
+	abort();
+}
+
+void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out)
+{
+	abort();
+}
+
 
 /* builtin ********************************************************************/
 
