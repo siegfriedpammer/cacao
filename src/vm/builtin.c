@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7561 2007-03-23 19:10:35Z twisti $
+   $Id: builtin.c 7562 2007-03-23 20:38:14Z twisti $
 
 */
 
@@ -406,7 +406,8 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 			(sub->vftbl->interfacetable[-super->index] != NULL);
 	}
 	else {
-		/* java.lang.Object is the only super_class_ of any interface */
+		/* java.lang.Object is the only super class of any
+		   interface. */
 
 		if (sub->flags & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
@@ -421,85 +422,40 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 }
 
 
-/* builtin_isanysubclass_vftbl *************************************************
+/* builtin_instanceof **********************************************************
 
-   Same function as builtin_isanysubclass, but takes vftbl's as
-   arguments.
+   Checks if an object is an instance of some given class (or subclass
+   of that class). If class is an interface, checks if the interface
+   is implemented.
 
-   Return value: 1 ... sub is subclass of super
-                 0 ... otherwise
-
+   Return value: 1 ... o is an instance of class or implements the interface
+                 0 ... otherwise or if o == NULL
+			 
 *******************************************************************************/
 
-static s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
+s4 builtin_instanceof(java_objectheader *o, classinfo *class)
 {
-	castinfo classvalues;
-	s4       baseval;
-	u4       diffval;
-	s4       result;
-
-	/* This is the trivial case. */
-
-	if (sub == super)
-		return 1;
-
-	ASM_GETCLASSVALUES_ATOMIC(super, sub, &classvalues);
-
-	baseval = classvalues.super_baseval;
-
-	if (baseval <= 0) {
-		/* super is an interface */
-
-		result = (sub->interfacetablelength > -baseval) &&
-			(sub->interfacetable[baseval] != NULL);
-	} 
-	else {
-		/* java.lang.Object is the only super_class_ of any interface */
-
-		if (classvalues.sub_baseval <= 0)
-			return classvalues.super_baseval == 1;
-
-	    diffval = classvalues.sub_baseval - classvalues.super_baseval;
-		result  = diffval <= (u4) classvalues.super_diffval;
-	}
-
-	return result;
-}
-
-
-/****************** function: builtin_instanceof *****************************
-
-	Checks if an object is an instance of some given class (or subclass of
-	that class). If class is an interface, checks if the interface is
-	implemented.
-	Return value:  1 ... obj is an instance of class or implements the interface
-				   0 ... otherwise or if obj == NULL
-			 
-*****************************************************************************/
-
-s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
-{
-	if (!obj)
+	if (o == NULL)
 		return 0;
 
-	return builtin_isanysubclass(obj->vftbl->class, class);
+	return builtin_isanysubclass(o->vftbl->class, class);
 }
 
 
 
-/**************** function: builtin_checkcast *******************************
+/* builtin_checkcast ***********************************************************
 
-	The same as builtin_instanceof except that 1 is returned when
-	obj == NULL
+   The same as builtin_instanceof except that 1 is returned when o ==
+   NULL.
 			  
-****************************************************************************/
+*******************************************************************************/
 
-s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
+s4 builtin_checkcast(java_objectheader *o, classinfo *class)
 {
-	if (obj == NULL)
+	if (o == NULL)
 		return 1;
 
-	if (builtin_isanysubclass(obj->vftbl->class, class))
+	if (builtin_isanysubclass(o->vftbl->class, class))
 		return 1;
 
 	return 0;
@@ -537,8 +493,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 			(target->elementvftbl->baseval == 1))
 			return 1;
 
-		return builtin_isanysubclass_vftbl(desc->elementvftbl,
-										   target->elementvftbl);
+		return builtin_isanysubclass(desc->elementvftbl->class,
+									 target->elementvftbl->class);
 	}
 
 	if (desc->dimension < target->dimension)
@@ -546,8 +502,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 
 	/* {desc has higher dimension than target} */
 
-	return builtin_isanysubclass_vftbl(pseudo_class_Arraystub->vftbl,
-									   target->elementvftbl);
+	return builtin_isanysubclass(pseudo_class_Arraystub,
+								 target->elementvftbl->class);
 }
 
 
@@ -568,10 +524,12 @@ s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass)
 {
 	arraydescriptor *desc;
 
-	if (!o)
+	if (o == NULL)
 		return 1;
 
-	if ((desc = o->vftbl->arraydesc) == NULL)
+	desc = o->vftbl->arraydesc;
+
+	if (desc == NULL)
 		return 0;
  
 	return builtin_descriptorscompatible(desc, targetclass->vftbl->arraydesc);
@@ -580,7 +538,7 @@ s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass)
 
 s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
 {
-	if (!o)
+	if (o == NULL)
 		return 0;
 
 	return builtin_arraycheckcast(o, targetclass);
