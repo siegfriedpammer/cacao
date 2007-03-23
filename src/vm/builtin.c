@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7537 2007-03-17 13:11:11Z twisti $
+   $Id: builtin.c 7561 2007-03-23 19:10:35Z twisti $
 
 */
 
@@ -372,7 +372,7 @@ bool builtintable_replace_function(void *iptr_)
 
 
 
-/* builtin_isanysubclass ********************************************************
+/* builtin_isanysubclass *******************************************************
 
    Checks a subclass relation between two classes. Implemented
    interfaces are interpreted as super classes.
@@ -380,7 +380,7 @@ bool builtintable_replace_function(void *iptr_)
    Return value: 1 ... sub is subclass of super
                  0 ... otherwise
 
-********************************************************************************/
+*******************************************************************************/
 
 s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
@@ -392,6 +392,12 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 
 	if (sub == super)
 		return 1;
+
+	/* Primitive classes are only subclasses of themselves. */
+
+	if ((sub->flags & ACC_CLASS_PRIMITIVE) ||
+		(super->flags & ACC_CLASS_PRIMITIVE))
+		return 0;
 
 	/* Check for interfaces. */
 
@@ -415,7 +421,7 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 }
 
 
-/* builtin_isanysubclass_vftbl **************************************************
+/* builtin_isanysubclass_vftbl *************************************************
 
    Same function as builtin_isanysubclass, but takes vftbl's as
    arguments.
@@ -423,7 +429,7 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
    Return value: 1 ... sub is subclass of super
                  0 ... otherwise
 
-********************************************************************************/
+*******************************************************************************/
 
 static s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 {

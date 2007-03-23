@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7547 2007-03-21 13:18:20Z twisti $
+   $Id: linker.c 7561 2007-03-23 19:10:35Z twisti $
 
 */
 
@@ -340,7 +340,9 @@ static bool link_primitivetype_table(void)
 
 		c->super.any = NULL;
 
-		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
+		/* set flags and mark it as primitive class */
+
+		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT | ACC_CLASS_PRIMITIVE;
 		
 		/* prevent loader from loading primitive class */
 
@@ -356,8 +358,9 @@ static bool link_primitivetype_table(void)
 		/* create class for wrapping the primitive type */
 
 		u = utf_new_char(primitivetype_table[i].wrapname);
+		c = load_class_bootstrap(u);
 
-		if (!(c = load_class_bootstrap(u)))
+		if (c == NULL)
 			return false;
 
 		primitivetype_table[i].class_wrap = c;
