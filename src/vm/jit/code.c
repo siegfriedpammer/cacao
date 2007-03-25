@@ -92,10 +92,6 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 	code->m = m;
 
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock(&code->header);
-#endif
-
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_codeinfo += sizeof(codeinfo);
