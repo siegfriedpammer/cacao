@@ -135,6 +135,13 @@ java_objectheader *builtin_new(classinfo *c)
 	return NULL;
 }
 
+java_objectarray *builtin_anewarray(s4 size, classinfo *componentclass)
+{
+	abort();
+
+	return NULL;
+}
+
 
 /* code ***********************************************************************/
 
@@ -472,6 +479,13 @@ char *properties_get(char *key)
 
 
 /* resolve ********************************************************************/
+
+bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, classinfo **result)
+{
+	abort();
+
+	return false;
+}
 
 /* stupid resolving implementation used by resolve_classref_or_classinfo_eager */
 /* This function does eager resolving without any access checks.               */

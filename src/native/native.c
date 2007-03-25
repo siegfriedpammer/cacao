@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7464 2007-03-06 00:26:31Z edwin $
+   $Id: native.c 7573 2007-03-25 18:55:02Z twisti $
 
 */
 
@@ -1133,87 +1133,6 @@ java_objectarray *native_class_getdeclaredannotations(classinfo *c)
 	return oa;
 }
 #endif
-
-
-/* native_get_parametertypes ***************************************************
-
-   Use the descriptor of a method to generate a java/lang/Class array
-   which contains the classes of the parametertypes of the method.
-
-*******************************************************************************/
-
-java_objectarray *native_get_parametertypes(methodinfo *m)
-{
-	methoddesc       *md;
-	typedesc         *paramtypes;
-	s4                paramcount;
-    java_objectarray *oa;
-	s4                i;
-
-	md = m->parseddesc;
-
-	/* is the descriptor fully parsed? */
-
-	if (m->parseddesc->params == NULL)
-		if (!descriptor_params_from_paramtypes(md, m->flags))
-			return NULL;
-
-	paramtypes = md->paramtypes;
-	paramcount = md->paramcount;
-
-	/* skip `this' pointer */
-
-	if (!(m->flags & ACC_STATIC)) {
-		paramtypes++;
-		paramcount--;
-	}
-
-	/* create class-array */
-
-	oa = builtin_anewarray(paramcount, class_java_lang_Class);
-
-	if (oa == NULL)
-		return NULL;
-
-    /* get classes */
-
-	for (i = 0; i < paramcount; i++)
-		if (!resolve_class_from_typedesc(&paramtypes[i], true, false,
-										 (classinfo **) &oa->data[i]))
-			return NULL;
-
-	return oa;
-}
-
-
-/* native_get_exceptiontypes ***************************************************
-
-   Get the exceptions which can be thrown by a method.
-
-*******************************************************************************/
-
-java_objectarray *native_get_exceptiontypes(methodinfo *m)
-{
-	java_objectarray *oa;
-	classinfo        *c;
-	u2                i;
-
-	/* create class-array */
-
-	oa = builtin_anewarray(m->thrownexceptionscount, class_java_lang_Class);
-
-	if (oa == NULL)
-		return NULL;
-
-	for (i = 0; i < m->thrownexceptionscount; i++) {
-		if ((c = resolve_classref_or_classinfo_eager(m->thrownexceptions[i], true)) == NULL)
-			return NULL;
-
-		oa->data[i] = (java_objectheader *) c;
-	}
-
-	return oa;
-}
 
 
 /*
