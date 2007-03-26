@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.h 7486 2007-03-08 13:50:07Z twisti $
+   $Id: emit.h 7581 2007-03-26 07:23:16Z pm $
 
 */
 
@@ -359,6 +359,9 @@ void emit_rdtsc(codegendata *cd);
 
 s4 emit_load_s1_notzero(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s2_notzero(jitdata *jd, instruction *iptr, s4 tempreg);
+
+s4 emit_load_s1_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg);
+s4 emit_load_s2_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg);
 
 #endif /* _MD_EMIT_H */
 

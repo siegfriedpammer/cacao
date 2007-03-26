@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 7534 2007-03-16 23:00:18Z pm $
+   $Id: md-abi.c 7581 2007-03-26 07:23:16Z pm $
 
 */
 
@@ -81,7 +81,7 @@ const s4 abi_registers_integer_temporary[] = {
 };
 
 s4 nregdescfloat[] = {
-	REG_ARG, REG_TMP, REG_ARG, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
+	REG_ARG, REG_TMP, REG_ARG, REG_TMP, REG_RES, REG_TMP, REG_RES, REG_TMP,
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END
 };
@@ -92,8 +92,8 @@ const s4 abi_registers_float_argument[] = {
 };
 
 const s4 abi_registers_float_saved[] = {
-	4, /* f4/fs0 */
-	6  /* f6/fs0 */
+	/* nothing */
+	-1
 };
 
 const s4 abi_registers_float_temporary[] = {

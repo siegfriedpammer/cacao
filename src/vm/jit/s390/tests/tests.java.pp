@@ -10,7 +10,7 @@ class tests {
 	static char s_c, s_c1;
 	static short s_s, s_s1;
 	static long s_l, s_l1, s_l2;
-	static double s_d, s_d1;
+	static double s_d, s_d1, s_d2;
 	static boolean s_b;
 	static Object s_a;
 	static final char[] s_ca = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -19,6 +19,13 @@ class tests {
 	static Object s_a0 = s_as0, s_a1 = s_as1, s_a2 = s_as2;
 	static Object[] s_aa = { s_a0, s_a1, s_a2 };
 	static Object[] s_aa2 = { null, null, null };
+	static byte[] s_bya = { 10, 11, 12, 13, 14, 15 };
+	static byte[] s_bya2 = { 0, 1, 2, 3};
+	static byte s_by, s_by1;
+	static short[] s_sa2 = { 0, 1, 2, 3};
+	static short[] s_sa = { 10, 11, 12, 13, 14, 15 };
+	static int[] s_ia2 = { 0, 1, 2, 3 };
+	static int[] s_ia = { 10, 11, 12, 13, 14, 15 };
 
 	static class members {
 		char c;
@@ -269,6 +276,56 @@ class tests {
 		TEST(s_f == 113.37f);
 	}
 
+	static void test_DMUL() {
+		s_d1 = 1.1337;
+		s_d2 = 100.0;
+		s_d = s_d1 * s_d2;
+		TEST(s_d == 113.37);
+		System.out.println(s_d);
+	}
+
+	static void test_FDIV() {
+		s_f1 = 113.37f;
+		s_f2 = 100.0f;
+		s_f = s_f1 / s_f2;
+		TEST(s_f == 1.1337f);
+	}
+
+	static void test_DDIV() {
+		s_d1 = 113.37;
+		s_d2 = 100.0;
+		s_d = s_d1 / s_d2;
+		TEST(s_d == 1.1337);
+	}
+
+	static void test_FSUB() {
+		s_f1 = 1.1337f;
+		s_f2 = 0.033f;
+		s_f = s_f1 - s_f2;
+		TEST(s_f == 1.1007f);
+	}
+
+	static void test_DSUB() {
+		s_d1 = 1.1337;
+		s_d2 = 0.033;
+		s_d = s_d1 - s_d2;
+		TEST(s_d == 1.1007);
+	}
+
+	static void test_FADD() {
+		s_f1 = 1.1006f;
+		s_f2 = 0.0331f;
+		s_f = s_f1 + s_f2;
+		TEST(s_f == 1.1337f);
+	}
+
+	static void test_DADD() {
+		s_d1 = 1007.1;
+		s_d2 = 0330.0;
+		s_d = s_d1 + s_d2;
+		TEST(s_d == 1337.1);
+	}
+
 	static void test_I2F() {
 		s_i = 1234567;
 		s_f = (float)s_i;
@@ -375,6 +432,21 @@ class tests {
 		TEST(s_c == '4');
 	}
 
+	static void test_BALOAD() {
+		s_by = s_bya[3];
+		TEST(s_by == 13);
+	}
+
+	static void test_SALOAD() {
+		s_s = s_sa[4];
+		TEST(s_s == 14);
+	}
+
+	static void test_IALOAD() {
+		s_i = s_ia[4];
+		TEST(s_i == 14);
+	}
+
 	static void test_AALOAD() {
 		s_a = s_aa[1];
 		TEST(s_a != s_a0);
@@ -385,6 +457,27 @@ class tests {
 		s_ca2[1] = 'X';
 		s_c = s_ca2[1];
 		TEST(s_c == 'X');
+	}
+
+	static void test_BASTORE() {
+		s_by1 = 77;
+		s_bya2[1] = s_by1;
+		s_by = s_bya2[1];
+		TEST(s_by == 77);
+	}
+
+	static void test_SASTORE() {
+		s_s1 = (short)0xbcde;
+		s_sa2[2] = s_s1;
+		s_s = s_sa2[2];
+		TEST(s_s == (short)0xbcde);
+	}
+
+	static void test_IASTORE() {
+		s_i1 = 0xbcde1234;
+		s_ia2[2] = s_i1;
+		s_i = s_ia2[2];
+		TEST(s_i == 0xbcde1234);
 	}
 
 	static void test_AASTORE() {
@@ -644,7 +737,7 @@ class tests {
 		RTEST(f, 1337.1f);
 		RTEST(d, 1983.1975);
 
-#		under RTEST
+#		undef RTEST
 	}
 
 	static interface i1 { };
@@ -672,8 +765,86 @@ class tests {
 		TEST(! (x instanceof java.lang.String));
 		TEST(x instanceof java.lang.Object);
 	}
+
+	static void test_CHECKCAST() {
+		Object x = new c3();
+
+#		define TESTCAST(klass, res) \
+			s_b = true; \
+			try { \
+				klass y = (klass)x; \
+			} catch (ClassCastException e) { \
+				s_b = false; \
+			} \
+			TEST(s_b == res);
+
+		TESTCAST(i1, true);
+		TESTCAST(i2, true);
+		TESTCAST(i3, true);
+		TESTCAST(i4, true);
+		TESTCAST(i5, false);
+		TESTCAST(java.lang.Runnable, false);
+		TESTCAST(c1, true);
+		TESTCAST(c2, true);
+		TESTCAST(c3, true);
+		TESTCAST(c4, false);
+		TESTCAST(java.lang.String, false);
+		TESTCAST(java.lang.Object, true);
+
+#		undef TESTCAST
+	}
 	
+
+	static void test_emit_exception_stubs() {
+		s_b = false;
+		try {
+			s_c = s_ca[10];	
+		} catch (ArrayIndexOutOfBoundsException e) {
+			s_b = true;
+		}
+		TEST(s_b);
+		s_b = false;
+		try {
+			s_a = s_aa[10];
+		} catch (ArrayIndexOutOfBoundsException e) {
+			s_b = true;
+		}
+		TEST(s_b);
+	}
+
+	static void test_IAND() {
+		s_i1 =      0xcccccccc;
+		s_i2 =      0x0f080400;
+		s_i = s_i1 & s_i2;
+		TEST(s_i == 0x0c080400);
+	}
+	static void test_IOR() {
+		s_i1 =      0x0a0b0c1d;
+		s_i2 =      0x10203040;
+		s_i = s_i1 | s_i2;
+		TEST(s_i == 0x1a2b3c5d);
+	}
+	static void test_IXOR() {
+		s_i1 =      0x0f0f1700;
+		s_i2 =      0xf00f3300;
+		s_i = s_i1 ^ s_i2;
+		TEST(s_i == 0xff002400);
+
+		// xor swapping algorithm
+
+		s_i1 = 0xa75bced8;
+		s_i2 = 0x1458aa56;
+
+		s_i1 ^= s_i2;
+		s_i2 ^= s_i1;
+		s_i1 ^= s_i2;
+
+		TEST(s_i2 == 0xa75bced8);
+		TEST(s_i1 == 0x1458aa56);
+	}
+
 	static void main(String[] args) {
+		/*
 		test_ICONST();
 		test_FCONST();
 		test_INEG();
@@ -685,7 +856,6 @@ class tests {
 		test_IMULCONST();
 		test_IDIV();
 		test_IREM();
-		test_FMUL();
 		test_I2F();
 		test_I2D();
 		test_F2I();
@@ -705,6 +875,26 @@ class tests {
 		test_IF_ACMPXX();
 		test_XRETURN();
 		test_INSTANCEOF();
+		test_emit_exception_stubs();
+		test_CHECKCAST();
+		test_IAND();
+		test_IOR();
+		test_IXOR();
+		test_BASTORE();
+		test_BALOAD();
+		test_SASTORE();
+		test_SALOAD();
+		test_IALOAD();
+		test_IASTORE();
+		*/
+		test_FADD();
+		test_FMUL();
+		test_FSUB();
+		test_FDIV();
+		test_DADD();
+		test_DMUL();
+		test_DSUB();
+		test_DDIV();
 
 		summary();
 	}

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7534 2007-03-16 23:00:18Z pm $
+   $Id: md.c 7581 2007-03-26 07:23:16Z pm $
 
 */
 
@@ -69,6 +69,7 @@
 #endif
 
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/s390/codegen.h"
 
 #include <assert.h>
 #define OOPS() assert(0);
@@ -224,7 +225,7 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 	disp += 4; /* size of branch */
 	disp /= 2; /* specified in halfwords */
 
-	/* TODO check for overflow */
+	ASSERT_VALID_BRANCH(disp);	
 
 	/* patch the branch instruction before the mcodeptr */
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7534 2007-03-16 23:00:18Z pm $
+   $Id: patcher.c 7581 2007-03-26 07:23:16Z pm $
 
 */
 
@@ -803,14 +803,24 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* From here, split your editor and open codegen.c */
 
-	if ((*(ra + 1) >> 4) == REG_ITMP1) { /* First M_ALD is into ITMP1 */
-		/* INSTANCEOF code */
-		*(u4 *)(ra + SZ_L + SZ_L) |= (u2)(s2)(- c->index);
-		*(u4 *)(ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC) |=
-			(u2)(s2)(OFFSET(vftbl_t, interfacetable[0]) -
-				c->index * sizeof(methodptr*));
-	} else {
-		OOPS();
+	switch (*(ra + 1) >> 4) {
+		case REG_ITMP1: 
+			/* First M_ALD is into ITMP1 */
+			/* INSTANCEOF code */
+		case REG_ITMP2:
+			/* First M_ALD is into ITMP1 */
+			/* CHECKCAST code */
+
+			*(u4 *)(ra + SZ_L + SZ_L) |= (u2)(s2)(- c->index);
+			*(u4 *)(ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC) |=
+				(u2)(s2)(OFFSET(vftbl_t, interfacetable[0]) -
+					c->index * sizeof(methodptr*));
+
+			break;
+
+		default:
+			assert(0);
+			break;
 	}
 
 	return true;
