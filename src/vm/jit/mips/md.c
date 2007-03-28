@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7477 2007-03-07 14:05:04Z twisti $
+   $Id: md.c 7486 2007-03-08 13:50:07Z twisti $
 
 */
 
@@ -47,63 +47,6 @@
 #include "vmcore/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
-
-
-/* md_codegen_patch_branch *****************************************************
-
-   Back-patches a branch instruction.
-
-*******************************************************************************/
-
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
-{
-	s4 *mcodeptr;
-	s4  mcode;
-	s4  disp;                           /* branch displacement                */
-	s4  lo;
-	s4  hi;
-
-	/* calculate the patch position */
-
-	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
-
-	/* get the instruction before the exception point */
-
-	mcode = mcodeptr[-1];
-
-	/* check for: ori t9,t9,0 */
-
-	if ((mcode >> 16) == 0x3739) {
-		/* Calculate the branch displacement.  For jumps we need a
-		   displacement relative to PV. */
-
-		disp = targetmpc;
-
-        lo = (short) disp;
-        hi = (short) ((disp - lo) >> 16);
-
-		/* patch the two instructions before the mcodeptr */
-
-		mcodeptr[-2] |= (hi & 0x0000ffff);
-		mcodeptr[-1] |= (lo & 0x0000ffff);
-	}
-	else {
-		/* Calculate the branch displacement.  For branches we need a
-		   displacement relative and shifted to the branch PC. */
-
-		disp = (targetmpc - branchmpc) >> 2;
-
-		/* On the MIPS we can only branch signed 16-bit instruction words
-		   (signed 18-bit = 32KB = +/- 16KB). Check this! */
-
-		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff))
-			vm_abort("jump displacement is out of range: %d > +/-%d", disp, 0x00007fff);
-
-		/* patch the branch instruction before the mcodeptr */
-
-		mcodeptr[-1] |= (disp & 0x0000ffff);
-	}
-}
 
 
 /* md_stacktrace_get_returnaddress *********************************************

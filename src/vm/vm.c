@@ -175,7 +175,6 @@ enum {
 
 	OPT_VERBOSE1,
 	OPT_NOIEEE,
-	OPT_SOFTNULL,
 
 #if defined(ENABLE_STATISTICS)
 	OPT_TIME,
@@ -298,7 +297,6 @@ opt_struct opts[] = {
 #if defined(__ALPHA__)
 	{ "noieee",            false, OPT_NOIEEE },
 #endif
-	{ "softnull",          false, OPT_SOFTNULL },
 #if defined(ENABLE_STATISTICS)
 	{ "time",              false, OPT_TIME },
 	{ "stat",              false, OPT_STAT },
@@ -500,7 +498,6 @@ static void XXusage(void)
 #if defined(ENABLE_VERIFIER)
 	puts("    -noverify                don't verify classfiles");
 #endif
-	puts("    -softnull                use software nullpointer check");
 #if defined(ENABLE_STATISTICS)
 	puts("    -time                    measure the runtime");
 	puts("    -stat                    detailed compiler statistics");
@@ -889,7 +886,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	opt_version       = false;
 	opt_exit          = false;
 
-	checknull         = false;
 	opt_noieee        = false;
 
 	opt_heapmaxsize   = HEAP_MAXSIZE;
@@ -1151,10 +1147,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			opt_verify = false;
 			break;
 #endif
-
-		case OPT_SOFTNULL:
-			checknull = true;
-			break;
 
 #if defined(ENABLE_STATISTICS)
 		case OPT_TIME:

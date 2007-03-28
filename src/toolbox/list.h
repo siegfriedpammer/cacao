@@ -1,6 +1,6 @@
 /* src/toolbox/list.h - synchronized linked list
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-
-   Changes: Christian Thalinger
-
-   $Id: list.h 5894 2006-11-02 12:54:15Z twisti $
+   $Id: list.h 7481 2007-03-08 13:12:21Z twisti $
 
 */
 
@@ -136,6 +130,7 @@ void list_add_last_unsynced(list *l, void *element);
 void list_add_before(list *l, void *element, void *newelement);
 
 void list_remove(list *l, void *element);
+void list_remove_unsynced(list *l, void *element);
  
 void *list_first(list *l);
 void *list_first_unsynced(list *l);

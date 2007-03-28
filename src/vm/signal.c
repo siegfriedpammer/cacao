@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7471 2007-03-06 17:01:49Z twisti $
+   $Id: signal.c 7592 2007-03-28 20:12:33Z twisti $
 
 */
 
@@ -128,21 +128,39 @@ void signal_init(void)
 		act.sa_sigaction = md_signal_handler_sigsegv;
 		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
 
-#if defined(SIGSEGV)
+#  if defined(SIGSEGV)
 		sigaction(SIGSEGV, &act, NULL);
-#endif
+#  endif
 
-#if defined(SIGBUS)
+#  if defined(SIGBUS)
 		sigaction(SIGBUS, &act, NULL);
-#endif
+#  endif
 
-#if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
+#  if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 		/* SIGFPE handler */
 
 		act.sa_sigaction = md_signal_handler_sigfpe;
 		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
 		sigaction(SIGFPE, &act, NULL);
-#endif
+#  endif
+
+#  if defined(__ARM__)
+		/* XXX use better defines for that (in arch.h) */
+		/* SIGILL handler */
+
+		act.sa_sigaction = md_signal_handler_sigill;
+		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
+		sigaction(SIGILL, &act, NULL);
+#  endif
+
+#  if defined(__POWERPC__)
+		/* XXX use better defines for that (in arch.h) */
+		/* SIGTRAP handler */
+
+		act.sa_sigaction = md_signal_handler_sigtrap;
+		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
+		sigaction(SIGTRAP, &act, NULL);
+#  endif
 # if defined(ENABLE_INTRP)
 	}
 # endif

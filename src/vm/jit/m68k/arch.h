@@ -59,7 +59,7 @@
 #define SUPPORT_LONG_FCVT                0
 
 #define SUPPORT_CONST_LOGICAL            0  /* AND, OR, XOR with immediates   */
-#define SUPPORT_CONST_MUL                0  /* mutiply with immediate         */
+#define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
 
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
@@ -87,6 +87,21 @@
 # define SUPPORT_DOUBLE_CMP              0
 #endif
 
+
+#define HAS_ADDRESS_REGISTER_FILE        1
+
+#define HAS_4BYTE_STACKSLOT		1
+
+/* coldfire has tst instruction */
+#define SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER       1
+#define SUPPORT_BRANCH_CONDITIONAL_UNSIGNED_CONDITIONS	    1
+#define SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER     0
+#define SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS    0
+
+#define TRACE_ARGS_NUM			8
+
+#warning There is no REG_ZERO
+#define REG_ZERO 666
 
 #define SPECIALMEMUSE
 /* #define HAS_4BYTE_STACKSLOT */

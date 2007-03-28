@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 7450 2007-03-04 19:13:29Z edwin $
+   $Id: options.h 7585 2007-03-28 01:24:56Z twisti $
 
 */
 
@@ -107,7 +107,6 @@ extern bool opt_showexceptionstubs;
 extern bool opt_shownativestub;
 
 extern bool checkbounds;
-extern bool checknull;
 extern bool opt_noieee;
 extern bool checksync;
 #if defined(ENABLE_LOOP)

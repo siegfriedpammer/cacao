@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7403 2007-02-25 21:31:58Z pm $
+   $Id: codegen-common.c 7576 2007-03-25 20:39:17Z ajordan $
 
 */
 
@@ -86,6 +86,7 @@
 #endif
 
 #include "vm/jit/dseg.h"
+#include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/md.h"
 #include "vm/jit/replace.h"
@@ -98,9 +99,7 @@
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 
-#if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"
-#endif
 
 
 /* in this tree we store all method addresses *********************************/
@@ -132,7 +131,7 @@ void codegen_init(void)
 		mte = NEW(methodtree_element);
 
 		mte->startpc = (u1 *) (ptrint) asm_vm_call_method;
-		mte->endpc   = (u1 *) ((ptrint) asm_call_jit_compiler - 1);
+		mte->endpc   = (u1 *) (ptrint) asm_vm_call_method_end;
 
 		avl_insert(methodtree, mte);
 #endif /* defined(ENABLE_JIT) */
@@ -156,9 +155,13 @@ void codegen_setup(jitdata *jd)
 	m  = jd->m;
 	cd = jd->cd;
 
-	cd->mcodebase = DMNEW(u1, MCODEINITSIZE);
-	cd->mcodeend  = cd->mcodebase + MCODEINITSIZE;
-	cd->mcodesize = MCODEINITSIZE;
+	/* initialize members */
+
+	cd->flags        = 0;
+
+	cd->mcodebase    = DMNEW(u1, MCODEINITSIZE);
+	cd->mcodeend     = cd->mcodebase + MCODEINITSIZE;
+	cd->mcodesize    = MCODEINITSIZE;
 
 	/* initialize mcode variables */
 
@@ -186,27 +189,144 @@ void codegen_setup(jitdata *jd)
 
 	cd->jumpreferences = NULL;
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
 	cd->datareferences = NULL;
 #endif
 
-	cd->exceptionrefs  = NULL;
 /* 	cd->patchrefs      = list_create_dump(OFFSET(patchref, linkage)); */
 	cd->patchrefs      = NULL;
+	cd->brancheslabel  = list_create_dump(OFFSET(branch_label_ref_t, linkage));
 
 	cd->linenumberreferences = NULL;
 	cd->linenumbertablesizepos = 0;
 	cd->linenumbertablestartpos = 0;
 	cd->linenumbertab = 0;
 	
-	cd->method = m;
-
 	cd->maxstack = m->maxstack;
 
 #if defined(ENABLE_THREADS)
 	cd->threadcritcurrent.next = NULL;
 	cd->threadcritcount = 0;
 #endif
+}
+
+
+/* codegen_reset ***************************************************************
+
+   Resets the codegen data structure so we can recompile the method.
+
+*******************************************************************************/
+
+static void codegen_reset(jitdata *jd)
+{
+	codeinfo    *code;
+	codegendata *cd;
+	basicblock  *bptr;
+
+	/* get required compiler data */
+
+	code = jd->code;
+	cd   = jd->cd;
+
+	/* reset error flag */
+
+	cd->flags          &= ~CODEGENDATA_FLAG_ERROR;
+
+	/* reset some members, we reuse the code memory already allocated
+	   as this should have almost the correct size */
+
+	cd->mcodeptr        = cd->mcodebase;
+	cd->lastmcodeptr    = cd->mcodebase;
+
+	cd->dseg            = NULL;
+	cd->dseglen         = 0;
+
+	cd->jumpreferences  = NULL;
+
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
+	cd->datareferences  = NULL;
+#endif
+
+/* 	cd->patchrefs       = list_create_dump(OFFSET(patchref, linkage)); */
+	cd->patchrefs       = NULL;
+	cd->brancheslabel   = list_create_dump(OFFSET(branch_label_ref_t, linkage));
+
+	cd->linenumberreferences    = NULL;
+	cd->linenumbertablesizepos  = 0;
+	cd->linenumbertablestartpos = 0;
+	cd->linenumbertab           = 0;
+	
+#if defined(ENABLE_THREADS)
+	cd->threadcritcurrent.next = NULL;
+	cd->threadcritcount        = 0;
+#endif
+
+	/* We need to clear the mpc and the branch references from all
+	   basic blocks as they will definitely change. */
+
+	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
+		bptr->mpc        = -1;
+		bptr->branchrefs = NULL;
+	}
+
+#if defined(ENABLE_REPLACEMENT)
+	code->rplpoints     = NULL;
+	code->rplpointcount = 0;
+	code->regalloc      = NULL;
+	code->regalloccount = 0;
+	code->globalcount   = 0;
+#endif
+}
+
+
+/* codegen_generate ************************************************************
+
+   Generates the code for the currently compiled method.
+
+*******************************************************************************/
+
+bool codegen_generate(jitdata *jd)
+{
+	codegendata *cd;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	/* call the machine-dependent code generation function */
+
+	if (!codegen_emit(jd))
+		return false;
+
+	/* check for an error */
+
+	if (CODEGENDATA_HAS_FLAG_ERROR(cd)) {
+		/* check for long-branches flag, if it is set we recompile the
+		   method */
+		/* XXX maybe we should tag long-branches-methods for recompilation */
+
+		if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+			/* we have to reset the codegendata structure first */
+
+			codegen_reset(jd);
+
+			/* and restart the compiler run */
+
+			if (!codegen_emit(jd))
+				return false;
+		}
+		else {
+			vm_abort("codegen_generate: unknown error occurred during codegen_emit: flags=%x\n", cd->flags);
+		}
+	}
+
+	/* reallocate the memory and finish the code generation */
+
+	codegen_finish(jd);
+
+	/* everything's ok */
+
+	return true;
 }
 
 
@@ -294,39 +414,26 @@ u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr)
 
 *******************************************************************************/
 
-void codegen_add_branch_ref(codegendata *cd, basicblock *target)
+void codegen_add_branch_ref(codegendata *cd, basicblock *target, s4 condition, s4 reg, u4 options)
 {
-	s4 branchmpc;
+	branchref *br;
+	s4         branchmpc;
+
+	STATISTICS(count_branches_unresolved++);
 
 	/* calculate the mpc of the branch instruction */
 
 	branchmpc = cd->mcodeptr - cd->mcodebase;
 
-#if defined(ENABLE_JIT)
-	/* Check if the target basicblock has already a start pc, so the
-	   jump is backward and we can resolve it immediately. */
+	br = DNEW(branchref);
 
-	if ((target->mpc >= 0)
-# if defined(ENABLE_INTRP)
-		/* The interpreter uses absolute branches, so we do branch
-		   resolving after the code and data segment move. */
+	br->branchmpc = branchmpc;
+	br->condition = condition;
+	br->reg       = reg;
+	br->options   = options;
+	br->next      = target->branchrefs;
 
-		&& !opt_intrp
-# endif
-		)
-	{
-		md_codegen_patch_branch(cd, branchmpc, target->mpc);
-	}
-	else
-#endif
-	{
-		branchref *br = DNEW(branchref);
-
-		br->branchpos = branchmpc;
-		br->next      = target->branchrefs;
-
-		target->branchrefs = br;
-	}
+	target->branchrefs = br;
 }
 
 
@@ -339,117 +446,66 @@ void codegen_add_branch_ref(codegendata *cd, basicblock *target)
 void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr)
 {
 	branchref *br;
-	s4         branchmpc;
-	s4         targetmpc;
+	u1        *mcodeptr;
 
-	/* set target */
+	/* Save the mcodeptr because in the branch emitting functions
+	   we generate code somewhere inside already generated code,
+	   but we're still in the actual code generation phase. */
 
-	targetmpc = bptr->mpc;
+	mcodeptr = cd->mcodeptr;
+
+	/* just to make sure */
+
+	assert(bptr->mpc >= 0);
 
 	for (br = bptr->branchrefs; br != NULL; br = br->next) {
-		branchmpc = br->branchpos;
+		/* temporary set the mcodeptr */
 
-		md_codegen_patch_branch(cd, branchmpc, targetmpc);
+		cd->mcodeptr = cd->mcodebase + br->branchmpc;
+
+		/* emit_bccz and emit_branch emit the correct code, even if we
+		   pass condition == BRANCH_UNCONDITIONAL or reg == -1. */
+
+		emit_bccz(cd, bptr, br->condition, br->reg, br->options);
 	}
+
+	/* restore mcodeptr */
+
+	cd->mcodeptr = mcodeptr;
 }
 
 
-/* codegen_add_exception_ref ***************************************************
+/* codegen_branch_label_add ****************************************************
 
-   Prepends an exception branch to the list.
-
-*******************************************************************************/
-
-static void codegen_add_exception_ref(codegendata *cd, s4 reg,
-									  functionptr function)
-{
-	s4            branchmpc;
-	exceptionref *er;
-
-	branchmpc = cd->mcodeptr - cd->mcodebase;
-
-	er = DNEW(exceptionref);
-
-	er->branchpos = branchmpc;
-	er->reg       = reg;
-	er->function  = function;
-
-	er->next      = cd->exceptionrefs;
-
-	cd->exceptionrefs = er;
-}
-
-
-/* codegen_add_arithmeticexception_ref *****************************************
-
-   Adds an ArithmeticException branch to the list.
+   Append an branch to the label-branch list.
 
 *******************************************************************************/
 
-void codegen_add_arithmeticexception_ref(codegendata *cd)
+void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options)
 {
-	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_arithmeticexception);
-}
+	list               *list;
+	branch_label_ref_t *br;
+	s4                  mpc;
 
+	/* get the label list */
 
-/* codegen_add_arrayindexoutofboundsexception_ref ******************************
+	list = cd->brancheslabel;
+	
+	/* calculate the current mpc */
 
-   Adds an ArrayIndexOutOfBoundsException branch to the list.
+	mpc = cd->mcodeptr - cd->mcodebase;
 
-*******************************************************************************/
+	br = DNEW(branch_label_ref_t);
 
-void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd, s4 reg)
-{
-	codegen_add_exception_ref(cd, reg,
-							  STACKTRACE_inline_arrayindexoutofboundsexception);
-}
+	br->mpc       = mpc;
+	br->label     = label;
+	br->condition = condition;
+	br->reg       = reg;
+	br->options   = options;
 
+	/* add the branch to the list */
 
-/* codegen_add_arraystoreexception_ref *****************************************
-
-   Adds an ArrayStoreException branch to the list.
-
-*******************************************************************************/
-
-void codegen_add_arraystoreexception_ref(codegendata *cd)
-{
-	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_arraystoreexception);
-}
-
-
-/* codegen_add_classcastexception_ref ******************************************
-
-   Adds an ClassCastException branch to the list.
-
-*******************************************************************************/
-
-void codegen_add_classcastexception_ref(codegendata *cd, s4 reg)
-{
-	codegen_add_exception_ref(cd, reg, STACKTRACE_inline_classcastexception);
-}
-
-
-/* codegen_add_nullpointerexception_ref ****************************************
-
-   Adds an NullPointerException branch to the list.
-
-*******************************************************************************/
-
-void codegen_add_nullpointerexception_ref(codegendata *cd)
-{
-	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_nullpointerexception);
-}
-
-
-/* codegen_add_fillinstacktrace_ref ********************************************
-
-   Adds a fillInStackTrace branch to the list.
-
-*******************************************************************************/
-
-void codegen_add_fillinstacktrace_ref(codegendata *cd)
-{
-	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_fillInStackTrace);
+	list_add_last_unsynced(list, br);
 }
 
 
@@ -478,12 +534,10 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 	pr->next      = cd->patchrefs;
 	cd->patchrefs = pr;
 
-#if defined(ENABLE_JIT) && (defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__SPARC_64__) || defined(__X86_64__) ||  defined(__S390__))
 	/* Generate NOPs for opt_shownops. */
 
 	if (opt_shownops)
 		PATCHER_NOPS;
-#endif
 
 #if defined(ENABLE_JIT) && (defined(__I386__) || defined(__MIPS__) || defined(__X86_64__))
 	/* On some architectures the patcher stub call instruction might
@@ -848,7 +902,7 @@ void codegen_finish(jitdata *jd)
 
 	codegen_insertmethod(code->entrypoint, code->entrypoint + mcodelen);
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
 	/* resolve data segment references */
 
 	dseg_resolve_datareferences(jd);

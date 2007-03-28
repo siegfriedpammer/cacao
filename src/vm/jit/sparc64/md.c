@@ -46,8 +46,17 @@
 #define SHIFT_AND_MASK(instr) \
 	((instr >> 13) & 0x60fc1)
 
+/* NOP is defined as a SETHI instruction with rd and imm. set to zero */
+/* therefore we check if the 22-bit immediate is zero */
 #define IS_SETHI(instr) \
-	((instr & 0xc1c00000)  == 0x00800000)
+	(((instr & 0xc1c00000)  == 0x01000000) \
+	&& ((instr & 0x3fffff) != 0x0))
+	
+#define IS_LDX_IMM(instr) \
+	(((instr >> 13) & 0x60fc1) == 0x602c1)
+	
+#define IS_SUB(instr) \
+	(((instr >> 13) & 0x60fc0) == 0x40100)
 
 inline s2 decode_13bit_imm(u4 instr) {
 	s2 imm;
@@ -71,64 +80,6 @@ inline s2 decode_13bit_imm(u4 instr) {
 void md_init(void)
 {
 	/* do nothing */
-}
-
-
-/* md_codegen_patch_branch *****************************************************
-
-   Back-patches a branch instruction.
-
-*******************************************************************************/
-
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
-{
-	s4 *mcodeptr;
-	s4  mcode;
-	s4  disp;                           /* branch displacement                */
-
-	/* calculate the patch position */
-
-	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
-
-	/* get the instruction before the exception point */
-
-	mcode = mcodeptr[-1];
-	
-	/* Calculate the branch displacement.  SPARC displacements regard current
-	   PC as base => (branchmpc - 4 */
-	
-	disp = (targetmpc - (branchmpc - 4)) >> 2;
-	
-
-	/* check for BPcc or FBPfcc instruction */
-	if (((mcode >> 16) & 0xc1c0) == 0x0040) {
-	
-		/* check branch displacement (19-bit)*/
-	
-		if ((disp < (s4) 0xfffc0000) || (disp > (s4) 0x003ffff))
-			vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x003ffff);
-	
-		/* patch the branch instruction before the mcodeptr */
-	
-		mcodeptr[-1] |= (disp & 0x007ffff);
-	}
-	/* check for BPr instruction */
-	else if (((mcode >> 16) & 0xd1c0) == 0x00c0) {
-
-		/* check branch displacement (16-bit)*/
-	
-		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x0007fff))
-			vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x0007fff);
-			
-		/* patch the upper 2-bit of the branch displacement */
-		mcodeptr[-1] |= ((disp & 0xc000) << 6);
-			
-		/* patch the lower 14-bit of the branch displacement */
-		mcodeptr[-1] |= (disp & 0x003fff);
-		
-	}
-	else
-		assert(0);
 }
 
 
@@ -274,67 +225,81 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 {
 	u4  mcode, mcode_masked;
 	s4  offset;
-	u1 *pa;
+	u1 *pa, *iptr;
 
-	/* go back to the actual load instruction (1 instruction before jump) */
-	/* ra is the address of the jump instruction on SPARC                 */
-	ra -= 1 * 4;
+	/* go back to the location of a possible sethi (3 instruction before jump) */
+	/* note: ra is the address of the jump instruction on SPARC                */
+	iptr = ra - 3 * 4;
 
 	/* get first instruction word on current PC */
 
-	mcode = *((u4 *) ra);
+	mcode = *((u4 *) iptr);
 
-
-	/* check if we have 2 instructions (lui) */
+	/* check for sethi instruction */
 
 	if (IS_SETHI(mcode)) {
 		/* XXX write a regression for this */
-		assert(0);
 
-		/* get displacement of first instruction (lui) */
+		/* get 22-bit displacement of sethi instruction */
 
-		offset = (s4) (mcode << 16);
+		offset = (s4) (mcode & 0x3fffff);
+		offset = offset << 10;
+		
+		/* goto next instruction */
+		iptr += 4;
+		mcode = *((u4 *) iptr);
+		
+		/* make sure it's a sub instruction (pv - big_disp) */
+		assert(IS_SUB(mcode));
+		offset = -offset;
 
-		/* get displacement of second instruction (daddiu) */
+		/* get displacement of load instruction */
 
-		mcode = *((u4 *) (ra + 1 * 4));
+		mcode = *((u4 *) (ra - 1 * 4));
+		assert(IS_LDX_IMM(mcode));
 
-		assert((mcode >> 16) != 0x6739);
+		offset += decode_13bit_imm(mcode);
+		
+		pa = sfi->pv + offset;
 
-		offset += (s2) (mcode & 0x0000ffff);
+		return pa;
+	}
+
+
+	/* simple (one-instruction) load */
+	iptr = ra - 1 * 4;
+	mcode = *((u4 *) iptr);
+
+	/* shift and mask rd */
+
+	mcode_masked = (mcode >> 13) & 0x060fff;
+	
+	/* get the offset from the instruction */
+
+	offset = decode_13bit_imm(mcode);
+
+	/* check for call with rs1 == REG_METHODPTR: ldx [g2+x],pv_caller */
+
+	if (mcode_masked == 0x0602c5) {
+		/* in this case we use the passed method pointer */
+
+		/* return NULL if no mptr was specified (used for replacement) */
+
+		if (mptr == NULL)
+			return NULL;
+
+		pa = mptr + offset;
 
 	} else {
+		/* in the normal case we check for a `ldx [i5+x],pv_caller' instruction */
 
-		/* shift and maks rd */
+		assert(mcode_masked  == 0x0602fb);
 
-		mcode_masked = (mcode >> 13) & 0x060fff;
-		
-		/* get the offset from the instruction */
+		/* and get the final data segment address */
 
-		offset = decode_13bit_imm(mcode);
-
-		/* check for call with rs1 == REG_METHODPTR: ldx [g2+x],pv_caller */
-
-		if (mcode_masked == 0x0602c5) {
-			/* in this case we use the passed method pointer */
-
-			/* return NULL if no mptr was specified (used for replacement) */
-
-			if (mptr == NULL)
-				return NULL;
-
-			pa = mptr + offset;
-
-		} else {
-			/* in the normal case we check for a `ldx [i5+x],pv_caller' instruction */
-
-			assert(mcode_masked  == 0x0602fb);
-
-			/* and get the final data segment address */
-
-			pa = sfi->pv + offset;
-		}
+		pa = sfi->pv + offset;
 	}
+	
 
 	return pa;
 }

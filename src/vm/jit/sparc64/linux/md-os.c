@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/linux/md.c - machine dependent Alpha Linux functions
+/* src/vm/jit/sparc64/linux/md-os.c - machine dependent SPARC Linux functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,23 +22,19 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: md-os.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-os.c 7363 2007-02-15 14:57:04Z twisti $
 
 */
+
 
 #include "config.h"
 
 #include <assert.h>
-#include <ucontext.h>
+#include <signal.h>
 
 #include "vm/types.h"
 
+#include "vm/jit/sparc64/codegen.h"
 #include "vm/jit/sparc64/md-abi.h"
 
 #include "vm/exceptions.h"
@@ -48,6 +44,40 @@
 #include "vm/jit/stacktrace.h"
 
 
+typedef struct sigcontext sigcontext;
+
+ptrint md_get_reg_from_context(sigcontext *ctx, u4 rindex)
+{
+	ptrint val;	
+	s8     *window;
+	
+	
+	/* return 0 for REG_ZERO */
+	
+	if (rindex == 0)
+		return 0;
+		
+	
+	if (rindex <= 15) {
+		
+		/* register is in global or out range, available in context */
+		
+		val = ctx->sigc_regs.u_regs[rindex];
+	}
+	else {
+		assert(rindex <= 31);
+		
+		/* register is local or in, need to fetch from regsave area on stack */
+		
+		window = ctx->sigc_regs.u_regs[REG_SP] + BIAS;
+		val = window[rindex - 16];
+	}
+	
+	return val;
+}
+	
+	
+
 /* md_signal_handler_sigsegv ***************************************************
 
    NullPointerException signal handler for hardware null pointer
@@ -55,46 +85,70 @@
 
 *******************************************************************************/
 
-void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
+void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 {
+	/*
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;
-	u4           instr;
-	ptrint       addr;
+	*/
+	sigcontext *ctx;
 	u1          *pv;
 	u1          *sp;
 	u1          *ra;
 	u1          *xpc;
+	u4          mcode;
+	s4                 d;
+	s4                 s1;
+	s4                 disp;
+	ptrint             val;
+	ptrint             addr;
+	s4                 type;
+	java_objectheader *e;
 
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
+	ctx = (sigcontext *) info;
 
-	instr = *((s4 *) (_mc->mc_gregs[MC_PC]));
-	/*addr = _mc->sc_regs[(instr >> 16) & 0x1f];*/
-	addr = 0;
 
-	if (addr == 0) {
-		pv  = (u1 *) _mc->mc_gregs[MC_G2];
-		sp  = (u1 *) _mc->mc_fp;
-		ra  = (u1 *) _mc->mc_i7;       /* this is correct for leafs */
-		xpc = (u1 *) _mc->mc_gregs[MC_PC];
+	pv  = (u1 *) md_get_reg_from_context(ctx, REG_PV_CALLEE);
+	sp  = (u1 *) md_get_reg_from_context(ctx, REG_SP);
+	ra  = (u1 *) md_get_reg_from_context(ctx, REG_RA_CALLEE);  /* this is correct for leafs */
+	xpc = (u1 *) ctx->sigc_regs.tpc;
 
-		_mc->mc_gregs[MC_G4] =
-			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
+	/* get exception-throwing instruction */	
 
-		_mc->mc_gregs[MC_G5] = (ptrint) xpc;
-		_mc->mc_gregs[MC_PC] = (ptrint) asm_handle_exception;
+	mcode = *((u4 *) xpc);
 
-	} else {
-		addr += (long) ((instr << 16) >> 16);
+	d    = M_OP3_GET_RD(mcode);
+	s1   = M_OP3_GET_RS(mcode);
+	disp = M_OP3_GET_IMM(mcode);
 
-		/*
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Segmentation fault: 0x%016lx at 0x%016lx\n",
-								   addr, _mc->mc_gregs[MC_PC]);
-								   */
-		assert(0);
+	/* flush register windows? */
+	
+	val   = md_get_reg_from_context(ctx, d);
+
+	/* check for special-load */
+
+	if (s1 == REG_ZERO) {
+		/* we use the exception type as load displacement */
+
+		type = disp;
 	}
+	else {
+		/* This is a normal NPE: addr must be NULL and the NPE-type
+		   define is 0. */
+
+		addr  = md_get_reg_from_context(ctx, s1);
+		type = (s4) addr;
+	}
+
+
+	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	/* set registers */
+
+	ctx->sigc_regs.u_regs[REG_ITMP2_XPTR] = (ptrint) e;
+	ctx->sigc_regs.u_regs[REG_ITMP3_XPC]  = (ptrint) xpc;
+	ctx->sigc_regs.tpc                    = (ptrint) asm_handle_exception;
+	ctx->sigc_regs.tnpc                   = (ptrint) asm_handle_exception + 4;
 }
 
 
@@ -153,4 +207,5 @@ void md_icacheflush(u1 *addr, s4 nbytes)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

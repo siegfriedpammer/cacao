@@ -29,12 +29,14 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 6265 2007-01-02 20:40:57Z edwin $
+   $Id: asmpart.S 7533 2007-03-16 17:55:36Z tbfg $
 
 */
 
 
 #include "config.h"
+
+#define __ASSEMBLY__
 
 #include "md-abi.h"
 #include "md-asm.h"
@@ -51,20 +53,8 @@
 
 /* export functions ***********************************************************/
 
-#ifdef ENABLE_LIBJVM
-	.globl asm_vm_call_method
-	.globl asm_vm_call_method_int
-	.globl asm_vm_call_method_long
-	.globl asm_vm_call_method_float
-	.globl asm_vm_call_method_double
-#else
-	.globl .asm_vm_call_method
-	.globl .asm_vm_call_method_int
-	.globl .asm_vm_call_method_long
-	.globl .asm_vm_call_method_float
-	.globl .asm_vm_call_method_double
-#endif
 	.globl asm_vm_call_method_exception_handler
+	.globl asm_vm_call_method_end
 
 	.globl asm_call_jit_compiler
 
@@ -80,9 +70,9 @@
 	.globl .asm_replacement_in
 #endif
 
-	.globl .asm_cacheflush		/* no function descriptor needed, only called direct */
+	.globl asm_cacheflush
 	.globl asm_criticalsections
-	.globl .asm_getclassvalues_atomic
+	.globl asm_getclassvalues_atomic
 
 
 /* asm_vm_call_method **********************************************************
@@ -119,6 +109,12 @@
 	.quad   0                           /* codeinfo pointer                   */
 
 #ifdef ENABLE_LIBJVM
+	
+	.globl asm_vm_call_method
+	.globl asm_vm_call_method_int
+	.globl asm_vm_call_method_long
+	.globl asm_vm_call_method_float
+	.globl asm_vm_call_method_double
 	.section ".opd","aw"
 	.align 3
 
@@ -135,6 +131,14 @@
 #else
 	asm_vm_call_method:
 	.globl asm_vm_call_method
+	asm_vm_call_method_int:
+	.globl asm_vm_call_method_int
+	asm_vm_call_method_long:
+	.globl asm_vm_call_method_long
+	asm_vm_call_method_float:
+	.globl asm_vm_call_method_float
+	asm_vm_call_method_double:
+	.globl asm_vm_call_method_double
 #endif
 
 .asm_vm_call_method:
@@ -632,6 +636,8 @@ L_handle_fda12:
 	lfd     fa12,offvmargdata(itmp1)
 	b       L_register_copy
 
+asm_vm_call_method_end:
+	nop
 
 /* asm_call_jit_compiler *******************************************************
 
@@ -1293,7 +1299,17 @@ asm_replacement_out:
 /* asm_cacheflush **************************************************************
 	copied from linux/arch/ppc64/kernel/vdso64/cacheflush.S
 	assumes 128 byte cache line size.
+	All registers used may be trashed for fun and profit.
 *******************************************************************************/
+
+	.section ".opd","aw"
+	.align 3
+asm_cacheflush:
+		.quad	.asm_cacheflush,.TOC.@tocbase,0
+		.previous
+		.size asm_cacheflush, 24
+		.type .asm_cacheflush,@function
+		.globl .asm_cacheflush 
 .asm_cacheflush:
 	/* construct the AND mask */
 	li	r6,   0xffffffffffff8000
@@ -1323,7 +1339,19 @@ asm_replacement_out:
 	isync
 	blr
 
+/*
+		asm_getclassvalues_atomic 
+*/
+	.section ".opd","aw"
+	.align 3
+asm_getclassvalues_atomic:
+		.quad	.asm_getclassvalues_atomic,.TOC.@tocbase,0
+		.previous
+		.size asm_getclassvalues_atomic, 24
+		.type .asm_getclassvalues_atomic,@function
+		.globl .asm_getclassvalues_atomic
 .asm_getclassvalues_atomic:
+
 _crit_restart:
 _crit_begin:
 	lwz     r6,offbaseval(r3)

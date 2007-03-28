@@ -1,6 +1,6 @@
 /* src/mm/nogc.c - allocates memory through malloc (no GC)
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: nogc.c 7516 2007-03-14 12:00:07Z michi $
+   $Id: nogc.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -44,11 +38,14 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
+
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 
@@ -73,7 +70,11 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 	mmapptr = (void *) ((ptrint) mmapptr + size);
 
 	if (mmapptr > mmaptop)
+<<<<<<< .working
 		vm_abort("heap_allocate: out of memory");
+=======
+		exceptions_throw_outofmemoryerror();
+>>>>>>> .merge-right.r7379
 
 	MSET(m, 0, u1, size);
 
@@ -113,7 +114,11 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 				   (off_t) 0);
 
 	if (mmapptr == MAP_FAILED)
+<<<<<<< .working
 		vm_abort("gc_init: out of memory");
+=======
+		exceptions_throw_outofmemoryerror();
+>>>>>>> .merge-right.r7379
 
 	mmapsize = heapmaxsize;
 	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);

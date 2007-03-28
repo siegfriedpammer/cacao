@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signallocal.h 7286 2007-02-05 01:07:45Z twisti $
+   $Id: signallocal.h 7592 2007-03-28 20:12:33Z twisti $
 
 */
 
@@ -50,6 +50,16 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p);
 
 #if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p);
+#endif
+
+#if defined(__ARM__)
+/* XXX use better defines for that (in arch.h) */
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p);
+#endif
+
+#if defined(__POWERPC__)
+/* XXX use better defines for that (in arch.h) */
+void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p);
 #endif
 
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p);

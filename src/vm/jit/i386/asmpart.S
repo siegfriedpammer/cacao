@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7310 2007-02-09 13:00:04Z twisti $
+   $Id: asmpart.S 7454 2007-03-05 15:40:48Z tbfg $
 
 */
 
@@ -52,6 +52,7 @@
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
 	.globl asm_vm_call_method_exception_handler
+	.globl asm_vm_call_method_end
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_nat_exception
@@ -230,6 +231,7 @@ asm_vm_call_method_exception_handler:
 	push    xptr                        /* pass exception pointer             */
 	call    builtin_throw_exception
 	add     $4,sp
+asm_vm_call_method_end:
 	jmp     L_asm_vm_call_method_return
 
 

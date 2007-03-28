@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 7575 2007-03-25 20:30:50Z twisti $
+   $Id: jit.h 7577 2007-03-25 20:55:06Z twisti $
 
 */
 
@@ -36,7 +36,6 @@ typedef struct jitdata jitdata;
 typedef struct stackelement stackelement;
 typedef stackelement *stackptr;
 typedef struct basicblock basicblock;
-typedef struct branchref branchref;
 typedef struct instruction instruction;
 typedef struct insinfo_inline insinfo_inline;
 typedef struct exception_entry exception_entry;
@@ -513,14 +512,6 @@ struct basicblock {
 		bptr->method = (m);                            \
 	} while (0)
 			
-
-/* branchref *****************************************************************/
-
-struct branchref {
-	s4         branchpos;       /* patching position in code segment          */
-	branchref *next;            /* next element in branchref list             */
-};
-
 
 /* data-flow constants for the ICMD table ************************************/
 

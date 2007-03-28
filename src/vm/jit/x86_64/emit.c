@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: emit.c 7590 2007-03-28 18:54:02Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
@@ -251,6 +252,71 @@ void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
 }
 
 
+/* emit_branch *****************************************************************
+
+   Emits the code for conditional and unconditional branchs.
+
+*******************************************************************************/
+
+void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 options)
+{
+	s4 branchdisp;
+
+	/* NOTE: A displacement overflow cannot happen. */
+
+	/* check which branch to generate */
+
+	if (condition == BRANCH_UNCONDITIONAL) {
+
+		/* calculate the different displacements */
+
+		branchdisp = disp - BRANCH_UNCONDITIONAL_SIZE;
+
+		M_JMP_IMM(branchdisp);
+	}
+	else {
+		/* calculate the different displacements */
+
+		branchdisp = disp - BRANCH_CONDITIONAL_SIZE;
+
+		switch (condition) {
+		case BRANCH_EQ:
+			M_BEQ(branchdisp);
+			break;
+		case BRANCH_NE:
+			M_BNE(branchdisp);
+			break;
+		case BRANCH_LT:
+			M_BLT(branchdisp);
+			break;
+		case BRANCH_GE:
+			M_BGE(branchdisp);
+			break;
+		case BRANCH_GT:
+			M_BGT(branchdisp);
+			break;
+		case BRANCH_LE:
+			M_BLE(branchdisp);
+			break;
+		case BRANCH_ULT:
+			M_BULT(branchdisp);
+			break;
+		case BRANCH_ULE:
+			M_BULE(branchdisp);
+			break;
+		case BRANCH_UGE:
+			M_BUGE(branchdisp);
+			break;
+		case BRANCH_UGT:
+			M_BUGT(branchdisp);
+			break;
+		default:
+			vm_abort("emit_branch: unknown condition %d", condition);
+		}
+	}
+}
+
+
 /* emit_arithmetic_check *******************************************************
 
    Emit an ArithmeticException check.
@@ -261,8 +327,8 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
-		M_BEQ(0);
-		codegen_add_arithmeticexception_ref(cd);
+		M_BNE(8);
+		M_ALD_MEM(reg, EXCEPTION_HARDWARE_ARITHMETIC);
 	}
 }
 
@@ -278,8 +344,8 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
         M_ICMP(REG_ITMP3, s2);
-        M_BAE(0);
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+		M_BULT(8);
+		M_ALD_MEM(s2, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
 	}
 }
 
@@ -292,7 +358,22 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
-	vm_abort("IMPLEMENT ME!");
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		switch (condition) {
+		case BRANCH_LE:
+			M_BGT(8);
+			break;
+		case BRANCH_EQ:
+			M_BNE(8);
+			break;
+		case BRANCH_UGT:
+			M_BULE(8);
+			break;
+		default:
+			vm_abort("emit_classcast_check: unknown condition %d", condition);
+		}
+		M_ALD_MEM(s1, EXCEPTION_HARDWARE_CLASSCAST);
+	}
 }
 
 
@@ -306,85 +387,24 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
-		M_BEQ(0);
-		codegen_add_nullpointerexception_ref(cd);
+		M_BNE(8);
+		M_ALD_MEM(reg, EXCEPTION_HARDWARE_NULLPOINTER);
 	}
 }
 
 
-/* emit_exception_stubs ********************************************************
+/* emit_exception_check ********************************************************
 
-   Generates the code for the exception stubs.
+   Emit an Exception check.
 
 *******************************************************************************/
 
-void emit_exception_stubs(jitdata *jd)
+void emit_exception_check(codegendata *cd, instruction *iptr)
 {
-	codegendata  *cd;
-	registerdata *rd;
-	exceptionref *er;
-	s4            branchmpc;
-	s4            targetmpc;
-	s4            targetdisp;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-	rd = jd->rd;
-
-	/* generate exception stubs */
-
-	targetdisp = 0;
-
-	for (er = cd->exceptionrefs; er != NULL; er = er->next) {
-		/* back-patch the branch to this exception code */
-
-		branchmpc = er->branchpos;
-		targetmpc = cd->mcodeptr - cd->mcodebase;
-
-		md_codegen_patch_branch(cd, branchmpc, targetmpc);
-
-		MCODECHECK(512);
-
-		/* Check if the exception is an
-		   ArrayIndexOutOfBoundsException.  If so, move index register
-		   into a4. */
-
-		if (er->reg != -1)
-			M_MOV(er->reg, rd->argintregs[4]);
-
-		/* calcuate exception address */
-
-		M_MOV_IMM(0, rd->argintregs[3]);
-		dseg_adddata(cd);
-		M_AADD_IMM32(er->branchpos - 6, rd->argintregs[3]);
-
-		/* move function to call into REG_ITMP3 */
-
-		M_MOV_IMM(er->function, REG_ITMP3);
-
-		if (targetdisp == 0) {
-			targetdisp = cd->mcodeptr - cd->mcodebase;
-
-			emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2], REG_SP, cd->stackframesize * 8);
-
-			M_ASUB_IMM(2 * 8, REG_SP);
-			M_AST(rd->argintregs[3], REG_SP, 0 * 8);             /* store XPC */
-
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_AADD_IMM(2 * 8, REG_SP);
-
-			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-		else {
-			M_JMP_IMM((cd->mcodebase + targetdisp) -
-					  (cd->mcodeptr + PATCHER_CALL_SIZE));
-		}
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_TEST(REG_RESULT);
+		M_BNE(8);
+		M_ALD_MEM(REG_RESULT, EXCEPTION_HARDWARE_EXCEPTION);
 	}
 }
 
@@ -1290,6 +1310,15 @@ void emit_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 ind
 }
 
 
+void emit_mov_mem_reg(codegendata *cd, s4 disp, s4 dreg)
+{
+	emit_rex(1, dreg, 0, 0);
+	*(cd->mcodeptr++) = 0x8b;
+	emit_address_byte(0, dreg, 4);
+	emit_mem(4, disp);
+}
+
+
 /*
  * alu operations
  */
@@ -1356,8 +1385,18 @@ void emit_alu_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg) {
 }
 
 
-void emit_alu_imm32_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg) {
+void emit_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg)
+{
 	emit_rex(1,0,0,(dreg));
+	*(cd->mcodeptr++) = 0x81;
+	emit_reg((opc),(dreg));
+	emit_imm32((imm));
+}
+
+
+void emit_alul_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg)
+{
+	emit_rex(0,0,0,(dreg));
 	*(cd->mcodeptr++) = 0x81;
 	emit_reg((opc),(dreg));
 	emit_imm32((imm));
@@ -1726,7 +1765,8 @@ void emit_jcc(codegendata *cd, s8 opc, s8 imm) {
  */
 
 /* we need the rex byte to get all low bytes */
-void emit_setcc_reg(codegendata *cd, s8 opc, s8 reg) {
+void emit_setcc_reg(codegendata *cd, s4 opc, s4 reg)
+{
 	*(cd->mcodeptr++) = (0x40 | (((reg) >> 3) & 0x01));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = (0x90 + (opc));
@@ -1735,7 +1775,8 @@ void emit_setcc_reg(codegendata *cd, s8 opc, s8 reg) {
 
 
 /* we need the rex byte to get all low bytes */
-void emit_setcc_membase(codegendata *cd, s8 opc, s8 basereg, s8 disp) {
+void emit_setcc_membase(codegendata *cd, s4 opc, s4 basereg, s4 disp)
+{
 	*(cd->mcodeptr++) = (0x40 | (((basereg) >> 3) & 0x01));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = (0x90 + (opc));
@@ -1743,7 +1784,7 @@ void emit_setcc_membase(codegendata *cd, s8 opc, s8 basereg, s8 disp) {
 }
 
 
-void emit_cmovcc_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg)
+void emit_cmovcc_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg)
 {
 	emit_rex(1,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x0f;
@@ -1752,14 +1793,13 @@ void emit_cmovcc_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg)
 }
 
 
-void emit_cmovccl_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg)
+void emit_cmovccl_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg)
 {
 	emit_rex(0,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = (0x40 + (opc));
 	emit_reg((dreg),(reg));
 }
-
 
 
 void emit_neg_reg(codegendata *cd, s8 reg)

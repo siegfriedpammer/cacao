@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7575 2007-03-25 20:30:50Z twisti $
+   $Id: jit.c 7577 2007-03-25 20:55:06Z twisti $
 
 */
 
@@ -1492,7 +1492,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	} else
 # endif
 		{
-			if (!codegen(jd)) {
+			if (!codegen_generate(jd)) {
 				DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
 
 				return NULL;

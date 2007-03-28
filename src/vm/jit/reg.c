@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: reg.c 5435 2006-09-08 18:14:50Z edwin $
+   $Id: reg.c 7456 2007-03-05 16:13:11Z tbfg $
 
 */
 
@@ -133,7 +133,7 @@ void reg_setup(jitdata *jd)
 	rd->freetmpadrregs = DMNEW(s4, ADR_TMP_CNT);
 	rd->freesavadrregs = DMNEW(s4, ADR_SAV_CNT);
 
-	rd->adrreg_argnum = 0;
+	/*rd->adrreg_argnum = 0; XXX ask twisti */
 	rd->argadrreguse = 0;
 	rd->tmpadrreguse = 0;
 	rd->savadrreguse = 0;

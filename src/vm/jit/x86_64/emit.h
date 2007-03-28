@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/md-emit.h - machine dependent emit function prototypes
+/* src/vm/jit/x86_64/emit.h - machine dependent emit function prototypes
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: emit.h 6090 2006-11-29 20:40:10Z twisti $
+   $Id: emit.h 7590 2007-03-28 18:54:02Z twisti $
 
 */
 
@@ -236,6 +230,9 @@ void emit_mov_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 inde
 void emit_movl_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void emit_movw_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void emit_movb_imm_memindex(codegendata *cd, s4 imm, s4 disp, s4 basereg, s4 indexreg, s4 scale);
+
+void emit_mov_mem_reg(codegendata *cd, s4 disp, s4 dreg);
+
 void emit_alu_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg);
 void emit_alul_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg);
 void emit_alu_reg_membase(codegendata *cd, s8 opc, s8 reg, s8 basereg, s8 disp);
@@ -243,7 +240,8 @@ void emit_alul_reg_membase(codegendata *cd, s8 opc, s8 reg, s8 basereg, s8 disp)
 void emit_alu_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 reg);
 void emit_alul_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 reg);
 void emit_alu_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg);
-void emit_alu_imm32_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg);
+void emit_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg);
+void emit_alul_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg);
 void emit_alul_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg);
 void emit_alu_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp);
 void emit_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp);
@@ -282,10 +280,13 @@ void emit_shiftl_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 dis
 void emit_jmp_imm(codegendata *cd, s8 imm);
 void emit_jmp_reg(codegendata *cd, s8 reg);
 void emit_jcc(codegendata *cd, s8 opc, s8 imm);
-void emit_setcc_reg(codegendata *cd, s8 opc, s8 reg);
-void emit_setcc_membase(codegendata *cd, s8 opc, s8 basereg, s8 disp);
-void emit_cmovcc_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg);
-void emit_cmovccl_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg);
+
+void emit_setcc_reg(codegendata *cd, s4 opc, s4 reg);
+void emit_setcc_membase(codegendata *cd, s4 opc, s4 basereg, s4 disp);
+
+void emit_cmovcc_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg);
+void emit_cmovccl_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg);
+
 void emit_neg_reg(codegendata *cd, s8 reg);
 void emit_negl_reg(codegendata *cd, s8 reg);
 void emit_neg_membase(codegendata *cd, s8 basereg, s8 disp);

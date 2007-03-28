@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/linux/md.c - machine dependent Alpha Linux functions
+/* src/vm/jit/alpha/linux/md-os.c - machine dependent Alpha Linux functions
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7251 2007-01-29 20:24:53Z twisti $
+   $Id: md-os.c 7566 2007-03-23 23:51:10Z twisti $
 
 */
 
@@ -34,6 +34,7 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/alpha/codegen.h"
 #include "vm/jit/alpha/md-abi.h"
 
 #include "vm/exceptions.h"
@@ -52,14 +53,20 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t  *_uc;
-	mcontext_t  *_mc;
-	u4           instr;
-	ptrint       addr;
-	u1          *pv;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
+	ucontext_t        *_uc;
+	mcontext_t        *_mc;
+	u1                *pv;
+	u1                *sp;
+	u1                *ra;
+	u1                *xpc;
+	u4                 mcode;
+	s4                 d;
+	s4                 s1;
+	s4                 disp;
+	ptrint             val;
+	ptrint             addr;
+	s4                 type;
+	java_objectheader *e;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -69,23 +76,40 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ra  = (u1 *) _mc->sc_regs[REG_RA];           /* this is correct for leafs */
 	xpc = (u1 *) _mc->sc_pc;
 
-	instr = *((s4 *) (_mc->sc_pc));
-	addr = _mc->sc_regs[(instr >> 16) & 0x1f];
+	/* get exception-throwing instruction */
 
-	if (addr == 0) {
-		_mc->sc_regs[REG_ITMP1_XPTR] =
-			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
+	mcode = *((u4 *) xpc);
 
-		_mc->sc_regs[REG_ITMP2_XPC] = (ptrint) xpc;
-		_mc->sc_pc = (ptrint) asm_handle_exception;
+	d    = M_MEM_GET_A(mcode);
+	s1   = M_MEM_GET_B(mcode);
+	disp = M_MEM_GET_DISP(mcode);
+
+	val   = _mc->sc_regs[d];
+
+	/* check for special-load */
+
+	if (s1 == REG_ZERO) {
+		/* we use the exception type as load displacement */
+
+		type = disp;
 	}
 	else {
-		codegen_get_pv_from_pc(xpc);
+		/* This is a normal NPE: addr must be NULL and the NPE-type
+		   define is 0. */
 
-		/* this should not happen */
-
-		assert(0);
+		addr = _mc->sc_regs[s1];
+		type = (s4) addr;
 	}
+
+	/* generate appropriate exception */
+
+	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	/* set registers */
+
+	_mc->sc_regs[REG_ITMP1_XPTR] = (ptrint) e;
+	_mc->sc_regs[REG_ITMP2_XPC]  = (ptrint) xpc;
+	_mc->sc_pc                   = (ptrint) asm_handle_exception;
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7343 2007-02-13 02:36:29Z ajordan $
+   $Id: stacktrace.c 7584 2007-03-27 18:17:27Z tbfg $
 
 */
 
@@ -943,7 +943,7 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 			else
 #endif
 				{
-#if defined(__I386__) || defined (__X86_64__)
+#if defined(__I386__) || defined (__X86_64__) || defined (__M68K__)
 					sp += framesize + SIZEOF_VOID_P;
 #elif defined(__SPARC_64__)
 					/* already has the new sp */

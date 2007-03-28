@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7504 2007-03-12 13:17:07Z twisti $
+   $Id: md.c 7540 2007-03-20 00:02:41Z michi $
 
 */
 
@@ -77,6 +77,10 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 
 	if ((disp < (s4) 0xff000000) || (disp > (s4) 0x00ffffff))
 		vm_abort("md_codegen_patch_branch: branch displacement out of range: %d > +/-%d", disp, 0x00ffffff);
+
+	/* sanity check: are we really patching a branch instruction */
+
+	assert((mcodeptr[-1] & 0x0e000000) == 0x0a000000);
 
 	/* patch the branch instruction before the mcodeptr */
 

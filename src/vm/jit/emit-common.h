@@ -33,8 +33,19 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "arch.h"
+
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
+
+
+/* branch labels **************************************************************/
+
+#define BRANCH_LABEL_1    1
+#define BRANCH_LABEL_2    2
+#define BRANCH_LABEL_3    3
+#define BRANCH_LABEL_4    4
+#define BRANCH_LABEL_5    5
 
 
 /* constant range macros ******************************************************/
@@ -90,30 +101,82 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst);
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);
 
-void emit_br(codegendata *cd, basicblock *target);
-void emit_bc(codegendata *cd, basicblock *target, s4 condition);
+/* branch-emitting functions */
+void emit_bccz(codegendata *cd, basicblock *target, s4 condition, s4 reg, u4 options);
+void emit_bcc(codegendata *cd, basicblock *target, s4 condition, u4 options);
 
+/* wrapper for unconditional branches */
+void emit_br(codegendata *cd, basicblock *target);
+
+/* wrappers for branches on one integer register */
+
+#if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
+void emit_beqz(codegendata *cd, basicblock *target, s4 reg);
+void emit_bnez(codegendata *cd, basicblock *target, s4 reg);
+void emit_bltz(codegendata *cd, basicblock *target, s4 reg);
+void emit_bgez(codegendata *cd, basicblock *target, s4 reg);
+void emit_bgtz(codegendata *cd, basicblock *target, s4 reg);
+void emit_blez(codegendata *cd, basicblock *target, s4 reg);
+#endif
+
+/* wrappers for branches on two integer registers */
+
+#if SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS
+void emit_beq(codegendata *cd, basicblock *target, s4 s1, s4 s2);
+void emit_bne(codegendata *cd, basicblock *target, s4 s1, s4 s2);
+#endif
+
+/* wrappers for branches on condition codes */
+
+#if SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER
 void emit_beq(codegendata *cd, basicblock *target);
 void emit_bne(codegendata *cd, basicblock *target);
 void emit_blt(codegendata *cd, basicblock *target);
 void emit_bge(codegendata *cd, basicblock *target);
 void emit_bgt(codegendata *cd, basicblock *target);
 void emit_ble(codegendata *cd, basicblock *target);
+#endif
 
+#if SUPPORT_BRANCH_CONDITIONAL_UNSIGNED_CONDITIONS
+void emit_bult(codegendata *cd, basicblock *target);
+void emit_bule(codegendata *cd, basicblock *target);
+void emit_buge(codegendata *cd, basicblock *target);
+void emit_bugt(codegendata *cd, basicblock *target);
+#endif
+
+#if defined(__POWERPC__)
 void emit_bnan(codegendata *cd, basicblock *target);
+#endif
 
-void emit_branch(codegendata *cd, s4 disp, s4 condition);
+/* label-branches */
+void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options);
+void emit_label(codegendata *cd, s4 label);
+void emit_label_bcc(codegendata *cd, s4 label, s4 condition, u4 options);
+
+void emit_label_br(codegendata *cd, s4 label);
+
+#if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
+void emit_label_beqz(codegendata *cd, s4 label, s4 reg);
+#endif
+
+#if SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER
+void emit_label_beq(codegendata *cd, s4 label);
+void emit_label_bne(codegendata *cd, s4 label);
+void emit_label_blt(codegendata *cd, s4 label);
+void emit_label_bge(codegendata *cd, s4 label);
+void emit_label_bgt(codegendata *cd, s4 label);
+void emit_label_ble(codegendata *cd, s4 label);
+#endif
+
+/* machine dependent branch-emitting function */
+void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 options);
 
 void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg);
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2);
-void emit_arraystore_check(codegendata *cd, instruction *iptr, s4 reg);
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1);
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg);
 void emit_exception_check(codegendata *cd, instruction *iptr);
 
-void emit_array_checks(codegendata *cd, instruction *iptr, s4 s1, s4 s2);
-
-void emit_exception_stubs(jitdata *jd);
 void emit_patcher_stubs(jitdata *jd);
 #if defined(ENABLE_REPLACEMENT)
 void emit_replacement_stubs(jitdata *jd);

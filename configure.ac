@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7434 2007-03-02 19:44:53Z edwin $
+dnl $Id: configure.ac 7596 2007-03-28 21:05:53Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -280,6 +280,9 @@ dnl Features
 AC_CHECK_ENABLE_JAVA
 AC_CHECK_ENABLE_JIT
 
+dnl with-options
+AC_CHECK_WITH_CACAOH
+
 dnl check for stuff that should be done in software
 AC_CHECK_SOFTFLOAT
 AC_CHECK_SOFT_FLOAT_CMP
@@ -367,6 +370,7 @@ AM_CONDITIONAL([ENABLE_GC_BOEHM], test x"${ENABLE_GC}" = "xboehm")
 AM_CONDITIONAL([ENABLE_GC_CACAO], test x"${ENABLE_GC}" = "xcacao")
 
 
+
 dnl check for dump memory usage
 AC_MSG_CHECKING(whether dump memory should be disabled)
 AC_ARG_ENABLE([dump],
@@ -437,7 +441,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
     dnl check for binutils headers and libraries on some architectures for the
     dnl disassembler
     case "${ARCH_DIR}" in
-        arm | i386 | powerpc | x86_64 | sparc64 | powerpc64 | s390)
+        arm | i386 | powerpc | x86_64 | sparc64 | powerpc64 | s390 | m68k)
             AC_CHECK_HEADER([ansidecl.h],, [AC_MSG_ERROR(cannot find ansidecl.h)])
             AC_CHECK_HEADER([symcat.h],, [AC_MSG_ERROR(cannot find symcat.h)])
             AC_CHECK_HEADER([bfd.h],, [AC_MSG_ERROR(cannot find bfd.h)])
@@ -1024,6 +1028,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/intrp/Makefile]
 		[src/vm/jit/inline/Makefile]
 		[src/vm/jit/loop/Makefile]
+		[src/vm/jit/m68k/Makefile]
+		[src/vm/jit/m68k/linux/Makefile]
 		[src/vm/jit/mips/Makefile]
 		[src/vm/jit/mips/irix/Makefile]
 		[src/vm/jit/mips/linux/Makefile]

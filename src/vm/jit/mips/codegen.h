@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/codegen.h - code generation macros and definitions for MIPS
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Christian Thalinger
-
-   $Id: codegen.h 7206 2007-01-11 22:39:52Z twisti $
+   $Id: codegen.h 7363 2007-02-15 14:57:04Z twisti $
 
 */
 
@@ -105,9 +100,6 @@
     do { \
         M_NOP; \
         M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
     } while (0)
 
 
@@ -144,6 +136,11 @@
         *((u4 *) cd->mcodeptr) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((imm) & 0xffff)); \
         cd->mcodeptr += 4; \
     } while (0)
+
+#define M_ITYPE_GET_RS(x)               (((x) >> 21) & 0x1f  )
+#define M_ITYPE_GET_RT(x)               (((x) >> 16) & 0x1f  )
+#define M_ITYPE_GET_IMM(x)              ( (x)        & 0xffff)
+
 
 #define M_JTYPE(op,imm) \
     do { \
@@ -414,6 +411,7 @@
 #define M_BGEZ(a,disp)          M_ITYPE(0x01,a,1,disp)          /* br a >= 0  */
 #define M_BGTZ(a,disp)          M_ITYPE(0x07,a,0,disp)          /* br a >  0  */
 
+#if 0
 #define M_BEQL(a,b,disp)        M_ITYPE(0x14,a,b,disp)          /* br a == b  */
 #define M_BNEL(a,b,disp)        M_ITYPE(0x15,a,b,disp)          /* br a != b  */
 #define M_BEQZL(a,disp)         M_ITYPE(0x14,a,0,disp)          /* br a == 0  */
@@ -422,6 +420,7 @@
 #define M_BNEZL(a,disp)         M_ITYPE(0x15,a,0,disp)          /* br a != 0  */
 #define M_BGEZL(a,disp)         M_ITYPE(0x01,a,3,disp)          /* br a >= 0  */
 #define M_BGTZL(a,disp)         M_ITYPE(0x17,a,0,disp)          /* br a >  0  */
+#endif
 
 #define M_BR(disp)              M_ITYPE(0x04,0,0,disp)          /* branch     */
 #define M_BRS(disp)             M_ITYPE(0x01,0,17,disp)         /* branch sbr */

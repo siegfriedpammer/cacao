@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: list.c 7481 2007-03-08 13:12:21Z twisti $
 
 */
 
@@ -131,7 +131,7 @@ void list_add_last(list *l, void *element)
 }
 
 
-/* list_add_list_unsynced ******************************************************
+/* list_add_last_unsynced ******************************************************
 
    Adds the element as last element but does NO locking!
 
@@ -200,14 +200,36 @@ void list_add_before(list *l, void *element, void *newelement)
 }
 
 
+/* list_remove ***************************************************************
+
+   Removes the element.
+
+*******************************************************************************/
+
 void list_remove(list *l, void *element)
+{
+	LOCK_MONITOR_ENTER(l);
+
+	list_remove_unsynced(l, element);
+
+	LOCK_MONITOR_EXIT(l);
+}
+
+
+/* list_remove_unsynced ********************************************************
+
+   Removes the element but does NO locking!
+
+   ATTENTION: Use this function with care!!!
+
+*******************************************************************************/
+
+void list_remove_unsynced(list *l, void *element)
 {
 	listnode *ln;
 
 	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
 	
-	LOCK_MONITOR_ENTER(l);
-
 	if (ln->next)
 		ln->next->prev = ln->prev;
 	else
@@ -220,8 +242,6 @@ void list_remove(list *l, void *element)
 
 	ln->next = NULL;
 	ln->prev = NULL;
-
-	LOCK_MONITOR_EXIT(l);
 }
 
  

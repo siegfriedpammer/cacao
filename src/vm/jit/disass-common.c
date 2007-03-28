@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: disass-common.c 7382 2007-02-21 20:24:01Z twisti $
+   $Id: disass-common.c 7436 2007-03-02 20:23:46Z tbfg $
 
 */
 
@@ -51,7 +51,7 @@ bool disass_initialized = false;
 /* We need this on i386 and x86_64 since we don't know the byte length
    of currently printed instructions.  512 bytes should be enough. */
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__M68K__)
 char disass_buf[512];
 s4   disass_len;
 #endif
@@ -90,7 +90,7 @@ void disass_printf(PTR p, const char *fmt, ...)
 
 	va_start(ap, fmt);
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__M68K__)
 	disass_len += vsprintf(disass_buf + disass_len, fmt, ap);
 #else
 	vprintf(fmt, ap);

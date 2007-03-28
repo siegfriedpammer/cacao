@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: md.c 7590 2007-03-28 18:54:02Z twisti $
 
 */
 
@@ -57,34 +57,6 @@
 void md_init(void)
 {
 	/* nothing to do */
-}
-
-
-/* md_codegen_patch_branch *****************************************************
-
-   Back-patches a branch instruction.
-
-*******************************************************************************/
-
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
-{
-	s4 *mcodeptr;
-	s4  disp;                           /* branch displacement                */
-
-	/* calculate the patch position */
-
-	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
-
-	/* Calculate the branch displacement. */
-
-	disp = targetmpc - branchmpc;
-
-	/* I don't think we have to check for branch-displacement
-	   overflow.  +/-2GB should be enough. */
-
-	/* patch the branch instruction before the mcodeptr */
-
-	mcodeptr[-1] = disp;
 }
 
 

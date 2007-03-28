@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7526 2007-03-15 09:28:56Z twisti $
+   $Id: jni.c 7550 2007-03-21 13:40:45Z twisti $
 
 */
 
@@ -4301,10 +4301,8 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	/* check if the class of value is a subclass of the element class
 	   of the array */
 
-	if (!builtin_canstore(oa, o)) {
-		exceptions_throw_arraystoreexception();
+	if (!builtin_canstore(oa, o))
 		return;
-	}
 
 	oa->data[index] = val;
 }

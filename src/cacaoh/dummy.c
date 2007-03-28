@@ -275,6 +275,17 @@ void exceptions_throw_noclassdeffounderror(utf *name)
 	abort();
 }
 
+void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
+{
+	fprintf(stderr, "java.lang.NoClassDefFoundError: ");
+	utf_fprint_printable_ascii(stderr, c->name);
+	fprintf(stderr, " (wrong name: ");
+	utf_fprint_printable_ascii(stderr, name);
+	fprintf(stderr, ")\n");
+
+	abort();
+}
+
 void exceptions_throw_outofmemoryerror(void)
 {
 	fprintf(stderr, "java.lang.OutOfMemoryError\n");

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7575 2007-03-25 20:30:50Z twisti $
+   $Id: loader.c 7577 2007-03-25 20:55:06Z twisti $
 
 */
 
@@ -1972,6 +1972,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* this class */
 
 	i = suck_u2(cb);
+
 	if (!(name = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 		goto return_exception;
 
@@ -1979,35 +1980,16 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		/* we finally have a name for this class */
 		c->name = name;
 		class_set_packagename(c);
-
-	} else if (name != c->name) {
-		/* TODO: i want to be an exceptions-function! */
-		char *msg;
-		s4    msglen;
-
-		msglen = utf_bytes(c->name) + strlen(" (wrong name: ") +
-			utf_bytes(name) + strlen(")") + strlen("0");
-
-		msg = MNEW(char, msglen);
-
-		utf_copy_classname(msg, c->name);
-		strcat(msg, " (wrong name: ");
-		utf_cat_classname(msg, name);
-		strcat(msg, ")");
-
-#warning FIX ME!
-/* 		*exceptionptr = */
-/* 			new_exception_message("java/lang/NoClassDefFoundError", msg); */
-		exceptions_throw_noclassdeffounderror(c->name);
-
-		MFREE(msg, char, msglen);
-
+	}
+	else if (name != c->name) {
+		exceptions_throw_noclassdeffounderror_wrong_name(c, name);
 		goto return_exception;
 	}
 
 	/* retrieve superclass */
 
 	c->super.any = NULL;
+
 	if ((i = suck_u2(cb))) {
 		if (!(supername = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 			goto return_exception;

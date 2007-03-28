@@ -47,6 +47,7 @@
 #include "vm/exceptions.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
@@ -294,18 +295,127 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 }
 
 
-/* emit_nullpointer_check ******************************************************
+/* emit_branch *****************************************************************
 
-   Emit a NullPointerException check.
+   Emits the code for conditional and unconditional branchs.
 
 *******************************************************************************/
 
-void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
+void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
+{
+	s4 checkdisp;
+	s4 branchdisp;
+
+	/* calculate the different displacements */
+
+	checkdisp  =  disp + 4;
+	branchdisp = (disp - 4) >> 2;
+
+	/* check which branch to generate */
+
+	if (condition == BRANCH_UNCONDITIONAL) {
+		/* check displacement for overflow */
+
+		if ((checkdisp < (s4) 0xfe000000) || (checkdisp > (s4) 0x01fffffc)) {
+			/* if the long-branches flag isn't set yet, do it */
+
+			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+				cd->flags |= (CODEGENDATA_FLAG_ERROR |
+							  CODEGENDATA_FLAG_LONGBRANCHES);
+			}
+
+			vm_abort("emit_branch: emit unconditional long-branch code");
+		}
+		else {
+			M_BR(branchdisp);
+		}
+	}
+	else {
+		/* and displacement for overflow */
+
+		if ((checkdisp < (s4) 0xffff8000) || (checkdisp > (s4) 0x00007fff)) {
+			/* if the long-branches flag isn't set yet, do it */
+
+			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+				cd->flags |= (CODEGENDATA_FLAG_ERROR |
+							  CODEGENDATA_FLAG_LONGBRANCHES);
+			}
+
+			switch (condition) {
+			case BRANCH_EQ:
+				M_BNE(1);
+				M_BR(branchdisp);
+				break;
+			case BRANCH_NE:
+				M_BEQ(1);
+				M_BR(branchdisp);
+				break;
+			case BRANCH_LT:
+				M_BGE(1);
+				M_BR(branchdisp);
+				break;
+			case BRANCH_GE:
+				M_BLT(1);
+				M_BR(branchdisp);
+				break;
+			case BRANCH_GT:
+				M_BLE(1);
+				M_BR(branchdisp);
+				break;
+			case BRANCH_LE:
+				M_BGT(1);
+				M_BR(branchdisp);
+				break;
+			case BRANCH_NAN:
+				vm_abort("emit_branch: long BRANCH_NAN");
+				break;
+			default:
+				vm_abort("emit_branch: unknown condition %d", condition);
+			}
+		}
+		else {
+			switch (condition) {
+			case BRANCH_EQ:
+				M_BEQ(branchdisp);
+				break;
+			case BRANCH_NE:
+				M_BNE(branchdisp);
+				break;
+			case BRANCH_LT:
+				M_BLT(branchdisp);
+				break;
+			case BRANCH_GE:
+				M_BGE(branchdisp);
+				break;
+			case BRANCH_GT:
+				M_BGT(branchdisp);
+				break;
+			case BRANCH_LE:
+				M_BLE(branchdisp);
+				break;
+			case BRANCH_NAN:
+				M_BNAN(branchdisp);
+				break;
+			default:
+				vm_abort("emit_branch: unknown condition %d", condition);
+			}
+		}
+	}
+}
+
+
+/* emit_arithmetic_check *******************************************************
+
+   Emit an ArithmeticException check.
+
+*******************************************************************************/
+
+void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(reg);
-		M_BEQ(0);
-		codegen_add_nullpointerexception_ref(cd);
+		M_BNE(1);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARITHMETIC);
 	}
 }
 
@@ -320,111 +430,66 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
-		M_CMPU(s2, REG_ITMP3);
-		M_BGE(0);
-		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+		M_TRAPGEU(s2, REG_ITMP3);
 	}
 }
 
 
-/* emit_exception_stubs ********************************************************
+/* emit_classcast_check ********************************************************
 
-   Generates the code for the exception stubs.
+   Emit a ClassCastException check.
 
 *******************************************************************************/
 
-void emit_exception_stubs(jitdata *jd)
+void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
-	codegendata  *cd;
-	registerdata *rd;
-	exceptionref *er;
-	s4            branchmpc;
-	s4            targetmpc;
-	s4            targetdisp;
-	s4            disp;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-	rd = jd->rd;
-
-	/* generate exception stubs */
-
-	targetdisp = 0;
-
-	for (er = cd->exceptionrefs; er != NULL; er = er->next) {
-		/* back-patch the branch to this exception code */
-
-		branchmpc = er->branchpos;
-		targetmpc = cd->mcodeptr - cd->mcodebase;
-
-		md_codegen_patch_branch(cd, branchmpc, targetmpc);
-
-		MCODECHECK(100);
-
-		/* Move the value register to a temporary register, if
-		   there is the need for it. */
-
-		if (er->reg != -1)
-			M_MOV(er->reg, REG_ITMP1);
-
-		/* calcuate exception address */
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, er->branchpos - 4);
-
-		/* move function to call into REG_ITMP3 */
-
-		disp = dseg_add_functionptr(cd, er->function);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-
-		if (targetdisp == 0) {
-		    targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
-
-			if (jd->isleafmethod) {
-				M_MFLR(REG_ZERO);
-				M_AST(REG_ZERO, REG_SP, cd->stackframesize * 4 + LA_LR_OFFSET);
-			}
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-
-			if (jd->isleafmethod)
-				M_MOV(REG_ZERO, rd->argintregs[2]);
-			else
-				M_ALD(rd->argintregs[2],
-					  REG_SP, cd->stackframesize * 4 + LA_LR_OFFSET);
-
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			M_MOV(REG_ITMP1, rd->argintregs[4]);
-
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 6 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
-
-			M_MTCTR(REG_ITMP3);
-			M_JSR;
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
-
-			if (jd->isleafmethod) {
-				/* XXX FIXME: REG_ZERO can cause problems here! */
-				assert(cd->stackframesize * 4 <= 32767);
-
-				M_ALD(REG_ZERO, REG_SP, cd->stackframesize * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ZERO);
-			}
-
-			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		switch (condition) {
+		case BRANCH_LE:
+			M_BGT(1);
+			break;
+		case BRANCH_EQ:
+			M_BNE(1);
+			break;
+		case BRANCH_GT:
+			M_BLE(1);
+			break;
+		default:
+			vm_abort("emit_classcast_check: unknown condition %d", condition);
 		}
-		else {
-			disp = (((u4 *) cd->mcodebase) + targetdisp) -
-				(((u4 *) cd->mcodeptr) + 1);
-			M_BR(disp);
-		}
+		M_ALD_INTERN(s1, REG_ZERO, EXCEPTION_HARDWARE_CLASSCAST);
+	}
+}
+
+
+/* emit_nullpointer_check ******************************************************
+
+   Emit a NullPointerException check.
+
+*******************************************************************************/
+
+void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_TST(reg);
+		M_BNE(1);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+	}
+}
+
+
+/* emit_exception_check ********************************************************
+
+   Emit an Exception check.
+
+*******************************************************************************/
+
+void emit_exception_check(codegendata *cd, instruction *iptr)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_TST(REG_RESULT);
+		M_BNE(1);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);
 	}
 }
 

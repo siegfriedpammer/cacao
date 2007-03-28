@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7464 2007-03-06 00:26:31Z edwin $
+   $Id: patcher.c 7527 2007-03-15 15:54:06Z tbfg $
 
 */
 
@@ -34,6 +34,7 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
 
 #include "vm/builtin.h"
@@ -41,9 +42,9 @@
 #include "vm/initialize.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/patcher.h"
 #include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/patcher.h"
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
@@ -216,7 +217,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 4;
 
 	/* patch the field's offset */
@@ -484,7 +485,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 4;
 
 	/* patch vftbl index */
@@ -539,7 +540,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 4;
 
 	/* patch interfacetable index */
@@ -616,9 +617,62 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	return true;
 }
+/* patcher_checkcast_interface **************************************
+
+   Machine code:
+
+   <patched call position>
+   81870000    lwz   r12,0(r7)
+   800c0010    lwz   r0,16(r12)
+   34000000    addic.        r0,r0,0
+   408101fc    bgt-  0x3002e518		FIXME
+   83c00003    lwz   r30,3(0)		FIXME
+   800c0000    lwz   r0,0(r12)
+
+*******************************************************************************/
+bool patcher_checkcast_interface(u1 *sp)
+{
+	u1 *ra;
+	constant_classref *cr;
+	classinfo *c;
+	s4 disp;
+	u4 mcode;
+
+	/* get stuff from stack */
+	ra = (u1*) 			*((ptrint *)(sp + 5*8));
+	mcode = 			*((u4*) (sp + 3*8));
+	cr = (constant_classref*)	*((ptrint*)(sp+2*8));
+
+	/* get the fieldinfo */
+	if (!(c = resolve_classref_eager(cr)))	{
+		return false;
+	}
+
+	/* patch back original code */
+	*((u4 *) ra) = mcode;
+
+	/* if we show NOPs, we have to skip them */
+	if (opt_shownops)	{
+		ra = ra +4;
+	}
+
+	/* patch super class index */
+	disp = -(c->index);
+
+	*((s4*)(ra + 2*4)) |= (disp & 0x0000ffff);
+
+	disp = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
+
+	*((s4 *)(ra + 5*4)) |= (disp & 0x0000ffff);
+
+	/* sync instruction cache */
+	md_icacheflush(ra, 5*4);
+
+	return true;
+}
 
 
-/* patcher_checkcast_instanceof_interface **************************************
+/* patcher_instanceof_interface **************************************
 
    Machine code:
 
@@ -631,7 +685,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_interface(u1 *sp)
+bool patcher_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
 	u4                 mcode;
@@ -656,7 +710,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 4;
 
 	/* patch super class index */
@@ -729,6 +783,67 @@ bool patcher_checkcast_class(u1 *sp)
 	return true;
 }
 
+/* patcher_resolve_classref_to_classinfo ***************************************
+
+   ACONST:
+
+   <patched call postition>
+   806dffc4    lwz   r3,-60(r13)
+   81adffc0    lwz   r13,-64(r13)
+   7da903a6    mtctr r13
+   4e800421    bctrl
+
+
+   MULTIANEWARRAY:
+
+   <patched call position>
+   808dffc0    lwz   r4,-64(r13)
+   38a10038    addi  r5,r1,56
+   81adffbc    lwz   r13,-68(r13)
+   7da903a6    mtctr r13
+   4e800421    bctrl
+
+
+   ARRAYCHECKCAST:
+
+   <patched call position>
+   808dffd8    lwz   r4,-40(r13)
+   81adffd4    lwz   r13,-44(r13)
+   7da903a6    mtctr r13
+   4e800421    bctrl
+
+*******************************************************************************/
+
+bool patcher_resolve_classref_to_classinfo(u1 *sp)
+{
+	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
+
+	/* get the classinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch the classinfo pointer */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
+
+	return true;
+}
+
+
 
 /* patcher_instanceof_class ****************************************************
 
@@ -781,6 +896,90 @@ bool patcher_instanceof_class(u1 *sp)
 	return true;
 }
 
+/* patcher_resolve_classref_to_vftbl *******************************************
+
+   CHECKCAST (class):
+
+   <patched call position>
+   81870000    lwz   r12,0(r7)
+   800c0014    lwz   r0,20(r12)
+   818dff78    lwz   r12,-136(r13)
+
+
+   INSTANCEOF (class):
+
+   <patched call position>
+   817d0000    lwz   r11,0(r29)
+   818dff8c    lwz   r12,-116(r13)
+
+*******************************************************************************/
+
+bool patcher_resolve_classref_to_vftbl(u1 *sp)
+{
+	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch super class' vftbl */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
+
+	return true;
+}
+
+/* patcher_resolve_classref_to_flags *******************************************
+
+   CHECKCAST/INSTANCEOF:
+
+   <patched call position>
+   818dff7c    lwz   r12,-132(r13)
+
+*******************************************************************************/
+
+bool patcher_resolve_classref_to_flags(u1 *sp)
+{
+	constant_classref *cr;
+	s4                 disp;
+	u1                *pv;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp =                       *((s4 *)     (sp + 1 * 8));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch class flags */
+
+	*((s4 *) (pv + disp)) = (s4) c->flags;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
+
+	return true;
+}
 
 /* patcher_clinit **************************************************************
 

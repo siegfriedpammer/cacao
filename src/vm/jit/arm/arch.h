@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: arch.h 7241 2007-01-27 15:52:01Z twisti $
+   $Id: arch.h 7540 2007-03-20 00:02:41Z michi $
 
 */
 
@@ -112,6 +112,14 @@
 /* are not properly aligned in case HAS_4_BYTE_STACKSLOT is not defined!      */
 /* For HAS_4_BYTE_STACKSLOT archs no distinction is made between long and     */
 /* define SUPPORT_COMBINE_INTEGER_REGISTERS                                   */
+
+
+/* branches *******************************************************************/
+
+#define SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER       1
+#define SUPPORT_BRANCH_CONDITIONAL_UNSIGNED_CONDITIONS      1
+#define SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER     0
+#define SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS    0
 
 
 /* exceptions *****************************************************************/

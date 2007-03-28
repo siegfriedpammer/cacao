@@ -137,6 +137,8 @@
        }
 #      define GC_TEST_AND_SET_DEFINED
 #    endif
+/* tbfg */
+#if 0		
 #    ifdef M68K
        /* Contributed by Tony Mantler.  I'm not sure how well it was	*/
        /* tested.							*/
@@ -154,6 +156,7 @@
        }
 #      define GC_TEST_AND_SET_DEFINED
 #    endif
+#endif
 #    if defined(POWERPC)
         inline static int GC_test_and_set(volatile unsigned int *addr) {
           int oldval;

@@ -1,4 +1,4 @@
-/* src/vm/jit/sparc64/emit.c - Sparc code emitter functions
+/* src/vm/jit/sparc64/emit.c - SPARC code emitter functions
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,13 +28,18 @@
 
 
 #include "config.h"
+
+#include <assert.h>
+
 #include "vm/types.h"
 
 #include "vm/jit/sparc64/codegen.h"
 #include "vm/jit/sparc64/md-abi.h"
+#include "vm/jit/sparc64/emit.h"
 
 #include "mm/memory.h"
 
+#include "vm/exceptions.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
@@ -228,6 +233,212 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	}
 }
 
+/* emit_branch *****************************************************************
+
+   Emits the code for conditional and unconditional branchs.
+
+*******************************************************************************/
+
+void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
+{
+	s4 branchdisp;
+
+	/* calculate the different displacements */
+
+	branchdisp = disp >> 2;
+
+	/* check which branch to generate */
+
+	if (condition == BRANCH_UNCONDITIONAL) {
+		/* check displacement for overflow (19-bit)*/
+
+		if ((branchdisp < (s4) 0xfffc0000) || (branchdisp > (s4) 0x003ffff)) {
+			/* if the long-branches flag isn't set yet, do it */
+
+			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+				cd->flags |= (CODEGENDATA_FLAG_ERROR |
+							  CODEGENDATA_FLAG_LONGBRANCHES);
+			}
+
+			vm_abort("emit_branch: emit unconditional long-branch code");
+		}
+		else {
+			M_BR(branchdisp);
+			M_NOP;
+		}
+	}
+	else if (reg == -1) {
+		/* branch on condition codes */
+
+		/* check displacement for overflow (19-bit)*/
+
+		if ((branchdisp < (s4) 0xfffc0000) || (branchdisp > (s4) 0x003ffff)) {
+			/* if the long-branches flag isn't set yet, do it */
+
+			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+				log_println("setting error");
+				cd->flags |= (CODEGENDATA_FLAG_ERROR |
+							  CODEGENDATA_FLAG_LONGBRANCHES);
+			}
+
+			vm_abort("emit_branch: emit long-branch on cc code");
+		}
+		else {
+			/* check whether to branch on 64-bit condition code */
+			if (BRANCH_CHECKS_XCC(opt)) {
+				switch (condition) {
+				case BRANCH_EQ:
+					M_XBEQ(branchdisp);
+					break;
+				case BRANCH_NE:
+					M_XBNE(branchdisp);
+					break;
+				case BRANCH_LT:
+					M_XBLT(branchdisp);
+					break;
+				case BRANCH_GE:
+					M_XBGE(branchdisp);
+					break;
+				case BRANCH_GT:
+					M_XBGT(branchdisp);
+					break;
+				case BRANCH_LE:
+					M_XBLE(branchdisp);
+					break;
+				case BRANCH_UGT:
+					M_XBUGT(branchdisp);
+					break;
+				case BRANCH_ULT:
+					M_XBULT(branchdisp);
+					break;
+				default:
+					vm_abort("emit_branch: unknown condition %d", condition);
+				}
+				
+				/* branch delay */
+				M_NOP;
+			}
+			else {
+				switch (condition) {
+				case BRANCH_EQ:
+					M_BEQ(branchdisp);
+					break;
+				case BRANCH_NE:
+					M_BNE(branchdisp);
+					break;
+				case BRANCH_LT:
+					M_BLT(branchdisp);
+					break;
+				case BRANCH_GE:
+					M_BGE(branchdisp);
+					break;
+				case BRANCH_GT:
+					M_BGT(branchdisp);
+					break;
+				case BRANCH_LE:
+					M_BLE(branchdisp);
+					break;
+				case BRANCH_UGT:
+					M_BUGT(branchdisp);
+					break;
+				case BRANCH_ULT:
+					M_BULT(branchdisp);
+					break;
+				default:
+					vm_abort("emit_branch: unknown condition %d", condition);
+				}
+
+				/* branch delay */
+				M_NOP;
+			}
+		}
+	}
+	else {
+		/* branch on register */
+
+		/* check displacement for overflow (16-bit) */
+
+		if ((branchdisp < (s4) 0xffff8000) || (branchdisp > (s4) 0x0007fff)) {
+			/* if the long-branches flag isn't set yet, do it */
+
+			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+				log_println("setting error");
+				cd->flags |= (CODEGENDATA_FLAG_ERROR |
+							  CODEGENDATA_FLAG_LONGBRANCHES);
+			}
+
+			vm_abort("emit_branch: emit long-branch on reg code");
+		}
+		else {
+			switch (condition) {
+			case BRANCH_EQ:
+				M_BEQZ(reg, branchdisp);
+				break;
+			case BRANCH_NE:
+				M_BNEZ(reg, branchdisp);
+				break;
+			case BRANCH_LT:
+				M_BLTZ(reg, branchdisp);
+				break;
+			case BRANCH_GE:
+				M_BGEZ(reg, branchdisp);
+				break;
+			case BRANCH_GT:
+				M_BGTZ(reg, branchdisp);
+				break;
+			case BRANCH_LE:
+				M_BLEZ(reg, branchdisp);
+				break;
+			default:
+				vm_abort("emit_branch: unknown condition %d", condition);
+			}
+
+			/* branch delay */
+			M_NOP;
+		}
+	}
+}
+
+
+/* emit_bxx_xcc*****************************************************************
+
+   Wrappers for branches on 64-bit condition codes (SPARC specific).
+
+*******************************************************************************/
+
+void emit_beq_xcc(codegendata *cd, basicblock *target)
+{
+	emit_bcc(cd, target, BRANCH_EQ, BRANCH_OPT_XCC);
+}
+
+void emit_bne_xcc(codegendata *cd, basicblock *target)
+{
+	emit_bcc(cd, target, BRANCH_NE, BRANCH_OPT_XCC);
+}
+
+void emit_blt_xcc(codegendata *cd, basicblock *target)
+{
+	emit_bcc(cd, target, BRANCH_LT, BRANCH_OPT_XCC);
+}
+
+void emit_bge_xcc(codegendata *cd, basicblock *target)
+{
+	emit_bcc(cd, target, BRANCH_GE, BRANCH_OPT_XCC);
+}
+
+void emit_bgt_xcc(codegendata *cd, basicblock *target)
+{
+	emit_bcc(cd, target, BRANCH_GT, BRANCH_OPT_XCC);
+}
+
+void emit_ble_xcc(codegendata *cd, basicblock *target)
+{
+	emit_bcc(cd, target, BRANCH_LE, BRANCH_OPT_XCC);
+}
+
+
+
+
 
 /* emit_arithmetic_check *******************************************************
 
@@ -238,9 +449,9 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_BEQZ(reg, 0);
-		codegen_add_arithmeticexception_ref(cd);
+		M_BNEZ(reg, 3);
 		M_NOP;
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARITHMETIC);
 	}
 }
 
@@ -256,11 +467,46 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
 		M_CMP(s2, REG_ITMP3);
-		M_XBUGE(0);
-		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+		M_XBULT(3);
 		M_NOP;
+		M_ALD_INTERN(s2, REG_ZERO, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
 	}
 }
+
+
+/* emit_classcast_check ********************************************************
+
+   Emit a ClassCastException check.
+
+*******************************************************************************/
+
+void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
+{
+/* XXX: use 64-bit or 32-bit compares??? */
+
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		switch (condition) {
+		case ICMD_IFEQ:
+			M_BNEZ(reg, 3);
+			break;
+
+		case ICMD_IFLE:
+			M_BGTZ(reg, 3);
+			break;
+
+		case BRANCH_ULT:
+			M_XBUGE(3);
+			break;
+
+		default:
+			vm_abort("emit_classcast_check: unknown condition %d", condition);
+		}
+
+		M_NOP;
+		M_ALD_INTERN(s1, REG_ZERO, EXCEPTION_HARDWARE_CLASSCAST);
+	}
+}
+
 
 /* emit_nullpointer_check ******************************************************
 
@@ -271,21 +517,28 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_BEQZ(reg, 0);
-		codegen_add_nullpointerexception_ref(cd);
+		M_BNEZ(reg, 3);
 		M_NOP;
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
 	}
 }
 
-/* emit_exception_stubs ********************************************************
 
-   Generates the code for the exception stubs.
+/* emit_exception_check ********************************************************
+
+   Emit an Exception check.
 
 *******************************************************************************/
 
-void emit_exception_stubs(jitdata *jd)
+void emit_exception_check(codegendata *cd, instruction *iptr)
 {
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_BNEZ(REG_RESULT_CALLER, 3);
+		M_NOP;
+		M_ALD_INTERN(REG_RESULT_CALLER, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);
+	}
 }
+
 
 /* emit_patcher_stubs **********************************************************
 

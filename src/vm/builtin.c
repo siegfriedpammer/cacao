@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7563 2007-03-23 21:33:53Z twisti $
+   $Id: builtin.c 7577 2007-03-25 20:55:06Z twisti $
 
 */
 
@@ -577,7 +577,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
    Checks, if an object can be stored in an array.
 
    Return value: 1 ... possible
-                 0 ... otherwise
+                 0 ... otherwise (throws an ArrayStoreException)
 
 *******************************************************************************/
 
@@ -589,8 +589,9 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 	vftbl_t         *valuevftbl;
 	s4               base;
 	castinfo         classvalues;
+	s4               result;
 
-	if (!o)
+	if (o == NULL)
 		return 1;
 
 	/* The following is guaranteed (by verifier checks):
@@ -603,10 +604,9 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 	desc           = oa->header.objheader.vftbl->arraydesc;
 	componentvftbl = desc->componentvftbl;
 	valuevftbl     = o->vftbl;
+	valuedesc      = valuevftbl->arraydesc;
 
 	if ((desc->dimension - 1) == 0) {
-		s4 res;
-
 		/* {oa is a one-dimensional array} */
 		/* {oa is an array of references} */
 		
@@ -615,28 +615,41 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 
 		ASM_GETCLASSVALUES_ATOMIC(componentvftbl, valuevftbl, &classvalues);
 
-		if ((base = classvalues.super_baseval) <= 0)
-			/* an array of interface references */
-			return (valuevftbl->interfacetablelength > -base &&
-					valuevftbl->interfacetable[base] != NULL);
-		
-		res = ((unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-			   <= (unsigned) classvalues.super_diffval);
+		base = classvalues.super_baseval;
 
-		return res;
+		if (base <= 0) {
+			/* an array of interface references */
+
+			result = ((valuevftbl->interfacetablelength > -base) &&
+					(valuevftbl->interfacetable[base] != NULL));
+		}
+		else {
+			result = ((unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
+				   <= (unsigned) classvalues.super_diffval);
+		}
+	}
+	else if (valuedesc == NULL) {
+		/* {oa has dimension > 1} */
+		/* {componentvftbl->arraydesc != NULL} */
+
+		/* check if o is an array */
+
+		return 0;
+	}
+	else {
+		/* {o is an array} */
+
+		result = builtin_descriptorscompatible(valuedesc, componentvftbl->arraydesc);
 	}
 
-	/* {oa has dimension > 1} */
-	/* {componentvftbl->arraydesc != NULL} */
+	/* if not possible, throw an exception */
 
-	/* check if o is an array */
+	if (result == 0)
+		exceptions_throw_arraystoreexception();
 
-	if ((valuedesc = valuevftbl->arraydesc) == NULL)
-		return 0;
+	/* return result */
 
-	/* {o is an array} */
-
-	return builtin_descriptorscompatible(valuedesc, componentvftbl->arraydesc);
+	return result;
 }
 
 
@@ -2546,10 +2559,8 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 			for (i = 0; i < len; i++) {
 				java_objectheader *o = oas->data[srcStart + i];
 
-				if (!builtin_canstore(oad, o)) {
-					exceptions_throw_arraystoreexception();
+				if (!builtin_canstore(oad, o))
 					return false;
-				}
 
 				oad->data[destStart + i] = o;
 			}
@@ -2564,10 +2575,8 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 			for (i = len - 1; i >= 0; i--) {
 				java_objectheader *o = oas->data[srcStart + i];
 
-				if (!builtin_canstore(oad, o)) {
-					exceptions_throw_arraystoreexception();
+				if (!builtin_canstore(oad, o))
 					return false;
-				}
 
 				oad->data[destStart + i] = o;
 			}

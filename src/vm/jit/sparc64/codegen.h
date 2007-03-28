@@ -63,6 +63,9 @@ s4 nat_argintregs[INT_NATARG_CNT];
 #define PATCHER_CALL_INSTRUCTIONS    2     /* number of instructions          */
 #define PATCHER_CALL_SIZE            2 * 4 /* size in bytes of a patcher call */
 
+#define EXCEPTION_CHECK_INSTRUCTIONS 3     /* number of instructions          */
+#define EXCEPTION_CHECK_SIZE         3 * 4 /* byte size of an exception check */
+
 #define PATCHER_NOPS \
     do { \
         M_NOP; \
@@ -142,6 +145,10 @@ s4 nat_argintregs[INT_NATARG_CNT];
 	} while (0)
 
 
+#define M_OP3_GET_RD(x)               (((x) >> 25) & 0x1f)
+#define M_OP3_GET_RS(x)               (((x) >> 14) & 0x1f)
+#define M_OP3_GET_IMM(x)              ( (x)        & 0x1fff)
+
 /* 3-address-operations: M_OP3C
  *       rcond ... condition opcode
  *       rs2 ..... register number or 10bit signed immediate
@@ -166,8 +173,8 @@ s4 nat_argintregs[INT_NATARG_CNT];
  */
 #define M_SHFT(op,op3,rs1,rs2,rd,imm,x) \
 	do { \
-		*((u4 *) cd->mcodeptr) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((rs1) << 14) | ((rs2) << 0) | \
-		      ((imm) << 13) | ((x) << 12) ); \
+		*((u4 *) cd->mcodeptr) =  ( (((s4)(op)) << 30) | ((op3) << 19) | ((rd) << 25) | ((rs1) << 14) | ((imm) << 13) | \
+			((x) << 12) | (((imm) && (x))?((rs2) & 0x3f):((rs2) & 0x1f)) ); \
 		cd->mcodeptr += 4; \
 	} while (0)
 
@@ -306,13 +313,15 @@ s4 nat_argintregs[INT_NATARG_CNT];
 
 #define M_SLLX(rs1,rs2,rd)		M_SHFT(0x02,0x25,rs1,rs2,rd,REG,1)	/* 64b rd = rs << rs2 */
 #define M_SLLX_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x25,rs1,rs2,rd,IMM,1)
+#define M_SLL(rs1,rs2,rd)		M_SHFT(0x02,0x25,rs1,rs2,rd,REG,0)	/* 32b rd = rs << rs2 */
+#define M_SLL_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x25,rs1,rs2,rd,IMM,0)
 #define M_SRLX(rs1,rs2,rd)		M_SHFT(0x02,0x26,rs1,rs2,rd,REG,1)	/* 64b rd = rs >>>rs2 */
 #define M_SRLX_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x26,rs1,rs2,rd,IMM,1)
 #define M_SRL(rs1,rs2,rd)		M_SHFT(0x02,0x26,rs1,rs2,rd,REG,0)	/* 32b rd = rs >>>rs2 */
 #define M_SRL_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x26,rs1,rs2,rd,IMM,0)
 #define M_SRAX(rs1,rs2,rd)		M_SHFT(0x02,0x27,rs1,rs2,rd,REG,1)	/* 64b rd = rs >> rs2 */
 #define M_SRAX_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x27,rs1,rs2,rd,IMM,1)
-#define M_SRA(rs1,rs2,rd)     M_SHFT(0x02,0x27,rs1,rs2,rd,REG,0)  /* 32b rd = rs >> rs2 */
+#define M_SRA(rs1,rs2,rd)       M_SHFT(0x02,0x27,rs1,rs2,rd,REG,0)  /* 32b rd = rs >> rs2 */
 #define M_SRA_IMM(rs1,rs2,rd)	M_SHFT(0x02,0x27,rs1,rs2,rd,IMM,0)
 
 #define M_ISEXT(rs,rd) 			M_SRA(rs,REG_ZERO,rd)                 /* sign extend 32 bits*/
@@ -386,7 +395,10 @@ s4 nat_argintregs[INT_NATARG_CNT];
 
 /* #define FITS_13BIT_IMM(x)       ((x >= -4096) && (x <= 4095)) */
 
-bool fits13(s4 disp);
+bool fits_13(s4 disp);
+s4   get_lopart_disp(s4 disp);
+
+#define abs(x) ((x) < 0 ? (-(x)) : (x))
 
 #define sethi_part(x) ((x)>>10)
 #define setlo_part(x) ((x) & 0x3ff)
@@ -407,14 +419,18 @@ bool fits13(s4 disp);
 	
 #define DO_SETHI_PART(c,rs,rd) \
 	do { \
-		M_SETHI(sethi_part(c), rd); \
 		if (c > 0) { \
+			M_SETHI(sethi_part(c), rd); \
 			M_ADD(rs,rd,rd); \
 		} \
 		else { \
+			M_SETHI(sethi_part(-c), rd); \
 			M_SUB(rs,rd,rd); \
+			assert(sethi_part(c) != 0xf); \
 		} \
 	} while (0)
+	
+
 		
 
 #define M_LDA(rd,rs,disp) \
@@ -442,10 +458,8 @@ bool fits13(s4 disp);
             M_LDX_INTERN(rd,rs,disp); \
         } \
         else { \
-			printf("ldx imm = %d\n", disp); \
-            DO_SETHI_PART(disp,rs,rd); \
-            M_LDX_INTERN(rd,rd,setlo_part(disp)); \
-			assert(0); \
+        	DO_SETHI_PART(disp,rs,rd); \
+        	M_LDX_INTERN(rd,rd,get_lopart_disp(disp)); \
         } \
     } while (0)
 
@@ -457,8 +471,7 @@ bool fits13(s4 disp);
        } \
         else { \
             DO_SETHI_PART(disp,rs,rd); \
-            M_ILD_INTERN(rd,rd,setlo_part(disp)); \
-			assert(0); \
+            M_ILD_INTERN(rd,rd,get_lopart_disp(disp)); \
         } \
     } while (0)
 

@@ -22,11 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: arch.h 7241 2007-01-27 15:52:01Z twisti $
+   $Id: arch.h 7571 2007-03-24 22:37:09Z twisti $
 
 */
 
@@ -117,6 +113,14 @@
 /* are not properly aligned in case HAS_4_BYTE_STACKSLOT is not defined!     */
 /* For HAS_4_BYTE_STACKSLOT archs no distinction is made between long and dbl*/
 /* define SUPPORT_COMBINE_INTEGER_REGISTERS */
+
+
+/* branches *******************************************************************/
+
+#define SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER       1
+#define SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER     0
+#define SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS    0
+#define SUPPORT_BRANCH_CONDITIONAL_UNSIGNED_CONDITIONS      1
 
 
 /* exceptions *****************************************************************/

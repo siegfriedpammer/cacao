@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7587 2007-03-28 13:29:09Z twisti $
+   $Id: exceptions.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -35,6 +35,8 @@
 #include <stdlib.h>
 
 #include "vm/types.h"
+
+#include "md-abi.h"
 
 #include "mm/memory.h"
 
@@ -59,6 +61,7 @@
 #include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/stacktrace.h"
@@ -711,6 +714,42 @@ void exceptions_throw_noclassdeffounderror(utf *name)
 		vm_abort("java.lang.NoClassDefFoundError: %s", name->text);
 
 	exceptions_throw_class_utf(class_java_lang_NoClassDefFoundError, name);
+}
+
+
+/* exceptions_throw_noclassdeffounderror_wrong_name ****************************
+
+   Generates and throws a java.lang.NoClassDefFoundError with a
+   specific message:
+
+
+
+   IN:
+      name.........name of the class not found as a utf *
+
+*******************************************************************************/
+
+void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
+{
+	char *msg;
+	s4    msglen;
+	utf  *u;
+
+	msglen = utf_bytes(c->name) + strlen(" (wrong name: ") +
+		utf_bytes(name) + strlen(")") + strlen("0");
+
+	msg = MNEW(char, msglen);
+
+	utf_copy_classname(msg, c->name);
+	strcat(msg, " (wrong name: ");
+	utf_cat_classname(msg, name);
+	strcat(msg, ")");
+
+	u = utf_new_char(msg);
+
+	MFREE(msg, char, msglen);
+
+	exceptions_throw_noclassdeffounderror(u);
 }
 
 
@@ -1530,6 +1569,43 @@ void exceptions_clear_exception(void)
 }
 
 
+/* exceptions_fillinstacktrace *************************************************
+
+   Calls the fillInStackTrace-method of the currently thrown
+   exception.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_fillinstacktrace(void)
+{
+	java_objectheader *e;
+	methodinfo        *m;
+
+	/* get exception */
+
+	e = *exceptionptr;
+	assert(e);
+
+	/* clear exception */
+
+	*exceptionptr = NULL;
+
+	/* resolve methodinfo pointer from exception object */
+
+	m = class_resolvemethod(e->vftbl->class,
+							utf_fillInStackTrace,
+							utf_void__java_lang_Throwable);
+
+	/* call function */
+
+	(void) vm_call_method(m, e);
+
+	/* return exception object */
+
+	return e;
+}
+
+
 /* exceptions_get_and_clear_exception ******************************************
 
    Gets the exception pointer of the current thread and clears it.
@@ -1555,6 +1631,80 @@ java_objectheader *exceptions_get_and_clear_exception(void)
 	*p = NULL;
 
 	/* return the exception */
+
+	return e;
+}
+
+
+/* exceptions_new_hardware_exception *******************************************
+
+   Creates the correct exception for a hardware-exception thrown and
+   caught by a signal handler.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val)
+{
+	stackframeinfo     sfi;
+	java_objectheader *e;
+	java_objectheader *o;
+	s4                 index;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	switch (type) {
+	case EXCEPTION_HARDWARE_NULLPOINTER:
+		e = exceptions_new_nullpointerexception();
+		break;
+
+	case EXCEPTION_HARDWARE_ARITHMETIC:
+		e = exceptions_new_arithmeticexception();
+		break;
+
+	case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
+		index = (s4) val;
+		e = exceptions_new_arrayindexoutofboundsexception(index);
+		break;
+
+	case EXCEPTION_HARDWARE_CLASSCAST:
+		o = (java_objectheader *) val;
+		e = exceptions_new_classcastexception(o);
+		break;
+
+	case EXCEPTION_HARDWARE_EXCEPTION:
+		e = exceptions_fillinstacktrace();
+		break;
+
+	default:
+		/* let's try to get a backtrace */
+
+		codegen_get_pv_from_pc(xpc);
+
+		/* if that does not work, print more debug info */
+
+		log_println("exceptions_new_hardware_exception: unknown exception type %d", type);
+
+#if SIZEOF_VOID_P == 8
+		log_println("PC=0x%016lx", xpc);
+#else
+		log_println("PC=0x%08x", xpc);
+#endif
+
+#if defined(ENABLE_DISASSEMBLER)
+		log_println("machine instruction at PC:");
+		disassinstr(xpc);
+#endif
+
+		vm_abort("Exiting...");
+	}
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	/* return the exception object */
 
 	return e;
 }

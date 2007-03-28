@@ -53,6 +53,7 @@
 	.global asm_vm_call_method_float  
 	.global asm_vm_call_method_double 
 	.global asm_vm_call_method_exception_handler
+	.global asm_vm_call_method_end
 
 	.global asm_call_jit_compiler
 
@@ -181,6 +182,7 @@ asm_vm_call_method_exception_handler:
 	call	builtin_throw_exception
 	nop
 	return 	%i7 + 8         		 /* implicit window restore */
+asm_vm_call_method_end:
 	nop
 	
 
