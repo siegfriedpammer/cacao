@@ -32,7 +32,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 7437 2007-03-02 22:36:09Z michi $
+   $Id: global.h 7601 2007-03-28 23:02:50Z michi $
 
 */
 
@@ -202,10 +202,11 @@ typedef struct java_objectarray java_objectarray;
 
 #define ACC_CLASS_REFLECT_MASK      0x0000ffff/* flags reported by reflection */
 
-#define ACC_CLASS_HAS_POINTERS      0x00010000/* instance contains pointers   */
-#define ACC_CLASS_SOFT_REFERENCE    0x00020000
-#define ACC_CLASS_WEAK_REFERENCE    0x00040000
-#define ACC_CLASS_PHANTOM_REFERENCE 0x00080000
+#define ACC_CLASS_PRIMITIVE         0x00010000/* class is a primitive class   */
+#define ACC_CLASS_HAS_POINTERS      0x00020000/* instance contains pointers   */
+#define ACC_CLASS_SOFT_REFERENCE    0x00040000
+#define ACC_CLASS_WEAK_REFERENCE    0x00080000
+#define ACC_CLASS_PHANTOM_REFERENCE 0x00100000
 
 
 /* special flags used in methodinfo *******************************************/

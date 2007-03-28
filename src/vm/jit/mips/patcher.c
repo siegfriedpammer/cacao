@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: patcher.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -593,7 +593,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 }
 
 
-/* patcher_checkcast_instanceof_interface **************************************
+/* patcher_checkcast_interface *************************************************
 
    Machine code:
 
@@ -633,13 +633,13 @@ bool patcher_checkcast_interface(u1 *sp)
 		*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
 		/* 	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) - */
 		/* 									 c->index * sizeof(methodptr*)) & 0x0000ffff); */
-		*((s4 *) (ra + 10 * 4)) |=
+		*((s4 *) (ra + 6 * 4)) |=
 			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
 				   c->index * sizeof(methodptr*)) & 0x0000ffff);
 
 		/* synchronize instruction cache */
 
-		md_icacheflush(ra + 2 * 4, 7 * 4);
+		md_icacheflush(ra + 2 * 4, 5 * 4);
 	}
 	else {
 		/* patch super class index */
@@ -647,13 +647,13 @@ bool patcher_checkcast_interface(u1 *sp)
 		*((s4 *) (sp + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
 		/* 	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) - */
 		/* 									 c->index * sizeof(methodptr*)) & 0x0000ffff); */
-		*((s4 *) (ra + 10 * 4)) |=
+		*((s4 *) (ra + 6 * 4)) |=
 			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
 				   c->index * sizeof(methodptr*)) & 0x0000ffff);
 
 		/* synchronize instruction cache */
 
-		md_icacheflush(ra + 10 * 4, 1 * 4);
+		md_icacheflush(ra + 6 * 4, 1 * 4);
 	}
 
 	return true;

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7311 2007-02-09 13:20:27Z twisti $
+   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -34,6 +34,7 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/powerpc64/codegen.h"
 #include "vm/jit/powerpc64/linux/md-abi.h"
 
 #if defined(ENABLE_THREADS)
@@ -53,50 +54,59 @@
 
 
 /* md_signal_handler_sigsegv ***************************************************
-
-   NullPointerException signal handler for hardware null pointer
-   check.
+ 
+	Signal handler for hardware-exceptions.
 
 *******************************************************************************/
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t  *_uc;
-	mcontext_t  *_mc;
-	u4           instr;
-	s4           reg;
-	ptrint       addr;
-	u1          *pv;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
+	ucontext_t  	*_uc;
+	mcontext_t  	*_mc;
+	u1          	*pv;
+	u1          	*sp;
+	u1          	*ra;
+	u1          	*xpc;
+	u4          	mcode;
+	s4	    	s1;
+	s4		disp;
+	s4		d;
+	s4 		type;
+	ptrint		addr;
+	ptrint		val;
+	java_objectheader *e;
 
  	_uc = (ucontext_t *) _p;
  	_mc = &(_uc->uc_mcontext);
-	
-	pv  = (u1 *) _mc->gp_regs[REG_PV];
-	sp  = (u1 *) _mc->gp_regs[REG_SP];
-	ra  = (u1 *) _mc->gp_regs[PT_LNK];           /* this is correct for leafs */
-	xpc = (u1 *) _mc->gp_regs[PT_NIP];
 
-	instr = *((u4 *) xpc);
-	reg   = (instr >> 16) & 0x1f;
-	addr  = _mc->gp_regs[reg];
+	/* get register values */
+	pv = (u1*) _mc->gp_regs[REG_PV];
+	sp = (u1*) _mc->gp_regs[REG_SP];
+	ra = (u1*) _mc->gp_regs[PT_LNK];                     /* correct for leafs */
+	xpc =(u1*) _mc->gp_regs[PT_NIP];
 
-	if (addr == 0) {
-		_mc->gp_regs[REG_ITMP1_XPTR] =
-			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
+	/* get the throwing instruction */
+	mcode = *((u4*)xpc);
 
-		_mc->gp_regs[REG_ITMP2_XPC] = (ptrint) xpc;
-		_mc->gp_regs[PT_NIP] = (ptrint) asm_handle_exception;
+	s1   = M_INSTR_OP2_IMM_A(mcode);
+	disp = M_INSTR_OP2_IMM_I(mcode);
+	d    = M_INSTR_OP2_IMM_D(mcode);
+
+	val  = _mc->gp_regs[d];
+
+	if (s1 == REG_ZERO)	{
+		/* we use the exception type as load displacement */
+		type = disp;
+	} else	{
+		/* normal NPE */
+		addr = _mc->gp_regs[s1];
+		type = (s4) addr;
 	}
-	else {
-		codegen_get_pv_from_pc(xpc);
+	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
 
-		/* this should not happen */
-
-		assert(0);
-	}		
+	_mc->gp_regs[REG_ITMP1]     = (ptrint) e;
+	_mc->gp_regs[REG_ITMP2_XPC] = (ptrint) xpc;
+	_mc->gp_regs[PT_NIP]        = (ptrint) asm_handle_exception;
 }
 
 

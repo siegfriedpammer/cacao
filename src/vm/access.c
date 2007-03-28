@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.c 7441 2007-03-02 23:13:10Z michi $
+   $Id: access.c 7563 2007-03-23 21:33:53Z twisti $
 
 */
 
@@ -148,7 +148,7 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 
 	assert((referer->state & CLASS_LINKED) && (declarer->state & CLASS_LINKED));
 
-	if (builtin_isanysubclass(referer, declarer))
+	if (class_isanysubclass(referer, declarer))
 		return true;
 
 	return false;

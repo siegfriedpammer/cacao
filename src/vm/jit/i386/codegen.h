@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/codegen.h - code generation macros and definitions for i386
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Christian Thalinger
-
-   $Id: codegen.h 6211 2006-12-16 22:53:24Z edwin $
+   $Id: codegen.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -139,8 +134,12 @@
 
 /* branch defines *************************************************************/
 
+#define BRANCH_UNCONDITIONAL_SIZE    5  /* size in bytes of a branch          */
+#define BRANCH_CONDITIONAL_SIZE      6  /* size in bytes of a branch          */
+
 #define BRANCH_NOPS \
     do { \
+        M_NOP; \
         M_NOP; \
         M_NOP; \
         M_NOP; \
@@ -170,6 +169,14 @@
 
 #define M_ALD(a,b,disp)         M_ILD(a,b,disp)
 #define M_ALD32(a,b,disp)       M_ILD32(a,b,disp)
+
+#define M_ALD_MEM(a,disp)       emit_mov_mem_reg(cd, (disp), (a))
+
+#define M_ALD_MEM_GET_OPC(p)    (*(p))
+#define M_ALD_MEM_GET_MOD(p)    (((*(p + 1)) >> 6) & 0x03)
+#define M_ALD_MEM_GET_REG(p)    (((*(p + 1)) >> 3) & 0x07)
+#define M_ALD_MEM_GET_RM(p)     (((*(p + 1))     ) & 0x07)
+#define M_ALD_MEM_GET_DISP(p)   (*((u4 *) (p + 2)))
 
 #define M_LLD(a,b,disp) \
     do { \

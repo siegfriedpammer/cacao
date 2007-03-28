@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: parse.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -1139,6 +1139,8 @@ jsr_tail:
 		/* method invocation **************************************************/
 
 		case JAVA_INVOKESTATIC:
+			OP_PREPARE_ZEROFLAGS(opcode);
+
 			i = SUCK_BE_U2(m->jcode + p + 1);
 			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 
@@ -1153,15 +1155,25 @@ jsr_tail:
 
 			goto invoke_method;
 
-		case JAVA_INVOKEINTERFACE:
-			i = SUCK_BE_U2(m->jcode + p + 1);
+		case JAVA_INVOKESPECIAL:
+			OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);
 
+			i = SUCK_BE_U2(m->jcode + p + 1);
+			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+
+			goto invoke_nonstatic_method;
+
+		case JAVA_INVOKEINTERFACE:
+			OP_PREPARE_ZEROFLAGS(opcode);
+
+			i = SUCK_BE_U2(m->jcode + p + 1);
 			mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
 
 			goto invoke_nonstatic_method;
 
-		case JAVA_INVOKESPECIAL:
 		case JAVA_INVOKEVIRTUAL:
+			OP_PREPARE_ZEROFLAGS(opcode);
+
 			i = SUCK_BE_U2(m->jcode + p + 1);
 			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
 
@@ -1178,7 +1190,6 @@ invoke_nonstatic_method:
 invoke_method:
 			jd->isleafmethod = false;
 
-			OP_PREPARE_ZEROFLAGS(opcode);
 			iptr->sx.s23.s3.fmiref = mr;
 
 			/* only with -noverify, otherwise the typechecker does this */
@@ -1194,14 +1205,16 @@ invoke_method:
 				if (result == resolveSucceeded) {
 					methodinfo *mi = iptr->sx.s23.s3.fmiref->p.method;
 
-					/* if this call is monomorphic, turn it into an INVOKESPECIAL */
+					/* if this call is monomorphic, turn it into an
+					   INVOKESPECIAL */
 
 					assert(IS_FMIREF_RESOLVED(iptr->sx.s23.s3.fmiref));
 
 					if ((iptr->opc == ICMD_INVOKEVIRTUAL)
 						&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))
 					{
-						iptr->opc = ICMD_INVOKESPECIAL;
+						iptr->opc         = ICMD_INVOKESPECIAL;
+						iptr->flags.bits |= INS_FLAG_CHECK;
 					}
 				}
 				else {

@@ -61,7 +61,6 @@
 
 struct codeinfo {
 	methodinfo   *m;                    /* method this is a realization of    */
-	java_objectheader header;           /* we need this in JIT's monitorenter */
 	codeinfo     *prev;                 /* previous codeinfo of this method   */
 
 	u4            codeflags;            /* or of CODE_FLAG_ constants         */

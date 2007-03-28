@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: options.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -95,7 +95,6 @@ bool opt_showexceptionstubs = false;
 bool opt_shownativestub     = false;
 
 bool checkbounds = true;       /* check array bounds                         */
-bool checknull = true;         /* check null pointers                        */
 bool opt_noieee = false;       /* don't implement ieee compliant floats      */
 bool checksync = true;         /* do synchronization                         */
 #if defined(ENABLE_LOOP)

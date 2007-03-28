@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: emit.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
@@ -76,17 +77,22 @@ inline s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 		disp = src->vv.regoff * 4;
 
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-		}
-		else {
-			if (IS_2_WORD_TYPE(src->type))
-				M_LLD(tempreg, REG_SP, disp);
-			else
-				M_ILD(tempreg, REG_SP, disp);
+		switch (src->type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_ILD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+			M_LLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+			M_FLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_DBL:
+			M_DLD(tempreg, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_load: unknown type %d", src->type);
 		}
 
 		reg = tempreg;
@@ -176,6 +182,7 @@ inline s4 emit_load_high(jitdata *jd, instruction *iptr,varinfo *src,s4 tempreg)
 inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
+	s4            disp;
 
 	/* get required compiler data */
 
@@ -184,17 +191,24 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		if (IS_FLT_DBL_TYPE(dst->type)) {
-			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, dst->vv.regoff * 4);
-			else
-				M_FST(d, REG_SP, dst->vv.regoff * 4);
-		}
-		else {
-			if (IS_2_WORD_TYPE(dst->type))
-				M_LST(d, REG_SP, dst->vv.regoff * 4);
-			else
-				M_IST(d, REG_SP, dst->vv.regoff * 4);
+		disp = dst->vv.regoff * 4;
+
+		switch (dst->type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_IST(d, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+			M_LST(d, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+			M_FST(d, REG_SP, disp);
+			break;
+		case TYPE_DBL:
+			M_DST(d, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_store: unknown type %d", dst->type);
 		}
 	}
 }
@@ -288,17 +302,89 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		}
 
 		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type)) {
+			switch (src->type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_MOV(s1, d);
+				break;
+			case TYPE_LNG:
+				M_LNGMOVE(s1, d);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
 /* 				M_FMOV(s1, d); */
-			} else {
-				if (IS_2_WORD_TYPE(src->type))
-					M_LNGMOVE(s1, d);
-				else
-                    M_MOV(s1, d);
+				break;
+			default:
+				vm_abort("emit_copy: unknown type %d", src->type);
 			}
 		}
 
 		emit_store(jd, iptr, dst, d);
+	}
+}
+
+
+/* emit_branch *****************************************************************
+
+   Emits the code for conditional and unconditional branchs.
+
+*******************************************************************************/
+
+void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 options)
+{
+	s4 branchdisp;
+
+	/* ATTENTION: a displacement overflow cannot happen */
+
+	/* check which branch to generate */
+
+	if (condition == BRANCH_UNCONDITIONAL) {
+
+		/* calculate the different displacements */
+
+		branchdisp = disp - BRANCH_UNCONDITIONAL_SIZE;
+
+		M_JMP_IMM(branchdisp);
+	}
+	else {
+		/* calculate the different displacements */
+
+		branchdisp = disp - BRANCH_CONDITIONAL_SIZE;
+
+		switch (condition) {
+		case BRANCH_EQ:
+			M_BEQ(branchdisp);
+			break;
+		case BRANCH_NE:
+			M_BNE(branchdisp);
+			break;
+		case BRANCH_LT:
+			M_BLT(branchdisp);
+			break;
+		case BRANCH_GE:
+			M_BGE(branchdisp);
+			break;
+		case BRANCH_GT:
+			M_BGT(branchdisp);
+			break;
+		case BRANCH_LE:
+			M_BLE(branchdisp);
+			break;
+		case BRANCH_ULT:
+			M_BB(branchdisp);
+			break;
+		case BRANCH_ULE:
+			M_BBE(branchdisp);
+			break;
+		case BRANCH_UGE:
+			M_BAE(branchdisp);
+			break;
+		case BRANCH_UGT:
+			M_BA(branchdisp);
+			break;
+		default:
+			vm_abort("emit_branch: unknown condition %d", condition);
+		}
 	}
 }
 
@@ -313,8 +399,8 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
-		M_BEQ(0);
-		codegen_add_arithmeticexception_ref(cd);
+		M_BNE(6);
+		M_ALD_MEM(reg, EXCEPTION_HARDWARE_ARITHMETIC);
 	}
 }
 
@@ -330,8 +416,8 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
         M_CMP(REG_ITMP3, s2);
-        M_BAE(0);
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+        M_BB(6);
+		M_ALD_MEM(s2, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
 	}
 }
 
@@ -344,7 +430,22 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
-	vm_abort("IMPLEMENT ME!");
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		switch (condition) {
+		case BRANCH_LE:
+			M_BGT(6);
+			break;
+		case BRANCH_EQ:
+			M_BNE(6);
+			break;
+		case BRANCH_ULE:
+			M_BBE(6);
+			break;
+		default:
+			vm_abort("emit_classcast_check: unknown condition %d", condition);
+		}
+		M_ALD_MEM(s1, EXCEPTION_HARDWARE_CLASSCAST);
+	}
 }
 
 
@@ -358,93 +459,24 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
-		M_BEQ(0);
-		codegen_add_nullpointerexception_ref(cd);
+		M_BNE(6);
+		M_ALD_MEM(reg, EXCEPTION_HARDWARE_NULLPOINTER);
 	}
 }
 
 
-/* emit_exception_stubs ********************************************************
+/* emit_exception_check ********************************************************
 
-   Generates the code for the exception stubs.
+   Emit an Exception check.
 
 *******************************************************************************/
 
-void emit_exception_stubs(jitdata *jd)
+void emit_exception_check(codegendata *cd, instruction *iptr)
 {
-	codegendata  *cd;
-	registerdata *rd;
-	exceptionref *er;
-	s4            branchmpc;
-	s4            targetmpc;
-	s4            targetdisp;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-	rd = jd->rd;
-
-	/* generate exception stubs */
-
-	targetdisp = 0;
-
-	for (er = cd->exceptionrefs; er != NULL; er = er->next) {
-		/* back-patch the branch to this exception code */
-
-		branchmpc = er->branchpos;
-		targetmpc = cd->mcodeptr - cd->mcodebase;
-
-		md_codegen_patch_branch(cd, branchmpc, targetmpc);
-
-		MCODECHECK(512);
-
-		/* Check if the exception is an
-		   ArrayIndexOutOfBoundsException.  If so, move index register
-		   into REG_ITMP1. */
-
-		if (er->reg != -1)
-			M_INTMOVE(er->reg, REG_ITMP1);
-
-		/* calcuate exception address */
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);
-		dseg_adddata(cd);
-		M_AADD_IMM32(er->branchpos - 6, REG_ITMP2_XPC);
-
-		/* move function to call into REG_ITMP3 */
-
-		M_MOV_IMM(er->function, REG_ITMP3);
-
-		if (targetdisp == 0) {
-			targetdisp = cd->mcodeptr - cd->mcodebase;
-
-			M_ASUB_IMM(5 * 4, REG_SP);
-
-			/* first store REG_ITMP1 so we can use it */
-
-			M_AST(REG_ITMP1, REG_SP, 4 * 4);                    /* for AIOOBE */
-
-			M_AST_IMM(0, REG_SP, 0 * 4);
-			dseg_adddata(cd);
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP1, REG_SP, (5 + cd->stackframesize) * 4);
-			M_AST(REG_ITMP1, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
-
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
-			M_AADD_IMM(5 * 4, REG_SP);
-
-			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-		else {
-			M_JMP_IMM((cd->mcodebase + targetdisp) -
-					  (cd->mcodeptr + PATCHER_CALL_SIZE));
-		}
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_TEST(REG_RESULT);
+		M_BNE(6);
+		M_ALD_MEM(REG_RESULT, EXCEPTION_HARDWARE_EXCEPTION);
 	}
 }
 

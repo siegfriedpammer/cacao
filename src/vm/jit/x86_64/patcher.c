@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: patcher.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -483,7 +483,7 @@ bool patcher_invokestatic_special(u1 *sp)
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch stubroutine */
 
@@ -640,20 +640,20 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 }
 
 
-/* patcher_checkcast_instanceof_interface **************************************
+/* patcher_checkcast_interface *************************************************
 
    Machine code:
 
    <patched call position>
    45 8b 9a 1c 00 00 00             mov    0x1c(%r10),%r11d
-   49 81 eb 00 00 00 00             sub    $0x0,%r11
-   4d 85 db                         test   %r11,%r11
-   0f 8e 94 04 00 00                jle    0x00002aaaaab018f8
+   41 81 fb 00 00 00 00             cmp    $0x0,%r11d
+   0f 8f 08 00 00 00                jg     0x00002aaaaae511d5
+   48 8b 0c 25 03 00 00 00          mov    0x3,%rcx
    4d 8b 9a 00 00 00 00             mov    0x0(%r10),%r11
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_interface(u1 *sp)
+bool patcher_checkcast_interface(u1 *sp)
 {
 	u1                *ra;
 	u8                 mcode;
@@ -678,13 +678,13 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch super class index */
 
 	*((s4 *) (ra + 7 + 3)) = (s4) c->index;
 
-	*((s4 *) (ra + 7 + 7 + 3 + 6 + 3)) =
+	*((s4 *) (ra + 7 + 7 + 6 + 8 + 3)) =
 		(s4) (OFFSET(vftbl_t, interfacetable[0]) -
 			  c->index * sizeof(methodptr*));
 
@@ -736,6 +736,57 @@ bool patcher_checkcast_class(u1 *sp)
 
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
 	*((ptrint *) (ra + 10 + 7 + 7 + 3 + 2)) = (ptrint) c->vftbl;
+
+	return true;
+}
+
+
+/* patcher_instanceof_interface ************************************************
+
+   Machine code:
+
+   <patched call position>
+   45 8b 9a 1c 00 00 00             mov    0x1c(%r10),%r11d
+   41 81 fb 00 00 00 00             cmp    $0x0,%r11d
+   0f 8e 94 04 00 00                jle    0x00002aaaaab018f8
+   4d 8b 9a 00 00 00 00             mov    0x0(%r10),%r11
+
+*******************************************************************************/
+
+bool patcher_instanceof_interface(u1 *sp)
+{
+	u1                *ra;
+	u8                 mcode;
+	constant_classref *cr;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* patch back original code */
+
+	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (opt_shownops)
+		ra = ra + PATCHER_CALL_SIZE;
+
+	/* patch super class index */
+
+	*((s4 *) (ra + 7 + 3)) = (s4) c->index;
+
+	*((s4 *) (ra + 7 + 7 + 6 + 3)) =
+		(s4) (OFFSET(vftbl_t, interfacetable[0]) -
+			  c->index * sizeof(methodptr*));
 
 	return true;
 }

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7367 2007-02-16 07:17:01Z pm $
+   $Id: md.c 7581 2007-03-26 07:23:16Z pm $
 
 */
 
@@ -36,15 +36,12 @@
 #define REG_RIP 0
 #define REG_RAX 0
 #define REG_R10 0
-#define REG_ITMP2 0
 #define REG_RIP 0
 #define REG_RSP 0
 #define REG_RIP 0
 #define REG_RAX 0
 #define REG_R10 0
-#define REG_ITMP2 0
 #define REG_RIP 0
-#define REG_METHODPTR 0
 
 
 #define _GNU_SOURCE
@@ -70,6 +67,9 @@
 #include "vmcore/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
+
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/s390/codegen.h"
 
 #include <assert.h>
 #define OOPS() assert(0);
@@ -225,7 +225,7 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 	disp += 4; /* size of branch */
 	disp /= 2; /* specified in halfwords */
 
-	/* TODO check for overflow */
+	ASSERT_VALID_BRANCH(disp);	
 
 	/* patch the branch instruction before the mcodeptr */
 

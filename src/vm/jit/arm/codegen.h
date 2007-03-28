@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/codegen.h - code generation macros and definitions for ARM
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: codegen.h 7276 2007-02-02 11:58:18Z michi $
+   $Id: codegen.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -39,74 +39,6 @@
 
 
 /* helper macros for generating code ******************************************/
-
-/* load_var_to_reg_xxx:
-   this function generates code to fetch data from a pseudo-register
-   into a real register. 
-   If the pseudo-register has actually been assigned to a real 
-   register, no code will be emitted, since following operations
-   can use this register directly.
-   v:      pseudoregister to be fetched from
-   tempnr: temporary register to be used if v is actually spilled to ram
-   regnr:  the register number, where the operand can be found after 
-           fetching (this wil be either tempregnum or the register
-           number allready given to v)
-*/
-
-#if defined(__ARMEL__)
-#define load_var_to_reg_lng(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) { \
-		COUNT_SPILLS; \
-		M_STACK_LOAD_LNG(tempnr, (v)->regoff); \
-		regnr = tempnr; \
-	} else if (GET_HIGH_REG((v)->regoff)==REG_SPLIT) { \
-		M_LDR_INTERN(GET_HIGH_REG(tempnr), REG_SP, 0); /* TODO: where to load? */ \
-		regnr = PACK_REGS(GET_LOW_REG((v)->regoff), GET_HIGH_REG(tempnr)); \
-	} else regnr = (v)->regoff; \
-}
-#else /* defined(__ARMEB__) */
-#define load_var_to_reg_lng(regnr,v,tempnr) { \
-        if ((v)->flags & INMEMORY) { \
-                COUNT_SPILLS; \
-                M_STACK_LOAD_LNG(tempnr, (v)->regoff); \
-                regnr = tempnr; \
-        } else if (GET_LOW_REG((v)->regoff)==REG_SPLIT) { \
-                M_LDR_INTERN(GET_LOW_REG(tempnr), REG_SP, 0); /* TODO: where to load? */ \
-                regnr = PACK_REGS(GET_LOW_REG(tempnr), GET_HIGH_REG((v)->regoff)); \
-        } else regnr = (v)->regoff; \
-}
-#endif
-
-
-/* store_reg_to_var_xxx:
-   This function generates the code to store the result of an operation
-   back into a spilled pseudo-variable.
-   If the pseudo-variable has not been spilled in the first place, this 
-   function will generate nothing.
-   v:      Pseudovariable
-   tempnr: Number of the temporary registers as returned by
-           reg_of_var.
-*/
-
-#if defined(__ARMEL__)
-#define store_reg_to_var_lng(v,tempnr) { \
-	if ((v)->flags & INMEMORY) { \
-		COUNT_SPILLS; \
-		M_STACK_STORE_LNG(tempnr, (v)->regoff); \
-	} else if (GET_HIGH_REG((v)->regoff)==REG_SPLIT) { \
-		M_STR_INTERN(GET_HIGH_REG(tempnr), REG_SP, 0); /* TODO: where to store? */ \
-	} \
-}
-#else /* defined(__ARMEB__) */
-#define store_reg_to_var_lng(v,tempnr) { \
-        if ((v)->flags & INMEMORY) { \
-                COUNT_SPILLS; \
-                M_STACK_STORE_LNG(tempnr, (v)->regoff); \
-        } else if (GET_LOW_REG((v)->regoff)==REG_SPLIT) { \
-                M_STR_INTERN(GET_LOW_REG(tempnr), REG_SP, 0); /* TODO: where to store? */ \
-        } \
-}
-#endif
 
 #if defined(__ARMEL__)
 #define SPLIT_OPEN(type, reg, tmpreg) \
@@ -339,6 +271,15 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
     } while (0)
 
 
+/* undefined instruction used for hardware exceptions */
+
+#define M_UNDEFINED(cond,imm,n) \
+	do { \
+		*((u4 *) cd->mcodeptr) = ((cond) << 28) | (0x7f << 20) | (((imm) & 0x0fff) << 8) | (0x0f << 4) | (n); \
+		cd->mcodeptr += 4; \
+	} while (0)
+
+
 #if !defined(ENABLE_SOFTFLOAT)
 
 /* M_CPDO **********************************************************************
@@ -453,15 +394,16 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_ADC(d,a,b)       M_DAT(UNCOND,0x05,d,a,0,0,b)         /* d = a +  b (with Carry) */
 #define M_SUB(d,a,b)       M_DAT(UNCOND,0x02,d,a,0,0,b)         /* d = a -  b */
 #define M_SBC(d,a,b)       M_DAT(UNCOND,0x06,d,a,0,0,b)         /* d = a -  b (with Carry) */
-#define M_AND(d,a,b)       M_DAT(UNCOND,0x00,d,a,0,0,b)         /* d = a &  b */
-#define M_ORR(d,a,b)       M_DAT(UNCOND,0x0c,d,a,0,0,b)         /* d = a |  b */
-#define M_EOR(d,a,b)       M_DAT(UNCOND,0x01,d,a,0,0,b)         /* d = a ^  b */
+#define M_AND(a,b,d)       M_DAT(UNCOND,0x00,d,a,0,0,b)         /* d = a &  b */
+#define M_ORR(a,b,d)       M_DAT(UNCOND,0x0c,d,a,0,0,b)         /* d = a |  b */
+#define M_EOR(a,b,d)       M_DAT(UNCOND,0x01,d,a,0,0,b)         /* d = a ^  b */
 #define M_TST(a,b)         M_DAT(UNCOND,0x08,0,a,1,0,b)         /* TST a &  b */
 #define M_TEQ(a,b)         M_DAT(UNCOND,0x09,0,a,1,0,b)         /* TST a ^  b */
 #define M_CMP(a,b)         M_DAT(UNCOND,0x0a,0,a,1,0,b)         /* TST a -  b */
 #define M_MOV(d,b)         M_DAT(UNCOND,0x0d,d,0,0,0,b)         /* d =      b */
 #define M_ADD_S(d,a,b)     M_DAT(UNCOND,0x04,d,a,1,0,b)         /* d = a +  b (update Flags) */
 #define M_SUB_S(d,a,b)     M_DAT(UNCOND,0x02,d,a,1,0,b)         /* d = a -  b (update Flags) */
+#define M_ORR_S(a,b,d)     M_DAT(UNCOND,0x0c,d,a,1,0,b)         /* d = a |  b (update flags) */
 #define M_MOV_S(d,b)       M_DAT(UNCOND,0x0d,d,0,1,0,b)         /* d =      b (update Flags) */
 
 #define M_ADD_IMM(d,a,i)   M_DAT(UNCOND,0x04,d,a,0,1,i)         /* d = a +  i */
@@ -470,7 +412,7 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_SBC_IMM(d,a,i)   M_DAT(UNCOND,0x06,d,a,0,1,i)         /* d = a -  i (with Carry) */
 #define M_RSB_IMM(d,a,i)   M_DAT(UNCOND,0x03,d,a,0,1,i)         /* d = -a + i */
 #define M_RSC_IMM(d,a,i)   M_DAT(UNCOND,0x07,d,a,0,1,i)         /* d = -a + i (with Carry) */
-#define M_AND_IMM(d,a,i)   M_DAT(UNCOND,0x00,d,a,0,1,i)         /* d = a &  i */
+#define M_AND_IMM(a,i,d)   M_DAT(UNCOND,0x00,d,a,0,1,i)         /* d = a &  i */
 #define M_TST_IMM(a,i)     M_DAT(UNCOND,0x08,0,a,1,1,i)         /* TST a &  i */
 #define M_TEQ_IMM(a,i)     M_DAT(UNCOND,0x09,0,a,1,1,i)         /* TST a ^  i */
 #define M_CMP_IMM(a,i)     M_DAT(UNCOND,0x0a,0,a,1,1,i)         /* TST a -  i */
@@ -481,16 +423,28 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_RSB_IMMS(d,a,i)  M_DAT(UNCOND,0x03,d,a,1,1,i)         /* d = -a + i (update Flags) */
 
 #define M_ADDSUB_IMM(d,a,i) if((i)>=0) M_ADD_IMM(d,a,i); else M_SUB_IMM(d,a,-(i))
-#define M_MOVEQ(d,b)       M_DAT(COND_EQ,0x0d,d,0,0,0,b)
-#define M_MOVVS_IMM(d,i)   M_DAT(COND_VS,0x0d,d,0,0,1,i)
-#define M_MOVNE_IMM(d,i)   M_DAT(COND_NE,0x0d,d,0,0,1,i)
-#define M_MOVLS_IMM(d,i)   M_DAT(COND_LS,0x0d,d,0,0,1,i)
+#define M_MOVEQ(a,d)       M_DAT(COND_EQ,0x0d,d,0,0,0,a)
+
+#define M_MOVVS_IMM(i,d)   M_DAT(COND_VS,0x0d,d,0,0,1,i)
+#define M_MOVEQ_IMM(i,d)   M_DAT(COND_EQ,0x0d,d,0,0,1,i)
+#define M_MOVNE_IMM(i,d)   M_DAT(COND_NE,0x0d,d,0,0,1,i)
+#define M_MOVLT_IMM(i,d)   M_DAT(COND_LT,0x0d,d,0,0,1,i)
+#define M_MOVGT_IMM(i,d)   M_DAT(COND_GT,0x0d,d,0,0,1,i)
+#define M_MOVLS_IMM(i,d)   M_DAT(COND_LS,0x0d,d,0,0,1,i)
+
+#define M_ADDHI_IMM(d,a,i) M_DAT(COND_HI,0x04,d,a,0,1,i)
 #define M_ADDLT_IMM(d,a,i) M_DAT(COND_LT,0x04,d,a,0,1,i)
 #define M_ADDGT_IMM(d,a,i) M_DAT(COND_GT,0x04,d,a,0,1,i)
+#define M_SUBLO_IMM(d,a,i) M_DAT(COND_CC,0x02,d,a,0,1,i)
 #define M_SUBLT_IMM(d,a,i) M_DAT(COND_LT,0x02,d,a,0,1,i)
 #define M_SUBGT_IMM(d,a,i) M_DAT(COND_GT,0x02,d,a,0,1,i)
 #define M_RSBMI_IMM(d,a,i) M_DAT(COND_MI,0x03,d,a,0,1,i)
 #define M_ADCMI_IMM(d,a,i) M_DAT(COND_MI,0x05,d,a,0,1,i)
+
+#define M_CMPEQ(a,b)       M_DAT(COND_EQ,0x0a,0,a,1,0,b)        /* TST a -  b */
+#define M_CMPLE(a,b)       M_DAT(COND_LE,0x0a,0,a,1,0,b)        /* TST a -  b */
+
+#define M_CMPEQ_IMM(a,i)   M_DAT(COND_EQ,0x0a,0,a,1,1,i)
 
 #define M_MUL(d,a,b)       M_MULT(UNCOND,d,a,b,0,0,0x0)         /* d = a *  b */
 
@@ -649,6 +603,12 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 
 #define M_FMOV(a,b)        M_MVFS(b,a)
 #define M_DMOV(a,b)        M_MVFD(b,a)
+
+
+#define M_TRAPEQ(a,i)      M_UNDEFINED(COND_EQ,i,a);
+#define M_TRAPLE(a,i)      M_UNDEFINED(COND_LE,i,a);
+#define M_TRAPHI(a,i)      M_UNDEFINED(COND_HI,i,a);
+#define M_TRAPHS(a,i)      M_UNDEFINED(COND_CS,i,a);
 
 
 /* if we do not have double-word load/store command, we can fake them */
@@ -1070,18 +1030,14 @@ do { \
    uses M_CMP or M_CMP_IMM to do the compare
    ATTENTION: uses REG_ITMP3 as intermediate register
 */
-/* TODO: improve this and add some comments! */
-#define M_COMPARE(reg, val, cond, overjump) \
+#define M_COMPARE(reg, val) \
 	if (IS_IMM(val)) { \
-		if (overjump) M_BNE(1); \
-		/* M_CMP_IMM */ M_DAT(cond,0x0a,0,(reg),1,1,(val)); \
+		M_CMP_IMM(reg, (val)); \
 	} else if(IS_IMM(-(val))) { \
-		if (overjump) M_BNE(1); \
-		/* M_CMN_IMM */ M_DAT(cond,0x0b,0,(reg),1,1,-(val)); \
+		M_CMN_IMM(reg, -(val)); \
 	} else { \
 		ICONST(REG_ITMP3, (val)); \
-		if (overjump) M_BNE(1); \
-		/* M_CMP */ M_DAT(cond,0x0a,0,(reg),1,0,REG_ITMP3); \
+		M_CMP(reg, REG_ITMP3); \
 	}
 
 /* M_LONGBRANCH:
@@ -1112,17 +1068,6 @@ do { \
 		M_MOV(REG_LR, REG_PC); \
 		M_LDR_INTERN(REG_PC, REG_ITMP3, -(-(offset) & 0x0fff)); /*TODO: this looks ugly*/ \
 	}
-
-/* M_STACK_LOAD/STORE:
-   loads or stores integer values from register to stack or from stack to register
-   ATTENTION: we use M_LDR and M_STR, so the same restrictions apply to us!
-*/
-
-#define M_STACK_LOAD_LNG(reg, offset) { \
-	CHECK_INT_REG(GET_LOW_REG(reg)); \
-	CHECK_INT_REG(GET_HIGH_REG(reg)); \
-	M_LDRD(reg, REG_SP, (offset) * 4); \
-}
 
 
 #define M_ILD(a,b,c)                    M_LDR(a,b,c)
@@ -1161,57 +1106,6 @@ do { \
 #define M_DST_INTERN(a,b,c)             M_STFD_INTERN(a,b,c)
 
 #endif /* !defined(ENABLE_SOFTFLOAT) */
-
-
-/* function gen_resolvebranch **************************************************
-   ip ... pointer to instruction after branch (void*)
-   so ... offset of instruction after branch  (s4)
-   to ... offset of branch target             (s4) */
-
-#define gen_resolvebranch(ip,so,to) \
-	assert((((s4*) (ip))[-1] & 0x0e000000) == 0x0a000000); \
-	((s4*) (ip))[-1] |= ((s4) (to) - (so) - 1) >> 2 & 0x0ffffff
-
-
-/* function gen_nullptr_check *************************************************/
-
-#define gen_nullptr_check_intern(objreg) { \
-	M_TST((objreg), (objreg)); \
-	M_BEQ(0); \
-	codegen_add_nullpointerexception_ref(cd); \
-}
-
-#define gen_nullptr_check(objreg) \
-	if (checknull) \
-		gen_nullptr_check_intern(objreg)
-
-
-/* function gen_div_check *****************************************************/
-
-#define gen_div_check(type,reg) \
-    do { \
-	if (IS_2_WORD_TYPE(type)) { \
-		M_TEQ_IMM(GET_LOW_REG(reg), 0); \
-		/* M_TEQ_EQ_IMM(GET_HIGH_REG(reg), 0) */ M_DAT(COND_EQ,0x09,0,GET_HIGH_REG(reg),1,1,0); \
-		M_BEQ(0); \
-	} else { \
-		M_TEQ_IMM((reg), 0); \
-		M_BEQ(0); \
-	} \
-	codegen_add_arithmeticexception_ref(cd); \
-    } while (0)
-
-/* function gen_bound_check ***************************************************
-   ATTENTION: uses REG_ITMP3 as intermediate register */
-/* TODO: maybe use another reg instead of REG_ITMP3! */
-
-#define gen_bound_check(arrayref,index) \
-	if (checkbounds) { \
-		M_LDR_INTERN(REG_ITMP3, (arrayref), OFFSET(java_arrayheader, size)); \
-		M_CMP((index), REG_ITMP3); \
-		M_BHS(0); \
-		codegen_add_arrayindexoutofboundsexception_ref(cd, index); \
-	}
 
 
 #endif /* _CODEGEN_H */

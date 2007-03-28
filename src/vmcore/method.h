@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 7483 2007-03-08 13:17:40Z michi $
+   $Id: method.h 7575 2007-03-25 20:30:50Z twisti $
 */
 
 
@@ -63,6 +63,7 @@ typedef struct codeinfo            codeinfo;
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */
+	java_objectheader header;       /* we need this in jit's monitorenter     */
 	s4            flags;            /* ACC flags                              */
 	utf          *name;             /* name of method                         */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */
@@ -156,6 +157,9 @@ void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
 
 methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
+
+java_objectarray *method_get_parametertypearray(methodinfo *m);
+java_objectarray *method_get_exceptionarray(methodinfo *m);
 
 void method_add_assumption_monomorphic(methodinfo *m, methodinfo *caller);
 void method_break_assumption_monomorphic(methodinfo *m, method_worklist **wl);

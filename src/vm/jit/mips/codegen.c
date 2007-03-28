@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7252 2007-01-29 21:09:01Z twisti $
+   $Id: codegen.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -69,13 +69,13 @@
 #include "vmcore/options.h"
 
 
-/* codegen *********************************************************************
+/* codegen_emit ****************************************************************
 
    Generates machine code.
 
 *******************************************************************************/
 
-bool codegen(jitdata *jd)
+bool codegen_emit(jitdata *jd)
 {
 	methodinfo         *m;
 	codeinfo           *code;
@@ -353,24 +353,19 @@ bool codegen(jitdata *jd)
 		if (m->flags & ACC_STATIC) {
 			disp = dseg_add_address(cd, &m->class->object.header);
 			M_ALD(REG_A0, REG_PV, disp);
+			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+			M_ALD(REG_ITMP3, REG_PV, disp);
 		}
 		else {
 /* 			emit_nullpointer_check(cd, iptr, REG_A0); */
-			M_BNEZ(REG_A0, 6);
-			M_NOP;
-
-			M_LUI(REG_ITMP3, 0);
-			M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
-			codegen_add_nullpointerexception_ref(cd);
-			M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-			M_NOP;
+			M_BNEZ(REG_A0, 2);
+			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+			M_ALD(REG_ITMP3, REG_PV, disp);                   /* branch delay */
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
 		}
 
-		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
-		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_JSR(REG_RA, REG_ITMP3);
-		M_AST(REG_A0, REG_SP, s1 * 8);         /* branch delay */
+		M_AST(REG_A0, REG_SP, s1 * 8);                        /* branch delay */
 
 # if !defined(NDEBUG)
 		if (opt_verbosecall) {
@@ -1760,7 +1755,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_nullpointer_check(cd, iptr, s1);
+			/* implicit null-pointer check */
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1770,8 +1765,9 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_AADD(s2, s1, REG_ITMP3);
+			/* implicit null-pointer check */
 			M_BLDS(d, REG_ITMP3, OFFSET(java_bytearray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1781,9 +1777,10 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_AADD(s2, s1, REG_ITMP3);
 			M_AADD(s2, REG_ITMP3, REG_ITMP3);
+			/* implicit null-pointer check */
 			M_SLDU(d, REG_ITMP3, OFFSET(java_chararray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;			
@@ -1793,9 +1790,10 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_AADD(s2, s1, REG_ITMP3);
 			M_AADD(s2, REG_ITMP3, REG_ITMP3);
+			/* implicit null-pointer check */
 			M_SLDS(d, REG_ITMP3, OFFSET(java_shortarray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1805,10 +1803,11 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 2, REG_ITMP3);
 			M_AADD(REG_ITMP3, s1, REG_ITMP3);
-			M_ILD(d, REG_ITMP3, OFFSET(java_intarray, data[0]));
+			/* implicit null-pointer check */
+			M_ILD_INTERN(d, REG_ITMP3, OFFSET(java_intarray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1821,10 +1820,11 @@ bool codegen(jitdata *jd)
 #else
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 #endif
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 3, REG_ITMP3);
 			M_AADD(REG_ITMP3, s1, REG_ITMP3);
-			M_LLD(d, REG_ITMP3, OFFSET(java_longarray, data[0]));
+			/* implicit null-pointer check */
+			M_LLD_INTERN(d, REG_ITMP3, OFFSET(java_longarray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1833,10 +1833,11 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 2, REG_ITMP3);
 			M_AADD(REG_ITMP3, s1, REG_ITMP3);
-			M_FLD(d, REG_ITMP3, OFFSET(java_floatarray, data[0]));
+			/* implicit null-pointer check */
+			M_FLD_INTERN(d, REG_ITMP3, OFFSET(java_floatarray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1845,10 +1846,11 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 3, REG_ITMP3);
 			M_AADD(REG_ITMP3, s1, REG_ITMP3);
-			M_DLD(d, REG_ITMP3, OFFSET(java_doublearray, data[0]));
+			/* implicit null-pointer check */
+			M_DLD_INTERN(d, REG_ITMP3, OFFSET(java_doublearray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1857,10 +1859,11 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP3);
 			M_AADD(REG_ITMP3, s1, REG_ITMP3);
-			M_ALD(d, REG_ITMP3, OFFSET(java_objectarray, data[0]));
+			/* implicit null-pointer check */
+			M_ALD_INTERN(d, REG_ITMP3, OFFSET(java_objectarray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1869,9 +1872,10 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_AADD(s2, s1, REG_ITMP1);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+			/* implicit null-pointer check */
 			M_BST(s3, REG_ITMP1, OFFSET(java_bytearray, data[0]));
 			break;
 
@@ -1880,10 +1884,11 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_AADD(s2, s1, REG_ITMP1);
 			M_AADD(s2, REG_ITMP1, REG_ITMP1);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+			/* implicit null-pointer check */
 			M_SST(s3, REG_ITMP1, OFFSET(java_chararray, data[0]));
 			break;
 
@@ -1891,10 +1896,11 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+			/* implicit null-pointer check */
 			M_IST_INTERN(s3, REG_ITMP1, OFFSET(java_intarray, data[0]));
 			break;
 
@@ -1902,7 +1908,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 #if SIZEOF_VOID_P == 8
@@ -1910,6 +1916,7 @@ bool codegen(jitdata *jd)
 #else
 			s3 = emit_load_s3(jd, iptr, REG_ITMP23_PACKED);
 #endif
+			/* implicit null-pointer check */
 			M_LST_INTERN(s3, REG_ITMP1, OFFSET(java_longarray, data[0]));
 			break;
 
@@ -1917,10 +1924,11 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP1);
+			/* implicit null-pointer check */
 			M_FST_INTERN(s3, REG_ITMP1, OFFSET(java_floatarray, data[0]));
 			break;
 
@@ -1928,10 +1936,11 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP1);
+			/* implicit null-pointer check */
 			M_DST_INTERN(s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
 			break;
 
@@ -1940,26 +1949,23 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 
-			M_MOV(s1, REG_A0);
-			M_MOV(s3, REG_A1);
+			M_INTMOVE(s1, REG_A0);
+			M_INTMOVE(s3, REG_A1);
 			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_NOP;
-
-/* 			M_BEQZ(REG_RESULT, 0); */
-/* 			codegen_add_arraystoreexception_ref(cd); */
-/* 			M_NOP; */
-			emit_arraystore_check(cd, iptr, REG_RESULT);
+			emit_exception_check(cd, iptr);
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
+			/* implicit null-pointer check */
 			M_AST_INTERN(s3, REG_ITMP1, OFFSET(java_objectarray, data[0]));
 			break;
 
@@ -1968,8 +1974,9 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_AADD(s2, s1, REG_ITMP1);
+			/* implicit null-pointer check */
 			M_BST(REG_ZERO, REG_ITMP1, OFFSET(java_bytearray, data[0]));
 			break;
 
@@ -1978,9 +1985,10 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_AADD(s2, s1, REG_ITMP1);
 			M_AADD(s2, REG_ITMP1, REG_ITMP1);
+			/* implicit null-pointer check */
 			M_SST(REG_ZERO, REG_ITMP1, OFFSET(java_chararray, data[0]));
 			break;
 
@@ -1988,9 +1996,10 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			/* implicit null-pointer check */
 			M_IST_INTERN(REG_ZERO, REG_ITMP1, OFFSET(java_intarray, data[0]));
 			break;
 
@@ -1998,9 +2007,10 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			/* implicit null-pointer check */
 #if SIZEOF_VOID_P == 8
 			M_LST_INTERN(REG_ZERO, REG_ITMP1, OFFSET(java_longarray, data[0]));
 #else
@@ -2012,9 +2022,10 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			emit_array_checks(cd, iptr, s1, s2);
+			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			/* implicit null-pointer check */
 			M_AST_INTERN(REG_ZERO, REG_ITMP1, OFFSET(java_objectarray, data[0]));
 			break;
 
@@ -2326,143 +2337,120 @@ bool codegen(jitdata *jd)
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		case ICMD_RET:          /* ... ==> ...                                */
 
-			M_BR(0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_br(cd, iptr->dst.block);
 			ALIGNCODENOP;
 			break;
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 
-			M_BR(0);
-			codegen_add_branch_ref(cd, iptr->sx.s23.s3.jsrtarget.block);
-			M_NOP;
+			emit_br(cd, iptr->sx.s23.s3.jsrtarget.block);
 			ALIGNCODENOP;
 			break;
 			
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
+		case ICMD_IFNONNULL:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_BEQZ(s1, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
-			break;
-
-		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_BNEZ(s1, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bccz(cd, iptr->dst.block, iptr->opc - ICMD_IFNULL, s1, BRANCH_OPT_NONE);
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.i == 0) {
-				M_BEQZ(s1, 0);
-			} else {
+			if (iptr->sx.val.i == 0)
+				emit_beqz(cd, iptr->dst.block, s1);
+			else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
-				M_BEQ(s1, REG_ITMP2, 0);
+				emit_beq(cd, iptr->dst.block, s1, REG_ITMP2);
 			}
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.i == 0) {
-				M_BLTZ(s1, 0);
-			} else {
-				if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767)) {
+			if (iptr->sx.val.i == 0)
+				emit_bltz(cd, iptr->dst.block, s1);
+			else {
+				if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767))
 					M_CMPLT_IMM(s1, iptr->sx.val.i, REG_ITMP1);
-				} else {
+				else {
 					ICONST(REG_ITMP2, iptr->sx.val.i);
 					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
 				}
-				M_BNEZ(REG_ITMP1, 0);
+				emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 			}
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.i == 0) {
-				M_BLEZ(s1, 0);
-			} else {
+			if (iptr->sx.val.i == 0)
+				emit_blez(cd, iptr->dst.block, s1);
+			else {
 				if ((iptr->sx.val.i >= -32769) && (iptr->sx.val.i <= 32766)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.i + 1, REG_ITMP1);
-					M_BNEZ(REG_ITMP1, 0);
-				} else {
+					emit_bnez(cd, iptr->dst.block, REG_ITMP1);
+				}
+				else {
 					ICONST(REG_ITMP2, iptr->sx.val.i);
 					M_CMPGT(s1, REG_ITMP2, REG_ITMP1);
-					M_BEQZ(REG_ITMP1, 0);
+					emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 				}
 			}
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.i == 0) {
-				M_BNEZ(s1, 0);
-			} else {
+			if (iptr->sx.val.i == 0)
+				emit_bnez(cd, iptr->dst.block, s1);
+			else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
-				M_BNE(s1, REG_ITMP2, 0);
+				emit_bne(cd, iptr->dst.block, s1, REG_ITMP2);
 			}
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.i == 0) {
-				M_BGTZ(s1, 0);
-			} else {
+			if (iptr->sx.val.i == 0)
+				emit_bgtz(cd, iptr->dst.block, s1);
+			else {
 				if ((iptr->sx.val.i >= -32769) && (iptr->sx.val.i <= 32766)) {
 					M_CMPLT_IMM(s1, iptr->sx.val.i + 1, REG_ITMP1);
-					M_BEQZ(REG_ITMP1, 0);
-				} else {
+					emit_beqz(cd, iptr->dst.block, REG_ITMP1);
+				}
+				else {
 					ICONST(REG_ITMP2, iptr->sx.val.i);
 					M_CMPGT(s1, REG_ITMP2, REG_ITMP1);
-					M_BNEZ(REG_ITMP1, 0);
+					emit_bnez(cd, iptr->dst.block, REG_ITMP1);
 				}
 			}
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.i == 0) {
-				M_BGEZ(s1, 0);
-			} else {
-				if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767)) {
+			if (iptr->sx.val.i == 0)
+				emit_bgez(cd, iptr->dst.block, s1);
+			else {
+				if ((iptr->sx.val.i >= -32768) && (iptr->sx.val.i <= 32767))
 					M_CMPLT_IMM(s1, iptr->sx.val.i, REG_ITMP1);
-				} else {
+				else {
 					ICONST(REG_ITMP2, iptr->sx.val.i);
 					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
 				}
-				M_BEQZ(REG_ITMP1, 0);
+				emit_beqz(cd, iptr->dst.block, REG_ITMP1);
 			}
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 
 #if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0) {
+			if (iptr->sx.val.l == 0)
 				M_BEQZ(s1, 0);
-			} else {
+			else {
 				LCONST(REG_ITMP2, iptr->sx.val.l);
 				M_BEQ(s1, REG_ITMP2, 0);
 			}
@@ -2470,7 +2458,7 @@ bool codegen(jitdata *jd)
 			if (iptr->sx.val.l == 0) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
 				M_OR(GET_LOW_REG(s1), GET_HIGH_REG(s1), REG_ITMP3);
-				M_BEQZ(REG_ITMP3, 0);
+				emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			}
 			else {
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
@@ -2480,11 +2468,9 @@ bool codegen(jitdata *jd)
 				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
 				M_XOR(s1, REG_ITMP3, REG_ITMP3);
 				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP3);
-				M_BEQZ(REG_ITMP3, 0);
+				emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			}
 #endif
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
@@ -2506,25 +2492,21 @@ bool codegen(jitdata *jd)
 			if (iptr->sx.val.l == 0) {
 				/* if high word is less than zero, the whole long is too */
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-				M_BLTZ(s1, 0);
+				emit_bltz(cd, iptr->dst.block, s1);
 			}
 			else {
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
 				M_CMPLT(s1, REG_ITMP2, REG_ITMP3);
-				M_BNEZ(REG_ITMP3, 0);
-				codegen_add_branch_ref(cd, iptr->dst.block);
-				M_NOP;
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_BNE(s1, REG_ITMP2, 5);
+				M_BNE(s1, REG_ITMP2, 5); /* XXX */
 				M_NOP;
 				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
 				M_CMPULT(s2, REG_ITMP2, REG_ITMP3);
-				M_BNEZ(REG_ITMP3, 0);
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			}
 #endif
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
@@ -2546,30 +2528,24 @@ bool codegen(jitdata *jd)
 #else
 			if (iptr->sx.val.l == 0) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-				M_BGTZ(GET_HIGH_REG(s1), 5);
+				M_BGTZ(GET_HIGH_REG(s1), 5); /* XXX */
 				M_NOP;
-				M_BLTZ(GET_HIGH_REG(s1), 0);
-				codegen_add_branch_ref(cd, iptr->dst.block);
-				M_NOP;
-				M_BEQZ(GET_LOW_REG(s1), 0);
+				emit_bltz(cd, iptr->dst.block, GET_HIGH_REG(s1));
+				emit_beqz(cd, iptr->dst.block, GET_LOW_REG(s1));
 			}
 			else {
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
 				M_CMPLT(s1, REG_ITMP2, REG_ITMP3);
-				M_BNEZ(REG_ITMP3, 0);
-				codegen_add_branch_ref(cd, iptr->dst.block);
-				M_NOP;
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_BNE(s1, REG_ITMP2, 5);
+				M_BNE(s1, REG_ITMP2, 5); /* XXX */
 				M_NOP;
 				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
 				M_CMPUGT(s2, REG_ITMP2, REG_ITMP3);
-				M_BEQZ(REG_ITMP3, 0);
+				emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			}
 #endif
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
@@ -2586,7 +2562,7 @@ bool codegen(jitdata *jd)
 			if (iptr->sx.val.l == 0) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
 				M_OR(GET_LOW_REG(s1), GET_HIGH_REG(s1), REG_ITMP3);
-				M_BNEZ(REG_ITMP3, 0);
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			}
 			else {
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
@@ -2596,11 +2572,9 @@ bool codegen(jitdata *jd)
 				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
 				M_XOR(s1, REG_ITMP3, REG_ITMP3);
 				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP3);
-				M_BNEZ(REG_ITMP3, 0);
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			}
 #endif
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
@@ -2622,30 +2596,24 @@ bool codegen(jitdata *jd)
 #else
 			if (iptr->sx.val.l == 0) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-				M_BGTZ(GET_HIGH_REG(s1), 0);
-				codegen_add_branch_ref(cd, iptr->dst.block);
+				emit_bgtz(cd, iptr->dst.block, GET_HIGH_REG(s1));
+				M_BLTZ(GET_HIGH_REG(s1), 3); /* XXX */
 				M_NOP;
-				M_BLTZ(GET_HIGH_REG(s1), 3);
-				M_NOP;
-				M_BNEZ(GET_LOW_REG(s1), 0);
+				emit_bnez(cd, iptr->dst.block, GET_LOW_REG(s1));
 			}
 			else {
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
 				M_CMPGT(s1, REG_ITMP2, REG_ITMP3);
-				M_BNEZ(REG_ITMP3, 0);
-				codegen_add_branch_ref(cd, iptr->dst.block);
-				M_NOP;
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_BNE(s1, REG_ITMP2, 5);
+				M_BNE(s1, REG_ITMP2, 5); /* XXX */
 				M_NOP;
 				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
 				M_CMPUGT(s2, REG_ITMP2, REG_ITMP3);
-				M_BNEZ(REG_ITMP3, 0);
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			}
 #endif
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
@@ -2667,25 +2635,21 @@ bool codegen(jitdata *jd)
 			if (iptr->sx.val.l == 0) {
 				/* if high word is greater equal zero, the whole long is too */
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
-				M_BGEZ(s1, 0);
+				emit_bgez(cd, iptr->dst.block, s1);
 			}
 			else {
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
 				M_CMPGT(s1, REG_ITMP2, REG_ITMP3);
-				M_BNEZ(REG_ITMP3, 0);
-				codegen_add_branch_ref(cd, iptr->dst.block);
-				M_NOP;
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_BNE(s1, REG_ITMP2, 5);
+				M_BNE(s1, REG_ITMP2, 5); /* XXX */
 				M_NOP;
 				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
 				M_CMPULT(s2, REG_ITMP2, REG_ITMP3);
-				M_BEQZ(REG_ITMP3, 0);
+				emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			}
 #endif
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
 			break;
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
@@ -2696,9 +2660,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_BEQ(s1, s2, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_beq(cd, iptr->dst.block, s1, s2);
 			break;
 
 #if SIZEOF_VOID_P == 4
@@ -2707,13 +2669,11 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_BNE(s1, s2, 3);
+			M_BNE(s1, s2, 3); /* XXX TWISTI: uff, that is a problem */
 			M_NOP;
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BEQ(s1, s2, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_beq(cd, iptr->dst.block, s1, s2);
 			break;
 #endif
 
@@ -2725,24 +2685,19 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_BNE(s1, s2, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bne(cd, iptr->dst.block, s1, s2);
 			break;
 
 #if SIZEOF_VOID_P == 4
 		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
 
+			/* TODO: could be optimized (XOR or SUB) */
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_BNE(s1, s2, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bne(cd, iptr->dst.block, s1, s2);
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNE(s1, s2, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bne(cd, iptr->dst.block, s1, s2);
 			break;
 #endif
 
@@ -2754,9 +2709,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP3);
-			M_BNEZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			break;
 
 #if SIZEOF_VOID_P == 4
@@ -2765,19 +2718,15 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP3);
-			M_BNEZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			M_CMPGT(s1, s2, REG_ITMP3);
 			/* load low-bits before the branch, so we know the distance */
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNEZ(REG_ITMP3, 4);
+			M_BNEZ(REG_ITMP3, 4); /* XXX */
 			M_NOP;
 			M_CMPULT(s1, s2, REG_ITMP3);
-			M_BNEZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			break;
 #endif
 
@@ -2789,9 +2738,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPGT(s1, s2, REG_ITMP3);
-			M_BNEZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			break;
 
 #if SIZEOF_VOID_P == 4
@@ -2800,19 +2747,15 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
 			M_CMPGT(s1, s2, REG_ITMP3);
-			M_BNEZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			M_CMPLT(s1, s2, REG_ITMP3);
 			/* load low-bits before the branch, so we know the distance */
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNEZ(REG_ITMP3, 4);
+			M_BNEZ(REG_ITMP3, 4); /* XXX */
 			M_NOP;
 			M_CMPUGT(s1, s2, REG_ITMP3);
-			M_BNEZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			break;
 #endif
 
@@ -2824,9 +2767,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPGT(s1, s2, REG_ITMP3);
-			M_BEQZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			break;
 
 #if SIZEOF_VOID_P == 4
@@ -2835,19 +2776,15 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP3);
-			M_BNEZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			M_CMPGT(s1, s2, REG_ITMP3);
 			/* load low-bits before the branch, so we know the distance */
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNEZ(REG_ITMP3, 4);
+			M_BNEZ(REG_ITMP3, 4); /* XXX */
 			M_NOP;
 			M_CMPUGT(s1, s2, REG_ITMP3);
-			M_BEQZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			break;
 #endif
 
@@ -2859,9 +2796,7 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP3);
-			M_BEQZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			break;
 
 #if SIZEOF_VOID_P == 4
@@ -2870,19 +2805,15 @@ bool codegen(jitdata *jd)
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
 			M_CMPGT(s1, s2, REG_ITMP3);
-			M_BNEZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			M_CMPLT(s1, s2, REG_ITMP3);
 			/* load low-bits before the branch, so we know the distance */
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNEZ(REG_ITMP3, 4);
+			M_BNEZ(REG_ITMP3, 4); /* XXX */
 			M_NOP;
 			M_CMPULT(s1, s2, REG_ITMP3);
-			M_BEQZ(REG_ITMP3, 0);
-			codegen_add_branch_ref(cd, iptr->dst.block);
-			M_NOP;
+			emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			break;
 #endif
 
@@ -3078,9 +3009,7 @@ nowperformreturn:
 			/* range check */
 
 			M_CMPULT_IMM(REG_ITMP1, i, REG_ITMP2);
-			M_BEQZ(REG_ITMP2, 0);
-			codegen_add_branch_ref(cd, table[0].block); /* default target */
-			M_ASLL_IMM(REG_ITMP1, POINTERSHIFT, REG_ITMP1);     /* delay slot */
+			emit_beqz(cd, table[0].block, REG_ITMP2);
 
 			/* build jump table top down and use address of lowest entry */
 
@@ -3094,6 +3023,7 @@ nowperformreturn:
 
 			/* length of dataseg after last dseg_add_target is used by load */
 
+			M_ASLL_IMM(REG_ITMP1, POINTERSHIFT, REG_ITMP1);
 			M_AADD(REG_ITMP1, REG_PV, REG_ITMP2);
 			M_ALD(REG_ITMP2, REG_ITMP2, -(cd->dseglen));
 			M_JMP(REG_ITMP2);
@@ -3116,15 +3046,11 @@ nowperformreturn:
 
 			while (--i >= 0) {
 				ICONST(REG_ITMP2, lookup->value);
-				M_BEQ(s1, REG_ITMP2, 0);
-				codegen_add_branch_ref(cd, lookup->target.block); 
-				M_NOP;
+				emit_beq(cd, lookup->target.block, s1, REG_ITMP2);
 				++lookup;
 			}
 
-			M_BR(0);
-			codegen_add_branch_ref(cd, iptr->sx.s23.s3.lookupdefault.block);
-			M_NOP;
+			emit_br(cd, iptr->sx.s23.s3.lookupdefault.block);
 			ALIGNCODENOP;
 			break;
 			}
@@ -3260,23 +3186,22 @@ gen_method:
 
 				M_ALD(REG_ITMP3, REG_PV, disp);  /* built-in-function pointer */
 
+				/* generate the actual call */
+
 				/* TWISTI: i actually don't know the reason for using
 				   REG_ITMP3 here instead of REG_PV. */
-				s1 = REG_ITMP3;
+
+				M_JSR(REG_RA, REG_ITMP3);
+				M_NOP;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, -disp);
+
+				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:
-/* 				emit_nullpointer_check(cd, REG_A0); */
-				M_BNEZ(REG_A0, 6);
-				M_NOP;
-
-				M_LUI(REG_ITMP3, 0);
-				M_OR_IMM(REG_ITMP3, 0, REG_ITMP3);
-				codegen_add_nullpointerexception_ref(cd);
-				M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
-				M_JMP(REG_ITMP3);
-				M_NOP;
-
+				emit_nullpointer_check(cd, iptr, REG_A0);
 				/* fall through */
 
 			case ICMD_INVOKESTATIC:
@@ -3290,7 +3215,14 @@ gen_method:
 					disp = dseg_add_address(cd, lm->stubroutine);
 
 				M_ALD(REG_PV, REG_PV, disp);          /* method pointer in pv */
-				s1 = REG_PV;
+
+				/* generate the actual call */
+
+				M_JSR(REG_RA, REG_PV);
+				M_NOP;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -3305,9 +3237,17 @@ gen_method:
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
 
+				/* implicit null-pointer check */
 				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
-				s1 = REG_PV;
+
+				/* generate the actual call */
+
+				M_JSR(REG_RA, REG_PV);
+				M_NOP;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
@@ -3326,24 +3266,20 @@ gen_method:
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 				}
 
+				/* implicit null-pointer check */
 				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
-				s1 = REG_PV;
+
+				/* generate the actual call */
+
+				M_JSR(REG_RA, REG_PV);
+				M_NOP;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 			}
-
-			/* generate the actual call */
-
-			M_JSR(REG_RA, s1);
-			M_NOP;
-			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-			disp = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_LDA(REG_PV, REG_RA, -disp);
-
-			/* actually only used for ICMD_BUILTIN */
-
-			emit_exception_check(cd, iptr);
 
 			/* store return value */
 
@@ -3412,25 +3348,10 @@ gen_method:
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
-				/* calculate interface checkcast code size */
-
-/* 				s2 = 3 + 2 + 1 + 2; */
-				s2 = 3 + 7 + 1 + 7;
-				if (super == NULL)
-					s2 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
-
-				/* calculate class checkcast code size */
-
-/* 				s3 = 2 + 1 + 4 + 1 + 2 /\* 10 + (s1 == REG_ITMP1) *\/; */
-				s3 = 2 + 1 + 4 + 1 + 7;
-				if (super == NULL)
-					s3 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
-
 				/* if class is not resolved, check which code to call */
 
 				if (super == NULL) {
-					M_BEQZ(s1, 5 + (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0) + s2 + 2 + s3);
-					M_NOP;
+					emit_label_beqz(cd, BRANCH_LABEL_1, s1);
 
 					cr   = iptr->sx.s23.s3.c.ref;
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
@@ -3438,11 +3359,9 @@ gen_method:
 					codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
 										  cr, disp);
 
-					/* XXX TWISTI M_ILD can be 2 instructions long (jump offset) */
 					M_ILD(REG_ITMP2, REG_PV, disp);
 					M_AND_IMM(REG_ITMP2, ACC_INTERFACE, REG_ITMP2);
-					M_BEQZ(REG_ITMP2, 1 + s2 + 2);
-					M_NOP;
+					emit_label_beqz(cd, BRANCH_LABEL_2, REG_ITMP2);
 				}
 
 				/* interface checkcast code */
@@ -3455,8 +3374,7 @@ gen_method:
 											  cr, 0);
 					}
 					else {
-						M_BEQZ(s1, 1 + s2);
-						M_NOP;
+						emit_label_beqz(cd, BRANCH_LABEL_3, s1);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
@@ -3470,16 +3388,18 @@ gen_method:
 						  superindex * sizeof(methodptr*));
 					emit_classcast_check(cd, iptr, ICMD_IFEQ, REG_ITMP3, s1);
 
-					if (super == NULL) {
-						M_BR(1 + s3);
-						M_NOP;
-					}
+					if (super == NULL)
+						emit_label_br(cd, BRANCH_LABEL_4);
+					else
+						emit_label(cd, BRANCH_LABEL_3);
 				}
 
 				/* class checkcast code */
 
 				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
+						emit_label(cd, BRANCH_LABEL_2);
+
 						cr   = iptr->sx.s23.s3.c.ref;
 						disp = dseg_add_unique_address(cd, NULL);
 
@@ -3490,8 +3410,7 @@ gen_method:
 					else {
 						disp = dseg_add_address(cd, super->vftbl);
 
-						M_BEQZ(s1, 1 + s3);
-						M_NOP;
+						emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
@@ -3518,6 +3437,14 @@ gen_method:
 					/* 				} */
 					M_CMPULT(REG_ITMP3, REG_ITMP2, REG_ITMP3);
 					emit_classcast_check(cd, iptr, ICMD_IFNE, REG_ITMP3, s1);
+
+					if (super != NULL)
+						emit_label(cd, BRANCH_LABEL_5);
+				}
+
+				if (super == NULL) {
+					emit_label(cd, BRANCH_LABEL_1);
+					emit_label(cd, BRANCH_LABEL_4);
 				}
 
 				d = codegen_reg_of_dst(jd, iptr, s1);
@@ -3589,30 +3516,18 @@ gen_method:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+
 			if (s1 == d) {
 				M_MOV(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
 			}
-
-			/* calculate interface instanceof code size */
-
-			s2 = 7;
-			if (super == NULL)
-				s2 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
-
-			/* calculate class instanceof code size */
-
-			s3 = 8;
-			if (super == NULL)
-				s3 += (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0);
 
 			M_CLR(d);
 
 			/* if class is not resolved, check which code to call */
 
 			if (super == NULL) {
-				M_BEQZ(s1, 5 + (opt_shownops ? PATCHER_CALL_INSTRUCTIONS : 0) + s2 + 2 + s3);
-				M_NOP;
+				emit_label_beqz(cd, BRANCH_LABEL_1, s1);
 
 				cr   = iptr->sx.s23.s3.c.ref;
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
@@ -3620,11 +3535,9 @@ gen_method:
 				codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
 									  cr, disp);
 
-				/* XXX TWISTI M_ILD can be 2 instructions long (jump offset) */
 				M_ILD(REG_ITMP3, REG_PV, disp);
 				M_AND_IMM(REG_ITMP3, ACC_INTERFACE, REG_ITMP3);
-				M_BEQZ(REG_ITMP3, 1 + s2 + 2);
-				M_NOP;
+				emit_label_beqz(cd, BRANCH_LABEL_2, REG_ITMP3);
 			}
 
 			/* interface instanceof code */
@@ -3637,8 +3550,7 @@ gen_method:
 										  cr, 0);
 				}
 				else {
-					M_BEQZ(s1, 1 + s2);
-					M_NOP;
+					emit_label_beqz(cd, BRANCH_LABEL_3, s1);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
@@ -3652,16 +3564,18 @@ gen_method:
 					  superindex * sizeof(methodptr*));
 				M_CMPULT(REG_ZERO, REG_ITMP1, d);      /* REG_ITMP1 != 0  */
 
-				if (super == NULL) {
-					M_BR(1 + s3);
-					M_NOP;
-				}
+				if (super == NULL)
+					emit_label_br(cd, BRANCH_LABEL_4);
+				else
+					emit_label(cd, BRANCH_LABEL_3);
 			}
 
 			/* class instanceof code */
 
 			if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 				if (super == NULL) {
+					emit_label(cd, BRANCH_LABEL_2);
+
 					cr   = iptr->sx.s23.s3.c.ref;
 					disp = dseg_add_unique_address(cd, NULL);
 
@@ -3671,8 +3585,7 @@ gen_method:
 				else {
 					disp = dseg_add_address(cd, super->vftbl);
 
-					M_BEQZ(s1, 1 + s3);
-					M_NOP;
+					emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
@@ -3689,7 +3602,16 @@ gen_method:
 				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
 				M_CMPULT(REG_ITMP2, REG_ITMP1, d);
 				M_XOR_IMM(d, 1, d);
+
+				if (super != NULL)
+					emit_label(cd, BRANCH_LABEL_5);
 			}
+
+			if (super == NULL) {
+				emit_label(cd, BRANCH_LABEL_1);
+				emit_label(cd, BRANCH_LABEL_4);
+			}
+
 			emit_store_dst(jd, iptr, d);
 			}
 			break;
@@ -3783,13 +3705,10 @@ gen_method:
 
 	dseg_createlinenumbertable(cd);
 
-	/* generate exception and patcher stubs */
+	/* generate stubs */
 
-	emit_exception_stubs(jd);
 	emit_patcher_stubs(jd);
 	REPLACEMENT_EMIT_STUBS(jd);
-
-	codegen_finish(jd);
 
 	/* everything's ok */
 

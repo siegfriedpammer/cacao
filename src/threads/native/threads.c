@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7496 2007-03-12 00:19:05Z michi $
+   $Id: threads.c 7601 2007-03-28 23:02:50Z michi $
 
 */
 
@@ -87,6 +87,10 @@
 #include "vm/jit/asmpart.h"
 
 #include "vmcore/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
 
 #if !defined(__DARWIN__)
 # if defined(__LINUX__)
@@ -689,6 +693,12 @@ void threads_preinit(void)
 	pthread_mutex_init(&stopworldlock, NULL);
 
 	mainthreadobj = NEW(threadobject);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
+
 	mainthreadobj->object   = NULL;
 	mainthreadobj->tid      = pthread_self();
 	mainthreadobj->index    = 1;
@@ -776,6 +786,11 @@ bool threads_init(void)
 
 #if defined(ENABLE_GC_CACAO)
 	mainthreadobj = NEW(threadobject);
+
+# if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+# endif
 #else
 	mainthreadobj = GCNEW(threadobject);
 #endif
@@ -823,7 +838,7 @@ bool threads_init(void)
 		native_new_and_init(class_java_lang_ThreadGroup);
 
 	if (threadgroup == NULL)
-		throw_exception_exit();
+		return false;
 #endif
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -832,7 +847,7 @@ bool threads_init(void)
 	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
 	if (vmt == NULL)
-		throw_exception_exit();
+		return false;
 
 	/* set the thread */
 
@@ -1150,7 +1165,7 @@ static void *threads_startup_thread(void *t)
 		m = class_resolveclassmethod(c, utf_run, utf_void__void, c, true);
 
 		if (m == NULL)
-			throw_exception();
+			vm_abort("threads_startup_thread: run() method not found in class");
 
 		/* set ThreadMXBean variables */
 
@@ -1227,7 +1242,11 @@ void threads_start_javathread(java_lang_Thread *object)
 	/* create the vm internal threadobject */
 
 	thread = NEW(threadobject);
-	assert(thread);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
 
 	/* link the two objects together */
 
@@ -1354,6 +1373,11 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	/* create a vm internal thread object */
 
 	thread = NEW(threadobject);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
 
 	if (thread == NULL)
 		return false;
@@ -1544,6 +1568,11 @@ bool threads_detach_thread(threadobject *thread)
 	/* free the vm internal thread object */
 
 	FREE(thread, threadobject);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject -= sizeof(threadobject);
+#endif
 
 	return true;
 }

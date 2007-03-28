@@ -617,25 +617,20 @@ bool patcher_checkcast_interface(u1 *sp)
 	if (opt_shownops)
 		ra = ra + PATCHER_CALL_SIZE;
 
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + PATCHER_CALL_SIZE;
-
 	/* patch super class index */
 
 	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x00001fff);
 
-	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									 c->index * sizeof(methodptr*)) & 0x00001fff);
+	*((s4 *) (ra + (3 + EXCEPTION_CHECK_INSTRUCTIONS) * 4)) |= 
+		(s4) ((OFFSET(vftbl_t, interfacetable[0])
+		- c->index * sizeof(methodptr*)) & 0x00001fff);
 
 	/* synchronize instruction cache */
 
 	if (opt_shownops)
-		md_icacheflush(ra - 2 * 4, 8 * 4);
+		md_icacheflush(ra - 2 * 4, (6 + EXCEPTION_CHECK_INSTRUCTIONS) * 4);
 	else
-		md_icacheflush(ra, 6 * 4);
+		md_icacheflush(ra, (4 + EXCEPTION_CHECK_INSTRUCTIONS) * 4);
 
 	return true;
 }
@@ -659,8 +654,6 @@ bool patcher_instanceof_interface(u1 *sp)
 	u1                *ra;
 	constant_classref *cr;
 	classinfo         *c;
-
-	assert(0); /* test this one !!! */
 
 	/* get stuff from the stack */
 

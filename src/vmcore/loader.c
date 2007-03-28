@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: loader.c 7601 2007-03-28 23:02:50Z michi $
 
 */
 
@@ -1214,6 +1214,10 @@ static bool loader_load_method(classbuffer *cb, methodinfo *m,
 
 	c = cb->class;
 
+#if defined(ENABLE_THREADS)
+	lock_init_object_lock(&m->header);
+#endif
+
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_all_methods++;
@@ -2090,6 +2094,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* this class */
 
 	i = suck_u2(cb);
+
 	if (!(name = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 		goto return_exception;
 
@@ -2097,35 +2102,16 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		/* we finally have a name for this class */
 		c->name = name;
 		class_set_packagename(c);
-
-	} else if (name != c->name) {
-		/* TODO: i want to be an exceptions-function! */
-		char *msg;
-		s4    msglen;
-
-		msglen = utf_bytes(c->name) + strlen(" (wrong name: ") +
-			utf_bytes(name) + strlen(")") + strlen("0");
-
-		msg = MNEW(char, msglen);
-
-		utf_copy_classname(msg, c->name);
-		strcat(msg, " (wrong name: ");
-		utf_cat_classname(msg, name);
-		strcat(msg, ")");
-
-#warning FIX ME!
-/* 		*exceptionptr = */
-/* 			new_exception_message("java/lang/NoClassDefFoundError", msg); */
-		exceptions_throw_noclassdeffounderror(c->name);
-
-		MFREE(msg, char, msglen);
-
+	}
+	else if (name != c->name) {
+		exceptions_throw_noclassdeffounderror_wrong_name(c, name);
 		goto return_exception;
 	}
 
 	/* retrieve superclass */
 
 	c->super.any = NULL;
+
 	if ((i = suck_u2(cb))) {
 		if (!(supername = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 			goto return_exception;
@@ -2678,6 +2664,10 @@ classinfo *load_newly_created_array(classinfo *c, classloader *loader)
 
 	clone = c->methods;
 	MSET(clone, 0, methodinfo, 1);
+
+#if defined(ENABLE_THREADS)
+	lock_init_object_lock(&clone->header);
+#endif
 
 	/* ATTENTION: if you delete the ACC_NATIVE below, set
 	   clone->maxlocals=1 (interpreter related) */

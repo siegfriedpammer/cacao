@@ -35,6 +35,8 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
 
+#include "vm/vm.h" /* REMOVE ME: temporarily */
+
 
 /*
  * Class:     com/sun/cldc/io/ResourceInputStream
@@ -43,7 +45,7 @@
  */
 JNIEXPORT java_lang_Object* JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
-	exceptions_throw_outofmemoryerror();
+	vm_abort("Java_com_sun_cldc_io_ResourceInputStream_open: IMPLEMENT ME!");
 
 	return NULL;
 }

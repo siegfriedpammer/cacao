@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 7257 2007-01-29 23:07:40Z twisti $
+   $Id: string.c 7522 2007-03-14 21:54:49Z twisti $
 
 */
 
@@ -52,6 +52,7 @@
 #include "vm/stringlocal.h"
 
 #include "vmcore/options.h"
+#include "vmcore/statistics.h"
 #include "vmcore/utf8.h"
 
 
@@ -575,6 +576,11 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 	js = NEW(java_lang_String);
 
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_string += sizeof(java_lang_String);
+#endif
+
 #if defined(ENABLE_THREADS)
 	lock_init_object_lock(&js->header);
 #endif
@@ -587,6 +593,12 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	/* create new literalstring */
 
 	s = NEW(literalstring);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_string += sizeof(literalstring);
+#endif
+
 	s->hashlink = hashtable_string.ptr[slot];
 	s->string   = (java_objectheader *) js;
 	hashtable_string.ptr[slot] = s;

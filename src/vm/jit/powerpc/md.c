@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -56,60 +56,6 @@
 void md_init(void)
 {
 	/* nothing to do */
-}
-
-
-/* md_codegen_patch_branch *****************************************************
-
-   Back-patches a branch instruction.
-
-*******************************************************************************/
-
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
-{
-	s4 *mcodeptr;
-	s4  mcode;
-	s4  disp;                           /* branch displacement                */
-
-	/* calculate the patch position */
-
-	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
-
-	/* get the instruction before the exception point */
-
-	mcode = mcodeptr[-1];
-
-	/* Calculate the branch displacement. */
-
-	disp = targetmpc - branchmpc + 4;
-
-	/* Check which branch instruction we have.  Then mask it and patch
-	   the displacement. */
-
-	if ((mcode & 0xfc000000) == 0x48000000) {
-		/* bx  (0x48000000) */
-
-		if ((disp < (s4) 0xfe000000) || (disp > (s4) 0x01fffffc))
-			vm_abort("md_codegen_patch_branch: branch displacement out of range: %d > +/-%d", disp, 0x03fffffc);
-
-		mcode &= ~M_BMASK;     /* mask out previous displacement, probably +4 */
-		mcode |= (disp & M_BMASK);
-	}
-	else if ((mcode & 0xfc000000) == 0x40000000) {
-		/* bcx (0x40000000) */
-
-		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff))
-			vm_abort("md_codegen_patch_branch: branch displacement out of range: %d > +/-%d", disp, 0x00007fff);
-
-		mcode &= ~M_BCMASK;    /* mask out previous displacement, probably +4 */
-		mcode |= (disp & M_BCMASK);
-	}
-	else
-		vm_abort("md_codegen_patch_branch: unknown instruction 0x%08x", mcode);
-
-	/* patch the branch instruction before the mcodeptr */
-
-	mcodeptr[-1] = mcode;
 }
 
 

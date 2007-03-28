@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7386 2007-02-21 23:23:25Z twisti $
+   $Id: exceptions.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -35,6 +35,8 @@
 #include <stdlib.h>
 
 #include "vm/types.h"
+
+#include "md-abi.h"
 
 #include "mm/memory.h"
 
@@ -59,6 +61,7 @@
 #include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/stacktrace.h"
@@ -166,137 +169,6 @@ bool exceptions_init(void)
 #endif
 
 	return true;
-}
-
-
-static void throw_exception_exit_intern(bool doexit)
-{
-	java_objectheader *xptr;
-	classinfo *c;
-	methodinfo *pss;
-
-	xptr = *exceptionptr;
-
-	if (xptr) {
-		/* clear exception, because we are calling jit code again */
-		*exceptionptr = NULL;
-
-		c = xptr->vftbl->class;
-
-		pss = class_resolveclassmethod(c,
-									   utf_printStackTrace,
-									   utf_void__void,
-									   class_java_lang_Object,
-									   false);
-
-		/* print the stacktrace */
-
-		if (pss) {
-			(void) vm_call_method(pss, xptr);
-
-			/* This normally means, we are EXTREMLY out of memory or have a   */
-			/* serious problem while printStackTrace. But may be another      */
-			/* exception, so print it.                                        */
-
-			if (*exceptionptr) {
-				java_lang_Throwable *t;
-
-				t = (java_lang_Throwable *) *exceptionptr;
-
-				fprintf(stderr, "Exception while printStackTrace(): ");
-				utf_fprint_printable_ascii_classname(stderr, t->header.vftbl->class->name);
-
-				if (t->detailMessage) {
-					char *buf;
-
-					buf = javastring_tochar((java_objectheader *) t->detailMessage);
-					fprintf(stderr, ": %s", buf);
-					MFREE(buf, char, strlen(buf));
-				}
-					
-				fprintf(stderr, "\n");
-			}
-
-		} else {
-			utf_fprint_printable_ascii_classname(stderr, c->name);
-			fprintf(stderr, ": printStackTrace()V not found!\n");
-		}
-
-		fflush(stderr);
-
-		/* good bye! */
-
-		if (doexit)
-			exit(1);
-	}
-}
-
-
-void throw_exception(void)
-{
-	throw_exception_exit_intern(false);
-}
-
-
-void throw_exception_exit(void)
-{
-	throw_exception_exit_intern(true);
-}
-
-
-void throw_main_exception(void)
-{
-	fprintf(stderr, "Exception in thread \"main\" ");
-	fflush(stderr);
-
-	throw_exception_exit_intern(false);
-}
-
-
-void throw_main_exception_exit(void)
-{
-	fprintf(stderr, "Exception in thread \"main\" ");
-	fflush(stderr);
-
-	throw_exception_exit_intern(true);
-}
-
-
-void throw_cacao_exception_exit(const char *exception, const char *message, ...)
-{
-	s4 i;
-	char *tmp;
-	s4 len;
-	va_list ap;
-
-	len = strlen(exception);
-	tmp = MNEW(char, len + 1);
-	strncpy(tmp, exception, len);
-	tmp[len] = '\0';
-
-	/* convert to classname */
-
-   	for (i = len - 1; i >= 0; i--)
- 	 	if (tmp[i] == '/') tmp[i] = '.';
-
-	fprintf(stderr, "Exception in thread \"main\" %s", tmp);
-
-	MFREE(tmp, char, len);
-
-	if (strlen(message) > 0) {
-		fprintf(stderr, ": ");
-
-		va_start(ap, message);
-		vfprintf(stderr, message, ap);
-		va_end(ap);
-	}
-
-	fprintf(stderr, "\n");
-	fflush(stderr);
-
-	/* good bye! */
-
-	exit(1);
 }
 
 
@@ -842,6 +714,42 @@ void exceptions_throw_noclassdeffounderror(utf *name)
 		vm_abort("java.lang.NoClassDefFoundError: %s", name->text);
 
 	exceptions_throw_class_utf(class_java_lang_NoClassDefFoundError, name);
+}
+
+
+/* exceptions_throw_noclassdeffounderror_wrong_name ****************************
+
+   Generates and throws a java.lang.NoClassDefFoundError with a
+   specific message:
+
+
+
+   IN:
+      name.........name of the class not found as a utf *
+
+*******************************************************************************/
+
+void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
+{
+	char *msg;
+	s4    msglen;
+	utf  *u;
+
+	msglen = utf_bytes(c->name) + strlen(" (wrong name: ") +
+		utf_bytes(name) + strlen(")") + strlen("0");
+
+	msg = MNEW(char, msglen);
+
+	utf_copy_classname(msg, c->name);
+	strcat(msg, " (wrong name: ");
+	utf_cat_classname(msg, name);
+	strcat(msg, ")");
+
+	u = utf_new_char(msg);
+
+	MFREE(msg, char, msglen);
+
+	exceptions_throw_noclassdeffounderror(u);
 }
 
 
@@ -1661,6 +1569,43 @@ void exceptions_clear_exception(void)
 }
 
 
+/* exceptions_fillinstacktrace *************************************************
+
+   Calls the fillInStackTrace-method of the currently thrown
+   exception.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_fillinstacktrace(void)
+{
+	java_objectheader *e;
+	methodinfo        *m;
+
+	/* get exception */
+
+	e = *exceptionptr;
+	assert(e);
+
+	/* clear exception */
+
+	*exceptionptr = NULL;
+
+	/* resolve methodinfo pointer from exception object */
+
+	m = class_resolvemethod(e->vftbl->class,
+							utf_fillInStackTrace,
+							utf_void__java_lang_Throwable);
+
+	/* call function */
+
+	(void) vm_call_method(m, e);
+
+	/* return exception object */
+
+	return e;
+}
+
+
 /* exceptions_get_and_clear_exception ******************************************
 
    Gets the exception pointer of the current thread and clears it.
@@ -1686,6 +1631,80 @@ java_objectheader *exceptions_get_and_clear_exception(void)
 	*p = NULL;
 
 	/* return the exception */
+
+	return e;
+}
+
+
+/* exceptions_new_hardware_exception *******************************************
+
+   Creates the correct exception for a hardware-exception thrown and
+   caught by a signal handler.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val)
+{
+	stackframeinfo     sfi;
+	java_objectheader *e;
+	java_objectheader *o;
+	s4                 index;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	switch (type) {
+	case EXCEPTION_HARDWARE_NULLPOINTER:
+		e = exceptions_new_nullpointerexception();
+		break;
+
+	case EXCEPTION_HARDWARE_ARITHMETIC:
+		e = exceptions_new_arithmeticexception();
+		break;
+
+	case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
+		index = (s4) val;
+		e = exceptions_new_arrayindexoutofboundsexception(index);
+		break;
+
+	case EXCEPTION_HARDWARE_CLASSCAST:
+		o = (java_objectheader *) val;
+		e = exceptions_new_classcastexception(o);
+		break;
+
+	case EXCEPTION_HARDWARE_EXCEPTION:
+		e = exceptions_fillinstacktrace();
+		break;
+
+	default:
+		/* let's try to get a backtrace */
+
+		codegen_get_pv_from_pc(xpc);
+
+		/* if that does not work, print more debug info */
+
+		log_println("exceptions_new_hardware_exception: unknown exception type %d", type);
+
+#if SIZEOF_VOID_P == 8
+		log_println("PC=0x%016lx", xpc);
+#else
+		log_println("PC=0x%08x", xpc);
+#endif
+
+#if defined(ENABLE_DISASSEMBLER)
+		log_println("machine instruction at PC:");
+		disassinstr(xpc);
+#endif
+
+		vm_abort("Exiting...");
+	}
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	/* return the exception object */
 
 	return e;
 }
@@ -1724,6 +1743,15 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	java_objectheader     *o;
 #endif
 
+#ifdef __S390__
+	/* Addresses are 31 bit integers */
+#	define ADDR_MASK(x) (u1 *)((u4)(x) & 0x7FFFFFFF)
+#else
+#	define ADDR_MASK(x) (x)
+#endif
+
+	xpc = ADDR_MASK(xpc);
+
 	/* get info from the method header */
 
 	code                 = *((codeinfo **)            (pv + CodeinfoPointer));
@@ -1758,7 +1786,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 		/* is the xpc is the current catch range */
 
-		if ((ex->startpc <= xpc) && (xpc < ex->endpc)) {
+		if ((ADDR_MASK(ex->startpc) <= xpc) && (xpc < ADDR_MASK(ex->endpc))) {
 			cr = ex->catchtype;
 
 			/* NULL catches everything */
@@ -1934,6 +1962,80 @@ void exceptions_print_current_exception(void)
 	xptr = *exceptionptr;
 
 	exceptions_print_exception(xptr);
+}
+
+
+/* exceptions_print_stacktrace *************************************************
+
+   Prints a pending exception with Throwable.printStackTrace().  If
+   there happens an exception during printStackTrace(), we print the
+   thrown exception and the original one.
+
+   NOTE: This function calls Java code.
+
+*******************************************************************************/
+
+void exceptions_print_stacktrace(void)
+{
+	java_objectheader *oxptr;
+	java_objectheader *xptr;
+	classinfo         *c;
+	methodinfo        *m;
+
+	/* get original exception */
+
+	oxptr = *exceptionptr;
+
+	if (oxptr == NULL)
+		vm_abort("exceptions_print_stacktrace: no exception thrown");
+
+	/* clear exception, because we are calling jit code again */
+
+	*exceptionptr = NULL;
+
+	c = oxptr->vftbl->class;
+
+	/* find the printStackTrace() method */
+
+	m = class_resolveclassmethod(c,
+								 utf_printStackTrace,
+								 utf_void__void,
+								 class_java_lang_Object,
+								 false);
+
+	if (m == NULL)
+		vm_abort("exceptions_print_stacktrace: printStackTrace()V not found");
+
+	/* print compatibility message */
+
+	fprintf(stderr, "Exception in thread \"main\" ");
+
+	/* print the stacktrace */
+
+	(void) vm_call_method(m, oxptr);
+
+	/* This normally means, we are EXTREMLY out of memory or
+	   have a serious problem while printStackTrace. But may
+	   be another exception, so print it. */
+
+	xptr = *exceptionptr;
+
+	if (xptr != NULL) {
+		fprintf(stderr, "Exception while printStackTrace(): ");
+
+		/* now print original exception */
+
+		exceptions_print_exception(xptr);
+		stacktrace_print_trace(xptr);
+
+		/* now print original exception */
+
+		fprintf(stderr, "Original exception was: ");
+		exceptions_print_exception(oxptr);
+		stacktrace_print_trace(oxptr);
+	}
+
+	fflush(stderr);
 }
 
 

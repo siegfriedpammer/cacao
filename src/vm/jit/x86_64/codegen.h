@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7281 2007-02-03 19:51:36Z twisti $
+   $Id: codegen.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -43,17 +43,6 @@
 
 /* additional functions and macros to generate code ***************************/
 
-#define CALCOFFSETBYTES(var, reg, val) \
-    if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
-    else if ((s4) (val) != 0) (var) += 1; \
-    else if ((reg) == RBP || (reg) == RSP || (reg) == R12 || (reg) == R13) (var) += 1;
-
-
-#define CALCIMMEDIATEBYTES(var, val) \
-    if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
-    else (var) += 1;
-
-
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
@@ -64,9 +53,10 @@
 
 
 #define ALIGNCODENOP \
-    if ((s4) (((ptrint) cd->mcodeptr) & 7)) { \
-        M_NOP; \
-    }
+    do { \
+        for (s1 = 0; s1 < (s4) (((ptrint) cd->mcodeptr) & 7); s1++) \
+            M_NOP; \
+    } while (0)
 
 
 /* M_INTMOVE:
@@ -118,8 +108,12 @@
 
 /* branch defines *************************************************************/
 
+#define BRANCH_UNCONDITIONAL_SIZE    5  /* size in bytes of a branch          */
+#define BRANCH_CONDITIONAL_SIZE      6  /* size in bytes of a branch          */
+
 #define BRANCH_NOPS \
     do { \
+        M_NOP; \
         M_NOP; \
         M_NOP; \
         M_NOP; \
@@ -192,6 +186,14 @@
 #define M_ALD(a,b,disp)         M_LLD(a,b,disp)
 #define M_ALD32(a,b,disp)       M_LLD32(a,b,disp)
 
+#define M_ALD_MEM(a,disp)       emit_mov_mem_reg(cd, (disp), (a))
+
+#define M_ALD_MEM_GET_OPC(p)     (  *(        (p) + 1))
+#define M_ALD_MEM_GET_MOD(p)     (((*(        (p) + 2)) >> 6) & 0x03)
+#define M_ALD_MEM_GET_REG(p)    ((((*(        (p) + 2)) >> 3) & 0x07) + (((*(p) >> 2) & 0x01) << 3))
+#define M_ALD_MEM_GET_RM(p)      (((*(        (p) + 2))     ) & 0x07)
+#define M_ALD_MEM_GET_DISP(p)    (  *((u4 *) ((p) + 4)))
+
 #define M_AST(a,b,c)            M_LST(a,b,c)
 #define M_AST_IMM32(a,b,c)      M_LST_IMM32(a,b,c)
 
@@ -199,9 +201,12 @@
 #define M_AADD_IMM(a,b)         M_LADD_IMM(a,b)
 #define M_ASUB_IMM(a,b)         M_LSUB_IMM(a,b)
 
+#define M_ISUB_IMM32(a,b)       emit_alul_imm32_reg(cd, ALU_SUB, (a), (b))
+
 #define M_LADD_IMM32(a,b)       emit_alu_imm32_reg(cd, ALU_ADD, (a), (b))
-#define M_AADD_IMM32(a,b)       M_LADD_IMM32(a,b)
 #define M_LSUB_IMM32(a,b)       emit_alu_imm32_reg(cd, ALU_SUB, (a), (b))
+
+#define M_AADD_IMM32(a,b)       M_LADD_IMM32(a,b)
 
 #define M_ILEA(a,b,c)           emit_leal_membase_reg(cd, (a), (b), (c))
 #define M_LLEA(a,b,c)           emit_lea_membase_reg(cd, (a), (b), (c))
@@ -250,6 +255,7 @@
 
 #define M_ICMP(a,b)             emit_alul_reg_reg(cd, ALU_CMP, (a), (b))
 #define M_ICMP_IMM(a,b)         emit_alul_imm_reg(cd, ALU_CMP, (a), (b))
+#define M_ICMP_IMM32(a,b)       emit_alul_imm32_reg(cd, ALU_CMP, (a), (b))
 #define M_ICMP_IMM_MEMBASE(a,b,c) emit_alul_imm_membase(cd, ALU_CMP, (a), (b), (c))
 #define M_ICMP_MEMBASE(a,b,c)   emit_alul_membase_reg(cd, ALU_CMP, (a), (b), (c))
 
@@ -259,8 +265,14 @@
 #define M_BLE(disp)             emit_jcc(cd, CC_LE, (disp))
 #define M_BGE(disp)             emit_jcc(cd, CC_GE, (disp))
 #define M_BGT(disp)             emit_jcc(cd, CC_G, (disp))
-#define M_BAE(disp)             emit_jcc(cd, CC_AE, (disp))
-#define M_BA(disp)              emit_jcc(cd, CC_A, (disp))
+
+#define M_BULT(disp)            emit_jcc(cd, CC_B, (disp))
+#define M_BULE(disp)            emit_jcc(cd, CC_BE, (disp))
+#define M_BUGE(disp)            emit_jcc(cd, CC_AE, (disp))
+#define M_BUGT(disp)            emit_jcc(cd, CC_A, (disp))
+
+#define M_SETNE(a)              emit_setcc_reg(cd, CC_NE, (a))
+#define M_SETULE(a)             emit_setcc_reg(cd, CC_BE, (a))
 
 #define M_CMOVEQ(a,b)           emit_cmovcc_reg_reg(cd, CC_E, (a), (b))
 #define M_CMOVNE(a,b)           emit_cmovcc_reg_reg(cd, CC_NE, (a), (b))
@@ -269,15 +281,8 @@
 #define M_CMOVGE(a,b)           emit_cmovcc_reg_reg(cd, CC_GE, (a), (b))
 #define M_CMOVGT(a,b)           emit_cmovcc_reg_reg(cd, CC_G, (a), (b))
 
-#define M_CMOVEQ_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_E, (a), (b))
-#define M_CMOVNE_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_NE, (a), (b))
-#define M_CMOVLT_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_L, (a), (b))
-#define M_CMOVLE_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_LE, (a), (b))
-#define M_CMOVGE_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_GE, (a), (b))
-#define M_CMOVGT_MEMBASE(a,b,c) emit_cmovcc_reg_membase(cd, CC_G, (a), (b))
-
-#define M_CMOVB(a,b)            emit_cmovcc_reg_reg(cd, CC_B, (a), (b))
-#define M_CMOVA(a,b)            emit_cmovcc_reg_reg(cd, CC_A, (a), (b))
+#define M_CMOVULT(a,b)          emit_cmovcc_reg_reg(cd, CC_B, (a), (b))
+#define M_CMOVUGT(a,b)          emit_cmovcc_reg_reg(cd, CC_A, (a), (b))
 #define M_CMOVP(a,b)            emit_cmovcc_reg_reg(cd, CC_P, (a), (b))
 
 #define M_PUSH(a)               emit_push_reg(cd, (a))

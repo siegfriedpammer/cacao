@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 7338 2007-02-13 00:17:22Z twisti $
+   $Id: asmpart.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -73,15 +73,6 @@
 #endif /* defined(ENABLE_JIT) */
 
 
-typedef struct castinfo castinfo;
-
-struct castinfo {
-	s4 super_baseval;
-	s4 super_diffval;
-	s4 sub_baseval;
-};
-
-
 /* function prototypes ********************************************************/
 
 /* machine dependent initialization */
@@ -104,6 +95,11 @@ float  asm_vm_call_method_float(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 double asm_vm_call_method_double(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 
 void   asm_vm_call_method_exception_handler(void);
+
+/* asm_vm_call_method_end is a dummy symbol marking the end of the asm_vm_call_method
+ * function and is used to insert the coderange into the avl tree.
+ */
+void   asm_vm_call_method_end(void);
 #endif
 
 #if defined(ENABLE_INTRP)

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7259 2007-01-30 13:58:35Z twisti $
+   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -40,6 +40,8 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/md.h"
+
+#include "vm/jit/codegen-common.h" /* REMOVE ME: for codegendata */
 
 
 /* md_init *********************************************************************
@@ -75,6 +77,10 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 
 	if ((disp < (s4) 0xff000000) || (disp > (s4) 0x00ffffff))
 		vm_abort("md_codegen_patch_branch: branch displacement out of range: %d > +/-%d", disp, 0x00ffffff);
+
+	/* sanity check: are we really patching a branch instruction */
+
+	assert((mcodeptr[-1] & 0x0e000000) == 0x0a000000);
 
 	/* patch the branch instruction before the mcodeptr */
 

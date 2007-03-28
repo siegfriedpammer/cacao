@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
+   $Id: codegen.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -48,24 +48,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-/* gen_nullptr_check(objreg) */
-
-#define gen_nullptr_check(objreg) \
-    if (checknull) { \
-        M_TST((objreg)); \
-        M_BEQ(0); \
-        codegen_add_nullpointerexception_ref(cd); \
-    }
-
-#define gen_bound_check \
-    if (checkbounds) { \
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
-        M_CMPU(s2, REG_ITMP3);\
-        M_BGE(0);\
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-    }
-
 
 /* MCODECHECK(icnt) */
 
@@ -115,9 +97,12 @@
 
 
 /* branch defines *************************************************************/
-
+/* and additional branch is needed when generating long branches */
 #define BRANCH_NOPS \
     do { \
+    	if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {\
+		M_NOP; \
+	} \
         M_NOP; \
     } while (0)
 
@@ -151,6 +136,11 @@
         *((u4 *) cd->mcodeptr) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((i) & 0xffff)); \
         cd->mcodeptr += 4; \
     } while (0)
+
+/* for instruction decodeing */
+#define M_INSTR_OP2_IMM_D(x)            (((x) >> 21) & 0x1f  )
+#define M_INSTR_OP2_IMM_A(x)            (((x) >> 16) & 0x1f  )
+#define M_INSTR_OP2_IMM_I(x)            ( (x)        & 0xffff)
 
 #define M_BCMASK     0x0000fffc                     /* (((1 << 16) - 1) & ~3) */
 #define M_BMASK    0x03fffffc                     /* (((1 << 26) - 1) & ~3) */
@@ -225,7 +215,7 @@
 #define M_ADDIS(a,b,c)                  M_OP2_IMM(15, c, a, b)
 #define M_STFIWX(a,b,c)                 M_OP3(31, 983, 0, 0, a, b, c)
 
-#define M_LWZX(a,b,c)                   M_OP3(31, 23, 0, 0, a, b, c)
+#define M_LWAX(a,b,c)                   M_OP3(31, 341, 0, 0, a, b, c)
 #define M_LHZX(a,b,c)                   M_OP3(31, 279, 0, 0, a, b, c)
 #define M_LHAX(a,b,c)                   M_OP3(31, 343, 0, 0, a, b, c)
 #define M_LHAX(a,b,c)                   M_OP3(31, 343, 0, 0, a, b, c)
@@ -307,7 +297,9 @@
 #define M_ILD_INTERN(a,b,disp)          M_OP2_IMM(32,a,b,disp)	/* LWZ */
 #endif
 
-#define M_ILD_INTERN(a,b,disp)		M_OP2_IMM(58, a, b, (((disp) & 0xfffe) | 0x0002))
+#define M_LWZ(a,b,disp)			M_OP2_IMM(32,a,b,disp)	/* needed for hardware exceptions */
+
+#define M_ILD_INTERN(a,b,disp)		M_OP2_IMM(58, a, b, (((disp) & 0xfffe) | 0x0002))	/* this is LWA actually */
 
 #define M_ILD(a,b,disp) \
     do { \

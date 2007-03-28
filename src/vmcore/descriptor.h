@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.h 7329 2007-02-11 21:24:14Z twisti $
+   $Id: descriptor.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -50,6 +50,7 @@ typedef struct methoddesc      methoddesc;
 #include "vmcore/references.h"
 #include "vmcore/utf8.h"
 
+#include "arch.h"		/* needed for HAS_ADDRESS_REGISTER_FILE */
 
 /* data structures ************************************************************/
 
@@ -123,6 +124,9 @@ struct methoddesc {
 	s2         paramslots;      /* like above but LONG,DOUBLE count twice     */
 	s4         argintreguse;    /* number of used integer argument registers  */
 	s4         argfltreguse;    /* number of used float argument registers    */
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	s4         argadrreguse;    /* number of used address registers */
+#endif
 	s4         memuse;          /* number of stack slots used                 */
 	paramdesc *params;          /* allocated parameter descriptions [3]       */
 	typedesc   returntype;      /* parsed descriptor of the return type       */

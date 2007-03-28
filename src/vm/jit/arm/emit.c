@@ -44,6 +44,7 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
 
 #include "vm/jit/asmpart.h"
@@ -338,6 +339,101 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 }
 
 
+/* emit_branch *****************************************************************
+
+   Emits the code for conditional and unconditional branchs.
+
+*******************************************************************************/
+
+void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
+{
+	s4 checkdisp;
+	s4 branchdisp;
+
+	/* calculate the different displacements */
+
+	checkdisp  = (disp - 8);
+	branchdisp = (disp - 8) >> 2;
+
+	/* check which branch to generate */
+
+	if (condition == BRANCH_UNCONDITIONAL) {
+		/* check displacement for overflow */
+
+		if ((checkdisp < (s4) 0xff000000) || (checkdisp > (s4) 0x00ffffff)) {
+			/* if the long-branches flag isn't set yet, do it */
+
+			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+				cd->flags |= (CODEGENDATA_FLAG_ERROR |
+							  CODEGENDATA_FLAG_LONGBRANCHES);
+			}
+
+			vm_abort("emit_branch: emit unconditional long-branch code");
+		}
+		else {
+			M_B(branchdisp);
+		}
+	}
+	else {
+		/* and displacement for overflow */
+
+		if ((checkdisp < (s4) 0xff000000) || (checkdisp > (s4) 0x00ffffff)) {
+			/* if the long-branches flag isn't set yet, do it */
+
+			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+				cd->flags |= (CODEGENDATA_FLAG_ERROR |
+							  CODEGENDATA_FLAG_LONGBRANCHES);
+			}
+
+			vm_abort("emit_branch: emit conditional long-branch code");
+		}
+		else {
+			switch (condition) {
+			case BRANCH_EQ:
+				M_BEQ(branchdisp);
+				break;
+			case BRANCH_NE:
+				M_BNE(branchdisp);
+				break;
+			case BRANCH_LT:
+				M_BLT(branchdisp);
+				break;
+			case BRANCH_GE:
+				M_BGE(branchdisp);
+				break;
+			case BRANCH_GT:
+				M_BGT(branchdisp);
+				break;
+			case BRANCH_LE:
+				M_BLE(branchdisp);
+				break;
+			case BRANCH_UGT:
+				M_BHI(branchdisp);
+				break;
+			default:
+				vm_abort("emit_branch: unknown condition %d", condition);
+			}
+		}
+	}
+}
+
+
+/* emit_arithmetic_check *******************************************************
+
+   Emit an ArithmeticException check.
+
+*******************************************************************************/
+
+void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		CHECK_INT_REG(reg);
+		M_TEQ_IMM(reg, 0);
+		M_TRAPEQ(0, EXCEPTION_HARDWARE_ARITHMETIC);
+	}
+}
+
+
 /* emit_nullpointer_check ******************************************************
 
    Emit a NullPointerException check.
@@ -348,9 +444,14 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(reg, reg);
-		M_BEQ(0);
-		codegen_add_nullpointerexception_ref(cd);
+		M_TRAPEQ(0, EXCEPTION_HARDWARE_NULLPOINTER);
 	}
+}
+
+void emit_nullpointer_check_force(codegendata *cd, instruction *iptr, s4 reg)
+{
+	M_TST(reg, reg);
+	M_TRAPEQ(0, EXCEPTION_HARDWARE_NULLPOINTER);
 }
 
 
@@ -365,8 +466,50 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD_INTERN(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
 		M_CMP(s2, REG_ITMP3);
-		M_BHS(0);
-		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
+		M_TRAPHS(s2, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
+	}
+}
+
+
+/* emit_classcast_check ********************************************************
+
+   Emit a ClassCastException check.
+
+*******************************************************************************/
+
+void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		switch (condition) {
+		case BRANCH_EQ:
+			M_TRAPEQ(s1, EXCEPTION_HARDWARE_CLASSCAST);
+			break;
+
+		case BRANCH_LE:
+			M_TRAPLE(s1, EXCEPTION_HARDWARE_CLASSCAST);
+			break;
+
+		case BRANCH_UGT:
+			M_TRAPHI(s1, EXCEPTION_HARDWARE_CLASSCAST);
+			break;
+
+		default:
+			vm_abort("emit_classcast_check: unknown condition %d", condition);
+		}
+	}
+}
+
+/* emit_exception_check ********************************************************
+
+   Emit an Exception check.
+
+*******************************************************************************/
+
+void emit_exception_check(codegendata *cd, instruction *iptr)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_TST(REG_RESULT, REG_RESULT);
+		M_TRAPEQ(0, EXCEPTION_HARDWARE_EXCEPTION);
 	}
 }
 
@@ -377,6 +520,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 
 *******************************************************************************/
 
+#if 0
 void emit_exception_stubs(jitdata *jd)
 {
 	codegendata  *cd;
@@ -399,7 +543,7 @@ void emit_exception_stubs(jitdata *jd)
 	for (er = cd->exceptionrefs; er != NULL; er = er->next) {
 		/* back-patch the branch to this exception code */
 
-		branchmpc = er->branchpos;
+		branchmpc = er->branchmpc;
 		targetmpc = cd->mcodeptr - cd->mcodebase;
 
 		md_codegen_patch_branch(cd, branchmpc, targetmpc);
@@ -415,8 +559,8 @@ void emit_exception_stubs(jitdata *jd)
 
 		/* calcuate exception address */
 
-		assert((er->branchpos - 4) % 4 == 0);
-		M_ADD_IMM_EXT_MUL4(REG_ITMP2_XPC, REG_PV, (er->branchpos - 4) / 4);
+		assert((er->branchmpc - 4) % 4 == 0);
+		M_ADD_IMM_EXT_MUL4(REG_ITMP2_XPC, REG_PV, (er->branchmpc - 4) / 4);
 
 		/* move function to call into REG_ITMP3 */
 
@@ -473,6 +617,7 @@ void emit_exception_stubs(jitdata *jd)
 		}
 	}
 }
+#endif
 
 
 /* emit_patcher_stubs **********************************************************
@@ -691,12 +836,15 @@ void emit_verbosecall_enter(jitdata *jd)
 			}
 		}
 		else {
-			s1 = md->params[i].regoff + stackframesize;
+			s1 = REG_ITMP12_PACKED;
+			s2 = md->params[i].regoff + stackframesize;
 
 			if (IS_2_WORD_TYPE(t))
-				M_LLD(REG_ITMP12_PACKED, REG_SP, s1 * 4);
-			else
-				M_ILD(REG_ITMP1, REG_SP, s1 * 4);
+				M_LLD(s1, REG_SP, s2 * 4);
+			else {
+				M_ILD(GET_LOW_REG(s1), REG_SP, s2 * 4);
+				M_MOV_IMM(GET_HIGH_REG(s1), 0);
+			}
 		}
 
 		/* place argument for tracer */

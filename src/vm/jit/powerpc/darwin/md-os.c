@@ -26,9 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
-
-   $Id: md-os.c 6123 2006-12-05 21:10:54Z twisti $
+   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -41,6 +39,7 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/powerpc/codegen.h"
 #include "vm/jit/powerpc/darwin/md-abi.h"
 
 #include "vm/exceptions.h"
@@ -63,72 +62,47 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ucontext_t         *_uc;
 	mcontext_t          _mc;
 	ppc_thread_state_t *_ss;
-	ptrint             *gregs;
-	u4                  instr;
-	s4                  reg;
-	s4                  disp;
-	ptrint              addr;
 	u1                 *pv;
 	u1                 *sp;
 	u1                 *ra;
 	u1                 *xpc;
-	stackframeinfo      sfi;
-	java_objectheader  *o;
+	u4                  mcode;
+	s4                  s1;
+	s4                  disp;
+	s4                  d;
+	ptrint             *gregs;
+	ptrint              addr;
+	ptrint              val;
+	java_objectheader  *e;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
-	/* check for NullPointerException */
-
-	gregs = &_ss->r0;
-
-	instr = *((u4 *) _ss->srr0);
-	reg   = (instr >> 16) & 31;
-	disp  = (instr & 0xffff);
-	addr  = gregs[reg];
+	/* get register values */
 
 	pv  = (u1 *) _ss->r13;
 	sp  = (u1 *) _ss->r1;
 	ra  = (u1 *) _ss->lr;                    /* this is correct for leafs */
 	xpc = (u1 *) _ss->srr0;
 
-	/* create stackframeinfo */
+	/* get exception-throwing instruction */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+	mcode = *((u4 *) xpc);
 
-	if (reg == REG_ZERO) {
-		switch (disp) {
-		case EXCEPTION_LOAD_DISP_ARITHMETIC:
-			vm_abort("ArithmeticException");
-			break;
-		case EXCEPTION_LOAD_DISP_ARRAYINDEXOUTOFBOUNDS:
-			log_println("ArrayIndexOutOfBoundsException");
-			o = new_arrayindexoutofboundsexception(0);
-			break;
-		case EXCEPTION_LOAD_DISP_CLASSCAST:
-			vm_abort("ClassCastException");
-			break;
-		default:
-			vm_abort("unknown exception %d", disp);
-		}
-	}
-	else if (addr == 0) {
-		o = exceptions_new_nullpointerexception();
-	}
-	else {
-		codegen_get_pv_from_pc(xpc);
+	s1   = M_INSTR_OP2_IMM_A(mcode);
+	disp = M_INSTR_OP2_IMM_I(mcode);
+	d    = M_INSTR_OP2_IMM_D(mcode);
 
-		/* this should not happen */
+	gregs = &_ss->r0;
+	addr  = gregs[s1];
+	val   = gregs[d];
 
-		assert(0);
-	}
+	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, s1, disp, addr, val);
 
-	/* remove stackframeinfo */
+	/* set registers */
 
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	_ss->r11  = (ptrint) o;
+	_ss->r11  = (ptrint) e;
 	_ss->r12  = (ptrint) xpc;
 	_ss->srr0 = (ptrint) asm_handle_exception;
 }

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: disass.h 7331 2007-02-11 21:41:19Z twisti $
+   $Id: disass.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -88,7 +88,7 @@ extern disassemble_info info;
 extern bool disass_initialized;
 #endif
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__M68K__)
 extern char disass_buf[512];
 extern s4   disass_len;
 #endif

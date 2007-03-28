@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 7261 2007-01-31 10:00:12Z twisti $
+   $Id: exceptions.h 7601 2007-03-28 23:02:50Z michi $
 
 */
 
@@ -43,40 +43,43 @@
 
 /* hardware-exception defines **************************************************
 
-   These defines define the load-offset which indicates the given
-   exception.
+   These defines define an internal number for the various hardware
+   exceptions.
 
-   ATTENTION: These offsets need NOT to be aligned to 4 or 8-byte
-   boundaries, since normal loads could have such offsets with a base
-   of NULL which should result in a NullPointerException.
+   ATTENTION: These values are also used as load-displacements on some
+   architectures. Thus, these values must NOT be aligned to 4 or
+   8-byte boundaries, since normal loads could have such offsets with
+   a base of NULL which should result in a NullPointerException.
 
 *******************************************************************************/
 
-#define EXCEPTION_LOAD_DISP_NULLPOINTER              0
-#define EXCEPTION_LOAD_DISP_ARITHMETIC               1
-#define EXCEPTION_LOAD_DISP_ARRAYINDEXOUTOFBOUNDS    2
-#define EXCEPTION_LOAD_DISP_CLASSCAST                3
+#define EXCEPTION_HARDWARE_NULLPOINTER              0
+#define EXCEPTION_HARDWARE_ARITHMETIC               1
+#define EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS    2
+#define EXCEPTION_HARDWARE_CLASSCAST                3
 
-#define EXCEPTION_LOAD_DISP_PATCHER                  5
+#define EXCEPTION_HARDWARE_EXCEPTION                5
+
+#define EXCEPTION_HARDWARE_PATCHER                  6
+
+
+/* exception pointer **********************************************************/
+
+#if defined(ENABLE_THREADS)
+#define exceptionptr    &(THREADOBJECT->_exceptionptr)
+#else
+#define exceptionptr    &_no_threads_exceptionptr
+#endif
+
+#if !defined(ENABLE_THREADS)
+extern java_objectheader *_no_threads_exceptionptr;
+#endif
 
 
 /* function prototypes ********************************************************/
 
 /* load and link exceptions used in the system */
 bool exceptions_init(void);
-
-
-/* exception throwing functions */
-
-void throw_exception(void);
-void throw_exception_exit(void);
-
-void throw_main_exception(void);
-void throw_main_exception_exit(void);
-
-void throw_cacao_exception_exit(const char *exception,
-								const char *message, ...);
-
 
 /* initialize new exceptions */
 
@@ -97,6 +100,7 @@ void exceptions_throw_classcircularityerror(classinfo *c);
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
 void exceptions_throw_classnotfoundexception(utf *name);
 void exceptions_throw_noclassdeffounderror(utf *name);
+void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name);
 void exceptions_throw_linkageerror(const char *message, classinfo *c);
 void exceptions_throw_nosuchfielderror(classinfo *c, utf *name);
 void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc);
@@ -132,6 +136,8 @@ java_objectheader *exceptions_new_nullpointerexception(void);
 void exceptions_throw_nullpointerexception(void);
 void exceptions_throw_stringindexoutofboundsexception(void);
 
+java_objectheader *exceptions_fillinstacktrace(void);
+
 void classnotfoundexception_to_noclassdeffounderror(void);
 
 java_objectheader *exceptions_get_exception(void);
@@ -139,8 +145,11 @@ void               exceptions_set_exception(java_objectheader *o);
 void               exceptions_clear_exception(void);
 java_objectheader *exceptions_get_and_clear_exception(void);
 
+java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val);
+
 void exceptions_print_exception(java_objectheader *xptr);
 void exceptions_print_current_exception(void);
+void exceptions_print_stacktrace(void);
 
 #endif /* _EXCEPTIONS_H */
 

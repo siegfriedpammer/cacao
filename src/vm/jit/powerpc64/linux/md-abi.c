@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7311 2007-02-09 13:20:27Z twisti $
+   $Id: md-abi.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include "vm/jit/abi.h"
 
 #include "vmcore/descriptor.h"
+
 
 #define CACAO_ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
 
@@ -62,7 +63,7 @@ s4 nregdescint[] = {
 	REG_END
 };
 
-char *regs[] = {
+const char *abi_registers_integer_name[] = {
 	"r0",  "r1",  "r2",  "r3",  "r4",  "r5",  "r6",  "r7",
 	"r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15",
 	"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
@@ -176,6 +177,21 @@ void md_param_alloc(methoddesc *md)
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
 	md->memuse = stacksize + (stackcount<PA_SIZE_IN_POINTERS? PA_SIZE_IN_POINTERS: stackcount);	
+}
+
+
+/* md_param_alloc_native *******************************************************
+
+   Pre-allocate arguments according the native ABI.
+
+*******************************************************************************/
+
+void md_param_alloc_native(methoddesc *md)
+{
+	/* On PowerPC64 we use the same ABI for JIT method calls as for
+	   native method calls. */
+
+	md_param_alloc(md);
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: linker.c 7561 2007-03-23 19:10:35Z twisti $
 
 */
 
@@ -90,7 +90,7 @@ static s4 classvalue;
 
 *******************************************************************************/
 
-primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = { 
+primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
 	{ NULL, NULL, "java/lang/Integer",   'I', "int"     , "[I", NULL, NULL },
 	{ NULL, NULL, "java/lang/Long",      'J', "long"    , "[J", NULL, NULL },
 	{ NULL, NULL, "java/lang/Float",     'F', "float"   , "[F", NULL, NULL },
@@ -336,7 +336,13 @@ static bool link_primitivetype_table(void)
 
 		c = class_create_classinfo(utf_new_char(primitivetype_table[i].name));
 
-		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
+		/* primitive classes don't have a super class */
+
+		c->super.any = NULL;
+
+		/* set flags and mark it as primitive class */
+
+		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT | ACC_CLASS_PRIMITIVE;
 		
 		/* prevent loader from loading primitive class */
 
@@ -352,8 +358,9 @@ static bool link_primitivetype_table(void)
 		/* create class for wrapping the primitive type */
 
 		u = utf_new_char(primitivetype_table[i].wrapname);
+		c = load_class_bootstrap(u);
 
-		if (!(c = load_class_bootstrap(u)))
+		if (c == NULL)
 			return false;
 
 		primitivetype_table[i].class_wrap = c;
@@ -364,6 +371,7 @@ static bool link_primitivetype_table(void)
 			u = utf_new_char(primitivetype_table[i].arrayname);
 			c = class_create_classinfo(u);
 			c = load_newly_created_array(c, NULL);
+
 			if (c == NULL)
 				return false;
 
@@ -1202,12 +1210,12 @@ static void linker_compute_subclasses(classinfo *c)
 #endif
 
 	if (!(c->flags & ACC_INTERFACE)) {
-		c->nextsub = 0;
-		c->sub = 0;
+		c->nextsub = NULL;
+		c->sub     = NULL;
 	}
 
 	if (!(c->flags & ACC_INTERFACE) && (c->super.any != NULL)) {
-		c->nextsub = c->super.cls->sub;
+		c->nextsub        = c->super.cls->sub;
 		c->super.cls->sub = c;
 	}
 

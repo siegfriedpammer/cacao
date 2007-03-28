@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 7224 2007-01-18 11:43:03Z twisti $
+   $Id: asmpart.S 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
 	.globl asm_vm_call_method_exception_handler
+	.globl asm_vm_call_method_end
 
 	.globl asm_call_jit_compiler
 
@@ -344,6 +345,7 @@ asm_vm_call_method_exception_handler:
 #if SIZEOF_VOID_P == 4
 	aaddiu  sp,sp,4*4
 #endif
+asm_vm_call_method_end:
 	b       calljava_return2
 
 	.end    asm_vm_call_method

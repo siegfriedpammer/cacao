@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 7441 2007-03-02 23:13:10Z michi $
+   $Id: java_lang_reflect_Method.c 7573 2007-03-25 18:55:02Z twisti $
 
 */
 
@@ -45,6 +45,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
 
@@ -101,7 +102,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTy
 	c = (classinfo *) this->declaringClass;
 	m = &(c->methods[this->slot]);
 
-	return native_get_parametertypes(m);
+	return method_get_parametertypearray(m);
 }
 
 
@@ -118,7 +119,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
 	c = (classinfo *) this->declaringClass;
 	m = &(c->methods[this->slot]);
 
-	return native_get_exceptiontypes(m);
+	return method_get_exceptionarray(m);
 }
 
 

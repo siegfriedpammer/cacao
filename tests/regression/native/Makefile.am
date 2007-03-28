@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6257 2006-12-28 13:43:06Z twisti $
+## $Id: Makefile.am 7596 2007-03-28 21:05:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -40,7 +40,7 @@ else
 JAVAFLAGS = -Xbootclasspath:$(CLASSPATH_CLASSES)
 endif
 
-JAVAH     = $(top_builddir)/src/cacaoh/cacaoh
+JAVAH     = @CACAOH@
 
 SOURCE_FILES = \
 	checkjni.java \

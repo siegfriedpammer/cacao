@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7483 2007-03-08 13:17:40Z michi $
+   $Id: asmpart.S 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -73,6 +73,7 @@ L_##magic##_lp_end:                                         ; \
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
 	.globl asm_vm_call_method_exception_handler
+	.globl asm_vm_call_method_end
 
 	.globl asm_call_jit_compiler
 
@@ -458,6 +459,8 @@ L_handle_d1:
 	ld    fa1, offvmargdata(itmp1)
 	j     L_register_copy
 
+asm_vm_call_method_end:
+	nop
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: method.c 7573 2007-03-25 18:55:02Z twisti $
 
 */
 
@@ -36,7 +36,9 @@
 
 #include "mm/memory.h"
 
+#include "vm/builtin.h"
 #include "vm/global.h"
+#include "vm/resolve.h"
 
 #include "vm/jit/methodheader.h"
 
@@ -143,6 +145,96 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	resm = code_get_methodinfo_for_pv(mptr);
 
 	return resm;
+}
+
+
+/* method_get_parametertypearray ***********************************************
+
+   Use the descriptor of a method to generate a java.lang.Class array
+   which contains the classes of the parametertypes of the method.
+
+   This function is called by java.lang.reflect.{Constructor,Method}.
+
+*******************************************************************************/
+
+java_objectarray *method_get_parametertypearray(methodinfo *m)
+{
+	methoddesc       *md;
+	typedesc         *paramtypes;
+	s4                paramcount;
+    java_objectarray *oa;
+	s4                i;
+	classinfo        *c;
+
+	md = m->parseddesc;
+
+	/* is the descriptor fully parsed? */
+
+	if (m->parseddesc->params == NULL)
+		if (!descriptor_params_from_paramtypes(md, m->flags))
+			return NULL;
+
+	paramtypes = md->paramtypes;
+	paramcount = md->paramcount;
+
+	/* skip `this' pointer */
+
+	if (!(m->flags & ACC_STATIC)) {
+		paramtypes++;
+		paramcount--;
+	}
+
+	/* create class-array */
+
+	oa = builtin_anewarray(paramcount, class_java_lang_Class);
+
+	if (oa == NULL)
+		return NULL;
+
+    /* get classes */
+
+	for (i = 0; i < paramcount; i++) {
+		if (!resolve_class_from_typedesc(&paramtypes[i], true, false, &c))
+			return NULL;
+
+		oa->data[i] = (java_objectheader *) c;
+	}
+
+	return oa;
+}
+
+
+/* method_get_exceptionarray ***************************************************
+
+   Get the exceptions which can be thrown by a method.
+
+*******************************************************************************/
+
+java_objectarray *method_get_exceptionarray(methodinfo *m)
+{
+	java_objectarray *oa;
+	classinfo        *c;
+	s4                i;
+
+	/* create class-array */
+
+	oa = builtin_anewarray(m->thrownexceptionscount, class_java_lang_Class);
+
+	if (oa == NULL)
+		return NULL;
+
+	/* iterate over all exceptions and store the class in the array */
+
+	for (i = 0; i < m->thrownexceptionscount; i++) {
+		c = resolve_classref_or_classinfo_eager(m->thrownexceptions[i], true);
+
+		if (c == NULL)
+			return NULL;
+
+		oa->data[i] = (java_objectheader *) c;
+	}
+
+	return oa;
 }
 
 

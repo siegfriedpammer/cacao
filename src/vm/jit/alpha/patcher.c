@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: patcher.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -553,7 +553,7 @@ bool patcher_invokeinterface(u1 *sp)
 }
 
 
-/* patcher_checkcast_instanceof_interface **************************************
+/* patcher_checkcast_interface *************************************************
 
    Machine code:
 
@@ -566,7 +566,52 @@ bool patcher_invokeinterface(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_interface(u1 *sp)
+bool patcher_checkcast_interface(u1 *sp)
+{
+	u1                *ra;
+	constant_classref *cr;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* if we show disassembly, we have to skip the nop */
+
+	if (opt_shownops)
+		ra = ra + 4;
+
+	/* patch super class index */
+
+	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+
+	*((s4 *) (ra + 5 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+									 c->index * sizeof(methodptr*)) & 0x0000ffff);
+
+	return true;
+}
+
+
+/* patcher_instanceof_interface ************************************************
+
+   Machine code:
+
+   <patched call position>
+   a78e0000    ldq     at,0(s5)
+   a3bc001c    ldl     gp,28(at)
+   23bdfffd    lda     gp,-3(gp)
+   efa0002e    ble     gp,0x00000200002bf6b0
+   a7bcffe8    ldq     gp,-24(at)
+
+*******************************************************************************/
+
+bool patcher_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
 	constant_classref *cr;

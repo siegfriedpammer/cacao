@@ -1,6 +1,6 @@
 /* vm/jit/alpha/codegen.h - code generation macros and definitions for Alpha
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-
-   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
+   $Id: codegen.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -177,6 +171,10 @@
         cd->mcodeptr += 4; \
     } while (0)
 
+#define M_MEM_GET_A(x)                  (((x) >> 21) & 0x1f  )
+#define M_MEM_GET_B(x)                  (((x) >> 16) & 0x1f  )
+#define M_MEM_GET_DISP(x)               ( (x)        & 0xffff)
+
 
 /* macros for all used commands (see an Alpha-manual for description) *********/
 
@@ -226,6 +224,7 @@
         } \
     } while (0)
 
+#define M_ALD_INTERN(a,b,disp)  M_LLD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)         M_LLD(a,b,disp)                 /* addr load  */
 
 #define M_BST(a,b,disp)         M_MEM(0x0e,a,b,disp)            /*  8 store   */

@@ -1,4 +1,4 @@
-DIST_SUBDIRS = uclinux
+DIST_SUBDIRS = linux
 
 SUBDIRS = $(OS_DIR)
 

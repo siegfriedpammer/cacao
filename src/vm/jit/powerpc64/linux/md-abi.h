@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc64/linux/md-abi.h - defines for PowerPC64 Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: md-abi.h 5940 2006-11-09 09:59:28Z tbfg $
+   $Id: md-abi.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -40,6 +34,7 @@
 
 /* integer registers */
 
+#define REG_ZERO	 0   /* almost always zero (in address caluclation)   */
 #define REG_TOC		 2   /* TOC (see function descriptors ELF ABI)        */
 #define REG_RESULT       3   /* to deliver method results                     */
 
@@ -56,6 +51,11 @@
 #define REG_SP           1   /* stack pointer                                 */
 #define REG_ZERO         0   /* almost always zero: only in address calc.     */
 
+#define REG_A0           3   /* define some argument registers                */
+#define REG_A1           4
+#define REG_A2           5
+#define REG_A3           6
+
 /* floating point registers */
 
 #define REG_FRESULT      1   /* to deliver floating point method results      */
@@ -64,6 +64,9 @@
 #define REG_FTMP3        0   /* temporary floating point register             */
 
 #define REG_IFTMP       16   /* temporary integer and floating point register */
+
+#define REG_FA0          1   /* define some argument registers                */
+#define REG_FA1          2
 
 
 #define INT_REG_CNT     32   /* number of integer registers                   */

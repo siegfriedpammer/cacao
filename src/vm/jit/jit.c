@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: jit.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -936,27 +936,24 @@ static u1 *do_nothing_function(void)
 
 *******************************************************************************/
 
-jitdata *jit_jitdata_new(codeinfo *code)
+jitdata *jit_jitdata_new(methodinfo *m)
 {
-	jitdata    *jd;
-	methodinfo *m;
-
-	/* get required compiler data */
-
-	m = code->m;
+	jitdata *jd;
 
 	/* allocate jitdata structure and fill it */
 
 	jd = DNEW(jitdata);
 
-	jd->m     = code->m;
-	jd->code  = code;
-
+	jd->m     = m;
 	jd->cd    = DNEW(codegendata);
 	jd->rd    = DNEW(registerdata);
 #if defined(ENABLE_LOOP)
 	jd->ld    = DNEW(loopdata);
 #endif
+
+	/* Allocate codeinfo memory from the heap as we need to keep them. */
+
+	jd->code  = code_codeinfo_new(m);
 
 	/* initialize variables */
 
@@ -991,10 +988,9 @@ static u1 *jit_compile_intern(jitdata *jd);
 
 u1 *jit_compile(methodinfo *m)
 {
-	jitdata  *jd;
-	codeinfo *code;
-	s4        dumpsize;
-	u1       *r;
+	u1      *r;
+	jitdata *jd;
+	s4       dumpsize;
 
 	STATISTICS(count_jit_calls++);
 
@@ -1019,27 +1015,16 @@ u1 *jit_compile(methodinfo *m)
 			return m->code->entrypoint;
 	}
 
-	/* We create a codeinfo here and lock on this object, as a object
-	   header in the methodinfo uses to much memory. */
+	/* enter a monitor on the method */
 
-	code = code_codeinfo_new(m);
+	LOCK_MONITOR_ENTER(m);
 
-	/* enter a monitor on the codeinfo */
-
-	LOCK_MONITOR_ENTER(code);
-
-	/* If method has been already compiled return immediately.
-	   ATTENTION: check for m->code!!! */
+	/* if method has been already compiled return immediately */
 
 	if (m->code != NULL) {
-		/* leave the lock and free the memory */
-
-		LOCK_MONITOR_EXIT(code);
-
-		code_codeinfo_free(code);
+		LOCK_MONITOR_EXIT(m);
 
 		assert(m->code->entrypoint);
-
 		return m->code->entrypoint;
 	}
 
@@ -1058,7 +1043,7 @@ u1 *jit_compile(methodinfo *m)
 
 	/* create jitdata structure */
 
-	jd = jit_jitdata_new(code);
+	jd = jit_jitdata_new(m);
 
 	/* set the flags for the current JIT run */
 
@@ -1119,6 +1104,10 @@ u1 *jit_compile(methodinfo *m)
 	if (r == NULL) {
 		/* We had an exception! Finish stuff here if necessary. */
 
+		/* release codeinfo */
+
+		code_codeinfo_free(jd->code);
+
 #if defined(ENABLE_PROFILING)
 		/* Release memory for basic block profiling information. */
 
@@ -1144,12 +1133,7 @@ u1 *jit_compile(methodinfo *m)
 
 	/* leave the monitor */
 
-	LOCK_MONITOR_EXIT(code);
-
-	/* If we had an exception, release codeinfo. */
-
-	if (r == NULL)
-		code_codeinfo_free(code);
+	LOCK_MONITOR_EXIT(m);
 
 	/* return pointer to the methods entry point */
 
@@ -1166,10 +1150,9 @@ u1 *jit_compile(methodinfo *m)
 u1 *jit_recompile(methodinfo *m)
 {
 	u1      *r;
-	jitdata  *jd;
-	codeinfo *code;
-	u1        optlevel;
-	s4        dumpsize;
+	jitdata *jd;
+	u1       optlevel;
+	s4       dumpsize;
 
 	/* check for max. optimization level */
 
@@ -1193,17 +1176,13 @@ u1 *jit_recompile(methodinfo *m)
 		compilingtime_start();
 #endif
 
-	/* create codeinfo */
-
-	code = code_codeinfo_new(m);
-
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
 
 	/* create jitdata structure */
 
-	jd = jit_jitdata_new(code);
+	jd = jit_jitdata_new(m);
 
 	/* set the current optimization level to the previous one plus 1 */
 
@@ -1513,7 +1492,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	} else
 # endif
 		{
-			if (!codegen(jd)) {
+			if (!codegen_generate(jd)) {
 				DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
 
 				return NULL;

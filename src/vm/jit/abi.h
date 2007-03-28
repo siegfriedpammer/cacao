@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: abi.h 7329 2007-02-11 21:24:14Z twisti $
+   $Id: abi.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -36,12 +36,17 @@
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/jit.h"
 
+#include "arch.h"
 
 /* ABI externs ****************************************************************/
 
 extern s4 nregdescint[];
 extern char *regs[];
 extern s4 nregdescfloat[];
+
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+extern s4 nregdescadr[];
+#endif
 
 extern const char *abi_registers_integer_name[];
 extern const s4    abi_registers_integer_argument[];

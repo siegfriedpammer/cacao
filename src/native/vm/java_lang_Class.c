@@ -237,9 +237,7 @@ s4 _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class 
 		if (!link_class(cc))
 			return 0;
 
-	/* XXX this may be wrong for array classes */
-
-	return builtin_isanysubclass(cc, kc);
+	return class_isanysubclass(cc, kc);
 }
 
 

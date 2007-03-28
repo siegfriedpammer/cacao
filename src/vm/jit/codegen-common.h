@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7283 2007-02-04 19:41:14Z pm $
+   $Id: codegen-common.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -34,6 +34,8 @@
 
 typedef struct codegen_critical_section_t codegen_critical_section_t;
 typedef struct codegendata                codegendata;
+typedef struct branchref                  branchref;
+typedef struct branch_label_ref_t         branch_label_ref_t;
 typedef struct jumpref                    jumpref;
 typedef struct dataref                    dataref;
 typedef struct exceptionref               exceptionref;
@@ -86,7 +88,18 @@ typedef struct linenumberref              linenumberref;
 #define BRANCH_GT               (ICMD_IFGT - ICMD_IFEQ)
 #define BRANCH_LE               (ICMD_IFLE - ICMD_IFEQ)
 
-#define BRANCH_NAN              256
+#define BRANCH_ULT              256
+#define BRANCH_ULE              257
+#define BRANCH_UGE              258
+#define BRANCH_UGT              259
+
+#define BRANCH_NAN              260
+
+
+/* common branch options ******************************************************/
+
+#define BRANCH_OPT_NONE         0
+
 
 
 /************************* critical sections  *********************************/
@@ -99,7 +112,10 @@ struct codegen_critical_section_t {
 };
 
 
+/* codegendata ****************************************************************/
+
 struct codegendata {
+	u4              flags;          /* code generator flags                   */
 	u1             *mcodebase;      /* base pointer of code area              */
 	u1             *mcodeend;       /* pointer to end of code area            */
 	s4              mcodesize;      /* complete size of code area (bytes)     */
@@ -125,13 +141,13 @@ struct codegendata {
 
 	jumpref        *jumpreferences; /* list of jumptable target addresses     */
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP) || defined(__S390__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP) || defined(__S390__)
 	dataref        *datareferences; /* list of data segment references        */
 #endif
 
-	exceptionref   *exceptionrefs;  /* list of exception branches             */
 /* 	list           *patchrefs; */
 	patchref       *patchrefs;
+	list           *brancheslabel;
 
 	linenumberref  *linenumberreferences; /* list of line numbers and the     */
 	                                /* program counters of their first        */
@@ -155,6 +171,40 @@ struct codegendata {
 };
 
 
+#define CODEGENDATA_FLAG_ERROR           0x00000001
+#define CODEGENDATA_FLAG_LONGBRANCHES    0x00000002
+
+
+#define CODEGENDATA_HAS_FLAG_ERROR(cd) \
+    ((cd)->flags & CODEGENDATA_FLAG_ERROR)
+
+#define CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd) \
+    ((cd)->flags & CODEGENDATA_FLAG_LONGBRANCHES)
+
+
+/* branchref *****************************************************************/
+
+struct branchref {
+	s4         branchmpc;       /* patching position in code segment          */
+	s4         condition;       /* conditional branch condition               */
+	s4         reg;             /* register number to check                   */
+	u4         options;         /* branch options                             */
+	branchref *next;            /* next element in branchref list             */
+};
+
+
+/* branch_label_ref_t *********************************************************/
+
+struct branch_label_ref_t {
+	s4         mpc;             /* position in code segment                   */
+	s4         label;           /* label number                               */
+	s4         condition;       /* conditional branch condition               */
+	s4         reg;             /* register number to check                   */
+	u4         options;         /* branch options                             */
+	listnode   linkage;
+};
+
+
 /* jumpref ********************************************************************/
 
 struct jumpref {
@@ -169,16 +219,6 @@ struct jumpref {
 struct dataref {
 	s4       datapos;           /* patching position in generated code        */
 	dataref *next;              /* next element in dataref list               */
-};
-
-
-/* exceptionref ***************************************************************/
-
-struct exceptionref {
-	s4            branchpos;    /* patching position in code segment          */
-	s4            reg;          /* used for ArrayIndexOutOfBounds index reg   */
-	functionptr   function;     /* function pointer to generate exception     */
-	exceptionref *next;         /* next element in exceptionref list          */
 };
 
 
@@ -227,6 +267,13 @@ struct methodtree_element {
 void codegen_init(void);
 void codegen_setup(jitdata *jd);
 
+bool codegen_generate(jitdata *jd);
+bool codegen_emit(jitdata *jd);
+
+#if defined(ENABLE_INTRP)
+bool intrp_codegen(jitdata *jd);
+#endif
+
 void codegen_close(void);
 
 void codegen_increase(codegendata *cd);
@@ -235,17 +282,10 @@ void codegen_increase(codegendata *cd);
 u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr);
 #endif
 
-void codegen_add_branch_ref(codegendata *cd, basicblock *target);
-/* XXX REMOVE ME: don't-break-trunk macro */
-#define codegen_addreference codegen_add_branch_ref
+void codegen_add_branch_ref(codegendata *cd, basicblock *target, s4 condition, s4 reg, u4 options);
 void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr);
 
-void codegen_add_arithmeticexception_ref(codegendata *cd);
-void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd, s4 reg);
-void codegen_add_arraystoreexception_ref(codegendata *cd);
-void codegen_add_classcastexception_ref(codegendata *cd, s4 reg);
-void codegen_add_nullpointerexception_ref(codegendata *cd);
-void codegen_add_fillinstacktrace_ref(codegendata *cd);
+void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options);
 
 
 void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
@@ -298,14 +338,7 @@ void codegen_threadcritstop(codegendata *cd, int offset);
 #endif
 
 /* machine dependent functions */
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc);
-u1  *md_codegen_get_pv_from_pc(u1 *ra);
-
-bool codegen(jitdata *jd);
-
-#if defined(ENABLE_INTRP)
-bool intrp_codegen(jitdata *jd);
-#endif
+u1 *md_codegen_get_pv_from_pc(u1 *ra);
 
 #endif /* _CODEGEN_COMMON_H */
 

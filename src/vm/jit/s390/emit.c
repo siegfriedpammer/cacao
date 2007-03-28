@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: emit.c 7581 2007-03-26 07:23:16Z pm $
 
 */
 
@@ -212,15 +212,15 @@ void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
 
 *******************************************************************************/
 
-void emit_exception_stubs(jitdata *jd)
+__PORTED__ void emit_exception_stubs(jitdata *jd)
 {
-#if 0
 	codegendata  *cd;
 	registerdata *rd;
 	exceptionref *er;
 	s4            branchmpc;
 	s4            targetmpc;
 	s4            targetdisp;
+	s4            disp;
 
 	/* get required compiler data */
 
@@ -241,6 +241,8 @@ void emit_exception_stubs(jitdata *jd)
 
 		MCODECHECK(512);
 
+		/* move index register into REG_ITMP1 */
+
 		/* Check if the exception is an
 		   ArrayIndexOutOfBoundsException.  If so, move index register
 		   into a4. */
@@ -250,38 +252,57 @@ void emit_exception_stubs(jitdata *jd)
 
 		/* calcuate exception address */
 
-		M_MOV_IMM(0, rd->argintregs[3]);
-		dseg_adddata(cd);
-		M_AADD_IMM32(er->branchpos - 6, rd->argintregs[3]);
+		if (N_VALID_DISP(er->branchpos - 4)) {
+			M_LDA(rd->argintregs[3], REG_PV, er->branchpos - 4);
+		} else {
+			M_INTMOVE(REG_PV, rd->argintregs[3]);
+			M_AADD_IMM(er->branchpos - 4, REG_PV);
+		}
 
-		/* move function to call into REG_ITMP3 */
+		/* move function to call into REG_ITMP! */
 
-		M_MOV_IMM(er->function, REG_ITMP3);
+		disp = dseg_add_functionptr(cd, er->function);
+		M_ALD(REG_ITMP1, REG_PV, disp);
 
 		if (targetdisp == 0) {
-			targetdisp = cd->mcodeptr - cd->mcodebase;
+			targetdisp = (cd->mcodeptr) - (cd->mcodebase);
 
-			emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), rd->argintregs[0]);
+			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2], REG_SP, cd->stackframesize * 8);
 
-			M_ASUB_IMM(2 * 8, REG_SP);
-			M_AST(rd->argintregs[3], REG_SP, 0 * 8);             /* store XPC */
+			M_ALD(rd->argintregs[2],
+				  REG_SP, cd->stackframesize * 4 - SIZEOF_VOID_P);
 
-			M_CALL(REG_ITMP3);
+			M_ASUB_IMM((2 * 4) + 96, REG_SP);	
 
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_AADD_IMM(2 * 8, REG_SP);
+			M_AST(rd->argintregs[3], REG_SP, (0 * 4) + 96); /* store XPC */
 
-			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
+			M_MOV(REG_ITMP1, REG_PV);
+			M_JSR(REG_RA, REG_PV);
+
+			/* Recalculate PV */
+
+			N_BASR(REG_ITMP1, RN);
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
+			M_LDA(REG_PV, REG_ITMP1, -disp);
+
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+			M_ALD(REG_ITMP2_XPC, REG_SP, (0 * 4) + 96);
+			M_AADD_IMM((2 * 4) + 96, REG_SP);
+
+			disp = dseg_add_functionptr(cd, asm_handle_exception);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JMP(RN, REG_ITMP3);
 		}
 		else {
-			M_JMP_IMM((cd->mcodebase + targetdisp) -
-					  (cd->mcodeptr + PATCHER_CALL_SIZE));
+			disp = ((cd->mcodebase) + targetdisp) -
+				(( cd->mcodeptr) );
+
+			M_BR(disp);
 		}
+
 	}
-#endif
 }
 
 
@@ -2338,40 +2359,7 @@ void emit_rdtsc(codegendata *cd)
 
 *******************************************************************************/
 
-s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
-{
-	codegendata  *cd;
-	s4            disp;
-	s4            reg;
-
-	assert(src->type == TYPE_LNG);
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-
-	if (IS_INMEMORY(src->flags)) {
-		COUNT_SPILLS;
-
-		disp = src->vv.regoff * 4;
-
-		M_ILD(tempreg, REG_SP, disp);
-
-		reg = tempreg;
-	}
-	else
-		reg = GET_HIGH_REG(src->vv.regoff);
-
-	return reg;
-}
-
-/* emit_load_low ***************************************************************
-
-   Emits a possible load of the low 32-bits of an operand.
-
-*******************************************************************************/
-
-s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+__PORTED__ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -2389,6 +2377,39 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 		disp = src->vv.regoff * 4;
 
 		M_ILD(tempreg, REG_SP, disp + 4);
+
+		reg = tempreg;
+	}
+	else
+		reg = GET_HIGH_REG(src->vv.regoff);
+
+	return reg;
+}
+
+/* emit_load_low ***************************************************************
+
+   Emits a possible load of the low 32-bits of an operand.
+
+*******************************************************************************/
+
+__PORTED__ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	assert(src->type == TYPE_LNG);
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (IS_INMEMORY(src->flags)) {
+		COUNT_SPILLS;
+
+		disp = src->vv.regoff * 4;
+
+		M_ILD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
 	}
@@ -2443,6 +2464,28 @@ s4 emit_load_s2_notzero(jitdata *jd, instruction *iptr, s4 tempreg) {
 	codegendata *cd = jd->cd;
 	s4 reg = emit_load_s2(jd, iptr, tempreg);
 	if (reg == 0) {
+		M_MOV(reg, tempreg);
+		return tempreg;
+	} else {
+		return reg;
+	}
+}
+
+s4 emit_load_s1_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
+	codegendata *cd = jd->cd;
+	s4 reg = emit_load_s1(jd, iptr, tempreg);
+	if (reg == notreg) {
+		M_MOV(reg, tempreg);
+		return tempreg;
+	} else {
+		return reg;
+	}
+}
+
+s4 emit_load_s2_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
+	codegendata *cd = jd->cd;
+	s4 reg = emit_load_s2(jd, iptr, tempreg);
+	if (reg == notreg) {
 		M_MOV(reg, tempreg);
 		return tempreg;
 	} else {

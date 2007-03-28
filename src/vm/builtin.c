@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: builtin.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -370,106 +370,40 @@ bool builtintable_replace_function(void *iptr_)
 								TYPE CHECKS
 *****************************************************************************/
 
+/* builtin_instanceof **********************************************************
 
+   Checks if an object is an instance of some given class (or subclass
+   of that class). If class is an interface, checks if the interface
+   is implemented.
 
-/*************** internal function: builtin_isanysubclass *********************
-
-	Checks a subclass relation between two classes. Implemented interfaces
-	are interpreted as super classes.
-	Return value:  1 ... sub is subclass of super
-				   0 ... otherwise
-
-******************************************************************************/
-
-s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
-{
-	s4 res;
-	castinfo classvalues;
-
-	if (sub == super)
-		return 1;
-
-	if (super->flags & ACC_INTERFACE) {
-		res = (sub->vftbl->interfacetablelength > super->index) &&
-			(sub->vftbl->interfacetable[-super->index] != NULL);
-
-	} else {
-		/* java.lang.Object is the only super_class_ of any interface */
-		if (sub->flags & ACC_INTERFACE)
-			return (super == class_java_lang_Object);
-
-		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues);
-
-		res = (u4) (classvalues.sub_baseval - classvalues.super_baseval) <=
-			(u4) classvalues.super_diffval;
-	}
-
-	return res;
-}
-
-
-s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
-{
-	s4 res;
-	s4 base;
-	castinfo classvalues;
-
-	if (sub == super)
-		return 1;
-
-	ASM_GETCLASSVALUES_ATOMIC(super, sub, &classvalues);
-
-	if ((base = classvalues.super_baseval) <= 0) {
-		/* super is an interface */
-		res = (sub->interfacetablelength > -base) &&
-			(sub->interfacetable[base] != NULL);
-	} 
-	else {
-		/* java.lang.Object is the only super_class_ of any interface */
-		if (classvalues.sub_baseval <= 0)
-			return classvalues.super_baseval == 1;
-
-	    res = (u4) (classvalues.sub_baseval - classvalues.super_baseval)
-			<= (u4) classvalues.super_diffval;
-	}
-
-	return res;
-}
-
-
-/****************** function: builtin_instanceof *****************************
-
-	Checks if an object is an instance of some given class (or subclass of
-	that class). If class is an interface, checks if the interface is
-	implemented.
-	Return value:  1 ... obj is an instance of class or implements the interface
-				   0 ... otherwise or if obj == NULL
+   Return value: 1 ... o is an instance of class or implements the interface
+                 0 ... otherwise or if o == NULL
 			 
-*****************************************************************************/
+*******************************************************************************/
 
-s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
+s4 builtin_instanceof(java_objectheader *o, classinfo *class)
 {
-	if (!obj)
+	if (o == NULL)
 		return 0;
 
-	return builtin_isanysubclass(obj->vftbl->class, class);
+	return class_isanysubclass(o->vftbl->class, class);
 }
 
 
 
-/**************** function: builtin_checkcast *******************************
+/* builtin_checkcast ***********************************************************
 
-	The same as builtin_instanceof except that 1 is returned when
-	obj == NULL
+   The same as builtin_instanceof except that 1 is returned when o ==
+   NULL.
 			  
-****************************************************************************/
+*******************************************************************************/
 
-s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
+s4 builtin_checkcast(java_objectheader *o, classinfo *class)
 {
-	if (obj == NULL)
+	if (o == NULL)
 		return 1;
 
-	if (builtin_isanysubclass(obj->vftbl->class, class))
+	if (class_isanysubclass(o->vftbl->class, class))
 		return 1;
 
 	return 0;
@@ -507,8 +441,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 			(target->elementvftbl->baseval == 1))
 			return 1;
 
-		return builtin_isanysubclass_vftbl(desc->elementvftbl,
-										   target->elementvftbl);
+		return class_isanysubclass(desc->elementvftbl->class,
+								   target->elementvftbl->class);
 	}
 
 	if (desc->dimension < target->dimension)
@@ -516,8 +450,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 
 	/* {desc has higher dimension than target} */
 
-	return builtin_isanysubclass_vftbl(pseudo_class_Arraystub->vftbl,
-									   target->elementvftbl);
+	return class_isanysubclass(pseudo_class_Arraystub,
+							   target->elementvftbl->class);
 }
 
 
@@ -538,10 +472,12 @@ s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass)
 {
 	arraydescriptor *desc;
 
-	if (!o)
+	if (o == NULL)
 		return 1;
 
-	if ((desc = o->vftbl->arraydesc) == NULL)
+	desc = o->vftbl->arraydesc;
+
+	if (desc == NULL)
 		return 0;
  
 	return builtin_descriptorscompatible(desc, targetclass->vftbl->arraydesc);
@@ -550,7 +486,7 @@ s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass)
 
 s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
 {
-	if (!o)
+	if (o == NULL)
 		return 0;
 
 	return builtin_arraycheckcast(o, targetclass);
@@ -641,7 +577,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
    Checks, if an object can be stored in an array.
 
    Return value: 1 ... possible
-                 0 ... otherwise
+                 0 ... otherwise (throws an ArrayStoreException)
 
 *******************************************************************************/
 
@@ -653,8 +589,9 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 	vftbl_t         *valuevftbl;
 	s4               base;
 	castinfo         classvalues;
+	s4               result;
 
-	if (!o)
+	if (o == NULL)
 		return 1;
 
 	/* The following is guaranteed (by verifier checks):
@@ -667,10 +604,9 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 	desc           = oa->header.objheader.vftbl->arraydesc;
 	componentvftbl = desc->componentvftbl;
 	valuevftbl     = o->vftbl;
+	valuedesc      = valuevftbl->arraydesc;
 
 	if ((desc->dimension - 1) == 0) {
-		s4 res;
-
 		/* {oa is a one-dimensional array} */
 		/* {oa is an array of references} */
 		
@@ -679,28 +615,41 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 
 		ASM_GETCLASSVALUES_ATOMIC(componentvftbl, valuevftbl, &classvalues);
 
-		if ((base = classvalues.super_baseval) <= 0)
-			/* an array of interface references */
-			return (valuevftbl->interfacetablelength > -base &&
-					valuevftbl->interfacetable[base] != NULL);
-		
-		res = ((unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-			   <= (unsigned) classvalues.super_diffval);
+		base = classvalues.super_baseval;
 
-		return res;
+		if (base <= 0) {
+			/* an array of interface references */
+
+			result = ((valuevftbl->interfacetablelength > -base) &&
+					(valuevftbl->interfacetable[base] != NULL));
+		}
+		else {
+			result = ((unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
+				   <= (unsigned) classvalues.super_diffval);
+		}
+	}
+	else if (valuedesc == NULL) {
+		/* {oa has dimension > 1} */
+		/* {componentvftbl->arraydesc != NULL} */
+
+		/* check if o is an array */
+
+		return 0;
+	}
+	else {
+		/* {o is an array} */
+
+		result = builtin_descriptorscompatible(valuedesc, componentvftbl->arraydesc);
 	}
 
-	/* {oa has dimension > 1} */
-	/* {componentvftbl->arraydesc != NULL} */
+	/* if not possible, throw an exception */
 
-	/* check if o is an array */
+	if (result == 0)
+		exceptions_throw_arraystoreexception();
 
-	if ((valuedesc = valuevftbl->arraydesc) == NULL)
-		return 0;
+	/* return result */
 
-	/* {o is an array} */
-
-	return builtin_descriptorscompatible(valuedesc, componentvftbl->arraydesc);
+	return result;
 }
 
 
@@ -2610,10 +2559,8 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 			for (i = 0; i < len; i++) {
 				java_objectheader *o = oas->data[srcStart + i];
 
-				if (!builtin_canstore(oad, o)) {
-					exceptions_throw_arraystoreexception();
+				if (!builtin_canstore(oad, o))
 					return false;
-				}
 
 				oad->data[destStart + i] = o;
 			}
@@ -2628,10 +2575,8 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 			for (i = len - 1; i >= 0; i--) {
 				java_objectheader *o = oas->data[srcStart + i];
 
-				if (!builtin_canstore(oad, o)) {
-					exceptions_throw_arraystoreexception();
+				if (!builtin_canstore(oad, o))
 					return false;
-				}
 
 				oad->data[destStart + i] = o;
 			}

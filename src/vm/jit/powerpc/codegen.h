@@ -1,7 +1,7 @@
 /* src/vm/jit/powerpc/codegen.h - code generation macros and definitions for
                                   32-bit PowerPC
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -23,14 +23,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Stefan Ring
-            Christian Thalinger
-            Christian Ullrich
-
-   $Id: codegen.h 6078 2006-11-28 22:19:16Z twisti $
+   $Id: codegen.h 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -113,7 +106,13 @@
 
 #define BRANCH_NOPS \
     do { \
-        M_NOP; \
+        if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) { \
+            M_NOP; \
+            M_NOP; \
+        } \
+        else { \
+            M_NOP; \
+        } \
     } while (0)
 
 
@@ -135,17 +134,27 @@
         cd->mcodeptr += 4; \
     } while (0)
 
+#define M_OP3_GET_A(x)                (((x) >> 16) & 0x1f  )
+#define M_OP3_GET_B(x)                (((x) >> 11) & 0x1f  )
+
+
 #define M_OP4(x,y,rc,d,a,b,c) \
     do { \
         *((u4 *) cd->mcodeptr) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((c) << 6) | ((y) << 1) | (rc)); \
         cd->mcodeptr += 4; \
     } while (0)
 
+
 #define M_OP2_IMM(x,d,a,i) \
     do { \
         *((u4 *) cd->mcodeptr) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((i) & 0xffff)); \
         cd->mcodeptr += 4; \
     } while (0)
+
+#define M_INSTR_OP2_IMM_D(x)            (((x) >> 21) & 0x1f  )
+#define M_INSTR_OP2_IMM_A(x)            (((x) >> 16) & 0x1f  )
+#define M_INSTR_OP2_IMM_I(x)            ( (x)        & 0xffff)
+
 
 #define M_BMASK     0x03fffffc                      /* (((1 << 26) - 1) & ~3) */
 #define M_BCMASK    0x0000fffc                      /* (((1 << 16) - 1) & ~3) */
@@ -242,7 +251,9 @@
 #define M_STWUX(a,b,c)                  M_OP3(31,183,0,0,a,b,c)
 
 #define M_LDAH(a,b,c)                   M_ADDIS(b, c, a)
+
 #define M_TRAP                          M_OP3(31, 4, 0, 0, 31, 0, 0)
+#define M_TRAPGEU(a,b)                  M_OP3(31, 4, 0, 0, 5, a, b)
 
 #define M_NOP                           M_OR_IMM(0, 0, 0)
 #define M_MOV(a,b)                      M_OR(a, a, b)

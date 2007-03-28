@@ -175,7 +175,6 @@ enum {
 
 	OPT_VERBOSE1,
 	OPT_NOIEEE,
-	OPT_SOFTNULL,
 
 #if defined(ENABLE_STATISTICS)
 	OPT_TIME,
@@ -298,7 +297,6 @@ opt_struct opts[] = {
 #if defined(__ALPHA__)
 	{ "noieee",            false, OPT_NOIEEE },
 #endif
-	{ "softnull",          false, OPT_SOFTNULL },
 #if defined(ENABLE_STATISTICS)
 	{ "time",              false, OPT_TIME },
 	{ "stat",              false, OPT_STAT },
@@ -500,7 +498,6 @@ static void XXusage(void)
 #if defined(ENABLE_VERIFIER)
 	puts("    -noverify                don't verify classfiles");
 #endif
-	puts("    -softnull                use software nullpointer check");
 #if defined(ENABLE_STATISTICS)
 	puts("    -time                    measure the runtime");
 	puts("    -stat                    detailed compiler statistics");
@@ -889,7 +886,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	opt_version       = false;
 	opt_exit          = false;
 
-	checknull         = false;
 	opt_noieee        = false;
 
 	opt_heapmaxsize   = HEAP_MAXSIZE;
@@ -1151,10 +1147,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			opt_verify = false;
 			break;
 #endif
-
-		case OPT_SOFTNULL:
-			checknull = true;
-			break;
 
 #if defined(ENABLE_STATISTICS)
 		case OPT_TIME:
@@ -1474,17 +1466,17 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* AFTER: threads_preinit */
 
 	if (!string_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: string_init failed");
 
 	/* AFTER: threads_preinit */
 
 	if (!utf8_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: utf8_init failed");
 
 	/* AFTER: thread_preinit */
 
 	if (!suck_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: suck_init failed");
 
 	suck_add_from_property("java.endorsed.dirs");
 
@@ -1508,25 +1500,25 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	   _Jv_bootclasspath pointer. */
 
 	if (!properties_postinit())
-		vm_abort("properties_postinit failed");
+		vm_abort("vm_create: properties_postinit failed");
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */
 
 	if (!classcache_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: classcache_init failed");
 
 	/* initialize the memory subsystem (must be done _after_
 	   threads_preinit) */
 
 	if (!memory_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: memory_init failed");
 
 	/* initialize the finalizer stuff (must be done _after_
 	   threads_preinit) */
 
 	if (!finalizer_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: finalizer_init failed");
 
 	/* install architecture dependent signal handlers */
 
@@ -1557,19 +1549,19 @@ bool vm_create(JavaVMInitArgs *vm_args)
        classcache_init) */
 
 	if (!loader_init())
-		vm_abort("loader_init failed");
+		vm_abort("vm_create: loader_init failed");
 
 	if (!linker_init())
-		vm_abort("linker_init failed");
+		vm_abort("vm_create: linker_init failed");
 
 	if (!native_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: native_init failed");
 
 	if (!exceptions_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: exceptions_init failed");
 
 	if (!builtin_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: builtin_init failed");
 
 #if defined(ENABLE_JNI)
 	/* Initialize the JNI subsystem (must be done _before_
@@ -1577,57 +1569,57 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	   (e.g. NewGlobalRef). */
 
 	if (!jni_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: jni_init failed");
 #endif
 
 #if defined(ENABLE_THREADS)
   	if (!threads_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: threads_init failed");
 #endif
 
 #if defined(ENABLE_PROFILING)
 	/* initialize profiling */
 
 	if (!profile_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: profile_init failed");
 #endif
 
 #if defined(ENABLE_THREADS)
 	/* initialize recompilation */
 
 	if (!recompile_init())
-		throw_main_exception_exit();
+		vm_abort("vm_create: recompile_init failed");
 
 	/* start the signal handler thread */
 
 	if (!signal_start_thread())
-		throw_main_exception_exit();
+		vm_abort("vm_create: signal_start_thread failed");
 
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())
-		throw_main_exception_exit();
+		vm_abort("vm_create: finalizer_start_thread failed");
 
 # if !defined(NDEBUG)
 	/* start the memory profiling thread */
 
 	if (opt_verbosememory)
 		if (!memory_start_thread())
-			throw_main_exception_exit();
+			vm_abort("vm_create: memory_start_thread failed");
 # endif
 
 	/* start the recompilation thread (must be done before the
 	   profiling thread) */
 
 	if (!recompile_start_thread())
-		throw_main_exception_exit();
+		vm_abort("vm_create: recompile_start_thread failed");
 
 # if defined(ENABLE_PROFILING)
 	/* start the profile sampling thread */
 
 /* 	if (opt_prof) */
 /* 		if (!profile_start_thread()) */
-/* 			throw_main_exception_exit(); */
+/* 			exceptions_print_stacktrace(); */
 # endif
 #endif
 
@@ -1695,9 +1687,14 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	status = 0;
 
-	if (opt_jar == true)
+	if (opt_jar == true) {
 		/* open jar file with java.util.jar.JarFile */
+
 		mainstring = vm_get_mainclass_from_jar(mainstring);
+
+		if (mainstring == NULL)
+			vm_exit(1);
+	}
 
 	/* load the main class */
 
@@ -1711,11 +1708,15 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	/* error loading class */
 
-	if ((exceptions_get_exception() != NULL) || (mainclass == NULL))
-		throw_main_exception_exit();
+	if ((exceptions_get_exception() != NULL) || (mainclass == NULL)) {
+		exceptions_print_stacktrace(); 
+		vm_exit(1);
+	}
 
-	if (!link_class(mainclass))
-		throw_main_exception_exit();
+	if (!link_class(mainclass)) {
+		exceptions_print_stacktrace();
+		vm_exit(1);
+	}
 			
 	/* find the `main' method of the main class */
 
@@ -1725,8 +1726,9 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 								 class_java_lang_Object,
 								 false);
 
-	if (*exceptionptr) {
-		throw_main_exception_exit();
+	if (exceptions_get_exception()) {
+		exceptions_print_stacktrace();
+		vm_exit(1);
 	}
 
 	/* there is no main method or it isn't static */
@@ -1737,7 +1739,8 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 										   utf_new_char("main"), 
 										   utf_new_char("([Ljava/lang/String;)V"));
 
-		throw_main_exception_exit();
+		exceptions_print_stacktrace();
+		vm_exit(1);
 	}
 
 	/* build argument array */
@@ -1779,14 +1782,14 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	/* exception occurred? */
 
-	if (*exceptionptr) {
-		throw_main_exception();
+	if (exceptions_get_exception()) {
+		exceptions_print_stacktrace();
 		status = 1;
 	}
 
 	/* unload the JavaVM */
 
-	vm_destroy(vm);
+	(void) vm_destroy(vm);
 
 	/* and exit */
 
@@ -1836,8 +1839,10 @@ void vm_exit(s4 status)
 	}
 #endif
 
-	if (!link_class(class_java_lang_System))
-		throw_main_exception_exit();
+	if (!link_class(class_java_lang_System)) {
+		exceptions_print_stacktrace();
+		exit(1);
+	}
 
 	/* call java.lang.System.exit(I)V */
 
@@ -1847,8 +1852,10 @@ void vm_exit(s4 status)
 								 class_java_lang_Object,
 								 true);
 	
-	if (m == NULL)
-		throw_main_exception_exit();
+	if (m == NULL) {
+		exceptions_print_stacktrace();
+		exit(1);
+	}
 
 	/* call the exit function with passed exit status */
 
@@ -1997,16 +2004,19 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 
 	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
 
-	if (c == NULL)
-		throw_main_exception_exit();
-	
+	if (c == NULL) {
+		exceptions_print_stacktrace();
+		return NULL;
+	}
+
 	/* create JarFile object */
 
 	o = builtin_new(c);
 
-	if (o == NULL)
-		throw_main_exception_exit();
-
+	if (o == NULL) {
+		exceptions_print_stacktrace();
+		return NULL;
+	}
 
 	m = class_resolveclassmethod(c,
 								 utf_init, 
@@ -2014,15 +2024,19 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 								 class_java_lang_Object,
 								 true);
 
-	if (m == NULL)
-		throw_main_exception_exit();
+	if (m == NULL) {
+		exceptions_print_stacktrace();
+		return NULL;
+	}
 
 	s = javastring_new_from_ascii(mainstring);
 
 	(void) vm_call_method(m, o, s);
 
-	if (*exceptionptr)
-		throw_main_exception_exit();
+	if (exceptions_get_exception()) {
+		exceptions_print_stacktrace();
+		return NULL;
+	}
 
 	/* get manifest object */
 
@@ -2032,14 +2046,16 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 								 class_java_lang_Object,
 								 true);
 
-	if (m == NULL)
-		throw_main_exception_exit();
+	if (m == NULL) {
+		exceptions_print_stacktrace();
+		return NULL;
+	}
 
 	o = vm_call_method(m, o);
 
 	if (o == NULL) {
 		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainstring);
-		vm_exit(1);
+		return NULL;
 	}
 
 
@@ -2051,14 +2067,16 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 								 class_java_lang_Object,
 								 true);
 
-	if (m == NULL)
-		throw_main_exception_exit();
+	if (m == NULL) {
+		exceptions_print_stacktrace();
+		return NULL;
+	}
 
 	o = vm_call_method(m, o);
 
 	if (o == NULL) {
 		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainstring);
-		vm_exit(1);
+		return NULL;
 	}
 
 
@@ -2070,15 +2088,19 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 								 class_java_lang_Object,
 								 true);
 
-	if (m == NULL)
-		throw_main_exception_exit();
+	if (m == NULL) {
+		exceptions_print_stacktrace();
+		return NULL;
+	}
 
 	s = javastring_new_from_ascii("Main-Class");
 
 	o = vm_call_method(m, o, s);
 
-	if (o == NULL)
-		throw_main_exception_exit();
+	if (o == NULL) {
+		exceptions_print_stacktrace();
+		return NULL;
+	}
 
 	return javastring_tochar(o);
 }
@@ -2175,11 +2197,13 @@ static void vm_compile_method(void)
 
 	/* create, load and link the main class */
 
-	if (!(mainclass = load_class_bootstrap(utf_new_char(mainstring))))
-		throw_main_exception_exit();
+	mainclass = load_class_bootstrap(utf_new_char(mainstring));
+
+	if (mainclass == NULL)
+		exceptions_print_stacktrace();
 
 	if (!link_class(mainclass))
-		throw_main_exception_exit();
+		exceptions_print_stacktrace();
 
 	if (opt_signature != NULL) {
 		m = class_resolveclassmethod(mainclass,

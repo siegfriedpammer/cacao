@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7374 2007-02-19 23:47:58Z twisti $
+## $Id: Makefile.am 7596 2007-03-28 21:05:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -150,8 +150,6 @@ if WITH_STATIC_CLASSPATH
 DO_HEADER_FILES += \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 endif
-
-CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
 if WITH_CLASSPATH_GNU
 CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)

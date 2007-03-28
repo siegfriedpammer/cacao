@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7304 2007-02-09 10:35:26Z twisti $
+   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -86,42 +86,6 @@ void md_init(void)
 /*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
 						& ~IEEE_TRAP_ENABLE_OVF);
 #endif
-}
-
-
-/* md_codegen_patch_branch *****************************************************
-
-   Back-patches a branch instruction.
-
-*******************************************************************************/
-
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
-{
-	s4 *mcodeptr;
-	s4  mcode;
-	s4  disp;                           /* branch displacement                */
-
-	/* calculate the patch position */
-
-	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
-
-	/* get the instruction before the exception point */
-
-	mcode = mcodeptr[-1];
-
-	/* Calculate the branch displacement.  For branches we need a
-	   displacement relative and shifted to the branch PC. */
-
-	disp = (targetmpc - branchmpc) >> 2;
-
-	/* check branch displacement */
-
-	if ((disp < (s4) 0xffe00000) || (disp > (s4) 0x001fffff))
-		vm_abort("branch displacement is out of range: %d > +/-%d", disp, 0x001fffff);
-
-	/* patch the branch instruction before the mcodeptr */
-
-	mcodeptr[-1] |= (disp & 0x001fffff);
 }
 
 
@@ -359,6 +323,7 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *save
     md_icacheflush(rp->pc,4);
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

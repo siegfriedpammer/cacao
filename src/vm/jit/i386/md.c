@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/md.c - machine dependent i386 functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-            Edwin Steiner
-
-   $Id: md.c 7255 2007-01-29 21:39:38Z twisti $
+   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -59,34 +54,6 @@
 void md_init(void)
 {
 	(void) asm_md_init();
-}
-
-
-/* md_codegen_patch_branch *****************************************************
-
-   Back-patches a branch instruction.
-
-*******************************************************************************/
-
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
-{
-	s4 *mcodeptr;
-	s4  disp;                           /* branch displacement                */
-
-	/* calculate the patch position */
-
-	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
-
-	/* Calculate the branch displacement. */
-
-	disp = targetmpc - branchmpc;
-
-	/* I don't think we have to check for branch-displacement
-	   overflow, +/-2GB should be enough. */
-
-	/* patch the branch instruction before the mcodeptr */
-
-	mcodeptr[-1] = disp;
 }
 
 

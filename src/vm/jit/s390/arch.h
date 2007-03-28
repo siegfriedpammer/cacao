@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 7312 2007-02-10 00:49:37Z pm $
+   $Id: arch.h 7534 2007-03-16 23:00:18Z pm $
 
 */
 
@@ -97,6 +97,9 @@
 
 #define CONSECUTIVE_INTEGER_ARGS
 #define CONSECUTIVE_FLOAT_ARGS
+
+#define HAS_4BYTE_STACKSLOT
+#define SUPPORT_COMBINE_INTEGER_REGISTERS
 
 #endif /* _ARCH_H */
 

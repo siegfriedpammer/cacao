@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: patcher.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
@@ -657,20 +657,75 @@ bool patcher_invokeinterface(u1 *sp)
 }
 
 
-/* patcher_checkcast_instanceof_interface **************************************
+/* patcher_checkcast_interface *************************************************
 
    Machine code:
 
    <patched call position>
-   81870000    lwz   r12,0(r7)
-   800c0010    lwz   r0,16(r12)
-   34000000    addic.        r0,r0,0
-   408101fc    ble-  0x3002e518
-   800c0000    lwz   r0,0(r12)
+   81870000    lwz     r12,0(r7)
+   800c0010    lwz     r0,16(r12)
+   34000000    addic.  r0,r0,0
+   41810008    bgt-    0x014135d8
+   83c00003    lwz     r30,3(0)
+   800c0000    lwz     r0,0(r12)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_interface(u1 *sp)
+bool patcher_checkcast_interface(u1 *sp)
+{
+	u1                *ra;
+	constant_classref *cr;
+	classinfo         *c;
+	s4                 disp;
+
+	/* get stuff from the stack */
+
+	ra = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	cr = (constant_classref *) *((ptrint *) (sp + 2 * 4));
+
+	/* get the fieldinfo */
+
+	if (!(c = resolve_classref_eager(cr)))
+		return false;
+
+	/* if we show NOPs, we have to skip them */
+
+	if (opt_shownops)
+		ra = ra + 1 * 4;
+
+	/* patch super class index */
+
+	disp = -(c->index);
+
+	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
+
+	disp = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
+
+	*((s4 *) (ra + 5 * 4)) |= (disp & 0x0000ffff);
+
+	/* synchronize instruction cache */
+
+	md_icacheflush(ra + 2 * 4, 4 * 4);
+
+	return true;
+}
+
+
+/* patcher_instanceof_interface ************************************************
+
+   Machine code:
+
+   <patched call position>
+   81870000    lwz     r12,0(r7)
+   800c0010    lwz     r0,16(r12)
+   34000000    addic.  r0,r0,0
+   41810008    bgt-    0x014135d8
+   83c00003    lwz     r30,3(0)
+   800c0000    lwz     r0,0(r12)
+
+*******************************************************************************/
+
+bool patcher_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
 	constant_classref *cr;

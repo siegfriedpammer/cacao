@@ -90,6 +90,14 @@
 #endif
 
 
+/* branches *******************************************************************/
+
+#define SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER       1
+#define SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER     1
+#define SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS    0
+#define SUPPORT_BRANCH_CONDITIONAL_UNSIGNED_CONDITIONS      1
+
+
 /* exceptions *****************************************************************/
 
 #define SUPPORT_HARDWARE_DIVIDE_BY_ZERO  0

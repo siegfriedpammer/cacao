@@ -26,8 +26,6 @@
 
    Authors: Edwin Steiner
 
-   Changes: 
-
    $Id$
 
 */
@@ -312,7 +310,8 @@
 		if ((state->iptr->opc == ICMD_INVOKEVIRTUAL)
 			&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))
 		{
-			state->iptr->opc = ICMD_INVOKESPECIAL;
+			state->iptr->opc         = ICMD_INVOKESPECIAL;
+			state->iptr->flags.bits |= INS_FLAG_CHECK;
 		}
 	}
 	else {

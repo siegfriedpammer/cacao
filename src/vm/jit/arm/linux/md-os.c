@@ -1,6 +1,6 @@
-/* src/vm/jit/arm/linux/md.c - machine dependent arm linux functions
+/* src/vm/jit/arm/linux/md-os.c - machine dependent arm linux functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -21,11 +21,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-            Christian Thalinger
 
    $Id: md.c 166 2006-01-22 23:38:44Z twisti $
 
@@ -66,8 +61,7 @@ typedef struct ucontext {
 
 /* md_signal_handler_sigsegv ***************************************************
 
-   NullPointerException signal handler for hardware null pointer
-   check.
+   Signal handler for hardware exceptions.
 
 *******************************************************************************/
 
@@ -113,6 +107,60 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		assert(0);
 	}
+}
+
+
+/* md_signal_handler_sigill ****************************************************
+
+   Illegal Instruction signal handler for hardware exception checks.
+
+*******************************************************************************/
+
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t        *_uc;
+	scontext_t        *_sc;
+	u1                *pv;
+	u1                *sp;
+	u1                *ra;
+	u1                *xpc;
+	u4                 mcode;
+	s4                 type;
+	ptrint             val;
+	java_objectheader *o;
+
+	_uc = (ucontext_t*) _p;
+	_sc = &_uc->uc_mcontext;
+
+	/* ATTENTION: glibc included messed up kernel headers we needed a
+	   workaround for the ucontext structure. */
+
+	pv  = (u1*) _sc->arm_ip;
+	sp  = (u1*) _sc->arm_sp;
+	ra  = (u1*) _sc->arm_lr;                     /* this is correct for leafs */
+	xpc = (u1*) _sc->arm_pc;
+
+	/* get exception-throwing instruction */
+
+	mcode = *((u4 *) xpc);
+
+	/* check for undefined instruction we use */
+
+	if ((mcode & 0x0ff000f0) != 0x07f000f0)
+		vm_abort("md_signal_handler_sigill: unknown illegal instruction");
+
+	type = (mcode >> 8) & 0x0fff;
+	val  = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));
+
+	/* generate appropriate exception */
+
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	/* set registers */
+
+	_sc->arm_r10 = (ptrint) o;
+	_sc->arm_fp  = (ptrint) xpc;
+	_sc->arm_pc  = (ptrint) asm_handle_exception;
 }
 
 
