@@ -22,12 +22,6 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes: Michael Starzinger
-##
 ## $Id$
 
 ## Process this file with automake to produce Makefile.in
