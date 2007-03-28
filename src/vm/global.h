@@ -32,7 +32,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 7577 2007-03-25 20:55:06Z twisti $
+   $Id: global.h 7561 2007-03-23 19:10:35Z twisti $
 
 */
 

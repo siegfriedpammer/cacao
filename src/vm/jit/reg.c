@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: reg.c 7456 2007-03-05 16:13:11Z tbfg $
+   $Id: reg.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 

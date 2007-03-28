@@ -30,7 +30,7 @@
             Joseph Wenninger
             Edwin Steiner
 
-   $Id: dseg.c 7556 2007-03-22 16:42:00Z tbfg $
+   $Id: dseg.c 7596 2007-03-28 21:05:53Z twisti $
 
 */
 
