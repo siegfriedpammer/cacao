@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7549 2007-03-21 13:27:14Z twisti $
+   $Id: threads.c 7587 2007-03-28 13:29:09Z twisti $
 
 */
 
@@ -823,7 +823,7 @@ bool threads_init(void)
 		native_new_and_init(class_java_lang_ThreadGroup);
 
 	if (threadgroup == NULL)
-		throw_exception_exit();
+		return false;
 #endif
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -832,7 +832,7 @@ bool threads_init(void)
 	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
 	if (vmt == NULL)
-		throw_exception_exit();
+		return false;
 
 	/* set the thread */
 
@@ -1148,7 +1148,7 @@ static void *threads_startup_thread(void *t)
 		m = class_resolveclassmethod(c, utf_run, utf_void__void, c, true);
 
 		if (m == NULL)
-			throw_exception();
+			vm_abort("threads_startup_thread: run() method not found in class");
 
 		/* set ThreadMXBean variables */
 

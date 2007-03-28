@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7534 2007-03-16 23:00:18Z pm $
+   $Id: exceptions.c 7587 2007-03-28 13:29:09Z twisti $
 
 */
 
@@ -166,137 +166,6 @@ bool exceptions_init(void)
 #endif
 
 	return true;
-}
-
-
-static void throw_exception_exit_intern(bool doexit)
-{
-	java_objectheader *xptr;
-	classinfo *c;
-	methodinfo *pss;
-
-	xptr = *exceptionptr;
-
-	if (xptr) {
-		/* clear exception, because we are calling jit code again */
-		*exceptionptr = NULL;
-
-		c = xptr->vftbl->class;
-
-		pss = class_resolveclassmethod(c,
-									   utf_printStackTrace,
-									   utf_void__void,
-									   class_java_lang_Object,
-									   false);
-
-		/* print the stacktrace */
-
-		if (pss) {
-			(void) vm_call_method(pss, xptr);
-
-			/* This normally means, we are EXTREMLY out of memory or have a   */
-			/* serious problem while printStackTrace. But may be another      */
-			/* exception, so print it.                                        */
-
-			if (*exceptionptr) {
-				java_lang_Throwable *t;
-
-				t = (java_lang_Throwable *) *exceptionptr;
-
-				fprintf(stderr, "Exception while printStackTrace(): ");
-				utf_fprint_printable_ascii_classname(stderr, t->header.vftbl->class->name);
-
-				if (t->detailMessage) {
-					char *buf;
-
-					buf = javastring_tochar((java_objectheader *) t->detailMessage);
-					fprintf(stderr, ": %s", buf);
-					MFREE(buf, char, strlen(buf));
-				}
-					
-				fprintf(stderr, "\n");
-			}
-
-		} else {
-			utf_fprint_printable_ascii_classname(stderr, c->name);
-			fprintf(stderr, ": printStackTrace()V not found!\n");
-		}
-
-		fflush(stderr);
-
-		/* good bye! */
-
-		if (doexit)
-			exit(1);
-	}
-}
-
-
-void throw_exception(void)
-{
-	throw_exception_exit_intern(false);
-}
-
-
-void throw_exception_exit(void)
-{
-	throw_exception_exit_intern(true);
-}
-
-
-void throw_main_exception(void)
-{
-	fprintf(stderr, "Exception in thread \"main\" ");
-	fflush(stderr);
-
-	throw_exception_exit_intern(false);
-}
-
-
-void throw_main_exception_exit(void)
-{
-	fprintf(stderr, "Exception in thread \"main\" ");
-	fflush(stderr);
-
-	throw_exception_exit_intern(true);
-}
-
-
-void throw_cacao_exception_exit(const char *exception, const char *message, ...)
-{
-	s4 i;
-	char *tmp;
-	s4 len;
-	va_list ap;
-
-	len = strlen(exception);
-	tmp = MNEW(char, len + 1);
-	strncpy(tmp, exception, len);
-	tmp[len] = '\0';
-
-	/* convert to classname */
-
-   	for (i = len - 1; i >= 0; i--)
- 	 	if (tmp[i] == '/') tmp[i] = '.';
-
-	fprintf(stderr, "Exception in thread \"main\" %s", tmp);
-
-	MFREE(tmp, char, len);
-
-	if (strlen(message) > 0) {
-		fprintf(stderr, ": ");
-
-		va_start(ap, message);
-		vfprintf(stderr, message, ap);
-		va_end(ap);
-	}
-
-	fprintf(stderr, "\n");
-	fflush(stderr);
-
-	/* good bye! */
-
-	exit(1);
 }
 
 
@@ -1943,6 +1812,80 @@ void exceptions_print_current_exception(void)
 	xptr = *exceptionptr;
 
 	exceptions_print_exception(xptr);
+}
+
+
+/* exceptions_print_stacktrace *************************************************
+
+   Prints a pending exception with Throwable.printStackTrace().  If
+   there happens an exception during printStackTrace(), we print the
+   thrown exception and the original one.
+
+   NOTE: This function calls Java code.
+
+*******************************************************************************/
+
+void exceptions_print_stacktrace(void)
+{
+	java_objectheader *oxptr;
+	java_objectheader *xptr;
+	classinfo         *c;
+	methodinfo        *m;
+
+	/* get original exception */
+
+	oxptr = *exceptionptr;
+
+	if (oxptr == NULL)
+		vm_abort("exceptions_print_stacktrace: no exception thrown");
+
+	/* clear exception, because we are calling jit code again */
+
+	*exceptionptr = NULL;
+
+	c = oxptr->vftbl->class;
+
+	/* find the printStackTrace() method */
+
+	m = class_resolveclassmethod(c,
+								 utf_printStackTrace,
+								 utf_void__void,
+								 class_java_lang_Object,
+								 false);
+
+	if (m == NULL)
+		vm_abort("exceptions_print_stacktrace: printStackTrace()V not found");
+
+	/* print compatibility message */
+
+	fprintf(stderr, "Exception in thread \"main\" ");
+
+	/* print the stacktrace */
+
+	(void) vm_call_method(m, oxptr);
+
+	/* This normally means, we are EXTREMLY out of memory or
+	   have a serious problem while printStackTrace. But may
+	   be another exception, so print it. */
+
+	xptr = *exceptionptr;
+
+	if (xptr != NULL) {
+		fprintf(stderr, "Exception while printStackTrace(): ");
+
+		/* now print original exception */
+
+		exceptions_print_exception(xptr);
+		stacktrace_print_trace(xptr);
+
+		/* now print original exception */
+
+		fprintf(stderr, "Original exception was: ");
+		exceptions_print_exception(oxptr);
+		stacktrace_print_trace(oxptr);
+	}
+
+	fflush(stderr);
 }
 
 

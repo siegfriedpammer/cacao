@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 7261 2007-01-31 10:00:12Z twisti $
+   $Id: exceptions.h 7587 2007-03-28 13:29:09Z twisti $
 
 */
 
@@ -64,19 +64,6 @@
 
 /* load and link exceptions used in the system */
 bool exceptions_init(void);
-
-
-/* exception throwing functions */
-
-void throw_exception(void);
-void throw_exception_exit(void);
-
-void throw_main_exception(void);
-void throw_main_exception_exit(void);
-
-void throw_cacao_exception_exit(const char *exception,
-								const char *message, ...);
-
 
 /* initialize new exceptions */
 
@@ -141,6 +128,7 @@ java_objectheader *exceptions_get_and_clear_exception(void);
 
 void exceptions_print_exception(java_objectheader *xptr);
 void exceptions_print_current_exception(void);
+void exceptions_print_stacktrace(void);
 
 #endif /* _EXCEPTIONS_H */
 
