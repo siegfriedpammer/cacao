@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7459 2007-03-05 17:34:43Z edwin $
+   $Id: builtin.c 7483 2007-03-08 13:17:40Z michi $
 
 */
 

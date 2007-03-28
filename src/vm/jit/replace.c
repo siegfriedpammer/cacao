@@ -2788,8 +2788,8 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		replace_deactivate_replacement_points(frame->tocode);
 
 		/* remember executionstate and sourcestate for this thread */
-		thread->es = es;
-		thread->ss = ss;
+		GC_EXECUTIONSTATE = es;
+		GC_SOURCESTATE    = ss;
 
 		/* really suspend this thread now (PC = 0) */
 		threads_suspend_ack(NULL, NULL);
@@ -2876,8 +2876,8 @@ void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
 	replace_map_source_state_identity(ss);
 
 	/* remember executionstate and sourcestate for this thread */
-	thread->es = es;
-	thread->ss = ss;
+	GC_EXECUTIONSTATE = es;
+	GC_SOURCESTATE    = ss;
 }
 #endif
 

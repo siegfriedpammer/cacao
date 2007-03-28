@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 7442 2007-03-02 23:28:37Z pm $
+   $Id: asmpart.S 7483 2007-03-08 13:17:40Z michi $
 
 */
 

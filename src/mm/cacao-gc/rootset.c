@@ -257,12 +257,8 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 			stacktrace_dump_trace(thread); );
 
 	/* get the sourcestate of the threads */
-#if defined(ENABLE_THREADS)
-	es = thread->es;
-	ss = thread->ss;
-#else
-	GC_ASSERT(0);
-#endif
+	es = GC_EXECUTIONSTATE;
+	ss = GC_SOURCESTATE;
 
 	GC_ASSERT(es);
 	GC_ASSERT(ss);
@@ -303,7 +299,11 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	}
 
 	/* now walk through all local references of this thread */
+#if defined(ENABLE_THREADS)
 	lrt = thread->_localref_table;
+#else
+	lrt = LOCALREFTABLE;
+#endif
 	while (lrt) {
 
 		for (i = 0; i < lrt->used; i++) {

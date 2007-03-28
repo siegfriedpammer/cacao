@@ -47,6 +47,8 @@
 # include "threads/native/threads.h"
 #endif
 
+#include "vm/jit/replace.h"
+
 
 /* Configuration Switches *****************************************************/
 
@@ -113,6 +115,21 @@
 
 extern bool gc_pending;
 extern bool gc_notify_finalizer;
+
+
+/* No-Thread specific stuff ***************************************************/
+
+#if defined(ENABLE_THREADS)
+# define GC_EXECUTIONSTATE (thread->es)
+# define GC_SOURCESTATE    (thread->ss)
+#else
+# define GC_EXECUTIONSTATE (_no_threads_executionstate)
+# define GC_SOURCESTATE    (_no_threads_sourcestate)
+
+extern executionstate_t *_no_threads_executionstate;
+extern sourcestate_t    *_no_threads_sourcestate;
+
+#endif
 
 
 /* Prototypes *****************************************************************/

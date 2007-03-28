@@ -62,6 +62,11 @@ bool gc_pending;
 bool gc_running;
 bool gc_notify_finalizer;
 
+#if !defined(ENABLE_THREADS)
+executionstate_t *_no_threads_executionstate;
+sourcestate_t    *_no_threads_sourcestate;
+#endif
+
 
 /* gc_init *********************************************************************
 
@@ -122,7 +127,7 @@ void gc_collect(s4 level)
 
 	/* this is only quick'n'dirty check, but is NOT thread safe */
 	if (gc_pending || gc_running) {
-		GC_LOG("GC: Preventing reentrance!");
+		GC_LOG( dolog("GC: Preventing reentrance!"); );
 		return;
 	}
 
@@ -253,9 +258,6 @@ void gc_collect(s4 level)
 bool gc_suspend(threadobject *thread, u1 *pc, u1 *sp)
 {
 	codeinfo         *code;
-	stackframeinfo   *sfi;
-	executionstate_t *es;
-	sourcestate_t    *ss;
 
 	/* check if the thread suspended itself */
 	if (pc == NULL) {
