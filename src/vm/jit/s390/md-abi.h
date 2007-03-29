@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 7581 2007-03-26 07:23:16Z pm $
+   $Id: md-abi.h 7604 2007-03-29 06:52:15Z pm $
 
 */
 
@@ -124,6 +124,8 @@
 #define REG_ITMP1       R1      /* temporary register                        */
 #define REG_ITMP2       R12     /* temporary register and method pointer     */
 #define REG_ITMP3       R14     /* temporary register                        */
+
+#define IS_REG_ITMP(x) (((x) == REG_ITMP1) || ((x) == REG_ITMP2) || ((x) == REG_ITMP3))
 
 #define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
 #define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.h 7581 2007-03-26 07:23:16Z pm $
+   $Id: emit.h 7604 2007-03-29 06:52:15Z pm $
 
 */
 
@@ -362,6 +362,19 @@ s4 emit_load_s2_notzero(jitdata *jd, instruction *iptr, s4 tempreg);
 
 s4 emit_load_s1_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg);
 s4 emit_load_s2_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg);
+
+/* Allocate an even-odd register pair for the destination of an instruction.
+ *
+ */
+
+s4 emit_alloc_dst_even_odd(jitdata *jd, instruction *iptr, s4 htmpreg, s4 ltmpreg, s4 breg);
+
+void emit_restore_dst_even_odd(jitdata *jd, instruction *iptr, s4 htmpreg, s4 ltmpreg, s4 breg);
+
+/* If the destination operand is in a register, different than
+ * dtmpreg, a register copy is emitted.
+ */
+void emit_copy_dst(jitdata *jd, instruction *iptr, s4 dtmpreg);
 
 #endif /* _MD_EMIT_H */
 
