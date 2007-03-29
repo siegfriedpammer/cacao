@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: boehm.c 7443 2007-03-03 00:20:18Z michi $
+   $Id: boehm.c 7615 2007-03-29 23:10:59Z michi $
 
 */
 
@@ -113,11 +113,11 @@ static void gc_ignore_warnings(char *msg, GC_word arg)
 }
 
 
-void *heap_alloc_uncollectable(u4 bytelength)
+void *heap_alloc_uncollectable(u4 size)
 {
 	void *p;
 
-	p = GC_MALLOC_UNCOLLECTABLE(bytelength);
+	p = GC_MALLOC_UNCOLLECTABLE(size);
 
 	/* clear allocated memory region */
 
@@ -127,13 +127,13 @@ void *heap_alloc_uncollectable(u4 bytelength)
 }
 
 
-/* heap_allocate ***************************************************************
+/* heap_alloc ******************************************************************
 
    Allocates memory on the Java heap.
 
 *******************************************************************************/
 
-void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
+void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 {
 	void *p;
 #if defined(ENABLE_RT_TIMING)
@@ -146,9 +146,9 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 	   bitmask in builtin_new.  Thus we check for != 0. */
 
 	if (references != 0)
-		p = GC_MALLOC(bytelength);
+		p = GC_MALLOC(size);
 	else
-		p = GC_MALLOC_ATOMIC(bytelength);
+		p = GC_MALLOC_ATOMIC(size);
 
 	if (p == NULL)
 		return NULL;
@@ -158,7 +158,7 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 
 	/* clear allocated memory region */
 
-	MSET(p, 0, u1, bytelength);
+	MSET(p, 0, u1, size);
 
 	RT_TIMING_GET_TIME(time_end);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_GC_ALLOC);

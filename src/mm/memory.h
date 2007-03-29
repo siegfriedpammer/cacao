@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 7394 2007-02-23 22:47:06Z michi $
+   $Id: memory.h 7615 2007-03-29 23:10:59Z michi $
 
 */
 
@@ -190,14 +190,18 @@ Some more macros:
 
 /* GC macros ******************************************************************/
 
+#if !defined(ENABLE_GC_CACAO)
+
 /* Uncollectable memory which can contain references */
 
 #define GCNEW_UNCOLLECTABLE(type,num) ((type *) heap_alloc_uncollectable(sizeof(type) * (num)))
 
-#define GCNEW(type)           heap_allocate(sizeof(type), true, NULL)
-#define GCMNEW(type,num)      heap_allocate(sizeof(type) * (num), true, NULL)
+#define GCNEW(type)           heap_alloc(sizeof(type), true, NULL, true)
+#define GCMNEW(type,num)      heap_alloc(sizeof(type) * (num), true, NULL, true)
 
 #define GCFREE(ptr)           heap_free((ptr))
+
+#endif
 
 
 /* function prototypes ********************************************************/

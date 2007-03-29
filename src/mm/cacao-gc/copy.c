@@ -45,12 +45,6 @@
 static java_objectheader *next;
 
 
-/* heap_allocate ***************************************************************
-
-   Allocates memory on the Java heap.
-
-*******************************************************************************/
-
 static u4 copy_object(u1 *old, u1 *new, u4 size)
 {
 	u4 new_size;

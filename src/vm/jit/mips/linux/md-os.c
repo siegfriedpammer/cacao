@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md-os.c 7615 2007-03-29 23:10:59Z michi $
 
 */
 
@@ -60,7 +60,7 @@ void md_init(void)
 	/* dummy allocation here to ensure that the GC is initialized.            */
 
 #if defined(ENABLE_GC_BOEHM)
-	heap_allocate(1, 0, NULL);
+	(void) GCNEW(u1);
 #endif
 
 #if 0

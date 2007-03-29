@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: md-os.c 6180 2006-12-11 23:29:26Z twisti $
+   $Id: md-os.c 7615 2007-03-29 23:10:59Z michi $
 
 */
 
@@ -65,7 +65,7 @@ void md_init(void)
 	/* dummy allocation here to ensure that the GC is initialized.            */
 
 #if defined(ENABLE_GC_BOEHM)
-	heap_allocate(1, 0, NULL);
+	(void) GCNEW(u1);
 #endif
 
 

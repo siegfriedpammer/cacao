@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: nogc.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: nogc.c 7615 2007-03-29 23:10:59Z michi $
 
 */
 
@@ -60,7 +60,7 @@ static int mmapsize = 0;
 static void *mmaptop = NULL;
 
 
-void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
+void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 {
 	void *m;
 
@@ -70,11 +70,7 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 	mmapptr = (void *) ((ptrint) mmapptr + size);
 
 	if (mmapptr > mmaptop)
-<<<<<<< .working
-		vm_abort("heap_allocate: out of memory");
-=======
-		exceptions_throw_outofmemoryerror();
->>>>>>> .merge-right.r7379
+		vm_abort("heap_alloc: out of memory");
 
 	MSET(m, 0, u1, size);
 
@@ -84,7 +80,7 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 
 void *heap_alloc_uncollectable(u4 size)
 {
-	return heap_allocate(size, false, NULL);
+	return heap_alloc(size, false, NULL);
 }
 
 
@@ -114,11 +110,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 				   (off_t) 0);
 
 	if (mmapptr == MAP_FAILED)
-<<<<<<< .working
 		vm_abort("gc_init: out of memory");
-=======
-		exceptions_throw_outofmemoryerror();
->>>>>>> .merge-right.r7379
 
 	mmapsize = heapmaxsize;
 	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);

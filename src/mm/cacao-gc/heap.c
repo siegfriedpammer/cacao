@@ -165,7 +165,7 @@ s4 heap_get_hashcode(java_objectheader *o)
 }
 
 
-static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
+static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region, bool collect)
 {
 	java_objectheader *p;
 
@@ -182,8 +182,12 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
 	/* check for sufficient free space */
 	if (bytelength > region->free) {
 		dolog("GC: Region out of memory!");
-		gc_collect();
-		return NULL;
+
+		if (collect) {
+			gc_collect();
+			GC_ASSERT(region->free >= bytelength);
+		} else
+			return NULL;
 	}
 
 	/* allocate the object in this region */
@@ -206,13 +210,13 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region)
 }
 
 
-/* heap_allocate ***************************************************************
+/* heap_alloc ******************************************************************
 
    Allocates memory on the Java heap.
 
 *******************************************************************************/
 
-void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
+void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 {
 	java_objectheader *p;
 #if defined(ENABLE_RT_TIMING)
@@ -221,7 +225,7 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 
 	RT_TIMING_GET_TIME(time_start);
 
-	p = heap_alloc_intern(bytelength, heap_region_main);
+	p = heap_alloc_intern(size, heap_region_main, collect);
 
 	if (p == NULL)
 		return NULL;
@@ -253,15 +257,15 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 }
 
 
-void *heap_alloc_uncollectable(u4 bytelength)
+void *heap_alloc_uncollectable(u4 size)
 {
 	java_objectheader *p;
 
 	/* loader.c does this a lot for classes with fieldscount equal zero */
-	if (bytelength == 0)
+	if (size == 0)
 		return NULL;
 
-	p = heap_alloc_intern(bytelength, heap_region_sys);
+	p = heap_alloc_intern(size, heap_region_sys, false);
 
 	if (p == NULL)
 		return NULL;

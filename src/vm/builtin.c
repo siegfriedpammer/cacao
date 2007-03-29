@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: builtin.c 7615 2007-03-29 23:10:59Z michi $
 
 */
 
@@ -739,7 +739,7 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 
    Return value: pointer to the object or NULL if no memory is
    available
-			
+
 *******************************************************************************/
 
 java_objectheader *builtin_new(classinfo *c)
@@ -782,8 +782,69 @@ java_objectheader *builtin_new(classinfo *c)
 			return NULL;
 	}
 
-	o = heap_allocate(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
-					  c->finalizer);
+	o = heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+				   c->finalizer, true);
+
+	if (!o)
+		return NULL;
+
+	o->vftbl = c->vftbl;
+
+#if defined(ENABLE_THREADS)
+	lock_init_object_lock(o);
+#endif
+
+	CYCLES_STATS_GET(cycles_end);
+	RT_TIMING_GET_TIME(time_end);
+
+	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
+	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
+
+	return o;
+}
+
+
+/* builtin_fast_new ************************************************************
+
+   Creates a new instance of class c on the heap.
+
+   Return value: pointer to the object or NULL if no fast return
+   is possible for any reason.
+
+*******************************************************************************/
+
+java_objectheader *builtin_fast_new(classinfo *c)
+{
+	java_objectheader *o;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
+#if defined(ENABLE_CYCLES_STATS)
+	u8 cycles_start, cycles_end;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
+	CYCLES_STATS_GET(cycles_start);
+
+	/* is the class loaded */
+
+	assert(c->state & CLASS_LOADED);
+
+	/* check if we can instantiate this class */
+
+	if (c->flags & ACC_ABSTRACT)
+		return NULL;
+
+	/* is the class linked */
+
+	if (!(c->state & CLASS_LINKED))
+		return NULL;
+
+	if (!(c->state & CLASS_INITIALIZED))
+		return NULL;
+
+	o = heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+				   c->finalizer, false);
 
 	if (!o)
 		return NULL;
@@ -844,7 +905,7 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 		return NULL;
 	}
 
-	a = heap_allocate(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
+	a = heap_alloc(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 
 	if (a == NULL)
 		return NULL;
@@ -2634,7 +2695,7 @@ java_objectheader *builtin_clone(void *env, java_objectheader *o)
 
 		size = ad->dataoffset + ad->componentsize * ah->size;
         
-		co = heap_allocate(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL);
+		co = heap_alloc(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 
 		if (co == NULL)
 			return NULL;

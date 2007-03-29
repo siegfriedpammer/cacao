@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: class.c 7615 2007-03-29 23:10:59Z michi $
 
 */
 
@@ -211,8 +211,12 @@ classinfo *class_create_classinfo(utf *classname)
 
 	/* GCNEW_UNCOLLECTABLE clears the allocated memory */
 
+#if defined(ENABLE_GC_CACAO)
+	c = (classinfo *) heap_alloc_uncollectable(sizeof(classinfo));
+#else
 	c = GCNEW_UNCOLLECTABLE(classinfo, 1);
 	/*c=NEW(classinfo);*/
+#endif
 	c->name = classname;
 
 	/* Set the header.vftbl of all loaded classes to the one of
