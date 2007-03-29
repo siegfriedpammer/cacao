@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: nogc.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: nogc.c 7612 2007-03-29 21:56:35Z michi $
 
 */
 
@@ -70,11 +70,7 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 	mmapptr = (void *) ((ptrint) mmapptr + size);
 
 	if (mmapptr > mmaptop)
-<<<<<<< .working
 		vm_abort("heap_allocate: out of memory");
-=======
-		exceptions_throw_outofmemoryerror();
->>>>>>> .merge-right.r7379
 
 	MSET(m, 0, u1, size);
 
@@ -114,11 +110,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 				   (off_t) 0);
 
 	if (mmapptr == MAP_FAILED)
-<<<<<<< .working
 		vm_abort("gc_init: out of memory");
-=======
-		exceptions_throw_outofmemoryerror();
->>>>>>> .merge-right.r7379
 
 	mmapsize = heapmaxsize;
 	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);
