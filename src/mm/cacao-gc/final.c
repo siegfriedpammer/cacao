@@ -93,6 +93,20 @@ void final_invoke()
 	}
 }
 
+void final_set_all_reclaimable()
+{
+	final_entry *fe;
+
+	fe = list_first(final_list);
+	while (fe) {
+
+		if (fe->type == FINAL_REACHABLE)
+			fe->type = FINAL_RECLAIMABLE;
+
+		fe = list_next(final_list, fe);
+	}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

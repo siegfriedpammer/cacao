@@ -63,6 +63,7 @@ struct final_entry {
 void final_init();
 void final_register(java_objectheader *o, methodinfo *finalizer);
 void final_invoke();
+void final_set_all_reclaimable();
 
 
 #endif /* _FINAL_H */

@@ -373,11 +373,23 @@ void gc_invoke_finalizers(void)
    Forces the finalization of all objects on the Java Heap.
    This is the function which is called by java.lang.Runtime.exit()
 
+   We do this by setting all objects with finalizers to reclaimable,
+   which is inherently dangerouse because objects may still be alive.
+
 *******************************************************************************/
 
 void gc_finalize_all(void)
 {
-	vm_abort("gc_finalize_all: IMPLEMENT ME!");
+#if !defined(NDEBUG)
+	/* doing this is deprecated, inform the user */
+	dolog("gc_finalize_all: Deprecated!");
+#endif
+
+	/* set all objects with finalizers to reclaimable */
+	final_set_all_reclaimable();
+
+	/* notify the finalizer thread */
+	finalizer_notify();
 }
 
 
