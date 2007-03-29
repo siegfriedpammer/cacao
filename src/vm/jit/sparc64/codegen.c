@@ -3140,25 +3140,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 	/* check for exception */
-
 	M_BNEZ(REG_ITMP2_XPTR, 4);          /* if no exception then return        */
 	M_NOP;
 
 	M_RETURN(REG_RA_CALLEE, 8); /* implicit window restore */
 	M_NOP;
-#if 0	
-	M_RESTORE(REG_ZERO, 0, REG_ZERO);   /* restore callers window (DELAY)     */
-
-	M_RET(REG_RA_CALLER, 8);            /* return to caller                   */
-	M_NOP;                              /* DELAY SLOT                         */
-#endif
 
 	/* handle exception */
 	
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
-	M_JMP(REG_ZERO, REG_ITMP3, REG_ZERO);/* jump to asm exception handler     */
-	M_MOV(REG_RA_CALLEE, REG_ITMP3_XPC); /* get exception address (DELAY)    */
+	M_ALD(REG_ITMP1, REG_PV, disp);     /* load asm exception handler address */
+	M_MOV(REG_RA_CALLEE, REG_ITMP3_XPC); /* get exception address             */
+	M_JMP(REG_ZERO, REG_ITMP1, REG_ZERO);/* jump to asm exception handler     */
+	M_RESTORE(REG_ZERO, 0, REG_ZERO);   /* restore callers window (DELAY)     */
+	
 
 	/* generate patcher stubs */
 

@@ -147,47 +147,39 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 	u1 *pv;
 	u8  mcode;
 	u4  mcode_masked;
-	s2  offset;
+	s4  offset;
 
 	pv = ra;
 
 	/* get the instruction word after jump and nop */
 	mcode = *((u4 *) (ra+8) );
 
-	/* check if we have 2 instructions (ldah, lda) */
+	/* check if we have a sethi insruction */
+	if (IS_SETHI(mcode)) {
+		s4 xor_imm;
+				
+		/* get 22-bit immediate of sethi instruction */
+		offset = (s4) (mcode & 0x3fffff);
+		offset = offset << 10;
+		
+		/* now the xor */
+		mcode = *((u4 *) (ra+12) );
+		xor_imm = decode_13bit_imm(mcode);
+		
+		offset ^= xor_imm;	 
+	}
+	else {
+		u4 mcode_masked;
+		
+		mcode_masked = SHIFT_AND_MASK(mcode);
 
-	mcode_masked = SHIFT_AND_MASK(mcode);
+		assert(mcode_masked == 0x40001);
 
-	if (mcode_masked == 0x40001) {
-#if 0
-		/* get displacement of first instruction (ldah) */
-
-		offset = (s4) (mcode << 16);
-		pv += offset;
-
-		/* get displacement of second instruction (lda) */
-
-		mcode = *((u4 *) (ra + 1 * 4));
-
-		assert((mcode >> 16) == 0x237b);
-
-		offset = (s2) (mcode & 0x0000ffff);
-		pv += offset;
-
-	} else {
-		/* get displacement of first instruction (lda) */
-
-		assert((mcode >> 16) == 0x237a);
-#endif
 		/* mask and extend the negative sign for the 13 bit immediate */
 		offset = decode_13bit_imm(mcode);
-
-		pv += offset;
 	}
-	else
-	{
-		assert(0);
-	}
+	
+	pv += offset;
 
 	return pv;
 }
@@ -240,7 +232,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 	if (IS_SETHI(mcode)) {
 		/* XXX write a regression for this */
 
-		/* get 22-bit displacement of sethi instruction */
+		/* get 22-bit immediate of sethi instruction */
 
 		offset = (s4) (mcode & 0x3fffff);
 		offset = offset << 10;
