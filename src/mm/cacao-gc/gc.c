@@ -34,6 +34,7 @@
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #else
+# include "threads/none/lock.h"
 /*# include "threads/none/threads.h"*/
 #endif
 
@@ -57,6 +58,10 @@
 bool gc_pending;
 bool gc_running;
 bool gc_notify_finalizer;
+
+#if defined(ENABLE_THREADS)
+java_objectheader *gc_global_lock;
+#endif
 
 #if !defined(ENABLE_THREADS)
 executionstate_t *_no_threads_executionstate;
@@ -84,6 +89,12 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 	/* set global variables */
 	gc_pending = false;
 	gc_running = false;
+
+#if defined(ENABLE_THREADS)
+	/* create global gc lock object */
+	gc_global_lock = NEW(java_objectheader);
+	lock_init_object_lock(gc_global_lock);
+#endif
 
 	/* region for uncollectable objects */
 	heap_region_sys = NEW(regioninfo_t);
@@ -121,13 +132,8 @@ void gc_collect(s4 level)
 	struct timespec time_start, time_suspend, time_rootset, time_mark, time_compact, time_end;
 #endif
 
-	/* this is only quick'n'dirty check, but is NOT thread safe */
-	if (gc_pending || gc_running) {
-		GC_LOG( dolog("GC: Preventing reentrance!"); );
-		return;
-	}
-
-	/* TODO: some global GC lock!!! */
+	/* enter the global gc lock */
+	LOCK_MONITOR_ENTER(gc_global_lock);
 
 	/* remember start of dump memory area */
 	dumpsize = dump_size();
@@ -150,7 +156,9 @@ void gc_collect(s4 level)
 	GC_LOG( dolog("GC: Suspension finished."); );
 #endif
 
-	/* sourcestate of the current thread */
+	/* sourcestate of the current thread, assuming we are in the native world */
+	GC_LOG( dolog("GC: Stackwalking current thread ..."); );
+	/* TODO: GC_ASSERT(thread flags say in-native-world) */
 	replace_gc_from_native(THREADOBJECT, NULL, NULL);
 
 	/* everyone is halted now, we consider ourselves running */
@@ -246,6 +254,9 @@ void gc_collect(s4 level)
 
     /* free dump memory area */
     dump_release(dumpsize);
+
+	/* leave the global gc lock */
+	LOCK_MONITOR_EXIT(gc_global_lock);
 
 }
 
