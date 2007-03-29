@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md-os.c 7605 2007-03-29 11:04:25Z twisti $
 
 */
 
@@ -106,6 +106,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   define is 0. */
 
 		addr = _mc->gregs[s1];
+
+		if (addr == 0)
+			vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
+
 		type = (s4) addr;
 	}
 
