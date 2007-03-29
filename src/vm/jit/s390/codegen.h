@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7601 2007-03-28 23:02:50Z michi $
+   $Id: codegen.h 7616 2007-03-29 23:21:50Z michi $
 
 */
 
@@ -643,6 +643,7 @@
 #define M_DADD(a, dest) N_ADBR(dest, a)
 #define M_DDIV(a, dest) N_DDBR(dest, a)
 #define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
+#define M_CVTDI(src, dst) N_CFDBR(dst, 5, src)
 #define M_IADD(a, dest) N_AR(dest, a)
 #define M_ISUB(a, dest) N_SR(dest, a)
 #define M_IAND(a, dest) N_NR(dest, a)
@@ -658,7 +659,7 @@
 
 #define ICONST(reg, i) \
 	do { \
-		if ((i) >= -32768 && (i) <= 32767) { \
+		if (N_VALID_IMM(i)) { \
 			N_LHI(reg, i); \
 		} else { \
 			disp = dseg_add_s4(cd, (i)); \
@@ -839,7 +840,6 @@
 
 #define M_CVTLF(a,b) _DEPR( M_CVTLF(a,b) )
 #define M_CVTLD(a,b) _DEPR( M_CVTLD(a,b) )
-#define M_CVTDI(a,b) _DEPR( M_CVTDI(a,b) )
 #define M_CVTFL(a,b) _DEPR( M_CVTFL(a,b) )
 #define M_CVTDL(a,b) _DEPR( M_CVTDL(a,b) )
 

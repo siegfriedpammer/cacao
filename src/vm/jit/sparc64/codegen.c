@@ -856,26 +856,27 @@ bool codegen_emit(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
-		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
+		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant           */
 		                      /* sx.val.i = constant                             */
+		                      /* constant is actually constant - 1               */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_ISEXT(s1, s1); /* trim for 32-bit compare (BGEZ) */
 			if (s1 == d) {
 				M_MOV(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
 			}
-			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 0xffff)) {
+			M_ISEXT(s1, s1); /* trim for 32-bit compare (BGEZ) */
+			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 4095)) {
 				M_AND_IMM(s1, iptr->sx.val.i, d);
-				M_BGEZ(s1, 4);
+				M_BGEZ(s1, 5);
 				M_NOP;
 				M_SUB(REG_ZERO, s1, d);
 				M_AND_IMM(d, iptr->sx.val.i, d);
 			} else {
 				ICONST(REG_ITMP2, iptr->sx.val.i);
 				M_AND(s1, REG_ITMP2, d);
-				M_BGEZ(s1, 4);
+				M_BGEZ(s1, 5);
 				M_NOP;
 				M_SUB(REG_ZERO, s1, d);
 				M_AND(d, REG_ITMP2, d);
@@ -1119,9 +1120,29 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
 			disp = dseg_add_float(cd, 0.0);
-			M_IST (s1, REG_PV_CALLEE, disp);
-			M_FLD (REG_FTMP2, REG_PV_CALLEE, disp); /* REG_FTMP2 needs to be a double temp */
+			M_IST(s1, REG_PV_CALLEE, disp);
+			M_FLD(REG_FTMP2, REG_PV_CALLEE, disp); /* REG_FTMP2 needs to be a double temp */
 			M_CVTID (REG_FTMP2, d); /* rd gets translated to double target register */
+			emit_store_dst(jd, iptr, d);
+			break;
+			
+		case ICMD_L2F:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
+			disp = dseg_add_double(cd, 0.0);
+			M_STX(s1, REG_PV_CALLEE, disp);
+			M_DLD(REG_FTMP3, REG_PV_CALLEE, disp);
+			M_CVTLF(REG_FTMP3, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+			
+		case ICMD_L2D:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
+			disp = dseg_add_double(cd, 0.0);
+			M_STX(s1, REG_PV_CALLEE, disp);
+			M_DLD(d, REG_PV_CALLEE, disp);
+			M_CVTLD(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1936,7 +1957,7 @@ bool codegen_emit(jitdata *jd)
 					M_CMP_IMM(s1, iptr->sx.val.l);
 				} 
 				else {
-					ICONST(REG_ITMP2, iptr->sx.val.l);
+					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMP(s1, REG_ITMP2);
 				}
 				emit_blt_xcc(cd, iptr->dst.block);
@@ -1953,7 +1974,7 @@ bool codegen_emit(jitdata *jd)
 					M_CMP_IMM(s1, iptr->sx.val.l);
 				}
 				else {
-					ICONST(REG_ITMP2, iptr->sx.val.l);
+					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMP(s1, REG_ITMP2);
 				}
 				emit_ble_xcc(cd, iptr->dst.block);
@@ -1970,7 +1991,7 @@ bool codegen_emit(jitdata *jd)
 					M_CMP_IMM(s1, iptr->sx.val.l);
 				}
 				else {
-					ICONST(REG_ITMP2, iptr->sx.val.l);
+					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMP(s1, REG_ITMP2);
 				}
 				emit_bne_xcc(cd, iptr->dst.block);
@@ -1987,7 +2008,7 @@ bool codegen_emit(jitdata *jd)
 					M_CMP_IMM(s1, iptr->sx.val.l);
 				} 
 				else {
-					ICONST(REG_ITMP2, iptr->sx.val.l);
+					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMP(s1, REG_ITMP2);
 				}
 				emit_bgt_xcc(cd, iptr->dst.block);
@@ -2004,7 +2025,7 @@ bool codegen_emit(jitdata *jd)
 					M_CMP_IMM(s1, iptr->sx.val.l);
 				}
 				else {
-					ICONST(REG_ITMP2, iptr->sx.val.l);
+					LCONST(REG_ITMP2, iptr->sx.val.l);
 					M_CMP(s1, REG_ITMP2);
 				}
 				emit_bge_xcc(cd, iptr->dst.block);
@@ -3140,25 +3161,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	}
 
 	/* check for exception */
-
 	M_BNEZ(REG_ITMP2_XPTR, 4);          /* if no exception then return        */
 	M_NOP;
 
 	M_RETURN(REG_RA_CALLEE, 8); /* implicit window restore */
 	M_NOP;
-#if 0	
-	M_RESTORE(REG_ZERO, 0, REG_ZERO);   /* restore callers window (DELAY)     */
-
-	M_RET(REG_RA_CALLER, 8);            /* return to caller                   */
-	M_NOP;                              /* DELAY SLOT                         */
-#endif
 
 	/* handle exception */
 	
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
-	M_JMP(REG_ZERO, REG_ITMP3, REG_ZERO);/* jump to asm exception handler     */
-	M_MOV(REG_RA_CALLEE, REG_ITMP3_XPC); /* get exception address (DELAY)    */
+	M_ALD(REG_ITMP1, REG_PV, disp);     /* load asm exception handler address */
+	M_MOV(REG_RA_CALLEE, REG_ITMP3_XPC); /* get exception address             */
+	M_JMP(REG_ZERO, REG_ITMP1, REG_ZERO);/* jump to asm exception handler     */
+	M_RESTORE(REG_ZERO, 0, REG_ZERO);   /* restore callers window (DELAY)     */
+	
 
 	/* generate patcher stubs */
 

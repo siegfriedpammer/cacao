@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: emit.c 7616 2007-03-29 23:21:50Z michi $
 
 */
 
@@ -2490,6 +2490,112 @@ s4 emit_load_s2_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
 		return tempreg;
 	} else {
 		return reg;
+	}
+}
+
+s4 emit_alloc_dst_even_odd(jitdata *jd, instruction *iptr, s4 htmpreg, s4 ltmpreg, s4 breg) {
+	codegendata *cd;
+	s4           hr, lr;
+	varinfo     *dst;
+
+	/* (r0, r1)    
+	 * (r2, r3)
+	 * (r4, r5)
+	 * (r6, r7)
+	 * (r8, r9)
+	 * (r10, r11)
+	 * (r12, r13) Illegal, because r13 is PV
+	 * (r14, r15) Illegal, because r15 is SP
+	 */
+
+	cd = jd->cd;
+	dst = VAROP(iptr->dst);
+
+	if (IS_INMEMORY(dst->flags)) {
+		if (! IS_REG_ITMP(ltmpreg)) {
+			M_INTMOVE(ltmpreg, breg);
+		}
+		if (! IS_REG_ITMP(htmpreg)) {
+			M_INTMOVE(htmpreg, breg);
+		}
+		return PACK_REGS(ltmpreg, htmpreg);
+	} else {
+		hr = GET_HIGH_REG(dst->vv.regoff);
+		lr = GET_LOW_REG(dst->vv.regoff);
+		if (((hr % 2) == 0) && lr == (hr + 1)) {
+			/* the result is already in a even-odd pair */
+			return dst->vv.regoff;			
+		} else if (((hr % 2) == 0) && (hr < R12)) {
+			/* the high register is at a even position */
+			M_INTMOVE(hr + 1, breg);
+			return PACK_REGS(hr + 1, hr);
+		} else if (((lr % 2) == 1) && (lr < R12)) {
+			/* the low register is at a odd position */
+			M_INTMOVE(lr - 1, breg);
+			return PACK_REGS(lr, lr - 1);
+		} else {
+			/* no way to create an even-odd pair by 1 copy operation,
+			 * Use the temporary register pair.
+			 */
+			if (! IS_REG_ITMP(ltmpreg)) {
+				M_INTMOVE(ltmpreg, breg);
+			}
+			if (! IS_REG_ITMP(htmpreg)) {
+				M_INTMOVE(htmpreg, breg);
+			}
+			return PACK_REGS(ltmpreg, htmpreg);
+		}
+	}
+}
+
+void emit_restore_dst_even_odd(jitdata *jd, instruction *iptr, s4 htmpreg, s4 ltmpreg, s4 breg) {
+	codegendata *cd;
+	s4           hr, lr;
+	varinfo     *dst;
+
+	cd = jd->cd;
+	dst = VAROP(iptr->dst);
+
+	if (IS_INMEMORY(dst->flags)) {
+		if (! IS_REG_ITMP(ltmpreg)) {
+			M_INTMOVE(breg, ltmpreg);
+		}
+		if (! IS_REG_ITMP(htmpreg)) {
+			M_INTMOVE(breg, htmpreg);
+		}
+	} else {
+		hr = GET_HIGH_REG(dst->vv.regoff);
+		lr = GET_LOW_REG(dst->vv.regoff);
+		if (((hr % 2) == 0) && (hr < R12)) {
+			M_INTMOVE(breg, hr + 1);
+		} else if (((lr % 2) == 1) && (lr < R12)) {
+			M_INTMOVE(breg, lr - 1);
+		} else {
+			if (! IS_REG_ITMP(ltmpreg)) {
+				M_INTMOVE(breg, ltmpreg);
+			}
+			if (! IS_REG_ITMP(htmpreg)) {
+				M_INTMOVE(breg, htmpreg);
+			}
+		}
+	}
+}
+
+void emit_copy_dst(jitdata *jd, instruction *iptr, s4 dtmpreg) {
+	codegendata *cd;
+	varinfo *dst;
+	cd = jd->cd;
+	dst = VAROP(iptr->dst);
+	if (! IS_INMEMORY(dst->flags)) {
+		if (dst->vv.regoff != dtmpreg) {
+			if (IS_FLT_DBL_TYPE(dst->type)) {
+				M_FLTMOVE(dtmpreg, dst->vv.regoff);
+			} else if (IS_2_WORD_TYPE(dst->type)) {
+				M_LNGMOVE(dtmpreg, dst->vv.regoff);
+			} else {
+				M_INTMOVE(dtmpreg, dst->vv.regoff);
+			}
+		}
 	}
 }
 

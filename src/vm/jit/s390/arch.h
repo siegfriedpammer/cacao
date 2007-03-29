@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 7601 2007-03-28 23:02:50Z michi $
+   $Id: arch.h 7616 2007-03-29 23:21:50Z michi $
 
 */
 
@@ -37,7 +37,7 @@
 
 #define U8_AVAILABLE                     1
 
-/* #define USEBUILTINTABLE */
+#define USEBUILTINTABLE 
 
 #define SUPPORT_DIVISION                 1
 #define SUPPORT_LONG                     1
@@ -47,8 +47,6 @@
 #define SUPPORT_L2F                      1
 #define SUPPORT_L2D                      1
 
-/* ATTENTION: x86_64 architectures support these conversions, but we
-   need the builtin functions in corner cases */
 #define SUPPORT_F2I                      0
 #define SUPPORT_F2L                      0
 #define SUPPORT_D2I                      0
@@ -59,8 +57,8 @@
 #define SUPPORT_LONG_CMP_CONST           1
 #define SUPPORT_LONG_LOGICAL             1
 #define SUPPORT_LONG_SHIFT               1
-#define SUPPORT_LONG_MUL                 1
-#define SUPPORT_LONG_DIV                 1
+#define SUPPORT_LONG_MUL                 0
+#define SUPPORT_LONG_DIV                 0
 
 #define SUPPORT_LONG_DIV_POW2            1
 #define SUPPORT_LONG_REM_POW2            1

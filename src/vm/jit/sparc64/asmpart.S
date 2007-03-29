@@ -241,19 +241,14 @@ asm_call_jit_compiler:
 L_asm_call_jit_compiler_exception:
 	/* window still open, ra_callee valid, pv_callee undefined      */
 
-	/* get pv for further exception handling */
-	mov     ra_callee,%o0	
-	call    md_codegen_get_pv_from_pc   /* get PV from RA                     */
-	nop
-	mov     %o0,pv_callee
-
 	call    exceptions_get_and_clear_exception
 	nop
 
 	mov     %o0,xptr_itmp2        /* get exception                            */
-	mov     ra_callee,xpc_itmp3 /* exception address is ra               */
+	mov     ra_callee,xpc_itmp3  /* exception address is address of call      */
 
-	/* don't restore callers window, behave like java non-leaf */
+	/* restore the window of the calling function */
+	restore
 
 	b      L_asm_handle_nat_exception
 	nop
