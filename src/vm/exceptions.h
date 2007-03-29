@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 7601 2007-03-28 23:02:50Z michi $
+   $Id: exceptions.h 7609 2007-03-29 17:09:48Z michi $
 
 */
 
@@ -61,19 +61,6 @@
 #define EXCEPTION_HARDWARE_EXCEPTION                5
 
 #define EXCEPTION_HARDWARE_PATCHER                  6
-
-
-/* exception pointer **********************************************************/
-
-#if defined(ENABLE_THREADS)
-#define exceptionptr    &(THREADOBJECT->_exceptionptr)
-#else
-#define exceptionptr    &_no_threads_exceptionptr
-#endif
-
-#if !defined(ENABLE_THREADS)
-extern java_objectheader *_no_threads_exceptionptr;
-#endif
 
 
 /* function prototypes ********************************************************/
