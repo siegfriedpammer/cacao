@@ -104,7 +104,7 @@ s4 heap_increase_size() {
 
 	/* check if we are allowed to enlarge the heap */
 	if (heap_current_size == heap_maximal_size)
-		exceptions_throw_outofmemory_exit();
+		vm_abort("heap_increase_size: reached maximal heap size: out of memory");
 
 	/* TODO: find out how much to increase the heap??? */
 	increasesize = heap_maximal_size - heap_current_size;
@@ -116,7 +116,7 @@ s4 heap_increase_size() {
 
 	/* check if the newly allocated heap exists */
 	if (p == NULL)
-		exceptions_throw_outofmemory_exit(); 
+		vm_abort("heap_increase_size: malloc failed: out of memory");
 
 	/* TODO: copy the old content to the new heap */
 	/* TODO: find a complete rootset and update it to the new position */

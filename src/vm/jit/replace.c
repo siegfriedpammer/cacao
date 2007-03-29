@@ -2766,7 +2766,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	ss = replace_recover_source_state(rp, sfi, es);
 
-#if defined(ENABLE_GC_CACAO)
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	/* if there is a collection pending, we assume the replacement point should
 	   suspend this thread */
 
@@ -2797,7 +2797,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		DOLOG_SHORT( printf("REPLACEMENT: Resuming thread after GC now!\n"); );
 
 	} else {
-#endif /*defined(ENABLE_GC_CACAO)*/
+#endif /*defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)*/
 
 	/* map the source state */
 
@@ -2821,7 +2821,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		replace_deactivate_replacement_points(frame->tocode);
 	}
 
-#if defined(ENABLE_GC_CACAO)
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	}
 #endif
 

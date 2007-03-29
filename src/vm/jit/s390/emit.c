@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7581 2007-03-26 07:23:16Z pm $
+   $Id: emit.c 7601 2007-03-28 23:02:50Z michi $
 
 */
 

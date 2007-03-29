@@ -322,7 +322,7 @@ bool gc_suspend(threadobject *thread, u1 *pc, u1 *sp)
 /* gc_call *********************************************************************
 
    Forces a full collection of the whole Java Heap.
-   This is the function which is called by System.VMRuntime.gc()
+   This is the function which is called by java.lang.Runtime.gc()
 
 *******************************************************************************/
 
@@ -354,6 +354,19 @@ void gc_invoke_finalizers(void)
 
 	if (opt_verbosegc)
 		dolog("GC: Invoking finalizers finished.");
+}
+
+
+/* gc_finalize_all *************************************************************
+
+   Forces the finalization of all objects on the Java Heap.
+   This is the function which is called by java.lang.Runtime.exit()
+
+*******************************************************************************/
+
+void gc_finalize_all(void)
+{
+	vm_abort("gc_finalize_all: IMPLEMENT ME!");
 }
 
 
