@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: parse.c 7619 2007-03-30 11:41:27Z twisti $
 
 */
 
@@ -129,7 +129,7 @@ static void parse_setup(jitdata *jd, parsedata_t *pd)
 
 *******************************************************************************/
 
-static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
+static instruction *parse_realloc_instructions(parsedata_t *pd, s4 icount, s4 n)
 {
 	/* increase the size of the instruction array */
 
@@ -137,13 +137,14 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
 
 	/* reallocate the array */
 
-	pd->instructions = DMREALLOC(pd->instructions, instruction, ipc,
+	pd->instructions = DMREALLOC(pd->instructions, instruction, icount,
 								 pd->instructionslength);
-	MZERO(pd->instructions + ipc, instruction, (pd->instructionslength - ipc));
+	MZERO(pd->instructions + icount, instruction,
+		  (pd->instructionslength - icount));
 
 	/* return the iptr */
 
-	return pd->instructions + ipc;
+	return pd->instructions + icount;
 }
 
 
@@ -337,7 +338,7 @@ bool parse(jitdata *jd)
 	methodinfo  *m;                     /* method being parsed                */
 	parsedata_t  pd;
 	instruction *iptr;                  /* current ptr into instruction array */
-	s4           ipc;                   /* intermediate instruction counter   */
+	s4           icount;                /* intermediate instruction counter   */
 	s4           p;                     /* java instruction counter           */
 	s4           nextp;                 /* start of next java instruction     */
 	s4           opcode;                /* java opcode                        */
@@ -383,8 +384,8 @@ bool parse(jitdata *jd)
   
  	/* initialize local variables */
   
- 	iptr = pd.instructions;
- 	ipc  = 0;
+ 	iptr   = pd.instructions;
+ 	icount = 0;
   
 	/* mark basic block boundaries for exception table */
 
@@ -458,7 +459,7 @@ fetch_opcode:
 
 		/* store intermediate instruction count (bit 0 mark block starts) */
 
-		jd->basicblockindex[p] |= (ipc << 1);
+		jd->basicblockindex[p] |= (icount << 1);
 
 		/* compute next instruction start */
 
@@ -1515,7 +1516,7 @@ invoke_method:
 		case 254:
 		case 255:
 			exceptions_throw_verifyerror(m, "Illegal opcode %d at instr %d\n",
-										 opcode, ipc);
+										 opcode, icount);
 			return false;
 			break;
 #endif /* defined(ENABLE_VERIFIER) */
@@ -1553,8 +1554,8 @@ invoke_method:
 
 	/* assert that we did not write more ICMDs than allocated */
 
-	assert(ipc <= pd.instructionslength);
-	assert(ipc == (iptr - pd.instructions));
+	assert(icount <= pd.instructionslength);
+	assert(icount == (iptr - pd.instructions));
 
 	/*** verifier checks ******************************************************/
 
@@ -1580,17 +1581,6 @@ invoke_method:
 	else
 		jd->branchtoentry = true;
 
-	/* copy local to method variables */
-
-	jd->instructions = pd.instructions;
-	jd->instructioncount = ipc;
-	jd->basicblockcount = b_count;
-	jd->stackcount = s_count + jd->basicblockcount * m->maxstack; /* in-stacks */
-
-	/* allocate stack table */
-
-	jd->stack = DMNEW(stackelement, jd->stackcount);
-
 	/* build basic block list */
 
 	bptr = jd->basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
@@ -1606,7 +1596,8 @@ invoke_method:
 	if (!jd->basicblockindex[0] || (jd->basicblockindex[0] > 1)) {
 		BASICBLOCK_INIT(bptr, m);
 
-		bptr->iinstr = jd->instructions;
+		bptr->iinstr = pd.instructions;
+
 		/* bptr->icount is set when the next block is allocated */
 
 		bptr->nr = b_count++;
@@ -1633,7 +1624,8 @@ invoke_method:
 
 			BASICBLOCK_INIT(bptr, m);
 
-			bptr->iinstr = jd->instructions + (jd->basicblockindex[p] >> 1);
+			bptr->iinstr = pd.instructions + (jd->basicblockindex[p] >> 1);
+
 			if (b_count) {
 				bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
 			}
@@ -1650,7 +1642,7 @@ invoke_method:
 	/* set instruction count of last real block */
 
 	if (b_count) {
-		bptr[-1].icount = (jd->instructions + jd->instructioncount) - bptr[-1].iinstr;
+		bptr[-1].icount = (pd.instructions + icount) - bptr[-1].iinstr;
 	}
 
 	/* allocate additional block at end */
@@ -1694,7 +1686,7 @@ invoke_method:
 
 		jd->varcount = 
 			  nlocals                                      /* local variables */
-			+ jd->basicblockcount * m->maxstack                 /* invars */
+			+ b_count * m->maxstack                                 /* invars */
 			+ s_count;         /* variables created within blocks (non-invar) */
 
 		/* reserve the first indices for local variables */
@@ -1724,6 +1716,17 @@ invoke_method:
 			if (*mapptr != UNUSED)
 				VAR(*mapptr)->type = i%5;
 	}
+
+	/* assign local variables to method variables */
+
+	jd->instructions     = pd.instructions;
+	jd->instructioncount = icount;
+	jd->basicblockcount  = b_count;
+	jd->stackcount       = s_count + b_count * m->maxstack; /* in-stacks */
+
+	/* allocate stack table */
+
+	jd->stack = DMNEW(stackelement, jd->stackcount);
 
 	/* everything's ok */
 
