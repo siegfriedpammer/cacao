@@ -567,7 +567,9 @@ s4   get_lopart_disp(s4 disp);
 
 
 #define M_DMOV(rs,rd)           M_FOP3_DX(0x02,0x34,0x02,rd,-1,rs)      /* rd = rs */
-#define M_FMOV(rs,rd)           M_FOP3_FX(0x02,0x34,0x01,rd,-1,rs)  /* rd = rs */
+#define M_FMOV(rs,rd)           M_FOP3_FX(0x02,0x34,0x01,rd,-1,rs)      /* rd = rs */
+
+#define M_FMOV_INTERN(rs,rd)    M_FOP3(0x02,0x34,0x01,rd,-1,rs)         /* rd = rs */
 
 #define M_FNEG(rs,rd)          	M_FOP3_FX(0x02,0x34,0x05,rd,-1,rs)	 	/* rd = -rs     */
 #define M_DNEG(rs,rd)          	M_FOP3_DX(0x02,0x34,0x06,rd,-1,rs)  	/* rd = -rs     */

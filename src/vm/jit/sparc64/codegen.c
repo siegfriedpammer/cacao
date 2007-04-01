@@ -2297,8 +2297,47 @@ nowperformreturn:
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
 			
-			/* XXX: proper builtin calling and float args are so not implemented */
-			assert(md->paramcount <= 5 && md->argfltreguse < 1);
+			/* XXX: builtin calling with stack arguments not implemented */
+			assert(md->paramcount <= 5 && md->argfltreguse <= 16);
+			
+			s3 = md->paramcount;
+
+			MCODECHECK((s3 << 1) + 64);
+
+			/* copy float arguments according to ABI convention */
+
+			int num_fltregargs = 0;
+			int fltregarg_inswap[16];
+
+			for (s3 = s3 - 1; s3 >= 0; s3--) {
+				var = VAR(iptr->sx.s23.s2.args[s3]);
+
+				if (var->flags & PREALLOC)
+					continue;
+
+				if (IS_FLT_DBL_TYPE(var->type)) {
+					if (!md->params[s3].inmemory) {
+						s1 = md->params[s3].regoff; /*native flt args use regoff directly*/
+						d = emit_load(jd, iptr, var, REG_FTMP1);
+						
+						M_DMOV(d, s1 + 16);
+						fltregarg_inswap[num_fltregargs] = s1;
+						num_fltregargs++;
+						/*printf("builtin: flt arg swap to %d\n", s1 + 16);*/
+					}
+					else {
+						assert(0);
+					}
+				}
+			}
+			
+			int i;
+			/* move swapped float args to target regs */
+			for (i = 0; i < num_fltregargs; i++) {
+				s1 = fltregarg_inswap[i];
+				M_DMOV(s1 + 16, s1);
+				/*printf("builtin float arg to target reg: %d ==> %d\n", s1+16, s1);*/
+			}
 			
 			goto gen_method;
 
@@ -2344,6 +2383,9 @@ gen_method:
 					}
 				}
 				else {
+					if (iptr->opc == ICMD_BUILTIN)
+						continue;
+						
 					if (!md->params[s3].inmemory) {
 						s1 = rd->argfltregs[md->params[s3].regoff];
 						d = emit_load(jd, iptr, var, s1);
@@ -2378,6 +2420,10 @@ gen_method:
 			    M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
 
 				emit_exception_check(cd, iptr);
+				if (md->returntype.type == TYPE_FLT) {
+					/* special handling for float return value in %f0 */
+					M_FMOV_INTERN(0,1);
+				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -3069,7 +3115,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 					M_DMOV(s1, s2 + 16);
 					fltregarg_inswap[num_fltregargs] = s2;
 					num_fltregargs++;
-					printf("flt arg swap to %d\n", s2 + 16);
+					/*printf("flt arg swap to %d\n", s2 + 16);*/
 
 				} else {
 					s2 = nmd->params[j].regoff;
@@ -3097,7 +3143,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	for (i = 0; i < num_fltregargs; i++) {
 		s1 = fltregarg_inswap[i];
 		M_DMOV(s1 + 16, s1);
-		printf("float arg to target reg: %d ==> %d\n", s1+16, s1);
+		/*printf("float arg to target reg: %d ==> %d\n", s1+16, s1);*/
 	}
 
 
