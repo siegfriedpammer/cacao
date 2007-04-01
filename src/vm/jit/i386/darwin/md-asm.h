@@ -85,6 +85,7 @@
 #define asm_vm_call_method_long               _asm_vm_call_method_long
 #define asm_vm_call_method_float              _asm_vm_call_method_float
 #define asm_vm_call_method_double             _asm_vm_call_method_double
+#define asm_vm_call_method_end                _asm_vm_call_method_end
 
 #define asm_vm_call_method_exception_handler  _asm_vm_call_method_exception_handler
 
