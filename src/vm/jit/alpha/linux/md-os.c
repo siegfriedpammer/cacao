@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md-os.c 7638 2007-04-02 21:24:59Z twisti $
 
 */
 
@@ -36,6 +36,10 @@
 
 #include "vm/jit/alpha/codegen.h"
 #include "vm/jit/alpha/md-abi.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#endif
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
@@ -119,6 +123,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 *******************************************************************************/
 
+#if defined(ENABLE_THREADS)
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
 	threadobject *tobj;
@@ -135,6 +140,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 	tobj->pc = pc;
 }
+#endif
 
 
 #if defined(ENABLE_THREADS)
