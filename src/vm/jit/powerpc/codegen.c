@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: codegen.c 7634 2007-04-02 20:44:11Z twisti $
 
 */
 
@@ -53,6 +53,7 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
@@ -3108,6 +3109,17 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	emit_verbosecall_enter(jd);
 
+#if defined(ENABLE_GC_CACAO)
+	/* Save callee saved integer registers in stackframeinfo (GC may
+	   need to recover them during a collection). */
+
+	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
+
 	/* save integer and float argument registers */
 
 	j = 0;
@@ -3312,6 +3324,17 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
 		}
 	}
+
+#if defined(ENABLE_GC_CACAO)
+	/* Restore callee saved integer registers from stackframeinfo (GC
+	   might have modified them during a collection). */
+  	 
+	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
 
 	M_ALD(REG_ITMP2_XPC, REG_SP, cd->stackframesize * 4 + LA_LR_OFFSET);
 	M_MTLR(REG_ITMP2_XPC);
