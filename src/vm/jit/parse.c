@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: parse.c 7627 2007-04-02 18:56:59Z twisti $
 
 */
 
@@ -129,7 +129,7 @@ static void parse_setup(jitdata *jd, parsedata_t *pd)
 
 *******************************************************************************/
 
-static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
+static instruction *parse_realloc_instructions(parsedata_t *pd, s4 icount, s4 n)
 {
 	/* increase the size of the instruction array */
 
@@ -137,13 +137,14 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 ipc, s4 n)
 
 	/* reallocate the array */
 
-	pd->instructions = DMREALLOC(pd->instructions, instruction, ipc,
+	pd->instructions = DMREALLOC(pd->instructions, instruction, icount,
 								 pd->instructionslength);
-	MZERO(pd->instructions + ipc, instruction, (pd->instructionslength - ipc));
+	MZERO(pd->instructions + icount, instruction,
+		  (pd->instructionslength - icount));
 
 	/* return the iptr */
 
-	return pd->instructions + ipc;
+	return pd->instructions + icount;
 }
 
 
@@ -337,7 +338,7 @@ bool parse(jitdata *jd)
 	methodinfo  *m;                     /* method being parsed                */
 	parsedata_t  pd;
 	instruction *iptr;                  /* current ptr into instruction array */
-	s4           ipc;                   /* intermediate instruction counter   */
+	s4           icount;                /* intermediate instruction counter   */
 	s4           p;                     /* java instruction counter           */
 	s4           nextp;                 /* start of next java instruction     */
 	s4           opcode;                /* java opcode                        */
@@ -383,8 +384,8 @@ bool parse(jitdata *jd)
   
  	/* initialize local variables */
   
- 	iptr = pd.instructions;
- 	ipc  = 0;
+ 	iptr   = pd.instructions;
+ 	icount = 0;
   
 	/* mark basic block boundaries for exception table */
 
@@ -458,7 +459,7 @@ fetch_opcode:
 
 		/* store intermediate instruction count (bit 0 mark block starts) */
 
-		jd->basicblockindex[p] |= (ipc << 1);
+		jd->basicblockindex[p] |= (icount << 1);
 
 		/* compute next instruction start */
 
@@ -1515,7 +1516,7 @@ invoke_method:
 		case 254:
 		case 255:
 			exceptions_throw_verifyerror(m, "Illegal opcode %d at instr %d\n",
-										 opcode, ipc);
+										 opcode, icount);
 			return false;
 			break;
 #endif /* defined(ENABLE_VERIFIER) */
@@ -1553,8 +1554,8 @@ invoke_method:
 
 	/* assert that we did not write more ICMDs than allocated */
 
-	assert(ipc <= pd.instructionslength);
-	assert(ipc == (iptr - pd.instructions));
+	assert(icount <= pd.instructionslength);
+	assert(icount == (iptr - pd.instructions));
 
 	/*** verifier checks ******************************************************/
 
@@ -1573,73 +1574,105 @@ invoke_method:
 
 	/*** setup the methodinfo, allocate stack and basic blocks ****************/
 
-	/* adjust block count if target 0 is not first intermediate instruction */
+	/* identify basic blocks */
 
-	if (!jd->basicblockindex[0] || (jd->basicblockindex[0] > 1))
-		b_count++;
-	else
+	/* First instruction always starts a basic block, but check if it
+	   is already a branch target. */
+
+	if ((jd->basicblockindex[0] == 0) || (jd->basicblockindex[0] > 1)) {
+		iptr = pd.instructions;
+
+		iptr->flags.bits |= INS_FLAG_BASICBLOCK;
+
+		/* This is the first basic block. */
+
+		b_count = 1;
+	}
+	else {
 		jd->branchtoentry = true;
 
-	/* copy local to method variables */
+		/* In this case the loop below counts the first basic
+		   block. */
 
-	jd->instructions = pd.instructions;
-	jd->instructioncount = ipc;
-	jd->basicblockcount = b_count;
-	jd->stackcount = s_count + jd->basicblockcount * m->maxstack; /* in-stacks */
-
-	/* allocate stack table */
-
-	jd->stack = DMNEW(stackelement, jd->stackcount);
-
-	/* build basic block list */
-
-	bptr = jd->basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
-
-	/* zero out all basic block structures */
-
-	MZERO(bptr, basicblock, b_count + 1);
-
-	b_count = 0;
-
-	/* additional block if target 0 is not first intermediate instruction */
-
-	if (!jd->basicblockindex[0] || (jd->basicblockindex[0] > 1)) {
-		BASICBLOCK_INIT(bptr, m);
-
-		bptr->iinstr = jd->instructions;
-		/* bptr->icount is set when the next block is allocated */
-
-		bptr->nr = b_count++;
-		bptr++;
-		bptr[-1].next = bptr;
+		b_count = 0;
 	}
 
-	/* allocate blocks */
+	/* Iterate over all bytecode instructions and mark the
+	   corresponding IR instruction as basic block starting
+	   instruction. */
 
-	for (p = 0; p < m->jcodelength; p++) {
-		if (jd->basicblockindex[p] & 1) {
+	for (i = 0; i < m->jcodelength; i++) {
+		if (jd->basicblockindex[i] & 0x1) {
 #if defined(ENABLE_VERIFIER)
 			/* Check if this block starts at the beginning of an
 			   instruction. */
 
-			if (!pd.instructionstart[p]) {
+			if (pd.instructionstart[i] == 0) {
 				exceptions_throw_verifyerror(m,
 						"Branch into middle of instruction");
 				return false;
 			}
 #endif
 
-			/* allocate the block */
+			/* Mark the IR instruction as basic block starting
+			   instruction. */
+
+			iptr = pd.instructions + (jd->basicblockindex[i] >> 1);
+
+			iptr->flags.bits |= INS_FLAG_BASICBLOCK;
+
+			/* Store te basic block number in the array.  We need this
+			   information during stack analysis. */
+
+			jd->basicblockindex[i] = b_count;
+
+			/* basic block indices of course start with 0 */
+
+			b_count++;
+		}
+	}
+
+	/* Iterate over all IR instructions and count the basic blocks. */
+
+	iptr = pd.instructions;
+
+	b_count = 0;
+
+	for (i = 0; i < icount; i++, iptr++) {
+		if (INSTRUCTION_STARTS_BASICBLOCK(iptr)) {
+			b_count++;
+		}
+	}
+
+	/* Allocate basic block array (one more for end ipc). */
+
+	jd->basicblocks = DMNEW(basicblock, b_count + 1);
+
+	/* zero out all basic block structures */
+
+	MZERO(jd->basicblocks, basicblock, b_count + 1);
+
+	/* Now iterate again over all IR instructions and initialize the
+	   basic block structures. */
+
+	iptr = pd.instructions;
+	bptr = jd->basicblocks;
+
+	b_count = 0;
+
+	for (i = 0; i < icount; i++, iptr++) {
+		if (INSTRUCTION_STARTS_BASICBLOCK(iptr)) {
+			/* intialize the basic block */
 
 			BASICBLOCK_INIT(bptr, m);
 
-			bptr->iinstr = jd->instructions + (jd->basicblockindex[p] >> 1);
-			if (b_count) {
+			bptr->iinstr = iptr;
+
+			if (b_count > 0) {
 				bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
 			}
-			/* bptr->icount is set when the next block is allocated */
 
-			jd->basicblockindex[p] = b_count;
+			/* bptr->icount is set when the next block is allocated */
 
 			bptr->nr = b_count++;
 			bptr++;
@@ -1649,14 +1682,15 @@ invoke_method:
 
 	/* set instruction count of last real block */
 
-	if (b_count) {
-		bptr[-1].icount = (jd->instructions + jd->instructioncount) - bptr[-1].iinstr;
+	if (b_count > 0) {
+		bptr[-1].icount = (pd.instructions + icount) - bptr[-1].iinstr;
 	}
 
 	/* allocate additional block at end */
 
-	BASICBLOCK_INIT(bptr,m);
+	BASICBLOCK_INIT(bptr, m);
 	bptr->nr = b_count;
+
 	jd->basicblockindex[m->jcodelength] = b_count;
 
 	/* set basicblock pointers in exception table */
@@ -1694,7 +1728,7 @@ invoke_method:
 
 		jd->varcount = 
 			  nlocals                                      /* local variables */
-			+ jd->basicblockcount * m->maxstack                 /* invars */
+			+ b_count * m->maxstack                                 /* invars */
 			+ s_count;         /* variables created within blocks (non-invar) */
 
 		/* reserve the first indices for local variables */
@@ -1724,6 +1758,17 @@ invoke_method:
 			if (*mapptr != UNUSED)
 				VAR(*mapptr)->type = i%5;
 	}
+
+	/* assign local variables to method variables */
+
+	jd->instructions     = pd.instructions;
+	jd->instructioncount = icount;
+	jd->basicblockcount  = b_count;
+	jd->stackcount       = s_count + b_count * m->maxstack; /* in-stacks */
+
+	/* allocate stack table */
+
+	jd->stack = DMNEW(stackelement, jd->stackcount);
 
 	/* everything's ok */
 

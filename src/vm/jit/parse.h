@@ -27,7 +27,7 @@
    Author:  Christian Thalinger
             Edwin Steiner
 
-   $Id: parse.h 6162 2006-12-10 21:27:07Z twisti $
+   $Id: parse.h 7619 2007-03-30 11:41:27Z twisti $
 
 */
 
@@ -99,8 +99,8 @@
     } while (0)
 
 #define INSTRUCTIONS_CHECK(i)                                        \
-    if ((ipc + (i)) > pd.instructionslength)                         \
-        iptr = parse_realloc_instructions(&pd, ipc, (i))
+    if ((icount + (i)) > pd.instructionslength)                      \
+        iptr = parse_realloc_instructions(&pd, icount, (i))
 
 
 /* intermediate code generating macros ****************************************/
@@ -120,12 +120,12 @@
 /* afterwards.                                                                */
 
 #define PINC                                                         \
-    iptr++; ipc++
+    iptr++; icount++
 
 #define OP_PREPARE_FLAGS(o, f)                                       \
     iptr->opc                = (o);                                  \
     iptr->line               = currentline;                          \
-    iptr->flags.bits         = (f) | (ipc << INS_FLAG_ID_SHIFT);
+    iptr->flags.bits         = (f) | (icount << INS_FLAG_ID_SHIFT);
 
 #define OP_PREPARE_ZEROFLAGS(o)                                      \
     OP_PREPARE_FLAGS(o, 0)
