@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7619 2007-03-30 11:41:27Z twisti $
+   $Id: parse.c 7627 2007-04-02 18:56:59Z twisti $
 
 */
 
@@ -1574,64 +1574,105 @@ invoke_method:
 
 	/*** setup the methodinfo, allocate stack and basic blocks ****************/
 
-	/* adjust block count if target 0 is not first intermediate instruction */
+	/* identify basic blocks */
 
-	if (!jd->basicblockindex[0] || (jd->basicblockindex[0] > 1))
-		b_count++;
-	else
+	/* First instruction always starts a basic block, but check if it
+	   is already a branch target. */
+
+	if ((jd->basicblockindex[0] == 0) || (jd->basicblockindex[0] > 1)) {
+		iptr = pd.instructions;
+
+		iptr->flags.bits |= INS_FLAG_BASICBLOCK;
+
+		/* This is the first basic block. */
+
+		b_count = 1;
+	}
+	else {
 		jd->branchtoentry = true;
 
-	/* build basic block list */
+		/* In this case the loop below counts the first basic
+		   block. */
 
-	bptr = jd->basicblocks = DMNEW(basicblock, b_count + 1);    /* one more for end ipc */
-
-	/* zero out all basic block structures */
-
-	MZERO(bptr, basicblock, b_count + 1);
-
-	b_count = 0;
-
-	/* additional block if target 0 is not first intermediate instruction */
-
-	if (!jd->basicblockindex[0] || (jd->basicblockindex[0] > 1)) {
-		BASICBLOCK_INIT(bptr, m);
-
-		bptr->iinstr = pd.instructions;
-
-		/* bptr->icount is set when the next block is allocated */
-
-		bptr->nr = b_count++;
-		bptr++;
-		bptr[-1].next = bptr;
+		b_count = 0;
 	}
 
-	/* allocate blocks */
+	/* Iterate over all bytecode instructions and mark the
+	   corresponding IR instruction as basic block starting
+	   instruction. */
 
-	for (p = 0; p < m->jcodelength; p++) {
-		if (jd->basicblockindex[p] & 1) {
+	for (i = 0; i < m->jcodelength; i++) {
+		if (jd->basicblockindex[i] & 0x1) {
 #if defined(ENABLE_VERIFIER)
 			/* Check if this block starts at the beginning of an
 			   instruction. */
 
-			if (!pd.instructionstart[p]) {
+			if (pd.instructionstart[i] == 0) {
 				exceptions_throw_verifyerror(m,
 						"Branch into middle of instruction");
 				return false;
 			}
 #endif
 
-			/* allocate the block */
+			/* Mark the IR instruction as basic block starting
+			   instruction. */
+
+			iptr = pd.instructions + (jd->basicblockindex[i] >> 1);
+
+			iptr->flags.bits |= INS_FLAG_BASICBLOCK;
+
+			/* Store te basic block number in the array.  We need this
+			   information during stack analysis. */
+
+			jd->basicblockindex[i] = b_count;
+
+			/* basic block indices of course start with 0 */
+
+			b_count++;
+		}
+	}
+
+	/* Iterate over all IR instructions and count the basic blocks. */
+
+	iptr = pd.instructions;
+
+	b_count = 0;
+
+	for (i = 0; i < icount; i++, iptr++) {
+		if (INSTRUCTION_STARTS_BASICBLOCK(iptr)) {
+			b_count++;
+		}
+	}
+
+	/* Allocate basic block array (one more for end ipc). */
+
+	jd->basicblocks = DMNEW(basicblock, b_count + 1);
+
+	/* zero out all basic block structures */
+
+	MZERO(jd->basicblocks, basicblock, b_count + 1);
+
+	/* Now iterate again over all IR instructions and initialize the
+	   basic block structures. */
+
+	iptr = pd.instructions;
+	bptr = jd->basicblocks;
+
+	b_count = 0;
+
+	for (i = 0; i < icount; i++, iptr++) {
+		if (INSTRUCTION_STARTS_BASICBLOCK(iptr)) {
+			/* intialize the basic block */
 
 			BASICBLOCK_INIT(bptr, m);
 
-			bptr->iinstr = pd.instructions + (jd->basicblockindex[p] >> 1);
+			bptr->iinstr = iptr;
 
-			if (b_count) {
+			if (b_count > 0) {
 				bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
 			}
-			/* bptr->icount is set when the next block is allocated */
 
-			jd->basicblockindex[p] = b_count;
+			/* bptr->icount is set when the next block is allocated */
 
 			bptr->nr = b_count++;
 			bptr++;
@@ -1641,14 +1682,15 @@ invoke_method:
 
 	/* set instruction count of last real block */
 
-	if (b_count) {
+	if (b_count > 0) {
 		bptr[-1].icount = (pd.instructions + icount) - bptr[-1].iinstr;
 	}
 
 	/* allocate additional block at end */
 
-	BASICBLOCK_INIT(bptr,m);
+	BASICBLOCK_INIT(bptr, m);
 	bptr->nr = b_count;
+
 	jd->basicblockindex[m->jcodelength] = b_count;
 
 	/* set basicblock pointers in exception table */
