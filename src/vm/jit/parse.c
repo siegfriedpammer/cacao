@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7627 2007-04-02 18:56:59Z twisti $
+   $Id: parse.c 7629 2007-04-02 19:45:20Z twisti $
 
 */
 
@@ -898,7 +898,7 @@ fetch_opcode:
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(i);
 			blockend = true;
-			OP_INSINDEX(opcode, i);
+			OP_INSINDEX(ICMD_GOTO, i);
 			break;
 
 		case JAVA_JSR:
