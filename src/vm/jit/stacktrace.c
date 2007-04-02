@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: stacktrace.c 7631 2007-04-02 20:04:22Z michi $
 
 */
 
@@ -667,12 +667,13 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 /* stacktrace_create ***********************************************************
 
    Generates a stacktrace from the thread passed into a
-   stacktracebuffer.  The stacktracebuffer is allocated on the GC
-   heap.
+   stacktracebuffer.  The stacktracebuffer is allocated on the
+   dump memory.
 
    RETURN VALUE:
       pointer to the stacktracebuffer, or
-	  NULL if an exception has been thrown
+      NULL if there is no stacktrace available for the
+      given thread.
 
 *******************************************************************************/
 
@@ -956,7 +957,10 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 	/* return the stacktracebuffer */
 
-	return stb;
+	if (stb->used == 0)
+		return NULL;
+	else
+		return stb;
 }
 
 
