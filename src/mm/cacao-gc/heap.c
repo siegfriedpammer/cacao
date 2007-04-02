@@ -326,9 +326,9 @@ void heap_print_object(java_objectheader *o)
 
 	/* print general information */
 #if SIZEOF_VOID_P == 8
-	assert(0);
+	printf("0x%016llx: ", (unsigned long long) o);
 #else
-	printf("0x%08x: ", (void *) o);
+	printf("0x%08lx: ", (unsigned long) o);
 #endif
 	heap_print_object_flags(o);
 	printf(" ");
