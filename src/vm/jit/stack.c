@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7623 2007-04-02 13:45:30Z twisti $
+   $Id: stack.c 7624 2007-04-02 16:09:44Z twisti $
 
 */
 
@@ -1200,9 +1200,10 @@ static basicblock *stack_mark_reached_from_outvars(stackdata_t *sd, basicblock *
 
 /* stack_reach_next_block ******************************************************
 
-   Mark the following block reached and propagate the outvars of the current block
-   and the current locals to it. This function specializes the target block, 
-   if necessary, and returns a pointer to the specialized target.
+   Mark the following block reached and propagate the outvars of the
+   current block and the current locals to it.  This function
+   specializes the target block, if necessary, and returns a pointer
+   to the specialized target.
 
    IN:
       sd...........stack analysis data
@@ -2181,16 +2182,20 @@ bool stack_analyse(jitdata *jd)
 
 			if (sd.bptr->flags == BBTYPECHECK_REACHED) {
 				/* re-analyse a block because its input changed */
+
 				deadcode = false;
+
 				if (!stack_reanalyse_block(&sd))
 					return false;
+
 				superblockend = true; /* XXX */
 				continue;
 			}
 
 			if (superblockend && (sd.bptr->flags < BBREACHED)) {
-				/* This block has not been reached so far, and we      */
-				/* don't fall into it, so we'll have to iterate again. */
+				/* This block has not been reached so far, and we
+				   don't fall into it, so we'll have to iterate
+				   again. */
 
 				sd.repeat = true;
 				continue;
@@ -2204,8 +2209,9 @@ bool stack_analyse(jitdata *jd)
 			}
 
 			if (sd.bptr->original && sd.bptr->original->flags < BBFINISHED) {
-				/* This block is a clone and the original has not been */
-				/* analysed, yet. Analyse it on the next iteration.    */
+				/* This block is a clone and the original has not been
+				   analysed, yet. Analyse it on the next
+				   iteration. */
 
 				sd.repeat = true;
 				/* XXX superblockend? */
