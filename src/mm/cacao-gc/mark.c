@@ -231,7 +231,9 @@ void mark_classes(void *start, void *end)
 void mark_me(rootset_t *rs)
 {
 	java_objectheader *ref;
+#if defined(GCCONF_FINALIZER)
 	final_entry       *fe;
+#endif
 	u4                 f_type;
 	void *start, *end;
 	int i;
@@ -272,6 +274,7 @@ void mark_me(rootset_t *rs)
 		rs = rs->next;
 	}
 
+#if defined(GCCONF_FINALIZER)
 	/* objects with finalizers will also be marked here. if they have not been
 	 * marked before the finalization is triggered */
 	/* REMEMBER: all threads are stopped, so we can use unsynced access here */
@@ -280,67 +283,52 @@ void mark_me(rootset_t *rs)
 		f_type = fe->type;
 		ref    = fe->o;
 
-		/* object not marked, but was reachable before */
-		if (f_type == FINAL_REACHABLE && !GC_IS_MARKED(ref)) {
-			GC_LOG2( printf("Finalizer triggered for: ");
-					heap_print_object(ref); printf("\n"); );
+		/* we do not care about objects which have been marked already */
+		if (!GC_IS_MARKED(ref)) {
 
-			/* object is now reclaimable */
-			fe->type = FINAL_RECLAIMABLE;
+			switch (f_type) {
 
-			/* keep the object alive until finalizer finishes */
-			MARK(ref);
+			case FINAL_REACHABLE: /* object was reachable before */
+				GC_LOG2( printf("Finalizer triggered for: ");
+						heap_print_object(ref); printf("\n"); );
 
-			/* notify the finalizer after collection finished */
-			gc_notify_finalizer = true;
-		} else
+				/* object is now reclaimable */
+				fe->type = FINAL_RECLAIMABLE;
+
+				/* notify the finalizer after collection finished */
+				gc_notify_finalizer = true;
+
+				/* keep the object alive until finalizer finishes */
+				MARK(ref);
+				break;
+
+			case FINAL_RECLAIMABLE: /* object not yet finalized */
+				GC_LOG( printf("Finalizer not yet started for: ");
+						heap_print_object(ref); printf("\n"); );
+
+				/* keep the object alive until finalizer finishes */
+				MARK(ref);
+				break;
 
 #if 0
-		/* object not marked, but was not finalized yet */
-		if (f_type == FINAL_RECLAIMABLE && !GC_IS_MARKED(ref)) {
-			GC_LOG2( printf("Finalizer not yet started for: ");
-					heap_print_object(ref); printf("\n"); );
+			case FINAL_FINALIZING: /* object is still being finalized */
+				GC_LOG( printf("Finalizer not yet finished for: ");
+						heap_print_object(ref); printf("\n"); );
 
-			/* keep the object alive until finalizer finishes */
-			MARK(ref);
-		} else
-
-		/* object not marked, but was not finalized yet */
-		if (f_type == FINAL_RECLAIMABLE && !GC_IS_MARKED(ref)) {
-			GC_LOG2( printf("Finalizer not yet finished for: ");
-					heap_print_object(ref); printf("\n"); );
-
-			/* keep the object alive until finalizer finishes */
-			MARK(ref);
-		} else
-
-		/* object marked, but finalizer already ran */
-		/* TODO: nothing has to be done here, remove me! */
-		if (f_type == FINAL_FINALIZED && GC_IS_MARKED(ref)) {
-			GC_LOG2( printf("Finalizer resurrected object: ");
-					heap_print_object(ref); printf("\n"); );
-
-			/* do nothing */
-		} else
-
-		/* object not marked, finalizer already ran */
-		if (f_type == FINAL_FINALIZED && !GC_IS_MARKED(ref)) {
-			GC_LOG2( printf("Finalizer already finished!\n"); );
-
-			/* do nothing */
-		} else
+				/* keep the object alive until finalizer finishes */
+				MARK(ref);
+				break;
 #endif
 
-		/* object marked, finalizer not yet run */
-		if (f_type == FINAL_REACHABLE && GC_IS_MARKED(ref)) {
-			/* do nothing */
-		} else
+			default: /* case not yet covered */
+				vm_abort("mark_me: uncovered case (type=%d)", f_type);
 
-		/* case not yet covered */
-		{ assert(0); }
+			}
+		}
 
 		fe = list_next_unsynced(final_list, fe);
 	}
+#endif /*defined(GCCONF_FINALIZER)*/
 
 	GC_LOG( dolog("GC: Marking finished."); );
 

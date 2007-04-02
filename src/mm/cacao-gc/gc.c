@@ -158,6 +158,7 @@ void gc_collect(s4 level)
 
 	/* sourcestate of the current thread, assuming we are in the native world */
 	GC_LOG( dolog("GC: Stackwalking current thread ..."); );
+	GC_LOG( stacktrace_dump_trace(THREADOBJECT); );
 	/* TODO: GC_ASSERT(thread flags say in-native-world) */
 	replace_gc_from_native(THREADOBJECT, NULL, NULL);
 
@@ -226,14 +227,7 @@ void gc_collect(s4 level)
 		gcstat_println();
 #endif
 
-#if defined(GCCONF_FINALIZER)
-	/* does the finalizer need to be notified */
-	if (gc_notify_finalizer)
-		finalizer_notify();
-#endif
-
 	/* we are no longer running */
-	/* REMEBER: keep this below the finalizer notification */
 	gc_running = false;
 
 #if defined(ENABLE_THREADS)
@@ -241,6 +235,12 @@ void gc_collect(s4 level)
 	GC_LOG( dolog("GC: Reanimating world ..."); );
 	threads_startworld();
 	/*GC_LOG( threads_dump(); );*/
+#endif
+
+#if defined(GCCONF_FINALIZER)
+	/* does the finalizer need to be notified */
+	if (gc_notify_finalizer)
+		finalizer_notify();
 #endif
 
 	RT_TIMING_GET_TIME(time_end);
