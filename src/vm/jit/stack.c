@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: stack.c 7623 2007-04-02 13:45:30Z twisti $
 
 */
 
@@ -1116,10 +1116,14 @@ static stackptr stack_create_instack(stackdata_t *sd)
 
 static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack, int stackdepth) 
 {
+	assert(b != NULL);
+
 #if defined(STACK_VERBOSE)
 	printf("stack_mark_reached(L%03d from L%03d)\n", b->nr, sd->bptr->nr);
 #endif
+
 	/* mark targets of backward branches */
+
 	if (b->nr <= sd->bptr->nr)
 		b->bitflags |= BBFLAG_REPLACEMENT;
 
@@ -1162,10 +1166,14 @@ static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr c
 
 static basicblock *stack_mark_reached_from_outvars(stackdata_t *sd, basicblock *b)
 {
+	assert(b != NULL);
+
 #if defined(STACK_VERBOSE)
 	printf("stack_mark_reached_from_outvars(L%03d from L%03d)\n", b->nr, sd->bptr->nr);
 #endif
+
 	/* mark targets of backward branches */
+
 	if (b->nr <= sd->bptr->nr)
 		b->bitflags |= BBFLAG_REPLACEMENT;
 
@@ -1212,7 +1220,8 @@ static bool stack_reach_next_block(stackdata_t *sd)
 
 	tbptr = (sd->bptr->original) ? sd->bptr->original : sd->bptr;
 	tbptr = stack_mark_reached_from_outvars(sd, tbptr->next);
-	if (!tbptr)
+
+	if (tbptr == NULL)
 		return false;
 
 	if (tbptr != sd->bptr->next) {
@@ -2153,11 +2162,12 @@ bool stack_analyse(jitdata *jd)
 
 		/* initialize loop over basic blocks */
 
-		sd.bptr = jd->basicblocks;
+		sd.bptr       = jd->basicblocks;
 		superblockend = true;
-		sd.repeat = false;
-		curstack = NULL; stackdepth = 0;
-		deadcode = true;
+		sd.repeat     = false;
+		curstack      = NULL;
+		stackdepth    = 0;
+		deadcode      = true;
 
 		/* iterate over basic blocks *****************************************/
 
