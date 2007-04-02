@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7335 2007-02-12 10:43:33Z twisti $
+   $Id: md-abi.c 7637 2007-04-02 20:58:30Z twisti $
 
 */
 
@@ -62,6 +62,39 @@ const char *abi_registers_integer_name[] = {
 	"t7",  "s0",  "s1",  "s2",  "s3",  "s4",  "s5",  "s6",
 	"a0",  "a1",  "a2",  "a3",  "a4",  "a5",  "t8",  "t9",
 	"t10", "t11", "ra",  "pv",  "at",  "gp",  "sp",  "zero"
+};
+
+const s4 abi_registers_integer_argument[] = {
+	16, /* a0  */
+	17, /* a1  */
+	18, /* a2  */
+	19, /* a3  */
+	20, /* a4  */
+	21, /* a5  */
+};
+
+const s4 abi_registers_integer_saved[] = {
+	9,  /* s0  */
+	10, /* s1  */
+	11, /* s2  */
+	12, /* s3  */
+	13, /* s4  */
+	14, /* s5  */
+	15, /* s6  */
+};
+
+const s4 abi_registers_integer_temporary[] = {
+	1,  /* t0  */
+	2,  /* t1  */
+	3,  /* t2  */
+	4,  /* t3  */
+	5,  /* t4  */
+	6,  /* t5  */
+	7,  /* t6  */
+	8,  /* t7  */
+	22, /* t8  */
+	23, /* t9  */
+	24, /* t10 */
 };
 
 
