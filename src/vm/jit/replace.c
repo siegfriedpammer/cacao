@@ -49,6 +49,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/show.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/md.h"
 #include "vmcore/options.h"
 #include "vmcore/classcache.h"
 
