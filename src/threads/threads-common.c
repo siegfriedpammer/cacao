@@ -203,6 +203,7 @@ void threads_dump(void)
 
 void threads_print_stacktrace(threadobject *thread)
 {
+	stackframeinfo   *sfi;
 	stacktracebuffer *stb;
 	s4                dumpsize;
 
@@ -212,7 +213,13 @@ void threads_print_stacktrace(threadobject *thread)
 
 	/* create a stacktrace for the current thread */
 
-	stb = stacktrace_create(thread);
+#if defined(ENABLE_THREADS)
+	sfi = thread->_stackframeinfo;
+#else
+	sfi = _no_threads_stackframeinfo;
+#endif
+
+	stb = stacktrace_create(sfi);
 
 	/* print stacktrace */
 

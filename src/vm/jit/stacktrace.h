@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 7657 2007-04-03 15:51:52Z twisti $
+   $Id: stacktrace.h 7658 2007-04-03 16:06:30Z twisti $
 
 */
 
@@ -114,7 +114,7 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
 
 
-stacktracebuffer    *stacktrace_create(stackframeinfo *sfi);
+stacktracebuffer *stacktrace_create(stackframeinfo *sfi);
 
 stacktracecontainer *stacktrace_fillInStackTrace(void);
 
@@ -124,8 +124,8 @@ classinfo           *stacktrace_getCurrentClass(void);
 java_objectarray    *stacktrace_getStack(void);
 #endif
 
+void stacktrace_print_trace_from_buffer(stacktracebuffer *stb);
 void stacktrace_print_trace(java_objectheader *xptr);
-
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 
