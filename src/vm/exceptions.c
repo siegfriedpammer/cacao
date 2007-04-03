@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: exceptions.c 7654 2007-04-03 15:22:21Z twisti $
 
 */
 
@@ -1578,13 +1578,13 @@ void exceptions_clear_exception(void)
 
 java_objectheader *exceptions_fillinstacktrace(void)
 {
-	java_objectheader *e;
+	java_objectheader *o;
 	methodinfo        *m;
 
 	/* get exception */
 
-	e = *exceptionptr;
-	assert(e);
+	o = *exceptionptr;
+	assert(o);
 
 	/* clear exception */
 
@@ -1592,17 +1592,25 @@ java_objectheader *exceptions_fillinstacktrace(void)
 
 	/* resolve methodinfo pointer from exception object */
 
-	m = class_resolvemethod(e->vftbl->class,
+#if defined(ENABLE_JAVASE)
+	m = class_resolvemethod(o->vftbl->class,
 							utf_fillInStackTrace,
 							utf_void__java_lang_Throwable);
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+	m = class_resolvemethod(o->vftbl->class,
+							utf_fillInStackTrace,
+							utf_void__void);
+#else
+#error IMPLEMENT ME!
+#endif
 
 	/* call function */
 
-	(void) vm_call_method(m, e);
+	(void) vm_call_method(m, o);
 
 	/* return exception object */
 
-	return e;
+	return o;
 }
 
 
