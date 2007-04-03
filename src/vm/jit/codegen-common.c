@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: codegen-common.c 7652 2007-04-03 14:23:16Z twisti $
 
 */
 
@@ -1169,7 +1169,7 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 
 	/* remove current stackframeinfo from chain */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	*psfi = sfi->prev;
 

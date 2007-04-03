@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7651 2007-04-03 14:00:32Z twisti $
+   $Id: stacktrace.c 7652 2007-04-03 14:23:16Z twisti $
 
 */
 
@@ -100,7 +100,7 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 
 	/* get current stackframe info pointer */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	/* if we don't have pv handy */
 
@@ -164,7 +164,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* get current stackframe info pointer */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	/* sometimes we don't have pv handy (e.g. in asmpart.S:
        L_asm_call_jit_compiler_exception or in the interpreter). */
@@ -258,7 +258,7 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* get current stackframe info pointer */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	/* fill new stackframe info structure */
 
@@ -287,7 +287,7 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 
 	/* get current stackframe info pointer */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	/* restore the old pointer */
 

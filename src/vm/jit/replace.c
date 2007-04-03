@@ -2276,7 +2276,7 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 	/* get the stackframeinfo if none is given */
 
 	if (sfi == NULL)
-		sfi = *(STACKFRAMEINFO);
+		sfi = STACKFRAMEINFO;
 
 	/* each iteration of the loop recovers one source frame */
 
