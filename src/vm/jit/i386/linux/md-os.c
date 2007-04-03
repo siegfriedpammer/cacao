@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7648 2007-04-03 13:14:09Z twisti $
+   $Id: md-os.c 7660 2007-04-03 21:30:13Z twisti $
 
 */
 
@@ -35,14 +35,16 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/i386/codegen.h"
+
+#include "threads/threads-common.h"
+
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
-
-#include "vm/jit/i386/codegen.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
