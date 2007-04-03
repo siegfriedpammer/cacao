@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 7627 2007-04-02 18:56:59Z twisti $
+   $Id: jit.h 7647 2007-04-03 12:10:22Z twisti $
 
 */
 
@@ -47,6 +47,7 @@ typedef struct exception_entry exception_entry;
 #include "toolbox/chain.h"
 
 #include "vm/global.h"
+#include "vm/resolve.h"
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
@@ -70,7 +71,6 @@ typedef struct exception_entry exception_entry;
 
 #include "vmcore/method.h"
 #include "vmcore/references.h"
-#include "vm/resolve.h"
 
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"
