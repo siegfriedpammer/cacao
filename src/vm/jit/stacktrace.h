@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 7651 2007-04-03 14:00:32Z twisti $
+   $Id: stacktrace.h 7657 2007-04-03 15:51:52Z twisti $
 
 */
 
@@ -38,12 +38,6 @@ typedef struct stacktrace_entry stacktrace_entry;
 
 #include "config.h"
 #include "vm/types.h"
-
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
 
 #include "vmcore/class.h"
 #include "vmcore/method.h"
@@ -120,6 +114,8 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
 
 
+stacktracebuffer    *stacktrace_create(stackframeinfo *sfi);
+
 stacktracecontainer *stacktrace_fillInStackTrace(void);
 
 #if defined(ENABLE_JAVASE)
@@ -128,7 +124,6 @@ classinfo           *stacktrace_getCurrentClass(void);
 java_objectarray    *stacktrace_getStack(void);
 #endif
 
-void stacktrace_dump_trace(threadobject *thread);
 void stacktrace_print_trace(java_objectheader *xptr);
 
 

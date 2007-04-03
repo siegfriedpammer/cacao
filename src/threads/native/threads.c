@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7587 2007-03-28 13:29:09Z twisti $
+   $Id: threads.c 7657 2007-04-03 15:51:52Z twisti $
 
 */
 
@@ -1907,66 +1907,6 @@ void threads_sleep(s8 millis, s4 nanos)
 void threads_yield(void)
 {
 	sched_yield();
-}
-
-
-/* threads_dump ****************************************************************
-
-   Dumps info for all threads running in the JVM. This function is
-   called when SIGQUIT (<ctrl>-\) is sent to CACAO.
-
-*******************************************************************************/
-
-void threads_dump(void)
-{
-	threadobject     *thread;
-	java_lang_Thread *t;
-	utf              *name;
-
-	thread = mainthreadobj;
-
-	/* XXX we should stop the world here */
-
-	printf("Full thread dump CACAO "VERSION":\n");
-
-	/* iterate over all started threads */
-
-	do {
-		/* get thread object */
-
-		t = thread->object;
-
-		/* the thread may be currently in initalization, don't print it */
-
-		if (t != NULL) {
-			/* get thread name */
-
-#if defined(ENABLE_JAVASE)
-			name = javastring_toutf(t->name, false);
-#elif defined(ENABLE_JAVAME_CLDC1_1)
-			name = t->name;
-#endif
-
-			printf("\n\"");
-			utf_display_printable_ascii(name);
-			printf("\" ");
-
-			if (thread->flags & THREAD_FLAG_DAEMON)
-				printf("daemon ");
-
-#if SIZEOF_VOID_P == 8
-			printf("prio=%d tid=0x%016lx\n", t->priority, (ptrint) thread->tid);
-#else
-			printf("prio=%d tid=0x%08lx\n", t->priority, (ptrint) thread->tid);
-#endif
-
-			/* dump trace of thread */
-
-			stacktrace_dump_trace(thread);
-		}
-
-		thread = thread->next;
-	} while ((thread != NULL) && (thread != mainthreadobj));
 }
 
 

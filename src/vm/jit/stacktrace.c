@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7652 2007-04-03 14:23:16Z twisti $
+   $Id: stacktrace.c 7657 2007-04-03 15:51:52Z twisti $
 
 */
 
@@ -376,6 +376,10 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
    Generates a stacktrace from the thread passed into a
    stacktracebuffer.  The stacktracebuffer is allocated on the
    dump memory.
+   
+   NOTE: The first element in the stackframe chain must always be a
+         native stackframeinfo (e.g. VMThrowable.fillInStackTrace() is
+         a native function).
 
    RETURN VALUE:
       pointer to the stacktracebuffer, or
@@ -384,10 +388,9 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 *******************************************************************************/
 
-stacktracebuffer *stacktrace_create(threadobject* thread)
+stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 {
 	stacktracebuffer *stb;
-	stackframeinfo   *sfi;
 	methodinfo       *m;
 	codeinfo         *code;
 	u1               *pv;
@@ -409,19 +412,6 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 	stb->capacity = STACKTRACE_CAPACITY_DEFAULT;
 	stb->used     = 0;
 	stb->entries  = DMNEW(stacktrace_entry, STACKTRACE_CAPACITY_DEFAULT);
-
-	/* The first element in the stackframe chain must always be a
-	   native stackframeinfo (VMThrowable.fillInStackTrace is a native
-	   function). */
-
-	/* We don't use the STACKFRAMEINFO macro here, as we have to use
-	   the passed thread. */
-
-#if defined(ENABLE_THREADS)
-	sfi = thread->_stackframeinfo;
-#else
-	sfi = _no_threads_stackframeinfo;
-#endif
 
 #define PRINTMETHODS 0
 
@@ -692,8 +682,9 @@ stacktracecontainer *stacktrace_fillInStackTrace(void)
 
 	/* create a stacktrace from the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
-	if (!stb)
+	stb = stacktrace_create(STACKFRAMEINFO);
+
+	if (stb == NULL)
 		goto return_NULL;
 
 	/* allocate memory from the GC heap and copy the stacktrace buffer */
@@ -757,8 +748,9 @@ java_objectarray *stacktrace_getClassContext(void)
 
 	/* create a stacktrace for the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
-	if (!stb)
+	stb = stacktrace_create(STACKFRAMEINFO);
+
+	if (stb == NULL)
 		goto return_NULL;
 
 	/* calculate the size of the Class array */
@@ -841,8 +833,9 @@ classinfo *stacktrace_getCurrentClass(void)
 
 	/* create a stacktrace for the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
-	if (!stb)
+	stb = stacktrace_create(STACKFRAMEINFO);
+
+	if (stb == NULL)
 		goto return_NULL; /* XXX exception: how to distinguish from normal NULL return? */
 
 	/* iterate over all stacktrace entries and find the first suitable
@@ -908,7 +901,7 @@ java_objectarray *stacktrace_getStack(void)
 
 	/* create a stacktrace for the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
+	stb = stacktrace_create(STACKFRAMEINFO);
 
 	if (stb == NULL)
 		goto return_NULL;
@@ -1010,39 +1003,6 @@ void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 	/* just to be sure */
 
 	fflush(stdout);
-}
-
-
-/* stacktrace_dump_trace *******************************************************
-
-   This method is call from signal_handler_sigusr1 to dump the
-   stacktrace of the current thread to stdout.
-
-*******************************************************************************/
-
-void stacktrace_dump_trace(threadobject *thread)
-{
-	stacktracebuffer *stb;
-	s4                dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* create a stacktrace for the current thread */
-
-	stb = stacktrace_create(thread);
-
-	/* print stacktrace */
-
-	if (stb != NULL)
-		stacktrace_print_trace_from_buffer(stb);
-	else {
-		puts("\t<<No stacktrace available>>");
-		fflush(stdout);
-	}
-
-	dump_release(dumpsize);
 }
 
 

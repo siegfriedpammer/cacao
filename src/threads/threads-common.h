@@ -53,6 +53,8 @@
 
 threadobject *threads_create_thread(utf *name);
 ptrint        threads_get_current_tid(void);
+void          threads_dump(void);
+void          threads_print_stacktrace(threadobject *thread);
 
 #endif /* _THREADS_COMMON_H */
 

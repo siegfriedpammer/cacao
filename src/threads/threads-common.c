@@ -46,6 +46,8 @@
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
 
+#include "vm/jit/stacktrace.h"
+
 #include "vmcore/class.h"
 #include "vmcore/utf8.h"
 
@@ -130,6 +132,98 @@ ptrint threads_get_current_tid(void)
 		return 0;
 
 	return (ptrint) thread->tid;
+}
+
+
+/* threads_dump ****************************************************************
+
+   Dumps info for all threads running in the JVM.  This function is
+   called when SIGQUIT (<ctrl>-\) is sent to CACAO.
+
+*******************************************************************************/
+
+void threads_dump(void)
+{
+	threadobject     *thread;
+	java_lang_Thread *t;
+	utf              *name;
+
+	thread = mainthreadobj;
+
+	/* XXX we should stop the world here */
+
+	printf("Full thread dump CACAO "VERSION":\n");
+
+	/* iterate over all started threads */
+
+	do {
+		/* get thread object */
+
+		t = thread->object;
+
+		/* the thread may be currently in initalization, don't print it */
+
+		if (t != NULL) {
+			/* get thread name */
+
+#if defined(ENABLE_JAVASE)
+			name = javastring_toutf(t->name, false);
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+			name = t->name;
+#endif
+
+			printf("\n\"");
+			utf_display_printable_ascii(name);
+			printf("\" ");
+
+			if (thread->flags & THREAD_FLAG_DAEMON)
+				printf("daemon ");
+
+#if SIZEOF_VOID_P == 8
+			printf("prio=%d tid=0x%016lx\n", t->priority, (ptrint) thread->tid);
+#else
+			printf("prio=%d tid=0x%08lx\n", t->priority, (ptrint) thread->tid);
+#endif
+
+			/* print trace of thread */
+
+			threads_print_stacktrace(thread);
+		}
+
+		thread = thread->next;
+	} while ((thread != NULL) && (thread != mainthreadobj));
+}
+
+
+/* threads_print_stacktrace ****************************************************
+
+   Print the current stacktrace of the given thread.
+
+*******************************************************************************/
+
+void threads_print_stacktrace(threadobject *thread)
+{
+	stacktracebuffer *stb;
+	s4                dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* create a stacktrace for the current thread */
+
+	stb = stacktrace_create(thread);
+
+	/* print stacktrace */
+
+	if (stb != NULL)
+		stacktrace_print_trace_from_buffer(stb);
+	else {
+		puts("\t<<No stacktrace available>>");
+		fflush(stdout);
+	}
+
+	dump_release(dumpsize);
 }
 
 
