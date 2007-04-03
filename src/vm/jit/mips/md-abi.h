@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.h 7350 2007-02-13 21:30:13Z twisti $
+   $Id: md-abi.h 7659 2007-04-03 18:02:48Z twisti $
 
 */
 
@@ -74,31 +74,35 @@
 
 /* floating point registers */
 
-#define REG_FRESULT     0    /* to deliver floating point method results      */
+#define REG_FRESULT      0   /* to deliver floating point method results      */
 
-#define REG_IFTMP       1    /* temporary integer and floating point register */
+#define REG_IFTMP        1   /* temporary integer and floating point register */
 
 
 #if SIZEOF_VOID_P == 8
 
 /* MIPS64 defines */
 
-#define REG_FTMP1       1    /* temporary floating point register             */
-#define REG_FTMP2       2    /* temporary floating point register             */
-#define REG_FTMP3       3    /* temporary floating point register             */
+#define REG_FTMP1        1   /* temporary floating point register             */
+#define REG_FTMP2        2   /* temporary floating point register             */
+#define REG_FTMP3        3   /* temporary floating point register             */
+
+#define REG_FA0         12   /* define some argument registers                */
+#define REG_FA1         13
+#define REG_FA2         14
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
-#define INT_SAV_CNT     8    /* number of int callee saved registers          */
-#define INT_ARG_CNT     8    /* number of int argument registers              */
-#define INT_TMP_CNT     5    /* number of integer temporary registers         */
-#define INT_RES_CNT    10    /* number of integer reserved registers          */
+#define INT_SAV_CNT      8   /* number of int callee saved registers          */
+#define INT_ARG_CNT      8   /* number of int argument registers              */
+#define INT_TMP_CNT      5   /* number of integer temporary registers         */
+#define INT_RES_CNT     10   /* number of integer reserved registers          */
                              /* + 1 REG_RET totals to 32                      */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
-#define FLT_SAV_CNT     4    /* number of flt callee saved registers          */
-#define FLT_ARG_CNT     8    /* number of flt argument registers              */
+#define FLT_SAV_CNT      4   /* number of flt callee saved registers          */
+#define FLT_ARG_CNT      8   /* number of flt argument registers              */
 #define FLT_TMP_CNT     16   /* number of float temporary registers           */
-#define FLT_RES_CNT     3    /* number of float reserved registers            */
+#define FLT_RES_CNT      3   /* number of float reserved registers            */
                              /* + 1 REG_RET totals to 32                      */
 
 #define TRACE_ARGS_NUM  8
