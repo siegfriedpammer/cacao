@@ -67,46 +67,52 @@ typedef struct ucontext {
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	/*mcontext_t *_mc;*/
-	scontext_t *_sc;
-	u4          instr;
-	ptrint      addr;
-	ptrint      base;
-	u1          *pv;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
+	ucontext_t        *_uc;
+	scontext_t        *_sc;
+	u1                *pv;
+	u1                *sp;
+	u1                *ra;
+	u1                *xpc;
+	u4                 mcode;
+	ptrint             addr;
+	s4                 type;
+	ptrint             val;
+	java_objectheader *o;
 
 	_uc = (ucontext_t*) _p;
 	_sc = &_uc->uc_mcontext;
 
-	/* ATTENTION: glibc included messed up kernel headers */
-	/* we needed a workaround for the ucontext structure */
+	/* ATTENTION: glibc included messed up kernel headers we needed a
+	   workaround for the ucontext structure. */
 
-	addr = (ptrint) siginfo->si_addr;
-	/*xpc = (u1*) _mc->gregs[REG_PC];*/
-	xpc = (u1*) _sc->arm_pc;
+	pv  = (u1 *) _sc->arm_ip;
+	sp  = (u1 *) _sc->arm_sp;
+	ra  = (u1 *) _sc->arm_lr;                    /* this is correct for leafs */
+	xpc = (u1 *) _sc->arm_pc;
 
-	instr = *((s4*) xpc);
-	base = *((s4*) _sc + OFFSET(scontext_t, arm_r0)/4 + ((instr >> 16) & 0x0f));
+	/* get exception-throwing instruction */
 
-	if (base == 0) {
-		pv  = (u1*) _sc->arm_ip;
-		sp  = (u1*) _sc->arm_sp;
-		ra  = (u1*) _sc->arm_lr; /* this is correct for leafs */
+	mcode = *((s4 *) xpc);
 
-		_sc->arm_r10 = (ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
-		_sc->arm_fp = (ptrint) xpc;
-		_sc->arm_pc = (ptrint) asm_handle_exception;
-	}
-	else {
-		codegen_get_pv_from_pc(xpc);
+	/* this is a NullPointerException */
 
-		/* this should not happen */
+/* 	addr = _mc->gregs[s1]; */
+	addr = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + ((mcode >> 16) & 0x0f));
+	type = EXCEPTION_HARDWARE_NULLPOINTER;
+	val  = 0;
 
-		assert(0);
-	}
+	if (addr != 0)
+		vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
+
+	/* generate appropriate exception */
+
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	/* set registers */
+
+	_sc->arm_r10 = (ptrint) o;
+	_sc->arm_fp  = (ptrint) xpc;
+	_sc->arm_pc  = (ptrint) asm_handle_exception;
 }
 
 
@@ -135,10 +141,10 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	/* ATTENTION: glibc included messed up kernel headers we needed a
 	   workaround for the ucontext structure. */
 
-	pv  = (u1*) _sc->arm_ip;
-	sp  = (u1*) _sc->arm_sp;
-	ra  = (u1*) _sc->arm_lr;                     /* this is correct for leafs */
-	xpc = (u1*) _sc->arm_pc;
+	pv  = (u1 *) _sc->arm_ip;
+	sp  = (u1 *) _sc->arm_sp;
+	ra  = (u1 *) _sc->arm_lr;                    /* this is correct for leafs */
+	xpc = (u1 *) _sc->arm_pc;
 
 	/* get exception-throwing instruction */
 
@@ -162,6 +168,32 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	_sc->arm_fp  = (ptrint) xpc;
 	_sc->arm_pc  = (ptrint) asm_handle_exception;
 }
+
+
+/* md_signal_handler_sigusr2 ***************************************************
+
+   Signal handler for profiling sampling.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
+{
+	threadobject *thread;
+	ucontext_t   *_uc;
+	scontext_t   *_sc;
+	u1           *pc;
+
+	thread = THREADOBJECT;
+
+	_uc = (ucontext_t*) _p;
+	_sc = &_uc->uc_mcontext;
+
+	pc = (u1 *) _sc->arm_pc;
+
+	thread->pc = pc;
+}
+#endif
 
 
 /* thread_restartcriticalsection ***********************************************
