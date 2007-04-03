@@ -1,6 +1,6 @@
-/* vm/jit/replace.h - on-stack replacement of methods
+/* src/vm/jit/replace.h - on-stack replacement of methods
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes:
-
    $Id$
 
 */
@@ -39,7 +33,21 @@
 #include "config.h"
 #include "vm/types.h"
 
-#if defined(ENABLE_REPLACEMENT)
+#if !defined(ENABLE_REPLACEMENT)
+
+/*** macros for the codegens (disabled version) ************************/
+
+#define REPLACEMENT_POINTS_INIT(cd, jd)
+#define REPLACEMENT_POINTS_RESET(cd, jd)
+#define REPLACEMENT_POINT_BLOCK_START(cd, bptr)
+#define REPLACEMENT_POINT_INLINE_START(cd, iptr)
+#define REPLACEMENT_POINT_INLINE_BODY(cd, iptr)
+#define REPLACEMENT_POINT_RETURN(cd, iptr)
+#define REPLACEMENT_POINT_INVOKE(cd, iptr)
+#define REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr)
+#define REPLACEMENT_EMIT_STUBS(jd)
+
+#else /* defined(ENABLE_REPLACEMENT) */
 
 /* forward typedefs ***********************************************************/
 
@@ -287,23 +295,10 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
 								u1 *savedmcode);
 #endif
 
-#else /* !defined(ENABLE_REPLACEMENT) */
-
-/*** macros for the codegens (disabled version) ************************/
-
-#define REPLACEMENT_POINTS_INIT(cd, jd)
-#define REPLACEMENT_POINTS_RESET(cd, jd)
-#define REPLACEMENT_POINT_BLOCK_START(cd, bptr)
-#define REPLACEMENT_POINT_INLINE_START(cd, iptr)
-#define REPLACEMENT_POINT_INLINE_BODY(cd, iptr)
-#define REPLACEMENT_POINT_RETURN(cd, iptr)
-#define REPLACEMENT_POINT_INVOKE(cd, iptr)
-#define REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr)
-#define REPLACEMENT_EMIT_STUBS(jd)
-
 #endif /* defined(ENABLE_REPLACEMENT) */
 
-#endif
+#endif /* _REPLACE_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

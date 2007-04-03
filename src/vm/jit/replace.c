@@ -36,6 +36,8 @@
 
 #include "mm/memory.h"
 
+#include "threads/threads-common.h"
+
 #include "toolbox/logging.h"
 
 #include "vm/stringlocal.h"
