@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md.c 7653 2007-04-03 14:34:23Z twisti $
 
 */
 
@@ -56,38 +56,6 @@ void md_init(void)
 }
 
 
-/* md_codegen_patch_branch *****************************************************
-
-   Back-patches a branch instruction.
-
-*******************************************************************************/
-
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
-{
-	s4 *mcodeptr;
-	s4  disp;                           /* branch displacement                */
-
-	/* calculate the patch position */
-
-	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
-
-	/* Calculate the branch displacement. */
-
-	disp = (targetmpc - branchmpc - 4) >> 2;
-
-	if ((disp < (s4) 0xff000000) || (disp > (s4) 0x00ffffff))
-		vm_abort("md_codegen_patch_branch: branch displacement out of range: %d > +/-%d", disp, 0x00ffffff);
-
-	/* sanity check: are we really patching a branch instruction */
-
-	assert((mcodeptr[-1] & 0x0e000000) == 0x0a000000);
-
-	/* patch the branch instruction before the mcodeptr */
-
-	mcodeptr[-1] |= (disp & 0x00ffffff);
-}
-
-
 /* md_stacktrace_get_returnaddress *********************************************
 
    Returns the return address of the current stackframe, specified by
@@ -99,13 +67,11 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
 	u1 *ra;
 
-	/*printf("md_stacktrace_get_returnaddress(): called (sp=%x, framesize=%d)\n", sp, framesize);*/
+	/* On ARM the return address is located on the top of the
+	   stackframe. */
+	/* ATTENTION: This is only true for non-leaf methods!!! */
 
-	/* on ARM the return address is located on the top of the stackframe */
-	/* ATTENTION: this is only true for non-leaf methods !!! */
 	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
-
-	/*printf("md_stacktrace_get_returnaddress(): result (ra=%x)\n", ra);*/
 
 	return ra;
 }
