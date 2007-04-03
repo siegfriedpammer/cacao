@@ -22,7 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   $Id: simplereg.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: simplereg.c 7645 2007-04-03 11:46:50Z twisti $
 
 */
 
@@ -1811,11 +1811,13 @@ void simplereg_make_statistics(jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
-	int i,type;
+	int i;
 	s4 len;
+#if 0
 	stackptr    src, src_old;
 	stackptr    dst;
 	instruction *iptr;
+#endif
 	basicblock  *bptr;
 	int size_interface; /* == maximum size of in/out stack at basic block boundaries */
 	bool in_register;
