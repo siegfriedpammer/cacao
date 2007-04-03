@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md-os.c 7648 2007-04-03 13:14:09Z twisti $
 
 */
 
@@ -66,7 +66,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	s4                 disp;
 	ptrint             val;
 	s4                 type;
-	java_objectheader *e;
+	java_objectheader *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -109,11 +109,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* generate appropriate exception */
 
-	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
 
 	/* set registers */
 
-	_mc->gregs[REG_EAX] = (ptrint) e;
+	_mc->gregs[REG_EAX] = (ptrint) o;
 	_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
@@ -128,22 +128,34 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	u1         *sp;
-	u1         *ra;
-	u1         *xpc;
+	ucontext_t        *_uc;
+	mcontext_t        *_mc;
+	u1                *pv;
+	u1                *sp;
+	u1                *ra;
+	u1                *xpc;
+	s4                 type;
+	ptrint             val;
+	java_objectheader *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
+	pv  = NULL;                 /* is resolved during stackframeinfo creation */
 	sp  = (u1 *) _mc->gregs[REG_ESP];
 	xpc = (u1 *) _mc->gregs[REG_EIP];
 	ra  = xpc;                          /* return address is equal to xpc     */
 
-	_mc->gregs[REG_EAX] =
-		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
+	/* this is an ArithmeticException */
 
+	type = EXCEPTION_HARDWARE_ARITHMETIC;
+	val  = 0;
+
+	/* generate appropriate exception */
+
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	_mc->gregs[REG_EAX] = (ptrint) o;
 	_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
