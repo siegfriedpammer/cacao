@@ -141,8 +141,7 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 
 #define REACH(target)                                                \
     do {                                                             \
-        tbptr = BLOCK_OF((target).insindex);                         \
-        REACH_BLOCK(tbptr);                                          \
+        REACH_BLOCK((target).block);                                 \
     } while (0)
 
 #undef TYPECHECK_INT
