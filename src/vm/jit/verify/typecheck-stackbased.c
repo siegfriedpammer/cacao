@@ -544,7 +544,7 @@ static typedescriptor *typecheck_stackbased_jsr(verifier_state *state,
 
 	jd = state->jd;
 
-	tbptr = BLOCK_OF(state->iptr->sx.s23.s3.jsrtarget.insindex);
+	tbptr = state->iptr->sx.s23.s3.jsrtarget.block;
 	jsr = state->jsrinfos[tbptr->nr];
 
 	if (jsr && tbptr->flags == BBFINISHED) {
@@ -599,15 +599,18 @@ static typedescriptor *typecheck_stackbased_jsr(verifier_state *state,
 		jsr->next = state->topjsr;
 		state->topjsr = jsr;
 
-		/* XXX ugly */
-		assert(BLOCK_OF(state->iptr->sx.s23.s3.jsrtarget.insindex)->flags == BBTYPECHECK_REACHED);
+		assert(state->iptr->sx.s23.s3.jsrtarget.block->flags == BBTYPECHECK_REACHED);
+
 		tbptr->flags = BBFINISHED;
+
 		for (tbptr = state->basicblocks; tbptr != NULL; tbptr = tbptr->next) {
 			jsr->blockflags[tbptr->nr] = tbptr->flags;
+
 			if (tbptr->flags == BBTYPECHECK_REACHED)
 				tbptr->flags = BBFINISHED;
 		}
-		BLOCK_OF(state->iptr->sx.s23.s3.jsrtarget.insindex)->flags = BBTYPECHECK_REACHED;
+
+		state->iptr->sx.s23.s3.jsrtarget.block->flags = BBTYPECHECK_REACHED;
 	}
 
 	/* register this block as a caller, if not already done */

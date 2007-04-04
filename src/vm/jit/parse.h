@@ -27,7 +27,7 @@
    Author:  Christian Thalinger
             Edwin Steiner
 
-   $Id: parse.h 7619 2007-03-30 11:41:27Z twisti $
+   $Id: parse.h 7663 2007-04-04 22:14:42Z twisti $
 
 */
 
@@ -90,17 +90,14 @@
 
 /* basic block generating macro ***********************************************/
 
-#define MARK_BASICBLOCK(i)                                           \
+#define MARK_BASICBLOCK(pd, i)                                       \
     do {                                                             \
-        if (!(jd->basicblockindex[(i)] & 1)) {                   \
-            b_count++;                                               \
-            jd->basicblockindex[(i)] |= 1;                       \
-        }                                                            \
+        (pd)->basicblockstart[(i)] = 1;                              \
     } while (0)
 
 #define INSTRUCTIONS_CHECK(i)                                        \
-    if ((icount + (i)) > pd.instructionslength)                      \
-        iptr = parse_realloc_instructions(&pd, icount, (i))
+    if ((ircount + (i)) > pd.instructionslength)                     \
+        iptr = parse_realloc_instructions(&pd, ircount, (i))
 
 
 /* intermediate code generating macros ****************************************/
@@ -120,12 +117,12 @@
 /* afterwards.                                                                */
 
 #define PINC                                                         \
-    iptr++; icount++
+    iptr++; ircount++
 
 #define OP_PREPARE_FLAGS(o, f)                                       \
-    iptr->opc                = (o);                                  \
-    iptr->line               = currentline;                          \
-    iptr->flags.bits         = (f) | (icount << INS_FLAG_ID_SHIFT);
+    iptr->opc         = (o);                                         \
+    iptr->line        = currentline;                                 \
+    iptr->flags.bits |= (f) | (ircount << INS_FLAG_ID_SHIFT);
 
 #define OP_PREPARE_ZEROFLAGS(o)                                      \
     OP_PREPARE_FLAGS(o, 0)
@@ -277,12 +274,6 @@
 #define OP_FMIREF_PREPARE(o, fmiref)                                 \
     OP_PREPARE(o);                                                   \
     iptr->sx.s23.s3.fmiref   = (fmiref);
-
-
-/* external macros ************************************************************/
-
-#define BLOCK_OF(index)                                              \
-    (jd->basicblocks + jd->basicblockindex[index])
 
 
 /* function prototypes ********************************************************/
