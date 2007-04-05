@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7551 2007-03-21 14:26:09Z twisti $
+   $Id: statistics.c 7601 2007-03-28 23:02:50Z michi $
 
 */
 

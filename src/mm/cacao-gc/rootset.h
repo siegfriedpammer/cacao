@@ -38,7 +38,7 @@ typedef struct rootset_t rootset_t;
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #else
-/*# include "threads/none/threads.h"*/
+# include "threads/none/threads.h"
 #endif
 
 #include "vm/jit/replace.h"

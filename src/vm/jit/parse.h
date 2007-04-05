@@ -27,7 +27,7 @@
    Author:  Christian Thalinger
             Edwin Steiner
 
-   $Id: parse.h 7619 2007-03-30 11:41:27Z twisti $
+   $Id: parse.h 7628 2007-04-02 19:09:52Z michi $
 
 */
 

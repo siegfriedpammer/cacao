@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 7596 2007-03-28 21:05:53Z twisti $
+   $Id: asmpart.S 7601 2007-03-28 23:02:50Z michi $
 
 */
 

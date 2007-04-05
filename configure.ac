@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7596 2007-03-28 21:05:53Z twisti $
+dnl $Id: configure.ac 7601 2007-03-28 23:02:50Z michi $
 
 dnl Process this file with autoconf to produce a configure script.
 
