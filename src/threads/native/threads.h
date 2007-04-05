@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7657 2007-04-03 15:51:52Z twisti $
+   $Id: threads.h 7669 2007-04-05 11:39:58Z twisti $
 
 */
 
@@ -141,6 +141,7 @@ struct threadobject {
 
 	s4                    index;        /* thread index, starting with 1      */
 	u4                    flags;        /* flag field                         */
+	u4                    state;        /* state field                        */
 
 	pthread_t             tid;          /* pthread id                         */
 

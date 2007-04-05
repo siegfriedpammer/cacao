@@ -45,6 +45,7 @@
 
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 #include "vm/jit/stacktrace.h"
 
@@ -135,6 +136,43 @@ ptrint threads_get_current_tid(void)
 }
 
 
+/* threads_get_state ***********************************************************
+
+   Returns the current state of the given thread.
+
+*******************************************************************************/
+
+utf *threads_get_state(threadobject *thread)
+{
+	utf *u;
+
+	switch (thread->state) {
+	case THREAD_STATE_NEW:
+		u = utf_new_char("NEW");
+		break;
+	case THREAD_STATE_RUNNABLE:
+		u = utf_new_char("RUNNABLE");
+		break;
+	case THREAD_STATE_BLOCKED:
+		u = utf_new_char("BLOCKED");
+		break;
+	case THREAD_STATE_WAITING:
+		u = utf_new_char("WAITING");
+		break;
+	case THREAD_STATE_TIMED_WAITING:
+		u = utf_new_char("TIMED_WAITING");
+		break;
+	case THREAD_STATE_TERMINATED:
+		u = utf_new_char("TERMINATED");
+		break;
+	default:
+		vm_abort("threads_get_state: unknown thread state %d", thread->state);
+	}
+
+	return u;
+}
+
+
 /* threads_dump ****************************************************************
 
    Dumps info for all threads running in the JVM.  This function is
@@ -174,16 +212,46 @@ void threads_dump(void)
 
 			printf("\n\"");
 			utf_display_printable_ascii(name);
-			printf("\" ");
+			printf("\"");
 
 			if (thread->flags & THREAD_FLAG_DAEMON)
-				printf("daemon ");
+				printf(" daemon");
+
+			printf(" prio=%d", t->priority);
 
 #if SIZEOF_VOID_P == 8
-			printf("prio=%d tid=0x%016lx\n", t->priority, (ptrint) thread->tid);
+			printf(" tid=0x%016lx", (ptrint) thread->tid);
 #else
-			printf("prio=%d tid=0x%08lx\n", t->priority, (ptrint) thread->tid);
+			printf(" tid=0x%08lx", (ptrint) thread->tid);
 #endif
+
+			/* print thread state */
+
+			switch (thread->state) {
+			case THREAD_STATE_NEW:
+				printf(" new");
+				break;
+			case THREAD_STATE_RUNNABLE:
+				printf(" runnable");
+				break;
+			case THREAD_STATE_BLOCKED:
+				printf(" blocked");
+				break;
+			case THREAD_STATE_WAITING:
+				printf(" waiting");
+				break;
+			case THREAD_STATE_TIMED_WAITING:
+				printf(" waiting on condition");
+				break;
+			case THREAD_STATE_TERMINATED:
+				printf(" terminated");
+				break;
+			default:
+				vm_abort("threads_dump: unknown thread state %d",
+						 thread->state);
+			}
+
+			printf("\n");
 
 			/* print trace of thread */
 

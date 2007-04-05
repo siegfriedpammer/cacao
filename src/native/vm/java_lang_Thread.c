@@ -43,19 +43,15 @@
 # include "native/include/java_lang_VMThread.h"
 #endif
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
+#include "vm/stringlocal.h"
 
 #include "vmcore/options.h"
-
-/* XXX REMOVE ME only for vm_abort */
-#include "vm/vm.h"
 
 
 /*
@@ -305,9 +301,24 @@ s4 _Jv_java_lang_Thread_holdsLock(java_lang_Object* obj)
  */
 java_lang_String *_Jv_java_lang_Thread_getState(java_lang_Thread *this)
 {
-	vm_abort("Java_java_lang_Thread_getState: IMPLEMENT ME!");
+#if defined(ENABLE_THREADS)
+	threadobject      *thread;
+	utf               *u;
+	java_objectheader *o;
 
+# if defined(WITH_CLASSPATH_GNU)
+	thread = (threadobject *) this->vmThread->vmdata;
+# elif defined(WITH_CLASSPATH_CLDC1_1)
+	thread = (threadobject *) this->vm_thread;
+# endif
+
+	u = threads_get_state(thread);
+	o = javastring_new(u);
+
+	return (java_lang_String *) o;
+#else
 	return NULL;
+#endif
 }
 
 
