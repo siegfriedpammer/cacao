@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7667 2007-04-05 00:16:05Z michi $
+   $Id: threads.c 7674 2007-04-05 13:27:11Z michi $
 
 */
 
@@ -811,6 +811,10 @@ bool threads_init(void)
 	threads_set_current_threadobject(mainthreadobj);
 	lock_init_execution_env(mainthreadobj);
 
+	/* thread is running */
+
+	mainthreadobj->state = THREAD_STATE_RUNNABLE;
+
 	mainthreadobj->next = mainthreadobj;
 	mainthreadobj->prev = mainthreadobj;
 
@@ -1104,6 +1108,10 @@ static void *threads_startup_thread(void *t)
 	threads_init_threadobject(thread);
 	threads_set_current_threadobject(thread);
 
+	/* thread is running */
+
+	thread->state = THREAD_STATE_RUNNABLE;
+
 	/* insert the thread into the threadlist and the threads table */
 
 	pthread_mutex_lock(&threadlistlock);
@@ -1186,6 +1194,8 @@ static void *threads_startup_thread(void *t)
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 		o   = (java_objectheader *) thread->object;
 #endif
+
+		/* run the thread */
 
 		(void) vm_call_method(m, o);
 	}
@@ -1395,6 +1405,10 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	threads_set_current_threadobject(thread);
 	lock_init_execution_env(thread);
 
+	/* thread is running */
+
+	thread->state = THREAD_STATE_RUNNABLE;
+
 	/* insert the thread into the threadlist and the threads table */
 
 	pthread_mutex_lock(&threadlistlock);
@@ -1542,6 +1556,10 @@ bool threads_detach_thread(threadobject *thread)
 			return false;
 	}
 #endif
+
+	/* thread is terminated */
+
+	thread->state = THREAD_STATE_TERMINATED;
 
 	/* remove thread from thread list and threads table, do this
 	   inside a lock */
@@ -1838,14 +1856,23 @@ static bool threads_wait_with_timeout(threadobject *thread,
 		while (!thread->interrupted && !thread->signaled
 			   && threads_current_time_is_earlier_than(wakeupTime))
 		{
+			thread->state = THREAD_STATE_TIMED_WAITING;
+
 			pthread_cond_timedwait(&thread->waitcond, &thread->waitmutex,
 								   wakeupTime);
+
+			thread->state = THREAD_STATE_RUNNABLE;
 		}
 	}
 	else {
 		/* no timeout */
-		while (!thread->interrupted && !thread->signaled)
+		while (!thread->interrupted && !thread->signaled) {
+			thread->state = THREAD_STATE_WAITING;
+
 			pthread_cond_wait(&thread->waitcond, &thread->waitmutex);
+
+			thread->state = THREAD_STATE_RUNNABLE;
+		}
 	}
 
 	/* check if we were interrupted */

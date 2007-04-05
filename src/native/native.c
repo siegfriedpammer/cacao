@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7667 2007-04-05 00:16:05Z michi $
+   $Id: native.c 7674 2007-04-05 13:27:11Z michi $
 
 */
 
@@ -245,6 +245,7 @@ functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_VMThread_yield,
 	(functionptr) Java_java_lang_VMThread_interrupted,
 	(functionptr) Java_java_lang_VMThread_holdsLock,
+	(functionptr) Java_java_lang_VMThread_getState,
 
 	(functionptr) Java_java_lang_VMThrowable_fillInStackTrace,
 	(functionptr) Java_java_lang_VMThrowable_getStackTrace,

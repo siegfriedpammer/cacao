@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7667 2007-04-05 00:16:05Z michi $
+   $Id: threads.h 7674 2007-04-05 13:27:11Z michi $
 
 */
 
@@ -149,6 +149,7 @@ struct threadobject {
 
 	s4                    index;        /* thread index, starting with 1      */
 	u4                    flags;        /* flag field                         */
+	u4                    state;        /* state field                        */
 
 	pthread_t             tid;          /* pthread id                         */
 

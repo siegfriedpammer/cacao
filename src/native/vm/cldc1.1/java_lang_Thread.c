@@ -89,17 +89,18 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, java_lang_Threa
 }
 
 
-#if 0
 /*
  * Class:     java/lang/Thread
  * Method:    isAlive
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, struct java_lang_Thread* this)
+JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread *this)
 {
+	return _Jv_java_lang_Thread_isAlive(this);
 }
 
 
+#if 0
 /*
  * Class:     java/lang/Thread
  * Method:    activeCount

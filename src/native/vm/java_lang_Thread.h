@@ -1,6 +1,6 @@
 /* src/native/vm/java_lang_Thread.h - java/lang/Thread functions
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -21,10 +21,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
 
    $Id: java_lang_VMThread.c 6213 2006-12-18 17:36:06Z twisti $
 
@@ -60,6 +56,7 @@ s4                _Jv_java_lang_Thread_countStackFrames(java_lang_Thread *this);
 void              _Jv_java_lang_Thread_sleep(s8 millis);
 void              _Jv_java_lang_Thread_start(java_lang_Thread *this, s8 stacksize);
 void              _Jv_java_lang_Thread_interrupt(java_lang_Thread *this);
+s4                _Jv_java_lang_Thread_isAlive(java_lang_Thread *this);
 s4                _Jv_java_lang_Thread_isInterrupted(java_lang_Thread *this);
 void              _Jv_java_lang_Thread_suspend(java_lang_Thread *this);
 void              _Jv_java_lang_Thread_resume(java_lang_Thread *this);

@@ -42,6 +42,16 @@
 #include "vmcore/utf8.h"
 
 
+/* thread states **************************************************************/
+
+#define THREAD_STATE_NEW              0
+#define THREAD_STATE_RUNNABLE         1
+#define THREAD_STATE_BLOCKED          2
+#define THREAD_STATE_WAITING          3
+#define THREAD_STATE_TIMED_WAITING    4
+#define THREAD_STATE_TERMINATED       5
+
+
 /* thread priorities **********************************************************/
 
 #define MIN_PRIORITY     1
@@ -53,6 +63,8 @@
 
 threadobject *threads_create_thread(utf *name);
 ptrint        threads_get_current_tid(void);
+utf          *threads_thread_get_state(threadobject *thread);
+bool          threads_thread_is_alive(threadobject *thread);
 void          threads_dump(void);
 void          threads_print_stacktrace(threadobject *thread);
 
