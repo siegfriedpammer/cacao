@@ -128,6 +128,10 @@ void gc_collect(s4 level)
 {
 	rootset_t    *rs;
 	s4            dumpsize;
+#if !defined(NDEBUG)
+	stackframeinfo   *sfi;
+	stacktracebuffer *stb
+#endif
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_suspend, time_rootset, time_mark, time_compact, time_end;
 #endif
@@ -156,12 +160,21 @@ void gc_collect(s4 level)
 	GC_LOG( dolog("GC: Suspension finished."); );
 #endif
 
+#if !defined(NDEBUG)
+	/* get the stacktrace of the current thread and make sure it is non-empty */
+	GC_LOG( printf("Stacktrace of current thread:\n"); );
+	sfi = STACKFRAMEINFO;
+	stb = stacktrace_create(sfi);
+	if (stb == NULL)
+		vm_abort("gc_collect: no stacktrace available for current thread!");
+	GC_LOG( stacktrace_print_trace_from_buffer(stb); );
+#endif
+
 	/* sourcestate of the current thread, assuming we are in the native world */
 	GC_LOG( dolog("GC: Stackwalking current thread ..."); );
 #if defined(ENABLE_THREADS)
-	GC_LOG( threads_print_stacktrace(THREADOBJECT); );
+	GC_ASSERT(THREADOBJECT->flags & THREAD_FLAG_IN_NATIVE);
 #endif
-	/* TODO: GC_ASSERT(thread flags say in-native-world) */
 	replace_gc_from_native(THREADOBJECT, NULL, NULL);
 
 	/* everyone is halted now, we consider ourselves running */

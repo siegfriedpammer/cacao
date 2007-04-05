@@ -64,7 +64,7 @@
 
 *******************************************************************************/
 
-void compact_thread_rootset(rootset_t *rs, void *start, void *end)
+static void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 {
 	java_objectheader  *ref;
 	java_objectheader **refptr;
@@ -106,7 +106,7 @@ void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 
 *******************************************************************************/
 
-void compact_thread_classes(void *start, void *end)
+static void compact_thread_classes(void *start, void *end)
 {
 	java_objectheader  *ref;
 	java_objectheader **refptr;
@@ -195,7 +195,7 @@ void compact_thread_classes(void *start, void *end)
 
 *******************************************************************************/
 
-void compact_thread_references(java_objectheader *o, void *start, void *end)
+static void compact_thread_references(java_objectheader *o, void *start, void *end)
 {
 	java_objectheader  *ref;
 	java_objectheader **refptr;
@@ -242,7 +242,7 @@ void compact_thread_references(java_objectheader *o, void *start, void *end)
 
 *******************************************************************************/
 
-void compact_unthread_references(java_objectheader *o, void *new)
+static void compact_unthread_references(java_objectheader *o, void *new)
 {
 	java_objectheader **refptr;
 	ptrint tmp;
@@ -298,7 +298,7 @@ void compact_unthread_references(java_objectheader *o, void *new)
 
 *******************************************************************************/
 
-u4 compact_move(u1 *old, u1 *new, u4 size)
+static u4 compact_move(u1 *old, u1 *new, u4 size)
 {
 	s4 hashcode;
 	u4 new_size;

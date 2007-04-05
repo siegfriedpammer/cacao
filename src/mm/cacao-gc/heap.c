@@ -37,6 +37,7 @@
 #endif
 
 #include "gc.h"
+#include "final.h"
 #include "heap.h"
 #include "mark.h"
 #include "region.h"
