@@ -1,6 +1,6 @@
-/* src/vm/jit/powerpc64/asmpart.S - Java-C interface functions for PowerPC
+/* src/vm/jit/powerpc64/asmpart.S - Java-C interface functions for PowerPC64
 		
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roland Lezuo
-
-   Changes: Christian Thalinger
-            Edwin Steiner
-
-   $Id: asmpart.S 7601 2007-03-28 23:02:50Z michi $
+   $Id: asmpart.S 7661 2007-04-03 22:29:59Z twisti $
 
 */
 
@@ -1557,9 +1550,9 @@ L_replace_me$lazy_ptr:
 #endif /* defined(__DARWIN__) */
 
 
-/* Disable exec-stacks, required for Gentoo ***********************************/
+/* disable exec-stacks ********************************************************/
 
-#if defined(__GCC__) && defined(__ELF__)
+#if defined(__linux__) && defined(__ELF__)
 	.section .note.GNU-stack,"",@progbits
 #endif
 

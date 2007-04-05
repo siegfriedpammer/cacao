@@ -158,7 +158,7 @@ void gc_collect(s4 level)
 
 	/* sourcestate of the current thread, assuming we are in the native world */
 	GC_LOG( dolog("GC: Stackwalking current thread ..."); );
-	GC_LOG( stacktrace_dump_trace(THREADOBJECT); );
+	GC_LOG( threads_print_stacktrace(THREADOBJECT); );
 	/* TODO: GC_ASSERT(thread flags say in-native-world) */
 	replace_gc_from_native(THREADOBJECT, NULL, NULL);
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 7483 2007-03-08 13:17:40Z michi $
+   $Id: stacktrace.h 7667 2007-04-05 00:16:05Z michi $
 
 */
 
@@ -40,12 +40,6 @@ typedef struct stacktrace_entry stacktrace_entry;
 #include "vm/types.h"
 
 #include "md-abi.h"
-
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
 
 #include "vmcore/class.h"
 #include "vmcore/method.h"
@@ -120,9 +114,6 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 									  u1 *ra);
 #endif
 
-void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, u1 *ra, u1 *xpc);
-
 void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, u1 *ra, u1 *xpc);
 
@@ -131,51 +122,8 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
 
-/* inline exception creating functions */
-java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp, u1 *ra,
-														 u1 *xpc);
-#define STACKTRACE_inline_arithmeticexception \
-    (functionptr) stacktrace_inline_arithmeticexception
-												
 
-java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
-																	u1 *sp,
-																	u1 *ra,
-																	u1 *xpc,
-																	s4 index);
-#define STACKTRACE_inline_arrayindexoutofboundsexception \
-    (functionptr) stacktrace_inline_arrayindexoutofboundsexception
-
-java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp, u1 *ra,
-														 u1 *xpc);
-#define STACKTRACE_inline_arraystoreexception \
-    (functionptr) stacktrace_inline_arraystoreexception
-
-java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp, u1 *ra,
-														u1 *xpc,
-														java_objectheader *o);
-#define STACKTRACE_inline_classcastexception \
-    (functionptr) stacktrace_inline_classcastexception
-
-java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
-														  u1 *ra, u1 *xpc);
-#define STACKTRACE_inline_nullpointerexception \
-    (functionptr) stacktrace_inline_nullpointerexception
-
-/* refill the stacktrace of an existing exception */
-java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
-													  u1 *xpc);
-#define STACKTRACE_inline_fillInStackTrace \
-    (functionptr) stacktrace_inline_fillInStackTrace
-
-
-/* hardware exception creating functions */
-java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
-														   u1 *ra, u1 *xpc);
-
-java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
-															u1 *ra, u1 *xpc);
-
+stacktracebuffer *stacktrace_create(stackframeinfo *sfi);
 
 stacktracecontainer *stacktrace_fillInStackTrace(void);
 
@@ -185,9 +133,8 @@ classinfo           *stacktrace_getCurrentClass(void);
 java_objectarray    *stacktrace_getStack(void);
 #endif
 
-void stacktrace_dump_trace(threadobject *thread);
+void stacktrace_print_trace_from_buffer(stacktracebuffer *stb);
 void stacktrace_print_trace(java_objectheader *xptr);
-
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 

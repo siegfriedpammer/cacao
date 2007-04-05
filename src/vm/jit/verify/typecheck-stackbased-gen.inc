@@ -14,7 +14,7 @@
   GENERATED  	/* may use stack[1] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 355 "src/vm/jit/verify/icmds.c"
+#            	line 349 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (IPTR->flags.bits & INS_FLAG_CLASS) {
   GENERATED  		/* a java.lang.Class reference */
   GENERATED  		TYPEINFO_INIT_JAVA_LANG_CLASS(DST->typeinfo,IPTR->sx.val.c);
@@ -129,7 +129,7 @@
   GENERATED  	/* may use stack[1] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 99 "src/vm/jit/verify/icmds.c"
+#            	line 93 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_aload);
   GENERATED  
   GENERATED  
@@ -169,7 +169,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 266 "src/vm/jit/verify/icmds.c"
+#            	line 260 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -202,7 +202,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 276 "src/vm/jit/verify/icmds.c"
+#            	line 270 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -235,7 +235,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 261 "src/vm/jit/verify/icmds.c"
+#            	line 255 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -268,7 +268,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 256 "src/vm/jit/verify/icmds.c"
+#            	line 250 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -301,7 +301,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 121 "src/vm/jit/verify/icmds.c"
+#            	line 115 "src/vm/jit/verify/icmds.c"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
@@ -340,7 +340,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 245 "src/vm/jit/verify/icmds.c"
+#            	line 239 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BOOLEAN)
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
@@ -374,7 +374,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 251 "src/vm/jit/verify/icmds.c"
+#            	line 245 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -407,7 +407,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 271 "src/vm/jit/verify/icmds.c"
+#            	line 265 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -472,7 +472,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 114 "src/vm/jit/verify/icmds.c"
+#            	line 108 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
   GENERATED  
 #            	line 479 "src/vm/jit/verify/typecheck-stackbased-gen.inc"
@@ -502,7 +502,7 @@
   GENERATED  	/* may use stack[-2] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 302 "src/vm/jit/verify/icmds.c"
+#            	line 296 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_INT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -535,7 +535,7 @@
   GENERATED  	/* may use stack[-3] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 312 "src/vm/jit/verify/icmds.c"
+#            	line 306 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_LONG))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -568,7 +568,7 @@
   GENERATED  	/* may use stack[-2] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 297 "src/vm/jit/verify/icmds.c"
+#            	line 291 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_FLOAT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -601,7 +601,7 @@
   GENERATED  	/* may use stack[-3] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 292 "src/vm/jit/verify/icmds.c"
+#            	line 286 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_DOUBLE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -634,7 +634,7 @@
   GENERATED  	/* may use stack[-2] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 317 "src/vm/jit/verify/icmds.c"
+#            	line 311 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we just check the basic input types and that the           */
   GENERATED  	/* destination is an array of references. Assignability to    */
   GENERATED  	/* the actual array must be checked at runtime, each time the */
@@ -671,7 +671,7 @@
   GENERATED  	/* may use stack[-2] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 281 "src/vm/jit/verify/icmds.c"
+#            	line 275 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BOOLEAN)
   GENERATED  			&& !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_BYTE))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
@@ -705,7 +705,7 @@
   GENERATED  	/* may use stack[-2] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 287 "src/vm/jit/verify/icmds.c"
+#            	line 281 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_CHAR))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -738,7 +738,7 @@
   GENERATED  	/* may use stack[-2] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 307 "src/vm/jit/verify/icmds.c"
+#            	line 301 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(OP1->typeinfo,ARRAYTYPE_SHORT))
   GENERATED  		VERIFY_ERROR("Array type mismatch");
   GENERATED  
@@ -761,7 +761,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 710 "src/vm/jit/verify/icmds.c"
+#            	line 704 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we pop 1 */
   GENERATED  	CHECK_CAT1(stack[0]);
   GENERATED  
@@ -777,7 +777,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 715 "src/vm/jit/verify/icmds.c"
+#            	line 709 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we pop either 11 or 2 */
   GENERATED  	if (IS_CAT1(stack[0]))
   GENERATED  		CHECK_CAT1(stack[-1]);
@@ -797,7 +797,7 @@
   GENERATED  	/* may use stack[0] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 730 "src/vm/jit/verify/icmds.c"
+#            	line 724 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we dup 1 */
   GENERATED  	CHECK_CAT1(stack[0]);
   GENERATED  
@@ -821,7 +821,7 @@
   GENERATED  	/* may use stack[-1] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 737 "src/vm/jit/verify/icmds.c"
+#            	line 731 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we dup 1 */
   GENERATED  	CHECK_CAT1(stack[0]);
   GENERATED  	/* we skip 1 */
@@ -847,7 +847,7 @@
   GENERATED  	/* may use stack[-2] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 748 "src/vm/jit/verify/icmds.c"
+#            	line 742 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we dup 1 */
   GENERATED  	CHECK_CAT1(stack[0]);
   GENERATED  	/* we skip either 11 or 2 */
@@ -872,7 +872,7 @@
   GENERATED  	/* may use stack[-1] ... stack[2] */
   GENERATED  
   GENERATED  
-#            	line 761 "src/vm/jit/verify/icmds.c"
+#            	line 755 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we dup either 11 or 2 */
   GENERATED  	if (IS_CAT1(stack[0]))
   GENERATED  		CHECK_CAT1(stack[-1]);
@@ -893,7 +893,7 @@
   GENERATED  	/* may use stack[-2] ... stack[2] */
   GENERATED  
   GENERATED  
-#            	line 770 "src/vm/jit/verify/icmds.c"
+#            	line 764 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we dup either 11 or 2 */
   GENERATED  	if (IS_CAT1(stack[0]))
   GENERATED  		CHECK_CAT1(stack[-1]);
@@ -919,7 +919,7 @@
   GENERATED  	/* may use stack[-3] ... stack[2] */
   GENERATED  
   GENERATED  
-#            	line 784 "src/vm/jit/verify/icmds.c"
+#            	line 778 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* we dup either 11 or 2 */
   GENERATED  	if (IS_CAT1(stack[0]))
   GENERATED  		CHECK_CAT1(stack[-1]);
@@ -948,7 +948,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 721 "src/vm/jit/verify/icmds.c"
+#            	line 715 "src/vm/jit/verify/icmds.c"
   GENERATED  	CHECK_CAT1(stack[0]);
   GENERATED  	CHECK_CAT1(stack[-1]);
   GENERATED  
@@ -1253,7 +1253,7 @@
   GENERATED  	/* may use stack[1] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 399 "src/vm/jit/verify/icmds.c"
+#            	line 393 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -1287,7 +1287,7 @@
   GENERATED  	/* may use stack[1] ... stack[2] */
   GENERATED  
   GENERATED  
-#            	line 405 "src/vm/jit/verify/icmds.c"
+#            	line 399 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -1319,7 +1319,7 @@
   GENERATED  	/* may use stack[1] ... stack[2] */
   GENERATED  
   GENERATED  
-#            	line 411 "src/vm/jit/verify/icmds.c"
+#            	line 405 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -1341,7 +1341,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 396 "src/vm/jit/verify/icmds.c"
+#            	line 390 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -1366,9 +1366,9 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 592 "src/vm/jit/verify/icmds.c"
+#            	line 586 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
-  GENERATED  	tbptr = BLOCK_OF(IPTR->sx.s23.s3.jsrtarget.insindex);
+  GENERATED  	tbptr = IPTR->sx.s23.s3.jsrtarget.block;
   GENERATED  
   GENERATED  	TYPEINFO_INIT_RETURNADDRESS(stack[0].typeinfo, tbptr);
   GENERATED  	REACH_BLOCK(tbptr);
@@ -1390,7 +1390,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 613 "src/vm/jit/verify/icmds.c"
+#            	line 607 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	CHECK_LOCAL_TYPE(IPTR->s1.varindex, TYPE_RET);
   GENERATED  	if (!TYPEINFO_IS_PRIMITIVE(STATE->locals[IPTR->s1.varindex].typeinfo))
@@ -1416,7 +1416,7 @@
   GENERATED  	/* may use stack[1] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 463 "src/vm/jit/verify/icmds.c"
+#            	line 457 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_switch);
   GENERATED  
@@ -1451,7 +1451,7 @@
   GENERATED  	/* may use stack[1] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 479 "src/vm/jit/verify/icmds.c"
+#            	line 473 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_switch);
   GENERATED  
@@ -1484,7 +1484,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 545 "src/vm/jit/verify/icmds.c"
+#            	line 539 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_INT)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -1506,7 +1506,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 550 "src/vm/jit/verify/icmds.c"
+#            	line 544 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_LNG)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -1528,7 +1528,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 555 "src/vm/jit/verify/icmds.c"
+#            	line 549 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_FLT)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -1550,7 +1550,7 @@
   GENERATED  	/* may use stack[-1] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 560 "src/vm/jit/verify/icmds.c"
+#            	line 554 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_DBL)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -1573,7 +1573,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 520 "src/vm/jit/verify/icmds.c"
+#            	line 514 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_areturn);
   GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("illegal instruction: ARETURN on non-reference");
@@ -1607,7 +1607,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 565 "src/vm/jit/verify/icmds.c"
+#            	line 559 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (STATE->returntype.type != TYPE_VOID)
   GENERATED  		VERIFY_ERROR("Return type mismatch");
   GENERATED  
@@ -1639,7 +1639,7 @@
   GENERATED  	/* variable number of outslots! */
   GENERATED  
   GENERATED  
-#            	line 164 "src/vm/jit/verify/icmds.c"
+#            	line 158 "src/vm/jit/verify/icmds.c"
   GENERATED  	stack = typecheck_stackbased_verify_fieldaccess(STATE, NULL, NULL, stack);
   GENERATED  	if (stack == NULL)
   GENERATED  		EXCEPTION;
@@ -1655,7 +1655,7 @@
   GENERATED  	/* variable number of inslots! */
   GENERATED  
   GENERATED  
-#            	line 146 "src/vm/jit/verify/icmds.c"
+#            	line 140 "src/vm/jit/verify/icmds.c"
   GENERATED  	CHECK_STACK_DEPTH(1);
   GENERATED  	if (!IS_CAT1(stack[0])) {
   GENERATED  		/* (stack depth >= 2 is guaranteed) */
@@ -1677,7 +1677,7 @@
   GENERATED  	/* variable number of outslots! */
   GENERATED  
   GENERATED  
-#            	line 157 "src/vm/jit/verify/icmds.c"
+#            	line 151 "src/vm/jit/verify/icmds.c"
   GENERATED  	CHECK_STACK_TYPE(stack[0], TYPE_ADR);
   GENERATED  	stack = typecheck_stackbased_verify_fieldaccess(STATE, stack, NULL, stack-1);
   GENERATED  	if (stack == NULL)
@@ -1694,7 +1694,7 @@
   GENERATED  	/* variable number of inslots! */
   GENERATED  
   GENERATED  
-#            	line 134 "src/vm/jit/verify/icmds.c"
+#            	line 128 "src/vm/jit/verify/icmds.c"
   GENERATED  	CHECK_STACK_DEPTH(2);
   GENERATED  	if (!IS_CAT1(stack[0])) {
   GENERATED  		CHECK_STACK_DEPTH(3);
@@ -1720,7 +1720,7 @@
   GENERATED  	/* variable number of outslots! */
   GENERATED  
   GENERATED  
-#            	line 636 "src/vm/jit/verify/icmds.c"
+#            	line 630 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_invoke);
   GENERATED  
   GENERATED  	INSTRUCTION_GET_METHODDESC(IPTR, md);
@@ -1763,7 +1763,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 239 "src/vm/jit/verify/icmds.c"
+#            	line 233 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!TYPEINFO_MAYBE_ARRAY(OP1->typeinfo)
   GENERATED  			&& OP1->typeinfo.typeclass.cls != pseudo_class_Arraystub)
   GENERATED  		VERIFY_ERROR("illegal instruction: ARRAYLENGTH on non-array");
@@ -1790,7 +1790,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 499 "src/vm/jit/verify/icmds.c"
+#            	line 493 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_athrow);
   GENERATED  	r = typeinfo_is_assignable_to_class(&OP1->typeinfo,
   GENERATED  			CLASSREF_OR_CLASSINFO(class_java_lang_Throwable));
@@ -1831,7 +1831,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 373 "src/vm/jit/verify/icmds.c"
+#            	line 367 "src/vm/jit/verify/icmds.c"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* returnAddress is not allowed */
@@ -1866,7 +1866,7 @@
   GENERATED  	/* may use stack[0] ... stack[0] */
   GENERATED  
   GENERATED  
-#            	line 385 "src/vm/jit/verify/icmds.c"
+#            	line 379 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* returnAddress is not allowed */
   GENERATED  	if (!TYPEINFO_IS_REFERENCE(OP1->typeinfo))
   GENERATED  		VERIFY_ERROR("Illegal instruction: INSTANCEOF on non-reference");
@@ -1890,7 +1890,7 @@
   GENERATED  	/* variable number of inslots! */
   GENERATED  
   GENERATED  
-#            	line 674 "src/vm/jit/verify/icmds.c"
+#            	line 668 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!typecheck_stackbased_multianewarray(STATE, stack, stackfloor))
   GENERATED  		EXCEPTION;
   GENERATED  	stack -= (IPTR->s1.argcount - 1);
@@ -1913,7 +1913,7 @@
   GENERATED  	/* may use stack[1] ... stack[1] */
   GENERATED  
   GENERATED  
-#            	line 397 "src/vm/jit/verify/icmds.c"
+#            	line 391 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -1935,7 +1935,7 @@
   GENERATED  	/* variable number of outslots! */
   GENERATED  
   GENERATED  
-#            	line 690 "src/vm/jit/verify/icmds.c"
+#            	line 684 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_builtin);
   GENERATED  	if (!typecheck_stackbased_verify_builtin(STATE, stack, stackfloor))
   GENERATED  		EXCEPTION;

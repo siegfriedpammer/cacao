@@ -1,6 +1,6 @@
-/* src/native/vm/sun_misc_Unsafe.c - sun/misc/Unsafe
+/* src/native/vm/gnu/sun_misc_Unsafe.c - sun/misc/Unsafe
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -21,12 +21,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
 
    $Id: java_lang_VMObject.c 5153 2006-07-18 08:19:24Z twisti $
 

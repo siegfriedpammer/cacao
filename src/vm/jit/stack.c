@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7628 2007-04-02 19:09:52Z michi $
+   $Id: stack.c 7663 2007-04-04 22:14:42Z twisti $
 
 */
 
@@ -494,7 +494,7 @@ struct stackdata_t {
 
 #define BRANCH_TARGET(bt, tempbptr)                                  \
     do {                                                             \
-        tempbptr = BLOCK_OF((bt).insindex);                          \
+        tempbptr = (bt).block;                                       \
         tempbptr = stack_mark_reached(&sd, tempbptr, curstack,       \
                                       stackdepth);                   \
         if (tempbptr == NULL)                                        \
@@ -3003,7 +3003,7 @@ normal_ICONST:
 
 									icmd_lconst_lcmp_tail:
 										/* convert LCONST, LCMP, IFXX to IF_LXX */
-										iptr->dst.insindex = iptr[2].dst.insindex;
+										iptr->dst.block = iptr[2].dst.block;
 										iptr[1].opc = ICMD_NOP;
 										iptr[2].opc = ICMD_NOP;
 
@@ -4034,7 +4034,7 @@ icmd_DUP_X2:
 						case ICMD_IFEQ:
 							iptr->opc = ICMD_IF_LCMPEQ;
 						icmd_lcmp_if_tail:
-							iptr->dst.insindex = iptr[1].dst.insindex;
+							iptr->dst.block = iptr[1].dst.block;
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_LNG, TYPE_LNG);
@@ -4077,7 +4077,7 @@ normal_LCMP:
 						case ICMD_IFEQ:
 							iptr->opc = ICMD_IF_FCMPEQ;
 						icmd_if_fcmpl_tail:
-							iptr->dst.insindex = iptr[1].dst.insindex;
+							iptr->dst.block = iptr[1].dst.block;
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_FLT, TYPE_FLT);
@@ -4118,7 +4118,7 @@ normal_FCMPL:
 						case ICMD_IFEQ:
 							iptr->opc = ICMD_IF_FCMPEQ;
 						icmd_if_fcmpg_tail:
-							iptr->dst.insindex = iptr[1].dst.insindex;
+							iptr->dst.block = iptr[1].dst.block;
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_FLT, TYPE_FLT);
@@ -4159,7 +4159,7 @@ normal_FCMPG:
 						case ICMD_IFEQ:
 							iptr->opc = ICMD_IF_DCMPEQ;
 						icmd_if_dcmpl_tail:
-							iptr->dst.insindex = iptr[1].dst.insindex;
+							iptr->dst.block = iptr[1].dst.block;
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_DBL, TYPE_DBL);
@@ -4200,7 +4200,7 @@ normal_DCMPL:
 						case ICMD_IFEQ:
 							iptr->opc = ICMD_IF_DCMPEQ;
 						icmd_if_dcmpg_tail:
-							iptr->dst.insindex = iptr[1].dst.insindex;
+							iptr->dst.block = iptr[1].dst.block;
 							iptr[1].opc = ICMD_NOP;
 
 							OP2_BRANCH(TYPE_DBL, TYPE_DBL);
@@ -4378,7 +4378,7 @@ normal_DCMPG:
 					case ICMD_JSR:
 						OP0_1(TYPE_RET);
 
-						tbptr = BLOCK_OF(iptr->sx.s23.s3.jsrtarget.insindex);
+						tbptr = iptr->sx.s23.s3.jsrtarget.block;
 						tbptr->type = BBTYPE_SBR;
 
 						assert(sd.bptr->next);  /* XXX exception */
@@ -4388,7 +4388,7 @@ normal_DCMPG:
 #endif
 
 						tbptr = stack_mark_reached(&sd, tbptr, curstack, stackdepth);
-						if (!tbptr)
+						if (tbptr == NULL)
 							return false;
 
 						iptr->sx.s23.s3.jsrtarget.block = tbptr;

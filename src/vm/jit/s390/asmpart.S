@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
+/* src/vm/jit/s390/asmpart.S - Java-C interface functions for s390
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,15 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-
-   Changes: Edwin Steiner
-
-   $Id: asmpart.S 7601 2007-03-28 23:02:50Z michi $
+   $Id: asmpart.S 7661 2007-04-03 22:29:59Z twisti $
 
 */
 
@@ -1017,11 +1009,11 @@ asm_criticalsections:
 	.long 0
 
 
-/* Disable exec-stacks, required for Gentoo ***********************************/
+/* disable exec-stacks ********************************************************/
 
 #if 0
 
-#if defined(__GCC__) && defined(__ELF__)
+#if defined(__linux__) && defined(__ELF__)
 	.section .note.GNU-stack,"",@progbits
 #endif
 

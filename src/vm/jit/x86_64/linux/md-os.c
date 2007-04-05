@@ -68,8 +68,8 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	u1                 rm;
 	s4                 d;
 	s4                 disp;
-	ptrint             val;
 	s4                 type;
+	ptrint             val;
 	java_objectheader *o;
 
 	_uc = (ucontext_t *) _p;
@@ -178,11 +178,15 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t  *_uc;
-	mcontext_t  *_mc;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
+	ucontext_t        *_uc;
+	mcontext_t        *_mc;
+	u1                *pv;
+	u1                *sp;
+	u1                *ra;
+	u1                *xpc;
+	s4                 type;
+	ptrint             val;
+	java_objectheader *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -190,13 +194,23 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
+	pv  = NULL;
 	sp  = (u1 *) _mc->gregs[REG_RSP];
 	xpc = (u1 *) _mc->gregs[REG_RIP];
 	ra  = xpc;                          /* return address is equal to xpc     */
 
-	_mc->gregs[REG_RAX] =
-		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
+	/* this is an ArithmeticException */
 
+	type = EXCEPTION_HARDWARE_ARITHMETIC;
+	val  = 0;
+
+	/* generate appropriate exception */
+
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	/* set registers */
+
+	_mc->gregs[REG_RAX] = (ptrint) o;
 	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
 }

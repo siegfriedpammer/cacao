@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 7628 2007-04-02 19:09:52Z michi $
+   $Id: jit.h 7663 2007-04-04 22:14:42Z twisti $
 
 */
 
@@ -47,6 +47,7 @@ typedef struct exception_entry exception_entry;
 #include "toolbox/chain.h"
 
 #include "vm/global.h"
+#include "vm/resolve.h"
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
@@ -70,7 +71,6 @@ typedef struct exception_entry exception_entry;
 
 #include "vmcore/method.h"
 #include "vmcore/references.h"
-#include "vm/resolve.h"
 
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"
@@ -114,8 +114,6 @@ struct jitdata {
 
 	instruction     *instructions;    /* ICMDs, valid between parse and stack */
 	basicblock      *basicblocks;     /* start of basic block list            */
-	s4              *basicblockindex; /* block index for each JavaPC          */
-                                      /* valid between parse and stack        */
 	stackelement    *stack;           /* XXX should become stack.c internal   */
 	s4               instructioncount;/* XXX remove this?                     */
 	s4               basicblockcount; /* number of basic blocks               */
@@ -261,8 +259,8 @@ struct stackelement {
 /* branch_target_t: used in TABLESWITCH tables */
 
 typedef union {
-    s4                         insindex; /* used between parse and stack      */
-    basicblock                *block;    /* used from stack analysis onwards  */
+    s4                         insindex; /* used in parse                     */
+    basicblock                *block;    /* valid after parse                 */
 } branch_target_t;
 
 /* lookup_target_t: used in LOOKUPSWITCH tables */
@@ -325,10 +323,10 @@ typedef union {
 
 typedef union {
 	s4                         varindex;
-    basicblock                *block;       /* valid after stack analysis     */
+    basicblock                *block;       /* valid after parse              */
     branch_target_t           *table;       /* for TABLESWITCH                */
     lookup_target_t           *lookup;      /* for LOOKUPSWITCH               */
-    s4                         insindex;    /* used between parse and stack   */
+    s4                         insindex;    /* used in parse                  */
 } dst_operand_t;
 
 /*** flags (32 bits) ***/

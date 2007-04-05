@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: codegen-common.c 7667 2007-04-05 00:16:05Z michi $
 
 */
 
@@ -70,9 +70,7 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/threads-common.h"
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
@@ -651,7 +649,7 @@ u1 *codegen_get_pv_from_pc(u1 *pc)
 		log_println("");
 		log_println("Dumping the current stacktrace:");
 
-		stacktrace_dump_trace(THREADOBJECT);
+		threads_print_stacktrace(THREADOBJECT);
 
 		vm_abort("Exiting...");
 	}
@@ -1181,7 +1179,7 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 
 	/* remove current stackframeinfo from chain */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	*psfi = sfi->prev;
 

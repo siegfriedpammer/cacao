@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: statistics.c 7643 2007-04-03 11:35:40Z twisti $
 
 */
 
@@ -611,11 +611,11 @@ void statistics_print_memory_usage(void)
 	printf("                        %10d\n", sum);
 	printf("\n");
 
-	printf("classinfo  (%3d B):     %10d\n", sizeof(classinfo), size_classinfo);
-	printf("fieldinfo  (%3d B):     %10d\n", sizeof(fieldinfo), size_fieldinfo);
-	printf("methodinfo (%3d B):     %10d\n", sizeof(methodinfo), size_methodinfo);
-	printf("lineinfo   (%3d B):     %10d\n", sizeof(lineinfo), size_lineinfo);
-	printf("codeinfo   (%3d B):     %10d\n", sizeof(codeinfo), size_codeinfo);
+	printf("classinfo  (%3d B):     %10d\n", (int) sizeof(classinfo), size_classinfo);
+	printf("fieldinfo  (%3d B):     %10d\n", (int) sizeof(fieldinfo), size_fieldinfo);
+	printf("methodinfo (%3d B):     %10d\n", (int) sizeof(methodinfo), size_methodinfo);
+	printf("lineinfo   (%3d B):     %10d\n", (int) sizeof(lineinfo), size_lineinfo);
+	printf("codeinfo   (%3d B):     %10d\n", (int) sizeof(codeinfo), size_codeinfo);
 	printf("                         ----------\n");
 
 	sum =

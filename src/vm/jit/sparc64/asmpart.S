@@ -1,6 +1,6 @@
-/* src/vm/jit/sparc64/asmpart.S - Java-C interface functions for Sparc
+/* src/vm/jit/sparc64/asmpart.S - Java-C interface functions for Sparc64
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -21,14 +21,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Alexander Jordan
-
-   Changes: 
 
    $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
 

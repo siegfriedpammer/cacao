@@ -52,11 +52,12 @@ extern java_objectheader    *_no_threads_exceptionptr;
 
 
 /* stackframeinfo *************************************************************/
+
 struct stackframeinfo;
 
 extern struct stackframeinfo       *_no_threads_stackframeinfo;
 
-#define STACKFRAMEINFO      (&_no_threads_stackframeinfo)
+#define STACKFRAMEINFO      (_no_threads_stackframeinfo)
 
 #endif /* _THREADS_H */
 

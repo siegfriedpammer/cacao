@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: native.c 7667 2007-04-05 00:16:05Z michi $
 
 */
 
@@ -103,6 +103,7 @@
 #include "native/include/java_lang_reflect_Method.h"
 #include "native/include/java_lang_reflect_VMProxy.h"
 #include "native/include/java_security_VMAccessController.h"
+#include "native/include/sun_misc_Unsafe.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/include/gnu_classpath_jdwp_event_EventRequest.h"
@@ -287,6 +288,9 @@ functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_reflect_VMProxy_generateProxyClass,
 
 	(functionptr) Java_java_security_VMAccessController_getStack,
+
+	(functionptr) Java_sun_misc_Unsafe_objectFieldOffset,
+	(functionptr) Java_sun_misc_Unsafe_compareAndSwapInt,
 
 #if defined(ENABLE_JVMTI)
 	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread,

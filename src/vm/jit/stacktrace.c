@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7632 2007-04-02 20:05:05Z michi $
+   $Id: stacktrace.c 7657 2007-04-03 15:51:52Z twisti $
 
 */
 
@@ -100,7 +100,7 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 
 	/* get current stackframe info pointer */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	/* if we don't have pv handy */
 
@@ -144,46 +144,6 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 #endif /* defined(ENABLE_INTRP) */
 
 
-/* stacktrace_create_inline_stackframeinfo *************************************
-
-   Creates an stackframe info structure for an inline exception stub.
-
-*******************************************************************************/
-
-void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, u1 *ra, u1 *xpc)
-{
-	stackframeinfo **psfi;
-
-	/* get current stackframe info pointer */
-
-	psfi = STACKFRAMEINFO;
-
-#if defined(ENABLE_INTRP)
-	if (opt_intrp) {
-		/* if we don't have pv handy */
-
-		if (pv == NULL)
-			pv = codegen_get_pv_from_pc(ra);
-
-	}
-#endif
-
-	/* fill new stackframe info structure */
-
-	sfi->prev   = *psfi;
-	sfi->method = NULL;
-	sfi->pv     = pv;
-	sfi->sp     = sp;
-	sfi->ra     = ra;
-	sfi->xpc    = xpc;
-
-	/* store new stackframe info pointer */
-
-	*psfi = sfi;
-}
-
-
 /* stacktrace_create_extern_stackframeinfo *************************************
 
    Creates an stackframe info structure for an extern exception
@@ -204,7 +164,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* get current stackframe info pointer */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	/* sometimes we don't have pv handy (e.g. in asmpart.S:
        L_asm_call_jit_compiler_exception or in the interpreter). */
@@ -298,7 +258,7 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* get current stackframe info pointer */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	/* fill new stackframe info structure */
 
@@ -327,264 +287,11 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 
 	/* get current stackframe info pointer */
 
-	psfi = STACKFRAMEINFO;
+	psfi = &STACKFRAMEINFO;
 
 	/* restore the old pointer */
 
 	*psfi = sfi->prev;
-}
-
-
-/* stacktrace_inline_arithmeticexception ***************************************
-
-   Creates an ArithemticException for inline stub.
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp,
-														 u1 *ra, u1 *xpc)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* create exception */
-
-	o = exceptions_new_arithmeticexception();
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
-/* stacktrace_inline_arrayindexoutofboundsexception ****************************
-
-   Creates an ArrayIndexOutOfBoundsException for inline stub.
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
-																	u1 *sp,
-																	u1 *ra,
-																	u1 *xpc,
-																	s4 index)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* create exception */
-
-	o = exceptions_new_arrayindexoutofboundsexception(index);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
-/* stacktrace_inline_arraystoreexception ***************************************
-
-   Creates an ArrayStoreException for inline stub.
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp, u1 *ra,
-														 u1 *xpc)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* create exception */
-
-	o = exceptions_new_arraystoreexception();
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
-/* stacktrace_inline_classcastexception ****************************************
-
-   Creates an ClassCastException for inline stub.
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp, u1 *ra,
-														u1 *xpc,
-														java_objectheader *o)
-{
-	stackframeinfo     sfi;
-	java_objectheader *e;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* create exception */
-
-	e = exceptions_new_classcastexception(o);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return e;
-}
-
-
-/* stacktrace_inline_nullpointerexception **************************************
-
-   Creates an NullPointerException for inline stub.
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
-														  u1 *ra, u1 *xpc)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* create exception */
-
-	o = exceptions_new_nullpointerexception();
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
-/* stacktrace_inline_fillInStackTrace ******************************************
-
-   Fills in the correct stacktrace into an existing exception object
-   (this one is for inline exception stubs).
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
-													  u1 *xpc)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-	methodinfo        *m;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* get exception */
-
-	o = *exceptionptr;
-	assert(o);
-
-	/* clear exception */
-
-	*exceptionptr = NULL;
-
-	/* resolve methodinfo pointer from exception object */
-
-#if defined(ENABLE_JAVASE)
-	m = class_resolvemethod(o->vftbl->class,
-							utf_fillInStackTrace,
-							utf_void__java_lang_Throwable);
-#elif defined(ENABLE_JAVAME_CLDC1_1)
-	m = class_resolvemethod(o->vftbl->class,
-							utf_fillInStackTrace,
-							utf_void__void);
-#else
-#error IMPLEMENT ME!
-#endif
-
-	/* call function */
-
-	(void) vm_call_method(m, o);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
-/* stacktrace_hardware_arithmeticexception *************************************
-
-   Creates an ArithemticException for inline stub.
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
-														   u1 *ra, u1 *xpc)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* create exception */
-
-	o = exceptions_new_arithmeticexception();
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
-/* stacktrace_hardware_nullpointerexception ************************************
-
-   Creates an NullPointerException for the SIGSEGV signal handler.
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
-															u1 *ra, u1 *xpc)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* create exception */
-
-	o = exceptions_new_nullpointerexception();
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
 }
 
 
@@ -669,6 +376,10 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
    Generates a stacktrace from the thread passed into a
    stacktracebuffer.  The stacktracebuffer is allocated on the
    dump memory.
+   
+   NOTE: The first element in the stackframe chain must always be a
+         native stackframeinfo (e.g. VMThrowable.fillInStackTrace() is
+         a native function).
 
    RETURN VALUE:
       pointer to the stacktracebuffer, or
@@ -677,10 +388,9 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 *******************************************************************************/
 
-stacktracebuffer *stacktrace_create(threadobject* thread)
+stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 {
 	stacktracebuffer *stb;
-	stackframeinfo   *sfi;
 	methodinfo       *m;
 	codeinfo         *code;
 	u1               *pv;
@@ -702,19 +412,6 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 	stb->capacity = STACKTRACE_CAPACITY_DEFAULT;
 	stb->used     = 0;
 	stb->entries  = DMNEW(stacktrace_entry, STACKTRACE_CAPACITY_DEFAULT);
-
-	/* The first element in the stackframe chain must always be a
-	   native stackframeinfo (VMThrowable.fillInStackTrace is a native
-	   function). */
-
-	/* We don't use the STACKFRAMEINFO macro here, as we have to use
-	   the passed thread. */
-
-#if defined(ENABLE_THREADS)
-	sfi = thread->_stackframeinfo;
-#else
-	sfi = _no_threads_stackframeinfo;
-#endif
 
 #define PRINTMETHODS 0
 
@@ -985,8 +682,9 @@ stacktracecontainer *stacktrace_fillInStackTrace(void)
 
 	/* create a stacktrace from the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
-	if (!stb)
+	stb = stacktrace_create(STACKFRAMEINFO);
+
+	if (stb == NULL)
 		goto return_NULL;
 
 	/* allocate memory from the GC heap and copy the stacktrace buffer */
@@ -1050,8 +748,9 @@ java_objectarray *stacktrace_getClassContext(void)
 
 	/* create a stacktrace for the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
-	if (!stb)
+	stb = stacktrace_create(STACKFRAMEINFO);
+
+	if (stb == NULL)
 		goto return_NULL;
 
 	/* calculate the size of the Class array */
@@ -1134,8 +833,9 @@ classinfo *stacktrace_getCurrentClass(void)
 
 	/* create a stacktrace for the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
-	if (!stb)
+	stb = stacktrace_create(STACKFRAMEINFO);
+
+	if (stb == NULL)
 		goto return_NULL; /* XXX exception: how to distinguish from normal NULL return? */
 
 	/* iterate over all stacktrace entries and find the first suitable
@@ -1201,7 +901,7 @@ java_objectarray *stacktrace_getStack(void)
 
 	/* create a stacktrace for the current thread */
 
-	stb = stacktrace_create(THREADOBJECT);
+	stb = stacktrace_create(STACKFRAMEINFO);
 
 	if (stb == NULL)
 		goto return_NULL;
@@ -1303,39 +1003,6 @@ void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 	/* just to be sure */
 
 	fflush(stdout);
-}
-
-
-/* stacktrace_dump_trace *******************************************************
-
-   This method is call from signal_handler_sigusr1 to dump the
-   stacktrace of the current thread to stdout.
-
-*******************************************************************************/
-
-void stacktrace_dump_trace(threadobject *thread)
-{
-	stacktracebuffer *stb;
-	s4                dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* create a stacktrace for the current thread */
-
-	stb = stacktrace_create(thread);
-
-	/* print stacktrace */
-
-	if (stb != NULL)
-		stacktrace_print_trace_from_buffer(stb);
-	else {
-		puts("\t<<No stacktrace available>>");
-		fflush(stdout);
-	}
-
-	dump_release(dumpsize);
 }
 
 

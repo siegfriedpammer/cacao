@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7496 2007-03-12 00:19:05Z michi $
+   $Id: threads.h 7667 2007-04-05 00:16:05Z michi $
 
 */
 
@@ -201,7 +201,7 @@ struct threadobject {
 
 /* stackframeinfo *************************************************************/
 
-#define STACKFRAMEINFO    (&(THREADOBJECT->_stackframeinfo))
+#define STACKFRAMEINFO    (THREADOBJECT->_stackframeinfo)
 
 
 /* variables ******************************************************************/
@@ -247,8 +247,6 @@ bool threads_thread_has_been_interrupted(threadobject *thread);
 void threads_stopworld(void);
 void threads_startworld(void);
 #endif
-
-void threads_dump(void);
 
 #endif /* _THREADS_H */
 

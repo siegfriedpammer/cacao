@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7601 2007-03-28 23:02:50Z michi $
+dnl $Id: configure.ac 7650 2007-04-03 13:48:10Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -53,7 +53,7 @@ alpha | alphaev56 | alphapca56 )
     ARCH_CFLAGS="-mieee -D__ALPHA__"
     ;;
 
-arm | armv4tl | armv5b | armv5l )
+arm | armv4 | armv4tl | armv5b | armv5l )
     ARCH_DIR="arm"
     ARCH_CFLAGS="-D__ARM__"
     ;;

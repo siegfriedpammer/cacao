@@ -601,13 +601,8 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 #if !defined(NDEBUG)
 
 #define SHOW_TARGET(target)                                          \
-        if (stage >= SHOW_STACK) {                                   \
+        if (stage >= SHOW_PARSE) {                                   \
             printf("--> L%03d ", (target).block->nr);                \
-        }                                                            \
-        else if (stage >= SHOW_PARSE) {                              \
-            printf("--> insindex %d (L%03d) ", (target).insindex,    \
-                jd->basicblocks[jd->basicblockindex[         \
-                (target).insindex]].nr);                             \
         }                                                            \
         else {                                                       \
             printf("--> insindex %d ", (target).insindex);           \
@@ -1388,12 +1383,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		printf("high=%d low=%d count=%d\n", iptr->sx.s23.s3.tablehigh, iptr->sx.s23.s2.tablelow, i);
 		while (--i >= 0) {
 			printf("\t\t%d --> ", (int) (table - iptr->dst.table));
-			if (stage >= SHOW_STACK) {
-				printf("L%03d\n", table->block->nr);
-			}
-			else {
-				printf("insindex %d (L%03d)\n", table->insindex, BLOCK_OF(table->insindex)->nr);
-			}
+			printf("L%03d\n", table->block->nr);
 			table++;
 		}
 
@@ -1402,24 +1392,17 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_LOOKUPSWITCH:
 		SHOW_S1(iptr);
 
-		printf("count=%d, default=", iptr->sx.s23.s2.lookupcount);
-		if (stage >= SHOW_STACK) {
-			printf("L%03d\n", iptr->sx.s23.s3.lookupdefault.block->nr);
-		}
-		else {
-			printf("insindex %d (L%03d)\n", iptr->sx.s23.s3.lookupdefault.insindex, BLOCK_OF(iptr->sx.s23.s3.lookupdefault.insindex)->nr);
-		}
+		printf("count=%d, default=L%03d\n",
+			   iptr->sx.s23.s2.lookupcount,
+			   iptr->sx.s23.s3.lookupdefault.block->nr);
 
 		lookup = iptr->dst.lookup;
 		i = iptr->sx.s23.s2.lookupcount;
+
 		while (--i >= 0) {
-			printf("\t\t%d --> ", lookup->value);
-			if (stage >= SHOW_STACK) {
-				printf("L%03d\n", lookup->target.block->nr);
-			}
-			else {
-				printf("insindex %d (L%03d)\n", lookup->target.insindex, BLOCK_OF(lookup->target.insindex)->nr);
-			}
+			printf("\t\t%d --> L%03d\n",
+				   lookup->value,
+				   lookup->target.block->nr);
 			lookup++;
 		}
 		break;

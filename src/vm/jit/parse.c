@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7632 2007-04-02 20:05:05Z michi $
+   $Id: parse.c 7663 2007-04-04 22:14:42Z twisti $
 
 */
 
@@ -69,14 +69,29 @@
                                    /* allocate if space runs out              */
 
 
+/* local macros ***************************************************************/
+
+#define BYTECODEINDEX_TO_BASICBLOCK(dst) \
+    do { \
+        (dst).block = \
+            parse_bytecodeindex_to_basicblock(jd, &pd, (dst).insindex); \
+    } while (0)
+
+
 /* parserdata_t ***************************************************************/
 
 typedef struct parsedata_t parsedata_t;
 
 struct parsedata_t {
+	u1          *bytecodestart;         /* start of bytecode instructions     */
+	u1          *basicblockstart;       /* start of bytecode basic-blocks     */
+
+	s4          *bytecodemap;           /* bytecode to IR mapping             */
+	
 	instruction *instructions;          /* instruction array                  */
 	s4           instructionslength;    /* length of the instruction array    */
-	u1          *instructionstart;
+
+	s4          *instructionmap;        /* IR to basic-block mapping          */
 };
 
 
@@ -94,28 +109,35 @@ static void parse_setup(jitdata *jd, parsedata_t *pd)
 
 	m = jd->m;
 
-	/* Allocate instruction array and block index table (1 additional
-	   for end ipc). */
+	/* bytecode start array */
 
-	jd->basicblockindex = DMNEW(s4, m->jcodelength + 1);
-	pd->instructionstart = DMNEW(u1, m->jcodelength + 1);
+	pd->bytecodestart = DMNEW(u1, m->jcodelength + 1);
+	MZERO(pd->bytecodestart, u1, m->jcodelength + 1);
 
-	MZERO(jd->basicblockindex, s4, m->jcodelength + 1);
-	MZERO(pd->instructionstart, u1, m->jcodelength + 1);
+	/* bytecode basic-block start array */
 
-	/* Set the length of the instruction array.  We simply add 5 more
-	   instruction, as this seems to be a reasonable value. */
+	pd->basicblockstart = DMNEW(u1, m->jcodelength + 1);
+	MZERO(pd->basicblockstart, u1, m->jcodelength + 1);
 
-	pd->instructionslength = m->jcodelength + 1;
+	/* bytecode instruction index to IR instruction mapping */
+
+	pd->bytecodemap = DMNEW(s4, m->jcodelength + 1);
+	MSET(pd->bytecodemap, -1, s4, m->jcodelength + 1);
 
 	/* allocate the instruction array */
 
+	pd->instructionslength = m->jcodelength + 1;
 	pd->instructions = DMNEW(instruction, pd->instructionslength);
 
 	/* Zero the intermediate instructions array so we don't have any
 	   invalid pointers in it if we cannot finish stack_analyse(). */
 
 	MZERO(pd->instructions, instruction, pd->instructionslength);
+
+	/* The instructionmap is allocated later when we know the count of
+	   instructions. */
+
+	pd->instructionmap = NULL;
 }
 
 
@@ -148,6 +170,26 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 icount, s4 n)
 }
 
 
+/* parse_bytecodeindex_to_basicblock *******************************************
+
+   Resolves a bytecode index to the corresponding basic block.
+
+*******************************************************************************/
+
+static basicblock *parse_bytecodeindex_to_basicblock(jitdata *jd,
+													 parsedata_t *pd,
+													 s4 bcindex)
+{
+	s4          irindex;
+	basicblock *bb;
+
+	irindex = pd->bytecodemap[bcindex];
+	bb      = jd->basicblocks + pd->instructionmap[irindex];
+
+	return bb;
+}
+
+
 /* parse_mark_exception_boundaries *********************************************
 
    Mark exception handlers and the boundaries of the handled regions as
@@ -157,15 +199,14 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 icount, s4 n)
        jd...............current jitdata
 
    RETURN VALUE:
-       >= 0.............the number of new basic blocks marked
-	   -1...............an exception has been thrown
+       true.............everything ok
+	   false............an exception has been thrown
 
 *******************************************************************************/
 
-static int parse_mark_exception_boundaries(jitdata *jd)
+static bool parse_mark_exception_boundaries(jitdata *jd, parsedata_t *pd)
 {
-	s4                   b_count;
-	s4                   pc;
+	s4                   bcindex;
 	s4                   i;
 	s4                   len;
 	raw_exception_entry *rex;
@@ -176,57 +217,55 @@ static int parse_mark_exception_boundaries(jitdata *jd)
 	len = m->rawexceptiontablelength;
 
 	if (len == 0)
-		return 0;
+		return true;
 
-	b_count = 0;
 	rex = m->rawexceptiontable;
 
 	for (i = 0; i < len; ++i, ++rex) {
 
 		/* the start of the handled region becomes a basic block start */
 
-   		pc = rex->startpc;
-		CHECK_BYTECODE_INDEX(pc);
-		MARK_BASICBLOCK(pc);
+   		bcindex = rex->startpc;
+		CHECK_BYTECODE_INDEX(bcindex);
+		MARK_BASICBLOCK(pd, bcindex);
 		
-		pc = rex->endpc; /* see JVM Spec 4.7.3 */
-		CHECK_BYTECODE_INDEX_EXCLUSIVE(pc);
+		bcindex = rex->endpc; /* see JVM Spec 4.7.3 */
+		CHECK_BYTECODE_INDEX_EXCLUSIVE(bcindex);
 
 		/* check that the range is valid */
 
 #if defined(ENABLE_VERIFIER)
-		if (pc <= rex->startpc) {
-			exceptions_throw_verifyerror(m,
-				"Invalid exception handler range");
-			return -1;
+		if (bcindex <= rex->startpc) {
+			exceptions_throw_verifyerror(m, "Invalid exception handler range");
+			return false;
 		}
 #endif
 		
-		/* end of handled region becomes a basic block boundary  */
-		/* (If it is the bytecode end, we'll use the special     */
-		/* end block that is created anyway.)                    */
+		/* End of handled region becomes a basic block boundary (if it
+		   is the bytecode end, we'll use the special end block that
+		   is created anyway). */
 
-		if (pc < m->jcodelength)
-			MARK_BASICBLOCK(pc);
+		if (bcindex < m->jcodelength)
+			MARK_BASICBLOCK(pd, bcindex);
 		else
 			jd->branchtoend = true;
 
 		/* the start of the handler becomes a basic block start  */
 
-		pc = rex->handlerpc;
-		CHECK_BYTECODE_INDEX(pc);
-		MARK_BASICBLOCK(pc);
+		bcindex = rex->handlerpc;
+		CHECK_BYTECODE_INDEX(bcindex);
+		MARK_BASICBLOCK(pd, bcindex);
 	}
 
 	/* everything ok */
 
-	return b_count;
+	return true;
 
 #if defined(ENABLE_VERIFIER)
 throw_invalid_bytecode_index:
 	exceptions_throw_verifyerror(m,
 								 "Illegal bytecode index in exception table");
-	return -1;
+	return false;
 #endif
 }
 
@@ -245,7 +284,7 @@ throw_invalid_bytecode_index:
 
 *******************************************************************************/
 
-static bool parse_resolve_exception_table(jitdata *jd)
+static bool parse_resolve_exception_table(jitdata *jd, parsedata_t *pd)
 {
 	methodinfo          *m;
 	raw_exception_entry *rex;
@@ -276,9 +315,9 @@ static bool parse_resolve_exception_table(jitdata *jd)
 	for (i = 0; i < len; ++i, ++rex, ++ex) {
 		/* resolve instruction indices to basic blocks */
 
-		ex->start   = BLOCK_OF(rex->startpc);
-		ex->end     = BLOCK_OF(rex->endpc);
-		ex->handler = BLOCK_OF(rex->handlerpc);
+		ex->start   = parse_bytecodeindex_to_basicblock(jd, pd, rex->startpc);
+		ex->end     = parse_bytecodeindex_to_basicblock(jd, pd, rex->endpc);
+		ex->handler = parse_bytecodeindex_to_basicblock(jd, pd, rex->handlerpc);
 
 		/* lazily resolve the catchtype */
 
@@ -338,23 +377,29 @@ bool parse(jitdata *jd)
 	methodinfo  *m;                     /* method being parsed                */
 	parsedata_t  pd;
 	instruction *iptr;                  /* current ptr into instruction array */
-	s4           icount;                /* intermediate instruction counter   */
-	s4           p;                     /* java instruction counter           */
-	s4           nextp;                 /* start of next java instruction     */
-	s4           opcode;                /* java opcode                        */
-	s4           i;
-	s4           j;
-	int  b_count;               /* basic block counter                      */
-	int  s_count = 0;           /* stack element counter                    */
-	bool blockend = false;      /* true if basic block end has been reached */
-	bool iswide = false;        /* true if last instruction was a wide      */
+
+	s4           bcindex;               /* bytecode instruction index         */
+	s4           nextbc;                /* start of next bytecode instruction */
+	s4           opcode;                /* bytecode instruction opcode        */
+
+	s4           irindex;               /* IR instruction index               */
+	s4           ircount;               /* IR instruction count               */
+
+	s4           bbcount;               /* basic block count                  */
+
+	int  s_count = 0;             /* stack element counter                    */
+	bool blockend;                /* true if basic block end has been reached */
+	bool iswide;                  /* true if last instruction was a wide      */
+
 	constant_classref  *cr;
 	constant_classref  *compr;
 	classinfo          *c;
 	builtintable_entry *bte;
-	constant_FMIref    *mr;
+	constant_FMIref    *fmi;
 	methoddesc         *md;
 	unresolved_method  *um;
+	unresolved_field   *uf;
+
 	resolve_result_t    result;
 	u2                  lineindex = 0;
 	u2                  currentline = 0;
@@ -364,12 +409,19 @@ bool parse(jitdata *jd)
 
  	int                *local_map; /* local pointer to renaming structore     */
 	                               /* is assigned to rd->local_map at the end */
+	branch_target_t *table;
+	lookup_target_t *lookup;
+	s4               i;
+	s4               j;
+
 	/* get required compiler data */
 
-	m    = jd->m;
+	m = jd->m;
 
 	/* allocate buffers for local variable renaming */
+
 	local_map = DMNEW(int, m->maxlocals * 5);
+
 	for (i = 0; i < m->maxlocals; i++) {
 		local_map[i * 5 + 0] = 0;
 		local_map[i * 5 + 1] = 0;
@@ -384,13 +436,15 @@ bool parse(jitdata *jd)
   
  	/* initialize local variables */
   
- 	iptr   = pd.instructions;
- 	icount = 0;
-  
+ 	iptr     = pd.instructions;
+ 	ircount  = 0;
+	bbcount  = 0;
+	blockend = false;
+	iswide   = false;
+
 	/* mark basic block boundaries for exception table */
 
-	b_count = parse_mark_exception_boundaries(jd);
-	if (b_count < 0)
+	if (!parse_mark_exception_boundaries(jd, &pd))
 		return false;
 
 	/* initialize stack element counter */
@@ -411,24 +465,24 @@ bool parse(jitdata *jd)
 
 	/*** LOOP OVER ALL BYTECODE INSTRUCTIONS **********************************/
 
-	for (p = 0; p < m->jcodelength; p = nextp) {
+	for (bcindex = 0; bcindex < m->jcodelength; bcindex = nextbc) {
 
-		/* mark this position as a valid instruction start */
+		/* mark this position as a valid bytecode instruction start */
 
-		pd.instructionstart[p] = 1;
+		pd.bytecodestart[bcindex] = 1;
 
 		/* change the current line number, if necessary */
 
 		/* XXX rewrite this using pointer arithmetic */
 
-		if (linepcchange == p) {
+		if (linepcchange == bcindex) {
 			if (m->linenumbercount > lineindex) {
 next_linenumber:
 				currentline = m->linenumbers[lineindex].line_number;
 				lineindex++;
 				if (lineindex < m->linenumbercount) {
 					linepcchange = m->linenumbers[lineindex].start_pc;
-					if (linepcchange == p)
+					if (linepcchange == bcindex)
 						goto next_linenumber;
 				}
 			}
@@ -437,35 +491,43 @@ next_linenumber:
 fetch_opcode:
 		/* fetch next opcode  */	
 
-		opcode = SUCK_BE_U1(m->jcode + p);
+		opcode = SUCK_BE_U1(m->jcode + bcindex);
 
-		/* some compilers put a JAVA_NOP after a blockend instruction */
+		/* If the previous instruction was a block-end instruction,
+		   mark the current bytecode instruction as basic-block
+		   starting instruction. */
+
+		/* NOTE: Some compilers put a JAVA_NOP after a blockend
+		   instruction. */
 
 		if (blockend && (opcode != JAVA_NOP)) {
-			/* start new block */
-
-			MARK_BASICBLOCK(p);
+			MARK_BASICBLOCK(&pd, bcindex);
 			blockend = false;
 		}
 
-		/* We need a NOP as last instruction in each basic block
-		   for basic block reordering (may be replaced with a GOTO
-		   later). */
+		/* If the current bytecode instruction was marked as
+		   basic-block starting instruction before (e.g. blockend,
+		   forward-branch target), mark the current IR instruction
+		   too. */
 
-		if (jd->basicblockindex[p] & 1) {
+		if (pd.basicblockstart[bcindex] != 0) {
+			/* We need a NOP as last instruction in each basic block
+			   for basic block reordering (may be replaced with a GOTO
+			   later). */
+
 			INSTRUCTIONS_CHECK(1);
 			OP(ICMD_NOP);
 		}
 
 		/* store intermediate instruction count (bit 0 mark block starts) */
 
-		jd->basicblockindex[p] |= (icount << 1);
+		pd.bytecodemap[bcindex] = ircount;
 
 		/* compute next instruction start */
 
-		nextp = p + jcommandsize[opcode];
+		nextbc = bcindex + jcommandsize[opcode];
 
-		CHECK_END_OF_BYTECODE(nextp);
+		CHECK_END_OF_BYTECODE(nextbc);
 
 		/* add stack elements produced by this instruction */
 
@@ -487,20 +549,20 @@ fetch_opcode:
 		/* pushing constants onto the stack ***********************************/
 
 		case JAVA_BIPUSH:
-			OP_LOADCONST_I(SUCK_BE_S1(m->jcode + p + 1));
+			OP_LOADCONST_I(SUCK_BE_S1(m->jcode + bcindex + 1));
 			break;
 
 		case JAVA_SIPUSH:
-			OP_LOADCONST_I(SUCK_BE_S2(m->jcode + p + 1));
+			OP_LOADCONST_I(SUCK_BE_S2(m->jcode + bcindex + 1));
 			break;
 
 		case JAVA_LDC1:
-			i = SUCK_BE_U1(m->jcode + p + 1);
+			i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			goto pushconstantitem;
 
 		case JAVA_LDC2:
 		case JAVA_LDC2W:
-			i = SUCK_BE_U2(m->jcode + p + 1);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
 
 		pushconstantitem:
 
@@ -645,11 +707,11 @@ fetch_opcode:
 		case JAVA_FLOAD:
 		case JAVA_ALOAD:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + p + 1);
+				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + p + 1);
-				nextp = p + 3;
+				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				nextbc = bcindex + 3;
 				iswide = false;
 			}
 			OP_LOAD_ONEWORD(opcode, i, opcode - JAVA_ILOAD);
@@ -658,11 +720,11 @@ fetch_opcode:
 		case JAVA_LLOAD:
 		case JAVA_DLOAD:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + p + 1);
+				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + p + 1);
-				nextp = p + 3;
+				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				nextbc = bcindex + 3;
 				iswide = false;
 			}
 			OP_LOAD_TWOWORD(opcode, i, opcode - JAVA_ILOAD);
@@ -707,12 +769,12 @@ fetch_opcode:
 		case JAVA_FSTORE:
 		case JAVA_ASTORE:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + p + 1);
+				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + p + 1);
+				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				nextbc = bcindex + 3;
 				iswide = false;
-				nextp = p + 3;
 			}
 			OP_STORE_ONEWORD(opcode, i, opcode - JAVA_ISTORE);
 			break;
@@ -720,12 +782,12 @@ fetch_opcode:
 		case JAVA_LSTORE:
 		case JAVA_DSTORE:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + p + 1);
+				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + p + 1);
+				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				nextbc = bcindex + 3;
 				iswide = false;
-				nextp = p + 3;
 			}
 			OP_STORE_TWOWORD(opcode, i, opcode - JAVA_ISTORE);
 			break;
@@ -770,15 +832,15 @@ fetch_opcode:
 				int v;
 
 				if (iswide == false) {
-					i = SUCK_BE_U1(m->jcode + p + 1);
-					v = SUCK_BE_S1(m->jcode + p + 2);
+					i = SUCK_BE_U1(m->jcode + bcindex + 1);
+					v = SUCK_BE_S1(m->jcode + bcindex + 2);
 
 				}
 				else {
-					i = SUCK_BE_U2(m->jcode + p + 1);
-					v = SUCK_BE_S2(m->jcode + p + 3);
+					i = SUCK_BE_U2(m->jcode + bcindex + 1);
+					v = SUCK_BE_S2(m->jcode + bcindex + 3);
+					nextbc = bcindex + 5;
 					iswide = false;
-					nextp = p + 5;
 				}
 				INDEX_ONEWORD(i);
 				LOCALTYPE_USED(i, TYPE_INT);
@@ -789,14 +851,14 @@ fetch_opcode:
 		/* wider index for loading, storing and incrementing ******************/
 
 		case JAVA_WIDE:
+			bcindex++;
 			iswide = true;
-			p++;
 			goto fetch_opcode;
 
 		/* managing arrays ****************************************************/
 
 		case JAVA_NEWARRAY:
-			switch (SUCK_BE_S1(m->jcode + p + 1)) {
+			switch (SUCK_BE_S1(m->jcode + bcindex + 1)) {
 			case 4:
 				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
 				break;
@@ -831,9 +893,9 @@ fetch_opcode:
 			break;
 
 		case JAVA_ANEWARRAY:
-			i = SUCK_BE_U2(m->jcode + p + 1);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
 			compr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
-			if (!compr)
+			if (compr == NULL)
 				return false;
 
 			if (!(cr = class_get_classref_multiarray_of(1, compr)))
@@ -851,8 +913,8 @@ fetch_opcode:
 
 		case JAVA_MULTIANEWARRAY:
 			jd->isleafmethod = false;
-			i = SUCK_BE_U2(m->jcode + p + 1);
- 			j = SUCK_BE_U1(m->jcode + p + 3);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+ 			j = SUCK_BE_U1(m->jcode + bcindex + 3);
   
  			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
  			if (cr == NULL)
@@ -886,26 +948,26 @@ fetch_opcode:
 		case JAVA_IF_ACMPEQ:
 		case JAVA_IF_ACMPNE:
 		case JAVA_GOTO:
-			i = p + SUCK_BE_S2(m->jcode + p + 1);
+			i = bcindex + SUCK_BE_S2(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
-			MARK_BASICBLOCK(i);
+			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
 			OP_INSINDEX(opcode, i);
 			break;
 
 		case JAVA_GOTO_W:
-			i = p + SUCK_BE_S4(m->jcode + p + 1);
+			i = bcindex + SUCK_BE_S4(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
-			MARK_BASICBLOCK(i);
+			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
 			OP_INSINDEX(ICMD_GOTO, i);
 			break;
 
 		case JAVA_JSR:
-			i = p + SUCK_BE_S2(m->jcode + p + 1);
+			i = bcindex + SUCK_BE_S2(m->jcode + bcindex + 1);
 jsr_tail:
 			CHECK_BYTECODE_INDEX(i);
-			MARK_BASICBLOCK(i);
+			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
 			OP_PREPARE_ZEROFLAGS(JAVA_JSR);
 			iptr->sx.s23.s3.jsrtarget.insindex = i;
@@ -913,16 +975,16 @@ jsr_tail:
 			break;
 
 		case JAVA_JSR_W:
-			i = p + SUCK_BE_S4(m->jcode + p + 1);
+			i = bcindex + SUCK_BE_S4(m->jcode + bcindex + 1);
 			goto jsr_tail;
 
 		case JAVA_RET:
 			if (iswide == false) {
-				i = SUCK_BE_U1(m->jcode + p + 1);
+				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
 			else {
-				i = SUCK_BE_U2(m->jcode + p + 1);
-				nextp = p + 3;
+				i = SUCK_BE_U2(m->jcode + bcindex + 1);
+				nextbc = bcindex + 3;
 				iswide = false;
 			}
 			blockend = true;
@@ -958,25 +1020,25 @@ jsr_tail:
 				s4 prevvalue = 0;
 #endif
 				blockend = true;
-				nextp = MEMORY_ALIGN((p + 1), 4);
+				nextbc = MEMORY_ALIGN((bcindex + 1), 4);
 
-				CHECK_END_OF_BYTECODE(nextp + 8);
+				CHECK_END_OF_BYTECODE(nextbc + 8);
 
 				OP_PREPARE_ZEROFLAGS(opcode);
 
 				/* default target */
 
-				j = p + SUCK_BE_S4(m->jcode + nextp);
+				j = bcindex + SUCK_BE_S4(m->jcode + nextbc);
 				iptr->sx.s23.s3.lookupdefault.insindex = j;
-				nextp += 4;
+				nextbc += 4;
 				CHECK_BYTECODE_INDEX(j);
-				MARK_BASICBLOCK(j);
+				MARK_BASICBLOCK(&pd, j);
 
 				/* number of pairs */
 
-				num = SUCK_BE_U4(m->jcode + nextp);
+				num = SUCK_BE_U4(m->jcode + nextbc);
 				iptr->sx.s23.s2.lookupcount = num;
-				nextp += 4;
+				nextbc += 4;
 
 				/* allocate the intermediate code table */
 
@@ -985,15 +1047,15 @@ jsr_tail:
 
 				/* iterate over the lookup table */
 
-				CHECK_END_OF_BYTECODE(nextp + 8 * num);
+				CHECK_END_OF_BYTECODE(nextbc + 8 * num);
 
 				for (i = 0; i < num; i++) {
 					/* value */
 
-					j = SUCK_BE_S4(m->jcode + nextp);
+					j = SUCK_BE_S4(m->jcode + nextbc);
 					lookup->value = j;
 
-					nextp += 4;
+					nextbc += 4;
 
 #if defined(ENABLE_VERIFIER)
 					/* check if the lookup table is sorted correctly */
@@ -1006,12 +1068,12 @@ jsr_tail:
 #endif
 					/* target */
 
-					j = p + SUCK_BE_S4(m->jcode + nextp);
+					j = bcindex + SUCK_BE_S4(m->jcode + nextbc);
 					lookup->target.insindex = j;
 					lookup++;
-					nextp += 4;
+					nextbc += 4;
 					CHECK_BYTECODE_INDEX(j);
-					MARK_BASICBLOCK(j);
+					MARK_BASICBLOCK(&pd, j);
 				}
 
 				PINC;
@@ -1026,30 +1088,30 @@ jsr_tail:
 				branch_target_t *table;
 
 				blockend = true;
-				nextp = MEMORY_ALIGN((p + 1), 4);
+				nextbc = MEMORY_ALIGN((bcindex + 1), 4);
 
-				CHECK_END_OF_BYTECODE(nextp + 12);
+				CHECK_END_OF_BYTECODE(nextbc + 12);
 
 				OP_PREPARE_ZEROFLAGS(opcode);
 
 				/* default target */
 
-				deftarget = p + SUCK_BE_S4(m->jcode + nextp);
-				nextp += 4;
+				deftarget = bcindex + SUCK_BE_S4(m->jcode + nextbc);
+				nextbc += 4;
 				CHECK_BYTECODE_INDEX(deftarget);
-				MARK_BASICBLOCK(deftarget);
+				MARK_BASICBLOCK(&pd, deftarget);
 
 				/* lower bound */
 
-				j = SUCK_BE_S4(m->jcode + nextp);
+				j = SUCK_BE_S4(m->jcode + nextbc);
 				iptr->sx.s23.s2.tablelow = j;
-				nextp += 4;
+				nextbc += 4;
 
 				/* upper bound */
 
-				num = SUCK_BE_S4(m->jcode + nextp);
+				num = SUCK_BE_S4(m->jcode + nextbc);
 				iptr->sx.s23.s3.tablehigh = num;
-				nextp += 4;
+				nextbc += 4;
 
 				/* calculate the number of table entries */
 
@@ -1071,14 +1133,14 @@ jsr_tail:
 
 				/* iterate over the target table */
 
-				CHECK_END_OF_BYTECODE(nextp + 4 * num);
+				CHECK_END_OF_BYTECODE(nextbc + 4 * num);
 
 				for (i = 0; i < num; i++) {
-					j = p + SUCK_BE_S4(m->jcode + nextp);
+					j = bcindex + SUCK_BE_S4(m->jcode + nextbc);
 					(table++)->insindex = j;
-					nextp += 4;
+					nextbc += 4;
 					CHECK_BYTECODE_INDEX(j);
-					MARK_BASICBLOCK(j);
+					MARK_BASICBLOCK(&pd, j);
 				}
 
 				PINC;
@@ -1097,43 +1159,40 @@ jsr_tail:
 		case JAVA_PUTSTATIC:
 		case JAVA_GETFIELD:
 		case JAVA_PUTFIELD:
-			{
-				constant_FMIref  *fr;
-				unresolved_field *uf;
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			fmi = class_getconstant(m->class, i, CONSTANT_Fieldref);
 
-				i = SUCK_BE_U2(m->jcode + p + 1);
-				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
-				if (!fr)
+			if (fmi == NULL)
+				return false;
+
+			OP_PREPARE_ZEROFLAGS(opcode);
+			iptr->sx.s23.s3.fmiref = fmi;
+
+			/* only with -noverify, otherwise the typechecker does this */
+
+#if defined(ENABLE_VERIFIER)
+			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
+#endif
+				result = resolve_field_lazy(m, fmi);
+
+				if (result == resolveFailed)
 					return false;
 
-				OP_PREPARE_ZEROFLAGS(opcode);
-				iptr->sx.s23.s3.fmiref = fr;
+				if (result != resolveSucceeded) {
+					uf = resolve_create_unresolved_field(m->class, m, iptr);
 
-				/* only with -noverify, otherwise the typechecker does this */
-
-#if defined(ENABLE_VERIFIER)
-				if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
-#endif
-					result = resolve_field_lazy(m, fr);
-					if (result == resolveFailed)
+					if (uf == NULL)
 						return false;
 
-					if (result != resolveSucceeded) {
-						uf = resolve_create_unresolved_field(m->class, m, iptr);
+					/* store the unresolved_field pointer */
 
-						if (uf == NULL)
-							return false;
-
-						/* store the unresolved_field pointer */
-
-						iptr->sx.s23.s3.uf = uf;
-						iptr->flags.bits |= INS_FLAG_UNRESOLVED;
-					}
-#if defined(ENABLE_VERIFIER)
+					iptr->sx.s23.s3.uf = uf;
+					iptr->flags.bits |= INS_FLAG_UNRESOLVED;
 				}
-#endif
-				PINC;
+#if defined(ENABLE_VERIFIER)
 			}
+#endif
+			PINC;
 			break;
 
 
@@ -1142,13 +1201,13 @@ jsr_tail:
 		case JAVA_INVOKESTATIC:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = SUCK_BE_U2(m->jcode + p + 1);
-			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			fmi = class_getconstant(m->class, i, CONSTANT_Methodref);
 
-			if (mr == NULL)
+			if (fmi == NULL)
 				return false;
 
-			md = mr->parseddesc.md;
+			md = fmi->parseddesc.md;
 
 			if (md->params == NULL)
 				if (!descriptor_params_from_paramtypes(md, ACC_STATIC))
@@ -1159,30 +1218,30 @@ jsr_tail:
 		case JAVA_INVOKESPECIAL:
 			OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);
 
-			i = SUCK_BE_U2(m->jcode + p + 1);
-			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			fmi = class_getconstant(m->class, i, CONSTANT_Methodref);
 
 			goto invoke_nonstatic_method;
 
 		case JAVA_INVOKEINTERFACE:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = SUCK_BE_U2(m->jcode + p + 1);
-			mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			fmi = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
 
 			goto invoke_nonstatic_method;
 
 		case JAVA_INVOKEVIRTUAL:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
-			i = SUCK_BE_U2(m->jcode + p + 1);
-			mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			fmi = class_getconstant(m->class, i, CONSTANT_Methodref);
 
 invoke_nonstatic_method:
-			if (mr == NULL)
+			if (fmi == NULL)
 				return false;
 
-			md = mr->parseddesc.md;
+			md = fmi->parseddesc.md;
 
 			if (md->params == NULL)
 				if (!descriptor_params_from_paramtypes(md, 0))
@@ -1191,15 +1250,16 @@ invoke_nonstatic_method:
 invoke_method:
 			jd->isleafmethod = false;
 
-			iptr->sx.s23.s3.fmiref = mr;
+			iptr->sx.s23.s3.fmiref = fmi;
 
 			/* only with -noverify, otherwise the typechecker does this */
 
 #if defined(ENABLE_VERIFIER)
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
-				result = resolve_method_lazy(m, mr, 
-						(opcode == JAVA_INVOKESPECIAL));
+				result = resolve_method_lazy(m, fmi, 
+											 (opcode == JAVA_INVOKESPECIAL));
+
 				if (result == resolveFailed)
 					return false;
 
@@ -1219,11 +1279,11 @@ invoke_method:
 					}
 				}
 				else {
-					um = resolve_create_unresolved_method(m->class, m, mr,
+					um = resolve_create_unresolved_method(m->class, m, fmi,
 							(opcode == JAVA_INVOKESTATIC),
 							(opcode == JAVA_INVOKESPECIAL));
 
-					if (!um)
+					if (um == NULL)
 						return false;
 
 					/* store the unresolved_method pointer */
@@ -1240,9 +1300,10 @@ invoke_method:
 		/* instructions taking class arguments ********************************/
 
 		case JAVA_NEW:
-			i = SUCK_BE_U2(m->jcode + p + 1);
-			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
-			if (!cr)
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			cr = class_getconstant(m->class, i, CONSTANT_Class);
+
+			if (cr == NULL)
 				return false;
 
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
@@ -1256,8 +1317,9 @@ invoke_method:
 			break;
 
 		case JAVA_CHECKCAST:
-			i = SUCK_BE_U2(m->jcode + p + 1);
-			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			cr = class_getconstant(m->class, i, CONSTANT_Class);
+
 			if (cr == NULL)
 				return false;
 
@@ -1277,8 +1339,9 @@ invoke_method:
 			break;
 
 		case JAVA_INSTANCEOF:
-			i = SUCK_BE_U2(m->jcode + p + 1);
-			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
+			i = SUCK_BE_U2(m->jcode + bcindex + 1);
+			cr = class_getconstant(m->class, i, CONSTANT_Class);
+
 			if (cr == NULL)
 				return false;
 
@@ -1516,7 +1579,7 @@ invoke_method:
 		case 254:
 		case 255:
 			exceptions_throw_verifyerror(m, "Illegal opcode %d at instr %d\n",
-										 opcode, icount);
+										 opcode, ircount);
 			return false;
 			break;
 #endif /* defined(ENABLE_VERIFIER) */
@@ -1554,13 +1617,13 @@ invoke_method:
 
 	/* assert that we did not write more ICMDs than allocated */
 
-	assert(icount <= pd.instructionslength);
-	assert(icount == (iptr - pd.instructions));
+	assert(ircount <= pd.instructionslength);
+	assert(ircount == (iptr - pd.instructions));
 
 	/*** verifier checks ******************************************************/
 
 #if defined(ENABLE_VERIFIER)
-	if (p != m->jcodelength) {
+	if (bcindex != m->jcodelength) {
 		exceptions_throw_verifyerror(m,
 				"Command-sequence crosses code-boundary");
 		return false;
@@ -1576,91 +1639,89 @@ invoke_method:
 
 	/* identify basic blocks */
 
-	/* First instruction always starts a basic block, but check if it
-	   is already a branch target. */
+	/* check if first instruction is a branch target */
 
-	if ((jd->basicblockindex[0] == 0) || (jd->basicblockindex[0] > 1)) {
+	if (pd.basicblockstart[0] == 1) {
+		jd->branchtoentry = true;
+	}
+	else {
+		/* first instruction always starts a basic block */
+
 		iptr = pd.instructions;
 
 		iptr->flags.bits |= INS_FLAG_BASICBLOCK;
-
-		/* This is the first basic block. */
-
-		b_count = 1;
-	}
-	else {
-		jd->branchtoentry = true;
-
-		/* In this case the loop below counts the first basic
-		   block. */
-
-		b_count = 0;
 	}
 
-	/* Iterate over all bytecode instructions and mark the
-	   corresponding IR instruction as basic block starting
-	   instruction. */
+	/* Iterate over all bytecode instructions and set missing
+	   basic-block starts in IR instructions. */
 
-	for (i = 0; i < m->jcodelength; i++) {
-		if (jd->basicblockindex[i] & 0x1) {
+	for (bcindex = 0; bcindex < m->jcodelength; bcindex++) {
+		/* Does the current bytecode instruction start a basic
+		   block? */
+
+		if (pd.basicblockstart[bcindex] == 1) {
 #if defined(ENABLE_VERIFIER)
-			/* Check if this block starts at the beginning of an
-			   instruction. */
+			/* Check if this bytecode basic-block start at the
+			   beginning of a bytecode instruction. */
 
-			if (pd.instructionstart[i] == 0) {
+			if (pd.bytecodestart[bcindex] == 0) {
 				exceptions_throw_verifyerror(m,
-						"Branch into middle of instruction");
+										 "Branch into middle of instruction");
 				return false;
 			}
 #endif
 
-			/* Mark the IR instruction as basic block starting
-			   instruction. */
+			/* Get the IR instruction mapped to the bytecode
+			   instruction and set the basic block flag. */
 
-			iptr = pd.instructions + (jd->basicblockindex[i] >> 1);
+			irindex = pd.bytecodemap[bcindex];
+			iptr    = pd.instructions + irindex;
 
 			iptr->flags.bits |= INS_FLAG_BASICBLOCK;
-
-			/* Store te basic block number in the array.  We need this
-			   information during stack analysis. */
-
-			jd->basicblockindex[i] = b_count;
-
-			/* basic block indices of course start with 0 */
-
-			b_count++;
 		}
 	}
+
+	/* IR instruction index to basic-block index mapping */
+
+	pd.instructionmap = DMNEW(s4, ircount);
+	MZERO(pd.instructionmap, s4, ircount);
 
 	/* Iterate over all IR instructions and count the basic blocks. */
 
 	iptr = pd.instructions;
 
-	b_count = 0;
+	bbcount = 0;
 
-	for (i = 0; i < icount; i++, iptr++) {
+	for (i = 0; i < ircount; i++, iptr++) {
 		if (INSTRUCTION_STARTS_BASICBLOCK(iptr)) {
-			b_count++;
+			/* store the basic-block number in the IR instruction
+			   map */
+
+			pd.instructionmap[i] = bbcount;
+
+			/* post-increment the basic-block count */
+
+			bbcount++;
 		}
 	}
 
 	/* Allocate basic block array (one more for end ipc). */
 
-	jd->basicblocks = DMNEW(basicblock, b_count + 1);
-
-	/* zero out all basic block structures */
-
-	MZERO(jd->basicblocks, basicblock, b_count + 1);
+	jd->basicblocks = DMNEW(basicblock, bbcount + 1);
+	MZERO(jd->basicblocks, basicblock, bbcount + 1);
 
 	/* Now iterate again over all IR instructions and initialize the
-	   basic block structures. */
+	   basic block structures and, in the same loop, resolve the
+	   branch-target instruction indices to basic blocks. */
 
 	iptr = pd.instructions;
 	bptr = jd->basicblocks;
 
-	b_count = 0;
+	bbcount = 0;
 
-	for (i = 0; i < icount; i++, iptr++) {
+	for (i = 0; i < ircount; i++, iptr++) {
+		/* check for basic block */
+
 		if (INSTRUCTION_STARTS_BASICBLOCK(iptr)) {
 			/* intialize the basic block */
 
@@ -1668,34 +1729,87 @@ invoke_method:
 
 			bptr->iinstr = iptr;
 
-			if (b_count > 0) {
+			if (bbcount > 0) {
 				bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
 			}
 
 			/* bptr->icount is set when the next block is allocated */
 
-			bptr->nr = b_count++;
+			bptr->nr = bbcount++;
 			bptr++;
 			bptr[-1].next = bptr;
+		}
+
+		/* resolve instruction indices to basic blocks */
+
+		switch (iptr->opc) {
+		case JAVA_IFEQ:
+		case JAVA_IFLT:
+		case JAVA_IFLE:
+		case JAVA_IFNE:
+		case JAVA_IFGT:
+		case JAVA_IFGE:
+		case JAVA_IFNULL:
+		case JAVA_IFNONNULL:
+		case JAVA_IF_ICMPEQ:
+		case JAVA_IF_ICMPNE:
+		case JAVA_IF_ICMPLT:
+		case JAVA_IF_ICMPGT:
+		case JAVA_IF_ICMPLE:
+		case JAVA_IF_ICMPGE:
+		case JAVA_IF_ACMPEQ:
+		case JAVA_IF_ACMPNE:
+		case JAVA_GOTO:
+			BYTECODEINDEX_TO_BASICBLOCK(iptr->dst);
+			break;
+
+		case ICMD_JSR:
+			BYTECODEINDEX_TO_BASICBLOCK(iptr->sx.s23.s3.jsrtarget);
+			break;
+
+		case ICMD_TABLESWITCH:
+			table = iptr->dst.table;
+
+			BYTECODEINDEX_TO_BASICBLOCK(*table);
+			table++;
+
+			j = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
+
+			while (--j >= 0) {
+				BYTECODEINDEX_TO_BASICBLOCK(*table);
+				table++;
+			}
+			break;
+
+		case ICMD_LOOKUPSWITCH:
+			BYTECODEINDEX_TO_BASICBLOCK(iptr->sx.s23.s3.lookupdefault);
+
+			lookup = iptr->dst.lookup;
+
+			j = iptr->sx.s23.s2.lookupcount;
+
+			while (--j >= 0) {
+				BYTECODEINDEX_TO_BASICBLOCK(lookup->target);
+				lookup++;
+			}
+			break;
 		}
 	}
 
 	/* set instruction count of last real block */
 
-	if (b_count > 0) {
-		bptr[-1].icount = (pd.instructions + icount) - bptr[-1].iinstr;
+	if (bbcount > 0) {
+		bptr[-1].icount = (pd.instructions + ircount) - bptr[-1].iinstr;
 	}
 
 	/* allocate additional block at end */
 
 	BASICBLOCK_INIT(bptr, m);
-	bptr->nr = b_count;
-
-	jd->basicblockindex[m->jcodelength] = b_count;
+	bptr->nr = bbcount;
 
 	/* set basicblock pointers in exception table */
 
-	if (!parse_resolve_exception_table(jd))
+	if (!parse_resolve_exception_table(jd, &pd))
 		return false;
 
 	/* store the local map */
@@ -1728,7 +1842,7 @@ invoke_method:
 
 		jd->varcount = 
 			  nlocals                                      /* local variables */
-			+ b_count * m->maxstack                                 /* invars */
+			+ bbcount * m->maxstack                                 /* invars */
 			+ s_count;         /* variables created within blocks (non-invar) */
 
 		/* reserve the first indices for local variables */
@@ -1762,9 +1876,9 @@ invoke_method:
 	/* assign local variables to method variables */
 
 	jd->instructions     = pd.instructions;
-	jd->instructioncount = icount;
-	jd->basicblockcount  = b_count;
-	jd->stackcount       = s_count + b_count * m->maxstack; /* in-stacks */
+	jd->instructioncount = ircount;
+	jd->basicblockcount  = bbcount;
+	jd->stackcount       = s_count + bbcount * m->maxstack; /* in-stacks */
 
 	/* allocate stack table */
 

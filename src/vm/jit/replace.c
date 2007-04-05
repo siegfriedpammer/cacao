@@ -1,6 +1,6 @@
-/* vm/jit/replace.c - on-stack replacement of methods
+/* src/vm/jit/replace.c - on-stack replacement of methods
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,10 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
    $Id$
 
 */
@@ -43,21 +39,26 @@
 #endif
 
 #include "mm/memory.h"
+
+#include "threads/threads-common.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/stringlocal.h"
+
 #include "vm/jit/abi.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/replace.h"
-#include "vm/jit/stack.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
-#include "vm/jit/show.h"
-#include "vm/jit/methodheader.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/md.h"
+#include "vm/jit/methodheader.h"
+#include "vm/jit/replace.h"
+#include "vm/jit/show.h"
+#include "vm/jit/stack.h"
+
 #include "vmcore/options.h"
 #include "vmcore/classcache.h"
 
-#include "native/include/java_lang_String.h"
 
 #define REPLACE_PATCH_DYNAMIC_CALL
 /*#define REPLACE_PATCH_ALL*/
@@ -2738,7 +2739,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	s4                   dumpsize;
 	rplpoint            *origrp;
 	replace_safestack_t *safestack;
-#if defined(ENABLE_GC_CACAO)
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	threadobject        *thread;
 #endif
 
@@ -2761,7 +2762,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* get the stackframeinfo for the current thread */
 
-	sfi = *(STACKFRAMEINFO);
+	sfi = STACKFRAMEINFO;
 
 	/* recover source state */
 
@@ -2861,7 +2862,7 @@ void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
 
 	/* get the stackframeinfo of this thread */
 	assert(thread == THREADOBJECT);
-	sfi = *( STACKFRAMEINFO );
+	sfi = STACKFRAMEINFO;
 
 	/* create the execution state */
 	es = DNEW(executionstate_t);
@@ -3228,7 +3229,7 @@ static void java_value_print(s4 type, replace_val_t value)
 
 		if (obj->vftbl->class == class_java_lang_String) {
 			printf(" \"");
-			u = javastring_toutf((java_lang_String *)obj, false);
+			u = javastring_toutf(obj, false);
 			utf_display_printable_ascii(u);
 			printf("\"");
 		}
