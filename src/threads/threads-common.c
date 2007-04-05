@@ -136,13 +136,13 @@ ptrint threads_get_current_tid(void)
 }
 
 
-/* threads_get_state ***********************************************************
+/* threads_thread_get_state ****************************************************
 
    Returns the current state of the given thread.
 
 *******************************************************************************/
 
-utf *threads_get_state(threadobject *thread)
+utf *threads_thread_get_state(threadobject *thread)
 {
 	utf *u;
 
@@ -170,6 +170,37 @@ utf *threads_get_state(threadobject *thread)
 	}
 
 	return u;
+}
+
+
+/* threads_thread_is_alive *****************************************************
+
+   Returns if the give thread is alive.
+
+*******************************************************************************/
+
+bool threads_thread_is_alive(threadobject *thread)
+{
+	bool result;
+
+	switch (thread->state) {
+	case THREAD_STATE_NEW:
+	case THREAD_STATE_TERMINATED:
+		result = false;
+		break;
+
+	case THREAD_STATE_RUNNABLE:
+	case THREAD_STATE_BLOCKED:
+	case THREAD_STATE_WAITING:
+	case THREAD_STATE_TIMED_WAITING:
+		result = true;
+		break;
+
+	default:
+		vm_abort("threads_is_alive: unknown thread state %d", thread->state);
+	}
+
+	return result;
 }
 
 

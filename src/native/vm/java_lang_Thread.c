@@ -116,6 +116,31 @@ void _Jv_java_lang_Thread_interrupt(java_lang_Thread *this)
 
 /*
  * Class:     java/lang/Thread
+ * Method:    isAlive
+ * Signature: ()Z
+ */
+s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
+{
+#if defined(ENABLE_THREADS)
+	threadobject *thread;
+
+#if defined(WITH_CLASSPATH_GNU)
+	thread = (threadobject *) this->vmThread->vmdata;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	thread = (threadobject *) this->vm_thread;
+#endif
+
+	return threads_thread_is_alive(thread);
+#else
+	/* if threads are disabled, the only thread running is alive */
+
+	return 1;
+#endif
+}
+
+
+/*
+ * Class:     java/lang/Thread
  * Method:    isInterrupted
  * Signature: ()Z
  */
@@ -312,7 +337,7 @@ java_lang_String *_Jv_java_lang_Thread_getState(java_lang_Thread *this)
 	thread = (threadobject *) this->vm_thread;
 # endif
 
-	u = threads_get_state(thread);
+	u = threads_thread_get_state(thread);
 	o = javastring_new(u);
 
 	return (java_lang_String *) o;

@@ -63,7 +63,8 @@
 
 threadobject *threads_create_thread(utf *name);
 ptrint        threads_get_current_tid(void);
-utf          *threads_get_state(threadobject *thread);
+utf          *threads_thread_get_state(threadobject *thread);
+bool          threads_thread_is_alive(threadobject *thread);
 void          threads_dump(void);
 void          threads_print_stacktrace(threadobject *thread);
 
