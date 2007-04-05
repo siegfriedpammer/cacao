@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7654 2007-04-03 15:22:21Z twisti $
+   $Id: exceptions.c 7671 2007-04-05 12:06:28Z twisti $
 
 */
 
@@ -1044,7 +1044,11 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 
 	MFREE(msg, char, msglen);
 
+#if defined(ENABLE_JAVASE)
 	exceptions_throw_utf_utf(utf_java_lang_NoSuchMethodError, u);
+#else
+	exceptions_throw_class_utf(class_java_lang_Error, u);
+#endif
 }
 
 
