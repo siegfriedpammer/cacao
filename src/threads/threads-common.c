@@ -211,13 +211,9 @@ void threads_print_stacktrace(threadobject *thread)
 
 	dumpsize = dump_size();
 
-	/* create a stacktrace for the current thread */
+	/* create a stacktrace for the passed thread */
 
-#if defined(ENABLE_THREADS)
 	sfi = thread->_stackframeinfo;
-#else
-	sfi = _no_threads_stackframeinfo;
-#endif
 
 	stb = stacktrace_create(sfi);
 
