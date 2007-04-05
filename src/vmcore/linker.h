@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: linker.h 7675 2007-04-05 14:23:04Z michi $
 */
 
 
@@ -154,6 +154,11 @@ struct primitivetypeinfo {
 /* (except ARRAYTYPE_OBJECT).                                                 */
 
 extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
+
+/* This lock must be taken while renumbering classes or while atomically      */
+/* accessing classes.                                                         */
+
+extern java_objectheader *linker_classrenumber_lock;
 
 
 /* function prototypes ********************************************************/
