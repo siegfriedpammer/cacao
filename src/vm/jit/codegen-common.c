@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7658 2007-04-03 16:06:30Z twisti $
+   $Id: codegen-common.c 7673 2007-04-05 13:22:37Z michi $
 
 */
 
@@ -649,7 +649,10 @@ u1 *codegen_get_pv_from_pc(u1 *pc)
 		log_println("");
 		log_println("Dumping the current stacktrace:");
 
+#if defined(ENABLE_THREADS)
+		/* XXX michi: This should be available even without threads! */
 		threads_print_stacktrace(THREADOBJECT);
+#endif
 
 		vm_abort("Exiting...");
 	}
