@@ -85,14 +85,15 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Objec
 }
 
 
-#if 0
 /*
  * Class:     java/lang/Object
  * Method:    notifyAll
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, struct java_lang_Object* this);
-#endif
+JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, java_lang_Object *this)
+{
+	_Jv_java_lang_Object_notifyAll(this);
+}
 
 
 /*

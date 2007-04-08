@@ -137,6 +137,17 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_St
 /*
  * Class:     java/lang/String
  * Method:    lastIndexOf
+ * Signature: (I)I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__I(JNIEnv *env, java_lang_String *this, s4 ch)
+{
+	return Java_java_lang_String_lastIndexOf__II(env, this, ch, this->count - 1);
+}
+
+
+/*
+ * Class:     java/lang/String
+ * Method:    lastIndexOf
  * Signature: (II)I
  */
 JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lang_String *this, s4 ch, s4 fromIndex)
