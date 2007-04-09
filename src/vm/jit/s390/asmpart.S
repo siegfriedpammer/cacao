@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7661 2007-04-03 22:29:59Z twisti $
+   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
 
 */
 
@@ -1014,7 +1014,7 @@ asm_criticalsections:
 #if 0
 
 #if defined(__linux__) && defined(__ELF__)
-	.section .note.GNU-stack,"",@progbits
+	.section .note.GNU-stack,"",%progbits
 #endif
 
 
