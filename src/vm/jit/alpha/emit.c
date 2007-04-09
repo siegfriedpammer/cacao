@@ -168,7 +168,7 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		}
 
 		if (s1 != d) {
-			switch (dst->type) {
+			switch (src->type) {
 			case TYPE_INT:
 			case TYPE_LNG:
 			case TYPE_ADR:
@@ -179,7 +179,7 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 				M_FMOV(s1, d);
 				break;
 			default:
-				vm_abort("emit_copy: unknown type %d", dst->type);
+				vm_abort("emit_copy: unknown type %d", src->type);
 			}
 		}
 
