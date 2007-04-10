@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md-os.c 7681 2007-04-10 12:22:16Z twisti $
 
 */
 
@@ -143,6 +143,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	case 0x00000010:
 		/* AdEL: XPC is of the following instruction */
 		xpc = xpc - 4;
+		break;
 	}
 
 	/* get exception-throwing instruction */
@@ -153,14 +154,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	s1   = M_ITYPE_GET_RS(mcode);
 	disp = M_ITYPE_GET_IMM(mcode);
 
-	val   = _gregs[d];
-
 	/* check for special-load */
 
 	if (s1 == REG_ZERO) {
 		/* we use the exception type as load displacement */
 
 		type = disp;
+		val  = _gregs[d];
 	}
 	else {
 		/* This is a normal NPE: addr must be NULL and the NPE-type
@@ -168,6 +168,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		addr = _gregs[s1];
 		type = (s4) addr;
+		val  = 0;
 	}
 
 	/* generate appropriate exception */
