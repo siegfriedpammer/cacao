@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: codegen.c 7682 2007-04-10 21:24:14Z twisti $
 
 */
 
@@ -2449,10 +2449,10 @@ bool codegen_emit(jitdata *jd)
 #if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			if (iptr->sx.val.l == 0)
-				M_BEQZ(s1, 0);
+				emit_beqz(cd, iptr->dst.block, s1);
 			else {
 				LCONST(REG_ITMP2, iptr->sx.val.l);
-				M_BEQ(s1, REG_ITMP2, 0);
+				emit_beq(cd, iptr->dst.block, s1, REG_ITMP2);
 			}
 #else
 			if (iptr->sx.val.l == 0) {
@@ -2477,16 +2477,16 @@ bool codegen_emit(jitdata *jd)
 
 #if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0) {
-				M_BLTZ(s1, 0);
-			} else {
-				if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767)) {
-					M_CMPLT_IMM(s1, iptr->sx.val.l, REG_ITMP1);
-				} else {
+			if (iptr->sx.val.l == 0)
+				emit_bltz(cd, iptr->dst.block, s1);
+			else {
+				if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767))
+					M_CMPLT_IMM(s1, iptr->sx.val.l, REG_ITMP3);
+				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
-					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
+					M_CMPLT(s1, REG_ITMP2, REG_ITMP3);
 				}
-				M_BNEZ(REG_ITMP1, 0);
+				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			}
 #else
 			if (iptr->sx.val.l == 0) {
@@ -2513,16 +2513,17 @@ bool codegen_emit(jitdata *jd)
 
 #if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0) {
-				M_BLEZ(s1, 0);
-			} else {
+			if (iptr->sx.val.l == 0)
+				emit_blez(cd, iptr->dst.block, s1);
+			else {
 				if ((iptr->sx.val.l >= -32769) && (iptr->sx.val.l <= 32766)) {
-					M_CMPLT_IMM(s1, iptr->sx.val.l + 1, REG_ITMP1);
-					M_BNEZ(REG_ITMP1, 0);
-				} else {
+					M_CMPLT_IMM(s1, iptr->sx.val.l + 1, REG_ITMP2);
+					emit_bnez(cd, iptr->dst.block, REG_ITMP2);
+				}
+				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
-					M_CMPGT(s1, REG_ITMP2, REG_ITMP1);
-					M_BEQZ(REG_ITMP1, 0);
+					M_CMPGT(s1, REG_ITMP2, REG_ITMP3);
+					emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 				}
 			}
 #else
@@ -2552,11 +2553,11 @@ bool codegen_emit(jitdata *jd)
 
 #if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0) {
-				M_BNEZ(s1, 0);
-			} else {
+			if (iptr->sx.val.l == 0)
+				emit_bnez(cd, iptr->dst.block, s1);
+			else {
 				LCONST(REG_ITMP2, iptr->sx.val.l);
-				M_BNE(s1, REG_ITMP2, 0);
+				emit_bne(cd, iptr->dst.block, s1, REG_ITMP2);
 			}
 #else
 			if (iptr->sx.val.l == 0) {
@@ -2581,16 +2582,17 @@ bool codegen_emit(jitdata *jd)
 
 #if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0) {
-				M_BGTZ(s1, 0);
-			} else {
+			if (iptr->sx.val.l == 0)
+				emit_bgtz(cd, iptr->dst.block, s1);
+			else {
 				if ((iptr->sx.val.l >= -32769) && (iptr->sx.val.l <= 32766)) {
-					M_CMPLT_IMM(s1, iptr->sx.val.l + 1, REG_ITMP1);
-					M_BEQZ(REG_ITMP1, 0);
-				} else {
+					M_CMPLT_IMM(s1, iptr->sx.val.l + 1, REG_ITMP2);
+					emit_beqz(cd, iptr->dst.block, REG_ITMP2);
+				}
+				else {
 					LCONST(REG_ITMP2, iptr->sx.val.l);
-					M_CMPGT(s1, REG_ITMP2, REG_ITMP1);
-					M_BNEZ(REG_ITMP1, 0);
+					M_CMPGT(s1, REG_ITMP2, REG_ITMP3);
+					emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 				}
 			}
 #else
@@ -2620,16 +2622,17 @@ bool codegen_emit(jitdata *jd)
 
 #if SIZEOF_VOID_P == 8
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			if (iptr->sx.val.l == 0) {
-				M_BGEZ(s1, 0);
-			} else {
+			if (iptr->sx.val.l == 0)
+				emit_bgez(cd, iptr->dst.block, s1);
+			else {
 				if ((iptr->sx.val.l >= -32768) && (iptr->sx.val.l <= 32767)) {
-					M_CMPLT_IMM(s1, iptr->sx.val.l, REG_ITMP1);
-				} else {
-					LCONST(REG_ITMP2, iptr->sx.val.l);
-					M_CMPLT(s1, REG_ITMP2, REG_ITMP1);
+					M_CMPLT_IMM(s1, iptr->sx.val.l, REG_ITMP3);
 				}
-				M_BEQZ(REG_ITMP1, 0);
+				else {
+					LCONST(REG_ITMP2, iptr->sx.val.l);
+					M_CMPLT(s1, REG_ITMP2, REG_ITMP3);
+				}
+				emit_beqz(cd, iptr->dst.block, REG_ITMP3);
 			}
 #else
 			if (iptr->sx.val.l == 0) {
