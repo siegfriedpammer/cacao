@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
+   $Id: asmpart.S 7680 2007-04-10 05:02:20Z pm $
 
 */
 
@@ -40,19 +40,6 @@
 /* Copy a call to a PIC function from gcc -S
  * We setup a temporary literal pool pointer.
  */
-
-#define PIC_CALL(fun, magic)                                  \
-	bras itmp3, L_##magic##_lp_end                          ; \
-L_##magic##_lp:                                             ; \
-L_##magic##_lp_5:                                           ; \
-	.long fun@PLTOFF                                        ; \
-L_##magic##_lp_4:                                           ; \
-	.long _GLOBAL_OFFSET_TABLE_-L_##magic##_lp              ; \
-L_##magic##_lp_end:                                         ; \
-	l       itmp2,L_##magic##_lp_4-L_##magic##_lp(itmp3)    ; \
-	la      itmp2,0(itmp2,itmp3)                            ; \
-	l       itmp1,L_##magic##_lp_5-L_##magic##_lp(itmp3)    ; \
-	bas     %r14,0(itmp1,itmp2)                             
 
 	.text
 
@@ -452,7 +439,7 @@ L_handle_d1:
 	j     L_register_copy
 
 asm_vm_call_method_end:
-	nop
+	brc   0,0	
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
@@ -599,6 +586,7 @@ L_ahe_bras2:
 
 	lr      xpc,v0                      /* move handlerpc into xpc            */
 	l       xptr,0*4(sp)                /* restore exception pointer          */
+	l       pv,2*4(sp)                  /* restore PV                         */
 	l       %r0,4*4(sp)                 /* get maybe-leaf flag                */
 	ahi     sp,(6*4)                    /* free stack frame                   */
 
@@ -624,7 +612,7 @@ L_asm_handle_exception_not_catched:
 	jz      L_asm_handle_exception_no_leaf_stack
 
 	ahi     sp, (ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* Remove maybe-leaf stackframe */
-	lhi     %r0,0                       /* clear the isleaf flags             */
+	lhi     %r0,0                       /* clear the isleaf flag              */
 
 	/*
 	+-----------------+-----------+---------+----+
@@ -633,59 +621,59 @@ L_asm_handle_exception_not_catched:
 	+-----------------+-----------+---------+----+
 	^                 ^           ^
 	SP                F           I
+
+	                              ^         ^    ^
+                                  p3        p2   p1	
 	*/
 
 L_asm_handle_exception_no_leaf_stack:
 
 	l       itmp2,0xfff+FrameSize(itmp3)/* get frame size                     */
-	la      itmp2,0(itmp2,sp)           /* pointer to save area */
-	ahi     itmp2,-4                    /* skip RA */
+	la      itmp2,0(itmp2,sp)           /* pointer to save area (p1) */
+	ahi     itmp2,-4                    /* skip RA (p2) */
+	ahi     itmp2,-0xfff                /* for negative displacements */
 
 	l       a0,0xfff+IntSave(itmp3)     /* a0 = saved int register count  */
 
 	ltr     a0,a0
 	je      noint
 
-	sll     a0,2                        /* a0 = saved int register count * 4 */
-	sr      itmp2, a0                   /* skip Int Sav */
-
-	chi     a0,1*4
+	chi     a0,1
 	je      int1
-	chi     a0,2*4
+	chi     a0,2
 	je      int2
-	chi     a0,3*4
+	chi     a0,3
 	je      int3
-	chi     a0,4*4
+	chi     a0,4
 	je      int4
 	
-	l       s0,0*4(itmp2)
+int5:
+	l       s0,0xfff-5*4(itmp2)
 int4:   
-	l       s1,1*4(itmp2)
+	l       s1,0xfff-4*4(itmp2)
 int3:   
-	l       s2,2*4(itmp2)
+	l       s2,0xfff-3*4(itmp2)
 int2:   
-	l       s3,3*4(itmp2)
+	l       s3,0xfff-2*4(itmp2)
 int1:   
-	l       s4,4*4(itmp2)
+	l       s4,0xfff-1*4(itmp2)
 
 noint:
+
+	sll     a0,2                        /* a0 = saved int register count * 4 */
+	sr      itmp2, a0                   /* skip Int Sav (p3) */
 
 	l       a0,0xfff+FltSave(itmp3)
 	ltr	    a0,a0                       /* Number of saved floating point registers */
 	je      noflt
 
-	sll     a0,3                        /* Number of saved floating point registers * 8 */
-	sr      itmp2,a0
-	
-	chi     a0,1*8
+	chi     a0,1
 	je      flt1
-	chi    a0,2*8
-	je      flt2
 
 flt2:   
-	ld    %f6,1*8(itmp2)
+	ld    %f4,0xfff-2*8(itmp2)
 flt1:   
-	ld    %f4,0*8(itmp2)
+	ld    %f6,0xfff-1*8(itmp2)
                 
 noflt:
 

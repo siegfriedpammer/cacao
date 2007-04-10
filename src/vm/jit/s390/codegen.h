@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 7616 2007-03-29 23:21:50Z michi $
+   $Id: codegen.h 7680 2007-04-10 05:02:20Z pm $
 
 */
 
@@ -57,13 +57,16 @@
     else (var) += 1;
 
 
-/* gen_nullptr_check(objreg) */
+#define gen_nullptr_check_intern(objreg) \
+	do { \
+		M_TEST(objreg); \
+		M_BEQ(0); \
+		codegen_add_nullpointerexception_ref(cd); \
+	} while (0);
 
 #define gen_nullptr_check(objreg) \
 	if (checknull) { \
-        M_TEST(objreg); \
-        M_BEQ(0); \
- 	    codegen_add_nullpointerexception_ref(cd); \
+		gen_nullptr_check_intern(objreg); \
 	}
 
 
@@ -362,6 +365,7 @@
 #define N_ALR(r1, r2) N_RR(0x1E, r1, r2)
 #define N_AL(r1, d2, x2, b2) N_RX(0x5E, r1, d2, x2, b2)
 #define N_NR(r1, r2) N_RR(0x14, r1, r2)
+#	define SZ_NR SZ_RR
 #define N_N(r1, d2, x2, b2) N_RX(0x54, r1, d2, x2, b2)
 #define N_NI(d1, b1, i2) N_SI(0x94, d1, b1, i2)
 #define N_NC(d1, l, b1, d2, b2) N_NC(0xD4, l, b1, d1, b2, d2)
@@ -431,6 +435,7 @@
 #define N_LAE(r1, d2, x2, b2) N_RX(0x51, r1, d2, x2, b2)
 #define N_LTR(r1, r2) N_RR(0x12, r1, r2)
 #define N_LCR(r1, r2) N_RR(0x13, r1, r2)
+#	define SZ_LCR SZ_RR
 #define N_LH(r1, d2, x2, b2) N_RX(0x48, r1, d2, x2, b2)
 #define N_LHI(r1, i2) N_RI(0xA7, 0x8, r1, i2)
 #	define SZ_LHI SZ_RI
@@ -536,9 +541,17 @@
 #define N_DEB(r1, d2, x2, b2) N_RXE(0xED0D, r1, d2, x2, b2)
 #define N_DDB(r1, d2, x2, b2) N_RXE(0xED1D, r1, d2, x2, b2)
 
+#define N_LCEBR(r1, r2) N_RRE(0xB303, r1, r2)
+#define N_LCDBR(r1, r2) N_RRE(0xB313, r1, r2)
+#define N_LCXBR(r1, r2) N_RRE(0xB343, r1, r2)
+
 #define N_LDEBR(r1, r2) N_RRE(0xB304, r1, r2)
 #define N_LXDBR(r1, r2) N_RRE(0xB305, r1, r2)
 #define N_LXEBR(r1, r2) N_RRE(0xB306, r1, r2)
+
+#define N_LEDBR(r1, r2) N_RRE(0xB344, r1, r2)
+#define N_LDXBR(r1, r2) N_RRE(0xB345, r1, r2)
+#define N_LEXBR(r1, r2) N_RRE(0xB346, r1, r2)
 
 #define N_MEEBR(r1, r2) N_RRE(0xB317, r1, r2)
 #define N_MDBR(r1, r2) N_RRE(0xB31C, r1, r2)
@@ -556,11 +569,21 @@
 
 #define M_CALL(r2) N_BASR(R14, r2)
 
-#define M_ILD(r, b, d) _IFNEG( \
-	d, \
-	N_LHI(r, d); N_L(r, 0, r, b), \
-	N_L(r, d, RN, b) \
-)
+#define M_ILD(r, b, d) \
+	do { \
+		if (N_VALID_DISP(d)) { \
+			N_L(r, d, RN, b); \
+		} else if (r == R0) { \
+			N_LR(R0, R1); \
+			N_LHI(R1, d); \
+			N_L(R1, 0, R1, b); \
+			N_XR(R1, R0); \
+			N_XR(R0, R1); \
+			N_XR(R1, R0); \
+		} else { \
+			N_LHI(r, d); N_L(r, 0, r, b); \
+		} \
+	} while (0)
 
 #define M_ALD(r, b, d) M_ILD(r, b, d)
 
@@ -590,7 +613,7 @@
 	N_LHI(GET_LOW_REG(r), d); \
 		N_L(GET_HIGH_REG(r), 0, GET_LOW_REG(r), b); \
 		N_L(GET_LOW_REG(r), 4, GET_LOW_REG(r), b), \
-	N_L(GET_HIGH_REG(r), 0, RN, b); N_L(GET_LOW_REG(r), 4, RN, b) \
+	N_L(GET_HIGH_REG(r), (d) + 0, RN, b); N_L(GET_LOW_REG(r), (d) + 4, RN, b) \
 )
 
 /* MOV(a, b) -> mov from A to B */
@@ -608,7 +631,7 @@
 #define M_LST(r, b, d) _IFNEG( \
 	d, \
 	assert(0), \
-	N_ST(GET_HIGH_REG(r), 0, RN, b); N_ST(GET_LOW_REG(r), 4, RN, b) \
+	N_ST(GET_HIGH_REG(r), (d) + 0, RN, b); N_ST(GET_LOW_REG(r), (d) + 4, RN, b) \
 )
 #define M_TEST(r) N_LTR(r, r)
 #define M_BEQ(off) N_BRC(DD_E, off)
@@ -620,6 +643,7 @@
 #define M_BO(off) N_BRC(DD_O, off)
 
 #define M_CMP(r1, r2) N_CR(r1, r2)
+#define M_CMPU(r1, r2) N_CLR(r1, r2)
 #define M_CLR(r) N_LHI(r, 0)
 #define M_AADD_IMM(val, reg) N_AHI(reg, val)
 #define M_IADD_IMM(val, reg) N_AHI(reg, val)
@@ -632,6 +656,8 @@
 #define M_NOP N_BC(0, 0, RN, RN)
 #define M_JSR(reg_ret, reg_addr) N_BASR(reg_ret, reg_addr)
 #define M_ICMP(a, b) N_CR(a, b)
+#define M_ICMPU(a, b) N_CLR(a, b)
+#define M_ICMP_IMM(a, b) N_CHI(a, b)
 #define M_CVTIF(src, dst) N_CEFBR(dst, src)
 #define M_CVTID(src, dst) N_CDFBR(dst, src)
 #define M_FMUL(a, dest) N_MEEBR(dest, a)
@@ -650,12 +676,42 @@
 #define M_IOR(a, dest) N_OR(dest, a)
 #define M_IXOR(a, dest) N_XR(dest, a)
 #define M_CVTFD(src,dst) N_LDEBR(dst, src)
+#define M_CVTDF(src,dst) N_LEDBR(dst, src)
 
-#define M_ISLL_IMM(imm,reg) N_SLL(reg, imm, RN) 
-#define M_ISRL_IMM(imm,reg) N_SRL(reg, imm, RN)
+#define M_SLL_IMM(imm, reg) N_SLL(reg, imm, RN) 
+#define M_SLA_IMM(imm, reg) N_SLA(reg, imm, RN) 
+
+#define M_SLDL_IMM(imm, reg) N_SLDL(reg, imm, RN) 
+#define M_SLDA_IMM(imm, reg) N_SLDA(reg, imm, RN) 
+
+#define M_SRL_IMM(imm, reg) N_SRL(reg, imm, RN)
+#define M_SRA_IMM(imm, reg) N_SRA(reg, imm, RN)
+
+#define M_SRDL_IMM(imm, reg) N_SRDL(reg, imm, RN)
+#define M_SRDA_IMM(imm, reg) N_SRDA(reg, imm, RN)
+
+#define M_SLL(op, dst) N_SLL(dst, 0, op)
+#define M_SLA(op, dst) N_SLA(dst, 0, op)
+
+#define M_SLDL(op, dst) N_SLDL(dst, 0, op)
+#define M_SLDA(op, dst) N_SLDA(dst, 0, op)
+
+#define M_SRL(op, dst) N_SRL(dst, 0, op)
+#define M_SRA(op, dst) N_SRA(dst, 0, op)
+
+#define M_SRDL(op, dst) N_SRDL(dst, 0, op)
+#define M_SRDA(op, dst) N_SRDA(dst, 0, op)
 
 #define M_IMUL_IMM(val, reg) N_MHI(reg, val)
 #define M_IMUL(a, dest) N_MSR(dest, a)
+
+#define M_INEG(a, dest) N_LCR(dest, a)
+
+#define M_FCMP(a, b) N_CEBR(a, b)
+#define M_DCMP(a, b) N_CDBR(a, b)
+
+#define M_FMOVN(r, dst) N_LCEBR(dst, r)
+#define M_DMOVN(r, dst) N_LCDBR(dst, r)
 
 #define ICONST(reg, i) \
 	do { \
@@ -708,8 +764,6 @@
             M_FMOV(reg, dreg); \
         } \
     } while (0)
-
-
 
 /* ----------------------------------------------- */
 
@@ -765,7 +819,6 @@
 #define M_LLEA(a,b,c) _DEPR( M_LLEA(a,b,c) )
 #define M_ALEA(a,b,c) _DEPR( M_ALEA(a,b,c) )
 
-#define M_INEG(a) _DEPR( M_INEG(a) )
 #define M_LNEG(a) _DEPR( M_LNEG(a) )
 
 #define M_IAND_IMM(a,b) _DEPR( M_IAND_IMM(a,b) )
@@ -796,7 +849,6 @@
 #define M_LCMP_IMM_MEMBASE(a,b,c) _DEPR( M_LCMP_IMM_MEMBASE(a,b,c) )
 #define M_LCMP_MEMBASE(a,b,c) _DEPR( M_LCMP_MEMBASE(a,b,c) )
 
-#define M_ICMP_IMM(a,b) _DEPR( M_ICMP_IMM(a,b) )
 #define M_ICMP_IMM_MEMBASE(a,b,c) _DEPR( M_ICMP_IMM_MEMBASE(a,b,c) )
 #define M_ICMP_MEMBASE(a,b,c) _DEPR( M_ICMP_MEMBASE(a,b,c) )
 
@@ -837,13 +889,6 @@
 
 #define M_FST32(a,b,disp) _DEPR( M_FST32(a,b,disp) )
 #define M_DST32(a,b,disp) _DEPR( M_DST32(a,b,disp) )
-
-#define M_CVTLF(a,b) _DEPR( M_CVTLF(a,b) )
-#define M_CVTLD(a,b) _DEPR( M_CVTLD(a,b) )
-#define M_CVTFL(a,b) _DEPR( M_CVTFL(a,b) )
-#define M_CVTDL(a,b) _DEPR( M_CVTDL(a,b) )
-
-#define M_CVTDF(a,b) _DEPR( M_CVTDF(a,b) )
 
 
 /* system instructions ********************************************************/
