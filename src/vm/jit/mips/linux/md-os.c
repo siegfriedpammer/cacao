@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7681 2007-04-10 12:22:16Z twisti $
+   $Id: md-os.c 7683 2007-04-10 21:37:03Z twisti $
 
 */
 
@@ -119,17 +119,14 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	sp  = (u1 *) (ptrint) _gregs[REG_SP];
 	ra  = (u1 *) (ptrint) _gregs[REG_RA];        /* this is correct for leafs */
 
-#if defined(__UCLIBC__)
-	xpc = (u1 *) (ptrint) _gregs[CTX_EPC];
+#if !defined(__UCLIBC__) && ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 5))
+	/* NOTE: We only need this for pre glibc-2.5. */
 
-#error how to get the cause?
-#else
 	xpc = (u1 *) (ptrint) _mc->pc;
 
 	/* get the cause of this exception */
 
 	cause = _mc->cause;
-#endif
 
 	/* check the cause to find the faulting instruction */
 
@@ -145,6 +142,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		xpc = xpc - 4;
 		break;
 	}
+#else
+	xpc = (u1 *) (ptrint) _gregs[CTX_EPC];
+#endif
 
 	/* get exception-throwing instruction */
 
