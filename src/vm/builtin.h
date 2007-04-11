@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 7563 2007-03-23 21:33:53Z twisti $
+   $Id: builtin.h 7686 2007-04-11 10:53:53Z twisti $
 
 */
 
@@ -133,6 +133,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 java_objectheader *builtin_new(classinfo *c);
 #define BUILTIN_new (functionptr) builtin_new
+java_objectheader *builtin_fast_new(classinfo *c);
+#define BUILTIN_FAST_new (functionptr) builtin_fast_new
 
 java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass);
 #define BUILTIN_newarray (functionptr) builtin_newarray
