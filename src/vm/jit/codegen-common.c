@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7673 2007-04-05 13:22:37Z michi $
+   $Id: codegen-common.c 7684 2007-04-11 08:11:49Z twisti $
 
 */
 
@@ -301,6 +301,12 @@ bool codegen_generate(jitdata *jd)
 	if (CODEGENDATA_HAS_FLAG_ERROR(cd)) {
 		/* check for long-branches flag, if it is set we recompile the
 		   method */
+
+#if !defined(NDEBUG)
+        if (compileverbose)
+            log_message_method("Re-generating code: ", jd->m);
+#endif
+
 		/* XXX maybe we should tag long-branches-methods for recompilation */
 
 		if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
@@ -316,6 +322,11 @@ bool codegen_generate(jitdata *jd)
 		else {
 			vm_abort("codegen_generate: unknown error occurred during codegen_emit: flags=%x\n", cd->flags);
 		}
+
+#if !defined(NDEBUG)
+        if (compileverbose)
+            log_message_method("Re-generating code done: ", jd->m);
+#endif
 	}
 
 	/* reallocate the memory and finish the code generation */
