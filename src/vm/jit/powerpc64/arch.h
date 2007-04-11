@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: arch.h 7687 2007-04-11 16:39:22Z tbfg $
 
 */
 
@@ -52,7 +52,7 @@
 #define SUPPORT_LONG_CMP                 1
 #define SUPPORT_LONG_CMP_CONST           1
 #define SUPPORT_LONG_LOGICAL             1
-#define SUPPORT_LONG_SHIFT               0	/* TODO: implement ICMD_IMULPOW2 and reenable*/
+#define SUPPORT_LONG_SHIFT               1	
 #define SUPPORT_LONG_MUL                 1
 #define SUPPORT_LONG_DIV                 1
 #define SUPPORT_LONG_ICVT                1
