@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7693 2007-04-12 14:56:49Z michi $
+   $Id: codegen.c 7697 2007-04-12 22:36:48Z twisti $
 
 */
 
@@ -2932,6 +2932,183 @@ void codegen_emit_stub_compiler(jitdata *jd)
 	M_ALD(REG_ITMP1, RIP, -(7 * 1 + 2 * SIZEOF_VOID_P));       /* methodinfo  */
 	M_ALD(REG_ITMP3, RIP, -(7 * 2 + 3 * SIZEOF_VOID_P));  /* compiler pointer */
 	M_JMP(REG_ITMP3);
+}
+
+
+/* codegen_emit_stub_builtin ***************************************************
+
+   Creates a stub routine which calls a builtin function.
+
+*******************************************************************************/
+
+void codegen_emit_stub_builtin(jitdata *jd, functionptr f)
+{
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
+	registerdata *rd; /* REMOVE ME */
+	methoddesc  *md;
+	s4           i, j;                 /* count variables                    */
+	s4           s1, disp;
+
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
+
+	/* initialize variables */
+
+	md = m->parseddesc;
+
+	/* calculate stack frame size */
+
+	cd->stackframesize =
+		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		1;                                                    /* return value */
+
+	cd->stackframesize |= 0x1;                  /* keep stack 16-byte aligned */
+
+	/* create method header */
+
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
+	(void) dseg_addlinenumbertablesize(cd);
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
+
+	/* generate stub code */
+
+	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
+
+#if defined(ENABLE_GC_CACAO)
+	/* Save callee saved integer registers in stackframeinfo (GC may
+	   need to recover them during a collection). */
+
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
+#endif
+
+	/* save integer and float argument registers */
+
+	for (i = 0, j = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s1 = md->params[i].regoff;
+
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_LNG:
+			case TYPE_ADR:
+				M_LST(rd->argintregs[s1], REG_SP, j * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DST(rd->argfltregs[s1], REG_SP, j * 8);
+				break;
+			}
+
+			j++;
+		}
+	}
+
+	/* create dynamic stack info */
+
+	M_ALEA(REG_SP, cd->stackframesize * 8, REG_A0);
+	emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), REG_A1);
+	M_ALEA(REG_SP, cd->stackframesize * 8 + SIZEOF_VOID_P, REG_A2);
+	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8);
+	M_MOV_IMM(codegen_stub_builtin_enter, REG_ITMP1);
+	M_CALL(REG_ITMP1);
+
+	/* restore integer and float argument registers */
+
+	for (i = 0, j = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s1 = md->params[i].regoff;
+
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_LNG:
+			case TYPE_ADR:
+				M_LLD(abi_registers_integer_argument[s1], REG_SP, j * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DLD(abi_registers_integer_argument[s1], REG_SP, j * 8);
+				break;
+			}
+
+			j++;
+		}
+	}
+
+	/* call the builtin function */
+
+	M_MOV_IMM(f, REG_ITMP3);
+	M_CALL(REG_ITMP3);
+
+	/* save return value */
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_ADR:
+		M_LST(REG_RESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_VOID:
+		break;
+	}
+
+	/* remove native stackframe info */
+
+	M_ALEA(REG_SP, cd->stackframesize * 8, REG_A0);
+	M_MOV_IMM(codegen_stub_builtin_exit, REG_ITMP1);
+	M_CALL(REG_ITMP1);
+
+	/* restore return value */
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_ADR:	
+		M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_VOID:
+		break;
+	}
+
+#if defined(ENABLE_GC_CACAO)
+	/* Restore callee saved integer registers from stackframeinfo (GC
+	   might have modified them during a collection). */
+        
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
+#endif
+
+	/* remove stackframe */
+
+	M_AADD_IMM(cd->stackframesize * 8, REG_SP);
+	M_RET;
+
+	codegen_finish(jd);
 }
 
 
