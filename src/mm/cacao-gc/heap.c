@@ -42,9 +42,11 @@
 #include "mark.h"
 #include "region.h"
 #include "mm/memory.h"
-#include "src/native/include/java_lang_String.h" /* TODO: fix me! */
+#include "native/include/java_lang_String.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
+#include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vmcore/rt-timing.h"
 
 
@@ -113,7 +115,7 @@ s4 heap_increase_size() {
 
 	/* allocate new heap from the system */
 	newsize = heap_current_size + increasesize;
-	p = malloc(newsize);
+	/*p = malloc(newsize);*/
 
 	/* check if the newly allocated heap exists */
 	if (p == NULL)
@@ -185,7 +187,7 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region,
 		dolog("GC: Region out of memory!");
 
 		if (collect) {
-			gc_collect();
+			gc_collect(0);
 			GC_ASSERT(region->free >= bytelength);
 		} else
 			return NULL;

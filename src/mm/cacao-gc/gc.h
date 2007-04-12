@@ -130,6 +130,8 @@ extern sourcestate_t    *_no_threads_sourcestate;
 
 /* Prototypes *****************************************************************/
 
+void gc_collect(s4 level);
+
 #if defined(ENABLE_THREADS)
 bool gc_suspend(threadobject *thread, u1 *pc, u1 *sp);
 #endif
