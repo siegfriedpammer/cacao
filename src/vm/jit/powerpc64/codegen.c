@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7687 2007-04-11 16:39:22Z tbfg $
+   $Id: codegen.c 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -2629,63 +2629,28 @@ gen_method:
 }
 
 
-/* createcompilerstub **********************************************************
+/* codegen_emit_stub_compiler **************************************************
 
-   Creates a stub routine which calls the compiler.
+   Emits a stub routine which calls the compiler.
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_DATASIZE    3 * SIZEOF_VOID_P
-#define COMPILERSTUB_CODESIZE    4 * 4
-
-#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
-
-
-u1 *createcompilerstub(methodinfo *m)
+void codegen_emit_stub_compiler(jitdata *jd)
 {
-	u1          *s;                     /* memory to hold the stub            */
-	ptrint      *d;
+	methodinfo  *m;
 	codegendata *cd;
-	s4           dumpsize;
 
-	s = CNEW(u1, COMPILERSTUB_SIZE);
+	/* get required compiler data */
 
-	/* set data pointer and code pointer */
+	m  = jd->m;
+	cd = jd->cd;
 
-	d = (ptrint *) s;
-	s = s + COMPILERSTUB_DATASIZE;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	cd = DNEW(codegendata);
-	cd->mcodeptr = s;
-
-	/* Store the codeinfo pointer in the same place as in the
-	   methodheader for compiled methods. */
-
-	d[0] = (ptrint) asm_call_jit_compiler;
-	d[1] = (ptrint) m;
-	d[2] = (ptrint) &d[1];                                    /* fake code->m */
+	/* code for the stub */
 
 	M_ALD_INTERN(REG_ITMP1, REG_PV, -2 * SIZEOF_VOID_P);
 	M_ALD_INTERN(REG_PV, REG_PV, -3 * SIZEOF_VOID_P);
 	M_MTCTR(REG_PV);
 	M_RTS;
-
-	md_cacheflush((u1 *) d, COMPILERSTUB_SIZE);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_cstub_len += COMPILERSTUB_SIZE;
-#endif
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return s;
 }
 
 

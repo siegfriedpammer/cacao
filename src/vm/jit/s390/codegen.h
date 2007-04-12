@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/codegen.h - code generation macros for x86_64
+/* src/vm/jit/s390/codegen.h - code generation macros for s390
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Christian Thalinger
-
-   $Id: codegen.h 7680 2007-04-10 05:02:20Z pm $
+   $Id: codegen.h 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -115,6 +110,12 @@
     } while (0)
 
 #define PATCHER_NOPS_SKIP   12 
+
+
+ /* stub defines **************************************************************/
+
+#define COMPILERSTUB_CODESIZE    (SZ_AHI + SZ_L + SZ_L + SZ_BCR)
+
 
 /* *** BIG TODO ***
  * Make all this inline functions !!!!!!!!!!

@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/codegen.c - machine code generator for x86_64
+/* src/vm/jit/s390/codegen.c - machine code generator for s390
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Christian Thalinger
-            Christian Ullrich
-            Edwin Steiner
-
-   $Id: codegen.c 7680 2007-04-10 05:02:20Z pm $
+   $Id: codegen.c 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -3241,48 +3234,21 @@ gen_method:
 }
 
 
-/* createcompilerstub **********************************************************
+/* codegen_emit_stub_compiler **************************************************
 
-   Creates a stub routine which calls the compiler.
+   Emits a stub routine which calls the compiler.
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_DATASIZE    (3 * SIZEOF_VOID_P)
-#define COMPILERSTUB_CODESIZE    (SZ_AHI + SZ_L + SZ_L + SZ_BCR)
-
-#define COMPILERSTUB_SIZE        (COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE)
-
-
-u1 *createcompilerstub(methodinfo *m)
+void codegen_emit_stub_compiler(jitdata *jd)
 {
-	u1          *s;                     /* memory to hold the stub            */
-	ptrint      *d;
-	codeinfo    *code;
+	methodinfo  *m;
 	codegendata *cd;
-	s4           dumpsize;
 
-	s = CNEW(u1, COMPILERSTUB_SIZE);
+	/* get required compiler data */
 
-	/* set data pointer and code pointer */
-
-	d = (ptrint *) s;
-	s = s + COMPILERSTUB_DATASIZE;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	cd = DNEW(codegendata);
-	cd->mcodeptr = s;
-
-	/* Store the codeinfo pointer in the same place as in the
-	   methodheader for compiled methods. */
-
-	code = code_codeinfo_new(m);
-
-	d[0] = (ptrint) asm_call_jit_compiler;
-	d[1] = (ptrint) m;
-	d[2] = (ptrint) code;
+	m  = jd->m;
+	cd = jd->cd;
 
 	/* code for the stub */
 
@@ -3294,17 +3260,6 @@ u1 *createcompilerstub(methodinfo *m)
 	/* TODO where is methodpointer loaded into itmp2? is it already inside? */
 	M_ILD(REG_PV, REG_PV, 0 * 4); /* compiler pointer */
 	N_BR(REG_PV);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_cstub_len += COMPILERSTUB_SIZE;
-#endif
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return s;
 }
 
 

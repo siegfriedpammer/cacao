@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: codegen-common.h 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -314,11 +314,12 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m);
 void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
 #endif
 
-void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
-java_objectheader *codegen_finish_native_call(u1 *datasp);
+/* stub functions */
 
-u1 *createcompilerstub(methodinfo *m);
-u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd);
+u1   *codegen_generate_stub_compiler(methodinfo *m);
+u1   *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd);
+
+void  codegen_emit_stub_compiler(jitdata *jd);
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_createcompilerstub(methodinfo *m);
@@ -327,6 +328,9 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *md);
 
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
+
+void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
+java_objectheader *codegen_finish_native_call(u1 *datasp);
 
 s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum);
 s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum);

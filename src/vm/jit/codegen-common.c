@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7684 2007-04-11 08:11:49Z twisti $
+   $Id: codegen-common.c 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -940,6 +940,82 @@ void codegen_finish(jitdata *jd)
 	/* flush the instruction and data caches */
 
 	md_cacheflush(code->mcode, code->mcodelength);
+}
+
+
+/* codegen_generate_stub_compiler **********************************************
+
+   Wrapper for codegen_emit_stub_compiler.
+
+   Returns:
+       pointer to the compiler stub code.
+
+*******************************************************************************/
+
+u1 *codegen_generate_stub_compiler(methodinfo *m)
+{
+	jitdata     *jd;
+	codegendata *cd;
+	ptrint      *d;                     /* pointer to data memory             */
+	u1          *c;                     /* pointer to code memory             */
+	s4           dumpsize;
+
+	/* mark dump memory */
+
+	dumpsize = dump_size();
+
+	/* allocate required data structures */
+
+	jd = DNEW(jitdata);
+
+	jd->m     = m;
+	jd->cd    = DNEW(codegendata);
+	jd->flags = 0;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	/* allocate code memory */
+
+	c = CNEW(u1, 3 * SIZEOF_VOID_P + COMPILERSTUB_CODESIZE);
+
+	/* set pointers correctly */
+
+	d = (ptrint *) c;
+
+	cd->mcodebase = c;
+
+	c = c + 3 * SIZEOF_VOID_P;
+	cd->mcodeptr = c;
+
+	/* NOTE: The codeinfo pointer is actually a pointer to the
+	   methodinfo (this fakes a codeinfo structure). */
+
+	d[0] = (ptrint) asm_call_jit_compiler;
+	d[1] = (ptrint) m;
+	d[2] = (ptrint) &d[1];                                    /* fake code->m */
+
+	/* call the emit function */
+
+	codegen_emit_stub_compiler(jd);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		count_cstub_len += 3 * SIZEOF_VOID_P + COMPILERSTUB_CODESIZE;
+#endif
+
+	/* flush caches */
+
+	md_cacheflush(cd->mcodebase, 3 * SIZEOF_VOID_P + COMPILERSTUB_CODESIZE);
+
+	/* release dump memory */
+
+	dump_release(dumpsize);
+
+	/* return native stub code */
+
+	return c;
 }
 
 

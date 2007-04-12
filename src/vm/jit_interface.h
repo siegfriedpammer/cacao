@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit_interface.h 7486 2007-03-08 13:50:07Z twisti $
+   $Id: jit_interface.h 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -42,7 +42,7 @@ methodinfo *code_get_methodinfo_for_pv(u1 *pv);
 
 codeinfo *codegen_createnativestub(functionptr f, methodinfo *m);
 
-u1 *createcompilerstub(methodinfo *m);
+u1 *codegen_generate_stub_compiler(methodinfo *m);
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_createcompilerstub(methodinfo *m);

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: codegen.c 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -3691,62 +3691,28 @@ void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
 }
 #endif /* defined(ENABLE_SSA) */
 
-/* createcompilerstub **********************************************************
 
-   Creates a stub routine which calls the compiler.
+/* codegen_emit_stub_compiler **************************************************
+
+   Emit a stub routine which calls the compiler.
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_DATASIZE    3 * SIZEOF_VOID_P
-#define COMPILERSTUB_CODESIZE    12
-
-#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
-
-
-u1 *createcompilerstub(methodinfo *m)
+void codegen_emit_stub_compiler(jitdata *jd)
 {
-	u1          *s;                     /* memory to hold the stub            */
-	ptrint      *d;
+	methodinfo  *m;
 	codegendata *cd;
-	s4           dumpsize;
 
-	s = CNEW(u1, COMPILERSTUB_SIZE);
+	/* get required compiler data */
 
-	/* set data pointer and code pointer */
-
-	d = (ptrint *) s;
-	s = s + COMPILERSTUB_DATASIZE;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	cd = DNEW(codegendata);
-	cd->mcodeptr = s;
-
-	/* The codeinfo pointer is actually a pointer to the
-	   methodinfo. This fakes a codeinfo structure. */
-
-	d[0] = (ptrint) asm_call_jit_compiler;
-	d[1] = (ptrint) m;
-	d[2] = (ptrint) &d[1];                                    /* fake code->m */
+	m  = jd->m;
+	cd = jd->cd;
 
 	/* code for the stub */
 
-	M_MOV_IMM(m, REG_ITMP1);            /* method info                        */
+	M_MOV_IMM(m, REG_ITMP1);
 	M_MOV_IMM(asm_call_jit_compiler, REG_ITMP3);
 	M_JMP(REG_ITMP3);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_cstub_len += COMPILERSTUB_SIZE;
-#endif
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-	
-	return s;
 }
 
 
