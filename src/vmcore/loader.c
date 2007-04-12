@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: loader.c 7692 2007-04-12 14:47:24Z twisti $
 
 */
 
@@ -2561,7 +2561,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	if (!descriptor_params_from_paramtypes(clonedesc, clone->flags))
 		return false;
 
-	clone->code = codegen_createnativestub(BUILTIN_clone, clone);
+	clone->code = codegen_generate_stub_native(clone, BUILTIN_clone);
 
 	/* XXX: field: length? */
 

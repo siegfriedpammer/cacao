@@ -155,7 +155,7 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 	return NULL;
 }
 
-codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
+codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 {
 	return NULL;
 }

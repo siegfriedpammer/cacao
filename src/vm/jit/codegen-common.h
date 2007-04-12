@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7691 2007-04-12 12:45:10Z twisti $
+   $Id: codegen-common.h 7692 2007-04-12 14:47:24Z twisti $
 
 */
 
@@ -309,17 +309,17 @@ void codegen_set_replacement_point(codegendata *cd);
 
 void codegen_finish(jitdata *jd);
 
-codeinfo *codegen_createnativestub(functionptr f, methodinfo *m);
 #if defined(ENABLE_DISASSEMBLER)
 void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
 #endif
 
 /* stub functions */
 
-u1   *codegen_generate_stub_compiler(methodinfo *m);
-u1   *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd);
+u1       *codegen_generate_stub_compiler(methodinfo *m);
+codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f);
 
-void  codegen_emit_stub_compiler(jitdata *jd);
+void      codegen_emit_stub_compiler(jitdata *jd);
+void      codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f);
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_createcompilerstub(methodinfo *m);

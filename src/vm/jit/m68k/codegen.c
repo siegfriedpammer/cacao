@@ -1933,12 +1933,13 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
-/* createnativestub ************************************************************
+/* codegen_emit_stub_native ****************************************************
 
-   Creates a stub routine which calls a native method.
+   Emits a stub routine which calls a native method.
 
 *******************************************************************************/
-u1* createnativestub(functionptr f, jitdata *jd, methoddesc *nmd) 
+
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
 	methodinfo   *m;
 	codeinfo     *code;
@@ -2141,7 +2142,4 @@ u1* createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* generate patcher stub call code */
 	emit_patcher_stubs(jd);
-	codegen_finish(jd);
-
-	return code->entrypoint;
 }

@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7691 2007-04-12 12:45:10Z twisti $
+   $Id: codegen-common.c 7692 2007-04-12 14:47:24Z twisti $
 
 */
 
@@ -1019,16 +1019,16 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 }
 
 
-/* codegen_createnativestub ****************************************************
+/* codegen_generate_stub_native ************************************************
 
-   Wrapper for createnativestub.
+   Wrapper for codegen_emit_stub_native.
 
    Returns:
        the codeinfo representing the stub code.
 
 *******************************************************************************/
 
-codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
+codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 {
 	jitdata     *jd;
 	codeinfo    *code;
@@ -1112,18 +1112,22 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		code->entrypoint = intrp_createnativestub(f, jd, nmd);
+		intrp_createnativestub(f, jd, nmd);
 	else
 # endif
-		code->entrypoint = createnativestub(f, jd, nmd);
+		codegen_emit_stub_native(jd, nmd, f);
 #else
-	code->entrypoint = intrp_createnativestub(f, jd, nmd);
+	intrp_createnativestub(f, jd, nmd);
 #endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_nstub_len += code->mcodelength;
 #endif
+
+	/* reallocate the memory and finish the code generation */
+
+	codegen_finish(jd);
 
 #if !defined(NDEBUG)
 	/* disassemble native stub */

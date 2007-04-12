@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7691 2007-04-12 12:45:10Z twisti $
+   $Id: codegen.c 7692 2007-04-12 14:47:24Z twisti $
 
 */
 
@@ -2934,13 +2934,13 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
-/* createnativestub ************************************************************
+/* codegen_emit_stub_native ****************************************************
 
-   Creates a stub routine which calls a native method.
+   Emits a stub routine which calls a native method.
 
 *******************************************************************************/
 
-u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
 	methodinfo   *m;
 	codeinfo     *code;
@@ -3169,10 +3169,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	/* generate patcher stubs */
 
 	emit_patcher_stubs(jd);
-
-	codegen_finish(jd);
-
-	return code->entrypoint;
 }
 
 

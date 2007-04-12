@@ -2939,14 +2939,13 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
+/* codegen_emit_stub_native ****************************************************
 
-/* createnativestub ************************************************************
-
-   Creates a stub routine which calls a native method.
+   Emits a stub routine which calls a native method.
 
 *******************************************************************************/
 
-u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
 	methodinfo   *m;
 	codeinfo     *code;
@@ -3184,14 +3183,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_JMP(REG_ZERO, REG_ITMP1, REG_ZERO);/* jump to asm exception handler     */
 	M_RESTORE(REG_ZERO, 0, REG_ZERO);   /* restore callers window (DELAY)     */
 	
-
 	/* generate patcher stubs */
 
 	emit_patcher_stubs(jd);
-
-	codegen_finish(jd);
-
-	return code->entrypoint;
 }
 
 /*
