@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.c 7357 2007-02-14 11:35:59Z twisti $
+   $Id: asmpart.c 7675 2007-04-05 14:23:04Z michi $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/jit/dseg.h"
 
 #include "vmcore/class.h"
+#include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 
@@ -307,17 +308,13 @@ void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out
 {
 	s4 sbv, sdv, sv;
 
-#if defined(ENABLE_THREADS)
-	compiler_lock();
-#endif
+	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
 	sbv = super->baseval;
 	sdv = super->diffval;
 	sv  = sub->baseval;
 
-#if defined(ENABLE_THREADS)
-	compiler_unlock();
-#endif
+	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 
 	out->super_baseval = sbv;
 	out->super_diffval = sdv;

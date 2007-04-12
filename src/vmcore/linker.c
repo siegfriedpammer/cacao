@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: linker.c 7675 2007-04-05 14:23:04Z michi $
 
 */
 
@@ -76,6 +76,8 @@ classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool c
 
 static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
+
+java_objectheader *linker_classrenumber_lock;
 
 
 /* primitivetype_table *********************************************************
@@ -131,6 +133,10 @@ bool linker_init(void)
 	/* reset interface index */
 
 	interfaceindex = 0;
+
+	/* create the global lock object */
+
+	linker_classrenumber_lock = NEW(java_objectheader);
 
 	/* link java.lang.Class as first class of the system, because we
        need it's vftbl for all other classes so we can use a class as
@@ -1205,9 +1211,7 @@ static arraydescriptor *link_array(classinfo *c)
 
 static void linker_compute_subclasses(classinfo *c)
 {
-#if defined(ENABLE_THREADS)
-	compiler_lock();
-#endif
+	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
 	if (!(c->flags & ACC_INTERFACE)) {
 		c->nextsub = NULL;
@@ -1225,9 +1229,7 @@ static void linker_compute_subclasses(classinfo *c)
 
 	linker_compute_class_values(class_java_lang_Object);
 
-#if defined(ENABLE_THREADS)
-	compiler_unlock();
-#endif
+	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 }
 
 

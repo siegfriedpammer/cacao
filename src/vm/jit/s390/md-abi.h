@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 7616 2007-03-29 23:21:50Z michi $
+   $Id: md-abi.h 7680 2007-04-10 05:02:20Z pm $
 
 */
 
@@ -74,8 +74,6 @@
 #define XMM14  14
 #define XMM15  15
 
-
-#define REG_IFTMP       10   /* temporary integer and floating point register */
 
 
 /* define registers ***********************************************************/
@@ -161,8 +159,6 @@
 #define REG_FTMP2       F6       /* temporary floating point register         */
 /* No ftmp3 */
 /* #define REG_FTMP3       F5 */       /* temporary floating point register         */
-
-#define __REG_IFTMP       10       /* temporary integer and floating point register */
 
 
 #define INT_REG_CNT     16       /* number of integer registers               */

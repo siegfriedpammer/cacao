@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7674 2007-04-05 13:27:11Z michi $
+   $Id: threads.c 7688 2007-04-12 09:05:12Z michi $
 
 */
 
@@ -240,9 +240,6 @@ pthread_key_t threads_current_threadobject_key;
 /* global threads table                                                       */
 static threads_table_t threads_table;
 
-/* global compiler mutex                                                      */
-static pthread_mutex_t compiler_mutex;
-
 /* global mutex for changing the thread list                                  */
 static pthread_mutex_t threadlistlock;
 
@@ -347,30 +344,6 @@ void threads_sem_post(sem_t *sem)
 		return;
 
 	vm_abort("sem_post failed: %s", strerror(errno));
-}
-
-
-/* compiler_lock ***************************************************************
-
-   Enter the compiler lock.
-
-******************************************************************************/
-
-void compiler_lock(void)
-{
-	pthread_mutex_lock(&compiler_mutex);
-}
-
-
-/* compiler_unlock *************************************************************
-
-   Release the compiler lock.
-
-******************************************************************************/
-
-void compiler_unlock(void)
-{
-	pthread_mutex_unlock(&compiler_mutex);
 }
 
 
@@ -683,12 +656,6 @@ threadobject *threads_get_current_threadobject(void)
 
 void threads_preinit(void)
 {
-	pthread_mutexattr_t mutexattr;
-	pthread_mutexattr_init(&mutexattr);
-	pthread_mutexattr_settype(&mutexattr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutex_init(&compiler_mutex, &mutexattr);
-	pthread_mutexattr_destroy(&mutexattr);
-
 	pthread_mutex_init(&threadlistlock, NULL);
 	pthread_mutex_init(&stopworldlock, NULL);
 

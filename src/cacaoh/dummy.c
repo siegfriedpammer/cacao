@@ -57,14 +57,6 @@
 char *_Jv_bootclasspath;
 
 
-void compiler_lock()
-{
-}
-
-void compiler_unlock()
-{
-}
-
 java_objectheader *javastring_new_slash_to_dot(utf *u)
 {
 	vm_abort("javastring_new_slash_to_dot");

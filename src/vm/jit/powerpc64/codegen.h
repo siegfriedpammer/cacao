@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: codegen.h 7687 2007-04-11 16:39:22Z tbfg $
 
 */
 
@@ -194,10 +194,13 @@
 #define M_XOR_IMM(a,b,c)                M_OP2_IMM(26, a, c, b)
 #define M_XORIS(a,b,c)                  M_OP2_IMM(27, a, c, b)
 
+/* RLDICR is said to be turing complete, this seems right */
 #define M_SLL(a,b,c)                    M_OP3(31, 27, 0, 0, a, c, b)
-#define M_SRL(a,b,c)                    M_OP3(31, 536, 0, 0, a, c, b)
-#define M_SRA(a,b,c)                    M_OP3(31, 792, 0, 0, a, c, b)
-#define M_SRA_IMM(a,b,c)                M_OP3(31, 824, 0, 0, a, c, b)
+#define M_SLL_IMM(a,b,c)                M_OP3(30, ((b)&0x20 ? 1:0), 0, ((((63-(b))&0x1f)<<6) | (((63-(b))&0x20 ? 1:0)<<5) | 0x04), a, c, (b)&0x1f);
+#define M_SRL(a,b,c)                    M_OP3(31, 539, 0, 0, a, c, b)
+#define M_SRL_IMM(a,b,c)                M_OP3(30, ((64-(b))&0x20 ? 1:0), 0, (((((b))&0x1f)<<6) | ((((b))&0x20 ? 1:0)<<5) | 0x00), a, c, (64-(b))&0x1f);
+#define M_SRA(a,b,c)                    M_OP3(31, 794, 0, 0, a, c, b)
+#define M_SRA_IMM(a,b,c)                M_OP3(31, (826 | ((b)&0x20?1:0)), 0, 0, a, c, ((b)&0x1f))
 
 #define M_MUL(a,b,c)                   M_OP3(31, 233, 0, 0, c, a, b)
 #define M_MUL_IMM(a,b,c)               M_OP2_IMM(7, c, a, b)
@@ -210,8 +213,6 @@
 #define M_SUBFZE(a,b)                   M_OP3(31, 200, 0, 0, b, a, 0)
 #define M_RLWINM(a,b,c,d,e)             M_OP4(21, d, 0, a, e, b, c)
 #define M_ADDZE(a,b)                    M_OP3(31, 202, 0, 0, b, a, 0)
-#define M_SLL_IMM(a,b,c)                M_OP3(30, ((b)&0x20 ? 1:0), 0, ((((63-(b))&0x1f)<<6) | (((63-(b))&0x20 ? 1:0)<<5) | 0x04), a, c, (b)&0x1f);	/* RLDICR is said to be turing complete, this seems right */
-#define M_SRL_IMM(a,b,c)                M_RLWINM(a,32-(b),b,31,c)
 #define M_ADDIS(a,b,c)                  M_OP2_IMM(15, c, a, b)
 #define M_STFIWX(a,b,c)                 M_OP3(31, 983, 0, 0, a, b, c)
 
@@ -474,6 +475,7 @@
 
 #define M_LDATST(a,b,c)                 M_ADDICTST(b, c, a)
 #define M_CLR(a)                        M_LADD_IMM(0, 0, a)
+#define M_CLR_HIGH(a)			M_OP3(30, 0, 0, 0x20, (a), (a), 0);
 #define M_AADD_IMM(a,b,c)               M_LADD_IMM(a, b, c)
 
 #endif /* _CODEGEN_H */

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 7616 2007-03-29 23:21:50Z michi $
+   $Id: emit.c 7680 2007-04-10 05:02:20Z pm $
 
 */
 
@@ -159,11 +159,17 @@ __PORTED__ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo 
 		   order of getting the destination register and the load. */
 
 		if (IS_INMEMORY(src->flags)) {
-			d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
+			if (IS_FLT_DBL_TYPE(dst->type))
+				d = codegen_reg_of_var(iptr->opc, dst, REG_FTMP1);
+			else
+				d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP1);
 			s1 = emit_load(jd, iptr, src, d);
 		}
 		else {
-			s1 = emit_load(jd, iptr, src, REG_IFTMP);
+			if (IS_FLT_DBL_TYPE(src->type))
+				s1 = emit_load(jd, iptr, src, REG_FTMP1);
+			else
+				s1 = emit_load(jd, iptr, src, REG_ITMP1);
 			d = codegen_reg_of_var(iptr->opc, dst, s1);
 		}
 
@@ -256,7 +262,7 @@ __PORTED__ void emit_exception_stubs(jitdata *jd)
 			M_LDA(rd->argintregs[3], REG_PV, er->branchpos - 4);
 		} else {
 			M_INTMOVE(REG_PV, rd->argintregs[3]);
-			M_AADD_IMM(er->branchpos - 4, REG_PV);
+			M_AADD_IMM(er->branchpos - 4, rd->argintregs[3]);
 		}
 
 		/* move function to call into REG_ITMP! */
@@ -277,14 +283,7 @@ __PORTED__ void emit_exception_stubs(jitdata *jd)
 
 			M_AST(rd->argintregs[3], REG_SP, (0 * 4) + 96); /* store XPC */
 
-			M_MOV(REG_ITMP1, REG_PV);
-			M_JSR(REG_RA, REG_PV);
-
-			/* Recalculate PV */
-
-			N_BASR(REG_ITMP1, RN);
-			disp = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_LDA(REG_PV, REG_ITMP1, -disp);
+			M_JSR(REG_RA, REG_ITMP1);
 
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
@@ -2376,7 +2375,7 @@ __PORTED__ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 te
 
 		disp = src->vv.regoff * 4;
 
-		M_ILD(tempreg, REG_SP, disp + 4);
+		M_ILD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
 	}
@@ -2409,7 +2408,7 @@ __PORTED__ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tem
 
 		disp = src->vv.regoff * 4;
 
-		M_ILD(tempreg, REG_SP, disp);
+		M_ILD(tempreg, REG_SP, disp + 4);
 
 		reg = tempreg;
 	}
@@ -2443,7 +2442,10 @@ __PORTED__ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 re
 __PORTED__ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		N_C(s2, OFFSET(java_arrayheader, size), RN, s1);
+		/* Size is s4, >= 0
+		 * Do unsigned comparison to catch negative indexes.
+		 */
+		N_CL(s2, OFFSET(java_arrayheader, size), RN, s1);
         M_BGE(0);
         codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
 	}
@@ -2566,7 +2568,9 @@ void emit_restore_dst_even_odd(jitdata *jd, instruction *iptr, s4 htmpreg, s4 lt
 	} else {
 		hr = GET_HIGH_REG(dst->vv.regoff);
 		lr = GET_LOW_REG(dst->vv.regoff);
-		if (((hr % 2) == 0) && (hr < R12)) {
+		if (((hr % 2) == 0) && lr == (hr + 1)) {
+			return;
+		} else if (((hr % 2) == 0) && (hr < R12)) {
 			M_INTMOVE(breg, hr + 1);
 		} else if (((lr % 2) == 1) && (lr < R12)) {
 			M_INTMOVE(breg, lr - 1);

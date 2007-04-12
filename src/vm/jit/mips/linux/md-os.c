@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7615 2007-03-29 23:10:59Z michi $
+   $Id: md-os.c 7688 2007-04-12 09:05:12Z michi $
 
 */
 
@@ -119,17 +119,14 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	sp  = (u1 *) (ptrint) _gregs[REG_SP];
 	ra  = (u1 *) (ptrint) _gregs[REG_RA];        /* this is correct for leafs */
 
-#if defined(__UCLIBC__)
-	xpc = (u1 *) (ptrint) _gregs[CTX_EPC];
+#if !defined(__UCLIBC__) && ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 5))
+	/* NOTE: We only need this for pre glibc-2.5. */
 
-#error how to get the cause?
-#else
 	xpc = (u1 *) (ptrint) _mc->pc;
 
 	/* get the cause of this exception */
 
 	cause = _mc->cause;
-#endif
 
 	/* check the cause to find the faulting instruction */
 
@@ -143,7 +140,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	case 0x00000010:
 		/* AdEL: XPC is of the following instruction */
 		xpc = xpc - 4;
+		break;
 	}
+#else
+	xpc = (u1 *) (ptrint) _gregs[CTX_EPC];
+#endif
 
 	/* get exception-throwing instruction */
 
@@ -153,14 +154,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	s1   = M_ITYPE_GET_RS(mcode);
 	disp = M_ITYPE_GET_IMM(mcode);
 
-	val   = _gregs[d];
-
 	/* check for special-load */
 
 	if (s1 == REG_ZERO) {
 		/* we use the exception type as load displacement */
 
 		type = disp;
+		val  = _gregs[d];
 	}
 	else {
 		/* This is a normal NPE: addr must be NULL and the NPE-type
@@ -168,6 +168,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		addr = _gregs[s1];
 		type = (s4) addr;
+		val  = 0;
 	}
 
 	/* generate appropriate exception */

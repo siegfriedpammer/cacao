@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: logging.c 7345 2007-02-13 13:04:21Z twisti $
+   $Id: logging.c 7685 2007-04-11 08:21:06Z twisti $
 
 */
 
@@ -172,11 +172,11 @@ void log_println(const char *text, ...)
 void log_finish(void)
 {
 	if (logfile) {
+		fputs("\n", logfile);
 		fflush(logfile);
-
-	} else {
+	}
+	else {
 		fputs("\n", stdout);
-
 		fflush(stdout);
 	}
 }

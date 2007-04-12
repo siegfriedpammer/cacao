@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7667 2007-04-05 00:16:05Z michi $
+   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
 
 */
 
@@ -708,13 +708,6 @@ asm_criticalsections:
 	.long 0
 
 
-/* disable exec-stacks ********************************************************/
-
-#if defined(__linux__) && defined(__ELF__)
-	.section .note.GNU-stack,"",@progbits
-#endif
-
-
 /* asm_get_cycle_count *********************************************************
 
    Get the current time-stamp counter from the CPU.
@@ -724,6 +717,13 @@ asm_criticalsections:
 asm_get_cycle_count:
 	rdtsc
 	ret
+
+
+/* disable exec-stacks ********************************************************/
+
+#if defined(__linux__) && defined(__ELF__)
+	.section .note.GNU-stack,"",%progbits
+#endif
 
 
 /*

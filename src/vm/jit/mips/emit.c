@@ -77,21 +77,28 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 		disp = src->vv.regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(src->type)) {
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
-		}
-		else {
+		switch (src->type) {
 #if SIZEOF_VOID_P == 8
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
 			M_LLD(tempreg, REG_SP, disp);
+			break;
 #else
-			if (IS_2_WORD_TYPE(src->type))
-				M_LLD(tempreg, REG_SP, disp);
-			else
-				M_ILD(tempreg, REG_SP, disp);
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_ILD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+			M_LLD(tempreg, REG_SP, disp);
+			break;
 #endif
+		case TYPE_FLT:
+		case TYPE_DBL:
+			M_DLD(tempreg, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_load: unknown type %d", src->type);
 		}
 
 		reg = tempreg;
@@ -203,21 +210,28 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 		disp = dst->vv.regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(dst->type)) {
-			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, disp);
-			else
-				M_FST(d, REG_SP, disp);
-		}
-		else {
+		switch (dst->type) {
 #if SIZEOF_VOID_P == 8
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
 			M_LST(d, REG_SP, disp);
+			break;
 #else
-			if (IS_2_WORD_TYPE(dst->type))
-				M_LST(d, REG_SP, disp);
-			else
-				M_IST(d, REG_SP, disp);
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_IST(d, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+			M_LST(d, REG_SP, disp);
+			break;
 #endif
+		case TYPE_FLT:
+		case TYPE_DBL:
+			M_DST(d, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_store: unknown type %d", dst->type);
 		}
 	}
 }
@@ -264,21 +278,30 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 		}
 
 		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type)) {
-				if (IS_2_WORD_TYPE(src->type))
-					M_DMOV(s1, d);
-				else
-					M_FMOV(s1, d);
-			}
-			else {
+			switch (dst->type) {
 #if SIZEOF_VOID_P == 8
+			case TYPE_INT:
+			case TYPE_LNG:
+			case TYPE_ADR:
 				M_MOV(s1, d);
+				break;
 #else
-				if (IS_2_WORD_TYPE(src->type))
-					M_LNGMOVE(s1, d);
-				else
-					M_MOV(s1, d);
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_MOV(s1, d);
+				break;
+			case TYPE_LNG:
+				M_LNGMOVE(s1, d);
+				break;
 #endif
+			case TYPE_FLT:
+				M_FMOV(s1, d);
+				break;
+			case TYPE_DBL:
+				M_DMOV(s1, d);
+				break;
+			default:
+				vm_abort("emit_copy: unknown type %d", dst->type);
 			}
 		}
 
@@ -383,7 +406,38 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
 
-			vm_abort("emit_branch: emit conditional long-branch code");
+			switch (condition) {
+			case BRANCH_EQ:
+				M_BNE(GET_HIGH_REG(reg), GET_LOW_REG(reg), 5);
+				break;
+			case BRANCH_NE:
+				M_BEQ(GET_HIGH_REG(reg), GET_LOW_REG(reg), 5);
+				break;
+			case BRANCH_LT:
+				M_BGEZ(reg, 5);
+				break;
+			case BRANCH_GE:
+				M_BLTZ(reg, 5);
+				break;
+			case BRANCH_GT:
+				M_BLEZ(reg, 5);
+				break;
+			case BRANCH_LE:
+				M_BGTZ(reg, 5);
+				break;
+			default:
+				vm_abort("emit_branch: unknown condition %d", condition);
+			}
+
+			/* The actual branch code which is over-jumped (NOTE: we
+			   don't use a branch delay slot here). */
+
+			M_LUI(REG_ITMP3, branchdisp >> 16);
+			M_OR_IMM(REG_ITMP3, branchdisp, REG_ITMP3);
+			M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+			M_JMP(REG_ITMP3);
+			M_NOP;
+
 		}
 		else {
 			switch (condition) {

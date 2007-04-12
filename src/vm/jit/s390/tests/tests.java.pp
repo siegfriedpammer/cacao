@@ -2,15 +2,23 @@ package tests;
 
 #define TEST(cond) test(#cond, (cond), __LINE__)
 #define TODO() test("TODO: Implement", false, __LINE__)
+#define echo(x) System.out.println(x);
+#define between(l, x, h) (((l) <= (x)) && ((x) <= (h)))
 
 class tests {
 
 	static int s_i, s_i1, s_i2;
 	static float s_f, s_f1, s_f2;
+	static final float[] s_fa = { 111.11f, 222.22f, 333.33f, 444.44f, 555.55f };
+	static float[] s_fa2 = { 1.0f, 2.0f, 3.0f };
 	static char s_c, s_c1;
 	static short s_s, s_s1;
 	static long s_l, s_l1, s_l2;
+	static final long[] s_la = { 0x11111111AAAAAAAAl, 0x22222222BBBBBBBBl, 0x33333333CCCCCCCCl };
+	static long[] s_la2 = { 0l, 1l, 2l };
 	static double s_d, s_d1, s_d2;
+	static final double[] s_da = { 111.11, 222.22, 333.33, 444.44, 555.55 };
+	static double[] s_da2 = { 1.0, 2.0, 3.0 };
 	static boolean s_b;
 	static Object s_a;
 	static final char[] s_ca = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -263,10 +271,20 @@ class tests {
 	}
 
 	static void test_IREM() {
-		s_i1 = 5570664;
-		s_i2 = 10000;
-		s_i = s_i1 % s_i2;
-		TEST(s_i == 664);
+#		define ITEST(a, op, b, res) \
+			s_i1 = a; \
+			s_i2 = b; \
+			s_i = s_i1 op s_i2; \
+			TEST(s_i == res); 
+
+		ITEST(5570664, %, 10000, 664);
+
+		ITEST(7, %, 3, 1);
+		ITEST(-7, %, 3, -1);
+		ITEST(7, %, -3, 1);
+		ITEST(-7, %, -3, -1);
+
+#		undef ITEST
 	}
 
 	static void test_FMUL() {
@@ -280,8 +298,7 @@ class tests {
 		s_d1 = 1.1337;
 		s_d2 = 100.0;
 		s_d = s_d1 * s_d2;
-		TEST(s_d == 113.37);
-		System.out.println(s_d);
+		TEST(between(113.369, s_d, 113.371));
 	}
 
 	static void test_FDIV() {
@@ -295,7 +312,7 @@ class tests {
 		s_d1 = 113.37;
 		s_d2 = 100.0;
 		s_d = s_d1 / s_d2;
-		TEST(s_d == 1.1337);
+		TEST(between(1.13369, s_d, 1.13371));
 	}
 
 	static void test_FSUB() {
@@ -335,10 +352,6 @@ class tests {
 		TEST(s_f == 0.0f);
 	}
 
-	static void test_I2D() {
-		TODO();
-	}
-
 	static void test_F2I() {
 		s_f = 1337.1337f;
 		s_i = (int)s_f;
@@ -346,6 +359,76 @@ class tests {
 		s_f = 0.0f;
 		s_i = (int)s_f;
 		TEST(s_i == 0);
+	}
+
+	static void test_L2I() {
+		s_l = -987l;
+		s_i = (int)s_l;
+		TEST(s_i == -987);
+
+		s_l = 987l;
+		s_i = (int)s_l;
+		TEST(s_i == 987);
+
+		s_l = 0x10ABBCCDDl;
+		s_i = (int)s_l;
+		TEST(s_i == 0x0ABBCCDD);
+
+	}
+
+	static void test_I2L() {
+		s_i = 987;
+		s_l = (long)s_i;
+		TEST(s_l == 987l);
+
+		s_i = -987;
+		s_l = (long)s_i;
+		TEST(s_l == -987l);
+	}
+
+	static void test_D2I() {
+		s_d = 987.77;
+		s_i = (int)s_d;
+		TEST(s_i == 987);
+
+		s_d = -987.77;
+		s_i = (int)s_d;
+		TEST(s_i == -987);
+	}
+
+	static void test_I2D() {
+		s_i = 987;
+		s_d = (double)s_i;
+		TEST(s_d == 987.0);
+
+		s_i = -987;
+		s_d = (double)s_i;
+		TEST(s_d == -987.0);
+	}
+
+	static void test_F2D() {
+		s_f = 987.77f;
+		s_d = (double)s_f;
+		TEST(between(987.76, s_d,  987.78));
+		/* i don't trust the comparing mechanism, test even it */
+		TEST(!between(987.78, s_d, 987.79));
+
+		s_f = -987.77f;
+		s_d = (double)s_f;
+		TEST(between(-987.78, s_d, -987.76));
+		TEST(!between(-987.79, s_d, -987.78));
+	}
+
+	static void test_D2F() {
+		s_d = 987.77;
+		s_f = (float)s_d;
+		TEST(between(987.76f, s_f, 987.78f));
+		TEST(!between(987.78f, s_f, 987.79f));
+
+		s_d = -987.77;
+		s_f = (float)s_d;
+		TEST(between(-987.78f, s_f, -987.76f));
+		TEST(!between(-987.79, s_f, -987.78f));
 	}
 
 	static void test_FCMP() {
@@ -427,6 +510,8 @@ class tests {
 		TEST(s_ca.length != 11);
 	}
 
+	// ALOAD
+
 	static void test_CALOAD() {
 		s_c = s_ca[4];
 		TEST(s_c == '4');
@@ -452,6 +537,23 @@ class tests {
 		TEST(s_a != s_a0);
 		TEST(s_a == s_a1);
 	}
+
+	static void test_LALOAD() {
+		s_l = s_la[1];
+		TEST(s_l == 0x22222222BBBBBBBBl);
+	}
+
+	static void test_FALOAD() {
+		s_f = s_fa[1];
+		TEST(s_f == 222.22f);
+	}
+
+	static void test_DALOAD() {
+		s_d = s_da[2];
+		TEST(s_d == 333.33);
+	}
+
+	// ASTORE
 
 	static void test_CASTORE() {
 		s_ca2[1] = 'X';
@@ -484,6 +586,27 @@ class tests {
 		s_aa2[1] = s_a1;
 		s_a = s_aa2[1];
 		TEST(s_a == s_a1);
+	}
+
+	static void test_LASTORE() {
+		s_l1 = 0xaabbccdd11223344l;
+		s_la2[2] = s_l1;
+		s_l = s_la2[2];
+		TEST(s_l == 0xaabbccdd11223344l);
+	}
+
+	static void test_FASTORE() {
+		s_f1 = 768.44f;
+		s_fa2[2] = s_f1;
+		s_f = s_fa2[2];
+		TEST(s_f == 768.44f);
+	}
+
+	static void test_DASTORE() {
+		s_d1 = 765.445;
+		s_da2[2] = s_d1;
+		s_d = s_da2[2];
+		TEST(s_d == 765.445);
 	}
 
 	static void test_GETPUTSTATIC() {
@@ -824,6 +947,7 @@ class tests {
 		s_i = s_i1 | s_i2;
 		TEST(s_i == 0x1a2b3c5d);
 	}
+
 	static void test_IXOR() {
 		s_i1 =      0x0f0f1700;
 		s_i2 =      0xf00f3300;
@@ -843,8 +967,373 @@ class tests {
 		TEST(s_i1 == 0x1458aa56);
 	}
 
+	static void test_IANDORXORCONST() {
+#		define LTEST(a, op, b, res) \
+			s_i = a; \
+			s_i ##op##= b; \
+			TEST(s_i == res); 
+
+		LTEST(0xcccccccc, &,
+		      0x0f080400,
+			  0x0c080400);
+		
+		LTEST(0x0a0b0c1d, |,
+		      0x10203040,
+			  0x1a2b3c5d);
+
+		LTEST(0x0f0f1700, ^,
+		      0xf00f3300,
+			  0xff002400);
+
+#		undef LTEST
+	}
+
+	static void test_LSHX_LSHXCONST() {
+#		define STEST(a, op, b, res) \
+			s_l1 = a; \
+			s_i = b; \
+			s_l = s_l1 op s_i; \
+			TEST(s_l == res); \
+			s_l = a; \
+			s_l ##op##= b; \
+			TEST(s_l == res); 
+
+		STEST(0x000000ABCD000000l, >>, 4, 
+		      0x0000000ABCD00000l);
+
+		STEST(-0x00000ABCD000000l, >>, 4, 
+		      -0x000000ABCD00000l);
+
+		STEST(0x000000ABCD000000l, <<, 4, 
+		      0x00000ABCD0000000l);
+
+		STEST(-0x00000ABCD000000l, <<, 4, 
+		      -0x0000ABCD0000000l);
+
+		STEST(0x000000ABCD000000l, >>>, 4, 
+		      0x0000000ABCD00000l);
+
+		STEST(0xF00000ABCD000000l, >>>, 4, 
+		      0x0F00000ABCD00000l);
+
+#		undef STEST
+	}
+
+	static void test_LANDORXOR_LANDORXORCONST() {
+#		define LTEST(a, op, b, res) \
+			s_l1 = a; \
+			s_l2 = b; \
+			s_l = s_l1 op s_l2; \
+			TEST(s_l == res); \
+			s_l = a; \
+			s_l ##op##= b; \
+			TEST(s_l == res); 
+
+		LTEST(0x0000AAAA55550000l, &,
+		      0x0000F0800F400000l,
+			  0x0000A08005400000l);
+
+		LTEST(0x0000A0A050500000l, |,
+		      0x0000010908030000l,
+			  0x0000A1A958530000l);
+
+		LTEST(0x0000ABCD12340000l, ^,
+		      0x0000444411110000l,
+			  0x0000EF8903250000l);
+#		undef LTEST
+	}
+
+	static void test_ISHX_ISHXCONST() {
+#		define STEST(a, op, b, res) \
+			s_i1 = a; \
+			s_i2 = b; \
+			s_i = s_i1 op s_i2; \
+			TEST(s_i == res); \
+			s_i = a; \
+			s_i ##op##= b; \
+			TEST(s_i == res); 
+
+		STEST(0x00A0B0C0, >>, 8,
+			  0x0000A0B0);
+
+		STEST(-0x0A0B0C0, >>, 8,
+			  -41137); /* don't ask why ... this is the result i get when executing on i386. */
+
+		STEST(0x00A0B0C0, <<, 4,
+			  0x0A0B0C00);
+
+		STEST(-0x00A0B0C0, <<, 4,
+			  -0x0A0B0C00);
+
+		STEST(0x00A0B0C0, >>>, 8,
+			  0x0000A0B0);
+
+		STEST(0xF0A0B0C0, >>>, 8,
+			  0x00F0A0B0);
+
+#		undef STEST
+	}
+
+	static void test_LADDSUB_LADDSUBCONST() {
+#		define LTEST(a, op, b, res) \
+			s_l1 = a; \
+			s_l2 = b; \
+			s_l = s_l1 op s_l2; \
+			TEST(s_l == res); \
+			s_l = a; \
+			s_l ##op##= b; \
+			TEST(s_l == res);
+
+		/* addtion, with carry and normal */
+
+		LTEST(0x1A0000000l, +,
+		      0x1B0000000l,
+			  0x350000000l);
+
+		LTEST(0x10000000Al, +,
+		      0x20000000Bl, 
+			  0x300000015l);
+
+		/* substraction, random and the inverse of the two above */
+
+		LTEST(465365887678385708l, -,
+		               678300000l,
+		      465365887000085708l);
+
+		LTEST(0x350000000l, -,
+		      0x1B0000000l,
+			  0x1A0000000l);
+
+		LTEST(0x300000015l, -,
+		      0x20000000Bl,
+			  0x10000000Al);
+
+		/* The above with negative numbers. */
+
+		LTEST( 0x350000000l, +,
+		      -0x1B0000000l,
+			   0x1A0000000l);
+
+		LTEST( 0x300000015l, +,
+		      -0x20000000Bl,
+			   0x10000000Al);
+
+		LTEST( 0x1A0000000l, -,
+		      -0x1B0000000l,
+			   0x350000000l);
+
+		LTEST( 0x10000000Al, -,
+		      -0x20000000Bl, 
+			   0x300000015l);
+
+#		undef LTEST
+
+	}
+
+	static void test_LMULDIVREM() {
+#		define LTEST(a, op, b, res) \
+			s_l1 = a; \
+			s_l2 = b; \
+			s_l = s_l1 op s_l2; \
+			TEST(s_l == res);
+
+		LTEST(0x100000001l, *,
+		      0x200000002l,
+              17179869186l);
+
+		LTEST(0x800000008l, /,
+		      0x100000001l,
+              8);
+
+		LTEST(348761346749l, %,
+		      100000000000l,
+			   48761346749l);
+			  
+#		undef LTEST
+	}
+
+	static void test_LNEG() {
+#		define NTEST(val, res) \
+			s_l1 = val; \
+			s_l = -s_l1; \
+			TEST(s_l == res); \
+
+		NTEST( 0x100000000l,
+		      -0x100000000l);
+
+		NTEST( 0x1F0000000l,
+		      -0x1F0000000l);
+
+#		undef NTEST
+	}
+
+	static void test_doubleToString() {
+		TEST(Double.toString(113.77).equals("113.77"));
+	}
+
+	static void test_INT2BYTE() {
+		s_i = 127;
+		s_by = (byte)s_i;
+		TEST(s_by == (byte)127);
+
+		s_i = -128;
+		s_by = (byte)s_i;
+		TEST(s_by == (byte)-128);
+	}
+
+	static void test_INT2SHORT() {
+		s_i = -0xabc;
+		s_s = (short)s_i;
+		TEST(s_s == (short)-0xabc);
+
+		s_i = 0xabc;
+		s_s = (short)s_i;
+		TEST(s_s == (short)0xabc);
+	}
+
+	static void test_IDIVREMPOW2() {
+#		define ITEST(a, op, b, res) \
+			s_i = a; \
+			s_i ##op##= b; \
+			TEST(s_i == res); 
+
+		ITEST(98453466, /, 
+		      32, 
+			  3076670);
+
+		ITEST(-98453466, /, 
+		      32, 
+			  -3076670);
+
+		ITEST(9, %, 4, 1);
+		ITEST(-9, %, 4, -1);
+		ITEST(9, %, -4, 1);
+		ITEST(-9, %, -4, -1);
+
+#		undef ITEST
+	}
+
+	static void test_LDIVREMPOW2() {
+#		define LTEST(a, op, b, res) \
+			s_l = a; \
+			s_l ##op##= b; \
+			TEST(s_l == res); 
+
+		LTEST(98453466l, /, 
+		      32l, 
+			  3076670l);
+
+		LTEST(-98453466l, /, 
+		      32l, 
+			  -3076670l);
+
+		LTEST(9l, %, 4l, 1l);
+		LTEST(-9l, %, 4l, -1l);
+		LTEST(9l, %, -4l, 1l);
+		LTEST(-9l, %, -4l, -1l);
+
+#		undef LTEST
+	}
+
+	static void test_FNEG_DNEG() {
+		s_f1 = 34.57f;
+		s_f = -s_f1;
+		TEST(s_f == -34.57f);
+
+		s_f1 = -34.57f;
+		s_f = -s_f1;
+		TEST(s_f == 34.57f);
+
+		s_d1 = 34.57;
+		s_d = -s_d1;
+		TEST(between(-34.58, s_d, -34.56));
+
+		s_d1 = -34.57;
+		s_d = -s_d1;
+		TEST(between(34.56, s_d, 34.58));
+	}
+
+	static void test_TABLESWITCH() {
+		s_i1 = 3;
+
+		switch (s_i1) {
+			case 1:
+				s_i = 11;
+				break;
+			case 2:
+				s_i = 22;
+				break;
+			case 3:
+				s_i = 33;
+				break;
+			case 4:
+				s_i = 44;
+				break;
+			case 5:
+				s_i = 55;
+				break;
+		}
+
+		TEST(s_i == 33);
+
+		s_i1 = 2;
+
+		switch (s_i1) {
+			case 0:
+				s_i = 11;
+				break;
+			case 1:
+				s_i = 12;
+				break;
+			default:
+				s_i = 13;
+				break;
+		}
+
+		TEST(s_i == 13);
+	}
+
+	static void test_LOOKUPSWITCH() {
+		s_i1 = 675;
+
+		switch (s_i1) {
+			case 1:
+				s_i = 11;
+				break;
+			case 23:
+				s_i = 22;
+				break;
+			case 675:
+				s_i = 33;
+				break;
+			case 9876:
+				s_i = 44;
+				break;
+			case 181234:
+				s_i = 55;
+				break;
+		}
+
+		TEST(s_i == 33);
+
+		s_i1 = 5678;
+
+		switch (s_i1) {
+			case 234:
+				s_i = 11;
+				break;
+			case 1255:
+				s_i = 12;
+				break;
+			default:
+				s_i = 13;
+				break;
+		}
+
+		TEST(s_i == 13);
+	}
+
 	static void main(String[] args) {
-		/*
 		test_ICONST();
 		test_FCONST();
 		test_INEG();
@@ -855,10 +1344,6 @@ class tests {
 		test_ISUBCONST();
 		test_IMULCONST();
 		test_IDIV();
-		test_IREM();
-		test_I2F();
-		test_I2D();
-		test_F2I();
 		test_FCMP();
 		test_ARRAYLENGTH();
 		test_CALOAD();
@@ -886,7 +1371,6 @@ class tests {
 		test_SALOAD();
 		test_IALOAD();
 		test_IASTORE();
-		*/
 		test_FADD();
 		test_FMUL();
 		test_FSUB();
@@ -896,9 +1380,45 @@ class tests {
 		test_DSUB();
 		test_DDIV();
 
-		summary();
-	}
+		test_LSHX_LSHXCONST();
+		test_LANDORXOR_LANDORXORCONST();
+		test_IANDORXORCONST();
+		test_ISHX_ISHXCONST();
+		test_LADDSUB_LADDSUBCONST();
+		test_LNEG();
+		test_LMULDIVREM();
 
+		test_L2I();
+		test_I2L();
+		test_D2I();
+		test_I2D();
+		test_I2F();
+		test_F2I();
+		test_F2D();
+
+		test_doubleToString();
+
+		test_INT2BYTE();
+		test_INT2SHORT();
+
+		test_IDIVREMPOW2();
+		test_IREM();
+		test_LDIVREMPOW2();
+		test_FNEG_DNEG();
+		test_D2F();
+		test_LALOAD();
+		test_FALOAD();
+		test_DALOAD();
+		test_LASTORE();
+		test_FASTORE();
+		test_DASTORE();
+		test_TABLESWITCH();
+		test_LOOKUPSWITCH();
+		summary();
+
+
+
+	}
 
 };
 

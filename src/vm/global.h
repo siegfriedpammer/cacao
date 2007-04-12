@@ -32,7 +32,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 7601 2007-03-28 23:02:50Z michi $
+   $Id: global.h 7688 2007-04-12 09:05:12Z michi $
 
 */
 
@@ -326,14 +326,6 @@ struct java_objectarray {
 	java_arrayheader   header;
 	java_objectheader *data[1];
 };
-
-
-/* Synchronization ************************************************************/
-
-#if defined(ENABLE_THREADS)
-void compiler_lock();
-void compiler_unlock();
-#endif
 
 
 /* global constants related to the verifier ***********************************/

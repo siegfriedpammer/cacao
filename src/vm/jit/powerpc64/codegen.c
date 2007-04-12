@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: codegen.c 7687 2007-04-11 16:39:22Z tbfg $
 
 */
 
@@ -736,7 +736,7 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value << constant       */
-		                      
+		      
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			M_SRA_IMM(s1, iptr->sx.val.i, d);
@@ -790,7 +790,9 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_AND_IMM(s2, 0x1f, REG_ITMP2);
-			M_SRL(s1, REG_ITMP2, d);
+			M_MOV(s1, REG_ITMP1);
+			M_CLR_HIGH(REG_ITMP1);
+			M_SRL(REG_ITMP1, REG_ITMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -800,10 +802,54 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (iptr->sx.val.i & 0x1f) {
-				M_SRL_IMM(s1, iptr->sx.val.i & 0x1f, d);
+				M_MOV(s1, REG_ITMP1);
+				M_CLR_HIGH(REG_ITMP1);
+				M_SRA_IMM(REG_ITMP1, iptr->sx.val.i & 0x1f, d);
 			} else {
 				M_INTMOVE(s1, d);
 			}
+			emit_store_dst(jd, iptr, d);
+			break;
+	
+		case ICMD_LSHLCONST:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_SLL_IMM(s1, iptr->sx.val.i & 0x3f, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+		case ICMD_LSHL:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_AND_IMM(s2, 0x3f, REG_ITMP2);
+			M_SLL(s1, REG_ITMP2, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+		case ICMD_LSHRCONST:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_SRA_IMM(s1, iptr->sx.val.i & 0x3f, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+		case ICMD_LSHR:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_SRA(s1, s2, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+		case ICMD_LUSHRCONST:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_SRL_IMM(s1, iptr->sx.val.i & 0x3f, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+		case ICMD_LUSHR:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_AND_IMM(s2, 0x3f, REG_ITMP2);
+			M_SRL(s1, REG_ITMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
