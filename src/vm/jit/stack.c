@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7663 2007-04-04 22:14:42Z twisti $
+   $Id: stack.c 7695 2007-04-12 19:49:34Z twisti $
 
 */
 
@@ -2315,18 +2315,16 @@ bool stack_analyse(jitdata *jd)
 
 					/* automatically replace some ICMDs with builtins */
 
-#if defined(USEBUILTINTABLE)
 					bte = builtintable_get_automatic(opcode);
 
-					if (bte && bte->opcode == opcode) {
-						iptr->opc           = ICMD_BUILTIN;
+					if ((bte != NULL) && (bte->opcode == opcode)) {
+						iptr->opc            = ICMD_BUILTIN;
 						iptr->flags.bits    &= INS_FLAG_ID_MASK;
-						iptr->sx.s23.s3.bte = bte;
+						iptr->sx.s23.s3.bte  = bte;
 						/* iptr->line is already set */
-						jd->isleafmethod = false;
+						jd->isleafmethod     = false;
 						goto icmd_BUILTIN;
 					}
-#endif /* defined(USEBUILTINTABLE) */
 
 					/* main opcode switch *************************************/
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 7687 2007-04-11 16:39:22Z tbfg $
+   $Id: arch.h 7695 2007-04-12 19:49:34Z twisti $
 
 */
 
@@ -33,13 +33,9 @@
 #include "config.h"
 
 
-/*#define USE_FAKE_ATOMIC_INSTRUCTIONS 	0 */
-
 /* define architecture features ***********************************************/
 
 #define U8_AVAILABLE                     1
-
-#define USEBUILTINTABLE
 
 #define SUPPORT_DIVISION                 1
 #define SUPPORT_LONG                     1

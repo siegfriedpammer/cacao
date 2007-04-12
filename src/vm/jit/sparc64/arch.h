@@ -37,8 +37,6 @@
 
 #define U8_AVAILABLE                     1
 
-/*  #define USEBUILTINTABLE */
-
 #define SUPPORT_DIVISION                 0
 #define SUPPORT_LONG                     1
 
