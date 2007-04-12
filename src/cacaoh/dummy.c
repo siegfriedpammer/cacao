@@ -150,12 +150,12 @@ methodinfo *code_get_methodinfo_for_pv(u1 *pv)
 
 /* codegen ********************************************************************/
 
-codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
+u1 *codegen_generate_stub_compiler(methodinfo *m)
 {
 	return NULL;
 }
 
-u1 *createcompilerstub(methodinfo *m)
+codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 {
 	return NULL;
 }

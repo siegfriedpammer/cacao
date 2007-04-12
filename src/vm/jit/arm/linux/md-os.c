@@ -51,10 +51,14 @@ typedef struct ucontext {
 
 #define scontext_t struct sigcontext
 
-#include "mm/memory.h"
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#endif
+
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 

@@ -23,6 +23,7 @@
    02110-1301, USA.
 
    $Id: codegen.c 7564 2007-03-23 23:36:17Z twisti $
+
 */
 
 
@@ -1906,12 +1907,39 @@ nowperformreturn:
 	return true;
 }
 
-/* createnativestub ************************************************************
 
-   Creates a stub routine which calls a native method.
+/* codegen_emit_stub_compiler **************************************************
+
+   Emits a stub routine which calls the compiler.
+	
+*******************************************************************************/
+
+void codegen_emit_stub_compiler(jitdata *jd)
+{
+	methodinfo  *m;
+	codegendata *cd;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+
+	/* code for the stub */
+
+	M_AMOV_IMM(m, REG_ATMP1);
+	M_AMOV_IMM(asm_call_jit_compiler, REG_ATMP3);
+	M_JMP_IMM(asm_call_jit_compiler);
+	M_RET;
+}
+
+
+/* codegen_emit_stub_native ****************************************************
+
+   Emits a stub routine which calls a native method.
 
 *******************************************************************************/
-u1* createnativestub(functionptr f, jitdata *jd, methoddesc *nmd) 
+
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
 	methodinfo   *m;
 	codeinfo     *code;
@@ -2114,57 +2142,4 @@ u1* createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* generate patcher stub call code */
 	emit_patcher_stubs(jd);
-	codegen_finish(jd);
-
-	return code->entrypoint;
-}
-
-/* createcompilerstub **********************************************************
-
-   Creates a stub routine which calls the compiler.
-	
-*******************************************************************************/
-
-#define COMPILERSTUB_DATASIZE (3 * SIZEOF_VOID_P)
-#define COMPILERSTUB_CODESIZE (6+6+6+2)
-#define COMPILERSTUB_SIZE (COMPILERSTUB_DATASIZE +  COMPILERSTUB_CODESIZE)
-u1* createcompilerstub(methodinfo *m) 
-{ 
-	u1          *s;
-	ptrint      *d;
-	codegendata *cd;
-	s4          dumpsize;
-
-	s = CNEW(u1, COMPILERSTUB_SIZE);
-	
-	/* set data and code pointer */
-	d = (ptrint *)s;
-	s = s + COMPILERSTUB_DATASIZE;
-
-	/* mark start of dump memory area */
-	dumpsize = dump_size();
-	cd = DNEW(codegendata);
-	cd->mcodeptr = s;
-
-	/* Store codeinfo pointer in the same place as in the
-	 * methodheader for compiled methods */
-	d[0] = (ptrint) asm_call_jit_compiler;
-	d[1] = (ptrint) m;
-	d[2] = (ptrint) &d[1];		/* fake code->m */
-
-	M_AMOV_IMM(m, REG_ATMP1);
-	M_AMOV_IMM(asm_call_jit_compiler, REG_ATMP3);
-	M_JMP_IMM(asm_call_jit_compiler);
-	M_RET;
-	
-	md_cacheflush((u1 *) d, COMPILERSTUB_SIZE);
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_cstub_len += COMPILERSTUB_SIZE;
-#endif
-
-	/* release dump area */
-	dump_release(dumpsize);
-
-	return s;
 }

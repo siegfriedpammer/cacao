@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: codegen.h 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -134,6 +134,11 @@
         M_NOP; \
         M_NOP; \
     } while (0)
+
+
+/* stub defines ***************************************************************/
+
+#define COMPILERSTUB_CODESIZE    7 + 7 + 3
 
 
 /* macros to create code ******************************************************/

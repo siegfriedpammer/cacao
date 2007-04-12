@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: jit.c 7692 2007-04-12 14:47:24Z twisti $
 
 */
 
@@ -1298,7 +1298,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		f = NULL;
 #endif
 
-		code = codegen_createnativestub(f, m);
+		code = codegen_generate_stub_native(m, f);
 
 		assert(!m->code); /* native methods are never recompiled */
 		m->code = code;

@@ -1,7 +1,7 @@
 /* src/vm/jit/powerpc64/codegen.h - code generation macros and definitions for
                                  64-bit PowerPC
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 7687 2007-04-11 16:39:22Z tbfg $
+   $Id: codegen.h 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -115,6 +115,11 @@
     do { \
         M_NOP; \
     } while (0)
+
+
+/* stub defines ***************************************************************/
+
+#define COMPILERSTUB_CODESIZE    4 * 4
 
 
 /* macros to create code ******************************************************/

@@ -2913,77 +2913,39 @@ gen_method:
 }
 
 
-/* createcompilerstub **********************************************************
+/* codegen_emit_stub_compiler **************************************************
 
-   Creates a stub routine which calls the compiler.
+   Emits a stub routine which calls the compiler.
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_DATASIZE    3 * SIZEOF_VOID_P
-#define COMPILERSTUB_CODESIZE    4 * 4
-
-#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
-
-
-u1 *createcompilerstub(methodinfo *m)
+void codegen_emit_stub_compiler(jitdata *jd)
 {
-	u1     *s;                          /* memory to hold the stub            */
-	ptrint      *d;
-	codeinfo    *code;
+	methodinfo  *m;
 	codegendata *cd;
-	s4           dumpsize;
-	
-	s = CNEW(u1, COMPILERSTUB_SIZE);
 
-	/* set data pointer and code pointer */
+	/* get required compiler data */
 
-	d = (ptrint *) s;
-	s = s + COMPILERSTUB_DATASIZE;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	cd = DNEW(codegendata);
-	cd->mcodeptr = s;
-	
-	/* Store the codeinfo pointer in the same place as in the
-	   methodheader for compiled methods. */
-
-	code = code_codeinfo_new(m);
-
-	d[0] = (ptrint) asm_call_jit_compiler;
-	d[1] = (ptrint) m;
-	d[2] = (ptrint) code;
+	m  = jd->m;
+	cd = jd->cd;
 
 	/* code for the stub */
+
 	/* no window save yet, user caller's PV */
 	M_ALD_INTERN(REG_ITMP1, REG_PV_CALLER, -2 * SIZEOF_VOID_P);  /* codeinfo pointer */
 	M_ALD_INTERN(REG_PV_CALLER, REG_PV_CALLER, -3 * SIZEOF_VOID_P);  /* pointer to compiler */
 	M_JMP(REG_ZERO, REG_PV_CALLER, REG_ZERO);  /* jump to the compiler, RA is wasted */
 	M_NOP;
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_cstub_len += COMPILERSTUB_SIZE;
-#endif
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return s;
 }
 
 
+/* codegen_emit_stub_native ****************************************************
 
-/* createnativestub ************************************************************
-
-   Creates a stub routine which calls a native method.
+   Emits a stub routine which calls a native method.
 
 *******************************************************************************/
 
-u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
 	methodinfo   *m;
 	codeinfo     *code;
@@ -3221,14 +3183,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_JMP(REG_ZERO, REG_ITMP1, REG_ZERO);/* jump to asm exception handler     */
 	M_RESTORE(REG_ZERO, 0, REG_ZERO);   /* restore callers window (DELAY)     */
 	
-
 	/* generate patcher stubs */
 
 	emit_patcher_stubs(jd);
-
-	codegen_finish(jd);
-
-	return code->entrypoint;
 }
 
 /*

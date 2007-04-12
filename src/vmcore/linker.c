@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7675 2007-04-05 14:23:04Z michi $
+   $Id: linker.c 7691 2007-04-12 12:45:10Z twisti $
 
 */
 
@@ -927,7 +927,7 @@ static classinfo *link_class_intern(classinfo *c)
 			m->stubroutine = intrp_createcompilerstub(m);
 		else
 #endif
-			m->stubroutine = createcompilerstub(m);
+			m->stubroutine = codegen_generate_stub_compiler(m);
 #else
 		m->stubroutine = intrp_createcompilerstub(m);
 #endif

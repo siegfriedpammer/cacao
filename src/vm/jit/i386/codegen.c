@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: codegen.c 7693 2007-04-12 14:56:49Z michi $
 
 */
 
@@ -3692,72 +3692,38 @@ void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
 }
 #endif /* defined(ENABLE_SSA) */
 
-/* createcompilerstub **********************************************************
 
-   Creates a stub routine which calls the compiler.
+/* codegen_emit_stub_compiler **************************************************
+
+   Emit a stub routine which calls the compiler.
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_DATASIZE    3 * SIZEOF_VOID_P
-#define COMPILERSTUB_CODESIZE    12
-
-#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
-
-
-u1 *createcompilerstub(methodinfo *m)
+void codegen_emit_stub_compiler(jitdata *jd)
 {
-	u1          *s;                     /* memory to hold the stub            */
-	ptrint      *d;
+	methodinfo  *m;
 	codegendata *cd;
-	s4           dumpsize;
 
-	s = CNEW(u1, COMPILERSTUB_SIZE);
+	/* get required compiler data */
 
-	/* set data pointer and code pointer */
-
-	d = (ptrint *) s;
-	s = s + COMPILERSTUB_DATASIZE;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	cd = DNEW(codegendata);
-	cd->mcodeptr = s;
-
-	/* The codeinfo pointer is actually a pointer to the
-	   methodinfo. This fakes a codeinfo structure. */
-
-	d[0] = (ptrint) asm_call_jit_compiler;
-	d[1] = (ptrint) m;
-	d[2] = (ptrint) &d[1];                                    /* fake code->m */
+	m  = jd->m;
+	cd = jd->cd;
 
 	/* code for the stub */
 
-	M_MOV_IMM(m, REG_ITMP1);            /* method info                        */
+	M_MOV_IMM(m, REG_ITMP1);
 	M_MOV_IMM(asm_call_jit_compiler, REG_ITMP3);
 	M_JMP(REG_ITMP3);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_cstub_len += COMPILERSTUB_SIZE;
-#endif
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-	
-	return s;
 }
 
 
-/* createnativestub ************************************************************
+/* codegen_emit_stub_native ****************************************************
 
-   Creates a stub routine which calls a native method.
+   Emits a stub routine which calls a native method.
 
 *******************************************************************************/
 
-u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
 	methodinfo   *m;
 	codeinfo     *code;
@@ -3990,14 +3956,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_MOV_IMM(asm_handle_nat_exception, REG_ITMP3);
 	M_JMP(REG_ITMP3);
 
-
 	/* generate patcher stubs */
 
 	emit_patcher_stubs(jd);
-
-	codegen_finish(jd);
-
-	return code->entrypoint;
 }
 
 

@@ -1,6 +1,7 @@
-/* vm/jit/sparc64/codegen.h - code generation macros and definitions for Sparc
+/* src/vm/jit/sparc64/codegen.h - code generation macros and definitions for
+                                  Sparc64
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -21,14 +22,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Alexander Jordan
-
-   Changes:
 
    $Id: codegen.h 4722 2006-04-03 15:36:00Z twisti $
 
@@ -71,6 +64,11 @@ s4 nat_argintregs[INT_NATARG_CNT];
         M_NOP; \
         M_NOP; \
     } while (0)
+
+
+/* stub defines ***************************************************************/
+
+#define COMPILERSTUB_CODESIZE    4 * 4
 
 
 /* additional functions and macros to generate code ***************************/

@@ -45,8 +45,7 @@
     } while (0)
 
 
-#define PATCHER_NOPS \
-	do { M_TPFL; M_TPF; M_TPF } while (0);
+/* branch defines *************************************************************/
 
 #define BRANCH_NOPS \
     do { \
@@ -59,6 +58,17 @@
             M_NOP; \
         } \
     } while (0)
+
+
+/* patcher defines ************************************************************/
+
+#define PATCHER_NOPS \
+	do { M_TPFL; M_TPF; M_TPF } while (0);
+
+
+/* stub defines ***************************************************************/
+
+#define COMPILERSTUB_CODESIZE (6+6+6+2)
 
 
 /* coldfire instruction format:
