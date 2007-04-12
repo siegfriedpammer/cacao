@@ -687,11 +687,9 @@ void emit_patcher_stubs(jitdata *jd)
 		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
 
 		/* create stack frame - keep stack 16-byte aligned */
-
 		M_AADD_IMM(REG_SP, -8 * 8, REG_SP);
 
 		/* calculate return address and move it onto the stack */
-
 		M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
 		M_AST_INTERN(REG_ITMP3, REG_SP, 5 * 8);
 
@@ -711,36 +709,25 @@ void emit_patcher_stubs(jitdata *jd)
 #endif
 
 		/* move machine code onto stack */
-
 		disp = dseg_add_s4(cd, mcode);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST_INTERN(REG_ITMP3, REG_SP, 3 * 8);
 
 		/* move class/method/field reference onto stack */
-
 		disp = dseg_add_address(cd, pref->ref);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST_INTERN(REG_ITMP3, REG_SP, 2 * 8);
 
 		/* move data segment displacement onto stack */
-
 		disp = dseg_add_s4(cd, pref->disp);
 		M_ILD(REG_ITMP3, REG_PV, disp);
 		M_IST_INTERN(REG_ITMP3, REG_SP, 1 * 8);
-		M_NOP;
 
 		/* move patcher function pointer onto stack */
-
 		disp = dseg_add_functionptr(cd, pref->patcher);
 		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_AST_INTERN(REG_ITMP3, REG_SP, 0 * 8);
 
-#if 0
-		disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_MTCTR(REG_ITMP3);
-		M_RTS;
-#else
 		if (targetdisp == 0) {
 			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
 
@@ -754,7 +741,6 @@ void emit_patcher_stubs(jitdata *jd)
 				(((u4 *) cd->mcodeptr) + 1);
 			M_BR(disp);
 		}
-#endif
 	}
 }
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7692 2007-04-12 14:47:24Z twisti $
+   $Id: codegen.c 7694 2007-04-12 15:35:13Z tbfg $
 
 */
 
@@ -608,6 +608,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_SUB(s1, s2, d);
+			M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -835,7 +836,8 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_SRA(s1, s2, d);
+			M_AND_IMM(s2, 0x3f, REG_ITMP2);
+			M_SRA(s1, REG_ITMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 		case ICMD_LUSHRCONST:
@@ -906,6 +908,17 @@ bool codegen_emit(jitdata *jd)
 		                      /* sx.val.i = constant                             */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+#if 0
+			/* fast division, result in REG_ITMP3) */
+			M_SRA_IMM(s1, iptr->sx.val.i, REG_ITMP3);
+			M_ADDZE(REG_ITMP3, REG_ITMP3);
+
+			M_SUB(s1, REG_ITMP3, d);
+			M_EXTSW(d, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+#else
+			
 			M_MOV(s1, REG_ITMP2);
 			M_CMPI(s1, 0);
 			M_BGE(1 + 2*(iptr->sx.val.i >= 32768));
@@ -926,6 +939,7 @@ bool codegen_emit(jitdata *jd)
 			M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
+#endif
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
 		case ICMD_LOR:
@@ -2924,85 +2938,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* generate patcher stub call code */
 
-	{
-		patchref *pref;
-		u4        mcode;
-		u1       *savedmcodeptr;
-		u1       *tmpmcodeptr;
+	emit_patcher_stubs(jd);
 
-		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* Get machine code which is patched back in later. The
-			   call is 1 instruction word long. */
+	codegen_finish(jd);
 
-			tmpmcodeptr = cd->mcodebase + pref->branchpos;
-
-			mcode = *((u4 *) tmpmcodeptr);
-
-			/* Patch in the call to call the following code (done at
-			   compile time). */
-
-			savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
-			cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
-
-			disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
-			M_BL(disp);
-
-			cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
-
-			/* create stack frame - keep stack 16-byte aligned */
-
-			M_AADD_IMM(REG_SP, -8 * 8, REG_SP);
-
-			/* move return address onto stack */
-
-			M_MFLR(REG_ZERO);
-			M_AST(REG_ZERO, REG_SP, 5 * 8);
-
-			/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-			/* order reversed because of data segment layout */
-
-			(void) dseg_add_unique_address(cd, NULL);                         /* flcword    */
-			(void) dseg_add_unique_address(cd, lock_get_initial_lock_word()); /* monitorPtr */
-			disp = dseg_add_unique_address(cd, NULL);                         /* vftbl      */
-
-			M_LDA(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 4 * 8);
-#else
-			/* do nothing */
-#endif
-
-			/* move machine code onto stack */
-
-			disp = dseg_add_unique_s4(cd, mcode);
-			M_ILD(REG_ITMP3, REG_PV, disp);
-			M_IST(REG_ITMP3, REG_SP, 3 * 8);
-
-			/* move class/method/field reference onto stack */
-
-			disp = dseg_add_unique_address(cd, pref->ref);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 2 * 8);
-
-			/* move data segment displacement onto stack */
-
-			disp = dseg_add_unique_s4(cd, pref->disp);
-			M_ILD(REG_ITMP3, REG_PV, disp);
-			M_IST(REG_ITMP3, REG_SP, 1 * 8);
-
-			/* move patcher function pointer onto stack */
-
-			disp = dseg_add_functionptr(cd, pref->patcher);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 0 * 8);
-
-			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-	}
+	return code->entrypoint;
 }
 
 
