@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 7686 2007-04-11 10:53:53Z twisti $
+   $Id: builtin.h 7696 2007-04-12 20:18:54Z twisti $
 
 */
 
@@ -67,6 +67,7 @@ typedef struct builtintable_entry builtintable_entry;
 
 struct builtintable_entry {
 	s4           opcode;                /* opcode which is replaced           */
+	u4           flags;                 /* e.g. check for exception           */
 	functionptr  fp;                    /* function pointer of builtin        */
 	char        *cclassname;            /* char name of the class             */
 	char        *cname;                 /* char name of the function          */
@@ -74,9 +75,14 @@ struct builtintable_entry {
 	utf         *classname;             /* class of the function              */
 	utf         *name;                  /* name of the function               */
 	utf         *descriptor;            /* descriptor of the function         */
-	bool         checkexception;        /* check for exception after return   */
 	methoddesc  *md;
 };
+
+
+/* builtin table flag defines *************************************************/
+
+#define BUILTINTABLE_FLAG_STUB         0x0001 /* builtin needs a stub         */
+#define BUILTINTABLE_FLAG_EXCEPTION    0x0002 /* check for excepion on return */
 
 
 /* function prototypes ********************************************************/

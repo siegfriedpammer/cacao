@@ -27,7 +27,7 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: arch.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: arch.h 7601 2007-03-28 23:02:50Z michi $
 
 */
 

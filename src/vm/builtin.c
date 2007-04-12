@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7615 2007-03-29 23:10:59Z michi $
+   $Id: builtin.c 7696 2007-04-12 20:18:54Z twisti $
 
 */
 
@@ -300,7 +300,8 @@ builtintable_entry *builtintable_get_automatic(s4 opcode)
 		if (middle->opcode < opcode) {
 			first = middle + 1;
 			entries -= half + 1;
-		} else
+		}
+		else
 			entries = half;
 	}
 
@@ -345,14 +346,15 @@ bool builtintable_replace_function(void *iptr_)
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
 		if ((METHODREF_CLASSNAME(mr) == bte->classname) &&
-			(mr->name             == bte->name) &&
-			(mr->descriptor       == bte->descriptor)) {
+			(mr->name                == bte->name) &&
+			(mr->descriptor          == bte->descriptor)) {
 
 			/* set the values in the instruction */
 
-			iptr->opc   = bte->opcode;
+			iptr->opc           = bte->opcode;
 			iptr->sx.s23.s3.bte = bte;
-			if (bte->checkexception)
+
+			if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION)
 				iptr->flags.bits |= INS_FLAG_CHECK;
 			else
 				iptr->flags.bits &= ~INS_FLAG_CHECK;
