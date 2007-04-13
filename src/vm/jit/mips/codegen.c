@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7692 2007-04-12 14:47:24Z twisti $
+   $Id: codegen.c 7700 2007-04-13 11:48:48Z twisti $
 
 */
 
@@ -980,22 +980,17 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			bte = iptr->sx.s23.s3.bte;
-			md  = bte->md;
+			s1 = emit_load_s1(jd, iptr, REG_A0_A1_PACKED);
+			s2 = emit_load_s2(jd, iptr, REG_A2_A3_PACKED);
 
-			s2 = emit_load_s2(jd, iptr, REG_ITMP12_PACKED);
+			/* XXX TODO: only do this if arithmetic check is really done! */
 			M_OR(GET_HIGH_REG(s2), GET_LOW_REG(s2), REG_ITMP3);
 			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
-			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[1].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[1].regoff)]);
-			M_LNGMOVE(s2, s3);
+			M_LNGMOVE(s1, REG_A0_A1_PACKED);
+			M_LNGMOVE(s2, REG_A2_A3_PACKED);
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[0].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[0].regoff)]);
-			M_LNGMOVE(s1, s3);
-
+			bte = iptr->sx.s23.s3.bte;
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JSR(REG_RA, REG_ITMP3);
