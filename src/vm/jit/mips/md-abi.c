@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7351 2007-02-13 21:32:36Z twisti $
+   $Id: md-abi.c 7699 2007-04-13 10:42:05Z twisti $
 
 */
 
@@ -172,12 +172,13 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff   = reguse;
 				reguse++;
 				md->argintreguse = reguse;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 				stacksize++;
 			}
 			break;
@@ -185,12 +186,13 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (i < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff   = reguse;
 				reguse++;
 				md->argfltreguse = reguse;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 				stacksize++;
 			}
 			break;
@@ -234,16 +236,16 @@ void md_param_alloc(methoddesc *md)
 				if (reguse < INT_ARG_CNT) {
 					pd->inmemory = false;
 # if WORDS_BIGENDIAN == 1
-					pd->regoff = PACK_REGS(reguse + 1, reguse);
+					pd->regoff   = PACK_REGS(reguse + 1, reguse);
 # else
-					pd->regoff = PACK_REGS(reguse, reguse + 1);
+					pd->regoff   = PACK_REGS(reguse, reguse + 1);
 # endif
 					reguse += 2;
 					md->argintreguse = reguse;
 				}
 				else {
 					pd->inmemory = true;
-					pd->regoff = ALIGN_2_WORD(stacksize);
+					pd->regoff   = ALIGN_2_WORD(stacksize);
 				}
 				stacksize += 2;
 			}
@@ -275,12 +277,13 @@ void md_param_alloc(methoddesc *md)
 
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff   = reguse;
 				reguse++;
 				md->argintreguse = reguse;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 			}
 			stacksize++;
 			break;
@@ -291,15 +294,16 @@ void md_param_alloc(methoddesc *md)
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
 #if WORDS_BIGENDIAN == 1
-				pd->regoff = PACK_REGS(reguse + 1, reguse);
+				pd->regoff   = PACK_REGS(reguse + 1, reguse);
 #else
-				pd->regoff = PACK_REGS(reguse, reguse + 1);
+				pd->regoff   = PACK_REGS(reguse, reguse + 1);
 #endif
 				reguse += 2;
 				md->argintreguse = reguse;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 			}
 			stacksize += 2;
 			break;

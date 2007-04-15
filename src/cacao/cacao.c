@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: cacao.c 7236 2007-01-22 17:25:03Z twisti $
+   $Id: cacao.c 7698 2007-04-13 10:12:04Z twisti $
 
 */
 
@@ -78,6 +78,7 @@ int main(int argc, char **argv)
 	lt_dlhandle     libjvm_handle;
 	lt_ptr          libjvm_vm_createjvm;
 	lt_ptr          libjvm_vm_run;
+	const char     *lterror;
 
 	bool (*vm_createjvm)(JavaVM **, void **, void *);
 	void (*vm_run)(JavaVM *, JavaVMInitArgs *);
@@ -129,10 +130,24 @@ int main(int argc, char **argv)
 	   If not found, try the absolute path. */
 
 	if (!(libjvm_handle = lt_dlopenext("libjvm"))) {
+		/* save the error message */
+
+		lterror = strdup(lt_dlerror());
+
 		if (!(libjvm_handle = lt_dlopenext(path))) {
+			/* print the first error message too */
+
+			fprintf(stderr, "main: lt_dlopenext failed: %s\n", lterror);
+
+			/* and now the current one */
+
 			fprintf(stderr, "main: lt_dlopenext failed: %s\n", lt_dlerror());
 			abort();
 		}
+
+		/* free the error string */
+
+		free((void *) lterror);
 	}
 
 	if (!(libjvm_vm_createjvm = lt_dlsym(libjvm_handle, "vm_createjvm"))) {

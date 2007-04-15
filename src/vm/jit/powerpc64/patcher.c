@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: patcher.c 7694 2007-04-12 15:35:13Z tbfg $
 
 */
 
@@ -1079,11 +1079,6 @@ bool patcher_resolve_native(u1 *sp)
 	m     = (methodinfo *)        *((ptrint *) (sp + 2 * 8));
 	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	/* resolve native function */
 

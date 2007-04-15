@@ -33,13 +33,9 @@
 #include "config.h"
 
 
-/*#define USE_FAKE_ATOMIC_INSTRUCTIONS 	0 */
-
 /* define architecture features ***********************************************/
 
 #define U8_AVAILABLE                     1
-
-#define USEBUILTINTABLE
 
 #define SUPPORT_DIVISION                 0
 #define SUPPORT_LONG                     0
