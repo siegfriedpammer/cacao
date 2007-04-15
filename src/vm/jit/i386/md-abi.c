@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7334 2007-02-12 00:34:51Z twisti $
+   $Id: md-abi.c 7705 2007-04-15 12:15:01Z michi $
 
 */
 
@@ -48,6 +48,20 @@ s4 nregdescint[] = {
 
 const char *abi_registers_integer_name[] = {
 	"eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"
+};
+
+const s4 abi_registers_integer_argument[] = {
+	/* empty */
+};
+
+const s4 abi_registers_integer_saved[] = {
+	5,  /* s0 */
+	6,  /* s1 */
+	7,  /* s2 */
+};
+
+const s4 abi_registers_integer_temporary[] = {
+	3,  /* t0 */
 };
 
 
