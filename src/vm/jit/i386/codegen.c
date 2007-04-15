@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7707 2007-04-15 12:23:38Z michi $
+   $Id: codegen.c 7708 2007-04-15 13:06:49Z michi $
 
 */
 
@@ -3717,6 +3717,117 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
+/* codegen_emit_stub_builtin ***************************************************
+
+   Creates a stub routine which calls a builtin function.
+
+*******************************************************************************/
+
+void codegen_emit_stub_builtin(jitdata *jd, functionptr f)
+{
+	codeinfo    *code;
+	codegendata *cd;
+	s4           i;
+	s4           disp;
+
+	/* get required compiler data */
+
+	code = jd->code;
+	cd   = jd->cd;
+
+	/* calculate stack frame size */
+
+	cd->stackframesize =
+		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		4;                              /* 4 arguments or return value        */
+
+	cd->stackframesize |= 0x3;          /* keep stack 16-byte aligned         */
+
+	/* create method header */
+
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
+	(void) dseg_addlinenumbertablesize(cd);
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
+
+	/* generate stub code */
+
+	M_ASUB_IMM(cd->stackframesize * 4, REG_SP);
+
+#if defined(ENABLE_GC_CACAO)
+	/* Save callee saved integer registers in stackframeinfo (GC may
+	   need to recover them during a collection). */
+
+	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
+
+	/* create dynamic stack info */
+
+	M_MOV(REG_SP, REG_ITMP1);
+	M_AADD_IMM(cd->stackframesize * 4, REG_ITMP1);
+	M_AST(REG_ITMP1, REG_SP, 0 * 4);
+
+	M_IST_IMM(0, REG_SP, 1 * 4);
+	dseg_adddata(cd);
+
+	M_MOV(REG_SP, REG_ITMP2);
+	M_AADD_IMM(cd->stackframesize * 4 + SIZEOF_VOID_P, REG_ITMP2);
+	M_AST(REG_ITMP2, REG_SP, 2 * 4);
+
+	M_ALD(REG_ITMP3, REG_SP, cd->stackframesize * 4);
+	M_AST(REG_ITMP3, REG_SP, 3 * 4);
+
+	M_MOV_IMM(codegen_stub_builtin_enter, REG_ITMP1);
+	M_CALL(REG_ITMP1);
+
+	/* call the builtin function */
+
+	M_MOV_IMM(f, REG_ITMP3);
+	M_CALL(REG_ITMP3);
+
+	/* save return value */
+
+	/* XXX TODO */
+
+	/* remove native stackframe info */
+
+	M_MOV(REG_SP, REG_ITMP1);
+	M_AADD_IMM(cd->stackframesize * 4, REG_ITMP1);
+	M_AST(REG_ITMP1, REG_SP, 0 * 4);
+
+	M_MOV_IMM(codegen_stub_builtin_exit, REG_ITMP1);
+	M_CALL(REG_ITMP1);
+
+	/* restore return value */
+
+	/* XXX TODO */
+
+#if defined(ENABLE_GC_CACAO)
+	/* Restore callee saved integer registers from stackframeinfo (GC
+	   might have modified them during a collection). */
+        
+	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
+
+	/* remove stackframe */
+
+	M_AADD_IMM(cd->stackframesize * 4, REG_SP);
+	M_RET;
+}
+
+
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.
@@ -3734,6 +3845,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	s4            i, j;                 /* count variables                    */
 	s4            t;
 	s4            s1, s2;
+	s4            disp;
 
 	/* get required compiler data */
 
@@ -3815,14 +3927,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* remember callee saved int registers in stackframeinfo (GC may need to  */
 	/* recover them during a collection).                                     */
 
-	j = cd->stackframesize * 4 - sizeof(stackframeinfo) +
-			OFFSET(stackframeinfo, intregs);
-	for (i=0; i<INT_REG_CNT; ++i) {
-		if (nregdescint[i] == REG_SAV) {
-			M_AST(i, REG_SP, j);
-			j += SIZEOF_VOID_P;
-		}
-	}
+	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
 #endif
 
 	/* prepare data structures for native function call */
@@ -3928,14 +4037,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* restore callee saved int registers from stackframeinfo (GC might have  */
 	/* modified them during a collection).                                    */
 
-	j = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
 		OFFSET(stackframeinfo, intregs);
-	for (i=0; i<INT_REG_CNT; ++i) {
-		if (nregdescint[i] == REG_SAV) {
-			M_ALD(i, REG_SP, j);
-			j += SIZEOF_VOID_P;
-		}
-	}
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
 #endif
 
 	M_AADD_IMM(cd->stackframesize * 4, REG_SP);
