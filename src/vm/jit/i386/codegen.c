@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7692 2007-04-12 14:47:24Z twisti $
+   $Id: codegen.c 7704 2007-04-15 11:55:25Z michi $
 
 */
 
@@ -3752,7 +3752,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		1 +                             /* function pointer                   */
-		4 * 4 +                         /* 4 arguments (start_native_call)    */
+		4 +                             /* 4 arguments (start_native_call)    */
 		nmd->memuse;
 
     /* keep stack 16-byte aligned */
