@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7695 2007-04-12 19:49:34Z twisti $
+   $Id: stack.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -4478,20 +4478,20 @@ icmd_BUILTIN:
 										assert(0); /* XXX is this assert ok? */
 #else
 										sd.var[copy->varnum].vv.regoff = 
-									rd->argfltregs[md->params[i].regoff];
+											md->params[i].regoff;
 #endif /* SUPPORT_PASS_FLOATARGS_IN_INTREGS */
 									}
 									else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (IS_2_WORD_TYPE(copy->type))
 											sd.var[copy->varnum].vv.regoff = 
-			PACK_REGS( rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
-					   rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
+			PACK_REGS(GET_LOW_REG(md->params[i].regoff),
+					  GET_HIGH_REG(md->params[i].regoff));
 
 										else
 #endif /* SUPPORT_COMBINE_INTEGER_REGISTERS */
 											sd.var[copy->varnum].vv.regoff = 
-									rd->argintregs[md->params[i].regoff];
+												md->params[i].regoff;
 									}
 								}
 							}

@@ -22,7 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   $Id: simplereg.c 7645 2007-04-03 11:46:50Z twisti $
+   $Id: simplereg.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -40,15 +40,16 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/allocator/simplereg.h"
 #include "vm/jit/show.h"
+#include "vm/jit/allocator/simplereg.h"
 
 #include "vmcore/method.h"
 #include "vmcore/options.h"
-#include "vm/resolve.h"
 
 
 #if 0
@@ -159,7 +160,7 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 #define AVAIL_FREE_TMP_INT  AVAIL_BACK_INT(rd->freetmpinttop)
 #define AVAIL_FREE_SAV_INT  AVAIL_BACK_INT(rd->freesavinttop)
 
-#define TAKE_ARG_FLT(r)  POP_FRONT(rd->argfltregs, rd->argfltreguse, r)
+#define TAKE_ARG_FLT(r)  POP_FRONT(abi_registers_float_argument, rd->argfltreguse, r)
 #define TAKE_TMP_FLT(r)  POP_BACK(rd->tmpfltregs, rd->tmpfltreguse, r)
 #define TAKE_SAV_FLT(r)  POP_BACK(rd->savfltregs, rd->savfltreguse, r)
 
@@ -167,7 +168,7 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 #define TAKE_TMP_ADR(r)  POP_BACK(rd->tmpadrregs, rd->tmpadrreguse, r)
 #define TAKE_SAV_ADR(r)  POP_BACK(rd->savadrregs, rd->savadrreguse, r)
 
-#define TAKE_ARG_INT(r)  POP_FRONT_INT(rd->argintregs, rd->argintreguse, r)
+#define TAKE_ARG_INT(r)  POP_FRONT_INT(abi_registers_integer_argument, rd->argintreguse, r)
 #define TAKE_TMP_INT(r)  POP_BACK_INT(rd->tmpintregs, rd->tmpintreguse, r)
 #define TAKE_SAV_INT(r)  POP_BACK_INT(rd->savintregs, rd->savintreguse, r)
 
@@ -657,11 +658,9 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 #if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 					/* We can only use float arguments as local variables,
 					 * if we do not pass them in integer registers. */
-					else if ((p < md->paramcount) &&
-							 !md->params[p].inmemory) 
-					{
+					else if ((p < md->paramcount) && !md->params[p].inmemory) {
 						v->flags = 0;
-						v->vv.regoff = rd->argfltregs[md->params[p].regoff];
+						v->vv.regoff = md->params[p].regoff;
 					}
 #endif
 					else if (AVAIL_TMP_FLT) {
@@ -669,11 +668,10 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 						TAKE_TMP_FLT(v->vv.regoff);
 					}
 					/* use unused argument registers as local registers */
-					else if ((p >= md->paramcount) &&
-							 (fargcnt < FLT_ARG_CNT)) 
-					{
+					else if ((p >= md->paramcount) && (fargcnt < FLT_ARG_CNT)) {
 						v->flags = 0;
-						POP_FRONT(rd->argfltregs, fargcnt, v->vv.regoff);
+						POP_FRONT(abi_registers_float_argument,
+								  fargcnt, v->vv.regoff);
 					}
 					else if (AVAIL_SAV_FLT) {
 						v->flags = 0;
@@ -715,13 +713,12 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 							v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (IS_2_WORD_TYPE(t))
-								v->vv.regoff = PACK_REGS(
-						rd->argintregs[GET_LOW_REG(md->params[p].regoff)],
-						rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]);
+								v->vv.regoff =
+									PACK_REGS(GET_LOW_REG(md->params[p].regoff),
+											  GET_HIGH_REG(md->params[p].regoff));
 								else
 #endif
-									v->vv.regoff =
-									   rd->argintregs[md->params[p].regoff];
+									v->vv.regoff = md->params[p].regoff;
 						}
 						else if (AVAIL_TMP_INT) {
 							v->flags = 0;
@@ -734,7 +731,8 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 								 (iargcnt + intregsneeded < INT_ARG_CNT)) 
 						{
 							v->flags = 0;
-							POP_FRONT_INT(rd->argintregs, iargcnt, v->vv.regoff);
+							POP_FRONT_INT(abi_registers_integer_argument,
+										  iargcnt, v->vv.regoff);
 						}
 						else if (AVAIL_SAV_INT) {
 							v->flags = 0;
@@ -922,14 +920,14 @@ static void simplereg_init(jitdata *jd, registerdata *rd)
 	/* record the interface registers as used */
 
 	for (i=0; i<rd->argintreguse; ++i)
-		rd->intusedinout[rd->argintregs[i]] = 1;
+		rd->intusedinout[abi_registers_integer_argument[i]] = 1;
 	for (i=rd->tmpintreguse; i<INT_TMP_CNT; ++i)
 		rd->intusedinout[rd->tmpintregs[i]] = 1;
 	for (i=rd->savintreguse; i<INT_SAV_CNT; ++i)
 		rd->intusedinout[rd->savintregs[i]] = 1;
 
 	for (i=0; i<rd->argfltreguse; ++i)
-		rd->fltusedinout[rd->argfltregs[i]] = 1;
+		rd->fltusedinout[abi_registers_float_argument[i]] = 1;
 	for (i=rd->tmpfltreguse; i<FLT_TMP_CNT; ++i)
 		rd->fltusedinout[rd->tmpfltregs[i]] = 1;
 	for (i=rd->savfltreguse; i<FLT_SAV_CNT; ++i)

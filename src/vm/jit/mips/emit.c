@@ -46,6 +46,7 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 
+#include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
@@ -832,10 +833,10 @@ void emit_verbosecall_enter(jitdata *jd)
 	   types, so it's correct for MIPS32 too) */
 
 	for (i = 0; i < INT_ARG_CNT; i++)
-		M_AST(rd->argintregs[i], REG_SP, PA_SIZE + (2 + i) * 8);
+		M_AST(abi_registers_integer_argument[i], REG_SP, PA_SIZE + (2 + i) * 8);
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(rd->argfltregs[i], REG_SP, PA_SIZE + (2 + INT_ARG_CNT + i) * 8);
+		M_DST(abi_registers_float_argument[i], REG_SP, PA_SIZE + (2 + INT_ARG_CNT + i) * 8);
 
 	/* save temporary registers for leaf methods */
 
@@ -856,12 +857,12 @@ void emit_verbosecall_enter(jitdata *jd)
 
 		if (IS_FLT_DBL_TYPE(t)) {
 			if (IS_2_WORD_TYPE(t)) {
-				M_DST(rd->argfltregs[i], REG_SP, 0 * 8);
-				M_LLD(rd->argintregs[i], REG_SP, 0 * 8);
+				M_DST(abi_registers_float_argument[i], REG_SP, 0 * 8);
+				M_LLD(abi_registers_integer_argument[i], REG_SP, 0 * 8);
 			}
 			else {
-				M_FST(rd->argfltregs[i], REG_SP, 0 * 8);
-				M_ILD(rd->argintregs[i], REG_SP, 0 * 8);
+				M_FST(abi_registers_float_argument[i], REG_SP, 0 * 8);
+				M_ILD(abi_registers_integer_argument[i], REG_SP, 0 * 8);
 			}
 		}
 	}
@@ -872,16 +873,16 @@ void emit_verbosecall_enter(jitdata *jd)
 
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(rd->argintregs[j], REG_SP, PA_SIZE + (2 + i) * 8);
-					M_ILD(rd->argintregs[j + 1], REG_SP, PA_SIZE + (2 + i) * 8 + 4);
+					M_ILD(abi_registers_integer_argument[j], REG_SP, PA_SIZE + (2 + i) * 8);
+					M_ILD(abi_registers_integer_argument[j + 1], REG_SP, PA_SIZE + (2 + i) * 8 + 4);
 				}
 				else {
 # if WORDS_BIGENDIAN == 1
-					M_MOV(REG_ZERO, rd->argintregs[j]);
-					M_ILD(rd->argintregs[j + 1], REG_SP, PA_SIZE + (2 + i) * 8);
+					M_MOV(REG_ZERO, abi_registers_integer_argument[j]);
+					M_ILD(abi_registers_integer_argument[j + 1], REG_SP, PA_SIZE + (2 + i) * 8);
 # else
-					M_ILD(rd->argintregs[j], REG_SP, PA_SIZE + (2 + i) * 8);
-					M_MOV(REG_ZERO, rd->argintregs[j + 1]);
+					M_ILD(abi_registers_integer_argument[j], REG_SP, PA_SIZE + (2 + i) * 8);
+					M_MOV(REG_ZERO, abi_registers_integer_argument[j + 1]);
 # endif
 				}
 				j += 2;
@@ -900,10 +901,10 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore argument registers */
 
 	for (i = 0; i < INT_ARG_CNT; i++)
-		M_ALD(rd->argintregs[i], REG_SP, PA_SIZE + (2 + i) * 8);
+		M_ALD(abi_registers_integer_argument[i], REG_SP, PA_SIZE + (2 + i) * 8);
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(rd->argfltregs[i], REG_SP, PA_SIZE + (2 + INT_ARG_CNT + i) * 8);
+		M_DLD(abi_registers_float_argument[i], REG_SP, PA_SIZE + (2 + INT_ARG_CNT + i) * 8);
 
 	/* restore temporary registers for leaf methods */
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7692 2007-04-12 14:47:24Z twisti $
+   $Id: codegen.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -219,33 +219,32 @@ bool codegen_emit(jitdata *jd)
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
 #endif
 			if (!md->params[i].inmemory) {           /* register arguments    */
-				s2 = ARGUMENT_REGS(t, s1);           /* get argument register */
 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
 					if (GET_LOW_REG(var->vv.regoff) == REG_SPLIT || GET_HIGH_REG(var->vv.regoff) == REG_SPLIT) {
 						/* TODO: remove this!!! */
-						dolog("SPLIT in local var: %x>%x (%s.%s)", s2, var->vv.regoff, m->class->name->text, m->name->text);
-						assert(s2 == var->vv.regoff);
+						dolog("SPLIT in local var: %x>%x (%s.%s)", s1, var->vv.regoff, m->class->name->text, m->name->text);
+						assert(s1 == var->vv.regoff);
 					}
 					s3 = var->vv.regoff;
-					SPLIT_OPEN(t, s2, REG_ITMP1);
-					SPLIT_LOAD(t, s2, cd->stackframesize);
+					SPLIT_OPEN(t, s1, REG_ITMP1);
+					SPLIT_LOAD(t, s1, cd->stackframesize);
 					SPLIT_OPEN(t, s3, REG_ITMP1);
 
 					if (IS_2_WORD_TYPE(t))
-						M_LNGMOVE(s2, s3);
+						M_LNGMOVE(s1, s3);
 					else
-						M_INTMOVE(s2, s3);
+						M_INTMOVE(s1, s3);
 
 					SPLIT_STORE_AND_CLOSE(t, s3, cd->stackframesize);
 				}
 				else {                               /* reg arg -> spilled    */
-					SPLIT_OPEN(t, s2, REG_ITMP1);
-					SPLIT_LOAD(t, s2, cd->stackframesize);
+					SPLIT_OPEN(t, s1, REG_ITMP1);
+					SPLIT_LOAD(t, s1, cd->stackframesize);
 
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s2, REG_SP, var->vv.regoff * 4);
+						M_LST(s1, REG_SP, var->vv.regoff * 4);
 					else
-						M_IST(s2, REG_SP, var->vv.regoff * 4);
+						M_IST(s1, REG_SP, var->vv.regoff * 4);
 					/* no SPLIT_CLOSE here because arg is fully spilled now */
 				}
 			}
@@ -264,20 +263,19 @@ bool codegen_emit(jitdata *jd)
 #if !defined(ENABLE_SOFTFLOAT)
 		} else {                                     /* floating args         */
 			if (!md->params[i].inmemory) {           /* register arguments    */
-				s2 = ARGUMENT_REGS(t, s1);           /* get argument register */
 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
-					SPLIT_OPEN(t, s2, REG_ITMP1);
-					SPLIT_LOAD(t, s2, cd->stackframesize);
-					M_CAST_INT_TO_FLT_TYPED(t, s2, var->vv.regoff);
+					SPLIT_OPEN(t, s1, REG_ITMP1);
+					SPLIT_LOAD(t, s1, cd->stackframesize);
+					M_CAST_INT_TO_FLT_TYPED(t, s1, var->vv.regoff);
 				}
 				else {                               /* reg arg -> spilled    */
-					SPLIT_OPEN(t, s2, REG_ITMP1);
-					SPLIT_LOAD(t, s2, cd->stackframesize);
+					SPLIT_OPEN(t, s1, REG_ITMP1);
+					SPLIT_LOAD(t, s1, cd->stackframesize);
 
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s2, REG_SP, var->vv.regoff * 4);
+						M_LST(s1, REG_SP, var->vv.regoff * 4);
 					else
-						M_IST(s2, REG_SP, var->vv.regoff * 4);
+						M_IST(s1, REG_SP, var->vv.regoff * 4);
 					/* no SPLIT_CLOSE here because arg is fully spilled now */
 				}
 			}
@@ -2233,6 +2231,7 @@ bool codegen_emit(jitdata *jd)
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
+				d   = md->params[s3].regoff;
 
 				if (var->flags & PREALLOC) /* argument was precolored? */
 					continue;
@@ -2242,43 +2241,41 @@ bool codegen_emit(jitdata *jd)
 				if (IS_INT_LNG_TYPE(var->type)) {
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 					if (!md->params[s3].inmemory) {
-						s1 = ARGUMENT_REGS(var->type, md->params[s3].regoff);
 						SPLIT_OPEN(var->type, s1, REG_ITMP2);
-						d = emit_load(jd, iptr, var, s1);
+						s1 = emit_load(jd, iptr, var, d);
 
 						if (IS_2_WORD_TYPE(var->type))
-							M_LNGMOVE(d, s1);
+							M_LNGMOVE(s1, d);
 						else
-							M_INTMOVE(d, s1);
+							M_INTMOVE(s1, d);
 
-						SPLIT_STORE_AND_CLOSE(var->type, s1, 0);
+						SPLIT_STORE_AND_CLOSE(var->type, d, 0);
 					}
 					else {
 						if (IS_2_WORD_TYPE(var->type)) {
-							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(d, REG_SP, md->params[s3].regoff * 4);
+							s1 = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
+							M_LST(s1, REG_SP, d * 4);
 						}
 						else {
-							d = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(d, REG_SP, md->params[s3].regoff * 4);
+							s1 = emit_load(jd, iptr, var, REG_ITMP1);
+							M_IST(s1, REG_SP, d * 4);
 						}
 					}
 #if !defined(ENABLE_SOFTFLOAT)
 				}
 				else {
 					if (!md->params[s3].inmemory) {
-						s1 = ARGUMENT_REGS(var->type, md->params[s3].regoff);
-						d = emit_load(jd, iptr, var, REG_FTMP1);
-						SPLIT_OPEN(var->type, s1, REG_ITMP1);
-						M_CAST_FLT_TO_INT_TYPED(var->type, d, s1);
-						SPLIT_STORE_AND_CLOSE(var->type, s1, 0);
+						s1 = emit_load(jd, iptr, var, REG_FTMP1);
+						SPLIT_OPEN(var->type, d, REG_ITMP1);
+						M_CAST_FLT_TO_INT_TYPED(var->type, s1, d);
+						SPLIT_STORE_AND_CLOSE(var->type, d, 0);
 					}
 					else {
-						d = emit_load(jd, iptr, var, REG_FTMP1);
+						s1 = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 4);
+							M_DST(s1, REG_SP, d * 4);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 4);
+							M_FST(s1, REG_SP, d * 4);
 					}
 				}
 #endif /* !defined(ENABLE_SOFTFLOAT) */
@@ -2868,22 +2865,20 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
-	methodinfo   *m;
-	codeinfo     *code;
-	codegendata  *cd;
-	registerdata *rd;
-	s4            nativeparams;
-	methoddesc   *md;
-	s4            i, j;
-	s4            t;
-	s4            disp, funcdisp, s1, s2;
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
+	s4           nativeparams;
+	methoddesc  *md;
+	s4           i, j;
+	s4           t;
+	s4           disp, funcdisp, s1, s2;
 
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
 
 	/* initialize variables */
 
@@ -2970,11 +2965,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		t = md->paramtypes[i].type;
 
 		if (!md->params[i].inmemory) {
-			s1 = ARGUMENT_REGS(t, md->params[i].regoff);
+			s1 = md->params[i].regoff;
+			s2 = nmd->params[j].regoff;
 
 			if (!nmd->params[j].inmemory) {
-				s2 = ARGUMENT_REGS(t, nmd->params[j].regoff);
-
 #if !defined(__ARM_EABI__)
 				SPLIT_OPEN(t, s1, REG_ITMP1);
 				SPLIT_LOAD(t, s1, cd->stackframesize);
@@ -2991,8 +2985,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #endif
 			}
 			else {
-				s2 = nmd->params[j].regoff;
-
 #if !defined(__ARM_EABI__)
 				SPLIT_OPEN(t, s1, REG_ITMP1);
 				SPLIT_LOAD(t, s1, cd->stackframesize);

@@ -1,6 +1,6 @@
 /* src/vm/jit/reg.h - register allocator header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Christian Ullrich
-            Edwin Steiner
-
-   $Id: reg.h 5708 2006-10-06 22:37:13Z edwin $
+   $Id: reg.h 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -77,10 +70,8 @@ struct registerdata {
 	int intreg_ret;                 /* register to return integer values      */
 	int fltreg_ret;                 /* register for return float values       */
 
-	int *argintregs;                /* argument integer registers             */
 	int *tmpintregs;                /* scratch integer registers              */
 	int *savintregs;                /* saved integer registers                */
-	int *argfltregs;                /* argument float registers               */
 	int *tmpfltregs;                /* scratch float registers                */
 	int *savfltregs;                /* saved float registers                  */
 	int *freeargintregs;            /* free argument integer registers        */

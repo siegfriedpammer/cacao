@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/linux/md-abi.h - defines for PowerPC Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 7356 2007-02-14 11:00:28Z twisti $
+   $Id: md-abi.h 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -94,6 +94,7 @@
 #define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 
 #define REG_A0_A1_PACKED     PACK_REGS(REG_A1, REG_A0)
+#define REG_A2_A3_PACKED     PACK_REGS(REG_A3, REG_A2)
 
 #define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
 #define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7700 2007-04-13 11:48:48Z twisti $
+   $Id: codegen.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -51,6 +51,7 @@
 #include "vm/exceptions.h"
 #include "vm/vm.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -215,36 +216,32 @@ bool codegen_emit(jitdata *jd)
 			continue;
 
  		var = VAR(varindex);
+		s1  = md->params[p].regoff;
 
-		s1 = md->params[p].regoff;
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
  			if (!md->params[p].inmemory) {           /* register arguments    */
 #if SIZEOF_VOID_P == 8
-				s2 = rd->argintregs[s1];
- 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_INTMOVE(s2, var->vv.regoff);
- 				} else {                             /* reg arg -> spilled    */
- 					M_LST(s2, REG_SP, var->vv.regoff * 8);
- 				}
+ 				if (!(var->flags & INMEMORY))
+ 					M_INTMOVE(s1, var->vv.regoff);
+ 				else
+ 					M_LST(s1, REG_SP, var->vv.regoff * 8);
 #else
 				if (IS_2_WORD_TYPE(t)) {
-					s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-								   rd->argintregs[GET_HIGH_REG(s1)]);
-					if (!(var->flags & INMEMORY))    /* reg arg -> register   */
-						M_LNGMOVE(s2, var->vv.regoff);
-					else                             /* reg arg -> spilled    */
-						M_LST(s2, REG_SP, var->vv.regoff * 8);
+					if (!(var->flags & INMEMORY))
+						M_LNGMOVE(s1, var->vv.regoff);
+					else
+						M_LST(s1, REG_SP, var->vv.regoff * 8);
 				}
 				else {
-					s2 = rd->argintregs[s1];
-					if (!(var->flags & INMEMORY))    /* reg arg -> register   */
-						M_INTMOVE(s2, var->vv.regoff);
-					else                             /* reg arg -> spilled    */
-						M_IST(s2, REG_SP, var->vv.regoff * 8);
+					if (!(var->flags & INMEMORY))
+						M_INTMOVE(s1, var->vv.regoff);
+					else
+						M_IST(s1, REG_SP, var->vv.regoff * 8);
 				}
 #endif
- 			} else {                                 /* stack arguments       */
- 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
+ 			}
+			else {                                   /* stack arguments       */
+ 				if (!(var->flags & INMEMORY)) {
 #if SIZEOF_VOID_P == 8
  					M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
 #else
@@ -253,78 +250,75 @@ bool codegen_emit(jitdata *jd)
 					else
 						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
 #endif
- 				} else {                             /* stack arg -> spilled  */
+ 				}
+				else
 					var->vv.regoff = cd->stackframesize + s1;
-				}
 			}
-
- 		} else {                                     /* floating args         */
- 			if (!md->params[p].inmemory) {           /* register arguments    */
+ 		}
+		else {                                       /* floating args         */
+ 			if (!md->params[p].inmemory) {
 #if SIZEOF_VOID_P == 8
-				s2 = rd->argfltregs[s1];
- 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
+ 				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
-						M_DMOV(s2, var->vv.regoff);
+						M_DMOV(s1, var->vv.regoff);
 					else
-						M_FMOV(s2, var->vv.regoff);
- 				} else {			                 /* reg arg -> spilled    */
+						M_FMOV(s1, var->vv.regoff);
+ 				}
+				else {
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s2, REG_SP, var->vv.regoff * 8);
+						M_DST(s1, REG_SP, var->vv.regoff * 8);
 					else
-						M_FST(s2, REG_SP, var->vv.regoff * 8);
+						M_FST(s1, REG_SP, var->vv.regoff * 8);
  				}
 #else
 				if ((p == 0) ||
 					((p == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type))) {
-					s2 = rd->argfltregs[s1];
-					if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
+					if (!(var->flags & INMEMORY)) {
 						if (IS_2_WORD_TYPE(t))
-							M_DBLMOVE(s2, var->vv.regoff);
+							M_DBLMOVE(s1, var->vv.regoff);
 						else
-							M_FLTMOVE(s2, var->vv.regoff);
+							M_FLTMOVE(s1, var->vv.regoff);
 					}
-					else {			                 /* reg arg -> spilled    */
+					else {
 						if (IS_2_WORD_TYPE(t))
-							M_DST(s2, REG_SP, var->vv.regoff * 8);
+							M_DST(s1, REG_SP, var->vv.regoff * 8);
 						else
-							M_FST(s2, REG_SP, var->vv.regoff * 8);
+							M_FST(s1, REG_SP, var->vv.regoff * 8);
 					}
 				}
 				else {
 					if (IS_2_WORD_TYPE(t)) {
-						s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-									   rd->argintregs[GET_HIGH_REG(s1)]);
 						if (!(var->flags & INMEMORY)) {
-							M_MTC1(GET_LOW_REG(s2), var->vv.regoff);
-							M_MTC1(GET_HIGH_REG(s2), var->vv.regoff + 1);
+							M_MTC1(GET_LOW_REG(s1), var->vv.regoff);
+							M_MTC1(GET_HIGH_REG(s1), var->vv.regoff + 1);
 							M_NOP;
 						}
 						else
-							M_LST(s2, REG_SP, var->vv.regoff * 8);
+							M_LST(s1, REG_SP, var->vv.regoff * 8);
 					}
 					else {
-						s2 = rd->argintregs[s1];
 						if (!(var->flags & INMEMORY)) {
-							M_MTC1(s2, var->vv.regoff);
+							M_MTC1(s1, var->vv.regoff);
 							M_NOP;
 						}
 						else
-							M_IST(s2, REG_SP, var->vv.regoff * 8);
+							M_IST(s1, REG_SP, var->vv.regoff * 8);
 					}
 				}
 #endif
-
- 			} else {                                 /* stack arguments       */
- 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
+ 			}
+			else {
+ 				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
 						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
 					else
 						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
-				} else                               /* stack-arg -> spilled  */
+				}
+				else
 					var->vv.regoff = cd->stackframesize + s1;
 			}
 		}
-	} /* end for */
+	}
 
 	/* call monitorenter function */
 
@@ -339,10 +333,10 @@ bool codegen_emit(jitdata *jd)
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 			for (p = 0; p < INT_ARG_CNT; p++)
-				M_AST(rd->argintregs[p], REG_SP, p * 8);
+				M_AST(abi_registers_integer_argument[p], REG_SP, p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_DST(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
+				M_DST(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 			s1 += INT_ARG_CNT + FLT_ARG_CNT;
 		}
@@ -370,10 +364,10 @@ bool codegen_emit(jitdata *jd)
 # if !defined(NDEBUG)
 		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
-				M_ALD(rd->argintregs[p], REG_SP, p * 8);
+				M_ALD(abi_registers_integer_argument[p], REG_SP, p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_DLD(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
+				M_DLD(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 
 			M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
@@ -3088,6 +3082,7 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
+				d   = md->params[s3].regoff;
 
 				if (var->flags & PREALLOC)
 					continue;
@@ -3095,37 +3090,30 @@ gen_method:
 				if (IS_INT_LNG_TYPE(var->type)) {
 #if SIZEOF_VOID_P == 8
 					if (!md->params[s3].inmemory) {
-						s1 = rd->argintregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var, s1);
-						M_INTMOVE(d, s1);
+						s1 = emit_load(jd, iptr, var, d);
+						M_INTMOVE(s1, d);
 					}
 					else  {
-						d = emit_load(jd, iptr, var, REG_ITMP1);
-						M_LST(d, REG_SP, md->params[s3].regoff * 8);
+						s1 = emit_load(jd, iptr, var, REG_ITMP1);
+						M_LST(s1, REG_SP, d * 8);
 					}
 #else
 					if (!md->params[s3].inmemory) {
-						if (IS_2_WORD_TYPE(var->type)) {
-							s1 = md->params[s3].regoff;
-							s1 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-										   rd->argintregs[GET_HIGH_REG(s1)]);
-							d = emit_load(jd, iptr, var, s1);
-							M_LNGMOVE(d, s1);
-						}
-						else {
-							s1 = rd->argintregs[md->params[s3].regoff];
-							d = emit_load(jd, iptr, var, s1);
-							M_INTMOVE(d, s1);
-						}
+						s1 = emit_load(jd, iptr, var, d);
+
+						if (IS_2_WORD_TYPE(var->type))
+							M_LNGMOVE(s1, d);
+						else
+							M_INTMOVE(s1, d);
 					}
 					else {
 						if (IS_2_WORD_TYPE(var->type)) {
-							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(d, REG_SP, md->params[s3].regoff * 8);
+							s1 = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
+							M_LST(s1, REG_SP, d * 8);
 						}
 						else {
-							d = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(d, REG_SP, md->params[s3].regoff * 8);
+							s1 = emit_load(jd, iptr, var, REG_ITMP1);
+							M_IST(s1, REG_SP, d * 8);
 						}
 					}
 #endif
@@ -3133,47 +3121,41 @@ gen_method:
 				else {
 					if (!md->params[s3].inmemory) {
 #if SIZEOF_VOID_P == 8
-						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var, s1);
+						s1 = emit_load(jd, iptr, var, d);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DMOV(d, s1);
+							M_DMOV(s1, d);
 						else
-							M_FMOV(d, s1);
+							M_FMOV(s1, d);
 #else
 						if ((s3 == 0) ||
 							((s3 == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type))) {
-							s1 = rd->argfltregs[md->params[s3].regoff];
-							d = emit_load(jd, iptr, var, s1);
+							s1 = emit_load(jd, iptr, var, d);
 							if (IS_2_WORD_TYPE(var->type))
-								M_DBLMOVE(d, s1);
+								M_DBLMOVE(s1, d);
 							else
-								M_FLTMOVE(d, s1);
+								M_FLTMOVE(s1, d);
 						}
 						else {
 							if (IS_2_WORD_TYPE(var->type)) {
-								s1 = md->params[s3].regoff;
-								s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-											   rd->argintregs[GET_HIGH_REG(s1)]);
-								d = emit_load(jd, iptr, var, REG_FTMP1);
-								M_MFC1(GET_LOW_REG(s2), d);
-								M_MFC1(GET_HIGH_REG(s2), d + 1);
+								s1 = emit_load(jd, iptr, var, REG_FTMP1);
+								M_MFC1(GET_LOW_REG(d), s1);
+								M_MFC1(GET_HIGH_REG(d), s1 + 1);
 								M_NOP;
 							}
 							else {
-								s1 = rd->argintregs[md->params[s3].regoff];
-								d = emit_load(jd, iptr, var, s1);
-								M_MFC1(s1, d);
+								s1 = emit_load(jd, iptr, var, d);
+								M_MFC1(d, s1);
 								M_NOP;
 							}
 						}	
 #endif
 					}
 					else {
-						d = emit_load(jd, iptr, var, REG_FTMP1);
+						s1 = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 8);
+							M_DST(s1, REG_SP, d * 8);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 8);
+							M_FST(s1, REG_SP, d * 8);
 					}
 				}
 			}
@@ -3747,23 +3729,21 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
-	methodinfo   *m;
-	codeinfo     *code;
-	codegendata  *cd;
-	registerdata *rd;
-	methoddesc   *md;
-	s4            nativeparams;
-	s4            i, j;                 /* count variables                    */
-	s4            t;
-	s4            s1, s2, disp;
-	s4            funcdisp;             /* displacement of the function       */
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
+	methoddesc  *md;
+	s4           nativeparams;
+	s4           i, j;
+	s4           t;
+	s4           s1, s2, disp;
+	s4           funcdisp;              /* displacement of the function       */
 
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
 
 	/* initialize variables */
 
@@ -3823,7 +3803,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #if SIZEOF_VOID_P == 8
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
 		if (IS_INT_LNG_TYPE(md->params[i].type)) {
-			M_AST(rd->argintregs[i], REG_SP, j * 8);
+			s1 = md->params[i].regoff;
+			M_AST(s1, REG_SP, j * 8);
 			j++;
 		}
 	}
@@ -3832,14 +3813,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		if (IS_INT_LNG_TYPE(md->params[i].type)) {
 			if (!md->params[i].inmemory) {
  				s1 = md->params[i].regoff;
-				if (IS_2_WORD_TYPE(md->params[i].type)) {
-					s1 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-								   rd->argintregs[GET_HIGH_REG(s1)]);
+
+				if (IS_2_WORD_TYPE(md->params[i].type))
 					M_LST(s1, REG_SP, j * 8);
-				}
-				else {
-					M_IST(rd->argintregs[s1], REG_SP, j * 8);
-				}
+				else
+					M_IST(s1, REG_SP, j * 8);
+
 				j++;
 			}
 		}
@@ -3848,10 +3827,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->params[i].type)) {
+			s1 = md->params[i].regoff;
+
 			if (IS_2_WORD_TYPE(md->params[i].type))
-				M_DST(rd->argfltregs[i], REG_SP, j * 8);
+				M_DST(s1, REG_SP, j * 8);
 			else
-				M_FST(rd->argfltregs[i], REG_SP, j * 8);
+				M_FST(s1, REG_SP, j * 8);
+
 			j++;
 		}
 	}
@@ -3872,7 +3854,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #if SIZEOF_VOID_P == 8
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
 		if (IS_INT_LNG_TYPE(md->params[i].type)) {
-			M_LLD(rd->argintregs[i], REG_SP, j * 8);
+			s1 = md->params[i].regoff;
+			M_LLD(s1, REG_SP, j * 8);
 			j++;
 		}
 	}
@@ -3881,14 +3864,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		if (IS_INT_LNG_TYPE(md->params[i].type)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-				if (IS_2_WORD_TYPE(md->params[i].type)) {
-					s1 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-								   rd->argintregs[GET_HIGH_REG(s1)]);
+
+				if (IS_2_WORD_TYPE(md->params[i].type))
 					M_LLD(s1, REG_SP, j * 8);
-				}
-				else {
-					M_ILD(rd->argintregs[s1], REG_SP, j * 8);
-				}
+				else
+					M_ILD(s1, REG_SP, j * 8);
+
 				j++;
 			}
 		}
@@ -3897,10 +3878,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->params[i].type)) {
+			s1 = md->params[i].regoff;
+
 			if (IS_2_WORD_TYPE(md->params[i].type))
-				M_DLD(rd->argfltregs[i], REG_SP, j * 8);
+				M_DLD(s1, REG_SP, j * 8);
 			else
-				M_FLD(rd->argfltregs[i], REG_SP, j * 8);
+				M_FLD(s1, REG_SP, j * 8);
+
 			j++;
 		}
 	}
@@ -3913,36 +3897,19 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-#if SIZEOF_VOID_P == 8
-				s1 = rd->argintregs[s1];
-#else
-				if (IS_2_WORD_TYPE(t))
-					s1 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-								   rd->argintregs[GET_HIGH_REG(s1)]);
-				else
-					s1 = rd->argintregs[s1];
-#endif
+				s2 = nmd->params[j].regoff;
 
 				if (!nmd->params[j].inmemory) {
-					s2 = nmd->params[j].regoff;
 #if SIZEOF_VOID_P == 8
-					s2 = rd->argintregs[s2];
 					M_INTMOVE(s1, s2);
 #else
-					if (IS_2_WORD_TYPE(t)) {
-						s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s2)],
-									   rd->argintregs[GET_HIGH_REG(s2)]);
+					if (IS_2_WORD_TYPE(t))
 						M_LNGMOVE(s1, s2);
-					}
-					else {
-						s2 = rd->argintregs[s2];
+					else
 						M_INTMOVE(s1, s2);
-					}
 #endif
 				}
 				else {
-					s2 = nmd->params[j].regoff;
-
 #if SIZEOF_VOID_P == 8
 					M_LST(s1, REG_SP, s2 * 8);
 #else
@@ -3962,8 +3929,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				M_LST(REG_ITMP1, REG_SP, s2 * 8);
 #else
 				if (IS_2_WORD_TYPE(t)) {
-					M_LLD(PACK_REGS(REG_ITMP1, REG_ITMP2), REG_SP, s1 * 8);
-					M_LST(PACK_REGS(REG_ITMP1, REG_ITMP2), REG_SP, s2 * 4);
+					M_LLD(REG_ITMP12_PACKED, REG_SP, s1 * 8);
+					M_LST(REG_ITMP12_PACKED, REG_SP, s2 * 4);
 				}
 				else {
 					M_ILD(REG_ITMP1, REG_SP, s1 * 8);
@@ -3979,8 +3946,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 				if (!nmd->params[j].inmemory) {
 #if SIZEOF_VOID_P == 8
-					s1 = rd->argfltregs[s1];
-					s2 = rd->argfltregs[s2];
 					if (IS_2_WORD_TYPE(t))
 						M_DMOV(s1, s2);
 					else
@@ -3992,10 +3957,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 					   argument (JNIenv) */
 
 					if (IS_2_WORD_TYPE(t)) {
-						s1 = rd->argfltregs[s1];
-						s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s2)],
-									   rd->argintregs[GET_HIGH_REG(s2)]);
-
 						/* double high/low order is endian
 						   independent: even numbered holds low
 						   32-bits, odd numbered high 32-bits */
@@ -4003,17 +3964,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 						M_MFC1(GET_LOW_REG(s2), s1);           /* low 32-bits */
 						M_MFC1(GET_HIGH_REG(s2), s1 + 1);     /* high 32-bits */
 					}
-					else {
-						s1 = rd->argfltregs[s1];
-						s2 = rd->argintregs[s2];
+					else
 						M_MFC1(s2, s1);
-					}
 #endif
 				}
 				else {
 #if SIZEOF_VOID_P == 8
-					s1 = rd->argfltregs[s1];
-
 					if (IS_2_WORD_TYPE(t))
 						M_DST(s1, REG_SP, s2 * 8);
 					else
@@ -4023,12 +3979,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 					   but was moved out by the native function
 					   argument(s), just get low register */
 
-					s1 = rd->argfltregs[GET_LOW_REG(s1)];
-
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s1, REG_SP, s2 * 4);
+						M_DST(GET_LOW_REG(s1), REG_SP, s2 * 4);
 					else
-						M_FST(s1, REG_SP, s2 * 4);
+						M_FST(GET_LOW_REG(s1), REG_SP, s2 * 4);
 #endif
 				}
 			}
@@ -4068,21 +4022,32 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* save return value */
 
-	if (md->returntype.type != TYPE_VOID) {
+	switch (md->returntype.type) {
 #if SIZEOF_VOID_P == 8
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			M_LST(REG_RESULT, REG_SP, 0 * 8);
-		else
-			M_DST(REG_FRESULT, REG_SP, 0 * 8);
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_ADR:
+		M_LST(REG_RESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+		break;
 #else
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			M_IST(REG_RESULT, REG_SP, 1*4 + 0 * 8);
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_IST(REG_RESULT2, REG_SP, 1*4 + 0 * 8 + 4);
-		}
-		else
-			M_DST(REG_FRESULT, REG_SP, 1*4 + 0 * 8);
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_IST(REG_RESULT, REG_SP, 1*4 + 0 * 8);
+		break;
+	case TYPE_LNG:
+		M_LST(REG_RESULT_PACKED, REG_SP, 1*4 + 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, 1*4 + 0 * 8);
+		break;
 #endif
+	case TYPE_VOID:
+		break;
 	}
 
 #if !defined(NDEBUG)
@@ -4101,21 +4066,32 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* restore return value */
 
-	if (md->returntype.type != TYPE_VOID) {
+	switch (md->returntype.type) {
 #if SIZEOF_VOID_P == 8
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			M_LLD(REG_RESULT, REG_SP, 0 * 8);
-		else
-			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_ADR:
+		M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		break;
 #else
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			M_ILD(REG_RESULT, REG_SP, 1*4 + 0 * 8);
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_ILD(REG_RESULT2, REG_SP, 1*4 + 0 * 8 + 4);
-		}
-		else
-			M_DLD(REG_FRESULT, REG_SP, 1*4 + 0 * 8);
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_ILD(REG_RESULT, REG_SP, 1*4 + 0 * 8);
+		break;
+	case TYPE_LNG:
+		M_LLD(REG_RESULT_PACKED, REG_SP, 1*4 + 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, 1*4 + 0 * 8);
+		break;
 #endif
+	case TYPE_VOID:
+		break;
 	}
 
 	M_ALD(REG_RA, REG_SP, (cd->stackframesize - 1) * 8); /* load RA           */

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7704 2007-04-15 11:55:25Z michi $
+   $Id: codegen.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -2962,7 +2962,7 @@ gen_method:
 
 				} else {
 					if (!md->params[s3].inmemory) {
-						s1 = rd->argfltregs[md->params[s3].regoff];
+						s1 = md->params[s3].regoff;
 						d = emit_load(jd, iptr, var, s1);
 						M_FLTMOVE(d, s1);
 
@@ -3724,22 +3724,20 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
-	methodinfo   *m;
-	codeinfo     *code;
-	codegendata  *cd;
-	registerdata *rd;
-	methoddesc   *md;
-	s4            nativeparams;
-	s4            i, j;                 /* count variables                    */
-	s4            t;
-	s4            s1, s2;
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
+	methoddesc  *md;
+	s4           nativeparams;
+	s4           i, j;                 /* count variables                    */
+	s4           t;
+	s4           s1, s2;
 
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
 
 	/* set some variables */
 
@@ -3865,18 +3863,22 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* save return value */
 
-	if (md->returntype.type != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_IST(REG_RESULT2, REG_SP, 2 * 4);
-			M_IST(REG_RESULT, REG_SP, 1 * 4);
-		}
-		else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				emit_fstl_membase(cd, REG_SP, 1 * 4);
-			else
-				emit_fsts_membase(cd, REG_SP, 1 * 4);
-		}
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_IST(REG_RESULT, REG_SP, 1 * 4);
+		break;
+	case TYPE_LNG:
+		M_LST(REG_RESULT_PACKED, REG_SP, 1 * 4);
+		break;
+	case TYPE_FLT:
+		emit_fsts_membase(cd, REG_SP, 1 * 4);
+		break;
+	case TYPE_DBL:
+		emit_fstl_membase(cd, REG_SP, 1 * 4);
+		break;
+	case TYPE_VOID:
+		break;
 	}
 
 #if !defined(NDEBUG)
@@ -3895,18 +3897,22 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* restore return value */
 
-	if (md->returntype.type != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_ILD(REG_RESULT2, REG_SP, 2 * 4);
-			M_ILD(REG_RESULT, REG_SP, 1 * 4);
-		}
-		else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				emit_fldl_membase(cd, REG_SP, 1 * 4);
-			else
-				emit_flds_membase(cd, REG_SP, 1 * 4);
-		}
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_ILD(REG_RESULT, REG_SP, 1 * 4);
+		break;
+	case TYPE_LNG:
+		M_LLD(REG_RESULT_PACKED, REG_SP, 1 * 4);
+		break;
+	case TYPE_FLT:
+		emit_flds_membase(cd, REG_SP, 1 * 4);
+		break;
+	case TYPE_DBL:
+		emit_fldl_membase(cd, REG_SP, 1 * 4);
+		break;
+	case TYPE_VOID:
+		break;
 	}
 
 	M_AADD_IMM(cd->stackframesize * 4, REG_SP);

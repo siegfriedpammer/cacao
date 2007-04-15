@@ -47,6 +47,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
@@ -745,9 +746,11 @@ void emit_verbosecall_enter(jitdata *jd)
 
 		if (i < 2) {
 #if defined(__ARMEL__)
-			s2 = PACK_REGS(rd->argintregs[i * 2], rd->argintregs[i * 2 + 1]);
+			s2 = PACK_REGS(abi_registers_integer_argument[i * 2],
+						   abi_registers_integer_argument[i * 2 + 1]);
 #else /* defined(__ARMEB__) */
-			s2 = PACK_REGS(rd->argintregs[i * 2 + 1], rd->argintregs[i * 2]);
+			s2 = PACK_REGS(abi_registers_integer_argument[i * 2 + 1],
+						   abi_registers_integer_argument[i * 2]);
 #endif          
 			M_LNGMOVE(s1, s2);
 		}

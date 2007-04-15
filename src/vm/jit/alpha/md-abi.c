@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7637 2007-04-02 20:58:30Z twisti $
+   $Id: md-abi.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -107,6 +107,43 @@ s4 nregdescfloat[] = {
 };
 
 
+const s4 abi_registers_float_argument[] = {
+	16, /* fa0  */
+	17, /* fa1  */
+	18, /* fa2  */
+	19, /* fa3  */
+	20, /* fa4  */
+	21, /* fa5  */
+};
+
+const s4 abi_registers_float_saved[] = {
+	2,  /* fs0  */
+	3,  /* fs1  */
+	4,  /* fs2  */
+	5,  /* fs3  */
+	6,  /* fs4  */
+	7,  /* fs5  */
+	8,  /* fs6  */
+	9,  /* fs7  */
+};
+
+const s4 abi_registers_float_temporary[] = {
+	1,  /* ft0  */
+	10, /* ft1  */
+	11, /* ft2  */
+	12, /* ft3  */
+	13, /* ft4  */
+	14, /* ft5  */
+	15, /* ft6  */
+	22, /* ft7  */
+	23, /* ft8  */
+	24, /* ft9  */
+	25, /* ft10 */
+	26, /* ft11 */
+	27, /* ft12 */
+};
+
+
 /* md_param_alloc **************************************************************
 
    Allocate the parameters of the given method descriptor according to the
@@ -123,7 +160,7 @@ void md_param_alloc(methoddesc *md)
 
 	/* set default values */
 
-	reguse = 0;
+	reguse    = 0;
 	stacksize = 0;
 
 	/* get params field of methoddesc */
@@ -137,7 +174,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff   = reguse;
+				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 				md->argintreguse = reguse;
 			}
@@ -152,7 +189,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (i < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff   = reguse;
+				pd->regoff   = abi_registers_float_argument[reguse];
 				reguse++;
 				md->argfltreguse = reguse;
 			}

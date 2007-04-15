@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7644 2007-04-03 11:37:30Z twisti $
+   $Id: emit.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
@@ -591,10 +592,10 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* save argument registers */
 
 	for (i = 0; i < INT_ARG_CNT; i++)
-		M_LST(rd->argintregs[i], REG_SP, (1 + i) * 8);
+		M_LST(abi_registers_integer_argument[i], REG_SP, (1 + i) * 8);
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
+		M_DST(abi_registers_float_argument[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
 
 	/* save temporary registers for leaf methods */
 
@@ -614,9 +615,11 @@ void emit_verbosecall_enter(jitdata *jd)
 	
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			for (k = INT_ARG_CNT - 2; k >= i; k--)
-				M_MOV(rd->argintregs[k], rd->argintregs[k + 1]);
+				M_MOV(abi_registers_integer_argument[k],
+					  abi_registers_integer_argument[k + 1]);
 
-			emit_movd_freg_reg(cd, rd->argfltregs[j], rd->argintregs[i]);
+			emit_movd_freg_reg(cd, abi_registers_float_argument[j],
+							   abi_registers_integer_argument[i]);
 			j++;
 		}
 	}
@@ -629,10 +632,10 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore argument registers */
 
 	for (i = 0; i < INT_ARG_CNT; i++)
-		M_LLD(rd->argintregs[i], REG_SP, (1 + i) * 8);
+		M_LLD(abi_registers_integer_argument[i], REG_SP, (1 + i) * 8);
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
+		M_DLD(abi_registers_float_argument[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
 
 	/* restore temporary registers for leaf methods */
 

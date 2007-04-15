@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7692 2007-04-12 14:47:24Z twisti $
+   $Id: codegen.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -53,6 +53,7 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
@@ -243,36 +244,31 @@ bool codegen_emit(jitdata *jd)
 			continue;
 
 		var = VAR(varindex);
+		s1  = md->params[p].regoff;
 
-		s1 = md->params[p].regoff;
-		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
-			if (IS_2_WORD_TYPE(t))
-				s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
-							   rd->argintregs[GET_HIGH_REG(s1)]);
-			else
-				s2 = rd->argintregs[s1];
- 			if (!md->params[p].inmemory) {           /* register arguments    */
- 				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
+		if (IS_INT_LNG_TYPE(t)) {
+ 			if (!md->params[p].inmemory) {
+ 				if (!IS_INMEMORY(var->flags)) {
 					if (IS_2_WORD_TYPE(t))
-						M_LNGMOVE(s2, var->vv.regoff);
+						M_LNGMOVE(s1, var->vv.regoff);
 					else
-						M_INTMOVE(s2, var->vv.regoff);
-
-				} else {                             /* reg arg -> spilled    */
-					if (IS_2_WORD_TYPE(t))
-						M_LST(s2, REG_SP, var->vv.regoff * 4);
-					else
-						M_IST(s2, REG_SP, var->vv.regoff * 4);
+						M_INTMOVE(s1, var->vv.regoff);
 				}
-
-			} else {                                 /* stack arguments       */
- 				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
+				else {
+					if (IS_2_WORD_TYPE(t))
+						M_LST(s1, REG_SP, var->vv.regoff * 4);
+					else
+						M_IST(s1, REG_SP, var->vv.regoff * 4);
+				}
+			}
+			else {
+ 				if (!IS_INMEMORY(var->flags)) {
 					if (IS_2_WORD_TYPE(t))
 						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 					else
 						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
-
-				} else {                             /* stack arg -> spilled  */
+				}
+				else {
 #if 1
  					M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4);
  					M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4);
@@ -286,29 +282,26 @@ bool codegen_emit(jitdata *jd)
 #endif
 				}
 			}
-
-		} else {                                     /* floating args         */
- 			if (!md->params[p].inmemory) {           /* register arguments    */
-				s2 = rd->argfltregs[s1];
- 				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
- 					M_FLTMOVE(s2, var->vv.regoff);
-
- 				} else {			                 /* reg arg -> spilled    */
+		}
+		else {
+ 			if (!md->params[p].inmemory) {
+ 				if (!IS_INMEMORY(var->flags))
+ 					M_FLTMOVE(s1, var->vv.regoff);
+				else {
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s2, REG_SP, var->vv.regoff * 4);
+						M_DST(s1, REG_SP, var->vv.regoff * 4);
 					else
-						M_FST(s2, REG_SP, var->vv.regoff * 4);
+						M_FST(s1, REG_SP, var->vv.regoff * 4);
  				}
-
- 			} else {                                 /* stack arguments       */
- 				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
+ 			}
+			else {
+ 				if (!IS_INMEMORY(var->flags)) {
 					if (IS_2_WORD_TYPE(t))
 						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
-
 					else
 						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
-
- 				} else {                             /* stack-arg -> spilled  */
+ 				}
+				else {
 #if 1
 					if (IS_2_WORD_TYPE(t)) {
 						M_DLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
@@ -326,7 +319,7 @@ bool codegen_emit(jitdata *jd)
 				}
 			}
 		}
-	} /* end for */
+	}
 
 #if defined(ENABLE_THREADS)
 	/* call monitorenter function */
@@ -341,10 +334,10 @@ bool codegen_emit(jitdata *jd)
 			M_AADD_IMM(REG_SP, -((LA_SIZE_IN_POINTERS + ARG_CNT) * 8), REG_SP);
 
 			for (p = 0; p < INT_ARG_CNT; p++)
-				M_IST(rd->argintregs[p], REG_SP, LA_SIZE + p * 8);
+				M_IST(abi_registers_integer_argument[p], REG_SP, LA_SIZE + p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_DST(rd->argfltregs[p], REG_SP, LA_SIZE + (INT_ARG_CNT + p) * 8);
+				M_DST(abi_registers_float_argument[p], REG_SP, LA_SIZE + (INT_ARG_CNT + p) * 8);
 
 			/* ATTENTION: We multiply here with 2, because we use * 8
 			   above for simplicity and below * 4! */
@@ -353,15 +346,15 @@ bool codegen_emit(jitdata *jd)
 		}
 # endif
 
-		p = dseg_add_functionptr(cd, LOCK_monitor_enter);
-		M_ALD(REG_ITMP3, REG_PV, p);
+		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+		M_ALD(REG_ITMP3, REG_PV, disp);
 		M_MTCTR(REG_ITMP3);
 
 		/* get or test the lock object */
 
 		if (m->flags & ACC_STATIC) {
-			p = dseg_add_address(cd, &m->class->object.header);
-			M_ALD(REG_A0, REG_PV, p);
+			disp = dseg_add_address(cd, &m->class->object.header);
+			M_ALD(REG_A0, REG_PV, disp);
 		}
 		else {
 			M_TST(REG_A0);
@@ -375,10 +368,10 @@ bool codegen_emit(jitdata *jd)
 # if !defined(NDEBUG)
 		if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 			for (p = 0; p < INT_ARG_CNT; p++)
-				M_ILD(rd->argintregs[p], REG_SP, LA_SIZE + p * 8);
+				M_ILD(abi_registers_integer_argument[p], REG_SP, LA_SIZE + p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_DLD(rd->argfltregs[p], REG_SP, LA_SIZE + (INT_ARG_CNT + p) * 8);
+				M_DLD(abi_registers_float_argument[p], REG_SP, LA_SIZE + (INT_ARG_CNT + p) * 8);
 
 			M_AADD_IMM(REG_SP, (LA_SIZE_IN_POINTERS + ARG_CNT) * 8, REG_SP);
 		}
@@ -821,26 +814,21 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			bte = iptr->sx.s23.s3.bte;
-			md  = bte->md;
+			s1 = emit_load_s1(jd, iptr, REG_A0_A1_PACKED);
+			s2 = emit_load_s2(jd, iptr, REG_A2_A3_PACKED);
 
-			s2 = emit_load_s2(jd, iptr, REG_ITMP12_PACKED);
+			/* XXX TODO: only do this if arithmetic check is really done! */
 			M_OR_TST(GET_HIGH_REG(s2), GET_LOW_REG(s2), REG_ITMP3);
 			/* XXX could be optimized */
 			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
+			bte = iptr->sx.s23.s3.bte;
 			disp = dseg_add_functionptr(cd, bte->fp);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_MTCTR(REG_ITMP3);
 
-			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[1].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[1].regoff)]);
-			M_LNGMOVE(s2, s3);
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[0].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[0].regoff)]);
-			M_LNGMOVE(s1, s3);
+			M_LNGMOVE(s1, REG_A0_A1_PACKED);
+			M_LNGMOVE(s2, REG_A2_A3_PACKED);
 
 			M_JSR;
 
@@ -2407,6 +2395,7 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
+				d   = md->params[s3].regoff;
 
 				/* Already Preallocated? */
 				if (var->flags & PREALLOC)
@@ -2415,41 +2404,36 @@ gen_method:
 				if (IS_INT_LNG_TYPE(var->type)) {
 					if (!md->params[s3].inmemory) {
 						if (IS_2_WORD_TYPE(var->type)) {
-							s1 = PACK_REGS(
-						   rd->argintregs[GET_LOW_REG(md->params[s3].regoff)],
-						   rd->argintregs[GET_HIGH_REG(md->params[s3].regoff)]);
-							d = emit_load(jd, iptr, var, s1);
-							M_LNGMOVE(d, s1);
+							s1 = emit_load(jd, iptr, var, d);
+							M_LNGMOVE(s1, d);
 						}
 						else {
-							s1 = rd->argintregs[md->params[s3].regoff];
-							d = emit_load(jd, iptr, var, s1);
-							M_INTMOVE(d, s1);
+							s1 = emit_load(jd, iptr, var, d);
+							M_INTMOVE(s1, d);
 						}
 					}
 					else {
 						if (IS_2_WORD_TYPE(var->type)) {
-							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(d, REG_SP, md->params[s3].regoff * 4);
+							s1 = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
+							M_LST(s1, REG_SP, d * 4);
 						}
 						else {
-							d = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(d, REG_SP, md->params[s3].regoff * 4);
+							s1 = emit_load(jd, iptr, var, REG_ITMP1);
+							M_IST(s1, REG_SP, d * 4);
 						}
 					}
 				}
 				else {
 					if (!md->params[s3].inmemory) {
-						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var, s1);
-						M_FLTMOVE(d, s1);
+						s1 = emit_load(jd, iptr, var, d);
+						M_FLTMOVE(s1, d);
 					}
 					else {
-						d = emit_load(jd, iptr, var, REG_FTMP1);
+						s1 = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 4);
+							M_DST(s1, REG_SP, d * 4);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 4);
+							M_FST(s1, REG_SP, d * 4);
 					}
 				}
 			}
@@ -3007,23 +2991,21 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
-	methodinfo   *m;
-	codeinfo     *code;
-	codegendata  *cd;
-	registerdata *rd;
-	methoddesc   *md;
-	s4            nativeparams;
-	s4            i, j;                 /* count variables                    */
-	s4            t;
-	s4            s1, s2, disp;
-	s4            funcdisp;
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
+	methoddesc  *md;
+	s4           nativeparams;
+	s4           i, j;                 /* count variables                    */
+	s4           t;
+	s4           s1, s2, disp;
+	s4           funcdisp;
 
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
 
 	/* set some variables */
 
@@ -3083,13 +3065,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
+
 				if (IS_2_WORD_TYPE(t)) {
-					M_IST(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+					M_IST(GET_HIGH_REG(s1), REG_SP, LA_SIZE + 4 * 4 + j * 4);
 					j++;
-					M_IST(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				} else {
-					M_IST(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+					M_IST(GET_LOW_REG(s1), REG_SP, LA_SIZE + 4 * 4 + j * 4);
 				}
+				else
+					M_IST(s1, REG_SP, LA_SIZE + 4 * 4 + j * 4);
+
 				j++;
 			}
 		}
@@ -3099,7 +3083,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-				M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
+				M_DST(s1, REG_SP, LA_SIZE + 4 * 4 + j * 8);
 				j++;
 			}
 		}
@@ -3128,12 +3112,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				s1 = md->params[i].regoff;
 
 				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+					M_ILD(GET_HIGH_REG(s1), REG_SP, LA_SIZE + 4 * 4 + j * 4);
 					j++;
-					M_ILD(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				} else {
-					M_ILD(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+					M_ILD(GET_LOW_REG(s1), REG_SP, LA_SIZE + 4 * 4 + j * 4);
 				}
+				else
+					M_ILD(s1, REG_SP, LA_SIZE + 4 * 4 + j * 4);
+
 				j++;
 			}
 		}
@@ -3143,7 +3128,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-				M_DLD(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
+				M_DLD(s1, REG_SP, LA_SIZE + 4 * 4 + j * 8);
 				j++;
 			}
 		}
@@ -3156,33 +3141,23 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
-				if (IS_2_WORD_TYPE(t))
-					s1 = PACK_REGS(
-						rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
-					    rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
-				else
-					s1 = rd->argintregs[md->params[i].regoff];
+				s1 = md->params[i].regoff;
+				s2 = nmd->params[j].regoff;
 
 				if (!nmd->params[j].inmemory) {
-					if (IS_2_WORD_TYPE(t)) {
-						s2 = PACK_REGS(
-						   rd->argintregs[GET_LOW_REG(nmd->params[j].regoff)],
-						   rd->argintregs[GET_HIGH_REG(nmd->params[j].regoff)]);
+					if (IS_2_WORD_TYPE(t))
 						M_LNGMOVE(s1, s2);
-					} else {
-						s2 = rd->argintregs[nmd->params[j].regoff];
+					else
 						M_INTMOVE(s1, s2);
-					}
-
-				} else {
-					s2 = nmd->params[j].regoff;
+				}
+				else {
 					if (IS_2_WORD_TYPE(t))
 						M_LST(s1, REG_SP, s2 * 4);
 					else
 						M_IST(s1, REG_SP, s2 * 4);
 				}
-
-			} else {
+			}
+			else {
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 
@@ -3194,8 +3169,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				if (IS_2_WORD_TYPE(t))
 					M_IST(REG_ITMP2, REG_SP, s2 * 4 + 4);
 			}
-
-		} else {
+		}
+		else {
 			/* We only copy spilled float arguments, as the float
 			   argument registers keep unchanged. */
 
@@ -3206,8 +3181,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				if (IS_2_WORD_TYPE(t)) {
 					M_DLD(REG_FTMP1, REG_SP, s1 * 4);
 					M_DST(REG_FTMP1, REG_SP, s2 * 4);
-
-				} else {
+				}
+				else {
 					M_FLD(REG_FTMP1, REG_SP, s1 * 4);
 					M_FST(REG_FTMP1, REG_SP, s2 * 4);
 				}
@@ -3239,18 +3214,22 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* save return value */
 
-	if (md->returntype.type != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_IST(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
-			M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-		}
-		else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-			else
-				M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-		}
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+		break;
+	case TYPE_LNG:
+		M_LST(REG_RESULT_PACKED, REG_SP, LA_SIZE + 1 * 4);
+		break;
+	case TYPE_FLT:
+		M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		break;
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		break;
+	case TYPE_VOID:
+		break;
 	}
 
 	/* remove native stackframe info */
@@ -3264,18 +3243,22 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* restore return value */
 
-	if (md->returntype.type != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
-			M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-		}
-		else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-			else
-				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-		}
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+		break;
+	case TYPE_LNG:
+		M_LLD(REG_RESULT_PACKED, REG_SP, LA_SIZE + 1 * 4);
+		break;
+	case TYPE_FLT:
+		M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		break;
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		break;
+	case TYPE_VOID:
+		break;
 	}
 
 	M_ALD(REG_ITMP2_XPC, REG_SP, cd->stackframesize * 4 + LA_LR_OFFSET);

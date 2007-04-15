@@ -46,6 +46,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -742,28 +743,31 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* integer argument regs                                             */
 	/* all integer argument registers have to be saved                   */
 	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
+		d = abi_registers_integer_argument[p];
 		/* save integer argument registers */
 		M_IST(d, REG_SP, LA_SIZE + 4 * 8 + 4 + p * 4);
 	}
 	p = 4;
 #endif
 	stack_off = LA_SIZE;
+
 	for (; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
 		t = md->paramtypes[p].type;
+
 		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+			if (!md->params[p].inmemory) {
+				s1 = md->params[p].regoff;
+
 				if (IS_2_WORD_TYPE(t)) {
-					M_IST(rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]
-						  , REG_SP, stack_off);
-					M_IST(rd->argintregs[GET_LOW_REG(md->params[p].regoff)]
-						  , REG_SP, stack_off + 4);
-				} else {
-					M_IST(REG_ITMP1, REG_SP, stack_off);
-					M_IST(rd->argintregs[md->params[p].regoff]
-						  , REG_SP, stack_off + 4);
+					M_IST(GET_HIGH_REG(s1), REG_SP, stack_off);
+					M_IST(GET_LOW_REG(s1), REG_SP, stack_off + 4);
 				}
-			} else { /* Param on Stack */
+				else {
+					M_IST(REG_ITMP1, REG_SP, stack_off);
+					M_IST(s1, REG_SP, stack_off + 4);
+				}
+			}
+			else {
 				s1 = (md->params[p].regoff + cd->stackframesize) * 4 
 					+ stack_size;
 				if (IS_2_WORD_TYPE(t)) {
@@ -771,22 +775,26 @@ void emit_verbosecall_enter(jitdata *jd)
 					M_IST(REG_ITMP2, REG_SP, stack_off);
 					M_ILD(REG_ITMP2, REG_SP, s1 + 4);
 					M_IST(REG_ITMP2, REG_SP, stack_off + 4);
-				} else {
+				}
+				else {
 					M_IST(REG_ITMP1, REG_SP, stack_off);
 					M_ILD(REG_ITMP2, REG_SP, s1);
 					M_IST(REG_ITMP2, REG_SP, stack_off + 4);
 				}
 			}
-		} else { /* IS_FLT_DBL_TYPE(t) */
-			if (!md->params[p].inmemory) { /* in Arg Reg */
-				s1 = rd->argfltregs[md->params[p].regoff];
+		}
+		else {
+			if (!md->params[p].inmemory) {
+				s1 = md->params[p].regoff;
+
 				if (!IS_2_WORD_TYPE(t)) {
 					M_IST(REG_ITMP1, REG_SP, stack_off);
 					M_FST(s1, REG_SP, stack_off + 4);
-				} else {
-					M_DST(s1, REG_SP, stack_off);
 				}
-			} else { /* on Stack */
+				else
+					M_DST(s1, REG_SP, stack_off);
+			}
+			else {
 				/* this should not happen */
 			}
 		}
@@ -795,40 +803,48 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* load first 4 (==INT_ARG_CNT/2) arguments into integer registers */
 #if defined(__DARWIN__)
 	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
+		d = abi_registers_integer_argument[p];
 		M_ILD(d, REG_SP, LA_SIZE + p * 4);
 	}
 #else
 	/* LINUX */
 	/* Set integer and float argument registers vor trace_args call */
 	/* offset to saved integer argument registers                   */
+
 	stack_off = LA_SIZE + 4 * 8 + 4;
+
 	for (p = 0; (p < 4) && (p < md->paramcount); p++) {
 		t = md->paramtypes[p].type;
+
 		if (IS_INT_LNG_TYPE(t)) {
 			/* "stretch" int types */
 			if (!IS_2_WORD_TYPE(t)) {
-				M_CLR(rd->argintregs[2 * p]);
-				M_ILD(rd->argintregs[2 * p + 1], REG_SP,stack_off);
+				M_CLR(abi_registers_integer_argument[2 * p]);
+				M_ILD(abi_registers_integer_argument[2 * p + 1], REG_SP,stack_off);
 				stack_off += 4;
-			} else {
-				M_ILD(rd->argintregs[2 * p + 1], REG_SP,stack_off + 4);
-				M_ILD(rd->argintregs[2 * p], REG_SP,stack_off);
+			}
+			else {
+				M_ILD(abi_registers_integer_argument[2 * p + 1], REG_SP,stack_off + 4);
+				M_ILD(abi_registers_integer_argument[2 * p], REG_SP,stack_off);
 				stack_off += 8;
 			}
-		} else { /* Float/Dbl */
-			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+		}
+		else {
+			if (!md->params[p].inmemory) {
 				/* use reserved Place on Stack (sp + 5 * 16) to copy  */
 				/* float/double arg reg to int reg                    */
-				s1 = rd->argfltregs[md->params[p].regoff];
+
+				s1 = md->params[p].regoff;
+
 				if (!IS_2_WORD_TYPE(t)) {
 					M_FST(s1, REG_SP, 5 * 16);
-					M_ILD(rd->argintregs[2 * p + 1], REG_SP, 5 * 16);
-					M_CLR(rd->argintregs[2 * p]);
-				} else {
+					M_ILD(abi_registers_integer_argument[2 * p + 1], REG_SP, 5 * 16);
+					M_CLR(abi_registers_integer_argument[2 * p]);
+				}
+				else {
 					M_DST(s1, REG_SP, 5 * 16);
-					M_ILD(rd->argintregs[2 * p + 1], REG_SP,  5 * 16 + 4);
-					M_ILD(rd->argintregs[2 * p], REG_SP, 5 * 16);
+					M_ILD(abi_registers_integer_argument[2 * p + 1], REG_SP,  5 * 16 + 4);
+					M_ILD(abi_registers_integer_argument[2 * p], REG_SP, 5 * 16);
 				}
 			}
 		}
@@ -852,28 +868,27 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore integer argument registers from the reserved stack space */
 
 	stack_off = LA_SIZE;
-	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; 
-		 p++, stack_off += 8) {
+
+	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
 		t = md->paramtypes[p].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[p].inmemory) {
+				s1 = md->params[p].regoff;
+
 				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]
-						  , REG_SP, stack_off);
-					M_ILD(rd->argintregs[GET_LOW_REG(md->params[p].regoff)]
-						  , REG_SP, stack_off + 4);
-				} else {
-					M_ILD(rd->argintregs[md->params[p].regoff]
-						  , REG_SP, stack_off + 4);
+					M_ILD(GET_HIGH_REG(s1), REG_SP, stack_off);
+					M_ILD(GET_LOW_REG(s1), REG_SP, stack_off + 4);
 				}
+				else
+					M_ILD(s1, REG_SP, stack_off + 4);
 			}
 		}
 	}
 #else
 	/* LINUX */
 	for (p = 0; p < 8; p++) {
-		d = rd->argintregs[p];
+		d = abi_registers_integer_argument[p];
 		/* save integer argument registers */
 		M_ILD(d, REG_SP, LA_SIZE + 4 * 8 + 4 + p * 4);
 	}
