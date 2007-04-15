@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtintable.inc 7710 2007-04-15 15:33:35Z michi $
+   $Id: builtintable.inc 7711 2007-04-15 19:42:08Z michi $
 
 */
 
@@ -188,7 +188,7 @@ static builtintable_entry builtintable_internal[] = {
 
 	{
 		ICMD_NEW,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_new,
 		NULL,
 		NULL,
@@ -201,7 +201,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEW,
-		BUILTINTABLE_FLAG_STUB,
+		0,
 		BUILTIN_FAST_new,
 		NULL,
 		NULL,
