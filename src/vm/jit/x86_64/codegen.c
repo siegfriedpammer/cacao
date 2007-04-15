@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7702 2007-04-15 01:15:59Z michi $
+   $Id: codegen.c 7709 2007-04-15 15:28:13Z michi $
 
 */
 
@@ -2941,26 +2941,19 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 *******************************************************************************/
 
-void codegen_emit_stub_builtin(jitdata *jd, functionptr f)
+void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
 {
-	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
 	registerdata *rd; /* REMOVE ME */
-	methoddesc  *md;
 	s4           i, j;                 /* count variables                    */
 	s4           s1, disp;
 
 	/* get required compiler data */
 
-	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
 	rd   = jd->rd;
-
-	/* initialize variables */
-
-	md = m->parseddesc;
 
 	/* calculate stack frame size */
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7708 2007-04-15 13:06:49Z michi $
+   $Id: codegen.c 7709 2007-04-15 15:28:13Z michi $
 
 */
 
@@ -3723,12 +3723,13 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 *******************************************************************************/
 
-void codegen_emit_stub_builtin(jitdata *jd, functionptr f)
+void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
 {
 	codeinfo    *code;
 	codegendata *cd;
 	s4           i;
 	s4           disp;
+	s4           s1, s2;
 
 	/* get required compiler data */
 
@@ -3788,6 +3789,31 @@ void codegen_emit_stub_builtin(jitdata *jd, functionptr f)
 	M_MOV_IMM(codegen_stub_builtin_enter, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
+	/* builtins are allowed to have 4 arguments max */
+
+	assert(md->paramcount <= 4);
+
+	/* copy arguments into new stackframe */
+
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			log_text("No integer argument registers available!");
+			assert(0);
+
+		} else {       /* float/double in memory can be copied like int/longs */
+			s1 = (md->params[i].regoff + cd->stackframesize + 1) * 4;
+			s2 = md->params[i].regoff;
+
+			M_ILD(REG_ITMP1, REG_SP, s1);
+			M_IST(REG_ITMP1, REG_SP, s2);
+			if (IS_2_WORD_TYPE(md->paramtypes[i].type)) {
+				M_ILD(REG_ITMP1, REG_SP, s1 + 4);
+				M_IST(REG_ITMP1, REG_SP, s2 + 4);
+			}
+
+		}
+	}
+
 	/* call the builtin function */
 
 	M_MOV_IMM(f, REG_ITMP3);
@@ -3795,7 +3821,19 @@ void codegen_emit_stub_builtin(jitdata *jd, functionptr f)
 
 	/* save return value */
 
-	/* XXX TODO */
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_IST(REG_RESULT2, REG_SP, 2 * 4);
+			M_IST(REG_RESULT, REG_SP, 1 * 4);
+		}
+		else {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				emit_fstl_membase(cd, REG_SP, 1 * 4);
+			else
+				emit_fsts_membase(cd, REG_SP, 1 * 4);
+		}
+	}
 
 	/* remove native stackframe info */
 
@@ -3808,7 +3846,19 @@ void codegen_emit_stub_builtin(jitdata *jd, functionptr f)
 
 	/* restore return value */
 
-	/* XXX TODO */
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_ILD(REG_RESULT2, REG_SP, 2 * 4);
+			M_ILD(REG_RESULT, REG_SP, 1 * 4);
+		}
+		else {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				emit_fldl_membase(cd, REG_SP, 1 * 4);
+			else
+				emit_flds_membase(cd, REG_SP, 1 * 4);
+		}
+	}
 
 #if defined(ENABLE_GC_CACAO)
 	/* Restore callee saved integer registers from stackframeinfo (GC
