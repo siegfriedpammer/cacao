@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: jni.c 7723 2007-04-16 18:03:08Z michi $
 
 */
 
@@ -1127,7 +1127,7 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 	STATISTICS(jniinvokation());
 
 	cl = (java_lang_ClassLoader *) loader;
-	s  = javastring_new_from_utf_string(name);
+	s  = (java_lang_String *) javastring_new_from_utf_string(name);
 	ba = (java_bytearray *) buf;
 
 	c = (jclass) _Jv_java_lang_ClassLoader_defineClass(cl, s, ba, 0, bufLen,
@@ -4179,7 +4179,8 @@ void _Jv_JNI_ReleaseStringChars(JNIEnv *env, jstring str, const jchar *chars)
 
 /* NewStringUTF ****************************************************************
 
-   Constructs a new java.lang.String object from an array of UTF-8 characters.
+   Constructs a new java.lang.String object from an array of UTF-8
+   characters.
 
 *******************************************************************************/
 
@@ -4189,7 +4190,7 @@ jstring _Jv_JNI_NewStringUTF(JNIEnv *env, const char *bytes)
 
 	STATISTICS(jniinvokation());
 
-	s = javastring_safe_new_from_utf8(bytes);
+	s = (java_lang_String *) javastring_safe_new_from_utf8(bytes);
 
     return (jstring) _Jv_JNI_NewLocalRef(env, (jobject) s);
 }
@@ -4228,7 +4229,7 @@ const char *_Jv_JNI_GetStringUTFChars(JNIEnv *env, jstring string,
 	if (isCopy)
 		*isCopy = JNI_TRUE;
 	
-	u = javastring_toutf((java_lang_String *) string, false);
+	u = javastring_toutf((java_objectheader *) string, false);
 
 	if (u != NULL)
 		return u->text;

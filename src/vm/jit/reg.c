@@ -1,6 +1,6 @@
 /* src/vm/jit/reg.c - register allocator setup
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,17 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-
-   Changes: Stefan Ring
-            Christian Thalinger
-            Christian Ullrich
-            Michael Starzinger
-            Edwin Steiner
-
-   $Id: reg.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: reg.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -70,15 +60,6 @@ void reg_setup(jitdata *jd)
 
 	/* setup the integer register table */
 
-#if defined(__ARM__)
-	/* On ARM longs can be split across argument regs and stack. This is
-	 * signed by setting the HIGH_REG to INT_ARG_CNT in md_param_alloc().
-	 * Here we make sure it resolves to a special dummy reg (REG_SPLIT). */
-	rd->argintregs = DMNEW(s4, INT_ARG_CNT + 1);
-	rd->argintregs[INT_ARG_CNT] = REG_SPLIT;
-#else
-	rd->argintregs = DMNEW(s4, INT_ARG_CNT);
-#endif
 	rd->tmpintregs = DMNEW(s4, INT_TMP_CNT);
 	rd->savintregs = DMNEW(s4, INT_SAV_CNT);
 	rd->freeargintregs = DMNEW(s4, INT_ARG_CNT);
@@ -100,29 +81,11 @@ void reg_setup(jitdata *jd)
 		case REG_TMP:
   			rd->tmpintregs[rd->tmpintreguse++] = i; 
 			break;
-		case REG_ARG:
-			rd->argintregs[rd->argintreguse++] = i;
-			break;
 		}
 	}
 	assert(rd->savintreguse == INT_SAV_CNT);
 	assert(rd->tmpintreguse == INT_TMP_CNT);
-	assert(rd->argintreguse == INT_ARG_CNT);
 
-#if defined(__X86_64__)
-	/* 
-	 * on x86_64 the argument registers are not in ascending order 
-	 * a00 (%rdi) <-> a03 (%rcx) and a01 (%rsi) <-> a02 (%rdx)
-	 */
-	i = rd->argintregs[3];
-	rd->argintregs[3] = rd->argintregs[0];
-	rd->argintregs[0] = i;
-
-	i = rd->argintregs[2];
-	rd->argintregs[2] = rd->argintregs[1];
-	rd->argintregs[1] = i;
-#endif
-		
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	/* setup the address register table */
 
@@ -161,7 +124,6 @@ void reg_setup(jitdata *jd)
 		
 	/* setup the float register table */
 
-	rd->argfltregs = DMNEW(s4, FLT_ARG_CNT);
 	rd->tmpfltregs = DMNEW(s4, FLT_TMP_CNT);
 	rd->savfltregs = DMNEW(s4, FLT_SAV_CNT);
 	rd->freeargfltregs = DMNEW(s4, FLT_ARG_CNT);
@@ -183,14 +145,10 @@ void reg_setup(jitdata *jd)
 		case REG_TMP:
 			rd->tmpfltregs[rd->tmpfltreguse++] = i;
 			break;
-		case REG_ARG:
-			rd->argfltregs[rd->argfltreguse++] = i;
-			break;
 		}
 	}
 	assert(rd->savfltreguse == FLT_SAV_CNT);
 	assert(rd->tmpfltreguse == FLT_TMP_CNT);
-	assert(rd->argfltreguse == FLT_ARG_CNT);
 
 
 	rd->freemem    = DMNEW(s4, m->maxstack);

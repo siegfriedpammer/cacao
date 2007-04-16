@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 7573 2007-03-25 18:55:02Z twisti $
+   $Id: java_lang_reflect_Constructor.c 7720 2007-04-16 15:49:09Z twisti $
 
 */
 
@@ -148,9 +148,9 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Constructor_getSignature(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	classinfo        *c;
-	methodinfo       *m;
-	java_lang_String *s;
+	classinfo         *c;
+	methodinfo        *m;
+	java_objectheader *o;
 
 	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
@@ -158,11 +158,11 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Constructor_getSignat
 	if (m->signature == NULL)
 		return NULL;
 
-	s = javastring_new(m->signature);
+	o = javastring_new(m->signature);
 
-	/* in error case, s == NULL */
+	/* in error case o is NULL */
 
-	return s;
+	return (java_lang_String *) o;
 }
 
 

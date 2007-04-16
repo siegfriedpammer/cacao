@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 7387 2007-02-21 23:26:24Z twisti $
+   $Id: utf8.c 7716 2007-04-16 14:29:53Z twisti $
 
 */
 
@@ -1022,7 +1022,7 @@ u4 utf_get_number_of_u2s(utf *u)
 	if (utf_ptr != endpos) {
 		/* string ended abruptly */
 		exceptions_throw_internalerror("Illegal utf8 string");
-		return NULL;
+		return 0;
 	}
 
 	return len;

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7699 2007-04-13 10:42:05Z twisti $
+   $Id: md-abi.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -60,6 +60,36 @@ const char *abi_registers_integer_name[] = {
 	"t8",    "t9",    "k0",    "k1",    "gp",    "sp",    "s8",    "ra"
 };
 
+const s4 abi_registers_integer_argument[] = {
+	4,  /* a0  */
+	5,  /* a1  */
+	6,  /* a2  */
+	7,  /* a3  */
+	8,  /* a4  */
+	9,  /* a5  */
+	10, /* a6  */
+	11, /* a7  */
+};
+
+const s4 abi_registers_integer_saved[] = {
+	16, /* s0  */
+	17, /* s1  */
+	18, /* s2  */
+	19, /* s3  */
+	20, /* s4  */
+	21, /* s5  */
+	22, /* s6  */
+	23, /* s7  */
+};
+
+const s4 abi_registers_integer_temporary[] = {
+	12, /* t0  */
+	13, /* t1  */
+	14, /* t2  */
+	15, /* t3  */
+	24, /* t4  */
+};
+
 
 s4 nregdescfloat[] = {
 	/*  fv0,   ftmp1,   ftmp2,   ftmp3,     ft0,     ft1,     ft2,     ft3,   */
@@ -75,6 +105,43 @@ s4 nregdescfloat[] = {
 	REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
 
 	REG_END
+};
+
+const s4 abi_registers_float_argument[] = {
+	12, /* fa0  */
+	13, /* fa1  */
+	14, /* fa2  */
+	15, /* fa3  */
+	16, /* fa4  */
+	17, /* fa5  */
+	18, /* fa6  */
+	19, /* fa7  */
+};
+
+const s4 abi_registers_float_saved[] = {
+	24, /* fs0  */
+	26, /* fs1  */
+	28, /* fs2  */
+	30, /* fs3  */
+};
+
+const s4 abi_registers_float_temporary[] = {
+	4,  /* ft0  */
+	5,  /* ft1  */
+	6,  /* ft2  */
+	7,  /* ft3  */
+	8,  /* ft4  */
+	9,  /* ft5  */
+	10, /* ft6  */
+	11, /* ft7  */
+	20, /* ft8  */
+	21, /* ft9  */
+	22, /* ft10 */
+	23, /* ft11 */
+	25, /* ft12 */
+	27, /* ft13 */
+	29, /* ft14 */
+	31, /* ft15 */
 };
 
 #else /* SIZEOF_VOID_P == 8 */
@@ -104,6 +171,35 @@ const char *abi_registers_integer_name[] = {
 	"t8",    "t9",    "k0",    "k1",    "gp",    "sp",    "s8",    "ra"
 };
 
+const s4 abi_registers_integer_argument[] = {
+	4,  /* a0  */
+	5,  /* a1  */
+	6,  /* a2  */
+	7,  /* a3  */
+};
+
+const s4 abi_registers_integer_saved[] = {
+	16, /* s0  */
+	17, /* s1  */
+	18, /* s2  */
+	19, /* s3  */
+	20, /* s4  */
+	21, /* s5  */
+	22, /* s6  */
+	23, /* s7  */
+};
+
+const s4 abi_registers_integer_temporary[] = {
+	8,  /* t0  */
+	9,  /* t1  */
+	10, /* t2  */
+	11, /* t3  */
+	12, /* t4  */
+	13, /* t5  */
+	14, /* t6  */
+	15, /* t7  */
+};
+
 
 #if !defined(ENABLE_SOFT_FLOAT)
 
@@ -122,6 +218,28 @@ s4 nregdescfloat[] = {
 
 	REG_END
 };
+
+const s4 abi_registers_float_argument[] = {
+	12, /* fa0  */
+	14, /* fa1  */
+};
+
+const s4 abi_registers_float_saved[] = {
+	20, /* fs0  */
+	22, /* fs1  */
+	24, /* fs2  */
+	26, /* fs3  */
+	28, /* fs4  */
+	30, /* fs5  */
+};
+
+const s4 abi_registers_float_temporary[] = {
+	8,  /* ft0  */
+	10, /* ft1  */
+	16, /* ft2  */
+	18, /* ft3  */
+};
+
 
 #else /* !defined(ENABLE_SOFT_FLOAT) */
 
@@ -153,8 +271,8 @@ void md_param_alloc(methoddesc *md)
 
 	/* set default values */
 
-	reguse = 0;
-	stacksize = 0;
+	reguse      = 0;
+	stacksize   = 0;
 #if SIZEOF_VOID_P == 4 && !defined(ENABLE_SOFT_FLOAT)
 	a0_is_float = false;
 #endif
@@ -172,7 +290,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff   = reguse;
+				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 				md->argintreguse = reguse;
 			}
@@ -186,7 +304,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (i < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff   = reguse;
+				pd->regoff   = abi_registers_float_argument[reguse];
 				reguse++;
 				md->argfltreguse = reguse;
 			}
@@ -214,14 +332,14 @@ void md_param_alloc(methoddesc *md)
 			((i == 0) ||
 			 ((i == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type)))) {
 			if (IS_2_WORD_TYPE(t)) {
-				pd->type = TYPE_DBL;
-				pd->regoff = reguse;
+				pd->type   = TYPE_DBL;
+				pd->regoff = abi_registers_float_argument[reguse];
 				reguse++;
 				stacksize += 2;
 			}
 			else {
-				pd->type = TYPE_FLT;
-				pd->regoff = reguse;
+				pd->type   = TYPE_FLT;
+				pd->regoff = abi_registers_float_argument[reguse];
 				reguse++;
 				stacksize++;
 			}
@@ -236,9 +354,13 @@ void md_param_alloc(methoddesc *md)
 				if (reguse < INT_ARG_CNT) {
 					pd->inmemory = false;
 # if WORDS_BIGENDIAN == 1
-					pd->regoff   = PACK_REGS(reguse + 1, reguse);
+					pd->regoff   =
+						PACK_REGS(abi_registers_integer_argument[reguse + 1],
+								  abi_registers_integer_argument[reguse]);
 # else
-					pd->regoff   = PACK_REGS(reguse, reguse + 1);
+					pd->regoff   =
+						PACK_REGS(abi_registers_integer_argument[reguse],
+								  abi_registers_integer_argument[reguse + 1]);
 # endif
 					reguse += 2;
 					md->argintreguse = reguse;
@@ -254,13 +376,13 @@ void md_param_alloc(methoddesc *md)
 
 				if (reguse < INT_ARG_CNT) {
 					pd->inmemory = false;
-					pd->regoff = reguse;
+					pd->regoff   = abi_registers_integer_argument[reguse];
 					reguse++;
 					md->argintreguse = reguse;
 				}
 				else {
 					pd->inmemory = true;
-					pd->regoff = stacksize;
+					pd->regoff   = stacksize;
 				}
 				stacksize++;
 			}
@@ -277,7 +399,7 @@ void md_param_alloc(methoddesc *md)
 
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff   = reguse;
+				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 				md->argintreguse = reguse;
 			}
@@ -294,9 +416,13 @@ void md_param_alloc(methoddesc *md)
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
 #if WORDS_BIGENDIAN == 1
-				pd->regoff   = PACK_REGS(reguse + 1, reguse);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse + 1],
+							  abi_registers_integer_argument[reguse]);
 #else
-				pd->regoff   = PACK_REGS(reguse, reguse + 1);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse],
+							  abi_registers_integer_argument[reguse + 1]);
 #endif
 				reguse += 2;
 				md->argintreguse = reguse;

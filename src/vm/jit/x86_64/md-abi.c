@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7630 2007-04-02 19:56:14Z twisti $
+   $Id: md-abi.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -34,6 +34,7 @@
 
 #include "vm/global.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/jit.h" /* for REG_* (maybe can be removed) */
 
 #include "vmcore/descriptor.h"
@@ -74,10 +75,44 @@ const s4 abi_registers_integer_temporary[] = {
 };
 
 
+/* float registers *************************************************************
+
+   xmm0,   xmm1,   xmm2,   xmm3,   xmm4,   xmm5,   xmm6,   xmm7,
+   (fa0)   (fa1)   (fa2)   (fa3)   (fa4)   (fa5)   (fa6)   (fa7)
+
+   xmm8,   xmm9,   xmm10,  xmm11,  xmm12,  xmm13,  xmm14,  xmm15
+   (ftmp1) (ftmp2) (ftmp3) (ft0)   (ft1)   (ft2)   (ft3)   (ft4)
+
+*******************************************************************************/
+
 s4 nregdescfloat[] = {
     REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
     REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END
+};
+
+
+const s4 abi_registers_float_argument[] = {
+	0,  /* fa0 */
+	1,  /* fa1 */
+	2,  /* fa2 */
+	3,  /* fa3 */
+	4,  /* fa4 */
+	5,  /* fa5 */
+	6,  /* fa6 */
+	7,  /* fa7 */
+};
+
+const s4 abi_registers_float_saved[] = {
+	-1,
+};
+
+const s4 abi_registers_float_temporary[] = {
+	11, /* ft0 */
+	12, /* ft1 */
+	13, /* ft2 */
+	14, /* ft3 */
+	15, /* ft4 */
 };
 
 
@@ -97,8 +132,8 @@ void md_param_alloc(methoddesc *md)
 
 	/* set default values */
 
-	iarg = 0;
-	farg = 0;
+	iarg      = 0;
+	farg      = 0;
 	stacksize = 0;
 
 	/* get params field of methoddesc */
@@ -112,7 +147,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff   = iarg;
+				pd->regoff   = abi_registers_integer_argument[iarg];
 				iarg++;
 			}
 			else {
@@ -126,7 +161,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff   = farg;
+				pd->regoff   = abi_registers_float_argument[farg];
 				farg++;
 			}
 			else {

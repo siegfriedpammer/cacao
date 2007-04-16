@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThrowable.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: java_lang_VMThrowable.c 7720 2007-04-16 15:49:09Z twisti $
 
 */
 
@@ -208,7 +208,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 		if (!(ste->method->flags & ACC_NATIVE)) {
 			if (ste->method->class->sourcefile)
-				filename = javastring_new(ste->method->class->sourcefile);
+				filename = (java_lang_String *) javastring_new(ste->method->class->sourcefile);
 			else
 				filename = NULL;
 		}
@@ -224,14 +224,15 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 		/* get declaring class name */
 
-		declaringclass = _Jv_java_lang_Class_getName(ste->method->class);
+		declaringclass =
+			_Jv_java_lang_Class_getName((java_lang_Class *) ste->method->class);
 
 		/* fill the java.lang.StackTraceElement element */
 
 		o->fileName       = filename;
 		o->lineNumber     = linenumber;
 		o->declaringClass = declaringclass;
-		o->methodName     = javastring_new(ste->method->name);
+		o->methodName     = (java_lang_String *) javastring_new(ste->method->name);
 		o->isNative       = (ste->method->flags & ACC_NATIVE) ? 1 : 0;
 
 		oa->data[i] = (java_objectheader *) o;

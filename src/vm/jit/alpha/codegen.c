@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7693 2007-04-12 14:56:49Z michi $
+   $Id: codegen.c 7723 2007-04-16 18:03:08Z michi $
 
 */
 
@@ -214,43 +214,33 @@ bool codegen_emit(jitdata *jd)
 
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
  			if (!md->params[p].inmemory) {           /* register arguments    */
-				s2 = rd->argintregs[s1];
- 				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
- 					M_INTMOVE(s2, var->vv.regoff);
-
-				} else {                             /* reg arg -> spilled    */
- 					M_LST(s2, REG_SP, var->vv.regoff * 8);
- 				}
-
-			} else {                                 /* stack arguments       */
- 				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
- 					M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) *8);
-
- 				} else {                             /* stack arg -> spilled  */
-					var->vv.regoff = cd->stackframesize + s1;
-				}
+ 				if (!IS_INMEMORY(var->flags))
+ 					M_INTMOVE(s1, var->vv.regoff);
+				else
+ 					M_LST(s1, REG_SP, var->vv.regoff * 8);
 			}
-
-		} else {                                     /* floating args         */
- 			if (!md->params[p].inmemory) {           /* register arguments    */
-				s2 = rd->argfltregs[s1];
- 				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
- 					M_FLTMOVE(s2, var->vv.regoff);
-
- 				} else {			                 /* reg arg -> spilled    */
- 					M_DST(s2, REG_SP, var->vv.regoff * 8);
- 				}
-
-			} else {                                 /* stack arguments       */
- 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
- 					M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
-
- 				} else {                             /* stack-arg -> spilled  */
+			else {                                   /* stack arguments       */
+ 				if (!IS_INMEMORY(var->flags))
+ 					M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) *8);
+				else
 					var->vv.regoff = cd->stackframesize + s1;
-				}
 			}
 		}
-	} /* end for */
+		else {                                       /* floating args         */
+ 			if (!md->params[p].inmemory) {           /* register arguments    */
+ 				if (!IS_INMEMORY(var->flags))
+ 					M_FLTMOVE(s1, var->vv.regoff);
+ 				else
+ 					M_DST(s1, REG_SP, var->vv.regoff * 8);
+			}
+			else {                                   /* stack arguments       */
+ 				if (!(var->flags & INMEMORY))
+ 					M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+				else
+					var->vv.regoff = cd->stackframesize + s1;
+			}
+		}
+	}
 
 	/* call monitorenter function */
 
@@ -265,10 +255,10 @@ bool codegen_emit(jitdata *jd)
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 			for (p = 0; p < INT_ARG_CNT; p++)
-				M_LST(rd->argintregs[p], REG_SP, p * 8);
+				M_LST(abi_registers_integer_argument[p], REG_SP, p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_DST(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
+				M_DST(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 			s1 += INT_ARG_CNT + FLT_ARG_CNT;
 		}
@@ -295,10 +285,10 @@ bool codegen_emit(jitdata *jd)
 #if !defined(NDEBUG)
 		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
-				M_LLD(rd->argintregs[p], REG_SP, p * 8);
+				M_LLD(abi_registers_integer_argument[p], REG_SP, p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_DLD(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
+				M_DLD(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 			M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
 		}
@@ -2581,6 +2571,7 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
+				d  = md->params[s3].regoff;
 
 				/* Already Preallocated (ARGVAR) ? */
 				if (var->flags & PREALLOC)
@@ -2588,24 +2579,22 @@ gen_method:
 
 				if (IS_INT_LNG_TYPE(var->type)) {
 					if (!md->params[s3].inmemory) {
-						s1 = rd->argintregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var, s1);
-						M_INTMOVE(d, s1);
+						s1 = emit_load(jd, iptr, var, d);
+						M_INTMOVE(s1, d);
 					}
 					else {
-						d = emit_load(jd, iptr, var, REG_ITMP1);
-						M_LST(d, REG_SP, md->params[s3].regoff * 8);
+						s1 = emit_load(jd, iptr, var, REG_ITMP1);
+						M_LST(s1, REG_SP, d * 8);
 					}
 				}
 				else {
 					if (!md->params[s3].inmemory) {
-						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var, s1);
+						s1 = emit_load(jd, iptr, var, d);
 						M_FLTMOVE(d, s1);
 					}
 					else {
-						d = emit_load(jd, iptr, var, REG_FTMP1);
-						M_DST(d, REG_SP, md->params[s3].regoff * 8);
+						s1 = emit_load(jd, iptr, var, REG_FTMP1);
+						M_DST(s1, REG_SP, d * 8);
 					}
 				}
 			}
@@ -3152,23 +3141,21 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 {
-	methodinfo   *m;
-	codeinfo     *code;
-	codegendata  *cd;
-	registerdata *rd;
-	methoddesc   *md;
-	s4            nativeparams;
-	s4            i, j;                 /* count variables                    */
-	s4            t;
-	s4            s1, s2, disp;
-	s4            funcdisp;             /* displacement of the function       */
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
+	methoddesc  *md;
+	s4           nativeparams;
+	s4           i, j;                 /* count variables                    */
+	s4           t;
+	s4           s1, s2, disp;
+	s4           funcdisp;             /* displacement of the function       */
 
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
 
 	/* initialize variables */
 
@@ -3232,14 +3219,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
 		if (IS_INT_LNG_TYPE(md->paramtypes[i].type)) {
-			M_LST(rd->argintregs[i], REG_SP, j * 8);
+			M_LST(abi_registers_integer_argument[i], REG_SP, j * 8);
 			j++;
 		}
 	}
 
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DST(rd->argfltregs[i], REG_SP, j * 8);
+			M_DST(abi_registers_float_argument[i], REG_SP, j * 8);
 			j++;
 		}
 	}
@@ -3260,14 +3247,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
 		if (IS_INT_LNG_TYPE(md->paramtypes[i].type)) {
-			M_LLD(rd->argintregs[i], REG_SP, j * 8);
+			M_LLD(abi_registers_integer_argument[i], REG_SP, j * 8);
 			j++;
 		}
 	}
 
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DLD(rd->argfltregs[i], REG_SP, j * 8);
+			M_DLD(abi_registers_float_argument[i], REG_SP, j * 8);
 			j++;
 		}
 	}
@@ -3279,41 +3266,36 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
-				s1 = rd->argintregs[md->params[i].regoff];
+				s1 = md->params[i].regoff;
+				s2 = nmd->params[j].regoff;
 
-				if (!nmd->params[j].inmemory) {
-					s2 = rd->argintregs[nmd->params[j].regoff];
+				if (!nmd->params[j].inmemory)
 					M_INTMOVE(s1, s2);
-
-				} else {
-					s2 = nmd->params[j].regoff;
+				else
 					M_LST(s1, REG_SP, s2 * 8);
-				}
-
-			} else {
+			}
+			else {
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
 				M_LST(REG_ITMP1, REG_SP, s2 * 8);
 			}
-
-		} else {
+		}
+		else {
 			if (!md->params[i].inmemory) {
-				s1 = rd->argfltregs[md->params[i].regoff];
+				s1 = md->params[i].regoff;
+				s2 = nmd->params[j].regoff;
 
-				if (!nmd->params[j].inmemory) {
-					s2 = rd->argfltregs[nmd->params[j].regoff];
+				if (!nmd->params[j].inmemory)
 					M_FLTMOVE(s1, s2);
-
-				} else {
-					s2 = nmd->params[j].regoff;
+				else {
 					if (IS_2_WORD_TYPE(t))
 						M_DST(s1, REG_SP, s2 * 8);
 					else
 						M_FST(s1, REG_SP, s2 * 8);
 				}
-
-			} else {
+			}
+			else {
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 				M_DLD(REG_FTMP1, REG_SP, s1 * 8);
@@ -3346,11 +3328,18 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* save return value */
 
-	if (md->returntype.type != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			M_LST(REG_RESULT, REG_SP, 0 * 8);
-		else
-			M_DST(REG_FRESULT, REG_SP, 0 * 8);
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_ADR:
+		M_LST(REG_RESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_VOID:
+		break;
 	}
 
 	/* call finished trace */
@@ -3372,11 +3361,18 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* restore return value */
 
-	if (md->returntype.type != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			M_LLD(REG_RESULT, REG_SP, 0 * 8);
-		else
-			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_ADR:
+		M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_VOID:
+		break;
 	}
 
 #if defined(ENABLE_GC_CACAO)
@@ -3406,7 +3402,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
 	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */
 	
-
 	/* generate patcher stubs */
 
 	emit_patcher_stubs(jd);

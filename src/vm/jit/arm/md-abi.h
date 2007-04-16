@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.h 7276 2007-02-02 11:58:18Z michi $
+   $Id: md-abi.h 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -125,11 +125,6 @@
 
 #define REG_ITMP12_TYPED(t) ((IS_2_WORD_TYPE(t)) ? REG_ITMP12_PACKED : REG_ITMP1)
 #define REG_RESULT_TYPED(t) ((IS_2_WORD_TYPE(t)) ? REG_RESULT_PACKED : REG_RESULT)
-#define ARGUMENT_REGS(t,a)  ((IS_2_WORD_TYPE(t)) ? \
-	   (PACK_REGS(rd->argintregs[GET_LOW_REG(a)],rd->argintregs[GET_HIGH_REG(a)])) : \
-	   (rd->argintregs[(a)]) \
-	)
-
 
 #endif /* _MD_ABI_H */
 

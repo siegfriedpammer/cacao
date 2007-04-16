@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7330 2007-02-11 21:39:54Z twisti $
+   $Id: md-abi.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -203,8 +203,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_ADR:
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory  = false;
-/* 				pd->regoff    = abi_registers_integer_argument[iarg]; */
-				pd->regoff    = iarg;
+				pd->regoff    = abi_registers_integer_argument[iarg];
 				iarg++;
 			}
 			else {
@@ -218,10 +217,9 @@ void md_param_alloc(methoddesc *md)
 			if (iarg < INT_ARG_CNT - 1) {
 				_ALIGN(iarg);
 				pd->inmemory  = false;
-/* 				pd->regoff    = */
-/* 					PACK_REGS(abi_registers_integer_argument[iarg + 1], */
-/* 							  abi_registers_integer_argument[iarg]); */
-				pd->regoff    =	PACK_REGS(iarg + 1, iarg);
+				pd->regoff    =
+					PACK_REGS(abi_registers_integer_argument[iarg + 1],
+							  abi_registers_integer_argument[iarg]);
 				iarg += 2;
 			}
 			else {
@@ -236,8 +234,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_FLT:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory  = false;
-/* 				pd->regoff    = abi_registers_float_argument[farg]; */
-				pd->regoff    = farg;
+				pd->regoff    = abi_registers_float_argument[farg];
 				farg++;
 			}
 			else {
@@ -250,8 +247,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory  = false;
-/* 				pd->regoff    = abi_registers_integer_argument[farg]; */
-				pd->regoff    = farg;
+				pd->regoff    = abi_registers_float_argument[farg];
 				farg++;
 			}
 			else {
@@ -285,7 +281,7 @@ void md_param_alloc(methoddesc *md)
 
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
-	md->memuse = stacksize;
+	md->memuse       = stacksize;
 }
 
 

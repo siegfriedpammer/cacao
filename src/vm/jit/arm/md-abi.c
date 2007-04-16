@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7353 2007-02-13 23:14:35Z twisti $
+   $Id: md-abi.c 7713 2007-04-15 21:49:48Z twisti $
 
 */
 
@@ -52,6 +52,26 @@ const char *abi_registers_integer_name[] = {
 	"v5", "t3", "t1", "t2", "ip", "sp", "lr", "pc",
 };
 
+const s4 abi_registers_integer_argument[] = {
+	0,  /* a0 */
+	1,  /* a1 */
+	2,  /* a2 */
+	3,  /* a3 */
+	REG_SPLIT,
+};
+
+const s4 abi_registers_integer_saved[] = {
+	4,  /* s0 */
+	5,  /* s1 */
+	6,  /* s2 */
+	7,  /* s3 */
+	8,  /* s4 */
+};
+
+const s4 abi_registers_integer_temporary[] = {
+	-1,
+};
+
 
 #if defined(ENABLE_SOFTFLOAT)
 s4 nregdescfloat[] = {
@@ -67,6 +87,27 @@ s4 nregdescfloat[] = {
 	REG_END
 };
 #endif /* defined(ENABLE_SOFTFLOAT) */
+
+const s4 abi_registers_float_argument[] = {
+	-1,
+};
+
+const s4 abi_registers_float_saved[] = {
+	-1,
+};
+
+const s4 abi_registers_float_temporary[] = {
+#if defined(ENABLE_SOFTFLOAT)
+	-1,
+#else
+	0,  /* ft0 */
+	1,  /* ft1 */
+	2,  /* ft2 */
+	3,  /* ft3 */
+	4,  /* ft4 */
+	5,  /* ft5 */
+#endif
+};
 
 
 /* md_param_alloc **************************************************************
@@ -107,12 +148,12 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_FLT:
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 				stacksize++;
 			}
 			break;
@@ -122,25 +163,33 @@ void md_param_alloc(methoddesc *md)
 			if (reguse+1 < INT_ARG_CNT) {
 				pd->inmemory = false;
 #if defined(__ARMEL__)
-				pd->regoff = PACK_REGS(reguse, reguse+1);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse],
+							  abi_registers_integer_argument[reguse + 1]);
 #else
-				pd->regoff = PACK_REGS(reguse+1, reguse);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse + 1],
+							  abi_registers_integer_argument[reguse]);
 #endif
 				reguse += 2;
 			}
 			else if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 #if defined(__ARMEL__)
-				pd->regoff = PACK_REGS(reguse, INT_ARG_CNT);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse],
+							  abi_registers_integer_argument[INT_ARG_CNT]);
 #else
-				pd->regoff = PACK_REGS(INT_ARG_CNT, reguse);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[INT_ARG_CNT],
+							  abi_registers_integer_argument[reguse]);
 #endif
 				reguse++;
 				stacksize++;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff   = stacksize;
 				stacksize += 2;
 			}
 			break;
@@ -200,7 +249,7 @@ void md_param_alloc_native(methoddesc *md)
 		case TYPE_FLT:
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff   = reguse;
+				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 			}
 			else {
@@ -218,9 +267,13 @@ void md_param_alloc_native(methoddesc *md)
 #endif
 				pd->inmemory = false;
 #if defined(__ARMEL__)
-				pd->regoff   = PACK_REGS(reguse, reguse + 1);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse],
+							  abi_registers_integer_argument[reguse + 1]);
 #else
-				pd->regoff   = PACK_REGS(reguse + 1, reguse);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse + 1],
+							  abi_registers_integer_argument[reguse]);
 #endif
 				reguse += 2;
 			}
@@ -228,9 +281,13 @@ void md_param_alloc_native(methoddesc *md)
 			else if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 # if defined(__ARMEL__)
-				pd->regoff   = PACK_REGS(reguse, INT_ARG_CNT);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse],
+							  abi_registers_integer_argument[INT_ARG_CNT]);
 # else
-				pd->regoff   = PACK_REGS(INT_ARG_CNT, reguse);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[INT_ARG_CNT],
+							  abi_registers_integer_argument[reguse]);
 # endif
 				reguse++;
 				stacksize++;
