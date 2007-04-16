@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md-abi.c 7724 2007-04-16 21:07:10Z twisti $
 
 */
 
@@ -70,6 +70,39 @@ const char *abi_registers_integer_name[] = {
 	"r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31",
 };
 
+const s4 abi_registers_integer_argument[] = {
+	3,  /* a0 */
+	4,  /* a1 */
+	5,  /* a2 */
+	6,  /* a3 */
+	7,  /* a4 */
+	8,  /* a5 */
+	9,  /* a6 */
+	10, /* a7 */
+};
+
+const s4 abi_registers_integer_saved[] = {
+	15, /* s0 */
+	24, /* s1 */
+	25, /* s2 */
+	26, /* s3 */
+	27, /* s4 */
+	28, /* s5 */
+	29, /* s6 */
+	30, /* s7 */
+	31, /* s8 */
+};
+
+const s4 abi_registers_integer_temporary[] = {
+	17, /* t0 */
+	18, /* t1 */
+	19, /* t2 */
+	20, /* t3 */
+	21, /* t4 */
+	22, /* t5 */
+	23, /* t6 */
+};
+
 
 s4 nregdescfloat[] = {
 	/*ftmp3,  fa0/v0,     fa1,     fa2,     fa3,     fa4,     fa5,     fa6,   */
@@ -85,6 +118,45 @@ s4 nregdescfloat[] = {
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 
 	REG_END
+};
+
+const s4 abi_registers_float_argument[] = {
+	1,  /* fa0  */
+	2,  /* fa1  */
+	3,  /* fa2  */
+	4,  /* fa3  */
+	5,  /* fa4  */
+	6,  /* fa5  */
+	7,  /* fa6  */
+	8,  /* fa7  */
+	9,  /* fa8  */
+	10, /* fa9  */
+	11, /* fa10 */
+	12, /* fa11 */
+	13, /* fa12 */
+};
+
+const s4 abi_registers_float_saved[] = {
+	16, /* fs0  */
+	17, /* fs1  */
+	18, /* fs2  */
+	19, /* fs3  */
+	20, /* fs4  */
+	21, /* fs5  */
+	22, /* fs6  */
+	23, /* fs7  */
+	24, /* fs8  */
+	25, /* fs9  */
+	26, /* fs10 */
+	27, /* fs11 */
+	28, /* fs12 */
+	29, /* fs13 */
+	30, /* fs14 */
+	31, /* fs15 */
+};
+
+const s4 abi_registers_float_temporary[] = {
+	-1,
 };
 
 
@@ -117,10 +189,10 @@ void md_param_alloc(methoddesc *md)
 
 	/* set default values */
 
-	iarg = 0;
-	farg = 0;
-	arg = 0;
-	stacksize = LA_SIZE_IN_POINTERS;
+	iarg       = 0;
+	farg       = 0;
+	arg        = 0;
+	stacksize  = LA_SIZE_IN_POINTERS;
 	stackcount = 0;
 
 	/* get params field of methoddesc */
@@ -134,25 +206,27 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_ADR:
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = iarg;
+				pd->regoff   = abi_registers_integer_argument[iarg];
 				iarg++;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize + stackcount;
+				pd->regoff   = stacksize + stackcount;
 			}
 			break;
 		case TYPE_FLT:
 		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = farg;
+				pd->regoff   = abi_registers_float_argument[farg];
 				farg++;
 				if (arg < INT_ARG_CNT) {
 					iarg++;		/* yes, that is true, floating arguments take int register slots away */
 				}
-			} else {
+			}
+			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize + stackcount ;
+				pd->regoff   = stacksize + stackcount ;
 			}
 			break;
 		default:
@@ -167,7 +241,8 @@ void md_param_alloc(methoddesc *md)
 	if (IS_INT_LNG_TYPE(md->returntype.type)) {
 		if (iarg < 1)
 			iarg = 1;
-	} else if (IS_FLT_DBL_TYPE(md->returntype.type)) {
+	}
+	else if (IS_FLT_DBL_TYPE(md->returntype.type)) {
 		if (farg < 1)
 			farg = 1;
 	}
