@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7382 2007-02-21 20:24:01Z twisti $
+## $Id: Makefile.am 7725 2007-04-16 21:09:39Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -43,13 +43,14 @@ DIST_SUBDIRS = \
 	alpha \
 	arm \
 	i386 \
+	m68k \
 	mips \
 	parisc \
 	powerpc \
 	powerpc64 \
+	s390 \
 	sparc64 \
-	x86_64 \
-	s390
+	x86_64
 
 SUBDIRS = \
 	optimizing \
