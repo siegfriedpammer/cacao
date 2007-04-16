@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: builtin.c 7714 2007-04-16 14:11:14Z twisti $
 
 */
 
@@ -1285,7 +1285,6 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 {
 	imm_union          imu;
 	java_objectheader *o;
-	java_lang_String  *s;
 	classinfo         *c;
 	utf               *u;
 	u4                 len;
@@ -1337,9 +1336,7 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 				/* get java.lang.String object and the length of the
 				   string */
 
-				s = (java_lang_String *) o;
-
-				u = javastring_toutf(s, false);
+				u = javastring_toutf(o, false);
 
 				len = strlen(" (String = \"") + utf_bytes(u) + strlen("\")");
 
