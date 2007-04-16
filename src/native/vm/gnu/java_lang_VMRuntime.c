@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 7376 2007-02-20 00:42:27Z twisti $
+   $Id: java_lang_VMRuntime.c 7718 2007-04-16 15:26:01Z twisti $
 
 */
 
@@ -256,18 +256,18 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, jclass clazz, java_lang_String *libname)
 {
-	utf              *u;
-	char             *buffer;
-	s4                buffer_len;
-	s4                dumpsize;
-	java_lang_String *s;
+	utf               *u;
+	char              *buffer;
+	s4                 buffer_len;
+	s4                 dumpsize;
+	java_objectheader *o;
 
-	if (!libname) {
+	if (libname == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	u = javastring_toutf(libname, 0);
+	u = javastring_toutf((java_objectheader *) libname, false);
 
 	/* calculate length of library name */
 
@@ -297,13 +297,13 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	strcat(buffer, ".so");
 #endif
 
-	s = javastring_new_from_utf_string(buffer);
+	o = javastring_new_from_utf_string(buffer);
 
 	/* release memory */
 
 	dump_release(dumpsize);
 
-	return s;
+	return (java_lang_String *) o;
 }
 
 
