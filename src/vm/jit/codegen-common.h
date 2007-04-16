@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7692 2007-04-12 14:47:24Z twisti $
+   $Id: codegen-common.h 7731 2007-04-16 22:24:30Z twisti $
 
 */
 
@@ -162,7 +162,6 @@ struct codegendata {
 	codegen_critical_section_t threadcritcurrent;
 	s4                 threadcritcount; /* Number of critical regions         */
 
-	s4              maxstack;
 	s4              stackframesize;    /* stackframe size of this method      */
 
 #if defined(ENABLE_REPLACEMENT)
