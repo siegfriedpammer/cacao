@@ -312,7 +312,7 @@ static u4 compact_move(u1 *old, u1 *new, u4 size)
 		/* copy old object content to new location */
 		MCOPY(new, old, u1, size);
 
-#if !defined(NDEBUG)
+#if defined(ENABLE_MEMCHECK)
 		/* invalidate old object */
 		MSET(old, MEMORY_CLEAR_BYTE, u1, size);
 #endif
