@@ -94,7 +94,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
-		utfname = javastring_toutf(name, true);
+		utfname = javastring_toutf((java_objectheader *) name, true);
 		
 		/* check if this class has already been defined */
 

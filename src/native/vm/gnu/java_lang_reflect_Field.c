@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: java_lang_reflect_Field.c 7720 2007-04-16 15:49:09Z twisti $
 
 */
 
@@ -1198,9 +1198,9 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JNIEnv *env, java_lang_reflect_Field* this)
 {
-	classinfo        *c;
-	fieldinfo        *f;
-	java_lang_String *s;
+	classinfo         *c;
+	fieldinfo         *f;
+	java_objectheader *o;
 
 	/* get the class and the field */
 
@@ -1210,11 +1210,11 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
 	if (f->signature == NULL)
 		return NULL;
 
-	s = javastring_new(f->signature);
+	o = javastring_new(f->signature);
 
-	/* in error case, s == NULL */
+	/* in error case o is NULL */
 
-	return s;
+	return (java_lang_String *) o;
 }
 
 

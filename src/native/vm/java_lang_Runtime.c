@@ -130,7 +130,7 @@ s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheade
 #if defined(WITH_STATIC_CLASSPATH)
 	return 1;
 #else /* defined(WITH_STATIC_CLASSPATH) */
-	name = javastring_toutf(libname, 0);
+	name = javastring_toutf((java_objectheader *) libname, false);
 
 	/* is the library already loaded? */
 
