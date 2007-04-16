@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 7408 2007-02-26 22:11:38Z twisti $
+   $Id: java_lang_VMClassLoader.c 7717 2007-04-16 15:23:32Z twisti $
 
 */
 
@@ -174,7 +174,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	u = javastring_toutf(name, true);
+	u = javastring_toutf((java_objectheader *) name, true);
 
 	/* load class */
 
@@ -218,9 +218,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
  */
 JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
-	jobject               o;         /* vector being created     */
+	java_objectheader    *o;         /* vector being created     */
 	methodinfo           *m;         /* "add" method of vector   */
-	java_lang_String     *path;      /* path to be added         */
+	java_objectheader    *path;      /* path to be added         */
 	list_classpath_entry *lce;       /* classpath entry          */
 	utf                  *utfname;   /* utf to look for          */
 	char                 *buffer;    /* char buffer              */
@@ -235,16 +235,17 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 	/* get the resource name as utf string */
 
-	utfname = javastring_toutf(name, false);
-	if (!utfname)
+	utfname = javastring_toutf((java_objectheader *) name, false);
+
+	if (utfname == NULL)
 		return NULL;
 
 	/* copy it to a char buffer */
 
-	namelen = utf_bytes(utfname);
+	namelen   = utf_bytes(utfname);
 	searchlen = namelen;
-	bufsize = namelen + strlen("0");
-	buffer = MNEW(char, bufsize);
+	bufsize   = namelen + strlen("0");
+	buffer    = MNEW(char, bufsize);
 
 	utf_copy(buffer, utfname);
 	namestart = buffer;
@@ -275,7 +276,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 	o = native_new_and_init(class_java_util_Vector);
 
-	if (!o)
+	if (o == NULL)
 		goto return_NULL;
 
 	/* get Vector.add() method */
@@ -286,7 +287,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 								 NULL,
 								 true);
 
-	if (!m)
+	if (m == NULL)
 		goto return_NULL;
 
 	/* iterate over all classpath entries */
@@ -332,7 +333,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 		/* if a resource was found, add it to the vector */
 
-		if (path) {
+		if (path != NULL) {
 			ret = vm_call_method_int(m, o, path);
 
 			if (exceptions_get_exception() != NULL)
@@ -370,23 +371,26 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv 
  * Method:    findLoadedClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *loader, java_lang_String *name)
 {
-	classinfo *c;
-	utf       *u;
+	classloader *cl;
+	classinfo   *c;
+	utf         *u;
+
+	cl = (classloader *) loader;
 
 	/* replace `.' by `/', this is required by the classcache */
 
-	u = javastring_toutf(name, true);
+	u = javastring_toutf((java_objectheader *) name, true);
 
 	/* lookup for defining classloader */
 
-	c = classcache_lookup_defined((classloader *) cl, u);
+	c = classcache_lookup_defined(cl, u);
 
 	/* if not found, lookup for initiating classloader */
 
 	if (c == NULL)
-		c = classcache_lookup((classloader *) cl, u);
+		c = classcache_lookup(cl, u);
 
 	return (java_lang_Class *) c;
 }
