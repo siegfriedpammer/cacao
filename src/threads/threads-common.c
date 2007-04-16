@@ -30,9 +30,10 @@
 #include "config.h"
 #include "vm/types.h"
 
-
 #include "native/jni.h"
+
 #include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Thread.h"
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -100,7 +101,7 @@ threadobject *threads_create_thread(utf *name)
 
 	/* set java.lang.Thread fields */
 
-	t->name     = javastring_new(name);
+	t->name     = (java_lang_String *) javastring_new(name);
 #if defined(ENABLE_JAVASE)
 	t->daemon   = true;
 #endif
@@ -236,7 +237,7 @@ void threads_dump(void)
 			/* get thread name */
 
 #if defined(ENABLE_JAVASE)
-			name = javastring_toutf(t->name, false);
+			name = javastring_toutf((java_objectheader *) t->name, false);
 #elif defined(ENABLE_JAVAME_CLDC1_1)
 			name = t->name;
 #endif
