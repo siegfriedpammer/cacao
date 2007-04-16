@@ -142,6 +142,8 @@ void gc_collect(s4 level)
 	/* remember start of dump memory area */
 	dumpsize = dump_size();
 
+	GCSTAT_COUNT(gcstat_collections);
+
 	RT_TIMING_GET_TIME(time_start);
 
 	/* let everyone know we want to do a collection */
@@ -357,6 +359,8 @@ void gc_call(void)
 	if (opt_verbosegc)
 		dolog("GC: Forced Collection ...");
 
+	GCSTAT_COUNT(gcstat_collections_forced);
+
 	gc_collect(0);
 
 	if (opt_verbosegc)
@@ -419,12 +423,18 @@ s8 gc_get_max_heap_size(void) { return heap_maximal_size; }
 /* Statistics *****************************************************************/
 
 #if defined(ENABLE_STATISTICS)
+int gcstat_collections;
+int gcstat_collections_forced;
 int gcstat_mark_depth;
 int gcstat_mark_depth_max;
 int gcstat_mark_count;
 
 void gcstat_println()
 {
+	printf("\nGCSTAT - General Statistics:\n");
+	printf("\t# of collections: %d\n", gcstat_collections);
+	printf("\t# of forced collections: %d\n", gcstat_collections_forced);
+
     printf("\nGCSTAT - Marking Statistics:\n");
     printf("\t# of objects marked: %d\n", gcstat_mark_count);
     printf("\tMaximal marking depth: %d\n", gcstat_mark_depth_max);

@@ -146,11 +146,20 @@ bool gc_suspend(threadobject *thread, u1 *pc, u1 *sp);
 #define GCSTAT_DEC(cnt)   { (cnt)--; GC_ASSERT((cnt) >= 0); }
 #define GCSTAT_COUNT_MAX(cnt,max) { (cnt)++; if ((cnt) > (max)) (max) = (cnt); }
 
+extern int gcstat_collections;
+extern int gcstat_collections_forced;
 extern int gcstat_mark_depth;
 extern int gcstat_mark_depth_max;
 extern int gcstat_mark_count;
 
 void gcstat_println();
+
+#else /* defined(ENABLE_STATISTICS) */
+
+#define GCSTAT_INIT(cnt)
+#define GCSTAT_COUNT(cnt)
+#define GCSTAT_DEC(cnt)
+#define GCSTAT_COUNT_MAX(cnt,max)
 
 #endif /* defined(ENABLE_STATISTICS) */
 
