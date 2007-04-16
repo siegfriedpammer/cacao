@@ -41,11 +41,13 @@
 #include "vmcore/options.h"
 
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/vm.h"
+
+#include "vm/jit/abi.h"
+#include "vm/jit/asmpart.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
-#include "vm/vm.h"
-#include "vm/jit/asmpart.h"
-#include "vm/exceptions.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
@@ -242,7 +244,7 @@ void emit_verbosecall_enter (jitdata *jd)
 		t = md->paramtypes[p].type;
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[p].inmemory) { /* Param in Arg Reg */
-				M_LST(rd->argintregs[md->params[p].regoff], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+				M_LST(md->params[p].regoff, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			} else { /* Param on Stack */
 				s1 = (md->params[p].regoff + cd->stackframesize) * 8 + stack_size;
 				M_LLD(REG_ITMP2, REG_SP, s1);
@@ -250,7 +252,7 @@ void emit_verbosecall_enter (jitdata *jd)
 			}
 		} else { /* IS_FLT_DBL_TYPE(t) */
 			if (!md->params[p].inmemory) { /* in Arg Reg */
-				s1 = rd->argfltregs[md->params[p].regoff];
+				s1 = md->params[p].regoff;
 				M_DST(s1, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			} else { /* on Stack */
 				/* this should not happen */
@@ -268,13 +270,13 @@ void emit_verbosecall_enter (jitdata *jd)
 	for (p = 0; (p < TRACE_ARGS_NUM) && (p < md->paramcount); p++) {
 		t = md->paramtypes[p].type;
 		if (IS_INT_LNG_TYPE(t)) {
-			M_LLD(rd->argintregs[p], REG_SP,LA_SIZE + PA_SIZE + 8 + p * 8);
+			M_LLD(abi_registers_integer_argument[p], REG_SP,LA_SIZE + PA_SIZE + 8 + p * 8);
 		} else { /* Float/Dbl */
 			if (!md->params[p].inmemory) { /* Param in Arg Reg */
 				/* use reserved Place on Stack (sp + 5 * 16) to copy  */
 				/* float/double arg reg to int reg                    */
-				s1 = rd->argfltregs[md->params[p].regoff];
-				M_MOV(s1, rd->argintregs[p]);
+				s1 = md->params[p].regoff;
+				M_MOV(s1, abi_registers_integer_argument[p]);
 			} else	{
 				assert(0);
 			}
@@ -313,13 +315,13 @@ void emit_verbosecall_enter (jitdata *jd)
 		if (IS_INT_LNG_TYPE(t))	{
 			if (!md->params[p].inmemory) { /* Param in Arg Reg */
 				/* restore integer argument registers */
-				M_LLD(rd->argintregs[p], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+				M_LLD(abi_registers_integer_argument[p], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			} else {
 				assert(0);	/* TODO: implement this */
 			}
 		} else { /* FLT/DBL */
 			if (!md->params[p].inmemory) { /* Param in Arg Reg */
-				M_DLD(rd->argfltregs[md->params[p].regoff], REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
+				M_DLD(md->params[p].regoff, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			} else {
 				assert(0); /* this shoudl never happen */
 			}
