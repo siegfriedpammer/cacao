@@ -134,8 +134,8 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	ufile = javastring_toutf(name, true);
-	uname = javastring_toutf(name, false);
+	ufile = javastring_toutf((java_objectheader *) name, true);
+	uname = javastring_toutf((java_objectheader *) name, false);
 
 	/* name must not contain '/' (mauve test) */
 
@@ -608,7 +608,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
 			rf = (java_lang_reflect_Field *) o;
 
 			rf->declaringClass = (java_lang_Class *) c;
-			rf->name           = javastring_new(f->name);
+			rf->name           = (java_lang_String *) javastring_new(f->name);
 			rf->slot           = i;
 
 			/* store object into array */
@@ -681,7 +681,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 			rm = (java_lang_reflect_Method *) o;
 
 			rm->declaringClass = (java_lang_Class *) m->class;
-			rm->name           = javastring_new(m->name);
+			rm->name           = (java_lang_String *) javastring_new(m->name);
 			rm->slot           = i;
 
 			/* store object into array */
@@ -988,7 +988,7 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
 	rm = (java_lang_reflect_Method *) o;
 
 	rm->declaringClass = (java_lang_Class *) m->class;
-	rm->name           = javastring_new(m->name);
+	rm->name           = (java_lang_String *) javastring_new(m->name);
 	rm->slot           = m - m->class->methods;      /* calculate method slot */
 
 	return rm;
@@ -1002,19 +1002,19 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
  */
 java_lang_String *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass)
 {
-	classinfo        *c;
-	java_lang_String *s;
+	classinfo         *c;
+	java_objectheader *o;
 
 	c = (classinfo *) klass;
 
 	if (c->signature == NULL)
 		return NULL;
 
-	s = javastring_new(c->signature);
+	o = javastring_new(c->signature);
 
-	/* in error case, s == NULL */
+	/* in error case o is NULL */
 
-	return s;
+	return (java_lang_String *) o;
 }
 
 
