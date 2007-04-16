@@ -1,6 +1,6 @@
 /* src/vm/jit/inline/inline.c - method inlining
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,50 +22,47 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes:
-
-   $Id: inline.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: inline.c 7731 2007-04-16 22:24:30Z twisti $
 
 */
 
+
 #include "config.h"
+
+#include <assert.h>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "vm/types.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <limits.h>
-
 #include "mm/memory.h"
-#include "toolbox/logging.h"
-#include "vm/builtin.h"
-#include "vm/global.h"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/parse.h"
-#include "vm/jit/inline/inline.h"
-#include "vm/jit/loop/loop.h"
-
-#include "vmcore/class.h"
-#include "vm/initialize.h"
-#include "vmcore/method.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/show.h"
-
-#include "vm/jit/reg.h"
-#include "vm/jit/stack.h"
-
-#include "vm/jit/verify/typecheck.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #endif
+
+#include "toolbox/logging.h"
+
+#include "vm/builtin.h"
+#include "vm/global.h"
+#include "vm/initialize.h"
+
+#include "vm/jit/jit.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/show.h"
+#include "vm/jit/stack.h"
+
+#include "vm/jit/inline/inline.h"
+#include "vm/jit/loop/loop.h"
+
+#include "vm/jit/verify/typecheck.h"
+
+#include "vmcore/class.h"
+#include "vmcore/method.h"
+#include "vmcore/options.h"
+#include "vmcore/statistics.h"
 
 
 /* algorithm tuning constants *************************************************/
@@ -364,7 +361,6 @@ static bool inline_jit_compile(inline_node *iln)
 	/* XXX do a pseudo setup */
 	jd->cd = DNEW(codegendata);
 	MZERO(jd->cd, codegendata, 1);
-	jd->cd->maxstack = m->maxstack;
 	jd->cd->method = m;
 	/* XXX uses too much dump memory codegen_setup(jd); */
 
@@ -2025,7 +2021,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 #if defined(INLINE_VERIFY_RESULT)
 	static int debug_verify_inlined_code = 1;
 #endif
-#if defined(ENABLE_INLINING_DEBUG)
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
 	static int debug_counter = 0;
 #endif
 
@@ -2096,7 +2092,6 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	/* store created code in jitdata */
 
 	n_jd->basicblocks = iln->inlined_basicblocks;
-	n_jd->basicblockindex = NULL;
 	n_jd->instructioncount = iln->cumul_instructioncount;
 	n_jd->instructions = iln->inlined_iinstr;
 
