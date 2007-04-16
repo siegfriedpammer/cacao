@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7713 2007-04-15 21:49:48Z twisti $
+   $Id: codegen.c 7733 2007-04-16 22:56:37Z twisti $
 
 */
 
@@ -2379,35 +2379,35 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
+				d   = md->params[s3].regoff;
 
-				/* Already Preallocated (ARGVAR) ? */
+				/* already preallocated (ARGVAR)? */
+
 				if (var->flags & PREALLOC)
 					continue;
 
 				if (IS_INT_LNG_TYPE(var->type)) {
 					if (!md->params[s3].inmemory) {
-						s1 = md->params[s3].regoff;
-						d = emit_load(jd, iptr, var, s1);
-						M_INTMOVE(d, s1);
+						s1 = emit_load(jd, iptr, var, d);
+						M_INTMOVE(s1, d);
 					}
 					else {
-						d = emit_load(jd, iptr, var, REG_ITMP1);
-						M_LST(d, REG_SP, md->params[s3].regoff * 8);
+						s1 = emit_load(jd, iptr, var, REG_ITMP1);
+						M_LST(s1, REG_SP, d * 8);
 					}
 				}
 				else {
 					if (!md->params[s3].inmemory) {
-						s1 = md->params[s3].regoff;
-						d = emit_load(jd, iptr, var, s1);
-						M_FLTMOVE(d, s1);
+						s1 = emit_load(jd, iptr, var, d);
+						M_FLTMOVE(s1, d);
 					}
 					else {
-						d = emit_load(jd, iptr, var, REG_FTMP1);
+						s1 = emit_load(jd, iptr, var, REG_FTMP1);
 
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 8);
+							M_DST(s1, REG_SP, d * 8);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 8);
+							M_FST(s1, REG_SP, d * 8);
 					}
 				}
 			}
