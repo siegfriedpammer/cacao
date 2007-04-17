@@ -895,7 +895,7 @@ static void show_variable_array_intern(jitdata *jd, s4 *vars, int n, int stage,
 			if (vars[i] == UNUSED)
 				putchar('-');
 			else if (javalocals) {
-				nr = (UNUSED - vars[i]) - 1;
+				nr = RETADDR_FROM_JAVALOCAL(vars[i]);
 				printf("ret(L%03d)", nr);
 			}
 			else {
@@ -1198,7 +1198,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		if (stage >= SHOW_STACK && iptr->sx.s23.s3.javaindex != UNUSED)
 			printf(" (javaindex %d)", iptr->sx.s23.s3.javaindex);
 		if (iptr->flags.bits & INS_FLAG_RETADDR) {
-			printf(" (retaddr L%03d)", (UNUSED - iptr->sx.s23.s2.retaddrnr) - 1);
+			printf(" (retaddr L%03d)", RETADDR_FROM_JAVALOCAL(iptr->sx.s23.s2.retaddrnr));
 		}
 		break;
 

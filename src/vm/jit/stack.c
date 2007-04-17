@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7737 2007-04-17 19:57:55Z edwin $
+   $Id: stack.c 7742 2007-04-17 20:37:36Z edwin $
 
 */
 
@@ -1556,7 +1556,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 				i = iptr->sx.s23.s3.javaindex;
 				if (iptr->flags.bits & INS_FLAG_RETADDR) {
 					iptr->sx.s23.s2.retaddrnr =
-						UNUSED - (1 + sd->var[j].vv.retaddr->nr);
+						JAVALOCAL_FROM_RETADDR(sd->var[j].vv.retaddr->nr);
 					sd->javalocals[i] = iptr->sx.s23.s2.retaddrnr;
 				}
 				else
@@ -3275,7 +3275,7 @@ normal_ACONST:
 						if (curstack->type == TYPE_RET) {
 							iptr->flags.bits |= INS_FLAG_RETADDR;
 							iptr->sx.s23.s2.retaddrnr = 
-								UNUSED - (1 + sd.var[j].vv.retaddr->nr);
+								JAVALOCAL_FROM_RETADDR(sd.var[j].vv.retaddr->nr);
 							sd.javalocals[javaindex] = iptr->sx.s23.s2.retaddrnr;
 						}
 						else

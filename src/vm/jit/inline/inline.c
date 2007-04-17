@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: inline.c 7731 2007-04-16 22:24:30Z twisti $
+   $Id: inline.c 7742 2007-04-17 20:37:36Z edwin $
 
 */
 
@@ -668,8 +668,6 @@ static s4 *create_variable_map(inline_node *callee)
 #define INLINE_RETURN_REFERENCE(callee)  \
 	( (basicblock *) (ptrint) (0x333 + (callee)->depth) )
 
-#define RETADDRNR_FROM_BLOCK(bptr)  (UNUSED - 1 - (bptr)->nr)
-
 
 static void inline_add_block_reference(inline_node *iln, basicblock **blockp)
 {
@@ -749,8 +747,8 @@ static void inline_resolve_block_refs(inline_target_ref **refs,
 	prev = NULL;
 	for (ref = *refs; ref != NULL; ref = ref->next) {
 		if (ref->isnumber && !returnref) {
-			if (*(ref->ref.nr) == RETADDRNR_FROM_BLOCK(o_bptr)) {
-				*(ref->ref.nr) = RETADDRNR_FROM_BLOCK(n_bptr);
+			if (*(ref->ref.nr) == JAVALOCAL_FROM_RETADDR(o_bptr->nr)) {
+				*(ref->ref.nr) = JAVALOCAL_FROM_RETADDR(n_bptr->nr);
 				goto remove_ref;
 			}
 		}
