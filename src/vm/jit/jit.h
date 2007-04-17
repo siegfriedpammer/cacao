@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 7738 2007-04-17 20:06:44Z edwin $
+   $Id: jit.h 7741 2007-04-17 20:30:09Z edwin $
 
 */
 
@@ -478,7 +478,7 @@ struct basicblock {
 	instruction  *iinstr;       /* pointer to intermediate code instructions  */
 
 	varinfo      *inlocals;     /* copy of locals on block entry              */
-	s4           *javalocals;   /* map from java locals to cacao variables    */
+	s4           *javalocals;   /* map from java locals to cacao variables[+] */
 	s4           *invars;       /* array of in-variables at begin of block    */
 	s4           *outvars;      /* array of out-variables at end of block     */
 	s4            indepth;      /* stack depth at begin of basic block        */
@@ -503,6 +503,25 @@ struct basicblock {
 
 	s4            mpc;          /* machine code pc at start of block          */
 };
+
+/* [+]...the javalocals array: This array is indexed by the javaindex (the    */
+/*       local variable index ocurring in the original bytecode). An element  */
+/*       javalocals[javaindex] encodes where to find the contents of the      */
+/*       original variable at this point in the program.                      */
+/*       There are three cases for javalocals[javaindex]:                     */
+/*           >= 0.......it's an index into the jd->var array, where the       */
+/*                      CACAO variable corresponding to the original local    */
+/*                      can be found.                                         */
+/*           UNUSED.....the original variable is not live at this point       */
+/*           < UNUSED...the original variable contains a returnAddress at     */
+/*                      this point. The number of the block to return to can  */
+/*                      be calculated using RETADDR_FROM_JAVALOCAL:           */
+/*                                                                            */
+/*                      javalocals[javaindex] == JAVALOCAL_FROM_RETADDR(nr)   */
+/*                      RETADDR_FROM_JAVALOCAL(javalocals[javaindex]) == nr   */
+
+#define JAVALOCAL_FROM_RETADDR(nr)  (UNUSED - (1 + (nr))
+#define RETADDR_FROM_JAVALOCAL(jl)  (UNUSED - (1 + (jl))
 
 
 /* Macro for initializing newly allocated basic block's. It does not
