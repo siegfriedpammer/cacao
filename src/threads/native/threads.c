@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7675 2007-04-05 14:23:04Z michi $
+   $Id: threads.c 7740 2007-04-17 20:25:55Z twisti $
 
 */
 
@@ -681,7 +681,7 @@ void threads_preinit(void)
 
 bool threads_init(void)
 {
-	java_lang_String      *threadname;
+	java_objectheader     *threadname;
 	threadobject          *tempthread;
 	java_objectheader     *o;
 
@@ -1315,7 +1315,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
 	threadobject          *thread;
 	utf                   *u;
-	java_lang_String      *s;
+	java_objectheader     *s;
 	java_objectheader     *o;
 	java_lang_Thread      *t;
 
@@ -1415,7 +1415,11 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #endif
 	}
 
+	/* the the thread name */
+
 	s = javastring_new(u);
+
+	/* for convenience */
 
 	o = (java_objectheader *) thread->object;
 
