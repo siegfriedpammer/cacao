@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7736 2007-04-17 19:24:05Z edwin $
+   $Id: stack.c 7737 2007-04-17 19:57:55Z edwin $
 
 */
 
@@ -4860,6 +4860,7 @@ void stack_javalocals_store(instruction *iptr, s4 *javalocals)
 	j = iptr->sx.s23.s3.javaindex;
 
 	if (j != UNUSED) {
+		assert(j >= 0);
 		if (iptr->flags.bits & INS_FLAG_RETADDR)
 			javalocals[j] = iptr->sx.s23.s2.retaddrnr;
 		else
