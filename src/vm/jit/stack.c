@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7713 2007-04-15 21:49:48Z twisti $
+   $Id: stack.c 7736 2007-04-17 19:24:05Z edwin $
 
 */
 
@@ -3290,7 +3290,7 @@ normal_ACONST:
 
 						/* invalidate 2-word types if second half was overwritten */
 
-						if (javaindex > 0 && (i = sd.javalocals[javaindex-1]) != UNUSED) {
+						if (javaindex > 0 && (i = sd.javalocals[javaindex-1]) >= 0) {
 							if (IS_2_WORD_TYPE(sd.var[i].type)) {
 								sd.javalocals[javaindex-1] = UNUSED;
 								iptr->flags.bits |= INS_FLAG_KILL_PREV;
