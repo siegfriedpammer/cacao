@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7747 2007-04-17 21:11:20Z edwin $
+   $Id: stack.c 7748 2007-04-17 21:25:55Z edwin $
 
 */
 
@@ -2047,6 +2047,7 @@ bool stack_analyse(jitdata *jd)
 	int           opcode;         /* opcode of current instruction            */
 	int           i, varindex;
 	int           javaindex;
+	int           type;           /* operand type                             */
 	int           len;            /* # of instructions after the current one  */
 	bool          superblockend;  /* if true, no fallthrough to next block    */
 	bool          deadcode;       /* true if no live code has been reached    */
@@ -3168,10 +3169,10 @@ normal_ACONST:
 					case ICMD_DLOAD:
 					case ICMD_ALOAD:
 						COUNT(count_load_instruction);
-						i = opcode - ICMD_ILOAD; /* type */
+						type = opcode - ICMD_ILOAD;
 
 						varindex = iptr->s1.varindex = 
-							jd->local_map[iptr->s1.varindex * 5 + i];
+							jd->local_map[iptr->s1.varindex * 5 + type];
 
 #if defined(ENABLE_VERIFIER)
 						if (sd.var[varindex].type == TYPE_RET) {
@@ -3182,14 +3183,14 @@ normal_ACONST:
 		
 #if defined(ENABLE_SSA)
 						if (ls != NULL) {
-							GET_NEW_VAR(sd, new_index, i);
-							DST(i, new_index);
+							GET_NEW_VAR(sd, new_index, type);
+							DST(type, new_index);
 							stackdepth++;
 						}
 						else
 
 #else
-						LOAD(i, varindex);
+						LOAD(type, varindex);
 #endif
 						break;
 
@@ -3263,10 +3264,10 @@ normal_ACONST:
 					case ICMD_ASTORE:
 						REQUIRE(1);
 
-						i = opcode - ICMD_ISTORE; /* type */
+						type = opcode - ICMD_ISTORE;
 						javaindex = iptr->dst.varindex;
 						varindex = iptr->dst.varindex = 
-							jd->local_map[javaindex * 5 + i];
+							jd->local_map[javaindex * 5 + type];
 
 						COPY_VAL_AND_TYPE(sd, curstack->varnum, varindex);
 
@@ -3283,7 +3284,7 @@ normal_ACONST:
 
 						/* invalidate the following javalocal for 2-word types */
 
-						if (IS_2_WORD_TYPE(i)) {
+						if (IS_2_WORD_TYPE(type)) {
 							sd.javalocals[javaindex+1] = UNUSED;
 							iptr->flags.bits |= INS_FLAG_KILL_NEXT;
 						}
