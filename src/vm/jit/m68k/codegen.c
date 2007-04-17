@@ -2143,3 +2143,18 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* generate patcher stub call code */
 	emit_patcher_stubs(jd);
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
