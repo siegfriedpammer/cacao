@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 7663 2007-04-04 22:14:42Z twisti $
+   $Id: jit.h 7738 2007-04-17 20:06:44Z edwin $
 
 */
 
@@ -122,13 +122,15 @@ struct jitdata {
 
 	varinfo         *var;             /* array of variables                   */
 	s4               vartop;          /* next free index in var array         */
-    
+
 	s4               varcount;        /* number of variables in var array     */
 	s4               localcount;      /* number of locals at start of var ar. */
-    s4              *local_map;  /* internal structure to rename(de-coallesc) */
-   						/* locals and keep the coalescing info for simplereg. */
-	                    /* local_map[local_index * 5 + local_type] =          */
-	                    /* new_index in rd->var or UNUSED                     */
+    s4              *local_map;       /* map for renaming (de-coallescing)    */
+					 /* locals and keeping the coalescing info for simplereg. */
+	                 /* local_map[javaindex * 5 + type] =                     */
+	                 /*     >= 0......index into jd->var, or                  */
+					 /*     UNUSED....this (javaindex,type) pair is not used  */
+
 	s4               maxlocals;       /* max. number of javalocals            */
 
 	interface_info  *interface_map;   /* interface variables (for simplereg)  */
