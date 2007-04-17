@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7748 2007-04-17 21:25:55Z edwin $
+   $Id: stack.c 7749 2007-04-17 21:30:20Z edwin $
 
 */
 
@@ -1985,7 +1985,7 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp,
 static void stack_init_javalocals(stackdata_t *sd)
 {
 	s4         *jl;
-	s4          t,i,j;
+	s4          type,i,j;
 	methoddesc *md;
 	jitdata    *jd;
 
@@ -2000,10 +2000,10 @@ static void stack_init_javalocals(stackdata_t *sd)
 	md = jd->m->parseddesc;
 	j = 0;
 	for (i=0; i<md->paramcount; ++i) {
-		t = md->paramtypes[i].type;
-		jl[j] = jd->local_map[5*j + t];
+		type = md->paramtypes[i].type;
+		jl[j] = jd->local_map[5*j + type];
 		j++;
-		if (IS_2_WORD_TYPE(t))
+		if (IS_2_WORD_TYPE(type))
 			j++;
 	}
 }
@@ -4631,7 +4631,6 @@ icmd_BUILTIN:
 				i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
 					varinfo *v;
-					s4 t;
 
 					/* with the new vars rd->interfaces will be removed */
 					/* and all in and outvars have to be STACKVARS!     */
@@ -4639,21 +4638,21 @@ icmd_BUILTIN:
 					/* create an unresolvable conflict */
 
 					SET_TEMPVAR(copy);
-					t = copy->type;
+					type = copy->type;
 
 					v = sd.var + copy->varnum;
 					v->flags |= INOUT;
 
 					/* do not allocate variables for returnAddresses */
 
-					if (t != TYPE_RET) {
-						if (jd->interface_map[i*5 + t].flags == UNUSED) {
+					if (type != TYPE_RET) {
+						if (jd->interface_map[i*5 + type].flags == UNUSED) {
 							/* no interface var until now for this depth and */
 							/* type */
-							jd->interface_map[i*5 + t].flags = v->flags;
+							jd->interface_map[i*5 + type].flags = v->flags;
 						}
 						else {
-							jd->interface_map[i*5 + t].flags |= v->flags;
+							jd->interface_map[i*5 + type].flags |= v->flags;
 						}
 					}
 
@@ -4664,18 +4663,17 @@ icmd_BUILTIN:
 
 				for (i=0; i<sd.bptr->indepth; ++i) {
 					varinfo *v = sd.var + sd.bptr->invars[i];
-					s4 t;
 
-					t = v->type;
+					type = v->type;
 
-					if (t != TYPE_RET) {
-						if (jd->interface_map[i*5 + t].flags == UNUSED) {
+					if (type != TYPE_RET) {
+						if (jd->interface_map[i*5 + type].flags == UNUSED) {
 							/* no interface var until now for this depth and */
 							/* type */
-							jd->interface_map[i*5 + t].flags = v->flags;
+							jd->interface_map[i*5 + type].flags = v->flags;
 						}
 						else {
-							jd->interface_map[i*5 + t].flags |= v->flags;
+							jd->interface_map[i*5 + type].flags |= v->flags;
 						}
 					}
 				}
