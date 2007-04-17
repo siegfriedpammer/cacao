@@ -287,7 +287,7 @@ void threads_dump(void)
 
 			/* print trace of thread */
 
-			threads_print_stacktrace(thread);
+			threads_thread_print_stacktrace(thread);
 		}
 
 		thread = thread->next;
@@ -295,13 +295,13 @@ void threads_dump(void)
 }
 
 
-/* threads_print_stacktrace ****************************************************
+/* threads_thread_print_stacktrace *********************************************
 
-   Print the current stacktrace of the given thread.
+   Print the current stacktrace of the current thread.
 
 *******************************************************************************/
 
-void threads_print_stacktrace(threadobject *thread)
+void threads_thread_print_stacktrace(threadobject *thread)
 {
 	stackframeinfo   *sfi;
 	stacktracebuffer *stb;
@@ -327,6 +327,22 @@ void threads_print_stacktrace(threadobject *thread)
 	}
 
 	dump_release(dumpsize);
+}
+
+
+/* threads_print_stacktrace ****************************************************
+
+   Print the current stacktrace of the current thread.
+
+*******************************************************************************/
+
+void threads_print_stacktrace(void)
+{
+	threadobject *thread;
+
+	thread = THREADOBJECT;
+
+	threads_thread_print_stacktrace(thread);
 }
 
 

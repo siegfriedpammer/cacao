@@ -66,7 +66,8 @@ ptrint        threads_get_current_tid(void);
 utf          *threads_thread_get_state(threadobject *thread);
 bool          threads_thread_is_alive(threadobject *thread);
 void          threads_dump(void);
-void          threads_print_stacktrace(threadobject *thread);
+void          threads_thread_print_stacktrace(threadobject *thread);
+void          threads_print_stacktrace(void);
 
 #endif /* _THREADS_COMMON_H */
 
