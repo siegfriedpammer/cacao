@@ -486,7 +486,7 @@ bool typestate_reach(verifier_state *state,
 bool typecheck_init_locals(verifier_state *state, bool newthis)
 {
 	int i;
-	int index;
+	int varindex;
 	varinfo *locals;
 	varinfo *v;
 	jitdata *jd = state->jd;
@@ -512,11 +512,11 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
     /* if this is an instance method initialize the "this" ref type */
 
     if (!(state->m->flags & ACC_STATIC)) {
-		index = jd->local_map[5*0 + TYPE_ADR];
-		if (index != UNUSED) {
+		varindex = jd->local_map[5*0 + TYPE_ADR];
+		if (varindex != UNUSED) {
 			if (state->validlocals < 1)
 				TYPECHECK_VERIFYERROR_bool("Not enough local variables for method arguments");
-			v = locals + index;
+			v = locals + varindex;
 			v->type = TYPE_ADR;
 			if (state->initmethod && newthis)
 				TYPEINFO_INIT_NEWOBJECT(v->typeinfo, NULL);

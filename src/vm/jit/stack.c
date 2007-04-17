@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7742 2007-04-17 20:37:36Z edwin $
+   $Id: stack.c 7743 2007-04-17 20:53:41Z edwin $
 
 */
 
@@ -4853,24 +4853,24 @@ throw_stack_category_error:
 
 void stack_javalocals_store(instruction *iptr, s4 *javalocals)
 {
-	s4 idx;  /* index into the jd->var array */
-	s4 j;    /* java local index             */
+	s4 varindex;     /* index into the jd->var array */
+	s4 javaindex;    /* java local index             */
 
-	idx = iptr->dst.varindex;
-	j = iptr->sx.s23.s3.javaindex;
+	varindex = iptr->dst.varindex;
+	javaindex = iptr->sx.s23.s3.javaindex;
 
-	if (j != UNUSED) {
-		assert(j >= 0);
+	if (javaindex != UNUSED) {
+		assert(javaindex >= 0);
 		if (iptr->flags.bits & INS_FLAG_RETADDR)
-			javalocals[j] = iptr->sx.s23.s2.retaddrnr;
+			javalocals[javaindex] = iptr->sx.s23.s2.retaddrnr;
 		else
-			javalocals[j] = idx;
+			javalocals[javaindex] = varindex;
 
 		if (iptr->flags.bits & INS_FLAG_KILL_PREV)
-			javalocals[j-1] = UNUSED;
+			javalocals[javaindex-1] = UNUSED;
 
 		if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
-			javalocals[j+1] = UNUSED;
+			javalocals[javaindex+1] = UNUSED;
 	}
 }
 
