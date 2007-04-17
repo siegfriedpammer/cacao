@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7713 2007-04-15 21:49:48Z twisti $
+   $Id: codegen.c 7751 2007-04-17 22:06:01Z twisti $
 
 */
 
@@ -2571,9 +2571,10 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
-				d  = md->params[s3].regoff;
+				d   = md->params[s3].regoff;
 
-				/* Already Preallocated (ARGVAR) ? */
+				/* already preallocated (ARGVAR)? */
+
 				if (var->flags & PREALLOC)
 					continue;
 
@@ -2590,7 +2591,7 @@ gen_method:
 				else {
 					if (!md->params[s3].inmemory) {
 						s1 = emit_load(jd, iptr, var, d);
-						M_FLTMOVE(d, s1);
+						M_FLTMOVE(s1, d);
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
