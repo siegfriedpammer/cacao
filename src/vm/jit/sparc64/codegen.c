@@ -466,23 +466,23 @@ bool codegen_emit(jitdata *jd)
 		/* load/store/copy/move operations ************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_ALOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
+		case ICMD_LLOAD:
+		case ICMD_ALOAD:
+		case ICMD_FLOAD:
+		case ICMD_DLOAD:
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
+		case ICMD_LSTORE:
+		case ICMD_FSTORE:
+		case ICMD_DSTORE:
 		case ICMD_COPY:
 		case ICMD_MOVE:
 
-			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+			emit_copy(jd, iptr);
 			break;
 	
 		case ICMD_ASTORE:
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+				emit_copy(jd, iptr);
 			break;
 
 

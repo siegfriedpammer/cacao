@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7692 2007-04-12 14:47:24Z twisti $
+   $Id: codegen.c 7754 2007-04-17 23:18:15Z twisti $
 
 */
 
@@ -560,12 +560,13 @@ bool codegen(jitdata *jd)
 		case ICMD_DSTORE: 
 		case ICMD_COPY:
 		case ICMD_MOVE:
-			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+
+			emit_copy(jd, iptr);
 			break;
 
 		case ICMD_ASTORE:
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+				emit_copy(jd, iptr);
 			break;
 
 		/* integer operations *************************************************/

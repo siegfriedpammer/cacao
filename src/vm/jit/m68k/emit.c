@@ -25,6 +25,8 @@
    $Id: arch.h 5330 2006-09-05 18:43:12Z edwin $
 
 */
+
+
 #include "config.h"
 
 #include <assert.h>
@@ -61,22 +63,36 @@ void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg)
 	}
 }
 
+
 /* emit_copy *******************************************************************
 
    Generates a register/memory to register/memory copy.
 
 *******************************************************************************/
-void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
+
+void emit_copy(jitdata *jd, instruction *iptr)
 {
-	codegendata  *cd;
-	s4            s1, d;
+	codegendata *cd;
+	varinfo     *src;
+	varinfo     *dst;
+	s4           s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
 
+	/* get source and destination variables */
+
+	src = VAROP(iptr->s1);
+	dst = VAROP(iptr->dst);
+
 	if ((src->vv.regoff != dst->vv.regoff) ||
 		(IS_INMEMORY(src->flags ^ dst->flags))) {
+
+		if ((src->type == TYPE_RET) || (dst->type == TYPE_RET)) {
+			/* emit nothing, as the value won't be used anyway */
+			return;
+		}
 
 		/* If one of the variables resides in memory, we can eliminate
 		   the register move from/to the temporary register with the
@@ -89,7 +105,8 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 				d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
 
 			s1 = emit_load(jd, iptr, src, d);
-		} else {
+		}
+		else {
 			if (IS_LNG_TYPE(src->type))
 				s1 = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
 			else
@@ -100,22 +117,26 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 
 		if (s1 != d) {
 			switch(src->type)	{
-				case TYPE_INT: M_INTMOVE(s1, d); break;
-				case TYPE_ADR: M_ADRMOVE(s1, d); break;
-				case TYPE_LNG: M_LNGMOVE(s1, d); break;
+			case TYPE_INT: M_INTMOVE(s1, d); break;
+			case TYPE_ADR: M_ADRMOVE(s1, d); break;
+			case TYPE_LNG: M_LNGMOVE(s1, d); break;
 #if !defined(ENABLE_SOFTFLOAT)
-				case TYPE_FLT: M_FLTMOVE(s1, d); break;
-				case TYPE_DBL: M_DBLMOVE(s1, d); break;
+			case TYPE_FLT: M_FLTMOVE(s1, d); break;
+			case TYPE_DBL: M_DBLMOVE(s1, d); break;
 #else
-				case TYPE_FLT: M_INTMOVE(s1, d); break;
-				case TYPE_DBL: M_LNGMOVE(s1, d); break;
+			case TYPE_FLT: M_INTMOVE(s1, d); break;
+			case TYPE_DBL: M_LNGMOVE(s1, d); break;
 #endif
-				default: assert(0);
+			default:
+				vm_abort("emit_copy: unknown type %d", src->type);
 			}
 		}
+
 		emit_store(jd, iptr, dst, d);
 	}
 }
+
+
 /* emit_store ******************************************************************
 
    Emits a possible store of the destination operand.
@@ -158,15 +179,18 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 				break;
 #endif
 			default:
-				assert(0);
+				vm_abort("emit_store: unknown type %d", dst->type);
 		}
 	}
 }
+
+
 /* emit_load *******************************************************************
 
    Emits a possible load of an operand.
 
 *******************************************************************************/
+
 s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata *cd;
@@ -206,7 +230,8 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 				M_DLD(tempreg, REG_SP, disp);
 				break;
 #endif
-			default: assert(0);
+			default:
+				vm_abort("emit_load: unknown type %d", src->type);
 		}
 		#if 0
 		if (IS_FLT_DBL_TYPE(src->type)) {

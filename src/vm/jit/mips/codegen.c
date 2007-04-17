@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7713 2007-04-15 21:49:48Z twisti $
+   $Id: codegen.c 7754 2007-04-17 23:18:15Z twisti $
 
 */
 
@@ -548,23 +548,23 @@ bool codegen_emit(jitdata *jd)
 		/* load/store/copy/move operations ************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_ALOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
+		case ICMD_LLOAD:
+		case ICMD_ALOAD:
+		case ICMD_FLOAD:
+		case ICMD_DLOAD:
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
+		case ICMD_LSTORE:
+		case ICMD_FSTORE:
+		case ICMD_DSTORE:
 		case ICMD_COPY:
 		case ICMD_MOVE:
 
-			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+			emit_copy(jd, iptr);
 			break;
 
 		case ICMD_ASTORE:
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+				emit_copy(jd, iptr);
 			break;
 
 

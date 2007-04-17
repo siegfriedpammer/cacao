@@ -236,26 +236,36 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 /* emit_copy *******************************************************************
 
-   XXX
+   Generates a register/memory to register/memory copy.
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
+void emit_copy(jitdata *jd, instruction *iptr)
 {
-	codegendata  *cd;
-	registerdata *rd;
-	s4            s1, d;
+	codegendata *cd;
+	varinfo     *src;
+	varinfo     *dst;
+	s4           s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
-	rd = jd->rd;
+
+	/* get source and destination variables */
+
+	src = VAROP(iptr->s1);
+	dst = VAROP(iptr->dst);
 
 	/* XXX dummy call, removed me!!! */
 	d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP1);
 
 	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
+
+		if ((src->type == TYPE_RET) || (dst->type == TYPE_RET)) {
+			/* emit nothing, as the value won't be used anyway */
+			return;
+		}
 
 		/* If one of the variables resides in memory, we can eliminate
 		   the register move from/to the temporary register with the

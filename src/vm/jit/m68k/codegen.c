@@ -652,12 +652,14 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_DSTORE: 
 		case ICMD_COPY:
 		case ICMD_MOVE:
-			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+
+			emit_copy(jd, iptr);
 			break;
 
 		case ICMD_ASTORE:
+
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+				emit_copy(jd, iptr);
 			break;
 
 

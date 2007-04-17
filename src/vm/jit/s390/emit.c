@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/emit.c - x86_64 code emitter functions
+/* src/vm/jit/s390/emit.c - s390 code emitter functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,17 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   $Id: emit.c 7680 2007-04-10 05:02:20Z pm $
+   $Id: emit.c 7754 2007-04-17 23:18:15Z twisti $
 
 */
 
-#include <assert.h>
 
 #include "config.h"
+
+#include <assert.h>
 
 #include "vm/types.h"
 
@@ -142,17 +139,29 @@ __PORTED__ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, 
 
 *******************************************************************************/
 
-__PORTED__ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
+__PORTED__ void emit_copy(jitdata *jd, instruction *iptr)
 {
-	codegendata  *cd;
-	s4            s1, d;
+	codegendata *cd;
+	varinfo     *src;
+	varinfo     *dst;
+	s4           s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
 
+	/* get source and destination variables */
+
+	src = VAROP(iptr->s1);
+	dst = VAROP(iptr->dst);
+
 	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
+
+		if ((src->type == TYPE_RET) || (dst->type == TYPE_RET)) {
+			/* emit nothing, as the value won't be used anyway */
+			return;
+		}
 
 		/* If one of the variables resides in memory, we can eliminate
 		   the register move from/to the temporary register with the
