@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7663 2007-04-04 22:14:42Z twisti $
+   $Id: parse.c 7735 2007-04-17 18:47:50Z edwin $
 
 */
 
@@ -407,7 +407,7 @@ bool parse(jitdata *jd)
 	u4                  flags;
 	basicblock         *bptr;
 
- 	int                *local_map; /* local pointer to renaming structore     */
+ 	int                *local_map; /* local pointer to renaming map           */
 	                               /* is assigned to rd->local_map at the end */
 	branch_target_t *table;
 	lookup_target_t *lookup;
@@ -1821,15 +1821,16 @@ invoke_method:
 	{
 		s4 nlocals = 0;
 		s4 i;
-
 		s4 *mapptr;
 
 		mapptr = local_map;
 
-		/* iterate over local_map[0..m->maxlocals*5] and set all existing  */
-		/* index,type pairs (local_map[index*5+type]==1) to an unique value */
-		/* -> == new local var index */
-		for(i = 0; i < (m->maxlocals * 5); i++, mapptr++) {
+		/* iterate over local_map[0..m->maxlocals*5-1] and allocate a unique */
+		/* variable index for each _used_ (javaindex,type) pair.             */
+		/* (local_map[javaindex*5+type] = cacaoindex)                        */
+		/* Unused (javaindex,type) pairs are marked with UNUSED.             */
+
+		for (i = 0; i < (m->maxlocals * 5); i++, mapptr++) {
 			if (*mapptr)
 				*mapptr = nlocals++;
 			else
@@ -1868,7 +1869,7 @@ invoke_method:
 
 		/* set types of all locals in jd->var */
 
-		for(mapptr = local_map, i = 0; i < (m->maxlocals * 5); i++, mapptr++)
+		for (mapptr = local_map, i = 0; i < (m->maxlocals * 5); i++, mapptr++)
 			if (*mapptr != UNUSED)
 				VAR(*mapptr)->type = i%5;
 	}
