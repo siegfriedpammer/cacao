@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7754 2007-04-17 23:18:15Z twisti $
+   $Id: codegen.c 7757 2007-04-18 14:49:18Z tbfg $
 
 */
 
@@ -387,7 +387,6 @@ bool codegen_emit(jitdata *jd)
 		currentline = 0;
 			
 		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
-			bool sign_ext = false;
 			if (iptr->line != currentline) {
 				dseg_addlinenumber(cd, iptr->line);
 				currentline = iptr->line;
@@ -502,12 +501,17 @@ bool codegen_emit(jitdata *jd)
 		/* integer operations *************************************************/
 
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
-			sign_ext = true;
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1); 
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_NEG(s1, d);
+			M_EXTSW(d, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LNEG:    
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1); 
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_NEG(s1, d);
-			if (sign_ext) M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -652,7 +656,16 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_IDIV:
-			sign_ext = true;
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
+			emit_arithmetic_check(cd, iptr, s2);
+
+			M_DIV(s1, s2, d);
+			M_EXTSW(d, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -663,18 +676,28 @@ bool codegen_emit(jitdata *jd)
 			M_DIV(s1, s2, d);
 			/* we need to test if divident was 0x8000000000000, bit OV is set in XER in this case */
 			/* we only need to check this if we did a LDIV, not for IDIV */
-			if (!sign_ext)	{
-				M_MFXER(REG_ITMP2);
-				M_ANDIS(REG_ITMP2, 0x4000, REG_ITMP2);	/* test OV */
-				M_BLE(1);
-				M_MOV(s1, d);				/* java specs says result == dividend */
-			}
-			if (sign_ext) M_EXTSW(d, d);
+			M_MFXER(REG_ITMP2);
+			M_ANDIS(REG_ITMP2, 0x4000, REG_ITMP2);	/* test OV */
+			M_BLE(1);
+			M_MOV(s1, d);				/* java specs says result == dividend */
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_IREM:
-			sign_ext = true;
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			emit_arithmetic_check(cd, iptr, s2);
+
+			M_DIV(s1, s2,  REG_ITMP3);	
+			M_MUL(REG_ITMP3, s2, REG_ITMP2);
+			M_SUB(s1, REG_ITMP2,  REG_ITMP3);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+
+			M_MOV(REG_ITMP3, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -683,30 +706,34 @@ bool codegen_emit(jitdata *jd)
 			M_DIV(s1, s2,  REG_ITMP3);	
 			/* we need to test if divident was 0x8000000000000, bit OV is set in XER in this case */
 			/* we only need to check this if we did a LDIV, not for IDIV */
-			if (!sign_ext)	{
-				M_MFXER(REG_ITMP2);
-				M_ANDIS(REG_ITMP2, 0x4000, REG_ITMP2);	/* test OV */
-				M_BLE(2); 
-				LCONST(REG_ITMP3, 0);			/* result == 0 in this case */
-				M_BR(2);
-			}
+			M_MFXER(REG_ITMP2);
+			M_ANDIS(REG_ITMP2, 0x4000, REG_ITMP2);	/* test OV */
+			M_BLE(2); 
+			LCONST(REG_ITMP3, 0);			/* result == 0 in this case */
+			M_BR(2);
 			M_MUL(REG_ITMP3, s2, REG_ITMP2);
 			M_SUB(s1, REG_ITMP2,  REG_ITMP3);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 
 			M_MOV(REG_ITMP3, d);
-			emit_store_dst(jd, iptr, REG_ITMP1);
+			emit_store_dst(jd, iptr, d);
 			break;
 
 		
 		case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
-			sign_ext = true;
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_MUL(s1, s2, d);
+			M_EXTSW(d, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LMUL:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			M_MUL(s1, s2, d);
-			if (sign_ext) M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -742,6 +769,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			M_SRA_IMM(s1, iptr->sx.val.i, d);
 			M_ADDZE(d, d);
+			M_EXTSW(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -794,6 +822,7 @@ bool codegen_emit(jitdata *jd)
 			M_MOV(s1, REG_ITMP1);
 			M_CLR_HIGH(REG_ITMP1);
 			M_SRL(REG_ITMP1, REG_ITMP2, d);
+			M_EXTSW(d,d);	/* for the case it was shift 0 bits */
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -856,8 +885,15 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
-		case ICMD_LAND:
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
+			M_AND(s1, s2, d);
+/*			M_EXTSW(d, d);*/
+			emit_store_dst(jd, iptr, d);
+			break;
 
+		case ICMD_LAND:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
@@ -921,9 +957,10 @@ bool codegen_emit(jitdata *jd)
 			
 			M_MOV(s1, REG_ITMP2);
 			M_CMPI(s1, 0);
-			M_BGE(1 + 2*(iptr->sx.val.i >= 32768));
+			M_BGE(1 + 3*(iptr->sx.val.i >= 32768));
 			if (iptr->sx.val.i >= 32768) {
 				M_ADDIS(REG_ZERO, iptr->sx.val.i >> 16, REG_ITMP2);
+				M_EXTSW(REG_ITMP2, REG_ITMP2);
 				M_OR_IMM(REG_ITMP2, iptr->sx.val.i, REG_ITMP2);
 				M_IADD(s1, REG_ITMP2, REG_ITMP2);
 			} else {
@@ -942,6 +979,14 @@ bool codegen_emit(jitdata *jd)
 #endif
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
+			M_OR(s1, s2, d);
+/*			M_EXTSW(d,d);*/
+			emit_store_dst(jd, iptr, d);
+			break;
+
 		case ICMD_LOR:
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
