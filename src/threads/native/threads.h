@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7669 2007-04-05 11:39:58Z twisti $
+   $Id: threads.h 7756 2007-04-18 14:11:56Z twisti $
 
 */
 
@@ -148,9 +148,6 @@ struct threadobject {
 #if defined(__DARWIN__)
 	mach_port_t           mach_thread;       /* Darwin thread id              */
 #endif
-
-	pthread_mutex_t       joinmutex;
-	pthread_cond_t        joincond;
 
 	/* these are used for the wait/notify implementation                      */
 	pthread_mutex_t       waitmutex;
