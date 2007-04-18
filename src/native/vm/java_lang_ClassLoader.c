@@ -56,6 +56,10 @@
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
 
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
+
 
 /*
  * Class:     java/lang/ClassLoader
