@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7756 2007-04-18 14:11:56Z twisti $
+   $Id: threads.c 7761 2007-04-19 09:18:20Z twisti $
 
 */
 
@@ -1195,47 +1195,6 @@ static void *threads_startup_thread(void *t)
 }
 
 
-/* threads_start_javathread ***************************************************
-
-   Start a thread in the JVM. Only the java thread object exists so far.
-
-   IN:
-      object.....the java thread object java.lang.Thread
-
-******************************************************************************/
-
-void threads_start_javathread(java_lang_Thread *object)
-{
-	threadobject *thread;
-
-	/* create the vm internal threadobject */
-
-	thread = NEW(threadobject);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-#endif
-
-	/* link the two objects together */
-
-	thread->object = object;
-
-#if defined(WITH_CLASSPATH_GNU)
-	assert(object->vmThread);
-	assert(object->vmThread->vmdata == NULL);
-	object->vmThread->vmdata = (java_lang_Object *) thread;
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-	object->vm_thread = (java_lang_Object *) thread;
-#endif
-
-	/* actually start the thread */
-	/* don't pass a function pointer (NULL) since we want Thread.run()V here */
-
-	threads_start_thread(thread, NULL);
-}
-
-
 /* threads_start_thread ********************************************************
 
    Start a thread in the JVM. Both (vm internal and java) thread objects exist.
@@ -1524,19 +1483,22 @@ bool threads_detach_thread(threadobject *thread)
 
 	thread->state = THREAD_STATE_TERMINATED;
 
-	/* remove thread from thread list and threads table, do this
-	   inside a lock */
+	/* lock thread list */
 
 	pthread_mutex_lock(&threadlistlock);
+
+	/* remove thread from thread list and threads table */
 
 	thread->next->prev = thread->prev;
 	thread->prev->next = thread->next;
 
 	threads_table_remove(thread);
 
+	/* unlock thread list */
+
 	pthread_mutex_unlock(&threadlistlock);
 
-	/* signal that a thread has finished */
+	/* signal that this thread has finished */
 
 	pthread_mutex_lock(&mutex_join);
 	pthread_cond_signal(&cond_join);
@@ -1569,6 +1531,8 @@ static threadobject *threads_find_non_daemon_thread(void)
 	/* lock the thread list */
 
 	pthread_mutex_lock(&threadlistlock);
+
+	/* iterate over all threads */
 
 	thread = mainthreadobj->next;
 

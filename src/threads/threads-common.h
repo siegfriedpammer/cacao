@@ -33,6 +33,9 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/global.h"
+#include "native/include/java_lang_Thread.h"
+
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #else
@@ -62,6 +65,7 @@
 /* function prototypes ********************************************************/
 
 threadobject *threads_create_thread(utf *name);
+void          threads_start_javathread(java_lang_Thread *object);
 ptrint        threads_get_current_tid(void);
 utf          *threads_thread_get_state(threadobject *thread);
 bool          threads_thread_is_alive(threadobject *thread);
