@@ -130,7 +130,7 @@ void gc_collect(s4 level)
 	s4            dumpsize;
 #if !defined(NDEBUG)
 	stackframeinfo   *sfi;
-	stacktracebuffer *stb
+	stacktracebuffer *stb;
 #endif
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_suspend, time_rootset, time_mark, time_compact, time_end;
@@ -199,14 +199,13 @@ void gc_collect(s4 level)
 
 	/* mark the objects considering the given rootset */
 	mark_me(rs);
-	/*GC_LOG( heap_dump_region(heap_region_main, true); );*/
+	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
 
 	RT_TIMING_GET_TIME(time_mark);
 
 	/* compact the heap */
 	compact_me(rs, heap_region_main);
-	/*GC_LOG( heap_dump_region(heap_region_main, false); );
-	GC_LOG( rootset_print(rs); );*/
+	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
 
 #if defined(ENABLE_MEMCHECK)
 	/* invalidate the rest of the main region */

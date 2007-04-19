@@ -334,7 +334,6 @@ void mark_me(rootset_t *rs)
 	GC_LOG( dolog("GC: Marking finished."); );
 
 	GC_ASSERT(gcstat_mark_depth == 0);
-	GC_ASSERT(gcstat_mark_depth_max > 0);
 }
 
 

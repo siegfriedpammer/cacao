@@ -59,7 +59,7 @@ void final_register(java_objectheader *o, methodinfo *finalizer)
 
 	list_add_first(final_list, fe);
 
-	GC_LOG( printf("Finalizer registered for: %p\n", (void *) o); );
+	GC_LOG2( printf("Finalizer registered for: %p\n", (void *) o); );
 }
 
 void final_invoke()
