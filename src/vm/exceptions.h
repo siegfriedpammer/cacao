@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 7609 2007-03-29 17:09:48Z michi $
+   $Id: exceptions.h 7773 2007-04-19 19:44:54Z twisti $
 
 */
 
@@ -50,6 +50,11 @@
    architectures. Thus, these values must NOT be aligned to 4 or
    8-byte boundaries, since normal loads could have such offsets with
    a base of NULL which should result in a NullPointerException.
+
+   NOTE: In signal_init() we have an assert checking that the offset
+   of java_objectheader.data[0] is greater than the largest
+   displacement defined below.  Otherwise normal array loads/stores
+   could trigger an exception.
 
 *******************************************************************************/
 
