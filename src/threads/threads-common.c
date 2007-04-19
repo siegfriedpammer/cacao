@@ -148,6 +148,13 @@ void threads_start_javathread(java_lang_Thread *object)
 
 	thread->object = object;
 
+#if defined(ENABLE_JAVASE)
+	/* is this a daemon thread? */
+
+	if (object->daemon == true)
+		thread->flags |= THREAD_FLAG_DAEMON;
+#endif
+
 #if defined(WITH_CLASSPATH_GNU)
 	assert(object->vmThread);
 	assert(object->vmThread->vmdata == NULL);
