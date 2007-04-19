@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/darwin/md-os.c - machine dependent PowerPC Darwin functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md-os.c 7770 2007-04-19 19:39:06Z twisti $
 
 */
 
@@ -42,10 +42,15 @@
 #include "vm/jit/powerpc/codegen.h"
 #include "vm/jit/powerpc/darwin/md-abi.h"
 
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#endif
+
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
@@ -62,6 +67,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ucontext_t         *_uc;
 	mcontext_t          _mc;
 	ppc_thread_state_t *_ss;
+	ptrint             *gregs;
 	u1                 *pv;
 	u1                 *sp;
 	u1                 *ra;
@@ -70,14 +76,18 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	s4                  s1;
 	s4                  disp;
 	s4                  d;
-	ptrint             *gregs;
-	ptrint              addr;
-	ptrint              val;
-	java_objectheader  *e;
+	ptrint             addr;
+	ptrint             val;
+	s4                 type;
+	java_objectheader *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
+
+	/* immitate a gregs array */
+
+	gregs = &_ss->r0;
 
 	/* get register values */
 
@@ -94,15 +104,93 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	disp = M_INSTR_OP2_IMM_I(mcode);
 	d    = M_INSTR_OP2_IMM_D(mcode);
 
-	gregs = &_ss->r0;
-	addr  = gregs[s1];
-	val   = gregs[d];
+	val  = gregs[d];
 
-	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, s1, disp, addr, val);
+	/* check for special-load */
+
+	if (s1 == REG_ZERO) {
+		/* we use the exception type as load displacement */
+
+		type = disp;
+	}
+	else {
+		/* This is a normal NPE: addr must be NULL and the NPE-type
+		   define is 0. */
+
+		addr = gregs[s1];
+		type = EXCEPTION_HARDWARE_NULLPOINTER;
+
+		if (addr != 0)
+			vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
+	}
+
+	/* generate appropriate exception */
+
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
 
 	/* set registers */
 
-	_ss->r11  = (ptrint) e;
+	_ss->r11  = (ptrint) o;
+	_ss->r12  = (ptrint) xpc;
+	_ss->srr0 = (ptrint) asm_handle_exception;
+}
+
+
+/* md_signal_handler_sigtrap ***************************************************
+
+   Signal handler for hardware-traps.
+
+*******************************************************************************/
+
+void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t         *_uc;
+	mcontext_t          _mc;
+	ppc_thread_state_t *_ss;
+	ptrint             *gregs;
+	u1                 *pv;
+	u1                 *sp;
+	u1                 *ra;
+	u1                 *xpc;
+	u4                  mcode;
+	s4                  s1;
+	ptrint              val;
+	s4                  type;
+	java_objectheader  *o;
+
+ 	_uc = (ucontext_t *) _p;
+	_mc = _uc->uc_mcontext;
+	_ss = &_mc->ss;
+
+	/* immitate a gregs array */
+
+	gregs = &_ss->r0;
+
+	/* get register values */
+
+	pv  = (u1 *) _ss->r13;
+	sp  = (u1 *) _ss->r1;
+	ra  = (u1 *) _ss->lr;                    /* this is correct for leafs */
+	xpc = (u1 *) _ss->srr0;
+
+	/* get exception-throwing instruction */
+
+	mcode = *((u4 *) xpc);
+
+	s1 = M_OP3_GET_A(mcode);
+
+	/* for now we only handle ArrayIndexOutOfBoundsException */
+
+	type = EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS;
+	val  = gregs[s1];
+
+	/* generate appropriate exception */
+
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	/* set registers */
+
+	_ss->r11  = (ptrint) o;
 	_ss->r12  = (ptrint) xpc;
 	_ss->srr0 = (ptrint) asm_handle_exception;
 }

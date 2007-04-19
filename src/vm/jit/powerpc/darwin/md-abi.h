@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/darwin/md-abi.h - defines for PowerPC Darwin ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 5382 2006-09-06 21:17:00Z twisti $
+   $Id: md-abi.h 7770 2007-04-19 19:39:06Z twisti $
 
 */
 
@@ -70,6 +70,9 @@
 
 #define REG_IFTMP        0   /* temporary integer and floating point register */
 
+#define REG_FA0          1   /* define some argument registers                */
+#define REG_FA1          2
+
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     10   /* number of int callee saved registers          */
@@ -88,9 +91,13 @@
 
 /* packed register defines ****************************************************/
 
+#define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
+
+#define REG_A0_A1_PACKED     PACK_REGS(REG_A1, REG_A0)
+#define REG_A2_A3_PACKED     PACK_REGS(REG_A3, REG_A2)
+
 #define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
 #define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)
-#define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 
 
 /* ABI defines ****************************************************************/
