@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
+   $Id: asmpart.S 7763 2007-04-19 12:19:19Z michi $
 
 */
 
@@ -193,12 +193,13 @@ asm_vm_call_method_exception_handler:
 	RESTORE_SCRATCH_REGS_AND_RETURN   /* return to caller, restore regs   */
 
 asm_vm_call_method_float:
-        mov a0,#0x51
-        b asm_debug
+	mov a0,#0x51
+	b asm_debug
 asm_vm_call_method_double:
-        mov a0,#0x52
+	mov a0,#0x52
+	b asm_debug
+
 asm_vm_call_method_end:
-        b asm_debug
 
 
 /****************** function asm_call_jit_compiler *****************************
@@ -336,9 +337,10 @@ asm_handle_exception_not_catched:
 *   TODO: document me                                                          *
 *                                                                              *
 *   Stack layout when calling patcher function:                                *
-*    24   saved REG_ITMP3, should be restored                ( -4)             *
-*    20   data segment displacement from load instructions   ( -8)             *
-*    16   return address into JIT code (patch position)      (-12)             *
+*    28   empty because stack needs to be aligned                              *
+*    24   saved REG_ITMP3, should be restored                ( -8)             *
+*    20   data segment displacement from load instructions   (-12)             *
+*    16   return address into JIT code (patch position)      (-16)             *
 *    12   pointer to virtual java_objectheader                                 *
 *     8   machine code (which is patched back later)                           *
 *   [ 8   result of patcher function (indicates exception)  ]                  *
@@ -365,21 +367,22 @@ asm_patcher_wrapper:
 	RESTORE_FLOAT_REGISTERS             /* restore our float registers here   */
 	RESTORE_ARGUMENT_REGISTERS_IP       /* load our argument registers & LR   */
 
+	add   sp, sp, #PATCHSTACKSIZE       /* remove patcher stack frame         */
+
 	tst   itmp3, itmp3                  /* check for an exception             */
 	bne   L_asm_patcher_wrapper_exception
-
-	add   sp, sp, #PATCHSTACKSIZE       /* remove patcher stack frame         */
 
 	ldr   itmp3, [sp, #-8]              /* restore ITMP3 for calling method   */
 	ldr   pc, [sp, #-16]                /* jump to new patched code           */
 
 L_asm_patcher_wrapper_exception:
 	mov   xptr, itmp3                   /* get exception                      */
-	ldr   xpc, [sp, #16]                /* RA is xpc                          */
+	ldr   xpc, [sp, #-16]               /* RA is xpc                          */
 
-	add   sp, sp, #PATCHSTACKSIZE       /* remove patcher stack frame         */
-
-	b     asm_handle_exception
+	/* Note: A normal branch instruction could modify the PV here,            */
+	/*       so we use this construct instead.                                */
+	ldr   pc, [pc, #-4]
+	.word asm_handle_exception
 
 
 /* asm_abstractmethoderror *****************************************************
