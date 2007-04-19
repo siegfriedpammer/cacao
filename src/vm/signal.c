@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7772 2007-04-19 19:43:39Z twisti $
+   $Id: signal.c 7776 2007-04-19 21:31:47Z twisti $
 
 */
 
@@ -213,15 +213,19 @@ static void signal_thread(void)
 	if (sigemptyset(&mask) != 0)
 		vm_abort("signal_thread: sigemptyset failed: %s", strerror(errno));
 
-	sigaddset(&mask, SIGINT);
+	if (sigaddset(&mask, SIGINT) != 0)
+		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+
 #if !defined(__FREEBSD__)
-	sigaddset(&mask, SIGQUIT);
+	if (sigaddset(&mask, SIGQUIT) != 0)
+		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
 #endif
 
 	while (true) {
 		/* just wait for a signal */
 
-		(void) sigwait(&mask, &sig);
+		if (sigwait(&mask, &sig) != 0)
+			vm_abort("signal_thread: sigwait failed: %s", strerror(errno));
 
 		switch (sig) {
 		case SIGINT:
