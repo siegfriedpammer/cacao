@@ -22,12 +22,12 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7650 2007-04-03 13:48:10Z twisti $
+dnl $Id: configure.ac 7774 2007-04-19 19:58:08Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.97+svn, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.98rc, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -88,6 +88,11 @@ powerpc64 )
     ARCH_CFLAGS="-D__POWERPC64__"
     ;;
 
+s390 )
+    ARCH_DIR="s390"
+    ARCH_CFLAGS="-D__S390__"
+    ;;
+
 sparc | sparc64 )
     ARCH_DIR="sparc64"
     ARCH_CFLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
@@ -104,12 +109,6 @@ xdspcore )
     ARCH_CFLAGS="-D__XDSPCORE__"
     USE_SCHEDULER="1"
     ;;
-
-s390 )
-    ARCH_DIR="s390"
-    ARCH_CFLAGS="-D__S390__"
-    ;;
-
 
 * )
     AC_MSG_ERROR($host_cpu systems are not supported at this time)
