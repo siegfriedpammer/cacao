@@ -73,7 +73,7 @@ JAVAFLAGS = -Xbootclasspath:$(CLASSPATH_CLASSES)
 endif
 
 check: $(HARNESS_CLASS_FILES)
-	@for t in $(TEST_NAMES) ; do echo "TEST $$t" ; { $(JAVAC) -d . $(srcdir)/$$t.java && LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVA) $$t ; } || exit 1 ; done
+	@for t in $(TEST_NAMES) ; do echo "TEST $$t" ; { $(JAVAC) -d . $(srcdir)/$$t.java && LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVA) $(JAVAFLAGS) $$t ; } || exit 1 ; done
 
 $(HARNESS_CLASS_FILES): $(HARNESS_SOURCE_FILES)
 	$(JAVAC) -d . $(HARNESS_SOURCE_FILES)
