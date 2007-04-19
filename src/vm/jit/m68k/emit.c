@@ -621,7 +621,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			M_BLE(4);
 			break;
 		case BRANCH_UGT:
-			M_BHI(4);
+			M_BLS(4);
 			break;
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);

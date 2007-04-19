@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7735 2007-04-17 18:47:50Z edwin $
+   $Id: parse.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 

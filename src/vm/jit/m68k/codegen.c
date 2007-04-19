@@ -125,9 +125,11 @@ bool codegen_emit(jitdata *jd)
 			(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 4);/* IsSync         */
 		else
 #endif
-			(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
+		(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 		(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
-		(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
+
+		/* XXX we use the IntSAce a split field for the adr now */
+		(void) dseg_add_unique_s4(cd, (ADR_SAV_CNT - rd->savadrreguse) << 16 | (INT_SAV_CNT - rd->savintreguse)); /* IntSave */
 		(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 
 		dseg_addlinenumbertablesize(cd);
@@ -1647,8 +1649,8 @@ nowperformreturn:
 				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ISUB(REG_ITMP3, REG_ITMP1);
-				M_ICMP(REG_ITMP1, REG_ITMP2);
-				M_BGT(4);
+				M_ICMP(REG_ITMP2, REG_ITMP1);
+				M_BHI(4);
 				M_IMOV_IMM(1, d);
 				M_TPFW;			/* overlaps next instruction */
 				M_ICLR(d);
@@ -1763,28 +1765,14 @@ nowperformreturn:
 					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					M_ILD(REG_ITMP3, REG_ATMP2, OFFSET(vftbl_t, baseval));	/* REG_ITMP3 == sub->vftbl->baseval */
-#if 0
-					if (s1 != REG_ATMP1) {
-#endif
-						M_ILD(REG_ITMP1, REG_ATMP3, OFFSET(vftbl_t, baseval));
-						M_ILD(REG_ITMP2, REG_ATMP3, OFFSET(vftbl_t, diffval));
+					M_ILD(REG_ITMP1, REG_ATMP3, OFFSET(vftbl_t, baseval));
+					M_ILD(REG_ITMP2, REG_ATMP3, OFFSET(vftbl_t, diffval));
 #if defined(ENABLE_THREADS)
 						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-						M_ISUB(REG_ITMP1, REG_ITMP3);
-						M_ICMP(REG_ITMP2, REG_ITMP1);	/* XXX was CMPU */
-#if 0					
-					} else {
-						assert(0);
-						M_ILD(REG_ITMP2, REG_ATMP3, OFFSET(vftbl_t, baseval));
-						M_ISUB(REG_ITMP3, REG_ITMP2);
-						M_ILD(REG_ITMP3, REG_ATMP3, OFFSET(vftbl_t, diffval));
-						M_ICMP(REG_ITMP2, REG_ITMP3);	/* XXX was CMPU */
-#if defined(ENABLE_THREADS)
-						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
-					}
-#endif
+					M_ISUB(REG_ITMP1, REG_ITMP3);
+					M_ICMP(REG_ITMP2, REG_ITMP3);	/* XXX was CMPU */
+
 					emit_classcast_check(cd, iptr, BRANCH_UGT, REG_ITMP3, s1); /* XXX was BRANCH_GT */
 
 					if (super != NULL)
@@ -1930,8 +1918,8 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 	M_AMOV_IMM(m, REG_ATMP1);
 	M_AMOV_IMM(asm_call_jit_compiler, REG_ATMP3);
-	M_JMP_IMM(asm_call_jit_compiler);
-	M_RET;
+	M_JMP(REG_ATMP3);
+	M_JMP_IMM(0);	/* FIXME: remove me */
 }
 
 

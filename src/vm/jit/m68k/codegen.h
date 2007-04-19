@@ -333,6 +333,8 @@
 #define M_BHI_16(a)			BRANCH16(0x2, (a))
 #define M_BHI_32(a)			BRANCH32(0x2, (a))
 
+#define M_BLS(a)			BRANCH8 (0x3, (a))
+
 #define	M_BMI(a)			BRANCH8(0xb, (a))
 #define M_BPL(a)			BRANCH8(0xa, (a))
 
