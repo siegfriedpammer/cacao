@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7723 2007-04-16 18:03:08Z michi $
+   $Id: codegen.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -483,13 +483,13 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_COPY:
 		case ICMD_MOVE:
 
-			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+			emit_copy(jd, iptr);
 			break;
 	
 		case ICMD_ASTORE:
 
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+				emit_copy(jd, iptr);
 			break;
 
 
@@ -2571,9 +2571,10 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
-				d  = md->params[s3].regoff;
+				d   = md->params[s3].regoff;
 
-				/* Already Preallocated (ARGVAR) ? */
+				/* already preallocated (ARGVAR)? */
+
 				if (var->flags & PREALLOC)
 					continue;
 
@@ -2590,7 +2591,7 @@ gen_method:
 				else {
 					if (!md->params[s3].inmemory) {
 						s1 = emit_load(jd, iptr, var, d);
-						M_FLTMOVE(d, s1);
+						M_FLTMOVE(s1, d);
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);

@@ -220,17 +220,29 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
+void emit_copy(jitdata *jd, instruction *iptr)
 {
-	codegendata  *cd;
-	s4            s1, d;
+	codegendata *cd;
+	varinfo     *src;
+	varinfo     *dst;
+	s4           s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
 
+	/* get source and destination variables */
+
+	src = VAROP(iptr->s1);
+	dst = VAROP(iptr->dst);
+
 	if ((src->vv.regoff != dst->vv.regoff) ||
 		(IS_INMEMORY(src->flags ^ dst->flags))) {
+
+		if ((src->type == TYPE_RET) || (dst->type == TYPE_RET)) {
+			/* emit nothing, as the value won't be used anyway */
+			return;
+		}
 
 		/* If one of the variables resides in memory, we can eliminate
 		   the register move from/to the temporary register with the
@@ -268,7 +280,7 @@ void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
 				M_FMOV(s1, d);
 				break;
 			default:
-				vm_abort("emit_copy: unknown type %d", dst->type);
+				vm_abort("emit_copy: unknown type %d", src->type);
 			}
 		}
 

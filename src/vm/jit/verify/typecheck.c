@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typecheck.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: typecheck.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -415,49 +415,49 @@ handle_multianewarray(verifier_state *state)
 
 static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool twoword)
 {
-	s4 i;
+	s4 javaindex;
 	s4 t;
-	s4 mapped;
+	s4 varindex;
 	jitdata *jd = state->jd;
 	s4 *localmap = jd->local_map;
 	varinfo *vars = jd->var;
 
-	i = state->reverselocalmap[index];
+	javaindex = state->reverselocalmap[index];
 
-	/* invalidate locals of two-word type at index i-1 */
+	/* invalidate locals of two-word type at index javaindex-1 */
 
-	if (i > 0) {
-		localmap += 5 * (i-1);
+	if (javaindex > 0) {
+		localmap += 5 * (javaindex-1);
 		for (t=0; t<5; ++t) {
-			mapped = *localmap++;
-			if (mapped >= 0 && IS_2_WORD_TYPE(vars[mapped].type)) {
-				LOG1("invalidate local %d", mapped);
-				vars[mapped].type = TYPE_VOID;
+			varindex = *localmap++;
+			if (varindex >= 0 && IS_2_WORD_TYPE(vars[varindex].type)) {
+				LOG1("invalidate local %d", varindex);
+				vars[varindex].type = TYPE_VOID;
 			}
 		}
 	}
 	else {
-		localmap += 5 * i;
+		localmap += 5 * javaindex;
 	}
 
-	/* invalidate locals at index i */
+	/* invalidate locals at index javaindex */
 
 	for (t=0; t<5; ++t) {
-		mapped = *localmap++;
-		if (mapped >= 0) {
-			LOG1("invalidate local %d", mapped);
-			vars[mapped].type = TYPE_VOID;
+		varindex = *localmap++;
+		if (varindex >= 0) {
+			LOG1("invalidate local %d", varindex);
+			vars[varindex].type = TYPE_VOID;
 		}
 	}
 
-	/* if a two-word type is written, invalidate locals at index i+1 */
+	/* if a two-word type is written, invalidate locals at index javaindex+1 */
 
 	if (twoword) {
 		for (t=0; t<5; ++t) {
-			mapped = *localmap++;
-			if (mapped >= 0) {
-				LOG1("invalidate local %d", mapped);
-				vars[mapped].type = TYPE_VOID;
+			varindex = *localmap++;
+			if (varindex >= 0) {
+				LOG1("invalidate local %d", varindex);
+				vars[varindex].type = TYPE_VOID;
 			}
 		}
 	}
@@ -747,9 +747,9 @@ bool typecheck(jitdata *jd)
 	state.reverselocalmap = DMNEW(s4, state.validlocals);
 	for (i=0; i<jd->maxlocals; ++i)
 		for (t=0; t<5; ++t) {
-			s4 mapped = jd->local_map[5*i + t];
-			if (mapped >= 0)
-				state.reverselocalmap[mapped] = i;
+			s4 varindex = jd->local_map[5*i + t];
+			if (varindex >= 0)
+				state.reverselocalmap[varindex] = i;
 		}
 
 	DOLOG(

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7723 2007-04-16 18:03:08Z michi $
+   $Id: stack.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -1319,7 +1319,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 	s4 blockvarstart;
 	s4 invarshift;
 	s4 blockvarshift;
-	s4 i, j;
+	s4 i, varindex;
 	s4 *argp;
 	branch_target_t *table;
 	lookup_target_t *lookup;
@@ -1458,16 +1458,16 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 		switch (iptr->opc) {
 			case ICMD_RET:
-				j = iptr->s1.varindex;
+				varindex = iptr->s1.varindex;
 
 #if defined(ENABLE_VERIFIER)
-				if (sd->var[j].type != TYPE_RET) {
+				if (sd->var[varindex].type != TYPE_RET) {
 					exceptions_throw_verifyerror(sd->m, "RET with non-returnAddress value");
 					return false;
 				}
 #endif
 
-				iptr->dst.block = stack_mark_reached_from_outvars(sd, sd->var[j].vv.retaddr);
+				iptr->dst.block = stack_mark_reached_from_outvars(sd, sd->var[varindex].vv.retaddr);
 				superblockend = true;
 				break;
 
@@ -1551,16 +1551,16 @@ bool stack_reanalyse_block(stackdata_t *sd)
 			case ICMD_ASTORE:
 				RELOCATE(iptr->s1.varindex);
 
-				j = iptr->dst.varindex;
-				COPY_VAL_AND_TYPE(*sd, iptr->s1.varindex, j);
+				varindex = iptr->dst.varindex;
+				COPY_VAL_AND_TYPE(*sd, iptr->s1.varindex, varindex);
 				i = iptr->sx.s23.s3.javaindex;
 				if (iptr->flags.bits & INS_FLAG_RETADDR) {
 					iptr->sx.s23.s2.retaddrnr =
-						UNUSED - (1 + sd->var[j].vv.retaddr->nr);
+						JAVALOCAL_FROM_RETADDR(sd->var[varindex].vv.retaddr->nr);
 					sd->javalocals[i] = iptr->sx.s23.s2.retaddrnr;
 				}
 				else
-					sd->javalocals[i] = j;
+					sd->javalocals[i] = varindex;
 				if (iptr->flags.bits & INS_FLAG_KILL_PREV)
 					sd->javalocals[i-1] = UNUSED;
 				if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
@@ -1985,7 +1985,7 @@ static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp,
 static void stack_init_javalocals(stackdata_t *sd)
 {
 	s4         *jl;
-	s4          t,i,j;
+	s4          type,i,j;
 	methoddesc *md;
 	jitdata    *jd;
 
@@ -2000,10 +2000,10 @@ static void stack_init_javalocals(stackdata_t *sd)
 	md = jd->m->parseddesc;
 	j = 0;
 	for (i=0; i<md->paramcount; ++i) {
-		t = md->paramtypes[i].type;
-		jl[j] = jd->local_map[5*j + t];
+		type = md->paramtypes[i].type;
+		jl[j] = jd->local_map[5*j + type];
 		j++;
-		if (IS_2_WORD_TYPE(t))
+		if (IS_2_WORD_TYPE(type))
 			j++;
 	}
 }
@@ -2045,8 +2045,9 @@ bool stack_analyse(jitdata *jd)
 	stackptr      curstack;       /* current stack top                        */
 	stackptr      copy;
 	int           opcode;         /* opcode of current instruction            */
-	int           i, j;
+	int           i, varindex;
 	int           javaindex;
+	int           type;           /* operand type                             */
 	int           len;            /* # of instructions after the current one  */
 	bool          superblockend;  /* if true, no fallthrough to next block    */
 	bool          deadcode;       /* true if no live code has been reached    */
@@ -2347,11 +2348,11 @@ icmd_NOP:
 						break;
 
 					case ICMD_RET:
-						j = iptr->s1.varindex = 
+						varindex = iptr->s1.varindex = 
 							jd->local_map[iptr->s1.varindex * 5 + TYPE_ADR];
 
 #if defined(ENABLE_VERIFIER)
-						if (sd.var[j].type != TYPE_RET) {
+						if (sd.var[varindex].type != TYPE_RET) {
 							exceptions_throw_verifyerror(m, "RET with non-returnAddress value");
 							return false;
 						}
@@ -2359,7 +2360,7 @@ icmd_NOP:
 		
 						CLR_SX;
 
-						iptr->dst.block = stack_mark_reached(&sd, sd.var[j].vv.retaddr, curstack, stackdepth);
+						iptr->dst.block = stack_mark_reached(&sd, sd.var[varindex].vv.retaddr, curstack, stackdepth);
 						superblockend = true;
 						break;
 
@@ -3168,13 +3169,13 @@ normal_ACONST:
 					case ICMD_DLOAD:
 					case ICMD_ALOAD:
 						COUNT(count_load_instruction);
-						i = opcode - ICMD_ILOAD; /* type */
+						type = opcode - ICMD_ILOAD;
 
-						j = iptr->s1.varindex = 
-							jd->local_map[iptr->s1.varindex * 5 + i];
+						varindex = iptr->s1.varindex = 
+							jd->local_map[iptr->s1.varindex * 5 + type];
 
 #if defined(ENABLE_VERIFIER)
-						if (sd.var[j].type == TYPE_RET) {
+						if (sd.var[varindex].type == TYPE_RET) {
 							exceptions_throw_verifyerror(m, "forbidden load of returnAddress");
 							return false;
 						}
@@ -3182,14 +3183,14 @@ normal_ACONST:
 		
 #if defined(ENABLE_SSA)
 						if (ls != NULL) {
-							GET_NEW_VAR(sd, new_index, i);
-							DST(i, new_index);
+							GET_NEW_VAR(sd, new_index, type);
+							DST(type, new_index);
 							stackdepth++;
 						}
 						else
 
 #else
-						LOAD(i, j);
+						LOAD(type, varindex);
 #endif
 						break;
 
@@ -3263,34 +3264,34 @@ normal_ACONST:
 					case ICMD_ASTORE:
 						REQUIRE(1);
 
-						i = opcode - ICMD_ISTORE; /* type */
+						type = opcode - ICMD_ISTORE;
 						javaindex = iptr->dst.varindex;
-						j = iptr->dst.varindex = 
-							jd->local_map[javaindex * 5 + i];
+						varindex = iptr->dst.varindex = 
+							jd->local_map[javaindex * 5 + type];
 
-						COPY_VAL_AND_TYPE(sd, curstack->varnum, j);
+						COPY_VAL_AND_TYPE(sd, curstack->varnum, varindex);
 
 						iptr->sx.s23.s3.javaindex = javaindex;
 
 						if (curstack->type == TYPE_RET) {
 							iptr->flags.bits |= INS_FLAG_RETADDR;
 							iptr->sx.s23.s2.retaddrnr = 
-								UNUSED - (1 + sd.var[j].vv.retaddr->nr);
+								JAVALOCAL_FROM_RETADDR(sd.var[varindex].vv.retaddr->nr);
 							sd.javalocals[javaindex] = iptr->sx.s23.s2.retaddrnr;
 						}
 						else
-							sd.javalocals[javaindex] = j;
+							sd.javalocals[javaindex] = varindex;
 
 						/* invalidate the following javalocal for 2-word types */
 
-						if (IS_2_WORD_TYPE(i)) {
+						if (IS_2_WORD_TYPE(type)) {
 							sd.javalocals[javaindex+1] = UNUSED;
 							iptr->flags.bits |= INS_FLAG_KILL_NEXT;
 						}
 
 						/* invalidate 2-word types if second half was overwritten */
 
-						if (javaindex > 0 && (i = sd.javalocals[javaindex-1]) != UNUSED) {
+						if (javaindex > 0 && (i = sd.javalocals[javaindex-1]) >= 0) {
 							if (IS_2_WORD_TYPE(sd.var[i].type)) {
 								sd.javalocals[javaindex-1] = UNUSED;
 								iptr->flags.bits |= INS_FLAG_KILL_PREV;
@@ -3322,7 +3323,7 @@ normal_ACONST:
 						i = stackdepth - 2;
 						while (copy) {
 							if ((copy->varkind == LOCALVAR) &&
-								(copy->varnum == j))
+								(copy->varnum == varindex))
 							{
 								copy->varkind = TEMPVAR;
 								assert(IS_LOCALVAR(copy));
@@ -3350,11 +3351,11 @@ normal_ACONST:
 						if (curstack < coalescing_boundary)
 							goto assume_conflict;
 
-						/* there is no DEF LOCALVAR(j) while curstack is live */
+						/* there is no DEF LOCALVAR(varindex) while curstack is live */
 
 						copy = sd.new; /* most recent stackslot created + 1 */
 						while (--copy > curstack) {
-							if (copy->varkind == LOCALVAR && copy->varnum == j)
+							if (copy->varkind == LOCALVAR && copy->varnum == varindex)
 								goto assume_conflict;
 						}
 
@@ -3370,14 +3371,14 @@ normal_ACONST:
 						assert(!(curstack->flags & PASSTHROUGH));
 						RELEASE_INDEX(sd, curstack);
 						curstack->varkind = LOCALVAR;
-						curstack->varnum = j;
-						curstack->creator->dst.varindex = j;
+						curstack->varnum = varindex;
+						curstack->creator->dst.varindex = varindex;
 						goto store_tail;
 
 						/* revert the coalescing, if it has been done earlier */
 assume_conflict:
 						if ((curstack->varkind == LOCALVAR)
-							&& (curstack->varnum == j))
+							&& (curstack->varnum == varindex))
 						{
 							assert(IS_LOCALVAR(curstack));
 							SET_TEMPVAR(curstack);
@@ -3391,9 +3392,9 @@ store_tail:
 #endif
 
 						if (opcode == ICMD_ASTORE && curstack->type == TYPE_RET)
-							STORE(TYPE_RET, j);
+							STORE(TYPE_RET, varindex);
 						else
-							STORE(opcode - ICMD_ISTORE, j);
+							STORE(opcode - ICMD_ISTORE, varindex);
 						break;
 
 					/* pop 3 push 0 */
@@ -4630,7 +4631,6 @@ icmd_BUILTIN:
 				i = stackdepth - 1;
 				for (copy = curstack; copy; i--, copy = copy->prev) {
 					varinfo *v;
-					s4 t;
 
 					/* with the new vars rd->interfaces will be removed */
 					/* and all in and outvars have to be STACKVARS!     */
@@ -4638,21 +4638,21 @@ icmd_BUILTIN:
 					/* create an unresolvable conflict */
 
 					SET_TEMPVAR(copy);
-					t = copy->type;
+					type = copy->type;
 
 					v = sd.var + copy->varnum;
 					v->flags |= INOUT;
 
 					/* do not allocate variables for returnAddresses */
 
-					if (t != TYPE_RET) {
-						if (jd->interface_map[i*5 + t].flags == UNUSED) {
+					if (type != TYPE_RET) {
+						if (jd->interface_map[i*5 + type].flags == UNUSED) {
 							/* no interface var until now for this depth and */
 							/* type */
-							jd->interface_map[i*5 + t].flags = v->flags;
+							jd->interface_map[i*5 + type].flags = v->flags;
 						}
 						else {
-							jd->interface_map[i*5 + t].flags |= v->flags;
+							jd->interface_map[i*5 + type].flags |= v->flags;
 						}
 					}
 
@@ -4663,18 +4663,17 @@ icmd_BUILTIN:
 
 				for (i=0; i<sd.bptr->indepth; ++i) {
 					varinfo *v = sd.var + sd.bptr->invars[i];
-					s4 t;
 
-					t = v->type;
+					type = v->type;
 
-					if (t != TYPE_RET) {
-						if (jd->interface_map[i*5 + t].flags == UNUSED) {
+					if (type != TYPE_RET) {
+						if (jd->interface_map[i*5 + type].flags == UNUSED) {
 							/* no interface var until now for this depth and */
 							/* type */
-							jd->interface_map[i*5 + t].flags = v->flags;
+							jd->interface_map[i*5 + type].flags = v->flags;
 						}
 						else {
-							jd->interface_map[i*5 + t].flags |= v->flags;
+							jd->interface_map[i*5 + type].flags |= v->flags;
 						}
 					}
 				}
@@ -4853,23 +4852,24 @@ throw_stack_category_error:
 
 void stack_javalocals_store(instruction *iptr, s4 *javalocals)
 {
-	s4 idx;  /* index into the jd->var array */
-	s4 j;    /* java local index             */
+	s4 varindex;     /* index into the jd->var array */
+	s4 javaindex;    /* java local index             */
 
-	idx = iptr->dst.varindex;
-	j = iptr->sx.s23.s3.javaindex;
+	varindex = iptr->dst.varindex;
+	javaindex = iptr->sx.s23.s3.javaindex;
 
-	if (j != UNUSED) {
+	if (javaindex != UNUSED) {
+		assert(javaindex >= 0);
 		if (iptr->flags.bits & INS_FLAG_RETADDR)
-			javalocals[j] = iptr->sx.s23.s2.retaddrnr;
+			javalocals[javaindex] = iptr->sx.s23.s2.retaddrnr;
 		else
-			javalocals[j] = idx;
+			javalocals[javaindex] = varindex;
 
 		if (iptr->flags.bits & INS_FLAG_KILL_PREV)
-			javalocals[j-1] = UNUSED;
+			javalocals[javaindex-1] = UNUSED;
 
 		if (iptr->flags.bits & INS_FLAG_KILL_NEXT)
-			javalocals[j+1] = UNUSED;
+			javalocals[javaindex+1] = UNUSED;
 	}
 }
 

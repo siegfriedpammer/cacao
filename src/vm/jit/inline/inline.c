@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: inline.c 7732 2007-04-16 22:32:50Z michi $
+   $Id: inline.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -604,8 +604,8 @@ static s4 *create_variable_map(inline_node *callee)
 {
 	s4 *varmap;
 	s4 i, t;
-	s4 idx;
-	s4 n_idx;
+	s4 varindex;
+	s4 n_javaindex;
 	s4 avail;
 	varinfo *v;
 
@@ -619,38 +619,38 @@ static s4 *create_variable_map(inline_node *callee)
 
 	for (i=0; i<callee->m->maxlocals; ++i) {
 		for (t=0; t<5; ++t) {
-			idx = callee->jd->local_map[5*i + t];
-			if (idx == UNUSED)
+			varindex = callee->jd->local_map[5*i + t];
+			if (varindex == UNUSED)
 				continue;
 
-			v = &(callee->jd->var[idx]);
+			v = &(callee->jd->var[varindex]);
 			assert(v->type == t || v->type == TYPE_VOID); /* XXX stack leaves VOID */
 			v->type = t; /* XXX restore if it is TYPE_VOID */
 
 			avail = callee->ctx->resultjd->local_map[5*(callee->localsoffset + i) + t];
 
 			if (avail == UNUSED) {
-				avail = inline_new_variable_clone(callee->ctx->resultjd, callee->jd, idx);
+				avail = inline_new_variable_clone(callee->ctx->resultjd, callee->jd, varindex);
 				callee->ctx->resultjd->local_map[5*(callee->localsoffset + i) + t] = avail;
 			}
 
-			varmap[idx] = avail;
+			varmap[varindex] = avail;
 		}
 	}
 
 	/* for synchronized instance methods we need an extra local */
 
 	if (callee->synchronize && !(callee->m->flags & ACC_STATIC)) {
-		n_idx = callee->localsoffset - 1;
-		assert(n_idx >= 0);
+		n_javaindex = callee->localsoffset - 1;
+		assert(n_javaindex >= 0);
 		assert(callee->parent);
-		assert(n_idx == callee->parent->localsoffset + callee->parent->m->maxlocals);
+		assert(n_javaindex == callee->parent->localsoffset + callee->parent->m->maxlocals);
 
-		avail = callee->ctx->resultjd->local_map[5*n_idx + TYPE_ADR];
+		avail = callee->ctx->resultjd->local_map[5*n_javaindex + TYPE_ADR];
 
 		if (avail == UNUSED) {
 			avail = inline_new_variable(callee->ctx->resultjd, TYPE_ADR, 0);
-			callee->ctx->resultjd->local_map[5*n_idx + TYPE_ADR] = avail;
+			callee->ctx->resultjd->local_map[5*n_javaindex + TYPE_ADR] = avail;
 		}
 
 		callee->synclocal = avail;
@@ -667,8 +667,6 @@ static s4 *create_variable_map(inline_node *callee)
 
 #define INLINE_RETURN_REFERENCE(callee)  \
 	( (basicblock *) (ptrint) (0x333 + (callee)->depth) )
-
-#define RETADDRNR_FROM_BLOCK(bptr)  (UNUSED - 1 - (bptr)->nr)
 
 
 static void inline_add_block_reference(inline_node *iln, basicblock **blockp)
@@ -749,8 +747,8 @@ static void inline_resolve_block_refs(inline_target_ref **refs,
 	prev = NULL;
 	for (ref = *refs; ref != NULL; ref = ref->next) {
 		if (ref->isnumber && !returnref) {
-			if (*(ref->ref.nr) == RETADDRNR_FROM_BLOCK(o_bptr)) {
-				*(ref->ref.nr) = RETADDRNR_FROM_BLOCK(n_bptr);
+			if (*(ref->ref.nr) == JAVALOCAL_FROM_RETADDR(o_bptr->nr)) {
+				*(ref->ref.nr) = JAVALOCAL_FROM_RETADDR(n_bptr->nr);
 				goto remove_ref;
 			}
 		}
@@ -1114,7 +1112,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 	int type;
 	instruction *n_ins;
 	insinfo_inline *insinfo;
-	s4 argvar;
+	s4 varindex;
 
 	assert(iln && callee && o_iptr);
 
@@ -1171,12 +1169,12 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 		/* translate the argument variable */
 
-		argvar = varmap[o_iptr->sx.s23.s2.args[i]];
-		assert(argvar != UNUSED);
+		varindex = varmap[o_iptr->sx.s23.s2.args[i]];
+		assert(varindex != UNUSED);
 
 		/* remove preallocation from the argument variable */
 
-		iln->ctx->resultjd->var[argvar].flags &= ~(PREALLOC | INMEMORY);
+		iln->ctx->resultjd->var[varindex].flags &= ~(PREALLOC | INMEMORY);
 
 		/* check the instance slot against NULL */
 		/* we don't need that for <init> methods, as the verifier  */
@@ -1186,7 +1184,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 		if (!callee->isstatic && i == 0 && calleem->name != utf_init) {
 			assert(type == TYPE_ADR);
 			n_ins = inline_instruction(iln, ICMD_CHECKNULL, o_iptr);
-			n_ins->s1.varindex = argvar;
+			n_ins->s1.varindex = varindex;
 			n_ins->dst.varindex = n_ins->s1.varindex;
 		}
 
@@ -1205,7 +1203,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 				n_ins = inline_instruction(iln, ICMD_ISTORE + type, o_iptr);
 				n_ins->sx.s23.s3.javaindex = UNUSED;
 			}
-			n_ins->s1.varindex = argvar;
+			n_ins->s1.varindex = varindex;
 			n_ins->dst.varindex = iln->ctx->resultjd->local_map[5*localindex + type];
 			assert(n_ins->dst.varindex != UNUSED);
 		}
@@ -1221,7 +1219,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 			/* this value is not used, pop it */
 
 			n_ins = inline_instruction(iln, ICMD_POP, o_iptr);
-			n_ins->s1.varindex = argvar;
+			n_ins->s1.varindex = varindex;
 		}
 
 		DOLOG( printf("%sprolog: ", iln->indent);

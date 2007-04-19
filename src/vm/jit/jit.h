@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 7667 2007-04-05 00:16:05Z michi $
+   $Id: jit.h 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -122,13 +122,15 @@ struct jitdata {
 
 	varinfo         *var;             /* array of variables                   */
 	s4               vartop;          /* next free index in var array         */
-    
+
 	s4               varcount;        /* number of variables in var array     */
 	s4               localcount;      /* number of locals at start of var ar. */
-    s4              *local_map;  /* internal structure to rename(de-coallesc) */
-   						/* locals and keep the coalescing info for simplereg. */
-	                    /* local_map[local_index * 5 + local_type] =          */
-	                    /* new_index in rd->var or UNUSED                     */
+    s4              *local_map;       /* map for renaming (de-coallescing)    */
+					 /* locals and keeping the coalescing info for simplereg. */
+	                 /* local_map[javaindex * 5 + type] =                     */
+	                 /*     >= 0......index into jd->var, or                  */
+					 /*     UNUSED....this (javaindex,type) pair is not used  */
+
 	s4               maxlocals;       /* max. number of javalocals            */
 
 	interface_info  *interface_map;   /* interface variables (for simplereg)  */
@@ -476,7 +478,7 @@ struct basicblock {
 	instruction  *iinstr;       /* pointer to intermediate code instructions  */
 
 	varinfo      *inlocals;     /* copy of locals on block entry              */
-	s4           *javalocals;   /* map from java locals to cacao variables    */
+	s4           *javalocals;   /* map from java locals to cacao variables[+] */
 	s4           *invars;       /* array of in-variables at begin of block    */
 	s4           *outvars;      /* array of out-variables at end of block     */
 	s4            indepth;      /* stack depth at begin of basic block        */
@@ -501,6 +503,25 @@ struct basicblock {
 
 	s4            mpc;          /* machine code pc at start of block          */
 };
+
+/* [+]...the javalocals array: This array is indexed by the javaindex (the    */
+/*       local variable index ocurring in the original bytecode). An element  */
+/*       javalocals[javaindex] encodes where to find the contents of the      */
+/*       original variable at this point in the program.                      */
+/*       There are three cases for javalocals[javaindex]:                     */
+/*           >= 0.......it's an index into the jd->var array, where the       */
+/*                      CACAO variable corresponding to the original local    */
+/*                      can be found.                                         */
+/*           UNUSED.....the original variable is not live at this point       */
+/*           < UNUSED...the original variable contains a returnAddress at     */
+/*                      this point. The number of the block to return to can  */
+/*                      be calculated using RETADDR_FROM_JAVALOCAL:           */
+/*                                                                            */
+/*                      javalocals[javaindex] == JAVALOCAL_FROM_RETADDR(nr)   */
+/*                      RETADDR_FROM_JAVALOCAL(javalocals[javaindex]) == nr   */
+
+#define JAVALOCAL_FROM_RETADDR(nr)  (UNUSED - (1 + (nr)))
+#define RETADDR_FROM_JAVALOCAL(jl)  (UNUSED - (1 + (jl)))
 
 
 /* Macro for initializing newly allocated basic block's. It does not

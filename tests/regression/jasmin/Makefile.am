@@ -143,7 +143,7 @@ CLEANFILES = \
 	TESTLOG TESTEXPECT TESTOUT TESTERR TESTSIA
 
 check:
-	JAVA="$(JAVA)" JAVAFLAGS="$(JAVAFLAGS)" $(srcdir)/runtest $(JASMIN_TESTS)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs JAVA="$(JAVA)" JAVAFLAGS="$(JAVAFLAGS)" $(srcdir)/runtest $(JASMIN_TESTS)
 
 ## Local variables:
 ## mode: Makefile

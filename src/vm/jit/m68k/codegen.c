@@ -652,12 +652,14 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_DSTORE: 
 		case ICMD_COPY:
 		case ICMD_MOVE:
-			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+
+			emit_copy(jd, iptr);
 			break;
 
 		case ICMD_ASTORE:
+
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+				emit_copy(jd, iptr);
 			break;
 
 
@@ -2143,3 +2145,18 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* generate patcher stub call code */
 	emit_patcher_stubs(jd);
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

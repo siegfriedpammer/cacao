@@ -247,16 +247,16 @@ static void replace_create_replacement_point(jitdata *jd,
 				continue;
 
 			ra->index = i;
-			if (index < UNUSED) {
-				ra->regoff = (UNUSED - index) - 1;
-				ra->type = TYPE_RET;
-				ra->flags = 0;
-			}
-			else {
+			if (index >= 0) {
 				v = VAR(index);
 				ra->flags = v->flags & (INMEMORY);
 				ra->regoff = v->vv.regoff;
 				ra->type = v->type;
+			}
+			else {
+				ra->regoff = RETADDR_FROM_JAVALOCAL(index);
+				ra->type = TYPE_RET;
+				ra->flags = 0;
 			}
 			ra++;
 		}

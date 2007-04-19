@@ -28,6 +28,9 @@
 
 
 #include "config.h"
+
+#include <assert.h>
+
 #include "vm/types.h"
 
 #include "native/jni.h"
@@ -51,6 +54,12 @@
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/options.h"
+# include "vmcore/statistics.h"
+#endif
+
 #include "vmcore/utf8.h"
 
 
@@ -110,6 +119,55 @@ threadobject *threads_create_thread(utf *name)
 	/* return the thread object */
 
 	return thread;
+}
+
+
+/* threads_start_javathread ***************************************************
+
+   Start a thread in the JVM. Only the java thread object exists so far.
+
+   IN:
+      object.....the java thread object java.lang.Thread
+
+******************************************************************************/
+
+void threads_start_javathread(java_lang_Thread *object)
+{
+	threadobject *thread;
+
+	/* create the vm internal threadobject */
+
+	thread = NEW(threadobject);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
+
+	/* link the two objects together */
+
+	thread->object = object;
+
+#if defined(ENABLE_JAVASE)
+	/* is this a daemon thread? */
+
+	if (object->daemon == true)
+		thread->flags |= THREAD_FLAG_DAEMON;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+	assert(object->vmThread);
+	assert(object->vmThread->vmdata == NULL);
+
+	object->vmThread->vmdata = (java_lang_Object *) thread;
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	object->vm_thread = (java_lang_Object *) thread;
+#endif
+
+	/* Actually start the thread.  Don't pass a function pointer
+	   (NULL) since we want Thread.run()V here. */
+
+	threads_start_thread(thread, NULL);
 }
 
 
@@ -218,13 +276,13 @@ void threads_dump(void)
 	java_lang_Thread *t;
 	utf              *name;
 
-	thread = mainthreadobj;
-
 	/* XXX we should stop the world here */
 
 	printf("Full thread dump CACAO "VERSION":\n");
 
 	/* iterate over all started threads */
+
+	thread = mainthreadobj;
 
 	do {
 		/* get thread object */
@@ -287,7 +345,7 @@ void threads_dump(void)
 
 			/* print trace of thread */
 
-			threads_print_stacktrace(thread);
+			threads_thread_print_stacktrace(thread);
 		}
 
 		thread = thread->next;
@@ -295,13 +353,13 @@ void threads_dump(void)
 }
 
 
-/* threads_print_stacktrace ****************************************************
+/* threads_thread_print_stacktrace *********************************************
 
-   Print the current stacktrace of the given thread.
+   Print the current stacktrace of the current thread.
 
 *******************************************************************************/
 
-void threads_print_stacktrace(threadobject *thread)
+void threads_thread_print_stacktrace(threadobject *thread)
 {
 	stackframeinfo   *sfi;
 	stacktracebuffer *stb;
@@ -327,6 +385,22 @@ void threads_print_stacktrace(threadobject *thread)
 	}
 
 	dump_release(dumpsize);
+}
+
+
+/* threads_print_stacktrace ****************************************************
+
+   Print the current stacktrace of the current thread.
+
+*******************************************************************************/
+
+void threads_print_stacktrace(void)
+{
+	threadobject *thread;
+
+	thread = THREADOBJECT;
+
+	threads_thread_print_stacktrace(thread);
 }
 
 

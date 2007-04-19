@@ -47,6 +47,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -234,7 +235,7 @@ bool codegen_emit(jitdata *jd)
 		
 		/* XXX could use the param slots on the stack for this! */
 		for (p = 0; p < INT_ARG_CNT; p++)
-			M_STX(REG_WINDOW_TRANSPOSE(rd->argintregs[p]), REG_SP, JITSTACK + (p * 8));
+			M_STX(REG_WINDOW_TRANSPOSE(abi_registers_integer_argument[p]), REG_SP, JITSTACK + (p * 8));
 	}
 	
 
@@ -251,14 +252,19 @@ bool codegen_emit(jitdata *jd)
  			continue;
 
  		var = VAR(varindex);
-
-		s1 = md->params[p].regoff;
-		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
+ 		s1 = md->params[p].regoff;
+		
+		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */			
+			
  			if (!md->params[p].inmemory) {           /* register arguments    */
 				/*s2 = rd->argintregs[s1];*/
 				/*s2 = REG_WINDOW_TRANSPOSE(s2);*/
+				
+				/* need the argument index here, not the register number */
+				s1 = md->params[p].regoff - abi_registers_integer_argument[0];
+				
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					/*M_INTMOVE(s2, var->vv.regoff);*/
+ 					/*M_INTMOVE(s2, var->vv.regoff);*/					
  					M_LDX(var->vv.regoff, REG_SP, JITSTACK + (s1 * 8));
 
 				} else {                             /* reg arg -> spilled    */
@@ -280,12 +286,11 @@ bool codegen_emit(jitdata *jd)
 		
 		} else {                                     /* floating args         */
  			if (!md->params[p].inmemory) {           /* register arguments    */
-				s2 = rd->argfltregs[s1];
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_FLTMOVE(s2, var->vv.regoff);
+ 					M_FLTMOVE(s1, var->vv.regoff);
 
  				} else {			                 /* reg arg -> spilled    */
- 					M_DST(s2, REG_SP, localbase + (var->vv.regoff) * 8);
+ 					M_DST(s1, REG_SP, localbase + (var->vv.regoff) * 8);
  				}
 
 			} else {                                 /* stack arguments       */
@@ -466,23 +471,23 @@ bool codegen_emit(jitdata *jd)
 		/* load/store/copy/move operations ************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_ALOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
+		case ICMD_LLOAD:
+		case ICMD_ALOAD:
+		case ICMD_FLOAD:
+		case ICMD_DLOAD:
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
+		case ICMD_LSTORE:
+		case ICMD_FSTORE:
+		case ICMD_DSTORE:
 		case ICMD_COPY:
 		case ICMD_MOVE:
 
-			emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+			emit_copy(jd, iptr);
 			break;
 	
 		case ICMD_ASTORE:
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr, VAROP(iptr->s1), VAROP(iptr->dst));
+				emit_copy(jd, iptr);
 			break;
 
 
@@ -1449,8 +1454,8 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 
-			M_MOV(s1, rd->argintregs[0]);
-			M_MOV(s3, rd->argintregs[1]);
+			M_MOV(s1, REG_OUT0);
+			M_MOV(s3, REG_OUT1);
 			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
@@ -2312,12 +2317,9 @@ nowperformreturn:
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
 
-				if (var->flags & PREALLOC)
-					continue;
-
 				if (IS_FLT_DBL_TYPE(var->type)) {
 					if (!md->params[s3].inmemory) {
-						s1 = md->params[s3].regoff; /*native flt args use regoff directly*/
+						s1 = s3; /*native flt args use argument index directly*/
 						d = emit_load(jd, iptr, var, REG_FTMP1);
 						
 						M_DMOV(d, s1 + 16);
@@ -2367,19 +2369,19 @@ gen_method:
 
 			for (s3 = s3 - 1; s3 >= 0; s3--) {
 				var = VAR(iptr->sx.s23.s2.args[s3]);
+				d  = md->params[s3].regoff;
 
 				if (var->flags & PREALLOC)
 					continue;
 
 				if (IS_INT_LNG_TYPE(var->type)) {
 					if (!md->params[s3].inmemory) {
-						s1 = rd->argintregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var, s1);
-						M_INTMOVE(d, s1);
+						s1 = emit_load(jd, iptr, var, d);
+						M_INTMOVE(s1, d);
 					} 
 					else {
-						d = emit_load(jd, iptr, var, REG_ITMP1);
-						M_STX(d, REG_SP, JITSTACK + md->params[s3].regoff * 8);
+						s1 = emit_load(jd, iptr, var, REG_ITMP1);
+						M_STX(s1, REG_SP, JITSTACK + d * 8);
 					}
 				}
 				else {
@@ -2387,19 +2389,18 @@ gen_method:
 						continue;
 						
 					if (!md->params[s3].inmemory) {
-						s1 = rd->argfltregs[md->params[s3].regoff];
-						d = emit_load(jd, iptr, var, s1);
+						s1 = emit_load(jd, iptr, var, d);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DMOV(d, s1);
+							M_DMOV(s1, d);
 						else
-							M_FMOV(d, s1);
+							M_FMOV(s1, d);
 					}
 					else {
-						d = emit_load(jd, iptr, var, REG_FTMP1);
+						s1 = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, JITSTACK + md->params[s3].regoff * 8);
+							M_DST(s1, REG_SP, JITSTACK + d * 8);
 						else
-							M_FST(d, REG_SP, JITSTACK + md->params[s3].regoff * 8);
+							M_FST(s1, REG_SP, JITSTACK + d * 8);
 					}
 				}
 			}
@@ -2660,8 +2661,8 @@ gen_method:
 			else {
 				/* array type cast-check */
 
-				s1 = emit_load_s1(jd, iptr, rd->argintregs[0]);
-				M_INTMOVE(s1, rd->argintregs[0]);
+				s1 = emit_load_s1(jd, iptr, REG_OUT0);
+				M_INTMOVE(s1, REG_OUT0);
 
 				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
@@ -2675,7 +2676,7 @@ gen_method:
 				else
 					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
-				M_ALD(rd->argintregs[1], REG_PV, disp);
+				M_ALD(REG_OUT1, REG_PV, disp);
 				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_ITMP3, REG_PV, disp);
 				/* XXX jit-c-call */
@@ -2950,7 +2951,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	methodinfo   *m;
 	codeinfo     *code;
 	codegendata  *cd;
-	registerdata *rd;
 	methoddesc   *md;
 	s4            nativeparams;
 	s4            i, j;                 /* count variables                    */
@@ -2963,7 +2963,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
 
 	/* initialize variables */
 
@@ -3013,7 +3012,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DST(rd->argfltregs[i], REG_SP, CSTACK + (j * 8));
+			M_DST(abi_registers_float_argument[i], REG_SP, CSTACK + (j * 8));
 			j++;
 		}
 	}
@@ -3033,7 +3032,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DLD(rd->argfltregs[i], REG_SP, CSTACK + (j * 8));
+			M_DLD(abi_registers_float_argument[i], REG_SP, CSTACK + (j * 8));
 			j++;
 		}
 	}
@@ -3046,7 +3045,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
-				s1 = rd->argintregs[md->params[i].regoff];
+				s1 = md->params[i].regoff;
 				/* s1 refers to the old window, transpose */
 				s1 = REG_WINDOW_TRANSPOSE(s1);
 
@@ -3059,6 +3058,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 
 			} else {
+				/*assert(false);*/
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff - 6;
 				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1 * 8);
@@ -3067,7 +3067,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 		} else {
 			if (!md->params[i].inmemory) {
-				s1 = rd->argfltregs[md->params[i].regoff];
+				s1 = md->params[i].regoff;
 
 				if (!nmd->params[j].inmemory) {
 					/* no mapping to regs needed, native flt args use regoff */
@@ -3088,6 +3088,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 
 			} else {
+				/*assert(false);*/
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff - 6;
 				if (IS_2_WORD_TYPE(t)) {

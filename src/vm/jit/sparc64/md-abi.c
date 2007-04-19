@@ -59,8 +59,6 @@ s4 nregdescint[] = {
 	/* i0/v0 i1       i2       i3       i4       pv/i5    fp/i6    ra/i7  */
 	REG_RET, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES,
 	REG_END
-	
-
 };
 
 const char *abi_registers_integer_name[] = {
@@ -70,12 +68,60 @@ const char *abi_registers_integer_name[] = {
 		"i0",    "i1",  "i2",  "i3",  "i4",  "i5",  "fp",  "i7"
 };
 
+const s4 abi_registers_integer_argument[] = {
+	8,  /* o0  */
+	9,  /* o1  */
+	10, /* o2  */
+	11, /* o3  */
+	12, /* o4  */
+};
+
+const s4 abi_registers_integer_saved[] = {
+	16, /* l0  */
+	17, /* l1  */
+	18, /* l2  */
+	19, /* l3  */
+	20, /* l4  */
+	21, /* l5  */
+	22, /* l6  */
+	23, /* l7  */
+	25, /* i1  */
+	26, /* i2  */
+	27, /* i3  */
+	28, /* i4  */
+};
+
+const s4 abi_registers_integer_temporary[] = {
+};
+
+
 s4 nregdescfloat[] = {
 	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP,
 	REG_END
 };
 
+
+const s4 abi_registers_float_argument[] = {
+	8,  /* f16  */
+	9,  /* f18  */
+	10, /* f20  */
+	11, /* f22  */
+	12, /* f24  */
+};
+
+const s4 abi_registers_float_saved[] = {
+};
+
+const s4 abi_registers_float_temporary[] = {
+	4,  /* f8   */
+	5,  /* f10  */
+	6,  /* f12  */
+	7,  /* f14  */
+	13, /* f26  */
+	14, /* f28  */
+	15, /* f30  */
+};
 
 s4 nat_argintregs[] = {
 	REG_OUT0, REG_OUT1, REG_OUT2, REG_OUT3, REG_OUT4, REG_OUT5
@@ -122,24 +168,26 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 				md->argintreguse = reguse;
-
-			} else {
+			}
+			else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 				stacksize++;
 			}
 			break;
+
 		case TYPE_FLT:
 		case TYPE_DBL:
 			if (i < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff   = abi_registers_float_argument[reguse];
 				reguse++;
 				md->argfltreguse = reguse;
-			} else {
+			}
+			else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 				stacksize++;

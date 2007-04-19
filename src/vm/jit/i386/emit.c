@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: emit.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -268,17 +268,29 @@ inline void emit_store_high(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
+void emit_copy(jitdata *jd, instruction *iptr)
 {
-	codegendata  *cd;
-	s4            s1, d;
+	codegendata *cd;
+	varinfo     *src;
+	varinfo     *dst;
+	s4           s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
 
+	/* get source and destination variables */
+
+	src = VAROP(iptr->s1);
+	dst = VAROP(iptr->dst);
+
 	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
+
+		if ((src->type == TYPE_RET) || (dst->type == TYPE_RET)) {
+			/* emit nothing, as the value won't be used anyway */
+			return;
+		}
 
 		/* If one of the variables resides in memory, we can eliminate
 		   the register move from/to the temporary register with the

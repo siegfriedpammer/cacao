@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7674 2007-04-05 13:27:11Z michi $
+   $Id: threads.h 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -157,9 +157,6 @@ struct threadobject {
 	mach_port_t           mach_thread;       /* Darwin thread id              */
 #endif
 
-	pthread_mutex_t       joinmutex;
-	pthread_cond_t        joincond;
-
 	/* these are used for the wait/notify implementation                      */
 	pthread_mutex_t       waitmutex;
 	pthread_cond_t        waitcond;
@@ -221,7 +218,6 @@ threadobject *threads_get_current_threadobject(void);
 void threads_preinit(void);
 bool threads_init(void);
 
-void threads_start_javathread(java_lang_Thread *object);
 void threads_start_thread(threadobject *thread, functionptr function);
 
 void threads_set_thread_priority(pthread_t tid, int priority);

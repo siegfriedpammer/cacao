@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typeinfo.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: typeinfo.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -1190,7 +1190,7 @@ typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
 									 typedescriptor *returntype)
 {
 	s4 i;
-    s4 index;
+    s4 varindex;
 	s4 type;
 	s4 slot = 0;
 
@@ -1204,21 +1204,21 @@ typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
     /* check arguments */
     for (i=startindex; i<desc->paramcount; ++i) {
 		type = desc->paramtypes[i].type;
-		index = map[5*slot + type];
+		varindex = map[5*slot + type];
 
 		slot++;
 		if (IS_2_WORD_TYPE(type))
 			slot++;
 
-		if (index == UNUSED)
+		if (varindex == UNUSED)
 			continue;
 
-		if (index >= buflen) {
+		if (varindex >= buflen) {
 			exceptions_throw_internalerror("Buffer too small for method arguments.");
 			return false;
 		}
 
-		if (!typeinfo_init_varinfo_from_typedesc(vars + index, desc->paramtypes + i))
+		if (!typeinfo_init_varinfo_from_typedesc(vars + varindex, desc->paramtypes + i))
 			return false;
     }
 

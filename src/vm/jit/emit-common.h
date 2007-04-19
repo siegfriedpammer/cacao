@@ -96,7 +96,7 @@ void emit_store_low(jitdata *jd, instruction *iptr, varinfo *dst, s4 d);
 void emit_store_high(jitdata *jd, instruction *iptr, varinfo *dst, s4 d);
 #endif
 
-void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst);
+void emit_copy(jitdata *jd, instruction *iptr);
 
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);

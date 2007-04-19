@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtintable.inc 7711 2007-04-15 19:42:08Z michi $
+   $Id: builtintable.inc 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -961,6 +961,7 @@ static builtintable_entry builtintable_automatic[] = {
 /* automatically replaced functions *******************************************/
 
 static builtintable_entry builtintable_function[] = {
+#if defined(ENABLE_JIT)
 
 	/* java.lang.VMSystem.arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V STATIC NATIVE */
 
@@ -1037,6 +1038,8 @@ static builtintable_entry builtintable_function[] = {
 		NULL,
 		NULL
 	},
+
+#endif /* defined(ENABLE_JIT) */
 
 	/* stop entry */
 

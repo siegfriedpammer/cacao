@@ -41,6 +41,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
+#include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/builtin.h"
@@ -146,36 +147,45 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 *******************************************************************************/
 
-void emit_copy(jitdata *jd, instruction *iptr, varinfo *src, varinfo *dst)
+void emit_copy(jitdata *jd, instruction *iptr)
 {
-	codegendata  *cd;
-	registerdata *rd;
-	s4            s1, d;
+	codegendata *cd;
+	varinfo     *src;
+	varinfo     *dst;
+	s4           s1, d;
 
 	/* get required compiler data */
 
 	cd = jd->cd;
-	rd = jd->rd;
+
+	/* get source and destination variables */
+
+	src = VAROP(iptr->s1);
+	dst = VAROP(iptr->dst);
 
 	if ((src->vv.regoff != dst->vv.regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
+
+		if ((src->type == TYPE_RET) || (dst->type == TYPE_RET)) {
+			/* emit nothing, as the value won't be used anyway */
+			return;
+		}
 
 		/* If one of the variables resides in memory, we can eliminate
 		   the register move from/to the temporary register with the
 		   order of getting the destination register and the load. */
 
 		if (IS_INMEMORY(src->flags)) {
-			d = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
+			d  = codegen_reg_of_var(iptr->opc, dst, REG_IFTMP);
 			s1 = emit_load(jd, iptr, src, d);
 		}
 		else {
 			s1 = emit_load(jd, iptr, src, REG_IFTMP);
-			d = codegen_reg_of_var(iptr->opc, dst, s1);
+			d  = codegen_reg_of_var(iptr->opc, dst, s1);
 		}
 
 		if (s1 != d) {		
-			switch(src->type)
-			{
+			switch(src->type) {
 			case TYPE_INT:
 			case TYPE_LNG:
 			case TYPE_ADR:
@@ -716,7 +726,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* save float argument registers */
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(rd->argfltregs[i], REG_SP, JITSTACK + (1 + i) * 8);
+		M_DST(abi_registers_float_argument[i], REG_SP, JITSTACK + (1 + i) * 8);
 
 	/* save temporary registers for leaf methods */
 /* XXX no leaf optimization yet
@@ -737,7 +747,8 @@ void emit_verbosecall_enter(jitdata *jd)
 		
 		if (IS_INT_LNG_TYPE(t)) {
 			if (i < INT_ARG_CNT) {
-				M_INTMOVE(REG_WINDOW_TRANSPOSE(rd->argintregs[i]), rd->argintregs[i]);
+				M_INTMOVE(REG_WINDOW_TRANSPOSE(abi_registers_integer_argument[i]), 
+					abi_registers_integer_argument[i]);
 			}
 			else {
 				assert(i == 5);
@@ -745,14 +756,14 @@ void emit_verbosecall_enter(jitdata *jd)
 			}
 		}
 		else {
-			assert(i < 4); /* XXX only 4 float reg args right now! */
+			assert(i < 5); /* XXX 5 float reg args right now! */
 			if (IS_2_WORD_TYPE(t)) {
-				M_DST(rd->argfltregs[i], REG_SP, JITSTACK);
-				M_LDX(rd->argintregs[i], REG_SP, JITSTACK);
+				M_DST(abi_registers_float_argument[i], REG_SP, JITSTACK);
+				M_LDX(abi_registers_integer_argument[i], REG_SP, JITSTACK);
 			}
 			else {
-				M_FST(rd->argfltregs[i], REG_SP, JITSTACK);
-				M_ILD(rd->argintregs[i], REG_SP, JITSTACK);
+				M_FST(abi_registers_float_argument[i], REG_SP, JITSTACK);
+				M_ILD(abi_registers_integer_argument[i], REG_SP, JITSTACK);
 			}
 		}
 	}
@@ -770,7 +781,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore float argument registers */
 
 	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(rd->argfltregs[i], REG_SP, JITSTACK + (1 + i) * 8);
+		M_DLD(abi_registers_float_argument[i], REG_SP, JITSTACK + (1 + i) * 8);
 
 	/* restore temporary registers for leaf methods */
 /* XXX no leaf optimization yet
@@ -820,12 +831,12 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_DST(REG_FRESULT, REG_SP, JITSTACK);
 
-	M_MOV(REG_RESULT_CALLEE, rd->argintregs[0]);
+	M_MOV(REG_RESULT_CALLEE, REG_OUT0);
 	M_DMOV(REG_FRESULT, 1); /* logical dreg 1 => f2 */
 	M_FMOV(REG_FRESULT, 2); /* logical freg 2 => f5 */
 
 	disp = dseg_add_functionptr(cd, m);
-	M_ALD(rd->argintregs[3], REG_PV_CALLEE, disp);
+	M_ALD(REG_OUT3, REG_PV_CALLEE, disp);
 
 	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
 	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);

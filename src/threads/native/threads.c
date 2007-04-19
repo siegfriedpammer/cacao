@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7688 2007-04-12 09:05:12Z michi $
+   $Id: threads.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -245,6 +245,10 @@ static pthread_mutex_t threadlistlock;
 
 /* global mutex for stop-the-world                                            */
 static pthread_mutex_t stopworldlock;
+
+/* global mutex and condition for joining threads on exit */
+static pthread_mutex_t mutex_join;
+static pthread_cond_t  cond_join;
 
 /* this is one of the STOPWORLD_FROM_ constants, telling why the world is     */
 /* being stopped                                                              */
@@ -608,6 +612,8 @@ static void threads_set_current_threadobject(threadobject *thread)
 
 static void threads_init_threadobject(threadobject *thread)
 {
+	/* get the pthread id */
+
 	thread->tid = pthread_self();
 
 	thread->index = 0;
@@ -618,15 +624,13 @@ static void threads_init_threadobject(threadobject *thread)
 #endif
 
 	/* TODO destroy all those things */
-	pthread_mutex_init(&(thread->joinmutex), NULL);
-	pthread_cond_init(&(thread->joincond), NULL);
 
 	pthread_mutex_init(&(thread->waitmutex), NULL);
 	pthread_cond_init(&(thread->waitcond), NULL);
 
 	thread->interrupted = false;
-	thread->signaled = false;
-	thread->sleeping = false;
+	thread->signaled    = false;
+	thread->sleeping    = false;
 }
 
 
@@ -658,6 +662,12 @@ void threads_preinit(void)
 {
 	pthread_mutex_init(&threadlistlock, NULL);
 	pthread_mutex_init(&stopworldlock, NULL);
+
+	/* initialize exit mutex and condition (on exit we join all
+	   threads) */
+
+	pthread_mutex_init(&mutex_join, NULL);
+	pthread_cond_init(&cond_join, NULL);
 
 	mainthreadobj = NEW(threadobject);
 
@@ -698,7 +708,7 @@ void threads_preinit(void)
 
 bool threads_init(void)
 {
-	java_lang_String      *threadname;
+	java_objectheader     *threadname;
 	threadobject          *tempthread;
 	java_objectheader     *o;
 
@@ -1193,54 +1203,14 @@ static void *threads_startup_thread(void *t)
 		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_END);
 #endif
 
-	threads_detach_thread(thread);
+	if (!threads_detach_thread(thread))
+		vm_abort("threads_startup_thread: threads_detach_thread failed");
 
 	/* set ThreadMXBean variables */
 
 	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount--;
 
 	return NULL;
-}
-
-
-/* threads_start_javathread ***************************************************
-
-   Start a thread in the JVM. Only the java thread object exists so far.
-
-   IN:
-      object.....the java thread object java.lang.Thread
-
-******************************************************************************/
-
-void threads_start_javathread(java_lang_Thread *object)
-{
-	threadobject *thread;
-
-	/* create the vm internal threadobject */
-
-	thread = NEW(threadobject);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-#endif
-
-	/* link the two objects together */
-
-	thread->object = object;
-
-#if defined(WITH_CLASSPATH_GNU)
-	assert(object->vmThread);
-	assert(object->vmThread->vmdata == NULL);
-	object->vmThread->vmdata = (java_lang_Object *) thread;
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-	object->vm_thread = (java_lang_Object *) thread;
-#endif
-
-	/* actually start the thread */
-	/* don't pass a function pointer (NULL) since we want Thread.run()V here */
-
-	threads_start_thread(thread, NULL);
 }
 
 
@@ -1334,7 +1304,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
 	threadobject          *thread;
 	utf                   *u;
-	java_lang_String      *s;
+	java_objectheader     *s;
 	java_objectheader     *o;
 	java_lang_Thread      *t;
 
@@ -1434,7 +1404,11 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #endif
 	}
 
+	/* the the thread name */
+
 	s = javastring_new(u);
+
+	/* for convenience */
 
 	o = (java_objectheader *) thread->object;
 
@@ -1528,27 +1502,26 @@ bool threads_detach_thread(threadobject *thread)
 
 	thread->state = THREAD_STATE_TERMINATED;
 
-	/* remove thread from thread list and threads table, do this
-	   inside a lock */
+	/* lock thread list */
 
 	pthread_mutex_lock(&threadlistlock);
+
+	/* remove thread from thread list and threads table */
 
 	thread->next->prev = thread->prev;
 	thread->prev->next = thread->next;
 
 	threads_table_remove(thread);
 
+	/* unlock thread list */
+
 	pthread_mutex_unlock(&threadlistlock);
 
-	/* reset thread id (lock on joinmutex? TWISTI) */
+	/* signal that this thread has finished */
 
-	pthread_mutex_lock(&(thread->joinmutex));
-	thread->tid = 0;
-	pthread_mutex_unlock(&(thread->joinmutex));
-
-	/* tell everyone that a thread has finished */
-
-	pthread_cond_broadcast(&(thread->joincond));
+	pthread_mutex_lock(&mutex_join);
+	pthread_cond_signal(&cond_join);
+	pthread_mutex_unlock(&mutex_join);
 
 	/* free the vm internal thread object */
 
@@ -1686,17 +1659,33 @@ bool threads_resume_thread(threadobject *thread)
 
 *******************************************************************************/
 
-/* At the end of the program, we wait for all running non-daemon
-   threads to die. */
-
-static threadobject *threads_find_non_daemon_thread(threadobject *thread)
+static threadobject *threads_find_non_daemon_thread(void)
 {
-	while (thread != mainthreadobj) {
-		if (!(thread->flags & THREAD_FLAG_DAEMON))
-			return thread;
+	threadobject *thread;
 
-		thread = thread->prev;
+	/* lock the thread list */
+
+	pthread_mutex_lock(&threadlistlock);
+
+	/* iterate over all threads */
+
+	thread = mainthreadobj->next;
+
+	while (thread != mainthreadobj) {
+		if (!(thread->flags & THREAD_FLAG_DAEMON)) {
+			/* unlock thread list */
+
+			pthread_mutex_unlock(&threadlistlock);
+
+			return thread;
+		}
+
+		thread = thread->next;
 	}
+
+	/* unlock thread list */
+
+	pthread_mutex_unlock(&threadlistlock);
 
 	return NULL;
 }
@@ -1712,22 +1701,26 @@ void threads_join_all_threads(void)
 {
 	threadobject *thread;
 
-	pthread_mutex_lock(&threadlistlock);
+	/* get current thread */
 
-	while ((thread = threads_find_non_daemon_thread(mainthreadobj->prev)) != NULL) {
-		pthread_mutex_lock(&(thread->joinmutex));
+	thread = THREADOBJECT;
 
-		pthread_mutex_unlock(&threadlistlock);
+	/* this thread is waiting for all non-daemon threads to exit */
 
-		while (thread->tid)
-			pthread_cond_wait(&(thread->joincond), &(thread->joinmutex));
+	thread->state = THREAD_STATE_WAITING;
 
-		pthread_mutex_unlock(&(thread->joinmutex));
+	/* enter join mutex */
 
-		pthread_mutex_lock(&threadlistlock);
-	}
+	pthread_mutex_lock(&mutex_join);
 
-	pthread_mutex_unlock(&threadlistlock);
+	/* wait for condition as long as we have non-daemon threads */
+
+	while (threads_find_non_daemon_thread() != NULL)
+		pthread_cond_wait(&cond_join, &mutex_join);
+
+	/* leave join mutex */
+
+	pthread_mutex_unlock(&mutex_join);
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   $Id: simplereg.c 7723 2007-04-16 18:03:08Z michi $
+   $Id: simplereg.c 7766 2007-04-19 13:24:48Z michi $
 
 */
 
@@ -564,7 +564,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 	registerdata *rd;
 	methoddesc *md;
 
-	int     p, s, t, tt, lm;
+	int     p, s, t, tt, varindex;
 	int     intalloc, fltalloc;
 	varinfo *v;
 	int     intregsneeded = 0;
@@ -592,11 +592,11 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 		intalloc = -1; fltalloc = -1;
 		for (tt = 0; tt <= 4; tt++) {
 			t = typeloop[tt];
-			lm = jd->local_map[s * 5 + t];
-			if (lm == UNUSED)
+			varindex = jd->local_map[s * 5 + t];
+			if (varindex == UNUSED)
 				continue;
 
-			v = VAR(lm);
+			v = VAR(varindex);
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
@@ -770,7 +770,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 
-	int     s, t, tt, lm;
+	int     s, t, tt, varindex;
 	int     intalloc, fltalloc;
 	varinfo *v;
 	int     memneeded = 0;
@@ -794,11 +794,11 @@ static void simplereg_allocate_locals(jitdata *jd)
 		for (tt=0; tt<=4; tt++) {
 			t = typeloop[tt];
 
-			lm = jd->local_map[s * 5 + t];
-			if (lm == UNUSED)
+			varindex = jd->local_map[s * 5 + t];
+			if (varindex == UNUSED)
 				continue;
 
-			v = VAR(lm);
+			v = VAR(varindex);
 
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
