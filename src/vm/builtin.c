@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7723 2007-04-16 18:03:08Z michi $
+   $Id: builtin.c 7764 2007-04-19 12:50:37Z twisti $
 
 */
 
@@ -171,6 +171,11 @@ static bool builtintable_init(void)
 		bte->md = descriptor_pool_parse_method_descriptor(descpool,
 														  bte->descriptor,
 														  ACC_STATIC, NULL);
+
+		/* generate a builtin stub if we need one */
+
+		if (bte->flags & BUILTINTABLE_FLAG_STUB)
+			codegen_generate_stub_builtin(bte);
 	}
 
 	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {

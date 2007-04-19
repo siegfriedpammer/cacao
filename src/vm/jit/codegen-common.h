@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7731 2007-04-16 22:24:30Z twisti $
+   $Id: codegen-common.h 7764 2007-04-19 12:50:37Z twisti $
 
 */
 
@@ -46,6 +46,7 @@ typedef struct linenumberref              linenumberref;
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/builtin.h"
 #include "vm/global.h"
 
 #include "vm/jit/dseg.h"
@@ -315,9 +316,11 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
 /* stub functions */
 
 u1       *codegen_generate_stub_compiler(methodinfo *m);
+void      codegen_generate_stub_builtin(builtintable_entry *bte);
 codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f);
 
 void      codegen_emit_stub_compiler(jitdata *jd);
+void      codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte);
 void      codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f);
 
 #if defined(ENABLE_INTRP)
@@ -327,6 +330,9 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *md);
 
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
+
+void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
+void codegen_stub_builtin_exit(u1 *datasp);
 
 void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
 java_objectheader *codegen_finish_native_call(u1 *datasp);
