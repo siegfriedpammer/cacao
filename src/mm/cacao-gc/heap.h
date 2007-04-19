@@ -37,10 +37,6 @@
 
 
 
-/* TODO: maybe move this to global.h */
-#define GC_FLAG_FINALIZER     0x40
-
-
 #define GC_SIZE_DUMMY 0xff
 
 #if SIZEOF_VOID_P == 8

@@ -182,9 +182,15 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region,
 	/* lock the region */
 	LOCK_MONITOR_ENTER(region);
 
+#if 0
+	/* heavy stress test */
+	if (collect)
+		gc_collect(0);
+#endif
+
 	/* check for sufficient free space */
 	if (bytelength > region->free) {
-		dolog("GC: Region out of memory!");
+		dolog("GC: Region out of memory! (collect=%d)", collect);
 
 		if (collect) {
 			gc_collect(0);
@@ -241,15 +247,8 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 	}
 #endif
 
-	/* take care of finalization stuff */
+	/* register the finalizer for this object */
 	if (finalizer != NULL) {
-
-		/* set the header bit */
-		/* TODO: do we really need this??? */
-		/* TODO: can this be overwritten by cloning??? */
-		GC_SET_FLAGS(p, GC_FLAG_FINALIZER);
-
-		/* register the finalizer for this object */
 		final_register(p, finalizer);
 	}
 
@@ -304,9 +303,8 @@ void heap_println_usage()
 #if !defined(NDEBUG)
 void heap_print_object_flags(java_objectheader *o)
 {
-	printf("0x%02x [%s%s%s%s%s]",
+	printf("0x%02x [%s%s%s%s]",
 		GC_GET_SIZE(o),
-		GC_TEST_FLAGS(o, GC_FLAG_FINALIZER)     ? "F" : " ",
 		GC_TEST_FLAGS(o, HDRFLAG_HASH_ATTACHED) ? "A" : " ",
 		GC_TEST_FLAGS(o, HDRFLAG_HASH_TAKEN)    ? "T" : " ",
 		GC_TEST_FLAGS(o, HDRFLAG_UNCOLLECTABLE) ? "U" : " ",
@@ -333,6 +331,16 @@ void heap_print_object(java_objectheader *o)
 #else
 	printf("0x%08lx: ", (unsigned long) o);
 #endif
+
+	/* check for invalid heap references */
+	if (!POINTS_INTO(o, heap_region_main->base, heap_region_main->end) &&
+		!POINTS_INTO(o, heap_region_sys->base, heap_region_sys->end))
+	{
+		printf("<<< No Heap Reference >>>");
+		return;
+	}
+
+	/* print object flags */
 	heap_print_object_flags(o);
 	printf(" ");
 
@@ -386,7 +394,7 @@ void heap_dump_region(regioninfo_t *region, bool marked_only)
 	u4                 o_size;
 
 	/* some basic sanity checks */
-	GC_ASSERT(region->base < region->ptr);
+	GC_ASSERT(region->base <= region->ptr);
 
 	printf("Heap-Dump:\n");
 
