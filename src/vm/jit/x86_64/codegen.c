@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7723 2007-04-16 18:03:08Z michi $
+   $Id: codegen.c 7765 2007-04-19 12:52:47Z twisti $
 
 */
 
@@ -2931,19 +2931,20 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 *******************************************************************************/
 
-void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
+void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 {
 	codeinfo    *code;
 	codegendata *cd;
-	registerdata *rd; /* REMOVE ME */
-	s4           i, j;                 /* count variables                    */
+	methoddesc  *md;
+	s4           i, j;
 	s4           s1, disp;
 
 	/* get required compiler data */
 
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
+
+	md = bte->md;
 
 	/* calculate stack frame size */
 
@@ -2989,11 +2990,11 @@ void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
 			case TYPE_INT:
 			case TYPE_LNG:
 			case TYPE_ADR:
-				M_LST(rd->argintregs[s1], REG_SP, j * 8);
+				M_LST(s1, REG_SP, j * 8);
 				break;
 			case TYPE_FLT:
 			case TYPE_DBL:
-				M_DST(rd->argfltregs[s1], REG_SP, j * 8);
+				M_DST(s1, REG_SP, j * 8);
 				break;
 			}
 
@@ -3020,11 +3021,11 @@ void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
 			case TYPE_INT:
 			case TYPE_LNG:
 			case TYPE_ADR:
-				M_LLD(abi_registers_integer_argument[s1], REG_SP, j * 8);
+				M_LLD(s1, REG_SP, j * 8);
 				break;
 			case TYPE_FLT:
 			case TYPE_DBL:
-				M_DLD(abi_registers_integer_argument[s1], REG_SP, j * 8);
+				M_DLD(s1, REG_SP, j * 8);
 				break;
 			}
 
@@ -3034,7 +3035,7 @@ void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
 
 	/* call the builtin function */
 
-	M_MOV_IMM(f, REG_ITMP3);
+	M_MOV_IMM(bte->fp, REG_ITMP3);
 	M_CALL(REG_ITMP3);
 
 	/* save return value */
