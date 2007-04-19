@@ -22,13 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: signal.c 7772 2007-04-19 19:43:39Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -51,10 +52,15 @@
 # include "threads/threads-common.h"
 #endif
 
+#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/vm.h"
 
 #include "vmcore/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
 
 
 /* global variables ***********************************************************/
@@ -88,6 +94,10 @@ void signal_init(void)
 	pagesize = getpagesize();
 
 	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+
+	/* check if we get into trouble with our hardware-exceptions */
+
+	assert(OFFSET(java_bytearray, data) > EXCEPTION_HARDWARE_PATCHER);
 
 	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
 	   <ctrl>-\).  We enable them later in signal_thread, but only for
