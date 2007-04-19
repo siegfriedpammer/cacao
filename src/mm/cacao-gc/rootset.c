@@ -274,7 +274,8 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	/* now inspect the source state to compile the root set */
 	for (sf = ss->frames; sf != NULL; sf = sf->down) {
 
-		GC_ASSERT(sf->javastackdepth == 0);
+		GC_LOG( printf("Source Frame: localcount=%d, stackdepth=%d\n", sf->javalocalcount, sf->javastackdepth); );
+		GC_ASSERT(sf->syncslotcount == 0);
 
 		for (i = 0; i < sf->javalocalcount; i++) {
 
@@ -282,14 +283,23 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 			if (sf->javalocaltype[i] != TYPE_ADR)
 				continue;
 
-			/* check for null pointer */
-			if (sf->javalocals[i].a == NULL)
-				continue;
-
-			GC_LOG2( printf("Found Reference: %p\n", (void *) sf->javalocals[i].a); );
+			GC_LOG2( printf("Found Reference (Java Local): %p\n", (void *) sf->javalocals[i].a); );
 
 			/* add this reference to the root set */
 			ROOTSET_ADD((java_objectheader **) &( sf->javalocals[i] ), true, REFTYPE_STACK);
+
+		}
+
+		for (i = 0; i < sf->javastackdepth; i++) {
+
+			/* we only need to consider references */
+			if (sf->javastacktype[i] != TYPE_ADR)
+				continue;
+
+			GC_LOG2( printf("Found Reference (Java Stack): %p\n", (void *) sf->javastack[i].a); );
+
+			/* add this reference to the root set */
+			ROOTSET_ADD((java_objectheader **) &( sf->javastack[i] ), true, REFTYPE_STACK);
 
 		}
 	}

@@ -22,7 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   $Id: simplereg.c 7713 2007-04-15 21:49:48Z twisti $
+   $Id: simplereg.c 7723 2007-04-16 18:03:08Z michi $
 
 */
 
