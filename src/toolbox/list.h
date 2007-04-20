@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.h 7783 2007-04-20 13:28:27Z twisti $
+   $Id: list.h 7784 2007-04-20 13:51:41Z twisti $
 
 */
 
@@ -114,6 +114,7 @@ struct list_t {
 	listnode_t        *first;
 	listnode_t        *last;
 	s4                 nodeoffset;
+	s4                 size;            /* number of elements in the list     */
 };
 
 

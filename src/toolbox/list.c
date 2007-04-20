@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.c 7783 2007-04-20 13:28:27Z twisti $
+   $Id: list.c 7784 2007-04-20 13:51:41Z twisti $
 
 */
 
@@ -63,6 +63,7 @@ list_t *list_create(s4 nodeoffset)
 	l->first      = NULL;
 	l->last       = NULL;
 	l->nodeoffset = nodeoffset;
+	l->size       = 0;
 
 	return l;
 }
@@ -85,10 +86,17 @@ list_t *list_create_dump(s4 nodeoffset)
 	l->first      = NULL;
 	l->last       = NULL;
 	l->nodeoffset = nodeoffset;
+	l->size       = 0;
 
 	return l;
 }
 
+
+/* list_add_first **************************************************************
+
+   Adds the element as first element.
+
+*******************************************************************************/
 
 void list_add_first(list_t *l, void *element)
 {
@@ -110,6 +118,10 @@ void list_add_first(list_t *l, void *element)
 		l->last  = ln;
 		l->first = ln;
 	}
+
+	/* increase number of elements */
+
+	l->size++;
 
 	LOCK_MONITOR_EXIT(l);
 }
@@ -157,6 +169,10 @@ void list_add_last_unsynced(list_t *l, void *element)
 		l->last  = ln;
 		l->first = ln;
 	}
+
+	/* increase number of elements */
+
+	l->size++;
 }
 
 
@@ -195,6 +211,10 @@ void list_add_before(list_t *l, void *element, void *newelement)
 
 	if (l->last == ln)
 		l->last = newln;
+
+	/* increase number of elements */
+
+	l->size++;
 
 	LOCK_MONITOR_EXIT(l);
 }
@@ -242,6 +262,10 @@ void list_remove_unsynced(list_t *l, void *element)
 
 	ln->next = NULL;
 	ln->prev = NULL;
+
+	/* decrease number of elements */
+
+	l->size--;
 }
 
  
