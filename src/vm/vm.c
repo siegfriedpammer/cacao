@@ -1113,6 +1113,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				opt_stat = true;
 # endif
 			}
+			else {
+				printf("Unknown -verbose option: %s\n", opt_arg);
+				usage();
+			}
 #endif
 			break;
 		case OPT_DEBUGCOLOR:
