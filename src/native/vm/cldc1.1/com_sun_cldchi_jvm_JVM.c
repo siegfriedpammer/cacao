@@ -59,7 +59,7 @@ JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jcla
 	/* check for error and throw one in case */
 
 	if (result == 0) {
-		name = javastring_toutf(libName, 0);
+		name = javastring_toutf((java_objectheader *) libName, false);
 		exceptions_throw_unsatisfiedlinkerror(name);
 	}
 }
