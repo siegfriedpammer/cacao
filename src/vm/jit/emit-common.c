@@ -454,7 +454,7 @@ void emit_bnan(codegendata *cd, basicblock *target)
 
 void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options)
 {
-	list               *list;
+	list_t             *list;
 	branch_label_ref_t *br;
 	s4                  mpc;
 	s4                  disp;
@@ -509,7 +509,7 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 
 void emit_label(codegendata *cd, s4 label)
 {
-	list               *list;
+	list_t             *list;
 	branch_label_ref_t *br;
 	s4                  mpc;
 	s4                  disp;

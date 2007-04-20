@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: suck.c 7272 2007-02-01 15:35:09Z twisti $
+   $Id: suck.c 7783 2007-04-20 13:28:27Z twisti $
 
 */
 
@@ -62,7 +62,7 @@
 
 /* global variables ***********************************************************/
 
-list *list_classpath_entries;
+list_t *list_classpath_entries;
 
 
 /* suck_init *******************************************************************

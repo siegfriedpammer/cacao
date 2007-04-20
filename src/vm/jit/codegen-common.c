@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7778 2007-04-20 12:40:05Z twisti $
+   $Id: codegen-common.c 7783 2007-04-20 13:28:27Z twisti $
 
 */
 
@@ -490,7 +490,7 @@ void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr)
 
 void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options)
 {
-	list               *list;
+	list_t             *list;
 	branch_label_ref_t *br;
 	s4                  mpc;
 
@@ -1249,8 +1249,8 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 #if defined(ENABLE_JAVASE)
 	localref_table     *lrt;
 	localref_table     *plrt;
-#endif
 	s4                  localframes;
+#endif
 	java_objectheader  *e;
 
 	/* get data structures from stack */

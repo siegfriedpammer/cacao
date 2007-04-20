@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: list.h 7783 2007-04-20 13:28:27Z twisti $
 
 */
 
@@ -93,56 +93,56 @@ distinct list).
 
 */
 
-/* listnode *******************************************************************/
+/* listnode_t *****************************************************************/
 
-typedef struct listnode listnode;
+typedef struct listnode_t listnode_t;
 
-struct listnode {
-	listnode *next;
-	listnode *prev;
+struct listnode_t {
+	listnode_t *next;
+	listnode_t *prev;
 };
 
 
-/* list ***********************************************************************/
+/* list_t *********************************************************************/
 
-typedef struct list list;
+typedef struct list_t list_t;
 
-struct list {
+struct list_t {
 #if defined(ENABLE_THREADS)
 	java_objectheader  lock;            /* threads lock object                */
 #endif
-	listnode          *first;
-	listnode          *last;
+	listnode_t        *first;
+	listnode_t        *last;
 	s4                 nodeoffset;
 };
 
 
 /* function prototypes ********************************************************/
 
-list *list_create(s4 nodeoffset);
-list *list_create_dump(s4 nodeoffset);
+list_t *list_create(s4 nodeoffset);
+list_t *list_create_dump(s4 nodeoffset);
 
-void list_add_first(list *l, void *element);
+void   list_add_first(list_t *l, void *element);
 
-void list_add_last(list *l, void *element);
-void list_add_last_unsynced(list *l, void *element);
+void   list_add_last(list_t *l, void *element);
+void   list_add_last_unsynced(list_t *l, void *element);
 
-void list_add_before(list *l, void *element, void *newelement);
+void   list_add_before(list_t *l, void *element, void *newelement);
 
-void list_remove(list *l, void *element);
-void list_remove_unsynced(list *l, void *element);
- 
-void *list_first(list *l);
-void *list_first_unsynced(list *l);
+void   list_remove(list_t *l, void *element);
+void   list_remove_unsynced(list_t *l, void *element);
 
-void *list_last(list *l);
-void *list_last_unsynced(list *l);
+void   *list_first(list_t *l);
+void   *list_first_unsynced(list_t *l);
 
-void *list_next(list *l, void *element);
-void *list_next_unsynced(list *l, void *element);
+void   *list_last(list_t *l);
+void   *list_last_unsynced(list_t *l);
 
-void *list_prev(list *l, void *element);
-void *list_prev_unsynced(list *l, void *element);
+void   *list_next(list_t *l, void *element);
+void   *list_next_unsynced(list_t *l, void *element);
+
+void   *list_prev(list_t *l, void *element);
+void   *list_prev_unsynced(list_t *l, void *element);
 
 #endif /* _LIST_H */
 

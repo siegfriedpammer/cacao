@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 7563 2007-03-23 21:33:53Z twisti $
+   $Id: class.h 7783 2007-04-20 13:28:27Z twisti $
 
 */
 
@@ -114,7 +114,7 @@ struct classinfo {                /* class structure                          */
 	s4          methodscount;     /* number of methods                        */
 	methodinfo *methods;          /* method table                             */
 
-	listnode    listnode;         /* linkage                                  */
+	listnode_t  listnode;         /* linkage                                  */
 
 	s4          state;            /* current class state                      */
 	s4          index;            /* hierarchy depth (classes) or index       */
@@ -177,7 +177,7 @@ struct castinfo {
 
 /* global variables ***********************************************************/
 
-extern list unlinkedclasses;   /* this is only used for eager class loading   */
+extern list_t unlinkedclasses; /* this is only used for eager class loading   */
 
 
 /* frequently used classes ****************************************************/

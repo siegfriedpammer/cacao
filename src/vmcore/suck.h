@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: suck.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: suck.h 7783 2007-04-20 13:28:27Z twisti $
 
 */
 
@@ -61,7 +61,7 @@ struct list_classpath_entry {
 #if defined(ENABLE_ZLIB)
 	hashtable         *htclasses;
 #endif
-	listnode           linkage;
+	listnode_t         linkage;
 };
 
 
@@ -160,7 +160,7 @@ struct list_classpath_entry {
 
 /* export variables ***********************************************************/
 
-extern list *list_classpath_entries;
+extern list_t *list_classpath_entries;
 
 
 /* function prototypes ********************************************************/
