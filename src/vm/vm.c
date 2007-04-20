@@ -610,6 +610,7 @@ static void version(bool opt_exit)
 	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
 	printf("  initial heap size              : %d\n", opt_heapstartsize);
 	printf("  stack size                     : %d\n", opt_stacksize);
+	printf("  libjvm.so                      : %s\n", cacao_libjvm);
 	printf("  java.boot.class.path           : %s\n", _Jv_bootclasspath);
 	printf("  gnu.classpath.boot.library.path: %s\n", classpath_libdir);
 	printf("  java.class.path                : %s\n", _Jv_classpath);
