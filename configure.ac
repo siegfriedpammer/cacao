@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7786 2007-04-21 12:37:47Z edwin $
+dnl $Id: configure.ac 7789 2007-04-21 16:42:52Z edwin $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -1005,6 +1005,8 @@ AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
 		[contrib/setenvinstalled]
 		[contrib/setenvsource]
+		[contrib/vmlog/Makefile]
+		[contrib/vmlog/t/Makefile]
 		[doc/Makefile]
 		[doc/handbook/Makefile]
 		[man/Makefile]

@@ -28,9 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 7789 2007-04-21 16:42:52Z edwin $
 
 ## Process this file with automake to produce Makefile.in
+
+SUBDIRS = vmlog
 
 noinst_DATA = \
 	setenvinstalled.in \
