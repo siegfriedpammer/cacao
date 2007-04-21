@@ -82,6 +82,10 @@
 # include "native/jvmti/cacaodbg.h"
 #endif
 
+#if defined(ENABLE_VMLOG)
+#include <vmlog_cacao.h>
+#endif
+
 
 /* Invocation API variables ***************************************************/
 
@@ -738,6 +742,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	char *libname, *agentarg;
 	bool jdwp,agentbypath;
 	jdwp = agentbypath = false;
+#endif
+
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_init(vm_args);
 #endif
 
 	/* check the JNI version requested */

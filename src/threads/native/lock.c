@@ -53,6 +53,10 @@
 # include "vmcore/statistics.h"
 #endif
 
+#if defined(ENABLE_VMLOG)
+#include <vmlog_cacao.h>
+#endif
+
 /* arch.h must be here because it defines USE_FAKE_ATOMIC_INSTRUCTIONS */
 
 #include "arch.h"
@@ -222,6 +226,10 @@ void lock_init(void)
 	pthread_mutex_init(&lock_global_pool_lock, NULL);
 
 	lock_hashtable_init();
+
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_init_lock();
+#endif
 }
 
 

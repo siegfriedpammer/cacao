@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7714 2007-04-16 14:11:14Z twisti $
+   $Id: builtin.c 7785 2007-04-21 10:55:30Z edwin $
 
 */
 
@@ -80,6 +80,10 @@
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/rt-timing.h"
+
+#if defined(ENABLE_VMLOG)
+#include <vmlog_cacao.h>
+#endif
 
 
 /* include builtin tables *****************************************************/
@@ -1149,6 +1153,10 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	s4    dumpsize;
 	codeinfo *code;
 
+#if defined(ENABLE_VMLOG)
+	return xptr;
+#endif
+
 	if (opt_verbosecall && indent)
 		methodindent--;
 
@@ -1417,6 +1425,11 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
 	s4          i;
 	s4          pos;
 
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_enter_method(m);
+	return;
+#endif
+
 	md = m->parseddesc;
 
 	/* calculate message length */
@@ -1587,6 +1600,11 @@ void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
 	s4          i;
 	s4          pos;
 	imm_union   val;
+
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_leave_method(m);
+	return;
+#endif
 
 	md = m->parseddesc;
 
@@ -2679,6 +2697,11 @@ java_objectheader *builtin_clone(void *env, java_objectheader *o)
 
     return co;
 }
+
+#if defined(ENABLE_VMLOG)
+#define NDEBUG
+#include <vmlog_cacao.c>
+#endif
 
 
 /*

@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7783 2007-04-20 13:28:27Z twisti $
+   $Id: codegen-common.c 7785 2007-04-21 10:55:30Z edwin $
 
 */
 
@@ -98,6 +98,10 @@
 #include "vmcore/options.h"
 
 # include "vmcore/statistics.h"
+
+#if defined(ENABLE_VMLOG)
+#include <vmlog_cacao.h>
+#endif
 
 
 /* in this tree we store all method addresses *********************************/
@@ -646,6 +650,10 @@ u1 *codegen_get_pv_from_pc(u1 *pc)
 
 	if (mte == NULL) {
 		/* No method was found.  Let's dump a stacktrace. */
+
+#if defined(ENABLE_VMLOG)
+		vmlog_cacao_signl("SIGSEGV");
+#endif
 
 		log_println("We received a SIGSEGV and tried to handle it, but we were");
 		log_println("unable to find a Java method at:");

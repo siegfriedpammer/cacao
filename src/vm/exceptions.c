@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7671 2007-04-05 12:06:28Z twisti $
+   $Id: exceptions.c 7785 2007-04-21 10:55:30Z edwin $
 
 */
 
@@ -69,6 +69,10 @@
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
+
+#if defined(ENABLE_VMLOG)
+#include <vmlog_cacao.h>
+#endif
 
 
 /* for raising exceptions from native methods *********************************/
@@ -1783,6 +1787,10 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 		builtin_trace_exception(xptr, m, xpc, 1);
 #endif
 
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_throw(xptr);
+#endif
+
 	for (i = 0; i < exceptiontablelength; i++) {
 		/* ATTENTION: keep this here, as we need to decrement the
            pointer before the loop executes! */
@@ -1806,6 +1814,10 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 			if (cr.any == NULL) {
 #if !defined(NDEBUG)
 				/* Print stacktrace of exception when caught. */
+
+#if defined(ENABLE_VMLOG)
+				vmlog_cacao_catch(xptr);
+#endif
 
 				if (opt_verboseexception) {
 					exceptions_print_exception(xptr);
@@ -1864,6 +1876,10 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 #if !defined(NDEBUG)
 				/* Print stacktrace of exception when caught. */
 
+#if defined(ENABLE_VMLOG)
+				vmlog_cacao_catch(xptr);
+#endif
+
 				if (opt_verboseexception) {
 					exceptions_print_exception(xptr);
 					stacktrace_print_trace(xptr);
@@ -1895,6 +1911,10 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 #endif
 
 	/* none of the exceptions catch this one */
+
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_unwnd_method(m);
+#endif
 
 	return NULL;
 }
