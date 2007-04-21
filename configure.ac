@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7774 2007-04-19 19:58:08Z twisti $
+dnl $Id: configure.ac 7786 2007-04-21 12:37:47Z edwin $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -419,6 +419,23 @@ AM_CONDITIONAL([ENABLE_MEMCHECK], test x"${ENABLE_MEMCHECK}" = "xyes")
 
 if test x"${ENABLE_MEMCHECK}" = "xyes"; then
     AC_DEFINE([ENABLE_MEMCHECK], 1, [perform debugging memory checks])
+fi
+
+
+dnl check for vmlog support
+AC_MSG_CHECKING(whether vmlog tracing should be enabled)
+AC_ARG_ENABLE([vmlog],
+              [AS_HELP_STRING(--enable-vmlog,enable vmlog tracing [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_VMLOG=yes;;
+                   *) ENABLE_VMLOG=no;;
+               esac],
+              [ENABLE_VMLOG=no])
+AC_MSG_RESULT(${ENABLE_VMLOG})
+AM_CONDITIONAL([ENABLE_VMLOG], test x"${ENABLE_VMLOG}" = "xyes")
+
+if test x"${ENABLE_VMLOG}" = "xyes"; then
+    AC_DEFINE([ENABLE_VMLOG], 1, [enable vmlog tracing code])
 fi
 
 
