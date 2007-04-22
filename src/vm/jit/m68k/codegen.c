@@ -1048,43 +1048,61 @@ bool codegen_emit(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
-#if 0
 		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			M_SLL_IMM(s2, 3, REG_ITMP2);
-			M_IADD(s1, REG_ITMP2, REG_ITMP2);
-			M_LLD_INTERN(d, REG_ITMP2, OFFSET(java_longarray, data[0]));
+			M_INTMOVE(s2, REG_ITMP2);
+			M_ISSL_IMM(3, REG_ITMP2);
+			M_IADD(s1, REG_ITMP2);
+			M_LLD(d, REG_ITMP2, OFFSET(java_longarray, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_FALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			M_SLL_IMM(s2, 2, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_floatarray, data[0]), REG_ITMP2);
+			M_INTMOVE(s2, REG_ITMP2);
+			M_ISSL_IMM(2, REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_floatarray, data[0]), REG_ITMP2);
+			M_ADRMOVE(s1, REG_ATMP1);
+			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
-			M_LFSX(d, s1, REG_ITMP2);
+#if !defined(ENABLE_SOFTFLOAT)
+			M_LFSX(REG_ATMP1, d);
+#else
+			M_LWZX(REG_ATMP1, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_DALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			M_SLL_IMM(s2, 3, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_doublearray, data[0]), REG_ITMP2);
+			M_INTMOVE(s2, REG_ITMP2);
+			M_ISSL_IMM(3, REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_doublearray, data[0]), REG_ITMP2);
+			M_ADRMOVE(s1, REG_ATMP1);
+			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
-			M_LFDX(d, s1, REG_ITMP2);
+#if !defined(ENABLE_SOFTFLOAT)
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);	/* FIXME */
+			M_LFDX(REG_ATMP1, s3);
+#else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			/* implicit null-pointer check */
+			M_LWZX(REG_ATMP1, GET_LOW_REG(d));
+			M_AADD_IMM(REG_ATMP1, 4);
+			/* implicit null-pointer check */
+			M_LWZX(REG_ATMP1, GET_HIGH_REG(d));
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
-		#endif
 
 		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
@@ -1106,7 +1124,7 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
@@ -1164,22 +1182,23 @@ bool codegen_emit(jitdata *jd)
 			M_STWX(REG_ATMP1, s3);
 			break;
 
-#if 0
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
+
 			M_INTMOVE(s2, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_bytearray, data[0]), REG_ITMP2);
-			M_ISSL_IMM(1, REG_ITMP2);
+			M_ISSL_IMM(3, REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_longarray, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
-			M_STWX(s3, s1, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, 4, REG_ITMP2);
+			M_STWX(REG_ATMP1, s3);
+			M_AADD_IMM(REG_ATMP1, 4);
 			s3 = emit_load_s3_low(jd, iptr, REG_ITMP3);
-			M_STWX(s3, s1, REG_ITMP2);
+			/* implicit null-pointer check */
+			M_STWX(REG_ATMP1, s3);
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1187,24 +1206,43 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
-			M_SLL_IMM(s2, 2, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_floatarray, data[0]), REG_ITMP2);
+			M_INTMOVE(s2, REG_ITMP2);
+			M_ISSL_IMM(2, REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_floatarray, data[0]), REG_ITMP2);
+			M_ADRMOVE(s1, REG_ATMP1);
+			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
-			M_STFSX(s3, s1, REG_ITMP2);
+#if !defined(ENABLE_SOFTFLOAT)
+			M_STFSX(REG_ATMP1, s3);
+#else
+			M_STWX(REG_ATMP1, s3);
+#endif
 			break;
 
 		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
-			M_SLL_IMM(s2, 3, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_doublearray, data[0]), REG_ITMP2);
+			M_INTMOVE(s2, REG_ITMP2);
+			M_ISSL_IMM(3, REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_doublearray, data[0]), REG_ITMP2);
+			M_ADRMOVE(s1, REG_ATMP1);
+			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
-			M_STFDX(s3, s1, REG_ITMP2);
+#if !defined(ENABLE_SOFTFLOAT)
+			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
+			M_STFDX(REG_ATMP1, s3);
+#else
+			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
+			/* implicit null-pointer check */
+			M_STWX(REG_ATMP1, s3);
+			M_AADD_IMM(REG_ATMP1, 4);
+			s3 = emit_load_s3_low(jd, iptr, REG_ITMP3);
+			/* implicit null-pointer check */
+			M_STWX(REG_ATMP1, s3);
+#endif
 			break;
 
-	#endif
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
@@ -1218,7 +1256,7 @@ bool codegen_emit(jitdata *jd)
 			M_AST(s1, REG_SP, 0*4);
 			M_AST(s3, REG_SP, 1*4);
 			M_JSR_IMM(BUILTIN_canstore);	
-			emit_exception_check_ireg(cd, iptr);
+			emit_exception_check(cd, iptr);
 
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP1);
@@ -1305,7 +1343,7 @@ bool codegen_emit(jitdata *jd)
 					M_JSR_IMM(disp);
 
 					REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-					/*emit_exception_check(cd, iptr); TODO */
+					emit_exception_check(cd, iptr);
 					break;
 
 				case ICMD_INVOKESPECIAL: 
@@ -1797,8 +1835,8 @@ nowperformreturn:
 					M_AMOV_IMM(iptr->sx.s23.s3.c.cls, REG_ATMP1);
 				}
 	
-				M_APUSH(s1);
 				M_APUSH(REG_ATMP1);
+				M_APUSH(s1);
 				M_JSR_IMM(BUILTIN_arraycheckcast);
 				M_AADD_IMM(2*4, REG_SP);		/* pop arguments off stack */
 				M_ITST(REG_RESULT);
@@ -1876,6 +1914,51 @@ nowperformreturn:
 			ALIGNCODENOP;
 			break;
 			}
+
+		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
+
+			/* check for negative sizes and copy sizes to stack if necessary  */
+			MCODECHECK((iptr->s1.argcount << 1) + 64);
+
+			for (s1 = iptr->s1.argcount; --s1 >= 0;) {
+				var = VAR(iptr->sx.s23.s2.args[s1]);
+
+				/* Already Preallocated? */
+				if (!(var->flags & PREALLOC)) {
+					s2 = emit_load(jd, iptr, var, REG_ITMP1);
+					M_IST(s2, REG_SP, (s1 + 3) * 4);
+				}
+			}
+
+			/* a0 = dimension count */
+			M_IMOV_IMM(iptr->s1.argcount, REG_ITMP1);
+			M_IST(REG_ITMP1, REG_SP, 0*4);
+
+			/* a1 = arraydescriptor */
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				codegen_addpatchref(cd, PATCHER_resolve_classref_to_classinfo, iptr->sx.s23.s3.c.ref, 0);
+				M_AMOV_IMM(0, REG_ATMP1);
+			} else	{
+				M_AMOV_IMM(iptr->sx.s23.s3.c.cls, REG_ATMP1);
+			}
+			M_AST(REG_ATMP1, REG_SP, 1*4);
+
+			/* a2 = pointer to dimensions = stack pointer */
+			M_AMOV(REG_SP, REG_ATMP1);
+			M_AADD_IMM(REG_ATMP1, 3*4);
+			M_AST(REG_ATMP1, REG_SP, 2*4);
+
+			M_JSR_IMM(BUILTIN_multianewarray);
+
+			/* check for exception before result assignment */
+			emit_exception_check(cd, iptr);
+
+			assert(VAROP(iptr->dst)->type == TYPE_ADR);
+			d = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+			M_INT2ADRMOVE(REG_RESULT, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
 
 
 		default:
@@ -2093,7 +2176,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_AST(REG_ATMP3, REG_SP, 0 * 4);			/* datasp */
 	M_JSR_IMM(codegen_finish_native_call);
 	
-	M_INT2ADRMOVE(REG_RESULT, REG_ATMP3);
+	M_INT2ADRMOVE(REG_RESULT, REG_ATMP1);
 	/* restore return value */
 	switch (md->returntype.type)	{
 		case TYPE_VOID: break;
@@ -2122,13 +2205,18 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	M_AADD_IMM(cd->stackframesize*4, REG_SP);
 	/* check for exception */
-	M_ATST(REG_ATMP3);
+	M_ATST(REG_ATMP1);
 	M_BNE(2);
 	M_RET;
 
-	/* handle exception */
-	M_JSR_IMM(0);	/* FIXME */
+	/* handle exception, REG_ATMP1 already contains exception object, REG_ATMP2 holds address */
+	
+	M_ALD(REG_ATMP2_XPC, REG_SP, 0);		/* take return address as faulting instruction */
+	M_AADD_IMM(-2, REG_ATMP2_XPC);			/* which is off by 2 */
+	M_JMP_IMM(asm_handle_nat_exception);
 
+	/* should never be reached from within jit code*/
+	M_JSR_IMM(0);
 
 	/* generate patcher stub call code */
 	emit_patcher_stubs(jd);

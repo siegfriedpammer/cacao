@@ -32,6 +32,7 @@ call_jit_dummy:
 .globl asm_criticalsections
 
 .globl asm_handle_exception
+.globl asm_handle_nat_exception
 
 /*
  *	This functions implement the C prototyped funtion
@@ -267,8 +268,9 @@ asm_abstractmethoderror:
 *   exception object pointer...%a2   exception raising address...%a3           *
 *                                                                              *
 *******************************************************************************/
-asm_handle_exception:
 asm_handle_nat_exception:
+	lea	%sp@(4), %sp
+asm_handle_exception:
 L_asm_handle_exception_stack_loop:
 	
 	/* we need the dseg, figure it out */
