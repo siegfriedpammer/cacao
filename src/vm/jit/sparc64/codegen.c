@@ -62,6 +62,9 @@
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 
+
+#define BUILTIN_FLOAT_ARGS 1
+
 /* XXX use something like this for window control ? 
  * #define REG_PV (own_window?REG_PV_CALLEE:REG_PV_CALLER)
  */
@@ -260,17 +263,16 @@ bool codegen_emit(jitdata *jd)
 				/*s2 = rd->argintregs[s1];*/
 				/*s2 = REG_WINDOW_TRANSPOSE(s2);*/
 				
-				/* need the argument index here, not the register number */
-				s1 = md->params[p].regoff - abi_registers_integer_argument[0];
+				/* need the argument index (p) here, not the register number */
 				
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
  					/*M_INTMOVE(s2, var->vv.regoff);*/					
- 					M_LDX(var->vv.regoff, REG_SP, JITSTACK + (s1 * 8));
+ 					M_LDX(var->vv.regoff, REG_SP, JITSTACK + (p * 8));
 
 				} else {                             /* reg arg -> spilled    */
 					/*M_STX(s2, REG_SP, (WINSAVE_CNT + var->vv.regoff) * 8);*/
 					
-					M_LDX(REG_ITMP1, REG_SP, JITSTACK + (s1 * 8));
+					M_LDX(REG_ITMP1, REG_SP, JITSTACK + (p * 8));
 					M_STX(REG_ITMP1, REG_SP, localbase + (var->vv.regoff * 8));
  				}
 
@@ -1114,7 +1116,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_I2F:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_float(cd, 0.0);
+			disp = dseg_add_unique_float(cd, 0.0);
 			M_IST (s1, REG_PV_CALLEE, disp);
 			M_FLD (d, REG_PV_CALLEE, disp);
 			M_CVTIF (d, d); /* rd gets translated to double target register */
@@ -1124,7 +1126,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_I2D:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_float(cd, 0.0);
+			disp = dseg_add_unique_float(cd, 0.0);
 			M_IST(s1, REG_PV_CALLEE, disp);
 			M_FLD(REG_FTMP2, REG_PV_CALLEE, disp); /* REG_FTMP2 needs to be a double temp */
 			M_CVTID (REG_FTMP2, d); /* rd gets translated to double target register */
@@ -1134,7 +1136,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_L2F:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0);
 			M_STX(s1, REG_PV_CALLEE, disp);
 			M_DLD(REG_FTMP3, REG_PV_CALLEE, disp);
 			M_CVTLF(REG_FTMP3, d);
@@ -1144,7 +1146,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_L2D:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0);
 			M_STX(s1, REG_PV_CALLEE, disp);
 			M_DLD(d, REG_PV_CALLEE, disp);
 			M_CVTLD(d, d);
@@ -1154,7 +1156,13 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_add_float(cd, 0.0);
+			disp = dseg_add_unique_float(cd, 0.0);
+			
+			/* check for NaN, SPARC overflow is noncompliant (see V9 spec B.5)  */
+			M_FCMP(s1, s1);
+			M_FBU(5);
+			M_MOV(REG_ZERO, d); /* delay slot */
+			
 			M_CVTFI(s1, REG_FTMP2);
 			M_FST(REG_FTMP2, REG_PV_CALLEE, disp);
 			M_ILD(d, REG_PV, disp);
@@ -1165,7 +1173,13 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_D2I:       /* ..., value  ==> ..., (int) value             */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_add_float(cd, 0.0);
+			disp = dseg_add_unique_float(cd, 0.0);
+			
+			/* check for NaN, SPARC overflow is noncompliant (see V9 spec B.5)  */
+			M_DCMP(s1, s1);
+			M_FBU(5);
+			M_MOV(REG_ZERO, d); /* delay slot */
+			
 			M_CVTDI(s1, REG_FTMP2);
 			M_FST(REG_FTMP2, REG_PV, disp);
 			M_ILD(d, REG_PV, disp);
@@ -1175,7 +1189,13 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_F2L:       /* ..., value  ==> ..., (long) value             */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_add_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0);
+			
+			/* check for NaN, SPARC overflow is noncompliant (see V9 spec B.5)  */
+			M_FCMP(s1, s1);
+			M_FBU(5);
+			M_MOV(REG_ZERO, d); /* delay slot */
+			
 			M_CVTFL(s1, REG_FTMP2); /* FTMP2 needs to be double reg */
 			M_DST(REG_FTMP2, REG_PV, disp);
 			M_LDX(d, REG_PV, disp);
@@ -1185,7 +1205,13 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_D2L:       /* ..., value  ==> ..., (long) value             */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_add_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0);
+			
+			/* check for NaN, SPARC overflow is noncompliant (see V9 spec B.5)  */
+			M_DCMP(s1, s1);
+			M_FBU(5);
+			M_MOV(REG_ZERO, d); /* delay slot */
+			
 			M_CVTDL(s1, REG_FTMP2); /* FTMP2 needs to be double reg */
 			M_DST(REG_FTMP2, REG_PV, disp);
 			M_LDX(d, REG_PV, disp);
@@ -2309,6 +2335,8 @@ nowperformreturn:
 
 			MCODECHECK((s3 << 1) + 64);
 
+#ifdef BUILTIN_FLOAT_ARGS /* float args for builtins disabled */
+
 			/* copy float arguments according to ABI convention */
 
 			int num_fltregargs = 0;
@@ -2340,6 +2368,10 @@ nowperformreturn:
 				M_DMOV(s1 + 16, s1);
 				/*printf("builtin float arg to target reg: %d ==> %d\n", s1+16, s1);*/
 			}
+			
+#else
+			assert(md->argfltreguse == 0);
+#endif
 			
 			goto gen_method;
 
@@ -2385,8 +2417,10 @@ gen_method:
 					}
 				}
 				else {
+#ifdef BUILTIN_FLOAT_ARGS
 					if (iptr->opc == ICMD_BUILTIN)
 						continue;
+#endif
 						
 					if (!md->params[s3].inmemory) {
 						s1 = emit_load(jd, iptr, var, d);

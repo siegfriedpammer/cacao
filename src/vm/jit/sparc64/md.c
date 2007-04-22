@@ -41,6 +41,11 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
+/* assembler function prototypes **********************************************/
+void asm_store_fp_state_reg(u8 *mem);
+void asm_load_fp_state_reg(u8 *mem);
+
+
 
 /* shift away 13-bit immediate,  mask rd and rs1    */
 #define SHIFT_AND_MASK(instr) \

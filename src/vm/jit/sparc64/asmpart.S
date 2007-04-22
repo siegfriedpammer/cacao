@@ -58,6 +58,9 @@
 	
 	.global asm_criticalsections
 	.global asm_getclassvalues_atomic
+	
+	.global asm_store_fp_state_reg
+	.global asm_load_fp_state_reg
 
 
 /* asm_vm_call_method ******************************************************
@@ -440,6 +443,37 @@ asm_criticalsections:
     .xword   _crit_restart
 #endif
     .xword   0
+    
+    
+/* asm_store_fp_state_reg **************************************************
+ *                                                                         *
+ * This function stores the 64-bit floating point state register to a      *
+ * memory location. (which needs to be 8-byte aligned)                     *
+ *                                                                         *
+ * C-prototype:                                                            *
+ *  void asm_store_fp_state_reg(u8 *mem);                                  *
+ *	                                                                       *
+ **************************************************************************/
+ 
+asm_store_fp_state_reg:
+	stx %fsr,[%o0]
+	retl  /* return from leaf */
+	nop
+	
+/* asm_load_fp_state_reg ***************************************************
+ *                                                                         *
+ * This function loades the 64-bit floating point state register from a    *
+ * memory location. (which needs to be 8-byte aligned)                     *
+ *                                                                         *
+ * C-prototype:                                                            *
+ *  void asm_load_fp_state_reg(u8 *mem);                                   *
+ *	                                                                       *
+ **************************************************************************/
+ 
+asm_load_fp_state_reg:
+	ldx [%o0],%fsr
+	retl  /* return from leaf */
+	nop
 
 
 /* disable exec-stacks ********************************************************/

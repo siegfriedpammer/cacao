@@ -743,7 +743,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	for (i = 0; i < md->paramcount && i < INT_NATARG_CNT; i++) {
 		t = md->paramtypes[i].type;
 
-		/* using all available argument registers, this adds complexity */
+		/* all available argument registers used, which adds a little complexity */
 		
 		if (IS_INT_LNG_TYPE(t)) {
 			if (i < INT_ARG_CNT) {
@@ -756,20 +756,36 @@ void emit_verbosecall_enter(jitdata *jd)
 			}
 		}
 		else {
-			assert(i < 5); /* XXX 5 float reg args right now! */
-			if (IS_2_WORD_TYPE(t)) {
-				M_DST(abi_registers_float_argument[i], REG_SP, JITSTACK);
-				M_LDX(abi_registers_integer_argument[i], REG_SP, JITSTACK);
+			if (i < FLT_ARG_CNT) {
+				
+				/* reg -> mem -> reg */
+				
+				if (IS_2_WORD_TYPE(t)) {
+					M_DST(abi_registers_float_argument[i], REG_SP, JITSTACK);
+					M_LDX(abi_registers_integer_argument[i], REG_SP, JITSTACK);
+				}
+				else {
+					M_FST(abi_registers_float_argument[i], REG_SP, JITSTACK);
+					M_ILD(abi_registers_integer_argument[i], REG_SP, JITSTACK);
+				}
 			}
 			else {
-				M_FST(abi_registers_float_argument[i], REG_SP, JITSTACK);
-				M_ILD(abi_registers_integer_argument[i], REG_SP, JITSTACK);
+				
+				/* mem -> reg */
+				
+				assert(i == 5);
+				if (IS_2_WORD_TYPE(t)) {
+					M_LDX(REG_OUT5, REG_FP, JITSTACK);
+				}
+				else {
+					M_ILD(REG_OUT5, REG_FP, JITSTACK);
+				}
 			}
 		}
 	}
 	
 	
-	/* method info pointer is passed in argument register 5 */
+	/* method info pointer is passed via stack */
 	disp = dseg_add_address(cd, m);
 	M_ALD(REG_ITMP1, REG_PV_CALLEE, disp);
 	M_AST(REG_ITMP1, REG_SP, CSTACK);
