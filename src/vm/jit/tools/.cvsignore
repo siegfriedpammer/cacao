@@ -1,8 +1,0 @@
-*.o
-.deps
-.libs
-Makefile
-Makefile.in
-TAGS
-genoffsets
-genoffsets.exe
