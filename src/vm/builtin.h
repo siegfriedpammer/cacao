@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 7563 2007-03-23 21:33:53Z twisti $
+   $Id: builtin.h 7795 2007-04-23 20:03:38Z twisti $
 
 */
 
@@ -34,6 +34,7 @@
 #include "vm/types.h"
 
 #include "arch.h"
+#include "md-abi.h"
 
 #include "toolbox/logging.h"
 
