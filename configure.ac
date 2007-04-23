@@ -22,12 +22,12 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7667 2007-04-05 00:16:05Z michi $
+dnl $Id: configure.ac 7796 2007-04-23 20:04:44Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.97+svn, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.98rc, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -88,6 +88,11 @@ powerpc64 )
     ARCH_CFLAGS="-D__POWERPC64__"
     ;;
 
+s390 )
+    ARCH_DIR="s390"
+    ARCH_CFLAGS="-D__S390__"
+    ;;
+
 sparc | sparc64 )
     ARCH_DIR="sparc64"
     ARCH_CFLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
@@ -104,12 +109,6 @@ xdspcore )
     ARCH_CFLAGS="-D__XDSPCORE__"
     USE_SCHEDULER="1"
     ;;
-
-s390 )
-    ARCH_DIR="s390"
-    ARCH_CFLAGS="-D__S390__"
-    ;;
-
 
 * )
     AC_MSG_ERROR($host_cpu systems are not supported at this time)
@@ -420,6 +419,23 @@ AM_CONDITIONAL([ENABLE_MEMCHECK], test x"${ENABLE_MEMCHECK}" = "xyes")
 
 if test x"${ENABLE_MEMCHECK}" = "xyes"; then
     AC_DEFINE([ENABLE_MEMCHECK], 1, [perform debugging memory checks])
+fi
+
+
+dnl check for vmlog support
+AC_MSG_CHECKING(whether vmlog tracing should be enabled)
+AC_ARG_ENABLE([vmlog],
+              [AS_HELP_STRING(--enable-vmlog,enable vmlog tracing [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_VMLOG=yes;;
+                   *) ENABLE_VMLOG=no;;
+               esac],
+              [ENABLE_VMLOG=no])
+AC_MSG_RESULT(${ENABLE_VMLOG})
+AM_CONDITIONAL([ENABLE_VMLOG], test x"${ENABLE_VMLOG}" = "xyes")
+
+if test x"${ENABLE_VMLOG}" = "xyes"; then
+    AC_DEFINE([ENABLE_VMLOG], 1, [enable vmlog tracing code])
 fi
 
 
@@ -855,80 +871,11 @@ AC_DEFINE_UNQUOTED([CACAO_VM_ZIP], "${CACAO_VM_ZIP}", [CACAO's vm.zip])
 AC_SUBST(CACAO_VM_ZIP)
 
 
-dnl which Java core library are we using?
-AC_MSG_CHECKING(which Java core library to use)
-AC_ARG_WITH([classpath],
-            [AS_HELP_STRING(--with-classpath=<type>,specifies which type of classpath to use as Java core library (gnu) [[default=gnu]])],
-            [case "${withval}" in
-                cldc1.1)
-                    WITH_CLASSPATH=cldc1.1
-                    AC_DEFINE([WITH_CLASSPATH_CLDC1_1], 1, [use Sun's CLDC1.1 classes])
-                    AC_SUBST(WITH_CLASSPATH_CLDC1_1)
-                    ;;
-                gnu)
-                    WITH_CLASSPATH=gnu
-                    AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
-                    AC_SUBST(WITH_CLASSPATH_GNU)
-                    ;;
-                *)
-                    AC_MSG_ERROR(unknown classpath ${withval})
-                    ;;
-             esac],
-            [WITH_CLASSPATH=gnu
-             AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
-             AC_SUBST(WITH_CLASSPATH_GNU)])
-AC_MSG_RESULT(${WITH_CLASSPATH})
-AM_CONDITIONAL([WITH_CLASSPATH_CLDC1_1], test x"${WITH_CLASSPATH}" = "xcldc1.1")
-AM_CONDITIONAL([WITH_CLASSPATH_GNU], test x"${WITH_CLASSPATH}" = "xgnu")
-
-
-dnl where is Java core library installed?
-AC_MSG_CHECKING(where Java core library is installed)
-AC_ARG_WITH([classpath-prefix],
-            [AS_HELP_STRING(--with-classpath-prefix=<dir>,installation directory of Java core library [[default=/usr/local/classpath]])],
-            [CLASSPATH_PREFIX=${withval}],
-            [CLASSPATH_PREFIX=/usr/local/classpath])
-AC_MSG_RESULT(${CLASSPATH_PREFIX})
-AC_DEFINE_UNQUOTED([CLASSPATH_PREFIX], "${CLASSPATH_PREFIX}", [Java core library installation directory])
-AC_SUBST(CLASSPATH_PREFIX)
-
-
-dnl where are Java core library classes installed?
-AC_MSG_CHECKING(where Java core library classes are installed)
-AC_ARG_WITH([classpath-classes],
-            [AS_HELP_STRING(--with-classpath-classes=<path>,path to Java core library classes (includes the name of the file and may be flat) [[default=/usr/local/classpath/share/classpath/glibj.zip]])],
-            [CLASSPATH_CLASSES=${withval}],
-            [CLASSPATH_CLASSES=${CLASSPATH_PREFIX}/share/classpath/glibj.zip])
-AC_MSG_RESULT(${CLASSPATH_CLASSES})
-AC_DEFINE_UNQUOTED([CLASSPATH_CLASSES], "${CLASSPATH_CLASSES}", [Java core library classes])
-AC_SUBST(CLASSPATH_CLASSES)
-
-
-dnl where are Java core library native libraries installed?
-AC_MSG_CHECKING(where Java core library native libraries are installed)
-AC_ARG_WITH([classpath-libdir],
-            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of Java core library native libraries [[default=/usr/local/classpath/lib]])],
-            [CLASSPATH_LIBDIR=${withval}],
-            [CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib])
-AC_MSG_RESULT(${CLASSPATH_LIBDIR})
-
-dnl expand CLASSPATH_LIBDIR to something that is usable in C code
-AS_AC_EXPAND([CLASSPATH_LIBDIR], ${CLASSPATH_LIBDIR})
-AC_DEFINE_UNQUOTED([CLASSPATH_LIBDIR], "${CLASSPATH_LIBDIR}", [Java core library native libraries installation directory])
-AC_SUBST(CLASSPATH_LIBDIR)
-
-
-dnl where are Java core library headers installed?
-AC_MSG_CHECKING(where Java core library headers are installed)
-AC_ARG_WITH([classpath-includedir],
-            [AS_HELP_STRING(--with-classpath-includedir=<dir>,installation directory of Java core library headers [[default=/usr/local/classpath/include]])],
-            [CLASSPATH_INCLUDEDIR=${withval}],
-            [CLASSPATH_INCLUDEDIR=${CLASSPATH_PREFIX}/include])
-AC_MSG_RESULT(${CLASSPATH_INCLUDEDIR})
-
-AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni.h],
-                [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_H], "${CLASSPATH_INCLUDEDIR}/jni.h", [Java core library jni.h header])],
-                [AC_MSG_ERROR(cannot find jni.h)])
+AC_CHECK_WITH_CLASSPATH
+AC_CHECK_WITH_CLASSPATH_PREFIX
+AC_CHECK_WITH_CLASSPATH_CLASSES
+AC_CHECK_WITH_CLASSPATH_LIBDIR
+AC_CHECK_WITH_CLASSPATH_INCLUDEDIR
 
 
 dnl if we compile for a JRE-style directory layout
@@ -989,6 +936,8 @@ AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
 		[contrib/setenvinstalled]
 		[contrib/setenvsource]
+		[contrib/vmlog/Makefile]
+		[contrib/vmlog/t/Makefile]
 		[doc/Makefile]
 		[doc/handbook/Makefile]
 		[man/Makefile]

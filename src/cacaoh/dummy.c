@@ -184,6 +184,7 @@ void exceptions_clear_exception(void)
 
 void exceptions_print_current_exception(void)
 {
+	abort();
 }
 
 void exceptions_throw_abstractmethoderror(void)
@@ -278,13 +279,6 @@ void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
 	abort();
 }
 
-void exceptions_throw_outofmemoryerror(void)
-{
-	fprintf(stderr, "java.lang.OutOfMemoryError\n");
-
-	abort();
-}
-
 void exceptions_throw_verifyerror(methodinfo *m, const char *message)
 {
 	fprintf(stderr, "java.lang.VerifyError: ");
@@ -330,18 +324,6 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c,
 	va_start(ap, message);
 	vfprintf(stderr, message, ap);
 	va_end(ap);
-
-	fputc('\n', stderr);
-
-	abort();
-}
-
-void exceptions_throw_illegalaccessexception(classinfo *c)
-{
-	fprintf(stderr, "java.lang.IllegalAccessException: ");
-
-	if (c != NULL)
-		utf_fprint_printable_ascii_classname(stderr, c->name);
 
 	fputc('\n', stderr);
 

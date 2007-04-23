@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: list.c 7784 2007-04-20 13:51:41Z twisti $
 
 */
 
@@ -50,11 +50,11 @@
 
 *******************************************************************************/
 
-list *list_create(s4 nodeoffset)
+list_t *list_create(s4 nodeoffset)
 {
-	list *l;
+	list_t *l;
 
-	l = NEW(list);
+	l = NEW(list_t);
 
 #if defined(ENABLE_THREADS)
 	lock_init_object_lock((java_objectheader *) l);
@@ -63,6 +63,7 @@ list *list_create(s4 nodeoffset)
 	l->first      = NULL;
 	l->last       = NULL;
 	l->nodeoffset = nodeoffset;
+	l->size       = 0;
 
 	return l;
 }
@@ -76,25 +77,32 @@ list *list_create(s4 nodeoffset)
 
 *******************************************************************************/
 
-list *list_create_dump(s4 nodeoffset)
+list_t *list_create_dump(s4 nodeoffset)
 {
-	list *l;
+	list_t *l;
 
-	l = DNEW(list);
+	l = DNEW(list_t);
 
 	l->first      = NULL;
 	l->last       = NULL;
 	l->nodeoffset = nodeoffset;
+	l->size       = 0;
 
 	return l;
 }
 
 
-void list_add_first(list *l, void *element)
-{
-	listnode *ln;
+/* list_add_first **************************************************************
 
-	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
+   Adds the element as first element.
+
+*******************************************************************************/
+
+void list_add_first(list_t *l, void *element)
+{
+	listnode_t *ln;
+
+	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
 
 	LOCK_MONITOR_ENTER(l);
 
@@ -111,6 +119,10 @@ void list_add_first(list *l, void *element)
 		l->first = ln;
 	}
 
+	/* increase number of elements */
+
+	l->size++;
+
 	LOCK_MONITOR_EXIT(l);
 }
 
@@ -121,7 +133,7 @@ void list_add_first(list *l, void *element)
 
 *******************************************************************************/
 
-void list_add_last(list *l, void *element)
+void list_add_last(list_t *l, void *element)
 {
 	LOCK_MONITOR_ENTER(l);
 
@@ -139,11 +151,11 @@ void list_add_last(list *l, void *element)
 
 *******************************************************************************/
 
-void list_add_last_unsynced(list *l, void *element)
+void list_add_last_unsynced(list_t *l, void *element)
 {
-	listnode *ln;
+	listnode_t *ln;
 
-	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
 
 	if (l->last) {
 		ln->prev      = l->last;
@@ -157,6 +169,10 @@ void list_add_last_unsynced(list *l, void *element)
 		l->last  = ln;
 		l->first = ln;
 	}
+
+	/* increase number of elements */
+
+	l->size++;
 }
 
 
@@ -168,13 +184,13 @@ void list_add_last_unsynced(list *l, void *element)
 
 *******************************************************************************/
 
-void list_add_before(list *l, void *element, void *newelement)
+void list_add_before(list_t *l, void *element, void *newelement)
 {
-	listnode *ln;
-	listnode *newln;
+	listnode_t *ln;
+	listnode_t *newln;
 
-	ln    = (listnode *) (((u1 *) element) + l->nodeoffset);
-	newln = (listnode *) (((u1 *) newelement) + l->nodeoffset);
+	ln    = (listnode_t *) (((u1 *) element) + l->nodeoffset);
+	newln = (listnode_t *) (((u1 *) newelement) + l->nodeoffset);
 
 	LOCK_MONITOR_ENTER(l);
 
@@ -196,6 +212,10 @@ void list_add_before(list *l, void *element, void *newelement)
 	if (l->last == ln)
 		l->last = newln;
 
+	/* increase number of elements */
+
+	l->size++;
+
 	LOCK_MONITOR_EXIT(l);
 }
 
@@ -206,7 +226,7 @@ void list_add_before(list *l, void *element, void *newelement)
 
 *******************************************************************************/
 
-void list_remove(list *l, void *element)
+void list_remove(list_t *l, void *element)
 {
 	LOCK_MONITOR_ENTER(l);
 
@@ -224,11 +244,11 @@ void list_remove(list *l, void *element)
 
 *******************************************************************************/
 
-void list_remove_unsynced(list *l, void *element)
+void list_remove_unsynced(list_t *l, void *element)
 {
-	listnode *ln;
+	listnode_t *ln;
 
-	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
 	
 	if (ln->next)
 		ln->next->prev = ln->prev;
@@ -242,6 +262,10 @@ void list_remove_unsynced(list *l, void *element)
 
 	ln->next = NULL;
 	ln->prev = NULL;
+
+	/* decrease number of elements */
+
+	l->size--;
 }
 
  
@@ -251,7 +275,7 @@ void list_remove_unsynced(list *l, void *element)
 
 *******************************************************************************/
 
-void *list_first(list *l)
+void *list_first(list_t *l)
 {
 	void *el;
 
@@ -273,7 +297,7 @@ void *list_first(list *l)
 
 *******************************************************************************/
 
-void *list_first_unsynced(list *l)
+void *list_first_unsynced(list_t *l)
 {
 	void *el;
 
@@ -292,7 +316,7 @@ void *list_first_unsynced(list *l)
 
 *******************************************************************************/
 
-void *list_last(list *l)
+void *list_last(list_t *l)
 {
 	void *el;
 
@@ -314,7 +338,7 @@ void *list_last(list *l)
 
 *******************************************************************************/
 
-void *list_last_unsynced(list *l)
+void *list_last_unsynced(list_t *l)
 {
 	void *el;
 
@@ -333,7 +357,7 @@ void *list_last_unsynced(list *l)
 
 *******************************************************************************/
 
-void *list_next(list *l, void *element)
+void *list_next(list_t *l, void *element)
 {
 	void *el;
 
@@ -356,12 +380,12 @@ void *list_next(list *l, void *element)
 
 *******************************************************************************/
 
-void *list_next_unsynced(list *l, void *element)
+void *list_next_unsynced(list_t *l, void *element)
 {
-	listnode *ln;
+	listnode_t *ln;
 	void     *el;
 
-	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
 
 	if (ln->next == NULL)
 		el = NULL;
@@ -378,7 +402,7 @@ void *list_next_unsynced(list *l, void *element)
 
 *******************************************************************************/
 
-void *list_prev(list *l, void *element)
+void *list_prev(list_t *l, void *element)
 {
 	void *el;
 
@@ -401,12 +425,12 @@ void *list_prev(list *l, void *element)
 
 *******************************************************************************/
 
-void *list_prev_unsynced(list *l, void *element)
+void *list_prev_unsynced(list_t *l, void *element)
 {
-	listnode *ln;
+	listnode_t *ln;
 	void     *el;
 
-	ln = (listnode *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
 
 	if (ln->prev == NULL)
 		el = NULL;

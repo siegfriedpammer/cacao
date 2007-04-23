@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.c 7688 2007-04-12 09:05:12Z michi $
+   $Id: asmpart.c 7785 2007-04-21 10:55:30Z edwin $
 
 */
 
@@ -53,6 +53,10 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
+
+#if defined(ENABLE_VMLOG)
+#include <vmlog_cacao.h>
+#endif
 
 
 static bool intrp_asm_vm_call_method_intern(methodinfo *m, s4 vmargscount,
@@ -207,6 +211,10 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 		  builtin_trace_exception(o, m, ip, 1);
 #endif
 
+#if defined(ENABLE_VMLOG)
+	  vmlog_cacao_throw(o);
+#endif
+
 	  for (i = 0; i < exceptiontablelength; i++) {
 		  ex--;
 
@@ -261,6 +269,10 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 		  if (ip-1 >= (Inst *) ex->startpc && ip-1 < (Inst *) ex->endpc &&
 			  (c == NULL || builtin_instanceof(o, c))) 
 		  {
+#if defined(ENABLE_VMLOG)
+			  vmlog_cacao_catch(o);
+#endif
+
 			  *new_spp = (Cell *)(((u1 *)fp) - framesize - SIZEOF_VOID_P);
 			  *new_fpp = fp;
 			  return (Inst *) (ex->handlerpc);
@@ -289,6 +301,10 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 #endif /* defined(ENABLE_THREADS) */
 
 	  /* unwind stack frame */
+
+#if defined(ENABLE_VMLOG)
+	  vmlog_cacao_unwnd_method(m);
+#endif
 
 	  ip = (Inst *)access_local_cell(-framesize - SIZEOF_VOID_P);
 	  fp = (Cell *)access_local_cell(-framesize);

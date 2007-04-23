@@ -40,6 +40,7 @@
 #include "mm/memory.h"
 
 #include "codegen.h"
+#include "md-os.h"
 
 /*
  *	Loads an immededat operand into data register
@@ -336,7 +337,11 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	s4            disp;
 	s4            reg;
 
+#if !defined(ENABLE_SOFTFLOAT)
 	assert(src->type == TYPE_LNG);
+#else
+	assert(src->type == TYPE_LNG || src->type == TYPE_DBL);
+#endif
 
 	/* get required compiler data */
 	cd = jd->cd;
@@ -358,8 +363,11 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	s4            disp;
 	s4            reg;
 
+#if !defined(ENABLE_SOFTFLOAT)
 	assert(src->type == TYPE_LNG);
-
+#else
+	assert(src->type == TYPE_LNG || src->type == TYPE_DBL);
+#endif
 	/* get required compiler data */
 	cd = jd->cd;
 
@@ -621,7 +629,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			M_BLE(4);
 			break;
 		case BRANCH_UGT:
-			M_BHI(4);
+			M_BLS(4);
 			break;
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
@@ -640,10 +648,10 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
-		M_ICMP(REG_ITMP3, s2);
-		M_BLT(2);
+		M_ICMP(s2, REG_ITMP3);
+		M_BHI(2);
 		/*M_ALD_INTERN(s2, REG_ZERO, EXCEPTION_LOAD_DISP_ARRAYINDEXOUTOFBOUNDS);*/
-		M_ILLEGAL; /*FIXME */
+		M_TRAP(EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
 	}
 }
 
@@ -656,11 +664,9 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		/* did like to assert on TYPE_ADR, but not possible in here */
-		/* so assert before each emit_nullpointer_check */
 		M_ATST(reg);
 		M_BNE(2);
-		/*M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_LOAD_DISP_NULLPOINTER);*/
-		M_ILLEGAL;
+		M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
 	}
 }
 
@@ -680,6 +686,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	}
 }
 
+#if 0
 /* emit_exception_check_areg **************************************************
  *
    Emit an Exception check, tested register is address REG_RESULT
@@ -694,18 +701,20 @@ void emit_exception_check_areg(codegendata *cd, instruction *iptr)
 		M_ILLEGAL; /*FIXME*/
 	}
 }
+#endif
+
 /* emit_exception_check_ireg **************************************************
 
    Emit an Exception check. Teste register is integer REG_RESULT
 
 *******************************************************************************/
-void emit_exception_check_ireg(codegendata *cd, instruction *iptr)
+void emit_exception_check(codegendata *cd, instruction *iptr)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ITST(REG_RESULT);
 		M_BNE(2);
 		/*M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);*/
-		M_ILLEGAL; /*FIXME*/
+		M_TRAP(EXCEPTION_HARDWARE_EXCEPTION);
 	}
 }
 

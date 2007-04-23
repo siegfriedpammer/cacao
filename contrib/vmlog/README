@@ -32,7 +32,10 @@ for details.
 How to compile a VM with vmlog
 ------------------------------
 
-You need to do two things:
+CACAO has vmlog support built-in. Use the configure flag --enable-vmlog
+to build it.
+
+For other VMs, you need to do two things:
 
 	* patch the VM code with the provided vmlog_<vm>.patch
 	* configure the VM with CFLAGS that include -Ivmlogdir

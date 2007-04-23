@@ -1,6 +1,6 @@
-/* src/vm/jit/recompile.h - recompilation system
+/* src/vm/jit/optimizing/recompile.h - recompilation system
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
    $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
@@ -48,7 +42,7 @@ typedef struct list_method_entry list_method_entry;
 
 struct list_method_entry {
 	methodinfo *m;
-	listnode    linkage;
+	listnode_t  linkage;
 };
 
 

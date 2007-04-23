@@ -38,7 +38,7 @@
 
 /* Global Variables ***********************************************************/
 
-extern list *final_list;
+extern list_t *final_list;
 
 
 /* Structures *****************************************************************/
@@ -51,7 +51,7 @@ typedef struct final_entry final_entry;
 #define FINAL_FINALIZED   4
 
 struct final_entry {
-	listnode           linkage;
+	listnode_t         linkage;
 	u4                 type;
 	java_objectheader *o;
 	methodinfo        *finalizer;

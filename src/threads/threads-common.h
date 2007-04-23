@@ -34,6 +34,9 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
+
+#include "native/jni.h"
+
 #include "native/include/java_lang_Thread.h"
 
 #if defined(ENABLE_THREADS)

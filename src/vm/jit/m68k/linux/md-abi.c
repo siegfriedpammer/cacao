@@ -45,7 +45,7 @@ s4 nregdescint[] = { REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_SAV, REG_S
 const char *abi_registers_integer_name [] = { "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7" };
 
 const s4 abi_registers_integer_argument[] 	;
-const s4 abi_registers_integer_saved[] 		= {2,3,4,5,6,7};
+const s4 abi_registers_integer_saved[] 		= {5,6,7};
 const s4 abi_registers_integer_temporary[] 	= {0,1};
 
 /* Address register description */
@@ -65,7 +65,7 @@ s4 nregdescfloat[] = { REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG
 const char *abi_registers_float_name [] = { "F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7" };
 
 const s4 abi_registers_float_argument[] 	;
-const s4 abi_registers_float_saved[] 		= {2,3,4,5,6,7};
+const s4 abi_registers_float_saved[] 		= {5,6,7};
 const s4 abi_registers_float_temporary[] 	= {0,1};
 
 

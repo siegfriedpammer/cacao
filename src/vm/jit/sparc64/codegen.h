@@ -548,6 +548,14 @@ s4   get_lopart_disp(s4 disp);
 #define M_BUGT(disp)            M_BRACC(0x00,0x1,0xc,disp,0,1,0)      /* br uns a>b  */
 #define M_BULT(disp)            M_BRACC(0x00,0x1,0x5,disp,0,1,0)      /* br uns a<b  */
 
+/* branch on (fcc0) floating point condition codes */
+
+#define M_FBR(disp)             M_BRACC(0x00,0x5,0x8,disp,0,1,0)      /* branch      */
+#define M_FBU(disp)             M_BRACC(0x00,0x5,0x7,disp,0,1,0)      /* unordered   */
+#define M_FBG(disp)             M_BRACC(0x00,0x5,0x6,disp,0,1,0)      /* branch a>b  */
+#define M_FBL(disp)             M_BRACC(0x00,0x5,0x4,disp,0,1,0)      /* branch a<b  */
+#define M_FBO(disp)             M_BRACC(0x00,0x5,0xf,disp,0,1,0)      /* br ordered  */
+
 
 
 #define M_SAVE(rs1,rs2,rd)      M_OP3(0x02,0x3c,rd,rs1,rs2,IMM)

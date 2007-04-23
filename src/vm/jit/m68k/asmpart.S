@@ -6,6 +6,8 @@
 #include "config.h"
 
 #include "vm/jit/m68k/offsets.h"
+#include "md-abi.h"
+#include "vm/jit/methodheader.h"
 
 .data
 call_jit_dummy:
@@ -30,6 +32,7 @@ call_jit_dummy:
 .globl asm_criticalsections
 
 .globl asm_handle_exception
+.globl asm_handle_nat_exception
 
 /*
  *	This functions implement the C prototyped funtion
@@ -265,8 +268,9 @@ asm_abstractmethoderror:
 *   exception object pointer...%a2   exception raising address...%a3           *
 *                                                                              *
 *******************************************************************************/
-asm_handle_exception:
 asm_handle_nat_exception:
+	lea	%sp@(4), %sp
+asm_handle_exception:
 L_asm_handle_exception_stack_loop:
 	
 	/* we need the dseg, figure it out */
@@ -288,9 +292,54 @@ L_asm_handle_exception_stack_loop:
 
 	/* %d0 contains address of exception handler */
 	moveal	%d0, %a0
-	jsr	%a0@
+	jmp	%a0@
 
 L_asm_handle_exception_not_catched:
-	jsr 0
+	/* we did not find an exception handler in this stackframe */
+	/* remove this frame and search in the one above */
+	/* %a2 containts exception object ptr, %d2 the actual pv */
+	moveal	%d2, %a3
+	movel	%a3@(FrameSize), %d2
+
+	moveal	%sp, %a0
+	addal	%d2, %a0	/* %a0 now points to top of stackframe, where saved regs are */
+
+	/* the saved registers have to be restored */
+	/* XXX ugly hack: intsave and adrsave share one field */
+	movel	%a3@(IntSave), %d0
+	andil	#0x0000ffff, %d0	/* this is IntSave */
+	cmpb	#0,%d0
+	beq	L_asm_handle_ex_int_done
+	movel	(%a0)+, %d7
+
+	cmpb	#1,%d0
+	beq	L_asm_handle_ex_int_done
+	movel	(%a0)+, %d6
+
+	cmpb	#2,%d0 
+	beq	L_asm_handle_ex_int_done
+	movel	(%a0)+, %d5
+
+L_asm_handle_ex_int_done:
+
+	movel	%a3@(IntSave), %d0
+	andil	#0xffff0000, %d0	/* this is AdrSave */
+	tstl	%d0
+	beq	L_handle_exception_nat_catched_no_adr
+	moveal	(%a0)+, %a5
+L_handle_exception_nat_catched_no_adr:
+
+#if !defined(ENABLE_SOFTFLOAT)
+	FIXME
+#else
+	/* nothing to do */
+#endif
+	addal	%d2, %sp		/* remove old stackframe */
+	moveal	%sp@(0), %a3		/* make return address, new exception rasing address */
+	addal	#4,%sp			/* remove return address fromstack */
+	subal	#2, %a3			/* it was a jsr %aX, which is 4 bytes long */
+	jmp	L_asm_handle_exception_stack_loop
+
+
 illegal
 .long 0x23234242

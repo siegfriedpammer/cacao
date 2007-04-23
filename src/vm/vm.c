@@ -45,8 +45,8 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+#include "native/include/java_lang_String.h" /* required by java_lang_Class.h */
 #include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_String.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
@@ -80,6 +80,10 @@
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
+#endif
+
+#if defined(ENABLE_VMLOG)
+#include <vmlog_cacao.h>
 #endif
 
 
@@ -610,6 +614,7 @@ static void version(bool opt_exit)
 	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
 	printf("  initial heap size              : %d\n", opt_heapstartsize);
 	printf("  stack size                     : %d\n", opt_stacksize);
+	printf("  libjvm.so                      : %s\n", cacao_libjvm);
 	printf("  java.boot.class.path           : %s\n", _Jv_bootclasspath);
 	printf("  gnu.classpath.boot.library.path: %s\n", classpath_libdir);
 	printf("  java.class.path                : %s\n", _Jv_classpath);
@@ -737,6 +742,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	char *libname, *agentarg;
 	bool jdwp,agentbypath;
 	jdwp = agentbypath = false;
+#endif
+
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_init(vm_args);
 #endif
 
 	/* check the JNI version requested */
@@ -1112,6 +1121,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 				opt_stat = true;
 # endif
+			}
+			else {
+				printf("Unknown -verbose option: %s\n", opt_arg);
+				usage();
 			}
 #endif
 			break;

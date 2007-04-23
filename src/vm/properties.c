@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 7257 2007-01-29 23:07:40Z twisti $
+   $Id: properties.c 7783 2007-04-20 13:28:27Z twisti $
 
 */
 
@@ -61,15 +61,15 @@
 typedef struct list_properties_entry list_properties_entry;
 
 struct list_properties_entry {
-	char     *key;
-	char     *value;
-	listnode linkage;
+	char       *key;
+	char       *value;
+	listnode_t  linkage;
 };
 
 
 /* global variables ***********************************************************/
 
-static list *list_properties = NULL;
+static list_t *list_properties = NULL;
 
 
 /* properties_init *************************************************************

@@ -39,7 +39,7 @@
 
 /* Global Variables ***********************************************************/
 
-list *final_list;
+list_t *final_list;
 
 
 

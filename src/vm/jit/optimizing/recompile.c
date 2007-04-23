@@ -61,7 +61,7 @@
 
 static threadobject      *thread_recompile;
 static java_objectheader *lock_thread_recompile;
-static list              *list_recompile_methods;
+static list_t            *list_recompile_methods;
 
 
 /* recompile_init **************************************************************

@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: codegen-common.c 7797 2007-04-23 20:12:39Z michi $
 
 */
 
@@ -99,6 +99,10 @@
 #include "vmcore/options.h"
 
 # include "vmcore/statistics.h"
+
+#if defined(ENABLE_VMLOG)
+#include <vmlog_cacao.h>
+#endif
 
 
 /* in this tree we store all method addresses *********************************/
@@ -491,7 +495,7 @@ void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr)
 
 void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options)
 {
-	list               *list;
+	list_t             *list;
 	branch_label_ref_t *br;
 	s4                  mpc;
 
@@ -647,6 +651,10 @@ u1 *codegen_get_pv_from_pc(u1 *pc)
 
 	if (mte == NULL) {
 		/* No method was found.  Let's dump a stacktrace. */
+
+#if defined(ENABLE_VMLOG)
+		vmlog_cacao_signl("SIGSEGV");
+#endif
 
 		log_println("We received a SIGSEGV and tried to handle it, but we were");
 		log_println("unable to find a Java method at:");
@@ -1390,16 +1398,16 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 {
 	stackframeinfo     *sfi;
 	stackframeinfo    **psfi;
+#if defined(ENABLE_JAVASE)
 	localref_table     *lrt;
 	localref_table     *plrt;
 	s4                  localframes;
+#endif
 	java_objectheader  *e;
 
 	/* get data structures from stack */
 
 	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
-	lrt = (localref_table *) (datasp - sizeof(stackframeinfo) - 
-							  sizeof(localref_table));
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	/* clear the native world flag */

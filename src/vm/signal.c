@@ -22,13 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: signal.c 7797 2007-04-23 20:12:39Z michi $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -51,10 +52,15 @@
 # include "threads/threads-common.h"
 #endif
 
+#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/vm.h"
 
 #include "vmcore/options.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/statistics.h"
+#endif
 
 
 /* global variables ***********************************************************/
@@ -88,6 +94,10 @@ void signal_init(void)
 	pagesize = getpagesize();
 
 	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+
+	/* check if we get into trouble with our hardware-exceptions */
+
+	assert(OFFSET(java_bytearray, data) > EXCEPTION_HARDWARE_PATCHER);
 
 	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
 	   <ctrl>-\).  We enable them later in signal_thread, but only for
@@ -211,14 +221,24 @@ static void signal_thread(void)
 	if (sigemptyset(&mask) != 0)
 		vm_abort("signal_thread: sigemptyset failed: %s", strerror(errno));
 
-	sigaddset(&mask, SIGINT);
+	if (sigaddset(&mask, SIGINT) != 0)
+		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+
 #if !defined(__FREEBSD__)
-	sigaddset(&mask, SIGQUIT);
+	if (sigaddset(&mask, SIGQUIT) != 0)
+		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
 #endif
 
 	while (true) {
 		/* just wait for a signal */
 
+		/* XXX We don't check for an error here, although the man-page
+		   states sigwait does not return an error (which is wrong!),
+		   but it seems to make problems with Boehm-GC.  We should
+		   revisit this code with our new exact-GC. */
+
+/* 		if (sigwait(&mask, &sig) != 0) */
+/* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
 		(void) sigwait(&mask, &sig);
 
 		switch (sig) {

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7615 2007-03-29 23:10:59Z michi $
+   $Id: class.c 7797 2007-04-23 20:12:39Z michi $
 
 */
 
@@ -66,7 +66,7 @@
 
 /* global variables ***********************************************************/
 
-list unlinkedclasses;                   /* this is only used for eager class  */
+list_t unlinkedclasses;                 /* this is only used for eager class  */
                                         /* loading                            */
 
 

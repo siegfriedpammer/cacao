@@ -1,6 +1,6 @@
-/* src/native/vm/java_lang_System.c
+/* src/native/vm/cldc1.1/java_lang_System.c
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -21,11 +21,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Phil Tomsich
-            Christian Thalinger
 
    $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
@@ -72,7 +67,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_System_getProperty0(JNIEnv *e
 	java_objectheader *so;
 	char*              key;
 	char*              value;
-	java_lang_String*  result;
+	java_objectheader *result;
 
 	so = (java_objectheader *) s;
 
@@ -93,7 +88,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_System_getProperty0(JNIEnv *e
 
 	result = javastring_new_from_ascii(value);
 
-	return result;
+	return (java_lang_String *) result;
 }
 
 

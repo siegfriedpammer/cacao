@@ -333,6 +333,8 @@
 #define M_BHI_16(a)			BRANCH16(0x2, (a))
 #define M_BHI_32(a)			BRANCH32(0x2, (a))
 
+#define M_BLS(a)			BRANCH8 (0x3, (a))
+
 #define	M_BMI(a)			BRANCH8(0xb, (a))
 #define M_BPL(a)			BRANCH8(0xa, (a))
 
@@ -351,6 +353,13 @@
 #define M_STHX(a,c)			OPWORD( ( (3<<6) | ((a) << 3) | 2), 0, (c))
 #define M_STWX(a,c)			OPWORD( ( (2<<6) | ((a) << 3) | 2), 0, (c))
 #define M_STAX(a,c)			OPWORD( ( (2<<6) | ((a) << 3) | 2), 1, (c))	/* movea.l */
+
+#if !defined(ENABLE_SOFTFLOAT)
+	#define M_LFSX(a,c)		M_ILLEGAL
+	#define M_LFDX(a,c)		M_ILLEGAL
+	#define M_STFSX(a,c)		M_ILLEGAL
+	#define M_STFDX(a,c)		M_ILLEGAL
+#endif
 
 #define M_BSEXT(a,b)			OPWORD( ( (7<<6) | ((b) << 3) | 4), 0, (a))	/* mvs.b */
 #define M_CZEXT(a,b)			OPWORD( ( (7<<6) | ((b) << 3) | 7), 0, (a))	/* mvz.w */

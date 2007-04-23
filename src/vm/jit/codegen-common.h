@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7764 2007-04-19 12:50:37Z twisti $
+   $Id: codegen-common.h 7797 2007-04-23 20:12:39Z michi $
 
 */
 
@@ -146,9 +146,9 @@ struct codegendata {
 	dataref        *datareferences; /* list of data segment references        */
 #endif
 
-/* 	list           *patchrefs; */
+/* 	list_t         *patchrefs; */
 	patchref       *patchrefs;
-	list           *brancheslabel;
+	list_t         *brancheslabel;
 
 	linenumberref  *linenumberreferences; /* list of line numbers and the     */
 	                                /* program counters of their first        */
@@ -201,7 +201,7 @@ struct branch_label_ref_t {
 	s4         condition;       /* conditional branch condition               */
 	s4         reg;             /* register number to check                   */
 	u4         options;         /* branch options                             */
-	listnode   linkage;
+	listnode_t linkage;
 };
 
 

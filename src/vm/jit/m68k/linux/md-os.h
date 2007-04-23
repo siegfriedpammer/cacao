@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+/* XXX trap #0 is reserved and will not be delivered to signal handler */
+#define M68K_EXCEPTION_HARDWARE_NULLPOINTER 14
 
 void md_signal_handler_sigill();
 void md_init_linux();

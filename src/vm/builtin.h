@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 7710 2007-04-15 15:33:35Z michi $
+   $Id: builtin.h 7797 2007-04-23 20:12:39Z michi $
 
 */
 
@@ -34,6 +34,7 @@
 #include "vm/types.h"
 
 #include "arch.h"
+#include "md-abi.h"
 
 #include "toolbox/logging.h"
 

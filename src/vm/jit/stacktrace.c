@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7667 2007-04-05 00:16:05Z michi $
+   $Id: stacktrace.c 7792 2007-04-22 20:02:05Z tbfg $
 
 */
 
@@ -192,7 +192,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	if (!opt_intrp) {
 # endif
-# if defined(__I386__) || defined(__X86_64__) || defined(__S390__)
+# if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__M68K__)
 		/* On i386 and x86_64 we always have to get the return address
 		   from the stack. */
 		/* On S390 we use REG_RA as REG_ITMP3, so we have always to get
@@ -534,7 +534,7 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 					/* Set stack pointer to stackframe of parent Java
 					   function of the current Java function. */
 
-#if defined(__I386__) || defined (__X86_64__)
+#if defined(__I386__) || defined (__X86_64__) || defined (__M68K__)
 					sp += framesize + SIZEOF_VOID_P;
 #elif defined(__SPARC_64__)
 					sp = md_get_framepointer(sp);

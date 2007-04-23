@@ -206,7 +206,7 @@ bool profile_start_thread(void)
 #if !defined(NDEBUG)
 void profile_printstats(void)
 {
-	list                   *l;
+	list_t                 *l;
 	list_method_entry      *lme;
 	list_method_entry      *tlme;
 	classinfo              *c;
