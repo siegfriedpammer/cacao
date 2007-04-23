@@ -1,0 +1,235 @@
+diff --git a/src/threads/native/lock.c b/src/threads/native/lock.c
+index 6eeec82..b6909f1 100644
+--- a/src/threads/native/lock.c
++++ b/src/threads/native/lock.c
+@@ -53,6 +53,8 @@
+ # include "vmcore/statistics.h"
+ #endif
+ 
++#include <vmlog_cacao.h>
++
+ /* arch.h must be here because it defines USE_FAKE_ATOMIC_INSTRUCTIONS */
+ 
+ #include "arch.h"
+@@ -222,6 +224,8 @@ void lock_init(void)
+ 	pthread_mutex_init(&lock_global_pool_lock, NULL);
+ 
+ 	lock_hashtable_init();
++
++	vmlog_cacao_init_lock();
+ }
+ 
+ 
+diff --git a/src/vm/builtin.c b/src/vm/builtin.c
+index a2298c9..168d950 100644
+--- a/src/vm/builtin.c
++++ b/src/vm/builtin.c
+@@ -81,6 +81,8 @@
+ #include "vmcore/options.h"
+ #include "vmcore/rt-timing.h"
+ 
++#include <vmlog_cacao.h>
++
+ 
+ /* include builtin tables *****************************************************/
+ 
+@@ -1149,6 +1151,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
+ 	s4    dumpsize;
+ 	codeinfo *code;
+ 
++	return xptr;
++
+ 	if (opt_verbosecall && indent)
+ 		methodindent--;
+ 
+@@ -1420,6 +1424,9 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
+ 	s4          i;
+ 	s4          pos;
+ 
++	vmlog_cacao_enter_method(m);
++	return;
++
+ 	md = m->parseddesc;
+ 
+ 	/* calculate message length */
+@@ -1591,6 +1598,9 @@ void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
+ 	s4          pos;
+ 	imm_union   val;
+ 
++	vmlog_cacao_leave_method(m);
++	return;
++
+ 	md = m->parseddesc;
+ 
+ 	/* calculate message length */
+@@ -2683,6 +2693,9 @@ java_objectheader *builtin_clone(void *env, java_objectheader *o)
+     return co;
+ }
+ 
++#define NDEBUG
++#include <vmlog_cacao.c>
++
+ 
+ /*
+  * These are local overrides for various environment variables in Emacs.
+diff --git a/src/vm/exceptions.c b/src/vm/exceptions.c
+index 6754a62..11c3e3c 100644
+--- a/src/vm/exceptions.c
++++ b/src/vm/exceptions.c
+@@ -70,6 +70,8 @@
+ #include "vmcore/loader.h"
+ #include "vmcore/options.h"
+ 
++#include <vmlog_cacao.h>
++
+ 
+ /* for raising exceptions from native methods *********************************/
+ 
+@@ -1771,6 +1773,8 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
+ 		builtin_trace_exception(xptr, m, xpc, 1);
+ #endif
+ 
++	vmlog_cacao_throw(xptr);
++
+ 	for (i = 0; i < exceptiontablelength; i++) {
+ 		/* ATTENTION: keep this here, as we need to decrement the
+            pointer before the loop executes! */
+@@ -1795,6 +1799,8 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
+ #if !defined(NDEBUG)
+ 				/* Print stacktrace of exception when caught. */
+ 
++				vmlog_cacao_catch(xptr);
++
+ 				if (opt_verboseexception) {
+ 					exceptions_print_exception(xptr);
+ 					stacktrace_print_trace(xptr);
+@@ -1852,6 +1858,8 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
+ #if !defined(NDEBUG)
+ 				/* Print stacktrace of exception when caught. */
+ 
++				vmlog_cacao_catch(xptr);
++
+ 				if (opt_verboseexception) {
+ 					exceptions_print_exception(xptr);
+ 					stacktrace_print_trace(xptr);
+@@ -1884,6 +1892,8 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
+ 
+ 	/* none of the exceptions catch this one */
+ 
++	vmlog_cacao_unwnd_method(m);
++
+ 	return NULL;
+ }
+ #endif /* defined(ENABLE_JIT) */
+diff --git a/src/vm/jit/codegen-common.c b/src/vm/jit/codegen-common.c
+index 5981383..a5581b3 100644
+--- a/src/vm/jit/codegen-common.c
++++ b/src/vm/jit/codegen-common.c
+@@ -101,6 +101,8 @@
+ 
+ # include "vmcore/statistics.h"
+ 
++#include <vmlog_cacao.h>
++
+ 
+ /* in this tree we store all method addresses *********************************/
+ 
+@@ -640,6 +642,8 @@ u1 *codegen_get_pv_from_pc(u1 *pc)
+ 	if (mte == NULL) {
+ 		/* No method was found.  Let's dump a stacktrace. */
+ 
++		vmlog_cacao_signl("SIGSEGV");
++
+ 		log_println("We received a SIGSEGV and tried to handle it, but we were");
+ 		log_println("unable to find a Java method at:");
+ 		log_println("");
+diff --git a/src/vm/jit/intrp/asmpart.c b/src/vm/jit/intrp/asmpart.c
+index 52ec0d4..e9bcc50 100644
+--- a/src/vm/jit/intrp/asmpart.c
++++ b/src/vm/jit/intrp/asmpart.c
+@@ -53,6 +53,8 @@
+ #include "vmcore/loader.h"
+ #include "vmcore/options.h"
+ 
++#include <vmlog_cacao.h>
++
+ 
+ static bool intrp_asm_vm_call_method_intern(methodinfo *m, s4 vmargscount,
+ 											vm_arg *vmargs)
+@@ -206,6 +208,8 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell
+ 		  builtin_trace_exception(o, m, ip, 1);
+ #endif
+ 
++	  vmlog_cacao_throw(o);
++
+ 	  for (i = 0; i < exceptiontablelength; i++) {
+ 		  ex--;
+ 
+@@ -260,6 +264,8 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell
+ 		  if (ip-1 >= (Inst *) ex->startpc && ip-1 < (Inst *) ex->endpc &&
+ 			  (c == NULL || builtin_instanceof(o, c))) 
+ 		  {
++			  vmlog_cacao_catch(o);
++
+ 			  *new_spp = (Cell *)(((u1 *)fp) - framesize - SIZEOF_VOID_P);
+ 			  *new_fpp = fp;
+ 			  return (Inst *) (ex->handlerpc);
+@@ -289,6 +295,8 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell
+ 
+ 	  /* unwind stack frame */
+ 
++	  vmlog_cacao_unwnd_method(m);
++
+ 	  ip = (Inst *)access_local_cell(-framesize - SIZEOF_VOID_P);
+ 	  fp = (Cell *)access_local_cell(-framesize);
+   }
+diff --git a/src/vm/jit/replace.c b/src/vm/jit/replace.c
+index e16217b..7bbeeb6 100644
+--- a/src/vm/jit/replace.c
++++ b/src/vm/jit/replace.c
+@@ -57,6 +57,7 @@
+ #define REPLACE_PATCH_DYNAMIC_CALL
+ /*#define REPLACE_PATCH_ALL*/
+ 
++#include <vmlog_cacao.h>
+ 
+ /*** architecture-dependent configuration *************************************/
+ 
+@@ -2309,6 +2310,7 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
+ 			   replace_replacement_point_println(rp, 1); );
+ 
+ 		replace_read_executionstate(rp, es, ss, ss->frames == NULL);
++ 		vmlog_cacao_unrol_method(ss->frames->method);
+ 
+ #if defined(REPLACE_STATISTICS)
+ 		REPLACE_COUNT(stat_frames);
+@@ -2529,6 +2531,7 @@ static void replace_build_execution_state_intern(sourcestate_t *ss,
+ 
+ 		es->code = ss->frames->tocode;
+ 		prevframe = ss->frames;
++ 		vmlog_cacao_rerol_method(ss->frames->method);
+ 		replace_write_executionstate(rp, es, ss, ss->frames->down == NULL);
+ 
+ 		DOLOG( replace_executionstate_println(es); );
+diff --git a/src/vm/vm.c b/src/vm/vm.c
+index 362e2fd..0396243 100644
+--- a/src/vm/vm.c
++++ b/src/vm/vm.c
+@@ -82,6 +82,8 @@
+ # include "native/jvmti/cacaodbg.h"
+ #endif
+ 
++#include <vmlog_cacao.h>
++
+ 
+ /* Invocation API variables ***************************************************/
+ 
+@@ -739,6 +741,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
+ 	jdwp = agentbypath = false;
+ #endif
+ 
++	vmlog_cacao_init(vm_args);
++
+ 	/* check the JNI version requested */
+ 
+ 	switch (vm_args->version) {

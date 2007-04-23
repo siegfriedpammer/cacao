@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: codegen.c 7794 2007-04-23 19:57:45Z michi $
 
 */
 
@@ -2979,10 +2979,13 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = (ptrint) bte->fp;
 				d = md->returntype.type;
 
-				M_MOV_IMM(disp, REG_ITMP1);
+				if (bte->stub == NULL) {
+					M_MOV_IMM(bte->fp, REG_ITMP1);
+				} else {
+					M_MOV_IMM(bte->stub, REG_ITMP1);
+				}
 				M_CALL(REG_ITMP1);
 
 				emit_exception_check(cd, iptr);
@@ -3723,10 +3726,11 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 *******************************************************************************/
 
-void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
+void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 {
 	codeinfo    *code;
 	codegendata *cd;
+	methoddesc  *md;
 	s4           i;
 	s4           disp;
 	s4           s1, s2;
@@ -3735,6 +3739,10 @@ void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
 
 	code = jd->code;
 	cd   = jd->cd;
+
+	/* set some variables */
+
+	md = bte->md;
 
 	/* calculate stack frame size */
 
@@ -3802,7 +3810,7 @@ void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
 
 		} else {       /* float/double in memory can be copied like int/longs */
 			s1 = (md->params[i].regoff + cd->stackframesize + 1) * 4;
-			s2 = md->params[i].regoff;
+			s2 = md->params[i].regoff * 4;
 
 			M_ILD(REG_ITMP1, REG_SP, s1);
 			M_IST(REG_ITMP1, REG_SP, s2);
@@ -3816,7 +3824,7 @@ void codegen_emit_stub_builtin(jitdata *jd, methoddesc *md, functionptr f)
 
 	/* call the builtin function */
 
-	M_MOV_IMM(f, REG_ITMP3);
+	M_MOV_IMM(bte->fp, REG_ITMP3);
 	M_CALL(REG_ITMP3);
 
 	/* save return value */

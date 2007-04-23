@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: md-os.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md-os.c 7601 2007-03-28 23:02:50Z michi $
 
 */
 
