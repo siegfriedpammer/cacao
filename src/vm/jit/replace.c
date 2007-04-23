@@ -2079,7 +2079,8 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 	s4        i;
 
 	DOLOG( printf("searching for rp in %p ", (void*)code);
-		   method_println(code->m); );
+		   method_println(code->m);
+		   printf("PC = %p\n", (void*)pc); );
 
 	found = NULL;
 
@@ -2089,6 +2090,8 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 		if (rp->pc <= pc)
 			found = rp;
 	}
+
+	assert(found->pc + found->callsize >= pc);
 
 	return found;
 }
@@ -2374,7 +2377,9 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 
 				rp = NULL;
 
+#if !defined(ENABLE_GC_CACAO)
 				break; /* XXX remove to activate native frames */
+#endif
 				continue;
 			}
 
