@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7776 2007-04-19 21:31:47Z twisti $
+   $Id: signal.c 7793 2007-04-23 14:29:48Z twisti $
 
 */
 
@@ -224,8 +224,14 @@ static void signal_thread(void)
 	while (true) {
 		/* just wait for a signal */
 
-		if (sigwait(&mask, &sig) != 0)
-			vm_abort("signal_thread: sigwait failed: %s", strerror(errno));
+		/* XXX We don't check for an error here, although the man-page
+		   states sigwait does not return an error (which is wrong!),
+		   but it seems to make problems with Boehm-GC.  We should
+		   revisit this code with our new exact-GC. */
+
+/* 		if (sigwait(&mask, &sig) != 0) */
+/* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
+		(void) sigwait(&mask, &sig);
 
 		switch (sig) {
 		case SIGINT:
