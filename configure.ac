@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7796 2007-04-23 20:04:44Z twisti $
+dnl $Id: configure.ac 7799 2007-04-23 23:03:31Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -569,61 +569,7 @@ if test x"${ENABLE_JVMTI}" = "xyes"; then
 fi
 
 
-dnl threads
-AC_ARG_ENABLE([threads], [AS_HELP_STRING(--enable-threads,enable threads support (none,native) [[default=native]])])
-AC_ARG_ENABLE([__thread], [AS_HELP_STRING(--enable-__thread,use TLS features)], [use__thread=$enableval], [use__thread=no])
-
-AC_MSG_CHECKING(whether to include threads support)
-enable_threads=${enable_threads:-native}
-case "$enable_threads" in
-no | none | single)
-    AC_MSG_RESULT(no)
-    dnl no threads for boehm
-    ac_configure_args="$ac_configure_args --disable-boehm-threads"
-    AM_CONDITIONAL([ENABLE_THREADS], [false])
-    ;;
-
-native | posix | pthreads)
-    AC_DEFINE([ENABLE_THREADS], 1, [enable threads])
-    
-    AM_CONDITIONAL([ENABLE_THREADS], [true])
-    
-    AC_MSG_RESULT(yes, native)
-    AC_CHECK_LIB(pthread, main)
-
-    ARCH_CFLAGS="$ARCH_CFLAGS -D_REENTRANT"
-
-    dnl we changed ARCH_CFLAGS, set CFLAGS again
-    CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
-
-    dnl tell boehm to support threads as well
-    ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
-    ;;
-
-*)
-    AC_MSG_ERROR($enable_threads is an unknown thread package)
-    ;;
-esac
-
-
-dnl Check whether the compiler supports the __thread keyword.
-if test "x$use__thread" != xno; then
-  AC_CACHE_CHECK([for __thread], ac_cv_gcc___thread,
-  [cat > conftest.c <<\EOF
-__thread int a = 42;
-EOF
-  if AC_TRY_COMMAND([${CC-cc} $ARCH_CFLAGS $OPT_CFLAGS -c conftest.c >&AS_MESSAGE_LOG_FD]); then
-    ac_cv_gcc___thread=yes 
-  else
-    ac_cv_gcc___thread=no
-  fi
-  rm -f conftest*])
-  if test "$ac_cv_gcc___thread" = yes; then
-    AC_DEFINE([HAVE___THREAD], 1, [have __thread])
-  fi
-else
-  ac_cv_gcc___thread=no
-fi
+AC_CHECK_ENABLE_THREADS
 
 
 dnl check if if-conversion should be supported
