@@ -310,9 +310,11 @@ void threads_dump(void)
 			printf(" prio=%d", t->priority);
 
 #if SIZEOF_VOID_P == 8
-			printf(" tid=0x%016lx", (ptrint) thread->tid);
+			printf(" tid=0x%016lx (%ld)",
+				   (ptrint) thread->tid, (ptrint) thread->tid);
 #else
-			printf(" tid=0x%08lx", (ptrint) thread->tid);
+			printf(" tid=0x%08lx (%ld)",
+				   (ptrint) thread->tid, (ptrint) thread->tid);
 #endif
 
 			/* print thread state */
