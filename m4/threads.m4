@@ -31,7 +31,7 @@ AC_DEFUN([AC_CHECK_ENABLE_THREADS],[
 AC_MSG_CHECKING(whether to include threads support)
 AC_ARG_ENABLE([threads],
               [AS_HELP_STRING(--enable-threads,enable threads support (none,native) [[default=native]])],
-              [case "$enableval}" in
+              [case "${enableval}" in
                    no | none | single )
                        ENABLE_THREADS=no
                        ;;
