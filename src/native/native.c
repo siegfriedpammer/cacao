@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7669 2007-04-05 11:39:58Z twisti $
+   $Id: native.c 7808 2007-04-25 15:12:20Z twisti $
 
 */
 
@@ -73,6 +73,8 @@
 
 /* include table of native functions ******************************************/
 
+#include "native/include/java_lang_Object.h"
+
 #if defined(ENABLE_JAVASE)
 
 #include "native/include/java_io_InputStream.h"
@@ -80,8 +82,6 @@
 
 #include "native/include/java_lang_Cloneable.h"
 #include "native/include/java_util_Properties.h"
-
-#include "native/include/java_lang_Object.h"
 
 #include "native/include/gnu_classpath_VMStackWalker.h"
 #include "native/include/gnu_classpath_VMSystemProperties.h"
@@ -116,6 +116,8 @@
 #elif defined(ENABLE_JAVAME_CLDC1_1)
 
 #include "native/include/com_sun_cldchi_io_ConsoleOutputStream.h"
+#include "native/include/com_sun_cldc_io_ResourceInputStream.h"
+#include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Double.h"
 #include "native/include/java_lang_Float.h"
