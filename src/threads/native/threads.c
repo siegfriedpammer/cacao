@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7805 2007-04-25 11:47:15Z twisti $
+   $Id: threads.c 7806 2007-04-25 11:54:32Z twisti $
 
 */
 
@@ -731,10 +731,14 @@ bool threads_init(void)
 
 	/* create a java.lang.Thread for the main thread */
 
-	mainthreadobj->object = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	if (mainthreadobj->object == NULL)
+	if (t == NULL)
 		return false;
+
+	/* set the object in the internal data structure */
+
+	mainthreadobj->object = t;
 
 	threads_init_threadobject(mainthreadobj);
 	threads_set_current_threadobject(mainthreadobj);
@@ -784,22 +788,22 @@ bool threads_init(void)
 
 	/* set the thread */
 
-	vmt->thread = mainthreadobj->object;
+	vmt->thread = t;
 	vmt->vmdata = (java_lang_Object *) mainthreadobj;
 
 	/* call java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
-	o = (java_objectheader *) mainthreadobj->object;
+	o = (java_objectheader *) t;
 
 	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
 						  false);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 	/* set the thread */
 
-	mainthreadobj->object->vm_thread = (java_lang_Object *) mainthreadobj;
+	t->vm_thread = (java_lang_Object *) mainthreadobj;
 
 	/* call public Thread(String name) */
 
-	o = (java_objectheader *) mainthreadobj->object;
+	o = (java_objectheader *) t;
 
 	(void) vm_call_method(method_thread_init, o, threadname);
 #endif
@@ -808,7 +812,7 @@ bool threads_init(void)
 		return false;
 
 #if defined(ENABLE_JAVASE)
-	mainthreadobj->object->group = threadgroup;
+	t->group = threadgroup;
 
 	/* add main thread to java.lang.ThreadGroup */
 
@@ -819,13 +823,11 @@ bool threads_init(void)
 								 true);
 
 	o = (java_objectheader *) threadgroup;
-	t = mainthreadobj->object;
 
 	(void) vm_call_method(m, o, t);
 
 	if (*exceptionptr)
 		return false;
-
 #endif
 
 	threads_set_thread_priority(pthread_self(), NORM_PRIORITY);
