@@ -50,11 +50,12 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
+#include "vm/jit/i386/codegen.h"
+
 
 /* md_signal_handler_sigsegv ***************************************************
 
-   NullPointerException signal handler for hardware null pointer
-   check.
+   Signal handler for hardware exceptions.
 
 *******************************************************************************/
 
@@ -62,22 +63,68 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t          *_uc;
 	mcontext_t           _mc;
+	u1                  *pv;
 	i386_thread_state_t *_ss;
 	u1                  *sp;
 	u1                  *ra;
 	u1                  *xpc;
+    u1                   opc;
+    u1                   mod;
+    u1                   rm;
+    s4                   d;
+    s4                   disp;
+    ptrint               val;
+    s4                   type;
+    java_objectheader   *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
+    pv  = NULL;                 /* is resolved during stackframeinfo creation */
 	sp  = (u1 *) _ss->esp;
 	xpc = (u1 *) _ss->eip;
-	ra  = xpc;                          /* return address is equal to xpc     */
+    ra  = xpc;                              /* return address is equal to XPC */
 
-	_ss->eax =
-		(ptrint) stacktrace_hardware_nullpointerexception(NULL, sp, ra, xpc);
+    /* get exception-throwing instruction */
 
+    opc = M_ALD_MEM_GET_OPC(xpc);
+    mod = M_ALD_MEM_GET_MOD(xpc);
+    rm  = M_ALD_MEM_GET_RM(xpc);
+
+    /* for values see emit_mov_mem_reg and emit_mem */
+
+    if ((opc == 0x8b) && (mod == 0) && (rm == 5)) {
+        /* this was a hardware-exception */
+
+        d    = M_ALD_MEM_GET_REG(xpc);
+        disp = M_ALD_MEM_GET_DISP(xpc);
+
+        /* we use the exception type as load displacement */
+
+        type = disp;
+
+        val = (d == 0) ? _ss->eax :
+            ((d == 1) ? _ss->ecx :
+            ((d == 2) ? _ss->edx :
+            ((d == 3) ? _ss->ebx :
+            ((d == 4) ? _ss->esp :
+            ((d == 5) ? _ss->ebp :
+            ((d == 6) ? _ss->esi : _ss->edi))))));
+    }
+    else {
+        /* this was a normal NPE */
+
+        type = EXCEPTION_HARDWARE_NULLPOINTER;
+    }
+
+    /* generate appropriate exception */
+
+    o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+    /* set registers */
+
+    _ss->eax = (ptrint) o;
 	_ss->ecx = (ptrint) xpc;
 	_ss->eip = (ptrint) asm_handle_exception;
 }
@@ -94,22 +141,35 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t          *_uc;
 	mcontext_t           _mc;
+    u1                  *pv;
 	i386_thread_state_t *_ss;
 	u1                  *sp;
 	u1                  *ra;
 	u1                  *xpc;
+    s4                   type;
+    ptrint               val;
+    java_objectheader   *o;
+
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
+    pv  = NULL;                 /* is resolved during stackframeinfo creation */
 	sp  = (u1 *) _ss->esp;
 	xpc = (u1 *) _ss->eip;
 	ra  = xpc;                          /* return address is equal to xpc     */
 
-	_ss->eax =
-		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
+    /* this is an ArithmeticException */
 
+    type = EXCEPTION_HARDWARE_ARITHMETIC;
+    val  = 0;
+
+    /* generate appropriate exception */
+
+    o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+    _ss->eax = (ptrint) o;
 	_ss->ecx = (ptrint) xpc;
 	_ss->eip = (ptrint) asm_handle_exception;
 }
