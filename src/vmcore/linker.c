@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7691 2007-04-12 12:45:10Z twisti $
+   $Id: linker.c 7810 2007-04-25 16:39:03Z stefan $
 
 */
 
@@ -137,6 +137,7 @@ bool linker_init(void)
 	/* create the global lock object */
 
 	linker_classrenumber_lock = NEW(java_objectheader);
+	lock_init_object_lock(linker_classrenumber_lock);
 
 	/* link java.lang.Class as first class of the system, because we
        need it's vftbl for all other classes so we can use a class as
