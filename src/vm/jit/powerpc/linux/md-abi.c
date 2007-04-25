@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7713 2007-04-15 21:49:48Z twisti $
+   $Id: md-abi.c 7814 2007-04-25 19:36:15Z twisti $
 
 */
 
@@ -152,13 +152,12 @@ const s4 abi_registers_float_temporary[] = {
 	11, /* ft2  */
 	12, /* ft3  */
 	13, /* ft4  */
-	17, /* ft5  */
-	18, /* ft6  */
-	19, /* ft7  */
-	20, /* ft8  */
-	21, /* ft9  */
-	22, /* ft10 */
-	23, /* ft11 */
+	18, /* ft5  */
+	19, /* ft6  */
+	20, /* ft7  */
+	21, /* ft8  */
+	22, /* ft9  */
+	23, /* ft10 */
 };
 
 
