@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: codegen.c 7817 2007-04-25 19:42:50Z twisti $
 
 */
 
@@ -43,6 +43,8 @@
 #include "mm/memory.h"
 
 #include "native/native.h"
+
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -69,10 +71,6 @@
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
-#endif
-
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
 #endif
 
 
