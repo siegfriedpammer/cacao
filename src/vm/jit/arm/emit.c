@@ -77,25 +77,39 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 		disp = src->vv.regoff * 4;
 
-		if (IS_FLT_DBL_TYPE(src->type)) {
 #if defined(ENABLE_SOFTFLOAT)
-			if (IS_2_WORD_TYPE(src->type))
-				M_LLD(tempreg, REG_SP, disp);
-			else
-				M_ILD(tempreg, REG_SP, disp);
+		switch (src->type) {
+		case TYPE_INT:
+		case TYPE_FLT:
+		case TYPE_ADR:
+			M_ILD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+		case TYPE_DBL:
+			M_LLD(tempreg, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_load: unknown type %d", src->type);
+		}
 #else
-			if (IS_2_WORD_TYPE(src->type))
-				M_DLD(tempreg, REG_SP, disp);
-			else
-				M_FLD(tempreg, REG_SP, disp);
+		switch (src->type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_ILD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+			M_LLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+			M_FLD(tempreg, REG_SP, disp);
+			break;
+		case TYPE_DBL:
+			M_DLD(tempreg, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_load: unknown type %d", src->type);
+		}
 #endif
-		}
-		else {
-			if (IS_2_WORD_TYPE(src->type))
-				M_LLD(tempreg, REG_SP, disp);
-			else
-				M_ILD(tempreg, REG_SP, disp);
-		}
 
 		reg = tempreg;
 	}
@@ -202,33 +216,45 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 		disp = dst->vv.regoff * 4;
 
-		if (IS_FLT_DBL_TYPE(dst->type)) {
 #if defined(ENABLE_SOFTFLOAT)
-			if (IS_2_WORD_TYPE(dst->type))
-				M_LST(d, REG_SP, disp);
-			else
-				M_IST(d, REG_SP, disp);
+		switch (dst->type) {
+		case TYPE_INT:
+		case TYPE_FLT:
+		case TYPE_ADR:
+			M_IST(d, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+		case TYPE_DBL:
+			M_LST(d, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_store: unknown type %d", dst->type);
+		}
 #else
-			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, disp);
-			else
-				M_FST(d, REG_SP, disp);
+		switch (dst->type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_IST(d, REG_SP, disp);
+			break;
+		case TYPE_LNG:
+			M_LST(d, REG_SP, disp);
+			break;
+		case TYPE_FLT:
+			M_FST(d, REG_SP, disp);
+			break;
+		case TYPE_DBL:
+			M_DST(d, REG_SP, disp);
+			break;
+		default:
+			vm_abort("emit_store: unknown type %d", dst->type);
+		}
 #endif
-		}
-		else {
-			if (IS_2_WORD_TYPE(dst->type))
-				M_LST(d, REG_SP, disp);
-			else
-				M_IST(d, REG_SP, disp);
-		}
 	}
 	else if (IS_LNG_TYPE(dst->type)) {
 #if defined(__ARMEL__)
-		if (GET_HIGH_REG(dst->vv.regoff) == REG_SPLIT)
-			M_IST_INTERN(GET_HIGH_REG(d), REG_SP, 0 * 4);
+		assert(GET_HIGH_REG(dst->vv.regoff) != REG_SPLIT);
 #else
-		if (GET_LOW_REG(dst->vv.regoff) == REG_SPLIT)
-			M_IST_INTERN(GET_LOW_REG(d), REG_SP, 0 * 4);
+		assert(GET_LOW_REG(dst->vv.regoff) != REG_SPLIT);
 #endif
 	}
 }
@@ -303,27 +329,45 @@ void emit_copy(jitdata *jd, instruction *iptr)
 		}
 
 		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type)) {
 #if defined(ENABLE_SOFTFLOAT)
-				if (IS_2_WORD_TYPE(src->type))
-					M_LNGMOVE(s1, d);
-				else
-					/* XXX grrrr, wrong direction! */
-					M_MOV(d, s1);
+			switch (src->type) {
+			case TYPE_INT:
+			case TYPE_FLT:
+			case TYPE_ADR:
+				/* XXX grrrr, wrong direction! */
+				M_MOV(d, s1);
+				break;
+			case TYPE_LNG:
+			case TYPE_DBL:
+				/* XXX grrrr, wrong direction! */
+				M_MOV(GET_LOW_REG(d), GET_LOW_REG(s1));
+				M_MOV(GET_HIGH_REG(d), GET_HIGH_REG(s1));
+				break;
+			default:
+				vm_abort("emit_copy: unknown type %d", src->type);
+			}
 #else
-				if (IS_2_WORD_TYPE(src->type))
-					M_DMOV(s1, d);
-				else
-					M_FMOV(s1, d);
+			switch (src->type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				/* XXX grrrr, wrong direction! */
+				M_MOV(d, s1);
+				break;
+			case TYPE_LNG:
+				/* XXX grrrr, wrong direction! */
+				M_MOV(GET_LOW_REG(d), GET_LOW_REG(s1));
+				M_MOV(GET_HIGH_REG(d), GET_HIGH_REG(s1));
+				break;
+			case TYPE_FLT:
+				M_FMOV(s1, d);
+				break;
+			case TYPE_DBL:
+				M_DMOV(s1, d);
+				break;
+			default:
+				vm_abort("emit_copy: unknown type %d", src->type);
+			}
 #endif
-			}
-			else {
-				if (IS_2_WORD_TYPE(src->type))
-					M_LNGMOVE(s1, d);
-				else
-					/* XXX grrrr, wrong direction! */
-					M_MOV(d, s1);
-			}
 		}
 
 		emit_store(jd, iptr, dst, d);
