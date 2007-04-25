@@ -39,9 +39,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
