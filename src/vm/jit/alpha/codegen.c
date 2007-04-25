@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7754 2007-04-17 23:18:15Z twisti $
+   $Id: codegen.c 7819 2007-04-25 19:54:01Z twisti $
 
 */
 
@@ -3170,7 +3170,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		1 +                             /* methodinfo for call trace          */
-		(md->paramcount > INT_ARG_CNT ? INT_ARG_CNT : md->paramcount) +
+		md->paramcount +
 		nmd->memuse;
 
 	/* create method header */
@@ -3207,17 +3207,21 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* save integer and float argument registers */
 
-	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
-		if (IS_INT_LNG_TYPE(md->paramtypes[i].type)) {
-			M_LST(abi_registers_integer_argument[i], REG_SP, j * 8);
-			j++;
-		}
-	}
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s1 = md->params[i].regoff;
 
-	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
-		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DST(abi_registers_float_argument[i], REG_SP, j * 8);
-			j++;
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_LNG:
+			case TYPE_ADR:
+				M_LST(s1, REG_SP, i * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DST(s1, REG_SP, i * 8);
+				break;
+			}
 		}
 	}
 
@@ -3235,17 +3239,21 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* restore integer and float argument registers */
 
-	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
-		if (IS_INT_LNG_TYPE(md->paramtypes[i].type)) {
-			M_LLD(abi_registers_integer_argument[i], REG_SP, j * 8);
-			j++;
-		}
-	}
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s1 = md->params[i].regoff;
 
-	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
-		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DLD(abi_registers_float_argument[i], REG_SP, j * 8);
-			j++;
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_LNG:
+			case TYPE_ADR:
+				M_LLD(s1, REG_SP, i * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DLD(s1, REG_SP, i * 8);
+				break;
+			}
 		}
 	}
 
