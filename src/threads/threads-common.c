@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7804 2007-04-24 14:29:20Z twisti $
+   $Id: threads-common.c 7805 2007-04-25 11:47:15Z twisti $
 
 */
 
@@ -79,7 +79,11 @@ threadobject *threads_create_thread(utf *name)
 
 	/* create the vm internal thread object */
 
+#if defined(ENABLE_GC_BOEHM)
+	thread = GCNEW_UNCOLLECTABLE(threadobject, 1);
+#else
 	thread = NEW(threadobject);
+#endif
 
 	if (thread == NULL)
 		return NULL;
@@ -137,7 +141,11 @@ void threads_start_javathread(java_lang_Thread *object)
 
 	/* create the vm internal threadobject */
 
+#if defined(ENABLE_GC_BOEHM)
+	thread = GCNEW_UNCOLLECTABLE(threadobject, 1);
+#else
 	thread = NEW(threadobject);
+#endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)

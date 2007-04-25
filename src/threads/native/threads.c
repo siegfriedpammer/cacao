@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7761 2007-04-19 09:18:20Z twisti $
+   $Id: threads.c 7805 2007-04-25 11:47:15Z twisti $
 
 */
 
@@ -652,7 +652,11 @@ void threads_preinit(void)
 	pthread_mutex_init(&mutex_join, NULL);
 	pthread_cond_init(&cond_join, NULL);
 
+#if defined(ENABLE_GC_BOEHM)
+	mainthreadobj = GCNEW_UNCOLLECTABLE(threadobject, 1);
+#else
 	mainthreadobj = NEW(threadobject);
+#endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -692,7 +696,6 @@ void threads_preinit(void)
 bool threads_init(void)
 {
 	java_objectheader     *threadname;
-	threadobject          *tempthread;
 	java_objectheader     *o;
 
 #if defined(ENABLE_JAVASE)
@@ -703,20 +706,6 @@ bool threads_init(void)
 
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThread    *vmt;
-#endif
-
-	tempthread = mainthreadobj;
-
-	/* XXX We have to find a new way to free lock records */
-	/*     with the new locking algorithm.                */
-	/* lock_record_free_pools(mainthreadobj->ee.lockrecordpools); */
-
-#if 0
-	/* This is kinda tricky, we grow the java.lang.Thread object so we
-	   can keep the execution environment there. No Thread object must
-	   have been created at an earlier time. */
-
-	class_java_lang_Thread->instancesize = sizeof(threadobject);
 #endif
 
 	/* get methods we need in this file */
@@ -740,32 +729,12 @@ bool threads_init(void)
 	if (method_thread_init == NULL)
 		return false;
 
-	/* create a vm internal thread object for the main thread */
-	/* XXX Michi: we do not need to do this here, we could use the one
-	       created by threads_preinit() */
-
-#if defined(ENABLE_GC_CACAO)
-	mainthreadobj = NEW(threadobject);
-
-# if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-# endif
-#else
-	mainthreadobj = GCNEW(threadobject);
-#endif
-
-	if (mainthreadobj == NULL)
-		return false;
-
 	/* create a java.lang.Thread for the main thread */
 
 	mainthreadobj->object = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
 	if (mainthreadobj->object == NULL)
 		return false;
-
-	FREE(tempthread, threadobject);
 
 	threads_init_threadobject(mainthreadobj);
 	threads_set_current_threadobject(mainthreadobj);
@@ -1300,7 +1269,11 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* create a vm internal thread object */
 
+#if defined(ENABLE_GC_BOEHM)
+	thread = GCNEW_UNCOLLECTABLE(threadobject, 1);
+#else
 	thread = NEW(threadobject);
+#endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -1506,7 +1479,11 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* free the vm internal thread object */
 
+#if defined(ENABLE_GC_BOEHM)
+	GCFREE(thread);
+#else
 	FREE(thread, threadobject);
+#endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
