@@ -181,7 +181,7 @@ bool profile_start_thread(void)
 
 	name = utf_new_char("Profiling Sampler");
 
-	thread_profile = threads_create_thread(name);
+	thread_profile = threads_thread_create_internal(name);
 
 	if (thread_profile == NULL)
 		return false;

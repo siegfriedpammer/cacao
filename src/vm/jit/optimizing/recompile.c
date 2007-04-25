@@ -221,7 +221,7 @@ bool recompile_start_thread(void)
 
 	name = utf_new_char("Recompiler");
 
-	thread_recompile = threads_create_thread(name);
+	thread_recompile = threads_thread_create_internal(name);
 
 	if (thread_recompile == NULL)
 		return false;

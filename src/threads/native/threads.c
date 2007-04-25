@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7809 2007-04-25 15:14:34Z twisti $
+   $Id: threads.c 7811 2007-04-25 18:33:30Z twisti $
 
 */
 
@@ -570,6 +570,7 @@ int cacao_suspendhandler(ucontext_t *ctx)
 
 #endif /* DISABLE_GC */
 
+
 /* threads_set_current_threadobject ********************************************
 
    Set the current thread object.
@@ -579,10 +580,11 @@ int cacao_suspendhandler(ucontext_t *ctx)
 
 *******************************************************************************/
 
-static void threads_set_current_threadobject(threadobject *thread)
+void threads_set_current_threadobject(threadobject *thread)
 {
 #if !defined(HAVE___THREAD)
-	pthread_setspecific(threads_current_threadobject_key, thread);
+	if (pthread_setspecific(threads_current_threadobject_key, thread) != 0)
+		vm_abort("threads_set_current_threadobject: pthread_setspecific failed: %s", strerror(errno));
 #else
 	threads_current_threadobject = thread;
 #endif
@@ -598,7 +600,7 @@ static void threads_set_current_threadobject(threadobject *thread)
 
 ******************************************************************************/
 
-static void threads_init_threadobject(threadobject *thread)
+void threads_init_threadobject(threadobject *thread)
 {
 	/* get the pthread id */
 
@@ -652,27 +654,22 @@ void threads_preinit(void)
 	pthread_mutex_init(&mutex_join, NULL);
 	pthread_cond_init(&cond_join, NULL);
 
-#if defined(ENABLE_GC_BOEHM)
-	mainthreadobj = GCNEW_UNCOLLECTABLE(threadobject, 1);
-#else
-	mainthreadobj = NEW(threadobject);
-#endif
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-#endif
-
-	mainthreadobj->object   = NULL;
-	mainthreadobj->tid      = pthread_self();
-	mainthreadobj->index    = 1;
-	mainthreadobj->thinlock = lock_pre_compute_thinlock(mainthreadobj->index);
-	
 #if !defined(HAVE___THREAD)
 	pthread_key_create(&threads_current_threadobject_key, NULL);
 #endif
-	threads_set_current_threadobject(mainthreadobj);
 
+	/* create internal thread data-structure */
+
+	mainthreadobj = threads_create_thread();
+
+	mainthreadobj->object   = NULL;
+	mainthreadobj->index    = 1;
+	mainthreadobj->thinlock = lock_pre_compute_thinlock(mainthreadobj->index);
+
+	/* store the internal thread data-structure in the TSD */
+
+	threads_set_current_threadobject(mainthreadobj);
+	
 	threads_sem_init(&suspend_ack, 0, 0);
 
 	/* initialize the threads table */
@@ -739,10 +736,6 @@ bool threads_init(void)
 	/* set the object in the internal data structure */
 
 	mainthreadobj->object = t;
-
-	threads_init_threadobject(mainthreadobj);
-	threads_set_current_threadobject(mainthreadobj);
-	lock_init_execution_env(mainthreadobj);
 
 	/* thread is running */
 
@@ -1030,11 +1023,12 @@ static void *threads_startup_thread(void *t)
 	 * to return. */
 	threads_sem_wait(startup->psem_first);
 
-	/* set the thread object */
-
 #if defined(__DARWIN__)
 	thread->mach_thread = mach_thread_self();
 #endif
+
+	/* store the internal thread data-structure in the TSD */
+
 	threads_set_current_threadobject(thread);
 
 	/* thread is running */
@@ -1053,10 +1047,6 @@ static void *threads_startup_thread(void *t)
 	threads_table_add(thread);
 
 	pthread_mutex_unlock(&threadlistlock);
-
-	/* init data structures of this thread */
-
-	lock_init_execution_env(thread);
 
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
@@ -1269,21 +1259,9 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	java_lang_VMThread    *vmt;
 #endif
 
-	/* create a vm internal thread object */
+	/* create internal thread data-structure */
 
-#if defined(ENABLE_GC_BOEHM)
-	thread = GCNEW_UNCOLLECTABLE(threadobject, 1);
-#else
-	thread = NEW(threadobject);
-#endif
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-#endif
-
-	if (thread == NULL)
-		return false;
+	thread = threads_create_thread();
 
 	/* create a java.lang.Thread object */
 
@@ -1293,10 +1271,6 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 		return false;
 
 	thread->object = t;
-
-	threads_init_threadobject(thread);
-	threads_set_current_threadobject(thread);
-	lock_init_execution_env(thread);
 
 	/* thread is running */
 

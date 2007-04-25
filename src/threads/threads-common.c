@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7805 2007-04-25 11:47:15Z twisti $
+   $Id: threads-common.c 7811 2007-04-25 18:33:30Z twisti $
 
 */
 
@@ -65,19 +65,15 @@
 
 /* threads_create_thread *******************************************************
 
-   Creates a thread object with the given name.
+   Creates and initializes an internal thread data-structure.
 
 *******************************************************************************/
 
-threadobject *threads_create_thread(utf *name)
+threadobject *threads_create_thread(void)
 {
-	threadobject       *thread;
-	java_lang_Thread   *t;
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmt;
-#endif
+	threadobject *thread;
 
-	/* create the vm internal thread object */
+	/* allocate internal thread data-structure */
 
 #if defined(ENABLE_GC_BOEHM)
 	thread = GCNEW_UNCOLLECTABLE(threadobject, 1);
@@ -85,8 +81,39 @@ threadobject *threads_create_thread(utf *name)
 	thread = NEW(threadobject);
 #endif
 
-	if (thread == NULL)
-		return NULL;
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
+
+	/* initialize thread data structure */
+
+	threads_init_threadobject(thread);
+	lock_init_execution_env(thread);
+
+	return thread;
+}
+
+
+/* threads_thread_create_internal **********************************************
+
+   Creates an internal thread data-structure with the given name, plus
+   necessary Java objects for the VM (e.g. finalizer-thread,
+   signal-thread, ...).
+
+*******************************************************************************/
+
+threadobject *threads_thread_create_internal(utf *name)
+{
+	threadobject       *thread;
+	java_lang_Thread   *t;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmt;
+#endif
+
+	/* create internal thread data-structure */
+
+	thread = threads_create_thread();
 
 	/* create the java thread object */
 
@@ -120,37 +147,28 @@ threadobject *threads_create_thread(utf *name)
 #endif
 	t->priority = NORM_PRIORITY;
 
-	/* return the thread object */
+	/* return the thread data-structure */
 
 	return thread;
 }
 
 
-/* threads_start_javathread ***************************************************
+/* threads_start_javathread ****************************************************
 
    Start a thread in the JVM. Only the java thread object exists so far.
 
    IN:
       object.....the java thread object java.lang.Thread
 
-******************************************************************************/
+*******************************************************************************/
 
 void threads_start_javathread(java_lang_Thread *object)
 {
 	threadobject *thread;
 
-	/* create the vm internal threadobject */
+	/* create internal thread data-structure */
 
-#if defined(ENABLE_GC_BOEHM)
-	thread = GCNEW_UNCOLLECTABLE(threadobject, 1);
-#else
-	thread = NEW(threadobject);
-#endif
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-#endif
+	thread = threads_create_thread();
 
 	/* link the two objects together */
 

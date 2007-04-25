@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7369 2007-02-16 17:56:40Z twisti $
+   $Id: memory.c 7811 2007-04-25 18:33:30Z twisti $
 
 */
 
@@ -414,7 +414,7 @@ bool memory_start_thread(void)
 
 	name = utf_new_char("Memory Profiler");
 
-	thread_memory = threads_create_thread(name);
+	thread_memory = threads_thread_create_internal(name);
 
 	if (thread_memory == NULL)
 		return false;

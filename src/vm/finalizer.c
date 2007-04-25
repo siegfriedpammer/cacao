@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: finalizer.c 7343 2007-02-13 02:36:29Z ajordan $
+   $Id: finalizer.c 7811 2007-04-25 18:33:30Z twisti $
 
 */
 
@@ -129,7 +129,7 @@ bool finalizer_start_thread(void)
 
 	name = utf_new_char("Finalizer");
 
-	thread_finalizer = threads_create_thread(name);
+	thread_finalizer = threads_thread_create_internal(name);
 
 	if (thread_finalizer == NULL)
 		return false;

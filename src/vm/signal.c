@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7793 2007-04-23 14:29:48Z twisti $
+   $Id: signal.c 7811 2007-04-25 18:33:30Z twisti $
 
 */
 
@@ -273,7 +273,7 @@ bool signal_start_thread(void)
 
 	name = utf_new_char("Signal Handler");
 
-	thread_signal = threads_create_thread(name);
+	thread_signal = threads_thread_create_internal(name);
 
 	if (thread_signal == NULL)
 		return false;
