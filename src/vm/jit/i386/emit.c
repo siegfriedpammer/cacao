@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: emit.c 7818 2007-04-25 19:47:50Z twisti $
 
 */
 
@@ -39,9 +39,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -589,7 +587,6 @@ void emit_replacement_stubs(jitdata *jd)
 	codegendata *cd;
 	codeinfo    *code;
 	rplpoint    *rplp;
-	s4           disp;
 	s4           i;
 	s4           branchmpc;
 	s4           outcode;
