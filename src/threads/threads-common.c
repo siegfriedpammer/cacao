@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: threads-common.c 7825 2007-04-25 20:31:57Z twisti $
 
 */
 
@@ -163,9 +163,12 @@ threadobject *threads_thread_create_internal(utf *name)
 
 *******************************************************************************/
 
-void threads_start_javathread(java_lang_Thread *object)
+void threads_start_javathread(void *vobject)
 {
-	threadobject *thread;
+	threadobject     *thread;
+	java_lang_Thread *object;
+
+	object = (java_lang_Thread *) vobject;
 
 	/* create internal thread data-structure */
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7811 2007-04-25 18:33:30Z twisti $
+   $Id: threads-common.h 7825 2007-04-25 20:31:57Z twisti $
 
 */
 
@@ -37,8 +37,6 @@
 
 #include "native/jni.h"
 
-#include "native/include/java_lang_Thread.h"
-
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #else
@@ -47,6 +45,10 @@
 
 #include "vmcore/utf8.h"
 
+
+/* only define the following stuff with thread enabled ************************/
+
+#if defined(ENABLE_THREADS)
 
 /* thread states **************************************************************/
 
@@ -69,13 +71,15 @@
 
 threadobject *threads_create_thread(void);
 threadobject *threads_thread_create_internal(utf *name);
-void          threads_start_javathread(java_lang_Thread *object);
+void          threads_start_javathread(void *vobject);
 ptrint        threads_get_current_tid(void);
 utf          *threads_thread_get_state(threadobject *thread);
 bool          threads_thread_is_alive(threadobject *thread);
 void          threads_dump(void);
 void          threads_thread_print_stacktrace(threadobject *thread);
 void          threads_print_stacktrace(void);
+
+#endif /* ENABLE_THREADS */
 
 #endif /* _THREADS_COMMON_H */
 

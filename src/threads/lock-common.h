@@ -41,6 +41,12 @@
 # include "threads/none/lock.h"
 #endif
 
+#include "threads/threads-common.h"
+
+
+/* only define the following stuff with thread enabled ************************/
+
+#if defined(ENABLE_THREADS)
 
 /* functions ******************************************************************/
 
@@ -65,6 +71,8 @@ bool lock_is_held_by_current_thread(java_objectheader *o);
 void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos);
 void lock_notify_object(java_objectheader *o);
 void lock_notify_all_object(java_objectheader *o);
+
+#endif /* ENABLE_THREADS */
 
 #endif /* _LOCK_COMMON_H */
 
