@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7825 2007-04-25 20:31:57Z twisti $
+   $Id: threads-common.c 7826 2007-04-25 20:56:16Z twisti $
 
 */
 
@@ -343,7 +343,7 @@ void threads_dump(void)
 			printf(" tid=0x%016lx (%ld)",
 				   (ptrint) thread->tid, (ptrint) thread->tid);
 #else
-			printf(" tid=0x%08lx (%ld)",
+			printf(" tid=0x%08x (%d)",
 				   (ptrint) thread->tid, (ptrint) thread->tid);
 #endif
 
