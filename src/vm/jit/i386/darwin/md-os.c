@@ -41,7 +41,9 @@
 
 #include "vm/types.h"
 
-#include "vm/jit/i386/md-abi.h"
+#include "vm/jit/i386/codegen.h"
+
+#include "threads/threads-common.h"
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
