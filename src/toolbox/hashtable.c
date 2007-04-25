@@ -1,4 +1,4 @@
-/* src/vm/hashtable.c - functions for internal hashtables
+/* src/toolbox/hashtable.c - functions for internal hashtables
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Mark Probst
-            Andreas Krall
-            Christian Thalinger
-
-   $Id: hashtable.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: hashtable.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -39,11 +32,10 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/hashtable.h"
+
 #include "vm/global.h"
 
 
@@ -65,7 +57,7 @@ void hashtable_create(hashtable *hash, u4 size)
 
 	hash->header = NEW(java_objectheader);
 
-	lock_init_object_lock(hash->header);
+	LOCK_INIT_OBJECT_LOCK(hash->header);
 #endif
 
 	/* set initial hash values */

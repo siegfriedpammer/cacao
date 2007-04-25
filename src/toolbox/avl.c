@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: avl.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: avl.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -34,13 +34,10 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
-#include "toolbox/avl.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
+
+#include "toolbox/avl.h"
 
 
 /* avl_create ******************************************************************
@@ -64,7 +61,7 @@ avl_tree *avl_create(avl_comparator *compar)
 
 	t->lock       = NEW(java_objectheader);
 
-	lock_init_object_lock(t->lock);
+	LOCK_INIT_OBJECT_LOCK(t->lock);
 #endif
 
 	return t;

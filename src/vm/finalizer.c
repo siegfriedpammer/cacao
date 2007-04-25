@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: finalizer.c 7811 2007-04-25 18:33:30Z twisti $
+   $Id: finalizer.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -35,15 +35,8 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-
-# include "threads/native/threads.h"
-# include "threads/native/lock.h"
-#else
-# include "threads/none/threads.h"
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -75,7 +68,7 @@ bool finalizer_init(void)
 #if defined(ENABLE_THREADS)
 	lock_thread_finalizer = NEW(java_objectheader);
 
-	lock_init_object_lock(lock_thread_finalizer);
+	LOCK_INIT_OBJECT_LOCK(lock_thread_finalizer);
 #endif
 
 	/* everything's ok */

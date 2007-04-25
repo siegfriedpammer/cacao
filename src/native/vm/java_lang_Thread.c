@@ -43,6 +43,7 @@
 # include "native/include/java_lang_VMThread.h"
 #endif
 
+#include "threads/lock-common.h"
 #include "threads/threads-common.h"
 
 #include "toolbox/logging.h"

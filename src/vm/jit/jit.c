@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7692 2007-04-12 14:47:24Z twisti $
+   $Id: jit.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -34,14 +34,12 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
+
 #include "toolbox/logging.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/global.h"
 #include "vm/initialize.h"

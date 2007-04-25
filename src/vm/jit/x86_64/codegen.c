@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7754 2007-04-17 23:18:15Z twisti $
+   $Id: codegen.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -41,12 +41,11 @@
 #include "vm/jit/x86_64/emit.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

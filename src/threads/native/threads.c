@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7811 2007-04-25 18:33:30Z twisti $
+   $Id: threads.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -71,6 +71,7 @@
 # include "native/include/java_lang_VMThread.h"
 #endif
 
+#include "threads/lock-common.h"
 #include "threads/threads-common.h"
 
 #include "threads/native/threads.h"

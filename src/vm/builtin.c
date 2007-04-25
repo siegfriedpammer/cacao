@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7785 2007-04-21 10:55:30Z edwin $
+   $Id: builtin.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -59,9 +59,7 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"

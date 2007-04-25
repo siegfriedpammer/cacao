@@ -36,12 +36,8 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-
-# include "threads/native/lock.h"
-# include "threads/native/threads.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "toolbox/list.h"
 

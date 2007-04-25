@@ -35,11 +35,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/global.h"
 #include "vm/builtin.h"
@@ -83,7 +79,7 @@ bool show_init(void)
 
 	show_global_lock = NEW(java_objectheader);
 
-	lock_init_object_lock(show_global_lock);
+	LOCK_INIT_OBJECT_LOCK(show_global_lock);
 #endif
 
 	/* everything's ok */

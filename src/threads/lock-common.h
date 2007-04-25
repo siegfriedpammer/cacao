@@ -1,6 +1,6 @@
-/* src/threads/none/lock.h - fake lock implementation
+/* src/threads/lock-common.h - common stuff of lock implementation
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -27,17 +27,46 @@
 */
 
 
-#ifndef _LOCK_H
-#define _LOCK_H
+#ifndef _LOCK_COMMON_H
+#define _LOCK_COMMON_H
 
-/* define some stuff to no-ops *************************************************/
+#include "config.h"
+#include "vm/types.h"
 
-#define LOCK_INIT_OBJECT_LOCK(o)
+#include "vm/global.h"
 
-#define LOCK_MONITOR_ENTER(o)
-#define LOCK_MONITOR_EXIT(o)
+#if defined(ENABLE_THREADS)
+# include "threads/native/lock.h"
+#else
+# include "threads/none/lock.h"
+#endif
 
-#endif /* _LOCK_H */
+
+/* functions ******************************************************************/
+
+void lock_init(void);
+
+void lock_init_execution_env(struct threadobject *thread);
+void lock_record_free_pools(lock_record_pool_t *pool);
+
+void lock_init_object_lock(java_objectheader *);
+lock_record_t *lock_get_initial_lock_word(void);
+
+ptrint lock_pre_compute_thinlock(s4 index);
+
+bool lock_monitor_enter(java_objectheader *);
+bool lock_monitor_exit(java_objectheader *);
+
+#define LOCK_monitor_enter    (functionptr) lock_monitor_enter
+#define LOCK_monitor_exit     (functionptr) lock_monitor_exit
+
+bool lock_is_held_by_current_thread(java_objectheader *o);
+
+void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos);
+void lock_notify_object(java_objectheader *o);
+void lock_notify_all_object(java_objectheader *o);
+
+#endif /* _LOCK_COMMON_H */
 
 
 /*

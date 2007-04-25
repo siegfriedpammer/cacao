@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7808 2007-04-25 15:12:20Z twisti $
+   $Id: native.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -44,11 +44,7 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"

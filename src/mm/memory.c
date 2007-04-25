@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7811 2007-04-25 18:33:30Z twisti $
+   $Id: memory.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -48,22 +48,19 @@
 #include "arch.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-
-# include "threads/native/lock.h"
-# include "threads/native/threads.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
+
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vmcore/options.h"
 
 #if defined(ENABLE_STATISTICS)

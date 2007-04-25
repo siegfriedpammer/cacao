@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7692 2007-04-12 14:47:24Z twisti $
+   $Id: loader.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -37,9 +37,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/logging.h"
 
@@ -94,7 +92,7 @@ bool loader_init(void)
 	for (lce = list_first(list_classpath_entries); lce != NULL;
 		 lce = list_next(list_classpath_entries, lce))
 		if (lce->type == CLASSPATH_ARCHIVE)
-			lock_init_object_lock((java_objectheader *) lce);
+			LOCK_INIT_OBJECT_LOCK(lce);
 #endif
 
 	/* load some important classes */

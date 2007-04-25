@@ -135,32 +135,12 @@ extern lock_record_pool_t *lock_global_pool;
 #endif
 
 
-/* functions ******************************************************************/
+/* defines *********************************************************************/
 
-void lock_init(void);
-
-void lock_init_execution_env(struct threadobject *thread);
-void lock_record_free_pools(lock_record_pool_t *pool);
-
-void lock_init_object_lock(java_objectheader *);
-lock_record_t *lock_get_initial_lock_word(void);
-
-ptrint lock_pre_compute_thinlock(s4 index);
-
-bool lock_monitor_enter(java_objectheader *);
-bool lock_monitor_exit(java_objectheader *);
-
-#define LOCK_monitor_enter    (functionptr) lock_monitor_enter
-#define LOCK_monitor_exit     (functionptr) lock_monitor_exit
+#define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_objectheader *) (o))
 
 #define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_objectheader *) (o))
 #define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_objectheader *) (o))
-
-bool lock_is_held_by_current_thread(java_objectheader *o);
-
-void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos);
-void lock_notify_object(java_objectheader *o);
-void lock_notify_all_object(java_objectheader *o);
 
 #endif /* _LOCK_H */
 

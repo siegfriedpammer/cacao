@@ -47,9 +47,7 @@
 
 #include "native/include/java_lang_Object.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 

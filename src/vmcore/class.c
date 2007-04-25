@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7783 2007-04-20 13:28:27Z twisti $
+   $Id: class.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -40,9 +40,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/logging.h"
 
@@ -239,9 +237,7 @@ classinfo *class_create_classinfo(utf *classname)
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock(&c->object.header);
-#endif
+	LOCK_INIT_OBJECT_LOCK(&c->object.header);
 
 	return c;
 }

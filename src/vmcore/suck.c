@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: suck.c 7783 2007-04-20 13:28:27Z twisti $
+   $Id: suck.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -40,11 +40,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/list.h"
 #include "toolbox/logging.h"
