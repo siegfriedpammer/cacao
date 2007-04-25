@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7806 2007-04-25 11:54:32Z twisti $
+   $Id: threads.c 7809 2007-04-25 15:14:34Z twisti $
 
 */
 
@@ -696,12 +696,12 @@ void threads_preinit(void)
 bool threads_init(void)
 {
 	java_objectheader     *threadname;
+	java_lang_Thread      *t;
 	java_objectheader     *o;
 
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *threadgroup;
 	methodinfo            *m;
-	java_lang_Thread      *t;
 #endif
 
 #if defined(WITH_CLASSPATH_GNU)
