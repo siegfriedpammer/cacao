@@ -89,7 +89,7 @@ void _Jv_java_lang_Thread_sleep(s8 millis)
 void _Jv_java_lang_Thread_start(java_lang_Thread *this, s8 stacksize)
 {
 #if defined(ENABLE_THREADS)
-	threads_start_javathread(this);
+	threads_thread_start(this);
 #endif
 }
 
