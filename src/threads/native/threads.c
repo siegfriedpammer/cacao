@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7830 2007-04-26 11:14:39Z twisti $
+   $Id: threads.c 7831 2007-04-26 12:48:16Z twisti $
 
 */
 
@@ -1013,18 +1013,19 @@ static void *threads_startup_thread(void *t)
 }
 
 
-/* threads_start_thread ********************************************************
+/* threads_impl_thread_start ***************************************************
 
-   Start a thread in the JVM. Both (vm internal and java) thread objects exist.
+   Start a thread in the JVM.  Both (vm internal and java) thread
+   objects exist.
 
    IN:
-      thread.......the thread object
-	  function.....function to run in the new thread. NULL means that the
-	               "run" method of the object `t` should be called
+      thread....the thread object
+	  f.........function to run in the new thread. NULL means that the
+	            "run" method of the object `t` should be called
 
 ******************************************************************************/
 
-void threads_start_thread(threadobject *thread, functionptr function)
+void threads_impl_thread_start(threadobject *thread, functionptr f)
 {
 	sem_t          sem;
 	sem_t          sem_first;
@@ -1035,7 +1036,7 @@ void threads_start_thread(threadobject *thread, functionptr function)
 	 * threads_startup_thread */
 
 	startup.thread     = thread;
-	startup.function   = function;       /* maybe we don't call Thread.run()V */
+	startup.function   = f;              /* maybe we don't call Thread.run()V */
 	startup.psem       = &sem;
 	startup.psem_first = &sem_first;
 

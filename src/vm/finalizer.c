@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: finalizer.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: finalizer.c 7831 2007-04-26 12:48:16Z twisti $
 
 */
 
@@ -52,7 +52,6 @@
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
-static threadobject      *thread_finalizer;
 static java_objectheader *lock_thread_finalizer;
 #endif
 
@@ -122,14 +121,8 @@ bool finalizer_start_thread(void)
 
 	name = utf_new_char("Finalizer");
 
-	thread_finalizer = threads_thread_create_internal(name);
-
-	if (thread_finalizer == NULL)
+	if (!threads_thread_start_internal(name, finalizer_thread))
 		return false;
-
-	/* actually start the finalizer thread */
-
-	threads_start_thread(thread_finalizer, finalizer_thread);
 
 	/* everything's ok */
 

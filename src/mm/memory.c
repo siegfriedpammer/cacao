@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: memory.c 7831 2007-04-26 12:48:16Z twisti $
 
 */
 
@@ -105,13 +105,6 @@ static java_objectheader *lock_code_memory = NULL;
 static void              *code_memory      = NULL;
 static int                code_memory_size = 0;
 static int                pagesize         = 0;
-
-
-/* global variables ***********************************************************/
-
-#if defined(ENABLE_THREADS)
-static threadobject *thread_memory;
-#endif
 
 
 /* memory_init *****************************************************************
@@ -411,14 +404,10 @@ bool memory_start_thread(void)
 
 	name = utf_new_char("Memory Profiler");
 
-	thread_memory = threads_thread_create_internal(name);
+	/* start the memory profiling thread */
 
-	if (thread_memory == NULL)
+	if (!threads_thread_start_internal(name, memory_thread))
 		return false;
-
-	/* actually start the memory profiling thread */
-
-	threads_start_thread(thread_memory, memory_thread);
 
 	/* everything's ok */
 

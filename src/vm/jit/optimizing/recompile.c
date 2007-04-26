@@ -55,7 +55,6 @@
 
 /* global variables ***********************************************************/
 
-static threadobject      *thread_recompile;
 static java_objectheader *lock_thread_recompile;
 static list_t            *list_recompile_methods;
 
@@ -217,14 +216,8 @@ bool recompile_start_thread(void)
 
 	name = utf_new_char("Recompiler");
 
-	thread_recompile = threads_thread_create_internal(name);
-
-	if (thread_recompile == NULL)
+	if (!threads_thread_start_internal(name, recompile_thread))
 		return false;
-
-	/* actually start the recompilation thread */
-
-	threads_start_thread(thread_recompile, recompile_thread);
 
 	/* everything's ok */
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7830 2007-04-26 11:14:39Z twisti $
+   $Id: threads-common.c 7831 2007-04-26 12:48:16Z twisti $
 
 */
 
@@ -306,15 +306,18 @@ threadobject *threads_create_thread(void)
 }
 
 
-/* threads_thread_create_internal **********************************************
+/* threads_thread_start_internal ***********************************************
 
-   Creates an internal thread data-structure with the given name, plus
-   necessary Java objects for the VM (e.g. finalizer-thread,
-   signal-thread, ...).
+   Start an internal thread in the JVM.  No Java thread objects exists
+   so far.
+
+   IN:
+      name.......UTF-8 name of the thread
+      f..........function pointer to C function to start
 
 *******************************************************************************/
 
-threadobject *threads_thread_create_internal(utf *name)
+bool threads_thread_start_internal(utf *name, functionptr f)
 {
 	threadobject       *thread;
 	java_lang_Thread   *t;
@@ -331,13 +334,13 @@ threadobject *threads_thread_create_internal(utf *name)
 	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
 	if (t == NULL)
-		return NULL;
+		return false;
 
 #if defined(WITH_CLASSPATH_GNU)
 	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
 	if (vmt == NULL)
-		return NULL;
+		return false;
 
 	vmt->thread = t;
 	vmt->vmdata = (java_lang_Object *) thread;
@@ -358,22 +361,27 @@ threadobject *threads_thread_create_internal(utf *name)
 #endif
 	t->priority = NORM_PRIORITY;
 
-	/* return the thread data-structure */
+	/* start the thread */
 
-	return thread;
+	threads_impl_thread_start(thread, f);
+
+	/* everything's ok */
+
+	return true;
 }
 
 
-/* threads_start_javathread ****************************************************
+/* threads_thread_start ********************************************************
 
-   Start a thread in the JVM. Only the java thread object exists so far.
+   Start a Java thread in the JVM.  Only the java thread object exists
+   so far.
 
    IN:
       object.....the java thread object java.lang.Thread
 
 *******************************************************************************/
 
-void threads_start_javathread(java_lang_Thread *object)
+void threads_thread_start(java_lang_Thread *object)
 {
 	threadobject *thread;
 
@@ -401,10 +409,10 @@ void threads_start_javathread(java_lang_Thread *object)
 	object->vm_thread = (java_lang_Object *) thread;
 #endif
 
-	/* Actually start the thread.  Don't pass a function pointer
-	   (NULL) since we want Thread.run()V here. */
+	/* Start the thread.  Don't pass a function pointer (NULL) since
+	   we want Thread.run()V here. */
 
-	threads_start_thread(thread, NULL);
+	threads_impl_thread_start(thread, NULL);
 }
 
 

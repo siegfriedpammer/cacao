@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7830 2007-04-26 11:14:39Z twisti $
+   $Id: threads-common.h 7831 2007-04-26 12:48:16Z twisti $
 
 */
 
@@ -107,8 +107,8 @@ s4            threads_table_add(threadobject *thread);
 void          threads_table_remove(threadobject *thread);
 
 threadobject *threads_create_thread(void);
-threadobject *threads_thread_create_internal(utf *name);
-void          threads_start_javathread(java_lang_Thread *object);
+bool          threads_thread_start_internal(utf *name, functionptr f);
+void          threads_thread_start(java_lang_Thread *object);
 
 ptrint        threads_get_current_tid(void);
 utf          *threads_thread_get_state(threadobject *thread);
@@ -124,6 +124,7 @@ void          threads_print_stacktrace(void);
 void          threads_impl_preinit(void);
 
 void          threads_init_threadobject(threadobject *thread);
+void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 #endif /* ENABLE_THREADS */
 

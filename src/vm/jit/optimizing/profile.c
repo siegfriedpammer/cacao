@@ -53,13 +53,6 @@
 #include "vmcore/options.h"
 
 
-/* global variables ***********************************************************/
-
-#if defined(ENABLE_THREADS)
-static threadobject *thread_profile;
-#endif
-
-
 /* profile_init ****************************************************************
 
    Initializes the profile global lock.
@@ -181,14 +174,8 @@ bool profile_start_thread(void)
 
 	name = utf_new_char("Profiling Sampler");
 
-	thread_profile = threads_thread_create_internal(name);
-
-	if (thread_profile == NULL)
+	if (!threads_thread_start_internal(name, profile_thread))
 		return false;
-
-	/* actually start the profile sampling thread */
-
-	threads_start_thread(thread_profile, profile_thread);
 
 	/* everything's ok */
 
