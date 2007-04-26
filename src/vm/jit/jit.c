@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: jit.c 7835 2007-04-26 13:43:08Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include "toolbox/logging.h"
 
 #include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "vm/global.h"
 #include "vm/initialize.h"
@@ -68,6 +69,10 @@
 # include "vm/jit/optimizing/ssa.h"
 #endif
 
+#if defined(ENABLE_INLINING)
+# include "vm/jit/inline/inline.h"
+#endif
+
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
@@ -79,10 +84,6 @@
 #include "vm/jit/optimizing/reorder.h"
 
 #include "vm/jit/verify/typecheck.h"
-
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
