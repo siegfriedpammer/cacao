@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7827 2007-04-25 21:03:44Z twisti $
+   $Id: threads-common.h 7830 2007-04-26 11:14:39Z twisti $
 
 */
 
@@ -50,6 +50,12 @@
 
 #if defined(ENABLE_THREADS)
 
+/* typedefs *******************************************************************/
+
+typedef union  threads_table_entry_t threads_table_entry_t;
+typedef struct threads_table_t       threads_table_t;
+
+
 /* thread states **************************************************************/
 
 #define THREAD_STATE_NEW              0
@@ -67,17 +73,57 @@
 #define MAX_PRIORITY     10
 
 
+/* threads_table_entry_t *******************************************************
+
+   An entry in the global threads table.
+
+*******************************************************************************/
+
+union threads_table_entry_t {
+	threadobject       *thread;        /* an existing thread                  */
+	ptrint              nextfree;      /* next free index                     */
+};
+
+
+/* threads_table_t *************************************************************
+
+   Struct for the global threads table.
+
+*******************************************************************************/
+
+struct threads_table_t {
+	threads_table_entry_t *table;      /* the table, threads[0] is the head   */
+	                                   /* of the free list. Real entries      */
+									   /* start at threads[1].                */
+	s4                     size;       /* current size of the table           */
+};
+
+
 /* function prototypes ********************************************************/
+
+void          threads_preinit(void);
+
+s4            threads_table_add(threadobject *thread);
+void          threads_table_remove(threadobject *thread);
 
 threadobject *threads_create_thread(void);
 threadobject *threads_thread_create_internal(utf *name);
 void          threads_start_javathread(java_lang_Thread *object);
+
 ptrint        threads_get_current_tid(void);
 utf          *threads_thread_get_state(threadobject *thread);
 bool          threads_thread_is_alive(threadobject *thread);
+
 void          threads_dump(void);
 void          threads_thread_print_stacktrace(threadobject *thread);
 void          threads_print_stacktrace(void);
+
+
+/* implementation specific functions */
+
+void          threads_impl_preinit(void);
+
+void          threads_init_threadobject(threadobject *thread);
 
 #endif /* ENABLE_THREADS */
 

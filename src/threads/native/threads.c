@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: threads.c 7830 2007-04-26 11:14:39Z twisti $
 
 */
 
@@ -190,8 +190,6 @@ static int sem_destroy(sem_t *sem)
 #define STOPWORLD_FROM_GC               1
 #define STOPWORLD_FROM_CLASS_NUMBERING  2
 
-#define THREADS_INITIAL_TABLE_SIZE      8
-
 
 /* startupinfo *****************************************************************
 
@@ -211,14 +209,8 @@ typedef struct {
 
 /* prototypes *****************************************************************/
 
-static void threads_table_init(void);
-static s4 threads_table_add(threadobject *thread);
-static void threads_table_remove(threadobject *thread);
 static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos);
 
-#if !defined(NDEBUG) && 0
-static void threads_table_dump(FILE *file);
-#endif
 
 /******************************************************************************/
 /* GLOBAL VARIABLES                                                           */
@@ -237,9 +229,6 @@ __thread threadobject *threads_current_threadobject;
 #else
 pthread_key_t threads_current_threadobject_key;
 #endif
-
-/* global threads table                                                       */
-static threads_table_t threads_table;
 
 /* global mutex for changing the thread list                                  */
 static pthread_mutex_t threadlistlock;
@@ -635,7 +624,7 @@ threadobject *threads_get_current_threadobject(void)
 }
 
 
-/* threads_preinit *************************************************************
+/* threads_impl_preinit ********************************************************
 
    Do some early initialization of stuff required.
 
@@ -644,7 +633,7 @@ threadobject *threads_get_current_threadobject(void)
 
 *******************************************************************************/
 
-void threads_preinit(void)
+void threads_impl_preinit(void)
 {
 	pthread_mutex_init(&threadlistlock, NULL);
 	pthread_mutex_init(&stopworldlock, NULL);
@@ -672,16 +661,6 @@ void threads_preinit(void)
 	threads_set_current_threadobject(mainthreadobj);
 	
 	threads_sem_init(&suspend_ack, 0, 0);
-
-	/* initialize the threads table */
-
-	threads_table_init();
-
-	/* initialize subsystems */
-
-	lock_init();
-
-	critical_init();
 }
 
 
@@ -838,129 +817,6 @@ bool threads_init(void)
 	/* everything's ok */
 
 	return true;
-}
-
-
-/* threads_table_init *********************************************************
-
-   Initialize the global threads table.
-
-******************************************************************************/
-
-static void threads_table_init(void)
-{
-	s4 size;
-	s4 i;
-
-	size = THREADS_INITIAL_TABLE_SIZE;
-
-	threads_table.size = size;
-	threads_table.table = MNEW(threads_table_entry_t, size);
-
-	/* link the entries in a freelist */
-
-	for (i=0; i<size; ++i) {
-		threads_table.table[i].nextfree = i+1;
-	}
-
-	/* terminate the freelist */
-
-	threads_table.table[size-1].nextfree = 0; /* index 0 is never free */
-}
-
-
-/* threads_table_add **********************************************************
-
-   Add a thread to the global threads table. The index is entered in the
-   threadobject. The thinlock value for the thread is pre-computed.
-
-   IN:
-      thread............the thread to add
-
-   RETURN VALUE:
-      The table index for the newly added thread. This value has also been
-	  entered in the threadobject.
-
-   PRE-CONDITION:
-      The caller must hold the threadlistlock!
-
-******************************************************************************/
-
-static s4 threads_table_add(threadobject *thread)
-{
-	s4 index;
-	s4 oldsize;
-	s4 newsize;
-	s4 i;
-
-	/* table[0] serves as the head of the freelist */
-
-	index = threads_table.table[0].nextfree;
-
-	/* if we got a free index, use it */
-
-	if (index) {
-got_an_index:
-		threads_table.table[0].nextfree = threads_table.table[index].nextfree;
-		threads_table.table[index].thread = thread;
-		thread->index = index;
-		thread->thinlock = lock_pre_compute_thinlock(index);
-		return index;
-	}
-
-	/* we must grow the table */
-
-	oldsize = threads_table.size;
-	newsize = oldsize * 2;
-
-	threads_table.table = MREALLOC(threads_table.table, threads_table_entry_t,
-								   oldsize, newsize);
-	threads_table.size = newsize;
-
-	/* link the new entries to a free list */
-
-	for (i=oldsize; i<newsize; ++i) {
-		threads_table.table[i].nextfree = i+1;
-	}
-
-	/* terminate the freelist */
-
-	threads_table.table[newsize-1].nextfree = 0; /* index 0 is never free */
-
-	/* use the first of the new entries */
-
-	index = oldsize;
-	goto got_an_index;
-}
-
-
-/* threads_table_remove *******************************************************
-
-   Remove a thread from the global threads table.
-
-   IN:
-      thread............the thread to remove
-
-   PRE-CONDITION:
-      The caller must hold the threadlistlock!
-
-******************************************************************************/
-
-static void threads_table_remove(threadobject *thread)
-{
-	s4 index;
-
-	index = thread->index;
-
-	/* put the index into the freelist */
-
-	threads_table.table[index] = threads_table.table[0];
-	threads_table.table[0].nextfree = index;
-
-	/* delete the index in the threadobject to discover bugs */
-#if !defined(NDEBUG)
-	thread->index = 0;
-#endif
 }
 
 
@@ -1848,47 +1704,6 @@ void threads_yield(void)
 	sched_yield();
 }
 
-
-/* threads_table_dump *********************************************************
-
-   Dump the threads table for debugging purposes.
-
-   IN:
-      file..............stream to write to
-
-******************************************************************************/
-
-#if !defined(NDEBUG) && 0
-static void threads_table_dump(FILE *file)
-{
-	s4 i;
-	s4 size;
-	ptrint index;
-
-	pthread_mutex_lock(&threadlistlock);
-
-	size = threads_table.size;
-
-	fprintf(file, "======== THREADS TABLE (size %d) ========\n", size);
-
-	for (i=0; i<size; ++i) {
-		index = threads_table.table[i].nextfree;
-
-		fprintf(file, "%4d: ", i);
-
-		if (index < size) {
-			fprintf(file, "free, nextfree = %d\n", (int) index);
-		}
-		else {
-			fprintf(file, "thread %p\n", (void*) threads_table.table[i].thread);
-		}
-	}
-
-	fprintf(file, "======== END OF THREADS TABLE ========\n");
-
-	pthread_mutex_unlock(&threadlistlock);
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

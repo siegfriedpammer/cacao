@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7761 2007-04-19 09:18:20Z twisti $
+   $Id: threads.h 7830 2007-04-26 11:14:39Z twisti $
 
 */
 
@@ -32,9 +32,7 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct threadobject          threadobject;
-typedef union  threads_table_entry_t threads_table_entry_t;
-typedef struct threads_table_t       threads_table_t;
+typedef struct threadobject threadobject;
 
 
 #include "config.h"
@@ -90,32 +88,6 @@ extern __thread threadobject *threads_current_threadobject;
 extern pthread_key_t threads_current_threadobject_key;
 
 #endif /* defined(HAVE___THREAD) */
-
-
-/* threads_table_entry_t *******************************************************
-
-   An entry in the global threads table.
-
-*******************************************************************************/
-
-union threads_table_entry_t {
-	threadobject       *thread;        /* an existing thread                  */
-	ptrint              nextfree;      /* next free index                     */
-};
-
-
-/* threads_table_t *************************************************************
-
-   Struct for the global threads table.
-
-*******************************************************************************/
-
-struct threads_table_t {
-	threads_table_entry_t *table;      /* the table, threads[0] is the head   */
-	                                   /* of the free list. Real entries      */
-									   /* start at threads[1].                */
-	s4                     size;       /* current size of the table           */
-};
 
 
 /* threadobject ****************************************************************
@@ -194,7 +166,6 @@ void threads_sem_post(sem_t *sem);
 
 threadobject *threads_get_current_threadobject(void);
 
-void threads_preinit(void);
 bool threads_init(void);
 
 void threads_start_thread(threadobject *thread, functionptr function);
