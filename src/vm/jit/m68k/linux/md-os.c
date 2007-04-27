@@ -191,7 +191,10 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_u
 			regval = _mc->gregs[ GREGS_ADRREG_OFF + (regval & 0x7) ];
 			break;
 		case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
-			regval = 0; /* FIXME */
+			regval = *(uint16_t*)(xpc-4);
+			assert( (regval&0xfff0) == 0x4a00 );
+			/* was a data register */
+			regval = _mc->gregs[regval & 0x7];
 			break;
 		case M68K_EXCEPTION_HARDWARE_NULLPOINTER:
 			type = EXCEPTION_HARDWARE_NULLPOINTER;
@@ -200,10 +203,26 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_u
 		default: assert(0);
 	}
 
-	/*fprintf(stderr, "NEW HWE: sp=%x, xpc=%x, tpye=%x, regval=%x\n", sp, xpc, type, regval);*/
+	/*fprintf(stderr, "NEW HWE: sp=%x, xpc=%x, tpye=%x, regval=%x\n", sp, xpc, type, regval);
+	*/
 	e = exceptions_new_hardware_exception(0, sp, xpc, xpc, type, regval);
 
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (ptrint) e;
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (ptrint) xpc;
 	_mc->gregs[R_PC]          = (ptrint) asm_handle_exception;
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

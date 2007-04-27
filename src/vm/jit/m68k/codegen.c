@@ -41,9 +41,7 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -761,13 +759,15 @@ bool codegen_emit(jitdata *jd)
 		/* MEMORY *************************************************************/
 		case ICMD_GETSTATIC:
 			if (INSTRUCTION_IS_UNRESOLVED(iptr))	{
-				assert(0);
+				uf        = iptr->sx.s23.s3.uf;
+				fieldtype = uf->fieldref->parseddesc.fd->type;
+				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, 0);
 			} else	{
 				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
 
 				fieldtype = fi->type;
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))	{
-					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class, disp);
+					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class, 0);
 				}
 
 				disp = (ptrint) &(fi->value);
@@ -1264,7 +1264,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP1);
 			M_ISSL_IMM(2, REG_ITMP1);
 			M_IADD_IMM(OFFSET(java_objectarray, data[0]), REG_ITMP1);
-			M_INTMOVE(s1, REG_ATMP1);
+			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP1, REG_ATMP1);
 			/* implicit null-pointer check */
 			M_STAX(REG_ATMP1, s3);

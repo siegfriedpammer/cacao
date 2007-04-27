@@ -35,9 +35,11 @@
 #include "vm/jit/emit-common.h"
 #include "vm/exceptions.h"
 #include "vm/jit/asmpart.h"
-
 #include "vm/builtin.h"
+
 #include "mm/memory.h"
+
+#include "threads/lock-common.h"
 
 #include "codegen.h"
 #include "md-os.h"
@@ -649,8 +651,8 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
 		M_ICMP(s2, REG_ITMP3);
-		M_BHI(2);
-		/*M_ALD_INTERN(s2, REG_ZERO, EXCEPTION_LOAD_DISP_ARRAYINDEXOUTOFBOUNDS);*/
+		M_BHI(4);
+		M_TRAP_SETREGISTER(s2);
 		M_TRAP(EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
 	}
 }

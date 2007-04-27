@@ -111,17 +111,18 @@ L_asm_vm_call_method_return:
 	movel	%a5, %sp						/* pop arguments off stack */
 	moveml  %sp@, %d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp	/* restore registers */
 	addal 	#(11*4),%sp						/* restore stack */
+	moveal	%d0, %a0						/* return value in %a0, too */
 	rts								/* return to c code */
 	jsr 0	/* never come back ? */
 
 /* asm_vm_call_method_exception_handler	
  *
  * calls void *builtin_throw_exception(java_objectheader *xptr) when no other handler is appropiate
- * this functions gets called indirectly from asm_handle_exception, which back then moved xptr to %a3
+ * this functions gets called indirectly from asm_handle_exception, which back then moved xptr to %a2
  * clear software design is in the eye of the beholder.
  */
 asm_vm_call_method_exception_handler:
-	movel	%a3, %sp@-			/* push xptr argument */
+	movel	%a2, %sp@-			/* push xptr argument */
 	jsr 	builtin_throw_exception
 	lea	%sp@(4), %sp			/* pop arg off stack */
 	bra 	L_asm_vm_call_method_return
@@ -343,3 +344,18 @@ L_handle_exception_nat_catched_no_adr:
 
 illegal
 .long 0x23234242
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

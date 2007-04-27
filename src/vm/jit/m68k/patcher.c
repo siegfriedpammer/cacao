@@ -258,12 +258,9 @@ bool patcher_resolve_class(u1 *sp)
 	classinfo        *c;
 
 	/* get stuff from the stack */
-
-	uc = (unresolved_class *) *((ptrint *) (sp + 2 * 4));
+	uc = (unresolved_class *) *((ptrint *) (sp + 1 * 4));
 
 	/* resolve the class */
-	assert(0);
-
 	if (!resolve_class(uc, resolveEager, false, &c))
 		return false;
 
@@ -321,33 +318,25 @@ bool patcher_get_putstatic(u1 *sp)
 	fieldinfo        *fi;
 
 	/* get stuff from the stack */
-
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 1 * 4));
+	disp  =                       *((s4 *)     (sp + 6 * 4));
 
 	/* get the fieldinfo */
-
-	assert(0);
-
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
 	/* check if the field's class is initialized */
-
 	if (!(fi->class->state & CLASS_INITIALIZED))
 		if (!initialize_class(fi->class))
 			return false;
 
 	/* patch the field value's address */
+	if (opt_shownops) disp += PATCHER_CALL_SIZE;
+	assert(*((uint16_t*)(disp)) == 0x247c);
+	*((ptrint *) (disp+2)) = (ptrint) &(fi->value);
 
-	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
-
-	/* synchronize data cache */
-
-	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
+	/* synchronize inst cache */
+	md_icacheflush(disp+2, SIZEOF_VOID_P);
 
 	return true;
 }
@@ -371,63 +360,42 @@ bool patcher_get_putfield(u1 *sp)
 	uf = (unresolved_field *) *((ptrint *) (sp + 1 * 4));
 
 	/* get the fieldinfo */
-
-	assert(0);
-
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
 	/* if we show NOPs, we have to skip them */
+	if (opt_shownops) ra += PATCHER_CALL_SIZE;
 
-	if (opt_shownops) {
-		/* patch the field's offset */
+	/* patch the field's offset */
+	if (IS_LNG_TYPE(fi->type)) {
+		/* If the field has type long, we have to patch two
+		   instructions.  But we have to check which instruction
+		   is first.  We do that with the offset of the first
+		   instruction. */
+		assert(0);
+		disp = *((u4 *) (ra + 1 * 4));
 
-		if (IS_LNG_TYPE(fi->type)) {
-			/* If the field has type long, we have to patch two
-			   instructions.  But we have to check which instruction
-			   is first.  We do that with the offset of the first
-			   instruction. */
-
-			disp = *((u4 *) (ra + 1 * 4));
-
-			if (disp == 4) {
-				*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-				*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-			}
-			else {
-				*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-				*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-			}
+		if (disp == 4) {
+			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+			*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
 		}
-		else
-			*((u4 *) (ra + 1 * 4)) |= (s2) (fi->offset & 0x0000ffff);
-	}
-	else {
-		if (IS_LNG_TYPE(fi->type)) {
-
-			disp = *((u4 *) (sp + 3 * 4));
-
-			/* We patch the first instruction in the patcher stub
-			   stack and the second in the code.  The first
-			   instruction is patched back later in
-			   patcher_wrapper. */
-
-			if (disp == 4) {
-				*((u4 *) (sp + 3 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-				*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-			}
-			else {
-				*((u4 *) (sp + 3 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-				*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-			}
+		else {
+			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+			*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
 		}
-		else
-			*((u4 *) (sp + 3 * 4)) |= (s2) (fi->offset & 0x0000ffff);
+	} else	{
+		/*
+		 *	0x40adb3f6:     0x254d0000 	movel %a5,%a2@(0)
+		 *	                      ^^^^                     ^
+		 *	                      to be patched
+		 */
+		assert( (*((uint32_t*)ra) & 0xffff0000) == *((uint32_t*)ra) );
+		assert( (fi->offset & 0x0000ffff) == fi->offset );
+		*((uint32_t*)ra) |= fi->offset;
+
+		/* synchronize instruction cache */
+		md_icacheflush(ra, 1 * 4);
 	}
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra + 1 * 4, 2 * 4);
 
 	return true;
 }
@@ -650,6 +618,11 @@ bool patcher_resolve_native_function(u1 *sp)
 /* patcher_invokeinterface *****************************************************
 
    Machine code:
+0x40adb03a:     moveal %sp@(0),%a2		0x246f0000		<-- always so
+0x40adb03e:     moveal %a2@(0),%a3		0x266a0000		<-- no patching
+0x40adb042:     moveal %a3@(0),%a3		0x266b0000		<-- patch this 0000
+0x40adb046:     moveal %a3@(0),%a2		0x246b0000		<-- patch this 0000
+0x40adb04a:     jsr %a2@				0x4e92			<-- always so
 
 
 *******************************************************************************/
@@ -665,30 +638,41 @@ bool patcher_invokeinterface(u1 *sp)
 	ra = (u1 *)                *((ptrint *) (sp + 6 * 4));
 	um = (unresolved_method *) *((ptrint *) (sp + 1 * 4));
 
-	assert(0);
 
 	/* get the fieldinfo */
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
 	/* if we show NOPs, we have to skip them */
-	if (opt_shownops) ra = ra + PATCHER_CALL_SIZE;
+	if (opt_shownops) ra += PATCHER_CALL_SIZE;
+	assert( *((uint32_t*)ra) == 0x246f0000 );
 
 	/* patch interfacetable index (first #0) */
 	disp = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->class->index;
-
-	/* XXX TWISTI: check displacement */
-	*((s4 *) (ra + 1 * 4)) |= (disp & 0x0000ffff);
+	/* XXX this disp is negative, check! 
+	 * assert( (disp & 0x0000ffff) == disp);*/
+	*((uint16_t *) (ra + 5 * 2)) = disp;
 
 	/* patch method offset (second #0) */
 	disp = sizeof(methodptr) * (m - m->class->methods);
-
-	/* XXX TWISTI: check displacement */
-	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
+	assert( (disp & 0x0000ffff) == disp);
+	*((uint16_t *) (ra + 7 * 2)) = disp;
 
 	/* synchronize instruction cache */
-	md_icacheflush(ra + 1 * 4, 2 * 4);
+	md_icacheflush(ra + 5 * 2, 2 * 2);
 
 	return true;
 }
-
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
