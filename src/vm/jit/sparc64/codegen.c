@@ -3012,6 +3012,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		nmd->memuse +  /* nmd knows about the native stackframe layout */
 		WINSAVE_CNT;
 
+
+	/* keep stack 16-byte aligned (ABI requirement) */
+
+	if (cd->stackframesize & 1)
+		cd->stackframesize++;
+
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */

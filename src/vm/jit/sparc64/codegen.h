@@ -88,6 +88,10 @@ s4 nat_argintregs[INT_NATARG_CNT];
         M_NOP; \
     }
 
+#define ALIGN_STACK_SLOTS(slots) \
+	if (slots & 1) \
+		slots++;
+
 
 /* M_INTMOVE:
      generates an integer-move from register rs to rd.

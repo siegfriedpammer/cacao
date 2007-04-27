@@ -91,8 +91,6 @@ const s4 abi_registers_integer_saved[] = {
 	28, /* i4  */
 };
 
-const s4 abi_registers_integer_temporary[] = {
-};
 
 
 s4 nregdescfloat[] = {
@@ -108,9 +106,6 @@ const s4 abi_registers_float_argument[] = {
 	10, /* f20  */
 	11, /* f22  */
 	12, /* f24  */
-};
-
-const s4 abi_registers_float_saved[] = {
 };
 
 const s4 abi_registers_float_temporary[] = {
