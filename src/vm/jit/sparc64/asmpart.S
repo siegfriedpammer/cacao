@@ -205,7 +205,8 @@ asm_vm_call_method_end:
 asm_call_jit_compiler:
 	
 	/* stacksave for regsave(16) + argslots(6) + float args  */
-	save    %sp,-((16+6+FLT_ARG_CNT)*8),%sp
+	/* Note: +1 to keep stack 16-byte aligned                */
+	save    %sp,-((16+6+FLT_ARG_CNT+1)*8),%sp
 
 	SAVE_FLOAT_ARGUMENT_REGISTERS(22)
 
