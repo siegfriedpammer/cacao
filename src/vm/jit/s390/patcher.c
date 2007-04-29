@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7581 2007-03-26 07:23:16Z pm $
+   $Id: patcher.c 7839 2007-04-29 22:46:56Z pm $
 
 */
 
@@ -807,12 +807,20 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 		case REG_ITMP1: 
 			/* First M_ALD is into ITMP1 */
 			/* INSTANCEOF code */
-		case REG_ITMP2:
-			/* First M_ALD is into ITMP1 */
-			/* CHECKCAST code */
 
 			*(u4 *)(ra + SZ_L + SZ_L) |= (u2)(s2)(- c->index);
 			*(u4 *)(ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC) |=
+				(u2)(s2)(OFFSET(vftbl_t, interfacetable[0]) -
+					c->index * sizeof(methodptr*));
+
+			break;
+
+		case REG_ITMP2:
+			/* First M_ALD is into ITMP2 */
+			/* CHECKCAST code */
+
+			*(u4 *)(ra + SZ_L + SZ_L) |= (u2)(s2)(- c->index);
+			*(u4 *)(ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC + SZ_ILL) |=
 				(u2)(s2)(OFFSET(vftbl_t, interfacetable[0]) -
 					c->index * sizeof(methodptr*));
 

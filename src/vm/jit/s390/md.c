@@ -28,21 +28,9 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7581 2007-03-26 07:23:16Z pm $
+   $Id: md.c 7839 2007-04-29 22:46:56Z pm $
 
 */
-
-#define REG_RSP 0
-#define REG_RIP 0
-#define REG_RAX 0
-#define REG_R10 0
-#define REG_RIP 0
-#define REG_RSP 0
-#define REG_RIP 0
-#define REG_RAX 0
-#define REG_R10 0
-#define REG_RIP 0
-
 
 #define _GNU_SOURCE
 
@@ -74,6 +62,10 @@
 #include <assert.h>
 #define OOPS() assert(0);
 
+/* prototypes *****************************************************************/
+
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p);
+
 /* md_init *********************************************************************
 
    Do some machine dependent initialization.
@@ -82,7 +74,14 @@
 
 void md_init(void)
 {
-	/* nothing to do */
+	struct sigaction act;
+	
+	act.sa_sigaction = md_signal_handler_sigill;
+	act.sa_flags     = SA_NODEFER | SA_SIGINFO;
+
+	if (sigaction(SIGILL, &act, NULL) == -1)	{
+		vm_abort("%s: error registering SIGILL signal handler.", __FUNCTION__);
+	}
 }
 
 
@@ -95,35 +94,96 @@ void md_init(void)
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	u1         *sp;
-	u1         *ra;
-	u1         *xpc;
+	ucontext_t        *_uc;
+	mcontext_t        *_mc;
+	u1                *pv;
+	u1                *sp;
+	u1                *ra;
+	u1                *xpc;
+	s4                 type;
+	ptrint             val;
+	java_objectheader *e;
+	s4                 base;
+	s4                 is_null;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
+	xpc = (u1 *)_mc->psw.addr;
 
-	sp  = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (u1 *) _mc->gregs[REG_RIP];
-	ra  = xpc;                          /* return address is equal to xpc     */
+	/* Check opcodes and verify it is a null pointer exception */
 
-#if 0
-	/* check for StackOverflowException */
+	switch (xpc[0]) {
+		case 0x58: /* L */
+		case 0x50: /* ST */
+			base = (xpc[2] >> 4) & 0xF;
+			if (base == 0) {
+				is_null = 1;
+			} else if (_mc->gregs[base] == 0) {
+				is_null = 1;
+			} else {
+				is_null = 0;
+			}
+			break;
+	}
 
-	threads_check_stackoverflow(sp);
-#endif
+	if (! is_null) {
+		vm_abort("%s: segmentation fault at %p, aborting.", __FUNCTION__, xpc);
+	}
 
-	_mc->gregs[REG_RAX] =
-		(ptrint) stacktrace_hardware_nullpointerexception(NULL, sp, ra, xpc);
+	pv = (u1 *)_mc->gregs[REG_PV];
+	sp = (u1 *)_mc->gregs[REG_SP];
+	ra = xpc;
+	type = EXCEPTION_HARDWARE_NULLPOINTER;
+	val = 0;
 
-	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
-	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
+	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
+	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
+	_mc->psw.addr = (ptrint) asm_handle_exception;
 }
 
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
+	ucontext_t        *_uc;
+	mcontext_t        *_mc;
+	u1                *xpc;
+	u1                *ra;
+	u1                *pv;
+	u1                *sp;
+	s4                 type;
+	ptrint             val;
+	java_objectheader *e;
+	s4                 reg;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+	xpc = ra = siginfo->si_addr;
+
+	/* Our trap instruction has the format: { 0x02, one_byte_of_data }. */
+
+	if ((siginfo->si_code == ILL_ILLOPC) && (xpc[0] == 0x02)) {
+
+		/* bits 7-4 contain a register holding a value */
+		reg = (xpc[1] >> 4) & 0xF;
+
+		/* bits 3-0 designate the exception type */
+		type = xpc[1] & 0xF;  
+
+		pv = (u1 *)_mc->gregs[REG_PV];
+		sp = (u1 *)_mc->gregs[REG_SP];
+		val = (ptrint)_mc->gregs[reg];
+
+		e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+		_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
+		_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
+		_mc->psw.addr = (ptrint) asm_handle_exception;
+
+	} else {
+		vm_abort("%s: illegal instruction at %p, aborting.", __FUNCTION__, xpc);
+	}
+}
 
 /* md_signal_handler_sigfpe ****************************************************
 
@@ -134,27 +194,70 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t  *_uc;
-	mcontext_t  *_mc;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
+	ucontext_t         *_uc;
+	mcontext_t         *_mc;
+	u1                 *pv;
+	u1                 *sp;
+	u1                 *ra;
+	u1                 *xpc;
+	u1                 *pc;
+	s4                  r1, r2;
+	s4                  type;
+	ptrint              val;
+	java_objectheader  *e;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
+	/* Instruction that raised signal */
+	xpc = siginfo->si_addr;
 
-	sp  = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (u1 *) _mc->gregs[REG_RIP];
-	ra  = xpc;                          /* return address is equal to xpc     */
+	/* Check opcodes */
 
-	_mc->gregs[REG_RAX] =
-		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
+	if (xpc[0] == 0x1D) { /* DR */
 
-	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
-	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
+		r1 = (xpc[1] >> 4) & 0xF;
+		r2 = xpc[1] & 0xF;
+
+		if (
+			(_mc->gregs[r1] == 0xFFFFFFFF) &&
+			(_mc->gregs[r1 + 1] == 0x80000000) && 
+			(_mc->gregs[r2] == 0xFFFFFFFF)
+		) {
+			/* handle special case */
+			/* next instruction */
+			pc = (u1 *)_mc->psw.addr;
+			/* reminder */
+			_mc->gregs[r1] = 0;
+			/* quotient */
+			_mc->gregs[r1 + 1] = 0x80000000;
+			/* continue at next instruction */
+			_mc->psw.addr = (ptrint) pc;
+
+			return;
+		} else if (_mc->gregs[r2] == 0) {
+			/* division by 0 */
+
+			pv = (u1 *)_mc->gregs[REG_PV];
+			sp = (u1 *)_mc->gregs[REG_SP];
+			ra = xpc;
+
+			type = EXCEPTION_HARDWARE_ARITHMETIC;
+			val = 0;
+
+			e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+			_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
+			_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
+			_mc->psw.addr = (ptrint) asm_handle_exception;
+
+			return;
+		}
+	}
+
+	/* Could not handle signal */
+
+	vm_abort("%s: floating point exception at %p, aborting.", __FUNCTION__, xpc);
 }
 
 
@@ -180,7 +283,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
-	pc = (u1 *) _mc->gregs[REG_RIP];
+	pc = (u1 *) _mc->psw.addr;
 
 	t->pc = pc;
 }
@@ -195,10 +298,10 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 
 	_mc = &_uc->uc_mcontext;
 
-	pc = critical_find_restart_point((void *) _mc->gregs[REG_RIP]);
+	pc = critical_find_restart_point((void *) _mc->psw.addr);
 
 	if (pc != NULL)
-		_mc->gregs[REG_RIP] = (ptrint) pc;
+		_mc->psw.addr = (ptrint) pc;
 }
 #endif
 

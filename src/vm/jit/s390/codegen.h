@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7691 2007-04-12 12:45:10Z twisti $
+   $Id: codegen.h 7839 2007-04-29 22:46:56Z pm $
 
 */
 
@@ -40,17 +40,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-#define CALCOFFSETBYTES(var, reg, val) \
-    if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
-    else if ((s4) (val) != 0) (var) += 1; \
-    else if ((reg) == RBP || (reg) == RSP || (reg) == R12 || (reg) == R13) (var) += 1;
-
-
-#define CALCIMMEDIATEBYTES(var, val) \
-    if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
-    else (var) += 1;
-
 
 #define gen_nullptr_check_intern(objreg) \
 	do { \
@@ -89,15 +78,6 @@
     }
 
 
-
-/* branch defines *************************************************************/
-
-#define BRANCH_NOPS \
-    do { \
-        M_NOP; \
-    } while (0)
-
-
 /* some patcher defines *******************************************************/
 
 #define PATCHER_CALL_SIZE    4          /* size in bytes of a patcher call    */
@@ -105,14 +85,17 @@
 #define PATCHER_NOPS \
     do { \
         M_NOP; \
-		M_NOP; \ 
+		M_NOP; \
 		M_NOP; \
     } while (0)
 
 #define PATCHER_NOPS_SKIP   12 
 
+/* branch defines ************************************************************/
 
- /* stub defines **************************************************************/
+#define BRANCH_NOPS M_NOP /* Size of at least M_BRC */
+
+/* stub defines **************************************************************/
 
 #define COMPILERSTUB_CODESIZE    (SZ_AHI + SZ_L + SZ_L + SZ_BCR)
 
@@ -369,7 +352,7 @@
 #	define SZ_NR SZ_RR
 #define N_N(r1, d2, x2, b2) N_RX(0x54, r1, d2, x2, b2)
 #define N_NI(d1, b1, i2) N_SI(0x94, d1, b1, i2)
-#define N_NC(d1, l, b1, d2, b2) N_NC(0xD4, l, b1, d1, b2, d2)
+#define N_NC(d1, l, b1, d2, b2) N_SS(0xD4, (l - 1), b1, d1, b2, d2)
 #define N_BALR(r1, r2) N_RR(0x05, r1, _OR(r2))
 #define N_BAL(r1, d2, x2, b2) N_RX(0x45, r1, d2, x2, b2)
 #define N_BASR(r1, r2) N_RR(0x0D, r1, _OR(r2))
@@ -406,7 +389,7 @@
 #define N_CLR(r1, r2) N_RR(0x15, r1, r2)
 #define N_CL(r1, d2, x2, b2) N_RX(0x55, r1, d2, x2, b2)
 #define N_CLI(d1, b1, i2) N_SI(0x95, d1, b1, i2)
-#define N_CLC(d1, l, b1, d2, b2) N_SS(0xD5, d1, l, b1, d2, b2)
+#define N_CLC(d1, l, b1, d2, b2) N_SS(0xD5, d1, (l - 1), b1, d2, b2)
 #define N_CLM(r1, m3, d2, b2) N_RS(0xBD, r1, m3, d2, b2)
 #define N_CLCL(r1, r2) N_RR(0x0F, r1, r2)
 #define N_CLCLE(r1, r3, d2, b2) N_RS(0xA9, r1, r3, d2, b2)
@@ -422,7 +405,7 @@
 #define N_XR(r1, r2) N_RR(0x17, r1, r2)
 #define N_X(r1, d2, x2, b2) N_RX(0x57, r1, d2, x2, b2)
 #define N_XI(d1, b1, i2) N_SI(0x97, d1, b1, i2)
-#define N_XC(d1, l, b1, d2, b2) N_SS(0xD7, d1, l, b1, d2, b2)
+#define N_XC(d1, l, b1, d2, b2) N_SS(0xD7, d1, (l - 1), b1, d2, b2)
 #define N_EX(r1, d2, x2, b2) N_RX(0x44, r1, d2, x2, b2)
 #define N_EAR(r1, r2) N_RRE(0xB24F, r1, r2)
 #define N_IC(r1, d2, x2, b2) N_RX(0x43, r1, d2, x2, b2)
@@ -445,15 +428,15 @@
 #define N_LPR(r1, r2) N_RR(0x10, r1, r2)
 #define N_MC(d1, b1, i2) N_SI(0xAF, d1, b1, i2)
 #define N_MVI(d1, b1, i2) N_SI(0x92, d1, b1, i2)
-#define N_MVC(d1, l, b1, d2, b2) N_SS(0xD2, d1, l, b1, d2, b2)
-#define N_MVCIN(d1, l, b1, d2, b2) N_SS(0xEB, d1, l, b1, d2, b2)
+#define N_MVC(d1, l, b1, d2, b2) N_SS(0xD2, d1, (l - 1), b1, d2, b2)
+#define N_MVCIN(d1, l, b1, d2, b2) N_SS(0xEB, d1, (l - 1), b1, d2, b2)
 #define N_MVCL(r1, r2) N_RR(0x0E, r1, r2)
 #define N_MVCLE(r1, r3, d2, b2)  N_RS(0xAB, r1, r3, d2, b2)
-#define N_MVN(d1, l, b1, d2, b2) N_SS(0xD1, d1, l, b1, d2, b2)
+#define N_MVN(d1, l, b1, d2, b2) N_SS(0xD1, d1, (l - 1), b1, d2, b2)
 #define N_MVPG(r1, r2) N_RRE(0xB254, r1, r2)
 #define N_MVST(r1, r2) N_RRE(0xB255, r1, r2)
-#define N_MVO(d1, l1, b1, d2, l2, b2) N_SS2(0xF1, d1, l1, b1, d2, l2, b2)
-#define N_MVZ(d1, l, b1, d2, b2) N_SS(0xD3, d1, l, b1, d2, b2)
+#define N_MVO(d1, l1, b1, d2, l2, b2) N_SS2(0xF1, d1, (l1 - 1), b1, d2, (l2 - 1), b2)
+#define N_MVZ(d1, l, b1, d2, b2) N_SS(0xD3, d1, (l - 1), b1, d2, b2)
 #define N_MR(r1, r2) N_RR(0x1C, r1, r2)
 #define N_M(r1, d2, x2, b2) N_RX(0x5C, r1, d2, x2, b2)
 #define N_MH(r1, d2, x2, b2) N_RX(0x4C, r1, d2, x2, b2)
@@ -463,8 +446,8 @@
 #define N_OR(r1, r2) N_RR(0x16, r1, r2)
 #define N_O(r1, d2, x2, b2) N_RX(0x56, r1, d2, x2, b2)
 #define N_OI(d1, b1, i2) N_SI(0x96, d1, b1, i2)
-#define N_OC(d1, l, b1, d2, b2) N_SS(0xD6, d1, l, b1, d2, b2)
-#define N_PACK(d1, l1, b1, d2, l2, b2) N_SS2(0xF2, d1, l1, b1, d2, l2, b2)
+#define N_OC(d1, l, b1, d2, b2) N_SS(0xD6, d1, (l - 1), b1, d2, b2)
+#define N_PACK(d1, l1, b1, d2, l2, b2) N_SS2(0xF2, d1, (l1 - 1), b1, d2, (l2 - 1), b2)
 #define N_PLO(r1, d2, b2, r3, d4, b4) N_SS2(0xEE, d2, r1, b2, d4, r3, b4)
 #define N_SRST(r1, r2) N_RRE(0xB25E, r1, r2)
 #define N_SAR(r1, r2) N_RRE(0xB24E, r1, r2)
@@ -495,10 +478,10 @@
 #define N_TM(d1, b1, i2) N_SI(0x91, d1, b1, i2)
 #define N_TMH(r1, i2) N_RI(0xA7, 0x00, r1, i2)
 #define N_TML(r1, i2) N_RI(0xA7, 0x01, r1, i2)
-#define N_TR(d1, l, b1, d2, b2) N_SS(0xDC, d1, l, b1, d2, b2)
-#define N_TRT(d1, l, b1, d2, b2) N_SS(0xDD, d1, l, b1, d2, b2)
+#define N_TR(d1, l, b1, d2, b2) N_SS(0xDC, d1, (l - 1), b1, d2, b2)
+#define N_TRT(d1, l, b1, d2, b2) N_SS(0xDD, d1, (l - 1), b1, d2, b2)
 #define N_TRE(r1, r2) N_RRE(0xB2A5, r1, r2)
-#define N_UNPK(d1, l1, b1, d2, l2, b2) N_SS2(0xF3, d1, l1, b1, d2, l2, b2)
+#define N_UNPK(d1, l1, b1, d2, l2, b2) N_SS2(0xF3, d1, (l1 - 1), b1, d2, (l2 - 2), b2)
 #define N_UPT() N_E(0x0102)
 
 /* Chapter 9. Floating point instructions */
@@ -566,9 +549,30 @@
 #define N_SEB(r1, d2, x2, b2) N_RXE(0xED0B, r1, d2, x2, b2)
 #define N_SDB(r1, d2, x2, b2) N_RXE(0xED1B, r1, d2, x2, b2)
 
+/* Others */
+
+/* Trap instruction.
+ * If most significant bits of first opcode byte are 00, then
+ * format is RR (1 byte opcode) or E (2 bytes opcode). 
+ * There seems to be no opcode 0x02 or 0x02**, so we'll define
+ * our trap instruction as:
+ * +--------+--------+
+ * |  0x02  |  data  |
+ * +--------+--------+
+ * 0                 15
+ */
+#define N_ILL(data) _CODE2(0x0200 | _UBITS(data, 8))
+#define SZ_ILL 2
+
+#define N_LONG(l) _CODE4(l)
+#define SZ_LONG 4
+
 /* Alpha like instructions */
 
 #define M_CALL(r2) N_BASR(R14, r2)
+#define M_ILL(data) N_ILL(data)
+#define M_ILL2(data1, data2) N_ILL((_UBITS(data1, 4) << 4) | _UBITS(data2, 4))
+#define M_LONG(l) N_LONG(l)
 
 #define M_ILD(r, b, d) \
 	do { \
@@ -673,6 +677,7 @@
 #define M_CVTDI(src, dst) N_CFDBR(dst, 5, src)
 #define M_IADD(a, dest) N_AR(dest, a)
 #define M_ISUB(a, dest) N_SR(dest, a)
+#define M_ASUB(a, dest) N_SR(dest, a)
 #define M_IAND(a, dest) N_NR(dest, a)
 #define M_IOR(a, dest) N_OR(dest, a)
 #define M_IXOR(a, dest) N_XR(dest, a)
@@ -765,6 +770,18 @@
             M_FMOV(reg, dreg); \
         } \
     } while (0)
+
+#define M_ISUB_IMM32(imm, tmpreg, reg) \
+	do { \
+		if (N_VALID_IMM(imm)) { \
+			M_ISUB_IMM(imm, reg); \
+		} else { \
+			ICONST(tmpreg, imm); \
+			M_ISUB(tmpreg, reg); \
+		} \
+	} while (0)
+
+#define M_ASUB_IMM32(imm, tmpreg, reg) M_ISUB_IMM32(imm, tmpreg, reg)
 
 /* ----------------------------------------------- */
 
@@ -882,8 +899,6 @@
 #define M_CALL_IMM(a) _DEPR( M_CALL_IMM(a) )
 
 
-
-
 #define M_FLD32(a,b,disp) _DEPR( M_FLD32(a,b,disp) )
 #define M_DLD32(a,b,disp) _DEPR( M_DLD32(a,b,disp) )
 
@@ -909,24 +924,11 @@
 #define PROFILE_CYCLE_STOP 
 #define __PROFILE_CYCLE_STOP _DEPR( __PROFILE_CYCLE_STOP )
 
-
-/* function gen_resolvebranch **************************************************
-
-    backpatches a branch instruction
-
-    parameters: ip ... pointer to instruction after branch (void*)
-                so ... offset of instruction after branch  (s8)
-                to ... offset of branch target             (s8)
-
-*******************************************************************************/
-
-#define gen_resolvebranch(ip,so,to) \
-    *((s4*) ((ip) - 4)) = (s4) ((to) - (so));
-
 #endif /* _CODEGEN_H */
 
 
 s4 codegen_reg_of_dst_notzero(jitdata *jd, instruction *iptr, s4 tempregnum);
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
