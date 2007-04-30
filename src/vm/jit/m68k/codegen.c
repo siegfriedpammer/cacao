@@ -609,7 +609,12 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1)
-			M_IUSR_IMM(iptr->sx.val.i & 0x1f, REG_ITMP1);
+			if ((iptr->sx.val.i & 0x1f) <= 7)	{
+				M_IUSR_IMM(iptr->sx.val.i & 0x1f, REG_ITMP1);
+			} else	{
+				M_IMOV_IMM(iptr->sx.val.i & 0x1f, REG_ITMP2);
+				M_IUSR(REG_ITMP2, REG_ITMP1);
+			}
 			M_INTMOVE(REG_ITMP1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -636,6 +641,45 @@ bool codegen_emit(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_INTMOVE(s2, REG_ITMP2);
+			M_IOR(s1, REG_ITMP2);
+			M_INTMOVE(REG_ITMP2, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
+		                      /* sx.val.i = constant                          */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_INTMOVE(s1, REG_ITMP1);
+			M_IOR_IMM(iptr->sx.val.i, REG_ITMP1);
+			M_INTMOVE(REG_ITMP1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IXOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			M_INTMOVE(s2, REG_ITMP2);
+			M_IXOR(s1, REG_ITMP2);
+			M_INTMOVE(REG_ITMP2, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_IXORCONST:   /* ..., value  ==> ..., value | constant        */
+		                      /* sx.val.i = constant                          */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_INTMOVE(s1, REG_ITMP1);
+			M_IXOR_IMM(iptr->sx.val.i, REG_ITMP1);
+			M_INTMOVE(REG_ITMP1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
 
 
 
@@ -1378,9 +1422,9 @@ bool codegen_emit(jitdata *jd)
 					M_ALD(REG_ATMP1, REG_SP, 0);
 					/* implicit null-pointer check */
 					M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_objectheader, vftbl));
-					M_ALD(REG_ATMP1, REG_METHODPTR, s1);
+					M_ALD(REG_ATMP3, REG_METHODPTR, s1);
 					/* generate the actual call */
-					M_JSR(REG_ATMP1);
+					M_JSR(REG_ATMP3);
 					break;
 				case ICMD_INVOKEINTERFACE: 
 					if (lm == NULL) {
@@ -1398,10 +1442,10 @@ bool codegen_emit(jitdata *jd)
 					/* implicit null-pointer check */
 					M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_objectheader, vftbl));
 					M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
-					M_ALD(REG_ATMP1, REG_METHODPTR, s2);
+					M_ALD(REG_ATMP3, REG_METHODPTR, s2);
 
 					/* generate the actual call */
-					M_JSR(REG_ATMP1);
+					M_JSR(REG_ATMP3);
 					REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 					break;
 
@@ -2002,7 +2046,6 @@ void codegen_emit_stub_compiler(jitdata *jd)
 	M_AMOV_IMM(m, REG_ATMP1);
 	M_AMOV_IMM(asm_call_jit_compiler, REG_ATMP3);
 	M_JMP(REG_ATMP3);
-	M_JMP_IMM(0);	/* FIXME: remove me */
 }
 
 
@@ -2035,8 +2078,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	cd->stackframesize = 	sizeof(stackframeinfo) / SIZEOF_VOID_P +
 				sizeof(localref_table) / SIZEOF_VOID_P +
 				nmd->memuse +
+			#if 0
 				4 + 						/* %d0,%d1,%a0,%a1*/
 				2 * 2 +						/* %f0,%f1 */
+			#endif
 				1 +						/* functionptr */
 				4;						/* args for codegen_start_native_call */
 
@@ -2064,7 +2109,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL)	{
 		codegen_addpatchref(cd, PATCHER_resolve_native_function, m, 0);
-		/*M_AMOV_IMM(0, REG_ATMP2);*/
 	}
 #endif
 	M_AMOV_IMM(f, REG_ATMP2); /* do not move this line, the patcher is needed */
@@ -2097,7 +2141,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_AST(REG_ATMP1, REG_SP, 2 * 4);		/* sp */
 
 	M_AMOV_IMM(0, REG_ATMP2);			/* 0 needs to patched */
-	dseg_adddata(cd);				/* this patches it */
+	dseg_adddata(cd);				    /* this patches it */
 
 	M_AST(REG_ATMP2, REG_SP, 1 * 4);		/* pv */
 

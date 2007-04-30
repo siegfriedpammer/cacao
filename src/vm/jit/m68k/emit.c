@@ -49,20 +49,23 @@
  */
 void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg)
 {
-	if ((imm & 0x000000FF) == imm)	{
+	/* FIXME: -1 can be used as byte form 0xff, but this ifs cascade is plain wrong it seems */
+
+	if ( (imm & 0x0000007F) == imm)	{
 		/* use byte form */
 		*((s2*)cd->mcodeptr) = 0x7000 | (dreg << 9) | imm;	/* MOVEQ.L */
 		cd->mcodeptr += 2;
-	} else if ((imm  & 0xFFFF0000) != 0)	{
-		/* use long form */
-		OPWORD( ((2<<6) | (dreg << 3) | 0), 7, 4);
-		*((s4*)cd->mcodeptr) = (s4)imm;
-		cd->mcodeptr += 4;
-	} else {
+	} else if ((imm  & 0x00007FFF) == imm)	{
 		/* use word form */
 		OPWORD( ((3<<6) | (dreg << 3) | 0), 7, 4);
 		*((s2*)cd->mcodeptr) = (s2)imm;
 		cd->mcodeptr += 2;
+	} else {
+		/* use long form */
+		OPWORD( ((2<<6) | (dreg << 3) | 0), 7, 4);
+		*((s4*)cd->mcodeptr) = (s4)imm;
+		cd->mcodeptr += 4;
+
 	}
 }
 
@@ -305,7 +308,7 @@ void emit_patcher_stubs(jitdata *jd)
 		cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr       */
 
 		/* save REG_ITMP3 */
-		M_IPUSH(REG_ITMP3);	/* FIXME why, and restore where ? */
+		M_IPUSH(REG_ITMP3);		/* FIXME why, and restore where ? */
 
 		/* move pointer to java_objectheader onto stack */
 
@@ -683,8 +686,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ITST(reg);
 		M_BNE(2);
-		/*M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARITHMETIC);*/
-		M_ILLEGAL; /* FIXME */
+		M_TRAP(EXCEPTION_HARDWARE_ARITHMETIC);
 	}
 }
 

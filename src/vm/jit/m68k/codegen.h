@@ -227,8 +227,14 @@
 #define M_IUSR(a,b)		OPWORD ( ( (0xe<<6) | ((a) << 3) | 2), 5, (b))			/* lsr.l */
 
 #define M_IAND(a,b)		OPWORD ( ( (0xc<<6) | ((b) << 3) | 2), 0, (a))			/* and.l */
-
 #define M_IOR(a,b)		OPWORD ( ( (0x8<<6) | ((b) << 3) | 2), 0, (a))			/* or.l */
+#define M_IXOR(a,b)		OPWORD ( ( (0xb<<6) | ((b) << 3) | 6), 0, (a))			/* eor.l */
+
+
+/* M_IX_IMM(imm, register)	*/
+#define M_IAND_IMM(a,b)		OPWORD_IMM32( 0xa, 0, (b), (a))					/* andi.l # */
+#define M_IOR_IMM(a,b)		OPWORD_IMM32( 0x2, 0, (b), (a))					/* ori.l # */
+#define M_IXOR_IMM(a,b)		OPWORD_IMM32( 0x2a,0, (b), (a))					/* eori.l # */
 
 
 /* ultra sepcial 3 register form, b%a = c, (a!=c) */
@@ -276,8 +282,6 @@
 #define M_ICMP(b,a)		OPWORD( ( (0xb << 6) | ((a) << 3) | 2), 0, (b))			/* cmp.l */
 #define M_ACMP(b,a)		OPWORD( ( (0xb << 6) | ((a) << 3) | 7), 1, (b))			/* cmpa.l */
 
-/* M_AND_IMM(imm, register)	*/
-#define M_IAND_IMM(a,b)		OPWORD_IMM32( 0xa, 0, (b), (a))					/* andi.l # */
 
 /* All kind of branches one could ever possibly need, each with 16 and 32 bit displacement */
 /* BRANCH16 and BRANCH32 are helpers */
@@ -396,3 +400,17 @@
 	} while(0);
 
 #endif /* _CODEGEN_H */
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

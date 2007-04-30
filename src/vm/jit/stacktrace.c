@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7792 2007-04-22 20:02:05Z tbfg $
+   $Id: stacktrace.c 7840 2007-04-30 10:53:13Z tbfg $
 
 */
 
@@ -155,7 +155,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, u1 *ra, u1 *xpc)
 {
 	stackframeinfo **psfi;
-#if !defined(__I386__) && !defined(__X86_64__) && !defined(__S390__)
+#if !defined(__I386__) && !defined(__X86_64__) && !defined(__S390__) && !defined(__M68K__)
 	bool             isleafmethod;
 #endif
 #if defined(ENABLE_JIT)
@@ -195,6 +195,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 # if defined(__I386__) || defined(__X86_64__) || defined(__S390__) || defined(__M68K__)
 		/* On i386 and x86_64 we always have to get the return address
 		   from the stack. */
+		/* m68k has return address on stack always */
 		/* On S390 we use REG_RA as REG_ITMP3, so we have always to get
 		   the RA from stack. */
 

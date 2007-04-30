@@ -102,7 +102,7 @@ L_asm_vm_call_copy_1_word_type:
 
 L_asm_vm_call_method_copy_done:
 
-	leal 	asm_call_jit_compiler,%a4			/* we need to fake a invocation as it would happen from jit code */
+	leal 	asm_call_jit_compiler,%a4		/* we need to fake a invocation as it would happen from jit code */
 	movel	%a4, call_jit_dummy				/* we need a writeable memory location */
 	moveal	call_jit_dummy, %a4				/* XXX do we have a race condition here ? */
 	jsr	%a4@
@@ -112,36 +112,35 @@ L_asm_vm_call_method_return:
 	moveml  %sp@, %d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp	/* restore registers */
 	addal 	#(11*4),%sp						/* restore stack */
 	moveal	%d0, %a0						/* return value in %a0, too */
-	rts								/* return to c code */
-	jsr 0	/* never come back ? */
+asm_vm_call_method_end:						/* symbol needed to insert method into avl tree */
+	rts										/* return to c code */
 
-/* asm_vm_call_method_exception_handler	
+/* asm_vm_call_method_exception_handler	********************************************************************
  *
  * calls void *builtin_throw_exception(java_objectheader *xptr) when no other handler is appropiate
  * this functions gets called indirectly from asm_handle_exception, which back then moved xptr to %a2
  * clear software design is in the eye of the beholder.
- */
+ ************************************************************************************************************/
 asm_vm_call_method_exception_handler:
 	movel	%a2, %sp@-			/* push xptr argument */
 	jsr 	builtin_throw_exception
 	lea	%sp@(4), %sp			/* pop arg off stack */
-	bra 	L_asm_vm_call_method_return
+	moveal	%sp, %a5
+	jmp 	L_asm_vm_call_method_return
 
 
-asm_vm_call_method_end:						/* symbol needed to insert method into avl tree */
-	rts
-/*
+/* asm_call_jit_compiler ************************************************************************************
  *	Invokes compiler for untranslated java methods.
  *	C prototype: void asm_call_jit_compiler(void);
  *	BUT: this does not match reality, arguments _ARE_ passed via createcompilerstub and asm_vm_call_method...
  *	arguments passed via %a2(methodinfo) == REG_ATMP1
- *                           %a3(mptr)       == REG_ATMP2
- */
+ *                       %a3(mptr)       == REG_ATMP2
+ ************************************************************************************************************/
 asm_call_jit_compiler:
 	addal	#(-4*4),%sp						/* create stackframe to save registers */
-	moveml	%a0/%a1/%d0/%d1,%sp@					/* save volatile registers */
+	moveml	%a0/%a1/%d0/%d1,%sp@			/* save volatile registers */
 
-	movel 	%sp@(4*4),%sp@-						/* push arguments onto stack (ra)*/
+	movel 	%sp@(4*4),%sp@-					/* push arguments onto stack (ra)*/
 	pea 	%sp@(4*4+4)						/* the old stack pointer */
 	movel 	%a3,%sp@-						/* mptr */
 	movel 	%a2,%sp@-						/* methodinfo */
@@ -161,11 +160,11 @@ asm_call_jit_compiler:
 	jsr 	0							/* we should not ever return here */
 
 L_asm_call_jit_compiler_exception:
-	jsr	0							/* TODO */
+	jsr		exceptions_get_and_clear_exception		/* exception object in %d0 now */
+	moveal	%d0, %a2								/* move exception object into sptr register */
+	moveal	%sp@+, %a3								/* pop return address into exception address reg */
+	jmp asm_handle_exception						/* handle exception */
 
-	moveml  %fp@(-4*4), %a0/%a1/%d0/%d1				/* restore registers */
-	unlk	%fp							/* FIXME: this is wrong */
-	rts
 
 /* asm_patcher_wrapper ********************************************************
 	
@@ -183,12 +182,16 @@ L_asm_call_jit_compiler_exception:
 *******************************************************************************/
 asm_patcher_wrapper:
 
-  movel %sp, %d0
   /* save scratch registers */
   movel %a0, %sp@-
   movel %a1, %sp@-
   movel %d0, %sp@-
   movel %d1, %sp@-
+
+  /* calculate original value of sp */
+  movel %sp, %d0
+  addil #4*4, %d0
+
 #if !defined(ENABLE_SOFTFLOAT)
   movel %f0, %sp@-
   movel %f1, %sp@-
@@ -197,11 +200,10 @@ asm_patcher_wrapper:
   clrl	%sp@-				/* pass ra */
   clrl	%sp@-				/* pass pv, if null use findmethod */
   movel %d0, %sp@-			/* pass sp of patcher stub */
-  jsr	patcher_wrapper			/* return value in %d0 */
+  jsr	patcher_wrapper		/* return value in %d0 */
 
-  lea	%sp@(3*4), %sp			/* pop arguments off stack */
-
-  tst	%d0				/* test if exception occured */
+  lea	%sp@(3*4), %sp		/* pop arguments off stack */
+  tst	%d0					/* test if exception occured */
   bne	L_asm_patcher_wrapper_exception
 
 #if !defined(ENABLE_SOFTFLOAT)
@@ -214,11 +216,22 @@ asm_patcher_wrapper:
   movel %sp@+, %a0
 
   lea   %sp@(6*4), %sp			/* restore stack and remove patcher stub*/
-  rts					/* back to jit code */
+  rts							/* back to jit code */
 
 L_asm_patcher_wrapper_exception:
   /* WARNING: the stack is still disturbed, look at asm_patcher_wrapper for details */
-  jsr 0					/* TODO */
+  /* we do not need to restore the content of the registers, I hope */
+#if !defined(ENABLE_SOFTFLOAT)
+	lea		%sp@(6*4), %sp
+#else
+	lea		%sp@(4*4), %sp
+#endif
+
+  lea   	%sp@(6*4), %sp				/* restore stack and remove patcher stub*/
+  moveal	%d0, %a2					/* xptr, pointer to exception object */
+  moveal	%sp@+, %a3					/* pop return address into exception address register */
+  jmp		asm_handle_exception		/* handle exception */
+  illegal								/* XXX: we never come back */
 
 /********************************************************************************
 	Reads a few values atomically. 
@@ -276,7 +289,7 @@ L_asm_handle_exception_stack_loop:
 	
 	/* we need the dseg, figure it out */
 	movel	%a3, %sp@-				/* push ra argument */
-	jsr	md_codegen_get_pv_from_pc		/* pv in %d0 now */
+	jsr	md_codegen_get_pv_from_pc	/* pv in %d0 now */
 	movel	%d0, %d2				/* move to safe register */
 	lea	%sp@(4), %sp				/* pop args off stack */
 
@@ -336,8 +349,7 @@ L_handle_exception_nat_catched_no_adr:
 	/* nothing to do */
 #endif
 	addal	%d2, %sp		/* remove old stackframe */
-	moveal	%sp@(0), %a3		/* make return address, new exception rasing address */
-	addal	#4,%sp			/* remove return address fromstack */
+	moveal	%sp@+, %a3		/* make return address, new exception rasing address */
 	subal	#2, %a3			/* it was a jsr %aX, which is 4 bytes long */
 	jmp	L_asm_handle_exception_stack_loop
 

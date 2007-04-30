@@ -114,6 +114,9 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	   stacktrace_create_extern_stackframeinfo for
 	   md_codegen_get_pv_from_pc. */
 
+	/*
+	fprintf(stderr, "EXT STACKFRAME: sfi=%x pv=%x, sp=%x, xpc=%x\n", &sfi, pv, sp+7*4, xpc);
+	*/
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 7 * 4, xpc, xpc);
 
 	/* call the proper patcher function */
@@ -191,7 +194,7 @@ bool patcher_invokevirtual(u1 *sp)
 	/* if we show NOPs, we have to skip them */
 	if (opt_shownops) ra += PATCHER_CALL_SIZE;
 
-	assert( *((u2*)(ra+8)) == 0x246b);
+	assert( *((u2*)(ra+8)) == 0x286b);
 
 	/* patch vftbl index */
 	disp = (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
@@ -618,11 +621,10 @@ bool patcher_resolve_native_function(u1 *sp)
 /* patcher_invokeinterface *****************************************************
 
    Machine code:
-0x40adb03a:     moveal %sp@(0),%a2		0x246f0000		<-- always so
 0x40adb03e:     moveal %a2@(0),%a3		0x266a0000		<-- no patching
 0x40adb042:     moveal %a3@(0),%a3		0x266b0000		<-- patch this 0000
-0x40adb046:     moveal %a3@(0),%a2		0x246b0000		<-- patch this 0000
-0x40adb04a:     jsr %a2@				0x4e92			<-- always so
+0x40adb046:     moveal %a3@(0),%a4		0xxxxx0000		<-- patch this 0000
+0x40adb04a:     jsr %a4@				0xxxxx			
 
 
 *******************************************************************************/
