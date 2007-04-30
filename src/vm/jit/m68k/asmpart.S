@@ -73,7 +73,7 @@ asm_vm_call_method_double:
 	movel	%sp@(11*4+2*4),%d2				/* arg count */
 
 	moveal	%sp, %a5					/* memorize stack */
-	tst	%d2						/* do we have arguments ? */
+	tst	%d2								/* do we have arguments ? */
 	beq	L_asm_vm_call_method_copy_done
 	subql	#1,%d2						/* simplifies offset calulation */
 
@@ -89,15 +89,15 @@ L_asm_vm_call_copy_arg:
 	movel	%a0@(offvmargdata+4), %d0
 	movel	%d0,%sp@-					/* push argument onto stack */
 
-	movel	%a0@(offvmargtype), %d0				/* %d0 contains type of arg */	
+	movel	%a0@(offvmargtype), %d0		/* %d0 contains type of arg */	
 	btstl	#0, %d0						/* test if 2 word type */
 	beq	L_asm_vm_call_copy_1_word_type
-	movel	%a0@(offvmargdata), %d0				/* push second word onto stack */
+	movel	%a0@(offvmargdata), %d0		/* push second word onto stack */
 	movel	%d0,%sp@-
 L_asm_vm_call_copy_1_word_type:
 
 	subl	#(sizevmarg),%a0
-	tst 	%d2						/* arguments left ? */
+	tst 	%d2							/* arguments left ? */
 	bne	L_asm_vm_call_copy_arg
 
 L_asm_vm_call_method_copy_done:
@@ -125,7 +125,6 @@ asm_vm_call_method_exception_handler:
 	movel	%a2, %sp@-			/* push xptr argument */
 	jsr 	builtin_throw_exception
 	lea	%sp@(4), %sp			/* pop arg off stack */
-	moveal	%sp, %a5
 	jmp 	L_asm_vm_call_method_return
 
 
@@ -324,15 +323,15 @@ L_asm_handle_exception_not_catched:
 	andil	#0x0000ffff, %d0	/* this is IntSave */
 	cmpb	#0,%d0
 	beq	L_asm_handle_ex_int_done
-	movel	(%a0)+, %d7
+	movel	-(%a0), %d7
 
 	cmpb	#1,%d0
 	beq	L_asm_handle_ex_int_done
-	movel	(%a0)+, %d6
+	movel	-(%a0), %d6
 
 	cmpb	#2,%d0 
 	beq	L_asm_handle_ex_int_done
-	movel	(%a0)+, %d5
+	movel	-(%a0), %d5
 
 L_asm_handle_ex_int_done:
 
@@ -340,7 +339,7 @@ L_asm_handle_ex_int_done:
 	andil	#0xffff0000, %d0	/* this is AdrSave */
 	tstl	%d0
 	beq	L_handle_exception_nat_catched_no_adr
-	moveal	(%a0)+, %a5
+	moveal	-(%a0), %a5
 L_handle_exception_nat_catched_no_adr:
 
 #if !defined(ENABLE_SOFTFLOAT)
