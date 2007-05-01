@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7839 2007-04-29 22:46:56Z pm $
+   $Id: codegen.h 7846 2007-05-01 16:14:00Z pm $
 
 */
 
@@ -39,30 +39,6 @@
 #include "vm/jit/jit.h"
 
 
-/* additional functions and macros to generate code ***************************/
-
-#define gen_nullptr_check_intern(objreg) \
-	do { \
-		M_TEST(objreg); \
-		M_BEQ(0); \
-		codegen_add_nullpointerexception_ref(cd); \
-	} while (0);
-
-#define gen_nullptr_check(objreg) \
-	if (checknull) { \
-		gen_nullptr_check_intern(objreg); \
-	}
-
-
-#define gen_bound_check \
-    if (checkbounds) { \
-        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
-        M_ICMP(REG_ITMP3, s2); \
-        M_BAE(0); \
-        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-    }
-
-
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
@@ -71,12 +47,10 @@
             codegen_increase(cd); \
     } while (0)
 
-
 #define ALIGNCODENOP \
     if ((s4) (((ptrint) cd->mcodeptr) & 7)) { \
         M_NOP; \
     }
-
 
 /* some patcher defines *******************************************************/
 
@@ -98,7 +72,6 @@
 /* stub defines **************************************************************/
 
 #define COMPILERSTUB_CODESIZE    (SZ_AHI + SZ_L + SZ_L + SZ_BCR)
-
 
 /* *** BIG TODO ***
  * Make all this inline functions !!!!!!!!!!
@@ -337,7 +310,21 @@
 
 /* Misc */
 
-#define N_LONG_0() _CODE4(0)
+/* Trap instruction.
+ * If most significant bits of first opcode byte are 00, then
+ * format is RR (1 byte opcode) or E (2 bytes opcode). 
+ * There seems to be no opcode 0x02 or 0x02**, so we'll define
+ * our trap instruction as:
+ * +--------+--------+
+ * |  0x02  |  data  |
+ * +--------+--------+
+ * 0                 15
+ */
+#define N_ILL(data) _CODE2(0x0200 | _UBITS(data, 8))
+#define SZ_ILL 2
+
+#define N_LONG(l) _CODE4(l)
+#define SZ_LONG 4
 
 /* Chapter 7. General instructions */
 
@@ -548,24 +535,6 @@
 #define N_SXBR(r1, r2) N_RRE(0xB34B, r1, r2)
 #define N_SEB(r1, d2, x2, b2) N_RXE(0xED0B, r1, d2, x2, b2)
 #define N_SDB(r1, d2, x2, b2) N_RXE(0xED1B, r1, d2, x2, b2)
-
-/* Others */
-
-/* Trap instruction.
- * If most significant bits of first opcode byte are 00, then
- * format is RR (1 byte opcode) or E (2 bytes opcode). 
- * There seems to be no opcode 0x02 or 0x02**, so we'll define
- * our trap instruction as:
- * +--------+--------+
- * |  0x02  |  data  |
- * +--------+--------+
- * 0                 15
- */
-#define N_ILL(data) _CODE2(0x0200 | _UBITS(data, 8))
-#define SZ_ILL 2
-
-#define N_LONG(l) _CODE4(l)
-#define SZ_LONG 4
 
 /* Alpha like instructions */
 
@@ -898,10 +867,8 @@
 #define M_JMP_IMM(a) _DEPR( M_JMP_IMM(a) )
 #define M_CALL_IMM(a) _DEPR( M_CALL_IMM(a) )
 
-
 #define M_FLD32(a,b,disp) _DEPR( M_FLD32(a,b,disp) )
 #define M_DLD32(a,b,disp) _DEPR( M_DLD32(a,b,disp) )
-
 
 #define M_FST32(a,b,disp) _DEPR( M_FST32(a,b,disp) )
 #define M_DST32(a,b,disp) _DEPR( M_DST32(a,b,disp) )
