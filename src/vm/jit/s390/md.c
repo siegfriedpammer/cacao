@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7839 2007-04-29 22:46:56Z pm $
+   $Id: md.c 7848 2007-05-01 21:40:26Z pm $
 
 */
 
@@ -43,6 +43,7 @@
 #include "vm/jit/s390/md-abi.h"
 
 #if defined(ENABLE_THREADS)
+# include "threads/threads-common.h"
 # include "threads/native/threads.h"
 #endif
 
@@ -66,6 +67,8 @@
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p);
 
+void md_dump_context(u1 *pc, mcontext_t *mc);
+
 /* md_init *********************************************************************
 
    Do some machine dependent initialization.
@@ -84,6 +87,48 @@ void md_init(void)
 	}
 }
 
+/* md_dump_context ************************************************************
+ 
+   Logs the machine context
+  
+*******************************************************************************/
+
+void md_dump_context(u1 *pc, mcontext_t *mc) {
+	int i;
+	
+	union {
+		u8 l;
+		fpreg_t fr;
+	} freg;
+
+	log_println("Dumping context.");
+
+	log_println("Program counter: 0x%08X", pc);
+
+#if defined(ENABLE_DISASSEMBLER)
+	log_println("Printing instruction at program counter:");
+	disassinstr(pc);
+#endif
+
+	log_println("General purpose registers:");
+
+	for (i = 0; i < 16; i++) {
+		log_println("\tr%d:\t0x%08X\t%d", i, mc->gregs[i], mc->gregs[i]);
+	}
+
+	log_println("Floating point registers:");
+
+	for (i = 0; i < 16; i++) {
+		freg.fr.d = mc->fpregs.fprs[i].d;
+		log_println("\tf%d\t0x%016llX\t(double)%e\t(float)%f", i, freg.l, freg.fr.d, freg.fr.f);
+	}
+
+#if defined(ENABLE_THREADS)
+	log_println("Dumping the current stacktrace:");
+	threads_print_stacktrace();
+#endif
+
+}
 
 /* md_signal_handler_sigsegv ***************************************************
 
@@ -128,6 +173,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	}
 
 	if (! is_null) {
+#if !defined(NDEBUG)
+		md_dump_context(xpc, _mc);
+#endif
 		vm_abort("%s: segmentation fault at %p, aborting.", __FUNCTION__, xpc);
 	}
 
@@ -181,6 +229,9 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 		_mc->psw.addr = (ptrint) asm_handle_exception;
 
 	} else {
+#if !defined(NDEBUG)
+		md_dump_context(xpc, _mc);
+#endif
 		vm_abort("%s: illegal instruction at %p, aborting.", __FUNCTION__, xpc);
 	}
 }
@@ -257,6 +308,9 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Could not handle signal */
 
+#if !defined(NDEBUG)
+	md_dump_context(xpc, _mc);
+#endif
 	vm_abort("%s: floating point exception at %p, aborting.", __FUNCTION__, xpc);
 }
 

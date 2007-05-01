@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7839 2007-04-29 22:46:56Z pm $
+   $Id: emit.c 7848 2007-05-01 21:40:26Z pm $
 
 */
 
@@ -929,6 +929,39 @@ void emit_exception_check(codegendata *cd, instruction *iptr) {
 		M_TEST(REG_RESULT);
 		M_BNE(SZ_BRC + SZ_ILL);
 		M_ILL(EXCEPTION_HARDWARE_EXCEPTION);
+	}
+}
+
+void emit_restore_pv(codegendata *cd) {
+	s4 offset;
+
+	/*
+	N_BASR(REG_PV, RN);
+	disp = (s4) (cd->mcodeptr - cd->mcodebase);
+	M_ASUB_IMM32(disp, REG_ITMP1, REG_PV);
+	*/
+
+	/* If the offset from the method start does not fit into an immediate
+	 * value, we can't put it into the data segment!
+	 */
+
+	/* Displacement from start of method to here */
+
+	offset = (s4) (cd->mcodeptr - cd->mcodebase);
+
+	if (N_VALID_IMM(-(offset + SZ_BASR))) {
+		/* Get program counter */
+		N_BASR(REG_PV, RN);
+		/* Substract displacement */
+		M_ASUB_IMM(offset + SZ_BASR, REG_PV);
+	} else {
+		/* Save program counter and jump over displacement in instruction flow */
+		N_BRAS(REG_PV, SZ_BRAS + SZ_LONG);
+		/* Place displacement here */
+		/* REG_PV points now exactly to this position */
+		N_LONG(offset + SZ_BRAS);
+		/* Substract *(REG_PV) from REG_PV */
+		N_S(REG_PV, 0, RN, REG_PV);
 	}
 }
 

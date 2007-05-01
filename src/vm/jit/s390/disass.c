@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 7845 2007-05-01 16:05:07Z pm $
+   $Id: disass.c 7848 2007-05-01 21:40:26Z pm $
 
 */
 
@@ -85,7 +85,7 @@ static s4 disass_pseudo_instr(u1 *code) {
 	switch (code[0]) {
 		/* Trap */
 		case 0x02:
-			snprintf(disass_buf, 512, "ill\t 0x%02hhx (pseudo)", code[1]);
+			snprintf(disass_buf, 512, "ill\t0x%02hhx (pseudo)", code[1]);
 			return 2;
 		/* Not recognized */
 		default:

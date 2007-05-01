@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.h 7839 2007-04-29 22:46:56Z pm $
+   $Id: emit.h 7848 2007-05-01 21:40:26Z pm $
 
 */
 
@@ -59,6 +59,9 @@ void emit_restore_dst_even_odd(jitdata *jd, instruction *iptr, s4 htmpreg, s4 lt
  * dtmpreg, a register copy is emitted.
  */
 void emit_copy_dst(jitdata *jd, instruction *iptr, s4 dtmpreg);
+
+/* Emits code to recalculate the PV (procedure vector) after a subroutine call. */
+void emit_restore_pv(codegendata *cd);
 
 #endif /* _MD_EMIT_H */
 

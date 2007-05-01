@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7846 2007-05-01 16:14:00Z pm $
+   $Id: codegen.h 7848 2007-05-01 21:40:26Z pm $
 
 */
 
@@ -216,7 +216,10 @@
 #define SZ_RX 4
 
 #define N_RI(op1, op2, r1, i2) \
-	_CODE4( (_OP(op1) << 24) | (_R(r1) << 20) | (_OP4(op2) << 16) | (u2)_I16(i2) )
+	_CODE4( (_OP(op1) << 24) | (_R(r1) << 20) | (_OP4(op2) << 16) | (u2)_SI16(i2) )
+
+#define N_RI2(op1, op2, r1, i2) \
+	_CODE4( (_OP(op1) << 24) | (_R(r1) << 20) | (_OP4(op2) << 16) | (u2)_UI16(i2) )
 
 #define SZ_RI 4
 
@@ -343,6 +346,7 @@
 #define N_BALR(r1, r2) N_RR(0x05, r1, _OR(r2))
 #define N_BAL(r1, d2, x2, b2) N_RX(0x45, r1, d2, x2, b2)
 #define N_BASR(r1, r2) N_RR(0x0D, r1, _OR(r2))
+#	define SZ_BASR SZ_RR
 #define N_BAS(r1, d2, x2, b2) N_RX(0x4D, r1, d2, x2, b2)
 #define N_BASSM(r1, r2) N_RR(0x0C, r1, _OR(r2))
 #define N_BSM(r1, r2) N_RR(0x0B, r1, _OR(r2))
@@ -463,8 +467,8 @@
 #define N_SVC(i) N_RR2(0x0A, i)
 #define N_TS(d2, b2) N_S2(0x93, d2, b2)
 #define N_TM(d1, b1, i2) N_SI(0x91, d1, b1, i2)
-#define N_TMH(r1, i2) N_RI(0xA7, 0x00, r1, i2)
-#define N_TML(r1, i2) N_RI(0xA7, 0x01, r1, i2)
+#define N_TMH(r1, i2) N_RI2(0xA7, 0x00, r1, i2)
+#define N_TML(r1, i2) N_RI2(0xA7, 0x01, r1, i2)
 #define N_TR(d1, l, b1, d2, b2) N_SS(0xDC, d1, (l - 1), b1, d2, b2)
 #define N_TRT(d1, l, b1, d2, b2) N_SS(0xDD, d1, (l - 1), b1, d2, b2)
 #define N_TRE(r1, r2) N_RRE(0xB2A5, r1, r2)

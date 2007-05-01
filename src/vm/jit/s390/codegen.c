@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7845 2007-05-01 16:05:07Z pm $
+   $Id: codegen.c 7848 2007-05-01 21:40:26Z pm $
 
 */
 
@@ -2749,9 +2749,7 @@ gen_method:
 
 			M_CALL(REG_PV);
 			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-			N_BASR(REG_PV, RN);
-			disp = (s4) (cd->mcodeptr - cd->mcodebase);
-			M_ASUB_IMM32(disp, REG_ITMP1, REG_PV);
+			emit_restore_pv(cd);
 	
 			/* post call finalization */
 
