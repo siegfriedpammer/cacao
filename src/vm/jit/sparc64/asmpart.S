@@ -96,10 +96,11 @@ asm_vm_call_method_long:
 asm_vm_call_method_float: 
 asm_vm_call_method_double:
 	
-	save %sp,-144,%sp                                /* 16 reg-save + 2 */
+	save %sp,-((JITSTACK_CNT+2)*8),%sp
+	add %sp,JITSTACK,%l1               /* right above window save area */
 
 
-	/* %i2 not needed after _nocopy -> calculate in branch delay */
+	/* %i1 not needed after _nocopy -> calculate in branch delay */
 
 	brlez %i1, calljava_nocopy
 	
@@ -131,8 +132,8 @@ calljava_argsloaded:
 	brlez %i1, calljava_nocopy
 	nop
 	sllx %i1,3,%l0                     /* remaining args * 8           */
-	add %sp,16*8+bias,%l1              /* right above window save area */
 	sub %sp,%l0,%sp                    /* allocate more stack space    */
+	add %sp,JITSTACK,%l1               /* adjust stack begin pointer   */
 	
 calljava_copyloop:
 	ldx [%i2 + (offvmargdata+sizevmarg*5)],%l0
@@ -151,8 +152,8 @@ calljava_nocopy:
 	mov   %i0,itmp1		/* pass method info pointer via itmp1 */
 	
 	setx  asm_call_jit_compiler,%l0,mptr_itmp2  /* fake virtual function call (2 instr) */
-	stx   mptr_itmp2,[%sp + 2047 + 17*8]        /* store function address               */
-	add   %sp,2047 + 16*8,mptr_itmp2            /* set method pointer                   */
+	stx   mptr_itmp2,[%l1 + 1*8]        /* store function address               */
+	mov   %l1,mptr_itmp2            /* set method pointer                   */
 	
 	ldx  [1*8 + mptr_itmp2], pv_caller          /* method call as in Java               */
 	jmpl pv_caller,ra_caller                      /* call JIT compiler          */
@@ -420,31 +421,6 @@ L_asm_patcher_wrapper_exception:
 	nop
 
 
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-/* not doing a window save, using the global temporary registers */
-	ldsw    [offbaseval+%o0],itmp1
-	ldsw    [offdiffval+%o0],itmp2
-	ldsw    [offbaseval+%o1],itmp3
-_crit_end:
-	stw     itmp1,[offcast_super_baseval+%o2]
-	stw     itmp2,[offcast_super_diffval+%o2]
-	stw     itmp3,[offcast_sub_baseval+%o2]
-	jmpl    ra_caller+8,zero  /* caller's ra, b/c no window save */
-	nop
-
-
-    .data
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-    .xword   _crit_begin
-    .xword   _crit_end
-    .xword   _crit_restart
-#endif
-    .xword   0
-    
     
 /* asm_store_fp_state_reg **************************************************
  *                                                                         *
@@ -476,6 +452,34 @@ asm_load_fp_state_reg:
 	retl  /* return from leaf */
 	nop
 
+
+
+
+asm_getclassvalues_atomic:
+_crit_restart:
+_crit_begin:
+/* not doing a window save, using the global temporary registers */
+	ldsw    [offbaseval+%o0],itmp1
+	ldsw    [offdiffval+%o0],itmp2
+	ldsw    [offbaseval+%o1],itmp3
+_crit_end:
+	stw     itmp1,[offcast_super_baseval+%o2]
+	stw     itmp2,[offcast_super_diffval+%o2]
+	stw     itmp3,[offcast_sub_baseval+%o2]
+	jmpl    ra_caller+8,zero  /* caller's ra, b/c no window save */
+	nop
+
+
+    .data
+
+asm_criticalsections:
+#if defined(ENABLE_THREADS)
+    .xword   _crit_begin
+    .xword   _crit_end
+    .xword   _crit_restart
+#endif
+    .xword   0
+    
 
 /* disable exec-stacks ********************************************************/
 

@@ -693,38 +693,6 @@ s4   get_lopart_disp(s4 disp);
 #define M_AADD_IMM(a,b,c)       M_ADD_IMM(a,b,c)
 #define M_ASUB_IMM(a,b,c)       M_SUB_IMM(a,b,c)
 #define M_ASLL_IMM(a,b,c)       M_SLLX_IMM(a,b,c)
-
-
-
-
-/* var_to_reg_xxx **************************************************************
-
-   This function generates code to fetch data from a pseudo-register
-   into a real register. If the pseudo-register has actually been
-   assigned to a real register, no code will be emitted, since
-   following operations can use this register directly.
-    
-   v: pseudoregister to be fetched from
-   tempregnum: temporary register to be used if v is actually spilled to ram
-
-   return: the register number, where the operand can be found after 
-           fetching (this wil be either tempregnum or the register
-           number allready given to v)
-
-*******************************************************************************/
-
-#define var_to_reg_int(regnr,v,tempnr) \
-    do { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_LDX(tempnr, REG_SP, (v)->regoff * 8); \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
-    } while (0)
-																  
-
-																  
 	
+
 #endif /* _CODEGEN_H */

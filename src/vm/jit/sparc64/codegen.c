@@ -2431,10 +2431,7 @@ gen_method:
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
-						if (IS_2_WORD_TYPE(var->type))
-							M_DST(s1, REG_SP, JITSTACK + d * 8);
-						else
-							M_FST(s1, REG_SP, JITSTACK + d * 8);
+						M_DST(s1, REG_SP, JITSTACK + d * 8);
 					}
 				}
 			}
