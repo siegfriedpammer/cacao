@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7839 2007-04-29 22:46:56Z pm $
+   $Id: codegen.c 7845 2007-05-01 16:05:07Z pm $
 
 */
 
@@ -2163,41 +2163,37 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_IF_LGE:
 		case ICMD_IF_LEQ:
 		case ICMD_IF_LNE:
-			{
 
-				u1 *out_ref = NULL;
+			/* ATTENTION: compare high words signed and low words unsigned */
 
-				/* ATTENTION: compare high words signed and low words unsigned */
-	
-				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
+#			define LABEL_OUT BRANCH_LABEL_1
 
-				if (N_VALID_IMM(iptr->sx.val.l >> 32))
-					M_ICMP_IMM(s1, iptr->sx.val.l >> 32);
-				else {
-					disp = dseg_add_s4(cd, iptr->sx.val.l >> 32);
-					ICONST(REG_ITMP2, disp);
-					N_C(s1, 0, REG_ITMP2, REG_PV);
-				}
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 
-				switch(iptr->opc) {
+			if (N_VALID_IMM(iptr->sx.val.l >> 32))
+				M_ICMP_IMM(s1, iptr->sx.val.l >> 32);
+			else {
+				disp = dseg_add_s4(cd, iptr->sx.val.l >> 32);
+				ICONST(REG_ITMP2, disp);
+				N_C(s1, 0, REG_ITMP2, REG_PV);
+			}
+
+			switch(iptr->opc) {
 				case ICMD_IF_LLT:
 				case ICMD_IF_LLE:
 					emit_blt(cd, iptr->dst.block);
 					/* EQ ... fall through */
-					out_ref = cd->mcodeptr;
-					M_BGT(0);
+					emit_label_bgt(cd, LABEL_OUT);
 					break;
 				case ICMD_IF_LGT:
 				case ICMD_IF_LGE:
 					emit_bgt(cd, iptr->dst.block);
 					/* EQ ... fall through */
-					out_ref = cd->mcodeptr;
-					M_BLT(0);
+					emit_label_blt(cd, LABEL_OUT);
 					break;
 				case ICMD_IF_LEQ: 
 					/* EQ ... fall through */
-					out_ref = cd->mcodeptr;
-					M_BNE(0);
+					emit_label_bne(cd, LABEL_OUT);
 					break;
 				case ICMD_IF_LNE:
 					/* EQ ... fall through */
@@ -2205,42 +2201,43 @@ bool codegen_emit(jitdata *jd)
 					break;
 				default:
 					assert(0);
-				}
+			}
 
-				s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 
-				disp = dseg_add_s4(cd, (s4)(iptr->sx.val.l & 0xffffffff));
-				ICONST(REG_ITMP2, disp);
-				N_CL(s1, 0, REG_ITMP2, REG_PV);
+			disp = dseg_add_s4(cd, (s4)(iptr->sx.val.l & 0xffffffff));
+			ICONST(REG_ITMP2, disp);
+			N_CL(s1, 0, REG_ITMP2, REG_PV);
 
-				switch(iptr->opc) {
+			switch(iptr->opc) {
 				case ICMD_IF_LLT:
 					emit_blt(cd, iptr->dst.block);
+					emit_label(cd, LABEL_OUT);
 					break;
 				case ICMD_IF_LLE:
 					emit_ble(cd, iptr->dst.block);
+					emit_label(cd, LABEL_OUT);
 					break;
 				case ICMD_IF_LGT:
 					emit_bgt(cd, iptr->dst.block);
+					emit_label(cd, LABEL_OUT);
 					break;
 				case ICMD_IF_LGE:
 					emit_bge(cd, iptr->dst.block);
+					emit_label(cd, LABEL_OUT);
 					break;
 				case ICMD_IF_LEQ:
 					emit_beq(cd, iptr->dst.block);
+					emit_label(cd, LABEL_OUT);
 					break;
 				case ICMD_IF_LNE:
 					emit_bne(cd, iptr->dst.block);
 					break;
 				default:
 					assert(0);
-				}
-
-				if (out_ref != NULL) {
-					*(u4 *)out_ref |= (u4)(cd->mcodeptr - out_ref) / 2;
-				}
-
 			}
+
+#			undef LABEL_OUT
 			break;
 
 		case ICMD_IF_ACMPEQ:    /* ..., value, value ==> ...                  */
@@ -2814,8 +2811,11 @@ gen_method:
 				vftbl_t   *supervftbl;
 				s4         superindex;
 
-				u1        *class_label_refs[] = { 0 }, *class_label;
-				u1        *exit_label_refs[] = { 0, 0, 0, 0 };
+#				define LABEL_EXIT_CHECK_NULL BRANCH_LABEL_1
+#				define LABEL_CLASS BRANCH_LABEL_2
+#				define LABEL_EXIT_INTERFACE_NULL BRANCH_LABEL_3
+#				define LABEL_EXIT_INTERFACE_DONE BRANCH_LABEL_4
+#				define LABEL_EXIT_CLASS_NULL BRANCH_LABEL_5
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					super = NULL;
@@ -2837,8 +2837,7 @@ gen_method:
 
 				if (super == NULL) {
 					M_TEST(s1);
-					exit_label_refs[0] = cd->mcodeptr;
-					M_BEQ(0);
+					emit_label_beq(cd, LABEL_EXIT_CHECK_NULL);
 
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
@@ -2849,8 +2848,7 @@ gen_method:
 					ICONST(REG_ITMP2, ACC_INTERFACE);
 					ICONST(REG_ITMP3, disp); /* TODO negative displacement */
 					N_N(REG_ITMP2, 0, REG_ITMP3, REG_PV);
-					class_label_refs[0] = cd->mcodeptr;
-					M_BEQ(0);
+					emit_label_beq(cd, LABEL_CLASS);
 				}
 
 				/* interface checkcast code */
@@ -2863,8 +2861,7 @@ gen_method:
 											  0);
 					} else {
 						M_TEST(s1);
-						exit_label_refs[1] = cd->mcodeptr;
-						M_BEQ(0);
+						emit_label_beq(cd, LABEL_EXIT_INTERFACE_NULL);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
@@ -2880,14 +2877,15 @@ gen_method:
 					emit_classcast_check(cd, iptr, BRANCH_EQ, REG_ITMP2, s1);
 
 					if (super == NULL) {
-						exit_label_refs[2] = cd->mcodeptr;
-						M_BR(0);
+						emit_label_br(cd, LABEL_EXIT_INTERFACE_DONE);
 					}
 				}
 
 				/* class checkcast code */
-
-				class_label = cd->mcodeptr;
+				
+				if (super == NULL) {
+					emit_label(cd, LABEL_CLASS);
+				}
 
 				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
@@ -2901,8 +2899,7 @@ gen_method:
 					else {
 						disp = dseg_add_address(cd, supervftbl);
 						M_TEST(s1);
-						exit_label_refs[3] = cd->mcodeptr;
-						M_BEQ(0);
+						emit_label_beq(cd, LABEL_EXIT_CLASS_NULL);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
@@ -2911,15 +2908,6 @@ gen_method:
 					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-					/*  				if (s1 != REG_ITMP1) { */
-					/*  					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval)); */
-					/*  					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval)); */
-					/*  #if defined(ENABLE_THREADS) */
-					/*  					codegen_threadcritstop(cd, (u1 *) mcodeptr - cd->mcodebase); */
-					/*  #endif */
-					/*  					M_ISUB(REG_ITMP2, REG_ITMP1, REG_ITMP2); */
-
-					/*  				} else { */
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 					M_ISUB(REG_ITMP3, REG_ITMP2);
 					M_ALD(REG_ITMP3, REG_PV, disp);
@@ -2927,7 +2915,6 @@ gen_method:
 #if defined(ENABLE_THREADS)
 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-					/*  				} */
 					M_CMPU(REG_ITMP2, REG_ITMP3); /* Unsigned compare */
 					/* M_CMPULE(REG_ITMP2, REG_ITMP3, REG_ITMP3); itmp3 = (itmp2 <= itmp3) */
 					/* M_BEQZ(REG_ITMP3, 0); branch if (! itmp) -> branch if > */
@@ -2935,19 +2922,22 @@ gen_method:
 					emit_classcast_check(cd, iptr, BRANCH_GT, RN, s1);
 				}
 
-				/* resolve labels by adding the correct displacement */
-
-				for (s2 = 0; s2 < sizeof(exit_label_refs) / sizeof(exit_label_refs[0]); ++s2) {
-					if (exit_label_refs[s2])
-						*(u4 *)exit_label_refs[s2] |= (u4)(cd->mcodeptr - exit_label_refs[s2]) / 2;
-				}
-
-				for (s2 = 0; s2 < sizeof(class_label_refs) / sizeof(class_label_refs[0]); ++s2) {
-					if (class_label_refs[s2])
-						*(u4 *)class_label_refs[s2] |= (u4)(class_label - class_label_refs[s2]) / 2;
+				if (super == NULL) {
+					emit_label(cd, LABEL_EXIT_CHECK_NULL);
+					emit_label(cd, LABEL_EXIT_INTERFACE_DONE);
+				} else if (super->flags & ACC_INTERFACE) {
+					emit_label(cd, LABEL_EXIT_INTERFACE_NULL);
+				} else {
+					emit_label(cd, LABEL_EXIT_CLASS_NULL);
 				}
 
 				d = codegen_reg_of_dst(jd, iptr, s1);
+
+#				undef LABEL_EXIT_CHECK_NULL
+#				undef LABEL_CLASS
+#				undef LABEL_EXIT_INTERFACE_NULL
+#				undef LABEL_EXIT_INTERFACE_DONE
+#				undef LABEL_EXIT_CLASS_NULL
 			}
 			else {
 				/* array type cast-check */
@@ -2997,16 +2987,16 @@ gen_method:
 			 *  return ((sub != NULL) && (0
 			 *          <= (sub->vftbl->baseval - super->vftbl->baseval) <=
 			 *          super->vftbl->diffvall));
+			 *
+			 *  If superclass is unresolved, we include both code snippets 
+			 *  above, a patcher resolves the class' flags and we select
+			 *  the right code at runtime.
 			 */
 
 			{
 			classinfo *super;
 			vftbl_t   *supervftbl;
 			s4         superindex;
-
-			u1        *class_label, *class_label_refs[1] = { 0 };
-			u1        *exit_label_refs[4] = { 0, 0, 0, 0 };
-			u1        *label1, *label1_refs[1] = { 0 };
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				super = NULL;
@@ -3018,6 +3008,13 @@ gen_method:
 				superindex = super->index;
 				supervftbl = super->vftbl;
 			}
+
+#			define LABEL_EXIT_CHECK_NULL BRANCH_LABEL_1
+#			define LABEL_CLASS BRANCH_LABEL_2
+#			define LABEL_EXIT_INTERFACE_NULL BRANCH_LABEL_3
+#			define LABEL_EXIT_INTERFACE_INDEX_NOT_IN_TABLE BRANCH_LABEL_4
+#			define LABEL_EXIT_INTERFACE_DONE BRANCH_LABEL_5
+#			define LABEL_EXIT_CLASS_NULL BRANCH_LABEL_6
 
 #if defined(ENABLE_THREADS)
 			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
@@ -3035,8 +3032,7 @@ gen_method:
 				M_CLR(d);
 				
 				M_TEST(s1);
-				exit_label_refs[0] = cd->mcodeptr;
-				M_BEQ(0);
+				emit_label_beq(cd, LABEL_EXIT_CHECK_NULL);
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
@@ -3046,8 +3042,7 @@ gen_method:
 				ICONST(REG_ITMP2, ACC_INTERFACE);
 				ICONST(REG_ITMP3, disp); /* TODO negative displacement */
 				N_N(REG_ITMP2, 0, REG_ITMP3, REG_PV);
-				class_label_refs[0] = cd->mcodeptr;
-				M_BEQ(0);
+				emit_label_beq(cd, LABEL_CLASS);
 			}
 
 			/* interface instanceof code */
@@ -3066,15 +3061,15 @@ gen_method:
 				else {
 					M_CLR(d);
 					M_TEST(s1);
-					exit_label_refs[1] = cd->mcodeptr;
-					M_BEQ(0);
+					emit_label_beq(cd, LABEL_EXIT_INTERFACE_NULL);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_ISUB_IMM(superindex, REG_ITMP3);
-				label1_refs[0] = cd->mcodeptr;
-				M_BLE(0); 
+
+				emit_label_ble(cd, LABEL_EXIT_INTERFACE_INDEX_NOT_IN_TABLE);
+
 				N_AHI(
 					REG_ITMP1,
 					(s4) (OFFSET(vftbl_t, interfacetable[0]) -
@@ -3088,17 +3083,16 @@ gen_method:
 				M_BEQ(SZ_BRC + SZ_LHI);
 				N_LHI(d, 1);
 
-				label1 = cd->mcodeptr;
-
 				if (super == NULL) {
-					exit_label_refs[2] = cd->mcodeptr;
-					M_BR(0);
+					emit_label_br(cd, LABEL_EXIT_INTERFACE_DONE);
 				}
 			}
 
 			/* class instanceof code */
 
-			class_label = cd->mcodeptr;
+			if (super == NULL) {
+				emit_label(cd, LABEL_CLASS);
+			}
 
 			if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 				if (super == NULL) {
@@ -3114,8 +3108,7 @@ gen_method:
 					M_CLR(d);
 
 					M_TEST(s1);
-					exit_label_refs[3] = cd->mcodeptr;
-					M_BEQ(0);
+					emit_label_beq(cd, LABEL_EXIT_CLASS_NULL);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
@@ -3137,23 +3130,24 @@ gen_method:
 				N_LHI(d, 1);
 			}
 
-			/* resolve labels by adding the correct displacement */
-
-			for (s2 = 0; s2 < sizeof(exit_label_refs) / sizeof(exit_label_refs[0]); ++s2) {
-				if (exit_label_refs[s2])
-					*(u4 *)exit_label_refs[s2] |= (u4)(cd->mcodeptr - exit_label_refs[s2]) / 2;
+			if (super == NULL) {
+				emit_label(cd, LABEL_EXIT_CHECK_NULL);
+				emit_label(cd, LABEL_EXIT_INTERFACE_DONE);
+				emit_label(cd, LABEL_EXIT_INTERFACE_INDEX_NOT_IN_TABLE);
+			} else if (super->flags & ACC_INTERFACE) {
+				emit_label(cd, LABEL_EXIT_INTERFACE_NULL);
+				emit_label(cd, LABEL_EXIT_INTERFACE_INDEX_NOT_IN_TABLE);
+			} else {
+				emit_label(cd, LABEL_EXIT_CLASS_NULL);
 			}
 
-			for (s2 = 0; s2 < sizeof(class_label_refs) / sizeof(class_label_refs[0]); ++s2) {
-				if (class_label_refs[s2])
-					*(u4 *)class_label_refs[s2] |= (u4)(class_label - class_label_refs[s2]) / 2;
-			}
-
-			for (s2 = 0; s2 < sizeof(label1_refs) / sizeof(label1_refs[0]); ++s2) {
-				if (label1_refs[s2])
-					*(u4 *)label1_refs[s2] |= (u4)(label1 - label1_refs[s2]) / 2;
-			}
-
+#			undef LABEL_EXIT_CHECK_NULL
+#			undef LABEL_CLASS
+#			undef LABEL_EXIT_INTERFACE_NULL
+#			undef LABEL_EXIT_INTERFACE_INDEX_NOT_IN_TABLE
+#			undef LABEL_EXIT_INTERFACE_DONE
+#			undef LABEL_EXIT_CLASS_NULL
+				
 			emit_store_dst(jd, iptr, d);
 
 			}
