@@ -115,7 +115,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_
 		val = (opc >> 9) & 0x0007;
 		off = *(uint16_t*)(xpc+1);
 	} else {
-		fprintf(stderr, "SEGV: short instructions %x\n", opc);
+		
+		/*fprintf(stderr, "SEGV: short instructions %x\n", opc);
+		*/
 		/* now check the 32 bit sized instructions */
 		if ((opc & (2<<3)) == (2<<3))	{
 			if (opc & (1<<6)) adrreg = true;		/* M_L*X */
@@ -136,7 +138,8 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_
 	}*/
 
 
-	fprintf(stderr, "SEGV: sp=%x, xpc=%x, regval=%x\n", sp, xpc, regval);
+	/*fprintf(stderr, "SEGV: sp=%x, xpc=%x, regval=%x\n", sp, xpc, regval);
+	*/
 	e = exceptions_new_hardware_exception(0, sp, xpc, xpc, EXCEPTION_HARDWARE_NULLPOINTER, regval);
 
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (ptrint) e;
@@ -181,6 +184,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_u
 	/* Figure out in which register the object causing the exception resides for appropiate exceptions
 	 */
 	switch (type)	{
+		case EXCEPTION_HARDWARE_ARITHMETIC:
 		case EXCEPTION_HARDWARE_EXCEPTION:
 			/* nothing */
 			break;

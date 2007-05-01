@@ -218,6 +218,7 @@
 /* M_OP(source, dest) ...  dest (OP) source -> dest*/
 #define M_ISUB(a,b)		OPWORD ( ( (9<<6)   | ((b)<<3) | 2), 0, (a))			/* sub.l */
 #define M_IADD(a,b)		OPWORD ( ( (0xd<<6) | ((b)<<3) | 2), 0, (a))			/* add.l */
+#define M_IADDX(a,b)	OPWORD ( ( (0xd<<6) | ((b)<<3) | 6), 0, (a))			/* addx.l */
 
 #define M_IMUL(a,b)		OPWORD_IMM16 ( 0x130, 0, (a), ( ((b) << 12) | (1 << 11))) 	/* muls.l */
 #define M_IDIV(a,b)		OPWORD_IMM16 ( 0x131, 0, (a), ( ((b) << 12) | (1 << 11) | (b)))	/* divs.l */
@@ -228,7 +229,7 @@
 
 #define M_IAND(a,b)		OPWORD ( ( (0xc<<6) | ((b) << 3) | 2), 0, (a))			/* and.l */
 #define M_IOR(a,b)		OPWORD ( ( (0x8<<6) | ((b) << 3) | 2), 0, (a))			/* or.l */
-#define M_IXOR(a,b)		OPWORD ( ( (0xb<<6) | ((b) << 3) | 6), 0, (a))			/* eor.l */
+#define M_IXOR(a,b)		OPWORD ( ( (0xb<<6) | ((a) << 3) | 6), 0, (b))			/* eor.l */
 
 
 /* M_IX_IMM(imm, register)	*/
@@ -308,6 +309,8 @@
 
 #define M_BR_16(a)			BRANCH16(0x0, (a))	/* branch always */
 #define M_BR_32(a)			BRANCH32(0x0, (a))
+
+#define M_BCS(a)			BRANCH8 (0x5, (a))	/* carry set */
 
 #define M_BEQ(a)			BRANCH8 (0x7, (a))
 #define M_BEQ_16(a)			BRANCH16(0x7, (a))

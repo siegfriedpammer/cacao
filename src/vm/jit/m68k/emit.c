@@ -57,7 +57,7 @@ void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg)
 		cd->mcodeptr += 2;
 	} else if ((imm  & 0x00007FFF) == imm)	{
 		/* use word form */
-		OPWORD( ((3<<6) | (dreg << 3) | 0), 7, 4);
+		OPWORD( ((7<<6) | (dreg << 3) | 5), 7, 4);			/* MVS.W */
 		*((s2*)cd->mcodeptr) = (s2)imm;
 		cd->mcodeptr += 2;
 	} else {

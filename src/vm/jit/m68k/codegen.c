@@ -473,21 +473,29 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			emit_arithmetic_check(cd, iptr, s2);
-
 			M_INTMOVE(s1, REG_ITMP1);
 			M_IDIV(s2, REG_ITMP1);
 			M_INTMOVE(REG_ITMP1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
 
+		case ICMD_IDIVPOW2:		/* ..., value  ==> ..., value << constant       */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_INTMOVE(s1, REG_ITMP1);
+			M_IMOV_IMM(iptr->sx.val.i, REG_ITMP2);
+			M_ISSR(REG_ITMP2, REG_ITMP1);
+			M_BPL(6);
+			M_IADD_IMM(1, REG_ITMP1);
+			M_INTMOVE(REG_ITMP1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
@@ -498,6 +506,26 @@ bool codegen_emit(jitdata *jd)
 
 			emit_store_dst(jd, iptr, d);
 			break;
+
+		case ICMD_IREMPOW2:		/* ..., value  ==> ..., value << constant       */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+			if (s1 == d) {
+				M_IMOV(s1, REG_ITMP1);
+				s1 = REG_ITMP1;
+			} 
+			M_INTMOVE(s1, d);
+			M_IAND_IMM(iptr->sx.val.i, d);
+			M_ITST(s1);
+			M_BGE(2 + 2 + 6 + 2);
+			M_IMOV(s1, d);  /* don't use M_INTMOVE, so we know the jump offset */
+			M_INEG(d);
+			M_IAND_IMM(iptr->sx.val.i, d);     /* use 32-bit for jump offset */
+			M_INEG(d);
+
+			emit_store_dst(jd, iptr, d);
+			break;
+
 
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
@@ -561,9 +589,18 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_INTMOVE(s1, REG_ITMP1)
-			M_ISSL_IMM(iptr->sx.val.i & 0x1f, REG_ITMP1);
-			M_INTMOVE(REG_ITMP1, d);
+			if (iptr->sx.val.i & 0x1f)	{
+				M_INTMOVE(s1, REG_ITMP1)
+				if ((iptr->sx.val.i & 0x1f) <= 7)	{
+					M_ISSL_IMM(iptr->sx.val.i & 0x1f, REG_ITMP1);
+				} else	{
+					M_IMOV_IMM(iptr->sx.val.i & 0x1f, REG_ITMP2);
+					M_ISSL(REG_ITMP2, REG_ITMP1);
+				}
+				M_INTMOVE(REG_ITMP1, d);
+			} else	{
+				M_INTMOVE(s1, d);
+			}
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -585,9 +622,18 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_INTMOVE(s1, REG_ITMP1)
-			M_ISSR_IMM(iptr->sx.val.i & 0x1f, REG_ITMP1);
-			M_INTMOVE(REG_ITMP1, d);
+			if (iptr->sx.val.i & 0x1f)	{
+				M_INTMOVE(s1, REG_ITMP1)
+				if ((iptr->sx.val.i & 0x1f) <= 7)	{
+					M_ISSR_IMM(iptr->sx.val.i & 0x1f, REG_ITMP1);
+				} else	{
+					M_IMOV_IMM(iptr->sx.val.i & 0x1f, REG_ITMP2);
+					M_ISSR(REG_ITMP2, REG_ITMP1);
+				}
+				M_INTMOVE(REG_ITMP1, d);
+			} else	{
+				M_INTMOVE(s1, d);
+			}
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -608,14 +654,18 @@ bool codegen_emit(jitdata *jd)
 		                      /* sx.val.i = constant                          */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_INTMOVE(s1, REG_ITMP1)
-			if ((iptr->sx.val.i & 0x1f) <= 7)	{
-				M_IUSR_IMM(iptr->sx.val.i & 0x1f, REG_ITMP1);
+			if (iptr->sx.val.i & 0x1f)	{
+				M_INTMOVE(s1, REG_ITMP1)
+				if ((iptr->sx.val.i & 0x1f) <= 7)	{
+					M_IUSR_IMM(iptr->sx.val.i & 0x1f, REG_ITMP1);
+				} else	{
+					M_IMOV_IMM(iptr->sx.val.i & 0x1f, REG_ITMP2);
+					M_IUSR(REG_ITMP2, REG_ITMP1);
+				}
+				M_INTMOVE(REG_ITMP1, d);
 			} else	{
-				M_IMOV_IMM(iptr->sx.val.i & 0x1f, REG_ITMP2);
-				M_IUSR(REG_ITMP2, REG_ITMP1);
+				M_INTMOVE(s1, d);
 			}
-			M_INTMOVE(REG_ITMP1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1071,7 +1121,7 @@ bool codegen_emit(jitdata *jd)
 		
 			/* implicit null-pointer check */
 			M_LHZX(REG_ATMP1, d);
-			M_HSEXT(d, d);
+			M_SSEXT(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1094,14 +1144,18 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			M_INTMOVE(s2, REG_ITMP2);
-			M_ISSL_IMM(3, REG_ITMP2);
-			M_IADD(s1, REG_ITMP2);
-			M_LLD(d, REG_ITMP2, OFFSET(java_longarray, data[0]));
+			M_INTMOVE(s2, REG_ITMP1);
+			M_ISSL_IMM(3, REG_ITMP1);
+			M_IADD_IMM(OFFSET(java_longarray, data[0]), REG_ITMP1);
+			M_ADRMOVE(s1, REG_ATMP1);
+			M_AADDINT(REG_ITMP1, REG_ATMP1);
+			M_LWZX(REG_ATMP1, GET_HIGH_REG(d));
+			M_AADD_IMM(4, REG_ATMP1);
+			M_LWZX(REG_ATMP1, GET_LOW_REG(d));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1218,7 +1272,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_INTMOVE(s2, REG_ITMP2);
-			M_ISSL_IMM(1, REG_ITMP2);
+			M_ISSL_IMM(2, REG_ITMP2);
 			M_IADD_IMM(OFFSET(java_intarray, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
@@ -1227,19 +1281,19 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
+			s2 = emit_load_s2(jd, iptr, REG_ITMP1);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
 
-			M_INTMOVE(s2, REG_ITMP2);
-			M_ISSL_IMM(3, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_longarray, data[0]), REG_ITMP2);
+			M_INTMOVE(s2, REG_ITMP1);
+			M_ISSL_IMM(3, REG_ITMP1);
+			M_IADD_IMM(OFFSET(java_longarray, data[0]), REG_ITMP1);
 			M_ADRMOVE(s1, REG_ATMP1);
-			M_AADDINT(REG_ITMP2, REG_ATMP1);
+			M_AADDINT(REG_ITMP1, REG_ATMP1);
 			/* implicit null-pointer check */
 			M_STWX(REG_ATMP1, s3);
-			M_AADD_IMM(REG_ATMP1, 4);
+			M_AADD_IMM(4, REG_ATMP1);
 			s3 = emit_load_s3_low(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
 			M_STWX(REG_ATMP1, s3);
@@ -1989,7 +2043,7 @@ nowperformreturn:
 
 			/* a2 = pointer to dimensions = stack pointer */
 			M_AMOV(REG_SP, REG_ATMP1);
-			M_AADD_IMM(REG_ATMP1, 3*4);
+			M_AADD_IMM(3*4, REG_ATMP1);
 			M_AST(REG_ATMP1, REG_SP, 2*4);
 
 			M_JSR_IMM(BUILTIN_multianewarray);
