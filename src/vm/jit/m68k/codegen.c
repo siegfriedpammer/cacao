@@ -382,9 +382,9 @@ bool codegen_emit(jitdata *jd)
 #endif
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP2);
+			s1 = emit_load_s1(jd, iptr, REG_ITMP3);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			M_INTMOVE(s1, GET_LOW_REG(d));				/* sets negativ bit */
+			M_IMOV(s1, GET_LOW_REG(d));				/* sets negativ bit */
 			M_BPL(4);
 			M_ISET(GET_HIGH_REG(d));
 			M_TPFW;
@@ -487,10 +487,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1);
+
+			M_ITST(REG_ITMP1);
+			M_BPL(6);
+			M_IADD_IMM((1 << iptr->sx.val.i) - 1, REG_ITMP1);
+
 			M_IMOV_IMM(iptr->sx.val.i, REG_ITMP2);
 			M_ISSR(REG_ITMP2, REG_ITMP1);
-			M_BPL(6);
-			M_IADD_IMM(1, REG_ITMP1);
 			M_INTMOVE(REG_ITMP1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -501,7 +504,14 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			emit_arithmetic_check(cd, iptr, s2);
 
+			M_ICMP_IMM(0x80000000, s1);
+			M_BNE(4+8);
+			M_ICMP_IMM(-1, s2);
+			M_BNE(4);
+			M_ICLR(REG_ITMP3);
+			M_TPFL;					/* hides the next instruction */
 			M_IREM(s2, s1, REG_ITMP3);
+
 			M_INTMOVE(REG_ITMP3, d);
 
 			emit_store_dst(jd, iptr, d);
@@ -952,7 +962,7 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -981,13 +991,7 @@ bool codegen_emit(jitdata *jd)
 #endif
 			case TYPE_LNG:
    				d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-				if (GET_HIGH_REG(d) == s1) {
-					M_ILD(GET_LOW_REG(d), s1, disp + 4);
-					M_ILD(GET_HIGH_REG(d), s1, disp);
-				} else {
-					M_ILD(GET_HIGH_REG(d), s1, disp);
-					M_ILD(GET_LOW_REG(d), s1, disp + 4);
-				}
+				M_LLD(d, s1, disp);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1048,8 +1052,7 @@ bool codegen_emit(jitdata *jd)
 			case TYPE_DBL:
 #endif
 			case TYPE_LNG:
-				M_IST(GET_LOW_REG(s2), s1, disp + 4);      /* keep this order */
-				M_IST(GET_HIGH_REG(s2), s1, disp);         /* keep this order */
+				M_LST(s2, s1, disp);  
 				break;
 			case TYPE_ADR:
 				M_AST(s2, s1, disp);
@@ -1153,9 +1156,12 @@ bool codegen_emit(jitdata *jd)
 			M_IADD_IMM(OFFSET(java_longarray, data[0]), REG_ITMP1);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP1, REG_ATMP1);
-			M_LWZX(REG_ATMP1, GET_HIGH_REG(d));
-			M_AADD_IMM(4, REG_ATMP1);
+			#if 0
 			M_LWZX(REG_ATMP1, GET_LOW_REG(d));
+			M_AADD_IMM(4, REG_ATMP1);
+			M_LWZX(REG_ATMP1, GET_HIGH_REG(d));
+			#endif
+			M_LLD(d, REG_ATMP1, 0);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1194,10 +1200,7 @@ bool codegen_emit(jitdata *jd)
 #else
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			/* implicit null-pointer check */
-			M_LWZX(REG_ATMP1, GET_LOW_REG(d));
-			M_AADD_IMM(REG_ATMP1, 4);
-			/* implicit null-pointer check */
-			M_LWZX(REG_ATMP1, GET_HIGH_REG(d));
+			M_LLD(d, REG_ATMP1, 0);
 #endif
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1284,7 +1287,6 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP1);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
 
 			M_INTMOVE(s2, REG_ITMP1);
 			M_ISSL_IMM(3, REG_ITMP1);
@@ -1292,11 +1294,15 @@ bool codegen_emit(jitdata *jd)
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP1, REG_ATMP1);
 			/* implicit null-pointer check */
+			#if 0
 			M_STWX(REG_ATMP1, s3);
 			M_AADD_IMM(4, REG_ATMP1);
-			s3 = emit_load_s3_low(jd, iptr, REG_ITMP3);
+			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
 			M_STWX(REG_ATMP1, s3);
+			#endif
+			s3 = emit_load_s3(jd, iptr, REG_ITMP12_PACKED);
+			M_LST(s3, REG_ATMP1, 0);
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1329,15 +1335,12 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 #if !defined(ENABLE_SOFTFLOAT)
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
-			M_STFDX(REG_ATMP1, s3);
+			M_STFDX(REG_ATMP1, s3);	/*FIXME*/
+			assert(0);
 #else
-			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
+			s3 = emit_load_s3(jd, iptr, REG_ITMP12_PACKED);
 			/* implicit null-pointer check */
-			M_STWX(REG_ATMP1, s3);
-			M_AADD_IMM(REG_ATMP1, 4);
-			s3 = emit_load_s3_low(jd, iptr, REG_ITMP3);
-			/* implicit null-pointer check */
-			M_STWX(REG_ATMP1, s3);
+			M_LST(s3, REG_ATMP1, 0);
 #endif
 			break;
 
