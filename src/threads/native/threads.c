@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7850 2007-05-02 16:21:12Z twisti $
+   $Id: threads.c 7853 2007-05-02 20:40:11Z twisti $
 
 */
 
@@ -372,28 +372,21 @@ void unlock_stopworld(void)
 
 #if !defined(__DARWIN__)
 /* Caller must hold threadlistlock */
-static int threads_cast_sendsignals(int sig, int count)
+static void threads_cast_sendsignals(int sig)
 {
-	/* Count threads */
-	threadobject *tobj = mainthreadobj;
-	threadobject *self = THREADOBJECT;
+	threadobject *t;
+	threadobject *self;
 
-	if (count == 0) {
-		do {
-			count++;
-			tobj = tobj->next;
-		} while (tobj != mainthreadobj);
+	self = THREADOBJECT;
+
+	/* iterate over all started threads */
+
+	for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
+		/* don't send the signal to ourself */
+
+		if (t != self)
+			pthread_kill(t->tid, sig);
 	}
-
-	assert(tobj == mainthreadobj);
-
-	do {
-		if (tobj != self)
-			pthread_kill(tobj->tid, sig);
-		tobj = tobj->next;
-	} while (tobj != mainthreadobj);
-
-	return count - 1;
 }
 
 #else
@@ -489,7 +482,14 @@ void threads_cast_stopworld(void)
 	/* TODO */
 	assert(0);
 #else
-	count = threads_cast_sendsignals(GC_signum1(), 0);
+	/* send all threads the suspend signal */
+
+	threads_cast_sendsignals(GC_signum1());
+
+	/* wait for all threads to suspend (except the current one) */
+
+	count = threads_table_get_threads() - 1;
+
 	for (i = 0; i < count; i++)
 		threads_sem_wait(&suspend_ack);
 #endif
@@ -508,7 +508,7 @@ void threads_cast_startworld(void)
 	/* TODO */
 	assert(0);
 #else
-	threads_cast_sendsignals(GC_signum2(), -1);
+	threads_cast_sendsignals(GC_signum2());
 #endif
 /* 	pthread_mutex_unlock(&threadlistlock); */
 	unlock_stopworld();

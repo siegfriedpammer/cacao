@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7850 2007-05-02 16:21:12Z twisti $
+   $Id: threads-common.c 7853 2007-05-02 20:40:11Z twisti $
 
 */
 
@@ -393,6 +393,20 @@ threadobject *threads_table_get(s4 index)
 	threads_table_unlock();
 
 	return thread;
+}
+
+
+/* threads_table_get_threads ***************************************************
+
+   Return the number of running threads.
+
+   NOTE: This function does not lock the table.
+
+*******************************************************************************/
+
+s4 threads_table_get_threads(void)
+{
+	return threads_table.used;
 }
 
 
