@@ -44,7 +44,7 @@
  * Method:    doubleToLongBits
  * Signature: (D)J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits(jclass clazz, double doubleValue)
+JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, jclass clazz, double doubleValue)
 {
 	jvalue val;
 	s8  e, f;
