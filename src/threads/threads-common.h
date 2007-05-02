@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7831 2007-04-26 12:48:16Z twisti $
+   $Id: threads-common.h 7850 2007-05-02 16:21:12Z twisti $
 
 */
 
@@ -52,7 +52,7 @@
 
 /* typedefs *******************************************************************/
 
-typedef union  threads_table_entry_t threads_table_entry_t;
+typedef struct threads_table_entry_t threads_table_entry_t;
 typedef struct threads_table_t       threads_table_t;
 
 
@@ -79,9 +79,9 @@ typedef struct threads_table_t       threads_table_t;
 
 *******************************************************************************/
 
-union threads_table_entry_t {
-	threadobject       *thread;        /* an existing thread                  */
-	ptrint              nextfree;      /* next free index                     */
+struct threads_table_entry_t {
+	threadobject *thread;              /* an existing thread                  */
+	s4            next;                /* next free or used index             */
 };
 
 
@@ -96,6 +96,8 @@ struct threads_table_t {
 	                                   /* of the free list. Real entries      */
 									   /* start at threads[1].                */
 	s4                     size;       /* current size of the table           */
+	s4                     used;       /* number of thread entries            */
+	s4                     daemons;    /* number of daemon thread entries     */
 };
 
 
@@ -105,6 +107,14 @@ void          threads_preinit(void);
 
 s4            threads_table_add(threadobject *thread);
 void          threads_table_remove(threadobject *thread);
+threadobject *threads_table_get(s4 index);
+s4            threads_table_get_non_daemons(void);
+threadobject *threads_table_first(void);
+threadobject *threads_table_next(threadobject *thread);
+
+#if !defined(NDEBUG)
+void          threads_table_dump(void);
+#endif
 
 threadobject *threads_create_thread(void);
 bool          threads_thread_start_internal(utf *name, functionptr f);
@@ -123,6 +133,11 @@ void          threads_print_stacktrace(void);
 
 void          threads_impl_preinit(void);
 
+void          threads_impl_table_init(void);
+void          threads_table_lock(void);
+void          threads_table_unlock(void);
+
+void          threads_set_current_threadobject(threadobject *thread);
 void          threads_init_threadobject(threadobject *thread);
 void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
