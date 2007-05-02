@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: class.c 7851 2007-05-02 19:57:07Z twisti $
 
 */
 
@@ -510,12 +510,16 @@ bool class_load_attributes(classbuffer *cb)
 			if (!loader_load_attribute_signature(cb, &(c->signature)))
 				return false;
 		}
+#if 0
+		/* XXX We can't do a release with that enabled */
+
 		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 
 			if (!annotation_load_attribute_runtimevisibleannotations(cb))
 				return false;
 		}
+#endif
 #endif
 		else {
 			/* unknown attribute */
