@@ -36,7 +36,9 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
-#include "native/native.h"
+
+#include "native/include/java_lang_Float.h"
+
 #include "vm/builtin.h"
 
 
