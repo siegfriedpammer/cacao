@@ -245,21 +245,33 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
+/* md_critical_section_restart *************************************************
+
+   Search the critical sections tree for a matching section and set
+   the PC to the restart point, if necessary.
+
+*******************************************************************************/
+
 #if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
+void md_critical_section_restart(ucontext_t *_uc)
 {
 	mcontext_t *_mc;
 	u1         *pc;
-	void       *critical;
+	void       *npc;
 
 	_mc = &_uc->uc_mcontext;
 
+	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
+	   different to the ones in <ucontext.h>. */
+
 	pc = (u1 *) _mc->gregs[REG_RIP];
 
-	critical = critical_find_restart_point(pc);
+	npc = critical_find_restart_point(pc);
 
-	if (critical != NULL)
-		_mc->gregs[REG_RIP] = (ptrint) critical;
+	if (npc != NULL) {
+		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
+		_mc->gregs[REG_RIP] = (ptrint) npc;
+	}
 }
 #endif
 
