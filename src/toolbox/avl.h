@@ -1,6 +1,6 @@
 /* src/toolbox/avl.h - AVL tree implementation
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: avl.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: avl.h 7859 2007-05-03 08:29:16Z twisti $
 
 */
 
@@ -56,39 +50,39 @@ typedef s4 avl_comparator(const void *a, const void *b);
 
 /* forward typedefs ***********************************************************/
 
-typedef struct avl_tree avl_tree;
-typedef struct avl_node avl_node;
+typedef struct avl_tree_t avl_tree_t;
+typedef struct avl_node_t avl_node_t;
 
 
-/* avl_tree *******************************************************************/
+/* avl_tree_t *****************************************************************/
 
-struct avl_tree {
+struct avl_tree_t {
 #if defined(ENABLE_THREADS)
 	java_objectheader *lock;            /* threads lock object                */
 #endif
-	avl_node          *root;            /* pointer to root node               */
+	avl_node_t        *root;            /* pointer to root node               */
 	avl_comparator    *comparator;      /* pointer to comparison function     */
 	s4                 entries;         /* contains number of entries         */
 };
 
 
-/* avl_node *******************************************************************/
+/* avl_node_t *****************************************************************/
 
-struct avl_node {
-	void     *data;                     /* pointer to data structure          */
-	s4        balance;                  /* the range of the field is -2...2   */
-	avl_node *childs[2];                /* pointers to the child nodes        */
+struct avl_node_t {
+	void       *data;                   /* pointer to data structure          */
+	s4          balance;                /* the range of the field is -2...2   */
+	avl_node_t *childs[2];              /* pointers to the child nodes        */
 };
 
 
 /* function prototypes ********************************************************/
 
-avl_tree *avl_create(avl_comparator *compar);
-bool avl_insert(avl_tree *tree, void *data);
-void *avl_find(avl_tree *tree, void *data);
+avl_tree_t *avl_create(avl_comparator *comparator);
+bool        avl_insert(avl_tree_t *tree, void *data);
+void       *avl_find(avl_tree_t *tree, void *data);
 
 #if !defined(NDEBUG)
-void avl_dump(avl_node* node, s4 indent);
+void        avl_dump(avl_node_t* node, s4 indent);
 #endif
 
 #endif /* _AVL_H */

@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7785 2007-04-21 10:55:30Z edwin $
+   $Id: codegen-common.c 7859 2007-05-03 08:29:16Z twisti $
 
 */
 
@@ -106,7 +106,7 @@
 
 /* in this tree we store all method addresses *********************************/
 
-static avl_tree *methodtree = NULL;
+static avl_tree_t *methodtree = NULL;
 static s4 methodtree_comparator(const void *pc, const void *element);
 
 

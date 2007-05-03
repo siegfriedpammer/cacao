@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: avl.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: avl.c 7859 2007-05-03 08:29:16Z twisti $
 
 */
 
@@ -46,11 +46,11 @@
 
 *******************************************************************************/
 
-avl_tree *avl_create(avl_comparator *compar)
+avl_tree_t *avl_create(avl_comparator *compar)
 {
-	avl_tree *t;
+	avl_tree_t *t;
 
-	t = NEW(avl_tree);
+	t = NEW(avl_tree_t);
 
 	t->root       = NULL;
 	t->comparator = compar;
@@ -74,11 +74,11 @@ avl_tree *avl_create(avl_comparator *compar)
 
 *******************************************************************************/
 
-static avl_node *avl_newnode(void *data)
+static avl_node_t *avl_newnode(void *data)
 {
-	avl_node *n;
+	avl_node_t *n;
 
-	n = NEW(avl_node);
+	n = NEW(avl_node_t);
 
 	n->data      = data;
 
@@ -104,10 +104,10 @@ static avl_node *avl_newnode(void *data)
 
 *******************************************************************************/
 
-static void avl_rotate_left(avl_node **node)
+static void avl_rotate_left(avl_node_t **node)
 {
-	avl_node *tmp;
-	avl_node *tmpnode;
+	avl_node_t *tmp;
+	avl_node_t *tmpnode;
 
 	/* rotate the node */
 
@@ -134,10 +134,10 @@ static void avl_rotate_left(avl_node **node)
 
 *******************************************************************************/
 
-static void avl_rotate_right(avl_node **node)
+static void avl_rotate_right(avl_node_t **node)
 {
-	avl_node *tmp;
-	avl_node *tmpnode;
+	avl_node_t *tmp;
+	avl_node_t *tmpnode;
 
 	/* rotate the node */
 
@@ -158,10 +158,10 @@ static void avl_rotate_right(avl_node **node)
 
 *******************************************************************************/
 
-static void avl_adjust_balance(avl_node *node)
+static void avl_adjust_balance(avl_node_t *node)
 {
-	avl_node *left;
-	avl_node *right;
+	avl_node_t *left;
+	avl_node_t *right;
 
 	left  = node->childs[AVL_LEFT];
 	right = node->childs[AVL_RIGHT];
@@ -193,13 +193,13 @@ static void avl_adjust_balance(avl_node *node)
 
 *******************************************************************************/
 
-static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
+static s4 avl_insert_intern(avl_tree_t *tree, avl_node_t **node, void *data)
 {
-	avl_node *tmpnode;
-	s4        res;
-	s4        direction;
-	s4        insert;
-	s4        balance;
+	avl_node_t *tmpnode;
+	s4          res;
+	s4          direction;
+	s4          insert;
+	s4          balance;
 
 	/* set temporary variable */
 
@@ -228,7 +228,7 @@ static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
 		balance = avl_insert_intern(tree, &tmpnode->childs[direction], data);
 
 	} else {
-		avl_node *newnode;
+		avl_node_t *newnode;
 
 		/* no child, create this node */
 
@@ -305,7 +305,7 @@ static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
 
 *******************************************************************************/
 
-bool avl_insert(avl_tree *tree, void *data)
+bool avl_insert(avl_tree_t *tree, void *data)
 {
 	assert(tree);
 	assert(data);
@@ -348,10 +348,10 @@ bool avl_insert(avl_tree *tree, void *data)
 
 *******************************************************************************/
 
-void *avl_find(avl_tree *tree, void *data)
+void *avl_find(avl_tree_t *tree, void *data)
 {
-	avl_node *node;
-	s4        res;
+	avl_node_t *node;
+	s4          res;
 
 	assert(tree);
 	assert(data);
@@ -393,7 +393,7 @@ void *avl_find(avl_tree *tree, void *data)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void avl_dump(avl_node* node, s4 indent)
+void avl_dump(avl_node_t* node, s4 indent)
 {
 	s4 tmp;
 

@@ -42,7 +42,7 @@
 
 /* the AVL tree containing the critical sections */
 
-static avl_tree *criticaltree;
+static avl_tree_t *criticaltree;
 
 
 /* prototypes *****************************************************************/
@@ -106,7 +106,7 @@ static s4 critical_compare(const void *pa, const void *pb)
 
 static const critical_section_node_t *critical_find(u1 *mcodeptr)
 {
-    avl_node *n;
+    avl_node_t *n;
     const critical_section_node_t *m;
 
     n = criticaltree->root;
@@ -159,10 +159,11 @@ void critical_register_critical_section(critical_section_node_t *n)
 
 /* critical_find_restart_point *************************************************
 
-   Find a restart point for the given PC, in case it is in a critical section.
+   Find a restart point for the given PC, in case it is in a critical
+   section.
 
    IN:
-       mcodeptr.........PC
+       pc.........PC
 
    OUT:
        PC of the restart point, or
@@ -170,12 +171,20 @@ void critical_register_critical_section(critical_section_node_t *n)
 
 *******************************************************************************/
 
-u1 *critical_find_restart_point(u1 *mcodeptr)
+u1 *critical_find_restart_point(u1 *pc)
 {
-	const critical_section_node_t *n = critical_find(mcodeptr);
+	const critical_section_node_t *n;
+
+	n = critical_find(pc);
 
 	/* XXX should we check >= n->mcodebegin */
-	return (n && mcodeptr < n->mcodeend && mcodeptr > n->mcodebegin) ? n->mcoderestart : NULL;
+
+	if (n != NULL) {
+		if ((pc > n->mcodebegin) && (pc < n->mcodeend))
+			return n->mcoderestart;
+	}
+
+	return NULL;
 }
 
 
