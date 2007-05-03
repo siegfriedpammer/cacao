@@ -1106,7 +1106,7 @@ bool codegen_emit(jitdata *jd)
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
 			M_LHZX(REG_ATMP1, d);
-			/*M_CZEXT(d, d);*/
+			M_CZEXT(d, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
