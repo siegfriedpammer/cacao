@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: avl.c 7860 2007-05-03 12:30:05Z twisti $
+   $Id: avl.c 7862 2007-05-03 14:53:39Z twisti $
 
 */
 
@@ -38,6 +38,10 @@
 #include "threads/lock-common.h"
 
 #include "toolbox/avl.h"
+#include "toolbox/logging.h"
+
+#include "vm/global.h"
+#include "vm/vm.h"
 
 
 /* avl_create ******************************************************************
@@ -216,7 +220,7 @@ static s4 avl_insert_intern(avl_tree_t *tree, avl_node_t **node, void *data)
 	/* is this node already in the tree? */
 
 	if (res == 0)
-		assert(0);
+		vm_abort("avl_insert_intern: node already in the tree");
 
 	/* goto left or right child */
 
@@ -226,8 +230,8 @@ static s4 avl_insert_intern(avl_tree_t *tree, avl_node_t **node, void *data)
 
 	if (tmpnode->childs[direction]) {
 		balance = avl_insert_intern(tree, &tmpnode->childs[direction], data);
-
-	} else {
+	}
+	else {
 		avl_node_t *newnode;
 
 		/* no child, create this node */
@@ -260,14 +264,14 @@ static s4 avl_insert_intern(avl_tree_t *tree, avl_node_t **node, void *data)
 
 				tmpnode->balance = 0;
 				tmpnode->childs[AVL_RIGHT]->balance = 0;
-
-			} else {
+			}
+			else {
 				avl_rotate_left(&tmpnode->childs[AVL_LEFT]);
 				avl_rotate_right(&tmpnode);
 				avl_adjust_balance(tmpnode);
 			}
-
-		} else if (tmpnode->balance > 1) {
+		}
+		else if (tmpnode->balance > 1) {
 			/* right subtree too tall: left rotation needed */
 
 			if (tmpnode->childs[AVL_RIGHT]->balance > 0) {
@@ -277,14 +281,14 @@ static s4 avl_insert_intern(avl_tree_t *tree, avl_node_t **node, void *data)
 
 				tmpnode->balance = 0;
 				tmpnode->childs[AVL_LEFT]->balance = 0;
-
-			} else {
+			}
+			else {
 				avl_rotate_right(&tmpnode->childs[AVL_RIGHT]);
 				avl_rotate_left(&tmpnode);
 				avl_adjust_balance(tmpnode);
 			}
-
-		} else {
+		}
+		else {
 			insert = 1;
 		}
 	}
@@ -314,24 +318,14 @@ bool avl_insert(avl_tree_t *tree, void *data)
 
 	/* if we don't have a root node, create one */
 
-	if (tree->root == NULL) {
+	if (tree->root == NULL)
 		tree->root = avl_newnode(data);
-
-	} else {
+	else
 		avl_insert_intern(tree, &tree->root, data);
-	}
 
 	/* increase entries count */
 
 	tree->entries++;
-
-#if 0
-	printf("tree=%p entries=%d\n", tree, tree->entries);
-
-	printf("-------------------\n");
-	avl_dump(tree->root, 0);
-	printf("-------------------\n");
-#endif
 
 	LOCK_MONITOR_EXIT(tree->lock);
 
@@ -405,10 +399,13 @@ void avl_dump(avl_node_t* node, s4 indent)
 	if (node->childs[AVL_RIGHT])
 		avl_dump(node->childs[AVL_RIGHT], tmp + 1);
 
-	while(indent--)
-		printf("   ");
+	log_start();
 
-	printf("%p (%d)\n", node->data, node->balance);
+	while(indent--)
+		log_print("   ");
+
+	log_print("%p (%d)", node->data, node->balance);
+	log_finish();
 
 	if (node->childs[AVL_LEFT])
 		avl_dump(node->childs[AVL_LEFT], tmp + 1);
