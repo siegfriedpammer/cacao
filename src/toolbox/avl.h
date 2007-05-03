@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: avl.h 7859 2007-05-03 08:29:16Z twisti $
+   $Id: avl.h 7860 2007-05-03 12:30:05Z twisti $
 
 */
 
@@ -45,7 +45,7 @@
 
 /* tree comparator prototype **************************************************/
 
-typedef s4 avl_comparator(const void *a, const void *b);
+typedef s4 avl_comparator(const void *treenode, const void *node);
 
 
 /* forward typedefs ***********************************************************/

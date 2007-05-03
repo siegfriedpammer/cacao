@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: avl.c 7859 2007-05-03 08:29:16Z twisti $
+   $Id: avl.c 7860 2007-05-03 12:30:05Z twisti $
 
 */
 
@@ -46,14 +46,14 @@
 
 *******************************************************************************/
 
-avl_tree_t *avl_create(avl_comparator *compar)
+avl_tree_t *avl_create(avl_comparator *comparator)
 {
 	avl_tree_t *t;
 
 	t = NEW(avl_tree_t);
 
 	t->root       = NULL;
-	t->comparator = compar;
+	t->comparator = comparator;
 	t->entries    = 0;
 
 #if defined(ENABLE_THREADS)
@@ -211,7 +211,7 @@ static s4 avl_insert_intern(avl_tree_t *tree, avl_node_t **node, void *data)
 
 	/* compare the current node */
 
-	res = tree->comparator(data, tmpnode->data);
+	res = tree->comparator(tmpnode->data, data);
 
 	/* is this node already in the tree? */
 
@@ -363,7 +363,7 @@ void *avl_find(avl_tree_t *tree, void *data)
 	for (node = tree->root; node != NULL; ) {
 		/* compare the current node */
 
-		res = tree->comparator(data, node->data);
+		res = tree->comparator(node->data, data);
 
 		/* was the entry found? return it */
 

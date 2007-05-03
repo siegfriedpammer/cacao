@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7859 2007-05-03 08:29:16Z twisti $
+   $Id: codegen-common.c 7860 2007-05-03 12:30:05Z twisti $
 
 */
 
@@ -107,7 +107,7 @@
 /* in this tree we store all method addresses *********************************/
 
 static avl_tree_t *methodtree = NULL;
-static s4 methodtree_comparator(const void *pc, const void *element);
+static s4 methodtree_comparator(const void *treenode, const void *node);
 
 
 /* codegen_init ****************************************************************
@@ -566,15 +566,19 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 
    Comparator function used for the AVL tree of methods.
 
+   ARGUMENTS:
+      treenode....the node from the tree
+      node........the node to compare to the tree-node
+
 *******************************************************************************/
 
-static s4 methodtree_comparator(const void *pc, const void *element)
+static s4 methodtree_comparator(const void *treenode, const void *node)
 {
 	methodtree_element *mte;
 	methodtree_element *mtepc;
 
-	mte = (methodtree_element *) element;
-	mtepc = (methodtree_element *) pc;
+	mte   = (methodtree_element *) treenode;
+	mtepc = (methodtree_element *) node;
 
 	/* compare both startpc and endpc of pc, even if they have the same value,
 	   otherwise the avl_probe sometimes thinks the element is already in the
