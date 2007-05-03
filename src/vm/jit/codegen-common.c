@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7860 2007-05-03 12:30:05Z twisti $
+   $Id: codegen-common.c 7861 2007-05-03 13:49:35Z twisti $
 
 */
 
@@ -1229,7 +1229,7 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 	stacktrace_create_native_stackframeinfo(sfi, pv, sp, ra);
 
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JNI)
 	/* add current JNI local references table to this thread */
 
 	lrt->capacity    = LOCALREFTABLE_CAPACITY;
@@ -1258,7 +1258,7 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 {
 	stackframeinfo     *sfi;
 	stackframeinfo    **psfi;
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JNI)
 	localref_table     *lrt;
 	localref_table     *plrt;
 	s4                  localframes;
@@ -1275,7 +1275,7 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 
 	*psfi = sfi->prev;
 
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JNI)
 	/* release JNI local references tables for this thread */
 
 	lrt = LOCALREFTABLE;
