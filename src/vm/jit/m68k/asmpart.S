@@ -73,7 +73,7 @@ asm_vm_call_method_double:
 	movel	%sp@(11*4+2*4),%d2				/* arg count */
 
 	moveal	%sp, %a5					/* memorize stack */
-	tst	%d2								/* do we have arguments ? */
+	tstl	%d2							/* do we have arguments ? */
 	beq	L_asm_vm_call_method_copy_done
 	subql	#1,%d2						/* simplifies offset calulation */
 
@@ -84,27 +84,35 @@ asm_vm_call_method_double:
 
 	addql	#1, %d2
 L_asm_vm_call_copy_arg:
-	subql	#1, %d2						/* why wasn't that here */
+	subql	#1, %d2						/* decrement argument counter */
+	movel	%a0@(offvmargtype+4), %d1	/* %d1 contains type of arg, vmargtype is u8 */	
 
+	cmpil	#2, %d1						/* float type ? */
+	bne		L_asm_vm_call_copy_int
+
+	movel	%a0@(offvmargdata), %d0		/* float has different endianess as int */
+	movel	%d0, %sp@-
+	bra		L_asm_vm_call_copy_1_word_type
+
+L_asm_vm_call_copy_int:
 	movel	%a0@(offvmargdata+4), %d0
 	movel	%d0,%sp@-					/* push argument onto stack */
 
-	movel	%a0@(offvmargtype), %d0		/* %d0 contains type of arg */	
-	btstl	#0, %d0						/* test if 2 word type */
+	btstl	#0, %d1						/* test if 2 word type */
 	beq	L_asm_vm_call_copy_1_word_type
 	movel	%a0@(offvmargdata), %d0		/* push second word onto stack */
 	movel	%d0,%sp@-
 L_asm_vm_call_copy_1_word_type:
 
 	subl	#(sizevmarg),%a0
-	tst 	%d2							/* arguments left ? */
+	tstl 	%d2							/* arguments left ? */
 	bne	L_asm_vm_call_copy_arg
 
 L_asm_vm_call_method_copy_done:
 
-	leal 	asm_call_jit_compiler,%a4		/* we need to fake a invocation as it would happen from jit code */
-	movel	%a4, call_jit_dummy				/* we need a writeable memory location */
-	moveal	call_jit_dummy, %a4				/* XXX do we have a race condition here ? */
+	leal 	asm_call_jit_compiler,%a4			/* we need to fake a invocation as it would happen from jit code */
+	movel	%a4, call_jit_dummy					/* we need a writeable memory location */
+	moveal	call_jit_dummy, %a4					/* XXX do we have a race condition here ? */
 	jsr	%a4@
 
 L_asm_vm_call_method_return:
@@ -140,23 +148,23 @@ asm_call_jit_compiler:
 	moveml	%a0/%a1/%d0/%d1,%sp@			/* save volatile registers */
 
 	movel 	%sp@(4*4),%sp@-					/* push arguments onto stack (ra)*/
-	pea 	%sp@(4*4+4)						/* the old stack pointer */
+	pea 	%sp@(4*4+8)						/* the old stack pointer*/
 	movel 	%a3,%sp@-						/* mptr */
 	movel 	%a2,%sp@-						/* methodinfo */
 
 	/* C prototype: u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra); */
 	jsr	jit_asm_compile						/* invoke compiler */
-	lea	%sp@(4*4),%sp						/* pop arguments off stack */
+	addal	#(4*4),%sp						/* pop arguments off stack */
 	moveal	%d0, %a2						/* to tmp register */
 
-	moveml %sp@,%a0/%a1/%d0/%d1					/* restore volatile registers */
+	moveml %sp@,%a0/%a1/%d0/%d1				/* restore volatile registers */
 	addal	#(4*4),%sp						/* remove stackframe */
 
-	tstl	%a2							/* check for exception */
+	tstl	%a2								/* check for exception */
 	beq	L_asm_call_jit_compiler_exception
 
-	jmp	%a2@							/* invoke java method */
-	jsr 	0							/* we should not ever return here */
+	jmp	%a2@								/* invoke java method */
+	jsr 	0								/* we should not ever return here */
 
 L_asm_call_jit_compiler_exception:
 	jsr		exceptions_get_and_clear_exception		/* exception object in %d0 now */
