@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7853 2007-05-02 20:40:11Z twisti $
+   $Id: threads.c 7864 2007-05-03 21:17:26Z twisti $
 
 */
 
@@ -420,7 +420,7 @@ static void threads_cast_darwinstop(void)
 			if (r != KERN_SUCCESS)
 				vm_abort("thread_get_state failed");
 
-			thread_restartcriticalsection((ucontext_t *) &thread_state);
+			md_critical_section_restart((ucontext_t *) &thread_state);
 
 			r = thread_set_state(thread, flavor, (natural_t *) &thread_state,
 								 thread_state_count);
@@ -516,14 +516,14 @@ void threads_cast_startworld(void)
 
 
 #if !defined(__DARWIN__)
-static void threads_sigsuspend_handler(ucontext_t *ctx)
+static void threads_sigsuspend_handler(ucontext_t *_uc)
 {
 	int sig;
 	sigset_t sigs;
 
 	/* XXX TWISTI: this is just a quick hack */
 #if defined(ENABLE_JIT)
-	thread_restartcriticalsection(ctx);
+	md_critical_section_restart(_uc);
 #endif
 
 	/* Do as Boehm does. On IRIX a condition variable is used for wake-up
@@ -548,12 +548,12 @@ static void threads_sigsuspend_handler(ucontext_t *ctx)
 
 /* This function is called from Boehm GC code. */
 
-int cacao_suspendhandler(ucontext_t *ctx)
+int cacao_suspendhandler(ucontext_t *_uc)
 {
 	if (stopworldwhere != STOPWORLD_FROM_CLASS_NUMBERING)
 		return 0;
 
-	threads_sigsuspend_handler(ctx);
+	threads_sigsuspend_handler(_uc);
 	return 1;
 }
 #endif

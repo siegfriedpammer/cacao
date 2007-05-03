@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7849 2007-05-02 09:57:22Z twisti $
+   $Id: md-os.c 7864 2007-05-03 21:17:26Z twisti $
 
 */
 
@@ -224,12 +224,19 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-void thread_restartcriticalsection(ucontext_t *_uc)
+/* md_critical_section_restart *************************************************
+
+   Search the critical sections tree for a matching section and set
+   the PC to the restart point, if necessary.
+
+*******************************************************************************/
+
+void md_critical_section_restart(ucontext_t *_uc)
 {
 	mcontext_t    *_mc;
 	unsigned long *_gregs;
 	u1            *pc;
-	void          *critical;
+	u1            *npc;
 
 #if defined(__UCLIBC__)
 	_mc    = &(_uc->uc_mcontext);
@@ -241,10 +248,13 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 
 	pc = (u1 *) _gregs[PT_NIP];
 
-	critical = critical_find_restart_point(pc);
+	npc = critical_find_restart_point(pc);
 
-	if (critical)
-		_gregs[PT_NIP] = (ptrint) critical;
+	if (npc != NULL) {
+		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
+
+		_gregs[PT_NIP] = (ptrint) npc;
+	}
 }
 #endif
 

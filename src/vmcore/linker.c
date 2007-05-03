@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: linker.c 7864 2007-05-03 21:17:26Z twisti $
 
 */
 
@@ -1212,7 +1212,7 @@ static arraydescriptor *link_array(classinfo *c)
 
 static void linker_compute_subclasses(classinfo *c)
 {
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
+	threads_cast_stopworld();
 
 	if (!(c->flags & ACC_INTERFACE)) {
 		c->nextsub = NULL;
@@ -1230,7 +1230,7 @@ static void linker_compute_subclasses(classinfo *c)
 
 	linker_compute_class_values(class_java_lang_Object);
 
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+	threads_cast_startworld();
 }
 
 

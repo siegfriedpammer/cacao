@@ -52,27 +52,26 @@ typedef struct critical_section_node_t critical_section_node_t;
 
    A node representing a restartable critical section.
 
+   CAUTION: This order must not be changed, it is used in
+            asm_criticalsections!
+
 *******************************************************************************/
 
-/* CAUTION: This must not be changed, it is used in asm_criticalsections!     */
 struct critical_section_node_t {
-	u1 *mcodebegin;
-	u1 *mcodeend;
-	u1 *mcoderestart;
+	u1 *start;
+	u1 *end;
+	u1 *restart;
 };
 
 
 /* functions ******************************************************************/
 
-void critical_init(void);
-
-void critical_register_critical_section(critical_section_node_t *);
-
-u1 *critical_find_restart_point(u1*);
+void  critical_init(void);
+void  critical_section_register(critical_section_node_t *);
+u1   *critical_find_restart_point(u1*);
 
 /* this is a machine dependent function (see src/vm/jit/$(ARCH_DIR)/md.c) */
-/* XXX should be renamed to md_restart_critical_section                   */
-void thread_restartcriticalsection(ucontext_t *);
+void  md_critical_section_restart(ucontext_t *_uc);
 
 #endif /* _CRITICAL_H */
 

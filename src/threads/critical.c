@@ -47,7 +47,7 @@ static avl_tree_t *criticaltree;
 
 /* prototypes *****************************************************************/
 
-static s4 critical_compare(const void *pa, const void *pb);
+static s4 critical_comparator(const void *treenode, const void *node);
 static void critical_register_asm_critical_sections(void);
 
 
@@ -59,101 +59,59 @@ static void critical_register_asm_critical_sections(void);
 
 void critical_init(void)
 {
-    criticaltree = avl_create(&critical_compare);
+    criticaltree = avl_create(&critical_comparator);
 
 	critical_register_asm_critical_sections();
 }
 
 
-/* critical_compare ************************************************************
+/* critical_comparator *********************************************************
 
    Comparison function for AVL tree of critical section.
 
    IN:
-       pa...............first node
-	   pb...............second node
+       treenode....node in the tree
+	   node........node to compare with tree-node
 
    RETURN VALUE:
        -1, 0, +1 for (pa <, ==, > pb)
 
 *******************************************************************************/
 
-static s4 critical_compare(const void *pa, const void *pb)
+static s4 critical_comparator(const void *treenode, const void *node)
 {
-	const critical_section_node_t *na = pa;
-	const critical_section_node_t *nb = pb;
+	const critical_section_node_t *treecsn;
+	const critical_section_node_t *csn;
 
-	if (na->mcodebegin < nb->mcodebegin)
+	treecsn = treenode;
+	csn     = node;
+
+	/* compare for avl_find if we have found an entry */
+
+	if ((treecsn->start <= csn->start) && (csn->start < treecsn->end))
+		return 0;
+
+	/* these are for walking the tree */
+
+	if (treecsn->start < csn->start)
 		return -1;
-	if (na->mcodebegin > nb->mcodebegin)
+	else
 		return 1;
-	return 0;
 }
 
 
-/* critical_find ***************************************************************
- 
-   Find the critical region the given pc is in.
-
-   IN:
-       mcodeptr.........PC
-
-   OUT:
-       pointer to critical region node, or
-	   NULL if critical region was not found.
-   
-*******************************************************************************/
-
-static const critical_section_node_t *critical_find(u1 *mcodeptr)
-{
-    avl_node_t *n;
-    const critical_section_node_t *m;
-
-    n = criticaltree->root;
-	m = NULL;
-
-    if (!n)
-        return NULL;
-
-    for (;;) {
-        const critical_section_node_t *d = n->data;
-
-        if (mcodeptr == d->mcodebegin)
-            return d;
-
-        if (mcodeptr < d->mcodebegin) {
-            if (n->childs[0]) {
-                n = n->childs[0];
-			}
-            else {
-                return m;
-			}
-        }
-		else {
-            if (n->childs[1]) {
-                m = n->data;
-                n = n->childs[1];
-            }
-			else {
-                return n->data;
-			}
-        }
-    }
-}
-
-
-/* critical_register_critical_section ******************************************
+/* critical_section_register ***************************************************
  
    Register a critical section.
 
    IN:
-       n................node for the critical section
+       csn....node for the critical section
 
 *******************************************************************************/
 
-void critical_register_critical_section(critical_section_node_t *n)
+void critical_section_register(critical_section_node_t *csn)
 {
-	(void) avl_insert(criticaltree, n);
+	(void) avl_insert(criticaltree, csn);
 }
 
 
@@ -173,18 +131,21 @@ void critical_register_critical_section(critical_section_node_t *n)
 
 u1 *critical_find_restart_point(u1 *pc)
 {
-	const critical_section_node_t *n;
+	critical_section_node_t        csnpc;
+	const critical_section_node_t *csn;
 
-	n = critical_find(pc);
+	/* fill the temporary node for comparison */
 
-	/* XXX should we check >= n->mcodebegin */
+	csnpc.start = pc;
 
-	if (n != NULL) {
-		if ((pc > n->mcodebegin) && (pc < n->mcodeend))
-			return n->mcoderestart;
-	}
+	/* see if there's an entry for that PC */
 
-	return NULL;
+	csn = avl_find(criticaltree, &csnpc);
+
+	if (csn == NULL)
+		return NULL;
+
+	return csn->restart;
 }
 
 
@@ -200,8 +161,8 @@ static void critical_register_asm_critical_sections(void)
 #if defined(ENABLE_JIT) && defined(ENABLE_THREADS)
 	critical_section_node_t *n = &asm_criticalsections;
 
-	while (n->mcodebegin)
-		critical_register_critical_section(n++);
+	while (n->start)
+		critical_section_register(n++);
 #endif
 }
 

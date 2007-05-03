@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7861 2007-05-03 13:49:35Z twisti $
+   $Id: codegen-common.c 7864 2007-05-03 21:17:26Z twisti $
 
 */
 
@@ -198,16 +198,12 @@ void codegen_setup(jitdata *jd)
 /* 	cd->patchrefs      = list_create_dump(OFFSET(patchref, linkage)); */
 	cd->patchrefs      = NULL;
 	cd->brancheslabel  = list_create_dump(OFFSET(branch_label_ref_t, linkage));
+	cd->listcritical   = list_create_dump(OFFSET(critical_section_ref_t, linkage));
 
 	cd->linenumberreferences = NULL;
 	cd->linenumbertablesizepos = 0;
 	cd->linenumbertablestartpos = 0;
 	cd->linenumbertab = 0;
-	
-#if defined(ENABLE_THREADS)
-	cd->threadcritcurrent.next = NULL;
-	cd->threadcritcount = 0;
-#endif
 }
 
 
@@ -250,17 +246,13 @@ static void codegen_reset(jitdata *jd)
 /* 	cd->patchrefs       = list_create_dump(OFFSET(patchref, linkage)); */
 	cd->patchrefs       = NULL;
 	cd->brancheslabel   = list_create_dump(OFFSET(branch_label_ref_t, linkage));
+	cd->listcritical    = list_create_dump(OFFSET(critical_section_ref_t, linkage));
 
 	cd->linenumberreferences    = NULL;
 	cd->linenumbertablesizepos  = 0;
 	cd->linenumbertablestartpos = 0;
 	cd->linenumbertab           = 0;
 	
-#if defined(ENABLE_THREADS)
-	cd->threadcritcurrent.next = NULL;
-	cd->threadcritcount        = 0;
-#endif
-
 	/* We need to clear the mpc and the branch references from all
 	   basic blocks as they will definitely change. */
 
@@ -562,6 +554,165 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 }
 
 
+/* codegen_critical_section_new ************************************************
+
+   Allocates a new critical-section reference and adds it to the
+   critical-section list.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void codegen_critical_section_new(codegendata *cd)
+{
+	list_t                 *list;
+	critical_section_ref_t *csr;
+	s4                      mpc;
+
+	/* get the critical section list */
+
+	list = cd->listcritical;
+	
+	/* calculate the current mpc */
+
+	mpc = cd->mcodeptr - cd->mcodebase;
+
+	csr = DNEW(critical_section_ref_t);
+
+	/* We only can set restart right now, as start and end are set by
+	   the following, corresponding functions. */
+
+	csr->start   = -1;
+	csr->end     = -1;
+	csr->restart = mpc;
+
+	/* add the branch to the list */
+
+	list_add_last_unsynced(list, csr);
+}
+#endif
+
+
+/* codegen_critical_section_start **********************************************
+
+   Set the start-point of the current critical section (which is the
+   last element of the list).
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void codegen_critical_section_start(codegendata *cd)
+{
+	list_t                 *list;
+	critical_section_ref_t *csr;
+	s4                      mpc;
+
+	/* get the critical section list */
+
+	list = cd->listcritical;
+	
+	/* calculate the current mpc */
+
+	mpc = cd->mcodeptr - cd->mcodebase;
+
+	/* get the current critical section */
+
+	csr = list_last_unsynced(list);
+
+	/* set the start point */
+
+	assert(csr->start == -1);
+
+	csr->start = mpc;
+}
+#endif
+
+
+/* codegen_critical_section_end ************************************************
+
+   Set the end-point of the current critical section (which is the
+   last element of the list).
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void codegen_critical_section_end(codegendata *cd)
+{
+	list_t                 *list;
+	critical_section_ref_t *csr;
+	s4                      mpc;
+
+	/* get the critical section list */
+
+	list = cd->listcritical;
+	
+	/* calculate the current mpc */
+
+	mpc = cd->mcodeptr - cd->mcodebase;
+
+	/* get the current critical section */
+
+	csr = list_last_unsynced(list);
+
+	/* set the end point */
+
+	assert(csr->end == -1);
+
+	csr->end = mpc;
+}
+#endif
+
+
+/* codegen_critical_section_finish *********************************************
+
+   Finish the critical sections, create the critical section nodes for
+   the AVL tree and insert them into the tree.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+static void codegen_critical_section_finish(jitdata *jd)
+{
+	codeinfo    *code;
+	codegendata *cd;
+	list_t                  *list;
+	critical_section_ref_t  *csr;
+	critical_section_node_t *csn;
+
+	/* get required compiler data */
+
+	code = jd->code;
+	cd   = jd->cd;
+
+	/* get the critical section list */
+
+	list = cd->listcritical;
+
+	/* iterate over all critical sections */
+
+	for (csr = list_first_unsynced(list); csr != NULL;
+		 csr = list_next_unsynced(list, csr)) {
+		/* check if all points are set */
+
+		assert(csr->start   != -1);
+		assert(csr->end     != -1);
+		assert(csr->restart != -1);
+
+		/* allocate tree node */
+
+		csn = NEW(critical_section_node_t);
+
+		csn->start   = code->entrypoint + csr->start;
+		csn->end     = code->entrypoint + csr->end;
+		csn->restart = code->entrypoint + csr->restart;
+
+		/* insert into the tree */
+
+		critical_section_register(csn);
+	}
+}
+#endif
+
+
 /* methodtree_comparator *******************************************************
 
    Comparator function used for the AVL tree of methods.
@@ -780,7 +931,6 @@ void codegen_finish(jitdata *jd)
 	s4           alignedmcodelen;
 	jumpref     *jr;
 	u1          *epoint;
-	s4           extralen;
 	s4           alignedlen;
 
 	/* get required compiler data */
@@ -797,12 +947,6 @@ void codegen_finish(jitdata *jd)
 	/* calculate the code length */
 
 	mcodelen = (s4) (cd->mcodeptr - cd->mcodebase);
-
-#if defined(ENABLE_THREADS)
-	extralen = sizeof(critical_section_node_t) * cd->threadcritcount;
-#else
-	extralen = 0;
-#endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
@@ -833,7 +977,7 @@ void codegen_finish(jitdata *jd)
 	/* allocate new memory */
 
 	code->mcodelength = mcodelen + cd->dseglen;
-	code->mcode       = CNEW(u1, alignedlen + extralen);
+	code->mcode       = CNEW(u1, alignedlen);
 
 	/* set the entrypoint of the method */
 	
@@ -931,20 +1075,9 @@ void codegen_finish(jitdata *jd)
 #endif
 
 #if defined(ENABLE_THREADS)
-	{
-		critical_section_node_t *n = (critical_section_node_t *) ((ptrint) code->mcode + alignedlen);
-		s4 i;
-		codegen_critical_section_t *nt = cd->threadcrit;
+	/* create cirtical sections */
 
-		for (i = 0; i < cd->threadcritcount; i++) {
-			n->mcodebegin = (u1 *) (ptrint) code->mcode + nt->mcodebegin;
-			n->mcodeend = (u1 *) (ptrint) code->mcode + nt->mcodeend;
-			n->mcoderestart = (u1 *) (ptrint) code->mcode + nt->mcoderestart;
-			critical_register_critical_section(n);
-			n++;
-			nt = nt->next;
-		}
-	}
+	codegen_critical_section_finish(jd);
 #endif
 
 	/* flush the instruction and data caches */
@@ -1411,30 +1544,6 @@ s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 {
 	return codegen_reg_of_var(iptr->opc, VAROP(iptr->dst), tempregnum);
 }
-
-
-#if defined(ENABLE_THREADS)
-void codegen_threadcritrestart(codegendata *cd, int offset)
-{
-	cd->threadcritcurrent.mcoderestart = offset;
-}
-
-
-void codegen_threadcritstart(codegendata *cd, int offset)
-{
-	cd->threadcritcurrent.mcodebegin = offset;
-}
-
-
-void codegen_threadcritstop(codegendata *cd, int offset)
-{
-	cd->threadcritcurrent.next = cd->threadcrit;
-	cd->threadcritcurrent.mcodeend = offset;
-	cd->threadcrit = DNEW(codegen_critical_section_t);
-	*(cd->threadcrit) = cd->threadcritcurrent;
-	cd->threadcritcount++;
-}
-#endif
 
 
 /*
