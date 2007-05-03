@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7818 2007-04-25 19:47:50Z twisti $
+   $Id: codegen.c 7865 2007-05-03 21:29:40Z twisti $
 
 */
 
@@ -3096,20 +3096,6 @@ gen_method:
 
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
-		                      /* val.a: (classinfo*) superclass               */
-
-			/*  superclass is an interface:
-			 *
-			 *  OK if ((sub == NULL) ||
-			 *         (sub->vftbl->interfacetablelength > super->index) &&
-			 *         (sub->vftbl->interfacetable[-super->index] != NULL));
-			 *
-			 *  superclass is a class:
-			 *
-			 *  OK if ((sub == NULL) || (0
-			 *         <= (sub->vftbl->baseval - super->vftbl->baseval) <=
-			 *         super->vftbl->diffval));
-			 */
 
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 				/* object type cast-check */
@@ -3129,9 +3115,9 @@ gen_method:
 					supervftbl = super->vftbl;
 				}
 			
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+					CODEGEN_CRITICAL_SECTION_NEW;
+
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -3203,9 +3189,9 @@ gen_method:
 					}
 
 					M_MOV_IMM(supervftbl, REG_ITMP3);
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD32(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
 					/* 				if (s1 != REG_ITMP1) { */
@@ -3221,9 +3207,9 @@ gen_method:
 					M_ISUB(REG_ITMP3, REG_ITMP2);
 					M_MOV_IMM(supervftbl, REG_ITMP3);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_END;
+
 					/* 				} */
 
 					M_CMP(REG_ITMP3, REG_ITMP2);
@@ -3267,20 +3253,6 @@ gen_method:
 			break;
 
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
-		                      /* val.a: (classinfo*) superclass               */
-
-			/*  superclass is an interface:
-			 *
-			 *  return (sub != NULL) &&
-			 *         (sub->vftbl->interfacetablelength > super->index) &&
-			 *         (sub->vftbl->interfacetable[-super->index] != NULL);
-			 *
-			 *  superclass is a class:
-			 *
-			 *  return ((sub != NULL) && (0
-			 *          <= (sub->vftbl->baseval - super->vftbl->baseval) <=
-			 *          super->vftbl->diffvall));
-			 */
 
 			{
 			classinfo *super;
@@ -3298,9 +3270,8 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 			
-#if defined(ENABLE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+				CODEGEN_CRITICAL_SECTION_NEW;
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -3384,15 +3355,15 @@ gen_method:
 				}
 
 				M_MOV_IMM(supervftbl, REG_ITMP2);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, diffval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_ISUB(REG_ITMP2, REG_ITMP1);
 				M_CLR(d);                                 /* may be REG_ITMP2 */
 				M_CMP(REG_ITMP3, REG_ITMP1);
