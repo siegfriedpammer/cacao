@@ -234,7 +234,8 @@ L_asm_patcher_wrapper_exception:
 	lea		%sp@(4*4), %sp
 #endif
 
-  lea   	%sp@(6*4), %sp				/* restore stack and remove patcher stub*/
+  lea   	%sp@(5*4), %sp				/* restore stack and remove patcher stub*/
+  movel		%sp@+, %d4					/* restore REG_ITMP3, stored in emit_patcher_stubs */
   moveal	%d0, %a2					/* xptr, pointer to exception object */
   moveal	%sp@+, %a3					/* pop return address into exception address register */
   jmp		asm_handle_exception		/* handle exception */

@@ -307,8 +307,8 @@ void emit_patcher_stubs(jitdata *jd)
 
 		cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr       */
 
-		/* save REG_ITMP3 */
-		M_IPUSH(REG_ITMP3);		/* FIXME why, and restore where ? */
+		/* save REG_ITMP3, restored in asm_patcher_wrapper  */
+		M_IPUSH(REG_ITMP3);		
 
 		/* move pointer to java_objectheader onto stack */
 
@@ -317,10 +317,9 @@ void emit_patcher_stubs(jitdata *jd)
 		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
 		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
-		assert(0); /* The next lines are wrong */
-		M_MOV_IMM(0, REG_ITMP3);
+		M_IMOV_IMM32(0, REG_ITMP3);
 		dseg_adddata(cd);
-		M_AADD_IMM(REG_ITMP3, disp);
+		M_IADD_IMM(disp, REG_ITMP3);
 		M_IPUSH(REG_ITMP3);
 #else
 		M_IPUSH_IMM(0);
@@ -668,7 +667,8 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		/* did like to assert on TYPE_ADR, but not possible in here */
+		/* XXX: this check is copied to call monitor_enter 
+		 * invocation at the beginning of codegen.c */
 		M_ATST(reg);
 		M_BNE(2);
 		M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
@@ -689,23 +689,6 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 		M_TRAP(EXCEPTION_HARDWARE_ARITHMETIC);
 	}
 }
-
-#if 0
-/* emit_exception_check_areg **************************************************
- *
-   Emit an Exception check, tested register is address REG_RESULT
-
-*******************************************************************************/
-void emit_exception_check_areg(codegendata *cd, instruction *iptr)
-{
-	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_ATST(REG_RESULT);
-		M_BNE(2);
-		/*M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);*/
-		M_ILLEGAL; /*FIXME*/
-	}
-}
-#endif
 
 /* emit_exception_check_ireg **************************************************
 

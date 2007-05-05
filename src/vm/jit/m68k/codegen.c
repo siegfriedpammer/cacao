@@ -32,6 +32,7 @@
 #include <assert.h>
 
 #include "md-abi.h"
+#include "md-os.h"
 
 #include "vm/types.h"
 #include "vm/jit/m68k/codegen.h"
@@ -112,7 +113,14 @@ bool codegen_emit(jitdata *jd)
 
 		cd->stackframesize = rd->memuse + savedregs_num;
 #if defined(ENABLE_THREADS)
-		assert(0);
+		/* we need additional space to save argument of monitor_enter */
+		if (checksync && (m->flags & ACC_SYNCHRONIZED))	{
+			if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))	{
+				cd->stackframesize += 2;
+			} else	{
+				cd->stackframesize ++;
+			}
+		}
 #endif
 	
 		/* create method header */
@@ -254,9 +262,27 @@ bool codegen_emit(jitdata *jd)
 			default: assert(0);
 			}
 		} /* end for argument out of stack*/
+
+#if defined(ENABLE_THREADS)
+	/* call monitor_enter function */
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))	{
+		if (m->flags & ACC_STATIC)	{
+			M_AMOV_IMM((&m->class->object.header), REG_ATMP1);
+		} else	{
+			/* for non-static case the first arg is the object */
+			M_ALD(REG_ATMP1, REG_SP, cd->stackframesize*4 + 4);
+			M_ATST(REG_ATMP1);
+			M_BNE(2);
+			M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
+		}
+
+		M_AST(REG_ATMP1, REG_SP, rd->memuse * 4);
+		M_AST(REG_ATMP1, REG_SP, 0 * 4);
+		M_JSR_IMM(LOCK_monitor_enter);
 	}
+#endif
 
-
+	}
 
 	/* create replacement points */
 	REPLACEMENT_POINTS_INIT(cd, jd);
@@ -1607,48 +1633,62 @@ nowperformreturn:
 #endif
 
 #if defined(ENABLE_THREADS)
+			/* call lock_monitor_exit */
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
-				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_MTCTR(REG_ITMP3);
+				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 4);
 
 				/* we need to save the proper return value */
-
 				switch (iptr->opc) {
+#if defined(ENABLE_SOFTFLOAT)
+				case ICMD_DRETURN:
+#endif
 				case ICMD_LRETURN:
-					M_IST(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
-					/* fall through */
+					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
+					break;
+#if defined(ENABLE_SOFTFLOAT)
+				case ICMD_FRETURN:
+#endif
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_IST(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
+					M_IST(REG_RESULT , REG_SP, rd->memuse * 4);
 					break;
+#if !defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
-					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4);
 					break;
 				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4);
 					break;
+#endif
 				}
 
-				M_ALD(REG_A0, REG_SP, rd->memuse * 4);
-				M_JSR;
+				M_IST(REG_ITMP3, REG_SP, 0 * 4);
+				M_JSR_IMM(LOCK_monitor_exit);
 
 				/* and now restore the proper return value */
-
 				switch (iptr->opc) {
+
+#if defined(ENABLE_SOFTFLOAT)
+				case ICMD_DRETURN:
+#endif
 				case ICMD_LRETURN:
-					M_ILD(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
-					/* fall through */
+					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
+					break;
+#if defined(ENABLE_SOFTFLOAT)
+				case ICMD_FRETURN:
+#endif
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
+					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4);
 					break;
+#if !defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
-					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4);
 					break;
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4);
 					break;
+#endif
 				}
 			}
 #endif
@@ -1713,9 +1753,9 @@ nowperformreturn:
 				superindex = super->index;
 			}
 			
-#if defined(ENABLE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+				CODEGEN_CRITICAL_SECTION_NEW;
+
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
@@ -1778,15 +1818,15 @@ nowperformreturn:
 				}
 
 				M_ALD(REG_ATMP1, s1, OFFSET(java_objectheader, vftbl));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_ILD(REG_ITMP1, REG_ATMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ATMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ATMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_ISUB(REG_ITMP3, REG_ITMP1);
 				M_ICMP(REG_ITMP2, REG_ITMP1);
 				M_BHI(4);
@@ -1838,9 +1878,8 @@ nowperformreturn:
 					superindex = super->index;
 				}
 
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+					CODEGEN_CRITICAL_SECTION_NEW;
 
 				s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 				assert(VAROP(iptr->s1)->type == TYPE_ADR);
@@ -1900,15 +1939,15 @@ nowperformreturn:
 					}
 
 					M_ALD(REG_ATMP2, s1, OFFSET(java_objectheader, vftbl));
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD(REG_ITMP3, REG_ATMP2, OFFSET(vftbl_t, baseval));	/* REG_ITMP3 == sub->vftbl->baseval */
 					M_ILD(REG_ITMP1, REG_ATMP3, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP2, REG_ATMP3, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_END;
+
 					M_ISUB(REG_ITMP1, REG_ITMP3);
 					M_ICMP(REG_ITMP2, REG_ITMP3);	/* XXX was CMPU */
 
