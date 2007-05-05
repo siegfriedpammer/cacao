@@ -1,6 +1,13 @@
 
 SUBDIRS = t
 
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/native \
+	-I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ \
+	-I$(top_srcdir)/src/vm/jit/@ARCH_DIR@/@OS_DIR@ \
+	-DVMLOG_HAVE_PTRINT
+
 if ENABLE_VMLOG
 noinst_PROGRAMS = vmlogdump vmlogindex vmlogdiff
 endif
