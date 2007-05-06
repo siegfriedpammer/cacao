@@ -112,6 +112,14 @@ bool codegen_emit(jitdata *jd)
 		savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
 
 		cd->stackframesize = rd->memuse + savedregs_num;
+
+		/* FIXME: we could need 2 words to move a double result, which gets
+		 * passed in %d0, %d1 into a floating point register, this is of 
+		 * course onyl true when not using ENABLE_SOFTFLOAT, so this could be
+		 * optimized away, for now always use 2 more words. When optimizing watch
+		 * the threading code, which stores the lock word, the offset would change */
+		cd->stackframesize += 2;
+
 #if defined(ENABLE_THREADS)
 		/* we need additional space to save argument of monitor_enter */
 		if (checksync && (m->flags & ACC_SYNCHRONIZED))	{
@@ -122,6 +130,7 @@ bool codegen_emit(jitdata *jd)
 			}
 		}
 #endif
+		
 	
 		/* create method header */
 		(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
@@ -170,7 +179,7 @@ bool codegen_emit(jitdata *jd)
 		}
 #if !defined(ENABLE_SOFTFLOAT)
 		for (i=FLT_SAV_CNT-1; i>=rd->savfltreguse; --i)	{
-			p-=2; M_FST(rd->savfltregs[i], REG_SP, p*4);	/* FIXME */
+			p-=2; M_DST(rd->savfltregs[i], REG_SP, p*4);	/* FIXME */
 		}	
 #else
 		assert(FLT_SAV_CNT == 0);
@@ -276,7 +285,7 @@ bool codegen_emit(jitdata *jd)
 			M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
 		}
 
-		M_AST(REG_ATMP1, REG_SP, rd->memuse * 4);
+		M_AST(REG_ATMP1, REG_SP, rd->memuse * 4 + 2*4);
 		M_AST(REG_ATMP1, REG_SP, 0 * 4);
 		M_JSR_IMM(LOCK_monitor_enter);
 	}
@@ -365,7 +374,7 @@ bool codegen_emit(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 #else
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			FCONST(iptr->sx.val.f, d);
+			FCONST(iptr->sx.val.i, d);
 			emit_store_dst(jd, iptr, d);
 #endif
 			break;
@@ -378,7 +387,10 @@ bool codegen_emit(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 #else
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			DCONST(iptr->sx.val.d, d);
+			disp = dseg_add_double(cd, iptr->sx.val.d);
+			M_AMOV_IMM(0, REG_ATMP1);
+			dseg_adddata(cd);
+			M_DLD(d, REG_ATMP1, disp);
 			emit_store_dst(jd, iptr, d);
 #endif
 			break;
@@ -1165,7 +1177,6 @@ bool codegen_emit(jitdata *jd)
 			M_IADD_IMM(OFFSET(java_intarray, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
-	
 			/* implicit null-pointer check */
 			M_LWZX(REG_ATMP1, d);
 			emit_store_dst(jd, iptr, d);
@@ -1182,11 +1193,7 @@ bool codegen_emit(jitdata *jd)
 			M_IADD_IMM(OFFSET(java_longarray, data[0]), REG_ITMP1);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP1, REG_ATMP1);
-			#if 0
-			M_LWZX(REG_ATMP1, GET_LOW_REG(d));
-			M_AADD_IMM(4, REG_ATMP1);
-			M_LWZX(REG_ATMP1, GET_HIGH_REG(d));
-			#endif
+			/* implicit null-pointer check */
 			M_LLD(d, REG_ATMP1, 0);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1194,7 +1201,6 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_FALOAD:     /* ..., arrayref, index  ==> ..., value         */
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(2, REG_ITMP2);
@@ -1203,8 +1209,10 @@ bool codegen_emit(jitdata *jd)
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
 #if !defined(ENABLE_SOFTFLOAT)
-			M_LFSX(REG_ATMP1, d);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+			M_FLD(d, REG_ATMP1, 0);
 #else
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			M_LWZX(REG_ATMP1, d);
 #endif
 			emit_store_dst(jd, iptr, d);
@@ -1221,18 +1229,16 @@ bool codegen_emit(jitdata *jd)
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
 #if !defined(ENABLE_SOFTFLOAT)
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);	/* FIXME */
-			M_LFDX(REG_ATMP1, s3);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+			M_DLD(d, REG_ATMP1, 0);
 #else
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			/* implicit null-pointer check */
 			M_LLD(d, REG_ATMP1, 0);
 #endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
-
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -1250,7 +1256,6 @@ bool codegen_emit(jitdata *jd)
 
 
 		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
@@ -1259,13 +1264,11 @@ bool codegen_emit(jitdata *jd)
 			M_IADD_IMM(OFFSET(java_bytearray, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
-	
 			/* implicit null-pointer check */
 			M_STBX(REG_ATMP1, s3);
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
@@ -1280,7 +1283,6 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
@@ -1295,7 +1297,6 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
@@ -1320,13 +1321,6 @@ bool codegen_emit(jitdata *jd)
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP1, REG_ATMP1);
 			/* implicit null-pointer check */
-			#if 0
-			M_STWX(REG_ATMP1, s3);
-			M_AADD_IMM(4, REG_ATMP1);
-			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
-			/* implicit null-pointer check */
-			M_STWX(REG_ATMP1, s3);
-			#endif
 			s3 = emit_load_s3(jd, iptr, REG_ITMP12_PACKED);
 			M_LST(s3, REG_ATMP1, 0);
 			break;
@@ -1335,7 +1329,6 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(2, REG_ITMP2);
 			M_IADD_IMM(OFFSET(java_floatarray, data[0]), REG_ITMP2);
@@ -1343,8 +1336,10 @@ bool codegen_emit(jitdata *jd)
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
 #if !defined(ENABLE_SOFTFLOAT)
-			M_STFSX(REG_ATMP1, s3);
+			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
+			M_FST(s3, REG_ATMP1, 0);
 #else
+			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_STWX(REG_ATMP1, s3);
 #endif
 			break;
@@ -1361,8 +1356,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 #if !defined(ENABLE_SOFTFLOAT)
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
-			M_STFDX(REG_ATMP1, s3);	/*FIXME*/
-			assert(0);
+			M_DST(s3, REG_ATMP1, 0);
 #else
 			s3 = emit_load_s3(jd, iptr, REG_ITMP12_PACKED);
 			/* implicit null-pointer check */
@@ -1455,7 +1449,13 @@ bool codegen_emit(jitdata *jd)
 						break;
 #if !defined(ENABLE_SOFTFLOAT)
 					case TYPE_FLT:
+						d = emit_load(jd, iptr, var, REG_FTMP1);
+						M_FST(d, REG_SP, md->params[s3].regoff*4);
+						break;
 					case TYPE_DBL:
+						d = emit_load(jd, iptr, var, REG_FTMP1);
+						M_DST(d, REG_SP, md->params[s3].regoff*4);
+						break;
 #endif
 					default:
 						assert(0);
@@ -1563,7 +1563,14 @@ bool codegen_emit(jitdata *jd)
 						break;
 #if !defined(ENABLE_SOFTFLOAT)
 					case TYPE_FLT:
+						s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+						M_INT2FLTMOVE(REG_FRESULT, s1);
+						break;
 					case TYPE_DBL:
+						s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+						M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
+						M_DLD(s1, REG_SP, rd->memuse * 4);
+						break;
 #endif
 					default:
 						assert(0);
@@ -1635,9 +1642,10 @@ nowperformreturn:
 #if defined(ENABLE_THREADS)
 			/* call lock_monitor_exit */
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 4);
+				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 4 + 2*4);
 
 				/* we need to save the proper return value */
+				/* we do not care for the long -> doubel convert space here */
 				switch (iptr->opc) {
 #if defined(ENABLE_SOFTFLOAT)
 				case ICMD_DRETURN:

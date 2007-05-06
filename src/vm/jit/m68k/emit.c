@@ -44,9 +44,11 @@
 #include "codegen.h"
 #include "md-os.h"
 
-/*
- *	Loads an immededat operand into data register
- */
+/* emit_mov_imm_reg **************************************************************************
+ *
+ *	Loads an immededat operand into an integer data register
+ *
+ ********************************************************************************************/
 void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg)
 {
 	/* FIXME: -1 can be used as byte form 0xff, but this ifs cascade is plain wrong it seems */
@@ -68,7 +70,6 @@ void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg)
 
 	}
 }
-
 
 /* emit_copy *******************************************************************
 

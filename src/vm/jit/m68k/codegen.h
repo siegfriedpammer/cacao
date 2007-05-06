@@ -193,8 +193,8 @@
 				} while(0);
 
 #if !defined(ENABLE_SOFTFLOAT)
-	#define M_FLD(a,b,c)		M_ILLEGAL
-	#define M_DLD(a,b,c)		M_ILLEGAL
+	#define M_FLD(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( (( (0x11 << 10) | ((a)<<7) | 0x40 )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
+	#define M_DLD(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( (( (0x15 << 10) | ((a)<<7) | 0x44 )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
 #endif
 
 /* M_XST(a,b,c)....M_XST(sourceregister, addressbase, offset)   */
@@ -206,8 +206,8 @@
 				} while(0);
 
 #if !defined(ENABLE_SOFTFLOAT)
-	#define M_FST(a,b,c)		M_ILLEGAL
-	#define M_DST(a,b,c)		M_ILLEGAL
+	#define M_FST(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ((  (0x19 <<10) | ((a)<<7) | 0  )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
+	#define M_DST(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ((  (0x1d <<10) | ((a)<<7) | 0  )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
 #endif
 
 /*M_XADD_IMM(a,b)...M_XADD_IMM(offset, reg) */
@@ -249,6 +249,10 @@
 	do { \
 		if ( (c) ) { OPWORD( (u),(v),(w) ) }  \
 	} while(0);
+#define OPWORD_IMM16_COND(c, u,v,w,x)	\
+	do { \
+		if ( (c) ) { OPWORD_IMM16( (u),(v),(w),(x) ) }  \
+	} while(0);
 /* assert on the opcode */
 #define OPWORD_ASSERT(a, u,v,w)	\
 	do { \
@@ -267,8 +271,9 @@
 				} while(0);
 
 #if !defined(ENABLE_SOFTLFOAT)
-	#define M_FLTMOVE(a,b)		M_ILLEGAL
-	#define M_DBLMOVE(a,b)		M_ILLEGAL
+	#define M_FLTMOVE(a,b)		OPWORD_IMM16_COND( ((a)!=(b)), 0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x40)
+	#define M_INT2FLTMOVE(a,b)	OPWORD_IMM16( 0x3c8, 0, (a), ((0x11 << 10) | ((b) << 7) | 0x40 )) 
+	#define M_DBLMOVE(a,b)		OPWORD_IMM16_COND( ((a)!=(b)), 0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x44)
 #endif
 /* M_XTST....M_XTST(register) */
 #define M_ITST(a)		OPWORD(0x12a, 0, (a))			/* tst.l */
@@ -391,8 +396,10 @@
 					} while(0);
 
 #if !defined(ENABLE_SOFTFLOAT)
-	#define FCONST(a,b)		M_ILLEGAL
-	#define DCONST(a,b)		M_ILLEGAL
+	#define FCONST(a,b)		do	{\
+							M_IMOV_IMM((a), REG_ITMP1);\
+							OPWORD_IMM16( 0x3c8, 0, REG_ITMP1, ( (0x11 << 10) | ((b)<<7) | 0x40) );\
+						} while(0);
 #endif
 
 #define M_TRAP_SETREGISTER(a)		OPWORD( 0x128, 0, (a))		/* tst.b */

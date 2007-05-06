@@ -314,6 +314,7 @@ L_asm_handle_exception_stack_loop:
 
 	/* %d0 contains address of exception handler */
 	moveal	%d0, %a0
+	moveal	%a2, %a1					/* XXX FIXME, xptr is expected in %a1 by java code, whyever */
 	jmp	%a0@
 
 L_asm_handle_exception_not_catched:
