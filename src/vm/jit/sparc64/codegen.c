@@ -109,7 +109,7 @@ bool codegen_emit(jitdata *jd)
 	codeinfo           *code;
 	codegendata        *cd;
 	registerdata       *rd;
-	s4                  len, s1, s2, s3, d, disp;
+	s4                  len, s1, s2, s3, d, disp, slots;
 	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
@@ -219,7 +219,55 @@ bool codegen_emit(jitdata *jd)
 #endif
 	
 	
-	
+		/* call monitorenter function */
+#if defined(ENABLE_THREADS)
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		/* stack offset for monitor argument */
+
+		s1 = rd->memuse;
+
+		/* save float argument registers */
+
+		/* XXX jit-c-call */
+		slots = FLT_ARG_CNT;
+		ALIGN_STACK_SLOTS(slots);
+
+		M_LDA(REG_SP, REG_SP, -(slots * 8));
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DST(abi_registers_float_argument[i], REG_SP, CSTACK +  i * 8);
+
+		s1 += slots;
+
+		/* get correct lock object */
+
+		if (m->flags & ACC_STATIC) {
+			disp = dseg_add_address(cd, &m->class->object.header);
+			M_ALD(REG_OUT0, REG_PV, disp);
+			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+		}
+		else {
+			/* copy class pointer: $i0 -> $o0 */
+			M_MOV(REG_RESULT_CALLEE, REG_OUT0);
+			M_BNEZ(REG_OUT0, 3);
+			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+			M_ALD(REG_ITMP3, REG_PV, disp);                   /* branch delay */
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+		}
+
+		M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+		M_AST(REG_OUT0, REG_SP, CSTACK + s1 * 8);             /* branch delay */
+
+		/* restore float argument registers */
+
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DLD(abi_registers_float_argument[i], REG_SP, CSTACK + i * 8);
+
+		M_LDA(REG_SP, REG_SP, slots * 8);
+	}
+#endif
+
+
 	/* take arguments out of register or stack frame */
 	
 	md = m->parseddesc;
@@ -310,9 +358,6 @@ bool codegen_emit(jitdata *jd)
 		/* release scratch space */
 		M_ADD_IMM(REG_SP, INT_ARG_CNT * 8, REG_SP);
 	}
-	
-	
-	/* XXX monitor enter */
 
 
 
@@ -2207,24 +2252,32 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-/* XXX: REG_RESULT is save, but what about FRESULT? */
-				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8); /* XXX: what for ? */
-
-				switch (iptr->opc) {
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 8);
-					break;
-				}
-
-				disp = dseg_add_functionptr(cd, BUILTIN_monitorexit);
+				/* XXX jit-c-call */
+				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
 				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO); /*REG_RA_CALLER */
+
+				/* we need to save fp return value (int saved by window) */
 
 				switch (iptr->opc) {
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8);
+					M_ALD(REG_OUT0, REG_SP, CSTACK + rd->memuse * 8);
+					M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+					M_DST(REG_FRESULT, REG_SP, CSTACK + rd->memuse * 8); /* delay */
+
+					/* restore the fp return value */
+
+					M_DLD(REG_FRESULT, REG_SP, CSTACK + rd->memuse * 8);
+					break;
+				case ICMD_IRETURN:
+				case ICMD_LRETURN:
+				case ICMD_ARETURN:
+				case ICMD_RETURN:
+					M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+					M_ALD(REG_OUT0, REG_SP, CSTACK + rd->memuse * 8); /* delay */
+					break;
+				default:
+					assert(false);
 					break;
 				}
 			}
