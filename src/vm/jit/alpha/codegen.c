@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7820 2007-04-25 19:55:34Z twisti $
+   $Id: codegen.c 7886 2007-05-07 21:34:01Z twisti $
 
 */
 
@@ -2708,42 +2708,24 @@ gen_method:
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
 
-		                      /* val.a: (classinfo*) superclass               */
-
-			/*  superclass is an interface:
-			 *	
-			 *  OK if ((sub == NULL) ||
-			 *         (sub->vftbl->interfacetablelength > super->index) &&
-			 *         (sub->vftbl->interfacetable[-super->index] != NULL));
-			 *	
-			 *  superclass is a class:
-			 *	
-			 *  OK if ((sub == NULL) || (0
-			 *         <= (sub->vftbl->baseval - super->vftbl->baseval) <=
-			 *         super->vftbl->diffval));
-			 */
-
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 				/* object type cast-check */
 
 				classinfo *super;
-				vftbl_t   *supervftbl;
 				s4         superindex;
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-					super = NULL;
+					super      = NULL;
 					superindex = 0;
-					supervftbl = NULL;
 				}
 				else {
-					super = iptr->sx.s23.s3.c.cls;
+					super      = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
-					supervftbl = super->vftbl;
 				}
 
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+					CODEGEN_CRITICAL_SECTION_NEW;
+
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -2807,16 +2789,16 @@ gen_method:
 											  disp);
 					}
 					else {
-						disp = dseg_add_address(cd, supervftbl);
+						disp = dseg_add_address(cd, super->vftbl);
 
 						emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					/*  				if (s1 != REG_ITMP1) { */
 					/*  					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval)); */
@@ -2831,9 +2813,9 @@ gen_method:
 					M_ISUB(REG_ITMP2, REG_ITMP3, REG_ITMP2);
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_END;
+
 					/*  				} */
 					M_CMPULE(REG_ITMP2, REG_ITMP3, REG_ITMP3);
 					emit_classcast_check(cd, iptr, BRANCH_EQ, REG_ITMP3, s1);
@@ -2885,21 +2867,6 @@ gen_method:
 
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
 
-		                      /* val.a: (classinfo*) superclass               */
-
-			/*  superclass is an interface:
-			 *	
-			 *  return (sub != NULL) &&
-			 *         (sub->vftbl->interfacetablelength > super->index) &&
-			 *         (sub->vftbl->interfacetable[-super->index] != NULL);
-			 *	
-			 *  superclass is a class:
-			 *	
-			 *  return ((sub != NULL) && (0
-			 *          <= (sub->vftbl->baseval - super->vftbl->baseval) <=
-			 *          super->vftbl->diffvall));
-			 */
-
 			{
 			classinfo *super;
 			vftbl_t   *supervftbl;
@@ -2916,9 +2883,9 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 
-#if defined(ENABLE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+				CODEGEN_CRITICAL_SECTION_NEW;
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
@@ -3000,15 +2967,15 @@ gen_method:
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_CMPULE(REG_ITMP1, REG_ITMP2, d);
 
