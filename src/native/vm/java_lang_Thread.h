@@ -47,8 +47,6 @@
 # include "native/include/java_lang_VMThread.h"
 #endif
 
-#include "threads/native/threads.h"
-
 
 /* function prototypes ********************************************************/
 
