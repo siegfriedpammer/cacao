@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7875 2007-05-07 11:35:30Z twisti $
+   $Id: threads-common.c 7876 2007-05-07 11:37:00Z twisti $
 
 */
 
@@ -795,7 +795,7 @@ void threads_dump(void)
 			utf_display_printable_ascii(name);
 			printf("\"");
 
-			if (thread->flags & THREAD_FLAG_DAEMON)
+			if (t->flags & THREAD_FLAG_DAEMON)
 				printf(" daemon");
 
 			printf(" prio=%d", object->priority);
