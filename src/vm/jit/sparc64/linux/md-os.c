@@ -179,13 +179,16 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 }
 
 #if defined(ENABLE_THREADS)
-/* thread_restartcriticalsection **********************************************
+/* md_critical_section_restart ************************************************
  
-   Reads PC and modifies NPC
+   Search the critical sections tree for a matching section and set
+   the NPC to the restart point, if necessary.
+
+   Reads PC and modifies NPC.
 
 ******************************************************************************/
 
-void thread_restartcriticalsection(ucontext_t *_uc)
+void md_critical_section_restart(ucontext_t *_uc)
 {
 	mcontext_t *_mc;
 	u1         *pc;
@@ -200,7 +203,7 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 
 	_mc->mc_gregs[MC_NPC] = (ptrint) npc;
 
-	assert(false);
+	assert(false); /* test this */
 }
 #endif
 	
