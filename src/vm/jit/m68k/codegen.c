@@ -897,6 +897,7 @@ bool codegen_emit(jitdata *jd)
 			M_F2D(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
+
 		case ICMD_D2F:       /* ..., value  ==> ..., (float) value           */
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
@@ -904,7 +905,19 @@ bool codegen_emit(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		case ICMD_FNEG:       /* ..., value  ==> ..., - value                 */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_FNEG(s1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
 
+		case ICMD_DNEG:       /* ..., value  ==> ..., - value                 */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_DNEG(s1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
 
 		#endif
 

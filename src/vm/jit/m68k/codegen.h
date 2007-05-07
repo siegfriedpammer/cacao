@@ -427,8 +427,11 @@
 	#define	M_FDIV(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x60 )		/* fsdiv */
 	#define	M_DDIV(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x64 )		/* fddiv */
 
-	#define M_D2F(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) <<7 ) | 0x40 )		/* fmove.s */
-	#define M_F2D(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) <<7 ) | 0x44 )		/* fmove.d */
+	#define M_D2F(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x40 )		/* fmove.s */
+	#define M_F2D(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x44 )		/* fmove.d */
+
+	#define	M_FNEG(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x5a )		/* fneg.s */
+	#define	M_DNEG(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x5e )		/* fneg.d */
 #endif
 
 #endif /* _CODEGEN_H */

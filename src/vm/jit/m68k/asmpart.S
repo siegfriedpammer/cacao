@@ -146,9 +146,15 @@ asm_vm_call_method_exception_handler:
 asm_call_jit_compiler:
 	addal	#(-4*4),%sp						/* create stackframe to save registers */
 	moveml	%a0/%a1/%d0/%d1,%sp@			/* save volatile registers */
-
-	movel 	%sp@(4*4),%sp@-					/* push arguments onto stack (ra)*/
+#if !defined(ENABLE_SOFTFLOAT)
+	fmoved	%fp0, %sp@-
+	fmoved	%fp1, %sp@-
+	movel	%sp@(8*4), %sp@-
+	pea		%sp@(8*4+8)
+#else
+	movel 	%sp@(4*4), %sp@-				/* push arguments onto stack (ra)*/
 	pea 	%sp@(4*4+8)						/* the old stack pointer*/
+#endif
 	movel 	%a3,%sp@-						/* mptr */
 	movel 	%a2,%sp@-						/* methodinfo */
 
@@ -156,6 +162,11 @@ asm_call_jit_compiler:
 	jsr	jit_asm_compile						/* invoke compiler */
 	addal	#(4*4),%sp						/* pop arguments off stack */
 	moveal	%d0, %a2						/* to tmp register */
+
+#if !defined(ENABLE_SOFTFLOAT)
+	fdmoved	%sp@+, %fp1
+	fdmoved	%sp@+, %fp0
+#endif
 
 	moveml %sp@,%a0/%a1/%d0/%d1				/* restore volatile registers */
 	addal	#(4*4),%sp						/* remove stackframe */
@@ -195,13 +206,16 @@ asm_patcher_wrapper:
   movel %d0, %sp@-
   movel %d1, %sp@-
 
+#if defined(ENABLE_SOFTFLOAT)
   /* calculate original value of sp */
   movel %sp, %d0
   addil #4*4, %d0
+#else
+  fmoved %fp0, %sp@-
+  fmoved %fp1, %sp@-
 
-#if !defined(ENABLE_SOFTFLOAT)
-  movel %f0, %sp@-
-  movel %f1, %sp@-
+  movel %sp, %d0
+  addil #8*4, %d0
 #endif
 
   clrl	%sp@-				/* pass ra */
@@ -214,8 +228,8 @@ asm_patcher_wrapper:
   bne	L_asm_patcher_wrapper_exception
 
 #if !defined(ENABLE_SOFTFLOAT)
-  movel %sp@+, %f0
-  movel %sp@+, %f1
+  fdmoved %sp@+, %fp1
+  fdmoved %sp@+, %fp0
 #endif
   movel %sp@+, %d1
   movel %sp@+, %d0
@@ -353,7 +367,20 @@ L_asm_handle_ex_int_done:
 L_handle_exception_nat_catched_no_adr:
 
 #if !defined(ENABLE_SOFTFLOAT)
-	FIXME
+	movel	%a3@(FltSave), %d0
+	cmpb	#0,%d0
+	beq	L_asm_handle_ex_flt_done
+	fdmoved	-(%a0), %fp7
+
+	cmpb	#1,%d0
+	beq	L_asm_handle_ex_flt_done
+	fdmoved	-(%a0), %fp6
+	
+	cmpb	#2,%d0
+	beq	L_asm_handle_ex_flt_done
+	fdmoved	-(%a0), %fp5
+
+L_asm_handle_ex_flt_done:
 #else
 	/* nothing to do */
 #endif
