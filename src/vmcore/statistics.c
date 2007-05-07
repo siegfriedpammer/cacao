@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7643 2007-04-03 11:35:40Z twisti $
+   $Id: statistics.c 7879 2007-05-07 13:45:19Z twisti $
 
 */
 
@@ -30,8 +30,14 @@
 #include "config.h"
 
 #include <string.h> 
-#include <sys/time.h>
-#include <sys/resource.h>
+
+#if defined(HAVE_SYS_TIME_H)
+# include <sys/time.h>
+#endif
+
+#if defined(HAVE_SYS_RESOURCE_H)
+# include <sys/resource.h>
+#endif
 
 #include "vm/types.h"
 
@@ -265,14 +271,21 @@ void jniinvokation(void)
 
 s8 getcputime(void)
 {
+#if defined(HAVE_GETRUSAGE)
 	struct rusage ru;
 	int sec, usec;
 
 	getrusage(RUSAGE_SELF, &ru);
-	sec = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
+
+	sec  = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
 	usec = ru.ru_utime.tv_usec + ru.ru_stime.tv_usec;
 
 	return sec * 1000000 + usec;
+#else
+	/* If we don't have getrusage, simply return 0. */
+
+	return 0;
+#endif
 }
 
 

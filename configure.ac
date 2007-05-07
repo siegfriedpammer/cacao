@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7799 2007-04-23 23:03:31Z twisti $
+dnl $Id: configure.ac 7879 2007-05-07 13:45:19Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -212,10 +212,14 @@ AM_PROG_MKDIR_P
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
+
+dnl keep them alpha-sorted!
 AC_CHECK_HEADERS([fcntl.h])
-AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
+AC_CHECK_HEADERS([sys/mman.h])
+AC_CHECK_HEADERS([sys/resource.h])
+AC_CHECK_HEADERS([sys/time.h])
 
 dnl this is for fdlibm
 AC_CHECK_HEADERS([stdint.h])
@@ -241,10 +245,18 @@ AC_PROG_GCC_TRADITIONAL
 AC_TYPE_SIGNAL
 AC_FUNC_MEMCMP
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([calloc mmap getpagesize free])
-AC_CHECK_FUNCS([getcwd gettimeofday])
-AC_CHECK_FUNCS([scandir])
+
+dnl keep them alpha-sorted!
+AC_CHECK_FUNCS([calloc])
+AC_CHECK_FUNCS([getpagesize])
+AC_CHECK_FUNCS([free])
+AC_CHECK_FUNCS([getcwd])
+AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_FUNCS([getrusage])
 AC_CHECK_FUNCS([isnan])
+AC_CHECK_FUNCS([mmap])
+AC_CHECK_FUNCS([mprotect])
+AC_CHECK_FUNCS([scandir])
 
 dnl Checks for libraries.
 
