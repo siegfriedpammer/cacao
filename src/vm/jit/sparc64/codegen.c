@@ -3041,6 +3041,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	s4            t;
 	s4            s1, s2, disp;
 	s4            funcdisp;             /* displacement of the function       */
+	s4            fltregarg_offset[FLT_ARG_CNT];
 
 	/* get required compiler data */
 
@@ -3098,11 +3099,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	}
 #endif
 
-	/* save float argument registers */
+	/* save float argument registers (into abi parameter slots) */
+
+	assert(ABIPARAMS_CNT >= FLT_ARG_CNT);
 
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DST(abi_registers_float_argument[i], REG_SP, CSTACK + (j * 8));
+			s1 = WINSAVE_CNT + (j * 8);
+			M_DST(abi_registers_float_argument[i], REG_SP, BIAS + s1);
+			fltregarg_offset[i] = s1; /* remember stack offset */
 			j++;
 		}
 	}
@@ -3118,22 +3123,25 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 	M_NOP; /* XXX fill me! */
 
-	/* restore float argument registers */
-
+	/* keep float arguments on stack */
+#if 0
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			M_DLD(abi_registers_float_argument[i], REG_SP, CSTACK + (j * 8));
 			j++;
 		}
 	}
+#endif
 
 	/* copy or spill arguments to new locations */
-	int num_fltregargs = 0;
-	int fltregarg_inswap[16];
+
 	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
+
+			/* integral types */
+
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
 				/* s1 refers to the old window, transpose */
@@ -3148,7 +3156,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 
 			} else {
-				/*assert(false);*/
+				if (!nmd->params[j].inmemory) {
+					/* JIT stack arg -> NAT reg arg */
+
+					/* Due to the Env pointer that is always passed, the 6th JIT arg   */
+					/* is the 7th (or 8th w/ class ptr) NAT arg, and goes to the stack */
+
+					assert(false); /* path never taken */
+				}
+
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff - 6;
 				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1 * 8);
@@ -3156,49 +3172,58 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 			}
 
 		} else {
+
+			/* floating point types */
+
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
 
 				if (!nmd->params[j].inmemory) {
+
 					/* no mapping to regs needed, native flt args use regoff */
 					s2 = nmd->params[j].regoff;
-					
-					/* we cannot move flt regs to their native arg locations directly */
-					M_DMOV(s1, s2 + 16);
-					fltregarg_inswap[num_fltregargs] = s2;
-					num_fltregargs++;
-					/*printf("flt arg swap to %d\n", s2 + 16);*/
 
-				} else {
+					/* JIT float regs are still on the stack */
+					M_DLD(s2, REG_SP, BIAS + fltregarg_offset[i]);
+				} 
+				else {
+					/* not supposed to happen with 16 NAT flt args */
+					assert(false); 
+					/*
 					s2 = nmd->params[j].regoff;
 					if (IS_2_WORD_TYPE(t))
 						M_DST(s1, REG_SP, CSTACK + (s2 * 8));
 					else
 						M_FST(s1, REG_SP, CSTACK + (s2 * 8));
+					*/
 				}
 
-			} else {
-				/*assert(false);*/
+			} 
+			else {
 				s1 = md->params[i].regoff + cd->stackframesize;
-				s2 = nmd->params[j].regoff - 6;
-				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, CSTACK + s1 * 8);
-					M_DST(REG_FTMP1, REG_SP, CSTACK + s2 * 8);
-				} else {
-					M_FLD(REG_FTMP1, REG_SP, CSTACK + s1 * 8);
-					M_FST(REG_FTMP1, REG_SP, CSTACK + s2 * 8);
+
+				if (!nmd->params[j].inmemory) {
+
+					/* JIT stack -> NAT reg */
+
+					s2 = nmd->params[j].regoff; 
+					M_DLD(s2, REG_SP, CSTACK + s1 * 8);
+				}
+				else {
+
+					/* JIT stack -> NAT stack */
+
+					s2 = nmd->params[j].regoff - 6;
+
+					/* The FTMP register may already be loaded with args */
+					/* we know $f0 is unused because of the env pointer  */
+					M_DLD(REG_F0, REG_SP, CSTACK + s1 * 8);
+					M_DST(REG_F0, REG_SP, CSTACK + s2 * 8);
 				}
 			}
 		}
 	}
 	
-	/* move swapped float args to target regs */
-	for (i = 0; i < num_fltregargs; i++) {
-		s1 = fltregarg_inswap[i];
-		M_DMOV(s1 + 16, s1);
-		/*printf("float arg to target reg: %d ==> %d\n", s1+16, s1);*/
-	}
-
 
 	/* put class into second argument register */
 

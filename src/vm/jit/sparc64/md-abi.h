@@ -83,6 +83,8 @@
 
 #define REG_IFTMP        1   /* temporary integer and floating point register */
 
+#define REG_F0           0
+
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     12   /* number of int callee saved registers          */
