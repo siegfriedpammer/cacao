@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7853 2007-05-02 20:40:11Z twisti $
+   $Id: threads-common.c 7875 2007-05-07 11:35:30Z twisti $
 
 */
 
@@ -372,25 +372,19 @@ void threads_table_remove(threadobject *thread)
          free-list header where the thread pointer is always NULL and
          this is thre expected behavior.
 
+   NOTE: This function does not lock the table.
+
 *******************************************************************************/
 
-threadobject *threads_table_get(s4 index)
+static threadobject *threads_table_get(s4 index)
 {
 	threadobject *thread;
-
-	/* lock the threads table */
-
-	threads_table_lock();
 
 	/* get the requested entry */
 
 	assert((index >= 0) && (index < threads_table.size));
 
 	thread = threads_table.table[index].thread;
-
-	/* unlock the threads table */
-
-	threads_table_unlock();
 
 	return thread;
 }
@@ -441,6 +435,8 @@ s4 threads_table_get_non_daemons(void)
    NOTE: This is always the entry with index 1 and must be the main
          thread.
 
+   NOTE: This function does not lock the table.
+
 *******************************************************************************/
 
 threadobject *threads_table_first(void)
@@ -459,6 +455,8 @@ threadobject *threads_table_first(void)
 
    Return the next thread of the threads table relative to the passed
    one.
+
+   NOTE: This function does not lock the table.
 
 *******************************************************************************/
 
@@ -763,21 +761,24 @@ bool threads_thread_is_alive(threadobject *thread)
 
 void threads_dump(void)
 {
-	threadobject     *thread;
+	threadobject     *t;
 	java_lang_Thread *object;
 	utf              *name;
 
 	/* XXX we should stop the world here */
 
+	/* lock the threads table */
+
+	threads_table_lock();
+
 	printf("Full thread dump CACAO "VERSION":\n");
 
 	/* iterate over all started threads */
 
-	for (thread = threads_table_first(); thread != NULL;
-		 thread = threads_table_next(thread)) {
+	for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
 		/* get thread object */
 
-		object = thread->object;
+		object = t->object;
 
 		/* the thread may be currently in initalization, don't print it */
 
@@ -800,16 +801,14 @@ void threads_dump(void)
 			printf(" prio=%d", object->priority);
 
 #if SIZEOF_VOID_P == 8
-			printf(" tid=0x%016lx (%ld)",
-				   (ptrint) thread->tid, (ptrint) thread->tid);
+			printf(" tid=0x%016lx (%ld)", (ptrint) t->tid, (ptrint) t->tid);
 #else
-			printf(" tid=0x%08x (%d)",
-				   (ptrint) thread->tid, (ptrint) thread->tid);
+			printf(" tid=0x%08x (%d)", (ptrint) t->tid, (ptrint) t->tid);
 #endif
 
 			/* print thread state */
 
-			switch (thread->state) {
+			switch (t->state) {
 			case THREAD_STATE_NEW:
 				printf(" new");
 				break;
@@ -829,17 +828,20 @@ void threads_dump(void)
 				printf(" terminated");
 				break;
 			default:
-				vm_abort("threads_dump: unknown thread state %d",
-						 thread->state);
+				vm_abort("threads_dump: unknown thread state %d", t->state);
 			}
 
 			printf("\n");
 
 			/* print trace of thread */
 
-			threads_thread_print_stacktrace(thread);
+			threads_thread_print_stacktrace(t);
 		}
 	}
+
+	/* unlock the threads table */
+
+	threads_table_unlock();
 }
 
 

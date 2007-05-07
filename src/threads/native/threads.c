@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7864 2007-05-03 21:17:26Z twisti $
+   $Id: threads.c 7875 2007-05-07 11:35:30Z twisti $
 
 */
 
@@ -474,7 +474,10 @@ void threads_cast_stopworld(void)
 #endif
 
 	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
-/* 	pthread_mutex_lock(&threadlistlock); */
+
+	/* lock the threads table */
+
+	threads_table_lock();
 
 #if defined(__DARWIN__)
 	threads_cast_darwinstop();
@@ -494,12 +497,17 @@ void threads_cast_stopworld(void)
 		threads_sem_wait(&suspend_ack);
 #endif
 
-/* 	pthread_mutex_unlock(&threadlistlock); */
+	/* unlock the threads table */
+
+	threads_table_unlock();
 }
 
 void threads_cast_startworld(void)
 {
-/* 	pthread_mutex_lock(&threadlistlock); */
+	/* lock the threads table */
+
+	threads_table_lock();
+
 #if defined(__DARWIN__)
 	threads_cast_darwinresume();
 #elif defined(__MIPS__)
@@ -510,7 +518,11 @@ void threads_cast_startworld(void)
 #else
 	threads_cast_sendsignals(GC_signum2());
 #endif
-/* 	pthread_mutex_unlock(&threadlistlock); */
+
+	/* unlock the threads table */
+
+	threads_table_unlock();
+
 	unlock_stopworld();
 }
 
