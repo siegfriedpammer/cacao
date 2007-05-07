@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 7882 2007-05-07 14:23:32Z tbfg $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,11 +46,12 @@ EXTRA_DIST = \
 	BasicToStrings.output \
 	GCBench.java \
 	JavaPerformance.java \
-	param_test.java
+	param_test.java \
+	exception_restore_registers.java
 
 JAVA = $(top_builddir)/src/cacao/cacao
 
-checkall: x.tst TestArrayClasses.tst BasicToStrings.tst param_test.tst
+checkall: x.tst TestArrayClasses.tst BasicToStrings.tst param_test.tst exception_restore_registers.tst
 
 %.tst:
 	$(JAVAC) $*.java
