@@ -64,23 +64,23 @@
 
 /* float **********************************************************************/
 
-#define SUPPORT_FLOAT                    0
+#define SUPPORT_FLOAT                    1
 
 #if defined(ENABLE_SOFT_FLOAT_CMP)
 # define SUPPORT_FLOAT_CMP               0
 #else
-# define SUPPORT_FLOAT_CMP               0
+# define SUPPORT_FLOAT_CMP               1
 #endif
 
 
 /* double *********************************************************************/
 
-#define SUPPORT_DOUBLE                   0
+#define SUPPORT_DOUBLE                   1
 
 #if defined(ENABLE_SOFT_FLOAT_CMP)
 # define SUPPORT_DOUBLE_CMP              0
 #else
-# define SUPPORT_DOUBLE_CMP              0
+# define SUPPORT_DOUBLE_CMP              1
 #endif
 
 
@@ -96,7 +96,6 @@
 
 #define TRACE_ARGS_NUM			8
 
-#warning There is no REG_ZERO
 #define REG_ZERO 666
 
 #define SPECIALMEMUSE

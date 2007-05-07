@@ -353,6 +353,8 @@
 #define M_BNAN_16(a)			M_ILLEGAL		/* TODO */
 #define M_BNAN_32(a)			M_ILLEGAL
 
+
+
 /* array store/load stuff */
 /* M_LXXX(baseaddressregister, targetregister)	*/
 /* M_SXXX(baseaddressregsiter, sourceregister)  */
@@ -366,12 +368,6 @@
 #define M_STWX(a,c)			OPWORD( ( (2<<6) | ((a) << 3) | 2), 0, (c))
 #define M_STAX(a,c)			OPWORD( ( (2<<6) | ((a) << 3) | 2), 1, (c))	/* movea.l */
 
-#if !defined(ENABLE_SOFTFLOAT)
-	#define M_LFSX(a,c)		M_ILLEGAL
-	#define M_LFDX(a,c)		M_ILLEGAL
-	#define M_STFSX(a,c)		M_ILLEGAL
-	#define M_STFDX(a,c)		M_ILLEGAL
-#endif
 
 #define M_BSEXT(a,b)			OPWORD( ( (7<<6) | ((b) << 3) | 4), 0, (a))	/* mvs.b */
 #define M_CZEXT(a,b)			OPWORD( ( (7<<6) | ((b) << 3) | 7), 0, (a))	/* mvz.w */
@@ -408,6 +404,32 @@
 		*((u2*)cd->mcodeptr) = (u2) ( 0x4e40 | (a) ); \
 		cd->mcodeptr += 2; \
 	} while(0);
+
+
+#if !defined(ENABLE_SOFTFLOAT)
+	
+	#define M_FCMP(b,a)		OPWORD_IMM16(0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x38 )			/* fcmp.d */
+
+	#define	M_BFEQ(a)		OPWORD_IMM16(0x3ca, 0, 0x01, (a))
+	#define	M_BFLT(a)		OPWORD_IMM16(0x3ca, 0, 0x14, (a))
+	#define	M_BFGT(a)		OPWORD_IMM16(0x3ca, 0, 0x12, (a))
+	#define M_BFUN(a)		OPWORD_IMM16(0x3ca, 0, 0x10, (a))
+
+	#define	M_FADD(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x62 )		/* fsadd */
+	#define	M_DADD(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x66 )		/* fdadd */
+
+	#define	M_FSUB(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x68 )		/* fssub */
+	#define	M_DSUB(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x6c )		/* fdsub */
+
+	#define M_FMUL(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x63 )		/* fsmul */
+	#define M_DMUL(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x67 )		/* fdmul */
+
+	#define	M_FDIV(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x60 )		/* fsdiv */
+	#define	M_DDIV(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x64 )		/* fddiv */
+
+	#define M_D2F(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) <<7 ) | 0x40 )		/* fmove.s */
+	#define M_F2D(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) <<7 ) | 0x44 )		/* fmove.d */
+#endif
 
 #endif /* _CODEGEN_H */
 

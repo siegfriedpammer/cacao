@@ -179,7 +179,7 @@ bool codegen_emit(jitdata *jd)
 		}
 #if !defined(ENABLE_SOFTFLOAT)
 		for (i=FLT_SAV_CNT-1; i>=rd->savfltreguse; --i)	{
-			p-=2; M_DST(rd->savfltregs[i], REG_SP, p*4);	/* FIXME */
+			p-=2; M_DST(rd->savfltregs[i], REG_SP, p*4);
 		}	
 #else
 		assert(FLT_SAV_CNT == 0);
@@ -779,7 +779,134 @@ bool codegen_emit(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
+		/* floating point operations ******************************************/
+		#if !defined(ENABLE_SOFTFLOAT)
+		case ICMD_FCMPL:		/* ..., val1, val2  ==> ..., val1 fcmpl val2  */
+		case ICMD_DCMPL:
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_IMOV_IMM(-1, d);
+			M_FCMP(s1, s2);
+			M_BFUN(14);	/* result is -1, branch to end */
+			M_BFLT(10);	/* result is -1, branch to end */
+			M_IMOV_IMM(0, d);
+			M_BFEQ(4)	/* result is 0, branch to end */
+			M_IMOV_IMM(1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
 
+		case ICMD_FCMPG:		/* ..., val1, val2  ==> ..., val1 fcmpg val2  */
+		case ICMD_DCMPG:
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_IMOV_IMM(1, d);
+			M_FCMP(s1, s2);
+			M_BFUN(16);	/* result is +1, branch to end */
+			M_BFGT(14);	/* result is +1, branch to end */
+			M_IMOV_IMM(0, d);
+			M_BFEQ(8)	/* result is 0, branch to end */
+			M_IMOV_IMM(-1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_FMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_FLTMOVE(s2, REG_FTMP2);
+			M_FMUL(s1, REG_FTMP2);
+			M_FLTMOVE(REG_FTMP2, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_DMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_DBLMOVE(s2, REG_FTMP2);
+			M_DMUL(s1, REG_FTMP2);
+			M_DBLMOVE(REG_FTMP2, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_FDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+			M_FLTMOVE(s1, REG_FTMP1);
+			M_FDIV(s2, REG_FTMP1);
+			M_FLTMOVE(REG_FTMP1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_DDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+			M_DBLMOVE(s1, REG_FTMP1);
+			M_DDIV(s2, REG_FTMP1);
+			M_DBLMOVE(REG_FTMP1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_FADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_FLTMOVE(s2, REG_FTMP2);
+			M_FADD(s1, REG_FTMP2);
+			M_FLTMOVE(REG_FTMP2, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_DADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_DBLMOVE(s2, REG_FTMP2);
+			M_DADD(s1, REG_FTMP2);
+			M_DBLMOVE(REG_FTMP2, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_FSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_FLTMOVE(s1, REG_FTMP1);
+			M_FSUB(s2, REG_FTMP1);
+			M_FLTMOVE(REG_FTMP1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_DSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_DBLMOVE(s1, REG_FTMP1);
+			M_DSUB(s2, REG_FTMP1);
+			M_DBLMOVE(REG_FTMP1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_F2D(s1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+		case ICMD_D2F:       /* ..., value  ==> ..., (float) value           */
+			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+			M_D2F(s1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+
+
+		#endif
 
 		/* load/store/copy/move operations ************************************/
 
@@ -1562,14 +1689,26 @@ bool codegen_emit(jitdata *jd)
 						M_INT2ADRMOVE(REG_RESULT, s1);
 						break;
 #if !defined(ENABLE_SOFTFLOAT)
+					/*
+					 *	for BUILTINS float values are returned in %d0,%d1
+					 *	within cacao we use %fp0 for that.
+					 */
 					case TYPE_FLT:
 						s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-						M_INT2FLTMOVE(REG_FRESULT, s1);
+						if (iptr->opc == ICMD_BUILTIN)	{
+							M_INT2FLTMOVE(REG_FRESULT, s1);
+						} else	{
+							M_FLTMOVE(REG_FRESULT, s1);
+						}
 						break;
 					case TYPE_DBL:
 						s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-						M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
-						M_DLD(s1, REG_SP, rd->memuse * 4);
+						if (iptr->opc == ICMD_BUILTIN)	{
+							M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
+							M_DLD(s1, REG_SP, rd->memuse * 4);
+						} else	{
+							M_DBLMOVE(REG_FRESULT, s1);
+						}
 						break;
 #endif
 					default:
@@ -1608,7 +1747,6 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_DRETURN:
 #endif
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
-
 			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT_PACKED);
 			M_LNGMOVE(s1, REG_RESULT_PACKED);
@@ -1616,12 +1754,17 @@ bool codegen_emit(jitdata *jd)
 
 #if !defined(ENABLE_SOFTFLOAT)
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
-		case ICMD_DRETURN:
-
 			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
 			M_FLTMOVE(s1, REG_FRESULT);
 			goto nowperformreturn;
+
+		case ICMD_DRETURN:
+			REPLACEMENT_POINT_RETURN(cd, iptr);
+			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
+			M_DBLMOVE(s1, REG_FRESULT);
+			goto nowperformreturn;
+
 #endif
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
@@ -2182,10 +2325,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	cd->stackframesize = 	sizeof(stackframeinfo) / SIZEOF_VOID_P +
 				sizeof(localref_table) / SIZEOF_VOID_P +
 				nmd->memuse +
-			#if 0
-				4 + 						/* %d0,%d1,%a0,%a1*/
-				2 * 2 +						/* %f0,%f1 */
-			#endif
 				1 +						/* functionptr */
 				4;						/* args for codegen_start_native_call */
 
@@ -2218,17 +2357,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_AMOV_IMM(f, REG_ATMP2); /* do not move this line, the patcher is needed */
 
 	M_AST(REG_ATMP2, REG_SP, 4 * 4);
-
-	/* save integer and float temp registers */
-	/*
-	M_IST(REG_D0, REG_SP, 4*4 + 2*8 + 3*4);
-	M_IST(REG_D1, REG_SP, 4*4 + 2*8 + 2*4);
-	M_AST(REG_A0, REG_SP, 4*4 + 2*8 + 1*4);
-	M_AST(REG_A1, REG_SP, 4*4 + 2*8 + 0*4);
-	*/
-
-	/* TODO */
-	/* store %f0, %f1 */
 
 	/* put arguments for codegen_start_native_call onto stack */
 	/* void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra) */
@@ -2304,8 +2432,18 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 			break;
 
 #if !defined(ENABLE_SOFTFLOAT)
+		/* natives return float arguments in %d0, %d1, cacao expects them in %fp0 */
 		case TYPE_FLT:
-		case TYPE_DBL:	/* FIXME */
+			M_INT2FLTMOVE(REG_D0, REG_D0);
+			M_FST(REG_D0, REG_SP, 1 * 4);
+			break;
+		case TYPE_DBL:	
+			/* to convert %d0, %d1 to dbl we need 2 memory slots
+			 * it is safe reuse argument stack slots here */
+			M_IST(REG_D0, REG_SP, 1 * 4);
+			M_IST(REG_D1, REG_SP, 2 * 4);
+			/*M_DST(REG_D0, REG_SP, 1 * 4);*/
+			break;
 #endif
 		default: assert(0);
 	}
@@ -2345,7 +2483,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 #if !defined(ENABLE_SOFTFLOAT)
 		case TYPE_FLT:
-		case TYPE_DBL:	/* FIXME */
+			M_FLD(REG_D0, REG_SP, 1 * 4);
+			break;
+		case TYPE_DBL:	
+			M_DLD(REG_D0, REG_SP, 1 * 4);
+			break;
 #endif
 		default: assert(0);
 	}
