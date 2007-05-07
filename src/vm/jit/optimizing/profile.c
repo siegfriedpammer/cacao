@@ -38,8 +38,6 @@
 
 #include "threads/threads-common.h"
 
-#include "threads/native/threads.h"
-
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
 
@@ -96,66 +94,71 @@ static void profile_thread(void)
 		threads_sleep(0, nanos);
 		runs++;
 
+		/* lock the threads table */
+
+		threads_table_lock();
+
 		/* iterate over all started threads */
 
-		t = mainthreadobj;
-
-		do {
+		for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
 			/* is this a Java thread? */
 
-			if (t->flags & THREAD_FLAG_JAVA) {
-				/* send SIGUSR2 to thread to get the current PC */
+			if (!(t->flags & THREAD_FLAG_JAVA))
+				continue;
 
-				pthread_kill(t->tid, SIGUSR2);
+			/* send SIGUSR2 to thread to get the current PC */
 
-				/* the thread object now contains the current thread PC */
+			pthread_kill(t->tid, SIGUSR2);
 
-				pc = t->pc;
+			/* the thread object now contains the current thread PC */
 
-				/* get the PV for the current PC */
+			pc = t->pc;
 
-				pv = codegen_get_pv_from_pc_nocheck(pc);
+			/* get the PV for the current PC */
 
-				/* get methodinfo pointer from data segment */
+			pv = codegen_get_pv_from_pc_nocheck(pc);
 
-				if (pv == NULL) {
-					misses++;
-				}
-				else {
-					code = *((codeinfo **) (pv + CodeinfoPointer));
+			/* get methodinfo pointer from data segment */
 
-					/* For asm_vm_call_method the codeinfo pointer is
-					   NULL (which is also in the method tree). */
+			if (pv == NULL) {
+				misses++;
+			}
+			else {
+				code = *((codeinfo **) (pv + CodeinfoPointer));
 
-					if (code != NULL) {
-						m = code->m;
+				/* For asm_vm_call_method the codeinfo pointer is NULL
+				   (which is also in the method tree). */
 
-						/* native methods are never recompiled */
+				if (code != NULL) {
+					m = code->m;
 
-						if (!(m->flags & ACC_NATIVE)) {
-							/* increase the method incovation counter */
+					/* native methods are never recompiled */
 
-							code->frequency++;
-							hits++;
+					if (!(m->flags & ACC_NATIVE)) {
+						/* increase the method incovation counter */
 
-							if (code->frequency > 500) {
-								/* clear frequency count before
-								   recompilation */
+						code->frequency++;
+						hits++;
 
-								code->frequency = 0;
+						if (code->frequency > 500) {
+							/* clear frequency count before
+							   recompilation */
 
-								/* add this method to the method list
-								   and start recompilation */
+							code->frequency = 0;
 
-								recompile_queue_method(m);
-							}
+							/* add this method to the method list and
+							   start recompilation */
+
+							recompile_queue_method(m);
 						}
 					}
 				}
 			}
+		}
 
-			t = t->next;
-		} while ((t != NULL) && (t != mainthreadobj));
+		/* unlock the threads table */
+
+		threads_table_unlock();
 	}
 }
 #endif

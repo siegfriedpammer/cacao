@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7875 2007-05-07 11:35:30Z twisti $
+   $Id: threads.c 7885 2007-05-07 21:29:55Z twisti $
 
 */
 
@@ -215,9 +215,6 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 /******************************************************************************/
 /* GLOBAL VARIABLES                                                           */
 /******************************************************************************/
-
-/* the main thread                                                            */
-threadobject *mainthreadobj;
 
 static methodinfo *method_thread_init;
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7830 2007-04-26 11:14:39Z twisti $
+   $Id: threads.h 7885 2007-05-07 21:29:55Z twisti $
 
 */
 
@@ -151,11 +151,6 @@ struct threadobject {
 /* stackframeinfo *************************************************************/
 
 #define STACKFRAMEINFO    (THREADOBJECT->_stackframeinfo)
-
-
-/* variables ******************************************************************/
-
-extern threadobject *mainthreadobj;
 
 
 /* functions ******************************************************************/
