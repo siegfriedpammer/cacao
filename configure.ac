@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7881 2007-05-07 14:16:54Z twisti $
+dnl $Id: configure.ac 7887 2007-05-08 13:03:07Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -215,6 +215,7 @@ AC_HEADER_STDC
 
 dnl keep them alpha-sorted!
 AC_CHECK_HEADERS([fcntl.h])
+AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/mman.h])
@@ -257,6 +258,8 @@ AC_CHECK_FUNCS([isnan])
 AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([scandir])
+AC_CHECK_FUNCS([strdup])
+
 
 dnl Checks for libraries.
 
