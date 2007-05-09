@@ -143,7 +143,7 @@ bool codegen_emit(jitdata *jd)
 		(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 		(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
 
-		/* XXX we use the IntSAce a split field for the adr now */
+		/* XXX we use the IntSave a split field for the adr now */
 		(void) dseg_add_unique_s4(cd, (ADR_SAV_CNT - rd->savadrreguse) << 16 | (INT_SAV_CNT - rd->savintreguse)); /* IntSave */
 		(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 
@@ -179,7 +179,7 @@ bool codegen_emit(jitdata *jd)
 		}
 #if !defined(ENABLE_SOFTFLOAT)
 		for (i=FLT_SAV_CNT-1; i>=rd->savfltreguse; --i)	{
-			p-=2; M_DST(rd->savfltregs[i], REG_SP, p*4);
+			p-=2; M_FSTORE(rd->savfltregs[i], REG_SP, p*4);
 		}	
 #else
 		assert(FLT_SAV_CNT == 0);
@@ -285,7 +285,7 @@ bool codegen_emit(jitdata *jd)
 			M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
 		}
 
-		M_AST(REG_ATMP1, REG_SP, rd->memuse * 4 + 2*4);
+		M_AST(REG_ATMP1, REG_SP, rd->memuse * 4);
 		M_AST(REG_ATMP1, REG_SP, 0 * 4);
 		M_JSR_IMM(LOCK_monitor_enter);
 	}
@@ -1717,8 +1717,8 @@ bool codegen_emit(jitdata *jd)
 					case TYPE_DBL:
 						s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 						if (iptr->opc == ICMD_BUILTIN)	{
-							M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
-							M_DLD(s1, REG_SP, rd->memuse * 4);
+							M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4 + 4);
+							M_DLD(s1, REG_SP, rd->memuse * 4 + 4);
 						} else	{
 							M_DBLMOVE(REG_FRESULT, s1);
 						}
@@ -1798,7 +1798,7 @@ nowperformreturn:
 #if defined(ENABLE_THREADS)
 			/* call lock_monitor_exit */
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 4 + 2*4);
+				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 4);
 
 				/* we need to save the proper return value */
 				/* we do not care for the long -> doubel convert space here */
@@ -1807,21 +1807,21 @@ nowperformreturn:
 				case ICMD_DRETURN:
 #endif
 				case ICMD_LRETURN:
-					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
+					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4 + 4);
 					break;
 #if defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
 #endif
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_IST(REG_RESULT , REG_SP, rd->memuse * 4);
+					M_IST(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
 					break;
 #if !defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
-					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4);
+					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
 					break;
 				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4);
+					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
 					break;
 #endif
 				}
@@ -1836,21 +1836,21 @@ nowperformreturn:
 				case ICMD_DRETURN:
 #endif
 				case ICMD_LRETURN:
-					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
+					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 4 + 4);
 					break;
 #if defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
 #endif
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4);
+					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
 					break;
 #if !defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
-					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4);
+					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
 					break;
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4);
+					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
 					break;
 #endif
 				}
@@ -1878,7 +1878,7 @@ nowperformreturn:
 			}
 #if !defined(ENABLE_SOFTFLOAT)
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-				p -= 2; M_DLD(rd->savfltregs[i], REG_SP, p * 4);
+				p -= 2; M_FLOAD(rd->savfltregs[i], REG_SP, p * 4);
 			}
 #endif
 			/* deallocate stack                                               */
@@ -2429,35 +2429,18 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	switch (md->returntype.type)	{
 		case TYPE_VOID: break;
 
-#if defined(ENABLE_SOFTFLOAT)
+		/* natives return float arguments in %d0, %d1, cacao expects them in %fp0 */
 		case TYPE_DBL:
-#endif
 		case TYPE_LNG:
 			M_IST(REG_D1, REG_SP, 2 * 4);
 			/* fall through */
 
-#if defined(ENABLE_SOFTFLOAT)
 		case TYPE_FLT:
-#endif
 		case TYPE_INT:
 		case TYPE_ADR:
 			M_IST(REG_D0, REG_SP, 1 * 4);
 			break;
 
-#if !defined(ENABLE_SOFTFLOAT)
-		/* natives return float arguments in %d0, %d1, cacao expects them in %fp0 */
-		case TYPE_FLT:
-			M_INT2FLTMOVE(REG_D0, REG_D0);
-			M_FST(REG_D0, REG_SP, 1 * 4);
-			break;
-		case TYPE_DBL:	
-			/* to convert %d0, %d1 to dbl we need 2 memory slots
-			 * it is safe reuse argument stack slots here */
-			M_IST(REG_D0, REG_SP, 1 * 4);
-			M_IST(REG_D1, REG_SP, 2 * 4);
-			/*M_DST(REG_D0, REG_SP, 1 * 4);*/
-			break;
-#endif
 		default: assert(0);
 	}
 	
@@ -2480,30 +2463,30 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	switch (md->returntype.type)	{
 		case TYPE_VOID: break;
 
-#if defined(ENABLE_SOFTFLOAT)
 		case TYPE_DBL:
-#endif
 		case TYPE_LNG:
 			M_ILD(REG_D1, REG_SP, 2 * 4);
 			/* fall through */
-#if defined(ENABLE_SOFTFLOAT)
 		case TYPE_FLT:
-#endif
 		case TYPE_INT:
 		case TYPE_ADR:
 			M_ILD(REG_D0, REG_SP, 1 * 4);
 			break;
 
+		default: assert(0);
+	}
 #if !defined(ENABLE_SOFTFLOAT)
+		/* additionally load values into floating points registers
+		 * as cacao jit code expects them there */
+	switch (md->returntype.type)	{
 		case TYPE_FLT:
 			M_FLD(REG_D0, REG_SP, 1 * 4);
 			break;
 		case TYPE_DBL:	
 			M_DLD(REG_D0, REG_SP, 1 * 4);
 			break;
-#endif
-		default: assert(0);
 	}
+#endif
 	/* restore saved registers */
 
 	M_AADD_IMM(cd->stackframesize*4, REG_SP);

@@ -181,8 +181,10 @@
 
 #define M_IPUSH_IMM(a)		OPWORD_IMM32(0x121,7,1, (a))				/* pea.l */
 
+#if 0
 #define	M_PUSHALL		OPWORD_IMM16(0x123,2,REG_SP,0xFFFF)			/* A0-A7, D0-D7 pushed onto stack */
 #define M_POPALL		OPWORD_IMM16(0x133,2,REG_SP,0xFFFF)			/* A0-A7, D0-D7 poped off stack */
+#endif
 
 /* M_XLD(a,b,c)....M_XLD(destinationreg, addressbase, offset)	*/
 #define M_ILD(a,b,c)		OPWORD_IMM16( ( (2<<6) | ((a) << 3) | 0), 5, (b), (c))
@@ -208,6 +210,8 @@
 #if !defined(ENABLE_SOFTFLOAT)
 	#define M_FST(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ((  (0x19 <<10) | ((a)<<7) | 0  )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
 	#define M_DST(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ((  (0x1d <<10) | ((a)<<7) | 0  )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
+	#define M_FSTORE(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ( (0xf << 12) | (1 << (7-(a))) ) <<16) | (((int16_t)(c)) & 0x0000ffff))
+	#define M_FLOAD(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ( (0xd << 12) | (1 << (7-(a))) ) <<16) | (((int16_t)(c)) & 0x0000ffff))
 #endif
 
 /*M_XADD_IMM(a,b)...M_XADD_IMM(offset, reg) */

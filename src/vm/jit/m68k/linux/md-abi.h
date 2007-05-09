@@ -122,13 +122,15 @@
 
 /* TODO */
 
+#define LA_SIZE_IN_POINTERS	0
+#if 0 
 #define LA_SIZE         48   /* linkage area size                             */
 #define LA_SIZE_ALIGNED 16   /* linkage area size aligned to 16-byte          */
 #define LA_SIZE_IN_POINTERS	(LA_SIZE / SIZEOF_VOID_P)
 #define LA_LR_OFFSET    16   /* link register offset in linkage area          */
 #define PA_SIZE		(PA_SIZE_IN_POINTERS*8)	
 #define PA_SIZE_IN_POINTERS	8 /* linux/ppc64 has a minimun parameter save area size, XXX:darwin? */
-
+#endif
 /* #define ALIGN_FRAME_SIZE(sp)       (sp) */
 
 #endif /* _MD_ABI_H */

@@ -64,6 +64,8 @@ asm_vm_call_method_int:
 asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
+
+#if defined(ENABLE_SOFTFLOAT)
 	addal	#(-11*4),%sp						/* create stackframe to save registers */
 	moveml	%d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp,%sp@	/* save registers */
 
@@ -71,6 +73,17 @@ asm_vm_call_method_double:
 	movel	%sp@(11*4+1*4),%a2				/* methodinfo argument in atmp1 */
 	movel	%sp@(11*4+3*4),%a3				/* args block */
 	movel	%sp@(11*4+2*4),%d2				/* arg count */
+#else
+	addal #(-11*4-6*8), %sp
+	moveml	%d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp,%sp@	/* save registers */
+	fmovemd	%fp2/%fp3/%fp4/%fp5/%fp6/%fp7,%sp@(11*4)			/* save registers */
+
+	/* fetch arguments from vmargs data structure */
+	movel	%sp@(11*4+6*8+1*4),%a2				/* methodinfo argument in atmp1 */
+	movel	%sp@(11*4+6*8+3*4),%a3				/* args block */
+	movel	%sp@(11*4+6*8+2*4),%d2				/* arg count */
+#endif
+
 
 	moveal	%sp, %a5					/* memorize stack */
 	tstl	%d2							/* do we have arguments ? */
@@ -117,8 +130,15 @@ L_asm_vm_call_method_copy_done:
 
 L_asm_vm_call_method_return:
 	movel	%a5, %sp						/* pop arguments off stack */
+
+#if defined(ENABLE_SOFTFLOAT)
 	moveml  %sp@, %d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp	/* restore registers */
 	addal 	#(11*4),%sp						/* restore stack */
+#else
+	fmovemd	%sp@(11*4), %fp2/%fp3/%fp4/%fp5/%fp6/%fp7			/* restore registers */
+	moveml  %sp@, %d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp	/* restore registers */
+	addal 	#(11*4+6*8),%sp						/* restore stack */
+#endif
 	moveal	%d0, %a0						/* return value in %a0, too */
 asm_vm_call_method_end:						/* symbol needed to insert method into avl tree */
 	rts										/* return to c code */
@@ -147,8 +167,8 @@ asm_call_jit_compiler:
 	addal	#(-4*4),%sp						/* create stackframe to save registers */
 	moveml	%a0/%a1/%d0/%d1,%sp@			/* save volatile registers */
 #if !defined(ENABLE_SOFTFLOAT)
-	fmoved	%fp0, %sp@-
-	fmoved	%fp1, %sp@-
+	addal	#-8*2, %sp
+	fmovemd	%fp0/%fp1, %sp@
 	movel	%sp@(8*4), %sp@-
 	pea		%sp@(8*4+8)
 #else
@@ -164,8 +184,8 @@ asm_call_jit_compiler:
 	moveal	%d0, %a2						/* to tmp register */
 
 #if !defined(ENABLE_SOFTFLOAT)
-	fdmoved	%sp@+, %fp1
-	fdmoved	%sp@+, %fp0
+	fmovemd	%sp@, %fp0/%fp1
+	addal	#8*2, %sp
 #endif
 
 	moveml %sp@,%a0/%a1/%d0/%d1				/* restore volatile registers */
@@ -211,8 +231,8 @@ asm_patcher_wrapper:
   movel %sp, %d0
   addil #4*4, %d0
 #else
-  fmoved %fp0, %sp@-
-  fmoved %fp1, %sp@-
+  addal #-8*2, %sp
+  fmovemd %fp0/%fp1, %sp@
 
   movel %sp, %d0
   addil #8*4, %d0
@@ -228,8 +248,8 @@ asm_patcher_wrapper:
   bne	L_asm_patcher_wrapper_exception
 
 #if !defined(ENABLE_SOFTFLOAT)
-  fdmoved %sp@+, %fp1
-  fdmoved %sp@+, %fp0
+  fmovemd %sp@, %fp0/%fp1
+  addal #8*2, %sp
 #endif
   movel %sp@+, %d1
   movel %sp@+, %d0
@@ -243,7 +263,7 @@ L_asm_patcher_wrapper_exception:
   /* WARNING: the stack is still disturbed, look at asm_patcher_wrapper for details */
   /* we do not need to restore the content of the registers, I hope */
 #if !defined(ENABLE_SOFTFLOAT)
-	lea		%sp@(6*4), %sp
+	lea		%sp@(8*4), %sp
 #else
 	lea		%sp@(4*4), %sp
 #endif
@@ -370,15 +390,15 @@ L_handle_exception_nat_catched_no_adr:
 	movel	%a3@(FltSave), %d0
 	cmpb	#0,%d0
 	beq	L_asm_handle_ex_flt_done
-	fdmoved	-(%a0), %fp7
+	fmovemd	%a0@(-8), %fp7
 
 	cmpb	#1,%d0
 	beq	L_asm_handle_ex_flt_done
-	fdmoved	-(%a0), %fp6
+	fdmoved	%a0@(-16), %fp6
 	
 	cmpb	#2,%d0
 	beq	L_asm_handle_ex_flt_done
-	fdmoved	-(%a0), %fp5
+	fdmoved	%a0@(-24), %fp5
 
 L_asm_handle_ex_flt_done:
 #else

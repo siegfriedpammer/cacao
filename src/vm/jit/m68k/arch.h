@@ -64,24 +64,32 @@
 
 /* float **********************************************************************/
 
-#define SUPPORT_FLOAT                    1
-
-#if defined(ENABLE_SOFT_FLOAT_CMP)
-# define SUPPORT_FLOAT_CMP               0
+#if defined(ENABLE_SOFTFLOAT)
+	#define SUPPORT_FLOAT                   0
+	#define SUPPORT_DOUBLE                  0
+	#define SUPPORT_FLOAT_CMP               0
+	#define SUPPORT_DOUBLE_CMP       	0
 #else
-# define SUPPORT_FLOAT_CMP               1
+	#define SUPPORT_FLOAT                    1
+	#define SUPPORT_DOUBLE                   1
+
+	#if defined(ENABLE_SOFT_FLOAT_CMP)
+		#define SUPPORT_FLOAT_CMP               0
+	#else
+		#define SUPPORT_FLOAT_CMP               1
+	#endif
+
+	#if defined(ENABLE_SOFT_DOUBLE_CMP)
+		#define SUPPORT_DOUBLE_CMP              0
+	#else
+		#define SUPPORT_DOUBLE_CMP              1
+	#endif
+
 #endif
 
 
 /* double *********************************************************************/
 
-#define SUPPORT_DOUBLE                   1
-
-#if defined(ENABLE_SOFT_FLOAT_CMP)
-# define SUPPORT_DOUBLE_CMP              0
-#else
-# define SUPPORT_DOUBLE_CMP              1
-#endif
 
 
 #define HAS_ADDRESS_REGISTER_FILE        1
