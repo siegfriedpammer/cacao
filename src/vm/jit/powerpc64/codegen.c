@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7817 2007-04-25 19:42:50Z twisti $
+   $Id: codegen.c 7888 2007-05-09 08:36:16Z tbfg $
 
 */
 
@@ -2318,10 +2318,11 @@ gen_method:
 					super = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
 				}
-			
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+		
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))	{
+					CODEGEN_CRITICAL_SECTION_NEW;
+				}
+
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* calculate interface checkcast code size */
@@ -2402,17 +2403,17 @@ gen_method:
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ALD(REG_ITMP2, REG_PV, disp);
 					if (s1 != REG_ITMP1) {
 						M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+						CODEGEN_CRITICAL_SECTION_END;
+
 						M_SUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
 						M_EXTSW(REG_ITMP3, REG_ITMP3);
 					} else {
@@ -2421,9 +2422,9 @@ gen_method:
 						M_EXTSW(REG_ITMP3, REG_ITMP3);
 						M_ALD(REG_ITMP2, REG_PV, disp);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+						CODEGEN_CRITICAL_SECTION_END;
+
 					}
 					M_CMPU(REG_ITMP3, REG_ITMP2);
 					emit_classcast_check(cd, iptr, BRANCH_GT, REG_ITMP3, s1);
@@ -2495,9 +2496,10 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 			
-#if defined(ENABLE_THREADS)
-            codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))	{
+				CODEGEN_CRITICAL_SECTION_NEW;
+			}
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (s1 == d) {
@@ -2581,15 +2583,15 @@ gen_method:
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_SUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_EXTSW(REG_ITMP1, REG_ITMP1);
 				M_CMPU(REG_ITMP1, REG_ITMP2);
