@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7876 2007-05-07 11:37:00Z twisti $
+   $Id: threads-common.c 7893 2007-05-10 13:27:29Z twisti $
 
 */
 
@@ -594,8 +594,9 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	t->vm_thread = (java_lang_Object *) thread;
 #endif
 
-	thread->object     = t;
-	thread->flags      = THREAD_FLAG_DAEMON;
+	thread->object = t;
+
+	thread->flags = THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
 
 	/* set java.lang.Thread fields */
 
@@ -636,6 +637,10 @@ void threads_thread_start(java_lang_Thread *object)
 	/* link the two objects together */
 
 	thread->object = object;
+
+	/* this is a normal Java thread */
+
+	thread->flags = THREAD_FLAG_JAVA;
 
 #if defined(ENABLE_JAVASE)
 	/* is this a daemon thread? */

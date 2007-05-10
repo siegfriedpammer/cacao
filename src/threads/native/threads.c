@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7885 2007-05-07 21:29:55Z twisti $
+   $Id: threads.c 7893 2007-05-10 13:27:29Z twisti $
 
 */
 
@@ -956,10 +956,6 @@ static void *threads_startup_thread(void *t)
 	/* find and run the Thread.run()V method if no other function was passed */
 
 	if (function == NULL) {
-		/* this is a normal Java thread */
-
-		thread->flags |= THREAD_FLAG_JAVA;
-
 #if defined(WITH_CLASSPATH_GNU)
 		/* We need to start the run method of
 		   java.lang.VMThread. Since this is a final class, we can use
@@ -1000,10 +996,6 @@ static void *threads_startup_thread(void *t)
 		(void) vm_call_method(m, o);
 	}
 	else {
-		/* this is an internal thread */
-
-		thread->flags |= THREAD_FLAG_INTERNAL;
-
 		/* set ThreadMXBean variables */
 
 		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
