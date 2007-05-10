@@ -139,7 +139,7 @@ L_asm_vm_call_method_return:
 	moveml  %sp@, %d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp	/* restore registers */
 	addal 	#(11*4+6*8),%sp						/* restore stack */
 #endif
-	moveal	%d0, %a0						/* return value in %a0, too */
+	moveal	%d0, %a0						/* XXX return value in %a0, too, gcc sometimes expects addresses in %a0, wired */
 asm_vm_call_method_end:						/* symbol needed to insert method into avl tree */
 	rts										/* return to c code */
 

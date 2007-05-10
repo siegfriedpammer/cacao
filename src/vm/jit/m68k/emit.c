@@ -508,23 +508,24 @@ void emit_verbosecall_enter(jitdata* jd)
 	/* mark trace code */
 	M_NOP;
 
-/*
-	M_AADD_IMM(-16*4, REG_SP);
-	M_PUSHALL;
-*/
 	M_IPUSH(REG_D0);
 	M_IPUSH(REG_D1);
 	M_APUSH(REG_A0);
 	M_APUSH(REG_A1);
+
+#if !defined(ENABLE_SOFTFLOAT)
 	M_AADD_IMM(-8*2, REG_SP);
 	M_FSTORE(REG_F0, REG_SP, 8);
 	M_FSTORE(REG_F1, REG_SP, 0);
 
+	disp = 4*4 + 8*2 + 4;	/* points to old argument stack initially */
+#else
+	disp = 4*4 + 4;
+#endif
 	/* builtin_verbosecall_enter takes all args as s8 type */
 	/* TRACE_ARGS_NUM is the number of args the builtin_verbosecall_enter expects */
 	M_IPUSH_IMM(m);
 	
-	disp = 4*4 + 8*2 + 4;	/* points to old argument stack initially */
 
 	/* travel up stack to the first argument of the function which needs to be copied */
 	for (i=0; (i < md->paramcount) && (i < TRACE_ARGS_NUM); i++)	{
@@ -564,9 +565,12 @@ void emit_verbosecall_enter(jitdata* jd)
 	/* pop arguments off stack */
 	M_AADD_IMM(TRACE_ARGS_NUM*8+4, REG_SP);
 
+#if !defined(ENABLE_SOFTFLOAT)
 	M_FSTORE(REG_F1, REG_SP, 0);
 	M_FSTORE(REG_F0, REG_SP, 8);
 	M_AADD_IMM(8*2, REG_SP);
+#endif
+
 	M_APOP(REG_A1);
 	M_APOP(REG_A0);
 	M_IPOP(REG_D1);
@@ -596,15 +600,26 @@ void emit_verbosecall_exit(jitdata* jd)
 	/* mark trace code */
 	M_NOP;
 
+#if !defined(ENABLE_SOFTFLOAT)
+	M_AADD_IMM(-8, REG_SP);
+	M_FSTORE(REG_F1, REG_SP, 0);
+#endif
+
 	M_IPUSH_IMM(m);					/* push methodinfo */
 
+#if !defined(ENABLE_SOFTFLOAT)
 	M_AADD_IMM(-3*4, REG_SP);
 	M_FST(REG_D0, REG_SP, 8);
 	M_DST(REG_D0, REG_SP, 0);
+#else
+	M_IPUSH_IMM(0);
+
+	M_IPUSH_IMM(0);
+	M_IPUSH_IMM(0);
+#endif
 
 	M_IPUSH(GET_HIGH_REG(REG_RESULT_PACKED))
 	M_IPUSH(GET_LOW_REG(REG_RESULT_PACKED))		/* push long result */
-
 
 	M_JSR_IMM(builtin_verbosecall_exit);
 
@@ -612,10 +627,17 @@ void emit_verbosecall_exit(jitdata* jd)
 	M_IPOP(GET_LOW_REG(REG_RESULT_PACKED))
 	M_IPOP(GET_HIGH_REG(REG_RESULT_PACKED))
 
+#if !defined(ENABLE_SOFTFLOAT)
 	M_DLD(REG_D0, REG_SP, 0)
 	M_FLD(REG_D0, REG_SP, 8)
-
+#endif
 	M_AADD_IMM(3*4 + 4, REG_SP);
+
+#if !defined(ENABLE_SOFTFLOAT)
+	M_FLOAD(REG_F1, REG_SP, 0)
+	M_AADD_IMM(8, REG_SP);
+#endif
+
 	M_NOP;
 }
 #endif
