@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 7887 2007-05-08 13:03:07Z twisti $
+   $Id: options.c 7894 2007-05-10 14:04:05Z twisti $
 
 */
 
@@ -79,6 +79,7 @@ bool opt_verbosejni       = false;
 bool opt_verbosecall      = false;      /* trace all method invocation        */
 bool opt_verboseexception = false;
 bool opt_verbosememory    = false;
+bool opt_verbosethreads   = false;
 
 bool showmethods = false;
 bool showconstantpool = false;

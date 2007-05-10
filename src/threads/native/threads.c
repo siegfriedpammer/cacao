@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7893 2007-05-10 13:27:29Z twisti $
+   $Id: threads.c 7894 2007-05-10 14:04:05Z twisti $
 
 */
 
@@ -848,6 +848,14 @@ bool threads_init(void)
 
 	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
 
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Starting thread ");
+		threads_thread_print_info(mainthread);
+		printf("]\n");
+	}
+#endif
+
 	/* everything's ok */
 
 	return true;
@@ -908,9 +916,10 @@ static void *threads_startup_thread(void *t)
 	function = startup->function;
 	psem     = startup->psem;
 
-	/* Seems like we've encountered a situation where thread->tid was not set by
-	 * pthread_create. We alleviate this problem by waiting for pthread_create
-	 * to return. */
+	/* Seems like we've encountered a situation where thread->tid was
+	   not set by pthread_create. We alleviate this problem by waiting
+	   for pthread_create to return. */
+
 	threads_sem_wait(startup->psem_first);
 
 #if defined(__DARWIN__)
@@ -951,6 +960,14 @@ static void *threads_startup_thread(void *t)
 
 	if (jvmti) 
 		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_START);
+#endif
+
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Starting thread ");
+		threads_thread_print_info(thread);
+		printf("]\n");
+	}
 #endif
 
 	/* find and run the Thread.run()V method if no other function was passed */
@@ -1010,6 +1027,14 @@ static void *threads_startup_thread(void *t)
 
 		(function)();
 	}
+
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Stopping thread ");
+		threads_thread_print_info(thread);
+		printf("]\n");
+	}
+#endif
 
 #if defined(ENABLE_JVMTI)
 	/* fire thread end event */
@@ -1160,6 +1185,14 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	threads_table_add(thread);
 
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Attaching thread ");
+		threads_thread_print_info(thread);
+		printf("]\n");
+	}
+#endif
+
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
 
@@ -1302,6 +1335,14 @@ bool threads_detach_thread(threadobject *thread)
 	/* remove thread from the threads table */
 
 	threads_table_remove(thread);
+
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Detaching thread ");
+		threads_thread_print_info(thread);
+		printf("]\n");
+	}
+#endif
 
 	/* signal that this thread has finished */
 

@@ -487,7 +487,7 @@ static void XXusage(void)
 {
 	puts("    -v                       write state-information");
 #if !defined(NDEBUG)
-	puts("    -verbose[:call|exception|jit|memory]");
+	puts("    -verbose[:call|exception|jit|memory|threads]");
 	puts("                             enable specific verbose output");
 	puts("    -debug-color             colored output for ANSI terms");
 #endif
@@ -1120,12 +1120,16 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				opt_stat = true;
 # endif
 			}
+			else if (strcmp("threads", opt_arg) == 0) {
+				opt_verbosethreads = true;
+			}
+#endif
 			else {
 				printf("Unknown -verbose option: %s\n", opt_arg);
 				usage();
 			}
-#endif
 			break;
+
 		case OPT_DEBUGCOLOR:
 			opt_debugcolor = true;
 			break;

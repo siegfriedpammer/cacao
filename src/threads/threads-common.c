@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7893 2007-05-10 13:27:29Z twisti $
+   $Id: threads-common.c 7894 2007-05-10 14:04:05Z twisti $
 
 */
 
@@ -526,14 +526,14 @@ void threads_table_dump(void)
 
 threadobject *threads_create_thread(void)
 {
-	threadobject *thread;
+	threadobject *t;
 
 	/* allocate internal thread data-structure */
 
 #if defined(ENABLE_GC_BOEHM)
-	thread = GCNEW_UNCOLLECTABLE(threadobject, 1);
+	t = GCNEW_UNCOLLECTABLE(threadobject, 1);
 #else
-	thread = NEW(threadobject);
+	t = NEW(threadobject);
 #endif
 
 #if defined(ENABLE_STATISTICS)
@@ -543,10 +543,10 @@ threadobject *threads_create_thread(void)
 
 	/* initialize thread data structure */
 
-	threads_init_threadobject(thread);
-	lock_init_execution_env(thread);
+	threads_init_threadobject(t);
+	lock_init_execution_env(t);
 
-	return thread;
+	return t;
 }
 
 
@@ -665,6 +665,76 @@ void threads_thread_start(java_lang_Thread *object)
 }
 
 
+/* threads_thread_print_info ***************************************************
+
+   Print information of the passed thread.
+   
+*******************************************************************************/
+
+void threads_thread_print_info(threadobject *t)
+{
+	java_lang_Thread *object;
+	utf              *name;
+
+	/* the thread may be currently in initalization, don't print it */
+
+	object = t->object;
+
+	if (object != NULL) {
+		/* get thread name */
+
+#if defined(ENABLE_JAVASE)
+		name = javastring_toutf((java_objectheader *) object->name, false);
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+		name = object->name;
+#endif
+
+		printf("\"");
+		utf_display_printable_ascii(name);
+		printf("\"");
+
+		if (t->flags & THREAD_FLAG_DAEMON)
+			printf(" daemon");
+
+		printf(" prio=%d", object->priority);
+
+#if SIZEOF_VOID_P == 8
+		printf(" t=0x%016lx tid=0x%016lx (%ld)",
+			   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
+#else
+		printf(" t=0x%08x tid=0x%08x (%d)",
+			   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
+#endif
+
+		/* print thread state */
+
+		switch (t->state) {
+		case THREAD_STATE_NEW:
+			printf(" new");
+			break;
+		case THREAD_STATE_RUNNABLE:
+			printf(" runnable");
+			break;
+		case THREAD_STATE_BLOCKED:
+			printf(" blocked");
+			break;
+		case THREAD_STATE_WAITING:
+			printf(" waiting");
+			break;
+		case THREAD_STATE_TIMED_WAITING:
+			printf(" waiting on condition");
+			break;
+		case THREAD_STATE_TERMINATED:
+			printf(" terminated");
+			break;
+		default:
+			vm_abort("threads_thread_print_info: unknown thread state %d",
+					 t->state);
+		}
+	}
+}
+
+
 /* threads_get_current_tid *****************************************************
 
    Return the tid of the current thread.
@@ -766,9 +836,7 @@ bool threads_thread_is_alive(threadobject *thread)
 
 void threads_dump(void)
 {
-	threadobject     *t;
-	java_lang_Thread *object;
-	utf              *name;
+	threadobject *t;
 
 	/* XXX we should stop the world here */
 
@@ -781,67 +849,15 @@ void threads_dump(void)
 	/* iterate over all started threads */
 
 	for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
-		/* get thread object */
+		/* print thread info */
 
-		object = t->object;
+		printf("\n");
+		threads_thread_print_info(t);
+		printf("\n");
 
-		/* the thread may be currently in initalization, don't print it */
+		/* print trace of thread */
 
-		if (object != NULL) {
-			/* get thread name */
-
-#if defined(ENABLE_JAVASE)
-			name = javastring_toutf((java_objectheader *) object->name, false);
-#elif defined(ENABLE_JAVAME_CLDC1_1)
-			name = object->name;
-#endif
-
-			printf("\n\"");
-			utf_display_printable_ascii(name);
-			printf("\"");
-
-			if (t->flags & THREAD_FLAG_DAEMON)
-				printf(" daemon");
-
-			printf(" prio=%d", object->priority);
-
-#if SIZEOF_VOID_P == 8
-			printf(" tid=0x%016lx (%ld)", (ptrint) t->tid, (ptrint) t->tid);
-#else
-			printf(" tid=0x%08x (%d)", (ptrint) t->tid, (ptrint) t->tid);
-#endif
-
-			/* print thread state */
-
-			switch (t->state) {
-			case THREAD_STATE_NEW:
-				printf(" new");
-				break;
-			case THREAD_STATE_RUNNABLE:
-				printf(" runnable");
-				break;
-			case THREAD_STATE_BLOCKED:
-				printf(" blocked");
-				break;
-			case THREAD_STATE_WAITING:
-				printf(" waiting");
-				break;
-			case THREAD_STATE_TIMED_WAITING:
-				printf(" waiting on condition");
-				break;
-			case THREAD_STATE_TERMINATED:
-				printf(" terminated");
-				break;
-			default:
-				vm_abort("threads_dump: unknown thread state %d", t->state);
-			}
-
-			printf("\n");
-
-			/* print trace of thread */
-
-			threads_thread_print_stacktrace(t);
-		}
+		threads_thread_print_stacktrace(t);
 	}
 
 	/* unlock the threads table */
