@@ -112,25 +112,27 @@ bool codegen_emit(jitdata *jd)
 		savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
 
 		cd->stackframesize = rd->memuse + savedregs_num;
+	
+		/* we always add 3 words, 
+		 * 1 word the lock word, which may be unused and resides @ rd->memuse * 4
+		 * + 2 words to either save the return value for LOCK_monitor_exit @ rd->memuse * 4 + 4
+		 * on the other hand we could use 2 words when a builtin returns a doulbe which are
+		 * returned in %d0, %d1 and need to be stored onto the stack and read in used a fmovemd
+		 * so we always _need_ at least 2 words, and this keeps the code simple */
+		cd->stackframesize += 3;	
 
-		/* FIXME: we could need 2 words to move a double result, which gets
-		 * passed in %d0, %d1 into a floating point register, this is of 
-		 * course onyl true when not using ENABLE_SOFTFLOAT, so this could be
-		 * optimized away, for now always use 2 more words. When optimizing watch
-		 * the threading code, which stores the lock word, the offset would change */
-		cd->stackframesize += 2;
-
+#if 0
 #if defined(ENABLE_THREADS)
 		/* we need additional space to save argument of monitor_enter */
 		if (checksync && (m->flags & ACC_SYNCHRONIZED))	{
 			if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))	{
 				cd->stackframesize += 2;
 			} else	{
-				cd->stackframesize ++;
+				cd->stackframesize += 1;
 			}
 		}
 #endif
-		
+#endif	
 	
 		/* create method header */
 		(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
@@ -273,7 +275,7 @@ bool codegen_emit(jitdata *jd)
 		} /* end for argument out of stack*/
 
 #if defined(ENABLE_THREADS)
-	/* call monitor_enter function */
+	/* call lock_monitor_enter function */
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))	{
 		if (m->flags & ACC_STATIC)	{
 			M_AMOV_IMM((&m->class->object.header), REG_ATMP1);
@@ -306,7 +308,34 @@ bool codegen_emit(jitdata *jd)
 	/* branch resolving */
 	codegen_resolve_branchrefs(cd, bptr);
 
+	/* handle replacement points */
+	REPLACEMENT_POINT_BLOCK_START(cd, bptr);
+
+#if defined(ENABLE_PROFILING)
+	assert(0);
+#endif
 	/* FIXME there are still some constrcuts to copy in here */
+
+#if defined(ENABLE_LSRA)
+	assert(0);
+#endif
+
+	/* copy interface registers to their destination */
+	len = bptr->indepth;
+	MCODECHECK(64+len);
+
+	while (len > 0) {
+		len--;
+		var = VAR(bptr->invars[len]);
+		if ((len == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
+			d = codegen_reg_of_var(0, var, REG_ATMP1_XPTR);
+			M_ADRMOVE(REG_ATMP1_XPTR, d);
+			emit_store(jd, NULL, var, d);
+		}
+		else {
+			assert((var->flags & INOUT));
+		}
+	}
 
 	/* walk through all instructions */
 	len = bptr->icount;

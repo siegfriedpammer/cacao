@@ -328,7 +328,17 @@ asm_handle_nat_exception:
 	lea	%sp@(4), %sp
 asm_handle_exception:
 L_asm_handle_exception_stack_loop:
-	
+	/* save temporary registers */
+	movel	%d0, %sp@-
+	movel	%d1, %sp@-
+	movel	%a0, %sp@-
+	movel	%a1, %sp@-
+#if !defined(ENABLE_SOFTFLOAT)
+	addal	#-8*2, %sp
+	fmovemd	%fp0, %sp@(0)
+	fmovemd	%fp1, %sp@(8)
+#endif
+
 	/* we need the dseg, figure it out */
 	movel	%a3, %sp@-				/* push ra argument */
 	jsr	md_codegen_get_pv_from_pc	/* pv in %d0 now */
@@ -337,7 +347,11 @@ L_asm_handle_exception_stack_loop:
 
 	/* now call the following c function */
 	/* u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp) */
-	movel	%sp,%sp@-
+#if !defined(ENABLE_SOFTFLOAT)
+	pea		%sp@(4*4 + 8*2)
+#else
+	pea		%sp@(4*4)
+#endif
 	movel	%d2,%sp@-
 	movel	%a3,%sp@-
 	movel	%a2,%sp@-
@@ -347,14 +361,33 @@ L_asm_handle_exception_stack_loop:
 	beq	L_asm_handle_exception_not_catched
 
 	/* %d0 contains address of exception handler */
-	moveal	%d0, %a0
-	moveal	%a2, %a1					/* XXX FIXME, xptr is expected in %a1 by java code, whyever */
-	jmp	%a0@
+	moveal	%d0, %a3
+
+	/* restore temporary registers */
+	moveal	%sp@+, %a1
+	moveal	%sp@+, %a0
+	movel	%sp@+, %d1
+	movel	%sp@+, %d0
+#if !defined(ENABLE_SOFTFLOAT)
+	fmovemd	%fp0, %sp@(0)
+	fmovemd	%fp1, %sp@(8)
+	addal	#8*2, %sp
+#endif
+
+	jmp	%a3@
 
 L_asm_handle_exception_not_catched:
 	/* we did not find an exception handler in this stackframe */
 	/* remove this frame and search in the one above */
 	/* %a2 containts exception object ptr, %d2 the actual pv */
+
+	/* remove temporary registers stored */
+#if !defined(ENABLE_SOFTFLOAT)
+	addal	#4*4 + 8*2, %sp
+#else
+	addal	#4*4, %sp
+#endif
+
 	moveal	%d2, %a3
 	movel	%a3@(FrameSize), %d2
 
