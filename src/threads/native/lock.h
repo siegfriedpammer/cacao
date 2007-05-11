@@ -42,25 +42,9 @@
 
 /* typedefs *******************************************************************/
 
-typedef struct lock_execution_env_t      lock_execution_env_t;
 typedef struct lock_record_t             lock_record_t;
-typedef struct lock_record_pool_header_t lock_record_pool_header_t;
-typedef struct lock_record_pool_t        lock_record_pool_t;
 typedef struct lock_waiter_t             lock_waiter_t;
 typedef struct lock_hashtable_t          lock_hashtable_t;
-
-
-/* lock_execution_env_t ********************************************************
-
-   Execution environment. Contains the lock record freelist and pools.
-
-*******************************************************************************/
-
-struct lock_execution_env_t {
-	lock_record_t         *firstfree;        /* lock record freelist          */
-	lock_record_pool_t    *lockrecordpools;  /* list of per-thread pools      */
-	int                    lockrecordcount;  /* # of records for this thread  */
-};
 
 
 /* lock_waiter_t ***************************************************************
@@ -82,12 +66,11 @@ struct lock_waiter_t {
 *******************************************************************************/
 
 struct lock_record_t {
-	java_objectheader   *obj;                /* object for which this lock is */
+	java_objectheader   *object;             /* object for which this lock is */
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
 	pthread_mutex_t      mutex;              /* mutex for synchronizing       */
 	lock_waiter_t       *waiters;            /* list of threads waiting       */
-	lock_record_t       *nextfree;           /* next in free list             */
 	lock_record_t       *hashlink;           /* next record in hash chain     */
 };
 
@@ -106,36 +89,7 @@ struct lock_hashtable_t {
 };
 
 
-/* lock_record_pool_header_t ***************************************************
- 
-   Lock records are allocated in pools. Each pool has on of these headers.
-
-*******************************************************************************/
-
-struct lock_record_pool_header_t {
-	lock_record_pool_t *next;                /* next pool                     */
-	int                 size;                /* records in this pool          */
-}; 
-
-
-/* lock_record_pool_t **********************************************************
- 
-   Lock records are allocated in such pools.
-
-*******************************************************************************/
-
-struct lock_record_pool_t {
-	lock_record_pool_header_t header;        /* pool header (see above)       */
-	lock_record_t             lr[1];         /* variable array of records     */
-};
-
-#if defined(ENABLE_JVMTI)
-extern pthread_mutex_t lock_global_pool_lock;
-extern lock_record_pool_t *lock_global_pool;
-#endif
-
-
-/* defines *********************************************************************/
+/* defines ********************************************************************/
 
 #define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_objectheader *) (o))
 

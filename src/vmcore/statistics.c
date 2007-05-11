@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7879 2007-05-07 13:45:19Z twisti $
+   $Id: statistics.c 7899 2007-05-11 19:31:04Z twisti $
 
 */
 
@@ -93,7 +93,7 @@ s4 size_string           = 0;
 
 s4 size_threadobject     = 0;
 
-s4 size_lock_record_pool = 0;
+s4 size_lock_record      = 0;
 s4 size_lock_hashtable   = 0;
 s4 size_lock_waiter      = 0;
 
@@ -653,7 +653,7 @@ void statistics_print_memory_usage(void)
 	printf("stack map:              %10d\n", size_stack_map);
 	printf("string:                 %10d\n", size_string);
 	printf("threadobject:           %10d\n", size_threadobject);
-	printf("lock record pool:       %10d\n", size_lock_record_pool);
+	printf("lock record:            %10d\n", size_lock_record);
 	printf("lock hashtable:         %10d\n", size_lock_hashtable);
 	printf("lock waiter:            %10d\n", size_lock_waiter);
 	printf("                         ----------\n");
@@ -671,7 +671,7 @@ void statistics_print_memory_usage(void)
 		size_stack_map +
 		size_string +
 		size_threadobject +
-		size_lock_record_pool +
+		size_lock_record +
 		size_lock_hashtable +
 		size_lock_waiter;
 

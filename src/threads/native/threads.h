@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7897 2007-05-11 18:23:27Z twisti $
+   $Id: threads.h 7899 2007-05-11 19:31:04Z twisti $
 
 */
 
@@ -103,8 +103,6 @@ extern pthread_key_t threads_current_threadobject_key;
 
 struct threadobject {
 	java_lang_Thread     *object;       /* link to java.lang.Thread object    */
-
-	lock_execution_env_t  ee;           /* data for the lock implementation   */
 
 	ptrint                thinlock;     /* pre-computed thin lock value       */
 

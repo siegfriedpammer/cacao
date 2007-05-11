@@ -54,9 +54,6 @@
 
 void lock_init(void);
 
-void lock_init_execution_env(struct threadobject *thread);
-void lock_record_free_pools(lock_record_pool_t *pool);
-
 void lock_init_object_lock(java_objectheader *);
 lock_record_t *lock_get_initial_lock_word(void);
 
