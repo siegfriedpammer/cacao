@@ -414,10 +414,18 @@ L_asm_handle_ex_int_done:
 
 	movel	%a3@(IntSave), %d0
 	andil	#0xffff0000, %d0	/* this is AdrSave */
-	tstl	%d0
-	beq	L_handle_exception_nat_catched_no_adr
+	lsrl	#8, %d0
+	lsrl	#8, %d0
+
+	cmpb	#0, %d0
+	beq	L_asm_handle_ex_adr_done
+	moveal	-(%a0), %fp
+
+	cmpb	#1,%d0
+	beq	L_asm_handle_ex_adr_done
 	moveal	-(%a0), %a5
-L_handle_exception_nat_catched_no_adr:
+
+L_asm_handle_ex_adr_done:
 
 #if !defined(ENABLE_SOFTFLOAT)
 	movel	%a3@(FltSave), %d0

@@ -37,7 +37,7 @@
 
 #define U8_AVAILABLE                     1
 
-#define SUPPORT_DIVISION                 0
+#define SUPPORT_DIVISION                 1
 #define SUPPORT_LONG                     0
 
 #define SUPPORT_FMOD                     0
@@ -62,7 +62,6 @@
                                             /* only store REG_ZERO            */
 
 
-/* float **********************************************************************/
 
 #if defined(ENABLE_SOFTFLOAT)
 	#define SUPPORT_FLOAT                   0
@@ -73,12 +72,14 @@
 	#define SUPPORT_FLOAT                    1
 	#define SUPPORT_DOUBLE                   1
 
+/* float **********************************************************************/
 	#if defined(ENABLE_SOFT_FLOAT_CMP)
 		#define SUPPORT_FLOAT_CMP               0
 	#else
 		#define SUPPORT_FLOAT_CMP               1
 	#endif
 
+/* double *********************************************************************/
 	#if defined(ENABLE_SOFT_DOUBLE_CMP)
 		#define SUPPORT_DOUBLE_CMP              0
 	#else
@@ -88,7 +89,6 @@
 #endif
 
 
-/* double *********************************************************************/
 
 
 

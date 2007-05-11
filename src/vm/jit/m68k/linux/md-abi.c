@@ -51,7 +51,7 @@ const s4 abi_registers_integer_temporary[] 	= {0,1};
 /* Address register description */
 /* A6 is used as framepointer by native code, so be sure it is REG_RES */
 /*                        A0,      A1,   ATMP1,   ATMP2,   ATMP3,      A5,  REG_FP, REG_SP */
-s4 nregdescadr[] = { REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_SAV, REG_RES, REG_RES, REG_END };
+s4 nregdescadr[] = { REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_RES, REG_END };
 
 
 /* Floatingpoint register description */
