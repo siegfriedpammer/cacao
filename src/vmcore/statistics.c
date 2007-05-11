@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7899 2007-05-11 19:31:04Z twisti $
+   $Id: statistics.c 7901 2007-05-11 21:18:51Z twisti $
 
 */
 
@@ -611,25 +611,24 @@ void statistics_print_memory_usage(void)
 {
 	s4 sum;
 
-	printf("memory usage ----------------------\n\n");
-	printf("code:                   %10d\n", count_code_len);
-	printf("data:                   %10d\n", count_data_len);
-
-	printf("                         ----------\n");
+	log_println("memory usage ----------------------");
+	log_println("");
+	log_println("code:                   %10d", count_code_len);
+	log_println("data:                   %10d", count_data_len);
+	log_println("                         ----------");
 
 	sum =
 		count_code_len +
 		count_data_len;
 
-	printf("                        %10d\n", sum);
-	printf("\n");
-
-	printf("classinfo  (%3d B):     %10d\n", (int) sizeof(classinfo), size_classinfo);
-	printf("fieldinfo  (%3d B):     %10d\n", (int) sizeof(fieldinfo), size_fieldinfo);
-	printf("methodinfo (%3d B):     %10d\n", (int) sizeof(methodinfo), size_methodinfo);
-	printf("lineinfo   (%3d B):     %10d\n", (int) sizeof(lineinfo), size_lineinfo);
-	printf("codeinfo   (%3d B):     %10d\n", (int) sizeof(codeinfo), size_codeinfo);
-	printf("                         ----------\n");
+	log_println("                        %10d", sum);
+	log_println("");
+	log_println("classinfo  (%3d B):     %10d", (int) sizeof(classinfo), size_classinfo);
+	log_println("fieldinfo  (%3d B):     %10d", (int) sizeof(fieldinfo), size_fieldinfo);
+	log_println("methodinfo (%3d B):     %10d", (int) sizeof(methodinfo), size_methodinfo);
+	log_println("lineinfo   (%3d B):     %10d", (int) sizeof(lineinfo), size_lineinfo);
+	log_println("codeinfo   (%3d B):     %10d", (int) sizeof(codeinfo), size_codeinfo);
+	log_println("                         ----------");
 
 	sum =
 		size_classinfo +
@@ -638,25 +637,24 @@ void statistics_print_memory_usage(void)
 		size_lineinfo +
 		size_codeinfo;
 
-	printf("                        %10d\n", sum);
-	printf("\n");
-
-	printf("constant pool:          %10d\n", count_const_pool_len);
-	printf("classref:               %10d\n", count_classref_len);
-	printf("parsed descriptors:     %10d\n", count_parsed_desc_len);
-	printf("vftbl:                  %10d\n", count_vftbl_len);
-	printf("compiler stubs:         %10d\n", count_cstub_len);
-	printf("native stubs:           %10d\n", count_nstub_len);
-	printf("utf:                    %10d\n", count_utf_len);
-	printf("vmcode:                 %10d\n", count_vmcode_len);
-	printf("exception tables:       %10d\n", count_extable_len);
-	printf("stack map:              %10d\n", size_stack_map);
-	printf("string:                 %10d\n", size_string);
-	printf("threadobject:           %10d\n", size_threadobject);
-	printf("lock record:            %10d\n", size_lock_record);
-	printf("lock hashtable:         %10d\n", size_lock_hashtable);
-	printf("lock waiter:            %10d\n", size_lock_waiter);
-	printf("                         ----------\n");
+	log_println("                        %10d", sum);
+	log_println("");
+	log_println("constant pool:          %10d", count_const_pool_len);
+	log_println("classref:               %10d", count_classref_len);
+	log_println("parsed descriptors:     %10d", count_parsed_desc_len);
+	log_println("vftbl:                  %10d", count_vftbl_len);
+	log_println("compiler stubs:         %10d", count_cstub_len);
+	log_println("native stubs:           %10d", count_nstub_len);
+	log_println("utf:                    %10d", count_utf_len);
+	log_println("vmcode:                 %10d", count_vmcode_len);
+	log_println("exception tables:       %10d", count_extable_len);
+	log_println("stack map:              %10d", size_stack_map);
+	log_println("string:                 %10d", size_string);
+	log_println("threadobject:           %10d", size_threadobject);
+	log_println("lock record:            %10d", size_lock_record);
+	log_println("lock hashtable:         %10d", size_lock_hashtable);
+	log_println("lock waiter:            %10d", size_lock_waiter);
+	log_println("                         ----------");
 
 	sum =
 		count_const_pool_len +
@@ -675,17 +673,15 @@ void statistics_print_memory_usage(void)
 		size_lock_hashtable +
 		size_lock_waiter;
 
-	printf("                        %10d\n", sum);
-	printf("\n");
-
-	printf("max. memory usage:      %10d\n", maxcodememusage);
-	printf("max. heap memory usage: %10d\n", maxmemusage);
-	printf("max. dump memory usage: %10d\n", maxdumpsize);
-	printf("\n");
-		   
-	printf("heap memory not freed:  %10d\n", (s4) memoryusage);
-	printf("dump memory not freed:  %10d\n", (s4) globalallocateddumpsize);
-	printf("\n");
+	log_println("                        %10d", sum);
+	log_println("");
+	log_println("max. memory usage:      %10d", maxcodememusage);
+	log_println("max. heap memory usage: %10d", maxmemusage);
+	log_println("max. dump memory usage: %10d", maxdumpsize);
+	log_println("");
+	log_println("heap memory not freed:  %10d", (s4) memoryusage);
+	log_println("dump memory not freed:  %10d", (s4) globalallocateddumpsize);
+	log_println("");
 }
 
 
@@ -704,6 +700,7 @@ void statistics_print_gc_memory_usage(void)
 	log_println("heap size:      %10lld", gc_get_heap_size());
 	log_println("free:           %10lld", gc_get_free_bytes());
 	log_println("used:           %10lld", gc_get_total_bytes());
+	log_println("");
 }
 
 
