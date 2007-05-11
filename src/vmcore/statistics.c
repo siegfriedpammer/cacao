@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7901 2007-05-11 21:18:51Z twisti $
+   $Id: statistics.c 7902 2007-05-11 22:33:15Z twisti $
 
 */
 
@@ -30,6 +30,10 @@
 #include "config.h"
 
 #include <string.h> 
+
+#if defined(HAVE_TIME_H)
+# include <time.h>
+#endif
 
 #if defined(HAVE_SYS_TIME_H)
 # include <sys/time.h>
@@ -598,6 +602,35 @@ void print_stats(void)
 #if defined(ENABLE_INTRP)
 	print_dynamic_super_statistics();
 #endif
+}
+
+
+/* statistics_print_date *******************************************************
+
+   Print current date and time.
+
+*******************************************************************************/
+
+void statistics_print_date(void)
+{
+  time_t t;
+  struct tm tm;
+
+#if defined(HAVE_TIME)
+  time(&t);
+#else
+# error !HAVE_TIME
+#endif
+
+#if defined(HAVE_LOCALTIME_R)
+  localtime_r(&t, &tm);
+#else
+# error !HAVE_LOCALTIME_R
+#endif
+
+  log_println("%d-%02d-%02d %02d:%02d:%02d",
+			  1900 + tm.tm_year, tm.tm_mon + 1, tm.tm_mday,
+			  tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
 

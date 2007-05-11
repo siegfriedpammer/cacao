@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7831 2007-04-26 12:48:16Z twisti $
+   $Id: memory.c 7902 2007-05-11 22:33:15Z twisti $
 
 */
 
@@ -378,6 +378,10 @@ static void memory_thread(void)
 		threads_sleep(2 * 1000, 0);
 
 # if defined(ENABLE_STATISTICS)
+		/* print current date and time */
+
+		statistics_print_date();
+
 		/* print memory usage */
 
 		statistics_print_memory_usage();
