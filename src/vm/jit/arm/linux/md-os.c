@@ -200,24 +200,30 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
-/* thread_restartcriticalsection ***********************************************
+/* md_critical_section_restart *************************************************
 
-   TODO: document me
+   Search the critical sections tree for a matching section and set
+   the PC to the restart point, if necessary.
 
 *******************************************************************************/
 
 #if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
+void md_critical_section_restart(ucontext_t *_uc)
 {
 	scontext_t *_sc;
-	void       *critical;
+	u1         *pc;
+	u1         *npc;
 
 	_sc = &_uc->uc_mcontext;
 
-	critical = critical_find_restart_point((void *) _sc->arm_pc);
+	pc = (u1 *) _sc->arm_pc;
 
-	if (critical)
-		_sc->arm_pc = (ptrint) critical;
+	npc = critical_find_restart_point(pc);
+
+	if (npc != NULL) {
+		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
+		_sc->arm_pc = (ptrint) npc;
+	}
 }
 #endif
 
