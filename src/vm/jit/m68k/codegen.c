@@ -425,6 +425,76 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 
+		/* some long operations *********************************************/
+		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_INTMOVE(s2, REG_ITMP1);
+			M_IADD(s1, REG_ITMP1);			/* low word */
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP3);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
+			M_INTMOVE(s2, REG_ITMP2);
+			M_IADDX(s1, REG_ITMP2);			/* high word */
+			emit_store_dst(jd, iptr, d);
+			break;
+			
+		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
+		                      /* sx.val.l = constant                          */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			
+			M_IMOV_IMM(iptr->sx.val.l >> 32, REG_ITMP3);
+
+			s3 = iptr->sx.val.l & 0xffffffff;
+			M_INTMOVE(s1, REG_ITMP1);
+			M_IADD_IMM(s3, REG_ITMP1);		/* lower word in REG_ITMP1 now */
+
+			M_IADDX(REG_ITMP3, REG_ITMP2);	/* high word in REG_ITMP2 now */
+			M_LNGMOVE(REG_ITMP12_PACKED, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP3);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_INTMOVE(s1, REG_ITMP1);
+			M_ISUB(s2, REG_ITMP1);			/* low word */
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
+			M_INTMOVE(s1, REG_ITMP2);
+			M_ISUBX(s2, REG_ITMP2);			/* high word */
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
+		                      /* sx.val.l = constant                          */
+			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			
+			M_IMOV_IMM( (-iptr->sx.val.l) >> 32, REG_ITMP3);
+
+			s3 = (-iptr->sx.val.l) & 0xffffffff;
+			M_INTMOVE(s1, REG_ITMP1);
+			M_IADD_IMM(s3, REG_ITMP1);		/* lower word in REG_ITMP1 now */
+
+			M_IADDX(REG_ITMP3, REG_ITMP2);	/* high word in REG_ITMP2 now */
+			M_LNGMOVE(REG_ITMP12_PACKED, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+
+		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
+			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+			M_LNGMOVE(s1, REG_ITMP12_PACKED);
+			M_INEG(GET_LOW_REG(REG_ITMP12_PACKED));
+			M_INEGX(GET_HIGH_REG(REG_ITMP12_PACKED));
+			M_LNGMOVE(REG_ITMP12_PACKED, d);
+			emit_store_dst(jd, iptr, d);
+			break;
 
 		/* integer operations ************************************************/
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
@@ -437,16 +507,6 @@ bool codegen_emit(jitdata *jd)
 			emit_store_dst(jd, iptr, d);
 			break;
 
-#if 0
-		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			M_SUBFIC(GET_LOW_REG(s1), 0, GET_LOW_REG(d));
-			M_SUBFZE(GET_HIGH_REG(s1), GET_HIGH_REG(d));
-			emit_store_dst(jd, iptr, d);
-			break;
-#endif
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP3);

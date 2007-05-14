@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dseg.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: dseg.h 7903 2007-05-14 11:15:33Z tbfg $
 
 */
 
@@ -122,7 +122,7 @@ void dseg_createlinenumbertable(codegendata *cd);
 
 s4 dseg_get_linenumber_from_pc(methodinfo **pm, u1 *pv, u1 *pc);
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K___) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
 void dseg_adddata(codegendata *cd);
 void dseg_resolve_datareferences(jitdata *jd);
 #endif

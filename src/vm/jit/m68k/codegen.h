@@ -221,6 +221,7 @@
 
 /* M_OP(source, dest) ...  dest (OP) source -> dest*/
 #define M_ISUB(a,b)		OPWORD ( ( (9<<6)   | ((b)<<3) | 2), 0, (a))			/* sub.l */
+#define M_ISUBX(a,b)	OPWORD ( ( (9<<6)   | ((b)<<3) | 6), 0, (a))			/* subx.l */
 #define M_IADD(a,b)		OPWORD ( ( (0xd<<6) | ((b)<<3) | 2), 0, (a))			/* add.l */
 #define M_IADDX(a,b)	OPWORD ( ( (0xd<<6) | ((b)<<3) | 6), 0, (a))			/* addx.l */
 
@@ -247,6 +248,7 @@
 
 /* M_OP(dest) */
 #define M_INEG(a)		OPWORD(0x112, 0, (a))						/* neg.l */
+#define M_INEGX(a)		OPWORD(0x102, 0, (a))						/* neg.l */
 
 /* only generate opcode when condition true */
 #define OPWORD_COND(c, u,v,w)	\

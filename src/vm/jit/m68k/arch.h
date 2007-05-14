@@ -38,13 +38,13 @@
 #define U8_AVAILABLE                     1
 
 #define SUPPORT_DIVISION                 1
-#define SUPPORT_LONG                     0
+#define SUPPORT_LONG                     1
 
 #define SUPPORT_FMOD                     0
 #define SUPPORT_FICVT                    0
 #define SUPPORT_IFCVT                    0
 
-#define SUPPORT_LONG_ADD                 0
+#define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 0
 #define SUPPORT_LONG_CMP_CONST           0
 #define SUPPORT_LONG_LOGICAL             0
@@ -54,7 +54,7 @@
 #define SUPPORT_LONG_ICVT                0
 #define SUPPORT_LONG_FCVT                0
 
-#define SUPPORT_CONST_LOGICAL            0  /* AND, OR, XOR with immediates   */
+#define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
 #define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
 
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
@@ -104,7 +104,7 @@
 
 #define TRACE_ARGS_NUM			8
 
-#define REG_ZERO 666
+#define REG_ZERO -1
 
 #define SPECIALMEMUSE
 /* #define HAS_4BYTE_STACKSLOT */
