@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7894 2007-05-10 14:04:05Z twisti $
+   $Id: threads.c 7904 2007-05-14 13:29:32Z twisti $
 
 */
 
@@ -76,7 +76,6 @@
 
 #include "threads/native/threads.h"
 
-#include "toolbox/avl.h"
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
@@ -247,8 +246,6 @@ static sem_t suspend_ack;
 static pthread_mutex_t suspend_ack_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 #endif
-
-static pthread_attr_t threadattr;
 
 /* mutexes used by the fake atomic instructions                               */
 #if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
@@ -590,31 +587,48 @@ void threads_set_current_threadobject(threadobject *thread)
 }
 
 
-/* threads_init_threadobject **************************************************
+/* threads_impl_thread_new *****************************************************
 
    Initialize implementation fields of a threadobject.
 
    IN:
-      thread............the threadobject
+      t....the threadobject
 
-******************************************************************************/
+*******************************************************************************/
 
-void threads_init_threadobject(threadobject *thread)
+void threads_impl_thread_new(threadobject *t)
 {
 	/* get the pthread id */
 
-	thread->tid = pthread_self();
+	t->tid = pthread_self();
 
-	thread->index = 0;
+	/* initialize the mutex and the condition */
 
-	/* TODO destroy all those things */
+	pthread_mutex_init(&(t->waitmutex), NULL);
+	pthread_cond_init(&(t->waitcond), NULL);
+}
 
-	pthread_mutex_init(&(thread->waitmutex), NULL);
-	pthread_cond_init(&(thread->waitcond), NULL);
 
-	thread->interrupted = false;
-	thread->signaled    = false;
-	thread->sleeping    = false;
+/* threads_impl_thread_free ****************************************************
+
+   Cleanup thread stuff.
+
+   IN:
+      t....the threadobject
+
+*******************************************************************************/
+
+void threads_impl_thread_free(threadobject *t)
+{
+	/* destroy the mutex and the condition */
+
+	if (pthread_mutex_destroy(&(t->waitmutex)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",
+				 strerror(errno));
+
+	if (pthread_cond_destroy(&(t->waitcond)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
+				 strerror(errno));
 }
 
 
@@ -726,6 +740,8 @@ bool threads_init(void)
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThread    *vmt;
 #endif
+
+	pthread_attr_t attr;
 
 	/* get methods we need in this file */
 
@@ -841,12 +857,12 @@ bool threads_init(void)
 
 	/* initialize the thread attribute object */
 
-	if (pthread_attr_init(&threadattr)) {
-		log_println("pthread_attr_init failed: %s", strerror(errno));
-		return false;
-	}
+	if (pthread_attr_init(&attr) != 0)
+		vm_abort("threads_init: pthread_attr_init failed: %s", strerror(errno));
 
-	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
+	if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
+		vm_abort("threads_init: pthread_attr_setdetachstate failed: %s",
+				 strerror(errno));
 
 #if !defined(NDEBUG)
 	if (opt_verbosethreads) {
@@ -1072,6 +1088,7 @@ void threads_impl_thread_start(threadobject *thread, functionptr f)
 	sem_t          sem_first;
 	pthread_attr_t attr;
 	startupinfo    startup;
+	int            ret;
 
 	/* fill startupinfo structure passed by pthread_create to
 	 * threads_startup_thread */
@@ -1084,20 +1101,37 @@ void threads_impl_thread_start(threadobject *thread, functionptr f)
 	threads_sem_init(&sem, 0, 0);
 	threads_sem_init(&sem_first, 0, 0);
 
-	/* initialize thread attribute object */
+	/* initialize thread attributes */
 
-	if (pthread_attr_init(&attr))
-		vm_abort("pthread_attr_init failed: %s", strerror(errno));
+	if (pthread_attr_init(&attr) != 0)
+		vm_abort("threads_impl_thread_start: pthread_attr_init failed: %s",
+				 strerror(errno));
+
+    if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
+		vm_abort("threads_impl_thread_start: pthread_attr_setdetachstate failed: %s",
+				 strerror(errno));
 
 	/* initialize thread stacksize */
 
 	if (pthread_attr_setstacksize(&attr, opt_stacksize))
-		vm_abort("pthread_attr_setstacksize failed: %s", strerror(errno));
+		vm_abort("threads_impl_thread_start: pthread_attr_setstacksize failed: %s",
+				 strerror(errno));
 
 	/* create the thread */
 
-	if (pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup))
-		vm_abort("pthread_create failed: %s", strerror(errno));
+	ret = pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup);
+
+	/* destroy the thread attributes */
+
+	if (pthread_attr_destroy(&attr) != 0)
+		vm_abort("threads_impl_thread_start: pthread_attr_destroy failed: %s",
+				 strerror(errno));
+
+	/* check for pthread_create error */
+
+	if (ret != 0)
+		vm_abort("threads_impl_thread_start: pthread_create failed: %s",
+				 strerror(errno));
 
 	/* signal that pthread_create has returned, so thread->tid is valid */
 
@@ -1161,7 +1195,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* create internal thread data-structure */
 
-	thread = threads_create_thread();
+	thread = threads_thread_new();
 
 	/* create a java.lang.Thread object */
 
@@ -1292,13 +1326,6 @@ bool threads_detach_thread(threadobject *thread)
 	java_lang_Thread      *t;
 #endif
 
-	/* Allow lock record pools to be used by other threads. They
-	   cannot be deleted so we'd better not waste them. */
-
-	/* XXX We have to find a new way to free lock records */
-	/*     with the new locking algorithm.                */
-	/* lock_record_free_pools(thread->ee.lockrecordpools); */
-
 	/* XXX implement uncaught exception stuff (like JamVM does) */
 
 #if defined(ENABLE_JAVASE)
@@ -1352,16 +1379,7 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* free the vm internal thread object */
 
-#if defined(ENABLE_GC_BOEHM)
-	GCFREE(thread);
-#else
-	FREE(thread, threadobject);
-#endif
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject -= sizeof(threadobject);
-#endif
+	threads_thread_free(thread);
 
 	return true;
 }

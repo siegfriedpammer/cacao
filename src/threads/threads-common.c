@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7899 2007-05-11 19:31:04Z twisti $
+   $Id: threads-common.c 7904 2007-05-14 13:29:32Z twisti $
 
 */
 
@@ -94,7 +94,7 @@ void threads_preinit(void)
 
 	/* create internal thread data-structure for the main thread */
 
-	mainthread = threads_create_thread();
+	mainthread = threads_thread_new();
 
 	mainthread->object   = NULL;
 	mainthread->index    = 1;
@@ -518,13 +518,13 @@ void threads_table_dump(void)
 #endif
 
 
-/* threads_create_thread *******************************************************
+/* threads_thread_new **********************************************************
 
-   Creates and initializes an internal thread data-structure.
+   Allocates and initializes an internal thread data-structure.
 
 *******************************************************************************/
 
-threadobject *threads_create_thread(void)
+threadobject *threads_thread_new(void)
 {
 	threadobject *t;
 
@@ -543,9 +543,39 @@ threadobject *threads_create_thread(void)
 
 	/* initialize thread data structure */
 
-	threads_init_threadobject(t);
+	t->index       = 0;
+	t->interrupted = false;
+	t->signaled    = false;
+	t->sleeping    = false;
+
+	threads_impl_thread_new(t);
 
 	return t;
+}
+
+
+/* threads_thread_free *********************************************************
+
+   Frees an internal thread data-structure.
+
+*******************************************************************************/
+
+void threads_thread_free(threadobject *t)
+{
+	/* cleanup the implementation-specific bits */
+
+	threads_impl_thread_free(t);
+
+#if defined(ENABLE_GC_BOEHM)
+	GCFREE(t);
+#else
+	FREE(t, threadobject);
+#endif
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject -= sizeof(threadobject);
+#endif
 }
 
 
@@ -570,7 +600,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	/* create internal thread data-structure */
 
-	thread = threads_create_thread();
+	thread = threads_thread_new();
 
 	/* create the java thread object */
 
@@ -631,7 +661,7 @@ void threads_thread_start(java_lang_Thread *object)
 
 	/* create internal thread data-structure */
 
-	thread = threads_create_thread();
+	thread = threads_thread_new();
 
 	/* link the two objects together */
 
