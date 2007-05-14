@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: list.c 7905 2007-05-14 14:11:33Z twisti $
 
 */
 
@@ -96,11 +96,27 @@ list_t *list_create_dump(s4 nodeoffset)
 
 void list_add_first(list_t *l, void *element)
 {
+	LOCK_MONITOR_ENTER(l);
+
+	list_add_first_unsynced(l, element);
+
+	LOCK_MONITOR_EXIT(l);
+}
+
+
+/* list_add_first_unsynced *****************************************************
+
+   Adds the element as first element, but WITHOUT LOCKING!
+
+   ATTENTION: Use this function with care!!!
+
+*******************************************************************************/
+
+void list_add_first_unsynced(list_t *l, void *element)
+{
 	listnode_t *ln;
 
 	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
-
-	LOCK_MONITOR_ENTER(l);
 
 	if (l->first) {
 		ln->prev       = NULL;
@@ -118,8 +134,6 @@ void list_add_first(list_t *l, void *element)
 	/* increase number of elements */
 
 	l->size++;
-
-	LOCK_MONITOR_EXIT(l);
 }
 
 
