@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: native.c 7906 2007-05-14 17:25:33Z twisti $
 
 */
 
@@ -1096,46 +1096,6 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_objectheader
 
 	return o;
 }
-
-
-/* native_class_getdeclaredannotations *****************************************
-
-   Implementation for
-   java.lang.Class.getDeclaredAnnotations(Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;
-
-*******************************************************************************/
-
-#if defined(ENABLE_JAVASE)
-java_objectarray *native_class_getdeclaredannotations(classinfo *c)
-{
-	java_objectarray *oa;
-	s4                count;
-	s4                i;
-
-	classinfo *class_java_lang_annotation_Annotation;
-
-	/* create Annotation-array */
-
-	/* XXX should we cache that class? */
-	if (!(class_java_lang_annotation_Annotation =
-		  load_class_bootstrap(utf_new_char("java/lang/annotation/Annotation"))))
-		return NULL;
-
-	count = c->runtimevisibleannotationscount;
-
-	oa = builtin_anewarray(count, class_java_lang_annotation_Annotation);
-
-	if (oa == NULL)
-		return NULL;
-
-	/* fill the annotations */
-
-	for (i = 0; i < count; i++) {
-	}
-
-	return oa;
-}
-#endif
 
 
 /*
