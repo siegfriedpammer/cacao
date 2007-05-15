@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7892 2007-05-10 12:50:45Z tbfg $
+   $Id: patcher.c 7909 2007-05-15 10:32:16Z tbfg $
 
 */
 
@@ -818,11 +818,14 @@ bool patcher_resolve_classref_to_classinfo(u1 *sp)
 {
 	constant_classref *cr;
 	s4                 disp;
-	u1                *pv;
+	u1                *pv, *ra;
+	u4         mcode;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
 	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp =                       *((s4 *)     (sp + 1 * 8));
 	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -831,6 +834,14 @@ bool patcher_resolve_classref_to_classinfo(u1 *sp)
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
+
+	/* patch back original code */
+
+	*((u4 *) ra) = mcode;
+
+	/* synchronize instruction cache */
+
+	md_icacheflush(ra, 4);
 
 	/* patch the classinfo pointer */
 
@@ -918,11 +929,14 @@ bool patcher_resolve_classref_to_vftbl(u1 *sp)
 {
 	constant_classref *cr;
 	s4                 disp;
-	u1                *pv;
+	u1                *pv, *ra;
+	u4         mcode;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)               *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
 	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp =                       *((s4 *)     (sp + 1 * 8));
 	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -931,6 +945,14 @@ bool patcher_resolve_classref_to_vftbl(u1 *sp)
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
+
+	/* patch back original code */
+
+	*((u4 *) ra) = mcode;
+
+	/* synchronize instruction cache */
+
+	md_icacheflush(ra, 4);
 
 	/* patch super class' vftbl */
 
@@ -956,11 +978,14 @@ bool patcher_resolve_classref_to_flags(u1 *sp)
 {
 	constant_classref *cr;
 	s4                 disp;
-	u1                *pv;
+	u1                *pv, *ra;
+	u4         mcode;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)               *((ptrint *) (sp + 5 * 8));
+	mcode =                       *((u4 *)     (sp + 3 * 8));
 	cr   = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp =                       *((s4 *)     (sp + 1 * 8));
 	pv   = (u1 *)                *((ptrint *) (sp + 0 * 8));
@@ -969,6 +994,14 @@ bool patcher_resolve_classref_to_flags(u1 *sp)
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
+
+	/* patch back original code */
+
+	*((u4 *) ra) = mcode;
+
+	/* synchronize instruction cache */
+
+	md_icacheflush(ra, 4);
 
 	/* patch class flags */
 
