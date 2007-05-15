@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: builtin.c 7907 2007-05-15 09:25:27Z tbfg $
 
 */
 
@@ -1796,7 +1796,7 @@ s8 builtin_lmul(s8 a, s8 b)
 #endif /* !(SUPPORT_LONG && SUPPORT_LONG_MUL) */
 
 
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) || defined (DISABLE_GC)
 s8 builtin_ldiv(s8 a, s8 b)
 {
 	s8 c;
