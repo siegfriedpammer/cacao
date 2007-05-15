@@ -73,6 +73,7 @@ worklist *wl_new(int size);
 void wl_add(worklist *w, int element);
 int wl_get(worklist *w);
 bool wl_is_empty(worklist *w);
+void wl_reset(worklist *w, int size);
 
 
 #endif /* _BITVECTOR_H */

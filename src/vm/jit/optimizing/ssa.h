@@ -50,14 +50,8 @@
 # define _SSA_ASSERT(a)
 #endif
 
-/* #define JOIN_PHI_LT */ /* build intereference graph for lt used in phi */
-                          /* funcs and try to merge them */
-
 /* function prototypes */
 void ssa_init(jitdata *);
-void ssa_set_local_def(lsradata *, int , int , int);
-void ssa_set_use(lsradata *, int , int , int );
-void ssa_set_interface(codegendata *, lsradata *, basicblock *);
 void ssa(jitdata *, graphdata *);
 
 #endif /* _SSA_H */
@@ -70,7 +64,8 @@ void ssa(jitdata *, graphdata *);
  * Local variables:
  * mode: c
  * indent-tabs-mode: t
- * c-basic-offset: 4
- * tab-width: 4
+ * c-basic-offset): 4
+ * tab-width): 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

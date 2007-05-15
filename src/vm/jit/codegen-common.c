@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7864 2007-05-03 21:17:26Z twisti $
+   $Id: codegen-common.c 7908 2007-05-15 09:55:17Z christian $
 
 */
 
@@ -88,6 +88,10 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/md.h"
 #include "vm/jit/replace.h"
+#if defined(ENABLE_SSA)
+# include "vm/jit/optimizing/lsra.h"
+# include "vm/jit/optimizing/ssa.h"
+#endif
 #include "vm/jit/stacktrace.h"
 
 #if defined(ENABLE_INTRP)
@@ -1544,6 +1548,97 @@ s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 {
 	return codegen_reg_of_var(iptr->opc, VAROP(iptr->dst), tempregnum);
 }
+
+
+/* codegen_emit_phi_moves ****************************************************
+
+   Emits phi moves at the end of the basicblock.
+
+*******************************************************************************/
+
+#if defined(ENABLE_SSA)
+void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
+{
+	int lt_d,lt_s,i;
+	lsradata *ls;
+	codegendata *cd;
+	varinfo *s, *d;
+	instruction tmp_i;
+
+	cd = jd->cd;
+	ls = jd->ls;
+
+	MCODECHECK(512);
+
+	/* Moves from phi functions with highest indices have to be */
+	/* inserted first, since this is the order as is used for   */
+	/* conflict resolution */
+
+	for(i = ls->num_phi_moves[bptr->nr] - 1; i >= 0 ; i--) {
+		lt_d = ls->phi_moves[bptr->nr][i][0];
+		lt_s = ls->phi_moves[bptr->nr][i][1];
+#if defined(SSA_DEBUG_VERBOSE)
+		if (compileverbose)
+			printf("BB %3i Move %3i <- %3i ", bptr->nr, lt_d, lt_s);
+#endif
+		if (lt_s == UNUSED) {
+#if defined(SSA_DEBUG_VERBOSE)
+		if (compileverbose)
+			printf(" ... not processed \n");
+#endif
+			continue;
+		}
+			
+		d = VAR(ls->lifetime[lt_d].v_index);
+		s = VAR(ls->lifetime[lt_s].v_index);
+		
+
+		if (d->type == -1) {
+#if defined(SSA_DEBUG_VERBOSE)
+			if (compileverbose)
+				printf("...returning - phi lifetimes where joined\n");
+#endif
+			return;
+		}
+
+		if (s->type == -1) {
+#if defined(SSA_DEBUG_VERBOSE)
+			if (compileverbose)
+				printf("...returning - phi lifetimes where joined\n");
+#endif
+			return;
+		}
+
+		tmp_i.opc = 0;
+		tmp_i.s1.varindex = ls->lifetime[lt_s].v_index;
+		tmp_i.dst.varindex = ls->lifetime[lt_d].v_index;
+		emit_copy(jd, &tmp_i);
+
+#if defined(SSA_DEBUG_VERBOSE)
+		if (compileverbose) {
+			if (IS_INMEMORY(d->flags) && IS_INMEMORY(s->flags)) {
+				/* mem -> mem */
+				printf("M%3i <- M%3i",d->vv.regoff,s->vv.regoff);
+			}
+			else if (IS_INMEMORY(s->flags)) {
+				/* mem -> reg */
+				printf("R%3i <- M%3i",d->vv.regoff,s->vv.regoff);
+			}
+			else if (IS_INMEMORY(d->flags)) {
+				/* reg -> mem */
+				printf("M%3i <- R%3i",d->vv.regoff,s->vv.regoff);
+			}
+			else {
+				/* reg -> reg */
+				printf("R%3i <- R%3i",d->vv.regoff,s->vv.regoff);
+			}
+			printf("\n");
+		}
+#endif /* defined(SSA_DEBUG_VERBOSE) */
+	}
+}
+#endif /* defined(ENABLE_SSA) */
+
 
 
 /*

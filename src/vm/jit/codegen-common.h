@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7864 2007-05-03 21:17:26Z twisti $
+   $Id: codegen-common.h 7908 2007-05-15 09:55:17Z christian $
 
 */
 
@@ -346,6 +346,11 @@ void codegen_critical_section_end(codegendata *cd);
 
 /* machine dependent functions */
 u1 *md_codegen_get_pv_from_pc(u1 *ra);
+
+
+#if defined(ENABLE_SSA)
+void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr);
+#endif
 
 #endif /* _CODEGEN_COMMON_H */
 

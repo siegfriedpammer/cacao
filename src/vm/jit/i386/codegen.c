@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7865 2007-05-03 21:29:40Z twisti $
+   $Id: codegen.c 7908 2007-05-15 09:55:17Z christian $
 
 */
 
@@ -79,12 +79,6 @@
    Generates machine code.
 
 *******************************************************************************/
-
-#if defined(ENABLE_SSA)
-void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
-			 s4 dst_regoff, s4 dst_flags);
-void codegen_insert_phi_moves(jitdata *jd, basicblock *bptr);
-#endif
 
 bool codegen_emit(jitdata *jd)
 {
@@ -236,12 +230,15 @@ bool codegen_emit(jitdata *jd)
  	for (p = 0, l = 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
 
+		varindex = jd->local_map[l * 5 + t];
 #if defined(ENABLE_SSA)
 		if ( ls != NULL ) {
-			l = ls->local_0[p];
+			if (varindex != UNUSED)
+				varindex = ls->var_0[varindex];
+			if ((varindex != UNUSED) && (ls->lifetime[varindex].type == UNUSED))
+				varindex = UNUSED;
 		}
 #endif
-		varindex = jd->local_map[l * 5 + t];
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
@@ -395,9 +392,9 @@ bool codegen_emit(jitdata *jd)
 	} 
 
 #if defined(ENABLE_SSA)
-	/* with SSA Header is Basic Block 0 - insert phi Moves if necessary */
+	/* with SSA the Header is Basic Block 0 - insert phi Moves if necessary */
 	if ( ls != NULL)
-		codegen_insert_phi_moves(jd, ls->basicblocks[0]);
+		codegen_emit_phi_moves(jd, ls->basicblocks[0]);
 #endif
 
 	/* end of header generation */
@@ -2486,9 +2483,11 @@ bool codegen_emit(jitdata *jd)
 #if defined(ENABLE_SSA)
 			if ( ls != NULL ) {
 				last_cmd_was_goto = true;
+
 				/* In case of a Goto phimoves have to be inserted before the */
 				/* jump */
-				codegen_insert_phi_moves(jd, bptr);
+
+				codegen_emit_phi_moves(jd, bptr);
 			}
 #endif
 			emit_br(cd, iptr->dst.block);
@@ -3071,8 +3070,8 @@ gen_method:
 
 			if (d != TYPE_VOID) {
 #if defined(ENABLE_SSA)
-				if ((ls == NULL) || (!IS_TEMPVAR_INDEX(iptr->dst.varindex)) ||
-					(ls->lifetime[-iptr->dst.varindex-1].type != -1)) 
+				if ((ls == NULL) /* || (!IS_TEMPVAR_INDEX(iptr->dst.varindex)) */ ||
+					(ls->lifetime[iptr->dst.varindex].type != UNUSED)) 
 					/* a "living" stackslot */
 #endif
 				{
@@ -3457,10 +3456,12 @@ gen_method:
 #endif
 #if defined(ENABLE_SSA)
 	if ( ls != NULL ) {
+
 		/* by edge splitting, in Blocks with phi moves there can only */
 		/* be a goto as last command, no other Jump/Branch Command    */
+
 		if (!last_cmd_was_goto)
-			codegen_insert_phi_moves(jd, bptr);
+			codegen_emit_phi_moves(jd, bptr);
 	}
 
 #endif
@@ -3490,176 +3491,6 @@ gen_method:
 
 	return true;
 }
-
-#if defined(ENABLE_SSA)
-void codegen_insert_phi_moves(jitdata *jd, basicblock *bptr) {
-	/* look for phi moves */
-	int t_a,s_a,i, type;
-	int t_lt, s_lt; /* lifetime indices of phi_moves */
-	s4 t_regoff, s_regoff, s_flags, t_flags;
-	codegendata *cd;
-	lsradata *ls;
-
-	MCODECHECK(512);
-
-	ls = jd->ls;
-	cd = jd->cd;
-	
-	/* Moves from phi functions with highest indices have to be */
-	/* inserted first, since this is the order as is used for   */
-	/* conflict resolution */
-	for(i = ls->num_phi_moves[bptr->nr] - 1; i >= 0 ; i--) {
-		t_a = ls->phi_moves[bptr->nr][i][0];
-		s_a = ls->phi_moves[bptr->nr][i][1];
-#if defined(SSA_DEBUG_VERBOSE)
-		if (compileverbose)
-			printf("BB %3i Move %3i <- %3i ", bptr->nr, t_a, s_a);
-#endif
-		if (t_a >= 0) {
-			/* local var lifetimes */
-			t_lt = ls->maxlifetimes + t_a;
-			type = ls->lifetime[t_lt].type;
-		}
-		else {
-			t_lt = -t_a-1;
-			type = ls->lifetime[t_lt].local_ss->s->type;
-			/* stackslot lifetime */
-		}
-
-		if (type == -1) {
-#if defined(SSA_DEBUG_VERBOSE)
-			if (compileverbose)
-				printf("...returning - phi lifetimes where joined\n");
-#endif
-			return;
-		}
-
-		if (s_a >= 0) {
-			/* local var lifetimes */
-			s_lt = ls->maxlifetimes + s_a;
-			type = ls->lifetime[s_lt].type;
-		}
-		else {
-			s_lt = -s_a-1;
-			type = ls->lifetime[s_lt].type;
-			/* stackslot lifetime */
-		}
-
-		if (type == -1) {
-#if defined(SSA_DEBUG_VERBOSE)
-			if (compileverbose)
-				printf("...returning - phi lifetimes where joined\n");
-#endif
-			return;
-		}
-
-		if (t_a >= 0) {
-			t_flags = VAR(t_a)->flags;
-			t_regoff = VAR(t_a)->vv.regoff;
-			
-		}
-		else {
-			t_flags = ls->lifetime[t_lt].local_ss->s->flags;
-			t_regoff = ls->lifetime[t_lt].local_ss->s->regoff;
-		}
-
-		if (s_a >= 0) {
-			/* local var move */
-			s_flags = VAR(s_a)->flags;
-			s_regoff = VAR(s_a)->vv.regoff;
-		} else {
-			/* stackslot lifetime */
-			s_flags = ls->lifetime[s_lt].local_ss->s->flags;
-			s_regoff = ls->lifetime[s_lt].local_ss->s->regoff;
-		}
-
-		if (type == -1) {
-#if defined(SSA_DEBUG_VERBOSE)
-			if (compileverbose)
-				printf("...returning - phi lifetimes where joined\n");
-#endif
-			return;
-		}
-
-		cg_move(cd, type, s_regoff, s_flags, t_regoff, t_flags);
-
-#if defined(SSA_DEBUG_VERBOSE)
-		if (compileverbose) {
-			if (IS_INMEMORY(t_flags) && IS_INMEMORY(s_flags)) {
-				/* mem -> mem */
-				printf("M%3i <- M%3i",t_regoff,s_regoff);
-			}
-			else 	if (IS_INMEMORY(s_flags)) {
-				/* mem -> reg */
-				printf("R%3i <- M%3i",t_regoff,s_regoff);
-			}
-			else if (IS_INMEMORY(t_flags)) {
-				/* reg -> mem */
-				printf("M%3i <- R%3i",t_regoff,s_regoff);
-			}
-			else {
-				/* reg -> reg */
-				printf("R%3i <- R%3i",t_regoff,s_regoff);
-			}
-			printf("\n");
-		}
-#endif /* defined(SSA_DEBUG_VERBOSE) */
-	}
-}
-
-void cg_move(codegendata *cd, s4 type, s4 src_regoff, s4 src_flags,
-			 s4 dst_regoff, s4 dst_flags) {
-	if ((IS_INMEMORY(dst_flags)) && (IS_INMEMORY(src_flags))) {
-		/* mem -> mem */
-		if (dst_regoff != src_regoff) {
-			if (!IS_2_WORD_TYPE(type)) {
-				if (IS_FLT_DBL_TYPE(type)) {
-					emit_flds_membase(cd, REG_SP, src_regoff * 4);
-					emit_fstps_membase(cd, REG_SP, dst_regoff * 4);
-				} else{
-					emit_mov_membase_reg(cd, REG_SP, src_regoff * 4,
-							REG_ITMP1);
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, dst_regoff * 4);
-				}
-			} else { /* LONG OR DOUBLE */
-				if (IS_FLT_DBL_TYPE(type)) {
-					emit_fldl_membase( cd, REG_SP, src_regoff * 4);
-					emit_fstpl_membase(cd, REG_SP, dst_regoff * 4);
-				} else {
-					emit_mov_membase_reg(cd, REG_SP, src_regoff * 4,
-							REG_ITMP1);
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, dst_regoff * 4);
-					emit_mov_membase_reg(cd, REG_SP, src_regoff * 4 + 4,
-                            REG_ITMP1);             
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, 
-							dst_regoff * 4 + 4);
-				}
-			}
-		}
-	} else {
-		if (IS_FLT_DBL_TYPE(type)) {
-			log_text("cg_move: flt/dbl type have to be in memory\n");
-/* 			assert(0); */
-		}
-		if (IS_2_WORD_TYPE(type)) {
-			log_text("cg_move: longs have to be in memory\n");
-/* 			assert(0); */
-		}
-		if (IS_INMEMORY(src_flags)) {
-			/* mem -> reg */
-			emit_mov_membase_reg(cd, REG_SP, src_regoff * 4, dst_regoff);
-		} else if (IS_INMEMORY(dst_flags)) {
-			/* reg -> mem */
-			emit_mov_reg_membase(cd, src_regoff, REG_SP, dst_regoff * 4);
-		} else {
-			/* reg -> reg */
-			/* only ints can be in regs on i386 */
-			M_INTMOVE(src_regoff,dst_regoff);
-		}
-	}
-}
-#endif /* defined(ENABLE_SSA) */
-
 
 /* codegen_emit_stub_compiler **************************************************
 

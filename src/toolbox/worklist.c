@@ -112,6 +112,17 @@ bool wl_is_empty(worklist *w) {
 	return (w->W_top == 0);
 }
 
+/*******************************************************************************
+wl_reset
+
+Empties the worklist.
+
+IN:     worklist *w    pointer to worklist created with wl_new
+*******************************************************************************/
+void wl_reset(worklist *w, int size) {
+	w->W_top = 0;
+	bv_reset(w->W_bv, size);
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

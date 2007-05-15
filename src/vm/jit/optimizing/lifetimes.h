@@ -39,7 +39,7 @@
 #if !defined(NDEBUG)
 # include <assert.h>
 # define LT_DEBUG_CHECK
-# define LT_DEBUG_VERBOSE
+/* # define LT_DEBUG_VERBOSE */
 #endif
 
 #ifdef LT_DEBUG_CHECK
@@ -50,20 +50,17 @@
 # define _LT_ASSERT(a)
 #endif
 
-#define LSRA_BB_IN 3
-#define LSRA_BB_OUT 2
-#define LSRA_STORE 1
-#define LSRA_LOAD 0
-#define LSRA_POP -1
+#define LT_BB_IN 3
+#define LT_BB_OUT 2
+#define LT_DEF 1
+#define LT_USE 0
 
 typedef struct site *lt_iterator;
-void scan_lifetimes(methodinfo *m, codegendata *cd, registerdata *rd,
-					lsradata *ls, graphdata *gd, dominatordata *dd);
-void lsra_add_ss(struct lifetime *, stackptr );
-void remove_use_site(struct lifetime *lt, int block, int iindex);
-void move_use_sites(struct lifetime *from, struct lifetime *to);
-void move_stackslots(struct lifetime *from, struct lifetime *to);
-void LifenessAnalysis(methodinfo *m, lsradata *ls, graphdata *gd);
+void lt_scanlifetimes(jitdata *, graphdata *, dominatordata *);
+void lt_add_ss(struct lifetime *, stackptr );
+void lt_remove_use_site(struct lifetime *lt, int block, int iindex);
+void lt_move_use_sites(struct lifetime *from, struct lifetime *to);
+void lt_lifeness_analysis(jitdata *, graphdata *);
 #endif /* _LIFETIMES_H */
 
 /*
