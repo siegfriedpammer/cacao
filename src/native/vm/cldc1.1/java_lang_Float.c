@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_Float.c
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Phil Tomsich
-            Christian Thalinger
-
    $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
 */
@@ -36,11 +31,34 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
 #include "native/include/java_lang_Float.h"
 
 #include "vm/builtin.h"
 
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "floatToIntBits", "(F)I",	(void *) (ptrint) &Java_java_lang_Float_floatToIntBits },
+};
+ 
+ 
+/* _Jv_java_lang_Float_init ****************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_Float_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/Float");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 /*
  * Class:     java/lang/Float

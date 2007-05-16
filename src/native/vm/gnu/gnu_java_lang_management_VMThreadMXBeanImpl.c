@@ -33,14 +33,49 @@
 #include "mm/gc-common.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_management_ThreadInfo.h"
+
+#include "native/include/gnu_java_lang_management_VMThreadMXBeanImpl.h"
 
 #include "toolbox/logging.h"
 
 #include "vm/vm.h"
 
 #include "vmcore/classcache.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "findMonitorDeadlockedThreads", "()[J",                                  (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads },
+	{ "getCurrentThreadCpuTime",      "()J",                                   (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadCpuTime      },
+	{ "getCurrentThreadUserTime",     "()J",                                   (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadUserTime     },
+	{ "getPeakThreadCount",           "()I",                                   (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount           },
+	{ "getThreadCpuTime",             "(J)J",                                  (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadCpuTime             },
+	{ "getThreadInfoForId",           "(JI)Ljava/lang/management/ThreadInfo;", (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadInfoForId           },
+	{ "getThreadUserTime",            "(J)J",                                  (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadUserTime            },
+	{ "getTotalStartedThreadCount",   "()J",                                   (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount   },
+	{ "resetPeakThreadCount",         "()V",                                   (void *) (ptrint) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount         },
+};
+
+
+/* _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init ************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/management/VMThreadMXBeanImpl");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

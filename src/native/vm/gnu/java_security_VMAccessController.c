@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_security_VMAccessController.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: java_security_VMAccessController.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -31,6 +31,9 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
+#include "native/include/java_security_VMAccessController.h"
 
 #include "vm/builtin.h"
 
@@ -40,46 +43,37 @@
 #include "vmcore/options.h"
 
 
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getStack", "()[[Ljava/lang/Object;", (void *) (ptrint) &Java_java_security_VMAccessController_getStack },
+};
+
+
+/* _Jv_java_security_VMAccessController_init ***********************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_security_VMAccessController_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/security/VMAccessController");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+
+
 /*
  * Class:     java/security/VMAccessController
  * Method:    getStack
  * Signature: ()[[Ljava/lang/Object;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz) {
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined (__X86_64__)
-	/* these JITs support stacktraces */
-
+JNIEXPORT java_objectarray* JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz)
+{
 	return stacktrace_getStack();
-
-#else
-# if defined(ENABLE_INTRP)
-	/* the interpreter supports stacktraces, even if the JIT does not */
-
-	if (opt_intrp) {
-		return stacktrace_getStack();
-
-	} else
-# endif
-		{
-			java_objectarray *result;
-			java_objectarray *classes;
-			java_objectarray *methodnames;
-
-			if (!(result = builtin_anewarray(2, arrayclass_java_lang_Object)))
-				return NULL;
-
-			if (!(classes = builtin_anewarray(0, class_java_lang_Class)))
-				return NULL;
-
-			if (!(methodnames = builtin_anewarray(0, class_java_lang_String)))
-				return NULL;
-
-			result->data[0] = (java_objectheader *) classes;
-			result->data[1] = (java_objectheader *) methodnames;
-
-			return result;
-		}
-#endif
 }
 
 

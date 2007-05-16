@@ -1,6 +1,6 @@
-/* native/vm/VMString.c - java/lang/VMString
+/* src/native/vm/gnu/java_lang_VMString.c - java/lang/VMString
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,23 +22,46 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roman Obermaiser
-
-   Changes: Christian Thalinger
-
-   $Id: java_lang_VMString.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: java_lang_VMString.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <stdlib.h>
 
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/java_lang_String.h"
+
+#include "native/include/java_lang_VMString.h"
+
 #include "vm/stringlocal.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "intern", "(Ljava/lang/String;)Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_VMString_intern },
+};
+
+
+/* _Jv_java_lang_VMString_init *************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_VMString_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMString");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*
@@ -50,7 +73,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, 
 {
 	java_objectheader *o;
 
-	if (!str)
+	if (str == NULL)
 		return NULL;
 
 	/* search table so identical strings will get identical pointers */

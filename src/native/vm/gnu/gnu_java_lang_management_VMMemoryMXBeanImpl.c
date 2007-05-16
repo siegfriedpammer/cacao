@@ -33,7 +33,11 @@
 #include "mm/gc-common.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
 #include "native/include/java_lang_management_MemoryUsage.h"
+
+#include "native/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
 
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -42,6 +46,33 @@
 #include "vmcore/class.h"
 #include "vmcore/loader.h"               /* XXX only for load_class_bootstrap */
 #include "vmcore/options.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getHeapMemoryUsage",                "()Ljava/lang/management/MemoryUsage;", (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage                },
+	{ "getNonHeapMemoryUsage",             "()Ljava/lang/management/MemoryUsage;", (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage             },
+	{ "getObjectPendingFinalizationCount", "()I",                                  (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount },
+	{ "isVerbose",                         "()Z",                                  (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose                         },
+	{ "setVerbose",                        "(Z)V",                                 (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose                        },
+};
+
+
+/* _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init ************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/management/VMMemoryMXBeanImpl");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

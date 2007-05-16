@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 7719 2007-04-16 15:29:29Z twisti $
+   $Id: java_lang_reflect_Method.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -35,9 +35,11 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
+
 #include "native/include/java_lang_reflect_Method.h"
 
 #include "vm/access.h"
@@ -47,6 +49,34 @@
 #include "vm/initialize.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getModifiersInternal", "()I",                                                                         (void *) (ptrint) &Java_java_lang_reflect_Method_getModifiersInternal },
+	{ "getReturnType",        "()Ljava/lang/Class;",                                                         (void *) (ptrint) &Java_java_lang_reflect_Method_getReturnType        },
+	{ "getParameterTypes",    "()[Ljava/lang/Class;",                                                        (void *) (ptrint) &Java_java_lang_reflect_Method_getParameterTypes    },
+	{ "getExceptionTypes",    "()[Ljava/lang/Class;",                                                        (void *) (ptrint) &Java_java_lang_reflect_Method_getExceptionTypes    },
+	{ "invokeNative",         "(Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Method_invokeNative         },
+	{ "getSignature",         "()Ljava/lang/String;",                                                        (void *) (ptrint) &Java_java_lang_reflect_Method_getSignature         },
+};
+
+
+/* _Jv_java_lang_reflect_Method_init *******************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_reflect_Method_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/reflect/Method");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

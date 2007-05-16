@@ -31,10 +31,57 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_reflect_Field.h"
-#include "native/include/java_lang_Thread.h" /* required by sun_misc_Unsafe.h */
+#include "native/include/java_lang_Thread.h"             /* required by s.m.U */
+
 #include "native/include/sun_misc_Unsafe.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "objectFieldOffset",    "(Ljava/lang/reflect/Field;)J",                               (void *) (ptrint) &Java_sun_misc_Unsafe_objectFieldOffset    },
+	{ "compareAndSwapInt",    "(Ljava/lang/Object;JII)Z",                                   (void *) (ptrint) &Java_sun_misc_Unsafe_compareAndSwapInt    },
+#if 0
+	{ "compareAndSwapLong",   "(Ljava/lang/Object;JJJ)Z",                                   (void *) (ptrint) &Java_sun_misc_Unsafe_compareAndSwapLong   },
+	{ "compareAndSwapObject", "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", (void *) (ptrint) &Java_sun_misc_Unsafe_compareAndSwapObject },
+	{ "putOrderedInt",        "(Ljava/lang/Object;JI)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putOrderedInt        },
+	{ "putOrderedLong",       "(Ljava/lang/Object;JJ)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putOrderedLong       },
+	{ "putOrderedObject",     "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (ptrint) &Java_sun_misc_Unsafe_putOrderedObject     },
+	{ "putIntVolatile",       "(Ljava/lang/Object;JI)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putIntVolatile       },
+	{ "getIntVolatile",       "(Ljava/lang/Object;J)I",                                     (void *) (ptrint) &Java_sun_misc_Unsafe_getIntVolatile       },
+	{ "putLongVolatile",      "(Ljava/lang/Object;JJ)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putLongVolatile      },
+	{ "putLong",              "(Ljava/lang/Object;JJ)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putLong              },
+	{ "getLongVolatile",      "(Ljava/lang/Object;J)J",                                     (void *) (ptrint) &Java_sun_misc_Unsafe_getLongVolatile      },
+	{ "getLong",              "(Ljava/lang/Object;J)J",                                     (void *) (ptrint) &Java_sun_misc_Unsafe_getLong              },
+	{ "putObjectVolatile",    "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (ptrint) &Java_sun_misc_Unsafe_putObjectVolatile    },
+	{ "putObject",            "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (ptrint) &Java_sun_misc_Unsafe_putObject            },
+	{ "getObjectVolatile",    "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void *) (ptrint) &Java_sun_misc_Unsafe_getObjectVolatile    },
+	{ "arrayBaseOffset",      "(Ljava/lang/Class;)I",                                       (void *) (ptrint) &Java_sun_misc_Unsafe_arrayBaseOffset      },
+	{ "arrayIndexScale",      "(Ljava/lang/Class;)I",                                       (void *) (ptrint) &Java_sun_misc_Unsafe_arrayIndexScale      },
+	{ "unpark",               "(Ljava/lang/Thread;)V",                                      (void *) (ptrint) &Java_sun_misc_Unsafe_unpark               },
+	{ "park",                 "(ZJ)V",                                                      (void *) (ptrint) &Java_sun_misc_Unsafe_park                 },
+#endif
+};
+
+
+/* _Jv_sun_misc_Unsafe_init ****************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_sun_misc_Unsafe_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("sun/misc/Unsafe");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

@@ -33,12 +33,41 @@
 #include "mm/gc-common.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
+#include "native/include/gnu_java_lang_management_VMClassLoadingMXBeanImpl.h"
 
 #include "toolbox/logging.h"
 
 #include "vm/vm.h"
 
 #include "vmcore/classcache.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getLoadedClassCount",   "()I",  (void *) (ptrint) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount   },
+	{ "getUnloadedClassCount", "()J",  (void *) (ptrint) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount },
+	{ "isVerbose",             "()Z",  (void *) (ptrint) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose             },
+	{ "setVerbose",            "(Z)V", (void *) (ptrint) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose            },
+};
+
+
+/* _Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init ******************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/management/VMClassLoadingMXBeanImpl");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

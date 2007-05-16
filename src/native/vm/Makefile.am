@@ -60,6 +60,9 @@ noinst_LTLIBRARIES = \
 	libnativevm.la
 
 libnativevm_la_SOURCES = \
+	nativevm.c \
+	nativevm.h \
+	\
 	java_lang_Class.c \
 	java_lang_Class.h \
 	$(CLASSLOADER_SOURCES) \

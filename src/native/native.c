@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7906 2007-05-14 17:25:33Z twisti $
+   $Id: native.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -39,13 +39,15 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Throwable.h"
+
+#include "native/vm/nativevm.h"
 
 #include "threads/lock-common.h"
 
+#include "toolbox/avl.h"
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
 
@@ -69,312 +71,9 @@
 
 /* include table of native functions ******************************************/
 
-#include "native/include/java_lang_Object.h"
-
-#if defined(ENABLE_JAVASE)
-
-#include "native/include/java_io_InputStream.h"
-#include "native/include/java_io_PrintStream.h"
-
-#include "native/include/java_lang_Cloneable.h"
-#include "native/include/java_util_Properties.h"
-
-#include "native/include/gnu_classpath_VMStackWalker.h"
-#include "native/include/gnu_classpath_VMSystemProperties.h"
-#include "native/include/gnu_java_lang_management_VMClassLoadingMXBeanImpl.h"
-#include "native/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
-#include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
-#include "native/include/java_lang_VMClass.h"
-#include "native/include/java_security_ProtectionDomain.h"  /* required by... */
-#include "native/include/java_lang_VMClassLoader.h"
-#include "native/include/java_lang_VMObject.h"
-#include "native/include/java_lang_VMRuntime.h"
-#include "native/include/java_lang_VMString.h"
-#include "native/include/java_lang_VMSystem.h"
-#include "native/include/java_lang_VMThread.h"
-#include "native/include/java_lang_VMThrowable.h"
-#include "native/include/java_lang_management_VMManagementFactory.h"
-#include "native/include/java_lang_reflect_Constructor.h"
-#include "native/include/java_lang_reflect_Field.h"
-#include "native/include/java_lang_reflect_Method.h"
-#include "native/include/java_lang_reflect_VMProxy.h"
-#include "native/include/java_security_VMAccessController.h"
-#include "native/include/sun_misc_Unsafe.h"
-
-#if defined(ENABLE_JVMTI)
-#include "native/include/gnu_classpath_jdwp_event_EventRequest.h"
-#include "native/include/java_nio_ByteBuffer.h"
-#include "native/include/gnu_classpath_jdwp_VMVirtualMachine.h"
-#include "native/include/gnu_classpath_jdwp_VMFrame.h"
-#include "native/include/gnu_classpath_jdwp_VMMethod.h"
-#endif
-
-#elif defined(ENABLE_JAVAME_CLDC1_1)
-
-#include "native/include/com_sun_cldchi_io_ConsoleOutputStream.h"
-#include "native/include/com_sun_cldc_io_ResourceInputStream.h"
-#include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
-#include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_Double.h"
-#include "native/include/java_lang_Float.h"
-#include "native/include/java_lang_Math.h"
-#include "native/include/java_lang_Runtime.h"
-#include "native/include/java_lang_System.h"
-#include "native/include/java_lang_Thread.h"
-
-#endif
-
 #if defined(WITH_STATIC_CLASSPATH)
-
-/* these are required to prevent compiler warnings */
-
-#include "native/include/java_net_DatagramPacket.h"
-#include "native/include/java_net_InetAddress.h"
-#include "native/include/java_net_SocketImpl.h"
-
-#include "native/include/gnu_java_net_PlainDatagramSocketImpl.h"
-#include "native/include/gnu_java_net_PlainSocketImpl.h"
-#include "native/include/gnu_java_nio_PipeImpl.h"
-#include "native/include/gnu_java_nio_channels_FileChannelImpl.h"
-#include "native/include/gnu_java_nio_charset_iconv_IconvEncoder.h"
-#include "native/include/gnu_java_nio_charset_iconv_IconvDecoder.h"
-#include "native/include/java_lang_VMProcess.h"
-#include "native/include/java_nio_MappedByteBufferImpl.h"
-#include "native/include/java_nio_channels_spi_SelectorProvider.h"
-
-/* now include the native table */
-
-#include "native/nativetable.inc"
-
-#elif !defined(ENABLE_LIBJVM)
-
-/* dummynativetable ************************************************************
-
-   Ensure that symbols for functions implemented within CACAO are used
-   and exported to dlopen.
-
-   ATTENTION: Don't make this table static!!!  Otherwise the compiler
-   may optimize it away!
-
-*******************************************************************************/
-
-functionptr dummynativetable[] = {
-#if defined(ENABLE_JAVASE)
-	(functionptr) Java_gnu_classpath_VMStackWalker_getClassContext,
-	(functionptr) Java_gnu_classpath_VMStackWalker_getCallingClass,
-	(functionptr) Java_gnu_classpath_VMStackWalker_getCallingClassLoader,
-	(functionptr) Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader,
-
-	(functionptr) Java_gnu_classpath_VMSystemProperties_preInit,
-
-	(functionptr) Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount,
-	(functionptr) Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount,
-	(functionptr) Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose,
-	(functionptr) Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose,
-
-	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage,
-	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage,
-	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount,
-	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose,
-	(functionptr) Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose,
-
-	(functionptr) Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments,
-	(functionptr) Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime,
-
-	(functionptr) Java_java_lang_VMClass_isInstance,
-	(functionptr) Java_java_lang_VMClass_isAssignableFrom,
-	(functionptr) Java_java_lang_VMClass_isInterface,
-	(functionptr) Java_java_lang_VMClass_isPrimitive,
-	(functionptr) Java_java_lang_VMClass_getName,
-	(functionptr) Java_java_lang_VMClass_getSuperclass,
-	(functionptr) Java_java_lang_VMClass_getInterfaces,
-	(functionptr) Java_java_lang_VMClass_getComponentType,
-	(functionptr) Java_java_lang_VMClass_getModifiers,
-	(functionptr) Java_java_lang_VMClass_getDeclaringClass,
-	(functionptr) Java_java_lang_VMClass_getDeclaredClasses,
-	(functionptr) Java_java_lang_VMClass_getDeclaredFields,
-	(functionptr) Java_java_lang_VMClass_getDeclaredMethods,
-	(functionptr) Java_java_lang_VMClass_getDeclaredConstructors,
-	(functionptr) Java_java_lang_VMClass_getClassLoader,
-	(functionptr) Java_java_lang_VMClass_forName,
-	(functionptr) Java_java_lang_VMClass_isArray,
-	(functionptr) Java_java_lang_VMClass_throwException,
-
-	(functionptr) Java_java_lang_VMClassLoader_defineClass,
-	(functionptr) Java_java_lang_VMClassLoader_resolveClass,
-	(functionptr) Java_java_lang_VMClassLoader_loadClass,
-	(functionptr) Java_java_lang_VMClassLoader_getPrimitiveClass,
-	(functionptr) Java_java_lang_VMClassLoader_nativeGetResources,
-	(functionptr) Java_java_lang_VMClassLoader_findLoadedClass,
-
-	(functionptr) Java_java_lang_VMObject_getClass,
-	(functionptr) Java_java_lang_VMObject_clone,
-	(functionptr) Java_java_lang_VMObject_notify,
-	(functionptr) Java_java_lang_VMObject_notifyAll,
-	(functionptr) Java_java_lang_VMObject_wait,
-
-	(functionptr) Java_java_lang_VMRuntime_availableProcessors,
-	(functionptr) Java_java_lang_VMRuntime_freeMemory,
-	(functionptr) Java_java_lang_VMRuntime_totalMemory,
-	(functionptr) Java_java_lang_VMRuntime_maxMemory,
-	(functionptr) Java_java_lang_VMRuntime_gc,
-	(functionptr) Java_java_lang_VMRuntime_runFinalization,
-	(functionptr) Java_java_lang_VMRuntime_runFinalizationForExit,
-	(functionptr) Java_java_lang_VMRuntime_traceInstructions,
-	(functionptr) Java_java_lang_VMRuntime_traceMethodCalls,
-	(functionptr) Java_java_lang_VMRuntime_runFinalizersOnExit,
-	(functionptr) Java_java_lang_VMRuntime_exit,
-	(functionptr) Java_java_lang_VMRuntime_nativeLoad,
-	(functionptr) Java_java_lang_VMRuntime_mapLibraryName,
-
-	(functionptr) Java_java_lang_VMString_intern,
-
-	(functionptr) Java_java_lang_VMSystem_arraycopy,
-	(functionptr) Java_java_lang_VMSystem_identityHashCode,
-
-	(functionptr) Java_java_lang_VMThread_start,
-	(functionptr) Java_java_lang_VMThread_interrupt,
-	(functionptr) Java_java_lang_VMThread_isInterrupted,
-	(functionptr) Java_java_lang_VMThread_suspend,
-	(functionptr) Java_java_lang_VMThread_resume,
-	(functionptr) Java_java_lang_VMThread_nativeSetPriority,
-	(functionptr) Java_java_lang_VMThread_nativeStop,
-	(functionptr) Java_java_lang_VMThread_currentThread,
-	(functionptr) Java_java_lang_VMThread_yield,
-	(functionptr) Java_java_lang_VMThread_interrupted,
-	(functionptr) Java_java_lang_VMThread_holdsLock,
-	(functionptr) Java_java_lang_VMThread_getState,
-
-	(functionptr) Java_java_lang_VMThrowable_fillInStackTrace,
-	(functionptr) Java_java_lang_VMThrowable_getStackTrace,
-
-	(functionptr) Java_java_lang_management_VMManagementFactory_getMemoryPoolNames,
-	(functionptr) Java_java_lang_management_VMManagementFactory_getMemoryManagerNames,
-	(functionptr) Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames,
-
-	(functionptr) Java_java_lang_reflect_Constructor_getModifiersInternal,
-	(functionptr) Java_java_lang_reflect_Constructor_constructNative,
-
-	(functionptr) Java_java_lang_reflect_Field_getModifiersInternal,
-	(functionptr) Java_java_lang_reflect_Field_getType,
-	(functionptr) Java_java_lang_reflect_Field_get,
-	(functionptr) Java_java_lang_reflect_Field_getBoolean,
-	(functionptr) Java_java_lang_reflect_Field_getByte,
-	(functionptr) Java_java_lang_reflect_Field_getChar,
-	(functionptr) Java_java_lang_reflect_Field_getShort,
-	(functionptr) Java_java_lang_reflect_Field_getInt,
-	(functionptr) Java_java_lang_reflect_Field_getLong,
-	(functionptr) Java_java_lang_reflect_Field_getFloat,
-	(functionptr) Java_java_lang_reflect_Field_getDouble,
-	(functionptr) Java_java_lang_reflect_Field_set,
-	(functionptr) Java_java_lang_reflect_Field_setBoolean,
-	(functionptr) Java_java_lang_reflect_Field_setByte,
-	(functionptr) Java_java_lang_reflect_Field_setChar,
-	(functionptr) Java_java_lang_reflect_Field_setShort,
-	(functionptr) Java_java_lang_reflect_Field_setInt,
-	(functionptr) Java_java_lang_reflect_Field_setLong,
-	(functionptr) Java_java_lang_reflect_Field_setFloat,
-	(functionptr) Java_java_lang_reflect_Field_setDouble,
-
-	(functionptr) Java_java_lang_reflect_Method_getModifiersInternal,
-	(functionptr) Java_java_lang_reflect_Method_getReturnType,
-	(functionptr) Java_java_lang_reflect_Method_getParameterTypes,
-	(functionptr) Java_java_lang_reflect_Method_getExceptionTypes,
-	(functionptr) Java_java_lang_reflect_Method_invokeNative,
-
-	(functionptr) Java_java_lang_reflect_VMProxy_getProxyClass,
-	(functionptr) Java_java_lang_reflect_VMProxy_getProxyData,
-	(functionptr) Java_java_lang_reflect_VMProxy_generateProxyClass,
-
-	(functionptr) Java_java_security_VMAccessController_getStack,
-
-	(functionptr) Java_sun_misc_Unsafe_objectFieldOffset,
-	(functionptr) Java_sun_misc_Unsafe_compareAndSwapInt,
-
-#if defined(ENABLE_JVMTI)
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getSuspendCount,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClassesCount,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getAllClassMethods,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getClassMethod,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getFrames,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getFrame,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getLoadRequests,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_executeMethod,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getSourceFile,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_registerEvent,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_clearEvents,
-	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClasses,
-	(functionptr) Java_gnu_classpath_jdwp_VMFrame_setValue,
-	(functionptr) Java_gnu_classpath_jdwp_VMFrame_getValue,
-	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getName,
-	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getSignature,
-	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getModifiers,
-	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getLineTable,
-	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getVariableTable
+# include "native/nativetable.inc"
 #endif
-
-#elif defined(ENABLE_JAVAME_CLDC1_1)
-	(functionptr) Java_com_sun_cldc_io_ResourceInputStream_open,
-
-	(functionptr) Java_com_sun_cldc_io_j2me_socket_Protocol_open0,
-	(functionptr) Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf,
-	(functionptr) Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte,
-
-	(functionptr) Java_com_sun_cldchi_io_ConsoleOutputStream_write,
-
-	(functionptr) Java_java_lang_Class_forName,
-	(functionptr) Java_java_lang_Class_newInstance,
-	(functionptr) Java_java_lang_Class_isInstance,
-	(functionptr) Java_java_lang_Class_isAssignableFrom,
-	(functionptr) Java_java_lang_Class_isInterface,
-	(functionptr) Java_java_lang_Class_isArray,
-	(functionptr) Java_java_lang_Class_getName,
-
-	(functionptr) Java_java_lang_Double_doubleToLongBits,
-
-	(functionptr) Java_java_lang_Float_floatToIntBits,
-
-	(functionptr) Java_java_lang_Math_ceil,
-	(functionptr) Java_java_lang_Math_cos,
-	(functionptr) Java_java_lang_Math_floor,
-	(functionptr) Java_java_lang_Math_sin,
-	(functionptr) Java_java_lang_Math_sqrt,
-	(functionptr) Java_java_lang_Math_tan,
-
-	(functionptr) Java_java_lang_Object_hashCode,
-	(functionptr) Java_java_lang_Object_notify,
-	(functionptr) Java_java_lang_Object_wait,
-
-	(functionptr) Java_java_lang_Runtime_exitInternal,
-	(functionptr) Java_java_lang_Runtime_freeMemory,
-	(functionptr) Java_java_lang_Runtime_totalMemory,
-	(functionptr) Java_java_lang_Runtime_gc,
-
-	(functionptr) Java_java_lang_String_hashCode,
-	(functionptr) Java_java_lang_String_indexOf__I,
-	(functionptr) Java_java_lang_String_indexOf__II,
-	(functionptr) Java_java_lang_String_lastIndexOf__II,
-	(functionptr) Java_java_lang_String_intern,
-
-	(functionptr) Java_java_lang_System_getProperty0,
-
-	(functionptr) Java_java_lang_Thread_currentThread,
-	(functionptr) Java_java_lang_Thread_setPriority0,
-	(functionptr) Java_java_lang_Thread_start0,
-	(functionptr) Java_java_lang_Thread_yield,
-
-	(functionptr) Java_java_lang_Throwable_printStackTrace,
-	(functionptr) Java_java_lang_Throwable_fillInStackTrace
-#endif
-};
-
-#endif /* defined(ENABLE_LIBJVM) */
 
 
 /* tables for methods *********************************************************/
@@ -392,10 +91,13 @@ static bool nativecompdone = false;
 
 /* global variables ***********************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
+static avl_tree_t *tree_native_methods;
 static hashtable *hashtable_library;
-static lt_dlhandle mainhandle;
-#endif
+
+
+/* prototypes *****************************************************************/
+
+static s4 native_tree_native_methods_comparator(const void *treenode, const void *node);
 
 
 /* native_init *****************************************************************
@@ -412,21 +114,6 @@ bool native_init(void)
 	if (lt_dlinit())
 		vm_abort("native_init: lt_dlinit failed: %s\n", lt_dlerror());
 
-	/* Get the handle for the main program or for the libjvm.so,
-	   depends on the configuration. */
-
-# if defined(ENABLE_LIBJVM)
-	/* First try to open where dlopen searches, e.g. LD_LIBRARY_PATH.
-	   If not found, try the absolute path. */
-
-	if (!(mainhandle = lt_dlopenext("libjvm")))
-		if (!(mainhandle = lt_dlopenext(cacao_libjvm)))
-			vm_abort("native_init: lt_dlopenext failed: %s\n", lt_dlerror());
-# else
-	if (!(mainhandle = lt_dlopen(NULL)))
-		vm_abort("native_init: lt_dlopen failed: %s\n", lt_dlerror());
-# endif
-
 	/* initialize library hashtable, 10 entries should be enough */
 
 	hashtable_library = NEW(hashtable);
@@ -434,9 +121,376 @@ bool native_init(void)
 	hashtable_create(hashtable_library, 10);
 #endif
 
+	/* initialize the native methods table */
+
+	tree_native_methods = avl_create(&native_tree_native_methods_comparator);
+
+	/* register the intern native functions */
+
+	nativevm_init();
+
 	/* everything's ok */
 
 	return true;
+}
+
+
+/* native_tree_native_methods_comparator ***************************************
+
+   Comparison function for AVL tree of native methods.
+
+   IN:
+       treenode....node in the tree
+	   node........node to compare with tree-node
+
+   RETURN VALUE:
+       -1, 0, +1
+
+*******************************************************************************/
+
+static s4 native_tree_native_methods_comparator(const void *treenode, const void *node)
+{
+	const native_methods_node_t *treenmn;
+	const native_methods_node_t *nmn;
+
+	treenmn = treenode;
+	nmn     = node;
+
+	/* compare for avl_find if we have found an entry */
+
+	if (treenmn->name == nmn->name)
+		return 0;
+
+	/* these are for walking the tree */
+
+	if (treenmn->name < nmn->name)
+		return -1;
+	else
+		return 1;
+}
+
+
+/* native_make_overloaded_function *********************************************
+
+   XXX
+
+*******************************************************************************/
+
+#if !defined(WITH_STATIC_CLASSPATH)
+static utf *native_make_overloaded_function(utf *name, utf *descriptor)
+{
+	char *newname;
+	s4    namelen;
+	char *utf_ptr;
+	u2    c;
+	s4    i;
+	s4    dumpsize;
+	utf  *u;
+
+	/* mark memory */
+
+	dumpsize = dump_size();
+
+	utf_ptr = descriptor->text;
+	namelen = strlen(name->text) + strlen("__") + strlen("0");
+
+	/* calculate additional length */
+
+	while ((c = utf_nextu2(&utf_ptr)) != ')') {
+		switch (c) {
+		case 'Z':
+		case 'B':
+		case 'C':
+		case 'S':
+		case 'I':
+		case 'J':
+		case 'F':
+		case 'D':
+			namelen++;
+			break;
+		case '[':
+			namelen += 2;
+			break;
+		case 'L':
+			namelen++;
+			while (utf_nextu2(&utf_ptr) != ';')
+				namelen++;
+			namelen += 2;
+			break;
+		case '(':
+			break;
+		default:
+			assert(0);
+		}
+	}
+
+	/* reallocate memory */
+
+	i = strlen(name->text);
+
+	newname = DMNEW(char, namelen);
+	MCOPY(newname, name->text, char, i);
+
+	utf_ptr = descriptor->text;
+
+	newname[i++] = '_';
+	newname[i++] = '_';
+
+	while ((c = utf_nextu2(&utf_ptr)) != ')') {
+		switch (c) {
+		case 'Z':
+		case 'B':
+		case 'C':
+		case 'S':
+		case 'J':
+		case 'I':
+		case 'F':
+		case 'D':
+			newname[i++] = c;
+			break;
+		case '[':
+			newname[i++] = '_';
+			newname[i++] = '3';
+			break;
+		case 'L':
+			newname[i++] = 'L';
+			while ((c = utf_nextu2(&utf_ptr)) != ';')
+				if (((c >= 'a') && (c <= 'z')) ||
+					((c >= 'A') && (c <= 'Z')) ||
+					((c >= '0') && (c <= '9')))
+					newname[i++] = c;
+				else
+					newname[i++] = '_';
+			newname[i++] = '_';
+			newname[i++] = '2';
+			break;
+		case '(':
+			break;
+		default:
+			assert(0);
+		}
+	}
+
+	/* close string */
+
+	newname[i] = '\0';
+
+	/* make a utf-string */
+
+	u = utf_new_char(newname);
+
+	/* release memory */
+
+	dump_release(dumpsize);
+
+	return u;
+}
+
+
+/* native_insert_char **********************************************************
+
+   Inserts the passed UTF character into the native method name.  If
+   necessary it is escaped properly.
+
+*******************************************************************************/
+
+static s4 native_insert_char(char *name, u4 pos, u2 c)
+{
+	s4 val;
+	s4 i;
+
+	switch (c) {
+	case '/':
+	case '.':
+		/* replace '/' or '.' with '_' */
+		name[pos] = '_';
+		break;
+
+	case '_':
+		/* escape sequence for '_' is '_1' */
+		name[pos]   = '_';
+		name[++pos] = '1';
+		break;
+
+	case ';':
+		/* escape sequence for ';' is '_2' */
+		name[pos]   = '_';
+		name[++pos] = '2';
+		break;
+
+	case '[':
+		/* escape sequence for '[' is '_1' */
+		name[pos]   = '_';
+		name[++pos] = '3';
+		break;
+
+	default:
+		if (isalnum(c))
+			name[pos] = c;
+		else {
+			/* unicode character */
+			name[pos]   = '_';
+			name[++pos] = '0';
+
+			for (i = 0; i < 4; ++i) {
+				val = c & 0x0f;
+				name[pos + 4 - i] = (val > 10) ? ('a' + val - 10) : ('0' + val);
+				c >>= 4;
+			}
+
+			pos += 4;
+		}
+		break;
+	}
+
+	/* return the new buffer index */
+
+	return pos;
+}
+
+
+/* native_method_symbol ********************************************************
+
+   Generate a method-symbol string out of the class name and the
+   method name.
+
+*******************************************************************************/
+
+static utf *native_method_symbol(utf *classname, utf *methodname)
+{
+	char *name;
+	s4    namelen;
+	char *utf_ptr;
+	char *utf_endptr;
+	u2    c;
+	u4    pos;
+	s4    dumpsize;
+	utf  *u;
+
+	/* mark memory */
+
+	dumpsize = dump_size();
+
+	/* Calculate length of native function name.  We multiply the
+	   class and method name length by 6 as this is the maxium
+	   escape-sequence that can be generated (unicode). */
+
+	namelen =
+		strlen("Java_") +
+		utf_get_number_of_u2s(classname) * 6 +
+		strlen("_") +
+		utf_get_number_of_u2s(methodname) * 6 +
+		strlen("0");
+
+	/* allocate memory */
+
+	name = DMNEW(char, namelen);
+
+	/* generate name of native functions */
+
+	strcpy(name, "Java_");
+	pos = strlen("Java_");
+
+	utf_ptr    = classname->text;
+	utf_endptr = UTF_END(classname);
+
+	for (; utf_ptr < utf_endptr; utf_ptr++, pos++) {
+		c   = *utf_ptr;
+		pos = native_insert_char(name, pos, c);
+	}
+
+	/* seperator between class and method */
+
+	name[pos++] = '_';
+
+	utf_ptr    = methodname->text;
+	utf_endptr = UTF_END(methodname);
+
+	for (; utf_ptr < utf_endptr; utf_ptr++, pos++) {
+		c   = *utf_ptr;
+		pos = native_insert_char(name, pos, c);
+	}
+
+	/* close string */
+
+	name[pos] = '\0';
+
+	/* check for an buffer overflow */
+
+	assert(pos <= namelen);
+
+	/* make a utf-string */
+
+	u = utf_new_char(name);
+
+	/* release memory */
+
+	dump_release(dumpsize);
+
+	return u;
+}
+
+
+/* native_method_register ******************************************************
+
+   Register a native method in the native method table.
+
+*******************************************************************************/
+
+void native_method_register(utf *classname, JNINativeMethod *methods, s4 count)
+{
+	native_methods_node_t *nmn;
+	utf                   *methodname;
+	utf                   *name;
+	s4                     i;
+
+	/* insert all methods passed */
+
+	for (i = 0; i < count; i++) {
+		if (opt_verbosejni) {
+			printf("[Registering JNI native method ");
+			utf_display_printable_ascii_classname(classname);
+			printf(".%s]\n", methods[i].name);
+		}
+
+		/* generate the method-symbol string */
+
+		methodname = utf_new_char(methods[i].name);
+		name       = native_method_symbol(classname, methodname);
+
+		/* allocate a new tree node */
+
+		nmn = NEW(native_methods_node_t);
+
+		nmn->name   = name;
+		nmn->method = (functionptr) (ptrint) methods[i].fnPtr;
+
+		/* insert the method into the tree */
+
+		avl_insert(tree_native_methods, nmn);
+	}
+}
+
+
+/* native_method_find **********************************************************
+
+   Find a native method in the native method table.
+
+*******************************************************************************/
+
+static functionptr native_method_find(utf *name)
+{
+	native_methods_node_t  tmpnmn;
+	native_methods_node_t *nmn;
+
+	tmpnmn.name = name;
+
+	nmn = avl_find(tree_native_methods, &tmpnmn);
+
+	if (nmn == NULL)
+		return NULL;
+
+	return nmn->method;
 }
 
 
@@ -634,172 +688,6 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 #endif /* defined(WITH_STATIC_CLASSPATH) */
 
 
-/* native_make_overloaded_function *********************************************
-
-   XXX
-
-*******************************************************************************/
-
-#if !defined(WITH_STATIC_CLASSPATH)
-static char *native_make_overloaded_function(char *name, utf *desc)
-{
-	char *newname;
-	s4    namelen;
-	char *utf_ptr;
-	u2    c;
-	s4    i;
-
-	utf_ptr = desc->text;
-	namelen = strlen(name) + strlen("__") + strlen("0");
-
-	/* calculate additional length */
-
-	while ((c = utf_nextu2(&utf_ptr)) != ')') {
-		switch (c) {
-		case 'Z':
-		case 'B':
-		case 'C':
-		case 'S':
-		case 'I':
-		case 'J':
-		case 'F':
-		case 'D':
-			namelen++;
-			break;
-		case '[':
-			namelen += 2;
-			break;
-		case 'L':
-			namelen++;
-			while (utf_nextu2(&utf_ptr) != ';')
-				namelen++;
-			namelen += 2;
-			break;
-		case '(':
-			break;
-		default:
-			assert(0);
-		}
-	}
-
-
-	/* reallocate memory */
-
-	i = strlen(name);
-
-	newname = DMNEW(char, namelen);
-	MCOPY(newname, name, char, i);
-
-	utf_ptr = desc->text;
-
-	newname[i++] = '_';
-	newname[i++] = '_';
-
-	while ((c = utf_nextu2(&utf_ptr)) != ')') {
-		switch (c) {
-		case 'Z':
-		case 'B':
-		case 'C':
-		case 'S':
-		case 'J':
-		case 'I':
-		case 'F':
-		case 'D':
-			newname[i++] = c;
-			break;
-		case '[':
-			newname[i++] = '_';
-			newname[i++] = '3';
-			break;
-		case 'L':
-			newname[i++] = 'L';
-			while ((c = utf_nextu2(&utf_ptr)) != ';')
-				if (((c >= 'a') && (c <= 'z')) ||
-					((c >= 'A') && (c <= 'Z')) ||
-					((c >= '0') && (c <= '9')))
-					newname[i++] = c;
-				else
-					newname[i++] = '_';
-			newname[i++] = '_';
-			newname[i++] = '2';
-			break;
-		case '(':
-			break;
-		default:
-			assert(0);
-		}
-	}
-
-	/* close string */
-
-	newname[i] = '\0';
-
-	return newname;
-}
-
-
-/* native_insert_char **********************************************************
-
-   Inserts the passed UTF character into the native method name.  If
-   necessary it is escaped properly.
-
-*******************************************************************************/
-
-static s4 native_insert_char(char *name, u4 pos, u2 c)
-{
-	s4 val;
-	s4 i;
-
-	switch (c) {
-	case '/':
-	case '.':
-		/* replace '/' or '.' with '_' */
-		name[pos] = '_';
-		break;
-
-	case '_':
-		/* escape sequence for '_' is '_1' */
-		name[pos]   = '_';
-		name[++pos] = '1';
-		break;
-
-	case ';':
-		/* escape sequence for ';' is '_2' */
-		name[pos]   = '_';
-		name[++pos] = '2';
-		break;
-
-	case '[':
-		/* escape sequence for '[' is '_1' */
-		name[pos]   = '_';
-		name[++pos] = '3';
-		break;
-
-	default:
-		if (isalnum(c))
-			name[pos] = c;
-		else {
-			/* unicode character */
-			name[pos]   = '_';
-			name[++pos] = '0';
-
-			for (i = 0; i < 4; ++i) {
-				val = c & 0x0f;
-				name[pos + 4 - i] = (val > 10) ? ('a' + val - 10) : ('0' + val);
-				c >>= 4;
-			}
-
-			pos += 4;
-		}
-		break;
-	}
-
-	/* return the new buffer index */
-
-	return pos;
-}
-
-
 /* native_resolve_function *****************************************************
 
    Resolves a native function, maybe from a dynamic library.
@@ -808,15 +696,9 @@ static s4 native_insert_char(char *name, u4 pos, u2 c)
 
 functionptr native_resolve_function(methodinfo *m)
 {
-	lt_ptr                          sym;
-	char                           *name;
-	char                           *newname;
-	s4                              namelen;
-	char                           *utf_ptr;
-	char                           *utf_endptr;
-	u2                              c;
-	u4                              pos;
-	s4                              dumpsize;
+	utf                            *name;
+	utf                            *newname;
+	functionptr                     f;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne;
 	u4                              key;    /* hashkey                        */
@@ -831,55 +713,10 @@ functionptr native_resolve_function(methodinfo *m)
 		utf_display_printable_ascii(m->name);
 		printf(" ... ");
 	}
-		
-	/* Calculate length of native function name.  We multiply the
-	   class and method name length by 6 as this is the maxium
-	   escape-sequence that can be generated (unicode). */
 
-	namelen = strlen("Java_") +
-		utf_get_number_of_u2s(m->class->name) * 6 +
-		strlen("_") +
-		utf_get_number_of_u2s(m->name) * 6 +
-		strlen("0");
+	/* generate method symbol string */
 
-	/* allocate memory */
-
-	dumpsize = dump_size();
-
-	name = DMNEW(char, namelen);
-
-	/* generate name of native functions */
-
-	strcpy(name, "Java_");
-	pos = strlen("Java_");
-
-	utf_ptr    = m->class->name->text;
-	utf_endptr = UTF_END(m->class->name);
-
-	for (; utf_ptr < utf_endptr; utf_ptr++, pos++) {
-		c   = *utf_ptr;
-		pos = native_insert_char(name, pos, c);
-	}
-
-	/* seperator between class and method */
-
-	name[pos++] = '_';
-
-	utf_ptr    = m->name->text;
-	utf_endptr = UTF_END(m->name);
-
-	for (; utf_ptr < utf_endptr; utf_ptr++, pos++) {
-		c   = *utf_ptr;
-		pos = native_insert_char(name, pos, c);
-	}
-
-	/* close string */
-
-	name[pos] = '\0';
-
-	/* check for an buffer overflow */
-
-	assert(pos <= namelen);
+	name = native_method_symbol(m->class->name, m->name);
 
 	/* generate overloaded function (having the types in it's name)           */
 
@@ -888,7 +725,7 @@ functionptr native_resolve_function(methodinfo *m)
 	/* check the library hash entries of the classloader of the
 	   methods's class  */
 
-	sym = NULL;
+	f = NULL;
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
@@ -898,16 +735,16 @@ functionptr native_resolve_function(methodinfo *m)
 
 	/* iterate through loaders in this hash slot */
 
-	while ((le != NULL) && (sym == NULL)) {
+	while ((le != NULL) && (f == NULL)) {
 		/* iterate through names in this loader */
 
 		ne = le->namelink;
 			
-		while ((ne != NULL) && (sym == NULL)) {
-			sym = lt_dlsym(ne->handle, name);
+		while ((ne != NULL) && (f == NULL)) {
+			f = (functionptr) (ptrint) lt_dlsym(ne->handle, name->text);
 
-			if (sym == NULL)
-				sym = lt_dlsym(ne->handle, newname);
+			if (f == NULL)
+				f = (functionptr) (ptrint) lt_dlsym(ne->handle, newname->text);
 
 			ne = ne->hashlink;
 		}
@@ -915,45 +752,39 @@ functionptr native_resolve_function(methodinfo *m)
 		le = le->hashlink;
 	}
 
-	if (sym != NULL)
+	if (f != NULL)
 		if (opt_verbosejni)
 			printf("JNI ]\n");
-
 
 	/* If not found, try to find the native function symbol in the
 	   main program. */
 
-	if (sym == NULL) {
-		sym = lt_dlsym(mainhandle, name);
+	if (f == NULL) {
+		f = native_method_find(name);
 
-		if (sym == NULL)
-			sym = lt_dlsym(mainhandle, newname);
+		if (f == NULL)
+			f = native_method_find(newname);
 
-		if (sym != NULL)
+		if (f != NULL)
 			if (opt_verbosejni)
 				printf("internal ]\n");
 	}
 
-
 #if defined(ENABLE_JVMTI)
 	/* fire Native Method Bind event */
-	if (jvmti) jvmti_NativeMethodBind(m, sym, &sym);
+	if (jvmti) jvmti_NativeMethodBind(m, f, &f);
 #endif
 
 	/* no symbol found? throw exception */
 
-	if (sym == NULL) {
+	if (f == NULL) {
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
 		exceptions_throw_unsatisfiedlinkerror(m->name);
 	}
 
-	/* release memory */
-
-	dump_release(dumpsize);
-
-	return (functionptr) (ptrint) sym;
+	return f;
 }
 #endif /* !defined(WITH_STATIC_CLASSPATH) */
 

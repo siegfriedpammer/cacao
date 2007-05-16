@@ -31,11 +31,36 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
 
+#include "native/include/com_sun_cldc_io_ResourceInputStream.h"
+
 #include "vm/vm.h" /* REMOVE ME: temporarily */
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "open", "(Ljava/lang/String;)Ljava/lang/Object;", (void *) (ptrint) &Java_com_sun_cldc_io_ResourceInputStream_open },
+};
+ 
+/* _Jv_com_sun_cldc_io_ResourceInputStream_init ********************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("com/sun/cldc/io/ResourceInputStream");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

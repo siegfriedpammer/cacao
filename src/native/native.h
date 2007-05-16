@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 7573 2007-03-25 18:55:02Z twisti $
+   $Id: native.h 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -36,11 +36,18 @@
 # include <ltdl.h>
 #endif
 
+#include "native/jni.h"
+
 #include "vm/global.h"
 
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/utf8.h"
+
+
+/* defines ********************************************************************/
+
+#define NATIVE_METHODS_COUNT    sizeof(methods) / sizeof(JNINativeMethod)
 
 
 /* table for locating native methods */
@@ -52,6 +59,16 @@ typedef struct nativecompref nativecompref;
 #if !defined(WITH_STATIC_CLASSPATH)
 typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
 typedef struct hashtable_library_name_entry hashtable_library_name_entry;
+
+
+/* native_methods_node_t ******************************************************/
+
+typedef struct native_methods_node_t native_methods_node_t;
+
+struct native_methods_node_t {
+	utf         *name;                  /* mangled name of the method         */
+	functionptr  method;                /* pointer to the implementation      */
+};
 
 
 /* hashtable_library_loader_entry *********************************************/
@@ -92,8 +109,12 @@ struct nativecompref {
 };
 
 
+/* function prototypes ********************************************************/
+
 /* initialize native subsystem */
 bool native_init(void);
+
+void native_method_register(utf *classname, JNINativeMethod *methods, s4 count);
 
 #if defined(WITH_STATIC_CLASSPATH)
 

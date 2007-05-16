@@ -36,9 +36,44 @@
 
 #include "native/jni.h"
 #include "native/native.h"
-#include "native/include/java_lang_String.h"
+
 #include "native/include/java_lang_Object.h"
+
+#include "native/include/java_lang_String.h"
+
 #include "vm/stringlocal.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "hashCode",        "()I",                    (void *) (ptrint) &Java_java_lang_String_hashCode        },
+	/* XXX this is just a quick hack */
+	{ "indexOf__I",      "(I)I",                   (void *) (ptrint) &Java_java_lang_String_indexOf__I      },
+	{ "indexOf__II",     "(II)I",                  (void *) (ptrint) &Java_java_lang_String_indexOf__II     },
+	{ "lastIndexOf__I",  "(I)I",                   (void *) (ptrint) &Java_java_lang_String_lastIndexOf__I  },
+	{ "lastIndexOf__II", "(II)I",                  (void *) (ptrint) &Java_java_lang_String_lastIndexOf__II },
+#if 0
+	{ "equals",          "(Ljava/lang/Object;)Z;", (void *) (ptrint) &Java_java_lang_String_equals          },
+#endif
+	{ "intern",          "()Ljava/lang/String;",   (void *) (ptrint) &Java_java_lang_String_intern          },
+};
+
+
+/* _Jv_java_lang_String_init ***************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_String_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/String");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

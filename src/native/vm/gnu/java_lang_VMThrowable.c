@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThrowable.c 7720 2007-04-16 15:49:09Z twisti $
+   $Id: java_lang_VMThrowable.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -35,10 +35,12 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/gnu_classpath_Pointer.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
+
 #include "native/include/java_lang_VMThrowable.h"
 
 #include "native/vm/java_lang_Class.h"
@@ -51,6 +53,30 @@
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "fillInStackTrace", "(Ljava/lang/Throwable;)Ljava/lang/VMThrowable;",        (void *) (ptrint) &Java_java_lang_VMThrowable_fillInStackTrace },
+	{ "getStackTrace",    "(Ljava/lang/Throwable;)[Ljava/lang/StackTraceElement;", (void *) (ptrint) &Java_java_lang_VMThrowable_getStackTrace    },
+};
+
+
+/* _Jv_java_lang_VMThrowable_init **********************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_VMThrowable_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMThrowable");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

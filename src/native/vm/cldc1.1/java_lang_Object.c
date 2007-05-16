@@ -34,12 +34,41 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
-#include "native/include/java_lang_String.h" /* required by java_lang_Class.h */
+#include "native/include/java_lang_String.h"             /* required by j.l.C */
 #include "native/include/java_lang_Class.h"
+
 #include "native/include/java_lang_Object.h"
 
 #include "native/vm/java_lang_Object.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "getClass",  "(Ljava/lang/Object;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_Object_getClass  },
+	{ "hashCode",  "()I",                                   (void *) (ptrint) &Java_java_lang_Object_hashCode  },
+	{ "notify"     "()V",                                   (void *) (ptrint) &Java_java_lang_Object_notify    },
+	{ "notifyAll", "()V",                                   (void *) (ptrint) &Java_java_lang_Object_notifyAll },
+	{ "wait",      "(J)V",                                  (void *) (ptrint) &Java_java_lang_Object_wait      },
+};
+ 
+ 
+/* _Jv_java_lang_Object_init ***************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_Object_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/Object");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

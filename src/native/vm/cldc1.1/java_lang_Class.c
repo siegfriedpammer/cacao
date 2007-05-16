@@ -33,11 +33,40 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_String.h" /* required by java_lang_Class.h */
-#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_String.h"             /* required by j.l.C */
 #include "native/include/java_lang_Object.h"
 
+#include "native/include/java_lang_Class.h"
+
 #include "native/vm/java_lang_Class.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "forName",          "(Ljava/lang/String;)Ljava/lang/Class;",(void *) (ptrint) &Java_java_lang_Class_forName          },
+	{ "newInstance",      "()Ljava/lang/Object;",                 (void *) (ptrint) &Java_java_lang_Class_newInstance      },
+	{ "isInstance",       "(Ljava/lang/Object;)Z",                (void *) (ptrint) &Java_java_lang_Class_isInstance       },
+	{ "isAssignableFrom", "(Ljava/lang/Class;)Z",                 (void *) (ptrint) &Java_java_lang_Class_isAssignableFrom },
+	{ "isInterface",      "()Z",                                  (void *) (ptrint) &Java_java_lang_Class_isInterface      },
+	{ "isArray",          "()Z",                                  (void *) (ptrint) &Java_java_lang_Class_isArray          },
+	{ "getName",          "()Ljava/lang/String;",                 (void *) (ptrint) &Java_java_lang_Class_getName          },
+};
+
+/* _Jv_java_lang_Class_init ****************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_Class_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/Class");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

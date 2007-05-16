@@ -31,10 +31,35 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
 #include "native/include/java_lang_Double.h"
 
 #include "vm/builtin.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "doubleToLongBits", "(D)J", (void *) (ptrint) &Java_java_lang_Double_doubleToLongBits },
+	{ "longBitsToDouble", "(J)D", (void *) (ptrint) &Java_java_lang_Double_longBitsToDouble },
+};
+ 
+ 
+/* _Jv_java_lang_Double_init ***************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_Double_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/Double");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

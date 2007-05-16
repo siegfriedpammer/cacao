@@ -34,14 +34,42 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
+
+#include "native/include/java_lang_System.h"
 
 #include "vm/builtin.h"
 #include "vm/properties.h"
 #include "vm/stringlocal.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "arraycopy",    "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void *) (ptrint) &Java_java_lang_System_arraycopy    },
+	{ "getProperty0", "(Ljava/lang/String;)Ljava/lang/String;",     (void *) (ptrint) &Java_java_lang_System_getProperty0 },
+};
+
+
+/* _Jv_java_lang_System_init ***************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_System_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/System");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

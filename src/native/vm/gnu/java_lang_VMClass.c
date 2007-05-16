@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: java_lang_VMClass.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -31,15 +31,70 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Throwable.h"
-#include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Method.h"
 
+#include "native/include/java_lang_VMClass.h"
+
 #include "native/vm/java_lang_Class.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "isInstance",              "(Ljava/lang/Object;)Z",                                         (void *) (ptrint) &Java_java_lang_VMClass_isInstance              },
+	{ "isAssignableFrom",        "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isAssignableFrom        },
+	{ "isInterface",             "()Z",                                                           (void *) (ptrint) &Java_java_lang_VMClass_isInterface             },
+	{ "isPrimitive",             "()Z",                                                           (void *) (ptrint) &Java_java_lang_VMClass_isPrimitive             },
+	{ "getName",                 "()Ljava/lang/String;",                                          (void *) (ptrint) &Java_java_lang_VMClass_getName                 },
+	{ "getSuperclass",           "()Ljava/lang/Class;",                                           (void *) (ptrint) &Java_java_lang_VMClass_getSuperclass           },
+	{ "getInterfaces",           "()[Ljava/lang/Class;",                                          (void *) (ptrint) &Java_java_lang_VMClass_getInterfaces           },
+	{ "getComponentType",        "()Ljava/lang/Class;",                                           (void *) (ptrint) &Java_java_lang_VMClass_getComponentType        },
+	{ "getModifiers",            "(Z)I",                                                          (void *) (ptrint) &Java_java_lang_VMClass_getModifiers            },
+	{ "getDeclaringClass",       "()Ljava/lang/Class;",                                           (void *) (ptrint) &Java_java_lang_VMClass_getDeclaringClass       },
+	{ "getDeclaredClasses",      "(Z)[Ljava/lang/Class;",                                         (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredClasses      },
+	{ "getDeclaredFields",       "(Z)[Ljava/lang/reflect/Field;",                                 (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredFields       },
+	{ "getDeclaredMethods",      "(Z)[Ljava/lang/reflect/Method;",                                (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredMethods      },
+	{ "getDeclaredConstructors", "(Z)[Ljava/lang/reflect/Constructor;",                           (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredConstructors },
+	{ "getClassLoader",          "()Ljava/lang/ClassLoader;",                                     (void *) (ptrint) &Java_java_lang_VMClass_getClassLoader          },
+	{ "forName",                 "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_VMClass_forName                 },
+	{ "isArray",                 "()Z",                                                           (void *) (ptrint) &Java_java_lang_VMClass_isArray                 },
+	{ "throwException",          "(Ljava/lang/Throwable;)V",                                      (void *) (ptrint) &Java_java_lang_VMClass_throwException          },
+#if 0
+	{ "getDeclaredAnnotations",  "(Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;",         (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredAnnotations  },
+#endif
+	{ "getEnclosingClass",       "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (ptrint) &Java_java_lang_VMClass_getEnclosingClass       },
+	{ "getEnclosingConstructor", "(Ljava/lang/Class;)Ljava/lang/reflect/Constructor;",            (void *) (ptrint) &Java_java_lang_VMClass_getEnclosingConstructor },
+	{ "getEnclosingMethod",      "(Ljava/lang/Class;)Ljava/lang/reflect/Method;",                 (void *) (ptrint) &Java_java_lang_VMClass_getEnclosingMethod      },
+	{ "getClassSignature",       "(Ljava/lang/Class;)Ljava/lang/String;",                         (void *) (ptrint) &Java_java_lang_VMClass_getClassSignature       },
+#if 0
+	{ "isAnonymousClass",        "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isAnonymousClass        },
+	{ "isLocalClass",            "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isLocalClass            },
+	{ "isMemberClass",           "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isMemberClass           },
+#endif
+};
+
+
+/* _Jv_java_lang_VMClass_init **************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_VMClass_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMClass");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

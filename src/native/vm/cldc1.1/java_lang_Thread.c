@@ -31,18 +31,51 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
 #include "native/include/java_lang_Thread.h"
 
 #include "native/vm/java_lang_Thread.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "currentThread", "()Ljava/lang/Thread;", (void *) (ptrint) &Java_java_lang_Thread_currentThread },
+	{ "setPriority0",  "(II)V",                (void *) (ptrint) &Java_java_lang_Thread_setPriority0  },
+	{ "sleep",         "(J)V",                 (void *) (ptrint) &Java_java_lang_Thread_sleep         },
+	{ "start0",        "()V",                  (void *) (ptrint) &Java_java_lang_Thread_start0        },
+	{ "isAlive",       "()Z",                  (void *) (ptrint) &Java_java_lang_Thread_isAlive       },
+#if 0
+	{ "activeCount",   "()I",                  (void *) (ptrint) &Java_java_lang_Thread_activeCount   },
+	{ "setPriority0",  "(II)V",                (void *) (ptrint) &Java_java_lang_Thread_setPriority0  },
+	{ "interrupt0",    "()V",                  (void *) (ptrint) &Java_java_lang_Thread_interrupt0    },
+	{ "internalExit",  "()V",                  (void *) (ptrint) &Java_java_lang_Thread_internalExit  },
+#endif
+	{ "yield",         "()V",                  (void *) (ptrint) &Java_java_lang_Thread_yield         },
+};
+
+
+/* _Jv_java_lang_Thread_init ***************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_Thread_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/Thread");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

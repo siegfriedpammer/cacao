@@ -31,12 +31,39 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
+#include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
 
 #include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/vm.h"
 
 #include "vmcore/class.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getInputArguments", "()[Ljava/lang/String;", (void *) (ptrint) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments },
+	{ "getStartTime",      "()J",                   (void *) (ptrint) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime      },
+};
+
+
+/* _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init ***********************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/management/VMRuntimeMXBeanImpl");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*
