@@ -134,26 +134,22 @@ s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheade
 
 	/* is the library already loaded? */
 
-	if (native_hashtable_library_find(name, cl))
+	if (native_library_find(name, cl) != NULL)
 		return 1;
 
-	/* try to open the library */
+	/* open the library */
 
-	if (!(handle = lt_dlopen(name->text))) {
-		if (opt_verbose) {
-			log_start();
-			log_print("_Jv_java_lang_Runtime_loadLibrary: ");
-			log_print(lt_dlerror());
-			log_finish();
-		}
+	handle = native_library_open(name);
 
+	if (handle == NULL)
 		return 0;
-	}
 
 # if defined(ENABLE_JNI)
 	/* resolve JNI_OnLoad function */
 
-	if ((onload = lt_dlsym(handle, "JNI_OnLoad"))) {
+	onload = lt_dlsym(handle, "JNI_OnLoad");
+
+	if (onload != NULL) {
 		JNIEXPORT s4 (JNICALL *JNI_OnLoad) (JavaVM *, void *);
 		JavaVM *vm;
 
@@ -175,7 +171,7 @@ s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheade
 
 	/* insert the library name into the library hash */
 
-	native_hashtable_library_add(name, cl, handle);
+	native_library_add(name, cl, handle);
 
 	return 1;
 #endif /* defined(WITH_STATIC_CLASSPATH) */

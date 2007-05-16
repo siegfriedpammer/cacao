@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: native.c 7911 2007-05-16 09:01:10Z twisti $
 
 */
 
@@ -494,15 +494,46 @@ static functionptr native_method_find(utf *name)
 }
 
 
-/* native_hashtable_library_add ************************************************
+/* native_library_open *********************************************************
+
+   Open a native library with the given utf8 name.
+
+*******************************************************************************/
+
+#if !defined(WITH_STATIC_CLASSPATH)
+lt_dlhandle native_library_open(utf *filename)
+{
+	lt_dlhandle handle;
+
+	/* try to open the library */
+
+	handle = lt_dlopen(filename->text);
+
+	if (handle == NULL) {
+		if (opt_verbose) {
+			log_start();
+			log_print("native_library_load: lt_dlopen failed: ");
+			log_print(lt_dlerror());
+			log_finish();
+		}
+
+		return NULL;
+	}
+
+	return handle;
+}
+#endif
+
+
+/* native_library_add **********************************************************
 
    Adds an entry to the native library hashtable.
 
 *******************************************************************************/
 
 #if !defined(WITH_STATIC_CLASSPATH)
-void native_hashtable_library_add(utf *filename, java_objectheader *loader,
-								  lt_dlhandle handle)
+void native_library_add(utf *filename, java_objectheader *loader,
+						lt_dlhandle handle)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -577,15 +608,15 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 #endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
-/* native_hashtable_library_find ***********************************************
+/* native_library_find *********************************************************
 
    Find an entry in the native library hashtable.
 
 *******************************************************************************/
 
 #if !defined(WITH_STATIC_CLASSPATH)
-hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
-															java_objectheader *loader)
+hashtable_library_name_entry *native_library_find(utf *filename,
+												  java_objectheader *loader)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -609,7 +640,7 @@ hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
 
 	/* no loader found? return NULL */
 
-	if (!le)
+	if (le == NULL)
 		return NULL;
 
 	/* search for library name */
