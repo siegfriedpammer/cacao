@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7904 2007-05-14 13:29:32Z twisti $
+   $Id: threads-common.c 7914 2007-05-18 14:17:34Z twisti $
 
 */
 
@@ -819,6 +819,10 @@ utf *threads_thread_get_state(threadobject *thread)
 		break;
 	default:
 		vm_abort("threads_get_state: unknown thread state %d", thread->state);
+
+		/* keep compiler happy */
+
+		u = NULL;
 	}
 
 	return u;
@@ -850,6 +854,10 @@ bool threads_thread_is_alive(threadobject *thread)
 
 	default:
 		vm_abort("threads_is_alive: unknown thread state %d", thread->state);
+
+		/* keep compiler happy */
+
+		result = false;
 	}
 
 	return result;
