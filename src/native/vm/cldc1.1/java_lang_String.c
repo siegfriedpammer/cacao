@@ -47,16 +47,15 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "hashCode",        "()I",                    (void *) (ptrint) &Java_java_lang_String_hashCode        },
-	/* XXX this is just a quick hack */
-	{ "indexOf__I",      "(I)I",                   (void *) (ptrint) &Java_java_lang_String_indexOf__I      },
-	{ "indexOf__II",     "(II)I",                  (void *) (ptrint) &Java_java_lang_String_indexOf__II     },
-	{ "lastIndexOf__I",  "(I)I",                   (void *) (ptrint) &Java_java_lang_String_lastIndexOf__I  },
-	{ "lastIndexOf__II", "(II)I",                  (void *) (ptrint) &Java_java_lang_String_lastIndexOf__II },
+	{ "hashCode",    "()I",                    (void *) (ptrint) &Java_java_lang_String_hashCode        },
+	{ "indexOf",     "(I)I",                   (void *) (ptrint) &Java_java_lang_String_indexOf__I      },
+	{ "indexOf",     "(II)I",                  (void *) (ptrint) &Java_java_lang_String_indexOf__II     },
+	{ "lastIndexOf", "(I)I",                   (void *) (ptrint) &Java_java_lang_String_lastIndexOf__I  },
+	{ "lastIndexOf", "(II)I",                  (void *) (ptrint) &Java_java_lang_String_lastIndexOf__II },
 #if 0
-	{ "equals",          "(Ljava/lang/Object;)Z;", (void *) (ptrint) &Java_java_lang_String_equals          },
+	{ "equals",      "(Ljava/lang/Object;)Z;", (void *) (ptrint) &Java_java_lang_String_equals          },
 #endif
-	{ "intern",          "()Ljava/lang/String;",   (void *) (ptrint) &Java_java_lang_String_intern          },
+	{ "intern",      "()Ljava/lang/String;",   (void *) (ptrint) &Java_java_lang_String_intern          },
 };
 
 

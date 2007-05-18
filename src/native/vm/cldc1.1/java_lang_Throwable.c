@@ -46,8 +46,8 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "printStackTrace",  "()V",                      (void *) (ptrint) &Java_java_lang_Throwable_printStackTrace  },
-	{ "fillInStackTrace", "(Ljava/lang/Throwable;)V", (void *) (ptrint) &Java_java_lang_Throwable_fillInStackTrace },
+	{ "printStackTrace",  "()V", (void *) (ptrint) &Java_java_lang_Throwable_printStackTrace  },
+	{ "fillInStackTrace", "()V", (void *) (ptrint) &Java_java_lang_Throwable_fillInStackTrace },
 };
 
 
@@ -86,7 +86,7 @@ JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, jav
 /*
  * Class:     java/lang/Throwable
  * Method:    fillInStackTrace
- * Signature: (Ljava/lang/Throwable;)V
+ * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, java_lang_Throwable *this)
 {
