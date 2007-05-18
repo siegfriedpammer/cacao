@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7902 2007-05-11 22:33:15Z twisti $
+   $Id: statistics.c 7916 2007-05-18 14:24:21Z twisti $
 
 */
 
@@ -91,6 +91,8 @@ s4 size_fieldinfo        = 0;
 s4 size_methodinfo       = 0;
 s4 size_lineinfo         = 0;
 s4 size_codeinfo         = 0;
+
+s4 size_stub_native      = 0;
 
 s4 size_stack_map        = 0;
 s4 size_string           = 0;
@@ -169,7 +171,6 @@ int count_tryblocks = 0;
 int count_code_len = 0;
 int count_data_len = 0;
 int count_cstub_len = 0;
-int count_nstub_len = 0;
 int count_max_new_stack = 0;
 int count_upper_bound_new_stack = 0;
 
@@ -677,7 +678,7 @@ void statistics_print_memory_usage(void)
 	log_println("parsed descriptors:     %10d", count_parsed_desc_len);
 	log_println("vftbl:                  %10d", count_vftbl_len);
 	log_println("compiler stubs:         %10d", count_cstub_len);
-	log_println("native stubs:           %10d", count_nstub_len);
+	log_println("native stubs:           %10d", size_stub_native);
 	log_println("utf:                    %10d", count_utf_len);
 	log_println("vmcode:                 %10d", count_vmcode_len);
 	log_println("exception tables:       %10d", count_extable_len);
@@ -695,7 +696,7 @@ void statistics_print_memory_usage(void)
 		count_parsed_desc_len + 
 		count_vftbl_len +
 		count_cstub_len +
-		count_nstub_len +
+		size_stub_native +
 		count_utf_len +
 		count_vmcode_len +
 		count_extable_len +

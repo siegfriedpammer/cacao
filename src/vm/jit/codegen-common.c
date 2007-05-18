@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7908 2007-05-15 09:55:17Z christian $
+   $Id: codegen-common.c 7916 2007-05-18 14:24:21Z twisti $
 
 */
 
@@ -1267,14 +1267,16 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	intrp_createnativestub(f, jd, nmd);
 #endif
 
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_nstub_len += code->mcodelength;
-#endif
-
 	/* reallocate the memory and finish the code generation */
 
 	codegen_finish(jd);
+
+#if defined(ENABLE_STATISTICS)
+	/* must be done after codegen_finish() */
+
+	if (opt_stat)
+		size_stub_native += code->mcodelength;
+#endif
 
 #if !defined(NDEBUG)
 	/* disassemble native stub */
