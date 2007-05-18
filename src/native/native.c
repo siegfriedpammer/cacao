@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7911 2007-05-16 09:01:10Z twisti $
+   $Id: native.c 7912 2007-05-18 13:12:09Z twisti $
 
 */
 
@@ -156,17 +156,26 @@ static s4 native_tree_native_methods_comparator(const void *treenode, const void
 	treenmn = treenode;
 	nmn     = node;
 
-	/* compare for avl_find if we have found an entry */
-
-	if (treenmn->name == nmn->name)
-		return 0;
-
 	/* these are for walking the tree */
+
+	if (treenmn->classname < nmn->classname)
+		return -1;
+	else if (treenmn->classname > nmn->classname)
+		return 1;
 
 	if (treenmn->name < nmn->name)
 		return -1;
-	else
+	else if (treenmn->name > nmn->name)
 		return 1;
+
+	if (treenmn->descriptor < nmn->descriptor)
+		return -1;
+	else if (treenmn->descriptor > nmn->descriptor)
+		return 1;
+
+	/* all pointers are equal, we have found the entry */
+
+	return 0;
 }
 
 
@@ -440,8 +449,8 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 void native_method_register(utf *classname, JNINativeMethod *methods, s4 count)
 {
 	native_methods_node_t *nmn;
-	utf                   *methodname;
 	utf                   *name;
+	utf                   *descriptor;
 	s4                     i;
 
 	/* insert all methods passed */
@@ -453,17 +462,19 @@ void native_method_register(utf *classname, JNINativeMethod *methods, s4 count)
 			printf(".%s]\n", methods[i].name);
 		}
 
-		/* generate the method-symbol string */
+		/* generate the utf8 names */
 
-		methodname = utf_new_char(methods[i].name);
-		name       = native_method_symbol(classname, methodname);
+		name       = utf_new_char(methods[i].name);
+		descriptor = utf_new_char(methods[i].signature);
 
 		/* allocate a new tree node */
 
 		nmn = NEW(native_methods_node_t);
 
-		nmn->name   = name;
-		nmn->method = (functionptr) (ptrint) methods[i].fnPtr;
+		nmn->classname  = classname;
+		nmn->name       = name;
+		nmn->descriptor = descriptor;
+		nmn->function   = (functionptr) (ptrint) methods[i].fnPtr;
 
 		/* insert the method into the tree */
 
@@ -478,19 +489,25 @@ void native_method_register(utf *classname, JNINativeMethod *methods, s4 count)
 
 *******************************************************************************/
 
-static functionptr native_method_find(utf *name)
+static functionptr native_method_find(methodinfo *m)
 {
 	native_methods_node_t  tmpnmn;
 	native_methods_node_t *nmn;
 
-	tmpnmn.name = name;
+	/* fill the temporary structure used for searching the tree */
+
+	tmpnmn.classname  = m->class->name;
+	tmpnmn.name       = m->name;
+	tmpnmn.descriptor = m->descriptor;
+
+	/* find the entry in the AVL-tree */
 
 	nmn = avl_find(tree_native_methods, &tmpnmn);
 
 	if (nmn == NULL)
 		return NULL;
 
-	return nmn->method;
+	return nmn->function;
 }
 
 
@@ -791,10 +808,7 @@ functionptr native_resolve_function(methodinfo *m)
 	   main program. */
 
 	if (f == NULL) {
-		f = native_method_find(name);
-
-		if (f == NULL)
-			f = native_method_find(newname);
+		f = native_method_find(m);
 
 		if (f != NULL)
 			if (opt_verbosejni)

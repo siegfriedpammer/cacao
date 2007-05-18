@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThread.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: java_lang_VMThread.c 7912 2007-05-18 13:12:09Z twisti $
 
 */
 
@@ -51,19 +51,19 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "countStackFrames",  "()I",                   (void *) (ptrint) &Java_java_lang_VMThread_countStackFrames  },
-	{ "start",             "(J)V",                  (void *) (ptrint) &Java_java_lang_VMThread_start             },
-	{ "interrupt",         "()V",                   (void *) (ptrint) &Java_java_lang_VMThread_interrupt         },
-	{ "isInterrupted",     "()Z",                   (void *) (ptrint) &Java_java_lang_VMThread_isInterrupted     },
-	{ "suspend",           "()V",                   (void *) (ptrint) &Java_java_lang_VMThread_suspend           },
-	{ "resume",            "()V",                   (void *) (ptrint) &Java_java_lang_VMThread_resume            },
-	{ "nativeSetPriority", "(I)V",                  (void *) (ptrint) &Java_java_lang_VMThread_nativeSetPriority },
-	{ "nativeStop",        "(Ljava/lang/Object;)V", (void *) (ptrint) &Java_java_lang_VMThread_nativeStop        },
-	{ "currentThread",     "()Ljava/lang/Thread;",  (void *) (ptrint) &Java_java_lang_VMThread_currentThread     },
-	{ "yield",             "()V",                   (void *) (ptrint) &Java_java_lang_VMThread_yield             },
-	{ "interrupted",       "()Z",                   (void *) (ptrint) &Java_java_lang_VMThread_interrupted       },
-	{ "holdsLock",         "(Ljava/lang/Object;)Z", (void *) (ptrint) &Java_java_lang_VMThread_holdsLock         },
-	{ "getState",          "()Ljava/lang/String;",  (void *) (ptrint) &Java_java_lang_VMThread_getState          },
+	{ "countStackFrames",  "()I",                      (void *) (ptrint) &Java_java_lang_VMThread_countStackFrames  },
+	{ "start",             "(J)V",                     (void *) (ptrint) &Java_java_lang_VMThread_start             },
+	{ "interrupt",         "()V",                      (void *) (ptrint) &Java_java_lang_VMThread_interrupt         },
+	{ "isInterrupted",     "()Z",                      (void *) (ptrint) &Java_java_lang_VMThread_isInterrupted     },
+	{ "suspend",           "()V",                      (void *) (ptrint) &Java_java_lang_VMThread_suspend           },
+	{ "resume",            "()V",                      (void *) (ptrint) &Java_java_lang_VMThread_resume            },
+	{ "nativeSetPriority", "(I)V",                     (void *) (ptrint) &Java_java_lang_VMThread_nativeSetPriority },
+	{ "nativeStop",        "(Ljava/lang/Throwable;)V", (void *) (ptrint) &Java_java_lang_VMThread_nativeStop        },
+	{ "currentThread",     "()Ljava/lang/Thread;",     (void *) (ptrint) &Java_java_lang_VMThread_currentThread     },
+	{ "yield",             "()V",                      (void *) (ptrint) &Java_java_lang_VMThread_yield             },
+	{ "interrupted",       "()Z",                      (void *) (ptrint) &Java_java_lang_VMThread_interrupted       },
+	{ "holdsLock",         "(Ljava/lang/Object;)Z",    (void *) (ptrint) &Java_java_lang_VMThread_holdsLock         },
+	{ "getState",          "()Ljava/lang/String;",     (void *) (ptrint) &Java_java_lang_VMThread_getState          },
 };
 
 
@@ -163,7 +163,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
 /*
  * Class:     java/lang/VMThread
  * Method:    nativeStop
- * Signature: (Ljava/lang/Object;)V
+ * Signature: (Ljava/lang/Throwable;)V
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *this, java_lang_Throwable *t)
 {

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 7911 2007-05-16 09:01:10Z twisti $
+   $Id: native.h 7912 2007-05-18 13:12:09Z twisti $
 
 */
 
@@ -66,8 +66,10 @@ typedef struct hashtable_library_name_entry hashtable_library_name_entry;
 typedef struct native_methods_node_t native_methods_node_t;
 
 struct native_methods_node_t {
-	utf         *name;                  /* mangled name of the method         */
-	functionptr  method;                /* pointer to the implementation      */
+	utf         *classname;             /* class name                         */
+	utf         *name;                  /* method name                        */
+	utf         *descriptor;            /* descriptor name                    */
+	functionptr  function;              /* pointer to the implementation      */
 };
 
 

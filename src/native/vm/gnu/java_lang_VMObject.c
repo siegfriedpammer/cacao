@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMObject.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: java_lang_VMObject.c 7912 2007-05-18 13:12:09Z twisti $
 
 */
 
@@ -47,8 +47,8 @@
 static JNINativeMethod methods[] = {
 	{ "getClass",  "(Ljava/lang/Object;)Ljava/lang/Class;",     (void *) (ptrint) &Java_java_lang_VMObject_getClass  },
 	{ "clone",     "(Ljava/lang/Cloneable;)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_VMObject_clone     },
-	{ "notify",    "()V",                                       (void *) (ptrint) &Java_java_lang_VMObject_notify    },
-	{ "notifyAll", "()V",                                       (void *) (ptrint) &Java_java_lang_VMObject_notifyAll },
+	{ "notify",    "(Ljava/lang/Object;)V",                     (void *) (ptrint) &Java_java_lang_VMObject_notify    },
+	{ "notifyAll", "(Ljava/lang/Object;)V",                     (void *) (ptrint) &Java_java_lang_VMObject_notifyAll },
 	{ "wait",      "(Ljava/lang/Object;JI)V",                   (void *) (ptrint) &Java_java_lang_VMObject_wait      },
 };
 
@@ -94,7 +94,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 /*
  * Class:     java/lang/VMObject
  * Method:    notify
- * Signature: ()V
+ * Signature: (Ljava/lang/Object;)V
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
@@ -105,7 +105,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
 /*
  * Class:     java/lang/VMObject
  * Method:    notifyAll
- * Signature: ()V
+ * Signature: (Ljava/lang/Object;)V
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {

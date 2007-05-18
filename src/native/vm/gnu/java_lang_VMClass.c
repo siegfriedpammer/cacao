@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: java_lang_VMClass.c 7912 2007-05-18 13:12:09Z twisti $
 
 */
 
@@ -48,23 +48,23 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "isInstance",              "(Ljava/lang/Object;)Z",                                         (void *) (ptrint) &Java_java_lang_VMClass_isInstance              },
-	{ "isAssignableFrom",        "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isAssignableFrom        },
-	{ "isInterface",             "()Z",                                                           (void *) (ptrint) &Java_java_lang_VMClass_isInterface             },
-	{ "isPrimitive",             "()Z",                                                           (void *) (ptrint) &Java_java_lang_VMClass_isPrimitive             },
-	{ "getName",                 "()Ljava/lang/String;",                                          (void *) (ptrint) &Java_java_lang_VMClass_getName                 },
-	{ "getSuperclass",           "()Ljava/lang/Class;",                                           (void *) (ptrint) &Java_java_lang_VMClass_getSuperclass           },
-	{ "getInterfaces",           "()[Ljava/lang/Class;",                                          (void *) (ptrint) &Java_java_lang_VMClass_getInterfaces           },
-	{ "getComponentType",        "()Ljava/lang/Class;",                                           (void *) (ptrint) &Java_java_lang_VMClass_getComponentType        },
-	{ "getModifiers",            "(Z)I",                                                          (void *) (ptrint) &Java_java_lang_VMClass_getModifiers            },
-	{ "getDeclaringClass",       "()Ljava/lang/Class;",                                           (void *) (ptrint) &Java_java_lang_VMClass_getDeclaringClass       },
-	{ "getDeclaredClasses",      "(Z)[Ljava/lang/Class;",                                         (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredClasses      },
-	{ "getDeclaredFields",       "(Z)[Ljava/lang/reflect/Field;",                                 (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredFields       },
-	{ "getDeclaredMethods",      "(Z)[Ljava/lang/reflect/Method;",                                (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredMethods      },
-	{ "getDeclaredConstructors", "(Z)[Ljava/lang/reflect/Constructor;",                           (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredConstructors },
-	{ "getClassLoader",          "()Ljava/lang/ClassLoader;",                                     (void *) (ptrint) &Java_java_lang_VMClass_getClassLoader          },
+	{ "isInstance",              "(Ljava/lang/Class;Ljava/lang/Object;)Z",                        (void *) (ptrint) &Java_java_lang_VMClass_isInstance              },
+	{ "isAssignableFrom",        "(Ljava/lang/Class;Ljava/lang/Class;)Z",                         (void *) (ptrint) &Java_java_lang_VMClass_isAssignableFrom        },
+	{ "isInterface",             "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isInterface             },
+	{ "isPrimitive",             "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isPrimitive             },
+	{ "getName",                 "(Ljava/lang/Class;)Ljava/lang/String;",                         (void *) (ptrint) &Java_java_lang_VMClass_getName                 },
+	{ "getSuperclass",           "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (ptrint) &Java_java_lang_VMClass_getSuperclass           },
+	{ "getInterfaces",           "(Ljava/lang/Class;)[Ljava/lang/Class;",                         (void *) (ptrint) &Java_java_lang_VMClass_getInterfaces           },
+	{ "getComponentType",        "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (ptrint) &Java_java_lang_VMClass_getComponentType        },
+	{ "getModifiers",            "(Ljava/lang/Class;Z)I",                                         (void *) (ptrint) &Java_java_lang_VMClass_getModifiers            },
+	{ "getDeclaringClass",       "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (ptrint) &Java_java_lang_VMClass_getDeclaringClass       },
+	{ "getDeclaredClasses",      "(Ljava/lang/Class;Z)[Ljava/lang/Class;",                        (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredClasses      },
+	{ "getDeclaredFields",       "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Field;",                (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredFields       },
+	{ "getDeclaredMethods",      "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Method;",               (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredMethods      },
+	{ "getDeclaredConstructors", "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Constructor;",          (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredConstructors },
+	{ "getClassLoader",          "(Ljava/lang/Class;)Ljava/lang/ClassLoader;",                    (void *) (ptrint) &Java_java_lang_VMClass_getClassLoader          },
 	{ "forName",                 "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_VMClass_forName                 },
-	{ "isArray",                 "()Z",                                                           (void *) (ptrint) &Java_java_lang_VMClass_isArray                 },
+	{ "isArray",                 "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isArray                 },
 	{ "throwException",          "(Ljava/lang/Throwable;)V",                                      (void *) (ptrint) &Java_java_lang_VMClass_throwException          },
 #if 0
 	{ "getDeclaredAnnotations",  "(Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;",         (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredAnnotations  },
@@ -100,7 +100,7 @@ void _Jv_java_lang_VMClass_init(void)
 /*
  * Class:     java/lang/VMClass
  * Method:    isInstance
- * Signature: (Ljava/lang/Object;)Z
+ * Signature: (Ljava/lang/Class;Ljava/lang/Object;)Z
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Object *o)
 {
@@ -111,7 +111,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz
 /*
  * Class:     java/lang/VMClass
  * Method:    isAssignableFrom
- * Signature: (Ljava/lang/Class;)Z
+ * Signature: (Ljava/lang/Class;Ljava/lang/Class;)Z
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Class *c)
 {
@@ -122,7 +122,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
 /*
  * Class:     java/lang/VMClass
  * Method:    isInterface
- * Signature: ()Z
+ * Signature: (Ljava/lang/Class;)Z
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
@@ -133,7 +133,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass claz
 /*
  * Class:     java/lang/VMClass
  * Method:    isPrimitive
- * Signature: ()Z
+ * Signature: (Ljava/lang/Class;)Z
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
@@ -144,7 +144,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass claz
 /*
  * Class:     java/lang/VMClass
  * Method:    getName
- * Signature: ()Ljava/lang/String;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/String;
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
@@ -155,7 +155,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, 
 /*
  * Class:     java/lang/VMClass
  * Method:    getSuperclass
- * Signature: ()Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
@@ -166,7 +166,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
 /*
  * Class:     java/lang/VMClass
  * Method:    getInterfaces
- * Signature: ()[Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;)[Ljava/lang/Class;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
@@ -177,7 +177,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
 /*
  * Class:     java/lang/VMClass
  * Method:    getComponentType
- * Signature: ()Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
@@ -188,7 +188,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEn
 /*
  * Class:     java/lang/VMClass
  * Method:    getModifiers
- * Signature: (Z)I
+ * Signature: (Ljava/lang/Class;Z)I
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
 {
@@ -199,7 +199,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass cla
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaringClass
- * Signature: ()Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
@@ -210,7 +210,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredClasses
- * Signature: (Z)[Ljava/lang/Class;
+ * Signature: (Ljava/lang/Class;Z)[Ljava/lang/Class;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
@@ -221,7 +221,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredFields
- * Signature: (Z)[Ljava/lang/reflect/Field;
+ * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Field;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
@@ -232,7 +232,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredMethods
- * Signature: (Z)[Ljava/lang/reflect/Method;
+ * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Method;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
@@ -243,7 +243,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredConstructors
- * Signature: (Z)[Ljava/lang/reflect/Constructor;
+ * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Constructor;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
@@ -254,7 +254,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 /*
  * Class:     java/lang/VMClass
  * Method:    getClassLoader
- * Signature: ()Ljava/lang/ClassLoader;
+ * Signature: (Ljava/lang/Class;)Ljava/lang/ClassLoader;
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
@@ -276,7 +276,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 /*
  * Class:     java/lang/VMClass
  * Method:    isArray
- * Signature: ()Z
+ * Signature: (Ljava/lang/Class;)Z
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
