@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.c 7905 2007-05-14 14:11:33Z twisti $
+   $Id: list.c 7915 2007-05-18 14:22:19Z twisti $
 
 */
 
@@ -52,9 +52,7 @@ list_t *list_create(s4 nodeoffset)
 
 	l = NEW(list_t);
 
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock((java_objectheader *) l);
-#endif
+	LOCK_INIT_OBJECT_LOCK(l);
 
 	l->first      = NULL;
 	l->last       = NULL;
