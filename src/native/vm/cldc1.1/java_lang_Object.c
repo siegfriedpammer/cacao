@@ -47,9 +47,9 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "getClass",  "(Ljava/lang/Object;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_Object_getClass  },
+	{ "getClass",  "()Ljava/lang/Class;",                   (void *) (ptrint) &Java_java_lang_Object_getClass  },
 	{ "hashCode",  "()I",                                   (void *) (ptrint) &Java_java_lang_Object_hashCode  },
-	{ "notify"     "()V",                                   (void *) (ptrint) &Java_java_lang_Object_notify    },
+	{ "notify",    "()V",                                   (void *) (ptrint) &Java_java_lang_Object_notify    },
 	{ "notifyAll", "()V",                                   (void *) (ptrint) &Java_java_lang_Object_notifyAll },
 	{ "wait",      "(J)V",                                  (void *) (ptrint) &Java_java_lang_Object_wait      },
 };
@@ -72,9 +72,9 @@ void _Jv_java_lang_Object_init(void)
 
 
 /*
- * Class:     java/lang/VMObject
+ * Class:     java/lang/Object
  * Method:    getClass
- * Signature: (Ljava/lang/Object;)Ljava/lang/Class;
+ * Signature: ()Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Object_getClass(JNIEnv *env, java_lang_Object *obj)
 {
