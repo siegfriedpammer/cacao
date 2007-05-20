@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7914 2007-05-18 14:17:34Z twisti $
+   $Id: threads-common.c 7923 2007-05-20 23:57:39Z michi $
 
 */
 
@@ -544,9 +544,15 @@ threadobject *threads_thread_new(void)
 	/* initialize thread data structure */
 
 	t->index       = 0;
+	t->flags       = 0;
 	t->interrupted = false;
 	t->signaled    = false;
 	t->sleeping    = false;
+
+#if defined(ENABLE_GC_CACAO)
+	t->gc_critical = false;
+	t->flags      |= THREAD_FLAG_IN_NATIVE;
+#endif
 
 	threads_impl_thread_new(t);
 
@@ -623,9 +629,15 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	t->vm_thread = (java_lang_Object *) thread;
 #endif
 
+#if defined(ENABLE_GC_CACAO)
+	/* register reference to java.lang.Thread with the GC */
+
+	gc_reference_register(&(thread->object));
+#endif
+
 	thread->object = t;
 
-	thread->flags = THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
+	thread->flags |= THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
 
 	/* set java.lang.Thread fields */
 
@@ -663,13 +675,19 @@ void threads_thread_start(java_lang_Thread *object)
 
 	thread = threads_thread_new();
 
+#if defined(ENABLE_GC_CACAO)
+	/* register reference to java.lang.Thread with the GC */
+
+	gc_reference_register(&(thread->object));
+#endif
+
 	/* link the two objects together */
 
 	thread->object = object;
 
 	/* this is a normal Java thread */
 
-	thread->flags = THREAD_FLAG_JAVA;
+	thread->flags |= THREAD_FLAG_JAVA;
 
 #if defined(ENABLE_JAVASE)
 	/* is this a daemon thread? */

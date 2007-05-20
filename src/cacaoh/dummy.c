@@ -588,11 +588,11 @@ ptrint threads_get_current_tid(void)
 	return 0;
 }
 
-void threads_cast_stopworld(void)
+void threads_stopworld(void)
 {
 }
 
-void threads_cast_startworld(void)
+void threads_startworld(void)
 {
 }
 
