@@ -43,14 +43,14 @@ extern list_t *final_list;
 
 /* Structures *****************************************************************/
 
-typedef struct final_entry final_entry;
+typedef struct list_final_entry_t list_final_entry_t;
 
 #define FINAL_REACHABLE   1
 #define FINAL_RECLAIMABLE 2
 #define FINAL_FINALIZING  3
 #define FINAL_FINALIZED   4
 
-struct final_entry {
+struct list_final_entry_t {
 	listnode_t         linkage;
 	u4                 type;
 	java_objectheader *o;

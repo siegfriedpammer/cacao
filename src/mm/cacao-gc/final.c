@@ -45,14 +45,14 @@ list_t *final_list;
 
 void final_init()
 {
-	final_list = list_create(OFFSET(final_entry, linkage));
+	final_list = list_create(OFFSET(list_final_entry_t, linkage));
 }
 
 void final_register(java_objectheader *o, methodinfo *finalizer)
 {
-	final_entry *fe;
+	list_final_entry_t *fe;
 
-	fe = NEW(final_entry);
+	fe = NEW(list_final_entry_t);
 	fe->type      = FINAL_REACHABLE;
 	fe->o         = o;
 	fe->finalizer = finalizer;
@@ -64,8 +64,8 @@ void final_register(java_objectheader *o, methodinfo *finalizer)
 
 void final_invoke()
 {
-	final_entry *fe;
-	final_entry *fe_next;
+	list_final_entry_t *fe;
+	list_final_entry_t *fe_next;
 
 	fe = list_first(final_list);
 	fe_next = NULL;
@@ -86,7 +86,7 @@ void final_invoke()
 			fe->type = FINAL_FINALIZED;
 
 			list_remove(final_list, fe);
-			FREE(fe, final_entry);
+			FREE(fe, list_final_entry_t);
 		}
 
 		fe = fe_next;
@@ -95,7 +95,7 @@ void final_invoke()
 
 void final_set_all_reclaimable()
 {
-	final_entry *fe;
+	list_final_entry_t *fe;
 
 	fe = list_first(final_list);
 	while (fe) {
