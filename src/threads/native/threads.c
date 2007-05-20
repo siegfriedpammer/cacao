@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: threads.c 7922 2007-05-20 23:50:43Z michi $
 
 */
 
@@ -55,6 +55,10 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
+
+#if defined(ENABLE_GC_CACAO)
+# include "mm/cacao-gc/gc.h"
+#endif
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -440,68 +444,7 @@ static void threads_cast_irixresume(void)
 }
 #endif
 
-#if !defined(DISABLE_GC)
-
-void threads_cast_stopworld(void)
-{
-#if !defined(__DARWIN__) && !defined(__CYGWIN__)
-	int count, i;
-#endif
-
-	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
-
-	/* lock the threads table */
-
-	threads_table_lock();
-
-#if defined(__DARWIN__)
-	threads_cast_darwinstop();
-#elif defined(__CYGWIN__)
-	/* TODO */
-	assert(0);
-#else
-	/* send all threads the suspend signal */
-
-	threads_cast_sendsignals(GC_signum1());
-
-	/* wait for all threads to suspend (except the current one) */
-
-	count = threads_table_get_threads() - 1;
-
-	for (i = 0; i < count; i++)
-		threads_sem_wait(&suspend_ack);
-#endif
-
-	/* unlock the threads table */
-
-	threads_table_unlock();
-}
-
-void threads_cast_startworld(void)
-{
-	/* lock the threads table */
-
-	threads_table_lock();
-
-#if defined(__DARWIN__)
-	threads_cast_darwinresume();
-#elif defined(__MIPS__)
-	threads_cast_irixresume();
-#elif defined(__CYGWIN__)
-	/* TODO */
-	assert(0);
-#else
-	threads_cast_sendsignals(GC_signum2());
-#endif
-
-	/* unlock the threads table */
-
-	threads_table_unlock();
-
-	unlock_stopworld();
-}
-
-
+#if 0
 #if !defined(__DARWIN__)
 static void threads_sigsuspend_handler(ucontext_t *_uc)
 {
@@ -524,7 +467,6 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 	/* TODO */
 	assert(0);
 #else
-	threads_sem_post(&suspend_ack);
 
 	sig = GC_signum2();
 	sigfillset(&sigs);
@@ -548,14 +490,17 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 void threads_stopworld(void)
 {
 #if !defined(__DARWIN__) && !defined(__CYGWIN__)
-	threadobject *tobj = mainthreadobj;
-	threadobject *self = THREADOBJECT;
+	threadobject *t;
+	threadobject *self;
 	bool result;
 	int count, i;
 #endif
 
 	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
-	pthread_mutex_lock(&threadlistlock);
+
+	/* lock the threads table */
+
+	threads_table_lock();
 
 #if defined(__DARWIN__)
 	threads_cast_darwinstop();
@@ -563,25 +508,27 @@ void threads_stopworld(void)
 	/* TODO */
 	assert(0);
 #else
-	/* count how many threads we suspended */
-	count = 0;
+	self = THREADOBJECT;
 
 	/* suspend all running threads */
-	do {
-		if (tobj != self) {
-			result = threads_suspend_thread(tobj, SUSPEND_REASON_STOPWORLD);
+	for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
+		/* don't suspend ourself */
+
+		if (t != self) {
+			result = threads_suspend_thread(t, SUSPEND_REASON_STOPWORLD);
 			assert(result);
-			count++;
 		}
-		tobj = tobj->next;
-	} while (tobj != mainthreadobj);
+	}
 
 	/* wait till all threads are suspended */
+	count = threads_table_get_threads() - 1;
 	for (i = 0; i < count; i++)
 		threads_sem_wait(&suspend_ack);
 #endif
 
-	pthread_mutex_unlock(&threadlistlock);
+	/* unlock the threads table */
+
+	threads_table_unlock();
 }
 #endif /* !defined(DISABLE_GC) */
 
@@ -596,12 +543,15 @@ void threads_stopworld(void)
 void threads_startworld(void)
 {
 #if !defined(__DARWIN__) && !defined(__CYGWIN__)
-	threadobject *tobj = mainthreadobj;
-	threadobject *self = THREADOBJECT;
+	threadobject *t;
+	threadobject *self;
 	bool result;
+	int count, i;
 #endif
 
-	pthread_mutex_lock(&threadlistlock);
+	/* lock the threads table */
+
+	threads_table_lock();
 
 #if defined(__DARWIN__)
 	threads_cast_darwinresume();
@@ -611,17 +561,28 @@ void threads_startworld(void)
 	/* TODO */
 	assert(0);
 #else
+	self = THREADOBJECT;
+
 	/* resume all thread we haltet */
-	do {
-		if (tobj != self) {
-			result = threads_resume_thread(tobj);
+	for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
+		/* don't resume ourself */
+
+		if (t != self) {
+			result = threads_resume_thread(t);
 			assert(result);
 		}
-		tobj = tobj->next;
-	} while (tobj != mainthreadobj);
+	}
+
+	/* wait till all threads are suspended */
+	count = threads_table_get_threads() - 1;
+	for (i = 0; i < count; i++)
+		threads_sem_wait(&suspend_ack);
 #endif
 
-	pthread_mutex_unlock(&threadlistlock);
+	/* unlock the threads table */
+
+	threads_table_unlock();
+
 	unlock_stopworld();
 }
 #endif /* DISABLE_GC */
@@ -666,6 +627,8 @@ void threads_impl_thread_new(threadobject *t)
 
 	pthread_mutex_init(&(t->waitmutex), NULL);
 	pthread_cond_init(&(t->waitcond), NULL);
+	pthread_mutex_init(&(t->suspendmutex), NULL);
+	pthread_cond_init(&(t->suspendcond), NULL);
 }
 
 
@@ -687,6 +650,14 @@ void threads_impl_thread_free(threadobject *t)
 				 strerror(errno));
 
 	if (pthread_cond_destroy(&(t->waitcond)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
+				 strerror(errno));
+
+	if (pthread_mutex_destroy(&(t->suspendmutex)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",
+				 strerror(errno));
+
+	if (pthread_cond_destroy(&(t->suspendcond)) != 0)
 		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
 				 strerror(errno));
 }
@@ -1445,7 +1416,6 @@ bool threads_detach_thread(threadobject *thread)
 }
 
 
-<<<<<<< .working
 /* threads_suspend_thread ******************************************************
 
    Suspend the passed thread. Execution stops until the thread
@@ -1459,7 +1429,9 @@ bool threads_detach_thread(threadobject *thread)
 bool threads_suspend_thread(threadobject *thread, s4 reason)
 {
 	/* acquire the suspendmutex */
-	pthread_mutex_lock(&(thread->suspendmutex));
+	if (pthread_mutex_lock(&(thread->suspendmutex)) != 0)
+		vm_abort("threads_suspend_thread: pthread_mutex_lock failed: %s",
+				 strerror(errno));
 
 	if (thread->suspended) {
 		pthread_mutex_unlock(&(thread->suspendmutex));
@@ -1471,7 +1443,9 @@ bool threads_suspend_thread(threadobject *thread, s4 reason)
 
 	/* send the suspend signal to the thread */
 	assert(thread != THREADOBJECT);
-	pthread_kill(thread->tid, SIGUSR1);
+	if (pthread_kill(thread->tid, SIGUSR1) != 0)
+		vm_abort("threads_suspend_thread: pthread_kill failed: %s",
+				 strerror(errno));
 
 	/* REMEMBER: do not release the suspendmutex, this is done
 	   by the thread itself in threads_suspend_ack().  */
@@ -1502,7 +1476,7 @@ void threads_suspend_ack(u1* pc, u1* sp)
 
 #if defined(ENABLE_GC_CACAO)
 	/* inform the GC about the suspension */
-	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD) {
+	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD && gc_pending) {
 
 		/* check if the GC wants to leave the thread running */
 		if (!gc_suspend(thread, pc, sp)) {
@@ -1525,12 +1499,21 @@ void threads_suspend_ack(u1* pc, u1* sp)
 	}
 
 	/* release the suspension mutex and wait till we are resumed */
+	/*printf("thread down %p\n", thread);*/
 	pthread_cond_wait(&(thread->suspendcond), &(thread->suspendmutex));
+	/*printf("thread up %p\n", thread);*/
+
+	/* if we are stopping the world, we should send a global ack */
+	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD) {
+		threads_sem_post(&suspend_ack);
+	}
 
 	/* TODO: free dump memory */
 
 	/* release the suspendmutex */
-	pthread_mutex_unlock(&(thread->suspendmutex));
+	if (pthread_mutex_unlock(&(thread->suspendmutex)) != 0)
+		vm_abort("threads_suspend_ack: pthread_mutex_unlock failed: %s",
+				 strerror(errno));
 }
 
 
@@ -1543,7 +1526,9 @@ void threads_suspend_ack(u1* pc, u1* sp)
 bool threads_resume_thread(threadobject *thread)
 {
 	/* acquire the suspendmutex */
-	pthread_mutex_lock(&(thread->suspendmutex));
+	if (pthread_mutex_lock(&(thread->suspendmutex)) != 0)
+		vm_abort("threads_resume_ack: pthread_mutex_unlock failed: %s",
+				 strerror(errno));
 
 	if (!thread->suspended) {
 		pthread_mutex_unlock(&(thread->suspendmutex));
@@ -1560,44 +1545,6 @@ bool threads_resume_thread(threadobject *thread)
 	pthread_mutex_unlock(&(thread->suspendmutex));
 
 	return true;
-}
-
-/* threads_find_non_daemon_thread **********************************************
-
-   Helper function used by threads_join_all_threads for finding
-   non-daemon threads that are still running.
-
-*******************************************************************************/
-
-static threadobject *threads_find_non_daemon_thread(void)
-{
-	threadobject *thread;
-
-	/* lock the thread list */
-
-	pthread_mutex_lock(&threadlistlock);
-
-	/* iterate over all threads */
-
-	thread = mainthreadobj->next;
-
-	while (thread != mainthreadobj) {
-		if (!(thread->flags & THREAD_FLAG_DAEMON)) {
-			/* unlock thread list */
-
-			pthread_mutex_unlock(&threadlistlock);
-
-			return thread;
-		}
-
-		thread = thread->next;
-	}
-
-	/* unlock thread list */
-
-	pthread_mutex_unlock(&threadlistlock);
-
-	return NULL;
 }
 
 
