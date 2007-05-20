@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.h 7399 2007-02-23 23:29:13Z michi $
+   $Id: loader.h 7921 2007-05-20 23:14:11Z michi $
 */
 
 
@@ -122,11 +122,6 @@ struct hashtable_classloader_entry {
 /* classloader ****************************************************************/
 
 typedef hashtable_classloader_entry classloader;
-
-
-/* global variables ***********************************************************/
-
-hashtable *hashtable_classloader;
 
 
 /* function prototypes ********************************************************/

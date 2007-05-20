@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.h 7439 2007-03-02 22:43:27Z michi $
+   $Id: jni.h 7921 2007-05-20 23:14:11Z michi $
 
 */
 
@@ -134,8 +134,6 @@ struct hashtable_global_ref_entry {
 	s4                          refs;   /* references of the current pointer  */
 	hashtable_global_ref_entry *hashlink; /* link for external chaining       */
 };
-
-extern hashtable *hashtable_global_ref;
 
 
 /* function prototypes ********************************************************/

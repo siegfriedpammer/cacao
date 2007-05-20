@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: jni.c 7921 2007-05-20 23:14:11Z michi $
 
 */
 
@@ -114,7 +114,7 @@
 
 #define HASHTABLE_GLOBAL_REF_SIZE    64 /* initial size of globalref-hash     */
 
-hashtable *hashtable_global_ref;        /* hashtable for globalrefs           */
+static hashtable *hashtable_global_ref; /* hashtable for globalrefs           */
 
 
 /* direct buffer stuff ********************************************************/
@@ -5401,6 +5401,12 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	gre = NEW(hashtable_global_ref_entry);
 
+#if defined(ENABLE_GC_CACAO)
+	/* register global ref with the GC */
+
+	gc_reference_register(&(gre->o));
+#endif
+
 	gre->o    = obj;
 	gre->refs = 1;
 
@@ -5464,6 +5470,12 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 					hashtable_global_ref->ptr[slot] = gre->hashlink;
 				else
 					prevgre->hashlink = gre->hashlink;
+
+#if defined(ENABLE_GC_CACAO)
+				/* unregister global ref with the GC */
+
+				gc_reference_unregister(&(gre->o));
+#endif
 
 				FREE(gre, hashtable_global_ref_entry);
 			}

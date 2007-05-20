@@ -360,6 +360,10 @@ void finalizer_run(void *o, void *p)
 
 /* gc *************************************************************************/
 
+void gc_reference_register(java_objectheader **ref)
+{
+}
+
 s8 gc_get_heap_size(void)
 {
 	return 0;
