@@ -1,6 +1,6 @@
 ## src/vm/jit/inline/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
 ## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
 ## J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,17 +22,11 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes:
-##
-## $Id: Makefile.am 4929 2006-05-15 23:31:56Z twisti $
+## $Id: Makefile.am 7841 2007-04-30 11:58:57Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
 
 LIBS =
 

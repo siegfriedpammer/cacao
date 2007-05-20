@@ -36,6 +36,7 @@
 
 #include "toolbox/bitvector.h"
 
+
 #if !defined(NDEBUG)
 # include <assert.h>
 # define LSRA_DEBUG_CHECK
@@ -86,10 +87,10 @@ struct lifetime {
 	int v_index;           /* local variable index or negative for stackslots */
 	int type;                   /* TYPE_XXX or -1 for unused lifetime */
 	long usagecount;            /* number of references*/
-	int reg;                    /* regoffset allocated by lsra*/
+	int regoff;                    /* regoffset allocated by lsra*/
 	int savedvar;
 	int flags;
-	struct stackslot *local_ss; /* Stackslots for this Lifetime or NULL ( ==  */
+	/* struct stackslot *local_ss; */ /* Stackslots for this Lifetime or NULL ( ==  */
                                 /* "pure" Local Var) */
 	int bb_last_use;
 	int i_last_use;
@@ -107,11 +108,13 @@ struct l_loop {
 	int nesting;
 };
 
+/*
 struct stackslot {
 	stackptr s;
 	int bb;
 	struct stackslot *next;
 };
+*/
 
 struct lsra_register {
 	int *sav_reg;
@@ -149,6 +152,26 @@ struct igraph {
 
 
 struct lsradata {
+	/* int *var; */           /* unused entries are set to UNUSED    */
+	                    /* maps to jd->vars array */
+	int varcount;       /* size of vars array */
+	int ssavarcount;    /* ls->vars[0..ssavarcount[ are all locals and iovars */
+	                    /* they are regarded for ssa renaming */
+	                    /* the rest (ls->vars[ssavarcount..varcount[ are      */
+	                    /* TEMP or PREALLOC vars with just on definition and  */
+	                    /* use within one basicblock -> not of interest for   */
+	                    /* ssa renaming procedures */
+	int vartop;         /* next free var */
+	int varcount_with_indices;
+	int *new_varindex;  /* new_varindex[0..jd->varcount[ points to the new    */
+	                    /* unique index of ls->vars(maps jd->vars to ls->vars)*/
+
+	int *var_0;        /* [0..ls->varcount]  */
+	                   /* var_0[a] with a in [0..ls->varcount[ holds the */
+	                   /* index of La,0 */
+	                   /* var_0[ls->varcount] holds the number of vars with */
+	                   /*indices */
+
 	int *sorted;         /* BB sorted in reverse post order */
 	int *sorted_rev;     /* BB reverse lookup of sorted */
 
@@ -156,9 +179,6 @@ struct lsradata {
 	int backedge_count;          /* number of backedges */
 
 	long *nesting;    /* Nesting level of BB*/
-
-	int maxlifetimes; /* copy from methodinfo to prevent passing methodinfo   */
-                      /* as parameter */
 
 	struct lifetime *lifetime; /* array of lifetimes */
 	int lifetimecount;         /* number of lifetimes */
@@ -180,7 +200,7 @@ struct lsradata {
 
 	/* SSA fields */
 	bitvector *var_def; /* LocalVar Definition Bitvector [0..ls->bbcount]  */
-	               /* Bitvector holds ls->max_vars Bits              */
+	                    /* Bitvector holds ls->max_vars Bits               */
 	bitvector *use_sites; /* LocalVar Use Bitvector[0..ls->maxvars] */
 	int **num_var_use; /* count of var_use[bb][var_index] */
 	int **var; /* [0..cd->maxlocal+cd->maxstack[[0..4] */

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: codegen.c 7900 2007-05-11 20:35:16Z twisti $
 
 */
 
@@ -43,9 +43,7 @@
 
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -2431,7 +2429,6 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
-		                      /* val.a: (classinfo*) superclass               */
 
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 				/* object type cast-check */
@@ -2448,9 +2445,9 @@ bool codegen_emit(jitdata *jd)
 				superindex = super->index;
 			}
 
-#if defined(ENABLE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+					CODEGEN_CRITICAL_SECTION_NEW;
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 			/* if class is not resolved, check which code to call */
@@ -2532,17 +2529,17 @@ bool codegen_emit(jitdata *jd)
 
 				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 				M_DSEG_LOAD(REG_ITMP3, disp);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_LDR_INTERN(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 				M_SUB(REG_ITMP2, REG_ITMP2, REG_ITMP3);
 				M_DSEG_LOAD(REG_ITMP3, disp);
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_CMP(REG_ITMP2, REG_ITMP3);
 				emit_classcast_check(cd, iptr, BRANCH_UGT, 0, s1);
 
@@ -2596,7 +2593,7 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
-		                      /* val.a: (classinfo*) superclass               */
+
 			{
 			classinfo *super;
 			s4         superindex;
@@ -2610,11 +2607,12 @@ bool codegen_emit(jitdata *jd)
 				superindex = super->index;
 			}
 
-#if defined(ENABLE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+				CODEGEN_CRITICAL_SECTION_NEW;
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+
 			if (s1 == d) {
 				M_MOV(REG_ITMP1, s1);
 				s1 = REG_ITMP1;
@@ -2709,15 +2707,15 @@ bool codegen_emit(jitdata *jd)
 
 				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_DSEG_LOAD(REG_ITMP2, disp);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_LDR_INTERN(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_LDR_INTERN(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_SUB(REG_ITMP1, REG_ITMP1, REG_ITMP3);
 				M_CMP(REG_ITMP1, REG_ITMP2);
 				/* If d == REG_ITMP2, then it's destroyed */

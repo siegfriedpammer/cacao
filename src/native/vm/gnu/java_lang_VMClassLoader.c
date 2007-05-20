@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 7723 2007-04-16 18:03:08Z michi $
+   $Id: java_lang_VMClassLoader.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -43,6 +43,8 @@
 #include "native/include/java_security_ProtectionDomain.h"  /* required by... */
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_util_Vector.h"
+
+#include "native/include/java_lang_VMClassLoader.h"
 
 #include "native/vm/java_lang_ClassLoader.h"
 
@@ -68,6 +70,35 @@
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
 #endif
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "defineClass",            "(Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_VMClassLoader_defineClass            },
+	{ "getPrimitiveClass",      "(C)Ljava/lang/Class;",                                                                             (void *) (ptrint) &Java_java_lang_VMClassLoader_getPrimitiveClass      },
+	{ "resolveClass",           "(Ljava/lang/Class;)V",                                                                             (void *) (ptrint) &Java_java_lang_VMClassLoader_resolveClass           },
+	{ "loadClass",              "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void *) (ptrint) &Java_java_lang_VMClassLoader_loadClass              },
+	{ "nativeGetResources",     "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void *) (ptrint) &Java_java_lang_VMClassLoader_nativeGetResources     },
+	{ "defaultAssertionStatus", "()Z",                                                                                              (void *) (ptrint) &Java_java_lang_VMClassLoader_defaultAssertionStatus },
+	{ "findLoadedClass",        "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void *) (ptrint) &Java_java_lang_VMClassLoader_findLoadedClass        },
+};
+
+
+/* _Jv_java_lang_VMClassLoader_init ********************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_VMClassLoader_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMClassLoader");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*
@@ -162,7 +193,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
  * Method:    loadClass
  * Signature: (Ljava/lang/String;Z)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, java_lang_String *name, jboolean resolve)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, java_lang_String *name, s4 resolve)
 {
 	classinfo         *c;
 	utf               *u;

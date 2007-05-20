@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gnu_classpath_VMStackWalker.c 7399 2007-02-23 23:29:13Z michi $
+   $Id: gnu_classpath_VMStackWalker.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -31,8 +31,11 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_ClassLoader.h"
+
+#include "native/include/gnu_classpath_VMStackWalker.h"
 
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -40,8 +43,32 @@
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getClassContext",         "()[Ljava/lang/Class;",      (void *) (ptrint) &Java_gnu_classpath_VMStackWalker_getClassContext         },
+	{ "getCallingClass",         "()Ljava/lang/Class;",       (void *) (ptrint) &Java_gnu_classpath_VMStackWalker_getCallingClass         },
+	{ "getCallingClassLoader",   "()Ljava/lang/ClassLoader;", (void *) (ptrint) &Java_gnu_classpath_VMStackWalker_getCallingClassLoader   },
+	{ "firstNonNullClassLoader", "()Ljava/lang/ClassLoader;", (void *) (ptrint) &Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader },
+};
+
+
+/* _Jv_gnu_classpath_VMStackWalker_init ****************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_gnu_classpath_VMStackWalker_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/classpath/VMStackWalker");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

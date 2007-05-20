@@ -31,13 +31,39 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
 #include "native/include/java_lang_String.h"
+
+#include "native/include/com_sun_cldchi_jvm_JVM.h"
 
 #include "native/vm/java_lang_Runtime.h"
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "loadLibrary", "(Ljava/lang/String;)V", (void *) (ptrint) &Java_com_sun_cldchi_jvm_JVM_loadLibrary },
+};
+
+
+/* _Jv_com_sun_cldchi_jvm_JVM_init *********************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_com_sun_cldchi_jvm_JVM_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("com/sun/cldchi/jvm/JVM");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.h 7784 2007-04-20 13:51:41Z twisti $
+   $Id: list.h 7905 2007-05-14 14:11:33Z twisti $
 
 */
 
@@ -123,15 +123,16 @@ struct list_t {
 list_t *list_create(s4 nodeoffset);
 list_t *list_create_dump(s4 nodeoffset);
 
-void   list_add_first(list_t *l, void *element);
+void    list_add_first(list_t *l, void *element);
+void    list_add_first_unsynced(list_t *l, void *element);
 
-void   list_add_last(list_t *l, void *element);
-void   list_add_last_unsynced(list_t *l, void *element);
+void    list_add_last(list_t *l, void *element);
+void    list_add_last_unsynced(list_t *l, void *element);
 
-void   list_add_before(list_t *l, void *element, void *newelement);
+void    list_add_before(list_t *l, void *element, void *newelement);
 
-void   list_remove(list_t *l, void *element);
-void   list_remove_unsynced(list_t *l, void *element);
+void    list_remove(list_t *l, void *element);
+void    list_remove_unsynced(list_t *l, void *element);
 
 void   *list_first(list_t *l);
 void   *list_first_unsynced(list_t *l);

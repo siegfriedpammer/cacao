@@ -1,6 +1,6 @@
-/* src/native/vm/VMSystem.c - java/lang/VMSystem
+/* src/native/vm/gnu/java_lang_VMSystem.c - java/lang/VMSystem
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,14 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roman Obermaiser
-
-   Changes: Joseph Wenninger
-            Christian Thalinger
-
-   $Id: java_lang_VMSystem.c 7399 2007-02-23 23:29:13Z michi $
+   $Id: java_lang_VMSystem.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -43,9 +36,39 @@
 #include "mm/gc-common.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
 #include "native/include/java_lang_Object.h"
+#include "native/include/java_io_InputStream.h"        /* required by j.l.VMS */
+#include "native/include/java_io_PrintStream.h"        /* required by j.l.VMS */
+
+#include "native/include/java_lang_VMSystem.h"
 
 #include "vm/builtin.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "arraycopy",        "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void *) (ptrint) &Java_java_lang_VMSystem_arraycopy },
+	{ "identityHashCode", "(Ljava/lang/Object;)I",                      (void *) (ptrint) &Java_java_lang_VMSystem_identityHashCode },
+};
+
+
+/* _Jv_java_lang_VMSystem_init *************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_VMSystem_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMSystem");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

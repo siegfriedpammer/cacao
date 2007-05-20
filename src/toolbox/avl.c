@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: avl.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: avl.c 7862 2007-05-03 14:53:39Z twisti $
 
 */
 
@@ -34,13 +34,14 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
-#include "toolbox/avl.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
+
+#include "toolbox/avl.h"
+#include "toolbox/logging.h"
+
+#include "vm/global.h"
+#include "vm/vm.h"
 
 
 /* avl_create ******************************************************************
@@ -49,14 +50,14 @@
 
 *******************************************************************************/
 
-avl_tree *avl_create(avl_comparator *compar)
+avl_tree_t *avl_create(avl_comparator *comparator)
 {
-	avl_tree *t;
+	avl_tree_t *t;
 
-	t = NEW(avl_tree);
+	t = NEW(avl_tree_t);
 
 	t->root       = NULL;
-	t->comparator = compar;
+	t->comparator = comparator;
 	t->entries    = 0;
 
 #if defined(ENABLE_THREADS)
@@ -64,7 +65,7 @@ avl_tree *avl_create(avl_comparator *compar)
 
 	t->lock       = NEW(java_objectheader);
 
-	lock_init_object_lock(t->lock);
+	LOCK_INIT_OBJECT_LOCK(t->lock);
 #endif
 
 	return t;
@@ -77,11 +78,11 @@ avl_tree *avl_create(avl_comparator *compar)
 
 *******************************************************************************/
 
-static avl_node *avl_newnode(void *data)
+static avl_node_t *avl_newnode(void *data)
 {
-	avl_node *n;
+	avl_node_t *n;
 
-	n = NEW(avl_node);
+	n = NEW(avl_node_t);
 
 	n->data      = data;
 
@@ -107,10 +108,10 @@ static avl_node *avl_newnode(void *data)
 
 *******************************************************************************/
 
-static void avl_rotate_left(avl_node **node)
+static void avl_rotate_left(avl_node_t **node)
 {
-	avl_node *tmp;
-	avl_node *tmpnode;
+	avl_node_t *tmp;
+	avl_node_t *tmpnode;
 
 	/* rotate the node */
 
@@ -137,10 +138,10 @@ static void avl_rotate_left(avl_node **node)
 
 *******************************************************************************/
 
-static void avl_rotate_right(avl_node **node)
+static void avl_rotate_right(avl_node_t **node)
 {
-	avl_node *tmp;
-	avl_node *tmpnode;
+	avl_node_t *tmp;
+	avl_node_t *tmpnode;
 
 	/* rotate the node */
 
@@ -161,10 +162,10 @@ static void avl_rotate_right(avl_node **node)
 
 *******************************************************************************/
 
-static void avl_adjust_balance(avl_node *node)
+static void avl_adjust_balance(avl_node_t *node)
 {
-	avl_node *left;
-	avl_node *right;
+	avl_node_t *left;
+	avl_node_t *right;
 
 	left  = node->childs[AVL_LEFT];
 	right = node->childs[AVL_RIGHT];
@@ -196,13 +197,13 @@ static void avl_adjust_balance(avl_node *node)
 
 *******************************************************************************/
 
-static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
+static s4 avl_insert_intern(avl_tree_t *tree, avl_node_t **node, void *data)
 {
-	avl_node *tmpnode;
-	s4        res;
-	s4        direction;
-	s4        insert;
-	s4        balance;
+	avl_node_t *tmpnode;
+	s4          res;
+	s4          direction;
+	s4          insert;
+	s4          balance;
 
 	/* set temporary variable */
 
@@ -214,12 +215,12 @@ static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
 
 	/* compare the current node */
 
-	res = tree->comparator(data, tmpnode->data);
+	res = tree->comparator(tmpnode->data, data);
 
 	/* is this node already in the tree? */
 
 	if (res == 0)
-		assert(0);
+		vm_abort("avl_insert_intern: node already in the tree");
 
 	/* goto left or right child */
 
@@ -229,9 +230,9 @@ static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
 
 	if (tmpnode->childs[direction]) {
 		balance = avl_insert_intern(tree, &tmpnode->childs[direction], data);
-
-	} else {
-		avl_node *newnode;
+	}
+	else {
+		avl_node_t *newnode;
 
 		/* no child, create this node */
 
@@ -263,14 +264,14 @@ static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
 
 				tmpnode->balance = 0;
 				tmpnode->childs[AVL_RIGHT]->balance = 0;
-
-			} else {
+			}
+			else {
 				avl_rotate_left(&tmpnode->childs[AVL_LEFT]);
 				avl_rotate_right(&tmpnode);
 				avl_adjust_balance(tmpnode);
 			}
-
-		} else if (tmpnode->balance > 1) {
+		}
+		else if (tmpnode->balance > 1) {
 			/* right subtree too tall: left rotation needed */
 
 			if (tmpnode->childs[AVL_RIGHT]->balance > 0) {
@@ -280,14 +281,14 @@ static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
 
 				tmpnode->balance = 0;
 				tmpnode->childs[AVL_LEFT]->balance = 0;
-
-			} else {
+			}
+			else {
 				avl_rotate_right(&tmpnode->childs[AVL_RIGHT]);
 				avl_rotate_left(&tmpnode);
 				avl_adjust_balance(tmpnode);
 			}
-
-		} else {
+		}
+		else {
 			insert = 1;
 		}
 	}
@@ -308,7 +309,7 @@ static s4 avl_insert_intern(avl_tree *tree, avl_node **node, void *data)
 
 *******************************************************************************/
 
-bool avl_insert(avl_tree *tree, void *data)
+bool avl_insert(avl_tree_t *tree, void *data)
 {
 	assert(tree);
 	assert(data);
@@ -317,24 +318,14 @@ bool avl_insert(avl_tree *tree, void *data)
 
 	/* if we don't have a root node, create one */
 
-	if (tree->root == NULL) {
+	if (tree->root == NULL)
 		tree->root = avl_newnode(data);
-
-	} else {
+	else
 		avl_insert_intern(tree, &tree->root, data);
-	}
 
 	/* increase entries count */
 
 	tree->entries++;
-
-#if 0
-	printf("tree=%p entries=%d\n", tree, tree->entries);
-
-	printf("-------------------\n");
-	avl_dump(tree->root, 0);
-	printf("-------------------\n");
-#endif
 
 	LOCK_MONITOR_EXIT(tree->lock);
 
@@ -351,10 +342,10 @@ bool avl_insert(avl_tree *tree, void *data)
 
 *******************************************************************************/
 
-void *avl_find(avl_tree *tree, void *data)
+void *avl_find(avl_tree_t *tree, void *data)
 {
-	avl_node *node;
-	s4        res;
+	avl_node_t *node;
+	s4          res;
 
 	assert(tree);
 	assert(data);
@@ -366,7 +357,7 @@ void *avl_find(avl_tree *tree, void *data)
 	for (node = tree->root; node != NULL; ) {
 		/* compare the current node */
 
-		res = tree->comparator(data, node->data);
+		res = tree->comparator(node->data, data);
 
 		/* was the entry found? return it */
 
@@ -396,7 +387,7 @@ void *avl_find(avl_tree *tree, void *data)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void avl_dump(avl_node* node, s4 indent)
+void avl_dump(avl_node_t* node, s4 indent)
 {
 	s4 tmp;
 
@@ -408,10 +399,13 @@ void avl_dump(avl_node* node, s4 indent)
 	if (node->childs[AVL_RIGHT])
 		avl_dump(node->childs[AVL_RIGHT], tmp + 1);
 
-	while(indent--)
-		printf("   ");
+	log_start();
 
-	printf("%p (%d)\n", node->data, node->balance);
+	while(indent--)
+		log_print("   ");
+
+	log_print("%p (%d)", node->data, node->balance);
+	log_finish();
 
 	if (node->childs[AVL_LEFT])
 		avl_dump(node->childs[AVL_LEFT], tmp + 1);

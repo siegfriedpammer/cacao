@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7693 2007-04-12 14:56:49Z michi $
+   $Id: loader.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -37,11 +37,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
@@ -102,7 +98,7 @@ bool loader_init(void)
 	for (lce = list_first(list_classpath_entries); lce != NULL;
 		 lce = list_next(list_classpath_entries, lce))
 		if (lce->type == CLASSPATH_ARCHIVE)
-			lock_init_object_lock((java_objectheader *) lce);
+			LOCK_INIT_OBJECT_LOCK(lce);
 #endif
 
 	/* initialize classloader hashtable, 10 entries should be enough */

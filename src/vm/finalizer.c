@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: finalizer.c 7343 2007-02-13 02:36:29Z ajordan $
+   $Id: finalizer.c 7831 2007-04-26 12:48:16Z twisti $
 
 */
 
@@ -35,15 +35,8 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-
-# include "threads/native/threads.h"
-# include "threads/native/lock.h"
-#else
-# include "threads/none/threads.h"
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -59,7 +52,6 @@
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
-static threadobject      *thread_finalizer;
 static java_objectheader *lock_thread_finalizer;
 #endif
 
@@ -75,7 +67,7 @@ bool finalizer_init(void)
 #if defined(ENABLE_THREADS)
 	lock_thread_finalizer = NEW(java_objectheader);
 
-	lock_init_object_lock(lock_thread_finalizer);
+	LOCK_INIT_OBJECT_LOCK(lock_thread_finalizer);
 #endif
 
 	/* everything's ok */
@@ -129,14 +121,8 @@ bool finalizer_start_thread(void)
 
 	name = utf_new_char("Finalizer");
 
-	thread_finalizer = threads_create_thread(name);
-
-	if (thread_finalizer == NULL)
+	if (!threads_thread_start_internal(name, finalizer_thread))
 		return false;
-
-	/* actually start the finalizer thread */
-
-	threads_start_thread(thread_finalizer, finalizer_thread);
 
 	/* everything's ok */
 

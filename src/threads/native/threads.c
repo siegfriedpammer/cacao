@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: threads.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -71,11 +71,11 @@
 # include "native/include/java_lang_VMThread.h"
 #endif
 
+#include "threads/lock-common.h"
 #include "threads/threads-common.h"
 
 #include "threads/native/threads.h"
 
-#include "toolbox/avl.h"
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
@@ -189,8 +189,6 @@ static int sem_destroy(sem_t *sem)
 #define STOPWORLD_FROM_GC               1
 #define STOPWORLD_FROM_CLASS_NUMBERING  2
 
-#define THREADS_INITIAL_TABLE_SIZE      8
-
 
 /* startupinfo *****************************************************************
 
@@ -210,21 +208,12 @@ typedef struct {
 
 /* prototypes *****************************************************************/
 
-static void threads_table_init(void);
-static s4 threads_table_add(threadobject *thread);
-static void threads_table_remove(threadobject *thread);
 static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos);
 
-#if !defined(NDEBUG) && 0
-static void threads_table_dump(FILE *file);
-#endif
 
 /******************************************************************************/
 /* GLOBAL VARIABLES                                                           */
 /******************************************************************************/
-
-/* the main thread                                                            */
-threadobject *mainthreadobj;
 
 static methodinfo *method_thread_init;
 
@@ -237,11 +226,8 @@ __thread threadobject *threads_current_threadobject;
 pthread_key_t threads_current_threadobject_key;
 #endif
 
-/* global threads table                                                       */
-static threads_table_t threads_table;
-
-/* global mutex for changing the thread list                                  */
-static pthread_mutex_t threadlistlock;
+/* global mutex for the threads table */
+static pthread_mutex_t mutex_threads_table;
 
 /* global mutex for stop-the-world                                            */
 static pthread_mutex_t stopworldlock;
@@ -260,8 +246,6 @@ static sem_t suspend_ack;
 static pthread_mutex_t suspend_ack_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 #endif
-
-static pthread_attr_t threadattr;
 
 /* mutexes used by the fake atomic instructions                               */
 #if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
@@ -411,7 +395,7 @@ static void threads_cast_darwinstop(void)
 			if (r != KERN_SUCCESS)
 				vm_abort("thread_get_state failed");
 
-			thread_restartcriticalsection((ucontext_t *) &thread_state);
+			md_critical_section_restart((ucontext_t *) &thread_state);
 
 			r = thread_set_state(thread, flavor, (natural_t *) &thread_state,
 								 thread_state_count);
@@ -456,16 +440,77 @@ static void threads_cast_irixresume(void)
 }
 #endif
 
-#if 0
+#if !defined(DISABLE_GC)
+
+void threads_cast_stopworld(void)
+{
+#if !defined(__DARWIN__) && !defined(__CYGWIN__)
+	int count, i;
+#endif
+
+	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
+
+	/* lock the threads table */
+
+	threads_table_lock();
+
+#if defined(__DARWIN__)
+	threads_cast_darwinstop();
+#elif defined(__CYGWIN__)
+	/* TODO */
+	assert(0);
+#else
+	/* send all threads the suspend signal */
+
+	threads_cast_sendsignals(GC_signum1());
+
+	/* wait for all threads to suspend (except the current one) */
+
+	count = threads_table_get_threads() - 1;
+
+	for (i = 0; i < count; i++)
+		threads_sem_wait(&suspend_ack);
+#endif
+
+	/* unlock the threads table */
+
+	threads_table_unlock();
+}
+
+void threads_cast_startworld(void)
+{
+	/* lock the threads table */
+
+	threads_table_lock();
+
+#if defined(__DARWIN__)
+	threads_cast_darwinresume();
+#elif defined(__MIPS__)
+	threads_cast_irixresume();
+#elif defined(__CYGWIN__)
+	/* TODO */
+	assert(0);
+#else
+	threads_cast_sendsignals(GC_signum2());
+#endif
+
+	/* unlock the threads table */
+
+	threads_table_unlock();
+
+	unlock_stopworld();
+}
+
+
 #if !defined(__DARWIN__)
-static void threads_sigsuspend_handler(ucontext_t *ctx)
+static void threads_sigsuspend_handler(ucontext_t *_uc)
 {
 	int sig;
 	sigset_t sigs;
 
 	/* XXX TWISTI: this is just a quick hack */
 #if defined(ENABLE_JIT)
-	thread_restartcriticalsection(ctx);
+	md_critical_section_restart(_uc);
 #endif
 
 	/* Do as Boehm does. On IRIX a condition variable is used for wake-up
@@ -591,46 +636,59 @@ void threads_startworld(void)
 
 *******************************************************************************/
 
-static void threads_set_current_threadobject(threadobject *thread)
+void threads_set_current_threadobject(threadobject *thread)
 {
 #if !defined(HAVE___THREAD)
-	pthread_setspecific(threads_current_threadobject_key, thread);
+	if (pthread_setspecific(threads_current_threadobject_key, thread) != 0)
+		vm_abort("threads_set_current_threadobject: pthread_setspecific failed: %s", strerror(errno));
 #else
 	threads_current_threadobject = thread;
 #endif
 }
 
 
-/* threads_init_threadobject **************************************************
+/* threads_impl_thread_new *****************************************************
 
    Initialize implementation fields of a threadobject.
 
    IN:
-      thread............the threadobject
+      t....the threadobject
 
-******************************************************************************/
+*******************************************************************************/
 
-static void threads_init_threadobject(threadobject *thread)
+void threads_impl_thread_new(threadobject *t)
 {
 	/* get the pthread id */
 
-	thread->tid = pthread_self();
+	t->tid = pthread_self();
 
-	thread->index = 0;
+	/* initialize the mutex and the condition */
 
-#if defined(ENABLE_GC_CACAO)
-	thread->flags       |= THREAD_FLAG_IN_NATIVE;
-	thread->gc_critical  = false;
-#endif
+	pthread_mutex_init(&(t->waitmutex), NULL);
+	pthread_cond_init(&(t->waitcond), NULL);
+}
 
-	/* TODO destroy all those things */
 
-	pthread_mutex_init(&(thread->waitmutex), NULL);
-	pthread_cond_init(&(thread->waitcond), NULL);
+/* threads_impl_thread_free ****************************************************
 
-	thread->interrupted = false;
-	thread->signaled    = false;
-	thread->sleeping    = false;
+   Cleanup thread stuff.
+
+   IN:
+      t....the threadobject
+
+*******************************************************************************/
+
+void threads_impl_thread_free(threadobject *t)
+{
+	/* destroy the mutex and the condition */
+
+	if (pthread_mutex_destroy(&(t->waitmutex)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",
+				 strerror(errno));
+
+	if (pthread_cond_destroy(&(t->waitcond)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
+				 strerror(errno));
 }
 
 
@@ -649,7 +707,7 @@ threadobject *threads_get_current_threadobject(void)
 }
 
 
-/* threads_preinit *************************************************************
+/* threads_impl_preinit ********************************************************
 
    Do some early initialization of stuff required.
 
@@ -658,9 +716,8 @@ threadobject *threads_get_current_threadobject(void)
 
 *******************************************************************************/
 
-void threads_preinit(void)
+void threads_impl_preinit(void)
 {
-	pthread_mutex_init(&threadlistlock, NULL);
 	pthread_mutex_init(&stopworldlock, NULL);
 
 	/* initialize exit mutex and condition (on exit we join all
@@ -669,34 +726,56 @@ void threads_preinit(void)
 	pthread_mutex_init(&mutex_join, NULL);
 	pthread_cond_init(&cond_join, NULL);
 
-	mainthreadobj = NEW(threadobject);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-#endif
-
-	mainthreadobj->object   = NULL;
-	mainthreadobj->tid      = pthread_self();
-	mainthreadobj->index    = 1;
-	mainthreadobj->thinlock = lock_pre_compute_thinlock(mainthreadobj->index);
-	
 #if !defined(HAVE___THREAD)
 	pthread_key_create(&threads_current_threadobject_key, NULL);
 #endif
-	threads_set_current_threadobject(mainthreadobj);
 
 	threads_sem_init(&suspend_ack, 0, 0);
+}
 
-	/* initialize the threads table */
 
-	threads_table_init();
+/* threads_table_lock **********************************************************
 
-	/* initialize subsystems */
+   Initialize threads table mutex.
 
-	lock_init();
+*******************************************************************************/
 
-	critical_init();
+void threads_impl_table_init(void)
+{
+	pthread_mutex_init(&mutex_threads_table, NULL);
+}
+
+
+/* threads_table_lock **********************************************************
+
+   Enter the threads table mutex.
+
+   NOTE: We need this function as we can't use an internal lock for
+         the threads table because the thread's lock is initialized in
+         threads_table_add (when we have the thread index), but we
+         already need the lock at the entry of the function.
+
+*******************************************************************************/
+
+void threads_table_lock(void)
+{
+	if (pthread_mutex_lock(&mutex_threads_table) != 0)
+		vm_abort("threads_table_lock: pthread_mutex_lock failed: %s",
+				 strerror(errno));
+}
+
+
+/* threads_table_unlock ********************************************************
+
+   Leave the threads table mutex.
+
+*******************************************************************************/
+
+void threads_table_unlock(void)
+{
+	if (pthread_mutex_unlock(&mutex_threads_table) != 0)
+		vm_abort("threads_table_unlock: pthread_mutex_unlock failed: %s",
+				 strerror(errno));
 }
 
 
@@ -708,33 +787,21 @@ void threads_preinit(void)
 
 bool threads_init(void)
 {
+	threadobject          *mainthread;
 	java_objectheader     *threadname;
-	threadobject          *tempthread;
+	java_lang_Thread      *t;
 	java_objectheader     *o;
 
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *threadgroup;
 	methodinfo            *m;
-	java_lang_Thread      *t;
 #endif
 
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThread    *vmt;
 #endif
 
-	tempthread = mainthreadobj;
-
-	/* XXX We have to find a new way to free lock records */
-	/*     with the new locking algorithm.                */
-	/* lock_record_free_pools(mainthreadobj->ee.lockrecordpools); */
-
-#if 0
-	/* This is kinda tricky, we grow the java.lang.Thread object so we
-	   can keep the execution environment there. No Thread object must
-	   have been created at an earlier time. */
-
-	class_java_lang_Thread->instancesize = sizeof(threadobject);
-#endif
+	pthread_attr_t attr;
 
 	/* get methods we need in this file */
 
@@ -757,56 +824,28 @@ bool threads_init(void)
 	if (method_thread_init == NULL)
 		return false;
 
-	/* create a vm internal thread object for the main thread */
-	/* XXX Michi: we do not need to do this here, we could use the one
-	       created by threads_preinit() */
+	/* Get the main-thread (NOTE: The main threads is always the first
+	   thread in the table). */
 
-#if defined(ENABLE_GC_CACAO)
-	mainthreadobj = NEW(threadobject);
-
-# if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-# endif
-#else
-	mainthreadobj = GCNEW(threadobject);
-#endif
-
-	if (mainthreadobj == NULL)
-		return false;
+	mainthread = threads_table_first();
 
 	/* create a java.lang.Thread for the main thread */
 
-	mainthreadobj->object = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	if (mainthreadobj->object == NULL)
+	if (t == NULL)
 		return false;
 
-	FREE(tempthread, threadobject);
+	/* set the object in the internal data structure */
 
-	threads_init_threadobject(mainthreadobj);
-	threads_set_current_threadobject(mainthreadobj);
-	lock_init_execution_env(mainthreadobj);
-
-	/* thread is running */
-
-	mainthreadobj->state = THREAD_STATE_RUNNABLE;
-
-	mainthreadobj->next = mainthreadobj;
-	mainthreadobj->prev = mainthreadobj;
-
-	threads_table_add(mainthreadobj);
-
-	/* mark main thread as Java thread */
-
-	mainthreadobj->flags = THREAD_FLAG_JAVA;
+	mainthread->object = t;
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
 
 	if (opt_intrp) {
 		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-		mainthreadobj->_global_sp = (Cell*) (intrp_main_stack + opt_stacksize);
+		mainthread->_global_sp = (Cell*) (intrp_main_stack + opt_stacksize);
 	}
 #endif
 
@@ -832,22 +871,22 @@ bool threads_init(void)
 
 	/* set the thread */
 
-	vmt->thread = mainthreadobj->object;
-	vmt->vmdata = (java_lang_Object *) mainthreadobj;
+	vmt->thread = t;
+	vmt->vmdata = (java_lang_Object *) mainthread;
 
 	/* call java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
-	o = (java_objectheader *) mainthreadobj->object;
+	o = (java_objectheader *) t;
 
 	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
 						  false);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 	/* set the thread */
 
-	mainthreadobj->object->vm_thread = (java_lang_Object *) mainthreadobj;
+	t->vm_thread = (java_lang_Object *) mainthread;
 
 	/* call public Thread(String name) */
 
-	o = (java_objectheader *) mainthreadobj->object;
+	o = (java_objectheader *) t;
 
 	(void) vm_call_method(method_thread_init, o, threadname);
 #endif
@@ -856,7 +895,7 @@ bool threads_init(void)
 		return false;
 
 #if defined(ENABLE_JAVASE)
-	mainthreadobj->object->group = threadgroup;
+	t->group = threadgroup;
 
 	/* add main thread to java.lang.ThreadGroup */
 
@@ -867,152 +906,35 @@ bool threads_init(void)
 								 true);
 
 	o = (java_objectheader *) threadgroup;
-	t = mainthreadobj->object;
 
 	(void) vm_call_method(m, o, t);
 
 	if (*exceptionptr)
 		return false;
-
 #endif
 
 	threads_set_thread_priority(pthread_self(), NORM_PRIORITY);
 
 	/* initialize the thread attribute object */
 
-	if (pthread_attr_init(&threadattr)) {
-		log_println("pthread_attr_init failed: %s", strerror(errno));
-		return false;
-	}
+	if (pthread_attr_init(&attr) != 0)
+		vm_abort("threads_init: pthread_attr_init failed: %s", strerror(errno));
 
-	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
+	if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
+		vm_abort("threads_init: pthread_attr_setdetachstate failed: %s",
+				 strerror(errno));
+
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Starting thread ");
+		threads_thread_print_info(mainthread);
+		printf("]\n");
+	}
+#endif
 
 	/* everything's ok */
 
 	return true;
-}
-
-
-/* threads_table_init *********************************************************
-
-   Initialize the global threads table.
-
-******************************************************************************/
-
-static void threads_table_init(void)
-{
-	s4 size;
-	s4 i;
-
-	size = THREADS_INITIAL_TABLE_SIZE;
-
-	threads_table.size = size;
-	threads_table.table = MNEW(threads_table_entry_t, size);
-
-	/* link the entries in a freelist */
-
-	for (i=0; i<size; ++i) {
-		threads_table.table[i].nextfree = i+1;
-	}
-
-	/* terminate the freelist */
-
-	threads_table.table[size-1].nextfree = 0; /* index 0 is never free */
-}
-
-
-/* threads_table_add **********************************************************
-
-   Add a thread to the global threads table. The index is entered in the
-   threadobject. The thinlock value for the thread is pre-computed.
-
-   IN:
-      thread............the thread to add
-
-   RETURN VALUE:
-      The table index for the newly added thread. This value has also been
-	  entered in the threadobject.
-
-   PRE-CONDITION:
-      The caller must hold the threadlistlock!
-
-******************************************************************************/
-
-static s4 threads_table_add(threadobject *thread)
-{
-	s4 index;
-	s4 oldsize;
-	s4 newsize;
-	s4 i;
-
-	/* table[0] serves as the head of the freelist */
-
-	index = threads_table.table[0].nextfree;
-
-	/* if we got a free index, use it */
-
-	if (index) {
-got_an_index:
-		threads_table.table[0].nextfree = threads_table.table[index].nextfree;
-		threads_table.table[index].thread = thread;
-		thread->index = index;
-		thread->thinlock = lock_pre_compute_thinlock(index);
-		return index;
-	}
-
-	/* we must grow the table */
-
-	oldsize = threads_table.size;
-	newsize = oldsize * 2;
-
-	threads_table.table = MREALLOC(threads_table.table, threads_table_entry_t,
-								   oldsize, newsize);
-	threads_table.size = newsize;
-
-	/* link the new entries to a free list */
-
-	for (i=oldsize; i<newsize; ++i) {
-		threads_table.table[i].nextfree = i+1;
-	}
-
-	/* terminate the freelist */
-
-	threads_table.table[newsize-1].nextfree = 0; /* index 0 is never free */
-
-	/* use the first of the new entries */
-
-	index = oldsize;
-	goto got_an_index;
-}
-
-
-/* threads_table_remove *******************************************************
-
-   Remove a thread from the global threads table.
-
-   IN:
-      thread............the thread to remove
-
-   PRE-CONDITION:
-      The caller must hold the threadlistlock!
-
-******************************************************************************/
-
-static void threads_table_remove(threadobject *thread)
-{
-	s4 index;
-
-	index = thread->index;
-
-	/* put the index into the freelist */
-
-	threads_table.table[index] = threads_table.table[0];
-	threads_table.table[0].nextfree = index;
-
-	/* delete the index in the threadobject to discover bugs */
-#if !defined(NDEBUG)
-	thread->index = 0;
-#endif
 }
 
 
@@ -1043,7 +965,6 @@ static void *threads_startup_thread(void *t)
 	java_lang_VMThread *vmt;
 #endif
 	sem_t              *psem;
-	threadobject       *tnext;
 	classinfo          *c;
 	methodinfo         *m;
 	java_objectheader  *o;
@@ -1071,40 +992,27 @@ static void *threads_startup_thread(void *t)
 	function = startup->function;
 	psem     = startup->psem;
 
-	/* Seems like we've encountered a situation where thread->tid was not set by
-	 * pthread_create. We alleviate this problem by waiting for pthread_create
-	 * to return. */
-	threads_sem_wait(startup->psem_first);
+	/* Seems like we've encountered a situation where thread->tid was
+	   not set by pthread_create. We alleviate this problem by waiting
+	   for pthread_create to return. */
 
-	/* set the thread object */
+	threads_sem_wait(startup->psem_first);
 
 #if defined(__DARWIN__)
 	thread->mach_thread = mach_thread_self();
 #endif
 
-	threads_init_threadobject(thread);
+	/* store the internal thread data-structure in the TSD */
+
 	threads_set_current_threadobject(thread);
 
 	/* thread is running */
 
 	thread->state = THREAD_STATE_RUNNABLE;
 
-	/* insert the thread into the threadlist and the threads table */
-
-	pthread_mutex_lock(&threadlistlock);
-
-	thread->prev = mainthreadobj;
-	thread->next = tnext = mainthreadobj->next;
-	mainthreadobj->next = thread;
-	tnext->prev = thread;
+	/* insert the thread into the threads table */
 
 	threads_table_add(thread);
-
-	pthread_mutex_unlock(&threadlistlock);
-
-	/* init data structures of this thread */
-
-	lock_init_execution_env(thread);
 
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
@@ -1130,13 +1038,17 @@ static void *threads_startup_thread(void *t)
 		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_START);
 #endif
 
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Starting thread ");
+		threads_thread_print_info(thread);
+		printf("]\n");
+	}
+#endif
+
 	/* find and run the Thread.run()V method if no other function was passed */
 
 	if (function == NULL) {
-		/* this is a normal Java thread */
-
-		thread->flags |= THREAD_FLAG_JAVA;
-
 #if defined(WITH_CLASSPATH_GNU)
 		/* We need to start the run method of
 		   java.lang.VMThread. Since this is a final class, we can use
@@ -1177,10 +1089,6 @@ static void *threads_startup_thread(void *t)
 		(void) vm_call_method(m, o);
 	}
 	else {
-		/* this is an internal thread */
-
-		thread->flags |= THREAD_FLAG_INTERNAL;
-
 		/* set ThreadMXBean variables */
 
 		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
@@ -1195,6 +1103,14 @@ static void *threads_startup_thread(void *t)
 
 		(function)();
 	}
+
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Stopping thread ");
+		threads_thread_print_info(thread);
+		printf("]\n");
+	}
+#endif
 
 #if defined(ENABLE_JVMTI)
 	/* fire thread end event */
@@ -1214,49 +1130,68 @@ static void *threads_startup_thread(void *t)
 }
 
 
-/* threads_start_thread ********************************************************
+/* threads_impl_thread_start ***************************************************
 
-   Start a thread in the JVM. Both (vm internal and java) thread objects exist.
+   Start a thread in the JVM.  Both (vm internal and java) thread
+   objects exist.
 
    IN:
-      thread.......the thread object
-	  function.....function to run in the new thread. NULL means that the
-	               "run" method of the object `t` should be called
+      thread....the thread object
+	  f.........function to run in the new thread. NULL means that the
+	            "run" method of the object `t` should be called
 
 ******************************************************************************/
 
-void threads_start_thread(threadobject *thread, functionptr function)
+void threads_impl_thread_start(threadobject *thread, functionptr f)
 {
 	sem_t          sem;
 	sem_t          sem_first;
 	pthread_attr_t attr;
 	startupinfo    startup;
+	int            ret;
 
 	/* fill startupinfo structure passed by pthread_create to
 	 * threads_startup_thread */
 
 	startup.thread     = thread;
-	startup.function   = function;       /* maybe we don't call Thread.run()V */
+	startup.function   = f;              /* maybe we don't call Thread.run()V */
 	startup.psem       = &sem;
 	startup.psem_first = &sem_first;
 
 	threads_sem_init(&sem, 0, 0);
 	threads_sem_init(&sem_first, 0, 0);
 
-	/* initialize thread attribute object */
+	/* initialize thread attributes */
 
-	if (pthread_attr_init(&attr))
-		vm_abort("pthread_attr_init failed: %s", strerror(errno));
+	if (pthread_attr_init(&attr) != 0)
+		vm_abort("threads_impl_thread_start: pthread_attr_init failed: %s",
+				 strerror(errno));
+
+    if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
+		vm_abort("threads_impl_thread_start: pthread_attr_setdetachstate failed: %s",
+				 strerror(errno));
 
 	/* initialize thread stacksize */
 
 	if (pthread_attr_setstacksize(&attr, opt_stacksize))
-		vm_abort("pthread_attr_setstacksize failed: %s", strerror(errno));
+		vm_abort("threads_impl_thread_start: pthread_attr_setstacksize failed: %s",
+				 strerror(errno));
 
 	/* create the thread */
 
-	if (pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup))
-		vm_abort("pthread_create failed: %s", strerror(errno));
+	ret = pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup);
+
+	/* destroy the thread attributes */
+
+	if (pthread_attr_destroy(&attr) != 0)
+		vm_abort("threads_impl_thread_start: pthread_attr_destroy failed: %s",
+				 strerror(errno));
+
+	/* check for pthread_create error */
+
+	if (ret != 0)
+		vm_abort("threads_impl_thread_start: pthread_create failed: %s",
+				 strerror(errno));
 
 	/* signal that pthread_create has returned, so thread->tid is valid */
 
@@ -1310,6 +1245,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *group;
+	threadobject          *mainthread;
 	methodinfo            *m;
 #endif
 
@@ -1317,17 +1253,9 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	java_lang_VMThread    *vmt;
 #endif
 
-	/* create a vm internal thread object */
+	/* create internal thread data-structure */
 
-	thread = NEW(threadobject);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
-#endif
-
-	if (thread == NULL)
-		return false;
+	thread = threads_thread_new();
 
 	/* create a java.lang.Thread object */
 
@@ -1338,33 +1266,26 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	thread->object = t;
 
-	threads_init_threadobject(thread);
-	threads_set_current_threadobject(thread);
-	lock_init_execution_env(thread);
-
-	/* thread is running */
-
-	thread->state = THREAD_STATE_RUNNABLE;
-
-	/* insert the thread into the threadlist and the threads table */
-
-	pthread_mutex_lock(&threadlistlock);
-
-	thread->prev        = mainthreadobj;
-	thread->next        = mainthreadobj->next;
-	mainthreadobj->next = thread;
-	thread->next->prev  = thread;
-
-	threads_table_add(thread);
-
-	pthread_mutex_unlock(&threadlistlock);
-
-	/* mark thread as Java thread */
+	/* thread is a Java thread and running */
 
 	thread->flags = THREAD_FLAG_JAVA;
 
 	if (isdaemon)
 		thread->flags |= THREAD_FLAG_DAEMON;
+
+	thread->state = THREAD_STATE_RUNNABLE;
+
+	/* insert the thread into the threads table */
+
+	threads_table_add(thread);
+
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Attaching thread ");
+		threads_thread_print_info(thread);
+		printf("]\n");
+	}
+#endif
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -1400,7 +1321,10 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	else {
 		u     = utf_null;
 #if defined(ENABLE_JAVASE)
-		group = mainthreadobj->object->group;
+		/* get the main thread */
+
+		mainthread = threads_table_first();
+		group = mainthread->object->group;
 #endif
 	}
 
@@ -1462,13 +1386,6 @@ bool threads_detach_thread(threadobject *thread)
 	java_lang_Thread      *t;
 #endif
 
-	/* Allow lock record pools to be used by other threads. They
-	   cannot be deleted so we'd better not waste them. */
-
-	/* XXX We have to find a new way to free lock records */
-	/*     with the new locking algorithm.                */
-	/* lock_record_free_pools(thread->ee.lockrecordpools); */
-
 	/* XXX implement uncaught exception stuff (like JamVM does) */
 
 #if defined(ENABLE_JAVASE)
@@ -1502,20 +1419,17 @@ bool threads_detach_thread(threadobject *thread)
 
 	thread->state = THREAD_STATE_TERMINATED;
 
-	/* lock thread list */
-
-	pthread_mutex_lock(&threadlistlock);
-
-	/* remove thread from thread list and threads table */
-
-	thread->next->prev = thread->prev;
-	thread->prev->next = thread->next;
+	/* remove thread from the threads table */
 
 	threads_table_remove(thread);
 
-	/* unlock thread list */
-
-	pthread_mutex_unlock(&threadlistlock);
+#if !defined(NDEBUG)
+	if (opt_verbosethreads) {
+		printf("[Detaching thread ");
+		threads_thread_print_info(thread);
+		printf("]\n");
+	}
+#endif
 
 	/* signal that this thread has finished */
 
@@ -1525,17 +1439,13 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* free the vm internal thread object */
 
-	FREE(thread, threadobject);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject -= sizeof(threadobject);
-#endif
+	threads_thread_free(thread);
 
 	return true;
 }
 
 
+<<<<<<< .working
 /* threads_suspend_thread ******************************************************
 
    Suspend the passed thread. Execution stops until the thread
@@ -1713,9 +1623,11 @@ void threads_join_all_threads(void)
 
 	pthread_mutex_lock(&mutex_join);
 
-	/* wait for condition as long as we have non-daemon threads */
+	/* Wait for condition as long as we have non-daemon threads.  We
+	   compare against 1 because the current (main thread) is also a
+	   non-daemon thread. */
 
-	while (threads_find_non_daemon_thread() != NULL)
+	while (threads_table_get_non_daemons() > 1)
 		pthread_cond_wait(&cond_join, &mutex_join);
 
 	/* leave join mutex */
@@ -2029,47 +1941,6 @@ void threads_yield(void)
 	sched_yield();
 }
 
-
-/* threads_table_dump *********************************************************
-
-   Dump the threads table for debugging purposes.
-
-   IN:
-      file..............stream to write to
-
-******************************************************************************/
-
-#if !defined(NDEBUG) && 0
-static void threads_table_dump(FILE *file)
-{
-	s4 i;
-	s4 size;
-	ptrint index;
-
-	pthread_mutex_lock(&threadlistlock);
-
-	size = threads_table.size;
-
-	fprintf(file, "======== THREADS TABLE (size %d) ========\n", size);
-
-	for (i=0; i<size; ++i) {
-		index = threads_table.table[i].nextfree;
-
-		fprintf(file, "%4d: ", i);
-
-		if (index < size) {
-			fprintf(file, "free, nextfree = %d\n", (int) index);
-		}
-		else {
-			fprintf(file, "thread %p\n", (void*) threads_table.table[i].thread);
-		}
-	}
-
-	fprintf(file, "======== END OF THREADS TABLE ========\n");
-
-	pthread_mutex_unlock(&threadlistlock);
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

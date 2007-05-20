@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 7720 2007-04-16 15:49:09Z twisti $
+   $Id: java_lang_reflect_Field.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -35,6 +35,7 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/java_lang_Boolean.h"
 #include "native/include/java_lang_Byte.h"
 #include "native/include/java_lang_Character.h"
@@ -46,6 +47,7 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
+
 #include "native/include/java_lang_reflect_Field.h"
 
 #include "vm/access.h"
@@ -60,6 +62,49 @@
 #include "vmcore/loader.h"
 #include "vm/resolve.h"
 #include "vmcore/utf8.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getModifiersInternal", "()I",                                     (void *) (ptrint) &Java_java_lang_reflect_Field_getModifiersInternal },
+	{ "getType",              "()Ljava/lang/Class;",                     (void *) (ptrint) &Java_java_lang_reflect_Field_getType              },
+	{ "get",                  "(Ljava/lang/Object;)Ljava/lang/Object;",  (void *) (ptrint) &Java_java_lang_reflect_Field_get                  },
+	{ "getBoolean",           "(Ljava/lang/Object;)Z",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getBoolean           },
+	{ "getByte",              "(Ljava/lang/Object;)B",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getByte              },
+	{ "getChar",              "(Ljava/lang/Object;)C",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getChar              },
+	{ "getShort",             "(Ljava/lang/Object;)S",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getShort             },
+	{ "getInt",               "(Ljava/lang/Object;)I",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getInt               },
+	{ "getLong",              "(Ljava/lang/Object;)J",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getLong              },
+	{ "getFloat",             "(Ljava/lang/Object;)F",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getFloat             },
+	{ "getDouble",            "(Ljava/lang/Object;)D",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getDouble            },
+	{ "set",                  "(Ljava/lang/Object;Ljava/lang/Object;)V", (void *) (ptrint) &Java_java_lang_reflect_Field_set                  },
+	{ "setBoolean",           "(Ljava/lang/Object;Z)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setBoolean           },
+	{ "setByte",              "(Ljava/lang/Object;B)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setByte              },
+	{ "setChar",              "(Ljava/lang/Object;C)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setChar              },
+	{ "setShort",             "(Ljava/lang/Object;S)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setShort             },
+	{ "setInt",               "(Ljava/lang/Object;I)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setInt               },
+	{ "setLong",              "(Ljava/lang/Object;J)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setLong              },
+	{ "setFloat",             "(Ljava/lang/Object;F)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setFloat             },
+	{ "setDouble",            "(Ljava/lang/Object;D)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setDouble            },
+	{ "getSignature",         "()Ljava/lang/String;",                    (void *) (ptrint) &Java_java_lang_reflect_Field_getSignature         },
+};
+
+
+/* _Jv_java_lang_reflect_Field_init ********************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_reflect_Field_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/reflect/Field");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /* cacao_get_field_address *****************************************************

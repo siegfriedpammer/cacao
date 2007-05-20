@@ -36,12 +36,8 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-
-# include "threads/native/lock.h"
-# include "threads/native/threads.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "toolbox/list.h"
 
@@ -59,7 +55,6 @@
 
 /* global variables ***********************************************************/
 
-static threadobject      *thread_recompile;
 static java_objectheader *lock_thread_recompile;
 static list_t            *list_recompile_methods;
 
@@ -221,14 +216,8 @@ bool recompile_start_thread(void)
 
 	name = utf_new_char("Recompiler");
 
-	thread_recompile = threads_create_thread(name);
-
-	if (thread_recompile == NULL)
+	if (!threads_thread_start_internal(name, recompile_thread))
 		return false;
-
-	/* actually start the recompilation thread */
-
-	threads_start_thread(thread_recompile, recompile_thread);
 
 	/* everything's ok */
 

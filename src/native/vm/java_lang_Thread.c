@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThread.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: java_lang_Thread.c 7833 2007-04-26 13:07:05Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 # include "native/include/java_lang_VMThread.h"
 #endif
 
+#include "threads/lock-common.h"
 #include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
@@ -88,7 +89,7 @@ void _Jv_java_lang_Thread_sleep(s8 millis)
 void _Jv_java_lang_Thread_start(java_lang_Thread *this, s8 stacksize)
 {
 #if defined(ENABLE_THREADS)
-	threads_start_javathread(this);
+	threads_thread_start(this);
 #endif
 }
 

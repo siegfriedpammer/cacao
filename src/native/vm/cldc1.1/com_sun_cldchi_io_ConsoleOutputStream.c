@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/com_sun_cldchi_io_ConsoleOutputStream.c
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Phil Tomsich
-            Christian Thalinger
-
    $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
 */
@@ -39,6 +34,32 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
+#include "native/include/com_sun_cldchi_io_ConsoleOutputStream.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "write", "(I)V", (void *) (ptrint) &Java_com_sun_cldchi_io_ConsoleOutputStream_write },
+};
+
+ 
+/* _Jv_com_sun_cldchi_io_ConsoleOutputStream_init ******************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_com_sun_cldchi_io_ConsoleOutputStream_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("com/sun/cldchi/io/ConsoleOutputStream");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*
@@ -46,7 +67,7 @@
  * Method:    write
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_sun_cldchi_io_ConsoleOutputStream_write(JNIEnv *env, jclass clazz, s4 c)
+JNIEXPORT void JNICALL Java_com_sun_cldchi_io_ConsoleOutputStream_write(JNIEnv *env, com_sun_cldchi_io_ConsoleOutputStream *this, s4 c)
 {
 	(void) fputc(c, stdout);
 }

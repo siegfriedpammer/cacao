@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stack.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: stack.c 7908 2007-05-15 09:55:17Z christian $
 
 */
 
@@ -61,11 +61,13 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/stack.h"
 
+#if 0
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"
 # include "vm/jit/optimizing/ssa.h"
 #elif defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
+#endif
 #endif
 
 #include "vmcore/options.h"
@@ -2038,9 +2040,6 @@ bool stack_analyse(jitdata *jd)
 	methodinfo   *m;              /* method being analyzed                    */
 	registerdata *rd;
 	stackdata_t   sd;
-#if defined(ENABLE_SSA)
-	lsradata     *ls;
-#endif
 	int           stackdepth;
 	stackptr      curstack;       /* current stack top                        */
 	stackptr      copy;
@@ -2082,9 +2081,6 @@ bool stack_analyse(jitdata *jd)
 
 	m    = jd->m;
 	rd   = jd->rd;
-#if defined(ENABLE_SSA)
-	ls   = jd->ls;
-#endif
 
 	/* initialize the stackdata_t struct */
 
@@ -2106,10 +2102,6 @@ bool stack_analyse(jitdata *jd)
 	sd.exstack.prev = NULL;
 	sd.exstack.varnum = sd.localcount;
 	sd.var[sd.exstack.varnum].type = TYPE_ADR;
-
-#if defined(ENABLE_LSRA)
-	m->maxlifetimes = 0;
-#endif
 
 #if defined(ENABLE_STATISTICS)
 	iteration_count = 0;
@@ -3180,18 +3172,7 @@ normal_ACONST:
 							return false;
 						}
 #endif
-		
-#if defined(ENABLE_SSA)
-						if (ls != NULL) {
-							GET_NEW_VAR(sd, new_index, type);
-							DST(type, new_index);
-							stackdepth++;
-						}
-						else
-
-#else
 						LOAD(type, varindex);
-#endif
 						break;
 
 						/* pop 2 push 1 */
@@ -3224,13 +3205,6 @@ normal_ACONST:
 
 					case ICMD_IINC:
 						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
-#if defined(ENABLE_SSA)
-						if (ls != NULL) {
-							iptr->s1.varindex = 
-								jd->local_map[iptr->s1.varindex * 5 +TYPE_INT];
-						}
-						else {
-#endif
 						last_store_boundary[iptr->s1.varindex] = sd.new;
 
 						iptr->s1.varindex = 
@@ -3248,9 +3222,6 @@ normal_ACONST:
 							i--;
 							copy = copy->prev;
 						}
-#if defined(ENABLE_SSA)
-						}
-#endif
 
 						iptr->dst.varindex = iptr->s1.varindex;
 						break;
@@ -3314,9 +3285,6 @@ normal_ACONST:
 						}
 #endif
 
-#if defined(ENABLE_SSA)
-						if (ls != NULL) {
-#endif
 						/* check for conflicts as described in Figure 5.2 */
 
 						copy = curstack->prev;
@@ -3387,9 +3355,6 @@ assume_conflict:
 						/* remember the stack boundary at this store */
 store_tail:
 						last_store_boundary[javaindex] = sd.new;
-#if defined(ENABLE_SSA)
-						} /* if (ls != NULL) */
-#endif
 
 						if (opcode == ICMD_ASTORE && curstack->type == TYPE_RET)
 							STORE(TYPE_RET, varindex);

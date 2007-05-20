@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7723 2007-04-16 18:03:08Z michi $
+   $Id: jni.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -84,13 +84,8 @@
 # include "native/vm/java_lang_ClassLoader.h"
 #endif
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-# include "threads/native/threads.h"
-#else
-# include "threads/none/lock.h"
-# include "threads/none/threads.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 

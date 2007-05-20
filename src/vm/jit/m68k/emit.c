@@ -35,35 +35,41 @@
 #include "vm/jit/emit-common.h"
 #include "vm/exceptions.h"
 #include "vm/jit/asmpart.h"
-
 #include "vm/builtin.h"
+
 #include "mm/memory.h"
+
+#include "threads/lock-common.h"
 
 #include "codegen.h"
 #include "md-os.h"
 
-/*
- *	Loads an immededat operand into data register
- */
+/* emit_mov_imm_reg **************************************************************************
+ *
+ *	Loads an immededat operand into an integer data register
+ *
+ ********************************************************************************************/
 void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg)
 {
-	if ((imm & 0x000000FF) == imm)	{
+	/* FIXME: -1 can be used as byte form 0xff, but this ifs cascade is plain wrong it seems */
+
+	if ( (imm & 0x0000007F) == imm)	{
 		/* use byte form */
 		*((s2*)cd->mcodeptr) = 0x7000 | (dreg << 9) | imm;	/* MOVEQ.L */
 		cd->mcodeptr += 2;
-	} else if ((imm  & 0xFFFF0000) != 0)	{
+	} else if ((imm  & 0x00007FFF) == imm)	{
+		/* use word form */
+		OPWORD( ((7<<6) | (dreg << 3) | 5), 7, 4);			/* MVS.W */
+		*((s2*)cd->mcodeptr) = (s2)imm;
+		cd->mcodeptr += 2;
+	} else {
 		/* use long form */
 		OPWORD( ((2<<6) | (dreg << 3) | 0), 7, 4);
 		*((s4*)cd->mcodeptr) = (s4)imm;
 		cd->mcodeptr += 4;
-	} else {
-		/* use word form */
-		OPWORD( ((3<<6) | (dreg << 3) | 0), 7, 4);
-		*((s2*)cd->mcodeptr) = (s2)imm;
-		cd->mcodeptr += 2;
+
 	}
 }
-
 
 /* emit_copy *******************************************************************
 
@@ -302,8 +308,8 @@ void emit_patcher_stubs(jitdata *jd)
 
 		cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr       */
 
-		/* save REG_ITMP3 */
-		M_IPUSH(REG_ITMP3);	/* FIXME why, and restore where ? */
+		/* save REG_ITMP3, restored in asm_patcher_wrapper  */
+		M_IPUSH(REG_ITMP3);		
 
 		/* move pointer to java_objectheader onto stack */
 
@@ -312,10 +318,9 @@ void emit_patcher_stubs(jitdata *jd)
 		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
 		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
-		assert(0); /* The next lines are wrong */
-		M_MOV_IMM(0, REG_ITMP3);
+		M_IMOV_IMM32(0, REG_ITMP3);
 		dseg_adddata(cd);
-		M_AADD_IMM(REG_ITMP3, disp);
+		M_IADD_IMM(disp, REG_ITMP3);
 		M_IPUSH(REG_ITMP3);
 #else
 		M_IPUSH_IMM(0);
@@ -503,14 +508,24 @@ void emit_verbosecall_enter(jitdata* jd)
 	/* mark trace code */
 	M_NOP;
 
-	M_LINK(REG_FP, -16*4);	
-	M_PUSHALL;
+	M_IPUSH(REG_D0);
+	M_IPUSH(REG_D1);
+	M_APUSH(REG_A0);
+	M_APUSH(REG_A1);
 
+#if !defined(ENABLE_SOFTFLOAT)
+	M_AADD_IMM(-8*2, REG_SP);
+	M_FSTORE(REG_F0, REG_SP, 8);
+	M_FSTORE(REG_F1, REG_SP, 0);
+
+	disp = 4*4 + 8*2 + 4;	/* points to old argument stack initially */
+#else
+	disp = 4*4 + 4;
+#endif
 	/* builtin_verbosecall_enter takes all args as s8 type */
 	/* TRACE_ARGS_NUM is the number of args the builtin_verbosecall_enter expects */
 	M_IPUSH_IMM(m);
 	
-	disp = 16*4 + 4 + 4;	/* points to old argument stack initially */
 
 	/* travel up stack to the first argument of the function which needs to be copied */
 	for (i=0; (i < md->paramcount) && (i < TRACE_ARGS_NUM); i++)	{
@@ -550,8 +565,17 @@ void emit_verbosecall_enter(jitdata* jd)
 	/* pop arguments off stack */
 	M_AADD_IMM(TRACE_ARGS_NUM*8+4, REG_SP);
 
-	M_POPALL;
-	M_UNLK(REG_FP);
+#if !defined(ENABLE_SOFTFLOAT)
+	M_FSTORE(REG_F1, REG_SP, 0);
+	M_FSTORE(REG_F0, REG_SP, 8);
+	M_AADD_IMM(8*2, REG_SP);
+#endif
+
+	M_APOP(REG_A1);
+	M_APOP(REG_A0);
+	M_IPOP(REG_D1);
+	M_IPOP(REG_D0);
+
 	M_NOP;
 }
 void emit_verbosecall_exit(jitdata* jd) 
@@ -575,18 +599,27 @@ void emit_verbosecall_exit(jitdata* jd)
 
 	/* mark trace code */
 	M_NOP;
-	M_LINK(REG_FP, 0);
+
+#if !defined(ENABLE_SOFTFLOAT)
+	M_AADD_IMM(-8, REG_SP);
+	M_FSTORE(REG_F1, REG_SP, 0);
+#endif
 
 	M_IPUSH_IMM(m);					/* push methodinfo */
 
-	M_IPUSH_IMM(0);					/* TODO push float result */
+#if !defined(ENABLE_SOFTFLOAT)
+	M_AADD_IMM(-3*4, REG_SP);
+	M_FST(REG_D0, REG_SP, 8);
+	M_DST(REG_D0, REG_SP, 0);
+#else
+	M_IPUSH_IMM(0);
 
-	M_IPUSH_IMM(0);					/* TODO push double result */
-	M_IPUSH_IMM(0);					/* TODO push double result */
+	M_IPUSH_IMM(0);
+	M_IPUSH_IMM(0);
+#endif
 
 	M_IPUSH(GET_HIGH_REG(REG_RESULT_PACKED))
 	M_IPUSH(GET_LOW_REG(REG_RESULT_PACKED))		/* push long result */
-
 
 	M_JSR_IMM(builtin_verbosecall_exit);
 
@@ -594,17 +627,17 @@ void emit_verbosecall_exit(jitdata* jd)
 	M_IPOP(GET_LOW_REG(REG_RESULT_PACKED))
 	M_IPOP(GET_HIGH_REG(REG_RESULT_PACKED))
 
-#if 0
-	/* that is wrong of course, overwrites registers and stuff */
-	M_IPOP(0);	/* TODO: pop double result */
-	M_IPOP(0);	/* TODO: pop double result */
-
-	M_IPOP(0);	/* TODO: pop float result */
-#else
-	M_AADD_IMM(3*4, REG_SP);
+#if !defined(ENABLE_SOFTFLOAT)
+	M_DLD(REG_D0, REG_SP, 0)
+	M_FLD(REG_D0, REG_SP, 8)
 #endif
-	M_AADD_IMM(4, REG_SP);				/* remove rest of stack */
-	M_UNLK(REG_FP);
+	M_AADD_IMM(3*4 + 4, REG_SP);
+
+#if !defined(ENABLE_SOFTFLOAT)
+	M_FLOAD(REG_F1, REG_SP, 0)
+	M_AADD_IMM(8, REG_SP);
+#endif
+
 	M_NOP;
 }
 #endif
@@ -649,8 +682,8 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
 		M_ICMP(s2, REG_ITMP3);
-		M_BHI(2);
-		/*M_ALD_INTERN(s2, REG_ZERO, EXCEPTION_LOAD_DISP_ARRAYINDEXOUTOFBOUNDS);*/
+		M_BHI(4);
+		M_TRAP_SETREGISTER(s2);
 		M_TRAP(EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
 	}
 }
@@ -663,7 +696,8 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		/* did like to assert on TYPE_ADR, but not possible in here */
+		/* XXX: this check is copied to call monitor_enter 
+		 * invocation at the beginning of codegen.c */
 		M_ATST(reg);
 		M_BNE(2);
 		M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
@@ -681,27 +715,9 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ITST(reg);
 		M_BNE(2);
-		/*M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARITHMETIC);*/
-		M_ILLEGAL; /* FIXME */
+		M_TRAP(EXCEPTION_HARDWARE_ARITHMETIC);
 	}
 }
-
-#if 0
-/* emit_exception_check_areg **************************************************
- *
-   Emit an Exception check, tested register is address REG_RESULT
-
-*******************************************************************************/
-void emit_exception_check_areg(codegendata *cd, instruction *iptr)
-{
-	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_ATST(REG_RESULT);
-		M_BNE(2);
-		/*M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);*/
-		M_ILLEGAL; /*FIXME*/
-	}
-}
-#endif
 
 /* emit_exception_check_ireg **************************************************
 

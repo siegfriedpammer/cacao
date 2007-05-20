@@ -30,7 +30,9 @@
 #ifndef _LOCK_H
 #define _LOCK_H
 
-/* define some stuff we need to no-ops ****************************************/
+/* define some stuff to no-ops *************************************************/
+
+#define LOCK_INIT_OBJECT_LOCK(o)
 
 #define LOCK_MONITOR_ENTER(o)
 #define LOCK_MONITOR_EXIT(o)

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: codegen.c 7880 2007-05-07 14:13:45Z twisti $
 
 */
 
@@ -43,9 +43,7 @@
 
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -3294,20 +3292,6 @@ gen_method:
 
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
-		                      /* val.a: (classinfo*) superclass               */
-
-			/*  superclass is an interface:
-			 *
-			 *  OK if ((sub == NULL) ||
-			 *         (sub->vftbl->interfacetablelength > super->index) &&
-			 *         (sub->vftbl->interfacetable[-super->index] != NULL));
-			 *
-			 *  superclass is a class:
-			 *
-			 *  OK if ((sub == NULL) || (0
-			 *         <= (sub->vftbl->baseval - super->vftbl->baseval) <=
-			 *         super->vftbl->diffvall));
-			 */
 
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
 				classinfo *super;
@@ -3318,13 +3302,12 @@ gen_method:
 					superindex = 0;
 				}
 				else {
-					super = iptr->sx.s23.s3.c.cls;
+					super      = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
 				}
 			
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+					CODEGEN_CRITICAL_SECTION_NEW;
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
@@ -3395,9 +3378,9 @@ gen_method:
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					/* 				if (s1 != REG_ITMP1) { */
 					/* 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval)); */
@@ -3411,9 +3394,9 @@ gen_method:
 					M_ISUB(REG_ITMP2, REG_ITMP3, REG_ITMP2); 
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_END;
+
 					/* 				} */
 					M_CMPULT(REG_ITMP3, REG_ITMP2, REG_ITMP3);
 					emit_classcast_check(cd, iptr, ICMD_IFNE, REG_ITMP3, s1);
@@ -3460,20 +3443,6 @@ gen_method:
 			break;
 
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
-		                      /* val.a: (classinfo*) superclass               */
-
-			/*  superclass is an interface:
-			 *
-			 *  return (sub != NULL) &&
-			 *         (sub->vftbl->interfacetablelength > super->index) &&
-			 *         (sub->vftbl->interfacetable[-super->index] != NULL);
-			 *
-			 *  superclass is a class:
-			 *
-			 *  return ((sub != NULL) && (0
-			 *          <= (sub->vftbl->baseval - super->vftbl->baseval) <=
-			 *          super->vftbl->diffvall));
-			 */
 
 			{
 			classinfo *super;
@@ -3490,9 +3459,8 @@ gen_method:
 				superindex = super->index;
 			}
 			
-#if defined(ENABLE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+				CODEGEN_CRITICAL_SECTION_NEW;
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -3570,15 +3538,15 @@ gen_method:
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
 				M_CMPULT(REG_ITMP2, REG_ITMP1, d);
 				M_XOR_IMM(d, 1, d);

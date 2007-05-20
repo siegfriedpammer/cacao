@@ -1,6 +1,6 @@
 /* src/mm/memory.h - macros for memory management
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-
-   Changes: Christian Thalinger
-
-   $Id: memory.h 7615 2007-03-29 23:10:59Z michi $
+   $Id: memory.h 7918 2007-05-20 20:42:18Z michi $
 
 */
 

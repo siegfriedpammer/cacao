@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7797 2007-04-23 20:12:39Z michi $
+   $Id: signal.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -60,13 +60,6 @@
 
 #if defined(ENABLE_STATISTICS)
 # include "vmcore/statistics.h"
-#endif
-
-
-/* global variables ***********************************************************/
-
-#if defined(ENABLE_THREADS)
-static threadobject *thread_signal;
 #endif
 
 
@@ -281,14 +274,8 @@ bool signal_start_thread(void)
 
 	name = utf_new_char("Signal Handler");
 
-	thread_signal = threads_create_thread(name);
-
-	if (thread_signal == NULL)
+	if (!threads_thread_start_internal(name, signal_thread))
 		return false;
-
-	/* actually start the signal handler thread */
-
-	threads_start_thread(thread_signal, signal_thread);
 
 	/* everything's ok */
 

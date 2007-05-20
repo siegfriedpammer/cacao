@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: parse.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -35,11 +35,10 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/logging.h"
 

@@ -37,6 +37,10 @@
 #include "toolbox/bitvector.h"
 #include "toolbox/worklist.h"
 
+#include "vm/builtin.h"
+
+#include "vm/jit/jit.h" /* icmd_table */
+
 #include "vm/jit/optimizing/dominators.h"
 #include "vm/jit/optimizing/graph.h"
 #include "vm/jit/optimizing/lifetimes.h"
@@ -45,366 +49,538 @@
 #include "vm/jit/optimizing/ssa.h"
 
 #if defined(SSA_DEBUG_VERBOSE)
-#include "vm/options.h"   /* compileverbose */
-#include "vm/jit/jit.h"          /* icmd_table */
+#include "vmcore/options.h"   /* compileverbose */
 #endif
 
 /* function prototypes */
-void dead_code_elimination(methodinfo *m, registerdata *rd, lsradata *ls,
-						   graphdata *gd);
-void copy_propagation(methodinfo *m,registerdata *rd, lsradata *ls,
-					  graphdata *gd);
-void replace_use_sites( lsradata *ls, graphdata *gd, struct lifetime *lt,
-						int new_v_index, worklist *W);
-void ssa_place_phi_functions(codegendata *cd, lsradata *ls, graphdata *gd,
-							 dominatordata *dd);
-void ssa_Rename_init(methodinfo *m, codegendata *cd, lsradata *ls,
-					 graphdata *gd);
-void ssa_Rename(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
-				graphdata *gd, dominatordata *dd);
-void ssa_Rename_(codegendata *cd, lsradata *ls, graphdata *gd, 
-				 dominatordata *dd, int n);
+void ssa_set_local_def(lsradata *, int , int);
+void ssa_set_interface(jitdata *, basicblock *, s4 *);
+
+void dead_code_elimination(jitdata *jd, graphdata *gd);
+void copy_propagation(jitdata *jd, graphdata *gd);
+void ssa_replace_use_sites(jitdata *, graphdata *, struct lifetime *,
+						int , worklist *);
+void ssa_place_phi_functions(jitdata *jd, graphdata *gd, dominatordata *dd);
+void ssa_rename_init(jitdata *jd, graphdata *gd);
+void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd);
+void ssa_rename_(jitdata *jd,  graphdata *gd, dominatordata *dd, int n);
+
+void ssa_set_def(lsradata *, int , int );
+void ssa_set_local_def(lsradata *, int , int );
+void ssa_set_iovar(lsradata *, s4 , int , s4 *);
+void ssa_set_interface(jitdata *, basicblock *, s4 *);
+
+void ssa_generate_phi_moves(jitdata *, graphdata *);
+int ssa_rename_def_(lsradata *ls, int a);
 
 #ifdef SSA_DEBUG_VERBOSE
-void ssa_print_trees(methodinfo *m, codegendata *cd, lsradata *ls,
-					 graphdata *gd, dominatordata *dd);
+void ssa_print_trees(jitdata *jd, graphdata *gd, dominatordata *dd);
 void ssa_print_lt(lsradata *ls);
+void ssa_show_variable(jitdata *jd, int index, varinfo *v, int stage);
+void ssa_print_phi(lsradata *, graphdata *);
 #endif
-/*********************************************************
-Data Collection (Use/Definition) while analyze_stack:
-Basic Block indices of definition are needed for generation
-of the phi Functions.
 
-ssa_set_local_def
-ssa_set_interface
-ssa_set_use
+/* ssa ************************************************************************
 
-These two functions use the internal Helpers:
-ssa_set_def
-ssa_set_interface_
-*********************************************************/
-void ssa_set_use(lsradata *ls, int b_index, int local_index, int type) {
-	/* just count uses to determine the needed max size for use def */
-	/* data structures */
-	ls->uses++;
-}
+SSA main procedure:
 
-void ssa_set_def(lsradata *ls, int b_index, int var_index) {
+******************************************************************************/
 
-	/* b_index + 1 to leave space for the param init block 0 */
-	bv_set_bit(ls->var_def[b_index + 1], var_index);
-	/* count number of defs for every var since SSA */
-	/* will create a new var for every definition */
-	ls->num_defs[var_index]++;
-}
-
-void ssa_set_local_def(lsradata *ls, int b_index, int local_index, int type) {
-
-	if (ls->var[local_index][type] == -1) {
-		/* New Local Variable encountered -> create a new unique index */
-		ls->var[local_index][type] = ls->max_vars;
-		ls->var_to_index[ls->max_vars] = ls->max_locals++;
-		ls->max_vars++;
-#ifdef SSA_DEBUG_VERBOSE
-		if (compileverbose)
-			printf("Local %3i,%3i -> Var %3i\n",local_index,type,ls->max_vars-1);
-#endif
-	}
-
-	ssa_set_def(ls, b_index, ls->var[local_index][type]);
-}
-
-void ssa_set_interface_(codegendata *cd, lsradata *ls, basicblock *bptr,
-				   stackptr s, int depth) {
-	int var_index;
-
-	var_index = depth + jd->maxlocals;
-	if (ls->var[var_index][s->type] == -1) {
-		/* New Interface Stackslot encountered -> create a new unique index */
-		ls->var[var_index][s->type] = ls->max_vars;
-		ls->var_to_index[ls->max_vars] = ls->max_interfaces--;
-		ls->max_vars++;
-#ifdef SSA_DEBUG_VERBOSE
-		if (compileverbose)
-			printf("Interface SS %3i,%3i -> Var %3i\n",bptr->nr+1,depth,ls->max_vars-1);
-#endif
-	}
-	ssa_set_def(ls, bptr->nr, ls->var[var_index][s->type]);
-}
-
-void ssa_set_interface(codegendata *cd, lsradata *ls, basicblock *bptr) {
-	stackptr out, in;
-	int in_d, out_d;
-
-	out = bptr->outstack;
-	in = bptr->instack;
-	in_d = bptr->indepth;
-	out_d = bptr->outdepth;
-
-	/* ignore top Stackelement of instack in case of EXH or SBR blocks */
-	/* These are no Interface stackslots! */
-	if ((bptr->type == BBTYPE_EXH) ||
-		(bptr->type == BBTYPE_SBR)) {
-		in_d--;
-		in = in->prev;
-	}
-
-	for(;(in_d > out_d); in_d--, in = in->prev);
-
-	while((out != NULL)) {
-		if (in_d == out_d) {
-			if (in != out) {
-				/* out interface stackslot is defined in this basic block */
-				ssa_set_interface_(cd, ls, bptr, out, out_d - 1);
-			}
-			out = out->prev;
-			out_d--;
-			in = in->prev;
-			in_d--;
-		} else if (in_d < out_d ) {
-			/* out interface stackslot is defined in this basic block */
-			ssa_set_interface_(cd, ls, bptr, out, out_d - 1);
-			out = out->prev;
-			out_d--;
-		}
-	}
-}
-
-/*********************************************************************
-Initialise needed Data structures
-*********************************************************************/
-
-void ssa_init(jitdata *jd) {
-	int  p, t;
-	methoddesc *md;
-	int i, b_index, len;
-	int lifetimes;
-	stackptr src, dst, tmp;
-	instruction *iptr;
-	basicblock  *bptr;
-
-	methodinfo *m;
-	codegendata *cd;
-	registerdata *rd;
+void ssa(jitdata *jd, graphdata *gd) {
+	struct dominatordata *dd;
 	lsradata *ls;
 
-	m = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
 	ls = jd->ls;
+
+	dd = compute_Dominators(gd, ls->basicblockcount);
+	computeDF(gd, dd, ls->basicblockcount, 0);
+
+	ssa_place_phi_functions(jd, gd, dd);
+	ssa_rename(jd, gd, dd);
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose) {
+		printf("Phi before Cleanup\n");
+		ssa_print_phi(ls, gd);
+		ssa_print_lt(ls);
+	}
+#endif
+	lt_scanlifetimes(jd, gd, dd);
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose) {
+		ssa_print_lt(ls);
+	}
+#endif
+/* 	dead_code_elimination(jd, gd); */
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose) {
+		printf("Phi after dead code elemination\n");
+		ssa_print_phi(ls, gd);
+		ssa_print_lt(ls);
+	}
+#endif
+/* 	copy_propagation(jd, gd); */
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose) {
+		printf("Phi after copy propagation\n");
+		ssa_print_phi(ls, gd);
+		ssa_print_lt(ls);
+	}
+#endif
+
+	ssa_generate_phi_moves(jd, gd);
+	transform_BB(jd, gd);
+
+
+#ifdef SSA_DEBUG_CHECK
+	{
+		int i, j, pred, in_d, out_d;
+		graphiterator iter_pred;
+		s4 *in, *out;
+		bool phi_define;
+		methodinfo *m;
+
+		m = jd->m;
+
+		for(i = 0; i < ls->basicblockcount; i++) {
+			if (ls->basicblocks[i]->indepth != 0) {
+				pred = graph_get_first_predecessor(gd, i, &iter_pred);
+				for (; (pred != -1); pred = graph_get_next(&iter_pred)) {
+					in_d = ls->basicblocks[i]->indepth - 1;
+					in = ls->basicblocks[i]->invars;
+					for (; in_d >= 0; in_d--) {
+						phi_define = false;
+						for (j = 0; (!phi_define) && (j<ls->ssavarcount); j++) {
+							if (ls->phi[i][j] != NULL)
+								if (ls->phi[i][j][0] == in[in_d])
+									phi_define = true;
+						}
+						if (!phi_define) {
+							/* in not defined in phi function -> check with */
+							/* outstack(s)  of predecessor(s) */
+							out_d = ls->basicblocks[pred]->outdepth - 1;
+							out = ls->basicblocks[pred]->outvars;
+							_SSA_ASSERT(out_d >= in_d);
+							for(; out_d > in_d; out_d--);
+							if ((in[in_d] != out[out_d]) || 
+							(VAR(in[in_d])->flags != VAR(out[out_d])->flags)) {
+								printf("Method: %s %s\n",
+									   m->class->name->text, m->name->text);
+									printf("Error: Stack Varnum Mismatch BBin %3i BBout %3i Stackdepth %3i\n", i, pred, in_d);
+								if (compileverbose)
+									printf("Error: Stack Varnum Mismatch BBin %3i BBout %3i Stackdepth %3i\n", i, pred, in_d);
+/* 								else */
+/* 									_SSA_ASSERT(0); */
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+#endif
+
+
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose)
+		ssa_print_trees(jd, gd, dd);
+#endif
+}
+
+/* ssa_init *******************************************************************
+
+Initialise data structures for ssa
+
+IOVARS of same stackdepth and same type are coalesced:
+interface_map[ 5 * stackdepth + type ] = new_varindex with
+0 <= new_varindex < ls->ssavarcount
+
+TODO: check if coalescing of IOVARS of same stackdepth and type only of adjacent
+basic blocks could decrease the number of phi functions and so improve ssa 
+analysis performance!
+
+All LOCALVARS and IOVARS get a new unique varindex:
+ls->new_varindex[0..jd->varcount[ = new_varindex with
+0 <= new_varindex < ls->ssavarcount
+
+The jd->varcount bits long bitvectors ls->var_def[0..jd->basicblockindex+1[
+ are set  to the definitions of LOCALVARS and IOVARS. (So the only the first 
+ls->ssavarcount bits of each of these vectors contain valid data, but 
+ls->ssavarcount is computed at the same time as the definitons are stored.)
+
+The basic block number used as index for the bitvector array ls->var_def is 
+already shifted by one to make space for the new basic block 0 for parameter
+initialization.
+
+******************************************************************************/
+
+void ssa_init(jitdata *jd) {
+	int         p, t, v;
+	methoddesc  *md;
+	int         i, l, b_index, len;
+	instruction *iptr;
+	basicblock  *bptr;
+	s4          *interface_map; /* holds an new unique index for every used  */
+	                            /* basic block inoutvar described by a dupel */
+                                /*(depth,type). Used to coalesce the inoutvars*/
+	methodinfo   *m;
+	lsradata     *ls;
+	builtintable_entry *bte;
+
+	ls = jd->ls;
+	m = jd->m;
 	md = m->parseddesc;
 
+
 #if defined(SSA_DEBUG_CHECK) || defined(SSA_DEBUG_VERBOSE)
-#if defined(SSA_DEBUG_VERBOSE)
+# if defined(SSA_DEBUG_VERBOSE)
 	if (compileverbose) {
 		printf("%s %s ",m->class->name->text, m->name->text);
 		if (jd->isleafmethod)
 			printf("**Leafmethod**");
 		printf("\n");
 	}
-#endif
-	if (strcmp(m->class->name->text,"java/util/Properties")==0)
-		if (strcmp(m->name->text,"load")==0)
-#if defined(SSA_DEBUG_VERBOSE)
+# endif
+	if (strcmp(m->class->name->text,"spec/benchmarks/_213_javac/Parser")==0)
+		if (strcmp(m->name->text,"parseTerm")==0)
+# if defined(SSA_DEBUG_VERBOSE)
 			if (compileverbose) 
 				printf("12-------------------12\n");
-#else
+# else
 	        { int dummy=1; dummy++; }
-#endif
+# endif
 #endif
 
 #ifdef SSA_DEBUG_VERBOSE
     if (compileverbose) 
-		printf("ssa_init: basicblockcount %3i maxlocals %3i\n",
-			   m->basicblockcount, jd->maxlocals);
+		printf("ssa_init: basicblockcount %3i localcount %3i\n",
+			   jd->basicblockcount, jd->localcount);
 #endif
-	ls->num_defs = DMNEW(int, jd->maxlocals * 5 + cd->maxstack * 5);
-	ls->var_to_index = DMNEW(int, jd->maxlocals * 5 + cd->maxstack * 5);
-	ls->var = DMNEW(int *, jd->maxlocals + cd->maxstack);
-	t = 0;
-	for(p = 0; p < jd->maxlocals + cd->maxstack; p++) {
-		ls->var[p] = DMNEW(int, 5);
-		for(i = 0; i < 5; i++) {
-			ls->var[p][i] = -1;
-			ls->num_defs[t++] = 0;
-		}
+
+	/* As first step all definitions of local variables and in/out vars are */
+	/* gathered. in/outvars are coalesced for same type and depth           */
+	/* "normal" tempvars (just living within one basicblock are) ignored    */
+
+	/* ls->var holds the index to jd->vars  */
+
+	ls->num_defs = DMNEW(int, jd->varcount);
+	ls->new_varindex = DMNEW(int , jd->varcount);
+
+	for(p = 0; p < jd->varcount; p++) {
+		ls->num_defs[p] = 0;
+		ls->new_varindex[p] = UNUSED;
 	}
+
 	/* init Var Definition bitvectors */
-	ls->var_def = DMNEW(int *, m->basicblockcount + 1);
-	for(i = 0; i <= m->basicblockcount; i++) {
-		ls->var_def[i] =  bv_new(jd->maxlocals * 5 + cd->maxstack * 5);
+
+	ls->var_def = DMNEW(int *, jd->basicblockcount + 1);
+	for(i = 0; i < jd->basicblockcount + 1; i++) {
+		ls->var_def[i] =  bv_new(jd->varcount);
 	}
-	ls->uses = 0;
-	ls->max_vars = 0;    /* no Vars seen till now */
-	                     /* A new Var Index will be created by SSA      */
-	                     /* since locals[Index][Type] is a quite sparse array */
-	                     /* and locals will be renamed anyway by SSA          */
-	ls->max_locals = 0;  /* unique index for every local_var/type pair*/
-	ls->max_interfaces = -1; /* unique index for every interface/type pair*/
-	                         /* interfaces are < 0, locals > 0 */
+
+	ls->ssavarcount = 0;
+
 	/* Add parameters first in right order, so the new local indices */
 	/* 0..p will correspond to "their" parameters */
 	/* They get defined at the artificial Block 0, the real method bbs will be*/
 	/* moved to start at block 1 */
- 	for (p = 0, i = 0; p < md->paramcount; p++) {
- 		t = md->paramtypes[p].type;
 
-		ssa_set_local_def(ls, -1, i, t);
- 		i++;
+	/* don't look at already eliminated (not used) parameters (locals) */
+
+ 	for (p = 0, l = 0; p < md->paramcount; p++) {
+ 		t = md->paramtypes[p].type;
+		i = jd->local_map[l * 5 + t];
+ 		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter a second time  */
- 			i++;                  /* for 2 word types */
+ 			l++;                  /* for 2 word types */
+		if (i == UNUSED)
+			continue;
+		ssa_set_local_def(ls, -1, i);
 	}
 
-	lifetimes = 0;
-	bptr = m->basicblocks;
+	_SSA_ASSERT(ls->ssavarcount < jd->varcount);
+
+	/* coalesce bb in/out vars */
+
+	interface_map = DMNEW(s4, jd->stackcount * 5);
+	for(i = 0; i < jd->stackcount * 5; i++)
+		interface_map[i] = UNUSED;
+
+	bptr = jd->basicblocks;
 
 	for(; bptr != NULL; bptr = bptr->next) {
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose)
+		printf("ssa_init: BB %3i flags %3x\n",bptr->nr, bptr->flags);
+#endif
 		if (bptr->flags >= BBREACHED) {
+
 			/* 'valid' Basic Block */
+
 			b_index = bptr->nr;
 
-			/* Scan Number of Stack Lifetimes */
-			lifetimes += m->basicblocks[b_index].indepth;
+			len = bptr->icount;
+			iptr = bptr->iinstr;
+			ssa_set_interface(jd, bptr, interface_map);
 
-			dst = m->basicblocks[b_index].instack;
-			len = m->basicblocks[b_index].icount;
-			iptr = m->basicblocks[b_index].iinstr;
-			for (;len>0; len--, iptr++) {
-				src = dst;
-				dst = iptr->dst;
-				
-				/* Reset "leftover" LOCALVAR stackslots */
-				switch(iptr->opc) {
-				case ICMD_DUP:
-					lifetimes +=1;
-					if (dst->varkind != ARGVAR)
-						dst->varkind = TEMPVAR;
-				case ICMD_SWAP:
-				case ICMD_DUP2:
-					lifetimes += 2;
-					for(i=0, tmp = dst; i < 2; i++, tmp = tmp->prev)
-						if (tmp->varkind != ARGVAR)
-							tmp->varkind = TEMPVAR;
-					break;
-				case ICMD_DUP_X1:
-					lifetimes += 3;
-					for(i=0, tmp = dst; i < 3; i++, tmp = tmp->prev)
-						if (tmp->varkind != ARGVAR)
-							tmp->varkind = TEMPVAR;
-					break;
-				case ICMD_DUP2_X1:
-					lifetimes += 5;
-					for(i=0, tmp = dst; i < 5; i++, tmp = tmp->prev)
-						if (tmp->varkind != ARGVAR)
-							tmp->varkind = TEMPVAR;
-					break;
-				case ICMD_DUP_X2:
-					lifetimes += 4;
-					for(i=0, tmp = dst; i < 4; i++, tmp = tmp->prev)
-						if (tmp->varkind != ARGVAR)
-							tmp->varkind = TEMPVAR;
-					break;
-				case ICMD_DUP2_X2:
-					lifetimes += 6;
-					for(i=0, tmp = dst; i < 6; i++, tmp = tmp->prev)
-						if (tmp->varkind != ARGVAR)
-							tmp->varkind = TEMPVAR;
-					break;
+			/* !!!!!!!!! not true for now !!!!!!!!! */
+			/* All baseline optimizations from stack.c are turned off for */
+			/* SSA! */
 
-				case ICMD_ILOAD:
-				case ICMD_LLOAD:
-				case ICMD_FLOAD:
-				case ICMD_DLOAD:
-				case ICMD_ALOAD:
-					if (( dst != NULL) && (src != dst))
-						lifetimes++;
-					dst->varkind = TEMPVAR;
-					if (dst->varnum < 0)
-						dst->varnum = 0;
-					ssa_set_use(ls, b_index, iptr->op1,
-								iptr->opc - ICMD_ILOAD);
-					break;
-					
-				case ICMD_IINC:
-					if (( dst != NULL) && (src != dst))
-						lifetimes++;
-					/* For SSA IINC has to be handled as a seperate LOAD */
-					/* and STORE. The target local index is held in      */
-					/* val._i.op1_t, The immediate val.i is held in     */
-					/* val._i.i */
-					{
-						int v;
-						v = iptr->val.i;
-						iptr->val._i.op1_t = iptr->op1;
-						iptr->val._i.i     = v;
+			for (; len > 0; len--, iptr++) {
+
+				/* Look for definitions (iptr->dst). INVOKE and BUILTIN have */
+				/* an optional dst - so they to be checked first */
+
+				v = UNUSED;
+				if (icmd_table[iptr->opc].dataflow == DF_INVOKE) {
+						INSTRUCTION_GET_METHODDESC(iptr,md);
+						if (md->returntype.type != TYPE_VOID)
+							v = iptr->dst.varindex;
+				}
+				else if (icmd_table[iptr->opc].dataflow == DF_BUILTIN) {
+						bte = iptr->sx.s23.s3.bte;
+						md = bte->md;
+						if (md->returntype.type != TYPE_VOID)
+							v = iptr->dst.varindex;
+				}
+				else if (icmd_table[iptr->opc].dataflow >= DF_DST_BASE) {
+ 					v = iptr->dst.varindex;
+				}
+
+				if (v != UNUSED) {
+					if (( v < jd->localcount) || ( VAR(v)->flags & INOUT )) {
+				  /* !IS_TEMPVAR && !IS_PREALLOC == (IS_LOCALVAR || IS_INOUT) */
+
+/* 						_SSA_ASSERT(ls->new_varindex[v] != UNUSED); */
+						ssa_set_local_def(ls, b_index, v);
 					}
-
-					ssa_set_use(ls, b_index, iptr->op1,TYPE_INT);
-					ssa_set_local_def(ls, b_index,
-									  iptr->val._i.op1_t, TYPE_INT);
-					break;
-
-				case ICMD_ISTORE:
-				case ICMD_LSTORE:
-				case ICMD_FSTORE:
-				case ICMD_DSTORE:
-				case ICMD_ASTORE:
-					src->varkind = TEMPVAR;
-					if (src->varnum < 0)
-						src->varnum =0;
-					ssa_set_local_def(ls, b_index, iptr->op1, 
-									  iptr->opc - ICMD_ISTORE);
-					break;
-
-
-				default:
-					if (( dst != NULL) && (src != dst))
-						lifetimes++;
 				}
 			}
-			ssa_set_interface(cd, ls, &(m->basicblocks[b_index]));
 		}
 	}
-	ls->maxlifetimes = lifetimes;
-	ls->lifetimecount = lifetimes + jd->maxlocals * (TYPE_ADR+1);
+	_SSA_ASSERT(ls->ssavarcount < jd->varcount);
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose) {
 
+		printf("ssa_init: Vars: Orig:%3i SSAVar: %3i\n", jd->varcount, 
+			   ls->ssavarcount);
+		for(i = 0; i < jd->varcount; i++) {
+			if ((i < jd->localcount) || ( VAR(i)->flags & INOUT)) {
+				printf("%3i(%3i,%3x) ",i,VAR(i)->type, VAR(i)->flags);
+				ssa_show_variable(jd, i, VAR(i),0);
+				if (i < ls->ssavarcount) {
+					printf(" -> %3i", ls->new_varindex[i]);
+				}
+				printf("\n");
+			}
+		}
+	}
+#endif
+}
+
+/* ssa_set_def ****************************************************************
+
+Helper for ssa_set_local_def and ssa_set_interface
+
+The definition of a var is stored in the bitvector array ls->var_def.
+
+The number of definitons of each var is counted, so the number of new vars with
+SSA is known.
+
+******************************************************************************/
+
+void ssa_set_def(lsradata *ls, int b_index, int varindex) {
+
+	/* b_index + 1 to leave space for the param init block 0 */
+
+	bv_set_bit(ls->var_def[b_index + 1], varindex);
+
+	/* count number of defs for every var since SSA */
+	/* will create a new var for every definition */
+
+	ls->num_defs[varindex]++;
+}
+
+/* ssa_set_local_def **********************************************************
+
+Helper for ssa_init
+
+Assigns a new unique index for the local var varindex (if not already done so)
+and then calls ssa_set_def to remember the definition in the bitvector array
+ls->var_def
+
+******************************************************************************/
+
+void ssa_set_local_def(lsradata *ls, int b_index, int varindex) {
+
+	if (ls->new_varindex[varindex] == UNUSED) {
+		ls->new_varindex[varindex] = ls->ssavarcount++;
+	}
+
+	ssa_set_def(ls, b_index, ls->new_varindex[varindex]);
+}
+
+/* ssa_set_local_def **********************************************************
+
+Helper for ssa_set_interface
+
+IN: ls              pointer to lsradata structure
+    iovar           varindex of INOUTVAR to process
+	map_index       stackdepth * 5 + type, used for coalescing IOVARS.
+
+IN/OUT
+	interface_map   used for coalescing IOVARS. interface_map[map_index] == 
+	                UNUSED, if this map_index (==stackdepth,type tupel) did not
+					occur till now. Then interface_map[map_index] will be set
+					to a new unique index.
+	ls->new_varindex will be set to this new unique index to map the old
+	                 varindizes to the new ones.
+
+Assigns a new unique index for the local var varindex (if not already done so)
+and then calls ssa_set_def to remember the definition in the bitvector array
+ls->var_def
+
+******************************************************************************/
+
+void ssa_set_iovar(lsradata *ls, s4 iovar, int map_index, s4 *interface_map) {
+		if (interface_map[map_index] == UNUSED) 
+			interface_map[map_index] = ls->ssavarcount++;
+
+		ls->new_varindex[iovar] = interface_map[map_index];
 }
 
 
-void ssa_place_phi_functions(codegendata *cd, lsradata *ls, graphdata *gd,
-							 dominatordata *dd)
+/* ssa_set_interface ***********************************************************
+
+Helper for ssa_init
+
+IN: ls              pointer to lsradata structure
+    *bptr           pointer to the basic block to be processed
+
+IN/OUT
+	interface_map   used for coalescing IOVARS. interface_map[map_index] == 
+	                UNUSED, if this map_index (==stackdepth,type tupel) did not
+					occur till now. Then interface_map[map_index] will be set
+					to a new unique index. (see ssa_set_iovar)
+
+Searches the basic block given by *bptr for IN and OUTVARS and coalesces them
+for each unique stackdepth,type dupel. For each OUTVAR with a different or no 
+INVAR at the same stackdepth the definition of this OUTVAR in this basic block 
+is remembered in ls->var_def. (see ssa_set_def)
+
+******************************************************************************/
+
+void ssa_set_interface(jitdata *jd, basicblock *bptr, s4 *interface_map) {
+	s4 *out, *in;
+	int in_d, out_d;
+	int o_map_index, i_map_index;
+	lsradata *ls;
+
+	ls = jd->ls;
+
+	out = bptr->outvars;
+	in = bptr->invars;
+	in_d = bptr->indepth - 1;
+	out_d = bptr->outdepth - 1;
+
+	/* ignore top Stackelement of instack in case of EXH or SBR blocks */
+	/* These are no Interface stackslots! */
+	if ((bptr->type == BBTYPE_EXH) ||
+		(bptr->type == BBTYPE_SBR)) {
+		in_d--;
+	}
+
+	/* invars with no corresponding outvars are not defined here */
+	/* just set up the interface_map */
+
+	for(;(in_d > out_d); in_d--) {
+		i_map_index = in_d * 5 + VAR(in[in_d])->type;
+		ssa_set_iovar(ls, in[in_d], i_map_index, interface_map);
+	}
+
+	while((out_d >= 0)) {
+		/* set up interface_map */
+
+		o_map_index = out_d * 5 + VAR(out[out_d])->type;
+		if (in_d >= 0) {
+			i_map_index = in_d * 5 + VAR(in[in_d])->type;
+			ssa_set_iovar(ls, in[in_d], i_map_index, interface_map);
+		}
+		ssa_set_iovar(ls, out[out_d], o_map_index, interface_map);
+		if (in_d == out_d) {
+			if (in[in_d] != out[out_d]) {
+
+				/* out interface stackslot is defined in this basic block */
+
+/* 				ssa_set_def(ls, bptr->nr + 1, ls->new_varindex[out[out_d]]); */
+			}
+			out_d--;
+			in_d--;
+		}
+		else {
+
+			/* in_d < out_d */
+			/* out interface stackslot is defined in this basic block */
+
+/* 			ssa_set_def(ls, bptr->nr + 1, ls->new_varindex[out[out_d]]); */
+			out_d--;
+		}
+	}
+}
+
+/* ssa_place_phi_functions *****************************************************
+
+ls->phi[n][a][p] is created and populated.
+
+For each basicblock Y in the dominance frontier of a basicblock n (0 <= n < 
+ls->basicblockcount)in which a variable (0 <= a < ls->ssavarcount) is defined an
+entry in ls->phi[Y][a] is created.
+This entry is an array with the number of predecessors of Y elements + 1 elements.
+This elements are all set to the variable a and represent the phi function which
+will get ai = phi(ai1, ai2, ..., aip) after ssa_rename.
+
+*******************************************************************************/
+
+
+void ssa_place_phi_functions(jitdata *jd, graphdata *gd, dominatordata *dd)
 {
 	int a,i,j,n,Y;
 	bitvector *def_sites;
-	bitvector *A_phi;    /* [0..ls->basicblockcount[ of ls->max_vars Bit */
+	bitvector *A_phi;    /* [0..ls->basicblockcount[ of ls->ssavarcount Bit */
 	worklist *W;
 	int num_pred;
-	bool add_phi;
-	stackptr s;
+
+	lsradata *ls;
+
+	ls = jd->ls;
 
 	W = wl_new(ls->basicblockcount);
 
-	def_sites = DMNEW(bitvector, ls->max_vars);
-	for(a = 0; a < ls->max_vars; a++)
+	def_sites = DMNEW(bitvector, ls->ssavarcount);
+	for(a = 0; a < ls->ssavarcount; a++)
 		def_sites[a] = bv_new(ls->basicblockcount);
 
 	ls->phi = DMNEW(int **, ls->basicblockcount);
 	A_phi = DMNEW(bitvector, ls->basicblockcount);
 	for(i = 0; i < ls->basicblockcount; i++) {
-		ls->phi[i] = DMNEW(int *, ls->max_vars);
-		for(j = 0; j < ls->max_vars; j++)
+		ls->phi[i] = DMNEW(int *, ls->ssavarcount);
+		for(j = 0; j < ls->ssavarcount; j++)
 			ls->phi[i][j] = NULL;
-		A_phi[i] = bv_new(ls->max_vars);
+		A_phi[i] = bv_new(ls->ssavarcount);
 	}
 
-	for(n = 0; n < ls->basicblockcount; n++)
-		for(a = 0; a < ls->max_vars; a++)
+	/* copy var_def to def_sites */
+	/* var_def is valid for 0.. jd->basicblockcount (bb 0 for param init) */
+
+	for(n = 0; n <= jd->basicblockcount; n++)
+		for(a = 0; a < ls->ssavarcount; a++)
 			if (bv_get_bit(ls->var_def[n], a))
 				bv_set_bit(def_sites[a], n);
 #ifdef SSA_DEBUG_VERBOSE
 	if (compileverbose) {
 		printf("var Definitions:\n");
-		for(i = 0; i < ls->max_vars; i++) {
+		for(i = 0; i < ls->ssavarcount; i++) {
 			printf("def_sites[%3i]=%p:",i,(void *)def_sites[i]);
 			for(j = 0; j < ls->basicblockcount; j++) {
 				if ((j % 5) == 0) printf(" ");
@@ -420,8 +596,10 @@ void ssa_place_phi_functions(codegendata *cd, lsradata *ls, graphdata *gd,
 	}
 #endif
 
-	for(a = 0; a < ls->max_vars; a++) {
+	for(a = 0; a < ls->ssavarcount; a++) {
+
 		/* W<-def_sites(a) */
+
 		for(n = 0; n < ls->basicblockcount; n++)
 			if (bv_get_bit(def_sites[a],n)) {
 				wl_add(W, n);
@@ -439,57 +617,31 @@ void ssa_place_phi_functions(codegendata *cd, lsradata *ls, graphdata *gd,
 					/* a is not a Element of A_phi[Y] */
 					/* a <- phi(a,a...,a) to be inserted at top of Block Y */
 					/* phi has as many arguments, as Y has predecessors    */
-
+#if 0
 #if 0
 					/* do not add a phi function for interface stackslots */
 					/* if a predecessor is not a def site of a <==>       */
 					/* the block does not have the corresponding inslot*/
-					if ((ls->var_to_index[a] >= 0) ||
-						(bv_get_bit(def_sites[a], 
-									graph_get_first_predecessor(gd, Y, &iter))))
+
+/* 					if ((ls->var_to_index[a] >= 0) || */
+/* 						(bv_get_bit(def_sites[a],  */
+/* 									graph_get_first_predecessor(gd, Y, &iter)))) */
+
 #endif
 					/* for interface stackslots add a phi function only */
 					/* if the basicblock has the corresponding incoming */
 					/* stackslot -> it could be, that the stackslot is */
 					/* not live anymore at Y */
 
-#ifdef SSA_DEBUG_VERBOSE
-					if (compileverbose)
-						if (ls->var_to_index[a] < 0)
-							printf("SS CHeck BB %3i ID %3i V2I %3i A %3i ML %3i\n",Y,
-								   ls->basicblocks[Y]->indepth, 
-								   ls->var_to_index[a], a, jd->maxlocals);
 #endif
-					/* Add Locals in any case */
-					add_phi = (ls->var_to_index[a] >= 0);
-					if (!add_phi) {
-						/* Stackslot */
-						s = ls->basicblocks[Y]->instack;
-						for(i = ls->basicblocks[Y]->indepth-1; i>=0; i--, s = s->prev) {
-							_SSA_ASSERT(s != 0);
-#ifdef SSA_DEBUG_VERBOSE
-					if (compileverbose)
-						if (ls->var_to_index[a] < 0)
-							printf(" Depth %3i Var %3i\n",i,
-								   ls->var[i + jd->maxlocals][s->type]);
-#endif
-							if (ls->var[i + jd->maxlocals][s->type] == a) {
-								add_phi=true;
-								break;
-							}
-						}
-					}
-					if (add_phi)
-					{
-						num_pred =  graph_get_num_predecessor(gd, Y);
-						ls->phi[Y][a] = DMNEW(int, num_pred + 1);
-						for (j = 0; j < num_pred + 1; j++)
-							ls->phi[Y][a][j] = a;
-						/* increment the number of definitions of a by one */
-						/* for this phi function */
-						ls->num_defs[a]++;
-					}
-
+					num_pred =  graph_get_num_predecessor(gd, Y);
+					ls->phi[Y][a] = DMNEW(int, num_pred + 1);
+					for (j = 0; j < num_pred + 1; j++)
+						ls->phi[Y][a][j] = a;
+					/* increment the number of definitions of a by one */
+					/* for this phi function */
+					ls->num_defs[a]++;
+					
 					bv_set_bit(A_phi[Y], a);
 					if (bv_get_bit(ls->var_def[Y],a)==0) {
 						/* Iterated Dominance Frontier Criterion:*/
@@ -504,397 +656,69 @@ void ssa_place_phi_functions(codegendata *cd, lsradata *ls, graphdata *gd,
 	}
 }
 
-void ssa_Rename_init(methodinfo *m, codegendata *cd, lsradata *ls, graphdata *gd) 
+/* ssa_rename ******************************************************************
+
+Rename the variables a (0 <= a < ls->ssavarcount) so that each new variable
+has only one definition (SSA form).
+
+ls->def_count[0..ls->ssavarcount[ holds the number of definitions of each var.
+ls->var_0[0..ls->ssavarcount[ will be set to the new index of the first 
+                              definition of each old var.
+ls->varcount_with_indices     will be se to the new maximum varcount of LOCAL
+                              and IOVARS.
+
+All other vars (TEMPVAR and PREALLOC) will get a new unique index above 
+ls->varcount_with_indices.
+
+jd->var and jd->varcount will be set for this renamed vars.
+
+*******************************************************************************/
+
+void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 {
-		
-	int a, i, t, p;
-	int i_l, i_i;
+	int i, mi, l, j, p, t;
+	int type, flags;
+	methoddesc *md = jd->m->parseddesc;
+
+	varinfo *new_vars;
+	lsradata *ls;
+
+	ls = jd->ls;
 	
-	/* set up new locals */
-	/* ls->var[index][type] holds the new unique index  */
-	/* in the range of [0..ls-max_vars[                 */
-	/* ls->num_defs[index] gives the number of indizes which will be created  */
-	/* from SSA */
-	/* -> vars will be numbered in this sequence: L0(0)..L0(i) L1(0)..L1(j).*/
-	/* ls->var[index][type] will point to each LX(0)  */
-
-	/* as first step cummulate the num_defs array */
-	/* for locals */
-	/* last element is the maximum local count */
-	ls->local_0 = DMNEW(int, ls->max_locals + 1);
-	ls->interface_0 = DMNEW(int, -ls->max_interfaces);
-	ls->local_0[0] = 0;
-	ls->interface_0[0] = 0;
-	ls->max_vars_with_indices = 0;
-	for(i = 0, i_i = 1, i_l = 1; i < ls->max_vars; i++) {
-		ls->max_vars_with_indices += ls->num_defs[i];
-		if (ls->var_to_index[i] >= 0) {
-			/* local var */
-			ls->local_0[i_l] = ls->local_0[i_l-1] + ls->num_defs[i];
-			ls->var_to_index[i] = ls->local_0[i_l-1];
-			i_l++;
-		} else {
-			/* interface stackslot */
-			ls->interface_0[i_i] = ls->interface_0[i_i-1] + ls->num_defs[i];
-			ls->var_to_index[i] = -ls->interface_0[i_i-1] - 1;
-			i_i++;
-		}
-	}
-
-	/* Change the var indices in phi from La to La(0) */
-	for(i = 0; i < ls->basicblockcount; i++)
-		for (t = 0; t < ls->max_vars; t++)
-			if (ls->phi[i][t] != NULL)
-				for(p = 0; p < graph_get_num_predecessor(gd, i) + 1; p++)
-					ls->phi[i][t][p] = ls->var_to_index[t];
-	
-	/* Initialization */
-	ls->count     = DMNEW(int, ls->max_vars);
-	ls->stack     = DMNEW(int *, ls->max_vars);
-	ls->stack_top = DMNEW(int, ls->max_vars);
-	for(a = 0; a < ls->max_vars; a++) {
-		ls->count[a] = 0;
-		ls->stack_top[a] = 0;
-		/* stack a has to hold number of defs of a Elements + 1 */
-		ls->stack[a] = DMNEW(int, ls->num_defs[a] + 1);
-		ls->stack[a][ls->stack_top[a]++] = 0;
-	}
-	if (ls->max_locals > 0) {
-		/* Create the num_var_use Array */
-		ls->num_var_use = DMNEW(int *, ls->basicblockcount);
-		for(i = 0; i < ls->basicblockcount; i++) {
-			ls->num_var_use[i] =DMNEW(int, max(1, ls->local_0[ls->max_locals]));
-			for(a = 0; a < ls->local_0[ls->max_locals]; a++)
-				ls->num_var_use[i][a] = 0;
-		}
-		/* Create the use_sites Array of Bitvectors*/
-		/* use max(1,..), to ensure that the array is created! */
-		ls->use_sites =  DMNEW(bitvector, max(1, ls->local_0[ls->max_locals]));
-		for(a = 0; a < ls->local_0[ls->max_locals]; a++)
-			ls->use_sites[a] = bv_new(ls->basicblockcount);
-	}
-	/* init lifetimes */
-
-	ls->maxlifetimes = /*m*/ ls->maxlifetimes + ls->basicblockcount * m->maxstack;
-	ls->lifetimecount = ls->maxlifetimes + ls->local_0[ls->max_locals] 
-		+ cd->maxstack * 5;
-	ls->lifetime = DMNEW(struct lifetime, ls->lifetimecount);
-	ls->lt_used = DMNEW(int, ls->lifetimecount);
-	ls->lt_int = DMNEW(int, ls->lifetimecount);
-	ls->lt_int_count = 0;
-	ls->lt_flt = DMNEW(int, ls->lifetimecount);
-	ls->lt_flt_count = 0;
-	ls->lt_mem = DMNEW(int, ls->lifetimecount);
-	ls->lt_mem_count = 0;
-	for (i=0; i < ls->lifetimecount; i++) ls->lifetime[i].type = -1;
-
-}
-
-int ssa_Rename_def(lsradata *ls, int n, int a) {
-	int i;
-	
-	_SSA_CHECK_BOUNDS(a,0,ls->max_vars);
-	ls->count[a]++;
-	i = ls->count[a] - 1;
-	/* push i on stack[a] */
-	_SSA_CHECK_BOUNDS(ls->stack_top[a], 0, ls->num_defs[a] + 1);
-	ls->stack[a][ls->stack_top[a]++] = i;
-	return i;
-}
-
-void ssa_Rename_use(lsradata *ls, int n, int a) {
-	if (ls->max_locals > 0) {
-		bv_set_bit(ls->use_sites[a], n);
-		ls->num_var_use[n][a]++;
-	}
-}
-
-void ssa_Rename_(codegendata *cd, lsradata *ls, graphdata *gd, 
-				 dominatordata *dd, int n) {
-	int a, i, j, k, iindex, Y;
-	int in_d, out_d;
-	instruction *iptr;
-	int *def_count;    
-	/* [0..ls->max_vars[ Number of Definitions of this var in this  */
-	/* Basic Block. Used to remove the entries off the stack at the */
-	/* end of the function */
-
-	stackptr in, out;
-	graphiterator iter_succ, iter_pred;
-	struct lifetime *lt;
-
-	_SSA_CHECK_BOUNDS(n, 0, ls->basicblockcount);
-
-	def_count = DMNEW(int, ls->max_vars);
-	for(i = 0; i < ls->max_vars; i++)
-		def_count[i] = 0;
-
-	/* change Store of possible phi functions from a0 to ai*/
-	for(a = 0; a < ls->max_vars; a++)
-		if (ls->phi[n][a] != NULL) {
-			def_count[a]++;
-				/* do not mark this store as use - maybee this phi function */
-				/* can be removed for unused Vars*/
-			if (ls->var_to_index[a] >= 0)
-				/* local var */
-				ls->phi[n][a][0] += ssa_Rename_def(ls, n, a);
-			else
-				/* interface */
-				ls->phi[n][a][0] -= ssa_Rename_def(ls, n, a);
-		}
-
-	in = ls->basicblocks[n]->instack;
-	in_d = ls->basicblocks[n]->indepth;
-	/* change use of instack Interface stackslots except top SBR and EXH */
-	/* stackslots */
-	if ((ls->basicblocks[n]->type == BBTYPE_EXH) ||
-		(ls->basicblocks[n]->type == BBTYPE_SBR)) {
-		in_d--;
-		in = in->prev;
-	}
-	out = ls->basicblocks[n]->outstack;
-	out_d = ls->basicblocks[n]->outdepth;
-
-	for(;out_d > in_d; out = out->prev, out_d--);
-
-	for (;in != NULL; in = in->prev, in_d--) {
-		/* Possible Use of                             */
-		/* ls->var[in_d - 1 + jd->maxlocals][in->type] */
-		_SSA_CHECK_BOUNDS(in_d - 1 + jd->maxlocals, 0, jd->maxlocals + cd->maxstack);
-		a = ls->var[in_d - 1 + jd->maxlocals][in->type];
-		_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
-		/* i <- top(stack[a]) */
-		_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
-		i = ls->stack[a][ls->stack_top[a]-1]; 
-		_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
-		/* Replace use of x with xi */
-#ifdef SSA_DEBUG_VERBOSE
-		if (compileverbose)
-			printf("Ren Use:BB %3i: stackslot: depth %3i old val: %3i Var,0: %3i varind: %3i\n", n, in_d, in->varnum, ls->var_to_index[a], ls->var_to_index[a]-i);
-#endif
-		in->varnum = ls->var_to_index[a] - i;
-		lt = &(ls->lifetime[-in->varnum-1]);
-		lt->v_index = in->varnum;
-		lt->bb_last_use = -1;
-		lsra_add_ss(lt, in);
-		in->varkind = TEMPVAR;
-	}
-	in = ls->basicblocks[n]->instack;
-		
-	iptr = ls->basicblocks[n]->iinstr;
-	for(iindex = 0; iindex < ls->basicblocks[n]->icount; iindex++, iptr++) {
-		switch(iptr->opc) {
-		case ICMD_ILOAD:
-		case ICMD_LLOAD:
-		case ICMD_FLOAD:
-		case ICMD_DLOAD:
-		case ICMD_ALOAD:
-			_SSA_CHECK_BOUNDS(iptr->op1, 0, jd->maxlocals);
-			a = ls->var[iptr->op1][iptr->opc - ICMD_ILOAD];
-			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
-			/* i <- top(stack[a]) */
-			_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
-			i = ls->stack[a][ls->stack_top[a]-1]; 
-			_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
-			/* Replace use of x with xi */
-#if 0
-			/* there are no LOCALVAR Stackslots with SSA */
-			if ((iptr->dst->varkind == LOCALVAR) &&
-				(iptr->dst->varnum == iptr->op1))
-				iptr->dst->varnum = ls->var_to_index[a] + i;
-#endif
-			iptr->op1 = ls->var_to_index[a] + i;
-
-			ssa_Rename_use(ls, n, ls->var_to_index[a] + i);
-
-			break;
-		case ICMD_ISTORE:
-		case ICMD_LSTORE:
-		case ICMD_FSTORE:
-		case ICMD_DSTORE:
-		case ICMD_ASTORE:
-			/* replace definition of a with def of ai */
-			_SSA_CHECK_BOUNDS(iptr->op1, 0, jd->maxlocals);
-			a = ls->var[iptr->op1][iptr->opc - ICMD_ISTORE];
-			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
-			def_count[a]++;
-
-			i = ssa_Rename_def(ls, n, a);
-			_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
-
-			iptr->op1 = ls->var_to_index[a] + i;
-			/* Mark Def as use, too. Since param initialisation is in var_def */
-			/* and this would not remove this locals, if not used elsewhere   */
-			ssa_Rename_use(ls, n, ls->var_to_index[a] + i);
-			break;
-		case ICMD_IINC:
-
-			/* Load from iptr->op1 */
-			_SSA_CHECK_BOUNDS(iptr->op1, 0, jd->maxlocals);
-			a = ls->var[iptr->op1][TYPE_INT];
-			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
-			/* i <- top(stack[a]) */
-			_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
-			i = ls->stack[a][ls->stack_top[a]-1]; 
-			_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
-			/* Replace use of x with xi */
-			iptr->op1 = ls->var_to_index[a] + i;
-
-			ssa_Rename_use(ls, n, ls->var_to_index[a] + i);			
-			/*  Store new(iinced) value in iptr->val._i.opq_t */
-
-			/* replace definition of a with def of ai */
-			_SSA_CHECK_BOUNDS(iptr->val._i.op1_t, 0, jd->maxlocals);
-			a = ls->var[iptr->val._i.op1_t][TYPE_INT];
-			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
-			def_count[a]++;
-
-			i = ssa_Rename_def(ls, n, a);
-			_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
-
-			iptr->val._i.op1_t = ls->var_to_index[a] + i;
-			/* Mark Def as use, too. Since param initialisation is in var_def */
-			/* and this would not remove this locals, if not used elsewhere   */
-			ssa_Rename_use(ls, n, ls->var_to_index[a] + i);
-
-			break;
-		}
-		in = iptr->dst;
-	}
-	/* change def of outstack Interface stackslots */
-	in = ls->basicblocks[n]->instack;
-	in_d = ls->basicblocks[n]->indepth;
-	out = ls->basicblocks[n]->outstack;
-	out_d = ls->basicblocks[n]->outdepth;
-
-	for(;in_d > out_d; in = in->prev, in_d--);
-
-	for (;out != NULL; out = out->prev, out_d--) {
-		if ((in_d < out_d) || (out != in)) {
-			/* Def of ls->var[out_d - 1 + jd->maxlocals][out->type] */
-			_SSA_CHECK_BOUNDS(out_d - 1 + jd->maxlocals, 0, jd->maxlocals + cd->maxstack);
-			a = ls->var[out_d - 1 + jd->maxlocals][out->type];
-			_SSA_CHECK_BOUNDS(a, 0, ls->max_vars);
-			def_count[a]++;
-			i = ssa_Rename_def(ls, n, a); 
-			_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
-			/* Replace use of x with xi */
- #ifdef SSA_DEBUG_VERBOSE
-			if (compileverbose)
-				printf("Ren def:BB %3i: stackslot: depth %3i old val: %3i Var,0: %3i varind: %3i\n", n, in_d, out->varnum, ls->var_to_index[a], ls->var_to_index[a]-i);
-#endif
-			out->varnum = ls->var_to_index[a] - i;
-			lt = &(ls->lifetime[-out->varnum-1]);
-			out->varkind = TEMPVAR;
-			lt->v_index = out->varnum;
-			lsra_add_ss(lt, out);
-			
-			ls->lifetime[-out->varnum-1].bb_last_use = -1;
-		}
-		if (out_d == in_d) {
-			in_d--;
-			in = in->prev;
-		}
-	}
-
-	/* change phi Functions of Successors */
-	Y = graph_get_first_successor(gd, n, &iter_succ);
-	for(; Y != -1; Y = graph_get_next(&iter_succ)) {
-		_SSA_CHECK_BOUNDS(Y, 0, ls->basicblockcount);
-		k = graph_get_first_predecessor(gd, Y, &iter_pred);
-		for (j = 0; (k != -1) && (k != n); j++, k = graph_get_next(&iter_pred));
-		_SSA_ASSERT(k == n);
-		/* n is jth Predecessor of Y */
-		for(a = 0; a < ls->max_vars; a++)
-			if (ls->phi[Y][a] != NULL) {
-				/* i <- top(stack[a]) */
-				_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
-				i = ls->stack[a][ls->stack_top[a]-1]; 
-				_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
-				/* change jth operand from a0 to ai */
-				if (ls->var_to_index[a] >= 0) {
-					/* local var */
-					ls->phi[Y][a][j+1] += i;
-					_SSA_CHECK_BOUNDS(ls->phi[Y][a][j+1], 0,
-								 ls->local_0[ls->max_locals]);
-					/* use by phi function has to be remembered, too */
-					ssa_Rename_use(ls, n, ls->phi[Y][a][j+1]);
-				} else {
-					/* interface */
-					ls->phi[Y][a][j+1] -= i;
-/* 					_SSA_CHECK_BOUNDS(ls->phi[Y][a][j+1], */
-/* 								 ls->interface_0[-ls->max_interfaces-1], 0); */
-				}
-			}
-	}
-	
-	/* Call ssa_Rename_ for all Childs of n of the Dominator Tree */
-	for(i = 0; i < ls->basicblockcount; i++)
-		if (dd->idom[i] == n)
-			ssa_Rename_(cd, ls, gd, dd, i);
-
-	/* pop Stack[a] for each definition of a var a in the original S */
-	for(a = 0; a < ls->max_vars; a++) {
-		ls->stack_top[a] -= def_count[a];
-		_SSA_ASSERT(ls->stack_top[a] >= 0);
-	}
-}
-
-void ssa_Rename(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls, 
-				graphdata *gd, dominatordata *dd)
-{
-	int i, p, t, type, flags;
-	methoddesc *md = m->parseddesc;
-
-	varinfo5 *locals;
-#ifdef SSA_DEBUG_VERBOSE
-	int j;
-#endif
-
-	if (ls->max_vars == 0) {
-		/* no locals or interfaces to rename */
-	/* init lifetimes */
-
-		ls->maxlifetimes = /*m*/ ls->maxlifetimes + ls->basicblockcount * m->maxstack;
-		ls->lifetimecount = ls->maxlifetimes + ls->max_locals + cd->maxstack *5;
-		ls->lifetime = DMNEW(struct lifetime, ls->lifetimecount);
-		ls->lt_used = DMNEW(int, ls->lifetimecount);
-		ls->lt_int = DMNEW(int, ls->lifetimecount);
-		ls->lt_int_count = 0;
-		ls->lt_flt = DMNEW(int, ls->lifetimecount);
-		ls->lt_flt_count = 0;
-		ls->lt_mem = DMNEW(int, ls->lifetimecount);
-		ls->lt_mem_count = 0;
-		for (i=0; i < ls->lifetimecount; i++) ls->lifetime[i].type = -1;
-		return;
-	}
-	
-	ssa_Rename_init(m, cd, ls, gd);
+	ssa_rename_init(jd, gd);
 
 	/* Consider definition of Local Vars initialized with Arguments */
 	/* in Block 0 */
-	/* init is regarded as use too-> ssa_Rename_use ->bullshit!!*/
- 	for (p = 0, i= 0; p < md->paramcount; p++) {
+	/* init is regarded as use too-> ssa_rename_use ->bullshit!!*/
+ 	for (p = 0, l= 0; p < md->paramcount; p++) {
  		t = md->paramtypes[p].type;
-
+		mi = l * 5 + t;
+		i = jd->local_map[mi];
+		l++;
+		if (IS_2_WORD_TYPE(t))
+			l++;
+		if (i == UNUSED)
+			continue;
 		/* !!!!! locals are now numbered as the parameters !!!! */
 		/* !!!!! no additional increment for 2 word types !!!!! */
 		/* this happens later on! here we still need the increment */
 	    /* index of var can be in the range from 0 up to not including */
-	    /* jd->maxlocals */
-		_SSA_CHECK_BOUNDS(i,0,jd->maxlocals);
-		_SSA_CHECK_BOUNDS(ls->var[i][t], 0, ls->local_0[ls->max_locals]);
-		ssa_Rename_def(ls, 0, ls->var[i][t]);
-		i++;
-		if (IS_2_WORD_TYPE(t))
-			i++;
+	    /* CD->maxlocals */
+
+		/* ignore return value, since first definition gives 0 -> */
+		/* no rename necessary */
+		
+		i = ls->new_varindex[i];
+		j = ssa_rename_def_(ls, i);
+		_SSA_ASSERT(j == 0);
+		jd->local_map[mi] = i;
 	}
-	ssa_Rename_(cd, ls, gd, dd, 0);
+	ssa_rename_(jd, gd, dd, 0);
 
 #if 0
 	/* DO _NOT_ DO THIS! Look at java.util.stringtokenizer.counttokens! */
 	/* if there is no use of the defined Var itself by the phi function */
-	/* for an loop path, in which this var is not used, it will not be life */
+	/* for a loop path, in which this var is not used, it will not be life */
 	/* in this path and overwritten! */
 
 	/* Invalidate all xij from phi(xi0)=xi1,xi2,xi3,..,xin with xij == xi0 */
@@ -906,13 +730,13 @@ void ssa_Rename(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls,
 	/* a phi function phi(xi0)=xi1,xi2,...xin wiht xij == xi0 for all j in */
 	/* [1,n] can be removed */
 
-	for(i = 0; i < ls->max_vars; i++) {
+	for(i = 0; i < ls->ssavarcount; i++) {
 		for(t = 0; t < ls->basicblockcount; t++) {
 			if (ls->phi[t][i] != 0) {
 				remove_phi = true;
 				for(p = 1; p <= graph_get_num_predecessor(gd, t); p++) {
 					if (ls->phi[t][i][0] == ls->phi[t][i][p])
-						ls->phi[t][i][p] = ls->max_vars_with_indices;
+						ls->phi[t][i][p] = ls->varcount_with_indices;
 					else 
 						remove_phi = false;
 				}
@@ -923,72 +747,619 @@ void ssa_Rename(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls,
 	}
 #endif
 
+#if defined(SSA_DEBUG_CHECK) || defined(SSA_DEBUG_VERBOSE)
+# if defined(SSA_DEBUG_VERBOSE)
+	if (compileverbose) {
+		printf("%s %s ",jd->m->class->name->text, jd->m->name->text);
+		if (jd->isleafmethod)
+			printf("**Leafmethod**");
+		printf("\n");
+	}
+# endif
+	if (strcmp(jd->m->class->name->text,"fp")==0)
+		if (strcmp(jd->m->name->text,"testfloat")==0)
+# if defined(SSA_DEBUG_VERBOSE)
+			if (compileverbose) 
+				printf("12-------------------12\n");
+# else
+	        { int dummy=1; dummy++; }
+# endif
+#endif
 	/* recreate rd->locals[][] */
 	/* now only one (local_index/type) pair exists anymore     */
 	/* all var[t][i] with var_to_index[var[t][i]] >= 0 are locals */
 	/* max local index after SSA indexing is in ls->local_0[ls->max_locals] */
 	
-	locals = DMNEW(varinfo5, ls->local_0[ls->max_locals]);
-	for(i = 0; i < ls->local_0[ls->max_locals] ; i++)
-		for(t = 0; t < 5; t++)
-			locals[i][t].type = -1;
-	for(t = 0; t < 5; t++) {
-		for(i = 0; i < jd->maxlocals; i++) {
-			p = ls->var[i][t];
-			if (p != -1) {
-				_SSA_ASSERT(ls->var_to_index[p] >= 0);
-				/* It's a local variable */
-				p = ls->var_to_index[p];
-				locals[p][t].type = t;
-				locals[p][t].flags = rd->locals[i][t].flags;
-#ifdef SSA_DEBUG_VERBOSE
-				if (compileverbose)
-					printf("locals %3i %3i .type = %3i\n",p,t,t);
-#endif
+	new_vars = DMNEW(varinfo, ls->vartop);
+	for(i = 0; i < ls->vartop ; i++)
+		new_vars[i].type = UNUSED;
+	for(i = 0; i < jd->varcount; i++) {
+			p = ls->new_varindex[i];
+			if (p != UNUSED) {
+				if (p < ls->ssavarcount)
+					p = ls->var_0[p];
+				new_vars[p].type  = VAR(i)->type;
+				new_vars[p].flags = VAR(i)->flags;
+				ls->lifetime[p].v_index = p;
+				ls->lifetime[p].type = VAR(i)->type;
 			}
+	}
+
+	/* take care of newly indexed local & in/out vars */
+
+	for(i = 0; i < ls->ssavarcount; i++) {
+		j = ls->var_0[i];
+		type = new_vars[j].type;
+		flags = new_vars[j].flags;
+		j++;
+		for (; j < ls->var_0[i + 1]; j++) {
+			new_vars[j].type = type;
+			new_vars[j].flags = flags;
+			ls->lifetime[j].v_index = j;
+			ls->lifetime[j].type = type;
 		}
 	}
+
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose) {
+
+		printf("ssa_rename: Vars: Orig:%3i SSAVar: %3i\n", jd->varcount,
+			   ls->ssavarcount);
+		for(i = 0; i < jd->varcount; i++) {
+			printf("%3i(%3i,%3x) ",i,VAR(i)->type, VAR(i)->flags);
+			ssa_show_variable(jd, i, VAR(i),0);
+			j = ls->new_varindex[i];
+			if ((j != UNUSED) && (j < ls->ssavarcount))
+				printf(" -> %3i ... %3i", ls->var_0[j], ls->var_0[j + 1] - 1);
+			else
+				printf(" -> %3i", j);
+			printf("\n");
+		}
+	}
+#endif
+
+ 	jd->var = new_vars;
+ 	jd->varcount = ls->vartop;
+	jd->vartop = ls->vartop;
+
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose) {
+		printf("ssa_rename: Vars: Orig:%3i SSAVar: %3i\n", jd->varcount,
+			   ls->ssavarcount);
+		for(i = 0; i < jd->varcount; i++) {
+			printf("%3i(%3i,%3x) ",i,VAR(i)->type, VAR(i)->flags);
+			ssa_show_variable(jd, i, VAR(i),0);
+			printf("\n");
+		}
+	}
+#endif
+}
+
+/* ssa_rename_init *************************************************************
+
+Setup the data structure for ssa_rename
+
+ls->def_count[0..ls->ssavarcount[ holds the number of definitions of each var.
+ls->var_0[0..ls->ssavarcount[ will be set to the new index of the first 
+                              definition of each old var.
+ls->varcount_with_indices     will be se to the new maximum varcount of LOCAL
+                              and IOVARS.
+
+All other vars (TEMPVAR and PREALLOC) will get a new unique index above 
+ls->varcount_with_indices.
+
+jd->var and jd->varcount will be set for this renamed vars.
+
+*******************************************************************************/
+
+void ssa_rename_init(jitdata *jd, graphdata *gd) 
+{
+	int a, i, p;
+	lsradata *ls;
+
+	ls = jd->ls;
 	
-	type = -1;
-	flags = -1;
-#ifdef SSA_DEBUG_VERBOSE
-	p = -1;
-	j = 0;
-#endif
-	for(i = 0; i < ls->local_0[ls->max_locals]; i++) {
-		for(t = 0; (t < 5) && (locals[i][t].type == -1); t++);
-		if (t == 5) {
-			_SSA_ASSERT(type != -1);
-#ifdef SSA_DEBUG_VERBOSE
-			if (compileverbose) {
-				printf("L%3i=L%3i(%3i) type %3i\n",i,p,j,type);
-				j++;
-			}
-#endif
-			locals[i][type].type = type;
-			locals[i][type].flags = flags;
-		} else {
-			type = locals[i][t].type;
-			flags = locals[i][t].flags;
-#ifdef SSA_DEBUG_VERBOSE
-			if (compileverbose) {
-				j=0;
-				p++;
-				printf("L%3i=L%3i(%3i) type %3i\n",i,p,j,type);
-				j++;
-			}
-#endif
-		}
+	/* set up new locals */
+	/* ls->new_varindex[0..jd->varcount[ holds the new unique index */
+	/* for locals and iovars */
+
+	/* ls->num_defs[index] gives the number of indizes which will be created  */
+	/* from SSA */
+
+	/* -> vars will be numbered in this sequence: L0(0)..L0(i) L1(0)..L1(j) ..*/
+	/* ls->var_0[X] will point to each LX(0)  */
+	/* ls->var_0[ls->ssavarcount] will hold ls->varcount_with_indices */
+
+	/* as first step cummulate the num_defs array for locals and iovars       */
+	/* last element is the maximum var count */
+
+	ls->var_0 = DMNEW(int, max(1, ls->ssavarcount + 1));
+	ls->var_0[0] = 0;
+	ls->varcount_with_indices = 0;
+	for(i = 0; i < ls->ssavarcount; i++) {
+		ls->varcount_with_indices += ls->num_defs[i];
+		ls->var_0[i+1] = ls->var_0[i] + ls->num_defs[i];
 	}
- 	rd->locals = locals;
- 	jd->maxlocals = ls->local_0[ls->max_locals];
+
+#if 0
+	/* Change the var indices in phi from La to La(0) */
+
+	for(i = 0; i < ls->basicblockcount; i++)
+		for (a = 0; a < ls->ssavarcount; a++)
+			if (ls->phi[i][a] != NULL)				
+				for(p = 0; p < graph_get_num_predecessor(gd, i) + 1; p++)
+					ls->phi[i][a][p] = ls->var_0[a];
+#endif
+	
+	/* Initialization */
+
+	ls->count     = DMNEW(int, max(1, ls->ssavarcount));
+	ls->stack     = DMNEW(int *, max(1, ls->ssavarcount));
+	ls->stack_top = DMNEW(int, max(1, ls->ssavarcount));
+	for(a = 0; a < ls->ssavarcount; a++) {
+		ls->count[a] = 0;
+		ls->stack_top[a] = 0;
+
+		/* stack a has to hold number of defs of a Elements + 1 */
+
+		ls->stack[a] = DMNEW(int, ls->num_defs[a] + 1);
+		ls->stack[a][ls->stack_top[a]++] = 0;
+	}
+
+	if (ls->ssavarcount > 0) {
+
+		/* Create the num_var_use Array */
+
+		ls->num_var_use = DMNEW(int *, ls->basicblockcount);
+		for(i = 0; i < ls->basicblockcount; i++) {
+			ls->num_var_use[i] =DMNEW(int, max(1, ls->varcount_with_indices));
+			for(a = 0; a < ls->varcount_with_indices; a++)
+				ls->num_var_use[i][a] = 0;
+		}
+
+		/* Create the use_sites Array of Bitvectors*/
+		/* use max(1,..), to ensure that the array is created! */
+
+		ls->use_sites =  DMNEW(bitvector, max(1, ls->varcount_with_indices));
+		for(a = 0; a < ls->varcount_with_indices; a++)
+			ls->use_sites[a] = bv_new(ls->basicblockcount);
+	}
+
+	/* init lifetimes */
+	/* count number of TEMPVARs */
+
+	ls->lifetimecount = 0;
+	for(i = 0; i < jd->varcount; i++)
+		if ((i >= jd->localcount) || (!(jd->var[i].flags & (INOUT | PREALLOC))))
+			ls->lifetimecount++;
+
+	ls->varcount = ls->varcount_with_indices + ls->lifetimecount;
+
+	ls->lifetimecount = ls->varcount;
+	ls->lifetime = DMNEW(struct lifetime, ls->lifetimecount);
+	ls->lt_used = DMNEW(int, ls->lifetimecount);
+	ls->lt_int = DMNEW(int, ls->lifetimecount);
+	ls->lt_int_count = 0;
+	ls->lt_flt = DMNEW(int, ls->lifetimecount);
+	ls->lt_flt_count = 0;
+	ls->lt_mem = DMNEW(int, ls->lifetimecount);
+	ls->lt_mem_count = 0;
+	for (i=0; i < ls->lifetimecount; i++) {
+		ls->lifetime[i].type = UNUSED;
+		ls->lifetime[i].savedvar = 0;		
+		ls->lifetime[i].flags = 0;
+		ls->lifetime[i].usagecount = 0;
+		ls->lifetime[i].bb_last_use = -1;
+		ls->lifetime[i].bb_first_def = -1;
+		ls->lifetime[i].use = NULL;
+		ls->lifetime[i].def = NULL;
+		ls->lifetime[i].last_use = NULL;
+	}
+
+	/* for giving TEMP and PREALLOC vars a new unique index */
+
+	ls->vartop = ls->varcount_with_indices; 
+
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose) {
+		printf("ssa_rename_init: Vars: Orig:%3i SSAVar: %3i\n", jd->varcount,
+			   ls->ssavarcount);
+		for(i = 0; i < jd->varcount; i++) {
+			if ((i < jd->localcount) || ( VAR(i)->flags & INOUT)) {
+				printf("%3i(%3i,%3x) ",i,VAR(i)->type, VAR(i)->flags);
+				ssa_show_variable(jd, i, VAR(i),0);
+				if ((i < ls->ssavarcount) || (VAR(i)->flags & INOUT)) {
+					printf(" -> %3i", ls->new_varindex[i]);
+				}
+				printf("\n");
+			}
+		}
+		ssa_print_phi(ls, gd);
+	}
+#endif
+}
+
+int ssa_rename_def_(lsradata *ls, int a) {
+	int i;
+	
+	_SSA_CHECK_BOUNDS(a,0,ls->ssavarcount);
+	ls->count[a]++;
+	i = ls->count[a] - 1;
+	/* push i on stack[a] */
+	_SSA_CHECK_BOUNDS(ls->stack_top[a], 0, ls->num_defs[a] + 1);
+	ls->stack[a][ls->stack_top[a]++] = i;
+	return i;
+}
+
+int ssa_rename_def(jitdata *jd, int *def_count, int a) {
+	int i, a1, ret;
+	lsradata *ls;
+
+	ls = jd->ls;
+	
+	a1 = ls->new_varindex[a];
+	_SSA_CHECK_BOUNDS(a1, UNUSED, ls->varcount);
+	if ((a1 != UNUSED) && (a1 < ls->ssavarcount)) {
+		/* local or inoutvar -> normal ssa renaming */
+		_SSA_ASSERT((a < jd->localcount) || (VAR(a)->flags & INOUT));
+		/* !IS_TEMPVAR && !IS_PREALLOC == (IS_LOCALVAR || IS_INOUT) */
+
+		def_count[a1]++;
+		i = ssa_rename_def_(ls, a1);
+		ret = ls->var_0[a1] + i;
+	}
+	else {
+		/* TEMP or PREALLOC var */
+		if (a1 == UNUSED) {
+			ls->new_varindex[a] = ls->vartop;
+			ret = ls->vartop;
+			ls->vartop++;
+			_SSA_ASSERT( ls->vartop < ls->varcount);
+		}
+		else
+			ret = a1;
+	}
+	return ret;
+}
+
+void ssa_rename_use_(lsradata *ls, int n, int a) {
+	_SSA_CHECK_BOUNDS(a, 0, ls->varcount_with_indices);
+	if (ls->ssavarcount > 0) {
+		bv_set_bit(ls->use_sites[a], n);
+		ls->num_var_use[n][a]++;
+	}
+}
+
+int ssa_rename_use(lsradata *ls, int n, int a) {
+	int a1, i;
+	int ret;
+
+	a1 = ls->new_varindex[a];
+	_SSA_CHECK_BOUNDS(a1, UNUSED, ls->varcount);
+	if ((a1 != UNUSED) && (a1 < ls->ssavarcount)) {
+		/* local or inoutvar -> normal ssa renaming */
+		/* i <- top(stack[a]) */
+
+		_SSA_CHECK_BOUNDS(ls->stack_top[a1]-1, 0, ls->num_defs[a1]+1);
+		i = ls->stack[a1][ls->stack_top[a1] - 1]; 
+		_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a1]);
+
+		ret = ls->var_0[a1] + i;
+	}
+	else {
+		/* TEMP or PREALLOC var */
+		if (a1 == UNUSED) {
+			ls->new_varindex[a] = ls->vartop;
+			ret = ls->vartop;
+			ls->vartop++;
+			_SSA_ASSERT( ls->vartop < ls->varcount);
+		}
+		else
+			ret = a1;
+	}
+
+	return ret;
 }
 
 #ifdef SSA_DEBUG_VERBOSE
-void ssa_print_trees(methodinfo *m, codegendata *cd, lsradata *ls,
-					 graphdata *gd, dominatordata *dd) {
+void ssa_rename_print(instruction *iptr, char *op, int from,  int to) {
+	if (compileverbose) {
+		printf("ssa_rename_: ");
+		if (iptr != NULL)
+			printf("%s ", opcode_names[iptr->opc]);
+		else
+			printf("       ");
+
+		printf("%s: %3i->%3i\n", op, from, to);
+	}
+}
+#endif
+
+void ssa_rename_(jitdata *jd, graphdata *gd, dominatordata *dd, int n) {
+	int a, i, j, k, iindex, Y, v;
+	int in_d, out_d;
+	int *def_count;
+	/* [0..ls->varcount[ Number of Definitions of this var in this  */
+	/* Basic Block. Used to remove the entries off the stack at the */
+	/* end of the function */
+	instruction *iptr;
+	s4 *in, *out, *argp;
+	graphiterator iter_succ, iter_pred;
+	struct lifetime *lt;
+
+	methoddesc *md;
+	methodinfo *m;
+	builtintable_entry *bte;
+	lsradata *ls;
+
+	ls = jd->ls;
+	m  = jd->m;
+
+#ifdef SSA_DEBUG_VERBOSE
+	if (compileverbose)
+		printf("ssa_rename_: BB %i\n",n);
+#endif
+
+	_SSA_CHECK_BOUNDS(n, 0, ls->basicblockcount);
+
+	def_count = DMNEW(int, max(1, ls->ssavarcount));
+	for(i = 0; i < ls->ssavarcount; i++)
+		def_count[i] = 0;
+
+	/* change Store of possible phi functions from a to ai*/
+
+	for(a = 0; a < ls->ssavarcount; a++)
+		if (ls->phi[n][a] != NULL) {
+			def_count[a]++;
+				/* do not mark this store as use - maybee this phi function */
+				/* can be removed for unused Vars*/
+			j = ls->var_0[a] + ssa_rename_def_(ls, a);
+#ifdef SSA_DEBUG_VERBOSE
+			ssa_rename_print( NULL, "phi-st", ls->phi[n][a][0], j);
+#endif
+			ls->phi[n][a][0] = j;
+		}
+
+	in   = ls->basicblocks[n]->invars;
+	in_d = ls->basicblocks[n]->indepth - 1;
+
+	/* change use of instack Interface stackslots except top SBR and EXH */
+	/* stackslots */
+
+	if ((ls->basicblocks[n]->type == BBTYPE_EXH) ||
+		(ls->basicblocks[n]->type == BBTYPE_SBR)) {
+		in_d--;
+	}
+/* 	out   = ls->basicblocks[n]->outvars; */
+/* 	out_d = ls->basicblocks[n]->outdepth - 1; */
+
+/* 	for(; out_d > in_d; out_d--); */
+
+	for (; in_d >= 0; in_d--) {
+		/* Possible Use of ls->new_varindex[jd->var[in_d]] */
+		_SSA_ASSERT(ls->new_varindex[in[in_d]] != UNUSED);
+
+		a = ls->new_varindex[in[in_d]];
+		_SSA_CHECK_BOUNDS(a, 0, ls->ssavarcount);
+
+		/* i <- top(stack[a]) */
+
+		_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
+		i = ls->stack[a][ls->stack_top[a]-1]; 
+		_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
+
+		/* Replace use of x with xi */
+
+#ifdef SSA_DEBUG_VERBOSE
+			ssa_rename_print( NULL, "invar", in[in_d], ls->var_0[a]+i);
+#endif
+		in[in_d] = ls->var_0[a] + i;
+		lt = ls->lifetime + in[in_d];
+
+		lt->v_index = in[in_d];
+		lt->bb_last_use = -1;
+	}
+
+	iptr = ls->basicblocks[n]->iinstr;
+
+	for(iindex = 0; iindex < ls->basicblocks[n]->icount; iindex++, iptr++) {
+
+		/* check for use (s1, s2, s3 or special (argp) ) */
+
+		switch (icmd_table[iptr->opc].dataflow) {
+		case DF_3_TO_0:
+		case DF_3_TO_1: /* icmd has s1, s2 and s3 */
+			j = ssa_rename_use(ls, n, iptr->sx.s23.s3.varindex);
+#ifdef SSA_DEBUG_VERBOSE
+			ssa_rename_print( iptr, "s3 ", iptr->sx.s23.s3.varindex, j);
+#endif
+			iptr->sx.s23.s3.varindex = j;
+
+			/* now "fall through" for handling of s2 and s1 */
+
+		case DF_2_TO_0:
+		case DF_2_TO_1: /* icmd has s1 and s2 */
+			j = ssa_rename_use(ls, n, iptr->sx.s23.s2.varindex);
+#ifdef SSA_DEBUG_VERBOSE
+			ssa_rename_print( iptr, "s2 ", iptr->sx.s23.s2.varindex, j);
+#endif
+			iptr->sx.s23.s2.varindex = j;
+
+			/* now "fall through" for handling of s1 */
+
+		case DF_1_TO_0:
+		case DF_1_TO_1:
+		case DF_MOVE:
+		case DF_COPY:
+			j = ssa_rename_use(ls, n, iptr->s1.varindex);
+#ifdef SSA_DEBUG_VERBOSE
+			ssa_rename_print( iptr, "s1 ", iptr->s1.varindex, j);
+#endif
+			iptr->s1.varindex = j;
+			break;
+
+		case DF_INVOKE:
+		case DF_BUILTIN:
+		case DF_N_TO_1:
+			/* do not use md->paramcount, pass-through stackslots have */
+			/* to be renamed, too */
+			i = iptr->s1.argcount;
+			argp = iptr->sx.s23.s2.args;
+			while (--i >= 0) {
+				j = ssa_rename_use(ls, n, *argp);
+#ifdef SSA_DEBUG_VERBOSE
+				ssa_rename_print( iptr, "arg", *argp, j);
+#endif
+				*argp = j;
+				argp++;
+			}
+			break;
+		}
+			
+
+		/* Look for definitions (iptr->dst). INVOKE and BUILTIN have */
+		/* an optional dst - so they to be checked first */
+
+		v = UNUSED;
+		if (icmd_table[iptr->opc].dataflow == DF_INVOKE) {
+			INSTRUCTION_GET_METHODDESC(iptr,md);
+			if (md->returntype.type != TYPE_VOID)
+				v = iptr->dst.varindex;
+		}
+		else if (icmd_table[iptr->opc].dataflow == DF_BUILTIN) {
+			bte = iptr->sx.s23.s3.bte;
+			md = bte->md;
+			if (md->returntype.type != TYPE_VOID)
+				v = iptr->dst.varindex;
+		}
+		else if (icmd_table[iptr->opc].dataflow >= DF_DST_BASE) {
+			v = iptr->dst.varindex;
+		}
+
+		if (v != UNUSED) {
+			j = ssa_rename_def(jd, def_count, iptr->dst.varindex);
+#ifdef SSA_DEBUG_VERBOSE
+			ssa_rename_print( iptr, "dst", iptr->dst.varindex, j);
+#endif
+			iptr->dst.varindex = j;
+		}
+
+				/* ?????????????????????????????????????????????????????????? */
+				/* Mark Def as use, too. Since param initialisation is in     */
+				/* var_def and this would not remove this locals, if not used */
+				/* elsewhere   */
+				/* ?????????????????????????????????????????????????????????? */
+
+	}
+
+	/* change outstack Interface stackslots */
+	out = ls->basicblocks[n]->outvars;
+	out_d = ls->basicblocks[n]->outdepth - 1;
+
+	for (;out_d >= 0; out_d--) {
+		/* Possible Use of ls->new_varindex[jd->var[out_d]] */
+		_SSA_ASSERT(ls->new_varindex[out[out_d]] != UNUSED);
+
+		a = ls->new_varindex[out[out_d]];
+		_SSA_CHECK_BOUNDS(a, 0, ls->ssavarcount);
+
+		/* i <- top(stack[a]) */
+
+		_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
+		i = ls->stack[a][ls->stack_top[a]-1]; 
+		_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
+
+		/* Replace use of x with xi */
+
+#ifdef SSA_DEBUG_VERBOSE
+			ssa_rename_print( NULL, "outvar", out[out_d], ls->var_0[a]+i);
+#endif
+		out[out_d] = ls->var_0[a] + i;
+		lt = ls->lifetime + out[out_d];
+
+		lt->v_index = out[out_d];
+		lt->bb_last_use = -1;
+	}
+
+	/* change use in phi Functions of Successors */
+
+	Y = graph_get_first_successor(gd, n, &iter_succ);
+	for(; Y != -1; Y = graph_get_next(&iter_succ)) {
+		_SSA_CHECK_BOUNDS(Y, 0, ls->basicblockcount);
+		k = graph_get_first_predecessor(gd, Y, &iter_pred);
+		for (j = 0; (k != -1) && (k != n); j++)
+			k = graph_get_next(&iter_pred);
+		_SSA_ASSERT(k == n);
+
+		/* n is jth Predecessor of Y */
+
+		for(a = 0; a < ls->ssavarcount; a++)
+			if (ls->phi[Y][a] != NULL) {
+
+				/* i <- top(stack[a]) */
+				
+				if (ls->stack_top[a] == 1) {
+					/* no definition till now in controll flow */
+#ifdef SSA_DEBUG_VERBOSE
+					if (compileverbose) {
+						printf("Succ %3i Arg %3i \n", Y, j);
+						ssa_rename_print( NULL, "phi-use", ls->phi[Y][a][j+1], UNUSED);
+					}
+#endif
+					ls->phi[Y][a][j+1] = UNUSED;
+				}
+				else {
+					_SSA_CHECK_BOUNDS(ls->stack_top[a]-1, 0, ls->num_defs[a]+1);
+					i = ls->stack[a][ls->stack_top[a]-1]; 
+					_SSA_CHECK_BOUNDS(i, 0, ls->num_defs[a]);
+
+					/* change jth operand from a0 to ai */
+
+					i = ls->var_0[a] + i;
+#ifdef SSA_DEBUG_VERBOSE
+					if (compileverbose) {
+						printf("Succ %3i Arg %3i \n", Y, j);
+						ssa_rename_print( NULL, "phi-use", ls->phi[Y][a][j+1], i);
+					}
+#endif
+					ls->phi[Y][a][j+1] = i;
+					_SSA_CHECK_BOUNDS(ls->phi[Y][a][j+1], 0,
+									  ls->varcount_with_indices);
+
+					/* use by phi function has to be remembered, too */
+
+					ssa_rename_use_(ls, n, ls->phi[Y][a][j+1]);
+				}
+
+				/* ????????????????????????????????????????????? */
+				/* why was this only for local vars before ?     */
+				/* ????????????????????????????????????????????? */
+
+			}
+	}
+	
+	/* Call ssa_rename_ for all Childs of n of the Dominator Tree */
+	for(i = 0; i < ls->basicblockcount; i++)
+		if (dd->idom[i] == n)
+			ssa_rename_(jd, gd, dd, i);
+
+	/* pop Stack[a] for each definition of a var a in the original S */
+	for(a = 0; a < ls->ssavarcount; a++) {
+		ls->stack_top[a] -= def_count[a];
+		_SSA_ASSERT(ls->stack_top[a] >= 0);
+	}
+}
+
+
+
+#ifdef SSA_DEBUG_VERBOSE
+void ssa_print_trees(jitdata *jd, graphdata *gd, dominatordata *dd) {
 	int i,j;
-	printf("ssa_printtrees: maxlocals %3i", jd->maxlocals);
+	lsradata *ls;
+
+	ls = jd->ls;
+
+	printf("ssa_printtrees: maxlocals %3i", jd->localcount);
 		
 	printf("Dominator Tree: \n");
 	for(i = 0; i < ls->basicblockcount; i++) {
@@ -1009,10 +1380,10 @@ void ssa_print_trees(methodinfo *m, codegendata *cd, lsradata *ls,
 		}
 		printf("\n");
 	}
-
-	if (ls->max_locals > 0) {
+#if 0
+	if (ls->ssavarcount > 0) {
 	printf("Use Sites\n");
-   	for(i = 0; i < ls->max_locals; i++) {
+   	for(i = 0; i < ls->ssavarcount; i++) {
 		printf("use_sites[%3i]=%p:",i,(void *)ls->use_sites[i]);
 		for(j = 0; j < ls->basicblockcount; j++) {
 			if ((j % 5) == 0) printf(" ");
@@ -1024,11 +1395,11 @@ void ssa_print_trees(methodinfo *m, codegendata *cd, lsradata *ls,
 		printf("\n");
 	}
 	}
-
+#endif
 	printf("var Definitions:\n");
-   	for(i = 0; i < ls->basicblockcount; i++) {
+   	for(i = 0; i < jd->basicblockcount; i++) {
 		printf("var_def[%3i]=%p:",i,(void *)ls->var_def[i]);
-		for(j = 0; j < ls->max_vars; j++) {
+		for(j = 0; j < ls->ssavarcount; j++) {
 			if ((j % 5) == 0) printf(" ");
 			if (bv_get_bit(ls->var_def[i], j))
 				printf("1");
@@ -1036,20 +1407,20 @@ void ssa_print_trees(methodinfo *m, codegendata *cd, lsradata *ls,
 				printf("0");
 		}
 		printf(" (");
-		for(j=0; j < ((((ls->max_vars * 5+7)/8) + sizeof(int) - 1)/sizeof(int));
+		for(j=0; j < ((((ls->ssavarcount * 5+7)/8) + sizeof(int) - 1)/sizeof(int));
 			j++)
 			printf("%8x",ls->var_def[i][j]);
-		printf("\n");
+		printf(")\n");
 	}
 }
 
 void ssa_print_phi(lsradata *ls, graphdata *gd) {
 	int i,j,k;
 
-	printf("phi Functions (max_vars_with_indices: %3i):\n", 
-		   ls->max_vars_with_indices);
+	printf("phi Functions (varcount_with_indices: %3i):\n", 
+		   ls->varcount_with_indices);
 	for(i = 0; i < ls->basicblockcount; i++) {
-		for(j = 0; j < ls->max_vars; j++) {
+		for(j = 0; j < ls->ssavarcount; j++) {
 			if (ls->phi[i][j] != NULL) {
 				printf("BB %3i %3i = phi(", i, ls->phi[i][j][0]);
 				for(k = 1; k <= graph_get_num_predecessor(gd, i); k++)
@@ -1063,20 +1434,39 @@ void ssa_print_phi(lsradata *ls, graphdata *gd) {
 
 #endif
 
-void ssa_generate_phi_moves(lsradata *ls, graphdata *gd) {
+void ssa_generate_phi_moves(jitdata *jd, graphdata *gd) {
 	int a, i, j, pred;
 	graphiterator iter;
+	lsradata *ls;
+
+	ls = jd->ls;
 
 	/* count moves to be inserted at the end of each block in moves[] */
 	ls->num_phi_moves = DMNEW(int, ls->basicblockcount);
 	for(i = 0; i < ls->basicblockcount; i++)
 		ls->num_phi_moves[i] = 0;
 	for(i = 0; i < ls->basicblockcount; i++)
-		for(a = 0; a < ls->max_vars; a++)
+		for(a = 0; a < ls->ssavarcount; a++)
 			if (ls->phi[i][a] != NULL) {
-				pred = graph_get_first_predecessor(gd, i, &iter);
-				for(; pred != -1; pred = graph_get_next(&iter)) {
-					ls->num_phi_moves[pred]++;
+#if 0
+				if (ls->lifetime[ls->phi[i][a][0]].use == NULL) {
+					/* Var defined (only <- SSA Form!) in this phi function */
+					/* and not used anywhere -> delete phi function and set */
+					/* var to unused */
+
+					/* TODO: first delete use sites of arguments of phi */
+					/* function */
+					VAR(ls->lifetime[ls->phi[i][a][0]].v_index)->type = UNUSED;
+					ls->lifetime[ls->phi[i][a][0]].def = NULL;
+					ls->phi[i][a] = NULL;
+				}
+				else 
+#endif
+					{
+					pred = graph_get_first_predecessor(gd, i, &iter);
+					for(; pred != -1; pred = graph_get_next(&iter)) {
+						ls->num_phi_moves[pred]++;
+					}
 				}
 			}
 
@@ -1086,24 +1476,29 @@ void ssa_generate_phi_moves(lsradata *ls, graphdata *gd) {
 		ls->phi_moves[i] = DMNEW( int *, ls->num_phi_moves[i]);
 		for(j = 0; j <ls->num_phi_moves[i]; j++)
 			ls->phi_moves[i][j] = DMNEW(int, 2);
+#ifdef SSA_DEBUG_VERBOSE
+		if (compileverbose)
+			printf("ssa_generate_phi_moves: ls_num_phi_moves[%3i] = %3i\n",
+				   i, ls->num_phi_moves[i]);
+#endif
 	}
 
 	/* populate ls->phi_moves */
 	for(i = 0; i < ls->basicblockcount; i++)
 		ls->num_phi_moves[i] = 0;
 	for(i = 0; i < ls->basicblockcount; i++)
-		for(a = 0; a < ls->max_vars; a++)
+		for(a = 0; a < ls->ssavarcount; a++)
 			if (ls->phi[i][a] != NULL) {
 				pred = graph_get_first_predecessor(gd, i, &iter);
 				for(j = 0; pred != -1; j++, pred = graph_get_next(&iter)) {
 					/* target is phi[i][a][0] */
 					/* source is phi[i][a][j+1] */
-					if (ls->phi[i][a][j+1] != ls->max_vars_with_indices) {
+					if (ls->phi[i][a][j+1] != ls->varcount_with_indices) {
 						/* valid move */
 						if (ls->phi[i][a][0] != ls->phi[i][a][j+1]) {
 							ls->phi_moves[pred][ls->num_phi_moves[pred]][0] =
 								ls->phi[i][a][0];
-							ls->phi_moves[pred][(ls->num_phi_moves[pred])++][1] = 
+							ls->phi_moves[pred][(ls->num_phi_moves[pred])++][1]=
 								ls->phi[i][a][j+1];
 						}
 					}
@@ -1111,128 +1506,31 @@ void ssa_generate_phi_moves(lsradata *ls, graphdata *gd) {
 			}
 }
 
-
-void ssa(jitdata *jd, graphdata *gd) {
-	struct dominatordata *dd;
-	methodinfo *m;
-	codegendata *cd;
-	registerdata *rd;
-	lsradata *ls;
-
-	m = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
-	ls = jd->ls;
-
-	dd = compute_Dominators(gd, ls->basicblockcount);
-	computeDF(gd, dd, ls->basicblockcount, 0);
-
-	ssa_place_phi_functions(cd, ls, gd, dd);
-	ssa_Rename(m, cd, rd, ls, gd, dd);
-#ifdef SSA_DEBUG_VERBOSE
-	if (compileverbose) {
-		printf("Phi before Cleanup\n");
-		ssa_print_phi(ls, gd);
-		ssa_print_lt(ls);
-	}
-#endif
-	scan_lifetimes(m, cd, rd, ls, gd, dd);
-#ifdef SSA_DEBUG_VERBOSE
-	if (compileverbose) {
-		ssa_print_lt(ls);
-	}
-#endif
-	dead_code_elimination(m, rd, ls, gd);
-#ifdef SSA_DEBUG_VERBOSE
-	if (compileverbose) {
-		printf("Phi after dead code elemination\n");
-		ssa_print_phi(ls, gd);
-		ssa_print_lt(ls);
-	}
-#endif
-	copy_propagation(m, rd, ls, gd);
-#ifdef SSA_DEBUG_VERBOSE
-	if (compileverbose) {
-		printf("Phi after copy propagation\n");
-		ssa_print_phi(ls, gd);
-		ssa_print_lt(ls);
-	}
-#endif
-
-	ssa_generate_phi_moves(ls, gd);
-	transform_BB(jd, gd);
-
-
-#ifdef SSA_DEBUG_CHECK
-	{
-		int i, j, pred, in_d, out_d;
-		graphiterator iter_pred;
-		stackptr in, out;
-		bool phi_define;
-
-		for(i = 0; i < ls->basicblockcount; i++) {
-			if (ls->basicblocks[i]->indepth != 0) {
-				pred = graph_get_first_predecessor(gd, i, &iter_pred);
-				for (; (pred != -1); pred = graph_get_next(&iter_pred)) {
-					in_d = ls->basicblocks[i]->indepth;
-					in = ls->basicblocks[i]->instack;
-					for (;in_d > 0; in_d--, in = in->prev) {
-						phi_define = false;
-						for (j = 0; (!phi_define) && (j < ls->max_vars); j++) {
-							if (ls->phi[i][j] != NULL)
-								if (ls->phi[i][j][0] == in->varnum)
-									phi_define = true;
-						}
-						if (!phi_define) {
-							/* in not defined in phi function -> check with outstack(s) */
-							/* of predecessor(s) */
-							out_d = ls->basicblocks[pred]->outdepth;
-							out = ls->basicblocks[pred]->outstack;
-							_SSA_ASSERT(out_d >= in_d);
-							for(; out_d > in_d; out_d--, out = out->prev);
-							if ((in->varnum != out->varnum) || 
-								(in->varkind != out->varkind)) {
-								printf("Method: %s %s\n", m->class->name->text, m->name->text);
-									printf("Error: Stack Varnum Mismatch BBin %3i BBout %3i Stackdepth %3i\n", i, pred, in_d);
-								if (compileverbose)
-									printf("Error: Stack Varnum Mismatch BBin %3i BBout %3i Stackdepth %3i\n", i, pred, in_d);
-/* 								else */
-/* 									_SSA_ASSERT(0); */
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-#endif
-
-
-#ifdef SSA_DEBUG_VERBOSE
-	if (compileverbose)
-		ssa_print_trees(m,cd,ls, gd, dd);
-#endif
-}
-
 /****************************************************************************
-Optimization
+Optimizations
 ****************************************************************************/
 
 
 /****************************************************************************
 Dead Code Elimination
 ****************************************************************************/
-void dead_code_elimination(methodinfo *m,registerdata *rd, lsradata *ls, graphdata *gd) {
+void dead_code_elimination(jitdata *jd, graphdata *gd) {
 	int a, i, source;
 	worklist *W;
 
 	instruction *iptr;
-	stackptr src;
 	struct lifetime *lt, *s_lt;
 
 	bool remove_statement;
 	struct site *use;
+
+	lsradata *ls;
+#ifdef SSA_DEBUG_VERBOSE
+	methodinfo *m;
+
+	m  = jd->m;
+#endif
+	ls = jd->ls;
 
 	W = wl_new(ls->lifetimecount);
 	if (ls->lifetimecount > 0) {
@@ -1288,28 +1586,24 @@ void dead_code_elimination(methodinfo *m,registerdata *rd, lsradata *ls, graphda
 				for (i = 1;i <= graph_get_num_predecessor(gd, lt->def->b_index);
 					 i++) 
 					{
-						source = ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
-						if ((source != ls->max_vars_with_indices) && 
+						source =
+							ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
+						if ((source != ls->varcount_with_indices) && 
 							(source != lt->v_index)) {
+
 							/* phi Argument was not already removed (already in 
 							   because of selfdefinition) */
-							if (source >= 0) {
-								/* Local Var */
-								s_lt = &(ls->lifetime[ls->maxlifetimes + source]);
-							} else {
-								/* Interface Stackslot */
-								s_lt = &(ls->lifetime[-source-1]);
-							}
+
+							s_lt = &(ls->lifetime[source]);
+
 							/* remove it */
-							remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
+
+							lt_remove_use_site(s_lt,lt->def->b_index,
+											lt->def->iindex);
+
 							/*  put it on the Worklist */
-							if (source >= 0) {
-								/* Local Var */
-								wl_add(W, ls->maxlifetimes + source);
-							} else {
-								/* Interface Stackslot */
-								wl_add(W, -source - 1);
-							}
+
+							wl_add(W, source);
 						}
 					}
 				/* now delete phi function itself */
@@ -1318,210 +1612,68 @@ void dead_code_elimination(methodinfo *m,registerdata *rd, lsradata *ls, graphda
 				/* "normal" Use by ICMD */
 				remove_statement = false;
 				if (lt->def->b_index != 0) {
+
 					/* do not look at artificial block 0 (parameter init) */
+
 					iptr = ls->basicblocks[lt->def->b_index]->iinstr + 
 						lt->def->iindex;
 
 					if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI)
 						remove_statement = false;
+
 					/* if ICMD could throw an exception do not remove it! */
+
 					else {
-						/* get src stack */
-						if (lt->def->iindex == 0)
-							src = ls->basicblocks[lt->def->b_index]->instack;
-						else
-							src = (iptr-1)->dst;
-	 
-						remove_statement = true;
-						/* Statement has side effects? (== ICMD_INVOKE*) */
-						switch (iptr->opc) {
-						case ICMD_INVOKEVIRTUAL:
-						case ICMD_INVOKESPECIAL:
-						case ICMD_INVOKESTATIC:
-						case ICMD_INVOKEINTERFACE:
-						case ICMD_BUILTIN:   
-							/* check if really a side effect is possible */
-						case ICMD_MULTIANEWARRAY: /* here, too */
-							/* side effects by Statement possible -> 
-							   do not remove it */
-							remove_statement = false;
-							break;
 
-							/* delete use of vars by these statments: */
+						/* ICMD_INVOKE*, ICMD_BUILTIN and ICMD_MULTIANEWARRAY */
+						/* have possible sideeffects -> do not remove them    */
 
-							/* use of iptr->op1 */
-						case ICMD_IINC:
-						case ICMD_ILOAD:
-						case ICMD_LLOAD:
-						case ICMD_FLOAD:
-						case ICMD_DLOAD:
-						case ICMD_ALOAD:
-							s_lt = &(ls->lifetime[ls->maxlifetimes + iptr->op1]);
-							remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
-							/* put it on the Worklist */
-							wl_add(W, ls->maxlifetimes + iptr->op1);
-							break;
+/* 						remove_statement = !(ICMD_HAS_SPECIAL(iptr->opc)); */
 
-							/* remove src->prev and src */
-						case ICMD_IALOAD:
-						case ICMD_LALOAD:
-						case ICMD_FALOAD:
-						case ICMD_DALOAD:
-						case ICMD_AALOAD:
+						remove_statement = !(
+							(icmd_table[iptr->opc].dataflow == DF_INVOKE) ||
+							(icmd_table[iptr->opc].dataflow == DF_BUILTIN) ||
+							(icmd_table[iptr->opc].dataflow == DF_N_TO_1));
 
-						case ICMD_BALOAD:
-						case ICMD_CALOAD:
-						case ICMD_SALOAD:
+						if (remove_statement) {
+							switch (icmd_table[iptr->opc].dataflow) {
+							case DF_3_TO_0:
+							case DF_3_TO_1: /* icmd has s1, s2 and s3 */
+								a = iptr->sx.s23.s3.varindex;
+								s_lt = ls->lifetime + a;
+								lt_remove_use_site(s_lt, lt->def->b_index,
+												   lt->def->iindex);
+								wl_add(W, a);
 
-						case ICMD_LADD:
-						case ICMD_LSUB:
-						case ICMD_LMUL:
+								/* now "fall through" for handling of s2 and s1 */
 
-						case ICMD_LOR:
-						case ICMD_LAND:
-						case ICMD_LXOR:
+							case DF_2_TO_0:
+							case DF_2_TO_1: /* icmd has s1 and s2 */
+								a = iptr->sx.s23.s2.varindex;
+								s_lt = ls->lifetime + a;
+								lt_remove_use_site(s_lt, lt->def->b_index,
+												   lt->def->iindex);
+								wl_add(W, a);
 
-						case ICMD_LSHL:
-						case ICMD_LSHR:
-						case ICMD_LUSHR:
+								/* now "fall through" for handling of s1 */
 
-						case ICMD_IADD:
-						case ICMD_IMUL:
-
-						case ICMD_ISHL:
-						case ICMD_ISHR:
-						case ICMD_IUSHR:
-						case ICMD_IAND:
-						case ICMD_IOR:
-						case ICMD_IXOR:
-
-
-						case ICMD_FADD:
-						case ICMD_FSUB:
-						case ICMD_FMUL:
-
-						case ICMD_DADD:
-						case ICMD_DSUB:
-						case ICMD_DMUL:
-						case ICMD_DDIV:
-						case ICMD_DREM:
-						case ICMD_ISUB:
-						case ICMD_LDIV:
-						case ICMD_LREM:
-
-						case ICMD_IDIV:
-						case ICMD_IREM:
-
-						case ICMD_FDIV:
-						case ICMD_FREM:
-
-						case ICMD_LCMP:
-						case ICMD_FCMPL:
-						case ICMD_FCMPG:
-						case ICMD_DCMPL:
-						case ICMD_DCMPG:
-							/* Remove src->prev and then "fall through" for removal
-							   of src */
-							s_lt = &(ls->lifetime[-src->prev->varnum-1]);
-							remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
-							/* put it on the Worklist */
-							wl_add(W, -src->prev->varnum - 1);
-							/* remove src */
-						case ICMD_ISTORE:
-						case ICMD_LSTORE:
-						case ICMD_FSTORE:
-						case ICMD_DSTORE:
-						case ICMD_ASTORE:
-						case ICMD_LADDCONST:
-						case ICMD_LSUBCONST:
-						case ICMD_LMULCONST:
-						case ICMD_LMULPOW2:
-						case ICMD_LDIVPOW2:
-						case ICMD_LREMPOW2:
-						case ICMD_LANDCONST:
-						case ICMD_LORCONST:
-						case ICMD_LXORCONST:
-						case ICMD_LSHLCONST:
-						case ICMD_LSHRCONST:
-						case ICMD_LUSHRCONST:
-
-						case ICMD_IADDCONST:
-						case ICMD_ISUBCONST:
-						case ICMD_IMULCONST:
-						case ICMD_IMULPOW2:
-						case ICMD_IDIVPOW2:
-						case ICMD_IREMPOW2:
-						case ICMD_IANDCONST:
-						case ICMD_IORCONST:
-						case ICMD_IXORCONST:
-						case ICMD_ISHLCONST:
-						case ICMD_ISHRCONST:
-						case ICMD_IUSHRCONST:
-
-							/* 					case ICMD_IFEQ_ICONST: */
-							/* 					case ICMD_IFNE_ICONST: */
-							/* 					case ICMD_IFLT_ICONST: */
-							/* 					case ICMD_IFGE_ICONST: */
-							/* 					case ICMD_IFGT_ICONST: */
-							/* 					case ICMD_IFLE_ICONST: */
-
-						case ICMD_INEG:
-						case ICMD_INT2BYTE:
-						case ICMD_INT2CHAR:
-						case ICMD_INT2SHORT:
-						case ICMD_LNEG:
-						case ICMD_FNEG:
-						case ICMD_DNEG:
-
-						case ICMD_I2L:
-						case ICMD_I2F:
-						case ICMD_I2D:
-						case ICMD_L2I:
-						case ICMD_L2F:
-						case ICMD_L2D:
-						case ICMD_F2I:
-						case ICMD_F2L:
-						case ICMD_F2D:
-						case ICMD_D2I:
-						case ICMD_D2L:
-						case ICMD_D2F:
-						case ICMD_CHECKCAST:
-						case ICMD_ARRAYLENGTH:
-						case ICMD_INSTANCEOF:
-
-						case ICMD_NEWARRAY:
-						case ICMD_ANEWARRAY:
-
-						case ICMD_GETFIELD:
-							/* Remove src->prev and then "fall through" for removal
-							   of src */
-							s_lt = &(ls->lifetime[-src->varnum-1]);
-							remove_use_site(s_lt,lt->def->b_index, lt->def->iindex);
-							/* put it on the Worklist */
-							wl_add(W, -src->varnum - 1);
-							break;
-							/* ignore these for now */
-						case ICMD_DUP:
-						case ICMD_DUP2:
-						case ICMD_DUP_X1:
-						case ICMD_DUP_X2:
-						case ICMD_DUP2_X1:
-						case ICMD_DUP2_X2:
-						case ICMD_SWAP:
-#ifdef SSA_DEBUG_VERBOSE
-							if (compileverbose)
-								printf("INFO2: ICMD_DUPX to be removed\n");
-#endif
-							/* DUPX has sideefects - cannot be removed, only because
-							   one of the output vars is unused
-							   TODO: extend the dead code elimination, so that all 
-							   output ss are checked*/
-							remove_statement = false;
-							break;
-						} /* switch (iptr->opc) */
+							case DF_1_TO_0:
+							case DF_1_TO_1:
+							case DF_MOVE:
+							case DF_COPY:
+								a = iptr->s1.varindex;
+								s_lt = ls->lifetime + a;
+								lt_remove_use_site(s_lt, lt->def->b_index,
+												   lt->def->iindex);
+								wl_add(W, a);
+							}
+						}
 					}
+
 					if (remove_statement) {
+
 						/* remove statement */
+
 #ifdef SSA_DEBUG_VERBOSE
 						if (compileverbose)
 							printf("INFO: %s %s:at BB %3i II %3i NOP-<%s\n",
@@ -1533,117 +1685,27 @@ void dead_code_elimination(methodinfo *m,registerdata *rd, lsradata *ls, graphda
   					}
 				} /* (lt->def->b_index != 0) */
 			} /* if (lt->def->iindex < 0 ) else */
+
 			/* remove definition of a */
-			if (lt->v_index >= 0) {
-				/* local var */
-				rd->locals[lt->v_index][lt->type].type = -1;
-			}
+
+			VAR(lt->v_index)->type = -1;
 			lt->type = -1;
 			lt->def = NULL;
 		} /* if (lt->use == NULL) */
-		
 	} /* while(!wl_is_empty(W)) */
 } /* dead_code_elimination */
 
-
-
-#if 0
-void dead_code_elimination(registerdata *rd, lsradata *ls, graphdata *gd) {
-	int A,a,i,n,t;
-	bool is_empty;
-
-	int *W_stack;
-	int W_top;
-
-	W_top = 0;
-	if (ls->max_locals > 0) {
-		W_stack = DMNEW(int, ls->max_vars);
-		/* put unused local vars on Worklist */
-		for(a = 0; a < ls->local_0[ls->max_locals]; a++) {
-			if (bv_is_empty(ls->use_sites[a], ls->basicblockcount)) {
-				/* a is not used */
-				W_stack[W_top++] = a;
-			}
-		}
-	}
-	/* Remove unused local vars */
-	while(W_top > 0) {
-		/* take a var out of Worklist */
-		a = W_stack[--W_top];
-
-		if (bv_is_empty(ls->use_sites[a], ls->basicblockcount)) {
-			for(t = 0; t < 5; t++)
-				rd->locals[a][t].type = -1;
-		}
-		/* Change and if necessary delete phi functions */
-		for(n = 0; n < ls->basicblockcount; n++) {
-			for(A = 0; A < ls->max_vars; A++) {
-				if (ls->var_to_index[A] >= 0) {
-				if (ls->phi[n][A] != NULL) {
-					is_empty = true;
-					/* look through the arguments of the phi function */
-					for(i = 1; i < (graph_get_num_predecessor(gd, n)+1); i++) {
-						/* check if entry was not already removed */
-						if (ls->phi[n][A][i] != -1) {
-							if (bv_is_empty(ls->use_sites[ls->phi[n][A][i]],
-												ls->basicblockcount))
-								{
-									ls->num_var_use[n][ls->phi[n][A][i]]--;
-									if (ls->num_var_use[n][ls->phi[n][A][i]] ==
-										0) {
-								 /* this was the only use in this Basic Block */
-										bv_reset_bit(
-										     ls->use_sites[ls->phi[n][A][i]],n);
-										if (bv_is_empty(
-											    ls->use_sites[ls->phi[n][A][i]],
-												ls->basicblockcount))
-											{
-								 /* this was the only use in the whole Method */
-								 /* -> put this local var on the Worklist     */
-												W_stack[W_top++] =
-													ls->phi[n][A][i];
-											}
-									}
-									ls->phi[n][A][i] = -1;
-								} else
-								is_empty = false;
-						}
-					}
-					/* look at the target of the phi function */
-					/* Remove it,if target is not used or all arguments where */
-					/* removed */
-					if (bv_is_empty(ls->use_sites[ls->phi[n][A][0]],
-										ls->basicblockcount) || is_empty) {
-						/* phi function can be removed */
-						ls->phi[n][A] = NULL;
-					}
-				} /* if (ls->phi[n][A] != NULL) */
-				} /* if (ls->var_to_index[A] >= 0 */
-			} /* for(li = 0; li < ls->max_locals; li++) */
-		} /* for(n = 0; n < ls->basicblockcount; n++) */
-	} /* while(W_top>0) */
-	/* Remove unused Local Vars from rd->local */
-	if (ls->max_locals > 0)
-		for(a = 0; a < ls->local_0[ls->max_locals]; a++) {
-			if (bv_is_empty(ls->use_sites[a], ls->basicblockcount)) {
-				/* a is not used */
-				for(t = 0; t < 5; t++)
-					rd->locals[a][t].type = -1;
-			}
-		}	
-}
-#endif
 /****************************************************************************
 Simple Constant Propagation
 ****************************************************************************/
 
 void simple_constant_propagation() {
 }
+
 /****************************************************************************
 Optimization
 *******************************************************************************/
-void copy_propagation(methodinfo *m,registerdata *rd, lsradata *ls,
-					  graphdata *gd) {
+void copy_propagation(jitdata *jd, graphdata *gd) {
 	int a, i, source;
 	int only_source;
 
@@ -1651,8 +1713,11 @@ void copy_propagation(methodinfo *m,registerdata *rd, lsradata *ls,
 
 	instruction *iptr;
 	struct lifetime *lt, *s_lt;
-	struct stackslot *ss;
-	stackptr in;
+	s4 *in;
+
+	lsradata *ls;
+
+	ls = jd->ls;
 
 	W = wl_new(ls->lifetimecount);
 	if (ls->lifetimecount > 0) {
@@ -1668,69 +1733,70 @@ void copy_propagation(methodinfo *m,registerdata *rd, lsradata *ls,
 		/* take a var out of Worklist */
 		a = wl_get(W);
 
-		lt = &(ls->lifetime[a]);
+		lt = ls->lifetime + a;
 		if (lt->type == -1)
 			continue;
 		_SSA_ASSERT(lt->def != NULL);
 		_SSA_ASSERT(lt->use != NULL);
 		if (lt->def->iindex < 0 ) {
+
 			/* phi function */
 			/* look, if phi function degenerated to a x = phi(y) */
 			/* and if so, substitute y for every use of x */
 
 			_SSA_ASSERT(ls->phi[lt->def->b_index][-lt->def->iindex-1] != NULL);
 
-			only_source = ls->max_vars_with_indices;
+			only_source = ls->varcount_with_indices;
 			for (i = 1; i <= graph_get_num_predecessor(gd, lt->def->b_index);
 				 i++) {
 					source = ls->phi[lt->def->b_index][-lt->def->iindex-1][i];
-					if (source != ls->max_vars_with_indices) {	
-						if (only_source == ls->max_vars_with_indices) {
+					if (source != ls->varcount_with_indices) {	
+						if (only_source == ls->varcount_with_indices) {
 							/* first valid source argument of phi function */
 							only_source = source;
 						} else {
 							/* second valid source argument of phi function */
 							/* exit for loop */
-							only_source = ls->max_vars_with_indices;
+							only_source = ls->varcount_with_indices;
 							break;
 						}
 					}
 			}
-			if (only_source != ls->max_vars_with_indices) {
+			if (only_source != ls->varcount_with_indices) {
+				
 				/* replace all use sites of lt with the var_index only_source */
-				replace_use_sites( ls, gd, lt, only_source, W);
+
+				ssa_replace_use_sites( jd, gd, lt, only_source, W);
 
 				/* delete def of lt and replace uses of lt with "only_source" */
+
 				ls->phi[lt->def->b_index][-lt->def->iindex-1] = NULL;
 
-				if (only_source >= 0) {
-					/* Local Var */
-					s_lt = &(ls->lifetime[ls->maxlifetimes + only_source]);
-					rd->locals[lt->v_index][lt->type].type = -1;
-				} else {
-					/* Interface Stackslot */
-					s_lt = &(ls->lifetime[-only_source-1]);
-				}
-				remove_use_site(s_lt, lt->def->b_index, lt->def->iindex);
+				s_lt = ls->lifetime + only_source;
+
+				VAR(lt->v_index)->type = -1;
+				lt_remove_use_site(s_lt, lt->def->b_index, lt->def->iindex);
 				lt->def = NULL;
 				/* move use sites from lt to s_lt */
-				move_use_sites(lt, s_lt);
-				move_stackslots(lt, s_lt);
+				lt_move_use_sites(lt, s_lt);
 				lt->type = -1;
-			} /* if (only_source != ls->max_vars_with_indices) */
+			} /* if (only_source != ls->varcount_with_indices) */
 		} else { /* if (lt->def->iindex < 0 )*/	
 			/* def in "normal" ICMD */
+#if 0
 			iptr = ls->basicblocks[lt->def->b_index]->iinstr + 
 				lt->def->iindex;
-			if (lt->v_index >= 0) {
+		
+			if ( localvar ) {
 				if (lt->def->b_index == 0)
 					continue;
+				
 				switch(iptr->opc) {
 				case ICMD_ISTORE:
 				case ICMD_LSTORE:
 				case ICMD_FSTORE:
 				case ICMD_DSTORE:
-				case ICMD_ASTORE:
+			case ICMD_ASTORE:
 					if (lt->def->iindex == 0) {
 						/* first instruction in bb -> instack==bb->instack */
 						in = ls->basicblocks[lt->def->b_index]->instack;
@@ -1745,16 +1811,16 @@ void copy_propagation(methodinfo *m,registerdata *rd, lsradata *ls,
 							printf("copy propagation xstore: BB %3i I %3i: %3i -> %3i\n", lt->def->b_index, lt->def->iindex, iptr->op1, in->varnum);
 #endif
 						s_lt = &(ls->lifetime[-in->varnum-1]);
-
+						
 						for (ss = s_lt->local_ss; ss != NULL; ss = ss->next) {
 							ss->s->varkind = LOCALVAR;
 							ss->s->varnum = iptr->op1;
 						}
-
+						
 						/* replace all use sites of s_lt with the var_index */
 						/* iptr->op1 */
 
-						replace_use_sites(ls, gd, s_lt, iptr->op1, W);
+						ssa_replace_use_sites(jd, gd, s_lt, iptr->op1, W);
 				
 						/* s_lt->def is the new def site of lt */
 						/* the old ->def site will get a use site of def */
@@ -1816,7 +1882,7 @@ void copy_propagation(methodinfo *m,registerdata *rd, lsradata *ls,
 
 						/* replace all use sites of lt with the var_index iptr->op1*/
 
-						replace_use_sites( ls, gd, lt, iptr->op1, W);
+						ssa_replace_use_sites(jd, gd, lt, iptr->op1, W);
 				
 						lt->def = NULL;
 
@@ -1830,34 +1896,45 @@ void copy_propagation(methodinfo *m,registerdata *rd, lsradata *ls,
 						if (lt->local_ss->s->varnum != iptr->op1)
 							printf("copy propagation: ILOAD -> LOCALVAR ss BB %i II %i\n",
 								   lt->def->b_index, lt->def->iindex);
-
+					
 					break;
 				}
-			}	
-		}
-	}
+			} /* localvar or interface stackslot */
+#endif
+		} /* i(lt->def->iindex < 0 ) */
+		
+	} /* while(!wl_is_empty(W)) */
 }
 
-void replace_use_sites( lsradata *ls, graphdata *gd, struct lifetime *lt,
-						int new_v_index, worklist *W) {
+void ssa_replace_use_sites(jitdata *jd, graphdata *gd, struct lifetime *lt,
+						   int new_v_index, worklist *W) {
 	struct site *s;
 	int i, source;
 	instruction *iptr;
-	struct stackslot *ss;
+	s4 *argp;
+
+	methoddesc *md;
+	builtintable_entry *bte;
+	lsradata *ls;
+
+	ls = jd->ls;
+	md = jd->m->parseddesc;
+	
 
 	for(s = lt->use; s != NULL; s = s->next) {
 		if (s->iindex < 0) {
+
 			/* Use in phi function */
-			for (i = 1;i <= graph_get_num_predecessor(gd,s->b_index);
-				 i++) {
+
+			for (i = 1;i <= graph_get_num_predecessor(gd, s->b_index); i++) {
 				source = ls->phi[s->b_index][-s->iindex-1][i];
 				if (source == lt->v_index) {	
 #ifdef SSA_DEBUG_VERBOSE
 					if (W != NULL) {
-					if (compileverbose)
-						printf("copy propagation phi: BB %3i I %3i: %3i -> \
+						if (compileverbose)
+							printf("copy propagation phi: BB %3i I %3i: %3i -> \
                                      %3i\n", s->b_index, s->iindex,
-							   new_v_index, source);
+								   new_v_index, source);
 					}
 #endif
 					ls->phi[s->b_index][-s->iindex-1][i]
@@ -1865,67 +1942,110 @@ void replace_use_sites( lsradata *ls, graphdata *gd, struct lifetime *lt,
 				}
 			}
 			if (W != NULL) {
+
 				/* Add var, which is defined by this phi function to */
 				/* the worklist */
+
 				source = ls->phi[s->b_index][-s->iindex-1][0];
-				if (source >= 0) {
-					/* Local Var */
-					wl_add(W, ls->maxlifetimes + source);
-				} else {
-					/* Interface Stackslot */
-					wl_add(W, -source - 1);
-				}
+				wl_add(W, source);
 			}
-		} else {
-			/* use in ICMD */
+		}
+		else { /* use in ICMD */
 	
 			iptr = ls->basicblocks[s->b_index]->iinstr + 
 				s->iindex;
-			if (lt->v_index >= 0) {
-				/* Local Var use */
-				switch(iptr->opc) {
-				case ICMD_ILOAD:
-				case ICMD_LLOAD:
-				case ICMD_FLOAD:
-				case ICMD_DLOAD:
-				case ICMD_ALOAD:
-				case ICMD_ISTORE:
-				case ICMD_LSTORE:
-				case ICMD_FSTORE:
-				case ICMD_DSTORE:
-				case ICMD_ASTORE:
-				case ICMD_IINC: /* iptr->op1 == USE */
-					/* TODO: check if for XSTORE not src->varnum has */
-					/* to be changed instead of iptr->op1 */
-					_SSA_ASSERT(iptr->op1 == lt->v_index);
+
+		/* check for use (s1, s2, s3 or special (argp) ) */
+
+			i = UNUSED;
+			switch (icmd_table[iptr->opc].dataflow) {
+			case DF_3_TO_0:
+			case DF_3_TO_1: /* icmd has s1, s2 and s3 */
+				if (iptr->sx.s23.s3.varindex == lt->v_index) {
 #ifdef SSA_DEBUG_VERBOSE
 					if (W != NULL) {
-					if (compileverbose)
-						printf("copy propagation loc: BB %3i I %3i: %3i -> \
+						if (compileverbose)
+							printf("copy propagation loc: BB %3i I %3i: %3i -> \
                                     %3i\n", s->b_index, s->iindex,
-							   new_v_index, iptr->op1);
+								   new_v_index, iptr->sx.s23.s3.varindex);
 					}
 #endif
-					iptr->op1 = new_v_index;
-					break;
-				default:
-					exit(1);
+					iptr->sx.s23.s3.varindex = new_v_index;
 				}
-			} else {
-				/* Interface Stackslot Use */
+
+				/* now "fall through" for handling of s2 and s1 */
+
+			case DF_2_TO_0:
+			case DF_2_TO_1: /* icmd has s1 and s2 */
+				if (iptr->sx.s23.s2.varindex == lt->v_index) {
 #ifdef SSA_DEBUG_VERBOSE
-				if (compileverbose)
-					printf("copy propagation int: BB %3i I %3i: %3i -> \
-                                 %3i\n", s->b_index, s->iindex, new_v_index,
-						   lt->local_ss->s->varnum);
+					if (W != NULL) {
+						if (compileverbose)
+							printf("copy propagation loc: BB %3i I %3i: %3i -> \
+                                    %3i\n", s->b_index, s->iindex,
+								   new_v_index, iptr->sx.s23.s2.varindex);
+					}
 #endif
-				for (ss = lt->local_ss; ss != NULL; ss = ss->next) {
-					ss->s->varkind = LOCALVAR;
-					ss->s->varnum = new_v_index;
+					iptr->sx.s23.s2.varindex = new_v_index;
 				}
+
+				/* now "fall through" for handling of s1 */
+
+			case DF_1_TO_0:
+			case DF_1_TO_1:
+			case DF_MOVE:
+			case DF_COPY:
+				if (iptr->s1.varindex == lt->v_index) {
+#ifdef SSA_DEBUG_VERBOSE
+					if (W != NULL) {
+						if (compileverbose)
+							printf("copy propagation loc: BB %3i I %3i: %3i -> \
+                                    %3i\n", s->b_index, s->iindex,
+								   new_v_index, iptr->s1.varindex);
+					}
+#endif
+					iptr->s1.varindex = new_v_index;
+				}
+				break;
+
+				/* TODO: */
+				/* ? really look at md->paramcount or iptr->s1.argcount */
+				/* has to be taken, so that pass-through stackslots get */
+				/* renamed, too? */
+
+			case DF_INVOKE:
+				INSTRUCTION_GET_METHODDESC(iptr,md);
+				i = md->paramcount;
+				break;
+			case DF_BUILTIN:
+				bte = iptr->sx.s23.s3.bte;
+				md = bte->md;
+				i = md->paramcount;
+				break;
+			case DF_N_TO_1:
+				i = iptr->s1.argcount;
+				break;
+			}
+			if (i != UNUSED) {
+				argp = iptr->sx.s23.s2.args;
+				while (--i >= 0) {
+					if (*argp == lt->v_index) {
+#ifdef SSA_DEBUG_VERBOSE
+						if (W != NULL) {
+							if (compileverbose)
+								printf(
+									   "copy propagation loc: BB %3i I %3i: %3i -> %3i\n"
+									   , s->b_index, s->iindex, new_v_index, *argp);
+						}
+#endif
+						*argp = new_v_index;
 							
-			}	
-		}
+					}
+					argp++;
+				}
+			}
+
+		} /* if (s->iindex < 0) */
 	} /* for(s = lt->use; s != NULL; s = s->next) */
 }
 
@@ -1937,8 +2057,8 @@ void ssa_print_lt(lsradata *ls) {
 
 	printf("SSA LT Def/Use\n");
 	for(i = 0; i < ls->lifetimecount; i++) {
-		lt = &(ls->lifetime[i]);
-		if (lt->type != -1) {
+		lt = ls->lifetime + i;
+		if (lt->type != UNUSED) {
 			printf("VI %3i Type %3i Def: ",lt->v_index, lt->type);
 			if (lt->def != NULL)
 				printf("%3i,%3i Use: ",lt->def->b_index, lt->def->iindex);
@@ -1950,7 +2070,49 @@ void ssa_print_lt(lsradata *ls) {
 		}
 	}
 }
+
+void ssa_show_variable(jitdata *jd, int index, varinfo *v, int stage)
+{
+	char type;
+	char kind;
+
+	switch (v->type) {
+		case TYPE_INT: type = 'i'; break;
+		case TYPE_LNG: type = 'l'; break;
+		case TYPE_FLT: type = 'f'; break;
+		case TYPE_DBL: type = 'd'; break;
+		case TYPE_ADR: type = 'a'; break;
+		case TYPE_RET: type = 'r'; break;
+		default:       type = '?';
+	}
+
+	if (index < jd->localcount) {
+		kind = 'L';
+		if (v->flags & (PREALLOC | INOUT))
+				printf("<INVALID FLAGS!>");
+	}
+	else {
+		if (v->flags & PREALLOC) {
+			kind = 'A';
+			if (v->flags & INOUT)
+				printf("<INVALID FLAGS!>");
+		}
+		else if (v->flags & INOUT)
+			kind = 'I';
+		else
+			kind = 'T';
+	}
+
+	printf("%c%c%3d", kind, type, index);
+
+	if (v->flags & SAVEDVAR)
+		putchar('!');
+
+	putchar(' ');
+	fflush(stdout);
+}
 #endif
+
 /****************************************************************************
 Optimization
 ****************************************************************************/

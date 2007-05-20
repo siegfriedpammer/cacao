@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.c 7784 2007-04-20 13:51:41Z twisti $
+   $Id: list.c 7915 2007-05-18 14:22:19Z twisti $
 
 */
 
@@ -35,11 +35,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/list.h"
 
@@ -56,9 +52,7 @@ list_t *list_create(s4 nodeoffset)
 
 	l = NEW(list_t);
 
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock((java_objectheader *) l);
-#endif
+	LOCK_INIT_OBJECT_LOCK(l);
 
 	l->first      = NULL;
 	l->last       = NULL;
@@ -100,11 +94,27 @@ list_t *list_create_dump(s4 nodeoffset)
 
 void list_add_first(list_t *l, void *element)
 {
+	LOCK_MONITOR_ENTER(l);
+
+	list_add_first_unsynced(l, element);
+
+	LOCK_MONITOR_EXIT(l);
+}
+
+
+/* list_add_first_unsynced *****************************************************
+
+   Adds the element as first element, but WITHOUT LOCKING!
+
+   ATTENTION: Use this function with care!!!
+
+*******************************************************************************/
+
+void list_add_first_unsynced(list_t *l, void *element)
+{
 	listnode_t *ln;
 
 	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
-
-	LOCK_MONITOR_ENTER(l);
 
 	if (l->first) {
 		ln->prev       = NULL;
@@ -122,8 +132,6 @@ void list_add_first(list_t *l, void *element)
 	/* increase number of elements */
 
 	l->size++;
-
-	LOCK_MONITOR_EXIT(l);
 }
 
 

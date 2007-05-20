@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: inline.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: inline.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -38,9 +38,8 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 
@@ -340,10 +339,9 @@ static bool inline_jit_compile(inline_node *iln)
 	m = iln->m;
 	assert(m);
 
-#if defined(ENABLE_THREADS)
 	/* enter a monitor on the method */
-	lock_monitor_enter((java_objectheader *) m);
-#endif
+
+	LOCK_MONITOR_ENTER(m);
 
 	/* allocate jitdata structure and fill it */
 
@@ -384,10 +382,9 @@ static bool inline_jit_compile(inline_node *iln)
 
 #endif
 
-#if defined(ENABLE_THREADS)
 	/* leave the monitor */
-	lock_monitor_exit((java_objectheader *) m );
-#endif
+
+	LOCK_MONITOR_EXIT(m);
 
 	return r;
 }

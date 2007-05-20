@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7643 2007-04-03 11:35:40Z twisti $
+   $Id: statistics.c 7916 2007-05-18 14:24:21Z twisti $
 
 */
 
@@ -30,8 +30,18 @@
 #include "config.h"
 
 #include <string.h> 
-#include <sys/time.h>
-#include <sys/resource.h>
+
+#if defined(HAVE_TIME_H)
+# include <time.h>
+#endif
+
+#if defined(HAVE_SYS_TIME_H)
+# include <sys/time.h>
+#endif
+
+#if defined(HAVE_SYS_RESOURCE_H)
+# include <sys/resource.h>
+#endif
 
 #include "vm/types.h"
 
@@ -82,12 +92,14 @@ s4 size_methodinfo       = 0;
 s4 size_lineinfo         = 0;
 s4 size_codeinfo         = 0;
 
+s4 size_stub_native      = 0;
+
 s4 size_stack_map        = 0;
 s4 size_string           = 0;
 
 s4 size_threadobject     = 0;
 
-s4 size_lock_record_pool = 0;
+s4 size_lock_record      = 0;
 s4 size_lock_hashtable   = 0;
 s4 size_lock_waiter      = 0;
 
@@ -159,7 +171,6 @@ int count_tryblocks = 0;
 int count_code_len = 0;
 int count_data_len = 0;
 int count_cstub_len = 0;
-int count_nstub_len = 0;
 int count_max_new_stack = 0;
 int count_upper_bound_new_stack = 0;
 
@@ -265,14 +276,21 @@ void jniinvokation(void)
 
 s8 getcputime(void)
 {
+#if defined(HAVE_GETRUSAGE)
 	struct rusage ru;
 	int sec, usec;
 
 	getrusage(RUSAGE_SELF, &ru);
-	sec = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
+
+	sec  = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
 	usec = ru.ru_utime.tv_usec + ru.ru_stime.tv_usec;
 
 	return sec * 1000000 + usec;
+#else
+	/* If we don't have getrusage, simply return 0. */
+
+	return 0;
+#endif
 }
 
 
@@ -588,6 +606,35 @@ void print_stats(void)
 }
 
 
+/* statistics_print_date *******************************************************
+
+   Print current date and time.
+
+*******************************************************************************/
+
+void statistics_print_date(void)
+{
+  time_t t;
+  struct tm tm;
+
+#if defined(HAVE_TIME)
+  time(&t);
+#else
+# error !HAVE_TIME
+#endif
+
+#if defined(HAVE_LOCALTIME_R)
+  localtime_r(&t, &tm);
+#else
+# error !HAVE_LOCALTIME_R
+#endif
+
+  log_println("%d-%02d-%02d %02d:%02d:%02d",
+			  1900 + tm.tm_year, tm.tm_mon + 1, tm.tm_mday,
+			  tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
+
+
 /* statistics_print_memory_usage ***********************************************
 
    Print current memory usage.
@@ -598,25 +645,24 @@ void statistics_print_memory_usage(void)
 {
 	s4 sum;
 
-	printf("memory usage ----------------------\n\n");
-	printf("code:                   %10d\n", count_code_len);
-	printf("data:                   %10d\n", count_data_len);
-
-	printf("                         ----------\n");
+	log_println("memory usage ----------------------");
+	log_println("");
+	log_println("code:                   %10d", count_code_len);
+	log_println("data:                   %10d", count_data_len);
+	log_println("                         ----------");
 
 	sum =
 		count_code_len +
 		count_data_len;
 
-	printf("                        %10d\n", sum);
-	printf("\n");
-
-	printf("classinfo  (%3d B):     %10d\n", (int) sizeof(classinfo), size_classinfo);
-	printf("fieldinfo  (%3d B):     %10d\n", (int) sizeof(fieldinfo), size_fieldinfo);
-	printf("methodinfo (%3d B):     %10d\n", (int) sizeof(methodinfo), size_methodinfo);
-	printf("lineinfo   (%3d B):     %10d\n", (int) sizeof(lineinfo), size_lineinfo);
-	printf("codeinfo   (%3d B):     %10d\n", (int) sizeof(codeinfo), size_codeinfo);
-	printf("                         ----------\n");
+	log_println("                        %10d", sum);
+	log_println("");
+	log_println("classinfo  (%3d B):     %10d", (int) sizeof(classinfo), size_classinfo);
+	log_println("fieldinfo  (%3d B):     %10d", (int) sizeof(fieldinfo), size_fieldinfo);
+	log_println("methodinfo (%3d B):     %10d", (int) sizeof(methodinfo), size_methodinfo);
+	log_println("lineinfo   (%3d B):     %10d", (int) sizeof(lineinfo), size_lineinfo);
+	log_println("codeinfo   (%3d B):     %10d", (int) sizeof(codeinfo), size_codeinfo);
+	log_println("                         ----------");
 
 	sum =
 		size_classinfo +
@@ -625,25 +671,24 @@ void statistics_print_memory_usage(void)
 		size_lineinfo +
 		size_codeinfo;
 
-	printf("                        %10d\n", sum);
-	printf("\n");
-
-	printf("constant pool:          %10d\n", count_const_pool_len);
-	printf("classref:               %10d\n", count_classref_len);
-	printf("parsed descriptors:     %10d\n", count_parsed_desc_len);
-	printf("vftbl:                  %10d\n", count_vftbl_len);
-	printf("compiler stubs:         %10d\n", count_cstub_len);
-	printf("native stubs:           %10d\n", count_nstub_len);
-	printf("utf:                    %10d\n", count_utf_len);
-	printf("vmcode:                 %10d\n", count_vmcode_len);
-	printf("exception tables:       %10d\n", count_extable_len);
-	printf("stack map:              %10d\n", size_stack_map);
-	printf("string:                 %10d\n", size_string);
-	printf("threadobject:           %10d\n", size_threadobject);
-	printf("lock record pool:       %10d\n", size_lock_record_pool);
-	printf("lock hashtable:         %10d\n", size_lock_hashtable);
-	printf("lock waiter:            %10d\n", size_lock_waiter);
-	printf("                         ----------\n");
+	log_println("                        %10d", sum);
+	log_println("");
+	log_println("constant pool:          %10d", count_const_pool_len);
+	log_println("classref:               %10d", count_classref_len);
+	log_println("parsed descriptors:     %10d", count_parsed_desc_len);
+	log_println("vftbl:                  %10d", count_vftbl_len);
+	log_println("compiler stubs:         %10d", count_cstub_len);
+	log_println("native stubs:           %10d", size_stub_native);
+	log_println("utf:                    %10d", count_utf_len);
+	log_println("vmcode:                 %10d", count_vmcode_len);
+	log_println("exception tables:       %10d", count_extable_len);
+	log_println("stack map:              %10d", size_stack_map);
+	log_println("string:                 %10d", size_string);
+	log_println("threadobject:           %10d", size_threadobject);
+	log_println("lock record:            %10d", size_lock_record);
+	log_println("lock hashtable:         %10d", size_lock_hashtable);
+	log_println("lock waiter:            %10d", size_lock_waiter);
+	log_println("                         ----------");
 
 	sum =
 		count_const_pool_len +
@@ -651,28 +696,26 @@ void statistics_print_memory_usage(void)
 		count_parsed_desc_len + 
 		count_vftbl_len +
 		count_cstub_len +
-		count_nstub_len +
+		size_stub_native +
 		count_utf_len +
 		count_vmcode_len +
 		count_extable_len +
 		size_stack_map +
 		size_string +
 		size_threadobject +
-		size_lock_record_pool +
+		size_lock_record +
 		size_lock_hashtable +
 		size_lock_waiter;
 
-	printf("                        %10d\n", sum);
-	printf("\n");
-
-	printf("max. memory usage:      %10d\n", maxcodememusage);
-	printf("max. heap memory usage: %10d\n", maxmemusage);
-	printf("max. dump memory usage: %10d\n", maxdumpsize);
-	printf("\n");
-		   
-	printf("heap memory not freed:  %10d\n", (s4) memoryusage);
-	printf("dump memory not freed:  %10d\n", (s4) globalallocateddumpsize);
-	printf("\n");
+	log_println("                        %10d", sum);
+	log_println("");
+	log_println("max. memory usage:      %10d", maxcodememusage);
+	log_println("max. heap memory usage: %10d", maxmemusage);
+	log_println("max. dump memory usage: %10d", maxdumpsize);
+	log_println("");
+	log_println("heap memory not freed:  %10d", (s4) memoryusage);
+	log_println("dump memory not freed:  %10d", (s4) globalallocateddumpsize);
+	log_println("");
 }
 
 
@@ -691,6 +734,7 @@ void statistics_print_gc_memory_usage(void)
 	log_println("heap size:      %10lld", gc_get_heap_size());
 	log_println("free:           %10lld", gc_get_free_bytes());
 	log_println("used:           %10lld", gc_get_total_bytes());
+	log_println("");
 }
 
 

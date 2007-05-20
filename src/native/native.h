@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 7601 2007-03-28 23:02:50Z michi $
+   $Id: native.h 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -36,12 +36,19 @@
 # include <ltdl.h>
 #endif
 
+#include "native/jni.h"
+
 #include "vm/global.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/utf8.h"
+
+
+/* defines ********************************************************************/
+
+#define NATIVE_METHODS_COUNT    sizeof(methods) / sizeof(JNINativeMethod)
 
 
 /* table for locating native methods */
@@ -53,6 +60,18 @@ typedef struct nativecompref nativecompref;
 #if !defined(WITH_STATIC_CLASSPATH)
 typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
 typedef struct hashtable_library_name_entry hashtable_library_name_entry;
+
+
+/* native_methods_node_t ******************************************************/
+
+typedef struct native_methods_node_t native_methods_node_t;
+
+struct native_methods_node_t {
+	utf         *classname;             /* class name                         */
+	utf         *name;                  /* method name                        */
+	utf         *descriptor;            /* descriptor name                    */
+	functionptr  function;              /* pointer to the implementation      */
+};
 
 
 /* hashtable_library_loader_entry *********************************************/
@@ -93,44 +112,37 @@ struct nativecompref {
 };
 
 
-/* initialize native subsystem */
+/* function prototypes ********************************************************/
+
 bool native_init(void);
+
+void native_method_register(utf *classname, JNINativeMethod *methods, s4 count);
 
 #if defined(WITH_STATIC_CLASSPATH)
 
-/* find native function */
 functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 								bool isstatic);
 
 #else /* defined(WITH_STATIC_CLASSPATH) */
 
-/* add a library to the library hash */
-void native_hashtable_library_add(utf *filename, java_objectheader *loader,
-								  lt_dlhandle handle);
+lt_dlhandle native_library_open(utf *filename);
+void        native_library_add(utf *filename, java_objectheader *loader,
+							   lt_dlhandle handle);
 
-/* find a library entry in the library hash */
-hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
-															java_objectheader *loader);
+hashtable_library_name_entry *native_library_find(utf *filename,
+												  java_objectheader *loader);
 
-/* resolve native function */
 functionptr native_resolve_function(methodinfo *m);
 
 #endif /* defined(WITH_STATIC_CLASSPATH) */
 
-/* create new object on the heap and call the initializer */
 java_objectheader *native_new_and_init(classinfo *c);
 
-/* create new object on the heap and call the initializer 
-   mainly used for exceptions with a message */
 java_objectheader *native_new_and_init_string(classinfo *c,
 											  java_objectheader *s);
 
-/* create new object on the heap and call the initializer 
-   mainly used for exceptions with an index */
 java_objectheader *native_new_and_init_int(classinfo *c, s4 i);
 
-/* create new object on the heap and call the initializer 
-   mainly used for exceptions with cause */
 java_objectheader *native_new_and_init_throwable(classinfo *c,
 												 java_objectheader *t);
 

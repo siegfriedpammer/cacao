@@ -71,10 +71,15 @@
 #define ft6     %f14
 
 #define fa0     %f16
+#define fa0f    %f17
 #define fa1     %f18
+#define fa1f    %f19
 #define fa2     %f20
+#define fa2f    %f21
 #define fa3     %f22
+#define fa3f    %f23
 #define fa4     %f24
+#define fa4f    %f25
 #define ft7     %f26
 #define ft8     %f28
 #define ft9     %f30

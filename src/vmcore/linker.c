@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7691 2007-04-12 12:45:10Z twisti $
+   $Id: linker.c 7870 2007-05-05 13:46:11Z tbfg $
 
 */
 
@@ -34,13 +34,10 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/logging.h"
 
@@ -134,9 +131,13 @@ bool linker_init(void)
 
 	interfaceindex = 0;
 
+#if defined(ENABLE_THREADS)
 	/* create the global lock object */
 
 	linker_classrenumber_lock = NEW(java_objectheader);
+
+	LOCK_INIT_OBJECT_LOCK(linker_classrenumber_lock);
+#endif
 
 	/* link java.lang.Class as first class of the system, because we
        need it's vftbl for all other classes so we can use a class as
@@ -1211,8 +1212,9 @@ static arraydescriptor *link_array(classinfo *c)
 
 static void linker_compute_subclasses(classinfo *c)
 {
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
-
+#if defined(ENABLE_THREADS) && !defined(DISABLE_GC)
+	threads_cast_stopworld();
+#endif
 	if (!(c->flags & ACC_INTERFACE)) {
 		c->nextsub = NULL;
 		c->sub     = NULL;
@@ -1229,7 +1231,9 @@ static void linker_compute_subclasses(classinfo *c)
 
 	linker_compute_class_values(class_java_lang_Object);
 
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+#if defined(ENABLE_THREADS) && !defined(DISABLE_GC)
+	threads_cast_startworld();
+#endif
 }
 
 

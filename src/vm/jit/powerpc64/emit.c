@@ -38,7 +38,7 @@
 #include "md-abi.h"
 #include "vm/jit/powerpc64/codegen.h"
 
-#include "vmcore/options.h"
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -49,9 +49,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "vmcore/options.h"
 
 
 /* emit_load *******************************************************************

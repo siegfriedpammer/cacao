@@ -28,53 +28,13 @@
 
    Changes:
 
-   $Id: md-abi.h 7680 2007-04-10 05:02:20Z pm $
+   $Id: md-abi.h 7839 2007-04-29 22:46:56Z pm $
 
 */
 
 
 #ifndef _MD_ABI_H
 #define _MD_ABI_H
-
-/* keep old code happy */
-
-#define RIP    -1
-#define RAX    0
-#define RCX    1
-#define RDX    2
-#define RBX    3
-#define RSP    4
-#define RBP    5
-#define RSI    6
-#define RDI    7
-#define R8     8
-#define R9     9
-#define R10    10
-#define R11    11
-#define R12    12
-#define R13    13
-#define R14    14
-#define R15    15
-
-
-#define XMM0   0
-#define XMM1   1
-#define XMM2   2
-#define XMM3   3
-#define XMM4   4
-#define XMM5   5
-#define XMM6   6
-#define XMM7   7
-#define XMM8   8
-#define XMM9   9
-#define XMM10  10
-#define XMM11  11
-#define XMM12  12
-#define XMM13  13
-#define XMM14  14
-#define XMM15  15
-
-
 
 /* define registers ***********************************************************/
 
@@ -157,9 +117,8 @@
 
 #define REG_FTMP1       F4       /* temporary floating point register         */
 #define REG_FTMP2       F6       /* temporary floating point register         */
-/* No ftmp3 */
-/* #define REG_FTMP3       F5 */       /* temporary floating point register         */
 
+/* No ftmp3 */
 
 #define INT_REG_CNT     16       /* number of integer registers               */
 #define INT_SAV_CNT     5        /* number of integer callee saved registers  */
@@ -174,17 +133,6 @@
 #define FLT_RES_CNT     2        /* number of float reserved registers        */
 
 #define TRACE_ARGS_NUM  8
-
-
-
-
-
-
-
-
-
-
-
 
 #endif /* _MD_ABI_H */
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: classcache.c 7560 2007-03-23 18:51:41Z twisti $
+   $Id: classcache.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -35,9 +35,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
@@ -266,7 +264,7 @@ bool classcache_init(void)
 
 	lock_hashtable_classcache = NEW(java_objectheader);
 
-	lock_init_object_lock(lock_hashtable_classcache);
+	LOCK_INIT_OBJECT_LOCK(lock_hashtable_classcache);
 #endif
 
 	/* everything's ok */

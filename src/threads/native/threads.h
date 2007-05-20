@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7766 2007-04-19 13:24:48Z michi $
+   $Id: threads.h 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -32,9 +32,7 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct threadobject          threadobject;
-typedef union  threads_table_entry_t threads_table_entry_t;
-typedef struct threads_table_t       threads_table_t;
+typedef struct threadobject threadobject;
 
 
 #include "config.h"
@@ -96,32 +94,6 @@ extern pthread_key_t threads_current_threadobject_key;
 #endif /* defined(HAVE___THREAD) */
 
 
-/* threads_table_entry_t *******************************************************
-
-   An entry in the global threads table.
-
-*******************************************************************************/
-
-union threads_table_entry_t {
-	threadobject       *thread;        /* an existing thread                  */
-	ptrint              nextfree;      /* next free index                     */
-};
-
-
-/* threads_table_t *************************************************************
-
-   Struct for the global threads table.
-
-*******************************************************************************/
-
-struct threads_table_t {
-	threads_table_entry_t *table;      /* the table, threads[0] is the head   */
-	                                   /* of the free list. Real entries      */
-									   /* start at threads[1].                */
-	s4                     size;       /* current size of the table           */
-};
-
-
 /* threadobject ****************************************************************
 
    Struct holding thread local variables.
@@ -139,11 +111,6 @@ struct threads_table_t {
 
 struct threadobject {
 	java_lang_Thread     *object;       /* link to java.lang.Thread object    */
-
-	lock_execution_env_t  ee;           /* data for the lock implementation   */
-
-	threadobject         *next;         /* next thread in list, or self       */
-	threadobject         *prev;         /* prev thread in list, or self       */
 
 	ptrint                thinlock;     /* pre-computed thin lock value       */
 
@@ -202,11 +169,6 @@ struct threadobject {
 #define STACKFRAMEINFO    (THREADOBJECT->_stackframeinfo)
 
 
-/* variables ******************************************************************/
-
-extern threadobject *mainthreadobj;
-
-
 /* functions ******************************************************************/
 
 void threads_sem_init(sem_t *sem, bool shared, int value);
@@ -215,7 +177,6 @@ void threads_sem_post(sem_t *sem);
 
 threadobject *threads_get_current_threadobject(void);
 
-void threads_preinit(void);
 bool threads_init(void);
 
 void threads_start_thread(threadobject *thread, functionptr function);

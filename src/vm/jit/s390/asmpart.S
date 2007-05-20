@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7680 2007-04-10 05:02:20Z pm $
+   $Id: asmpart.S 7839 2007-04-29 22:46:56Z pm $
 
 */
 
@@ -36,10 +36,6 @@
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
-
-/* Copy a call to a PIC function from gcc -S
- * We setup a temporary literal pool pointer.
- */
 
 	.text
 
@@ -181,7 +177,7 @@ L_register_copy:
 	ahi   itmp2, -1                       /* decrement arg count */
 	je    L_register_copy_done            /* no arguments left */
 
-	tm    offvmargtype(itmp1), 0x02       /* is this a float/double type? */
+	tm    offvmargtype+7(itmp1), 0x02     /* is this a float/double type? */
 	jne   L_register_handle_float
 
 L_register_handle_int:
@@ -189,7 +185,7 @@ L_register_handle_int:
 	chi   s2, INT_ARG_CNT	              /* are we out of integer arg registers ? */
 	je    L_register_copy                 /* yes, next loop */
 
-	tm    offvmargtype(itmp1), 0x01       /* is this a 2 word type ? */
+	tm    offvmargtype+7(itmp1), 0x01       /* is this a 2 word type ? */
 	jne   L_register_handle_long
 
 	ahi   s0, 1                           /* increment integer arg counter */
@@ -222,13 +218,13 @@ L_register_handle_long_continue:
 
 	/* handle argument */
 
-	chi   s2, 1
-	je    L_handle_l0
 	chi   s2, 2
-	je    L_handle_l1
+	je    L_handle_l0
 	chi   s2, 3
-	je    L_handle_l2
+	je    L_handle_l1
 	chi   s2, 4
+	je    L_handle_l2
+	chi   s2, 5
 	je    L_handle_l3
 
 L_register_handle_float:
@@ -238,7 +234,7 @@ L_register_handle_float:
 
 	ahi   s1, 1                           /* increment float argument counter */
 
-	tm    offvmargtype(itmp1), 0x01       /* is this a 2 word type ? */
+	tm    offvmargtype+7(itmp1), 0x01     /* is this a 2 word type ? */
 	jne   L_register_handle_double
 
 	/* handle argument */
@@ -297,7 +293,7 @@ L_stack_copy_loop:
 	ahi   itmp2, -1                     /* decrement argument counter */
 	je    L_copy_done                   /* all arguments done */
 
-	tm    offvmargtype(itmp1), 0x0      /* is this a float/double type? */
+	tm    offvmargtype+7(itmp1), 0x02   /* is this a float/double type? */
 	jne   L_stack_handle_float
 
 L_stack_handle_int:
@@ -305,10 +301,10 @@ L_stack_handle_int:
 	ahi   s0, -1                         /* decrement number of integer arguments in regs */
 	jhe   L_stack_copy_loop              /* argument is in register */
 
-	tm    offvmargtype(itmp1), 0x01      /* is this a 2 word type ? */
+	tm    offvmargtype+7(itmp1), 0x01    /* is this a 2 word type ? */
 	jne   L_stack_handle_long
 
-	mvc   0(4, s2), offvmargdata+4(itmp1) /* copy integer value */
+	mvc   0(4, s2), offvmargdata+4(itmp1)/* copy integer value */
 	ahi   s2, 4
 	j     L_stack_copy_loop
 
@@ -323,7 +319,7 @@ L_stack_handle_float:
 	ahi   s1, -1                         /* decrement number of float arguments in regs */
 	jhe   L_stack_copy_loop              /* argument is in register */
 
-	tm    offvmargtype(itmp1), 0x01      /* is this a 2 word type ? */
+	tm    offvmargtype+7(itmp1), 0x01    /* is this a 2 word type ? */
 	jne   L_stack_handle_double
 
 	mvc   0(4, s2), offvmargdata(itmp1)  /* copy float value */

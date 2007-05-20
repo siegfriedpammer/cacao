@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 7720 2007-04-16 15:49:09Z twisti $
+   $Id: java_lang_reflect_Constructor.c 7912 2007-05-18 13:12:09Z twisti $
 
 */
 
@@ -36,9 +36,11 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
+
 #include "native/include/java_lang_reflect_Constructor.h"
 
 #include "toolbox/logging.h"
@@ -50,6 +52,33 @@
 
 #include "vmcore/class.h"
 #include "vmcore/method.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getModifiersInternal", "()I",                                                       (void *) (ptrint) &Java_java_lang_reflect_Constructor_getModifiersInternal },
+	{ "getParameterTypes",    "()[Ljava/lang/Class;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getParameterTypes    },
+	{ "getExceptionTypes",    "()[Ljava/lang/Class;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getExceptionTypes    },
+	{ "constructNative",      "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Constructor_constructNative      },
+	{ "getSignature",         "()Ljava/lang/String;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getSignature         },
+};
+
+
+/* _Jv_java_lang_reflect_Constructor_init **************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_reflect_Constructor_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/reflect/Constructor");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*
@@ -106,7 +135,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getExcept
 /*
  * Class:     java/lang/reflect/Constructor
  * Method:    constructNative
- * Signature: ([Ljava/lang/Object;)Ljava/lang/Object;
+ * Signature: ([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {

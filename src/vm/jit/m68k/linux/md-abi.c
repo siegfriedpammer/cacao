@@ -51,7 +51,7 @@ const s4 abi_registers_integer_temporary[] 	= {0,1};
 /* Address register description */
 /* A6 is used as framepointer by native code, so be sure it is REG_RES */
 /*                        A0,      A1,   ATMP1,   ATMP2,   ATMP3,      A5,  REG_FP, REG_SP */
-s4 nregdescadr[] = { REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_SAV, REG_RES, REG_RES, REG_END };
+s4 nregdescadr[] = { REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_RES, REG_END };
 
 
 /* Floatingpoint register description */
@@ -173,3 +173,16 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 
 }
 
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7365 2007-02-15 19:42:13Z twisti $
+## $Id: Makefile.am 7813 2007-04-25 19:20:13Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,6 +46,7 @@ noinst_LTLIBRARIES = \
 libthreads_la_SOURCES = \
 	critical.c \
 	critical.h \
+	lock-common.h \
 	threads-common.c \
 	threads-common.h
 

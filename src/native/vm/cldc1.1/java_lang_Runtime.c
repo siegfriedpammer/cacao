@@ -31,10 +31,37 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
 #include "native/include/java_lang_Runtime.h"
 
 #include "native/vm/java_lang_Runtime.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "exitInternal", "(I)V", (void *) (ptrint) &Java_java_lang_Runtime_exitInternal },
+	{ "freeMemory",   "()J",  (void *) (ptrint) &Java_java_lang_Runtime_freeMemory   },
+	{ "totalMemory",  "()J",  (void *) (ptrint) &Java_java_lang_Runtime_totalMemory  },
+	{ "gc",           "()V",  (void *) (ptrint) &Java_java_lang_Runtime_gc           },
+};
+ 
+ 
+/* _Jv_java_lang_Runtime_init **************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_Runtime_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/Runtime");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

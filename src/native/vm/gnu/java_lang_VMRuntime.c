@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 7718 2007-04-16 15:26:01Z twisti $
+   $Id: java_lang_VMRuntime.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -45,11 +45,14 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
 #include "native/include/java_io_File.h"
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Process.h"
+
+#include "native/include/java_lang_VMRuntime.h"
 
 #include "native/vm/java_lang_Runtime.h"
 
@@ -65,6 +68,41 @@
 #include <sys/sysctl.h>
 #endif
 */
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "exit",                   "(I)V",                                         (void *) (ptrint) &Java_java_lang_VMRuntime_exit                   },
+	{ "freeMemory",             "()J",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_freeMemory             },
+	{ "totalMemory",            "()J",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_totalMemory            },
+	{ "maxMemory",              "()J",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_maxMemory              },
+	{ "gc",                     "()V",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_gc                     },
+	{ "runFinalization",        "()V",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_runFinalization        },
+	{ "runFinalizersOnExit",    "(Z)V",                                         (void *) (ptrint) &Java_java_lang_VMRuntime_runFinalizersOnExit    },
+	{ "runFinalizationForExit", "()V",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_runFinalizationForExit },
+	{ "traceInstructions",      "(Z)V",                                         (void *) (ptrint) &Java_java_lang_VMRuntime_traceInstructions      },
+	{ "traceMethodCalls",       "(Z)V",                                         (void *) (ptrint) &Java_java_lang_VMRuntime_traceMethodCalls       },
+	{ "availableProcessors",    "()I",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_availableProcessors    },
+	{ "nativeLoad",             "(Ljava/lang/String;Ljava/lang/ClassLoader;)I", (void *) (ptrint) &Java_java_lang_VMRuntime_nativeLoad             },
+	{ "mapLibraryName",         "(Ljava/lang/String;)Ljava/lang/String;",       (void *) (ptrint) &Java_java_lang_VMRuntime_mapLibraryName         },
+};
+
+
+/* _Jv_java_lang_VMRuntime_init ************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_VMRuntime_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMRuntime");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

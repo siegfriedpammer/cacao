@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7617 2007-03-29 23:22:07Z twisti $
+   $Id: md-os.c 7864 2007-05-03 21:17:26Z twisti $
 
 */
 
@@ -63,6 +63,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t        *_uc;
 	mcontext_t        *_mc;
+	unsigned long     *_gregs;
 	u1                *pv;
 	u1                *sp;
 	u1                *ra;
@@ -77,12 +78,19 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	java_objectheader *o;
 
  	_uc = (ucontext_t *) _p;
- 	_mc = _uc->uc_mcontext.uc_regs;
 
-	pv  = (u1 *) _mc->gregs[REG_PV];
-	sp  = (u1 *) _mc->gregs[REG_SP];
-	ra  = (u1 *) _mc->gregs[PT_LNK];         /* this is correct for leafs */
-	xpc = (u1 *) _mc->gregs[PT_NIP];
+#if defined(__UCLIBC__)
+	_mc    = &(_uc->uc_mcontext);
+	_gregs = _mc->regs->gpr;
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
+
+	pv  = (u1 *) _gregs[REG_PV];
+	sp  = (u1 *) _gregs[REG_SP];
+	ra  = (u1 *) _gregs[PT_LNK];                 /* this is correct for leafs */
+	xpc = (u1 *) _gregs[PT_NIP];
 
 	/* get exception-throwing instruction */
 
@@ -92,7 +100,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	disp = M_INSTR_OP2_IMM_I(mcode);
 	d    = M_INSTR_OP2_IMM_D(mcode);
 
-	val  = _mc->gregs[d];
+	val  = _gregs[d];
 
 	/* check for special-load */
 
@@ -105,7 +113,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		/* This is a normal NPE: addr must be NULL and the NPE-type
 		   define is 0. */
 
-		addr = _mc->gregs[s1];
+		addr = _gregs[s1];
 		type = EXCEPTION_HARDWARE_NULLPOINTER;
 
 		if (addr != 0)
@@ -118,9 +126,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) o;
-	_mc->gregs[REG_ITMP2_XPC]  = (ptrint) xpc;
-	_mc->gregs[PT_NIP]         = (ptrint) asm_handle_exception;
+	_gregs[REG_ITMP1_XPTR] = (ptrint) o;
+	_gregs[REG_ITMP2_XPC]  = (ptrint) xpc;
+	_gregs[PT_NIP]         = (ptrint) asm_handle_exception;
 }
 
 
@@ -134,6 +142,7 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t        *_uc;
 	mcontext_t        *_mc;
+	unsigned long     *_gregs;
 	u1                *pv;
 	u1                *sp;
 	u1                *ra;
@@ -145,12 +154,19 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 	java_objectheader *o;
 
  	_uc = (ucontext_t *) _p;
- 	_mc = _uc->uc_mcontext.uc_regs;
 
-	pv  = (u1 *) _mc->gregs[REG_PV];
-	sp  = (u1 *) _mc->gregs[REG_SP];
-	ra  = (u1 *) _mc->gregs[PT_LNK];         /* this is correct for leafs */
-	xpc = (u1 *) _mc->gregs[PT_NIP];
+#if defined(__UCLIBC__)
+	_mc    = &(_uc->uc_mcontext);
+	_gregs = _mc->regs->gpr;
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
+
+	pv  = (u1 *) _gregs[REG_PV];
+	sp  = (u1 *) _gregs[REG_SP];
+	ra  = (u1 *) _gregs[PT_LNK];                 /* this is correct for leafs */
+	xpc = (u1 *) _gregs[PT_NIP];
 
 	/* get exception-throwing instruction */
 
@@ -161,7 +177,7 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 	/* for now we only handle ArrayIndexOutOfBoundsException */
 
 	type = EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS;
-	val  = _mc->gregs[s1];
+	val  = _gregs[s1];
 
 	/* generate appropriate exception */
 
@@ -169,9 +185,9 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) o;
-	_mc->gregs[REG_ITMP2_XPC]  = (ptrint) xpc;
-	_mc->gregs[PT_NIP]         = (ptrint) asm_handle_exception;
+	_gregs[REG_ITMP1_XPTR] = (ptrint) o;
+	_gregs[REG_ITMP2_XPC]  = (ptrint) xpc;
+	_gregs[PT_NIP]         = (ptrint) asm_handle_exception;
 }
 
 
@@ -184,36 +200,61 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 #if defined(ENABLE_THREADS)
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
-	threadobject *tobj;
-	ucontext_t   *_uc;
-	mcontext_t   *_mc;
-	u1           *pc;
+	threadobject  *tobj;
+	ucontext_t    *_uc;
+	mcontext_t    *_mc;
+	unsigned long *_gregs;
+	u1            *pc;
 
 	tobj = THREADOBJECT;
 
  	_uc = (ucontext_t *) _p;
- 	_mc = _uc->uc_mcontext.uc_regs;
 
-	pc = (u1 *) _mc->gregs[PT_NIP];
+#if defined(__UCLIBC__)
+	_mc    = &(_uc->uc_mcontext);
+	_gregs = _mc->regs->gpr;
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
+
+	pc = (u1 *) _gregs[PT_NIP];
 
 	tobj->pc = pc;
 }
 
 
-void thread_restartcriticalsection(ucontext_t *_uc)
+/* md_critical_section_restart *************************************************
+
+   Search the critical sections tree for a matching section and set
+   the PC to the restart point, if necessary.
+
+*******************************************************************************/
+
+void md_critical_section_restart(ucontext_t *_uc)
 {
-	mcontext_t *_mc;
-	u1         *pc;
-	void       *critical;
+	mcontext_t    *_mc;
+	unsigned long *_gregs;
+	u1            *pc;
+	u1            *npc;
 
-	_mc = _uc->uc_mcontext.uc_regs;
+#if defined(__UCLIBC__)
+	_mc    = &(_uc->uc_mcontext);
+	_gregs = _mc->regs->gpr;
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
 
-	pc = (u1 *) _mc->gregs[PT_NIP];
+	pc = (u1 *) _gregs[PT_NIP];
 
-	critical = critical_find_restart_point(pc);
+	npc = critical_find_restart_point(pc);
 
-	if (critical)
-		_mc->gregs[PT_NIP] = (ptrint) critical;
+	if (npc != NULL) {
+		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
+
+		_gregs[PT_NIP] = (ptrint) npc;
+	}
 }
 #endif
 

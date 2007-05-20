@@ -707,6 +707,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	methoddesc   *md;
 	s4            disp;
 	s4            i, t;
+	s4            stackslots;
 
 	/* get required compiler data */
 
@@ -721,7 +722,10 @@ void emit_verbosecall_enter(jitdata *jd)
 	M_NOP;
 
 	/* XXX jit-c-call */
-	M_LDA(REG_SP, REG_SP, -(1 + FLT_ARG_CNT) * 8);
+	stackslots = 1 + FLT_ARG_CNT;
+	ALIGN_STACK_SLOTS(stackslots);
+
+	M_LDA(REG_SP, REG_SP, -(stackslots * 8));
 
 	/* save float argument registers */
 
@@ -809,7 +813,7 @@ void emit_verbosecall_enter(jitdata *jd)
 			M_DLD(rd->tmpfltregs[i], REG_SP, (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
 	}
 */
-	M_LDA(REG_SP, REG_SP, (1 + FLT_ARG_CNT) * 8);
+	M_LDA(REG_SP, REG_SP, stackslots * 8);
 
 	/* mark trace code */
 
@@ -842,8 +846,8 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 	
-	/* XXX jit-c-call */
-	M_LDA(REG_SP, REG_SP, -(1 * 8));
+	/* XXX jit-c-call (keep stack aligned)*/
+	M_LDA(REG_SP, REG_SP, -(2 * 8));
 
 	M_DST(REG_FRESULT, REG_SP, JITSTACK);
 
@@ -861,7 +865,7 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_DLD(REG_FRESULT, REG_SP, JITSTACK);
 
-	M_LDA(REG_SP, REG_SP, 1 * 8);
+	M_LDA(REG_SP, REG_SP, 2 * 8);
 
 	/* mark trace code */
 

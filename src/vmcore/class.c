@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7797 2007-04-23 20:12:39Z michi $
+   $Id: class.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -40,9 +40,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/logging.h"
 
@@ -243,9 +241,7 @@ classinfo *class_create_classinfo(utf *classname)
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock(&c->object.header);
-#endif
+	LOCK_INIT_OBJECT_LOCK(&c->object.header);
 
 	return c;
 }
@@ -518,12 +514,16 @@ bool class_load_attributes(classbuffer *cb)
 			if (!loader_load_attribute_signature(cb, &(c->signature)))
 				return false;
 		}
+#if 0
+		/* XXX We can't do a release with that enabled */
+
 		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 
 			if (!annotation_load_attribute_runtimevisibleannotations(cb))
 				return false;
 		}
+#endif
 #endif
 		else {
 			/* unknown attribute */

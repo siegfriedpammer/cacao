@@ -1,6 +1,6 @@
 /* src/native/vm/cldc1.1/java_lang_Double.c
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Phil Tomsich
-            Christian Thalinger
-
    $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
 
 */
@@ -36,7 +31,35 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
+#include "native/include/java_lang_Double.h"
+
 #include "vm/builtin.h"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "doubleToLongBits", "(D)J", (void *) (ptrint) &Java_java_lang_Double_doubleToLongBits },
+	{ "longBitsToDouble", "(J)D", (void *) (ptrint) &Java_java_lang_Double_longBitsToDouble },
+};
+ 
+ 
+/* _Jv_java_lang_Double_init ***************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_java_lang_Double_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/Double");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*
@@ -44,7 +67,7 @@
  * Method:    doubleToLongBits
  * Signature: (D)J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits(jclass clazz, double doubleValue)
+JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, jclass clazz, double doubleValue)
 {
 	jvalue val;
 	s8  e, f;
@@ -75,7 +98,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits(jclass clazz, double
  * Method:    longBitsToDouble
  * Signature: (J)D
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jclass clazz, s8 longValue)
+JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jclass clazz, s8 longValue)
 {
 	jvalue val;
 	val.j = longValue;

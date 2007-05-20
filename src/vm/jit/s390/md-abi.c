@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 7581 2007-03-26 07:23:16Z pm $
+   $Id: md-abi.c 7839 2007-04-29 22:46:56Z pm $
 
 */
 
@@ -88,7 +88,7 @@ s4 nregdescfloat[] = {
 
 const s4 abi_registers_float_argument[] = {
 	0, /* f0/fa0 */
-	1  /* f2/fa2 */
+	2  /* f2/fa2 */
 };
 
 const s4 abi_registers_float_saved[] = {
@@ -141,8 +141,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_ADR:
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory  = false;
-/* 				pd->regoff    = abi_registers_integer_argument[iarg]; */
-				pd->regoff    = iarg;
+ 				pd->regoff    = abi_registers_integer_argument[iarg]; 
 				iarg++;
 			}
 			else {
@@ -156,10 +155,9 @@ void md_param_alloc(methoddesc *md)
 			if (iarg < INT_ARG_CNT - 1) {
 				/* _ALIGN(iarg); */
 				pd->inmemory  = false;
-/* 				pd->regoff    = */
-/* 					PACK_REGS(abi_registers_integer_argument[iarg + 1], */
-/* 							  abi_registers_integer_argument[iarg]); */
-				pd->regoff    =	PACK_REGS(iarg + 1, iarg);
+ 				pd->regoff    = 
+ 					PACK_REGS(abi_registers_integer_argument[iarg + 1], 
+ 							  abi_registers_integer_argument[iarg]); 
 				iarg += 2;
 			}
 			else {
@@ -174,8 +172,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_FLT:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory  = false;
-/* 				pd->regoff    = abi_registers_float_argument[farg]; */
-				pd->regoff    = farg;
+ 				pd->regoff    = abi_registers_float_argument[farg]; 
 				farg++;
 			}
 			else {
@@ -188,8 +185,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory  = false;
-/* 				pd->regoff    = abi_registers_integer_argument[farg]; */
-				pd->regoff    = farg;
+ 				pd->regoff    = abi_registers_float_argument[farg]; 
 				farg++;
 			}
 			else {
@@ -205,7 +201,7 @@ void md_param_alloc(methoddesc *md)
 		}
 	}
 
-	/* Since R3/R4, F1 (==A0/A1, A0) are used for passing return
+	/* Since A0+A1/FA0 are used for passing return
 	   values, this argument register usage has to be regarded,
 	   too. */
 

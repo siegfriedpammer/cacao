@@ -109,7 +109,7 @@ bool codegen_emit(jitdata *jd)
 	codeinfo           *code;
 	codegendata        *cd;
 	registerdata       *rd;
-	s4                  len, s1, s2, s3, d, disp;
+	s4                  len, s1, s2, s3, d, disp, slots;
 	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
@@ -219,7 +219,55 @@ bool codegen_emit(jitdata *jd)
 #endif
 	
 	
-	
+		/* call monitorenter function */
+#if defined(ENABLE_THREADS)
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		/* stack offset for monitor argument */
+
+		s1 = rd->memuse;
+
+		/* save float argument registers */
+
+		/* XXX jit-c-call */
+		slots = FLT_ARG_CNT;
+		ALIGN_STACK_SLOTS(slots);
+
+		M_LDA(REG_SP, REG_SP, -(slots * 8));
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DST(abi_registers_float_argument[i], REG_SP, CSTACK +  i * 8);
+
+		s1 += slots;
+
+		/* get correct lock object */
+
+		if (m->flags & ACC_STATIC) {
+			disp = dseg_add_address(cd, &m->class->object.header);
+			M_ALD(REG_OUT0, REG_PV, disp);
+			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+		}
+		else {
+			/* copy class pointer: $i0 -> $o0 */
+			M_MOV(REG_RESULT_CALLEE, REG_OUT0);
+			M_BNEZ(REG_OUT0, 3);
+			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+			M_ALD(REG_ITMP3, REG_PV, disp);                   /* branch delay */
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+		}
+
+		M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+		M_AST(REG_OUT0, REG_SP, CSTACK + s1 * 8);             /* branch delay */
+
+		/* restore float argument registers */
+
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DLD(abi_registers_float_argument[i], REG_SP, CSTACK + i * 8);
+
+		M_LDA(REG_SP, REG_SP, slots * 8);
+	}
+#endif
+
+
 	/* take arguments out of register or stack frame */
 	
 	md = m->parseddesc;
@@ -310,9 +358,6 @@ bool codegen_emit(jitdata *jd)
 		/* release scratch space */
 		M_ADD_IMM(REG_SP, INT_ARG_CNT * 8, REG_SP);
 	}
-	
-	
-	/* XXX monitor enter */
 
 
 
@@ -2207,24 +2252,32 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-/* XXX: REG_RESULT is save, but what about FRESULT? */
-				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8); /* XXX: what for ? */
-
-				switch (iptr->opc) {
-				case ICMD_FRETURN:
-				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 8);
-					break;
-				}
-
-				disp = dseg_add_functionptr(cd, BUILTIN_monitorexit);
+				/* XXX jit-c-call */
+				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
 				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO); /*REG_RA_CALLER */
+
+				/* we need to save fp return value (int saved by window) */
 
 				switch (iptr->opc) {
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8);
+					M_ALD(REG_OUT0, REG_SP, CSTACK + rd->memuse * 8);
+					M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+					M_DST(REG_FRESULT, REG_SP, CSTACK + rd->memuse * 8); /* delay */
+
+					/* restore the fp return value */
+
+					M_DLD(REG_FRESULT, REG_SP, CSTACK + rd->memuse * 8);
+					break;
+				case ICMD_IRETURN:
+				case ICMD_LRETURN:
+				case ICMD_ARETURN:
+				case ICMD_RETURN:
+					M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+					M_ALD(REG_OUT0, REG_SP, CSTACK + rd->memuse * 8); /* delay */
+					break;
+				default:
+					assert(false);
 					break;
 				}
 			}
@@ -2431,10 +2484,7 @@ gen_method:
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
-						if (IS_2_WORD_TYPE(var->type))
-							M_DST(s1, REG_SP, JITSTACK + d * 8);
-						else
-							M_FST(s1, REG_SP, JITSTACK + d * 8);
+						M_DST(s1, REG_SP, JITSTACK + d * 8);
 					}
 				}
 			}
@@ -2593,9 +2643,8 @@ gen_method:
 					superindex = super->index;
 				}
 
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+					CODEGEN_CRITICAL_SECTION_NEW;
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
@@ -2666,17 +2715,17 @@ gen_method:
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+					
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 					M_SUB(REG_ITMP2, REG_ITMP3, REG_ITMP2);
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_END;
+
 					/*  				} */
 					M_CMP(REG_ITMP3, REG_ITMP2);
 					emit_classcast_check(cd, iptr, BRANCH_ULT, REG_ITMP3, s1);
@@ -2759,9 +2808,9 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 
-#if defined(ENABLE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+				CODEGEN_CRITICAL_SECTION_NEW;
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (s1 == d) {
@@ -2836,15 +2885,15 @@ gen_method:
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_SUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_CMP(REG_ITMP1, REG_ITMP2);
 				M_XCMOVULE_IMM(1, d);
@@ -2991,6 +3040,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	s4            t;
 	s4            s1, s2, disp;
 	s4            funcdisp;             /* displacement of the function       */
+	s4            fltregarg_offset[FLT_ARG_CNT];
 
 	/* get required compiler data */
 
@@ -3011,6 +3061,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		md->paramcount +                /* for saving arguments over calls    */
 		nmd->memuse +  /* nmd knows about the native stackframe layout */
 		WINSAVE_CNT;
+
+
+	/* keep stack 16-byte aligned (ABI requirement) */
+
+	if (cd->stackframesize & 1)
+		cd->stackframesize++;
 
 	/* create method header */
 
@@ -3042,11 +3098,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	}
 #endif
 
-	/* save float argument registers */
+	/* save float argument registers (into abi parameter slots) */
+
+	assert(ABIPARAMS_CNT >= FLT_ARG_CNT);
 
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			M_DST(abi_registers_float_argument[i], REG_SP, CSTACK + (j * 8));
+			s1 = WINSAVE_CNT + (j * 8);
+			M_DST(abi_registers_float_argument[i], REG_SP, BIAS + s1);
+			fltregarg_offset[i] = s1; /* remember stack offset */
 			j++;
 		}
 	}
@@ -3062,22 +3122,25 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 	M_NOP; /* XXX fill me! */
 
-	/* restore float argument registers */
-
+	/* keep float arguments on stack */
+#if 0
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			M_DLD(abi_registers_float_argument[i], REG_SP, CSTACK + (j * 8));
 			j++;
 		}
 	}
+#endif
 
 	/* copy or spill arguments to new locations */
-	int num_fltregargs = 0;
-	int fltregarg_inswap[16];
+
 	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
+
+			/* integral types */
+
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
 				/* s1 refers to the old window, transpose */
@@ -3092,7 +3155,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 
 			} else {
-				/*assert(false);*/
+				if (!nmd->params[j].inmemory) {
+					/* JIT stack arg -> NAT reg arg */
+
+					/* Due to the Env pointer that is always passed, the 6th JIT arg   */
+					/* is the 7th (or 8th w/ class ptr) NAT arg, and goes to the stack */
+
+					assert(false); /* path never taken */
+				}
+
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff - 6;
 				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1 * 8);
@@ -3100,49 +3171,58 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 			}
 
 		} else {
+
+			/* floating point types */
+
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
 
 				if (!nmd->params[j].inmemory) {
+
 					/* no mapping to regs needed, native flt args use regoff */
 					s2 = nmd->params[j].regoff;
-					
-					/* we cannot move flt regs to their native arg locations directly */
-					M_DMOV(s1, s2 + 16);
-					fltregarg_inswap[num_fltregargs] = s2;
-					num_fltregargs++;
-					/*printf("flt arg swap to %d\n", s2 + 16);*/
 
-				} else {
+					/* JIT float regs are still on the stack */
+					M_DLD(s2, REG_SP, BIAS + fltregarg_offset[i]);
+				} 
+				else {
+					/* not supposed to happen with 16 NAT flt args */
+					assert(false); 
+					/*
 					s2 = nmd->params[j].regoff;
 					if (IS_2_WORD_TYPE(t))
 						M_DST(s1, REG_SP, CSTACK + (s2 * 8));
 					else
 						M_FST(s1, REG_SP, CSTACK + (s2 * 8));
+					*/
 				}
 
-			} else {
-				/*assert(false);*/
+			} 
+			else {
 				s1 = md->params[i].regoff + cd->stackframesize;
-				s2 = nmd->params[j].regoff - 6;
-				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, CSTACK + s1 * 8);
-					M_DST(REG_FTMP1, REG_SP, CSTACK + s2 * 8);
-				} else {
-					M_FLD(REG_FTMP1, REG_SP, CSTACK + s1 * 8);
-					M_FST(REG_FTMP1, REG_SP, CSTACK + s2 * 8);
+
+				if (!nmd->params[j].inmemory) {
+
+					/* JIT stack -> NAT reg */
+
+					s2 = nmd->params[j].regoff; 
+					M_DLD(s2, REG_SP, CSTACK + s1 * 8);
+				}
+				else {
+
+					/* JIT stack -> NAT stack */
+
+					s2 = nmd->params[j].regoff - 6;
+
+					/* The FTMP register may already be loaded with args */
+					/* we know $f0 is unused because of the env pointer  */
+					M_DLD(REG_F0, REG_SP, CSTACK + s1 * 8);
+					M_DST(REG_F0, REG_SP, CSTACK + s2 * 8);
 				}
 			}
 		}
 	}
 	
-	/* move swapped float args to target regs */
-	for (i = 0; i < num_fltregargs; i++) {
-		s1 = fltregarg_inswap[i];
-		M_DMOV(s1 + 16, s1);
-		/*printf("float arg to target reg: %d ==> %d\n", s1+16, s1);*/
-	}
-
 
 	/* put class into second argument register */
 

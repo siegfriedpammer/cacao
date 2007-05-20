@@ -46,6 +46,7 @@
 #define BRANCH_LABEL_3    3
 #define BRANCH_LABEL_4    4
 #define BRANCH_LABEL_5    5
+#define BRANCH_LABEL_6    6
 
 
 /* constant range macros ******************************************************/

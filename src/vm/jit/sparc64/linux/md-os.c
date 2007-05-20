@@ -152,21 +152,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 }
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	void       *critical;
-
-	_mc = &_uc->uc_mcontext;
-
-	critical = thread_checkcritical((void *) _mc->sc_pc);
-
-	if (critical)
-		_mc->sc_pc = (ptrint) critical;
-}
-#endif
-
 
 /* md_icacheflush **************************************************************
 
@@ -193,9 +178,35 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 	}
 }
 
+#if defined(ENABLE_THREADS)
+/* md_critical_section_restart ************************************************
+ 
+   Search the critical sections tree for a matching section and set
+   the NPC to the restart point, if necessary.
 
+   Reads PC and modifies NPC.
 
+******************************************************************************/
 
+void md_critical_section_restart(ucontext_t *_uc)
+{
+	mcontext_t *_mc;
+	u1         *pc;
+	u1         *npc;
+
+	_mc = &_uc->uc_mcontext;
+
+	pc = (u1 *) _mc->mc_gregs[MC_PC];
+
+	npc = critical_find_restart_point(pc);
+	assert(npc);
+
+	_mc->mc_gregs[MC_NPC] = (ptrint) npc;
+
+	assert(false); /* test this */
+}
+#endif
+	
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

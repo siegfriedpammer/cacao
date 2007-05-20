@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 7522 2007-03-14 21:54:49Z twisti $
+   $Id: string.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -41,11 +41,7 @@
 
 #include "native/include/java_lang_String.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -86,7 +82,7 @@ bool string_init(void)
 
 	lock_hashtable_string = NEW(java_objectheader);
 
-	lock_init_object_lock(lock_hashtable_string);
+	LOCK_INIT_OBJECT_LOCK(lock_hashtable_string);
 #endif
 
 	/* everything's ok */

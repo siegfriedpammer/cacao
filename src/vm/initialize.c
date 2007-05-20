@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: initialize.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: initialize.c 7813 2007-04-25 19:20:13Z twisti $
 
 */
 
@@ -33,11 +33,7 @@
 
 #include "vm/types.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/global.h"
 #include "vm/initialize.h"

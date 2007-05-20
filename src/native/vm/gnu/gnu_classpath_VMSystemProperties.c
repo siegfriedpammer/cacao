@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gnu_classpath_VMSystemProperties.c 7264 2007-01-31 14:05:57Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -37,11 +37,39 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
 #include "native/include/java_util_Properties.h"
+
+#include "native/include/gnu_classpath_VMSystemProperties.h"
 
 #include "vm/exceptions.h"
 #include "vm/properties.h"
 #include "vm/vm.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "preInit",  "(Ljava/util/Properties;)V", (void *) (ptrint) &Java_gnu_classpath_VMSystemProperties_preInit  },
+	{ "postInit", "(Ljava/util/Properties;)V", (void *) (ptrint) &Java_gnu_classpath_VMSystemProperties_postInit },
+};
+
+
+/* _Jv_gnu_classpat_VMSystemProperties_init ************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_gnu_classpath_VMSystemProperties_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/classpath/VMSystemProperties");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

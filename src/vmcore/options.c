@@ -22,14 +22,17 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: options.c 7894 2007-05-10 14:04:05Z twisti $
 
 */
 
 
 #include "config.h"
 
-#include <string.h>
+#if defined(HAVE_STRING_H)
+# include <string.h>
+#endif
+
 #include <limits.h>
 
 #include "vm/types.h"
@@ -76,6 +79,7 @@ bool opt_verbosejni       = false;
 bool opt_verbosecall      = false;      /* trace all method invocation        */
 bool opt_verboseexception = false;
 bool opt_verbosememory    = false;
+bool opt_verbosethreads   = false;
 
 bool showmethods = false;
 bool showconstantpool = false;
@@ -199,7 +203,13 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 				opt_index++;
 
 				if (opt_index < vm_args->nOptions) {
+
+#if defined(HAVE_STRDUP)
 					opt_arg = strdup(vm_args->options[opt_index].optionString);
+#else
+# error !HAVE_STRDUP
+#endif
+
 					opt_index++;
 					return opts[i].value;
 				}
@@ -218,7 +228,13 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 				if (strlen(option + 1) > l) {
 					if (memcmp(option + 1, opts[i].name, l) == 0) {
 						opt_index++;
+
+#if defined(HAVE_STRDUP)
 						opt_arg = strdup(option + 1 + l);
+#else
+# error !HAVE_STRDUP
+#endif
+
 						return opts[i].value;
 					}
 				}

@@ -1,6 +1,6 @@
-/* src/native/vm/VMProxy.c - java/lang/reflect/VMProxy
+/* src/native/vm/gnu/java_lang_reflect_VMProxy.c - java/lang/reflect/VMProxy
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,26 +22,54 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Roman Obermaiser
-
-   Changes: Joseph Wenninger
-            Christian Thalinger
-
-   $Id: java_lang_reflect_VMProxy.c 6213 2006-12-18 17:36:06Z twisti $
+   $Id: java_lang_reflect_VMProxy.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdlib.h>
 
 #include "native/jni.h"
+#include "native/native.h"
+
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_ClassLoader.h"
-#include "toolbox/logging.h"
+
+#include "native/include/java_lang_reflect_VMProxy.h"
 
 
+/* native methods implemented by this file ************************************/
+
+#if 0
+static JNINativeMethod methods[] = {
+	{ "getProxyClass",      "(Ljava/lang/ClassLoader;[Ljava/lang/Class;)Ljava/lang/Class;",                   (void *) (ptrint) &Java_java_lang_reflect_VMProxy_getProxyClass      },
+	{ "getProxyData",       "(Ljava/lang/ClassLoader;[Ljava/lang/Class;)Ljava/lang/reflect/Proxy$ProxyData;", (void *) (ptrint) &Java_java_lang_reflect_VMProxy_getProxyData       },
+	{ "generateProxyClass", "(Ljava/lang/ClassLoader;Ljava/lang/reflect/Proxy$ProxyData;)Ljava/lang/Class;",  (void *) (ptrint) &Java_java_lang_reflect_VMProxy_generateProxyClass },
+};
+#endif
+
+
+/* _Jv_java_lang_reflect_VMProxy_init ******************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_reflect_VMProxy_init(void)
+{
+#if 0
+	utf *u;
+
+	u = utf_new_char("java/lang/reflect/VMProxy");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+#endif
+}
+
+
+#if 0
 /*
  * Class:     java/lang/reflect/VMProxy
  * Method:    getProxyClass
@@ -49,8 +77,6 @@
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMProxy_getProxyClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, java_objectarray *par2)
 {
-	log_text("Java_java_lang_reflect_Proxy_getProxyClass: IMPLEMENT ME!");
-
 	return NULL;
 }
 
@@ -62,8 +88,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMProxy_getProxyClass(
  */
 JNIEXPORT struct java_lang_reflect_Proxy_ProxyData* JNICALL Java_java_lang_reflect_VMProxy_getProxyData(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, java_objectarray *par2)
 {
-	log_text("Java_java_lang_reflect_Proxy_getProxyData: IMPLEMENT ME!");
-
 	return NULL;
 }
 
@@ -75,10 +99,9 @@ JNIEXPORT struct java_lang_reflect_Proxy_ProxyData* JNICALL Java_java_lang_refle
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMProxy_generateProxyClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, struct java_lang_reflect_Proxy_ProxyData *par2)
 {
-	log_text("Java_java_lang_reflect_Proxy_generateProxyClass: IMPLEMENT ME!");
-
 	return NULL;
 }
+#endif
 
 
 /*

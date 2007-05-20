@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: codegen.c 7891 2007-05-09 16:37:20Z tbfg $
 
 */
 
@@ -43,6 +43,8 @@
 #include "mm/memory.h"
 
 #include "native/native.h"
+
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -69,10 +71,6 @@
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
-#endif
-
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
 #endif
 
 
@@ -2320,36 +2318,18 @@ gen_method:
 					super = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
 				}
-			
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+		
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))	{
+					CODEGEN_CRITICAL_SECTION_NEW;
+				}
+
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-
-				/* calculate interface checkcast code size */
-
-				s2 = 9;
-#if defined(SOFTEX)
-				s2 += CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd) ? 2 : 0;
-#endif
-				if (super == NULL)
-					s2 += (opt_shownops ? 1 : 0);
-
-				/* calculate class checkcast code size */
-
-				s3 = 10 + (s1 == REG_ITMP1);
-#if defined(SOFTEX)
-				s3 += CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd) ? 1 : 0;
-#endif
-				if (super == NULL)
-					s3 += (opt_shownops ? 1 : 0);
 
 				/* if class is not resolved, check which code to call */
 
 				if (super == NULL) {
 					M_TST(s1);
-					M_BEQ(3 + (opt_shownops ? 1 : 0) + s2 + 1 + s3);
-
+					emit_label_beq(cd, BRANCH_LABEL_1);
 					disp = dseg_add_unique_s4(cd, 0);                     /* super->flags */
 
 					codegen_addpatchref(cd,
@@ -2359,7 +2339,8 @@ gen_method:
 
 					M_ILD(REG_ITMP2, REG_PV, disp);
 					M_AND_IMM(REG_ITMP2, ACC_INTERFACE, REG_ITMP2);
-					M_BEQ(s2 + 1);
+
+					emit_label_beq(cd, BRANCH_LABEL_2);
 				}
 
 				/* interface checkcast code */
@@ -2372,7 +2353,7 @@ gen_method:
 											0);
 					} else {
 						M_TST(s1);
-						M_BEQ(s2);
+						emit_label_beq(cd, BRANCH_LABEL_3);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
@@ -2385,14 +2366,19 @@ gen_method:
 					M_TST(REG_ITMP3);
 					emit_classcast_check(cd, iptr, BRANCH_EQ, REG_ITMP3, s1);
 
-					if (!super)
-						M_BR(s3);
+					if (super == NULL)	{
+						emit_label_br(cd, BRANCH_LABEL_4);
+					} else	{
+						emit_label(cd, BRANCH_LABEL_3);
+					}
 				}
 
 				/* class checkcast code */
 
 				if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
+						emit_label(cd, BRANCH_LABEL_2);
+
 						disp = dseg_add_unique_address(cd, NULL);
 						codegen_addpatchref(cd, PATCHER_checkcast_class,
 											iptr->sx.s23.s3.c.ref,
@@ -2400,21 +2386,21 @@ gen_method:
 					} else {
 						disp = dseg_add_address(cd, super->vftbl);
 						M_TST(s1);
-						M_BEQ(s3);
+						emit_label_beq(cd, BRANCH_LABEL_5);
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ALD(REG_ITMP2, REG_PV, disp);
 					if (s1 != REG_ITMP1) {
 						M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+						CODEGEN_CRITICAL_SECTION_END;
+
 						M_SUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
 						M_EXTSW(REG_ITMP3, REG_ITMP3);
 					} else {
@@ -2423,12 +2409,20 @@ gen_method:
 						M_EXTSW(REG_ITMP3, REG_ITMP3);
 						M_ALD(REG_ITMP2, REG_PV, disp);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+						CODEGEN_CRITICAL_SECTION_END;
+
 					}
 					M_CMPU(REG_ITMP3, REG_ITMP2);
 					emit_classcast_check(cd, iptr, BRANCH_GT, REG_ITMP3, s1);
+					
+					if (super != NULL)
+						emit_label(cd, BRANCH_LABEL_5);
+				}
+
+				if (super == NULL) {
+					emit_label(cd, BRANCH_LABEL_1);
+					emit_label(cd, BRANCH_LABEL_4);
 				}
 				d = codegen_reg_of_dst(jd, iptr, s1);
 
@@ -2489,17 +2483,16 @@ gen_method:
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				super = NULL;
 				superindex = 0;
-				supervftbl = NULL;
 			}
 			else {
 				super = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
-				supervftbl = super->vftbl;
 			}
 			
-#if defined(ENABLE_THREADS)
-            codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))	{
+				CODEGEN_CRITICAL_SECTION_NEW;
+			}
+
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (s1 == d) {
@@ -2507,26 +2500,13 @@ gen_method:
 				s1 = REG_ITMP1;
 			}
 
-			/* calculate interface instanceof code size */
-
-			s2 = 8;
-			if (!super)
-				s2 += (opt_shownops ? 1 : 0);
-
-			/* calculate class instanceof code size */
-
-			s3 = 11;
-			if (super == NULL)
-				s3 += (opt_shownops ? 1 : 0);
-
 			M_CLR(d);
 
 			/* if class is not resolved, check which code to call */
 
 			if (super == NULL) {
 				M_TST(s1);
-				M_BEQ(3 + (opt_shownops ? 1 : 0) + s2 + 1 + s3);
-
+				emit_label_beq(cd, BRANCH_LABEL_1);
 				disp = dseg_add_unique_s4(cd, 0);                     /* super->flags */
 
 				codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
@@ -2534,20 +2514,20 @@ gen_method:
 
 				M_ILD(REG_ITMP3, REG_PV, disp);
 				M_AND_IMM(REG_ITMP3, ACC_INTERFACE, REG_ITMP3);
-				M_BEQ(s2 + 1);
+				emit_label_beq(cd, BRANCH_LABEL_2);
 			}
 
 			/* interface instanceof code */
 
-			if (!super || (super->flags & ACC_INTERFACE)) {
-				if (super) {
-					M_TST(s1);
-					M_BEQ(s2);
-
-				} else {
+			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+				if (super == NULL) {
 					codegen_addpatchref(cd,
 										PATCHER_instanceof_interface,
 										iptr->sx.s23.s3.c.ref, 0);
+
+				} else {
+					M_TST(s1);
+					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
@@ -2561,44 +2541,58 @@ gen_method:
 				M_BEQ(1);
 				M_IADD_IMM(REG_ZERO, 1, d);
 
-				if (super == NULL)
-					M_BR(s3);
+				if (super == NULL)	{
+					emit_label_br(cd, BRANCH_LABEL_4);
+				} else	{
+					emit_label(cd, BRANCH_LABEL_3);
+				}
 			}
 
 			/* class instanceof code */
 
 			if ((super == NULL) || !(super->flags & ACC_INTERFACE)) {
 
-				if (super) {
-					disp = dseg_add_address(cd, supervftbl);
-					M_TST(s1);
-					M_BEQ(s3);
+				if (super == NULL) {
+					emit_label(cd, BRANCH_LABEL_2);
 
-				} else {
 					disp = dseg_add_unique_address(cd, NULL);
 					codegen_addpatchref(cd, PATCHER_instanceof_class,
 										iptr->sx.s23.s3.c.ref,
 										disp);
+
+				} else {
+					disp = dseg_add_address(cd, super->vftbl);
+					M_TST(s1);
+					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_SUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_EXTSW(REG_ITMP1, REG_ITMP1);
 				M_CMPU(REG_ITMP1, REG_ITMP2);
 				M_CLR(d);
 				M_BGT(1);
 				M_IADD_IMM(REG_ZERO, 1, d);
+
+				if (super != NULL)
+					emit_label(cd, BRANCH_LABEL_5);
 			}
+
+			if (super == NULL) {
+				emit_label(cd, BRANCH_LABEL_1);
+				emit_label(cd, BRANCH_LABEL_4);
+			}
+
 			emit_store_dst(jd, iptr, d);
 			}
 			break;

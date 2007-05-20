@@ -40,9 +40,41 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
+#include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
 
 #include "vm/global.h"
 #include "vm/vm.h" /* REMOVE ME: temporarily */
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ "open0",      "([BII)I",  (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_open0      },
+	{ "readBuf",    "(I[BII)I", (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf    },
+	{ "readByte",   "(I)I",     (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_readByte   },
+	{ "writeBuf",   "(I[BII)I", (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf   },
+	{ "writeByte",  "(II)I",    (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte  },
+	{ "available0", "(I)I",     (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_available0 },
+	{ "close0",     "(I)V",     (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_close0     },
+};
+
+ 
+/* _Jv_com_sun_cldc_io_j2me_socket_Protocol_init *******************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("com/sun/cldc/io/j2me/socket/Protocol");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

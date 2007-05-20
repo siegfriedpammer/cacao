@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 7219 2007-01-16 22:18:57Z pm $
+   $Id: disass.c 7848 2007-05-01 21:40:26Z pm $
 
 */
 
@@ -69,6 +69,30 @@ char *regs[] = {
 };
 
 
+/* disass_pseudo_instr *********************************************************
+
+   Outputs a disassembler listing of one pseudo instruction instruction on
+   `stdout'.
+	
+   Returns number of bytes consumed or 0 if code does not contain a pseudo 
+   instruction.
+
+   code: pointer to machine code
+
+*******************************************************************************/
+
+static s4 disass_pseudo_instr(u1 *code) {
+	switch (code[0]) {
+		/* Trap */
+		case 0x02:
+			snprintf(disass_buf, 512, "ill\t0x%02hhx (pseudo)", code[1]);
+			return 2;
+		/* Not recognized */
+		default:
+			return 0;
+	}
+}
+
 /* disassinstr *****************************************************************
 
    Outputs a disassembler listing of one machine code instruction on
@@ -99,7 +123,11 @@ u1 *disassinstr(u1 *code)
 
 	disass_len = 0;
 
-	seqlen = print_insn_s390((bfd_vma) code, &info);
+	seqlen = disass_pseudo_instr(code);
+
+	if (seqlen == 0) {
+		seqlen = print_insn_s390((bfd_vma) code, &info);
+	}
 
 	for (i = 0; i < seqlen; i++, code++) {
 		printf("%02x ", *code);

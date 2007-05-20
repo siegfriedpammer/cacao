@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7394 2007-02-23 22:47:06Z michi $
+   $Id: memory.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -48,22 +48,19 @@
 #include "arch.h"
 
 #include "mm/memory.h"
+
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-
-# include "threads/native/lock.h"
-# include "threads/native/threads.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
+
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+
 #include "vmcore/options.h"
 
 #if defined(ENABLE_STATISTICS)
@@ -99,13 +96,6 @@ static java_objectheader *lock_code_memory = NULL;
 static void              *code_memory      = NULL;
 static int                code_memory_size = 0;
 static int                pagesize         = 0;
-
-
-/* global variables ***********************************************************/
-
-#if defined(ENABLE_THREADS)
-static threadobject *thread_memory;
-#endif
 
 
 /* memory_init *****************************************************************
@@ -379,6 +369,10 @@ static void memory_thread(void)
 		threads_sleep(2 * 1000, 0);
 
 # if defined(ENABLE_STATISTICS)
+		/* print current date and time */
+
+		statistics_print_date();
+
 		/* print memory usage */
 
 		statistics_print_memory_usage();
@@ -405,14 +399,10 @@ bool memory_start_thread(void)
 
 	name = utf_new_char("Memory Profiler");
 
-	thread_memory = threads_create_thread(name);
+	/* start the memory profiling thread */
 
-	if (thread_memory == NULL)
+	if (!threads_thread_start_internal(name, memory_thread))
 		return false;
-
-	/* actually start the memory profiling thread */
-
-	threads_start_thread(thread_memory, memory_thread);
 
 	/* everything's ok */
 

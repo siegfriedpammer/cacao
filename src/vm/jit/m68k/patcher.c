@@ -72,7 +72,6 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	functionptr        f;
 	bool               result;
 	java_objectheader *e;
-	u4		   mcode, xmcode;
 
 	/* define the patcher function */
 
@@ -83,29 +82,21 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	xpc = (u1 *)                *((ptrint *) (sp + 6 * 4));
 	/* REG_ITMP3 				  sp + 5 * 4 */
 	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
-	mcode = 		    *((u4*)      (sp + 3 * 4));
-	xmcode = 		    *((u4*)      (sp + 2 * 4));
+	/*mcode = 				    *((u4*)      (sp + 3 * 4));*/
+	/*xmcode = 		   			*((u4*)      (sp + 2 * 4));*/
 	/* unresolved file                        sp + 1 * 4 */
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
 
 
 	/* calculate and set the new return address */
-
 	xpc = xpc - PATCHER_CALL_SIZE;
 	*((ptrint *) (sp + 6 * 4)) = (ptrint) xpc;
 
-	/* patch back original code */
-
-	*((u4*)(xpc)) 	= mcode;
-	*((u4*)(xpc+4)) = xmcode;
-	md_icacheflush(xpc, 8);
 
 	/* cast the passed function to a patcher function */
-
 	patcher_function = (bool (*)(u1 *)) (ptrint) f;
 
 	/* enter a monitor on the patching position */
-
 	PATCHER_MONITORENTER;
 
 	/* create the stackframeinfo */
@@ -114,18 +105,19 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	   stacktrace_create_extern_stackframeinfo for
 	   md_codegen_get_pv_from_pc. */
 
+	/*
+	fprintf(stderr, "EXT STACKFRAME: sfi=%x pv=%x, sp=%x, xpc=%x\n", &sfi, pv, sp+7*4, xpc);
+	*/
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 7 * 4, xpc, xpc);
 
 	/* call the proper patcher function */
-
 	result = (patcher_function)(sp);
 
-	/* remove the stackframeinfo */
 
+	/* remove the stackframeinfo */
 	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* check for return value and exit accordingly */
-
 	if (result == false) {
 		e = exceptions_get_and_clear_exception();
 
@@ -138,6 +130,19 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	return NULL;
 }
 
+/*	Helper
+ */
+static void patcher_patch_back(u1 *sp)	
+{
+	u1* xpc    = (u1 *)      *((ptrint *) (sp + 6 * 4));
+	u4 mcode  = *((u4*)      (sp + 3 * 4));
+	u4 xmcode = *((u4*)      (sp + 2 * 4));
+
+	*((u4*)(xpc)) 	= mcode;
+	*((u4*)(xpc+4)) = xmcode;
+	md_icacheflush(xpc, 8);
+}
+
 /* patcher_initialize_class ****************************************************
 
    Initalizes a given classinfo pointer.  This function does not patch
@@ -148,16 +153,18 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 bool patcher_initialize_class(u1 *sp)
 {
 	classinfo *c;
+	u4		   xpc, mcode, xmcode;
 
 	/* get stuff from the stack */
-
 	c = (classinfo *) *((ptrint *) (sp + 1 * 4));
 
 	/* check if the class is initialized */
-
 	if (!(c->state & CLASS_INITIALIZED))
 		if (!initialize_class(c))
 			return false;
+
+	/* patch back original code */
+	patcher_patch_back(sp);
 
 	return true;
 }
@@ -188,10 +195,13 @@ bool patcher_invokevirtual(u1 *sp)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
+	/* patch back original code */
+	patcher_patch_back(sp);
+
 	/* if we show NOPs, we have to skip them */
 	if (opt_shownops) ra += PATCHER_CALL_SIZE;
 
-	assert( *((u2*)(ra+8)) == 0x246b);
+	assert( *((u2*)(ra+8)) == 0x286b);
 
 	/* patch vftbl index */
 	disp = (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
@@ -221,17 +231,17 @@ bool patcher_invokestatic_special(u1 *sp)
 	methodinfo        *m;
 
 	/* get stuff from the stack */
-
 	disp =                       *((s4 *)     (sp + 6 * 4));
 	um   = (unresolved_method *) *((ptrint *) (sp + 1 * 4));
 
 	/* get the fieldinfo */
-
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch stubroutine */
+	/* patch back original code */
+	patcher_patch_back(sp);
 
+	/* patch stubroutine */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
 
 	*((ptrint *) (disp+2)) = (ptrint) m->stubroutine;
@@ -256,16 +266,18 @@ bool patcher_resolve_class(u1 *sp)
 {
 	unresolved_class *uc;
 	classinfo        *c;
+	s4				disp;
 
 	/* get stuff from the stack */
-
-	uc = (unresolved_class *) *((ptrint *) (sp + 2 * 4));
+	uc = (unresolved_class *) *((ptrint *) (sp + 1 * 4));
+	disp =                    *((s4 *)     (sp + 6 * 4));
 
 	/* resolve the class */
-	assert(0);
-
 	if (!resolve_class(uc, resolveEager, false, &c))
 		return false;
+
+	/* patch back original code */
+	patcher_patch_back(sp);
 
 	return true;
 }
@@ -283,23 +295,21 @@ bool patcher_resolve_classref_to_classinfo(u1 *sp)
 	classinfo         *c;
 
 	/* get stuff from the stack */
-
 	cr   = (constant_classref *) *((ptrint *) (sp + 1 * 4));
 	disp =                       *((s4 *)     (sp + 6 * 4));
 
 	/* get the classinfo */
-
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
+	/* patch back original code */
+	patcher_patch_back(sp);
+
 	/* patch the classinfo pointer */
-
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
-
 	*((ptrint *) (disp+2)) = (ptrint) c;
 
 	/* synchronize inst cache */
-
 	md_icacheflush(disp+2, SIZEOF_VOID_P);
 
 	return true;
@@ -314,40 +324,34 @@ bool patcher_resolve_classref_to_classinfo(u1 *sp)
 bool patcher_get_putstatic(u1 *sp)
 {
 	u1               *ra;
-	u4                mcode;
 	unresolved_field *uf;
 	s4                disp;
 	u1               *pv;
 	fieldinfo        *fi;
 
 	/* get stuff from the stack */
-
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 1 * 4));
+	disp  =                       *((s4 *)     (sp + 6 * 4));
 
 	/* get the fieldinfo */
-
-	assert(0);
-
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
 	/* check if the field's class is initialized */
-
 	if (!(fi->class->state & CLASS_INITIALIZED))
 		if (!initialize_class(fi->class))
 			return false;
 
+	/* patch back original code */
+	patcher_patch_back(sp);
+
 	/* patch the field value's address */
+	if (opt_shownops) disp += PATCHER_CALL_SIZE;
+	assert(*((uint16_t*)(disp)) == 0x247c);
+	*((ptrint *) (disp+2)) = (ptrint) &(fi->value);
 
-	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
-
-	/* synchronize data cache */
-
-	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
+	/* synchronize inst cache */
+	md_icacheflush(disp+2, SIZEOF_VOID_P);
 
 	return true;
 }
@@ -371,63 +375,45 @@ bool patcher_get_putfield(u1 *sp)
 	uf = (unresolved_field *) *((ptrint *) (sp + 1 * 4));
 
 	/* get the fieldinfo */
-
-	assert(0);
-
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
+	/* patch back original code */
+	patcher_patch_back(sp);
+
 	/* if we show NOPs, we have to skip them */
+	if (opt_shownops) ra += PATCHER_CALL_SIZE;
 
-	if (opt_shownops) {
-		/* patch the field's offset */
+	/* patch the field's offset */
+	if (IS_LNG_TYPE(fi->type)) {
+		/* If the field has type long, we have to patch two
+		   instructions.  But we have to check which instruction
+		   is first.  We do that with the offset of the first
+		   instruction. */
+		assert(0);
+		disp = *((u4 *) (ra + 1 * 4));
 
-		if (IS_LNG_TYPE(fi->type)) {
-			/* If the field has type long, we have to patch two
-			   instructions.  But we have to check which instruction
-			   is first.  We do that with the offset of the first
-			   instruction. */
-
-			disp = *((u4 *) (ra + 1 * 4));
-
-			if (disp == 4) {
-				*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-				*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-			}
-			else {
-				*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-				*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-			}
+		if (disp == 4) {
+			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+			*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
 		}
-		else
-			*((u4 *) (ra + 1 * 4)) |= (s2) (fi->offset & 0x0000ffff);
-	}
-	else {
-		if (IS_LNG_TYPE(fi->type)) {
-
-			disp = *((u4 *) (sp + 3 * 4));
-
-			/* We patch the first instruction in the patcher stub
-			   stack and the second in the code.  The first
-			   instruction is patched back later in
-			   patcher_wrapper. */
-
-			if (disp == 4) {
-				*((u4 *) (sp + 3 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-				*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-			}
-			else {
-				*((u4 *) (sp + 3 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-				*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-			}
+		else {
+			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+			*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
 		}
-		else
-			*((u4 *) (sp + 3 * 4)) |= (s2) (fi->offset & 0x0000ffff);
+	} else	{
+		/*
+		 *	0x40adb3f6:     0x254d0000 	movel %a5,%a2@(0)
+		 *	                      ^^^^                     ^
+		 *	                      to be patched
+		 */
+		assert( (*((uint32_t*)ra) & 0xffff0000) == *((uint32_t*)ra) );
+		assert( (fi->offset & 0x0000ffff) == fi->offset );
+		*((uint32_t*)ra) |= fi->offset;
+
+		/* synchronize instruction cache */
+		md_icacheflush(ra, 1 * 4);
 	}
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra + 1 * 4, 2 * 4);
 
 	return true;
 }
@@ -462,6 +448,9 @@ bool patcher_resolve_classref_to_flags(u1 *sp)
 	/* get the fieldinfo */
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
+
+	/* patch back original code */
+	patcher_patch_back(sp);
 
 	/* patch class flags */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
@@ -502,6 +491,9 @@ bool patcher_resolve_classref_to_vftbl(u1 *sp)
 	/* get the fieldinfo */
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
+
+	/* patch back original code */
+	patcher_patch_back(sp);
 
 	/* patch super class' vftbl */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
@@ -544,6 +536,9 @@ bool patcher_instanceof_interface(u1 *sp)
 	/* get the fieldinfo */
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
+
+	/* patch back original code */
+	patcher_patch_back(sp);
 
 	/* if we show NOPs, we have to skip them */
 	if (opt_shownops) ra += PATCHER_CALL_SIZE;
@@ -595,6 +590,9 @@ bool patcher_checkcast_interface(u1 *sp)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
+	/* patch back original code */
+	patcher_patch_back(sp);
+
 	/* if we show NOPs, we have to skip them */
 	if (opt_shownops) ra += PATCHER_CALL_SIZE;
 
@@ -635,6 +633,9 @@ bool patcher_resolve_native_function(u1 *sp)
 	if (!(f = native_resolve_function(m)))
 		return false;
 
+	/* patch back original code */
+	patcher_patch_back(sp);
+
 	/* patch native function pointer */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
 	*((ptrint *) (disp + 2)) = (ptrint) f;
@@ -650,6 +651,10 @@ bool patcher_resolve_native_function(u1 *sp)
 /* patcher_invokeinterface *****************************************************
 
    Machine code:
+0x40adb03e:     moveal %a2@(0),%a3		0x266a0000		<-- no patching
+0x40adb042:     moveal %a3@(0),%a3		0x266b0000		<-- patch this 0000
+0x40adb046:     moveal %a3@(0),%a4		0xxxxx0000		<-- patch this 0000
+0x40adb04a:     jsr %a4@				0xxxxx			
 
 
 *******************************************************************************/
@@ -665,30 +670,44 @@ bool patcher_invokeinterface(u1 *sp)
 	ra = (u1 *)                *((ptrint *) (sp + 6 * 4));
 	um = (unresolved_method *) *((ptrint *) (sp + 1 * 4));
 
-	assert(0);
 
 	/* get the fieldinfo */
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
+	/* patch back original code */
+	patcher_patch_back(sp);
+
 	/* if we show NOPs, we have to skip them */
-	if (opt_shownops) ra = ra + PATCHER_CALL_SIZE;
+	if (opt_shownops) ra += PATCHER_CALL_SIZE;
+	assert( *((uint32_t*)ra) == 0x246f0000 );
 
 	/* patch interfacetable index (first #0) */
 	disp = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->class->index;
-
-	/* XXX TWISTI: check displacement */
-	*((s4 *) (ra + 1 * 4)) |= (disp & 0x0000ffff);
+	/* XXX this disp is negative, check! 
+	 * assert( (disp & 0x0000ffff) == disp);*/
+	*((uint16_t *) (ra + 5 * 2)) = disp;
 
 	/* patch method offset (second #0) */
 	disp = sizeof(methodptr) * (m - m->class->methods);
-
-	/* XXX TWISTI: check displacement */
-	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
+	assert( (disp & 0x0000ffff) == disp);
+	*((uint16_t *) (ra + 7 * 2)) = disp;
 
 	/* synchronize instruction cache */
-	md_icacheflush(ra + 1 * 4, 2 * 4);
+	md_icacheflush(ra + 5 * 2, 2 * 2);
 
 	return true;
 }
-
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

@@ -37,14 +37,14 @@
 
 #define U8_AVAILABLE                     1
 
-#define SUPPORT_DIVISION                 0
-#define SUPPORT_LONG                     0
+#define SUPPORT_DIVISION                 1
+#define SUPPORT_LONG                     1
 
 #define SUPPORT_FMOD                     0
 #define SUPPORT_FICVT                    0
 #define SUPPORT_IFCVT                    0
 
-#define SUPPORT_LONG_ADD                 0
+#define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 0
 #define SUPPORT_LONG_CMP_CONST           0
 #define SUPPORT_LONG_LOGICAL             0
@@ -54,7 +54,7 @@
 #define SUPPORT_LONG_ICVT                0
 #define SUPPORT_LONG_FCVT                0
 
-#define SUPPORT_CONST_LOGICAL            0  /* AND, OR, XOR with immediates   */
+#define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
 #define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
 
 #define SUPPORT_CONST_STORE              0  /* do we support const stores     */
@@ -62,26 +62,34 @@
                                             /* only store REG_ZERO            */
 
 
-/* float **********************************************************************/
 
-#define SUPPORT_FLOAT                    0
-
-#if defined(ENABLE_SOFT_FLOAT_CMP)
-# define SUPPORT_FLOAT_CMP               0
+#if defined(ENABLE_SOFTFLOAT)
+	#define SUPPORT_FLOAT                   0
+	#define SUPPORT_DOUBLE                  0
+	#define SUPPORT_FLOAT_CMP               0
+	#define SUPPORT_DOUBLE_CMP       	0
 #else
-# define SUPPORT_FLOAT_CMP               0
-#endif
+	#define SUPPORT_FLOAT                    1
+	#define SUPPORT_DOUBLE                   1
 
+/* float **********************************************************************/
+	#if defined(ENABLE_SOFT_FLOAT_CMP)
+		#define SUPPORT_FLOAT_CMP               0
+	#else
+		#define SUPPORT_FLOAT_CMP               1
+	#endif
 
 /* double *********************************************************************/
+	#if defined(ENABLE_SOFT_DOUBLE_CMP)
+		#define SUPPORT_DOUBLE_CMP              0
+	#else
+		#define SUPPORT_DOUBLE_CMP              1
+	#endif
 
-#define SUPPORT_DOUBLE                   0
-
-#if defined(ENABLE_SOFT_FLOAT_CMP)
-# define SUPPORT_DOUBLE_CMP              0
-#else
-# define SUPPORT_DOUBLE_CMP              0
 #endif
+
+
+
 
 
 #define HAS_ADDRESS_REGISTER_FILE        1
@@ -96,8 +104,7 @@
 
 #define TRACE_ARGS_NUM			8
 
-#warning There is no REG_ZERO
-#define REG_ZERO 666
+#define REG_ZERO -1
 
 #define SPECIALMEMUSE
 /* #define HAS_4BYTE_STACKSLOT */

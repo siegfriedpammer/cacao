@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.h 7551 2007-03-21 14:26:09Z twisti $
+   $Id: statistics.h 7916 2007-05-18 14:24:21Z twisti $
 
 */
 
@@ -95,12 +95,14 @@ extern s4 size_methodinfo;
 extern s4 size_lineinfo;
 extern s4 size_codeinfo;
 
+extern s4 size_stub_native;
+
 extern s4 size_stack_map;
 extern s4 size_string;
 
 extern s4 size_threadobject;
 
-extern s4 size_lock_record_pool;
+extern s4 size_lock_record;
 extern s4 size_lock_hashtable;
 extern s4 size_lock_waiter;
 
@@ -171,7 +173,6 @@ extern int count_tryblocks;
 extern int count_code_len;
 extern int count_data_len;
 extern int count_cstub_len;
-extern int count_nstub_len;
 extern int count_max_new_stack;
 extern int count_upper_bound_new_stack;
 
@@ -219,6 +220,7 @@ void compilingtime_stop(void);
 void print_times(void);
 void print_stats(void);
 
+void statistics_print_date(void);
 void statistics_print_memory_usage(void);
 void statistics_print_gc_memory_usage(void);
 

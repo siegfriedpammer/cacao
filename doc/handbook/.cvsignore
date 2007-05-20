@@ -1,8 +1,0 @@
-*.aux
-*.bbl
-*.blg
-*.dvi
-*.log
-*.toc
-Makefile
-Makefile.in

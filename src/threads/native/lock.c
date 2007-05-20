@@ -44,6 +44,7 @@
 
 #include "vm/global.h"
 #include "vm/exceptions.h"
+#include "vm/finalizer.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -71,6 +72,10 @@
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
+#endif
+
+#if defined(ENABLE_GC_BOEHM)
+# include "mm/boehm-gc/include/gc.h"
 #endif
 
 
@@ -181,15 +186,7 @@
 #define LOCK_WORD_WITHOUT_COUNT(lockword) ((lockword) & ~THIN_LOCK_COUNT_MASK)
 
 
-/******************************************************************************/
-/* GLOBAL VARIABLES                                                           */
-/******************************************************************************/
-
-/* global lock record pool list header */
-lock_record_pool_t *lock_global_pool;
-
-/* mutex for synchronizing access to the global pool */
-pthread_mutex_t lock_global_pool_lock;
+/* global variables ***********************************************************/
 
 /* hashtable mapping objects to lock records */
 static lock_hashtable_t lock_hashtable;
@@ -200,9 +197,6 @@ static lock_hashtable_t lock_hashtable;
 /******************************************************************************/
 
 static void lock_hashtable_init(void);
-static lock_record_t * lock_hashtable_get_lock_record(threadobject *t, java_objectheader *o);
-
-static lock_record_t * lock_record_alloc(threadobject *t);
 
 static void lock_record_enter(threadobject *t, lock_record_t *lr);
 static void lock_record_exit(threadobject *t, lock_record_t *lr);
@@ -223,7 +217,7 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one);
 
 void lock_init(void)
 {
-	pthread_mutex_init(&lock_global_pool_lock, NULL);
+	/* initialize lock hashtable */
 
 	lock_hashtable_init();
 
@@ -231,48 +225,6 @@ void lock_init(void)
 	vmlog_cacao_init_lock();
 #endif
 }
-
-
-/* lock_record_init ************************************************************
-
-   Initialize a lock record.
-
-   IN:
-      r............the lock record to initialize
-	  t............will become the owner
-
-*******************************************************************************/
-
-static void lock_record_init(lock_record_t *r, threadobject *t)
-{
-	r->owner = NULL;
-	r->count = 0;
-	r->waiters = NULL;
-
-#if !defined(NDEBUG)
-	r->nextfree = NULL;
-#endif
-
-	pthread_mutex_init(&(r->mutex), NULL);
-}
-
-
-/* lock_init_execution_env *****************************************************
-
-   Initialize the execution environment for a thread.
-
-   IN:
-      thread.......the thread
-
-*******************************************************************************/
-
-void lock_init_execution_env(threadobject *thread)
-{
-	thread->ee.firstfree = NULL;
-	thread->ee.lockrecordpools = NULL;
-	thread->ee.lockrecordcount = 0;
-}
-
 
 
 /* lock_pre_compute_thinlock ***************************************************
@@ -293,226 +245,78 @@ ptrint lock_pre_compute_thinlock(s4 index)
 }
 
 
+/* lock_record_new *************************************************************
 
-/*============================================================================*/
-/* LOCK RECORD MANAGEMENT                                                     */
-/*============================================================================*/
-
-
-/* lock_record_alloc_new_pool **************************************************
-
-   Get a new lock record pool from the memory allocator.
-
-   IN:
-      thread.......the thread that will own the lock records
-	  size.........number of lock records in the pool to allocate
-
-   RETURN VALUE:
-      the new lock record pool, with initialized lock records
+   Allocate a lock record.
 
 *******************************************************************************/
 
-static lock_record_pool_t *lock_record_alloc_new_pool(threadobject *thread, int size)
+static lock_record_t *lock_record_new(void)
 {
-	lock_record_pool_t *pool;
-	s4                  i;
+	lock_record_t *lr;
 
-	/* get the pool from the memory allocator */
+	/* allocate the data structure on the C heap */
 
-	pool = mem_alloc(sizeof(lock_record_pool_header_t)
-				   + sizeof(lock_record_t) * size);
+	lr = NEW(lock_record_t);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		size_lock_record_pool += sizeof(lock_record_pool_header_t) +
-			sizeof(lock_record_t) * size;
+		size_lock_record += sizeof(lock_record_t);
 #endif
 
-	/* initialize the pool header */
+	/* initialize the members */
 
-	pool->header.size = size;
+	lr->object  = NULL;
+	lr->owner   = NULL;
+	lr->count   = 0;
+	lr->waiters = NULL;
 
-	/* initialize the individual lock records */
+	/* initialize the mutex */
 
-	for (i = 0; i < size; i++) {
-		lock_record_init(&pool->lr[i], thread);
+	pthread_mutex_init(&(lr->mutex), NULL);
 
-		pool->lr[i].nextfree = &pool->lr[i + 1];
-	}
-
-	/* terminate free list */
-
-	pool->lr[i - 1].nextfree = NULL;
-
-	return pool;
+	return lr;
 }
 
 
-/* lock_record_alloc_pool ******************************************************
+/* lock_record_free ************************************************************
 
-   Allocate a lock record pool. The pool is either taken from the global free
-   list or requested from the memory allocator.
+   Free a lock record.
 
    IN:
-      thread.......the thread that will own the lock records
-	  size.........number of lock records in the pool to allocate
-
-   RETURN VALUE:
-      the new lock record pool, with initialized lock records
+       lr....lock record to free
 
 *******************************************************************************/
 
-static lock_record_pool_t *lock_record_alloc_pool(threadobject *t, int size)
+static void lock_record_free(lock_record_t *lr)
 {
-	pthread_mutex_lock(&lock_global_pool_lock);
+#if 0
+	/* check the members */
 
-	if (lock_global_pool != NULL) {
-		int i;
-		lock_record_pool_t *pool;
-
-		/* pop a pool from the global freelist */
-
-		pool             = lock_global_pool;
-		lock_global_pool = pool->header.next;
-
-		pthread_mutex_unlock(&lock_global_pool_lock);
-
-		/* re-initialize owner and freelist chaining */
-
-		for (i = 0; i < pool->header.size; i++) {
-			pool->lr[i].owner    = NULL;
-			pool->lr[i].nextfree = &pool->lr[i + 1];
-		}
-		pool->lr[i - 1].nextfree = NULL;
-
-		return pool;
-	}
-
-	pthread_mutex_unlock(&lock_global_pool_lock);
-
-	/* we have to get a new pool from the allocator */
-
-	return lock_record_alloc_new_pool(t, size);
-}
-
-
-/* lock_record_free_pools ******************************************************
-
-   Free the lock record pools in the given linked list. The pools are inserted
-   into the global freelist.
-
-   IN:
-      pool.........list header
-
-*******************************************************************************/
-
-void lock_record_free_pools(lock_record_pool_t *pool)
-{
-	lock_record_pool_header_t *last;
-
-	assert(false); /* XXX this function does not match the new locking */
-	               /*     algorithm. We must find another way to free  */
-	               /*     unused lock records.                         */
-
-	if (pool == NULL)
-		return;
-
-	pthread_mutex_lock(&lock_global_pool_lock);
-
-	/* find the last pool in the list */
-
-	last = &pool->header;
-
-	while (last->next)
-		last = &last->next->header;
-
-	/* chain it to the lock_global_pool freelist */
-
-	last->next = lock_global_pool;
-
-	/* insert the freed pools into the freelist */
-
-	lock_global_pool = pool;
-
-	pthread_mutex_unlock(&lock_global_pool_lock);
-}
-
-
-/* lock_record_alloc ***********************************************************
-
-   Allocate a lock record which is owned by the current thread.
-
-   IN:
-      t............the current thread 
-
-*******************************************************************************/
-
-static lock_record_t *lock_record_alloc(threadobject *t)
-{
-	lock_record_t *r;
-
-	assert(t);
-	r = t->ee.firstfree;
-
-	if (!r) {
-		int poolsize;
-		lock_record_pool_t *pool;
-
-		/* get a new pool */
-
-		poolsize = t->ee.lockrecordcount ? t->ee.lockrecordcount * 2
-										 : LOCK_INITIAL_LOCK_RECORDS;
-		pool = lock_record_alloc_pool(t, poolsize);
-
-		/* add it to our per-thread pool list */
-
-		pool->header.next = t->ee.lockrecordpools;
-		t->ee.lockrecordpools = pool;
-		t->ee.lockrecordcount += pool->header.size;
-
-		/* take the first record from the pool */
-		r = &pool->lr[0];
-	}
-
-	/* pop the record from the freelist */
-
-	t->ee.firstfree = r->nextfree;
-#ifndef NDEBUG
-	r->nextfree = NULL; /* in order to find invalid uses of nextfree */
+	lr->object  = o;
+	lr->owner   = NULL;
+	lr->count   = 0;
+	lr->waiters = NULL;
 #endif
 
-	return r;
+	/* destroy the mutex */
+
+	pthread_mutex_destroy(&(lr->mutex));
+
+	/* free the data structure */
+
+	FREE(lr, lock_record_t);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_lock_record -= sizeof(lock_record_t);
+#endif
 }
-
-
-/* lock_record_recycle *********************************************************
-
-   Recycle the given lock record. It will be inserted in the appropriate
-   free list.
-
-   IN:
-      t............the owner
-	  r............lock record to recycle
-
-*******************************************************************************/
-
-static inline void lock_record_recycle(threadobject *t, lock_record_t *r)
-{
-	assert(t);
-	assert(r);
-	assert(r->owner == NULL);
-	assert(r->nextfree == NULL);
-
-	r->nextfree = t->ee.firstfree;
-	t->ee.firstfree = r;
-}
-
 
 
 /*============================================================================*/
 /* HASHTABLE MAPPING OBJECTS TO LOCK RECORDS                                  */
 /*============================================================================*/
-
 
 /* lock_hashtable_init *********************************************************
 
@@ -581,7 +385,7 @@ static void lock_hashtable_grow(void)
 		while (lr) {
 			next = lr->hashlink;
 
-			h = LOCK_HASH(lr->obj);
+			h = LOCK_HASH(lr->object);
 			newslot = h % newsize;
 
 			lr->hashlink = newtable[newslot];
@@ -605,31 +409,33 @@ static void lock_hashtable_grow(void)
 }
 
 
-/* lock_hashtable_get_lock_record **********************************************
+/* lock_hashtable_get **********************************************************
 
-   Find the lock record for the given object. If it does not exists, yet,
-   create it and enter it in the hashtable.
+   Find the lock record for the given object.  If it does not exists,
+   yet, create it and enter it in the hashtable.
 
    IN:
-      t.................the current thread
-	  o.................the object to look up
+	  o....the object to look up
 
    RETURN VALUE:
       the lock record to use for this object
 
 *******************************************************************************/
 
-static lock_record_t *lock_hashtable_get_lock_record(threadobject *t, java_objectheader *o)
+#if defined(ENABLE_GC_BOEHM)
+static void lock_record_finalizer(void *object, void *p);
+#endif
+
+static lock_record_t *lock_hashtable_get(java_objectheader *o)
 {
-	ptrint lockword;
-	u4 slot;
+	ptrint         lockword;
+	u4             slot;
 	lock_record_t *lr;
 
 	lockword = (ptrint) o->monitorPtr;
 
-	if (IS_FAT_LOCK(lockword)) {
+	if (IS_FAT_LOCK(lockword))
 		return GET_FAT_LOCK(lockword);
-	}
 
 	/* lock the hashtable */
 
@@ -638,26 +444,33 @@ static lock_record_t *lock_hashtable_get_lock_record(threadobject *t, java_objec
 	/* lookup the lock record in the hashtable */
 
 	slot = LOCK_HASH(o) % lock_hashtable.size;
-	lr = lock_hashtable.ptr[slot];
-	while (lr) {
-		if (lr->obj == o) {
+	lr   = lock_hashtable.ptr[slot];
+
+	for (; lr != NULL; lr = lr->hashlink) {
+		if (lr->object == o) {
 			pthread_mutex_unlock(&(lock_hashtable.mutex));
 			return lr;
 		}
-
-		lr = lr->hashlink;
 	}
 
 	/* not found, we must create a new one */
 
-	lr = lock_record_alloc(t);
-	lr->obj = o;
+	lr = lock_record_new();
+
+	lr->object = o;
+
+#if defined(ENABLE_GC_BOEHM)
+	/* register new finalizer to clean up the lock record */
+
+	GC_REGISTER_FINALIZER(o, lock_record_finalizer, 0, 0, 0);
+#endif
+
 	LOCK_LOG(("thread %d allocated for %p new lr %p\n",
-			t->index, (void*) o, (void*) lr));
+			  t->index, (void*) o, (void*) lr));
 
 	/* enter it in the hashtable */
 
-	lr->hashlink = lock_hashtable.ptr[slot];
+	lr->hashlink             = lock_hashtable.ptr[slot];
 	lock_hashtable.ptr[slot] = lr;
 	lock_hashtable.entries++;
 
@@ -674,6 +487,102 @@ static lock_record_t *lock_hashtable_get_lock_record(threadobject *t, java_objec
 	/* return the new lock record */
 
 	return lr;
+}
+
+
+/* lock_hashtable_remove *******************************************************
+
+   Remove the lock record for the given object from the hashtable.
+
+   IN:
+       o....the object to look up
+
+*******************************************************************************/
+
+static void lock_hashtable_remove(java_objectheader *o)
+{
+	ptrint         lockword;
+	lock_record_t *lr;
+	u4             slot;
+	lock_record_t *tmplr;
+
+	/* lock the hashtable */
+
+	pthread_mutex_lock(&(lock_hashtable.mutex));
+
+	/* get lock record */
+
+	lockword = (ptrint) o->monitorPtr;
+
+	assert(IS_FAT_LOCK(lockword));
+
+	lr = GET_FAT_LOCK(lockword);
+
+	/* remove the lock-record from the hashtable */
+
+	slot  = LOCK_HASH(o) % lock_hashtable.size;
+	tmplr = lock_hashtable.ptr[slot];
+
+	if (tmplr == lr) {
+		/* special handling if it's the first in the chain */
+
+		lock_hashtable.ptr[slot] = lr->hashlink;
+	}
+	else {
+		for (; tmplr != NULL; tmplr = tmplr->hashlink) {
+			if (tmplr->hashlink == lr) {
+				tmplr->hashlink = lr->hashlink;
+				break;
+			}
+		}
+
+		assert(tmplr != NULL);
+	}
+
+	/* decrease entry count */
+
+	lock_hashtable.entries--;
+
+	/* unlock the hashtable */
+
+	pthread_mutex_unlock(&(lock_hashtable.mutex));
+}
+
+
+/* lock_record_finalizer *******************************************************
+
+   XXX Remove me for exact GC.
+
+*******************************************************************************/
+
+static void lock_record_finalizer(void *object, void *p)
+{
+	java_objectheader *o;
+	ptrint             lockword;
+	lock_record_t     *lr;
+
+	o = (java_objectheader *) object;
+
+	/* check for a finalizer function */
+
+	if (o->vftbl->class->finalizer != NULL)
+		finalizer_run(object, p);
+
+	/* remove the lock-record entry from the hashtable */
+
+	lock_hashtable_remove(o);
+
+	/* get lock record */
+
+	lockword = (ptrint) o->monitorPtr;
+
+	assert(IS_FAT_LOCK(lockword));
+
+	lr = GET_FAT_LOCK(lockword);
+
+	/* now release the lock record */
+
+	lock_record_free(lr);
 }
 
 
@@ -731,6 +640,7 @@ lock_record_t *lock_get_initial_lock_word(void)
 static inline void lock_record_enter(threadobject *t, lock_record_t *lr)
 {
 	pthread_mutex_lock(&(lr->mutex));
+
 	lr->owner = t;
 }
 
@@ -828,10 +738,11 @@ static void lock_inflate(threadobject *t, java_objectheader *o, lock_record_t *l
 
 bool lock_monitor_enter(java_objectheader *o)
 {
-	threadobject *t;
+	threadobject  *t;
 	/* CAUTION: This code assumes that ptrint is unsigned! */
-	ptrint        lockword;
-	ptrint        thinlock;
+	ptrint         lockword;
+	ptrint         thinlock;
+	lock_record_t *lr;
 
 	if (o == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -869,11 +780,9 @@ bool lock_monitor_enter(java_objectheader *o)
 			return true;
 		}
 		else {
-			lock_record_t *lr;
-
 			/* recursion count overflow */
 
-			lr = lock_hashtable_get_lock_record(t, o);
+			lr = lock_hashtable_get(o);
 			lock_record_enter(t, lr);
 			lock_inflate(t, o, lr);
 			lr->count++;
@@ -884,79 +793,80 @@ bool lock_monitor_enter(java_objectheader *o)
 
 	/* the lock is either contented or fat */
 
-	{
-		lock_record_t *lr;
+	if (IS_FAT_LOCK(lockword)) {
 
-		if (IS_FAT_LOCK(lockword)) {
+		lr = GET_FAT_LOCK(lockword);
 
-			lr = GET_FAT_LOCK(lockword);
-
-			/* check for recursive entering */
-			if (lr->owner == t) {
-				lr->count++;
-				return true;
-			}
-
-			/* acquire the mutex of the lock record */
-
-			lock_record_enter(t, lr);
-
-			assert(lr->count == 0);
-
+		/* check for recursive entering */
+		if (lr->owner == t) {
+			lr->count++;
 			return true;
 		}
 
-		/****** inflation path ******/
-
-		/* first obtain the lock record for this object */
-
-		lr = lock_hashtable_get_lock_record(t, o);
-
-#if defined(ENABLE_JVMTI)
-        /* Monitor Contended Enter */
-		jvmti_MonitorContendedEntering(false, o);
-#endif
-		/* enter the monitor */
+		/* acquire the mutex of the lock record */
 
 		lock_record_enter(t, lr);
 
-
-#if defined(ENABLE_JVMTI)
-		/* Monitor Contended Entered */
-		jvmti_MonitorContendedEntering(true, o);
-#endif
-
-		/* inflation loop */
-
-		while (IS_THIN_LOCK(lockword = (ptrint) o->monitorPtr)) {
-			/* Set the flat lock contention bit to let the owning thread */
-			/* know that we want to be notified of unlocking.            */
-
-			LOCK_SET_FLC_BIT(o);
-
-			LOCK_LOG(("thread %d set flc bit on %p lr %p\n",
-					t->index, (void*) o, (void*) lr));
-
-			/* try to lock the object */
-
-			if (COMPARE_AND_SWAP_SUCCEEDS(&(o->monitorPtr), THIN_UNLOCKED, thinlock)) {
-				/* we can inflate the lock ourselves */
-				LOCK_LOG(("thread %d inflating lock of %p to lr %p\n",
-						t->index, (void*) o, (void*) lr));
-				lock_inflate(t, o, lr);
-			}
-			else {
-				/* wait until another thread sees the flc bit and notifies us of unlocking */
-				LOCK_LOG(("thread %d waiting for notification on %p lr %p\n",
-						t->index, (void*) o, (void*) lr));
-				lock_record_wait(t, lr, 0, 0);
-			}
-		}
-
-		/* we own the inflated lock now */
+		assert(lr->count == 0);
 
 		return true;
 	}
+
+	/****** inflation path ******/
+
+	/* first obtain the lock record for this object */
+
+	lr = lock_hashtable_get(o);
+
+#if defined(ENABLE_JVMTI)
+	/* Monitor Contended Enter */
+	jvmti_MonitorContendedEntering(false, o);
+#endif
+
+	/* enter the monitor */
+
+	lock_record_enter(t, lr);
+
+#if defined(ENABLE_JVMTI)
+	/* Monitor Contended Entered */
+	jvmti_MonitorContendedEntering(true, o);
+#endif
+
+	/* inflation loop */
+
+	while (IS_THIN_LOCK(lockword = (ptrint) o->monitorPtr)) {
+		/* Set the flat lock contention bit to let the owning thread
+		   know that we want to be notified of unlocking. */
+
+		LOCK_SET_FLC_BIT(o);
+
+		LOCK_LOG(("thread %d set flc bit on %p lr %p\n",
+				  t->index, (void*) o, (void*) lr));
+
+		/* try to lock the object */
+
+		if (COMPARE_AND_SWAP_SUCCEEDS(&(o->monitorPtr), THIN_UNLOCKED, thinlock)) {
+			/* we can inflate the lock ourselves */
+
+			LOCK_LOG(("thread %d inflating lock of %p to lr %p\n",
+					  t->index, (void*) o, (void*) lr));
+
+			lock_inflate(t, o, lr);
+		}
+		else {
+			/* wait until another thread sees the flc bit and notifies
+			   us of unlocking */
+
+			LOCK_LOG(("thread %d waiting for notification on %p lr %p\n",
+					  t->index, (void*) o, (void*) lr));
+
+			lock_record_wait(t, lr, 0, 0);
+		}
+	}
+
+	/* we own the inflated lock now */
+
+	return true;
 }
 
 
@@ -1016,7 +926,7 @@ bool lock_monitor_exit(java_objectheader *o)
 
 			/* there has been a contention on this thin lock */
 
-			lr = lock_hashtable_get_lock_record(t, o);
+			lr = lock_hashtable_get(o);
 
 			LOCK_LOG(("thread %d for %p got lr %p\n",
 					t->index, (void*) o, (void*) lr));
@@ -1262,7 +1172,9 @@ static void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, 
 		}
 
 		/* inflate this lock */
-		lr = lock_hashtable_get_lock_record(t, o);
+
+		lr = lock_hashtable_get(o);
+
 		lock_record_enter(t, lr);
 		lock_inflate(t, o, lr);
 	}
@@ -1297,16 +1209,19 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 	/* for each waiter: */
 
-	for (waiter = lr->waiters; waiter; waiter = waiter->next) {
+	for (waiter = lr->waiters; waiter != NULL; waiter = waiter->next) {
 
 		/* signal the waiting thread */
 
 		waitingthread = waiter->waiter;
 
 		pthread_mutex_lock(&waitingthread->waitmutex);
+
 		if (waitingthread->sleeping)
 			pthread_cond_signal(&waitingthread->waitcond);
+
 		waitingthread->signaled = true;
+
 		pthread_mutex_unlock(&waitingthread->waitmutex);
 
 		/* if we should only wake one, we are done */
@@ -1360,7 +1275,9 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 		}
 
 		/* inflate this lock */
-		lr = lock_hashtable_get_lock_record(t, o);
+
+		lr = lock_hashtable_get(o);
+
 		lock_record_enter(t, lr);
 		lock_inflate(t, o, lr);
 	}
@@ -1391,20 +1308,21 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 
 bool lock_is_held_by_current_thread(java_objectheader *o)
 {
-	ptrint        lockword;
-	threadobject *t;
+	threadobject  *t;
+	ptrint         lockword;
+	lock_record_t *lr;
+
+	t = THREADOBJECT;
 
 	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
 	/* will fail this check.                                              */
 
 	lockword = (ptrint) o->monitorPtr;
-	t = THREADOBJECT;
 
 	if (IS_FAT_LOCK(lockword)) {
-		lock_record_t *lr;
-
 		/* it's a fat lock */
+
 		lr = GET_FAT_LOCK(lockword);
 
 		return (lr->owner == t);

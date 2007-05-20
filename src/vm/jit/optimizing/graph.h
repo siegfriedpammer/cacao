@@ -50,11 +50,13 @@
 # define _GRAPH_ASSERT(a)
 #endif
 
+#if 0
 struct _sbr {
 	int header;          /* BB Index of subroutine start (SBR_HEADER) */
 	struct graph_element *ret;   /* List of possible return BB indizes */
 	struct _sbr *next;
 };
+#endif
 
 struct graph_element {
   int value;

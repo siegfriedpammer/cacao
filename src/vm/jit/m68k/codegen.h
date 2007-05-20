@@ -181,8 +181,10 @@
 
 #define M_IPUSH_IMM(a)		OPWORD_IMM32(0x121,7,1, (a))				/* pea.l */
 
+#if 0
 #define	M_PUSHALL		OPWORD_IMM16(0x123,2,REG_SP,0xFFFF)			/* A0-A7, D0-D7 pushed onto stack */
 #define M_POPALL		OPWORD_IMM16(0x133,2,REG_SP,0xFFFF)			/* A0-A7, D0-D7 poped off stack */
+#endif
 
 /* M_XLD(a,b,c)....M_XLD(destinationreg, addressbase, offset)	*/
 #define M_ILD(a,b,c)		OPWORD_IMM16( ( (2<<6) | ((a) << 3) | 0), 5, (b), (c))
@@ -193,8 +195,8 @@
 				} while(0);
 
 #if !defined(ENABLE_SOFTFLOAT)
-	#define M_FLD(a,b,c)		M_ILLEGAL
-	#define M_DLD(a,b,c)		M_ILLEGAL
+	#define M_FLD(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( (( (0x11 << 10) | ((a)<<7) | 0x40 )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
+	#define M_DLD(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( (( (0x15 << 10) | ((a)<<7) | 0x44 )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
 #endif
 
 /* M_XST(a,b,c)....M_XST(sourceregister, addressbase, offset)   */
@@ -206,8 +208,10 @@
 				} while(0);
 
 #if !defined(ENABLE_SOFTFLOAT)
-	#define M_FST(a,b,c)		M_ILLEGAL
-	#define M_DST(a,b,c)		M_ILLEGAL
+	#define M_FST(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ((  (0x19 <<10) | ((a)<<7) | 0  )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
+	#define M_DST(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ((  (0x1d <<10) | ((a)<<7) | 0  )<<16) | (((int16_t)(c)) & 0x0000ffff)) )
+	#define M_FSTORE(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ( (0xf << 12) | (1 << (7-(a))) ) <<16) | (((int16_t)(c)) & 0x0000ffff))
+	#define M_FLOAD(a,b,c)		OPWORD_IMM32( 0x3c8, 5, (b), ( ( (0xd << 12) | (1 << (7-(a))) ) <<16) | (((int16_t)(c)) & 0x0000ffff))
 #endif
 
 /*M_XADD_IMM(a,b)...M_XADD_IMM(offset, reg) */
@@ -217,7 +221,9 @@
 
 /* M_OP(source, dest) ...  dest (OP) source -> dest*/
 #define M_ISUB(a,b)		OPWORD ( ( (9<<6)   | ((b)<<3) | 2), 0, (a))			/* sub.l */
+#define M_ISUBX(a,b)	OPWORD ( ( (9<<6)   | ((b)<<3) | 6), 0, (a))			/* subx.l */
 #define M_IADD(a,b)		OPWORD ( ( (0xd<<6) | ((b)<<3) | 2), 0, (a))			/* add.l */
+#define M_IADDX(a,b)	OPWORD ( ( (0xd<<6) | ((b)<<3) | 6), 0, (a))			/* addx.l */
 
 #define M_IMUL(a,b)		OPWORD_IMM16 ( 0x130, 0, (a), ( ((b) << 12) | (1 << 11))) 	/* muls.l */
 #define M_IDIV(a,b)		OPWORD_IMM16 ( 0x131, 0, (a), ( ((b) << 12) | (1 << 11) | (b)))	/* divs.l */
@@ -227,8 +233,14 @@
 #define M_IUSR(a,b)		OPWORD ( ( (0xe<<6) | ((a) << 3) | 2), 5, (b))			/* lsr.l */
 
 #define M_IAND(a,b)		OPWORD ( ( (0xc<<6) | ((b) << 3) | 2), 0, (a))			/* and.l */
-
 #define M_IOR(a,b)		OPWORD ( ( (0x8<<6) | ((b) << 3) | 2), 0, (a))			/* or.l */
+#define M_IXOR(a,b)		OPWORD ( ( (0xb<<6) | ((a) << 3) | 6), 0, (b))			/* eor.l */
+
+
+/* M_IX_IMM(imm, register)	*/
+#define M_IAND_IMM(a,b)		OPWORD_IMM32( 0xa, 0, (b), (a))					/* andi.l # */
+#define M_IOR_IMM(a,b)		OPWORD_IMM32( 0x2, 0, (b), (a))					/* ori.l # */
+#define M_IXOR_IMM(a,b)		OPWORD_IMM32( 0x2a,0, (b), (a))					/* eori.l # */
 
 
 /* ultra sepcial 3 register form, b%a = c, (a!=c) */
@@ -236,11 +248,16 @@
 
 /* M_OP(dest) */
 #define M_INEG(a)		OPWORD(0x112, 0, (a))						/* neg.l */
+#define M_INEGX(a)		OPWORD(0x102, 0, (a))						/* neg.l */
 
 /* only generate opcode when condition true */
 #define OPWORD_COND(c, u,v,w)	\
 	do { \
 		if ( (c) ) { OPWORD( (u),(v),(w) ) }  \
+	} while(0);
+#define OPWORD_IMM16_COND(c, u,v,w,x)	\
+	do { \
+		if ( (c) ) { OPWORD_IMM16( (u),(v),(w),(x) ) }  \
 	} while(0);
 /* assert on the opcode */
 #define OPWORD_ASSERT(a, u,v,w)	\
@@ -260,8 +277,9 @@
 				} while(0);
 
 #if !defined(ENABLE_SOFTLFOAT)
-	#define M_FLTMOVE(a,b)		M_ILLEGAL
-	#define M_DBLMOVE(a,b)		M_ILLEGAL
+	#define M_FLTMOVE(a,b)		OPWORD_IMM16_COND( ((a)!=(b)), 0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x40)
+	#define M_INT2FLTMOVE(a,b)	OPWORD_IMM16( 0x3c8, 0, (a), ((0x11 << 10) | ((b) << 7) | 0x40 )) 
+	#define M_DBLMOVE(a,b)		OPWORD_IMM16_COND( ((a)!=(b)), 0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x44)
 #endif
 /* M_XTST....M_XTST(register) */
 #define M_ITST(a)		OPWORD(0x12a, 0, (a))			/* tst.l */
@@ -276,8 +294,6 @@
 #define M_ICMP(b,a)		OPWORD( ( (0xb << 6) | ((a) << 3) | 2), 0, (b))			/* cmp.l */
 #define M_ACMP(b,a)		OPWORD( ( (0xb << 6) | ((a) << 3) | 7), 1, (b))			/* cmpa.l */
 
-/* M_AND_IMM(imm, register)	*/
-#define M_IAND_IMM(a,b)		OPWORD_IMM32( 0xa, 0, (b), (a))					/* andi.l # */
 
 /* All kind of branches one could ever possibly need, each with 16 and 32 bit displacement */
 /* BRANCH16 and BRANCH32 are helpers */
@@ -304,6 +320,8 @@
 
 #define M_BR_16(a)			BRANCH16(0x0, (a))	/* branch always */
 #define M_BR_32(a)			BRANCH32(0x0, (a))
+
+#define M_BCS(a)			BRANCH8 (0x5, (a))	/* carry set */
 
 #define M_BEQ(a)			BRANCH8 (0x7, (a))
 #define M_BEQ_16(a)			BRANCH16(0x7, (a))
@@ -341,6 +359,8 @@
 #define M_BNAN_16(a)			M_ILLEGAL		/* TODO */
 #define M_BNAN_32(a)			M_ILLEGAL
 
+
+
 /* array store/load stuff */
 /* M_LXXX(baseaddressregister, targetregister)	*/
 /* M_SXXX(baseaddressregsiter, sourceregister)  */
@@ -354,12 +374,6 @@
 #define M_STWX(a,c)			OPWORD( ( (2<<6) | ((a) << 3) | 2), 0, (c))
 #define M_STAX(a,c)			OPWORD( ( (2<<6) | ((a) << 3) | 2), 1, (c))	/* movea.l */
 
-#if !defined(ENABLE_SOFTFLOAT)
-	#define M_LFSX(a,c)		M_ILLEGAL
-	#define M_LFDX(a,c)		M_ILLEGAL
-	#define M_STFSX(a,c)		M_ILLEGAL
-	#define M_STFDX(a,c)		M_ILLEGAL
-#endif
 
 #define M_BSEXT(a,b)			OPWORD( ( (7<<6) | ((b) << 3) | 4), 0, (a))	/* mvs.b */
 #define M_CZEXT(a,b)			OPWORD( ( (7<<6) | ((b) << 3) | 7), 0, (a))	/* mvz.w */
@@ -384,8 +398,10 @@
 					} while(0);
 
 #if !defined(ENABLE_SOFTFLOAT)
-	#define FCONST(a,b)		M_ILLEGAL
-	#define DCONST(a,b)		M_ILLEGAL
+	#define FCONST(a,b)		do	{\
+							M_IMOV_IMM((a), REG_ITMP1);\
+							OPWORD_IMM16( 0x3c8, 0, REG_ITMP1, ( (0x11 << 10) | ((b)<<7) | 0x40) );\
+						} while(0);
 #endif
 
 #define M_TRAP_SETREGISTER(a)		OPWORD( 0x128, 0, (a))		/* tst.b */
@@ -395,4 +411,47 @@
 		cd->mcodeptr += 2; \
 	} while(0);
 
+
+#if !defined(ENABLE_SOFTFLOAT)
+	
+	#define M_FCMP(b,a)		OPWORD_IMM16(0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x38 )			/* fcmp.d */
+
+	#define	M_BFEQ(a)		OPWORD_IMM16(0x3ca, 0, 0x01, (a))
+	#define	M_BFLT(a)		OPWORD_IMM16(0x3ca, 0, 0x14, (a))
+	#define	M_BFGT(a)		OPWORD_IMM16(0x3ca, 0, 0x12, (a))
+	#define M_BFUN(a)		OPWORD_IMM16(0x3ca, 0, 0x10, (a))
+
+	#define	M_FADD(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x62 )		/* fsadd */
+	#define	M_DADD(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x66 )		/* fdadd */
+
+	#define	M_FSUB(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x68 )		/* fssub */
+	#define	M_DSUB(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x6c )		/* fdsub */
+
+	#define M_FMUL(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x63 )		/* fsmul */
+	#define M_DMUL(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x67 )		/* fdmul */
+
+	#define	M_FDIV(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x60 )		/* fsdiv */
+	#define	M_DDIV(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x64 )		/* fddiv */
+
+	#define M_D2F(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x44 )		/* fsmoved */
+	#define M_F2D(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x40 )		/* fdmoved */
+
+	#define	M_FNEG(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x5a )		/* fneg.s */
+	#define	M_DNEG(a,b)		OPWORD_IMM16(0x3c8, 0, 0, ((a) << 10) | ((b) << 7) | 0x5e )		/* fneg.d */
+#endif
+
 #endif /* _CODEGEN_H */
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

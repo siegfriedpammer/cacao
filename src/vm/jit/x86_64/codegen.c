@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7794 2007-04-23 19:57:45Z michi $
+   $Id: codegen.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -41,12 +41,11 @@
 #include "vm/jit/x86_64/emit.h"
 
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -2549,9 +2548,9 @@ gen_method:
 					supervftbl = super->vftbl;
 				}
 
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+					CODEGEN_CRITICAL_SECTION_NEW;
+
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -2621,9 +2620,9 @@ gen_method:
 					}
 
 					M_MOV_IMM(supervftbl, REG_ITMP3);
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD32(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
 					/*  					if (s1 != REG_ITMP1) { */
@@ -2645,9 +2644,9 @@ gen_method:
 					M_MOV_IMM(supervftbl, REG_ITMP3);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 					/*  					} */
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_END;
+
 					M_ICMP(REG_ITMP3, REG_ITMP2);
 					emit_classcast_check(cd, iptr, BRANCH_UGT, REG_ITMP3, s1);
 
@@ -2700,16 +2699,15 @@ gen_method:
 				super      = NULL;
 				superindex = 0;
 				supervftbl = NULL;
-
-			} else {
+			}
+			else {
 				super      = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
 				supervftbl = super->vftbl;
 			}
 
-#if defined(ENABLE_THREADS)
-            codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+				CODEGEN_CRITICAL_SECTION_NEW;
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -2789,17 +2787,13 @@ gen_method:
 
 				M_MOV_IMM(supervftbl, REG_ITMP2);
 
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				CODEGEN_CRITICAL_SECTION_START;
 
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, diffval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP2, REG_ITMP1);
 				M_CLR(d); /* may be REG_ITMP2 */

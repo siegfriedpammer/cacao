@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7235 2007-01-22 17:22:28Z twisti $
+## $Id: Makefile.am 7890 2007-05-09 16:05:58Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -32,15 +32,15 @@ EXTRA_DIST = \
 CLEANFILES = vm.zip
 
 VM_JAVA_FILES = \
-	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMStackWalker.java \
-	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMSystemProperties.java \
-	$(top_srcdir)/src/lib/vm/reference/gnu/java/lang/management/VMMemoryMXBeanImpl.java \
-	$(top_srcdir)/src/lib/vm/reference/gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMClassLoader.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMString.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMThread.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMThrowable.java \
-	$(top_srcdir)/src/lib/vm/reference/java/security/VMAccessController.java
+	$(top_srcdir)/src/lib/gnu/gnu/classpath/VMStackWalker.java \
+	$(top_srcdir)/src/lib/gnu/gnu/classpath/VMSystemProperties.java \
+	$(top_srcdir)/src/lib/gnu/gnu/java/lang/management/VMMemoryMXBeanImpl.java \
+	$(top_srcdir)/src/lib/gnu/gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
+	$(top_srcdir)/src/lib/gnu/java/lang/VMClassLoader.java \
+	$(top_srcdir)/src/lib/gnu/java/lang/VMString.java \
+	$(top_srcdir)/src/lib/gnu/java/lang/VMThread.java \
+	$(top_srcdir)/src/lib/gnu/java/lang/VMThrowable.java \
+	$(top_srcdir)/src/lib/gnu/java/security/VMAccessController.java
 
 VM_CLASS_FILES = \
 	classes/gnu/classpath/VMStackWalker.class \

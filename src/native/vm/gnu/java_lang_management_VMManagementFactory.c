@@ -34,12 +34,40 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
+
+#include "native/include/java_lang_management_VMManagementFactory.h"
 
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
 
 #include "vmcore/class.h"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getMemoryPoolNames",       "()[Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_management_VMManagementFactory_getMemoryPoolNames       },
+	{ "getMemoryManagerNames",    "()[Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_management_VMManagementFactory_getMemoryManagerNames    },
+	{ "getGarbageCollectorNames", "()[Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames },
+};
+
+
+/* _Jv_java_lang_management_VMManagementFactory_init ***************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_management_VMManagementFactory_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/management/VMManagementFactory");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 
 
 /*

@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7797 2007-04-23 20:12:39Z michi $
+   $Id: builtin.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -59,9 +59,7 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
@@ -1866,7 +1864,7 @@ s8 builtin_lmul(s8 a, s8 b)
 #endif /* !(SUPPORT_LONG && SUPPORT_LONG_MUL) */
 
 
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) || defined (DISABLE_GC)
 s8 builtin_ldiv(s8 a, s8 b)
 {
 	s8 c;

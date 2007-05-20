@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7797 2007-04-23 20:12:39Z michi $
+   $Id: codegen-common.h 7918 2007-05-20 20:42:18Z michi $
 
 */
 
@@ -32,15 +32,15 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct codegen_critical_section_t codegen_critical_section_t;
-typedef struct codegendata                codegendata;
-typedef struct branchref                  branchref;
-typedef struct branch_label_ref_t         branch_label_ref_t;
-typedef struct jumpref                    jumpref;
-typedef struct dataref                    dataref;
-typedef struct exceptionref               exceptionref;
-typedef struct patchref                   patchref;
-typedef struct linenumberref              linenumberref;
+typedef struct codegendata            codegendata;
+typedef struct branchref              branchref;
+typedef struct branch_label_ref_t     branch_label_ref_t;
+typedef struct critical_section_ref_t critical_section_ref_t;
+typedef struct jumpref                jumpref;
+typedef struct dataref                dataref;
+typedef struct exceptionref           exceptionref;
+typedef struct patchref               patchref;
+typedef struct linenumberref          linenumberref;
 
 
 #include "config.h"
@@ -102,17 +102,6 @@ typedef struct linenumberref              linenumberref;
 #define BRANCH_OPT_NONE         0
 
 
-
-/************************* critical sections  *********************************/
-
-struct codegen_critical_section_t {
-	codegen_critical_section_t *next;
-	s4                  mcodebegin;
-	s4                  mcodeend;
-	s4                  mcoderestart;
-};
-
-
 /* codegendata ****************************************************************/
 
 struct codegendata {
@@ -149,6 +138,7 @@ struct codegendata {
 /* 	list_t         *patchrefs; */
 	patchref       *patchrefs;
 	list_t         *brancheslabel;
+	list_t         *listcritical;   /* list of critical sections              */
 
 	linenumberref  *linenumberreferences; /* list of line numbers and the     */
 	                                /* program counters of their first        */
@@ -158,10 +148,6 @@ struct codegendata {
 	s4              linenumbertab;
 
 	methodinfo     *method;
-
-	codegen_critical_section_t *threadcrit; /* List of critical code regions          */
-	codegen_critical_section_t threadcritcurrent;
-	s4                 threadcritcount; /* Number of critical regions         */
 
 	s4              stackframesize;    /* stackframe size of this method      */
 
@@ -201,6 +187,16 @@ struct branch_label_ref_t {
 	s4         condition;       /* conditional branch condition               */
 	s4         reg;             /* register number to check                   */
 	u4         options;         /* branch options                             */
+	listnode_t linkage;
+};
+
+
+/* critical_section_ref_t *****************************************************/
+
+struct critical_section_ref_t {
+	s4         start;           /* relative offset to method entry-point      */
+	s4         end;
+	s4         restart;
 	listnode_t linkage;
 };
 
@@ -341,13 +337,26 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum);
 s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum);
 
 #if defined(ENABLE_THREADS)
-void codegen_threadcritrestart(codegendata *cd, int offset);
-void codegen_threadcritstart(codegendata *cd, int offset);
-void codegen_threadcritstop(codegendata *cd, int offset);
+void codegen_critical_section_new(codegendata *cd);
+void codegen_critical_section_start(codegendata *cd);
+void codegen_critical_section_end(codegendata *cd);
+
+# define CODEGEN_CRITICAL_SECTION_NEW      codegen_critical_section_new(cd)
+# define CODEGEN_CRITICAL_SECTION_START    codegen_critical_section_start(cd)
+# define CODEGEN_CRITICAL_SECTION_END      codegen_critical_section_end(cd)
+#else
+# define CODEGEN_CRITICAL_SECTION_NEW      /* no-op */
+# define CODEGEN_CRITICAL_SECTION_START    /* no-op */
+# define CODEGEN_CRITICAL_SECTION_END      /* no-op */
 #endif
 
 /* machine dependent functions */
 u1 *md_codegen_get_pv_from_pc(u1 *ra);
+
+
+#if defined(ENABLE_SSA)
+void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr);
+#endif
 
 #endif /* _CODEGEN_COMMON_H */
 
