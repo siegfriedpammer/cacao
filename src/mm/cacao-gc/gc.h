@@ -43,6 +43,7 @@
 # include "threads/native/threads.h"
 #endif
 
+#include "toolbox/list.h"
 #include "vm/jit/replace.h"
 
 
@@ -111,6 +112,18 @@
 
 extern bool gc_pending;
 extern bool gc_notify_finalizer;
+
+extern list_t *gc_reflist;
+
+
+/* Structures *****************************************************************/
+
+typedef struct list_gcref_entry_t list_gcref_entry_t;
+
+struct list_gcref_entry_t {
+	listnode_t          linkage;
+	java_objectheader **ref;
+};
 
 
 /* No-Thread specific stuff ***************************************************/

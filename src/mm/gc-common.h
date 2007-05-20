@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gc-common.h 7615 2007-03-29 23:10:59Z michi $
+   $Id: gc-common.h 7920 2007-05-20 23:02:43Z michi $
 
 */
 
@@ -47,8 +47,11 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect);
 void  heap_free(void *p);
 
 #if defined(ENABLE_GC_CACAO)
-void heap_init_objectheader(java_objectheader *o, u4 size);
-s4 heap_get_hashcode(java_objectheader *o);
+void  heap_init_objectheader(java_objectheader *o, u4 size);
+s4    heap_get_hashcode(java_objectheader *o);
+
+void  gc_reference_register(java_objectheader **ref);
+void  gc_reference_unregister(java_objectheader **ref);
 #endif
 
 void  gc_call(void);

@@ -31,12 +31,8 @@
 #include <signal.h>
 #include "vm/types.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/lock.h"
-/*# include "threads/none/threads.h"*/
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "compact.h"
 #include "copy.h"
@@ -58,6 +54,8 @@
 bool gc_pending;
 bool gc_running;
 bool gc_notify_finalizer;
+
+list_t *gc_reflist;
 
 #if defined(ENABLE_THREADS)
 java_objectheader *gc_global_lock;
@@ -90,6 +88,9 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 	gc_pending = false;
 	gc_running = false;
 
+	/* create list for external references */
+	gc_reflist = list_create(OFFSET(list_gcref_entry_t, linkage));
+
 #if defined(ENABLE_THREADS)
 	/* create global gc lock object */
 	gc_global_lock = NEW(java_objectheader);
@@ -108,6 +109,31 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 	heap_current_size = heapstartsize;
 	heap_maximal_size = heapmaxsize;
+}
+
+
+/* gc_reference_register *******************************************************
+
+   Register an external reference which points onto the Heap and keeps
+   objects alive (strong reference).
+
+*******************************************************************************/
+
+void gc_reference_register(java_objectheader **ref)
+{
+	list_gcref_entry_t *re;
+
+	/* the reference needs to be registered before it is set, so make sure the
+	   reference is not yet set */
+	GC_ASSERT(*ref == NULL);
+
+	GC_LOG( printf("registering reference at %p\n", (void *) ref); );
+
+	re = NEW(list_gcref_entry_t);
+
+	re->ref = ref;
+
+	list_add_last(gc_reflist, re);
 }
 
 
