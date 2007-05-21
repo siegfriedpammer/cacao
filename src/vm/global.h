@@ -1,6 +1,6 @@
 /* src/vm/global.h - global definitions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2007, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,17 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Reinhard Grafl
-            Andreas Krall
-            Mark Probst
-            Philipp Tomsich
-            Edwin Steiner
-            Joseph Wenninger
-            Christian Thalinger
-
-   $Id: global.h 7675 2007-04-05 14:23:04Z michi $
+   $Id: global.h 7930 2007-05-21 14:40:32Z twisti $
 
 */
 
@@ -79,6 +69,11 @@ typedef union {
 	struct imm  _i;
 #endif
 } imm_union;
+
+
+/* alignment macros ***********************************************************/
+
+#define ALIGN_2(a)    do { if ((a) & 0x1) (a)++; } while (0)
 
 
 /* forward typedefs ***********************************************************/
