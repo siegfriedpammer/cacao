@@ -233,7 +233,7 @@ void mark_me(rootset_t *rs)
 {
 	java_objectheader *ref;
 #if defined(GCCONF_FINALIZER)
-	final_entry       *fe;
+	list_final_entry_t       *fe;
 #endif
 	u4                 f_type;
 	void *start, *end;

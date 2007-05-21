@@ -30,11 +30,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "gc.h"
 #include "final.h"
@@ -343,6 +339,8 @@ void heap_print_object(java_objectheader *o)
 	/* print object flags */
 	heap_print_object_flags(o);
 	printf(" ");
+
+	GC_ASSERT(o->vftbl);
 
 	/* TODO */
 	/* maybe this is not really an object */

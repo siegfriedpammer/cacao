@@ -51,6 +51,7 @@ typedef struct rootset_t rootset_t;
 #define RS_REFS 512 /* TODO: you see why we need to rethink this!!! */
 
 #define REFTYPE_THREADOBJECT 1
+#define REFTYPE_REGISTERED   1
 #define REFTYPE_CLASSLOADER  2
 #define REFTYPE_GLOBALREF    3
 #define REFTYPE_FINALIZER    4

@@ -44,8 +44,6 @@
 #include "vm/global.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
-#include "vmcore/linker.h"
-#include "vmcore/loader.h"
 
 
 rootset_t *rootset_create(void)
@@ -86,9 +84,8 @@ void rootset_from_globals(rootset_t *rs)
 #if defined(ENABLE_THREADS)
 	threadobject                *thread;
 #endif
-	hashtable_classloader_entry *cle;
-	hashtable_global_ref_entry  *gre;
-	final_entry                 *fe;
+	list_final_entry_t          *fe;
+	list_gcref_entry_t          *re;
 	int refcount;
 	int i;
 
@@ -103,48 +100,17 @@ void rootset_from_globals(rootset_t *rs)
 
 	refcount = rs->refcount;
 
-#if defined(ENABLE_THREADS)
-	/* walk through all threadobjects */
-	thread = mainthreadobj;
-	do {
+	/* walk through all registered references */
+	/* REMEMBER: all threads are stopped, so we can use unsynced access here */
+	re = list_first_unsynced(gc_reflist);
+	while (re) {
 
-		GC_LOG2( printf("Found Java Thread Objects: %p\n", (void *) thread->object); );
+		GC_LOG( printf("Found registered reference: %p at %p\n", *(re->ref), re->ref); );
 
-		/* add this javathreadobject to the root set */
-		ROOTSET_ADD(&( thread->object ), true, REFTYPE_THREADOBJECT);
+		/* add this registered reference to the root set */
+		ROOTSET_ADD(re->ref, true, REFTYPE_REGISTERED)
 
-		thread = thread->next;
-	} while ((thread != NULL) && (thread != mainthreadobj));
-#endif
-
-    /* walk through all classloaders */
-	for (i = 0; i < hashtable_classloader->size; i++) {
-		cle = hashtable_classloader->ptr[i];
-
-		while (cle) {
-
-			GC_LOG2( printf("Found Classloader: %p\n", (void *) cle->object); );
-
-			/* add this classloader to the root set */
-			ROOTSET_ADD(&( cle->object ), true, REFTYPE_CLASSLOADER);
-
-			cle = cle->hashlink;
-		}
-	}
-
-	/* walk through all global references */
-	for (i = 0; i < hashtable_global_ref->size; i++) {
-		gre = hashtable_global_ref->ptr[i];
-
-		while (gre) {
-
-			GC_LOG2( printf("Found Global Reference: %p\n", (void *) gre->o); );
-
-			/* add this global reference to the root set */
-			ROOTSET_ADD(&( gre->o ), true, REFTYPE_GLOBALREF);
-
-			gre = gre->hashlink;
-		}
+		re = list_next_unsynced(gc_reflist, re);
 	}
 
 	/* walk through all finalizer entries */
@@ -347,15 +313,12 @@ rootset_t *rootset_readout()
 	/* ... and the rootsets for the threads */
 	rs = rs_top;
 #if defined(ENABLE_THREADS)
-	thread  = mainthreadobj; /*THREADOBJECT*/
-	do {
+	for (thread = threads_table_first(); thread != NULL; thread = threads_table_next(thread)) {
 		rs->next = rootset_create();
 		rs = rs->next;
 
 		rootset_from_thread(thread, rs);
-
-		thread = thread->next;
-	} while ((thread != NULL) && (thread != mainthreadobj));
+	}
 #else
 	thread = THREADOBJECT;
 
