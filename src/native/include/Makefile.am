@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7596 2007-03-28 21:05:53Z twisti $
+## $Id: Makefile.am 7927 2007-05-21 08:48:46Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -120,12 +120,7 @@ ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES = \
 	java_nio_channels_spi_SelectorProvider.h
 
 CLEANFILES = \
-	$(COMMON_HEADER_FILES) \
-	$(JAVASE_HEADER_FILES) \
-	$(JAVAME_CLDC1_1_HEADER_FILES) \
-	$(JVMTI_HEADER_FILES) \
-	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
-	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
+	*.h
 
 DO_HEADER_FILES = \
 	$(COMMON_HEADER_FILES)
