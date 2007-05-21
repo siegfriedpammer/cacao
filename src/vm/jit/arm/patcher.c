@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: patcher.c 7929 2007-05-21 11:45:31Z michi $
 
 */
 
@@ -580,51 +580,30 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
    Machine code:
 
    <patched call position>
-   e59ab000    ldr   fp, [sl]
-   e59b9010    ldr   r9, [fp, #16]
-   e3590000    cmp   r9, #0  ; 0x0
-   da000000    ble   0x000000
-   e59b9000    ldr   r9, [fp, #__]
-   e1190009    tst   r9, r9
-   0a000000    beq   0x000000
 
 *******************************************************************************/
 
 bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
-	u1                *ra;
+	s4                 disp;
 	constant_classref *cr;
+	u1                *pv;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra = (u1 *)                *((ptrint *) (sp + 4 * 4));
-	cr = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	disp =                       *((s4 *)     (sp + 5 * 4));
+	cr   = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	pv   = (u1 *)                *((ptrint *) (sp + 0 * 4));
 
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_showdisassemble)
-		ra = ra + 4;
-
 	/* patch super class index */
 
-	assert(*((s4 *) (ra + 2 * 4)) == 0xe3590000);
-	assert(c->index <= 0xff);
-
-	*((s4 *) (ra + 2 * 4)) |= (s4) (c->index & 0x000000ff);
-
-	/* patch super class vftbl index */
-
-	gen_resolveload(*((s4 *) (ra + 4 * 4)), (s4) (OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * c->index));
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra + 2 * 4, 3 * 4);
+	*((s4 *) (pv + disp)) = (s4) c->index;
 
 	return true;
 }

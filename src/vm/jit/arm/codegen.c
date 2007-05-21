@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7900 2007-05-11 20:35:16Z twisti $
+   $Id: codegen.c 7929 2007-05-21 11:45:31Z michi $
 
 */
 
@@ -2473,10 +2473,13 @@ bool codegen_emit(jitdata *jd)
 			/* interface checkcast code */
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+				if ((super == NULL) || !IS_IMM(superindex)) {
+					disp = dseg_add_unique_s4(cd, superindex);
+				}
 				if (super == NULL) {
 					codegen_addpatchref(cd,
 					                    PATCHER_checkcast_instanceof_interface,
-					                    iptr->sx.s23.s3.c.ref, 0);
+					                    iptr->sx.s23.s3.c.ref, disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2488,12 +2491,40 @@ bool codegen_emit(jitdata *jd)
 
 				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
-				assert(IS_IMM(superindex));
-				M_CMP_IMM(REG_ITMP3, superindex);
+
+				/* we put unresolved or non-immediate superindices onto dseg */
+				if ((super == NULL) || !IS_IMM(superindex)) {
+					/* disp was computed before we added the patcher */
+					M_DSEG_LOAD(REG_ITMP2, disp);
+					M_CMP(REG_ITMP3, REG_ITMP2);
+				} else {
+					assert(IS_IMM(superindex));
+					M_CMP_IMM(REG_ITMP3, superindex);
+				}
+
 				emit_classcast_check(cd, iptr, BRANCH_LE, REG_ITMP3, s1);
 
-				s2 = OFFSET(vftbl_t, interfacetable[0]) -
-					superindex * sizeof(methodptr*);
+				/* if we loaded the superindex out of the dseg above, we do
+				   things differently here! */
+				if ((super == NULL) || !IS_IMM(superindex)) {
+
+					M_LDR_INTERN(REG_ITMP3, s1, OFFSET(java_objectheader, vftbl));
+
+					/* this assumes something */
+					assert(OFFSET(vftbl_t, interfacetable[0]) == 0);
+
+					/* this does: REG_ITMP3 - superindex * sizeof(methodptr*) */
+					assert(sizeof(methodptr*) == 4);
+					M_SUB(REG_ITMP2, REG_ITMP3, REG_LSL(REG_ITMP2, 2));
+
+					s2 = 0;
+
+				} else {
+
+					s2 = OFFSET(vftbl_t, interfacetable[0]) -
+								superindex * sizeof(methodptr*);
+
+				}
 
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, s2);
 				M_TST(REG_ITMP3, REG_ITMP3);
@@ -2643,6 +2674,9 @@ bool codegen_emit(jitdata *jd)
 			/* interface checkcast code */
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+				if ((super == NULL) || !IS_IMM(superindex)) {
+					disp = dseg_add_unique_s4(cd, superindex);
+				}
 				if (super == NULL) {
 					/* If d == REG_ITMP2, then it's destroyed in check
 					   code above.  */
@@ -2651,7 +2685,7 @@ bool codegen_emit(jitdata *jd)
 
 					codegen_addpatchref(cd,
 					                    PATCHER_checkcast_instanceof_interface,
-					                    iptr->sx.s23.s3.c.ref, 0);
+					                    iptr->sx.s23.s3.c.ref, disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2665,12 +2699,44 @@ bool codegen_emit(jitdata *jd)
 				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_LDR_INTERN(REG_ITMP3,
 							 REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
-				assert(IS_IMM(superindex));
-				M_CMP_IMM(REG_ITMP3, superindex);
-				M_BLE(2);
 
-				s2 = OFFSET(vftbl_t, interfacetable[0]) -
-					superindex * sizeof(methodptr*);
+				/* we put unresolved or non-immediate superindices onto dseg
+				   and do things slightly different */
+				if ((super == NULL) || !IS_IMM(superindex)) {
+					/* disp was computed before we added the patcher */
+					M_DSEG_LOAD(REG_ITMP2, disp);
+					M_CMP(REG_ITMP3, REG_ITMP2);
+
+					if (d == REG_ITMP2) {
+						M_EORLE(d, d, d);
+						M_BLE(4);
+					} else {
+						M_BLE(3);
+					}
+
+					/* this assumes something */
+					assert(OFFSET(vftbl_t, interfacetable[0]) == 0);
+
+					/* this does: REG_ITMP3 - superindex * sizeof(methodptr*) */
+					assert(sizeof(methodptr*) == 4);
+					M_SUB(REG_ITMP1, REG_ITMP1, REG_LSL(REG_ITMP2, 2));
+
+					if (d == REG_ITMP2) {
+						M_EOR(d, d, d);
+					}
+
+					s2 = 0;
+
+				} else {
+					assert(IS_IMM(superindex));
+					M_CMP_IMM(REG_ITMP3, superindex);
+
+					M_BLE(2);
+
+					s2 = OFFSET(vftbl_t, interfacetable[0]) -
+						superindex * sizeof(methodptr*);
+
+				}
 
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP1, s2);
 				M_TST(REG_ITMP3, REG_ITMP3);
