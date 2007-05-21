@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: md-os.c 7925 2007-05-21 00:06:33Z michi $
 
 */
 
@@ -34,10 +34,6 @@
 #include <ucontext.h>
 
 #include "vm/types.h"
-
-#if defined(ENABLE_GC_CACAO)
-# include "mm/cacao-gc/gc.h"
-#endif
 
 #include "vm/jit/i386/codegen.h"
 
@@ -183,9 +179,6 @@ void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
-
-	/* assume there is a GC pending */
-	assert(gc_pending);
 
 	/* get the PC and SP for this thread */
 	pc = (u1 *) _mc->gregs[REG_EIP];
