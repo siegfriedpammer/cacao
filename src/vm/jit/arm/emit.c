@@ -248,13 +248,6 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 		}
 #endif
 	}
-	else if (IS_LNG_TYPE(dst->type)) {
-#if defined(__ARMEL__)
-		assert(GET_HIGH_REG(dst->vv.regoff) != REG_SPLIT);
-#else
-		assert(GET_LOW_REG(dst->vv.regoff) != REG_SPLIT);
-#endif
-	}
 }
 
 
