@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtintable.inc 7766 2007-04-19 13:24:48Z michi $
+   $Id: builtintable.inc 7936 2007-05-22 17:05:42Z michi $
 
 */
 
@@ -214,7 +214,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_ANEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray,
 		NULL,
 		NULL,
@@ -227,7 +227,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray_boolean,
 		NULL,
 		NULL,
@@ -240,7 +240,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray_byte,
 		NULL,
 		NULL,
@@ -253,7 +253,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray_char,
 		NULL,
 		NULL,
@@ -266,7 +266,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray_short,
 		NULL,
 		NULL,
@@ -279,7 +279,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray_int,
 		NULL,
 		NULL,
@@ -292,7 +292,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray_long,
 		NULL,
 		NULL,
@@ -305,7 +305,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray_float,
 		NULL,
 		NULL,
@@ -318,7 +318,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_NEWARRAY,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		BUILTIN_newarray_double,
 		NULL,
 		NULL,
