@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7766 2007-04-19 13:24:48Z michi $
+   $Id: asmpart.S 7932 2007-05-22 07:00:57Z michi $
 
 */
 
@@ -133,6 +133,10 @@ asm_vm_call_method_double: */
 	mov   itmp3, #0                   /* stack position                   */
 asm_calljava_copyloop:                /* reorder stack arguments!         */
 #if defined(__ARMEL__)
+	ldr   ip, [a2,#offvmargtype]      /* align 2_WORD_TYPEs               */
+	tst   ip, #1
+	tstne itmp3, #4
+	addne itmp3, itmp3, #4
 	ldr   ip, [a2,#offvmargdata]      /* get LOW word of argument         */
 	str   ip, [sp, itmp3]
 	add   itmp3, itmp3, #4
@@ -143,6 +147,9 @@ asm_calljava_copyloop:                /* reorder stack arguments!         */
 	addne itmp3, itmp3, #4
 #else /* defined(__ARMEB__) */
 	ldr   ip, [a2,#offvmargtype + 4]  /* get our item type (it is u8)    */
+	tst   ip, #1                      /* align 2_WORD_TYPEs               */
+	tstne itmp3, #4
+	addne itmp3, itmp3, #4
 	teq   ip, #2                      /* is it a TYPE_FLOAT?              */
 	ldreq ip, [a2,#offvmargdata]      /* yes -> get LOW word of float     */
 	streq ip, [sp, itmp3]
