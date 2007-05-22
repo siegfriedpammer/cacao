@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7931 2007-05-21 14:42:28Z twisti $
+   $Id: codegen.c 7934 2007-05-22 10:07:21Z michi $
 
 */
 
@@ -3008,8 +3008,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 			if (!nmd->params[j].inmemory) {
 #if !defined(__ARM_EABI__)
-				SPLIT_OPEN(t, s1, REG_ITMP1);
-				SPLIT_LOAD(t, s1, cd->stackframesize);
 				SPLIT_OPEN(t, s2, REG_ITMP1);
 #endif
 
@@ -3023,16 +3021,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #endif
 			}
 			else {
-#if !defined(__ARM_EABI__)
-				SPLIT_OPEN(t, s1, REG_ITMP1);
-				SPLIT_LOAD(t, s1, cd->stackframesize);
-#endif
-
 				if (IS_2_WORD_TYPE(t))
 					M_LST(s1, REG_SP, s2 * 4);
 				else
 					M_IST(s1, REG_SP, s2 * 4);
-				/* no SPLIT_CLOSE here because argument is fully on stack now */
 			}
 		}
 		else {
