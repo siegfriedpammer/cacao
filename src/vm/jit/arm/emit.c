@@ -770,10 +770,6 @@ void emit_verbosecall_enter(jitdata *jd)
 				M_MOV_IMM(REG_ITMP1, 0);
 				s1 = PACK_REGS(s1, REG_ITMP1);
 			}
-			else {
-				SPLIT_OPEN(t, s1, REG_ITMP1);
-				SPLIT_LOAD(t, s1, stackframesize);
-			}
 		}
 		else {
 			s1 = REG_ITMP12_PACKED;
