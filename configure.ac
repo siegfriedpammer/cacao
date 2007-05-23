@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7946 2007-05-23 15:43:53Z twisti $
+dnl $Id: configure.ac 7960 2007-05-23 22:04:49Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -31,7 +31,7 @@ AC_INIT(cacao, 0.98rc, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
-AM_INIT_AUTOMAKE([1.9.0])
+AM_INIT_AUTOMAKE([1.9.0 dist-bzip2])
 AM_MAINTAINER_MODE
 
 AM_CONFIG_HEADER([config.h])
