@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7916 2007-05-18 14:24:21Z twisti $
+   $Id: statistics.c 7956 2007-05-23 18:08:42Z twisti $
 
 */
 
@@ -709,9 +709,9 @@ void statistics_print_memory_usage(void)
 
 	log_println("                        %10d", sum);
 	log_println("");
-	log_println("max. memory usage:      %10d", maxcodememusage);
-	log_println("max. heap memory usage: %10d", maxmemusage);
-	log_println("max. dump memory usage: %10d", maxdumpsize);
+	log_println("max. code memory:       %10d", maxcodememusage);
+	log_println("max. heap memory:       %10d", maxmemusage);
+	log_println("max. dump memory:       %10d", maxdumpsize);
 	log_println("");
 	log_println("heap memory not freed:  %10d", (s4) memoryusage);
 	log_println("dump memory not freed:  %10d", (s4) globalallocateddumpsize);
