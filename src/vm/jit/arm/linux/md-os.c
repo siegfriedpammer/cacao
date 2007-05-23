@@ -220,10 +220,8 @@ void md_critical_section_restart(ucontext_t *_uc)
 
 	npc = critical_find_restart_point(pc);
 
-	if (npc != NULL) {
-		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
+	if (npc != NULL)
 		_sc->arm_pc = (ptrint) npc;
-	}
 }
 #endif
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7865 2007-05-03 21:29:40Z twisti $
+   $Id: md-os.c 7955 2007-05-23 18:05:26Z twisti $
 
 */
 
@@ -199,9 +199,9 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #if defined(ENABLE_THREADS)
 void md_critical_section_restart(ucontext_t *_uc)
 {
-	mcontext_t    *_mc;
-	u1            *pc;
-	void          *npc;
+	mcontext_t *_mc;
+	u1         *pc;
+	u1         *npc;
 
 	_mc = &_uc->uc_mcontext;
 
@@ -209,10 +209,8 @@ void md_critical_section_restart(ucontext_t *_uc)
 
 	npc = critical_find_restart_point(pc);
 
-	if (npc != NULL) {
-		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
+	if (npc != NULL)
 		_mc->gregs[REG_EIP] = (ptrint) npc;
-	}
 }
 #endif
 
