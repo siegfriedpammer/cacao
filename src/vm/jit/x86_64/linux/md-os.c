@@ -155,6 +155,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		/* this was a normal NPE */
 
 		type = EXCEPTION_HARDWARE_NULLPOINTER;
+		val  = 0;
 	}
 
 	/* generate appropriate exception */
