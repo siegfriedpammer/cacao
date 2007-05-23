@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: abi.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: abi.h 7938 2007-05-23 09:37:37Z tbfg $
 
 */
 
@@ -46,6 +46,11 @@ extern s4 nregdescfloat[];
 
 #if defined(HAS_ADDRESS_REGISTER_FILE)
 extern s4 nregdescadr[];
+
+extern const char *abi_registers_address_name[];
+extern const s4    abi_registers_address_argument[];
+extern const s4    abi_registers_address_saved[];
+extern const s4    abi_registers_address_temporary[];
 #endif
 
 extern const char *abi_registers_integer_name[];
