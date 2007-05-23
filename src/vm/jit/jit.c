@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7835 2007-04-26 13:43:08Z twisti $
+   $Id: jit.c 7949 2007-05-23 17:46:27Z twisti $
 
 */
 
@@ -1457,7 +1457,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif /* defined(ENABLE_JIT) */
 	RT_TIMING_GET_TIME(time_alloc);
 
-#if defined(ENABLE_PROFLING)
+#if defined(ENABLE_PROFILING)
 	/* Allocate memory for basic block profiling information. This
 	   _must_ be done after loop optimization and register allocation,
 	   since they can change the basic block count. */
