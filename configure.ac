@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7902 2007-05-11 22:33:15Z twisti $
+dnl $Id: configure.ac 7946 2007-05-23 15:43:53Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -41,7 +41,7 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl set optimization and debugging for all architectures and systems
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-O0 -g3"
+    OPT_CFLAGS="-O2 -g3"
 else
     OPT_CFLAGS=$CFLAGS
 fi
