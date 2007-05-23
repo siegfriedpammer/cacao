@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7944 2007-05-23 14:15:00Z tbfg $
+   $Id: codegen.c 7945 2007-05-23 15:25:18Z twisti $
 
 */
 
@@ -2312,10 +2312,11 @@ gen_method:
 				s4         superindex;
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-					super = NULL;
+					super      = NULL;
 					superindex = 0;
-				} else {
-					super = iptr->sx.s23.s3.c.cls;
+				}
+				else {
+					super      = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
 				}
 		
@@ -2477,15 +2478,14 @@ gen_method:
 
 			{
 			classinfo *super;
-			vftbl_t   *supervftbl;
 			s4         superindex;
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				super = NULL;
+				super      = NULL;
 				superindex = 0;
 			}
 			else {
-				super = iptr->sx.s23.s3.c.cls;
+				super      = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
 			}
 			

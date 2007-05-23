@@ -145,7 +145,7 @@ void emit_buge(codegendata *cd, basicblock *target);
 void emit_bugt(codegendata *cd, basicblock *target);
 #endif
 
-#if defined(__POWERPC__)
+#if defined(__POWERPC__) || defined(__POWERPC64__)
 void emit_bnan(codegendata *cd, basicblock *target);
 #endif
 
