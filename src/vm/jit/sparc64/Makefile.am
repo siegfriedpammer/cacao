@@ -50,7 +50,7 @@ CLEANFILES = offsets.h
 
 noinst_HEADERS = \
 	arch.h \
-	machine-instr.h 
+	machine-instr.h \
 	\
 	md-asm.h
 
