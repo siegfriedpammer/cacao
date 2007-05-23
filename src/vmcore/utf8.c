@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: utf8.c 7942 2007-05-23 12:40:31Z twisti $
 
 */
 
@@ -172,6 +172,8 @@ utf *utf_fillInStackTrace;
 utf *utf_getSystemClassLoader;
 utf *utf_loadClass;
 utf *utf_printStackTrace;
+
+utf *utf_division_by_zero;
 
 utf *utf_Z;                             /* Z                                  */
 utf *utf_B;                             /* B                                  */
@@ -399,10 +401,12 @@ bool utf8_init(void)
 	utf_get                        = utf_new_char("get");
 	utf_value                      = utf_new_char("value");
 
-	utf_printStackTrace            = utf_new_char("printStackTrace");
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
-	utf_loadClass                  = utf_new_char("loadClass");
 	utf_getSystemClassLoader       = utf_new_char("getSystemClassLoader");
+	utf_loadClass                  = utf_new_char("loadClass");
+	utf_printStackTrace            = utf_new_char("printStackTrace");
+
+	utf_division_by_zero           = utf_new_char("/ by zero");
 
 	utf_Z                          = utf_new_char("Z");
 	utf_B                          = utf_new_char("B");

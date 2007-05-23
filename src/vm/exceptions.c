@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7941 2007-05-23 11:59:51Z twisti $
+   $Id: exceptions.c 7942 2007-05-23 12:40:31Z twisti $
 
 */
 
@@ -45,11 +45,8 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
@@ -395,38 +392,6 @@ static java_objectheader *exceptions_new_utf_utf(utf *classname, utf *message)
 }
 
 
-/* new_exception_message *******************************************************
-
-   Creates an exception object with the given name and initalizes it
-   with the given char message.
-
-   IN:
-      classname....class name in UTF-8
-	  message......message in UTF-8
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-static java_objectheader *new_exception_message(const char *classname,
-												const char *message)
-{
-	java_objectheader *o;
-	java_objectheader *s;
-
-	s = javastring_new_from_utf_string(message);
-
-	if (s == NULL)
-		return *exceptionptr;
-
-	o = exceptions_new_utf_javastring(classname, s);
-
-	return o;
-}
-
-
 /* exceptions_throw_class_utf **************************************************
 
    Creates an exception object of the given class, initalizes and
@@ -561,36 +526,13 @@ void exceptions_throw_abstractmethoderror(void)
    classloader.
 
    IN:
-      c............the class in which the error was found
+      c....the class in which the error was found
 
 *******************************************************************************/
 
 void exceptions_throw_classcircularityerror(classinfo *c)
 {
-	java_objectheader *o;
-	char              *msg;
-	s4                 msglen;
-
-	/* calculate message length */
-
-	msglen = utf_bytes(c->name) + strlen("0");
-
-	/* allocate a buffer */
-
-	msg = MNEW(char, msglen);
-
-	/* print message into allocated buffer */
-
-	utf_copy_classname(msg, c->name);
-
-	o = new_exception_message(utf_java_lang_ClassCircularityError, msg);
-
-	MFREE(msg, char, msglen);
-
-	if (o == NULL)
-		return;
-
-	*exceptionptr = o;
+	exceptions_throw_utf_utf(utf_java_lang_ClassCircularityError, c->name);
 }
 
 
@@ -606,10 +548,10 @@ void exceptions_throw_classcircularityerror(classinfo *c)
 
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 {
-	java_objectheader *o;
-	char              *msg;
-	s4                 msglen;
-	va_list            ap;
+	char    *msg;
+	s4       msglen;
+	va_list  ap;
+	utf     *u;
 
 	/* calculate message length */
 
@@ -645,11 +587,15 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 	if (c != NULL)
 		strcat(msg, ")");
 
-	o = new_exception_message(utf_java_lang_ClassFormatError, msg);
+	u = utf_new_char(msg);
+
+	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	*exceptionptr = o;
+	/* throw exception */
+
+	exceptions_throw_utf_utf(utf_java_lang_ClassFormatError, u);
 }
 
 
@@ -737,7 +683,7 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 	java_objectheader   *xptr;
 	java_objectheader   *cause;
 	java_lang_Throwable *t;
-	java_lang_String    *s;
+	java_objectheader   *s;
 
 	/* get the cause */
 
@@ -753,9 +699,10 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 		/* create new error */
 
 		t = (java_lang_Throwable *) cause;
-		s = t->detailMessage;
+		s = (java_objectheader *) t->detailMessage;
 
-		xptr = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError, s);
+		xptr = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError,
+											 s);
 
 		/* we had an exception while creating the error */
 
@@ -798,9 +745,9 @@ void exceptions_throw_exceptionininitializererror(java_objectheader *cause)
 
 void exceptions_throw_incompatibleclasschangeerror(classinfo *c, const char *message)
 {
-	java_objectheader *o;
-	char              *msg;
-	s4                 msglen;
+	char *msg;
+	s4    msglen;
+	utf  *u;
 
 	/* calculate exception message length */
 
@@ -813,17 +760,15 @@ void exceptions_throw_incompatibleclasschangeerror(classinfo *c, const char *mes
 	utf_copy_classname(msg, c->name);
 	strcat(msg, message);
 
-	o = native_new_and_init_string(utf_java_lang_IncompatibleClassChangeError,
-								   javastring_new_from_utf_string(msg));
+	u = utf_new_char(msg);
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	if (o == NULL)
-		return;
+	/* throw exception */
 
-	*exceptionptr = o;
+	exceptions_throw_utf_utf(utf_java_lang_IncompatibleClassChangeError, u);
 }
 
 
@@ -850,10 +795,10 @@ void exceptions_throw_instantiationerror(classinfo *c)
 
 void exceptions_throw_internalerror(const char *message, ...)
 {
-	java_objectheader *o;
-	va_list            ap;
-	char              *msg;
-	s4                 msglen;
+	va_list  ap;
+	char    *msg;
+	s4       msglen;
+	utf     *u;
 
 	/* calculate exception message length */
 
@@ -871,18 +816,15 @@ void exceptions_throw_internalerror(const char *message, ...)
 	vsprintf(msg, message, ap);
 	va_end(ap);
 
-	/* create exception object */
-
-	o = new_exception_message(utf_java_lang_InternalError, msg);
+	u = utf_new_char(msg);
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	if (o == NULL)
-		return;
+	/* throw exception */
 
-	*exceptionptr = o;
+	exceptions_throw_utf_utf(utf_java_lang_InternalError, u);
 }
 
 
@@ -1069,9 +1011,9 @@ void exceptions_throw_unsatisfiedlinkerror(utf *name)
 
 void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 {
-	java_objectheader *o;
-	char              *msg;
-    s4                 msglen;
+	char *msg;
+    s4    msglen;
+	utf  *u;
 
 	/* calculate exception message length */
 
@@ -1090,18 +1032,15 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 	sprintf(msg + strlen(msg), " (Unsupported major.minor version %d.%d)",
 			ma, mi);
 
-	/* create exception object */
-
-	o = new_exception_message(utf_java_lang_UnsupportedClassVersionError, msg);
+	u = utf_new_char(msg);
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	if (o == NULL)
-		return;
+	/* throw exception */
 
-	*exceptionptr = o;
+	exceptions_throw_utf_utf(utf_java_lang_UnsupportedClassVersionError, u);
 }
 
 
@@ -1117,10 +1056,10 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 
 void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 {
-	java_objectheader *o;
-	va_list            ap;
-	char              *msg;
-	s4                 msglen;
+	va_list  ap;
+	char    *msg;
+	s4       msglen;
+	utf     *u;
 
 	/* calculate exception message length */
 
@@ -1157,15 +1096,15 @@ void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 	vsprintf(msg + strlen(msg), message, ap);
 	va_end(ap);
 
-	/* create exception object */
-
-	o = new_exception_message(utf_java_lang_VerifyError, msg);
+	u = utf_new_char(msg);
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	*exceptionptr = o;
+	/* throw exception */
+
+	exceptions_throw_utf_utf(utf_java_lang_VerifyError, u);
 }
 
 
@@ -1183,18 +1122,18 @@ void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 
 *******************************************************************************/
 
-void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
+void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 {
-	java_objectheader *o;
-	char              *msg;
-	s4                 msglen;
-	char              *typename;
+	char *msg;
+	s4    msglen;
+	char *typename;
+	utf  *u;
 
 	/* calculate exception message length */
 
 	msglen = 0;
 
-	if (m)
+	if (m != NULL)
 		msglen = strlen("(class: ") + utf_bytes(m->class->name) +
 			strlen(", method: ") + utf_bytes(m->name) +
 			strlen(" signature: ") + utf_bytes(m->descriptor) +
@@ -1207,7 +1146,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 
 	/* generate message */
 
-	if (m) {
+	if (m != NULL) {
 		strcpy(msg, "(class: ");
 		utf_cat_classname(msg, m->class->name);
 		strcat(msg, ", method: ");
@@ -1220,7 +1159,8 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 		msg[0] = 0;
 	}
 
-	strcat(msg,"Expecting to find ");
+	strcat(msg, "Expecting to find ");
+
 	switch (type) {
 		case TYPE_INT: typename = "integer"; break;
 		case TYPE_LNG: typename = "long"; break;
@@ -1230,18 +1170,19 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 		case TYPE_RET: typename = "returnAddress"; break;
 		default:       typename = "<INVALID>"; assert(0); break;
 	}
+
 	strcat(msg, typename);
 	strcat(msg, " on stack");
 
-	/* create exception object */
-
-	o = new_exception_message(utf_java_lang_VerifyError, msg);
+	u = utf_new_char(msg);
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
 
-	*exceptionptr = o;
+	/* throw exception */
+
+	exceptions_throw_utf_utf(utf_java_lang_VerifyError, u);
 }
 
 
@@ -1255,10 +1196,8 @@ java_objectheader *exceptions_new_arithmeticexception(void)
 {
 	java_objectheader *o;
 
-	o = new_exception_message(utf_java_lang_ArithmeticException, "/ by zero");
-
-	if (o == NULL)
-		return *exceptionptr;
+	o = exceptions_new_utf_utf(utf_java_lang_ArithmeticException,
+							   utf_division_by_zero);
 
 	return o;
 }
@@ -1339,16 +1278,10 @@ java_objectheader *exceptions_new_classcastexception(java_objectheader *o)
 {
 	java_objectheader *e;
 	utf               *classname;
-	java_lang_String  *s;
 
 	classname = o->vftbl->class->name;
 
-	s = javastring_new(classname);
-
-	e = native_new_and_init_string(class_java_lang_ClassCastException, s);
-
-	if (e == NULL)
-		return *exceptionptr;
+	e = exceptions_new_class_utf(class_java_lang_ClassCastException, classname);
 
 	return e;
 }
@@ -1920,7 +1853,7 @@ void exceptions_print_exception(java_objectheader *xptr)
 	utf_display_printable_ascii_classname(t->header.vftbl->class->name);
 
 	if (t->detailMessage != NULL) {
-		u = javastring_toutf(t->detailMessage, false);
+		u = javastring_toutf((java_objectheader *) t->detailMessage, false);
 
 		printf(": ");
 		utf_display_printable_ascii(u);
@@ -1935,8 +1868,9 @@ void exceptions_print_exception(java_objectheader *xptr)
 		printf("Caused by: ");
 		utf_display_printable_ascii_classname(cause->header.vftbl->class->name);
 
-		if (cause->detailMessage) {
-			u = javastring_toutf(cause->detailMessage, false);
+		if (cause->detailMessage != NULL) {
+			u = javastring_toutf((java_objectheader *) cause->detailMessage,
+								 false);
 
 			printf(": ");
 			utf_display_printable_ascii(u);
