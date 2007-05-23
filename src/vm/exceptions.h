@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 7773 2007-04-19 19:44:54Z twisti $
+   $Id: exceptions.h 7941 2007-05-23 11:59:51Z twisti $
 
 */
 
@@ -77,8 +77,6 @@ bool exceptions_init(void);
 
 java_objectheader *new_exception_utfmessage(const char *classname,
 											utf *message);
-
-java_objectheader *new_exception_int(const char *classname, s4 i);
 
 
 /* functions to generate compiler exceptions */

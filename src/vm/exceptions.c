@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7785 2007-04-21 10:55:30Z edwin $
+   $Id: exceptions.c 7941 2007-05-23 11:59:51Z twisti $
 
 */
 
@@ -458,38 +458,6 @@ static void exceptions_throw_class_utf(classinfo *c, utf *message)
 static void exceptions_throw_utf_utf(utf *classname, utf *message)
 {
 	*exceptionptr = exceptions_new_utf_utf(classname, message);
-}
-
-
-/* new_exception_int ***********************************************************
-
-   Creates an exception object with the given name and initalizes it
-   with the given int value.
-
-   IN:
-      classname....class name in UTF-8
-	  i............the integer
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-java_objectheader *new_exception_int(const char *classname, s4 i)
-{
-	java_objectheader *o;
-	classinfo         *c;
-   
-	if (!(c = load_class_bootstrap(utf_new_char(classname))))
-		return *exceptionptr;
-
-	o = native_new_and_init_int(c, i);
-
-	if (!o)
-		return *exceptionptr;
-
-	return o;
 }
 
 
