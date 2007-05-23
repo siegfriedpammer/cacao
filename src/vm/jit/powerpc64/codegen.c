@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7891 2007-05-09 16:37:20Z tbfg $
+   $Id: codegen.c 7944 2007-05-23 14:15:00Z tbfg $
 
 */
 
@@ -344,7 +344,7 @@ bool codegen_emit(jitdata *jd)
 		/* copy interface registers to their destination */
 
 		len = bptr->indepth;
-		MCODECHECK(64+len);
+		MCODECHECK(128+len);
 
 #if defined(ENABLE_LSRA)
 		if (opt_lsra) {
@@ -390,7 +390,7 @@ bool codegen_emit(jitdata *jd)
 				currentline = iptr->line;
 			}
 
-			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
+			MCODECHECK(128);   /* an instruction usually needs < 64 words      */
 
 		switch (iptr->opc) {
 		case ICMD_NOP:        /* ...  ==> ...                                 */
@@ -2092,7 +2092,7 @@ nowperformreturn:
 
 			i = iptr->sx.s23.s2.lookupcount;
 			
-			MCODECHECK((i<<2)+8);
+			MCODECHECK((i<<3)+8);
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			while (--i >= 0) {
 				val = lookup->value;
@@ -2142,7 +2142,7 @@ nowperformreturn:
 gen_method:
 			s3 = md->paramcount;
 
-			MCODECHECK((s3 << 1) + 64);
+			MCODECHECK((s3 << 2) + 128);
 
 			/* copy arguments to registers or stack location */
 
@@ -2601,7 +2601,7 @@ gen_method:
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
-			MCODECHECK((iptr->s1.argcount << 1) + 64);
+			MCODECHECK((iptr->s1.argcount << 2) + 128);
 
 			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
 

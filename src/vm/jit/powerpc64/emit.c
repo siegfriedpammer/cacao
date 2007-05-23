@@ -676,7 +676,7 @@ void emit_patcher_stubs(jitdata *jd)
 	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 		/* check code segment size */
 
-		MCODECHECK(16);
+		MCODECHECK(32);
 
 		/* Get machine code which is patched back in later. The
 		   call is 1 instruction word long. */
@@ -789,7 +789,7 @@ void emit_replacement_stubs(jitdata *jd)
 
 		/* check code segment size */
 
-		MCODECHECK(100);
+		MCODECHECK(200);
 
 #if !defined(NDEBUG)
 		savedmcodeptr = cd->mcodeptr;
