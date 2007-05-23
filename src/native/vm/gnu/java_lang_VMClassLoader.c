@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: java_lang_VMClassLoader.c 7953 2007-05-23 17:56:59Z twisti $
 
 */
 
@@ -153,7 +153,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 		break;
 	default:
 		exceptions_throw_noclassdeffounderror(utf_null);
-		c = NULL;
+		return NULL;
 	}
 
 	c = primitivetype_table[index].class_primitive;
