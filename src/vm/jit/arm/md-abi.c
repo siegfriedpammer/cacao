@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7723 2007-04-16 18:03:08Z michi $
+   $Id: md-abi.c 7932 2007-05-22 07:00:57Z michi $
 
 */
 
@@ -135,10 +135,12 @@ void md_param_alloc(methoddesc *md)
 	s4         stacksize;
 
 	/* set default values */
-	reguse = 0;
+
+	reguse    = 0;
 	stacksize = 0;
 
 	/* get params field of methoddesc */
+
 	pd = md->params;
 
 	for (i = 0; i < md->paramcount; i++, pd++) {
@@ -160,7 +162,11 @@ void md_param_alloc(methoddesc *md)
 
 		case TYPE_LNG:
 		case TYPE_DBL:
-			if (reguse+1 < INT_ARG_CNT) {
+			/* interally we use the EABI */
+
+			ALIGN_2(reguse);
+
+			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 #if defined(__ARMEL__)
 				pd->regoff   =
@@ -173,24 +179,13 @@ void md_param_alloc(methoddesc *md)
 #endif
 				reguse += 2;
 			}
-			else if (reguse < INT_ARG_CNT) {
-				pd->inmemory = false;
-#if defined(__ARMEL__)
-				pd->regoff   =
-					PACK_REGS(abi_registers_integer_argument[reguse],
-							  abi_registers_integer_argument[INT_ARG_CNT]);
-#else
-				pd->regoff   =
-					PACK_REGS(abi_registers_integer_argument[INT_ARG_CNT],
-							  abi_registers_integer_argument[reguse]);
-#endif
-				reguse++;
-				stacksize++;
-			}
 			else {
-				pd->inmemory = true;
-				pd->regoff   = stacksize;
-				stacksize += 2;
+
+				ALIGN_2(stacksize);
+
+				pd->inmemory  = true;
+				pd->regoff    = stacksize;
+				stacksize    += 2;
 			}
 			break;
 		}
@@ -223,8 +218,6 @@ void md_param_alloc(methoddesc *md)
    Pre-allocate arguments according the native ABI.
 
 *******************************************************************************/
-
-#define ALIGN_2(a)    do { if ((a) & 0x1) (a)++; } while (0)
 
 void md_param_alloc_native(methoddesc *md)
 {

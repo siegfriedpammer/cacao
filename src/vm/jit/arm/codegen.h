@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7693 2007-04-12 14:56:49Z michi $
+   $Id: codegen.h 7929 2007-05-21 11:45:31Z michi $
 
 */
 
@@ -424,6 +424,7 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 
 #define M_ADDSUB_IMM(d,a,i) if((i)>=0) M_ADD_IMM(d,a,i); else M_SUB_IMM(d,a,-(i))
 #define M_MOVEQ(a,d)       M_DAT(COND_EQ,0x0d,d,0,0,0,a)
+#define M_EORLE(d,a,b)     M_DAT(COND_LE,0x01,d,a,0,0,b)
 
 #define M_MOVVS_IMM(i,d)   M_DAT(COND_VS,0x0d,d,0,0,1,i)
 #define M_MOVEQ_IMM(i,d)   M_DAT(COND_EQ,0x0d,d,0,0,1,i)

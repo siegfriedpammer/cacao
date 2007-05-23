@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: codegen.c 7934 2007-05-22 10:07:21Z michi $
 
 */
 
@@ -214,36 +214,20 @@ bool codegen_emit(jitdata *jd)
 
 		/* ATTENTION: we use interger registers for all arguments (even float) */
 #if !defined(ENABLE_SOFTFLOAT)
-		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
+		if (IS_INT_LNG_TYPE(t)) {
 #endif
-			if (!md->params[i].inmemory) {           /* register arguments    */
-				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
-					if (GET_LOW_REG(var->vv.regoff) == REG_SPLIT || GET_HIGH_REG(var->vv.regoff) == REG_SPLIT) {
-						/* TODO: remove this!!! */
-						dolog("SPLIT in local var: %x>%x (%s.%s)", s1, var->vv.regoff, m->class->name->text, m->name->text);
-						assert(s1 == var->vv.regoff);
-					}
-					s3 = var->vv.regoff;
-					SPLIT_OPEN(t, s1, REG_ITMP1);
-					SPLIT_LOAD(t, s1, cd->stackframesize);
-					SPLIT_OPEN(t, s3, REG_ITMP1);
-
+			if (!md->params[i].inmemory) {
+				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
-						M_LNGMOVE(s1, s3);
+						M_LNGMOVE(s1, var->vv.regoff);
 					else
-						M_INTMOVE(s1, s3);
-
-					SPLIT_STORE_AND_CLOSE(t, s3, cd->stackframesize);
+						M_INTMOVE(s1, var->vv.regoff);
 				}
-				else {                               /* reg arg -> spilled    */
-					SPLIT_OPEN(t, s1, REG_ITMP1);
-					SPLIT_LOAD(t, s1, cd->stackframesize);
-
+				else {
 					if (IS_2_WORD_TYPE(t))
 						M_LST(s1, REG_SP, var->vv.regoff * 4);
 					else
 						M_IST(s1, REG_SP, var->vv.regoff * 4);
-					/* no SPLIT_CLOSE here because arg is fully spilled now */
 				}
 			}
 			else {                                   /* stack arguments       */
@@ -259,32 +243,27 @@ bool codegen_emit(jitdata *jd)
 				}
 			}
 #if !defined(ENABLE_SOFTFLOAT)
-		} else {                                     /* floating args         */
-			if (!md->params[i].inmemory) {           /* register arguments    */
-				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
-					SPLIT_OPEN(t, s1, REG_ITMP1);
-					SPLIT_LOAD(t, s1, cd->stackframesize);
+		}
+		else {
+			if (!md->params[i].inmemory) {
+				if (!(var->flags & INMEMORY)) {
 					M_CAST_INT_TO_FLT_TYPED(t, s1, var->vv.regoff);
 				}
-				else {                               /* reg arg -> spilled    */
-					SPLIT_OPEN(t, s1, REG_ITMP1);
-					SPLIT_LOAD(t, s1, cd->stackframesize);
-
+				else {
 					if (IS_2_WORD_TYPE(t))
 						M_LST(s1, REG_SP, var->vv.regoff * 4);
 					else
 						M_IST(s1, REG_SP, var->vv.regoff * 4);
-					/* no SPLIT_CLOSE here because arg is fully spilled now */
 				}
 			}
-			else {                                   /* stack arguments       */
-				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
+			else {
+				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
 						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 					else
 						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
 				}
-				else {                               /* stack arg -> spilled  */
+				else {
 					/* Reuse Memory Position on Caller Stack */
 					var->vv.regoff = cd->stackframesize + s1;
 				}
@@ -2239,15 +2218,12 @@ bool codegen_emit(jitdata *jd)
 				if (IS_INT_LNG_TYPE(var->type)) {
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 					if (!md->params[s3].inmemory) {
-						SPLIT_OPEN(var->type, s1, REG_ITMP2);
 						s1 = emit_load(jd, iptr, var, d);
 
 						if (IS_2_WORD_TYPE(var->type))
 							M_LNGMOVE(s1, d);
 						else
 							M_INTMOVE(s1, d);
-
-						SPLIT_STORE_AND_CLOSE(var->type, d, 0);
 					}
 					else {
 						if (IS_2_WORD_TYPE(var->type)) {
@@ -2264,9 +2240,7 @@ bool codegen_emit(jitdata *jd)
 				else {
 					if (!md->params[s3].inmemory) {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
-						SPLIT_OPEN(var->type, d, REG_ITMP1);
 						M_CAST_FLT_TO_INT_TYPED(var->type, s1, d);
-						SPLIT_STORE_AND_CLOSE(var->type, d, 0);
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
@@ -2473,10 +2447,13 @@ bool codegen_emit(jitdata *jd)
 			/* interface checkcast code */
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+				if ((super == NULL) || !IS_IMM(superindex)) {
+					disp = dseg_add_unique_s4(cd, superindex);
+				}
 				if (super == NULL) {
 					codegen_addpatchref(cd,
 					                    PATCHER_checkcast_instanceof_interface,
-					                    iptr->sx.s23.s3.c.ref, 0);
+					                    iptr->sx.s23.s3.c.ref, disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2488,12 +2465,40 @@ bool codegen_emit(jitdata *jd)
 
 				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
-				assert(IS_IMM(superindex));
-				M_CMP_IMM(REG_ITMP3, superindex);
+
+				/* we put unresolved or non-immediate superindices onto dseg */
+				if ((super == NULL) || !IS_IMM(superindex)) {
+					/* disp was computed before we added the patcher */
+					M_DSEG_LOAD(REG_ITMP2, disp);
+					M_CMP(REG_ITMP3, REG_ITMP2);
+				} else {
+					assert(IS_IMM(superindex));
+					M_CMP_IMM(REG_ITMP3, superindex);
+				}
+
 				emit_classcast_check(cd, iptr, BRANCH_LE, REG_ITMP3, s1);
 
-				s2 = OFFSET(vftbl_t, interfacetable[0]) -
-					superindex * sizeof(methodptr*);
+				/* if we loaded the superindex out of the dseg above, we do
+				   things differently here! */
+				if ((super == NULL) || !IS_IMM(superindex)) {
+
+					M_LDR_INTERN(REG_ITMP3, s1, OFFSET(java_objectheader, vftbl));
+
+					/* this assumes something */
+					assert(OFFSET(vftbl_t, interfacetable[0]) == 0);
+
+					/* this does: REG_ITMP3 - superindex * sizeof(methodptr*) */
+					assert(sizeof(methodptr*) == 4);
+					M_SUB(REG_ITMP2, REG_ITMP3, REG_LSL(REG_ITMP2, 2));
+
+					s2 = 0;
+
+				} else {
+
+					s2 = OFFSET(vftbl_t, interfacetable[0]) -
+								superindex * sizeof(methodptr*);
+
+				}
 
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, s2);
 				M_TST(REG_ITMP3, REG_ITMP3);
@@ -2643,6 +2648,9 @@ bool codegen_emit(jitdata *jd)
 			/* interface checkcast code */
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+				if ((super == NULL) || !IS_IMM(superindex)) {
+					disp = dseg_add_unique_s4(cd, superindex);
+				}
 				if (super == NULL) {
 					/* If d == REG_ITMP2, then it's destroyed in check
 					   code above.  */
@@ -2651,7 +2659,7 @@ bool codegen_emit(jitdata *jd)
 
 					codegen_addpatchref(cd,
 					                    PATCHER_checkcast_instanceof_interface,
-					                    iptr->sx.s23.s3.c.ref, 0);
+					                    iptr->sx.s23.s3.c.ref, disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2665,12 +2673,44 @@ bool codegen_emit(jitdata *jd)
 				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_LDR_INTERN(REG_ITMP3,
 							 REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
-				assert(IS_IMM(superindex));
-				M_CMP_IMM(REG_ITMP3, superindex);
-				M_BLE(2);
 
-				s2 = OFFSET(vftbl_t, interfacetable[0]) -
-					superindex * sizeof(methodptr*);
+				/* we put unresolved or non-immediate superindices onto dseg
+				   and do things slightly different */
+				if ((super == NULL) || !IS_IMM(superindex)) {
+					/* disp was computed before we added the patcher */
+					M_DSEG_LOAD(REG_ITMP2, disp);
+					M_CMP(REG_ITMP3, REG_ITMP2);
+
+					if (d == REG_ITMP2) {
+						M_EORLE(d, d, d);
+						M_BLE(4);
+					} else {
+						M_BLE(3);
+					}
+
+					/* this assumes something */
+					assert(OFFSET(vftbl_t, interfacetable[0]) == 0);
+
+					/* this does: REG_ITMP3 - superindex * sizeof(methodptr*) */
+					assert(sizeof(methodptr*) == 4);
+					M_SUB(REG_ITMP1, REG_ITMP1, REG_LSL(REG_ITMP2, 2));
+
+					if (d == REG_ITMP2) {
+						M_EOR(d, d, d);
+					}
+
+					s2 = 0;
+
+				} else {
+					assert(IS_IMM(superindex));
+					M_CMP_IMM(REG_ITMP3, superindex);
+
+					M_BLE(2);
+
+					s2 = OFFSET(vftbl_t, interfacetable[0]) -
+						superindex * sizeof(methodptr*);
+
+				}
 
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP1, s2);
 				M_TST(REG_ITMP3, REG_ITMP3);
@@ -2968,8 +3008,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 			if (!nmd->params[j].inmemory) {
 #if !defined(__ARM_EABI__)
-				SPLIT_OPEN(t, s1, REG_ITMP1);
-				SPLIT_LOAD(t, s1, cd->stackframesize);
 				SPLIT_OPEN(t, s2, REG_ITMP1);
 #endif
 
@@ -2983,16 +3021,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #endif
 			}
 			else {
-#if !defined(__ARM_EABI__)
-				SPLIT_OPEN(t, s1, REG_ITMP1);
-				SPLIT_LOAD(t, s1, cd->stackframesize);
-#endif
-
 				if (IS_2_WORD_TYPE(t))
 					M_LST(s1, REG_SP, s2 * 4);
 				else
 					M_IST(s1, REG_SP, s2 * 4);
-				/* no SPLIT_CLOSE here because argument is fully on stack now */
 			}
 		}
 		else {

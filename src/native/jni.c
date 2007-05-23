@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7921 2007-05-20 23:14:11Z michi $
+   $Id: jni.c 7940 2007-05-23 09:42:08Z michi $
 
 */
 
@@ -689,6 +689,52 @@ static jlong _Jv_jni_CallLongMethod(java_objectheader *o, vftbl_t *vftbl,
 }
 
 
+/* _Jv_jni_CallLongMethodA *****************************************************
+
+   Internal function to call Java long methods.
+
+*******************************************************************************/
+
+static jlong _Jv_jni_CallLongMethodA(java_objectheader *o, vftbl_t *vftbl,
+									 methodinfo *m, jvalue *args)
+{
+	methodinfo *resm;
+	jlong       l;
+
+	STATISTICS(jniinvokation());
+
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+	}
+	else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	l = vm_call_method_long_jvalue(resm, o, args);
+
+	return l;
+}
+
+
 /* _Jv_jni_CallFloatMethod *****************************************************
 
    Internal function to call Java float methods.
@@ -728,6 +774,45 @@ static jfloat _Jv_jni_CallFloatMethod(java_objectheader *o, vftbl_t *vftbl,
 }
 
 
+/* _Jv_jni_CallFloatMethodA ****************************************************
+
+   Internal function to call Java float methods.
+
+*******************************************************************************/
+
+static jfloat _Jv_jni_CallFloatMethodA(java_objectheader *o, vftbl_t *vftbl,
+									   methodinfo *m, jvalue *args)
+{
+	methodinfo *resm;
+	jfloat      f;
+
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+	}
+	else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	f = vm_call_method_float_jvalue(resm, o, args);
+
+	return f;
+}
+
+
 /* _Jv_jni_CallDoubleMethod ****************************************************
 
    Internal function to call Java double methods.
@@ -760,6 +845,43 @@ static jdouble _Jv_jni_CallDoubleMethod(java_objectheader *o, vftbl_t *vftbl,
 	}
 
 	d = vm_call_method_double_valist(resm, o, ap);
+
+	return d;
+}
+
+
+/* _Jv_jni_CallDoubleMethodA ***************************************************
+
+   Internal function to call Java double methods.
+
+*******************************************************************************/
+
+static jdouble _Jv_jni_CallDoubleMethodA(java_objectheader *o, vftbl_t *vftbl,
+										 methodinfo *m, jvalue *args)
+{
+	methodinfo *resm;
+	jdouble     d;
+
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+	}
+	else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	d = vm_call_method_double_jvalue(resm, o, args);
 
 	return d;
 }
@@ -3327,9 +3449,14 @@ jboolean _Jv_JNI_CallStaticBooleanMethodV(JNIEnv *env, jclass clazz,
 jboolean _Jv_JNI_CallStaticBooleanMethodA(JNIEnv *env, jclass clazz,
 										  jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticBooleanMethodA: IMPLEMENT ME!");
+	methodinfo *m;
+	jboolean    b;
 
-	return 0;
+	m = (methodinfo *) methodID;
+
+	b = _Jv_jni_CallIntMethodA(NULL, NULL, m, args);
+
+	return b;
 }
 
 
@@ -3367,9 +3494,14 @@ jbyte _Jv_JNI_CallStaticByteMethodV(JNIEnv *env, jclass clazz,
 jbyte _Jv_JNI_CallStaticByteMethodA(JNIEnv *env, jclass clazz,
 									jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticByteMethodA: IMPLEMENT ME!");
+	methodinfo *m;
+	jbyte       b;
 
-	return 0;
+	m = (methodinfo *) methodID;
+
+	b = _Jv_jni_CallIntMethodA(NULL, NULL, m, args);
+
+	return b;
 }
 
 
@@ -3407,9 +3539,14 @@ jchar _Jv_JNI_CallStaticCharMethodV(JNIEnv *env, jclass clazz,
 jchar _Jv_JNI_CallStaticCharMethodA(JNIEnv *env, jclass clazz,
 									jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticCharMethodA: IMPLEMENT ME!");
+	methodinfo *m;
+	jchar       c;
 
-	return 0;
+	m = (methodinfo *) methodID;
+
+	c = _Jv_jni_CallIntMethodA(NULL, NULL, m, args);
+
+	return c;
 }
 
 
@@ -3447,9 +3584,14 @@ jshort _Jv_JNI_CallStaticShortMethodV(JNIEnv *env, jclass clazz,
 jshort _Jv_JNI_CallStaticShortMethodA(JNIEnv *env, jclass clazz,
 									  jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticShortMethodA: IMPLEMENT ME!");
+	methodinfo *m;
+	jshort      s;
 
-	return 0;
+	m = (methodinfo *) methodID;
+
+	s = _Jv_jni_CallIntMethodA(NULL, NULL, m, args);
+
+	return s;
 }
 
 
@@ -3487,9 +3629,14 @@ jint _Jv_JNI_CallStaticIntMethodV(JNIEnv *env, jclass clazz,
 jint _Jv_JNI_CallStaticIntMethodA(JNIEnv *env, jclass clazz,
 								  jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticIntMethodA: IMPLEMENT ME!");
+	methodinfo *m;
+	jint        i;
 
-	return 0;
+	m = (methodinfo *) methodID;
+
+	i = _Jv_jni_CallIntMethodA(NULL, NULL, m, args);
+
+	return i;
 }
 
 
@@ -3527,9 +3674,14 @@ jlong _Jv_JNI_CallStaticLongMethodV(JNIEnv *env, jclass clazz,
 jlong _Jv_JNI_CallStaticLongMethodA(JNIEnv *env, jclass clazz,
 									jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticLongMethodA: IMPLEMENT ME!");
+	methodinfo *m;
+	jlong       l;
 
-	return 0;
+	m = (methodinfo *) methodID;
+
+	l = _Jv_jni_CallLongMethodA(NULL, NULL, m, args);
+
+	return l;
 }
 
 
@@ -3568,9 +3720,14 @@ jfloat _Jv_JNI_CallStaticFloatMethodV(JNIEnv *env, jclass clazz,
 jfloat _Jv_JNI_CallStaticFloatMethodA(JNIEnv *env, jclass clazz,
 									  jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticFloatMethodA: IMPLEMENT ME!");
+	methodinfo *m;
+	jfloat      f;
 
-	return 0;
+	m = (methodinfo *) methodID;
+
+	f = _Jv_jni_CallFloatMethodA(NULL, NULL, m, args);
+
+	return f;
 }
 
 
@@ -3608,9 +3765,14 @@ jdouble _Jv_JNI_CallStaticDoubleMethodV(JNIEnv *env, jclass clazz,
 jdouble _Jv_JNI_CallStaticDoubleMethodA(JNIEnv *env, jclass clazz,
 										jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticDoubleMethodA: IMPLEMENT ME!");
+	methodinfo *m;
+	jdouble     d;
 
-	return 0;
+	m = (methodinfo *) methodID;
+
+	d = _Jv_jni_CallDoubleMethodA(NULL, NULL, m, args);
+
+	return d;
 }
 
 

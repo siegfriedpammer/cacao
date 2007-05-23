@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7601 2007-03-28 23:02:50Z michi $
+   $Id: md.c 7935 2007-05-22 11:18:15Z twisti $
 
 */
 
@@ -153,7 +153,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 	else {
 		/* catch any problems */
 
-		assert(0);
+		vm_abort("md_get_method_patch_address: unknown instruction %x", mcode);
 	}
 
 	return pa;

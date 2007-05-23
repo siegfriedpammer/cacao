@@ -248,13 +248,6 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 		}
 #endif
 	}
-	else if (IS_LNG_TYPE(dst->type)) {
-#if defined(__ARMEL__)
-		assert(GET_HIGH_REG(dst->vv.regoff) != REG_SPLIT);
-#else
-		assert(GET_LOW_REG(dst->vv.regoff) != REG_SPLIT);
-#endif
-	}
 }
 
 
@@ -776,10 +769,6 @@ void emit_verbosecall_enter(jitdata *jd)
 			if (!IS_2_WORD_TYPE(t)) {
 				M_MOV_IMM(REG_ITMP1, 0);
 				s1 = PACK_REGS(s1, REG_ITMP1);
-			}
-			else {
-				SPLIT_OPEN(t, s1, REG_ITMP1);
-				SPLIT_LOAD(t, s1, stackframesize);
 			}
 		}
 		else {
