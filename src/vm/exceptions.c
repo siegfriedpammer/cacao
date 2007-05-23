@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7942 2007-05-23 12:40:31Z twisti $
+   $Id: exceptions.c 7948 2007-05-23 16:00:13Z twisti $
 
 */
 
@@ -1615,6 +1615,10 @@ java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 
 #endif
 
 		vm_abort("Exiting...");
+
+		/* keep compiler happy */
+
+		e = NULL;
 	}
 
 	/* remove stackframeinfo */
