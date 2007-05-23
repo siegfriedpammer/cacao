@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 7667 2007-04-05 00:16:05Z michi $
+   $Id: stacktrace.h 7937 2007-05-23 09:26:19Z michi $
 
 */
 
@@ -64,7 +64,11 @@ struct stackframeinfo {
 	 * The exact GC needs to be able to recover saved registers, so the
 	 * native-stub saves these registers here
 	 */
+# if defined(HAS_ADDRESS_REGISTER_FILE)
+	ptrint          adrregs[ADR_SAV_CNT];
+# else
 	ptrint          intregs[INT_SAV_CNT];
+# endif
 #endif
 };
 
