@@ -1634,7 +1634,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 /* 	if (opt_prof) */
 /* 		if (!profile_start_thread()) */
-/* 			exceptions_print_stacktrace(); */
+/* 			vm_abort("vm_create: profile_start_thread failed"); */
 # endif
 #endif
 
