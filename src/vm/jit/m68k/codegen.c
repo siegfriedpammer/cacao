@@ -2359,8 +2359,21 @@ nowperformreturn:
 			exceptions_throw_internalerror("Unknown ICMD %d during code generation", iptr->opc);
 			return false;
 	} /* switch */
-	M_TPF;
+	/* M_TPF; */ /* nop after each ICMD */
 	} /* for each instruction */
+
+	/* At the end of a basic block we may have to append some nops,
+	   because the patcher stub calling code might be longer than the
+	   actual instruction. So codepatching does not change the
+	   following block unintentionally. */
+
+	if (cd->mcodeptr < cd->lastmcodeptr) {
+		while (cd->mcodeptr < cd->lastmcodeptr) {
+			M_NOP;
+		}
+	}
+
+
 	} /* if (btpre->flags >= BBREACHED) */
 	} /* for each basic block */
 

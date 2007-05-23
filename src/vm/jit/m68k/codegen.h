@@ -65,10 +65,11 @@
 #define PATCHER_NOPS \
 	do { M_TPFL; M_TPF; M_TPF } while (0);
 
+#define PATCHER_CALL_SIZE 	(3*2)
 
 /* stub defines ***************************************************************/
 
-#define COMPILERSTUB_CODESIZE (6+6+6+2)
+#define COMPILERSTUB_CODESIZE (6+6+2)
 
 
 /* coldfire instruction format:
@@ -138,7 +139,6 @@
 
 
 
-#define PATCHER_CALL_SIZE 	6
 
 #define M_NOP		OPWORD(0x139,6,1)				/* 0x4371 do not use as it syncs pipeline */
 #define M_ILLEGAL	OPWORD(0x12b,7,4)				/* 0x4afc */

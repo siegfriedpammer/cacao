@@ -386,33 +386,48 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* patch the field's offset */
 	if (IS_LNG_TYPE(fi->type)) {
-		/* If the field has type long, we have to patch two
-		   instructions.  But we have to check which instruction
-		   is first.  We do that with the offset of the first
-		   instruction. */
-		assert(0);
-		disp = *((u4 *) (ra + 1 * 4));
-
-		if (disp == 4) {
-			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-			*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-		}
-		else {
-			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
-			*((u4 *) (ra + 2 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-		}
-	} else	{
 		/*
-		 *	0x40adb3f6:     0x254d0000 	movel %a5,%a2@(0)
-		 *	                      ^^^^                     ^
-		 *	                      to be patched
+		 *	0x40d05bb2:     0x25440000	movel %d4,%a2@(0)
+		 *	0x40d05bb6:     0x25430004	movel %d3,%a2@(4)
+		 *					      ^^^^
+		 *					      both 0000 and 0004 have to be patched
 		 */
-		assert( (*((uint32_t*)ra) & 0xffff0000) == *((uint32_t*)ra) );
-		assert( (fi->offset & 0x0000ffff) == fi->offset );
-		*((uint32_t*)ra) |= fi->offset;
 
-		/* synchronize instruction cache */
-		md_icacheflush(ra, 1 * 4);
+		assert( (fi->offset & 0x0000ffff) == fi->offset );
+
+		assert( (*((uint32_t*)ra) & 0xffff0000) == *((uint32_t*)ra) );
+		assert( (*((uint32_t*)(ra+4)) & 0xffff0004) == *((uint32_t*)(ra+4)) );
+
+		*((int16_t *) (ra + 2)) = (int16_t) ((fi->offset) & 0x0000ffff);
+		*((int16_t *) (ra + 6)) = (int16_t) ((fi->offset + 4) & 0x0000ffff);
+
+		md_icacheflush(ra, 2 * 4);
+	} else	{
+		/*	Multiple cases here, int, adr, flt and dbl. */
+		if ( (*((uint32_t*)ra) & 0xfff00000) == 0xf2200000 )	{
+			/* flt/dbl case 
+			 * 0x40d3ddc2:     0xf22944c0 0x0000xxxx 	fsmoves %a1@(0),%fp1
+			 * 	                            ^^^^
+			 * 	                            patch here 
+			 */
+			assert( (fi->offset & 0x0000ffff) == fi->offset );
+			assert( (*((uint32_t*)(ra+4)) & 0x0000ffff) == *((uint32_t*)(ra+4)) );
+			*((int16_t*)(ra+4)) = (int16_t)fi->offset;
+
+			md_icacheflush(ra+4, 1 * 4);
+		} else	{
+			/*	int/adr case
+			 *	0x40adb3f6:     0x254d0000 	movel %a5,%a2@(0)
+			 *	                      ^^^^                     ^
+			 *	                      to be patched
+			 */
+			assert( (*((uint32_t*)ra) & 0xffff0000) == *((uint32_t*)ra) );
+			assert( (fi->offset & 0x0000ffff) == fi->offset );
+			*((int16_t*)(ra+2)) = (int16_t)fi->offset;
+
+			/* synchronize instruction cache */
+			md_icacheflush(ra, 1 * 4);
+		}
 	}
 
 	return true;
