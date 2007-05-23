@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7904 2007-05-14 13:29:32Z twisti $
+   $Id: threads-common.h 7959 2007-05-23 19:37:26Z twisti $
 
 */
 
@@ -58,12 +58,12 @@ typedef struct threads_table_t       threads_table_t;
 
 /* thread states **************************************************************/
 
-#define THREAD_STATE_NEW              0
-#define THREAD_STATE_RUNNABLE         1
-#define THREAD_STATE_BLOCKED          2
-#define THREAD_STATE_WAITING          3
-#define THREAD_STATE_TIMED_WAITING    4
-#define THREAD_STATE_TERMINATED       5
+#define THREAD_STATE_NEW              1
+#define THREAD_STATE_RUNNABLE         2
+#define THREAD_STATE_BLOCKED          3
+#define THREAD_STATE_WAITING          4
+#define THREAD_STATE_TIMED_WAITING    5
+#define THREAD_STATE_TERMINATED       6
 
 
 /* thread priorities **********************************************************/
