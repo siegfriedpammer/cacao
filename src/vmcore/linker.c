@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 7943 2007-05-23 13:09:28Z twisti $
+   $Id: linker.c 7965 2007-05-24 13:25:41Z michi $
 
 */
 
@@ -953,7 +953,7 @@ static classinfo *link_class_intern(classinfo *c)
 		if (!(f->flags & ACC_STATIC)) {
 			dsize = descriptor_typesize(f->parseddesc);
 
-#if defined(__I386__) || defined(__ARM__)
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__))
 			/* On i386 and ARM we align double and s8 fields to
 			   4-bytes.  This matches what GCC does for struct
 			   members. We must do the same as gcc here because the
