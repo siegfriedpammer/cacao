@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7955 2007-05-23 18:05:26Z twisti $
+   $Id: md-os.c 7964 2007-05-24 10:23:42Z twisti $
 
 */
 
@@ -107,6 +107,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		/* this was a normal NPE */
 
 		type = EXCEPTION_HARDWARE_NULLPOINTER;
+		val  = 0;
 	}
 
 	/* generate appropriate exception */
