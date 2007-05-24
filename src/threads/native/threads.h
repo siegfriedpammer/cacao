@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7899 2007-05-11 19:31:04Z twisti $
+   $Id: threads.h 7963 2007-05-24 10:21:16Z twisti $
 
 */
 
@@ -135,6 +135,7 @@ struct threadobject {
 #endif
 
 	dumpinfo_t            dumpinfo;     /* dump memory info structure         */
+	listnode_t            linkage;      /* threads-list                       */
 };
 
 

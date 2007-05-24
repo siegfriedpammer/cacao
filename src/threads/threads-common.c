@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7914 2007-05-18 14:17:34Z twisti $
+   $Id: threads-common.c 7963 2007-05-24 10:21:16Z twisti $
 
 */
 
@@ -32,6 +32,8 @@
 #include <assert.h>
 
 #include "vm/types.h"
+
+#include "mm/memory.h"
 
 #include "native/jni.h"
 
@@ -46,6 +48,8 @@
 #include "threads/critical.h"
 #include "threads/lock-common.h"
 #include "threads/threads-common.h"
+
+#include "toolbox/list.h"
 
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
@@ -65,13 +69,11 @@
 
 /* global variables ***********************************************************/
 
-/* global threads table */
-static threads_table_t threads_table;
+/* global threads list */
+static list_t *list_threads;
 
-
-/* prototypes *****************************************************************/
-
-static void threads_table_init(threadobject *mainthread);
+/* global threads free-list */
+static list_t *list_threads_free;
 
 
 /* threads_preinit *************************************************************
@@ -87,6 +89,11 @@ void threads_preinit(void)
 {
 	threadobject *mainthread;
 
+	/* initialize the threads lists */
+
+	list_threads      = list_create(OFFSET(threadobject, linkage));
+	list_threads_free = list_create(OFFSET(threadobject, linkage));
+
 	/* Initialize the threads implementation (sets the thinlock on the
 	   main thread). */
 
@@ -96,10 +103,6 @@ void threads_preinit(void)
 
 	mainthread = threads_thread_new();
 
-	mainthread->object   = NULL;
-	mainthread->index    = 1;
-	mainthread->thinlock = lock_pre_compute_thinlock(mainthread->index);
-
 	/* thread is a Java thread and running */
 
 	mainthread->flags = THREAD_FLAG_JAVA;
@@ -108,10 +111,6 @@ void threads_preinit(void)
 	/* store the internal thread data-structure in the TSD */
 
 	threads_set_current_threadobject(mainthread);
-	
-	/* initialize the threads table with the main-thread */
-
-	threads_table_init(mainthread);
 
 	/* initialize locking subsystems */
 
@@ -123,404 +122,79 @@ void threads_preinit(void)
 }
 
 
-/* threads_table_init **********************************************************
+/* threads_list_first **********************************************************
 
-   Initialize the global threads table.  We initialize the table with
-   the main-thread, which has always the index 1.
+   Return the first entry in the threads list.
 
-   IN:
-      mainthread....the main-thread
+   NOTE: This function does not lock the lists.
 
 *******************************************************************************/
 
-#define THREADS_INITIAL_TABLE_SIZE    8
-
-static void threads_table_init(threadobject *mainthread)
+threadobject *threads_list_first(void)
 {
-	threads_table_entry_t *ttemain;
-	s4                     size;
-	s4                     i;
+	threadobject *t;
 
-	/* initialize the threads table lock */
+	t = list_first_unsynced(list_threads);
 
-	threads_impl_table_init();
-
-	/* initialize the table */
-
-	size = THREADS_INITIAL_TABLE_SIZE;
-
-	threads_table.table   = MNEW(threads_table_entry_t, size);
-	threads_table.size    = size;
-	threads_table.used    = 0;
-	threads_table.daemons = 0;
-
-	/* Link the entries in a freelist.  Skip 2 entries: 0 is the
-	   free-list header and 1 is the main thread. */
-
-	for (i = 2; i < size; i++) {
-		threads_table.table[i].thread = NULL;
-		threads_table.table[i].next   = i + 1;
-	}
-
-	threads_table.table[0].next = 2;
-
-	/* terminate the freelist */
-
-	threads_table.table[size - 1].next = 0;          /* index 0 is never free */
-
-	/* insert the main-thread */
-
-	ttemain = &(threads_table.table[1]);
-
-	ttemain->thread = mainthread;
-	ttemain->next   = 0;
-
-	/* now 1 entry is used */
-
-	threads_table.used = 1;
+	return t;
 }
 
 
-/* threads_table_add ***********************************************************
+/* threads_list_next ***********************************************************
 
-   Add a thread to the global threads table. The index is entered in the
-   threadobject. The thinlock value for the thread is pre-computed.
+   Return the next entry in the threads list.
 
-   IN:
-      thread............the thread to add
-
-   RETURN VALUE:
-      The table index for the newly added thread. This value has also been
-	  entered in the threadobject.
+   NOTE: This function does not lock the lists.
 
 *******************************************************************************/
 
-s4 threads_table_add(threadobject *thread)
+threadobject *threads_list_next(threadobject *t)
 {
-	threads_table_entry_t *ttefree;
-	threads_table_entry_t *ttemain;
-	threads_table_entry_t *tte;
-	s4 index;
-	s4 oldsize;
-	s4 newsize;
-	s4 i;
+	threadobject *next;
 
-	/* lock the threads table */
-
-	threads_table_lock();
-
-	/* get free and main entry */
-
-	ttefree = &(threads_table.table[0]);
-	ttemain = &(threads_table.table[1]);
-
-	/* get the next free index */
-
-	index = ttefree->next;
-
-	/* no entry free anymore? resize the table */
-
-	if (index == 0) {
-		/* we must grow the table */
-
-		oldsize = threads_table.size;
-		newsize = oldsize * 2;
-
-		threads_table.table = MREALLOC(threads_table.table,
-									   threads_table_entry_t, oldsize, newsize);
-		threads_table.size = newsize;
-
-		/* the addresses have changed, get them again */
-
-		ttefree = &(threads_table.table[0]);
-		ttemain = &(threads_table.table[1]);
-
-		/* link the new entries to a free list */
-
-		for (i = oldsize; i < newsize; i++) {
-			threads_table.table[i].thread = NULL;
-			threads_table.table[i].next   = i + 1;
-		}
-
-		ttefree->next = oldsize;
-
-		/* terminate the freelist */
-
-		threads_table.table[newsize - 1].next = 0;   /* index 0 is never free */
-
-		/* use the first of the new entries */
-
-		index = ttefree->next;
-	}
-
-	/* get the entry with the assigned index */
-
-	tte = &(threads_table.table[index]);
-
-	/* store the next free index into the free-list header */
-
-	ttefree->next = tte->next;
-
-	/* store the thread in the table */
-
-	tte->thread = thread;
-
-	/* link the new entry into the used-list */
-
-	tte->next     = ttemain->next;
-	ttemain->next = index;
-
-	/* update the counters */
-
-	threads_table.used++;
-
-	if (thread->flags & THREAD_FLAG_DAEMON)
-		threads_table.daemons++;
-
-	assert(threads_table.used < threads_table.size);
-
-	/* set the thread variables */
-
-	thread->index    = index;
-	thread->thinlock = lock_pre_compute_thinlock(index);
-
-	/* unlock the threads table */
-
-	threads_table_unlock();
-
-	return index;
-}
-
-
-/* threads_table_remove *******************************************************
-
-   Remove a thread from the global threads table.
-
-   IN:
-      thread............the thread to remove
-
-******************************************************************************/
-
-void threads_table_remove(threadobject *thread)
-{
-	threads_table_entry_t *ttefree;
-	threads_table_entry_t *tte;
-	s4                     index;
-	s4                     i;
-
-	/* lock the threads table */
-
-	threads_table_lock();
-
-	/* get the free entry */
-
-	ttefree = &(threads_table.table[0]);
-
-	/* get the current entry */
-
-	index = thread->index;
-	tte   = &(threads_table.table[index]);
-
-	assert(tte->thread == thread);
-
-	/* Find the entry which has the one to be removed as next entry (I
-	   think it's better to do it at the removal in linear time than
-	   to have a list or to do it every time we iterate over all
-	   threads). */
-
-	for (i = 0; i < threads_table.size; i++) {
-		if (threads_table.table[i].next == index) {
-			threads_table.table[i].next = tte->next;
-			break;
-		}
-	}
-
-	/* clear the thread pointer in the entry */
-
-	tte->thread = NULL;
-
-	/* this entry is free now, add it to the free-list */
-
-	tte->next     = ttefree->next;
-	ttefree->next = index;
-
-	/* update the counters */
-
-	threads_table.used--;
-
-	if (thread->flags & THREAD_FLAG_DAEMON)
-		threads_table.daemons--;
-
-	assert(threads_table.used >= 0);
-
-	/* delete the index in the threadobject to discover bugs */
-#if !defined(NDEBUG)
-	thread->index = 0;
-#endif
-
-	/* unlock the threads table */
-
-	threads_table_unlock();
-}
-
-
-/* threads_table_get ***********************************************************
-
-   Return the thread of the given table-entry index.
-
-   NOTE: It is valid to pass and index of 0, as this entry is the
-         free-list header where the thread pointer is always NULL and
-         this is thre expected behavior.
-
-   NOTE: This function does not lock the table.
-
-*******************************************************************************/
-
-static threadobject *threads_table_get(s4 index)
-{
-	threadobject *thread;
-
-	/* get the requested entry */
-
-	assert((index >= 0) && (index < threads_table.size));
-
-	thread = threads_table.table[index].thread;
-
-	return thread;
-}
-
-
-/* threads_table_get_threads ***************************************************
-
-   Return the number of running threads.
-
-   NOTE: This function does not lock the table.
-
-*******************************************************************************/
-
-s4 threads_table_get_threads(void)
-{
-	return threads_table.used;
-}
-
-
-/* threads_table_get_non_daemons ***********************************************
-
-   Return the number of non-daemon threads.
-
-*******************************************************************************/
-
-s4 threads_table_get_non_daemons(void)
-{
-	s4 nondaemons;
-
-	/* lock the threads table */
-
-	threads_table_lock();
-
-	nondaemons = threads_table.used - threads_table.daemons;
-
-	/* unlock the threads table */
-
-	threads_table_unlock();
-
-	return nondaemons;
-}
-
-
-/* threads_table_first *********************************************************
-
-   Return the first thread of the threads table.
-
-   NOTE: This is always the entry with index 1 and must be the main
-         thread.
-
-   NOTE: This function does not lock the table.
-
-*******************************************************************************/
-
-threadobject *threads_table_first(void)
-{
-	threadobject *thread;
-
-	/* get the requested entry */
-
-	thread = threads_table_get(1);
-
-	return thread;
-}
-
-
-/* threads_table_next **********************************************************
-
-   Return the next thread of the threads table relative to the passed
-   one.
-
-   NOTE: This function does not lock the table.
-
-*******************************************************************************/
-
-threadobject *threads_table_next(threadobject *thread)
-{
-	threads_table_entry_t *tte;
-	threadobject          *next;
-	s4                     index;
-
-	index = thread->index;
-
-	/* get the passed entry */
-
-	assert((index > 0) && (index < threads_table.size));
-
-	tte = &(threads_table.table[index]);
-
-	/* get the requested entry */
-
-	next = threads_table_get(tte->next);
+	next = list_next_unsynced(list_threads, t);
 
 	return next;
 }
 
 
-/* threads_table_dump *********************************************************
+/* threads_list_get_non_daemons ************************************************
 
-   Dump the threads table for debugging purposes.
+   Return the number of non-daemon threads.
 
-******************************************************************************/
+   NOTE: This function does a linear-search over the threads list,
+         because it's only used for joining the threads.
 
-#if !defined(NDEBUG)
-void threads_table_dump(void)
+*******************************************************************************/
+
+s4 threads_list_get_non_daemons(void)
 {
-	s4 i;
-	s4 size;
-	ptrint index;
+	threadobject *t;
+	s4            nondaemons;
 
-	size = threads_table.size;
+	/* lock the threads lists */
 
-	log_println("threads table ==========");
+	threads_list_lock();
 
-	log_println("size:    %d", size);
-	log_println("used:    %d", threads_table.used);
-	log_println("daemons: %d", threads_table.daemons);
+	nondaemons = 0;
 
-	for (i = 0; i < size; i++) {
-		index = threads_table.table[i].next;
-
-		if (threads_table.table[i].thread != NULL)
-			log_println("%4d: thread=0x%08x, next=%d", i,
-						threads_table.table[i].thread->tid, (int) index);
-		else
-			log_println("%4d: free, next=%d", i, (int) index);
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		if (!(t->flags & THREAD_FLAG_DAEMON))
+			nondaemons++;
 	}
 
-	log_println("end of threads table ==========");
+	/* unlock the threads lists */
+
+	threads_list_unlock();
+
+	return nondaemons;
 }
-#endif
 
 
 /* threads_thread_new **********************************************************
 
-   Allocates and initializes an internal thread data-structure.
+   Allocates and initializes an internal thread data-structure and
+   adds it to the threads list.
 
 *******************************************************************************/
 
@@ -528,27 +202,62 @@ threadobject *threads_thread_new(void)
 {
 	threadobject *t;
 
-	/* allocate internal thread data-structure */
+	/* lock the threads-lists */
+
+	threads_list_lock();
+
+	/* try to get a thread from the free-list */
+
+	t = list_first_unsynced(list_threads_free);
+
+	/* is a free thread available? */
+
+	if (t != NULL) {
+		/* yes, remove it from the free list */
+
+		list_remove_unsynced(list_threads_free, t);
+	}
+	else {
+		/* no, allocate a new one */
 
 #if defined(ENABLE_GC_BOEHM)
-	t = GCNEW_UNCOLLECTABLE(threadobject, 1);
+		t = GCNEW_UNCOLLECTABLE(threadobject, 1);
 #else
-	t = NEW(threadobject);
+		t = NEW(threadobject);
 #endif
 
 #if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
+		if (opt_stat)
+			size_threadobject += sizeof(threadobject);
 #endif
 
-	/* initialize thread data structure */
+		/* clear memory */
 
-	t->index       = 0;
-	t->interrupted = false;
-	t->signaled    = false;
-	t->sleeping    = false;
+		MZERO(t, threadobject, 1);
+
+		/* set the threads-index */
+
+		t->index = list_threads->size + 1;
+	}
+
+	/* pre-compute the thinlock-word */
+
+	assert(t->index != 0);
+
+	t->thinlock = lock_pre_compute_thinlock(t->index);
+	t->state    = THREAD_STATE_NEW;
+
+	/* initialize the implementation-specific bits */
 
 	threads_impl_thread_new(t);
+
+	/* add the thread to the threads-list */
+
+	list_add_last_unsynced(list_threads, t);
+
+	/* unlock the threads-lists */
+
+	threads_list_unlock();
 
 	return t;
 }
@@ -556,26 +265,46 @@ threadobject *threads_thread_new(void)
 
 /* threads_thread_free *********************************************************
 
-   Frees an internal thread data-structure.
+   Frees an internal thread data-structure by removing it from the
+   threads-list and adding it to the free-list.
+
+   NOTE: The data-structure is NOT freed, the pointer keeps valid!
 
 *******************************************************************************/
 
 void threads_thread_free(threadobject *t)
 {
+	s4 index;
+
+	/* lock the threads-lists */
+
+	threads_list_lock();
+
 	/* cleanup the implementation-specific bits */
 
 	threads_impl_thread_free(t);
 
-#if defined(ENABLE_GC_BOEHM)
-	GCFREE(t);
-#else
-	FREE(t, threadobject);
-#endif
+	/* remove the thread from the threads-list */
 
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject -= sizeof(threadobject);
-#endif
+	list_remove_unsynced(list_threads, t);
+
+	/* Clear memory, but keep the thread-index. */
+	/* ATTENTION: Do this after list_remove, otherwise the linkage
+	   pointers are invalid. */
+
+	index = t->index;
+
+	MZERO(t, threadobject, 1);
+
+	t->index = index;
+
+	/* add the thread to the free list */
+
+	list_add_first_unsynced(list_threads_free, t);
+
+	/* unlock the threads-lists */
+
+	threads_list_unlock();
 }
 
 
@@ -705,6 +434,8 @@ void threads_thread_print_info(threadobject *t)
 	java_lang_Thread *object;
 	utf              *name;
 
+	assert(t->state != THREAD_STATE_NEW);
+
 	/* the thread may be currently in initalization, don't print it */
 
 	object = t->object;
@@ -734,6 +465,8 @@ void threads_thread_print_info(threadobject *t)
 		printf(" t=0x%08x tid=0x%08x (%d)",
 			   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
 #endif
+
+		printf(" index=%d", t->index);
 
 		/* print thread state */
 
@@ -788,17 +521,91 @@ ptrint threads_get_current_tid(void)
 }
 
 
+/* threads_thread_state_runnable ***********************************************
+
+   Set the current state of the given thread to THREAD_STATE_RUNNABLE.
+
+*******************************************************************************/
+
+void threads_thread_state_runnable(threadobject *t)
+{
+	/* set the state inside the lock */
+
+	threads_list_lock();
+
+	t->state = THREAD_STATE_RUNNABLE;
+
+	threads_list_unlock();
+}
+
+
+/* threads_thread_state_waiting ************************************************
+
+   Set the current state of the given thread to THREAD_STATE_WAITING.
+
+*******************************************************************************/
+
+void threads_thread_state_waiting(threadobject *t)
+{
+	/* set the state in the lock */
+
+	threads_list_lock();
+
+	t->state = THREAD_STATE_WAITING;
+
+	threads_list_unlock();
+}
+
+
+/* threads_thread_state_timed_waiting ******************************************
+
+   Set the current state of the given thread to
+   THREAD_STATE_TIMED_WAITING.
+
+*******************************************************************************/
+
+void threads_thread_state_timed_waiting(threadobject *t)
+{
+	/* set the state in the lock */
+
+	threads_list_lock();
+
+	t->state = THREAD_STATE_TIMED_WAITING;
+
+	threads_list_unlock();
+}
+
+
+/* threads_thread_state_terminated *********************************************
+
+   Set the current state of the given thread to
+   THREAD_STATE_TERMINATED.
+
+*******************************************************************************/
+
+void threads_thread_state_terminated(threadobject *t)
+{
+	/* set the state in the lock */
+
+	threads_list_lock();
+
+	t->state = THREAD_STATE_TERMINATED;
+
+	threads_list_unlock();
+}
+
+
 /* threads_thread_get_state ****************************************************
 
    Returns the current state of the given thread.
 
 *******************************************************************************/
 
-utf *threads_thread_get_state(threadobject *thread)
+utf *threads_thread_get_state(threadobject *t)
 {
 	utf *u;
 
-	switch (thread->state) {
+	switch (t->state) {
 	case THREAD_STATE_NEW:
 		u = utf_new_char("NEW");
 		break;
@@ -818,7 +625,7 @@ utf *threads_thread_get_state(threadobject *thread)
 		u = utf_new_char("TERMINATED");
 		break;
 	default:
-		vm_abort("threads_get_state: unknown thread state %d", thread->state);
+		vm_abort("threads_get_state: unknown thread state %d", t->state);
 
 		/* keep compiler happy */
 
@@ -877,15 +684,15 @@ void threads_dump(void)
 
 	/* XXX we should stop the world here */
 
-	/* lock the threads table */
+	/* lock the threads lists */
 
-	threads_table_lock();
+	threads_list_lock();
 
 	printf("Full thread dump CACAO "VERSION":\n");
 
 	/* iterate over all started threads */
 
-	for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
 		/* print thread info */
 
 		printf("\n");
@@ -897,9 +704,9 @@ void threads_dump(void)
 		threads_thread_print_stacktrace(t);
 	}
 
-	/* unlock the threads table */
+	/* unlock the threads lists */
 
-	threads_table_unlock();
+	threads_list_unlock();
 }
 
 

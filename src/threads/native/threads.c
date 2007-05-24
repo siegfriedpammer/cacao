@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7904 2007-05-14 13:29:32Z twisti $
+   $Id: threads.c 7963 2007-05-24 10:21:16Z twisti $
 
 */
 
@@ -227,7 +227,7 @@ pthread_key_t threads_current_threadobject_key;
 #endif
 
 /* global mutex for the threads table */
-static pthread_mutex_t mutex_threads_table;
+static pthread_mutex_t mutex_threads_list;
 
 /* global mutex for stop-the-world                                            */
 static pthread_mutex_t stopworldlock;
@@ -366,21 +366,40 @@ void unlock_stopworld(void)
 
 #if !defined(__DARWIN__)
 /* Caller must hold threadlistlock */
-static void threads_cast_sendsignals(int sig)
+static s4 threads_cast_sendsignals(s4 sig)
 {
 	threadobject *t;
 	threadobject *self;
+	s4            count;
 
 	self = THREADOBJECT;
 
 	/* iterate over all started threads */
 
-	for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
+	count = 0;
+
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
 		/* don't send the signal to ourself */
 
-		if (t != self)
-			pthread_kill(t->tid, sig);
+		if (t == self)
+			continue;
+
+		/* don't send the signal to NEW threads (because they are not
+		   completely initialized) */
+
+		if (t->state == THREAD_STATE_NEW)
+			continue;
+
+		/* send the signal */
+
+		pthread_kill(t->tid, sig);
+
+		/* increase threads count */
+
+		count++;
 	}
+
+	return count;
 }
 
 #else
@@ -464,14 +483,14 @@ static void threads_cast_irixresume(void)
 void threads_cast_stopworld(void)
 {
 #if !defined(__DARWIN__) && !defined(__CYGWIN__)
-	int count, i;
+	s4 count, i;
 #endif
 
 	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
 
-	/* lock the threads table */
+	/* lock the threads lists */
 
-	threads_table_lock();
+	threads_list_lock();
 
 #if defined(__DARWIN__)
 	threads_cast_darwinstop();
@@ -481,27 +500,22 @@ void threads_cast_stopworld(void)
 #else
 	/* send all threads the suspend signal */
 
-	threads_cast_sendsignals(GC_signum1());
+	count = threads_cast_sendsignals(GC_signum1());
 
-	/* wait for all threads to suspend (except the current one) */
-
-	count = threads_table_get_threads() - 1;
+	/* wait for all threads signaled to suspend */
 
 	for (i = 0; i < count; i++)
 		threads_sem_wait(&suspend_ack);
 #endif
 
-	/* unlock the threads table */
-
-	threads_table_unlock();
+	/* ATTENTION: Don't unlock the threads-lists here so that
+	   non-signaled NEW threads can't change their state and execute
+	   code. */
 }
+
 
 void threads_cast_startworld(void)
 {
-	/* lock the threads table */
-
-	threads_table_lock();
-
 #if defined(__DARWIN__)
 	threads_cast_darwinresume();
 #elif defined(__MIPS__)
@@ -510,12 +524,12 @@ void threads_cast_startworld(void)
 	/* TODO */
 	assert(0);
 #else
-	threads_cast_sendsignals(GC_signum2());
+	(void) threads_cast_sendsignals(GC_signum2());
 #endif
 
-	/* unlock the threads table */
+	/* unlock the threads lists */
 
-	threads_table_unlock();
+	threads_list_unlock();
 
 	unlock_stopworld();
 }
@@ -682,38 +696,38 @@ void threads_impl_preinit(void)
 
 void threads_impl_table_init(void)
 {
-	pthread_mutex_init(&mutex_threads_table, NULL);
+	pthread_mutex_init(&mutex_threads_list, NULL);
 }
 
 
-/* threads_table_lock **********************************************************
+/* threads_list_lock ***********************************************************
 
    Enter the threads table mutex.
 
    NOTE: We need this function as we can't use an internal lock for
-         the threads table because the thread's lock is initialized in
+         the threads lists because the thread's lock is initialized in
          threads_table_add (when we have the thread index), but we
          already need the lock at the entry of the function.
 
 *******************************************************************************/
 
-void threads_table_lock(void)
+void threads_list_lock(void)
 {
-	if (pthread_mutex_lock(&mutex_threads_table) != 0)
+	if (pthread_mutex_lock(&mutex_threads_list) != 0)
 		vm_abort("threads_table_lock: pthread_mutex_lock failed: %s",
 				 strerror(errno));
 }
 
 
-/* threads_table_unlock ********************************************************
+/* threads_list_unlock *********************************************************
 
-   Leave the threads table mutex.
+   Leave the threads list mutex.
 
 *******************************************************************************/
 
-void threads_table_unlock(void)
+void threads_list_unlock(void)
 {
-	if (pthread_mutex_unlock(&mutex_threads_table) != 0)
+	if (pthread_mutex_unlock(&mutex_threads_list) != 0)
 		vm_abort("threads_table_unlock: pthread_mutex_unlock failed: %s",
 				 strerror(errno));
 }
@@ -765,9 +779,9 @@ bool threads_init(void)
 		return false;
 
 	/* Get the main-thread (NOTE: The main threads is always the first
-	   thread in the table). */
+	   thread in the list). */
 
-	mainthread = threads_table_first();
+	mainthread = threads_list_first();
 
 	/* create a java.lang.Thread for the main thread */
 
@@ -890,14 +904,14 @@ bool threads_init(void)
 		 threads_startup.
 
    IN:
-      t............the argument passed to pthread_create, ie. a pointer to
+      arg..........the argument passed to pthread_create, ie. a pointer to
 	               a startupinfo struct. CAUTION: When the `psem` semaphore
 				   is posted, the startupinfo struct becomes invalid! (It
 				   is allocated on the stack of threads_start_thread.)
 
 ******************************************************************************/
 
-static void *threads_startup_thread(void *t)
+static void *threads_startup_thread(void *arg)
 {
 	startupinfo        *startup;
 	threadobject       *thread;
@@ -925,8 +939,7 @@ static void *threads_startup_thread(void *t)
 
 	/* get passed startupinfo structure and the values in there */
 
-	startup = t;
-	t = NULL; /* make sure it's not used wrongly */
+	startup = arg;
 
 	thread   = startup->thread;
 	function = startup->function;
@@ -946,23 +959,19 @@ static void *threads_startup_thread(void *t)
 
 	threads_set_current_threadobject(thread);
 
-	/* thread is running */
+	/* set our priority */
 
-	thread->state = THREAD_STATE_RUNNABLE;
+	threads_set_thread_priority(thread->tid, thread->object->priority);
 
-	/* insert the thread into the threads table */
+	/* thread is completely initialized */
 
-	threads_table_add(thread);
+	threads_thread_state_runnable(thread);
 
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
 
 	startup = NULL;
 	threads_sem_post(psem);
-
-	/* set our priority */
-
-	threads_set_thread_priority(thread->tid, thread->object->priority);
 
 #if defined(ENABLE_INTRP)
 	/* set interpreter stack */
@@ -1213,11 +1222,9 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	if (isdaemon)
 		thread->flags |= THREAD_FLAG_DAEMON;
 
-	thread->state = THREAD_STATE_RUNNABLE;
+	/* thread is completely initialized */
 
-	/* insert the thread into the threads table */
-
-	threads_table_add(thread);
+	threads_thread_state_runnable(thread);
 
 #if !defined(NDEBUG)
 	if (opt_verbosethreads) {
@@ -1263,7 +1270,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(ENABLE_JAVASE)
 		/* get the main thread */
 
-		mainthread = threads_table_first();
+		mainthread = threads_list_first();
 		group = mainthread->object->group;
 #endif
 	}
@@ -1357,11 +1364,7 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* thread is terminated */
 
-	thread->state = THREAD_STATE_TERMINATED;
-
-	/* remove thread from the threads table */
-
-	threads_table_remove(thread);
+	threads_thread_state_terminated(thread);
 
 #if !defined(NDEBUG)
 	if (opt_verbosethreads) {
@@ -1393,15 +1396,15 @@ bool threads_detach_thread(threadobject *thread)
 
 void threads_join_all_threads(void)
 {
-	threadobject *thread;
+	threadobject *t;
 
 	/* get current thread */
 
-	thread = THREADOBJECT;
+	t = THREADOBJECT;
 
 	/* this thread is waiting for all non-daemon threads to exit */
 
-	thread->state = THREAD_STATE_WAITING;
+	threads_thread_state_waiting(t);
 
 	/* enter join mutex */
 
@@ -1411,7 +1414,7 @@ void threads_join_all_threads(void)
 	   compare against 1 because the current (main thread) is also a
 	   non-daemon thread. */
 
-	while (threads_table_get_non_daemons() > 1)
+	while (threads_list_get_non_daemons() > 1)
 		pthread_cond_wait(&cond_join, &mutex_join);
 
 	/* leave join mutex */
@@ -1512,22 +1515,22 @@ static bool threads_wait_with_timeout(threadobject *thread,
 		while (!thread->interrupted && !thread->signaled
 			   && threads_current_time_is_earlier_than(wakeupTime))
 		{
-			thread->state = THREAD_STATE_TIMED_WAITING;
+			threads_thread_state_timed_waiting(thread);
 
 			pthread_cond_timedwait(&thread->waitcond, &thread->waitmutex,
 								   wakeupTime);
 
-			thread->state = THREAD_STATE_RUNNABLE;
+			threads_thread_state_runnable(thread);
 		}
 	}
 	else {
 		/* no timeout */
 		while (!thread->interrupted && !thread->signaled) {
-			thread->state = THREAD_STATE_WAITING;
+			threads_thread_state_waiting(thread);
 
 			pthread_cond_wait(&thread->waitcond, &thread->waitmutex);
 
-			thread->state = THREAD_STATE_RUNNABLE;
+			threads_thread_state_runnable(thread);
 		}
 	}
 

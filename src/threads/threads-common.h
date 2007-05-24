@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7959 2007-05-23 19:37:26Z twisti $
+   $Id: threads-common.h 7963 2007-05-24 10:21:16Z twisti $
 
 */
 
@@ -50,12 +50,6 @@
 
 #if defined(ENABLE_THREADS)
 
-/* typedefs *******************************************************************/
-
-typedef struct threads_table_entry_t threads_table_entry_t;
-typedef struct threads_table_t       threads_table_t;
-
-
 /* thread states **************************************************************/
 
 #define THREAD_STATE_NEW              1
@@ -73,58 +67,30 @@ typedef struct threads_table_t       threads_table_t;
 #define MAX_PRIORITY     10
 
 
-/* threads_table_entry_t *******************************************************
-
-   An entry in the global threads table.
-
-*******************************************************************************/
-
-struct threads_table_entry_t {
-	threadobject *thread;              /* an existing thread                  */
-	s4            next;                /* next free or used index             */
-};
-
-
-/* threads_table_t *************************************************************
-
-   Struct for the global threads table.
-
-*******************************************************************************/
-
-struct threads_table_t {
-	threads_table_entry_t *table;      /* the table, threads[0] is the head   */
-	                                   /* of the free list. Real entries      */
-									   /* start at threads[1].                */
-	s4                     size;       /* current size of the table           */
-	s4                     used;       /* number of thread entries            */
-	s4                     daemons;    /* number of daemon thread entries     */
-};
-
-
 /* function prototypes ********************************************************/
 
 void          threads_preinit(void);
 
-s4            threads_table_add(threadobject *thread);
-void          threads_table_remove(threadobject *thread);
-s4            threads_table_get_threads(void);
-s4            threads_table_get_non_daemons(void);
-threadobject *threads_table_first(void);
-threadobject *threads_table_next(threadobject *thread);
-
-#if !defined(NDEBUG)
-void          threads_table_dump(void);
-#endif
+threadobject *threads_list_first(void);
+threadobject *threads_list_next(threadobject *t);
+s4            threads_list_get_non_daemons(void);
 
 threadobject *threads_thread_new(void);
 void          threads_thread_free(threadobject *t);
+
 bool          threads_thread_start_internal(utf *name, functionptr f);
 void          threads_thread_start(java_lang_Thread *object);
 
 void          threads_thread_print_info(threadobject *t);
 
 ptrint        threads_get_current_tid(void);
-utf          *threads_thread_get_state(threadobject *thread);
+
+void          threads_thread_state_runnable(threadobject *t);
+void          threads_thread_state_waiting(threadobject *t);
+void          threads_thread_state_timed_waiting(threadobject *t);
+void          threads_thread_state_terminated(threadobject *t);
+utf          *threads_thread_get_state(threadobject *t);
+
 bool          threads_thread_is_alive(threadobject *thread);
 
 void          threads_dump(void);
@@ -137,8 +103,8 @@ void          threads_print_stacktrace(void);
 void          threads_impl_preinit(void);
 
 void          threads_impl_table_init(void);
-void          threads_table_lock(void);
-void          threads_table_unlock(void);
+void          threads_list_lock(void);
+void          threads_list_unlock(void);
 
 void          threads_set_current_threadobject(threadobject *thread);
 void          threads_impl_thread_new(threadobject *t);
