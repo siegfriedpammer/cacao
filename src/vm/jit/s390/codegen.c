@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7848 2007-05-01 21:40:26Z pm $
+   $Id: codegen.c 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -1902,7 +1902,7 @@ bool codegen_emit(jitdata *jd)
 				M_ILD(d, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
-				d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP23_PACKED);
 				M_LLD(d, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
@@ -1991,7 +1991,7 @@ bool codegen_emit(jitdata *jd)
 				M_ILD(d, s1, disp);
 				break;
 			case TYPE_LNG:
-   				d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
+   				d = codegen_reg_of_dst(jd, iptr, REG_ITMP23_PACKED);
 				if (GET_HIGH_REG(d) == s1) {
 					M_ILD(GET_LOW_REG(d), s1, disp + 4);
 					M_ILD(GET_HIGH_REG(d), s1, disp);
@@ -2018,6 +2018,8 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
+			{
+			u1 *ref;
 
 			s1 = emit_load_s1_notzero(jd, iptr, REG_ITMP1);
 			emit_nullpointer_check(cd, iptr, s1);
@@ -2033,36 +2035,53 @@ bool codegen_emit(jitdata *jd)
 				disp      = fi->offset;
 			}
 
+			/* We can't add a patcher ref behind this load,
+			 * because the patcher would destroy REG_ITMP3.
+			 *
+			 * We pass in the disp parameter, how many bytes
+			 * to skip to the to the actual store.
+			 *
+			 * XXX this relies on codegen_add_patch_ref internals
+			 */
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+				ref = cd->mcodeptr;
+			}
+
+
 			if (IS_INT_LNG_TYPE(fieldtype)) {
 				if (IS_2_WORD_TYPE(fieldtype))
 					s2 = emit_load_s2(jd, iptr, REG_ITMP23_PACKED);
 				else
 					s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			}
-			else
+			} else {
 				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
+			}
 
-			if (INSTRUCTION_IS_UNRESOLVED(iptr))
-				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				cd->patchrefs->disp = (cd->mcodeptr - ref);
+			}
 
 			switch (fieldtype) {
-			case TYPE_INT:
-				M_IST(s2, s1, disp);
-				break;
-			case TYPE_LNG:
-				/* TODO really order */
-				M_IST(GET_LOW_REG(s2), s1, disp + 4);      /* keep this order */
-				M_IST(GET_HIGH_REG(s2), s1, disp);         /* keep this order */
-				break;
-			case TYPE_ADR:
-				M_AST(s2, s1, disp);
-				break;
-			case TYPE_FLT:
-				M_FST(s2, s1, disp);
-				break;
-			case TYPE_DBL:
-				M_DST(s2, s1, disp);
-				break;
+				case TYPE_INT:
+					M_IST(s2, s1, disp);
+					break;
+				case TYPE_LNG:
+					M_IST(GET_LOW_REG(s2), s1, disp + 4);      /* keep this order */
+					M_IST(GET_HIGH_REG(s2), s1, disp);         /* keep this order */
+					break;
+				case TYPE_ADR:
+					M_AST(s2, s1, disp);
+					break;
+				case TYPE_FLT:
+					M_FST(s2, s1, disp);
+					break;
+				case TYPE_DBL:
+					M_DST(s2, s1, disp);
+					break;
+			}
+
 			}
 			break;
 
@@ -2826,9 +2845,9 @@ gen_method:
 					supervftbl = super->vftbl;
 				}
 
-#if defined(ENABLE_THREADS)
-				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+					CODEGEN_CRITICAL_SECTION_NEW;
+
 				s1 = emit_load_s1_notzero(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -2902,17 +2921,17 @@ gen_method:
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_START;
+
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 					M_ISUB(REG_ITMP3, REG_ITMP2);
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+					CODEGEN_CRITICAL_SECTION_END;
+					
 					M_CMPU(REG_ITMP2, REG_ITMP3); /* Unsigned compare */
 					/* M_CMPULE(REG_ITMP2, REG_ITMP3, REG_ITMP3); itmp3 = (itmp2 <= itmp3) */
 					/* M_BEQZ(REG_ITMP3, 0); branch if (! itmp) -> branch if > */
@@ -3014,9 +3033,9 @@ gen_method:
 #			define LABEL_EXIT_INTERFACE_DONE BRANCH_LABEL_5
 #			define LABEL_EXIT_CLASS_NULL BRANCH_LABEL_6
 
-#if defined(ENABLE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
+				CODEGEN_CRITICAL_SECTION_NEW;
+
 			s1 = emit_load_s1_notzero(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (s1 == d) {
@@ -3111,15 +3130,15 @@ gen_method:
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_START;
+
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(ENABLE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
+
+				CODEGEN_CRITICAL_SECTION_END;
+
 				M_ISUB(REG_ITMP3, REG_ITMP1); /* itmp1 :=  itmp1 (sub.baseval) - itmp3 (super.baseval) */
 
 				M_CMPU(REG_ITMP1, REG_ITMP2); /* d := (uint)REG_ITMP1 <= (uint)REG_ITMP2 */

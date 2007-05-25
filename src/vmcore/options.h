@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 7894 2007-05-10 14:04:05Z twisti $
+   $Id: options.h 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -170,6 +170,13 @@ extern s4   opt_static_supers;
 extern bool vm_debug;
 #endif
 
+/* debug output filtering options *********************************************/
+
+#if defined(ENABLE_DEBUG_FILTER)
+extern const char *opt_filter_verbosecall_include;
+extern const char *opt_filter_verbosecall_exclude;
+extern const char *opt_filter_show_method;
+#endif
 
 /* function prototypes ********************************************************/
 

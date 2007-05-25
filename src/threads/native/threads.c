@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7963 2007-05-24 10:21:16Z twisti $
+   $Id: threads.c 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -620,6 +620,12 @@ void threads_impl_thread_new(threadobject *t)
 
 	pthread_mutex_init(&(t->waitmutex), NULL);
 	pthread_cond_init(&(t->waitcond), NULL);
+
+#if defined(ENABLE_DEBUG_FILTER)
+	/* Initialize filter counters */
+	t->filterverbosecallctr[0] = 0;
+	t->filterverbosecallctr[1] = 0;
+#endif
 }
 
 

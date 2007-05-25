@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7831 2007-04-26 12:48:16Z twisti $
+   $Id: signal.c 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -147,7 +147,7 @@ void signal_init(void)
 		sigaction(SIGFPE, &act, NULL);
 #  endif
 
-#  if defined(__ARM__)
+#  if defined(__ARM__) || defined(__S390__)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGILL handler */
 

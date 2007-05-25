@@ -50,6 +50,15 @@
 
 #include "vmcore/options.h"
 
+#if defined(ENABLE_DEBUG_FILTER)
+#	include <sys/types.h>
+#	include <regex.h>
+#	if defined(ENABLE_THREADS)
+#		include "threads/native/threads.h"
+#	else
+#		include "threads/none/threads.h"
+#	endif
+#endif
 
 /* global variables ***********************************************************/
 
@@ -80,6 +89,10 @@ bool show_init(void)
 	show_global_lock = NEW(java_objectheader);
 
 	LOCK_INIT_OBJECT_LOCK(show_global_lock);
+#endif
+
+#if defined(ENABLE_DEBUG_FILTER)
+	show_filters_init();
 #endif
 
 	/* everything's ok */
@@ -1430,6 +1443,222 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	fflush(stdout);
 }
 #endif /* !defined(NDEBUG) */
+
+/* Debug output filtering */
+
+#if defined(ENABLE_DEBUG_FILTER)
+
+#if !defined(ENABLE_THREADS)
+u4 _no_threads_filterverbosecallctr[2] = { 0, 0 };
+#endif
+
+struct show_filter {
+	/* Boolean indicating if filter is enabled. */
+	u1 enabled;
+	/* Regular expression the method name is matched against */
+	regex_t regex;
+	/* Flag set on m->filtermatches if regex matches */
+	u1 flag;
+};
+
+typedef struct show_filter show_filter_t;
+
+#define SHOW_FILTERS_SIZE 3
+
+/* Array of filters applyed on a method */
+static struct show_filter show_filters[SHOW_FILTERS_SIZE];
+
+static void show_filter_init(show_filter_t *cf, const char *str, u1 flag, u1 default_flag, const char *description) {
+	int err;
+	char err_buf[128];
+
+	if (str) {
+		err = regcomp(&cf->regex, str, REG_EXTENDED | REG_NOSUB);
+		if (err != 0) {
+			regerror(err, &cf->regex, err_buf, sizeof(err_buf));
+			vm_abort(
+				"Invalid value given for %s: `%s' (%s).", 
+				description, str, err_buf
+			);
+		}
+		cf->flag = flag;
+		cf->enabled = 1;
+	} else {
+		cf->flag = default_flag;
+		cf->enabled = 0;
+	}
+}
+
+void show_filters_init(void) {
+
+	show_filter_init(
+		show_filters + 0,
+		opt_filter_verbosecall_include,
+		SHOW_FILTER_FLAG_VERBOSECALL_INCLUDE,
+		SHOW_FILTER_FLAG_VERBOSECALL_INCLUDE,
+		"verbose call include filter"
+	);
+
+	show_filter_init(
+		show_filters + 1,
+		opt_filter_verbosecall_exclude,
+		SHOW_FILTER_FLAG_VERBOSECALL_EXCLUDE,
+		0,
+		"verbose call exclude filter"
+	);
+
+	show_filter_init(
+		show_filters + 2,
+		opt_filter_show_method,
+		SHOW_FILTER_FLAG_SHOW_METHOD,
+		SHOW_FILTER_FLAG_SHOW_METHOD,
+		"show method filter"
+	);
+}
+
+/*
+ 
+ (Pseudo)State machine:
+
+ States are INITIAL, INCLUDE1, INCLUDE2, ..., EXCLUDE1, ..., EXCLUDE2, ...
+
+                                                        Enter              Enter
+ Enter                                                  Include            Include
+ Exclude                                                  | |                | |
+  | |    Enter              Enter              Enter      | |     Enter      | |
+  | |    Include            Include            Exclude    | |     Exclude    | |
+  | v   --------->        ---------->        ---------->  | v   ---------->  | v
+INITIAL           INCLUDE1           INCLUDE2           EXCLUDE1           EXCLUDE2
+  | ^   <---------        <----------        <----------  | ^   <----------  | ^
+  | |    Exit               Exit               Exit       | |     Exit       | |
+  | |    Include            Include            Exclude    | |     Exclude    | |
+  | |                                                     | |                | |
+ Exit                                                    Exit               Exit
+ Exclude                                                 Include            Include
+
+  Verbose call scope is active if we are in a INCLUDE state.
+
+  State encoding:
+
+  INITIAL: ctr[0] == 0, ctr[1] == 0
+  INCLUDEN: ctr[1] == N, ctr[1] == 0
+  EXCLUDEN: ctr[1] == N
+*/
+
+void show_filters_apply(methodinfo *m) {
+	int i;
+	int res;
+	char *method_name;
+	s4 len;
+	s4 dumpsize;
+
+	/* compose full name of method */
+
+	len = 
+		utf_bytes(m->class->name) +
+		1 +
+		utf_bytes(m->name) +
+		utf_bytes(m->descriptor) +
+		1;
+
+	dumpsize = dump_size(); /* allocate memory */
+
+	method_name = DMNEW(char, len);
+
+	utf_cat_classname(method_name, m->class->name);
+	strcat(method_name, ".");
+	utf_cat(method_name, m->name);
+	utf_cat(method_name, m->descriptor);
+
+	/* reset all flags */
+
+	m->filtermatches = 0;
+
+	for (i = 0; i < SHOW_FILTERS_SIZE; ++i) {
+		if (show_filters[i].enabled) {
+
+			res = regexec(&show_filters[i].regex, method_name, 0, NULL, 0);
+
+			if (res == 0) {
+				m->filtermatches |= show_filters[i].flag;
+			}
+		} else {
+			/* Default is to show all */
+			m->filtermatches |= show_filters[i].flag;
+		}
+	}
+
+	/* release memory */
+
+	dump_release(dumpsize); 
+
+}
+
+#define STATE_IS_INITIAL() ((FILTERVERBOSECALLCTR[0] == 0) && (FILTERVERBOSECALLCTR[1] == 0))
+#define STATE_IS_INCLUDE() ((FILTERVERBOSECALLCTR[0] > 0) && (FILTERVERBOSECALLCTR[1] == 0))
+#define STATE_IS_EXCLUDE() (FILTERVERBOSECALLCTR[1] > 0)
+#define EVENT_INCLUDE() (m->filtermatches & SHOW_FILTER_FLAG_VERBOSECALL_INCLUDE)
+#define EVENT_EXCLUDE() (m->filtermatches & SHOW_FILTER_FLAG_VERBOSECALL_EXCLUDE)
+#define TRANSITION_NEXT_INCLUDE() ++FILTERVERBOSECALLCTR[0]
+#define TRANSITION_PREV_INCLUDE() --FILTERVERBOSECALLCTR[0]
+#define TRANSITION_NEXT_EXCLUDE() ++FILTERVERBOSECALLCTR[1]
+#define TRANSITION_PREV_EXCLUDE() --FILTERVERBOSECALLCTR[1]
+
+#if 0
+void dump_state() {
+	if (STATE_IS_INITIAL()) printf("<INITIAL>\n");
+	else if (STATE_IS_INCLUDE()) printf("<INCLUDE %hd>\n", FILTERVERBOSECALLCTR[0]);
+	else if (STATE_IS_EXCLUDE()) printf("<EXCLUDE %hd>\n", FILTERVERBOSECALLCTR[1]);
+}
+#endif
+
+int show_filters_test_verbosecall_enter(methodinfo *m) {
+
+	int force_show = 0;
+
+	if (STATE_IS_INITIAL()) {
+		if (EVENT_INCLUDE()) {
+			TRANSITION_NEXT_INCLUDE();
+		}
+	} else if (STATE_IS_INCLUDE()) {
+		if (EVENT_EXCLUDE()) {
+			TRANSITION_NEXT_EXCLUDE();
+			/* just entered exclude, show this method */
+			force_show = 1;
+		} else if (EVENT_INCLUDE()) {
+			TRANSITION_NEXT_INCLUDE();
+		}
+	} else if (STATE_IS_EXCLUDE()) {
+		if (EVENT_EXCLUDE()) {
+			TRANSITION_NEXT_EXCLUDE();
+		}
+	}
+
+	return STATE_IS_INCLUDE() || force_show;
+}
+
+int show_filters_test_verbosecall_exit(methodinfo *m) {
+
+	int force_show = 0;
+
+	if (m) {
+		if (STATE_IS_INCLUDE()) {
+			if (EVENT_INCLUDE()) {
+				TRANSITION_PREV_INCLUDE();
+				/* just entered initial, show this method */
+				if (STATE_IS_INITIAL()) force_show = 1;
+			}
+	    } else if (STATE_IS_EXCLUDE()) {
+			if (EVENT_EXCLUDE()) {
+				TRANSITION_PREV_EXCLUDE();
+			}
+		}
+	}
+
+	return STATE_IS_INCLUDE() || force_show;
+}
+
+#endif
 
 
 /*

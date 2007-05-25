@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7960 2007-05-23 22:04:49Z twisti $
+dnl $Id: configure.ac 7966 2007-05-25 12:41:03Z pm $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -890,6 +890,10 @@ dnl check for some programs we need
 AC_PROG_JAVAC
 AC_PROG_JAR
 
+dnl If debug build, check for regex.h. If found enable debug filter
+if test x"${NDEBUG}" = "xno"; then
+	AC_CHECK_HEADERS([regex.h], [AC_DEFINE(ENABLE_DEBUG_FILTER, 1, [debug filter])])
+fi
 
 dnl finally pass CFLAGS to Makefiles via AM_CFLAGS
 CFLAGS=$OPT_CFLAGS

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7963 2007-05-24 10:21:16Z twisti $
+   $Id: threads.h 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -135,6 +135,11 @@ struct threadobject {
 #endif
 
 	dumpinfo_t            dumpinfo;     /* dump memory info structure         */
+
+#if defined(ENABLE_DEBUG_FILTER)
+	u2                    filterverbosecallctr[2]; /* counters for verbose call filter */
+#endif
+
 	listnode_t            linkage;      /* threads-list                       */
 };
 
@@ -148,6 +153,11 @@ struct threadobject {
 
 #define STACKFRAMEINFO    (THREADOBJECT->_stackframeinfo)
 
+/* counter for verbose call filter ********************************************/
+
+#if defined(ENABLE_DEBUG_FILTER)
+#	define FILTERVERBOSECALLCTR (THREADOBJECT->filterverbosecallctr)
+#endif
 
 /* functions ******************************************************************/
 

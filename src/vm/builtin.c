@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7907 2007-05-15 09:25:27Z tbfg $
+   $Id: builtin.c 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -83,6 +83,9 @@
 #include <vmlog_cacao.h>
 #endif
 
+#if defined(ENABLE_DEBUG_FILTER)
+#	include "vm/jit/show.h"
+#endif
 
 /* include builtin tables *****************************************************/
 
@@ -1151,6 +1154,10 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	s4    dumpsize;
 	codeinfo *code;
 
+#if defined(ENABLE_DEBUG_FILTER)
+	if (! show_filters_test_verbosecall_exit(m)) return xptr;
+#endif
+
 #if defined(ENABLE_VMLOG)
 	return xptr;
 #endif
@@ -1394,7 +1401,6 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 }
 #endif /* !defined(NDEBUG) */
 
-
 /* builtin_verbosecall_enter ***************************************************
 
    Print method call with arguments for -verbose:call.
@@ -1422,6 +1428,10 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
 	s4          dumpsize;
 	s4          i;
 	s4          pos;
+
+#if defined(ENABLE_DEBUG_FILTER)
+	if (! show_filters_test_verbosecall_enter(m)) return;
+#endif
 
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_enter_method(m);
@@ -1577,6 +1587,7 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
 	dump_release(dumpsize);
 
 	methodindent++;
+
 }
 #endif
 #endif /* !defined(NDEBUG) */
@@ -1598,6 +1609,10 @@ void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
 	s4          i;
 	s4          pos;
 	imm_union   val;
+
+#if defined(ENABLE_DEBUG_FILTER)
+	if (! show_filters_test_verbosecall_exit(m)) return;
+#endif
 
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_leave_method(m);
@@ -1680,6 +1695,7 @@ void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
 	/* release memory */
 
 	dump_release(dumpsize);
+
 }
 #endif /* !defined(NDEBUG) */
 

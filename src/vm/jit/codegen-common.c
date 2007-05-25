@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7939 2007-05-23 09:40:05Z tbfg $
+   $Id: codegen-common.c 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -107,6 +107,7 @@
 #include <vmlog_cacao.h>
 #endif
 
+#include "show.h"
 
 /* in this tree we store all method addresses *********************************/
 
@@ -141,7 +142,9 @@ void codegen_init(void)
 
 		avl_insert(methodtree, mte);
 #endif /* defined(ENABLE_JIT) */
+
 	}
+
 }
 
 
@@ -546,7 +549,16 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 	if (opt_shownops)
 		PATCHER_NOPS;
 
+	/* If the codegen provides a PACHER_LONGBRANCHES_NOPS macro, honour it. */
+
+#if defined(PATCHER_LONGBRANCHES_NOPS)
+	if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+		PATCHER_LONGBRANCHES_NOPS;
+	}
+#endif
+
 #if defined(ENABLE_JIT) && (defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(__M68K__))
+
 	/* On some architectures the patcher stub call instruction might
 	   be longer than the actual instruction generated.  On this
 	   architectures we store the last patcher call position and after
@@ -1283,16 +1295,21 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	/* disassemble native stub */
 
 	if (opt_shownativestub) {
+#if defined(ENABLE_DEBUG_FILTER)
+		if (m->filtermatches & SHOW_FILTER_FLAG_SHOW_METHOD)
+#endif
+		{
 #if defined(ENABLE_DISASSEMBLER)
-		codegen_disassemble_nativestub(m,
-									   (u1 *) (ptrint) code->entrypoint,
-									   (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
+			codegen_disassemble_nativestub(m,
+										   (u1 *) (ptrint) code->entrypoint,
+										   (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
 #endif
 
-		/* show data segment */
+			/* show data segment */
 
-		if (opt_showddatasegment)
-			dseg_display(jd);
+			if (opt_showddatasegment)
+				dseg_display(jd);
+		}
 	}
 #endif /* !defined(NDEBUG) */
 
@@ -1551,7 +1568,6 @@ s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 {
 	return codegen_reg_of_var(iptr->opc, VAROP(iptr->dst), tempregnum);
 }
-
 
 /* codegen_emit_phi_moves ****************************************************
 

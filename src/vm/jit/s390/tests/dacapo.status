@@ -2,6 +2,10 @@ antlr
 
 	* parses one or more grammar files and generates a parser and lexical analyzer for each.
 	* Tue May  1 18:49:29 CEST 2007: ===== DaCapo antlr PASSED in 37095 msec =====
+	* Wed May  9 23:58:51 CEST 2007: (ibm java) ===== DaCapo antlr PASSED in 269244 msec =====
+	* Thu May 10 00:05:50 CEST 2007: ===== DaCapo antlr PASSED in 70164 msec =====
+	* Thu May 10 08:54:54 CEST 2007: (ibm java intrp) ===== DaCapo antlr PASSED in 686373 msec =====
+
 
 bloat
 
@@ -11,6 +15,7 @@ bloat
 chart
 
 	* uses JFreeChart to plot a number of complex line graphs and renders them as PDF
+	* Fri May 18 02:08:25 CEST 2007: ===== DaCapo chart PASSED in 549048 msec =====
 
 eclipse
 
@@ -34,6 +39,7 @@ jython
 luindex
 
 	* Uses lucene to indexes a set of documents; the works of Shakespeare and the King James Bible
+	* Sat May 12 20:27:43 CEST 2007: ===== DaCapo luindex PASSED in 92671 msec =====
 
 lusearch
 
@@ -51,3 +57,5 @@ xalan
 		LOG: [0x77dc66c0] Generating code: org.apache.xalan.processor.XSLTSchema.build()V
 		32834 (0x8042) is not an signed 16 bit integer at /home/peter/cacao-dev/build-s390/../svn/src/vm/jit/s390/emit.c:258.
 		=> branch to patcher overflow
+
+	* HANGUP !

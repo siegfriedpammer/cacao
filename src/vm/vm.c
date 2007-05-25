@@ -252,6 +252,12 @@ enum {
 	OPT_AGENTPATH,
 #endif
 
+#if defined(ENABLE_DEBUG_FILTER)
+	OPT_FILTER_VERBOSECALL_INCLUDE,
+	OPT_FILTER_VERBOSECALL_EXCLUDE,
+	OPT_FILTER_SHOW_METHOD,
+#endif
+
 	DUMMY
 };
 
@@ -391,6 +397,12 @@ opt_struct opts[] = {
 
 	{ "s",                 true,  OPT_SHOW },
 	{ "debug-color",      false,  OPT_DEBUGCOLOR },
+
+#if defined(ENABLE_DEBUG_FILTER)
+	{ "XXfi",              true,  OPT_FILTER_VERBOSECALL_INCLUDE },
+	{ "XXfx",              true,  OPT_FILTER_VERBOSECALL_EXCLUDE },
+	{ "XXfm",              true,  OPT_FILTER_SHOW_METHOD },
+#endif
 
 	{ NULL,                false, 0 }
 };
@@ -555,7 +567,11 @@ static void XXusage(void)
 #if defined(ENABLE_SSA)
 	puts("    -lsra                    use linear scan register allocation (with SSA)");
 #endif
-
+#if defined(ENABLE_DEBUG_FILTER)
+	puts("    -XXfi <regex>            begin of dynamic scope for verbosecall filter");
+	puts("    -XXfx <regex>            end of dynamic scope for verbosecall filter");
+	puts("    -XXfm <regex>            filter for show options");
+#endif
 	/* exit with error code */
 
 	exit(1);
@@ -1408,6 +1424,20 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 #endif
 
+#if defined(ENABLE_DEBUG_FILTER)
+		case OPT_FILTER_VERBOSECALL_INCLUDE:
+			opt_filter_verbosecall_include = opt_arg;
+			break;
+
+		case OPT_FILTER_VERBOSECALL_EXCLUDE:
+			opt_filter_verbosecall_exclude = opt_arg;
+			break;
+
+		case OPT_FILTER_SHOW_METHOD:
+			opt_filter_show_method = opt_arg;
+			break;
+
+#endif
 		default:
 			printf("Unknown option: %s\n",
 				   vm_args->options[opt_index].optionString);
