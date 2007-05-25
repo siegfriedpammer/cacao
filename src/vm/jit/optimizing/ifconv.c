@@ -33,6 +33,8 @@
 
 #include "vm/types.h"
 
+#include "vm/vm.h"
+
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
@@ -239,10 +241,11 @@ bool ifconv_static(jitdata *jd)
 				/* keep compiler happy */
 
 				pattern     = NULL;
+				patternsize = 0;
 
 				/* that should not happen */
 
-				assert(0);
+				vm_abort("ifconv_static: invalid instruction count %d", icount);
 			}
 
 			/* Iterate over all patterns of the given pattern. */
@@ -334,7 +337,7 @@ bool ifconv_static(jitdata *jd)
 
 					condition = 0;
 
-					assert(0);
+					vm_abort("ifconv_static: invalid opcode: %d", iptr->opc);
 				}
 
 				/* get the condition array index */
