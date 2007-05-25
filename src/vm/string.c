@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: string.c 7967 2007-05-25 15:03:46Z twisti $
 
 */
 
@@ -152,7 +152,8 @@ void stringtable_update(void)
 
 *******************************************************************************/
 
-java_objectheader *javastring_new_from_utf_buffer(const char *buffer, u4 blength)
+static java_objectheader *javastring_new_from_utf_buffer(const char *buffer,
+														 u4 blength)
 {
 	const char *utf_ptr;            /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
