@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7963 2007-05-24 10:21:16Z twisti $
+   $Id: threads-common.c 7970 2007-05-25 15:23:56Z twisti $
 
 */
 
@@ -321,21 +321,21 @@ void threads_thread_free(threadobject *t)
 
 bool threads_thread_start_internal(utf *name, functionptr f)
 {
-	threadobject       *thread;
-	java_lang_Thread   *t;
+	threadobject       *t;
+	java_lang_Thread   *object;
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThread *vmt;
 #endif
 
 	/* create internal thread data-structure */
 
-	thread = threads_thread_new();
+	t = threads_thread_new();
 
 	/* create the java thread object */
 
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	object = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	if (t == NULL)
+	if (object == NULL)
 		return false;
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -344,29 +344,37 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	if (vmt == NULL)
 		return false;
 
-	vmt->thread = t;
-	vmt->vmdata = (java_lang_Object *) thread;
+	vmt->thread = object;
+	vmt->vmdata = (java_lang_Object *) t;
 
-	t->vmThread = vmt;
+	object->vmThread = vmt;
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	t->vm_thread = (java_lang_Object *) thread;
+	object->vm_thread = (java_lang_Object *) t;
 #endif
 
-	thread->object = t;
+	t->object = object;
 
-	thread->flags = THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
+	t->flags = THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
 
 	/* set java.lang.Thread fields */
 
-	t->name     = (java_lang_String *) javastring_new(name);
-#if defined(ENABLE_JAVASE)
-	t->daemon   = true;
+#if defined(WITH_CLASSPATH_GNU)
+	object->name     = (java_lang_String *) javastring_new(name);
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	/* FIXME: In cldc the name is a char[] */
+/* 	object->name     = (java_chararray *) javastring_new(name); */
+	object->name     = NULL;
 #endif
-	t->priority = NORM_PRIORITY;
+
+#if defined(ENABLE_JAVASE)
+	object->daemon   = true;
+#endif
+
+	object->priority = NORM_PRIORITY;
 
 	/* start the thread */
 
-	threads_impl_thread_start(thread, f);
+	threads_impl_thread_start(t, f);
 
 	/* everything's ok */
 
@@ -446,7 +454,9 @@ void threads_thread_print_info(threadobject *t)
 #if defined(ENABLE_JAVASE)
 		name = javastring_toutf((java_objectheader *) object->name, false);
 #elif defined(ENABLE_JAVAME_CLDC1_1)
-		name = object->name;
+		/* FIXME: In cldc the name is a char[] */
+/* 		name = object->name; */
+		name = utf_null;
 #endif
 
 		printf("\"");
