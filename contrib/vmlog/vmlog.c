@@ -38,7 +38,18 @@
 #endif
 
 /* #define VMLOG_ENDIAN_CONVERT_WRITE */
-#define VMLOG_HOST_LITTLE_ENDIAN
+/* #define VMLOG_HOST_LITTLE_ENDIAN */
+
+#include "config.h"
+
+#if defined(WORDS_BIGENDIAN)
+#	define VMLOG_ENDIAN_CONVERT_WRITE
+#	undef VMLOG_HOST_LITTLE_ENDIAN
+#else
+#	undef VMLOG_ENDIAN_CONVERT_WRITE
+#	define VMLOG_HOST_LITTLE_ENDIAN
+#endif
+
 
 /*** constants *******************************************************/
 
