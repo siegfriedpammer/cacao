@@ -179,7 +179,7 @@ bool codegen_emit(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8); /* IsSync        */
+		(void) dseg_add_unique_s4(cd, JITSTACK + (rd->memuse + 1) * 8); /* IsSync */
 	else
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
@@ -2978,8 +2978,19 @@ gen_method:
 	} /* switch */
 		
 	} /* for instruction */
-	
 
+	MCODECHECK(64);
+	
+	/* At the end of a basic block we may have to append some nops,
+	   because the patcher stub calling code might be longer than the
+	   actual instruction. So codepatching does not change the
+	   following block unintentionally. */
+
+	if (cd->mcodeptr < cd->lastmcodeptr) {
+		while (cd->mcodeptr < cd->lastmcodeptr) {
+			M_NOP;
+		}
+	}
 		
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */

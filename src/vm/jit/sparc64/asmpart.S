@@ -67,6 +67,8 @@
  *                                                                         *
  * This function calls a Java-method (which possibly needs compilation)    *
  *
+ * If the java method is throwing an exception, NULL will be returned.
+ *
  * C-prototype:
  *  java_objectheader *asm_vm_call_method(methodinfo *m, s4 vmargscount,
  *						 vm_arg *vmargs);
@@ -213,7 +215,7 @@ asm_vm_call_method_exception_handler:
 	nop
 	return 	%i7 + 8         		 /* implicit window restore */
 asm_vm_call_method_end:
-	nop
+	mov    zero,%o0                  /* delay: return NULL      */
 	
 
 

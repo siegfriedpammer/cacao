@@ -494,8 +494,7 @@ s4   get_lopart_disp(s4 disp);
         } \
         else { \
             DO_SETHI_PART(disp,rs,REG_ITMP3); \
-            M_STX_INTERN(rd,REG_ITMP3,setlo_part(disp)); \
-			assert(0); \
+            M_STX_INTERN(rd,REG_ITMP3,get_lopart_disp(disp)); \
         } \
     } while (0)
 
@@ -508,8 +507,7 @@ s4   get_lopart_disp(s4 disp);
        } \
         else { \
             DO_SETHI_PART(disp,rs,REG_ITMP3); \
-            M_IST_INTERN(rd,REG_ITMP3,setlo_part(disp)); \
-			assert(0); \
+            M_IST_INTERN(rd,REG_ITMP3,get_lopart_disp(disp)); \
         } \
     } while (0)
 
