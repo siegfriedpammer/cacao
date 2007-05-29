@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7966 2007-05-25 12:41:03Z pm $
+   $Id: signal.c 7977 2007-05-29 12:34:20Z twisti $
 
 */
 
@@ -74,7 +74,7 @@ void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p);
 
 *******************************************************************************/
 
-void signal_init(void)
+bool signal_init(void)
 {
 #if !defined(__CYGWIN__)
 	int              pagesize;
@@ -186,6 +186,8 @@ void signal_init(void)
 #endif
 
 #endif /* !defined(__CYGWIN__) */
+
+	return true;
 }
 
 

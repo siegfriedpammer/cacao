@@ -1499,6 +1499,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
+	/* install architecture dependent signal handlers */
+
+	if (!signal_init())
+		vm_abort("vm_create: signal_init failed");
+
 #if defined(ENABLE_INTRP)
 	/* Allocate main thread stack on the Java heap. */
 
@@ -1564,10 +1569,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	if (!finalizer_init())
 		vm_abort("vm_create: finalizer_init failed");
-
-	/* install architecture dependent signal handlers */
-
-	signal_init();
 
 	/* initialize the codegen subsystems */
 
