@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: java_lang_reflect_Field.c 7976 2007-05-29 12:22:55Z twisti $
 
 */
 
@@ -124,8 +124,8 @@ void _Jv_java_lang_reflect_Field_init(void)
 static void *cacao_get_field_address(java_lang_reflect_Field *this,
 									 java_lang_Object *o)
 {
-	classinfo        *c;
-	fieldinfo        *f;
+	classinfo *c;
+	fieldinfo *f;
 
 	c = (classinfo *) this->declaringClass;
 	f = &c->fields[this->slot];
@@ -139,7 +139,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 			   java.lang.reflect.Field.xxx (Native Method)
 		   [0] <caller>
 		*/
-		if (!access_check_member(c, f->flags, 0))
+		if (!access_check_field(f, 0))
 			return NULL;
 	}
 
