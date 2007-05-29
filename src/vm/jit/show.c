@@ -40,6 +40,7 @@
 #include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.h"
@@ -1449,7 +1450,7 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 #if defined(ENABLE_DEBUG_FILTER)
 
 #if !defined(ENABLE_THREADS)
-u4 _no_threads_filterverbosecallctr[2] = { 0, 0 };
+u2 _no_threads_filterverbosecallctr[2] = { 0, 0 };
 #endif
 
 struct show_filter {
