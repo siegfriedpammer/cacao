@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7948 2007-05-23 16:00:13Z twisti $
+   $Id: exceptions.c 7973 2007-05-29 09:03:56Z twisti $
 
 */
 
@@ -1306,11 +1306,9 @@ void exceptions_throw_clonenotsupportedexception(void)
 
 *******************************************************************************/
 
-void exceptions_throw_illegalaccessexception(classinfo *c)
+void exceptions_throw_illegalaccessexception(utf *message)
 {
-	/* XXX handle argument */
-
-	exceptions_throw_utf(utf_java_lang_IllegalAccessException);
+	exceptions_throw_utf_utf(utf_java_lang_IllegalAccessException, message);
 }
 
 
