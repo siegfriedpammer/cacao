@@ -1,6 +1,18 @@
-New in release 0.98 (xxx xx, 2006)
+New in release 0.98 (May 31, 2007)
 
+  * ARM and MIPS32 code generators are now open-source.
+  * PowerPC64 code generator was added.
+  * Sun's phoneme CLDC-1.1 classes can now be used as Java core
+    library.
+  * Exception throwing code was completely rewritten, this saves JIT
+    code size from 20% up to 50%.
+  * Lock-record code was rewritten and a memory leak was fixed.
+  * Threads code has been reworked and improved.
+  * Exception code has been reworked and improved.
   * Implemented Class/Method/Field getSignature.
+  * A lot of stuff has been reworked, fixed or improved in the whole
+    VM code.
+  * Fixed memory leak in threads code.
 
 
 New in release 0.97 (October 30, 2006)
