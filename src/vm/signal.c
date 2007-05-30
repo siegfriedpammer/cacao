@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7977 2007-05-29 12:34:20Z twisti $
+   $Id: signal.c 7978 2007-05-30 14:09:10Z twisti $
 
 */
 
@@ -47,6 +47,11 @@
 #include "arch.h"
 
 #include "mm/memory.h"
+
+/* XXX remove me with exact-GC */
+#include "mm/boehm-gc/include/gc.h"
+void GC_suspend_handler(int sig, siginfo_t *info, void *uctx);
+void GC_restart_handler(int sig);
 
 #if defined(ENABLE_THREADS)
 # include "threads/threads-common.h"
@@ -195,8 +200,7 @@ bool signal_init(void)
 
    This thread sets the signal mask to catch the user input signals
    (SIGINT, SIGQUIT).  We use such a thread, so we don't get the
-   signals on every single thread running.  Especially, this makes
-   problems on slow machines.
+   signals on every single thread running.
 
 *******************************************************************************/
 
@@ -216,6 +220,17 @@ static void signal_thread(void)
 		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
 #endif
 
+	if (sigaddset(&mask, SIGHUP) != 0)
+		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+
+	/* XXX adjust me for exact-GC */
+
+	if (sigaddset(&mask, GC_signum1()) != 0)
+		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+
+	if (sigaddset(&mask, GC_signum2()) != 0)
+		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+
 	while (true) {
 		/* just wait for a signal */
 
@@ -227,6 +242,19 @@ static void signal_thread(void)
 /* 		if (sigwait(&mask, &sig) != 0) */
 /* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
 		(void) sigwait(&mask, &sig);
+
+		/* XXX this is only required for Boehm-GC */
+
+		if (sig == GC_signum1()) {
+			/* XXX We don't pass the ucontext here, as we don't have
+			   it.  This will be a problem with critical sections
+			   enabled. */
+
+			GC_suspend_handler(sig, NULL, NULL);
+		}
+		else if (sig == GC_signum2()) {
+			GC_restart_handler(sig);
+		}
 
 		switch (sig) {
 		case SIGINT:
