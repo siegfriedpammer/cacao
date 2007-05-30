@@ -431,7 +431,6 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 			/* if the long-branches flag isn't set yet, do it */
 
 			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
-				log_println("setting error");
 				cd->flags |= (CODEGENDATA_FLAG_ERROR |
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
@@ -449,11 +448,9 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 			/* if the long-branches flag isn't set yet, do it */
 
 			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
-				log_println("setting error");
 				cd->flags |= (CODEGENDATA_FLAG_ERROR |
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
-			log_println("generating long-branch");
 
 			branchdisp --;		/* we jump from the second instruction */
 			switch (condition) {
