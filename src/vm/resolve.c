@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 7973 2007-05-29 09:03:56Z twisti $
+   $Id: resolve.c 7983 2007-05-30 20:04:42Z twisti $
 
 */
 
@@ -592,12 +592,15 @@ check_again:
 
 		u = utf_new_char(msg);
 
-		MFREE(msg, char, msglen);
-
 		if (error == resolveIllegalAccessError)
 			exceptions_throw_illegalaccessexception(u);
 		else
 			exceptions_throw_linkageerror(msg, NULL);
+
+		/* ATTENTION: We probably need msg for
+		   exceptions_throw_linkageerror. */
+
+		MFREE(msg, char, msglen);
 
 		return resolveFailed; /* exception */
 	}
