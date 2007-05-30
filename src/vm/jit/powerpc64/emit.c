@@ -207,7 +207,8 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 
 *******************************************************************************/
 
-void emit_verbosecall_enter (jitdata *jd)
+#if !defined(NDEBUG)
+void emit_verbosecall_enter(jitdata *jd)
 {
 	methodinfo   *m;
 	codegendata  *cd;
@@ -344,6 +345,7 @@ void emit_verbosecall_enter (jitdata *jd)
 	/* mark trace code */
 	M_NOP;
 }
+#endif
 
 
 /* emit_verbosecall_exit ******************************************************
@@ -354,6 +356,7 @@ void emit_verbosecall_enter (jitdata *jd)
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void emit_verbosecall_exit(jitdata *jd)
 {
 	methodinfo   *m;
@@ -400,6 +403,8 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 }
+#endif
+
 
 /* emit_branch *****************************************************************
 
