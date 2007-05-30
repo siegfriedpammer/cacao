@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7981 2007-05-30 19:43:36Z twisti $
+   $Id: threads.c 7984 2007-05-30 20:30:00Z twisti $
 
 */
 
@@ -702,23 +702,15 @@ void threads_impl_preinit(void)
 	pthread_mutex_init(&mutex_join, NULL);
 	pthread_cond_init(&cond_join, NULL);
 
+	/* initialize the threads-list mutex */
+
+	pthread_mutex_init(&mutex_threads_list, NULL);
+
 #if !defined(HAVE___THREAD)
 	pthread_key_create(&threads_current_threadobject_key, NULL);
 #endif
 
 /* 	threads_sem_init(&suspend_ack, 0, 0); */
-}
-
-
-/* threads_table_lock **********************************************************
-
-   Initialize threads table mutex.
-
-*******************************************************************************/
-
-void threads_impl_table_init(void)
-{
-	pthread_mutex_init(&mutex_threads_list, NULL);
 }
 
 
@@ -736,7 +728,7 @@ void threads_impl_table_init(void)
 void threads_list_lock(void)
 {
 	if (pthread_mutex_lock(&mutex_threads_list) != 0)
-		vm_abort("threads_table_lock: pthread_mutex_lock failed: %s",
+		vm_abort("threads_list_lock: pthread_mutex_lock failed: %s",
 				 strerror(errno));
 }
 
@@ -750,7 +742,7 @@ void threads_list_lock(void)
 void threads_list_unlock(void)
 {
 	if (pthread_mutex_unlock(&mutex_threads_list) != 0)
-		vm_abort("threads_table_unlock: pthread_mutex_unlock failed: %s",
+		vm_abort("threads_list_unlock: pthread_mutex_unlock failed: %s",
 				 strerror(errno));
 }
 

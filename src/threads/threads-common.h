@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7963 2007-05-24 10:21:16Z twisti $
+   $Id: threads-common.h 7984 2007-05-30 20:30:00Z twisti $
 
 */
 
@@ -102,7 +102,6 @@ void          threads_print_stacktrace(void);
 
 void          threads_impl_preinit(void);
 
-void          threads_impl_table_init(void);
 void          threads_list_lock(void);
 void          threads_list_unlock(void);
 
