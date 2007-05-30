@@ -559,8 +559,6 @@ void GC_stop_init() {
 #     endif
 }
 
-#endif
-
 /* Added for cacao */
 int GC_signum1()
 {
@@ -572,3 +570,5 @@ int GC_signum2()
     return SIG_THR_RESTART;
 }
 /* cacao END */
+
+#endif
