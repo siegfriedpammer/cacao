@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7978 2007-05-30 14:09:10Z twisti $
+   $Id: signal.c 7987 2007-05-30 20:51:50Z twisti $
 
 */
 
@@ -223,6 +223,7 @@ static void signal_thread(void)
 	if (sigaddset(&mask, SIGHUP) != 0)
 		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
 
+#if !defined(__DARWIN__)
 	/* XXX adjust me for exact-GC */
 
 	if (sigaddset(&mask, GC_signum1()) != 0)
@@ -230,6 +231,7 @@ static void signal_thread(void)
 
 	if (sigaddset(&mask, GC_signum2()) != 0)
 		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+#endif
 
 	while (true) {
 		/* just wait for a signal */
@@ -243,6 +245,7 @@ static void signal_thread(void)
 /* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
 		(void) sigwait(&mask, &sig);
 
+#if !defined(__DARWIN__)
 		/* XXX this is only required for Boehm-GC */
 
 		if (sig == GC_signum1()) {
@@ -255,6 +258,7 @@ static void signal_thread(void)
 		else if (sig == GC_signum2()) {
 			GC_restart_handler(sig);
 		}
+#endif
 
 		switch (sig) {
 		case SIGINT:
