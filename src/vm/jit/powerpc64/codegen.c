@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7974 2007-05-29 11:30:20Z twisti $
+   $Id: codegen.c 7979 2007-05-30 15:52:00Z twisti $
 
 */
 
@@ -318,9 +318,9 @@ bool codegen_emit(jitdata *jd)
 #if !defined (NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		emit_verbosecall_enter(jd);
+#endif
 
 	}
-#endif
 
 	/* end of header generation */
 
@@ -1954,9 +1954,8 @@ nowperformreturn:
 			/* call trace function */
 
 #if !defined(NDEBUG)
-			if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 				emit_verbosecall_exit(jd);
-			}
 #endif		
 
 #if defined(ENABLE_THREADS)
@@ -2768,10 +2767,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_STDU(REG_SP, REG_SP, -(cd->stackframesize * 8));
 
 #if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		emit_verbosecall_enter(jd);
-	}
 #endif
+
 	/* get function address (this must happen before the stackframeinfo) */
 
 	funcdisp = dseg_add_functionptr(cd, f);
