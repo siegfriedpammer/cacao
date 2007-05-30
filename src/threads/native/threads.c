@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7966 2007-05-25 12:41:03Z pm $
+   $Id: threads.c 7981 2007-05-30 19:43:36Z twisti $
 
 */
 
@@ -236,6 +236,11 @@ static pthread_mutex_t stopworldlock;
 static pthread_mutex_t mutex_join;
 static pthread_cond_t  cond_join;
 
+/* XXX We disable that whole bunch of code until we have the exact-GC
+   running. */
+
+#if 0
+
 /* this is one of the STOPWORLD_FROM_ constants, telling why the world is     */
 /* being stopped                                                              */
 static volatile int stopworldwhere;
@@ -246,6 +251,8 @@ static sem_t suspend_ack;
 static pthread_mutex_t suspend_ack_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 #endif
+
+#endif /* 0 */
 
 /* mutexes used by the fake atomic instructions                               */
 #if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
@@ -348,7 +355,7 @@ void threads_sem_post(sem_t *sem)
 void lock_stopworld(int where)
 {
 	pthread_mutex_lock(&stopworldlock);
-	stopworldwhere = where;
+/* 	stopworldwhere = where; */
 }
 
 
@@ -360,9 +367,14 @@ void lock_stopworld(int where)
 
 void unlock_stopworld(void)
 {
-	stopworldwhere = 0;
+/* 	stopworldwhere = 0; */
 	pthread_mutex_unlock(&stopworldlock);
 }
+
+/* XXX We disable that whole bunch of code until we have the exact-GC
+   running. */
+
+#if 0
 
 #if !defined(__DARWIN__)
 /* Caller must hold threadlistlock */
@@ -566,6 +578,9 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 #endif
 }
 
+#endif
+
+
 /* This function is called from Boehm GC code. */
 
 int cacao_suspendhandler(ucontext_t *_uc)
@@ -576,9 +591,10 @@ int cacao_suspendhandler(ucontext_t *_uc)
 	threads_sigsuspend_handler(_uc);
 	return 1;
 }
-#endif
 
 #endif /* DISABLE_GC */
+
+#endif /* 0 */
 
 
 /* threads_set_current_threadobject ********************************************
@@ -690,7 +706,7 @@ void threads_impl_preinit(void)
 	pthread_key_create(&threads_current_threadobject_key, NULL);
 #endif
 
-	threads_sem_init(&suspend_ack, 0, 0);
+/* 	threads_sem_init(&suspend_ack, 0, 0); */
 }
 
 
