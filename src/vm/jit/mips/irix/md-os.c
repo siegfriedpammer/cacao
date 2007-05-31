@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/irix/md-os.c - machine dependent MIPS IRIX functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-            Christian Thalinger
-
-   $Id: md-os.c 6180 2006-12-11 23:29:26Z twisti $
+   $Id: md-os.c 7997 2007-05-31 23:26:23Z twisti $
 
 */
 
@@ -41,13 +35,16 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/mips/codegen.h"
 #include "vm/jit/mips/md-abi.h"
 
 #include "mm/gc-common.h"
+
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/stacktrace.h"
@@ -82,21 +79,26 @@ void md_init(void)
 
 /* md_signal_handler_sigsegv ***************************************************
 
-   NullPointerException signal handler for hardware null pointer
-   check.
+   Signal handler for hardware-exceptions.
 
 *******************************************************************************/
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t  *_uc;
-	mcontext_t  *_mc;
-	u4           instr;
-	ptrint       addr;
-	u1          *pv;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
+	ucontext_t        *_uc;
+	mcontext_t        *_mc;
+	u1                *pv;
+	u1                *sp;
+	u1                *ra;
+	u1                *xpc;
+	u4                 mcode;
+	s4                 d;
+	s4                 s1;
+	s4                 disp;
+	ptrint             val;
+	ptrint             addr;
+	s4                 type;
+	java_objectheader *o;
 
 	_uc = (struct ucontext *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -106,35 +108,67 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ra  = (u1 *) _mc->gregs[REG_RA];             /* this is correct for leafs */
 	xpc = (u1 *) _mc->gregs[CTX_EPC];
 
-	instr = *((u4 *) (_mc->gregs[CTX_EPC]));
-	addr = _mc->gregs[(instr >> 21) & 0x1f];
+	/* get exception-throwing instruction */
 
-	if (addr == 0) {
-		_mc->gregs[REG_ITMP1_XPTR] =
-			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
+	mcode = *((u4 *) xpc);
 
-		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
-		_mc->gregs[CTX_EPC] = (ptrint) asm_handle_exception;
+	d    = M_ITYPE_GET_RT(mcode);
+	s1   = M_ITYPE_GET_RS(mcode);
+	disp = M_ITYPE_GET_IMM(mcode);
+
+	/* check for special-load */
+
+	if (s1 == REG_ZERO) {
+		/* we use the exception type as load displacement */
+
+		type = disp;
+		val  = _mc->gregs[d];
 	}
 	else {
-		codegen_get_pv_from_pc(xpc);
+		/* This is a normal NPE: addr must be NULL and the NPE-type
+		   define is 0. */
 
-		/* this should not happen */
-
-		assert(0);
+		addr = _mc->gregs[s1];
+		type = (s4) addr;
+		val  = 0;
 	}
+
+	/* generate appropriate exception */
+
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+
+	/* set registers */
+
+	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) o;
+	_mc->gregs[REG_ITMP2_XPC]  = (ptrint) xpc;
+	_mc->gregs[CTX_EPC]        = (ptrint) asm_handle_exception;
 }
 
 
+/* md_critical_section_restart *************************************************
+
+   Search the critical sections tree for a matching section and set
+   the PC to the restart point, if necessary.
+
+*******************************************************************************/
+
 #if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *uc)
+void md_critical_section_restart(ucontext_t *_uc)
 {
-	void *critical;
+	mcontext_t *_mc;
+	u1         *pc;
+	u1         *npc;
 
-	critical = critical_find_restart_point((void*) uc->uc_mcontext.gregs[CTX_EPC]);
+	_mc = &_uc->uc_mcontext;
 
-	if (critical)
-		uc->uc_mcontext.gregs[CTX_EPC] = (ptrint) critical;
+	pc = (u1 *) _mc->gregs[CTX_EPC];
+
+	npc = critical_find_restart_point(pc);
+
+	if (npc != NULL) {
+		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
+		_mc->gregs[CTX_EPC] = (ptrint) npc;
+	}
 }
 #endif
 
