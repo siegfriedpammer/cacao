@@ -1600,6 +1600,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!linker_init())
 		vm_abort("vm_create: linker_init failed");
 
+	/* Initialize the native subsystem. */
+
 	if (!native_init())
 		vm_abort("vm_create: native_init failed");
 
