@@ -1638,10 +1638,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!recompile_init())
 		vm_abort("vm_create: recompile_init failed");
 
+#if !defined(PTHREADS_IS_LINUXTHREADS)
+	/* XXX Remove this #ifdef with exact-GC. */
+
 	/* start the signal handler thread */
 
 	if (!signal_start_thread())
 		vm_abort("vm_create: signal_start_thread failed");
+#endif
 
 	/* finally, start the finalizer thread */
 

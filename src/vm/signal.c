@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7995 2007-05-31 22:45:19Z twisti $
+   $Id: signal.c 7996 2007-05-31 23:05:51Z twisti $
 
 */
 
@@ -92,6 +92,9 @@ bool signal_init(void)
 
 	assert(OFFSET(java_bytearray, data) > EXCEPTION_HARDWARE_PATCHER);
 
+#if !defined(PTHREADS_IS_LINUXTHREADS)
+	/* XXX Remove this #ifdef with exact-GC. */
+
 	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
 	   <ctrl>-\).  We enable them later in signal_thread, but only for
 	   this thread. */
@@ -109,6 +112,7 @@ bool signal_init(void)
 
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
 		vm_abort("signal_init: sigprocmask failed: %s", strerror(errno));
+#endif
 
 #if defined(ENABLE_GC_BOEHM)
 	/* Allocate something so the garbage collector's signal handlers
@@ -201,8 +205,11 @@ bool signal_init(void)
 
 static void signal_thread(void)
 {
-	sigset_t mask;
-	int      sig;
+	threadobject *t;
+	sigset_t      mask;
+	int           sig;
+
+	t = THREADOBJECT;
 
 	if (sigemptyset(&mask) != 0)
 		vm_abort("signal_thread: sigemptyset failed: %s", strerror(errno));
@@ -223,9 +230,13 @@ static void signal_thread(void)
 		   but it seems to make problems with Boehm-GC.  We should
 		   revisit this code with our new exact-GC. */
 
+		threads_thread_state_waiting(t);
+
 /* 		if (sigwait(&mask, &sig) != 0) */
 /* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
 		(void) sigwait(&mask, &sig);
+
+		threads_thread_state_runnable(t);
 
 		switch (sig) {
 		case SIGINT:
