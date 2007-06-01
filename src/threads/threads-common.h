@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7984 2007-05-30 20:30:00Z twisti $
+   $Id: threads-common.h 7998 2007-06-01 00:29:51Z twisti $
 
 */
 
@@ -65,6 +65,12 @@
 #define MIN_PRIORITY     1
 #define NORM_PRIORITY    5
 #define MAX_PRIORITY     10
+
+
+#if defined(__LINUX__)
+/* XXX Remove for exact-GC. */
+extern bool threads_pthreads_implementation_nptl;
+#endif
 
 
 /* function prototypes ********************************************************/

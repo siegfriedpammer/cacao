@@ -59,13 +59,6 @@ case "${ENABLE_THREADS}" in
         AC_DEFINE([ENABLE_THREADS], 1, [enable threads])
         AC_CHECK_LIB(pthread, main)
 
-        dnl check for pthread implementation
-        case "${OS_DIR}" in
-            linux )
-                AC_CHECK_PTHREADS_IMPLEMENTATION
-                ;;
-        esac
-
         ARCH_CFLAGS="$ARCH_CFLAGS -D_REENTRANT"
 
         dnl we changed ARCH_CFLAGS, set CFLAGS again

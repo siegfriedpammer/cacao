@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7970 2007-05-25 15:23:56Z twisti $
+   $Id: threads-common.c 7998 2007-06-01 00:29:51Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <unistd.h>
 
 #include "vm/types.h"
 
@@ -75,6 +76,11 @@ static list_t *list_threads;
 /* global threads free-list */
 static list_t *list_threads_free;
 
+#if defined(__LINUX__)
+/* XXX Remove for exact-GC. */
+bool threads_pthreads_implementation_nptl;
+#endif
+
 
 /* threads_preinit *************************************************************
 
@@ -88,6 +94,35 @@ static list_t *list_threads_free;
 void threads_preinit(void)
 {
 	threadobject *mainthread;
+#if defined(__LINUX__)
+	char         *pathbuf;
+	size_t        len;
+#endif
+
+#if defined(__LINUX__)
+	/* XXX Remove for exact-GC. */
+
+	/* On Linux we need to check the pthread implementation. */
+
+	/* _CS_GNU_LIBPTHREAD_VERSION (GNU C library only; since glibc 2.3.2) */
+	/* If the glibc is a pre-2.3.2 version, we fall back to
+	   linuxthreads. */
+
+# if defined(_CS_GNU_LIBPTHREAD_VERSION)
+	len = confstr(_CS_GNU_LIBPTHREAD_VERSION, NULL, (size_t) 0);
+
+	pathbuf = MNEW(char, len);
+
+	(void) confstr(_CS_GNU_LIBPTHREAD_VERSION, pathbuf, len);
+
+	if (strstr(pathbuf, "NPTL") != NULL)
+		threads_pthreads_implementation_nptl = true;
+	else
+		threads_pthreads_implementation_nptl = false;
+# else
+	threads_pthreads_implementation_nptl = false;
+# endif
+#endif
 
 	/* initialize the threads lists */
 

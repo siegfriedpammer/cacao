@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7996 2007-05-31 23:05:51Z twisti $
+   $Id: signal.c 7998 2007-06-01 00:29:51Z twisti $
 
 */
 
@@ -92,8 +92,10 @@ bool signal_init(void)
 
 	assert(OFFSET(java_bytearray, data) > EXCEPTION_HARDWARE_PATCHER);
 
-#if !defined(PTHREADS_IS_LINUXTHREADS)
-	/* XXX Remove this #ifdef with exact-GC. */
+#if defined(__LINUX__)
+	/* XXX Remove for exact-GC. */
+	if (threads_pthreads_implementation_nptl) {
+#endif
 
 	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
 	   <ctrl>-\).  We enable them later in signal_thread, but only for
@@ -112,6 +114,10 @@ bool signal_init(void)
 
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
 		vm_abort("signal_init: sigprocmask failed: %s", strerror(errno));
+
+#if defined(__LINUX__)
+	/* XXX Remove for exact-GC. */
+	}
 #endif
 
 #if defined(ENABLE_GC_BOEHM)
