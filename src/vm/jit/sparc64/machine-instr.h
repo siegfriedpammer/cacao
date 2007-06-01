@@ -30,9 +30,9 @@ compare_and_swap (volatile long *p, long oldval, long newval)
 
   __asm__ __volatile__ (
     "mov %3,%0\n\t"
-    "casx %1,%2,%0\n\t"
+    "casx [%4],%2,%0\n\t"
     : "=&r"(ret), "=m"(*p) 
-    : "r"(oldval), "r"(newval), "m"(*p));
+    : "r"(oldval), "r"(newval), "r"(p));
 
   /*dolog("compare_and_swap() return=%d mem=%d", ret, *p);*/
   return ret;

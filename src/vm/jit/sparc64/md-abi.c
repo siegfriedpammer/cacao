@@ -42,6 +42,8 @@
 #include "mm/memory.h"
 #include <assert.h>
 
+/* helper macros for allocation methods ***************************************/
+#define MIN(a,b) (((a) <= (b)) ? (a) : (b))
 
 /* register descripton array **************************************************/
 
@@ -216,11 +218,16 @@ void md_param_alloc_native(methoddesc *md)
 	s4         i;
 	s4         reguse;
 	s4         stacksize;
+	s4         min_nat_regs;
 
 	/* set default values */
 
 	reguse = 0;
 	stacksize = 6;
+
+	/* when we are above this, we have to increase the stacksize with every */
+	/* single argument to create the proper argument array                  */
+	min_nat_regs = MIN(INT_NATARG_CNT, FLT_NATARG_CNT);
 
 	/* get params field of methoddesc */
 
@@ -241,8 +248,10 @@ void md_param_alloc_native(methoddesc *md)
 				pd->inmemory = true;
 				pd->regoff = reguse;
 				reguse++;
-				stacksize++;
 			}
+
+			if (i >= min_nat_regs)
+				stacksize++;
 			break;
 		case TYPE_FLT:
 		case TYPE_DBL:
@@ -255,8 +264,10 @@ void md_param_alloc_native(methoddesc *md)
 				pd->inmemory = true;
 				pd->regoff = reguse;
 				reguse++;
-				stacksize++;
 			}
+
+			if (i >= min_nat_regs)
+				stacksize++;
 			break;
 		}
 	}

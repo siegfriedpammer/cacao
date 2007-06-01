@@ -3115,8 +3115,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			s1 = WINSAVE_CNT + (j * 8);
-			M_DST(abi_registers_float_argument[i], REG_SP, BIAS + s1);
+			s1 = WINSAVE_CNT + nmd->memuse + j;
+			M_DST(abi_registers_float_argument[i], REG_SP, BIAS + (s1*8));
 			fltregarg_offset[i] = s1; /* remember stack offset */
 			j++;
 		}
@@ -3124,7 +3124,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* prepare data structures for native function call */
 
-	M_ADD_IMM(REG_FP, BIAS, REG_OUT0); /* datasp == top of the stack frame (absolute == +BIAS) */
+	M_ADD_IMM(REG_FP, BIAS, REG_OUT0); /* datasp == top of the stack frame (absolute, ie. + BIAS) */
 	M_MOV(REG_PV_CALLEE, REG_OUT1);
 	M_MOV(REG_FP, REG_OUT2); /* java sp */
 	M_MOV(REG_RA_CALLEE, REG_OUT3);
@@ -3194,7 +3194,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 					s2 = nmd->params[j].regoff;
 
 					/* JIT float regs are still on the stack */
-					M_DLD(s2, REG_SP, BIAS + fltregarg_offset[i]);
+					M_DLD(s2, REG_SP, BIAS + (fltregarg_offset[i] * 8));
 				} 
 				else {
 					/* not supposed to happen with 16 NAT flt args */
