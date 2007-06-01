@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7998 2007-06-01 00:29:51Z twisti $
+   $Id: signal.c 8000 2007-06-01 19:34:56Z ajordan $
 
 */
 
@@ -50,6 +50,8 @@
 
 #if defined(ENABLE_THREADS)
 # include "threads/threads-common.h"
+#else
+# include "threads/none/threads.h"
 #endif
 
 #include "vm/exceptions.h"
@@ -92,7 +94,7 @@ bool signal_init(void)
 
 	assert(OFFSET(java_bytearray, data) > EXCEPTION_HARDWARE_PATCHER);
 
-#if defined(__LINUX__)
+#if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
 	if (threads_pthreads_implementation_nptl) {
 #endif
@@ -115,7 +117,7 @@ bool signal_init(void)
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
 		vm_abort("signal_init: sigprocmask failed: %s", strerror(errno));
 
-#if defined(__LINUX__)
+#if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
 	}
 #endif
@@ -236,13 +238,17 @@ static void signal_thread(void)
 		   but it seems to make problems with Boehm-GC.  We should
 		   revisit this code with our new exact-GC. */
 
+#if defined(ENABLE_THREADS)
 		threads_thread_state_waiting(t);
+#endif
 
 /* 		if (sigwait(&mask, &sig) != 0) */
 /* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
 		(void) sigwait(&mask, &sig);
 
+#if defined(ENABLE_THREADS)
 		threads_thread_state_runnable(t);
+#endif
 
 		switch (sig) {
 		case SIGINT:
