@@ -222,6 +222,7 @@ vmlog_thread_log *vmlog_thread_log_new(vmlog_log *vml,void *threadid,int index);
 void vmlog_thread_log_free(vmlog_thread_log *tlog);
 vmlog_frame * vmlog_thread_log_enter(vmlog_thread_log *tlog,int index,vmlog_seq_t seq);
 vmlog_frame * vmlog_thread_log_leave(vmlog_thread_log *tlog,int index,vmlog_seq_t seq);
+void vmlog_thread_log_append(vmlog_thread_log *tlog,vmlog_log_entry *logent);
 
 /* string/index handling */
 int vmlog_get_string_index(vmlog_log *vml,const char *data,int len);

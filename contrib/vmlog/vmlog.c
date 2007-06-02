@@ -490,7 +490,7 @@ static void vmlog_thread_log_realloc_frames(vmlog_thread_log *tlog,int cap)
 	tlog->framescap = cap;
 }
 
-static void vmlog_thread_log_append(vmlog_thread_log *tlog,vmlog_log_entry *logent)
+void vmlog_thread_log_append(vmlog_thread_log *tlog,vmlog_log_entry *logent)
 {
 #if defined(VMLOG_ENDIAN_CONVERT_WRITE)
 	unsigned int tmp;

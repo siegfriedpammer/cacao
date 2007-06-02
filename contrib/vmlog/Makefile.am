@@ -10,6 +10,9 @@ AM_CPPFLAGS = \
 
 if ENABLE_VMLOG
 noinst_PROGRAMS = vmlogdump vmlogindex vmlogdiff
+if ENABLE_VMLOGFILTER
+noinst_PROGRAMS += vmlogfilter
+endif
 endif
 
 COMMON_SOURCES = \
@@ -27,6 +30,10 @@ vmlogindex_SOURCES = \
 vmlogdiff_SOURCES = \
 	$(COMMON_SOURCES) \
 	vmlogdiff.c
+
+vmlogfilter_SOURCES = \
+	$(COMMON_SOURCES) \
+	vmlogfilter.c
 
 EXTRA_DIST = \
 	COPYING \
