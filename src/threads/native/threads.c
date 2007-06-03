@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 7984 2007-05-30 20:30:00Z twisti $
+   $Id: threads.c 8003 2007-06-03 18:42:09Z twisti $
 
 */
 
@@ -747,6 +747,34 @@ void threads_list_unlock(void)
 }
 
 
+/* threads_mutex_join_lock *****************************************************
+
+   Enter the join mutex.
+
+*******************************************************************************/
+
+void threads_mutex_join_lock(void)
+{
+	if (pthread_mutex_lock(&mutex_join) != 0)
+		vm_abort("threads_mutex_join_lock: pthread_mutex_lock failed: %s",
+				 strerror(errno));
+}
+
+
+/* threads_mutex_join_unlock ***************************************************
+
+   Leave the join mutex.
+
+*******************************************************************************/
+
+void threads_mutex_join_unlock(void)
+{
+	if (pthread_mutex_unlock(&mutex_join) != 0)
+		vm_abort("threads_mutex_join_unlock: pthread_mutex_unlock failed: %s",
+				 strerror(errno));
+}
+
+
 /* threads_init ****************************************************************
 
    Initializes the threads required by the JVM: main, finalizer.
@@ -1216,18 +1244,15 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	java_lang_VMThread    *vmt;
 #endif
 
+	/* Enter the join-mutex, so if the main-thread is currently
+	   waiting to join all threads, the number of non-daemon threads
+	   is correct. */
+
+	threads_mutex_join_lock();
+
 	/* create internal thread data-structure */
 
 	thread = threads_thread_new();
-
-	/* create a java.lang.Thread object */
-
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
-
-	if (t == NULL)
-		return false;
-
-	thread->object = t;
 
 	/* thread is a Java thread and running */
 
@@ -1235,6 +1260,21 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	if (isdaemon)
 		thread->flags |= THREAD_FLAG_DAEMON;
+
+	/* The thread is flagged and (non-)daemon thread, we can leave the
+	   mutex. */
+
+	threads_mutex_join_unlock();
+
+	/* create a java.lang.Thread object */
+
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	/* XXX memory leak!!! */
+	if (t == NULL)
+		return false;
+
+	thread->object = t;
 
 	/* thread is completely initialized */
 
@@ -1262,6 +1302,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
+	/* XXX memory leak!!! */
 	if (vmt == NULL)
 		return false;
 
@@ -1388,15 +1429,20 @@ bool threads_detach_thread(threadobject *thread)
 	}
 #endif
 
-	/* signal that this thread has finished */
+	/* Enter the join-mutex before calling threads_thread_free, so
+	   threads_join_all_threads gets the correct number of non-daemon
+	   threads. */
 
-	pthread_mutex_lock(&mutex_join);
-	pthread_cond_signal(&cond_join);
-	pthread_mutex_unlock(&mutex_join);
+	threads_mutex_join_lock();
 
 	/* free the vm internal thread object */
 
 	threads_thread_free(thread);
+
+	/* Signal that this thread has finished and leave the mutex. */
+
+	pthread_cond_signal(&cond_join);
+	threads_mutex_join_unlock();
 
 	return true;
 }
@@ -1422,7 +1468,7 @@ void threads_join_all_threads(void)
 
 	/* enter join mutex */
 
-	pthread_mutex_lock(&mutex_join);
+	threads_mutex_join_lock();
 
 	/* Wait for condition as long as we have non-daemon threads.  We
 	   compare against 1 because the current (main thread) is also a
@@ -1433,7 +1479,7 @@ void threads_join_all_threads(void)
 
 	/* leave join mutex */
 
-	pthread_mutex_unlock(&mutex_join);
+	threads_mutex_join_unlock();
 }
 
 

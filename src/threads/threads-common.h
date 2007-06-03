@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.h 7998 2007-06-01 00:29:51Z twisti $
+   $Id: threads-common.h 8003 2007-06-03 18:42:09Z twisti $
 
 */
 
@@ -110,6 +110,9 @@ void          threads_impl_preinit(void);
 
 void          threads_list_lock(void);
 void          threads_list_unlock(void);
+
+void          threads_mutex_join_lock(void);
+void          threads_mutex_join_unlock(void);
 
 void          threads_set_current_threadobject(threadobject *thread);
 void          threads_impl_thread_new(threadobject *t);

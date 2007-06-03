@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 7998 2007-06-01 00:29:51Z twisti $
+   $Id: threads-common.c 8003 2007-06-03 18:42:09Z twisti $
 
 */
 
@@ -362,20 +362,35 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	java_lang_VMThread *vmt;
 #endif
 
+	/* Enter the join-mutex, so if the main-thread is currently
+	   waiting to join all threads, the number of non-daemon threads
+	   is correct. */
+
+	threads_mutex_join_lock();
+
 	/* create internal thread data-structure */
 
 	t = threads_thread_new();
+
+	t->flags = THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
+
+	/* The thread is flagged as (non-)daemon thread, we can leave the
+	   mutex. */
+
+	threads_mutex_join_unlock();
 
 	/* create the java thread object */
 
 	object = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
+	/* XXX memory leak!!! */
 	if (object == NULL)
 		return false;
 
 #if defined(WITH_CLASSPATH_GNU)
 	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
+	/* XXX memory leak!!! */
 	if (vmt == NULL)
 		return false;
 
@@ -388,8 +403,6 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 #endif
 
 	t->object = object;
-
-	t->flags = THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
 
 	/* set java.lang.Thread fields */
 
@@ -431,13 +444,15 @@ void threads_thread_start(java_lang_Thread *object)
 {
 	threadobject *thread;
 
+	/* Enter the join-mutex, so if the main-thread is currently
+	   waiting to join all threads, the number of non-daemon threads
+	   is correct. */
+
+	threads_mutex_join_lock();
+
 	/* create internal thread data-structure */
 
 	thread = threads_thread_new();
-
-	/* link the two objects together */
-
-	thread->object = object;
 
 	/* this is a normal Java thread */
 
@@ -449,6 +464,15 @@ void threads_thread_start(java_lang_Thread *object)
 	if (object->daemon == true)
 		thread->flags |= THREAD_FLAG_DAEMON;
 #endif
+
+	/* The thread is flagged and (non-)daemon thread, we can leave the
+	   mutex. */
+
+	threads_mutex_join_unlock();
+
+	/* link the two objects together */
+
+	thread->object = object;
 
 #if defined(WITH_CLASSPATH_GNU)
 	assert(object->vmThread);
