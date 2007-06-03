@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8001 2007-06-02 17:47:30Z pm $
+dnl $Id: configure.ac 8002 2007-06-03 18:24:44Z pm $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -901,9 +901,10 @@ AC_CHECK_HEADERS(
 			AC_DEFINE(ENABLE_DEBUG_FILTER, 1, [debug filter])
 		fi
 		dnl If vmlog enambled and regex.h available, enable vmlogfilter
-		if test x"${ENABLE_VMLOG}" = "xyes"; then
-			AM_CONDITIONAL([ENABLE_VMLOGFILTER], true)
-		fi
+		AM_CONDITIONAL([ENABLE_VMLOGFILTER], [test x"${ENABLE_VMLOG}" = "xyes"])
+	],
+	[
+		AM_CONDITIONAL([ENABLE_VMLOGFILTER], [false])
 	]
 )
 
