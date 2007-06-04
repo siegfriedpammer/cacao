@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8004 2007-06-04 12:59:04Z twisti $
+   $Id: signal.c 8005 2007-06-04 13:12:56Z twisti $
 
 */
 
@@ -33,8 +33,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/mman.h>
 
 #if defined(__DARWIN__)
 /* If we compile with -ansi on darwin, <sys/types.h> is not
@@ -79,21 +77,8 @@ void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p);
 bool signal_init(void)
 {
 #if !defined(__CYGWIN__)
-	int              pagesize;
 	sigset_t         mask;
 	struct sigaction act;
-
-	/* mmap a memory page at address 0x0, so our hardware-exceptions
-	   work. */
-
-	pagesize = getpagesize();
-
-	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
-
-	/* check if we get into trouble with our hardware-exceptions */
-
-	if (OFFSET(java_bytearray, data) <= EXCEPTION_HARDWARE_PATCHER)
-		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray, data) <= EXCEPTION_HARDWARE_PATCHER);
 
 #if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */

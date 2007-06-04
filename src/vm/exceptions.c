@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 7973 2007-05-29 09:03:56Z twisti $
+   $Id: exceptions.c 8005 2007-06-04 13:12:56Z twisti $
 
 */
 
@@ -33,6 +33,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
 
 #include "vm/types.h"
 
@@ -87,6 +89,20 @@ java_objectheader *_no_threads_exceptionptr = NULL;
 
 bool exceptions_init(void)
 {
+	int pagesize;
+
+	/* mmap a memory page at address 0x0, so our hardware-exceptions
+	   work. */
+
+	pagesize = getpagesize();
+
+	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+
+	/* check if we get into trouble with our hardware-exceptions */
+
+	if (OFFSET(java_bytearray, data) <= EXCEPTION_HARDWARE_PATCHER)
+		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray, data), EXCEPTION_HARDWARE_PATCHER);
+
 	/* java/lang/Throwable */
 
 	if (!(class_java_lang_Throwable =
