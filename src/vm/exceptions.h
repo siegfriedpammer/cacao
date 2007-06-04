@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 7973 2007-05-29 09:03:56Z twisti $
+   $Id: exceptions.h 8004 2007-06-04 12:59:04Z twisti $
 
 */
 
@@ -51,10 +51,10 @@
    8-byte boundaries, since normal loads could have such offsets with
    a base of NULL which should result in a NullPointerException.
 
-   NOTE: In signal_init() we have an assert checking that the offset
-   of java_objectheader.data[0] is greater than the largest
-   displacement defined below.  Otherwise normal array loads/stores
-   could trigger an exception.
+   NOTE: In signal_init() we have a check whether the offset of
+   java_objectheader.data[0] is greater than the largest displacement
+   defined below.  Otherwise normal array loads/stores could trigger
+   an exception.
 
 *******************************************************************************/
 
@@ -64,7 +64,6 @@
 #define EXCEPTION_HARDWARE_CLASSCAST                3
 
 #define EXCEPTION_HARDWARE_EXCEPTION                5
-
 #define EXCEPTION_HARDWARE_PATCHER                  6
 
 

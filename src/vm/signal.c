@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8000 2007-06-01 19:34:56Z ajordan $
+   $Id: signal.c 8004 2007-06-04 12:59:04Z twisti $
 
 */
 
@@ -92,7 +92,8 @@ bool signal_init(void)
 
 	/* check if we get into trouble with our hardware-exceptions */
 
-	assert(OFFSET(java_bytearray, data) > EXCEPTION_HARDWARE_PATCHER);
+	if (OFFSET(java_bytearray, data) <= EXCEPTION_HARDWARE_PATCHER)
+		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray, data) <= EXCEPTION_HARDWARE_PATCHER);
 
 #if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
