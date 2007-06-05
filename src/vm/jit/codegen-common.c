@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 7966 2007-05-25 12:41:03Z pm $
+   $Id: codegen-common.c 8006 2007-06-05 07:40:49Z twisti $
 
 */
 
@@ -1375,6 +1375,8 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 {
 	stackframeinfo *sfi;
 	localref_table *lrt;
+
+	STATISTICS(count_calls_java_to_native++);
 
 	/* get data structures from stack */
 

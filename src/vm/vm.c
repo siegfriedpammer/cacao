@@ -2534,6 +2534,8 @@ java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
 {
 	java_objectheader *o;
 
+	STATISTICS(count_calls_native_to_java++);
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -2664,6 +2666,8 @@ s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s4 i;
 
+	STATISTICS(count_calls_native_to_java++);
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -2793,6 +2797,8 @@ s8 vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, jvalue *args)
 s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s8 l;
+
+	STATISTICS(count_calls_native_to_java++);
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -2926,6 +2932,8 @@ float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	float f;
 
+	STATISTICS(count_calls_native_to_java++);
+
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -3058,6 +3066,8 @@ double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
 								   vm_arg *vmargs)
 {
 	double d;
+
+	STATISTICS(count_calls_native_to_java++);
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
