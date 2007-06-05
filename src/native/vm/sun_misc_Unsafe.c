@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/sun_misc_Unsafe.c - sun/misc/Unsafe
+/* src/native/vm/sun_misc_Unsafe.c - sun/misc/Unsafe
 
    Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
