@@ -39,12 +39,14 @@
 
 *******************************************************************************/
 
-void nativevm_init(void)
+bool nativevm_init(void)
 {
 	/* register native methods of all classes implemented */
 
 #if defined(ENABLE_JAVASE)
+
 # if defined(WITH_CLASSPATH_GNU)
+
 	_Jv_gnu_classpath_VMStackWalker_init();
 	_Jv_gnu_classpath_VMSystemProperties_init();
 	_Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init();
@@ -66,10 +68,15 @@ void nativevm_init(void)
 	_Jv_java_lang_reflect_VMProxy_init();
 	_Jv_java_security_VMAccessController_init();
 	_Jv_sun_misc_Unsafe_init();
+
 # else
+
 #  error unknown classpath configuration
+
 # endif
+
 #elif defined(ENABLE_JAVAME_CLDC1_1)
+
 	_Jv_com_sun_cldc_io_ResourceInputStream_init();
 	_Jv_com_sun_cldc_io_j2me_socket_Protocol_init();
 	_Jv_com_sun_cldchi_io_ConsoleOutputStream_init();
@@ -84,9 +91,16 @@ void nativevm_init(void)
 	_Jv_java_lang_System_init();
 	_Jv_java_lang_Thread_init();
 	_Jv_java_lang_Throwable_init();
+
 #else
+
 # error unknown Java configuration
+
 #endif
+
+	/* everything's ok */
+
+	return true;
 }
 
 

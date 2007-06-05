@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7941 2007-05-23 11:59:51Z twisti $
+   $Id: native.c 8016 2007-06-05 22:11:12Z twisti $
 
 */
 
@@ -127,7 +127,8 @@ bool native_init(void)
 
 	/* register the intern native functions */
 
-	nativevm_init();
+	if (!nativevm_init())
+		return false;
 
 	/* everything's ok */
 

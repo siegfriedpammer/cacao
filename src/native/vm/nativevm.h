@@ -33,12 +33,17 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/global.h"
+
+
 /* function prototypes ********************************************************/
 
-void nativevm_init(void);
+bool nativevm_init(void);
 
 #if defined(ENABLE_JAVASE)
+
 # if defined(WITH_CLASSPATH_GNU)
+
 void _Jv_gnu_classpath_VMStackWalker_init();
 void _Jv_gnu_classpath_VMSystemProperties_init();
 void _Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init();
@@ -60,10 +65,15 @@ void _Jv_java_lang_reflect_Method_init();
 void _Jv_java_lang_reflect_VMProxy_init();
 void _Jv_java_security_VMAccessController_init();
 void _Jv_sun_misc_Unsafe_init();
+
 # else
+
 #  error unknown classpath configuration
+
 # endif
+
 #elif defined(ENABLE_JAVAME_CLDC1_1)
+
 void _Jv_com_sun_cldc_io_ResourceInputStream_init();
 void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init();
 void _Jv_com_sun_cldchi_io_ConsoleOutputStream_init();
@@ -78,8 +88,11 @@ void _Jv_java_lang_String_init();
 void _Jv_java_lang_System_init();
 void _Jv_java_lang_Thread_init();
 void _Jv_java_lang_Throwable_init();
+
 #else
+
 # error unknown Java configuration
+
 #endif
 
 #endif /* _NATIVEVM_H */
