@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8006 2007-06-05 07:40:49Z twisti $
+   $Id: codegen-common.c 8014 2007-06-05 12:53:30Z twisti $
 
 */
 
@@ -54,11 +54,6 @@
 #if defined(ENABLE_JIT)
 /* this is required PATCHER_CALL_SIZE */
 # include "codegen.h"
-#endif
-
-#if defined(__ARM__)
-/* this is required for REG_SPLIT */
-# include "md-abi.h"
 #endif
 
 #include "mm/memory.h"
@@ -1509,11 +1504,6 @@ void removenativestub(u1 *stub)
    spilled) this function returns tempregnum.  If not already done,
    regoff and flags are set in the stack location.
        
-   On ARM we have to check if a long/double variable is splitted
-   across reg/stack (HIGH_REG == REG_SPLIT). We return the actual
-   register of v for LOW_REG and the tempregnum for HIGH_REG in such
-   cases.  (michi 2005/07/24)
-
 *******************************************************************************/
 
 s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
@@ -1528,19 +1518,8 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 		return tempregnum;
 #endif
 
-	if (!(v->flags & INMEMORY)) {
-#if defined(__ARM__) && defined(__ARMEL__)
-		if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->vv.regoff) == REG_SPLIT))
-			return PACK_REGS(GET_LOW_REG(v->vv.regoff),
-							 GET_HIGH_REG(tempregnum));
-#endif
-#if defined(__ARM__) && defined(__ARMEB__)
-		if (IS_2_WORD_TYPE(v->type) && (GET_LOW_REG(v->vv.regoff) == REG_SPLIT))
-			return PACK_REGS(GET_LOW_REG(tempregnum),
-							 GET_HIGH_REG(v->vv.regoff));
-#endif
+	if (!(v->flags & INMEMORY))
 		return v->vv.regoff;
-	}
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -1549,6 +1528,7 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 
 	return tempregnum;
 }
+
 
 /* codegen_reg_of_dst **********************************************************
 
@@ -1559,17 +1539,13 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
    spilled) this function returns tempregnum.  If not already done,
    regoff and flags are set in the stack location.
        
-   On ARM we have to check if a long/double variable is splitted
-   across reg/stack (HIGH_REG == REG_SPLIT). We return the actual
-   register of dst.var for LOW_REG and the tempregnum for HIGH_REG in such
-   cases.  (michi 2005/07/24)
-
 *******************************************************************************/
 
 s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 {
 	return codegen_reg_of_var(iptr->opc, VAROP(iptr->dst), tempregnum);
 }
+
 
 /* codegen_emit_phi_moves ****************************************************
 
