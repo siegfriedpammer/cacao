@@ -73,6 +73,8 @@ libnativevm_la_SOURCES = \
 	java_lang_Object.h \
 	java_lang_Runtime.c \
 	java_lang_Runtime.h \
+	java_lang_String.c \
+	java_lang_String.h \
 	java_lang_Thread.c \
 	java_lang_Thread.h \
 	$(SUN_MISC_UNSAFE_SOURCES)
