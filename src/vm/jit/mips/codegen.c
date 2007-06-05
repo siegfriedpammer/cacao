@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8009 2007-06-05 07:56:35Z twisti $
+   $Id: codegen.c 8010 2007-06-05 09:00:30Z twisti $
 
 */
 
@@ -258,9 +258,9 @@ bool codegen_emit(jitdata *jd)
 #if SIZEOF_VOID_P == 8
  				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
-						M_DMOV(s1, var->vv.regoff);
+						M_DBLMOVE(s1, var->vv.regoff);
 					else
-						M_FMOV(s1, var->vv.regoff);
+						M_FLTMOVE(s1, var->vv.regoff);
  				}
 				else {
 					if (IS_2_WORD_TYPE(t))
@@ -3121,9 +3121,9 @@ gen_method:
 #if SIZEOF_VOID_P == 8
 						s1 = emit_load(jd, iptr, var, d);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DMOV(s1, d);
+							M_DBLMOVE(s1, d);
 						else
-							M_FMOV(s1, d);
+							M_FLTMOVE(s1, d);
 #else
 						if ((s3 == 0) ||
 							((s3 == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type))) {
