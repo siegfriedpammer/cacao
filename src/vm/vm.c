@@ -74,6 +74,7 @@
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
+#include "vmcore/statistics.h"
 #include "vmcore/suck.h"
 
 #if defined(ENABLE_JVMTI)
