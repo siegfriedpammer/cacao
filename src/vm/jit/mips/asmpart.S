@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
+   $Id: asmpart.S 8011 2007-06-05 10:06:18Z twisti $
 
 */
 
@@ -266,7 +266,7 @@ calljava_argsloaded:
 	aaddu   sp,sp,t2                  /* create stackframe                    */
 	aaddu   t2,t2,t4                  /* also set temp sp                     */
 #if SIZEOF_VOID_P == 4
-	aaddiu  t2,t2,4*8                 /* skip stack space for 4 arguments     */
+	aaddiu  t2,t2,4*4                 /* skip stack space for 4 arguments     */
 	addiu   t1,t1,4
 #endif
 
