@@ -22,12 +22,12 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8002 2007-06-03 18:24:44Z pm $
+dnl $Id: configure.ac 8018 2007-06-06 09:24:22Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.98rc, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.98, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
