@@ -22,12 +22,12 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8018 2007-06-06 09:24:22Z twisti $
+dnl $Id: configure.ac 8022 2007-06-06 11:31:28Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.98, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.98+svn, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -41,7 +41,7 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl set optimization and debugging for all architectures and systems
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-O2 -g3"
+    OPT_CFLAGS="-O0 -g3"
 else
     OPT_CFLAGS=$CFLAGS
 fi
