@@ -1,3 +1,240 @@
+2007-06-06 09:24  twisti
+
+	* configure.ac (AC_INIT): Changed version to 0.98.
+
+2007-06-05 23:46  twisti
+
+	* src/native/vm/gnu/java_lang_VMString.c
+	(native/vm/java_lang_String.h): Added.
+	(intern): Call _Jv_java_lang_String_intern.
+	
+	* src/native/vm/java_lang_String.c: New file.
+	* src/native/vm/java_lang_String.h: Likewise.
+	
+	* src/native/vm/Makefile.am (libnativevm_la_SOURCES): Added
+	java_lang_String.[ch].
+
+2007-06-05 22:11  twisti
+
+	* src/native/native.c (native_init): Check nativevm_init return value.
+	
+	* src/native/vm/nativevm.c (nativevm_init): Changed signature.
+	* src/native/vm/nativevm.h (nativevm_init): Likewise.
+
+2007-06-05 20:58  twisti
+
+	* src/native/vm/gnu/Makefile.am (libnativevmcore_la_SOURCES): Removed
+	sun_misc_Unsafe.c.
+	
+	* src/native/vm/Makefile.am [ENABLE_JAVASE] (SUN_MISC_UNSAFE_SOURCES):
+	Added.
+	(libnativevm_la_SOURCES): Added SUN_MISC_UNSAFE_SOURCES.
+	
+	* src/native/vm/gnu/sun_misc_Unsafe.c: Removed.
+	* src/native/vm/sun_misc_Unsafe.c: Added.
+
+2007-06-05 12:53  twisti
+
+	* src/vm/jit/codegen-common.c [__ARM__] (md-abi.h): Removed.
+	(codegen_reg_of_var) [__ARM__]: Removed split-code.
+
+2007-06-05 10:19  twisti
+
+	* src/vm/jit/mips/md-abi.c (md_param_alloc) [SIZEOF_VOID_P == 8]: Use
+	reguse instead of i.
+
+2007-06-05 10:14  twisti
+
+	* src/vm/jit/mips/md-abi.c (md_param_alloc_native)
+	[SIZEOF_VOID_P == 8]: Fixed compilation.
+
+2007-06-05 10:06  twisti
+
+	* src/vm/jit/mips/md-abi.c (md_param_alloc) [SIZEOF_VOID_P == 4]: Use
+	internally a different calling convention. It's the same as on n64
+	with register skipping and, but with long alignment (as on ARM).
+	(md_param_alloc_native) [SIZEOF_VOID_P == 4]: Use the o32 ABI.
+	
+	* src/vm/jit/mips/codegen.c (codegen_emit) [SIZEOF_VOID_P == 4]:
+	Changes for new internal calling conventions.
+	(codegen_emit_stub_native) [SIZEOF_VOID_P == 4]: Likewise.
+	
+	* src/vm/jit/mips/asmpart.S (asm_vm_call_method) [SIZEOF_VOID_P == 4]:
+	Adjusted reserved stack-space to 4*4.
+
+2007-06-05 09:00  twisti
+
+	* src/vm/jit/mips/codegen.c (codegen_emit): Use FLTMOVE and DBLMOVE to
+	save some moves.
+
+2007-06-05 07:56  twisti
+
+	* src/vm/jit/mips/codegen.c (codegen_emit): Small code-layout change.
+
+2007-06-05 07:44  twisti
+
+	* src/vm/vm.c: Set Id keyword.
+
+2007-06-05 07:42  twisti
+
+	* src/vm/vm.c (vmcore/statistics.h): Added.
+
+2007-06-05 07:40  twisti
+
+	* src/vmcore/statistics.c (count_calls_java_to_native): Added.
+	(count_calls_native_to_java): Likewise.
+	(count_native_function_calls): Removed.
+	(nativeinvokation): Likewise.
+	(print_stats): Print new variables.
+	
+	* src/vmcore/statistics.h (count_calls_java_to_native): Added.
+	(count_calls_native_to_java): Likewise.
+	(nativeinvokation): Removed.
+	
+	* src/vm/jit/codegen-common.c (codegen_start_native_call)
+	[ENABLE_STATISTICS]: Increase count_calls_java_to_native.
+	
+	* src/vm/vm.c (vm_call_method_vmarg) [ENABLE_STATISTICS]: Increase
+	count_calls_native_to_java.
+	(vm_call_method_int_vmarg): Likewise.
+	(vm_call_method_long_vmarg): Likewise.
+	(vm_call_method_float_vmarg): Likewise.
+	(vm_call_method_double_vmarg): Likewise.
+
+2007-06-04 13:12  twisti
+
+	* src/vm/signal.c (unistd.h): Removed.
+	(sys/mman.h): Likewise.
+	(signal_init): Moved mmap of page 0x0 and the hardware-exceptions
+	check into exceptions_init.
+	
+	* src/vm/exceptions.c (unistd.h): Added.
+	(sys/mman.h): Likewise.
+	(exceptions_init): See above.
+
+2007-06-04 12:59  twisti
+
+	* src/vm/signal.c (signal_init): Use if-vm_abort instead of assert.
+	* src/vm/exceptions.h: Changed hardware-exception comment accordingly.
+
+2007-06-03 18:42  twisti
+
+	* src/threads/threads-common.c (threads_thread_start_internal):
+	Changed order of initialization stuff, so we can leave the join-mutex
+	very early.
+	(threads_thread_start): Likewise.
+	
+	* src/threads/native/threads.c (threads_mutex_join_lock): New
+	function.
+	(threads_mutex_join_unlock): Likewise.
+	(threads_attach_current_thread): Changed order of initialization
+	stuff, so we can leave the join-mutex very early.
+	(threads_detach_thread): Send the signal inside the join-mutex.
+	(threads_join_all_threads): Use join-mutex functions.
+	
+	* src/threads/threads-common.h (threads_mutex_join_lock): Added.
+	(threads_mutex_join_unlock): Likewise.
+
+2007-06-03 18:24  pm
+
+	* configure.ac: Fix broken regex.h test.
+
+2007-06-02 17:47  pm
+
+	* contrib/vmlog/vmlogfilter.c: Added a tool that filters a vmlog log
+	file the same way as -XXfi and -XXfx do.
+	
+	* contrib/vmlog/vmlog.c,
+	contrib/vmlog/vmlog.h (vmlog_thread_log_append): Made not-static.
+	
+	* contrib/vmlog/Makefile.am,
+	configure.ac: Conditional building of vmlogfilter if ENABLE_VMLOG is
+	set and regex.h present.
+
+2007-06-01 19:34  ajordan
+
+	* src/vm/signal.c: Added ifdefs to fix compiling with disabled
+	threads.
+
+2007-06-01 00:45  ajordan
+
+	* src/vm/jit/sparc64/codegen.c (codegen_emit_stub_native): Fixed the
+	way
+	float arguments are preserved over codegen_start_native_call.
+	* src/vm/jit/sparc64/md-abi.c (codegen_start_native_call): Likewise.
+	
+	* src/vm/jit/sparc64/machine-instr.h (compare_and_swap): Changed
+	inline
+	assembly, so it survives gcc optimization.
+	
+	* src/vm/jit/sparc64/asmpart.S (asm_patcher_wrapper): Saving and
+	restoring
+	float return register.
+	* src/vm/jit/sparc64/md-asm.h: Likewise.
+
+2007-06-01 00:29  twisti
+
+	* m4/ac_pthreads_implementation.m4: Reverted rev7996.
+	* m4/threads.m4: Likewise.
+	
+	* src/threads/threads-common.c [__LINUX__]
+	(threads_pthreads_implementation_nptl): Added.
+	(threads_preinit) [__LINUX__]: Check which thread-implementation we
+	are using.
+	
+	* src/threads/threads-common.h [__LINUX__]
+	(threads_pthreads_implementation_nptl): Added.
+	
+	* src/vm/signal.c (signal_init) [__LINUX__]: Check for
+	threads_pthreads_implementation_nptl.
+	
+	* src/vm/vm.c (vm_create) [__LINUX__]: Likewise.
+
+2007-05-31 23:26  twisti
+
+	* src/vm/jit/mips/irix/md-os.c (vm/jit/mips/codegen.h): Added.
+	(md_signal_handler_sigsegv): Updated to new exception-handling.
+	(thread_restartcriticalsection): Renamed to
+	md_critical_section_restart.
+
+2007-05-31 23:05  twisti
+
+	* m4/ac_pthreads_implementation.m4: New file.
+	
+	* m4/threads.m4 (AC_CHECK_ENABLE_THREADS): Call
+	AC_CHECK_PTHREADS_IMPLEMENTATION for posix and linux.
+	
+	* configure.ac (AC_CHECK_HEADERS): Added stdlib.h.
+	(AC_CHECK_FUNCS): Added confstr, strstr.
+	
+	* src/vm/signal.c (signal_init) [!PTHREADS_IS_LINUXTHREADS]: Only
+	block the signals if we are not on LinuxThreads.
+	(signal_thread): Set state accordingly.
+	
+	* src/vm/vm.c (vm_create) [!PTHREADS_IS_LINUXTHREADS]: Only start
+	signal-thread if we are not on LinuxThreads.
+
+2007-05-31 22:45  twisti
+
+	* src/vm/signal.c: Reverted rev7978.
+
+2007-05-31 16:10  twisti
+
+	* src/vm/vm.c (vm_create): Added comment.
+
+2007-05-30 22:32  twisti
+
+	* src/vm/jit/powerpc64/emit.c (emit_branch): Removed debug output.
+
+2007-05-30 22:01  twisti
+
+	* NEWS: Added some 0.98 release notes.
+
+2007-05-30 21:59  twisti
+
+	* ChangeLog: Updated.
+	* ChangeLog-2006: New file.
+
 2007-05-30 21:05  twisti
 
 	* src/vm/jit/powerpc/darwin/md-os.c (thread_restartcriticalsection):
