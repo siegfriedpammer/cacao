@@ -2201,7 +2201,7 @@ static void replace_pop_native_frame(executionstate_t *es,
 
 	/* restore saved registers */
 
-#if defined(ENABLE_GC_CACAO)
+#if defined(ENABLE_GC_CACAO) && !defined(HAS_ADDRESS_REGISTER_FILE)
 	j = 0;
 	for (i=0; i<INT_REG_CNT; ++i) {
 		if (nregdescint[i] == REG_SAV)
@@ -2224,10 +2224,18 @@ static void replace_pop_native_frame(executionstate_t *es,
 	}
 
 #if defined(HAS_ADDRESS_REGISTER_FILE)
+# if defined(ENABLE_GC_CACAO)
+	j = 0;
+	for (i=0; i<ADR_REG_CNT; ++i) {
+		if (nregdescadr[i] == REG_SAV)
+			es->adrregs[i] = sfi->adrregs[j++];
+	}
+# else
 	for (i=0; i<ADR_REG_CNT; ++i) {
 		if (nregdescadr[i] == REG_SAV)
 			es->adrregs[i] = 0;
 	}
+# endif
 #endif
 
 	/* restore pv, pc, and sp */
@@ -2301,10 +2309,17 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 
 #if defined(ENABLE_GC_CACAO)
 	j = 0;
+# if !defined(HAS_ADDRESS_REGISTER_FILE)
 	for (i=0; i<INT_REG_CNT; ++i) {
 		if (nregdescint[i] == REG_SAV)
 			frame->sfi->intregs[j++] = es->intregs[i];
 	}
+# else
+	for (i=0; i<ADR_REG_CNT; ++i) {
+		if (nregdescadr[i] == REG_SAV)
+			frame->sfi->adrregs[j++] = es->adrregs[i];
+	}
+# endif
 
 	/* XXX leave float registers untouched here */
 #endif
