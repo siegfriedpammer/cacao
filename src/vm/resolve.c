@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 7486 2007-03-08 13:50:07Z twisti $
+   $Id: resolve.c 7983 2007-05-30 20:04:42Z twisti $
 
 */
 
@@ -102,10 +102,13 @@ bool resolve_class_from_name(classinfo *referer,
 							 bool link,
 							 classinfo **result)
 {
-	classinfo *cls = NULL;
-	char *utf_ptr;
-	int len;
-	
+	classinfo *cls;
+	char      *utf_ptr;
+	int        len;
+	char      *msg;
+	s4         msglen;
+	utf       *u;
+
 	assert(result);
 	assert(referer);
 	assert(classname);
@@ -187,21 +190,26 @@ bool resolve_class_from_name(classinfo *referer,
 #endif
 	
 	/* check access rights of referer to refered class */
+
 	if (checkaccess && !access_is_accessible_class(referer,cls)) {
-		int msglen;
-		char *message;
+		msglen =
+			utf_bytes(cls->name) +
+			utf_bytes(referer->name) +
+			100;
 
-		msglen = utf_bytes(cls->name) + utf_bytes(referer->name) + 100;
-		message = MNEW(char, msglen);
-		strcpy(message, "class is not accessible (");
-		utf_cat_classname(message, cls->name);
-		strcat(message, " from ");
-		utf_cat_classname(message, referer->name);
-		strcat(message, ")");
+		msg = MNEW(char, msglen);
 
-		exceptions_throw_illegalaccessexception(message);
+		strcpy(msg, "class is not accessible (");
+		utf_cat_classname(msg, cls->name);
+		strcat(msg, " from ");
+		utf_cat_classname(msg, referer->name);
+		strcat(msg, ")");
 
-		MFREE(message, char, msglen);
+		u = utf_new_char(msg);
+
+		MFREE(msg, char, msglen);
+
+		exceptions_throw_illegalaccessexception(u);
 
 		return false; /* exception */
 	}
@@ -502,9 +510,12 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 											  resolve_mode_t mode,
 											  resolve_err_t error)
 {
-	classinfo *subclass;
-	typeinfo subti;
-	typecheck_result r;
+	classinfo        *subclass;
+	typeinfo          subti;
+	typecheck_result  r;
+	char             *msg;
+	s4                msglen;
+	utf              *u;
 
 	assert(refmethod);
 	assert(subtype.any);
@@ -559,9 +570,6 @@ check_again:
 	if (!r) {
 		/* sub class relationship is false */
 
-		char *message;
-		int msglen;
-
 #if defined(RESOLVE_VERBOSE)
 		printf("SUBTYPE CHECK FAILED!\n");
 #endif
@@ -571,23 +579,28 @@ check_again:
 			utf_bytes(CLASSREF_OR_CLASSINFO_NAME(supertype))
 			+ 200;
 
-		message = MNEW(char, msglen);
+		msg = MNEW(char, msglen);
 
-		strcpy(message, (error == resolveIllegalAccessError) ?
-				"illegal access to protected member ("
-				: "subtype constraint violated (");
+		strcpy(msg, (error == resolveIllegalAccessError) ?
+			   "illegal access to protected member (" :
+			   "subtype constraint violated (");
 
-		utf_cat_classname(message, subclass->name);
-		strcat(message, " is not a subclass of ");
-		utf_cat_classname(message, CLASSREF_OR_CLASSINFO_NAME(supertype));
-		strcat(message, ")");
+		utf_cat_classname(msg, subclass->name);
+		strcat(msg, " is not a subclass of ");
+		utf_cat_classname(msg, CLASSREF_OR_CLASSINFO_NAME(supertype));
+		strcat(msg, ")");
+
+		u = utf_new_char(msg);
 
 		if (error == resolveIllegalAccessError)
-			exceptions_throw_illegalaccessexception(message);
+			exceptions_throw_illegalaccessexception(u);
 		else
-			exceptions_throw_linkageerror(message, NULL);
+			exceptions_throw_linkageerror(msg, NULL);
 
-		MFREE(message, char, msglen);
+		/* ATTENTION: We probably need msg for
+		   exceptions_throw_linkageerror. */
+
+		MFREE(msg, char, msglen);
 
 		return resolveFailed; /* exception */
 	}
@@ -1039,10 +1052,13 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 											   bool isstatic,
 											   bool isput)
 {
-	classinfo *declarer;
-	classinfo *referer;
-	resolve_result_t result;
+	classinfo         *declarer;
+	classinfo         *referer;
+	resolve_result_t   result;
 	constant_classref *fieldtyperef;
+	char              *msg;
+	s4                 msglen;
+	utf               *u;
 
 	assert(refmethod);
 	assert(fieldref);
@@ -1079,28 +1095,27 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 	/* check access rights */
 
 	if (!access_is_accessible_member(referer,declarer,fi->flags)) {
-		int msglen;
-		char *message;
-
 		msglen =
 			utf_bytes(declarer->name) +
 			utf_bytes(fi->name) +
 			utf_bytes(referer->name) +
 			100;
 
-		message = MNEW(char, msglen);
+		msg = MNEW(char, msglen);
 
-		strcpy(message, "field is not accessible (");
-		utf_cat_classname(message, declarer->name);
-		strcat(message, ".");
-		utf_cat(message, fi->name);
-		strcat(message, " from ");
-		utf_cat_classname(message, referer->name);
-		strcat(message, ")");
+		strcpy(msg, "field is not accessible (");
+		utf_cat_classname(msg, declarer->name);
+		strcat(msg, ".");
+		utf_cat(msg, fi->name);
+		strcat(msg, " from ");
+		utf_cat_classname(msg, referer->name);
+		strcat(msg, ")");
 
-		exceptions_throw_illegalaccessexception(message);
+		u = utf_new_char(msg);
 
-		MFREE(message, char, msglen);
+		MFREE(msg, char, msglen);
+
+		exceptions_throw_illegalaccessexception(u);
 
 		return resolveFailed; /* exception */
 	}
@@ -1566,6 +1581,9 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 {
 	classinfo *declarer;
 	classinfo *referer;
+	char      *msg;
+	s4         msglen;
+	utf       *u;
 
 	assert(refmethod);
 	assert(methodref);
@@ -1599,10 +1617,8 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 	/* check access rights */
 
 	if (!access_is_accessible_member(referer,declarer,mi->flags)) {
-		int msglen;
-		char *message;
-
 		/* XXX clean this up. this should be in exceptions.c */
+
 		msglen =
 			utf_bytes(declarer->name) +
 			utf_bytes(mi->name) +
@@ -1610,20 +1626,22 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 			utf_bytes(referer->name) +
 			100;
 
-		message = MNEW(char, msglen);
+		msg = MNEW(char, msglen);
 
-		strcpy(message, "method is not accessible (");
-		utf_cat_classname(message, declarer->name);
-		strcat(message, ".");
-		utf_cat(message, mi->name);
-		utf_cat(message, mi->descriptor);
-		strcat(message, " from ");
-		utf_cat_classname(message, referer->name);
-		strcat(message, ")");
+		strcpy(msg, "method is not accessible (");
+		utf_cat_classname(msg, declarer->name);
+		strcat(msg, ".");
+		utf_cat(msg, mi->name);
+		utf_cat(msg, mi->descriptor);
+		strcat(msg, " from ");
+		utf_cat_classname(msg, referer->name);
+		strcat(msg, ")");
 
-		exceptions_throw_illegalaccessexception(message);
+		u = utf_new_char(msg);
 
-		MFREE(message, char, msglen);
+		MFREE(msg, char, msglen);
+
+		exceptions_throw_illegalaccessexception(u);
 
 		return resolveFailed; /* exception */
 	}

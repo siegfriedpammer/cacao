@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stringlocal.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: stringlocal.h 7967 2007-05-25 15:03:46Z twisti $
 
 */
 
@@ -72,7 +72,6 @@ java_objectheader *javastring_new_slash_to_dot(utf *text);
 java_objectheader *javastring_new_from_ascii(const char *text);
 
 /* creates a new object of type java/lang/String from UTF-8 */
-java_objectheader *javastring_new_from_utf_buffer(const char *buffer, u4 blength);
 java_objectheader *javastring_new_from_utf_string(const char *utfstr);
 
 /* creates a new object of type java/lang/String from (possibly invalid) UTF-8 */

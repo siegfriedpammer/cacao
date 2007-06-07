@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7891 2007-05-09 16:37:20Z tbfg $
+   $Id: codegen.c 7982 2007-05-30 20:01:49Z twisti $
 
 */
 
@@ -111,9 +111,11 @@ bool codegen_emit(jitdata *jd)
 
 	/* prevent compiler warnings */
 
-	d = 0;
-	lm = NULL;
+	d   = 0;
+	lm  = NULL;
+	um  = NULL;
 	bte = NULL;
+	uf  = NULL;
 
 	{
 	s4 i, p, t, l;
@@ -316,9 +318,9 @@ bool codegen_emit(jitdata *jd)
 #if !defined (NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		emit_verbosecall_enter(jd);
+#endif
 
 	}
-#endif
 
 	/* end of header generation */
 
@@ -344,7 +346,7 @@ bool codegen_emit(jitdata *jd)
 		/* copy interface registers to their destination */
 
 		len = bptr->indepth;
-		MCODECHECK(64+len);
+		MCODECHECK(128+len);
 
 #if defined(ENABLE_LSRA)
 		if (opt_lsra) {
@@ -390,7 +392,7 @@ bool codegen_emit(jitdata *jd)
 				currentline = iptr->line;
 			}
 
-			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
+			MCODECHECK(128);   /* an instruction usually needs < 64 words      */
 
 		switch (iptr->opc) {
 		case ICMD_NOP:        /* ...  ==> ...                                 */
@@ -1561,19 +1563,18 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_add_unique_address(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic,
 									iptr->sx.s23.s3.uf, disp);
 
-			} else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
@@ -1610,18 +1611,17 @@ bool codegen_emit(jitdata *jd)
 
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_add_unique_address(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic,
 									iptr->sx.s23.s3.uf, disp);
-			} else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, &(fi->value));
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
@@ -1659,15 +1659,16 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = 0;
+				disp      = 0;
 
 				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
-			} else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
+			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			/* implicit null-pointer check */
@@ -1953,9 +1954,8 @@ nowperformreturn:
 			/* call trace function */
 
 #if !defined(NDEBUG)
-			if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+			if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 				emit_verbosecall_exit(jd);
-			}
 #endif		
 
 #if defined(ENABLE_THREADS)
@@ -2092,7 +2092,7 @@ nowperformreturn:
 
 			i = iptr->sx.s23.s2.lookupcount;
 			
-			MCODECHECK((i<<2)+8);
+			MCODECHECK((i<<3)+8);
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			while (--i >= 0) {
 				val = lookup->value;
@@ -2142,7 +2142,7 @@ nowperformreturn:
 gen_method:
 			s3 = md->paramcount;
 
-			MCODECHECK((s3 << 1) + 64);
+			MCODECHECK((s3 << 2) + 128);
 
 			/* copy arguments to registers or stack location */
 
@@ -2312,10 +2312,11 @@ gen_method:
 				s4         superindex;
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-					super = NULL;
+					super      = NULL;
 					superindex = 0;
-				} else {
-					super = iptr->sx.s23.s3.c.cls;
+				}
+				else {
+					super      = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
 				}
 		
@@ -2477,15 +2478,14 @@ gen_method:
 
 			{
 			classinfo *super;
-			vftbl_t   *supervftbl;
 			s4         superindex;
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				super = NULL;
+				super      = NULL;
 				superindex = 0;
 			}
 			else {
-				super = iptr->sx.s23.s3.c.cls;
+				super      = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
 			}
 			
@@ -2601,7 +2601,7 @@ gen_method:
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
-			MCODECHECK((iptr->s1.argcount << 1) + 64);
+			MCODECHECK((iptr->s1.argcount << 2) + 128);
 
 			for (s1 = iptr->s1.argcount; --s1 >= 0; ) {
 
@@ -2767,10 +2767,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_STDU(REG_SP, REG_SP, -(cd->stackframesize * 8));
 
 #if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		emit_verbosecall_enter(jd);
-	}
 #endif
+
 	/* get function address (this must happen before the stackframeinfo) */
 
 	funcdisp = dseg_add_functionptr(cd, f);
@@ -2921,12 +2921,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
+#if !defined(NDEBUG)
 	/* print call trace */
-#if ! defined(NDEBGUU)
+
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 		emit_verbosecall_exit(jd);
 	}
 #endif
+
 	/* remove native stackframe info */
 
 	M_AADD_IMM(REG_SP, cd->stackframesize * 8, REG_A0);

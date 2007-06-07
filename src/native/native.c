@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: native.c 8027 2007-06-07 10:30:33Z michi $
 
 */
 
@@ -127,7 +127,8 @@ bool native_init(void)
 
 	/* register the intern native functions */
 
-	nativevm_init();
+	if (!nativevm_init())
+		return false;
 
 	/* everything's ok */
 
@@ -918,38 +919,6 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_objectheader *s
 	/* call initializer */
 
 	(void) vm_call_method(m, o, s);
-
-	return o;
-}
-
-
-java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
-{
-	methodinfo *m;
-	java_objectheader *o;
-
-	if (c == NULL)
-		vm_abort("native_new_and_init_int: c == NULL");
-
-	/* create object */
-
-	o = builtin_new(c);
-	
-	if (o == NULL)
-		return NULL;
-
-	/* find initializer */
-
-	m = class_resolveclassmethod(c, utf_init, utf_int__void, NULL, true);
-
-	/* initializer not found  */
-
-	if (m == NULL)
-		return NULL;
-
-	/* call initializer */
-
-	(void) vm_call_method(m, o, i);
 
 	return o;
 }

@@ -28,7 +28,33 @@
 
    Changes:
 
-   $Id: patcher.c 7839 2007-04-29 22:46:56Z pm $
+   $Id: patcher.c 7966 2007-05-25 12:41:03Z pm $
+
+     GENERATED      PATCHER BRANCH           AFTER PATCH
+
+   Short patcher call:
+
+     foo            bras %r14, OFFSET        foo
+     bar     ===>   bar                ===>  bar
+     baz            baz                      baz
+
+   Short patcher call with nops:
+                                             PATCHER_NOPS_SKIP <-+
+                                                                 |
+     nop            bras %r14, OFFSET        nop               --+
+     nop     ===>   nop                ===>  nop                 |
+     nop            nop                      nop               --+
+     foo            foo                      foo
+
+   Long pacher call:
+                                PATCHER_LONGBRANCHES_NOPS_SKIP <-+
+                                                                 |
+     br exit:       ild itmp3, disp(pv)      br exit            -+
+	 nop            aadd pv, itmp3           aadd pv, itmp3      | 
+	 nop     ===>   nop                ===>  nop                 |
+	 .....          ....                     ....                |
+	 nop            basr itmp3, itmp3        basr itmp3, itmp3  -+
+   exit:                                   exit:
 
 */
 
@@ -56,6 +82,9 @@
 #define OOPS() assert(0);
 #define __PORTED__
 
+/* A normal patcher branch done using BRAS */
+#define PATCHER_IS_SHORTBRANCH(brcode) ((brcode & 0xFF0F0000) == 0xA7050000)
+
 /* patcher_wrapper *************************************************************
 
    Wrapper for all patchers.  It also creates the stackframe info
@@ -69,7 +98,6 @@
 
 java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
-#if 1
 	stackframeinfo     sfi;
 	u1                *xpc;
 	java_objectheader *o;
@@ -87,7 +115,15 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
 	
-  	xpc = xpc - 4; /* the patch position is 4 bytes before the RA */
+	/* For a normal branch, the patch position is SZ_BRAS bytes before the RA.
+	 * For long branches it is PATCHER_LONGBRANCHES_NOPS_SKIP before the RA.
+	 */
+
+	if (PATCHER_IS_SHORTBRANCH(*(u4 *)(xpc - SZ_BRAS))) {
+		xpc = xpc - SZ_BRAS;
+	} else {
+		xpc = xpc - PATCHER_LONGBRANCHES_NOPS_SKIP;
+	}
 
 	*((ptrint *) (sp + 5 * 4)) = (ptrint) xpc;
 
@@ -132,69 +168,6 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return NULL;
-#else
-
-	stackframeinfo     sfi;
-	u1                *xpc;
-	java_objectheader *o;
-	u4                 mcode;
-	functionptr        f;
-	bool               result;
-	java_objectheader *e;
-
-	/* define the patcher function */
-
-	bool (*patcher_function)(u1 *);
-
-	assert(pv != NULL);
-
-	/* get stuff from the stack */
-
-	xpc = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
-	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
-
-	/* Correct RA is calculated in codegen.c and stored in the patcher
-	   stub stack.  There's no need to adjust xpc. */
-
-	/* store PV into the patcher function position */
-
-	*((ptrint *) (sp + 0 * 4)) = (ptrint) pv;
-
-	/* cast the passed function to a patcher function */
-
-	patcher_function = (bool (*)(u1 *)) (ptrint) f;
-
-	/* enter a monitor on the patching position */
-
-	PATCHER_MONITORENTER;
-
-	/* create the stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 8 * 4, ra, xpc);
-
-	/* call the proper patcher function */
-
-	result = (patcher_function)(sp);
-
-	/* remove the stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	/* check for return value and exit accordingly */
-
-	if (result == false) {
-		e = exceptions_get_and_clear_exception();
-
-		PATCHER_MONITOREXIT;
-
-		return e;
-	}
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return NULL;
-#endif
 }
 
 
@@ -251,16 +224,18 @@ bool patcher_get_putstatic(u1 *sp)
 bool patcher_get_putfield(u1 *sp)
 {
 	u1               *ra;
-	u4                mcode;
+	u4                mcode, brcode;
 	unresolved_field *uf;
 	fieldinfo        *fi;
 	u1                byte;
+	s4                disp;
 
 	/* get stuff from the stack */
 
 	ra    = (u1 *)               *((ptrint *) (sp + 5 * 4));
 	mcode =                      *((u4 *)     (sp + 3 * 4));
 	uf    = (unresolved_field *) *((ptrint *) (sp + 2 * 4));
+	disp  =                      *((s4 *)     (sp + 1 * 4));
 
 	/* get the fieldinfo */
 
@@ -269,12 +244,19 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* patch back original code */
 
+	brcode = *((u4 *) ra);
 	*((u4 *) ra) = mcode;
 
 	/* If NOPs are generated, skip them */
 
-	if (opt_shownops)
+	if (! PATCHER_IS_SHORTBRANCH(brcode))
+		ra += PATCHER_LONGBRANCHES_NOPS_SKIP;
+	else if (opt_shownops)
 		ra += PATCHER_NOPS_SKIP;
+
+	/* If there is an operand load before, skip the load size passed in disp (see ICMD_PUTFIELD) */
+
+	ra += disp;
 
 	/* patch correct offset */
 
@@ -548,7 +530,7 @@ __PORTED__ bool patcher_invokestatic_special(u1 *sp)
 bool patcher_invokevirtual(u1 *sp)
 {
 	u1                *ra;
-	u4                 mcode;
+	u4                 mcode, brcode;
 	unresolved_method *um;
 	methodinfo        *m;
 	s4                off;
@@ -566,11 +548,14 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* patch back original code */
 
+	brcode = *((u4 *) ra);
 	*((u4 *) ra) = mcode;
 
 	/* If NOPs are generated, skip them */
 
-	if (opt_shownops)
+	if (! PATCHER_IS_SHORTBRANCH(brcode))
+		ra += PATCHER_LONGBRANCHES_NOPS_SKIP;
+	else if (opt_shownops)
 		ra += PATCHER_NOPS_SKIP;
 
 	/* patch vftbl index */
@@ -596,7 +581,7 @@ bool patcher_invokevirtual(u1 *sp)
 bool patcher_invokeinterface(u1 *sp)
 {
 	u1                *ra;
-	u4                 mcode;
+	u4                 mcode, brcode;
 	unresolved_method *um;
 	methodinfo        *m;
 	s4                 idx, off;
@@ -614,11 +599,14 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch back original code */
 
+	brcode = *((u4 *) ra);
 	*((u4 *) ra) = mcode;
 
 	/* If NOPs are generated, skip them */
 
-	if (opt_shownops)
+	if (! PATCHER_IS_SHORTBRANCH(brcode))
+		ra += PATCHER_LONGBRANCHES_NOPS_SKIP;
+	else if (opt_shownops)
 		ra += PATCHER_NOPS_SKIP;
 
 	/* get interfacetable index */
@@ -775,7 +763,7 @@ bool patcher_resolve_classref_to_vftbl(u1 *sp)
 bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
-	u4                 mcode;
+	u4                 mcode, brcode;
 	constant_classref *cr;
 	classinfo         *c;
 
@@ -792,11 +780,14 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* patch back original code */
 
+	brcode = *((u4 *) ra);
 	*((u4 *) ra) = mcode;
 
 	/* If NOPs are generated, skip them */
 
-	if (opt_shownops)
+	if (! PATCHER_IS_SHORTBRANCH(brcode))
+		ra += PATCHER_LONGBRANCHES_NOPS_SKIP;
+	else if (opt_shownops)
 		ra += PATCHER_NOPS_SKIP;
 
 	/* patch super class index */

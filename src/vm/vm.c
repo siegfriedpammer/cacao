@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: vm.c 8027 2007-06-07 10:30:33Z michi $
 
 */
 
@@ -74,6 +74,7 @@
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
+#include "vmcore/statistics.h"
 #include "vmcore/suck.h"
 
 #if defined(ENABLE_JVMTI)
@@ -252,6 +253,12 @@ enum {
 	OPT_AGENTPATH,
 #endif
 
+#if defined(ENABLE_DEBUG_FILTER)
+	OPT_FILTER_VERBOSECALL_INCLUDE,
+	OPT_FILTER_VERBOSECALL_EXCLUDE,
+	OPT_FILTER_SHOW_METHOD,
+#endif
+
 	DUMMY
 };
 
@@ -391,6 +398,12 @@ opt_struct opts[] = {
 
 	{ "s",                 true,  OPT_SHOW },
 	{ "debug-color",      false,  OPT_DEBUGCOLOR },
+
+#if defined(ENABLE_DEBUG_FILTER)
+	{ "XXfi",              true,  OPT_FILTER_VERBOSECALL_INCLUDE },
+	{ "XXfx",              true,  OPT_FILTER_VERBOSECALL_EXCLUDE },
+	{ "XXfm",              true,  OPT_FILTER_SHOW_METHOD },
+#endif
 
 	{ NULL,                false, 0 }
 };
@@ -555,7 +568,11 @@ static void XXusage(void)
 #if defined(ENABLE_SSA)
 	puts("    -lsra                    use linear scan register allocation (with SSA)");
 #endif
-
+#if defined(ENABLE_DEBUG_FILTER)
+	puts("    -XXfi <regex>            begin of dynamic scope for verbosecall filter");
+	puts("    -XXfx <regex>            end of dynamic scope for verbosecall filter");
+	puts("    -XXfm <regex>            filter for show options");
+#endif
 	/* exit with error code */
 
 	exit(1);
@@ -1408,6 +1425,20 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 #endif
 
+#if defined(ENABLE_DEBUG_FILTER)
+		case OPT_FILTER_VERBOSECALL_INCLUDE:
+			opt_filter_verbosecall_include = opt_arg;
+			break;
+
+		case OPT_FILTER_VERBOSECALL_EXCLUDE:
+			opt_filter_verbosecall_exclude = opt_arg;
+			break;
+
+		case OPT_FILTER_SHOW_METHOD:
+			opt_filter_show_method = opt_arg;
+			break;
+
+#endif
 		default:
 			printf("Unknown option: %s\n",
 				   vm_args->options[opt_index].optionString);
@@ -1468,6 +1499,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* initialize the garbage collector */
 
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
+
+	/* install architecture dependent signal handlers */
+
+	if (!signal_init())
+		vm_abort("vm_create: signal_init failed");
 
 #if defined(ENABLE_INTRP)
 	/* Allocate main thread stack on the Java heap. */
@@ -1535,10 +1571,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!finalizer_init())
 		vm_abort("vm_create: finalizer_init failed");
 
-	/* install architecture dependent signal handlers */
-
-	signal_init();
-
 	/* initialize the codegen subsystems */
 
 	codegen_init();
@@ -1568,6 +1600,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	if (!linker_init())
 		vm_abort("vm_create: linker_init failed");
+
+	/* Initialize the native subsystem. */
 
 	if (!native_init())
 		vm_abort("vm_create: native_init failed");
@@ -1607,8 +1641,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* start the signal handler thread */
 
-	if (!signal_start_thread())
-		vm_abort("vm_create: signal_start_thread failed");
+#if defined(__LINUX__)
+	/* XXX Remove for exact-GC. */
+	if (threads_pthreads_implementation_nptl)
+#endif
+		if (!signal_start_thread())
+			vm_abort("vm_create: signal_start_thread failed");
 
 	/* finally, start the finalizer thread */
 
@@ -1634,7 +1672,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 /* 	if (opt_prof) */
 /* 		if (!profile_start_thread()) */
-/* 			exceptions_print_stacktrace(); */
+/* 			vm_abort("vm_create: profile_start_thread failed"); */
 # endif
 #endif
 
@@ -2501,6 +2539,8 @@ java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
 {
 	java_objectheader *o;
 
+	STATISTICS(count_calls_native_to_java++);
+
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
 #endif
@@ -2639,6 +2679,8 @@ s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s4 i;
 
+	STATISTICS(count_calls_native_to_java++);
+
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
 #endif
@@ -2776,6 +2818,8 @@ s8 vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, jvalue *args)
 s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s8 l;
+
+	STATISTICS(count_calls_native_to_java++);
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
@@ -2917,6 +2961,8 @@ float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	float f;
 
+	STATISTICS(count_calls_native_to_java++);
+
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
 #endif
@@ -3057,6 +3103,8 @@ double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
 								   vm_arg *vmargs)
 {
 	double d;
+
+	STATISTICS(count_calls_native_to_java++);
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;

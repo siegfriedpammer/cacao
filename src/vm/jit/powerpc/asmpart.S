@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
+   $Id: asmpart.S 7989 2007-05-30 21:04:42Z twisti $
 
 */
 
@@ -1405,11 +1405,12 @@ asm_cacheflush:
 *******************************************************************************/
 
 asm_compare_and_swap:
-1:  lwarx   a6,r0,a0 
+1:
+	lwarx   a6,0,a0 
 	subf.   r0,a6,a1 
 	bne-    2f 
 	or      r0,a2,a2 
-	stwcx.  r0,r0,a0 
+	stwcx.  r0,0,a0 
 	bne-    1b 
 2: 
 	mr      a0,a6
@@ -1632,6 +1633,8 @@ L_patcher_wrapper$lazy_ptr:
 	.long dyld_stub_binding_helper
 
 
+# if defined(ENABLE_REPLACEMENT)
+
 .section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
 	.align 2
 L_replace_me$stub:
@@ -1690,6 +1693,8 @@ L00$_replace_free_safestack:
 L_replace_free_safestack$lazy_ptr:
 	.indirect_symbol _replace_free_safestack
 	.long dyld_stub_binding_helper
+
+# endif /* ENABLE_REPLACEMENT */
 
 #endif /* defined(__DARWIN__) */
 

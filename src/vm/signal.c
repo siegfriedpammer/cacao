@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: signal.c 8027 2007-06-07 10:30:33Z michi $
 
 */
 
@@ -33,8 +33,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/mman.h>
 
 #if defined(__DARWIN__)
 /* If we compile with -ansi on darwin, <sys/types.h> is not
@@ -50,6 +48,8 @@
 
 #if defined(ENABLE_THREADS)
 # include "threads/threads-common.h"
+#else
+# include "threads/none/threads.h"
 #endif
 
 #include "vm/exceptions.h"
@@ -74,23 +74,16 @@ void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p);
 
 *******************************************************************************/
 
-void signal_init(void)
+bool signal_init(void)
 {
 #if !defined(__CYGWIN__)
-	int              pagesize;
 	sigset_t         mask;
 	struct sigaction act;
 
-	/* mmap a memory page at address 0x0, so our hardware-exceptions
-	   work. */
-
-	pagesize = getpagesize();
-
-	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
-
-	/* check if we get into trouble with our hardware-exceptions */
-
-	assert(OFFSET(java_bytearray, data) > EXCEPTION_HARDWARE_PATCHER);
+#if defined(__LINUX__) && defined(ENABLE_THREADS)
+	/* XXX Remove for exact-GC. */
+	if (threads_pthreads_implementation_nptl) {
+#endif
 
 	/* Block the following signals (SIGINT for <ctrl>-c, SIGQUIT for
 	   <ctrl>-\).  We enable them later in signal_thread, but only for
@@ -109,6 +102,11 @@ void signal_init(void)
 
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
 		vm_abort("signal_init: sigprocmask failed: %s", strerror(errno));
+
+#if defined(__LINUX__) && defined(ENABLE_THREADS)
+	/* XXX Remove for exact-GC. */
+	}
+#endif
 
 #if defined(ENABLE_GC_BOEHM)
 	/* Allocate something so the garbage collector's signal handlers
@@ -147,7 +145,7 @@ void signal_init(void)
 		sigaction(SIGFPE, &act, NULL);
 #  endif
 
-#  if defined(__ARM__)
+#  if defined(__ARM__) || defined(__S390__)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGILL handler */
 
@@ -194,6 +192,8 @@ void signal_init(void)
 #endif
 
 #endif /* !defined(__CYGWIN__) */
+
+	return true;
 }
 
 
@@ -201,15 +201,17 @@ void signal_init(void)
 
    This thread sets the signal mask to catch the user input signals
    (SIGINT, SIGQUIT).  We use such a thread, so we don't get the
-   signals on every single thread running.  Especially, this makes
-   problems on slow machines.
+   signals on every single thread running.
 
 *******************************************************************************/
 
 static void signal_thread(void)
 {
-	sigset_t mask;
-	int      sig;
+	threadobject *t;
+	sigset_t      mask;
+	int           sig;
+
+	t = THREADOBJECT;
 
 	if (sigemptyset(&mask) != 0)
 		vm_abort("signal_thread: sigemptyset failed: %s", strerror(errno));
@@ -230,9 +232,17 @@ static void signal_thread(void)
 		   but it seems to make problems with Boehm-GC.  We should
 		   revisit this code with our new exact-GC. */
 
+#if defined(ENABLE_THREADS)
+		threads_thread_state_waiting(t);
+#endif
+
 /* 		if (sigwait(&mask, &sig) != 0) */
 /* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
 		(void) sigwait(&mask, &sig);
+
+#if defined(ENABLE_THREADS)
+		threads_thread_state_runnable(t);
+#endif
 
 		switch (sig) {
 		case SIGINT:

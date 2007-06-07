@@ -151,7 +151,6 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
 	u1 *pv;
 	u8  mcode;
-	u4  mcode_masked;
 	s4  offset;
 
 	pv = ra;
@@ -197,73 +196,84 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 
    INVOKESTATIC/SPECIAL:
 
-   dfdeffb8    ldx      [i5 - 72],o5
-   03c0f809    jmp      o5
-   00000000    nop
+   ????????    ldx      [i5 - 72],o5
+   ????????    jmp      o5             <-- ra
+   ????????    nop
+
+   w/ sethi (mptr in dseg out of 13-bit simm range)
+
+   ????????    sethi    hi(0x2000),o5
+   ????????    sub      i5,o5,o5
+   ????????    ldx      [o5 - 72],o5
+   ????????    jmp      o5             <-- ra
+   ????????    nop
 
    INVOKEVIRTUAL:
 
-   dc990000    ld       t9,0(a0)
-   df3e0000    ld       [g2 + 0],o5
-   03c0f809    jmp      o5
-   00000000    nop
+   ????????    ldx      [o0 + 0},g2
+   ????????    ldx      [g2 + 0],o5
+   ????????    jmp      o5             <-- ra
+   ????????    nop
 
    INVOKEINTERFACE:
 
-   dc990000    ld       t9,0(a0)
-   df39ff90    ld       [g2 - 112],g2
-   df3e0018    ld       [g2 + 24],o5
-   03c0f809    jmp      o5
-   00000000    nop
+   ????????    ldx      [o0 + 0},g2
+   ????????    ldx      [g2 - 112],g2
+   ????????    ldx      [g2 + 24],o5
+   ????????    jmp      o5             <-- ra
+   ????????    nop
 
 *******************************************************************************/
 
 u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 {
-	u4  mcode, mcode_masked;
+	u4  mcode, mcode_sethi, mcode_masked;
 	s4  offset;
 	u1 *pa, *iptr;
 
 	/* go back to the location of a possible sethi (3 instruction before jump) */
 	/* note: ra is the address of the jump instruction on SPARC                */
-	iptr = ra - 3 * 4;
 
-	/* get first instruction word on current PC */
-
-	mcode = *((u4 *) iptr);
+	mcode_sethi = *((u4 *) (ra - 3 * 4));
 
 	/* check for sethi instruction */
 
-	if (IS_SETHI(mcode)) {
-		/* XXX write a regression for this */
+	if (IS_SETHI(mcode_sethi)) {
+		u4 mcode_sub, mcode_ldx;
+
+		mcode_sub = *((u4 *) (ra - 2 * 4));
+		mcode_ldx = *((u4 *) (ra - 1 * 4));
+
+		/* make sure the sequence of instructions is a loadhi */
+		if ((IS_SUB(mcode_sub)) && (IS_LDX_IMM(mcode_ldx)))
+		{
+
 
 		/* get 22-bit immediate of sethi instruction */
 
-		offset = (s4) (mcode & 0x3fffff);
+		offset = (s4) (mcode_sethi & 0x3fffff);
 		offset = offset << 10;
 		
 		/* goto next instruction */
-		iptr += 4;
-		mcode = *((u4 *) iptr);
 		
 		/* make sure it's a sub instruction (pv - big_disp) */
-		assert(IS_SUB(mcode));
+		assert(IS_SUB(mcode_sub));
 		offset = -offset;
 
 		/* get displacement of load instruction */
 
-		mcode = *((u4 *) (ra - 1 * 4));
-		assert(IS_LDX_IMM(mcode));
+		assert(IS_LDX_IMM(mcode_ldx));
 
-		offset += decode_13bit_imm(mcode);
+		offset += decode_13bit_imm(mcode_ldx);
 		
 		pa = sfi->pv + offset;
 
 		return pa;
+		}
 	}
 
-
-	/* simple (one-instruction) load */
+	/* we didn't find a sethi, or it didn't belong to a loadhi */
+	/* check for simple (one-instruction) load */
 	iptr = ra - 1 * 4;
 	mcode = *((u4 *) iptr);
 
@@ -324,6 +334,8 @@ void md_cacheflush(u1 *addr, s4 nbytes)
 void md_dcacheflush(u1 *addr, s4 nbytes)
 {
 	/* XXX don't know yet */	
+	/* printf("md_dcacheflush\n"); */
+	__asm__ __volatile__ ( "membar 0x7F" : : : "memory" );
 }
 
 

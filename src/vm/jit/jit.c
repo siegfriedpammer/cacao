@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.c 7835 2007-04-26 13:43:08Z twisti $
+   $Id: jit.c 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -1283,6 +1283,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	DEBUG_JIT_COMPILEVERBOSE("Compiling: ");
 
+#if defined(ENABLE_DEBUG_FILTER)
+	show_filters_apply(jd->m);
+#endif
+
 	/* handle native methods and create a native stub */
 
 	if (m->flags & ACC_NATIVE) {
@@ -1457,7 +1461,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif /* defined(ENABLE_JIT) */
 	RT_TIMING_GET_TIME(time_alloc);
 
-#if defined(ENABLE_PROFLING)
+#if defined(ENABLE_PROFILING)
 	/* Allocate memory for basic block profiling information. This
 	   _must_ be done after loop optimization and register allocation,
 	   since they can change the basic block count. */
@@ -1509,20 +1513,25 @@ static u1 *jit_compile_intern(jitdata *jd)
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
 #if !defined(NDEBUG)
-	/* intermediate and assembly code listings */
+#if defined(ENABLE_DEBUG_FILTER)
+	if (jd->m->filtermatches & SHOW_FILTER_FLAG_SHOW_METHOD)
+#endif
+	{
+		/* intermediate and assembly code listings */
 		
-	if (JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd)) {
-		show_method(jd, SHOW_CODE);
-	}
-	else if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
+		if (JITDATA_HAS_FLAG_SHOWINTERMEDIATE(jd)) {
+			show_method(jd, SHOW_CODE);
+		}
+		else if (JITDATA_HAS_FLAG_SHOWDISASSEMBLE(jd)) {
 # if defined(ENABLE_DISASSEMBLER)
-		DISASSEMBLE(code->entrypoint,
-					code->entrypoint + (code->mcodelength - cd->dseglen));
+			DISASSEMBLE(code->entrypoint,
+						code->entrypoint + (code->mcodelength - cd->dseglen));
 # endif
-	}
+		}
 
-	if (opt_showddatasegment)
-		dseg_display(jd);
+		if (opt_showddatasegment)
+			dseg_display(jd);
+	}
 #endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Compiling done: ");

@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6233 2006-12-26 23:13:16Z twisti $
+## $Id: Makefile.am 8015 2007-06-05 20:58:11Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -62,8 +62,7 @@ libnativevmcore_la_SOURCES = \
 	java_lang_reflect_Field.c \
 	java_lang_reflect_Method.c \
 	java_lang_reflect_VMProxy.c \
-	java_security_VMAccessController.c \
-	sun_misc_Unsafe.c
+	java_security_VMAccessController.c
 
 if ENABLE_JVMTI
 libjdwp_la_SOURCES = \

@@ -90,6 +90,12 @@
 
 /* save and restore macros ****************************************************/
 
+#define SAVE_FLOAT_RETURN_REGISTER(off) \
+	std     fv0,[%sp + bias + ((off)*8)] ;
+
+#define RESTORE_FLOAT_RETURN_REGISTER(off) \
+	ldd     [%sp + bias + ((off)*8)],fv0 ;
+
 
 #define SAVE_FLOAT_ARGUMENT_REGISTERS(off) \
 	std     fa0,[%sp + bias + ((0+(off))*8)] ; \

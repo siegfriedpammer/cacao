@@ -71,6 +71,19 @@ void show_javalocals_array(jitdata *jd, s4 *vars, int n, int stage);
 void show_allocation(s4 type, s4 flags, s4 regoff);
 #endif /* !defined(NDEBUG) */
 
+/* Debug output filtering */
+
+#if defined(ENABLE_DEBUG_FILTER)
+void show_filters_init(void);
+#define SHOW_FILTER_FLAG_VERBOSECALL_INCLUDE 0x01
+#define SHOW_FILTER_FLAG_VERBOSECALL_EXCLUDE 0x02
+#define SHOW_FILTER_FLAG_SHOW_METHOD 0x04
+void show_filters_apply(methodinfo *m);
+int show_filters_test_verbosecall_enter(methodinfo *m);
+int show_filters_test_verbosecall_exit(methodinfo *m);
+#endif
+
+
 #endif /* _SHOW_H */
 
 /*

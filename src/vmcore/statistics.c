@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 7916 2007-05-18 14:24:21Z twisti $
+   $Id: statistics.c 8006 2007-06-05 07:40:49Z twisti $
 
 */
 
@@ -103,6 +103,9 @@ s4 size_lock_record      = 0;
 s4 size_lock_hashtable   = 0;
 s4 size_lock_waiter      = 0;
 
+u8 count_calls_java_to_native = 0;
+u8 count_calls_native_to_java = 0;
+
 int count_const_pool_len = 0;
 int count_classref_len = 0;
 int count_parsed_desc_len = 0;
@@ -177,7 +180,6 @@ int count_upper_bound_new_stack = 0;
 s4 count_branches_resolved   = 0;
 s4 count_branches_unresolved = 0;
 
-u8 count_native_function_calls=0;
 u8 count_jni_callXmethod_calls=0;
 u8 count_jni_calls=0;
 
@@ -227,19 +229,6 @@ s4 count_schedule_nodes = 0;
 s4 count_schedule_leaders = 0;
 s4 count_schedule_max_leaders = 0;
 s4 count_schedule_critical_path = 0;
-
-
-/* nativeinvokation ***********************************************************
-
-   increments the native invokation count by one
-	
-*******************************************************************************/
-
-void nativeinvokation(void)
-{
-	/* XXX do locking here */
-	count_native_function_calls++;
-}
 
 
 /* jnicallXmethodinvokation ***************************************************
@@ -590,12 +579,13 @@ void print_stats(void)
 	/* call statistics ********************************************************/
 
 	dolog("Function call statistics:");
-	dolog("Number of native function invokations:           %ld",
-		  count_native_function_calls);
 	dolog("Number of jni->CallXMethod function invokations: %ld",
 		  count_jni_callXmethod_calls);
 	dolog("Overall number of jni invokations:               %ld",
 		  count_jni_calls);
+
+	log_println("java-to-native calls:   %10ld", count_calls_java_to_native);
+	log_println("native-to-java calls:   %10ld", count_calls_native_to_java);
 
 
 	/* now print other statistics ********************************************/
@@ -709,9 +699,9 @@ void statistics_print_memory_usage(void)
 
 	log_println("                        %10d", sum);
 	log_println("");
-	log_println("max. memory usage:      %10d", maxcodememusage);
-	log_println("max. heap memory usage: %10d", maxmemusage);
-	log_println("max. dump memory usage: %10d", maxdumpsize);
+	log_println("max. code memory:       %10d", maxcodememusage);
+	log_println("max. heap memory:       %10d", maxmemusage);
+	log_println("max. dump memory:       %10d", maxdumpsize);
 	log_println("");
 	log_println("heap memory not freed:  %10d", (s4) memoryusage);
 	log_println("dump memory not freed:  %10d", (s4) globalallocateddumpsize);

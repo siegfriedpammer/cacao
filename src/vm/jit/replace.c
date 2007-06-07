@@ -76,8 +76,8 @@
 #undef REPLACE_LEAFMETHODS_RA_REGISTER
 #undef REPLACE_REG_RA
 
-/* i386 and x86_64 */
-#if defined(__I386__) || defined(__X86_64__)
+/* i386, x86_64 and m68k */
+#if defined(__I386__) || defined(__X86_64__) || defined(__M68K__)
 #define REPLACE_RA_BETWEEN_FRAMES
 /* alpha */
 #elif defined(__ALPHA__)
@@ -716,6 +716,9 @@ bool replace_create_replacement_points(jitdata *jd)
 	code->globalcount   = 0;
 	code->savedintcount = INT_SAV_CNT - rd->savintreguse;
 	code->savedfltcount = FLT_SAV_CNT - rd->savfltreguse;
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	code->savedadrcount = ADR_SAV_CNT - rd->savadrreguse;
+#endif
 	code->memuse        = rd->memuse;
 	code->stackframesize = jd->cd->stackframesize;
 
@@ -955,6 +958,11 @@ static void replace_read_value(executionstate_t *es,
 			if (ra->type == TYPE_FLT)
 				javaval->f = javaval->d;
 		}
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+		else if (IS_ADR_TYPE(ra->type)) {
+			javaval->p = es->adrregs[ra->regoff];
+		}
+#endif
 		else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (ra->type == TYPE_LNG) {
@@ -1013,6 +1021,10 @@ static void replace_write_value(executionstate_t *es,
 				es->intregs[GET_LOW_REG(ra->regoff)] = javaval->words.lo;
 				es->intregs[GET_HIGH_REG(ra->regoff)] = javaval->words.hi;
 				break;
+#endif
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+			case TYPE_ADR:
+				es->adrregs[ra->regoff] = javaval->p;
 #endif
 			default:
 				es->intregs[ra->regoff] = javaval->p;
@@ -1531,6 +1543,17 @@ u1* replace_pop_activation_record(executionstate_t *es,
 		es->fltregs[reg] = *(double*)basesp;
 	}
 
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	/* restore saved adr registers */
+
+	reg = ADR_REG_CNT;
+	for (i=0; i<es->code->savedadrcount; ++i) {
+		while (nregdescadr[--reg] != REG_SAV)
+			;
+		es->adrregs[reg] = *--basesp;
+	}
+#endif
+
 	/* adjust the stackpointer */
 
 	es->sp += SIZE_OF_STACKSLOT * es->code->stackframesize;
@@ -1576,6 +1599,11 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	for (i=0; i<FLT_REG_CNT; ++i)
 		if (nregdescfloat[i] != REG_SAV)
 			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
+# if defined(HAS_ADDRESS_REGISTER_FILE)
+	for (i=0; i<ADR_REG_CNT; ++i)
+		if (nregdescadr[i] != REG_SAV)
+			es->adrregs[i] = (ptrint) 0x33dead3333dead33ULL;
+# endif
 #endif /* !defined(NDEBUG) */
 
 	return (code) ? ra : NULL;
@@ -1947,6 +1975,22 @@ void replace_push_activation_record(executionstate_t *es,
 #endif
 	}
 
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	/* save adr registers */
+
+	reg = ADR_REG_CNT;
+	for (i=0; i<calleecode->savedadrcount; ++i) {
+		while (nregdescadr[--reg] != REG_SAV)
+			;
+		*--basesp = es->adrregs[reg];
+
+		/* XXX may not clobber saved regs used by native code! */
+#if !defined(NDEBUG) && 0
+		es->adrregs[reg] = (ptrint) 0x44dead4444dead44ULL;
+#endif
+	}
+#endif
+
 	/* write slots used for synchronization */
 
 	count = code_get_sync_slot_count(calleecode);
@@ -2147,6 +2191,14 @@ static void replace_pop_native_frame(executionstate_t *es,
 			frame->nativesavflt[j++] = es->fltregs[i];
 	}
 
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	j = 0;
+	for (i=0; i<ADR_REG_CNT; ++i) {
+		if (nregdescadr[i] == REG_SAV)
+			frame->nativesavadr[j++] = es->adrregs[i];
+	}
+#endif
+
 	/* restore saved registers */
 
 #if defined(ENABLE_GC_CACAO)
@@ -2170,6 +2222,13 @@ static void replace_pop_native_frame(executionstate_t *es,
 		if (nregdescfloat[i] == REG_SAV)
 			es->fltregs[i] = 0.0;
 	}
+
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	for (i=0; i<ADR_REG_CNT; ++i) {
+		if (nregdescadr[i] == REG_SAV)
+			es->adrregs[i] = 0;
+	}
+#endif
 
 	/* restore pv, pc, and sp */
 
@@ -2263,6 +2322,14 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 		if (nregdescfloat[i] == REG_SAV)
 			es->fltregs[i] = frame->nativesavflt[j++];
 	}
+
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	j = 0;
+	for (i=0; i<ADR_REG_CNT; ++i) {
+		if (nregdescadr[i] == REG_SAV)
+			es->adrregs[i] = frame->nativesavadr[j++];
+	}
+#endif
 
 	/* skip the native frame on the machine stack */
 
@@ -3116,6 +3183,9 @@ void replace_show_replacement_points(codeinfo *code)
 	printf("\ttotal allocations : %d\n",code->regalloccount);
 	printf("\tsaved int regs    : %d\n",code->savedintcount);
 	printf("\tsaved flt regs    : %d\n",code->savedfltcount);
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	printf("\tsaved adr regs    : %d\n",code->savedadrcount);
+#endif
 	printf("\tmemuse            : %d\n",code->memuse);
 
 	printf("\n");
@@ -3184,6 +3254,17 @@ void replace_executionstate_println(executionstate_t *es)
 		if (i%4 == 3)
 			printf("\n");
 	}
+# if defined(HAS_ADDRESS_REGISTER_FILE)
+	for (i=0; i<ADR_REG_CNT; ++i) {
+		if (i%4 == 0)
+			printf("\t");
+		else
+			printf(" ");
+		printf("A%02d = %016llx",i,(unsigned long long)es->adrregs[i]);
+		if (i%4 == 3)
+			printf("\n");
+	}
+# endif
 #endif
 
 	sp = (stackslot_t *) es->sp;

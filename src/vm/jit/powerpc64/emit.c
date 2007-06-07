@@ -207,7 +207,8 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 
 *******************************************************************************/
 
-void emit_verbosecall_enter (jitdata *jd)
+#if !defined(NDEBUG)
+void emit_verbosecall_enter(jitdata *jd)
 {
 	methodinfo   *m;
 	codegendata  *cd;
@@ -344,6 +345,7 @@ void emit_verbosecall_enter (jitdata *jd)
 	/* mark trace code */
 	M_NOP;
 }
+#endif
 
 
 /* emit_verbosecall_exit ******************************************************
@@ -354,6 +356,7 @@ void emit_verbosecall_enter (jitdata *jd)
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void emit_verbosecall_exit(jitdata *jd)
 {
 	methodinfo   *m;
@@ -400,6 +403,8 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 }
+#endif
+
 
 /* emit_branch *****************************************************************
 
@@ -426,7 +431,6 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 			/* if the long-branches flag isn't set yet, do it */
 
 			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
-				log_println("setting error");
 				cd->flags |= (CODEGENDATA_FLAG_ERROR |
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
@@ -444,11 +448,9 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 			/* if the long-branches flag isn't set yet, do it */
 
 			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
-				log_println("setting error");
 				cd->flags |= (CODEGENDATA_FLAG_ERROR |
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
-			log_println("generating long-branch");
 
 			branchdisp --;		/* we jump from the second instruction */
 			switch (condition) {
@@ -676,7 +678,7 @@ void emit_patcher_stubs(jitdata *jd)
 	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 		/* check code segment size */
 
-		MCODECHECK(16);
+		MCODECHECK(32);
 
 		/* Get machine code which is patched back in later. The
 		   call is 1 instruction word long. */
@@ -789,7 +791,7 @@ void emit_replacement_stubs(jitdata *jd)
 
 		/* check code segment size */
 
-		MCODECHECK(100);
+		MCODECHECK(200);
 
 #if !defined(NDEBUG)
 		savedmcodeptr = cd->mcodeptr;

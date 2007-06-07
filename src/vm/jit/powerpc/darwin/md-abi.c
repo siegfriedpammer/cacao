@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Christian Ullrich
-
-   $Id: md-abi.c 7770 2007-04-19 19:39:06Z twisti $
+   $Id: md-abi.c 7988 2007-05-30 20:53:56Z twisti $
 
 */
 

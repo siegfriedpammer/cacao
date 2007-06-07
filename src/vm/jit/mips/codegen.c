@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7880 2007-05-07 14:13:45Z twisti $
+   $Id: codegen.c 8011 2007-06-05 10:06:18Z twisti $
 
 */
 
@@ -224,15 +224,15 @@ bool codegen_emit(jitdata *jd)
  				else
  					M_LST(s1, REG_SP, var->vv.regoff * 8);
 #else
-				if (IS_2_WORD_TYPE(t)) {
-					if (!(var->flags & INMEMORY))
+				if (!(var->flags & INMEMORY)) {
+					if (IS_2_WORD_TYPE(t))
 						M_LNGMOVE(s1, var->vv.regoff);
 					else
-						M_LST(s1, REG_SP, var->vv.regoff * 8);
+						M_INTMOVE(s1, var->vv.regoff);
 				}
 				else {
-					if (!(var->flags & INMEMORY))
-						M_INTMOVE(s1, var->vv.regoff);
+					if (IS_2_WORD_TYPE(t))
+						M_LST(s1, REG_SP, var->vv.regoff * 8);
 					else
 						M_IST(s1, REG_SP, var->vv.regoff * 8);
 				}
@@ -255,12 +255,11 @@ bool codegen_emit(jitdata *jd)
  		}
 		else {                                       /* floating args         */
  			if (!md->params[p].inmemory) {
-#if SIZEOF_VOID_P == 8
  				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
-						M_DMOV(s1, var->vv.regoff);
+						M_DBLMOVE(s1, var->vv.regoff);
 					else
-						M_FMOV(s1, var->vv.regoff);
+						M_FLTMOVE(s1, var->vv.regoff);
  				}
 				else {
 					if (IS_2_WORD_TYPE(t))
@@ -268,42 +267,6 @@ bool codegen_emit(jitdata *jd)
 					else
 						M_FST(s1, REG_SP, var->vv.regoff * 8);
  				}
-#else
-				if ((p == 0) ||
-					((p == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type))) {
-					if (!(var->flags & INMEMORY)) {
-						if (IS_2_WORD_TYPE(t))
-							M_DBLMOVE(s1, var->vv.regoff);
-						else
-							M_FLTMOVE(s1, var->vv.regoff);
-					}
-					else {
-						if (IS_2_WORD_TYPE(t))
-							M_DST(s1, REG_SP, var->vv.regoff * 8);
-						else
-							M_FST(s1, REG_SP, var->vv.regoff * 8);
-					}
-				}
-				else {
-					if (IS_2_WORD_TYPE(t)) {
-						if (!(var->flags & INMEMORY)) {
-							M_MTC1(GET_LOW_REG(s1), var->vv.regoff);
-							M_MTC1(GET_HIGH_REG(s1), var->vv.regoff + 1);
-							M_NOP;
-						}
-						else
-							M_LST(s1, REG_SP, var->vv.regoff * 8);
-					}
-					else {
-						if (!(var->flags & INMEMORY)) {
-							M_MTC1(s1, var->vv.regoff);
-							M_NOP;
-						}
-						else
-							M_IST(s1, REG_SP, var->vv.regoff * 8);
-					}
-				}
-#endif
  			}
 			else {
  				if (!(var->flags & INMEMORY)) {
@@ -3118,35 +3081,11 @@ gen_method:
 				}
 				else {
 					if (!md->params[s3].inmemory) {
-#if SIZEOF_VOID_P == 8
 						s1 = emit_load(jd, iptr, var, d);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DMOV(s1, d);
+							M_DBLMOVE(s1, d);
 						else
-							M_FMOV(s1, d);
-#else
-						if ((s3 == 0) ||
-							((s3 == 1) && IS_FLT_DBL_TYPE(md->paramtypes[0].type))) {
-							s1 = emit_load(jd, iptr, var, d);
-							if (IS_2_WORD_TYPE(var->type))
-								M_DBLMOVE(s1, d);
-							else
-								M_FLTMOVE(s1, d);
-						}
-						else {
-							if (IS_2_WORD_TYPE(var->type)) {
-								s1 = emit_load(jd, iptr, var, REG_FTMP1);
-								M_MFC1(GET_LOW_REG(d), s1);
-								M_MFC1(GET_HIGH_REG(d), s1 + 1);
-								M_NOP;
-							}
-							else {
-								s1 = emit_load(jd, iptr, var, d);
-								M_MFC1(d, s1);
-								M_NOP;
-							}
-						}	
-#endif
+							M_FLTMOVE(s1, d);
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
@@ -3922,7 +3861,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 					/* On MIPS32 float arguments for native functions
 					   can never be in float argument registers, since
 					   the first argument is _always_ an integer
-					   argument (JNIenv) */
+					   argument (JNIEnv) */
 
 					if (IS_2_WORD_TYPE(t)) {
 						/* double high/low order is endian
@@ -3958,6 +3897,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				s1 = md->params[i].regoff + cd->stackframesize;
 				s2 = nmd->params[j].regoff;
 
+#if SIZEOF_VOID_P == 8
 				if (IS_2_WORD_TYPE(t)) {
 					M_DLD(REG_FTMP1, REG_SP, s1 * 8);
 					M_DST(REG_FTMP1, REG_SP, s2 * 8);
@@ -3966,6 +3906,16 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 					M_FLD(REG_FTMP1, REG_SP, s1 * 8);
 					M_FST(REG_FTMP1, REG_SP, s2 * 8);
 				}
+#else
+				if (IS_2_WORD_TYPE(t)) {
+					M_DLD(REG_FTMP1, REG_SP, s1 * 8);
+					M_DST(REG_FTMP1, REG_SP, s2 * 4);
+				}
+				else {
+					M_FLD(REG_FTMP1, REG_SP, s1 * 8);
+					M_FST(REG_FTMP1, REG_SP, s2 * 4);
+				}
+#endif
 			}
 		}
 	}

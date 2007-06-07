@@ -67,6 +67,8 @@
  *                                                                         *
  * This function calls a Java-method (which possibly needs compilation)    *
  *
+ * If the java method is throwing an exception, NULL will be returned.
+ *
  * C-prototype:
  *  java_objectheader *asm_vm_call_method(methodinfo *m, s4 vmargscount,
  *						 vm_arg *vmargs);
@@ -213,7 +215,7 @@ asm_vm_call_method_exception_handler:
 	nop
 	return 	%i7 + 8         		 /* implicit window restore */
 asm_vm_call_method_end:
-	nop
+	mov    zero,%o0                  /* delay: return NULL      */
 	
 
 
@@ -415,10 +417,11 @@ asm_patcher_wrapper:
 	mov     pv_callee,pv_caller
 
 	/* create window and stack frame              */
-	save  %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+CSTACK_CNT+4)*8),%sp
+	save  %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+CSTACK_CNT+6)*8),%sp
 
-	SAVE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT)
-	SAVE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+FLT_ARG_CNT)
+	SAVE_FLOAT_RETURN_REGISTER(CSTACK_CNT)
+	SAVE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT+1)
+	SAVE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+1+FLT_ARG_CNT)
 
 	mov     itmp1,%l0               /* save itmp1                             */
 	mov     itmp2,%l1               /* save itmp2                             */
@@ -429,8 +432,9 @@ asm_patcher_wrapper:
 	call    patcher_wrapper
 	nop
 
-	RESTORE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT)
-	RESTORE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+FLT_ARG_CNT)
+	RESTORE_FLOAT_RETURN_REGISTER(CSTACK_CNT)
+	RESTORE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT+1)
+	RESTORE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+1+FLT_ARG_CNT)
 
 	mov     %l0,itmp1               /* restore itmp1                          */
 	mov     %l1,itmp2               /* restore itmp2                          */

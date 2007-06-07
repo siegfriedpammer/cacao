@@ -130,7 +130,7 @@ sem_t GC_suspend_ack_sem;
 #endif
 
 void GC_suspend_handler_inner(ptr_t sig_arg);
-int cacao_suspendhandler(void *);
+/* int cacao_suspendhandler(void *); */
 
 #if defined(IA64) || defined(HP_PA)
 extern void GC_with_callee_saves_pushed();
@@ -149,8 +149,8 @@ void GC_suspend_handler(int sig, siginfo_t *info, void *uctx)
 {
    int old_errno = errno;
 
-   if (cacao_suspendhandler(uctx))
-     return;
+/*    if (cacao_suspendhandler(uctx)) */
+/*      return; */
 
    GC_suspend_handler_inner((ptr_t)(word)sig);
    errno = old_errno;

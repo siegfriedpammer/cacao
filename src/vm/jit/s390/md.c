@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7848 2007-05-01 21:40:26Z pm $
+   $Id: md.c 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -77,14 +77,6 @@ void md_dump_context(u1 *pc, mcontext_t *mc);
 
 void md_init(void)
 {
-	struct sigaction act;
-	
-	act.sa_sigaction = md_signal_handler_sigill;
-	act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-
-	if (sigaction(SIGILL, &act, NULL) == -1)	{
-		vm_abort("%s: error registering SIGILL signal handler.", __FUNCTION__);
-	}
 }
 
 /* md_dump_context ************************************************************
@@ -345,17 +337,22 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 
 #if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
+void md_critical_section_restart(ucontext_t *_uc)
 {
 	mcontext_t *_mc;
-	void       *pc;
+	u1         *pc;
+	void       *npc;
 
 	_mc = &_uc->uc_mcontext;
 
-	pc = critical_find_restart_point((void *) _mc->psw.addr);
+	pc = (u1 *)_mc->psw.addr;
 
-	if (pc != NULL)
-		_mc->psw.addr = (ptrint) pc;
+	npc = critical_find_restart_point(pc);
+
+	if (npc != NULL) {
+		log_println("%s: pc=%p, npc=%p", __FUNCTION__, pc, npc);
+		_mc->psw.addr = (ptrint) npc;
+	}
 }
 #endif
 

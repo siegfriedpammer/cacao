@@ -50,7 +50,7 @@ CLEANFILES = offsets.h
 
 noinst_HEADERS = \
 	arch.h \
-	machine-instr.h 
+	machine-instr.h \
 	\
 	md-asm.h
 
@@ -68,6 +68,7 @@ libarch_la_SOURCES = \
 	codegen.h \
 	$(DISASS_SOURCES) \
 	emit.c \
+	emit.h \
 	patcher.c \
 	\
 	md-abi.c \

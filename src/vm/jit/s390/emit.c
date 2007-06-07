@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7848 2007-05-01 21:40:26Z pm $
+   $Id: emit.c 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -227,6 +227,7 @@ __PORTED__ void emit_patcher_stubs(jitdata *jd)
 	u1          *tmpmcodeptr;
 	s4           targetdisp;
 	s4           disp;
+	u1          *ref;
 
 	/* get required compiler data */
 
@@ -255,7 +256,46 @@ __PORTED__ void emit_patcher_stubs(jitdata *jd)
 		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position     */
 
 		disp = (savedmcodeptr) - (tmpmcodeptr);
-		M_BSR(REG_ITMP3, disp);
+
+		if (! N_VALID_BRANCH(disp)) {
+			/* Displacement overflow */
+
+			/* If LONGBRANCHES is not set, the flag and the error flag */
+			
+			if (! CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+				cd->flags |= (CODEGENDATA_FLAG_ERROR |
+					CODEGENDATA_FLAG_LONGBRANCHES);
+			}
+
+			/* If error flag is set, do nothing. The method has to be recompiled. */
+
+			if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd) && CODEGENDATA_HAS_FLAG_ERROR(cd)) {
+				return;
+			}
+		}
+
+		if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {	
+
+			/* Generating long branches */
+
+			disp = dseg_add_s4(cd, savedmcodeptr - cd->mcodebase);
+	
+			M_ILD(REG_ITMP3, REG_PV, disp);
+			M_AADD(REG_PV, REG_ITMP3);
+
+			/* Do the branch at the end of NOP sequence.
+			 * This way the patch position is at a *fixed* offset 
+			 * (PATCHER_LONGBRANCHES_NOPS_SKIP) of the return address.
+			 */
+
+			cd->mcodeptr = tmpmcodeptr + PATCHER_LONGBRANCHES_NOPS_SKIP - SZ_BASR;
+			M_JMP(REG_ITMP3, REG_ITMP3);
+		} else {
+
+			/* Generating short branches */
+
+			M_BSR(REG_ITMP3, disp);
+		}
 
 		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr       */
 
@@ -317,7 +357,7 @@ __PORTED__ void emit_patcher_stubs(jitdata *jd)
 			disp = ((cd->mcodebase) + targetdisp) -
 				(( cd->mcodeptr) );
 
-			M_BR(disp);
+			emit_branch(cd, disp, BRANCH_UNCONDITIONAL, RN, 0);
 		}
 	}
 }
@@ -840,31 +880,99 @@ void emit_copy_dst(jitdata *jd, instruction *iptr, s4 dtmpreg) {
 void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt) {
 
 	s4 branchdisp = disp;
+	s4 branchmpc;
+	u1 *ref;
 
-	switch (condition) {
-		case BRANCH_EQ:
-			M_BEQ(branchdisp);
-			break;
-		case BRANCH_NE:
-			M_BNE(branchdisp);
-			break;
-		case BRANCH_LT:
-			M_BLT(branchdisp);
-			break;
-		case BRANCH_GE:
-			M_BGE(branchdisp);
-			break;
-		case BRANCH_GT:
-			M_BGT(branchdisp);
-			break;
-		case BRANCH_LE:
-			M_BLE(branchdisp);
-			break;
-		case BRANCH_UNCONDITIONAL:
-			M_BR(branchdisp);
-			break;
-		default:
-			vm_abort("emit_branch: unknown condition %d", condition);
+	if (N_VALID_BRANCH(branchdisp)) {
+
+		/* valid displacement */
+
+		switch (condition) {
+			case BRANCH_EQ:
+				M_BEQ(branchdisp);
+				break;
+			case BRANCH_NE:
+				M_BNE(branchdisp);
+				break;
+			case BRANCH_LT:
+				M_BLT(branchdisp);
+				break;
+			case BRANCH_GE:
+				M_BGE(branchdisp);
+				break;
+			case BRANCH_GT:
+				M_BGT(branchdisp);
+				break;
+			case BRANCH_LE:
+				M_BLE(branchdisp);
+				break;
+			case BRANCH_UNCONDITIONAL:
+				M_BR(branchdisp);
+				break;
+			default:
+				vm_abort("emit_branch: unknown condition %d", condition);
+		}
+	} else {
+
+		/* If LONGBRANCHES is not set, the flag and the error flag */
+
+		if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
+			cd->flags |= (CODEGENDATA_FLAG_ERROR |
+				CODEGENDATA_FLAG_LONGBRANCHES);
+		}
+
+		/* If error flag is set, do nothing. The method has to be recompiled. */
+
+		if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd) && CODEGENDATA_HAS_FLAG_ERROR(cd)) {
+			return;
+		}
+
+		/* Patch the displacement to branch over the actual branch manually
+		 * to not get yet more nops.
+		 */
+
+		branchmpc = cd->mcodeptr - cd->mcodebase;
+		ref = cd->mcodeptr;
+
+		switch (condition) {
+			case BRANCH_EQ:
+				M_BNE(0);
+				break;
+			case BRANCH_NE:
+				M_BEQ(0);
+				break;
+			case BRANCH_LT:
+				M_BGE(0);
+				break;
+			case BRANCH_GE:
+				M_BLT(0);
+				break;
+			case BRANCH_GT:
+				M_BLE(0);
+				break;
+			case BRANCH_LE:
+				M_BGT(0);
+				break;
+			case BRANCH_UNCONDITIONAL:
+				/* fall through, no displacement to patch */
+				ref = NULL;
+				break;
+			default:
+				vm_abort("emit_branch: unknown condition %d", condition);
+		}
+
+		/* The actual long branch */
+
+		disp = dseg_add_s4(cd, branchmpc + disp);
+		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_AADD(REG_PV, REG_ITMP3);
+		M_JMP(RN, REG_ITMP3);
+
+		/* Patch back the displacement */
+
+		if (ref != NULL) {
+			*(u4 *)ref |= (u4)((cd->mcodeptr - ref) / 2);
+		}
 	}
 }
 

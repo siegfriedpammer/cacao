@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7848 2007-05-01 21:40:26Z pm $
+   $Id: codegen.h 7966 2007-05-25 12:41:03Z pm $
 
 */
 
@@ -58,16 +58,37 @@
 
 #define PATCHER_NOPS \
     do { \
-        M_NOP; \
-		M_NOP; \
-		M_NOP; \
+		/* do not generate additonal nops for long patcher branches */ \
+		if (! CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) { \
+        	M_NOP; \
+			M_NOP; \
+			M_NOP; \
+		} \
     } while (0)
 
+#define PATCHER_LONGBRANCHES_NOPS \
+	do { \
+		M_BR(SZ_BRC + (10 * 2)); \
+		M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; /* ild */ \
+		M_NOP2; /* aadd */ \
+		M_NOP2; /* jmp */ \
+	} while (0)
+
 #define PATCHER_NOPS_SKIP   12 
+#define PATCHER_LONGBRANCHES_NOPS_SKIP 24
 
 /* branch defines ************************************************************/
 
-#define BRANCH_NOPS M_NOP /* Size of at least M_BRC */
+#define BRANCH_NOPS \
+	do { \
+		if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) { \
+			M_NOP2; M_NOP2; /* brc */ \
+			M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; /* ild */ \
+			M_NOP2; /* ar, bcr */ \
+		} else { \
+			M_NOP; /* brc */ \
+		} \
+	} while (0) 
 
 /* stub defines **************************************************************/
 
@@ -551,25 +572,39 @@
 	do { \
 		if (N_VALID_DISP(d)) { \
 			N_L(r, d, RN, b); \
-		} else if (r == R0) { \
+		} else if ((r == R0) && N_VALID_IMM(d)) { \
 			N_LR(R0, R1); \
 			N_LHI(R1, d); \
 			N_L(R1, 0, R1, b); \
 			N_XR(R1, R0); \
 			N_XR(R0, R1); \
 			N_XR(R1, R0); \
-		} else { \
+		} else if ((r != R0) && N_VALID_IMM(d)) { \
 			N_LHI(r, d); N_L(r, 0, r, b); \
+		} else { \
+			N_BRAS(r, SZ_BRAS + SZ_LONG); \
+			N_LONG(d); \
+			N_L(r, 0, RN, r); \
+			N_L(r, 0, r, b); \
 		} \
 	} while (0)
 
 #define M_ALD(r, b, d) M_ILD(r, b, d)
 
-#define M_LDA(r, b, d) _IFNEG( \
-	d, \
-	N_LHI(r, d); N_LA(r, 0, r, b), \
-	N_LA(r, d, RN, b) \
-)
+#define M_LDA(r, b, d) \
+	do { \
+		if (N_VALID_DISP(d)) { \
+			N_LA(r, d, RN, b); \
+		} else if (N_VALID_IMM(d)) { \
+			N_LHI(r, d); \
+			N_LA(r, 0, r, b); \
+		} else { \
+			N_BRAS(r, SZ_BRAS + SZ_LONG); \
+			N_LONG(d); \
+			N_L(r, 0, RN, r); \
+			N_LA(r, 0, r, b); \
+		} \
+	} while (0)
 
 #define M_FLD(r, b, d) N_LE(r, d, RN, b)
 
@@ -632,6 +667,7 @@
 #define M_BR(disp) N_BRC(DD_ANY, disp)
 #define M_JMP(rs, rd) _IF(rs == RN, N_BCR(DD_ANY, rd), N_BASR(rs, rd))
 #define M_NOP N_BC(0, 0, RN, RN)
+#define M_NOP2 N_BCR(0, RN)
 #define M_JSR(reg_ret, reg_addr) N_BASR(reg_ret, reg_addr)
 #define M_ICMP(a, b) N_CR(a, b)
 #define M_ICMPU(a, b) N_CLR(a, b)
@@ -649,6 +685,7 @@
 #define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
 #define M_CVTDI(src, dst) N_CFDBR(dst, 5, src)
 #define M_IADD(a, dest) N_AR(dest, a)
+#define M_AADD(a, dest) N_AR(dest, a)
 #define M_ISUB(a, dest) N_SR(dest, a)
 #define M_ASUB(a, dest) N_SR(dest, a)
 #define M_IAND(a, dest) N_NR(dest, a)
@@ -799,8 +836,6 @@
 #define M_ALD32(a,b,disp) _DEPR( M_ALD32(a,b,disp) )
 
 #define M_AST_IMM32(a,b,c) _DEPR( M_AST_IMM32(a,b,c) )
-
-#define M_AADD(a,b) _DEPR( M_AADD(a,b) )
 
 #define M_LADD_IMM32(a,b) _DEPR( M_LADD_IMM32(a,b) )
 #define M_AADD_IMM32(a,b) _DEPR( M_AADD_IMM32(a,b) )

@@ -54,6 +54,13 @@ if ENABLE_JAVASE
 CLASSLOADER_SOURCES = \
 	java_lang_ClassLoader.c \
 	java_lang_ClassLoader.h
+
+JAVA_LANG_REFLECT_CONSTRUCTOR_SOURCES = \
+	java_lang_reflect_Constructor.c \
+	java_lang_reflect_Constructor.h
+
+SUN_MISC_UNSAFE_SOURCES = \
+	sun_misc_Unsafe.c
 endif
 
 noinst_LTLIBRARIES = \
@@ -70,8 +77,12 @@ libnativevm_la_SOURCES = \
 	java_lang_Object.h \
 	java_lang_Runtime.c \
 	java_lang_Runtime.h \
+	java_lang_String.c \
+	java_lang_String.h \
 	java_lang_Thread.c \
-	java_lang_Thread.h
+	java_lang_Thread.h \
+	$(JAVA_LANG_REFLECT_CONSTRUCTOR_SOURCES) \
+	$(SUN_MISC_UNSAFE_SOURCES)
 
 libnativevm_la_LIBADD = \
 	$(NATIVEVM_LIB)

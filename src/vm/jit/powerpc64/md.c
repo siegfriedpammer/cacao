@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md.c 7980 2007-05-30 16:01:09Z twisti $
 
 */
 
@@ -168,6 +168,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 	if ((mcode >> 16) == 0x3c19) {
 		/* XXX write a regression for this */
+		pa = NULL;
 		assert(0);
 
 		/* get displacement of first instruction (addis) */
@@ -181,8 +182,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		assert((mcode >> 16) != 0x6739);
 
 		offset += (s2) (mcode & 0x0000ffff);
-
-	} else {
+	}
+	else {
 		/* get the offset from the instruction */
 
 		offset = (s2) (mcode & 0x0000ffff);
@@ -193,8 +194,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			/* get the final data segment address */
 
 			pa = sfi->pv + offset;
-
-		} else if ((mcode >> 16) == 0xe9cc) { 
+		}
+		else if ((mcode >> 16) == 0xe9cc) { 
 			/* in this case we use the passed method pointer */
 
 			/* return NULL if no mptr was specified (used for replacement) */
@@ -203,11 +204,16 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 				return NULL;
 
 			pa = mptr + offset;
-
-		} else {
+		}
+		else {
 			/* catch any problems */
 
-			assert(0);
+			vm_abort("md_get_method_patch_address: unknown instruction %x",
+					 mcode);
+
+			/* keep compiler happy */
+
+			pa = NULL;
 		}
 	}
 
@@ -256,15 +262,18 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 		assert((mcode >> 16) == 0x39ce);
 
 		offset += (s2) (mcode & 0x0000ffff);
-
-	} else {
-		/* check for addi instruction */
-
-		assert((mcode >> 16) == 0x39cb);
-
+	}
+	else if ((mcode >> 16) == 0x39cb) {
 		/* get offset of first instruction (addi) */
 
 		offset = (s2) (mcode & 0x0000ffff);
+	}
+	else {
+		vm_abort("md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
+
+		/* keep compiler happy */
+
+		offset = 0;
 	}
 
 	/* calculate PV via RA + offset */

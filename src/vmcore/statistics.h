@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.h 7916 2007-05-18 14:24:21Z twisti $
+   $Id: statistics.h 8006 2007-06-05 07:40:49Z twisti $
 
 */
 
@@ -105,6 +105,9 @@ extern s4 size_threadobject;
 extern s4 size_lock_record;
 extern s4 size_lock_hashtable;
 extern s4 size_lock_waiter;
+
+extern u8 count_calls_java_to_native;
+extern u8 count_calls_native_to_java;
 
 extern int count_const_pool_len;
 extern int count_classref_len;
@@ -226,7 +229,6 @@ void statistics_print_gc_memory_usage(void);
 
 void mem_usagelog(bool givewarnings);
 
-void nativeinvokation(void);
 void compiledinvokation(void);
 void jnicallXmethodnvokation(void);
 void jniinvokation(void);

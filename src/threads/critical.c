@@ -86,17 +86,28 @@ static s4 critical_comparator(const void *treenode, const void *node)
 	treecsn = treenode;
 	csn     = node;
 
+#ifdef __S390__
+#	define ADDR_MASK(x) ((u1 *)((s4)(x) & 0x7FFFFFFF))
+#else
+#	define ADDR_MASK(x) (x)
+#endif
+
 	/* compare for avl_find if we have found an entry */
 
-	if ((treecsn->start <= csn->start) && (csn->start < treecsn->end))
+	if (
+		(ADDR_MASK(treecsn->start) <= ADDR_MASK(csn->start)) && 
+		(ADDR_MASK(csn->start) < ADDR_MASK(treecsn->end))
+	)
 		return 0;
 
 	/* these are for walking the tree */
 
-	if (treecsn->start < csn->start)
+	if (ADDR_MASK(treecsn->start) < ADDR_MASK(csn->start))
 		return -1;
 	else
 		return 1;
+
+#undef ADDR_MASK
 }
 
 

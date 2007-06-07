@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: profile.c 7952 2007-05-23 17:53:13Z twisti $
 
 */
 
@@ -94,19 +94,20 @@ static void profile_thread(void)
 		threads_sleep(0, nanos);
 		runs++;
 
-		/* lock the threads table */
+		/* lock the threads lists */
 
-		threads_table_lock();
+		threads_list_lock();
 
 		/* iterate over all started threads */
 
-		for (t = threads_table_first(); t != NULL; t = threads_table_next(t)) {
+		for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
 			/* is this a Java thread? */
 
 			if (!(t->flags & THREAD_FLAG_JAVA))
 				continue;
 
 			/* send SIGUSR2 to thread to get the current PC */
+			/* XXX write a threads-function for that */
 
 			pthread_kill(t->tid, SIGUSR2);
 
@@ -156,9 +157,9 @@ static void profile_thread(void)
 			}
 		}
 
-		/* unlock the threads table */
+		/* unlock the threads lists */
 
-		threads_table_unlock();
+		threads_list_unlock();
 	}
 }
 #endif

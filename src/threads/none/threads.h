@@ -59,6 +59,11 @@ extern struct stackframeinfo       *_no_threads_stackframeinfo;
 
 #define STACKFRAMEINFO      (_no_threads_stackframeinfo)
 
+#if defined(ENABLE_DEBUG_FILTER)
+extern u2 _no_threads_filterverbosecallctr[2];
+#define FILTERVERBOSECALLCTR (_no_threads_filterverbosecallctr)
+#endif
+
 #endif /* _THREADS_H */
 
 

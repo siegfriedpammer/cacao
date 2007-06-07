@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.c 7563 2007-03-23 21:33:53Z twisti $
+   $Id: access.c 7976 2007-05-29 12:22:55Z twisti $
 
 */
 
@@ -30,8 +30,11 @@
 #include "config.h"
 
 #include <assert.h>
+#include <string.h>
 
 #include "vm/types.h"
+
+#include "mm/memory.h"
 
 #include "vm/access.h"
 #include "vm/builtin.h"
@@ -40,6 +43,8 @@
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/method.h"
 
 
 /****************************************************************************/
@@ -155,13 +160,13 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 }
 
 
-/* access_check_member *********************************************************
+/* access_check_field **********************************************************
  
-   Check if the (indirect) caller has access rights to a member.
+   Check if the (indirect) caller has access rights to the specified
+   field.
   
    IN:
-       declarer.........the class declaring the member
-       memberflags......the access flags of the member
+       f................the field to check
 	   calldepth........number of callers to ignore
 	                    For example if the stacktrace looks like this:
 
@@ -178,14 +183,17 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
    
 *******************************************************************************/
 
-bool access_check_member(classinfo *declarer, s4 memberflags, s4 calldepth)
+bool access_check_field(fieldinfo *f, s4 calldepth)
 {
 	java_objectarray *oa;
 	classinfo        *callerclass;
+	char             *msg;
+	s4                msglen;
+	utf              *u;
 
 	/* if everything is public, there is nothing to check */
 
-	if ((declarer->flags & ACC_PUBLIC) && (memberflags & ACC_PUBLIC))
+	if ((f->class->flags & ACC_PUBLIC) && (f->flags & ACC_PUBLIC))
 		return true;
 
 	/* get the caller's class */
@@ -201,8 +209,112 @@ bool access_check_member(classinfo *declarer, s4 memberflags, s4 calldepth)
 
 	/* check access rights */
 
-	if (!access_is_accessible_member(callerclass, declarer, memberflags)) {
-		exceptions_throw_illegalaccessexception(callerclass);
+	if (!access_is_accessible_member(callerclass, f->class, f->flags)) {
+		msglen =
+			utf_bytes(f->class->name) +
+			strlen(".") +
+			utf_bytes(f->name) +
+			strlen(" not accessible from ") +
+			utf_bytes(callerclass->name) +
+			strlen("0");
+
+		msg = MNEW(char, msglen);
+
+		utf_copy_classname(msg, f->class->name);
+		strcat(msg, ".");
+		utf_cat_classname(msg, f->name);
+		strcat(msg, " not accessible from ");
+		utf_cat_classname(msg, callerclass->name);
+
+		u = utf_new_char(msg);
+
+		MFREE(msg, char, msglen);
+		
+		exceptions_throw_illegalaccessexception(u);
+
+		return false;
+	}
+
+	/* access granted */
+
+	return true;
+}
+
+
+/* access_check_method *********************************************************
+ 
+   Check if the (indirect) caller has access rights to the specified
+   method.
+  
+   IN:
+       m................the method to check
+	   calldepth........number of callers to ignore
+	                    For example if the stacktrace looks like this:
+
+					   java.lang.reflect.Method.invokeNative (Native Method)
+				   [0] java.lang.reflect.Method.invoke (Method.java:329)
+				   [1] <caller>
+
+				        you must specify 1 so the access rights of <caller> 
+						are checked.
+  
+   RETURN VALUE:
+       true.............access permitted
+       false............access denied, an exception has been thrown
+   
+*******************************************************************************/
+
+bool access_check_method(methodinfo *m, s4 calldepth)
+{
+	java_objectarray *oa;
+	classinfo        *callerclass;
+	char             *msg;
+	s4                msglen;
+	utf              *u;
+
+	/* if everything is public, there is nothing to check */
+
+	if ((m->class->flags & ACC_PUBLIC) && (m->flags & ACC_PUBLIC))
+		return true;
+
+	/* get the caller's class */
+
+	oa = stacktrace_getClassContext();
+
+	if (oa == NULL)
+		return false;
+
+	assert(calldepth >= 0 && calldepth < oa->header.size);
+
+	callerclass = (classinfo *) oa->data[calldepth];
+
+	/* check access rights */
+
+	if (!access_is_accessible_member(callerclass, m->class, m->flags)) {
+		msglen =
+			utf_bytes(m->class->name) +
+			strlen(".") +
+			utf_bytes(m->name) +
+			utf_bytes(m->descriptor) +
+			strlen(" not accessible from ") +
+			utf_bytes(callerclass->name) +
+			strlen("0");
+
+		msg = MNEW(char, msglen);
+
+		utf_copy_classname(msg, m->class->name);
+		strcat(msg, ".");
+		utf_cat_classname(msg, m->name);
+		utf_cat_classname(msg, m->descriptor);
+		strcat(msg, " not accessible from ");
+		utf_cat_classname(msg, callerclass->name);
+
+		u = utf_new_char(msg);
+
+		MFREE(msg, char, msglen);
+		
+		exceptions_throw_illegalaccessexception(u);
+
 		return false;
 	}
 

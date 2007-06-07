@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 7575 2007-03-25 20:30:50Z twisti $
+   $Id: method.h 7966 2007-05-25 12:41:03Z pm $
 */
 
 
@@ -103,6 +103,10 @@ struct methodinfo {                 /* method structure                       */
 
 #if defined(ENABLE_REPLACEMENT)
 	s4            hitcountdown;     /* decreased for each hit                 */
+#endif
+
+#if defined(ENABLE_DEBUG_FILTER)
+	u1            filtermatches;    /* flags indicating which filters the method matches */
 #endif
 };
 

@@ -22,16 +22,16 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7902 2007-05-11 22:33:15Z twisti $
+dnl $Id: configure.ac 8022 2007-06-06 11:31:28Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.98rc, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.98+svn, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
-AM_INIT_AUTOMAKE([1.9.0])
+AM_INIT_AUTOMAKE([1.9.0 dist-bzip2])
 AM_MAINTAINER_MODE
 
 AM_CONFIG_HEADER([config.h])
@@ -215,6 +215,7 @@ AC_HEADER_STDC
 
 dnl keep them alpha-sorted!
 AC_CHECK_HEADERS([fcntl.h])
+AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([time.h])
 AC_CHECK_HEADERS([unistd.h])
@@ -250,6 +251,7 @@ AC_FUNC_MMAP
 
 dnl keep them alpha-sorted!
 AC_CHECK_FUNCS([calloc])
+AC_CHECK_FUNCS([confstr])
 AC_CHECK_FUNCS([getpagesize])
 AC_CHECK_FUNCS([free])
 AC_CHECK_FUNCS([getcwd])
@@ -262,6 +264,7 @@ AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([scandir])
 AC_CHECK_FUNCS([strdup])
+AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([time])
 
 
@@ -890,6 +893,20 @@ dnl check for some programs we need
 AC_PROG_JAVAC
 AC_PROG_JAR
 
+AC_CHECK_HEADERS(
+	[regex.h], 
+	[
+		dnl If debug build and regex.h available, enable debug filter
+		if test x"${NDEBUG}" = "xno"; then
+			AC_DEFINE(ENABLE_DEBUG_FILTER, 1, [debug filter])
+		fi
+		dnl If vmlog enambled and regex.h available, enable vmlogfilter
+		AM_CONDITIONAL([ENABLE_VMLOGFILTER], [test x"${ENABLE_VMLOG}" = "xyes"])
+	],
+	[
+		AM_CONDITIONAL([ENABLE_VMLOGFILTER], [false])
+	]
+)
 
 dnl finally pass CFLAGS to Makefiles via AM_CFLAGS
 CFLAGS=$OPT_CFLAGS

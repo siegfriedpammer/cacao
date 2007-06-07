@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7713 2007-04-15 21:49:48Z twisti $
+   $Id: md-abi.c 8013 2007-06-05 10:19:09Z twisti $
 
 */
 
@@ -264,31 +264,24 @@ void md_param_alloc(methoddesc *md)
 	s4         i;
 	s4         reguse;
 	s4         stacksize;
-#if SIZEOF_VOID_P == 4 && !defined(ENABLE_SOFT_FLOAT)
-	s4         t;
-	bool       a0_is_float;
-#endif
 
 	/* set default values */
 
 	reguse      = 0;
 	stacksize   = 0;
-#if SIZEOF_VOID_P == 4 && !defined(ENABLE_SOFT_FLOAT)
-	a0_is_float = false;
-#endif
 
 	/* get params field of methoddesc */
 
 	pd = md->params;
 
-	for (i = 0; i < md->paramcount; i++, pd++) {
 #if SIZEOF_VOID_P == 8
 
+	for (i = 0; i < md->paramcount; i++, pd++) {
 		switch (md->paramtypes[i].type) {
 		case TYPE_INT:
 		case TYPE_ADR:
 		case TYPE_LNG:
-			if (i < INT_ARG_CNT) {
+			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
@@ -300,9 +293,10 @@ void md_param_alloc(methoddesc *md)
 				stacksize++;
 			}
 			break;
+
 		case TYPE_FLT:
 		case TYPE_DBL:
-			if (i < FLT_ARG_CNT) {
+			if (reguse < FLT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff   = abi_registers_float_argument[reguse];
 				reguse++;
@@ -319,13 +313,180 @@ void md_param_alloc(methoddesc *md)
 		/* register type is the same as java type */
 
 		pd->type = md->paramtypes[i].type;
+	}
 
 #else /* SIZEOF_VOID_P == 8 */
 
-#if !defined(ENABLE_SOFT_FLOAT)
+# if !defined(ENABLE_SOFT_FLOAT)
 
-#define ALIGN_2_WORD(s)    ((s) & 1) ? ++(s) : (s)
+	/* Set stacksize to 2, as 4 32-bit argument registers can be
+	   stored. */
+	/* XXX maybe this should be done in stack.c? */
 
+	stacksize = 2;
+
+	for (i = 0; i < md->paramcount; i++, pd++) {
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+			if (reguse < INT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->regoff   = abi_registers_integer_argument[reguse];
+				reguse++;
+				md->argintreguse = reguse;
+			}
+			else {
+				pd->inmemory = true;
+				pd->regoff   = stacksize;
+				stacksize++;
+			}
+			break;
+
+		case TYPE_LNG:
+			ALIGN_2(reguse);
+
+			if (reguse < INT_ARG_CNT) {
+				pd->inmemory = false;
+#  if WORDS_BIGENDIAN == 1
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse + 1],
+							  abi_registers_integer_argument[reguse]);
+#  else
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse],
+							  abi_registers_integer_argument[reguse + 1]);
+#  endif
+				reguse += 2;
+				md->argintreguse = reguse;
+			}
+			else {
+				pd->inmemory = true;
+				pd->regoff   = stacksize;
+				stacksize++;
+			}
+			break;
+
+		case TYPE_FLT:
+		case TYPE_DBL:
+			if (reguse < FLT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->regoff   = abi_registers_float_argument[reguse];
+				reguse++;
+				md->argfltreguse = reguse;
+			}
+			else {
+				pd->inmemory = true;
+				pd->regoff   = stacksize;
+				stacksize++;
+			}
+			break;
+		}
+
+		/* register type is the same as java type */
+
+		pd->type = md->paramtypes[i].type;
+	}
+
+# else /* !defined(ENABLE_SOFT_FLOAT) */
+#  error never actually tested!
+
+	for (i = 0; i < md->paramcount; i++, pd++) {
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+		case TYPE_FLT:
+			pd->type = TYPE_INT;
+
+			if (reguse < INT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->regoff   = abi_registers_integer_argument[reguse];
+				reguse++;
+				md->argintreguse = reguse;
+			}
+			else {
+				pd->inmemory = true;
+				pd->regoff   = stacksize;
+			}
+			stacksize++;
+			break;
+
+		case TYPE_LNG:
+		case TYPE_DBL:
+			pd->type = TYPE_LNG;
+
+			if (reguse < INT_ARG_CNT) {
+				pd->inmemory = false;
+#  if WORDS_BIGENDIAN == 1
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse + 1],
+							  abi_registers_integer_argument[reguse]);
+#  else
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[reguse],
+							  abi_registers_integer_argument[reguse + 1]);
+#  endif
+				reguse += 2;
+				md->argintreguse = reguse;
+			}
+			else {
+				pd->inmemory = true;
+				pd->regoff   = stacksize;
+			}
+			stacksize += 2;
+			break;
+		}
+	}
+
+# endif /* !defined(ENABLE_SOFT_FLOAT) */
+#endif /* SIZEOF_VOID_P == 8 */
+
+	/* fill register and stack usage */
+
+	md->memuse = stacksize;
+}
+
+
+/* md_param_alloc_native *******************************************************
+
+   Pre-allocate arguments according the native ABI.
+
+*******************************************************************************/
+
+void md_param_alloc_native(methoddesc *md)
+{
+#if SIZEOF_VOID_P == 8
+
+	/* On MIPS n64 we use the same ABI for JIT method calls as for
+	   native method calls. */
+
+	md_param_alloc(md);
+
+#else /* SIZEOF_VOID_P == 8 */
+
+	paramdesc *pd;
+	s4         i;
+	s4         reguse;
+	s4         stacksize;
+# if !defined(ENABLE_SOFT_FLOAT)
+	s4         t;
+	bool       a0_is_float;
+# endif
+
+	/* set default values */
+
+	reguse      = 0;
+	stacksize   = 0;
+# if !defined(ENABLE_SOFT_FLOAT)
+	a0_is_float = false;
+# endif
+
+	/* get params field of methoddesc */
+
+	pd = md->params;
+
+# if !defined(ENABLE_SOFT_FLOAT)
+
+	for (i = 0; i < md->paramcount; i++, pd++) {
 		t = md->paramtypes[i].type;
 
 		if (IS_FLT_DBL_TYPE(t) &&
@@ -348,26 +509,28 @@ void md_param_alloc(methoddesc *md)
 		}
 		else {
 			if (IS_2_WORD_TYPE(t)) {
-				ALIGN_2_WORD(reguse);
+				ALIGN_2(reguse);
 				pd->type = TYPE_LNG;
 
 				if (reguse < INT_ARG_CNT) {
 					pd->inmemory = false;
-# if WORDS_BIGENDIAN == 1
+#  if WORDS_BIGENDIAN == 1
 					pd->regoff   =
 						PACK_REGS(abi_registers_integer_argument[reguse + 1],
 								  abi_registers_integer_argument[reguse]);
-# else
+#  else
 					pd->regoff   =
 						PACK_REGS(abi_registers_integer_argument[reguse],
 								  abi_registers_integer_argument[reguse + 1]);
-# endif
+#  endif
 					reguse += 2;
 					md->argintreguse = reguse;
 				}
 				else {
+					ALIGN_2(stacksize);
+
 					pd->inmemory = true;
-					pd->regoff   = ALIGN_2_WORD(stacksize);
+					pd->regoff   = stacksize;
 				}
 				stacksize += 2;
 			}
@@ -387,10 +550,12 @@ void md_param_alloc(methoddesc *md)
 				stacksize++;
 			}
 		}
+	}
 
-#else /* !defined(ENABLE_SOFT_FLOAT) */
-#error never actually tested!
+# else /* !defined(ENABLE_SOFT_FLOAT) */
+#  error never actually tested!
 
+	for (i = 0; i < md->paramcount; i++, pd++) {
 		switch (md->paramtypes[i].type) {
 		case TYPE_INT:
 		case TYPE_ADR:
@@ -415,15 +580,15 @@ void md_param_alloc(methoddesc *md)
 
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
-#if WORDS_BIGENDIAN == 1
+#  if WORDS_BIGENDIAN == 1
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse + 1],
 							  abi_registers_integer_argument[reguse]);
-#else
+#  else
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse],
 							  abi_registers_integer_argument[reguse + 1]);
-#endif
+#  endif
 				reguse += 2;
 				md->argintreguse = reguse;
 			}
@@ -434,31 +599,15 @@ void md_param_alloc(methoddesc *md)
 			stacksize += 2;
 			break;
 		}
-
-
-#endif /* !defined(ENABLE_SOFT_FLOAT) */
-
-#endif /* SIZEOF_VOID_P == 8 */
 	}
+
+# endif /* !defined(ENABLE_SOFT_FLOAT) */
 
 	/* fill register and stack usage */
 
 	md->memuse = stacksize;
-}
 
-
-/* md_param_alloc_native *******************************************************
-
-   Pre-allocate arguments according the native ABI.
-
-*******************************************************************************/
-
-void md_param_alloc_native(methoddesc *md)
-{
-	/* On MIPS we use the same ABI for JIT method calls as for native
-	   method calls. */
-
-	md_param_alloc(md);
+#endif /* SIZEOF_VOID_P == 8 */
 }
 
 

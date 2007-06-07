@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.h 7441 2007-03-02 23:13:10Z michi $
+   $Id: access.h 7976 2007-05-29 12:22:55Z twisti $
 
 */
 
@@ -36,6 +36,8 @@
 #include "vm/global.h"
 
 #include "vmcore/class.h"
+#include "vmcore/field.h"
+#include "vmcore/method.h"
 
 
 /* macros *********************************************************************/
@@ -52,7 +54,8 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls);
 bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 								 s4 memberflags);
 
-bool access_check_member(classinfo *declarer, s4 memberflags, s4 calldepth);
+bool access_check_field(fieldinfo *f, s4 calldepth);
+bool access_check_method(methodinfo *m, s4 calldepth);
 
 #endif /* _ACCESS_H */
 

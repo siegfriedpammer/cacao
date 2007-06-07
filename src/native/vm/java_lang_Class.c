@@ -61,11 +61,11 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
-#include "vm/resolve.h"
 
 
 /*
@@ -269,17 +269,13 @@ s4 _Jv_java_lang_Class_isInterface(java_lang_Class *klass)
 s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 {
 	classinfo *c;
-	s4         i;
+	bool       result;
 
 	c = (classinfo *) klass;
 
-	/* search table of primitive classes */
+	result = class_is_primitive(c);
 
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
-		if (primitivetype_table[i].class_primitive == c)
-			return true;
-
-	return false;
+	return result;
 }
 
 
@@ -447,7 +443,7 @@ java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
 
 	c = (classinfo *) klass;
 
-	if (!_Jv_java_lang_Class_isPrimitive(klass) && (c->name->text[0] != '[')) {
+	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
 		if (c->innerclasscount == 0)  /* no innerclasses exist */
 			return NULL;
     
@@ -502,7 +498,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
 	c = (classinfo *) klass;
 	declaredclasscount = 0;
 
-	if (!_Jv_java_lang_Class_isPrimitive(klass) && (c->name->text[0] != '[')) {
+	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
 		/* determine number of declared classes */
 
 		for (i = 0; i < c->innerclasscount; i++) {

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: class.c 8027 2007-06-07 10:30:33Z michi $
 
 */
 
@@ -1365,6 +1365,26 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 	/* XXX check access rights */
 
 	return fi;
+}
+
+
+/* class_is_primitive **********************************************************
+
+   Check if the given class is a primitive class.
+
+*******************************************************************************/
+
+bool class_is_primitive(classinfo *c)
+{
+	s4 i;
+
+	/* search table of primitive classes */
+
+	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
+		if (primitivetype_table[i].class_primitive == c)
+			return true;
+
+	return false;
 }
 
 
