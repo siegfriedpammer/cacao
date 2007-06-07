@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.h 7675 2007-04-05 14:23:04Z michi $
+   $Id: linker.h 8042 2007-06-07 17:43:29Z twisti $
 */
 
 
@@ -137,11 +137,12 @@ struct arraydescriptor {
 /* primitivetypeinfo **********************************************************/
 
 struct primitivetypeinfo {
+	char      *cname;                    /* char name of primitive class      */
+	utf       *name;                     /* name of primitive class           */
 	classinfo *class_wrap;               /* class for wrapping primitive type */
 	classinfo *class_primitive;          /* primitive class                   */
 	char      *wrapname;                 /* name of class for wrapping        */
 	char       typesig;                  /* one character type signature      */
-	char      *name;                     /* name of primitive class           */
 	char      *arrayname;                /* name of primitive array class     */
 	classinfo *arrayclass;               /* primitive array class             */
 	vftbl_t   *arrayvftbl;               /* vftbl of primitive array class    */
