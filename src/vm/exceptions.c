@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8005 2007-06-04 13:12:56Z twisti $
+   $Id: exceptions.c 8047 2007-06-07 22:20:37Z twisti $
 
 */
 
@@ -1434,6 +1434,22 @@ java_objectheader *exceptions_new_nullpointerexception(void)
 void exceptions_throw_nullpointerexception(void)
 {
 	exceptions_throw_class(class_java_lang_NullPointerException);
+}
+
+
+/* exceptions_throw_privilegedactionexception **********************************
+
+   Generates and throws a java.security.PrivilegedActionException.
+
+   IN:
+       cause....cause exception
+
+*******************************************************************************/
+
+void exceptions_throw_privilegedactionexception(java_objectheader *cause)
+{
+	exceptions_throw_utf_throwable(utf_java_security_PrivilegedActionException,
+								   cause);
 }
 
 

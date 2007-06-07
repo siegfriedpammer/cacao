@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 8004 2007-06-04 12:59:04Z twisti $
+   $Id: exceptions.h 8047 2007-06-07 22:20:37Z twisti $
 
 */
 
@@ -123,6 +123,7 @@ void exceptions_throw_negativearraysizeexception(void);
 
 java_objectheader *exceptions_new_nullpointerexception(void);
 void exceptions_throw_nullpointerexception(void);
+void exceptions_throw_privilegedactionexception(java_objectheader *cause);
 void exceptions_throw_stringindexoutofboundsexception(void);
 
 java_objectheader *exceptions_fillinstacktrace(void);

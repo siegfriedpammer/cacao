@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 7942 2007-05-23 12:40:31Z twisti $
+   $Id: utf8.c 8047 2007-06-07 22:20:37Z twisti $
 
 */
 
@@ -118,6 +118,8 @@ utf *utf_java_lang_NullPointerException;
 utf *utf_java_lang_StringIndexOutOfBoundsException;
 
 utf *utf_java_lang_reflect_InvocationTargetException;
+
+utf *utf_java_security_PrivilegedActionException;
 
 #if defined(ENABLE_JAVASE)
 utf* utf_java_lang_Void;
@@ -347,6 +349,9 @@ bool utf8_init(void)
 
 	utf_java_lang_reflect_InvocationTargetException =
 		utf_new_char("java/lang/reflect/InvocationTargetException");
+
+	utf_java_security_PrivilegedActionException =
+		utf_new_char("java/security/PrivilegedActionException");
  
 #if defined(ENABLE_JAVASE)
 	utf_java_lang_Void             = utf_new_char("java/lang/Void");
