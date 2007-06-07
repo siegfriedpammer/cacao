@@ -149,7 +149,8 @@ void rootset_from_classes(rootset_t *rs)
 	refcount = rs->refcount;
 
 	/* walk through all classinfo blocks */
-	for (c = sys_start; c < (classinfo *) sys_end; c++) {
+	c = sys_start;
+	while (c < (classinfo *) sys_end) {
 
 		GC_LOG2( printf("Searching in class "); class_print(c); printf("\n"); );
 
@@ -173,6 +174,10 @@ void rootset_from_classes(rootset_t *rs)
 			ROOTSET_ADD(&( f->value.a ), true, REFTYPE_CLASSREF);
 
 		}
+
+		/* skip to next classinfo block */
+		c++;
+		c = (classinfo *) (GC_ALIGN((ptrint) c, GC_ALIGN_SIZE));
 
 	}
 

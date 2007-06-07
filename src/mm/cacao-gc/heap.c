@@ -54,13 +54,6 @@ regioninfo_t *heap_region_sys;
 regioninfo_t *heap_region_main;
 
 
-/* Helper Macros **************************************************************/
-
-#define GC_ALIGN_SIZE SIZEOF_VOID_P
-#define GC_ALIGN(length,size) ((((length) + (size) - 1) / (size)) * (size))
-
-
-
 void heap_init_objectheader(java_objectheader *o, u4 bytelength)
 {
 	u4 wordcount;

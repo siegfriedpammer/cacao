@@ -107,6 +107,9 @@
 #define POINTS_INTO(ptr, ptr_start, ptr_end) \
 	((void *) (ptr) >= (ptr_start) && (void *) (ptr) < (ptr_end))
 
+#define GC_ALIGN_SIZE SIZEOF_VOID_P
+#define GC_ALIGN(val,size) ((((val) + (size) - 1) / (size)) * (size))
+
 
 /* Global Variables ***********************************************************/
 
