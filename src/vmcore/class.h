@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8042 2007-06-07 17:43:29Z twisti $
+   $Id: class.h 8049 2007-06-07 23:30:45Z twisti $
 
 */
 
@@ -283,6 +283,8 @@ classinfo *class_create_classinfo(utf *u);
 
 /* postset's the header.vftbl */
 void class_postset_header_vftbl(void);
+
+classinfo *class_define(utf *name, java_objectheader *cl, s4 length, u1 *data);
 
 /* set the package name after the name has been set */
 void class_set_packagename(classinfo *c);

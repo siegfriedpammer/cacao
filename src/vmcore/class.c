@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8042 2007-06-07 17:43:29Z twisti $
+   $Id: class.c 8049 2007-06-07 23:30:45Z twisti $
 
 */
 
@@ -276,6 +276,94 @@ void class_postset_header_vftbl(void)
 			}
 		}
 	}
+}
+
+/* class_define ****************************************************************
+
+   Calls the loader and defines a class in the VM.
+
+*******************************************************************************/
+
+classinfo *class_define(utf *name, java_objectheader *cl, s4 length, u1 *data)
+{
+	classinfo   *c;
+	classinfo   *r;
+	classbuffer *cb;
+
+	if (name != NULL) {
+		/* check if this class has already been defined */
+
+		c = classcache_lookup_defined_or_initiated(cl, name);
+
+		if (c != NULL) {
+			exceptions_throw_linkageerror("duplicate class definition: ", c);
+			return NULL;
+		}
+	} 
+
+	/* create a new classinfo struct */
+
+	c = class_create_classinfo(name);
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getloadingtime)
+		loadingtime_start();
+#endif
+
+	/* build a classbuffer with the given data */
+
+	cb = NEW(classbuffer);
+
+	cb->class = c;
+	cb->size  = length;
+	cb->data  = data;
+	cb->pos   = cb->data;
+
+	/* preset the defining classloader */
+
+	c->classloader = cl;
+
+	/* load the class from this buffer */
+
+	r = load_class_from_classbuffer(cb);
+
+	/* free memory */
+
+	FREE(cb, classbuffer);
+
+#if defined(ENABLE_STATISTICS)
+	/* measure time */
+
+	if (opt_getloadingtime)
+		loadingtime_stop();
+#endif
+
+	if (r == NULL) {
+		/* If return value is NULL, we had a problem and the class is
+		   not loaded.  Now free the allocated memory, otherwise we
+		   could run into a DOS. */
+
+		class_free(c);
+
+		return NULL;
+	}
+
+	/* Store the newly defined class in the class cache. This call
+	   also checks whether a class of the same name has already been
+	   defined by the same defining loader, and if so, replaces the
+	   newly created class by the one defined earlier. */
+
+	/* Important: The classinfo given to classcache_store must be
+	              fully prepared because another thread may return
+	              this pointer after the lookup at to top of this
+	              function directly after the class cache lock has
+	              been released. */
+
+	c = classcache_store(cl, c, true);
+
+	return c;
 }
 
 
