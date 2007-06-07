@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8041 2007-06-07 16:21:11Z twisti $
+dnl $Id: configure.ac 8043 2007-06-07 19:22:31Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -255,21 +255,23 @@ AC_FUNC_MMAP
 dnl keep them alpha-sorted!
 AC_CHECK_FUNCS([calloc])
 AC_CHECK_FUNCS([confstr])
-AC_CHECK_FUNCS([getpagesize])
 AC_CHECK_FUNCS([free])
 AC_CHECK_FUNCS([fstat])
 AC_CHECK_FUNCS([getcwd])
-AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_FUNCS([getpagesize])
 AC_CHECK_FUNCS([getrusage])
+AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([ioctl])
 AC_CHECK_FUNCS([isnan])
 AC_CHECK_FUNCS([localtime])
 AC_CHECK_FUNCS([localtime_r])
 AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([mprotect])
+AC_CHECK_FUNCS([open])
 AC_CHECK_FUNCS([scandir])
 AC_CHECK_FUNCS([select])
 AC_CHECK_FUNCS([strdup])
+AC_CHECK_FUNCS([strerror])
 AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([time])
 
