@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: codegen.c 8039 2007-06-07 13:46:55Z michi $
 
 */
 
@@ -2909,6 +2909,8 @@ nowperformreturn:
 
 		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
 
+			REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr);
+
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
 			goto gen_method;
@@ -3069,6 +3071,7 @@ gen_method:
 			/* store size of call code in replacement point */
 
 			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+			REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
 
 			/* d contains return type */
 

@@ -1625,6 +1625,8 @@ bool codegen_emit(jitdata *jd)
 
 		/* METHOD INVOCATION *********************************************************/
 		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
+			REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr);
+
 			bte = iptr->sx.s23.s3.bte;
 			md  = bte->md;
 			goto gen_method;
@@ -1766,6 +1768,7 @@ bool codegen_emit(jitdata *jd)
 				}	/* switch (iptr->opc) */
 
 				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+				REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
 				
 				/* store return value */
 				d = md->returntype.type;
