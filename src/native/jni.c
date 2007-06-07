@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 7926 2007-05-21 08:27:06Z twisti $
+   $Id: jni.c 8045 2007-06-07 21:52:21Z twisti $
 
 */
 
@@ -1471,7 +1471,7 @@ void _Jv_JNI_FatalError(JNIEnv *env, const char *msg)
 
 	/* this seems to be the best way */
 
-	vm_abort(msg);
+	vm_abort("JNI Fatal error: %s", msg);
 }
 
 
