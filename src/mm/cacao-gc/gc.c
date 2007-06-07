@@ -184,7 +184,7 @@ void gc_collect(s4 level)
 	GC_LOG( dolog("GC: Suspending threads ..."); );
 	GC_LOG( threads_dump(); );
 	threads_stopworld();
-	GC_LOG( threads_dump(); );
+	/*GC_LOG( threads_dump(); );*/
 	GC_LOG( dolog("GC: Suspension finished."); );
 #endif
 

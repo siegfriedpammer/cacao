@@ -313,7 +313,7 @@ rootset_t *rootset_readout()
 	/* ... and the rootsets for the threads */
 	rs = rs_top;
 #if defined(ENABLE_THREADS)
-	for (thread = threads_table_first(); thread != NULL; thread = threads_table_next(thread)) {
+	for (thread = threads_list_first(); thread != NULL; thread = threads_list_next(thread)) {
 		rs->next = rootset_create();
 		rs = rs->next;
 
