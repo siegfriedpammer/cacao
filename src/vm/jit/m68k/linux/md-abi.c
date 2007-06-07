@@ -53,6 +53,12 @@ const s4 abi_registers_integer_temporary[] 	= {0,1};
 /*                        A0,      A1,   ATMP1,   ATMP2,   ATMP3,      A5,  REG_FP, REG_SP */
 s4 nregdescadr[] = { REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_RES, REG_END };
 
+const char *abi_registers_address_name [] = { "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7" };
+
+const s4 abi_registers_address_argument[] 	;
+const s4 abi_registers_address_saved[] 		= {5,6};
+const s4 abi_registers_address_temporary[] 	= {0,1};
+
 
 /* Floatingpoint register description */
 /*                        F0,      F1,   FTMP1,   FTMP2,   FTMP3,      F5,      F6,      F7 */
