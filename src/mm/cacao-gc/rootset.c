@@ -216,7 +216,7 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 #endif
 
 	GC_LOG2( printf("Stacktrace of thread:\n");
-			stacktrace_dump_trace(thread); );
+			threads_thread_print_stacktrace(thread); );
 
 	/* get the sourcestate of the threads */
 	es = GC_EXECUTIONSTATE;
