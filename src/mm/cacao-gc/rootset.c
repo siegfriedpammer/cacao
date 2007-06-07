@@ -236,8 +236,7 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	/* now inspect the source state to compile the root set */
 	for (sf = ss->frames; sf != NULL; sf = sf->down) {
 
-		GC_LOG( printf("Source Frame: localcount=%d, stackdepth=%d\n", sf->javalocalcount, sf->javastackdepth); );
-		GC_ASSERT(sf->syncslotcount == 0);
+		GC_LOG( printf("Source Frame: localcount=%d, stackdepth=%d, syncslots=%d\n", sf->javalocalcount, sf->javastackdepth, sf->syncslots); );
 
 		for (i = 0; i < sf->javalocalcount; i++) {
 
@@ -262,6 +261,15 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 
 			/* add this reference to the root set */
 			ROOTSET_ADD((java_objectheader **) &( sf->javastack[i] ), true, REFTYPE_STACK);
+
+		}
+
+		for (i = 0; i < sf->syncslotcount; i++) {
+
+			GC_LOG( printf("Found Reference (Sync Slot): %p\n", (void *) sf->syncslots[i].a); );
+
+			/* add this reference to the root set */
+			ROOTSET_ADD((java_objectheader **) &( sf->syncslots[i] ), true, REFTYPE_STACK);
 
 		}
 	}
