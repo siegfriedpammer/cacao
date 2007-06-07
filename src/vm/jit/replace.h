@@ -164,6 +164,9 @@ struct executionstate_t {
 
 	ptrint        intregs[INT_REG_CNT];             /* register values */
 	double        fltregs[FLT_REG_CNT];             /* register values */
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	ptrint        adrregs[ADR_REG_CNT];             /* register values */
+#endif
 
 	codeinfo     *code;            /* codeinfo corresponding to the pv */
 };
@@ -202,6 +205,9 @@ struct sourceframe_t {
 	u1            *nativepc;
 	ptrint         nativesavint[INT_SAV_CNT]; /* XXX temporary */
 	double         nativesavflt[FLT_REG_CNT]; /* XXX temporary */
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	ptrint         nativesavadr[ADR_SAV_CNT]; /* XXX temporary */
+#endif
 };
 
 #define REPLACE_IS_NATIVE_FRAME(frame)  ((frame)->sfi != NULL)

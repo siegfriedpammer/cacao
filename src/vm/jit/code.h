@@ -85,6 +85,9 @@ struct codeinfo {
 	s4            stackframesize;       /* size of the stackframe in slots    */
 	u1            savedintcount;        /* number of callee saved int regs    */
 	u1            savedfltcount;        /* number of callee saved flt regs    */
+# if defined(HAS_ADDRESS_REGISTER_FILE)
+	u1            savedadrcount;        /* number of callee saved adr regs    */
+# endif
 	u1           *savedmcode;           /* saved code under patches           */
 #endif
 
