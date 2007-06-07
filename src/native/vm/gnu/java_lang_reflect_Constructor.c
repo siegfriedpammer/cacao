@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 7976 2007-05-29 12:22:55Z twisti $
+   $Id: java_lang_reflect_Constructor.c 8026 2007-06-07 09:04:51Z twisti $
 
 */
 
@@ -40,28 +40,21 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
-
 #include "native/include/java_lang_reflect_Constructor.h"
 
-#include "toolbox/logging.h"
+#include "native/vm/java_lang_reflect_Constructor.h"
 
-#include "vm/builtin.h"
-#include "vm/exceptions.h"
-#include "vm/access.h"
-#include "vm/stringlocal.h"
-
-#include "vmcore/class.h"
-#include "vmcore/method.h"
+#include "vmcore/utf8.h"
 
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getModifiersInternal", "()I",                                                       (void *) (ptrint) &Java_java_lang_reflect_Constructor_getModifiersInternal },
-	{ "getParameterTypes",    "()[Ljava/lang/Class;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getParameterTypes    },
-	{ "getExceptionTypes",    "()[Ljava/lang/Class;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getExceptionTypes    },
-	{ "constructNative",      "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Constructor_constructNative      },
-	{ "getSignature",         "()Ljava/lang/String;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getSignature         },
+	{ "getModifiersInternal", "()I",                                                       (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getModifiers      },
+	{ "getParameterTypes",    "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getParameterTypes },
+	{ "getExceptionTypes",    "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getExceptionTypes },
+	{ "constructNative",      "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Constructor_constructNative  },
+	{ "getSignature",         "()Ljava/lang/String;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getSignature      },
 };
 
 
@@ -83,115 +76,12 @@ void _Jv_java_lang_reflect_Constructor_init(void)
 
 /*
  * Class:     java/lang/reflect/Constructor
- * Method:    getModifiersInternal
- * Signature: ()I
- */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiersInternal(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo  *c;
-	methodinfo *m;
-
-	c = (classinfo *) (this->clazz);
-	m = &(c->methods[this->slot]);
-
-	return m->flags;
-}
-
-
-/*
- * Class:     java/lang/reflect/Constructor
- * Method:    getParameterTypes
- * Signature: ()[Ljava/lang/Class;
- */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo  *c;
-	methodinfo *m;
-
-	c = (classinfo *) this->clazz;
-	m = &(c->methods[this->slot]);
-
-	return method_get_parametertypearray(m);
-}
-
-
-/*
- * Class:     java/lang/reflect/Constructor
- * Method:    getExceptionTypes
- * Signature: ()[Ljava/lang/Class;
- */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo  *c;
-	methodinfo *m;
-
-	c = (classinfo *) this->clazz;
-	m = &(c->methods[this->slot]);
-
-	return method_get_exceptionarray(m);
-}
-
-
-/*
- * Class:     java/lang/reflect/Constructor
  * Method:    constructNative
  * Signature: ([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {
-	classinfo         *c;
-	methodinfo        *m;
-	java_objectheader *o;
-
-	c = (classinfo *) declaringClass;
-	m = &(c->methods[this->slot]);
-
-	/* check method access */
-
-	/* check if we should bypass security checks (AccessibleObject) */
-
-	if (this->flag == false) {
-		if (!access_check_method(m, 1))
-			return NULL;
-	}
-
-	/* create object */
-
-	o = builtin_new(c);
-
-	if (o == NULL)
-		return NULL;
-        
-	/* call initializer */
-
-	(void) _Jv_jni_invokeNative(m, o, args);
-
-	return (java_lang_Object *) o;
-}
-
-
-/*
- * Class:     java/lang/reflect/Constructor
- * Method:    getSignature
- * Signature: ()Ljava/lang/String;
- */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Constructor_getSignature(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo         *c;
-	methodinfo        *m;
-	java_objectheader *o;
-
-	c = (classinfo *) this->clazz;
-	m = &(c->methods[this->slot]);
-
-	if (m->signature == NULL)
-		return NULL;
-
-	o = javastring_new(m->signature);
-
-	/* in error case o is NULL */
-
-	return (java_lang_String *) o;
+	return _Jv_java_lang_reflect_Constructor_newInstance(env, this, args);
 }
 
 
