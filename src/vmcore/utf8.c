@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 8047 2007-06-07 22:20:37Z twisti $
+   $Id: utf8.c 8048 2007-06-07 22:41:54Z twisti $
 
 */
 
@@ -199,6 +199,7 @@ utf *utf_double__void;                  /* (D)V                               */
 utf *utf_void__java_lang_ClassLoader;   /* ()Ljava/lang/ClassLoader;          */
 utf *utf_void__java_lang_Object;        /* ()Ljava/lang/Object;               */
 utf *utf_void__java_lang_Throwable;     /* ()Ljava/lang/Throwable;            */
+utf *utf_java_lang_Exception__V;        /* (Ljava/lang/Exception;)V           */
 utf *utf_java_lang_Object__java_lang_Object;
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
@@ -436,6 +437,8 @@ bool utf8_init(void)
 
 	utf_void__java_lang_ClassLoader =
 		utf_new_char("()Ljava/lang/ClassLoader;");
+
+	utf_java_lang_Exception__V     = utf_new_char("(Ljava/lang/Exception;)V");
 
 	utf_java_lang_Object__java_lang_Object =
 		utf_new_char("(Ljava/lang/Object;)Ljava/lang/Object;");
