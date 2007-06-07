@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8044 2007-06-07 19:24:35Z twisti $
+   $Id: builtin.c 8046 2007-06-07 22:02:16Z pm $
 
 */
 
@@ -1317,7 +1317,12 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 		break;
 
 	case TYPE_FLT:
+#if defined(__S390__)
+		imu.l = value;
+		/* The below won't work on S390 */
+#else
 		imu.i = (s4) value;
+#endif
 		sprintf(logtext + strlen(logtext), "%g (0x%08x)", imu.f, imu.i);
 		break;
 
