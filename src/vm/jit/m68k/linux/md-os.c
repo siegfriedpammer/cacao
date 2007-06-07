@@ -216,6 +216,32 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_u
 	_mc->gregs[R_PC]          = (ptrint) asm_handle_exception;
 }
 
+/* md_signal_handler_sigusr1 ***************************************************
+
+   Signal handler for suspending threads.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u1         *pc;
+	u1         *sp;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	/* get the PC and SP for this thread */
+	pc = (u1 *) _mc->gregs[R_PC];
+	sp = (u1 *) _mc->gregs[R_SP];
+
+	/* now suspend the current thread */
+	threads_suspend_ack(pc, sp);
+}
+#endif
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
