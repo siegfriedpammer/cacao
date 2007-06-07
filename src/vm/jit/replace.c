@@ -478,6 +478,17 @@ bool replace_create_replacement_points(jitdata *jd)
 
 		for (; iptr != iend; ++iptr) {
 			switch (iptr->opc) {
+#if defined(ENABLE_GC_CACAO)
+				case ICMD_BUILTIN:
+					md = iptr->sx.s23.s3.bte->md;
+					count++;
+					COUNT_javalocals(javalocals, m, alloccount);
+					alloccount += iptr->s1.argcount;
+					if (iinfo)
+						alloccount -= iinfo->throughcount;
+					break;
+#endif
+
 				case ICMD_INVOKESTATIC:
 				case ICMD_INVOKESPECIAL:
 				case ICMD_INVOKEVIRTUAL:
@@ -629,6 +640,19 @@ bool replace_create_replacement_points(jitdata *jd)
 
 		for (; iptr != iend; ++iptr) {
 			switch (iptr->opc) {
+#if defined(ENABLE_GC_CACAO)
+				case ICMD_BUILTIN:
+					md = iptr->sx.s23.s3.bte->md;
+
+					i = (iinfo) ? iinfo->throughcount : 0;
+					replace_create_replacement_point(jd, iinfo, rp++,
+							RPLPOINT_TYPE_CALL, iptr, &ra,
+							javalocals, iptr->sx.s23.s2.args,
+							iptr->s1.argcount - i,
+							md->paramcount);
+					break;
+#endif
+
 				case ICMD_INVOKESTATIC:
 				case ICMD_INVOKESPECIAL:
 				case ICMD_INVOKEVIRTUAL:
