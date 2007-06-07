@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 7795 2007-04-23 20:03:38Z twisti $
+   $Id: builtin.h 8044 2007-06-07 19:24:35Z twisti $
 
 */
 
@@ -295,6 +295,7 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 					   java_arrayheader *dest, s4 destStart, s4 len);
 #define BUILTIN_arraycopy (functionptr) builtin_arraycopy
 
+s8 builtin_nanotime(void);
 s8 builtin_currenttimemillis(void);
 #define BUILTIN_currenttimemillis (functionptr) builtin_currenttimemillis
 

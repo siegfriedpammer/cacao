@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 7986 2007-05-30 20:45:43Z twisti $
+   $Id: builtin.c 8044 2007-06-07 19:24:35Z twisti $
 
 */
 
@@ -2615,6 +2615,26 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 }
 
 
+/* builtin_nanotime ************************************************************
+
+   Return the current time in nanoseconds.
+
+*******************************************************************************/
+
+s8 builtin_nanotime(void)
+{
+	struct timeval tv;
+	s8             usecs;
+
+	if (gettimeofday(&tv, NULL) == -1)
+		vm_abort("gettimeofday failed: %s", strerror(errno));
+
+	usecs = (s8) tv.tv_sec * (1000 * 1000) + (s8) tv.tv_usec;
+
+	return usecs * 1000;
+}
+
+
 /* builtin_currenttimemillis ***************************************************
 
    Return the current time in milliseconds.
@@ -2623,17 +2643,11 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 
 s8 builtin_currenttimemillis(void)
 {
-	struct timeval tv;
-	s8             result;
+	s8 msecs;
 
-	if (gettimeofday(&tv, NULL) == -1)
-		vm_abort("gettimeofday failed: %s", strerror(errno));
+	msecs = builtin_nanotime() / 1000 / 1000;
 
-	result = (s8) tv.tv_sec;
-	result *= 1000;
-	result += (tv.tv_usec / 1000);
-
-	return result;
+	return msecs;
 }
 
 
