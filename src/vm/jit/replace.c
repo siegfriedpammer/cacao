@@ -2135,7 +2135,7 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 			found = rp;
 	}
 
-	assert(found->pc + found->callsize >= pc);
+	assert(found == NULL || found->pc + found->callsize >= pc);
 
 	return found;
 }

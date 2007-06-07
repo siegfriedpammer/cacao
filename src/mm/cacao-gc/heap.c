@@ -202,7 +202,6 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region,
 
 	/* unlock the region */
 	LOCK_MONITOR_EXIT(region);
-	GC_LOG( region = NULL; );
 
 	/* clear allocated memory region */
 	GC_ASSERT(p);
