@@ -127,7 +127,7 @@ void gc_reference_register(java_objectheader **ref)
 	   reference is not yet set */
 	GC_ASSERT(*ref == NULL);
 
-	GC_LOG( printf("registering reference at %p\n", (void *) ref); );
+	GC_LOG2( printf("Registering Reference at %p\n", (void *) ref); );
 
 	re = NEW(list_gcref_entry_t);
 

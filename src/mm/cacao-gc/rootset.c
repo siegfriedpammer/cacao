@@ -29,17 +29,12 @@
 
 #include "config.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-/*# include "threads/none/threads.h"*/
-#endif
-
 #include "gc.h"
 #include "final.h"
 #include "heap.h"
 #include "mark.h"
 #include "mm/memory.h"
+#include "threads/threads-common.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
 #include "vm/jit/replace.h"
@@ -81,13 +76,9 @@ rootset_t *rootset_create(void)
 
 void rootset_from_globals(rootset_t *rs)
 {
-#if defined(ENABLE_THREADS)
-	threadobject                *thread;
-#endif
 	list_final_entry_t          *fe;
 	list_gcref_entry_t          *re;
 	int refcount;
-	int i;
 
 	GC_LOG( dolog("GC: Acquiring Root-Set from globals ..."); );
 
@@ -105,7 +96,7 @@ void rootset_from_globals(rootset_t *rs)
 	re = list_first_unsynced(gc_reflist);
 	while (re) {
 
-		GC_LOG( printf("Found registered reference: %p at %p\n", *(re->ref), re->ref); );
+		GC_LOG2( printf("Found Registered Reference: %p at %p\n", *(re->ref), re->ref); );
 
 		/* add this registered reference to the root set */
 		ROOTSET_ADD(re->ref, true, REFTYPE_REGISTERED)
@@ -373,7 +364,7 @@ void rootset_writeback(rootset_t *rs)
 
 #if !defined(NDEBUG)
 const char* ref_type_names[] = {
-		"XXXXXX", "THREAD", "CLASSL",
+		"XXXXXX", "REGIST", "CLASSL",
 		"GLOBAL", "FINAL ", "LOCAL ",
 		"STACK ", "STATIC"
 };
