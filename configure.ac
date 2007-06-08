@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8043 2007-06-07 19:22:31Z twisti $
+dnl $Id: configure.ac 8050 2007-06-08 20:04:34Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -265,6 +265,7 @@ AC_CHECK_FUNCS([ioctl])
 AC_CHECK_FUNCS([isnan])
 AC_CHECK_FUNCS([localtime])
 AC_CHECK_FUNCS([localtime_r])
+AC_CHECK_FUNCS([lseek])
 AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([open])
