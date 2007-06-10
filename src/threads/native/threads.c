@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: threads.c 8052 2007-06-10 13:44:33Z michi $
 
 */
 
@@ -898,6 +898,12 @@ bool threads_init(void)
 	   thread in the list). */
 
 	mainthread = threads_list_first();
+
+#if defined(ENABLE_GC_CACAO)
+	/* register reference to java.lang.Thread with the GC */
+
+	gc_reference_register((java_objectheader **) &(mainthread->object));
+#endif
 
 	/* create a java.lang.Thread for the main thread */
 

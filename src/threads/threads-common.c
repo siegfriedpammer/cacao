@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: threads-common.c 8052 2007-06-10 13:44:33Z michi $
 
 */
 
@@ -273,6 +273,12 @@ threadobject *threads_thread_new(void)
 		/* set the threads-index */
 
 		t->index = list_threads->size + 1;
+
+#if defined(ENABLE_GC_CACAO)
+		/* register reference to java.lang.Thread with the GC */
+
+		gc_reference_register((java_objectheader **) &(t->object));
+#endif
 	}
 
 	/* pre-compute the thinlock-word */
@@ -407,12 +413,6 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	object->vm_thread = (java_lang_Object *) t;
 #endif
 
-#if defined(ENABLE_GC_CACAO)
-	/* register reference to java.lang.Thread with the GC */
-
-	gc_reference_register(&(t->object));
-#endif
-
 	t->object = object;
 
 	/* set java.lang.Thread fields */
@@ -480,12 +480,6 @@ void threads_thread_start(java_lang_Thread *object)
 	   mutex. */
 
 	threads_mutex_join_unlock();
-
-#if defined(ENABLE_GC_CACAO)
-	/* register reference to java.lang.Thread with the GC */
-
-	gc_reference_register(&(thread->object));
-#endif
 
 	/* link the two objects together */
 
