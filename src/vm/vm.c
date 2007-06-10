@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8008 2007-06-05 07:44:38Z twisti $
+   $Id: vm.c 8059 2007-06-10 19:31:28Z twisti $
 
 */
 
@@ -2306,23 +2306,18 @@ static void vm_vmargs_from_valist(methodinfo *m, java_objectheader *o,
 	} 
 
 	for (; i < m->parseddesc->paramcount; i++, paramtypes++) {
-		switch (paramtypes->decltype) {
-		/* primitive types */
-		case PRIMITIVETYPE_BOOLEAN: 
-		case PRIMITIVETYPE_BYTE:
-		case PRIMITIVETYPE_CHAR:
-		case PRIMITIVETYPE_SHORT: 
-		case PRIMITIVETYPE_INT:
+		switch (paramtypes->type) {
+		case TYPE_INT:
 			vmargs[i].type   = TYPE_INT;
 			vmargs[i].data.l = (s8) va_arg(ap, s4);
 			break;
 
-		case PRIMITIVETYPE_LONG:
+		case TYPE_LNG:
 			vmargs[i].type   = TYPE_LNG;
 			vmargs[i].data.l = (s8) va_arg(ap, s8);
 			break;
 
-		case PRIMITIVETYPE_FLOAT:
+		case TYPE_FLT:
 			vmargs[i].type   = TYPE_FLT;
 #if defined(__ALPHA__)
 			/* this keeps the assembler function much simpler */
@@ -2333,7 +2328,7 @@ static void vm_vmargs_from_valist(methodinfo *m, java_objectheader *o,
 #endif
 			break;
 
-		case PRIMITIVETYPE_DOUBLE:
+		case TYPE_DBL:
 			vmargs[i].type   = TYPE_DBL;
 			vmargs[i].data.d = (jdouble) va_arg(ap, jdouble);
 			break;
@@ -2377,22 +2372,17 @@ static void vm_vmargs_from_jvalue(methodinfo *m, java_objectheader *o,
 
 	for (j = 0; i < m->parseddesc->paramcount; i++, j++, paramtypes++) {
 		switch (paramtypes->decltype) {
-		/* primitive types */
-		case PRIMITIVETYPE_BOOLEAN: 
-		case PRIMITIVETYPE_BYTE:
-		case PRIMITIVETYPE_CHAR:
-		case PRIMITIVETYPE_SHORT: 
-		case PRIMITIVETYPE_INT:
+		case TYPE_INT:
 			vmargs[i].type   = TYPE_INT;
 			vmargs[i].data.l = (s8) args[j].i;
 			break;
 
-		case PRIMITIVETYPE_LONG:
+		case TYPE_LNG:
 			vmargs[i].type   = TYPE_LNG;
 			vmargs[i].data.l = (s8) args[j].j;
 			break;
 
-		case PRIMITIVETYPE_FLOAT:
+		case TYPE_FLT:
 			vmargs[i].type = TYPE_FLT;
 #if defined(__ALPHA__)
 			/* this keeps the assembler function much simpler */
@@ -2403,7 +2393,7 @@ static void vm_vmargs_from_jvalue(methodinfo *m, java_objectheader *o,
 #endif
 			break;
 
-		case PRIMITIVETYPE_DOUBLE:
+		case TYPE_DBL:
 			vmargs[i].type   = TYPE_DBL;
 			vmargs[i].data.d = args[j].d;
 			break;
