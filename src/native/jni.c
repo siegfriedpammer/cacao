@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8045 2007-06-07 21:52:21Z twisti $
+   $Id: jni.c 8058 2007-06-10 19:30:25Z twisti $
 
 */
 
@@ -389,27 +389,27 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 			}
 			break;
 		
-			case TYPE_ADR:
-				if (!resolve_class_from_typedesc(paramtypes, true, true, &c))
-					return false;
+		case TYPE_ADR:
+			if (!resolve_class_from_typedesc(paramtypes, true, true, &c))
+				return false;
 
-				if (params->data[j] != 0) {
-					if (paramtypes->arraydim > 0) {
-						if (!builtin_arrayinstanceof(params->data[j], c))
-							goto illegal_arg;
+			if (params->data[j] != 0) {
+				if (paramtypes->arraydim > 0) {
+					if (!builtin_arrayinstanceof(params->data[j], c))
+						goto illegal_arg;
 
-					} else {
-						if (!builtin_instanceof(params->data[j], c))
-							goto illegal_arg;
-					}
+				} else {
+					if (!builtin_instanceof(params->data[j], c))
+						goto illegal_arg;
 				}
+			}
 
-				vmargs[i].type   = TYPE_ADR;
-				vmargs[i].data.l = (u8) (ptrint) params->data[j];
-				break;
+			vmargs[i].type   = TYPE_ADR;
+			vmargs[i].data.l = (u8) (ptrint) params->data[j];
+			break;
 
-			default:
-				goto illegal_arg;
+		default:
+			goto illegal_arg;
 		}
 	}
 
