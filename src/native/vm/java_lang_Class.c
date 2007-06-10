@@ -762,7 +762,10 @@ java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass
 
 	c = (classinfo *) klass;
 
-	return (java_lang_ClassLoader *) c->classloader->object;
+	if (c->classloader == NULL)
+		return NULL;
+	else
+		return (java_lang_ClassLoader *) c->classloader->object;
 }
 
 #endif /* defined(ENABLE_JAVASE) */
