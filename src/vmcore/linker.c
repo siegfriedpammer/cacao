@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: linker.c 8056 2007-06-10 14:49:57Z michi $
 
 */
 
@@ -90,20 +90,20 @@ java_objectheader *linker_classrenumber_lock;
 *******************************************************************************/
 
 primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
-	{ NULL, NULL, "java/lang/Integer",   'I', "int"     , "[I", NULL, NULL },
-	{ NULL, NULL, "java/lang/Long",      'J', "long"    , "[J", NULL, NULL },
-	{ NULL, NULL, "java/lang/Float",     'F', "float"   , "[F", NULL, NULL },
-	{ NULL, NULL, "java/lang/Double",    'D', "double"  , "[D", NULL, NULL },
-	{ NULL, NULL, NULL,                   0 , NULL      , NULL, NULL, NULL },
-	{ NULL, NULL, "java/lang/Byte",	     'B', "byte"    , "[B", NULL, NULL },
-	{ NULL, NULL, "java/lang/Character", 'C', "char"    , "[C", NULL, NULL },
-	{ NULL, NULL, "java/lang/Short",     'S', "short"   , "[S", NULL, NULL },
-	{ NULL, NULL, "java/lang/Boolean",   'Z', "boolean" , "[Z", NULL, NULL },
-	{ NULL, NULL, NULL,                   0 , NULL      , NULL, NULL, NULL },
+	{ "int"     , NULL, NULL, NULL, "java/lang/Integer",   'I', "[I", NULL, NULL },
+	{ "long"    , NULL, NULL, NULL, "java/lang/Long",      'J', "[J", NULL, NULL },
+	{ "float"   , NULL, NULL, NULL, "java/lang/Float",     'F', "[F", NULL, NULL },
+	{ "double"  , NULL, NULL, NULL, "java/lang/Double",    'D', "[D", NULL, NULL },
+	{ NULL      , NULL, NULL, NULL, NULL,                   0 , NULL, NULL, NULL },
+	{ "byte"    , NULL, NULL, NULL, "java/lang/Byte",      'B', "[B", NULL, NULL },
+	{ "char"    , NULL, NULL, NULL, "java/lang/Character", 'C', "[C", NULL, NULL },
+	{ "short"   , NULL, NULL, NULL, "java/lang/Short",     'S', "[S", NULL, NULL },
+	{ "boolean" , NULL, NULL, NULL, "java/lang/Boolean",   'Z', "[Z", NULL, NULL },
+	{ NULL      , NULL, NULL, NULL, NULL,                   0 , NULL, NULL, NULL },
 #if defined(ENABLE_JAVASE)
-   	{ NULL, NULL, "java/lang/Void",	     'V', "void"    , NULL, NULL, NULL }
+   	{ "void"    , NULL, NULL, NULL, "java/lang/Void",      'V', NULL, NULL, NULL }
 #else
-	{ NULL, NULL, NULL,                   0 , NULL      , NULL, NULL, NULL },
+	{ NULL      , NULL, NULL, NULL, NULL,                   0 , NULL, NULL, NULL },
 #endif
 };
 
@@ -329,6 +329,7 @@ bool linker_init(void)
 
 static bool link_primitivetype_table(void)
 {  
+	utf       *name;
 	classinfo *c;
 	utf       *u;
 	s4         i;
@@ -336,12 +337,18 @@ static bool link_primitivetype_table(void)
 	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
 		/* skip dummies */
 
-		if (!primitivetype_table[i].name)
+		if (primitivetype_table[i].cname == NULL)
 			continue;
-		
+
+		/* create UTF-8 name */
+
+		name = utf_new_char(primitivetype_table[i].cname);
+
+		primitivetype_table[i].name = name;
+
 		/* create primitive class */
 
-		c = class_create_classinfo(utf_new_char(primitivetype_table[i].name));
+		c = class_create_classinfo(name);
 
 		/* primitive classes don't have a super class */
 

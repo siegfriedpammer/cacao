@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.h 8027 2007-06-07 10:30:33Z michi $
+   $Id: utf8.h 8056 2007-06-10 14:49:57Z michi $
 
 */
 
@@ -115,6 +115,8 @@ extern utf *utf_java_lang_StringIndexOutOfBoundsException;
 
 extern utf *utf_java_lang_reflect_InvocationTargetException;
 
+extern utf *utf_java_security_PrivilegedActionException;
+
 #if defined(ENABLE_JAVASE)
 extern utf* utf_java_lang_Void;
 #endif
@@ -193,6 +195,7 @@ extern utf *utf_double__void;
 extern utf *utf_void__java_lang_ClassLoader;
 extern utf *utf_void__java_lang_Object;
 extern utf *utf_void__java_lang_Throwable;
+extern utf *utf_java_lang_Exception__V;
 extern utf *utf_java_lang_Object__java_lang_Object;
 extern utf *utf_java_lang_String__void;
 extern utf *utf_java_lang_String__java_lang_Class;

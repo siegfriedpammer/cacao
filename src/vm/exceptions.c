@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: exceptions.c 8056 2007-06-10 14:49:57Z michi $
 
 */
 
@@ -305,6 +305,37 @@ static void exceptions_throw_utf_throwable(utf *classname,
 		return;
 
 	o = native_new_and_init_throwable(c, cause);
+
+	if (o == NULL)
+		return;
+
+	*exceptionptr = o;
+}
+
+
+/* exceptions_throw_utf_exception **********************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/Exception exception.
+
+   IN:
+      classname....class name in UTF-8
+	  exception....the given Exception
+
+*******************************************************************************/
+
+static void exceptions_throw_utf_exception(utf *classname,
+										   java_objectheader *exception)
+{
+	java_objectheader *o;
+	classinfo         *c;
+   
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return;
+
+	o = native_new_and_init_exception(c, exception);
 
 	if (o == NULL)
 		return;
@@ -1434,6 +1465,19 @@ java_objectheader *exceptions_new_nullpointerexception(void)
 void exceptions_throw_nullpointerexception(void)
 {
 	exceptions_throw_class(class_java_lang_NullPointerException);
+}
+
+
+/* exceptions_throw_privilegedactionexception **********************************
+
+   Generates and throws a java.security.PrivilegedActionException.
+
+*******************************************************************************/
+
+void exceptions_throw_privilegedactionexception(java_objectheader *exception)
+{
+	exceptions_throw_utf_exception(utf_java_security_PrivilegedActionException,
+								   exception);
 }
 
 

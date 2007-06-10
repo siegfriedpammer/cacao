@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: utf8.c 8056 2007-06-10 14:49:57Z michi $
 
 */
 
@@ -119,6 +119,8 @@ utf *utf_java_lang_StringIndexOutOfBoundsException;
 
 utf *utf_java_lang_reflect_InvocationTargetException;
 
+utf *utf_java_security_PrivilegedActionException;
+
 #if defined(ENABLE_JAVASE)
 utf* utf_java_lang_Void;
 #endif
@@ -197,6 +199,7 @@ utf *utf_double__void;                  /* (D)V                               */
 utf *utf_void__java_lang_ClassLoader;   /* ()Ljava/lang/ClassLoader;          */
 utf *utf_void__java_lang_Object;        /* ()Ljava/lang/Object;               */
 utf *utf_void__java_lang_Throwable;     /* ()Ljava/lang/Throwable;            */
+utf *utf_java_lang_Exception__V;        /* (Ljava/lang/Exception;)V           */
 utf *utf_java_lang_Object__java_lang_Object;
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
@@ -347,6 +350,9 @@ bool utf8_init(void)
 
 	utf_java_lang_reflect_InvocationTargetException =
 		utf_new_char("java/lang/reflect/InvocationTargetException");
+
+	utf_java_security_PrivilegedActionException =
+		utf_new_char("java/security/PrivilegedActionException");
  
 #if defined(ENABLE_JAVASE)
 	utf_java_lang_Void             = utf_new_char("java/lang/Void");
@@ -431,6 +437,8 @@ bool utf8_init(void)
 
 	utf_void__java_lang_ClassLoader =
 		utf_new_char("()Ljava/lang/ClassLoader;");
+
+	utf_java_lang_Exception__V     = utf_new_char("(Ljava/lang/Exception;)V");
 
 	utf_java_lang_Object__java_lang_Object =
 		utf_new_char("(Ljava/lang/Object;)Ljava/lang/Object;");

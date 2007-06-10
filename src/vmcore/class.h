@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8027 2007-06-07 10:30:33Z michi $
+   $Id: class.h 8056 2007-06-10 14:49:57Z michi $
 
 */
 
@@ -284,6 +284,8 @@ classinfo *class_create_classinfo(utf *u);
 /* postset's the header.vftbl */
 void class_postset_header_vftbl(void);
 
+classinfo *class_define(utf *name, java_objectheader *cl, s4 length, u1 *data);
+
 /* set the package name after the name has been set */
 void class_set_packagename(classinfo *c);
 
@@ -337,7 +339,8 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 
-bool class_is_primitive(classinfo *c);
+classinfo *class_primitive_get(utf *name);
+bool       class_is_primitive(classinfo *c);
 
 bool class_issubclass(classinfo *sub, classinfo *super);
 bool class_isanysubclass(classinfo *sub, classinfo *super);

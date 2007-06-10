@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: emit.c 8056 2007-06-10 14:49:57Z michi $
 
 */
 
@@ -505,7 +505,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 		if (IS_FLT_DBL_TYPE(t)) {
 			if (fargctr < 2) { /* passed in register */
-				N_STD(REG_FA0 + fargctr, doff, RN, REG_SP);
+				N_STD(abi_registers_float_argument[fargctr], doff, RN, REG_SP);
 				fargctr += 1;
 			} else { /* passed on stack */
 				if (IS_2_WORD_TYPE(t)) {

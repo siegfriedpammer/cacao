@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: native.c 8056 2007-06-10 14:49:57Z michi $
 
 */
 
@@ -951,6 +951,38 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_objectheader
 	/* call initializer */
 
 	(void) vm_call_method(m, o, t);
+
+	return o;
+}
+
+
+java_objectheader *native_new_and_init_exception(classinfo *c, java_objectheader *e)
+{
+	java_objectheader *o;
+	methodinfo        *m;
+
+	if (c == NULL)
+		vm_abort("native_new_and_init_exception: c == NULL");
+
+	/* create object */
+
+	o = builtin_new(c);
+	
+	if (o == NULL)
+		return NULL;
+
+	/* find initializer */
+
+	m = class_findmethod(c, utf_init, utf_java_lang_Exception__V);
+	                      	                      
+	/* initializer not found */
+
+	if (m == NULL)
+		return NULL;
+
+	/* call initializer */
+
+	(void) vm_call_method(m, o, e);
 
 	return o;
 }

@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: builtin.c 8056 2007-06-10 14:49:57Z michi $
 
 */
 
@@ -1385,7 +1385,12 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 		break;
 
 	case TYPE_FLT:
+#if defined(__S390__)
+		imu.l = value;
+		/* The below won't work on S390 */
+#else
 		imu.i = (s4) value;
+#endif
 		sprintf(logtext + strlen(logtext), "%g (0x%08x)", imu.f, imu.i);
 		break;
 
@@ -2683,6 +2688,26 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 }
 
 
+/* builtin_nanotime ************************************************************
+
+   Return the current time in nanoseconds.
+
+*******************************************************************************/
+
+s8 builtin_nanotime(void)
+{
+	struct timeval tv;
+	s8             usecs;
+
+	if (gettimeofday(&tv, NULL) == -1)
+		vm_abort("gettimeofday failed: %s", strerror(errno));
+
+	usecs = (s8) tv.tv_sec * (1000 * 1000) + (s8) tv.tv_usec;
+
+	return usecs * 1000;
+}
+
+
 /* builtin_currenttimemillis ***************************************************
 
    Return the current time in milliseconds.
@@ -2691,17 +2716,11 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 
 s8 builtin_currenttimemillis(void)
 {
-	struct timeval tv;
-	s8             result;
+	s8 msecs;
 
-	if (gettimeofday(&tv, NULL) == -1)
-		vm_abort("gettimeofday failed: %s", strerror(errno));
+	msecs = builtin_nanotime() / 1000 / 1000;
 
-	result = (s8) tv.tv_sec;
-	result *= 1000;
-	result += (tv.tv_usec / 1000);
-
-	return result;
+	return msecs;
 }
 
 

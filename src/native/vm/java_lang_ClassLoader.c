@@ -70,10 +70,8 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 {
 	utf               *utfname;
 	classinfo         *c;
-	classinfo         *r;
-	classbuffer       *cb;
 	classloader       *loader;
-	java_lang_Class   *co;
+	java_lang_Class   *o;
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;
 	unsigned char* new_class_data = NULL;
@@ -102,15 +100,6 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 		/* convert '.' to '/' in java string */
 
 		utfname = javastring_toutf((java_objectheader *) name, true);
-		
-		/* check if this class has already been defined */
-
-		c = classcache_lookup_defined_or_initiated(cl, utfname);
-
-		if (c != NULL) {
-			exceptions_throw_linkageerror("duplicate class definition: ", c);
-			return NULL;
-		}
 	} 
 	else {
 		utfname = NULL;
@@ -127,82 +116,27 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 								&new_class_data_len, &new_class_data);
 #endif
 
-	/* create a new classinfo struct */
+	/* define the class */
 
-	c = class_create_classinfo(utfname);
-
-#if defined(ENABLE_STATISTICS)
-	/* measure time */
-
-	if (opt_getloadingtime)
-		loadingtime_start();
-#endif
-
-	/* build a classbuffer with the given data */
-
-	cb = NEW(classbuffer);
-	cb->class = c;
 #if defined(ENABLE_JVMTI)
 	/* check if the JVMTI wants to modify the class */
-	if (new_class_data == NULL) {
+
+	if (new_class_data == NULL)
+		c = class_define(utfname, loader, new_class_data_len, new_class_data); 
+	else
 #endif
-	cb->size  = len;
-	cb->data  = (u1 *) &data->data[offset];
-#if defined(ENABLE_JVMTI)
-	} else {
-		cb->size  = new_class_data_len;
-		cb->data  = (u1 *) new_class_data;
-	}
-#endif
-	cb->pos   = cb->data;
+		c = class_define(utfname, loader, len, (u1 *) &data->data[offset]); 
 
-	/* preset the defining classloader */
-
-	c->classloader = loader;
-
-	/* load the class from this buffer */
-
-	r = load_class_from_classbuffer(cb);
-
-	/* free memory */
-
-	FREE(cb, classbuffer);
-
-#if defined(ENABLE_STATISTICS)
-	/* measure time */
-
-	if (opt_getloadingtime)
-		loadingtime_stop();
-#endif
-
-	if (r == NULL) {
-		/* If return value is NULL, we had a problem and the class is
-		   not loaded.  Now free the allocated memory, otherwise we
-		   could run into a DOS. */
-
-		class_free(c);
-
+	if (c == NULL)
 		return NULL;
-	}
 
 	/* set ProtectionDomain */
 
-	co = (java_lang_Class *) c;
+	o = (java_lang_Class *) c;
 
-	co->pd = pd;
+	o->pd = pd;
 
-	/* Store the newly defined class in the class cache. This call also       */
-	/* checks whether a class of the same name has already been defined by    */
-	/* the same defining loader, and if so, replaces the newly created class  */
-	/* by the one defined earlier.                                            */
-	/* Important: The classinfo given to classcache_store must be             */
-	/*            fully prepared because another thread may return this       */
-	/*            pointer after the lookup at to top of this function         */
-	/*            directly after the class cache lock has been released.      */
-
-	c = classcache_store(loader, c, true);
-
-	return (java_lang_Class *) c;
+	return o;
 }
 
 
