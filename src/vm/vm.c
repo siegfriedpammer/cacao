@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8059 2007-06-10 19:31:28Z twisti $
+   $Id: vm.c 8060 2007-06-10 20:00:40Z twisti $
 
 */
 
@@ -74,6 +74,7 @@
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
+#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"
 
@@ -1600,6 +1601,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	if (!linker_init())
 		vm_abort("vm_create: linker_init failed");
+
+	if (!primitive_init())
+		vm_abort("vm_create: primitive_init failed");
 
 	/* Initialize the native subsystem. */
 

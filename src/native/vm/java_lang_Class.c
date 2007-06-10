@@ -66,6 +66,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
+#include "vmcore/primitive.h"
 
 
 /*
@@ -273,7 +274,7 @@ s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 
 	c = (classinfo *) klass;
 
-	result = class_is_primitive(c);
+	result = primitive_class_is_primitive(c);
 
 	return result;
 }
@@ -375,7 +376,7 @@ java_lang_Class *_Jv_java_lang_Class_getComponentType(java_lang_Class *klass)
 	if (desc->arraytype == ARRAYTYPE_OBJECT)
 		comp = desc->componentvftbl->class;
 	else
-		comp = primitivetype_table[desc->arraytype].class_primitive;
+		comp = primitive_class_get_by_type(desc->arraytype);
 		
 	return (java_lang_Class *) comp;
 }
@@ -443,7 +444,7 @@ java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
 
 	c = (classinfo *) klass;
 
-	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
+	if (!primitive_class_is_primitive(c) && (c->name->text[0] != '[')) {
 		if (c->innerclasscount == 0)  /* no innerclasses exist */
 			return NULL;
     
@@ -498,7 +499,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
 	c = (classinfo *) klass;
 	declaredclasscount = 0;
 
-	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
+	if (!primitive_class_is_primitive(c) && (c->name->text[0] != '[')) {
 		/* determine number of declared classes */
 
 		for (i = 0; i < c->innerclasscount; i++) {

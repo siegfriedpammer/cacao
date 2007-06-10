@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8049 2007-06-07 23:30:45Z twisti $
+   $Id: class.c 8060 2007-06-10 20:00:40Z twisti $
 
 */
 
@@ -1449,50 +1449,6 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 	/* XXX check access rights */
 
 	return fi;
-}
-
-
-/* class_is_primitive **********************************************************
-
-   Check if the given class is a primitive class.
-
-*******************************************************************************/
-
-bool class_is_primitive(classinfo *c)
-{
-	s4 i;
-
-	/* search table of primitive classes */
-
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
-		if (primitivetype_table[i].class_primitive == c)
-			return true;
-
-	return false;
-}
-
-
-/* class_primitive_get *********************************************************
-
-   Returns the primitive class of the given class name.
-
-*******************************************************************************/
-
-classinfo *class_primitive_get(utf *name)
-{
-	s4 i;
-
-	/* search table of primitive classes */
-
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
-		if (primitivetype_table[i].name == name)
-			return primitivetype_table[i].class_primitive;
-
-	vm_abort("class_primitive_get: unknown primitive type");
-
-	/* keep compiler happy */
-
-	return NULL;
 }
 
 

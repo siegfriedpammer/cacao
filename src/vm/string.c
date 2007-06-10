@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 7967 2007-05-25 15:03:46Z twisti $
+   $Id: string.c 8060 2007-06-10 20:00:40Z twisti $
 
 */
 
@@ -46,8 +46,10 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 #include "vmcore/options.h"
+#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 #include "vmcore/utf8.h"
 
@@ -110,13 +112,12 @@ void stringtable_update(void)
 		s = hashtable_string.ptr[i];
 		if (s) {
 			while (s) {
-                                                               
 				js = (java_lang_String *) s->string;
                                
-				if (!js || !js->value) {
+				if ((js == NULL) || (js->value == NULL)) {
 					/* error in hashtable found */
-					log_text("invalid literalstring in hashtable");
-					assert(0);
+
+					vm_abort("stringtable_update: invalid literalstring in hashtable");
 				}
 
 				a = js->value;
@@ -127,7 +128,8 @@ void stringtable_update(void)
 
 				if (!a->header.objheader.vftbl) 
 					/* vftbl of character-array is NULL */ 
-					a->header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
+					a->header.objheader.vftbl =
+						primitive_arrayclass_get_by_type(ARRAYTYPE_CHAR)->vftbl;
 
 				/* follow link in external hash chain */
 				s = s->hashlink;
@@ -505,7 +507,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 {
     literalstring    *s;                /* hashtable element                  */
     java_lang_String *js;               /* u2-array wrapped in javastring     */
-    java_chararray   *stringdata;       /* copy of u2-array                   */
+    java_chararray   *ca;               /* copy of u2-array                   */
     u4                key;
     u4                slot;
     u2                i;
@@ -546,20 +548,20 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     if (copymode) {
 		/* create copy of u2-array for new javastring */
 		u4 arraysize = sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10;
-		stringdata = mem_alloc(arraysize);
-/*    		memcpy(stringdata, a, arraysize); */
-  		memcpy(&(stringdata->header), &(a->header), sizeof(java_arrayheader));
-  		memcpy(&(stringdata->data), &(a->data) + offset, sizeof(u2) * (length - 1) + 10);
+		ca = mem_alloc(arraysize);
+/*    		memcpy(ca, a, arraysize); */
+  		memcpy(&(ca->header), &(a->header), sizeof(java_arrayheader));
+  		memcpy(&(ca->data), &(a->data) + offset, sizeof(u2) * (length - 1) + 10);
 
     } else {
-		stringdata = a;
+		ca = a;
 	}
 
     /* location in hashtable found, complete arrayheader */
 
-    stringdata->header.objheader.vftbl =
-		primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
-    stringdata->header.size = length;
+    ca->header.objheader.vftbl =
+		primitive_arrayclass_get_by_type(ARRAYTYPE_CHAR)->vftbl;
+    ca->header.size            = length;
 
 	assert(class_java_lang_String);
 	assert(class_java_lang_String->state & CLASS_LOADED);
@@ -583,7 +585,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 #endif
 
 	js->header.vftbl = class_java_lang_String->vftbl;
-	js->value  = stringdata;
+	js->value  = ca;
 	js->offset = 0;
 	js->count  = length;
 

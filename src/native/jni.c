@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8058 2007-06-10 19:30:25Z twisti $
+   $Id: jni.c 8060 2007-06-10 20:00:40Z twisti $
 
 */
 
@@ -93,6 +93,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -102,7 +103,7 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vm/resolve.h"
+#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 
 

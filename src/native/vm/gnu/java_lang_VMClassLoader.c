@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 7953 2007-05-23 17:56:59Z twisti $
+   $Id: java_lang_VMClassLoader.c 8060 2007-06-10 20:00:40Z twisti $
 
 */
 
@@ -62,6 +62,7 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
+#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"
 #include "vmcore/zip.h"
