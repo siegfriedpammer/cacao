@@ -84,12 +84,90 @@ void heap_init_objectheader(java_objectheader *o, u4 bytelength)
 }
 
 
-s4 heap_increase_size() {
-	void *p;
-	s4    increasesize;
-	s4    newsize;
+void heap_update_references(rootset_t *rs, regioninfo_t *region, u4 offset)
+{
+	java_objectheader  *o;
+	java_objectheader  *ref;
+	java_objectheader **refptr;
+	u1* start;
+	u1* end;
+	int i;
 
-	/* TODO: locking for threads!!! */
+	GC_LOG( dolog("GC: Updating all references (offset=%x) ...", offset); );
+
+	start = region->base - offset;
+	end = region->ptr - offset;
+	GC_LOG( printf("Region previously was [ %p ; %p]\n", start, end); );
+
+	GC_LOG2( printf("updating in root-sets ..."); );
+
+	/* walk through all rootsets */
+	while (rs) {
+
+		/* walk through the references of this rootset */
+		for (i = 0; i < rs->refcount; i++) {
+
+			/* load the reference */
+			refptr = rs->refs[i];
+			ref = *( refptr );
+
+			GC_LOG2( printf("\troot pointer to %p\n", (void *) ref); );
+
+			/* update the references */
+			if (POINTS_INTO(ref, start, end))
+				*refptr = ((u1 *) ref) + offset;
+
+		}
+
+		/* skip to next rootset in chain */
+		rs = rs->next;
+
+	}
+
+
+	o = region->base;
+	while (o < region->ptr) {
+
+		GC_LOG2( printf("updating in %p ...\n", (void *) o); );
+
+		if (IS_ARRAY(o)) {
+
+			/* walk through the references of an Array */
+			FOREACH_ARRAY_REF(o,ref,refptr,
+
+				GC_LOG2( printf("\tarray-entry %p -> %p\n", (void *) ref, ((u1 *) ref) + offset); );
+
+				if (POINTS_INTO(ref, start, end))
+					*refptr = ((u1 *) ref) + offset;
+
+			);
+
+		} else {
+
+			/* walk through the references of an Object */
+			FOREACH_OBJECT_REF(o,ref,refptr,
+
+				GC_LOG2( printf("\tobject-field %p -> %p\n", (void *) ref, ((u1 *) ref) + offset); );
+
+				if (POINTS_INTO(ref, start, end))
+					*refptr = ((u1 *) ref) + offset;
+
+			);
+
+		}
+
+		/* skip to next object */
+		o = ((u1 *) o) + get_object_size(o);
+
+	}
+
+}
+
+
+void heap_increase_size(rootset_t *rs)
+{
+	s4 newsize;
+	s4 resize_offset;
 
 	/* only a quick sanity check */
 	GC_ASSERT(heap_current_size <= heap_maximal_size);
@@ -98,25 +176,21 @@ s4 heap_increase_size() {
 	if (heap_current_size == heap_maximal_size)
 		vm_abort("heap_increase_size: reached maximal heap size: out of memory");
 
-	/* TODO: find out how much to increase the heap??? */
-	increasesize = heap_maximal_size - heap_current_size;
-	GC_LOG( dolog("GC: Increasing Heap Size by %d", increasesize); );
+	/* find out how much to increase the heap??? */
+	newsize = 2 * heap_current_size; /* XXX TODO: better heuristic here */
+	dolog("GC: Increasing Heap Size to %d bytes", newsize); /* XXX remove me */
+	GC_LOG( dolog("GC: Increasing Heap Size to %d bytes", newsize); );
 
-	/* allocate new heap from the system */
-	newsize = heap_current_size + increasesize;
-	/*p = malloc(newsize);*/
+	/* resize the main heap region */
+	resize_offset = region_resize(heap_region_main, newsize);
 
-	/* check if the newly allocated heap exists */
-	if (p == NULL)
-		vm_abort("heap_increase_size: malloc failed: out of memory");
-
-	/* TODO: copy the old content to the new heap */
-	/* TODO: find a complete rootset and update it to the new position */
-	/* TODO: free the old heap */
+	/* update all references if necesarry */
+	if (resize_offset != 0)
+		heap_update_references(rs, heap_region_main, resize_offset);
+	else
+		dolog("GC WARNING: References are not updated after heap resizing!");
 
 	/* set the new values */
-	/*heap_ptr = p + (heap_ptr - heap_base);
-	heap_base = p;*/
 	heap_current_size = newsize;
 
 	GC_LOG( dolog("GC: Increasing Heap Size was successful");
@@ -125,7 +199,6 @@ s4 heap_increase_size() {
 	/* only a quick sanity check */
 	GC_ASSERT(heap_current_size <= heap_maximal_size);
 
-	return increasesize;
 }
 
 

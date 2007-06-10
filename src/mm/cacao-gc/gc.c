@@ -127,6 +127,12 @@ void gc_reference_register(java_objectheader **ref)
 	   reference is not yet set */
 	GC_ASSERT(*ref == NULL);
 
+	/* are we called from threads_preinit? */
+	if (gc_reflist == NULL) {
+		GC_LOG( dolog("GC: Unable to register Reference!"); );
+		return;
+	}
+
 	GC_LOG2( printf("Registering Reference at %p\n", (void *) ref); );
 
 	re = NEW(list_gcref_entry_t);
@@ -239,6 +245,10 @@ void gc_collect(s4 level)
 #endif
 
 	RT_TIMING_GET_TIME(time_compact);
+
+	/* check if we should increase the heap size */
+	if (gc_get_free_bytes() < gc_get_heap_size() / 3) /* TODO: improve this heuristic */
+		heap_increase_size(rs);
 
 #else
 

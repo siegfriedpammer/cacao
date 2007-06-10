@@ -79,6 +79,40 @@ void *region_create(regioninfo_t *region, u4 size)
 }
 
 
+u4 region_resize(regioninfo_t *region, u4 size)
+{
+	u1 *ptr;
+	u4 offset;
+	u4 used;
+
+	/* reallocate memory for the region */
+	ptr = MREALLOC(region->base, u1, region->size, size);
+
+	if (ptr == NULL)
+		vm_abort("region_resize: realloc failed!");
+
+	/* was the region moved? */
+	offset = ptr - region->base;
+	used   = region->size - region->free;
+
+	/* update structure */
+	region->base = ptr;
+	region->end  = ptr + size;
+	region->ptr  = ptr + used;
+	region->size = size;
+	region->free = size - used;
+
+#if defined(ENABLE_MEMCHECK)
+	/* poison this region */
+	region_invalidate(region);
+#endif
+
+	GC_LOG( dolog("GC: Region resized to [ %p ; %p ]", region->base, region->end); );
+
+	return offset;
+}
+
+
 /* region_invalidate ***********************************************************
 
    Invalidates the free memory area inside a heap region by overwriting it with
