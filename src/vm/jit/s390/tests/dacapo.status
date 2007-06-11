@@ -44,6 +44,7 @@ luindex
 lusearch
 
 	* Uses lucene to do a text search of keywords over a corpus of data comprising the works of Shakespeare and the King James Bible
+	* Mon Jun 11 17:21:09 CEST 2007: ===== DaCapo lusearch PASSED in 386295 msec =====
 
 pmd
 

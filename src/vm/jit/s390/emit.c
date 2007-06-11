@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: emit.c 8065 2007-06-11 15:22:09Z pm $
 
 */
 
@@ -740,7 +740,11 @@ s4 emit_load_s2_notzero(jitdata *jd, instruction *iptr, s4 tempreg) {
 	codegendata *cd = jd->cd;
 	s4 reg = emit_load_s2(jd, iptr, tempreg);
 	if (reg == 0) {
-		M_MOV(reg, tempreg);
+		if (IS_FLT_DBL_TYPE(VAROP(iptr->sx.s23.s2)->type)) {
+			M_FMOV(reg, tempreg);
+		} else {
+			M_MOV(reg, tempreg);
+		}
 		return tempreg;
 	} else {
 		return reg;
@@ -751,7 +755,11 @@ s4 emit_load_s1_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
 	codegendata *cd = jd->cd;
 	s4 reg = emit_load_s1(jd, iptr, tempreg);
 	if (reg == notreg) {
-		M_MOV(reg, tempreg);
+		if (IS_FLT_DBL_TYPE(VAROP(iptr->s1)->type)) {
+			M_FMOV(reg, tempreg);
+		} else {
+			M_MOV(reg, tempreg);
+		}
 		return tempreg;
 	} else {
 		return reg;
@@ -762,7 +770,11 @@ s4 emit_load_s2_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
 	codegendata *cd = jd->cd;
 	s4 reg = emit_load_s2(jd, iptr, tempreg);
 	if (reg == notreg) {
-		M_MOV(reg, tempreg);
+		if (IS_FLT_DBL_TYPE(VAROP(iptr->sx.s23.s2)->type)) {
+			M_FMOV(reg, tempreg);
+		} else {
+			M_MOV(reg, tempreg);
+		}
 		return tempreg;
 	} else {
 		return reg;
