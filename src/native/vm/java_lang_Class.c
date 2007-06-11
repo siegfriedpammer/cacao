@@ -155,24 +155,8 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 	c = load_class_bootstrap(ufile);
 #endif
 
-	if (c == NULL) {
-		xptr = exceptions_get_exception();
-
-		xclass = xptr->vftbl->class;
-
-		/* if the exception is a NoClassDefFoundError, we replace it with a
-		   ClassNotFoundException, otherwise return the exception */
-
-		if (xclass == class_java_lang_NoClassDefFoundError) {
-			/* clear exceptionptr, because builtin_new checks for 
-			   ExceptionInInitializerError */
-			exceptions_clear_exception();
-
-			exceptions_throw_classnotfoundexception(uname);
-		}
-
+	if (c == NULL)
 	    return NULL;
-	}
 
 	/* link, ... */
 

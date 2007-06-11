@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8060 2007-06-10 20:00:40Z twisti $
+   $Id: class.c 8062 2007-06-11 08:12:14Z twisti $
 
 */
 
@@ -833,10 +833,14 @@ static classinfo *get_array_class(utf *name,java_objectheader *initloader,
 
 classinfo *class_array_of(classinfo *component, bool link)
 {
-    s4 namelen;
-    char *namebuf;
-	s4 dumpsize;
-	classinfo *c;
+	java_objectheader *cl;
+    s4                 namelen;
+    char              *namebuf;
+	utf               *u;
+	classinfo         *c;
+	s4                 dumpsize;
+
+	cl = component->classloader;
 
 	dumpsize = dump_size();
 
@@ -849,8 +853,8 @@ classinfo *class_array_of(classinfo *component, bool link)
         namebuf[0] = '[';
         MCOPY(namebuf + 1, component->name->text, char, namelen);
         namelen++;
-
-    } else {
+    }
+	else {
         /* the component is a non-array class */
         namebuf = DMNEW(char, namelen + 3);
         namebuf[0] = '[';
@@ -860,10 +864,9 @@ classinfo *class_array_of(classinfo *component, bool link)
         namelen += 3;
     }
 
-	c = get_array_class(utf_new(namebuf, namelen),
-						component->classloader,
-						component->classloader,
-						link);
+	u = utf_new(namebuf, namelen);
+
+	c = get_array_class(u, cl, cl, link);
 
 	dump_release(dumpsize);
 

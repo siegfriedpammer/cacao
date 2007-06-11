@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8060 2007-06-10 20:00:40Z twisti $
+   $Id: vm.c 8062 2007-06-11 08:12:14Z twisti $
 
 */
 
@@ -287,7 +287,7 @@ opt_struct opts[] = {
 	{ "help",              false, OPT_HELP },
 	{ "?",                 false, OPT_HELP },
 	{ "X",                 false, OPT_X },
-	{ "XX",                false, OPT_XX },
+	{ "XX:",               true,  OPT_XX },
 
 	{ "esa",                     false, OPT_ESA },
 	{ "enablesystemassertions",  false, OPT_ESA },
@@ -1346,7 +1346,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_XX:
-			XXusage();
+			options_xx(opt_arg);
 			break;
 
 		case OPT_ESA:
@@ -1599,6 +1599,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!loader_init())
 		vm_abort("vm_create: loader_init failed");
 
+	/* Link some important VM classes. */
+	/* AFTER: utf8_init */
+
 	if (!linker_init())
 		vm_abort("vm_create: linker_init failed");
 
@@ -1711,6 +1714,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 {
 	utf               *mainutf;
 	classinfo         *mainclass;
+	java_objectheader *e;
 	methodinfo        *m;
 	java_objectarray  *oa; 
 	s4                 oalength;
@@ -1761,7 +1765,10 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	/* error loading class */
 
-	if ((exceptions_get_exception() != NULL) || (mainclass == NULL)) {
+	e = exceptions_get_and_clear_exception();
+
+	if ((e != NULL) || (mainclass == NULL)) {
+		exceptions_throw_noclassdeffounderror_cause(e);
 		exceptions_print_stacktrace(); 
 		vm_exit(1);
 	}

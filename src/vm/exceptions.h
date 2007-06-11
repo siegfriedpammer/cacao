@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 8056 2007-06-10 14:49:57Z michi $
+   $Id: exceptions.h 8062 2007-06-11 08:12:14Z twisti $
 
 */
 
@@ -89,6 +89,7 @@ void exceptions_throw_classcircularityerror(classinfo *c);
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
 void exceptions_throw_classnotfoundexception(utf *name);
 void exceptions_throw_noclassdeffounderror(utf *name);
+void exceptions_throw_noclassdeffounderror_cause(java_objectheader *cause);
 void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name);
 void exceptions_throw_linkageerror(const char *message, classinfo *c);
 void exceptions_throw_nosuchfielderror(classinfo *c, utf *name);
@@ -126,9 +127,9 @@ void exceptions_throw_nullpointerexception(void);
 void exceptions_throw_privilegedactionexception(java_objectheader *cause);
 void exceptions_throw_stringindexoutofboundsexception(void);
 
-java_objectheader *exceptions_fillinstacktrace(void);
+void exceptions_classnotfoundexception_to_noclassdeffounderror(void);
 
-void classnotfoundexception_to_noclassdeffounderror(void);
+java_objectheader *exceptions_fillinstacktrace(void);
 
 java_objectheader *exceptions_get_exception(void);
 void               exceptions_set_exception(java_objectheader *o);

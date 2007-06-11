@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 7966 2007-05-25 12:41:03Z pm $
+   $Id: options.c 8062 2007-06-11 08:12:14Z twisti $
 
 */
 
@@ -248,6 +248,18 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 	}
 
 	return OPT_ERROR;
+}
+
+
+/* options_xx ******************************************************************
+
+   Handle -XX: options.
+
+*******************************************************************************/
+
+void options_xx(char *opt_arg)
+{
+	log_println("opt_arg: %s", opt_arg);
 }
 
 

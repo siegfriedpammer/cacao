@@ -330,16 +330,18 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c,
 	abort();
 }
 
-void exceptions_throw_nullpointerexception(void)
+void exceptions_throw_classnotfoundexception(utf *name)
 {
-	fprintf(stderr, "java.lang.NullPointerException\n");
+	fprintf(stderr, "java.lang.ClassNotFoundException: ");
+	utf_fprint_printable_ascii(stderr, name);
+	fputc('\n', stderr);
 
 	abort();
 }
 
-void classnotfoundexception_to_noclassdeffounderror(void)
+void exceptions_throw_nullpointerexception(void)
 {
-	/* Can that one happen? */
+	fprintf(stderr, "java.lang.NullPointerException\n");
 
 	abort();
 }

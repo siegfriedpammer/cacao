@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: loader.c 8062 2007-06-11 08:12:14Z twisti $
 
 */
 
@@ -58,6 +58,7 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
+#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 #if defined(ENABLE_STATISTICS)
@@ -1535,7 +1536,8 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			case 'L':
 				/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
 				if (namelen < 4 || text[2] == '[' || text[namelen - 1] != ';') {
-					exceptions_throw_noclassdeffounderror(name);
+/* 					exceptions_throw_noclassdeffounderror(name); */
+					exceptions_throw_classnotfoundexception(name);
 					return false;
 				}
 
@@ -1629,18 +1631,6 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			}
 
 			c = tmpc;
-
-		} else {
-			/* loadClass has thrown an exception.  We must convert
-			   ClassNotFoundException into
-			   NoClassDefFoundException. */
-
-			/* XXX Maybe we should have a flag that avoids this
-			   conversion for calling load_class_from_classloader from
-			   Class.forName.  Currently we do a double conversion in
-			   these cases.  */
-
-			classnotfoundexception_to_noclassdeffounderror();
 		}
 
 		RT_TIMING_GET_TIME(time_cache);
@@ -1707,8 +1697,9 @@ classinfo *load_class_bootstrap(utf *name)
 
 	/* lookup if this class has already been loaded */
 
-	if ((r = classcache_lookup(NULL, name))) {
+	r = classcache_lookup(NULL, name);
 
+	if (r != NULL) {
 		RT_TIMING_GET_TIME(time_lookup);
 		RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_BOOT_LOOKUP);
 		
@@ -1726,8 +1717,10 @@ classinfo *load_class_bootstrap(utf *name)
 
 	if (name->text[0] == '[') {
 		c = load_newly_created_array(c, NULL);
+
 		if (c == NULL)
 			return NULL;
+
 		assert(c->state & CLASS_LOADED);
 
 		RT_TIMING_GET_TIME(time_array);
@@ -1756,7 +1749,7 @@ classinfo *load_class_bootstrap(utf *name)
 		if (name == utf_java_lang_Object)
 			vm_abort("java/lang/NoClassDefFoundError: java/lang/Object");
 
-		exceptions_throw_noclassdeffounderror(name);
+		exceptions_throw_classnotfoundexception(name);
 
 		return NULL;
 	}
@@ -2407,13 +2400,14 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	s4                 namelen;
 	utf               *u;
 
-	text = c->name->text;
+	text    = c->name->text;
 	namelen = c->name->blength;
 
 	/* Check array class name */
 
 	if ((namelen < 2) || (text[0] != '[')) {
-		exceptions_throw_noclassdeffounderror(c->name);
+/* 		exceptions_throw_noclassdeffounderror(c->name); */
+		exceptions_throw_classnotfoundexception(c->name);
 		return NULL;
 	}
 
@@ -2424,7 +2418,10 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		/* c is an array of arrays. We have to create the component class. */
 
 		u = utf_new(text + 1, namelen - 1);
-		if (!(comp = load_class_from_classloader(u, loader)))
+
+		comp = load_class_from_classloader(u, loader);
+
+		if (comp == NULL)
 			return NULL;
 
 		assert(comp->state & CLASS_LOADED);
@@ -2443,7 +2440,8 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 		/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
 		if ((namelen < 4) || (text[2] == '[') || (text[namelen - 1] != ';')) {
-			exceptions_throw_noclassdeffounderror(c->name);
+/* 			exceptions_throw_noclassdeffounderror(c->name); */
+			exceptions_throw_classnotfoundexception(c->name);
 			return NULL;
 		}
 
@@ -2466,9 +2464,12 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	default:
 		/* c is an array of a primitive type */
 
-		/* check for cases like `[II' */
-		if (namelen > 2) {
-			exceptions_throw_noclassdeffounderror(c->name);
+		/* check for cases like `[II' and whether the character is a
+		   valid primitive type */
+
+		if ((namelen > 2) || (primitive_class_get_by_char(text[1]) == NULL)) {
+/* 			exceptions_throw_noclassdeffounderror(c->name); */
+			exceptions_throw_classnotfoundexception(c->name);
 			return NULL;
 		}
 

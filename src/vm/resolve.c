@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 8060 2007-06-10 20:00:40Z twisti $
+   $Id: resolve.c 8062 2007-06-11 08:12:14Z twisti $
 
 */
 
@@ -175,10 +175,18 @@ bool resolve_class_from_name(classinfo *referer,
 #endif
 
 		/* load the class */
-		if (!cls) {
-			if (!(cls = load_class_from_classloader(classname,
-													referer->classloader)))
-				return false; /* exception */
+
+		if (cls == NULL) {
+			cls = load_class_from_classloader(classname, referer->classloader);
+
+			if (cls == NULL) {
+				/* If the exception is a ClassNotFoundException,
+				   convert it to a NoClassDefFoundError. */
+
+				exceptions_classnotfoundexception_to_noclassdeffounderror();
+
+				return false;
+			}
 		}
 	}
 

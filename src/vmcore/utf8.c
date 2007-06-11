@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: utf8.c 8062 2007-06-11 08:12:14Z twisti $
 
 */
 
@@ -172,6 +172,7 @@ utf *utf_value;
 
 utf *utf_fillInStackTrace;
 utf *utf_getSystemClassLoader;
+utf *utf_initCause;
 utf *utf_loadClass;
 utf *utf_printStackTrace;
 
@@ -205,6 +206,7 @@ utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
 utf *utf_java_lang_Thread__V;           /* (Ljava/lang/Thread;)V              */
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
+utf *utf_java_lang_Throwable__java_lang_Throwable;
 
 utf *utf_not_named_yet;                 /* special name for unnamed classes   */
 utf *utf_null;
@@ -409,6 +411,7 @@ bool utf8_init(void)
 
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
 	utf_getSystemClassLoader       = utf_new_char("getSystemClassLoader");
+	utf_initCause                  = utf_new_char("initCause");
 	utf_loadClass                  = utf_new_char("loadClass");
 	utf_printStackTrace            = utf_new_char("printStackTrace");
 
@@ -450,6 +453,9 @@ bool utf8_init(void)
 
 	utf_java_lang_Thread__V        = utf_new_char("(Ljava/lang/Thread;)V");
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
+
+	utf_java_lang_Throwable__java_lang_Throwable =
+		utf_new_char("(Ljava/lang/Throwable;)Ljava/lang/Throwable;");
 
 	utf_null                       = utf_new_char("null");
 	utf_not_named_yet              = utf_new_char("\t<not_named_yet>");
