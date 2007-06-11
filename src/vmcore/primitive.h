@@ -106,6 +106,7 @@ bool       primitive_init(void);
 bool       primitive_class_is_primitive(classinfo *c);
 classinfo *primitive_class_get_by_name(utf *name);
 classinfo *primitive_class_get_by_type(s4 type);
+classinfo *primitive_class_get_by_char(char ch);
 classinfo *primitive_arrayclass_get_by_type(s4 type);
 
 #endif /* _PRIMITIVE_H */

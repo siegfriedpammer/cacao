@@ -207,6 +207,52 @@ classinfo *primitive_class_get_by_type(s4 type)
 }
 
 
+/* primitive_class_get_by_char *************************************************
+
+   Returns the primitive class of the given type.
+
+*******************************************************************************/
+
+classinfo *primitive_class_get_by_char(char ch)
+{
+	s4 index;
+
+	switch (ch) {
+	case 'I':
+		index = PRIMITIVETYPE_INT;
+		break;
+	case 'J':
+		index = PRIMITIVETYPE_LONG;
+		break;
+	case 'F':
+		index = PRIMITIVETYPE_FLOAT;
+		break;
+	case 'D':
+		index = PRIMITIVETYPE_DOUBLE;
+		break;
+	case 'B':
+		index = PRIMITIVETYPE_BYTE;
+		break;
+	case 'C':
+		index = PRIMITIVETYPE_CHAR;
+		break;
+	case 'S':
+		index = PRIMITIVETYPE_SHORT;
+		break;
+	case 'Z':
+		index = PRIMITIVETYPE_BOOLEAN;
+		break;
+	case 'V':
+		index = PRIMITIVETYPE_VOID;
+		break;
+	default:
+		return NULL;
+	}
+
+	return primitivetype_table[index].class_primitive;
+}
+
+
 /* primitive_arrayclass_get_by_type ********************************************
 
    Returns the primitive array-class of the given type.
