@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 7573 2007-03-25 18:55:02Z twisti $
+   $Id: method.c 8063 2007-06-11 14:44:58Z twisti $
 
 */
 
@@ -235,6 +235,26 @@ java_objectarray *method_get_exceptionarray(methodinfo *m)
 	}
 
 	return oa;
+}
+
+
+/* method_returntype_get *******************************************************
+
+   Get the return type of the method.
+
+*******************************************************************************/
+
+classinfo *method_returntype_get(methodinfo *m)
+{
+	typedesc  *td;
+	classinfo *c;
+
+	td = &(m->parseddesc->returntype);
+
+	if (!resolve_class_from_typedesc(td, true, false, &c))
+		return NULL;
+
+	return c;
 }
 
 

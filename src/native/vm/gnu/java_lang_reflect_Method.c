@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 7976 2007-05-29 12:22:55Z twisti $
+   $Id: java_lang_reflect_Method.c 8063 2007-06-11 14:44:58Z twisti $
 
 */
 
@@ -49,6 +49,8 @@
 #include "vm/initialize.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
+
+#include "vmcore/method.h"
 
 
 /* native methods implemented by this file ************************************/
@@ -105,17 +107,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(J
 {
 	classinfo  *c;
 	methodinfo *m;
-	typedesc   *td;
+	classinfo  *result;
 
 	c = (classinfo *) this->declaringClass;
 	m = &(c->methods[this->slot]);
 
-	td = &(m->parseddesc->returntype);
+	result = method_returntype_get(m);
 
-	if (!resolve_class_from_typedesc(td, true, false, &c))
-		return NULL;
-
-	return (java_lang_Class *) c;
+	return (java_lang_Class *) result;
 }
 
 
