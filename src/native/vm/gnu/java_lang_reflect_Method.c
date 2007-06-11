@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8063 2007-06-11 14:44:58Z twisti $
+   $Id: java_lang_reflect_Method.c 8064 2007-06-11 15:11:01Z twisti $
 
 */
 
@@ -41,6 +41,8 @@
 #include "native/include/java_lang_String.h"
 
 #include "native/include/java_lang_reflect_Method.h"
+
+#include "native/vm/java_lang_reflect_Method.h"
 
 #include "vm/access.h"
 #include "vm/global.h"
@@ -159,30 +161,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {
-	classinfo        *c;
-	methodinfo       *m;
-
-	c = (classinfo *) declaringClass;
-	m = &(c->methods[slot]);
-
-	/* check method access */
-
-	/* check if we should bypass security checks (AccessibleObject) */
-
-	if (this->flag == false) {
-		if (!access_check_method(m, 1))
-			return NULL;
-	}
-
-	/* check if method class is initialized */
-
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return NULL;
-
-	/* call the Java method via a helper function */
-
-	return (java_lang_Object *) _Jv_jni_invokeNative(m, (jobject) o, args);
+	return _Jv_java_lang_reflect_Method_invoke(this, o, args);
 }
 
 
