@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8064 2007-06-11 15:11:01Z twisti $
+   $Id: java_lang_reflect_Method.c 8067 2007-06-12 12:32:18Z twisti $
 
 */
 
@@ -161,6 +161,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {
+	/* just to be sure */
+
+	assert(this->declaringClass == declaringClass);
+	assert(this->slot           == slot);
+
 	return _Jv_java_lang_reflect_Method_invoke(this, o, args);
 }
 
