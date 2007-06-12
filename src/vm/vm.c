@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8062 2007-06-11 08:12:14Z twisti $
+   $Id: vm.c 8066 2007-06-12 09:08:12Z twisti $
 
 */
 
@@ -152,6 +152,9 @@ enum {
 	OPT_HELP,
 	OPT_X,
 	OPT_XX,
+
+	OPT_EA,
+	OPT_DA,
 
 	OPT_ESA,
 	OPT_DSA,
@@ -288,6 +291,11 @@ opt_struct opts[] = {
 	{ "?",                 false, OPT_HELP },
 	{ "X",                 false, OPT_X },
 	{ "XX:",               true,  OPT_XX },
+
+	{ "ea:",               true,  OPT_EA },
+	{ "da:",               true,  OPT_DA },
+	{ "ea",                false, OPT_EA },
+	{ "da",                false, OPT_DA },
 
 	{ "esa",                     false, OPT_ESA },
 	{ "enablesystemassertions",  false, OPT_ESA },
@@ -441,6 +449,12 @@ void usage(void)
 	puts("    -help, -?                print this help message");
 	puts("    -X                       print help on non-standard Java options");
 	puts("    -XX                      print help on CACAO options");
+    puts("    -ea[:<packagename>...|:<classname>]");
+    puts("    -enableassertions[:<packagename>...|:<classname>]");
+	puts("                             enable assertions with specified granularity");
+	puts("    -da[:<packagename>...|:<classname>]");
+	puts("    -disableassertions[:<packagename>...|:<classname>]");
+	puts("                             disable assertions with specified granularity");
 	puts("    -esa | -enablesystemassertions");
 	puts("                             enable system assertions");
 	puts("    -dsa | -disablesystemassertions");
@@ -1347,6 +1361,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 		case OPT_XX:
 			options_xx(opt_arg);
+			break;
+
+		case OPT_EA:
+			/* currently ignored */
+			break;
+
+		case OPT_DA:
+			/* currently ignored */
 			break;
 
 		case OPT_ESA:
