@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 7966 2007-05-25 12:41:03Z pm $
+   $Id: md.c 8068 2007-06-12 15:50:35Z pm $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/methodheader.h"
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
@@ -87,6 +88,8 @@ void md_init(void)
 
 void md_dump_context(u1 *pc, mcontext_t *mc) {
 	int i;
+	u1 *pv;
+	methodinfo *m;
 	
 	union {
 		u8 l;
@@ -96,6 +99,17 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 	log_println("Dumping context.");
 
 	log_println("Program counter: 0x%08X", pc);
+
+	pv = codegen_get_pv_from_pc_nocheck(pc);
+	if (pv == NULL) {
+		log_println("No java method found at location.");
+	} else {
+		m = ((codeinfo *)(pv + CodeinfoPointer))->m;
+		log_println(
+			"Java method: class %s, method %s, descriptor %s.",
+			utf_bytes(m->class->name), utf_bytes(m->name), utf_bytes(m->descriptor)
+		);
+	}
 
 #if defined(ENABLE_DISASSEMBLER)
 	log_println("Printing instruction at program counter:");

@@ -20,6 +20,7 @@ chart
 eclipse
 
 	* executes some of the (non-gui) jdt performance tests for the Eclipse IDE
+	* Mon Jun 11 22:20:00 CEST 2007: ===== DaCapo eclipse PASSED in 1647658 msec =====
 
 fop
 

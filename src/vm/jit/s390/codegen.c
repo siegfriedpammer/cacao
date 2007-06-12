@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7966 2007-05-25 12:41:03Z pm $
+   $Id: codegen.c 8068 2007-06-12 15:50:35Z pm $
 
 */
 
@@ -75,6 +75,7 @@
 #endif
 
 #define OOPS() assert(0);
+#define SUPPORT_HERCULES 1
 
 void panic() { }
 
@@ -1028,7 +1029,7 @@ bool codegen_emit(jitdata *jd)
 					M_IADD(REG_ITMP1, d);
 				}
 
-				*(u4 *)ref |= (u4)(cd->mcodeptr - ref) / 2;
+				N_BRC_BACK_PATCH(ref);
 
 				M_SRA_IMM(iptr->sx.val.i, d);
 
@@ -1511,21 +1512,77 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			M_CVTFI(s1, d);
-			emit_store_dst(jd, iptr, d);
-			/* TODO: corner cases ? */
-			break;
+		case ICMD_D2I:
+			{
+				u1 *ref1;
+#ifdef SUPPORT_HERCULES
+				u1 *ref2, *ref3;
+#endif
 
-		case ICMD_D2I:       /* ..., value  ==> ..., (int) value              */
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			M_CVTDI(s1, d);
-			emit_store_dst(jd, iptr, d);
-			/* TODO: corner cases ? */
-			break;
+				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 
+				/* Test if NAN */
+
+				switch (iptr->opc) {
+					case ICMD_F2I:
+						N_LTEBR(s1, s1); 
+						break;
+					case ICMD_D2I:
+						N_LTDBR(s1, s1);
+						break;
+				}
+
+				N_BRC(DD_0 | DD_1 | DD_2, SZ_BRC + SZ_LHI + SZ_BRC); /* Non a NaN */
+				N_LHI(d, 0); /* Load 0 */
+				ref1 = cd->mcodeptr;
+				N_BRC(DD_ANY, 0); /* Exit */
+
+				/* Convert */
+
+				switch (iptr->opc) {
+					case ICMD_F2I:
+						M_CVTFI(s1, d); 
+						break;
+					case ICMD_D2I:
+						M_CVTDI(s1, d); 
+						break;
+				}
+
+#ifdef SUPPORT_HERCULES
+				/* Hercules does the conversion using a plain C conversion.
+				 * According to manual, real hardware should *NOT* require this.
+				 *
+				 * Corner case: Positive float leads to INT_MIN (overflow).
+				 */
+
+				switch (iptr->opc) {
+					case ICMD_F2I:
+						N_LTEBR(s1, s1); 
+						break;
+					case ICMD_D2I:
+						N_LTDBR(s1, s1);
+						break;
+				}
+
+				ref2 = cd->mcodeptr;
+				N_BRC(DD_0 | DD_1 | DD_3, 0); /* If operand is positive, continue */
+
+				M_TEST(d);
+
+				ref3 = cd->mcodeptr;
+				M_BGE(0); /* If integer result is negative, continue */
+
+				disp = dseg_add_s4(cd, 0x7fffffff); /* Load INT_MAX */
+				M_ILD(d, REG_PV, disp);
+#endif
+				N_BRC_BACK_PATCH(ref1);
+#ifdef SUPPORT_HERCULES
+				N_BRC_BACK_PATCH(ref2);
+				N_BRC_BACK_PATCH(ref3);
+#endif
+				emit_store_dst(jd, iptr, d);
+			}
 			break;
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
@@ -1684,6 +1741,13 @@ bool codegen_emit(jitdata *jd)
 			
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(3, REG_ITMP2); /* scale index by 8 */
+
+			/* We need to preserve the array address after the first load */
+
+			if (GET_HIGH_REG(d) == s1) {
+				M_INTMOVE(s1, REG_ITMP3);
+				s1 = REG_ITMP3;
+			}
 
 			N_L(GET_HIGH_REG(d) /* evntl. itmp1 */, OFFSET(java_intarray, data[0]), REG_ITMP2, s1);
 			N_L(GET_LOW_REG(d) /* evntl. itmp2 */, OFFSET(java_intarray, data[0]) + 4, REG_ITMP2, s1);

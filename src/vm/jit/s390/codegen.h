@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7966 2007-05-25 12:41:03Z pm $
+   $Id: codegen.h 8068 2007-06-12 15:50:35Z pm $
 
 */
 
@@ -332,6 +332,11 @@
 #define DD_NO 14
 #define DD_ANY 15
 
+#define DD_0 8
+#define DD_1 4
+#define DD_2 2
+#define DD_3 1
+
 /* Misc */
 
 /* Trap instruction.
@@ -386,6 +391,10 @@
 #	define N_J(i2) N_BRC(DD_ANY, i2)
 #	define SZ_BRC SZ_RI
 #	define SZ_J SZ_RI
+#	define N_BRC_BACK_PATCH(brc_pos) \
+		do { \
+			*(u4 *)(brc_pos) |= (u4)(cd->mcodeptr - (brc_pos)) / 2; \
+		} while (0)
 #define N_BRCT(r1, i2) N_RI(0xA7, 0x6, r1, (i2) / 2)
 #define N_BRXH(r1, r3, i2) N_RSI(0x84, r1, r3, (i2) / 2)
 #define N_BRXLE(r1, r3, i2) N_RSI(0x85, r1, r2, (i2) / 2)
@@ -549,6 +558,10 @@
 #define N_LDXBR(r1, r2) N_RRE(0xB345, r1, r2)
 #define N_LEXBR(r1, r2) N_RRE(0xB346, r1, r2)
 
+#define N_LTEBR(r1, r2) N_RRE(0xB302, r1, r2)
+#define N_LTDBR(r1, r2) N_RRE(0xB312, r1, r2)
+#define N_LTXBR(r1, r2) N_RRE(0xB342, r1, r2)
+
 #define N_MEEBR(r1, r2) N_RRE(0xB317, r1, r2)
 #define N_MDBR(r1, r2) N_RRE(0xB31C, r1, r2)
 #define N_MXBR(r1, r2) N_RRE(0xB34C, r1, r2)
@@ -682,8 +695,8 @@
 #define M_DSUB(a, dest) N_SDBR(dest, a)
 #define M_DADD(a, dest) N_ADBR(dest, a)
 #define M_DDIV(a, dest) N_DDBR(dest, a)
-#define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
-#define M_CVTDI(src, dst) N_CFDBR(dst, 5, src)
+#define M_CVTFI(src, dst) N_CFEBR(dst, 4, src)
+#define M_CVTDI(src, dst) N_CFDBR(dst, 4, src)
 #define M_IADD(a, dest) N_AR(dest, a)
 #define M_AADD(a, dest) N_AR(dest, a)
 #define M_ISUB(a, dest) N_SR(dest, a)
