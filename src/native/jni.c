@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8069 2007-06-13 14:08:24Z twisti $
+   $Id: jni.c 8070 2007-06-13 14:26:41Z twisti $
 
 */
 
@@ -245,184 +245,6 @@ bool jni_init_localref_table(void)
 	LOCALREFTABLE = lrt;
 
 	return true;
-}
-
-
-/* _Jv_jni_vmargs_from_objectarray *********************************************
-
-   XXX
-
-*******************************************************************************/
-
-static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
-											methoddesc *descr,
-											vm_arg *vmargs,
-											java_objectarray *params)
-{
-	java_objectheader *param;
-	int32_t            paramcount;
-	typedesc          *paramtypes;
-	classinfo         *c;
-	int32_t            i;
-	int32_t            j;
-	int64_t            value;
-
-	paramcount = descr->paramcount;
-	paramtypes = descr->paramtypes;
-
-	/* if method is non-static fill first block and skip `this' pointer */
-
-	i = 0;
-
-	if (o != NULL) {
-		/* this pointer */
-		vmargs[0].type   = TYPE_ADR;
-		vmargs[0].data.l = (u8) (ptrint) o;
-
-		paramtypes++;
-		paramcount--;
-		i++;
-	}
-
-	for (j = 0; j < paramcount; i++, j++, paramtypes++) {
-		switch (paramtypes->type) {
-		/* primitive types */
-		case TYPE_INT:
-		case TYPE_LNG:
-		case TYPE_FLT:
-		case TYPE_DBL:
-			param = params->data[j];
-
-			if (param == NULL)
-				goto illegal_arg;
-
-			/* internally used data type */
-			vmargs[i].type = paramtypes->type;
-
-			/* convert the value according to its declared type */
-
-			c = param->vftbl->class;
-
-			switch (paramtypes->decltype) {
-			case PRIMITIVETYPE_BOOLEAN:
-				if (c == class_java_lang_Boolean)
-					value = (int64_t) ((java_lang_Boolean *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_BYTE:
-				if (c == class_java_lang_Byte)
-					value = (int64_t) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_CHAR:
-				if (c == class_java_lang_Character)
-					value = (int64_t) ((java_lang_Character *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_SHORT:
-				if (c == class_java_lang_Short)
-					value = (int64_t) ((java_lang_Short *) param)->value;
-				else if (c == class_java_lang_Byte)
-					value = (int64_t) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_INT:
-				if (c == class_java_lang_Integer)
-					value = (int64_t) ((java_lang_Integer *) param)->value;
-				else if (c == class_java_lang_Short)
-					value = (int64_t) ((java_lang_Short *) param)->value;
-				else if (c == class_java_lang_Byte)
-					value = (int64_t) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_LONG:
-				if (c == class_java_lang_Long)
-					value = (int64_t) ((java_lang_Long *) param)->value;
-				else if (c == class_java_lang_Integer)
-					value = (int64_t) ((java_lang_Integer *) param)->value;
-				else if (c == class_java_lang_Short)
-					value = (int64_t) ((java_lang_Short *) param)->value;
-				else if (c == class_java_lang_Byte)
-					value = (int64_t) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_FLOAT:
-				if (c == class_java_lang_Float)
-					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
-				else
-					goto illegal_arg;
-				break;
-
-			case PRIMITIVETYPE_DOUBLE:
-				if (c == class_java_lang_Double)
-					vmargs[i].data.d = (jdouble) ((java_lang_Double *) param)->value;
-				else if (c == class_java_lang_Float)
-					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
-				else
-					goto illegal_arg;
-				break;
-
-			default:
-				goto illegal_arg;
-			}
-			break;
-		
-		case TYPE_ADR:
-			if (!resolve_class_from_typedesc(paramtypes, true, true, &c))
-				return false;
-
-			if (params->data[j] != 0) {
-				if (paramtypes->arraydim > 0) {
-					if (!builtin_arrayinstanceof(params->data[j], c))
-						goto illegal_arg;
-
-				} else {
-					if (!builtin_instanceof(params->data[j], c))
-						goto illegal_arg;
-				}
-			}
-
-			vmargs[i].type   = TYPE_ADR;
-			vmargs[i].data.l = (u8) (ptrint) params->data[j];
-			break;
-
-		default:
-			goto illegal_arg;
-		}
-	}
-
-/*  	if (rettype) */
-/*  		*rettype = descr->returntype.decltype; */
-
-	return true;
-
-illegal_arg:
-	exceptions_throw_illegalargumentexception();
-	return false;
 }
 
 
@@ -1015,7 +837,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	vmargs = MNEW(vm_arg, argcount);
 
-	if (!_Jv_jni_vmargs_from_objectarray(o, resm->parseddesc, vmargs, params)) {
+	if (!vm_vmargs_from_objectarray(resm, o, vmargs, params)) {
 		MFREE(vmargs, vm_arg, argcount);
 		return NULL;
 	}

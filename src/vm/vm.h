@@ -103,6 +103,9 @@ void vm_exit_handler(void);
 void vm_abort(const char *text, ...);
 
 /* Java method calling functions */
+bool vm_vmargs_from_objectarray(methodinfo *m, java_objectheader *o,
+								vm_arg *vmargs, java_objectarray *params);
+
 java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...);
 java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
 										 va_list ap);
