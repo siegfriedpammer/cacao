@@ -22,21 +22,27 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 8013 2007-06-05 10:19:09Z twisti $
+   $Id: md-abi.c 8074 2007-06-13 22:27:17Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <stdarg.h>
+
 #include "vm/types.h"
 
 #include "vm/jit/mips/md-abi.h"
+
+#include "mm/memory.h"
 
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
 
 #include "vmcore/descriptor.h"
+#include "vmcore/method.h"
 
 
 /* register descripton array **************************************************/
@@ -331,12 +337,14 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_ADR:
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index    = reguse;
 				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 				md->argintreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
+				pd->index    = -1;
 				pd->regoff   = stacksize;
 				stacksize++;
 			}
@@ -348,10 +356,12 @@ void md_param_alloc(methoddesc *md)
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 #  if WORDS_BIGENDIAN == 1
+				pd->index    = PACK_REGS(reguse + 1, reguse);
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse + 1],
 							  abi_registers_integer_argument[reguse]);
 #  else
+				pd->index    = PACK_REGS(reguse, reguse + 1);
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse],
 							  abi_registers_integer_argument[reguse + 1]);
@@ -361,6 +371,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
+				pd->index    = -1;
 				pd->regoff   = stacksize;
 				stacksize++;
 			}
@@ -370,12 +381,14 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (reguse < FLT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index    = reguse;
 				pd->regoff   = abi_registers_float_argument[reguse];
 				reguse++;
 				md->argfltreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
+				pd->index    = -1;
 				pd->regoff   = stacksize;
 				stacksize++;
 			}

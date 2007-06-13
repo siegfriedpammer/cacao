@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 7596 2007-03-28 21:05:53Z twisti $
+   $Id: asmpart.h 8074 2007-06-13 22:27:17Z twisti $
 
 */
 
@@ -31,6 +31,9 @@
 #define _ASMPART_H
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #if defined(ENABLE_THREADS)
@@ -86,9 +89,9 @@ s4   asm_md_init(void);
 void asm_call_jit_compiler(void);
 
 #if defined(ENABLE_JIT)
+#if !defined(__MIPS__)
 java_objectheader *asm_vm_call_method(methodinfo *m, s4 vmargscount,
 									  vm_arg *vmargs);
-
 s4     asm_vm_call_method_int(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 s8     asm_vm_call_method_long(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 float  asm_vm_call_method_float(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
@@ -96,10 +99,19 @@ double asm_vm_call_method_double(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 
 void   asm_vm_call_method_exception_handler(void);
 
-/* asm_vm_call_method_end is a dummy symbol marking the end of the asm_vm_call_method
- * function and is used to insert the coderange into the avl tree.
- */
 void   asm_vm_call_method_end(void);
+#else
+java_objectheader *asm_vm_call_method(void *pv, uint64_t *array, int32_t stackargs);
+int32_t            asm_vm_call_method_int(void *pv, uint64_t *array, int32_t stackargs);
+
+int64_t            asm_vm_call_method_long(void *pv, uint64_t *array, int32_t stackargs);
+float  asm_vm_call_method_float(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+double asm_vm_call_method_double(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+
+void   asm_vm_call_method_exception_handler(void);
+void   asm_vm_call_method_end(void);
+#endif
+
 #endif
 
 #if defined(ENABLE_INTRP)

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8070 2007-06-13 14:26:41Z twisti $
+   $Id: jni.c 8074 2007-06-13 22:27:17Z twisti $
 
 */
 
@@ -773,6 +773,7 @@ static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
 
 *******************************************************************************/
 
+#if !defined(__MIPS__)
 java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params)
 {
@@ -996,6 +997,246 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	return ro;
 }
+#else
+java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
+										java_objectarray *params)
+{
+	methodinfo        *resm;
+	vm_arg            *vmargs;
+	java_objectheader *ro;
+	s4                 argcount;
+	s4                 paramcount;
+	java_objectheader *xptr;
+	int32_t            dumpsize;
+	uint64_t          *array;
+
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	argcount = m->parseddesc->paramcount;
+	paramcount = argcount;
+
+	/* if method is non-static, remove the `this' pointer */
+
+	if (!(m->flags & ACC_STATIC))
+		paramcount--;
+
+	/* For instance methods the object has to be an instance of the
+	   class the method belongs to. For static methods the obj
+	   parameter is ignored. */
+
+	if (!(m->flags & ACC_STATIC) && o && (!builtin_instanceof(o, m->class))) {
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	/* check if we got the right number of arguments */
+
+	if (((params == NULL) && (paramcount != 0)) ||
+		(params && (params->header.size != paramcount))) 
+	{
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	/* for instance methods we need an object */
+
+	if (!(m->flags & ACC_STATIC) && (o == NULL)) {
+		/* XXX not sure if that is the correct exception */
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* for static methods, zero object to make subsequent code simpler */
+	if (m->flags & ACC_STATIC)
+		o = NULL;
+
+	if (o != NULL) {
+		/* for instance methods we must do a vftbl lookup */
+		resm = method_vftbl_lookup(o->vftbl, m);
+	}
+	else {
+		/* for static methods, just for convenience */
+		resm = m;
+	}
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* fill the argument array from a object-array */
+
+	array = vm_array_from_objectarray(resm, o, params);
+
+	if (array == NULL) {
+		/* release dump area */
+
+		dump_release(dumpsize);
+
+		return NULL;
+	}
+
+	switch (resm->parseddesc->returntype.decltype) {
+	case TYPE_VOID:
+		(void) vm_call_array(resm, array);
+
+		ro = NULL;
+		break;
+
+	case PRIMITIVETYPE_BOOLEAN: {
+		s4 i;
+		java_lang_Boolean *bo;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Boolean);
+
+		/* setting the value of the object direct */
+
+		bo = (java_lang_Boolean *) ro;
+		bo->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_BYTE: {
+		s4 i;
+		java_lang_Byte *bo;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Byte);
+
+		/* setting the value of the object direct */
+
+		bo = (java_lang_Byte *) ro;
+		bo->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_CHAR: {
+		s4 i;
+		java_lang_Character *co;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Character);
+
+		/* setting the value of the object direct */
+
+		co = (java_lang_Character *) ro;
+		co->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_SHORT: {
+		s4 i;
+		java_lang_Short *so;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Short);
+
+		/* setting the value of the object direct */
+
+		so = (java_lang_Short *) ro;
+		so->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_INT: {
+		s4 i;
+		java_lang_Integer *io;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Integer);
+
+		/* setting the value of the object direct */
+
+		io = (java_lang_Integer *) ro;
+		io->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_LONG: {
+		s8 l;
+		java_lang_Long *lo;
+
+		l = vm_call_long_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Long);
+
+		/* setting the value of the object direct */
+
+		lo = (java_lang_Long *) ro;
+		lo->value = l;
+	}
+	break;
+
+	case PRIMITIVETYPE_FLOAT: {
+		float f;
+		java_lang_Float *fo;
+
+		f = vm_call_method_float_vmarg(resm, argcount, vmargs);
+
+		ro = builtin_new(class_java_lang_Float);
+
+		/* setting the value of the object direct */
+
+		fo = (java_lang_Float *) ro;
+		fo->value = f;
+	}
+	break;
+
+	case PRIMITIVETYPE_DOUBLE: {
+		double d;
+		java_lang_Double *_do;
+
+		d = vm_call_method_double_vmarg(resm, argcount, vmargs);
+
+		ro = builtin_new(class_java_lang_Double);
+
+		/* setting the value of the object direct */
+
+		_do = (java_lang_Double *) ro;
+		_do->value = d;
+	}
+	break;
+
+	case TYPE_ADR:
+		ro = vm_call_array(resm, array);
+		break;
+
+	default:
+		/* if this happens the exception has already been set by
+		   fill_callblock_from_objectarray */
+
+		/* release dump area */
+
+		dump_release(dumpsize);
+
+		return NULL;
+	}
+
+	xptr = exceptions_get_exception();
+
+	if (xptr != NULL) {
+		/* clear exception pointer, we are calling JIT code again */
+
+		exceptions_clear_exception();
+
+		exceptions_throw_invocationtargetexception(xptr);
+	}
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ro;
+}
+#endif
 
 
 /* GetVersion ******************************************************************
