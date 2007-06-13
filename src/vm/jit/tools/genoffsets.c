@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: genoffsets.c 8071 2007-06-13 17:37:55Z twisti $
+   $Id: genoffsets.c 8073 2007-06-13 21:54:27Z twisti $
 
 */
 
@@ -40,10 +40,6 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/replace.h"
-
-#include "vmcore/class.h"
-#include "vmcore/linker.h"
-#include "vmcore/method.h"
 
 
 int main(int argc, char **argv)
