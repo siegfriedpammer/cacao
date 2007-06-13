@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8060 2007-06-10 20:00:40Z twisti $
+   $Id: jni.c 8069 2007-06-13 14:08:24Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "vm/types.h"
@@ -259,12 +260,12 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 											java_objectarray *params)
 {
 	java_objectheader *param;
-	s4                 paramcount;
+	int32_t            paramcount;
 	typedesc          *paramtypes;
 	classinfo         *c;
-	s4                 i;
-	s4                 j;
-	s8                 value;
+	int32_t            i;
+	int32_t            j;
+	int64_t            value;
 
 	paramcount = descr->paramcount;
 	paramtypes = descr->paramtypes;
@@ -304,8 +305,8 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 
 			switch (paramtypes->decltype) {
 			case PRIMITIVETYPE_BOOLEAN:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Boolean *) param)->value;
+				if (c == class_java_lang_Boolean)
+					value = (int64_t) ((java_lang_Boolean *) param)->value;
 				else
 					goto illegal_arg;
 
@@ -313,8 +314,8 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 				break;
 
 			case PRIMITIVETYPE_BYTE:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Byte *) param)->value;
+				if (c == class_java_lang_Byte)
+					value = (int64_t) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
 
@@ -322,8 +323,8 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 				break;
 
 			case PRIMITIVETYPE_CHAR:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Character *) param)->value;
+				if (c == class_java_lang_Character)
+					value = (int64_t) ((java_lang_Character *) param)->value;
 				else
 					goto illegal_arg;
 
@@ -331,10 +332,10 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 				break;
 
 			case PRIMITIVETYPE_SHORT:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Short *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					value = (s8) ((java_lang_Byte *) param)->value;
+				if (c == class_java_lang_Short)
+					value = (int64_t) ((java_lang_Short *) param)->value;
+				else if (c == class_java_lang_Byte)
+					value = (int64_t) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
 
@@ -342,12 +343,12 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 				break;
 
 			case PRIMITIVETYPE_INT:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Integer *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-					value = (s8) ((java_lang_Short *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					value = (s8) ((java_lang_Byte *) param)->value;
+				if (c == class_java_lang_Integer)
+					value = (int64_t) ((java_lang_Integer *) param)->value;
+				else if (c == class_java_lang_Short)
+					value = (int64_t) ((java_lang_Short *) param)->value;
+				else if (c == class_java_lang_Byte)
+					value = (int64_t) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
 
@@ -355,14 +356,14 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 				break;
 
 			case PRIMITIVETYPE_LONG:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Long *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_INT].class_wrap)
-					value = (s8) ((java_lang_Integer *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-					value = (s8) ((java_lang_Short *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					value = (s8) ((java_lang_Byte *) param)->value;
+				if (c == class_java_lang_Long)
+					value = (int64_t) ((java_lang_Long *) param)->value;
+				else if (c == class_java_lang_Integer)
+					value = (int64_t) ((java_lang_Integer *) param)->value;
+				else if (c == class_java_lang_Short)
+					value = (int64_t) ((java_lang_Short *) param)->value;
+				else if (c == class_java_lang_Byte)
+					value = (int64_t) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
 
@@ -370,16 +371,16 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 				break;
 
 			case PRIMITIVETYPE_FLOAT:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+				if (c == class_java_lang_Float)
 					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_DOUBLE:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+				if (c == class_java_lang_Double)
 					vmargs[i].data.d = (jdouble) ((java_lang_Double *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_FLOAT].class_wrap)
+				else if (c == class_java_lang_Float)
 					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
 				else
 					goto illegal_arg;
