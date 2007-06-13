@@ -1,6 +1,6 @@
 /* tests/regressions/native/testarguments.java - tests argument passing
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    TU Wien
@@ -22,18 +22,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: testarguments.java 4893 2006-05-08 11:03:57Z twisti $
+   $Id: testarguments.java 8072 2007-06-13 18:31:19Z twisti $
 
 */
 
 
 public class testarguments {
+    public static native Object adr(int i);
+    public static native void np(Object o);
+
     public static native void nisub(int a, int b, int c, int d, int e,
                                     int f, int g, int h, int i, int j,
                                     int k, int l, int m, int n, int o);
@@ -50,6 +47,10 @@ public class testarguments {
                                     double f, double g, double h, double i, double j,
                                     double k, double l, double m, double n, double o);
 
+    public static native void nasub(Object a, Object b, Object c, Object d, Object e,
+                                    Object f, Object g, Object h, Object i, Object j,
+                                    Object k, Object l, Object m, Object n, Object o);
+
     public static native void nmsub(int a, long b, float c, double d,
                                     int e, long f, float g, double h,
                                     int i, long j, float k, double l,
@@ -62,6 +63,7 @@ public class testarguments {
         ltest();
         ftest();
         dtest();
+        atest();
 
         mtest();
     }
@@ -111,6 +113,16 @@ public class testarguments {
              l2d(0xbbbbbbbbbbbbbbbbL), l2d(0xccccccccccccccccL),
              l2d(0xddddddddddddddddL), l2d(0xeeeeeeeeeeeeeeeeL),
              l2d(0xffffffffffffffffL));
+
+        pln();
+    }
+
+    static void atest() {
+        pln("testing address ----------------------------------------------");
+
+        asub(adr(1),  adr(2),  adr(3),  adr(4),  adr(5),
+             adr(6),  adr(7),  adr(8),  adr(9),  adr(10),
+             adr(11), adr(12), adr(13), adr(14), adr(15));
 
         pln();
     }
@@ -187,6 +199,20 @@ public class testarguments {
         ndsub(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
     }
 
+    public static void asub(Object a, Object b, Object c, Object d, Object e,
+                            Object f, Object g, Object h, Object i, Object j,
+                            Object k, Object l, Object m, Object n, Object o) {
+        p("java-java  :");
+
+        p(a); p(b); p(c); p(d); p(e);
+        p(f); p(g); p(h); p(i); p(j);
+        p(k); p(l); p(m); p(n); p(o);
+
+        pln();
+
+        nasub(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    }
+
     public static void msub(int a, long b, float c, double d,
                             int e, long f, float g, double h,
                             int i, long j, float k, double l,
@@ -253,6 +279,18 @@ public class testarguments {
         pln();
     }
 
+    public static void jasub(Object a, Object b, Object c, Object d, Object e,
+                             Object f, Object g, Object h, Object i, Object j,
+                             Object k, Object l, Object m, Object n, Object o) {
+        p("native-java:");
+
+        p(a); p(b); p(c); p(d); p(e);
+        p(f); p(g); p(h); p(i); p(j);
+        p(k); p(l); p(m); p(n); p(o);
+
+        pln();
+    }
+
     public static void jmsub(int a, long b, float c, double d,
                              int e, long f, float g, double h,
                              int i, long j, float k, double l,
@@ -290,6 +328,10 @@ public class testarguments {
 
     static void p(double d) {
         p(Double.doubleToLongBits(d));
+    }
+
+    static void p(Object o) {
+        np(o);
     }
 
     static void pln() { System.out.println(); }
