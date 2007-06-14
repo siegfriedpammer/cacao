@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8062 2007-06-11 08:12:14Z twisti $
+   $Id: native.c 8092 2007-06-14 16:12:35Z twisti $
 
 */
 
@@ -728,9 +728,7 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 	/* no function was found, throw exception */
 
-	*exceptionptr =
-			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
-									 mname);
+	exceptions_throw_unsatisfiedlinkerror(mname);
 
 	return NULL;
 }
