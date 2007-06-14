@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 8006 2007-06-05 07:40:49Z twisti $
+   $Id: statistics.c 8082 2007-06-14 12:10:49Z tbfg $
 
 */
 
@@ -176,6 +176,12 @@ int count_data_len = 0;
 int count_cstub_len = 0;
 int count_max_new_stack = 0;
 int count_upper_bound_new_stack = 0;
+
+int count_emit_branch = 0;
+int count_emit_branch_8bit = 0;
+int count_emit_branch_16bit = 0;
+int count_emit_branch_32bit = 0;
+int count_emit_branch_64bit = 0;
 
 s4 count_branches_resolved   = 0;
 s4 count_branches_unresolved = 0;
@@ -431,6 +437,11 @@ void print_stats(void)
 	dolog("Number of Null Pointer Checks:     %6d", count_check_null);
 	dolog("Number of Array Bound Checks:      %6d", count_check_bound);
 	dolog("Number of Try-Blocks: %d", count_tryblocks);
+
+	dolog("Number of branch_emit (total, 8bit/16bit/32bit/64bit offset): %d, %d/%d/%d/%d",
+		count_emit_branch,  count_emit_branch_8bit,  count_emit_branch_16bit, 
+							count_emit_branch_32bit, count_emit_branch_64bit);
+
 	dolog("Maximal count of stack elements:   %d", count_max_new_stack);
 	dolog("Upper bound of max stack elements: %d", count_upper_bound_new_stack);
 	dolog("Distribution of stack sizes at block boundary");

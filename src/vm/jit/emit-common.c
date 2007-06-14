@@ -270,6 +270,14 @@ void emit_bccz(codegendata *cd, basicblock *target, s4 condition, s4 reg, u4 opt
 		branchmpc = cd->mcodeptr - cd->mcodebase;
 		disp      = target->mpc - branchmpc;
 
+		STATISTICS(count_emit_branch++);
+		STATISTICS(if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
+					else if ((int16_t)disp == disp) count_emit_branch_16bit++;
+					else if ((int32_t)disp == disp) count_emit_branch_32bit++;
+			#if (SIZEOF_VOID_P == 8)
+					else if ((int64_t)disp == disp) count_emit_branch_64bit++;
+			#endif
+		);
 		emit_branch(cd, disp, condition, reg, options);
 	}
 	else {
@@ -481,6 +489,14 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 		mpc  = cd->mcodeptr - cd->mcodebase;
 		disp = br->mpc - mpc;
 
+		STATISTICS(count_emit_branch++);
+		STATISTICS(if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
+					else if ((int16_t)disp == disp) count_emit_branch_16bit++;
+					else if ((int32_t)disp == disp) count_emit_branch_32bit++;
+			#if (SIZEOF_VOID_P == 8)
+					else if ((int64_t)disp == disp) count_emit_branch_64bit++;
+			#endif
+		);
 		emit_branch(cd, disp, condition, reg, options);
 
 		/* now remove the branch reference */
@@ -542,6 +558,14 @@ void emit_label(codegendata *cd, s4 label)
 		mcodeptr     = cd->mcodeptr;
 		cd->mcodeptr = cd->mcodebase + br->mpc;
 
+		STATISTICS(count_emit_branch++);
+		STATISTICS(if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
+					else if ((int16_t)disp == disp) count_emit_branch_16bit++;
+					else if ((int32_t)disp == disp) count_emit_branch_32bit++;
+			#if (SIZEOF_VOID_P == 8)
+					else if ((int64_t)disp == disp) count_emit_branch_64bit++;
+			#endif
+		);
 		emit_branch(cd, disp, br->condition, br->reg, br->options);
 
 		/* restore mcodeptr */

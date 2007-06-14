@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.h 8006 2007-06-05 07:40:49Z twisti $
+   $Id: statistics.h 8082 2007-06-14 12:10:49Z tbfg $
 
 */
 
@@ -178,6 +178,12 @@ extern int count_data_len;
 extern int count_cstub_len;
 extern int count_max_new_stack;
 extern int count_upper_bound_new_stack;
+
+extern int count_emit_branch;
+extern int count_emit_branch_8bit;
+extern int count_emit_branch_16bit;
+extern int count_emit_branch_32bit;
+extern int count_emit_branch_64bit;
 
 extern s4 count_branches_resolved;
 extern s4 count_branches_unresolved;
