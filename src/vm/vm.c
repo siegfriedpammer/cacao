@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8074 2007-06-13 22:27:17Z twisti $
+   $Id: vm.c 8076 2007-06-14 09:35:31Z twisti $
 
 */
 
@@ -2326,7 +2326,7 @@ static void vm_compile_method(void)
 /* vm_array_store_int **********************************************************
 
    Helper function to store an integer into the argument array, taking
-   care of architecutre specific issues.
+   care of architecture specific issues.
 
 *******************************************************************************/
 
@@ -2352,7 +2352,7 @@ static void vm_array_store_int(uint64_t *array, paramdesc *pd, int32_t value)
 /* vm_array_store_lng **********************************************************
 
    Helper function to store a long into the argument array, taking
-   care of architecutre specific issues.
+   care of architecture specific issues.
 
 *******************************************************************************/
 
@@ -2388,7 +2388,7 @@ static void vm_array_store_lng(uint64_t *array, paramdesc *pd, int64_t value)
 /* vm_array_store_flt **********************************************************
 
    Helper function to store a float into the argument array, taking
-   care of architecutre specific issues.
+   care of architecture specific issues.
 
 *******************************************************************************/
 
@@ -2414,7 +2414,7 @@ static void vm_array_store_flt(uint64_t *array, paramdesc *pd, uint64_t value)
 /* vm_array_store_dbl **********************************************************
 
    Helper function to store a double into the argument array, taking
-   care of architecutre specific issues.
+   care of architecture specific issues.
 
 *******************************************************************************/
 
@@ -2434,7 +2434,7 @@ static void vm_array_store_dbl(uint64_t *array, paramdesc *pd, uint64_t value)
 /* vm_array_store_adr **********************************************************
 
    Helper function to store an address into the argument array, taking
-   care of architecutre specific issues.
+   care of architecture specific issues.
 
 *******************************************************************************/
 
