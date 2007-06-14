@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
+   $Id: asmpart.S 8080 2007-06-14 11:12:11Z twisti $
 
 */
 
@@ -122,96 +122,58 @@ asm_vm_call_method_double:
 	mov     s3,4*8(sp)
 	mov     s4,5*8(sp)
 
-	mov     a0,itmp1                    /* move method pointer for compiler   */
-	xor     %rbp,%rbp                   /* set argument stack frame to zero   */
+	mov     a0,6*8(sp)                  /* store method PV                    */
 
-	test    a1,a1                       /* maybe we have no args...           */
-	jle     L_copy_done
+	mov     sp,s0                       /* save stack pointer                 */
 
-	mov     a1,itmp3                    /* arg count                          */
-	mov     a2,itmp2                    /* pointer to arg block               */
+	mov     a1,t0                       /* address of data structure          */
+	mov     a2,itmp1                    /* number of stack arguments          */
 
-	mov     itmp2,%r14                  /* save argument block pointer        */
-	mov     itmp3,%r15                  /* save argument count                */
+	mov     0*8(t0),a0
+	mov     1*8(t0),a1
+	mov     2*8(t0),a2
+	mov     3*8(t0),a3
+	mov     4*8(t0),a4
+	mov     5*8(t0),a5
 
-	sub     $sizevmarg,itmp2            /* initialize pointer (smaller code)  */
-	add     $1,itmp3                    /* initialize argument count          */
-	xor     %r12,%r12                   /* initialize integer argument counter*/
-	xor     %r13,%r13                   /* initialize float argument counter  */
+	movq    6*8(t0),fa0
+	movq    7*8(t0),fa1
+	movq    8*8(t0),fa2
+	movq    9*8(t0),fa3
+	movq    10*8(t0),fa4
+	movq    11*8(t0),fa5
+	movq    12*8(t0),fa6
+	movq    13*8(t0),fa7
 
-L_register_copy:
-	add     $sizevmarg,itmp2            /* goto next argument block           */
-	dec     itmp3                       /* argument count - 1                 */
-	jz      L_register_copy_done
-	andb    $0x02,offvmargtype(itmp2)   /* is this a float/double type?       */
-	jnz     L_register_handle_float     /* yes, handle it                     */
+	cmp     $0,itmp1l
+	je      L_asm_vm_call_method_stack_copy_done
 
-	cmp     $INT_ARG_CNT,%r12           /* are we out of integer argument     */
-	je      L_register_copy             /* register? yes, next loop           */
+	mov     itmp1,itmp2
+	and     $0xfffffffffffffffe,itmp2   /* keep stack 16-byte aligned         */
+	shl     $3,itmp2                    /* calculate stack size               */
+	sub     itmp2,sp                    /* create stack frame                 */
+	mov     sp,itmp2                    /* temporary stack pointer            */
 
-	lea     jumptable_integer(%rip),%rbp
-	mov     0(%rbp,%r12,8),%rbx
-	inc     %r12                      /* integer argument counter + 1         */
-	jmp     *%rbx
+L_asm_vm_call_method_stack_copy_loop:
+	mov     14*8(t0),itmp3              /* load argument                      */
+	mov     itmp3,0(itmp2)              /* store argument on stack            */
 
-L_register_handle_float:
-	cmp     $FLT_ARG_CNT,%r13         /* are we out of float argument         */
-	je      L_register_copy           /* register? yes, next loop             */
+	sub     $1,itmp1l                   /* subtract 1 argument                */
+	add     $8,t0                       /* set address of next argument       */
+	add     $8,itmp2                    /* increase SP                        */
 
-	lea     jumptable_float(%rip),%rbp
-	mov     0(%rbp,%r13,8),%rbx
-	inc     %r13                      /* float argument counter + 1           */
-	jmp     *%rbx
-	
-L_register_copy_done:
-	mov     %r15,%rbp                 /* calculate remaining arguments        */
-	sub     %r12,%rbp                 /* - integer arguments in registers     */
-	sub     %r13,%rbp                 /* - float arguments in registers       */
-	jle     L_copy_done               /* are all assigned to registers?       */
+	cmp     $0,itmp1l
+	jg      L_asm_vm_call_method_stack_copy_loop
 
-	and     $0xfffffffffffffffe,%rbp  /* keep stack 16-byte aligned           */
-	shl     $3,%rbp                   /* calculate stack size                 */
-	sub     %rbp,sp                   /* stack frame for arguments            */
-	mov     sp,%rbx                   /* use %rbx as temp sp                  */
-
-	sub     $sizevmarg,%r14           /* initialize pointer (smaller code)    */
-	add     $1,%r15                   /* initialize argument count            */
-		
-L_stack_copy_loop:
-	add     $sizevmarg,%r14           /* goto next argument block             */
-	dec     %r15                      /* are there any arguments left?        */
-	jz      L_copy_done               /* no test needed after dec             */
-
-	andb    $0x02,offvmargtype(%r14)    /* is this a float/double type?       */
-	jnz     L_stack_handle_float
-	dec     %r12                        /* arguments assigned to registers    */
-	jge     L_stack_copy_loop
-	jmp     L_stack_copy
-
-L_stack_handle_float:
-	dec     %r13                        /* arguments assigned to registers    */
-	jge     L_stack_copy_loop
-
-L_stack_copy:
-	mov     offvmargdata(%r14),itmp3    /* copy s8 argument onto stack        */
-	mov     itmp3,0(%rbx)
-	add     $8,%rbx                     /* increase sp to next argument       */
-	jmp     L_stack_copy_loop
-
-L_copy_done:
-	                                    /* itmp1 still contains method pointer*/
-	lea     L_asm_call_jit_compiler(%rip),mptr
-	mov     sp,itmp3                    /* calculate the old stack pointer    */
-	add     bp,itmp3
-	mov     mptr,6*8(itmp3)
-	lea     (6*8-256)(itmp3),mptr       /* We subtract 256 to force the next  */
+L_asm_vm_call_method_stack_copy_done:
+	lea     (6*8-256)(s0),mptr          /* We subtract 256 to force the next  */
 	                                    /* move instruction to have a 32-bit  */
 	                                    /* offset.                            */
 
-	mov     (0*8+256)(mptr),itmp3       /* method call as in Java             */
-	call    *itmp3                      /* call JIT compiler                  */
+	mov     (0*8+256)(mptr),itmp3       /* load PV                            */
+	call    *itmp3
 
-	add     bp,sp                       /* remove argument stack frame if any */
+	mov     s0,sp                       /* restore SP                         */
 
 L_asm_vm_call_method_return:
 	mov     0*8(sp),%rbx                /* restore callee saved registers     */
@@ -228,72 +190,9 @@ asm_vm_call_method_exception_handler:
 	call    builtin_throw_exception@PLT
 	jmp     L_asm_vm_call_method_return
 
-
-jumptable_integer:
-	.quad   handle_a0
-	.quad   handle_a1
-	.quad   handle_a2
-	.quad   handle_a3
-	.quad   handle_a4
-	.quad   handle_a5
-
-handle_a0:
-	mov     offvmargdata(itmp2),a0
-	jmp     L_register_copy
-handle_a1:
-	mov     offvmargdata(itmp2),a1
-	jmp     L_register_copy
-handle_a2:
-	mov     offvmargdata(itmp2),a2
-	jmp     L_register_copy
-handle_a3:
-	mov     offvmargdata(itmp2),a3
-	jmp     L_register_copy
-handle_a4:
-	mov     offvmargdata(itmp2),a4
-	jmp     L_register_copy
-handle_a5:
-	mov     offvmargdata(itmp2),a5
-	jmp     L_register_copy
-
-
-jumptable_float:
-	.quad   handle_fa0
-	.quad   handle_fa1
-	.quad   handle_fa2
-	.quad   handle_fa3
-	.quad   handle_fa4
-	.quad   handle_fa5
-	.quad   handle_fa6
-	.quad   handle_fa7
-
-handle_fa0:
-	movq    offvmargdata(itmp2),fa0
-	jmp     L_register_copy
-handle_fa1:
-	movq    offvmargdata(itmp2),fa1
-	jmp     L_register_copy
-handle_fa2:
-	movq    offvmargdata(itmp2),fa2
-	jmp     L_register_copy
-handle_fa3:
-	movq    offvmargdata(itmp2),fa3
-	jmp     L_register_copy
-handle_fa4:
-	movq    offvmargdata(itmp2),fa4
-	jmp     L_register_copy
-handle_fa5:
-	movq    offvmargdata(itmp2),fa5
-	jmp     L_register_copy
-handle_fa6:
-	movq    offvmargdata(itmp2),fa6
-	jmp     L_register_copy
-handle_fa7:
-	movq    offvmargdata(itmp2),fa7
-	jmp     L_register_copy
-
 asm_vm_call_method_end:
 	nop
+
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *

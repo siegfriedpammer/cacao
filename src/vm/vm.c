@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8079 2007-06-14 11:06:48Z twisti $
+   $Id: vm.c 8080 2007-06-14 11:12:11Z twisti $
 
 */
 
@@ -2477,7 +2477,7 @@ static void vm_array_store_adr(uint64_t *array, paramdesc *pd, void *value)
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 static void vm_vmargs_from_valist(methodinfo *m, java_objectheader *o,
 								  vm_arg *vmargs, va_list ap)
 {
@@ -2613,7 +2613,7 @@ uint64_t *vm_array_from_valist(methodinfo *m, java_objectheader *o, va_list ap)
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 static void vm_vmargs_from_jvalue(methodinfo *m, java_objectheader *o,
 								  vm_arg *vmargs, jvalue *args)
 {
@@ -2739,7 +2739,7 @@ static uint64_t *vm_array_from_jvalue(methodinfo *m, java_objectheader *o,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 bool vm_vmargs_from_objectarray(methodinfo *m, java_objectheader *o,
 								vm_arg *vmargs, java_objectarray *params)
 {
@@ -3142,7 +3142,7 @@ java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
 java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
 										 va_list ap)
 {
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 	s4                 vmargscount;
 	vm_arg            *vmargs;
 	java_objectheader *ro;
@@ -3209,7 +3209,7 @@ java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
 java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
 										 jvalue *args)
 {
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 	s4                 vmargscount;
 	vm_arg            *vmargs;
 	java_objectheader *ro;
@@ -3273,7 +3273,7 @@ java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
 										vm_arg *vmargs)
 {
@@ -3333,7 +3333,7 @@ java_objectheader *vm_call_array(methodinfo *m, uint64_t *array)
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s4 i;
@@ -3412,7 +3412,7 @@ s4 vm_call_method_int(methodinfo *m, java_objectheader *o, ...)
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 s4 vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap)
 {
 	s4      vmargscount;
@@ -3481,7 +3481,7 @@ int32_t vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list a
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 s4 vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o, jvalue *args)
 {
 	s4      vmargscount;
@@ -3570,7 +3570,7 @@ s8 vm_call_method_long(methodinfo *m, java_objectheader *o, ...)
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 s8 vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap)
 {
 	s4      vmargscount;
@@ -3639,7 +3639,7 @@ int64_t vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list 
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 s8 vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, jvalue *args)
 {
 	s4      vmargscount;
@@ -3708,7 +3708,7 @@ int64_t vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, jvalue *
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s8 l;

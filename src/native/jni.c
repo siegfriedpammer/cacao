@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8074 2007-06-13 22:27:17Z twisti $
+   $Id: jni.c 8080 2007-06-14 11:12:11Z twisti $
 
 */
 
@@ -773,7 +773,7 @@ static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__)
+#if !defined(__MIPS__) && !defined(__X86_64__)
 java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params)
 {
