@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8062 2007-06-11 08:12:14Z twisti $
+   $Id: exceptions.c 8087 2007-06-14 16:01:12Z twisti $
 
 */
 
@@ -188,6 +188,71 @@ bool exceptions_init(void)
 #endif
 
 	return true;
+}
+
+
+/* exceptions_get_exception ****************************************************
+
+   Returns the current exception pointer of the current thread.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_get_exception(void)
+{
+	/* return the exception */
+
+	return *exceptionptr;
+}
+
+
+/* exceptions_set_exception ****************************************************
+
+   Sets the exception pointer of the current thread.
+
+*******************************************************************************/
+
+void exceptions_set_exception(java_objectheader *o)
+{
+	/* set the exception */
+
+	*exceptionptr = o;
+}
+
+
+/* exceptions_clear_exception **************************************************
+
+   Clears the current exception pointer of the current thread.
+
+*******************************************************************************/
+
+void exceptions_clear_exception(void)
+{
+	exceptions_set_exception(NULL);
+}
+
+
+/* exceptions_get_and_clear_exception ******************************************
+
+   Gets the exception pointer of the current thread and clears it.
+   This function may return NULL.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_get_and_clear_exception(void)
+{
+	java_objectheader *o;
+
+	/* get the exception */
+
+	o = exceptions_get_exception();
+
+	/* and clear the exception */
+
+	exceptions_clear_exception();
+
+	/* return the exception */
+
+	return o;
 }
 
 
@@ -1545,48 +1610,6 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 }
 
 
-/* exceptions_get_exception ****************************************************
-
-   Returns the current exception pointer of the current thread.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_get_exception(void)
-{
-	/* return the exception */
-
-	return *exceptionptr;
-}
-
-
-/* exceptions_set_exception ****************************************************
-
-   Sets the exception pointer of the current thread.
-
-*******************************************************************************/
-
-void exceptions_set_exception(java_objectheader *o)
-{
-	/* set the exception */
-
-	*exceptionptr = o;
-}
-
-
-/* exceptions_clear_exception **************************************************
-
-   Clears the current exception pointer of the current thread.
-
-*******************************************************************************/
-
-void exceptions_clear_exception(void)
-{
-	/* and clear the exception */
-
-	*exceptionptr = NULL;
-}
-
-
 /* exceptions_fillinstacktrace *************************************************
 
    Calls the fillInStackTrace-method of the currently thrown
@@ -1629,36 +1652,6 @@ java_objectheader *exceptions_fillinstacktrace(void)
 	/* return exception object */
 
 	return o;
-}
-
-
-/* exceptions_get_and_clear_exception ******************************************
-
-   Gets the exception pointer of the current thread and clears it.
-   This function may return NULL.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_get_and_clear_exception(void)
-{
-	java_objectheader **p;
-	java_objectheader  *e;
-
-	/* get the pointer of the exception pointer */
-
-	p = exceptionptr;
-
-	/* get the exception */
-
-	e = *p;
-
-	/* and clear the exception */
-
-	*p = NULL;
-
-	/* return the exception */
-
-	return e;
 }
 
 

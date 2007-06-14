@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 8062 2007-06-11 08:12:14Z twisti $
+   $Id: exceptions.h 8087 2007-06-14 16:01:12Z twisti $
 
 */
 
@@ -69,10 +69,12 @@
 
 /* function prototypes ********************************************************/
 
-/* load and link exceptions used in the system */
-bool exceptions_init(void);
+bool               exceptions_init(void);
 
-/* initialize new exceptions */
+java_objectheader *exceptions_get_exception(void);
+void               exceptions_set_exception(java_objectheader *o);
+void               exceptions_clear_exception(void);
+java_objectheader *exceptions_get_and_clear_exception(void);
 
 java_objectheader *new_exception_utfmessage(const char *classname,
 											utf *message);
@@ -130,11 +132,6 @@ void exceptions_throw_stringindexoutofboundsexception(void);
 void exceptions_classnotfoundexception_to_noclassdeffounderror(void);
 
 java_objectheader *exceptions_fillinstacktrace(void);
-
-java_objectheader *exceptions_get_exception(void);
-void               exceptions_set_exception(java_objectheader *o);
-void               exceptions_clear_exception(void);
-java_objectheader *exceptions_get_and_clear_exception(void);
 
 java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val);
 
