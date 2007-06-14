@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8078 2007-06-14 10:20:02Z twisti $
+   $Id: vm.c 8079 2007-06-14 11:06:48Z twisti $
 
 */
 
@@ -2945,15 +2945,15 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 	for (j = 0; i < md->paramcount; i++, j++, pd++, td++) {
 		param = params->data[j];
 
-		if (param == NULL)
-			goto illegal_arg;
-
-		/* convert the value according to its declared type */
-
-		c = param->vftbl->class;
-
 		switch (td->type) {
 		case TYPE_INT:
+			if (param == NULL)
+				goto illegal_arg;
+
+			/* convert the value according to its declared type */
+
+			c = param->vftbl->class;
+
 			switch (td->decltype) {
 			case PRIMITIVETYPE_BOOLEAN:
 				if (c == class_java_lang_Boolean)
@@ -3004,6 +3004,13 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			break;
 
 		case TYPE_LNG:
+			if (param == NULL)
+				goto illegal_arg;
+
+			/* convert the value according to its declared type */
+
+			c = param->vftbl->class;
+
 			switch (td->decltype) {
 			case PRIMITIVETYPE_LONG:
 				if (c == class_java_lang_Long)
@@ -3026,6 +3033,13 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			break;
 
 		case TYPE_FLT:
+			if (param == NULL)
+				goto illegal_arg;
+
+			/* convert the value according to its declared type */
+
+			c = param->vftbl->class;
+
 			switch (td->decltype) {
 			case PRIMITIVETYPE_FLOAT:
 				if (c == class_java_lang_Float)
@@ -3042,6 +3056,13 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			break;
 
 		case TYPE_DBL:
+			if (param == NULL)
+				goto illegal_arg;
+
+			/* convert the value according to its declared type */
+
+			c = param->vftbl->class;
+
 			switch (td->decltype) {
 			case PRIMITIVETYPE_DOUBLE:
 				if (c == class_java_lang_Double)
@@ -3063,7 +3084,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			if (!resolve_class_from_typedesc(td, true, true, &c))
 				return false;
 
-			if (param != 0) {
+			if (param != NULL) {
 				if (td->arraydim > 0) {
 					if (!builtin_arrayinstanceof(param, c))
 						goto illegal_arg;
