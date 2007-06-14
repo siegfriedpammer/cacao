@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8062 2007-06-11 08:12:14Z twisti $
+   $Id: loader.c 8086 2007-06-14 15:31:54Z twisti $
 
 */
 
@@ -1536,7 +1536,6 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			case 'L':
 				/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
 				if (namelen < 4 || text[2] == '[' || text[namelen - 1] != ';') {
-/* 					exceptions_throw_noclassdeffounderror(name); */
 					exceptions_throw_classnotfoundexception(name);
 					return false;
 				}
@@ -2406,7 +2405,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	/* Check array class name */
 
 	if ((namelen < 2) || (text[0] != '[')) {
-/* 		exceptions_throw_noclassdeffounderror(c->name); */
 		exceptions_throw_classnotfoundexception(c->name);
 		return NULL;
 	}
@@ -2440,7 +2438,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 		/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
 		if ((namelen < 4) || (text[2] == '[') || (text[namelen - 1] != ';')) {
-/* 			exceptions_throw_noclassdeffounderror(c->name); */
 			exceptions_throw_classnotfoundexception(c->name);
 			return NULL;
 		}
@@ -2468,7 +2465,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		   valid primitive type */
 
 		if ((namelen > 2) || (primitive_class_get_by_char(text[1]) == NULL)) {
-/* 			exceptions_throw_noclassdeffounderror(c->name); */
 			exceptions_throw_classnotfoundexception(c->name);
 			return NULL;
 		}
