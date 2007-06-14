@@ -59,7 +59,7 @@ u1 *disassinstr(u1 *code)
 		/* setting the struct members must be done after
 		   INIT_DISASSEMBLE_INFO */
 
-		info.mach             = bfd_mach_mcf_isa_b_float_emac;	/* this is optimistic */
+		info.mach             = bfd_mach_mcfv4e;	/* this is optimistic */
 		info.read_memory_func = &disass_buffer_read_memory;
 
 		disass_initialized = 1;
