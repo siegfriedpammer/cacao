@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8077 2007-06-14 09:44:12Z twisti $
+   $Id: vm.c 8078 2007-06-14 10:20:02Z twisti $
 
 */
 
@@ -3691,8 +3691,6 @@ int64_t vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, jvalue *
 s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s8 l;
-
-	vm_abort("IMPLEMENT ME!");
 
 	STATISTICS(count_calls_native_to_java++);
 
