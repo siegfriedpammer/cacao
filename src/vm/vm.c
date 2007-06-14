@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8076 2007-06-14 09:35:31Z twisti $
+   $Id: vm.c 8077 2007-06-14 09:44:12Z twisti $
 
 */
 
@@ -41,7 +41,10 @@
 
 #include "vm/types.h"
 
+#include "arch.h"
 #include "md-abi.h"
+
+#include "vm/jit/abi-asm.h"
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
@@ -2339,7 +2342,7 @@ static void vm_array_store_int(uint64_t *array, paramdesc *pd, int32_t value)
 		array[index] = (int64_t) value;
 	}
 	else {
-		index        = INT_ARG_CNT + FLT_ARG_CNT + pd->regoff;
+		index        = ARG_CNT + pd->regoff;
 #if WORDS_BIGENDIAN == 1
 		array[index] = ((int64_t) value) << 32;
 #else
@@ -2364,7 +2367,7 @@ static void vm_array_store_lng(uint64_t *array, paramdesc *pd, int64_t value)
 	if (!pd->inmemory)
 		index = pd->index;
 	else
-		index = INT_ARG_CNT + FLT_ARG_CNT + pd->regoff;
+		index = ARG_CNT + pd->regoff;
 
 	array[index] = value;
 #else
@@ -2378,7 +2381,7 @@ static void vm_array_store_lng(uint64_t *array, paramdesc *pd, int64_t value)
 		array[index] = value >> 32;
 	}
 	else {
-		index        = INT_ARG_CNT + FLT_ARG_CNT + pd->regoff;
+		index        = ARG_CNT + pd->regoff;
 		array[index] = value;
 	}
 #endif
@@ -2405,7 +2408,7 @@ static void vm_array_store_flt(uint64_t *array, paramdesc *pd, uint64_t value)
 #endif
 	}
 	else {
-		index        = INT_ARG_CNT + FLT_ARG_CNT + pd->regoff;
+		index        = ARG_CNT + pd->regoff;
 		array[index] = value;
 	}
 }
@@ -2425,7 +2428,7 @@ static void vm_array_store_dbl(uint64_t *array, paramdesc *pd, uint64_t value)
 	if (!pd->inmemory)
 		index = INT_ARG_CNT + pd->index;
 	else
-		index = INT_ARG_CNT + FLT_ARG_CNT + pd->regoff;
+		index = ARG_CNT + pd->regoff;
 
 	array[index] = value;
 }
@@ -2443,11 +2446,18 @@ static void vm_array_store_adr(uint64_t *array, paramdesc *pd, void *value)
 	int32_t index;
 
 	if (!pd->inmemory) {
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+		/* When the architecture has address registers, place them
+		   after integer and float registers. */
+
+		index        = INT_ARG_CNT + FLT_ARG_CNT + pd->index;
+#else
 		index        = pd->index;
+#endif
 		array[index] = (uint64_t) (intptr_t) value;
 	}
 	else {
-		index        = INT_ARG_CNT + FLT_ARG_CNT + pd->regoff;
+		index        = ARG_CNT + pd->regoff;
 #if SIZEOF_VOID_P == 8
 		array[index] = (uint64_t) (intptr_t) value;
 #else
