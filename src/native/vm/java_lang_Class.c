@@ -117,8 +117,6 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 	utf               *ufile;
 	utf               *uname;
 	classinfo         *c;
-	java_objectheader *xptr;
-	classinfo         *xclass;
 	u2                *pos;
 	s4                 i;
 
