@@ -257,11 +257,11 @@ void mark_me(rootset_t *rs)
 		for (i = 0; i < rs->refcount; i++) {
 
 			/* is this a marking reference? */
-			if (!rs->ref_marks[i])
+			if (!rs->refs[i].marks)
 				continue;
 
 			/* load the reference */
-			ref = *( rs->refs[i] );
+			ref = *( rs->refs[i].ref );
 
 			/* check for outside or null pointers */
 			if (!POINTS_INTO(ref, start, end))

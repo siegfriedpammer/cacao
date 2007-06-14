@@ -45,10 +45,32 @@ rootset_t *rootset_create(void)
 {
 	rootset_t *rs;
 
+	/* allocate memory for rootset */
 	rs = DNEW(rootset_t);
 
 	rs->next     = NULL;
+	rs->capacity = ROOTSET_INITIAL_CAPACITY;
 	rs->refcount = 0;
+
+	return rs;
+}
+
+
+rootset_t *rootset_resize(rootset_t *rs)
+{
+	s4 size_old;
+	s4 size_new;
+
+	/* double the capacity of this rootset */
+	size_old = sizeof(rootset_t) + (rs->capacity - ROOTSET_INITIAL_CAPACITY) * sizeof(rootset_entry_t);
+	rs->capacity *= 2;
+	size_new = sizeof(rootset_t) + (rs->capacity - ROOTSET_INITIAL_CAPACITY) * sizeof(rootset_entry_t);
+
+	GC_LOG2( printf("Resizing rootset to capacity %d (%d -> %d)\n", rs->capacity, size_old, size_new); );
+
+	/* reallocate memory for rootset */
+	/* XXX DMREALLOC(ptr,type,num1,num2) */
+	rs = DMREALLOC(rs, u1, size_old, size_new);
 
 	return rs;
 }
@@ -67,14 +89,15 @@ rootset_t *rootset_create(void)
 
 *******************************************************************************/
 
-#define ROOTSET_ADD(adr,marks,type) \
-	GC_ASSERT(refcount < RS_REFS); /* TODO: UGLY!!! */ \
-	rs->refs[refcount]      = (adr); \
-	rs->ref_marks[refcount] = (marks); \
-	rs->ref_type[refcount]  = (type); \
+#define ROOTSET_ADD(adr,mrk,tp) \
+	if (refcount >= rs->capacity) \
+		rs = rootset_resize(rs); \
+	rs->refs[refcount].ref   = (adr); \
+	rs->refs[refcount].marks = (mrk); \
+	rs->refs[refcount].type  = (tp); \
 	refcount++;
 
-void rootset_from_globals(rootset_t *rs)
+static rootset_t *rootset_from_globals(rootset_t *rs)
 {
 	list_final_entry_t          *fe;
 	list_gcref_entry_t          *re;
@@ -120,10 +143,11 @@ void rootset_from_globals(rootset_t *rs)
 	/* remeber how many references there are inside this root set */
 	rs->refcount = refcount;
 
+	return rs;
 }
 
 
-void rootset_from_classes(rootset_t *rs)
+static rootset_t *rootset_from_classes(rootset_t *rs)
 {
 	classinfo         *c;
 	fieldinfo         *f;
@@ -175,6 +199,7 @@ void rootset_from_classes(rootset_t *rs)
 	/* remeber how many references there are inside this root set */
 	rs->refcount = refcount;
 
+	return rs;
 }
 
 
@@ -194,7 +219,7 @@ void rootset_from_classes(rootset_t *rs)
 
 *******************************************************************************/
 
-void rootset_from_thread(threadobject *thread, rootset_t *rs)
+static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 {
 	executionstate_t *es;
 	sourcestate_t    *ss;
@@ -300,6 +325,7 @@ void rootset_from_thread(threadobject *thread, rootset_t *rs)
 	/* remeber how many references there are inside this root set */
 	rs->refcount = refcount;
 
+	return rs;
 }
 
 
@@ -311,25 +337,23 @@ rootset_t *rootset_readout()
 
 	/* find the global rootset ... */
 	rs_top = rootset_create();
-	rootset_from_globals(rs_top);
-	rootset_from_classes(rs_top);
+	rs_top = rootset_from_globals(rs_top);
+	rs_top = rootset_from_classes(rs_top);
 
 	/* ... and the rootsets for the threads */
 	rs = rs_top;
 #if defined(ENABLE_THREADS)
 	for (thread = threads_list_first(); thread != NULL; thread = threads_list_next(thread)) {
 		rs->next = rootset_create();
-		rs = rs->next;
+		rs->next = rootset_from_thread(thread, rs->next);
 
-		rootset_from_thread(thread, rs);
+		rs = rs->next;
 	}
 #else
 	thread = THREADOBJECT;
 
 	rs->next = rootset_create();
-	rs = rs->next;
-
-	rootset_from_thread(thread, rs);
+	rs->next = rootset_from_thread(thread, rs->next);
 #endif
 
 	return rs_top;
@@ -371,7 +395,7 @@ void rootset_writeback(rootset_t *rs)
 /* Debugging ******************************************************************/
 
 #if !defined(NDEBUG)
-const char* ref_type_names[] = {
+static const char* ref_type_names[] = {
 		"XXXXXX", "REGIST", "CLASSL",
 		"GLOBAL", "FINAL ", "LOCAL ",
 		"STACK ", "STATIC"
@@ -398,15 +422,15 @@ void rootset_print(rootset_t *rs)
 		}
 
 		/* print the references in this rootset */
-		printf("\tReferences (%d):\n", rs->refcount);
+		printf("\tReferences (%d / %d):\n", rs->refcount, rs->capacity);
 		for (i = 0; i < rs->refcount; i++) {
 
-			o = *( rs->refs[i] );
+			o = *( rs->refs[i].ref );
 
 			/*printf("\t\tReference at %p points to ...\n", (void *) rs->refs[i]);*/
 			printf("\t\t");
-			printf("%s ", ref_type_names[rs->ref_type[i]]);
-			if (rs->ref_marks[i])
+			printf("%s ", ref_type_names[rs->refs[i].type]);
+			if (rs->refs[i].marks)
 				printf("MARK+UPDATE");
 			else
 				printf("     UPDATE");

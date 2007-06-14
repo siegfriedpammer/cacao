@@ -48,7 +48,8 @@ typedef struct rootset_t rootset_t;
 /* Structures *****************************************************************/
 
 #define ROOTSET_DUMMY_THREAD ((threadobject *) (ptrint) -1)
-#define RS_REFS 512 /* TODO: you see why we need to rethink this!!! */
+
+#define ROOTSET_INITIAL_CAPACITY 16
 
 #define REFTYPE_THREADOBJECT 1
 #define REFTYPE_REGISTERED   1
@@ -62,17 +63,23 @@ typedef struct rootset_t rootset_t;
 /* rootset is passed as array of pointers, which point to the location of
    the reference */
 
+typedef struct rootset_entry_t {
+	java_objectheader **ref;            /* a pointer to the actual reference */
+	bool                marks;          /* indicates if a reference marks */
+#if !defined(NDEBUG)
+	s4                  type;
+#endif
+} rootset_entry_t;
+
+
 struct rootset_t {
 	rootset_t          *next;           /* link to the next chain element */
 	threadobject       *thread;         /* thread this rootset belongs to */
 	sourcestate_t      *ss;             /* sourcestate of the thread */
 	executionstate_t   *es;             /* executionstate of the thread */
+	s4                  capacity;       /* the current capacity of this rs */
 	s4                  refcount;       /* number of references */
-	java_objectheader **refs[RS_REFS];  /* list of references */
-	bool                ref_marks[RS_REFS]; /* indicates if a reference marks */
-#if !defined(NDEBUG)
-	s4                  ref_type[RS_REFS];
-#endif
+	rootset_entry_t     refs[ROOTSET_INITIAL_CAPACITY]; /* list of references */
 };
 
 

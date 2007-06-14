@@ -79,7 +79,7 @@ static void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 		for (i = 0; i < rs->refcount; i++) {
 
 			/* load the reference */
-			refptr = rs->refs[i];
+			refptr = rs->refs[i].ref;
 			ref = *( refptr );
 
 			GC_LOG2( printf("\troot pointer to %p\n", (void *) ref); );

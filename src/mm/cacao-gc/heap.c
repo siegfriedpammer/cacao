@@ -108,7 +108,7 @@ void heap_update_references(rootset_t *rs, regioninfo_t *region, u4 offset)
 		for (i = 0; i < rs->refcount; i++) {
 
 			/* load the reference */
-			refptr = rs->refs[i];
+			refptr = rs->refs[i].ref;
 			ref = *( refptr );
 
 			GC_LOG2( printf("\troot pointer to %p\n", (void *) ref); );

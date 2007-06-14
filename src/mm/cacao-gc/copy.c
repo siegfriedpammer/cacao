@@ -151,10 +151,10 @@ void copy_me(regioninfo_t *src, regioninfo_t *dst, rootset_t *rs)
 		for (i = 0; i < rs->refcount; i++) {
 
 			/* load the root reference */
-			ref = *( rs->refs[i] );
+			ref = *( rs->refs[i].ref );
 
 			/* forward the object */
-			GC_FORWARD(ref, rs->refs[i], src->base, src->end);
+			GC_FORWARD(ref, rs->refs[i].ref, src->base, src->end);
 
 		}
 
