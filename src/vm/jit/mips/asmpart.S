@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8074 2007-06-13 22:27:17Z twisti $
+   $Id: asmpart.S 8075 2007-06-14 00:38:53Z twisti $
 
 */
 
@@ -189,10 +189,10 @@ L_asm_vm_call_method_compute_pv:
 	lw      a2,2*8+4(t0)
 	lw      a3,3*8+4(t0)
 # else
-	ld      a0,0*8(t0)
-	ld      a1,1*8(t0)
-	ld      a2,2*8(t0)
-	ld      a3,3*8(t0)
+	lw      a0,0*8(t0)
+	lw      a1,1*8(t0)
+	lw      a2,2*8(t0)
+	lw      a3,3*8(t0)
 # endif
 
 # if !defined(ENABLE_SOFT_FLOAT)
@@ -202,17 +202,14 @@ L_asm_vm_call_method_compute_pv:
 
 #endif /* SIZEOF_VOID_P == 8 */
 
-	beqz    t1, asm_vm_call_method_stack_copy_done
+	beqz    t1,L_asm_vm_call_method_stack_copy_done
 	nop
 
 	sll     t2,t1,3                   /* calculate stackframe size (* 8)      */
 	asubu   sp,sp,t2                  /* create stackframe                    */
 	move    t2,sp                     /* temporary stack pointer              */
 
-asm_vm_call_method_stack_copy_loop:
-	beqz    t1, asm_vm_call_method_stack_copy_done
-	nop
-
+L_asm_vm_call_method_stack_copy_loop:
 #if SIZEOF_VOID_P == 8
 	ld      t3,16*8(t0)               /* load argument                        */
 	sd      t3,0(t2)                  /* store argument on stack              */
@@ -231,10 +228,10 @@ asm_vm_call_method_stack_copy_loop:
 	aaddi   t0,t0,8                   /* load address of next argument        */
 	aaddi   t2,t2,8                   /* increase stack pointer               */
 
-	b       asm_vm_call_method_stack_copy_loop
+	bgtz    t1,L_asm_vm_call_method_stack_copy_loop
 	nop
 
-asm_vm_call_method_stack_copy_done:
+L_asm_vm_call_method_stack_copy_done:
 	ala     mptr,4*8(s0)              /* get address of PV                    */
 	ald     pv,0*8(mptr)              /* load PV                              */
 	jalr    pv
