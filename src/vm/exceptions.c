@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8087 2007-06-14 16:01:12Z twisti $
+   $Id: exceptions.c 8090 2007-06-14 16:07:37Z twisti $
 
 */
 
@@ -272,7 +272,7 @@ static java_objectheader *exceptions_new_class(classinfo *c)
 	o = native_new_and_init(c);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	return o;
 }
@@ -295,7 +295,7 @@ static java_objectheader *exceptions_new_utf(utf *classname)
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = exceptions_new_class(c);
 
@@ -322,7 +322,7 @@ static void exceptions_throw_class(classinfo *c)
 	if (o == NULL)
 		return;
 
-	*exceptionptr = o;
+	exceptions_set_exception(o);
 }
 
 
@@ -473,12 +473,12 @@ static java_objectheader *exceptions_new_utf_javastring(utf *classname,
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = native_new_and_init_string(c, message);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	return o;
 }
@@ -502,12 +502,12 @@ static java_objectheader *exceptions_new_class_utf(classinfo *c, utf *message)
 	s = javastring_new(message);
 
 	if (s == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = native_new_and_init_string(c, s);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	return o;
 }
@@ -536,7 +536,7 @@ static java_objectheader *exceptions_new_utf_utf(utf *classname, utf *message)
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = exceptions_new_class_utf(c, message);
 
@@ -557,7 +557,11 @@ static java_objectheader *exceptions_new_utf_utf(utf *classname, utf *message)
 
 static void exceptions_throw_class_utf(classinfo *c, utf *message)
 {
-	*exceptionptr = exceptions_new_class_utf(c, message);
+	java_objectheader *o;
+
+	o = exceptions_new_class_utf(c, message);
+
+	exceptions_set_exception(o);
 }
 
 
@@ -574,7 +578,11 @@ static void exceptions_throw_class_utf(classinfo *c, utf *message)
 
 static void exceptions_throw_utf_utf(utf *classname, utf *message)
 {
-	*exceptionptr = exceptions_new_utf_utf(classname, message);
+	java_objectheader *o;
+
+	o = exceptions_new_utf_utf(classname, message);
+
+	exceptions_set_exception(o);
 }
 
 
@@ -991,7 +999,7 @@ void exceptions_throw_linkageerror(const char *message, classinfo *c)
 	if (o == NULL)
 		return;
 
-	*exceptionptr = o;
+	exceptions_set_exception(o);
 }
 
 
@@ -1343,18 +1351,18 @@ java_objectheader *exceptions_new_arrayindexoutofboundsexception(s4 index)
 								 true);
 
 	if (m == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	s = vm_call_method(m, NULL, index);
 
 	if (s == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = exceptions_new_utf_javastring(utf_java_lang_ArrayIndexOutOfBoundsException,
 									  s);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	return o;
 }
@@ -1567,7 +1575,7 @@ void exceptions_throw_stringindexoutofboundsexception(void)
 
 /* exceptions_classnotfoundexception_to_noclassdeffounderror *******************
 
-   Check the *exceptionptr for a ClassNotFoundException. If it is one,
+   Check the exception for a ClassNotFoundException. If it is one,
    convert it to a NoClassDefFoundError.
 
 *******************************************************************************/
@@ -1624,12 +1632,9 @@ java_objectheader *exceptions_fillinstacktrace(void)
 
 	/* get exception */
 
-	o = *exceptionptr;
+	o = exceptions_get_and_clear_exception();
+
 	assert(o);
-
-	/* clear exception */
-
-	*exceptionptr = NULL;
 
 	/* resolve methodinfo pointer from exception object */
 
@@ -1997,11 +2002,11 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 void exceptions_print_current_exception(void)
 {
-	java_objectheader *xptr;
+	java_objectheader *o;
 
-	xptr = *exceptionptr;
+	o = exceptions_get_exception();
 
-	exceptions_print_exception(xptr);
+	exceptions_print_exception(o);
 }
 
 
