@@ -109,8 +109,6 @@ static rootset_t *rootset_from_globals(rootset_t *rs)
 	GC_ASSERT(rs);
 	GC_ASSERT(rs->refcount == 0);
 	rs->thread = ROOTSET_DUMMY_THREAD;
-	rs->ss     = NULL;
-	rs->es     = NULL;
 
 	refcount = rs->refcount;
 
@@ -253,8 +251,6 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 	GC_ASSERT(rs);
 	GC_ASSERT(rs->refcount == 0);
 	rs->thread = thread;
-	rs->ss = ss;
-	rs->es = es;
 
 	refcount = rs->refcount;
 
@@ -381,8 +377,8 @@ void rootset_writeback(rootset_t *rs)
 #endif
 
 			/* now write back the modified sourcestate */
-			ss = rs->ss;
-			es = rs->es;
+			ss = GC_SOURCESTATE;
+			es = GC_EXECUTIONSTATE;
 			replace_build_execution_state_intern(ss, es);
 		}
 

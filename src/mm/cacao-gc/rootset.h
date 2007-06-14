@@ -75,8 +75,6 @@ typedef struct rootset_entry_t {
 struct rootset_t {
 	rootset_t          *next;           /* link to the next chain element */
 	threadobject       *thread;         /* thread this rootset belongs to */
-	sourcestate_t      *ss;             /* sourcestate of the thread */
-	executionstate_t   *es;             /* executionstate of the thread */
 	s4                  capacity;       /* the current capacity of this rs */
 	s4                  refcount;       /* number of references */
 	rootset_entry_t     refs[ROOTSET_INITIAL_CAPACITY]; /* list of references */
