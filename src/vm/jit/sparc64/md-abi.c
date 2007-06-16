@@ -58,8 +58,8 @@ s4 nregdescint[] = {
 	/* l0    l1       l2       l3       l4       l5       l6       l7     */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 	
-	/* i0/v0 i1       i2       i3       i4       pv/i5    fp/i6    ra/i7  */
-	REG_RET, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES,
+	/* i0    i1       i2       i3       i4       pv/i5    fp/i6    ra/i7  */
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES,
 	REG_END
 };
 
@@ -87,6 +87,7 @@ const s4 abi_registers_integer_saved[] = {
 	21, /* l5  */
 	22, /* l6  */
 	23, /* l7  */
+	24, /* i0  */
 	25, /* i1  */
 	26, /* i2  */
 	27, /* i3  */

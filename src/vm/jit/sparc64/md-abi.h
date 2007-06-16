@@ -87,7 +87,7 @@
 
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
-#define INT_SAV_CNT     12   /* number of int callee saved registers          */
+#define INT_SAV_CNT     13   /* number of int callee saved registers          */
 #define INT_ARG_CNT      5   /* number of int argument registers (-1 for PV)  */
 #define INT_TMP_CNT      0   /* int temp registers (%g4-%g5)                  */
 #define INT_RES_CNT     14   /* number of reserved integer registers          */
