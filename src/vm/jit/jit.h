@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 7766 2007-04-19 13:24:48Z michi $
+   $Id: jit.h 8094 2007-06-16 01:15:41Z ajordan $
 
 */
 
@@ -81,10 +81,26 @@ typedef struct exception_entry exception_entry;
 
 #if defined(ENABLE_STATISTICS)
 # define COUNT(x)        (x)++
-# define COUNT_SPILLS    count_spills++
+# define COUNT_SPILLS             /* use COUNT_(READ|WRITE)_SPILLS instead */
+# define COUNT_READ_SPILLS(var) \
+	switch(var->type) { \
+	case TYPE_FLT: count_spills_read_flt++; break; \
+	case TYPE_DBL: count_spills_read_dbl++; break; \
+	default: count_spills_read_ila++; break; \
+	}
+
+# define COUNT_WRITE_SPILLS(var) \
+	switch(var->type) { \
+	case TYPE_FLT: count_spills_write_flt++; break; \
+	case TYPE_DBL: count_spills_write_dbl++; break; \
+	default: count_spills_write_ila++; break; \
+	}
+
 #else
-# define COUNT(x)        /* nothing */
-# define COUNT_SPILLS    /* nothing */
+# define COUNT(x)                /* nothing */
+# define COUNT_SPILLS            /* nothing */
+# define COUNT_READ_SPILLS(x)    /* nothing */
+# define COUNT_WRITE_SPILLS(x)   /* nothing */
 #endif
 
 typedef struct interface_info interface_info;

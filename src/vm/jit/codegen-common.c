@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8014 2007-06-05 12:53:30Z twisti $
+   $Id: codegen-common.c 8094 2007-06-16 01:15:41Z ajordan $
 
 */
 
@@ -374,7 +374,8 @@ void codegen_increase(codegendata *cd)
 
 	cd->mcodeptr = cd->mcodebase + (cd->mcodeptr - oldmcodebase);
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(__M68K__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(__M68K__) || defined(ENABLE_INTRP) \
+ || defined(__SPARC_64__)
 	/* adjust the pointer to the last patcher position */
 
 	if (cd->lastmcodeptr != NULL)
@@ -552,7 +553,8 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 	}
 #endif
 
-#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(__M68K__))
+#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__MIPS__) \
+ || defined(__SPARC_64__) || defined(__X86_64__))
 
 	/* On some architectures the patcher stub call instruction might
 	   be longer than the actual instruction generated.  On this
@@ -831,6 +833,7 @@ u1 *codegen_get_pv_from_pc(u1 *pc)
 		log_println("PC=0x%08x", pc);
 #endif
 		log_println("");
+		assert(0);
 		log_println("Dumping the current stacktrace:");
 
 #if defined(ENABLE_THREADS)
@@ -1520,11 +1523,6 @@ s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 
 	if (!(v->flags & INMEMORY))
 		return v->vv.regoff;
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_spills_read++;
-#endif
 
 	return tempregnum;
 }

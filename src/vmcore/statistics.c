@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 8082 2007-06-14 12:10:49Z tbfg $
+   $Id: statistics.c 8094 2007-06-16 01:15:41Z ajordan $
 
 */
 
@@ -140,8 +140,12 @@ int count_mov_mem_mem = 0;
 
 int count_jit_calls = 0;
 int count_methods = 0;
-int count_spills = 0;
-int count_spills_read = 0;
+int count_spills_read_ila = 0;
+int count_spills_read_flt = 0;
+int count_spills_read_dbl = 0;
+int count_spills_write_ila = 0;
+int count_spills_write_flt = 0;
+int count_spills_write_dbl = 0;
 int count_pcmd_activ = 0;
 int count_pcmd_drop = 0;
 int count_pcmd_zero = 0;
@@ -411,8 +415,12 @@ void print_stats(void)
 
 	dolog("Size of compiled Exception Tables:      %d", count_javaexcsize);
 	dolog("Number of Machine-Instructions: %d", count_code_len >> 2);
-	dolog("Number of Spills (write to memory): %d", count_spills);
-	dolog("Number of Spills (read from memory): %d", count_spills_read);
+	dolog("Number of Spills (write to memory) <all [i/l/a|flt|dbl]>: %d [%d|%d|%d]",
+		count_spills_write_ila + count_spills_write_flt + count_spills_write_dbl,
+		count_spills_write_ila, count_spills_write_flt, count_spills_write_dbl);
+	dolog("Number of Spills (read from memory) <all [i/l/a|flt|dbl]>: %d [%d|%d|%d]",
+		count_spills_read_ila + count_spills_read_flt + count_spills_read_dbl,
+		count_spills_read_ila, count_spills_read_flt, count_spills_read_dbl);
 	dolog("Number of Activ    Pseudocommands: %6d", count_pcmd_activ);
 	dolog("Number of Drop     Pseudocommands: %6d", count_pcmd_drop);
 	dolog("Number of Const    Pseudocommands: %6d (zero:%5d)",

@@ -190,20 +190,26 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 
 void md_critical_section_restart(ucontext_t *_uc)
 {
-	mcontext_t *_mc;
+	/* mcontext_t *_mc; */
+	sigcontext *ctx;
 	u1         *pc;
 	u1         *npc;
 
-	_mc = &_uc->uc_mcontext;
+	printf("ignoring md_critical_section_restart\n");
+	return;
 
-	pc = (u1 *) _mc->mc_gregs[MC_PC];
+	/* again, we are getting sigcontext instead of ucontext */
+	ctx = (sigcontext *) _uc;
+	
+	pc = (u1 *) ctx->sigc_regs.tpc;
 
 	npc = critical_find_restart_point(pc);
-	assert(npc);
 
-	_mc->mc_gregs[MC_NPC] = (ptrint) npc;
+	if (npc != NULL) {
+		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
+		ctx->sigc_regs.tnpc = (ptrint) npc;
+	}
 
-	assert(false); /* test this */
 }
 #endif
 	

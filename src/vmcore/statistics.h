@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.h 8082 2007-06-14 12:10:49Z tbfg $
+   $Id: statistics.h 8094 2007-06-16 01:15:41Z ajordan $
 
 */
 
@@ -142,8 +142,12 @@ extern int count_mov_mem_mem;
 
 extern int count_jit_calls;
 extern int count_methods;
-extern int count_spills;
-extern int count_spills_read;
+extern int count_spills_read_ila;
+extern int count_spills_read_flt;
+extern int count_spills_read_dbl;
+extern int count_spills_write_ila;
+extern int count_spills_write_flt;
+extern int count_spills_write_dbl;
 extern int count_pcmd_activ;
 extern int count_pcmd_drop;
 extern int count_pcmd_zero;
