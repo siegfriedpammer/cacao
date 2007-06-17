@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8096 2007-06-17 13:45:58Z pm $
+   $Id: codegen.c 8097 2007-06-17 14:50:16Z pm $
 
 */
 
@@ -2217,8 +2217,12 @@ bool codegen_emit(jitdata *jd)
 				M_ICMP_IMM(s1, iptr->sx.val.i);
 			else {
 				disp = dseg_add_s4(cd, iptr->sx.val.i);
-				ICONST(REG_ITMP2, disp);
-				N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_C(s1, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					ICONST(REG_ITMP2, disp);
+					N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+				}
 			}
 
 			switch (iptr->opc) {
@@ -2261,8 +2265,12 @@ bool codegen_emit(jitdata *jd)
 				M_ICMP_IMM(s1, iptr->sx.val.l >> 32);
 			else {
 				disp = dseg_add_s4(cd, iptr->sx.val.l >> 32);
-				ICONST(REG_ITMP2, disp);
-				N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_C(s1, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					ICONST(REG_ITMP2, disp);
+					N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+				}
 			}
 
 			switch(iptr->opc) {
@@ -2293,8 +2301,12 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 
 			disp = dseg_add_s4(cd, (s4)(iptr->sx.val.l & 0xffffffff));
-			ICONST(REG_ITMP2, disp);
-			N_CL(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+			if (N_VALID_DSEG_DISP(disp)) {
+				N_CL(s1, N_DSEG_DISP(disp), RN, REG_PV);
+			} else {
+				ICONST(REG_ITMP2, disp);
+				N_CL(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+			}
 
 			switch(iptr->opc) {
 				case ICMD_IF_LLT:
@@ -2758,8 +2770,12 @@ gen_method:
 				disp = dseg_add_functionptr(cd, bte->fp);
 
 				M_ASUB_IMM(96, REG_SP); /* register save area as required by C abi */	
-				N_LHI(REG_ITMP1, disp);
-				N_L(REG_PV, -N_PV_OFFSET, REG_ITMP1, REG_PV);
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_L(REG_PV, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					N_LHI(REG_ITMP1, disp);
+					N_L(REG_PV, -N_PV_OFFSET, REG_ITMP1, REG_PV);
+				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2779,8 +2795,12 @@ gen_method:
 				else
 					disp = dseg_add_address(cd, lm->stubroutine);
 
-				N_LHI(REG_ITMP1, disp);
-				N_L(REG_PV, -N_PV_OFFSET, REG_ITMP1, REG_PV);
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_L(REG_PV, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					N_LHI(REG_ITMP1, disp);
+					N_L(REG_PV, -N_PV_OFFSET, REG_ITMP1, REG_PV);
+				}
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -2931,8 +2951,12 @@ gen_method:
 										  disp);
 
 					ICONST(REG_ITMP2, ACC_INTERFACE);
-					ICONST(REG_ITMP3, disp); /* TODO negative displacement */
-					N_N(REG_ITMP2, -N_PV_OFFSET, REG_ITMP3, REG_PV);
+					if (N_VALID_DSEG_DISP(disp)) {
+						N_N(REG_ITMP2, N_DSEG_DISP(disp), RN, REG_PV);
+					} else {
+						ICONST(REG_ITMP3, disp);
+						N_N(REG_ITMP2, -N_PV_OFFSET, REG_ITMP3, REG_PV);
+					}
 					emit_label_beq(cd, LABEL_CLASS);
 				}
 
@@ -3125,8 +3149,14 @@ gen_method:
 									  iptr->sx.s23.s3.c.ref, disp);
 
 				ICONST(REG_ITMP2, ACC_INTERFACE);
-				ICONST(REG_ITMP3, disp); /* TODO negative displacement */
-				N_N(REG_ITMP2, -N_PV_OFFSET, REG_ITMP3, REG_PV);
+
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_N(REG_ITMP2, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					ICONST(REG_ITMP3, disp);
+					N_N(REG_ITMP2, -N_PV_OFFSET, REG_ITMP3, REG_PV);
+				}
+
 				emit_label_beq(cd, LABEL_CLASS);
 			}
 

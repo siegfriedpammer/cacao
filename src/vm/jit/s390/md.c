@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8096 2007-06-17 13:45:58Z pm $
+   $Id: md.c 8097 2007-06-17 14:50:16Z pm $
 
 */
 
@@ -453,7 +453,7 @@ last 2 instructions the same as in invokevirtual
 
 u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 {
-	u1  base;
+	u1  base, index;
 	s4  offset;
 	u1 *pa;                             /* patch address                      */
 
@@ -464,33 +464,48 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 	/* get the base register of the load */
 
 	base = ra[2] >> 4;
+	index = ra[1] & 0xF;
 
 	/* check for the different calls */
 
-	if (base == 0xd) { /* pv relative */
-		/* INVOKESTATIC/SPECIAL */
+	switch (base) {
+		case 0xd:
+			/* INVOKESTATIC/SPECIAL */
 
-		/* the offset is in the load before the load */
-
-		offset = *((s2 *) (ra - 2));
-
-		/* add the offset to the procedure vector */
-
-		pa = sfi->pv + offset;
-
-	}
-	else if (base == 0xc) { /* mptr relative */
-		/* INVOKEVIRTUAL/INTERFACE */
-
-		offset = *((u2 *)(ra + 2)) & 0xFFF;
-
-		/* add offset to method pointer */
 		
-		pa = mptr + offset;
-	}
-	else {
-		/* catch any problems */
-		assert(0); 
+			switch (index) {
+				case 0x0:
+					/* the offset is in the load instruction */
+					offset = ((*(u2 *)(ra + 2)) & 0xFFF) + N_PV_OFFSET;
+					break;
+				case 0x1:
+					/* the offset is in the immediate load before the load */
+					offset = *((s2 *) (ra - 2));
+					break;
+				default:
+					assert(0);
+			}
+
+			/* add the offset to the procedure vector */
+
+			pa = sfi->pv + offset;
+
+			break;
+
+		case 0xc:
+			/* mptr relative */
+			/* INVOKEVIRTUAL/INTERFACE */
+
+			offset = *((u2 *)(ra + 2)) & 0xFFF;
+
+			/* add offset to method pointer */
+			
+			pa = mptr + offset;
+			break;
+		default:
+			/* catch any problems */
+			assert(0); 
+			break;
 	}
 
 	return pa;
