@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 8068 2007-06-12 15:50:35Z pm $
+   $Id: codegen.h 8096 2007-06-17 13:45:58Z pm $
 
 */
 
@@ -308,6 +308,10 @@
 #define N_DISP_MAX 0xFFF
 #define N_VALID_DISP(x) ((N_DISP_MIN <= (x)) && ((x) <= N_DISP_MAX))
 #define ASSERT_VALID_DISP(x) assert(N_VALID_DISP(x))
+
+#define N_PV_OFFSET (-0xFFC)
+#define N_DSEG_DISP(x) ((x) - N_PV_OFFSET)
+#define N_VALID_DSEG_DISP(x) N_VALID_DISP(N_DSEG_DISP(x))
 
 #define N_BRANCH_MIN -32768
 #define N_BRANCH_MAX 32767
@@ -602,7 +606,10 @@
 		} \
 	} while (0)
 
+#define M_ILD_DSEG(r, d) M_ILD(r, REG_PV, N_DSEG_DISP(d))
+
 #define M_ALD(r, b, d) M_ILD(r, b, d)
+#define M_ALD_DSEG(r, d) M_ALD(r, REG_PV, N_DSEG_DISP(d))
 
 #define M_LDA(r, b, d) \
 	do { \
@@ -618,21 +625,23 @@
 			N_LA(r, 0, r, b); \
 		} \
 	} while (0)
+#define M_LDA_DSEG(r, d) M_LDA(r, REG_PV, N_DSEG_DISP(d))
 
 #define M_FLD(r, b, d) N_LE(r, d, RN, b)
-
 #define M_FLDN(r, b, d, t) _IFNEG( \
 	d, \
 	N_LHI(t, d); N_LE(r, 0, t, b), \
 	N_LE(r, d, RN, b) \
 )
-		
+#define M_FLD_DSEG(r, d, t) M_FLDN(r, REG_PV, N_DSEG_DISP(d), t)
+
 #define M_DLD(r, b, d) N_LD(r, d, RN, b)
 #define M_DLDN(r, b, d, t) _IFNEG( \
 	d, \
 	N_LHI(t, d); N_LD(r, 0, t, b), \
 	N_LD(r, d, RN, b) \
 )
+#define M_DLD_DSEG(r, d, t) M_DLDN(r, REG_PV, N_DSEG_DISP(d), t)
 
 #define M_LLD(r, b, d) _IFNEG( \
 	d, \
@@ -641,6 +650,7 @@
 		N_L(GET_LOW_REG(r), 4, GET_LOW_REG(r), b), \
 	N_L(GET_HIGH_REG(r), (d) + 0, RN, b); N_L(GET_LOW_REG(r), (d) + 4, RN, b) \
 )
+#define M_LLD_DSEG(r, d) M_LLD(r, REG_PV, N_DSEG_DISP(d)
 
 /* MOV(a, b) -> mov from A to B */
 
@@ -748,7 +758,7 @@
 			N_LHI(reg, i); \
 		} else { \
 			disp = dseg_add_s4(cd, (i)); \
-			M_ILD(reg, REG_PV, disp); \
+			M_ILD_DSEG(reg, disp); \
 		} \
 	} while (0) 
 

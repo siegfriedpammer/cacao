@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8068 2007-06-12 15:50:35Z pm $
+   $Id: md.c 8096 2007-06-17 13:45:58Z pm $
 
 */
 
@@ -185,7 +185,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		vm_abort("%s: segmentation fault at %p, aborting.", __FUNCTION__, xpc);
 	}
 
-	pv = (u1 *)_mc->gregs[REG_PV];
+	pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 	sp = (u1 *)_mc->gregs[REG_SP];
 	ra = xpc;
 	type = EXCEPTION_HARDWARE_NULLPOINTER;
@@ -224,7 +224,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 		/* bits 3-0 designate the exception type */
 		type = xpc[1] & 0xF;  
 
-		pv = (u1 *)_mc->gregs[REG_PV];
+		pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 		sp = (u1 *)_mc->gregs[REG_SP];
 		val = (ptrint)_mc->gregs[reg];
 
@@ -295,7 +295,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 		} else if (_mc->gregs[r2] == 0) {
 			/* division by 0 */
 
-			pv = (u1 *)_mc->gregs[REG_PV];
+			pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 			sp = (u1 *)_mc->gregs[REG_SP];
 			ra = xpc;
 
@@ -477,6 +477,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		/* add the offset to the procedure vector */
 
 		pa = sfi->pv + offset;
+
 	}
 	else if (base == 0xc) { /* mptr relative */
 		/* INVOKEVIRTUAL/INTERFACE */

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8068 2007-06-12 15:50:35Z pm $
+   $Id: codegen.c 8096 2007-06-17 13:45:58Z pm $
 
 */
 
@@ -203,7 +203,11 @@ bool codegen_emit(jitdata *jd)
 		dseg_add_target(cd, ex->handler);
 		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
-	
+
+	/* Offset PV */
+
+	M_AADD_IMM(N_PV_OFFSET, REG_PV);
+
 	/* generate method profiling code */
 
 #if defined(ENABLE_PROFILING)
@@ -356,7 +360,7 @@ bool codegen_emit(jitdata *jd)
 
 		if (m->flags & ACC_STATIC) {
 			disp = dseg_add_address(cd, &m->class->object.header);
-			M_ALD(REG_A0, REG_PV, disp);
+			M_ALD_DSEG(REG_A0, disp);
 		}
 		else {
 			M_TEST(REG_A0);
@@ -365,7 +369,7 @@ bool codegen_emit(jitdata *jd)
 		}
 
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
-		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_ALD_DSEG(REG_ITMP3, disp);
 
 		M_AST(REG_A0, REG_SP, s1 * 4);
 
@@ -525,14 +529,14 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			disp = dseg_add_float(cd, iptr->sx.val.f);
-			M_FLDN(d, REG_PV, disp, REG_ITMP1);
+			M_FLD_DSEG(d, disp, REG_ITMP1);
 			emit_store_dst(jd, iptr, d);
 			break;
 		
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			disp = dseg_add_double(cd, iptr->sx.val.d);
-			M_DLDN(d, REG_PV, disp, REG_ITMP1);
+			M_DLD_DSEG(d, disp, REG_ITMP1);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -550,13 +554,13 @@ bool codegen_emit(jitdata *jd)
 
 /* 				PROFILE_CYCLE_START; */
 
-				M_ALD(d, REG_PV, disp);
+				M_ALD_DSEG(d, disp);
 			} else {
 				if (iptr->sx.val.anyptr == 0) {
 					M_CLR(d);
 				} else {
 					disp = dseg_add_unique_address(cd, iptr->sx.val.anyptr);
-					M_ALD(d, REG_PV, disp);
+					M_ALD_DSEG(d, disp);
 				}
 			}
 			emit_store_dst(jd, iptr, d);
@@ -880,7 +884,7 @@ bool codegen_emit(jitdata *jd)
 				M_IMUL_IMM(iptr->sx.val.i, d);
 			} else {
 				disp = dseg_add_s4(cd, iptr->sx.val.i);
-				M_ILD(REG_ITMP2, REG_PV, disp);
+				M_ILD_DSEG(REG_ITMP2, disp);
 				M_IMUL(REG_ITMP2, d);	
 			}
 			emit_store_dst(jd, iptr, d);
@@ -959,7 +963,7 @@ bool codegen_emit(jitdata *jd)
 			/* call builtin */
 
 			M_ASUB_IMM(96, REG_SP);
-			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP3, disp);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_AADD_IMM(96, REG_SP);
 
@@ -1574,7 +1578,7 @@ bool codegen_emit(jitdata *jd)
 				M_BGE(0); /* If integer result is negative, continue */
 
 				disp = dseg_add_s4(cd, 0x7fffffff); /* Load INT_MAX */
-				M_ILD(d, REG_PV, disp);
+				M_ILD_DSEG(d, disp);
 #endif
 				N_BRC_BACK_PATCH(ref1);
 #ifdef SUPPORT_HERCULES
@@ -1909,7 +1913,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s3, REG_A1);
 
 			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
-			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP3, disp);
 			M_ASUB_IMM(96, REG_SP);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_AADD_IMM(96, REG_SP);
@@ -1958,7 +1962,7 @@ bool codegen_emit(jitdata *jd)
 				}
   			}
 
-			M_ALD(REG_ITMP1, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP1, disp);
 
 			switch (fieldtype) {
 			case TYPE_INT:
@@ -2006,7 +2010,7 @@ bool codegen_emit(jitdata *jd)
 										fi->class, disp);
   			}
 
-			M_ALD(REG_ITMP1, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP1, disp);
 			switch (fieldtype) {
 			case TYPE_INT:
 				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
@@ -2167,7 +2171,7 @@ bool codegen_emit(jitdata *jd)
 #endif /* ENABLE_VERIFIER */
 
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_ALD(REG_ITMP2, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP2, disp);
 			M_JMP(REG_ITMP2_XPC, REG_ITMP2);
 			M_NOP;
 
@@ -2214,7 +2218,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				disp = dseg_add_s4(cd, iptr->sx.val.i);
 				ICONST(REG_ITMP2, disp);
-				N_C(s1, 0, REG_ITMP2, REG_PV);
+				N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
 			}
 
 			switch (iptr->opc) {
@@ -2258,7 +2262,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				disp = dseg_add_s4(cd, iptr->sx.val.l >> 32);
 				ICONST(REG_ITMP2, disp);
-				N_C(s1, 0, REG_ITMP2, REG_PV);
+				N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
 			}
 
 			switch(iptr->opc) {
@@ -2290,7 +2294,7 @@ bool codegen_emit(jitdata *jd)
 
 			disp = dseg_add_s4(cd, (s4)(iptr->sx.val.l & 0xffffffff));
 			ICONST(REG_ITMP2, disp);
-			N_CL(s1, 0, REG_ITMP2, REG_PV);
+			N_CL(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
 
 			switch(iptr->opc) {
 				case ICMD_IF_LLT:
@@ -2539,7 +2543,7 @@ nowperformreturn:
 				M_ALD(REG_A0, REG_SP, rd->memuse * 4);
 
 				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
-				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_ALD_DSEG(REG_ITMP3, disp);
 
 				M_ASUB_IMM(96, REG_SP);
 				M_CALL(REG_ITMP3);
@@ -2634,7 +2638,7 @@ nowperformreturn:
 
 			M_SLL_IMM(2, REG_ITMP1); /* scale by 4 */
 			M_ASUB_IMM(cd->dseglen, REG_ITMP1);
-			N_L(REG_ITMP1, 0, REG_ITMP1, REG_PV);
+			N_L(REG_ITMP1, -N_PV_OFFSET, REG_ITMP1, REG_PV);
 			M_JMP(RN, REG_ITMP1);
 
 			break;
@@ -2755,7 +2759,7 @@ gen_method:
 
 				M_ASUB_IMM(96, REG_SP); /* register save area as required by C abi */	
 				N_LHI(REG_ITMP1, disp);
-				N_L(REG_PV, 0, REG_ITMP1, REG_PV);
+				N_L(REG_PV, -N_PV_OFFSET, REG_ITMP1, REG_PV);
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2776,7 +2780,7 @@ gen_method:
 					disp = dseg_add_address(cd, lm->stubroutine);
 
 				N_LHI(REG_ITMP1, disp);
-				N_L(REG_PV, 0, REG_ITMP1, REG_PV);
+				N_L(REG_PV, -N_PV_OFFSET, REG_ITMP1, REG_PV);
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -2928,7 +2932,7 @@ gen_method:
 
 					ICONST(REG_ITMP2, ACC_INTERFACE);
 					ICONST(REG_ITMP3, disp); /* TODO negative displacement */
-					N_N(REG_ITMP2, 0, REG_ITMP3, REG_PV);
+					N_N(REG_ITMP2, -N_PV_OFFSET, REG_ITMP3, REG_PV);
 					emit_label_beq(cd, LABEL_CLASS);
 				}
 
@@ -2984,14 +2988,14 @@ gen_method:
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
-					M_ALD(REG_ITMP3, REG_PV, disp);
+					M_ALD_DSEG(REG_ITMP3, disp);
 
 					CODEGEN_CRITICAL_SECTION_START;
 
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 					M_ISUB(REG_ITMP3, REG_ITMP2);
-					M_ALD(REG_ITMP3, REG_PV, disp);
+					M_ALD_DSEG(REG_ITMP3, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 
 					CODEGEN_CRITICAL_SECTION_END;
@@ -3037,9 +3041,9 @@ gen_method:
 				else
 					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
-				M_ALD(REG_A1, REG_PV, disp);
+				M_ALD_DSEG(REG_A1, disp);
 				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
-				M_ALD(REG_ITMP1, REG_PV, disp);
+				M_ALD_DSEG(REG_ITMP1, disp);
 				M_ASUB_IMM(96, REG_SP);
 				M_JSR(REG_RA, REG_ITMP1);
 				M_AADD_IMM(96, REG_SP);
@@ -3122,7 +3126,7 @@ gen_method:
 
 				ICONST(REG_ITMP2, ACC_INTERFACE);
 				ICONST(REG_ITMP3, disp); /* TODO negative displacement */
-				N_N(REG_ITMP2, 0, REG_ITMP3, REG_PV);
+				N_N(REG_ITMP2, -N_PV_OFFSET, REG_ITMP3, REG_PV);
 				emit_label_beq(cd, LABEL_CLASS);
 			}
 
@@ -3193,7 +3197,7 @@ gen_method:
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-				M_ALD(REG_ITMP2, REG_PV, disp);
+				M_ALD_DSEG(REG_ITMP2, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;
 
@@ -3272,14 +3276,14 @@ gen_method:
 
 			/* a1 = classinfo */
 
-			M_ALD(REG_A1, REG_PV, disp);
+			M_ALD_DSEG(REG_A1, disp);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
 			M_MOV(REG_SP, REG_A2);
 
 			disp = dseg_add_functionptr(cd, BUILTIN_multianewarray);
-			M_ALD(REG_ITMP1, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP1, disp);
 			M_ASUB_IMM(96, REG_SP);
 			M_JSR(REG_RA, REG_ITMP1);
 			M_AADD_IMM(96, REG_SP);
@@ -3352,11 +3356,11 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 	/* don't touch ITMP3 as it cointains the return address */
 
-	M_ISUB_IMM((3 * 4), REG_PV); /* suppress negative displacements */
+	M_AADD_IMM(N_PV_OFFSET, REG_PV); /* suppress negative displacements */
 
-	M_ILD(REG_ITMP1, REG_PV, 1 * 4); /* methodinfo  */
+	M_ILD_DSEG(REG_ITMP1, -2 * SIZEOF_VOID_P); /* methodinfo  */
 	/* TODO where is methodpointer loaded into itmp2? is it already inside? */
-	M_ILD(REG_PV, REG_PV, 0 * 4); /* compiler pointer */
+	M_ILD_DSEG(REG_PV, -3 * SIZEOF_VOID_P); /* compiler pointer */
 	N_BR(REG_PV);
 }
 
@@ -3450,6 +3454,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* generate stub code */
 
 	N_AHI(REG_SP, -(cd->stackframesize * SIZEOF_VOID_P));
+	N_AHI(REG_PV, N_PV_OFFSET);
 
 	/* save return address */
 
@@ -3469,7 +3474,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, disp);
 #endif
 
-	M_ILD(REG_ITMP1, REG_PV, disp);
+	M_ILD_DSEG(REG_ITMP1, disp);
 
 	j = 96 + (nmd->memuse * 4);
 
@@ -3507,12 +3512,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* create dynamic stack info */
 
 	N_LAE(REG_A0, (cd->stackframesize - 1) * 4, RN, REG_SP); /* datasp */
-	N_LR(REG_A1, REG_PV); /* pv */
+	N_LA(REG_A1, -N_PV_OFFSET, RN, REG_PV); /* pv */
 	N_LAE(REG_A2, cd->stackframesize * 4, RN, REG_SP); /* old SP */
 	N_L(REG_A3, (cd->stackframesize - 1) * 4, RN, REG_SP); /* return address */
 
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
-	M_ILD(REG_ITMP1, REG_PV, disp);
+	M_ILD_DSEG(REG_ITMP1, disp);
 
 	M_CALL(REG_ITMP1); /* call */
 
@@ -3623,13 +3628,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	if (m->flags & ACC_STATIC) {
 		disp = dseg_add_address(cd, m->class);
-		M_ILD(REG_A1, REG_PV, disp);
+		M_ILD_DSEG(REG_A1, disp);
 	}
 
 	/* put env into first argument register */
 
 	disp = dseg_add_address(cd, _Jv_env);
-	M_ILD(REG_A0, REG_PV, disp);
+	M_ILD_DSEG(REG_A0, disp);
 
 	/* do the native function call */
 
@@ -3664,7 +3669,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	N_LAE(REG_A0, (cd->stackframesize - 1) * 4, RN, REG_SP); /* datasp */
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
-	M_ILD(REG_ITMP1, REG_PV, disp);
+	M_ALD_DSEG(REG_ITMP1, disp);
 	M_CALL(REG_ITMP1);
 	N_LR(REG_ITMP3, REG_RESULT);
 
@@ -3714,7 +3719,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #endif
 
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, disp);
+	M_ALD_DSEG(REG_ITMP3, disp);
 	M_JMP(RN, REG_ITMP3);
 
 	/* generate patcher stubs */
