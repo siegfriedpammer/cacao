@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8090 2007-06-14 16:07:37Z twisti $
+   $Id: exceptions.c 8100 2007-06-18 20:18:14Z twisti $
 
 */
 
@@ -384,19 +384,12 @@ static void exceptions_throw_utf_throwable(utf *classname,
 
 	/* call initializer */
 
-	m = class_findmethod(c, utf_init, utf_java_lang_String__void);
+	m = class_resolveclassmethod(c,
+								 utf_init,
+								 utf_java_lang_Throwable__void,
+								 NULL,
+								 true);
 	                      	                      
-	if (m == NULL)
-		return;
-
-	(void) vm_call_method(m, o, object->detailMessage);
-
-	/* call initCause */
-
-	m = class_resolvemethod(c,
-							utf_initCause,
-							utf_java_lang_Throwable__java_lang_Throwable);
-
 	if (m == NULL)
 		return;
 
@@ -438,12 +431,78 @@ static void exceptions_throw_utf_exception(utf *classname,
 
 	/* call initializer */
 
-	m = class_findmethod(c, utf_init, utf_java_lang_Exception__V);
+	m = class_resolveclassmethod(c,
+								 utf_init,
+								 utf_java_lang_Exception__V,
+								 NULL,
+								 true);
 	                      	                      
 	if (m == NULL)
 		return;
 
 	(void) vm_call_method(m, o, exception);
+
+	exceptions_set_exception(o);
+}
+
+
+/* exceptions_throw_utf_cause **************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/Throwable exception with initCause.
+
+   IN:
+      classname....class name in UTF-8
+	  cause........the given Throwable
+
+*******************************************************************************/
+
+static void exceptions_throw_utf_cause(utf *classname, java_objectheader *cause)
+{
+	classinfo           *c;
+	java_objectheader   *o;
+	methodinfo          *m;
+	java_lang_Throwable *object;
+
+	object = (java_lang_Throwable *) cause;
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return;
+
+	/* create object */
+
+	o = builtin_new(c);
+	
+	if (o == NULL)
+		return;
+
+	/* call initializer */
+
+	m = class_resolveclassmethod(c,
+								 utf_init,
+								 utf_java_lang_String__void,
+								 NULL,
+								 true);
+	                      	                      
+	if (m == NULL)
+		return;
+
+	(void) vm_call_method(m, o, object->detailMessage);
+
+	/* call initCause */
+
+	m = class_resolveclassmethod(c,
+								 utf_initCause,
+								 utf_java_lang_Throwable__java_lang_Throwable,
+								 NULL,
+								 true);
+
+	if (m == NULL)
+		return;
+
+	(void) vm_call_method(m, o, cause);
 
 	exceptions_set_exception(o);
 }
@@ -804,7 +863,7 @@ void exceptions_throw_noclassdeffounderror(utf *name)
 
 void exceptions_throw_noclassdeffounderror_cause(java_objectheader *cause)
 {
-	exceptions_throw_utf_throwable(utf_java_lang_NoClassDefFoundError, cause);
+	exceptions_throw_utf_cause(utf_java_lang_NoClassDefFoundError, cause);
 }
 
 
