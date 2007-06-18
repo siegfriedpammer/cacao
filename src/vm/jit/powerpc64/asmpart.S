@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7909 2007-05-15 10:32:16Z tbfg $
+   $Id: asmpart.S 8099 2007-06-18 18:26:58Z tbfg $
 
 */
 
@@ -37,12 +37,6 @@
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/powerpc64/offsets.h"
-
-.section ".toc","aw"
-.section ".text"
-
-	.align 2	
-
 
 /* export functions ***********************************************************/
 
@@ -67,7 +61,6 @@
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 
-
 /* asm_vm_call_method **********************************************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
@@ -83,7 +76,7 @@
 *******************************************************************************/
 	/* this is the method header see src/vm/jit/methodheader.h */
 
-	.align	8
+	.align	3
 
 	.quad   0                           /* catch type all                     */
 	.quad   0                           /* handler pc                         */
@@ -152,191 +145,71 @@
 	stfd	ftmp1,13*8(sp)            /* registers f14-f31 are callee saved   */
 	stfd	ftmp2,14*8(sp)
 
+
 	SAVE_TEMPORARY_REGISTERS(15)     
+	mr	s0, r1			/* save stack pointer */
 
-	mr      itmp2,a1                  /* arg count                            */
-	mr      itmp1,a2                  /* pointer to arg block                 */
-
-	mr      t4,itmp2                  /* save argument count                  */
-	mr      t5,itmp1                  /* save argument block pointer          */
-
-	mr      s0,sp                     /* save current sp to s0                */
-
-	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
-	addi    itmp2,itmp2,1             /* initialize argument count            */
-	li      t0,0                      /* initialize integer argument counter  */
-	li      t1,0                      /* initialize float argument counter    */
-	li      t6,0                      /* initialize integer register counter  */
-	li      t3,8                      /* initialize PA counter*/
+	/* a1 contains a pointer to a unit64_t structure filled with all INT_ARG_REG,
+	followed by ADR_ARG_CNT and FLT_ARG_CNT, afterwards what else needs to be copied onto
+	the stack 
+	a2 contains the number of additional stack slots to be copied
+	*/
 
 L_register_copy:
-	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
-	addi    itmp2,itmp2,-1            /* argument count - 1                   */
-	mr.     itmp2,itmp2
-	beq     L_register_copy_done
+	mr	t1, a1
+	mr	t2, a2
 
-	addi	t3,t3,-1                  /* uses a PA slot                       */
-	lwz     itmp3,offvmargtype+4(itmp1)
-	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
-	bne     L_register_handle_float
-	
-L_register_handle_int:
-	cmpwi   t6,INT_ARG_CNT            /* are we out of integer argument       */
-	beq     L_register_copy           /* registers? yes, next loop            */
+	ld	a0 ,  0*8(t1)
+	ld	a1 ,  1*8(t1)
+	ld	a2 ,  2*8(t1)
+	ld	a3 ,  3*8(t1)
+	ld	a4 ,  4*8(t1)
+	ld	a5 ,  5*8(t1)
+	ld	a6 ,  6*8(t1)
+	ld	a7 ,  7*8(t1)
 
-	cmpwi	itmp3,0x0004		  /* is it TYPE_ADR? */
-	beq	L_register_handle_long
+	lfd	fa0 , 8*8(t1)
+	lfd	fa1 , 9*8(t1)
+	lfd	fa2 ,10*8(t1)
+	lfd	fa3 ,11*8(t1)
+	lfd	fa4 ,12*8(t1)
+	lfd	fa5 ,13*8(t1)
+	lfd	fa6 ,14*8(t1)
+	lfd	fa7 ,15*8(t1)
+	lfd	fa8 ,16*8(t1)
+	lfd	fa9 ,17*8(t1)
+	lfd	fa10,18*8(t1)
+	lfd	fa11,19*8(t1)
+	lfd	fa12,20*8(t1)
 
-	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
-	bne     L_register_handle_long
+	mr.	t2,t2
+	beq L_stack_copy_done
 
-	lis     itmp3,L_jumptable_int@highest		/* load 64bit address	*/
-	ori	itmp3,itmp3,L_jumptable_int@higher
-	rldicr 	itmp3,itmp3,32,31
-	oris	itmp3,itmp3,L_jumptable_int@h
-	ori	itmp3,itmp3,L_jumptable_int@l
-	b	L_register_do_copy_longint
+L_stack_copy:
+	addi	t1,t1,20*8		/* before first possible stack slot arg */
+	mr	t3,t2			/* argument counter */
+	sldi	t2,t2,8			/* calculate size of stack */
+	sub	sp,sp,t2		/* increase the stack */
+	mr	t2,sp			/* t2 points to bottom of stack now */
 
-L_register_handle_long:
-
-	lis     itmp3,L_jumptable_long@highest		/* load 64bit address	*/
-	ori	itmp3,itmp3,L_jumptable_long@higher
-	rldicr 	itmp3,itmp3,32,31
-	oris	itmp3,itmp3,L_jumptable_long@h
-	ori	itmp3,itmp3,L_jumptable_long@l
-
-L_register_do_copy_longint:
-	slwi    t2,t6,3                   /* multiple of 8-bytes                  */
-	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	ld      itmp3,0(itmp3)            /* load function address                */
-	mtctr   itmp3
-	addi    t0,t0,1                   /* integer argument counter             */
-	addi    t6,t6,1                   /* integer argument register counter    */
-	bctr
-
-L_register_handle_float:
-	cmpwi   t1,FLT_ARG_CNT            /* are we out of float argument         */
-	beq     L_register_copy           /* registers? yes, next loop            */
-
-	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
-	bne     L_register_handle_double
-
-	lis     itmp3,L_jumptable_float@highest		/* load 64bit address	*/
-	ori	itmp3,itmp3,L_jumptable_float@higher
-	rldicr 	itmp3,itmp3,32,31
-	oris	itmp3,itmp3,L_jumptable_float@h
-	ori	itmp3,itmp3,L_jumptable_float@l
-	b L_register_do_copy_floatdouble
-
-L_register_handle_double:
-
-	lis     itmp3,L_jumptable_double@highest		/* load 64bit address	*/
-	ori	itmp3,itmp3,L_jumptable_double@higher
-	rldicr 	itmp3,itmp3,32,31
-	oris	itmp3,itmp3,L_jumptable_double@h
-	ori	itmp3,itmp3,L_jumptable_double@l
-
-
-L_register_do_copy_floatdouble:
-
-	slwi    t2,t1,3                   /* multiple of 8-bytes                  */
-	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	ld      itmp3,0(itmp3)            /* load function address                */
-	mtctr   itmp3
-	addi    t1,t1,1                   /* float argument counter               */
-	mr.     t3,t3                     /* are we still in PA ?                 */
-	blt     L_float_not_uses_PA 
-	addi    t6,t6,1                   /* if so it uses an interger arg reg    */
-L_float_not_uses_PA:
-	bctr
-
-
-L_register_copy_done:
-	subi    sp,sp,PA_SIZE             /* PA_SIZE are used by definition       */
-	                                  /* calculate remaining arguments        */
-	sub     itmp3,t4,t0               /* - integer arguments in registers     */
-	sub     itmp3,itmp3,t1            /* - float arguments in registers       */
-	mr.     itmp3,itmp3
-	beq     L_stack_copy_done
-
-	mr      itmp2,t4                  /* restore argument count               */
-	mr      itmp1,t5                  /* restore argument block pointer       */
-
-	slwi    t4,itmp3,3                /* XXX use 8-bytes slots for now        */
-	addi    t4,t4,LA_SIZE             /* add size of linkage area             */
-	sub     sp,sp,t4
-
-	mr      t6,sp                     /* use t6 as temporary sp               */
-	addi    t6,t6,LA_SIZE             /* skip linkage area                    */
-
-	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
-	addi    itmp2,itmp2,1             /* initialize argument count            */
-	li      t3,8                      /* initialize PA counter                */
-	addi	t6,t6,-8                  /* make code simpler                    */
-	
 L_stack_copy_loop:
-	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
-	addi    itmp2,itmp2,-1            /* argument count - 1                   */
-	mr.     itmp2,itmp2
-	beq     L_stack_copy_done
-	addi    t6,t6,8                   /* increase stack */
-L_stack_not_uses_PA:
-
-	lwz     itmp3,offvmargtype+4(itmp1)
-	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
-	bne     L_stack_handle_float
-
-L_stack_handle_int:
-	addi    t0,t0,-1                  /* arguments assigned to registers      */
-	mr.     t0,t0
-	bge     L_stack_copy_loop
-
-	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
-	bne     L_stack_handle_long
-
-	lwa     itmp3,offvmargdata+4(itmp1) /* get integer argument               */
-	std     itmp3,0(t6)               /* and store it on the stack            */
-	b       L_stack_copy_loop
-
-L_stack_handle_long:
-	ld      itmp3,offvmargdata+0(itmp1) /* get long argument                  */
-	std     itmp3,0(t6)               /* and store it on the stack            */
-	b       L_stack_copy_loop
-		
-L_stack_handle_float:
-	addi    t1,t1,-1                  /* arguments assigned to registers      */
-	mr.     t1,t1
-	bge     L_stack_copy_loop
-
-	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
-	bne     L_stack_handle_double
-
-	lfs     ftmp3,offvmargdata(itmp1) /* get float argument                   */
-	stfd    ftmp3,0(t6)               /* and store it on the stack            */
-	b       L_stack_copy_loop
-
-L_stack_handle_double:
-	lfd     ftmp3,offvmargdata(itmp1) /* get double argument                  */
-	stfd    ftmp3,0(t6)               /* and store it on the stack            */
-	b       L_stack_copy_loop
+	addi	t1,t1,8			/* next possible stack slot to copy */
+	mr.	t3,t3			/* more stack slots to copy ? */
+	beq	L_stack_copy_done
+	ld	itmp3, 0(t1)
+	std	itmp3, 0(t2)
+	addi	t2,t2,8
+	addi	t3,t3,-1
+	b L_stack_copy_loop
 
 L_stack_copy_done:
-	ld      itmp1,9*8(s0)             /* pass method pointer via tmp1         */
-
-	lis     mptr,L_asm_call_jit_compiler@highest	/* load 64bit address	*/
-	ori	mptr,mptr,L_asm_call_jit_compiler@higher
-	rldicr	mptr,mptr,32,31
-	oris	mptr,mptr,L_asm_call_jit_compiler@h
-	ori	mptr,mptr,L_asm_call_jit_compiler@l
-	std     mptr,7*8(s0)
-	addi    mptr,s0,7*8
-
-	ld 	pv,0*8(mptr)
+	mr	itmp1, s0		/* fake invokevirtual invocation */
+	addi	itmp1, itmp1, 9*8	/* address of methods pv */
+	ld 	pv,0*8(itmp1)
 	mtctr   pv
 	bctrl
 1:
 	mflr    itmp1
-
 	addi    pv,itmp1,(.asm_vm_call_method - 1b)@l
 
 L_asm_vm_call_method_return:
@@ -361,212 +234,6 @@ asm_vm_call_method_exception_handler:
 	mr      r3,itmp1
 	bl      builtin_throw_exception
 	b       L_asm_vm_call_method_return
-
-
-	.data
-	.align  8
-
-L_jumptable_int:
-	.quad   L_handle_a0
-	.quad   L_handle_a1
-	.quad   L_handle_a2
-	.quad   L_handle_a3
-	.quad   L_handle_a4
-	.quad   L_handle_a5
-	.quad   L_handle_a6
-	.quad   L_handle_a7
-
-	.text
-	.align  4
-
-L_handle_a0:
-	lwa     a0,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a1:
-	lwa     a1,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a2:
-	lwa     a2,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a3:
-	lwa     a3,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a4:
-	lwa     a4,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a5:
-	lwa     a5,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a6:
-	lwa     a6,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a7:
-	lwa     a7,offvmargdata+4(itmp1)
-	b       L_register_copy
-
-
-	.data
-	.align  8
-
-L_jumptable_long:
-	.quad   L_handle_a0l
-	.quad   L_handle_a1l
-	.quad   L_handle_a2l
-	.quad   L_handle_a3l
-	.quad   L_handle_a4l
-	.quad   L_handle_a5l
-	.quad   L_handle_a6l
-	.quad   L_handle_a7l
-
-	.text
-	.align  4
-
-L_handle_a0l:
-	ld     a0,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_a1l:
-	ld     a1,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_a2l:
-	ld     a2,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_a3l:
-	ld     a3,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_a4l:
-	ld     a4,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_a5l:
-	ld     a5,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_a6l:
-	ld     a6,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_a7l:
-	ld     a7,offvmargdata(itmp1)
-	b       L_register_copy
-
-	.data
-	.align  8
-
-L_jumptable_float:
-	.quad   L_handle_fa0
-	.quad   L_handle_fa1
-	.quad   L_handle_fa2
-	.quad   L_handle_fa3
-	.quad   L_handle_fa4
-	.quad   L_handle_fa5
-	.quad   L_handle_fa6
-	.quad   L_handle_fa7
-	.quad   L_handle_fa8
-	.quad   L_handle_fa9
-	.quad   L_handle_fa10
-	.quad   L_handle_fa11
-	.quad   L_handle_fa12
-
-	.text
-	.align  4
-
-L_handle_fa0:
-	lfs     fa0,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa1:
-	lfs     fa1,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa2:
-	lfs     fa2,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa3:
-	lfs     fa3,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa4:
-	lfs     fa4,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa5:
-	lfs     fa5,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa6:
-	lfs     fa6,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa7:
-	lfs     fa7,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa8:
-	lfs     fa8,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa9:
-	lfs     fa9,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa10:
-	lfs     fa10,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa11:
-	lfs     fa11,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa12:
-	lfs     fa12,offvmargdata(itmp1)
-	b       L_register_copy
-
-	.data
-	.align  8
-
-L_jumptable_double:
-	.quad   L_handle_fda0
-	.quad   L_handle_fda1
-	.quad   L_handle_fda2
-	.quad   L_handle_fda3
-	.quad   L_handle_fda4
-	.quad   L_handle_fda5
-	.quad   L_handle_fda6
-	.quad   L_handle_fda7
-	.quad   L_handle_fda8
-	.quad   L_handle_fda9
-	.quad   L_handle_fda10
-	.quad   L_handle_fda11
-	.quad   L_handle_fda12
-
-	.text
-	.align  4
-
-L_handle_fda0:
-	lfd     fa0,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda1:
-	lfd     fa1,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda2:
-	lfd     fa2,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda3:
-	lfd     fa3,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda4:
-	lfd     fa4,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda5:
-	lfd     fa5,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda6:
-	lfd     fa6,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda7:
-	lfd     fa7,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda8:
-	lfd     fa8,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda9:
-	lfd     fa9,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda10:
-	lfd     fa10,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda11:
-	lfd     fa11,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda12:
-	lfd     fa12,offvmargdata(itmp1)
-	b       L_register_copy
 
 asm_vm_call_method_end:
 	nop
