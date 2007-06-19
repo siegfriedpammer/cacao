@@ -29,14 +29,12 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
-#if defined(ENABLE_THREADS)
-# include <pthread.h>
-#endif
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 
@@ -574,7 +572,9 @@ java_objectarray *stacktrace_getClassContext()
 
 /* threads ********************************************************************/
 
+#if defined(ENABLE_THREADS)
 pthread_key_t threads_current_threadobject_key;
+#endif
 
 ptrint threads_get_current_tid(void)
 {
