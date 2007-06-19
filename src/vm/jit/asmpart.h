@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 8099 2007-06-18 18:26:58Z tbfg $
+   $Id: asmpart.h 8106 2007-06-19 22:50:17Z twisti $
 
 */
 
@@ -105,8 +105,8 @@ java_objectheader *asm_vm_call_method(void *pv, uint64_t *array, int32_t stackar
 int32_t            asm_vm_call_method_int(void *pv, uint64_t *array, int32_t stackargs);
 
 int64_t            asm_vm_call_method_long(void *pv, uint64_t *array, int32_t stackargs);
-float  asm_vm_call_method_float(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
-double asm_vm_call_method_double(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+float              asm_vm_call_method_float(void *pv, uint64_t *array, int32_t stackargs);
+double             asm_vm_call_method_double(void *pv, uint64_t *array, int32_t stackargs);
 
 void   asm_vm_call_method_exception_handler(void);
 void   asm_vm_call_method_end(void);

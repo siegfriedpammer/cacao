@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8099 2007-06-18 18:26:58Z tbfg $
+   $Id: jni.c 8106 2007-06-19 22:50:17Z twisti $
 
 */
 
@@ -1002,7 +1002,6 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params)
 {
 	methodinfo        *resm;
-	vm_arg            *vmargs;
 	java_objectheader *ro;
 	s4                 argcount;
 	s4                 paramcount;
@@ -1179,7 +1178,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		float f;
 		java_lang_Float *fo;
 
-		f = vm_call_method_float_vmarg(resm, argcount, vmargs);
+		f = vm_call_float_array(resm, array);
 
 		ro = builtin_new(class_java_lang_Float);
 
@@ -1194,7 +1193,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		double d;
 		java_lang_Double *_do;
 
-		d = vm_call_method_double_vmarg(resm, argcount, vmargs);
+		d = vm_call_double_array(resm, array);
 
 		ro = builtin_new(class_java_lang_Double);
 

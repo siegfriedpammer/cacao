@@ -123,10 +123,14 @@ java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
 										vm_arg *vmargs);
 s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 #else
 java_objectheader *vm_call_array(methodinfo *m, uint64_t *array);
 int32_t            vm_call_int_array(methodinfo *m, uint64_t *array);
 int64_t            vm_call_long_array(methodinfo *m, uint64_t *array);
+float              vm_call_float_array(methodinfo *m, uint64_t *array);
+double             vm_call_double_array(methodinfo *m, uint64_t *array);
 #endif
 
 s4 vm_call_method_int(methodinfo *m, java_objectheader *o, ...);
@@ -142,15 +146,12 @@ float vm_call_method_float_valist(methodinfo *m, java_objectheader *o,
 								  va_list ap);
 float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o,
 								  jvalue *args);
-float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 
 double vm_call_method_double(methodinfo *m, java_objectheader *o, ...);
 double vm_call_method_double_valist(methodinfo *m, java_objectheader *o,
 									va_list ap);
 double vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o,
 									jvalue *args);
-double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
-								   vm_arg *vmargs);
 
 #endif /* _VM_H */
 
