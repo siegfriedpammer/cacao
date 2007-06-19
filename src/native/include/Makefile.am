@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7927 2007-05-21 08:48:46Z twisti $
+## $Id: Makefile.am 8103 2007-06-19 19:43:00Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -67,6 +67,7 @@ JAVASE_HEADER_FILES = \
 	java_nio_Buffer.h \
 	java_nio_DirectByteBufferImpl.h \
 	java_security_ProtectionDomain.h \
+	java_util_concurrent_atomic_AtomicLong.h \
 	sun_misc_Unsafe.h
 
 JAVAME_CLDC1_1_HEADER_FILES = \

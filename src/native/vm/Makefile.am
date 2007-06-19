@@ -63,6 +63,10 @@ JAVA_LANG_REFLECT_METHOD_SOURCES = \
 	java_lang_reflect_Method.c \
 	java_lang_reflect_Method.h
 
+JAVA_UTIL_CONCURRENT_ATOMIC_ATOMICLONG_SOURCES = \
+	java_util_concurrent_atomic_AtomicLong.c \
+	java_util_concurrent_atomic_AtomicLong.h
+
 SUN_MISC_UNSAFE_SOURCES = \
 	sun_misc_Unsafe.c
 endif
@@ -87,6 +91,7 @@ libnativevm_la_SOURCES = \
 	java_lang_Thread.h \
 	$(JAVA_LANG_REFLECT_CONSTRUCTOR_SOURCES) \
 	$(JAVA_LANG_REFLECT_METHOD_SOURCES) \
+	$(JAVA_UTIL_CONCURRENT_ATOMIC_ATOMICLONG_SOURCES) \
 	$(SUN_MISC_UNSAFE_SOURCES)
 
 libnativevm_la_LIBADD = \
