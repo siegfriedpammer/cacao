@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8106 2007-06-19 22:50:17Z twisti $
+   $Id: vm.c 8107 2007-06-20 11:11:59Z twisti $
 
 */
 
@@ -2343,10 +2343,14 @@ static void vm_array_store_int(uint64_t *array, paramdesc *pd, int32_t value)
 	}
 	else {
 		index        = ARG_CNT + pd->regoff;
-#if WORDS_BIGENDIAN == 1 && !defined(__POWERPC64__)
-		array[index] = ((int64_t) value) << 32;
-#else
+#if SIZEOF_VOID_P == 8
 		array[index] = (int64_t) value;
+#else
+# if WORDS_BIGENDIAN == 1
+		array[index] = ((int64_t) value) << 32;
+# else
+		array[index] = (int64_t) value;
+# endif
 #endif
 	}
 }
