@@ -75,7 +75,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_READ_SPILLS(src)
 
-		disp = JITSTACK + src->vv.regoff * 8;
+		disp = JITSTACK + src->vv.regoff;
 
 		switch(src->type)
 		{
@@ -120,7 +120,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (dst->flags & INMEMORY) {
 		COUNT_WRITE_SPILLS(dst)
 
-		disp = JITSTACK + dst->vv.regoff * 8;			
+		disp = JITSTACK + dst->vv.regoff;
 			
 		switch(dst->type)
 		{

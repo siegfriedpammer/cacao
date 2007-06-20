@@ -214,21 +214,21 @@ bool codegen_emit(jitdata *jd)
 			case TYPE_INT:
 				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t))	{
-						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1 + 1) * 4);
+						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
 					} else {
-						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1 + 1) * 4);
+						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
 					}
 				} else {                             /* stack arg -> spilled  */
 #if 1
- 					M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1 + 1) * 4);
- 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4);
+ 					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+ 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff);
 					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1 + 1) * 4 + 4);
-						M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4 + 4);
+						M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1 + 4 + 4);
+						M_IST(REG_ITMP1, REG_SP, var->vv.regoff + 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->vv.regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize * 4 + s1;
 #endif
 				} 
 				break;
@@ -237,36 +237,36 @@ bool codegen_emit(jitdata *jd)
 			case TYPE_DBL:
  				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))	{
-						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1 + 1) * 4);
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
 					} else {
-						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1 + 1) * 4);
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
 					}
  				} else {                             /* stack-arg -> spilled  */
 #if 1
 					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1 + 1) * 4);
-						M_DST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
+						M_DLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
 					} else {
-						M_FLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1 + 1) * 4);
-						M_FST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
+						M_FLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_FST(REG_FTMP1, REG_SP, var->vv.regoff);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->vv.regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize * 4 + s1;
 #endif
 				}
 				break;
 #endif /* SOFTFLOAT */
 			case TYPE_ADR:
  				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
-					M_ALD(var->vv.regoff, REG_SP, (cd->stackframesize + s1 + 1) * 4);
+					M_ALD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
  				} else {                             /* stack-arg -> spilled  */
 #if 1
-					M_ALD(REG_ATMP1, REG_SP, (cd->stackframesize + s1 + 1) * 4);
-					M_AST(REG_ATMP1, REG_SP, var->vv.regoff * 4);
+					M_ALD(REG_ATMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+					M_AST(REG_ATMP1, REG_SP, var->vv.regoff);
 #else
 				/* Reuse Memory Position on Caller Stack */
-				var->vv.regoff = cd->stackframesize + s1;
+				var->vv.regoff = cd->stackframesize * 4 + s1;
 #endif
 				}
 				break;
@@ -1663,27 +1663,27 @@ bool codegen_emit(jitdata *jd)
 #endif
 					case TYPE_LNG:
 						d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-						M_LST(d, REG_SP, md->params[s3].regoff*4);
+						M_LST(d, REG_SP, md->params[s3].regoff);
 						break;
 #if defined(ENABLE_SOFTFLOAT)
 					case TYPE_FLT:
 #endif
 					case TYPE_INT:
 						d = emit_load(jd, iptr, var, REG_ITMP1);
-						M_IST(d, REG_SP, md->params[s3].regoff*4);
+						M_IST(d, REG_SP, md->params[s3].regoff);
 						break;
 					case TYPE_ADR:
 						d = emit_load(jd, iptr, var, REG_ATMP1);
-						M_AST(d, REG_SP, md->params[s3].regoff*4);
+						M_AST(d, REG_SP, md->params[s3].regoff);
 						break;
 #if !defined(ENABLE_SOFTFLOAT)
 					case TYPE_FLT:
 						d = emit_load(jd, iptr, var, REG_FTMP1);
-						M_FST(d, REG_SP, md->params[s3].regoff*4);
+						M_FST(d, REG_SP, md->params[s3].regoff);
 						break;
 					case TYPE_DBL:
 						d = emit_load(jd, iptr, var, REG_FTMP1);
-						M_DST(d, REG_SP, md->params[s3].regoff*4);
+						M_DST(d, REG_SP, md->params[s3].regoff);
 						break;
 #endif
 					default:
@@ -2503,8 +2503,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		/* all arguments via stack */
 		assert(md->params[i].inmemory);						
 
-		s1 = (md->params[i].regoff + cd->stackframesize + 1) * 4;
-		s2 = nmd->params[j].regoff * 4;
+		s1 = md->params[i].regoff + cd->stackframesize * 4 + 4;
+		s2 = nmd->params[j].regoff;
 
 		/* simply copy argument stack */
 		M_ILD(REG_ITMP1, REG_SP, s1);

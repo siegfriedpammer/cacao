@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7816 2007-04-25 19:38:46Z twisti $
+   $Id: emit.c 8115 2007-06-20 19:14:05Z michi $
 
 */
 
@@ -74,7 +74,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		switch (src->type) {
 		case TYPE_INT:
@@ -124,7 +124,7 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		M_ILD(tempreg, REG_SP, disp + 4);
 
@@ -158,7 +158,7 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		M_ILD(tempreg, REG_SP, disp);
 
@@ -189,7 +189,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		disp = dst->vv.regoff * 4;
+		disp = dst->vv.regoff;
 
 		switch (dst->type) {
 		case TYPE_INT:
@@ -778,7 +778,7 @@ void emit_verbosecall_enter(jitdata *jd)
 				}
 			}
 			else {
-				s1 = (md->params[p].regoff + cd->stackframesize) * 4 
+				s1 = md->params[p].regoff + cd->stackframesize * 4 
 					+ stack_size;
 				if (IS_2_WORD_TYPE(t)) {
 					M_ILD(REG_ITMP2, REG_SP, s1);

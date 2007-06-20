@@ -166,23 +166,23 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 			case TYPE_DBL:
 #endif
 			case TYPE_LNG:
-				M_LST(d, REG_SP, dst->vv.regoff * 4);
+				M_LST(d, REG_SP, dst->vv.regoff);
 				break;
 #if defined(ENABLE_SOFTFLOAT)
 			case TYPE_FLT:
 #endif
 			case TYPE_INT:
-				M_IST(d, REG_SP, dst->vv.regoff * 4);
+				M_IST(d, REG_SP, dst->vv.regoff);
 				break;
 			case TYPE_ADR:
-				M_AST(d, REG_SP, dst->vv.regoff * 4);
+				M_AST(d, REG_SP, dst->vv.regoff);
 				break;
 #if !defined(ENABLE_SOFTFLOAT)
 			case TYPE_DBL:
-				M_DST(d, REG_SP, dst->vv.regoff * 4);
+				M_DST(d, REG_SP, dst->vv.regoff);
 				break;
 			case TYPE_FLT:
-				M_FST(d, REG_SP, dst->vv.regoff * 4);
+				M_FST(d, REG_SP, dst->vv.regoff);
 				break;
 #endif
 			default:
@@ -211,7 +211,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 	
 		switch (src->type)	{
 #if defined(ENABLE_SOFTFLOAT)
@@ -354,7 +354,7 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 		M_ILD(tempreg, REG_SP, disp + 4);
 		reg = tempreg;
 	} else {
@@ -378,7 +378,7 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 		M_ILD(tempreg, REG_SP, disp);
 		reg = tempreg;
 	} else {

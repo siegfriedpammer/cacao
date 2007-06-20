@@ -173,8 +173,8 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->index = -1;
-				pd->regoff = stacksize;
+				pd->index = stacksize;
+				pd->regoff = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -190,8 +190,8 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->index = -1;
-				pd->regoff = stacksize;
+				pd->index = stacksize;
+				pd->regoff = stacksize * 8;
 				stacksize++;
 			}
 			break;

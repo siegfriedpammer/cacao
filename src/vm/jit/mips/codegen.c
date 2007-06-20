@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8011 2007-06-05 10:06:18Z twisti $
+   $Id: codegen.c 8115 2007-06-20 19:14:05Z michi $
 
 */
 
@@ -222,7 +222,7 @@ bool codegen_emit(jitdata *jd)
  				if (!(var->flags & INMEMORY))
  					M_INTMOVE(s1, var->vv.regoff);
  				else
- 					M_LST(s1, REG_SP, var->vv.regoff * 8);
+ 					M_LST(s1, REG_SP, var->vv.regoff);
 #else
 				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
@@ -232,25 +232,25 @@ bool codegen_emit(jitdata *jd)
 				}
 				else {
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s1, REG_SP, var->vv.regoff * 8);
+						M_LST(s1, REG_SP, var->vv.regoff);
 					else
-						M_IST(s1, REG_SP, var->vv.regoff * 8);
+						M_IST(s1, REG_SP, var->vv.regoff);
 				}
 #endif
  			}
 			else {                                   /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {
 #if SIZEOF_VOID_P == 8
- 					M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+ 					M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 #else
 					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 					else
-						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 #endif
  				}
 				else
-					var->vv.regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize * 8 + s1;
 			}
  		}
 		else {                                       /* floating args         */
@@ -263,20 +263,20 @@ bool codegen_emit(jitdata *jd)
  				}
 				else {
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s1, REG_SP, var->vv.regoff * 8);
+						M_DST(s1, REG_SP, var->vv.regoff);
 					else
-						M_FST(s1, REG_SP, var->vv.regoff * 8);
+						M_FST(s1, REG_SP, var->vv.regoff);
  				}
  			}
 			else {
  				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 					else
-						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8);
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 				}
 				else
-					var->vv.regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize * 8 + s1;
 			}
 		}
 	}
@@ -3056,7 +3056,7 @@ gen_method:
 					}
 					else  {
 						s1 = emit_load(jd, iptr, var, REG_ITMP1);
-						M_LST(s1, REG_SP, d * 8);
+						M_LST(s1, REG_SP, d);
 					}
 #else
 					if (!md->params[s3].inmemory) {
@@ -3070,11 +3070,11 @@ gen_method:
 					else {
 						if (IS_2_WORD_TYPE(var->type)) {
 							s1 = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(s1, REG_SP, d * 8);
+							M_LST(s1, REG_SP, d);
 						}
 						else {
 							s1 = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(s1, REG_SP, d * 8);
+							M_IST(s1, REG_SP, d);
 						}
 					}
 #endif
@@ -3090,9 +3090,9 @@ gen_method:
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(s1, REG_SP, d * 8);
+							M_DST(s1, REG_SP, d);
 						else
-							M_FST(s1, REG_SP, d * 8);
+							M_FST(s1, REG_SP, d);
 					}
 				}
 			}
@@ -3818,30 +3818,30 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 				else {
 #if SIZEOF_VOID_P == 8
-					M_LST(s1, REG_SP, s2 * 8);
+					M_LST(s1, REG_SP, s2);
 #else
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s1, REG_SP, s2 * 4);
+						M_LST(s1, REG_SP, s2);
 					else
-						M_IST(s1, REG_SP, s2 * 4);
+						M_IST(s1, REG_SP, s2);
 #endif
 				}
 			}
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize;
+				s1 = md->params[i].regoff + cd->stackframesize * 8;
 				s2 = nmd->params[j].regoff;
 
 #if SIZEOF_VOID_P == 8
-				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
-				M_LST(REG_ITMP1, REG_SP, s2 * 8);
+				M_LLD(REG_ITMP1, REG_SP, s1);
+				M_LST(REG_ITMP1, REG_SP, s2);
 #else
 				if (IS_2_WORD_TYPE(t)) {
-					M_LLD(REG_ITMP12_PACKED, REG_SP, s1 * 8);
-					M_LST(REG_ITMP12_PACKED, REG_SP, s2 * 4);
+					M_LLD(REG_ITMP12_PACKED, REG_SP, s1);
+					M_LST(REG_ITMP12_PACKED, REG_SP, s2);
 				}
 				else {
-					M_ILD(REG_ITMP1, REG_SP, s1 * 8);
-					M_IST(REG_ITMP1, REG_SP, s2 * 4);
+					M_ILD(REG_ITMP1, REG_SP, s1);
+					M_IST(REG_ITMP1, REG_SP, s2);
 				}
 #endif
 			}
@@ -3878,42 +3878,42 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				else {
 #if SIZEOF_VOID_P == 8
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s1, REG_SP, s2 * 8);
+						M_DST(s1, REG_SP, s2);
 					else
-						M_FST(s1, REG_SP, s2 * 8);
+						M_FST(s1, REG_SP, s2);
 #else
 					/* s1 may have been originally in 2 int registers,
 					   but was moved out by the native function
 					   argument(s), just get low register */
 
 					if (IS_2_WORD_TYPE(t))
-						M_DST(GET_LOW_REG(s1), REG_SP, s2 * 4);
+						M_DST(GET_LOW_REG(s1), REG_SP, s2);
 					else
-						M_FST(GET_LOW_REG(s1), REG_SP, s2 * 4);
+						M_FST(GET_LOW_REG(s1), REG_SP, s2);
 #endif
 				}
 			}
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize;
+				s1 = md->params[i].regoff + cd->stackframesize * 8;
 				s2 = nmd->params[j].regoff;
 
 #if SIZEOF_VOID_P == 8
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, s1 * 8);
-					M_DST(REG_FTMP1, REG_SP, s2 * 8);
+					M_DLD(REG_FTMP1, REG_SP, s1);
+					M_DST(REG_FTMP1, REG_SP, s2);
 				}
 				else {
-					M_FLD(REG_FTMP1, REG_SP, s1 * 8);
-					M_FST(REG_FTMP1, REG_SP, s2 * 8);
+					M_FLD(REG_FTMP1, REG_SP, s1);
+					M_FST(REG_FTMP1, REG_SP, s2);
 				}
 #else
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, s1 * 8);
-					M_DST(REG_FTMP1, REG_SP, s2 * 4);
+					M_DLD(REG_FTMP1, REG_SP, s1);
+					M_DST(REG_FTMP1, REG_SP, s2);
 				}
 				else {
-					M_FLD(REG_FTMP1, REG_SP, s1 * 8);
-					M_FST(REG_FTMP1, REG_SP, s2 * 4);
+					M_FLD(REG_FTMP1, REG_SP, s1);
+					M_FST(REG_FTMP1, REG_SP, s2);
 				}
 #endif
 			}

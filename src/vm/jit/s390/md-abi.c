@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 7839 2007-04-29 22:46:56Z pm $
+   $Id: md-abi.c 8115 2007-06-20 19:14:05Z michi $
 
 */
 
@@ -146,7 +146,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory  = true;
-				pd->regoff    = stacksize;
+				pd->regoff    = stacksize * 4;
 				stacksize++;
 			}
 			break;
@@ -163,7 +163,7 @@ void md_param_alloc(methoddesc *md)
 			else {
 				/* _ALIGN(stacksize); */
 				pd->inmemory  = true;
-				pd->regoff    = stacksize;
+				pd->regoff    = stacksize * 4;
 				iarg          = INT_ARG_CNT;
 				stacksize    += 2;
 			}
@@ -177,7 +177,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory  = true;
-				pd->regoff    = stacksize;
+				pd->regoff    = stacksize * 4;
 				stacksize++;
 			}
 			break;
@@ -191,7 +191,7 @@ void md_param_alloc(methoddesc *md)
 			else {
 				/* _ALIGN(stacksize); */
 				pd->inmemory  = true;
-				pd->regoff    = stacksize;
+				pd->regoff    = stacksize * 4;
 				stacksize    += 2;
 			}
 			break;

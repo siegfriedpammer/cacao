@@ -22,7 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   $Id: simplereg.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: simplereg.c 8115 2007-06-20 19:14:05Z michi $
 
 */
 
@@ -64,6 +64,15 @@
 static void simplereg_allocate_interfaces(jitdata *jd);
 static void simplereg_allocate_locals(jitdata *jd);
 static void simplereg_allocate_temporaries(jitdata *jd);
+
+
+/* size of a stackslot used by the internal ABI */
+
+#if defined(HAS_4BYTE_STACKSLOT)
+# define SIZE_OF_STACKSLOT 4
+#else 
+# define SIZE_OF_STACKSLOT 8
+#endif
 
 
 /* total number of registers */
@@ -201,7 +210,7 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 
 #define NEW_MEM_SLOT(r)                                              \
     do {                                                             \
-        (r) = rd->memuse;                                            \
+        (r) = rd->memuse * SIZE_OF_STACKSLOT;                        \
         rd->memuse += memneeded + 1;                                 \
     } while (0)
 
@@ -209,7 +218,7 @@ static void simplereg_allocate_temporaries(jitdata *jd);
     do {                                                             \
         if ( (memneeded) && (rd->memuse & 1))                        \
             rd->memuse++;                                            \
-        (r) = rd->memuse;                                            \
+        (r) = rd->memuse * SIZE_OF_STACKSLOT;                        \
         rd->memuse += memneeded + 1;                                 \
     } while (0)
 
@@ -219,7 +228,7 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 			PUSH_BACK(rd->freemem, rd->freememtop, rd->memuse);      \
             rd->memuse++;                                            \
 		}                                                            \
-        (r) = rd->memuse;                                            \
+        (r) = rd->memuse * SIZE_OF_STACKSLOT;                        \
         rd->memuse += memneeded + 1;                                 \
     } while (0)
 
@@ -401,7 +410,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 					} 
 					else {
 						flags |= INMEMORY;
-						regoff = rd->memuse++;
+						regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
 					}						
 				} 
 				else /* !IS_ADR_TYPE */
@@ -483,7 +492,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 					}
 					else {
 						flags |= INMEMORY;
-						regoff = rd->memuse++;
+						regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
 					}						
 				} 
 				else
@@ -645,7 +654,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 				}
 				else {
 					v->flags |= INMEMORY;
-					v->vv.regoff = rd->memuse++;
+					v->vv.regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
 				}						
 			} 
 			else {
@@ -816,7 +825,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 					}
 					else {
 						v->flags = INMEMORY;
-						v->vv.regoff = rd->memuse++;
+						v->vv.regoff = rd->memuse++ * SIZE_OF_STACKSLOT;
 					}
 				} 
 				else {
@@ -1167,11 +1176,11 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 
 	/* if this is a copy of another variable, just decrement the copy counter */
 
-	/* XXX split reg/mem variables on arm may need special handling here */
-
 	if (flags & INMEMORY) {
 		if (flags & INOUT)
 			return;
+
+		#warning this will be more efficient if we divide it by SIZE_OF_STACKSLOT
 
 		if (regoff < rd->memcopycountsize && rd->memcopycount[regoff]) {
 			rd->memcopycount[regoff]--;

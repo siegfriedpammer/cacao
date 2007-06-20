@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8097 2007-06-17 14:50:16Z pm $
+   $Id: codegen.c 8115 2007-06-20 19:14:05Z michi $
 
 */
 
@@ -276,24 +276,24 @@ bool codegen_emit(jitdata *jd)
 
 				} else {                             /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s2, REG_SP, var->vv.regoff * 4);
+						M_LST(s2, REG_SP, var->vv.regoff);
 					else
-						M_IST(s2, REG_SP, var->vv.regoff * 4);
+						M_IST(s2, REG_SP, var->vv.regoff);
 				}
 
 			} else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 					else
-						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 
 				} else {                             /* stack arg -> spilled  */
- 					M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4);
- 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4);
+ 					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1);
+ 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff);
 					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4 +4);
-						M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4 + 4);
+						M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_IST(REG_ITMP1, REG_SP, var->vv.regoff + 4);
 					}
 				}
 			}
@@ -306,28 +306,28 @@ bool codegen_emit(jitdata *jd)
 
  				} else {			                 /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s2, REG_SP, var->vv.regoff * 4);
+						M_DST(s2, REG_SP, var->vv.regoff);
 					else
-						M_FST(s2, REG_SP, var->vv.regoff * 4);
+						M_FST(s2, REG_SP, var->vv.regoff);
  				}
 
  			} else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 
 					else
-						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 
  				} else {                             /* stack-arg -> spilled  */
 					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
-						M_DST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
-						var->vv.regoff = cd->stackframesize + s1;
+						M_DLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1);
+						M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
+						var->vv.regoff = cd->stackframesize * 4 + s1;
 
 					} else {
-						M_FLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
-						M_FST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
+						M_FLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1);
+						M_FST(REG_FTMP1, REG_SP, var->vv.regoff);
 					}
 				}
 			}
@@ -2741,11 +2741,11 @@ gen_method:
 					else {
 						if (IS_2_WORD_TYPE(var->type)) {
 							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(d, REG_SP, md->params[s3].regoff * 4);
+							M_LST(d, REG_SP, md->params[s3].regoff);
 						}
 						else {
 							d = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(d, REG_SP, md->params[s3].regoff * 4);
+							M_IST(d, REG_SP, md->params[s3].regoff);
 						}
 					}
 				}
@@ -2758,9 +2758,9 @@ gen_method:
 					else {
 						d = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 4);
+							M_DST(d, REG_SP, md->params[s3].regoff);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 4);
+							M_FST(d, REG_SP, md->params[s3].regoff);
 					}
 				}
 			}
@@ -3616,24 +3616,24 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 						N_STM(
 							GET_HIGH_REG(s1), 
 							GET_LOW_REG(s1), 
-							96 + (s2 * 4), REG_SP
+							96 + s2, REG_SP
 						);
 					} else {
 						N_ST(
 							s1, 
-							96 + (s2 * 4), RN, REG_SP
+							96 + s2, RN, REG_SP
 						);
 					}
 				}
 
 			} else {
-				s1 = cd->stackframesize + md->params[i].regoff;
+				s1 = cd->stackframesize * 4 + md->params[i].regoff;
 				s2 = nmd->params[j].regoff;
 				
 				if (IS_2_WORD_TYPE(t)) {
-					N_MVC(96 + (s2 * 4), 8, REG_SP, (s1 * 4), REG_SP);
+					N_MVC(96 + s2, 8, REG_SP, s1, REG_SP);
 				} else {
-					N_MVC(96 + (s2 * 4), 4, REG_SP, (s1 * 4), REG_SP);
+					N_MVC(96 + s2, 4, REG_SP, s1, REG_SP);
 				}
 			}
 
@@ -3642,13 +3642,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 			/* registers keep unchanged.                                      */
 
 			if (md->params[i].inmemory) {
-				s1 = cd->stackframesize + md->params[i].regoff;
+				s1 = cd->stackframesize * 4 + md->params[i].regoff;
 				s2 = nmd->params[j].regoff;
 
 				if (IS_2_WORD_TYPE(t)) {
-					N_MVC(96 + (s2 * 4), 8, REG_SP, (s1 * 4), REG_SP);
+					N_MVC(96 + s2, 8, REG_SP, s1, REG_SP);
 				} else {
-					N_MVC(96 + (s2 * 4), 4, REG_SP, (s1 * 4), REG_SP);
+					N_MVC(96 + s2, 4, REG_SP, s1, REG_SP);
 				}
 			}
 		}

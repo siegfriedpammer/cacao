@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8112 2007-06-20 17:54:36Z twisti $
+   $Id: vm.c 8115 2007-06-20 19:14:05Z michi $
 
 */
 
@@ -2333,7 +2333,7 @@ static void vm_array_store_int(uint64_t *array, paramdesc *pd, int32_t value)
 		array[index] = (int64_t) value;
 	}
 	else {
-		index        = ARG_CNT + pd->regoff;
+		index        = ARG_CNT + pd->index;
 #if SIZEOF_VOID_P == 8
 		array[index] = (int64_t) value;
 #else
@@ -2362,7 +2362,7 @@ static void vm_array_store_lng(uint64_t *array, paramdesc *pd, int64_t value)
 	if (!pd->inmemory)
 		index = pd->index;
 	else
-		index = ARG_CNT + pd->regoff;
+		index = ARG_CNT + pd->index;
 
 	array[index] = value;
 #else
@@ -2376,7 +2376,7 @@ static void vm_array_store_lng(uint64_t *array, paramdesc *pd, int64_t value)
 		array[index] = value >> 32;
 	}
 	else {
-		index        = ARG_CNT + pd->regoff;
+		index        = ARG_CNT + pd->index;
 		array[index] = value;
 	}
 #endif
@@ -2403,7 +2403,7 @@ static void vm_array_store_flt(uint64_t *array, paramdesc *pd, uint64_t value)
 #endif
 	}
 	else {
-		index        = ARG_CNT + pd->regoff;
+		index        = ARG_CNT + pd->index;
 #if defined(__SPARC_64__)
 		array[index] = value >> 32;
 #else
@@ -2427,7 +2427,7 @@ static void vm_array_store_dbl(uint64_t *array, paramdesc *pd, uint64_t value)
 	if (!pd->inmemory)
 		index = INT_ARG_CNT + pd->index;
 	else
-		index = ARG_CNT + pd->regoff;
+		index = ARG_CNT + pd->index;
 
 	array[index] = value;
 }
@@ -2456,7 +2456,7 @@ static void vm_array_store_adr(uint64_t *array, paramdesc *pd, void *value)
 		array[index] = (uint64_t) (intptr_t) value;
 	}
 	else {
-		index        = ARG_CNT + pd->regoff;
+		index        = ARG_CNT + pd->index;
 #if SIZEOF_VOID_P == 8
 		array[index] = (uint64_t) (intptr_t) value;
 #else

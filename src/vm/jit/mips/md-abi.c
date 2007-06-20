@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 8074 2007-06-13 22:27:17Z twisti $
+   $Id: md-abi.c 8115 2007-06-20 19:14:05Z michi $
 
 */
 
@@ -295,7 +295,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -310,7 +310,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -344,8 +344,8 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->index    = -1;
-				pd->regoff   = stacksize;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -371,8 +371,8 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->index    = -1;
-				pd->regoff   = stacksize;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -388,8 +388,8 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->index    = -1;
-				pd->regoff   = stacksize;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -418,7 +418,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 8;
 			}
 			stacksize++;
 			break;
@@ -443,7 +443,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 8;
 			}
 			stacksize += 2;
 			break;
@@ -543,7 +543,7 @@ void md_param_alloc_native(methoddesc *md)
 					ALIGN_2(stacksize);
 
 					pd->inmemory = true;
-					pd->regoff   = stacksize;
+					pd->regoff   = stacksize * 4;
 				}
 				stacksize += 2;
 			}
@@ -558,7 +558,7 @@ void md_param_alloc_native(methoddesc *md)
 				}
 				else {
 					pd->inmemory = true;
-					pd->regoff   = stacksize;
+					pd->regoff   = stacksize * 4;
 				}
 				stacksize++;
 			}
@@ -583,7 +583,7 @@ void md_param_alloc_native(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 4;
 			}
 			stacksize++;
 			break;
@@ -607,7 +607,7 @@ void md_param_alloc_native(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 4;
 			}
 			stacksize += 2;
 			break;

@@ -125,7 +125,7 @@
 
 /* applies when the caller's window was saved */
 #define REG_WINDOW_TRANSPOSE(reg) \
-	(reg + 16)
+	(reg + 16 * 8)
 
 #endif /* _MD_ABI_H */
 

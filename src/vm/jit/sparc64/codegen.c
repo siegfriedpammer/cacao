@@ -334,16 +334,16 @@ bool codegen_emit(jitdata *jd)
 
 				} 
 				else {                             /* reg arg -> spilled    */
-					M_STX(s1, REG_SP, JITSTACK + (var->vv.regoff * 8));
+					M_STX(s1, REG_SP, JITSTACK + var->vv.regoff);
  				}
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
- 					M_LDX(var->vv.regoff, REG_FP, JITSTACK + (s1 * 8));
+ 					M_LDX(var->vv.regoff, REG_FP, JITSTACK + s1);
 
  				} else {                             /* stack arg -> spilled  */
 					/* add the callers window save registers */
-					var->vv.regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize * 8 + s1;
 				}
 			}
 		
@@ -353,15 +353,15 @@ bool codegen_emit(jitdata *jd)
  					M_FLTMOVE(s1, var->vv.regoff);
 
  				} else {			                 /* reg arg -> spilled    */
- 					M_DST(s1, REG_SP, JITSTACK + (var->vv.regoff) * 8);
+ 					M_DST(s1, REG_SP, JITSTACK + var->vv.regoff);
  				}
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
- 					M_DLD(var->vv.regoff, REG_FP, JITSTACK + (s1 * 8));
+ 					M_DLD(var->vv.regoff, REG_FP, JITSTACK + s1);
 
  				} else {                             /* stack-arg -> spilled  */
-					var->vv.regoff = cd->stackframesize + s1;
+					var->vv.regoff = cd->stackframesize * 8 + s1;
 				}
 			}
 		}
@@ -2472,7 +2472,7 @@ gen_method:
 					} 
 					else {
 						s1 = emit_load(jd, iptr, var, REG_ITMP1);
-						M_STX(s1, REG_SP, JITSTACK + d * 8);
+						M_STX(s1, REG_SP, JITSTACK + d);
 					}
 				}
 				else {
@@ -2490,7 +2490,7 @@ gen_method:
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
-						M_DST(s1, REG_SP, JITSTACK + d * 8);
+						M_DST(s1, REG_SP, JITSTACK + d);
 					}
 				}
 			}
@@ -3167,8 +3167,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 					s2 = nat_argintregs[nmd->params[j].regoff];
 					M_INTMOVE(s1, s2);
 				} else {
-					s2 = nmd->params[j].regoff - 6;
-					M_AST(s1, REG_SP, CSTACK + s2 * 8);
+					s2 = nmd->params[j].regoff - 6 * 8;
+					M_AST(s1, REG_SP, CSTACK + s2);
 				}
 
 			} else {
@@ -3181,10 +3181,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 					assert(false); /* path never taken */
 				}
 
-				s1 = md->params[i].regoff + cd->stackframesize;
-				s2 = nmd->params[j].regoff - 6;
-				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1 * 8);
-				M_AST(REG_ITMP1, REG_SP, CSTACK + s2 * 8);
+				s1 = md->params[i].regoff + cd->stackframesize * 8;
+				s2 = nmd->params[j].regoff - 6 * 8;
+				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1);
+				M_AST(REG_ITMP1, REG_SP, CSTACK + s2);
 			}
 
 		} else {
@@ -3216,25 +3216,25 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 			} 
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize;
+				s1 = md->params[i].regoff + cd->stackframesize * 8;
 
 				if (!nmd->params[j].inmemory) {
 
 					/* JIT stack -> NAT reg */
 
 					s2 = nmd->params[j].regoff; 
-					M_DLD(s2, REG_SP, CSTACK + s1 * 8);
+					M_DLD(s2, REG_SP, CSTACK + s1);
 				}
 				else {
 
 					/* JIT stack -> NAT stack */
 
-					s2 = nmd->params[j].regoff - 6;
+					s2 = nmd->params[j].regoff - 6 * 8;
 
 					/* The FTMP register may already be loaded with args */
 					/* we know $f0 is unused because of the env pointer  */
-					M_DLD(REG_F0, REG_SP, CSTACK + s1 * 8);
-					M_DST(REG_F0, REG_SP, CSTACK + s2 * 8);
+					M_DLD(REG_F0, REG_SP, CSTACK + s1);
+					M_DST(REG_F0, REG_SP, CSTACK + s2);
 				}
 			}
 		}

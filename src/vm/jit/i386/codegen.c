@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 7908 2007-05-15 09:55:17Z christian $
+   $Id: codegen.c 8115 2007-06-20 19:14:05Z michi $
 
 */
 
@@ -264,7 +264,7 @@ bool codegen_emit(jitdata *jd)
 			else {                                   /* stack arguments       */
 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					emit_mov_membase_reg(           /* + 4 for return address */
-					   cd, REG_SP, (cd->stackframesize + s1) * 4 + 4, var->vv.regoff);
+					   cd, REG_SP, cd->stackframesize * 4 + s1 + 4, var->vv.regoff);
 					                                /* + 4 for return address */
 				} 
 				else {                               /* stack arg -> spilled  */
@@ -273,15 +273,15 @@ bool codegen_emit(jitdata *jd)
 						/* no copy avoiding by now possible with SSA */
 						if (ls != NULL) {
 							emit_mov_membase_reg(   /* + 4 for return address */
-								 cd, REG_SP, (cd->stackframesize + s1) * 4 + 4,
+								 cd, REG_SP, cd->stackframesize * 4 + s1 + 4,
 								 REG_ITMP1);    
 							emit_mov_reg_membase(
-								 cd, REG_ITMP1, REG_SP, var->vv.regoff * 4);
+								 cd, REG_ITMP1, REG_SP, var->vv.regoff);
 						}
 						else 
 #endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
-							var->vv.regoff = cd->stackframesize + s1 + 1;
+							var->vv.regoff = cd->stackframesize * 4 + s1 + 4;
 
 					} 
 					else {
@@ -289,20 +289,20 @@ bool codegen_emit(jitdata *jd)
 						/* no copy avoiding by now possible with SSA */
 						if (ls != NULL) {
 							emit_mov_membase_reg(  /* + 4 for return address */
-								 cd, REG_SP, (cd->stackframesize + s1) * 4 + 4,
+								 cd, REG_SP, cd->stackframesize * 4 + s1 + 4,
 								 REG_ITMP1);
 							emit_mov_reg_membase(
-								 cd, REG_ITMP1, REG_SP, var->vv.regoff * 4);
+								 cd, REG_ITMP1, REG_SP, var->vv.regoff);
 							emit_mov_membase_reg(   /* + 4 for return address */
-								  cd, REG_SP, (cd->stackframesize + s1) * 4 + 4 + 4,
+								  cd, REG_SP, cd->stackframesize * 4 + s1 + 4 + 4,
 								  REG_ITMP1);             
 							emit_mov_reg_membase(
-								 cd, REG_ITMP1, REG_SP, var->vv.regoff * 4 + 4);
+								 cd, REG_ITMP1, REG_SP, var->vv.regoff + 4);
 						}
 						else
 #endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
-							var->vv.regoff = cd->stackframesize + s1 + 1;
+							var->vv.regoff = cd->stackframesize * 4 + s1 + 4;
 					}
 				}
 			}
@@ -322,14 +322,14 @@ bool codegen_emit(jitdata *jd)
 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (t == TYPE_FLT) {
 						emit_flds_membase(
-                            cd, REG_SP, (cd->stackframesize + s1) * 4 + 4);
+                            cd, REG_SP, cd->stackframesize * 4 + s1 + 4);
 						assert(0);
 /* 						emit_fstp_reg(cd, var->vv.regoff + fpu_st_offset); */
 
 					} 
 					else {
 						emit_fldl_membase(
-                            cd, REG_SP, (cd->stackframesize + s1) * 4 + 4);
+                            cd, REG_SP, cd->stackframesize * 4 + s1 + 4);
 						assert(0);
 /* 						emit_fstp_reg(cd, var->vv.regoff + fpu_st_offset); */
 					}
@@ -339,24 +339,24 @@ bool codegen_emit(jitdata *jd)
 					/* no copy avoiding by now possible with SSA */
 					if (ls != NULL) {
 						emit_mov_membase_reg(
-						 cd, REG_SP, (cd->stackframesize + s1) * 4 + 4, REG_ITMP1);
+						 cd, REG_SP, cd->stackframesize * 4 + s1 + 4, REG_ITMP1);
 						emit_mov_reg_membase(
- 									 cd, REG_ITMP1, REG_SP, var->vv.regoff * 4);
+ 									 cd, REG_ITMP1, REG_SP, var->vv.regoff);
 						if (t == TYPE_FLT) {
 							emit_flds_membase(
-								  cd, REG_SP, (cd->stackframesize + s1) * 4 + 4);
-							emit_fstps_membase(cd, REG_SP, var->vv.regoff * 4);
+								  cd, REG_SP, cd->stackframesize * 4 + s1 + 4);
+							emit_fstps_membase(cd, REG_SP, var->vv.regoff);
 						} 
 						else {
 							emit_fldl_membase(
-								  cd, REG_SP, (cd->stackframesize + s1) * 4 + 4);
-							emit_fstpl_membase(cd, REG_SP, var->vv.regoff * 4);
+								  cd, REG_SP, cd->stackframesize * 4 + s1 + 4);
+							emit_fstpl_membase(cd, REG_SP, var->vv.regoff);
 						}
 					}
 					else
 #endif /*defined(ENABLE_SSA)*/
 						                  /* reuse Stackslotand avoid copying */
-						var->vv.regoff = cd->stackframesize + s1 + 1;
+						var->vv.regoff = cd->stackframesize * 4 + s1 + 4;
 				}
 			}
 		}
@@ -1572,7 +1572,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 
 			if (var->flags & INMEMORY) {
-				emit_fildl_membase(cd, REG_SP, var->vv.regoff * 4);
+				emit_fildl_membase(cd, REG_SP, var->vv.regoff);
 			} else {
 				/* XXX not thread safe! */
 				disp = dseg_add_unique_s4(cd, 0);
@@ -1591,7 +1591,7 @@ bool codegen_emit(jitdata *jd)
 			var = VAROP(iptr->s1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			if (var->flags & INMEMORY) {
-				emit_fildll_membase(cd, REG_SP, var->vv.regoff * 4);
+				emit_fildll_membase(cd, REG_SP, var->vv.regoff);
 
 			} else {
 				log_text("L2F: longs have to be in memory");
@@ -1616,19 +1616,19 @@ bool codegen_emit(jitdata *jd)
 			var1 = VAROP(iptr->s1);
 
 			if (var->flags & INMEMORY) {
-				emit_fistpl_membase(cd, REG_SP, var->vv.regoff * 4);
+				emit_fistpl_membase(cd, REG_SP, var->vv.regoff);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
 				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
 				emit_alu_imm_membase(cd, ALU_CMP, 0x80000000, 
-									 REG_SP, var->vv.regoff * 4);
+									 REG_SP, var->vv.regoff);
 
 				disp = 3;
-				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff);
 				disp += 5 + 2 + 3;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff);
 
 			} else {
 				/* XXX not thread safe! */
@@ -1643,19 +1643,19 @@ bool codegen_emit(jitdata *jd)
 				emit_alu_imm_reg(cd, ALU_CMP, 0x80000000, var->vv.regoff);
 
 				disp = 3;
-				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff);
 				disp += 5 + 2 + ((REG_RESULT == var->vv.regoff) ? 0 : 2);
 			}
 
 			emit_jcc(cd, CC_NE, disp);
 
 			/* XXX: change this when we use registers */
-			emit_flds_membase(cd, REG_SP, var1->vv.regoff * 4);
+			emit_flds_membase(cd, REG_SP, var1->vv.regoff);
 			emit_mov_imm_reg(cd, (ptrint) asm_builtin_f2i, REG_ITMP1);
 			emit_call_reg(cd, REG_ITMP1);
 
 			if (var->flags & INMEMORY) {
-				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff * 4);
+				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff);
 
 			} else {
 				M_INTMOVE(REG_RESULT, var->vv.regoff);
@@ -1678,19 +1678,19 @@ bool codegen_emit(jitdata *jd)
 			var1 = VAROP(iptr->s1);
 
 			if (var->flags & INMEMORY) {
-				emit_fistpl_membase(cd, REG_SP, var->vv.regoff * 4);
+				emit_fistpl_membase(cd, REG_SP, var->vv.regoff);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
 				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
   				emit_alu_imm_membase(cd, ALU_CMP, 0x80000000, 
-									 REG_SP, var->vv.regoff * 4);
+									 REG_SP, var->vv.regoff);
 
 				disp = 3;
-				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff);
 				disp += 5 + 2 + 3;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff);
 
 			} else {
 				/* XXX not thread safe! */
@@ -1705,19 +1705,19 @@ bool codegen_emit(jitdata *jd)
 				emit_alu_imm_reg(cd, ALU_CMP, 0x80000000, var->vv.regoff);
 
 				disp = 3;
-				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff);
 				disp += 5 + 2 + ((REG_RESULT == var->vv.regoff) ? 0 : 2);
 			}
 
 			emit_jcc(cd, CC_NE, disp);
 
 			/* XXX: change this when we use registers */
-			emit_fldl_membase(cd, REG_SP, var1->vv.regoff * 4);
+			emit_fldl_membase(cd, REG_SP, var1->vv.regoff);
 			emit_mov_imm_reg(cd, (ptrint) asm_builtin_d2i, REG_ITMP1);
 			emit_call_reg(cd, REG_ITMP1);
 
 			if (var->flags & INMEMORY) {
-				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff * 4);
+				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff);
 			} else {
 				M_INTMOVE(REG_RESULT, var->vv.regoff);
 			}
@@ -1739,44 +1739,44 @@ bool codegen_emit(jitdata *jd)
 			var1 = VAROP(iptr->s1);
 
 			if (var->flags & INMEMORY) {
-				emit_fistpll_membase(cd, REG_SP, var->vv.regoff * 4);
+				emit_fistpll_membase(cd, REG_SP, var->vv.regoff);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
 				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
   				emit_alu_imm_membase(cd, ALU_CMP, 0x80000000, 
-									 REG_SP, var->vv.regoff * 4 + 4);
+									 REG_SP, var->vv.regoff + 4);
 
 				disp = 6 + 4;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff);
 				disp += 3;
-				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff);
 				disp += 5 + 2;
 				disp += 3;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff);
 				disp += 3;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4 + 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff + 4);
 
 				emit_jcc(cd, CC_NE, disp);
 
   				emit_alu_imm_membase(cd, ALU_CMP, 0, 
-									 REG_SP, var->vv.regoff * 4);
+									 REG_SP, var->vv.regoff);
 
 				disp = 3;
-				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff);
 				disp += 5 + 2 + 3;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff);
 
 				emit_jcc(cd, CC_NE, disp);
 
 				/* XXX: change this when we use registers */
-				emit_flds_membase(cd, REG_SP, var1->vv.regoff * 4);
+				emit_flds_membase(cd, REG_SP, var1->vv.regoff);
 				emit_mov_imm_reg(cd, (ptrint) asm_builtin_f2l, REG_ITMP1);
 				emit_call_reg(cd, REG_ITMP1);
-				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff * 4);
+				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff);
 				emit_mov_reg_membase(cd, REG_RESULT2, 
-									 REG_SP, var->vv.regoff * 4 + 4);
+									 REG_SP, var->vv.regoff + 4);
 
 			} else {
 				log_text("F2L: longs have to be in memory");
@@ -1800,43 +1800,43 @@ bool codegen_emit(jitdata *jd)
 			var1 = VAROP(iptr->s1);
 
 			if (var->flags & INMEMORY) {
-				emit_fistpll_membase(cd, REG_SP, var->vv.regoff * 4);
+				emit_fistpll_membase(cd, REG_SP, var->vv.regoff);
 
 				/* Round to nearest, 53-bit mode, exceptions masked */
 				disp = dseg_add_s4(cd, 0x027f);
 				emit_fldcw_membase(cd, REG_ITMP1, disp);
 
   				emit_alu_imm_membase(cd, ALU_CMP, 0x80000000, 
-									 REG_SP, var->vv.regoff * 4 + 4);
+									 REG_SP, var->vv.regoff + 4);
 
 				disp = 6 + 4;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff);
 				disp += 3;
-				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff);
 				disp += 5 + 2;
 				disp += 3;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff);
 				disp += 3;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4 + 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff + 4);
 
 				emit_jcc(cd, CC_NE, disp);
 
-  				emit_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, var->vv.regoff * 4);
+  				emit_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, var->vv.regoff);
 
 				disp = 3;
-				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var1->vv.regoff);
 				disp += 5 + 2 + 3;
-				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff * 4);
+				CALCOFFSETBYTES(disp, REG_SP, var->vv.regoff);
 
 				emit_jcc(cd, CC_NE, disp);
 
 				/* XXX: change this when we use registers */
-				emit_fldl_membase(cd, REG_SP, var1->vv.regoff * 4);
+				emit_fldl_membase(cd, REG_SP, var1->vv.regoff);
 				emit_mov_imm_reg(cd, (ptrint) asm_builtin_d2l, REG_ITMP1);
 				emit_call_reg(cd, REG_ITMP1);
-				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff * 4);
+				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff);
 				emit_mov_reg_membase(cd, REG_RESULT2, 
-									 REG_SP, var->vv.regoff * 4 + 4);
+									 REG_SP, var->vv.regoff + 4);
 
 			} else {
 				log_text("D2L: longs have to be in memory");
@@ -1979,10 +1979,10 @@ bool codegen_emit(jitdata *jd)
 			assert(var->flags & INMEMORY);
 			emit_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]), 
 								  s1, s2, 3, REG_ITMP3);
-			emit_mov_reg_membase(cd, REG_ITMP3, REG_SP, var->vv.regoff * 4);
+			emit_mov_reg_membase(cd, REG_ITMP3, REG_SP, var->vv.regoff);
 			emit_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]) + 4, 
 								  s1, s2, 3, REG_ITMP3);
-			emit_mov_reg_membase(cd, REG_ITMP3, REG_SP, var->vv.regoff * 4 + 4);
+			emit_mov_reg_membase(cd, REG_ITMP3, REG_SP, var->vv.regoff + 4);
 			break;
 
 		case ICMD_FALOAD:     /* ..., arrayref, index  ==> ..., value         */
@@ -2079,10 +2079,10 @@ bool codegen_emit(jitdata *jd)
 			var = VAROP(iptr->sx.s23.s3);
 
 			assert(var->flags & INMEMORY);
-			emit_mov_membase_reg(cd, REG_SP, var->vv.regoff * 4, REG_ITMP3);
+			emit_mov_membase_reg(cd, REG_SP, var->vv.regoff, REG_ITMP3);
 			emit_mov_reg_memindex(cd, REG_ITMP3, OFFSET(java_longarray, data[0])
 								  , s1, s2, 3);
-			emit_mov_membase_reg(cd, REG_SP, var->vv.regoff * 4 + 4, REG_ITMP3);
+			emit_mov_membase_reg(cd, REG_SP, var->vv.regoff + 4, REG_ITMP3);
 			emit_mov_reg_memindex(cd, REG_ITMP3,
 							    OFFSET(java_longarray, data[0]) + 4, s1, s2, 3);
 			break;
@@ -2950,10 +2950,10 @@ gen_method:
 					} else {
 						if (IS_2_WORD_TYPE(var->type)) {
 							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(d, REG_SP, md->params[s3].regoff * 4);
+							M_LST(d, REG_SP, md->params[s3].regoff);
 						} else {
 							d = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(d, REG_SP, md->params[s3].regoff * 4);
+							M_IST(d, REG_SP, md->params[s3].regoff);
 						}
 					}
 
@@ -2966,9 +2966,9 @@ gen_method:
 					} else {
 						d = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 4);
+							M_DST(d, REG_SP, md->params[s3].regoff);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 4);
+							M_FST(d, REG_SP, md->params[s3].regoff);
 					}
 				}
 			} /* end of for */
@@ -3395,7 +3395,7 @@ gen_method:
 				/* Already Preallocated? */
 				if (!(var->flags & PREALLOC)) {
 					if (var->flags & INMEMORY) {
-						M_ILD(REG_ITMP1, REG_SP, var->vv.regoff * 4);
+						M_ILD(REG_ITMP1, REG_SP, var->vv.regoff);
 						M_IST(REG_ITMP1, REG_SP, (s1 + 3) * 4);
 					}
 					else
@@ -3636,8 +3636,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		if (!md->params[i].inmemory) {
 			/* no integer argument registers */
 		} else {       /* float/double in memory can be copied like int/longs */
-			s1 = (md->params[i].regoff + cd->stackframesize + 1) * 4;
-			s2 = nmd->params[j].regoff * 4;
+			s1 = md->params[i].regoff + cd->stackframesize * 4 + 4;
+			s2 = nmd->params[j].regoff;
 
 			M_ILD(REG_ITMP1, REG_SP, s1);
 			M_IST(REG_ITMP1, REG_SP, s2);
