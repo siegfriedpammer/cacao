@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 8096 2007-06-17 13:45:58Z pm $
+   $Id: codegen.h 8117 2007-06-20 21:20:53Z pm $
 
 */
 
@@ -555,6 +555,7 @@
 #define N_LCXBR(r1, r2) N_RRE(0xB343, r1, r2)
 
 #define N_LDEBR(r1, r2) N_RRE(0xB304, r1, r2)
+#	define SZ_LDEBR SZ_RRE
 #define N_LXDBR(r1, r2) N_RRE(0xB305, r1, r2)
 #define N_LXEBR(r1, r2) N_RRE(0xB306, r1, r2)
 

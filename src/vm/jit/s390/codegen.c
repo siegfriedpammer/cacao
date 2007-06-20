@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8115 2007-06-20 19:14:05Z michi $
+   $Id: codegen.c 8117 2007-06-20 21:20:53Z pm $
 
 */
 
@@ -1590,10 +1590,25 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_CVTFD(s1, d);
-			emit_store_dst(jd, iptr, d);
+			{
+				u1 *ref;
+				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+				d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+#ifdef SUPPORT_HERCULES
+				N_LTEBR(s1, s1);
+				ref = cd->mcodeptr;
+				N_BRC(DD_0 | DD_1 | DD_2, 0); /* Non a NaN */
+				disp = dseg_add_double(cd, 0.0 / 0.0);
+				M_DLD_DSEG(d, disp, REG_ITMP1);
+				emit_label_br(cd, BRANCH_LABEL_1);
+				N_BRC_BACK_PATCH(ref);
+#endif
+				M_CVTFD(s1, d);
+#ifdef SUPPORT_HERCULES
+				emit_label(cd, BRANCH_LABEL_1);
+#endif
+				emit_store_dst(jd, iptr, d);
+			}
 			break;
 
 		case ICMD_D2F:       /* ..., value  ==> ..., (float) value            */
