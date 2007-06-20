@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8115 2007-06-20 19:14:05Z michi $
+   $Id: codegen.c 8116 2007-06-20 20:30:56Z michi $
 
 */
 
@@ -129,19 +129,19 @@ bool codegen_emit(jitdata *jd)
 		spilledregs_num++;
 #endif
 
-	cd->stackframesize = spilledregs_num + savedregs_num;
+	cd->stackframesize = (spilledregs_num + savedregs_num) * 4;
 
 	/* XXX QUICK FIX: We shouldn't align the stack in Java code, but
 	   only in native stubs. */
 	/* align stack to 8-byte */
 
-	cd->stackframesize = (cd->stackframesize + 1) & ~1;
+	cd->stackframesize = (cd->stackframesize + 4) & ~4;
 
 	/* SECTION: Method Header */
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize);     /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -193,8 +193,8 @@ bool codegen_emit(jitdata *jd)
 
 	/* create additional stack frame for spilled variables (if necessary) */
 
-	if ((cd->stackframesize - savedregs_num) > 0)
-		M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - savedregs_num);
+	if ((cd->stackframesize / 4 - savedregs_num) > 0)
+		M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - savedregs_num);
 
 	/* take arguments out of register or stack frame */
 
@@ -233,13 +233,13 @@ bool codegen_emit(jitdata *jd)
 			else {                                   /* stack arguments       */
 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
+						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize + s1);
 					else
-						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
+						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize + s1);
 				}
 				else {                               /* stack arg -> spilled  */
 					/* Reuse Memory Position on Caller Stack */
-					var->vv.regoff = cd->stackframesize * 4 + s1;
+					var->vv.regoff = cd->stackframesize + s1;
 				}
 			}
 #if !defined(ENABLE_SOFTFLOAT)
@@ -259,13 +259,13 @@ bool codegen_emit(jitdata *jd)
 			else {
 				if (!(var->flags & INMEMORY)) {
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize + s1);
 					else
-						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize + s1);
 				}
 				else {
 					/* Reuse Memory Position on Caller Stack */
-					var->vv.regoff = cd->stackframesize * 4 + s1;
+					var->vv.regoff = cd->stackframesize + s1;
 				}
 			}
 		}
@@ -2158,8 +2158,8 @@ bool codegen_emit(jitdata *jd)
 
 			/* deallocate stackframe for spilled variables */
 
-			if ((cd->stackframesize - savedregs_num) > 0)
-				M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - savedregs_num);
+			if ((cd->stackframesize / 4 - savedregs_num) > 0)
+				M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - savedregs_num);
 
 			/* restore callee saved registers + do return */
 
@@ -2925,20 +2925,21 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* calculate stackframe size */
 
-	cd->stackframesize = 
+	cd->stackframesize = ( 
 		1 +                                                /* return address  */
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +           /* stackframeinfo  */
 		sizeof(localref_table) / SIZEOF_VOID_P +           /* localref_table  */
-		nmd->memuse;                                       /* stack arguments */
+		nmd->memuse                                        /* stack arguments */
+		) * 4;
 
 	/* align stack to 8-byte */
 
-	cd->stackframesize = (cd->stackframesize + 1) & ~1;
+	cd->stackframesize = (cd->stackframesize + 4) & ~4;
 
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize);     /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
@@ -2949,7 +2950,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* generate stub code */
 
 	M_STMFD(1<<REG_LR, REG_SP);
-	M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - 1);
+	M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - 1);
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
@@ -2977,11 +2978,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* create native stackframe info */
 
-	assert(IS_IMM(4*4 + cd->stackframesize * 4));
-	M_ADD_IMM(REG_A0, REG_SP, 4*4 + cd->stackframesize * 4 - SIZEOF_VOID_P);
+	assert(IS_IMM(4*4 + cd->stackframesize));
+	M_ADD_IMM(REG_A0, REG_SP, 4*4 + cd->stackframesize - SIZEOF_VOID_P);
 	M_MOV(REG_A1, REG_PV);
-	M_ADD_IMM(REG_A2, REG_SP, 4*4 + cd->stackframesize * 4);
-	M_LDR_INTERN(REG_A3, REG_SP, 4*4 + cd->stackframesize * 4 - SIZEOF_VOID_P);
+	M_ADD_IMM(REG_A2, REG_SP, 4*4 + cd->stackframesize);
+	M_LDR_INTERN(REG_A3, REG_SP, 4*4 + cd->stackframesize - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_DSEG_BRANCH(disp);
 
@@ -3028,7 +3029,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 			}
 		}
 		else {
-			s1 = md->params[i].regoff + cd->stackframesize * 4;
+			s1 = md->params[i].regoff + cd->stackframesize;
 			s2 = nmd->params[j].regoff;
 
 			if (IS_2_WORD_TYPE(t)) {
@@ -3094,7 +3095,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	M_STMFD(BITMASK_RESULT, REG_SP);
 
-	M_ADD_IMM(REG_A0, REG_SP, 2*4 + cd->stackframesize * 4 - SIZEOF_VOID_P);
+	M_ADD_IMM(REG_A0, REG_SP, 2*4 + cd->stackframesize - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_DSEG_BRANCH(disp);
 	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
@@ -3105,7 +3106,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* finish stub code, but do not yet return to caller */
 
-	M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize - 1);
+	M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - 1);
 	M_LDMFD(1<<REG_LR, REG_SP);
 
 	/* check for exception */

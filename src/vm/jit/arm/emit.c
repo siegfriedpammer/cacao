@@ -749,7 +749,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	M_STMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
 	M_SUB_IMM(REG_SP, REG_SP, (2 + 2 + 1 + 1) * 4); /* space for a3, a4 and m */
 
-	stackframesize += 6 + 2 + 2 + 1 + 1;
+	stackframesize += (6 + 2 + 2 + 1 + 1) * 4;
 
 	/* prepare args for tracer */
 
@@ -773,7 +773,7 @@ void emit_verbosecall_enter(jitdata *jd)
 		}
 		else {
 			s1 = REG_ITMP12_PACKED;
-			s2 = md->params[i].regoff + stackframesize * 4;
+			s2 = md->params[i].regoff + stackframesize;
 
 			if (IS_2_WORD_TYPE(t))
 				M_LLD(s1, REG_SP, s2);
