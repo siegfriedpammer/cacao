@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8039 2007-06-07 13:46:55Z michi $
+   $Id: codegen.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -234,14 +234,14 @@ bool codegen_emit(jitdata *jd)
  				if (!IS_INMEMORY(var->flags))
    					M_INTMOVE(s1, var->vv.regoff);
 				else
-   				    M_LST(s1, REG_SP, var->vv.regoff * 8);
+   				    M_LST(s1, REG_SP, var->vv.regoff);
 			}
 			else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags))
 					/* + 8 for return address */
- 					M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8 + 8);
+ 					M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1 + 8);
 				else
-					var->vv.regoff = cd->stackframesize + s1 + 1;
+					var->vv.regoff = cd->stackframesize * 8 + s1 + 8;
 			}
 		}
 		else {                                     /* floating args         */
@@ -249,13 +249,13 @@ bool codegen_emit(jitdata *jd)
  				if (!IS_INMEMORY(var->flags))
 					M_FLTMOVE(s1, var->vv.regoff);
 				else
-					M_DST(s1, REG_SP, var->vv.regoff * 8);
+					M_DST(s1, REG_SP, var->vv.regoff);
 			}
 			else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags))
-					M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 8 + 8);
+					M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1 + 8);
 				else
-					var->vv.regoff = cd->stackframesize + s1 + 1;
+					var->vv.regoff = cd->stackframesize * 8 + s1 + 8;
 			}
 		}
 	}
@@ -2394,7 +2394,7 @@ gen_method:
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_ITMP1);
-						M_LST(s1, REG_SP, d * 8);
+						M_LST(s1, REG_SP, d);
 					}
 				}
 				else {
@@ -2406,9 +2406,9 @@ gen_method:
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
 
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(s1, REG_SP, d * 8);
+							M_DST(s1, REG_SP, d);
 						else
-							M_FST(s1, REG_SP, d * 8);
+							M_FST(s1, REG_SP, d);
 					}
 				}
 			}
@@ -3251,12 +3251,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				if (!nmd->params[j].inmemory)
 					M_INTMOVE(s1, s2);
 				else
-					M_LST(s1, REG_SP, s2 * 8);
+					M_LST(s1, REG_SP, s2);
 			}
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize + 1;/* +1 (RA) */
-				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
-				M_LST(REG_ITMP1, REG_SP, s2 * 8);
+				s1 = md->params[i].regoff + cd->stackframesize * 8 + 8;/* +1 (RA) */
+				M_LLD(REG_ITMP1, REG_SP, s1);
+				M_LST(REG_ITMP1, REG_SP, s2);
 			}
 		}
 		else {
@@ -3264,15 +3264,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 			   argument registers keep unchanged. */
 
 			if (md->params[i].inmemory) {
-				s1 = md->params[i].regoff + cd->stackframesize + 1;/* +1 (RA) */
+				s1 = md->params[i].regoff + cd->stackframesize * 8 + 8;/* +1 (RA) */
 
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, s1 * 8);
-					M_DST(REG_FTMP1, REG_SP, s2 * 8);
+					M_DLD(REG_FTMP1, REG_SP, s1);
+					M_DST(REG_FTMP1, REG_SP, s2);
 				}
 				else {
-					M_FLD(REG_FTMP1, REG_SP, s1 * 8);
-					M_FST(REG_FTMP1, REG_SP, s2 * 8);
+					M_FLD(REG_FTMP1, REG_SP, s1);
+					M_FST(REG_FTMP1, REG_SP, s2);
 				}
 			}
 		}

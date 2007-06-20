@@ -127,7 +127,7 @@ void md_param_alloc(methoddesc *md)
 				iarg++;
 			} else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff = stacksize * 4;
 				stacksize++;
 			}
 			break;
@@ -141,7 +141,7 @@ void md_param_alloc(methoddesc *md)
 			} else {
 				_ALIGN(stacksize);
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff = stacksize * 4;
 				iarg = INT_ARG_CNT;
 				stacksize += 2;
 			}
@@ -153,7 +153,7 @@ void md_param_alloc(methoddesc *md)
 				farg++;
 			} else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff = stacksize * 4;
 				stacksize++;
 			}
 			break;
@@ -165,7 +165,7 @@ void md_param_alloc(methoddesc *md)
 			} else {
 				_ALIGN(stacksize);
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->regoff = stacksize * 4;
 				stacksize += 2;
 			}
 			break;

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.h 8027 2007-06-07 10:30:33Z michi $
+   $Id: statistics.h 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -142,8 +142,12 @@ extern int count_mov_mem_mem;
 
 extern int count_jit_calls;
 extern int count_methods;
-extern int count_spills;
-extern int count_spills_read;
+extern int count_spills_read_ila;
+extern int count_spills_read_flt;
+extern int count_spills_read_dbl;
+extern int count_spills_write_ila;
+extern int count_spills_write_flt;
+extern int count_spills_write_dbl;
 extern int count_pcmd_activ;
 extern int count_pcmd_drop;
 extern int count_pcmd_zero;
@@ -178,6 +182,12 @@ extern int count_data_len;
 extern int count_cstub_len;
 extern int count_max_new_stack;
 extern int count_upper_bound_new_stack;
+
+extern int count_emit_branch;
+extern int count_emit_branch_8bit;
+extern int count_emit_branch_16bit;
+extern int count_emit_branch_32bit;
+extern int count_emit_branch_64bit;
 
 extern s4 count_branches_resolved;
 extern s4 count_branches_unresolved;

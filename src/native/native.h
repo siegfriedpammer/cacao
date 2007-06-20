@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 8056 2007-06-10 14:49:57Z michi $
+   $Id: native.h 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -140,12 +140,6 @@ java_objectheader *native_new_and_init(classinfo *c);
 
 java_objectheader *native_new_and_init_string(classinfo *c,
 											  java_objectheader *s);
-
-java_objectheader *native_new_and_init_throwable(classinfo *c,
-												 java_objectheader *t);
-
-java_objectheader *native_new_and_init_exception(classinfo *c,
-												 java_objectheader *e);
 
 #endif /* _NATIVE_H */
 

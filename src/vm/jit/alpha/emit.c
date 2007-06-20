@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -73,7 +73,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 8;
+		disp = src->vv.regoff;
 
 		switch (src->type) {
 		case TYPE_INT:
@@ -116,7 +116,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		disp = dst->vv.regoff * 8;
+		disp = dst->vv.regoff;
 
 		switch (dst->type) {
 		case TYPE_INT:

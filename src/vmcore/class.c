@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: class.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -837,10 +837,14 @@ static classinfo *get_array_class(utf *name,classloader *initloader,
 
 classinfo *class_array_of(classinfo *component, bool link)
 {
-    s4 namelen;
-    char *namebuf;
-	s4 dumpsize;
-	classinfo *c;
+	java_objectheader *cl;
+    s4                 namelen;
+    char              *namebuf;
+	utf               *u;
+	classinfo         *c;
+	s4                 dumpsize;
+
+	cl = component->classloader;
 
 	dumpsize = dump_size();
 
@@ -853,8 +857,8 @@ classinfo *class_array_of(classinfo *component, bool link)
         namebuf[0] = '[';
         MCOPY(namebuf + 1, component->name->text, char, namelen);
         namelen++;
-
-    } else {
+    }
+	else {
         /* the component is a non-array class */
         namebuf = DMNEW(char, namelen + 3);
         namebuf[0] = '[';
@@ -864,10 +868,9 @@ classinfo *class_array_of(classinfo *component, bool link)
         namelen += 3;
     }
 
-	c = get_array_class(utf_new(namebuf, namelen),
-						component->classloader,
-						component->classloader,
-						link);
+	u = utf_new(namebuf, namelen);
+
+	c = get_array_class(u, cl, cl, link);
 
 	dump_release(dumpsize);
 
@@ -1453,50 +1456,6 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 	/* XXX check access rights */
 
 	return fi;
-}
-
-
-/* class_is_primitive **********************************************************
-
-   Check if the given class is a primitive class.
-
-*******************************************************************************/
-
-bool class_is_primitive(classinfo *c)
-{
-	s4 i;
-
-	/* search table of primitive classes */
-
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
-		if (primitivetype_table[i].class_primitive == c)
-			return true;
-
-	return false;
-}
-
-
-/* class_primitive_get *********************************************************
-
-   Returns the primitive class of the given class name.
-
-*******************************************************************************/
-
-classinfo *class_primitive_get(utf *name)
-{
-	s4 i;
-
-	/* search table of primitive classes */
-
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
-		if (primitivetype_table[i].name == name)
-			return primitivetype_table[i].class_primitive;
-
-	vm_abort("class_primitive_get: unknown primitive type");
-
-	/* keep compiler happy */
-
-	return NULL;
 }
 
 

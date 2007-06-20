@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7918 2007-05-20 20:42:18Z michi $
+   $Id: asmpart.S 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -583,6 +583,7 @@ L_ahe_bras2:
 	lr      xpc,v0                      /* move handlerpc into xpc            */
 	l       xptr,0*4(sp)                /* restore exception pointer          */
 	l       pv,2*4(sp)                  /* restore PV                         */
+	ahi     pv,-0xffc                   /* offset PV */
 	l       %r0,4*4(sp)                 /* get maybe-leaf flag                */
 	ahi     sp,(6*4)                    /* free stack frame                   */
 
@@ -737,7 +738,7 @@ asm_patcher_wrapper:
 	/* pass arguments */
 
 	la      a0, apw_sfs(sp)             /* pass SP of patcher stub */
-	lr      a1, pv                      /* pass PV (if NULL, use findmethod)  */
+	la      a1, 0xffc(pv)               /* pass PV (if NULL, use findmethod)  */
 	lhi     a2, 0                       /* pass RA                            */
 
 	/* call patcher_wrapper */
@@ -903,70 +904,7 @@ asm_replacement_in:
 
 	/* jump to new code */
 	ret
-
-
-/* asm_builtin_x2x *************************************************************
-*                                                                              *
-*   Wrapper functions for float to int corner cases                            *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_f2i:
-	sub     $(ARG_CNT*8),sp
-	
-	SAVE_ARGUMENT_REGISTERS(0)
-	
-	movq    ftmp1,fa0
-	call    builtin_f2i@PLT
-	
-	RESTORE_ARGUMENT_REGISTERS(0)
-	
-	add     $(ARG_CNT*8),sp
-	ret
-
-
-asm_builtin_f2l:
-	sub     $(ARG_CNT*8),sp
-	
-	SAVE_ARGUMENT_REGISTERS(0)
-	
-	movq    ftmp1,fa0
-	call    builtin_f2l@PLT
-	
-	RESTORE_ARGUMENT_REGISTERS(0)
-	
-	add     $(ARG_CNT*8),sp
-	ret
-
-
-asm_builtin_d2i:
-	sub     $(ARG_CNT*8),sp
-	
-	SAVE_ARGUMENT_REGISTERS(0)
-	
-	movq    ftmp1,fa0
-	call    builtin_d2i@PLT
-	
-	RESTORE_ARGUMENT_REGISTERS(0)
-	
-	add     $(ARG_CNT*8),sp
-	ret
-
-
-asm_builtin_d2l:
-	sub     $(ARG_CNT*8),sp
-	
-	SAVE_ARGUMENT_REGISTERS(0)
-	
-	movq    ftmp1,fa0
-	call    builtin_d2l@PLT
-	
-	RESTORE_ARGUMENT_REGISTERS(0)
-	
-	add     $(ARG_CNT*8),sp
-	ret
-
-#endif /* if 0 */
+#endif
 
 /* TODO use move here ? */
 
@@ -992,17 +930,6 @@ asm_criticalsections:
 #endif
 	.long 0
 
-
-/* disable exec-stacks ********************************************************/
-
-#if 0
-
-#if defined(__linux__) && defined(__ELF__)
-	.section .note.GNU-stack,"",%progbits
-#endif
-
-
-#endif /* if 0 */
 
 /*
  * These are local overrides for various environment variables in Emacs.

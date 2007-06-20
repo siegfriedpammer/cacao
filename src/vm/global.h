@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: global.h 7940 2007-05-23 09:42:08Z michi $
+   $Id: global.h 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -114,29 +114,6 @@ typedef struct java_objectarray java_objectarray;
 
 #define IS_VOID_TYPE(a)         ((a) == TYPE_VOID)
 
-
-/* primitive data types *******************************************************/
-
-/* These values are used in parsed descriptors and in some other
-   places were the different types handled internally as TYPE_INT have
-   to be distinguished. */
-
-#define PRIMITIVETYPE_COUNT  11  /* number of primitive types (+ dummies)     */
-
-/* CAUTION: Don't change the numerical values! These constants are
-   used as indices into the primitive type table. */
-
-#define PRIMITIVETYPE_INT     TYPE_INT
-#define PRIMITIVETYPE_LONG    TYPE_LNG
-#define PRIMITIVETYPE_FLOAT   TYPE_FLT
-#define PRIMITIVETYPE_DOUBLE  TYPE_DBL
-#define PRIMITIVETYPE_DUMMY1  TYPE_ADR     /* not used! */
-#define PRIMITIVETYPE_BYTE    5
-#define PRIMITIVETYPE_CHAR    6
-#define PRIMITIVETYPE_SHORT   7
-#define PRIMITIVETYPE_BOOLEAN 8
-#define PRIMITIVETYPE_DUMMY2  9            /* not used! */
-#define PRIMITIVETYPE_VOID    TYPE_VOID
 
 /* some Java related defines **************************************************/
 
@@ -247,20 +224,6 @@ struct java_objectheader {             /* header for all objects              */
 	type. The array type is described by an arraydescriptor struct
 	which is referenced by the vftbl.
 */
-
-/* CAUTION: Don't change the numerical values! These constants (with
- * the exception of ARRAYTYPE_OBJECT) are used as indices in the
- * primitive type table.
- */
-#define ARRAYTYPE_INT      PRIMITIVETYPE_INT
-#define ARRAYTYPE_LONG     PRIMITIVETYPE_LONG
-#define ARRAYTYPE_FLOAT    PRIMITIVETYPE_FLOAT
-#define ARRAYTYPE_DOUBLE   PRIMITIVETYPE_DOUBLE
-#define ARRAYTYPE_BYTE     PRIMITIVETYPE_BYTE
-#define ARRAYTYPE_CHAR     PRIMITIVETYPE_CHAR
-#define ARRAYTYPE_SHORT    PRIMITIVETYPE_SHORT
-#define ARRAYTYPE_BOOLEAN  PRIMITIVETYPE_BOOLEAN
-#define ARRAYTYPE_OBJECT   PRIMITIVETYPE_VOID     /* don't use as index! */
 
 typedef struct java_arrayheader {       /* header for all arrays              */
 	java_objectheader objheader;        /* object header                      */

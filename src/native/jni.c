@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: jni.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "vm/types.h"
@@ -93,6 +94,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -102,7 +104,7 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vm/resolve.h"
+#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 
 
@@ -274,184 +276,6 @@ bool jni_free_localref_table(void)
 #endif
 
 	return true;
-}
-
-
-/* _Jv_jni_vmargs_from_objectarray *********************************************
-
-   XXX
-
-*******************************************************************************/
-
-static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
-											methoddesc *descr,
-											vm_arg *vmargs,
-											java_objectarray *params)
-{
-	java_objectheader *param;
-	s4                 paramcount;
-	typedesc          *paramtypes;
-	classinfo         *c;
-	s4                 i;
-	s4                 j;
-	s8                 value;
-
-	paramcount = descr->paramcount;
-	paramtypes = descr->paramtypes;
-
-	/* if method is non-static fill first block and skip `this' pointer */
-
-	i = 0;
-
-	if (o != NULL) {
-		/* this pointer */
-		vmargs[0].type   = TYPE_ADR;
-		vmargs[0].data.l = (u8) (ptrint) o;
-
-		paramtypes++;
-		paramcount--;
-		i++;
-	}
-
-	for (j = 0; j < paramcount; i++, j++, paramtypes++) {
-		switch (paramtypes->type) {
-		/* primitive types */
-		case TYPE_INT:
-		case TYPE_LNG:
-		case TYPE_FLT:
-		case TYPE_DBL:
-			param = params->data[j];
-
-			if (param == NULL)
-				goto illegal_arg;
-
-			/* internally used data type */
-			vmargs[i].type = paramtypes->type;
-
-			/* convert the value according to its declared type */
-
-			c = param->vftbl->class;
-
-			switch (paramtypes->decltype) {
-			case PRIMITIVETYPE_BOOLEAN:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Boolean *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_BYTE:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_CHAR:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Character *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_SHORT:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Short *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					value = (s8) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_INT:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Integer *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-					value = (s8) ((java_lang_Short *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					value = (s8) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_LONG:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					value = (s8) ((java_lang_Long *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_INT].class_wrap)
-					value = (s8) ((java_lang_Integer *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-					value = (s8) ((java_lang_Short *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					value = (s8) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_FLOAT:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
-				else
-					goto illegal_arg;
-				break;
-
-			case PRIMITIVETYPE_DOUBLE:
-				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					vmargs[i].data.d = (jdouble) ((java_lang_Double *) param)->value;
-				else if (c == primitivetype_table[PRIMITIVETYPE_FLOAT].class_wrap)
-					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
-				else
-					goto illegal_arg;
-				break;
-
-			default:
-				goto illegal_arg;
-			}
-			break;
-		
-			case TYPE_ADR:
-				if (!resolve_class_from_typedesc(paramtypes, true, true, &c))
-					return false;
-
-				if (params->data[j] != 0) {
-					if (paramtypes->arraydim > 0) {
-						if (!builtin_arrayinstanceof(params->data[j], c))
-							goto illegal_arg;
-
-					} else {
-						if (!builtin_instanceof(params->data[j], c))
-							goto illegal_arg;
-					}
-				}
-
-				vmargs[i].type   = TYPE_ADR;
-				vmargs[i].data.l = (u8) (ptrint) params->data[j];
-				break;
-
-			default:
-				goto illegal_arg;
-		}
-	}
-
-/*  	if (rettype) */
-/*  		*rettype = descr->returntype.decltype; */
-
-	return true;
-
-illegal_arg:
-	exceptions_throw_illegalargumentexception();
-	return false;
 }
 
 
@@ -980,6 +804,7 @@ static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
 
 *******************************************************************************/
 
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__)
 java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params)
 {
@@ -1044,7 +869,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	vmargs = MNEW(vm_arg, argcount);
 
-	if (!_Jv_jni_vmargs_from_objectarray(o, resm->parseddesc, vmargs, params)) {
+	if (!vm_vmargs_from_objectarray(resm, o, vmargs, params)) {
 		MFREE(vmargs, vm_arg, argcount);
 		return NULL;
 	}
@@ -1203,6 +1028,245 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	return ro;
 }
+#else
+java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
+										java_objectarray *params)
+{
+	methodinfo        *resm;
+	java_objectheader *ro;
+	s4                 argcount;
+	s4                 paramcount;
+	java_objectheader *xptr;
+	int32_t            dumpsize;
+	uint64_t          *array;
+
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	argcount = m->parseddesc->paramcount;
+	paramcount = argcount;
+
+	/* if method is non-static, remove the `this' pointer */
+
+	if (!(m->flags & ACC_STATIC))
+		paramcount--;
+
+	/* For instance methods the object has to be an instance of the
+	   class the method belongs to. For static methods the obj
+	   parameter is ignored. */
+
+	if (!(m->flags & ACC_STATIC) && o && (!builtin_instanceof(o, m->class))) {
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	/* check if we got the right number of arguments */
+
+	if (((params == NULL) && (paramcount != 0)) ||
+		(params && (params->header.size != paramcount))) 
+	{
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	/* for instance methods we need an object */
+
+	if (!(m->flags & ACC_STATIC) && (o == NULL)) {
+		/* XXX not sure if that is the correct exception */
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* for static methods, zero object to make subsequent code simpler */
+	if (m->flags & ACC_STATIC)
+		o = NULL;
+
+	if (o != NULL) {
+		/* for instance methods we must do a vftbl lookup */
+		resm = method_vftbl_lookup(o->vftbl, m);
+	}
+	else {
+		/* for static methods, just for convenience */
+		resm = m;
+	}
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* fill the argument array from a object-array */
+
+	array = vm_array_from_objectarray(resm, o, params);
+
+	if (array == NULL) {
+		/* release dump area */
+
+		dump_release(dumpsize);
+
+		return NULL;
+	}
+
+	switch (resm->parseddesc->returntype.decltype) {
+	case TYPE_VOID:
+		(void) vm_call_array(resm, array);
+
+		ro = NULL;
+		break;
+
+	case PRIMITIVETYPE_BOOLEAN: {
+		s4 i;
+		java_lang_Boolean *bo;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Boolean);
+
+		/* setting the value of the object direct */
+
+		bo = (java_lang_Boolean *) ro;
+		bo->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_BYTE: {
+		s4 i;
+		java_lang_Byte *bo;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Byte);
+
+		/* setting the value of the object direct */
+
+		bo = (java_lang_Byte *) ro;
+		bo->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_CHAR: {
+		s4 i;
+		java_lang_Character *co;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Character);
+
+		/* setting the value of the object direct */
+
+		co = (java_lang_Character *) ro;
+		co->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_SHORT: {
+		s4 i;
+		java_lang_Short *so;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Short);
+
+		/* setting the value of the object direct */
+
+		so = (java_lang_Short *) ro;
+		so->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_INT: {
+		s4 i;
+		java_lang_Integer *io;
+
+		i = vm_call_int_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Integer);
+
+		/* setting the value of the object direct */
+
+		io = (java_lang_Integer *) ro;
+		io->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_LONG: {
+		s8 l;
+		java_lang_Long *lo;
+
+		l = vm_call_long_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Long);
+
+		/* setting the value of the object direct */
+
+		lo = (java_lang_Long *) ro;
+		lo->value = l;
+	}
+	break;
+
+	case PRIMITIVETYPE_FLOAT: {
+		float f;
+		java_lang_Float *fo;
+
+		f = vm_call_float_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Float);
+
+		/* setting the value of the object direct */
+
+		fo = (java_lang_Float *) ro;
+		fo->value = f;
+	}
+	break;
+
+	case PRIMITIVETYPE_DOUBLE: {
+		double d;
+		java_lang_Double *_do;
+
+		d = vm_call_double_array(resm, array);
+
+		ro = builtin_new(class_java_lang_Double);
+
+		/* setting the value of the object direct */
+
+		_do = (java_lang_Double *) ro;
+		_do->value = d;
+	}
+	break;
+
+	case TYPE_ADR:
+		ro = vm_call_array(resm, array);
+		break;
+
+	default:
+		/* if this happens the exception has already been set by
+		   fill_callblock_from_objectarray */
+
+		/* release dump area */
+
+		dump_release(dumpsize);
+
+		return NULL;
+	}
+
+	xptr = exceptions_get_exception();
+
+	if (xptr != NULL) {
+		/* clear exception pointer, we are calling JIT code again */
+
+		exceptions_clear_exception();
+
+		exceptions_throw_invocationtargetexception(xptr);
+	}
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ro;
+}
+#endif
 
 
 /* GetVersion ******************************************************************

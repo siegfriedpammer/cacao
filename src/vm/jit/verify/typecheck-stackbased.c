@@ -43,6 +43,8 @@
 #include "vm/jit/stack.h"
 #include "vm/jit/verify/typecheck-common.h"
 
+#include "vmcore/primitive.h"
+
 
 /* this #if runs over the whole file: */
 #if defined(ENABLE_VERIFIER)

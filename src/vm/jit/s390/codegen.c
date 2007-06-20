@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: codegen.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -75,6 +75,7 @@
 #endif
 
 #define OOPS() assert(0);
+#define SUPPORT_HERCULES 1
 
 void panic() { }
 
@@ -202,7 +203,11 @@ bool codegen_emit(jitdata *jd)
 		dseg_add_target(cd, ex->handler);
 		(void) dseg_add_unique_address(cd, ex->catchtype.any);
 	}
-	
+
+	/* Offset PV */
+
+	M_AADD_IMM(N_PV_OFFSET, REG_PV);
+
 	/* generate method profiling code */
 
 #if defined(ENABLE_PROFILING)
@@ -271,24 +276,24 @@ bool codegen_emit(jitdata *jd)
 
 				} else {                             /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s2, REG_SP, var->vv.regoff * 4);
+						M_LST(s2, REG_SP, var->vv.regoff);
 					else
-						M_IST(s2, REG_SP, var->vv.regoff * 4);
+						M_IST(s2, REG_SP, var->vv.regoff);
 				}
 
 			} else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 					else
-						M_ILD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 
 				} else {                             /* stack arg -> spilled  */
- 					M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4);
- 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4);
+ 					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1);
+ 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff);
 					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, (cd->stackframesize + s1) * 4 +4);
-						M_IST(REG_ITMP1, REG_SP, var->vv.regoff * 4 + 4);
+						M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_IST(REG_ITMP1, REG_SP, var->vv.regoff + 4);
 					}
 				}
 			}
@@ -301,28 +306,28 @@ bool codegen_emit(jitdata *jd)
 
  				} else {			                 /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_DST(s2, REG_SP, var->vv.regoff * 4);
+						M_DST(s2, REG_SP, var->vv.regoff);
 					else
-						M_FST(s2, REG_SP, var->vv.regoff * 4);
+						M_FST(s2, REG_SP, var->vv.regoff);
  				}
 
  			} else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 
 					else
-						M_FLD(var->vv.regoff, REG_SP, (cd->stackframesize + s1) * 4);
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 
  				} else {                             /* stack-arg -> spilled  */
 					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
-						M_DST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
-						var->vv.regoff = cd->stackframesize + s1;
+						M_DLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1);
+						M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
+						var->vv.regoff = cd->stackframesize * 4 + s1;
 
 					} else {
-						M_FLD(REG_FTMP1, REG_SP, (cd->stackframesize + s1) * 4);
-						M_FST(REG_FTMP1, REG_SP, var->vv.regoff * 4);
+						M_FLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1);
+						M_FST(REG_FTMP1, REG_SP, var->vv.regoff);
 					}
 				}
 			}
@@ -355,7 +360,7 @@ bool codegen_emit(jitdata *jd)
 
 		if (m->flags & ACC_STATIC) {
 			disp = dseg_add_address(cd, &m->class->object.header);
-			M_ALD(REG_A0, REG_PV, disp);
+			M_ALD_DSEG(REG_A0, disp);
 		}
 		else {
 			M_TEST(REG_A0);
@@ -364,7 +369,7 @@ bool codegen_emit(jitdata *jd)
 		}
 
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
-		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_ALD_DSEG(REG_ITMP3, disp);
 
 		M_AST(REG_A0, REG_SP, s1 * 4);
 
@@ -524,14 +529,14 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			disp = dseg_add_float(cd, iptr->sx.val.f);
-			M_FLDN(d, REG_PV, disp, REG_ITMP1);
+			M_FLD_DSEG(d, disp, REG_ITMP1);
 			emit_store_dst(jd, iptr, d);
 			break;
 		
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 			disp = dseg_add_double(cd, iptr->sx.val.d);
-			M_DLDN(d, REG_PV, disp, REG_ITMP1);
+			M_DLD_DSEG(d, disp, REG_ITMP1);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -549,13 +554,13 @@ bool codegen_emit(jitdata *jd)
 
 /* 				PROFILE_CYCLE_START; */
 
-				M_ALD(d, REG_PV, disp);
+				M_ALD_DSEG(d, disp);
 			} else {
 				if (iptr->sx.val.anyptr == 0) {
 					M_CLR(d);
 				} else {
 					disp = dseg_add_unique_address(cd, iptr->sx.val.anyptr);
-					M_ALD(d, REG_PV, disp);
+					M_ALD_DSEG(d, disp);
 				}
 			}
 			emit_store_dst(jd, iptr, d);
@@ -879,7 +884,7 @@ bool codegen_emit(jitdata *jd)
 				M_IMUL_IMM(iptr->sx.val.i, d);
 			} else {
 				disp = dseg_add_s4(cd, iptr->sx.val.i);
-				M_ILD(REG_ITMP2, REG_PV, disp);
+				M_ILD_DSEG(REG_ITMP2, disp);
 				M_IMUL(REG_ITMP2, d);	
 			}
 			emit_store_dst(jd, iptr, d);
@@ -958,7 +963,7 @@ bool codegen_emit(jitdata *jd)
 			/* call builtin */
 
 			M_ASUB_IMM(96, REG_SP);
-			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP3, disp);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_AADD_IMM(96, REG_SP);
 
@@ -1028,7 +1033,7 @@ bool codegen_emit(jitdata *jd)
 					M_IADD(REG_ITMP1, d);
 				}
 
-				*(u4 *)ref |= (u4)(cd->mcodeptr - ref) / 2;
+				N_BRC_BACK_PATCH(ref);
 
 				M_SRA_IMM(iptr->sx.val.i, d);
 
@@ -1511,28 +1516,99 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			M_CVTFI(s1, d);
-			emit_store_dst(jd, iptr, d);
-			/* TODO: corner cases ? */
-			break;
+		case ICMD_D2I:
+			{
+				u1 *ref1;
+#ifdef SUPPORT_HERCULES
+				u1 *ref2, *ref3;
+#endif
 
-		case ICMD_D2I:       /* ..., value  ==> ..., (int) value              */
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			M_CVTDI(s1, d);
-			emit_store_dst(jd, iptr, d);
-			/* TODO: corner cases ? */
-			break;
+				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+				d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 
+				/* Test if NAN */
+
+				switch (iptr->opc) {
+					case ICMD_F2I:
+						N_LTEBR(s1, s1); 
+						break;
+					case ICMD_D2I:
+						N_LTDBR(s1, s1);
+						break;
+				}
+
+				N_BRC(DD_0 | DD_1 | DD_2, SZ_BRC + SZ_LHI + SZ_BRC); /* Non a NaN */
+				N_LHI(d, 0); /* Load 0 */
+				ref1 = cd->mcodeptr;
+				N_BRC(DD_ANY, 0); /* Exit */
+
+				/* Convert */
+
+				switch (iptr->opc) {
+					case ICMD_F2I:
+						M_CVTFI(s1, d); 
+						break;
+					case ICMD_D2I:
+						M_CVTDI(s1, d); 
+						break;
+				}
+
+#ifdef SUPPORT_HERCULES
+				/* Hercules does the conversion using a plain C conversion.
+				 * According to manual, real hardware should *NOT* require this.
+				 *
+				 * Corner case: Positive float leads to INT_MIN (overflow).
+				 */
+
+				switch (iptr->opc) {
+					case ICMD_F2I:
+						N_LTEBR(s1, s1); 
+						break;
+					case ICMD_D2I:
+						N_LTDBR(s1, s1);
+						break;
+				}
+
+				ref2 = cd->mcodeptr;
+				N_BRC(DD_0 | DD_1 | DD_3, 0); /* If operand is positive, continue */
+
+				M_TEST(d);
+
+				ref3 = cd->mcodeptr;
+				M_BGE(0); /* If integer result is negative, continue */
+
+				disp = dseg_add_s4(cd, 0x7fffffff); /* Load INT_MAX */
+				M_ILD_DSEG(d, disp);
+#endif
+				N_BRC_BACK_PATCH(ref1);
+#ifdef SUPPORT_HERCULES
+				N_BRC_BACK_PATCH(ref2);
+				N_BRC_BACK_PATCH(ref3);
+#endif
+				emit_store_dst(jd, iptr, d);
+			}
 			break;
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_CVTFD(s1, d);
-			emit_store_dst(jd, iptr, d);
+			{
+				u1 *ref;
+				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
+				d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
+#ifdef SUPPORT_HERCULES
+				N_LTEBR(s1, s1);
+				ref = cd->mcodeptr;
+				N_BRC(DD_0 | DD_1 | DD_2, 0); /* Non a NaN */
+				disp = dseg_add_double(cd, 0.0 / 0.0);
+				M_DLD_DSEG(d, disp, REG_ITMP1);
+				emit_label_br(cd, BRANCH_LABEL_1);
+				N_BRC_BACK_PATCH(ref);
+#endif
+				M_CVTFD(s1, d);
+#ifdef SUPPORT_HERCULES
+				emit_label(cd, BRANCH_LABEL_1);
+#endif
+				emit_store_dst(jd, iptr, d);
+			}
 			break;
 
 		case ICMD_D2F:       /* ..., value  ==> ..., (float) value            */
@@ -1684,6 +1760,13 @@ bool codegen_emit(jitdata *jd)
 			
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(3, REG_ITMP2); /* scale index by 8 */
+
+			/* We need to preserve the array address after the first load */
+
+			if (GET_HIGH_REG(d) == s1) {
+				M_INTMOVE(s1, REG_ITMP3);
+				s1 = REG_ITMP3;
+			}
 
 			N_L(GET_HIGH_REG(d) /* evntl. itmp1 */, OFFSET(java_intarray, data[0]), REG_ITMP2, s1);
 			N_L(GET_LOW_REG(d) /* evntl. itmp2 */, OFFSET(java_intarray, data[0]) + 4, REG_ITMP2, s1);
@@ -1845,7 +1928,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s3, REG_A1);
 
 			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
-			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP3, disp);
 			M_ASUB_IMM(96, REG_SP);
 			M_JSR(REG_RA, REG_ITMP3);
 			M_AADD_IMM(96, REG_SP);
@@ -1894,7 +1977,7 @@ bool codegen_emit(jitdata *jd)
 				}
   			}
 
-			M_ALD(REG_ITMP1, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP1, disp);
 
 			switch (fieldtype) {
 			case TYPE_INT:
@@ -1942,7 +2025,7 @@ bool codegen_emit(jitdata *jd)
 										fi->class, disp);
   			}
 
-			M_ALD(REG_ITMP1, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP1, disp);
 			switch (fieldtype) {
 			case TYPE_INT:
 				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
@@ -2103,7 +2186,7 @@ bool codegen_emit(jitdata *jd)
 #endif /* ENABLE_VERIFIER */
 
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_ALD(REG_ITMP2, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP2, disp);
 			M_JMP(REG_ITMP2_XPC, REG_ITMP2);
 			M_NOP;
 
@@ -2149,8 +2232,12 @@ bool codegen_emit(jitdata *jd)
 				M_ICMP_IMM(s1, iptr->sx.val.i);
 			else {
 				disp = dseg_add_s4(cd, iptr->sx.val.i);
-				ICONST(REG_ITMP2, disp);
-				N_C(s1, 0, REG_ITMP2, REG_PV);
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_C(s1, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					ICONST(REG_ITMP2, disp);
+					N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+				}
 			}
 
 			switch (iptr->opc) {
@@ -2193,8 +2280,12 @@ bool codegen_emit(jitdata *jd)
 				M_ICMP_IMM(s1, iptr->sx.val.l >> 32);
 			else {
 				disp = dseg_add_s4(cd, iptr->sx.val.l >> 32);
-				ICONST(REG_ITMP2, disp);
-				N_C(s1, 0, REG_ITMP2, REG_PV);
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_C(s1, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					ICONST(REG_ITMP2, disp);
+					N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+				}
 			}
 
 			switch(iptr->opc) {
@@ -2225,8 +2316,12 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 
 			disp = dseg_add_s4(cd, (s4)(iptr->sx.val.l & 0xffffffff));
-			ICONST(REG_ITMP2, disp);
-			N_CL(s1, 0, REG_ITMP2, REG_PV);
+			if (N_VALID_DSEG_DISP(disp)) {
+				N_CL(s1, N_DSEG_DISP(disp), RN, REG_PV);
+			} else {
+				ICONST(REG_ITMP2, disp);
+				N_CL(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+			}
 
 			switch(iptr->opc) {
 				case ICMD_IF_LLT:
@@ -2475,7 +2570,7 @@ nowperformreturn:
 				M_ALD(REG_A0, REG_SP, rd->memuse * 4);
 
 				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
-				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_ALD_DSEG(REG_ITMP3, disp);
 
 				M_ASUB_IMM(96, REG_SP);
 				M_CALL(REG_ITMP3);
@@ -2570,7 +2665,7 @@ nowperformreturn:
 
 			M_SLL_IMM(2, REG_ITMP1); /* scale by 4 */
 			M_ASUB_IMM(cd->dseglen, REG_ITMP1);
-			N_L(REG_ITMP1, 0, REG_ITMP1, REG_PV);
+			N_L(REG_ITMP1, -N_PV_OFFSET, REG_ITMP1, REG_PV);
 			M_JMP(RN, REG_ITMP1);
 
 			break;
@@ -2661,11 +2756,11 @@ gen_method:
 					else {
 						if (IS_2_WORD_TYPE(var->type)) {
 							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(d, REG_SP, md->params[s3].regoff * 4);
+							M_LST(d, REG_SP, md->params[s3].regoff);
 						}
 						else {
 							d = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(d, REG_SP, md->params[s3].regoff * 4);
+							M_IST(d, REG_SP, md->params[s3].regoff);
 						}
 					}
 				}
@@ -2678,9 +2773,9 @@ gen_method:
 					else {
 						d = emit_load(jd, iptr, var, REG_FTMP1);
 						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff * 4);
+							M_DST(d, REG_SP, md->params[s3].regoff);
 						else
-							M_FST(d, REG_SP, md->params[s3].regoff * 4);
+							M_FST(d, REG_SP, md->params[s3].regoff);
 					}
 				}
 			}
@@ -2690,8 +2785,12 @@ gen_method:
 				disp = dseg_add_functionptr(cd, bte->fp);
 
 				M_ASUB_IMM(96, REG_SP); /* register save area as required by C abi */	
-				N_LHI(REG_ITMP1, disp);
-				N_L(REG_PV, 0, REG_ITMP1, REG_PV);
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_L(REG_PV, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					N_LHI(REG_ITMP1, disp);
+					N_L(REG_PV, -N_PV_OFFSET, REG_ITMP1, REG_PV);
+				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2711,8 +2810,12 @@ gen_method:
 				else
 					disp = dseg_add_address(cd, lm->stubroutine);
 
-				N_LHI(REG_ITMP1, disp);
-				N_L(REG_PV, 0, REG_ITMP1, REG_PV);
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_L(REG_PV, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					N_LHI(REG_ITMP1, disp);
+					N_L(REG_PV, -N_PV_OFFSET, REG_ITMP1, REG_PV);
+				}
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -2863,8 +2966,12 @@ gen_method:
 										  disp);
 
 					ICONST(REG_ITMP2, ACC_INTERFACE);
-					ICONST(REG_ITMP3, disp); /* TODO negative displacement */
-					N_N(REG_ITMP2, 0, REG_ITMP3, REG_PV);
+					if (N_VALID_DSEG_DISP(disp)) {
+						N_N(REG_ITMP2, N_DSEG_DISP(disp), RN, REG_PV);
+					} else {
+						ICONST(REG_ITMP3, disp);
+						N_N(REG_ITMP2, -N_PV_OFFSET, REG_ITMP3, REG_PV);
+					}
 					emit_label_beq(cd, LABEL_CLASS);
 				}
 
@@ -2920,14 +3027,14 @@ gen_method:
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
-					M_ALD(REG_ITMP3, REG_PV, disp);
+					M_ALD_DSEG(REG_ITMP3, disp);
 
 					CODEGEN_CRITICAL_SECTION_START;
 
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 					M_ISUB(REG_ITMP3, REG_ITMP2);
-					M_ALD(REG_ITMP3, REG_PV, disp);
+					M_ALD_DSEG(REG_ITMP3, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 
 					CODEGEN_CRITICAL_SECTION_END;
@@ -2973,9 +3080,9 @@ gen_method:
 				else
 					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
 
-				M_ALD(REG_A1, REG_PV, disp);
+				M_ALD_DSEG(REG_A1, disp);
 				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
-				M_ALD(REG_ITMP1, REG_PV, disp);
+				M_ALD_DSEG(REG_ITMP1, disp);
 				M_ASUB_IMM(96, REG_SP);
 				M_JSR(REG_RA, REG_ITMP1);
 				M_AADD_IMM(96, REG_SP);
@@ -3057,8 +3164,14 @@ gen_method:
 									  iptr->sx.s23.s3.c.ref, disp);
 
 				ICONST(REG_ITMP2, ACC_INTERFACE);
-				ICONST(REG_ITMP3, disp); /* TODO negative displacement */
-				N_N(REG_ITMP2, 0, REG_ITMP3, REG_PV);
+
+				if (N_VALID_DSEG_DISP(disp)) {
+					N_N(REG_ITMP2, N_DSEG_DISP(disp), RN, REG_PV);
+				} else {
+					ICONST(REG_ITMP3, disp);
+					N_N(REG_ITMP2, -N_PV_OFFSET, REG_ITMP3, REG_PV);
+				}
+
 				emit_label_beq(cd, LABEL_CLASS);
 			}
 
@@ -3129,7 +3242,7 @@ gen_method:
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-				M_ALD(REG_ITMP2, REG_PV, disp);
+				M_ALD_DSEG(REG_ITMP2, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;
 
@@ -3208,14 +3321,14 @@ gen_method:
 
 			/* a1 = classinfo */
 
-			M_ALD(REG_A1, REG_PV, disp);
+			M_ALD_DSEG(REG_A1, disp);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
 			M_MOV(REG_SP, REG_A2);
 
 			disp = dseg_add_functionptr(cd, BUILTIN_multianewarray);
-			M_ALD(REG_ITMP1, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP1, disp);
 			M_ASUB_IMM(96, REG_SP);
 			M_JSR(REG_RA, REG_ITMP1);
 			M_AADD_IMM(96, REG_SP);
@@ -3288,11 +3401,11 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 	/* don't touch ITMP3 as it cointains the return address */
 
-	M_ISUB_IMM((3 * 4), REG_PV); /* suppress negative displacements */
+	M_AADD_IMM(N_PV_OFFSET, REG_PV); /* suppress negative displacements */
 
-	M_ILD(REG_ITMP1, REG_PV, 1 * 4); /* methodinfo  */
+	M_ILD_DSEG(REG_ITMP1, -2 * SIZEOF_VOID_P); /* methodinfo  */
 	/* TODO where is methodpointer loaded into itmp2? is it already inside? */
-	M_ILD(REG_PV, REG_PV, 0 * 4); /* compiler pointer */
+	M_ILD_DSEG(REG_PV, -3 * SIZEOF_VOID_P); /* compiler pointer */
 	N_BR(REG_PV);
 }
 
@@ -3386,6 +3499,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* generate stub code */
 
 	N_AHI(REG_SP, -(cd->stackframesize * SIZEOF_VOID_P));
+	N_AHI(REG_PV, N_PV_OFFSET);
 
 	/* save return address */
 
@@ -3405,7 +3519,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, disp);
 #endif
 
-	M_ILD(REG_ITMP1, REG_PV, disp);
+	M_ILD_DSEG(REG_ITMP1, disp);
 
 	j = 96 + (nmd->memuse * 4);
 
@@ -3443,12 +3557,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* create dynamic stack info */
 
 	N_LAE(REG_A0, (cd->stackframesize - 1) * 4, RN, REG_SP); /* datasp */
-	N_LR(REG_A1, REG_PV); /* pv */
+	N_LA(REG_A1, -N_PV_OFFSET, RN, REG_PV); /* pv */
 	N_LAE(REG_A2, cd->stackframesize * 4, RN, REG_SP); /* old SP */
 	N_L(REG_A3, (cd->stackframesize - 1) * 4, RN, REG_SP); /* return address */
 
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
-	M_ILD(REG_ITMP1, REG_PV, disp);
+	M_ILD_DSEG(REG_ITMP1, disp);
 
 	M_CALL(REG_ITMP1); /* call */
 
@@ -3517,24 +3631,24 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 						N_STM(
 							GET_HIGH_REG(s1), 
 							GET_LOW_REG(s1), 
-							96 + (s2 * 4), REG_SP
+							96 + s2, REG_SP
 						);
 					} else {
 						N_ST(
 							s1, 
-							96 + (s2 * 4), RN, REG_SP
+							96 + s2, RN, REG_SP
 						);
 					}
 				}
 
 			} else {
-				s1 = cd->stackframesize + md->params[i].regoff;
+				s1 = cd->stackframesize * 4 + md->params[i].regoff;
 				s2 = nmd->params[j].regoff;
 				
 				if (IS_2_WORD_TYPE(t)) {
-					N_MVC(96 + (s2 * 4), 8, REG_SP, (s1 * 4), REG_SP);
+					N_MVC(96 + s2, 8, REG_SP, s1, REG_SP);
 				} else {
-					N_MVC(96 + (s2 * 4), 4, REG_SP, (s1 * 4), REG_SP);
+					N_MVC(96 + s2, 4, REG_SP, s1, REG_SP);
 				}
 			}
 
@@ -3543,13 +3657,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 			/* registers keep unchanged.                                      */
 
 			if (md->params[i].inmemory) {
-				s1 = cd->stackframesize + md->params[i].regoff;
+				s1 = cd->stackframesize * 4 + md->params[i].regoff;
 				s2 = nmd->params[j].regoff;
 
 				if (IS_2_WORD_TYPE(t)) {
-					N_MVC(96 + (s2 * 4), 8, REG_SP, (s1 * 4), REG_SP);
+					N_MVC(96 + s2, 8, REG_SP, s1, REG_SP);
 				} else {
-					N_MVC(96 + (s2 * 4), 4, REG_SP, (s1 * 4), REG_SP);
+					N_MVC(96 + s2, 4, REG_SP, s1, REG_SP);
 				}
 			}
 		}
@@ -3559,13 +3673,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	if (m->flags & ACC_STATIC) {
 		disp = dseg_add_address(cd, m->class);
-		M_ILD(REG_A1, REG_PV, disp);
+		M_ILD_DSEG(REG_A1, disp);
 	}
 
 	/* put env into first argument register */
 
 	disp = dseg_add_address(cd, _Jv_env);
-	M_ILD(REG_A0, REG_PV, disp);
+	M_ILD_DSEG(REG_A0, disp);
 
 	/* do the native function call */
 
@@ -3600,7 +3714,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	N_LAE(REG_A0, (cd->stackframesize - 1) * 4, RN, REG_SP); /* datasp */
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
-	M_ILD(REG_ITMP1, REG_PV, disp);
+	M_ALD_DSEG(REG_ITMP1, disp);
 	M_CALL(REG_ITMP1);
 	N_LR(REG_ITMP3, REG_RESULT);
 
@@ -3650,7 +3764,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #endif
 
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, disp);
+	M_ALD_DSEG(REG_ITMP3, disp);
 	M_JMP(RN, REG_ITMP3);
 
 	/* generate patcher stubs */

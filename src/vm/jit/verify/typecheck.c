@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typecheck.c 7766 2007-04-19 13:24:48Z michi $
+   $Id: typecheck.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -146,15 +146,17 @@ error reporting.
 #ifdef ENABLE_VERIFIER
 
 #include "mm/memory.h"
+
 #include "native/native.h"
 
 #include "toolbox/logging.h"
 
+#include "vm/access.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/resolve.h"
 
-#include "vm/access.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
@@ -162,7 +164,7 @@ error reporting.
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vm/resolve.h"
+#include "vmcore/primitive.h"
 
 #include <typecheck-common.h>
 

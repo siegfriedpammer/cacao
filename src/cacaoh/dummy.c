@@ -22,25 +22,20 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: headers.c 6286 2007-01-10 10:03:38Z twisti $
+   $Id: dummy.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
-
-#if defined(ENABLE_THREADS)
-# include <pthread.h>
-#endif
 
 #include "toolbox/logging.h"
-
-#include "vm/types.h"
 
 #include "vm/global.h"
 #include "vm/vm.h"
@@ -73,7 +68,7 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls)
 }
 
 bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
-								 s4 memberflags)
+								 int32_t memberflags)
 {
 	vm_abort("access_is_accessible_member");
 
@@ -113,7 +108,7 @@ java_objectheader *builtin_clone(void *env, java_objectheader *o)
 	return NULL;
 }
 
-s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
+int32_t builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
 	abort();
 
@@ -127,7 +122,7 @@ java_objectheader *builtin_new(classinfo *c)
 	return NULL;
 }
 
-java_objectarray *builtin_anewarray(s4 size, classinfo *componentclass)
+java_objectarray *builtin_anewarray(int32_t size, classinfo *componentclass)
 {
 	abort();
 
@@ -330,16 +325,18 @@ void exceptions_throw_unsupportedclassversionerror(classinfo *c,
 	abort();
 }
 
-void exceptions_throw_nullpointerexception(void)
+void exceptions_throw_classnotfoundexception(utf *name)
 {
-	fprintf(stderr, "java.lang.NullPointerException\n");
+	fprintf(stderr, "java.lang.ClassNotFoundException: ");
+	utf_fprint_printable_ascii(stderr, name);
+	fputc('\n', stderr);
 
 	abort();
 }
 
-void classnotfoundexception_to_noclassdeffounderror(void)
+void exceptions_throw_nullpointerexception(void)
 {
-	/* Can that one happen? */
+	fprintf(stderr, "java.lang.NullPointerException\n");
 
 	abort();
 }
@@ -364,22 +361,22 @@ void gc_reference_register(java_objectheader **ref)
 {
 }
 
-s8 gc_get_heap_size(void)
+int64_t gc_get_heap_size(void)
 {
 	return 0;
 }
 
-s8 gc_get_free_bytes(void)
+int64_t gc_get_free_bytes(void)
 {
 	return 0;
 }
 
-s8 gc_get_total_bytes(void)
+int64_t gc_get_total_bytes(void)
 {
 	return 0;
 }
 
-s8 gc_get_max_heap_size(void)
+int64_t gc_get_max_heap_size(void)
 {
 	return 0;
 }
@@ -387,7 +384,7 @@ s8 gc_get_max_heap_size(void)
 
 /* heap ***********************************************************************/
 
-void *heap_alloc_uncollectable(u4 bytelength)
+void *heap_alloc_uncollectable(uint32_t bytelength)
 {
 	return calloc(bytelength, 1);
 }
@@ -432,33 +429,33 @@ void md_param_alloc(methoddesc *md)
 
 /* memory *********************************************************************/
 
-void *mem_alloc(s4 size)
+void *mem_alloc(int32_t size)
 {
 	/* real implementation in src/mm/memory.c clears memory */
 
 	return calloc(size, 1);
 }
 
-void *mem_realloc(void *src, s4 len1, s4 len2)
+void *mem_realloc(void *src, int32_t len1, int32_t len2)
 {
 	return realloc(src, len2);
 }
 
-void mem_free(void *m, s4 size)
+void mem_free(void *m, int32_t size)
 {
 	free(m);
 }
 
-void *dump_alloc(s4 size)
+void *dump_alloc(int32_t size)
 {
 	return malloc(size);
 }
 
-void dump_release(s4 size)
+void dump_release(int32_t size)
 {
 }
 
-s4 dump_size(void)
+int32_t dump_size(void)
 {
 	return 0;
 }
@@ -581,9 +578,7 @@ java_objectarray *stacktrace_getClassContext()
 
 /* threads ********************************************************************/
 
-pthread_key_t threads_current_threadobject_key;
-
-ptrint threads_get_current_tid(void)
+intptr_t threads_get_current_tid(void)
 {
 	return 0;
 }

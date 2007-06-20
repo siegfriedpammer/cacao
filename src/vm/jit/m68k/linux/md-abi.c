@@ -115,7 +115,7 @@ void md_param_alloc(methoddesc *md)
 
 	for (i=0; i<md->paramcount; i++, pd++)	{
 		pd->inmemory = true;
-		pd->regoff = stacksize;
+		pd->regoff = stacksize * 4;
 		stacksize += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2:1;
 	}
 

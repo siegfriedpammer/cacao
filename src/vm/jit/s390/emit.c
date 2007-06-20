@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -75,7 +75,7 @@ __PORTED__ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
 			if (IS_2_WORD_TYPE(src->type))
@@ -121,15 +121,15 @@ __PORTED__ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, 
 
 		if (IS_FLT_DBL_TYPE(dst->type)) {
 			if (IS_2_WORD_TYPE(dst->type))
-				M_DST(d, REG_SP, dst->vv.regoff * 4);
+				M_DST(d, REG_SP, dst->vv.regoff);
 			else
-				M_FST(d, REG_SP, dst->vv.regoff * 4);
+				M_FST(d, REG_SP, dst->vv.regoff);
 		}
 		else {
 			if (IS_2_WORD_TYPE(dst->type))
-				M_LST(d, REG_SP, dst->vv.regoff * 4);
+				M_LST(d, REG_SP, dst->vv.regoff);
 			else
-				M_IST(d, REG_SP, dst->vv.regoff * 4);
+				M_IST(d, REG_SP, dst->vv.regoff);
 		}
 	}
 }
@@ -278,9 +278,9 @@ __PORTED__ void emit_patcher_stubs(jitdata *jd)
 
 			/* Generating long branches */
 
-			disp = dseg_add_s4(cd, savedmcodeptr - cd->mcodebase);
+			disp = dseg_add_s4(cd, savedmcodeptr - cd->mcodebase - N_PV_OFFSET);
 	
-			M_ILD(REG_ITMP3, REG_PV, disp);
+			M_ILD_DSEG(REG_ITMP3, disp);
 			M_AADD(REG_PV, REG_ITMP3);
 
 			/* Do the branch at the end of NOP sequence.
@@ -316,7 +316,7 @@ __PORTED__ void emit_patcher_stubs(jitdata *jd)
 		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
 		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
 
-		M_LDA(REG_ITMP3, REG_PV, disp);
+		M_LDA_DSEG(REG_ITMP3, disp);
 		M_AST(REG_ITMP3, REG_SP, 4 * 4);
 #else
 		/* nothing to do */
@@ -325,32 +325,32 @@ __PORTED__ void emit_patcher_stubs(jitdata *jd)
 		/* move machine code onto stack */
 
 		disp = dseg_add_s4(cd, mcode);
-		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_ILD_DSEG(REG_ITMP3, disp);
 		M_IST(REG_ITMP3, REG_SP, 3 * 4);
 
 		/* move class/method/field reference onto stack */
 
 		disp = dseg_add_address(cd, pref->ref);
-		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_ALD_DSEG(REG_ITMP3, disp);
 		M_AST(REG_ITMP3, REG_SP, 2 * 4);
 
 		/* move data segment displacement onto stack */
 
 		disp = dseg_add_s4(cd, pref->disp);
-		M_ILD(REG_ITMP3, REG_PV, disp);
+		M_ILD_DSEG(REG_ITMP3, disp);
 		M_IST(REG_ITMP3, REG_SP, 1 * 4);
 
 		/* move patcher function pointer onto stack */
 
 		disp = dseg_add_functionptr(cd, pref->patcher);
-		M_ALD(REG_ITMP3, REG_PV, disp);
+		M_ALD_DSEG(REG_ITMP3, disp);
 		M_AST(REG_ITMP3, REG_SP, 0 * 4);
 
 		if (targetdisp == 0) {
 			targetdisp = (cd->mcodeptr) - (cd->mcodebase);
 
 			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_ALD_DSEG(REG_ITMP3, disp);
 			M_JMP(RN, REG_ITMP3);
 		}
 		else {
@@ -557,13 +557,13 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* Finally load methodinfo argument */
 
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_ITMP2, REG_PV, disp);	
+	M_ALD_DSEG(REG_ITMP2, disp);	
 	M_AST(REG_ITMP2, REG_SP, 6 * 8);
 
 	/* Call builtin_verbosecall_enter */
 
 	disp = dseg_add_address(cd, builtin_verbosecall_enter);
-	M_ALD(REG_ITMP2, REG_PV, disp);
+	M_ALD_DSEG(REG_ITMP2, disp);
 	M_ASUB_IMM(96, REG_SP);
 	M_CALL(REG_ITMP2);
 	M_AADD_IMM(96, REG_SP);
@@ -636,13 +636,13 @@ void emit_verbosecall_exit(jitdata *jd)
 	}
 
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_A2, REG_PV, disp);
+	M_ALD_DSEG(REG_A2, disp);
 
 	/* REG_FRESULT is REG_FA0, so no need to move */
 	M_FLTMOVE(REG_FRESULT, REG_FA1);
 
 	disp = dseg_add_address(cd, builtin_verbosecall_exit);
-	M_ALD(REG_ITMP1, REG_PV, disp);
+	M_ALD_DSEG(REG_ITMP1, disp);
 	M_ASUB_IMM(96, REG_SP);
 	M_CALL(REG_ITMP1);
 	M_AADD_IMM(96, REG_SP);
@@ -680,7 +680,7 @@ __PORTED__ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 te
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		M_ILD(tempreg, REG_SP, disp);
 
@@ -713,7 +713,7 @@ __PORTED__ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tem
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		M_ILD(tempreg, REG_SP, disp + 4);
 
@@ -740,7 +740,11 @@ s4 emit_load_s2_notzero(jitdata *jd, instruction *iptr, s4 tempreg) {
 	codegendata *cd = jd->cd;
 	s4 reg = emit_load_s2(jd, iptr, tempreg);
 	if (reg == 0) {
-		M_MOV(reg, tempreg);
+		if (IS_FLT_DBL_TYPE(VAROP(iptr->sx.s23.s2)->type)) {
+			M_FMOV(reg, tempreg);
+		} else {
+			M_MOV(reg, tempreg);
+		}
 		return tempreg;
 	} else {
 		return reg;
@@ -751,7 +755,11 @@ s4 emit_load_s1_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
 	codegendata *cd = jd->cd;
 	s4 reg = emit_load_s1(jd, iptr, tempreg);
 	if (reg == notreg) {
-		M_MOV(reg, tempreg);
+		if (IS_FLT_DBL_TYPE(VAROP(iptr->s1)->type)) {
+			M_FMOV(reg, tempreg);
+		} else {
+			M_MOV(reg, tempreg);
+		}
 		return tempreg;
 	} else {
 		return reg;
@@ -762,7 +770,11 @@ s4 emit_load_s2_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
 	codegendata *cd = jd->cd;
 	s4 reg = emit_load_s2(jd, iptr, tempreg);
 	if (reg == notreg) {
-		M_MOV(reg, tempreg);
+		if (IS_FLT_DBL_TYPE(VAROP(iptr->sx.s23.s2)->type)) {
+			M_FMOV(reg, tempreg);
+		} else {
+			M_MOV(reg, tempreg);
+		}
 		return tempreg;
 	} else {
 		return reg;
@@ -963,8 +975,8 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt) {
 
 		/* The actual long branch */
 
-		disp = dseg_add_s4(cd, branchmpc + disp);
-		M_ILD(REG_ITMP3, REG_PV, disp);
+		disp = dseg_add_s4(cd, branchmpc + disp - N_PV_OFFSET);
+		M_ILD_DSEG(REG_ITMP3, disp);
 		M_AADD(REG_PV, REG_ITMP3);
 		M_JMP(RN, REG_ITMP3);
 
@@ -1041,7 +1053,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr) {
 }
 
 void emit_restore_pv(codegendata *cd) {
-	s4 offset;
+	s4 offset, offset_imm;
 
 	/*
 	N_BASR(REG_PV, RN);
@@ -1056,20 +1068,21 @@ void emit_restore_pv(codegendata *cd) {
 	/* Displacement from start of method to here */
 
 	offset = (s4) (cd->mcodeptr - cd->mcodebase);
+	offset_imm = -offset - SZ_BASR + N_PV_OFFSET;
 
-	if (N_VALID_IMM(-(offset + SZ_BASR))) {
+	if (N_VALID_IMM(offset_imm)) {
 		/* Get program counter */
 		N_BASR(REG_PV, RN);
 		/* Substract displacement */
-		M_ASUB_IMM(offset + SZ_BASR, REG_PV);
+		M_AADD_IMM(offset_imm, REG_PV);
 	} else {
 		/* Save program counter and jump over displacement in instruction flow */
 		N_BRAS(REG_PV, SZ_BRAS + SZ_LONG);
 		/* Place displacement here */
 		/* REG_PV points now exactly to this position */
-		N_LONG(offset + SZ_BRAS);
+		N_LONG(-offset - SZ_BRAS + N_PV_OFFSET);
 		/* Substract *(REG_PV) from REG_PV */
-		N_S(REG_PV, 0, RN, REG_PV);
+		N_A(REG_PV, 0, RN, REG_PV);
 	}
 }
 

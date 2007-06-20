@@ -71,7 +71,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 8;
+		disp = src->vv.regoff;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
 			M_DLD(tempreg, REG_SP, disp);
@@ -107,10 +107,10 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 		COUNT_SPILLS;
 
 		if (IS_FLT_DBL_TYPE(dst->type)) {
-			M_DST(d, REG_SP, dst->vv.regoff * 8);
+			M_DST(d, REG_SP, dst->vv.regoff);
 		}
 		else {
-			M_LST(d, REG_SP, dst->vv.regoff * 8);
+			M_LST(d, REG_SP, dst->vv.regoff);
 		}
 	}
 }
@@ -255,7 +255,7 @@ void emit_verbosecall_enter(jitdata *jd)
 			if (!md->params[p].inmemory) { /* Param in Arg Reg */
 				M_LST(md->params[p].regoff, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			} else { /* Param on Stack */
-				s1 = (md->params[p].regoff + cd->stackframesize) * 8 + stack_size;
+				s1 = md->params[p].regoff + cd->stackframesize * 8 + stack_size;
 				M_LLD(REG_ITMP2, REG_SP, s1);
 				M_LST(REG_ITMP2, REG_SP, LA_SIZE + PA_SIZE + 8 + p * 8);
 			}

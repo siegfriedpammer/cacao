@@ -28,7 +28,8 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "mm/gc-common.h"
 
@@ -42,15 +43,16 @@
 #include "vm/vm.h"
 
 #include "vmcore/classcache.h"
+#include "vmcore/utf8.h"
 
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getLoadedClassCount",   "()I",  (void *) (ptrint) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount   },
-	{ "getUnloadedClassCount", "()J",  (void *) (ptrint) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount },
-	{ "isVerbose",             "()Z",  (void *) (ptrint) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose             },
-	{ "setVerbose",            "(Z)V", (void *) (ptrint) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose            },
+	{ "getLoadedClassCount",   "()I",  (void *) (intptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount   },
+	{ "getUnloadedClassCount", "()J",  (void *) (intptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount },
+	{ "isVerbose",             "()Z",  (void *) (intptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose             },
+	{ "setVerbose",            "(Z)V", (void *) (intptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose            },
 };
 
 
@@ -75,9 +77,9 @@ void _Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init(void)
  * Method:    getLoadedClassCount
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount(JNIEnv *env, jclass clazz)
+JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount(JNIEnv *env, jclass clazz)
 {
-	s4 count;
+	int32_t count;
 
 	count = classcache_get_loaded_class_count();
 
@@ -90,7 +92,7 @@ JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getL
  * Method:    getUnloadedClassCount
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount(JNIEnv *env, jclass clazz)
+JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount: IMPLEMENT ME!");
 
@@ -103,7 +105,7 @@ JNIEXPORT s8 JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getU
  * Method:    isVerbose
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
+JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
 {
 	return _Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose;
 }
@@ -114,7 +116,7 @@ JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVe
  * Method:    setVerbose
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, s4 verbose)
+JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, int32_t verbose)
 {
 	_Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose = verbose;
 }

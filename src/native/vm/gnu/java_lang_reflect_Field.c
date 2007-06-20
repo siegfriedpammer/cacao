@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: java_lang_reflect_Field.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -30,8 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -55,39 +54,40 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/loader.h"
-#include "vm/resolve.h"
+#include "vmcore/primitive.h"
 #include "vmcore/utf8.h"
 
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getModifiersInternal", "()I",                                     (void *) (ptrint) &Java_java_lang_reflect_Field_getModifiersInternal },
-	{ "getType",              "()Ljava/lang/Class;",                     (void *) (ptrint) &Java_java_lang_reflect_Field_getType              },
-	{ "get",                  "(Ljava/lang/Object;)Ljava/lang/Object;",  (void *) (ptrint) &Java_java_lang_reflect_Field_get                  },
-	{ "getBoolean",           "(Ljava/lang/Object;)Z",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getBoolean           },
-	{ "getByte",              "(Ljava/lang/Object;)B",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getByte              },
-	{ "getChar",              "(Ljava/lang/Object;)C",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getChar              },
-	{ "getShort",             "(Ljava/lang/Object;)S",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getShort             },
-	{ "getInt",               "(Ljava/lang/Object;)I",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getInt               },
-	{ "getLong",              "(Ljava/lang/Object;)J",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getLong              },
-	{ "getFloat",             "(Ljava/lang/Object;)F",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getFloat             },
-	{ "getDouble",            "(Ljava/lang/Object;)D",                   (void *) (ptrint) &Java_java_lang_reflect_Field_getDouble            },
-	{ "set",                  "(Ljava/lang/Object;Ljava/lang/Object;)V", (void *) (ptrint) &Java_java_lang_reflect_Field_set                  },
-	{ "setBoolean",           "(Ljava/lang/Object;Z)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setBoolean           },
-	{ "setByte",              "(Ljava/lang/Object;B)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setByte              },
-	{ "setChar",              "(Ljava/lang/Object;C)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setChar              },
-	{ "setShort",             "(Ljava/lang/Object;S)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setShort             },
-	{ "setInt",               "(Ljava/lang/Object;I)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setInt               },
-	{ "setLong",              "(Ljava/lang/Object;J)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setLong              },
-	{ "setFloat",             "(Ljava/lang/Object;F)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setFloat             },
-	{ "setDouble",            "(Ljava/lang/Object;D)V",                  (void *) (ptrint) &Java_java_lang_reflect_Field_setDouble            },
-	{ "getSignature",         "()Ljava/lang/String;",                    (void *) (ptrint) &Java_java_lang_reflect_Field_getSignature         },
+	{ "getModifiersInternal", "()I",                                     (void *) (intptr_t) &Java_java_lang_reflect_Field_getModifiersInternal },
+	{ "getType",              "()Ljava/lang/Class;",                     (void *) (intptr_t) &Java_java_lang_reflect_Field_getType              },
+	{ "get",                  "(Ljava/lang/Object;)Ljava/lang/Object;",  (void *) (intptr_t) &Java_java_lang_reflect_Field_get                  },
+	{ "getBoolean",           "(Ljava/lang/Object;)Z",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getBoolean           },
+	{ "getByte",              "(Ljava/lang/Object;)B",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getByte              },
+	{ "getChar",              "(Ljava/lang/Object;)C",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getChar              },
+	{ "getShort",             "(Ljava/lang/Object;)S",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getShort             },
+	{ "getInt",               "(Ljava/lang/Object;)I",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getInt               },
+	{ "getLong",              "(Ljava/lang/Object;)J",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getLong              },
+	{ "getFloat",             "(Ljava/lang/Object;)F",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getFloat             },
+	{ "getDouble",            "(Ljava/lang/Object;)D",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getDouble            },
+	{ "set",                  "(Ljava/lang/Object;Ljava/lang/Object;)V", (void *) (intptr_t) &Java_java_lang_reflect_Field_set                  },
+	{ "setBoolean",           "(Ljava/lang/Object;Z)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setBoolean           },
+	{ "setByte",              "(Ljava/lang/Object;B)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setByte              },
+	{ "setChar",              "(Ljava/lang/Object;C)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setChar              },
+	{ "setShort",             "(Ljava/lang/Object;S)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setShort             },
+	{ "setInt",               "(Ljava/lang/Object;I)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setInt               },
+	{ "setLong",              "(Ljava/lang/Object;J)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setLong              },
+	{ "setFloat",             "(Ljava/lang/Object;F)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setFloat             },
+	{ "setDouble",            "(Ljava/lang/Object;D)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setDouble            },
+	{ "getSignature",         "()Ljava/lang/String;",                    (void *) (intptr_t) &Java_java_lang_reflect_Field_getSignature         },
 };
 
 
@@ -165,7 +165,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 		}
 	
 		if (builtin_instanceof((java_objectheader *) o, c))
-			return (void *) ((ptrint) o + f->offset);
+			return (void *) ((intptr_t) o + f->offset);
 	}
 
 	/* exception path */
@@ -181,7 +181,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
  * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIEnv *env, java_lang_reflect_Field *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIEnv *env, java_lang_reflect_Field *this)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -247,7 +247,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 
 		/* set the object value */
 
-		bo->value = *((s4 *) addr);
+		bo->value = *((int32_t *) addr);
 
 		/* return the wrapped object */
 
@@ -260,7 +260,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 		if (!(bo = (java_lang_Byte *) builtin_new(class_java_lang_Byte)))
 			return NULL;
 
-		bo->value = *((s4 *) addr);
+		bo->value = *((int32_t *) addr);
 
 		return (java_lang_Object *) bo;
 	}
@@ -271,7 +271,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 		if (!(co = (java_lang_Character *) builtin_new(class_java_lang_Character)))
 			return NULL;
 
-		co->value = *((s4 *) addr);
+		co->value = *((int32_t *) addr);
 
 		return (java_lang_Object *) co;
 	}
@@ -282,7 +282,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 		if (!(so = (java_lang_Short *) builtin_new(class_java_lang_Short)))
 			return NULL;
 
-		so->value = (s4) *((s4 *) addr);
+		so->value = (int32_t) *((int32_t *) addr);
 
 		return (java_lang_Object *) so;
 	}
@@ -293,7 +293,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 		if (!(io = (java_lang_Integer *) builtin_new(class_java_lang_Integer)))
 			return NULL;
 
-		io->value = *((s4 *) addr);
+		io->value = *((int32_t *) addr);
 
 		return (java_lang_Object *) io;
 	}
@@ -304,7 +304,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 		if (!(lo = (java_lang_Long *) builtin_new(class_java_lang_Long)))
 			return NULL;
 
-		lo->value = *((s8 *) addr);
+		lo->value = *((int64_t *) addr);
 
 		return (java_lang_Object *) lo;
 	}
@@ -350,7 +350,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
  * Method:    getBoolean
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -370,7 +370,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_BOOLEAN:
-		return (s4) *((s4 *) addr);
+		return (int32_t) *((int32_t *) addr);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -383,7 +383,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
  * Method:    getByte
  * Signature: (Ljava/lang/Object;)B
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -403,7 +403,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_BYTE:
-		return (s4) *((s4 *) addr);
+		return (int32_t) *((int32_t *) addr);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -416,7 +416,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
  * Method:    getChar
  * Signature: (Ljava/lang/Object;)C
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -436,7 +436,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_CHAR:
-		return (s4) *((s4 *) addr);
+		return (int32_t) *((int32_t *) addr);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -449,7 +449,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
  * Method:    getShort
  * Signature: (Ljava/lang/Object;)S
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -470,7 +470,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_SHORT:
-		return (s4) *((s4 *) addr);
+		return (int32_t) *((int32_t *) addr);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -483,7 +483,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
  * Method:    getInt
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -506,7 +506,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		return (s4) *((s4 *) addr);
+		return (int32_t) *((int32_t *) addr);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -519,7 +519,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
  * Method:    getLong
  * Signature: (Ljava/lang/Object;)J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int64_t JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -542,9 +542,9 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		return (s8) *((s4 *) addr);
+		return (int64_t) *((int32_t *) addr);
 	case PRIMITIVETYPE_LONG:
-		return (s8) *((s8 *) addr);
+		return (int64_t) *((int64_t *) addr);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -580,9 +580,9 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		return (float) *((s4 *) addr);
+		return (float) *((int32_t *) addr);
 	case PRIMITIVETYPE_LONG:
-		return (float) *((s8 *) addr);
+		return (float) *((int64_t *) addr);
 	case PRIMITIVETYPE_FLOAT:
 		return (float) *((float *) addr);
 	default:
@@ -620,9 +620,9 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		return (double) *((s4 *) addr);
+		return (double) *((int32_t *) addr);
 	case PRIMITIVETYPE_LONG:
-		return (double) *((s8 *) addr);
+		return (double) *((int64_t *) addr);
 	case PRIMITIVETYPE_FLOAT:
 		return (double) *((float *) addr);
 	case PRIMITIVETYPE_DOUBLE:
@@ -670,7 +670,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 	switch (df->parseddesc->decltype) {
 	case PRIMITIVETYPE_BOOLEAN: {
-		s4 val;
+		int32_t val;
 
 		/* determine the field to read the value */
 
@@ -686,12 +686,12 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			return;
 		}
 
-		*((s4 *) faddr) = val;
+		*((int32_t *) faddr) = val;
 		return;
 	}
 
 	case PRIMITIVETYPE_BYTE: {
-		s4 val;
+		int32_t val;
 
 		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_B)))
 			break;
@@ -705,12 +705,12 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			return;
 		}
 
-		*((s4 *) faddr) = val;
+		*((int32_t *) faddr) = val;
 		return;
 	}
 
 	case PRIMITIVETYPE_CHAR: {
-		s4 val;
+		int32_t val;
 
 		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_C)))
 			break;
@@ -724,12 +724,12 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			return;
 		}
 
-		*((s4 *) faddr) = val;
+		*((int32_t *) faddr) = val;
 		return;
 	}
 
 	case PRIMITIVETYPE_SHORT: {
-		s4 val;
+		int32_t val;
 
 		/* get field only by name, it can be one of B, S */
 
@@ -748,12 +748,12 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			return;
 		}
 
-		*((s4 *) faddr) = val;
+		*((int32_t *) faddr) = val;
 		return;
 	}
 
 	case PRIMITIVETYPE_INT: {
-		s4 val;
+		int32_t val;
 
 		/* get field only by name, it can be one of B, S, C, I */
 
@@ -778,12 +778,12 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			return;
 		}
 
-		*((s4 *) faddr) = val;
+		*((int32_t *) faddr) = val;
 		return;
 	}
 
 	case PRIMITIVETYPE_LONG: {
-		s8 val;
+		int64_t val;
 
 		/* get field only by name, it can be one of B, S, C, I, J */
 
@@ -811,7 +811,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			return;
 		}
 
-		*((s8 *) faddr) = val;
+		*((int64_t *) faddr) = val;
 		return;
 	}
 
@@ -912,7 +912,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
  * Method:    setBoolean
  * Signature: (Ljava/lang/Object;Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -932,7 +932,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
 
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_BOOLEAN:
-		*((s4 *) addr) = value;
+		*((int32_t *) addr) = value;
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
@@ -947,7 +947,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
  * Method:    setByte
  * Signature: (Ljava/lang/Object;B)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -969,10 +969,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		*((s4 *) addr) = value;
+		*((int32_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_LONG:
-		*((s8 *) addr) = value;
+		*((int64_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_FLOAT:
 		*((float *) addr) = value;
@@ -993,7 +993,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
  * Method:    setChar
  * Signature: (Ljava/lang/Object;C)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1014,10 +1014,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_INT:
-		*((s4 *) addr) = value;
+		*((int32_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_LONG:
-		*((s8 *) addr) = value;
+		*((int64_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_FLOAT:
 		*((float *) addr) = value;
@@ -1038,7 +1038,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
  * Method:    setShort
  * Signature: (Ljava/lang/Object;S)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1059,10 +1059,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		*((s4 *) addr) = value;
+		*((int32_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_LONG:
-		*((s8 *) addr) = value;
+		*((int64_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_FLOAT:
 		*((float *) addr) = value;
@@ -1083,7 +1083,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
  * Method:    setInt
  * Signature: (Ljava/lang/Object;I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1103,10 +1103,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
 
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_INT:
-		*((s4 *) addr) = value;
+		*((int32_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_LONG:
-		*((s8 *) addr) = value;
+		*((int64_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_FLOAT:
 		*((float *) addr) = value;
@@ -1127,7 +1127,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
  * Method:    setLong
  * Signature: (Ljava/lang/Object;J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s8 value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int64_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1147,7 +1147,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
 
 	switch (f->parseddesc->decltype) {
 	case PRIMITIVETYPE_LONG:
-		*((s8 *) addr) = value;
+		*((int64_t *) addr) = value;
 		break;
 	case PRIMITIVETYPE_FLOAT:
 		*((float *) addr) = value;

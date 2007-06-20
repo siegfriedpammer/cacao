@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 8027 2007-06-07 10:30:33Z michi $
+   $Id: method.h 8123 2007-06-20 23:50:55Z michi $
 */
 
 
@@ -164,6 +164,7 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
 
 java_objectarray *method_get_parametertypearray(methodinfo *m);
 java_objectarray *method_get_exceptionarray(methodinfo *m);
+classinfo        *method_returntype_get(methodinfo *m);
 
 void method_add_assumption_monomorphic(methodinfo *m, methodinfo *caller);
 void method_break_assumption_monomorphic(methodinfo *m, method_worklist **wl);

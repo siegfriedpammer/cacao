@@ -53,7 +53,6 @@
 void md_init(void) 
 {
 	assert(sizeof(vm_arg) == sizevmarg);
-	assert(OFFSET(java_objectheader, vftbl) == offobjvftbl);
 	assert(OFFSET(vftbl_t, baseval) == offbaseval);
 	assert(OFFSET(vftbl_t, diffval) == offdiffval);
 	assert(OFFSET(vm_arg, type) == offvmargtype);

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.h 7601 2007-03-28 23:02:50Z michi $
+   $Id: descriptor.h 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -39,6 +39,9 @@ typedef struct methoddesc      methoddesc;
 
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "toolbox/hashtable.h"
@@ -115,8 +118,9 @@ struct paramdesc {
 #if defined(__MIPS__)
 	u1   type;                  /* TYPE_??? of the register allocated         */
 #endif
-	bool inmemory;              /* argument in register or on stack           */
-	s4   regoff;                /* register index or stack offset             */
+	bool     inmemory;          /* argument in register or on stack           */
+	uint32_t index;             /* index into argument register array         */
+	uint32_t regoff;            /* register index or stack offset             */
 };
 
 struct methoddesc {

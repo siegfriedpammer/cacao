@@ -1,6 +1,6 @@
-/* src/native/vm/gnu/gnu_java_lang_management_VMRuntimeMXBeanImpl.c
+/* src/native/vm/gnu/java_util_concurrent_atomic_AtomicLong.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: VMFrame.c 4996 2006-05-31 13:53:16Z motse $
+   $Id: java_lang_VMString.c 8017 2007-06-05 23:46:59Z twisti $
 
 */
 
@@ -34,62 +34,33 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
+#include "native/vm/java_util_concurrent_atomic_AtomicLong.h"
 
-#include "vm/builtin.h"
-#include "vm/global.h"
-#include "vm/vm.h"
-
-#include "vmcore/class.h"
 #include "vmcore/utf8.h"
 
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getInputArguments", "()[Ljava/lang/String;", (void *) (intptr_t) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments },
-	{ "getStartTime",      "()J",                   (void *) (intptr_t) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime      },
+	{ "VMSupportsCS8", "()Z", (void *) (intptr_t) &_Jv_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8 },
 };
 
 
-/* _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init ***********************
+/* _Jv_java_util_concurrent_atomic_AtomicLong_init *****************************
 
    Register native functions.
 
 *******************************************************************************/
 
-void _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init(void)
+void _Jv_java_util_concurrent_atomic_AtomicLong_init(void)
 {
 	utf *u;
 
-	u = utf_new_char("gnu/java/lang/management/VMRuntimeMXBeanImpl");
+	u = utf_new_char("java/util/concurrent/atomic/AtomicLong");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 
-
-/*
- * Class:     gnu/java/lang/management/VMRuntimeMXBeanImpl
- * Method:    getInputArguments
- * Signature: ()[Ljava/lang/String;
- */
-JNIEXPORT java_objectarray* JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments(JNIEnv *env, jclass clazz)
-{
-	log_println("Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments: IMPLEMENT ME!");
-
-	return builtin_anewarray(0, class_java_lang_String);
-}
-
-
-/*
- * Class:     gnu/java/lang/management/VMRuntimeMXBeanImpl
- * Method:    getStartTime
- * Signature: ()J
- */
-JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime(JNIEnv *env, jclass clazz)
-{
-	return _Jv_jvm->starttime;
-}
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -102,5 +73,4 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getS
  * c-basic-offset: 4
  * tab-width: 4
  * End:
- * vim:noexpandtab:sw=4:ts=4:
  */

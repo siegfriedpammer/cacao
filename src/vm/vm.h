@@ -1,6 +1,6 @@
 /* src/vm/vm.h - basic JVM functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
    $Id: finalizer.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
@@ -37,10 +31,17 @@
 #define _VM_H
 
 #include "config.h"
+
+#include <stdarg.h>
+
 #include "vm/types.h"
 
 #include "native/jni.h"
+
 #include "vm/global.h"
+
+#include "vmcore/class.h"
+#include "vmcore/method.h"
 
 
 /* export global variables ****************************************************/
@@ -103,38 +104,54 @@ void vm_exit_handler(void);
 void vm_abort(const char *text, ...);
 
 /* Java method calling functions */
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__)
+bool vm_vmargs_from_objectarray(methodinfo *m, java_objectheader *o,
+								vm_arg *vmargs, java_objectarray *params);
+#else
+uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
+									java_objectarray *params);
+#endif
+
 java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...);
 java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
 										 va_list ap);
 java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
 										 jvalue *args);
+
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__)
 java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
 										vm_arg *vmargs);
+s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+#else
+java_objectheader *vm_call_array(methodinfo *m, uint64_t *array);
+int32_t            vm_call_int_array(methodinfo *m, uint64_t *array);
+int64_t            vm_call_long_array(methodinfo *m, uint64_t *array);
+float              vm_call_float_array(methodinfo *m, uint64_t *array);
+double             vm_call_double_array(methodinfo *m, uint64_t *array);
+#endif
 
 s4 vm_call_method_int(methodinfo *m, java_objectheader *o, ...);
 s4 vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap);
 s4 vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o, jvalue *args);
-s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 
 s8 vm_call_method_long(methodinfo *m, java_objectheader *o, ...);
 s8 vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap);
 s8 vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, jvalue *args);
-s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 
 float vm_call_method_float(methodinfo *m, java_objectheader *o, ...);
 float vm_call_method_float_valist(methodinfo *m, java_objectheader *o,
 								  va_list ap);
 float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o,
 								  jvalue *args);
-float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 
 double vm_call_method_double(methodinfo *m, java_objectheader *o, ...);
 double vm_call_method_double_valist(methodinfo *m, java_objectheader *o,
 									va_list ap);
 double vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o,
 									jvalue *args);
-double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
-								   vm_arg *vmargs);
 
 #endif /* _VM_H */
 

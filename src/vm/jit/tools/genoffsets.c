@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: genoffsets.c 7291 2007-02-06 08:49:08Z twisti $
+   $Id: genoffsets.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -41,10 +41,6 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/replace.h"
 
-#include "vmcore/class.h"
-#include "vmcore/linker.h"
-#include "vmcore/method.h"
-
 
 int main(int argc, char **argv)
 {
@@ -60,16 +56,9 @@ int main(int argc, char **argv)
 
     printf("\n\n/* define some offsets */\n\n");
 
-	printf("#define offobjvftbl                %3d\n", (s4) OFFSET(java_objectheader, vftbl));
-	printf("\n\n");
-
 	printf("/* vftbl_t */\n\n");
 	printf("#define offbaseval                 %3d\n", (s4) OFFSET(vftbl_t, baseval));
 	printf("#define offdiffval                 %3d\n", (s4) OFFSET(vftbl_t, diffval));
-	printf("\n\n");
-
-	printf("/* classinfo */\n\n");
-	printf("#define offclassvftbl              %3d\n", (s4) OFFSET(classinfo, vftbl));
 	printf("\n\n");
 
 	printf("#define offvmargtype               %3d\n", (s4) OFFSET(vm_arg, type));

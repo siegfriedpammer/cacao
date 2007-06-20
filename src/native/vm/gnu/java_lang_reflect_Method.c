@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: java_lang_reflect_Method.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -42,6 +42,8 @@
 
 #include "native/include/java_lang_reflect_Method.h"
 
+#include "native/vm/java_lang_reflect_Method.h"
+
 #include "vm/access.h"
 #include "vm/global.h"
 #include "vm/builtin.h"
@@ -49,6 +51,8 @@
 #include "vm/initialize.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
+
+#include "vmcore/method.h"
 
 
 /* native methods implemented by this file ************************************/
@@ -105,17 +109,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(J
 {
 	classinfo  *c;
 	methodinfo *m;
-	typedesc   *td;
+	classinfo  *result;
 
 	c = (classinfo *) this->declaringClass;
 	m = &(c->methods[this->slot]);
 
-	td = &(m->parseddesc->returntype);
+	result = method_returntype_get(m);
 
-	if (!resolve_class_from_typedesc(td, true, false, &c))
-		return NULL;
-
-	return (java_lang_Class *) c;
+	return (java_lang_Class *) result;
 }
 
 
@@ -160,30 +161,12 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {
-	classinfo        *c;
-	methodinfo       *m;
+	/* just to be sure */
 
-	c = (classinfo *) declaringClass;
-	m = &(c->methods[slot]);
+	assert(this->declaringClass == declaringClass);
+	assert(this->slot           == slot);
 
-	/* check method access */
-
-	/* check if we should bypass security checks (AccessibleObject) */
-
-	if (this->flag == false) {
-		if (!access_check_method(m, 1))
-			return NULL;
-	}
-
-	/* check if method class is initialized */
-
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return NULL;
-
-	/* call the Java method via a helper function */
-
-	return (java_lang_Object *) _Jv_jni_invokeNative(m, (jobject) o, args);
+	return _Jv_java_lang_reflect_Method_invoke(this, o, args);
 }
 
 

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: md.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/methodheader.h"
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
@@ -87,6 +88,8 @@ void md_init(void)
 
 void md_dump_context(u1 *pc, mcontext_t *mc) {
 	int i;
+	u1 *pv;
+	methodinfo *m;
 	
 	union {
 		u8 l;
@@ -96,6 +99,17 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 	log_println("Dumping context.");
 
 	log_println("Program counter: 0x%08X", pc);
+
+	pv = codegen_get_pv_from_pc_nocheck(pc);
+	if (pv == NULL) {
+		log_println("No java method found at location.");
+	} else {
+		m = ((codeinfo *)(pv + CodeinfoPointer))->m;
+		log_println(
+			"Java method: class %s, method %s, descriptor %s.",
+			utf_bytes(m->class->name), utf_bytes(m->name), utf_bytes(m->descriptor)
+		);
+	}
 
 #if defined(ENABLE_DISASSEMBLER)
 	log_println("Printing instruction at program counter:");
@@ -171,7 +185,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		vm_abort("%s: segmentation fault at %p, aborting.", __FUNCTION__, xpc);
 	}
 
-	pv = (u1 *)_mc->gregs[REG_PV];
+	pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 	sp = (u1 *)_mc->gregs[REG_SP];
 	ra = xpc;
 	type = EXCEPTION_HARDWARE_NULLPOINTER;
@@ -210,7 +224,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 		/* bits 3-0 designate the exception type */
 		type = xpc[1] & 0xF;  
 
-		pv = (u1 *)_mc->gregs[REG_PV];
+		pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 		sp = (u1 *)_mc->gregs[REG_SP];
 		val = (ptrint)_mc->gregs[reg];
 
@@ -281,7 +295,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 		} else if (_mc->gregs[r2] == 0) {
 			/* division by 0 */
 
-			pv = (u1 *)_mc->gregs[REG_PV];
+			pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 			sp = (u1 *)_mc->gregs[REG_SP];
 			ra = xpc;
 
@@ -439,7 +453,7 @@ last 2 instructions the same as in invokevirtual
 
 u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 {
-	u1  base;
+	u1  base, index;
 	s4  offset;
 	u1 *pa;                             /* patch address                      */
 
@@ -450,32 +464,48 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 	/* get the base register of the load */
 
 	base = ra[2] >> 4;
+	index = ra[1] & 0xF;
 
 	/* check for the different calls */
 
-	if (base == 0xd) { /* pv relative */
-		/* INVOKESTATIC/SPECIAL */
+	switch (base) {
+		case 0xd:
+			/* INVOKESTATIC/SPECIAL */
 
-		/* the offset is in the load before the load */
-
-		offset = *((s2 *) (ra - 2));
-
-		/* add the offset to the procedure vector */
-
-		pa = sfi->pv + offset;
-	}
-	else if (base == 0xc) { /* mptr relative */
-		/* INVOKEVIRTUAL/INTERFACE */
-
-		offset = *((u2 *)(ra + 2)) & 0xFFF;
-
-		/* add offset to method pointer */
 		
-		pa = mptr + offset;
-	}
-	else {
-		/* catch any problems */
-		assert(0); 
+			switch (index) {
+				case 0x0:
+					/* the offset is in the load instruction */
+					offset = ((*(u2 *)(ra + 2)) & 0xFFF) + N_PV_OFFSET;
+					break;
+				case 0x1:
+					/* the offset is in the immediate load before the load */
+					offset = *((s2 *) (ra - 2));
+					break;
+				default:
+					assert(0);
+			}
+
+			/* add the offset to the procedure vector */
+
+			pa = sfi->pv + offset;
+
+			break;
+
+		case 0xc:
+			/* mptr relative */
+			/* INVOKEVIRTUAL/INTERFACE */
+
+			offset = *((u2 *)(ra + 2)) & 0xFFF;
+
+			/* add offset to method pointer */
+			
+			pa = mptr + offset;
+			break;
+		default:
+			/* catch any problems */
+			assert(0); 
+			break;
 	}
 
 	return pa;

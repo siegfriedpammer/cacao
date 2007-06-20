@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: native.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -741,9 +741,7 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 	/* no function was found, throw exception */
 
-	*exceptionptr =
-			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
-									 mname);
+	exceptions_throw_unsatisfiedlinkerror(mname);
 
 	return NULL;
 }
@@ -905,11 +903,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_objectheader *s
 
 	/* find initializer */
 
-	m = class_resolveclassmethod(c,
-								 utf_init,
-								 utf_java_lang_String__void,
-								 NULL,
-								 true);
+	m = class_findmethod(c, utf_init, utf_java_lang_String__void);
 
 	/* initializer not found */
 
@@ -919,70 +913,6 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_objectheader *s
 	/* call initializer */
 
 	(void) vm_call_method(m, o, s);
-
-	return o;
-}
-
-
-java_objectheader *native_new_and_init_throwable(classinfo *c, java_objectheader *t)
-{
-	java_objectheader *o;
-	methodinfo        *m;
-
-	if (c == NULL)
-		vm_abort("native_new_and_init_throwable: c == NULL");
-
-	/* create object */
-
-	o = builtin_new(c);
-	
-	if (o == NULL)
-		return NULL;
-
-	/* find initializer */
-
-	m = class_findmethod(c, utf_init, utf_java_lang_Throwable__void);
-	                      	                      
-	/* initializer not found */
-
-	if (m == NULL)
-		return NULL;
-
-	/* call initializer */
-
-	(void) vm_call_method(m, o, t);
-
-	return o;
-}
-
-
-java_objectheader *native_new_and_init_exception(classinfo *c, java_objectheader *e)
-{
-	java_objectheader *o;
-	methodinfo        *m;
-
-	if (c == NULL)
-		vm_abort("native_new_and_init_exception: c == NULL");
-
-	/* create object */
-
-	o = builtin_new(c);
-	
-	if (o == NULL)
-		return NULL;
-
-	/* find initializer */
-
-	m = class_findmethod(c, utf_init, utf_java_lang_Exception__V);
-	                      	                      
-	/* initializer not found */
-
-	if (m == NULL)
-		return NULL;
-
-	/* call initializer */
-
-	(void) vm_call_method(m, o, e);
 
 	return o;
 }

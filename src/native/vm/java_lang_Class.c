@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 6131 2006-12-06 22:15:57Z twisti $
+   $Id: java_lang_Class.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -66,6 +66,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
+#include "vmcore/primitive.h"
 
 
 /*
@@ -116,8 +117,6 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 	utf               *ufile;
 	utf               *uname;
 	classinfo         *c;
-	java_objectheader *xptr;
-	classinfo         *xclass;
 	u2                *pos;
 	s4                 i;
 
@@ -154,24 +153,8 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 	c = load_class_bootstrap(ufile);
 #endif
 
-	if (c == NULL) {
-		xptr = exceptions_get_exception();
-
-		xclass = xptr->vftbl->class;
-
-		/* if the exception is a NoClassDefFoundError, we replace it with a
-		   ClassNotFoundException, otherwise return the exception */
-
-		if (xclass == class_java_lang_NoClassDefFoundError) {
-			/* clear exceptionptr, because builtin_new checks for 
-			   ExceptionInInitializerError */
-			exceptions_clear_exception();
-
-			exceptions_throw_classnotfoundexception(uname);
-		}
-
+	if (c == NULL)
 	    return NULL;
-	}
 
 	/* link, ... */
 
@@ -273,7 +256,7 @@ s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 
 	c = (classinfo *) klass;
 
-	result = class_is_primitive(c);
+	result = primitive_class_is_primitive(c);
 
 	return result;
 }
@@ -375,7 +358,7 @@ java_lang_Class *_Jv_java_lang_Class_getComponentType(java_lang_Class *klass)
 	if (desc->arraytype == ARRAYTYPE_OBJECT)
 		comp = desc->componentvftbl->class;
 	else
-		comp = primitivetype_table[desc->arraytype].class_primitive;
+		comp = primitive_class_get_by_type(desc->arraytype);
 		
 	return (java_lang_Class *) comp;
 }
@@ -443,7 +426,7 @@ java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
 
 	c = (classinfo *) klass;
 
-	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
+	if (!primitive_class_is_primitive(c) && (c->name->text[0] != '[')) {
 		if (c->innerclasscount == 0)  /* no innerclasses exist */
 			return NULL;
     
@@ -498,7 +481,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
 	c = (classinfo *) klass;
 	declaredclasscount = 0;
 
-	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
+	if (!primitive_class_is_primitive(c) && (c->name->text[0] != '[')) {
 		/* determine number of declared classes */
 
 		for (i = 0; i < c->innerclasscount; i++) {

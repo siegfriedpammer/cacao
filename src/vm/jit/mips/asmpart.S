@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8027 2007-06-07 10:30:33Z michi $
+   $Id: asmpart.S 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -145,7 +145,8 @@ asm_vm_call_method_double:
 L_asm_vm_call_method_compute_pv:
 	aaddiu  pv,ra,-4*4
 
-	ast     s7,3*8(sp)
+	ast     s0,3*8(sp)                /* save callee saved register           */
+	ast     a0,4*8(sp)                /* save method PV                       */
 
 #if SIZEOF_VOID_P == 8
 	sdc1    fss0,5*8(sp)              /* save non JavaABI saved flt registers */
@@ -156,146 +157,84 @@ L_asm_vm_call_method_compute_pv:
 	sdc1    fss5,10*8(sp)
 #endif
 
-	ast     a0,4*8(sp)                /* save method pointer for compiler     */
-
-	move    t0,a2                     /* address of first block               */
-	move    s7,a1                     /* argument count                       */
-	blez    s7,calljava_argsloaded
-	nop
+	move    t0,a1                     /* address of data structure            */
+	move    t1,a2                     /* stack argument count                 */
+	move    s0,sp                     /* save stack pointer                   */
 
 #if SIZEOF_VOID_P == 8
 
-	ald     a0,offvmargdata(t0)
-	ldc1    fa0,offvmargdata(t0)
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-	nop
+	ld      a0,0*8(t0)
+	ld      a1,1*8(t0)
+	ld      a2,2*8(t0)
+	ld      a3,3*8(t0)
+	ld      a4,4*8(t0)
+	ld      a5,5*8(t0)
+	ld      a6,6*8(t0)
+	ld      a7,7*8(t0)
 
-	ald     a1,offvmargdata+sizevmarg*1(t0)
-	ldc1    fa1,offvmargdata+sizevmarg*1(t0)
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-	nop
-
-	ald     a2,offvmargdata+sizevmarg*2(t0)
-	ldc1    fa2,offvmargdata+sizevmarg*2(t0)
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-	nop
-
-	ald     a3,offvmargdata+sizevmarg*3(t0)
-	ldc1    fa3,offvmargdata+sizevmarg*3(t0)
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-	nop
-
-	ald     a4,offvmargdata+sizevmarg*4(t0)
-	ldc1    fa4,offvmargdata+sizevmarg*4(t0)
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-	nop
-
-	ald     a5,offvmargdata+sizevmarg*5(t0)
-	ldc1    fa5,offvmargdata+sizevmarg*5(t0)
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-	nop
-
-	ald     a6,offvmargdata+sizevmarg*6(t0)
-	ldc1    fa6,offvmargdata+sizevmarg*6(t0)
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-	nop
-
-	ald     a7,offvmargdata+sizevmarg*7(t0)
-	ldc1    fa7,offvmargdata+sizevmarg*7(t0)
-	aaddi   s7,s7,-1
+	ldc1    fa0,8*8(t0)
+	ldc1    fa1,9*8(t0)
+	ldc1    fa2,10*8(t0)
+	ldc1    fa3,11*8(t0)
+	ldc1    fa4,12*8(t0)
+	ldc1    fa5,13*8(t0)
+	ldc1    fa6,14*8(t0)
+	ldc1    fa7,15*8(t0)
 
 #else /* SIZEOF_VOID_P == 8 */
 
-#if WORDS_BIGENDIAN == 1
-	ald     a0,offvmargdata+4(t0)
-#else
-	ald     a0,offvmargdata(t0)
-#endif
-#if !defined(ENABLE_SOFT_FLOAT)
-	ldc1    fa0,offvmargdata(t0)
-#endif
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
+# if WORDS_BIGENDIAN == 1
+	lw      a0,0*8+4(t0)
+	lw      a1,1*8+4(t0)
+	lw      a2,2*8+4(t0)
+	lw      a3,3*8+4(t0)
+# else
+	lw      a0,0*8(t0)
+	lw      a1,1*8(t0)
+	lw      a2,2*8(t0)
+	lw      a3,3*8(t0)
+# endif
 
-#if WORDS_BIGENDIAN == 1
-	ald     a1,offvmargdata+4+sizevmarg*1(t0)
-#else
-	ald     a1,offvmargdata+sizevmarg*1(t0)
-#endif
-#if !defined(ENABLE_SOFT_FLOAT)
-	ldc1    fa1,offvmargdata+sizevmarg*1(t0)
-#endif
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-
-#if WORDS_BIGENDIAN == 1
-	ald     a2,offvmargdata+4+sizevmarg*2(t0)
-#else
-	ald     a2,offvmargdata+sizevmarg*2(t0)
-#endif
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
-
-#if WORDS_BIGENDIAN == 1
-	ald     a3,offvmargdata+4+sizevmarg*3(t0)
-#else
-	ald     a3,offvmargdata+sizevmarg*3(t0)
-#endif
-	aaddi   s7,s7,-1
-	blez    s7,calljava_argsloaded
+# if !defined(ENABLE_SOFT_FLOAT)
+	ldc1    fa0,4*8(t0)
+	ldc1    fa1,5*8(t0)
+# endif
 
 #endif /* SIZEOF_VOID_P == 8 */
 
-calljava_argsloaded:
-	move    t4,sp                     /* save stack pointer                   */
-	blez    s7,calljava_nocopy
+	beqz    t1,L_asm_vm_call_method_stack_copy_done
 	nop
 
-#if SIZEOF_VOID_P == 4
-	aaddiu  s7,s7,4                   /* add stack space for 4 arguments      */
-#endif
-	subu    t1,zero,s7                /* remaining argument count (negative)  */
-	sll     t2,t1,3                   /* calculate stackframe size            */
-	aaddu   sp,sp,t2                  /* create stackframe                    */
-	aaddu   t2,t2,t4                  /* also set temp sp                     */
-#if SIZEOF_VOID_P == 4
-	aaddiu  t2,t2,4*4                 /* skip stack space for 4 arguments     */
-	addiu   t1,t1,4
-#endif
+	sll     t2,t1,3                   /* calculate stackframe size (* 8)      */
+	asubu   sp,sp,t2                  /* create stackframe                    */
+	move    t2,sp                     /* temporary stack pointer              */
 
-calljava_copyloop:
+L_asm_vm_call_method_stack_copy_loop:
 #if SIZEOF_VOID_P == 8
-	ald     t3,offvmargdata+sizevmarg*8(t0)
+	ld      t3,16*8(t0)               /* load argument                        */
+	sd      t3,0(t2)                  /* store argument on stack              */
 #else
-# if WORDS_BIGENDIAN == 1
-	ald     t3,offvmargdata+4+sizevmarg*4(t0)
+# if !defined(ENABLE_SOFT_FLOAT)
+	lw      t3,6*8+0(t0)              /* load argument                        */
+	lw      t4,6*8+4(t0)
+	sw      t3,0(t2)                  /* store argument on stack              */
+	sw      t4,4(t2)
 # else
-	ald     t3,offvmargdata+sizevmarg*4(t0)
+#  error implement me
 # endif
 #endif
-	ast     t3,0(t2)                  /* store argument on stack              */
-	addi    t1,t1,1                   /* count 1 argument                     */
-	aaddi   t0,t0,sizevmarg           /* load address of next block           */
-	aaddi   t2,t2,8                   /* increase stack position              */
-	bnez    t1,calljava_copyloop      /* all arguments copied?                */
+
+	aaddi   t1,t1,-1                  /* subtract 1 argument                  */
+	aaddi   t0,t0,8                   /* load address of next argument        */
+	aaddi   t2,t2,8                   /* increase stack pointer               */
+
+	bgtz    t1,L_asm_vm_call_method_stack_copy_loop
 	nop
 
-calljava_nocopy:
-	ald     itmp1,4*8(t4)             /* pass method pointer via itmp1        */
-
-	ala     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
-	ast     mptr,2*8(t4)              /* store function address               */
-	ala     mptr,1*8(t4)              /* set method pointer                   */
-
-	ald     pv,1*8(mptr)              /* method call as in Java               */
-	jalr    pv                        /* call JIT compiler                    */
+L_asm_vm_call_method_stack_copy_done:
+	ala     mptr,4*8(s0)              /* get address of PV                    */
+	ald     pv,0*8(mptr)              /* load PV                              */
+	jalr    pv
 	nop
 L_asm_vm_call_method_recompute_pv:
 #if SIZEOF_VOID_P == 8
@@ -306,13 +245,12 @@ L_asm_vm_call_method_recompute_pv:
 
 	.set    reorder                   /* XXX we need to recompute pv          */
 
-	sll     t1,s7,3                   /* remove argument stackframe           */
-	aaddu   sp,sp,t1
+	move    sp,s0                     /* restore stack pointer                */
 
 calljava_return2:
 	ald     ra,0*8(sp)                /* restore return address               */
 	ald     pv,1*8(sp)                /* restore procedure vector             */
-	ald     s7,3*8(sp)
+	ald     s0,3*8(sp)
 
 #if SIZEOF_VOID_P == 8
 	ldc1    fss0,5*8(sp)              /* restore non JavaABI saved flt regs   */
@@ -327,8 +265,7 @@ calljava_return2:
 	j       ra                        /* return                               */
 
 asm_vm_call_method_exception_handler:
-	sll     t1,s7,3                   /* remove stackframe                    */
-	aaddu   sp,sp,t1
+	move    sp,s0                     /* restore stack pointer                */
 #if SIZEOF_VOID_P == 4
 	aaddiu  sp,sp,-4*4                /* reserve space for 1 argument         */
 #endif

@@ -22,21 +22,27 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: md-abi.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
 
 #include "config.h"
+
+#include <stdarg.h>
+
 #include "vm/types.h"
 
 #include "vm/jit/mips/md-abi.h"
+
+#include "mm/memory.h"
 
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
 
 #include "vmcore/descriptor.h"
+#include "vmcore/method.h"
 
 
 /* register descripton array **************************************************/
@@ -289,7 +295,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -304,7 +310,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -331,13 +337,15 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_ADR:
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index    = reguse;
 				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 				md->argintreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -348,10 +356,12 @@ void md_param_alloc(methoddesc *md)
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 #  if WORDS_BIGENDIAN == 1
+				pd->index    = PACK_REGS(reguse + 1, reguse);
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse + 1],
 							  abi_registers_integer_argument[reguse]);
 #  else
+				pd->index    = PACK_REGS(reguse, reguse + 1);
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse],
 							  abi_registers_integer_argument[reguse + 1]);
@@ -361,7 +371,8 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -370,13 +381,15 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (reguse < FLT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index    = reguse;
 				pd->regoff   = abi_registers_float_argument[reguse];
 				reguse++;
 				md->argfltreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -405,7 +418,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 8;
 			}
 			stacksize++;
 			break;
@@ -430,7 +443,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 8;
 			}
 			stacksize += 2;
 			break;
@@ -530,7 +543,7 @@ void md_param_alloc_native(methoddesc *md)
 					ALIGN_2(stacksize);
 
 					pd->inmemory = true;
-					pd->regoff   = stacksize;
+					pd->regoff   = stacksize * 4;
 				}
 				stacksize += 2;
 			}
@@ -545,7 +558,7 @@ void md_param_alloc_native(methoddesc *md)
 				}
 				else {
 					pd->inmemory = true;
-					pd->regoff   = stacksize;
+					pd->regoff   = stacksize * 4;
 				}
 				stacksize++;
 			}
@@ -570,7 +583,7 @@ void md_param_alloc_native(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 4;
 			}
 			stacksize++;
 			break;
@@ -594,7 +607,7 @@ void md_param_alloc_native(methoddesc *md)
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize;
+				pd->regoff   = stacksize * 4;
 			}
 			stacksize += 2;
 			break;

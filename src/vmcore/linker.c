@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: linker.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -52,6 +52,7 @@
 #include "vmcore/classcache.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
+#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 /* #include "vm/resolve.h" */
@@ -77,40 +78,8 @@ static s4 classvalue;
 java_objectheader *linker_classrenumber_lock;
 
 
-/* primitivetype_table *********************************************************
-
-   Structure for primitive classes: contains the class for wrapping
-   the primitive type, the primitive class, the name of the class for
-   wrapping, the one character type signature and the name of the
-   primitive class.
- 
-   CAUTION: Don't change the order of the types. This table is indexed
-   by the ARRAYTYPE_ constants (except ARRAYTYPE_OBJECT).
-
-*******************************************************************************/
-
-primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
-	{ "int"     , NULL, NULL, NULL, "java/lang/Integer",   'I', "[I", NULL, NULL },
-	{ "long"    , NULL, NULL, NULL, "java/lang/Long",      'J', "[J", NULL, NULL },
-	{ "float"   , NULL, NULL, NULL, "java/lang/Float",     'F', "[F", NULL, NULL },
-	{ "double"  , NULL, NULL, NULL, "java/lang/Double",    'D', "[D", NULL, NULL },
-	{ NULL      , NULL, NULL, NULL, NULL,                   0 , NULL, NULL, NULL },
-	{ "byte"    , NULL, NULL, NULL, "java/lang/Byte",      'B', "[B", NULL, NULL },
-	{ "char"    , NULL, NULL, NULL, "java/lang/Character", 'C', "[C", NULL, NULL },
-	{ "short"   , NULL, NULL, NULL, "java/lang/Short",     'S', "[S", NULL, NULL },
-	{ "boolean" , NULL, NULL, NULL, "java/lang/Boolean",   'Z', "[Z", NULL, NULL },
-	{ NULL      , NULL, NULL, NULL, NULL,                   0 , NULL, NULL, NULL },
-#if defined(ENABLE_JAVASE)
-   	{ "void"    , NULL, NULL, NULL, "java/lang/Void",      'V', NULL, NULL, NULL }
-#else
-	{ NULL      , NULL, NULL, NULL, NULL,                   0 , NULL, NULL, NULL },
-#endif
-};
-
-
 /* private functions **********************************************************/
 
-static bool link_primitivetype_table(void);
 static classinfo *link_class_intern(classinfo *c);
 static arraydescriptor *link_array(classinfo *c);
 static void linker_compute_class_values(classinfo *c);
@@ -306,100 +275,10 @@ bool linker_init(void)
 	if (!classcache_store_unique(pseudo_class_New))
 		vm_abort("linker_init: could not cache pseudo_class_New");
 
-	/* create classes representing primitive types */
-
-	if (!link_primitivetype_table())
-		return false;
-
-
 	/* Correct vftbl-entries (retarded loading and linking of class
 	   java/lang/String). */
 
 	stringtable_update();
-
-	return true;
-}
-
-
-/* link_primitivetype_table ****************************************************
-
-   Create classes representing primitive types.
-
-*******************************************************************************/
-
-static bool link_primitivetype_table(void)
-{  
-	utf       *name;
-	classinfo *c;
-	utf       *u;
-	s4         i;
-
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
-		/* skip dummies */
-
-		if (primitivetype_table[i].cname == NULL)
-			continue;
-
-		/* create UTF-8 name */
-
-		name = utf_new_char(primitivetype_table[i].cname);
-
-		primitivetype_table[i].name = name;
-
-		/* create primitive class */
-
-		c = class_create_classinfo(name);
-
-		/* primitive classes don't have a super class */
-
-		c->super.any = NULL;
-
-		/* set flags and mark it as primitive class */
-
-		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT | ACC_CLASS_PRIMITIVE;
-		
-		/* prevent loader from loading primitive class */
-
-		c->state |= CLASS_LOADED;
-
-		/* INFO: don't put primitive classes into the classcache */
-
-		if (!link_class(c))
-			return false;
-
-		primitivetype_table[i].class_primitive = c;
-
-		/* create class for wrapping the primitive type */
-
-		u = utf_new_char(primitivetype_table[i].wrapname);
-		c = load_class_bootstrap(u);
-
-		if (c == NULL)
-			return false;
-
-		primitivetype_table[i].class_wrap = c;
-
-		/* create the primitive array class */
-
-		if (primitivetype_table[i].arrayname) {
-			u = utf_new_char(primitivetype_table[i].arrayname);
-			c = class_create_classinfo(u);
-			c = load_newly_created_array(c, NULL);
-
-			if (c == NULL)
-				return false;
-
-			primitivetype_table[i].arrayclass = c;
-
-			assert(c->state & CLASS_LOADED);
-
-			if (!(c->state & CLASS_LINKED))
-				if (!link_class(c))
-					return false;
-
-			primitivetype_table[i].arrayvftbl = c->vftbl;
-		}
-	}
 
 	return true;
 }

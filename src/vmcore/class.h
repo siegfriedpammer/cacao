@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8056 2007-06-10 14:49:57Z michi $
+   $Id: class.h 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -338,9 +338,6 @@ methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
 methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
-
-classinfo *class_primitive_get(utf *name);
-bool       class_is_primitive(classinfo *c);
 
 bool class_issubclass(classinfo *sub, classinfo *super);
 bool class_isanysubclass(classinfo *sub, classinfo *super);

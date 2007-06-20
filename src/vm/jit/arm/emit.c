@@ -73,7 +73,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 #if defined(ENABLE_SOFTFLOAT)
 		switch (src->type) {
@@ -139,7 +139,7 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 #if defined(__ARMEL__)
 		M_ILD(tempreg, REG_SP, disp);
@@ -177,7 +177,7 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 #if defined(__ARMEL__)
 		M_ILD(tempreg, REG_SP, disp + 4);
@@ -212,7 +212,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (dst->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = dst->vv.regoff * 4;
+		disp = dst->vv.regoff;
 
 #if defined(ENABLE_SOFTFLOAT)
 		switch (dst->type) {
@@ -749,7 +749,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	M_STMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
 	M_SUB_IMM(REG_SP, REG_SP, (2 + 2 + 1 + 1) * 4); /* space for a3, a4 and m */
 
-	stackframesize += 6 + 2 + 2 + 1 + 1;
+	stackframesize += (6 + 2 + 2 + 1 + 1) * 4;
 
 	/* prepare args for tracer */
 
@@ -776,9 +776,9 @@ void emit_verbosecall_enter(jitdata *jd)
 			s2 = md->params[i].regoff + stackframesize;
 
 			if (IS_2_WORD_TYPE(t))
-				M_LLD(s1, REG_SP, s2 * 4);
+				M_LLD(s1, REG_SP, s2);
 			else {
-				M_ILD(GET_LOW_REG(s1), REG_SP, s2 * 4);
+				M_ILD(GET_LOW_REG(s1), REG_SP, s2);
 				M_MOV_IMM(GET_HIGH_REG(s1), 0);
 			}
 		}

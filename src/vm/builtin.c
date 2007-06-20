@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: builtin.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -76,6 +76,7 @@
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
+#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 #if defined(ENABLE_VMLOG)
@@ -1105,9 +1106,9 @@ java_doublearray *builtin_newarray_double(s4 size)
    passed in an array of longs.
 
    Arguments:
-       n............number of dimensions to create
-       arrayvftbl...vftbl of the array class
-       dims.........array containing the size of each dimension to create
+       n.............number of dimensions to create
+       arrayclass....the array class
+       dims..........array containing the size of each dimension to create
 
    Return value: pointer to the array or NULL if no memory is
    available

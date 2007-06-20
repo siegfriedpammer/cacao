@@ -58,8 +58,8 @@ s4 nregdescint[] = {
 	/* l0    l1       l2       l3       l4       l5       l6       l7     */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 	
-	/* i0/v0 i1       i2       i3       i4       pv/i5    fp/i6    ra/i7  */
-	REG_RET, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES,
+	/* i0    i1       i2       i3       i4       pv/i5    fp/i6    ra/i7  */
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES,
 	REG_END
 };
 
@@ -87,6 +87,7 @@ const s4 abi_registers_integer_saved[] = {
 	21, /* l5  */
 	22, /* l6  */
 	23, /* l7  */
+	24, /* i0  */
 	25, /* i1  */
 	26, /* i2  */
 	27, /* i3  */
@@ -165,13 +166,15 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index = reguse;
 				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 				md->argintreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->index = stacksize;
+				pd->regoff = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -180,13 +183,15 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (i < FLT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index = reguse;
 				pd->regoff   = abi_registers_float_argument[reguse];
 				reguse++;
 				md->argfltreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff = stacksize;
+				pd->index = stacksize;
+				pd->regoff = stacksize * 8;
 				stacksize++;
 			}
 			break;

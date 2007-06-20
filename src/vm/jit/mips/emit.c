@@ -74,7 +74,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 8;
+		disp = src->vv.regoff;
 
 		switch (src->type) {
 #if SIZEOF_VOID_P == 8
@@ -133,7 +133,7 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 8;
+		disp = src->vv.regoff;
 
 #if WORDS_BIGENDIAN == 1
 		M_ILD(tempreg, REG_SP, disp + 4);
@@ -173,7 +173,7 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (src->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 8;
+		disp = src->vv.regoff;
 
 #if WORDS_BIGENDIAN == 1
 		M_ILD(tempreg, REG_SP, disp);
@@ -209,7 +209,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (dst->flags & INMEMORY) {
 		COUNT_SPILLS;
 
-		disp = dst->vv.regoff * 8;
+		disp = dst->vv.regoff;
 
 		switch (dst->type) {
 #if SIZEOF_VOID_P == 8

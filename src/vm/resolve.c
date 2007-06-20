@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: resolve.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -38,6 +38,7 @@
 #include "vm/access.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
@@ -47,7 +48,7 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vm/resolve.h"
+#include "vmcore/primitive.h"
 
 
 /******************************************************************************/
@@ -174,10 +175,18 @@ bool resolve_class_from_name(classinfo *referer,
 #endif
 
 		/* load the class */
-		if (!cls) {
-			if (!(cls = load_class_from_classloader(classname,
-													referer->classloader)))
-				return false; /* exception */
+
+		if (cls == NULL) {
+			cls = load_class_from_classloader(classname, referer->classloader);
+
+			if (cls == NULL) {
+				/* If the exception is a ClassNotFoundException,
+				   convert it to a NoClassDefFoundError. */
+
+				exceptions_classnotfoundexception_to_noclassdeffounderror();
+
+				return false;
+			}
 		}
 	}
 
@@ -448,12 +457,16 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	}
 	else {
 		/* a primitive type */
-		cls = primitivetype_table[d->decltype].class_primitive;
+
+		cls = primitive_class_get_by_type(d->decltype);
+
 		assert(cls->state & CLASS_LOADED);
+
 		if (!(cls->state & CLASS_LINKED))
 			if (!link_class(cls))
 				return false; /* exception */
 	}
+
 	assert(cls);
 	assert(cls->state & CLASS_LOADED);
 	assert(!link || (cls->state & CLASS_LINKED));

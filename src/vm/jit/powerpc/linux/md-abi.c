@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: md-abi.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -207,7 +207,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory  = true;
-				pd->regoff    = stacksize;
+				pd->regoff    = stacksize * 4;
 				stacksize++;
 			}
 			break;
@@ -224,7 +224,7 @@ void md_param_alloc(methoddesc *md)
 			else {
 				_ALIGN(stacksize);
 				pd->inmemory  = true;
-				pd->regoff    = stacksize;
+				pd->regoff    = stacksize * 4;
 				iarg          = INT_ARG_CNT;
 				stacksize    += 2;
 			}
@@ -238,7 +238,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 				pd->inmemory  = true;
-				pd->regoff    = stacksize;
+				pd->regoff    = stacksize * 4;
 				stacksize++;
 			}
 			break;
@@ -252,7 +252,7 @@ void md_param_alloc(methoddesc *md)
 			else {
 				_ALIGN(stacksize);
 				pd->inmemory  = true;
-				pd->regoff    = stacksize;
+				pd->regoff    = stacksize * 4;
 				stacksize    += 2;
 			}
 			break;

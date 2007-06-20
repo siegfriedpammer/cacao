@@ -1,6 +1,6 @@
 /* tests/regression/native/testarguments.c - tests argument passing
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    TU Wien
@@ -22,21 +22,65 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: testarguments.c 4893 2006-05-08 11:03:57Z twisti $
+   $Id: testarguments.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
 #include "native/jni.h"
+
+
+JNIEXPORT jobject JNICALL Java_testarguments_adr(JNIEnv *env, jclass clazz, jint i)
+{
+  switch (i) {
+  case 1:
+    return (jobject) 0x11111111;
+  case 2:
+    return (jobject) 0x22222222;
+  case 3:
+    return (jobject) 0x33333333;
+  case 4:
+    return (jobject) 0x44444444;
+  case 5:
+    return (jobject) 0x55555555;
+  case 6:
+    return (jobject) 0x66666666;
+  case 7:
+    return (jobject) 0x77777777;
+  case 8:
+    return (jobject) 0x88888888;
+  case 9:
+    return (jobject) 0x99999999;
+  case 10:
+    return (jobject) 0xaaaaaaaa;
+  case 11:
+    return (jobject) 0xbbbbbbbb;
+  case 12:
+    return (jobject) 0xcccccccc;
+  case 13:
+    return (jobject) 0xdddddddd;
+  case 14:
+    return (jobject) 0xeeeeeeee;
+  case 15:
+    return (jobject) 0xffffffff;
+  }
+}
+
+
+JNIEXPORT void JNICALL Java_testarguments_np(JNIEnv *env, jclass clazz, jobject o)
+{
+#if SIZEOF_VOID_P == 8
+    printf(" 0x%lx", (long) o);
+#else
+    printf(" 0x%x", (int) o);
+#endif
+
+    fflush(stdout);
+}
 
 
 JNIEXPORT void JNICALL Java_testarguments_nisub(JNIEnv *env, jclass clazz, jint a, jint b, jint c, jint d, jint e, jint f, jint g, jint h, jint i, jint j, jint k, jint l, jint m, jint n, jint o)
@@ -148,6 +192,29 @@ JNIEXPORT void JNICALL Java_testarguments_ndsub(JNIEnv *env, jclass clazz, jdoub
 
     if (mid == 0) {
         printf("native: couldn't find jdsub\n");
+        return;
+    }
+
+    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+}
+
+
+JNIEXPORT void JNICALL Java_testarguments_nasub(JNIEnv *env, jclass clazz, jobject a, jobject b, jobject c, jobject d, jobject e, jobject f, jobject g, jobject h, jobject i, jobject j, jobject k, jobject l, jobject m, jobject n, jobject o)
+{
+    jmethodID mid;
+
+#if SIZEOF_VOID_P == 8
+    printf("java-native: 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n", (long) a, (long) b, (long) c, (long) d, (long) e, (long) f, (long) g, (long) h, (long) i, (long) j, (long) k, (long) l, (long) m, (long) n, (long) o);
+#else
+    printf("java-native: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", (int) a, (int) b, (int) c, (int) d, (int) e, (int) f, (int) g, (int) h, (int) i, (int) j, (int) k, (int) l, (int) m, (int) n, (int) o);
+#endif
+
+    fflush(stdout);
+
+    mid = (*env)->GetStaticMethodID(env, clazz, "jasub", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V");
+
+    if (mid == 0) {
+        printf("native: couldn't find jasub\n");
         return;
     }
 

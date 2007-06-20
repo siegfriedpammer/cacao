@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8056 2007-06-10 14:49:57Z michi $
+   $Id: exceptions.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -44,6 +44,7 @@
 
 #include "native/jni.h"
 #include "native/native.h"
+
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
@@ -67,6 +68,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
+#include "vmcore/method.h"
 #include "vmcore/options.h"
 
 #if defined(ENABLE_VMLOG)
@@ -189,6 +191,71 @@ bool exceptions_init(void)
 }
 
 
+/* exceptions_get_exception ****************************************************
+
+   Returns the current exception pointer of the current thread.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_get_exception(void)
+{
+	/* return the exception */
+
+	return *exceptionptr;
+}
+
+
+/* exceptions_set_exception ****************************************************
+
+   Sets the exception pointer of the current thread.
+
+*******************************************************************************/
+
+void exceptions_set_exception(java_objectheader *o)
+{
+	/* set the exception */
+
+	*exceptionptr = o;
+}
+
+
+/* exceptions_clear_exception **************************************************
+
+   Clears the current exception pointer of the current thread.
+
+*******************************************************************************/
+
+void exceptions_clear_exception(void)
+{
+	exceptions_set_exception(NULL);
+}
+
+
+/* exceptions_get_and_clear_exception ******************************************
+
+   Gets the exception pointer of the current thread and clears it.
+   This function may return NULL.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_get_and_clear_exception(void)
+{
+	java_objectheader *o;
+
+	/* get the exception */
+
+	o = exceptions_get_exception();
+
+	/* and clear the exception */
+
+	exceptions_clear_exception();
+
+	/* return the exception */
+
+	return o;
+}
+
+
 /* exceptions_new_class ********************************************************
 
    Creates an exception object from the given class and initalizes it.
@@ -205,7 +272,7 @@ static java_objectheader *exceptions_new_class(classinfo *c)
 	o = native_new_and_init(c);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	return o;
 }
@@ -228,7 +295,7 @@ static java_objectheader *exceptions_new_utf(utf *classname)
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = exceptions_new_class(c);
 
@@ -255,7 +322,7 @@ static void exceptions_throw_class(classinfo *c)
 	if (o == NULL)
 		return;
 
-	*exceptionptr = o;
+	exceptions_set_exception(o);
 }
 
 
@@ -296,20 +363,39 @@ static void exceptions_throw_utf(utf *classname)
 static void exceptions_throw_utf_throwable(utf *classname,
 										   java_objectheader *cause)
 {
-	java_objectheader *o;
-	classinfo         *c;
-   
+	classinfo           *c;
+	java_objectheader   *o;
+	methodinfo          *m;
+	java_lang_Throwable *object;
+
+	object = (java_lang_Throwable *) cause;
+
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
 		return;
 
-	o = native_new_and_init_throwable(c, cause);
+	/* create object */
 
+	o = builtin_new(c);
+	
 	if (o == NULL)
 		return;
 
-	*exceptionptr = o;
+	/* call initializer */
+
+	m = class_resolveclassmethod(c,
+								 utf_init,
+								 utf_java_lang_Throwable__void,
+								 NULL,
+								 true);
+	                      	                      
+	if (m == NULL)
+		return;
+
+	(void) vm_call_method(m, o, cause);
+
+	exceptions_set_exception(o);
 }
 
 
@@ -327,20 +413,98 @@ static void exceptions_throw_utf_throwable(utf *classname,
 static void exceptions_throw_utf_exception(utf *classname,
 										   java_objectheader *exception)
 {
-	java_objectheader *o;
 	classinfo         *c;
-   
+	java_objectheader *o;
+	methodinfo        *m;
+
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
 		return;
 
-	o = native_new_and_init_exception(c, exception);
+	/* create object */
 
+	o = builtin_new(c);
+	
 	if (o == NULL)
 		return;
 
-	*exceptionptr = o;
+	/* call initializer */
+
+	m = class_resolveclassmethod(c,
+								 utf_init,
+								 utf_java_lang_Exception__V,
+								 NULL,
+								 true);
+	                      	                      
+	if (m == NULL)
+		return;
+
+	(void) vm_call_method(m, o, exception);
+
+	exceptions_set_exception(o);
+}
+
+
+/* exceptions_throw_utf_cause **************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/Throwable exception with initCause.
+
+   IN:
+      classname....class name in UTF-8
+	  cause........the given Throwable
+
+*******************************************************************************/
+
+static void exceptions_throw_utf_cause(utf *classname, java_objectheader *cause)
+{
+	classinfo           *c;
+	java_objectheader   *o;
+	methodinfo          *m;
+	java_lang_Throwable *object;
+
+	object = (java_lang_Throwable *) cause;
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return;
+
+	/* create object */
+
+	o = builtin_new(c);
+	
+	if (o == NULL)
+		return;
+
+	/* call initializer */
+
+	m = class_resolveclassmethod(c,
+								 utf_init,
+								 utf_java_lang_String__void,
+								 NULL,
+								 true);
+	                      	                      
+	if (m == NULL)
+		return;
+
+	(void) vm_call_method(m, o, object->detailMessage);
+
+	/* call initCause */
+
+	m = class_resolveclassmethod(c,
+								 utf_initCause,
+								 utf_java_lang_Throwable__java_lang_Throwable,
+								 NULL,
+								 true);
+
+	if (m == NULL)
+		return;
+
+	(void) vm_call_method(m, o, cause);
+
+	exceptions_set_exception(o);
 }
 
 
@@ -368,12 +532,12 @@ static java_objectheader *exceptions_new_utf_javastring(utf *classname,
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = native_new_and_init_string(c, message);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	return o;
 }
@@ -397,12 +561,12 @@ static java_objectheader *exceptions_new_class_utf(classinfo *c, utf *message)
 	s = javastring_new(message);
 
 	if (s == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = native_new_and_init_string(c, s);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	return o;
 }
@@ -431,7 +595,7 @@ static java_objectheader *exceptions_new_utf_utf(utf *classname, utf *message)
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = exceptions_new_class_utf(c, message);
 
@@ -452,7 +616,11 @@ static java_objectheader *exceptions_new_utf_utf(utf *classname, utf *message)
 
 static void exceptions_throw_class_utf(classinfo *c, utf *message)
 {
-	*exceptionptr = exceptions_new_class_utf(c, message);
+	java_objectheader *o;
+
+	o = exceptions_new_class_utf(c, message);
+
+	exceptions_set_exception(o);
 }
 
 
@@ -469,7 +637,11 @@ static void exceptions_throw_class_utf(classinfo *c, utf *message)
 
 static void exceptions_throw_utf_utf(utf *classname, utf *message)
 {
-	*exceptionptr = exceptions_new_utf_utf(classname, message);
+	java_objectheader *o;
+
+	o = exceptions_new_utf_utf(classname, message);
+
+	exceptions_set_exception(o);
 }
 
 
@@ -682,12 +854,23 @@ void exceptions_throw_noclassdeffounderror(utf *name)
 }
 
 
+/* exceptions_throw_noclassdeffounderror_cause *********************************
+
+   Generates and throws a java.lang.NoClassDefFoundError with the
+   given cause.
+
+*******************************************************************************/
+
+void exceptions_throw_noclassdeffounderror_cause(java_objectheader *cause)
+{
+	exceptions_throw_utf_cause(utf_java_lang_NoClassDefFoundError, cause);
+}
+
+
 /* exceptions_throw_noclassdeffounderror_wrong_name ****************************
 
    Generates and throws a java.lang.NoClassDefFoundError with a
    specific message:
-
-
 
    IN:
       name.........name of the class not found as a utf *
@@ -715,51 +898,6 @@ void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
 	MFREE(msg, char, msglen);
 
 	exceptions_throw_noclassdeffounderror(u);
-}
-
-
-/* classnotfoundexception_to_noclassdeffounderror ******************************
-
-   Check the *exceptionptr for a ClassNotFoundException. If it is one,
-   convert it to a NoClassDefFoundError.
-
-*******************************************************************************/
-
-void classnotfoundexception_to_noclassdeffounderror(void)
-{
-	java_objectheader   *xptr;
-	java_objectheader   *cause;
-	java_lang_Throwable *t;
-	java_objectheader   *s;
-
-	/* get the cause */
-
-	cause = *exceptionptr;
-
-	/* convert ClassNotFoundException's to NoClassDefFoundError's */
-
-	if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
-		/* clear exception, because we are calling jit code again */
-
-		*exceptionptr = NULL;
-
-		/* create new error */
-
-		t = (java_lang_Throwable *) cause;
-		s = (java_objectheader *) t->detailMessage;
-
-		xptr = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError,
-											 s);
-
-		/* we had an exception while creating the error */
-
-		if (*exceptionptr)
-			return;
-
-		/* set new exception */
-
-		*exceptionptr = xptr;
-	}
 }
 
 
@@ -920,7 +1058,7 @@ void exceptions_throw_linkageerror(const char *message, classinfo *c)
 	if (o == NULL)
 		return;
 
-	*exceptionptr = o;
+	exceptions_set_exception(o);
 }
 
 
@@ -1272,18 +1410,18 @@ java_objectheader *exceptions_new_arrayindexoutofboundsexception(s4 index)
 								 true);
 
 	if (m == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	s = vm_call_method(m, NULL, index);
 
 	if (s == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	o = exceptions_new_utf_javastring(utf_java_lang_ArrayIndexOutOfBoundsException,
 									  s);
 
 	if (o == NULL)
-		return *exceptionptr;
+		return exceptions_get_exception();
 
 	return o;
 }
@@ -1494,45 +1632,48 @@ void exceptions_throw_stringindexoutofboundsexception(void)
 }
 
 
-/* exceptions_get_exception ****************************************************
+/* exceptions_classnotfoundexception_to_noclassdeffounderror *******************
 
-   Returns the current exception pointer of the current thread.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_get_exception(void)
-{
-	/* return the exception */
-
-	return *exceptionptr;
-}
-
-
-/* exceptions_set_exception ****************************************************
-
-   Sets the exception pointer of the current thread.
+   Check the exception for a ClassNotFoundException. If it is one,
+   convert it to a NoClassDefFoundError.
 
 *******************************************************************************/
 
-void exceptions_set_exception(java_objectheader *o)
+void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 {
-	/* set the exception */
+	java_objectheader   *o;
+	java_objectheader   *cause;
+	java_lang_Throwable *object;
+	java_objectheader   *s;
 
-	*exceptionptr = o;
-}
+	/* get the cause */
 
+	cause = exceptions_get_exception();
 
-/* exceptions_clear_exception **************************************************
+	/* convert ClassNotFoundException's to NoClassDefFoundError's */
 
-   Clears the current exception pointer of the current thread.
+	if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
+		/* clear exception, because we are calling jit code again */
 
-*******************************************************************************/
+		exceptions_clear_exception();
 
-void exceptions_clear_exception(void)
-{
-	/* and clear the exception */
+		/* create new error */
 
-	*exceptionptr = NULL;
+		object = (java_lang_Throwable *) cause;
+		s      = (java_objectheader *) object->detailMessage;
+
+		o = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError,
+										  s);
+
+		/* we had an exception while creating the error */
+
+		if (exceptions_get_exception())
+			return;
+
+		/* set new exception */
+
+		exceptions_set_exception(o);
+	}
 }
 
 
@@ -1550,12 +1691,9 @@ java_objectheader *exceptions_fillinstacktrace(void)
 
 	/* get exception */
 
-	o = *exceptionptr;
+	o = exceptions_get_and_clear_exception();
+
 	assert(o);
-
-	/* clear exception */
-
-	*exceptionptr = NULL;
 
 	/* resolve methodinfo pointer from exception object */
 
@@ -1578,36 +1716,6 @@ java_objectheader *exceptions_fillinstacktrace(void)
 	/* return exception object */
 
 	return o;
-}
-
-
-/* exceptions_get_and_clear_exception ******************************************
-
-   Gets the exception pointer of the current thread and clears it.
-   This function may return NULL.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_get_and_clear_exception(void)
-{
-	java_objectheader **p;
-	java_objectheader  *e;
-
-	/* get the pointer of the exception pointer */
-
-	p = exceptionptr;
-
-	/* get the exception */
-
-	e = *p;
-
-	/* and clear the exception */
-
-	*p = NULL;
-
-	/* return the exception */
-
-	return e;
 }
 
 
@@ -1746,7 +1854,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 #if !defined(NDEBUG)
 	/* print exception trace */
 
-	if (opt_verbose || opt_verbosecall || opt_verboseexception)
+	if (opt_verbose || opt_verbosecall || opt_TraceExceptions)
 		builtin_trace_exception(xptr, m, xpc, 1);
 #endif
 
@@ -1782,7 +1890,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 				vmlog_cacao_catch(xptr);
 #endif
 
-				if (opt_verboseexception) {
+				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
 					stacktrace_print_trace(xptr);
 				}
@@ -1843,7 +1951,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 				vmlog_cacao_catch(xptr);
 #endif
 
-				if (opt_verboseexception) {
+				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
 					stacktrace_print_trace(xptr);
 				}
@@ -1953,11 +2061,11 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 void exceptions_print_current_exception(void)
 {
-	java_objectheader *xptr;
+	java_objectheader *o;
 
-	xptr = *exceptionptr;
+	o = exceptions_get_exception();
 
-	exceptions_print_exception(xptr);
+	exceptions_print_exception(o);
 }
 
 
@@ -1980,14 +2088,12 @@ void exceptions_print_stacktrace(void)
 
 	/* get original exception */
 
-	oxptr = *exceptionptr;
+	oxptr = exceptions_get_and_clear_exception();
 
 	if (oxptr == NULL)
 		vm_abort("exceptions_print_stacktrace: no exception thrown");
 
 	/* clear exception, because we are calling jit code again */
-
-	*exceptionptr = NULL;
 
 	c = oxptr->vftbl->class;
 
@@ -2014,7 +2120,7 @@ void exceptions_print_stacktrace(void)
 	   have a serious problem while printStackTrace. But may
 	   be another exception, so print it. */
 
-	xptr = *exceptionptr;
+	xptr = exceptions_get_exception();
 
 	if (xptr != NULL) {
 		fprintf(stderr, "Exception while printStackTrace(): ");

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: headers.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: headers.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -32,10 +32,9 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "vm/types.h"
 
 #if defined(ENABLE_THREADS)
 # if defined(__DARWIN__)
@@ -66,7 +65,7 @@
 
 chain *ident_chain;     /* chain with method and field names in current class */
 FILE *file = NULL;
-static u4 outputsize;
+static uint32_t outputsize;
 static bool dopadding;
 
 
@@ -92,14 +91,19 @@ void printID(utf *u)
 }
 
 
-static void addoutputsize (int len)
+static void addoutputsize(int len)
 {
-	u4 newsize,i;
-	if (!dopadding) return;
+	uint32_t newsize;
+	int32_t  i;
+
+	if (!dopadding)
+		return;
 
 	newsize = MEMORY_ALIGN(outputsize, len);
 	
-	for (i = outputsize; i < newsize; i++) fprintf(file, "   u1 pad%d\n", (int) i);
+	for (i = outputsize; i < newsize; i++)
+		fprintf(file, "   uint8_t pad%d\n", (int) i);
+
 	outputsize = newsize;
 }
 
@@ -107,7 +111,7 @@ static void addoutputsize (int len)
 void printOverloadPart(utf *desc)
 {
 	char *utf_ptr=desc->text;
-	u2 c;
+	uint16_t c;
 
 	fprintf(file, "__");
 
@@ -143,26 +147,31 @@ void printOverloadPart(utf *desc)
 
 static char *printtype(char *utf_ptr)
 {
-	u2 c;
+	uint16_t c;
 
 	switch (utf_nextu2(&utf_ptr)) {
-	case 'V': fprintf (file, "void");
+	case 'V':
+		fprintf(file, "void");
 		break;
 	case 'I':
 	case 'S':
 	case 'B':
 	case 'C':
-	case 'Z': addoutputsize (4);
-		fprintf (file, "s4");
+	case 'Z':
+		addoutputsize(4);
+		fprintf(file, "int32_t");
 		break;
-	case 'J': addoutputsize (8);
-		fprintf (file, "s8");
+	case 'J':
+		addoutputsize(8);
+		fprintf(file, "int64_t");
 		break;
-	case 'F': addoutputsize (4);
-		fprintf (file, "float");
+	case 'F':
+		addoutputsize(4);
+		fprintf(file, "float");
 		break;
-	case 'D': addoutputsize (8);
-		fprintf (file, "double");
+	case 'D':
+		addoutputsize(8);
+		fprintf(file, "double");
 		break;
 	case '[':
 		addoutputsize ( sizeof(java_arrayheader*) ); 
@@ -227,7 +236,7 @@ static int searchidentchain_utf(utf *ident)
 
 static void printfields(classinfo *c)
 {
-	u4 i;
+	int32_t i;
 	fieldinfo *f;
 	int ident_count;
 	
@@ -264,7 +273,7 @@ static void printfields(classinfo *c)
 void printmethod(methodinfo *m)
 {
 	char *utf_ptr;
-	u2 paramnum = 1;
+	int32_t paramnum = 1;
 
 	/* search for return-type in descriptor */	
 	utf_ptr = m->descriptor->text;
@@ -324,7 +333,7 @@ void printmethod(methodinfo *m)
 
 void gen_header_filename(char *buffer, utf *u)
 {
-	s4 i;
+	int32_t i;
   
 	for (i = 0; i < utf_get_number_of_u2s(u); i++) {
 		if ((u->text[i] == '/') || (u->text[i] == '$')) {
@@ -345,9 +354,9 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 	char header_filename[1024] = "";
 	char classname[1024]; 
 	char uclassname[1024];
-	u2 i;
+	int32_t i;
 	methodinfo *m;	      		
-	u2 j;
+	int32_t j;
 	methodinfo *m2;
 	bool nativelyoverloaded;
 
@@ -458,7 +467,7 @@ void print_classname(classinfo *clazz)
 	utf *u = clazz->name;
     char *endpos  = u->text + u->blength;
     char *utf_ptr = u->text; 
-	u2 c;
+	uint16_t c;
 
     while (utf_ptr < endpos) {
 		if ((c = utf_nextu2(&utf_ptr)) == '_')

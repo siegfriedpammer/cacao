@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8052 2007-06-10 13:44:33Z michi $
+   $Id: threads.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -967,7 +967,7 @@ bool threads_init(void)
 	(void) vm_call_method(method_thread_init, o, threadname);
 #endif
 
-	if (*exceptionptr)
+	if (exceptions_get_exception())
 		return false;
 
 #if defined(ENABLE_JAVASE)
@@ -985,7 +985,7 @@ bool threads_init(void)
 
 	(void) vm_call_method(m, o, t);
 
-	if (*exceptionptr)
+	if (exceptions_get_exception())
 		return false;
 #endif
 
@@ -1425,7 +1425,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	(void) vm_call_method(method_thread_init, o, s);
 #endif
 
-	if (*exceptionptr)
+	if (exceptions_get_exception())
 		return false;
 
 #if defined(ENABLE_JAVASE)
@@ -1445,7 +1445,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	(void) vm_call_method(m, o, t);
 
-	if (*exceptionptr)
+	if (exceptions_get_exception())
 		return false;
 #endif
 
@@ -1492,7 +1492,7 @@ bool threads_detach_thread(threadobject *thread)
 
 		(void) vm_call_method(m, o, t);
 
-		if (*exceptionptr)
+		if (exceptions_get_exception())
 			return false;
 	}
 #endif

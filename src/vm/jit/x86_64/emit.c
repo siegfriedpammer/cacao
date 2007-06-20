@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -74,7 +74,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 8;
+		disp = src->vv.regoff;
 
 		switch (src->type) {
 		case TYPE_INT:
@@ -151,7 +151,7 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		disp = dst->vv.regoff * 8;
+		disp = dst->vv.regoff;
 
 		switch (dst->type) {
 		case TYPE_INT:
@@ -815,53 +815,53 @@ void emit_ishift(jitdata *jd, s4 shift_op, instruction *iptr)
 	if (IS_INMEMORY(v_dst->flags)) {
 		if (IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			if (s1 == d) {
-				M_ILD(RCX, REG_SP, s2 * 8);
-				emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
+				M_ILD(RCX, REG_SP, s2);
+				emit_shiftl_membase(cd, shift_op, REG_SP, d);
 
 			} else {
-				M_ILD(RCX, REG_SP, s2 * 8);
-				M_ILD(REG_ITMP2, REG_SP, s1 * 8);
+				M_ILD(RCX, REG_SP, s2);
+				M_ILD(REG_ITMP2, REG_SP, s1);
 				emit_shiftl_reg(cd, shift_op, REG_ITMP2);
-				M_IST(REG_ITMP2, REG_SP, d * 8);
+				M_IST(REG_ITMP2, REG_SP, d);
 			}
 
 		} else if (IS_INMEMORY(v_s2->flags) && !IS_INMEMORY(v_s1->flags)) {
 			/* s1 may be equal to RCX */
 			if (s1 == RCX) {
 				if (s2 == d) {
-					M_ILD(REG_ITMP1, REG_SP, s2 * 8);
-					M_IST(s1, REG_SP, d * 8);
+					M_ILD(REG_ITMP1, REG_SP, s2);
+					M_IST(s1, REG_SP, d);
 					M_INTMOVE(REG_ITMP1, RCX);
 
 				} else {
-					M_IST(s1, REG_SP, d * 8);
-					M_ILD(RCX, REG_SP, s2 * 8);
+					M_IST(s1, REG_SP, d);
+					M_ILD(RCX, REG_SP, s2);
 				}
 
 			} else {
-				M_ILD(RCX, REG_SP, s2 * 8);
-				M_IST(s1, REG_SP, d * 8);
+				M_ILD(RCX, REG_SP, s2);
+				M_IST(s1, REG_SP, d);
 			}
 
-			emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
+			emit_shiftl_membase(cd, shift_op, REG_SP, d);
 
 		} else if (!IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			if (s1 == d) {
 				M_INTMOVE(s2, RCX);
-				emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
+				emit_shiftl_membase(cd, shift_op, REG_SP, d);
 
 			} else {
 				M_INTMOVE(s2, RCX);
-				M_ILD(REG_ITMP2, REG_SP, s1 * 8);
+				M_ILD(REG_ITMP2, REG_SP, s1);
 				emit_shiftl_reg(cd, shift_op, REG_ITMP2);
-				M_IST(REG_ITMP2, REG_SP, d * 8);
+				M_IST(REG_ITMP2, REG_SP, d);
 			}
 
 		} else {
 			/* s1 may be equal to RCX */
-			M_IST(s1, REG_SP, d * 8);
+			M_IST(s1, REG_SP, d);
 			M_INTMOVE(s2, RCX);
-			emit_shiftl_membase(cd, shift_op, REG_SP, d * 8);
+			emit_shiftl_membase(cd, shift_op, REG_SP, d);
 		}
 
 		M_INTMOVE(REG_ITMP1, RCX);                             /* restore RCX */
@@ -873,19 +873,19 @@ void emit_ishift(jitdata *jd, s4 shift_op, instruction *iptr)
 		}
 					
 		if (IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
-			M_ILD(RCX, REG_SP, s2 * 8);
-			M_ILD(d, REG_SP, s1 * 8);
+			M_ILD(RCX, REG_SP, s2);
+			M_ILD(d, REG_SP, s1);
 			emit_shiftl_reg(cd, shift_op, d);
 
 		} else if (IS_INMEMORY(v_s2->flags) && !IS_INMEMORY(v_s1->flags)) {
 			/* s1 may be equal to RCX */
 			M_INTMOVE(s1, d);
-			M_ILD(RCX, REG_SP, s2 * 8);
+			M_ILD(RCX, REG_SP, s2);
 			emit_shiftl_reg(cd, shift_op, d);
 
 		} else if (!IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			M_INTMOVE(s2, RCX);
-			M_ILD(d, REG_SP, s1 * 8);
+			M_ILD(d, REG_SP, s1);
 			emit_shiftl_reg(cd, shift_op, d);
 
 		} else {
@@ -942,53 +942,53 @@ void emit_lshift(jitdata *jd, s4 shift_op, instruction *iptr)
 	if (IS_INMEMORY(v_dst->flags)) {
 		if (IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			if (s1 == d) {
-				M_ILD(RCX, REG_SP, s2 * 8);
-				emit_shift_membase(cd, shift_op, REG_SP, d * 8);
+				M_ILD(RCX, REG_SP, s2);
+				emit_shift_membase(cd, shift_op, REG_SP, d);
 
 			} else {
-				M_ILD(RCX, REG_SP, s2 * 8);
-				M_LLD(REG_ITMP2, REG_SP, s1 * 8);
+				M_ILD(RCX, REG_SP, s2);
+				M_LLD(REG_ITMP2, REG_SP, s1);
 				emit_shift_reg(cd, shift_op, REG_ITMP2);
-				M_LST(REG_ITMP2, REG_SP, d * 8);
+				M_LST(REG_ITMP2, REG_SP, d);
 			}
 
 		} else if (IS_INMEMORY(v_s2->flags) && !IS_INMEMORY(v_s1->flags)) {
 			/* s1 may be equal to RCX */
 			if (s1 == RCX) {
 				if (s2 == d) {
-					M_ILD(REG_ITMP1, REG_SP, s2 * 8);
-					M_LST(s1, REG_SP, d * 8);
+					M_ILD(REG_ITMP1, REG_SP, s2);
+					M_LST(s1, REG_SP, d);
 					M_INTMOVE(REG_ITMP1, RCX);
 
 				} else {
-					M_LST(s1, REG_SP, d * 8);
-					M_ILD(RCX, REG_SP, s2 * 8);
+					M_LST(s1, REG_SP, d);
+					M_ILD(RCX, REG_SP, s2);
 				}
 
 			} else {
-				M_ILD(RCX, REG_SP, s2 * 8);
-				M_LST(s1, REG_SP, d * 8);
+				M_ILD(RCX, REG_SP, s2);
+				M_LST(s1, REG_SP, d);
 			}
 
-			emit_shift_membase(cd, shift_op, REG_SP, d * 8);
+			emit_shift_membase(cd, shift_op, REG_SP, d);
 
 		} else if (!IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			if (s1 == d) {
 				M_INTMOVE(s2, RCX);
-				emit_shift_membase(cd, shift_op, REG_SP, d * 8);
+				emit_shift_membase(cd, shift_op, REG_SP, d);
 
 			} else {
 				M_INTMOVE(s2, RCX);
-				M_LLD(REG_ITMP2, REG_SP, s1 * 8);
+				M_LLD(REG_ITMP2, REG_SP, s1);
 				emit_shift_reg(cd, shift_op, REG_ITMP2);
-				M_LST(REG_ITMP2, REG_SP, d * 8);
+				M_LST(REG_ITMP2, REG_SP, d);
 			}
 
 		} else {
 			/* s1 may be equal to RCX */
-			M_LST(s1, REG_SP, d * 8);
+			M_LST(s1, REG_SP, d);
 			M_INTMOVE(s2, RCX);
-			emit_shift_membase(cd, shift_op, REG_SP, d * 8);
+			emit_shift_membase(cd, shift_op, REG_SP, d);
 		}
 
 		M_INTMOVE(REG_ITMP1, RCX);                             /* restore RCX */
@@ -1000,19 +1000,19 @@ void emit_lshift(jitdata *jd, s4 shift_op, instruction *iptr)
 		}
 
 		if (IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
-			M_ILD(RCX, REG_SP, s2 * 8);
-			M_LLD(d, REG_SP, s1 * 8);
+			M_ILD(RCX, REG_SP, s2);
+			M_LLD(d, REG_SP, s1);
 			emit_shift_reg(cd, shift_op, d);
 
 		} else if (IS_INMEMORY(v_s2->flags) && !IS_INMEMORY(v_s1->flags)) {
 			/* s1 may be equal to RCX */
 			M_INTMOVE(s1, d);
-			M_ILD(RCX, REG_SP, s2 * 8);
+			M_ILD(RCX, REG_SP, s2);
 			emit_shift_reg(cd, shift_op, d);
 
 		} else if (!IS_INMEMORY(v_s2->flags) && IS_INMEMORY(v_s1->flags)) {
 			M_INTMOVE(s2, RCX);
-			M_LLD(d, REG_SP, s1 * 8);
+			M_LLD(d, REG_SP, s1);
 			emit_shift_reg(cd, shift_op, d);
 
 		} else {

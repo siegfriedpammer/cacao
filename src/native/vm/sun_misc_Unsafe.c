@@ -28,7 +28,8 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -39,31 +40,33 @@
 
 #include "native/include/sun_misc_Unsafe.h"
 
+#include "vmcore/utf8.h"
+
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "objectFieldOffset",    "(Ljava/lang/reflect/Field;)J",                               (void *) (ptrint) &Java_sun_misc_Unsafe_objectFieldOffset    },
-	{ "compareAndSwapInt",    "(Ljava/lang/Object;JII)Z",                                   (void *) (ptrint) &Java_sun_misc_Unsafe_compareAndSwapInt    },
+	{ "objectFieldOffset",    "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_objectFieldOffset    },
+	{ "compareAndSwapInt",    "(Ljava/lang/Object;JII)Z",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapInt    },
 #if 0
-	{ "compareAndSwapLong",   "(Ljava/lang/Object;JJJ)Z",                                   (void *) (ptrint) &Java_sun_misc_Unsafe_compareAndSwapLong   },
-	{ "compareAndSwapObject", "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", (void *) (ptrint) &Java_sun_misc_Unsafe_compareAndSwapObject },
-	{ "putOrderedInt",        "(Ljava/lang/Object;JI)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putOrderedInt        },
-	{ "putOrderedLong",       "(Ljava/lang/Object;JJ)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putOrderedLong       },
-	{ "putOrderedObject",     "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (ptrint) &Java_sun_misc_Unsafe_putOrderedObject     },
-	{ "putIntVolatile",       "(Ljava/lang/Object;JI)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putIntVolatile       },
-	{ "getIntVolatile",       "(Ljava/lang/Object;J)I",                                     (void *) (ptrint) &Java_sun_misc_Unsafe_getIntVolatile       },
-	{ "putLongVolatile",      "(Ljava/lang/Object;JJ)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putLongVolatile      },
-	{ "putLong",              "(Ljava/lang/Object;JJ)V",                                    (void *) (ptrint) &Java_sun_misc_Unsafe_putLong              },
-	{ "getLongVolatile",      "(Ljava/lang/Object;J)J",                                     (void *) (ptrint) &Java_sun_misc_Unsafe_getLongVolatile      },
-	{ "getLong",              "(Ljava/lang/Object;J)J",                                     (void *) (ptrint) &Java_sun_misc_Unsafe_getLong              },
-	{ "putObjectVolatile",    "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (ptrint) &Java_sun_misc_Unsafe_putObjectVolatile    },
-	{ "putObject",            "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (ptrint) &Java_sun_misc_Unsafe_putObject            },
-	{ "getObjectVolatile",    "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void *) (ptrint) &Java_sun_misc_Unsafe_getObjectVolatile    },
-	{ "arrayBaseOffset",      "(Ljava/lang/Class;)I",                                       (void *) (ptrint) &Java_sun_misc_Unsafe_arrayBaseOffset      },
-	{ "arrayIndexScale",      "(Ljava/lang/Class;)I",                                       (void *) (ptrint) &Java_sun_misc_Unsafe_arrayIndexScale      },
-	{ "unpark",               "(Ljava/lang/Thread;)V",                                      (void *) (ptrint) &Java_sun_misc_Unsafe_unpark               },
-	{ "park",                 "(ZJ)V",                                                      (void *) (ptrint) &Java_sun_misc_Unsafe_park                 },
+	{ "compareAndSwapLong",   "(Ljava/lang/Object;JJJ)Z",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapLong   },
+	{ "compareAndSwapObject", "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapObject },
+	{ "putOrderedInt",        "(Ljava/lang/Object;JI)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedInt        },
+	{ "putOrderedLong",       "(Ljava/lang/Object;JJ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedLong       },
+	{ "putOrderedObject",     "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedObject     },
+	{ "putIntVolatile",       "(Ljava/lang/Object;JI)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putIntVolatile       },
+	{ "getIntVolatile",       "(Ljava/lang/Object;J)I",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getIntVolatile       },
+	{ "putLongVolatile",      "(Ljava/lang/Object;JJ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putLongVolatile      },
+	{ "putLong",              "(Ljava/lang/Object;JJ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putLong              },
+	{ "getLongVolatile",      "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLongVolatile      },
+	{ "getLong",              "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLong              },
+	{ "putObjectVolatile",    "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (intptr_t) &Java_sun_misc_Unsafe_putObjectVolatile    },
+	{ "putObject",            "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (intptr_t) &Java_sun_misc_Unsafe_putObject            },
+	{ "getObjectVolatile",    "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void *) (intptr_t) &Java_sun_misc_Unsafe_getObjectVolatile    },
+	{ "arrayBaseOffset",      "(Ljava/lang/Class;)I",                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_arrayBaseOffset      },
+	{ "arrayIndexScale",      "(Ljava/lang/Class;)I",                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_arrayIndexScale      },
+	{ "unpark",               "(Ljava/lang/Thread;)V",                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_unpark               },
+	{ "park",                 "(ZJ)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_park                 },
 #endif
 };
 
@@ -89,7 +92,7 @@ void _Jv_sun_misc_Unsafe_init(void)
  * Method:    objectFieldOffset
  * Signature: (Ljava/lang/reflect/Field;)J
  */
-JNIEXPORT s8 JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, sun_misc_Unsafe* this, java_lang_reflect_Field* field)
+JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, sun_misc_Unsafe* this, java_lang_reflect_Field* field)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -97,7 +100,7 @@ JNIEXPORT s8 JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, sun_mis
 	c = (classinfo *) field->declaringClass;
 	f = &c->fields[field->slot];
 
-	return (s8) f->offset;
+	return (int64_t) f->offset;
 }
 
 
@@ -106,12 +109,12 @@ JNIEXPORT s8 JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, sun_mis
  * Method:    compareAndSwapInt
  * Signature: (Ljava/lang/Object;JII)Z
  */
-JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, sun_misc_Unsafe* this, java_lang_Object* obj, s8 offset, s4 expect, s4 update)
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, sun_misc_Unsafe* this, java_lang_Object* obj, int64_t offset, int32_t expect, int32_t update)
 {
-	s4 *p;
-	s4  value;
+	int32_t *p;
+	int32_t  value;
 
-	p = (s4 *) (((u1 *) obj) + offset);
+	p = (int32_t *) (((u1 *) obj) + offset);
 
 	/* XXX this should be atomic */
 
@@ -133,7 +136,7 @@ JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, sun_mis
  * Method:    compareAndSwapLong
  * Signature: (Ljava/lang/Object;JJJ)Z
  */
-JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, s8 par3, s8 par4)
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, int64_t par3, int64_t par4)
 {
 }
 
@@ -143,7 +146,7 @@ JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, struct
  * Method:    compareAndSwapObject
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, struct java_lang_Object* par3, struct java_lang_Object* par4)
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, struct java_lang_Object* par3, struct java_lang_Object* par4)
 {
 }
 
@@ -153,7 +156,7 @@ JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env, stru
  * Method:    putOrderedInt
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, s4 par3)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, int32_t par3)
 {
 }
 
@@ -163,7 +166,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, struct su
  * Method:    putOrderedLong
  * Signature: (Ljava/lang/Object;JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, s8 par3)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, int64_t par3)
 {
 }
 
@@ -173,7 +176,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, struct s
  * Method:    putOrderedObject
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, struct java_lang_Object* par3)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, struct java_lang_Object* par3)
 {
 }
 
@@ -183,7 +186,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, struct
  * Method:    putIntVolatile
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, s4 par3)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, int32_t par3)
 {
 }
 
@@ -193,7 +196,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, struct s
  * Method:    getIntVolatile
  * Signature: (Ljava/lang/Object;J)I
  */
-JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2)
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2)
 {
 }
 
@@ -203,7 +206,7 @@ JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, struct sun
  * Method:    putLongVolatile
  * Signature: (Ljava/lang/Object;JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, s8 par3)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, int64_t par3)
 {
 }
 
@@ -213,7 +216,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, struct 
  * Method:    putLong
  * Signature: (Ljava/lang/Object;JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, s8 par3)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, int64_t par3)
 {
 }
 
@@ -223,7 +226,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong(JNIEnv *env, struct sun_misc
  * Method:    getLongVolatile
  * Signature: (Ljava/lang/Object;J)J
  */
-JNIEXPORT s8 JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2)
+JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2)
 {
 }
 
@@ -233,7 +236,7 @@ JNIEXPORT s8 JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, struct su
  * Method:    getLong
  * Signature: (Ljava/lang/Object;J)J
  */
-JNIEXPORT s8 JNICALL Java_sun_misc_Unsafe_getLong(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2)
+JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLong(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2)
 {
 }
 
@@ -243,7 +246,7 @@ JNIEXPORT s8 JNICALL Java_sun_misc_Unsafe_getLong(JNIEnv *env, struct sun_misc_U
  * Method:    putObjectVolatile
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, struct java_lang_Object* par3)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, struct java_lang_Object* par3)
 {
 }
 
@@ -253,7 +256,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, struc
  * Method:    putObject
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObject(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2, struct java_lang_Object* par3)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObject(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2, struct java_lang_Object* par3)
 {
 }
 
@@ -263,7 +266,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObject(JNIEnv *env, struct sun_mi
  * Method:    getObjectVolatile
  * Signature: (Ljava/lang/Object;J)Ljava/lang/Object;
  */
-JNIEXPORT struct java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, s8 par2)
+JNIEXPORT struct java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Object* par1, int64_t par2)
 {
 }
 
@@ -273,7 +276,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObjectVolatil
  * Method:    arrayBaseOffset
  * Signature: (Ljava/lang/Class;)I
  */
-JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_arrayBaseOffset(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Class* par1)
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayBaseOffset(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Class* par1)
 {
 }
 
@@ -283,7 +286,7 @@ JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_arrayBaseOffset(JNIEnv *env, struct su
  * Method:    arrayIndexScale
  * Signature: (Ljava/lang/Class;)I
  */
-JNIEXPORT s4 JNICALL Java_sun_misc_Unsafe_arrayIndexScale(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Class* par1)
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayIndexScale(JNIEnv *env, struct sun_misc_Unsafe* this, struct java_lang_Class* par1)
 {
 }
 
@@ -303,7 +306,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_unpark(JNIEnv *env, struct sun_misc_
  * Method:    park
  * Signature: (ZJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_park(JNIEnv *env, struct sun_misc_Unsafe* this, s4 par1, s8 par2)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_park(JNIEnv *env, struct sun_misc_Unsafe* this, int32_t par1, int64_t par2)
 {
 }
 #endif

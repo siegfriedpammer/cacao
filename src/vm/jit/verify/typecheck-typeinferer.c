@@ -34,12 +34,15 @@
 #include <string.h>
 
 #include "mm/memory.h"
-#include "toolbox/logging.h"
+
 #include "native/native.h"
+
+#include "toolbox/logging.h"
 
 #include "vm/access.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
+#include "vm/resolve.h"
 #include "vm/vm.h"
 
 #include "vm/jit/patcher.h"
@@ -51,7 +54,7 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vm/resolve.h"
+#include "vmcore/primitive.h"
 
 #define TYPECHECK_NO_STATISTICS
 #include <typecheck-common.h>

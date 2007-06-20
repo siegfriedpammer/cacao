@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -73,7 +73,7 @@ inline s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		switch (src->type) {
 		case TYPE_INT:
@@ -124,7 +124,7 @@ inline s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src,s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		M_ILD(tempreg, REG_SP, disp);
 
@@ -158,7 +158,7 @@ inline s4 emit_load_high(jitdata *jd, instruction *iptr,varinfo *src,s4 tempreg)
 	if (IS_INMEMORY(src->flags)) {
 		COUNT_SPILLS;
 
-		disp = src->vv.regoff * 4;
+		disp = src->vv.regoff;
 
 		M_ILD(tempreg, REG_SP, disp + 4);
 
@@ -189,7 +189,7 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
 
-		disp = dst->vv.regoff * 4;
+		disp = dst->vv.regoff;
 
 		switch (dst->type) {
 		case TYPE_INT:
@@ -231,7 +231,7 @@ inline void emit_store_low(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
-		M_IST(GET_LOW_REG(d), REG_SP, dst->vv.regoff * 4);
+		M_IST(GET_LOW_REG(d), REG_SP, dst->vv.regoff);
 	}
 }
 
@@ -255,7 +255,7 @@ inline void emit_store_high(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;
-		M_IST(GET_HIGH_REG(d), REG_SP, dst->vv.regoff * 4 + 4);
+		M_IST(GET_HIGH_REG(d), REG_SP, dst->vv.regoff + 4);
 	}
 }
 

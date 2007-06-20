@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 8027 2007-06-07 10:30:33Z michi $
+   $Id: codegen.h 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -309,6 +309,10 @@
 #define N_VALID_DISP(x) ((N_DISP_MIN <= (x)) && ((x) <= N_DISP_MAX))
 #define ASSERT_VALID_DISP(x) assert(N_VALID_DISP(x))
 
+#define N_PV_OFFSET (-0xFFC)
+#define N_DSEG_DISP(x) ((x) - N_PV_OFFSET)
+#define N_VALID_DSEG_DISP(x) N_VALID_DISP(N_DSEG_DISP(x))
+
 #define N_BRANCH_MIN -32768
 #define N_BRANCH_MAX 32767
 #define N_VALID_BRANCH(x) ((N_BRANCH_MIN <= (x)) && ((x) <= N_BRANCH_MAX))
@@ -331,6 +335,11 @@
 #define DD_NH 13
 #define DD_NO 14
 #define DD_ANY 15
+
+#define DD_0 8
+#define DD_1 4
+#define DD_2 2
+#define DD_3 1
 
 /* Misc */
 
@@ -386,6 +395,10 @@
 #	define N_J(i2) N_BRC(DD_ANY, i2)
 #	define SZ_BRC SZ_RI
 #	define SZ_J SZ_RI
+#	define N_BRC_BACK_PATCH(brc_pos) \
+		do { \
+			*(u4 *)(brc_pos) |= (u4)(cd->mcodeptr - (brc_pos)) / 2; \
+		} while (0)
 #define N_BRCT(r1, i2) N_RI(0xA7, 0x6, r1, (i2) / 2)
 #define N_BRXH(r1, r3, i2) N_RSI(0x84, r1, r3, (i2) / 2)
 #define N_BRXLE(r1, r3, i2) N_RSI(0x85, r1, r2, (i2) / 2)
@@ -542,12 +555,17 @@
 #define N_LCXBR(r1, r2) N_RRE(0xB343, r1, r2)
 
 #define N_LDEBR(r1, r2) N_RRE(0xB304, r1, r2)
+#	define SZ_LDEBR SZ_RRE
 #define N_LXDBR(r1, r2) N_RRE(0xB305, r1, r2)
 #define N_LXEBR(r1, r2) N_RRE(0xB306, r1, r2)
 
 #define N_LEDBR(r1, r2) N_RRE(0xB344, r1, r2)
 #define N_LDXBR(r1, r2) N_RRE(0xB345, r1, r2)
 #define N_LEXBR(r1, r2) N_RRE(0xB346, r1, r2)
+
+#define N_LTEBR(r1, r2) N_RRE(0xB302, r1, r2)
+#define N_LTDBR(r1, r2) N_RRE(0xB312, r1, r2)
+#define N_LTXBR(r1, r2) N_RRE(0xB342, r1, r2)
 
 #define N_MEEBR(r1, r2) N_RRE(0xB317, r1, r2)
 #define N_MDBR(r1, r2) N_RRE(0xB31C, r1, r2)
@@ -589,7 +607,10 @@
 		} \
 	} while (0)
 
+#define M_ILD_DSEG(r, d) M_ILD(r, REG_PV, N_DSEG_DISP(d))
+
 #define M_ALD(r, b, d) M_ILD(r, b, d)
+#define M_ALD_DSEG(r, d) M_ALD(r, REG_PV, N_DSEG_DISP(d))
 
 #define M_LDA(r, b, d) \
 	do { \
@@ -605,21 +626,23 @@
 			N_LA(r, 0, r, b); \
 		} \
 	} while (0)
+#define M_LDA_DSEG(r, d) M_LDA(r, REG_PV, N_DSEG_DISP(d))
 
 #define M_FLD(r, b, d) N_LE(r, d, RN, b)
-
 #define M_FLDN(r, b, d, t) _IFNEG( \
 	d, \
 	N_LHI(t, d); N_LE(r, 0, t, b), \
 	N_LE(r, d, RN, b) \
 )
-		
+#define M_FLD_DSEG(r, d, t) M_FLDN(r, REG_PV, N_DSEG_DISP(d), t)
+
 #define M_DLD(r, b, d) N_LD(r, d, RN, b)
 #define M_DLDN(r, b, d, t) _IFNEG( \
 	d, \
 	N_LHI(t, d); N_LD(r, 0, t, b), \
 	N_LD(r, d, RN, b) \
 )
+#define M_DLD_DSEG(r, d, t) M_DLDN(r, REG_PV, N_DSEG_DISP(d), t)
 
 #define M_LLD(r, b, d) _IFNEG( \
 	d, \
@@ -628,6 +651,7 @@
 		N_L(GET_LOW_REG(r), 4, GET_LOW_REG(r), b), \
 	N_L(GET_HIGH_REG(r), (d) + 0, RN, b); N_L(GET_LOW_REG(r), (d) + 4, RN, b) \
 )
+#define M_LLD_DSEG(r, d) M_LLD(r, REG_PV, N_DSEG_DISP(d)
 
 /* MOV(a, b) -> mov from A to B */
 
@@ -682,8 +706,8 @@
 #define M_DSUB(a, dest) N_SDBR(dest, a)
 #define M_DADD(a, dest) N_ADBR(dest, a)
 #define M_DDIV(a, dest) N_DDBR(dest, a)
-#define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
-#define M_CVTDI(src, dst) N_CFDBR(dst, 5, src)
+#define M_CVTFI(src, dst) N_CFEBR(dst, 4, src)
+#define M_CVTDI(src, dst) N_CFDBR(dst, 4, src)
 #define M_IADD(a, dest) N_AR(dest, a)
 #define M_AADD(a, dest) N_AR(dest, a)
 #define M_ISUB(a, dest) N_SR(dest, a)
@@ -735,7 +759,7 @@
 			N_LHI(reg, i); \
 		} else { \
 			disp = dseg_add_s4(cd, (i)); \
-			M_ILD(reg, REG_PV, disp); \
+			M_ILD_DSEG(reg, disp); \
 		} \
 	} while (0) 
 

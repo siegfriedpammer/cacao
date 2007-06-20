@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.c 7483 2007-03-08 13:17:40Z michi $
+   $Id: descriptor.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -42,6 +42,7 @@
 #include "vm/jit_interface.h"
 
 #include "vmcore/descriptor.h"
+#include "vmcore/primitive.h"
 #include "vmcore/options.h"
 
 

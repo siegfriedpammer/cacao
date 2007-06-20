@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: statistics.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -140,8 +140,12 @@ int count_mov_mem_mem = 0;
 
 int count_jit_calls = 0;
 int count_methods = 0;
-int count_spills = 0;
-int count_spills_read = 0;
+int count_spills_read_ila = 0;
+int count_spills_read_flt = 0;
+int count_spills_read_dbl = 0;
+int count_spills_write_ila = 0;
+int count_spills_write_flt = 0;
+int count_spills_write_dbl = 0;
 int count_pcmd_activ = 0;
 int count_pcmd_drop = 0;
 int count_pcmd_zero = 0;
@@ -176,6 +180,12 @@ int count_data_len = 0;
 int count_cstub_len = 0;
 int count_max_new_stack = 0;
 int count_upper_bound_new_stack = 0;
+
+int count_emit_branch = 0;
+int count_emit_branch_8bit = 0;
+int count_emit_branch_16bit = 0;
+int count_emit_branch_32bit = 0;
+int count_emit_branch_64bit = 0;
 
 s4 count_branches_resolved   = 0;
 s4 count_branches_unresolved = 0;
@@ -405,8 +415,12 @@ void print_stats(void)
 
 	dolog("Size of compiled Exception Tables:      %d", count_javaexcsize);
 	dolog("Number of Machine-Instructions: %d", count_code_len >> 2);
-	dolog("Number of Spills (write to memory): %d", count_spills);
-	dolog("Number of Spills (read from memory): %d", count_spills_read);
+	dolog("Number of Spills (write to memory) <all [i/l/a|flt|dbl]>: %d [%d|%d|%d]",
+		count_spills_write_ila + count_spills_write_flt + count_spills_write_dbl,
+		count_spills_write_ila, count_spills_write_flt, count_spills_write_dbl);
+	dolog("Number of Spills (read from memory) <all [i/l/a|flt|dbl]>: %d [%d|%d|%d]",
+		count_spills_read_ila + count_spills_read_flt + count_spills_read_dbl,
+		count_spills_read_ila, count_spills_read_flt, count_spills_read_dbl);
 	dolog("Number of Activ    Pseudocommands: %6d", count_pcmd_activ);
 	dolog("Number of Drop     Pseudocommands: %6d", count_pcmd_drop);
 	dolog("Number of Const    Pseudocommands: %6d (zero:%5d)",
@@ -431,6 +445,11 @@ void print_stats(void)
 	dolog("Number of Null Pointer Checks:     %6d", count_check_null);
 	dolog("Number of Array Bound Checks:      %6d", count_check_bound);
 	dolog("Number of Try-Blocks: %d", count_tryblocks);
+
+	dolog("Number of branch_emit (total, 8bit/16bit/32bit/64bit offset): %d, %d/%d/%d/%d",
+		count_emit_branch,  count_emit_branch_8bit,  count_emit_branch_16bit, 
+							count_emit_branch_32bit, count_emit_branch_64bit);
+
 	dolog("Maximal count of stack elements:   %d", count_max_new_stack);
 	dolog("Upper bound of max stack elements: %d", count_upper_bound_new_stack);
 	dolog("Distribution of stack sizes at block boundary");
@@ -717,14 +736,44 @@ void statistics_print_memory_usage(void)
 
 void statistics_print_gc_memory_usage(void)
 {
-	log_println("GC memory usage -------------------");
-	log_println("");
-	log_println("max. heap size: %10lld", gc_get_max_heap_size());
-	log_println("");
-	log_println("heap size:      %10lld", gc_get_heap_size());
-	log_println("free:           %10lld", gc_get_free_bytes());
-	log_println("used:           %10lld", gc_get_total_bytes());
-	log_println("");
+	static int64_t count = 0;
+	int64_t max;
+	int64_t size;
+	int64_t free;
+	int64_t used;
+	int64_t total;
+
+	count++;
+
+	max   = gc_get_max_heap_size();
+	size  = gc_get_heap_size();
+	free  = gc_get_free_bytes();
+	used  = size - free;
+	total = gc_get_total_bytes();
+
+	if (opt_ProfileMemoryUsageGNUPlot) {
+		if (count == 1)
+			fprintf(opt_ProfileMemoryUsageGNUPlot, "plot \"profile.dat\" using 1:2 with lines title \"max. Java heap size\", \"profile.dat\" using 1:3 with lines title \"Java heap size\", \"profile.dat\" using 1:4 with lines title \"used\", \"profile.dat\" using 1:5 with lines title \"free\"\n");
+
+#if SIZEOF_VOID_P == 8
+		fprintf(opt_ProfileMemoryUsageGNUPlot, "%ld %ld %ld %ld %ld\n", count, max, size, used, free);
+#else
+		fprintf(opt_ProfileMemoryUsageGNUPlot, "%lld %lld %lld %lld %lld\n", count, max, size, used, free);
+#endif
+
+		fflush(opt_ProfileMemoryUsageGNUPlot);
+	}
+	else {
+		log_println("GC memory usage -------------------");
+		log_println("");
+		log_println("max. Java heap size: %10lld", max);
+		log_println("");
+		log_println("Java heap size:      %10lld", size);
+		log_println("used:                %10lld", used);
+		log_println("free:                %10lld", free);
+		log_println("totally used:        %10lld", total);
+		log_println("");
+	}
 }
 
 

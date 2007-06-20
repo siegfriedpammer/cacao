@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: java_lang_VMClassLoader.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -63,6 +63,7 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
+#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"
 #include "vmcore/zip.h"
@@ -120,44 +121,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, s4 type)
 {
 	classinfo *c;
-	s4         index;
 
-	/* get primitive class */
+	c = primitive_class_get_by_char(type);
 
-	switch (type) {
-	case 'I':
-		index = PRIMITIVETYPE_INT;
-		break;
-	case 'J':
-		index = PRIMITIVETYPE_LONG;
-		break;
-	case 'F':
-		index = PRIMITIVETYPE_FLOAT;
-		break;
-	case 'D':
-		index = PRIMITIVETYPE_DOUBLE;
-		break;
-	case 'B':
-		index = PRIMITIVETYPE_BYTE;
-		break;
-	case 'C':
-		index = PRIMITIVETYPE_CHAR;
-		break;
-	case 'S':
-		index = PRIMITIVETYPE_SHORT;
-		break;
-	case 'Z':
-		index = PRIMITIVETYPE_BOOLEAN;
-		break;
-	case 'V':
-		index = PRIMITIVETYPE_VOID;
-		break;
-	default:
-		exceptions_throw_noclassdeffounderror(utf_null);
+	if (c == NULL) {
+		exceptions_throw_classnotfoundexception(utf_null);
 		return NULL;
 	}
-
-	c = primitivetype_table[index].class_primitive;
 
 	return (java_lang_Class *) c;
 }
@@ -195,9 +165,8 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, java_lang_String *name, s4 resolve)
 {
-	classinfo         *c;
-	utf               *u;
-	java_objectheader *xptr;
+	classinfo *c;
+	utf       *u;
 
 	if (name == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -213,33 +182,15 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	c = load_class_bootstrap(u);
 
 	if (c == NULL)
-		goto exception;
+		return NULL;
 
 	/* resolve class -- if requested */
 
 /*  	if (resolve) */
 		if (!link_class(c))
-			goto exception;
+			return NULL;
 
 	return (java_lang_Class *) c;
-
- exception:
-	xptr = exceptions_get_exception();
-
-	c = xptr->vftbl->class;
-	
-	/* if the exception is a NoClassDefFoundError, we replace it with a
-	   ClassNotFoundException, otherwise return the exception */
-
-	if (c == class_java_lang_NoClassDefFoundError) {
-		/* clear exceptionptr, because builtin_new checks for 
-		   ExceptionInInitializerError */
-		exceptions_clear_exception();
-
-		exceptions_throw_classnotfoundexception(u);
-	}
-
-	return NULL;
 }
 
 

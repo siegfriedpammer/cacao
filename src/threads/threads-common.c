@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8052 2007-06-10 13:44:33Z michi $
+   $Id: threads-common.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
@@ -111,12 +111,19 @@ void threads_preinit(void)
 # if defined(_CS_GNU_LIBPTHREAD_VERSION)
 	len = confstr(_CS_GNU_LIBPTHREAD_VERSION, NULL, (size_t) 0);
 
-	pathbuf = MNEW(char, len);
+	/* Some systems return as length 0 (maybe cross-compilation
+	   related).  In this case we also fall back to linuxthreads. */
 
-	(void) confstr(_CS_GNU_LIBPTHREAD_VERSION, pathbuf, len);
+	if (len > 0) {
+		pathbuf = MNEW(char, len);
 
-	if (strstr(pathbuf, "NPTL") != NULL)
-		threads_pthreads_implementation_nptl = true;
+		(void) confstr(_CS_GNU_LIBPTHREAD_VERSION, pathbuf, len);
+
+		if (strstr(pathbuf, "NPTL") != NULL)
+			threads_pthreads_implementation_nptl = true;
+		else
+			threads_pthreads_implementation_nptl = false;
+	}
 	else
 		threads_pthreads_implementation_nptl = false;
 # else
