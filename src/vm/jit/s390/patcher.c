@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 7966 2007-05-25 12:41:03Z pm $
+   $Id: patcher.c 8027 2007-06-07 10:30:33Z michi $
 
      GENERATED      PATCHER BRANCH           AFTER PATCH
 

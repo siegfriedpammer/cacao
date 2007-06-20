@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 7839 2007-04-29 22:46:56Z pm $
+   $Id: md-abi.c 7918 2007-05-20 20:42:18Z michi $
 
 */
 

@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 8015 2007-06-05 20:58:11Z twisti $
+## $Id: Makefile.am 8027 2007-06-07 10:30:33Z michi $
 
 ## Process this file with automake to produce Makefile.in
 

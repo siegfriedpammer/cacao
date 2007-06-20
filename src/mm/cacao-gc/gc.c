@@ -143,6 +143,12 @@ void gc_reference_register(java_objectheader **ref)
 }
 
 
+void gc_reference_unregister(java_objectheader **ref)
+{
+	vm_abort("gc_reference_unregister: IMPLEMENT ME!");
+}
+
+
 /* gc_collect ******************************************************************
 
    This is the main machinery which manages a collection. It should be run by
