@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 8112 2007-06-20 17:54:36Z twisti $
+   $Id: statistics.c 8113 2007-06-20 18:05:39Z twisti $
 
 */
 
@@ -756,6 +756,7 @@ void statistics_print_gc_memory_usage(void)
 			fprintf(opt_ProfileMemoryUsageGNUPlot, "plot \"profile.dat\" using 1:2 with lines title \"max. Java heap size\", \"profile.dat\" using 1:3 with lines title \"Java heap size\", \"profile.dat\" using 1:4 with lines title \"used\", \"profile.dat\" using 1:5 with lines title \"free\"\n");
 
 		fprintf(opt_ProfileMemoryUsageGNUPlot, "%lld %lld% lld %lld %lld\n", count, max, size, used, free);
+		fflush(opt_ProfileMemoryUsageGNUPlot);
 	}
 	else {
 		log_println("GC memory usage -------------------");
