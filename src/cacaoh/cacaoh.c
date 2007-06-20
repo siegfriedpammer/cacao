@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: cacaoh.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: cacaoh.c 8110 2007-06-20 12:24:32Z twisti $
 
 */
 
@@ -53,12 +53,6 @@
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"
-
-
-/* define heap sizes **********************************************************/
-
-#define HEAP_MAXSIZE      2 * 1024 * 1024   /* default 2MB                    */
-#define HEAP_STARTSIZE         100 * 1024   /* default 100kB                  */
 
 
 /* define cacaoh options ******************************************************/
@@ -163,8 +157,6 @@ int main(int argc, char **argv)
 	char *classpath;
 	char *cp;
 	s4    cplen;
-	u4    heapmaxsize;
-	u4    heapstartsize;
 
 	if (argc < 2)
 		usage();
@@ -213,9 +205,6 @@ int main(int argc, char **argv)
 
 	opt_verbose = false;
 	opt_directory = NULL;
-
-	heapmaxsize = HEAP_MAXSIZE;
-	heapstartsize = HEAP_STARTSIZE;
 
 
 	/* parse the options ******************************************************/
