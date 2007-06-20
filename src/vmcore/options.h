@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 8062 2007-06-11 08:12:14Z twisti $
+   $Id: options.h 8112 2007-06-20 17:54:36Z twisti $
 
 */
 
@@ -32,6 +32,9 @@
 
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "native/jni.h"
@@ -54,6 +57,15 @@ struct opt_struct {
 	char *name;
 	bool  arg;
 	int   value;
+};
+
+
+typedef struct option_t option_t;
+
+struct option_t {
+	char    *name;
+	int32_t  option;
+	char    *doc;
 };
 
 
@@ -87,7 +99,6 @@ extern bool opt_verbosegc;
 extern bool opt_verbosejni;
 extern bool opt_verbosecall;
 extern bool opt_verboseexception;
-extern bool opt_verbosememory;
 extern bool opt_verbosethreads;
 
 extern bool showmethods;
@@ -178,10 +189,20 @@ extern const char *opt_filter_verbosecall_exclude;
 extern const char *opt_filter_show_method;
 #endif
 
+
+/* -XX options ****************************************************************/
+
+/* NOTE: For better readability keep these alpha-sorted. */
+
+extern int32_t  opt_ProfileGCMemoryUsage;
+extern int32_t  opt_ProfileMemoryUsage;
+extern FILE    *opt_ProfileMemoryUsageGNUPlot;
+
+
 /* function prototypes ********************************************************/
 
 s4   options_get(opt_struct *opts, JavaVMInitArgs *vm_args);
-void options_xx(char *opt_arg);
+void options_xx(const char *name);
 
 #endif /* _OPTIONS_H */
 

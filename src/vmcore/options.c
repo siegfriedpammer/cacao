@@ -22,12 +22,17 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8062 2007-06-11 08:12:14Z twisti $
+   $Id: options.c 8112 2007-06-20 17:54:36Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #if defined(HAVE_STRING_H)
 # include <string.h>
@@ -35,10 +40,12 @@
 
 #include <limits.h>
 
-#include "vm/types.h"
-
 #include "mm/memory.h"
+
 #include "native/jni.h"
+
+#include "vm/vm.h"
+
 #include "vmcore/options.h"
 
 
@@ -78,7 +85,6 @@ bool opt_verbosegc        = false;
 bool opt_verbosejni       = false;
 bool opt_verbosecall      = false;      /* trace all method invocation        */
 bool opt_verboseexception = false;
-bool opt_verbosememory    = false;
 bool opt_verbosethreads   = false;
 
 bool showmethods = false;
@@ -169,6 +175,30 @@ const char *opt_filter_verbosecall_exclude = 0;
 const char *opt_filter_show_method = 0;
 #endif
 
+
+/* -XX options ****************************************************************/
+
+/* NOTE: For better readability keep these alpha-sorted. */
+
+int32_t  opt_ProfileGCMemoryUsage      = 0;
+int32_t  opt_ProfileMemoryUsage        = 0;
+FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
+
+
+enum {
+	OPT_ProfileGCMemoryUsage,
+	OPT_ProfileMemoryUsage,
+	OPT_ProfileMemoryUsageGNUPlot
+};
+
+
+option_t options_XX[] = {
+	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      "" },
+	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        "" },
+	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, "" },
+};
+
+
 /* options_get *****************************************************************
 
    DOCUMENT ME!!!
@@ -257,9 +287,84 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 
 *******************************************************************************/
 
-void options_xx(char *opt_arg)
+void options_xx(const char *name)
 {
-	log_println("opt_arg: %s", opt_arg);
+	char    *end;
+	int32_t  length;
+	char    *value;
+	int32_t  option;
+	char    *filename;
+	FILE    *file;
+	int32_t  i;
+
+	log_println("name: %s", name);
+
+	/* Search for a ':' in the option name and get the option name
+	   length and the value of the option. */
+
+	end = strchr(name, ':');
+
+	if (end == NULL) {
+		length = strlen(name);
+		value  = NULL;
+	}
+	else {
+		length = end - name;
+		value  = end + 1;
+	}
+
+	/* search the option in the option array */
+
+	option = OPT_ERROR;
+
+	for (i = 0; options_XX[i].name != NULL; i++) {
+		if (strncmp(options_XX[i].name, name, length) == 0) {
+			option = options_XX[i].option;
+			break;
+		}
+	}
+
+	/* process the option */
+
+	switch (option) {
+	case OPT_ProfileGCMemoryUsage:
+		if (value == NULL)
+			opt_ProfileGCMemoryUsage = 5;
+		else
+			opt_ProfileGCMemoryUsage = atoi(value);
+		break;
+
+	case OPT_ProfileMemoryUsage:
+		if (value == NULL)
+			opt_ProfileMemoryUsage = 5;
+		else
+			opt_ProfileMemoryUsage = atoi(value);
+
+# if defined(ENABLE_STATISTICS)
+		/* we also need statistics */
+
+		opt_stat = true;
+# endif
+		break;
+
+	case OPT_ProfileMemoryUsageGNUPlot:
+		if (value == NULL)
+			filename = "profile.dat";
+		else
+			filename = value;
+
+		file = fopen(filename, "w");
+
+		if (file == NULL)
+			vm_abort("options_xx: fopen failed: %s", strerror(errno));
+
+		opt_ProfileMemoryUsageGNUPlot = file;
+		break;
+
+	default:
+		printf("Unknown option: -XX:%s\n", name);
+		break;
+	}
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 7902 2007-05-11 22:33:15Z twisti $
+   $Id: memory.c 8112 2007-06-20 17:54:36Z twisti $
 
 */
 
@@ -372,23 +372,38 @@ void mem_free(void *m, s4 size)
 #if defined(ENABLE_THREADS) && !defined(NDEBUG)
 static void memory_thread(void)
 {
-	while (true) {
-		/* sleep thread for 2 seconds */
+	int32_t seconds;
 
-		threads_sleep(2 * 1000, 0);
+	/* If both arguments are specified, use the value of
+	   ProfileMemoryUsage. */
+
+	if (opt_ProfileGCMemoryUsage)
+		seconds = opt_ProfileGCMemoryUsage;
+
+	if (opt_ProfileMemoryUsage)
+		seconds = opt_ProfileMemoryUsage;
+
+	while (true) {
+		/* sleep thread */
+
+		threads_sleep(seconds * 1000, 0);
 
 # if defined(ENABLE_STATISTICS)
-		/* print current date and time */
+		/* Print current date and time (only when we print to the
+		   stdout). */
 
-		statistics_print_date();
+		if (!opt_ProfileMemoryUsageGNUPlot)
+			statistics_print_date();
 
 		/* print memory usage */
 
-		statistics_print_memory_usage();
+		if (opt_ProfileMemoryUsage)
+			statistics_print_memory_usage();
 
 		/* print GC memory usage */
 
-		statistics_print_gc_memory_usage();
+		if (opt_ProfileGCMemoryUsage)
+			statistics_print_gc_memory_usage();
 # endif
 	}
 }

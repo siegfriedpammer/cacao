@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8056 2007-06-10 14:49:57Z michi $
+dnl $Id: configure.ac 8112 2007-06-20 17:54:36Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -253,6 +253,8 @@ AC_FUNC_MEMCMP
 AC_FUNC_MMAP
 
 dnl keep them alpha-sorted!
+AC_CHECK_FUNCS([atoi])
+AC_CHECK_FUNCS([atol])
 AC_CHECK_FUNCS([calloc])
 AC_CHECK_FUNCS([confstr])
 AC_CHECK_FUNCS([free])
@@ -271,8 +273,10 @@ AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([open])
 AC_CHECK_FUNCS([scandir])
 AC_CHECK_FUNCS([select])
+AC_CHECK_FUNCS([strchr])
 AC_CHECK_FUNCS([strdup])
 AC_CHECK_FUNCS([strerror])
+AC_CHECK_FUNCS([strncmp])
 AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([time])
 

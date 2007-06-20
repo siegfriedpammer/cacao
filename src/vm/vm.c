@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8108 2007-06-20 12:05:26Z ajordan $
+   $Id: vm.c 8112 2007-06-20 17:54:36Z twisti $
 
 */
 
@@ -530,7 +530,7 @@ static void XXusage(void)
 {
 	puts("    -v                       write state-information");
 #if !defined(NDEBUG)
-	puts("    -verbose[:call|exception|jit|memory|threads]");
+	puts("    -verbose[:call|exception|jit|threads]");
 	puts("                             enable specific verbose output");
 	puts("    -debug-color             colored output for ANSI terms");
 #endif
@@ -1158,15 +1158,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				initverbose = true;
 				compileverbose = true;
 			}
-			else if (strcmp("memory", opt_arg) == 0) {
-				opt_verbosememory = true;
-
-# if defined(ENABLE_STATISTICS)
-				/* we also need statistics */
-
-				opt_stat = true;
-# endif
-			}
 			else if (strcmp("threads", opt_arg) == 0) {
 				opt_verbosethreads = true;
 			}
@@ -1700,7 +1691,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 # if !defined(NDEBUG)
 	/* start the memory profiling thread */
 
-	if (opt_verbosememory)
+	if (opt_ProfileMemoryUsage || opt_ProfileGCMemoryUsage)
 		if (!memory_start_thread())
 			vm_abort("vm_create: memory_start_thread failed");
 # endif

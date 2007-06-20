@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 8094 2007-06-16 01:15:41Z ajordan $
+   $Id: statistics.c 8112 2007-06-20 17:54:36Z twisti $
 
 */
 
@@ -736,14 +736,38 @@ void statistics_print_memory_usage(void)
 
 void statistics_print_gc_memory_usage(void)
 {
-	log_println("GC memory usage -------------------");
-	log_println("");
-	log_println("max. heap size: %10lld", gc_get_max_heap_size());
-	log_println("");
-	log_println("heap size:      %10lld", gc_get_heap_size());
-	log_println("free:           %10lld", gc_get_free_bytes());
-	log_println("used:           %10lld", gc_get_total_bytes());
-	log_println("");
+	static int64_t count = 0;
+	int64_t max;
+	int64_t size;
+	int64_t free;
+	int64_t used;
+	int64_t total;
+
+	count++;
+
+	max   = gc_get_max_heap_size();
+	size  = gc_get_heap_size();
+	free  = gc_get_free_bytes();
+	used  = size - free;
+	total = gc_get_total_bytes();
+
+	if (opt_ProfileMemoryUsageGNUPlot) {
+		if (count == 1)
+			fprintf(opt_ProfileMemoryUsageGNUPlot, "plot \"profile.dat\" using 1:2 with lines title \"max. Java heap size\", \"profile.dat\" using 1:3 with lines title \"Java heap size\", \"profile.dat\" using 1:4 with lines title \"used\", \"profile.dat\" using 1:5 with lines title \"free\"\n");
+
+		fprintf(opt_ProfileMemoryUsageGNUPlot, "%lld %lld% lld %lld %lld\n", count, max, size, used, free);
+	}
+	else {
+		log_println("GC memory usage -------------------");
+		log_println("");
+		log_println("max. Java heap size: %10lld", max);
+		log_println("");
+		log_println("Java heap size:      %10lld", size);
+		log_println("used:                %10lld", used);
+		log_println("free:                %10lld", free);
+		log_println("totally used:        %10lld", total);
+		log_println("");
+	}
 }
 
 
