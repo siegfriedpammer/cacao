@@ -105,17 +105,14 @@ typedef u8 stackslot_t;
 
 /*** debugging ****************************************************************/
 
-/*#define REPLACE_VERBOSE*/
-
 #if !defined(NDEBUG)
 static void java_value_print(s4 type, replace_val_t value);
 static void replace_stackframeinfo_println(stackframeinfo *sfi);
 #endif
 
-#if !defined(NDEBUG) && defined(REPLACE_VERBOSE)
-int replace_verbose = 0;
-#define DOLOG(code)        do{ if (replace_verbose > 1) { code; } } while(0)
-#define DOLOG_SHORT(code)  do{ if (replace_verbose > 0) { code; } } while(0)
+#if !defined(NDEBUG)
+#define DOLOG(code)        do{ if (opt_TraceReplacement > 1) { code; } } while(0)
+#define DOLOG_SHORT(code)  do{ if (opt_TraceReplacement > 0) { code; } } while(0)
 #else
 #define DOLOG(code)
 #define DOLOG_SHORT(code)

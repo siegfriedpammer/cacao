@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8120 2007-06-20 22:11:24Z twisti $
+   $Id: options.c 8121 2007-06-20 23:32:34Z michi $
 
 */
 
@@ -183,13 +183,17 @@ int32_t  opt_ProfileGCMemoryUsage      = 0;
 int32_t  opt_ProfileMemoryUsage        = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
 int32_t  opt_TraceExceptions           = 0;
+#if defined(ENABLE_REPLACEMENT)
+int32_t  opt_TraceReplacement          = 0;
+#endif
 
 
 enum {
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
-	OPT_TraceExceptions
+	OPT_TraceExceptions,
+	OPT_TraceReplacement
 };
 
 
@@ -198,6 +202,9 @@ option_t options_XX[] = {
 	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        "" },
 	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, "" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           "" },
+#if defined(ENABLE_REPLACEMENT)
+	{ "TraceReplacement",          OPT_TraceReplacement,          "" },
+#endif
 };
 
 
@@ -366,6 +373,15 @@ void options_xx(const char *name)
 	case OPT_TraceExceptions:
 		opt_TraceExceptions = true;
 		break;
+
+#if defined(ENABLE_REPLACEMENT)
+	case OPT_TraceReplacement:
+		if (value == NULL)
+			opt_TraceReplacement = 1;
+		else
+			opt_TraceReplacement = atoi(value);
+		break;
+#endif
 
 	default:
 		printf("Unknown option: -XX:%s\n", name);

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 8120 2007-06-20 22:11:24Z twisti $
+   $Id: options.h 8121 2007-06-20 23:32:34Z michi $
 
 */
 
@@ -197,6 +197,9 @@ extern int32_t  opt_ProfileGCMemoryUsage;
 extern int32_t  opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;
 extern int32_t  opt_TraceExceptions;
+#if defined(ENABLE_REPLACEMENT)
+extern int32_t  opt_TraceReplacement;
+#endif
 
 
 /* function prototypes ********************************************************/
