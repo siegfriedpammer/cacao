@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8112 2007-06-20 17:54:36Z twisti $
+   $Id: options.c 8120 2007-06-20 22:11:24Z twisti $
 
 */
 
@@ -84,7 +84,6 @@ bool opt_verboseclass     = false;
 bool opt_verbosegc        = false;
 bool opt_verbosejni       = false;
 bool opt_verbosecall      = false;      /* trace all method invocation        */
-bool opt_verboseexception = false;
 bool opt_verbosethreads   = false;
 
 bool showmethods = false;
@@ -183,12 +182,14 @@ const char *opt_filter_show_method = 0;
 int32_t  opt_ProfileGCMemoryUsage      = 0;
 int32_t  opt_ProfileMemoryUsage        = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
+int32_t  opt_TraceExceptions           = 0;
 
 
 enum {
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
-	OPT_ProfileMemoryUsageGNUPlot
+	OPT_ProfileMemoryUsageGNUPlot,
+	OPT_TraceExceptions
 };
 
 
@@ -196,6 +197,7 @@ option_t options_XX[] = {
 	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      "" },
 	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        "" },
 	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, "" },
+	{ "TraceExceptions",           OPT_TraceExceptions,           "" },
 };
 
 
@@ -359,6 +361,10 @@ void options_xx(const char *name)
 			vm_abort("options_xx: fopen failed: %s", strerror(errno));
 
 		opt_ProfileMemoryUsageGNUPlot = file;
+		break;
+
+	case OPT_TraceExceptions:
+		opt_TraceExceptions = true;
 		break;
 
 	default:

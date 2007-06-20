@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 8112 2007-06-20 17:54:36Z twisti $
+   $Id: options.h 8120 2007-06-20 22:11:24Z twisti $
 
 */
 
@@ -98,7 +98,6 @@ extern bool opt_verboseclass;
 extern bool opt_verbosegc;
 extern bool opt_verbosejni;
 extern bool opt_verbosecall;
-extern bool opt_verboseexception;
 extern bool opt_verbosethreads;
 
 extern bool showmethods;
@@ -197,6 +196,7 @@ extern const char *opt_filter_show_method;
 extern int32_t  opt_ProfileGCMemoryUsage;
 extern int32_t  opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;
+extern int32_t  opt_TraceExceptions;
 
 
 /* function prototypes ********************************************************/

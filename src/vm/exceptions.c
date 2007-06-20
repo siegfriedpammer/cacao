@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8100 2007-06-18 20:18:14Z twisti $
+   $Id: exceptions.c 8120 2007-06-20 22:11:24Z twisti $
 
 */
 
@@ -1854,7 +1854,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 #if !defined(NDEBUG)
 	/* print exception trace */
 
-	if (opt_verbose || opt_verbosecall || opt_verboseexception)
+	if (opt_verbose || opt_verbosecall || opt_TraceExceptions)
 		builtin_trace_exception(xptr, m, xpc, 1);
 #endif
 
@@ -1890,7 +1890,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 				vmlog_cacao_catch(xptr);
 #endif
 
-				if (opt_verboseexception) {
+				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
 					stacktrace_print_trace(xptr);
 				}
@@ -1951,7 +1951,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 				vmlog_cacao_catch(xptr);
 #endif
 
-				if (opt_verboseexception) {
+				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
 					stacktrace_print_trace(xptr);
 				}

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8115 2007-06-20 19:14:05Z michi $
+   $Id: vm.c 8120 2007-06-20 22:11:24Z twisti $
 
 */
 
@@ -530,7 +530,7 @@ static void XXusage(void)
 {
 	puts("    -v                       write state-information");
 #if !defined(NDEBUG)
-	puts("    -verbose[:call|exception|jit|threads]");
+	puts("    -verbose[:call|jit|threads]");
 	puts("                             enable specific verbose output");
 	puts("    -debug-color             colored output for ANSI terms");
 #endif
@@ -1147,9 +1147,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #if !defined(NDEBUG)
 			else if (strcmp("call", opt_arg) == 0) {
 				opt_verbosecall = true;
-			}
-			else if (strcmp("exception", opt_arg) == 0) {
-				opt_verboseexception = true;
 			}
 			else if (strcmp("jit", opt_arg) == 0) {
 				opt_verbose = true;
