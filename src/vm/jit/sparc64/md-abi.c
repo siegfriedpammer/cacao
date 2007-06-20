@@ -166,12 +166,14 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (i < INT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index = reguse;
 				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 				md->argintreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
+				pd->index = -1;
 				pd->regoff = stacksize;
 				stacksize++;
 			}
@@ -181,12 +183,14 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (i < FLT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index = reguse;
 				pd->regoff   = abi_registers_float_argument[reguse];
 				reguse++;
 				md->argfltreguse = reguse;
 			}
 			else {
 				pd->inmemory = true;
+				pd->index = -1;
 				pd->regoff = stacksize;
 				stacksize++;
 			}

@@ -99,101 +99,52 @@ asm_vm_call_method_float:
 asm_vm_call_method_double:
 	
 	save %sp,-((JITSTACK_CNT+2)*8),%sp
-	add %sp,JITSTACK,%l1               /* right above window save area */
+	add %sp,JITSTACK,%l1               /* pointer to usable stack      */
 
+	/* i0: PV               */
+	/* i1: ptr to arg array */
+	/* i2: num stackargs    */
 
-	/* %i1 not needed after _nocopy -> calculate in branch delay */
+	ldx [%i1+0*8],%o0
+	ldx [%i1+1*8],%o1
+	ldx [%i1+2*8],%o2
+	ldx [%i1+3*8],%o3
+	ldx [%i1+4*8],%o4
 
-	brlez %i1, calljava_nocopy
+	ldd [%i1+5*8],fa0
+	ldd [%i1+6*8],fa1
+	ldd [%i1+7*8],fa2
+	ldd [%i1+8*8],fa3
+	ldd [%i1+9*8],fa4
+
+	brlez %i2, calljava_nocopy
+	nop /* delay: fill me! */
 	
-	dec %i1   /* branch delay */
-	ldx [%i2 + offvmargdata],%o0
-	ldx [%i2 + offvmargtype],%l2
-	cmp %l2,2
-	be,a %xcc,calljava_arg0isfloat
-	ld  [%i2 + offvmargdata],fa0f   /* delay: annulled if branch not taken */
-	ldd [%i2 + offvmargdata],fa0
-calljava_arg0isfloat:
-	brlez %i1,calljava_nocopy
-
-	dec %i1   /* branch delay */
-	ldx [%i2 + (offvmargdata+sizevmarg*1)],%o1
-	ldx [%i2 + (offvmargtype+sizevmarg*1)],%l2
-	cmp %l2,2
-	be,a %xcc,calljava_arg1isfloat
-	ld  [%i2 + (offvmargdata+sizevmarg*1)],fa1f
-	ldd [%i2 + (offvmargdata+sizevmarg*1)],fa1
-calljava_arg1isfloat:
-	brlez %i1,calljava_nocopy
-
-	dec %i1
-	ldx [%i2 + (offvmargdata+sizevmarg*2)],%o2
-	ldx [%i2 + (offvmargtype+sizevmarg*2)],%l2
-	cmp %l2,2
-	be,a %xcc,calljava_arg2isfloat
-	ld  [%i2 + (offvmargdata+sizevmarg*2)],fa2f
-	ldd [%i2 + (offvmargdata+sizevmarg*2)],fa2
-calljava_arg2isfloat:
-	brlez %i1,calljava_nocopy
-
-	dec %i1
-	ldx [%i2 + (offvmargdata+sizevmarg*3)],%o3
-	ldx [%i2 + (offvmargtype+sizevmarg*3)],%l2
-	cmp %l2,2
-	be,a %xcc,calljava_arg3isfloat
-	ld  [%i2 + (offvmargdata+sizevmarg*3)],fa3f
-	ldd [%i2 + (offvmargdata+sizevmarg*3)],fa3
-calljava_arg3isfloat:
-	brlez %i1,calljava_nocopy
-
-	dec %i1
-	ldx [%i2 + (offvmargdata+sizevmarg*4)],%o4
-	ldx [%i2 + (offvmargtype+sizevmarg*4)],%l2
-	cmp %l2,2
-	be,a %xcc,calljava_arg4isfloat
-	ld  [%i2 + (offvmargdata+sizevmarg*4)],fa4f
-	ldd [%i2 + (offvmargdata+sizevmarg*4)],fa4
-calljava_arg4isfloat:
-
-calljava_argsloaded:	
-	brlez %i1, calljava_nocopy
-	nop
-	sllx %i1,3,%l0                     /* remaining args * 8           */
+	sllx %i2,3,%l0                     /* remaining args * 8           */
 	sub %sp,%l0,%sp                    /* allocate more stack space    */
 	add %sp,JITSTACK,%l1               /* adjust stack begin pointer   */
 	
-calljava_copyloop:
-	ldx [%i2 + (offvmargtype+sizevmarg*5)],%l2
-	cmp %l2,2
-	be  %xcc,calljava_copyloop_float
-	nop
-	ldx [%i2 + (offvmargdata+sizevmarg*5)],%l0
-	stx %l0,[%l1]
-	b   calljava_copy_done
-calljava_copyloop_float:
-	ld  [%i2 + (offvmargdata+sizevmarg*5)],%f1	
-	std %f0,[%l1]
-calljava_copy_done:
-	inc sizevmarg,%i2                  /* src++                        */
-	subcc %i1,1,%i1                    /* arg_count--                  */
-	bnz %xcc, calljava_copyloop        /* use cc from previous instr   */
+asm_vm_call_copyloop:
+	ldx [%i1+10*8],%l0                 /* load argument from array     */
+	stx %l0,[%l1]                      /* store argument to stack      */
+
+	inc 8,%i1                          /* src++                        */
+	subcc %i2,1,%i2                    /* arg_count--                  */
+	bnz %xcc, asm_vm_call_copyloop     /* use cc from previous instr   */
 	inc 8,%l1                          /* dst++ (delay)                */
-	
+
 
 calljava_nocopy:
 	/* set pv, like a java method does */
-	/*	add  ra_caller,(asm_vm_call_method - calljava_nocopy + 8),pv_callee */
 	setx  asm_vm_call_method,%l0,pv_callee
 	
-	mov   %i0,itmp1		/* pass method info pointer via itmp1 */
+	stx   %i0,[%l1 + 1*8]              /* store PV on stack            */
+	mov   %l1,mptr_itmp2               /* set address of PV (-1*8)     */
 	
-	setx  asm_call_jit_compiler,%l0,mptr_itmp2  /* fake virtual function call (2 instr) */
-	stx   mptr_itmp2,[%l1 + 1*8]        /* store function address               */
-	mov   %l1,mptr_itmp2            /* set method pointer                   */
-	
-	ldx  [1*8 + mptr_itmp2], pv_caller          /* method call as in Java               */
-	jmpl pv_caller,ra_caller                      /* call JIT compiler          */
+	ldx  [1*8 + mptr_itmp2], pv_caller /* load PV from stack           */
+	jmpl pv_caller,ra_caller           /* method call as in Java       */
 	nop
+
 calljava_jit2:
 	/* pretend to restore pv */
 	add  ra_caller,(asm_vm_call_method - calljava_jit2 + 8),zero
@@ -326,7 +277,7 @@ asm_handle_exception:
 	mov     pv_callee,%g4
 
 	/* save bigger stack frame for float args and temps */
-	save    %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+CSTACK_CNT)*8),%sp
+	save    %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+16+CSTACK_CNT)*8),%sp
 
 	SAVE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT)
 	SAVE_FLOAT_TEMPORARY_REGISTERS(CSTACK_CNT+FLT_ARG_CNT)
@@ -417,7 +368,7 @@ asm_patcher_wrapper:
 	mov     pv_callee,pv_caller
 
 	/* create window and stack frame              */
-	save  %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+CSTACK_CNT+6)*8),%sp
+	save  %sp,-((FLT_ARG_CNT+FLT_TMP_CNT+16+CSTACK_CNT+6)*8),%sp
 
 	SAVE_FLOAT_RETURN_REGISTER(CSTACK_CNT)
 	SAVE_FLOAT_ARGUMENT_REGISTERS(CSTACK_CNT+1)
