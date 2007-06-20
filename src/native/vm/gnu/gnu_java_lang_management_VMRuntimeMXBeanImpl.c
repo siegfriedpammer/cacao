@@ -28,7 +28,8 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -40,13 +41,14 @@
 #include "vm/vm.h"
 
 #include "vmcore/class.h"
+#include "vmcore/utf8.h"
 
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getInputArguments", "()[Ljava/lang/String;", (void *) (ptrint) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments },
-	{ "getStartTime",      "()J",                   (void *) (ptrint) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime      },
+	{ "getInputArguments", "()[Ljava/lang/String;", (void *) (intptr_t) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments },
+	{ "getStartTime",      "()J",                   (void *) (intptr_t) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime      },
 };
 
 
@@ -84,7 +86,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_java_lang_management_VMRuntimeMXBea
  * Method:    getStartTime
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime(JNIEnv *env, jclass clazz)
+JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime(JNIEnv *env, jclass clazz)
 {
 	return _Jv_jvm->starttime;
 }

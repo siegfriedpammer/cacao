@@ -22,13 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMObject.c 7912 2007-05-18 13:12:09Z twisti $
+   $Id: java_lang_VMObject.c 8111 2007-06-20 13:51:38Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -41,15 +42,17 @@
 
 #include "native/vm/java_lang_Object.h"
 
+#include "vmcore/utf8.h"
+
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getClass",  "(Ljava/lang/Object;)Ljava/lang/Class;",     (void *) (ptrint) &Java_java_lang_VMObject_getClass  },
-	{ "clone",     "(Ljava/lang/Cloneable;)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_VMObject_clone     },
-	{ "notify",    "(Ljava/lang/Object;)V",                     (void *) (ptrint) &Java_java_lang_VMObject_notify    },
-	{ "notifyAll", "(Ljava/lang/Object;)V",                     (void *) (ptrint) &Java_java_lang_VMObject_notifyAll },
-	{ "wait",      "(Ljava/lang/Object;JI)V",                   (void *) (ptrint) &Java_java_lang_VMObject_wait      },
+	{ "getClass",  "(Ljava/lang/Object;)Ljava/lang/Class;",     (void *) (intptr_t) &Java_java_lang_VMObject_getClass  },
+	{ "clone",     "(Ljava/lang/Cloneable;)Ljava/lang/Object;", (void *) (intptr_t) &Java_java_lang_VMObject_clone     },
+	{ "notify",    "(Ljava/lang/Object;)V",                     (void *) (intptr_t) &Java_java_lang_VMObject_notify    },
+	{ "notifyAll", "(Ljava/lang/Object;)V",                     (void *) (intptr_t) &Java_java_lang_VMObject_notifyAll },
+	{ "wait",      "(Ljava/lang/Object;JI)V",                   (void *) (intptr_t) &Java_java_lang_VMObject_wait      },
 };
 
 
@@ -118,7 +121,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
  * Method:    wait
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, s8 ms, s4 ns)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, int64_t ms, int32_t ns)
 {
 	_Jv_java_lang_Object_wait(o, ms, ns);
 }

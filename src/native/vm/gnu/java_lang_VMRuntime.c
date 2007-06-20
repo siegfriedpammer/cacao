@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: java_lang_VMRuntime.c 8111 2007-06-20 13:51:38Z twisti $
 
 */
 
@@ -31,6 +31,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <sys/utsname.h>
 
@@ -38,8 +39,6 @@
 # define OS_INLINE    /* required for <libkern/ppc/OSByteOrder.h> */
 # include <mach/mach.h>
 #endif
-
-#include "vm/types.h"
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
@@ -61,6 +60,8 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
+#include "vmcore/utf8.h"
+
 
 /* this should work on BSD */
 /*
@@ -73,19 +74,19 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "exit",                   "(I)V",                                         (void *) (ptrint) &Java_java_lang_VMRuntime_exit                   },
-	{ "freeMemory",             "()J",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_freeMemory             },
-	{ "totalMemory",            "()J",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_totalMemory            },
-	{ "maxMemory",              "()J",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_maxMemory              },
-	{ "gc",                     "()V",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_gc                     },
-	{ "runFinalization",        "()V",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_runFinalization        },
-	{ "runFinalizersOnExit",    "(Z)V",                                         (void *) (ptrint) &Java_java_lang_VMRuntime_runFinalizersOnExit    },
-	{ "runFinalizationForExit", "()V",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_runFinalizationForExit },
-	{ "traceInstructions",      "(Z)V",                                         (void *) (ptrint) &Java_java_lang_VMRuntime_traceInstructions      },
-	{ "traceMethodCalls",       "(Z)V",                                         (void *) (ptrint) &Java_java_lang_VMRuntime_traceMethodCalls       },
-	{ "availableProcessors",    "()I",                                          (void *) (ptrint) &Java_java_lang_VMRuntime_availableProcessors    },
-	{ "nativeLoad",             "(Ljava/lang/String;Ljava/lang/ClassLoader;)I", (void *) (ptrint) &Java_java_lang_VMRuntime_nativeLoad             },
-	{ "mapLibraryName",         "(Ljava/lang/String;)Ljava/lang/String;",       (void *) (ptrint) &Java_java_lang_VMRuntime_mapLibraryName         },
+	{ "exit",                   "(I)V",                                         (void *) (intptr_t) &Java_java_lang_VMRuntime_exit                   },
+	{ "freeMemory",             "()J",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_freeMemory             },
+	{ "totalMemory",            "()J",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_totalMemory            },
+	{ "maxMemory",              "()J",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_maxMemory              },
+	{ "gc",                     "()V",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_gc                     },
+	{ "runFinalization",        "()V",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_runFinalization        },
+	{ "runFinalizersOnExit",    "(Z)V",                                         (void *) (intptr_t) &Java_java_lang_VMRuntime_runFinalizersOnExit    },
+	{ "runFinalizationForExit", "()V",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_runFinalizationForExit },
+	{ "traceInstructions",      "(Z)V",                                         (void *) (intptr_t) &Java_java_lang_VMRuntime_traceInstructions      },
+	{ "traceMethodCalls",       "(Z)V",                                         (void *) (intptr_t) &Java_java_lang_VMRuntime_traceMethodCalls       },
+	{ "availableProcessors",    "()I",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_availableProcessors    },
+	{ "nativeLoad",             "(Ljava/lang/String;Ljava/lang/ClassLoader;)I", (void *) (intptr_t) &Java_java_lang_VMRuntime_nativeLoad             },
+	{ "mapLibraryName",         "(Ljava/lang/String;)Ljava/lang/String;",       (void *) (intptr_t) &Java_java_lang_VMRuntime_mapLibraryName         },
 };
 
 
@@ -110,7 +111,7 @@ void _Jv_java_lang_VMRuntime_init(void)
  * Method:    exit
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, s4 status)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, int32_t status)
 {
 	_Jv_java_lang_Runtime_exit(status);
 }
@@ -121,7 +122,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, 
  * Method:    freeMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass clazz)
+JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass clazz)
 {
 	return _Jv_java_lang_Runtime_freeMemory();
 }
@@ -132,7 +133,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass cla
  * Method:    totalMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
+JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
 {
 	return _Jv_java_lang_Runtime_totalMemory();
 }
@@ -143,7 +144,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass cl
  * Method:    maxMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass clazz)
+JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass clazz)
 {
 	return gc_get_max_heap_size();
 }
@@ -176,7 +177,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalization(JNIEnv *env, jcl
  * Method:    runFinalizersOnExit
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, s4 value)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, int32_t value)
 {
 	_Jv_java_lang_Runtime_runFinalizersOnExit(value);
 }
@@ -205,7 +206,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizationForExit(JNIEnv *e
  * Method:    traceInstructions
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceInstructions(JNIEnv *env, jclass clazz, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceInstructions(JNIEnv *env, jclass clazz, int32_t par1)
 {
 	/* not supported */
 }
@@ -216,7 +217,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceInstructions(JNIEnv *env, j
  * Method:    traceMethodCalls
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jclass clazz, s4 par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jclass clazz, int32_t par1)
 {
 	/* not supported */
 }
@@ -227,13 +228,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jc
  * Method:    availableProcessors
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, jclass clazz)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, jclass clazz)
 {
 #if defined(_SC_NPROC_ONLN)
-	return (s4) sysconf(_SC_NPROC_ONLN);
+	return (int32_t) sysconf(_SC_NPROC_ONLN);
 
 #elif defined(_SC_NPROCESSORS_ONLN)
-	return (s4) sysconf(_SC_NPROCESSORS_ONLN);
+	return (int32_t) sysconf(_SC_NPROCESSORS_ONLN);
 
 #elif defined(__DARWIN__)
 	/* this should work in BSD */
@@ -246,7 +247,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
 	len = sizeof(ncpu);
 	rc = sysctl(mib, 2, &ncpu, &len, NULL, 0);
 
-	return (s4) ncpu;
+	return (int32_t) ncpu;
 	*/
 
 	host_basic_info_data_t hinfo;
@@ -260,7 +261,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
 		return -1;
 	}
 
-    return (s4) hinfo.avail_cpus;
+    return (int32_t) hinfo.avail_cpus;
 
 #else
 	return 1;
@@ -273,7 +274,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
  * Method:    nativeLoad
  * Signature: (Ljava/lang/String;Ljava/lang/ClassLoader;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *libname, java_lang_ClassLoader *loader)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *libname, java_lang_ClassLoader *loader)
 {
 	java_objectheader *cl;
 
@@ -296,8 +297,8 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 {
 	utf               *u;
 	char              *buffer;
-	s4                 buffer_len;
-	s4                 dumpsize;
+	int32_t            buffer_len;
+	int32_t            dumpsize;
 	java_objectheader *o;
 
 	if (libname == NULL) {

@@ -22,13 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThread.c 7912 2007-05-18 13:12:09Z twisti $
+   $Id: java_lang_VMThread.c 8111 2007-06-20 13:51:38Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -43,27 +44,27 @@
 
 #include "native/vm/java_lang_Thread.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/threads-common.h"
+
+#include "vmcore/utf8.h"
 
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "countStackFrames",  "()I",                      (void *) (ptrint) &Java_java_lang_VMThread_countStackFrames  },
-	{ "start",             "(J)V",                     (void *) (ptrint) &Java_java_lang_VMThread_start             },
-	{ "interrupt",         "()V",                      (void *) (ptrint) &Java_java_lang_VMThread_interrupt         },
-	{ "isInterrupted",     "()Z",                      (void *) (ptrint) &Java_java_lang_VMThread_isInterrupted     },
-	{ "suspend",           "()V",                      (void *) (ptrint) &Java_java_lang_VMThread_suspend           },
-	{ "resume",            "()V",                      (void *) (ptrint) &Java_java_lang_VMThread_resume            },
-	{ "nativeSetPriority", "(I)V",                     (void *) (ptrint) &Java_java_lang_VMThread_nativeSetPriority },
-	{ "nativeStop",        "(Ljava/lang/Throwable;)V", (void *) (ptrint) &Java_java_lang_VMThread_nativeStop        },
-	{ "currentThread",     "()Ljava/lang/Thread;",     (void *) (ptrint) &Java_java_lang_VMThread_currentThread     },
-	{ "yield",             "()V",                      (void *) (ptrint) &Java_java_lang_VMThread_yield             },
-	{ "interrupted",       "()Z",                      (void *) (ptrint) &Java_java_lang_VMThread_interrupted       },
-	{ "holdsLock",         "(Ljava/lang/Object;)Z",    (void *) (ptrint) &Java_java_lang_VMThread_holdsLock         },
-	{ "getState",          "()Ljava/lang/String;",     (void *) (ptrint) &Java_java_lang_VMThread_getState          },
+	{ "countStackFrames",  "()I",                      (void *) (intptr_t) &Java_java_lang_VMThread_countStackFrames  },
+	{ "start",             "(J)V",                     (void *) (intptr_t) &Java_java_lang_VMThread_start             },
+	{ "interrupt",         "()V",                      (void *) (intptr_t) &Java_java_lang_VMThread_interrupt         },
+	{ "isInterrupted",     "()Z",                      (void *) (intptr_t) &Java_java_lang_VMThread_isInterrupted     },
+	{ "suspend",           "()V",                      (void *) (intptr_t) &Java_java_lang_VMThread_suspend           },
+	{ "resume",            "()V",                      (void *) (intptr_t) &Java_java_lang_VMThread_resume            },
+	{ "nativeSetPriority", "(I)V",                     (void *) (intptr_t) &Java_java_lang_VMThread_nativeSetPriority },
+	{ "nativeStop",        "(Ljava/lang/Throwable;)V", (void *) (intptr_t) &Java_java_lang_VMThread_nativeStop        },
+	{ "currentThread",     "()Ljava/lang/Thread;",     (void *) (intptr_t) &Java_java_lang_VMThread_currentThread     },
+	{ "yield",             "()V",                      (void *) (intptr_t) &Java_java_lang_VMThread_yield             },
+	{ "interrupted",       "()Z",                      (void *) (intptr_t) &Java_java_lang_VMThread_interrupted       },
+	{ "holdsLock",         "(Ljava/lang/Object;)Z",    (void *) (intptr_t) &Java_java_lang_VMThread_holdsLock         },
+	{ "getState",          "()Ljava/lang/String;",     (void *) (intptr_t) &Java_java_lang_VMThread_getState          },
 };
 
 
@@ -88,7 +89,7 @@ void _Jv_java_lang_VMThread_init(void)
  * Method:    countStackFrames
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_lang_VMThread *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_lang_VMThread *this)
 {
     return _Jv_java_lang_Thread_countStackFrames(this->thread);
 }
@@ -99,7 +100,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_
  * Method:    start
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMThread *this, s8 stacksize)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMThread *this, int64_t stacksize)
 {
 	_Jv_java_lang_Thread_start(this->thread, stacksize);
 }
@@ -121,7 +122,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_
  * Method:    isInterrupted
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *this)
 {
 	return _Jv_java_lang_Thread_isInterrupted(this->thread);
 }
@@ -154,7 +155,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMT
  * Method:    nativeSetPriority
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *this, s4 priority)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *this, int32_t priority)
 {
 	_Jv_java_lang_Thread_setPriority(this->thread, priority);
 }
@@ -198,7 +199,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz)
  * Method:    interrupted
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
 {
 	return _Jv_java_lang_Thread_interrupted();
 }
@@ -209,7 +210,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass cla
  * Method:    holdsLock
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object* o)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object* o)
 {
 	return _Jv_java_lang_Thread_holdsLock(o);
 }
