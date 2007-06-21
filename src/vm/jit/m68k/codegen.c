@@ -109,17 +109,19 @@ bool codegen_emit(jitdata *jd)
 
 		savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 		savedregs_num += (ADR_SAV_CNT - rd->savadrreguse);
-		savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
+		savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
 		cd->stackframesize = rd->memuse + savedregs_num;
 	
-		/* we always add 3 words, 
-		 * 1 word the lock word, which may be unused and resides @ rd->memuse * 4
-		 * + 2 words to either save the return value for LOCK_monitor_exit @ rd->memuse * 4 + 4
+		/* we always add 2 stack slots.
+		 * 1 word the lock word, which may be unused and resides @ rd->memuse * 8
+		 * + 2 words to either save the return value for LOCK_monitor_exit @ rd->memuse * 8 + 8
 		 * on the other hand we could use 2 words when a builtin returns a doulbe which are
 		 * returned in %d0, %d1 and need to be stored onto the stack and read in used a fmovemd
-		 * so we always _need_ at least 2 words, and this keeps the code simple */
-		cd->stackframesize += 3;	
+		 * so we always _need_ at least 2 slots, and this keeps the code simple */
+		cd->stackframesize += 2;	
+
+		cd->stackframesize *= 8;	/* we use 8 byte stack slots */
 
 #if 0
 #if defined(ENABLE_THREADS)
@@ -136,10 +138,10 @@ bool codegen_emit(jitdata *jd)
 	
 		/* create method header */
 		(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-		(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+		(void) dseg_add_unique_s4(cd, cd->stackframesize); 	   /* FrameSize       */
 #if defined(ENABLE_THREADS)
 		if (checksync && (m->flags & ACC_SYNCHRONIZED))
-			(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 4);/* IsSync         */
+			(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8);/* IsSync         */
 		else
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
@@ -169,19 +171,19 @@ bool codegen_emit(jitdata *jd)
 		emit_verbosecall_enter(jd);
 #endif
 		/* create stack frame */
-		M_AADD_IMM(-(cd->stackframesize*4), REG_SP);
+		M_AADD_IMM(-(cd->stackframesize), REG_SP);
 
 		/* save used callee saved registers */
 		p = cd->stackframesize;
 		for (i=INT_SAV_CNT-1; i>=rd->savintreguse; --i)	{
-			p--; M_IST(rd->savintregs[i], REG_SP, p*4);
+			p-=8; M_IST(rd->savintregs[i], REG_SP, p);
 		}
 		for (i=ADR_SAV_CNT-1; i>=rd->savadrreguse; --i)	{
-			p--; M_AST(rd->savadrregs[i], REG_SP, p*4);
+			p-=8; M_AST(rd->savadrregs[i], REG_SP, p);
 		}
 #if !defined(ENABLE_SOFTFLOAT)
 		for (i=FLT_SAV_CNT-1; i>=rd->savfltreguse; --i)	{
-			p-=2; M_FSTORE(rd->savfltregs[i], REG_SP, p*4);
+			p-=8; M_FSTORE(rd->savfltregs[i], REG_SP, p);
 		}	
 #else
 		assert(FLT_SAV_CNT == 0);
@@ -214,22 +216,17 @@ bool codegen_emit(jitdata *jd)
 			case TYPE_INT:
 				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t))	{
-						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
 					} else {
-						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
 					}
 				} else {                             /* stack arg -> spilled  */
-#if 1
- 					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+ 					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize + s1 + 4);
  					M_IST(REG_ITMP1, REG_SP, var->vv.regoff);
 					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1 + 4 + 4);
+						M_ILD(REG_ITMP1, REG_SP, cd->stackframesize  + s1 + 4 + 4);
 						M_IST(REG_ITMP1, REG_SP, var->vv.regoff + 4);
 					}
-#else
-					/* Reuse Memory Position on Caller Stack */
-					var->vv.regoff = cd->stackframesize * 4 + s1;
-#endif
 				} 
 				break;
 #if !defined(ENABLE_SOFTFLOAT)
@@ -237,37 +234,27 @@ bool codegen_emit(jitdata *jd)
 			case TYPE_DBL:
  				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))	{
-						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
 					} else {
-						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
 					}
  				} else {                             /* stack-arg -> spilled  */
-#if 1
 					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_DLD(REG_FTMP1, REG_SP, cd->stackframesize + s1 + 4);
 						M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
 					} else {
-						M_FLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+						M_FLD(REG_FTMP1, REG_SP, cd->stackframesize + s1 + 4);
 						M_FST(REG_FTMP1, REG_SP, var->vv.regoff);
 					}
-#else
-					/* Reuse Memory Position on Caller Stack */
-					var->vv.regoff = cd->stackframesize * 4 + s1;
-#endif
 				}
 				break;
 #endif /* SOFTFLOAT */
 			case TYPE_ADR:
  				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
-					M_ALD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1 + 4);
+					M_ALD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
  				} else {                             /* stack-arg -> spilled  */
-#if 1
-					M_ALD(REG_ATMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
+					M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + s1 + 4);
 					M_AST(REG_ATMP1, REG_SP, var->vv.regoff);
-#else
-				/* Reuse Memory Position on Caller Stack */
-				var->vv.regoff = cd->stackframesize * 4 + s1;
-#endif
 				}
 				break;
 			default: assert(0);
@@ -281,13 +268,13 @@ bool codegen_emit(jitdata *jd)
 			M_AMOV_IMM((&m->class->object.header), REG_ATMP1);
 		} else	{
 			/* for non-static case the first arg is the object */
-			M_ALD(REG_ATMP1, REG_SP, cd->stackframesize*4 + 4);
+			M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + 4);
 			M_ATST(REG_ATMP1);
 			M_BNE(2);
 			M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
 		}
 
-		M_AST(REG_ATMP1, REG_SP, rd->memuse * 4);
+		M_AST(REG_ATMP1, REG_SP, rd->memuse * 8);
 		M_AST(REG_ATMP1, REG_SP, 0 * 4);
 		M_JSR_IMM(LOCK_monitor_enter);
 	}
@@ -1887,7 +1874,7 @@ nowperformreturn:
 #if defined(ENABLE_THREADS)
 			/* call lock_monitor_exit */
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 4);
+				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 8);
 
 				/* we need to save the proper return value */
 				/* we do not care for the long -> doubel convert space here */
@@ -1896,21 +1883,21 @@ nowperformreturn:
 				case ICMD_DRETURN:
 #endif
 				case ICMD_LRETURN:
-					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4 + 4);
+					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 8 + 8);
 					break;
 #if defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
 #endif
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_IST(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
+					M_IST(REG_RESULT , REG_SP, rd->memuse * 8 + 8);
 					break;
 #if !defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
-					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_FST(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
 					break;
 				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_DST(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
 					break;
 #endif
 				}
@@ -1925,21 +1912,21 @@ nowperformreturn:
 				case ICMD_DRETURN:
 #endif
 				case ICMD_LRETURN:
-					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 4 + 4);
+					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 8 + 8);
 					break;
 #if defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
 #endif
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
+					M_ILD(REG_RESULT , REG_SP, rd->memuse * 8 + 8);
 					break;
 #if !defined(ENABLE_SOFTFLOAT)
 				case ICMD_FRETURN:
-					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
 					break;
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
 					break;
 #endif
 				}
@@ -1960,18 +1947,18 @@ nowperformreturn:
 			/* restore saved registers                                        */
 
 			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--; M_ILD(rd->savintregs[i], REG_SP, p * 4);
+				p-=8; M_ILD(rd->savintregs[i], REG_SP, p);
 			}
 			for (i=ADR_SAV_CNT-1; i>=rd->savadrreguse; --i)	{
-				p--; M_ALD(rd->savadrregs[i], REG_SP, p*4);
+				p-=8; M_ALD(rd->savadrregs[i], REG_SP, p);
 			}
 #if !defined(ENABLE_SOFTFLOAT)
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-				p -= 2; M_FLOAD(rd->savfltregs[i], REG_SP, p * 4);
+				p-=8; M_FLOAD(rd->savfltregs[i], REG_SP, p);
 			}
 #endif
 			/* deallocate stack                                               */
-			M_AADD_IMM(cd->stackframesize*4, REG_SP);
+			M_AADD_IMM(cd->stackframesize, REG_SP);
 			M_RET;
 			}
 			break;

@@ -529,10 +529,7 @@ void emit_verbosecall_enter(jitdata* jd)
 
 	/* travel up stack to the first argument of the function which needs to be copied */
 	for (i=0; (i < md->paramcount) && (i < TRACE_ARGS_NUM); i++)	{
-		disp += 4;
-		if (IS_2_WORD_TYPE(md->paramtypes[i].type)) {	
-			disp += 4;
-		}
+		disp += 8;
 	}
 
 	/* disp now points to the first arg which gets copied to the trace stack, relative to REG_SP! */
@@ -541,19 +538,11 @@ void emit_verbosecall_enter(jitdata* jd)
 			/* traced function has such an argument */
 			t = md->paramtypes[i].type;
 			
-			if (IS_2_WORD_TYPE(t))	{
-				/* copy from original argument stack */
-				M_ILD(REG_ITMP1, REG_SP, disp);
-				M_IPUSH(REG_ITMP1);
-				M_ILD(REG_ITMP1, REG_SP, disp);
-				M_IPUSH(REG_ITMP1);
-			} else	{
-				/* displacment is increased as 4 byte on original stack but 8 byte on trace stack */
-				M_ILD(REG_ITMP1, REG_SP, disp);
-				M_IPUSH(REG_ITMP1);
-				M_IPUSH_IMM(0);
-				disp += 4;
-			}
+			/* copy from original argument stack */
+			M_ILD(REG_ITMP1, REG_SP, disp);
+			M_IPUSH(REG_ITMP1);
+			M_ILD(REG_ITMP1, REG_SP, disp);
+			M_IPUSH(REG_ITMP1);
 		} else	{
 			/* function has no arg here, push nothing and adapt displacement */
 			M_IPUSH_IMM(0);
