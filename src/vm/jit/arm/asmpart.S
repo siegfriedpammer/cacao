@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7932 2007-05-22 07:00:57Z michi $
+   $Id: asmpart.S 8127 2007-06-21 11:55:56Z michi $
 
 */
 
@@ -70,9 +70,6 @@ asm_exceptionptr:
 	.word _no_threads_exceptionptr
 #endif
 
-asm_jitcompilerptr:
-	.word asm_call_jit_compiler
-
 asm_criticalsections:
 #if defined(ENABLE_THREADS)
 	.word _crit_begin
@@ -114,77 +111,45 @@ asm_vm_call_method_long:
 /* asm_vm_call_method_float:
 asm_vm_call_method_double: */
 	SAVE_SCRATCH_REGISTERS            /* save our personal scratch regs   */
-	stmfd sp!, {v1}                   /* V1 is used to recompute SP ...   */
-	mov   v1, #0                      /* ... when using stack arguments   */
-	ldr   ip, asm_jitcompilerptr
-	str   ip, [sp, #-4]!              /* store fake address               */
-	mov   mptr, sp                    /* set method pointer               */
+	stmfd sp!, {v1}                   /* V1 is used to remember SP        */
+	str   a0, [sp, #-4]!              /* store methods entrypoint         */
 
-	mov   itmp1, a0                   /* pass methodinfo* via ITMP1       */
+	mov   v1, sp                      /* remember SP                      */
 
-	cmp   a1, #0                      /* do we have arguments?            */
+	mov   itmp1, a1                   /* address of data structure        */
+	mov   itmp3, a2                   /* stack argument count             */
+
+	ldr   a0, [itmp1], #8             /* load argument registers          */
+	ldr   a1, [itmp1], #8
+	ldr   a2, [itmp1], #8
+	ldr   a3, [itmp1], #8
+
+	cmp   itmp3, #0                   /* do we have stack arguments?      */
 	ble   asm_calljava_copyfinish     /* no -> do not care :-)            */
 
-	/* REMEMBER: stack space for arguments is reserved here! */
-	/* TODO: we possibly reserve to much here */
-	mov   v1, a1, lsl #3              /* how much stack do we alloc?      */
-	sub   sp, sp, v1                  /* allocate stack for arguments!    */
-
-	mov   itmp3, #0                   /* stack position                   */
+	mov   itmp2, #0
+	sub   sp, sp, itmp3, lsl #3       /* create stackframe for arguments  */
 asm_calljava_copyloop:                /* reorder stack arguments!         */
-#if defined(__ARMEL__)
-	ldr   ip, [a2,#offvmargtype]      /* align 2_WORD_TYPEs               */
-	tst   ip, #1
-	tstne itmp3, #4
-	addne itmp3, itmp3, #4
-	ldr   ip, [a2,#offvmargdata]      /* get LOW word of argument         */
-	str   ip, [sp, itmp3]
-	add   itmp3, itmp3, #4
-	ldr   ip, [a2,#offvmargtype]      /* is it a 2_WORD_TYPE?             */
-	tst   ip, #1
-	ldrne ip, [a2,#offvmargdata + 4]  /* yes -> get HIGH word of argument */
-	strne ip, [sp, itmp3]
-	addne itmp3, itmp3, #4
-#else /* defined(__ARMEB__) */
-	ldr   ip, [a2,#offvmargtype + 4]  /* get our item type (it is u8)    */
-	tst   ip, #1                      /* align 2_WORD_TYPEs               */
-	tstne itmp3, #4
-	addne itmp3, itmp3, #4
-	teq   ip, #2                      /* is it a TYPE_FLOAT?              */
-	ldreq ip, [a2,#offvmargdata]      /* yes -> get LOW word of float     */
-	streq ip, [sp, itmp3]
-	addeq itmp3, itmp3, #4
-	beq   asm_calljava_copydone
-	tst   ip, #1                      /* is it a 2_WORD_TYPE?             */
-	ldrne ip, [a2,#offvmargdata]      /* yes -> get HIGH word of argument */
-	strne ip, [sp, itmp3]
-	addne itmp3, itmp3, #4
-	ldr   ip, [a2,#offvmargdata + 4]  /* get LOW word of argument         */
-	str   ip, [sp, itmp3]
-	add   itmp3, itmp3, #4
-asm_calljava_copydone:
-#endif
-	add   a2, a2, #sizevmarg          /* next argument block              */
-	subs  a1, a1, #1
+	ldr   ip, [itmp1], #4             /* load argument                    */
+	str   ip, [sp, itmp2]             /* store argument on stack          */
+	add   itmp2, itmp2, #4            /* next stackslot                   */
+	ldr   ip, [itmp1], #4             /* load argument                    */
+	str   ip, [sp, itmp2]             /* store argument on stack          */
+	add   itmp2, itmp2, #4            /* next stackslot                   */
+	subs  itmp3, itmp3, #1            /* next argument                    */
 	bgt   asm_calljava_copyloop
 
-	/* REMEMBER: first four args are passed in regs, take them out again  */
-	ldmfd sp, {a0, a1, a2, a3}        /* load first four args to register */
-	cmp   v1, #16                     /* do we have four arguments?       */
-	addlt sp, sp, v1
-	movlt v1, #0
-	addge sp, sp, #16
-	subge v1, v1, #16
-
 asm_calljava_copyfinish:
+	mov   mptr, v1                    /* set method pointer               */
+
 	/* REMEMBER: do the method call just like in java! */
 	ldr   ip, [mptr]                  /* fake virtual function call       */
-	mov   lr, pc 
- 	mov   pc, ip 
-fake2:
-	sub   ip, pc, #(fake2 - asm_vm_call_method)+8
+	mov   lr, pc
+ 	mov   pc, ip
+fake:
+	sub   ip, pc, #(fake - asm_vm_call_method)+8
 
-	add   sp, sp, v1                  /* free stack arguments!            */
+	mov   sp, v1                      /* restore SP                       */
 	add   sp, sp, #4                  /* free fake address                */
 	ldmfd sp!, {v1}
 	RESTORE_SCRATCH_REGS_AND_RETURN   /* return to caller, restore regs   */
@@ -194,7 +159,7 @@ asm_vm_call_method_exception_handler:
 	bl    builtin_throw_exception     /* throw the exception              */
 	mov   res1, #0                    /* return NULL                      */
 	mov   res2, #0                    /* return NULL                      */
-	add   sp, sp, v1                  /* free stack arguments!            */
+	mov   sp, v1                      /* restore SP                       */
 	add   sp, sp, #4                  /* free fake address                */
 	ldmfd sp!, {v1}
 	RESTORE_SCRATCH_REGS_AND_RETURN   /* return to caller, restore regs   */

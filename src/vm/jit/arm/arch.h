@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 7695 2007-04-12 19:49:34Z twisti $
+   $Id: arch.h 8127 2007-06-21 11:55:56Z michi $
 
 */
 
@@ -98,16 +98,8 @@
 #endif
 
 
-#define HAS_4BYTE_STACKSLOT
 #define SUPPORT_COMBINE_INTEGER_REGISTERS
 #define SUPPORT_PASS_FLOATARGS_IN_INTREGS
-
-#define ALIGN_LONGS_IN_MEMORY       /* Align Longs and/or Doubles at          */
-#define ALIGN_DOUBLES_IN_MEMORY     /* 2*Stackslotsize relativ to stackframe  */
-/* Memory Positions for not Interface Stackslots (allocate_scratch_registers) */
-/* are not properly aligned in case HAS_4_BYTE_STACKSLOT is not defined!      */
-/* For HAS_4_BYTE_STACKSLOT archs no distinction is made between long and     */
-/* define SUPPORT_COMBINE_INTEGER_REGISTERS                                   */
 
 
 /* branches *******************************************************************/

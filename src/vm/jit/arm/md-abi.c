@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: md-abi.c 8127 2007-06-21 11:55:56Z michi $
 
 */
 
@@ -150,12 +150,14 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_FLT:
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index    = reguse;
 				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 			}
 			else {
 				pd->inmemory = true;
-				pd->regoff   = stacksize * 4;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
 				stacksize++;
 			}
 			break;
@@ -169,10 +171,12 @@ void md_param_alloc(methoddesc *md)
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 #if defined(__ARMEL__)
+				pd->index    = PACK_REGS(reguse, reguse + 1);
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse],
 							  abi_registers_integer_argument[reguse + 1]);
 #else
+				pd->index    = PACK_REGS(reguse + 1, reguse);
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse + 1],
 							  abi_registers_integer_argument[reguse]);
@@ -181,11 +185,13 @@ void md_param_alloc(methoddesc *md)
 			}
 			else {
 
-				ALIGN_2(stacksize);
+				/*ALIGN_2(stacksize);*/
 
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * 4;
-				stacksize    += 2;
+				pd->index     = stacksize;
+				pd->regoff    = stacksize * 8;
+				/*stacksize    += 2;*/
+				stacksize++;
 			}
 			break;
 		}
@@ -242,11 +248,13 @@ void md_param_alloc_native(methoddesc *md)
 		case TYPE_FLT:
 			if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
+				pd->index    = -1;
 				pd->regoff   = abi_registers_integer_argument[reguse];
 				reguse++;
 			}
 			else {
 				pd->inmemory = true;
+				pd->index    = -1;
 				pd->regoff   = stacksize * 4;
 				stacksize++;
 			}
@@ -260,10 +268,12 @@ void md_param_alloc_native(methoddesc *md)
 #endif
 				pd->inmemory = false;
 #if defined(__ARMEL__)
+				pd->index    = -1;
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse],
 							  abi_registers_integer_argument[reguse + 1]);
 #else
+				pd->index    = -1;
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse + 1],
 							  abi_registers_integer_argument[reguse]);
@@ -274,10 +284,12 @@ void md_param_alloc_native(methoddesc *md)
 			else if (reguse < INT_ARG_CNT) {
 				pd->inmemory = false;
 # if defined(__ARMEL__)
+				pd->index    = -1;
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[reguse],
 							  abi_registers_integer_argument[INT_ARG_CNT]);
 # else
+				pd->index    = -1;
 				pd->regoff   =
 					PACK_REGS(abi_registers_integer_argument[INT_ARG_CNT],
 							  abi_registers_integer_argument[reguse]);
@@ -291,6 +303,7 @@ void md_param_alloc_native(methoddesc *md)
 				ALIGN_2(stacksize);
 #endif
 				pd->inmemory  = true;
+				pd->index     = -1;
 				pd->regoff    = stacksize * 4;
 				reguse        = INT_ARG_CNT;
 				stacksize    += 2;
