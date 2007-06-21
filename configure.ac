@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8113 2007-06-20 18:05:39Z twisti $
+dnl $Id: configure.ac 8125 2007-06-21 10:02:14Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -223,6 +223,7 @@ AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/mman.h])
 AC_CHECK_HEADERS([sys/resource.h])
 AC_CHECK_HEADERS([sys/select.h])
+AC_CHECK_HEADERS([sys/socket.h])
 AC_CHECK_HEADERS([sys/stat.h])
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([sys/types.h])
@@ -253,10 +254,13 @@ AC_FUNC_MEMCMP
 AC_FUNC_MMAP
 
 dnl keep them alpha-sorted!
+AC_CHECK_FUNCS([accept])
 AC_CHECK_FUNCS([atoi])
 AC_CHECK_FUNCS([atol])
 AC_CHECK_FUNCS([calloc])
+AC_CHECK_FUNCS([close])
 AC_CHECK_FUNCS([confstr])
+AC_CHECK_FUNCS([connect])
 AC_CHECK_FUNCS([fflush])
 AC_CHECK_FUNCS([fopen])
 AC_CHECK_FUNCS([fprintf])
@@ -265,9 +269,11 @@ AC_CHECK_FUNCS([fstat])
 AC_CHECK_FUNCS([getcwd])
 AC_CHECK_FUNCS([getpagesize])
 AC_CHECK_FUNCS([getrusage])
+AC_CHECK_FUNCS([getsockname])
 AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([ioctl])
 AC_CHECK_FUNCS([isnan])
+AC_CHECK_FUNCS([listen])
 AC_CHECK_FUNCS([localtime])
 AC_CHECK_FUNCS([localtime_r])
 AC_CHECK_FUNCS([lseek])
@@ -276,6 +282,9 @@ AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([open])
 AC_CHECK_FUNCS([scandir])
 AC_CHECK_FUNCS([select])
+AC_CHECK_FUNCS([setsockopt])
+AC_CHECK_FUNCS([shutdown])
+AC_CHECK_FUNCS([socket])
 AC_CHECK_FUNCS([strchr])
 AC_CHECK_FUNCS([strdup])
 AC_CHECK_FUNCS([strerror])

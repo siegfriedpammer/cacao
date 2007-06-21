@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8097 2007-06-17 14:50:16Z pm $
+   $Id: md.c 8123 2007-06-20 23:50:55Z michi $
 
 */
 
