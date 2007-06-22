@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: java_lang_Class.c 8137 2007-06-22 16:41:36Z michi $
 
 */
 
@@ -39,21 +39,28 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(ENABLE_JAVAME_CLDC1_1)
-# include "native/include/java_lang_String.h"/* required by java_lang_Class.h */
-#endif
+/* keep this order of the native includes */
 
-#include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_String.h"
 
 #if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_SUN)
+#  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
+# endif
 # include "native/include/java_lang_ClassLoader.h"
+#endif
+
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_Class.h"
+
+#if defined(ENABLE_JAVASE)
 # include "native/include/java_lang_reflect_Constructor.h"
 # include "native/include/java_lang_reflect_Field.h"
 # include "native/include/java_lang_reflect_Method.h"
 #endif
 
 #include "native/vm/java_lang_Class.h"
+#include "native/vm/java_lang_String.h"
 
 #include "toolbox/logging.h"
 
@@ -586,9 +593,32 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
 
 			rf = (java_lang_reflect_Field *) o;
 
-			rf->declaringClass = (java_lang_Class *) c;
-			rf->name           = (java_lang_String *) javastring_new(f->name);
+#if defined(WITH_CLASSPATH_GNU)
+
+			rf->clazz = (java_lang_Class *) c;
+
+			/* The name needs to be interned */
+			/* XXX implement me better! */
+
+			rf->name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name));
 			rf->slot           = i;
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+			rf->clazz          = (java_lang_Class *) c;
+
+			/* The name needs to be interned */
+			/* XXX implement me better! */
+
+			rf->name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name));
+			rf->type           = (java_lang_Class *) field_get_type(f);
+			rf->modifiers      = f->flags;
+			rf->slot           = i;
+			rf->signature      = f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL;
+			rf->annotations    = NULL;
+#else
+# error unknown classpath configuration
+#endif
 
 			/* store object into array */
 
@@ -659,9 +689,37 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 
 			rm = (java_lang_reflect_Method *) o;
 
-			rm->declaringClass = (java_lang_Class *) m->class;
-			rm->name           = (java_lang_String *) javastring_new(m->name);
-			rm->slot           = i;
+#if defined(WITH_CLASSPATH_GNU)
+
+			rm->clazz       = (java_lang_Class *) m->class;
+
+			/* The name needs to be interned */
+			/* XXX implement me better! */
+
+			rm->name                 = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name));
+			rm->slot                 = i;
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+			rm->clazz                = (java_lang_Class *) m->class;
+
+			/* The name needs to be interned */
+			/* XXX implement me better! */
+
+			rm->name                 = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name));
+			rm->parameterTypes       = method_get_parametertypearray(m);
+			rm->returnType           = (java_lang_Class *) method_returntype_get(m);
+			rm->exceptionTypes       = method_get_exceptionarray(m);
+			rm->modifiers            = m->flags & ACC_CLASS_REFLECT_MASK;
+			rm->slot                 = i;
+			rm->signature            = m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL;
+			rm->annotations          = NULL;
+			rm->parameterAnnotations = NULL;
+			rm->annotationDefault    = NULL;
+
+#else
+# error unknown classpath configuration
+#endif
 
 			/* store object into array */
 
@@ -721,8 +779,25 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *k
 
 			rc = (java_lang_reflect_Constructor *) o;
 
-			rc->clazz = (java_lang_Class *) c;
-			rc->slot  = i;
+#if defined(WITH_CLASSPATH_GNU)
+
+			rc->clazz                = (java_lang_Class *) c;
+			rc->slot                 = i;
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+			rc->clazz                = (java_lang_Class *) c;
+			rc->parameterTypes       = method_get_parametertypearray(m);
+			rc->exceptionTypes       = method_get_exceptionarray(m);
+			rc->modifiers            = m->flags & ACC_CLASS_REFLECT_MASK;
+			rc->slot                 = i;
+			rc->signature            = m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL;
+			rc->annotations          = NULL;
+			rc->parameterAnnotations = NULL;
+
+#else
+# error unknown classpath configuration
+#endif
 
 			/* store object into array */
 
@@ -969,7 +1044,14 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
 
 	rm = (java_lang_reflect_Method *) o;
 
-	rm->declaringClass = (java_lang_Class *) m->class;
+#if defined(WITH_CLASSPATH_GNU)
+	rm->clazz          = (java_lang_Class *) m->class;
+#elif defined(WITH_CLASSPATH_SUN)
+	rm->clazz          = (java_lang_Class *) m->class;
+#else
+# error unknown classpath configuration
+#endif
+
 	rm->name           = (java_lang_String *) javastring_new(m->name);
 	rm->slot           = m - m->class->methods;      /* calculate method slot */
 

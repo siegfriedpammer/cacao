@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 7783 2007-04-20 13:28:27Z twisti $
+   $Id: properties.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -82,17 +82,20 @@ static list_t *list_properties = NULL;
 bool properties_init(void)
 {
 #if defined(ENABLE_JAVASE)
-	char           *cwd;
 	char           *env_java_home;
+	char           *java_home;
+	s4              len;
+
+# if defined(WITH_CLASSPATH_GNU)
+	char           *cwd;
 	char           *env_user;
 	char           *env_home;
 	char           *env_lang;
-	char           *java_home;
 	char           *extdirs;
 	char           *lang;
 	char           *country;
 	struct utsname *utsnamebuf;
-	s4              len;
+# endif
 #endif
 
 	/* create the properties list */
@@ -100,17 +103,10 @@ bool properties_init(void)
 	list_properties = list_create(OFFSET(list_properties_entry, linkage));
 
 #if defined(ENABLE_JAVASE)
+
 	/* get properties from system */
 
-	cwd           = _Jv_getcwd();
 	env_java_home = getenv("JAVA_HOME");
-	env_user      = getenv("USER");
-	env_home      = getenv("HOME");
-	env_lang      = getenv("LANG");
-
-	utsnamebuf = NEW(struct utsname);
-
-	uname(utsnamebuf);
 
 	/* set JAVA_HOME to default prefix if not defined */
 
@@ -118,10 +114,6 @@ bool properties_init(void)
 		env_java_home = cacao_prefix;
 
 	/* fill in system properties */
-
-	properties_add("java.version", JAVA_VERSION);
-	properties_add("java.vendor", "GNU Classpath");
-	properties_add("java.vendor.url", "http://www.gnu.org/software/classpath/");
 
 	/* add /jre to java.home property */
 
@@ -140,14 +132,34 @@ bool properties_init(void)
 	properties_add("java.vm.version", VERSION);
 	properties_add("java.vm.vendor", "CACAO Team");
 	properties_add("java.vm.name", "CACAO");
-	properties_add("java.specification.version", "1.5");
-	properties_add("java.specification.vendor", "Sun Microsystems Inc.");
-	properties_add("java.specification.name", "Java Platform API Specification");
-	properties_add("java.class.version", CLASS_VERSION);
-	properties_add("java.class.path", _Jv_classpath);
+
+# if defined(WITH_CLASSPATH_GNU)
+
+	/* get properties from system */
+
+	cwd      = _Jv_getcwd();
+
+	env_user = getenv("USER");
+	env_home = getenv("HOME");
+	env_lang = getenv("LANG");
+
+	utsnamebuf = NEW(struct utsname);
+
+	uname(utsnamebuf);
 
 	properties_add("java.runtime.version", VERSION);
 	properties_add("java.runtime.name", "CACAO");
+
+	properties_add("java.specification.version", "1.5");
+	properties_add("java.specification.vendor", "Sun Microsystems Inc.");
+	properties_add("java.specification.name", "Java Platform API Specification");
+
+	properties_add("java.version", JAVA_VERSION);
+	properties_add("java.vendor", "GNU Classpath");
+	properties_add("java.vendor.url", "http://www.gnu.org/software/classpath/");
+
+	properties_add("java.class.path", _Jv_classpath);
+	properties_add("java.class.version", CLASS_VERSION);
 
 	/* Set bootclasspath properties. One for GNU classpath and the
 	   other for compatibility with Sun (required by most
@@ -156,20 +168,20 @@ bool properties_init(void)
 	properties_add("java.boot.class.path", _Jv_bootclasspath);
 	properties_add("sun.boot.class.path", _Jv_bootclasspath);
 
-#if defined(WITH_STATIC_CLASSPATH)
+#  if defined(WITH_STATIC_CLASSPATH)
 	properties_add("gnu.classpath.boot.library.path", ".");
 	properties_add("java.library.path" , ".");
-#else
+#  else
 	/* fill gnu.classpath.boot.library.path with GNU Classpath library
        path */
 
 	properties_add("gnu.classpath.boot.library.path", classpath_libdir);
 	properties_add("java.library.path", _Jv_java_library_path);
-#endif
+#  endif
 
 	properties_add("java.io.tmpdir", "/tmp");
 
-#if defined(ENABLE_INTRP)
+#  if defined(ENABLE_INTRP)
 	if (opt_intrp) {
 		/* XXX We don't support java.lang.Compiler */
 /*  		properties_add("java.compiler", "cacao.intrp"); */
@@ -177,7 +189,7 @@ bool properties_init(void)
 		properties_add("gnu.java.compiler.name", "cacao.intrp");
 	}
 	else
-#endif
+#  endif
 	{
 		/* XXX We don't support java.lang.Compiler */
 /*  		properties_add("java.compiler", "cacao.jit"); */
@@ -198,7 +210,7 @@ bool properties_init(void)
 
 	properties_add("java.endorsed.dirs", ""CACAO_PREFIX"/jre/lib/endorsed");
 
-#if defined(DISABLE_GC)
+#  if defined(DISABLE_GC)
 	/* When we disable the GC, we mmap the whole heap to a specific
 	   address, so we can compare call traces. For this reason we have
 	   to add the same properties on different machines, otherwise
@@ -208,46 +220,47 @@ bool properties_init(void)
 	properties_add("os.arch", "unknown");
  	properties_add("os.name", "unknown");
 	properties_add("os.version", "unknown");
-#else
+#  else
 	/* We need to set the os.arch hardcoded to be compatible with SUN. */
 
-# if defined(__I386__)
+#   if defined(__I386__)
 	/* map all x86 architectures (i386, i486, i686) to i386 */
 
 	properties_add("os.arch", "i386");
-# elif defined(__POWERPC__)
+#   elif defined(__POWERPC__)
 	properties_add("os.arch", "ppc");
-# elif defined(__X86_64__)
+#   elif defined(__X86_64__)
 	properties_add("os.arch", "amd64");
-# else
+#   else
 	/* default to what uname returns */
 
 	properties_add("os.arch", utsnamebuf->machine);
-# endif
+#   endif
 
  	properties_add("os.name", utsnamebuf->sysname);
 	properties_add("os.version", utsnamebuf->release);
-#endif
+#  endif
 
-	properties_add("file.separator", "/");
-	properties_add("path.separator", ":");
-	properties_add("line.separator", "\n");
-	properties_add("user.name", env_user ? env_user : "null");
-	properties_add("user.home", env_home ? env_home : "null");
-	properties_add("user.dir", cwd ? cwd : "null");
-
-#if defined(WITH_STATIC_CLASSPATH)
+#  if defined(WITH_STATIC_CLASSPATH)
 	/* This is just for debugging purposes and can cause troubles in
        GNU Classpath. */
 
 	properties_add("gnu.cpu.endian", "unknown");
-#else
-# if WORDS_BIGENDIAN == 1
+#  else
+#   if WORDS_BIGENDIAN == 1
 	properties_add("gnu.cpu.endian", "big");
-# else
+#   else
 	properties_add("gnu.cpu.endian", "little");
-# endif
-#endif
+#   endif
+#  endif
+
+	properties_add("file.separator", "/");
+	properties_add("path.separator", ":");
+	properties_add("line.separator", "\n");
+
+	properties_add("user.name", env_user ? env_user : "null");
+	properties_add("user.home", env_home ? env_home : "null");
+	properties_add("user.dir", cwd ? cwd : "null");
 
 	/* get locale */
 
@@ -278,13 +291,28 @@ bool properties_init(void)
 		properties_add("user.language", "en");
 		properties_add("user.country", "US");
 	}
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	properties_add("sun.boot.library.path", classpath_libdir);
+
+# else
+
+#  error unknown classpath configuration
+
+# endif
+
 #elif defined(ENABLE_JAVAME_CLDC1_1)
+
     properties_add("microedition.configuration", "CLDC-1.1");
     properties_add("microedition.platform", "generic");
     properties_add("microedition.encoding", "ISO8859_1");
     properties_add("microedition.profiles", "");
+
 #else
-#error unknown Java configuration
+
+# error unknown Java configuration
+
 #endif
 
 	/* everything's ok */

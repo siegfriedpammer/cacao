@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: java_lang_reflect_Field.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -127,7 +127,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 	classinfo *c;
 	fieldinfo *f;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* check field access */
@@ -186,7 +186,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIE
 	classinfo *c;
 	fieldinfo *f;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &(c->fields[this->slot]);
 
 	return f->flags;
@@ -204,7 +204,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
 	typedesc  *desc;
 	classinfo *ret;
 
-	c    = (classinfo *) this->declaringClass;
+	c    = (classinfo *) this->clazz;
 	desc = c->fields[this->slot].parseddesc;
 
 	if (desc == NULL)
@@ -228,7 +228,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 	fieldinfo *f;
 	void      *addr;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get address of the source field value */
@@ -358,7 +358,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, j
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -391,7 +391,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -424,7 +424,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -457,7 +457,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, jav
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -491,7 +491,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -527,7 +527,7 @@ JNIEXPORT int64_t JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -565,7 +565,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -605,7 +605,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -649,7 +649,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 	/* get the class and the field */
 
-	dc = (classinfo *) this->declaringClass;
+	dc = (classinfo *) this->clazz;
 	df = &dc->fields[this->slot];
 
 	/* get the address of the destination field */
@@ -920,7 +920,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -955,7 +955,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -1001,7 +1001,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -1046,7 +1046,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -1091,7 +1091,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -1135,7 +1135,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -1176,7 +1176,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_l
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -1214,7 +1214,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	/* get the address of the field with an internal helper */
@@ -1249,7 +1249,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	f = &c->fields[this->slot];
 
 	if (f->signature == NULL)

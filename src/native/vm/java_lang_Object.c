@@ -35,21 +35,24 @@
 
 #include "native/jni.h"
 
-#if defined(ENABLE_JAVAME_CLDC1_1)
-# include "native/include/java_lang_String.h"/* required by java_lang_Class.h */
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_String.h"            /* required by j.l.CL */
+
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_SUN)
+#  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
+# endif
+
+# include "native/include/java_lang_ClassLoader.h"       /* required by j.l.C */
+# include "native/include/java_lang_Cloneable.h"
 #endif
 
 #include "native/include/java_lang_Class.h"
 
-#if defined(ENABLE_JAVASE)
-# include "native/include/java_lang_Cloneable.h"
-#endif
-
-#include "native/include/java_lang_Object.h"
-
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 
 #include "vmcore/options.h"
 
@@ -65,12 +68,17 @@
  */
 java_lang_Class *_Jv_java_lang_Object_getClass(java_lang_Object *obj)
 {
-	classinfo *c;
+	java_objectheader *o;
+	classinfo         *c;
 
-	if (obj == NULL)
+	o = (java_objectheader *) obj;
+
+	if (o == NULL) {
+		exceptions_throw_nullpointerexception();
 		return NULL;
+	}
 
-	c = ((java_objectheader *) obj)->vftbl->class;
+	c = o->vftbl->class;
 
 	return (java_lang_Class *) c;
 }

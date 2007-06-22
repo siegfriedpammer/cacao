@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: threads.c 8137 2007-06-22 16:41:36Z michi $
 
 */
 
@@ -955,7 +955,16 @@ bool threads_init(void)
 
 	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
 						  false);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* We trick java.lang.Thread.init, which sets the priority of the
+	   current thread to the parent's one. */
+
+	t->priority = NORM_PRIORITY;
+
 #elif defined(WITH_CLASSPATH_CLDC1_1)
+
 	/* set the thread */
 
 	t->vm_thread = (java_lang_Object *) mainthread;
@@ -965,6 +974,8 @@ bool threads_init(void)
 	o = (java_objectheader *) t;
 
 	(void) vm_call_method(method_thread_init, o, threadname);
+#else
+# error unknown classpath configuration
 #endif
 
 	if (exceptions_get_exception())
@@ -973,6 +984,7 @@ bool threads_init(void)
 #if defined(ENABLE_JAVASE)
 	t->group = threadgroup;
 
+# if defined(WITH_CLASSPATH_GNU)
 	/* add main thread to java.lang.ThreadGroup */
 
 	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
@@ -987,6 +999,9 @@ bool threads_init(void)
 
 	if (exceptions_get_exception())
 		return false;
+# else
+#  warning Do not know what to do here
+# endif
 #endif
 
 	threads_set_thread_priority(pthread_self(), NORM_PRIORITY);
@@ -1125,9 +1140,11 @@ static void *threads_startup_thread(void *arg)
 		   java.lang.VMThread. Since this is a final class, we can use
 		   the class object directly. */
 
-		c   = class_java_lang_VMThread;
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-		c   = thread->object->header.vftbl->class;
+		c = class_java_lang_VMThread;
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+		c = thread->object->header.vftbl->class;
+#else
+# error unknown classpath configuration
 #endif
 
 		m = class_resolveclassmethod(c, utf_run, utf_void__void, c, true);
@@ -1151,8 +1168,10 @@ static void *threads_startup_thread(void *arg)
 		vmt = (java_lang_VMThread *) thread->object->vmThread;
 		o   = (java_objectheader *) vmt;
 
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 		o   = (java_objectheader *) thread->object;
+#else
+# error unknown classpath configuration
 #endif
 
 		/* run the thread */
@@ -1378,6 +1397,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #endif
 
 #if defined(WITH_CLASSPATH_GNU)
+
 	/* create a java.lang.VMThread object */
 
 	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
@@ -1390,8 +1410,17 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	vmt->thread = t;
 	vmt->vmdata = (java_lang_Object *) thread;
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	vm_abort("threads_attach_current_thread: IMPLEMENT ME!");
+
 #elif defined(WITH_CLASSPATH_CLDC1_1)
+
 	t->vm_thread = (java_lang_Object *) thread;
+
+#else
+# error unknown classpath configuration
 #endif
 
 	if (vm_aargs != NULL) {
@@ -1478,11 +1507,21 @@ bool threads_detach_thread(threadobject *thread)
 	/* XXX TWISTI: should all threads be in a ThreadGroup? */
 
 	if (group != NULL) {
+# if defined(WITH_CLASSPATH_GNU)
 		m = class_resolveclassmethod(group->header.vftbl->class,
 									 utf_removeThread,
 									 utf_java_lang_Thread__V,
 									 class_java_lang_ThreadGroup,
 									 true);
+# elif defined(WITH_CLASSPATH_SUN)
+		m = class_resolveclassmethod(group->header.vftbl->class,
+									 utf_remove,
+									 utf_java_lang_Thread__V,
+									 class_java_lang_ThreadGroup,
+									 true);
+# else
+#  error unknown classpath configuration
+# endif
 
 		if (m == NULL)
 			return false;

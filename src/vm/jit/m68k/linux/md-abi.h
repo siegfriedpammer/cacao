@@ -105,12 +105,19 @@
 	#define FLT_RES_CNT      8   /* number of float reserved registers            */
 #endif
 
+#if 0
+#define ADR_REG_CNT      8
+#define ADR_SAV_CNT      1
+#define ADR_ARG_CNT      0
+#define ADR_TMP_CNT      2
+#define ADR_RES_CNT      5
+#else
 #define ADR_REG_CNT      8
 #define ADR_SAV_CNT      2
 #define ADR_ARG_CNT      0
 #define ADR_TMP_CNT      2
 #define ADR_RES_CNT      4
-
+#endif
 
 /* packed register defines ***************************************************/
 

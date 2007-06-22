@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: options.c 8134 2007-06-22 14:49:10Z twisti $
 
 */
 
@@ -179,9 +179,12 @@ const char *opt_filter_show_method = 0;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
+int32_t  opt_MaxPermSize               = 0;
+int32_t  opt_PermSize                  = 0;
 int32_t  opt_ProfileGCMemoryUsage      = 0;
 int32_t  opt_ProfileMemoryUsage        = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
+int32_t  opt_ThreadStackSize           = 0;
 int32_t  opt_TraceExceptions           = 0;
 #if defined(ENABLE_REPLACEMENT)
 int32_t  opt_TraceReplacement          = 0;
@@ -189,18 +192,24 @@ int32_t  opt_TraceReplacement          = 0;
 
 
 enum {
+	OPT_MaxPermSize,
+	OPT_PermSize,
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
+	OPT_ThreadStackSize,
 	OPT_TraceExceptions,
 	OPT_TraceReplacement
 };
 
 
 option_t options_XX[] = {
+	{ "MaxPermSize",               OPT_MaxPermSize,               "" },
+	{ "PermSize",                  OPT_PermSize,                  "" },
 	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      "" },
 	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        "" },
 	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, "" },
+	{ "ThreadStackSize",           OPT_ThreadStackSize,           "" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           "" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "TraceReplacement",          OPT_TraceReplacement,          "" },
@@ -298,27 +307,42 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 
 void options_xx(const char *name)
 {
+	char    *start;
 	char    *end;
 	int32_t  length;
+	int32_t  enable;
 	char    *value;
 	int32_t  option;
 	char    *filename;
 	FILE    *file;
 	int32_t  i;
 
-	log_println("name: %s", name);
+	/* Check if the option is a boolean option. */
 
-	/* Search for a ':' in the option name and get the option name
+	if (name[0] == '+') {
+		start  = name + 1;
+		enable = 1;
+	}
+	else if (name[0] == '-') {
+		start  = name + 1;
+		enable = 0;
+	}
+	else {
+		start  = name;
+		enable = -1;
+	}
+
+	/* Search for a '=' in the option name and get the option name
 	   length and the value of the option. */
 
-	end = strchr(name, ':');
+	end = strchr(start, '=');
 
 	if (end == NULL) {
-		length = strlen(name);
+		length = strlen(start);
 		value  = NULL;
 	}
 	else {
-		length = end - name;
+		length = end - start;
 		value  = end + 1;
 	}
 
@@ -327,7 +351,7 @@ void options_xx(const char *name)
 	option = OPT_ERROR;
 
 	for (i = 0; options_XX[i].name != NULL; i++) {
-		if (strncmp(options_XX[i].name, name, length) == 0) {
+		if (strncmp(options_XX[i].name, start, length) == 0) {
 			option = options_XX[i].option;
 			break;
 		}
@@ -336,6 +360,14 @@ void options_xx(const char *name)
 	/* process the option */
 
 	switch (option) {
+	case OPT_MaxPermSize:
+		/* currently ignored */
+		break;
+
+	case OPT_PermSize:
+		/* currently ignored */
+		break;
+
 	case OPT_ProfileGCMemoryUsage:
 		if (value == NULL)
 			opt_ProfileGCMemoryUsage = 5;
@@ -370,8 +402,12 @@ void options_xx(const char *name)
 		opt_ProfileMemoryUsageGNUPlot = file;
 		break;
 
+	case OPT_ThreadStackSize:
+		/* currently ignored */
+		break;
+
 	case OPT_TraceExceptions:
-		opt_TraceExceptions = true;
+		opt_TraceExceptions = enable;
 		break;
 
 #if defined(ENABLE_REPLACEMENT)

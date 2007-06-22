@@ -944,7 +944,6 @@ void replace_deactivate_replacement_points(codeinfo *code)
    
    IN:
 	   es...............execution state
-	   sp...............stack pointer of the execution state (XXX eliminate?)
 	   ra...............allocation
 	   javaval..........where to put the value
 
@@ -954,7 +953,6 @@ void replace_deactivate_replacement_points(codeinfo *code)
 *******************************************************************************/
 
 static void replace_read_value(executionstate_t *es,
-							   stackslot_t *sp,
 							   rplalloc *ra,
 							   replace_val_t *javaval)
 {
@@ -962,11 +960,11 @@ static void replace_read_value(executionstate_t *es,
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
-			javaval->l = *(u8*)(sp + ra->regoff);
+			javaval->l = *(u8*)(es->sp + ra->regoff);
 		}
 		else {
 #endif
-			javaval->p = sp[ra->regoff];
+			javaval->p = *(ptrint*)(es->sp + ra->regoff);
 #ifdef HAS_4BYTE_STACKSLOT
 		}
 #endif
@@ -1004,14 +1002,12 @@ static void replace_read_value(executionstate_t *es,
    
    IN:
 	   es...............execution state
-	   sp...............stack pointer of the execution state (XXX eliminate?)
 	   ra...............allocation
 	   *javaval.........the value
 
 *******************************************************************************/
 
 static void replace_write_value(executionstate_t *es,
-							    stackslot_t *sp,
 							    rplalloc *ra,
 							    replace_val_t *javaval)
 {
@@ -1019,11 +1015,11 @@ static void replace_write_value(executionstate_t *es,
 		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
 #ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(ra->type)) {
-			*(u8*)(sp + ra->regoff) = javaval->l;
+			*(u8*)(es->sp + ra->regoff) = javaval->l;
 		}
 		else {
 #endif
-			sp[ra->regoff] = javaval->p;
+			*(ptrint*)(es->sp + ra->regoff) = javaval->p;
 #ifdef HAS_4BYTE_STACKSLOT
 		}
 #endif
@@ -1186,7 +1182,7 @@ static void replace_read_executionstate(rplpoint *rp,
 		if (ra->type == TYPE_RET)
 			frame->javalocals[i].i = ra->regoff;
 		else
-			replace_read_value(es, sp, ra, frame->javalocals + i);
+			replace_read_value(es, ra, frame->javalocals + i);
 		ra++;
 		count--;
 	}
@@ -1211,12 +1207,12 @@ static void replace_read_executionstate(rplpoint *rp,
 		instra.regoff = md->params[0].regoff;
 		if (md->params[0].inmemory) {
 			instra.flags = INMEMORY;
-			instra.regoff += (1 + code->stackframesize);
+			instra.regoff += (1 + code->stackframesize) * SIZE_OF_STACKSLOT;
 		}
 		else {
 			instra.flags = 0;
 		}
-		replace_read_value(es, sp, &instra, &(frame->instance));
+		replace_read_value(es, &instra, &(frame->instance));
 #endif
 	}
 #endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
@@ -1288,7 +1284,7 @@ static void replace_read_executionstate(rplpoint *rp,
 
 				calleeframe->syncslotcount = 1;
 				calleeframe->syncslots = DMNEW(replace_val_t, 1);
-				replace_read_value(es,sp,ra,calleeframe->syncslots);
+				replace_read_value(es,ra,calleeframe->syncslots);
 			}
 
 			frame->javastackdepth--;
@@ -1306,7 +1302,7 @@ static void replace_read_executionstate(rplpoint *rp,
 			if (ra->type == TYPE_RET)
 				frame->javastack[i].i = ra->regoff;
 			else
-				replace_read_value(es,sp,ra,frame->javastack + i);
+				replace_read_value(es,ra,frame->javastack + i);
 			frame->javastacktype[i] = ra->type;
 			i++;
 		}
@@ -1379,7 +1375,7 @@ static void replace_write_executionstate(rplpoint *rp,
 			/* XXX assert that it matches this rplpoint */
 		}
 		else
-			replace_write_value(es, sp, ra, frame->javalocals + i);
+			replace_write_value(es, ra, frame->javalocals + i);
 		count--;
 		ra++;
 	}
@@ -1436,7 +1432,7 @@ static void replace_write_executionstate(rplpoint *rp,
 				assert(frame->down->syncslotcount == 1); /* XXX need to understand more cases */
 				assert(frame->down->syncslots != NULL);
 
-				replace_write_value(es,sp,ra,frame->down->syncslots);
+				replace_write_value(es,ra,frame->down->syncslots);
 			}
 			continue;
 		}
@@ -1455,7 +1451,7 @@ static void replace_write_executionstate(rplpoint *rp,
 				/* XXX assert that it matches this rplpoint */
 			}
 			else {
-				replace_write_value(es,sp,ra,frame->javastack + i);
+				replace_write_value(es,ra,frame->javastack + i);
 			}
 			i++;
 		}

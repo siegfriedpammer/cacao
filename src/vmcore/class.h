@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: class.h 8137 2007-06-22 16:41:36Z michi $
 
 */
 
@@ -39,6 +39,9 @@ typedef struct castinfo       castinfo;
 
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "toolbox/list.h"
@@ -82,7 +85,15 @@ typedef struct castinfo       castinfo;
 
 typedef struct {
 	java_objectheader header;
-	ptrint            padding[4];
+#if defined(WITH_CLASSPATH_GNU)
+	intptr_t           padding[4];
+#elif defined(WITH_CLASSPATH_SUN)
+	intptr_t           padding[19];
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	intptr_t           padding[3];
+#else
+# error unknown classpath configuration
+#endif
 } dummy_java_lang_Class;
 
 struct classinfo {                /* class structure                          */

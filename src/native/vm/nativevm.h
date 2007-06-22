@@ -38,6 +38,7 @@
 
 /* function prototypes ********************************************************/
 
+bool nativevm_preinit(void);
 bool nativevm_init(void);
 
 #if defined(ENABLE_JAVASE)
@@ -65,6 +66,10 @@ void _Jv_java_lang_reflect_Method_init();
 void _Jv_java_lang_reflect_VMProxy_init();
 void _Jv_java_security_VMAccessController_init();
 void _Jv_java_util_concurrent_atomic_AtomicLong_init();
+void _Jv_sun_misc_Unsafe_init();
+
+# elif defined(WITH_CLASSPATH_SUN)
+
 void _Jv_sun_misc_Unsafe_init();
 
 # else

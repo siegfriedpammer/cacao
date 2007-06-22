@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: native.h 8137 2007-06-22 16:41:36Z michi $
 
 */
 
@@ -35,6 +35,8 @@
 #if !defined(WITH_STATIC_CLASSPATH)
 # include <ltdl.h>
 #endif
+
+#include <stdint.h>
 
 #include "native/jni.h"
 
@@ -116,7 +118,8 @@ struct nativecompref {
 
 bool native_init(void);
 
-void native_method_register(utf *classname, JNINativeMethod *methods, s4 count);
+void native_method_register(utf *classname, const JNINativeMethod *methods,
+							int32_t count);
 
 #if defined(WITH_STATIC_CLASSPATH)
 

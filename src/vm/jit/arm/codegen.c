@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: codegen.c 8127 2007-06-21 11:55:56Z michi $
 
 */
 
@@ -120,7 +120,8 @@ bool codegen_emit(jitdata *jd)
 
 	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the LR */
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
-	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
+	/*savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);*/
+	assert((FLT_SAV_CNT - rd->savfltreguse) == 0);
 
 	spilledregs_num = rd->memuse;
 
@@ -129,7 +130,7 @@ bool codegen_emit(jitdata *jd)
 		spilledregs_num++;
 #endif
 
-	cd->stackframesize = (spilledregs_num + savedregs_num) * 4;
+	cd->stackframesize = spilledregs_num * 8 + savedregs_num * 4;
 
 	/* XXX QUICK FIX: We shouldn't align the stack in Java code, but
 	   only in native stubs. */
@@ -151,7 +152,7 @@ bool codegen_emit(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 4);/* IsSync         */
+		(void) dseg_add_unique_s4(cd, rd->memuse * 8 + 4);/* IsSync         */
 	else
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
@@ -278,12 +279,12 @@ bool codegen_emit(jitdata *jd)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* stack offset for monitor argument */
 
-		s1 = rd->memuse;
+		s1 = rd->memuse * 8;
 
 # if !defined(NDEBUG)
 		if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
 			M_STMFD(BITMASK_ARGS, REG_SP);
-			s1 += 4;
+			s1 += 4 * 4;
 		}
 # endif
 
@@ -297,7 +298,7 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check_force(cd, iptr, REG_A0);
 		}
 
-		M_STR(REG_A0, REG_SP, s1 * 4);
+		M_STR(REG_A0, REG_SP, s1);
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
 		M_DSEG_BRANCH(disp);
 		s1 = (s4) (cd->mcodeptr - cd->mcodebase);
@@ -2121,7 +2122,7 @@ bool codegen_emit(jitdata *jd)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				/* stack offset for monitor argument */
 
-				s1 = rd->memuse;
+				s1 = rd->memuse * 8;
 
 				/* we need to save the proper return value */
 
@@ -2132,11 +2133,11 @@ bool codegen_emit(jitdata *jd)
 				case ICMD_FRETURN: /* XXX TWISTI: is that correct? */
 				case ICMD_DRETURN:
 					M_STMFD(BITMASK_RESULT, REG_SP);
-					s1 += 2;
+					s1 += 2 * 4;
 					break;
 				}
 
-				M_LDR(REG_A0, REG_SP, s1 * 4);
+				M_LDR(REG_A0, REG_SP, s1);
 				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
 				M_DSEG_BRANCH(disp);
 
@@ -2925,12 +2926,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* calculate stackframe size */
 
-	cd->stackframesize = ( 
-		1 +                                                /* return address  */
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +           /* stackframeinfo  */
-		sizeof(localref_table) / SIZEOF_VOID_P +           /* localref_table  */
-		nmd->memuse                                        /* stack arguments */
-		) * 4;
+	cd->stackframesize =
+		4 +                                                /* return address  */
+		sizeof(stackframeinfo) +                           /* stackframeinfo  */
+		sizeof(localref_table) +                           /* localref_table  */
+		nmd->memuse * 4;                                   /* stack arguments */
 
 	/* align stack to 8-byte */
 

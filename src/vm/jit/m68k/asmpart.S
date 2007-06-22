@@ -9,10 +9,6 @@
 #include "md-abi.h"
 #include "vm/jit/methodheader.h"
 
-.data
-call_jit_dummy:
-	.long 0xdeadbeef
-
 .text
 
 .globl asm_vm_call_method
@@ -59,6 +55,16 @@ call_jit_dummy:
 	.long   0                           /* IsSync                             */
 	.long   0                           /* frame size                         */
 	.long   0                           /* codeinfo pointer                   */
+
+
+/*
+	This method gets called with 3 arguments:
+	1st arg: addres of method to call (fake invokevirtual here)
+	2nd arg: uint64_t array of argument registers followed by stack 
+	3rd arg: number of 8 byte stack slots to be copied.
+
+	coldifire does not use any argument registers, so just the stack has to be copied
+*/
 asm_vm_call_method:
 asm_vm_call_method_int:
 asm_vm_call_method_long:
@@ -66,66 +72,59 @@ asm_vm_call_method_float:
 asm_vm_call_method_double:
 
 #if defined(ENABLE_SOFTFLOAT)
-	addal	#(-11*4),%sp						/* create stackframe to save registers */
+	addal	#(-12*4),%sp						/* create stackframe to save registers, and 1 slot for method invocation */
 	moveml	%d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp,%sp@	/* save registers */
 
 	/* fetch arguments from vmargs data structure */
-	movel	%sp@(11*4+1*4),%a2				/* methodinfo argument in atmp1 */
-	movel	%sp@(11*4+3*4),%a3				/* args block */
-	movel	%sp@(11*4+2*4),%d2				/* arg count */
+	movel	%sp@(12*4+1*4),%a3				/* method */
+	movel	%sp@(12*4+2*4),%a2				/* arg array */
+	movel	%sp@(12*4+3*4),%d2				/* arg count */
+
+	movel	%a3, %sp@(12*4)					/* copy method address to stackslot */
+	leal	%sp@(12*4), %a3					/* and store that address in %a3 */
 #else
-	addal #(-11*4-6*8), %sp
+	addal #(-12*4-6*8), %sp
 	moveml	%d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp,%sp@	/* save registers */
 	fmovemd	%fp2/%fp3/%fp4/%fp5/%fp6/%fp7,%sp@(11*4)			/* save registers */
 
 	/* fetch arguments from vmargs data structure */
-	movel	%sp@(11*4+6*8+1*4),%a2				/* methodinfo argument in atmp1 */
-	movel	%sp@(11*4+6*8+3*4),%a3				/* args block */
-	movel	%sp@(11*4+6*8+2*4),%d2				/* arg count */
+	movel	%sp@(12*4+6*8+1*4),%a3				/* method */
+	movel	%sp@(12*4+6*8+2*4),%a2				/* arg array */
+	movel	%sp@(12*4+6*8+3*4),%d2				/* arg count */
+
+	movel	%a3, %sp@(11*4+6*8)					/* copy method address to stackslot */
+	leal	%sp@(11*4+6*8), %a3					/* and store that address in %a3 */
 #endif
 
-
 	moveal	%sp, %a5					/* memorize stack */
+
 	tstl	%d2							/* do we have arguments ? */
 	beq	L_asm_vm_call_method_copy_done
-	subql	#1,%d2						/* simplifies offset calulation */
+	movel	%d2, %d3						/* create stackframe */
+	asll	#3,  %d3						/* number args * 8 */
+	subal	%d3, %sp			
+	moveal	%sp, %a4						/* %a4 is temp stack pointer */
 
-	movel	#(sizevmarg), %d0
-	mulsl	%d2, %d0					
-	moveal	%a3, %a0
-	addal	%d0, %a0					/* %a0 points to last vmarg block */
+L_asm_vm_call_method_copy_loop:
+	movel	%a2@(0), %d3
+	movel	%d3, %a4@(0)					/* copy 4 bytes */
+	movel	%a2@(4), %d3
+	movel	%d3, %a4@(4)					/* a whole stack slot has been copied */
 
-	addql	#1, %d2
-L_asm_vm_call_copy_arg:
-	subql	#1, %d2						/* decrement argument counter */
-	movel	%a0@(offvmargtype+4), %d1	/* %d1 contains type of arg, vmargtype is u8 */	
+	addal	#8, %a2
+	addal	#8, %a4
+	addl	#-1, %d2
+	tstl	%d2								/* do we have more arguments ? */
+	beq	L_asm_vm_call_method_copy_done
+	br	L_asm_vm_call_method_copy_loop
 
-	cmpil	#2, %d1						/* float type ? */
-	bne		L_asm_vm_call_copy_int
-
-	movel	%a0@(offvmargdata), %d0		/* float has different endianess as int */
-	movel	%d0, %sp@-
-	bra		L_asm_vm_call_copy_1_word_type
-
-L_asm_vm_call_copy_int:
-	movel	%a0@(offvmargdata+4), %d0
-	movel	%d0,%sp@-					/* push argument onto stack */
-
-	btstl	#0, %d1						/* test if 2 word type */
-	beq	L_asm_vm_call_copy_1_word_type
-	movel	%a0@(offvmargdata), %d0		/* push second word onto stack */
-	movel	%d0,%sp@-
-L_asm_vm_call_copy_1_word_type:
-
-	subl	#(sizevmarg),%a0
-	tstl 	%d2							/* arguments left ? */
-	bne	L_asm_vm_call_copy_arg
 
 L_asm_vm_call_method_copy_done:
+	/* now we fake method invocation as it would happen from invokevirtual */
+	/* this is needed as we patch the caller site, so we need a writeable slot */
+	/* %a3 points to the address containing the method, %a3 == REG_METHODPTR */
 
-	leal 	asm_call_jit_compiler,%a4			/* we need to fake a invocation as it would happen from jit code */
-	movel	%a4, call_jit_dummy					/* we need a writeable memory location */
-	moveal	call_jit_dummy, %a4					/* XXX do we have a race condition here ? */
+	moveal	%a3@(0), %a4
 	jsr	%a4@
 
 L_asm_vm_call_method_return:
@@ -133,11 +132,11 @@ L_asm_vm_call_method_return:
 
 #if defined(ENABLE_SOFTFLOAT)
 	moveml  %sp@, %d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp	/* restore registers */
-	addal 	#(11*4),%sp						/* restore stack */
+	addal 	#(12*4),%sp						/* restore stack */
 #else
-	fmovemd	%sp@(11*4), %fp2/%fp3/%fp4/%fp5/%fp6/%fp7			/* restore registers */
+	fmovemd	%sp@(12*4), %fp2/%fp3/%fp4/%fp5/%fp6/%fp7			/* restore registers */
 	moveml  %sp@, %d2/%d3/%d4/%d5/%d6/%d7/%a2/%a3/%a4/%a5/%fp	/* restore registers */
-	addal 	#(11*4+6*8),%sp						/* restore stack */
+	addal 	#(12*4+6*8),%sp						/* restore stack */
 #endif
 	moveal	%d0, %a0						/* XXX return value in %a0, too, gcc sometimes expects addresses in %a0, wired */
 asm_vm_call_method_end:						/* symbol needed to insert method into avl tree */
@@ -417,6 +416,11 @@ L_asm_handle_ex_int_done:
 	lsrl	#8, %d0
 	lsrl	#8, %d0
 
+#if 0
+	cmpb	#0, %d0
+	beq	L_asm_handle_ex_adr_done
+	moveal	-(%a0), %a5
+#else
 	cmpb	#0, %d0
 	beq	L_asm_handle_ex_adr_done
 	moveal	-(%a0), %fp
@@ -424,6 +428,7 @@ L_asm_handle_ex_int_done:
 	cmpb	#1,%d0
 	beq	L_asm_handle_ex_adr_done
 	moveal	-(%a0), %a5
+#endif
 
 L_asm_handle_ex_adr_done:
 

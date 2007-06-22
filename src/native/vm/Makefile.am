@@ -32,7 +32,8 @@ LIBS =
 
 DIST_SUBDIRS = \
 	cldc1.1 \
-	gnu
+	gnu \
+	sun
 
 if WITH_CLASSPATH_CLDC1_1
 SUBDIRS = \
@@ -48,6 +49,14 @@ SUBDIRS = \
 
 NATIVEVM_LIB = \
 	gnu/libnativevmcore.la
+endif
+
+if WITH_CLASSPATH_SUN
+SUBDIRS = \
+	sun
+
+NATIVEVM_LIB = \
+	sun/libnativevmcore.la
 endif
 
 if ENABLE_JAVASE
