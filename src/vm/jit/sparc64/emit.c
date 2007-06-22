@@ -689,6 +689,64 @@ void emit_patcher_stubs(jitdata *jd)
 #if defined(ENABLE_REPLACEMENT)
 void emit_replacement_stubs(jitdata *jd)
 {
+	codegendata *cd;
+	codeinfo    *code;
+	rplpoint    *rplp;
+	s4           disp;
+	s4           i;
+#if !defined(NDEBUG)
+	u1          *savedmcodeptr;
+#endif
+
+	/* get required compiler data */
+
+	cd   = jd->cd;
+	code = jd->code;
+
+	rplp = code->rplpoints;
+
+	/* store beginning of replacement stubs */
+
+	code->replacementstubs = (u1*) (cd->mcodeptr - cd->mcodebase);
+
+	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
+		/* do not generate stubs for non-trappable points */
+
+		if (rplp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
+		M_LDX(0,0,0);
+
+/* this is just a stub rpl point for the GC */
+#if 0 
+
+		/* check code segment size */
+
+		MCODECHECK(100);
+
+#if !defined(NDEBUG)
+		savedmcodeptr = cd->mcodeptr;
+#endif
+
+		/* create stack frame - 16-byte aligned */
+
+		M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
+
+		/* push address of `rplpoint` struct */
+
+		disp = dseg_add_address(cd, rplp);
+		M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
+		M_AST(REG_ITMP3, REG_SP, JITSTACK + 0 * 8);
+
+		/* jump to replacement function */
+
+		disp = dseg_add_functionptr(cd, asm_replacement_out);
+		M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
+		M_JMP(REG_ZERO, REG_ITMP3, REG_ZERO);
+
+		assert((cd->mcodeptr - savedmcodeptr) == 4*REPLACEMENT_STUB_SIZE);
+#endif
+	}
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
 

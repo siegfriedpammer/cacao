@@ -390,13 +390,8 @@ bool codegen_emit(jitdata *jd)
 		
 		/* handle replacement points */
 
-#if 0
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
-			
-			replacementpoint++;
-		}
-#endif
+		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
+
 
 		/* copy interface registers to their destination */
 
@@ -2218,11 +2213,15 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_LRETURN:
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
+
 			s1 = emit_load_s1(jd, iptr, REG_RESULT_CALLEE);
 			M_INTMOVE(s1, REG_RESULT_CALLEE);
 			goto nowperformreturn;
 
 		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
+
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 
 			s1 = emit_load_s1(jd, iptr, REG_RESULT_CALLEE);
 			M_INTMOVE(s1, REG_RESULT_CALLEE);
@@ -2239,11 +2238,15 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
+
 			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
 			M_DBLMOVE(s1, REG_FRESULT);
 			goto nowperformreturn;
 
 		case ICMD_RETURN:       /* ...  ==> ...                               */
+			
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 
 nowperformreturn:
 			{
@@ -2384,11 +2387,13 @@ nowperformreturn:
 
 		case ICMD_BUILTIN:      /* ..., arg1, arg2, arg3 ==> ...              */
 
+			REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr);
+
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
 			
 			/* XXX: builtin calling with stack arguments not implemented */
-			assert(md->paramcount <= 5 && md->argfltreguse <= 16);
+			assert(md->paramcount <= 4 && md->argfltreguse <= 16);
 			
 			s3 = md->paramcount;
 
@@ -2435,10 +2440,11 @@ nowperformreturn:
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
-
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
+
+			REPLACEMENT_POINT_INVOKE(cd, iptr);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				lm = NULL;
@@ -2497,7 +2503,12 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = dseg_add_functionptr(cd, bte->fp);
+				if (bte->stub == NULL) {
+					disp = dseg_add_functionptr(cd, bte->fp);
+				}
+				else {
+					disp = dseg_add_functionptr(cd, bte->stub);
+				}
 
 				M_ALD(REG_PV_CALLER, REG_PV, disp);  /* built-in-function pointer */
 
@@ -2506,6 +2517,8 @@ gen_method:
     
 			    M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
 			    M_NOP;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+				REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
 			    disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			    /* REG_RA holds the value of the jmp instruction, therefore +8 */
 			    M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
@@ -2537,6 +2550,7 @@ gen_method:
     
 			    M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
 			    M_NOP;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 			    disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			    /* REG_RA holds the value of the jmp instruction, therefore +8 */
 			    M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
@@ -2562,6 +2576,7 @@ gen_method:
     
 			    M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
 			    M_NOP;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 			    disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			    /* REG_RA holds the value of the jmp instruction, therefore +8 */
 			    M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
@@ -2592,6 +2607,7 @@ gen_method:
     
 			    M_JMP(REG_RA_CALLER, REG_PV_CALLER, REG_ZERO);
 			    M_NOP;
+				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 			    disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			    /* REG_RA holds the value of the jmp instruction, therefore +8 */
 			    M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8);
@@ -3037,6 +3053,177 @@ void codegen_emit_stub_compiler(jitdata *jd)
 	M_ALD_INTERN(REG_PV_CALLER, REG_PV_CALLER, -3 * SIZEOF_VOID_P);  /* pointer to compiler */
 	M_JMP(REG_ZERO, REG_PV_CALLER, REG_ZERO);  /* jump to the compiler, RA is wasted */
 	M_NOP;
+}
+
+
+/* codegen_emit_stub_builtin ***************************************************
+
+   Creates a stub routine which calls a builtin function.
+
+*******************************************************************************/
+
+void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
+{
+	codeinfo    *code;
+	codegendata *cd;
+	methoddesc  *md;
+	s4           i;
+	s4           disp;
+	s4           s1, s2;
+
+	/* get required compiler data */
+	code = jd->code;
+	cd   = jd->cd;
+
+	/* set some variables */
+	md = bte->md;
+
+	/* calculate stack frame size */
+	cd->stackframesize =
+		WINSAVE_CNT +
+		ABIPARAMS_CNT +
+		FLT_ARG_CNT +
+		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		4;                              /* 4 arguments or return value        */
+
+
+	/* keep stack 16-byte aligned (ABI requirement) */
+
+	if (cd->stackframesize & 1)
+		cd->stackframesize++;
+
+	/* create method header */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
+	(void) dseg_addlinenumbertablesize(cd);
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
+
+
+	/* generate stub code */
+	M_SAVE(REG_SP, -cd->stackframesize * 8, REG_SP); /* build up stackframe    */
+
+#if defined(ENABLE_GC_CACAO)
+	/* Save callee saved integer registers in stackframeinfo (GC may
+	   need to recover them during a collection). */
+
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs) + BIAS;
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
+#endif
+
+	for (i = 0; i < md->paramcount; i++) {
+		s1 = md->params[i].regoff;
+
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
+			break;
+		case TYPE_FLT:
+		case TYPE_DBL:
+			M_DST(s1, REG_SP, JITSTACK + i * 8);
+			break;
+		}
+	}
+
+	/* create dynamic stack info */
+
+	M_AADD_IMM(REG_SP, BIAS + cd->stackframesize * 8, REG_OUT0); /* data sp*/
+	M_MOV(REG_PV_CALLEE, REG_OUT1); /* PV */
+	M_MOV(REG_FP, REG_OUT2); /* java sp */
+	M_MOV(REG_RA_CALLEE, REG_OUT3); /* ra */
+
+	disp = dseg_add_functionptr(cd, codegen_stub_builtin_enter);
+	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
+	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+	M_NOP; /* XXX fill me! */
+
+
+	/* builtins are allowed to have 5 arguments max */
+
+	assert(md->paramcount <= 5);
+
+	/* copy arguments into position */
+
+	for (i = 0; i < md->paramcount; i++) {
+		assert(!md->params[i].inmemory);
+
+		s1 = md->params[i].regoff;
+
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
+			M_MOV(REG_WINDOW_TRANSPOSE(abi_registers_integer_argument[i]), s1);
+			break;
+		case TYPE_FLT:
+		case TYPE_DBL:
+			M_DLD(s1, REG_SP, JITSTACK + i * 8);
+			break;
+		}
+
+	}
+
+	/* call the builtin function */
+
+	disp = dseg_add_functionptr(cd, bte->fp);
+	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp); /* load adress of builtin */
+	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO); /* call builtin                */
+	M_NOP;                              /* delay slot                         */
+
+
+	/* save return value */
+
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_MOV(REG_RESULT_CALLER, REG_RESULT_CALLEE);
+		else
+			M_DST(REG_FRESULT, REG_SP, CSTACK);
+	}	
+
+
+	/* remove native stackframe info */
+
+	M_ADD_IMM(REG_FP, BIAS, REG_OUT0); /* datasp, like above */
+	disp = dseg_add_functionptr(cd, codegen_stub_builtin_exit);
+	M_ALD(REG_ITMP3, REG_PV_CALLEE, disp);
+	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+	M_NOP;
+
+	/* restore float return value, int return value already in our return reg */
+
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_FLT_DBL_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_DLD(REG_FRESULT, REG_SP, CSTACK);
+			else
+				M_FLD(REG_FRESULT, REG_SP, CSTACK);
+		}
+	}
+
+
+#if defined(ENABLE_GC_CACAO)
+	/* Restore callee saved integer registers from stackframeinfo (GC
+	   might have modified them during a collection). */
+        
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs) + BIAS;
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
+#endif
+
+	/* return */
+	M_RETURN(REG_RA_CALLEE, 8); /* implicit window restore */
+	M_NOP;
+
+	/* assert(0); */
 }
 
 
