@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8114 2007-06-20 18:57:41Z twisti $
+   $Id: threads-common.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -517,12 +517,14 @@ void threads_thread_print_info(threadobject *t)
 	if (object != NULL) {
 		/* get thread name */
 
-#if defined(ENABLE_JAVASE)
+#if defined(WITH_CLASSPATH_GNU)
 		name = javastring_toutf((java_objectheader *) object->name, false);
-#elif defined(ENABLE_JAVAME_CLDC1_1)
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 		/* FIXME: In cldc the name is a char[] */
 /* 		name = object->name; */
 		name = utf_null;
+#else
+# error unknown classpath configuration
 #endif
 
 		printf("\"");

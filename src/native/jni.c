@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8128 2007-06-21 16:29:53Z tbfg $
+   $Id: jni.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -65,6 +65,10 @@
 #include "native/include/java_lang_Throwable.h"
 
 #if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_SUN)
+#  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
+# endif
+
 # include "native/include/java_lang_ClassLoader.h"
 
 # include "native/include/java_lang_reflect_Constructor.h"
@@ -72,7 +76,10 @@
 # include "native/include/java_lang_reflect_Method.h"
 
 # include "native/include/java_nio_Buffer.h"
-# include "native/include/java_nio_DirectByteBufferImpl.h"
+
+# if defined(WITH_CLASSPATH_GNU)
+#  include "native/include/java_nio_DirectByteBufferImpl.h"
+# endif
 #endif
 
 #if defined(ENABLE_JVMTI)
@@ -183,6 +190,7 @@ bool jni_init(void)
 		!link_class(class_java_nio_Buffer))
 		return false;
 
+# if defined(WITH_CLASSPATH_GNU)
 	if (!(class_java_nio_DirectByteBufferImpl =
 		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBufferImpl"))) ||
 		!link_class(class_java_nio_DirectByteBufferImpl))
@@ -199,7 +207,6 @@ bool jni_init(void)
 							utf_new_char("(Ljava/lang/Object;Lgnu/classpath/Pointer;III)V"))))
 		return false;
 
-# if defined(WITH_CLASSPATH_GNU)
 #  if SIZEOF_VOID_P == 8
 	if (!(class_gnu_classpath_Pointer64 =
 		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer64"))) ||
@@ -303,7 +310,8 @@ static java_objectheader *_Jv_jni_CallObjectMethod(java_objectheader *o,
 
 static java_objectheader *_Jv_jni_CallObjectMethodA(java_objectheader *o,
 													vftbl_t *vftbl,
-													methodinfo *m, jvalue *args)
+													methodinfo *m,
+													const jvalue *args)
 {
 	methodinfo        *resm;
 	java_objectheader *ro;
@@ -397,7 +405,7 @@ static jint _Jv_jni_CallIntMethod(java_objectheader *o, vftbl_t *vftbl,
 *******************************************************************************/
 
 static jint _Jv_jni_CallIntMethodA(java_objectheader *o, vftbl_t *vftbl,
-								   methodinfo *m, jvalue *args)
+								   methodinfo *m, const jvalue *args)
 {
 	methodinfo *resm;
 	jint        i;
@@ -489,7 +497,7 @@ static jlong _Jv_jni_CallLongMethod(java_objectheader *o, vftbl_t *vftbl,
 *******************************************************************************/
 
 static jlong _Jv_jni_CallLongMethodA(java_objectheader *o, vftbl_t *vftbl,
-									 methodinfo *m, jvalue *args)
+									 methodinfo *m, const jvalue *args)
 {
 	methodinfo *resm;
 	jlong       l;
@@ -574,7 +582,7 @@ static jfloat _Jv_jni_CallFloatMethod(java_objectheader *o, vftbl_t *vftbl,
 *******************************************************************************/
 
 static jfloat _Jv_jni_CallFloatMethodA(java_objectheader *o, vftbl_t *vftbl,
-									   methodinfo *m, jvalue *args)
+									   methodinfo *m, const jvalue *args)
 {
 	methodinfo *resm;
 	jfloat      f;
@@ -650,7 +658,7 @@ static jdouble _Jv_jni_CallDoubleMethod(java_objectheader *o, vftbl_t *vftbl,
 *******************************************************************************/
 
 static jdouble _Jv_jni_CallDoubleMethodA(java_objectheader *o, vftbl_t *vftbl,
-										 methodinfo *m, jvalue *args)
+										 methodinfo *m, const jvalue *args)
 {
 	methodinfo *resm;
 	jdouble     d;
@@ -728,7 +736,7 @@ static void _Jv_jni_CallVoidMethod(java_objectheader *o, vftbl_t *vftbl,
 *******************************************************************************/
 
 static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
-									methodinfo *m, jvalue *args)
+									methodinfo *m, const jvalue *args)
 { 	
 	methodinfo *resm;
 
@@ -1431,6 +1439,8 @@ jint _Jv_JNI_ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 	STATISTICS(jniinvokation());
 
 	c = (classinfo *) clazz;
+	if (msg == NULL)
+		msg = "";
 	s = javastring_new_from_utf_string(msg);
 
   	/* instantiate exception object */
@@ -1811,7 +1821,7 @@ jobject _Jv_JNI_AllocObject(JNIEnv *env, jclass clazz)
 		
 	o = builtin_new(c);
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -1827,16 +1837,18 @@ jobject _Jv_JNI_AllocObject(JNIEnv *env, jclass clazz)
 jobject _Jv_JNI_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
 	java_objectheader *o;
+	classinfo         *c;
 	methodinfo        *m;
 	va_list            ap;
 
 	STATISTICS(jniinvokation());
 
+	c = (classinfo *) clazz;
 	m = (methodinfo *) methodID;
 
 	/* create object */
 
-	o = builtin_new(clazz);
+	o = builtin_new(c);
 	
 	if (o == NULL)
 		return NULL;
@@ -1847,7 +1859,7 @@ jobject _Jv_JNI_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	_Jv_jni_CallVoidMethod(o, o->vftbl, m, ap);
 	va_end(ap);
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -1865,15 +1877,17 @@ jobject _Jv_JNI_NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID,
 						   va_list args)
 {
 	java_objectheader *o;
+	classinfo         *c;
 	methodinfo        *m;
 
 	STATISTICS(jniinvokation());
 
+	c = (classinfo *) clazz;
 	m = (methodinfo *) methodID;
 
 	/* create object */
 
-	o = builtin_new(clazz);
+	o = builtin_new(c);
 	
 	if (o == NULL)
 		return NULL;
@@ -1882,7 +1896,7 @@ jobject _Jv_JNI_NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 	_Jv_jni_CallVoidMethod(o, o->vftbl, m, args);
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -1897,18 +1911,20 @@ jobject _Jv_JNI_NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID,
 *******************************************************************************/
 
 jobject _Jv_JNI_NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID,
-						   jvalue *args)
+						   const jvalue *args)
 {
 	java_objectheader *o;
+	classinfo         *c;
 	methodinfo        *m;
 
 	STATISTICS(jniinvokation());
 
+	c = (classinfo *) clazz;
 	m = (methodinfo *) methodID;
 
 	/* create object */
 
-	o = builtin_new(clazz);
+	o = builtin_new(c);
 	
 	if (o == NULL)
 		return NULL;
@@ -1917,7 +1933,7 @@ jobject _Jv_JNI_NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 	_Jv_jni_CallVoidMethodA(o, o->vftbl, m, args);
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -1977,35 +1993,38 @@ jboolean _Jv_JNI_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
 jmethodID _Jv_JNI_FromReflectedMethod(JNIEnv *env, jobject method)
 {
 #if defined(ENABLE_JAVASE)
-	methodinfo *mi;
-	classinfo  *c;
-	s4          slot;
+	java_objectheader *o;
+	classinfo         *c;
+	methodinfo        *m;
+	s4                 slot;
 
 	STATISTICS(jniinvokation());
 
-	if (method == NULL)
+	o = (java_objectheader *) method;
+
+	if (o == NULL)
 		return NULL;
 	
-	if (builtin_instanceof(method, class_java_lang_reflect_Method)) {
+	if (builtin_instanceof(o, class_java_lang_reflect_Method)) {
 		java_lang_reflect_Method *rm;
 
-		rm = (java_lang_reflect_Method *) method;
-		c = (classinfo *) (rm->declaringClass);
+		rm   = (java_lang_reflect_Method *) method;
+		c    = (classinfo *) (rm->clazz);
 		slot = rm->slot;
 	}
-	else if (builtin_instanceof(method, class_java_lang_reflect_Constructor)) {
+	else if (builtin_instanceof(o, class_java_lang_reflect_Constructor)) {
 		java_lang_reflect_Constructor *rc;
 
-		rc = (java_lang_reflect_Constructor *) method;
-		c = (classinfo *) (rc->clazz);
+		rc   = (java_lang_reflect_Constructor *) method;
+		c    = (classinfo *) (rc->clazz);
 		slot = rc->slot;
 	}
 	else
 		return NULL;
 
-	mi = &(c->methods[slot]);
+	m = &(c->methods[slot]);
 
-	return (jmethodID) mi;
+	return (jmethodID) m;
 #else
 	vm_abort("_Jv_JNI_FromReflectedMethod: not implemented in this configuration");
 
@@ -2036,8 +2055,7 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 	if (rf == NULL)
 		return NULL;
 
-	c = (classinfo *) rf->declaringClass;
-
+	c = (classinfo *) rf->clazz;
 	f = &(c->fields[rf->slot]);
 
 	return (jfieldID) f;
@@ -2113,7 +2131,7 @@ jmethodID _Jv_JNI_GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 
 	c = (classinfo *) clazz;
 
-	if (!c)
+	if (c == NULL)
 		return NULL;
 
 	if (!(c->state & CLASS_INITIALIZED))
@@ -2125,7 +2143,7 @@ jmethodID _Jv_JNI_GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 	uname = utf_new_char((char *) name);
 	udesc = utf_new_char((char *) sig);
 
- 	m = class_resolvemethod(clazz, uname, udesc);
+ 	m = class_resolvemethod(c, uname, udesc);
 
 	if ((m == NULL) || (m->flags & ACC_STATIC)) {
 		exceptions_throw_nosuchmethoderror(c, uname, udesc);
@@ -2154,7 +2172,7 @@ jobject _Jv_JNI_CallObjectMethod(JNIEnv *env, jobject obj, jmethodID methodID,
 	ret = _Jv_jni_CallObjectMethod(o, o->vftbl, m, ap);
 	va_end(ap);
 
-	return _Jv_JNI_NewLocalRef(env, ret);
+	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
 }
 
 
@@ -2170,12 +2188,12 @@ jobject _Jv_JNI_CallObjectMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 	ret = _Jv_jni_CallObjectMethod(o, o->vftbl, m, args);
 
-	return _Jv_JNI_NewLocalRef(env, ret);
+	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
 }
 
 
 jobject _Jv_JNI_CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-								  jvalue *args)
+								  const jvalue *args)
 {
 	java_objectheader *o;
 	methodinfo        *m;
@@ -2186,7 +2204,7 @@ jobject _Jv_JNI_CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
 
 	ret = _Jv_jni_CallObjectMethodA(o, o->vftbl, m, args);
 
-	return _Jv_JNI_NewLocalRef(env, ret);
+	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
 }
 
 
@@ -2226,7 +2244,7 @@ jboolean _Jv_JNI_CallBooleanMethodV(JNIEnv *env, jobject obj,
 
 
 jboolean _Jv_JNI_CallBooleanMethodA(JNIEnv *env, jobject obj,
-									jmethodID methodID, jvalue *args)
+									jmethodID methodID, const jvalue *args)
 {
 	java_objectheader *o;
 	methodinfo        *m;
@@ -2277,7 +2295,7 @@ jbyte _Jv_JNI_CallByteMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 
 jbyte _Jv_JNI_CallByteMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-							  jvalue *args)
+							  const jvalue *args)
 {
 	log_text("JNI-Call: CallByteMethodA: IMPLEMENT ME!");
 
@@ -2320,7 +2338,7 @@ jchar _Jv_JNI_CallCharMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 
 jchar _Jv_JNI_CallCharMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-							  jvalue *args)
+							  const jvalue *args)
 {
 	log_text("JNI-Call: CallCharMethodA: IMPLEMENT ME!");
 
@@ -2364,7 +2382,7 @@ jshort _Jv_JNI_CallShortMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 
 jshort _Jv_JNI_CallShortMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-								jvalue *args)
+								const jvalue *args)
 {
 	log_text("JNI-Call: CallShortMethodA: IMPLEMENT ME!");
 
@@ -2408,7 +2426,7 @@ jint _Jv_JNI_CallIntMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 
 jint _Jv_JNI_CallIntMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-							jvalue *args)
+							const jvalue *args)
 {
 	log_text("JNI-Call: CallIntMethodA: IMPLEMENT ME!");
 
@@ -2452,7 +2470,7 @@ jlong _Jv_JNI_CallLongMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 
 jlong _Jv_JNI_CallLongMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-							  jvalue *args)
+							  const jvalue *args)
 {
 	log_text("JNI-Call: CallLongMethodA: IMPLEMENT ME!");
 
@@ -2497,7 +2515,7 @@ jfloat _Jv_JNI_CallFloatMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 
 jfloat _Jv_JNI_CallFloatMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-								jvalue *args)
+								const jvalue *args)
 {
 	log_text("JNI-Call: CallFloatMethodA: IMPLEMENT ME!");
 
@@ -2542,7 +2560,7 @@ jdouble _Jv_JNI_CallDoubleMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 
 jdouble _Jv_JNI_CallDoubleMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-								  jvalue *args)
+								  const jvalue *args)
 {
 	log_text("JNI-Call: CallDoubleMethodA: IMPLEMENT ME!");
 
@@ -2580,7 +2598,7 @@ void _Jv_JNI_CallVoidMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 
 
 void _Jv_JNI_CallVoidMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
-							 jvalue *args)
+							 const jvalue *args)
 {
 	java_objectheader *o;
 	methodinfo        *m;
@@ -2611,7 +2629,7 @@ jobject _Jv_JNI_CallNonvirtualObjectMethod(JNIEnv *env, jobject obj,
 	r = _Jv_jni_CallObjectMethod(o, c->vftbl, m, ap);
 	va_end(ap);
 
-	return _Jv_JNI_NewLocalRef(env, r);
+	return _Jv_JNI_NewLocalRef(env, (jobject) r);
 }
 
 
@@ -2630,13 +2648,13 @@ jobject _Jv_JNI_CallNonvirtualObjectMethodV(JNIEnv *env, jobject obj,
 
 	r = _Jv_jni_CallObjectMethod(o, c->vftbl, m, args);
 
-	return _Jv_JNI_NewLocalRef(env, r);
+	return _Jv_JNI_NewLocalRef(env, (jobject) r);
 }
 
 
 jobject _Jv_JNI_CallNonvirtualObjectMethodA(JNIEnv *env, jobject obj,
 											jclass clazz, jmethodID methodID,
-											jvalue *args)
+											const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualObjectMethodA: IMPLEMENT ME!");
 
@@ -2688,7 +2706,7 @@ jboolean _Jv_JNI_CallNonvirtualBooleanMethodV(JNIEnv *env, jobject obj,
 
 jboolean _Jv_JNI_CallNonvirtualBooleanMethodA(JNIEnv *env, jobject obj,
 											  jclass clazz, jmethodID methodID,
-											  jvalue *args)
+											  const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualBooleanMethodA: IMPLEMENT ME!");
 
@@ -2736,7 +2754,7 @@ jbyte _Jv_JNI_CallNonvirtualByteMethodV(JNIEnv *env, jobject obj, jclass clazz,
 
 
 jbyte _Jv_JNI_CallNonvirtualByteMethodA(JNIEnv *env, jobject obj, jclass clazz, 
-										jmethodID methodID, jvalue *args)
+										jmethodID methodID, const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualByteMethodA: IMPLEMENT ME!");
 
@@ -2785,7 +2803,7 @@ jchar _Jv_JNI_CallNonvirtualCharMethodV(JNIEnv *env, jobject obj, jclass clazz,
 
 
 jchar _Jv_JNI_CallNonvirtualCharMethodA(JNIEnv *env, jobject obj, jclass clazz,
-										jmethodID methodID, jvalue *args)
+										jmethodID methodID, const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualCharMethodA: IMPLEMENT ME!");
 
@@ -2836,7 +2854,7 @@ jshort _Jv_JNI_CallNonvirtualShortMethodV(JNIEnv *env, jobject obj,
 
 jshort _Jv_JNI_CallNonvirtualShortMethodA(JNIEnv *env, jobject obj,
 										  jclass clazz, jmethodID methodID,
-										  jvalue *args)
+										  const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualShortMethodA: IMPLEMENT ME!");
 
@@ -2885,7 +2903,7 @@ jint _Jv_JNI_CallNonvirtualIntMethodV(JNIEnv *env, jobject obj, jclass clazz,
 
 
 jint _Jv_JNI_CallNonvirtualIntMethodA(JNIEnv *env, jobject obj, jclass clazz,
-									  jmethodID methodID, jvalue *args)
+									  jmethodID methodID, const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualIntMethodA: IMPLEMENT ME!");
 
@@ -2934,7 +2952,7 @@ jlong _Jv_JNI_CallNonvirtualLongMethodV(JNIEnv *env, jobject obj, jclass clazz,
 
 
 jlong _Jv_JNI_CallNonvirtualLongMethodA(JNIEnv *env, jobject obj, jclass clazz,
-										jmethodID methodID, jvalue *args)
+										jmethodID methodID, const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualLongMethodA: IMPLEMENT ME!");
 
@@ -2985,7 +3003,7 @@ jfloat _Jv_JNI_CallNonvirtualFloatMethodV(JNIEnv *env, jobject obj,
 
 jfloat _Jv_JNI_CallNonvirtualFloatMethodA(JNIEnv *env, jobject obj,
 										  jclass clazz, jmethodID methodID,
-										  jvalue *args)
+										  const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualFloatMethodA: IMPLEMENT ME!");
 
@@ -3037,7 +3055,7 @@ jdouble _Jv_JNI_CallNonvirtualDoubleMethodV(JNIEnv *env, jobject obj,
 
 jdouble _Jv_JNI_CallNonvirtualDoubleMethodA(JNIEnv *env, jobject obj,
 											jclass clazz, jmethodID methodID,
-											jvalue *args)
+											const jvalue *args)
 {
 	log_text("JNI-Call: CallNonvirtualDoubleMethodA: IMPLEMENT ME!");
 
@@ -3080,7 +3098,7 @@ void _Jv_JNI_CallNonvirtualVoidMethodV(JNIEnv *env, jobject obj, jclass clazz,
 
 
 void _Jv_JNI_CallNonvirtualVoidMethodA(JNIEnv *env, jobject obj, jclass clazz,
-									   jmethodID methodID, jvalue * args)
+									   jmethodID methodID, const jvalue * args)
 {	
 	java_objectheader *o;
 	classinfo         *c;
@@ -3106,7 +3124,7 @@ void _Jv_JNI_CallNonvirtualVoidMethodA(JNIEnv *env, jobject obj, jclass clazz,
 *******************************************************************************/
 
 jfieldID _Jv_JNI_GetFieldID(JNIEnv *env, jclass clazz, const char *name,
-							const char *sig) 
+							const char *sig)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -3117,10 +3135,12 @@ jfieldID _Jv_JNI_GetFieldID(JNIEnv *env, jclass clazz, const char *name,
 
 	c = (classinfo *) clazz;
 
+	/* XXX NPE check? */
+
 	uname = utf_new_char((char *) name);
 	udesc = utf_new_char((char *) sig);
 
-	f = class_findfield(clazz, uname, udesc); 
+	f = class_findfield(c, uname, udesc); 
 	
 	if (f == NULL)
 		exceptions_throw_nosuchfielderror(c, uname);  
@@ -3145,7 +3165,7 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 
 	o = GET_FIELD(obj, java_objectheader*, fieldID);
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -3399,7 +3419,7 @@ jobject _Jv_JNI_CallStaticObjectMethod(JNIEnv *env, jclass clazz,
 	o = _Jv_jni_CallObjectMethod(NULL, NULL, m, ap);
 	va_end(ap);
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -3413,12 +3433,12 @@ jobject _Jv_JNI_CallStaticObjectMethodV(JNIEnv *env, jclass clazz,
 
 	o = _Jv_jni_CallObjectMethod(NULL, NULL, m, args);
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
 jobject _Jv_JNI_CallStaticObjectMethodA(JNIEnv *env, jclass clazz,
-										jmethodID methodID, jvalue *args)
+										jmethodID methodID, const jvalue *args)
 {
 	methodinfo        *m;
 	java_objectheader *o;
@@ -3427,7 +3447,7 @@ jobject _Jv_JNI_CallStaticObjectMethodA(JNIEnv *env, jclass clazz,
 
 	o = _Jv_jni_CallObjectMethodA(NULL, NULL, m, args);
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -3463,7 +3483,7 @@ jboolean _Jv_JNI_CallStaticBooleanMethodV(JNIEnv *env, jclass clazz,
 
 
 jboolean _Jv_JNI_CallStaticBooleanMethodA(JNIEnv *env, jclass clazz,
-										  jmethodID methodID, jvalue *args)
+										  jmethodID methodID, const jvalue *args)
 {
 	methodinfo *m;
 	jboolean    b;
@@ -3508,7 +3528,7 @@ jbyte _Jv_JNI_CallStaticByteMethodV(JNIEnv *env, jclass clazz,
 
 
 jbyte _Jv_JNI_CallStaticByteMethodA(JNIEnv *env, jclass clazz,
-									jmethodID methodID, jvalue *args)
+									jmethodID methodID, const jvalue *args)
 {
 	methodinfo *m;
 	jbyte       b;
@@ -3553,7 +3573,7 @@ jchar _Jv_JNI_CallStaticCharMethodV(JNIEnv *env, jclass clazz,
 
 
 jchar _Jv_JNI_CallStaticCharMethodA(JNIEnv *env, jclass clazz,
-									jmethodID methodID, jvalue *args)
+									jmethodID methodID, const jvalue *args)
 {
 	methodinfo *m;
 	jchar       c;
@@ -3598,7 +3618,7 @@ jshort _Jv_JNI_CallStaticShortMethodV(JNIEnv *env, jclass clazz,
 
 
 jshort _Jv_JNI_CallStaticShortMethodA(JNIEnv *env, jclass clazz,
-									  jmethodID methodID, jvalue *args)
+									  jmethodID methodID, const jvalue *args)
 {
 	methodinfo *m;
 	jshort      s;
@@ -3643,7 +3663,7 @@ jint _Jv_JNI_CallStaticIntMethodV(JNIEnv *env, jclass clazz,
 
 
 jint _Jv_JNI_CallStaticIntMethodA(JNIEnv *env, jclass clazz,
-								  jmethodID methodID, jvalue *args)
+								  jmethodID methodID, const jvalue *args)
 {
 	methodinfo *m;
 	jint        i;
@@ -3688,7 +3708,7 @@ jlong _Jv_JNI_CallStaticLongMethodV(JNIEnv *env, jclass clazz,
 
 
 jlong _Jv_JNI_CallStaticLongMethodA(JNIEnv *env, jclass clazz,
-									jmethodID methodID, jvalue *args)
+									jmethodID methodID, const jvalue *args)
 {
 	methodinfo *m;
 	jlong       l;
@@ -3734,7 +3754,7 @@ jfloat _Jv_JNI_CallStaticFloatMethodV(JNIEnv *env, jclass clazz,
 
 
 jfloat _Jv_JNI_CallStaticFloatMethodA(JNIEnv *env, jclass clazz,
-									  jmethodID methodID, jvalue *args)
+									  jmethodID methodID, const jvalue *args)
 {
 	methodinfo *m;
 	jfloat      f;
@@ -3779,7 +3799,7 @@ jdouble _Jv_JNI_CallStaticDoubleMethodV(JNIEnv *env, jclass clazz,
 
 
 jdouble _Jv_JNI_CallStaticDoubleMethodA(JNIEnv *env, jclass clazz,
-										jmethodID methodID, jvalue *args)
+										jmethodID methodID, const jvalue *args)
 {
 	methodinfo *m;
 	jdouble     d;
@@ -3818,7 +3838,7 @@ void _Jv_JNI_CallStaticVoidMethodV(JNIEnv *env, jclass clazz,
 
 
 void _Jv_JNI_CallStaticVoidMethodA(JNIEnv *env, jclass clazz,
-								   jmethodID methodID, jvalue * args)
+								   jmethodID methodID, const jvalue * args)
 {
 	methodinfo *m;
 
@@ -3854,7 +3874,7 @@ jfieldID _Jv_JNI_GetStaticFieldID(JNIEnv *env, jclass clazz, const char *name,
 	uname = utf_new_char((char *) name);
 	usig  = utf_new_char((char *) sig);
 
-	f = class_findfield(clazz, uname, usig);
+	f = class_findfield(c, uname, usig);
 	
 	if (f == NULL)
 		exceptions_throw_nosuchfielderror(c, uname);
@@ -4260,7 +4280,11 @@ static jchar emptyStringJ[]={0,0};
 
 jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
 {
-	return ((java_lang_String *) str)->count;
+	java_lang_String *s;
+
+	s = (java_lang_String *) str;
+
+	return s->count;
 }
 
 
@@ -4371,13 +4395,18 @@ jstring _Jv_JNI_NewStringUTF(JNIEnv *env, const char *bytes)
 
 /****************** returns the utf8 length in bytes of a string *******************/
 
-jsize _Jv_JNI_GetStringUTFLength (JNIEnv *env, jstring string)
+jsize _Jv_JNI_GetStringUTFLength(JNIEnv *env, jstring string)
 {   
-    java_lang_String *s = (java_lang_String*) string;
+    java_lang_String *s;
+	s4                length;
 
 	STATISTICS(jniinvokation());
 
-    return (jsize) u2_utflength(s->value->data, s->count); 
+	s = (java_lang_String *) string;
+
+    length = u2_utflength(s->value->data, s->count);
+
+	return length;
 }
 
 
@@ -4459,17 +4488,22 @@ jsize _Jv_JNI_GetArrayLength(JNIEnv *env, jarray array)
 jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 									jclass elementClass, jobject initialElement)
 {
-	java_objectarray *oa;
-	s4                i;
+	classinfo         *c;
+	java_objectheader *o;
+	java_objectarray  *oa;
+	s4                 i;
 
 	STATISTICS(jniinvokation());
+
+	c = (classinfo *) elementClass;
+	o = (java_objectheader *) initialElement;
 
 	if (length < 0) {
 		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
-    oa = builtin_anewarray(length, elementClass);
+    oa = builtin_anewarray(length, c);
 
 	if (oa == NULL)
 		return NULL;
@@ -4477,7 +4511,7 @@ jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 	/* set all elements to initialElement */
 
 	for (i = 0; i < length; i++)
-		oa->data[i] = initialElement;
+		oa->data[i] = o;
 
 	return (jobjectArray) _Jv_JNI_NewLocalRef(env, (jobject) oa);
 }
@@ -4486,8 +4520,8 @@ jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 jobject _Jv_JNI_GetObjectArrayElement(JNIEnv *env, jobjectArray array,
 									  jsize index)
 {
-	java_objectarray *oa;
-	jobject           o;
+	java_objectarray  *oa;
+	java_objectheader *o;
 
 	STATISTICS(jniinvokation());
 
@@ -4500,7 +4534,7 @@ jobject _Jv_JNI_GetObjectArrayElement(JNIEnv *env, jobjectArray array,
 
 	o = oa->data[index];
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -4526,7 +4560,7 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	if (!builtin_canstore(oa, o))
 		return;
 
-	oa->data[index] = val;
+	oa->data[index] = o;
 }
 
 
@@ -5168,7 +5202,7 @@ void _Jv_JNI_GetDoubleArrayRegion(JNIEnv *env, jdoubleArray array, jsize start,
 *******************************************************************************/
 
 void _Jv_JNI_SetBooleanArrayRegion(JNIEnv *env, jbooleanArray array,
-								   jsize start, jsize len, jboolean *buf)
+								   jsize start, jsize len, const jboolean *buf)
 {
 	java_booleanarray *ba;
 
@@ -5184,7 +5218,7 @@ void _Jv_JNI_SetBooleanArrayRegion(JNIEnv *env, jbooleanArray array,
 
 
 void _Jv_JNI_SetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize start,
-								jsize len, jbyte *buf)
+								jsize len, const jbyte *buf)
 {
 	java_bytearray *ba;
 
@@ -5200,7 +5234,7 @@ void _Jv_JNI_SetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize start,
 
 
 void _Jv_JNI_SetCharArrayRegion(JNIEnv *env, jcharArray array, jsize start,
-								jsize len, jchar *buf)
+								jsize len, const jchar *buf)
 {
 	java_chararray *ca;
 
@@ -5216,7 +5250,7 @@ void _Jv_JNI_SetCharArrayRegion(JNIEnv *env, jcharArray array, jsize start,
 
 
 void _Jv_JNI_SetShortArrayRegion(JNIEnv *env, jshortArray array, jsize start,
-								 jsize len, jshort *buf)
+								 jsize len, const jshort *buf)
 {
 	java_shortarray *sa;
 
@@ -5232,7 +5266,7 @@ void _Jv_JNI_SetShortArrayRegion(JNIEnv *env, jshortArray array, jsize start,
 
 
 void _Jv_JNI_SetIntArrayRegion(JNIEnv *env, jintArray array, jsize start,
-							   jsize len, jint *buf)
+							   jsize len, const jint *buf)
 {
 	java_intarray *ia;
 
@@ -5248,7 +5282,7 @@ void _Jv_JNI_SetIntArrayRegion(JNIEnv *env, jintArray array, jsize start,
 
 
 void _Jv_JNI_SetLongArrayRegion(JNIEnv* env, jlongArray array, jsize start,
-								jsize len, jlong *buf)
+								jsize len, const jlong *buf)
 {
 	java_longarray *la;
 
@@ -5264,7 +5298,7 @@ void _Jv_JNI_SetLongArrayRegion(JNIEnv* env, jlongArray array, jsize start,
 
 
 void _Jv_JNI_SetFloatArrayRegion(JNIEnv *env, jfloatArray array, jsize start,
-								 jsize len, jfloat *buf)
+								 jsize len, const jfloat *buf)
 {
 	java_floatarray *fa;
 
@@ -5280,7 +5314,7 @@ void _Jv_JNI_SetFloatArrayRegion(JNIEnv *env, jfloatArray array, jsize start,
 
 
 void _Jv_JNI_SetDoubleArrayRegion(JNIEnv *env, jdoubleArray array, jsize start,
-								  jsize len, jdouble *buf)
+								  jsize len, const jdouble *buf)
 {
 	java_doublearray *da;
 
@@ -5310,12 +5344,17 @@ void _Jv_JNI_SetDoubleArrayRegion(JNIEnv *env, jdoubleArray array, jsize start,
 jint _Jv_JNI_RegisterNatives(JNIEnv *env, jclass clazz,
 							 const JNINativeMethod *methods, jint nMethods)
 {
+	classinfo *c;
+
 	STATISTICS(jniinvokation());
 
-    log_text("JNI-Call: RegisterNatives: IMPLEMENT ME!!!");
+	c = (classinfo *) clazz;
+
 	/* XXX: if implemented this needs a call to jvmti_NativeMethodBind
 	if (jvmti) jvmti_NativeMethodBind(method, address,  new_address_ptr);
 	*/
+
+	native_method_register(c->name, methods, nMethods);
 
     return 0;
 }
@@ -5444,12 +5483,40 @@ void _Jv_JNI_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len,
 }
 
 
+/* GetStringUTFRegion **********************************************************
+
+    Translates len number of Unicode characters beginning at offset
+    start into UTF-8 format and place the result in the given buffer
+    buf.
+
+    Throws StringIndexOutOfBoundsException on index overflow. 
+
+*******************************************************************************/
+
 void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 								jsize len, char *buf)
 {
+	java_lang_String *s;
+	java_chararray   *ca;
+	s4                i;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: GetStringUTFRegion: IMPLEMENT ME!");
+	s  = (java_lang_String *) str;
+	ca = s->value;
+
+	if ((start < 0) || (len < 0) || (start > s->count) ||
+		(start + len > s->count)) {
+		exceptions_throw_stringindexoutofboundsexception();
+		return;
+	}
+
+	/* XXX not sure if this is correct */
+
+	for (i = 0; i < len; i++)
+		buf[i] = ca->data[start + i];
+
+	buf[i] = '\0';
 }
 
 
@@ -5469,7 +5536,7 @@ void *_Jv_JNI_GetPrimitiveArrayCritical(JNIEnv *env, jarray array,
 
 	/* do the same as Kaffe does */
 
-	bp = _Jv_JNI_GetByteArrayElements(env, ba, isCopy);
+	bp = _Jv_JNI_GetByteArrayElements(env, (jbyteArray) ba, isCopy);
 
 	return (void *) bp;
 }
@@ -5548,8 +5615,11 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 	hashtable_global_ref_entry *gre;
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
+	java_objectheader *o;
 
 	STATISTICS(jniinvokation());
+
+	o = (java_objectheader *) obj;
 
 	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
 
@@ -5562,7 +5632,7 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 	/* search external hash chain for the entry */
 
 	while (gre) {
-		if (gre->o == obj) {
+		if (gre->o == o) {
 			/* global object found, increment the reference */
 
 			gre->refs++;
@@ -5579,7 +5649,7 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	gre = NEW(hashtable_global_ref_entry);
 
-	gre->o    = obj;
+	gre->o    = o;
 	gre->refs = 1;
 
 	/* insert entry into hashtable */
@@ -5610,8 +5680,11 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	hashtable_global_ref_entry *prevgre;
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
+	java_objectheader          *o;
 
 	STATISTICS(jniinvokation());
+
+	o = (java_objectheader *) globalRef;
 
 	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
 
@@ -5628,7 +5701,7 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	/* search external hash chain for the entry */
 
 	while (gre) {
-		if (gre->o == globalRef) {
+		if (gre->o == o) {
 			/* global object found, decrement the reference count */
 
 			gre->refs--;
@@ -5692,8 +5765,9 @@ jboolean _Jv_JNI_ExceptionCheck(JNIEnv *env)
 
 jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
 	java_objectheader       *nbuf;
+
 # if SIZEOF_VOID_P == 8
 	gnu_classpath_Pointer64 *paddress;
 # else
@@ -5745,7 +5819,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 {
-#if defined(ENABLE_JAVASE)
+#if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
 	java_nio_DirectByteBufferImpl *nbuf;
 # if SIZEOF_VOID_P == 8
 	gnu_classpath_Pointer64       *address;
@@ -5789,15 +5863,18 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 {
-#if defined(ENABLE_JAVASE)
-	java_nio_Buffer *nbuf;
+#if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
+	java_objectheader *o;
+	java_nio_Buffer   *nbuf;
 
 	STATISTICS(jniinvokation());
 
-	if (!builtin_instanceof(buf, class_java_nio_DirectByteBufferImpl))
+	o = (java_objectheader *) buf;
+
+	if (!builtin_instanceof(o, class_java_nio_DirectByteBufferImpl))
 		return -1;
 
-	nbuf = (java_nio_Buffer *) buf;
+	nbuf = (java_nio_Buffer *) o;
 
 	return (jlong) nbuf->cap;
 #else
@@ -5991,7 +6068,7 @@ jint _Jv_JNI_AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
 
 /* JNI invocation table *******************************************************/
 
-const struct JNIInvokeInterface _Jv_JNIInvokeInterface = {
+const struct JNIInvokeInterface_ _Jv_JNIInvokeInterface = {
 	NULL,
 	NULL,
 	NULL,
@@ -6006,7 +6083,7 @@ const struct JNIInvokeInterface _Jv_JNIInvokeInterface = {
 
 /* JNI function table *********************************************************/
 
-struct JNINativeInterface _Jv_JNINativeInterface = {
+struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	NULL,
 	NULL,
 	NULL,

@@ -57,15 +57,24 @@ java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *
 {
 	classinfo  *c;
 	methodinfo *m;
+	s4          override;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	/* check method access */
 
 	/* check if we should bypass security checks (AccessibleObject) */
 
-	if (this->flag == false) {
+#if defined(WITH_CLASSPATH_GNU)
+	override = this->flag;
+#elif defined(WITH_CLASSPATH_SUN)
+	override = this->override;
+#else
+# error unknown classpath configuration
+#endif
+
+	if (override == false) {
 		if (!access_check_method(m, 1))
 			return NULL;
 	}
@@ -78,7 +87,7 @@ java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *
 
 	/* call the Java method via a helper function */
 
-	return (java_lang_Object *) _Jv_jni_invokeNative(m, (jobject) o, args);
+	return (java_lang_Object *) _Jv_jni_invokeNative(m, (java_objectheader *) o, args);
 }
 
 

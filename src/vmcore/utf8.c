@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: utf8.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -171,6 +171,7 @@ utf *utf_get;
 utf *utf_value;
 
 utf *utf_fillInStackTrace;
+utf *utf_findNative;
 utf *utf_getSystemClassLoader;
 utf *utf_initCause;
 utf *utf_loadClass;
@@ -200,6 +201,7 @@ utf *utf_double__void;                  /* (D)V                               */
 utf *utf_void__java_lang_ClassLoader;   /* ()Ljava/lang/ClassLoader;          */
 utf *utf_void__java_lang_Object;        /* ()Ljava/lang/Object;               */
 utf *utf_void__java_lang_Throwable;     /* ()Ljava/lang/Throwable;            */
+utf *utf_java_lang_ClassLoader_java_lang_String__J;
 utf *utf_java_lang_Exception__V;        /* (Ljava/lang/Exception;)V           */
 utf *utf_java_lang_Object__java_lang_Object;
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
@@ -410,6 +412,7 @@ bool utf8_init(void)
 	utf_value                      = utf_new_char("value");
 
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
+	utf_findNative                 = utf_new_char("findNative");
 	utf_getSystemClassLoader       = utf_new_char("getSystemClassLoader");
 	utf_initCause                  = utf_new_char("initCause");
 	utf_loadClass                  = utf_new_char("loadClass");
@@ -440,6 +443,9 @@ bool utf8_init(void)
 
 	utf_void__java_lang_ClassLoader =
 		utf_new_char("()Ljava/lang/ClassLoader;");
+
+	utf_java_lang_ClassLoader_java_lang_String__J =
+		utf_new_char("(Ljava/lang/ClassLoader;Ljava/lang/String;)J");
 
 	utf_java_lang_Exception__V     = utf_new_char("(Ljava/lang/Exception;)V");
 

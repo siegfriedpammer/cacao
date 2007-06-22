@@ -32,14 +32,25 @@
 
 #include "native/vm/nativevm.h"
 
+#include "vmcore/method.h"
 
-/* nativevm_init ***************************************************************
+#if defined(WITH_CLASSPATH_SUN)
+# include "native/native.h"
 
-   Initialize the implementation specific native stuff.
+# include "vm/vm.h"
+
+# include "vmcore/class.h"
+# include "vmcore/utf8.h"
+#endif
+
+
+/* nativevm_preinit ************************************************************
+
+   Pre-initialize the implementation specific native stuff.
 
 *******************************************************************************/
 
-bool nativevm_init(void)
+bool nativevm_preinit(void)
 {
 	/* register native methods of all classes implemented */
 
@@ -70,6 +81,18 @@ bool nativevm_init(void)
 	_Jv_java_util_concurrent_atomic_AtomicLong_init();
 	_Jv_sun_misc_Unsafe_init();
 
+# elif defined(WITH_CLASSPATH_SUN)
+
+	utf         *u;
+	lt_dlhandle  handle;
+
+	u = utf_new_char(CLASSPATH_LIBDIR"/libjava.so");
+
+	handle = native_library_open(u);
+	native_library_add(u, NULL, handle);
+
+	_Jv_sun_misc_Unsafe_init();
+
 # else
 
 #  error unknown classpath configuration
@@ -92,6 +115,57 @@ bool nativevm_init(void)
 	_Jv_java_lang_System_init();
 	_Jv_java_lang_Thread_init();
 	_Jv_java_lang_Throwable_init();
+
+#else
+
+# error unknown Java configuration
+
+#endif
+
+	/* everything's ok */
+
+	return true;
+}
+
+
+/* nativevm_init ***************************************************************
+
+   Initialize the implementation specific native stuff.
+
+*******************************************************************************/
+
+bool nativevm_init(void)
+{
+#if defined(ENABLE_JAVASE)
+
+# if defined(WITH_CLASSPATH_GNU)
+
+	/* nothing to do */
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	methodinfo *m;
+
+	m = class_resolveclassmethod(class_java_lang_System,
+								 utf_new_char("initializeSystemClass"),
+								 utf_void__void,
+								 class_java_lang_Object,
+								 false);
+
+	if (m == NULL)
+		return false;
+
+	(void) vm_call_method(m, NULL);
+
+# else
+
+#  error unknown classpath configuration
+
+# endif
+
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+
+	/* nothing to do */
 
 #else
 

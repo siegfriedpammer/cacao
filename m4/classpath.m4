@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7228 2007-01-19 01:13:48Z edwin $
+dnl $Id$
 
 
 dnl which Java core library should we use
@@ -30,7 +30,7 @@ dnl which Java core library should we use
 AC_DEFUN([AC_CHECK_WITH_CLASSPATH],[
 AC_MSG_CHECKING(which Java core library to use)
 AC_ARG_WITH([classpath],
-            [AS_HELP_STRING(--with-classpath=<type>,specifies which type of classpath to use as Java core library (cldc1.1,gnu) [[default=gnu]])],
+            [AS_HELP_STRING(--with-classpath=<type>,specifies which type of classpath to use as Java core library (cldc1.1,gnu,sun) [[default=gnu]])],
             [case "${withval}" in
                 cldc1.1)
                     WITH_CLASSPATH=cldc1.1
@@ -42,6 +42,11 @@ AC_ARG_WITH([classpath],
                     AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
                     AC_SUBST(WITH_CLASSPATH_GNU)
                     ;;
+                sun)
+                    WITH_CLASSPATH=sun
+                    AC_DEFINE([WITH_CLASSPATH_SUN], 1, [use Sun's Java SE classes])
+                    AC_SUBST(WITH_CLASSPATH_SUN)
+                    ;;
                 *)
                     AC_MSG_ERROR(unknown classpath ${withval})
                     ;;
@@ -52,6 +57,7 @@ AC_ARG_WITH([classpath],
 AC_MSG_RESULT(${WITH_CLASSPATH})
 AM_CONDITIONAL([WITH_CLASSPATH_CLDC1_1], test x"${WITH_CLASSPATH}" = "xcldc1.1")
 AM_CONDITIONAL([WITH_CLASSPATH_GNU], test x"${WITH_CLASSPATH}" = "xgnu")
+AM_CONDITIONAL([WITH_CLASSPATH_SUN], test x"${WITH_CLASSPATH}" = "xsun")
 ])
 
 
@@ -110,11 +116,19 @@ AC_ARG_WITH([classpath-includedir],
             [CLASSPATH_INCLUDEDIR=${CLASSPATH_PREFIX}/include])
 AC_MSG_RESULT(${CLASSPATH_INCLUDEDIR})
 
+if test x"${WITH_CLASSPATH}" = "xsun"; then
+    AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/${OS_DIR}/jni_md.h],
+                    [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_MD_H], "${CLASSPATH_INCLUDEDIR}/${OS_DIR}/jni_md.h", [Java core library jni_md.h header])],
+                    [AC_MSG_ERROR(cannot find jni_md.h)])
+else
+    AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni_md.h],
+                    [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_MD_H], "${CLASSPATH_INCLUDEDIR}/jni_md.h", [Java core library jni_md.h header])],
+                    [AC_MSG_ERROR(cannot find jni_md.h)])
+fi
+
 AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni.h],
                 [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_H], "${CLASSPATH_INCLUDEDIR}/jni.h", [Java core library jni.h header])],
-                [AC_MSG_ERROR(cannot find jni.h)])
-
-AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni_md.h],
-                [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_MD_H], "${CLASSPATH_INCLUDEDIR}/jni_md.h", [Java core library jni_md.h header])],
-                [AC_MSG_ERROR(cannot find jni_md.h)])
+                [AC_MSG_ERROR(cannot find jni.h)],
+                [#define __GCJ_JNI_MD_H__
+                 #include CLASSPATH_JNI_MD_H])
 ])

@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7890 2007-05-09 16:05:58Z twisti $
+## $Id: Makefile.am 8132 2007-06-22 11:15:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -40,7 +40,10 @@ VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMString.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMThread.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMThrowable.java \
-	$(top_srcdir)/src/lib/gnu/java/security/VMAccessController.java
+	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Field.java \
+	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Method.java \
+	$(top_srcdir)/src/lib/gnu/java/security/VMAccessController.java \
+	$(top_srcdir)/src/lib/gnu/sun/misc/Unsafe.java
 
 VM_CLASS_FILES = \
 	classes/gnu/classpath/VMStackWalker.class \
@@ -51,7 +54,10 @@ VM_CLASS_FILES = \
 	classes/java/lang/VMString.class \
 	classes/java/lang/VMThread.class \
 	classes/java/lang/VMThrowable.class \
-	classes/java/security/VMAccessController.class
+	classes/java/lang/reflect/Field.class \
+	classes/java/lang/reflect/Method.class \
+	classes/java/security/VMAccessController.class \
+	classes/sun/misc/Unsafe.class
 
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip

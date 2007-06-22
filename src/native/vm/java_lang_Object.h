@@ -35,11 +35,18 @@
 
 #include "native/jni.h"
 
-#include "native/include/java_lang_Class.h"
-
 #if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_String.h"           /* required by j.l.CL */
+
+# if defined(WITH_CLASSPATH_SUN)
+#  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
+# endif
+
+# include "native/include/java_lang_ClassLoader.h"       /* required by j.l.C */
 # include "native/include/java_lang_Cloneable.h"
 #endif
+
+#include "native/include/java_lang_Class.h"
 
 #include "native/include/java_lang_Object.h"
 

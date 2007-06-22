@@ -24,7 +24,7 @@
 ##
 ## Contact: cacao@cacaojvm.org
 ##
-## $Id: Makefile.am 7338 2007-02-13 00:17:22Z twisti $
+## $Id: Makefile.am 8132 2007-06-22 11:15:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -48,6 +48,11 @@ lib_LTLIBRARIES = \
 
 libjvm_la_LDFLAGS = \
 	-release $(PACKAGE_VERSION)
+
+if WITH_CLASSPATH_SUN
+libjvm_la_LDFLAGS += \
+	-Xlinker --version-script=$(top_srcdir)/contrib/mapfile-vers-product
+endif
 
 cacao_LDFLAGS += \
 	-export-dynamic

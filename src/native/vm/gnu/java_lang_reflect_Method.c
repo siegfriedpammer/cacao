@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: java_lang_reflect_Method.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -93,7 +93,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiersInternal(JNIEnv *
 	classinfo  *c;
 	methodinfo *m;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	return m->flags;
@@ -111,7 +111,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(J
 	methodinfo *m;
 	classinfo  *result;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	result = method_returntype_get(m);
@@ -130,7 +130,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTy
 	classinfo  *c;
 	methodinfo *m;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	return method_get_parametertypearray(m);
@@ -147,7 +147,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
 	classinfo  *c;
 	methodinfo *m;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	return method_get_exceptionarray(m);
@@ -159,11 +159,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
  * Method:    invokeNative
  * Signature: (Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args, java_lang_Class *clazz, s4 slot)
 {
 	/* just to be sure */
 
-	assert(this->declaringClass == declaringClass);
+	assert(this->clazz == clazz);
 	assert(this->slot           == slot);
 
 	return _Jv_java_lang_reflect_Method_invoke(this, o, args);
@@ -181,7 +181,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Method_getSignature(J
 	methodinfo        *m;
 	java_objectheader *o;
 
-	c = (classinfo *) this->declaringClass;
+	c = (classinfo *) this->clazz;
 	m = &(c->methods[this->slot]);
 
 	if (m->signature == NULL)

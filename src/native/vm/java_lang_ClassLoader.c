@@ -40,12 +40,19 @@
 
 #include "native/jni.h"
 
+/* keep this order of the native includes */
+
 #include "native/include/java_lang_Object.h"
 
 #if defined(ENABLE_JAVASE)
-# include "native/include/java_lang_String.h"/* required by java_lang_Class.h */
+# include "native/include/java_lang_String.h"            /* required by j.l.C */
+
+# if defined(WITH_CLASSPATH_SUN)
+#  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
+# endif
+
+# include "native/include/java_lang_ClassLoader.h"       /* required by j.l.C */
 # include "native/include/java_lang_Class.h"
-# include "native/include/java_lang_ClassLoader.h"
 # include "native/include/java_security_ProtectionDomain.h"
 #endif
 
@@ -72,6 +79,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	utf               *utfname;
 	classinfo         *c;
 	java_lang_Class   *o;
+
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;
 	unsigned char* new_class_data = NULL;
@@ -125,11 +133,15 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	if (c == NULL)
 		return NULL;
 
-	/* set ProtectionDomain */
+	/* for convenience */
 
 	o = (java_lang_Class *) c;
 
+#if defined(WITH_CLASSPATH_GNU)
+	/* set ProtectionDomain */
+
 	o->pd = pd;
+#endif
 
 	return o;
 }

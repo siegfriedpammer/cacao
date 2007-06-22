@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.h 7921 2007-05-20 23:14:11Z michi $
+   $Id: jni.h 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -43,8 +43,11 @@
 
 #include "config.h"
 
-#include CLASSPATH_JNI_H
+/* XXX quick hack to not include GCJ's jni_md.h */
+#define __GCJ_JNI_MD_H__
 
+#include CLASSPATH_JNI_MD_H
+#include CLASSPATH_JNI_H
 
 #ifndef _JNI_H
 #define _JNI_H
@@ -66,7 +69,7 @@ typedef struct localref_table localref_table;
 typedef struct _Jv_JNIEnv _Jv_JNIEnv;
 
 struct _Jv_JNIEnv {
-	const struct JNINativeInterface *env;     /* This MUST be the first entry */
+	const struct JNINativeInterface_ *env;    /* This MUST be the first entry */
 };
 
 
@@ -75,7 +78,7 @@ struct _Jv_JNIEnv {
 typedef struct _Jv_JavaVM _Jv_JavaVM;
 
 struct _Jv_JavaVM {
-	const struct JNIInvokeInterface *functions;/* This MUST be the first entry*/
+	const struct JNIInvokeInterface_ *functions;/*This MUST be the first entry*/
 
 	/* JVM instance-specific variables */
 
@@ -92,8 +95,8 @@ struct _Jv_JavaVM {
 
 /* CACAO related stuff ********************************************************/
 
-extern const struct JNIInvokeInterface _Jv_JNIInvokeInterface;
-extern struct JNINativeInterface _Jv_JNINativeInterface;
+extern const struct JNIInvokeInterface_ _Jv_JNIInvokeInterface;
+extern struct JNINativeInterface_ _Jv_JNINativeInterface;
 
 
 /* local reference table ******************************************************/

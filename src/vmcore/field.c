@@ -22,20 +22,55 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.c 7246 2007-01-29 18:49:05Z twisti $
+   $Id: field.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdio.h>
 
 #include "vm/types.h"
 
+#include "vmcore/class.h"
 #include "vmcore/field.h"
+#include "vmcore/primitive.h"
 #include "vmcore/references.h"
 #include "vmcore/utf8.h"
+
+
+/* field_get_type **************************************************************
+
+   Returns the type of the field as class.
+
+*******************************************************************************/
+
+classinfo *field_get_type(fieldinfo *f)
+{
+	typedesc  *td;
+	utf       *u;
+	classinfo *c;
+
+	td = f->parseddesc;
+
+	if (td->type == TYPE_ADR) {
+		assert(td->classref);
+
+		u = td->classref->name;
+
+		/* load the class of the field-type with the field's
+		   classloader */
+
+		c = load_class_from_classloader(u, f->class->classloader);
+	}
+	else {
+		c = primitive_class_get_by_type(td->decltype);
+	}
+
+	return c;
+}
 
 
 /* field_free ******************************************************************

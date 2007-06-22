@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8123 2007-06-20 23:50:55Z michi $
+## $Id: Makefile.am 8132 2007-06-22 11:15:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -50,25 +50,36 @@ JAVASE_HEADER_FILES = \
 	java_lang_ClassLoader.h \
 	java_lang_Cloneable.h \
 	java_lang_ThreadGroup.h \
-	java_lang_VMThread.h \
-	java_lang_VMThrowable.h \
 	java_util_Properties.h \
 	\
-	gnu_classpath_Pointer.h \
-	gnu_classpath_Pointer32.h \
-	gnu_classpath_Pointer64.h \
 	java_io_File.h \
 	java_lang_Process.h \
 	java_lang_StackTraceElement.h \
-	java_lang_VMObject.h \
 	java_lang_reflect_Constructor.h \
 	java_lang_reflect_Field.h \
 	java_lang_reflect_Method.h \
 	java_nio_Buffer.h \
-	java_nio_DirectByteBufferImpl.h \
 	java_security_ProtectionDomain.h \
 	java_util_concurrent_atomic_AtomicLong.h \
 	sun_misc_Unsafe.h
+
+if WITH_CLASSPATH_GNU
+JAVASE_HEADER_FILES += \
+	java_lang_VMThread.h \
+	java_lang_VMThrowable.h \
+	\
+	gnu_classpath_Pointer.h \
+	gnu_classpath_Pointer32.h \
+	gnu_classpath_Pointer64.h \
+	java_lang_VMObject.h \
+	java_nio_DirectByteBufferImpl.h
+endif
+
+if WITH_CLASSPATH_SUN
+JAVASE_HEADER_FILES += \
+	java_lang_AssertionStatusDirectives.h \
+	java_nio_ByteBuffer.h
+endif
 
 JAVAME_CLDC1_1_HEADER_FILES = \
 	com_sun_cldc_io_ResourceInputStream.h \
@@ -84,9 +95,9 @@ JVMTI_HEADER_FILES = \
 	gnu_classpath_jdwp_VMMethod.h \
 	gnu_classpath_jdwp_VMVirtualMachine.h \
 	gnu_classpath_jdwp_event_EventRequest.h \
-	gnu_classpath_jdwp_util_VariableTable.h \
-	java_nio_ByteBuffer.h
+	gnu_classpath_jdwp_util_VariableTable.h
 
+if WITH_CLASSPATH_GNU
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
 	gnu_classpath_VMSystemProperties.h \
@@ -99,11 +110,12 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	java_lang_VMRuntime.h \
 	java_lang_VMString.h \
 	java_lang_VMSystem.h \
-	java_lang_management_VMManagementFactory.h \
 	java_lang_management_MemoryUsage.h \
 	java_lang_management_ThreadInfo.h \
+	java_lang_management_VMManagementFactory.h \
 	java_lang_reflect_VMProxy.h \
 	java_security_VMAccessController.h
+endif
 
 ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES = \
 	java_net_DatagramPacket.h \

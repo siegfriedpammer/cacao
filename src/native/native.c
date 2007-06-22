@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8092 2007-06-14 16:12:35Z twisti $
+   $Id: native.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -35,6 +35,8 @@
 #if !defined(WITH_STATIC_CLASSPATH)
 # include <ltdl.h>
 #endif
+
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -124,11 +126,6 @@ bool native_init(void)
 	/* initialize the native methods table */
 
 	tree_native_methods = avl_create(&native_tree_native_methods_comparator);
-
-	/* register the intern native functions */
-
-	if (!nativevm_init())
-		return false;
 
 	/* everything's ok */
 
@@ -447,12 +444,13 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 
 *******************************************************************************/
 
-void native_method_register(utf *classname, JNINativeMethod *methods, s4 count)
+void native_method_register(utf *classname, const JNINativeMethod *methods,
+							int32_t count)
 {
 	native_methods_node_t *nmn;
 	utf                   *name;
 	utf                   *descriptor;
-	s4                     i;
+	int32_t                i;
 
 	/* insert all methods passed */
 
@@ -522,6 +520,12 @@ static functionptr native_method_find(methodinfo *m)
 lt_dlhandle native_library_open(utf *filename)
 {
 	lt_dlhandle handle;
+
+	if (opt_verbosejni) {
+		printf("[Loading native library ");
+		utf_display_printable_ascii(filename);
+		printf(" ... ");
+	}
 
 	/* try to open the library */
 
@@ -743,6 +747,7 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 functionptr native_resolve_function(methodinfo *m)
 {
+	java_objectheader              *cl;
 	utf                            *name;
 	utf                            *newname;
 	functionptr                     f;
@@ -750,6 +755,12 @@ functionptr native_resolve_function(methodinfo *m)
 	hashtable_library_name_entry   *ne;
 	u4                              key;    /* hashkey                        */
 	u4                              slot;   /* slot in hashtable              */
+#if defined(WITH_CLASSPATH_SUN)
+	methodinfo                     *method_findNative;
+	java_objectheader              *s;
+#endif
+
+	cl = m->class->classloader;
 
 	/* verbose output */
 
@@ -776,7 +787,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) m->class->classloader) >> 4;    /* align to 16-byte */
+	key  = ((u4) (ptrint) cl) >> 4;                       /* align to 16-byte */
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 
@@ -798,6 +809,40 @@ functionptr native_resolve_function(methodinfo *m)
 
 		le = le->hashlink;
 	}
+
+#if defined(WITH_CLASSPATH_SUN)
+	if (f == NULL) {
+		/* We can resolve the function directly from
+		   java.lang.ClassLoader as it's a static function. */
+		/* XXX should be done in native_init */
+
+		method_findNative =
+			class_resolveclassmethod(class_java_lang_ClassLoader,
+									 utf_findNative,
+									 utf_java_lang_ClassLoader_java_lang_String__J,
+									 class_java_lang_ClassLoader,
+									 true);
+
+		if (method_findNative == NULL)
+			return NULL;
+
+		/* try the normal name */
+
+		s = javastring_new(name);
+
+		f = (functionptr) (intptr_t) vm_call_method_long(method_findNative,
+														 NULL, cl, s);
+
+		/* if not found, try the mangled name */
+
+		if (f == NULL) {
+			s = javastring_new(newname);
+
+			f = (functionptr) (intptr_t) vm_call_method_long(method_findNative,
+															 NULL, cl, s);
+		}
+	}
+#endif
 
 	if (f != NULL)
 		if (opt_verbosejni)

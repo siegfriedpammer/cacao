@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Thread.c 7833 2007-04-26 13:07:05Z twisti $
+   $Id: java_lang_Thread.c 8132 2007-06-22 11:15:47Z twisti $
 
 */
 
@@ -40,7 +40,10 @@
 
 #if defined(ENABLE_JAVASE)
 # include "native/include/java_lang_ThreadGroup.h"
-# include "native/include/java_lang_VMThread.h"
+
+# if defined(WITH_CLASSPATH_GNU)
+#  include "native/include/java_lang_VMThread.h"
+# endif
 #endif
 
 #include "threads/lock-common.h"
@@ -123,15 +126,30 @@ void _Jv_java_lang_Thread_interrupt(java_lang_Thread *this)
 s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
 {
 #if defined(ENABLE_THREADS)
-	threadobject *thread;
+	threadobject *t;
 
-#if defined(WITH_CLASSPATH_GNU)
-	thread = (threadobject *) this->vmThread->vmdata;
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-	thread = (threadobject *) this->vm_thread;
-#endif
+# if defined(WITH_CLASSPATH_GNU)
+	t = (threadobject *) this->vmThread->vmdata;
+# elif defined(WITH_CLASSPATH_SUN)
+	/* XXX this is just a quick hack */
 
-	return threads_thread_is_alive(thread);
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		if (t->object == this)
+			break;
+	}
+
+	/* The threadobject is null when a thread is created in Java. The
+	   priority is set later during startup. */
+
+	if (t == NULL)
+		return 0;
+# elif defined(WITH_CLASSPATH_CLDC1_1)
+	t = (threadobject *) this->vm_thread;
+# else
+#  error unknown classpath configuration
+# endif
+
+	return threads_thread_is_alive(t);
 #else
 	/* if threads are disabled, the only thread running is alive */
 
@@ -148,15 +166,24 @@ s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
 s4 _Jv_java_lang_Thread_isInterrupted(java_lang_Thread *this)
 {
 #if defined(ENABLE_THREADS)
-	threadobject *thread;
+	threadobject *t;
 
-#if defined(WITH_CLASSPATH_GNU)
-	thread = (threadobject *) this->vmThread->vmdata;
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-	thread = (threadobject *) this->vm_thread;
-#endif
+# if defined(WITH_CLASSPATH_GNU)
+	t = (threadobject *) this->vmThread->vmdata;
+# elif defined(WITH_CLASSPATH_SUN)
+	/* XXX this is just a quick hack */
 
-	return threads_thread_has_been_interrupted(thread);
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		if (t->object == this)
+			break;
+	}
+# elif defined(WITH_CLASSPATH_CLDC1_1)
+	t = (threadobject *) this->vm_thread;
+# else
+#  error unknown classpath configuration
+# endif
+
+	return threads_thread_has_been_interrupted(t);
 #else
 	return 0;
 #endif
@@ -195,21 +222,36 @@ void _Jv_java_lang_Thread_resume(java_lang_Thread *this)
 void _Jv_java_lang_Thread_setPriority(java_lang_Thread *this, s4 priority)
 {
 #if defined(ENABLE_THREADS)
-	threadobject *thread;
+	threadobject *t;
 
-#if defined(WITH_CLASSPATH_GNU)
-	thread = (threadobject *) this->vmThread->vmdata;
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-	thread = (threadobject *) this->vm_thread;
+# if defined(WITH_CLASSPATH_GNU)
+	t = (threadobject *) this->vmThread->vmdata;
+# elif defined(WITH_CLASSPATH_SUN)
+	/* XXX this is just a quick hack */
+
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		if (t->object == this)
+			break;
+	}
 
 	/* The threadobject is null when a thread is created in Java. The
 	   priority is set later during startup. */
 
-	if (thread == NULL)
+	if (t == NULL)
 		return;
-#endif
+# elif defined(WITH_CLASSPATH_CLDC1_1)
+	t = (threadobject *) this->vm_thread;
 
-	threads_set_thread_priority(thread->tid, priority);
+	/* The threadobject is null when a thread is created in Java. The
+	   priority is set later during startup. */
+
+	if (t == NULL)
+		return;
+# else
+#  error unknown classpath configuration
+# endif
+
+	threads_set_thread_priority(t->tid, priority);
 #endif
 }
 

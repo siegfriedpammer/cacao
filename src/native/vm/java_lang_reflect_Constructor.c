@@ -37,8 +37,14 @@
 #include "native/jni.h"
 #include "native/native.h"
 
+#if defined(WITH_CLASSPATH_SUN)
+# include "native/include/java_lang_String.h"           /* required by j.l.CL */
+# include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
+# include "native/include/java_lang_ClassLoader.h"       /* required my j.l.C */
+#endif
+
+#include "native/include/java_lang_Object.h"             /* required my j.l.C */
 #include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
 
 #include "native/include/java_lang_reflect_Constructor.h"
@@ -116,6 +122,7 @@ java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, jav
 {
 	classinfo         *c;
 	methodinfo        *m;
+	s4                 override;
 	java_objectheader *o;
 
 	c = (classinfo *) this->clazz;
@@ -125,7 +132,15 @@ java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, jav
 
 	/* check if we should bypass security checks (AccessibleObject) */
 
-	if (this->flag == false) {
+#if defined(WITH_CLASSPATH_GNU)
+	override = this->flag;
+#elif defined(WITH_CLASSPATH_SUN)
+	override = this->override;
+#else
+# error unknown classpath configuration
+#endif
+
+	if (override == false) {
 		if (!access_check_method(m, 1))
 			return NULL;
 	}
