@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: codegen.c 8138 2007-06-22 20:01:51Z michi $
 
 */
 
@@ -3612,8 +3612,8 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 			assert(0);
 
 		} else {       /* float/double in memory can be copied like int/longs */
-			s1 = (md->params[i].regoff + cd->stackframesize + 1) * 4;
-			s2 = md->params[i].regoff * 4;
+			s1 = md->params[i].regoff + cd->stackframesize * 4 + 4;
+			s2 = md->params[i].regoff;
 
 			M_ILD(REG_ITMP1, REG_SP, s1);
 			M_IST(REG_ITMP1, REG_SP, s2);

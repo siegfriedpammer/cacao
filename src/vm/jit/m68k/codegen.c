@@ -2483,8 +2483,8 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 			assert(0);
 
 		} else {       /* float/double in memory can be copied like int/longs */
-			s1 = (md->params[i].regoff + cd->stackframesize + 1) * 4;
-			s2 = md->params[i].regoff * 4;
+			s1 = md->params[i].regoff + cd->stackframesize * 4 + 4;
+			s2 = md->params[i].regoff;
 
 			M_ILD(REG_ITMP1, REG_SP, s1);
 			M_IST(REG_ITMP1, REG_SP, s2);
