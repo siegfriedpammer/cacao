@@ -540,8 +540,8 @@ void emit_verbosecall_enter(jitdata* jd)
 			
 			/* copy from original argument stack */
 			M_ILD(REG_ITMP1, REG_SP, disp);
-			M_IPUSH(REG_ITMP1);
-			M_ILD(REG_ITMP1, REG_SP, disp);
+			M_ILD(REG_ITMP2, REG_SP, disp-4);
+			M_IPUSH(REG_ITMP2);
 			M_IPUSH(REG_ITMP1);
 		} else	{
 			/* function has no arg here, push nothing and adapt displacement */
@@ -591,7 +591,7 @@ void emit_verbosecall_exit(jitdata* jd)
 
 #if !defined(ENABLE_SOFTFLOAT)
 	M_AADD_IMM(-8, REG_SP);
-	M_FSTORE(REG_F1, REG_SP, 0);
+	M_FSTORE(REG_D1, REG_SP, 0);
 #endif
 
 	M_IPUSH_IMM(m);					/* push methodinfo */
@@ -623,7 +623,7 @@ void emit_verbosecall_exit(jitdata* jd)
 	M_AADD_IMM(3*4 + 4, REG_SP);
 
 #if !defined(ENABLE_SOFTFLOAT)
-	M_FLOAD(REG_F1, REG_SP, 0)
+	M_FLOAD(REG_D1, REG_SP, 0)
 	M_AADD_IMM(8, REG_SP);
 #endif
 

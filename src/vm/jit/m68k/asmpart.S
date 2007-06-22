@@ -92,8 +92,8 @@ asm_vm_call_method_double:
 	movel	%sp@(12*4+6*8+2*4),%a2				/* arg array */
 	movel	%sp@(12*4+6*8+3*4),%d2				/* arg count */
 
-	movel	%a3, %sp@(12*4+6*8)					/* copy method address to stackslot */
-	leal	%sp@(12*4+6*8), %a3					/* and store that address in %a3 */
+	movel	%a3, %sp@(11*4+6*8)					/* copy method address to stackslot */
+	leal	%sp@(11*4+6*8), %a3					/* and store that address in %a3 */
 #endif
 
 	moveal	%sp, %a5					/* memorize stack */
