@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: options.c 8130 2007-06-22 08:50:37Z twisti $
 
 */
 
@@ -182,6 +182,7 @@ const char *opt_filter_show_method = 0;
 int32_t  opt_ProfileGCMemoryUsage      = 0;
 int32_t  opt_ProfileMemoryUsage        = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
+int32_t  opt_ThreadStackSize           = 0;
 int32_t  opt_TraceExceptions           = 0;
 #if defined(ENABLE_REPLACEMENT)
 int32_t  opt_TraceReplacement          = 0;
@@ -192,6 +193,7 @@ enum {
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
+	OPT_ThreadStackSize,
 	OPT_TraceExceptions,
 	OPT_TraceReplacement
 };
@@ -201,6 +203,7 @@ option_t options_XX[] = {
 	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      "" },
 	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        "" },
 	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, "" },
+	{ "ThreadStackSize",           OPT_ThreadStackSize,           "" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           "" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "TraceReplacement",          OPT_TraceReplacement,          "" },
@@ -308,10 +311,10 @@ void options_xx(const char *name)
 
 	log_println("name: %s", name);
 
-	/* Search for a ':' in the option name and get the option name
+	/* Search for a '=' in the option name and get the option name
 	   length and the value of the option. */
 
-	end = strchr(name, ':');
+	end = strchr(name, '=');
 
 	if (end == NULL) {
 		length = strlen(name);
@@ -368,6 +371,10 @@ void options_xx(const char *name)
 			vm_abort("options_xx: fopen failed: %s", strerror(errno));
 
 		opt_ProfileMemoryUsageGNUPlot = file;
+		break;
+
+	case OPT_ThreadStackSize:
+		/* currently ignored */
 		break;
 
 	case OPT_TraceExceptions:
