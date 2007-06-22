@@ -35,7 +35,7 @@ import java.lang.reflect.*;
  * limited because only trusted code can obtain instances of it.
  *
  * @author John R. Rose
- * @version  1.27, 07/05/05
+ * @version  1.28, 07/06/04
  * @see #getUnsafe
  */
 
@@ -44,7 +44,7 @@ public final class Unsafe {
     private static native void registerNatives();
     static {
         registerNatives();
-// 	sun.reflect.Reflection.registerMethodsToFilter(Unsafe.class, "getUnsafe");
+//	sun.reflect.Reflection.registerMethodsToFilter(Unsafe.class, "getUnsafe");
     }
 
     private Unsafe() {}
@@ -499,15 +499,63 @@ public final class Unsafe {
     /**
      * Sets all bytes in a given block of memory to a fixed value
      * (usually zero).
+     *
+     * <p>This method determines a block's base address by means of two parameters,
+     * and so it provides (in effect) a <em>double-register</em> addressing mode,
+     * as discussed in {@link #getInt(Object,long)}.  When the object reference is null,
+     * the offset supplies an absolute base address.
+     *
+     * <p>The stores are in coherent (atomic) units of a size determined
+     * by the address and length parameters.  If the effective address and
+     * length are all even modulo 8, the stores take place in 'long' units.
+     * If the effective address and length are (resp.) even modulo 4 or 2,
+     * the stores take place in units of 'int' or 'short'.
+     * 
+     * @since 1.7
      */
-    public native void setMemory(long address, long bytes, byte value);
+    public native void setMemory(Object o, long offset, long bytes, byte value);
+
+    /**
+     * Sets all bytes in a given block of memory to a fixed value
+     * (usually zero).  This provides a <em>single-register</em> addressing mode,
+     * as discussed in {@link #getInt(Object,long)}.
+     *
+     * <p>Equivalent to <code>setMemory(null, address, bytes, value)</code>.
+     */
+    public void setMemory(long address, long bytes, byte value) {
+        setMemory(null, address, bytes, value);
+    }
 
     /**
      * Sets all bytes in a given block of memory to a copy of another
      * block.
+     *
+     * <p>This method determines each block's base address by means of two parameters,
+     * and so it provides (in effect) a <em>double-register</em> addressing mode,
+     * as discussed in {@link #getInt(Object,long)}.  When the object reference is null,
+     * the offset supplies an absolute base address.
+     *
+     * <p>The transfers are in coherent (atomic) units of a size determined
+     * by the address and length parameters.  If the effective addresses and
+     * length are all even modulo 8, the transfer takes place in 'long' units.
+     * If the effective addresses and length are (resp.) even modulo 4 or 2,
+     * the transfer takes place in units of 'int' or 'short'.
+     * 
+     * @since 1.7
      */
-    public native void copyMemory(long srcAddress, long destAddress,
+    public native void copyMemory(Object srcBase, long srcOffset,
+                                  Object destBase, long destOffset,
 				  long bytes);
+    /**
+     * Sets all bytes in a given block of memory to a copy of another
+     * block.  This provides a <em>single-register</em> addressing mode,
+     * as discussed in {@link #getInt(Object,long)}.
+     *
+     * Equivalent to <code>copyMemory(null, srcAddress, null, destAddress, bytes)</code>.
+     */
+    public void copyMemory(long srcAddress, long destAddress, long bytes) {
+        copyMemory(null, srcAddress, null, destAddress, bytes);
+    }
 
     /**
      * Disposes of a block of native memory, as obtained from {@link
@@ -649,6 +697,42 @@ public final class Unsafe {
      */
     public native int arrayBaseOffset(Class arrayClass);
 
+    /** The value of {@code arrayBaseOffset(boolean[].class)} */
+    public static final int ARRAY_BOOLEAN_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(boolean[].class);
+
+    /** The value of {@code arrayBaseOffset(byte[].class)} */
+    public static final int ARRAY_BYTE_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(byte[].class);
+
+    /** The value of {@code arrayBaseOffset(short[].class)} */
+    public static final int ARRAY_SHORT_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(short[].class);
+
+    /** The value of {@code arrayBaseOffset(char[].class)} */
+    public static final int ARRAY_CHAR_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(char[].class);
+
+    /** The value of {@code arrayBaseOffset(int[].class)} */
+    public static final int ARRAY_INT_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(int[].class);
+
+    /** The value of {@code arrayBaseOffset(long[].class)} */
+    public static final int ARRAY_LONG_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(long[].class);
+
+    /** The value of {@code arrayBaseOffset(float[].class)} */
+    public static final int ARRAY_FLOAT_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(float[].class);
+
+    /** The value of {@code arrayBaseOffset(double[].class)} */
+    public static final int ARRAY_DOUBLE_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(double[].class);
+
+    /** The value of {@code arrayBaseOffset(Object[].class)} */
+    public static final int ARRAY_OBJECT_BASE_OFFSET
+	    = theUnsafe.arrayBaseOffset(Object[].class);
+
     /**
      * Report the scale factor for addressing elements in the storage
      * allocation of a given array class.  However, arrays of "narrow" types
@@ -662,6 +746,42 @@ public final class Unsafe {
      */
     public native int arrayIndexScale(Class arrayClass);
 
+    /** The value of {@code arrayIndexScale(boolean[].class)} */
+    public static final int ARRAY_BOOLEAN_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(boolean[].class);
+
+    /** The value of {@code arrayIndexScale(byte[].class)} */
+    public static final int ARRAY_BYTE_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(byte[].class);
+
+    /** The value of {@code arrayIndexScale(short[].class)} */
+    public static final int ARRAY_SHORT_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(short[].class);
+
+    /** The value of {@code arrayIndexScale(char[].class)} */
+    public static final int ARRAY_CHAR_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(char[].class);
+
+    /** The value of {@code arrayIndexScale(int[].class)} */
+    public static final int ARRAY_INT_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(int[].class);
+
+    /** The value of {@code arrayIndexScale(long[].class)} */
+    public static final int ARRAY_LONG_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(long[].class);
+
+    /** The value of {@code arrayIndexScale(float[].class)} */
+    public static final int ARRAY_FLOAT_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(float[].class);
+
+    /** The value of {@code arrayIndexScale(double[].class)} */
+    public static final int ARRAY_DOUBLE_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(double[].class);
+
+    /** The value of {@code arrayIndexScale(Object[].class)} */
+    public static final int ARRAY_OBJECT_INDEX_SCALE
+	    = theUnsafe.arrayIndexScale(Object[].class);
+
     /**
      * Report the size in bytes of a native pointer, as stored via {@link
      * #putAddress}.  This value will be either 4 or 8.  Note that the sizes of
@@ -669,6 +789,9 @@ public final class Unsafe {
      * fully by their information content.
      */
     public native int addressSize();
+
+    /** The value of {@code addressSize()} */
+    public static final int ADDRESS_SIZE = theUnsafe.addressSize();
 
     /**
      * Report the size in bytes of a native memory page (whatever that is).

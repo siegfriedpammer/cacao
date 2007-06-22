@@ -82,6 +82,9 @@ static JNINativeMethod methods[] = {
 	{ "staticFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_staticFieldOffset              },
 	{ "staticFieldBase",        "(Ljava/lang/reflect/Field;)Ljava/lang/Object;",              (void *) (intptr_t) &Java_sun_misc_Unsafe_staticFieldBase                },
 	{ "ensureClassInitialized", "(Ljava/lang/Class;)V",                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_ensureClassInitialized         },
+	{ "arrayBaseOffset",        "(Ljava/lang/Class;)I",                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_arrayBaseOffset                },
+	{ "arrayIndexScale",        "(Ljava/lang/Class;)I",                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_arrayIndexScale                },
+	{ "addressSize",            "()I",                                                        (void *) (intptr_t) &Java_sun_misc_Unsafe_addressSize                    },
 	{ "throwException",         "(Ljava/lang/Throwable;)V",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_throwException                 },
 	{ "compareAndSwapObject",   "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapObject           },
 	{ "compareAndSwapInt",      "(Ljava/lang/Object;JII)Z",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapInt              },
@@ -409,6 +412,63 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_ensureClassInitialized(JNIEnv *env, 
 
 	if (!(c->state & CLASS_INITIALIZED))
 		initialize_class(c);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    arrayBaseOffset
+ * Signature: (Ljava/lang/Class;)I
+ */
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayBaseOffset(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Class *arrayClass)
+{
+	classinfo       *c;
+	arraydescriptor *ad;
+
+	c  = (classinfo *) arrayClass;
+	ad = c->vftbl->arraydesc;
+
+	if (ad == NULL) {
+		/* XXX does that exception exist? */
+		exceptions_throw_internalerror("java/lang/InvalidClassException");
+		return 0;
+	}
+
+	return ad->dataoffset;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    arrayIndexScale
+ * Signature: (Ljava/lang/Class;)I
+ */
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayIndexScale(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Class *arrayClass)
+{
+	classinfo       *c;
+	arraydescriptor *ad;
+
+	c  = (classinfo *) arrayClass;
+	ad = c->vftbl->arraydesc;
+
+	if (ad == NULL) {
+		/* XXX does that exception exist? */
+		exceptions_throw_internalerror("java/lang/InvalidClassException");
+		return 0;
+	}
+
+	return ad->componentsize;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    addressSize
+ * Signature: ()I
+ */
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_addressSize(JNIEnv *env, sun_misc_Unsafe *this)
+{
+	return SIZEOF_VOID_P;
 }
 
 
