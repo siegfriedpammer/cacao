@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 7840 2007-04-30 10:53:13Z tbfg $
+   $Id: stacktrace.c 8139 2007-06-24 10:12:27Z twisti $
 
 */
 
@@ -1033,11 +1033,13 @@ void stacktrace_print_trace(java_objectheader *xptr)
 #if defined(WITH_CLASSPATH_GNU)
 	vmt = t->vmState;
 	stc = (stacktracecontainer *) vmt->vmData;
-	stb = &(stc->stb);
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 	stc = (stacktracecontainer *) t->backtrace;
-	stb = &(stc->stb);
+#else
+# error unknown classpath configuration
 #endif
+
+	stb = &(stc->stb);
 
 	stacktrace_print_trace_from_buffer(stb);
 }
