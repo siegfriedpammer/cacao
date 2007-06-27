@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: java_lang_VMRuntime.c 8147 2007-06-27 09:23:24Z twisti $
 
 */
 
@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/utsname.h>
 
 #if defined(__DARWIN__)
