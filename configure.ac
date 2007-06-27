@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8132 2007-06-22 11:15:47Z twisti $
+dnl $Id: configure.ac 8154 2007-06-27 20:56:57Z ajordan $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -514,6 +514,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
             case "${OS_DIR}" in
                 cygwin | darwin | netbsd | solaris)
                      AC_CHECK_LIB(intl, dcgettext,, [AC_MSG_ERROR(cannot find libintl (from binutils))])
+					 AC_CHECK_LIB(rt, sem_init,, [AC_MSG_ERROR(cannot find librt)])
                      ;;
             esac
 
