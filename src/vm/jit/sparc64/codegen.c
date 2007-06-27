@@ -62,6 +62,7 @@
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 
+#include "vm/jit/sparc64/solaris/macro_rename.h"
 
 #define BUILTIN_FLOAT_ARGS 1
 

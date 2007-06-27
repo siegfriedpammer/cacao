@@ -52,6 +52,8 @@
 
 #include "vmcore/options.h"
 
+#include "vm/jit/sparc64/solaris/macro_rename.h"
+
 /* how to leaf optimization in the emitted stubs?? */
 #define REG_PV REG_PV_CALLEE
 

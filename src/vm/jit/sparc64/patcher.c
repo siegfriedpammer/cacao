@@ -55,6 +55,7 @@
 #include "vmcore/references.h"
 #include "vm/resolve.h"
 
+#include "vm/jit/sparc64/solaris/macro_rename.h"
 
 /* patcher_wrapper *************************************************************
 

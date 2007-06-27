@@ -30,7 +30,7 @@
 #include "config.h"
 
 #include "vm/jit/sparc64/md-abi.h"
-#include "offsets.h"
+#include "vm/jit/sparc64/offsets.h"
 #include "md-asm.h"
 
 	.register %g2,#scratch                         /* define as scratch       */
