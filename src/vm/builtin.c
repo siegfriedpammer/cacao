@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8060 2007-06-10 20:00:40Z twisti $
+   $Id: builtin.c 8155 2007-06-27 21:53:44Z ajordan $
 
 */
 
@@ -2437,7 +2437,7 @@ s4 builtin_f2i(float a)
 #endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
-#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
+#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) || defined(DISABLE_GC)
 s8 builtin_f2l(float a)
 {
 	s8 l;
@@ -2487,7 +2487,7 @@ s4 builtin_d2i(double a)
 #endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)
+#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L) || defined(DISABLE_GC)
 s8 builtin_d2l(double a)
 {
 	double d;
