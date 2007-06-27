@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: exceptions.h 8146 2007-06-27 09:04:17Z michi $
 
 */
 
@@ -51,7 +51,7 @@
    8-byte boundaries, since normal loads could have such offsets with
    a base of NULL which should result in a NullPointerException.
 
-   NOTE: In signal_init() we have a check whether the offset of
+   NOTE: In exceptions_init() we have a check whether the offset of
    java_objectheader.data[0] is greater than the largest displacement
    defined below.  Otherwise normal array loads/stores could trigger
    an exception.
@@ -65,6 +65,9 @@
 
 #define EXCEPTION_HARDWARE_EXCEPTION                5
 #define EXCEPTION_HARDWARE_PATCHER                  6
+#define EXCEPTION_HARDWARE_COMPILER                 7
+
+#define EXCEPTION_HARDWARE_LARGEST                  7
 
 
 /* function prototypes ********************************************************/
