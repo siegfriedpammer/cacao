@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: exceptions.c 8145 2007-06-27 08:54:10Z michi $
 
 */
 
@@ -64,6 +64,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
@@ -1758,6 +1759,10 @@ java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 
 
 	case EXCEPTION_HARDWARE_EXCEPTION:
 		e = exceptions_fillinstacktrace();
+		break;
+
+	case EXCEPTION_HARDWARE_PATCHER:
+		e = patcher_handler(xpc);
 		break;
 
 	default:

@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7786 2007-04-21 12:37:47Z edwin $
+## $Id: Makefile.am 8145 2007-06-27 08:54:10Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -159,6 +159,8 @@ libjit_la_SOURCES = \
 	jit.h \
 	parse.c \
 	parse.h \
+	patcher-common.c \
+	patcher-common.h \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
 	$(REPLACE_SOURCES) \

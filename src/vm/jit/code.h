@@ -35,6 +35,8 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "toolbox/list.h"
+
 #include "vm/global.h"
 
 #include "vm/jit/replace.h"
@@ -72,6 +74,9 @@ struct codeinfo {
 	u1           *mcode;                /* pointer to machine code            */
 	u1           *entrypoint;           /* machine code entry point           */
 	s4            mcodelength;          /* length of generated machine code   */
+
+	/* patcher list */
+	list_t       *patchers;
 
 	/* replacement */				    
 #if defined(ENABLE_REPLACEMENT)

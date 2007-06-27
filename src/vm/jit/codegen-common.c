@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8094 2007-06-16 01:15:41Z ajordan $
+   $Id: codegen-common.c 8145 2007-06-27 08:54:10Z michi $
 
 */
 
@@ -82,6 +82,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/md.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"
@@ -945,6 +946,7 @@ void codegen_finish(jitdata *jd)
 #endif
 	s4           alignedmcodelen;
 	jumpref     *jr;
+	patchref_t  *pr;
 	u1          *epoint;
 	s4           alignedlen;
 
@@ -1062,6 +1064,14 @@ void codegen_finish(jitdata *jd)
 			(functionptr) ((ptrint) epoint + cd->linenumbertab);
 
 		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
+	}
+
+	/* patcher resolving */
+
+	pr = list_first_unsynced(code->patchers);
+	while (pr) {
+		pr->mpc += (ptrint) epoint;
+		pr = list_next_unsynced(code->patchers, pr);
 	}
 
 #if defined(ENABLE_REPLACEMENT)
