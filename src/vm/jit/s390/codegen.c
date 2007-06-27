@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: codegen.c 8151 2007-06-27 20:08:30Z pm $
 
 */
 
@@ -289,11 +289,10 @@ bool codegen_emit(jitdata *jd)
 						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
 
 				} else {                             /* stack arg -> spilled  */
- 					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1);
- 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff);
 					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + s1 + 4);
-						M_IST(REG_ITMP1, REG_SP, var->vv.regoff + 4);
+						N_MVC(var->vv.regoff, 8, REG_SP, cd->stackframesize * 4 + s1, REG_SP);
+					} else {
+						N_MVC(var->vv.regoff, 4, REG_SP, cd->stackframesize * 4 + s1, REG_SP);
 					}
 				}
 			}
@@ -321,13 +320,11 @@ bool codegen_emit(jitdata *jd)
 
  				} else {                             /* stack-arg -> spilled  */
 					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1);
-						M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
+						N_MVC(var->vv.regoff, 8, REG_SP, cd->stackframesize * 4 + s1, REG_SP);
 						var->vv.regoff = cd->stackframesize * 4 + s1;
 
 					} else {
-						M_FLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1);
-						M_FST(REG_FTMP1, REG_SP, var->vv.regoff);
+						N_MVC(var->vv.regoff, 4, REG_SP, cd->stackframesize * 4 + s1, REG_SP);
 					}
 				}
 			}
