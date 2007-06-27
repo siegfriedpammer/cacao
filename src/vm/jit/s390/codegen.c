@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8151 2007-06-27 20:08:30Z pm $
+   $Id: codegen.c 8152 2007-06-27 20:37:45Z pm $
 
 */
 
@@ -213,13 +213,10 @@ bool codegen_emit(jitdata *jd)
 #if defined(ENABLE_PROFILING)
 	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 		/* count frequency */
-
-		M_ALD(REG_ITMP1, REG_PV, CodeinfoPointer);
-		M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
-		M_IADD_IMM(1, REG_ITMP2);
+		M_ALD_DSEG(REG_ITMP1, CodeinfoPointer);
+		ICONST(REG_ITMP2, 1);
+		N_AL(REG_ITMP2, OFFSET(codeinfo, frequency), RN, REG_ITMP1);
 		M_IST(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
-
-/* 		PROFILE_CYCLE_START; */
 	}
 #endif
 
