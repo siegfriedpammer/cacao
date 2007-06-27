@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: vm.c 8150 2007-06-27 18:35:40Z twisti $
 
 */
 
@@ -1530,16 +1530,16 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	vm_initializing = true;
 
-#if defined(ENABLE_THREADS)
-	/* pre-initialize some core thread stuff, like the stopworldlock,
-	   thus this has to happen _before_ gc_init()!!! */
-
-  	threads_preinit();
-#endif
-
 	/* initialize the garbage collector */
 
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
+
+#if defined(ENABLE_THREADS)
+	/* AFTER: gc_init (directly after, as this initializes the
+	   stopworldlock lock */
+
+  	threads_preinit();
+#endif
 
 	/* install architecture dependent signal handlers */
 
