@@ -49,6 +49,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 
 #include "toolbox/logging.h" /* XXX for debugging only */
@@ -560,128 +561,45 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
-/* emit_patcher_stubs **********************************************************
+/* emit_patcher_traps **********************************************************
 
-   Generates the code for the patcher stubs.
+   Generates the code for the patcher traps.
 
 *******************************************************************************/
 
-void emit_patcher_stubs(jitdata *jd)
+void emit_patcher_traps(jitdata *jd)
 {
 	codegendata *cd;
-	patchref    *pref;
-	u4           mcode;
+	codeinfo    *code;
+	patchref_t  *pr;
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
-	s4           targetdisp;
-	s4           disp;
 
 	/* get required compiler data */
 
-	cd = jd->cd;
+	cd   = jd->cd;
+	code = jd->code;
 
-	/* generate patcher stub call code */
+	/* generate patcher traps code */
 
-	targetdisp = 0;
-
-	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-		/* check code segment size */
-
-		MCODECHECK(100);
+	for (pr = list_first_unsynced(code->patchers); pr != NULL; pr = list_next_unsynced(code->patchers, pr)) {
 
 		/* Get machine code which is patched back in later. The
-		   call is 1 instruction word long. */
+		   trap is 1 instruction word long. */
 
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->mpc);
 
-		mcode = *((u4 *) tmpmcodeptr);
+		pr->mcode = *((u4 *) tmpmcodeptr);
 
-		/* Patch in the call to call the following code (done at
+		/* Patch in the trap to call the signal handler (done at
 		   compile time). */
 
 		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr              */
 		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position     */
 
-		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 2);
-		M_B(disp);
+		M_TRAP(0, EXCEPTION_HARDWARE_PATCHER);
 
 		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr       */
-
-		/* create stack frame (align stack to 8-byte) */
-
-		M_SUB_IMM(REG_SP, REG_SP, 8 * 4);
-
-		/* save itmp3 onto stack */
-
-		M_STR_INTERN(REG_ITMP3, REG_SP, 6 * 4);
-
-		/* calculate return address and move it onto stack */
-		/* ATTENTION: we can not use BL to branch to patcher stub,        */
-		/* ATTENTION: because we need to preserve LR for leaf methods     */
-
-		disp = (s4) (((u4 *) cd->mcodeptr) - (((u4 *) tmpmcodeptr) + 1) + 2);
-
-		M_SUB_IMM_EXT_MUL4(REG_ITMP3, REG_PC, disp);
-		M_STR_INTERN(REG_ITMP3, REG_SP, 4 * 4);
-
-		/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-		/* order reversed because of data segment layout */
-
-		(void) dseg_add_unique_address(cd, NULL);           /* flcword    */
-		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
-		disp = dseg_add_unique_address(cd, NULL);           /* vftbl      */
-
-		M_SUB_IMM_EXT_MUL4(REG_ITMP3, REG_PV, -disp / 4);
-		M_STR_INTERN(REG_ITMP3, REG_SP, 3 * 4);
-#else
-		M_EOR(REG_ITMP3, REG_ITMP3, REG_ITMP3);
-		M_STR_INTERN(REG_ITMP3, REG_SP, 3 * 4);
-#endif
-
-		/* move machine code onto stack */
-
-		disp = dseg_add_unique_s4(cd, mcode);
-		M_DSEG_LOAD(REG_ITMP3, disp);
-		M_STR_INTERN(REG_ITMP3, REG_SP, 2 * 4);
-
-		/* move class/method/field reference onto stack */
-
-		disp = dseg_add_unique_address(cd, pref->ref);
-		M_DSEG_LOAD(REG_ITMP3, disp);
-		M_STR_INTERN(REG_ITMP3, REG_SP, 1 * 4);
-
-		/* move data segment displacement onto stack */
-
-		disp = dseg_add_unique_s4(cd, pref->disp);
-		M_DSEG_LOAD(REG_ITMP3, disp);
-		M_STR_INTERN(REG_ITMP3, REG_SP, 5 * 4);
-
-		/* move patcher function pointer onto stack */
-
-		disp = dseg_add_functionptr(cd, pref->patcher);
-		M_DSEG_LOAD(REG_ITMP3, disp);
-		M_STR_INTERN(REG_ITMP3, REG_SP, 0 * 4);
-
-		/* finally call the patcher via asm_patcher_wrapper */
-		/* ATTENTION: don't use REG_PV here, because some patchers need it */
-
-		if (targetdisp == 0) {
-			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
-
-			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-			/*M_DSEG_BRANCH_NOLINK(REG_PC, REG_PV, a);*/
-			/* TODO: this is only a hack */
-			M_DSEG_LOAD(REG_ITMP3, disp);
-			M_MOV(REG_PC, REG_ITMP3);
-		}
-		else {
-			disp = (((u4 *) cd->mcodebase) + targetdisp) -
-				(((u4 *) cd->mcodeptr) + 2);
-
-			M_B(disp);
-		}
 	}
 }
 

@@ -35,6 +35,8 @@
 
 #include "mm/memory.h"
 
+#include "threads/lock-common.h"
+
 #include "toolbox/list.h"
 #include "toolbox/logging.h"           /* XXX remove me! */
 
@@ -43,7 +45,6 @@
 
 #include "vm/jit/code.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/patcher.h"
 #include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"

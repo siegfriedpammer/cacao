@@ -166,11 +166,14 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
 
-	/* set registers */
+	/* set registers if we have an exception, return continue execution
+	   otherwise (this is needed for patchers to work) */
 
-	_sc->arm_r10 = (ptrint) o;
-	_sc->arm_fp  = (ptrint) xpc;
-	_sc->arm_pc  = (ptrint) asm_handle_exception;
+	if (o != NULL) {
+		_sc->arm_r10 = (ptrint) o;
+		_sc->arm_fp  = (ptrint) xpc;
+		_sc->arm_pc  = (ptrint) asm_handle_exception;
+	}
 }
 
 

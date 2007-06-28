@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8127 2007-06-21 11:55:56Z michi $
+   $Id: asmpart.S 8160 2007-06-28 01:52:19Z michi $
 
 */
 
@@ -56,8 +56,6 @@
 	.globl asm_handle_nat_exception
 
 	.globl asm_abstractmethoderror
-
-	.globl asm_patcher_wrapper
 
 	.globl asm_cacheflush
 
@@ -302,59 +300,6 @@ asm_handle_exception_not_catched:
 	RESTORE_ARGUMENT_REGISTERS  
 
 	b     asm_handle_exception_loop
-
-
-/* asm_patcher_wrapper *********************************************************
-*                                                                              *
-*   TODO: document me                                                          *
-*                                                                              *
-*   Stack layout when calling patcher function:                                *
-*    28   empty because stack needs to be aligned                              *
-*    24   saved REG_ITMP3, should be restored                ( -8)             *
-*    20   data segment displacement from load instructions   (-12)             *
-*    16   return address into JIT code (patch position)      (-16)             *
-*    12   pointer to virtual java_objectheader                                 *
-*     8   machine code (which is patched back later)                           *
-*   [ 8   result of patcher function (indicates exception)  ]                  *
-*     4   unresolved class/method/field reference                              *
-*   [ 0   patcher function pointer to call                  ]                  *
-*     0   saved IP of caller (caller needs it!)                                *
-*                                                                              *
-*******************************************************************************/
-
-#define PATCHSTACKSIZE 8*4
-
-asm_patcher_wrapper:
-	mov   itmp3, sp                     /* preserve original SP in ITMP3      */
-
-	SAVE_ARGUMENT_REGISTERS_IP          /* save our argument registers & LR   */
-	SAVE_FLOAT_REGISTERS                /* save our float registers here      */
-
-	mov   a0, itmp3                     /* pass SP of patcher stub            */
-	mov   a1, ip                        /* pass PV                            */
-	mov   a2, lr                        /* pass RA (correct for leafs)        */
-	bl    patcher_wrapper
-	mov   itmp3, res1                   /* save return value                  */
-
-	RESTORE_FLOAT_REGISTERS             /* restore our float registers here   */
-	RESTORE_ARGUMENT_REGISTERS_IP       /* load our argument registers & LR   */
-
-	add   sp, sp, #PATCHSTACKSIZE       /* remove patcher stack frame         */
-
-	tst   itmp3, itmp3                  /* check for an exception             */
-	bne   L_asm_patcher_wrapper_exception
-
-	ldr   itmp3, [sp, #-8]              /* restore ITMP3 for calling method   */
-	ldr   pc, [sp, #-16]                /* jump to new patched code           */
-
-L_asm_patcher_wrapper_exception:
-	mov   xptr, itmp3                   /* get exception                      */
-	ldr   xpc, [sp, #-16]               /* RA is xpc                          */
-
-	/* Note: A normal branch instruction could modify the PV here,            */
-	/*       so we use this construct instead.                                */
-	ldr   pc, [pc, #-4]
-	.word asm_handle_exception
 
 
 /* asm_abstractmethoderror *****************************************************

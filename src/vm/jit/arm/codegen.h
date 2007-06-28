@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7929 2007-05-21 11:45:31Z michi $
+   $Id: codegen.h 8160 2007-06-28 01:52:19Z michi $
 
 */
 
@@ -606,6 +606,7 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_DMOV(a,b)        M_MVFD(b,a)
 
 
+#define M_TRAP(a,i)        M_UNDEFINED(UNCOND,i,a);
 #define M_TRAPEQ(a,i)      M_UNDEFINED(COND_EQ,i,a);
 #define M_TRAPLE(a,i)      M_UNDEFINED(COND_LE,i,a);
 #define M_TRAPHI(a,i)      M_UNDEFINED(COND_HI,i,a);
