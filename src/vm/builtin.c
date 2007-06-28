@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8155 2007-06-27 21:53:44Z ajordan $
+   $Id: builtin.c 8159 2007-06-28 00:31:31Z michi $
 
 */
 
@@ -71,7 +71,6 @@
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/patcher.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: parse.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: parse.c 8159 2007-06-28 00:31:31Z michi $
 
 */
 
@@ -50,7 +50,6 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
-#include "vm/jit/patcher.h"
 #include "vm/jit/loop/loop.h"
 
 #include "vmcore/linker.h"
