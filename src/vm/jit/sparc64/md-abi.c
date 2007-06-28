@@ -251,7 +251,7 @@ void md_param_alloc_native(methoddesc *md)
 
 			} else {
 				pd->inmemory = true;
-				pd->regoff = reguse;
+				pd->regoff = reguse * 8;
 				reguse++;
 			}
 
@@ -267,7 +267,7 @@ void md_param_alloc_native(methoddesc *md)
 				md->argfltreguse = reguse;
 			} else {
 				pd->inmemory = true;
-				pd->regoff = reguse;
+				pd->regoff = reguse * 8;
 				reguse++;
 			}
 
