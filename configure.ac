@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8156 2007-06-27 22:07:28Z ajordan $
+dnl $Id: configure.ac 8163 2007-06-29 18:53:55Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -215,9 +215,11 @@ AC_HEADER_STDC
 
 dnl keep them alpha-sorted!
 AC_CHECK_HEADERS([fcntl.h])
+AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([time.h])
+AC_CHECK_HEADERS([ucontext.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/mman.h])
@@ -267,22 +269,27 @@ AC_CHECK_FUNCS([fprintf])
 AC_CHECK_FUNCS([free])
 AC_CHECK_FUNCS([fstat])
 AC_CHECK_FUNCS([getcwd])
+AC_CHECK_FUNCS([gethostbyname])
 AC_CHECK_FUNCS([gethostname])
 AC_CHECK_FUNCS([getpagesize])
 AC_CHECK_FUNCS([getrusage])
 AC_CHECK_FUNCS([getsockname])
 AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_FUNCS([htons])
 AC_CHECK_FUNCS([ioctl])
 AC_CHECK_FUNCS([isnan])
 AC_CHECK_FUNCS([listen])
 AC_CHECK_FUNCS([localtime])
 AC_CHECK_FUNCS([localtime_r])
 AC_CHECK_FUNCS([lseek])
+AC_CHECK_FUNCS([malloc])
 AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([open])
+AC_CHECK_FUNCS([recv])
 AC_CHECK_FUNCS([scandir])
 AC_CHECK_FUNCS([select])
+AC_CHECK_FUNCS([send])
 AC_CHECK_FUNCS([setsockopt])
 AC_CHECK_FUNCS([shutdown])
 AC_CHECK_FUNCS([socket])
@@ -792,25 +799,7 @@ else
 fi
 
 
-dnl check if zlib should be used
-AC_MSG_CHECKING(whether ZIP/JAR archives should be supported)
-AC_ARG_ENABLE([zlib],
-              [AS_HELP_STRING(--disable-zlib,disable ZIP/JAR archive support (needs zlib) [[default=yes]])],
-              [case "${enableval}" in
-                  no) ENABLE_ZLIB=no;;
-                  *) ENABLE_ZLIB=yes;;
-               esac],
-              [ENABLE_ZLIB=yes])
-AC_MSG_RESULT(${ENABLE_ZLIB})
-
-if test x"${ENABLE_ZLIB}" = "xyes"; then
-    AC_CHECK_HEADERS([zconf.h],, [AC_MSG_ERROR(cannot find zconf.h)])
-    AC_CHECK_HEADERS([zlib.h],, [AC_MSG_ERROR(cannot find zlib.h)])
-    AC_CHECK_LIB(z, inflate,, [AC_MSG_ERROR(cannot find libz)])
-    AC_DEFINE([ENABLE_ZLIB], 1, [use zlib])
-fi
-AM_CONDITIONAL([ENABLE_ZLIB], test x"${ENABLE_ZLIB}" = "xyes")
-
+AC_CHECK_ENABLE_ZLIB
 
 dnl check for stuff to be built
 AC_CHECK_ENABLE_JNI
@@ -910,13 +899,7 @@ if test x"${WITH_STATIC_CLASSPATH}" = "xyes"; then
     dnl check for some classpath related stuff when we link statically
     AM_ICONV_LINK
 else
-    dnl we need this check for --enable-staticvm, otherwise ltdl can't find dlopen
-    if test x"${ENABLE_STATICVM}" = "xyes"; then
-        AC_CHECK_LIB(dl, dlopen,, [AC_MSG_ERROR(cannot find libdl)])
-    fi
-
-    AC_CHECK_HEADERS([ltdl.h],, [AC_MSG_ERROR(cannot find ltdl.h)])
-    AC_CHECK_LIB(ltdl, lt_dlopen,, [AC_MSG_ERROR(cannot find libltdl)])
+    AC_CHECK_ENABLE_LTDL
 fi
 AM_CONDITIONAL([WITH_STATIC_CLASSPATH], test x"${WITH_STATIC_CLASSPATH}" = "xyes")
 AC_SUBST(WITH_STATIC_CLASSPATH)

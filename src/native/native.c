@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: native.c 8163 2007-06-29 18:53:55Z twisti $
 
 */
 
@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <ctype.h>
 
-#if !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LTDL) && defined(HAVE_LTDL_H)
 # include <ltdl.h>
 #endif
 
@@ -94,7 +94,10 @@ static bool nativecompdone = false;
 /* global variables ***********************************************************/
 
 static avl_tree_t *tree_native_methods;
+
+#if defined(ENABLE_LTDL)
 static hashtable *hashtable_library;
+#endif
 
 
 /* prototypes *****************************************************************/
@@ -110,7 +113,7 @@ static s4 native_tree_native_methods_comparator(const void *treenode, const void
 
 bool native_init(void)
 {
-#if !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LTDL)
 	/* initialize libltdl */
 
 	if (lt_dlinit())
@@ -516,7 +519,7 @@ static functionptr native_method_find(methodinfo *m)
 
 *******************************************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LTDL)
 lt_dlhandle native_library_open(utf *filename)
 {
 	lt_dlhandle handle;
@@ -553,7 +556,7 @@ lt_dlhandle native_library_open(utf *filename)
 
 *******************************************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LTDL)
 void native_library_add(utf *filename, java_objectheader *loader,
 						lt_dlhandle handle)
 {
@@ -636,7 +639,7 @@ void native_library_add(utf *filename, java_objectheader *loader,
 
 *******************************************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LTLD)
 hashtable_library_name_entry *native_library_find(utf *filename,
 												  java_objectheader *loader)
 {
@@ -751,10 +754,12 @@ functionptr native_resolve_function(methodinfo *m)
 	utf                            *name;
 	utf                            *newname;
 	functionptr                     f;
+#if defined(ENABLE_LTDL)
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne;
 	u4                              key;    /* hashkey                        */
 	u4                              slot;   /* slot in hashtable              */
+#endif
 #if defined(WITH_CLASSPATH_SUN)
 	methodinfo                     *method_findNative;
 	java_objectheader              *s;
@@ -785,6 +790,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 	f = NULL;
 
+#if defined(ENABLE_LTDL)
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
 	key  = ((u4) (ptrint) cl) >> 4;                       /* align to 16-byte */
@@ -810,7 +816,7 @@ functionptr native_resolve_function(methodinfo *m)
 		le = le->hashlink;
 	}
 
-#if defined(WITH_CLASSPATH_SUN)
+# if defined(WITH_CLASSPATH_SUN)
 	if (f == NULL) {
 		/* We can resolve the function directly from
 		   java.lang.ClassLoader as it's a static function. */
@@ -842,11 +848,12 @@ functionptr native_resolve_function(methodinfo *m)
 															 NULL, cl, s);
 		}
 	}
-#endif
+# endif
 
 	if (f != NULL)
 		if (opt_verbosejni)
 			printf("JNI ]\n");
+#endif
 
 	/* If not found, try to find the native function symbol in the
 	   main program. */
