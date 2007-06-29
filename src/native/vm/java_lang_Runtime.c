@@ -29,7 +29,7 @@
 
 #include "config.h"
 
-#if !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LTDL) && defined(HAVE_LTDL_H)
 # include <ltdl.h>
 #endif
 
@@ -113,23 +113,19 @@ s4 _Jv_java_lang_Runtime_loadLibrary(JNIEnv *env, java_lang_String *libname, jav
 s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheader *cl)
 #endif
 {
-#if !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LTDL)
 	utf               *name;
 	lt_dlhandle        handle;
 # if defined(ENABLE_JNI)
 	lt_ptr             onload;
 	s4                 version;
 # endif
-#endif
 
 	if (libname == NULL) {
 		exceptions_throw_nullpointerexception();
 		return 0;
 	}
 
-#if defined(WITH_STATIC_CLASSPATH)
-	return 1;
-#else /* defined(WITH_STATIC_CLASSPATH) */
 	name = javastring_toutf((java_objectheader *) libname, false);
 
 	/* is the library already loaded? */
@@ -174,7 +170,13 @@ s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheade
 	native_library_add(name, cl, handle);
 
 	return 1;
-#endif /* defined(WITH_STATIC_CLASSPATH) */
+#else
+	vm_abort("_Jv_java_lang_Runtime_loadLibrary: not available");
+
+	/* keep compiler happy */
+
+	return 0;
+#endif
 }
 
 
