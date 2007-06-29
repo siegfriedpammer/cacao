@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8163 2007-06-29 18:53:55Z twisti $
+   $Id: native.c 8164 2007-06-29 18:56:08Z twisti $
 
 */
 
@@ -639,7 +639,7 @@ void native_library_add(utf *filename, java_objectheader *loader,
 
 *******************************************************************************/
 
-#if defined(ENABLE_LTLD)
+#if defined(ENABLE_LTDL)
 hashtable_library_name_entry *native_library_find(utf *filename,
 												  java_objectheader *loader)
 {
