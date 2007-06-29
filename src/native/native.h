@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 8166 2007-06-29 19:45:17Z twisti $
+   $Id: native.h 8167 2007-06-29 20:27:41Z twisti $
 
 */
 
@@ -76,6 +76,7 @@ struct native_methods_node_t {
 
 #if defined(ENABLE_LTDL)
 typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
+typedef struct hashtable_library_name_entry   hashtable_library_name_entry;
 
 struct hashtable_library_loader_entry {
 	java_objectheader              *loader;  /* class loader                  */
@@ -88,8 +89,6 @@ struct hashtable_library_loader_entry {
 /* hashtable_library_name_entry ***********************************************/
 
 #if defined(ENABLE_LTDL)
-typedef struct hashtable_library_name_entry hashtable_library_name_entry;
-
 struct hashtable_library_name_entry {
 	utf                          *name;      /* library name                  */
 	lt_dlhandle                   handle;    /* libtool library handle        */
