@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8164 2007-06-29 18:56:08Z twisti $
+   $Id: native.c 8166 2007-06-29 19:45:17Z twisti $
 
 */
 
@@ -630,7 +630,7 @@ void native_library_add(utf *filename, java_objectheader *loader,
 
 	LOCK_MONITOR_EXIT(hashtable_library->header);
 }
-#endif /* !defined(WITH_STATIC_CLASSPATH) */
+#endif
 
 
 /* native_library_find *********************************************************
