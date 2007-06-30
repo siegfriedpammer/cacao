@@ -31,6 +31,9 @@
 #define _JV_JAVA_LANG_CLASS_H
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "native/jni.h"
@@ -59,7 +62,7 @@ java_lang_Class               *_Jv_java_lang_Class_forName(java_lang_String *nam
 
 s4                             _Jv_java_lang_Class_isInstance(java_lang_Class *klass, java_lang_Object *o);
 s4                             _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class *c);
-s4                             _Jv_java_lang_Class_isInterface(java_lang_Class *klass);
+JNIEXPORT int32_t JNICALL      _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *this);
 
 #if defined(ENABLE_JAVASE)
 s4                             _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass);
@@ -75,7 +78,7 @@ java_objectarray              *_Jv_java_lang_Class_getDeclaredConstructors(java_
 java_lang_ClassLoader         *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass);
 #endif
 
-s4                             _Jv_java_lang_Class_isArray(java_lang_Class *klass);
+JNIEXPORT int32_t JNICALL      _Jv_java_lang_Class_isArray(JNIEnv *env, java_lang_Class *this);
 
 #if defined(ENABLE_JAVASE)
 void                           _Jv_java_lang_Class_throwException(java_lang_Throwable *t);

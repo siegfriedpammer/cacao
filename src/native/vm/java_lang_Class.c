@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: java_lang_Class.c 8169 2007-06-30 12:33:50Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "vm/types.h"
@@ -236,16 +237,13 @@ s4 _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class 
  * Method:    isInterface
  * Signature: ()Z
  */
-s4 _Jv_java_lang_Class_isInterface(java_lang_Class *klass)
+JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *this)
 {
 	classinfo *c;
 
-	c = (classinfo *) klass;
+	c = (classinfo *) this;
 
-	if (c->flags & ACC_INTERFACE)
-		return true;
-
-	return false;
+	return class_is_interface(c);
 }
 
 
@@ -654,7 +652,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 	   clone method overriding instead of declaring it as a member
 	   function. */
 
-	if (_Jv_java_lang_Class_isArray(klass))
+	if (class_is_array(c))
 		return builtin_anewarray(0, class_java_lang_reflect_Method);
 
 	/* determine number of methods */
@@ -831,17 +829,13 @@ java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass
  * Method:    isArray
  * Signature: ()Z
  */
-s4 _Jv_java_lang_Class_isArray(java_lang_Class *klass)
+JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isArray(JNIEnv *env, java_lang_Class *this)
 {
 	classinfo *c;
 
-	c = (classinfo *) klass;
+	c = (classinfo *) this;
 
-	if (!(c->state & CLASS_LINKED))
-		if (!link_class(c))
-			return 0;
-
-	return (c->vftbl->arraydesc != NULL);
+	return class_is_array(c);
 }
 
 
