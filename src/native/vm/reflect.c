@@ -29,9 +29,7 @@
 
 #include "config.h"
 
-#include <assert.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -40,26 +38,23 @@
 
 #include "native/include/java_lang_String.h"
 
-#if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_SUN)
-#  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
-# endif
-# include "native/include/java_lang_ClassLoader.h"
+#if defined(WITH_CLASSPATH_SUN)
+# include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
 #endif
+#include "native/include/java_lang_ClassLoader.h"
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_reflect_Constructor.h"
+#include "native/include/java_lang_reflect_Field.h"
+#include "native/include/java_lang_reflect_Method.h"
 
-#if defined(ENABLE_JAVASE)
-# include "native/include/java_lang_reflect_Constructor.h"
-# include "native/include/java_lang_reflect_Field.h"
-# include "native/include/java_lang_reflect_Method.h"
-#endif
-
+#include "native/vm/java_lang_String.h"
 #include "native/vm/reflect.h"
 
 #include "vm/builtin.h"
 #include "vm/global.h"
+#include "vm/stringlocal.h"
 
 #include "vmcore/method.h"
 
