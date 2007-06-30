@@ -1516,17 +1516,17 @@ jint JVM_Write(jint fd, char *buf, jint nbytes)
 
 jint JVM_Available(jint fd, jlong *pbytes)
 {
-#if defined(FIONREAD) && 0
+#if defined(FIONREAD)
 	ssize_t n;
 
 	*pbytes = 0;
 
 	if (ioctl(fd, FIONREAD, (char *) &n) != 0)
-		return errno;
+		return 0;
 
 	*pbytes = n;
 
-	return 0;
+	return 1;
 #elif defined(HAVE_FSTAT)
 	struct stat statBuffer;
 	off_t n;
@@ -1539,14 +1539,14 @@ jint JVM_Available(jint fd, jlong *pbytes)
 
 		if (n != -1) {
 			*pbytes = statBuffer.st_size - n; 
-			result = 0;
+			result = 1;
 		}
 		else {
-			result = errno;
+			result = 0;
 		}
 	}
 	else {
-		result = errno;
+		result = 0;
 	}
   
 	return result;
@@ -1557,14 +1557,14 @@ jint JVM_Available(jint fd, jlong *pbytes)
 
 	*pbytes = 0;
   
-	FD_ZERO (&filedescriptset);
-	FD_SET (fd,&filedescriptset);
-	memset (&tv, 0, sizeof(tv));
+	FD_ZERO(&filedescriptset);
+	FD_SET(fd, &filedescriptset);
+	memset(&tv, 0, sizeof(tv));
 
-	switch (select (fd+1, &filedescriptset, NULL, NULL, &tv))
+	switch (select(fd+1, &filedescriptset, NULL, NULL, &tv))
 		{
 		case -1: 
-			result=errno; 
+			result = errno; 
 			break;
 		case  0:
 			*pbytes = 0;
@@ -1578,7 +1578,7 @@ jint JVM_Available(jint fd, jlong *pbytes)
 	return result;
 #else
 	*pbytes = 0;
-	return ENOTSUP;
+	return 0;
 #endif
 }
 
