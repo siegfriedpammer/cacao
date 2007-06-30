@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8155 2007-06-27 21:53:44Z ajordan $
+   $Id: jni.c 8170 2007-06-30 14:03:18Z twisti $
 
 */
 
@@ -90,6 +90,7 @@
 
 #if defined(ENABLE_JAVASE)
 # include "native/vm/java_lang_ClassLoader.h"
+# include "native/vm/reflect.h"
 #endif
 
 #include "threads/lock-common.h"
@@ -2081,11 +2082,36 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 jobject _Jv_JNI_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID,
 								  jboolean isStatic)
 {
+#if defined(ENABLE_JAVASE)
+	methodinfo                    *m;
+	java_lang_reflect_Constructor *rc;
+	java_lang_reflect_Method      *rm;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: ToReflectedMethod: IMPLEMENT ME!");
+	m = (methodinfo *) methodID;
+
+	/* HotSpot does the same assert. */
+
+	assert(((m->flags & ACC_STATIC) != 0) == (isStatic != 0));
+
+	if (m->name == utf_init) {
+		rc = reflect_constructor_new(m);
+
+		return (jobject) rc;
+	}
+	else {
+		rm = reflect_method_new(m);
+
+		return (jobject) rm;
+	}
+#else
+	vm_abort("_Jv_JNI_ToReflectedMethod: not implemented in this configuration");
+
+	/* keep compiler happy */
 
 	return NULL;
+#endif
 }
 
 

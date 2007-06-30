@@ -60,6 +60,10 @@ NATIVEVM_LIB = \
 endif
 
 if ENABLE_JAVASE
+REFLECT_SOURCES = \
+	reflect.c \
+	reflect.h
+
 CLASSLOADER_SOURCES = \
 	java_lang_ClassLoader.c \
 	java_lang_ClassLoader.h
@@ -86,6 +90,7 @@ noinst_LTLIBRARIES = \
 libnativevm_la_SOURCES = \
 	nativevm.c \
 	nativevm.h \
+	$(REFLECT_SOURCES) \
 	\
 	java_lang_Class.c \
 	java_lang_Class.h \

@@ -138,13 +138,23 @@ typedef struct {
 
 int jio_vsnprintf(char *str, size_t count, const char *fmt, va_list args)
 {
+	if ((intptr_t) count <= 0)
+		return -1;
+
 	return vsnprintf(str, count, fmt, args);
 }
 
 
 int jio_snprintf(char *str, size_t count, const char *fmt, ...)
 {
-	log_println("jio_snprintf: IMPLEMENT ME!");
+	va_list ap;
+	int     len;
+
+	va_start(ap, fmt);
+	len = jio_vsnprintf(str, count, fmt, ap);
+	va_end(ap);
+
+	return len;
 }
 
 
@@ -740,10 +750,15 @@ jobject JVM_GetClassLoader(JNIEnv *env, jclass cls)
 
 jboolean JVM_IsInterface(JNIEnv *env, jclass cls)
 {
+	classinfo *c;
+
 #if PRINTJVM
 	log_println("JVM_IsInterface: cls=%p", cls);
 #endif
-	return _Jv_java_lang_Class_isInterface((java_lang_Class *) cls);
+
+	c = (classinfo *) cls;
+
+	return class_is_interface(c);
 }
 
 
@@ -866,7 +881,7 @@ jboolean JVM_IsArrayClass(JNIEnv *env, jclass cls)
 #if PRINTJVM
 	log_println("JVM_IsArrayClass: cls=%p", cls);
 #endif
-	return _Jv_java_lang_Class_isArray((java_lang_Class *) cls);
+	return class_is_array((classinfo *) cls);
 }
 
 
@@ -2328,7 +2343,7 @@ void JVM_SetPrimitiveField(JNIEnv *env, jobject field, jobject obj, jvalue v, un
 
 jobject JVM_InvokeMethod(JNIEnv *env, jobject method, jobject obj, jobjectArray args0)
 {
-#if PRINTJVM || 1
+#if PRINTJVM
 	log_println("JVM_InvokeMethod: method=%p, obj=%p, args0=%p", method, obj, args0);
 #endif
 	return (jobject) _Jv_java_lang_reflect_Method_invoke((java_lang_reflect_Method *) method, (java_lang_Object *) obj, (java_objectarray *) args0);
