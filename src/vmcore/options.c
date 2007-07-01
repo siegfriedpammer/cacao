@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8134 2007-06-22 14:49:10Z twisti $
+   $Id: options.c 8174 2007-07-01 17:49:25Z twisti $
 
 */
 
@@ -307,15 +307,15 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 
 void options_xx(const char *name)
 {
-	char    *start;
-	char    *end;
-	int32_t  length;
-	int32_t  enable;
-	char    *value;
-	int32_t  option;
-	char    *filename;
-	FILE    *file;
-	int32_t  i;
+	const char *start;
+	char       *end;
+	int32_t     length;
+	int32_t     enable;
+	char       *value;
+	int32_t     option;
+	char       *filename;
+	FILE       *file;
+	int32_t     i;
 
 	/* Check if the option is a boolean option. */
 
