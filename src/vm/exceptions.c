@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8146 2007-06-27 09:04:17Z michi $
+   $Id: exceptions.c 8175 2007-07-02 14:07:24Z twisti $
 
 */
 
@@ -92,6 +92,10 @@ java_objectheader *_no_threads_exceptionptr = NULL;
 
 bool exceptions_init(void)
 {
+#if !(defined(__ARM__) && defined(__LINUX__))
+	/* On arm-linux the first memory page can't be mmap'ed, as it
+	   contains the exception vectors. */
+
 	int pagesize;
 
 	/* mmap a memory page at address 0x0, so our hardware-exceptions
@@ -100,6 +104,7 @@ bool exceptions_init(void)
 	pagesize = getpagesize();
 
 	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+#endif
 
 	/* check if we get into trouble with our hardware-exceptions */
 
