@@ -92,6 +92,7 @@ static JNINativeMethod methods[] = {
 	{ "compareAndSwapLong",     "(Ljava/lang/Object;JJJ)Z",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapLong             },
 	{ "getObjectVolatile",      "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void *) (intptr_t) &Java_sun_misc_Unsafe_getObjectVolatile              },
 	{ "getIntVolatile",         "(Ljava/lang/Object;J)I",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getIntVolatile                 },
+	{ "unpark",                 "(Ljava/lang/Object;)V",                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_unpark                         },
 	{ "park",                   "(ZJ)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_park                           },
 };
 
@@ -615,6 +616,17 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, sun_m
 	value = *p;
 
 	return value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    unpark
+ * Signature: (Ljava/lang/Object;)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_unpark(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *thread)
+{
+	/* XXX IMPLEMENT ME */
 }
 
 
