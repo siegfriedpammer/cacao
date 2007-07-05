@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: exceptions.c 8178 2007-07-05 11:13:20Z michi $
 
 */
 
@@ -64,6 +64,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
@@ -91,6 +92,10 @@ java_objectheader *_no_threads_exceptionptr = NULL;
 
 bool exceptions_init(void)
 {
+#if !(defined(__ARM__) && defined(__LINUX__))
+	/* On arm-linux the first memory page can't be mmap'ed, as it
+	   contains the exception vectors. */
+
 	int pagesize;
 
 	/* mmap a memory page at address 0x0, so our hardware-exceptions
@@ -99,11 +104,12 @@ bool exceptions_init(void)
 	pagesize = getpagesize();
 
 	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+#endif
 
 	/* check if we get into trouble with our hardware-exceptions */
 
-	if (OFFSET(java_bytearray, data) <= EXCEPTION_HARDWARE_PATCHER)
-		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray, data), EXCEPTION_HARDWARE_PATCHER);
+	if (OFFSET(java_bytearray, data) <= EXCEPTION_HARDWARE_LARGEST)
+		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray, data), EXCEPTION_HARDWARE_LARGEST);
 
 	/* java/lang/Throwable */
 
@@ -1726,16 +1732,15 @@ java_objectheader *exceptions_fillinstacktrace(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val)
+java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val, stackframeinfo *sfi)
 {
-	stackframeinfo     sfi;
 	java_objectheader *e;
 	java_objectheader *o;
 	s4                 index;
 
 	/* create stackframeinfo */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+	stacktrace_create_extern_stackframeinfo(sfi, pv, sp, ra, xpc);
 
 	switch (type) {
 	case EXCEPTION_HARDWARE_NULLPOINTER:
@@ -1758,6 +1763,10 @@ java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 
 
 	case EXCEPTION_HARDWARE_EXCEPTION:
 		e = exceptions_fillinstacktrace();
+		break;
+
+	case EXCEPTION_HARDWARE_PATCHER:
+		e = patcher_handler(xpc);
 		break;
 
 	default:
@@ -1789,7 +1798,7 @@ java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 
 
 	/* remove stackframeinfo */
 
-	stacktrace_remove_stackframeinfo(&sfi);
+	stacktrace_remove_stackframeinfo(sfi);
 
 	/* return the exception object */
 

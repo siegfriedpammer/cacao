@@ -45,7 +45,6 @@
 #include "vm/resolve.h"
 #include "vm/vm.h"
 
-#include "vm/jit/patcher.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/show.h"
 #include "vm/jit/parse.h"

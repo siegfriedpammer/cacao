@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8137 2007-06-22 16:41:36Z michi $
+   $Id: jni.c 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -90,6 +90,7 @@
 
 #if defined(ENABLE_JAVASE)
 # include "native/vm/java_lang_ClassLoader.h"
+# include "native/vm/reflect.h"
 #endif
 
 #include "threads/lock-common.h"
@@ -812,7 +813,8 @@ static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) \
+ && !defined(__M68K__) && !defined(__ARM__) && !defined(__SPARC_64__)
 java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params)
 {
@@ -2128,11 +2130,36 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 jobject _Jv_JNI_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID,
 								  jboolean isStatic)
 {
+#if defined(ENABLE_JAVASE)
+	methodinfo                    *m;
+	java_lang_reflect_Constructor *rc;
+	java_lang_reflect_Method      *rm;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: ToReflectedMethod: IMPLEMENT ME!");
+	m = (methodinfo *) methodID;
+
+	/* HotSpot does the same assert. */
+
+	assert(((m->flags & ACC_STATIC) != 0) == (isStatic != 0));
+
+	if (m->name == utf_init) {
+		rc = reflect_constructor_new(m);
+
+		return (jobject) rc;
+	}
+	else {
+		rm = reflect_method_new(m);
+
+		return (jobject) rm;
+	}
+#else
+	vm_abort("_Jv_JNI_ToReflectedMethod: not implemented in this configuration");
+
+	/* keep compiler happy */
 
 	return NULL;
+#endif
 }
 
 

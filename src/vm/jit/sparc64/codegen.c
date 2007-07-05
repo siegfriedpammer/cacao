@@ -62,6 +62,7 @@
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 
+#include "vm/jit/sparc64/solaris/macro_rename.h"
 
 #define BUILTIN_FLOAT_ARGS 1
 
@@ -3354,8 +3355,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 					s2 = nat_argintregs[nmd->params[j].regoff];
 					M_INTMOVE(s1, s2);
 				} else {
-					s2 = nmd->params[j].regoff - 6 * 8;
-					M_AST(s1, REG_SP, CSTACK + s2);
+					/* nmd's regoff is relative to the start of the param array */
+					s2 = BIAS + WINSAVE_CNT * 8 + nmd->params[j].regoff;
+					M_AST(s1, REG_SP, s2);
 				}
 
 			} else {
@@ -3369,9 +3371,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 
 				s1 = md->params[i].regoff + cd->stackframesize * 8;
-				s2 = nmd->params[j].regoff - 6 * 8;
+				s2 = BIAS + WINSAVE_CNT + 8 + nmd->params[j].regoff;
 				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1);
-				M_AST(REG_ITMP1, REG_SP, CSTACK + s2);
+				M_AST(REG_ITMP1, REG_SP, s2);
 			}
 
 		} else {
@@ -3409,8 +3411,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 					/* JIT stack -> NAT reg */
 
-					s2 = nmd->params[j].regoff; 
-					M_DLD(s2, REG_SP, CSTACK + s1);
+					s2 = BIAS + WINSAVE_CNT * 8 + nmd->params[j].regoff; 
+					M_DLD(s2, REG_SP, s1);
 				}
 				else {
 

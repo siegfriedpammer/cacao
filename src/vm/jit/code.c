@@ -44,6 +44,7 @@
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
 
@@ -75,8 +76,7 @@ bool code_init(void)
 
    The following fields are set in codeinfo:
        m
-	   isleafmethod
-   all other fields are zeroed
+       patchers
 
    RETURN VALUE:
        a new, initialized codeinfo, or
@@ -91,6 +91,8 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 	code = NEW(codeinfo);
 
 	code->m = m;
+
+	patcher_list_create(code);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -315,6 +317,8 @@ void code_codeinfo_free(codeinfo *code)
 
 	if (code->mcode != NULL)
 		CFREE((void *) (ptrint) code->mcode, code->mcodelength);
+
+	patcher_list_free(code);
 
 #if defined(ENABLE_REPLACEMENT)
 	replace_free_replacement_points(code);

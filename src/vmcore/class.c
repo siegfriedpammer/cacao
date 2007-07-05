@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8140 2007-06-25 13:26:23Z michi $
+   $Id: class.c 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -228,13 +228,13 @@ classinfo *class_create_classinfo(utf *classname)
 	/* check if the class is a reference class and flag it */
 
 	if (classname == utf_java_lang_ref_SoftReference) {
-		c->flags |= ACC_CLASS_SOFT_REFERENCE;
+		c->flags |= ACC_CLASS_REFERENCE_SOFT;
 	}
 	else if (classname == utf_java_lang_ref_WeakReference) {
-		c->flags |= ACC_CLASS_WEAK_REFERENCE;
+		c->flags |= ACC_CLASS_REFERENCE_WEAK;
 	}
 	else if (classname == utf_java_lang_ref_PhantomReference) {
-		c->flags |= ACC_CLASS_PHANTOM_REFERENCE;
+		c->flags |= ACC_CLASS_REFERENCE_PHANTOM;
 	}
 #endif
 
@@ -1526,6 +1526,37 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 	}
 
 	return result;
+}
+
+
+/* class_is_array **************************************************************
+
+   Checks if the given class is an array class.
+
+*******************************************************************************/
+
+bool class_is_array(classinfo *c)
+{
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return false;
+
+	return (c->vftbl->arraydesc != NULL);
+}
+
+
+/* class_is_interface **********************************************************
+
+   Checks if the given class is an interface.
+
+*******************************************************************************/
+
+bool class_is_interface(classinfo *c)
+{
+	if (c->flags & ACC_INTERFACE)
+		return true;
+
+	return false;
 }
 
 

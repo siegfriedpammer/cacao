@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 8137 2007-06-22 16:41:36Z michi $
+   $Id: native.h 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -32,7 +32,7 @@
 
 #include "config.h"
 
-#if !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LTDL) && defined(HAVE_LTDL_H)
 # include <ltdl.h>
 #endif
 
@@ -55,13 +55,10 @@
 
 /* table for locating native methods */
 
+#if defined(WITH_STATIC_CLASSPATH)
 typedef struct nativeref nativeref;
 typedef struct nativecompref nativecompref;
-
-
-#if !defined(WITH_STATIC_CLASSPATH)
-typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
-typedef struct hashtable_library_name_entry hashtable_library_name_entry;
+#endif
 
 
 /* native_methods_node_t ******************************************************/
@@ -78,15 +75,21 @@ struct native_methods_node_t {
 
 /* hashtable_library_loader_entry *********************************************/
 
+#if defined(ENABLE_LTDL)
+typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
+typedef struct hashtable_library_name_entry   hashtable_library_name_entry;
+
 struct hashtable_library_loader_entry {
 	hashtable_classloader_entry    *cle;     /* class loader                  */
 	hashtable_library_name_entry   *namelink;/* libs loaded by this loader    */
 	hashtable_library_loader_entry *hashlink;/* link for external chaining    */
 };
+#endif
 
 
 /* hashtable_library_name_entry ***********************************************/
 
+#if defined(ENABLE_LTDL)
 struct hashtable_library_name_entry {
 	utf                          *name;      /* library name                  */
 	lt_dlhandle                   handle;    /* libtool library handle        */
@@ -128,12 +131,13 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 #else /* defined(WITH_STATIC_CLASSPATH) */
 
+# if defined(ENABLE_LTDL)
 lt_dlhandle native_library_open(utf *filename);
 void        native_library_add(utf *filename, java_objectheader *loader,
 							   lt_dlhandle handle);
-
 hashtable_library_name_entry *native_library_find(utf *filename,
 												  java_objectheader *loader);
+# endif
 
 functionptr native_resolve_function(methodinfo *m);
 

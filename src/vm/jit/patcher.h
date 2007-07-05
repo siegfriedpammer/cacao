@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.h 7813 2007-04-25 19:20:13Z twisti $
+   $Id: patcher.h 8160 2007-06-28 01:52:19Z michi $
 
 */
 
@@ -39,6 +39,11 @@
 #include "threads/lock-common.h"
 
 #include "vm/global.h"
+
+
+#if defined(__ARM__)
+# error "you should no longer include this file"
+#else
 
 
 /* patcher macros *************************************************************/
@@ -215,6 +220,8 @@ bool intrp_patcher_invokeinterface(u1 *sp);
 bool intrp_patcher_checkcast_instanceof(u1 *sp);
 bool intrp_patcher_resolve_native(u1 *sp);
 #endif /* defined(ENABLE_INTRP) */
+
+#endif /* architecture list */
 
 #endif /* _PATCHER_H */
 

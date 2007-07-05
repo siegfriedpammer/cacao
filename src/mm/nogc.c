@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: nogc.c 7615 2007-03-29 23:10:59Z michi $
+   $Id: nogc.c 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -45,6 +45,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"

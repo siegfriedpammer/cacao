@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: builtin.c 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -71,7 +71,6 @@
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/patcher.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
@@ -2505,7 +2504,7 @@ s4 builtin_f2i(float a)
 #endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
-#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
+#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) || defined(DISABLE_GC)
 s8 builtin_f2l(float a)
 {
 	s8 l;
@@ -2555,7 +2554,7 @@ s4 builtin_d2i(double a)
 #endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)
+#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L) || defined(DISABLE_GC)
 s8 builtin_d2l(double a)
 {
 	double d;

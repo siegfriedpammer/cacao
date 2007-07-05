@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8137 2007-06-22 16:41:36Z michi $
+   $Id: vm.c 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -1530,16 +1530,16 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	vm_initializing = true;
 
-#if defined(ENABLE_THREADS)
-	/* pre-initialize some core thread stuff, like the stopworldlock,
-	   thus this has to happen _before_ gc_init()!!! */
-
-  	threads_preinit();
-#endif
-
 	/* initialize the garbage collector */
 
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
+
+#if defined(ENABLE_THREADS)
+	/* AFTER: gc_init (directly after, as this initializes the
+	   stopworldlock lock */
+
+  	threads_preinit();
+#endif
 
 	/* install architecture dependent signal handlers */
 
@@ -2785,7 +2785,7 @@ static uint64_t *vm_array_from_jvalue(methodinfo *m, java_objectheader *o,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 bool vm_vmargs_from_objectarray(methodinfo *m, java_objectheader *o,
 								vm_arg *vmargs, java_objectarray *params)
 {
@@ -3188,7 +3188,7 @@ java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
 java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
 										 va_list ap)
 {
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__ARM__) & !defined(__M68K__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 	s4                 vmargscount;
 	vm_arg            *vmargs;
 	java_objectheader *ro;
@@ -3255,7 +3255,7 @@ java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
 java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
 										 const jvalue *args)
 {
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 	s4                 vmargscount;
 	vm_arg            *vmargs;
 	java_objectheader *ro;
@@ -3319,7 +3319,7 @@ java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
 										vm_arg *vmargs)
 {
@@ -3614,7 +3614,7 @@ int32_t vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s8 l;
@@ -3701,7 +3701,7 @@ s8 vm_call_method_long(methodinfo *m, java_objectheader *o, ...)
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 s8 vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap)
 {
 	s4      vmargscount;
@@ -3770,7 +3770,7 @@ int64_t vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list 
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 s8 vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o,
 							  const jvalue *args)
 {
@@ -3841,7 +3841,7 @@ int64_t vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	float f;
@@ -3929,7 +3929,7 @@ float vm_call_method_float(methodinfo *m, java_objectheader *o, ...)
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 float vm_call_method_float_valist(methodinfo *m, java_objectheader *o,
 								  va_list ap)
 {
@@ -3998,7 +3998,7 @@ float vm_call_method_float_valist(methodinfo *m, java_objectheader *o, va_list a
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o,
 								  const jvalue *args)
 {
@@ -4068,7 +4068,7 @@ float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o, const jva
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
 								   vm_arg *vmargs)
 {
@@ -4158,7 +4158,7 @@ double vm_call_method_double(methodinfo *m, java_objectheader *o, ...)
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 double vm_call_method_double_valist(methodinfo *m, java_objectheader *o,
 									va_list ap)
 {
@@ -4228,7 +4228,7 @@ double vm_call_method_double_valist(methodinfo *m, java_objectheader *o, va_list
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) & !defined(__ARM__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__)
 double vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o,
 									const jvalue *args)
 {

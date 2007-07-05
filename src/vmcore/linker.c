@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: linker.c 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -576,9 +576,11 @@ static classinfo *link_class_intern(classinfo *c)
 			if (!link_class(super))
 				return NULL;
 
-		/* OR the ACC_CLASS_HAS_POINTERS flag */
+		/* OR the ACC_CLASS_HAS_POINTERS and the ACC_CLASS_REFERENCE_*
+		   flags. */
 
-		c->flags |= (super->flags & ACC_CLASS_HAS_POINTERS);
+		c->flags |= (super->flags &
+					 (ACC_CLASS_HAS_POINTERS | ACC_CLASS_REFERENCE_MASK));
 
 		/* handle array classes */
 

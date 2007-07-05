@@ -164,3 +164,106 @@ Digest validation failed for stderr.log, expecting 0xda39a3ee5e6b4b0d3255bfef956
 Validation FAILED for eclipse small
 
 <<<<<<<<<<<<<<<<<<<<<<< End Eclispe 10 runs  >>>>>>>>>>>>>>>>>>>>>>>
+
+<<<<<<<<<<<<<<<<<<<<<<< Eclispe 10 runs 26.06.2007 >>>>>>>>>>>>>>>>>>>>>>>
+
+=== 1 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+===== DaCapo eclipse PASSED in 1332477 msec =====
+=== 2 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+===== DaCapo eclipse PASSED in 1553188 msec =====
+=== 3 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+===== DaCapo eclipse PASSED in 1319232 msec =====
+=== 4 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+Exception in thread "Java indexing" java.lang.OutOfMemoryError
+   at org.eclipse.jdt.internal.compiler.util.Util.getInputStreamAsCharArray(Util.java:238)
+   at org.eclipse.jdt.internal.compiler.util.Util.getFileCharContent(Util.java)
+   at org.eclipse.jdt.internal.core.search.JavaSearchDocument.getCharContents(JavaSearchDocument.java:58)
+   at org.eclipse.jdt.internal.core.search.indexing.SourceIndexer.indexDocument(SourceIndexer.java:87)
+   at org.eclipse.jdt.internal.core.search.JavaSearchParticipant.indexDocument(JavaSearchParticipant.java:76)
+   at org.eclipse.jdt.internal.core.search.indexing.IndexManager.indexDocument(IndexManager.java)
+   at org.eclipse.jdt.internal.core.search.indexing.IndexManager$1.execute(IndexManager.java)
+   at org.eclipse.jdt.internal.core.search.processing.JobManager.run(JobManager.java)
+   at java.lang.Thread.run(Thread.java:744)
+   at java.lang.VMThread.run(VMThread.java:148)
+Digest validation failed for stderr.log, expecting 0xda39a3ee5e6b4b0d3255bfef95601890afd80709 found 0x93cd485dca7fd4d628bd98a043045ab4f0c0a0ef
+===== DaCapo eclipse FAILED =====
+Validation FAILED for eclipse small
+=== 5 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+
+===== DaCapo eclipse PASSED in 1278903 msec =====
+
+=== 6 ===
+
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+
+
+===== DaCapo eclipse PASSED in 1361033 msec =====
+=== 7 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+===== DaCapo eclipse PASSED in 1308363 msec =====
+=== 8 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+===== DaCapo eclipse PASSED in 1325536 msec =====
+=== 9 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+===== DaCapo eclipse PASSED in 1281511 msec =====
+=== 10 ===
+===== DaCapo eclipse starting =====
+<setting up workspace...>
+<creating projects..............................................................>
+<running tests at level 0...>
+<performing AST tests...>
+ AST creation: org.eclipse.jdt.internal.compiler.parser
+===== DaCapo eclipse PASSED in 1363537 msec =====
+
+<<<<<<<<<<<<<<<<<<<<<<< End Eclispe 10 runs  >>>>>>>>>>>>>>>>>>>>>>>

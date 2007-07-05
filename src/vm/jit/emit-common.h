@@ -179,6 +179,7 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg);
 void emit_exception_check(codegendata *cd, instruction *iptr);
 
 void emit_patcher_stubs(jitdata *jd);
+void emit_patcher_traps(jitdata *jd);
 #if defined(ENABLE_REPLACEMENT)
 void emit_replacement_stubs(jitdata *jd);
 #endif

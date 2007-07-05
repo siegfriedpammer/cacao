@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8137 2007-06-22 16:41:36Z michi $
+   $Id: java_lang_Class.c 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "vm/types.h"
@@ -61,6 +62,10 @@
 
 #include "native/vm/java_lang_Class.h"
 #include "native/vm/java_lang_String.h"
+
+#if defined(ENABLE_JAVASE)
+# include "native/vm/reflect.h"
+#endif
 
 #include "toolbox/logging.h"
 
@@ -236,16 +241,13 @@ s4 _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class 
  * Method:    isInterface
  * Signature: ()Z
  */
-s4 _Jv_java_lang_Class_isInterface(java_lang_Class *klass)
+JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *this)
 {
 	classinfo *c;
 
-	c = (classinfo *) klass;
+	c = (classinfo *) this;
 
-	if (c->flags & ACC_INTERFACE)
-		return true;
-
-	return false;
+	return class_is_interface(c);
 }
 
 
@@ -555,7 +557,6 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
 	classinfo               *c;
 	java_objectarray        *oa;            /* result: array of field-objects */
 	fieldinfo               *f;
-	java_objectheader       *o;
 	java_lang_reflect_Field *rf;
 	s4 public_fields;                    /* number of elements in field-array */
 	s4 pos;
@@ -584,45 +585,11 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
 		if ((f->flags & ACC_PUBLIC) || (publicOnly == 0)) {
 			/* create Field object */
 
-			o = native_new_and_init(class_java_lang_reflect_Field);
-
-			if (o == NULL)
-				return NULL;
-
-			/* initialize instance fields */
-
-			rf = (java_lang_reflect_Field *) o;
-
-#if defined(WITH_CLASSPATH_GNU)
-
-			rf->clazz = (java_lang_Class *) c;
-
-			/* The name needs to be interned */
-			/* XXX implement me better! */
-
-			rf->name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name));
-			rf->slot           = i;
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-			rf->clazz          = (java_lang_Class *) c;
-
-			/* The name needs to be interned */
-			/* XXX implement me better! */
-
-			rf->name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name));
-			rf->type           = (java_lang_Class *) field_get_type(f);
-			rf->modifiers      = f->flags;
-			rf->slot           = i;
-			rf->signature      = f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL;
-			rf->annotations    = NULL;
-#else
-# error unknown classpath configuration
-#endif
+			rf = reflect_field_new(f);
 
 			/* store object into array */
 
-			oa->data[pos++] = o;
+			oa->data[pos++] = (java_objectheader *) rf;
 		}
 	}
 
@@ -638,7 +605,6 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
 java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly)
 {
 	classinfo                *c;
-	java_objectheader        *o;
 	java_lang_reflect_Method *rm;
 	java_objectarray         *oa;          /* result: array of Method-objects */
 	methodinfo               *m;      /* the current method to be represented */
@@ -646,7 +612,8 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 	s4 pos;
 	s4 i;
 
-	c = (classinfo *) klass;    
+	c = (classinfo *) klass;
+
 	public_methods = 0;
 
 	/* JOWENN: array classes do not declare methods according to mauve
@@ -654,7 +621,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 	   clone method overriding instead of declaring it as a member
 	   function. */
 
-	if (_Jv_java_lang_Class_isArray(klass))
+	if (class_is_array(c))
 		return builtin_anewarray(0, class_java_lang_reflect_Method);
 
 	/* determine number of methods */
@@ -679,51 +646,13 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) && 
 			((m->name != utf_init) && (m->name != utf_clinit)) &&
 			!(m->flags & ACC_MIRANDA)) {
+			/* create Method object */
 
-			o = native_new_and_init(class_java_lang_reflect_Method);
-
-			if (o == NULL)
-				return NULL;
-
-			/* initialize instance fields */
-
-			rm = (java_lang_reflect_Method *) o;
-
-#if defined(WITH_CLASSPATH_GNU)
-
-			rm->clazz       = (java_lang_Class *) m->class;
-
-			/* The name needs to be interned */
-			/* XXX implement me better! */
-
-			rm->name                 = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name));
-			rm->slot                 = i;
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-			rm->clazz                = (java_lang_Class *) m->class;
-
-			/* The name needs to be interned */
-			/* XXX implement me better! */
-
-			rm->name                 = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name));
-			rm->parameterTypes       = method_get_parametertypearray(m);
-			rm->returnType           = (java_lang_Class *) method_returntype_get(m);
-			rm->exceptionTypes       = method_get_exceptionarray(m);
-			rm->modifiers            = m->flags & ACC_CLASS_REFLECT_MASK;
-			rm->slot                 = i;
-			rm->signature            = m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL;
-			rm->annotations          = NULL;
-			rm->parameterAnnotations = NULL;
-			rm->annotationDefault    = NULL;
-
-#else
-# error unknown classpath configuration
-#endif
+			rm = reflect_method_new(m);
 
 			/* store object into array */
 
-			oa->data[pos++] = o;
+			oa->data[pos++] = (java_objectheader *) rm;
 		}
 	}
 
@@ -741,7 +670,6 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *k
 	classinfo                     *c;
 	methodinfo                    *m; /* the current method to be represented */
 	java_objectarray              *oa;     /* result: array of Method-objects */
-	java_objectheader             *o;
 	java_lang_reflect_Constructor *rc;
 	s4 public_methods;               /* number of public methods of the class */
 	s4 pos;
@@ -769,39 +697,13 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *k
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
 			(m->name == utf_init)) {
+			/* create Constructor object */
 
-			o = native_new_and_init(class_java_lang_reflect_Constructor);
-
-			if (o == NULL)
-				return NULL;
-
-			/* initialize instance fields */
-
-			rc = (java_lang_reflect_Constructor *) o;
-
-#if defined(WITH_CLASSPATH_GNU)
-
-			rc->clazz                = (java_lang_Class *) c;
-			rc->slot                 = i;
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-			rc->clazz                = (java_lang_Class *) c;
-			rc->parameterTypes       = method_get_parametertypearray(m);
-			rc->exceptionTypes       = method_get_exceptionarray(m);
-			rc->modifiers            = m->flags & ACC_CLASS_REFLECT_MASK;
-			rc->slot                 = i;
-			rc->signature            = m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL;
-			rc->annotations          = NULL;
-			rc->parameterAnnotations = NULL;
-
-#else
-# error unknown classpath configuration
-#endif
+			rc = reflect_constructor_new(m);
 
 			/* store object into array */
 
-			oa->data[pos++] = o;
+			oa->data[pos++] = (java_objectheader *) rc;
 		}
 	}
 
@@ -834,17 +736,13 @@ java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass
  * Method:    isArray
  * Signature: ()Z
  */
-s4 _Jv_java_lang_Class_isArray(java_lang_Class *klass)
+JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isArray(JNIEnv *env, java_lang_Class *this)
 {
 	classinfo *c;
 
-	c = (classinfo *) klass;
+	c = (classinfo *) this;
 
-	if (!(c->state & CLASS_LINKED))
-		if (!link_class(c))
-			return 0;
-
-	return (c->vftbl->arraydesc != NULL);
+	return class_is_array(c);
 }
 
 
@@ -972,7 +870,6 @@ java_lang_reflect_Constructor *_Jv_java_lang_Class_getEnclosingConstructor(java_
 {
 	classinfo                     *c;
 	methodinfo                    *m;
-	java_objectheader             *o;
 	java_lang_reflect_Constructor *rc;
 
 	c = (classinfo *) klass;
@@ -989,19 +886,9 @@ java_lang_reflect_Constructor *_Jv_java_lang_Class_getEnclosingConstructor(java_
 	if (m->name != utf_init)
 		return NULL;
 
-	/* create java.lang.reflect.Constructor object */
+	/* create Constructor object */
 
-	o = native_new_and_init(class_java_lang_reflect_Constructor);
-
-	if (o == NULL)
-		return NULL;
-
-	/* initialize instance fields */
-
-	rc = (java_lang_reflect_Constructor *) o;
-
-	rc->clazz = (java_lang_Class *) m->class;
-	rc->slot  = m - m->class->methods;               /* calculate method slot */
+	rc = reflect_constructor_new(m);
 
 	return rc;
 }
@@ -1016,7 +903,6 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
 {
 	classinfo                *c;
 	methodinfo               *m;
-	java_objectheader        *o;
 	java_lang_reflect_Method *rm;
 
 	c = (classinfo *) klass;
@@ -1035,25 +921,7 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
 
 	/* create java.lang.reflect.Method object */
 
-	o = native_new_and_init(class_java_lang_reflect_Method);
-
-	if (o == NULL)
-		return NULL;
-
-	/* initialize instance fields */
-
-	rm = (java_lang_reflect_Method *) o;
-
-#if defined(WITH_CLASSPATH_GNU)
-	rm->clazz          = (java_lang_Class *) m->class;
-#elif defined(WITH_CLASSPATH_SUN)
-	rm->clazz          = (java_lang_Class *) m->class;
-#else
-# error unknown classpath configuration
-#endif
-
-	rm->name           = (java_lang_String *) javastring_new(m->name);
-	rm->slot           = m - m->class->methods;      /* calculate method slot */
+	rm = reflect_method_new(m);
 
 	return rm;
 }

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: patcher.c 8143 2007-06-26 15:47:43Z twisti $
 
 */
 
@@ -433,11 +433,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (ra + 7 + 4)) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (ra + 7 + 8 + 2 + 3 + 4 + 1)) =
-		(ptrint) BUILTIN_multianewarray;
 
 	return true;
 }

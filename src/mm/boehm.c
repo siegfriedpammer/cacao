@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: boehm.c 7615 2007-03-29 23:10:59Z michi $
+   $Id: boehm.c 8179 2007-07-05 11:21:08Z michi $
 
 */
 
@@ -75,6 +75,27 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	size_t heapcurrentsize;
 
+	/* just to be sure (should be set to 1 by JAVA_FINALIZATION macro) */
+
+	GC_java_finalization = 1;
+
+	/* Ignore pointers that do not point to the start of an object. */
+
+	GC_all_interior_pointers = 0;
+
+	/* suppress warnings */
+
+	GC_set_warn_proc(gc_ignore_warnings);
+
+	/* install a GC notifier */
+
+	GC_finalize_on_demand = 1;
+	GC_finalizer_notifier = finalizer_notify;
+
+	/* define OOM function */
+
+	GC_oom_fn = gc_out_of_memory;
+
 	GC_INIT();
 
 	/* set the maximal heap size */
@@ -85,26 +106,8 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 	heapcurrentsize = GC_get_heap_size();
 
-	if (heapstartsize > heapcurrentsize) {
+	if (heapstartsize > heapcurrentsize)
 		GC_expand_hp(heapstartsize - heapcurrentsize);
-	}
-
-	/* define OOM function */
-
-	GC_oom_fn = gc_out_of_memory;
-
-	/* just to be sure (should be set to 1 by JAVA_FINALIZATION macro) */
-
-	GC_java_finalization = 1;
-
-	/* suppress warnings */
-
-	GC_set_warn_proc(gc_ignore_warnings);
-
-	/* install a GC notifier */
-
-	GC_finalize_on_demand = 1;
-	GC_finalizer_notifier = finalizer_notify;
 }
 
 

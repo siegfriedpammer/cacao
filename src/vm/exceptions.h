@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: exceptions.h 8178 2007-07-05 11:13:20Z michi $
 
 */
 
@@ -36,6 +36,8 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
+
+#include "vm/jit/stacktrace.h"
 
 #include "vmcore/references.h"
 #include "vmcore/method.h"
@@ -51,7 +53,7 @@
    8-byte boundaries, since normal loads could have such offsets with
    a base of NULL which should result in a NullPointerException.
 
-   NOTE: In signal_init() we have a check whether the offset of
+   NOTE: In exceptions_init() we have a check whether the offset of
    java_objectheader.data[0] is greater than the largest displacement
    defined below.  Otherwise normal array loads/stores could trigger
    an exception.
@@ -65,6 +67,9 @@
 
 #define EXCEPTION_HARDWARE_EXCEPTION                5
 #define EXCEPTION_HARDWARE_PATCHER                  6
+#define EXCEPTION_HARDWARE_COMPILER                 7
+
+#define EXCEPTION_HARDWARE_LARGEST                  7
 
 
 /* function prototypes ********************************************************/
@@ -133,7 +138,7 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void);
 
 java_objectheader *exceptions_fillinstacktrace(void);
 
-java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val);
+java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val, stackframeinfo *sfi);
 
 void exceptions_print_exception(java_objectheader *xptr);
 void exceptions_print_current_exception(void);

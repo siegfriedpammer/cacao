@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: md.c 8178 2007-07-05 11:13:20Z michi $
 
 */
 
@@ -145,6 +145,7 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
+	stackframeinfo     sfi;
 	ucontext_t        *_uc;
 	mcontext_t        *_mc;
 	u1                *pv;
@@ -191,7 +192,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	type = EXCEPTION_HARDWARE_NULLPOINTER;
 	val = 0;
 
-	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
 	_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
 	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
@@ -199,6 +200,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 }
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
+	stackframeinfo     sfi;
 	ucontext_t        *_uc;
 	mcontext_t        *_mc;
 	u1                *xpc;
@@ -228,7 +230,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 		sp = (u1 *)_mc->gregs[REG_SP];
 		val = (ptrint)_mc->gregs[reg];
 
-		e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+		e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
 		_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
 		_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
@@ -251,6 +253,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
+	stackframeinfo      sfi;
 	ucontext_t         *_uc;
 	mcontext_t         *_mc;
 	u1                 *pv;
@@ -302,7 +305,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			type = EXCEPTION_HARDWARE_ARITHMETIC;
 			val = 0;
 
-			e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+			e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
 			_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
 			_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
