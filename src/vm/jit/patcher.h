@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.h 8160 2007-06-28 01:52:19Z michi $
+   $Id: patcher.h 8186 2007-07-05 23:48:16Z michi $
 
 */
 
@@ -41,7 +41,7 @@
 #include "vm/global.h"
 
 
-#if defined(__ARM__)
+#if defined(__ALPHA__) || defined(__ARM__)
 # error "you should no longer include this file"
 #else
 

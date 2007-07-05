@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8178 2007-07-05 11:13:20Z michi $
+   $Id: md-os.c 8186 2007-07-05 23:48:16Z michi $
 
 */
 
@@ -112,9 +112,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	_mc->sc_regs[REG_ITMP1_XPTR] = (ptrint) e;
-	_mc->sc_regs[REG_ITMP2_XPC]  = (ptrint) xpc;
-	_mc->sc_pc                   = (ptrint) asm_handle_exception;
+	if (e != NULL) {
+		_mc->sc_regs[REG_ITMP1_XPTR] = (ptrint) e;
+		_mc->sc_regs[REG_ITMP2_XPC]  = (ptrint) xpc;
+		_mc->sc_pc                   = (ptrint) asm_handle_exception;
+	}
 }
 
 

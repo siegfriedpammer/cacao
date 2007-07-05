@@ -130,7 +130,6 @@ methodinfo *code_get_methodinfo_for_pv(u1 *pv);
 
 #if defined(ENABLE_REPLACEMENT)
 int code_get_sync_slot_count(codeinfo *code);
-int code_get_stack_frame_size(codeinfo *code);
 #endif /* defined(ENABLE_REPLACEMENT) */
 
 void code_free_code_of_method(methodinfo *m);
