@@ -127,11 +127,13 @@ void gc_reference_register(java_objectheader **ref)
 	   reference is not yet set */
 	GC_ASSERT(*ref == NULL);
 
-	/* are we called from threads_preinit? */
-	if (gc_reflist == NULL) {
+#if defined(ENABLE_THREADS)
+	/* XXX dirty hack because threads_init() not yet called */
+	if (THREADOBJECT == NULL) {
 		GC_LOG( dolog("GC: Unable to register Reference!"); );
 		return;
 	}
+#endif
 
 	GC_LOG2( printf("Registering Reference at %p\n", (void *) ref); );
 
