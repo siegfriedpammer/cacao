@@ -71,6 +71,7 @@ typedef struct ucontext {
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
+	stackframeinfo     sfi;
 	ucontext_t        *_uc;
 	scontext_t        *_sc;
 	u1                *pv;
@@ -100,7 +101,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* this is a NullPointerException */
 
-/* 	addr = _mc->gregs[s1]; */
 	addr = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + ((mcode >> 16) & 0x0f));
 	type = EXCEPTION_HARDWARE_NULLPOINTER;
 	val  = 0;
@@ -110,7 +110,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
 	/* set registers */
 
@@ -128,6 +128,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
+	stackframeinfo     sfi;
 	ucontext_t        *_uc;
 	scontext_t        *_sc;
 	u1                *pv;
@@ -164,7 +165,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
 	/* set registers if we have an exception, return continue execution
 	   otherwise (this is needed for patchers to work) */

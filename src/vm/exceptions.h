@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 8146 2007-06-27 09:04:17Z michi $
+   $Id: exceptions.h 8178 2007-07-05 11:13:20Z michi $
 
 */
 
@@ -36,6 +36,8 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
+
+#include "vm/jit/stacktrace.h"
 
 #include "vmcore/references.h"
 #include "vmcore/method.h"
@@ -136,7 +138,7 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void);
 
 java_objectheader *exceptions_fillinstacktrace(void);
 
-java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val);
+java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val, stackframeinfo *sfi);
 
 void exceptions_print_exception(java_objectheader *xptr);
 void exceptions_print_current_exception(void);

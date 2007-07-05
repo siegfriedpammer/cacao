@@ -90,6 +90,7 @@ void md_init_linux()
  **********************************************************************/
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_uc) 
 { 	
+	stackframeinfo sfi;
 	uint32_t	xpc, sp;
 	uint16_t	opc;
 	uint32_t 	val, regval, off;
@@ -140,7 +141,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_
 
 	/*fprintf(stderr, "SEGV: sp=%x, xpc=%x, regval=%x\n", sp, xpc, regval);
 	*/
-	e = exceptions_new_hardware_exception(0, sp, xpc, xpc, EXCEPTION_HARDWARE_NULLPOINTER, regval);
+	e = exceptions_new_hardware_exception(0, sp, xpc, xpc, EXCEPTION_HARDWARE_NULLPOINTER, regval, &sfi);
 
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (ptrint) e;
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (ptrint) xpc;
@@ -157,6 +158,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_
  **********************************************************************/
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_uc) 
 {
+	stackframeinfo sfi;
 	uint32_t	xpc, sp;
 	uint16_t	opc;
 	uint32_t	type;
@@ -209,7 +211,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_u
 
 	/*fprintf(stderr, "NEW HWE: sp=%x, xpc=%x, tpye=%x, regval=%x\n", sp, xpc, type, regval);
 	*/
-	e = exceptions_new_hardware_exception(0, sp, xpc, xpc, type, regval);
+	e = exceptions_new_hardware_exception(0, sp, xpc, xpc, type, regval, &sfi);
 
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (ptrint) e;
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (ptrint) xpc;

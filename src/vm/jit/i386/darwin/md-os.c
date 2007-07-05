@@ -63,6 +63,7 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
+	stackframeinfo       sfi;
 	ucontext_t          *_uc;
 	mcontext_t           _mc;
 	u1                  *pv;
@@ -122,7 +123,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
     /* generate appropriate exception */
 
-    o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+    o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
     /* set registers */
 
@@ -141,6 +142,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
+	stackframeinfo       sfi;
 	ucontext_t          *_uc;
 	mcontext_t           _mc;
     u1                  *pv;
@@ -169,7 +171,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
     /* generate appropriate exception */
 
-    o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+    o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
     _ss->eax = (ptrint) o;
 	_ss->ecx = (ptrint) xpc;

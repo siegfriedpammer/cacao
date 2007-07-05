@@ -87,6 +87,7 @@ ptrint md_get_reg_from_context(sigcontext *ctx, u4 rindex)
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 {
+	stackframeinfo     sfi;
 	/*
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;
@@ -141,7 +142,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 	}
 
 
-	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
 	/* set registers */
 

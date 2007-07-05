@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 7880 2007-05-07 14:13:45Z twisti $
+   $Id: md-os.c 8178 2007-07-05 11:13:20Z michi $
 
 */
 
@@ -85,6 +85,7 @@ void md_init(void)
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
+	stackframeinfo     sfi;
 	ucontext_t        *_uc;
 	mcontext_t        *_mc;
 	greg_t            *_gregs;
@@ -173,7 +174,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val);
+	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
 
 	/* set registers */
 
