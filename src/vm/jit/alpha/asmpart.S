@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
+   $Id: asmpart.S 8186 2007-07-05 23:48:16Z michi $
 
 */
 
@@ -58,8 +58,6 @@
 	.globl asm_handle_nat_exception
 
 	.globl asm_abstractmethoderror
-
-	.globl asm_patcher_wrapper
 
 #if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
@@ -432,73 +430,6 @@ asm_abstractmethoderror:
 	.end    asm_abstractmethoderror
 
 
-/* asm_patcher_wrapper *********************************************************
-
-   XXX
-
-   Stack layout:
-     40   return address into JIT code (patch position)
-     32   pointer to virtual java_objectheader
-     24   machine code (which is patched back later)
-     16   unresolved class/method/field reference
-      8   data segment displacement from load instructions
-      0   patcher function pointer to call (pv afterwards)
-
-   ATTENTION: itmp3 == gp! But we don't need gp do call the patcher function.
-
-*******************************************************************************/
-		
-	.ent    asm_patcher_wrapper
-
-asm_patcher_wrapper:
-	lda     sp,-((2+12+27+4)*8)(sp) /* create stack frame                     */
-
-	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
-	SAVE_ARGUMENT_REGISTERS(2)    /* save 6 int/6 float argument registers    */
-	SAVE_TEMPORARY_REGISTERS(14)  /* save 11 int/16 float temporary registers */
-
-	stq     itmp1,(2+12+27+0)*8(sp) /* save itmp1                             */
-	stq     itmp2,(2+12+27+1)*8(sp) /* save itmp2                             */
-	stq     ra,(2+12+27+2)*8(sp)  /* save method return address (for leafs)   */
-	stq     pv,(2+12+27+3)*8(sp)  /* save pv of calling java function         */
-
-	br      ra,L_asm_patcher_wrapper_load_gp
-L_asm_patcher_wrapper_load_gp:
-	ldgp    gp,0(ra)              /* load gp (it's not set correctly in jit)  */
-
-	lda     a0,(2+12+27+4)*8(sp)  /* pass SP of patcher stub                  */
-	mov     pv,a1                 /* pass PV                                  */
-	ldq     a2,(2+12+27+2)*8(sp)  /* pass RA (correct for leafs)              */
-	jsr     ra,patcher_wrapper
-	ldgp    gp,0(ra)
-	stq     v0,(0+2+12+27+4)*8(sp) /* save return value                       */
-
-	RESTORE_RETURN_REGISTERS(0)   /* restore 1 int/1 float return registers   */
-	RESTORE_ARGUMENT_REGISTERS(2) /* restore 6 int/6 float argument registers */
-	RESTORE_TEMPORARY_REGISTERS(14) /* restore 11 integer temporary registers */
-
-	ldq     itmp1,(2+12+27+0)*8(sp) /* restore itmp1                          */
-	ldq     itmp2,(2+12+27+1)*8(sp) /* restore itmp2                          */
-	ldq     ra,(2+12+27+2)*8(sp)  /* restore method return address (for leafs)*/
-	ldq     pv,(2+12+27+3)*8(sp)  /* restore pv of calling java function      */
-
-	ldq     itmp3,(0+2+12+27+4)*8(sp) /* get return value                     */
-	bne     itmp3,L_asm_patcher_wrapper_exception
-
-	ldq     itmp3,(5+2+12+27+4)*8(sp) /* get RA to JIT                        */
-	lda     sp,(6+2+12+27+4)*8(sp) /* remove stack frame                      */
-
-	jmp     zero,(itmp3)          /* jump to new patched code                 */
-
-L_asm_patcher_wrapper_exception:
-	mov     itmp3,xptr            /* get exception                            */
-	ldq     xpc,(5+2+12+27+4)*8(sp) /* RA is xpc                              */
-	lda     sp,(6+2+12+27+4)*8(sp) /* remove stack frame                      */
-	br      L_asm_handle_exception
-
-	.end	asm_patcher_wrapper
-
-		
 #if defined(ENABLE_REPLACEMENT)
 
 /* asm_replacement_out *********************************************************

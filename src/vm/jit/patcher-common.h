@@ -77,7 +77,7 @@ java_objectheader *patcher_handler(u1 *pc);
 
 /* patcher prototypes and macros **********************************************/
 
-#if defined(__ARM__)
+#if defined(__ALPHA__) || defined(__ARM__)
 
 /* new patcher functions */
 
@@ -139,6 +139,18 @@ bool patcher_invokevirtual(patchref_t *pr);
 
 bool patcher_invokeinterface(patchref_t *pr);
 #define PATCHER_invokeinterface (functionptr) patcher_invokeinterface
+
+#if defined(__ALPHA__)
+
+bool patcher_checkcast_interface(patchref_t *pr);
+#define PATCHER_checkcast_interface (functionptr) patcher_checkcast_interface
+
+bool patcher_instanceof_interface(patchref_t *pr);
+#define PATCHER_instanceof_interface (functionptr) patcher_instanceof_interface
+
+#endif /* defined(__ALPHA__) */
+
+
 
 #endif /* architecture list */
 
