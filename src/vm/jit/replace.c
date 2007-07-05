@@ -1107,7 +1107,7 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	/* calculate base stack pointer */
 
-	basesp = sp + code_get_stack_frame_size(code);
+	basesp = sp + code->stackframesize;
 
 	/* create the source frame */
 
@@ -1326,7 +1326,7 @@ static void replace_write_executionstate(rplpoint *rp,
 
 	sp = (stackslot_t *) es->sp;
 
-	basesp = sp + code_get_stack_frame_size(code);
+	basesp = sp + code->stackframesize;
 
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
@@ -3116,7 +3116,7 @@ void replace_executionstate_println(executionstate_t *es)
 
 	if (es->code) {
 		methoddesc *md = es->code->m->parseddesc;
-		slots = code_get_stack_frame_size(es->code);
+		slots = es->code->stackframesize;
 		extraslots = 1 + md->memuse;
 	}
 	else
