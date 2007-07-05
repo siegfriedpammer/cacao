@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8137 2007-06-22 16:41:36Z michi $
+   $Id: threads.c 8181 2007-07-05 20:23:10Z michi $
 
 */
 
@@ -495,7 +495,7 @@ static void threads_cast_irixresume(void)
 #endif
 #endif
 
-#if !defined(__DARWIN__)
+#if defined(ENABLE_GC_BOEHM) && !defined(__DARWIN__)
 static void threads_sigsuspend_handler(ucontext_t *_uc)
 {
 	int sig;

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8160 2007-06-28 01:52:19Z michi $
+   $Id: codegen.c 8181 2007-07-05 20:23:10Z michi $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/global.h"
 #include "vm/vm.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -2257,7 +2258,12 @@ bool codegen_emit(jitdata *jd)
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = dseg_add_functionptr(cd, bte->fp);
+
+				if (bte->stub == NULL) {
+					disp = dseg_add_functionptr(cd, bte->fp);
+				} else {
+					disp = dseg_add_functionptr(cd, bte->stub);
+				}
 
 				M_DSEG_LOAD(REG_PV, disp); /* pointer to built-in-function */
 
@@ -2894,6 +2900,143 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
+/* codegen_emit_stub_builtin ***************************************************
+
+   Emits a stub routine which calls a builtin function.
+
+*******************************************************************************/
+
+void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
+{
+	codeinfo    *code;
+	codegendata *cd;
+	methoddesc  *md;
+	s4           i;
+	s4           disp;
+	s4           s1;
+
+	/* get required compiler data */
+
+	code = jd->code;
+	cd   = jd->cd;
+
+	/* set some variables */
+
+	md = bte->md;
+
+	/* calculate stack frame size */
+
+	cd->stackframesize =
+		SIZEOF_VOID_P +                                    /* return address  */
+		sizeof(stackframeinfo);                            /* stackframeinfo  */
+
+	/* align stack to 8-byte */
+
+	cd->stackframesize = (cd->stackframesize + 4) & ~4;
+
+	/* create method header */
+
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize);     /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
+	(void) dseg_addlinenumbertablesize(cd);
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
+
+	/* generate stub code */
+
+	M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - 1);
+	M_STMFD(1<<REG_LR, REG_SP);
+
+#if defined(ENABLE_GC_CACAO)
+	/* Save callee saved integer registers in stackframeinfo (GC may
+	   need to recover them during a collection). */
+
+	disp = cd->stackframesize - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_STR_INTERN(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
+
+	/* Save integer and float argument registers (these are 4
+	   registers, stack is 8-byte aligned). */
+
+	M_STMFD(BITMASK_ARGS, REG_SP);
+
+	/* create builtin stackframe info */
+
+	assert(IS_IMM(4*4 + cd->stackframesize));
+	M_ADD_IMM(REG_A0, REG_SP, 4*4 + cd->stackframesize);
+	M_MOV(REG_A1, REG_PV);
+	M_ADD_IMM(REG_A2, REG_SP, 4*4 + cd->stackframesize);
+	M_LDR_INTERN(REG_A3, REG_SP, 4*4);
+	disp = dseg_add_functionptr(cd, codegen_stub_builtin_enter);
+	M_DSEG_BRANCH(disp);
+
+	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
+	M_RECOMPUTE_PV(s1);
+
+	/* Restore integer and float argument registers (these are 4
+	   registers, stack is 8-byte aligned). */
+
+	M_LDMFD(BITMASK_ARGS, REG_SP);
+
+	/* builtins are allowed to have 4 arguments max */
+
+	assert(md->paramcount <= 4);
+	for (i = 0; i < md->paramcount; i++) {
+		assert(!IS_2_WORD_TYPE(md->paramtypes[i].type));
+	}
+
+	/* call the builtin function */
+
+	disp = dseg_add_functionptr(cd, bte->fp);
+	M_DSEG_BRANCH(disp);
+
+	/* recompute pv */
+
+	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
+	M_RECOMPUTE_PV(s1);
+
+	/* save return value */
+
+	assert(!IS_FLT_DBL_TYPE(md->returntype.type));
+	M_STMFD(BITMASK_RESULT, REG_SP);
+
+	/* remove builtin stackframe info */
+
+	M_ADD_IMM(REG_A0, REG_SP, 2*4 + cd->stackframesize);
+	disp = dseg_add_functionptr(cd, codegen_stub_builtin_exit);
+	M_DSEG_BRANCH(disp);
+	/*s1 = (s4) (cd->mcodeptr - cd->mcodebase);
+	M_RECOMPUTE_PV(s1);*/
+
+	/* restore return value */
+
+	M_LDMFD(BITMASK_RESULT, REG_SP);
+
+#if defined(ENABLE_GC_CACAO)
+	/* Restore callee saved integer registers from stackframeinfo (GC
+	   might have modified them during a collection). */
+        
+	disp = cd->stackframesize - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_LDR_INTERN(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
+
+	/* remove stackframe and return */
+
+	M_LDMFD(1<<REG_LR, REG_SP);
+	M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - 1);
+	M_MOV(REG_PC, REG_LR);
+}
+
+
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.
@@ -2966,6 +3109,17 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		if (opt_showdisassemble)
 			M_NOP;
 	}
+#endif
+
+#if defined(ENABLE_GC_CACAO)
+	/* Save callee saved integer registers in stackframeinfo (GC may
+	   need to recover them during a collection). */
+
+	disp = cd->stackframesize - SIZEOF_VOID_P - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_STR_INTERN(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
 #endif
 
 	/* Save integer and float argument registers (these are 4
@@ -3101,6 +3255,17 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	M_MOV(REG_ITMP1_XPTR, REG_RESULT);
 	M_LDMFD(BITMASK_RESULT, REG_SP);
+
+#if defined(ENABLE_GC_CACAO)
+	/* restore callee saved int registers from stackframeinfo (GC might have  */
+	/* modified them during a collection).                                    */
+
+	disp = cd->stackframesize - SIZEOF_VOID_P - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
+
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_LDR_INTERN(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
 
 	/* finish stub code, but do not yet return to caller */
 
