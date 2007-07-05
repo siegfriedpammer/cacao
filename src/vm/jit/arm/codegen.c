@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8181 2007-07-05 20:23:10Z michi $
+   $Id: codegen.c 8183 2007-07-05 20:37:05Z michi $
 
 */
 
@@ -321,6 +321,9 @@ bool codegen_emit(jitdata *jd)
 
 	/* end of header generation */
 
+	/* create replacement points */
+	REPLACEMENT_POINTS_INIT(cd, jd);
+
 	/* SECTION: ICMD Code Generation */
 	/* for all basic blocks */
 
@@ -336,6 +339,9 @@ bool codegen_emit(jitdata *jd)
 		/* branch resolving */
 
 		codegen_resolve_branchrefs(cd, bptr);
+
+		/* handle replacement points */
+		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
 
 		/* copy interface registers to their destination */
 
@@ -2072,6 +2078,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 
 #if !defined(ENABLE_SOFTFLOAT)
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			M_CAST_FLT_TO_INT_TYPED(VAROP(iptr->s1)->type, s1, REG_RESULT);
 			goto ICMD_RETURN_do;
@@ -2079,6 +2086,7 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 			goto ICMD_RETURN_do;
@@ -2086,6 +2094,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
 
 #if !defined(ENABLE_SOFTFLOAT)
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			M_CAST_FLT_TO_INT_TYPED(VAROP(iptr->s1)->type, s1, REG_RESULT_PACKED);
 			goto ICMD_RETURN_do;
@@ -2093,12 +2102,14 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT_PACKED);
 			M_LNGMOVE(s1, REG_RESULT_PACKED);
 			goto ICMD_RETURN_do;
 
 		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
 
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
@@ -2111,6 +2122,8 @@ bool codegen_emit(jitdata *jd)
 			goto ICMD_RETURN_do;
 
 		case ICMD_RETURN:       /* ...  ==> ...                               */
+
+			REPLACEMENT_POINT_RETURN(cd, iptr);
 			ICMD_RETURN_do:
 
 #if !defined(NDEBUG)
@@ -2190,6 +2203,8 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
+
+			REPLACEMENT_POINT_INVOKE(cd, iptr);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				lm = NULL;
@@ -2360,6 +2375,9 @@ bool codegen_emit(jitdata *jd)
 				M_RECOMPUTE_PV(s1);
 				break;
 			}
+
+			/* store size of call code in replacement point */
+			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 
 			/* store return value */
 
@@ -2870,6 +2888,7 @@ bool codegen_emit(jitdata *jd)
 	/* generate stubs */
 
 	emit_patcher_traps(jd);
+	REPLACEMENT_EMIT_STUBS(jd);
 
 	/* everything's ok */
 
